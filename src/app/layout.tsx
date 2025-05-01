@@ -30,13 +30,13 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className="flex box-border h-full w-full"
+      className="box-border flex h-full w-full"
       suppressHydrationWarning={true}
     >
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${lora.variable} antialiased h-full w-full bg-zinc-950 p-2`}
+        className={`${geistSans.variable} ${geistMono.variable} ${lora.variable} h-full w-full bg-zinc-950 p-2 antialiased`}
       >
-        <div className="flex h-full w-full flex-col bg-zinc-900 text-zinc-100 rounded-xl">
+        <div className="flex h-full w-full flex-col rounded-xl bg-zinc-900 text-zinc-100">
           {children}
         </div>
       </body>

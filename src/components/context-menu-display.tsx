@@ -243,19 +243,14 @@ export function ContextMenuDisplay({
 
         {/* --- Change Type Submenu --- */}
         <div
-          className={getItemClasses(isLoading) + " relative group bg-zinc-800"}
+          className={getItemClasses(isLoading) + " group relative bg-zinc-800"}
         >
           {" "}
           {/* Add relative and group */}
           <span>Change Type ({clickedEdge.type || "default"})</span>
           {/* Submenu Div - Apply transition classes */}
           <div
-            className={`
-                   absolute left-full top-0 ml-1 min-w-[120px] z-10 bg-zinc-800
-                   bg-zinc-750 border border-zinc-600 shadow-lg rounded-sm py-1
-                   opacity-0 invisible group-hover:opacity-100 group-hover:visible
-                   transition-all duration-150 ease-in-out delay-100 group-hover:delay-0
-                 `}
+            className={`bg-zinc-750 invisible absolute top-0 left-full z-10 ml-1 min-w-[120px] rounded-sm border border-zinc-600 bg-zinc-800 py-1 opacity-0 shadow-lg transition-all delay-100 duration-150 ease-in-out group-hover:visible group-hover:opacity-100 group-hover:delay-0`}
           >
             {edgeTypesOptions.map((type) => (
               <button
@@ -280,19 +275,14 @@ export function ContextMenuDisplay({
 
         {/* --- Change Color Submenu --- */}
         <div
-          className={getItemClasses(isLoading) + " relative group bg-zinc-800"}
+          className={getItemClasses(isLoading) + " group relative bg-zinc-800"}
         >
           {" "}
           {/* Add relative and group */}
           <span>Change Color</span>
           {/* Submenu Div - Apply transition classes */}
           <div
-            className={`
-                   absolute left-full top-0 ml-1 min-w-[120px] z-10 bg-zinc-800
-                   bg-zinc-750 border border-zinc-600 shadow-lg rounded-sm py-1
-                   opacity-0 invisible group-hover:opacity-100 group-hover:visible
-                   transition-all duration-150 ease-in-out delay-100 group-hover:delay-0
-                 `}
+            className={`bg-zinc-750 invisible absolute top-0 left-full z-10 ml-1 min-w-[120px] rounded-sm border border-zinc-600 bg-zinc-800 py-1 opacity-0 shadow-lg transition-all delay-100 duration-150 ease-in-out group-hover:visible group-hover:opacity-100 group-hover:delay-0`}
           >
             {edgeColorOptions.map((colorOpt) => (
               <button
@@ -316,7 +306,7 @@ export function ContextMenuDisplay({
               >
                 {/* Visual color indicator */}
                 <span
-                  className="inline-block w-3 h-3 rounded-full mr-2 border border-zinc-500"
+                  className="mr-2 inline-block h-3 w-3 rounded-full border border-zinc-500"
                   style={{ backgroundColor: colorOpt.value || "transparent" }}
                 ></span>
                 {colorOpt.name}
@@ -346,7 +336,7 @@ export function ContextMenuDisplay({
   return (
     <div
       ref={ref}
-      className="absolute z-[1000] min-w-[180px] rounded-sm bg-zinc-800 py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+      className="ring-opacity-5 absolute z-[1000] min-w-[180px] rounded-sm bg-zinc-800 py-1 shadow-lg ring-1 ring-black focus:outline-none"
       style={{ top: y, left: x }}
     >
       {nodeId && nodeMenuItems}

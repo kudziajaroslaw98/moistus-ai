@@ -142,16 +142,16 @@ export default function NodeEditModal({
         {/* AI Data Display (Read-Only) */}
         {(aiSummary || extractedConcepts) && (
           <div>
-            <h3 className="text-md font-semibold text-zinc-200 mb-2">
+            <h3 className="text-md mb-2 font-semibold text-zinc-200">
               AI Insights
             </h3>
             {aiSummary && (
-              <div className="mb-3 text-sm text-zinc-400 italic max-h-24 overflow-y-auto">
+              <div className="mb-3 max-h-24 overflow-y-auto text-sm text-zinc-400 italic">
                 <span className="font-semibold">Summary:</span> {aiSummary}
               </div>
             )}
             {extractedConcepts && extractedConcepts.length > 0 && (
-              <div className="text-sm text-zinc-400 italic max-h-24 overflow-y-auto">
+              <div className="max-h-24 overflow-y-auto text-sm text-zinc-400 italic">
                 <span className="font-semibold">Concepts:</span>{" "}
                 {extractedConcepts.join(", ")}
               </div>
@@ -162,14 +162,14 @@ export default function NodeEditModal({
         <div className="flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="rounded-sm border border-zinc-600 px-4 py-2 text-sm font-medium text-zinc-300 shadow-sm hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-800 disabled:opacity-50"
+            className="rounded-sm border border-zinc-600 px-4 py-2 text-sm font-medium text-zinc-300 shadow-sm hover:bg-zinc-700 focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none disabled:opacity-50"
             disabled={isLoading}
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="rounded-sm border border-transparent bg-teal-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-zinc-800 disabled:opacity-50"
+            className="rounded-sm border border-transparent bg-teal-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-teal-700 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none disabled:opacity-50"
             disabled={isLoading || !SpecificFormComponent} // Also disable if form couldn't load
           >
             {isLoading ? "Saving..." : "Save Changes"}

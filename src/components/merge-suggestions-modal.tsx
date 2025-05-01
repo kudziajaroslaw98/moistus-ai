@@ -43,15 +43,15 @@ export default function MergeSuggestionsModal({
           {suggestions.map((suggestion, index) => (
             <div
               key={`${suggestion.node1Id}-${suggestion.node2Id}-${index}`}
-              className="rounded-sm border border-zinc-700 bg-zinc-750 p-3 shadow-sm" // Use slightly different bg
+              className="bg-zinc-750 rounded-sm border border-zinc-700 p-3 shadow-sm" // Use slightly different bg
             >
               <p className="mb-2 text-sm text-zinc-300">
                 Merge &quot;
-                <span className="font-semibold italic text-zinc-100">
+                <span className="font-semibold text-zinc-100 italic">
                   {getNodeContentSnippet(suggestion.node2Id)}
                 </span>
                 &quot; into &quot;
-                <span className="font-semibold italic text-zinc-100">
+                <span className="font-semibold text-zinc-100 italic">
                   {getNodeContentSnippet(suggestion.node1Id)}
                 </span>
                 &quot;?
@@ -64,14 +64,14 @@ export default function MergeSuggestionsModal({
               <div className="flex justify-end gap-2">
                 <button
                   onClick={() => onDismiss(suggestion)}
-                  className="rounded-sm border border-zinc-600 px-3 py-1 text-xs font-medium text-zinc-300 hover:bg-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-750 disabled:opacity-50"
+                  className="focus:ring-offset-zinc-750 rounded-sm border border-zinc-600 px-3 py-1 text-xs font-medium text-zinc-300 hover:bg-zinc-600 focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
                   disabled={isLoading}
                 >
                   Dismiss
                 </button>
                 <button
                   onClick={() => onAccept(suggestion)}
-                  className="rounded-sm border border-transparent bg-emerald-600 px-3 py-1 text-xs font-medium text-white shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-zinc-750 disabled:opacity-50"
+                  className="focus:ring-offset-zinc-750 rounded-sm border border-transparent bg-emerald-600 px-3 py-1 text-xs font-medium text-white shadow-sm hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
                   disabled={isLoading}
                 >
                   {isLoading ? "Merging..." : "Accept"}

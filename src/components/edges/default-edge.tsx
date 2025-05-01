@@ -51,7 +51,7 @@ export default function DefaultEdge({
               pointerEvents: "all", // Allow clicks on the label
               zIndex: 999, // Ensure label is above other elements
             }}
-            className="text-xs bg-zinc-700 text-zinc-200 px-1.5 py-0.5 rounded shadow-sm cursor-pointer" // Tailwind label style
+            className="cursor-pointer rounded bg-zinc-700 px-1.5 py-0.5 text-xs text-zinc-200 shadow-sm" // Tailwind label style
           >
             {data.label}
           </div>

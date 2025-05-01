@@ -141,28 +141,28 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="w-full p-6 md:p-8 bg-zinc-900 min-h-screen">
-      <div className="max-w-4xl mx-auto w-full h-full">
-        <h1 className="text-3xl font-bold text-zinc-100 mb-8">
+    <div className="min-h-screen w-full bg-zinc-900 p-6 md:p-8">
+      <div className="mx-auto h-full w-full max-w-4xl">
+        <h1 className="mb-8 text-3xl font-bold text-zinc-100">
           Your Mind Maps
         </h1>
 
         {/* Create New Map Form */}
         <form
           onSubmit={handleCreateMap}
-          className="mb-8 flex flex-col sm:flex-row gap-3"
+          className="mb-8 flex flex-col gap-3 sm:flex-row"
         >
           <input
             type="text"
             value={newMapTitle}
             onChange={(e) => setNewMapTitle(e.target.value)}
             placeholder="New Mind Map Title"
-            className="flex-grow rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm placeholder-zinc-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 sm:text-sm"
+            className="flex-grow rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 placeholder-zinc-400 shadow-sm focus:border-teal-500 focus:ring-1 focus:ring-teal-500 focus:outline-none sm:text-sm"
             disabled={isCreating}
           />
           <button
             type="submit"
-            className="inline-flex items-center justify-center rounded-sm border border-transparent bg-teal-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-zinc-900 disabled:opacity-50"
+            className="inline-flex items-center justify-center rounded-sm border border-transparent bg-teal-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-teal-700 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-zinc-900 focus:outline-none disabled:opacity-50"
             disabled={!newMapTitle.trim() || isCreating}
           >
             {/* <FiPlus className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" /> */}
@@ -172,28 +172,28 @@ export default function DashboardPage() {
 
         {/* Loading/Error State */}
         {loading && mindMaps.length > 0 && (
-          <p className="text-zinc-400 mb-4">Refreshing maps...</p>
+          <p className="mb-4 text-zinc-400">Refreshing maps...</p>
         )}
-        {error && <p className="text-red-400 mb-4">Error: {error}</p>}
+        {error && <p className="mb-4 text-red-400">Error: {error}</p>}
 
         {/* Mind Map List */}
         {mindMaps.length === 0 && !loading ? (
-          <div className="text-center text-zinc-400 py-10">
+          <div className="py-10 text-center text-zinc-400">
             <p>You don&apos;t have any mind maps yet.</p>
             <p>Create one using the form above to get started!</p>
           </div>
         ) : (
-          <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <ul className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {mindMaps.map((map) => (
               <li
                 key={map.id}
                 className="flex flex-col justify-between rounded-sm bg-zinc-800 p-5 shadow-md transition-shadow duration-200 hover:shadow-lg"
               >
                 <div>
-                  <h2 className="text-lg font-semibold text-zinc-100 mb-1 truncate">
+                  <h2 className="mb-1 truncate text-lg font-semibold text-zinc-100">
                     {map.title}
                   </h2>
-                  <p className="text-sm text-zinc-400 mb-4">
+                  <p className="mb-4 text-sm text-zinc-400">
                     Created: {new Date(map.created_at).toLocaleDateString()}
                   </p>
                   {/* Optional Description */}
@@ -203,7 +203,7 @@ export default function DashboardPage() {
                   <button
                     onClick={() => handleDeleteMap(map.id)}
                     title="Delete Map"
-                    className="rounded-sm p-2 text-zinc-400 hover:bg-zinc-700 hover:text-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 focus:ring-offset-zinc-800"
+                    className="rounded-sm p-2 text-zinc-400 hover:bg-zinc-700 hover:text-rose-400 focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none"
                     // Add disabled state if deleting this specific map
                   >
                     {/* <FiTrash2 className="h-4 w-4" /> */}
@@ -226,7 +226,7 @@ export default function DashboardPage() {
                   <Link
                     href={`/mind-map/${map.id}`}
                     title="Open Map"
-                    className="inline-flex items-center rounded-sm border border-transparent bg-sky-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-zinc-800"
+                    className="inline-flex items-center rounded-sm border border-transparent bg-sky-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-sky-700 focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none"
                   >
                     Open
                     {/* <FiExternalLink className="ml-1.5 h-4 w-4" /> */}
@@ -255,7 +255,7 @@ export default function DashboardPage() {
         {/* Notification Display */}
         {notification.message && (
           <div
-            className={`fixed bottom-5 right-5 z-50 max-w-sm rounded-sm p-3 shadow-lg text-sm font-medium ${
+            className={`fixed right-5 bottom-5 z-50 max-w-sm rounded-sm p-3 text-sm font-medium shadow-lg ${
               notification.type === "success"
                 ? "bg-emerald-600 text-white"
                 : "bg-rose-600 text-white"

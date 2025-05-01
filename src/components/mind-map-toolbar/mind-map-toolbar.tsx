@@ -37,19 +37,19 @@ export function MindMapToolbar({
   onEnterFocusMode,
 }: MindMapToolbarProps) {
   return (
-    <div className="absolute top-2 left-2 right-2 z-10 flex flex-wrap items-center justify-between gap-4 bg-zinc-800 p-3 shadow-md rounded-sm">
+    <div className="absolute top-2 right-2 left-2 z-10 flex flex-wrap items-center justify-between gap-4 rounded-sm bg-zinc-800 p-3 shadow-md">
       {/* Left Section: Back Button, Title & Generate */}
       <div className="flex flex-wrap items-center gap-4">
         {/* Back to Dashboard Link */}
         <Link
           href="/dashboard"
-          className="flex items-center justify-center p-1.5 rounded-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-800 transition-colors"
+          className="flex items-center justify-center rounded-sm p-1.5 text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-zinc-100 focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none"
           title="Back to Dashboard"
         >
           <ArrowLeft className="h-4 w-4" />
         </Link>
 
-        <h1 className="text-lg font-semibold text-zinc-100 mr-2 truncate">
+        <h1 className="mr-2 truncate text-lg font-semibold text-zinc-100">
           {mindMapTitle}
         </h1>
 
@@ -60,12 +60,12 @@ export function MindMapToolbar({
             value={aiPrompt}
             onChange={(e) => setAiPrompt(e.target.value)}
             placeholder="Topic to generate map..."
-            className="min-w-[150px] md:min-w-[200px] rounded-sm border border-zinc-600 bg-zinc-700 px-2 py-1 text-sm text-zinc-100 placeholder-zinc-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+            className="min-w-[150px] rounded-sm border border-zinc-600 bg-zinc-700 px-2 py-1 text-sm text-zinc-100 placeholder-zinc-400 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 focus:outline-none md:min-w-[200px]"
             disabled={isLoading || aiLoadingStates.isGenerating}
           />
           <button
             onClick={onGenerateMap}
-            className="rounded-sm bg-teal-600 px-3 py-1 text-sm font-medium text-white shadow-sm hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-zinc-800 disabled:opacity-50"
+            className="rounded-sm bg-teal-600 px-3 py-1 text-sm font-medium text-white shadow-sm hover:bg-teal-700 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none disabled:opacity-50"
             disabled={
               isLoading || aiLoadingStates.isGenerating || !aiPrompt.trim()
             }
@@ -85,12 +85,12 @@ export function MindMapToolbar({
             value={aiSearchQuery}
             onChange={(e) => setAiSearchQuery(e.target.value)}
             placeholder="Search nodes (AI)..."
-            className="min-w-[150px] md:min-w-[200px] rounded-sm border border-zinc-600 bg-zinc-700 px-2 py-1 text-sm text-zinc-100 placeholder-zinc-400 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+            className="min-w-[150px] rounded-sm border border-zinc-600 bg-zinc-700 px-2 py-1 text-sm text-zinc-100 placeholder-zinc-400 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 focus:outline-none md:min-w-[200px]"
             disabled={isLoading || aiLoadingStates.isSearching}
           />
           <button
             onClick={onAiSearch}
-            className="rounded-sm bg-sky-600 px-3 py-1 text-sm font-medium text-white shadow-sm hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-zinc-800 disabled:opacity-50"
+            className="rounded-sm bg-sky-600 px-3 py-1 text-sm font-medium text-white shadow-sm hover:bg-sky-700 focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none disabled:opacity-50"
             disabled={
               isLoading || aiLoadingStates.isSearching || !aiSearchQuery.trim()
             }
@@ -104,7 +104,7 @@ export function MindMapToolbar({
         <div className="flex items-center gap-2">
           <button
             onClick={onUndo}
-            className="rounded-sm bg-zinc-600 p-1.5 text-sm font-medium text-zinc-200 shadow-sm hover:bg-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-800 disabled:opacity-40"
+            className="rounded-sm bg-zinc-600 p-1.5 text-sm font-medium text-zinc-200 shadow-sm hover:bg-zinc-500 focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none disabled:opacity-40"
             disabled={isLoading || !canUndo}
             title="Undo (Ctrl+Z)"
           >
@@ -113,7 +113,7 @@ export function MindMapToolbar({
 
           <button
             onClick={onRedo}
-            className="rounded-sm bg-zinc-600 p-1.5 text-sm font-medium text-zinc-200 shadow-sm hover:bg-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-800 disabled:opacity-40"
+            className="rounded-sm bg-zinc-600 p-1.5 text-sm font-medium text-zinc-200 shadow-sm hover:bg-zinc-500 focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none disabled:opacity-40"
             disabled={isLoading || !canRedo}
             title="Redo (Ctrl+Y)"
           >
@@ -124,7 +124,7 @@ export function MindMapToolbar({
         {/* Focus Mode Button */}
         <button
           onClick={onEnterFocusMode} // Call the passed handler
-          className="rounded-sm bg-zinc-600 p-1.5 text-sm font-medium text-zinc-200 shadow-sm hover:bg-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-800 disabled:opacity-40"
+          className="rounded-sm bg-zinc-600 p-1.5 text-sm font-medium text-zinc-200 shadow-sm hover:bg-zinc-500 focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none disabled:opacity-40"
           disabled={isLoading} // Disable if other actions are loading? Optional.
           title="Enter Focus Mode"
           aria-label="Enter Focus Mode"

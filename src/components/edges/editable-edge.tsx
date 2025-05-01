@@ -52,7 +52,7 @@ export default function EditableEdge({
               pointerEvents: "all",
               zIndex: 999,
             }}
-            className="nodrag nopan text-xs bg-zinc-700 text-zinc-200 px-1.5 py-0.5 rounded shadow-sm cursor-pointer"
+            className="nodrag nopan cursor-pointer rounded bg-zinc-700 px-1.5 py-0.5 text-xs text-zinc-200 shadow-sm"
           >
             {data.label}
           </div>

@@ -144,7 +144,7 @@ const ResourceNodeForm = forwardRef<
             type="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            className="flex-grow w-full p-2 bg-zinc-800 text-zinc-200 rounded-md border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            className="w-full flex-grow rounded-md border border-zinc-700 bg-zinc-800 p-2 text-zinc-200 focus:ring-2 focus:ring-teal-500 focus:outline-none"
             placeholder="Enter resource URL here..."
             disabled={isProcessingUrl}
           />
@@ -152,11 +152,11 @@ const ResourceNodeForm = forwardRef<
             type="button"
             onClick={fetchUrlMetadata}
             disabled={isProcessingUrl || !url.trim()}
-            className="px-3 py-1 bg-teal-600 text-white rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-zinc-800 disabled:opacity-50 flex items-center"
+            className="flex items-center rounded-md bg-teal-600 px-3 py-1 text-white hover:bg-teal-700 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none disabled:opacity-50"
           >
             {isProcessingUrl ? (
               <>
-                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
                 Fetching...
               </>
             ) : (
@@ -165,7 +165,7 @@ const ResourceNodeForm = forwardRef<
           </button>
         </div>
         {fetchError && (
-          <p className="text-xs text-rose-400 mt-1">{fetchError}</p>
+          <p className="mt-1 text-xs text-rose-400">{fetchError}</p>
         )}
       </div>
 
@@ -182,7 +182,7 @@ const ResourceNodeForm = forwardRef<
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full p-2 bg-zinc-800 text-zinc-200 rounded-md border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          className="w-full rounded-md border border-zinc-700 bg-zinc-800 p-2 text-zinc-200 focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Resource title..."
         />
       </div>
@@ -200,7 +200,7 @@ const ResourceNodeForm = forwardRef<
           value={content}
           onChange={(e) => setContent(e.target.value)}
           rows={3}
-          className="w-full p-2 bg-zinc-800 text-zinc-200 rounded-md border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          className="w-full rounded-md border border-zinc-700 bg-zinc-800 p-2 text-zinc-200 focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Enter description or notes here..."
         />
       </div>
@@ -218,7 +218,7 @@ const ResourceNodeForm = forwardRef<
           type="url"
           value={imageUrl}
           onChange={(e) => setImageUrl(e.target.value)}
-          className="w-full p-2 bg-zinc-800 text-zinc-200 rounded-md border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          className="w-full rounded-md border border-zinc-700 bg-zinc-800 p-2 text-zinc-200 focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Image URL for thumbnail..."
         />
         {imageUrl && (
@@ -226,7 +226,7 @@ const ResourceNodeForm = forwardRef<
             <img
               src={imageUrl}
               alt="Thumbnail preview"
-              className="h-20 object-cover rounded-md"
+              className="h-20 rounded-md object-cover"
               onError={(e) => {
                 e.currentTarget.src =
                   "https://placehold.co/200x120?text=Invalid+Image";
@@ -249,7 +249,7 @@ const ResourceNodeForm = forwardRef<
           value={summary}
           onChange={(e) => setSummary(e.target.value)}
           rows={4}
-          className="w-full p-2 bg-zinc-800 text-zinc-200 rounded-md border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          className="w-full rounded-md border border-zinc-700 bg-zinc-800 p-2 text-zinc-200 focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="AI-generated or custom summary..."
         />
       </div>

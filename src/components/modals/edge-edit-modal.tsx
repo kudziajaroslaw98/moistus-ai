@@ -112,25 +112,25 @@ export default function EdgeEditModal({
       <div className="flex flex-col gap-4">
         <p className="text-sm text-zinc-400">
           From:{" "}
-          <span className="font-semibold italic text-zinc-200">
+          <span className="font-semibold text-zinc-200 italic">
             {getContentSnippet(sourceNodeContent)}
           </span>
         </p>
 
         <p className="text-sm text-zinc-400">
           To:{" "}
-          <span className="font-semibold italic text-zinc-200">
+          <span className="font-semibold text-zinc-200 italic">
             {getContentSnippet(targetNodeContent)}
           </span>
         </p>
-        <hr className="border-zinc-700 my-2" />
+        <hr className="my-2 border-zinc-700" />
 
         <div>
-          <h3 className="text-md font-semibold text-zinc-200 mb-2">
+          <h3 className="text-md mb-2 font-semibold text-zinc-200">
             Properties
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label
                 htmlFor="edgeLabel"
@@ -143,7 +143,7 @@ export default function EdgeEditModal({
                 type="text"
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
-                className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm placeholder-zinc-500 focus:border-teal-500 focus:outline-none focus:ring-teal-500 sm:text-sm"
+                className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 placeholder-zinc-500 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
                 disabled={isLoading}
                 placeholder="e.g., leads to, is part of"
               />
@@ -163,7 +163,7 @@ export default function EdgeEditModal({
                 id="edgeType"
                 value={type}
                 onChange={(e) => setType(e.target.value)}
-                className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-teal-500 sm:text-sm"
+                className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
                 disabled={isLoading}
               >
                 {availableEdgeTypes.map((edgeType) => (
@@ -190,11 +190,11 @@ export default function EdgeEditModal({
         </div>
 
         <div>
-          <h3 className="text-md font-semibold text-zinc-200 mb-2">
+          <h3 className="text-md mb-2 font-semibold text-zinc-200">
             Appearance
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label
                 htmlFor="edgeColor"
@@ -208,14 +208,14 @@ export default function EdgeEditModal({
                 type="color"
                 value={color || "#000000"} // Provide a default color if color is undefined
                 onChange={(e) => setColor(e.target.value)}
-                className="mt-1 block w-full h-8 rounded-sm border border-zinc-600 bg-zinc-700 px-1 py-1 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-teal-500 sm:text-sm cursor-pointer"
+                className="mt-1 block h-8 w-full cursor-pointer rounded-sm border border-zinc-600 bg-zinc-700 px-1 py-1 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
                 disabled={isLoading}
               />
 
               {color && (
                 <button
                   onClick={() => setColor(undefined)}
-                  className="mt-1 text-xs text-zinc-400 hover:text-zinc-200 underline"
+                  className="mt-1 text-xs text-zinc-400 underline hover:text-zinc-200"
                 >
                   Clear
                 </button>
@@ -241,7 +241,7 @@ export default function EdgeEditModal({
                 }}
                 min="1"
                 max="10" // Example max
-                className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm placeholder-zinc-500 focus:border-teal-500 focus:outline-none focus:ring-teal-500 sm:text-sm"
+                className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 placeholder-zinc-500 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
                 disabled={isLoading}
                 placeholder="e.g. 2"
               />
@@ -249,7 +249,7 @@ export default function EdgeEditModal({
               {strokeWidth !== undefined && (
                 <button
                   onClick={() => setStrokeWidth(undefined)}
-                  className="mt-1 text-xs text-zinc-400 hover:text-zinc-200 underline"
+                  className="mt-1 text-xs text-zinc-400 underline hover:text-zinc-200"
                 >
                   Clear
                 </button>
@@ -271,7 +271,7 @@ export default function EdgeEditModal({
                     e.target.value === "none" ? undefined : e.target.value,
                   )
                 } // Map 'none' back to undefined for state
-                className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-teal-500 sm:text-sm"
+                className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
                 disabled={isLoading}
               >
                 {markerEndOptions.map((option) => (
@@ -292,14 +292,14 @@ export default function EdgeEditModal({
         <div className="flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="rounded-sm border border-zinc-600 px-4 py-2 text-sm font-medium text-zinc-300 shadow-sm hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-800 disabled:opacity-50"
+            className="rounded-sm border border-zinc-600 px-4 py-2 text-sm font-medium text-zinc-300 shadow-sm hover:bg-zinc-700 focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none disabled:opacity-50"
             disabled={isLoading}
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="rounded-sm border border-transparent bg-teal-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-zinc-800 disabled:opacity-50"
+            className="rounded-sm border border-transparent bg-teal-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-teal-700 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none disabled:opacity-50"
             disabled={isLoading}
           >
             {isLoading ? "Saving..." : "Save Changes"}

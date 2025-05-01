@@ -69,16 +69,16 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
             id="defaultNodeContent"
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm placeholder-zinc-500 focus:border-teal-500 focus:outline-none focus:ring-teal-500 sm:text-sm min-h-[150px]"
+            className="mt-1 block min-h-[150px] w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 placeholder-zinc-500 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
             placeholder="Enter node content..."
           />
         </div>
         {/* General Node Properties Section */}
         <div>
-          <h3 className="text-md font-semibold text-zinc-200 mb-2">
+          <h3 className="text-md mb-2 font-semibold text-zinc-200">
             Properties
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {/* Tags Input */}
             <div>
               <label
@@ -99,7 +99,7 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
                       .filter((tag) => tag.length > 0),
                   )
                 }
-                className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm placeholder-zinc-500 focus:border-teal-500 focus:outline-none focus:ring-teal-500 sm:text-sm"
+                className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 placeholder-zinc-500 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
                 placeholder="e.g. idea, research"
               />
             </div>
@@ -117,7 +117,7 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
                 onChange={(e) =>
                   setStatus(e.target.value === "" ? undefined : e.target.value)
                 }
-                className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-teal-500 sm:text-sm"
+                className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
               >
                 <option value="">-- Select Status --</option>
                 <option value="draft">Draft</option>
@@ -144,7 +144,7 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
                 }}
                 min="1"
                 max="5"
-                className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm placeholder-zinc-500 focus:border-teal-500 focus:outline-none focus:ring-teal-500 sm:text-sm"
+                className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 placeholder-zinc-500 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
                 placeholder="e.g. 3"
               />
             </div>
@@ -161,7 +161,7 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
                 type="url"
                 value={sourceUrl}
                 onChange={(e) => setSourceUrl(e.target.value)}
-                className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm placeholder-zinc-500 focus:border-teal-500 focus:outline-none focus:ring-teal-500 sm:text-sm"
+                className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 placeholder-zinc-500 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
                 placeholder="http://example.com"
               />
             </div>

@@ -54,7 +54,7 @@ export default function SelectNodeTypeModal({
             <button
               key={type}
               onClick={() => onSelectType(type)}
-              className="flex flex-col items-center justify-center rounded-sm border border-zinc-600 bg-zinc-700 p-4 text-sm text-zinc-100 shadow-sm transition-colors hover:bg-teal-700 hover:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 "
+              className="flex flex-col items-center justify-center rounded-sm border border-zinc-600 bg-zinc-700 p-4 text-sm text-zinc-100 shadow-sm transition-colors hover:border-teal-600 hover:bg-teal-700 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:outline-none"
             >
               <Icon size={24} className="mb-2 text-teal-400" /> {/* Icon */}
               {name} {/* Display name */}

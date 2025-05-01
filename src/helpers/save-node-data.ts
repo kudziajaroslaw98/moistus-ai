@@ -1,7 +1,10 @@
 import { supabaseClient } from "@/helpers/supabase/client";
 import { NodeData } from "@/types/node-data";
 
-export async function saveNodeData(nodeId: string, updatedData: Partial<NodeData>): Promise<void> {
+export async function saveNodeData(
+  nodeId: string,
+  updatedData: Partial<NodeData>,
+): Promise<void> {
   const supabase = supabaseClient;
 
   // Fetch the current node data to merge metadata
@@ -35,17 +38,16 @@ export async function saveNodeData(nodeId: string, updatedData: Partial<NodeData
       metadata: mergedMetadata, // Include merged metadata
     };
   } else {
-     // If content is not being updated, just update metadata
-     dataToUpdate.data = {
-        ...(currentNode?.data || {}), // Keep existing data fields
-        metadata: mergedMetadata, // Include merged metadata
-     };
-     // Ensure label is still based on content if content wasn't updated
-     if (currentNode?.data?.content !== undefined) {
-         dataToUpdate.data.label = currentNode.data.content;
-     }
+    // If content is not being updated, just update metadata
+    dataToUpdate.data = {
+      ...(currentNode?.data || {}), // Keep existing data fields
+      metadata: mergedMetadata, // Include merged metadata
+    };
+    // Ensure label is still based on content if content wasn't updated
+    if (currentNode?.data?.content !== undefined) {
+      dataToUpdate.data.label = currentNode.data.content;
+    }
   }
-
 
   const { error: updateError } = await supabase
     .from("nodes")

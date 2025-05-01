@@ -670,12 +670,12 @@ export function MindMapCanvas() {
   const canvasMarginTop = isFocusMode ? "0px" : "60px"; // Adjust 60px if toolbar height differs
 
   return (
-    <div className="relative w-full h-full overflow-hidden bg-zinc-900 rounded-md">
+    <div className="relative h-full w-full overflow-hidden rounded-md bg-zinc-900">
       {isFocusMode ? (
         <div className="absolute top-3 right-3 z-20">
           <button
             onClick={exitFocusMode}
-            className="flex items-center justify-center p-2 rounded-sm bg-zinc-700 text-zinc-200 shadow-md hover:bg-zinc-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-zinc-900 transition-colors"
+            className="flex items-center justify-center rounded-sm bg-zinc-700 p-2 text-zinc-200 shadow-md transition-colors hover:bg-zinc-600 focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-zinc-900 focus:outline-none"
             title="Exit Focus Mode"
             aria-label="Exit Focus Mode"
           >

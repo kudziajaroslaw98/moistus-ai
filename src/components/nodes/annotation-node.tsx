@@ -69,7 +69,7 @@ export default function AnnotationNode(props: AnnotationNodeProps) {
   return (
     <div
       className={cn([
-        "relative min-w-80 min-h-20 h-auto p-2 flex flex-col gap-1 rounded transition-all text-center",
+        "relative flex h-auto min-h-20 min-w-80 flex-col gap-1 rounded p-2 text-center transition-all",
         // No background or border class here
         selected && "ring-1 ring-sky-600 ring-offset-2 ring-offset-zinc-900", // Selection outline
         typeInfo.textColorClass, // Apply base text color for the type
@@ -82,7 +82,7 @@ export default function AnnotationNode(props: AnnotationNodeProps) {
           {/* Large Opening Quote */}
           <span
             aria-hidden="true"
-            className="absolute -left-4 -top-4 font-lora text-6xl text-current opacity-20 pointer-events-none"
+            className="pointer-events-none absolute -top-4 -left-4 font-lora text-6xl text-current opacity-20"
             style={{ lineHeight: "1" }}
           >
             “
@@ -90,20 +90,20 @@ export default function AnnotationNode(props: AnnotationNodeProps) {
           {/* Content */}
           <div
             className={cn([
-              "text-base font-lora italic whitespace-pre-wrap break-words",
+              "font-lora text-base break-words whitespace-pre-wrap italic",
               typeInfo.textColorClass, // Use the quote text color
             ])}
             style={contentStyle} // Apply dynamic font size if needed
           >
             {data.content || (
-              <span className="italic text-current opacity-60">
+              <span className="text-current italic opacity-60">
                 Add quote...
               </span>
             )}
           </div>
           <span
             aria-hidden="true"
-            className="absolute -right-4 -bottom-4 font-lora text-6xl text-current opacity-20 pointer-events-none"
+            className="pointer-events-none absolute -right-4 -bottom-4 font-lora text-6xl text-current opacity-20"
             style={{ lineHeight: "0.5" }}
           >
             ”
@@ -112,11 +112,11 @@ export default function AnnotationNode(props: AnnotationNodeProps) {
       ) : (
         <>
           {/* --- Default Layout for other types --- */}
-          <div className="flex items-center justify-between mb-1">
+          <div className="mb-1 flex items-center justify-between">
             {/* Icon and Type Label */}
             <div className="flex items-center gap-1.5 opacity-80">
               <TypeIcon className="size-3.5 flex-shrink-0" />
-              <span className="text-xs font-medium uppercase tracking-wider">
+              <span className="text-xs font-medium tracking-wider uppercase">
                 {annotationType}
               </span>
             </div>
@@ -125,13 +125,13 @@ export default function AnnotationNode(props: AnnotationNodeProps) {
           {/* Content */}
           <div
             className={cn([
-              "text-sm whitespace-pre-wrap break-words",
+              "text-sm break-words whitespace-pre-wrap",
               typeInfo.textColorClass, // Apply text color
             ])}
             style={contentStyle} // Apply dynamic font style
           >
             {data.content || (
-              <span className="italic text-current opacity-60">
+              <span className="text-current italic opacity-60">
                 Add content...
               </span>
             )}

@@ -69,12 +69,12 @@ const AnnotationNodeForm = forwardRef<
           value={content}
           onChange={(e) => setContent(e.target.value)}
           rows={6}
-          className="w-full p-2 bg-zinc-700 text-zinc-100 rounded-md border border-zinc-600 focus:outline-none focus:ring-2 focus:ring-teal-500 sm:text-sm"
+          className="w-full rounded-md border border-zinc-600 bg-zinc-700 p-2 text-zinc-100 focus:ring-2 focus:ring-teal-500 focus:outline-none sm:text-sm"
           placeholder="Enter your annotation here..."
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {/* Annotation Type Select */}
         <div className="flex flex-col gap-2">
           <label
@@ -87,7 +87,7 @@ const AnnotationNodeForm = forwardRef<
             id="annotationType"
             value={annotationType}
             onChange={(e) => setAnnotationType(e.target.value)}
-            className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-teal-500 sm:text-sm"
+            className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
           >
             {annotationTypes.map((type) => (
               <option key={type} value={type} className="capitalize">
@@ -116,7 +116,7 @@ const AnnotationNodeForm = forwardRef<
             }}
             min="8"
             max="48"
-            className="w-full p-2 bg-zinc-700 text-zinc-100 rounded-md border border-zinc-600 focus:outline-none focus:ring-2 focus:ring-teal-500 sm:text-sm"
+            className="w-full rounded-md border border-zinc-600 bg-zinc-700 p-2 text-zinc-100 focus:ring-2 focus:ring-teal-500 focus:outline-none sm:text-sm"
             placeholder="e.g. 14"
           />
         </div>
@@ -133,7 +133,7 @@ const AnnotationNodeForm = forwardRef<
             id="fontWeight"
             value={fontWeight || ""}
             onChange={(e) => setFontWeight(e.target.value)}
-            className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-teal-500 sm:text-sm"
+            className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
           >
             <option value="">Default</option>
             <option value="normal">Normal</option>

@@ -31,29 +31,29 @@ export default function ResourceNode(props: ResourceNodeProps) {
   return (
     <div
       className={cn([
-        "relative min-w-80 min-h-20 h-auto p-2 flex flex-col gap-2 bg-zinc-950 border-2 border-zinc-900 rounded-lg transition-all",
+        "relative flex h-auto min-h-20 min-w-80 flex-col gap-2 rounded-lg border-2 border-zinc-900 bg-zinc-950 p-2 transition-all",
         selected && "border-sky-700",
       ])}
       onDoubleClick={handleDoubleClick}
     >
-      <div className="w-full relative h-10 p-2 flex justify-between bg-zinc-900 rounded-md">
-        <div className="flex gap-4 justify-center items-center z-20">
-          <div className="size-6 rounded-sm bg-yellow-700 flex justify-center items-center">
+      <div className="relative flex h-10 w-full justify-between rounded-md bg-zinc-900 p-2">
+        <div className="z-20 flex items-center justify-center gap-4">
+          <div className="flex size-6 items-center justify-center rounded-sm bg-yellow-700">
             <LinkIcon className="size-4 text-zinc-100" />
           </div>
-          <span className="text-sm font-medium text-zinc-300 truncate max-w-48">
+          <span className="max-w-48 truncate text-sm font-medium text-zinc-300">
             {title}
           </span>
         </div>
 
-        <div className="flex gap-2 justify-center items-center z-20">
+        <div className="z-20 flex items-center justify-center gap-2">
           {/* Link Icon/Button */}
           {resourceUrl && (
             <a
               href={resourceUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="nodrag flex-shrink-0 text-sky-400 hover:text-sky-300 p-1 rounded-sm bg-zinc-500/20"
+              className="nodrag flex-shrink-0 rounded-sm bg-zinc-500/20 p-1 text-sky-400 hover:text-sky-300"
               title={resourceUrl}
               onClick={(e) => e.stopPropagation()}
             >
@@ -62,7 +62,7 @@ export default function ResourceNode(props: ResourceNodeProps) {
           )}
           {/* Ellipsis button to open modal */}
           <button
-            className="text-sm text-zinc-400 hover:text-zinc-200 p-1 rounded-sm bg-zinc-500/20"
+            className="rounded-sm bg-zinc-500/20 p-1 text-sm text-zinc-400 hover:text-zinc-200"
             onClick={handleEllipsisClick}
           >
             <Ellipsis className="size-4 text-zinc-400 hover:text-zinc-200" />
@@ -74,7 +74,7 @@ export default function ResourceNode(props: ResourceNodeProps) {
       <div className="flex flex-col gap-3 p-2">
         {/* Thumbnail if enabled and available */}
         {showThumbnail && imageUrl && (
-          <div className="w-full flex justify-center  pointer-events-none">
+          <div className="pointer-events-none flex w-full justify-center">
             <img
               src={imageUrl}
               alt={title}
@@ -89,7 +89,7 @@ export default function ResourceNode(props: ResourceNodeProps) {
 
         {/* Display URL in a truncated format */}
         {resourceUrl && (
-          <div className="text-xs text-sky-400 truncate" title={resourceUrl}>
+          <div className="truncate text-xs text-sky-400" title={resourceUrl}>
             {resourceUrl.length > 40
               ? resourceUrl.substring(0, 40) + "..."
               : resourceUrl}
@@ -98,14 +98,14 @@ export default function ResourceNode(props: ResourceNodeProps) {
 
         {/* Summary if enabled and available */}
         {showSummary && summary && (
-          <div className="text-xs text-zinc-400 mt-1 text-left line-clamp-6">
+          <div className="mt-1 line-clamp-6 text-left text-xs text-zinc-400">
             {summary}
           </div>
         )}
 
         {/* Description/Content if different from title */}
         {data.content && data.content !== title && (
-          <div className="text-xs text-zinc-300 italic mt-1">
+          <div className="mt-1 text-xs text-zinc-300 italic">
             {data.content}
           </div>
         )}
