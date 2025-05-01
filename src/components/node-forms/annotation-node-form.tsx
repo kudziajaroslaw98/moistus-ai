@@ -1,0 +1,157 @@
+import React, {
+  useState,
+  useEffect,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
+import { NodeData } from "@/types/node-data";
+import { NodeResizer } from "@xyflow/react";
+
+interface AnnotationNodeFormProps {
+  initialData: NodeData;
+}
+
+// Define allowed annotation types
+const annotationTypes = ["comment", "idea", "quote", "summary"];
+
+const AnnotationNodeForm = forwardRef<
+  { getFormData: () => Partial<NodeData> | null },
+  AnnotationNodeFormProps
+>(({ initialData }, ref) => {
+  const [content, setContent] = useState(initialData?.content || "");
+  // Add state for style properties from metadata
+  const [fontSize, setFontSize] = useState<number | string>(
+    (initialData.metadata?.fontSize as number | string) || "",
+  );
+  const [fontWeight, setFontWeight] = useState<string | number>(
+    (initialData.metadata?.fontWeight as string | number) || "",
+  );
+  // Add state for annotationType
+  const [annotationType, setAnnotationType] = useState<string>(
+    (initialData.metadata?.annotationType as string) || "comment", // Default to comment
+  );
+
+  // Sync local state if initialData changes
+  useEffect(() => {
+    setContent(initialData?.content || "");
+    setFontSize((initialData.metadata?.fontSize as number | string) || "");
+    setFontWeight((initialData.metadata?.fontWeight as string | number) || "");
+    setAnnotationType(
+      (initialData.metadata?.annotationType as string) || "comment",
+    );
+  }, [initialData]); // Depend on initialData
+
+  useImperativeHandle(ref, () => ({
+    getFormData: () => {
+      return {
+        content: content.trim(),
+        metadata: {
+          ...(initialData.metadata || {}), // Keep existing metadata
+          fontSize: fontSize || undefined,
+          fontWeight: fontWeight || undefined,
+          annotationType: annotationType || "comment", // Save selected type, default to comment
+        },
+      };
+    },
+  }));
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <label
+          htmlFor="annotationContent"
+          className="text-sm font-medium text-zinc-400"
+        >
+          Annotation Content
+        </label>
+        <textarea
+          id="annotationContent"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          rows={6}
+          className="w-full p-2 bg-zinc-700 text-zinc-100 rounded-md border border-zinc-600 focus:outline-none focus:ring-2 focus:ring-teal-500 sm:text-sm"
+          placeholder="Enter your annotation here..."
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Annotation Type Select */}
+        <div className="flex flex-col gap-2">
+          <label
+            htmlFor="annotationType"
+            className="block text-sm font-medium text-zinc-400"
+          >
+            Type
+          </label>
+          <select
+            id="annotationType"
+            value={annotationType}
+            onChange={(e) => setAnnotationType(e.target.value)}
+            className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-teal-500 sm:text-sm"
+          >
+            {annotationTypes.map((type) => (
+              <option key={type} value={type} className="capitalize">
+                {type.charAt(0).toUpperCase() + type.slice(1)}{" "}
+                {/* Capitalize */}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Font Size Input */}
+        <div className="flex flex-col gap-2">
+          <label
+            htmlFor="fontSize"
+            className="text-sm font-medium text-zinc-400"
+          >
+            Font Size (px)
+          </label>
+          <input
+            id="fontSize"
+            type="number"
+            value={fontSize === "" ? "" : Number(fontSize)}
+            onChange={(e) => {
+              const value = e.target.value;
+              setFontSize(value === "" ? "" : Number(value));
+            }}
+            min="8"
+            max="48"
+            className="w-full p-2 bg-zinc-700 text-zinc-100 rounded-md border border-zinc-600 focus:outline-none focus:ring-2 focus:ring-teal-500 sm:text-sm"
+            placeholder="e.g. 14"
+          />
+        </div>
+
+        {/* Font Weight Select */}
+        <div className="flex flex-col gap-2">
+          <label
+            htmlFor="fontWeight"
+            className="block text-sm font-medium text-zinc-400"
+          >
+            Font Weight
+          </label>
+          <select
+            id="fontWeight"
+            value={fontWeight || ""}
+            onChange={(e) => setFontWeight(e.target.value)}
+            className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-teal-500 sm:text-sm"
+          >
+            <option value="">Default</option>
+            <option value="normal">Normal</option>
+            <option value="bold">Bold</option>
+            <option value="lighter">Lighter</option>
+            <option value="bolder">Bolder</option>
+            {[100, 200, 300, 400, 500, 600, 700, 800, 900].map((weight) => (
+              <option key={weight} value={weight}>
+                {weight}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+AnnotationNodeForm.displayName = "AnnotationNodeForm";
+
+export default AnnotationNodeForm;

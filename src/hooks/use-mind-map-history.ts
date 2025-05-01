@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect } from "react";
 import { Node } from "@xyflow/react"; // Don't need Edge import here anymore
 import { NodeData } from "@/types/node-data";
-import { AppEdge } from "@/types/edge-data"; // Use AppEdge
 import { HistoryState } from "@/types/history-state";
 import { useNotifications } from "./use-notifications";
+import { AppEdge } from "@/types/app-edge";
 
 interface UseMindMapHistoryProps {
   initialNodes: Node<NodeData>[];

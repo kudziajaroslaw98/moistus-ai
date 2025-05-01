@@ -1,120 +1,93 @@
+"use client";
+
+import { useCallback } from "react";
 import { NodeData } from "@/types/node-data";
+import { Node, Handle, Position, NodeResizer } from "@xyflow/react";
+import { Ellipsis, HelpCircle } from "lucide-react"; // Import icons
 import { cn } from "@/utils/cn";
-import { Handle, Node, Position, useReactFlow } from "@xyflow/react";
-import { Ellipsis, HelpCircle } from "lucide-react"; // Import Question icon
-import { motion } from "motion/react";
-import { useCallback, useRef, useState } from "react";
-import { saveNodeContent } from "@/helpers/save-node-content";
 
-export default function QuestionNode(props: Node<NodeData>) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [localContent, setLocalContent] = useState(props.data?.content || "");
-  const reactFlowInstance = useReactFlow();
-  const editorRef = useRef<HTMLTextAreaElement>(null);
+// Add onEditNode prop to the node props
+interface QuestionNodeProps extends Node<NodeData> {
+  onEditNode: (nodeId: string, nodeData: NodeData) => void;
+}
 
+// Change function signature to accept props
+export default function QuestionNode(props: QuestionNodeProps) {
+  const { id, data, selected, onEditNode } = props;
+
+  const handleEllipsisClick = useCallback(() => {
+    // Trigger the modal opening via the parent prop
+    onEditNode(id, data);
+  }, [id, data, onEditNode]);
+
+  // Double click also opens the modal
   const handleDoubleClick = useCallback(() => {
-    if (!isEditing) {
-      // Only enter editing if not already editing
-      setIsEditing(true);
-    }
-  }, [isEditing]);
-
-  const handleBlur = async () => {
-    setIsEditing(false);
-    // Trim content before comparing and saving
-    const trimmedContent = localContent.trim();
-    const trimmedOriginalContent = props.data?.content?.trim() || "";
-
-    // Only save if content has actually changed
-    if (trimmedContent !== trimmedOriginalContent) {
-      // Update React Flow state immediately with the new content
-      reactFlowInstance.setNodes((nds) =>
-        nds.map((node) =>
-          node.id === props.id
-            ? {
-                ...node,
-                data: {
-                  ...node.data,
-                  content: trimmedContent,
-                  label: trimmedContent, // Update label for mini-map/overview
-                },
-              }
-            : node,
-        ),
-      );
-      // Save to database in the background
-      await saveNodeContent(props.id, trimmedContent);
-      // History is managed by the hook receiving node changes or save events
-    }
-  };
+    onEditNode(id, data);
+  }, [id, data, onEditNode]);
 
   return (
     <div
       className={cn([
-        isEditing && "nodrag",
-        "relative w-80 h-auto p-2 flex flex-col gap-2 bg-zinc-950 border-2 border-zinc-900 rounded-lg transition-all",
-        props.selected && "border-sky-700",
+        "relative min-w-80 min-h-20 h-auto p-2 flex flex-col gap-2 bg-zinc-950 border-2 border-zinc-900 rounded-lg transition-all",
+        selected && "border-sky-700",
       ])}
       onDoubleClick={handleDoubleClick}
-      onBlur={handleBlur}
     >
-      <div className="w-full relative h-14 p-2 flex justify-between bg-zinc-900 rounded-md">
+      <div className="w-full relative h-10 p-2 flex justify-between bg-zinc-900 rounded-md">
         <div className="flex gap-4 justify-center items-center z-20">
-          <div className="size-10 rounded-sm bg-red-100 flex justify-center items-center">
-            <HelpCircle className="size-8 text-zinc-950" />
+          <div className="size-6 rounded-sm bg-blue-700 flex justify-center items-center">
+            <HelpCircle className="size-4 text-zinc-100" />
           </div>
-
-          <div className="font-semibold text-zinc-400 z-10">Question</div>
         </div>
 
         <div className="flex gap-4 justify-center items-center z-20">
           <div className="flex gap-2 justify-center items-center">
+            {/* Ellipsis button to open modal */}
             <button
               className="text-sm text-zinc-400 hover:text-zinc-200 p-1 rounded-sm bg-zinc-500/20"
-              onClick={() => {
-                // Handle edit action
-                console.log("Edit clicked");
-              }}
+              onClick={handleEllipsisClick}
             >
-              <Ellipsis className="size-4 text-zinc-400" />
+              <Ellipsis className="size-4 text-zinc-400 hover:text-zinc-200" />
             </button>
           </div>
         </div>
       </div>
 
-      <motion.div className="text-sm pb-4 pt-2">
-        {isEditing ? (
-          <motion.textarea
-            ref={editorRef}
-            value={localContent}
-            initial={{ maxHeight: 0 }}
-            animate={{ maxHeight: 1000 }}
-            exit={{ maxHeight: 0 }}
-            transition={{ duration: 1 }}
-            className="w-full h-20 p-2 bg-zinc-800 text-zinc-200 rounded-md border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
-            onChange={(e) => setLocalContent(e.target.value)}
-            rows={3} // Ensure enough rows are visible by default
-            onBlur={handleBlur}
-          />
-        ) : (
-          <>{props.data.content}</>
+      {/* Content Area - now display only */}
+      <div className="text-sm pb-4 pt-2 min-h-[3rem] text-zinc-300 whitespace-pre-wrap">
+        {data.content || (
+          <span className="italic text-zinc-500">
+            Double click or click the menu to add content...
+          </span>
         )}
-      </motion.div>
+      </div>
 
-      <Handle
+      {/* Handles */}
+      <Handle // Manually add handles
+        type="target"
+        position={Position.Top}
+        className="size-1 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
+      />
+      <Handle // Manually add handles
         type="source"
         position={Position.Bottom}
-        className="size-2 rounded-full !bg-zinc-200 !border-zinc-300 border-4 outline-2 outline-zinc-800"
+        className="size-1 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
       />
       <Handle
         type="target"
         position={Position.Left}
-        className="size-2 rounded-full !bg-zinc-200 !border-zinc-300 border-4 outline-2 outline-zinc-800"
+        className="size-1 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
       />
       <Handle
         type="target"
         position={Position.Right}
-        className="size-2 rounded-full !bg-zinc-200 !border-zinc-300 border-4 outline-2 outline-zinc-800"
+        className="size-1 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
+      />
+      <NodeResizer
+        color="#0069a8"
+        isVisible={selected}
+        minWidth={100}
+        minHeight={30}
       />
     </div>
   );

@@ -1,24 +1,16 @@
 import { useCallback, useEffect } from "react";
 import {
   Node,
-  Edge,
   useNodesState,
   useEdgesState,
   OnNodesChange,
   OnEdgesChange,
   Connection,
-  addEdge,
   NodeChange,
   EdgeChange,
 } from "@xyflow/react";
 import { NodeData } from "@/types/node-data";
-import { EdgeData, AppEdge } from "@/types/edge-data"; // Import EdgeData and AppEdge
-
-interface UseMindMapStateProps {
-  initialNodes: Node<NodeData>[];
-  initialEdges: AppEdge[]; // Use AppEdge for initial edges
-  // addEdgeCrud: (sourceId: string, targetId: string) => Promise<AppEdge | null>; // Prop from CRUD hook
-}
+import { AppEdge } from "@/types/app-edge";
 
 interface UseMindMapStateResult {
   nodes: Node<NodeData>[];

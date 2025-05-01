@@ -72,9 +72,7 @@ export default function SuggestedConnectionEdge({
   }, [id, data, setEdges, getNodes, showNotification]); // Add dependencies
 
   const handleDismiss = useCallback(() => {
-    // Remove the suggested edge locally
     setEdges((eds) => eds.filter((edge) => edge.id !== id));
-    // TODO: Add state to history after dismissing - need access to addStateToHistory
     showNotification?.("Connection dismissed.", "success");
   }, [id, setEdges, showNotification]); // Add dependencies
 
@@ -89,58 +87,44 @@ export default function SuggestedConnectionEdge({
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => setShowActions(false)}
       />
-      {showActions && (
-        <g
-          transform={`translate(${(sourceX + targetX) / 2}, ${(sourceY + targetY) / 2})`}
+      <g
+        transform={`translate(${(sourceX + targetX) / 2}, ${(sourceY + targetY) / 2})`}
+      >
+        <text
+          x="0"
+          y="-5"
+          className="react-flow__edge-text"
+          textAnchor="middle"
+          alignmentBaseline="middle"
+          style={{ fontSize: "12px", pointerEvents: "none", stroke: "white" }}
         >
-          <rect
-            x="-40"
-            y="-20"
-            width="80"
-            height="40"
-            fill="white"
-            stroke="#ccc"
-            strokeWidth="1"
-            rx="5"
-            ry="5"
-          />
+          {`${data?.reason}` || "Suggested"}
+        </text>
 
-          <text
-            x="0"
-            y="-5"
-            className="react-flow__edge-text"
-            textAnchor="middle"
-            alignmentBaseline="middle"
-            style={{ fontSize: "10px", pointerEvents: "none" }}
-          >
-            {`${data?.reason}` || "Suggested"}
-          </text>
+        <text
+          x="-20"
+          y="10"
+          className="react-flow__edge-button"
+          textAnchor="middle"
+          alignmentBaseline="middle"
+          style={{ fontSize: "12px", cursor: "pointer", stroke: "green" }}
+          onClick={handleAccept}
+        >
+          Accept
+        </text>
 
-          <text
-            x="-20"
-            y="10"
-            className="react-flow__edge-button"
-            textAnchor="middle"
-            alignmentBaseline="middle"
-            style={{ fontSize: "10px", cursor: "pointer" }}
-            onClick={handleAccept}
-          >
-            Accept
-          </text>
-
-          <text
-            x="20"
-            y="10"
-            className="react-flow__edge-button"
-            textAnchor="middle"
-            alignmentBaseline="middle"
-            style={{ fontSize: "10px", cursor: "pointer" }}
-            onClick={handleDismiss}
-          >
-            Dismiss
-          </text>
-        </g>
-      )}
+        <text
+          x="20"
+          y="10"
+          className="react-flow__edge-button"
+          textAnchor="middle"
+          alignmentBaseline="middle"
+          style={{ fontSize: "12px", cursor: "pointer", stroke: "red" }}
+          onClick={handleDismiss}
+        >
+          Dismiss
+        </text>
+      </g>
     </>
   );
 }

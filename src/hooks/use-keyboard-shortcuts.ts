@@ -1,16 +1,20 @@
+import { ReactFlowInstance } from "@xyflow/react"; // Import ReactFlowInstance
 import { useEffect } from "react";
 
 interface UseKeyboardShortcutsProps {
   onUndo: () => void;
   onRedo: () => void;
-  // onDelete now needs to handle both node and edge deletion
   onDelete: (idToDelete: string) => void;
-  onAddChild: (parentId: string | null) => void; // Expects parentId or null
+  onAddChild: (parentId: string | null) => void;
+  onCopy: () => void; // Add copy callback
+  onPaste: () => void; // Add paste callback
   selectedNodeId: string | null | undefined;
-  selectedEdgeId: string | null | undefined; // Add selectedEdgeId
+  selectedEdgeId: string | null | undefined;
   canUndo: boolean;
   canRedo: boolean;
-  isBusy: boolean; // General flag to disable shortcuts during operations
+  isBusy: boolean;
+  // Add reactFlowInstance to get viewport info for pasting
+  reactFlowInstance: ReactFlowInstance | null;
 }
 
 export function useKeyboardShortcuts({
@@ -18,95 +22,113 @@ export function useKeyboardShortcuts({
   onRedo,
   onDelete,
   onAddChild,
+  onCopy, // Destructure new callbacks
+  onPaste, // Destructure new callbacks
   selectedNodeId,
-  selectedEdgeId, // Use selectedEdgeId
+  selectedEdgeId,
   canUndo,
   canRedo,
   isBusy,
+  reactFlowInstance, // Destructure instance
 }: UseKeyboardShortcutsProps): void {
-  // This hook doesn't return anything
-
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Ignore shortcuts if busy, or if typing in an input/textarea/editor
       const target = event.target as HTMLElement;
       const isInputFocused =
         target.tagName === "INPUT" ||
         target.tagName === "TEXTAREA" ||
         target.isContentEditable ||
-        target.closest(".ql-editor"); // Check for Quill editor class
+        target.closest(".ql-editor");
 
-      if (isBusy || isInputFocused) {
+      // Don't interfere with text input shortcuts
+      if (
+        isInputFocused &&
+        (event.key === "c" || event.key === "v") &&
+        (event.ctrlKey || event.metaKey)
+      ) {
         return;
       }
 
-      const isCtrlCmd = event.ctrlKey || event.metaKey; // Meta for Mac Command key
+      if (isBusy) {
+        return;
+      }
+
+      const isCtrlCmd = event.ctrlKey || event.metaKey;
 
       // --- Undo (Ctrl/Cmd + Z) ---
-      if (isCtrlCmd && event.key === "z" && !event.shiftKey) {
+      if (isCtrlCmd && event.key.toLowerCase() === "z" && !event.shiftKey) {
         event.preventDefault();
         if (canUndo) {
           onUndo();
         }
-        return; // Prevent other actions
+        return;
       }
 
       // --- Redo (Ctrl/Cmd + Shift + Z OR Ctrl/Cmd + Y) ---
       if (
         (isCtrlCmd && event.shiftKey && event.key.toLowerCase() === "z") ||
-        (isCtrlCmd && event.key === "y")
+        (isCtrlCmd && event.key.toLowerCase() === "y")
       ) {
         event.preventDefault();
         if (canRedo) {
           onRedo();
         }
-        return; // Prevent other actions
-      }
-
-      // --- Delete Node/Edge (Delete or Backspace) ---
-      // Check selectedId AFTER checking modifier keys for undo/redo
-      if (event.key === "Delete" || event.key === "Backspace") {
-        if (selectedNodeId) {
-          event.preventDefault();
-          onDelete(selectedNodeId);
-          return; // Node deleted, stop here
-        }
-        // Check for selected edge if no node is selected
-        if (selectedEdgeId) {
-          event.preventDefault();
-          onDelete(selectedEdgeId);
-          return; // Edge deleted, stop here
-        }
-        // If neither node nor edge selected, allow default Backspace/Delete behavior
-      }
-
-      // --- Add Child Node (Tab) ---
-      // Check selectedNodeId
-      if (event.key === "Tab" && selectedNodeId) {
-        event.preventDefault(); // Prevent default focus change
-        onAddChild(selectedNodeId);
         return;
       }
 
-      // Add other shortcuts here...
+      // --- Copy (Ctrl/Cmd + C) ---
+      if (isCtrlCmd && event.key.toLowerCase() === "c") {
+        event.preventDefault();
+        onCopy(); // Call the copy handler
+        return;
+      }
+
+      // --- Paste (Ctrl/Cmd + V) ---
+      if (isCtrlCmd && event.key.toLowerCase() === "v") {
+        event.preventDefault();
+        onPaste(); // Call the paste handler
+        return;
+      }
+
+      // --- Delete Node/Edge (Delete or Backspace) ---
+      if (event.key === "Delete") {
+        if (selectedNodeId) {
+          event.preventDefault();
+          onDelete(selectedNodeId);
+          return;
+        }
+        if (selectedEdgeId) {
+          event.preventDefault();
+          onDelete(selectedEdgeId);
+          return;
+        }
+      }
+
+      // --- Add Child Node (Tab) ---
+      if (event.key === "Tab" && selectedNodeId) {
+        event.preventDefault();
+        onAddChild(selectedNodeId);
+        return;
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
 
-    // Cleanup listener on component unmount
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-    // Add all dependencies that the handler uses
   }, [
     onUndo,
     onRedo,
     onDelete,
     onAddChild,
+    onCopy, // Add dependencies
+    onPaste, // Add dependencies
     selectedNodeId,
-    selectedEdgeId, // Add selectedEdgeId dependency
+    selectedEdgeId,
     canUndo,
     canRedo,
     isBusy,
+    reactFlowInstance, // Add dependency
   ]);
 }

@@ -46,7 +46,7 @@ export function useMindMapData(
       // --- Fetch Mind Map Data ---
       const { data: mapData, error: mapError } = await supabase
         .from("mind_maps")
-        .select("*")
+        .select("*") // Fetch all columns including new ones
         .eq("id", mapId)
         .single();
 
@@ -58,12 +58,13 @@ export function useMindMapData(
         }
         throw new Error(mapError?.message || "Failed to fetch mind map.");
       }
-      setMindMap(mapData);
+      setMindMap(mapData as MindMapData); // Cast to MindMapData
 
       // --- Fetch Nodes ---
+      // Ensure width and height are selected
       const { data: nodesData, error: nodesError } = await supabase
         .from("nodes")
-        .select("*") // Fetch all columns including new style/metadata
+        .select("*, width, height") // Explicitly select width and height
         .eq("map_id", mapId);
 
       if (nodesError) {
@@ -73,7 +74,7 @@ export function useMindMapData(
       // --- Fetch Edges (from the new 'edges' table) ---
       const { data: edgesData, error: edgesError } = await supabase
         .from("edges")
-        .select("*") // Fetch all columns including type, label, style, color
+        .select("*") // Fetch all columns including new properties
         .eq("map_id", mapId);
 
       if (edgesError) {
@@ -85,14 +86,14 @@ export function useMindMapData(
 
       // Transform fetched data into React Flow format
       const transformedData = transformDataToReactFlow(
-        (nodesData as NodeData[]) || [], // Ensure nodesData is an array
-        (edgesData as EdgeData[]) || [], // Ensure edgesData is an array
+        (nodesData as NodeData[]) || [], // Ensure nodesData is an array and cast
+        (edgesData as EdgeData[]) || [], // Ensure edgesData is an array and cast
       );
 
       setInitialNodes(transformedData.reactFlowNodes);
       setInitialEdges(transformedData.reactFlowEdges);
 
-      showNotification("Mind map loaded.", "success");
+      // showNotification("Mind map loaded.", "success"); // Might be too chatty on every load/refresh
     } catch (err: unknown) {
       // Use unknown
       console.error("Error fetching mind map data:", err);

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Lora } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -9,6 +9,11 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+const lora = Lora({
+  variable: "--font-lora",
   subsets: ["latin"],
 });
 
@@ -23,9 +28,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full w-full min-w-screen min-h-screen">
+    <html
+      lang="en"
+      className="flex box-border h-full w-full"
+      suppressHydrationWarning={true}
+    >
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased !h-full !w-full !bg-zinc-950 p-2`}
+        className={`${geistSans.variable} ${geistMono.variable} ${lora.variable} antialiased h-full w-full bg-zinc-950 p-2`}
       >
         <div className="flex h-full w-full flex-col bg-zinc-900 text-zinc-100 rounded-xl">
           {children}

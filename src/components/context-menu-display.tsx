@@ -1,10 +1,11 @@
 "use client";
-import React from "react";
+import React, { useRef } from "react";
 import { Node, XYPosition, Edge } from "@xyflow/react"; // Import Edge
 import { NodeData } from "@/types/node-data";
 import { ContextMenuState } from "@/types/context-menu-state";
 import { AiLoadingStates } from "@/hooks/use-ai-features";
 import { EdgeData } from "@/types/edge-data"; // Import EdgeData
+import useOutsideAlerter from "@/hooks/use-click-outside";
 
 // Define some predefined edge types and colors
 const edgeTypesOptions = ["smoothstep", "step", "straight"];
@@ -38,6 +39,7 @@ interface ContextMenuDisplayProps {
   aiLoadingStates: AiLoadingStates;
   applyLayout: (direction: "TB" | "LR") => void;
   isLoading: boolean;
+  ref?: React.RefObject<HTMLDivElement | null>; // Optional ref prop
 }
 
 export function ContextMenuDisplay({
@@ -52,6 +54,7 @@ export function ContextMenuDisplay({
   aiLoadingStates,
   applyLayout,
   isLoading,
+  ref,
 }: ContextMenuDisplayProps) {
   if (!contextMenuState.visible) return null;
 
@@ -342,11 +345,10 @@ export function ContextMenuDisplay({
 
   return (
     <div
+      ref={ref}
       className="absolute z-[1000] min-w-[180px] rounded-sm bg-zinc-800 py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
       style={{ top: y, left: x }}
-      onClick={(e) => e.stopPropagation()} // Prevent closing via pane click
     >
-      {/* Render the correct menu items */}
       {nodeId && nodeMenuItems}
       {edgeId && edgeMenuItems}
       {!nodeId && !edgeId && paneMenuItems}

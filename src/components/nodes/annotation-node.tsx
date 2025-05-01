@@ -1,0 +1,151 @@
+"use client";
+
+import { useCallback, useMemo } from "react";
+import { NodeData } from "@/types/node-data";
+import { Node, NodeResizer } from "@xyflow/react"; // Removed Handle, Position as they are not used
+import {
+  Ellipsis,
+  MessageSquare,
+  Lightbulb,
+  Quote,
+  AlignLeft,
+} from "lucide-react";
+import { cn } from "@/utils/cn";
+
+interface AnnotationNodeProps extends Node<NodeData> {
+  onEditNode: (nodeId: string, nodeData: NodeData) => void;
+}
+
+// Simpler map just for icons and potential text colors
+const annotationTypeInfo: Record<
+  string,
+  { icon: React.ElementType; textColorClass: string }
+> = {
+  comment: { icon: MessageSquare, textColorClass: "text-zinc-400" },
+  idea: { icon: Lightbulb, textColorClass: "text-yellow-400" },
+  quote: { icon: Quote, textColorClass: "text-blue-300" }, // Specific color for quote text itself
+  summary: { icon: AlignLeft, textColorClass: "text-green-400" },
+  default: { icon: MessageSquare, textColorClass: "text-zinc-400" }, // Fallback
+};
+
+export default function AnnotationNode(props: AnnotationNodeProps) {
+  const { id, data, selected, onEditNode } = props;
+
+  const fontSize = data.metadata?.fontSize as string | number | undefined;
+  const fontWeight = data.metadata?.fontWeight as string | number | undefined;
+  const annotationType = (data.metadata?.annotationType as string) || "default";
+
+  const handleEllipsisClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation(); // Prevent node selection if clicking button
+      onEditNode(id, data);
+    },
+    [id, data, onEditNode],
+  );
+
+  const handleDoubleClick = useCallback(() => {
+    onEditNode(id, data);
+  }, [id, data, onEditNode]);
+
+  const contentStyle = useMemo(() => {
+    const style: React.CSSProperties = {};
+    if (fontSize) {
+      style.fontSize =
+        typeof fontSize === "number" ? `${fontSize}px` : fontSize;
+    }
+    if (fontWeight && annotationType !== "quote") {
+      // Don't apply form weight to quote, it's handled by class
+      style.fontWeight = fontWeight as any;
+    }
+    return style;
+  }, [fontSize, fontWeight, annotationType]);
+
+  const typeInfo =
+    annotationTypeInfo[annotationType] || annotationTypeInfo.default;
+  const TypeIcon = typeInfo.icon;
+
+  const isQuote = annotationType === "quote";
+
+  return (
+    <div
+      className={cn([
+        "relative min-w-80 min-h-20 h-auto p-2 flex flex-col gap-1 rounded transition-all text-center",
+        // No background or border class here
+        selected && "ring-1 ring-sky-600 ring-offset-2 ring-offset-zinc-900", // Selection outline
+        typeInfo.textColorClass, // Apply base text color for the type
+      ])}
+      onDoubleClick={handleDoubleClick}
+    >
+      {/* --- Quote Specific Layout --- */}
+      {isQuote ? (
+        <div className="relative flex items-center py-2">
+          {/* Large Opening Quote */}
+          <span
+            aria-hidden="true"
+            className="absolute -left-4 -top-4 font-lora text-6xl text-current opacity-20 pointer-events-none"
+            style={{ lineHeight: "1" }}
+          >
+            “
+          </span>
+          {/* Content */}
+          <div
+            className={cn([
+              "text-base font-lora italic whitespace-pre-wrap break-words",
+              typeInfo.textColorClass, // Use the quote text color
+            ])}
+            style={contentStyle} // Apply dynamic font size if needed
+          >
+            {data.content || (
+              <span className="italic text-current opacity-60">
+                Add quote...
+              </span>
+            )}
+          </div>
+          <span
+            aria-hidden="true"
+            className="absolute -right-4 -bottom-4 font-lora text-6xl text-current opacity-20 pointer-events-none"
+            style={{ lineHeight: "0.5" }}
+          >
+            ”
+          </span>
+        </div>
+      ) : (
+        <>
+          {/* --- Default Layout for other types --- */}
+          <div className="flex items-center justify-between mb-1">
+            {/* Icon and Type Label */}
+            <div className="flex items-center gap-1.5 opacity-80">
+              <TypeIcon className="size-3.5 flex-shrink-0" />
+              <span className="text-xs font-medium uppercase tracking-wider">
+                {annotationType}
+              </span>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div
+            className={cn([
+              "text-sm whitespace-pre-wrap break-words",
+              typeInfo.textColorClass, // Apply text color
+            ])}
+            style={contentStyle} // Apply dynamic font style
+          >
+            {data.content || (
+              <span className="italic text-current opacity-60">
+                Add content...
+              </span>
+            )}
+          </div>
+        </>
+      )}
+      {/* No handles for annotation nodes */}
+
+      <NodeResizer
+        color="#0069a8"
+        isVisible={selected}
+        minWidth={100}
+        minHeight={30}
+      />
+    </div>
+  );
+}

@@ -1,11 +1,12 @@
 import Modal from "./modal";
 import { nodeTypes } from "@/constants/node-types"; // Import available types
 import {
-  FileText, // editableNode (text note)
+  FileText, // defaultNode (text note)
   CheckSquare, // taskNode
   Image, // imageNode
   HelpCircle, // questionNode
-  Link, // resourceNode
+  Link,
+  MessageSquare, // resourceNode
 } from "lucide-react"; // Import Lucide icons
 
 interface SelectNodeTypeModalProps {
@@ -15,16 +16,17 @@ interface SelectNodeTypeModalProps {
 }
 
 // Mapping for display names and icons
+// Ensure this maps all keys in nodeTypes
 const nodeTypeDisplayInfo: Record<
   string,
   { name: string; icon: React.ElementType }
 > = {
-  editableNode: { name: "Text Note", icon: FileText },
+  defaultNode: { name: "Basic Note", icon: FileText }, // Display name for the new default
   taskNode: { name: "Task", icon: CheckSquare },
   imageNode: { name: "Image", icon: Image },
   questionNode: { name: "Question", icon: HelpCircle },
   resourceNode: { name: "Resource/Link", icon: Link },
-  // Add more as needed
+  annotationNode: { name: "Annotation", icon: MessageSquare }, // Add if annotationNode is uncommented
 };
 
 export default function SelectNodeTypeModal({
@@ -36,6 +38,11 @@ export default function SelectNodeTypeModal({
   // but ideally nodeTypes and nodeTypeDisplayInfo should be in sync.
   const availableTypes = Object.keys(nodeTypes).filter((type) =>
     nodeTypeDisplayInfo.hasOwnProperty(type),
+  );
+
+  // Sort alphabetically by display name for better UX
+  availableTypes.sort((a, b) =>
+    nodeTypeDisplayInfo[a].name.localeCompare(nodeTypeDisplayInfo[b].name),
   );
 
   return (

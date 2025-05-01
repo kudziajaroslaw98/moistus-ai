@@ -3,27 +3,20 @@
 import { useCallback } from "react";
 import { NodeData } from "@/types/node-data";
 import { Node, Handle, Position, NodeResizer } from "@xyflow/react";
-import { Ellipsis, CheckSquare } from "lucide-react"; // Import icons
+import { Ellipsis, FileText } from "lucide-react"; // Using FileText as a generic icon
 import { cn } from "@/utils/cn";
 
-// Add onEditNode prop to the node props
-interface TaskNodeProps extends Node<NodeData> {
+interface DefaultNodeProps extends Node<NodeData> {
   onEditNode: (nodeId: string, nodeData: NodeData) => void;
 }
 
-// Change function signature to accept props
-export default function TaskNode(props: TaskNodeProps) {
+export default function DefaultNode(props: DefaultNodeProps) {
   const { id, data, selected, onEditNode } = props;
 
-  // Read metadata and style properties from data
-  const isComplete = Boolean(data.metadata?.isComplete);
-
   const handleEllipsisClick = useCallback(() => {
-    // Trigger the modal opening via the parent prop
     onEditNode(id, data);
   }, [id, data, onEditNode]);
 
-  // Double click also opens the modal
   const handleDoubleClick = useCallback(() => {
     onEditNode(id, data);
   }, [id, data, onEditNode]);
@@ -36,25 +29,14 @@ export default function TaskNode(props: TaskNodeProps) {
       ])}
       onDoubleClick={handleDoubleClick}
     >
-      <Handle
-        type="target"
-        position={Position.Top}
-        className="size-2 rounded-full !bg-zinc-500 !border-zinc-800"
-      />
       <div className="w-full relative h-10 p-2 flex justify-between bg-zinc-900 rounded-md">
         <div className="flex gap-4 justify-center items-center z-20">
-          {/* Icon Area - Customize color */}
-          <div className="size-6 rounded-sm bg-green-700 flex justify-center items-center">
-            <CheckSquare className="size-4 text-zinc-100" /> {/* Task icon */}
+          <div className="size-6 rounded-sm bg-zinc-700 flex justify-center items-center">
+            <FileText className="size-4 text-zinc-100" /> {/* Generic icon */}
           </div>
         </div>
 
         <div className="flex gap-4 justify-center items-center z-20">
-          {/* Checkbox is now part of the modal form, don't render interactable one here */}
-          {/* Display the state visually if needed */}
-          {isComplete && (
-            <span className="text-xs text-green-400 font-medium">Done</span>
-          )}
           <div className="flex gap-2 justify-center items-center">
             {/* Ellipsis button to open modal */}
             <button
@@ -67,22 +49,15 @@ export default function TaskNode(props: TaskNodeProps) {
         </div>
       </div>
 
-      {/* Content Area - Apply font size */}
-      <div
-        className={cn([
-          "pb-4 pt-2 min-h-[3rem] whitespace-pre-wrap",
-          isComplete && "line-through", // Apply line-through here
-        ])}
-        // Text color is applied to the main container's style prop
-      >
+      {/* Content Area - now display only */}
+      <div className="text-sm pb-4 pt-2 min-h-[3rem] text-zinc-300 whitespace-pre-wrap">
         {data.content || (
           <span className="italic text-zinc-500">
-            Double click or click the menu to add description...
+            Double click or click the menu to add content...
           </span>
         )}
       </div>
 
-      {/* Handles - Adjust positioning if padding changes */}
       <Handle // Manually add handles
         type="target"
         position={Position.Top}
