@@ -709,6 +709,7 @@ export function MindMapCanvas() {
         edges={edges} // Pass current edges
         addNode={openNodeTypeModal} // Use the wrapper function
         deleteNode={crudActions.deleteNode} // Use CRUD delete
+        deleteEdge={crudActions.deleteEdge}
         aiActions={{
           summarizeNode: aiActions.summarizeNode,
           summarizeBranch: aiActions.summarizeBranch,

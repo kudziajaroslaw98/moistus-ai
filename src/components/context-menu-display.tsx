@@ -1,14 +1,18 @@
 "use client";
-import React, { useRef } from "react";
+import React from "react";
 import { Node, XYPosition, Edge } from "@xyflow/react"; // Import Edge
 import { NodeData } from "@/types/node-data";
 import { ContextMenuState } from "@/types/context-menu-state";
 import { AiLoadingStates } from "@/hooks/use-ai-features";
 import { EdgeData } from "@/types/edge-data"; // Import EdgeData
-import useOutsideAlerter from "@/hooks/use-click-outside";
+import { cn } from "@/utils/cn";
+import AStrainghtBIcon from "./icons/a-straight-b";
+import AStepBIcon from "./icons/a-step-b";
+import ASmoothstepBIcon from "./icons/a-smoothstep-b";
 
 // Define some predefined edge types and colors
-const edgeTypesOptions = ["smoothstep", "step", "straight"];
+const edgeTypesOptions = ["smoothstep", "step", "straight"] as const;
+type EdgeTypesType = "smoothstep" | "step" | "straight";
 const edgeColorOptions = [
   { name: "Default", value: undefined }, // Use default flow color
   { name: "Grey", value: "#888" },
@@ -24,6 +28,7 @@ interface ContextMenuDisplayProps {
   edges: Edge<EdgeData>[]; // <-- Add edges prop
   addNode: (parentId: string | null, position?: XYPosition) => void;
   deleteNode: (nodeId: string) => Promise<void>;
+  deleteEdge: (edgeId: string) => Promise<void>;
   saveEdgeStyle: (
     edgeId: string,
     styleChanges: Partial<EdgeData>,
@@ -49,6 +54,7 @@ export function ContextMenuDisplay({
   edges, // <-- Destructure edges
   addNode,
   deleteNode,
+  deleteEdge,
   saveEdgeStyle, // <-- Destructure saveEdgeStyle
   aiActions,
   aiLoadingStates,
@@ -70,14 +76,28 @@ export function ContextMenuDisplay({
   };
 
   const getItemClasses = (disabled: boolean = false): string => {
-    return `block w-full text-left px-3 py-1.5 text-sm text-zinc-200 hover:bg-zinc-700 cursor-pointer ${
+    return `block w-full rounded-md text-left px-3 py-1.5 text-xs text-zinc-200 hover:bg-zinc-800 transition-color cursor-pointer ${
       disabled ? "opacity-50 cursor-not-allowed hover:bg-transparent" : ""
     }`;
+  };
+
+  const getItemIcon = (type: EdgeTypesType) => {
+    switch (type) {
+      case "smoothstep":
+        return <ASmoothstepBIcon className="size-4 stroke-zinc-200" />;
+      case "step":
+        return <AStepBIcon className="size-4 stroke-zinc-200" />;
+      case "straight":
+        return <AStrainghtBIcon className="size-4 stroke-zinc-200" />;
+    }
   };
 
   // --- Node Menu Items ---
   const nodeMenuItems = nodeId ? (
     <>
+      <span className="block w-full rounded-md px-3 py-1.5 text-xs text-zinc-500">
+        Node
+      </span>
       {/* ... existing node menu items ... */}
       <button
         className={getItemClasses(isLoading)}
@@ -86,12 +106,18 @@ export function ContextMenuDisplay({
         Add Child
       </button>
       <button
-        className={getItemClasses(isLoading)}
+        className={cn([
+          getItemClasses(isLoading),
+          "text-rose-400 hover:bg-rose-900/50",
+        ])}
         onClick={() => handleActionClick(() => deleteNode(nodeId), isLoading)}
       >
         Delete Node
       </button>
-      <hr className="my-1 border-zinc-700" />
+      <hr className="my-1 border-zinc-800" />
+      <span className="block w-full rounded-md px-3 py-1.5 text-xs text-zinc-500">
+        AI
+      </span>
       <button
         className={getItemClasses(
           isLoading ||
@@ -163,7 +189,9 @@ export function ContextMenuDisplay({
   const paneMenuItems =
     !nodeId && !edgeId ? ( // <-- Check edgeId is null too
       <>
-        {/* ... existing pane menu items ... */}
+        <span className="block w-full rounded-md px-3 py-1.5 text-xs text-zinc-500">
+          Node
+        </span>
         <button
           className={getItemClasses(isLoading)}
           onClick={() =>
@@ -175,7 +203,10 @@ export function ContextMenuDisplay({
         >
           Add Node Here
         </button>
-        <hr className="my-1 border-zinc-700" />
+        <hr className="my-1 border-zinc-800" />
+        <span className="block w-full rounded-md px-3 py-1.5 text-xs text-zinc-500">
+          AI
+        </span>
         <button
           className={getItemClasses(
             isLoading ||
@@ -208,7 +239,10 @@ export function ContextMenuDisplay({
         >
           Suggest Merges (AI)
         </button>
-        <hr className="my-1 border-zinc-700" />
+        <hr className="my-1 border-zinc-800" />
+        <span className="block w-full rounded-md px-3 py-1.5 text-xs text-zinc-500">
+          Layout
+        </span>
         <button
           className={getItemClasses(isLoading)}
           onClick={() => handleActionClick(() => applyLayout("TB"), isLoading)}
@@ -228,7 +262,25 @@ export function ContextMenuDisplay({
   const edgeMenuItems =
     edgeId && clickedEdge ? (
       <>
+        <span className="block w-full rounded-md px-3 py-1.5 text-xs text-zinc-500">
+          Edge
+        </span>
+        <button
+          className={cn([
+            getItemClasses(isLoading),
+            "text-rose-400 hover:bg-rose-900/50",
+          ])}
+          onClick={() => handleActionClick(() => deleteEdge(edgeId), isLoading)}
+        >
+          Delete Edge
+        </button>
+
+        <hr className="my-1 border-zinc-800" />
+        <span className="block w-full rounded-md px-3 py-1.5 text-xs text-zinc-500">
+          Edge Style
+        </span>
         {/* Simple actions */}
+
         <button
           className={getItemClasses(isLoading)}
           onClick={() =>
@@ -243,21 +295,19 @@ export function ContextMenuDisplay({
 
         {/* --- Change Type Submenu --- */}
         <div
-          className={getItemClasses(isLoading) + " group relative bg-zinc-800"}
+          className={getItemClasses(isLoading) + " group relative bg-zinc-950"}
         >
-          {" "}
-          {/* Add relative and group */}
           <span>Change Type ({clickedEdge.type || "default"})</span>
-          {/* Submenu Div - Apply transition classes */}
           <div
-            className={`bg-zinc-750 invisible absolute top-0 left-full z-10 ml-1 min-w-[120px] rounded-sm border border-zinc-600 bg-zinc-800 py-1 opacity-0 shadow-lg transition-all delay-100 duration-150 ease-in-out group-hover:visible group-hover:opacity-100 group-hover:delay-0`}
+            className={`invisible absolute top-0 left-full z-10 ml-1 flex min-w-[120px] flex-col gap-1 rounded-sm border border-zinc-800 bg-zinc-950 p-1 opacity-0 shadow-lg transition-all delay-100 duration-150 ease-in-out group-hover:visible group-hover:opacity-100 group-hover:delay-0`}
           >
             {edgeTypesOptions.map((type) => (
               <button
                 key={type}
-                className={getItemClasses(
-                  isLoading || clickedEdge.type === type,
-                )}
+                className={cn([
+                  getItemClasses(isLoading || clickedEdge.type === type),
+                  "flex items-center gap-2",
+                ])}
                 onClick={() =>
                   handleActionClick(
                     () => saveEdgeStyle(edgeId, { type }),
@@ -266,7 +316,8 @@ export function ContextMenuDisplay({
                 }
                 disabled={clickedEdge.type === type || isLoading} // Ensure disabled check includes isLoading
               >
-                {type}
+                {getItemIcon(type)}
+                {type.charAt(0).toUpperCase() + type.slice(1)}
               </button>
             ))}
           </div>
@@ -275,14 +326,11 @@ export function ContextMenuDisplay({
 
         {/* --- Change Color Submenu --- */}
         <div
-          className={getItemClasses(isLoading) + " group relative bg-zinc-800"}
+          className={getItemClasses(isLoading) + " group relative bg-zinc-950"}
         >
-          {" "}
-          {/* Add relative and group */}
           <span>Change Color</span>
-          {/* Submenu Div - Apply transition classes */}
           <div
-            className={`bg-zinc-750 invisible absolute top-0 left-full z-10 ml-1 min-w-[120px] rounded-sm border border-zinc-600 bg-zinc-800 py-1 opacity-0 shadow-lg transition-all delay-100 duration-150 ease-in-out group-hover:visible group-hover:opacity-100 group-hover:delay-0`}
+            className={`invisible absolute top-0 left-full z-10 ml-1 flex min-w-[120px] flex-col gap-1 rounded-sm border border-zinc-800 bg-zinc-950 p-1 opacity-0 shadow-lg transition-all delay-100 duration-150 ease-in-out group-hover:visible group-hover:opacity-100 group-hover:delay-0`}
           >
             {edgeColorOptions.map((colorOpt) => (
               <button
@@ -302,9 +350,8 @@ export function ContextMenuDisplay({
                   (clickedEdge.style?.stroke === undefined &&
                     colorOpt.value === undefined) ||
                   isLoading
-                } // Corrected disabled logic for default
+                }
               >
-                {/* Visual color indicator */}
                 <span
                   className="mr-2 inline-block h-3 w-3 rounded-full border border-zinc-500"
                   style={{ backgroundColor: colorOpt.value || "transparent" }}
@@ -317,18 +364,6 @@ export function ContextMenuDisplay({
         {/* -------------------------- */}
 
         {/* ... (rest of edge menu items like delete) ... */}
-        <hr className="my-1 border-zinc-700" />
-        <button
-          className={
-            getItemClasses(isLoading || true) +
-            " text-rose-400 hover:bg-rose-900/50"
-          } // Keep delete disabled for now
-          // TODO: Implement deleteEdge function in CRUD hook if needed
-          // onClick={() => handleActionClick(() => deleteEdge(edgeId), isLoading)}
-          disabled={true} // Temporarily disable delete
-        >
-          Delete Edge (Not Implemented)
-        </button>
       </>
     ) : null;
   // --------------------------
@@ -336,7 +371,7 @@ export function ContextMenuDisplay({
   return (
     <div
       ref={ref}
-      className="ring-opacity-5 absolute z-[1000] min-w-[180px] rounded-sm bg-zinc-800 py-1 shadow-lg ring-1 ring-black focus:outline-none"
+      className="ring-opacity-5 absolute z-[1000] flex min-w-[250px] flex-col gap-1 rounded-sm border border-zinc-800 bg-zinc-950 px-1 py-1 shadow-lg ring-1 ring-black focus:outline-none"
       style={{ top: y, left: x }}
     >
       {nodeId && nodeMenuItems}
