@@ -1,10 +1,10 @@
-import { useState, useCallback } from "react";
-import { Node, Edge, ReactFlowInstance, XYPosition } from "@xyflow/react"; // Import XYPosition
-import dagre from "dagre";
-import { NodeData } from "@/types/node-data";
+import { NotificationType } from "@/hooks/use-notifications";
 import { EdgeData } from "@/types/edge-data";
 import { HistoryState } from "@/types/history-state";
-import { NotificationType } from "@/hooks/use-notifications";
+import { NodeData } from "@/types/node-data";
+import { Edge, Node, ReactFlowInstance, XYPosition } from "@xyflow/react"; // Import XYPosition
+import dagre from "dagre";
+import { useCallback, useState } from "react";
 
 type LayoutDirection = "TB" | "LR";
 
@@ -57,7 +57,7 @@ interface UseLayoutProps {
   nodes: Node<NodeData>[];
   edges: Edge<EdgeData>[];
   setNodes: React.Dispatch<React.SetStateAction<Node<NodeData>[]>>;
-  reactFlowInstance: ReactFlowInstance<Node<NodeData>, Edge<EdgeData>>;
+  reactFlowInstance: ReactFlowInstance;
   addStateToHistory: (sourceAction?: string) => void;
   showNotification: (message: string, type: NotificationType) => void;
   currentHistoryState: HistoryState | undefined;

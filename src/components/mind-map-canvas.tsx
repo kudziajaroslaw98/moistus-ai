@@ -71,7 +71,7 @@ import AnnotationNode from "./nodes/annotation-node";
 export function MindMapCanvas() {
   const params = useParams();
   const mapId = params.id as string;
-  const reactFlowInstance = useReactFlow<Node<NodeData>, Edge<EdgeData>>();
+  const reactFlowInstance = useReactFlow();
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [copiedNodes, setCopiedNodes] = useState<Node<NodeData>[]>([]);
 
@@ -180,10 +180,7 @@ export function MindMapCanvas() {
     nodes,
     edges,
     setNodes,
-    reactFlowInstance: reactFlowInstance as ReactFlowInstance<
-      Node<NodeData>,
-      Edge<EdgeData>
-    >,
+    reactFlowInstance: reactFlowInstance,
     addStateToHistory,
     showNotification,
     currentHistoryState,
@@ -722,6 +719,7 @@ export function MindMapCanvas() {
         saveEdgeStyle={crudActions.saveEdgeProperties} // Context menu edge style save now uses saveEdgeProperties
         aiLoadingStates={aiLoadingStates}
         applyLayout={applyLayout}
+        reactFlowInstance={reactFlowInstance}
         isLoading={isBusy}
       />
       {/* Notifications */}

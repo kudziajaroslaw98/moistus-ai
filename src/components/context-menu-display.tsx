@@ -4,7 +4,7 @@ import { ContextMenuState } from "@/types/context-menu-state";
 import { EdgeData } from "@/types/edge-data"; // Import EdgeData
 import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
-import { Edge, Node, XYPosition } from "@xyflow/react"; // Import Edge
+import { Edge, Node, ReactFlowInstance, XYPosition } from "@xyflow/react"; // Import Edge
 import {
   ChevronRight,
   GitPullRequestArrow,
@@ -63,6 +63,7 @@ interface ContextMenuDisplayProps {
   aiLoadingStates: AiLoadingStates;
   applyLayout: (direction: "TB" | "LR") => void;
   isLoading: boolean;
+  reactFlowInstance: ReactFlowInstance;
   ref?: React.RefObject<HTMLDivElement | null>; // Optional ref prop
 }
 
@@ -79,6 +80,7 @@ export function ContextMenuDisplay({
   aiLoadingStates,
   applyLayout,
   isLoading,
+  reactFlowInstance,
   ref,
 }: ContextMenuDisplayProps) {
   if (!contextMenuState.visible) return null;
@@ -225,10 +227,14 @@ export function ContextMenuDisplay({
           align="left"
           disabled={isLoading}
           onClick={() =>
-            handleActionClick(
-              () => addNode(null, "New Node", "editableNode", { x, y }), // Pass coords for pane click
-              isLoading,
-            )
+            handleActionClick(() => {
+              // Convert page coordinates to flow coordinates
+              const flowPosition = reactFlowInstance.screenToFlowPosition({
+                x: contextMenuState.x,
+                y: contextMenuState.y,
+              });
+              addNode(null, flowPosition);
+            }, isLoading)
           }
           className="gap-2"
         >
