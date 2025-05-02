@@ -4,10 +4,9 @@ import {
   BaseEdge,
   Edge,
   EdgeLabelRenderer,
+  EdgeProps,
   getSmoothStepPath,
 } from "@xyflow/react";
-
-// Define props specifically for this custom edge type
 
 export default function EditableEdge({
   sourceX,
@@ -16,10 +15,10 @@ export default function EditableEdge({
   targetY,
   sourcePosition,
   targetPosition,
-  style, // Includes color if set via style.stroke
-  data, // Our EdgeData
-  selected, // Whether the edge is selected
-}: Edge<EdgeData>) {
+  ...props
+}: EdgeProps<EdgeData>) {
+  const data = props.data as EdgeData;
+  const style = props.style as Edge["style"];
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
@@ -37,7 +36,7 @@ export default function EditableEdge({
           "react-flow__edge-path",
           "cursor-pointer", // Add cursor pointer for better UX
           "transition-all duration-200 ease-in-out", // Add transition for smoothness
-          selected ? "!stroke-blue-500" : "stroke-zinc-700", // Change color based on selected state
+          props.selected ? "!stroke-blue-500" : "stroke-zinc-700", // Change color based on selected state
         ])}
         markerEnd={data?.markerEnd}
         style={style}

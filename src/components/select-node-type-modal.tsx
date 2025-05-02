@@ -8,6 +8,7 @@ import {
   Link,
   MessageSquare, // resourceNode
 } from "lucide-react"; // Import Lucide icons
+import { Button } from "./ui/button";
 
 interface SelectNodeTypeModalProps {
   isOpen: boolean;
@@ -51,14 +52,17 @@ export default function SelectNodeTypeModal({
         {availableTypes.map((type) => {
           const { name, icon: Icon } = nodeTypeDisplayInfo[type];
           return (
-            <button
+            <Button
               key={type}
+              variant="secondary"
               onClick={() => onSelectType(type)}
-              className="flex flex-col items-center justify-center rounded-sm border border-zinc-600 bg-zinc-700 p-4 text-sm text-zinc-100 shadow-sm transition-colors hover:border-teal-600 hover:bg-teal-700 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:outline-none"
+              className="flex h-auto items-center justify-center gap-4 p-4"
             >
-              <Icon size={24} className="mb-2 text-teal-400" /> {/* Icon */}
-              {name} {/* Display name */}
-            </button>
+              <>
+                <Icon size={20} className="text-teal-400" />
+                <span className="text-xs">{name}</span>
+              </>
+            </Button>
           );
         })}
       </div>

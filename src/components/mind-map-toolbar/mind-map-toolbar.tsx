@@ -2,6 +2,8 @@
 import { AiLoadingStates } from "@/hooks/use-ai-features";
 import Link from "next/link"; // Import Link
 import { ArrowLeft, Maximize, Redo, Undo } from "lucide-react"; // Import an icon
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
 
 interface MindMapToolbarProps {
   mindMapTitle: string;
@@ -55,24 +57,25 @@ export function MindMapToolbar({
 
         {/* AI Generation */}
         <div className="flex items-center gap-2">
-          <input
+          <Input
             type="text"
             value={aiPrompt}
             onChange={(e) => setAiPrompt(e.target.value)}
             placeholder="Topic to generate map..."
-            className="min-w-[150px] rounded-sm border border-zinc-600 bg-zinc-700 px-2 py-1 text-sm text-zinc-100 placeholder-zinc-400 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 focus:outline-none md:min-w-[200px]"
+            className="min-w-[150px] md:min-w-[200px]"
             disabled={isLoading || aiLoadingStates.isGenerating}
           />
-          <button
+          <Button
             onClick={onGenerateMap}
-            className="rounded-sm bg-teal-600 px-3 py-1 text-sm font-medium text-white shadow-sm hover:bg-teal-700 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none disabled:opacity-50"
             disabled={
               isLoading || aiLoadingStates.isGenerating || !aiPrompt.trim()
             }
             title="Generate Map Structure (AI)"
+            variant="default"
+            size="sm"
           >
             {aiLoadingStates.isGenerating ? "..." : "Generate"}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -80,57 +83,61 @@ export function MindMapToolbar({
       <div className="flex flex-wrap items-center gap-4">
         {/* AI Search */}
         <div className="flex items-center gap-2">
-          <input
+          <Input
             type="text"
             value={aiSearchQuery}
             onChange={(e) => setAiSearchQuery(e.target.value)}
             placeholder="Search nodes (AI)..."
-            className="min-w-[150px] rounded-sm border border-zinc-600 bg-zinc-700 px-2 py-1 text-sm text-zinc-100 placeholder-zinc-400 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 focus:outline-none md:min-w-[200px]"
+            className="min-w-[150px] md:min-w-[200px]"
             disabled={isLoading || aiLoadingStates.isSearching}
           />
-          <button
+          <Button
             onClick={onAiSearch}
-            className="rounded-sm bg-sky-600 px-3 py-1 text-sm font-medium text-white shadow-sm hover:bg-sky-700 focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none disabled:opacity-50"
             disabled={
               isLoading || aiLoadingStates.isSearching || !aiSearchQuery.trim()
             }
             title="Search Nodes (AI)"
+            variant="sky"
+            size="sm"
           >
             {aiLoadingStates.isSearching ? "..." : "Search"}
-          </button>
+          </Button>
         </div>
 
         {/* Undo/Redo */}
         <div className="flex items-center gap-2">
-          <button
+          <Button
             onClick={onUndo}
-            className="rounded-sm bg-zinc-600 p-1.5 text-sm font-medium text-zinc-200 shadow-sm hover:bg-zinc-500 focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none disabled:opacity-40"
             disabled={isLoading || !canUndo}
             title="Undo (Ctrl+Z)"
+            variant="secondary"
+            size="icon"
           >
             <Undo className="size-4" />
-          </button>
+          </Button>
 
-          <button
+          <Button
             onClick={onRedo}
-            className="rounded-sm bg-zinc-600 p-1.5 text-sm font-medium text-zinc-200 shadow-sm hover:bg-zinc-500 focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none disabled:opacity-40"
             disabled={isLoading || !canRedo}
             title="Redo (Ctrl+Y)"
+            variant="secondary"
+            size="icon"
           >
             <Redo className="size-4" />
-          </button>
+          </Button>
         </div>
 
         {/* Focus Mode Button */}
-        <button
-          onClick={onEnterFocusMode} // Call the passed handler
-          className="rounded-sm bg-zinc-600 p-1.5 text-sm font-medium text-zinc-200 shadow-sm hover:bg-zinc-500 focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none disabled:opacity-40"
-          disabled={isLoading} // Disable if other actions are loading? Optional.
+        <Button
+          onClick={onEnterFocusMode}
+          disabled={isLoading}
           title="Enter Focus Mode"
           aria-label="Enter Focus Mode"
+          variant="secondary"
+          size="icon"
         >
           <Maximize className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
     </div>
   );

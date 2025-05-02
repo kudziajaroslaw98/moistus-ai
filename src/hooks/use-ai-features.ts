@@ -1,16 +1,16 @@
-import { useState, useCallback } from "react";
-import { Node, Edge } from "@xyflow/react";
-import { NodeData } from "@/types/node-data";
-import { EdgeData } from "@/types/edge-data";
-import { HistoryState } from "@/types/history-state";
+import uuid from "@/helpers/uuid";
+import useFetch from "@/hooks/use-fetch"; // Import useFetch
+import { NotificationType } from "@/hooks/use-notifications";
 import { AiConnectionSuggestion } from "@/types/ai-connection-suggestion";
 import { AiMergeSuggestion } from "@/types/ai-merge-suggestion";
 import { AiNodeStructure } from "@/types/ai-node-structure";
 import { AiResponseStructure } from "@/types/ai-response-structure";
-import { NotificationType } from "@/hooks/use-notifications";
-import uuid from "@/helpers/uuid";
-import useFetch from "@/hooks/use-fetch"; // Import useFetch
 import { AppEdge } from "@/types/app-edge";
+import { EdgeData } from "@/types/edge-data";
+import { HistoryState } from "@/types/history-state";
+import { NodeData } from "@/types/node-data";
+import { Edge, Node } from "@xyflow/react";
+import { useCallback, useState } from "react";
 
 // Props interface remains the same
 interface UseAiFeaturesProps {
@@ -39,7 +39,7 @@ interface UseAiFeaturesProps {
 }
 
 // Actions interface remains the same
-interface AiActions {
+export interface AiActions {
   generateMap: () => Promise<void>;
   summarizeNode: (nodeId: string) => Promise<void>;
   summarizeBranch: (nodeId: string) => Promise<void>;
@@ -56,7 +56,7 @@ interface AiActions {
 }
 
 // Loading states interface remains the same
-interface AiLoadingStates {
+export interface AiLoadingStates {
   isGenerating: boolean;
   isSummarizing: boolean;
   isExtracting: boolean;
@@ -69,10 +69,10 @@ interface AiLoadingStates {
 }
 
 // Result interface remains the same
-interface UseAiFeaturesResult {
+export interface UseAiFeaturesResult {
   aiActions: AiActions;
   aiLoadingStates: AiLoadingStates;
-  suggestedEdges: Edge<EdgeData>[];
+  suggestedEdges: Edge<Partial<EdgeData>>[];
   mergeSuggestions: AiMergeSuggestion[];
   isAiContentModalOpen: boolean;
   setIsAiContentModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -97,7 +97,9 @@ export function useAiFeatures({
 }: UseAiFeaturesProps): UseAiFeaturesResult {
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiSearchQuery, setAiSearchQuery] = useState("");
-  const [suggestedEdges, setSuggestedEdges] = useState<Edge<EdgeData>[]>([]);
+  const [suggestedEdges, setSuggestedEdges] = useState<
+    Edge<Partial<EdgeData>>[]
+  >([]);
   const [mergeSuggestions, setMergeSuggestions] = useState<AiMergeSuggestion[]>(
     [],
   );
@@ -532,8 +534,8 @@ export function useAiFeatures({
     if (response.status === "success") {
       const suggestions = response.data.suggestions;
       if (suggestions && suggestions.length > 0) {
-        const suggestedReactFlowEdges: Edge<EdgeData>[] = suggestions.map(
-          (suggestion) => ({
+        const suggestedReactFlowEdges: Edge<Partial<EdgeData>>[] =
+          suggestions.map((suggestion) => ({
             id: `suggested-${uuid()}`,
             source: suggestion.sourceNodeId,
             target: suggestion.targetNodeId,
@@ -545,8 +547,7 @@ export function useAiFeatures({
               sourceNodeId: suggestion.sourceNodeId,
               targetNodeId: suggestion.targetNodeId,
             },
-          }),
-        );
+          }));
         setSuggestedEdges(suggestedReactFlowEdges);
         showNotification(
           `Suggested ${suggestions.length} connection(s).`,

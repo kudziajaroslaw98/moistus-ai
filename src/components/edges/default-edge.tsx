@@ -4,22 +4,20 @@ import {
   BaseEdge,
   Edge,
   EdgeLabelRenderer,
-  getBezierPath,
+  EdgeProps,
   getSmoothStepPath,
 } from "@xyflow/react";
 export default function DefaultEdge({
-  id,
   sourceX,
   sourceY,
   targetX,
   targetY,
   sourcePosition,
-  type,
   targetPosition,
-  style, // Includes color if set via style.stroke
-  data, // Our EdgeData
-  selected, // Whether the edge is selected
-}: Edge<EdgeData>) {
+  ...props
+}: EdgeProps<EdgeData>) {
+  const data = props.data as EdgeData;
+  const style = props.style as Edge["style"];
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
@@ -35,7 +33,7 @@ export default function DefaultEdge({
         path={edgePath}
         className={cn([
           "react-flow__edge-path",
-          selected ? "!stroke-blue-500" : "stroke-zinc-700", // Change color based on selected state
+          props.selected ? "!stroke-blue-500" : "stroke-zinc-700", // Change color based on selected state
           "",
         ])} // Apply class
         markerEnd={data?.markerEnd}

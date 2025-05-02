@@ -1,8 +1,9 @@
 import { supabaseClient } from "@/helpers/supabase/client";
 import { ShowNotification } from "@/hooks/use-notifications";
 import { AiConnectionSuggestion } from "@/types/ai-connection-suggestion";
-import { addEdge, EdgeProps, useReactFlow } from "@xyflow/react";
-import { useCallback, useState } from "react";
+import { EdgeData } from "@/types/edge-data";
+import { addEdge, Edge, EdgeProps, useReactFlow } from "@xyflow/react";
+import { useCallback } from "react";
 
 export default function SuggestedConnectionEdge({
   id,
@@ -10,12 +11,11 @@ export default function SuggestedConnectionEdge({
   sourceY,
   targetX,
   targetY,
-  style,
-  data, // Contains the reason, sourceNodeId, targetNodeId
-  markerEnd,
+  ...props
 }: EdgeProps<AiConnectionSuggestion>) {
+  const data = props.data as EdgeData;
+  const style = props.style as Edge["style"];
   const { setEdges, getNodes } = useReactFlow();
-  const [showActions, setShowActions] = useState(false);
   const reactFlowInstance = useReactFlow(); // Get instance here
   const showNotification: ShowNotification | undefined = reactFlowInstance
     .getNodes()
@@ -83,9 +83,7 @@ export default function SuggestedConnectionEdge({
         style={style}
         className="react-flow__edge-path"
         d={edgePath}
-        markerEnd={markerEnd}
-        onMouseEnter={() => setShowActions(true)}
-        onMouseLeave={() => setShowActions(false)}
+        markerEnd={props.markerEnd}
       />
       <g
         transform={`translate(${(sourceX + targetX) / 2}, ${(sourceY + targetY) / 2})`}

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import useFetch from "@/hooks/use-fetch";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 interface MindMapData {
   id: string;
@@ -152,22 +154,17 @@ export default function DashboardPage() {
           onSubmit={handleCreateMap}
           className="mb-8 flex flex-col gap-3 sm:flex-row"
         >
-          <input
+          <Input
             type="text"
             value={newMapTitle}
             onChange={(e) => setNewMapTitle(e.target.value)}
             placeholder="New Mind Map Title"
-            className="flex-grow rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 placeholder-zinc-400 shadow-sm focus:border-teal-500 focus:ring-1 focus:ring-teal-500 focus:outline-none sm:text-sm"
+            className="flex-grow"
             disabled={isCreating}
           />
-          <button
-            type="submit"
-            className="inline-flex items-center justify-center rounded-sm border border-transparent bg-teal-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-teal-700 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-zinc-900 focus:outline-none disabled:opacity-50"
-            disabled={!newMapTitle.trim() || isCreating}
-          >
-            {/* <FiPlus className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" /> */}
+          <Button type="submit" disabled={!newMapTitle.trim() || isCreating}>
             {isCreating ? "Creating..." : "Create Map"}
-          </button>
+          </Button>
         </form>
 
         {/* Loading/Error State */}
@@ -196,17 +193,15 @@ export default function DashboardPage() {
                   <p className="mb-4 text-sm text-zinc-400">
                     Created: {new Date(map.created_at).toLocaleDateString()}
                   </p>
-                  {/* Optional Description */}
-                  {/* {map.description && <p className="text-sm text-zinc-300 mb-4 line-clamp-2">{map.description}</p>} */}
                 </div>
                 <div className="mt-4 flex items-center justify-end gap-2">
-                  <button
+                  <Button
                     onClick={() => handleDeleteMap(map.id)}
                     title="Delete Map"
-                    className="rounded-sm p-2 text-zinc-400 hover:bg-zinc-700 hover:text-rose-400 focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none"
-                    // Add disabled state if deleting this specific map
+                    variant="ghost"
+                    size="icon"
+                    className="text-zinc-400 hover:text-rose-400"
                   >
-                    {/* <FiTrash2 className="h-4 w-4" /> */}
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       className="h-4 w-4"
@@ -215,21 +210,19 @@ export default function DashboardPage() {
                       stroke="currentColor"
                       strokeWidth={2}
                     >
-                      {" "}
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      />{" "}
+                      />
                     </svg>
-                  </button>
+                  </Button>
                   <Link
                     href={`/mind-map/${map.id}`}
                     title="Open Map"
                     className="inline-flex items-center rounded-sm border border-transparent bg-sky-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-sky-700 focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none"
                   >
                     Open
-                    {/* <FiExternalLink className="ml-1.5 h-4 w-4" /> */}
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       className="ml-1.5 h-4 w-4"
@@ -238,12 +231,11 @@ export default function DashboardPage() {
                       stroke="currentColor"
                       strokeWidth={2}
                     >
-                      {" "}
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                      />{" "}
+                      />
                     </svg>
                   </Link>
                 </div>

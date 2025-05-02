@@ -11,12 +11,12 @@ export default function Modal({
   return (
     // Overlay
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       onClick={onClose} // Close when clicking overlay
     >
       {/* Modal Content */}
       <div
-        className="w-full max-w-lg rounded-sm bg-zinc-800 shadow-lg"
+        className="w-full max-w-lg rounded-sm border border-zinc-800 bg-zinc-950 shadow-lg"
         onClick={(e) => e.stopPropagation()} // Prevent closing when clicking modal content
       >
         {/* Modal Header */}

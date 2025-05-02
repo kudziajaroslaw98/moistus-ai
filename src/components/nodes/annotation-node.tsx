@@ -4,7 +4,6 @@ import { useCallback, useMemo } from "react";
 import { NodeData } from "@/types/node-data";
 import { Node, NodeResizer } from "@xyflow/react"; // Removed Handle, Position as they are not used
 import {
-  Ellipsis,
   MessageSquare,
   Lightbulb,
   Quote,
@@ -34,14 +33,6 @@ export default function AnnotationNode(props: AnnotationNodeProps) {
   const fontSize = data.metadata?.fontSize as string | number | undefined;
   const fontWeight = data.metadata?.fontWeight as string | number | undefined;
   const annotationType = (data.metadata?.annotationType as string) || "default";
-
-  const handleEllipsisClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation(); // Prevent node selection if clicking button
-      onEditNode(id, data);
-    },
-    [id, data, onEditNode],
-  );
 
   const handleDoubleClick = useCallback(() => {
     onEditNode(id, data);

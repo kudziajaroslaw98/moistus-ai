@@ -5,6 +5,10 @@ import React, {
   useImperativeHandle,
 } from "react";
 import { NodeData } from "@/types/node-data";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { FormField } from "@/components/ui/form-field";
 
 // Define the props expected by this form component
 interface DefaultNodeFormProps {
@@ -45,9 +49,6 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
           status: status || undefined, // Ensure undefined if empty/default
           importance: importance ?? undefined, // Handle 0 correctly, save undefined if null/NaN
           sourceUrl: sourceUrl.trim() === "" ? undefined : sourceUrl.trim(), // Save empty as undefined
-          // Note: This form doesn't manage metadata directly for the 'defaultNode' type
-          // If default nodes *could* have metadata, you'd handle it here.
-          // metadata: {} // Or merge with existing metadata if applicable
         };
         return formData;
       },
@@ -55,24 +56,17 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
 
     return (
       <div className="flex flex-col gap-6">
-        {" "}
-        {/* Outer container */}
         {/* General Content Field */}
-        <div>
-          <label
-            htmlFor="defaultNodeContent"
-            className="block text-sm font-medium text-zinc-400"
-          >
-            Content
-          </label>
-          <textarea
+        <FormField id="defaultNodeContent" label="Content">
+          <Textarea
             id="defaultNodeContent"
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="mt-1 block min-h-[150px] w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 placeholder-zinc-500 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
             placeholder="Enter node content..."
+            className="min-h-[150px]"
           />
-        </div>
+        </FormField>
+
         {/* General Node Properties Section */}
         <div>
           <h3 className="text-md mb-2 font-semibold text-zinc-200">
@@ -80,14 +74,8 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
           </h3>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {/* Tags Input */}
-            <div>
-              <label
-                htmlFor="defaultNodeTags"
-                className="block text-sm font-medium text-zinc-400"
-              >
-                Tags (comma-separated)
-              </label>
-              <input
+            <FormField id="defaultNodeTags" label="Tags (comma-separated)">
+              <Input
                 id="defaultNodeTags"
                 type="text"
                 value={tags.join(", ")}
@@ -99,42 +87,30 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
                       .filter((tag) => tag.length > 0),
                   )
                 }
-                className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 placeholder-zinc-500 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
                 placeholder="e.g. idea, research"
               />
-            </div>
+            </FormField>
+
             {/* Status Select */}
-            <div>
-              <label
-                htmlFor="defaultNodeStatus"
-                className="block text-sm font-medium text-zinc-400"
-              >
-                Status
-              </label>
-              <select
+            <FormField id="defaultNodeStatus" label="Status">
+              <Select
                 id="defaultNodeStatus"
                 value={status || ""} // Use empty string for default/unselected
                 onChange={(e) =>
                   setStatus(e.target.value === "" ? undefined : e.target.value)
                 }
-                className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
               >
                 <option value="">-- Select Status --</option>
                 <option value="draft">Draft</option>
                 <option value="in-progress">In Progress</option>
                 <option value="completed">Completed</option>
                 <option value="on-hold">On Hold</option>
-              </select>
-            </div>
+              </Select>
+            </FormField>
+
             {/* Importance Input */}
-            <div>
-              <label
-                htmlFor="defaultNodeImportance"
-                className="block text-sm font-medium text-zinc-400"
-              >
-                Importance (1-5)
-              </label>
-              <input
+            <FormField id="defaultNodeImportance" label="Importance (1-5)">
+              <Input
                 id="defaultNodeImportance"
                 type="number"
                 value={importance ?? ""} // Handle undefined/null for placeholder
@@ -144,27 +120,20 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
                 }}
                 min="1"
                 max="5"
-                className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 placeholder-zinc-500 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
                 placeholder="e.g. 3"
               />
-            </div>
+            </FormField>
+
             {/* Source URL Input */}
-            <div>
-              <label
-                htmlFor="defaultNodeSourceUrl"
-                className="block text-sm font-medium text-zinc-400"
-              >
-                Source URL
-              </label>
-              <input
+            <FormField id="defaultNodeSourceUrl" label="Source URL">
+              <Input
                 id="defaultNodeSourceUrl"
                 type="url"
                 value={sourceUrl}
                 onChange={(e) => setSourceUrl(e.target.value)}
-                className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 placeholder-zinc-500 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
                 placeholder="http://example.com"
               />
-            </div>
+            </FormField>
           </div>
         </div>
       </div>

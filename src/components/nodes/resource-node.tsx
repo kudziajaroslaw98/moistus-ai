@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback } from "react";
 import { NodeData } from "@/types/node-data";
-import { Node, Handle, Position, NodeResizer } from "@xyflow/react";
-import { Ellipsis, Link as LinkIcon, ExternalLink } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { Handle, Node, NodeResizer, Position } from "@xyflow/react";
+import { Ellipsis, ExternalLink, Link as LinkIcon } from "lucide-react";
+import { useCallback } from "react";
 
 interface ResourceNodeProps extends Node<NodeData> {
   onEditNode: (nodeId: string, nodeData: NodeData) => void;
@@ -114,23 +114,24 @@ export default function ResourceNode(props: ResourceNodeProps) {
       <Handle
         type="target"
         position={Position.Top}
-        className="size-1 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="size-1 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
-      />
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="size-1 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
+        className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
       />
       <Handle
         type="target"
         position={Position.Right}
-        className="size-1 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
+        className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
       />
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
+      />
+
       <NodeResizer
         color="#0069a8"
         isVisible={selected}

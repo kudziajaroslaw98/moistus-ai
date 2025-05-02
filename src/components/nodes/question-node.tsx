@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback } from "react";
 import { NodeData } from "@/types/node-data";
-import { Node, Handle, Position, NodeResizer } from "@xyflow/react";
-import { Ellipsis, HelpCircle } from "lucide-react"; // Import icons
 import { cn } from "@/utils/cn";
+import { Handle, Node, NodeResizer, Position } from "@xyflow/react";
+import { Ellipsis, HelpCircle } from "lucide-react"; // Import icons
+import { useCallback } from "react";
 
 // Add onEditNode prop to the node props
 interface QuestionNodeProps extends Node<NodeData> {
@@ -62,27 +62,27 @@ export default function QuestionNode(props: QuestionNodeProps) {
         )}
       </div>
 
-      {/* Handles */}
-      <Handle // Manually add handles
-        type="target"
-        position={Position.Top}
-        className="size-1 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
-      />
-      <Handle // Manually add handles
-        type="source"
-        position={Position.Bottom}
-        className="size-1 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
-      />
       <Handle
         type="target"
-        position={Position.Left}
-        className="size-1 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
+        position={Position.Top}
+        className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
       />
       <Handle
         type="target"
         position={Position.Right}
-        className="size-1 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
+        className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
       />
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
+      />
+
       <NodeResizer
         color="#0069a8"
         isVisible={selected}

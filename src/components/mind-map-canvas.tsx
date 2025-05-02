@@ -1,73 +1,72 @@
 "use client";
 
 import {
-  ReactFlow,
   Background,
-  Controls,
-  MiniMap,
-  useReactFlow,
-  Edge,
-  OnNodesChange,
+  BackgroundVariant,
   Connection,
-  ReactFlowInstance, // Keep this
+  Controls,
+  Edge,
+  EdgeMouseHandler,
+  EdgeTypes, // Keep this
   Node,
   NodeTypes,
-  EdgeTypes,
-  XYPosition,
-  SelectionMode,
   OnEdgesChange,
-  EdgeMouseHandler,
-  BackgroundVariant,
+  OnNodesChange,
+  ReactFlow,
+  ReactFlowInstance,
+  SelectionMode,
+  useReactFlow,
   useStore,
+  XYPosition,
 } from "@xyflow/react";
 import { useParams } from "next/navigation";
 import React, {
-  useMemo,
-  useState,
+  MouseEvent,
   useCallback,
   useEffect,
-  MouseEvent,
+  useMemo,
   useRef,
+  useState,
 } from "react"; // Import React
 
 // --- Hooks ---
-import { useNotifications } from "@/hooks/use-notifications";
-import { useMindMapData } from "@/hooks/use-mind-map-data";
-import { useMindMapState } from "@/hooks/use-mind-map-state";
-import { useMindMapHistory } from "@/hooks/use-mind-map-history";
-import { useMindMapCRUD } from "@/hooks/use-mind-map-crud";
 import { useAiFeatures } from "@/hooks/use-ai-features";
 import { useContextMenu } from "@/hooks/use-context-meny";
-import { useLayout } from "@/hooks/use-layout";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { useLayout } from "@/hooks/use-layout";
+import { useMindMapCRUD } from "@/hooks/use-mind-map-crud";
+import { useMindMapData } from "@/hooks/use-mind-map-data";
+import { useMindMapHistory } from "@/hooks/use-mind-map-history";
+import { useMindMapState } from "@/hooks/use-mind-map-state";
+import { useNotifications } from "@/hooks/use-notifications";
 
 // --- UI Components ---
+import AiContentPromptModal from "@/components/modals/ai-content-prompt-modal";
 import { ContextMenuDisplay } from "./context-menu-display";
-import { NotificationsDisplay } from "./notifications-display";
-import AiContentPromptModal from "./ai-content-prompt-modal";
 import MergeSuggestionsModal from "./merge-suggestions-modal";
 import { MindMapToolbar } from "./mind-map-toolbar/mind-map-toolbar";
+import { NotificationsDisplay } from "./notifications-display";
 import SelectNodeTypeModal from "./select-node-type-modal";
 // Import custom node components directly here
-import QuestionNode from "@/components/nodes/question-node";
-import TaskNode from "@/components/nodes/task-node";
-import ImageNode from "@/components/nodes/image-node";
-import ResourceNode from "@/components/nodes/resource-node";
 import DefaultNode from "@/components/nodes/default-node"; // Import DefaultNode
+import ImageNode from "@/components/nodes/image-node";
+import QuestionNode from "@/components/nodes/question-node";
+import ResourceNode from "@/components/nodes/resource-node";
+import TaskNode from "@/components/nodes/task-node";
 // Import the new node edit modal
-import NodeEditModal from "./modals/node-edit-modal";
 import EdgeEditModal from "./modals/edge-edit-modal"; // Import EdgeEditModal
+import NodeEditModal from "./modals/node-edit-modal";
 
 // --- Constants and Types ---
-import { NodeData } from "@/types/node-data";
-import { EdgeData } from "@/types/edge-data";
+import useOutsideAlerter from "@/hooks/use-click-outside";
 import { AppEdge } from "@/types/app-edge"; // Ensure AppEdge is used
+import { EdgeData } from "@/types/edge-data";
+import { NodeData } from "@/types/node-data";
+import { Minimize2 } from "lucide-react";
+import DefaultEdge from "./edges/default-edge";
 import EditableEdge from "./edges/editable-edge";
 import SuggestedConnectionEdge from "./edges/suggested-connection-edge";
-import DefaultEdge from "./edges/default-edge";
 import AnnotationNode from "./nodes/annotation-node";
-import useOutsideAlerter from "@/hooks/use-click-outside";
-import { Minimize2 } from "lucide-react";
 
 export function MindMapCanvas() {
   const params = useParams();
@@ -112,7 +111,6 @@ export function MindMapCanvas() {
     edges,
     setEdges,
     onEdgesChange: onEdgesChangeState, // Renamed to avoid conflict
-    onConnect: onConnectState, // Renamed to avoid conflict - not directly used anymore
   } = useMindMapState(initialNodes, initialEdges);
 
   // --- History ---
