@@ -1,17 +1,12 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
 import { NodeData } from "@/types/node-data";
-import { Node, NodeResizer } from "@xyflow/react"; // Removed Handle, Position as they are not used
-import {
-  MessageSquare,
-  Lightbulb,
-  Quote,
-  AlignLeft,
-} from "lucide-react";
 import { cn } from "@/utils/cn";
+import { Node, NodeProps, NodeResizer } from "@xyflow/react"; // Removed Handle, Position as they are not used
+import { AlignLeft, Lightbulb, MessageSquare, Quote } from "lucide-react";
+import { useCallback, useMemo } from "react";
 
-interface AnnotationNodeProps extends Node<NodeData> {
+interface AnnotationNodeProps extends NodeProps<Node<NodeData>> {
   onEditNode: (nodeId: string, nodeData: NodeData) => void;
 }
 
@@ -46,7 +41,7 @@ export default function AnnotationNode(props: AnnotationNodeProps) {
     }
     if (fontWeight && annotationType !== "quote") {
       // Don't apply form weight to quote, it's handled by class
-      style.fontWeight = fontWeight as any;
+      style.fontWeight = fontWeight;
     }
     return style;
   }, [fontSize, fontWeight, annotationType]);

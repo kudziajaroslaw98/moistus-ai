@@ -9,7 +9,7 @@ import { AppEdge } from "@/types/app-edge";
 import { EdgeData } from "@/types/edge-data";
 import { HistoryState } from "@/types/history-state";
 import { NodeData } from "@/types/node-data";
-import { Edge, Node } from "@xyflow/react";
+import { Edge, Node, XYPosition } from "@xyflow/react";
 import { useCallback, useState } from "react";
 
 // Props interface remains the same
@@ -20,13 +20,8 @@ interface UseAiFeaturesProps {
     parentNodeId?: string | null,
     content?: string,
     nodeType?: string,
-    position?: { x: number; y: number },
-    metadata?: Record<string, unknown> | null,
-    initialStyle?: {
-      backgroundColor?: string;
-      borderColor?: string;
-      color?: string;
-    },
+    position?: XYPosition,
+    initialData?: Partial<NodeData>, // Allow passing initial data including metadata/styles
   ) => Promise<Node<NodeData> | null>;
   deleteNode: (nodeId: string) => Promise<void>;
   saveEdge: (sourceId: string, targetId: string) => Promise<AppEdge | null>;
@@ -145,7 +140,6 @@ export function useAiFeatures({
         aiNode.content,
         "editableNode",
         basePosition,
-        {},
         {},
       );
 

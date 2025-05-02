@@ -1,11 +1,5 @@
-import React, {
-  useState,
-  useEffect,
-  forwardRef,
-  useImperativeHandle,
-} from "react";
 import { NodeData } from "@/types/node-data";
-import { NodeResizer } from "@xyflow/react";
+import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 
 interface AnnotationNodeFormProps {
   initialData: NodeData;
@@ -13,6 +7,7 @@ interface AnnotationNodeFormProps {
 
 // Define allowed annotation types
 const annotationTypes = ["comment", "idea", "quote", "summary"];
+type AnnotationTypes = "comment" | "idea" | "quote" | "summary";
 
 const AnnotationNodeForm = forwardRef<
   { getFormData: () => Partial<NodeData> | null },
@@ -27,8 +22,8 @@ const AnnotationNodeForm = forwardRef<
     (initialData.metadata?.fontWeight as string | number) || "",
   );
   // Add state for annotationType
-  const [annotationType, setAnnotationType] = useState<string>(
-    (initialData.metadata?.annotationType as string) || "comment", // Default to comment
+  const [annotationType, setAnnotationType] = useState<AnnotationTypes>(
+    initialData.metadata?.annotationType || "comment", // Default to comment
   );
 
   // Sync local state if initialData changes
@@ -36,9 +31,7 @@ const AnnotationNodeForm = forwardRef<
     setContent(initialData?.content || "");
     setFontSize((initialData.metadata?.fontSize as number | string) || "");
     setFontWeight((initialData.metadata?.fontWeight as string | number) || "");
-    setAnnotationType(
-      (initialData.metadata?.annotationType as string) || "comment",
-    );
+    setAnnotationType(initialData.metadata?.annotationType || "comment");
   }, [initialData]); // Depend on initialData
 
   useImperativeHandle(ref, () => ({
@@ -86,7 +79,9 @@ const AnnotationNodeForm = forwardRef<
           <select
             id="annotationType"
             value={annotationType}
-            onChange={(e) => setAnnotationType(e.target.value)}
+            onChange={(e) =>
+              setAnnotationType(e.target.value as AnnotationTypes)
+            }
             className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
           >
             {annotationTypes.map((type) => (

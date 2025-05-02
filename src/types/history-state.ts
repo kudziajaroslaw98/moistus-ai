@@ -1,8 +1,8 @@
-import { Node, Edge } from "@xyflow/react";
+import { Node } from "@xyflow/react";
+import { AppEdge } from "./app-edge";
 import { NodeData } from "./node-data";
-import { EdgeData } from "./edge-data";
 
 export interface HistoryState {
   nodes: Node<NodeData>[];
-  edges: Edge<EdgeData>[];
+  edges: AppEdge[];
 }

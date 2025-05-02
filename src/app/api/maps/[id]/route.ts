@@ -4,11 +4,11 @@ import { NextResponse } from "next/server";
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const supabaseServer = await createClient();
   try {
-    const mapId = params.id;
+    const { id: mapId } = await params;
 
     // Get the authenticated user
     const {

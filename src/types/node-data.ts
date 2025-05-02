@@ -2,20 +2,20 @@ export interface NodeData extends Record<string, unknown> {
   id: string;
   map_id: string;
   parent_id: string | null; // This might become obsolete if edges table is the source of truth for parent-child relationships, but useful for tree-like structures. Keep for now.
-  content: string; // Now stores rich text HTML
+  content: string | null; // Now stores rich text HTML
   position_x: number;
   position_y: number;
   node_type?: string; // Added node_type
-  width?: number; // Add width property
-  height?: number; // Add height property
+  width?: number | null; // Add width property
+  height?: number | null; // Add height property
 
   // --- General Node Properties ---
   // These should ideally be separate columns in the 'nodes' table for easier querying/indexing
   // Adding here for data structure clarity, assuming they map to DB columns or are stored in metadata
-  tags?: string[]; // For categorization, filtering, search (Could be separate table in DB)
-  status?: string; // e.g., 'draft', 'completed', 'in-progress'
-  importance?: number; // e.g., 1-5 or 'high', 'medium', 'low'
-  sourceUrl?: string; // Link to external information
+  tags?: string[] | null; // For categorization, filtering, search (Could be separate table in DB)
+  status?: string | null; // e.g., 'draft', 'completed', 'in-progress'
+  importance?: number | null; // e.g., 1-5 or 'high', 'medium', 'low'
+  sourceUrl?: string | null; // Link to external information
   // createdByAi?: boolean; // Flag to track AI generation - maybe infer from content source? Or add to metadata
 
   // --- AI-Specific Data ---
@@ -58,7 +58,7 @@ export interface NodeData extends Record<string, unknown> {
     targetNodeId?: string; // If this annotation is linked to another specific node
     annotationType?: "comment" | "idea" | "quote" | "summary"; // e.g., 'comment', 'idea', 'todo', 'question'
     // Add other specific metadata for your custom node types
-  };
+  } | null;
 
   created_at: string;
   updated_at: string;

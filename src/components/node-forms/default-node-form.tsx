@@ -1,14 +1,9 @@
-import React, {
-  useState,
-  useEffect,
-  forwardRef,
-  useImperativeHandle,
-} from "react";
-import { NodeData } from "@/types/node-data";
-import { Textarea } from "@/components/ui/textarea";
+import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { FormField } from "@/components/ui/form-field";
+import { Textarea } from "@/components/ui/textarea";
+import { NodeData } from "@/types/node-data";
+import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 
 // Define the props expected by this form component
 interface DefaultNodeFormProps {
@@ -26,7 +21,7 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
     // --- Local State for General Node Properties ---
     const [content, setContent] = useState("");
     const [tags, setTags] = useState<string[]>([]);
-    const [status, setStatus] = useState<string | undefined>(undefined);
+    const [status, setStatus] = useState<string | undefined | null>(undefined);
     const [importance, setImportance] = useState<number | undefined>(undefined);
     const [sourceUrl, setSourceUrl] = useState("");
 

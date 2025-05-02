@@ -1,12 +1,7 @@
-import React, {
-  useState,
-  useEffect,
-  forwardRef,
-  useImperativeHandle,
-} from "react";
-import { NodeData } from "@/types/node-data";
 import useFetch from "@/hooks/use-fetch";
+import { NodeData } from "@/types/node-data";
 import { Loader2 } from "lucide-react"; // For loading spinner
+import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 
 interface ResourceNodeFormProps {
   initialData: NodeData;
@@ -100,7 +95,7 @@ const ResourceNodeForm = forwardRef<
           setSummary(response.data.summary);
           setShowSummary(true); // Auto-enable summary if we got one
         }
-      } else {
+      } else if (response.status === "error") {
         setFetchError(response.error || "Failed to process URL");
       }
     } catch (error) {

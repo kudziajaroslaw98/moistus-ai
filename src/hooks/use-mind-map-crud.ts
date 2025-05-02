@@ -1,22 +1,22 @@
-import { useState, useCallback, useRef } from "react"; // Import useRef
-import {
-  Node,
-  NodeChange,
-  XYPosition,
-  EdgeChange,
-  getIncomers,
-  NodeDimensionChange, // Import NodeDimensionChange
-  NodePositionChange, // Import NodePositionChange
-} from "@xyflow/react"; // Import necessary functions
+import { nodeTypes } from "@/constants/node-types"; // Import node types to check validity
+import { deleteNodeAndDescendants } from "@/helpers/delete-node-and-descendants";
 import { createClient } from "@/helpers/supabase/client";
 import uuid from "@/helpers/uuid";
-import { NodeData } from "@/types/node-data";
-import { EdgeData } from "@/types/edge-data"; // Use AppEdge and EdgeData
 import { NotificationType } from "@/hooks/use-notifications";
-import { deleteNodeAndDescendants } from "@/helpers/delete-node-and-descendants";
-import { SupabaseClient } from "@supabase/supabase-js"; // Import type
-import { nodeTypes } from "@/constants/node-types"; // Import node types to check validity
 import { AppEdge } from "@/types/app-edge";
+import { EdgeData } from "@/types/edge-data"; // Use AppEdge and EdgeData
+import { NodeData } from "@/types/node-data";
+import { SupabaseClient } from "@supabase/supabase-js"; // Import type
+import {
+  EdgeChange,
+  getIncomers,
+  Node,
+  NodeChange,
+  NodeDimensionChange, // Import NodeDimensionChange
+  NodePositionChange,
+  XYPosition,
+} from "@xyflow/react"; // Import necessary functions
+import { useCallback, useRef, useState } from "react"; // Import useRef
 
 interface UseMindMapCRUDProps {
   mapId: string;
@@ -95,7 +95,9 @@ export function useMindMapCRUD({
   const debounceSave = (
     id: string,
     field: "position" | "dimensions",
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     saveFn: (...args: any[]) => Promise<void>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ...args: any[]
   ) => {
     const key = `${id}-${field}`;
@@ -221,17 +223,17 @@ export function useMindMapCRUD({
 
         // Clean up undefined or null values before insert if Supabase is strict
         Object.keys(newNodeDbData).forEach((key) =>
-          (newNodeDbData as any)[key] === undefined ||
-          ((newNodeDbData as any)[key] === null &&
+          newNodeDbData[key] === undefined ||
+          (newNodeDbData[key] === null &&
             !(key === "parent_id" || key === "metadata")) // Keep parent_id and potentially null metadata
-            ? delete (newNodeDbData as any)[key]
+            ? delete newNodeDbData[key]
             : {},
         );
 
         const { data: insertedNodeData, error: nodeInsertError } =
           await supabase
             .from("nodes")
-            .insert([newNodeDbData as any]) // Cast needed because Omit doesn't handle optional properties well for insert type
+            .insert([newNodeDbData]) // Cast needed because Omit doesn't handle optional properties well for insert type
             .select("*") // Select all columns to get width/height back
             .single();
 
@@ -288,16 +290,15 @@ export function useMindMapCRUD({
 
           // Clean up undefined/null
           Object.keys(newEdgeDbData).forEach((key) =>
-            (newEdgeDbData as any)[key] === undefined ||
-            (newEdgeDbData as any)[key] === null
-              ? delete (newEdgeDbData as any)[key]
+            newEdgeDbData[key] === undefined || newEdgeDbData[key] === null
+              ? delete newEdgeDbData[key]
               : {},
           );
 
           const { data: insertedEdgeData, error: edgeInsertError } =
             await supabase
               .from("edges")
-              .insert([newEdgeDbData as any])
+              .insert([newEdgeDbData])
               .select()
               .single();
 
@@ -548,16 +549,16 @@ export function useMindMapCRUD({
               typeof changes[key] === "string" &&
               (changes[key] as string).trim() === ""
             ) {
-              (validUpdates as any)[key] = null; // Or undefined depending on DB column nullability
+              validUpdates[key] = null; // Or undefined depending on DB column nullability
             } else {
-              (validUpdates as any)[key] = changes[key];
+              validUpdates[key] = changes[key];
             }
           } else if (key === "tags") {
             // Save empty arrays as null/undefined
             if (Array.isArray(changes[key]) && changes[key]?.length === 0) {
-              (validUpdates as any)[key] = null;
+              validUpdates[key] = null;
             } else {
-              (validUpdates as any)[key] = changes[key];
+              validUpdates[key] = changes[key];
             }
           } else if (key === "metadata") {
             // Ensure metadata is an object, save null if empty/cleared
@@ -579,16 +580,16 @@ export function useMindMapCRUD({
             if (
               changes[key] === undefined ||
               changes[key] === null ||
-              changes[key] === ""
+              changes[key].toString() === ""
             ) {
               // Treat empty string from input as null
-              (validUpdates as any)[key] = null;
+              validUpdates[key] = null;
             } else {
-              (validUpdates as any)[key] = changes[key];
+              validUpdates[key] = changes[key];
             }
           } else {
             // For other fields (colors, status, boolean toggles, node_type)
-            (validUpdates as any)[key] = changes[key];
+            validUpdates[key] = changes[key];
           }
         }
       });
@@ -709,15 +710,15 @@ export function useMindMapCRUD({
 
         // Clean up undefined/null before insert
         Object.keys(newEdgeDbData).forEach((key) =>
-          (newEdgeDbData as any)[key] === undefined ||
-          ((newEdgeDbData as any)[key] === null && !(key === "metadata")) // Keep potentially null metadata
-            ? delete (newEdgeDbData as any)[key]
+          newEdgeDbData[key] === undefined ||
+          (newEdgeDbData[key] === null && !(key === "metadata")) // Keep potentially null metadata
+            ? delete newEdgeDbData[key]
             : {},
         );
 
         const { data: insertedEdgeData, error } = await supabase
           .from("edges")
-          .insert([newEdgeDbData as any])
+          .insert([newEdgeDbData])
           .select()
           .single();
 
@@ -803,14 +804,13 @@ export function useMindMapCRUD({
   const saveEdgeProperties = useCallback(
     async (edgeId: string, changes: Partial<EdgeData>): Promise<void> => {
       // Filter valid style updates based on EdgeData and table columns
-      const validUpdates: Partial<EdgeData> = {};
+      const validUpdates: EdgeData = {} as EdgeData;
       const editableKeys: (keyof EdgeData)[] = [
         "type",
         "label",
         "animated",
         "color",
         "strokeWidth", // React Flow related + common style
-        // Removed description, strength, directional
         "markerEnd", // New editable key
         "metadata", // Other potential editable fields
       ];
@@ -825,9 +825,9 @@ export function useMindMapCRUD({
               typeof changes[key] === "string" &&
               (changes[key] as string).trim() === ""
             ) {
-              (validUpdates as any)[key] = null;
+              validUpdates[key] = null;
             } else {
-              (validUpdates as any)[key] = changes[key];
+              validUpdates[key] = changes[key];
             }
           } else if (key === "strokeWidth") {
             // Removed strength
@@ -835,12 +835,12 @@ export function useMindMapCRUD({
             if (
               changes[key] === undefined ||
               changes[key] === null ||
-              changes[key] === ""
+              changes[key].toString() === ""
             ) {
               // Treat empty string from input as null
-              (validUpdates as any)[key] = null;
+              validUpdates[key] = null;
             } else {
-              (validUpdates as any)[key] = changes[key];
+              validUpdates[key] = changes[key];
             }
           } else if (key === "metadata") {
             // Ensure metadata is an object, save null if empty/cleared
@@ -857,9 +857,9 @@ export function useMindMapCRUD({
             // For boolean toggles, type, color, markerEnd
             // Explicitly handle markerEnd value 'none' mapping to null/undefined in DB
             if (key === "markerEnd" && changes[key] === "none") {
-              (validUpdates as any)[key] = null; // Or undefined depending on DB schema
+              validUpdates[key] = "none"; // Or undefined depending on DB schema
             } else {
-              (validUpdates as any)[key] = changes[key];
+              validUpdates[key] = changes[key];
             }
           }
         }
@@ -883,13 +883,11 @@ export function useMindMapCRUD({
         if (error) throw error;
 
         // --- Update local state (React Flow Edges) ---
-        setEdges((eds) =>
-          eds.map((edge) =>
+        setEdges((prev) =>
+          prev.map((edge) =>
             edge.id === edgeId
               ? {
                   ...edge,
-                  // Update edge object properties by merging validUpdates
-                  // These top-level properties override the 'data' property for React Flow rendering
                   type: validUpdates.type ?? edge.type,
                   label: validUpdates.label ?? edge.label,
                   animated: validUpdates.animated ?? edge.animated,
@@ -899,15 +897,12 @@ export function useMindMapCRUD({
                     stroke: validUpdates.color ?? edge.style?.stroke, // Use 'color' from updates for stroke
                     strokeWidth:
                       validUpdates.strokeWidth ?? edge.style?.strokeWidth, // Use 'strokeWidth' from updates
-                    // Add other style properties here if needed from validUpdates
                   },
                   markerEnd: validUpdates.markerEnd ?? edge.markerEnd, // Update markerEnd if managing
 
-                  // Update the 'data' property with all valid updates
                   data: {
                     ...edge.data, // Start with existing data
                     ...validUpdates, // Merge in the updates
-                    // Handle metadata merging if needed
                     metadata:
                       validUpdates.metadata !== undefined
                         ? validUpdates.metadata
@@ -917,7 +912,6 @@ export function useMindMapCRUD({
               : edge,
           ),
         );
-        // ---------------------------------------------
 
         addStateToHistory("saveEdgeProperties");
         showNotification("Connection properties saved.", "success");
@@ -939,7 +933,7 @@ export function useMindMapCRUD({
   // --- HANDLE NODE CHANGES ---
   // This function is triggered by React Flow on nodes change (drag, dimensions, selection etc.)
   const handleNodeChanges = useCallback(
-    (changes: NodeChange[], currentNodes: Node<NodeData>[]) => {
+    (changes: NodeChange[]) => {
       changes.forEach((change) => {
         switch (change.type) {
           case "position": {
@@ -989,19 +983,11 @@ export function useMindMapCRUD({
   // --- HANDLE EDGE CHANGES ---
   // This function is triggered by React Flow on edges change (currently only deletion)
   const handleEdgeChanges = useCallback(
-    (
-      changes: EdgeChange[],
-      currentEdges: AppEdge[],
-      currentNodes: Node<NodeData>[],
-    ) => {
+    (changes: EdgeChange[]) => {
       changes.forEach((change) => {
         if (change.type === "remove") {
-          // When an edge is removed in React Flow (e.g., via Delete key)
-          // Trigger the deleteEdge CRUD action
           deleteEdge(change.id);
-          // History is managed in the parent (MindMapCanvas) after onEdgesChange
         }
-        // Add other edge change types if React Flow supports them and you need to handle
       });
     },
     [deleteEdge], // Depend on deleteEdge CRUD function

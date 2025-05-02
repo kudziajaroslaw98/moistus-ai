@@ -2,11 +2,11 @@
 
 import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
-import { Handle, Node, NodeResizer, Position } from "@xyflow/react";
+import { Handle, Node, NodeProps, NodeResizer, Position } from "@xyflow/react";
 import { Ellipsis, ExternalLink, Link as LinkIcon } from "lucide-react";
 import { useCallback } from "react";
 
-interface ResourceNodeProps extends Node<NodeData> {
+interface ResourceNodeProps extends NodeProps<Node<NodeData>> {
   onEditNode: (nodeId: string, nodeData: NodeData) => void;
 }
 

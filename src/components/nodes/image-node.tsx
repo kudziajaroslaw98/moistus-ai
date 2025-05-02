@@ -2,12 +2,12 @@
 
 import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
-import { Handle, Node, NodeResizer, Position } from "@xyflow/react";
+import { Handle, Node, NodeProps, NodeResizer, Position } from "@xyflow/react";
 import { Ellipsis, Image as ImageIcon } from "lucide-react"; // Import icons
 import { useCallback } from "react";
 
 // Add onEditNode prop to the node props
-interface ImageNodeProps extends Node<NodeData> {
+interface ImageNodeProps extends NodeProps<Node<NodeData>> {
   onEditNode: (nodeId: string, nodeData: NodeData) => void;
 }
 

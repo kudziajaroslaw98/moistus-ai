@@ -21,7 +21,8 @@ import {
 } from "@xyflow/react";
 import { useParams } from "next/navigation";
 import React, {
-  MouseEvent,
+  Dispatch,
+  SetStateAction,
   useCallback,
   useEffect,
   useMemo,
@@ -150,13 +151,10 @@ export function MindMapCanvas() {
     isAiContentModalOpen,
     setIsAiContentModalOpen,
     aiContentTargetNodeId,
-    setAiContentTargetNodeId,
     isMergeModalOpen,
     setIsMergeModalOpen,
     aiPrompt,
     aiSearchQuery,
-    setAiPrompt, // Use setters from hook
-    setAiSearchQuery, // Use setters from hook
   } = useAiFeatures({
     mapId,
     nodes,
@@ -165,7 +163,7 @@ export function MindMapCanvas() {
     saveEdge: crudActions.addEdge, // saveEdge now uses addEdge CRUD
     saveNodeContent: crudActions.saveNodeContent, // Still used for quick edits? Or remove? Let's keep for now.
     setNodes,
-    setEdges,
+    setEdges: setEdges as Dispatch<SetStateAction<Edge<EdgeData>[]>>,
     addStateToHistory,
     showNotification,
     currentHistoryState, // Used for history state check within AI hook
@@ -364,8 +362,8 @@ export function MindMapCanvas() {
 
   // Handle pane context menu - use the handler from the hook
   const handlePaneContextMenu = useCallback(
-    (event: MouseEvent) => {
-      contextMenuHandlers.onPaneContextMenu(event);
+    (event: MouseEvent | React.MouseEvent<Element, MouseEvent>) => {
+      contextMenuHandlers.onPaneContextMenu(event as React.MouseEvent);
     },
     [contextMenuHandlers],
   );
@@ -381,7 +379,7 @@ export function MindMapCanvas() {
         ...node,
         data: { ...node.data }, // Ensure data is also cloned
         selected: false, // Copied nodes shouldn't be selected initially
-      }));
+      })) as Node<NodeData>[];
       setCopiedNodes(nodesToCopy);
       showNotification(
         `Copied ${selectedNodes.length} node${selectedNodes.length > 1 ? "s" : ""}.`,
@@ -449,8 +447,8 @@ export function MindMapCanvas() {
 
           const newNode = await crudActions.addNode(
             targetParentId,
-            initialDataForNewNode.content, // Pass specific content
-            copiedNode.type || "defaultNode",
+            initialDataForNewNode.content ?? "", // Pass specific content
+            copiedNode.type ?? "defaultNode",
             newPosition,
             initialDataForNewNode, // Pass the rest of the relevant data
           );
@@ -502,7 +500,9 @@ export function MindMapCanvas() {
     addStateToHistory,
   ]);
 
-  const handleEdgeContextMenu = useCallback<EdgeMouseHandler<Edge<EdgeData>>>(
+  const handleEdgeContextMenu = useCallback<
+    EdgeMouseHandler<Edge<Partial<EdgeData>>>
+  >(
     (event, edge) => {
       contextMenuHandlers.onEdgeContextMenu(event, edge as AppEdge); // Cast to AppEdge if necessary
     },
@@ -510,9 +510,11 @@ export function MindMapCanvas() {
   );
 
   // Handle Edge Click to open Edit Modal
-  const onReactFlowEdgeClick = useCallback(
+  const onReactFlowEdgeClick = useCallback<
+    EdgeMouseHandler<Edge<Partial<EdgeData>>>
+  >(
     // Renamed for clarity
-    (event: React.MouseEvent, edge: Edge<EdgeData>) => {
+    (event, edge) => {
       // Correct signature
       // We receive the standard React Flow Edge object here
       // Prevent default selection/drag behavior (React Flow might already handle this)
@@ -681,9 +683,9 @@ export function MindMapCanvas() {
         <MindMapToolbar
           mindMapTitle={mindMap.title}
           aiPrompt={aiPrompt}
-          setAiPrompt={setAiPrompt}
+          setAiPrompt={aiActions.setAiPrompt}
           aiSearchQuery={aiSearchQuery}
-          setAiSearchQuery={setAiSearchQuery}
+          setAiSearchQuery={aiActions.setAiSearchQuery}
           onGenerateMap={aiActions.generateMap}
           onAiSearch={aiActions.searchNodes}
           onUndo={handleUndo}
@@ -729,7 +731,7 @@ export function MindMapCanvas() {
         isOpen={isAiContentModalOpen}
         onClose={() => {
           setIsAiContentModalOpen(false);
-          setAiContentTargetNodeId(null); // Clear target node ID on close
+          aiActions.setAiContentTargetNodeId(null); // Clear target node ID on close
         }}
         onGenerate={(prompt) => {
           if (aiContentTargetNodeId) {

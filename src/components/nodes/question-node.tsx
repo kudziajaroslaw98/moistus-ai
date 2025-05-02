@@ -2,12 +2,12 @@
 
 import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
-import { Handle, Node, NodeResizer, Position } from "@xyflow/react";
+import { Handle, Node, NodeProps, NodeResizer, Position } from "@xyflow/react";
 import { Ellipsis, HelpCircle } from "lucide-react"; // Import icons
 import { useCallback } from "react";
 
 // Add onEditNode prop to the node props
-interface QuestionNodeProps extends Node<NodeData> {
+interface QuestionNodeProps extends NodeProps<Node<NodeData>> {
   onEditNode: (nodeId: string, nodeData: NodeData) => void;
 }
 

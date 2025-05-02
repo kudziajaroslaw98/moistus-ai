@@ -26,7 +26,7 @@ export async function saveNodeData(
   };
 
   // Prepare the data to update
-  const dataToUpdate: any = {
+  const dataToUpdate: Partial<NodeData> = {
     updated_at: new Date().toISOString(),
   };
 
@@ -43,10 +43,6 @@ export async function saveNodeData(
       ...(currentNode?.data || {}), // Keep existing data fields
       metadata: mergedMetadata, // Include merged metadata
     };
-    // Ensure label is still based on content if content wasn't updated
-    if (currentNode?.data?.content !== undefined) {
-      dataToUpdate.data.label = currentNode.data.content;
-    }
   }
 
   const { error: updateError } = await supabase

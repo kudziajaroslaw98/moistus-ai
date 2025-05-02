@@ -16,7 +16,7 @@ export default function EditableEdge({
   sourcePosition,
   targetPosition,
   ...props
-}: EdgeProps<EdgeData>) {
+}: EdgeProps<Edge<EdgeData>>) {
   const data = props.data as EdgeData;
   const style = props.style as Edge["style"];
   const [edgePath, labelX, labelY] = getSmoothStepPath({
