@@ -1,5 +1,7 @@
 import AnnotationNode from "@/components/nodes/annotation-node";
+import CodeNode from "@/components/nodes/code-node";
 import DefaultNode from "@/components/nodes/default-node";
+import GroupNode from "@/components/nodes/group-node";
 import ImageNode from "@/components/nodes/image-node";
 import QuestionNode from "@/components/nodes/question-node";
 import ResourceNode from "@/components/nodes/resource-node";
@@ -12,4 +14,6 @@ export const nodeTypes = {
   questionNode: QuestionNode,
   resourceNode: ResourceNode,
   annotationNode: AnnotationNode,
+  groupNode: GroupNode,
+  codeNode: CodeNode,
 };

@@ -7,8 +7,9 @@ import {
   EdgeProps,
   getSmoothStepPath,
 } from "@xyflow/react";
+import { memo } from "react";
 
-export default function EditableEdge({
+const EditableEdgeComponent = ({
   sourceX,
   sourceY,
   targetX,
@@ -16,7 +17,7 @@ export default function EditableEdge({
   sourcePosition,
   targetPosition,
   ...props
-}: EdgeProps<Edge<EdgeData>>) {
+}: EdgeProps<Edge<EdgeData>>) => {
   const data = props.data as EdgeData;
   const style = props.style as Edge["style"];
   const [edgePath, labelX, labelY] = getSmoothStepPath({
@@ -34,14 +35,15 @@ export default function EditableEdge({
         path={edgePath}
         className={cn([
           "react-flow__edge-path",
-          "cursor-pointer", // Add cursor pointer for better UX
-          "transition-all duration-200 ease-in-out", // Add transition for smoothness
-          props.selected ? "!stroke-blue-500" : "stroke-zinc-700", // Change color based on selected state
+          "cursor-pointer",
+          "transition-all duration-200 ease-in-out",
+          props.selected ? "!stroke-blue-500" : "stroke-zinc-700",
         ])}
         markerEnd={data?.markerEnd}
         style={style}
         labelShowBg={false}
       />
+
       {data?.label && (
         <EdgeLabelRenderer>
           <div
@@ -59,4 +61,8 @@ export default function EditableEdge({
       )}
     </>
   );
-}
+};
+
+const EditableEdge = memo(EditableEdgeComponent);
+EditableEdge.displayName = "EditableEdge";
+export default EditableEdge;

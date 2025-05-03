@@ -1,4 +1,4 @@
-import { ReactFlowInstance } from "@xyflow/react"; // Import ReactFlowInstance
+import { ReactFlowInstance } from "@xyflow/react";
 import { useEffect } from "react";
 
 interface UseKeyboardShortcutsProps {
@@ -6,14 +6,14 @@ interface UseKeyboardShortcutsProps {
   onRedo: () => void;
   onDelete: (idToDelete: string) => void;
   onAddChild: (parentId: string | null) => void;
-  onCopy: () => void; // Add copy callback
-  onPaste: () => void; // Add paste callback
+  onCopy: () => void;
+  onPaste: () => void;
   selectedNodeId: string | null | undefined;
   selectedEdgeId: string | null | undefined;
   canUndo: boolean;
   canRedo: boolean;
   isBusy: boolean;
-  // Add reactFlowInstance to get viewport info for pasting
+
   reactFlowInstance: ReactFlowInstance | null;
 }
 
@@ -22,14 +22,14 @@ export function useKeyboardShortcuts({
   onRedo,
   onDelete,
   onAddChild,
-  onCopy, // Destructure new callbacks
-  onPaste, // Destructure new callbacks
+  onCopy,
+  onPaste,
   selectedNodeId,
   selectedEdgeId,
   canUndo,
   canRedo,
   isBusy,
-  reactFlowInstance, // Destructure instance
+  reactFlowInstance,
 }: UseKeyboardShortcutsProps): void {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -40,7 +40,6 @@ export function useKeyboardShortcuts({
         target.isContentEditable ||
         target.closest(".ql-editor");
 
-      // Don't interfere with text input shortcuts
       if (
         isInputFocused &&
         (event.key === "c" || event.key === "v") &&
@@ -55,48 +54,48 @@ export function useKeyboardShortcuts({
 
       const isCtrlCmd = event.ctrlKey || event.metaKey;
 
-      // --- Undo (Ctrl/Cmd + Z) ---
       if (isCtrlCmd && event.key.toLowerCase() === "z" && !event.shiftKey) {
         event.preventDefault();
+
         if (canUndo) {
           onUndo();
         }
+
         return;
       }
 
-      // --- Redo (Ctrl/Cmd + Shift + Z OR Ctrl/Cmd + Y) ---
       if (
         (isCtrlCmd && event.shiftKey && event.key.toLowerCase() === "z") ||
         (isCtrlCmd && event.key.toLowerCase() === "y")
       ) {
         event.preventDefault();
+
         if (canRedo) {
           onRedo();
         }
+
         return;
       }
 
-      // --- Copy (Ctrl/Cmd + C) ---
       if (isCtrlCmd && event.key.toLowerCase() === "c") {
         event.preventDefault();
-        onCopy(); // Call the copy handler
+        onCopy();
         return;
       }
 
-      // --- Paste (Ctrl/Cmd + V) ---
       if (isCtrlCmd && event.key.toLowerCase() === "v") {
         event.preventDefault();
-        onPaste(); // Call the paste handler
+        onPaste();
         return;
       }
 
-      // --- Delete Node/Edge (Delete or Backspace) ---
       if (event.key === "Delete") {
         if (selectedNodeId) {
           event.preventDefault();
           onDelete(selectedNodeId);
           return;
         }
+
         if (selectedEdgeId) {
           event.preventDefault();
           onDelete(selectedEdgeId);
@@ -104,7 +103,6 @@ export function useKeyboardShortcuts({
         }
       }
 
-      // --- Add Child Node (Tab) ---
       if (event.key === "Tab" && selectedNodeId) {
         event.preventDefault();
         onAddChild(selectedNodeId);
@@ -122,13 +120,13 @@ export function useKeyboardShortcuts({
     onRedo,
     onDelete,
     onAddChild,
-    onCopy, // Add dependencies
-    onPaste, // Add dependencies
+    onCopy,
+    onPaste,
     selectedNodeId,
     selectedEdgeId,
     canUndo,
     canRedo,
     isBusy,
-    reactFlowInstance, // Add dependency
+    reactFlowInstance,
   ]);
 }

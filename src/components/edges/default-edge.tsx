@@ -7,7 +7,9 @@ import {
   EdgeProps,
   getSmoothStepPath,
 } from "@xyflow/react";
-export default function DefaultEdge({
+import { memo } from "react";
+
+const DefaultEdgeComponent = ({
   sourceX,
   sourceY,
   targetX,
@@ -15,7 +17,7 @@ export default function DefaultEdge({
   sourcePosition,
   targetPosition,
   ...props
-}: EdgeProps<Edge<EdgeData>>) {
+}: EdgeProps<Edge<EdgeData>>) => {
   const data = props.data as EdgeData;
   const style = props.style as Edge["style"];
   const [edgePath, labelX, labelY] = getSmoothStepPath({
@@ -33,23 +35,24 @@ export default function DefaultEdge({
         path={edgePath}
         className={cn([
           "react-flow__edge-path",
-          props.selected ? "!stroke-blue-500" : "stroke-zinc-700", // Change color based on selected state
+          props.selected ? "!stroke-blue-500" : "stroke-zinc-700",
           "",
-        ])} // Apply class
+        ])}
         markerEnd={data?.markerEnd}
         style={style}
         labelShowBg={false}
       />
+
       {data?.label && (
         <EdgeLabelRenderer>
           <div
             style={{
               position: "absolute",
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-              pointerEvents: "all", // Allow clicks on the label
-              zIndex: 999, // Ensure label is above other elements
+              pointerEvents: "all",
+              zIndex: 999,
             }}
-            className="cursor-pointer rounded bg-zinc-700 px-1.5 py-0.5 text-xs text-zinc-200 shadow-sm" // Tailwind label style
+            className="cursor-pointer rounded bg-zinc-700 px-1.5 py-0.5 text-xs text-zinc-200 shadow-sm"
           >
             {data.label}
           </div>
@@ -57,4 +60,8 @@ export default function DefaultEdge({
       )}
     </>
   );
-}
+};
+
+const DefaultEdge = memo(DefaultEdgeComponent);
+DefaultEdge.displayName = "DefaultEdge";
+export default DefaultEdge;

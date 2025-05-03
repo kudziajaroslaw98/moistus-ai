@@ -14,7 +14,6 @@ export default function AiContentPromptModal({
 
   const handleGenerateClick = () => {
     onGenerate(prompt);
-    // No need to clear prompt here, parent component handles it if needed after generation
   };
 
   return (
@@ -25,6 +24,7 @@ export default function AiContentPromptModal({
           selected node. Leave blank for a general expansion based on current
           content.
         </p>
+
         <Input
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}

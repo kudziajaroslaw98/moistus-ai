@@ -3,14 +3,14 @@
 import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
 import { Handle, Node, NodeProps, NodeResizer, Position } from "@xyflow/react";
-import { Ellipsis, FileText } from "lucide-react"; // Using FileText as a generic icon
-import { useCallback } from "react";
+import { Ellipsis, FileText } from "lucide-react";
+import { memo, useCallback } from "react";
 
 interface DefaultNodeProps extends NodeProps<Node<NodeData>> {
   onEditNode: (nodeId: string, nodeData: NodeData) => void;
 }
 
-export default function DefaultNode(props: DefaultNodeProps) {
+const DefaultNodeComponent = (props: DefaultNodeProps) => {
   const { id, data, selected, onEditNode } = props;
 
   const handleEllipsisClick = useCallback(() => {
@@ -32,7 +32,7 @@ export default function DefaultNode(props: DefaultNodeProps) {
       <div className="relative flex h-10 w-full justify-between rounded-md bg-zinc-900 p-2">
         <div className="z-20 flex items-center justify-center gap-4">
           <div className="flex size-6 items-center justify-center rounded-sm bg-zinc-700">
-            <FileText className="size-4 text-zinc-100" /> {/* Generic icon */}
+            <FileText className="size-4 text-zinc-100" />
           </div>
         </div>
 
@@ -63,16 +63,19 @@ export default function DefaultNode(props: DefaultNodeProps) {
         position={Position.Top}
         className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
       />
+
       <Handle
         type="target"
         position={Position.Right}
         className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
       />
+
       <Handle
         type="target"
         position={Position.Left}
         className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
       />
+
       <Handle
         type="source"
         position={Position.Bottom}
@@ -87,4 +90,8 @@ export default function DefaultNode(props: DefaultNodeProps) {
       />
     </div>
   );
-}
+};
+
+const DefaultNode = memo(DefaultNodeComponent);
+DefaultNode.displayName = "DefaultNode";
+export default DefaultNode;

@@ -2,27 +2,26 @@
 
 import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
-import { Node, NodeProps, NodeResizer } from "@xyflow/react"; // Removed Handle, Position as they are not used
+import { Node, NodeProps, NodeResizer } from "@xyflow/react";
 import { AlignLeft, Lightbulb, MessageSquare, Quote } from "lucide-react";
-import { useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 
 interface AnnotationNodeProps extends NodeProps<Node<NodeData>> {
   onEditNode: (nodeId: string, nodeData: NodeData) => void;
 }
 
-// Simpler map just for icons and potential text colors
 const annotationTypeInfo: Record<
   string,
   { icon: React.ElementType; textColorClass: string }
 > = {
   comment: { icon: MessageSquare, textColorClass: "text-zinc-400" },
   idea: { icon: Lightbulb, textColorClass: "text-yellow-400" },
-  quote: { icon: Quote, textColorClass: "text-blue-300" }, // Specific color for quote text itself
+  quote: { icon: Quote, textColorClass: "text-blue-300" },
   summary: { icon: AlignLeft, textColorClass: "text-green-400" },
-  default: { icon: MessageSquare, textColorClass: "text-zinc-400" }, // Fallback
+  default: { icon: MessageSquare, textColorClass: "text-zinc-400" },
 };
 
-export default function AnnotationNode(props: AnnotationNodeProps) {
+const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
   const { id, data, selected, onEditNode } = props;
 
   const fontSize = data.metadata?.fontSize as string | number | undefined;
@@ -35,14 +34,16 @@ export default function AnnotationNode(props: AnnotationNodeProps) {
 
   const contentStyle = useMemo(() => {
     const style: React.CSSProperties = {};
+
     if (fontSize) {
       style.fontSize =
         typeof fontSize === "number" ? `${fontSize}px` : fontSize;
     }
+
     if (fontWeight && annotationType !== "quote") {
-      // Don't apply form weight to quote, it's handled by class
       style.fontWeight = fontWeight;
     }
+
     return style;
   }, [fontSize, fontWeight, annotationType]);
 
@@ -56,9 +57,9 @@ export default function AnnotationNode(props: AnnotationNodeProps) {
     <div
       className={cn([
         "relative flex h-auto min-h-20 min-w-80 flex-col gap-1 rounded p-2 text-center transition-all",
-        // No background or border class here
-        selected && "ring-1 ring-sky-600 ring-offset-2 ring-offset-zinc-900", // Selection outline
-        typeInfo.textColorClass, // Apply base text color for the type
+
+        selected && "ring-1 ring-sky-600 ring-offset-2 ring-offset-zinc-900",
+        typeInfo.textColorClass,
       ])}
       onDoubleClick={handleDoubleClick}
     >
@@ -73,13 +74,14 @@ export default function AnnotationNode(props: AnnotationNodeProps) {
           >
             “
           </span>
+
           {/* Content */}
           <div
             className={cn([
               "font-lora text-base break-words whitespace-pre-wrap italic",
-              typeInfo.textColorClass, // Use the quote text color
+              typeInfo.textColorClass,
             ])}
-            style={contentStyle} // Apply dynamic font size if needed
+            style={contentStyle}
           >
             {data.content || (
               <span className="text-current italic opacity-60">
@@ -87,6 +89,7 @@ export default function AnnotationNode(props: AnnotationNodeProps) {
               </span>
             )}
           </div>
+
           <span
             aria-hidden="true"
             className="pointer-events-none absolute -right-4 -bottom-4 font-lora text-6xl text-current opacity-20"
@@ -102,6 +105,7 @@ export default function AnnotationNode(props: AnnotationNodeProps) {
             {/* Icon and Type Label */}
             <div className="flex items-center gap-1.5 opacity-80">
               <TypeIcon className="size-3.5 flex-shrink-0" />
+
               <span className="text-xs font-medium tracking-wider uppercase">
                 {annotationType}
               </span>
@@ -112,9 +116,9 @@ export default function AnnotationNode(props: AnnotationNodeProps) {
           <div
             className={cn([
               "text-sm break-words whitespace-pre-wrap",
-              typeInfo.textColorClass, // Apply text color
+              typeInfo.textColorClass,
             ])}
-            style={contentStyle} // Apply dynamic font style
+            style={contentStyle}
           >
             {data.content || (
               <span className="text-current italic opacity-60">
@@ -124,6 +128,7 @@ export default function AnnotationNode(props: AnnotationNodeProps) {
           </div>
         </>
       )}
+
       {/* No handles for annotation nodes */}
 
       <NodeResizer
@@ -134,4 +139,8 @@ export default function AnnotationNode(props: AnnotationNodeProps) {
       />
     </div>
   );
-}
+};
+
+const AnnotationNode = memo(AnnotationNodeComponent);
+AnnotationNode.displayName = "AnnotationNode";
+export default AnnotationNode;

@@ -33,6 +33,7 @@ const AStrainghtBIcon = (props: ComponentPropsWithRef<"svg">) => {
               }}
             />
           </g>
+
           <g transform="matrix(47.2735,0,0,-47.2735,-27.2822,1107.28)">
             <circle
               cx="6"
@@ -45,6 +46,7 @@ const AStrainghtBIcon = (props: ComponentPropsWithRef<"svg">) => {
               }}
             />
           </g>
+
           <g transform="matrix(33.4274,33.4274,30.4433,-30.4433,-110.803,802.872)">
             <path
               d="M6,9L6,21"

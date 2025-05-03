@@ -7,7 +7,7 @@ import {
   Controls,
   Edge,
   EdgeMouseHandler,
-  EdgeTypes, // Keep this
+  EdgeTypes,
   Node,
   NodeTypes,
   OnEdgesChange,
@@ -28,9 +28,8 @@ import React, {
   useMemo,
   useRef,
   useState,
-} from "react"; // Import React
+} from "react";
 
-// --- Hooks ---
 import { useAiFeatures } from "@/hooks/use-ai-features";
 import { useContextMenu } from "@/hooks/use-context-meny";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
@@ -41,33 +40,34 @@ import { useMindMapHistory } from "@/hooks/use-mind-map-history";
 import { useMindMapState } from "@/hooks/use-mind-map-state";
 import { useNotifications } from "@/hooks/use-notifications";
 
-// --- UI Components ---
 import AiContentPromptModal from "@/components/modals/ai-content-prompt-modal";
 import { ContextMenuDisplay } from "./context-menu-display";
 import MergeSuggestionsModal from "./merge-suggestions-modal";
 import { MindMapToolbar } from "./mind-map-toolbar/mind-map-toolbar";
+import SelectNodeTypeModal from "./modals/select-node-type-modal";
 import { NotificationsDisplay } from "./notifications-display";
-import SelectNodeTypeModal from "./select-node-type-modal";
-// Import custom node components directly here
-import DefaultNode from "@/components/nodes/default-node"; // Import DefaultNode
+
+import DefaultNode from "@/components/nodes/default-node";
 import ImageNode from "@/components/nodes/image-node";
 import QuestionNode from "@/components/nodes/question-node";
 import ResourceNode from "@/components/nodes/resource-node";
 import TaskNode from "@/components/nodes/task-node";
-// Import the new node edit modal
-import EdgeEditModal from "./modals/edge-edit-modal"; // Import EdgeEditModal
+
+import EdgeEditModal from "./modals/edge-edit-modal";
 import NodeEditModal from "./modals/node-edit-modal";
 
-// --- Constants and Types ---
 import useOutsideAlerter from "@/hooks/use-click-outside";
-import { AppEdge } from "@/types/app-edge"; // Ensure AppEdge is used
+import { AppEdge } from "@/types/app-edge";
 import { EdgeData } from "@/types/edge-data";
 import { NodeData } from "@/types/node-data";
 import { Minimize2 } from "lucide-react";
+import { CommandPalette } from "./command-palette";
 import DefaultEdge from "./edges/default-edge";
 import EditableEdge from "./edges/editable-edge";
 import SuggestedConnectionEdge from "./edges/suggested-connection-edge";
 import AnnotationNode from "./nodes/annotation-node";
+import CodeNode from "./nodes/code-node";
+import GroupNode from "./nodes/group-node";
 
 export function MindMapCanvas() {
   const params = useParams();
@@ -75,19 +75,17 @@ export function MindMapCanvas() {
   const reactFlowInstance = useReactFlow();
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [copiedNodes, setCopiedNodes] = useState<Node<NodeData>[]>([]);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
-  // --- Modals State ---
   const [isNodeTypeModalOpen, setIsNodeTypeModalOpen] = useState(false);
   const [nodeToAddInfo, setNodeToAddInfo] = useState<{
     parentId: string | null;
     position?: XYPosition;
   } | null>(null);
 
-  // State for the Node Edit Modal
   const [isNodeEditModalOpen, setIsNodeEditModalOpen] = useState(false);
   const [nodeToEdit, setNodeToEdit] = useState<Node<NodeData> | null>(null);
 
-  // State for the Edge Edit Modal
   const [isEdgeEditModalOpen, setIsEdgeEditModalOpen] = useState(false);
   const [edgeToEdit, setEdgeToEdit] = useState<AppEdge | null>(null);
 
@@ -95,7 +93,10 @@ export function MindMapCanvas() {
   const nodesConnectable = useStore((s) => s.nodesConnectable);
   const elementsSelectable = useStore((s) => s.elementsSelectable);
 
-  // --- State Management & Data Fetching ---
+  const toggleFocusMode = useCallback(() => {
+    setIsFocusMode((prev) => !prev);
+  }, [isFocusMode, setIsFocusMode]);
+
   const { notification, showNotification } = useNotifications();
   const {
     mindMap,
@@ -108,13 +109,12 @@ export function MindMapCanvas() {
   const {
     nodes,
     setNodes,
-    onNodesChange: onNodesChangeState, // Renamed to avoid conflict
+    onNodesChange: onNodesChangeState,
     edges,
     setEdges,
-    onEdgesChange: onEdgesChangeState, // Renamed to avoid conflict
+    onEdgesChange: onEdgesChangeState,
   } = useMindMapState(initialNodes, initialEdges);
 
-  // --- History ---
   const {
     addStateToHistory,
     handleUndo,
@@ -131,7 +131,6 @@ export function MindMapCanvas() {
     setEdges,
   });
 
-  // --- CRUD Operations ---
   const { crudActions, isLoading: isCrudLoading } = useMindMapCRUD({
     mapId,
     nodes,
@@ -142,7 +141,6 @@ export function MindMapCanvas() {
     showNotification,
   });
 
-  // --- AI Features ---
   const {
     aiActions,
     aiLoadingStates,
@@ -160,20 +158,17 @@ export function MindMapCanvas() {
     nodes,
     addNode: crudActions.addNode,
     deleteNode: crudActions.deleteNode,
-    saveEdge: crudActions.addEdge, // saveEdge now uses addEdge CRUD
-    saveNodeContent: crudActions.saveNodeContent, // Still used for quick edits? Or remove? Let's keep for now.
+    saveEdge: crudActions.addEdge,
+    saveNodeContent: crudActions.saveNodeContent,
     setNodes,
     setEdges: setEdges as Dispatch<SetStateAction<Edge<EdgeData>[]>>,
     addStateToHistory,
     showNotification,
-    currentHistoryState, // Used for history state check within AI hook
+    currentHistoryState,
   });
 
-  // --- UI Interaction Hooks ---
-  // Context Menu
   const { contextMenuState, contextMenuHandlers } = useContextMenu();
 
-  // Layout
   const { applyLayout, isLoading: isLayoutLoading } = useLayout({
     nodes,
     edges,
@@ -182,43 +177,35 @@ export function MindMapCanvas() {
     addStateToHistory,
     showNotification,
     currentHistoryState,
-    saveNodePosition: crudActions.saveNodePosition, // Pass saveNodePosition from CRUD
+    saveNodePosition: crudActions.saveNodePosition,
   });
 
-  // --- Combined Edges for Display ---
   const allEdges = useMemo(
     () => [...edges, ...suggestedEdges],
     [edges, suggestedEdges],
   );
 
-  // --- Loading State ---
   const isBusy =
     isDataLoading ||
     isCrudLoading ||
     isLayoutLoading ||
     Object.values(aiLoadingStates).some((loading) => loading);
 
-  // --- Focus Mode Handlers ---
   const enterFocusMode = useCallback(() => {
     setIsFocusMode(true);
-    // Optional: Add notification
-    // showNotification("Entered Focus Mode.", "success", 2000);
   }, []);
 
   const exitFocusMode = useCallback(() => {
     setIsFocusMode(false);
-    // Optional: Add notification
-    // showNotification("Exited Focus Mode.", "success", 2000);
   }, []);
 
-  // --- Node Type Selection Modal Logic ---
-  const openNodeTypeModal = (
-    parentId: string | null,
-    position?: XYPosition,
-  ) => {
-    setNodeToAddInfo({ parentId, position });
-    setIsNodeTypeModalOpen(true);
-  };
+  const openNodeTypeModal = useCallback(
+    (parentId: string | null, position?: XYPosition) => {
+      setNodeToAddInfo({ parentId, position });
+      setIsNodeTypeModalOpen(true);
+    },
+    [setNodeToAddInfo],
+  );
 
   const handleSelectNodeType = useCallback(
     (selectedType: string) => {
@@ -228,29 +215,25 @@ export function MindMapCanvas() {
         return;
       }
 
-      // Use the addNode CRUD action to create the node with the selected type
-      // The addNode action handles local state update, DB save, and history
       crudActions.addNode(
         nodeToAddInfo.parentId,
-        `New ${selectedType}`, // Initial content
-        selectedType, // Node type
-        nodeToAddInfo.position, // Position
-        // Pass initialData if needed: { metadata: { initialProp: value } }
+        `New ${selectedType}`,
+        selectedType,
+        nodeToAddInfo.position,
       );
 
       setIsNodeTypeModalOpen(false);
-      setNodeToAddInfo(null); // Clear info after selecting type
+      setNodeToAddInfo(null);
     },
     [nodeToAddInfo, crudActions, showNotification],
   );
 
-  // --- Node Edit Modal Logic ---
   const handleOpenNodeEditModal = useCallback(
     (nodeId: string) => {
-      // Simplified prop to just accept nodeId
       const node = nodes.find((n) => n.id === nodeId);
+
       if (node) {
-        setNodeToEdit(node); // Set the actual node object
+        setNodeToEdit(node);
         setIsNodeEditModalOpen(true);
       } else {
         console.error("Node not found for editing:", nodeId);
@@ -262,14 +245,7 @@ export function MindMapCanvas() {
 
   const handleSaveNodeEdit = useCallback(
     async (nodeId: string, changes: Partial<NodeData>) => {
-      // This function is called from the NodeEditModal when saving
-      // It needs to save all changes (content, styles, metadata, etc.)
-      // Use the comprehensive saveNodeProperties CRUD action
       await crudActions.saveNodeProperties(nodeId, changes);
-
-      // The saveNodeProperties action updates the local state, DB, and history.
-      // Modal remains open until explicitly closed by the user or parent logic.
-      // showNotification is handled inside saveNodeProperties.
     },
     [crudActions],
   );
@@ -278,10 +254,10 @@ export function MindMapCanvas() {
     setIsNodeEditModalOpen(false);
   }, []);
 
-  // --- Edge Edit Modal Logic ---
   const handleOpenEdgeEditModal = useCallback(
     (edgeId: string) => {
       const edge = edges.find((e) => e.id === edgeId);
+
       if (edge) {
         setEdgeToEdit(edge);
         setIsEdgeEditModalOpen(true);
@@ -290,15 +266,12 @@ export function MindMapCanvas() {
         showNotification("Error: Edge not found for editing.", "error");
       }
     },
-    [edges, showNotification], // Depend on edges
+    [edges, showNotification],
   );
 
   const handleSaveEdgeEdit = useCallback(
     async (edgeId: string, changes: Partial<EdgeData>) => {
-      // Use the saveEdgeProperties CRUD action
       await crudActions.saveEdgeProperties(edgeId, changes);
-      // The saveEdgeProperties action updates local state, DB, history.
-      // Modal remains open until explicitly closed.
     },
     [crudActions],
   );
@@ -307,50 +280,31 @@ export function MindMapCanvas() {
     setIsEdgeEditModalOpen(false);
   }, []);
 
-  // --- Event Handlers passed to ReactFlow ---
-
-  // Handle changes from React Flow (dragging, selecting, dimensions)
-  // Pass current nodes state to handleNodeChanges
   const handleNodesChange: OnNodesChange = useCallback(
     (changes) => {
       onNodesChangeState(changes);
-      crudActions.handleNodeChanges(changes, nodes); // Pass current nodes
-      // History is added *after* React Flow updates state and CRUD starts saving (debounced)
-      // History is handled within useMindMapHistory's effect monitoring nodes/edges
+      crudActions.handleNodeChanges(changes, nodes);
     },
-    [onNodesChangeState, crudActions, nodes], // Added nodes dependency
+    [onNodesChangeState, crudActions, nodes],
   );
 
-  // Handle edge changes from React Flow (currently only deletion)
-  // Pass current edges and nodes state to handleEdgeChanges
   const handleEdgesChange: OnEdgesChange = useCallback(
     (changes) => {
       onEdgesChangeState(changes);
-      crudActions.handleEdgeChanges(changes, edges, nodes); // Pass edges and nodes
-      // History is added within useMindMapHistory's effect monitoring nodes/edges
+      crudActions.handleEdgeChanges(changes, edges, nodes);
     },
-    [onEdgesChangeState, crudActions, edges, nodes], // Added edges and nodes dependencies
+    [onEdgesChangeState, crudActions, edges, nodes],
   );
 
-  // Handle new connections drawn by the user
-  // Pass connection params to addEdge CRUD action
   const handleConnectWrapper = useCallback(
     (params: Connection) => {
-      // Changed from Connection | Edge to just Connection
       if (params.source && params.target) {
-        // Add the new edge to DB and local state via CRUD action
-        // Pass any default data if needed, otherwise addEdge will use its defaults
         crudActions.addEdge(params.source, params.target);
-        // History is added inside addEdge after successful save and state update
       }
-      // React Flow's onConnect expects to return the new edge object if handling locally.
-      // Since CRUD handles state updates, we don't return the edge here.
-      // React Flow state is updated by the setEdges call within crudActions.addEdge.
     },
-    [crudActions], // Added crudActions dependency
+    [crudActions],
   );
 
-  // Wrap context menu handlers to match React Flow's expected event types
   const handleNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node<NodeData>) => {
       contextMenuHandlers.onNodeContextMenu(event, node);
@@ -358,7 +312,6 @@ export function MindMapCanvas() {
     [contextMenuHandlers],
   );
 
-  // Handle pane context menu - use the handler from the hook
   const handlePaneContextMenu = useCallback(
     (event: MouseEvent | React.MouseEvent<Element, MouseEvent>) => {
       contextMenuHandlers.onPaneContextMenu(event as React.MouseEvent);
@@ -367,16 +320,14 @@ export function MindMapCanvas() {
   );
 
   const handleCopy = useCallback(() => {
-    // Use getNodes() from the instance instead of the store directly
     const currentNodes = reactFlowInstance.getNodes();
     const selectedNodes = currentNodes.filter((node) => node.selected);
 
     if (selectedNodes.length > 0) {
-      // Deep clone the nodes to avoid issues with direct state mutation later
       const nodesToCopy = selectedNodes.map((node) => ({
         ...node,
-        data: { ...node.data }, // Ensure data is also cloned
-        selected: false, // Copied nodes shouldn't be selected initially
+        data: { ...node.data },
+        selected: false,
       })) as Node<NodeData>[];
       setCopiedNodes(nodesToCopy);
       showNotification(
@@ -384,11 +335,8 @@ export function MindMapCanvas() {
         "success",
       );
     } else {
-      setCopiedNodes([]); // Clear clipboard if nothing selected
-      // Optionally show a notification that nothing was copied
-      // showNotification("Select nodes to copy.", "error");
+      setCopiedNodes([]);
     }
-    // Depend on the instance and showNotification
   }, [reactFlowInstance, showNotification]);
 
   const handlePaste = useCallback(async () => {
@@ -399,19 +347,15 @@ export function MindMapCanvas() {
 
     showNotification("Pasting nodes...", "success");
 
-    // Get current selection using getNodes()
     const currentNodes = reactFlowInstance.getNodes();
     const selectedNodes = currentNodes.filter((node) => node.selected);
 
-    // Determine parent: Use the first selected node if exactly one is selected
     const targetParentId =
       selectedNodes.length === 1 ? selectedNodes[0].id : null;
 
-    // Calculate paste position (e.g., center of viewport + offset)
-    // const viewport = reactFlowInstance.getViewport(); // viewport not strictly needed here
     const pasteCenter = reactFlowInstance.screenToFlowPosition({
       x: window.innerWidth / 2,
-      y: window.innerHeight / 2 - 30, // Adjust for toolbar height perhaps
+      y: window.innerHeight / 2 - 30,
     });
 
     const pastedNodeIds: string[] = [];
@@ -420,40 +364,38 @@ export function MindMapCanvas() {
       const createdNodes = await Promise.all(
         copiedNodes.map(async (copiedNode, index) => {
           const newPosition: XYPosition = {
-            // Use a slightly larger offset for better visibility
             x: pasteCenter.x + index * 30 + Math.random() * 10 - 5,
             y: pasteCenter.y + index * 30 + Math.random() * 10 - 5,
           };
 
-          // Clone the data to avoid modifying the clipboard state directly
           const clonedData = { ...copiedNode.data };
 
-          // Prepare initial data, excluding fields set by addNode or that shouldn't be copied
           const initialDataForNewNode: Partial<NodeData> = {
             ...clonedData,
-            content: (clonedData.content || "") + " (Copy)", // Ensure content exists before appending
-            // Exclude specific fields
+            content: (clonedData.content || "") + " (Copy)",
+
             id: undefined,
             parent_id: undefined,
             position_x: undefined,
             position_y: undefined,
-            embedding: undefined, // Don't copy embeddings
-            aiSummary: undefined, // Don't copy AI generated data
+            embedding: undefined,
+            aiSummary: undefined,
             extractedConcepts: undefined,
-            isSearchResult: undefined, // Don't copy search result flag
+            isSearchResult: undefined,
           };
 
           const newNode = await crudActions.addNode(
             targetParentId,
-            initialDataForNewNode.content ?? "", // Pass specific content
+            initialDataForNewNode.content ?? "",
             copiedNode.type ?? "defaultNode",
             newPosition,
-            initialDataForNewNode, // Pass the rest of the relevant data
+            initialDataForNewNode,
           );
 
           if (newNode) {
             pastedNodeIds.push(newNode.id);
           }
+
           return newNode;
         }),
       );
@@ -465,15 +407,14 @@ export function MindMapCanvas() {
       if (successfulNodes.length > 0) {
         addStateToHistory("pasteNodes");
 
-        // Select the newly pasted nodes using setNodes
         setNodes((nds) =>
           nds.map((n) => ({
             ...n,
-            // Deselect previously selected nodes unless they were just pasted
+
             selected: pastedNodeIds.includes(n.id),
           })),
         );
-        setEdges((eds) => eds.map((e) => ({ ...e, selected: false }))); // Deselect edges
+        setEdges((eds) => eds.map((e) => ({ ...e, selected: false })));
 
         showNotification(
           `Pasted ${successfulNodes.length} node${successfulNodes.length > 1 ? "s" : ""}.`,
@@ -486,15 +427,13 @@ export function MindMapCanvas() {
       console.error("Error during paste operation:", error);
       showNotification("An error occurred while pasting.", "error");
     }
-
-    // Update dependencies
   }, [
     copiedNodes,
     reactFlowInstance,
     crudActions,
     showNotification,
-    setNodes, // Added setNodes dependency
-    setEdges, // Added setEdges dependency
+    setNodes,
+    setEdges,
     addStateToHistory,
   ]);
 
@@ -502,36 +441,25 @@ export function MindMapCanvas() {
     EdgeMouseHandler<Edge<Partial<EdgeData>>>
   >(
     (event, edge) => {
-      contextMenuHandlers.onEdgeContextMenu(event, edge as AppEdge); // Cast to AppEdge if necessary
+      contextMenuHandlers.onEdgeContextMenu(event, edge as AppEdge);
     },
     [contextMenuHandlers],
   );
 
-  // Handle Edge Click to open Edit Modal
   const onReactFlowEdgeClick = useCallback<
     EdgeMouseHandler<Edge<Partial<EdgeData>>>
   >(
-    // Renamed for clarity
     (event, edge) => {
-      // Correct signature
-      // We receive the standard React Flow Edge object here
-      // Prevent default selection/drag behavior (React Flow might already handle this)
-      // event.stopPropagation(); // Can add if needed, but often React Flow manages
-
       console.log("React Flow Edge Clicked:", edge);
-      handleOpenEdgeEditModal(edge.id); // Use the edge ID from the React Flow object
+      handleOpenEdgeEditModal(edge.id);
     },
-    [handleOpenEdgeEditModal], // Depends on handleOpenEdgeEditModal
+    [handleOpenEdgeEditModal],
   );
 
-  // Effect to clear search highlight when nodes change (optional cleanup)
   useEffect(() => {
-    // This effect is complex to manage history around and might be removed
-    // or simplified depending on desired UX for search highlight persistence.
-    // Keeping the existing logic for now.
     const hasHighlight = nodes.some((n) => n.data?.isSearchResult);
+
     if (hasHighlight) {
-      // Clear highlight after a delay
       const timer = setTimeout(() => {
         setNodes((nds) =>
           nds.map((n) =>
@@ -540,18 +468,16 @@ export function MindMapCanvas() {
               : n,
           ),
         );
-        // Note: This local state change for clearing highlight is NOT added to history
-      }, 10000); // Clear after 10 seconds
+      }, 10000);
       return () => clearTimeout(timer);
     }
-  }, [nodes, setNodes]); // Depend on nodes
+  }, [nodes, setNodes]);
 
-  // --- Define nodeTypes object using useMemo to pass custom props ---
   const nodeTypesWithProps: NodeTypes = useMemo(
     () => ({
-      defaultNode: (
-        nodeProps, // Add the new default node
-      ) => <DefaultNode {...nodeProps} onEditNode={handleOpenNodeEditModal} />,
+      defaultNode: (nodeProps) => (
+        <DefaultNode {...nodeProps} onEditNode={handleOpenNodeEditModal} />
+      ),
       questionNode: (nodeProps) => (
         <QuestionNode {...nodeProps} onEditNode={handleOpenNodeEditModal} />
       ),
@@ -564,15 +490,20 @@ export function MindMapCanvas() {
       resourceNode: (nodeProps) => (
         <ResourceNode {...nodeProps} onEditNode={handleOpenNodeEditModal} />
       ),
-      // Add other custom node types here, passing onEditNode
+
       annotationNode: (nodeProps) => (
         <AnnotationNode {...nodeProps} onEditNode={handleOpenNodeEditModal} />
       ),
+      codeNode: (nodeProps) => (
+        <CodeNode {...nodeProps} onEditNode={handleOpenNodeEditModal} />
+      ),
+      groupNode: (nodeProps) => (
+        <GroupNode {...nodeProps} onEditNode={handleOpenNodeEditModal} />
+      ),
     }),
-    [handleOpenNodeEditModal], // Recreate if handleOpenNodeEditModal changes
+    [handleOpenNodeEditModal],
   );
 
-  // --- Define edgeTypes object using useMemo to pass custom props ---
   const edgeTypesWithProps: EdgeTypes = useMemo(
     () => ({
       suggestedConnection: (edgeProps) => (
@@ -581,11 +512,9 @@ export function MindMapCanvas() {
       editableEdge: (edgeProps) => <EditableEdge {...edgeProps} />,
       defaultEdge: (edgeProps) => <DefaultEdge {...edgeProps} />,
     }),
-    [onReactFlowEdgeClick, showNotification], // Recreate if handleEdgeClick or showNotification changes
+    [onReactFlowEdgeClick, showNotification],
   );
 
-  // --- Determine selected Element IDs for Keyboard Shortcuts ---
-  // Use the selected property on the React Flow element directly
   const selectedNodeId = useMemo(
     () => nodes.find((n) => n.selected)?.id,
     [nodes],
@@ -595,28 +524,57 @@ export function MindMapCanvas() {
     [edges],
   );
 
-  // --- Keyboard Shortcuts ---
+  const commandPaletteActions = useMemo(
+    () => ({
+      undo: handleUndo,
+      redo: handleRedo,
+      addNode: (parentId: string | null = null) => openNodeTypeModal(parentId),
+      deleteSelected: () => {
+        if (selectedNodeId) crudActions.deleteNode(selectedNodeId);
+        else if (selectedEdgeId) crudActions.deleteEdge(selectedEdgeId);
+        else showNotification("Nothing selected to delete.", "error");
+      },
+      triggerSuggestConnections: aiActions.suggestConnections,
+      triggerSuggestMerges: aiActions.suggestMerges,
+      applyLayoutTB: () => applyLayout("TB"),
+      applyLayoutLR: () => applyLayout("LR"),
+      aiSearch: aiActions.searchNodes,
+      toggleFocusMode: toggleFocusMode,
+      groupSelectedNodes: () => {
+        const selectedNodes = nodes.filter((n) => n.selected);
+
+        if (selectedNodes.length > 1) {
+          crudActions.groupNodes(selectedNodes.map((n) => n.id));
+        } else {
+          showNotification("Select 2 or more nodes to group.", "error");
+        }
+      },
+    }),
+    [
+      handleUndo,
+      handleRedo,
+      openNodeTypeModal,
+      selectedNodeId,
+      selectedEdgeId,
+      crudActions,
+      aiActions,
+      applyLayout,
+      toggleFocusMode,
+      nodes,
+      showNotification,
+    ],
+  );
+
   useKeyboardShortcuts({
     onUndo: handleUndo,
     onRedo: handleRedo,
-    // Pass deleteNode from CRUD actions
-    onDelete: (id) => {
-      // Determine if it's a node or edge based on context or selection state
-      // In this setup, selectedNodeId and selectedEdgeId indicate which is selected
-      if (selectedNodeId === id) {
-        crudActions.deleteNode(id);
-      } else if (selectedEdgeId === id) {
-        // Need a deleteEdge action in crudActions
-        crudActions.deleteEdge(id); // Call the new deleteEdge CRUD action
-      } else {
-        console.warn("Attempted to delete unknown element with ID:", id);
-      }
-    },
+
+    onDelete: commandPaletteActions.deleteSelected,
+    onAddChild: commandPaletteActions.addNode,
     onCopy: handleCopy,
     onPaste: handlePaste,
-    onAddChild: openNodeTypeModal, // Use the wrapper function
     selectedNodeId: selectedNodeId,
-    selectedEdgeId: selectedEdgeId, // Pass selectedEdgeId
+    selectedEdgeId: selectedEdgeId,
     canUndo,
     canRedo,
     isBusy,
@@ -628,7 +586,6 @@ export function MindMapCanvas() {
     contextMenuHandlers.close();
   });
 
-  // --- Render Logic ---
   if (isDataLoading && !mindMap) {
     return (
       <div className="flex min-h-full items-center justify-center text-zinc-400">
@@ -646,7 +603,6 @@ export function MindMapCanvas() {
   }
 
   if (!mindMap) {
-    // This case might occur if mapId is undefined or map data is genuinely not found
     if (!mapId) {
       return (
         <div className="flex min-h-full items-center justify-center text-zinc-400">
@@ -654,6 +610,7 @@ export function MindMapCanvas() {
         </div>
       );
     }
+
     return (
       <div className="flex min-h-full items-center justify-center text-zinc-400">
         Mind map not found.
@@ -661,8 +618,8 @@ export function MindMapCanvas() {
     );
   }
 
-  const canvasHeight = isFocusMode ? "100%" : "calc(100% - 60px)"; // Adjust 60px if toolbar height differs
-  const canvasMarginTop = isFocusMode ? "0px" : "60px"; // Adjust 60px if toolbar height differs
+  const canvasHeight = isFocusMode ? "100%" : "calc(100% - 60px)";
+  const canvasMarginTop = isFocusMode ? "0px" : "60px";
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-md bg-zinc-900">
@@ -692,18 +649,29 @@ export function MindMapCanvas() {
           canRedo={canRedo}
           isLoading={isBusy}
           aiLoadingStates={aiLoadingStates}
-          onEnterFocusMode={enterFocusMode} // Pass the handler
+          onEnterFocusMode={enterFocusMode}
+          onCommandPaletteOpen={() => setIsCommandPaletteOpen(true)}
         />
       )}
+
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        setIsOpen={setIsCommandPaletteOpen}
+        actions={commandPaletteActions}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        nodes={nodes}
+      />
+
       {/* Context Menu */}
       <ContextMenuDisplay
         ref={ref}
         contextMenuState={contextMenuState}
         closeContextMenu={contextMenuHandlers.close}
         nodes={nodes}
-        edges={edges} // Pass current edges
-        addNode={openNodeTypeModal} // Use the wrapper function
-        deleteNode={crudActions.deleteNode} // Use CRUD delete
+        edges={edges}
+        addNode={openNodeTypeModal}
+        deleteNode={crudActions.deleteNode}
         deleteEdge={crudActions.deleteEdge}
         aiActions={{
           summarizeNode: aiActions.summarizeNode,
@@ -716,29 +684,31 @@ export function MindMapCanvas() {
           suggestConnections: aiActions.suggestConnections,
           suggestMerges: aiActions.suggestMerges,
         }}
-        saveEdgeStyle={crudActions.saveEdgeProperties} // Context menu edge style save now uses saveEdgeProperties
+        saveEdgeStyle={crudActions.saveEdgeProperties}
         aiLoadingStates={aiLoadingStates}
         applyLayout={applyLayout}
         reactFlowInstance={reactFlowInstance}
         isLoading={isBusy}
       />
+
       {/* Notifications */}
       <NotificationsDisplay notification={notification} />
+
       {/* AI Content Generation Modal */}
       <AiContentPromptModal
         isOpen={isAiContentModalOpen}
         onClose={() => {
           setIsAiContentModalOpen(false);
-          aiActions.setAiContentTargetNodeId(null); // Clear target node ID on close
+          aiActions.setAiContentTargetNodeId(null);
         }}
         onGenerate={(prompt) => {
           if (aiContentTargetNodeId) {
             aiActions.generateContent(aiContentTargetNodeId, prompt);
           }
-          // Modal is now closed by the onClose handler above
         }}
         isLoading={aiLoadingStates.isGeneratingContent}
       />
+
       {/* Merge Suggestions Modal */}
       <MergeSuggestionsModal
         isOpen={isMergeModalOpen}
@@ -747,8 +717,9 @@ export function MindMapCanvas() {
         onAccept={aiActions.acceptMerge}
         onDismiss={aiActions.dismissMerge}
         nodes={nodes}
-        isLoading={aiLoadingStates.isAcceptingMerge} // Pass specific loading state
+        isLoading={aiLoadingStates.isAcceptingMerge}
       />
+
       {/* Select Node Type Modal */}
       <SelectNodeTypeModal
         isOpen={isNodeTypeModalOpen}
@@ -758,23 +729,25 @@ export function MindMapCanvas() {
         }}
         onSelectType={handleSelectNodeType}
       />
+
       {/* Generic Node Edit Modal */}
       <NodeEditModal
         isOpen={isNodeEditModalOpen}
         onClose={handleCloseNodeEditModal}
-        node={nodeToEdit} // Pass the node object
-        onSave={handleSaveNodeEdit} // Pass the save handler
-        isLoading={isCrudLoading} // Use CRUD loading state for saving
+        node={nodeToEdit}
+        onSave={handleSaveNodeEdit}
+        isLoading={isCrudLoading}
         clearData={() => setNodeToEdit(null)}
       />
+
       {/* Generic Edge Edit Modal */}
       <EdgeEditModal
         isOpen={isEdgeEditModalOpen}
         onClose={handleCloseEdgeEditModal}
-        edge={edgeToEdit} // Pass the edge object
-        onSave={handleSaveEdgeEdit} // Pass the save handler
-        isLoading={isCrudLoading} // Use CRUD loading state for saving
-        nodes={nodes} // Pass nodes for displaying node content in edge modal
+        edge={edgeToEdit}
+        onSave={handleSaveEdgeEdit}
+        isLoading={isCrudLoading}
+        nodes={nodes}
         clearData={() => setEdgeToEdit(null)}
       />
 
@@ -789,17 +762,17 @@ export function MindMapCanvas() {
       >
         <ReactFlow
           nodes={nodes}
-          edges={allEdges} // Render combined edges
+          edges={allEdges}
           onNodesChange={handleNodesChange}
           onEdgesChange={handleEdgesChange}
-          onConnect={handleConnectWrapper} // Use wrapped connect handler
+          onConnect={handleConnectWrapper}
           onNodeContextMenu={handleNodeContextMenu}
           onPaneContextMenu={handlePaneContextMenu}
-          onEdgeContextMenu={handleEdgeContextMenu} // Use wrapped edge context menu
+          onEdgeContextMenu={handleEdgeContextMenu}
           onEdgeDoubleClick={onReactFlowEdgeClick}
           onPaneClick={contextMenuHandlers.close}
-          nodeTypes={nodeTypesWithProps} // Use the memoized object with props
-          edgeTypes={edgeTypesWithProps} // Use the memoized object with props
+          nodeTypes={nodeTypesWithProps}
+          edgeTypes={edgeTypesWithProps}
           snapToGrid={true}
           reconnectRadius={100}
           edgesReconnectable={true}
@@ -814,6 +787,7 @@ export function MindMapCanvas() {
           selectionOnDrag={true}
         >
           <Controls />
+
           <Background
             color="#52525c"
             gap={16}

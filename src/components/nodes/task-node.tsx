@@ -3,27 +3,22 @@
 import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
 import { Handle, Node, NodeProps, NodeResizer, Position } from "@xyflow/react";
-import { CheckSquare, Ellipsis } from "lucide-react"; // Import icons
-import { useCallback } from "react";
+import { CheckSquare, Ellipsis } from "lucide-react";
+import { memo, useCallback } from "react";
 
-// Add onEditNode prop to the node props
 interface TaskNodeProps extends NodeProps<Node<NodeData>> {
   onEditNode: (nodeId: string, nodeData: NodeData) => void;
 }
 
-// Change function signature to accept props
-export default function TaskNode(props: TaskNodeProps) {
+const TaskNodeComponent = (props: TaskNodeProps) => {
   const { id, data, selected, onEditNode } = props;
 
-  // Read metadata and style properties from data
   const isComplete = Boolean(data.metadata?.isComplete);
 
   const handleEllipsisClick = useCallback(() => {
-    // Trigger the modal opening via the parent prop
     onEditNode(id, data);
   }, [id, data, onEditNode]);
 
-  // Double click also opens the modal
   const handleDoubleClick = useCallback(() => {
     onEditNode(id, data);
   }, [id, data, onEditNode]);
@@ -41,11 +36,12 @@ export default function TaskNode(props: TaskNodeProps) {
         position={Position.Top}
         className="size-2 rounded-full !border-zinc-800 !bg-zinc-500"
       />
+
       <div className="relative flex h-10 w-full justify-between rounded-md bg-zinc-900 p-2">
         <div className="z-20 flex items-center justify-center gap-4">
           {/* Icon Area - Customize color */}
           <div className="flex size-6 items-center justify-center rounded-sm bg-green-700">
-            <CheckSquare className="size-4 text-zinc-100" /> {/* Task icon */}
+            <CheckSquare className="size-4 text-zinc-100" />
           </div>
         </div>
 
@@ -55,6 +51,7 @@ export default function TaskNode(props: TaskNodeProps) {
           {isComplete && (
             <span className="text-xs font-medium text-green-400">Done</span>
           )}
+
           <div className="flex items-center justify-center gap-2">
             {/* Ellipsis button to open modal */}
             <button
@@ -71,9 +68,8 @@ export default function TaskNode(props: TaskNodeProps) {
       <div
         className={cn([
           "min-h-[3rem] pt-2 pb-4 whitespace-pre-wrap",
-          isComplete && "line-through", // Apply line-through here
+          isComplete && "line-through",
         ])}
-        // Text color is applied to the main container's style prop
       >
         {data.content || (
           <span className="text-zinc-500 italic">
@@ -87,16 +83,19 @@ export default function TaskNode(props: TaskNodeProps) {
         position={Position.Top}
         className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
       />
+
       <Handle
         type="target"
         position={Position.Right}
         className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
       />
+
       <Handle
         type="target"
         position={Position.Left}
         className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
       />
+
       <Handle
         type="source"
         position={Position.Bottom}
@@ -111,4 +110,8 @@ export default function TaskNode(props: TaskNodeProps) {
       />
     </div>
   );
-}
+};
+
+const TaskNode = memo(TaskNodeComponent);
+TaskNode.displayName = "TaskNode";
+export default TaskNode;

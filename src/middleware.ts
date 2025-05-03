@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
-import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { createClient } from "./helpers/supabase/server";
 
 export async function updateSession(request: NextRequest) {
@@ -32,6 +32,7 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
   if (
     !user &&
     !request.nextUrl.pathname.startsWith("/login") &&
@@ -70,7 +71,6 @@ export async function middleware(req: NextRequest) {
     return checkIfAuthenticated(req);
   }
 
-  // Allow access to public routes or if authenticated
   return NextResponse.next();
 }
 

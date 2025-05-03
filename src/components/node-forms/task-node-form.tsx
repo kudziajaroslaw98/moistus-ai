@@ -17,7 +17,6 @@ const TaskNodeForm = forwardRef<
     Boolean(initialData.metadata?.isComplete),
   );
 
-  // Sync local state if initialData changes
   useEffect(() => {
     setContent(initialData?.content || "");
     setIsComplete(Boolean(initialData.metadata?.isComplete));
@@ -28,7 +27,7 @@ const TaskNodeForm = forwardRef<
       return {
         content: content.trim(),
         metadata: {
-          ...(initialData.metadata || {}), // Keep existing metadata
+          ...(initialData.metadata || {}),
           isComplete: isComplete,
         },
       };

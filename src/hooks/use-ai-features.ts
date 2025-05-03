@@ -1,5 +1,5 @@
 import uuid from "@/helpers/uuid";
-import useFetch from "@/hooks/use-fetch"; // Import useFetch
+import useFetch from "@/hooks/use-fetch";
 import { NotificationType } from "@/hooks/use-notifications";
 import { AiConnectionSuggestion } from "@/types/ai-connection-suggestion";
 import { AiMergeSuggestion } from "@/types/ai-merge-suggestion";
@@ -12,7 +12,6 @@ import { NodeData } from "@/types/node-data";
 import { Edge, Node, XYPosition } from "@xyflow/react";
 import { useCallback, useState } from "react";
 
-// Props interface remains the same
 interface UseAiFeaturesProps {
   mapId: string;
   nodes: Node<NodeData>[];
@@ -21,7 +20,7 @@ interface UseAiFeaturesProps {
     content?: string,
     nodeType?: string,
     position?: XYPosition,
-    initialData?: Partial<NodeData>, // Allow passing initial data including metadata/styles
+    initialData?: Partial<NodeData>,
   ) => Promise<Node<NodeData> | null>;
   deleteNode: (nodeId: string) => Promise<void>;
   saveEdge: (sourceId: string, targetId: string) => Promise<AppEdge | null>;
@@ -33,7 +32,6 @@ interface UseAiFeaturesProps {
   currentHistoryState: HistoryState | undefined;
 }
 
-// Actions interface remains the same
 export interface AiActions {
   generateMap: () => Promise<void>;
   summarizeNode: (nodeId: string) => Promise<void>;
@@ -50,7 +48,6 @@ export interface AiActions {
   setAiContentTargetNodeId: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
-// Loading states interface remains the same
 export interface AiLoadingStates {
   isGenerating: boolean;
   isSummarizing: boolean;
@@ -63,7 +60,6 @@ export interface AiLoadingStates {
   isAcceptingMerge: boolean;
 }
 
-// Result interface remains the same
 export interface UseAiFeaturesResult {
   aiActions: AiActions;
   aiLoadingStates: AiLoadingStates;
@@ -117,24 +113,18 @@ export function useAiFeatures({
   >(null);
   const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
 
-  // Instantiate useFetch
   const { fetch: fetchWrapper } = useFetch();
 
-  // Helper to update specific loading state
   const setLoading = (key: keyof AiLoadingStates, value: boolean) => {
     setLoadingStates((prev) => ({ ...prev, [key]: value }));
   };
 
-  // Remove callAiApi helper function
-
-  // Recursive function to add AI-generated structure (Internal helper) - Remains the same
   const addAiStructure = useCallback(
     async (
       aiNode: AiNodeStructure,
       parentNodeId: string | null,
       basePosition?: { x: number; y: number },
     ): Promise<Node<NodeData> | null> => {
-      // --- Implementation unchanged ---
       const newNode = await addNode(
         parentNodeId,
         aiNode.content,
@@ -145,6 +135,7 @@ export function useAiFeatures({
 
       if (newNode && aiNode.children && aiNode.children.length > 0) {
         const parentPos = newNode.position;
+
         for (let i = 0; i < aiNode.children.length; i++) {
           const child = aiNode.children[i];
           const childPosition = {
@@ -154,24 +145,23 @@ export function useAiFeatures({
           await addAiStructure(child, newNode.id, childPosition);
         }
       }
+
       return newNode;
     },
     [addNode],
   );
 
-  // --- Refactored AI Action Implementations using useFetch ---
-
   const generateMap = useCallback(async () => {
     if (!mapId || !aiPrompt.trim() || loadingStates.isGenerating) return;
 
     setLoading("isGenerating", true);
-    showNotification("Generating Map...", "success"); // Pending status
+    showNotification("Generating Map...", "success");
 
     const response = await fetchWrapper<{ structure: AiResponseStructure }>(
       "/api/generate-map",
       {
         method: "POST",
-        body: JSON.stringify({ prompt: aiPrompt, mapId }), // mapId might not be needed if not used by API
+        body: JSON.stringify({ prompt: aiPrompt, mapId }),
       },
     );
 
@@ -185,6 +175,7 @@ export function useAiFeatures({
 
       if (nodes.length > 0) {
         const existingRoot = nodes.find((node) => !node.data.parent_id);
+
         if (existingRoot) {
           rootNodePosition = {
             x: existingRoot.position.x + 300,
@@ -206,12 +197,13 @@ export function useAiFeatures({
       console.error("Generate Map Error:", errorMsg);
       showNotification(errorMsg, "error");
     }
+
     setLoading("isGenerating", false);
   }, [
     mapId,
     aiPrompt,
     loadingStates.isGenerating,
-    fetchWrapper, // Changed dependency
+    fetchWrapper,
     addAiStructure,
     addStateToHistory,
     showNotification,
@@ -221,6 +213,7 @@ export function useAiFeatures({
   const summarizeNode = useCallback(
     async (nodeId: string) => {
       const nodeToSummarize = nodes.find((n) => n.id === nodeId);
+
       if (
         !nodeToSummarize ||
         loadingStates.isSummarizing ||
@@ -244,6 +237,7 @@ export function useAiFeatures({
 
       if (response.status === "success") {
         const summary = response.data.summary;
+
         if (
           summary &&
           summary.trim().length > 0 &&
@@ -260,12 +254,13 @@ export function useAiFeatures({
         console.error("Summarize Node Error:", errorMsg);
         showNotification(errorMsg, "error");
       }
+
       setLoading("isSummarizing", false);
     },
     [
       nodes,
       loadingStates.isSummarizing,
-      fetchWrapper, // Changed dependency
+      fetchWrapper,
       addNode,
       addStateToHistory,
       showNotification,
@@ -290,6 +285,7 @@ export function useAiFeatures({
 
       if (response.status === "success") {
         const summary = response.data.summary;
+
         if (
           summary &&
           summary.trim().length > 0 &&
@@ -309,12 +305,13 @@ export function useAiFeatures({
         console.error("Summarize Branch Error:", errorMsg);
         showNotification(errorMsg, "error");
       }
+
       setLoading("isSummarizingBranch", false);
     },
     [
       nodes,
       loadingStates.isSummarizingBranch,
-      fetchWrapper, // Changed dependency
+      fetchWrapper,
       addNode,
       addStateToHistory,
       showNotification,
@@ -324,6 +321,7 @@ export function useAiFeatures({
   const extractConcepts = useCallback(
     async (nodeId: string) => {
       const nodeToExtract = nodes.find((n) => n.id === nodeId);
+
       if (
         !nodeToExtract ||
         loadingStates.isExtracting ||
@@ -350,6 +348,7 @@ export function useAiFeatures({
 
       if (response.status === "success") {
         const concepts = response.data.concepts;
+
         if (
           concepts &&
           concepts.length > 0 &&
@@ -360,10 +359,12 @@ export function useAiFeatures({
             "Key Concepts",
             "editableNode",
           );
+
           if (conceptsRootNode) {
             for (const concept of concepts) {
               await addNode(conceptsRootNode.id, concept, "editableNode");
             }
+
             addStateToHistory("extractConcepts");
             showNotification("Concepts extracted and added.", "success");
           } else {
@@ -380,12 +381,13 @@ export function useAiFeatures({
         console.error("Extract Concepts Error:", errorMsg);
         showNotification(errorMsg, "error");
       }
+
       setLoading("isExtracting", false);
     },
     [
       nodes,
       loadingStates.isExtracting,
-      fetchWrapper, // Changed dependency
+      fetchWrapper,
       addNode,
       addStateToHistory,
       showNotification,
@@ -423,7 +425,6 @@ export function useAiFeatures({
         "success",
       );
     } else {
-      // Clear previous highlights on error or no results
       setNodes((nds) =>
         nds.map((node) =>
           node.data.isSearchResult
@@ -438,14 +439,15 @@ export function useAiFeatures({
       showNotification(
         errorMsg,
         response.status === "error" ? "error" : "success",
-      ); // Show success if API succeeded but found none
+      );
     }
+
     setLoading("isSearching", false);
   }, [
     mapId,
     aiSearchQuery,
     loadingStates.isSearching,
-    fetchWrapper, // Changed dependency
+    fetchWrapper,
     setNodes,
     showNotification,
   ]);
@@ -453,6 +455,7 @@ export function useAiFeatures({
   const generateContent = useCallback(
     async (nodeId: string, additionalPrompt: string = "") => {
       const nodeToExpand = nodes.find((n) => n.id === nodeId);
+
       if (
         !nodeToExpand ||
         loadingStates.isGeneratingContent ||
@@ -479,6 +482,7 @@ export function useAiFeatures({
 
       if (response.status === "success") {
         const generatedContent = response.data.generatedContent;
+
         if (
           generatedContent &&
           generatedContent.trim().length > 0 &&
@@ -498,12 +502,13 @@ export function useAiFeatures({
         console.error("Generate Content Error:", errorMsg);
         showNotification(errorMsg, "error");
       }
+
       setLoading("isGeneratingContent", false);
     },
     [
       nodes,
       loadingStates.isGeneratingContent,
-      fetchWrapper, // Changed dependency
+      fetchWrapper,
       addNode,
       addStateToHistory,
       showNotification,
@@ -527,6 +532,7 @@ export function useAiFeatures({
 
     if (response.status === "success") {
       const suggestions = response.data.suggestions;
+
       if (suggestions && suggestions.length > 0) {
         const suggestedReactFlowEdges: Edge<Partial<EdgeData>>[] =
           suggestions.map((suggestion) => ({
@@ -555,12 +561,13 @@ export function useAiFeatures({
       console.error("Suggest Connections Error:", errorMsg);
       showNotification(errorMsg, "error");
     }
+
     setLoading("isSuggestingConnections", false);
   }, [
     mapId,
     nodes.length,
     loadingStates.isSuggestingConnections,
-    fetchWrapper, // Changed dependency
+    fetchWrapper,
     showNotification,
   ]);
 
@@ -581,6 +588,7 @@ export function useAiFeatures({
 
     if (response.status === "success") {
       const suggestions = response.data.suggestions;
+
       if (suggestions && suggestions.length > 0) {
         setMergeSuggestions(suggestions);
         setIsMergeModalOpen(true);
@@ -596,16 +604,16 @@ export function useAiFeatures({
       console.error("Suggest Merges Error:", errorMsg);
       showNotification(errorMsg, "error");
     }
+
     setLoading("isSuggestingMerges", false);
   }, [
     mapId,
     nodes.length,
     loadingStates.isSuggestingMerges,
-    fetchWrapper, // Changed dependency
+    fetchWrapper,
     showNotification,
   ]);
 
-  // --- Merge Logic --- (Remains the same, relies on CRUD actions)
   const acceptMerge = useCallback(
     async (suggestion: AiMergeSuggestion) => {
       setLoading("isAcceptingMerge", true);
@@ -627,6 +635,7 @@ export function useAiFeatures({
         const childrenToReparent = nodes.filter(
           (n) => n.data.parent_id === node2Id,
         );
+
         for (const child of childrenToReparent) {
           await saveEdge(node1Id, child.id);
         }
@@ -648,9 +657,11 @@ export function useAiFeatures({
                   },
                 };
               }
+
               if (childrenIds.has(n.id)) {
                 return { ...n, data: { ...n.data, parent_id: node1Id } };
               }
+
               return n;
             });
         });
@@ -670,6 +681,7 @@ export function useAiFeatures({
         setMergeSuggestions((prev) =>
           prev.filter((s) => s.node1Id !== node1Id || s.node2Id !== node2Id),
         );
+
         if (mergeSuggestions.length <= 1) {
           setIsMergeModalOpen(false);
         }
@@ -708,6 +720,7 @@ export function useAiFeatures({
         ),
       );
       showNotification("Merge suggestion dismissed.", "success");
+
       if (mergeSuggestions.length <= 1) {
         setIsMergeModalOpen(false);
       }
@@ -715,7 +728,6 @@ export function useAiFeatures({
     [showNotification, mergeSuggestions.length],
   );
 
-  // --- Return Value ---
   return {
     aiActions: {
       generateMap,

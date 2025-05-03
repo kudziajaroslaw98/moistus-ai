@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 
 export type NotificationType = "success" | "error";
 
@@ -25,7 +25,6 @@ export function useNotifications() {
       setTimeout(() => {
         setNotification({ message: null, type: null });
       }, duration);
-      // Consider returning the timer clear function if needed, though often not necessary here.
     },
     [],
   );

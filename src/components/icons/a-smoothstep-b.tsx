@@ -33,6 +33,7 @@ const ASmoothstepBIcon = (props: ComponentPropsWithRef<"svg">) => {
               }}
             />
           </g>
+
           <g transform="matrix(47.2735,0,0,-47.2735,-27.2822,1107.28)">
             <circle
               cx="6"
@@ -45,6 +46,7 @@ const ASmoothstepBIcon = (props: ComponentPropsWithRef<"svg">) => {
               }}
             />
           </g>
+
           <g transform="matrix(-47.2735,0,0,47.2735,1108.75,-44.8118)">
             <path
               d="M9.516,6L16,6C17.097,6 18,6.903 18,8L18,15"

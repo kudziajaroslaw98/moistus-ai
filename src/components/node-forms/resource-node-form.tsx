@@ -1,13 +1,13 @@
 import useFetch from "@/hooks/use-fetch";
 import { NodeData } from "@/types/node-data";
-import { Loader2 } from "lucide-react"; // For loading spinner
+import { Loader2 } from "lucide-react";
+import Image from "next/image";
 import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 
 interface ResourceNodeFormProps {
   initialData: NodeData;
 }
 
-// Define the metadata structure
 interface UrlMetadata {
   title: string | null;
   description: string | null;
@@ -41,7 +41,6 @@ const ResourceNodeForm = forwardRef<
 
   const { fetch } = useFetch();
 
-  // Sync local state if initialData changes
   useEffect(() => {
     setContent(initialData?.content || "");
     setUrl((initialData.metadata?.url as string) || "");
@@ -60,7 +59,6 @@ const ResourceNodeForm = forwardRef<
     initialData.metadata?.title,
   ]);
 
-  // Function to fetch URL metadata
   const fetchUrlMetadata = async () => {
     if (!url || !url.trim()) {
       setFetchError("Please enter a valid URL");
@@ -80,20 +78,19 @@ const ResourceNodeForm = forwardRef<
       });
 
       if (response.status === "success" && response.data) {
-        // Update form fields with the fetched data
         if (response.data.title) {
           setTitle(response.data.title);
-          if (!content) setContent(response.data.title); // Use title as content if none exists
+          if (!content) setContent(response.data.title);
         }
 
         if (response.data.imageUrl) {
           setImageUrl(response.data.imageUrl);
-          setShowThumbnail(true); // Auto-enable thumbnail if we got one
+          setShowThumbnail(true);
         }
 
         if (response.data.summary) {
           setSummary(response.data.summary);
-          setShowSummary(true); // Auto-enable summary if we got one
+          setShowSummary(true);
         }
       } else if (response.status === "error") {
         setFetchError(response.error || "Failed to process URL");
@@ -111,7 +108,7 @@ const ResourceNodeForm = forwardRef<
       return {
         content: content.trim(),
         metadata: {
-          ...(initialData.metadata || {}), // Keep existing metadata
+          ...(initialData.metadata || {}),
           url: url.trim(),
           imageUrl: imageUrl,
           summary: summary,
@@ -133,6 +130,7 @@ const ResourceNodeForm = forwardRef<
         >
           Resource URL
         </label>
+
         <div className="flex gap-2">
           <input
             id="resourceUrl"
@@ -143,6 +141,7 @@ const ResourceNodeForm = forwardRef<
             placeholder="Enter resource URL here..."
             disabled={isProcessingUrl}
           />
+
           <button
             type="button"
             onClick={fetchUrlMetadata}
@@ -159,6 +158,7 @@ const ResourceNodeForm = forwardRef<
             )}
           </button>
         </div>
+
         {fetchError && (
           <p className="mt-1 text-xs text-rose-400">{fetchError}</p>
         )}
@@ -172,6 +172,7 @@ const ResourceNodeForm = forwardRef<
         >
           Title
         </label>
+
         <input
           id="resourceTitle"
           type="text"
@@ -190,6 +191,7 @@ const ResourceNodeForm = forwardRef<
         >
           Description/Notes
         </label>
+
         <textarea
           id="resourceContent"
           value={content}
@@ -208,6 +210,7 @@ const ResourceNodeForm = forwardRef<
         >
           Thumbnail URL
         </label>
+
         <input
           id="thumbnailUrl"
           type="url"
@@ -216,9 +219,10 @@ const ResourceNodeForm = forwardRef<
           className="w-full rounded-md border border-zinc-700 bg-zinc-800 p-2 text-zinc-200 focus:ring-2 focus:ring-teal-500 focus:outline-none"
           placeholder="Image URL for thumbnail..."
         />
+
         {imageUrl && (
           <div className="mt-1">
-            <img
+            <Image
               src={imageUrl}
               alt="Thumbnail preview"
               className="h-20 rounded-md object-cover"
@@ -226,6 +230,8 @@ const ResourceNodeForm = forwardRef<
                 e.currentTarget.src =
                   "https://placehold.co/200x120?text=Invalid+Image";
               }}
+              height={80}
+              width={200}
             />
           </div>
         )}
@@ -239,6 +245,7 @@ const ResourceNodeForm = forwardRef<
         >
           Summary (AI-generated)
         </label>
+
         <textarea
           id="resourceSummary"
           value={summary}
@@ -259,6 +266,7 @@ const ResourceNodeForm = forwardRef<
             onChange={(e) => setShowThumbnail(e.target.checked)}
             className="h-4 w-4 rounded border-zinc-500 bg-zinc-600 text-teal-500 focus:ring-teal-500 focus:ring-offset-zinc-700"
           />
+
           <label
             htmlFor="showThumbnail"
             className="text-sm font-medium text-zinc-400"
@@ -266,6 +274,7 @@ const ResourceNodeForm = forwardRef<
             Show Thumbnail
           </label>
         </div>
+
         <div className="flex items-center gap-2">
           <input
             type="checkbox"
@@ -274,6 +283,7 @@ const ResourceNodeForm = forwardRef<
             onChange={(e) => setShowSummary(e.target.checked)}
             className="h-4 w-4 rounded border-zinc-500 bg-zinc-600 text-teal-500 focus:ring-teal-500 focus:ring-offset-zinc-700"
           />
+
           <label
             htmlFor="showSummary"
             className="text-sm font-medium text-zinc-400"

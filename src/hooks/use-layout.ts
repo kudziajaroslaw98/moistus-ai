@@ -2,7 +2,7 @@ import { NotificationType } from "@/hooks/use-notifications";
 import { EdgeData } from "@/types/edge-data";
 import { HistoryState } from "@/types/history-state";
 import { NodeData } from "@/types/node-data";
-import { Edge, Node, ReactFlowInstance, XYPosition } from "@xyflow/react"; // Import XYPosition
+import { Edge, Node, ReactFlowInstance, XYPosition } from "@xyflow/react";
 import dagre from "dagre";
 import { useCallback, useState } from "react";
 
@@ -16,7 +16,6 @@ const getLayoutedElements = (
   edges: Edge<EdgeData>[],
   direction: LayoutDirection = "TB",
 ) => {
-  // --- Dagre calculation logic remains the same ---
   g.setGraph({ rankdir: direction, nodesep: 50, ranksep: 100 });
 
   nodes.forEach((node) => {
@@ -33,10 +32,12 @@ const getLayoutedElements = (
 
   const layoutedNodes = nodes.map((node) => {
     const nodeWithPosition = g.node(node.id);
+
     if (!nodeWithPosition) {
       console.warn(`Dagre could not find node ${node.id} during layout.`);
       return node;
     }
+
     const nodeWidth = node.width || 170;
     const nodeHeight = node.height || 60;
 
@@ -46,7 +47,7 @@ const getLayoutedElements = (
         x: nodeWithPosition.x - nodeWidth / 2,
         y: nodeWithPosition.y - nodeHeight / 2,
       },
-      data: node.data, // Ensure data is preserved
+      data: node.data,
     };
   });
 
@@ -61,12 +62,12 @@ interface UseLayoutProps {
   addStateToHistory: (sourceAction?: string) => void;
   showNotification: (message: string, type: NotificationType) => void;
   currentHistoryState: HistoryState | undefined;
-  // Add saveNodePosition function from CRUD actions
+
   saveNodePosition: (nodeId: string, position: XYPosition) => Promise<void>;
 }
 
 interface UseLayoutResult {
-  applyLayout: (direction: LayoutDirection) => Promise<void>; // Make async
+  applyLayout: (direction: LayoutDirection) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -77,46 +78,38 @@ export function useLayout({
   reactFlowInstance,
   addStateToHistory,
   showNotification,
-  saveNodePosition, // Destructure saveNodePosition
+  saveNodePosition,
 }: UseLayoutProps): UseLayoutResult {
   const [isLoading, setIsLoading] = useState(false);
 
   const applyLayout = useCallback(
     async (direction: LayoutDirection): Promise<void> => {
-      // Return promise
       if (nodes.length === 0) {
         showNotification("Nothing to layout.", "error");
         return;
       }
+
       setIsLoading(true);
-      showNotification(`Applying layout (${direction})...`, "success"); // Pending notification
+      showNotification(`Applying layout (${direction})...`, "success");
 
       try {
         const { layoutedNodes } = getLayoutedElements(nodes, edges, direction);
 
-        // Update node positions locally FIRST for immediate feedback
         setNodes([...layoutedNodes]);
 
-        // ---- ADDED: Save positions to Database ----
         const savePromises = layoutedNodes.map((node) =>
           saveNodePosition(node.id, node.position),
         );
 
-        // Wait for all save operations to complete (or handle errors)
         await Promise.all(savePromises);
-        // Consider Promise.allSettled if you want to know which ones failed
 
-        // ------------------------------------------
-
-        // Add history state after local update & successful saves
         addStateToHistory("applyLayout");
 
-        // Fit view after state update and saves
         setTimeout(() => {
           reactFlowInstance.fitView({ padding: 0.1, duration: 300 });
         }, 50);
 
-        showNotification(`Layout (${direction}) applied and saved.`, "success"); // Final success
+        showNotification(`Layout (${direction}) applied and saved.`, "success");
       } catch (err: unknown) {
         console.error("Error applying or saving layout:", err);
         const message =
@@ -124,8 +117,6 @@ export function useLayout({
             ? err.message
             : "Failed to apply or save layout.";
         showNotification(message, "error");
-        // Note: Local state might be updated even if saving fails.
-        // Consider reverting local state on save error if desired.
       } finally {
         setIsLoading(false);
       }
@@ -137,7 +128,7 @@ export function useLayout({
       reactFlowInstance,
       addStateToHistory,
       showNotification,
-      saveNodePosition, // Add saveNodePosition dependency
+      saveNodePosition,
     ],
   );
 

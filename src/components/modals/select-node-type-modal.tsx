@@ -1,14 +1,16 @@
-import Modal from "./modal";
-import { nodeTypes } from "@/constants/node-types"; // Import available types
+import { nodeTypes } from "@/constants/node-types";
 import {
-  FileText, // defaultNode (text note)
-  CheckSquare, // taskNode
-  Image, // imageNode
-  HelpCircle, // questionNode
+  CheckSquare,
+  Code,
+  FileText,
+  GroupIcon,
+  HelpCircle,
+  Image,
   Link,
-  MessageSquare, // resourceNode
-} from "lucide-react"; // Import Lucide icons
-import { Button } from "./ui/button";
+  MessageSquare,
+} from "lucide-react";
+import Modal from "../modal";
+import { Button } from "../ui/button";
 
 interface SelectNodeTypeModalProps {
   isOpen: boolean;
@@ -16,18 +18,18 @@ interface SelectNodeTypeModalProps {
   onSelectType: (nodeType: string) => void;
 }
 
-// Mapping for display names and icons
-// Ensure this maps all keys in nodeTypes
 const nodeTypeDisplayInfo: Record<
   string,
   { name: string; icon: React.ElementType }
 > = {
-  defaultNode: { name: "Basic Note", icon: FileText }, // Display name for the new default
+  defaultNode: { name: "Basic Note", icon: FileText },
   taskNode: { name: "Task", icon: CheckSquare },
   imageNode: { name: "Image", icon: Image },
   questionNode: { name: "Question", icon: HelpCircle },
   resourceNode: { name: "Resource/Link", icon: Link },
-  annotationNode: { name: "Annotation", icon: MessageSquare }, // Add if annotationNode is uncommented
+  groupNode: { name: "Group", icon: GroupIcon },
+  annotationNode: { name: "Annotation", icon: MessageSquare },
+  codeNode: { name: "Code Snippet", icon: Code },
 };
 
 export default function SelectNodeTypeModal({
@@ -35,13 +37,10 @@ export default function SelectNodeTypeModal({
   onClose,
   onSelectType,
 }: SelectNodeTypeModalProps) {
-  // Filter out any types that don't have display info if necessary,
-  // but ideally nodeTypes and nodeTypeDisplayInfo should be in sync.
   const availableTypes = Object.keys(nodeTypes).filter((type) =>
     nodeTypeDisplayInfo.hasOwnProperty(type),
   );
 
-  // Sort alphabetically by display name for better UX
   availableTypes.sort((a, b) =>
     nodeTypeDisplayInfo[a].name.localeCompare(nodeTypeDisplayInfo[b].name),
   );
@@ -50,6 +49,8 @@ export default function SelectNodeTypeModal({
     <Modal isOpen={isOpen} onClose={onClose} title="Select Node Type">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         {availableTypes.map((type) => {
+          if (type === "groupNode") return null;
+
           const { name, icon: Icon } = nodeTypeDisplayInfo[type];
           return (
             <Button
@@ -60,6 +61,7 @@ export default function SelectNodeTypeModal({
             >
               <>
                 <Icon size={20} className="text-teal-400" />
+
                 <span className="text-xs">{name}</span>
               </>
             </Button>

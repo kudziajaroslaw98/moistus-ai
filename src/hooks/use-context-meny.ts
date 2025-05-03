@@ -1,15 +1,15 @@
-import { useState, useCallback } from "react";
-import { NodeMouseHandler, Node, EdgeMouseHandler, Edge } from "@xyflow/react";
-import { NodeData } from "@/types/node-data"; // Adjust path
-import { ContextMenuState } from "@/types/context-menu-state"; // Adjust path
+import { ContextMenuState } from "@/types/context-menu-state";
 import { EdgeData } from "@/types/edge-data";
+import { NodeData } from "@/types/node-data";
+import { Edge, EdgeMouseHandler, Node, NodeMouseHandler } from "@xyflow/react";
+import { useCallback, useState } from "react";
 
 interface ContextMenuHandlers {
   onNodeContextMenu: NodeMouseHandler<Node<NodeData>>;
   onPaneContextMenu: (event: React.MouseEvent) => void;
   onEdgeContextMenu: EdgeMouseHandler<Edge<EdgeData>>;
-  onPaneClick: () => void; // Handler to close menu on pane click
-  close: () => void; // Explicit close function
+  onPaneClick: () => void;
+  close: () => void;
 }
 
 interface UseContextMenuResult {
@@ -23,7 +23,7 @@ export function useContextMenu(): UseContextMenuResult {
     x: 0,
     y: 0,
     nodeId: null,
-    edgeId: null, // <-- Initialize edgeId
+    edgeId: null,
   });
 
   const onNodeContextMenu = useCallback<NodeMouseHandler<Node<NodeData>>>(
@@ -34,7 +34,7 @@ export function useContextMenu(): UseContextMenuResult {
         x: event.clientX,
         y: event.clientY,
         nodeId: node.id,
-        edgeId: null, // <-- Reset edgeId
+        edgeId: null,
       });
     },
     [],
@@ -47,8 +47,8 @@ export function useContextMenu(): UseContextMenuResult {
         visible: true,
         x: event.clientX,
         y: event.clientY,
-        nodeId: null, // <-- Reset nodeId
-        edgeId: edge.id, // <-- Set edgeId
+        nodeId: null,
+        edgeId: edge.id,
       });
     },
     [],
@@ -57,15 +57,12 @@ export function useContextMenu(): UseContextMenuResult {
   const onPaneContextMenu = useCallback(
     (event: React.MouseEvent) => {
       event.preventDefault();
-      // Don't open pane menu if clicking on a node (sometimes events overlap)
-      // Check if the click target is the pane itself or a background element
+
       const target = event.target as Element;
       if (
         target.closest(".react-flow__node") ||
         target.closest(".react-flow__edge")
       ) {
-        // Click was on a node or edge, let node/edge context menu handle it
-        // Or close existing menu if open
         if (contextMenu.visible) {
           setContextMenu({
             visible: false,
@@ -82,18 +79,17 @@ export function useContextMenu(): UseContextMenuResult {
         visible: true,
         x: event.clientX,
         y: event.clientY,
-        nodeId: null, // Indicate background click
+        nodeId: null,
         edgeId: null,
       });
     },
     [contextMenu.visible],
-  ); // Add visible state dependency
+  );
 
   const closeContextMenu = useCallback(() => {
     setContextMenu({ visible: false, x: 0, y: 0, nodeId: null, edgeId: null });
   }, []);
 
-  // Close on pane click
   const onPaneClick = useCallback(() => {
     closeContextMenu();
   }, [closeContextMenu]);

@@ -31,6 +31,7 @@ const ABezierBIcon = (props: ComponentPropsWithRef<"svg">) => {
                 }}
               />
             </g>
+
             <g transform="matrix(47.2735,0,0,-47.2735,-27.2822,1107.28)">
               <circle
                 cx="6"
@@ -43,6 +44,7 @@ const ABezierBIcon = (props: ComponentPropsWithRef<"svg">) => {
                 }}
               />
             </g>
+
             <g transform="matrix(-47.2735,0,0,47.2735,1108.75,-44.8118)">
               <path
                 d="M9.516,6C9.516,6 9.516,6 9.517,6C11.766,5.999 13.924,6.892 15.515,8.482C17.106,10.072 18,12.23 18,14.479L18,15"

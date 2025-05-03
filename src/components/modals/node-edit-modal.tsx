@@ -27,15 +27,13 @@ const formComponentMap: Record<
     >
   >
 > = {
-  defaultNode: lazy(
-    () => import("../node-forms/default-node-form"), // Assuming a DefaultNodeForm exists
-  ),
+  defaultNode: lazy(() => import("../node-forms/default-node-form")),
   taskNode: lazy(() => import("../node-forms/task-node-form")),
   imageNode: lazy(() => import("../node-forms/image-node-form")),
   questionNode: lazy(() => import("../node-forms/question-node-form")),
   resourceNode: lazy(() => import("../node-forms/resource-node-form")),
   annotationNode: lazy(() => import("../node-forms/annotation-node-form")),
-  // Add other node types and their corresponding forms here
+  codeNode: lazy(() => import("../node-forms/code-node-form")),
 };
 
 export default function NodeEditModal({
@@ -61,11 +59,12 @@ export default function NodeEditModal({
       setAiSummary(undefined);
       setExtractedConcepts(undefined);
     }
+
     if (!isOpen) {
       setAiSummary(undefined);
       setExtractedConcepts(undefined);
     }
-  }, [node, isOpen]); // Depend on node and isOpen state
+  }, [node, isOpen]);
 
   const handleSave = async () => {
     if (!node || isLoading || !formRef.current) return;
@@ -84,17 +83,17 @@ export default function NodeEditModal({
     await onSave(node.id, changes);
   };
 
-  if (!node) return null; // Don't render if no node, even if isOpen is briefly true
+  if (!node) return null;
 
   const SpecificFormComponent =
     formComponentMap[node.type || "defaultNode"] ||
-    formComponentMap["defaultNode"]; // Fallback to defaultNode form
+    formComponentMap["defaultNode"];
 
   return (
     <SidePanel
       isOpen={isOpen}
       onClose={onClose}
-      title={`Edit ${node.type || "Node"}`} // Display node type
+      title={`Edit ${node.type || "Node"}`}
       clearData={clearData}
     >
       <div className="flex h-full flex-col gap-6">
@@ -123,15 +122,20 @@ export default function NodeEditModal({
             <h3 className="text-md mb-2 font-semibold text-zinc-200">
               AI Insights
             </h3>
+
             {aiSummary && (
               <div className="mb-3 max-h-24 overflow-y-auto text-sm text-zinc-400 italic">
-                <span className="font-semibold">Summary:</span> {aiSummary}
+                <span className="font-semibold">Summary:</span>
+
+                <span>{aiSummary}</span>
               </div>
             )}
+
             {extractedConcepts && extractedConcepts.length > 0 && (
               <div className="max-h-24 overflow-y-auto text-sm text-zinc-400 italic">
-                <span className="font-semibold">Concepts:</span>{" "}
-                {extractedConcepts.join(", ")}
+                <span className="font-semibold">Concepts:</span>
+
+                <span>{extractedConcepts.join(", ")}</span>
               </div>
             )}
           </div>

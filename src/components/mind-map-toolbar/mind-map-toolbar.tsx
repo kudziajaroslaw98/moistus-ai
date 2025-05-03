@@ -1,9 +1,8 @@
 "use client";
 import { AiLoadingStates } from "@/hooks/use-ai-features";
-import Link from "next/link"; // Import Link
-import { ArrowLeft, Maximize, Redo, Undo } from "lucide-react"; // Import an icon
+import { ArrowLeft, Command, Maximize, Redo, Undo } from "lucide-react";
+import Link from "next/link";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
 
 interface MindMapToolbarProps {
   mindMapTitle: string;
@@ -20,26 +19,21 @@ interface MindMapToolbarProps {
   isLoading: boolean;
   aiLoadingStates: AiLoadingStates;
   onEnterFocusMode: () => void;
+  onCommandPaletteOpen: () => void;
 }
 
 export function MindMapToolbar({
   mindMapTitle,
-  aiPrompt,
-  setAiPrompt,
-  aiSearchQuery,
-  setAiSearchQuery,
-  onGenerateMap,
-  onAiSearch,
   onUndo,
   onRedo,
   canUndo,
   canRedo,
   isLoading,
-  aiLoadingStates,
   onEnterFocusMode,
+  onCommandPaletteOpen,
 }: MindMapToolbarProps) {
   return (
-    <div className="absolute top-2 right-2 left-2 z-10 flex flex-wrap items-center justify-between gap-4 rounded-sm bg-zinc-800 p-3 shadow-md">
+    <div className="absolute top-2 right-2 left-2 z-10 flex flex-wrap items-center justify-between gap-4 rounded-sm bg-zinc-900 p-3 shadow-md">
       {/* Left Section: Back Button, Title & Generate */}
       <div className="flex flex-wrap items-center gap-4">
         {/* Back to Dashboard Link */}
@@ -51,12 +45,12 @@ export function MindMapToolbar({
           <ArrowLeft className="h-4 w-4" />
         </Link>
 
-        <h1 className="mr-2 truncate text-lg font-semibold text-zinc-100">
+        <h1 className="mr-2 truncate text-lg font-semibold text-zinc-100 capitalize">
           {mindMapTitle}
         </h1>
 
         {/* AI Generation */}
-        <div className="flex items-center gap-2">
+        {/* <div className="flex items-center gap-2">
           <Input
             type="text"
             value={aiPrompt}
@@ -76,14 +70,14 @@ export function MindMapToolbar({
           >
             {aiLoadingStates.isGenerating ? "..." : "Generate"}
           </Button>
-        </div>
+        </div> */}
       </div>
 
       {/* Right Section: Search & History */}
       <div className="flex flex-wrap items-center gap-4">
         {/* AI Search */}
         <div className="flex items-center gap-2">
-          <Input
+          {/* <Input
             type="text"
             value={aiSearchQuery}
             onChange={(e) => setAiSearchQuery(e.target.value)}
@@ -101,7 +95,7 @@ export function MindMapToolbar({
             size="sm"
           >
             {aiLoadingStates.isSearching ? "..." : "Search"}
-          </Button>
+          </Button> */}
         </div>
 
         {/* Undo/Redo */}
@@ -126,6 +120,17 @@ export function MindMapToolbar({
             <Redo className="size-4" />
           </Button>
         </div>
+
+        <Button
+          onClick={onCommandPaletteOpen}
+          disabled={isLoading}
+          title="Command Palette"
+          aria-label="Command Palette"
+          variant="secondary"
+          size="icon"
+        >
+          <Command className="h-4 w-4" />
+        </Button>
 
         {/* Focus Mode Button */}
         <Button

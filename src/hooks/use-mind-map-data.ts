@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback } from "react"; // Import useCallback
 import { createClient } from "@/helpers/supabase/client";
 import { transformDataToReactFlow } from "@/helpers/transform-data-to-react-flow";
+import { AppEdge } from "@/types/app-edge";
+import { EdgeData } from "@/types/edge-data"; // Import EdgeData and AppEdge
 import { MindMapData } from "@/types/mind-map-data";
 import { NodeData } from "@/types/node-data";
 import { Node } from "@xyflow/react";
+import { useCallback, useEffect, useState } from "react"; // Import useCallback
 import { useNotifications } from "./use-notifications";
-import { EdgeData } from "@/types/edge-data"; // Import EdgeData and AppEdge
-import { AppEdge } from "@/types/app-edge";
 
 interface UseMindMapDataResult {
   mindMap: MindMapData | null;
@@ -56,8 +56,10 @@ export function useMindMapData(
           // Supabase code for 'Row not found'
           throw new Error("Mind map not found.");
         }
+
         throw new Error(mapError?.message || "Failed to fetch mind map.");
       }
+
       setMindMap(mapData as MindMapData); // Cast to MindMapData
 
       // --- Fetch Nodes ---

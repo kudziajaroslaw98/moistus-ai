@@ -1,10 +1,10 @@
 "use client";
 import { AiLoadingStates } from "@/hooks/use-ai-features";
 import { ContextMenuState } from "@/types/context-menu-state";
-import { EdgeData } from "@/types/edge-data"; // Import EdgeData
+import { EdgeData } from "@/types/edge-data";
 import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
-import { Edge, Node, ReactFlowInstance, XYPosition } from "@xyflow/react"; // Import Edge
+import { Edge, Node, ReactFlowInstance, XYPosition } from "@xyflow/react";
 import {
   ChevronRight,
   GitPullRequestArrow,
@@ -29,11 +29,10 @@ import AStepBIcon from "./icons/a-step-b";
 import AStrainghtBIcon from "./icons/a-straight-b";
 import { Button } from "./ui/button";
 
-// Define some predefined edge types and colors
 const edgeTypesOptions = ["smoothstep", "step", "straight", "bezier"] as const;
 type EdgeTypesType = "smoothstep" | "step" | "straight" | "bezier";
 const edgeColorOptions = [
-  { name: "Default", value: undefined }, // Use default flow color
+  { name: "Default", value: undefined },
   { name: "Grey", value: "#888" },
   { name: "Teal", value: "#14b8a6" },
   { name: "Sky", value: "#38bdf8" },
@@ -44,14 +43,14 @@ interface ContextMenuDisplayProps {
   contextMenuState: ContextMenuState;
   closeContextMenu: () => void;
   nodes: Node<NodeData>[];
-  edges: Edge<EdgeData>[]; // <-- Add edges prop
+  edges: Edge<EdgeData>[];
   addNode: (parentId: string | null, position?: XYPosition) => void;
   deleteNode: (nodeId: string) => Promise<void>;
   deleteEdge: (edgeId: string) => Promise<void>;
   saveEdgeStyle: (
     edgeId: string,
     styleChanges: Partial<EdgeData>,
-  ) => Promise<void>; // <-- Add saveEdgeStyle prop
+  ) => Promise<void>;
   aiActions: {
     summarizeNode: (nodeId: string) => void;
     summarizeBranch: (nodeId: string) => void;
@@ -64,18 +63,18 @@ interface ContextMenuDisplayProps {
   applyLayout: (direction: "TB" | "LR") => void;
   isLoading: boolean;
   reactFlowInstance: ReactFlowInstance;
-  ref?: React.RefObject<HTMLDivElement | null>; // Optional ref prop
+  ref?: React.RefObject<HTMLDivElement | null>;
 }
 
 export function ContextMenuDisplay({
   contextMenuState,
   closeContextMenu,
   nodes,
-  edges, // <-- Destructure edges
+  edges,
   addNode,
   deleteNode,
   deleteEdge,
-  saveEdgeStyle, // <-- Destructure saveEdgeStyle
+  saveEdgeStyle,
   aiActions,
   aiLoadingStates,
   applyLayout,
@@ -85,10 +84,10 @@ export function ContextMenuDisplay({
 }: ContextMenuDisplayProps) {
   if (!contextMenuState.visible) return null;
 
-  const { x, y, nodeId, edgeId } = contextMenuState; // <-- Destructure edgeId
+  const { x, y, nodeId, edgeId } = contextMenuState;
   const clickedNode = nodeId ? nodes.find((n) => n.id === nodeId) : null;
   const clickedNodeData = clickedNode?.data;
-  const clickedEdge = edgeId ? edges.find((e) => e.id === edgeId) : null; // <-- Find clicked edge
+  const clickedEdge = edgeId ? edges.find((e) => e.id === edgeId) : null;
 
   const handleActionClick = (action: () => void, disabled?: boolean) => {
     if (disabled) return;
@@ -109,12 +108,12 @@ export function ContextMenuDisplay({
     }
   };
 
-  // --- Node Menu Items ---
   const nodeMenuItems = nodeId ? (
     <>
       <span className="block w-full rounded-md px-3 py-1.5 text-xs text-zinc-500">
         Node
       </span>
+
       {/* ... existing node menu items ... */}
       <Button
         variant="ghost"
@@ -124,8 +123,10 @@ export function ContextMenuDisplay({
         className="gap-2"
       >
         <Plus className="size-4" />
+
         <span>Add Child</span>
       </Button>
+
       <Button
         variant="ghost-destructive"
         align="left"
@@ -136,7 +137,9 @@ export function ContextMenuDisplay({
         <Trash className="size-4" />
         Delete Node
       </Button>
+
       <hr className="my-1 border-zinc-700" />
+
       <Button
         variant="ghost"
         align="left"
@@ -156,10 +159,13 @@ export function ContextMenuDisplay({
         className="gap-2"
       >
         <ScanText className="size-4" />
+
         <span>Summarize Node (AI)</span>
       </Button>
+
       <Button
         variant="ghost"
+        align="left"
         disabled={isLoading || aiLoadingStates.isSummarizingBranch}
         onClick={() =>
           handleActionClick(
@@ -170,8 +176,10 @@ export function ContextMenuDisplay({
         className="gap-2"
       >
         <ScanBarcode className="size-4" />
+
         <span>Summarize Branch (AI)</span>
       </Button>
+
       <Button
         variant="ghost"
         align="left"
@@ -189,8 +197,10 @@ export function ContextMenuDisplay({
         className="gap-2"
       >
         <NotepadTextDashed className="size-4" />
+
         <span>Extract Concepts (AI)</span>
       </Button>
+
       <Button
         variant="ghost"
         align="left"
@@ -210,25 +220,25 @@ export function ContextMenuDisplay({
         className="gap-2"
       >
         <Sparkles className="size-4" />
+
         <span>Generate Content (AI)</span>
       </Button>
     </>
   ) : null;
 
-  // --- Pane Menu Items ---
   const paneMenuItems =
-    !nodeId && !edgeId ? ( // <-- Check edgeId is null too
+    !nodeId && !edgeId ? (
       <>
         <span className="block w-full rounded-md px-3 py-1.5 text-xs text-zinc-500">
           Node
         </span>
+
         <Button
           variant="ghost"
           align="left"
           disabled={isLoading}
           onClick={() =>
             handleActionClick(() => {
-              // Convert page coordinates to flow coordinates
               const flowPosition = reactFlowInstance.screenToFlowPosition({
                 x: contextMenuState.x,
                 y: contextMenuState.y,
@@ -239,12 +249,16 @@ export function ContextMenuDisplay({
           className="gap-2"
         >
           <Plus className="size-4" />
+
           <span>Add Node Here</span>
         </Button>
+
         <hr className="my-1 border-zinc-800" />
+
         <span className="block w-full rounded-md px-3 py-1.5 text-xs text-zinc-500">
           AI
         </span>
+
         <Button
           variant="ghost"
           align="left"
@@ -264,8 +278,10 @@ export function ContextMenuDisplay({
           className="gap-2"
         >
           <Network className="size-4" />
+
           <span>Suggest Connections (AI)</span>
         </Button>
+
         <Button
           variant="ghost"
           align="left"
@@ -283,12 +299,16 @@ export function ContextMenuDisplay({
           className="gap-2"
         >
           <GitPullRequestArrow className="size-4" />
+
           <span>Suggest Merges (AI)</span>
         </Button>
+
         <hr className="my-1 border-zinc-800" />
+
         <span className="block w-full rounded-md px-3 py-1.5 text-xs text-zinc-500">
           Layout
         </span>
+
         <Button
           variant="ghost"
           align="left"
@@ -297,8 +317,10 @@ export function ContextMenuDisplay({
           className="gap-2"
         >
           <LayoutPanelTop className="size-4" />
+
           <span>Layout (Top-Bottom)</span>
         </Button>
+
         <Button
           variant="ghost"
           align="left"
@@ -307,18 +329,19 @@ export function ContextMenuDisplay({
           className="gap-2"
         >
           <LayoutPanelLeft className="size-4" />
+
           <span>Layout (Left-Right)</span>
         </Button>
       </>
     ) : null;
 
-  // --- Edge Menu Items ---
   const edgeMenuItems =
     edgeId && clickedEdge ? (
       <>
         <span className="block w-full rounded-md px-3 py-1.5 text-xs text-zinc-500">
           Edge
         </span>
+
         <Button
           variant="ghost-destructive"
           align="left"
@@ -327,13 +350,16 @@ export function ContextMenuDisplay({
           className={"gap-2"}
         >
           <Trash className="size-4" />
+
           <span>Delete Edge</span>
         </Button>
 
         <hr className="my-1 border-zinc-800" />
+
         <span className="block w-full rounded-md px-3 py-1.5 text-xs text-zinc-500">
           Edge Style
         </span>
+
         {/* Simple actions */}
 
         <Button
@@ -353,6 +379,7 @@ export function ContextMenuDisplay({
           ) : (
             <Play className="size-4" />
           )}
+
           <span>
             {clickedEdge.animated ? "Stop Animation" : "Start Animation"}
           </span>
@@ -371,10 +398,13 @@ export function ContextMenuDisplay({
           <div className="flex justify-between w-full h-full items-center">
             <div className="flex items-center gap-2">
               <Shapes className="size-4" />
+
               <span>Change Type ({clickedEdge.type || "default"}) </span>
             </div>
+
             <ChevronRight className="size-4" />
           </div>
+
           <div
             className={`invisible absolute top-0 left-full z-10 ml-1 flex min-w-[120px] flex-col gap-1 rounded-sm border border-zinc-800 bg-zinc-950 p-1 opacity-0 shadow-lg transition-all delay-100 duration-150 ease-in-out group-hover:visible group-hover:opacity-100 group-hover:delay-0`}
           >
@@ -391,14 +421,16 @@ export function ContextMenuDisplay({
                     isLoading,
                   )
                 }
-                disabled={clickedEdge.type === type || isLoading} // Ensure disabled check includes isLoading
+                disabled={clickedEdge.type === type || isLoading}
               >
                 {getItemIcon(type)}
+
                 {type.charAt(0).toUpperCase() + type.slice(1)}
               </Button>
             ))}
           </div>
         </div>
+
         {/* --------------------------- */}
 
         {/* --- Change Color Submenu --- */}
@@ -414,6 +446,7 @@ export function ContextMenuDisplay({
           <div className="flex justify-between w-full h-full items-center">
             <div className="flex items-center gap-2">
               <Palette className="size-4" />
+
               <span>
                 Change Color (
                 {edgeColorOptions.find(
@@ -422,8 +455,10 @@ export function ContextMenuDisplay({
                 )
               </span>
             </div>
+
             <ChevronRight className="size-4" />
           </div>
+
           <div
             className={`invisible absolute top-0 left-full z-10 ml-1 flex min-w-[120px] flex-col gap-1 rounded-sm border border-zinc-800 bg-zinc-950 p-1 opacity-0 shadow-lg transition-all delay-100 duration-150 ease-in-out group-hover:visible group-hover:opacity-100 group-hover:delay-0`}
           >
@@ -451,17 +486,18 @@ export function ContextMenuDisplay({
                   className="mr-2 inline-block h-3 w-3 rounded-full border border-zinc-500"
                   style={{ backgroundColor: colorOpt.value || "transparent" }}
                 ></span>
+
                 {colorOpt.name}
               </Button>
             ))}
           </div>
         </div>
+
         {/* -------------------------- */}
 
         {/* ... (rest of edge menu items like delete) ... */}
       </>
     ) : null;
-  // --------------------------
 
   return (
     <div
@@ -470,7 +506,9 @@ export function ContextMenuDisplay({
       style={{ top: y, left: x }}
     >
       {nodeId && nodeMenuItems}
+
       {edgeId && edgeMenuItems}
+
       {!nodeId && !edgeId && paneMenuItems}
     </div>
   );

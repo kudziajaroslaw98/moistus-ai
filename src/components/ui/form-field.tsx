@@ -1,6 +1,6 @@
 import { cn } from "@/utils/cn";
-import { Label } from "./label";
 import { ReactNode } from "react";
+import { Label } from "./label";
 
 interface FormFieldProps {
   id: string;
@@ -20,7 +20,9 @@ export function FormField({
   return (
     <div className={cn("space-y-2", className)}>
       <Label htmlFor={id}>{label}</Label>
+
       {children}
+
       {error && <p className="mt-1 text-sm text-rose-500">{error}</p>}
     </div>
   );

@@ -3,34 +3,32 @@ import { ShowNotification } from "@/hooks/use-notifications";
 import { AiConnectionSuggestion } from "@/types/ai-connection-suggestion";
 import { EdgeData } from "@/types/edge-data";
 import { addEdge, Edge, EdgeProps, useReactFlow } from "@xyflow/react";
-import { useCallback } from "react";
+import { memo, useCallback } from "react";
 
-export default function SuggestedConnectionEdge({
+const SuggestedConnectionEdgeComponent = ({
   id,
   sourceX,
   sourceY,
   targetX,
   targetY,
   ...props
-}: EdgeProps<AiConnectionSuggestion>) {
+}: EdgeProps<AiConnectionSuggestion>) => {
   const data = props.data as EdgeData;
   const style = props.style as Edge["style"];
   const { setEdges, getNodes } = useReactFlow();
-  const reactFlowInstance = useReactFlow(); // Get instance here
+  const reactFlowInstance = useReactFlow();
   const showNotification: ShowNotification | undefined = reactFlowInstance
     .getNodes()
     .find((n) => n.id === "notification-placeholder")?.data
-    ?.showNotification as ShowNotification | undefined; // Hacky way to access showNotification
+    ?.showNotification as ShowNotification | undefined;
 
-  const edgePath = `M ${sourceX},${sourceY} C ${sourceX} ${targetY} ${targetX} ${sourceY} ${targetX},${targetY}`; // Simple bezier curve
+  const edgePath = `M ${sourceX},${sourceY} C ${sourceX} ${targetY} ${targetX} ${sourceY} ${targetX},${targetY}`;
 
   const handleAccept = useCallback(async () => {
-    // Find the source and target nodes to get their data
     const sourceNode = getNodes().find((n) => n.id === data?.sourceNodeId);
     const targetNode = getNodes().find((n) => n.id === data?.targetNodeId);
 
     if (sourceNode && targetNode) {
-      // Save the new edge permanently by updating the target node's parent_id
       const { error } = await supabaseClient
         .from("nodes")
         .update({ parent_id: sourceNode.id })
@@ -42,7 +40,6 @@ export default function SuggestedConnectionEdge({
         return;
       }
 
-      // Remove the suggested edge and add the permanent edge locally
       setEdges((eds) => eds.filter((edge) => edge.id !== id));
       setEdges((eds) =>
         addEdge(
@@ -50,14 +47,13 @@ export default function SuggestedConnectionEdge({
             id: `e${sourceNode.id}-${targetNode.id}`,
             source: sourceNode.id,
             target: targetNode.id,
-            animated: false, // Permanent edges are not animated
-            type: "smoothstep", // Match default edge type
+            animated: false,
+            type: "smoothstep",
           },
           eds,
         ),
       );
 
-      // TODO: Add state to history after accepting - need access to addStateToHistory
       showNotification?.("Connection accepted.", "success");
     } else {
       console.error(
@@ -69,12 +65,12 @@ export default function SuggestedConnectionEdge({
         "error",
       );
     }
-  }, [id, data, setEdges, getNodes, showNotification]); // Add dependencies
+  }, [id, data, setEdges, getNodes, showNotification]);
 
   const handleDismiss = useCallback(() => {
     setEdges((eds) => eds.filter((edge) => edge.id !== id));
     showNotification?.("Connection dismissed.", "success");
-  }, [id, setEdges, showNotification]); // Add dependencies
+  }, [id, setEdges, showNotification]);
 
   return (
     <>
@@ -85,6 +81,7 @@ export default function SuggestedConnectionEdge({
         d={edgePath}
         markerEnd={props.markerEnd}
       />
+
       <g
         transform={`translate(${(sourceX + targetX) / 2}, ${(sourceY + targetY) / 2})`}
       >
@@ -125,4 +122,8 @@ export default function SuggestedConnectionEdge({
       </g>
     </>
   );
-}
+};
+
+const SuggestedConnectionEdge = memo(SuggestedConnectionEdgeComponent);
+SuggestedConnectionEdge.displayName = "SuggestedConnectionEdge";
+export default SuggestedConnectionEdge;

@@ -4,9 +4,9 @@ import { NodeData } from "./node-data";
 export interface NodeEditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  clearData: () => void; // Function to clear data when modal closes
-  node: Node<NodeData> | null; // The node being edited
-  // onSave should accept node ID and partial NodeData for changes
+  clearData: () => void;
+  node: Node<NodeData> | null;
+
   onSave: (nodeId: string, changes: Partial<NodeData>) => Promise<void>;
-  isLoading: boolean; // To disable the form during save
+  isLoading: boolean;
 }

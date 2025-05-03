@@ -1,6 +1,6 @@
+import type { AiContentPromptModalProps } from "@/types/ai-content-prompt-modal-props";
 import { useState } from "react";
 import Modal from "./modal";
-import type { AiContentPromptModalProps } from "@/types/ai-content-prompt-modal-props";
 
 export default function AiContentPromptModal({
   isOpen,
@@ -12,7 +12,6 @@ export default function AiContentPromptModal({
 
   const handleGenerateClick = () => {
     onGenerate(prompt);
-    // No need to clear prompt here, parent component handles it if needed after generation
   };
 
   return (
@@ -23,6 +22,7 @@ export default function AiContentPromptModal({
           selected node. Leave blank for a general expansion based on current
           content.
         </p>
+
         <input
           type="text"
           value={prompt}
@@ -31,6 +31,7 @@ export default function AiContentPromptModal({
           className="w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 placeholder-zinc-400 shadow-sm focus:border-teal-500 focus:ring-1 focus:ring-teal-500 focus:outline-none sm:text-sm"
           disabled={isLoading}
         />
+
         <button
           onClick={handleGenerateClick}
           className="inline-flex justify-center rounded-sm border border-transparent bg-teal-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-teal-700 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none disabled:opacity-50"

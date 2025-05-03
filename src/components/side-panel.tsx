@@ -42,6 +42,7 @@ export function SidePanel({
             {/* Panel Header */}
             <div className="flex flex-shrink-0 items-center justify-between border-b border-zinc-700 p-4">
               <h2 className="text-lg font-semibold text-zinc-100">{title}</h2>
+
               <button
                 onClick={onClose}
                 className="rounded-sm p-1 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-100 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none"

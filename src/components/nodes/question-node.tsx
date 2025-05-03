@@ -3,24 +3,20 @@
 import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
 import { Handle, Node, NodeProps, NodeResizer, Position } from "@xyflow/react";
-import { Ellipsis, HelpCircle } from "lucide-react"; // Import icons
-import { useCallback } from "react";
+import { Ellipsis, HelpCircle } from "lucide-react";
+import { memo, useCallback } from "react";
 
-// Add onEditNode prop to the node props
 interface QuestionNodeProps extends NodeProps<Node<NodeData>> {
   onEditNode: (nodeId: string, nodeData: NodeData) => void;
 }
 
-// Change function signature to accept props
-export default function QuestionNode(props: QuestionNodeProps) {
+const QuestionNodeComponent = (props: QuestionNodeProps) => {
   const { id, data, selected, onEditNode } = props;
 
   const handleEllipsisClick = useCallback(() => {
-    // Trigger the modal opening via the parent prop
     onEditNode(id, data);
   }, [id, data, onEditNode]);
 
-  // Double click also opens the modal
   const handleDoubleClick = useCallback(() => {
     onEditNode(id, data);
   }, [id, data, onEditNode]);
@@ -67,16 +63,19 @@ export default function QuestionNode(props: QuestionNodeProps) {
         position={Position.Top}
         className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
       />
+
       <Handle
         type="target"
         position={Position.Right}
         className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
       />
+
       <Handle
         type="target"
         position={Position.Left}
         className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
       />
+
       <Handle
         type="source"
         position={Position.Bottom}
@@ -91,4 +90,8 @@ export default function QuestionNode(props: QuestionNodeProps) {
       />
     </div>
   );
-}
+};
+
+const QuestionNode = memo(QuestionNodeComponent);
+QuestionNode.displayName = "QuestionNode";
+export default QuestionNode;

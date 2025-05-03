@@ -7,6 +7,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const supabaseServer = await createClient();
+
   try {
     const { id: mapId } = await params;
 
@@ -40,6 +41,7 @@ export async function DELETE(
     if (deleteError) {
       console.error("Error deleting mind map:", deleteError);
       // Check if the error is due to the map not being found or not owned by the user
+
       if (deleteError.code === "PGRST116") {
         // Example code for "no rows found" or similar
         return NextResponse.json<ApiResponse<unknown>>(
@@ -52,6 +54,7 @@ export async function DELETE(
           { status: 404 },
         );
       }
+
       return NextResponse.json<ApiResponse<unknown>>(
         {
           error: "Error deleting mind map.",

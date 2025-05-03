@@ -22,11 +22,11 @@ const markerEndOptions = [
 interface EdgeEditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  clearData: () => void; // Function to clear data when modal closes
-  edge: AppEdge | null; // The edge being edited
+  clearData: () => void;
+  edge: AppEdge | null;
   onSave: (edgeId: string, changes: Partial<EdgeData>) => Promise<void>;
-  isLoading: boolean; // To disable form during save
-  nodes: Node<NodeData>[]; // Pass nodes to display node content
+  isLoading: boolean;
+  nodes: Node<NodeData>[];
 }
 
 export default function EdgeEditModal({
@@ -36,21 +36,21 @@ export default function EdgeEditModal({
   edge,
   onSave,
   isLoading,
-  nodes, // Passed but not currently used for simplicity
+  nodes,
 }: EdgeEditModalProps) {
   const [label, setLabel] = useState<string>("");
-  const [type, setType] = useState("smoothstep"); // Default to 'smoothstep'
+  const [type, setType] = useState("smoothstep");
   const [animated, setAnimated] = useState(false);
-  const [color, setColor] = useState<string | undefined>("#6c757d"); // Default color
+  const [color, setColor] = useState<string | undefined>("#6c757d");
   const [strokeWidth, setStrokeWidth] = useState<number | undefined>(undefined);
-  const [markerEnd, setMarkerEnd] = useState<string | undefined>(undefined); // State for markerEnd
+  const [markerEnd, setMarkerEnd] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (edge) {
-      setLabel((edge.label as string) || (edge.data?.label as string) || ""); // Read from edge.label or data.label
-      setType(edge.type || edge.data?.type || "smoothstep"); // Read from edge.type or data.type
-      setAnimated(edge.animated ?? edge.data?.animated ?? false); // Read from edge.animated or data.animated
-      setColor((edge.style?.stroke as string) || edge.data?.color || "#6c757d"); // Read from style.stroke or data.color
+      setLabel((edge.label as string) || (edge.data?.label as string) || "");
+      setType(edge.type || edge.data?.type || "smoothstep");
+      setAnimated(edge.animated ?? edge.data?.animated ?? false);
+      setColor((edge.style?.stroke as string) || edge.data?.color || "#6c757d");
       setStrokeWidth(
         (edge.style?.strokeWidth as number) ||
           edge.data?.strokeWidth ||
@@ -67,33 +67,34 @@ export default function EdgeEditModal({
       setAnimated(false);
       setColor("#6c757d");
       setStrokeWidth(undefined);
-      setMarkerEnd(undefined); // Reset markerEnd
+      setMarkerEnd(undefined);
     }
+
     if (!isOpen) {
       setLabel("");
       setType("smoothstep");
       setAnimated(false);
       setColor("#6c757d");
       setStrokeWidth(undefined);
-      setMarkerEnd(undefined); // Clear markerEnd
+      setMarkerEnd(undefined);
     }
-  }, [edge, isOpen]); // Depend on edge and isOpen state
+  }, [edge, isOpen]);
 
   const handleSave = async () => {
     if (!edge || isLoading) return;
     const changes: Partial<EdgeData> = {
-      label: label.trim() === "" ? undefined : label.trim(), // Save empty string as undefined/null
+      label: label.trim() === "" ? undefined : label.trim(),
       type: type,
-      animated: animated, // Save animated state
-      color: color, // Save color explicitly if mapped to DB/data
-      strokeWidth: strokeWidth, // Save stroke width explicitly
+      animated: animated,
+      color: color,
+      strokeWidth: strokeWidth,
       markerEnd: markerEnd === "none" ? undefined : markerEnd,
     };
 
     await onSave(edge.id, changes);
   };
 
-  if (!edge) return null; // Don't render if no edge, even if isOpen is briefly true
+  if (!edge) return null;
 
   const sourceNodeContent =
     nodes.find((n) => n.id === edge.source)?.data?.content || edge.source;
@@ -119,18 +120,21 @@ export default function EdgeEditModal({
     >
       <div className="flex flex-col gap-4">
         <p className="text-sm text-zinc-400">
-          From:{" "}
+          <span>From: </span>
+
           <span className="font-semibold text-zinc-200 italic">
             {getContentSnippet(sourceNodeContent)}
           </span>
         </p>
 
         <p className="text-sm text-zinc-400">
-          To:{" "}
+          <span>To: </span>
+
           <span className="font-semibold text-zinc-200 italic">
             {getContentSnippet(targetNodeContent)}
           </span>
         </p>
+
         <hr className="my-2 border-zinc-700" />
 
         <div>
@@ -197,7 +201,7 @@ export default function EdgeEditModal({
                 <Input
                   id="edgeColor"
                   type="color"
-                  value={color || "#000000"} // Provide a default color if color is undefined
+                  value={color || "#000000"}
                   onChange={(e) => setColor(e.target.value)}
                   disabled={isLoading}
                 />
@@ -213,6 +217,7 @@ export default function EdgeEditModal({
                 )}
               </div>
             </div>
+
             {/* Stroke Width Input */}
             <div className="flex flex-col gap-2">
               <Label
@@ -234,7 +239,7 @@ export default function EdgeEditModal({
                     );
                   }}
                   min="1"
-                  max="10" // Example max
+                  max="10"
                   disabled={isLoading}
                   placeholder="e.g. 2"
                 />
@@ -250,6 +255,7 @@ export default function EdgeEditModal({
                 )}
               </div>
             </div>
+
             {/* Marker End Select */}
             <div>
               <Label
@@ -261,12 +267,12 @@ export default function EdgeEditModal({
 
               <Select
                 id="markerEnd"
-                value={markerEnd || "none"} // Use 'none' if markerEnd is undefined for the select value
+                value={markerEnd || "none"}
                 onChange={(e) =>
                   setMarkerEnd(
                     e.target.value === "none" ? undefined : e.target.value,
                   )
-                } // Map 'none' back to undefined for state
+                }
                 className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
                 disabled={isLoading}
               >
@@ -286,6 +292,7 @@ export default function EdgeEditModal({
           <Button onClick={onClose} variant="outline" disabled={isLoading}>
             Cancel
           </Button>
+
           <Button onClick={handleSave} disabled={isLoading}>
             {isLoading ? "Saving..." : "Save Changes"}
           </Button>

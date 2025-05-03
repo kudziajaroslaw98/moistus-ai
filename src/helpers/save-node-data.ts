@@ -7,7 +7,6 @@ export async function saveNodeData(
 ): Promise<void> {
   const supabase = supabaseClient;
 
-  // Fetch the current node data to merge metadata
   const { data: currentNode, error: fetchError } = await supabase
     .from("nodes")
     .select("data")
@@ -19,29 +18,26 @@ export async function saveNodeData(
     throw new Error("Failed to fetch current node data for saving.");
   }
 
-  // Merge existing metadata with updated metadata
   const mergedMetadata = {
-    ...(currentNode?.data?.metadata || {}), // Existing metadata
-    ...(updatedData.metadata || {}), // New metadata from the form
+    ...(currentNode?.data?.metadata || {}),
+    ...(updatedData.metadata || {}),
   };
 
-  // Prepare the data to update
   const dataToUpdate: Partial<NodeData> = {
     updated_at: new Date().toISOString(),
   };
 
   if (updatedData.content !== undefined) {
     dataToUpdate.data = {
-      ...(currentNode?.data || {}), // Keep existing data fields
+      ...(currentNode?.data || {}),
       content: updatedData.content,
-      label: updatedData.content, // Update label for minimap
-      metadata: mergedMetadata, // Include merged metadata
+      label: updatedData.content,
+      metadata: mergedMetadata,
     };
   } else {
-    // If content is not being updated, just update metadata
     dataToUpdate.data = {
-      ...(currentNode?.data || {}), // Keep existing data fields
-      metadata: mergedMetadata, // Include merged metadata
+      ...(currentNode?.data || {}),
+      metadata: mergedMetadata,
     };
   }
 

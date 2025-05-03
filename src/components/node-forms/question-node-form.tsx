@@ -5,25 +5,20 @@ interface QuestionNodeFormProps {
   initialData: NodeData;
 }
 
-// Use forwardRef to allow the parent modal to access methods on this component
 const QuestionNodeForm = forwardRef<
   { getFormData: () => Partial<NodeData> | null },
   QuestionNodeFormProps
 >(({ initialData }, ref) => {
   const [content, setContent] = useState(initialData?.content || "");
 
-  // Sync local state if initialData changes (e.g., modal re-opened for a different node)
   useEffect(() => {
     setContent(initialData?.content || "");
   }, [initialData?.content]);
 
-  // Expose a method to get the current form data
   useImperativeHandle(ref, () => ({
     getFormData: () => {
-      // Return only the fields that can be edited by this form
       return {
         content: content.trim(),
-        // No metadata fields edited here
       };
     },
   }));
@@ -36,6 +31,7 @@ const QuestionNodeForm = forwardRef<
       >
         Question Content
       </label>
+
       <textarea
         id="questionContent"
         value={content}
@@ -48,6 +44,6 @@ const QuestionNodeForm = forwardRef<
   );
 });
 
-QuestionNodeForm.displayName = "QuestionNodeForm"; // Add display name for debugging
+QuestionNodeForm.displayName = "QuestionNodeForm";
 
 export default QuestionNodeForm;

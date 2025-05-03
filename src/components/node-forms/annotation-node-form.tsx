@@ -5,7 +5,6 @@ interface AnnotationNodeFormProps {
   initialData: NodeData;
 }
 
-// Define allowed annotation types
 const annotationTypes = ["comment", "idea", "quote", "summary"];
 type AnnotationTypes = "comment" | "idea" | "quote" | "summary";
 
@@ -14,35 +13,34 @@ const AnnotationNodeForm = forwardRef<
   AnnotationNodeFormProps
 >(({ initialData }, ref) => {
   const [content, setContent] = useState(initialData?.content || "");
-  // Add state for style properties from metadata
+
   const [fontSize, setFontSize] = useState<number | string>(
     (initialData.metadata?.fontSize as number | string) || "",
   );
   const [fontWeight, setFontWeight] = useState<string | number>(
     (initialData.metadata?.fontWeight as string | number) || "",
   );
-  // Add state for annotationType
+
   const [annotationType, setAnnotationType] = useState<AnnotationTypes>(
-    initialData.metadata?.annotationType || "comment", // Default to comment
+    initialData.metadata?.annotationType || "comment",
   );
 
-  // Sync local state if initialData changes
   useEffect(() => {
     setContent(initialData?.content || "");
     setFontSize((initialData.metadata?.fontSize as number | string) || "");
     setFontWeight((initialData.metadata?.fontWeight as string | number) || "");
     setAnnotationType(initialData.metadata?.annotationType || "comment");
-  }, [initialData]); // Depend on initialData
+  }, [initialData]);
 
   useImperativeHandle(ref, () => ({
     getFormData: () => {
       return {
         content: content.trim(),
         metadata: {
-          ...(initialData.metadata || {}), // Keep existing metadata
+          ...(initialData.metadata || {}),
           fontSize: fontSize || undefined,
           fontWeight: fontWeight || undefined,
-          annotationType: annotationType || "comment", // Save selected type, default to comment
+          annotationType: annotationType || "comment",
         },
       };
     },
@@ -57,6 +55,7 @@ const AnnotationNodeForm = forwardRef<
         >
           Annotation Content
         </label>
+
         <textarea
           id="annotationContent"
           value={content}
@@ -76,6 +75,7 @@ const AnnotationNodeForm = forwardRef<
           >
             Type
           </label>
+
           <select
             id="annotationType"
             value={annotationType}
@@ -87,7 +87,6 @@ const AnnotationNodeForm = forwardRef<
             {annotationTypes.map((type) => (
               <option key={type} value={type} className="capitalize">
                 {type.charAt(0).toUpperCase() + type.slice(1)}{" "}
-                {/* Capitalize */}
               </option>
             ))}
           </select>
@@ -101,6 +100,7 @@ const AnnotationNodeForm = forwardRef<
           >
             Font Size (px)
           </label>
+
           <input
             id="fontSize"
             type="number"
@@ -124,6 +124,7 @@ const AnnotationNodeForm = forwardRef<
           >
             Font Weight
           </label>
+
           <select
             id="fontWeight"
             value={fontWeight || ""}
@@ -131,10 +132,15 @@ const AnnotationNodeForm = forwardRef<
             className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
           >
             <option value="">Default</option>
+
             <option value="normal">Normal</option>
+
             <option value="bold">Bold</option>
+
             <option value="lighter">Lighter</option>
+
             <option value="bolder">Bolder</option>
+
             {[100, 200, 300, 400, 500, 600, 700, 800, 900].map((weight) => (
               <option key={weight} value={weight}>
                 {weight}

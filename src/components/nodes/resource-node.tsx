@@ -4,13 +4,14 @@ import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
 import { Handle, Node, NodeProps, NodeResizer, Position } from "@xyflow/react";
 import { Ellipsis, ExternalLink, Link as LinkIcon } from "lucide-react";
-import { useCallback } from "react";
+import Image from "next/image";
+import { memo, useCallback } from "react";
 
 interface ResourceNodeProps extends NodeProps<Node<NodeData>> {
   onEditNode: (nodeId: string, nodeData: NodeData) => void;
 }
 
-export default function ResourceNode(props: ResourceNodeProps) {
+const ResourceNodeComponent = (props: ResourceNodeProps) => {
   const { id, data, selected, onEditNode } = props;
 
   const resourceUrl = data.metadata?.url as string | undefined;
@@ -41,6 +42,7 @@ export default function ResourceNode(props: ResourceNodeProps) {
           <div className="flex size-6 items-center justify-center rounded-sm bg-yellow-700">
             <LinkIcon className="size-4 text-zinc-100" />
           </div>
+
           <span className="max-w-48 truncate text-sm font-medium text-zinc-300">
             {title}
           </span>
@@ -60,6 +62,7 @@ export default function ResourceNode(props: ResourceNodeProps) {
               <ExternalLink className="size-4" />
             </a>
           )}
+
           {/* Ellipsis button to open modal */}
           <button
             className="rounded-sm bg-zinc-500/20 p-1 text-sm text-zinc-400 hover:text-zinc-200"
@@ -75,7 +78,7 @@ export default function ResourceNode(props: ResourceNodeProps) {
         {/* Thumbnail if enabled and available */}
         {showThumbnail && imageUrl && (
           <div className="pointer-events-none flex w-full justify-center">
-            <img
+            <Image
               src={imageUrl}
               alt={title}
               className="nodrag max-h-32 rounded-md object-cover shadow-md"
@@ -83,6 +86,8 @@ export default function ResourceNode(props: ResourceNodeProps) {
                 e.currentTarget.src =
                   "https://placehold.co/200x120?text=Image+Error";
               }}
+              height={128}
+              width={200}
             />
           </div>
         )}
@@ -116,16 +121,19 @@ export default function ResourceNode(props: ResourceNodeProps) {
         position={Position.Top}
         className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
       />
+
       <Handle
         type="target"
         position={Position.Right}
         className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
       />
+
       <Handle
         type="target"
         position={Position.Left}
         className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
       />
+
       <Handle
         type="source"
         position={Position.Bottom}
@@ -140,4 +148,8 @@ export default function ResourceNode(props: ResourceNodeProps) {
       />
     </div>
   );
-}
+};
+
+const ResourceNode = memo(ResourceNodeComponent);
+ResourceNode.displayName = "ResourceNode";
+export default ResourceNode;
