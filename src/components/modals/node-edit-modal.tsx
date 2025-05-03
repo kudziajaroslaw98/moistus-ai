@@ -8,7 +8,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import Modal from "../modal";
+import { SidePanel } from "../side-panel";
 import { Button } from "../ui/button";
 
 interface SpecificNodeFormProps {
@@ -19,7 +19,6 @@ interface SpecificNodeFormRef {
   getFormData: () => Partial<NodeData> | null;
 }
 
-// --- Dynamic Imports for Node Forms ---
 const formComponentMap: Record<
   string,
   ComponentType<
@@ -38,11 +37,11 @@ const formComponentMap: Record<
   annotationNode: lazy(() => import("../node-forms/annotation-node-form")),
   // Add other node types and their corresponding forms here
 };
-// ----------------------------------------
 
 export default function NodeEditModal({
   isOpen,
   onClose,
+  clearData,
   node,
   onSave,
   isLoading,
@@ -85,19 +84,20 @@ export default function NodeEditModal({
     await onSave(node.id, changes);
   };
 
-  if (!isOpen || !node) return null;
+  if (!node) return null; // Don't render if no node, even if isOpen is briefly true
 
   const SpecificFormComponent =
     formComponentMap[node.type || "defaultNode"] ||
     formComponentMap["defaultNode"]; // Fallback to defaultNode form
 
   return (
-    <Modal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       title={`Edit ${node.type || "Node"}`} // Display node type
+      clearData={clearData}
     >
-      <div className="flex flex-col gap-6">
+      <div className="flex h-full flex-col gap-6">
         {/* Node ID / Info (Optional display) */}
         <p className="text-xs text-zinc-500">ID: {node.id}</p>
 
@@ -116,11 +116,10 @@ export default function NodeEditModal({
             </div>
           )}
         </Suspense>
-        {/* --------------------------------------------- */}
 
         {/* AI Data Display (Read-Only) */}
         {(aiSummary || extractedConcepts) && (
-          <div>
+          <div className="flex-shrink-0">
             <h3 className="text-md mb-2 font-semibold text-zinc-200">
               AI Insights
             </h3>
@@ -138,7 +137,7 @@ export default function NodeEditModal({
           </div>
         )}
 
-        <div className="flex justify-end gap-3">
+        <div className="mt-auto flex flex-shrink-0 justify-end gap-3 border-t border-zinc-700 pt-4">
           <Button onClick={onClose} variant="outline" disabled={isLoading}>
             Cancel
           </Button>
@@ -151,6 +150,6 @@ export default function NodeEditModal({
           </Button>
         </div>
       </div>
-    </Modal>
+    </SidePanel>
   );
 }

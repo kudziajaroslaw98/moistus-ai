@@ -276,7 +276,6 @@ export function MindMapCanvas() {
 
   const handleCloseNodeEditModal = useCallback(() => {
     setIsNodeEditModalOpen(false);
-    setNodeToEdit(null); // Clear the node being edited
   }, []);
 
   // --- Edge Edit Modal Logic ---
@@ -306,7 +305,6 @@ export function MindMapCanvas() {
 
   const handleCloseEdgeEditModal = useCallback(() => {
     setIsEdgeEditModalOpen(false);
-    setEdgeToEdit(null); // Clear the edge being edited
   }, []);
 
   // --- Event Handlers passed to ReactFlow ---
@@ -767,6 +765,7 @@ export function MindMapCanvas() {
         node={nodeToEdit} // Pass the node object
         onSave={handleSaveNodeEdit} // Pass the save handler
         isLoading={isCrudLoading} // Use CRUD loading state for saving
+        clearData={() => setNodeToEdit(null)}
       />
       {/* Generic Edge Edit Modal */}
       <EdgeEditModal
@@ -776,6 +775,7 @@ export function MindMapCanvas() {
         onSave={handleSaveEdgeEdit} // Pass the save handler
         isLoading={isCrudLoading} // Use CRUD loading state for saving
         nodes={nodes} // Pass nodes for displaying node content in edge modal
+        clearData={() => setEdgeToEdit(null)}
       />
 
       <div

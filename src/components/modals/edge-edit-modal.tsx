@@ -3,8 +3,9 @@ import { AppEdge } from "@/types/app-edge";
 import { EdgeData } from "@/types/edge-data";
 import { NodeData } from "@/types/node-data";
 import { Node } from "@xyflow/react";
+import { SquareX } from "lucide-react";
 import { useEffect, useState } from "react";
-import Modal from "../modal";
+import { SidePanel } from "../side-panel";
 import { Button } from "../ui/button";
 import { FormField } from "../ui/form-field";
 import { Input } from "../ui/input";
@@ -21,6 +22,7 @@ const markerEndOptions = [
 interface EdgeEditModalProps {
   isOpen: boolean;
   onClose: () => void;
+  clearData: () => void; // Function to clear data when modal closes
   edge: AppEdge | null; // The edge being edited
   onSave: (edgeId: string, changes: Partial<EdgeData>) => Promise<void>;
   isLoading: boolean; // To disable form during save
@@ -30,6 +32,7 @@ interface EdgeEditModalProps {
 export default function EdgeEditModal({
   isOpen,
   onClose,
+  clearData,
   edge,
   onSave,
   isLoading,
@@ -90,7 +93,7 @@ export default function EdgeEditModal({
     await onSave(edge.id, changes);
   };
 
-  if (!isOpen || !edge) return null;
+  if (!edge) return null; // Don't render if no edge, even if isOpen is briefly true
 
   const sourceNodeContent =
     nodes.find((n) => n.id === edge.source)?.data?.content || edge.source;
@@ -108,7 +111,12 @@ export default function EdgeEditModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Edit Connection`}>
+    <SidePanel
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`Edit Connection`}
+      clearData={clearData}
+    >
       <div className="flex flex-col gap-4">
         <p className="text-sm text-zinc-400">
           From:{" "}
@@ -177,7 +185,7 @@ export default function EdgeEditModal({
           </h3>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
+            <div className="flex flex-col gap-2">
               <Label
                 htmlFor="edgeColor"
                 className="block text-sm font-medium text-zinc-400"
@@ -185,26 +193,28 @@ export default function EdgeEditModal({
                 Color
               </Label>
 
-              <Input
-                id="edgeColor"
-                type="color"
-                value={color || "#000000"} // Provide a default color if color is undefined
-                onChange={(e) => setColor(e.target.value)}
-                className="mt-1 block h-8 w-full cursor-pointer rounded-sm border border-zinc-600 bg-zinc-700 px-1 py-1 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
-                disabled={isLoading}
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  id="edgeColor"
+                  type="color"
+                  value={color || "#000000"} // Provide a default color if color is undefined
+                  onChange={(e) => setColor(e.target.value)}
+                  disabled={isLoading}
+                />
 
-              {color && (
-                <Button
-                  onClick={() => setColor(undefined)}
-                  className="mt-1 text-xs text-zinc-400 underline hover:text-zinc-200"
-                >
-                  Clear
-                </Button>
-              )}
+                {color && (
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    onClick={() => setColor(undefined)}
+                  >
+                    <SquareX className="size-4" />
+                  </Button>
+                )}
+              </div>
             </div>
             {/* Stroke Width Input */}
-            <div>
+            <div className="flex flex-col gap-2">
               <Label
                 htmlFor="strokeWidth"
                 className="block text-sm font-medium text-zinc-400"
@@ -212,31 +222,33 @@ export default function EdgeEditModal({
                 Stroke Width (px)
               </Label>
 
-              <Input
-                id="strokeWidth"
-                type="number"
-                value={strokeWidth ?? ""}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value, 10);
-                  setStrokeWidth(
-                    isNaN(value) || value <= 0 ? undefined : value,
-                  );
-                }}
-                min="1"
-                max="10" // Example max
-                className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 placeholder-zinc-500 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
-                disabled={isLoading}
-                placeholder="e.g. 2"
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  id="strokeWidth"
+                  type="number"
+                  value={strokeWidth ?? ""}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value, 10);
+                    setStrokeWidth(
+                      isNaN(value) || value <= 0 ? undefined : value,
+                    );
+                  }}
+                  min="1"
+                  max="10" // Example max
+                  disabled={isLoading}
+                  placeholder="e.g. 2"
+                />
 
-              {strokeWidth !== undefined && (
-                <Button
-                  onClick={() => setStrokeWidth(undefined)}
-                  className="mt-1 text-xs text-zinc-400 underline hover:text-zinc-200"
-                >
-                  Clear
-                </Button>
-              )}
+                {strokeWidth !== undefined && (
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    onClick={() => setStrokeWidth(undefined)}
+                  >
+                    <SquareX className="size-4" />
+                  </Button>
+                )}
+              </div>
             </div>
             {/* Marker End Select */}
             <div>
@@ -268,7 +280,9 @@ export default function EdgeEditModal({
           </div>
         </div>
 
-        <div className="flex justify-end gap-3">
+        {/* Keep footer outside the scrollable area if SidePanel doesn't include one */}
+        {/* If SidePanel's children area scrolls, footer needs to be positioned separately or within */}
+        <div className="mt-auto flex flex-shrink-0 justify-end gap-3 border-t border-zinc-700 pt-4">
           <Button onClick={onClose} variant="outline" disabled={isLoading}>
             Cancel
           </Button>
@@ -277,6 +291,6 @@ export default function EdgeEditModal({
           </Button>
         </div>
       </div>
-    </Modal>
+    </SidePanel>
   );
 }
