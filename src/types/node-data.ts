@@ -21,9 +21,9 @@ export interface NodeData extends Record<string, unknown> {
   metadata?: {
     [key: string]: unknown;
 
-    isComplete?: boolean;
     dueDate?: string;
     priority?: string | number;
+    tasks?: { id: string; text: string; isComplete: boolean }[];
 
     url?: string;
     faviconUrl?: string;

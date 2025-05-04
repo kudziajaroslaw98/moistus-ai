@@ -1,11 +1,11 @@
-import { supabaseClient } from "@/helpers/supabase/client";
 import { NodeData } from "@/types/node-data";
+import { createClient } from "./supabase/client";
 
 export async function saveNodeData(
   nodeId: string,
   updatedData: Partial<NodeData>,
 ): Promise<void> {
-  const supabase = supabaseClient;
+  const supabase = createClient();
 
   const { data: currentNode, error: fetchError } = await supabase
     .from("nodes")
