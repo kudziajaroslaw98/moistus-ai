@@ -1,7 +1,11 @@
 import { useMindMapContext } from "@/contexts/mind-map/mind-map-context";
-import { AiConnectionSuggestion } from "@/types/ai-connection-suggestion";
 import { EdgeData } from "@/types/edge-data";
-import { EdgeLabelRenderer, EdgeProps, getBezierPath } from "@xyflow/react";
+import {
+  Edge,
+  EdgeLabelRenderer,
+  EdgeProps,
+  getBezierPath,
+} from "@xyflow/react";
 import { memo, useCallback } from "react";
 import { Button } from "../ui/button";
 
@@ -14,24 +18,24 @@ const SuggestedConnectionEdgeComponent = ({
   markerEnd,
   style = { stroke: "orange", strokeDasharray: "5 5", strokeWidth: 2 },
   ...props
-}: EdgeProps<AiConnectionSuggestion>) => {
-  const data = props.data as EdgeData;
+}: EdgeProps<Edge<EdgeData>>) => {
+  const data = props.data;
   const { aiActions } = useMindMapContext();
 
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
-    sourcePosition,
+    sourcePosition: props.sourcePosition,
     targetX,
     targetY,
-    targetPosition,
+    targetPosition: props.targetPosition,
   });
   const handleAccept = useCallback(async () => {
     if (data) {
       await aiActions.acceptSuggestedConnection({
-        sourceNodeId: data.sourceNodeId,
-        targetNodeId: data.targetNodeId,
-        reason: data.reason,
+        sourceNodeId: props.source,
+        targetNodeId: props.target,
+        reason: props.data?.reason ?? "",
       });
     }
   }, [aiActions, data]);

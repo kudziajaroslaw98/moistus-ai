@@ -6,8 +6,8 @@ import { useCallback, useState } from "react";
 
 interface ContextMenuHandlers {
   onNodeContextMenu: NodeMouseHandler<Node<NodeData>>;
-  onPaneContextMenu: (event: React.MouseEvent) => void;
-  onEdgeContextMenu: EdgeMouseHandler<Edge<EdgeData>>;
+  onPaneContextMenu: (event: React.MouseEvent | MouseEvent) => void;
+  onEdgeContextMenu: EdgeMouseHandler<Edge<Partial<EdgeData>>>;
   onPaneClick: () => void;
   close: () => void;
 }
@@ -40,25 +40,25 @@ export function useContextMenu(): UseContextMenuResult {
     [],
   );
 
-  const onEdgeContextMenu = useCallback<EdgeMouseHandler<Edge<EdgeData>>>(
-    (event, edge) => {
-      event.preventDefault();
-      setContextMenu({
-        visible: true,
-        x: event.clientX,
-        y: event.clientY,
-        nodeId: null,
-        edgeId: edge.id,
-      });
-    },
-    [],
-  );
+  const onEdgeContextMenu = useCallback<
+    EdgeMouseHandler<Edge<Partial<EdgeData>>>
+  >((event, edge) => {
+    event.preventDefault();
+    setContextMenu({
+      visible: true,
+      x: event.clientX,
+      y: event.clientY,
+      nodeId: null,
+      edgeId: edge.id,
+    });
+  }, []);
 
   const onPaneContextMenu = useCallback(
-    (event: React.MouseEvent) => {
+    (event: React.MouseEvent | MouseEvent) => {
       event.preventDefault();
 
       const target = event.target as Element;
+
       if (
         target.closest(".react-flow__node") ||
         target.closest(".react-flow__edge")
@@ -72,6 +72,7 @@ export function useContextMenu(): UseContextMenuResult {
             edgeId: null,
           });
         }
+
         return;
       }
 

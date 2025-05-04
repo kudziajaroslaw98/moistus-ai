@@ -40,7 +40,7 @@ const BaseNodeWrapperComponent = ({
   return (
     <div
       className={cn(
-        "relative flex h-full min-h-20 min-w-80 flex-col gap-2 rounded-lg border-2 border-zinc-900 bg-zinc-950 p-2 transition-all",
+        "relative flex h-full min-h-fit min-w-80 flex-col gap-2 rounded-lg border-2 border-zinc-900 bg-zinc-950 p-2 transition-all",
         selected && "border-sky-700",
         nodeClassName,
       )}
@@ -71,7 +71,7 @@ const BaseNodeWrapperComponent = ({
 
       <div
         className={cn(
-          "min-h-[3rem] h-full pt-2 pb-4 text-sm whitespace-pre-wrap text-zinc-300",
+          " min-h-fit h-full pt-2 pb-4 text-sm whitespace-pre-wrap text-zinc-300",
           contentClassName,
         )}
       >

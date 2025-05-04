@@ -58,7 +58,7 @@ interface UseLayoutProps {
   nodes: Node<NodeData>[];
   edges: Edge<EdgeData>[];
   setNodes: React.Dispatch<React.SetStateAction<Node<NodeData>[]>>;
-  reactFlowInstance: ReactFlowInstance;
+  reactFlowInstance: ReactFlowInstance | null;
   addStateToHistory: (sourceAction?: string) => void;
   showNotification: (message: string, type: NotificationType) => void;
   currentHistoryState: HistoryState | undefined;
@@ -106,7 +106,7 @@ export function useLayout({
         addStateToHistory("applyLayout");
 
         setTimeout(() => {
-          reactFlowInstance.fitView({ padding: 0.1, duration: 300 });
+          reactFlowInstance?.fitView({ padding: 0.1, duration: 300 });
         }, 50);
 
         showNotification(`Layout (${direction}) applied and saved.`, "success");

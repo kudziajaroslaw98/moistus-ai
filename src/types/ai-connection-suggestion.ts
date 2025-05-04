@@ -1,6 +1,4 @@
-import { Edge } from "@xyflow/react";
-
-export interface AiConnectionSuggestion extends Edge<Record<string, unknown>> {
+export interface AiConnectionSuggestion {
   sourceNodeId: string;
   targetNodeId: string;
   reason?: string;

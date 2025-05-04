@@ -2,6 +2,7 @@
 
 import { useMindMapContext } from "@/contexts/mind-map/mind-map-context";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"; // Keep shortcuts here
+import { cn } from "@/utils/cn";
 import { useMemo } from "react";
 import { CommandPaletteWrapper } from "./mind-map/command-palette-wrapper";
 import { ContextMenuWrapper } from "./mind-map/context-menu-wrapper";
@@ -26,6 +27,7 @@ export function MindMapCanvas() {
     reactFlowInstance,
     setIsNodeTypeModalOpen, // For Tab shortcut
     setNodeToAddInfo, // For Tab shortcut
+    isFocusMode,
   } = useMindMapContext();
 
   const selectedNodeId = useMemo(
@@ -67,6 +69,9 @@ export function MindMapCanvas() {
     reactFlowInstance: reactFlowInstance,
   });
 
+  const canvasHeight = isFocusMode ? "100%" : "calc(100% - 60px)";
+  const canvasMarginTop = isFocusMode ? "0px" : "60px";
+
   return (
     // Context Provider is now wrapping this component higher up
     <div className="relative h-full w-full overflow-hidden rounded-md bg-zinc-900">
@@ -83,7 +88,10 @@ export function MindMapCanvas() {
 
       {/* Position the ReactFlowArea */}
       <div
-        className={`relative h-full w-full transition-all duration-200 ease-in-out mt-[60px]`}
+        className={cn([
+          "relative w-full transition-all duration-200 ease-in-out",
+          isFocusMode ? "h-full mt-0" : "h-[calc(100%-60px)] mt-[60px]",
+        ])}
       >
         <ReactFlowArea />
       </div>

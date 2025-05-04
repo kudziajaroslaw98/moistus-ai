@@ -26,7 +26,7 @@ interface UseAiFeaturesProps {
   saveEdge: (sourceId: string, targetId: string) => Promise<AppEdge | null>;
   saveNodeContent: (nodeId: string, content: string) => Promise<void>;
   setNodes: React.Dispatch<React.SetStateAction<Node<NodeData>[]>>;
-  setEdges: React.Dispatch<React.SetStateAction<Edge<EdgeData>[]>>;
+  setEdges: React.Dispatch<React.SetStateAction<AppEdge[]>>;
   addStateToHistory: (sourceAction?: string) => void;
   showNotification: (message: string, type: NotificationType) => void;
   currentHistoryState: HistoryState | undefined;
@@ -47,7 +47,7 @@ export interface AiActions {
   setAiSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   setAiContentTargetNodeId: React.Dispatch<React.SetStateAction<string | null>>;
   acceptSuggestedConnection: (
-    suggestionData: AiConnectionSuggestion["data"],
+    suggestionData: AiConnectionSuggestion,
   ) => Promise<void>;
   dismissSuggestedConnection: (edgeId: string) => void;
 }
@@ -619,7 +619,7 @@ export function useAiFeatures({
   ]);
 
   const acceptSuggestedConnection = useCallback(
-    async (suggestionData: AiConnectionSuggestion["data"]) => {
+    async (suggestionData: AiConnectionSuggestion) => {
       if (!suggestionData?.sourceNodeId || !suggestionData?.targetNodeId) {
         showNotification("Error: Missing node IDs in suggestion.", "error");
         return;

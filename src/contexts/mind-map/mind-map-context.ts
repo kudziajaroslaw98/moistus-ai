@@ -3,13 +3,16 @@ import type { CrudActions } from "@/hooks/use-mind-map-crud";
 import type { NotificationType } from "@/hooks/use-notifications";
 import type { AiMergeSuggestion } from "@/types/ai-merge-suggestion";
 import type { AppEdge } from "@/types/app-edge";
-import type { ContextMenuState } from "@/types/context-menu-state";
+import { ContextMenuState } from "@/types/context-menu-state";
 import type { EdgeData } from "@/types/edge-data";
 import type { HistoryState } from "@/types/history-state";
+import { MindMapData } from "@/types/mind-map-data";
 import type { NodeData } from "@/types/node-data";
 import {
   Edge,
+  EdgeMouseHandler,
   Node,
+  NodeMouseHandler,
   OnEdgesChange,
   OnNodesChange,
   ReactFlowInstance,
@@ -19,6 +22,7 @@ import React, { createContext, useContext } from "react";
 
 interface MindMapContextProps {
   // State
+  mindMap: MindMapData | null;
   mapId: string | null;
   nodes: Node<NodeData>[];
   edges: AppEdge[];
@@ -28,7 +32,6 @@ interface MindMapContextProps {
   isLayoutLoading: boolean;
   aiLoadingStates: AiLoadingStates;
   notification: { message: string | null; type: NotificationType | null };
-  contextMenuState: ContextMenuState;
   canUndo: boolean;
   canRedo: boolean;
   currentHistoryState: HistoryState | undefined;
@@ -58,9 +61,9 @@ interface MindMapContextProps {
   handleRedo: () => void;
   addStateToHistory: (sourceAction?: string) => void;
   contextMenuHandlers: {
-    onNodeContextMenu: (event: React.MouseEvent, node: Node<NodeData>) => void;
-    onPaneContextMenu: (event: React.MouseEvent) => void;
-    onEdgeContextMenu: (event: React.MouseEvent, edge: AppEdge) => void;
+    onNodeContextMenu: NodeMouseHandler<Node<NodeData>>;
+    onPaneContextMenu: (event: React.MouseEvent | MouseEvent) => void;
+    onEdgeContextMenu: EdgeMouseHandler<Edge<Partial<EdgeData>>>;
     onPaneClick: () => void;
     close: () => void;
   };
@@ -85,6 +88,7 @@ interface MindMapContextProps {
   handlePaste: () => Promise<void>;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
+  contextMenuState: ContextMenuState;
 }
 
 const MindMapContext = createContext<MindMapContextProps | undefined>(

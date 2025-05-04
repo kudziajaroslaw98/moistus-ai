@@ -3,6 +3,8 @@ import {
   Background,
   BackgroundVariant,
   Controls,
+  Edge,
+  EdgeMouseHandler,
   EdgeTypes,
   Node,
   NodeTypes,
@@ -26,6 +28,7 @@ import EditableEdge from "@/components/edges/editable-edge";
 import SuggestedConnectionEdge from "@/components/edges/suggested-connection-edge";
 import { useMindMapContext } from "@/contexts/mind-map/mind-map-context";
 import { AppEdge } from "@/types/app-edge";
+import { EdgeData } from "@/types/edge-data";
 import { NodeData } from "@/types/node-data";
 
 export function ReactFlowArea() {
@@ -35,7 +38,6 @@ export function ReactFlowArea() {
     suggestedEdges,
     contextMenuHandlers,
     setReactFlowInstance,
-    elementsSelectable,
     crudActions, // Get specific actions needed like addEdge, saveEdgeProperties
     setIsNodeEditModalOpen,
     setNodeToEdit,
@@ -68,8 +70,11 @@ export function ReactFlowArea() {
     setIsNodeEditModalOpen(true);
   };
 
-  const handleEdgeDoubleClick = (event: React.MouseEvent, edge: AppEdge) => {
-    setEdgeToEdit(edge);
+  const handleEdgeDoubleClick: EdgeMouseHandler<Edge<Partial<EdgeData>>> = (
+    _event,
+    edge,
+  ) => {
+    setEdgeToEdit(edge as AppEdge);
     setIsEdgeEditModalOpen(true);
   };
 
@@ -78,7 +83,7 @@ export function ReactFlowArea() {
   const handleOpenNodeEdit = useCallback(
     (nodeId: string, nodeData: NodeData) => {
       if (nodeData) {
-        setNodeToEdit(nodeData);
+        setNodeToEdit(nodeData as unknown as Node<NodeData>);
         setIsNodeEditModalOpen(true);
       }
     },
@@ -95,7 +100,11 @@ export function ReactFlowArea() {
         <QuestionNode {...props} onEditNode={handleOpenNodeEdit} />
       ),
       taskNode: (props) => (
-        <TaskNode {...props} onEditNode={handleOpenNodeEdit} />
+        <TaskNode
+          {...props}
+          onEditNode={handleOpenNodeEdit}
+          saveNodeProperties={crudActions.saveNodeProperties}
+        />
       ),
       imageNode: (props) => (
         <ImageNode {...props} onEditNode={handleOpenNodeEdit} />
@@ -148,7 +157,6 @@ export function ReactFlowArea() {
       edgesReconnectable={true}
       nodesDraggable={true} // Or get from context if needed
       nodesConnectable={true} // Or get from context if needed
-      elementsSelectable={elementsSelectable} // Or get from context if needed
       fitView
       colorMode="dark"
       multiSelectionKeyCode={["Meta", "Control"]}

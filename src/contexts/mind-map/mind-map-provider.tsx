@@ -1,5 +1,5 @@
 import { useAiFeatures } from "@/hooks/use-ai-features";
-import { useContextMenu } from "@/hooks/use-context-meny";
+import { useContextMenu } from "@/hooks/use-context-menu";
 import { useLayout } from "@/hooks/use-layout";
 import { useMindMapCRUD } from "@/hooks/use-mind-map-crud";
 import { useMindMapData } from "@/hooks/use-mind-map-data";
@@ -115,7 +115,7 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
     currentHistoryState,
   });
 
-  const { contextMenuState, contextMenuHandlers } = useContextMenu();
+  const { contextMenuHandlers, contextMenuState } = useContextMenu();
 
   // Pass the actual reactFlowInstance once available
   const { applyLayout, isLoading: isLayoutLoading } = useLayout({
@@ -244,6 +244,7 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
 
   const handleNodesChangeWithSave: OnNodesChange = useCallback(
     (changes) => {
+      console.log("handleNodesChangeWithSave", changes);
       directNodesChangeHandler(changes);
       changes.forEach((change) => crudActions.triggerNodeSave(change));
       addStateToHistory("nodeChange");
@@ -274,7 +275,6 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
       isLayoutLoading,
       aiLoadingStates,
       notification,
-      contextMenuState,
       canUndo,
       canRedo,
       currentHistoryState,
@@ -321,6 +321,7 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
       handleCopy,
       handlePaste,
       mindMap,
+      contextMenuState,
     }),
     [
       mapId,
@@ -376,6 +377,7 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
       handleNodesChangeWithSave,
       handleEdgesChangeWithSave,
       mindMap,
+      contextMenuState,
     ],
   );
 
