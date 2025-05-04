@@ -34,7 +34,8 @@ export function withApiValidation<TBody, TResponseData>(
         );
       }
 
-      const body = await req.json();
+      const body =
+        req.method === "GET" ? {} : await req.json().catch(() => ({}));
       const validationResult = schema.safeParse(body);
 
       if (!validationResult.success) {

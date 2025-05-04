@@ -69,9 +69,6 @@ export function MindMapCanvas() {
     reactFlowInstance: reactFlowInstance,
   });
 
-  const canvasHeight = isFocusMode ? "100%" : "calc(100% - 60px)";
-  const canvasMarginTop = isFocusMode ? "0px" : "60px";
-
   return (
     // Context Provider is now wrapping this component higher up
     <div className="relative h-full w-full overflow-hidden rounded-md bg-zinc-900">
