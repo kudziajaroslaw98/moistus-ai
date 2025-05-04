@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
-import { supabaseClient } from "@/helpers/supabase/client";
+import { createClient } from "@/helpers/supabase/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -22,7 +22,7 @@ export default function SignUp() {
     setMessage(null);
     setLoading(true);
 
-    const { error: signUpError } = await supabaseClient.auth.signUp({
+    const { error: signUpError } = await createClient().auth.signUp({
       email,
       password,
       options: {},
@@ -46,6 +46,7 @@ export default function SignUp() {
         <h1 className="text-center text-2xl font-bold text-zinc-100">
           Sign Up
         </h1>
+
         <form onSubmit={handleSignUp} className="space-y-4">
           <FormField id="email" label="Email">
             <Input
@@ -71,12 +72,14 @@ export default function SignUp() {
           </FormField>
 
           {error && <p className="text-sm text-red-400">{error}</p>}
+
           {message && <p className="text-sm text-emerald-400">{message}</p>}
 
           <Button type="submit" disabled={loading} className="w-full">
             {loading ? "Signing Up..." : "Sign Up"}
           </Button>
         </form>
+
         <p className="mt-4 text-center text-sm text-zinc-400">
           Already have an account?{" "}
           <Link

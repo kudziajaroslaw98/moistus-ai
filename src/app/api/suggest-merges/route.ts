@@ -1,121 +1,131 @@
-import { createClient } from "@/helpers/supabase/server";
+import { respondError, respondSuccess } from "@/helpers/api/responses";
+import { withApiValidation } from "@/helpers/api/with-api-validation";
+import { defaultModel, parseAiJsonResponse } from "@/lib/ai/gemini";
 import { AiMergeSuggestion } from "@/types/ai-merge-suggestion";
-import { ApiResponse } from "@/types/api-response"; // <-- Import ApiResponse
-import { NextResponse } from "next/server";
 import { z } from "zod";
-
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
-  throw new Error("Missing GEMINI_API_KEY environment variable");
-}
 
 const requestBodySchema = z.object({
   mapId: z.string().uuid("Invalid map ID format"),
 });
 
-export async function POST(req: Request) {
-  const supabaseServer = await createClient();
-  try {
-    const body = await req.json();
-    const validationResult = requestBodySchema.safeParse(body);
+const aiSuggestionSchema = z.object({
+  node1Id: z.string(),
+  node2Id: z.string(),
+  reason: z.string().optional(),
+});
 
-    if (!validationResult.success) {
-      return NextResponse.json<ApiResponse<unknown>>(
-        {
-          error: validationResult.error.issues.join(", "),
-          status: "error",
-          statusNumber: 400,
-          statusText: "Invalid request body.",
-        },
-        { status: 400 },
-      );
-    }
+const aiResponseSchema = z.array(aiSuggestionSchema);
 
-    const { mapId } = validationResult.data;
+export const POST = withApiValidation(
+  requestBodySchema,
+  async (req, validatedBody, supabase) => {
+    try {
+      const { mapId } = validatedBody;
 
-    const { data: nodesData, error: fetchError } = await supabaseServer
-      .from("nodes")
-      .select("id, content")
-      .eq("map_id", mapId);
+      const { data: nodesData, error: fetchError } = await supabase
+        .from("nodes")
+        .select("id, content")
+        .eq("map_id", mapId);
 
-    if (fetchError) {
-      console.error("Error fetching nodes for merge suggestion:", fetchError);
-      return NextResponse.json<ApiResponse<unknown>>(
-        {
-          error: "Error fetching map nodes for merge suggestion.",
-          status: "error",
-          statusNumber: 500,
-          statusText: fetchError.message,
-        },
-        { status: 500 },
-      );
-    }
-
-    if (!nodesData || nodesData.length < 2) {
-      return NextResponse.json<
-        ApiResponse<{ suggestions: AiMergeSuggestion[] }>
-      >(
-        {
-          data: { suggestions: [] },
-          status: "success",
-          statusNumber: 200,
-          statusText:
-            "Not enough nodes in map to suggest merges (minimum 2 required).",
-        },
-        { status: 200 },
-      );
-    }
-
-    // --- Simplified AI Logic (as per original code) ---
-    const mergeSuggestions: AiMergeSuggestion[] = [];
-    const processedPairs = new Set<string>();
-
-    for (let i = 0; i < nodesData.length; i++) {
-      for (let j = i + 1; j < nodesData.length; j++) {
-        const node1 = nodesData[i];
-        const node2 = nodesData[j];
-
-        const content1 =
-          node1.content?.replace(/<\/?[^>]+(>|$)/g, "").trim() || "";
-        const content2 =
-          node2.content?.replace(/<\/?[^>]+(>|$)/g, "").trim() || "";
-
-        if (content1.length > 0 && content1 === content2) {
-          const pairKey = [node1.id, node2.id].sort().join("-");
-          if (!processedPairs.has(pairKey)) {
-            mergeSuggestions.push({
-              node1Id: node1.id,
-              node2Id: node2.id,
-              reason: "Identical content",
-            });
-            processedPairs.add(pairKey);
-          }
-        }
-        // TODO: Add embedding-based similarity check here
+      if (fetchError) {
+        console.error("Error fetching nodes for merge suggestion:", fetchError);
+        return respondError(
+          "Error fetching map nodes for merge suggestion.",
+          500,
+          fetchError.message,
+        );
       }
-    }
-    // --- End AI Logic ---
 
-    return NextResponse.json<ApiResponse<{ suggestions: AiMergeSuggestion[] }>>(
-      {
-        data: { suggestions: mergeSuggestions },
-        status: "success",
-        statusNumber: 200,
-        statusText: "Merge suggestions generated successfully.",
-      },
-      { status: 200 },
-    );
-  } catch (error) {
-    console.error("Error during AI merge suggestion:", error);
-    return NextResponse.json<ApiResponse<unknown>>(
-      {
-        error: "Internal server error during AI merge suggestion.",
-        status: "error",
-        statusNumber: 500,
-        statusText:
-          error instanceof Error ? error.message : "Internal Server Error",
-      },
-      { status: 500 },
-    );
-  }
-}
+      if (!nodesData || nodesData.length < 2) {
+        console.warn(
+          "Not enough nodes in map to suggest merges (minimum 2 required).",
+        );
+        return respondSuccess(
+          { suggestions: [] },
+          200,
+          "Not enough nodes in map to suggest merges (minimum 2 required).",
+        );
+      }
+
+      const nodeContentList = nodesData
+        .map((node) => `${node.id}: ${node.content || "[No Content]"}`)
+        .join("\n");
+
+      const aiPrompt = `Given the following list of mind map nodes (ID: Content), identify pairs of nodes that are semantically similar or cover overlapping topics and could potentially be merged.
+         Return the result as a JSON array of objects. Each object should have "node1Id" and "node2Id" fields, containing the IDs of the nodes to merge. Optionally include a "reason" field explaining why they might be merged.
+         Only suggest pairs where node1Id and node2Id are different.
+         Focus on semantic similarity, not just exact text matches.
+         Example format:
+         [
+           { "node1Id": "node-id-1", "node2Id": "node-id-abc", "reason": "Both discuss the core concepts of X" },
+           { "node1Id": "another-id", "node2Id": "node-id-1", "reason": "Covers similar sub-points about Y" }
+         ]
+         Ensure the output is ONLY the JSON array, nothing else.
+
+         Nodes:
+         ${nodeContentList}`;
+
+      const result = await defaultModel.generateContent(aiPrompt);
+      const response = result.response;
+      const text = response.text();
+
+      let suggestions: AiMergeSuggestion[] = [];
+
+      try {
+        const parsed = parseAiJsonResponse<AiMergeSuggestion[]>(text);
+        suggestions = aiResponseSchema.parse(parsed);
+      } catch (parseError) {
+        console.error(
+          "Failed to parse AI merge suggestions as JSON array:",
+          parseError,
+        );
+        console.error("AI Response Text:", text);
+        return respondError(
+          "Failed to parse AI merge suggestions.",
+          500,
+          parseError instanceof Error
+            ? parseError.message
+            : "AI response parsing failed.",
+        );
+      }
+
+      const validNodeIds = new Set(nodesData.map((node) => node.id));
+      const processedPairs = new Set<string>();
+      const validSuggestions = suggestions.filter((suggestion) => {
+        // Validate IDs
+        if (
+          !validNodeIds.has(suggestion.node1Id) ||
+          !validNodeIds.has(suggestion.node2Id) ||
+          suggestion.node1Id === suggestion.node2Id
+        ) {
+          return false;
+        }
+
+        // Avoid duplicate pairs (e.g., A-B and B-A)
+        const pairKey = [suggestion.node1Id, suggestion.node2Id]
+          .sort()
+          .join("-");
+
+        if (processedPairs.has(pairKey)) {
+          return false;
+        }
+
+        processedPairs.add(pairKey);
+        return true;
+      });
+
+      return respondSuccess(
+        { suggestions: validSuggestions },
+        200,
+        "Merge suggestions generated successfully.",
+      );
+    } catch (error) {
+      console.error("Error during AI merge suggestion:", error);
+      return respondError(
+        "Internal server error during AI merge suggestion.",
+        500,
+        error instanceof Error ? error.message : "Internal Server Error",
+      );
+    }
+  },
+);

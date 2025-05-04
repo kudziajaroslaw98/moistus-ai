@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
-import { supabaseClient } from "@/helpers/supabase/client";
+import { createClient } from "@/helpers/supabase/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -20,7 +20,7 @@ export default function SignIn() {
     setError(null);
     setLoading(true);
 
-    const { error } = await supabaseClient.auth.signInWithPassword({
+    const { error } = await createClient().auth.signInWithPassword({
       email,
       password,
     });
@@ -41,6 +41,7 @@ export default function SignIn() {
         <h1 className="text-center text-2xl font-bold text-zinc-100">
           Sign In
         </h1>
+
         <form onSubmit={handleSignIn} className="space-y-4">
           <FormField id="email" label="Email">
             <Input
@@ -70,6 +71,7 @@ export default function SignIn() {
             {loading ? "Signing In..." : "Sign In"}
           </Button>
         </form>
+
         <p className="mt-4 text-center text-sm text-zinc-400">
           Don&apos;t have an account?{" "}
           <Link

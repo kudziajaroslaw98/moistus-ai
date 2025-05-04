@@ -1,192 +1,242 @@
-import { createClient } from "@/helpers/supabase/server";
-import { ApiResponse } from "@/types/api-response"; // <-- Import ApiResponse
-import { NodeData } from "@/types/node-data";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { NextResponse } from "next/server";
+import { respondError, respondSuccess } from "@/helpers/api/responses";
+import { withApiValidation } from "@/helpers/api/with-api-validation";
+import generateUuid from "@/helpers/generate-uuid"; // Added for new node ID
+import { defaultModel } from "@/lib/ai/gemini";
 import { z } from "zod";
-
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
-  throw new Error("Missing GEMINI_API_KEY environment variable");
-}
-
-const genAI = new GoogleGenerativeAI(apiKey);
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
 const requestBodySchema = z.object({
   nodeId: z.string().uuid("Invalid node ID format"),
 });
 
-export async function POST(req: Request) {
-  const supabaseServer = await createClient();
-  try {
-    const body = await req.json();
-    const validationResult = requestBodySchema.safeParse(body);
+export const POST = withApiValidation(
+  requestBodySchema,
+  async (req, validatedBody, supabase) => {
+    try {
+      const { nodeId } = validatedBody;
 
-    if (!validationResult.success) {
-      return NextResponse.json<ApiResponse<unknown>>(
-        {
-          error: validationResult.error.issues.join(", "),
-          status: "error",
-          statusNumber: 400,
-          statusText: "Invalid request body.",
-        },
-        { status: 400 },
+      // Fetch the root node including position for placing the summary node
+      const { data: rootNode, error: rootFetchError } = await supabase
+        .from("nodes")
+        .select("map_id, position_x, position_y")
+        .eq("id", nodeId)
+        .single();
+
+      if (rootFetchError || !rootNode) {
+        console.error("Error fetching root node data:", rootFetchError);
+        const statusNumber = rootFetchError?.code === "PGRST116" ? 404 : 500;
+        const statusText =
+          statusNumber === 404
+            ? "Branch root node not found."
+            : "Error fetching branch root node.";
+
+        return respondError(
+          statusText,
+          statusNumber,
+          rootFetchError?.message || statusText,
+        );
+      }
+
+      // Fetch all nodes for the specific map
+      const { data: allNodesData, error: fetchError } = await supabase
+        .from("nodes")
+        .select(
+          "id, parent_id, content, node_type, map_id, source_url, metadata",
+        ) // Select node_type
+        .eq("map_id", rootNode.map_id);
+
+      if (fetchError) {
+        console.error(
+          "Error fetching nodes for branch summarization:",
+          fetchError,
+        );
+        return respondError(
+          "Error fetching map nodes for summarization.",
+          500,
+          fetchError.message,
+        );
+      }
+
+      if (!allNodesData) {
+        return respondError(
+          "Could not retrieve nodes for the map.",
+          500,
+          "Failed to retrieve map nodes.",
+        );
+      }
+
+      const branchRootNodeData = allNodesData.find(
+        (node) => node.id === nodeId,
       );
-    }
 
-    const { nodeId } = validationResult.data;
+      if (!branchRootNodeData) {
+        return respondError(
+          "Branch root node not found in map data.",
+          404,
+          "Branch root node not found in map data.",
+        );
+      }
 
-    // Fetch the map ID first to limit the node fetch
-    const { data: rootNodeMap, error: rootFetchError } = await supabaseServer
-      .from("nodes")
-      .select("map_id")
-      .eq("id", nodeId)
-      .single();
+      // Build branch content string recursively, including relevant metadata
+      const nodeMap = new Map(allNodesData.map((node) => [node.id, node]));
+      const childrenMap = new Map<string, typeof allNodesData>();
+      allNodesData.forEach((node) => {
+        if (node.parent_id) {
+          if (!childrenMap.has(node.parent_id)) {
+            childrenMap.set(node.parent_id, []);
+          }
 
-    if (rootFetchError || !rootNodeMap) {
-      console.error("Error fetching root node map ID:", rootFetchError);
-      const statusNumber = rootFetchError?.code === "PGRST116" ? 404 : 500;
-      const statusText =
-        statusNumber === 404
-          ? "Branch root node not found."
-          : "Error fetching branch root node.";
-      return NextResponse.json<ApiResponse<unknown>>(
-        {
-          error: statusText,
-          status: "error",
-          statusNumber: statusNumber,
-          statusText: rootFetchError?.message || statusText,
-        },
-        { status: statusNumber },
-      );
-    }
-
-    // Fetch all nodes for the specific map
-    const { data: allNodesData, error: fetchError } = await supabaseServer
-      .from("nodes")
-      .select("id, parent_id, content, map_id")
-      .eq("map_id", rootNodeMap.map_id);
-
-    if (fetchError) {
-      console.error(
-        "Error fetching nodes for branch summarization:",
-        fetchError,
-      );
-      return NextResponse.json<ApiResponse<unknown>>(
-        {
-          error: "Error fetching map nodes for summarization.",
-          status: "error",
-          statusNumber: 500,
-          statusText: fetchError.message,
-        },
-        { status: 500 },
-      );
-    }
-
-    if (!allNodesData) {
-      // Should not happen if root node was found, but handle defensively
-      return NextResponse.json<ApiResponse<unknown>>(
-        {
-          error: "Could not retrieve nodes for the map.",
-          status: "error",
-          statusNumber: 500,
-          statusText: "Failed to retrieve map nodes.",
-        },
-        { status: 500 },
-      );
-    }
-
-    const branchRootNode = allNodesData.find((node) => node.id === nodeId);
-    if (!branchRootNode) {
-      // Should not happen if root node fetch succeeded, but check anyway
-      return NextResponse.json<ApiResponse<unknown>>(
-        {
-          error: "Branch root node data inconsistency.",
-          status: "error",
-          statusNumber: 404, // Or 500 for inconsistency
-          statusText: "Branch root node not found in map data.",
-        },
-        { status: 404 },
-      );
-    }
-
-    // Build branch content string recursively
-    let branchContent = "";
-    const nodeMap = new Map(allNodesData.map((node) => [node.id, node]));
-    const childrenMap = new Map<
-      string,
-      Pick<NodeData, "id" | "parent_id" | "content" | "map_id">[]
-    >();
-    allNodesData.forEach((node) => {
-      if (node.parent_id) {
-        if (!childrenMap.has(node.parent_id)) {
-          childrenMap.set(node.parent_id, []);
+          childrenMap.get(node.parent_id)?.push(node);
         }
-        childrenMap.get(node.parent_id)?.push(node);
+      });
+
+      const buildContentString = (
+        currentNodeId: string,
+        depth: number,
+      ): string => {
+        const node = nodeMap.get(currentNodeId);
+        if (!node) return "";
+
+        let nodeInfo = `${"  ".repeat(depth)}Node (ID: ${node.id}, Type: ${node.node_type || "default"}): ${node.content || "[No Content]"}`;
+
+        // Append relevant metadata and source_url
+        const details = [];
+        if (node.source_url) details.push(`Source: ${node.source_url}`);
+
+        if (node.metadata) {
+          if (node.metadata.isComplete !== undefined)
+            details.push(`Completed: ${node.metadata.isComplete}`);
+          if (node.metadata.dueDate)
+            details.push(`Due: ${node.metadata.dueDate}`);
+          if (node.metadata.priority)
+            details.push(`Priority: ${node.metadata.priority}`);
+          if (node.metadata.imageUrl)
+            details.push(`Image: ${node.metadata.imageUrl}`);
+          if (node.metadata.summary)
+            details.push(`Resource Summary: ${node.metadata.summary}`);
+          if (node.metadata.answer)
+            details.push(`Answer: ${node.metadata.answer}`);
+          if (node.metadata.annotationType)
+            details.push(`Annotation Type: ${node.metadata.annotationType}`);
+        }
+
+        if (details.length > 0) {
+          nodeInfo += ` [${details.join("; ")}]`;
+        }
+
+        nodeInfo += "\n";
+
+        const children = childrenMap.get(currentNodeId) || [];
+
+        for (const child of children) {
+          nodeInfo += buildContentString(child.id, depth + 1);
+        }
+
+        return nodeInfo;
+      };
+
+      const branchContent = buildContentString(nodeId, 0);
+
+      if (!branchContent.trim()) {
+        return respondSuccess(
+          { message: "Branch has no content to summarize." },
+          200,
+          "Branch has no content to summarize.",
+        );
       }
-    });
 
-    const buildContentString = (
-      currentNodeId: string,
-      depth: number,
-    ): string => {
-      const node = nodeMap.get(currentNodeId);
-      if (!node) return "";
-
-      let content = `${"  ".repeat(depth)}Node (${node.id}): ${
-        node.content || "[No Content]"
-      }\n`;
-      const children = childrenMap.get(currentNodeId) || [];
-      for (const child of children) {
-        content += buildContentString(child.id, depth + 1);
-      }
-      return content;
-    };
-
-    branchContent = buildContentString(nodeId, 0);
-
-    if (!branchContent.trim()) {
-      return NextResponse.json<ApiResponse<{ summary: string }>>(
-        {
-          data: { summary: "Branch has no content to summarize." },
-          status: "success",
-          statusNumber: 200,
-          statusText: "Branch has no content.",
-        },
-        { status: 200 },
-      );
-    }
-
-    const aiPrompt = `Summarize the following content from a mind map branch, represented hierarchically. Focus on the key ideas and relationships presented.
+      const aiPrompt = `Summarize the following content from a mind map branch, represented hierarchically. Include key details from metadata like source URLs, completion status, image presence, etc., where relevant. Focus on the main ideas and relationships. Output only the summary text.
 
 Branch Content:
 ${branchContent}`;
 
-    const result = await model.generateContent(aiPrompt);
-    const response = result.response;
-    const summary = response.text();
+      const result = await defaultModel.generateContent(aiPrompt);
+      const response = result.response;
+      const summary = response.text().trim();
 
-    return NextResponse.json<ApiResponse<{ summary: string }>>(
-      {
-        data: { summary: summary },
-        status: "success",
-        statusNumber: 200,
-        statusText: "Branch summarized successfully.",
-      },
-      { status: 200 },
-    );
-  } catch (error) {
-    console.error("Error during AI branch summarization:", error);
-    return NextResponse.json<ApiResponse<unknown>>(
-      {
-        error: "Internal server error during AI branch summarization.",
-        status: "error",
-        statusNumber: 500,
-        statusText:
-          error instanceof Error ? error.message : "Internal Server Error",
-      },
-      { status: 500 },
-    );
-  }
-}
+      if (!summary) {
+        return respondError(
+          "AI failed to generate a summary.",
+          500,
+          "AI response was empty.",
+        );
+      }
+
+      // --- Create Annotation Node with Summary ---
+      const summaryNodeId = generateUuid();
+      const user = (await supabase.auth.getUser()).data.user; // Assume user is validated by withApiValidation
+
+      if (!user) {
+        return respondError("User not authenticated.", 401);
+      }
+
+      // Position the summary node near the branch root
+      const summaryNodePosition = {
+        x: rootNode.position_x + 50, // Offset slightly
+        y: rootNode.position_y + 150, // Place below
+      };
+
+      const { error: insertError } = await supabase.from("nodes").insert([
+        {
+          id: summaryNodeId,
+          map_id: rootNode.map_id,
+          user_id: user.id,
+          parent_id: nodeId, // Link to the summarized branch root
+          content: summary,
+          node_type: "annotationNode",
+          position_x: summaryNodePosition.x,
+          position_y: summaryNodePosition.y,
+          metadata: {
+            annotationType: "summary",
+            sourceBranchNodeId: nodeId, // Optional: Track which branch this summarizes
+          },
+        },
+      ]);
+
+      if (insertError) {
+        console.error("Error inserting summary node:", insertError);
+        return respondError(
+          "Failed to save summary node.",
+          500,
+          insertError.message,
+        );
+      }
+
+      // Also need to add an edge from root to summary node
+      const summaryEdgeId = generateUuid();
+      const { error: edgeInsertError } = await supabase.from("edges").insert([
+        {
+          id: summaryEdgeId,
+          map_id: rootNode.map_id,
+          user_id: user.id,
+          source: nodeId,
+          target: summaryNodeId,
+          type: "smoothstep", // Or your default edge type
+        },
+      ]);
+
+      if (edgeInsertError) {
+        console.warn(
+          "Warning: Summary node created, but failed to add edge:",
+          edgeInsertError,
+        );
+        // Decide if this should be an error response or just a warning
+      }
+
+      return respondSuccess(
+        {
+          message: "Branch summarized and saved successfully.",
+          summaryNodeId: summaryNodeId, // Optionally return the ID
+        },
+        201, // 201 Created
+        "Branch summarized and saved successfully.",
+      );
+    } catch (error) {
+      console.error("Error during AI branch summarization:", error);
+      return respondError(
+        "Internal server error during AI branch summarization.",
+        500,
+        error instanceof Error ? error.message : "Internal Server Error",
+      );
+    }
+  },
+);

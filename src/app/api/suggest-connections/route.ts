@@ -1,16 +1,7 @@
-import { createClient } from "@/helpers/supabase/server";
-import { ApiResponse } from "@/types/api-response"; // <-- Import ApiResponse
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { NextResponse } from "next/server";
+import { respondError, respondSuccess } from "@/helpers/api/responses";
+import { withApiValidation } from "@/helpers/api/with-api-validation";
+import { defaultModel, parseAiJsonResponse } from "@/lib/ai/gemini";
 import { z } from "zod";
-
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
-  throw new Error("Missing GEMINI_API_KEY environment variable");
-}
-
-const genAI = new GoogleGenerativeAI(apiKey);
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
 const requestBodySchema = z.object({
   mapId: z.string().uuid("Invalid map ID format"),
@@ -26,69 +17,46 @@ const aiResponseSchema = z.array(aiConnectionSuggestionSchema);
 
 type ConnectionSuggestion = z.infer<typeof aiConnectionSuggestionSchema>;
 
-interface SuggestConnectionsData {
-  suggestions: ConnectionSuggestion[];
-}
+export const POST = withApiValidation(
+  requestBodySchema,
+  async (req, validatedBody, supabase) => {
+    try {
+      const { mapId } = validatedBody;
 
-export async function POST(req: Request) {
-  const supabaseServer = await createClient();
-  try {
-    const body = await req.json();
-    const validationResult = requestBodySchema.safeParse(body);
+      const { data: nodesData, error: fetchError } = await supabase
+        .from("nodes")
+        .select("id, content")
+        .eq("map_id", mapId);
 
-    if (!validationResult.success) {
-      return NextResponse.json<ApiResponse<unknown>>(
-        {
-          error: validationResult.error.issues.join(", "),
-          status: "error",
-          statusNumber: 400,
-          statusText: "Invalid request body.",
-        },
-        { status: 400 },
-      );
-    }
+      if (fetchError) {
+        console.error(
+          "Error fetching nodes for connection suggestion:",
+          fetchError,
+        );
+        return respondError(
+          "Error fetching map nodes for connection suggestion.",
+          500,
+          fetchError.message,
+        );
+      }
 
-    const { mapId } = validationResult.data;
+      if (!nodesData || nodesData.length < 2) {
+        console.warn(
+          "Not enough nodes in map to suggest connections:",
+          nodesData,
+        );
+        return respondSuccess(
+          { suggestions: [] },
+          200,
+          "Not enough nodes in map to suggest connections (minimum 2 required).",
+        );
+      }
 
-    const { data: nodesData, error: fetchError } = await supabaseServer
-      .from("nodes")
-      .select("id, content")
-      .eq("map_id", mapId);
+      const nodeContentList = nodesData
+        .map((node) => `${node.id}: ${node.content}`)
+        .join("\n");
 
-    if (fetchError) {
-      console.error(
-        "Error fetching nodes for connection suggestion:",
-        fetchError,
-      );
-      return NextResponse.json<ApiResponse<unknown>>(
-        {
-          error: "Error fetching map nodes for connection suggestion.",
-          status: "error",
-          statusNumber: 500,
-          statusText: fetchError.message,
-        },
-        { status: 500 },
-      );
-    }
-
-    if (!nodesData || nodesData.length < 2) {
-      return NextResponse.json<ApiResponse<SuggestConnectionsData>>(
-        {
-          data: { suggestions: [] },
-          status: "success",
-          statusNumber: 200,
-          statusText:
-            "Not enough nodes in map to suggest connections (minimum 2 required).",
-        },
-        { status: 200 },
-      );
-    }
-
-    const nodeContentList = nodesData
-      .map((node) => `${node.id}: ${node.content}`)
-      .join("\n");
-
-    const aiPrompt = `Given the following list of mind map nodes (ID: Content), identify potential conceptual connections between pairs of nodes.
+      const aiPrompt = `Given the following list of mind map nodes (ID: Content), identify potential conceptual connections between pairs of nodes.
     Suggest connections that represent relationships like "related to", "leads to", "is an example of", etc.
     Return the result as a JSON array of objects. Each object should have "sourceNodeId" and "targetNodeId" fields, containing the IDs of the nodes to connect. Optionally include a "reason" field explaining the connection.
     Only suggest connections between nodes that are NOT already directly connected (i.e., targetNodeId's parent_id is not sourceNodeId). You don't have the parent information, so focus on conceptual similarity or logical flow based on content.
@@ -102,67 +70,52 @@ export async function POST(req: Request) {
     Nodes:
     ${nodeContentList}`;
 
-    const result = await model.generateContent(aiPrompt);
-    const response = result.response;
-    const text = response.text();
+      const result = await defaultModel.generateContent(aiPrompt);
+      const response = result.response;
+      const text = response.text();
 
-    let suggestions: ConnectionSuggestion[] = [];
-    try {
-      const jsonString = text
-        .replace(/^```json\n/, "")
-        .replace(/\n```$/, "")
-        .trim();
-      const parsed = JSON.parse(jsonString);
-      suggestions = aiResponseSchema.parse(parsed);
-    } catch (parseError) {
-      console.error(
-        "Failed to parse AI connection suggestions as JSON array:",
-        parseError,
+      let suggestions: ConnectionSuggestion[] = [];
+
+      try {
+        const parsed = parseAiJsonResponse<ConnectionSuggestion[]>(text);
+        suggestions = aiResponseSchema.parse(parsed);
+      } catch (parseError) {
+        console.error(
+          "Failed to parse AI connection suggestions as JSON array:",
+          parseError,
+        );
+        console.error("AI Response Text:", text);
+        // Consider if this should be an error response or just empty suggestions
+
+        return respondError(
+          "Failed to parse AI connection suggestions.",
+          500,
+          parseError instanceof Error
+            ? parseError.message
+            : "AI response parsing failed.",
+        );
+      }
+
+      const validNodeIds = new Set(nodesData.map((node) => node.id));
+      const validSuggestions = suggestions.filter(
+        (suggestion) =>
+          validNodeIds.has(suggestion.sourceNodeId) &&
+          validNodeIds.has(suggestion.targetNodeId) &&
+          suggestion.sourceNodeId !== suggestion.targetNodeId,
       );
-      console.error("AI Response Text:", text);
-      // Consider if this should be an error response or just empty suggestions
-      return NextResponse.json<ApiResponse<unknown>>(
-        {
-          error: "Failed to parse AI connection suggestions.",
-          status: "error",
-          statusNumber: 500,
-          statusText:
-            parseError instanceof Error
-              ? parseError.message
-              : "AI response parsing failed.",
-        },
-        { status: 500 },
+
+      return respondSuccess(
+        { suggestions: validSuggestions },
+        200,
+        "Connection suggestions generated successfully.",
+      );
+    } catch (error) {
+      console.error("Error during AI connection suggestion:", error);
+      return respondError(
+        "Internal server error during AI connection suggestion.",
+        500,
+        error instanceof Error ? error.message : "Internal Server Error",
       );
     }
-
-    const validNodeIds = new Set(nodesData.map((node) => node.id));
-    const validSuggestions = suggestions.filter(
-      (suggestion) =>
-        validNodeIds.has(suggestion.sourceNodeId) &&
-        validNodeIds.has(suggestion.targetNodeId) &&
-        suggestion.sourceNodeId !== suggestion.targetNodeId,
-    );
-
-    return NextResponse.json<ApiResponse<SuggestConnectionsData>>(
-      {
-        data: { suggestions: validSuggestions },
-        status: "success",
-        statusNumber: 200,
-        statusText: "Connection suggestions generated successfully.",
-      },
-      { status: 200 },
-    );
-  } catch (error) {
-    console.error("Error during AI connection suggestion:", error);
-    return NextResponse.json<ApiResponse<unknown>>(
-      {
-        error: "Internal server error during AI connection suggestion.",
-        status: "error",
-        statusNumber: 500,
-        statusText:
-          error instanceof Error ? error.message : "Internal Server Error",
-      },
-      { status: 500 },
-    );
-  }
-}
+  },
+);
