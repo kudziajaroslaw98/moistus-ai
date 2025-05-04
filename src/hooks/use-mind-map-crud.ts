@@ -1,7 +1,7 @@
 import { nodeTypes } from "@/constants/node-types";
 import { deleteNodeById } from "@/helpers/delete-node-and-descendants";
+import generateUuid from "@/helpers/generate-uuid";
 import { createClient } from "@/helpers/supabase/client";
-import uuid from "@/helpers/uuid";
 import { NotificationType } from "@/hooks/use-notifications";
 import { AppEdge } from "@/types/app-edge";
 import { EdgeData } from "@/types/edge-data";
@@ -180,7 +180,7 @@ export function useMindMapCRUD({
           }
         }
 
-        const newNodeId = uuid();
+        const newNodeId = generateUuid();
         const user = await supabase.auth.getUser();
         if (!user.data.user) throw new Error("User not authenticated.");
 
@@ -244,7 +244,7 @@ export function useMindMapCRUD({
         };
 
         if (parentNodeId) {
-          const newEdgeId = uuid();
+          const newEdgeId = generateUuid();
           const defaultEdgeProps =
             getDefaultEdgePropertiesForType("editableEdge");
           const user_id = (await supabase.auth.getUser()).data.user?.id;
@@ -428,7 +428,7 @@ export function useMindMapCRUD({
       }
 
       setIsLoading(true);
-      const groupNodeId = uuid();
+      const groupNodeId = generateUuid();
       const user = await supabase.auth.getUser();
 
       if (!user.data.user) {
@@ -756,7 +756,7 @@ export function useMindMapCRUD({
       let newReactFlowEdge: AppEdge | null = null;
 
       try {
-        const newEdgeId = uuid();
+        const newEdgeId = generateUuid();
 
         const defaultEdgeProps = getDefaultEdgePropertiesForType(
           initialData.type,

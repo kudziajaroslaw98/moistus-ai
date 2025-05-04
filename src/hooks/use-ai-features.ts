@@ -1,4 +1,4 @@
-import uuid from "@/helpers/uuid";
+import generateUuid from "@/helpers/generate-uuid";
 import useFetch from "@/hooks/use-fetch";
 import { NotificationType } from "@/hooks/use-notifications";
 import { AiConnectionSuggestion } from "@/types/ai-connection-suggestion";
@@ -540,7 +540,7 @@ export function useAiFeatures({
       if (suggestions && suggestions.length > 0) {
         const suggestedReactFlowEdges: Edge<Partial<EdgeData>>[] =
           suggestions.map((suggestion) => ({
-            id: `suggested-${uuid()}`,
+            id: `suggested-${generateUuid()}`,
             source: suggestion.sourceNodeId,
             target: suggestion.targetNodeId,
             type: "suggestedConnection",
