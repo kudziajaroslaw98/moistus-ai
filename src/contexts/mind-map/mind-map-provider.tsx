@@ -332,7 +332,6 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
       isLayoutLoading,
       aiLoadingStates,
       notification,
-      contextMenuState,
       canUndo,
       canRedo,
       currentHistoryState,

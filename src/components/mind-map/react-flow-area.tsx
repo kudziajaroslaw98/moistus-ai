@@ -10,7 +10,7 @@ import {
   SelectionMode,
   useReactFlow,
 } from "@xyflow/react";
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 // Import specific node/edge components only if needed here, otherwise rely on types
 import AnnotationNode from "@/components/nodes/annotation-node";
 import CodeNode from "@/components/nodes/code-node";
@@ -75,14 +75,15 @@ export function ReactFlowArea() {
 
   // You might need specific logic from the original onEditNode callback here
   // For now, this basic implementation opens the modal.
-  const handleOpenNodeEdit = (nodeId: string, nodeData: NodeData) => {
-    const node = nodes.find((n) => n.id === nodeId);
-
-    if (node) {
-      setNodeToEdit(node);
-      setIsNodeEditModalOpen(true);
-    }
-  };
+  const handleOpenNodeEdit = useCallback(
+    (nodeId: string, nodeData: NodeData) => {
+      if (nodeData) {
+        setNodeToEdit(nodeData);
+        setIsNodeEditModalOpen(true);
+      }
+    },
+    [setNodeToEdit, setIsNodeEditModalOpen],
+  );
 
   // Define nodeTypesWithProps inside the component or memoize if needed
   const nodeTypesWithProps: NodeTypes = useMemo(

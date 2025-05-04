@@ -4,7 +4,7 @@ import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
 import { Handle, Node, NodeProps, NodeResizer, Position } from "@xyflow/react";
 import { Ellipsis, Image as ImageIcon } from "lucide-react";
-import { memo, useCallback } from "react";
+import { memo, useCallback, type MouseEvent } from "react";
 
 interface ImageNodeProps extends NodeProps<Node<NodeData>> {
   onEditNode: (nodeId: string, nodeData: NodeData) => void;
@@ -16,13 +16,19 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
   const imageUrl = data.metadata?.image_url as string | undefined;
   const showCaption = Boolean(data.metadata?.showCaption);
 
-  const handleEllipsisClick = useCallback(() => {
-    onEditNode(id, data);
-  }, [id, data, onEditNode]);
+  const handleEllipsisClick = useCallback(
+    (e: MouseEvent) => {
+      onEditNode(id, data);
+    },
+    [id, data, onEditNode],
+  );
 
-  const handleDoubleClick = useCallback(() => {
-    onEditNode(id, data);
-  }, [id, data, onEditNode]);
+  const handleDoubleClick = useCallback(
+    (e: MouseEvent) => {
+      onEditNode(id, data);
+    },
+    [id, data, onEditNode],
+  );
 
   return (
     <div

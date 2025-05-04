@@ -18,7 +18,7 @@ export function ContextMenuWrapper() {
     isLoading,
     reactFlowInstance,
     setIsAiContentModalOpen,
-    aiActions: { setAiContentTargetNodeId }, // Destructure specific action
+    aiActions: { setAiContentTargetNodeId },
     setIsNodeTypeModalOpen,
     setNodeToAddInfo,
   } = useMindMapContext();
@@ -41,11 +41,10 @@ export function ContextMenuWrapper() {
       closeContextMenu={contextMenuHandlers.close}
       nodes={nodes}
       edges={edges}
-      // Pass specific actions from crudActions
-      addNode={handleOpenNodeTypeModal} // Use wrapper to set info and open modal
+      addNode={handleOpenNodeTypeModal}
       deleteNode={crudActions.deleteNode}
       deleteEdge={crudActions.deleteEdge}
-      saveEdgeStyle={crudActions.saveEdgeProperties} // Assuming this covers style saving
+      saveEdgeStyle={crudActions.saveEdgeProperties}
       aiActions={{
         summarizeNode: aiActions.summarizeNode,
         summarizeBranch: aiActions.summarizeBranch,
@@ -60,7 +59,7 @@ export function ContextMenuWrapper() {
       aiLoadingStates={aiLoadingStates}
       applyLayout={applyLayout}
       isLoading={isLoading}
-      reactFlowInstance={reactFlowInstance!} // Assuming it's available when menu is open
+      reactFlowInstance={reactFlowInstance!}
     />
   );
 }
