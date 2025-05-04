@@ -46,6 +46,10 @@ export interface AiActions {
   setAiPrompt: React.Dispatch<React.SetStateAction<string>>;
   setAiSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   setAiContentTargetNodeId: React.Dispatch<React.SetStateAction<string | null>>;
+  acceptSuggestedConnection: (
+    suggestionData: AiConnectionSuggestion["data"],
+  ) => Promise<void>;
+  dismissSuggestedConnection: (edgeId: string) => void;
 }
 
 export interface AiLoadingStates {
@@ -614,6 +618,56 @@ export function useAiFeatures({
     showNotification,
   ]);
 
+  const acceptSuggestedConnection = useCallback(
+    async (suggestionData: AiConnectionSuggestion["data"]) => {
+      if (!suggestionData?.sourceNodeId || !suggestionData?.targetNodeId) {
+        showNotification("Error: Missing node IDs in suggestion.", "error");
+        return;
+      }
+
+      const { sourceNodeId, targetNodeId } = suggestionData;
+
+      // Optimistically remove suggested edge
+      setSuggestedEdges((eds) =>
+        eds.filter(
+          (edge) =>
+            !(
+              edge.source === sourceNodeId &&
+              edge.target === targetNodeId &&
+              edge.type === "suggestedConnection"
+            ),
+        ),
+      );
+
+      try {
+        // Add the permanent edge using existing CRUD action
+        const addedEdge = await saveEdge(sourceNodeId, targetNodeId);
+
+        if (addedEdge) {
+          showNotification("Connection accepted and saved.", "success");
+          addStateToHistory("acceptSuggestedConnection"); // Add history state if needed
+        } else {
+          showNotification("Failed to save accepted connection.", "error");
+        }
+      } catch (error) {
+        console.error("Error accepting suggested connection:", error);
+        showNotification(
+          "An error occurred while accepting the connection.",
+          "error",
+        );
+      }
+    },
+    [saveEdge, showNotification, setSuggestedEdges, addStateToHistory],
+  );
+
+  const dismissSuggestedConnection = useCallback(
+    (edgeId: string) => {
+      setSuggestedEdges((eds) => eds.filter((edge) => edge.id !== edgeId));
+      showNotification("Connection suggestion dismissed.", "success");
+    },
+    [setSuggestedEdges, showNotification],
+  );
+
   const acceptMerge = useCallback(
     async (suggestion: AiMergeSuggestion) => {
       setLoading("isAcceptingMerge", true);
@@ -743,6 +797,8 @@ export function useAiFeatures({
       setAiPrompt,
       setAiSearchQuery,
       setAiContentTargetNodeId,
+      acceptSuggestedConnection,
+      dismissSuggestedConnection,
     },
     aiLoadingStates: loadingStates,
     suggestedEdges,

@@ -1,5 +1,5 @@
 import { nodeTypes } from "@/constants/node-types";
-import { deleteNodeAndDescendants } from "@/helpers/delete-node-and-descendants";
+import { deleteNodeById } from "@/helpers/delete-node-and-descendants";
 import { createClient } from "@/helpers/supabase/client";
 import uuid from "@/helpers/uuid";
 import { NotificationType } from "@/hooks/use-notifications";
@@ -13,8 +13,6 @@ import {
   getNodesBounds,
   Node,
   NodeChange,
-  NodeDimensionChange,
-  NodePositionChange,
   XYPosition,
 } from "@xyflow/react";
 import { useCallback, useRef, useState } from "react";
@@ -29,7 +27,7 @@ interface UseMindMapCRUDProps {
   showNotification: (message: string, type: NotificationType) => void;
 }
 
-interface CrudActions {
+export interface CrudActions {
   addNode: (
     parentNodeId?: string | null,
     content?: string,
@@ -40,7 +38,8 @@ interface CrudActions {
   deleteNode: (nodeId: string) => Promise<void>;
   saveNodePosition: (nodeId: string, position: XYPosition) => Promise<void>;
   saveNodeContent: (nodeId: string, content: string) => Promise<void>;
-
+  triggerNodeSave: (change: NodeChange) => void;
+  triggerEdgeSave: (change: EdgeChange) => void;
   saveNodeDimensions: (
     nodeId: string,
     dimensions: { width: number; height: number },
@@ -62,15 +61,6 @@ interface CrudActions {
     edgeId: string,
     changes: Partial<EdgeData>,
   ) => Promise<void>;
-  handleNodeChanges: (
-    changes: NodeChange[],
-    currentNodes: Node<NodeData>[],
-  ) => void;
-  handleEdgeChanges: (
-    changes: EdgeChange[],
-    currentEdges: AppEdge[],
-    currentNodes: Node<NodeData>[],
-  ) => void;
   groupNodes: (nodeIds: string[]) => Promise<void>;
 }
 
@@ -374,7 +364,7 @@ export function useMindMapCRUD({
       setIsLoading(true);
 
       try {
-        await deleteNodeAndDescendants(nodeId, supabase as SupabaseClient);
+        await deleteNodeById(nodeId, supabase as SupabaseClient);
 
         setNodes((nds) => nds.filter((node) => node.id !== nodeId));
         setEdges((eds) =>
@@ -995,57 +985,52 @@ export function useMindMapCRUD({
     [supabase, setEdges, addStateToHistory, showNotification],
   );
 
-  const handleNodeChanges = useCallback(
-    (changes: NodeChange[]) => {
-      changes.forEach((change) => {
-        switch (change.type) {
-          case "position": {
-            const positionChange = change as NodePositionChange;
-
-            if (positionChange.dragging === false && positionChange.position) {
-              debounceSave(
-                positionChange.id,
-                "position",
-                saveNodePosition,
-                positionChange.id,
-                positionChange.position,
-              );
-            }
-
-            break;
+  const triggerNodeSave = useCallback(
+    (change: NodeChange) => {
+      switch (change.type) {
+        case "position": {
+          // Only save when dragging stops
+          if (change.dragging === false && change.position) {
+            debounceSave(
+              change.id,
+              "position",
+              saveNodePosition,
+              change.id,
+              change.position,
+            );
           }
 
-          case "dimensions": {
-            const dimensionChange = change as NodeDimensionChange;
-
-            if (
-              dimensionChange.dimensions &&
-              dimensionChange.resizing === false
-            ) {
-              debounceSave(
-                dimensionChange.id,
-                "dimensions",
-                saveNodeDimensions,
-                dimensionChange.id,
-                dimensionChange.dimensions,
-              );
-            }
-
-            break;
-          }
+          break;
         }
-      });
+
+        case "dimensions": {
+          // Only save when resizing stops
+          if (change.dimensions && change.resizing === false) {
+            debounceSave(
+              change.id,
+              "dimensions",
+              saveNodeDimensions,
+              change.id,
+              change.dimensions,
+            );
+          }
+
+          break;
+        }
+        // Handle other change types if they need saving (e.g., selection, removal handled separately)
+      }
     },
     [debounceSave, saveNodePosition, saveNodeDimensions],
   );
 
-  const handleEdgeChanges = useCallback(
-    (changes: EdgeChange[]) => {
-      changes.forEach((change) => {
-        if (change.type === "remove") {
-          deleteEdge(change.id);
-        }
-      });
+  const triggerEdgeSave = useCallback(
+    (change: EdgeChange) => {
+      // Handle edge saves if needed, e.g., maybe type changes or label edits done directly
+      // Removal is handled by deleteEdge
+      if (change.type === "remove") {
+        deleteEdge(change.id); // Keep delete logic if needed here or triggered elsewhere
+      }
+      // Add other edge change saves if applicable
     },
     [deleteEdge],
   );
@@ -1059,11 +1044,11 @@ export function useMindMapCRUD({
       saveNodeDimensions,
       saveNodeProperties,
       addEdge,
+      triggerEdgeSave,
+      triggerNodeSave,
 
       deleteEdge,
       saveEdgeProperties,
-      handleNodeChanges,
-      handleEdgeChanges,
       groupNodes,
     },
     isLoading,

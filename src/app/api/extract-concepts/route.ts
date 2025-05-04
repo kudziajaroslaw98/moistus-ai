@@ -1,28 +1,17 @@
+import { respondError, respondSuccess } from "@/helpers/api/responses";
 import { createClient } from "@/helpers/supabase/server";
-import { ApiResponse } from "@/types/api-response"; // <-- Import ApiResponse
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { defaultModel, parseAiJsonResponse } from "@/lib/ai/gemini";
+import { ApiResponse } from "@/types/api-response";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
-  // Throwing an error during startup is acceptable here
-  throw new Error("Missing GEMINI_API_KEY environment variable");
-}
-
-const genAI = new GoogleGenerativeAI(apiKey);
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
 const requestBodySchema = z.object({
   nodeId: z.string().uuid("Invalid node ID format"),
 });
 
-interface ExtractConceptsData {
-  concepts: string[];
-}
-
 export async function POST(req: Request) {
   const supabaseServer = await createClient();
+
   try {
     const body = await req.json();
     const validationResult = requestBodySchema.safeParse(body);
@@ -54,29 +43,16 @@ export async function POST(req: Request) {
         statusNumber === 404
           ? "Node not found."
           : "Error fetching node content.";
-      return NextResponse.json<ApiResponse<unknown>>(
-        {
-          error: statusText,
-          status: "error",
-          statusNumber: statusNumber,
-          statusText: fetchError?.message || statusText,
-        },
-        { status: statusNumber },
-      );
+      return respondError(statusText, 404, fetchError?.message || statusText);
     }
 
     const contentToAnalyze = nodeData.content;
 
     if (!contentToAnalyze || contentToAnalyze.trim().length === 0) {
-      // Still a success, but with a specific message
-      return NextResponse.json<ApiResponse<ExtractConceptsData>>(
-        {
-          data: { concepts: ["Node has no content to analyze."] },
-          status: "success",
-          statusNumber: 200,
-          statusText: "Node has no content.",
-        },
-        { status: 200 },
+      return respondSuccess(
+        { concepts: ["Node has no content to analyze."] },
+        200,
+        "Node has no content to analyze.",
       );
     }
 
@@ -85,55 +61,35 @@ export async function POST(req: Request) {
     Example format: ["Concept 1", "Concept 2", "Concept 3"]
     Ensure the output is ONLY the JSON array, nothing else.\n\n${contentToAnalyze}`;
 
-    const result = await model.generateContent(aiPrompt);
-    const response = result.response;
-    const text = response.text();
-
+    const result = await defaultModel.generateContent(aiPrompt);
+    const rawText = result.response.text();
     let concepts: string[] = [];
-    try {
-      const jsonString = text
-        .replace(/^```json\n/, "")
-        .replace(/\n```$/, "")
-        .trim();
-      const parsed = JSON.parse(jsonString);
-      if (
-        Array.isArray(parsed) &&
-        parsed.every((item) => typeof item === "string")
-      ) {
-        concepts = parsed;
-      } else {
-        console.error(
-          "AI response is not a valid JSON array of strings:",
-          text,
-        );
-        concepts = [text.trim()]; // Fallback
-      }
-    } catch (parseError) {
-      console.error("Failed to parse AI response as JSON array:", parseError);
-      console.error("AI Response Text:", text);
-      concepts = [text.trim()]; // Fallback
+
+    const parsedResponse = parseAiJsonResponse<string[]>(rawText);
+
+    if (
+      parsedResponse &&
+      Array.isArray(parsedResponse) &&
+      parsedResponse.every((item) => typeof item === "string")
+    ) {
+      concepts = parsedResponse;
+    } else {
+      console.error("Failed to parse AI response as JSON array");
+      console.error("AI Response Text:", rawText);
+      concepts = [rawText.trim()]; // Fallback
     }
 
-    return NextResponse.json<ApiResponse<ExtractConceptsData>>(
-      {
-        data: { concepts: concepts },
-        status: "success",
-        statusNumber: 200,
-        statusText: "Concepts extracted successfully.",
-      },
-      { status: 200 },
+    return respondSuccess(
+      { concepts: concepts },
+      200,
+      "Concepts extracted successfully.",
     );
   } catch (error) {
     console.error("Error extracting concepts:", error);
-    return NextResponse.json<ApiResponse<unknown>>(
-      {
-        error: "Internal server error during concept extraction.",
-        status: "error",
-        statusNumber: 500,
-        statusText:
-          error instanceof Error ? error.message : "Internal Server Error",
-      },
-      { status: 500 },
+    return respondError(
+      "Internal server error during concept extraction.",
+      500,
+      error instanceof Error ? error.message : "Internal Server Error",
     );
   }
 }

@@ -27,7 +27,7 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
   return (
     <div
       className={cn([
-        "relative flex min-h-48 min-w-80 flex-col gap-2 rounded-lg border-2 border-zinc-900 bg-zinc-950 p-2 transition-all",
+        "relative flex min-h-48 min-w-80 max-h-fit flex-col gap-2 rounded-lg border-2 border-zinc-900 bg-zinc-950 p-2 transition-all",
         selected && "border-sky-700",
       ])}
       onDoubleClick={handleDoubleClick}

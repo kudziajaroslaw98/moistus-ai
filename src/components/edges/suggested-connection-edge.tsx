@@ -1,9 +1,9 @@
-import { supabaseClient } from "@/helpers/supabase/client";
-import { ShowNotification } from "@/hooks/use-notifications";
+import { useMindMapContext } from "@/contexts/mind-map/mind-map-context";
 import { AiConnectionSuggestion } from "@/types/ai-connection-suggestion";
 import { EdgeData } from "@/types/edge-data";
-import { addEdge, Edge, EdgeProps, useReactFlow } from "@xyflow/react";
+import { EdgeLabelRenderer, EdgeProps, getBezierPath } from "@xyflow/react";
 import { memo, useCallback } from "react";
+import { Button } from "../ui/button";
 
 const SuggestedConnectionEdgeComponent = ({
   id,
@@ -11,66 +11,34 @@ const SuggestedConnectionEdgeComponent = ({
   sourceY,
   targetX,
   targetY,
+  markerEnd,
+  style = { stroke: "orange", strokeDasharray: "5 5", strokeWidth: 2 },
   ...props
 }: EdgeProps<AiConnectionSuggestion>) => {
   const data = props.data as EdgeData;
-  const style = props.style as Edge["style"];
-  const { setEdges, getNodes } = useReactFlow();
-  const reactFlowInstance = useReactFlow();
-  const showNotification: ShowNotification | undefined = reactFlowInstance
-    .getNodes()
-    .find((n) => n.id === "notification-placeholder")?.data
-    ?.showNotification as ShowNotification | undefined;
+  const { aiActions } = useMindMapContext();
 
-  const edgePath = `M ${sourceX},${sourceY} C ${sourceX} ${targetY} ${targetX} ${sourceY} ${targetX},${targetY}`;
-
+  const [edgePath, labelX, labelY] = getBezierPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+  });
   const handleAccept = useCallback(async () => {
-    const sourceNode = getNodes().find((n) => n.id === data?.sourceNodeId);
-    const targetNode = getNodes().find((n) => n.id === data?.targetNodeId);
-
-    if (sourceNode && targetNode) {
-      const { error } = await supabaseClient
-        .from("nodes")
-        .update({ parent_id: sourceNode.id })
-        .eq("id", targetNode.id);
-
-      if (error) {
-        console.error("Error saving accepted edge:", error);
-        showNotification?.("Failed to save accepted connection.", "error");
-        return;
-      }
-
-      setEdges((eds) => eds.filter((edge) => edge.id !== id));
-      setEdges((eds) =>
-        addEdge(
-          {
-            id: `e${sourceNode.id}-${targetNode.id}`,
-            source: sourceNode.id,
-            target: targetNode.id,
-            animated: false,
-            type: "smoothstep",
-          },
-          eds,
-        ),
-      );
-
-      showNotification?.("Connection accepted.", "success");
-    } else {
-      console.error(
-        "Source or target node not found for suggested edge:",
-        data,
-      );
-      showNotification?.(
-        "Error accepting connection: Node not found.",
-        "error",
-      );
+    if (data) {
+      await aiActions.acceptSuggestedConnection({
+        sourceNodeId: data.sourceNodeId,
+        targetNodeId: data.targetNodeId,
+        reason: data.reason,
+      });
     }
-  }, [id, data, setEdges, getNodes, showNotification]);
+  }, [aiActions, data]);
 
   const handleDismiss = useCallback(() => {
-    setEdges((eds) => eds.filter((edge) => edge.id !== id));
-    showNotification?.("Connection dismissed.", "success");
-  }, [id, setEdges, showNotification]);
+    aiActions.dismissSuggestedConnection(id);
+  }, [aiActions, id]);
 
   return (
     <>
@@ -79,47 +47,46 @@ const SuggestedConnectionEdgeComponent = ({
         style={style}
         className="react-flow__edge-path"
         d={edgePath}
-        markerEnd={props.markerEnd}
+        markerEnd={markerEnd}
       />
 
-      <g
-        transform={`translate(${(sourceX + targetX) / 2}, ${(sourceY + targetY) / 2})`}
-      >
-        <text
-          x="0"
-          y="-5"
-          className="react-flow__edge-text"
-          textAnchor="middle"
-          alignmentBaseline="middle"
-          style={{ fontSize: "12px", pointerEvents: "none", stroke: "white" }}
+      <EdgeLabelRenderer>
+        <div
+          style={{
+            position: "absolute",
+            transform: `translate(-50%, -120%) translate(${labelX}px,${labelY}px)`, // Adjust vertical position
+            pointerEvents: "all",
+            zIndex: 1, // Ensure buttons are clickable
+          }}
+          className="nodrag nopan flex flex-col items-center gap-1"
         >
-          {`${data?.reason}` || "Suggested"}
-        </text>
+          {data?.reason && (
+            <div className="rounded-sm bg-orange-600/80 px-1.5 py-0.5 text-xs font-medium text-white shadow-sm">
+              {data.reason}
+            </div>
+          )}
 
-        <text
-          x="-20"
-          y="10"
-          className="react-flow__edge-button"
-          textAnchor="middle"
-          alignmentBaseline="middle"
-          style={{ fontSize: "12px", cursor: "pointer", stroke: "green" }}
-          onClick={handleAccept}
-        >
-          Accept
-        </text>
+          <div className="flex gap-1">
+            <Button
+              size="sm"
+              variant="success"
+              onClick={handleAccept}
+              className="text-xs h-6 px-1.5 py-0.5"
+            >
+              Accept
+            </Button>
 
-        <text
-          x="20"
-          y="10"
-          className="react-flow__edge-button"
-          textAnchor="middle"
-          alignmentBaseline="middle"
-          style={{ fontSize: "12px", cursor: "pointer", stroke: "red" }}
-          onClick={handleDismiss}
-        >
-          Dismiss
-        </text>
-      </g>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={handleDismiss}
+              className="text-xs h-6 px-1.5 py-0.5"
+            >
+              Dismiss
+            </Button>
+          </div>
+        </div>
+      </EdgeLabelRenderer>
     </>
   );
 };

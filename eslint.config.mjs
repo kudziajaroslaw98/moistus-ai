@@ -30,6 +30,15 @@ const eslintConfig = [
     rules: {
       "react/jsx-newline": "warn",
       "react/hook-use-state": "warn",
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "warn", // or "error"
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
     },
     languageOptions: {
       ...reactPlugin.configs.flat.recommended.languageOptions,

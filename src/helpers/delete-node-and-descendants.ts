@@ -1,6 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
-export const deleteNodeAndDescendants = async (
+export const deleteNodeById = async (
   nodeId: string,
   supabase: SupabaseClient,
 ) => {
