@@ -20,7 +20,7 @@ const DefaultNodeComponent = (props: DefaultNodeProps) => {
   );
 
   return (
-    <BaseNodeWrapper {...props} headerContent={header} showHeader={false}>
+    <BaseNodeWrapper {...props} headerContent={header}>
       {data.content ? (
         <div className="prose p-4 prose-invert flex flex-col gap-2 prose-ul:flex prose-ul:flex-col prose-ul:gap-2 prose-sm max-w-none break-words prose-headings:m-0">
           <ReactMarkdown>{data.content}</ReactMarkdown>
