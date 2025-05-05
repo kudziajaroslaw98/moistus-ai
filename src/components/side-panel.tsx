@@ -24,7 +24,7 @@ export function SidePanel({
     <AnimatePresence mode="popLayout" onExitComplete={clearData}>
       {isOpen && (
         <motion.div
-          key="side-panel"
+          key={`side-panel-${title.toLowerCase().trim()}`}
           initial={{ x: "100%", opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: "100%", opacity: 0 }}

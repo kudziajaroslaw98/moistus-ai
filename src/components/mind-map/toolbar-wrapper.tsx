@@ -18,6 +18,7 @@ export function ToolbarWrapper() {
     isFocusMode,
     toggleFocusMode,
     setIsCommandPaletteOpen,
+    setIsHistorySidebarOpen, // Get setter for history sidebar
   } = useMindMapContext();
 
   if (isFocusMode) {
@@ -52,6 +53,7 @@ export function ToolbarWrapper() {
       aiLoadingStates={aiLoadingStates}
       onEnterFocusMode={toggleFocusMode} // Use toggleFocusMode
       onCommandPaletteOpen={() => setIsCommandPaletteOpen(true)} // Use setter from context
+      onToggleHistorySidebar={() => setIsHistorySidebarOpen((prev) => !prev)} // Add toggle handler
     />
   );
 }

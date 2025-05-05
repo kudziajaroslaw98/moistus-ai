@@ -1,6 +1,14 @@
 "use client";
 import { AiLoadingStates } from "@/hooks/use-ai-features";
-import { ArrowLeft, Command, Maximize, Redo, Undo } from "lucide-react";
+// Add History icon import
+import {
+  ArrowLeft,
+  Command,
+  History,
+  Maximize,
+  Redo,
+  Undo,
+} from "lucide-react";
 import Link from "next/link";
 import { Button } from "../ui/button";
 
@@ -20,6 +28,7 @@ interface MindMapToolbarProps {
   aiLoadingStates: AiLoadingStates;
   onEnterFocusMode: () => void;
   onCommandPaletteOpen: () => void;
+  onToggleHistorySidebar: () => void; // New prop
 }
 
 export function MindMapToolbar({
@@ -31,6 +40,7 @@ export function MindMapToolbar({
   isLoading,
   onEnterFocusMode,
   onCommandPaletteOpen,
+  onToggleHistorySidebar, // Destructure new prop
 }: MindMapToolbarProps) {
   return (
     <div className="absolute top-2 right-2 left-2 z-10 flex flex-wrap items-center justify-between gap-4 rounded-sm bg-zinc-900 p-3 shadow-md">
@@ -120,6 +130,18 @@ export function MindMapToolbar({
             <Redo className="size-4" />
           </Button>
         </div>
+
+        {/* History Sidebar Toggle Button */}
+        <Button
+          onClick={onToggleHistorySidebar}
+          disabled={isLoading}
+          title="Toggle History Sidebar"
+          aria-label="Toggle History Sidebar"
+          variant="secondary"
+          size="icon"
+        >
+          <History className="h-4 w-4" />
+        </Button>
 
         <Button
           onClick={onCommandPaletteOpen}

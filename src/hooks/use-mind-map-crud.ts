@@ -23,7 +23,10 @@ interface UseMindMapCRUDProps {
   edges: AppEdge[];
   setNodes: React.Dispatch<React.SetStateAction<Node<NodeData>[]>>;
   setEdges: React.Dispatch<React.SetStateAction<AppEdge[]>>;
-  addStateToHistory: (sourceAction?: string) => void;
+  addStateToHistory: (
+    actionName?: string,
+    stateOverride?: { nodes?: Node<NodeData>[]; edges?: AppEdge[] },
+  ) => void;
   showNotification: (message: string, type: NotificationType) => void;
 }
 
@@ -35,7 +38,7 @@ export interface CrudActions {
     position?: XYPosition,
     initialData?: Partial<NodeData>,
   ) => Promise<Node<NodeData> | null>;
-  deleteNode: (nodeId: string) => Promise<void>;
+  deleteNode: (nodeId: string, skipHistory?: boolean) => Promise<void>;
   saveNodePosition: (nodeId: string, position: XYPosition) => Promise<void>;
   saveNodeContent: (nodeId: string, content: string) => Promise<void>;
   triggerNodeSave: (change: NodeChange) => void;
@@ -56,12 +59,14 @@ export interface CrudActions {
     initialData?: Partial<EdgeData>,
   ) => Promise<AppEdge | null>;
 
-  deleteEdge: (edgeId: string) => Promise<void>;
+  deleteEdge: (edgeId: string, skipHistory?: boolean) => Promise<void>;
   saveEdgeProperties: (
     edgeId: string,
     changes: Partial<EdgeData>,
   ) => Promise<void>;
   groupNodes: (nodeIds: string[]) => Promise<void>;
+  restoreNode: (node: Node<NodeData>) => Promise<void>;
+  restoreEdge: (edge: AppEdge) => Promise<void>;
 }
 
 interface UseMindMapCRUDResult {
@@ -206,14 +211,6 @@ export function useMindMapCRUD({
           height: initialData.height,
         };
 
-        Object.keys(newNodeDbData).forEach((key) =>
-          newNodeDbData[key] === undefined ||
-          (newNodeDbData[key] === null &&
-            !(key === "parent_id" || key === "metadata"))
-            ? delete newNodeDbData[key]
-            : {},
-        );
-
         const { data: insertedNodeData, error: nodeInsertError } =
           await supabase
             .from("nodes")
@@ -269,12 +266,6 @@ export function useMindMapCRUD({
             metadata: defaultEdgeProps.metadata,
           };
 
-          Object.keys(newEdgeDbData).forEach((key) =>
-            newEdgeDbData[key] === undefined || newEdgeDbData[key] === null
-              ? delete newEdgeDbData[key]
-              : {},
-          );
-
           const { data: insertedEdgeData, error: edgeInsertError } =
             await supabase
               .from("edges")
@@ -308,13 +299,28 @@ export function useMindMapCRUD({
               markerEnd: finalEdgeData.markerEnd,
               data: finalEdgeData,
             };
-            setEdges((eds) => [...eds, newEdgeReactFlowEdge!]);
           }
         }
 
-        setNodes((nds) => [...nds, newNodeReactFlowNode!]);
+        let finalNodes: Node<NodeData>[] = [];
+        let finalEdges: AppEdge[] = [];
 
-        addStateToHistory("addNode");
+        setNodes((nds) => {
+          finalNodes = [...nds, newNodeReactFlowNode!];
+          return finalNodes;
+        });
+
+        if (newEdgeReactFlowEdge) {
+          setEdges((eds) => {
+            finalEdges = [...eds, newEdgeReactFlowEdge!];
+            return finalEdges;
+          });
+        } else {
+          finalEdges = edges;
+        }
+
+        addStateToHistory("addNode", { nodes: finalNodes, edges: finalEdges });
+
         showNotification("Node added.", "success");
         return newNodeReactFlowNode;
       } catch (err: unknown) {
@@ -341,7 +347,7 @@ export function useMindMapCRUD({
   );
 
   const deleteNode = useCallback(
-    async (nodeId: string) => {
+    async (nodeId: string, skipHistory: boolean = false) => {
       if (!mapId || !nodeId) return;
 
       const nodeToDelete = nodes.find((node) => node.id === nodeId);
@@ -364,16 +370,28 @@ export function useMindMapCRUD({
       setIsLoading(true);
 
       try {
-        await deleteNodeById(nodeId, supabase as SupabaseClient);
-
-        setNodes((nds) => nds.filter((node) => node.id !== nodeId));
-        setEdges((eds) =>
-          eds.filter(
-            (edge) => edge.source !== nodeId && edge.target !== nodeId,
-          ),
+        const nodesToRemove = [nodeId];
+        const nextNodes = nodes.filter(
+          (node) => !nodesToRemove.includes(node.id),
+        );
+        const nextEdges = edges.filter(
+          (edge) =>
+            !nodesToRemove.includes(edge.source) &&
+            !nodesToRemove.includes(edge.target),
         );
 
-        addStateToHistory("deleteNode");
+        await deleteNodeById(nodeId, supabase as SupabaseClient);
+
+        setNodes(nextNodes);
+        setEdges(nextEdges);
+
+        if (!skipHistory) {
+          addStateToHistory("deleteNode", {
+            nodes: nextNodes,
+            edges: nextEdges,
+          });
+        }
+
         showNotification("Node(s) deleted.", "success");
       } catch (err: unknown) {
         console.error("Error deleting node:", err);
@@ -505,6 +523,7 @@ export function useMindMapCRUD({
           );
         }
 
+        let finalNodes: Node<NodeData>[] = [];
         setNodes((currentNodes) => {
           const newGroupNode: Node<NodeData> = {
             id: finalGroupNodeData.id,
@@ -537,10 +556,11 @@ export function useMindMapCRUD({
             return node;
           });
 
-          return [...updatedNodes, newGroupNode];
+          finalNodes = [...updatedNodes, newGroupNode];
+          return finalNodes;
         });
 
-        addStateToHistory("groupNodes");
+        addStateToHistory("groupNodes", { nodes: finalNodes, edges: edges });
         showNotification("Nodes grouped successfully.", "success");
       } catch (err: unknown) {
         console.error("Error grouping nodes:", err);
@@ -551,7 +571,15 @@ export function useMindMapCRUD({
         setIsLoading(false);
       }
     },
-    [mapId, nodes, supabase, setNodes, addStateToHistory, showNotification],
+    [
+      mapId,
+      nodes,
+      edges,
+      supabase,
+      setNodes,
+      addStateToHistory,
+      showNotification,
+    ],
   );
 
   const saveNodeDimensions = useCallback(
@@ -686,8 +714,9 @@ export function useMindMapCRUD({
           .eq("id", nodeId);
         if (error) throw error;
 
-        setNodes((nds) =>
-          nds.map((n) =>
+        let finalNodes: Node<NodeData>[] = [];
+        setNodes((nds) => {
+          finalNodes = nds.map((n) =>
             n.id === nodeId
               ? {
                   ...n,
@@ -708,10 +737,14 @@ export function useMindMapCRUD({
                   height: validUpdates.height ?? n.height,
                 }
               : n,
-          ),
-        );
+          );
+          return finalNodes;
+        });
 
-        addStateToHistory("saveNodeProperties");
+        addStateToHistory("saveNodeProperties", {
+          nodes: finalNodes,
+          edges: edges,
+        });
         showNotification("Node properties saved.", "success");
       } catch (err: unknown) {
         console.error(`Error saving properties for node ${nodeId}:`, err);
@@ -724,7 +757,7 @@ export function useMindMapCRUD({
         setIsLoading(false);
       }
     },
-    [supabase, setNodes, addStateToHistory, showNotification],
+    [supabase, setNodes, addStateToHistory, showNotification, edges],
   );
 
   const addEdge = useCallback(
@@ -818,9 +851,13 @@ export function useMindMapCRUD({
           data: finalEdgeData,
         };
 
-        setEdges((eds) => [...eds, newReactFlowEdge!]);
+        let finalEdges: AppEdge[] = [];
+        setEdges((eds) => {
+          finalEdges = [...eds, newReactFlowEdge!];
+          return finalEdges;
+        });
 
-        addStateToHistory("addEdge");
+        addStateToHistory("addEdge", { nodes: nodes, edges: finalEdges });
         showNotification("Connection saved.", "success");
         return newReactFlowEdge;
       } catch (err: unknown) {
@@ -834,14 +871,24 @@ export function useMindMapCRUD({
         setIsLoading(false);
       }
     },
-    [mapId, edges, supabase, setEdges, addStateToHistory, showNotification],
+    [
+      mapId,
+      nodes,
+      edges,
+      supabase,
+      setEdges,
+      addStateToHistory,
+      showNotification,
+    ],
   );
 
   const deleteEdge = useCallback(
-    async (edgeId: string): Promise<void> => {
+    async (edgeId: string, skipHistory: boolean = false): Promise<void> => {
       setIsLoading(true);
 
       try {
+        const nextEdges = edges.filter((edge) => edge.id !== edgeId);
+
         const { error } = await supabase
           .from("edges")
           .delete()
@@ -853,9 +900,12 @@ export function useMindMapCRUD({
           );
         }
 
-        setEdges((eds) => eds.filter((edge) => edge.id !== edgeId));
+        setEdges(nextEdges);
 
-        addStateToHistory("deleteEdge");
+        if (!skipHistory) {
+          addStateToHistory("deleteEdge", { edges: nextEdges });
+        }
+
         showNotification("Connection deleted.", "success");
       } catch (err: unknown) {
         console.error(`Error deleting connection ${edgeId}:`, err);
@@ -866,7 +916,7 @@ export function useMindMapCRUD({
         setIsLoading(false);
       }
     },
-    [supabase, setEdges, addStateToHistory, showNotification],
+    [nodes, edges, supabase, setEdges, addStateToHistory, showNotification],
   );
 
   const saveEdgeProperties = useCallback(
@@ -939,8 +989,9 @@ export function useMindMapCRUD({
           .eq("id", edgeId);
         if (error) throw error;
 
-        setEdges((prev) =>
-          prev.map((edge) =>
+        let finalEdges: AppEdge[] = [];
+        setEdges((prev) => {
+          finalEdges = prev.map((edge) =>
             edge.id === edgeId
               ? {
                   ...edge,
@@ -966,10 +1017,14 @@ export function useMindMapCRUD({
                   },
                 }
               : edge,
-          ),
-        );
+          );
+          return finalEdges;
+        });
 
-        addStateToHistory("saveEdgeProperties");
+        addStateToHistory("saveEdgeProperties", {
+          nodes: nodes,
+          edges: finalEdges,
+        });
         showNotification("Connection properties saved.", "success");
       } catch (err: unknown) {
         console.error(`Error saving properties for edge ${edgeId}:`, err);
@@ -982,14 +1037,125 @@ export function useMindMapCRUD({
         setIsLoading(false);
       }
     },
-    [supabase, setEdges, addStateToHistory, showNotification],
+    [supabase, nodes, edges, setEdges, addStateToHistory, showNotification],
+  );
+
+  const restoreNode = useCallback(
+    async (node: Node<NodeData>) => {
+      if (!node || !node.id || !node.data) {
+        console.error("Attempted to restore invalid node:", node);
+        return;
+      }
+
+      console.log("Restoring node:", node.id);
+      setIsLoading(true);
+
+      try {
+        const nodeToUpsert: Partial<NodeData> = {
+          ...node.data,
+          id: node.id,
+          map_id: mapId,
+          user_id:
+            node.data.user_id || (await supabase.auth.getUser()).data.user?.id,
+          position_x: node.position.x,
+          position_y: node.position.y,
+          width: node.width,
+          height: node.height,
+          node_type: node.type || node.data.node_type || "defaultNode",
+          updated_at: new Date().toISOString(),
+        };
+
+        delete nodeToUpsert.label;
+
+        const { error } = await supabase
+          .from("nodes")
+          .upsert(nodeToUpsert, { onConflict: "id" });
+
+        if (error) {
+          throw new Error(
+            error.message || `Failed to restore node ${node.id} in database.`,
+          );
+        }
+
+        console.log("Node restored in DB:", node.id);
+      } catch (err: unknown) {
+        console.error(`Error restoring node ${node.id}:`, err);
+        const message =
+          err instanceof Error
+            ? err.message
+            : `Failed to restore node ${node.id}.`;
+        showNotification(message, "error");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [mapId, supabase, showNotification],
+  );
+
+  const restoreEdge = useCallback(
+    async (edge: AppEdge) => {
+      if (!edge || !edge.id || !edge.source || !edge.target) {
+        console.error("Attempted to restore invalid edge:", edge);
+        return;
+      }
+
+      console.log("Restoring edge:", edge.id);
+      setIsLoading(true);
+
+      try {
+        const edgeToUpsert: Partial<EdgeData> = {
+          ...edge.data,
+          id: edge.id,
+          map_id: mapId,
+          user_id:
+            edge.user_id || (await supabase.auth.getUser()).data.user?.id,
+          source: edge.source,
+          target: edge.target,
+          type: edge.type || edge.data?.type || "defaultEdge",
+          label: edge.data?.label,
+          animated: edge.animated ?? edge.data?.animated ?? false,
+          color: edge.style?.stroke || edge.data?.color,
+          strokeWidth: edge.data?.strokeWidth,
+          markerEnd: edge.data?.markerEnd,
+          metadata: edge.data?.metadata,
+          updated_at: new Date().toISOString(),
+        };
+
+        Object.keys(edgeToUpsert).forEach((key) => {
+          if (edgeToUpsert[key as keyof EdgeData] === undefined) {
+            delete edgeToUpsert[key as keyof EdgeData];
+          }
+        });
+
+        const { error } = await supabase
+          .from("edges")
+          .upsert(edgeToUpsert, { onConflict: "id" });
+
+        if (error) {
+          throw new Error(
+            error.message || `Failed to restore edge ${edge.id} in database.`,
+          );
+        }
+
+        console.log("Edge restored in DB:", edge.id);
+      } catch (err: unknown) {
+        console.error(`Error restoring edge ${edge.id}:`, err);
+        const message =
+          err instanceof Error
+            ? err.message
+            : `Failed to restore edge ${edge.id}.`;
+        showNotification(message, "error");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [mapId, supabase, showNotification],
   );
 
   const triggerNodeSave = useCallback(
     (change: NodeChange) => {
       switch (change.type) {
         case "position": {
-          // Only save when dragging stops
           if (change.dragging === false && change.position) {
             debounceSave(
               change.id,
@@ -1004,7 +1170,6 @@ export function useMindMapCRUD({
         }
 
         case "dimensions": {
-          // Only save when resizing stops
           if (change.dimensions && change.resizing === false) {
             debounceSave(
               change.id,
@@ -1017,7 +1182,6 @@ export function useMindMapCRUD({
 
           break;
         }
-        // Handle other change types if they need saving (e.g., selection, removal handled separately)
       }
     },
     [debounceSave, saveNodePosition, saveNodeDimensions],
@@ -1025,12 +1189,9 @@ export function useMindMapCRUD({
 
   const triggerEdgeSave = useCallback(
     (change: EdgeChange) => {
-      // Handle edge saves if needed, e.g., maybe type changes or label edits done directly
-      // Removal is handled by deleteEdge
       if (change.type === "remove") {
-        deleteEdge(change.id); // Keep delete logic if needed here or triggered elsewhere
+        deleteEdge(change.id);
       }
-      // Add other edge change saves if applicable
     },
     [deleteEdge],
   );
@@ -1046,10 +1207,11 @@ export function useMindMapCRUD({
       addEdge,
       triggerEdgeSave,
       triggerNodeSave,
-
       deleteEdge,
       saveEdgeProperties,
       groupNodes,
+      restoreNode,
+      restoreEdge,
     },
     isLoading,
   };

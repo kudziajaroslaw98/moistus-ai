@@ -27,7 +27,10 @@ interface UseAiFeaturesProps {
   saveNodeContent: (nodeId: string, content: string) => Promise<void>;
   setNodes: React.Dispatch<React.SetStateAction<Node<NodeData>[]>>;
   setEdges: React.Dispatch<React.SetStateAction<AppEdge[]>>;
-  addStateToHistory: (sourceAction?: string) => void;
+  addStateToHistory: (
+    actionName?: string,
+    newState?: { nodes: Node<NodeData>[]; edges: AppEdge[] },
+  ) => void;
   showNotification: (message: string, type: NotificationType) => void;
   currentHistoryState: HistoryState | undefined;
 }
@@ -279,7 +282,12 @@ export function useAiFeatures({
       setLoading("isSummarizingBranch", true);
       showNotification("Summarizing Branch...", "success");
 
-      const response = await fetchWrapper<{ summary: string }>(
+      type SummarizeBranchResponse = {
+        summaryNode: NodeData | null;
+        summaryEdge: AppEdge | null;
+      };
+
+      const response = await fetchWrapper<SummarizeBranchResponse>(
         "/api/summarize-branch",
         {
           method: "POST",
@@ -287,24 +295,71 @@ export function useAiFeatures({
         },
       );
 
-      if (response.status === "success") {
-        const summary = response.data.summary;
+      if (response.status === "success" && response.data) {
+        const { summaryNode, summaryEdge } = response.data;
 
-        if (
-          summary &&
-          summary.trim().length > 0 &&
-          summary.trim() !== "Branch has no content to summarize."
-        ) {
-          await addNode(nodeId, `Branch Summary: ${summary}`, "editableNode");
+        if (summaryNode) {
+          const newFlowNode: Node<NodeData> = {
+            id: summaryNode.id,
+            type: summaryNode.node_type || "annotationNode",
+            position: { x: summaryNode.position_x, y: summaryNode.position_y },
+            data: {
+              id: summaryNode.id,
+              label:
+                summaryNode.label ||
+                summaryNode.content?.substring(0, 30) + "..." ||
+                "Summary",
+              created_at: summaryNode.created_at,
+              updated_at: summaryNode.updated_at,
+              position_x: summaryNode.position_x,
+              position_y: summaryNode.position_y,
+              content: summaryNode.content || "",
+              parent_id: summaryNode.parent_id,
+              node_type: summaryNode.node_type || "annotationNode",
+              map_id: summaryNode.map_id,
+              user_id: summaryNode.user_id,
+              sourceUrl: summaryNode.sourceUrl,
+              metadata: summaryNode.metadata || {},
+            },
+            width: summaryNode.width || 150,
+            height: summaryNode.height || 40,
+          };
+
+          setNodes((nds) => [...nds, newFlowNode]);
+
+          if (summaryEdge) {
+            const newFlowEdge: AppEdge = {
+              id: summaryEdge.id,
+              source: summaryEdge.source,
+              target: summaryEdge.target,
+              type: summaryEdge.type || "smoothstep",
+              user_id: summaryEdge.user_id,
+              label: summaryEdge.label,
+              style: summaryEdge.style,
+              animated: summaryEdge.animated,
+              markerEnd: summaryEdge.markerEnd,
+              markerStart: summaryEdge.markerStart,
+              data: summaryEdge.data,
+            };
+            setEdges((eds) => [...eds, newFlowEdge]);
+          } else {
+            console.warn(
+              `Summary node ${summaryNode.id} added, but edge creation failed.`,
+            );
+            showNotification(
+              "Branch summarized, but connection failed.",
+              "warning",
+            );
+          }
+
           addStateToHistory("summarizeBranch");
-          showNotification("Branch summarized.", "success");
+          showNotification("Branch summarized and added.", "success");
+        } else if (response.data.summaryNode === null) {
+          showNotification("Branch has no content to summarize.", "success");
         } else {
-          showNotification(
-            "AI could not generate a summary for this branch.",
-            "error",
-          );
+          showNotification("Failed to add summary node.", "error");
         }
-      } else {
+      } else if (response.status === "error") {
         const errorMsg = response.error || "Failed to summarize branch.";
         console.error("Summarize Branch Error:", errorMsg);
         showNotification(errorMsg, "error");
@@ -316,7 +371,8 @@ export function useAiFeatures({
       nodes,
       loadingStates.isSummarizingBranch,
       fetchWrapper,
-      addNode,
+      setNodes,
+      setEdges,
       addStateToHistory,
       showNotification,
     ],
@@ -627,7 +683,6 @@ export function useAiFeatures({
 
       const { sourceNodeId, targetNodeId } = suggestionData;
 
-      // Optimistically remove suggested edge
       setSuggestedEdges((eds) =>
         eds.filter(
           (edge) =>
@@ -640,12 +695,11 @@ export function useAiFeatures({
       );
 
       try {
-        // Add the permanent edge using existing CRUD action
         const addedEdge = await saveEdge(sourceNodeId, targetNodeId);
 
         if (addedEdge) {
           showNotification("Connection accepted and saved.", "success");
-          addStateToHistory("acceptSuggestedConnection"); // Add history state if needed
+          addStateToHistory("acceptSuggestedConnection");
         } else {
           showNotification("Failed to save accepted connection.", "error");
         }

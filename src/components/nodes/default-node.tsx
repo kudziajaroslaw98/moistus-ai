@@ -4,6 +4,7 @@ import { NodeData } from "@/types/node-data";
 import { Node, NodeProps } from "@xyflow/react";
 import { FileText } from "lucide-react";
 import { memo } from "react";
+import ReactMarkdown from "react-markdown";
 import { BaseNodeWrapper } from "./base-node-wrapper";
 
 interface DefaultNodeProps extends NodeProps<Node<NodeData>> {
@@ -19,8 +20,12 @@ const DefaultNodeComponent = (props: DefaultNodeProps) => {
   );
 
   return (
-    <BaseNodeWrapper {...props} headerContent={header}>
-      {data.content || (
+    <BaseNodeWrapper {...props} headerContent={header} showHeader={false}>
+      {data.content ? (
+        <div className="prose p-4 prose-invert flex flex-col gap-2 prose-ul:flex prose-ul:flex-col prose-ul:gap-2 prose-sm max-w-none break-words prose-headings:m-0">
+          <ReactMarkdown>{data.content}</ReactMarkdown>
+        </div>
+      ) : (
         <span className="text-zinc-500 italic">
           Double click or click menu to add content...
         </span>

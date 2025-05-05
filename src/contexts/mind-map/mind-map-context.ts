@@ -49,6 +49,10 @@ interface MindMapContextProps {
   isFocusMode: boolean;
   aiPrompt: string;
   aiSearchQuery: string;
+  history: HistoryState[]; // Full history array
+  historyIndex: number; // Current index in history
+  isHistorySidebarOpen: boolean; // State for the new sidebar
+  nodeToAddInfo: { parentId: string | null; position?: XYPosition } | null; // Add this line
 
   // Setters / Actions
   setNodes: React.Dispatch<React.SetStateAction<Node<NodeData>[]>>;
@@ -60,6 +64,8 @@ interface MindMapContextProps {
   handleUndo: () => void;
   handleRedo: () => void;
   addStateToHistory: (sourceAction?: string) => void;
+  revertToHistoryState: (index: number) => Promise<void>; // Function to revert
+  setIsHistorySidebarOpen: React.Dispatch<React.SetStateAction<boolean>>; // Setter for sidebar
   contextMenuHandlers: {
     onNodeContextMenu: NodeMouseHandler<Node<NodeData>>;
     onPaneContextMenu: (event: React.MouseEvent | MouseEvent) => void;

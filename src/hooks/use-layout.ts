@@ -1,6 +1,5 @@
 import { NotificationType } from "@/hooks/use-notifications";
 import { EdgeData } from "@/types/edge-data";
-import { HistoryState } from "@/types/history-state";
 import { NodeData } from "@/types/node-data";
 import { Edge, Node, ReactFlowInstance, XYPosition } from "@xyflow/react";
 import dagre from "dagre";
@@ -59,10 +58,11 @@ interface UseLayoutProps {
   edges: Edge<EdgeData>[];
   setNodes: React.Dispatch<React.SetStateAction<Node<NodeData>[]>>;
   reactFlowInstance: ReactFlowInstance | null;
-  addStateToHistory: (sourceAction?: string) => void;
+  addStateToHistory: (
+    actionName?: string,
+    newState?: { nodes: Node<NodeData>[]; edges: Edge<EdgeData>[] },
+  ) => void;
   showNotification: (message: string, type: NotificationType) => void;
-  currentHistoryState: HistoryState | undefined;
-
   saveNodePosition: (nodeId: string, position: XYPosition) => Promise<void>;
 }
 
@@ -103,7 +103,7 @@ export function useLayout({
 
         await Promise.all(savePromises);
 
-        addStateToHistory("applyLayout");
+        addStateToHistory(`applyLayout${direction}`);
 
         setTimeout(() => {
           reactFlowInstance?.fitView({ padding: 0.1, duration: 300 });

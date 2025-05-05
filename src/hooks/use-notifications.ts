@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 
-export type NotificationType = "success" | "error";
+export type NotificationType = "success" | "error" | "warning";
 
 export interface NotificationState {
   message: string | null;

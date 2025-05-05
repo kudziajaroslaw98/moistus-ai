@@ -2,7 +2,14 @@ import { respondError, respondSuccess } from "@/helpers/api/responses";
 import { withApiValidation } from "@/helpers/api/with-api-validation";
 import generateUuid from "@/helpers/generate-uuid"; // Added for new node ID
 import { defaultModel } from "@/lib/ai/gemini";
+import type { EdgeData } from "@/types/edge-data";
+import type { NodeData } from "@/types/node-data";
+// Database types - Assuming you have these generated or defined
 import { z } from "zod";
+
+// Define types for the new node and edge based on your Supabase schema
+type NewNodePayload = NodeData;
+type NewEdgePayload = EdgeData;
 
 const requestBodySchema = z.object({
   nodeId: z.string().uuid("Invalid node ID format"),
@@ -40,7 +47,7 @@ export const POST = withApiValidation(
       const { data: allNodesData, error: fetchError } = await supabase
         .from("nodes")
         .select(
-          "id, parent_id, content, node_type, map_id, source_url, metadata",
+          "id, parent_id, content, node_type, map_id, sourceUrl, metadata",
         ) // Select node_type
         .eq("map_id", rootNode.map_id);
 
@@ -100,7 +107,7 @@ export const POST = withApiValidation(
 
         // Append relevant metadata and source_url
         const details = [];
-        if (node.source_url) details.push(`Source: ${node.source_url}`);
+        if (node.sourceUrl) details.push(`Source: ${node.sourceUrl}`);
 
         if (node.metadata) {
           if (node.metadata.isComplete !== undefined)
@@ -137,11 +144,7 @@ export const POST = withApiValidation(
       const branchContent = buildContentString(nodeId, 0);
 
       if (!branchContent.trim()) {
-        return respondSuccess(
-          { message: "Branch has no content to summarize." },
-          200,
-          "Branch has no content to summarize.",
-        );
+        return respondSuccess({ summaryNode: null, summaryEdge: null }, 200);
       }
 
       const aiPrompt = `Summarize the following content from a mind map branch, represented hierarchically. Include key details from metadata like source URLs, completion status, image presence, etc., where relevant. Focus on the main ideas and relationships. Output only the summary text.
@@ -163,72 +166,89 @@ ${branchContent}`;
 
       // --- Create Annotation Node with Summary ---
       const summaryNodeId = generateUuid();
-      const user = (await supabase.auth.getUser()).data.user; // Assume user is validated by withApiValidation
+      const user = (await supabase.auth.getUser()).data.user;
 
       if (!user) {
         return respondError("User not authenticated.", 401);
       }
 
-      // Position the summary node near the branch root
       const summaryNodePosition = {
-        x: rootNode.position_x + 50, // Offset slightly
-        y: rootNode.position_y + 150, // Place below
+        x: rootNode.position_x + 50,
+        y: rootNode.position_y + 150,
       };
 
-      const { error: insertError } = await supabase.from("nodes").insert([
-        {
-          id: summaryNodeId,
-          map_id: rootNode.map_id,
-          user_id: user.id,
-          parent_id: nodeId, // Link to the summarized branch root
-          content: summary,
-          node_type: "annotationNode",
-          position_x: summaryNodePosition.x,
-          position_y: summaryNodePosition.y,
-          metadata: {
-            annotationType: "summary",
-            sourceBranchNodeId: nodeId, // Optional: Track which branch this summarizes
-          },
+      const newNodeData: NewNodePayload = {
+        id: summaryNodeId,
+        map_id: rootNode.map_id,
+        user_id: user.id,
+        parent_id: nodeId,
+        content: summary, // Use the generated summary directly
+        created_at: new Date().toUTCString(),
+        updated_at: new Date().toUTCString(),
+        node_type: "annotationNode",
+        position_x: summaryNodePosition.x,
+        position_y: summaryNodePosition.y,
+        metadata: {
+          annotationType: "summary",
+          sourceBranchNodeId: nodeId,
         },
-      ]);
+        width: 150,
+        height: 40,
+      };
 
-      if (insertError) {
+      const { data: insertedNode, error: insertError } = await supabase
+        .from("nodes")
+        .insert(newNodeData)
+        .select()
+        .single();
+
+      if (insertError || !insertedNode) {
         console.error("Error inserting summary node:", insertError);
         return respondError(
           "Failed to save summary node.",
           500,
-          insertError.message,
+          insertError?.message || "Insert operation failed",
         );
       }
 
-      // Also need to add an edge from root to summary node
+      // --- Create Edge from Root to Summary Node ---
       const summaryEdgeId = generateUuid();
-      const { error: edgeInsertError } = await supabase.from("edges").insert([
-        {
-          id: summaryEdgeId,
-          map_id: rootNode.map_id,
-          user_id: user.id,
-          source: nodeId,
-          target: summaryNodeId,
-          type: "smoothstep", // Or your default edge type
-        },
-      ]);
+      const newEdgeData: NewEdgePayload = {
+        id: summaryEdgeId,
+        map_id: rootNode.map_id,
+        user_id: user.id,
+        source: nodeId,
+        target: summaryNodeId,
+        type: "smoothstep",
+      };
 
-      if (edgeInsertError) {
+      const { data: insertedEdge, error: edgeInsertError } = await supabase
+        .from("edges")
+        .insert(newEdgeData)
+        .select()
+        .single();
+
+      if (edgeInsertError || !insertedEdge) {
         console.warn(
           "Warning: Summary node created, but failed to add edge:",
           edgeInsertError,
         );
-        // Decide if this should be an error response or just a warning
+        return respondSuccess(
+          {
+            summaryNode: insertedNode,
+            summaryEdge: null,
+          },
+          200,
+        );
       }
 
+      // --- Return Success with Node and Edge Data ---
       return respondSuccess(
         {
-          message: "Branch summarized and saved successfully.",
-          summaryNodeId: summaryNodeId, // Optionally return the ID
+          summaryNode: insertedNode,
+          summaryEdge: insertedEdge,
         },
-        201, // 201 Created
-        "Branch summarized and saved successfully.",
+        200,
       );
     } catch (error) {
       console.error("Error during AI branch summarization:", error);

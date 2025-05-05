@@ -1,5 +1,6 @@
 "use client";
 import { useMindMapContext } from "@/contexts/mind-map/mind-map-context";
+import { HistorySidebar } from "../history-sidebar";
 import MergeSuggestionsModal from "../merge-suggestions-modal";
 import AiContentPromptModal from "../modals/ai-content-prompt-modal";
 import EdgeEditModal from "../modals/edge-edit-modal";
@@ -25,6 +26,7 @@ export function ModalsWrapper() {
     setNodeToAddInfo,
     crudActions,
     showNotification,
+    nodeToAddInfo,
     // Node Edit Modal
     isNodeEditModalOpen,
     setIsNodeEditModalOpen,
@@ -39,23 +41,29 @@ export function ModalsWrapper() {
   } = useMindMapContext();
 
   const handleSelectNodeType = (selectedType: string) => {
-    // Logic moved from MindMapCanvas
-    setNodeToAddInfo((prevInfo) => {
-      if (!prevInfo) {
-        console.error("Node to add info is missing when selecting type.");
-        showNotification("Error adding node.", "error");
-        return null;
-      }
+    const info = nodeToAddInfo; // Capture the info *before* resetting state
 
-      crudActions.addNode(
-        prevInfo.parentId,
-        `New ${selectedType}`,
-        selectedType,
-        prevInfo.position,
-      );
-      return null; // Reset nodeToAddInfo
-    });
+    // Clear state immediately after capture and ensure modal closes
     setIsNodeTypeModalOpen(false);
+    setNodeToAddInfo(null);
+
+    if (!info) {
+      console.error("Node to add info is missing when selecting type.");
+      // Use a more specific error message if possible
+      showNotification("Error adding node: Missing context.", "error");
+      return; // Exit early if info is missing
+    }
+
+    // Call addNode *after* capturing info and clearing state
+    // Use the captured 'info' variable
+    crudActions.addNode(
+      info.parentId,
+      `New ${selectedType}`,
+      selectedType,
+      info.position,
+    );
+
+    // State is already cleared above
   };
 
   const handleCloseNodeEditModal = () => {
@@ -97,8 +105,9 @@ export function ModalsWrapper() {
       <SelectNodeTypeModal
         isOpen={isNodeTypeModalOpen}
         onClose={() => {
-          setNodeToAddInfo(null); // Clear info if closed without selection
+          // Ensure state is cleared on explicit close/cancel
           setIsNodeTypeModalOpen(false);
+          setNodeToAddInfo(null);
         }}
         onSelectType={handleSelectNodeType}
       />
@@ -121,6 +130,8 @@ export function ModalsWrapper() {
         nodes={nodes} // Pass nodes for context/display
         clearData={() => setEdgeToEdit(null)} // Pass clear function
       />
+
+      <HistorySidebar />
     </>
   );
 }

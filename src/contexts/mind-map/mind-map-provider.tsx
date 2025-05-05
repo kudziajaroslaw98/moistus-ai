@@ -17,7 +17,7 @@ import {
   type Node,
 } from "@xyflow/react";
 import { useParams } from "next/navigation";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import MindMapContext from "./mind-map-context";
 
 interface MindMapProviderProps {
@@ -42,6 +42,7 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
   const [nodeToEdit, setNodeToEdit] = useState<Node<NodeData> | null>(null);
   const [isEdgeEditModalOpen, setIsEdgeEditModalOpen] = useState(false);
   const [edgeToEdit, setEdgeToEdit] = useState<AppEdge | null>(null);
+  const [isHistorySidebarOpen, setIsHistorySidebarOpen] = useState(false); // New state
 
   // --- Initialize Hooks ---
   const { notification, showNotification } = useNotifications();
@@ -62,13 +63,20 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
     onEdgesChange: directEdgesChangeHandler,
   } = useMindMapState(initialNodes, initialEdges);
 
+  const crudActionsRef = useRef<
+    ReturnType<typeof useMindMapCRUD>["crudActions"] | null
+  >(null);
+
   const {
     addStateToHistory,
     handleUndo,
     handleRedo,
+    revertToHistoryState, // Get new function
     canUndo,
     canRedo,
     currentHistoryState,
+    history, // Get history array
+    historyIndex, // Get history index
   } = useMindMapHistory({
     initialNodes,
     initialEdges,
@@ -76,9 +84,9 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
     edges,
     setNodes,
     setEdges,
+    crudActions: crudActionsRef.current,
   });
 
-  // Note: Pass context setters/getters to hooks if needed, or modify hooks later
   const { crudActions, isLoading: isCrudLoading } = useMindMapCRUD({
     mapId,
     nodes,
@@ -88,6 +96,8 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
     addStateToHistory,
     showNotification,
   });
+
+  crudActionsRef.current = crudActions;
 
   const {
     aiActions,
@@ -104,9 +114,9 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
   } = useAiFeatures({
     mapId,
     nodes,
-    addNode: crudActions.addNode, // Pass specific actions needed
+    addNode: crudActions.addNode,
     deleteNode: crudActions.deleteNode,
-    saveEdge: crudActions.addEdge, // Assuming addEdge returns the saved edge
+    saveEdge: crudActions.addEdge,
     saveNodeContent: crudActions.saveNodeContent,
     setNodes,
     setEdges,
@@ -117,7 +127,6 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
 
   const { contextMenuHandlers, contextMenuState } = useContextMenu();
 
-  // Pass the actual reactFlowInstance once available
   const { applyLayout, isLoading: isLayoutLoading } = useLayout({
     nodes,
     edges,
@@ -125,7 +134,6 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
     reactFlowInstance: reactFlowInstance,
     addStateToHistory,
     showNotification,
-    currentHistoryState,
     saveNodePosition: crudActions.saveNodePosition,
   });
 
@@ -244,7 +252,6 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
 
   const handleNodesChangeWithSave: OnNodesChange = useCallback(
     (changes) => {
-      console.log("handleNodesChangeWithSave", changes);
       directNodesChangeHandler(changes);
       changes.forEach((change) => crudActions.triggerNodeSave(change));
       addStateToHistory("nodeChange");
@@ -292,6 +299,9 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
       isFocusMode,
       aiPrompt,
       aiSearchQuery,
+      history, // Pass history array
+      historyIndex, // Pass history index
+      isHistorySidebarOpen, // Pass sidebar state
       setNodes,
       setEdges,
       showNotification,
@@ -301,6 +311,7 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
       handleUndo,
       handleRedo,
       addStateToHistory,
+      revertToHistoryState, // Pass revert function
       contextMenuHandlers,
       reactFlowInstance: reactFlowInstance as ReturnType<
         typeof useReactFlow
@@ -312,11 +323,13 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
       setIsMergeModalOpen,
       setIsNodeTypeModalOpen,
       setNodeToAddInfo,
+      nodeToAddInfo, // Add this line
       setIsNodeEditModalOpen,
       setNodeToEdit,
       setIsEdgeEditModalOpen,
       setEdgeToEdit,
       setIsCommandPaletteOpen,
+      setIsHistorySidebarOpen, // Pass sidebar setter
       toggleFocusMode,
       handleCopy,
       handlePaste,
@@ -350,6 +363,10 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
       isFocusMode,
       aiPrompt,
       aiSearchQuery,
+      history,
+      historyIndex,
+      isHistorySidebarOpen,
+      nodeToAddInfo, // Add dependency here
       setNodes,
       setEdges,
       showNotification,
@@ -359,6 +376,7 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
       handleUndo,
       handleRedo,
       addStateToHistory,
+      revertToHistoryState,
       contextMenuHandlers,
       reactFlowInstance,
       setReactFlowInstance,
@@ -371,6 +389,7 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
       setIsEdgeEditModalOpen,
       setEdgeToEdit,
       setIsCommandPaletteOpen,
+      setIsHistorySidebarOpen,
       toggleFocusMode,
       handleCopy,
       handlePaste,
