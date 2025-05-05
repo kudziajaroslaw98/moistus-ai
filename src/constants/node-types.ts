@@ -8,7 +8,7 @@ import ResourceNode from "@/components/nodes/resource-node";
 import TaskNode from "@/components/nodes/task-node";
 
 export const nodeTypes = {
-  defaultNode: DefaultNode,
+  defaultNode: DefaultNode, // Note Node
   taskNode: TaskNode,
   imageNode: ImageNode,
   questionNode: QuestionNode,

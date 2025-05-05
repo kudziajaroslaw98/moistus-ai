@@ -1,3 +1,7 @@
 {
-  "cSpell.words": ["xyflow"]
+  "cSpell.words": ["xyflow"],
+  "chat.implicitContext.enabled": {
+    "panel": "never",
+    "editing-session": "never"
+  }
 }
