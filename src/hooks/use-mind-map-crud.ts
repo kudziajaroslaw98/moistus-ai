@@ -119,8 +119,6 @@ export function useMindMapCRUD({
     const defaultData: Partial<EdgeData> = {
       animated: false,
       label: undefined,
-      color: "#6c757d",
-      strokeWidth: 2,
       markerEnd: undefined,
     };
 
@@ -259,11 +257,10 @@ export function useMindMapCRUD({
             type: defaultEdgeProps.type,
             label: defaultEdgeProps.label,
             animated: defaultEdgeProps.animated,
-            color: defaultEdgeProps.color,
-            strokeWidth: defaultEdgeProps.strokeWidth,
             markerEnd: defaultEdgeProps.markerEnd,
+            markerStart: defaultEdgeProps.markerStart,
             style: defaultEdgeProps.style,
-            metadata: defaultEdgeProps.metadata,
+            metadata: {},
           };
 
           const { data: insertedEdgeData, error: edgeInsertError } =
@@ -292,9 +289,9 @@ export function useMindMapCRUD({
               type: finalEdgeData.type || "editableEdge",
               animated: finalEdgeData.animated ?? false,
               label: finalEdgeData.label,
-              style: finalEdgeData.style || {
-                stroke: finalEdgeData.color || "#6c757d",
-                strokeWidth: finalEdgeData.strokeWidth || 2,
+              style: {
+                stroke: finalEdgeData.style?.stroke || "#6c757d",
+                strokeWidth: finalEdgeData.style?.strokeWidth || 2,
               },
               markerEnd: finalEdgeData.markerEnd,
               data: finalEdgeData,
@@ -843,9 +840,9 @@ export function useMindMapCRUD({
           type: finalEdgeData.type || "editableEdge",
           animated: finalEdgeData.animated ?? false,
           label: finalEdgeData.label,
-          style: finalEdgeData.style || {
-            stroke: finalEdgeData.color || "#6c757d",
-            strokeWidth: finalEdgeData.strokeWidth || 2,
+          style: {
+            stroke: finalEdgeData.style?.stroke || "#6c757d",
+            strokeWidth: finalEdgeData.style?.strokeWidth || 2,
           },
           markerEnd: finalEdgeData.markerEnd,
           data: finalEdgeData,
@@ -926,8 +923,7 @@ export function useMindMapCRUD({
         "type",
         "label",
         "animated",
-        "color",
-        "strokeWidth",
+        "style",
         "markerEnd",
         "metadata",
       ];
@@ -943,15 +939,15 @@ export function useMindMapCRUD({
             } else {
               validUpdates[key] = changes[key];
             }
-          } else if (key === "strokeWidth") {
+          } else if (key === "style") {
             if (
-              changes[key] === undefined ||
-              changes[key] === null ||
-              changes[key].toString() === ""
+              typeof changes.style === "object" &&
+              changes.style !== null &&
+              Object.keys(changes.style).length > 0
             ) {
-              validUpdates[key] = null;
+              validUpdates.style = changes.style;
             } else {
-              validUpdates[key] = changes[key];
+              validUpdates.style = null;
             }
           } else if (key === "metadata") {
             if (
@@ -1000,10 +996,10 @@ export function useMindMapCRUD({
                   animated: validUpdates.animated ?? edge.animated,
 
                   style: {
-                    ...edge.style,
-                    stroke: validUpdates.color ?? edge.style?.stroke,
+                    stroke: validUpdates.style?.stroke ?? edge.style?.stroke,
                     strokeWidth:
-                      validUpdates.strokeWidth ?? edge.style?.strokeWidth,
+                      validUpdates.style?.strokeWidth ??
+                      edge.style?.strokeWidth,
                   },
                   markerEnd: validUpdates.markerEnd ?? edge.markerEnd,
 
@@ -1114,8 +1110,11 @@ export function useMindMapCRUD({
           type: edge.type || edge.data?.type || "defaultEdge",
           label: edge.data?.label,
           animated: edge.animated ?? edge.data?.animated ?? false,
-          color: edge.style?.stroke || edge.data?.color,
-          strokeWidth: edge.data?.strokeWidth,
+          style: {
+            stroke: edge.style?.stroke || edge.data?.style?.stroke || "#6c757d",
+            strokeWidth:
+              edge.style?.strokeWidth || edge.data?.style?.strokeWidth || 2,
+          },
           markerEnd: edge.data?.markerEnd,
           metadata: edge.data?.metadata,
           updated_at: new Date().toISOString(),

@@ -6,15 +6,20 @@ export interface EdgeData extends Record<string, unknown> {
   target: string;
   type?: string;
   label?: string | null;
-  animated?: boolean;
-  markerEnd?: string;
   created_at?: string;
   updated_at?: string;
-  color?: string | null;
-  strokeWidth?: number | null;
+  animated?: boolean;
+  markerEnd?: string;
+  markerStart?: string;
+  style?: {
+    stroke: string;
+    strokeWidth: string | number;
+  } | null;
   metadata?: {
     [key: string]: unknown;
   } | null;
-  isSuggested?: boolean | null;
-  reason?: string | null;
+  aiData?: {
+    isSuggested?: boolean | null;
+    reason?: string | null;
+  } | null;
 }

@@ -34,6 +34,7 @@ const formComponentMap: Record<
   resourceNode: lazy(() => import("../node-forms/resource-node-form")),
   annotationNode: lazy(() => import("../node-forms/annotation-node-form")),
   codeNode: lazy(() => import("../node-forms/code-node-form")),
+  textNode: lazy(() => import("../node-forms/text-node-form")), // Add TextNodeForm
 };
 
 export default function NodeEditModal({
@@ -53,8 +54,8 @@ export default function NodeEditModal({
 
   useEffect(() => {
     if (node) {
-      setAiSummary(node.data?.aiSummary);
-      setExtractedConcepts(node.data?.extractedConcepts);
+      setAiSummary(node.data?.aiData?.aiSummary);
+      setExtractedConcepts(node.data?.aiData?.extractedConcepts);
     } else {
       setAiSummary(undefined);
       setExtractedConcepts(undefined);

@@ -6,6 +6,7 @@ import ImageNode from "@/components/nodes/image-node";
 import QuestionNode from "@/components/nodes/question-node";
 import ResourceNode from "@/components/nodes/resource-node";
 import TaskNode from "@/components/nodes/task-node";
+import TextNode from "@/components/nodes/text-node"; // Import the new TextNode
 
 export const nodeTypes = {
   defaultNode: DefaultNode, // Note Node
@@ -16,4 +17,5 @@ export const nodeTypes = {
   annotationNode: AnnotationNode,
   groupNode: GroupNode,
   codeNode: CodeNode,
+  textNode: TextNode, // Add the new TextNode
 };

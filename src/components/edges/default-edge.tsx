@@ -16,6 +16,7 @@ const DefaultEdgeComponent = ({
   targetY,
   sourcePosition,
   targetPosition,
+  markerEnd,
   ...props
 }: EdgeProps<Edge<EdgeData>>) => {
   const data = props.data as EdgeData;
@@ -38,7 +39,7 @@ const DefaultEdgeComponent = ({
           props.selected ? "!stroke-blue-500" : "stroke-zinc-700",
           "",
         ])}
-        markerEnd={data?.markerEnd}
+        markerEnd={markerEnd}
         style={style}
         labelShowBg={false}
       />

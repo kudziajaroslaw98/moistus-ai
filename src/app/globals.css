@@ -3,47 +3,47 @@
 @import "@xyflow/react/dist/base.css";
 
 @theme inline {
-    --color-background: var(--background);
-    --color-foreground: var(--foreground);
-    --font-sans: var(--font-geist-sans);
-    --font-mono: var(--font-geist-mono);
-    --font-lora: var(--font-lora);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-lora: var(--font-lora);
 }
 
 @layer base {
-    :root {
-        --background: theme("colors.zinc.950"); /* Dark background */
-        --foreground: theme("colors.zinc.200"); /* Light text */
+  :root {
+    --background: theme("colors.zinc.950"); /* Dark background */
+    --foreground: theme("colors.zinc.200"); /* Light text */
 
-        /* You can define other CSS variables mapping to Tailwind if needed */
-        --accent: theme("colors.teal.500");
-        --accent-foreground: theme("colors.zinc.950");
+    /* You can define other CSS variables mapping to Tailwind if needed */
+    --accent: theme("colors.teal.500");
+    --accent-foreground: theme("colors.zinc.950");
 
-        --card: theme("colors.zinc.800");
-        --card-foreground: theme("colors.zinc.200");
+    --card: theme("colors.zinc.800");
+    --card-foreground: theme("colors.zinc.200");
 
-        --popover: theme("colors.zinc.800");
-        --popover-foreground: theme("colors.zinc.200");
+    --popover: theme("colors.zinc.800");
+    --popover-foreground: theme("colors.zinc.200");
 
-        --primary: theme("colors.zinc.200");
-        --primary-foreground: theme("colors.zinc.900");
+    --primary: theme("colors.zinc.200");
+    --primary-foreground: theme("colors.zinc.900");
 
-        --secondary: theme("colors.zinc.700");
-        --secondary-foreground: theme("colors.zinc.200");
+    --secondary: theme("colors.zinc.700");
+    --secondary-foreground: theme("colors.zinc.200");
 
-        --muted: theme("colors.zinc.700");
-        --muted-foreground: theme("colors.zinc.400");
+    --muted: theme("colors.zinc.700");
+    --muted-foreground: theme("colors.zinc.400");
 
-        --accent: theme("colors.zinc.700"); /* Revisit this if using Shadcn */
-        --accent-foreground: theme("colors.zinc.200");
+    --accent: theme("colors.zinc.700"); /* Revisit this if using Shadcn */
+    --accent-foreground: theme("colors.zinc.200");
 
-        --destructive: theme("colors.rose.600");
-        --destructive-foreground: theme("colors.zinc.200");
+    --destructive: theme("colors.rose.600");
+    --destructive-foreground: theme("colors.zinc.200");
 
-        --border: theme("colors.zinc.700");
-        --input: theme("colors.zinc.700");
-        --ring: theme("colors.teal.500"); /* Accent color for focus rings */
+    --border: theme("colors.zinc.700");
+    --input: theme("colors.zinc.700");
+    --ring: theme("colors.teal.500"); /* Accent color for focus rings */
 
-        --radius: 0.3rem; /* Slightly rounded corners */
-    }
+    --radius: 0.3rem; /* Slightly rounded corners */
+  }
 }

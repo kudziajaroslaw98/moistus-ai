@@ -27,9 +27,9 @@ export const transformDataToReactFlow = (
     animated: edge.animated ?? false,
     label: edge.label,
 
-    style: edge.style || {
-      stroke: edge.color || "#6c757d",
-      strokeWidth: edge.strokeWidth || 2,
+    style: {
+      stroke: edge.style?.stroke || "#6c757d",
+      strokeWidth: edge.style?.strokeWidth || 2,
     },
     markerEnd: edge.markerEnd || undefined,
 

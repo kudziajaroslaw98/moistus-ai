@@ -14,13 +14,8 @@ export interface NodeData extends Record<string, unknown> {
   importance?: number | null;
   sourceUrl?: string | null;
 
-  embedding?: number[];
-  aiSummary?: string;
-  extractedConcepts?: string[];
-
   metadata?: {
-    [key: string]: unknown;
-
+    title?: string;
     dueDate?: string;
     priority?: string | number;
     tasks?: { id: string; text: string; isComplete: boolean }[];
@@ -43,10 +38,27 @@ export interface NodeData extends Record<string, unknown> {
     fontWeight?: string | number;
     targetNodeId?: string;
     annotationType?: "comment" | "idea" | "quote" | "summary";
+
+    // New properties for TextNode
+    textAlign?: "left" | "center" | "right";
+    showBackground?: boolean;
+    backgroundColor?: string;
+    textColor?: string;
+    label?: string;
+    sourceBranchNodeId?: string;
+    language?: string;
+    showLineNumbers?: boolean;
+    fileName?: string;
+    image_url?: string;
+    borderColor?: string;
+  } | null;
+  aiData?: {
+    embedding?: number[];
+    aiSummary?: string;
+    extractedConcepts?: string[];
+    isSearchResult?: boolean;
   } | null;
 
   created_at: string;
   updated_at: string;
-
-  isSearchResult?: boolean;
 }

@@ -162,6 +162,7 @@ export default function DashboardPage() {
             className="flex-grow"
             disabled={isCreating}
           />
+
           <Button type="submit" disabled={!newMapTitle.trim() || isCreating}>
             {isCreating ? "Creating..." : "Create Map"}
           </Button>
@@ -171,12 +172,14 @@ export default function DashboardPage() {
         {loading && mindMaps.length > 0 && (
           <p className="mb-4 text-zinc-400">Refreshing maps...</p>
         )}
+
         {error && <p className="mb-4 text-red-400">Error: {error}</p>}
 
         {/* Mind Map List */}
         {mindMaps.length === 0 && !loading ? (
           <div className="py-10 text-center text-zinc-400">
             <p>You don&apos;t have any mind maps yet.</p>
+
             <p>Create one using the form above to get started!</p>
           </div>
         ) : (
@@ -190,10 +193,12 @@ export default function DashboardPage() {
                   <h2 className="mb-1 truncate text-lg font-semibold text-zinc-100">
                     {map.title}
                   </h2>
+
                   <p className="mb-4 text-sm text-zinc-400">
                     Created: {new Date(map.created_at).toLocaleDateString()}
                   </p>
                 </div>
+
                 <div className="mt-4 flex items-center justify-end gap-2">
                   <Button
                     onClick={() => handleDeleteMap(map.id)}
@@ -217,6 +222,7 @@ export default function DashboardPage() {
                       />
                     </svg>
                   </Button>
+
                   <Link
                     href={`/mind-map/${map.id}`}
                     title="Open Map"

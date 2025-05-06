@@ -19,9 +19,11 @@ export function FormField({
 }: FormFieldProps) {
   return (
     <div className={cn("space-y-2", className)}>
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id} className="flex flex-col gap-2">
+        {label}
 
-      {children}
+        {children}
+      </Label>
 
       {error && <p className="mt-1 text-sm text-rose-500">{error}</p>}
     </div>

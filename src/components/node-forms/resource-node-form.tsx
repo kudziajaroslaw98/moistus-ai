@@ -1,4 +1,4 @@
-import useFetch from "@/hooks/use-fetch";
+import type { ApiResponse } from "@/types/api-response";
 import { NodeData } from "@/types/node-data";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
@@ -39,8 +39,6 @@ const ResourceNodeForm = forwardRef<
   );
   const [fetchError, setFetchError] = useState<string | null>(null);
 
-  const { fetch } = useFetch();
-
   useEffect(() => {
     setContent(initialData?.content || "");
     setUrl((initialData.metadata?.url as string) || "");
@@ -69,13 +67,18 @@ const ResourceNodeForm = forwardRef<
     setFetchError(null);
 
     try {
-      const response = await fetch<UrlMetadata>("/api/process-url", {
+      const rawResponse = await window.fetch("/api/process-url", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           url: url.trim(),
           generateSummary: true,
         }),
       });
+
+      const response: ApiResponse<UrlMetadata> = await rawResponse.json();
 
       if (response.status === "success" && response.data) {
         if (response.data.title) {

@@ -42,7 +42,9 @@ export default function EdgeEditModal({
   const [type, setType] = useState("smoothstep");
   const [animated, setAnimated] = useState(false);
   const [color, setColor] = useState<string | undefined>("#6c757d");
-  const [strokeWidth, setStrokeWidth] = useState<number | undefined>(undefined);
+  const [strokeWidth, setStrokeWidth] = useState<string | number | undefined>(
+    undefined,
+  );
   const [markerEnd, setMarkerEnd] = useState<string | undefined>(undefined);
 
   useEffect(() => {
@@ -50,10 +52,12 @@ export default function EdgeEditModal({
       setLabel((edge.label as string) || (edge.data?.label as string) || "");
       setType(edge.type || edge.data?.type || "smoothstep");
       setAnimated(edge.animated ?? edge.data?.animated ?? false);
-      setColor((edge.style?.stroke as string) || edge.data?.color || "#6c757d");
+      setColor(
+        (edge.style?.stroke as string) || edge.data?.style?.stroke || "#6c757d",
+      );
       setStrokeWidth(
         (edge.style?.strokeWidth as number) ||
-          edge.data?.strokeWidth ||
+          edge.data?.style?.strokeWidth ||
           undefined,
       );
       setMarkerEnd(
@@ -86,9 +90,11 @@ export default function EdgeEditModal({
       label: label.trim() === "" ? undefined : label.trim(),
       type: type,
       animated: animated,
-      color: color,
-      strokeWidth: strokeWidth,
       markerEnd: markerEnd === "none" ? undefined : markerEnd,
+      style: {
+        stroke: color ?? "",
+        strokeWidth: strokeWidth ?? "",
+      },
     };
 
     await onSave(edge.id, changes);

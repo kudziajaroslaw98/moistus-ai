@@ -35,7 +35,7 @@ const SuggestedConnectionEdgeComponent = ({
       await aiActions.acceptSuggestedConnection({
         sourceNodeId: props.source,
         targetNodeId: props.target,
-        reason: props.data?.reason ?? "",
+        reason: props.data?.aiData?.reason ?? "",
       });
     }
   }, [aiActions, data]);
@@ -64,9 +64,9 @@ const SuggestedConnectionEdgeComponent = ({
           }}
           className="nodrag nopan flex flex-col items-center gap-1"
         >
-          {data?.reason && (
+          {data?.aiData?.reason && (
             <div className="rounded-sm bg-orange-600/80 px-1.5 py-0.5 text-xs font-medium text-white shadow-sm">
-              {data.reason}
+              {data?.aiData.reason}
             </div>
           )}
 

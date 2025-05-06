@@ -1,7 +1,9 @@
 import { cn } from "@/utils/cn";
-import { LabelHTMLAttributes, forwardRef } from "react";
+import { LabelHTMLAttributes, forwardRef, type PropsWithChildren } from "react";
 
-export type LabelProps = LabelHTMLAttributes<HTMLLabelElement>;
+export type LabelProps = PropsWithChildren<
+  LabelHTMLAttributes<HTMLLabelElement>
+>;
 
 const Label = forwardRef<HTMLLabelElement, LabelProps>(
   ({ className, ...props }, ref) => {
@@ -10,7 +12,9 @@ const Label = forwardRef<HTMLLabelElement, LabelProps>(
         className={cn("block text-sm font-medium text-zinc-400", className)}
         ref={ref}
         {...props}
-      />
+      >
+        {props.children}
+      </label>
     );
   },
 );

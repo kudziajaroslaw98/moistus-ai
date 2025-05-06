@@ -1,126 +1,171 @@
 import { createClient } from "@/helpers/supabase/client";
-import { transformDataToReactFlow } from "@/helpers/transform-data-to-react-flow";
+import { transformSupabaseData } from "@/helpers/transform-supabase-data";
+import { useNotifications } from "@/hooks/use-notifications";
 import { AppEdge } from "@/types/app-edge";
-import { EdgeData } from "@/types/edge-data"; // Import EdgeData and AppEdge
+import type { EdgeData } from "@/types/edge-data";
 import { MindMapData } from "@/types/mind-map-data";
 import { NodeData } from "@/types/node-data";
+import { SupabaseClient } from "@supabase/supabase-js";
 import { Node } from "@xyflow/react";
-import { useCallback, useEffect, useState } from "react"; // Import useCallback
-import { useNotifications } from "./use-notifications";
+import { useEffect, useState } from "react";
+import useSWR from "swr"; // Import useSWR
+
+type NodesTableType = NodeData & { user_id: string };
+type EdgesTableType = EdgeData & { user_id: string };
 
 interface UseMindMapDataResult {
-  mindMap: MindMapData | null;
+  mindMap: MindMapData | null; // SWR data can be undefined initially
   initialNodes: Node<NodeData>[];
-  initialEdges: AppEdge[]; // Use AppEdge for initial edges
+  initialEdges: AppEdge[];
   isLoading: boolean;
-  error: string | null;
-  fetchMindMapData: () => Promise<void>; // Make async
+  error: string | null | undefined; // SWR error can be an object or string
+  fetchMindMapData: () => void; // This will now use SWR's mutate
 }
+
+// Define a fetcher function for SWR
+const fetcher = async (
+  mapId: string,
+  supabase: SupabaseClient,
+): Promise<{
+  mindMap: MindMapData;
+  initialNodes: Node<NodeData>[];
+  initialEdges: AppEdge[];
+}> => {
+  if (!mapId) {
+    throw new Error("Map ID is required.");
+  }
+
+  const { data: mindMapData, error: mindMapError } = await supabase
+    .from("mind_maps")
+    .select(
+      `
+      id,
+      user_id,
+      created_at,
+      updated_at,
+      description,
+      title,
+      tags,
+      visibility,
+      thumbnailUrl,
+      nodes (
+      id,
+        map_id,
+        parent_id,
+        content,
+        position_x,
+        position_y,
+        width,
+        height,
+        node_type,
+        tags,
+        status,
+        importance,
+        sourceUrl,
+        metadata,
+        aiData,
+        created_at,
+        updated_at
+      ),
+      edges (
+        id,
+        map_id,
+        source,
+        target,
+        label,
+        type,
+         animated,
+        markerEnd,
+        markerStart,
+        style,
+        metadata,
+        aiData,
+        created_at,
+        updated_at
+      )
+    `,
+    )
+    .eq("id", mapId)
+    .single();
+
+  if (mindMapError) {
+    console.error("Error fetching from Supabase:", mindMapError);
+    throw new Error(mindMapError.message || "Failed to fetch mind map data.");
+  }
+
+  if (!mindMapData) {
+    throw new Error("Mind map not found.");
+  }
+
+  const transformedData = transformSupabaseData(
+    mindMapData as unknown as MindMapData & {
+      nodes: NodesTableType[];
+      edges: EdgesTableType[];
+    },
+  );
+
+  return {
+    mindMap: transformedData.mindMap,
+    initialNodes: transformedData.reactFlowNodes,
+    initialEdges: transformedData.reactFlowEdges,
+  };
+};
 
 export function useMindMapData(
   mapId: string | undefined,
 ): UseMindMapDataResult {
-  const [mindMap, setMindMap] = useState<MindMapData | null>(null);
-  const [initialNodes, setInitialNodes] = useState<Node<NodeData>[]>([]);
-  const [initialEdges, setInitialEdges] = useState<AppEdge[]>([]); // Use AppEdge
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { showNotification } = useNotifications();
   const supabase = createClient();
+  const { showNotification } = useNotifications();
 
-  const fetchMindMapData = useCallback(async () => {
-    // Wrap in useCallback
-    if (!mapId) {
-      setError("Map ID is missing.");
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    setMindMap(null);
-    setInitialNodes([]);
-    setInitialEdges([]);
-
-    try {
-      // --- Fetch Mind Map Data ---
-      const { data: mapData, error: mapError } = await supabase
-        .from("mind_maps")
-        .select("*") // Fetch all columns including new ones
-        .eq("id", mapId)
-        .single();
-
-      if (mapError || !mapData) {
-        // Check for 'Row not found' explicitly if needed for 404, otherwise treat as error
-        if (mapError?.code === "PGRST116") {
-          // Supabase code for 'Row not found'
-          throw new Error("Mind map not found.");
-        }
-
-        throw new Error(mapError?.message || "Failed to fetch mind map.");
-      }
-
-      setMindMap(mapData as MindMapData); // Cast to MindMapData
-
-      // --- Fetch Nodes ---
-      // Ensure width and height are selected
-      const { data: nodesData, error: nodesError } = await supabase
-        .from("nodes")
-        .select("*, width, height") // Explicitly select width and height
-        .eq("map_id", mapId);
-
-      if (nodesError) {
-        throw new Error(nodesError.message || "Failed to load mind map nodes.");
-      }
-
-      // --- Fetch Edges (from the new 'edges' table) ---
-      const { data: edgesData, error: edgesError } = await supabase
-        .from("edges")
-        .select("*") // Fetch all columns including new properties
-        .eq("map_id", mapId);
-
-      if (edgesError) {
-        // Log error but don't necessarily fail if nodes loaded
-        console.error("Error fetching edges:", edgesError);
-        // Optionally show a warning notification
-        showNotification("Warning: Failed to load some connections.", "error");
-      }
-
-      // Transform fetched data into React Flow format
-      const transformedData = transformDataToReactFlow(
-        (nodesData as NodeData[]) || [], // Ensure nodesData is an array and cast
-        (edgesData as EdgeData[]) || [], // Ensure edgesData is an array and cast
-      );
-
-      setInitialNodes(transformedData.reactFlowNodes);
-      setInitialEdges(transformedData.reactFlowEdges);
-
-      // showNotification("Mind map loaded.", "success"); // Might be too chatty on every load/refresh
-    } catch (err: unknown) {
-      // Use unknown
-      console.error("Error fetching mind map data:", err);
+  // Use SWR for data fetching
+  const {
+    data,
+    error: swrError,
+    isLoading,
+    mutate,
+  } = useSWR(mapId ? `/maps/${mapId}` : null, () => fetcher(mapId!, supabase), {
+    onError: (err) => {
+      console.error("SWR Error fetching mind map data:", err);
       const message =
         err instanceof Error
           ? err.message
           : "An unexpected error occurred loading the map.";
-      setError(message);
       showNotification(message, "error");
-    } finally {
-      setIsLoading(false);
-    }
-    // Add dependencies for useCallback
-  }, [mapId, supabase, showNotification]);
+    },
+    // onSuccess: () => {
+    //   showNotification("Mind map loaded.", "success"); // Optional: if you want a notification on successful load/revalidation
+    // }
+  });
+
+  // States derived from SWR's response
+  const [initialNodes, setInitialNodes] = useState<Node<NodeData>[]>([]);
+  const [initialEdges, setInitialEdges] = useState<AppEdge[]>([]);
 
   useEffect(() => {
-    fetchMindMapData();
-  }, [fetchMindMapData]); // Depend on the memoized fetch function
+    if (data) {
+      setInitialNodes(data.initialNodes);
+      setInitialEdges(data.initialEdges);
+    }
+  }, [data]);
+
+  const fetchMindMapData = () => {
+    if (mapId) {
+      mutate(); // Trigger revalidation
+    }
+  };
+
+  const errorString = swrError
+    ? swrError instanceof Error
+      ? swrError.message
+      : String(swrError)
+    : null;
 
   return {
-    mindMap,
+    mindMap: data?.mindMap ?? null,
     initialNodes,
     initialEdges,
     isLoading,
-    error,
+    error: errorString,
     fetchMindMapData,
   };
 }

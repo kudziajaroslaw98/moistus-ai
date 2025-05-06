@@ -1,10 +1,10 @@
 import generateUuid from "@/helpers/generate-uuid";
-import useFetch from "@/hooks/use-fetch";
 import { NotificationType } from "@/hooks/use-notifications";
 import { AiConnectionSuggestion } from "@/types/ai-connection-suggestion";
 import { AiMergeSuggestion } from "@/types/ai-merge-suggestion";
 import { AiNodeStructure } from "@/types/ai-node-structure";
-import { AiResponseStructure } from "@/types/ai-response-structure";
+import type { AiResponseStructure } from "@/types/ai-response-structure";
+import type { ApiResponse } from "@/types/api-response";
 import { AppEdge } from "@/types/app-edge";
 import { EdgeData } from "@/types/edge-data";
 import { HistoryState } from "@/types/history-state";
@@ -120,8 +120,6 @@ export function useAiFeatures({
   >(null);
   const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
 
-  const { fetch: fetchWrapper } = useFetch();
-
   const setLoading = (key: keyof AiLoadingStates, value: boolean) => {
     setLoadingStates((prev) => ({ ...prev, [key]: value }));
   };
@@ -164,45 +162,59 @@ export function useAiFeatures({
     setLoading("isGenerating", true);
     showNotification("Generating Map...", "success");
 
-    const response = await fetchWrapper<{ structure: AiResponseStructure }>(
-      "/api/generate-map",
-      {
+    try {
+      const response = await fetch("/api/generate-map", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: aiPrompt, mapId }),
-      },
-    );
+      });
+      const result: ApiResponse<{ structure: AiResponseStructure }> =
+        await response.json();
 
-    if (response.status === "success" && response.data?.structure?.root) {
-      const rootAiNode = response.data.structure.root;
-      let parentForAiStructure: string | null = null;
-      let rootNodePosition: { x: number; y: number } | undefined = {
-        x: 250,
-        y: 100,
-      };
+      if (result.status === "success" && result.data?.structure?.root) {
+        const rootAiNode = result.data.structure.root;
+        let parentForAiStructure: string | null = null;
+        let rootNodePosition: { x: number; y: number } | undefined = {
+          x: 250,
+          y: 100,
+        };
 
-      if (nodes.length > 0) {
-        const existingRoot = nodes.find((node) => !node.data.parent_id);
+        if (nodes.length > 0) {
+          const existingRoot = nodes.find((node) => !node.data.parent_id);
 
-        if (existingRoot) {
-          rootNodePosition = {
-            x: existingRoot.position.x + 300,
-            y: existingRoot.position.y + 100,
-          };
-          parentForAiStructure = null;
+          if (existingRoot) {
+            rootNodePosition = {
+              x: existingRoot.position.x + 300,
+              y: existingRoot.position.y + 100,
+            };
+            parentForAiStructure = null;
+          }
         }
-      }
 
-      await addAiStructure(rootAiNode, parentForAiStructure, rootNodePosition);
-      setAiPrompt("");
-      addStateToHistory("generateMap");
-      showNotification("Map structure generated.", "success");
-    } else {
-      const errorMsg =
-        response.status === "error"
-          ? response.error
-          : "Failed to generate map structure.";
-      console.error("Generate Map Error:", errorMsg);
-      showNotification(errorMsg, "error");
+        await addAiStructure(
+          rootAiNode,
+          parentForAiStructure,
+          rootNodePosition,
+        );
+        setAiPrompt("");
+        addStateToHistory("generateMap");
+        showNotification("Map structure generated.", "success");
+      } else {
+        const errorMsg =
+          result.status === "error"
+            ? result.error
+            : "Failed to generate map structure.";
+        console.error("Generate Map Error:", errorMsg);
+        showNotification(errorMsg, "error");
+      }
+    } catch (err) {
+      console.error("Generate Map Fetch Error:", err);
+      showNotification(
+        err instanceof Error
+          ? err.message
+          : "Network error during map generation.",
+        "error",
+      );
     }
 
     setLoading("isGenerating", false);
@@ -210,7 +222,6 @@ export function useAiFeatures({
     mapId,
     aiPrompt,
     loadingStates.isGenerating,
-    fetchWrapper,
     addAiStructure,
     addStateToHistory,
     showNotification,
@@ -234,32 +245,41 @@ export function useAiFeatures({
       setLoading("isSummarizing", true);
       showNotification("Summarizing Node...", "success");
 
-      const response = await fetchWrapper<{ summary: string }>(
-        "/api/summarize-node",
-        {
+      try {
+        const response = await fetch("/api/summarize-node", {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ nodeId }),
-        },
-      );
+        });
+        const result: ApiResponse<{ summary: string }> = await response.json();
 
-      if (response.status === "success") {
-        const summary = response.data.summary;
+        if (result.status === "success") {
+          const summary = result.data.summary;
 
-        if (
-          summary &&
-          summary.trim().length > 0 &&
-          summary.trim() !== "Node has no content to summarize."
-        ) {
-          await addNode(nodeId, `Summary: ${summary}`, "editableNode");
-          addStateToHistory("summarizeNode");
-          showNotification("Node summarized.", "success");
+          if (
+            summary &&
+            summary.trim().length > 0 &&
+            summary.trim() !== "Node has no content to summarize."
+          ) {
+            await addNode(nodeId, `Summary: ${summary}`, "editableNode");
+            addStateToHistory("summarizeNode");
+            showNotification("Node summarized.", "success");
+          } else {
+            showNotification("AI could not generate a summary.", "error");
+          }
         } else {
-          showNotification("AI could not generate a summary.", "error");
+          const errorMsg = result.error || "Failed to summarize node.";
+          console.error("Summarize Node Error:", errorMsg);
+          showNotification(errorMsg, "error");
         }
-      } else {
-        const errorMsg = response.error || "Failed to summarize node.";
-        console.error("Summarize Node Error:", errorMsg);
-        showNotification(errorMsg, "error");
+      } catch (err) {
+        console.error("Summarize Node Fetch Error:", err);
+        showNotification(
+          err instanceof Error
+            ? err.message
+            : "Network error during node summarization.",
+          "error",
+        );
       }
 
       setLoading("isSummarizing", false);
@@ -267,7 +287,6 @@ export function useAiFeatures({
     [
       nodes,
       loadingStates.isSummarizing,
-      fetchWrapper,
       addNode,
       addStateToHistory,
       showNotification,
@@ -287,82 +306,98 @@ export function useAiFeatures({
         summaryEdge: AppEdge | null;
       };
 
-      const response = await fetchWrapper<SummarizeBranchResponse>(
-        "/api/summarize-branch",
-        {
+      try {
+        const response = await fetch("/api/summarize-branch", {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ nodeId }),
-        },
-      );
+        });
+        const result: {
+          status: string;
+          data?: SummarizeBranchResponse;
+          error?: string;
+        } = await response.json();
 
-      if (response.status === "success" && response.data) {
-        const { summaryNode, summaryEdge } = response.data;
+        if (result.status === "success" && result.data) {
+          const { summaryNode, summaryEdge } = result.data;
 
-        if (summaryNode) {
-          const newFlowNode: Node<NodeData> = {
-            id: summaryNode.id,
-            type: summaryNode.node_type || "annotationNode",
-            position: { x: summaryNode.position_x, y: summaryNode.position_y },
-            data: {
+          if (summaryNode) {
+            const newFlowNode: Node<NodeData> = {
               id: summaryNode.id,
-              label:
-                summaryNode.label ||
-                summaryNode.content?.substring(0, 30) + "..." ||
-                "Summary",
-              created_at: summaryNode.created_at,
-              updated_at: summaryNode.updated_at,
-              position_x: summaryNode.position_x,
-              position_y: summaryNode.position_y,
-              content: summaryNode.content || "",
-              parent_id: summaryNode.parent_id,
-              node_type: summaryNode.node_type || "annotationNode",
-              map_id: summaryNode.map_id,
-              user_id: summaryNode.user_id,
-              sourceUrl: summaryNode.sourceUrl,
-              metadata: summaryNode.metadata || {},
-            },
-            width: summaryNode.width || 150,
-            height: summaryNode.height || 40,
-          };
-
-          setNodes((nds) => [...nds, newFlowNode]);
-
-          if (summaryEdge) {
-            const newFlowEdge: AppEdge = {
-              id: summaryEdge.id,
-              source: summaryEdge.source,
-              target: summaryEdge.target,
-              type: summaryEdge.type || "smoothstep",
-              user_id: summaryEdge.user_id,
-              label: summaryEdge.label,
-              style: summaryEdge.style,
-              animated: summaryEdge.animated,
-              markerEnd: summaryEdge.markerEnd,
-              markerStart: summaryEdge.markerStart,
-              data: summaryEdge.data,
+              type: summaryNode.node_type || "annotationNode",
+              position: {
+                x: summaryNode.position_x,
+                y: summaryNode.position_y,
+              },
+              data: {
+                id: summaryNode.id,
+                label:
+                  summaryNode.label ||
+                  summaryNode.content?.substring(0, 30) + "..." ||
+                  "Summary",
+                created_at: summaryNode.created_at,
+                updated_at: summaryNode.updated_at,
+                position_x: summaryNode.position_x,
+                position_y: summaryNode.position_y,
+                content: summaryNode.content || "",
+                parent_id: summaryNode.parent_id,
+                node_type: summaryNode.node_type || "annotationNode",
+                map_id: summaryNode.map_id,
+                user_id: summaryNode.user_id,
+                sourceUrl: summaryNode.sourceUrl,
+                metadata: summaryNode.metadata || {},
+              },
+              width: summaryNode.width || 150,
+              height: summaryNode.height || 40,
             };
-            setEdges((eds) => [...eds, newFlowEdge]);
-          } else {
-            console.warn(
-              `Summary node ${summaryNode.id} added, but edge creation failed.`,
-            );
-            showNotification(
-              "Branch summarized, but connection failed.",
-              "warning",
-            );
-          }
 
-          addStateToHistory("summarizeBranch");
-          showNotification("Branch summarized and added.", "success");
-        } else if (response.data.summaryNode === null) {
-          showNotification("Branch has no content to summarize.", "success");
-        } else {
-          showNotification("Failed to add summary node.", "error");
+            setNodes((nds) => [...nds, newFlowNode]);
+
+            if (summaryEdge) {
+              const newFlowEdge: AppEdge = {
+                id: summaryEdge.id,
+                source: summaryEdge.source,
+                target: summaryEdge.target,
+                type: summaryEdge.type || "smoothstep",
+                user_id: summaryEdge.user_id,
+                label: summaryEdge.label,
+                style: summaryEdge.style,
+                animated: summaryEdge.animated,
+                markerEnd: summaryEdge.markerEnd,
+                markerStart: summaryEdge.markerStart,
+                data: summaryEdge.data,
+              };
+              setEdges((eds) => [...eds, newFlowEdge]);
+            } else {
+              console.warn(
+                `Summary node ${summaryNode.id} added, but edge creation failed.`,
+              );
+              showNotification(
+                "Branch summarized, but connection failed.",
+                "warning",
+              );
+            }
+
+            addStateToHistory("summarizeBranch");
+            showNotification("Branch summarized and added.", "success");
+          } else if (result.data.summaryNode === null) {
+            showNotification("Branch has no content to summarize.", "success");
+          } else {
+            showNotification("Failed to add summary node.", "error");
+          }
+        } else if (result.status === "error") {
+          const errorMsg = result.error || "Failed to summarize branch.";
+          console.error("Summarize Branch Error:", errorMsg);
+          showNotification(errorMsg, "error");
         }
-      } else if (response.status === "error") {
-        const errorMsg = response.error || "Failed to summarize branch.";
-        console.error("Summarize Branch Error:", errorMsg);
-        showNotification(errorMsg, "error");
+      } catch (err) {
+        console.error("Summarize Branch Fetch Error:", err);
+        showNotification(
+          err instanceof Error
+            ? err.message
+            : "Network error during branch summarization.",
+          "error",
+        );
       }
 
       setLoading("isSummarizingBranch", false);
@@ -370,7 +405,6 @@ export function useAiFeatures({
     [
       nodes,
       loadingStates.isSummarizingBranch,
-      fetchWrapper,
       setNodes,
       setEdges,
       addStateToHistory,
@@ -398,48 +432,58 @@ export function useAiFeatures({
       setLoading("isExtracting", true);
       showNotification("Extracting Concepts...", "success");
 
-      const response = await fetchWrapper<{ concepts: string[] }>(
-        "/api/extract-concepts",
-        {
+      try {
+        const response = await fetch("/api/extract-concepts", {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ nodeId }),
-        },
-      );
+        });
+        const result: ApiResponse<{ concepts: string[] }> =
+          await response.json();
 
-      if (response.status === "success") {
-        const concepts = response.data.concepts;
+        if (result.status === "success") {
+          const concepts = result.data.concepts;
 
-        if (
-          concepts &&
-          concepts.length > 0 &&
-          concepts[0].trim() !== "Node has no content to analyze."
-        ) {
-          const conceptsRootNode = await addNode(
-            nodeId,
-            "Key Concepts",
-            "editableNode",
-          );
-
-          if (conceptsRootNode) {
-            for (const concept of concepts) {
-              await addNode(conceptsRootNode.id, concept, "editableNode");
-            }
-
-            addStateToHistory("extractConcepts");
-            showNotification("Concepts extracted and added.", "success");
-          } else {
-            showNotification(
-              "Concepts extracted, but failed to add nodes.",
-              "error",
+          if (
+            concepts &&
+            concepts.length > 0 &&
+            concepts[0].trim() !== "Node has no content to analyze."
+          ) {
+            const conceptsRootNode = await addNode(
+              nodeId,
+              "Key Concepts",
+              "editableNode",
             );
+
+            if (conceptsRootNode) {
+              for (const concept of concepts) {
+                await addNode(conceptsRootNode.id, concept, "editableNode");
+              }
+
+              addStateToHistory("extractConcepts");
+              showNotification("Concepts extracted and added.", "success");
+            } else {
+              showNotification(
+                "Concepts extracted, but failed to add nodes.",
+                "error",
+              );
+            }
+          } else {
+            showNotification("AI could not extract concepts.", "error");
           }
         } else {
-          showNotification("AI could not extract concepts.", "error");
+          const errorMsg = result.error || "Failed to extract concepts.";
+          console.error("Extract Concepts Error:", errorMsg);
+          showNotification(errorMsg, "error");
         }
-      } else {
-        const errorMsg = response.error || "Failed to extract concepts.";
-        console.error("Extract Concepts Error:", errorMsg);
-        showNotification(errorMsg, "error");
+      } catch (err) {
+        console.error("Extract Concepts Fetch Error:", err);
+        showNotification(
+          err instanceof Error
+            ? err.message
+            : "Network error during concept extraction.",
+          "error",
+        );
       }
 
       setLoading("isExtracting", false);
@@ -447,7 +491,6 @@ export function useAiFeatures({
     [
       nodes,
       loadingStates.isExtracting,
-      fetchWrapper,
       addNode,
       addStateToHistory,
       showNotification,
@@ -460,45 +503,61 @@ export function useAiFeatures({
     setLoading("isSearching", true);
     showNotification("Searching Map...", "success");
 
-    const response = await fetchWrapper<{ relevantNodeIds: string[] }>(
-      "/api/search-nodes",
-      {
+    try {
+      const response = await fetch("/api/search-nodes", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mapId, query: aiSearchQuery }),
-      },
-    );
+      });
+      const result: ApiResponse<{
+        relevantNodeIds: string[];
+      }> = await response.json();
 
-    if (response.status === "success") {
-      const relevantNodeIds = response.data.relevantNodeIds;
-      const relevantNodeIdsSet = new Set(relevantNodeIds);
-      setNodes((nds) =>
-        nds.map((node) => ({
-          ...node,
-          data: {
-            ...node.data,
-            isSearchResult: relevantNodeIdsSet.has(node.id),
-          },
-        })),
-      );
+      if (result.status === "success") {
+        const relevantNodeIds = result.data.relevantNodeIds;
+        const relevantNodeIdsSet = new Set(relevantNodeIds);
+        setNodes((nds) =>
+          nds.map((node) => ({
+            ...node,
+            data: {
+              ...node.data,
+              isSearchResult: relevantNodeIdsSet.has(node.id),
+            },
+          })),
+        );
+        showNotification(
+          `Found ${relevantNodeIds.length} relevant node(s).`,
+          "success",
+        );
+      } else {
+        setNodes((nds) =>
+          nds.map((node) =>
+            node.data.isSearchResult
+              ? { ...node, data: { ...node.data, isSearchResult: false } }
+              : node,
+          ),
+        );
+        const errorMsg =
+          result.status === "error" ? result.error : "No relevant nodes found.";
+        showNotification(
+          errorMsg,
+          result.status === "error" ? "error" : "success",
+        );
+      }
+    } catch (err) {
+      console.error("Search Nodes Fetch Error:", err);
       showNotification(
-        `Found ${relevantNodeIds.length} relevant node(s).`,
-        "success",
+        err instanceof Error
+          ? err.message
+          : "Network error during node search.",
+        "error",
       );
-    } else {
       setNodes((nds) =>
         nds.map((node) =>
           node.data.isSearchResult
             ? { ...node, data: { ...node.data, isSearchResult: false } }
             : node,
         ),
-      );
-      const errorMsg =
-        response.status === "error"
-          ? response.error
-          : "No relevant nodes found.";
-      showNotification(
-        errorMsg,
-        response.status === "error" ? "error" : "success",
       );
     }
 
@@ -507,7 +566,6 @@ export function useAiFeatures({
     mapId,
     aiSearchQuery,
     loadingStates.isSearching,
-    fetchWrapper,
     setNodes,
     showNotification,
   ]);
@@ -529,38 +587,48 @@ export function useAiFeatures({
       setLoading("isGeneratingContent", true);
       showNotification("Generating Content...", "success");
 
-      const response = await fetchWrapper<{ generatedContent: string }>(
-        "/api/generate-content",
-        {
+      try {
+        const response = await fetch("/api/generate-content", {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             nodeId,
             additionalPrompt: additionalPrompt.trim(),
           }),
-        },
-      );
+        });
+        const result: ApiResponse<{ generatedContent: string }> =
+          await response.json();
 
-      if (response.status === "success") {
-        const generatedContent = response.data.generatedContent;
+        if (result.status === "success") {
+          const generatedContent = result.data.generatedContent;
 
-        if (
-          generatedContent &&
-          generatedContent.trim().length > 0 &&
-          generatedContent.trim() !== "Node has no content to expand on."
-        ) {
-          await addNode(nodeId, generatedContent, "editableNode");
-          addStateToHistory("generateContent");
-          showNotification("Content generated and added.", "success");
+          if (
+            generatedContent &&
+            generatedContent.trim().length > 0 &&
+            generatedContent.trim() !== "Node has no content to expand on."
+          ) {
+            await addNode(nodeId, generatedContent, "editableNode");
+            addStateToHistory("generateContent");
+            showNotification("Content generated and added.", "success");
+          } else {
+            showNotification(
+              "AI could not generate content based on this node.",
+              "error",
+            );
+          }
         } else {
-          showNotification(
-            "AI could not generate content based on this node.",
-            "error",
-          );
+          const errorMsg = result.error || "Failed to generate content.";
+          console.error("Generate Content Error:", errorMsg);
+          showNotification(errorMsg, "error");
         }
-      } else {
-        const errorMsg = response.error || "Failed to generate content.";
-        console.error("Generate Content Error:", errorMsg);
-        showNotification(errorMsg, "error");
+      } catch (err) {
+        console.error("Generate Content Fetch Error:", err);
+        showNotification(
+          err instanceof Error
+            ? err.message
+            : "Network error during content generation.",
+          "error",
+        );
       }
 
       setLoading("isGeneratingContent", false);
@@ -568,7 +636,6 @@ export function useAiFeatures({
     [
       nodes,
       loadingStates.isGeneratingContent,
-      fetchWrapper,
       addNode,
       addStateToHistory,
       showNotification,
@@ -583,43 +650,58 @@ export function useAiFeatures({
     showNotification("Suggesting Connections...", "success");
     setSuggestedEdges([]);
 
-    const response = await fetchWrapper<{
-      suggestions: AiConnectionSuggestion[];
-    }>("/api/suggest-connections", {
-      method: "POST",
-      body: JSON.stringify({ mapId }),
-    });
+    try {
+      const response = await fetch("/api/suggest-connections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mapId }),
+      });
+      const result: ApiResponse<{ suggestions: AiConnectionSuggestion[] }> =
+        await response.json();
 
-    if (response.status === "success") {
-      const suggestions = response.data.suggestions;
+      if (result.status === "success") {
+        const suggestions = result.data.suggestions;
 
-      if (suggestions && suggestions.length > 0) {
-        const suggestedReactFlowEdges: Edge<Partial<EdgeData>>[] =
-          suggestions.map((suggestion) => ({
-            id: `suggested-${generateUuid()}`,
-            source: suggestion.sourceNodeId,
-            target: suggestion.targetNodeId,
-            type: "suggestedConnection",
-            animated: true,
-            style: { stroke: "orange", strokeWidth: 2, strokeDasharray: "5 5" },
-            data: {
-              reason: suggestion.reason,
-              sourceNodeId: suggestion.sourceNodeId,
-              targetNodeId: suggestion.targetNodeId,
-            },
-          }));
-        setSuggestedEdges(suggestedReactFlowEdges);
-        showNotification(
-          `Suggested ${suggestions.length} connection(s).`,
-          "success",
-        );
+        if (suggestions && suggestions.length > 0) {
+          const suggestedReactFlowEdges: Edge<Partial<EdgeData>>[] =
+            suggestions.map((suggestion) => ({
+              id: `suggested-${generateUuid()}`,
+              source: suggestion.sourceNodeId,
+              target: suggestion.targetNodeId,
+              type: "suggestedConnection",
+              animated: true,
+              style: {
+                stroke: "orange",
+                strokeWidth: 2,
+                strokeDasharray: "5 5",
+              },
+              data: {
+                reason: suggestion.reason,
+                sourceNodeId: suggestion.sourceNodeId,
+                targetNodeId: suggestion.targetNodeId,
+              },
+            }));
+          setSuggestedEdges(suggestedReactFlowEdges);
+          showNotification(
+            `Suggested ${suggestions.length} connection(s).`,
+            "success",
+          );
+        } else {
+          showNotification("No new connections suggested.", "success");
+        }
       } else {
-        showNotification("No new connections suggested.", "success");
+        const errorMsg = result.error || "Failed to suggest connections.";
+        console.error("Suggest Connections Error:", errorMsg);
+        showNotification(errorMsg, "error");
       }
-    } else {
-      const errorMsg = response.error || "Failed to suggest connections.";
-      console.error("Suggest Connections Error:", errorMsg);
-      showNotification(errorMsg, "error");
+    } catch (err) {
+      console.error("Suggest Connections Fetch Error:", err);
+      showNotification(
+        err instanceof Error
+          ? err.message
+          : "Network error during connection suggestion.",
+        "error",
+      );
     }
 
     setLoading("isSuggestingConnections", false);
@@ -627,7 +709,6 @@ export function useAiFeatures({
     mapId,
     nodes.length,
     loadingStates.isSuggestingConnections,
-    fetchWrapper,
     showNotification,
   ]);
 
@@ -638,41 +719,45 @@ export function useAiFeatures({
     showNotification("Suggesting Merges...", "success");
     setMergeSuggestions([]);
 
-    const response = await fetchWrapper<{ suggestions: AiMergeSuggestion[] }>(
-      "/api/suggest-merges",
-      {
+    try {
+      const response = await fetch("/api/suggest-merges", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mapId }),
-      },
-    );
+      });
+      const result: ApiResponse<{ suggestions: AiMergeSuggestion[] }> =
+        await response.json();
 
-    if (response.status === "success") {
-      const suggestions = response.data.suggestions;
+      if (result.status === "success") {
+        const suggestions = result.data.suggestions;
 
-      if (suggestions && suggestions.length > 0) {
-        setMergeSuggestions(suggestions);
-        setIsMergeModalOpen(true);
-        showNotification(
-          `Suggested ${suggestions.length} merge(s).`,
-          "success",
-        );
+        if (suggestions && suggestions.length > 0) {
+          setMergeSuggestions(suggestions);
+          setIsMergeModalOpen(true);
+          showNotification(
+            `Suggested ${suggestions.length} merge(s).`,
+            "success",
+          );
+        } else {
+          showNotification("No merge suggestions found.", "success");
+        }
       } else {
-        showNotification("No merge suggestions found.", "success");
+        const errorMsg = result.error || "Failed to suggest merges.";
+        console.error("Suggest Merges Error:", errorMsg);
+        showNotification(errorMsg, "error");
       }
-    } else {
-      const errorMsg = response.error || "Failed to suggest merges.";
-      console.error("Suggest Merges Error:", errorMsg);
-      showNotification(errorMsg, "error");
+    } catch (err) {
+      console.error("Suggest Merges Fetch Error:", err);
+      showNotification(
+        err instanceof Error
+          ? err.message
+          : "Network error during merge suggestion.",
+        "error",
+      );
     }
 
     setLoading("isSuggestingMerges", false);
-  }, [
-    mapId,
-    nodes.length,
-    loadingStates.isSuggestingMerges,
-    fetchWrapper,
-    showNotification,
-  ]);
+  }, [mapId, nodes.length, loadingStates.isSuggestingMerges, showNotification]);
 
   const acceptSuggestedConnection = useCallback(
     async (suggestionData: AiConnectionSuggestion) => {

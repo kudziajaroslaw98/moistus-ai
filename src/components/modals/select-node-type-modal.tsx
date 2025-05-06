@@ -8,6 +8,7 @@ import {
   Image,
   Link,
   MessageSquare,
+  Type, // Import Type icon for TextNode
 } from "lucide-react";
 import Modal from "../modal";
 import { Button } from "../ui/button";
@@ -30,6 +31,7 @@ const nodeTypeDisplayInfo: Record<
   groupNode: { name: "Group", icon: GroupIcon },
   annotationNode: { name: "Annotation", icon: MessageSquare },
   codeNode: { name: "Code Snippet", icon: Code },
+  textNode: { name: "Text", icon: Type }, // Add TextNode
 };
 
 export default function SelectNodeTypeModal({

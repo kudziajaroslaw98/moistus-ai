@@ -22,6 +22,7 @@ import ImageNode from "@/components/nodes/image-node";
 import QuestionNode from "@/components/nodes/question-node";
 import ResourceNode from "@/components/nodes/resource-node";
 import TaskNode from "@/components/nodes/task-node";
+import TextNode from "@/components/nodes/text-node"; // Import TextNode
 
 import DefaultEdge from "@/components/edges/default-edge";
 import EditableEdge from "@/components/edges/editable-edge";
@@ -121,6 +122,9 @@ export function ReactFlowArea() {
       groupNode: (props) => (
         <GroupNode {...props} onEditNode={handleOpenNodeEdit} />
       ), // Assuming GroupNode also needs edit
+      textNode: (props) => (
+        <TextNode {...props} onEditNode={handleOpenNodeEdit} />
+      ), // Add TextNode
     }),
     [handleOpenNodeEdit], // Dependency array includes the callback
   );
