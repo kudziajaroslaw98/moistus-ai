@@ -30,11 +30,11 @@
     "react-dom": "^19.0.0",
     "react-markdown": "^10.1.0",
     "react-syntax-highlighter": "^15.6.1",
+    "sanitize-html": "^2.16.0",
     "swr": "^2.3.3",
     "tailwind-merge": "^3.2.0",
     "uuid": "^11.1.0",
-    "zod": "^3.24.3",
-    "sanitize-html": "^2.16.0"
+    "zod": "^3.24.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -43,6 +43,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/sanitize-html": "^2.16.0",
     "eslint": "^9",
     "eslint-config-next": "15.3.1",
     "eslint-plugin-react": "^7.37.5",
