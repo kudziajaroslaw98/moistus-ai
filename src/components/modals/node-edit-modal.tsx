@@ -91,12 +91,13 @@ export default function NodeEditModal({
       setSelectedNodeType(currentType);
       setNodeData(node);
     }
-  }, [node, isOpen, isLoading]);
+  }, [node, isOpen, isLoading, isSaving]);
 
   console.log(node, "node");
   console.log(selectedNodeType, "selectedNodeType");
 
   const handleNodeTypeChange = (newType: string) => {
+    if (!node || isLoading || isSaving || newType === selectedNodeType) return;
     setSelectedNodeType(newType);
   };
 
