@@ -1,6 +1,7 @@
 import { respondError, respondSuccess } from "@/helpers/api/responses";
 import { withApiValidation } from "@/helpers/api/with-api-validation";
 import { defaultModel } from "@/lib/ai/gemini";
+import sanitizeHtml from "sanitize-html";
 import { z } from "zod";
 
 const requestBodySchema = z.object({
@@ -80,10 +81,11 @@ export const POST = withApiValidation(
 
       if (generateSummary) {
         // Extract text - this is a simplified approach
-        const textContent = html
-          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-          .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
-          .replace(/<[^>]*>/g, " ")
+        const sanitizedHtml = sanitizeHtml(html, {
+          allowedTags: [], // Remove all tags
+          allowedAttributes: {}, // Remove all attributes
+        });
+        const textContent = sanitizedHtml
           .replace(/\s+/g, " ")
           .trim()
           .substring(0, 15000); // Limit content

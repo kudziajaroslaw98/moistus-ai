@@ -39,7 +39,7 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
     position?: XYPosition;
   } | null>(null);
   const [isNodeEditModalOpen, setIsNodeEditModalOpen] = useState(false);
-  const [nodeToEdit, setNodeToEdit] = useState<Node<NodeData> | null>(null);
+  const [nodeToEdit, setNodeToEdit] = useState<NodeData | null>(null);
   const [isEdgeEditModalOpen, setIsEdgeEditModalOpen] = useState(false);
   const [edgeToEdit, setEdgeToEdit] = useState<AppEdge | null>(null);
   const [isHistorySidebarOpen, setIsHistorySidebarOpen] = useState(false); // New state
