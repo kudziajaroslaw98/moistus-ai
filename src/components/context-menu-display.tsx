@@ -3,6 +3,7 @@ import { AiLoadingStates } from "@/hooks/use-ai-features";
 import { ContextMenuState } from "@/types/context-menu-state";
 import { EdgeData } from "@/types/edge-data";
 import { NodeData } from "@/types/node-data";
+import type { PathType } from "@/types/path-types";
 import { cn } from "@/utils/cn";
 import { Edge, Node, ReactFlowInstance, XYPosition } from "@xyflow/react";
 import {
@@ -29,8 +30,12 @@ import AStepBIcon from "./icons/a-step-b";
 import AStrainghtBIcon from "./icons/a-straight-b";
 import { Button } from "./ui/button";
 
-const edgeTypesOptions = ["smoothstep", "step", "straight", "bezier"] as const;
-type EdgeTypesType = "smoothstep" | "step" | "straight" | "bezier";
+const edgePathTypeOptions: PathType[] = [
+  "smoothstep",
+  "step",
+  "straight",
+  "bezier",
+];
 const edgeColorOptions = [
   { name: "Default", value: undefined },
   { name: "Grey", value: "#888" },
@@ -49,7 +54,9 @@ interface ContextMenuDisplayProps {
   deleteEdge: (edgeId: string) => Promise<void>;
   saveEdgeStyle: (
     edgeId: string,
-    styleChanges: Partial<EdgeData>,
+    changes: Partial<
+      Pick<EdgeData, "animated" | "style" | "markerEnd" | "label" | "metadata">
+    >,
   ) => Promise<void>;
   aiActions: {
     summarizeNode: (nodeId: string) => void;
@@ -95,7 +102,7 @@ export function ContextMenuDisplay({
     closeContextMenu();
   };
 
-  const getItemIcon = (type: EdgeTypesType) => {
+  const getItemIcon = (type: PathType) => {
     switch (type) {
       case "smoothstep":
         return <ASmoothstepBIcon className="size-4 stroke-zinc-200" />;
@@ -105,6 +112,8 @@ export function ContextMenuDisplay({
         return <AStrainghtBIcon className="size-4 stroke-zinc-200" />;
       case "bezier":
         return <ABezierBIcon className="size-4 stroke-zinc-200" />;
+      default:
+        return <ASmoothstepBIcon className="size-4 stroke-zinc-200" />;
     }
   };
 
@@ -114,7 +123,6 @@ export function ContextMenuDisplay({
         Node
       </span>
 
-      {/* ... existing node menu items ... */}
       <Button
         variant="ghost"
         align="left"
@@ -360,15 +368,16 @@ export function ContextMenuDisplay({
           Edge Style
         </span>
 
-        {/* Simple actions */}
-
         <Button
           variant="ghost"
           align="left"
           disabled={isLoading}
           onClick={() =>
             handleActionClick(
-              () => saveEdgeStyle(edgeId, { animated: !clickedEdge.animated }),
+              () =>
+                saveEdgeStyle(edgeId, {
+                  animated: !clickedEdge.animated,
+                }),
               isLoading,
             )
           }
@@ -385,7 +394,6 @@ export function ContextMenuDisplay({
           </span>
         </Button>
 
-        {/* --- Change Type Submenu --- */}
         <div
           className={
             `block w-full rounded-md text-left px-3 py-1.5 h-8 text-xs text-zinc-200 hover:bg-zinc-800 transition-color cursor-pointer ${
@@ -399,41 +407,51 @@ export function ContextMenuDisplay({
             <div className="flex items-center gap-2">
               <Shapes className="size-4" />
 
-              <span>Change Type ({clickedEdge.type || "default"}) </span>
+              <span>
+                Change Path Style (
+                {clickedEdge.data?.metadata?.pathType || "smoothstep"})
+              </span>
             </div>
 
             <ChevronRight className="size-4" />
           </div>
 
           <div
-            className={`invisible absolute top-0 left-full z-10 ml-1 flex min-w-[120px] flex-col gap-1 rounded-sm border border-zinc-800 bg-zinc-950 p-1 opacity-0 shadow-lg transition-all delay-100 duration-150 ease-in-out group-hover:visible group-hover:opacity-100 group-hover:delay-0`}
+            className={`invisible absolute top-0 left-full z-10 ml-1 flex min-w-[150px] flex-col gap-1 rounded-sm border border-zinc-800 bg-zinc-950 p-1 opacity-0 shadow-lg transition-all delay-100 duration-150 ease-in-out group-hover:visible group-hover:opacity-100 group-hover:delay-0`}
           >
-            {edgeTypesOptions.map((type) => (
+            {edgePathTypeOptions.map((pathType) => (
               <Button
                 variant="ghost"
                 size={"sm"}
-                key={type}
+                key={pathType}
                 align={"left"}
                 className={cn(["flex items-center justify-start gap-2"])}
                 onClick={() =>
                   handleActionClick(
-                    () => saveEdgeStyle(edgeId, { type }),
+                    () =>
+                      saveEdgeStyle(edgeId, {
+                        metadata: {
+                          ...(clickedEdge.data?.metadata || {}),
+                          pathType: pathType,
+                        },
+                      }),
                     isLoading,
                   )
                 }
-                disabled={clickedEdge.type === type || isLoading}
+                disabled={
+                  clickedEdge.data?.metadata?.pathType === pathType || isLoading
+                }
               >
-                {getItemIcon(type)}
+                {getItemIcon(pathType)}
 
-                {type.charAt(0).toUpperCase() + type.slice(1)}
+                {pathType
+                  ? pathType.charAt(0).toUpperCase() + pathType.slice(1)
+                  : "Default"}
               </Button>
             ))}
           </div>
         </div>
 
-        {/* --------------------------- */}
-
-        {/* --- Change Color Submenu --- */}
         <div
           className={
             `block w-full rounded-md text-left px-3 py-1.5 h-8 text-xs text-zinc-200 hover:bg-zinc-800 transition-color cursor-pointer ${
@@ -470,7 +488,14 @@ export function ContextMenuDisplay({
                 align={"left"}
                 onClick={() =>
                   handleActionClick(
-                    () => saveEdgeStyle(edgeId, { color: colorOpt.value }),
+                    () =>
+                      saveEdgeStyle(edgeId, {
+                        style: {
+                          ...clickedEdge.style,
+                          strokeWidth: clickedEdge.style?.strokeWidth || "",
+                          stroke: colorOpt.value || "",
+                        },
+                      }),
                     isLoading,
                   )
                 }
@@ -492,10 +517,6 @@ export function ContextMenuDisplay({
             ))}
           </div>
         </div>
-
-        {/* -------------------------- */}
-
-        {/* ... (rest of edge menu items like delete) ... */}
       </>
     ) : null;
 

@@ -2,7 +2,7 @@ import { NodeData } from "@/types/node-data";
 import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 
 interface AnnotationNodeFormProps {
-  initialData: NodeData;
+  initialData: Partial<NodeData>;
 }
 
 const annotationTypes = ["comment", "idea", "quote", "summary"];

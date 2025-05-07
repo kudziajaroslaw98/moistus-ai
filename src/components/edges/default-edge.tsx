@@ -20,7 +20,8 @@ const DefaultEdgeComponent = ({
   ...props
 }: EdgeProps<Edge<EdgeData>>) => {
   const data = props.data as EdgeData;
-  const style = props.style as Edge["style"];
+  const baseStyle = props.style as Edge["style"]; // Original style from AppEdge
+
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
@@ -34,13 +35,12 @@ const DefaultEdgeComponent = ({
     <>
       <BaseEdge
         path={edgePath}
-        className={cn([
-          "react-flow__edge-path",
-          props.selected ? "!stroke-blue-500" : "stroke-zinc-700",
-          "",
-        ])}
+        className={cn(["react-flow__edge-path"])}
         markerEnd={markerEnd}
-        style={style}
+        style={{
+          stroke: props.selected ? "#3b82f6" : baseStyle?.stroke || "#6c757d", // Sky-500 for selected, else from props or default
+          strokeWidth: baseStyle?.strokeWidth || 2,
+        }}
         labelShowBg={false}
       />
 

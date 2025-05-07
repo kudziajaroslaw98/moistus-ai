@@ -6,22 +6,21 @@ import React from "react";
 interface SidePanelProps {
   isOpen: boolean;
   onClose: () => void;
-  clearData: () => void;
   title: string;
   children: React.ReactNode;
   className?: string;
+  clearData?: () => void;
 }
 
 export function SidePanel({
   isOpen,
   onClose,
-  clearData,
   title,
   children,
   className,
 }: SidePanelProps) {
   return (
-    <AnimatePresence mode="popLayout" onExitComplete={clearData}>
+    <AnimatePresence mode="popLayout">
       {isOpen && (
         <motion.div
           key={`side-panel-${title.toLowerCase().trim()}`}
@@ -33,7 +32,7 @@ export function SidePanel({
             ease: [0.4, 0, 0.2, 1],
           }}
           className={cn(
-            "fixed top-0 right-0 bottom-0 z-40 h-full w-[450px] transform bg-zinc-950 shadow-xl",
+            "fixed top-0 right-0 bottom-0 z-40 h-full w-full max-w-sm transform bg-zinc-950 shadow-xl",
             className,
           )}
         >

@@ -5,7 +5,7 @@ import Image from "next/image";
 import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 
 interface ResourceNodeFormProps {
-  initialData: NodeData;
+  initialData: Partial<NodeData>;
 }
 
 interface UrlMetadata {

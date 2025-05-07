@@ -9,7 +9,7 @@ import { Textarea } from "../ui/textarea";
 import { commonLanguages } from "@/constants/common-languages";
 
 interface CodeNodeFormProps {
-  initialData: NodeData;
+  initialData: Partial<NodeData>;
 }
 
 const CodeNodeForm = forwardRef<

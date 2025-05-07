@@ -11,6 +11,7 @@ import {
   EdgeChange,
   getIncomers,
   getNodesBounds,
+  MarkerType,
   Node,
   NodeChange,
   XYPosition,
@@ -789,7 +790,7 @@ export function useMindMapCRUD({
         const newEdgeId = generateUuid();
 
         const defaultEdgeProps = getDefaultEdgePropertiesForType(
-          initialData.type,
+          initialData.type || "floatingEdge", // Default to floatingEdge
         );
 
         const newEdgeDbData: Omit<EdgeData, "created_at" | "updated_at"> & {
@@ -804,7 +805,7 @@ export function useMindMapCRUD({
 
           ...defaultEdgeProps,
           ...initialData,
-
+          markerEnd: MarkerType.Arrow,
           metadata:
             initialData.metadata !== undefined
               ? initialData.metadata
@@ -837,7 +838,7 @@ export function useMindMapCRUD({
           source: finalEdgeData.source,
           target: finalEdgeData.target,
           user_id: finalEdgeData.user_id || "",
-          type: finalEdgeData.type || "editableEdge",
+          type: finalEdgeData.type || "floatingEdge", // Ensure type is floatingEdge
           animated: finalEdgeData.animated ?? false,
           label: finalEdgeData.label,
           style: {
@@ -918,13 +919,13 @@ export function useMindMapCRUD({
 
   const saveEdgeProperties = useCallback(
     async (edgeId: string, changes: Partial<EdgeData>): Promise<void> => {
-      const validUpdates: EdgeData = {} as EdgeData;
+      const validUpdates: Partial<EdgeData> = {};
       const editableKeys: (keyof EdgeData)[] = [
-        "type",
         "label",
         "animated",
         "style",
         "markerEnd",
+        "markerStart",
         "metadata",
       ];
 
@@ -991,25 +992,65 @@ export function useMindMapCRUD({
             edge.id === edgeId
               ? {
                   ...edge,
-                  type: validUpdates.type ?? edge.type,
-                  label: validUpdates.label ?? edge.label,
-                  animated: validUpdates.animated ?? edge.animated,
-
+                  label:
+                    validUpdates.label !== undefined
+                      ? validUpdates.label
+                      : edge.label,
+                  animated:
+                    validUpdates.animated !== undefined
+                      ? validUpdates.animated
+                      : edge.animated,
                   style: {
-                    stroke: validUpdates.style?.stroke ?? edge.style?.stroke,
+                    stroke:
+                      validUpdates.style?.stroke ??
+                      edge.style?.stroke ??
+                      "#6c757d",
                     strokeWidth:
                       validUpdates.style?.strokeWidth ??
-                      edge.style?.strokeWidth,
+                      edge.style?.strokeWidth ??
+                      2,
                   },
-                  markerEnd: validUpdates.markerEnd ?? edge.markerEnd,
-
+                  markerEnd:
+                    validUpdates.markerEnd !== undefined
+                      ? validUpdates.markerEnd
+                      : edge.markerEnd,
+                  markerStart:
+                    validUpdates.markerStart !== undefined
+                      ? validUpdates.markerStart
+                      : edge.markerStart,
                   data: {
-                    ...edge.data,
+                    ...edge.data!,
                     ...validUpdates,
-                    metadata:
-                      validUpdates.metadata !== undefined
-                        ? validUpdates.metadata
-                        : edge.data?.metadata,
+                    label:
+                      validUpdates.label !== undefined
+                        ? validUpdates.label
+                        : edge.data?.label,
+                    animated:
+                      validUpdates.animated !== undefined
+                        ? validUpdates.animated
+                        : edge.data?.animated,
+                    style: {
+                      stroke:
+                        validUpdates.style?.stroke ??
+                        edge.data?.style?.stroke ??
+                        "#6c757d",
+                      strokeWidth:
+                        validUpdates.style?.strokeWidth ??
+                        edge.data?.style?.strokeWidth ??
+                        2,
+                    },
+                    markerEnd:
+                      validUpdates.markerEnd !== undefined
+                        ? validUpdates.markerEnd
+                        : edge.data?.markerEnd,
+                    markerStart:
+                      validUpdates.markerStart !== undefined
+                        ? validUpdates.markerStart
+                        : edge.data?.markerStart,
+                    metadata: {
+                      ...(edge.data?.metadata || {}),
+                      ...(validUpdates.metadata || {}),
+                    },
                   },
                 }
               : edge,

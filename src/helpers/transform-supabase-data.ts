@@ -59,8 +59,14 @@ export const transformSupabaseData = (
     source: edge.source,
     target: edge.target,
     // Ensure data conforms to EdgeData, casting might be needed
-    data: edge as unknown as EdgeData,
-    type: edge.type || "editableEdge",
+    data: {
+      ...edge, // Spread all properties from db edge
+      metadata: {
+        ...(edge.metadata || {}), // Spread existing metadata from db
+        pathType: edge.metadata?.pathType, // Explicitly map pathType
+      },
+    } as unknown as EdgeData,
+    type: "floatingEdge", // Default to floatingEdge
     label: edge.label || undefined,
     // Handle potential JSON string or object for style
     animated: edge.animated,

@@ -6,7 +6,7 @@ import { NodeData } from "@/types/node-data";
 import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 
 interface DefaultNodeFormProps {
-  initialData: NodeData;
+  initialData: Partial<NodeData>;
 }
 
 interface DefaultNodeFormRef {
@@ -106,7 +106,7 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
               <Input
                 id="defaultNodeImportance"
                 type="number"
-                value={importance ?? ""}
+                value={Number.isFinite(importance) ? importance : ""}
                 onChange={(e) => {
                   const value = parseInt(e.target.value, 10);
                   setImportance(isNaN(value) ? undefined : value);

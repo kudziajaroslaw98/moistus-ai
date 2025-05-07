@@ -33,7 +33,13 @@ export const transformDataToReactFlow = (
     },
     markerEnd: edge.markerEnd || undefined,
 
-    data: edge,
+    data: {
+      ...edge,
+      metadata: {
+        ...(edge.metadata || {}),
+        pathType: edge.metadata?.pathType,
+      },
+    },
   }));
 
   return { reactFlowNodes, reactFlowEdges };

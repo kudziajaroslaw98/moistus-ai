@@ -5,7 +5,7 @@ import {
   Edge,
   EdgeLabelRenderer,
   EdgeProps,
-  getSmoothStepPath
+  getSmoothStepPath,
 } from "@xyflow/react";
 import { memo } from "react";
 
@@ -19,7 +19,8 @@ const EditableEdgeComponent = ({
   ...props
 }: EdgeProps<Edge<EdgeData>>) => {
   const data = props.data as EdgeData;
-  const style = props.style as Edge["style"];
+  const baseStyle = props.style as Edge["style"]; // Original style from AppEdge
+
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
@@ -37,10 +38,12 @@ const EditableEdgeComponent = ({
           "react-flow__edge-path",
           "cursor-pointer",
           "transition-all duration-200 ease-in-out",
-          props.selected ? "!stroke-blue-500" : "stroke-zinc-700",
         ])}
         markerEnd={props.markerEnd}
-        style={style}
+        style={{
+          stroke: props.selected ? "#3b82f6" : baseStyle?.stroke || "#6c757d", // Sky-500 for selected, else from props or default
+          strokeWidth: baseStyle?.strokeWidth || 2,
+        }}
         labelShowBg={false}
       />
 

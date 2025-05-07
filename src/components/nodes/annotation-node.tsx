@@ -4,7 +4,7 @@ import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
 import { Node, NodeProps, NodeResizer } from "@xyflow/react";
 import { AlignLeft, Lightbulb, MessageSquare, Quote } from "lucide-react";
-import { memo, useCallback, useMemo } from "react";
+import { memo, useMemo } from "react";
 
 interface AnnotationNodeProps extends NodeProps<Node<NodeData>> {
   onEditNode: (nodeId: string, nodeData: NodeData) => void;
@@ -27,10 +27,6 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
   const fontSize = data.metadata?.fontSize as string | number | undefined;
   const fontWeight = data.metadata?.fontWeight as string | number | undefined;
   const annotationType = (data.metadata?.annotationType as string) || "default";
-
-  const handleDoubleClick = useCallback(() => {
-    onEditNode(id, data);
-  }, [id, data, onEditNode]);
 
   const contentStyle = useMemo(() => {
     const style: React.CSSProperties = {};
@@ -61,7 +57,6 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
         selected && "ring-1 ring-sky-600 ring-offset-2 ring-offset-zinc-900",
         typeInfo.textColorClass,
       ])}
-      onDoubleClick={handleDoubleClick}
     >
       {/* --- Quote Specific Layout --- */}
       {isQuote ? (

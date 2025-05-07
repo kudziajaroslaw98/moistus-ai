@@ -2,7 +2,7 @@ import { NodeData } from "@/types/node-data";
 import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 
 interface ImageNodeFormProps {
-  initialData: NodeData;
+  initialData: Partial<NodeData>;
 }
 
 const ImageNodeForm = forwardRef<

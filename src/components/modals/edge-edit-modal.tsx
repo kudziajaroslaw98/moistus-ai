@@ -1,7 +1,7 @@
-import { edgeTypes } from "@/constants/edge-types";
 import { AppEdge } from "@/types/app-edge";
 import { EdgeData } from "@/types/edge-data";
 import { NodeData } from "@/types/node-data";
+import type { PathType } from "@/types/path-types";
 import { Node } from "@xyflow/react";
 import { SquareX } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -12,7 +12,12 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Select } from "../ui/select";
 
-const availableEdgeTypes = Object.keys(edgeTypes);
+const availablePathTypes: PathType[] = [
+  "smoothstep",
+  "step",
+  "straight",
+  "bezier",
+];
 const markerEndOptions = [
   { value: "none", label: "None" },
   { value: "arrow", label: "Default Arrow" },
@@ -39,7 +44,7 @@ export default function EdgeEditModal({
   nodes,
 }: EdgeEditModalProps) {
   const [label, setLabel] = useState<string>("");
-  const [type, setType] = useState("smoothstep");
+  const [pathStyle, setPathStyle] = useState<PathType>("smoothstep"); // Changed from type to pathStyle
   const [animated, setAnimated] = useState(false);
   const [color, setColor] = useState<string | undefined>("#6c757d");
   const [strokeWidth, setStrokeWidth] = useState<string | number | undefined>(
@@ -50,7 +55,7 @@ export default function EdgeEditModal({
   useEffect(() => {
     if (edge) {
       setLabel((edge.label as string) || (edge.data?.label as string) || "");
-      setType(edge.type || edge.data?.type || "smoothstep");
+      setPathStyle(edge.data?.metadata?.pathType || "smoothstep"); // Use metadata.pathType
       setAnimated(edge.animated ?? edge.data?.animated ?? false);
       setColor(
         (edge.style?.stroke as string) || edge.data?.style?.stroke || "#6c757d",
@@ -67,7 +72,7 @@ export default function EdgeEditModal({
       );
     } else {
       setLabel("");
-      setType("smoothstep");
+      setPathStyle("smoothstep"); // Default path style
       setAnimated(false);
       setColor("#6c757d");
       setStrokeWidth(undefined);
@@ -76,7 +81,7 @@ export default function EdgeEditModal({
 
     if (!isOpen) {
       setLabel("");
-      setType("smoothstep");
+      setPathStyle("smoothstep"); // Default path style
       setAnimated(false);
       setColor("#6c757d");
       setStrokeWidth(undefined);
@@ -88,12 +93,15 @@ export default function EdgeEditModal({
     if (!edge || isLoading) return;
     const changes: Partial<EdgeData> = {
       label: label.trim() === "" ? undefined : label.trim(),
-      type: type,
       animated: animated,
       markerEnd: markerEnd === "none" ? undefined : markerEnd,
       style: {
         stroke: color ?? "",
         strokeWidth: strokeWidth ?? "",
+      },
+      metadata: {
+        ...(edge.data?.metadata || {}), // Preserve existing metadata
+        pathType: pathStyle,
       },
     };
 
@@ -160,16 +168,18 @@ export default function EdgeEditModal({
               />
             </FormField>
 
-            <FormField id="edgeType" label="Type">
+            <FormField id="edgePathStyle" label="Path Style">
               <Select
-                id="edgeType"
-                value={type}
-                onChange={(e) => setType(e.target.value)}
+                id="edgePathStyle"
+                value={pathStyle}
+                onChange={(e) => setPathStyle(e.target.value as PathType)}
                 disabled={isLoading}
               >
-                {availableEdgeTypes.map((edgeType) => (
-                  <option key={edgeType} value={edgeType}>
-                    {edgeType}
+                {availablePathTypes.map((pType) => (
+                  <option key={pType} value={pType}>
+                    {pType
+                      ? pType.charAt(0).toUpperCase() + pType.slice(1)
+                      : "Default"}
                   </option>
                 ))}
               </Select>

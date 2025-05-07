@@ -42,7 +42,7 @@ interface MindMapContextProps {
   isMergeModalOpen: boolean;
   isNodeTypeModalOpen: boolean;
   isNodeEditModalOpen: boolean;
-  nodeToEdit: Node<NodeData> | null;
+  nodeToEdit: NodeData | null;
   isEdgeEditModalOpen: boolean;
   edgeToEdit: AppEdge | null;
   isCommandPaletteOpen: boolean;
@@ -85,7 +85,7 @@ interface MindMapContextProps {
     } | null>
   >;
   setIsNodeEditModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  setNodeToEdit: React.Dispatch<React.SetStateAction<Node<NodeData> | null>>;
+  setNodeToEdit: React.Dispatch<React.SetStateAction<NodeData | null>>;
   setIsEdgeEditModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setEdgeToEdit: React.Dispatch<React.SetStateAction<AppEdge | null>>;
   setIsCommandPaletteOpen: React.Dispatch<React.SetStateAction<boolean>>;

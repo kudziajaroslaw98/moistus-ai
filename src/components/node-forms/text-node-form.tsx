@@ -7,7 +7,7 @@ import { Switch } from "../ui/switch";
 import { Textarea } from "../ui/textarea";
 
 interface TextNodeFormProps {
-  initialData: NodeData;
+  initialData: Partial<NodeData>;
 }
 
 const textAlignOptions: ("left" | "center" | "right")[] = [

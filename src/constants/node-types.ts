@@ -19,3 +19,80 @@ export const nodeTypes = {
   codeNode: CodeNode,
   textNode: TextNode, // Add the new TextNode
 };
+
+import { NodeData } from "@/types/node-data";
+
+interface NodeTypeConfig {
+  label: string;
+  defaultMetadata: Partial<NodeData["metadata"]>;
+  // You can add more properties like icon, description, etc.
+}
+
+export const nodeTypesConfig: Record<string, NodeTypeConfig> = {
+  defaultNode: {
+    label: "Default",
+    defaultMetadata: {},
+  },
+  textNode: {
+    label: "Text",
+    defaultMetadata: {
+      fontSize: "14px",
+      textAlign: "left",
+      showBackground: false,
+      backgroundColor: "#3f3f46",
+      textColor: "#fafafa",
+    },
+  },
+  imageNode: {
+    label: "Image",
+    defaultMetadata: {
+      imageUrl: "",
+      altText: "",
+      caption: "",
+      showCaption: true,
+    },
+  },
+  resourceNode: {
+    label: "Resource",
+    defaultMetadata: {
+      url: "",
+      faviconUrl: "",
+      thumbnailUrl: "",
+      summary: "",
+      showThumbnail: true,
+      showSummary: true,
+    },
+  },
+  questionNode: {
+    label: "Question",
+    defaultMetadata: {
+      answer: "",
+    },
+  },
+  annotationNode: {
+    label: "Annotation",
+    defaultMetadata: {
+      annotationType: "comment",
+      fontSize: "12px",
+      fontWeight: "normal",
+    },
+  },
+  codeNode: {
+    label: "Code Snippet",
+    defaultMetadata: {
+      language: "javascript",
+      showLineNumbers: true,
+      fileName: "",
+    },
+  },
+  taskNode: {
+    // Assuming you have a TaskNode or similar
+    label: "Task",
+    defaultMetadata: {
+      tasks: [],
+      dueDate: undefined,
+      priority: undefined,
+    },
+  },
+  // Add other node types here
+};

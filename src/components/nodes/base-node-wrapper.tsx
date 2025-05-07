@@ -1,7 +1,14 @@
 import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
-import { Handle, Node, NodeProps, NodeResizer, Position } from "@xyflow/react";
-import { Ellipsis } from "lucide-react";
+import {
+  Handle,
+  Node,
+  NodeProps,
+  NodeResizer,
+  Position,
+  useConnection,
+} from "@xyflow/react"; // Removed Handle import
+import { Pencil } from "lucide-react";
 import { memo, useCallback } from "react";
 
 // Define the props including the onEditNode callback
@@ -27,24 +34,26 @@ const BaseNodeWrapperComponent = ({
   nodeClassName,
   headerClassName,
   contentClassName,
-  showHandles = true, // Default to showing handles
+  showHandles,
 }: BaseNodeWrapperProps) => {
+  const connection = useConnection();
+  const isTarget = connection.inProgress && connection.fromNode.id !== id;
+
   const handleEllipsisClick = useCallback(() => {
     onEditNode(id, data);
   }, [id, data, onEditNode]);
 
-  const handleDoubleClick = useCallback(() => {
-    onEditNode(id, data);
-  }, [id, data, onEditNode]);
+  if (!data) {
+    return null;
+  }
 
   return (
     <div
       className={cn(
-        "relative flex h-full min-h-fit min-w-80 flex-col gap-2 rounded-lg border-2 border-zinc-900 bg-zinc-950 p-2 transition-all",
+        "relative flex h-full min-h-fit min-w-80 flex-col gap-2 rounded-lg border-2 border-zinc-900 bg-zinc-950 p-2 shadow-lg transition-all",
         selected && "border-sky-700",
         nodeClassName,
       )}
-      onDoubleClick={handleDoubleClick}
     >
       <div
         className={cn(
@@ -64,46 +73,47 @@ const BaseNodeWrapperComponent = ({
             onClick={handleEllipsisClick}
             aria-label="Edit Node"
           >
-            <Ellipsis className="size-4" />
+            <Pencil className="size-4" />
           </button>
         </div>
       </div>
 
       <div
         className={cn(
-          " min-h-fit h-full pt-2 pb-4 text-sm whitespace-pre-wrap text-zinc-300",
+          "min-h-fit h-full pt-2 pb-4 text-sm whitespace-pre-wrap text-zinc-300",
           contentClassName,
         )}
       >
         {children}
       </div>
 
-      {showHandles && (
-        <>
-          <Handle
-            type="target"
-            position={Position.Top}
-            className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
-          />
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
+      />
 
-          <Handle
-            type="target"
-            position={Position.Right}
-            className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
-          />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
+      />
 
-          <Handle
-            type="target"
-            position={Position.Left}
-            className="size-2 rounded-full !bg-zinc-600 outline-2 outline-zinc-800"
-          />
+      {!selected && (
+        <Handle
+          className="w-full h-full absolute top-0 left-0 rounded-full transform-none border-none opacity-0"
+          position={Position.Bottom}
+          type="source"
+        />
+      )}
 
-          <Handle
-            type="source"
-            position={Position.Bottom}
-            className="size-2 rotate-45 !bg-zinc-400 outline-2 outline-zinc-800 translate-y-1"
-          />
-        </>
+      {(!connection.inProgress || isTarget) && (
+        <Handle
+          className="w-full h-full absolute top-0 left-0 rounded-full transform-none border-none opacity-0"
+          position={Position.Top}
+          type="target"
+          isConnectableStart={false}
+        />
       )}
 
       <NodeResizer

@@ -47,3 +47,7 @@
     --radius: 0.3rem; /* Slightly rounded corners */
   }
 }
+
+.react-flow__handle {
+  opacity: 0;
+}

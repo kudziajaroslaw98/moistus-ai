@@ -3,7 +3,7 @@
 import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
 import { Handle, Node, NodeProps, NodeResizer, Position } from "@xyflow/react";
-import { memo, useCallback, useMemo } from "react";
+import { memo, useMemo } from "react";
 
 interface TextNodeProps extends NodeProps<Node<NodeData>> {
   onEditNode: (nodeId: string, nodeData: NodeData) => void;
@@ -21,10 +21,6 @@ const TextNodeComponent = (props: TextNodeProps) => {
     backgroundColor = "#3f3f46", // Default to a zinc-like color
     textColor = "#fafafa", // Default to a light text color
   } = metadata ?? {};
-
-  const handleDoubleClick = useCallback(() => {
-    onEditNode(id, data);
-  }, [id, data, onEditNode]);
 
   const nodeStyle = useMemo(() => {
     const style: React.CSSProperties = {
@@ -70,7 +66,6 @@ const TextNodeComponent = (props: TextNodeProps) => {
         "p-2 min-w-24 h-full min-h-12 flex items-center ",
       )}
       style={nodeStyle}
-      onDoubleClick={handleDoubleClick}
     >
       {content || (
         <span className="italic opacity-70">
