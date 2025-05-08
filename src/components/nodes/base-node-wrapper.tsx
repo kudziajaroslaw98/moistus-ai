@@ -101,7 +101,10 @@ const BaseNodeWrapperComponent = ({
 
       {!selected && (
         <Handle
-          className="w-full h-full absolute top-0 left-0 rounded-full transform-none border-none opacity-0"
+          className={cn([
+            "w-full h-full absolute top-0 left-0 rounded-full transform-none border-none opacity-0",
+            connection.inProgress ? "h-full" : "h-1/2 -translate-y-1/2",
+          ])}
           position={Position.Bottom}
           type="source"
         />
@@ -109,7 +112,10 @@ const BaseNodeWrapperComponent = ({
 
       {(!connection.inProgress || isTarget) && (
         <Handle
-          className="w-full h-full absolute top-0 left-0 rounded-full transform-none border-none opacity-0"
+          className={cn([
+            "w-full h-full absolute top-0 left-0 rounded-full transform-none border-none opacity-0",
+            connection.inProgress ? "h-full" : "h-1/2 translate-y-1/2",
+          ])}
           position={Position.Top}
           type="target"
           isConnectableStart={false}

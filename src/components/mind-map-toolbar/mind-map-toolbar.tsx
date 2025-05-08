@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "../ui/button";
+import { Input } from "../ui/input";
 
 interface MindMapToolbarProps {
   mindMapTitle: string;
@@ -41,6 +42,10 @@ export function MindMapToolbar({
   onEnterFocusMode,
   onCommandPaletteOpen,
   onToggleHistorySidebar, // Destructure new prop
+  aiPrompt,
+  setAiPrompt,
+  aiLoadingStates,
+  onGenerateMap,
 }: MindMapToolbarProps) {
   return (
     <div className="absolute top-2 right-2 left-2 z-10 flex flex-wrap items-center justify-between gap-4 rounded-sm bg-zinc-900 p-3 shadow-md">
@@ -60,7 +65,7 @@ export function MindMapToolbar({
         </h1>
 
         {/* AI Generation */}
-        {/* <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <Input
             type="text"
             value={aiPrompt}
@@ -69,6 +74,7 @@ export function MindMapToolbar({
             className="min-w-[150px] md:min-w-[200px]"
             disabled={isLoading || aiLoadingStates.isGenerating}
           />
+
           <Button
             onClick={onGenerateMap}
             disabled={
@@ -80,7 +86,7 @@ export function MindMapToolbar({
           >
             {aiLoadingStates.isGenerating ? "..." : "Generate"}
           </Button>
-        </div> */}
+        </div>
       </div>
 
       {/* Right Section: Search & History */}

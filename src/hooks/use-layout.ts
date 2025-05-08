@@ -15,11 +15,11 @@ const getLayoutedElements = (
   edges: Edge<EdgeData>[],
   direction: LayoutDirection = "TB",
 ) => {
-  g.setGraph({ rankdir: direction, nodesep: 50, ranksep: 100 });
+  g.setGraph({ rankdir: direction, nodesep: 80, ranksep: 150 }); // Increased separation
 
   nodes.forEach((node) => {
-    const nodeWidth = node.width || 170;
-    const nodeHeight = node.height || 60;
+    const nodeWidth = node.width || 320; // Adjusted default width
+    const nodeHeight = node.height || 100; // Adjusted default height
     g.setNode(node.id, { width: nodeWidth, height: nodeHeight });
   });
 
@@ -37,8 +37,8 @@ const getLayoutedElements = (
       return node;
     }
 
-    const nodeWidth = node.width || 170;
-    const nodeHeight = node.height || 60;
+    const nodeWidth = node.width || 320; // Adjusted default width
+    const nodeHeight = node.height || 100; // Adjusted default height
 
     return {
       ...node,
