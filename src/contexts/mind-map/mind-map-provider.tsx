@@ -17,7 +17,13 @@ import {
   type Node,
 } from "@xyflow/react";
 import { useParams } from "next/navigation";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import MindMapContext from "./mind-map-context";
 
 interface MindMapProviderProps {
@@ -66,6 +72,9 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
   const crudActionsRef = useRef<
     ReturnType<typeof useMindMapCRUD>["crudActions"] | null
   >(null);
+  const aiActionsRef = useRef<
+    ReturnType<typeof useAiFeatures>["aiActions"] | null
+  >(null);
 
   const {
     addStateToHistory,
@@ -95,6 +104,7 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
     setEdges,
     addStateToHistory,
     showNotification,
+    aiActions: aiActionsRef.current,
   });
 
   crudActionsRef.current = crudActions;
@@ -120,10 +130,13 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
     saveNodeContent: crudActions.saveNodeContent,
     setNodes,
     setEdges,
+    saveNodeMetadata: crudActions.saveNodeMetadata,
+    saveNodeAiData: crudActions.saveNodeAiData,
     addStateToHistory,
     showNotification,
     currentHistoryState,
   });
+  aiActionsRef.current = aiActions;
 
   const { contextMenuHandlers, contextMenuState } = useContextMenu();
 
@@ -267,6 +280,14 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
     },
     [directEdgesChangeHandler, crudActions.triggerEdgeSave, addStateToHistory],
   );
+
+  useEffect(() => {
+    if (nodeToEdit !== null) {
+      setNodeToEdit(
+        (prev) => nodes.find((n) => n.id === prev?.id)?.data ?? null,
+      );
+    }
+  }, [nodes, nodeToEdit]);
 
   // --- Context Value ---
   const contextValue = useMemo(

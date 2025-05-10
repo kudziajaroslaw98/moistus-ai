@@ -3,7 +3,7 @@
 import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
 import { Node, NodeProps } from "@xyflow/react";
-import { CheckSquare, Square } from "lucide-react"; // Import Square icon
+import { CheckSquare, Square, SquareCheck } from "lucide-react"; // Import Square icon
 import { memo, useCallback, useMemo } from "react"; // Import useMemo
 import { BaseNodeWrapper } from "./base-node-wrapper";
 
@@ -30,10 +30,10 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
   );
 
   // Calculate overall completion status
-  const allTasksComplete = useMemo(
-    () => tasks.length > 0 && tasks.every((task) => task.isComplete),
-    [tasks],
-  );
+  // const allTasksComplete = useMemo(
+  //   () => tasks.length > 0 && tasks.every((task) => task.isComplete),
+  //   [tasks],
+  // );
 
   const handleToggleTask = useCallback(
     async (taskId: string) => {
@@ -52,21 +52,13 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
     [tasks, saveNodeProperties, id, data.metadata],
   );
 
-  const header = (
-    <>
-      <div className="flex size-6 items-center justify-center rounded-sm bg-green-700">
-        <CheckSquare className="size-4 text-zinc-100" />
-      </div>
-
-      {allTasksComplete && (
-        <span className="text-xs font-medium text-green-400">Done</span>
-      )}
-    </>
-  );
-
   return (
-    // Pass saveNodeProperties down if BaseNodeWrapper needs it, or use it directly here
-    <BaseNodeWrapper {...props} headerContent={header}>
+    <BaseNodeWrapper
+      {...props}
+      nodeClassName="task-node"
+      nodeType="Tasks"
+      nodeIcon={<SquareCheck className="size-4" />}
+    >
       <div className="flex flex-col gap-1.5">
         {tasks.length === 0 ? (
           <span className="text-zinc-500 italic">

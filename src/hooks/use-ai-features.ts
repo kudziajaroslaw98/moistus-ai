@@ -25,6 +25,14 @@ interface UseAiFeaturesProps {
   deleteNode: (nodeId: string) => Promise<void>;
   saveEdge: (sourceId: string, targetId: string) => Promise<AppEdge | null>;
   saveNodeContent: (nodeId: string, content: string) => Promise<void>;
+  saveNodeMetadata: (
+    nodeId: string,
+    metadata: Partial<NodeData["metadata"]>,
+  ) => Promise<void>;
+  saveNodeAiData: (
+    nodeId: string,
+    data: Partial<NodeData["aiData"]>,
+  ) => Promise<void>;
   setNodes: React.Dispatch<React.SetStateAction<Node<NodeData>[]>>;
   setEdges: React.Dispatch<React.SetStateAction<AppEdge[]>>;
   addStateToHistory: (
@@ -53,6 +61,7 @@ export interface AiActions {
     suggestionData: AiConnectionSuggestion,
   ) => Promise<void>;
   dismissSuggestedConnection: (edgeId: string) => void;
+  generateAnswer: (nodeId: string, prompt: string) => Promise<void>;
 }
 
 export interface AiLoadingStates {
@@ -65,6 +74,7 @@ export interface AiLoadingStates {
   isSummarizingBranch: boolean;
   isSuggestingMerges: boolean;
   isAcceptingMerge: boolean;
+  isGeneratingAnswer: boolean;
 }
 
 export interface UseAiFeaturesResult {
@@ -88,6 +98,7 @@ export function useAiFeatures({
   deleteNode,
   saveEdge,
   saveNodeContent,
+  saveNodeAiData,
   setNodes,
   setEdges,
   addStateToHistory,
@@ -112,6 +123,7 @@ export function useAiFeatures({
     isSummarizingBranch: false,
     isSuggestingMerges: false,
     isAcceptingMerge: false,
+    isGeneratingAnswer: false,
   });
 
   const [isAiContentModalOpen, setIsAiContentModalOpen] = useState(false);
@@ -921,6 +933,63 @@ export function useAiFeatures({
     [showNotification, mergeSuggestions.length],
   );
 
+  const generateAnswer = useCallback(
+    async (nodeId: string, prompt: string) => {
+      const targetNode = nodes.find((n) => n.id === nodeId);
+
+      if (!targetNode || targetNode.data.node_type !== "questionNode") {
+        showNotification(
+          "Invalid node or not a question node for AI answer.",
+          "error",
+        );
+        return;
+      }
+
+      if (targetNode.data.aiData?.aiAnswer) {
+        showNotification(
+          "An AI answer already exists for this question.",
+          "info",
+        );
+        return;
+      }
+
+      setLoading("isGeneratingAnswer", true);
+      showNotification("Generating AI Answer...", "success");
+
+      try {
+        const response = await fetch("/api/generate-answer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nodeId, prompt }),
+        });
+        const result: ApiResponse<{ answer: string }> = await response.json();
+
+        if (result.status === "success" && result.data?.answer) {
+          await saveNodeAiData(nodeId, {
+            requestAiAnswer: true,
+            aiAnswer: result.data.answer,
+          });
+          showNotification("AI answer generated and saved.", "success");
+        } else if (result.status === "error") {
+          const errorMsg = result.error || "Failed to generate AI answer.";
+          console.error("Generate Answer Error:", errorMsg);
+          showNotification(errorMsg, "error");
+        }
+      } catch (err) {
+        console.error("Generate Answer Fetch Error:", err);
+        showNotification(
+          err instanceof Error
+            ? err.message
+            : "Network error during AI answer generation.",
+          "error",
+        );
+      }
+
+      setLoading("isGeneratingAnswer", false);
+    },
+    [nodes, saveNodeAiData, showNotification],
+  );
+
   return {
     aiActions: {
       generateMap,
@@ -938,6 +1007,7 @@ export function useAiFeatures({
       setAiContentTargetNodeId,
       acceptSuggestedConnection,
       dismissSuggestedConnection,
+      generateAnswer,
     },
     aiLoadingStates: loadingStates,
     suggestedEdges,

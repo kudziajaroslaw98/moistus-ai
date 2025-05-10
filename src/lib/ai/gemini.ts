@@ -10,7 +10,7 @@ if (!apiKey) {
 const genAI = new GoogleGenerativeAI(apiKey);
 
 // Consider making model name configurable via env var as well
-const defaultModelName = "gemini-2.0-flash";
+const defaultModelName = "gemini-2.5-flash-preview-04-17";
 
 /**
  * Gets a Google Generative AI model instance.

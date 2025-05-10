@@ -10,7 +10,7 @@ interface TextNodeProps extends NodeProps<Node<NodeData>> {
 }
 
 const TextNodeComponent = (props: TextNodeProps) => {
-  const { id, data, selected, onEditNode } = props;
+  const { data, selected } = props;
 
   const { content, metadata } = data;
   const {

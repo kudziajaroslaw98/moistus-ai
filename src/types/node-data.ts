@@ -53,6 +53,8 @@ export interface NodeData extends Record<string, unknown> {
     borderColor?: string;
   } | null;
   aiData?: {
+    requestAiAnswer?: boolean;
+    aiAnswer?: string;
     embedding?: number[];
     aiSummary?: string;
     extractedConcepts?: string[];

@@ -111,8 +111,10 @@ export default function NodeEditModal({
     }
 
     const changes: Partial<NodeData> = {
+      content: formRef.current?.getFormData()?.content ?? null,
       node_type: selectedNodeType,
       metadata: specificMetadata,
+      aiData: formRef.current?.getFormData()?.aiData ?? null,
     };
 
     if (
@@ -137,9 +139,14 @@ export default function NodeEditModal({
       changes.metadata = null;
     }
 
+    console.log(changes, "changes");
+    setIsSaving(true);
+    await onSave(node.id, changes);
+    setIsSaving(false);
     setNodeData((prev) => ({
       ...prev,
       ...changes,
+      content: changes.content || prev.content || null,
       metadata: {
         ...prev.metadata,
         ...changes.metadata,
@@ -149,11 +156,6 @@ export default function NodeEditModal({
         ...changes.aiData,
       },
     }));
-
-    console.log(changes, "changes");
-    setIsSaving(true);
-    await onSave(node.id, changes);
-    setIsSaving(false);
   };
 
   const NodeSpecificFormComponent = nodeSpecificForms[selectedNodeType] || null;
@@ -194,7 +196,7 @@ export default function NodeEditModal({
           {NodeSpecificFormComponent && (
             <NodeSpecificFormComponent
               ref={formRef}
-              initialData={{ ...nodeData }}
+              initialData={nodeData}
               disabled={isLoading}
             />
           )}

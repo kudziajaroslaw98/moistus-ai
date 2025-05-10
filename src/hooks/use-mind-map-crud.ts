@@ -17,6 +17,7 @@ import {
   XYPosition,
 } from "@xyflow/react";
 import { useCallback, useRef, useState } from "react";
+import type { AiActions } from "./use-ai-features";
 
 interface UseMindMapCRUDProps {
   mapId: string;
@@ -29,6 +30,7 @@ interface UseMindMapCRUDProps {
     stateOverride?: { nodes?: Node<NodeData>[]; edges?: AppEdge[] },
   ) => void;
   showNotification: (message: string, type: NotificationType) => void;
+  aiActions: AiActions | null;
 }
 
 export interface CrudActions {
@@ -41,6 +43,14 @@ export interface CrudActions {
   ) => Promise<Node<NodeData> | null>;
   deleteNode: (nodeId: string, skipHistory?: boolean) => Promise<void>;
   saveNodePosition: (nodeId: string, position: XYPosition) => Promise<void>;
+  saveNodeMetadata: (
+    nodeId: string,
+    metadata: Partial<NodeData["metadata"]>,
+  ) => Promise<void>;
+  saveNodeAiData: (
+    nodeId: string,
+    aiData: Partial<NodeData["aiData"]>,
+  ) => Promise<void>;
   saveNodeContent: (nodeId: string, content: string) => Promise<void>;
   triggerNodeSave: (change: NodeChange) => void;
   triggerEdgeSave: (change: EdgeChange) => void;
@@ -83,6 +93,7 @@ export function useMindMapCRUD({
   setEdges,
   addStateToHistory,
   showNotification,
+  aiActions,
 }: UseMindMapCRUDProps): UseMindMapCRUDResult {
   const [isLoading, setIsLoading] = useState(false);
   const supabase = createClient();
@@ -431,6 +442,88 @@ export function useMindMapCRUD({
     [supabase],
   );
 
+  const saveNodeMetadata = useCallback(
+    async (nodeId: string, metadataPatch: Partial<NodeData["metadata"]>) => {
+      const node = nodes.find((n) => n.id === nodeId);
+
+      if (!node) {
+        showNotification("Node not found for metadata update.", "error");
+        return;
+      }
+
+      const newMetadata = { ...node.data.metadata, ...metadataPatch };
+
+      try {
+        // --- Database Update ---
+        const { error: dbError } = await supabase
+          .from("nodes")
+          .update({
+            metadata: newMetadata,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", nodeId);
+
+        if (dbError) throw dbError;
+
+        // --- Local State Update ---
+        setNodes((nds) =>
+          nds.map((n) =>
+            n.id === nodeId
+              ? { ...n, data: { ...n.data, metadata: newMetadata } }
+              : n,
+          ),
+        );
+        addStateToHistory("updateNodeMetadata"); // Or a more specific action name
+        showNotification("Node metadata updated.", "success");
+      } catch (error) {
+        console.error("Failed to save node metadata:", error);
+        showNotification("Error saving node metadata.", "error");
+      }
+    },
+    [addStateToHistory, nodes, setNodes, showNotification, supabase],
+  );
+
+  const saveNodeAiData = useCallback(
+    async (nodeId: string, aiDataPatch: Partial<NodeData["aiData"]>) => {
+      const node = nodes.find((n) => n.id === nodeId);
+
+      if (!node) {
+        showNotification("Node not found for metadata update.", "error");
+        return;
+      }
+
+      const newAiData = { ...node.data.aiData, ...aiDataPatch };
+
+      try {
+        // --- Database Update ---
+        const { error: dbError } = await supabase
+          .from("nodes")
+          .update({
+            aiData: newAiData,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", nodeId);
+
+        if (dbError) throw dbError;
+
+        // --- Local State Update ---
+        setNodes((nds) =>
+          nds.map((n) =>
+            n.id === nodeId
+              ? { ...n, data: { ...n.data, aiData: newAiData } }
+              : n,
+          ),
+        );
+        addStateToHistory("updateNodeAiData"); // Or a more specific action name
+        showNotification("Node metadata updated.", "success");
+      } catch (error) {
+        console.error("Failed to save node metadata:", error);
+        showNotification("Error saving node metadata.", "error");
+      }
+    },
+    [addStateToHistory, nodes, setNodes, showNotification, supabase],
+  );
+
   const groupNodes = useCallback(
     async (nodeIds: string[]) => {
       if (nodeIds.length < 2) {
@@ -636,81 +729,21 @@ export function useMindMapCRUD({
 
   const saveNodeProperties = useCallback(
     async (nodeId: string, changes: Partial<NodeData>) => {
-      const validUpdates: Partial<NodeData> = {};
-      const editableKeys: (keyof NodeData)[] = [
-        "content",
-        "tags",
-        "status",
-        "importance",
-        "sourceUrl",
-        "node_type",
-        "metadata",
-        "width",
-        "height",
-      ];
-
-      editableKeys.forEach((key) => {
-        if (changes.hasOwnProperty(key)) {
-          if (key === "content" || key === "sourceUrl") {
-            if (
-              typeof changes[key] === "string" &&
-              (changes[key] as string).trim() === ""
-            ) {
-              validUpdates[key] = null;
-            } else {
-              validUpdates[key] = changes[key];
-            }
-          } else if (key === "tags") {
-            if (Array.isArray(changes[key]) && changes[key]?.length === 0) {
-              validUpdates[key] = null;
-            } else {
-              validUpdates[key] = changes[key];
-            }
-          } else if (key === "metadata") {
-            if (
-              typeof changes.metadata === "object" &&
-              changes.metadata !== null &&
-              Object.keys(changes.metadata).length > 0
-            ) {
-              validUpdates.metadata = changes.metadata;
-            } else {
-              validUpdates.metadata = null;
-            }
-          } else if (
-            key === "importance" ||
-            key === "width" ||
-            key === "height"
-          ) {
-            if (
-              changes[key] === undefined ||
-              changes[key] === null ||
-              changes[key].toString() === ""
-            ) {
-              validUpdates[key] = null;
-            } else {
-              validUpdates[key] = changes[key];
-            }
-          } else {
-            validUpdates[key] = changes[key];
-          }
-        }
-      });
-
-      if (Object.keys(validUpdates).length === 0) {
-        return;
-      }
-
       setIsLoading(true);
 
       try {
-        const { error } = await supabase
+        const { data: updatedNode, error } = await supabase
           .from("nodes")
           .update({
-            ...validUpdates,
+            ...changes,
             updated_at: new Date().toISOString(),
           })
-          .eq("id", nodeId);
+          .eq("id", nodeId)
+          .select("*")
+          .single();
         if (error) throw error;
+        console.log("Updated node:", updatedNode);
+        if (!updatedNode) throw new Error("Failed to fetch updated node.");
 
         let finalNodes: Node<NodeData>[] = [];
         setNodes((nds) => {
@@ -718,21 +751,19 @@ export function useMindMapCRUD({
             n.id === nodeId
               ? {
                   ...n,
-
+                  ...updatedNode,
                   data: {
                     ...n.data,
-                    ...validUpdates,
-
-                    metadata:
-                      validUpdates.metadata !== undefined
-                        ? validUpdates.metadata
-                        : n.data?.metadata,
+                    ...updatedNode,
+                    metadata: {
+                      ...n.data.metadata,
+                      ...updatedNode.metadata,
+                    },
+                    aiData: {
+                      ...n.data.aiData,
+                      ...updatedNode.aiData,
+                    },
                   },
-
-                  type: validUpdates.node_type ?? n.type,
-
-                  width: validUpdates.width ?? n.width,
-                  height: validUpdates.height ?? n.height,
                 }
               : n,
           );
@@ -744,6 +775,16 @@ export function useMindMapCRUD({
           edges: edges,
         });
         showNotification("Node properties saved.", "success");
+
+        if (
+          updatedNode?.node_type === "questionNode" &&
+          updatedNode.content?.trim() !== "" &&
+          updatedNode?.aiData?.requestAiAnswer === true &&
+          !updatedNode?.aiData?.aiAnswer
+        ) {
+          // Ensure aiActions is accessible here
+          aiActions?.generateAnswer(nodeId, updatedNode.content);
+        }
       } catch (err: unknown) {
         console.error(`Error saving properties for node ${nodeId}:`, err);
         const message =
@@ -1244,6 +1285,8 @@ export function useMindMapCRUD({
       saveNodeContent,
       saveNodeDimensions,
       saveNodeProperties,
+      saveNodeMetadata,
+      saveNodeAiData,
       addEdge,
       triggerEdgeSave,
       triggerNodeSave,

@@ -8,6 +8,11 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-lora: var(--font-lora);
+
+  --color-node-accent: var(--node-accent);
+  --color-node-text-main: theme("colors.zinc.100");
+  --color-node-text-secondary: theme("colors.zinc.400");
+  --color-node-text-checked: theme("colors.zinc.700");
 }
 
 @layer base {
@@ -46,6 +51,26 @@
 
     --radius: 0.3rem; /* Slightly rounded corners */
   }
+}
+
+.task-node {
+  --node-accent: theme("colors.lime.700");
+}
+
+.code-node {
+  --node-accent: theme("colors.fuchsia.700");
+}
+
+.question-node {
+  --node-accent: theme("colors.indigo.700");
+}
+
+.resource-node {
+  --node-accent: theme("colors.yellow.700");
+}
+
+.image-node {
+  --node-accent: theme("colors.sky.700");
 }
 
 .react-flow__handle {
