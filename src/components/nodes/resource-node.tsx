@@ -49,7 +49,7 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
         )}
 
         {title && (
-          <div className="flex line-clamp-3 text-lg font-bold text-node-text-main tracking-tight leading-5">
+          <div className="flex text-lg font-bold text-node-text-main tracking-tight leading-5">
             <span className="float-left">{title}</span>
 
             {resourceUrl && (
@@ -57,8 +57,12 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
                 href={resourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                className="cursor-pointer"
               >
-                <Button variant={"ghost"} className="float-right p-2 !size-12">
+                <Button
+                  variant={"ghost"}
+                  className="float-right p-2 rounded-md !size-12"
+                >
                   <ArrowUpRight className="size-10 text-node-accent" />
                 </Button>
               </Link>

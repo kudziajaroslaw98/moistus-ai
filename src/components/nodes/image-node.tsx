@@ -41,7 +41,9 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
                 e.currentTarget.src =
                   "https://placehold.co/200x120?text=Image+Error";
               }}
+              placeholder="empty"
               loading="lazy"
+              priority={false}
               fill={true}
             />
           </div>

@@ -40,7 +40,7 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
             </span>
           </div>
 
-          <div className="text-left tracking-normal text-sm text-node-text-secondary">
+          <div className="text-left text-sm text-node-text-secondary">
             {aiAnswer}
           </div>
         </>

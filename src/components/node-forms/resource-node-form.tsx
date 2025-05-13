@@ -233,6 +233,8 @@ const ResourceNodeForm = forwardRef<
                 e.currentTarget.src =
                   "https://placehold.co/200x120?text=Invalid+Image";
               }}
+              loading="lazy"
+              priority={false}
               height={80}
               width={200}
             />

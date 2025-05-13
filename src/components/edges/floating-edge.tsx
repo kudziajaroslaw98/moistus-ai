@@ -1,14 +1,17 @@
+import { getFloatingEdgePath } from "@/helpers/get-floating-edge-path";
 import { EdgeData } from "@/types/edge-data";
+import type { NodeData } from "@/types/node-data";
 import type { PathType } from "@/types/path-types";
 import { cn } from "@/utils/cn";
 import {
   BaseEdge,
   EdgeLabelRenderer,
   EdgeProps,
-  Position,
   getBezierPath,
   getSmoothStepPath,
   getStraightPath,
+  Node,
+  useInternalNode,
   type Edge,
 } from "@xyflow/react";
 import { memo, useMemo } from "react";
@@ -21,12 +24,6 @@ const getPathFunction = (pathType?: PathType) => {
     case "straight":
       return getStraightPath;
     case "step":
-      // Using getSimpleBezierPath for a step-like appearance,
-      // or you can implement/use getStepPath if available and preferred.
-      // getStepPath is not directly exported by older versions,
-      // getSmoothStepPath with borderRadius 0 can also give a step-like path.
-      // For true step path, you might need a custom implementation or ensure getStepPath is available.
-      // Using getSmoothStepPath with radius 0 for a sharper turn, resembling a step.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (params: any) => getSmoothStepPath({ ...params, borderRadius: 0 });
     case "smoothstep":
@@ -39,12 +36,6 @@ const FloatingEdgeComponent = ({
   id,
   source,
   target,
-  sourceX,
-  sourceY,
-  targetX,
-  targetY,
-  sourcePosition = Position.Bottom,
-  targetPosition = Position.Top,
   style = {},
   markerEnd,
   data,
@@ -52,14 +43,23 @@ const FloatingEdgeComponent = ({
 }: EdgeProps<Edge<EdgeData>>) => {
   const pathType = data?.metadata?.pathType;
   const pathFunction = useMemo(() => getPathFunction(pathType), [pathType]);
+  const sourceNode = useInternalNode<Node<NodeData>>(source);
+  const targetNode = useInternalNode<Node<NodeData>>(target);
+
+  if (!sourceNode || !targetNode) {
+    return null;
+  }
+
+  const { sourceX, sourceY, targetX, targetY, sourcePos, targetPos } =
+    getFloatingEdgePath(sourceNode, targetNode);
 
   const [edgePath, labelX, labelY] = pathFunction({
     sourceX,
     sourceY,
-    sourcePosition,
+    sourcePosition: sourcePos,
     targetX,
     targetY,
-    targetPosition,
+    targetPosition: targetPos,
   });
 
   return (

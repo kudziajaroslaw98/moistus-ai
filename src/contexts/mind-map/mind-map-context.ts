@@ -95,6 +95,8 @@ interface MindMapContextProps {
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   contextMenuState: ContextMenuState;
+  toggleNodeCollapse: (nodeId: string) => Promise<void>; // Added for collapsing
+  isNodeCollapsed: (nodeId: string) => boolean; // Helper to check collapse state
 }
 
 const MindMapContext = createContext<MindMapContextProps | undefined>(

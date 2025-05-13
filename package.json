@@ -22,19 +22,19 @@
     "cmdk": "^1.1.1",
     "dagre": "^0.8.5",
     "lucide-react": "^0.503.0",
-    "motion": "^12.9.2",
+    "motion": "^12.10.5",
     "next": "15.3.1",
     "prettier-plugin-organize-attributes": "^1.0.0",
     "prettier-plugin-organize-imports": "^4.1.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "react-markdown": "^10.1.0",
     "react-syntax-highlighter": "^15.6.1",
     "sanitize-html": "^2.16.0",
     "swr": "^2.3.3",
     "tailwind-merge": "^3.2.0",
     "uuid": "^11.1.0",
-    "zod": "^3.24.3"
+    "zod": "^3.24.4"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

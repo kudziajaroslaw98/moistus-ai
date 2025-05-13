@@ -52,7 +52,7 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
   return (
     <div
       className={cn([
-        "relative flex h-auto min-h-20 min-w-80 flex-col gap-1 rounded p-2 text-center transition-all",
+        "relative flex h-full min-h-20 min-w-80 flex-col gap-1 rounded p-2 text-center transition-all",
 
         selected && "ring-1 ring-sky-600 ring-offset-2 ring-offset-zinc-900",
         typeInfo.textColorClass,

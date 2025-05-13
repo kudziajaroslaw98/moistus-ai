@@ -51,6 +51,7 @@ export interface NodeData extends Record<string, unknown> {
     fileName?: string;
     image_url?: string;
     borderColor?: string;
+    isCollapsed?: boolean; // Added for collapsible branches
   } | null;
   aiData?: {
     requestAiAnswer?: boolean;

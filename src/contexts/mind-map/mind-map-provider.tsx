@@ -222,6 +222,10 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
             aiSummary: undefined,
             extractedConcepts: undefined,
             isSearchResult: undefined,
+            metadata: {
+              // Ensure metadata is copied, including isCollapsed
+              ...(clonedData.metadata || {}),
+            },
           };
           const newNode = await crudActions.addNode(
             targetParentId,
@@ -288,6 +292,198 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
       );
     }
   }, [nodes, nodeToEdit]);
+
+  // --- Collapse/Expand Logic ---
+  const toggleNodeCollapse = useCallback(
+    async (nodeId: string) => {
+      console.log(`[toggleNodeCollapse] Triggered for nodeId: ${nodeId}`);
+      const targetNodeIndex = nodes.findIndex((n) => n.id === nodeId);
+      if (targetNodeIndex === -1) {
+        console.warn(`[toggleNodeCollapse] Node not found: ${nodeId}`);
+        return;
+      }
+
+      const targetNode = nodes[targetNodeIndex];
+      const currentCollapsedState =
+        targetNode.data.metadata?.isCollapsed ?? false;
+      const newCollapsedState = !currentCollapsedState;
+      console.log(
+        `[toggleNodeCollapse] NodeId: ${nodeId}, currentCollapsed: ${currentCollapsedState}, newCollapsed: ${newCollapsedState}`,
+      );
+
+      // Optimistically update local state for UI responsiveness
+      const updatedNodesOptimistic = nodes.map((n) =>
+        n.id === nodeId
+          ? {
+              ...n,
+              data: {
+                ...n.data,
+                metadata: {
+                  ...(n.data.metadata || {}),
+                  isCollapsed: newCollapsedState,
+                },
+              },
+            }
+          : n,
+      );
+
+      const updatedTargetNodeForLog = updatedNodesOptimistic.find(
+        (n) => n.id === nodeId,
+      );
+      console.log(
+        `[toggleNodeCollapse] Optimistic update for ${nodeId}. New isCollapsed: ${updatedTargetNodeForLog?.data.metadata?.isCollapsed}`,
+      );
+
+      setNodes(updatedNodesOptimistic); // This will trigger the visibility useEffect
+
+      try {
+        await crudActions.saveNodeMetadata(nodeId, {
+          isCollapsed: newCollapsedState,
+        });
+        addStateToHistory("toggleNodeCollapse");
+        showNotification(
+          `Branch ${newCollapsedState ? "collapsed" : "expanded"}.`,
+          "success",
+        );
+      } catch (error) {
+        showNotification("Error saving collapse state.", "error");
+        // Revert optimistic update if save fails
+        const revertedNodes = nodes.map((n) =>
+          n.id === nodeId
+            ? {
+                ...n,
+                data: {
+                  ...n.data,
+                  metadata: {
+                    ...(n.data.metadata || {}),
+                    isCollapsed: currentCollapsedState, // Revert to original state
+                  },
+                },
+              }
+            : n,
+        );
+        setNodes(revertedNodes);
+      }
+    },
+    [nodes, setNodes, crudActions, addStateToHistory, showNotification],
+  );
+
+  const isNodeCollapsed = useCallback(
+    (nodeId: string): boolean => {
+      const node = nodes.find((n) => n.id === nodeId);
+      return node?.data.metadata?.isCollapsed ?? false;
+    },
+    [nodes],
+  );
+
+  useEffect(() => {
+    console.log(
+      "[Visibility useEffect] Triggered. Nodes length:",
+      nodes.length,
+      "Edges length:",
+      edges.length,
+    );
+    // This effect calculates and applies the `hidden` property to nodes and edges
+    // based on the `isCollapsed` status of parent nodes.
+
+    // Only run if there are nodes to process or if initial data has loaded.
+    if (nodes.length === 0 && initialNodes.length === 0) {
+      console.log(
+        "[Visibility useEffect] Skipped: No nodes and no initial nodes.",
+      );
+      return;
+    }
+
+    const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+    let nodesChanged = false;
+    let edgesChanged = false;
+
+    // Log the collapsed state of all nodes before processing
+    nodes.forEach((n) => {
+      if (n.data.metadata?.isCollapsed !== undefined) {
+        // Log if isCollapsed is explicitly set
+        console.log(
+          `[Visibility useEffect] Pre-check: Node ${n.id} isCollapsed: ${n.data.metadata.isCollapsed}`,
+        );
+      }
+    });
+
+    const getIsAnyAncestorCollapsed = (startNodeId: string): boolean => {
+      let currentNodeId = startNodeId;
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const node = nodeMap.get(currentNodeId);
+        if (!node || !node.data.parent_id) {
+          return false; // Reached a root node or node not found
+        }
+        const parentNode = nodeMap.get(node.data.parent_id);
+        if (!parentNode) {
+          return false; // Parent not found, break loop
+        }
+        if (parentNode.data.metadata?.isCollapsed) {
+          return true; // Found a collapsed ancestor
+        }
+        currentNodeId = parentNode.id; // Move up to the next parent
+      }
+    };
+
+    const newNodes = nodes.map((n) => {
+      const parentNode = n.data.parent_id
+        ? nodeMap.get(n.data.parent_id)
+        : null;
+      const shouldBeHidden = getIsAnyAncestorCollapsed(n.id);
+
+      // Replace 'YOUR_TARGET_NODE_ID_HERE' with the actual ID of the node you are testing with
+      if (
+        n.data.parent_id === "18b4b1bf-ca5a-4522-9106-f855be1b2e0b" ||
+        n.id === "18b4b1bf-ca5a-4522-9106-f855be1b2e0b"
+      ) {
+        console.log(
+          `[Visibility useEffect] Node: ${n.id}, Parent: ${n.data.parent_id}, Parent Node isCollapsed: ${parentNode?.data.metadata?.isCollapsed}, Calculated Hidden: ${shouldBeHidden}, Current Hidden: ${n.hidden}`,
+        );
+      }
+
+      if ((n.hidden ?? false) !== shouldBeHidden) {
+        console.log(
+          `[Visibility useEffect] Node ${n.id} hidden state changed from ${n.hidden} to ${shouldBeHidden}`,
+        );
+        nodesChanged = true;
+      }
+      return { ...n, hidden: shouldBeHidden };
+    });
+
+    const newEdges = edges.map((e) => {
+      const sourceNodeFromNewNodes = newNodes.find((n) => n.id === e.source);
+      const targetNodeFromNewNodes = newNodes.find((n) => n.id === e.target);
+
+      const sourceHidden = sourceNodeFromNewNodes?.hidden ?? false;
+      const targetHidden = targetNodeFromNewNodes?.hidden ?? false;
+      const shouldBeHidden = sourceHidden || targetHidden;
+
+      if ((e.hidden ?? false) !== shouldBeHidden) {
+        console.log(
+          `[Visibility useEffect] Edge ${e.id} hidden state changed from ${e.hidden} to ${shouldBeHidden}`,
+        );
+        edgesChanged = true;
+      }
+      return { ...e, hidden: shouldBeHidden };
+    });
+
+    if (nodesChanged) {
+      console.log("[Visibility useEffect] Applying node visibility changes.");
+      setNodes(newNodes);
+    }
+    if (edgesChanged) {
+      console.log("[Visibility useEffect] Applying edge visibility changes.");
+      setEdges(newEdges);
+    }
+    if (!nodesChanged && !edgesChanged) {
+      console.log("[Visibility useEffect] No visibility changes detected.");
+    }
+    // Dependency array ensures this effect runs when `nodes` or `edges` themselves change (e.g. adding/deleting)
+    // or when the content of `nodes` changes in a way that affects collapse (which is handled by `toggleNodeCollapse` calling `setNodes`).
+    // `initialNodes` and `initialEdges` are for the first pass after data load.
+  }, [nodes, edges, setNodes, setEdges, initialNodes, initialEdges]);
 
   // --- Context Value ---
   const contextValue = useMemo(
@@ -356,6 +552,8 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
       handlePaste,
       mindMap,
       contextMenuState,
+      toggleNodeCollapse,
+      isNodeCollapsed,
     }),
     [
       mapId,
@@ -418,20 +616,21 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
       handleEdgesChangeWithSave,
       mindMap,
       contextMenuState,
+      toggleNodeCollapse,
+      isNodeCollapsed,
     ],
   );
 
   // Handle data loading error
-  if (dataError && !mindMap) {
-    return (
-      <div className="flex min-h-full items-center justify-center text-rose-400">
-        Error loading map: {dataError}
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (dataError && !mindMap) {
+      showNotification(`Error loading map: ${dataError}`, "error");
+      // Potentially redirect or show a more permanent error UI
+    }
+  }, [dataError, mindMap, showNotification]);
 
   // Handle initial loading state
-  if (isDataLoading && !mindMap) {
+  if (isDataLoading && !mindMap && !dataError) {
     return (
       <div className="flex min-h-full items-center justify-center text-zinc-400">
         Loading mind map...
@@ -440,7 +639,8 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
   }
 
   // Handle case where mapId is invalid or map not found after loading attempt
-  if (!isDataLoading && !mindMap) {
+  if (!isDataLoading && !mindMap && !dataError && mapId) {
+    // Added mapId check to ensure it's not a pre-load scenario
     return (
       <div className="flex min-h-full items-center justify-center text-zinc-400">
         Mind map not found or invalid ID.

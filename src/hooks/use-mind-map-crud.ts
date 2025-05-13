@@ -815,12 +815,18 @@ export function useMindMapCRUD({
         return null;
       }
 
+      // Check for existing connection in either direction
       const existingEdge = edges.find(
-        (e) => e.source === sourceId && e.target === targetId,
+        (e) =>
+          (e.source === sourceId && e.target === targetId) ||
+          (e.source === targetId && e.target === sourceId),
       );
 
       if (existingEdge) {
-        showNotification("Connection already exists.", "error");
+        showNotification(
+          "A connection between these nodes already exists.",
+          "error",
+        );
         return null;
       }
 
@@ -891,12 +897,54 @@ export function useMindMapCRUD({
         };
 
         let finalEdges: AppEdge[] = [];
+        // This variable will hold the nodes array state intended for the history snapshot.
+        // It starts as a copy of the nodes state *before* attempting the parent_id update.
+        let nodesStateForHistory: Node<NodeData>[] = [...nodes];
+
+        // Update parent_id of the target node in the database
+        const { error: parentUpdateError } = await supabase
+          .from("nodes")
+          .update({ parent_id: sourceId, updated_at: new Date().toISOString() })
+          .eq("id", targetId);
+
+        if (parentUpdateError) {
+          console.error(
+            `Error updating parent_id for target node ${targetId}:`,
+            parentUpdateError,
+          );
+          showNotification(
+            "Warning: Connection saved, but failed to set parent relationship in DB.",
+            "error",
+          );
+          // If DB update fails, nodesStateForHistory remains the original snapshot.
+        } else {
+          // DB update for parent_id was successful.
+          // 1. Update the live local state. This call will trigger React Flow re-renders
+          // and any useEffects in MindMapProvider that depend on `nodes`.
+          setNodes((currentNodesValue) => currentNodesValue.map((n) =>
+              n.id === targetId
+                ? { ...n, data: { ...n.data, parent_id: sourceId } }
+                : n,
+            ));
+
+          // 2. For the history snapshot, explicitly create the version of nodes
+          // that reflects this successful parent_id update.
+          // We base this on the `nodes` array as it was at the beginning of this `addEdge` call's scope.
+          nodesStateForHistory = nodes.map((n) =>
+              n.id === targetId
+                ? { ...n, data: { ...n.data, parent_id: sourceId } }
+                : n,
+            );
+        }
+
+        // Add the new edge to the live local state
         setEdges((eds) => {
-          finalEdges = [...eds, newReactFlowEdge!];
+          finalEdges = [...eds, newReactFlowEdge!]; // finalEdges is captured here for history
           return finalEdges;
         });
-
-        addStateToHistory("addEdge", { nodes: nodes, edges: finalEdges });
+        
+        // Add to history using the correctly constructed nodes snapshot and the final edges.
+        addStateToHistory("addEdge", { nodes: nodesStateForHistory, edges: finalEdges });
         showNotification("Connection saved.", "success");
         return newReactFlowEdge;
       } catch (err: unknown) {

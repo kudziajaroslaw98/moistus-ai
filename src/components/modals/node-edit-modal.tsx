@@ -93,9 +93,6 @@ export default function NodeEditModal({
     }
   }, [node, isOpen, isLoading, isSaving]);
 
-  console.log(node, "node");
-  console.log(selectedNodeType, "selectedNodeType");
-
   const handleNodeTypeChange = (newType: string) => {
     if (!node || isLoading || isSaving || newType === selectedNodeType) return;
     setSelectedNodeType(newType);
@@ -139,7 +136,6 @@ export default function NodeEditModal({
       changes.metadata = null;
     }
 
-    console.log(changes, "changes");
     setIsSaving(true);
     await onSave(node.id, changes);
     setIsSaving(false);
