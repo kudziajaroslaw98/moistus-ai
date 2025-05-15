@@ -10,7 +10,7 @@ import {
   useEdgesState,
   useNodesState,
 } from "@xyflow/react";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 interface UseMindMapStateResult {
   nodes: Node<NodeData>[];
@@ -21,6 +21,7 @@ interface UseMindMapStateResult {
   onEdgesChange: OnEdgesChange;
 
   onConnect: (params: Connection) => void;
+  isDragging: boolean;
 }
 
 export function useMindMapState(
@@ -33,6 +34,8 @@ export function useMindMapState(
 
   const [edges, setEdges, onEdgesChangeDirect] =
     useEdgesState<AppEdge>(initialEdges);
+
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     if (JSON.stringify(nodes) !== JSON.stringify(initialNodes)) {
@@ -48,9 +51,22 @@ export function useMindMapState(
 
   const onNodesChange: OnNodesChange = useCallback(
     (changes: NodeChange[]) => {
+      // Handle position changes specially
+      const hasPositionChange = changes.some(
+        (change) => change.type === "position",
+      );
+
+      if (hasPositionChange) {
+        const isDragChange = changes.some((change) => change.dragging);
+        setIsDragging(isDragChange);
+      }
+
       onNodesChangeDirect(changes as NodeChange<Node<NodeData>>[]);
+
+      // Only return true (to trigger history) if it's not a drag operation
+      return !isDragging;
     },
-    [onNodesChangeDirect],
+    [onNodesChangeDirect, isDragging],
   );
 
   const onEdgesChange: OnEdgesChange = useCallback(
@@ -74,5 +90,6 @@ export function useMindMapState(
     setEdges: setEdges as React.Dispatch<React.SetStateAction<AppEdge[]>>,
     onEdgesChange,
     onConnect,
+    isDragging,
   };
 }

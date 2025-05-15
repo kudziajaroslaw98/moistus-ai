@@ -50,6 +50,48 @@ const BaseNodeWrapperComponent = ({
   const collapsed = isNodeCollapsed(id);
   const [hover, setHover] = useState(false);
 
+  const MemoizedCollapseButton = useMemo(() => {
+    if (!hasChildren) return null;
+
+    return (
+      <Button
+        onClick={(e) => {
+          e.stopPropagation();
+          toggleNodeCollapse(id);
+        }}
+        className="nodrag nopan z-20 rounded-sm hover:bg-black/20 h-5 w-auto group flex gap-2 px-1 transition-all"
+        variant={"ghost"}
+        title={collapsed ? "Expand Branch" : "Collapse Branch"}
+        onHoverStart={() => setHover(true)}
+        onHoverEnd={() => setHover(false)}
+      >
+        {collapsed ? (
+          <ChevronRight className="size-3" />
+        ) : (
+          <ChevronDown className="size-3" />
+        )}
+
+        <AnimatePresence>
+          {hover && (
+            <motion.span
+              key={`hover-${hover}`}
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: "auto", opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{
+                width: { duration: 0.25 },
+                opacity: { duration: 0.4 },
+                ease: "easeOut",
+              }}
+            >
+              {collapsed ? "Expand" : "Collapse"}
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </Button>
+    );
+  }, [hasChildren, collapsed, hover, id, toggleNodeCollapse]);
+
   if (!data) {
     return null;
   }
@@ -64,7 +106,7 @@ const BaseNodeWrapperComponent = ({
       )}
     >
       <>
-        {collapsed && directChildrenCount > 0 && (
+        {collapsed && (
           <>
             <div className="absolute w-full h-full -z-[2] left-3 -bottom-3 rounded-lg border-2 border-node-accent/25 bg-zinc-950" />
 
@@ -81,56 +123,7 @@ const BaseNodeWrapperComponent = ({
 
         <div className="top-0 left-4 absolute -translate-y-full flex items-center justify-center gap-2">
           <motion.div className="bg-node-accent text-node-text-main rounded-t-sm text-[10px] font-semibold font-mono flex items-center justify-center gap-2">
-            {hasChildren && (
-              <Button
-                onClick={(e) => {
-                  e.stopPropagation(); // Prevent node selection/drag
-                  toggleNodeCollapse(id);
-                }}
-                className="nodrag nopan z-20 rounded-sm hover:bg-black/20 h-5 w-auto group flex gap-2 px-1 transition-all"
-                variant={"ghost"}
-                title={collapsed ? "Expand Branch" : "Collapse Branch"}
-                onHoverStart={() => setHover(true)}
-                onHoverEnd={() => setHover(false)}
-              >
-                {collapsed ? (
-                  <ChevronRight className="size-3" />
-                ) : (
-                  <ChevronDown className="size-3" />
-                )}
-
-                <AnimatePresence>
-                  {hover && (
-                    <motion.span
-                      key={`hover-${hover}`}
-                      initial={{
-                        width: 0,
-                        opacity: 0,
-                      }}
-                      animate={{
-                        width: "auto",
-                        opacity: 1,
-                      }}
-                      exit={{
-                        width: 0,
-                        opacity: 0,
-                      }}
-                      transition={{
-                        width: {
-                          duration: 0.25,
-                        },
-                        opacity: {
-                          duration: 0.4,
-                        },
-                        ease: "easeOut",
-                      }}
-                    >
-                      {collapsed ? "Expand" : "Collapse"}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </Button>
-            )}
+            {hasChildren && <>{MemoizedCollapseButton}</>}
           </motion.div>
 
           <div className="bg-node-accent text-node-text-main rounded-t-sm px-2 py-0.5 text-[10px] font-semibold font-mono flex items-center gap-2">
@@ -141,17 +134,6 @@ const BaseNodeWrapperComponent = ({
         </div>
 
         {children}
-
-        {/* {!selected && (
-          <Handle
-            className={cn([
-              "w-full h-full absolute top-0 left-0 rounded-full transform-none border-none opacity-0",
-              connection.inProgress ? "h-full" : "h-1/2 -translate-y-1/2",
-            ])}
-            position={Position.Bottom}
-            type="source"
-          />
-        )} */}
 
         <Handle
           type="source"

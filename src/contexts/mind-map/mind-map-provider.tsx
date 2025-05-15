@@ -269,9 +269,13 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
 
   const handleNodesChangeWithSave: OnNodesChange = useCallback(
     (changes) => {
-      directNodesChangeHandler(changes);
-      changes.forEach((change) => crudActions.triggerNodeSave(change));
-      addStateToHistory("nodeChange");
+      const shouldUpdate = directNodesChangeHandler(changes);
+
+      // Only save and add to history if the change is not from dragging
+      if (shouldUpdate) {
+        changes.forEach((change) => crudActions.triggerNodeSave(change));
+        addStateToHistory("nodeChange");
+      }
     },
     [directNodesChangeHandler, crudActions.triggerNodeSave, addStateToHistory],
   );
@@ -298,6 +302,7 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
     async (nodeId: string) => {
       console.log(`[toggleNodeCollapse] Triggered for nodeId: ${nodeId}`);
       const targetNodeIndex = nodes.findIndex((n) => n.id === nodeId);
+
       if (targetNodeIndex === -1) {
         console.warn(`[toggleNodeCollapse] Node not found: ${nodeId}`);
         return;
@@ -377,113 +382,66 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
   );
 
   useEffect(() => {
-    console.log(
-      "[Visibility useEffect] Triggered. Nodes length:",
-      nodes.length,
-      "Edges length:",
-      edges.length,
-    );
-    // This effect calculates and applies the `hidden` property to nodes and edges
-    // based on the `isCollapsed` status of parent nodes.
-
-    // Only run if there are nodes to process or if initial data has loaded.
-    if (nodes.length === 0 && initialNodes.length === 0) {
-      console.log(
-        "[Visibility useEffect] Skipped: No nodes and no initial nodes.",
-      );
-      return;
-    }
-
-    const nodeMap = new Map(nodes.map((node) => [node.id, node]));
-    let nodesChanged = false;
-    let edgesChanged = false;
-
-    // Log the collapsed state of all nodes before processing
-    nodes.forEach((n) => {
-      if (n.data.metadata?.isCollapsed !== undefined) {
-        // Log if isCollapsed is explicitly set
-        console.log(
-          `[Visibility useEffect] Pre-check: Node ${n.id} isCollapsed: ${n.data.metadata.isCollapsed}`,
-        );
+    const debounceTimeout = setTimeout(() => {
+      // Skip unnecessary updates
+      if (nodes.length === 0 && initialNodes.length === 0) {
+        return;
       }
-    });
 
-    const getIsAnyAncestorCollapsed = (startNodeId: string): boolean => {
-      let currentNodeId = startNodeId;
-      // eslint-disable-next-line no-constant-condition
-      while (true) {
-        const node = nodeMap.get(currentNodeId);
-        if (!node || !node.data.parent_id) {
-          return false; // Reached a root node or node not found
+      // Create Map for O(1) lookups
+      const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+      const visibilityCache = new Map<string, boolean>();
+
+      const getIsAnyAncestorCollapsed = (startingNodeId: string): boolean => {
+        // Check cache first
+        if (visibilityCache.has(startingNodeId)) {
+          return visibilityCache.get(startingNodeId)!;
         }
-        const parentNode = nodeMap.get(node.data.parent_id);
-        if (!parentNode) {
-          return false; // Parent not found, break loop
+
+        let currentNodeId: string | null | undefined = startingNodeId;
+        const visitedNodes = new Set<string>();
+
+        while (currentNodeId) {
+          const node = nodeMap.get(currentNodeId);
+          if (!node || visitedNodes.has(currentNodeId)) break;
+
+          visitedNodes.add(currentNodeId);
+
+          if (node.data.metadata?.isCollapsed) {
+            visibilityCache.set(startingNodeId, true);
+            return true;
+          }
+
+          currentNodeId = node.data.parent_id;
         }
-        if (parentNode.data.metadata?.isCollapsed) {
-          return true; // Found a collapsed ancestor
-        }
-        currentNodeId = parentNode.id; // Move up to the next parent
-      }
-    };
 
-    const newNodes = nodes.map((n) => {
-      const parentNode = n.data.parent_id
-        ? nodeMap.get(n.data.parent_id)
-        : null;
-      const shouldBeHidden = getIsAnyAncestorCollapsed(n.id);
+        visibilityCache.set(startingNodeId, false);
+        return false;
+      };
 
-      // Replace 'YOUR_TARGET_NODE_ID_HERE' with the actual ID of the node you are testing with
-      if (
-        n.data.parent_id === "18b4b1bf-ca5a-4522-9106-f855be1b2e0b" ||
-        n.id === "18b4b1bf-ca5a-4522-9106-f855be1b2e0b"
-      ) {
-        console.log(
-          `[Visibility useEffect] Node: ${n.id}, Parent: ${n.data.parent_id}, Parent Node isCollapsed: ${parentNode?.data.metadata?.isCollapsed}, Calculated Hidden: ${shouldBeHidden}, Current Hidden: ${n.hidden}`,
-        );
-      }
+      // Batch updates using a single state update
+      const updatedNodes = nodes.map((n) => {
+        const shouldBeHidden = getIsAnyAncestorCollapsed(n.id);
+        return n.hidden === shouldBeHidden
+          ? n
+          : { ...n, hidden: shouldBeHidden };
+      });
 
-      if ((n.hidden ?? false) !== shouldBeHidden) {
-        console.log(
-          `[Visibility useEffect] Node ${n.id} hidden state changed from ${n.hidden} to ${shouldBeHidden}`,
-        );
-        nodesChanged = true;
-      }
-      return { ...n, hidden: shouldBeHidden };
-    });
+      const updatedEdges = edges.map((e) => {
+        const sourceHidden = nodeMap.get(e.source)?.hidden ?? false;
+        const targetHidden = nodeMap.get(e.target)?.hidden ?? false;
+        const shouldBeHidden = sourceHidden || targetHidden;
+        return e.hidden === shouldBeHidden
+          ? e
+          : { ...e, hidden: shouldBeHidden };
+      });
 
-    const newEdges = edges.map((e) => {
-      const sourceNodeFromNewNodes = newNodes.find((n) => n.id === e.source);
-      const targetNodeFromNewNodes = newNodes.find((n) => n.id === e.target);
+      setNodes(updatedNodes);
+      setEdges(updatedEdges);
+    }, 100); // Add 100ms debounce
 
-      const sourceHidden = sourceNodeFromNewNodes?.hidden ?? false;
-      const targetHidden = targetNodeFromNewNodes?.hidden ?? false;
-      const shouldBeHidden = sourceHidden || targetHidden;
-
-      if ((e.hidden ?? false) !== shouldBeHidden) {
-        console.log(
-          `[Visibility useEffect] Edge ${e.id} hidden state changed from ${e.hidden} to ${shouldBeHidden}`,
-        );
-        edgesChanged = true;
-      }
-      return { ...e, hidden: shouldBeHidden };
-    });
-
-    if (nodesChanged) {
-      console.log("[Visibility useEffect] Applying node visibility changes.");
-      setNodes(newNodes);
-    }
-    if (edgesChanged) {
-      console.log("[Visibility useEffect] Applying edge visibility changes.");
-      setEdges(newEdges);
-    }
-    if (!nodesChanged && !edgesChanged) {
-      console.log("[Visibility useEffect] No visibility changes detected.");
-    }
-    // Dependency array ensures this effect runs when `nodes` or `edges` themselves change (e.g. adding/deleting)
-    // or when the content of `nodes` changes in a way that affects collapse (which is handled by `toggleNodeCollapse` calling `setNodes`).
-    // `initialNodes` and `initialEdges` are for the first pass after data load.
-  }, [nodes, edges, setNodes, setEdges, initialNodes, initialEdges]);
+    return () => clearTimeout(debounceTimeout);
+  }, [nodes, edges, setNodes, setEdges, initialNodes]);
 
   // --- Context Value ---
   const contextValue = useMemo(

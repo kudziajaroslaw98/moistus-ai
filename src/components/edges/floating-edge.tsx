@@ -62,16 +62,29 @@ const FloatingEdgeComponent = ({
     targetPosition: targetPos,
   });
 
+  // Determine style based on parent link status
+  const isParentLink = data?.metadata?.isParentLink;
+
+  const baseStroke = isParentLink ? "#88aaff" : "#6c757d";
+  const baseStrokeWidth = isParentLink ? 4 : 2;
+
+  // Apply selection override if needed
+  const finalStroke = selected ? "#3b82f6" : baseStroke;
+  const finalStrokeWidth = baseStrokeWidth; // Keep the width based on parent link status
+
+  const finalStyle = {
+    ...style, // Include any other styles passed in (though unlikely for edges)
+    stroke: finalStroke,
+    strokeWidth: finalStrokeWidth,
+  };
+
   return (
     <>
       <BaseEdge
         id={id}
         path={edgePath}
         markerEnd={markerEnd}
-        style={{
-          ...style,
-          stroke: selected ? "#3b82f6" : style?.stroke || "#6c757d",
-        }}
+        style={finalStyle}
         className={cn(
           "react-flow__edge-path",
           "cursor-pointer",

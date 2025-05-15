@@ -75,6 +75,11 @@ export interface CrudActions {
     edgeId: string,
     changes: Partial<EdgeData>,
   ) => Promise<void>;
+  setNodeParent: (
+    edgeId: string,
+    nodeId: string,
+    parentId: string | null,
+  ) => Promise<void>;
   groupNodes: (nodeIds: string[]) => Promise<void>;
   restoreNode: (node: Node<NodeData>) => Promise<void>;
   restoreEdge: (edge: AppEdge) => Promise<void>;
@@ -104,23 +109,23 @@ export function useMindMapCRUD({
     (
       id: string,
       field: "position" | "dimensions",
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       saveFn: (...args: any[]) => Promise<void>,
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ...args: any[]
     ) => {
       const key = `${id}-${field}`;
 
+      // Clear existing timer
       if (saveTimers.current[key]) {
         clearTimeout(saveTimers.current[key]);
       }
 
+      // Use a longer delay for position updates (500ms)
+      const delay = field === "position" ? 500 : 200;
+
       saveTimers.current[key] = setTimeout(() => {
         saveFn(...args);
         delete saveTimers.current[key];
-      }, 500);
+      }, delay);
     },
     [],
   );
@@ -132,6 +137,9 @@ export function useMindMapCRUD({
       animated: false,
       label: undefined,
       markerEnd: undefined,
+      metadata: {
+        isParentLink: false, // Default to false
+      },
     };
 
     return {
@@ -921,20 +929,22 @@ export function useMindMapCRUD({
           // DB update for parent_id was successful.
           // 1. Update the live local state. This call will trigger React Flow re-renders
           // and any useEffects in MindMapProvider that depend on `nodes`.
-          setNodes((currentNodesValue) => currentNodesValue.map((n) =>
+          setNodes((currentNodesValue) =>
+            currentNodesValue.map((n) =>
               n.id === targetId
                 ? { ...n, data: { ...n.data, parent_id: sourceId } }
                 : n,
-            ));
+            ),
+          );
 
           // 2. For the history snapshot, explicitly create the version of nodes
           // that reflects this successful parent_id update.
           // We base this on the `nodes` array as it was at the beginning of this `addEdge` call's scope.
           nodesStateForHistory = nodes.map((n) =>
-              n.id === targetId
-                ? { ...n, data: { ...n.data, parent_id: sourceId } }
-                : n,
-            );
+            n.id === targetId
+              ? { ...n, data: { ...n.data, parent_id: sourceId } }
+              : n,
+          );
         }
 
         // Add the new edge to the live local state
@@ -942,9 +952,12 @@ export function useMindMapCRUD({
           finalEdges = [...eds, newReactFlowEdge!]; // finalEdges is captured here for history
           return finalEdges;
         });
-        
+
         // Add to history using the correctly constructed nodes snapshot and the final edges.
-        addStateToHistory("addEdge", { nodes: nodesStateForHistory, edges: finalEdges });
+        addStateToHistory("addEdge", {
+          nodes: nodesStateForHistory,
+          edges: finalEdges,
+        });
         showNotification("Connection saved.", "success");
         return newReactFlowEdge;
       } catch (err: unknown) {
@@ -1281,6 +1294,158 @@ export function useMindMapCRUD({
     [mapId, supabase, showNotification],
   );
 
+  const setNodeParent = useCallback(
+    async (edgeId: string, nodeId: string, parentId: string | null) => {
+      setIsLoading(true);
+
+      try {
+        const edgeToUpdate = edges.find((edge) => edge.id === edgeId);
+        const targetNode = nodes.find((node) => node.id === nodeId);
+
+        if (!edgeToUpdate || !targetNode) {
+          showNotification(
+            "Error setting parent link: Edge or target node not found.",
+            "error",
+          );
+          return;
+        }
+
+        // Find the old parent edge if it exists and is marked as parent link
+        const oldParentEdge = edges.find(
+          (edge) =>
+            edge.target === nodeId &&
+            edge.data?.metadata?.isParentLink === true,
+        );
+
+        // 1. Update target node's parent_id in DB
+        const { error: nodeUpdateError } = await supabase
+          .from("nodes")
+          .update({ parent_id: parentId, updated_at: new Date().toISOString() })
+          .eq("id", nodeId);
+
+        if (nodeUpdateError) {
+          throw new Error(
+            nodeUpdateError.message ||
+              "Failed to update node parent in database.",
+          );
+        }
+
+        // 2. Update the selected edge's metadata/style in DB to be the new parent link
+        const parentLinkStyle = { stroke: "#88aaff", strokeWidth: 4 }; // Define parent link style
+        const defaultStyle = { stroke: "#6c757d", strokeWidth: 2 }; // Define default style
+
+        const { error: edgeUpdateError } = await supabase
+          .from("edges")
+          .update({
+            metadata: { ...edgeToUpdate.data?.metadata, isParentLink: true },
+            style: parentLinkStyle,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", edgeId);
+
+        if (edgeUpdateError) {
+          console.error(
+            "Warning: Failed to update edge as parent link in DB.",
+            edgeUpdateError,
+          );
+          showNotification(
+            "Parent node updated, but failed to update edge style in DB.",
+            "warning",
+          );
+          // Continue execution as node parent was updated successfully
+        }
+
+        // 3. If an old parent edge exists, update its metadata/style in DB to be non-parent link
+        if (oldParentEdge && oldParentEdge.id !== edgeId) {
+          const { error: oldEdgeUpdateError } = await supabase
+            .from("edges")
+            .update({
+              metadata: {
+                ...oldParentEdge.data?.metadata,
+                isParentLink: false,
+              },
+              style: defaultStyle,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", oldParentEdge.id);
+
+          if (oldEdgeUpdateError) {
+            console.error(
+              "Warning: Failed to update old parent edge style in DB.",
+              oldEdgeUpdateError,
+            );
+            showNotification(
+              "Parent node updated, but failed to update old edge style in DB.",
+              "warning",
+            );
+            // Continue execution
+          }
+        }
+
+        // 4. Update local state for nodes (specifically the target node's parent_id)
+        const nextNodes = nodes.map((node) =>
+          node.id === nodeId
+            ? { ...node, data: { ...node.data, parent_id: parentId } }
+            : node,
+        );
+        setNodes(nextNodes);
+
+        // 5. Update local state for edges (selected edge and old parent edge)
+        const nextEdges = edges.map((edge) => {
+          if (edge.id === edgeId) {
+            // The new parent edge
+            return {
+              ...edge,
+              id: edge.id,
+              data: {
+                ...edge.data,
+                id: edge.data!.id,
+                metadata: { ...edge.data?.metadata, isParentLink: true },
+              },
+              style: parentLinkStyle,
+            };
+          } else if (oldParentEdge && edge.id === oldParentEdge.id) {
+            // The old parent edge
+            return {
+              ...edge,
+              data: {
+                ...edge.data,
+                id: edge.data!.id,
+                metadata: { ...edge.data?.metadata, isParentLink: false },
+              },
+              style: defaultStyle,
+            };
+          }
+
+          return edge;
+        }) as AppEdge[];
+        setEdges(nextEdges);
+
+        addStateToHistory("setNodeParent", {
+          nodes: nextNodes,
+          edges: nextEdges,
+        });
+        showNotification("Parent link updated.", "success");
+      } catch (err: unknown) {
+        console.error("Error setting parent link:", err);
+        const message =
+          err instanceof Error ? err.message : "Failed to set parent link.";
+        showNotification(message, "error");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [
+      nodes,
+      edges,
+      supabase,
+      setNodes,
+      setEdges,
+      addStateToHistory,
+      showNotification,
+    ],
+  );
+
   const triggerNodeSave = useCallback(
     (change: NodeChange) => {
       switch (change.type) {
@@ -1339,6 +1504,7 @@ export function useMindMapCRUD({
       triggerEdgeSave,
       triggerNodeSave,
       deleteEdge,
+      setNodeParent,
       saveEdgeProperties,
       groupNodes,
       restoreNode,
