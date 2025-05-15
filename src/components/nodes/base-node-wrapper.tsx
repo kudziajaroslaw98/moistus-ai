@@ -2,6 +2,7 @@ import { useMindMapContext } from "@/contexts/mind-map/mind-map-context"; // Imp
 import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
 import {
+  getOutgoers,
   Handle,
   Node,
   NodeProps,
@@ -34,25 +35,29 @@ const BaseNodeWrapperComponent = ({
   includePadding = true,
 }: BaseNodeWrapperProps) => {
   const connection = useConnection();
-  const isTarget = connection.inProgress && connection.fromNode?.id !== id; // Added optional chaining for fromNode
+  const isTarget = useMemo(
+    () => connection.inProgress && connection.fromNode?.id !== id,
+    [connection, id],
+  );
 
-  const {
-    toggleNodeCollapse,
-    isNodeCollapsed,
-    edges: allEdges,
-  } = useMindMapContext(); // Get collapse functions and edges
+  const { toggleNodeCollapse, nodes, edges } = useMindMapContext(); // Get collapse functions and edges
+  const node = nodes.find((n) => n.id === id);
 
-  const directChildrenCount = useMemo(() => {
-    return allEdges.filter((edge) => edge.source === id).length;
-  }, [allEdges, id]);
-  const hasChildren = directChildrenCount > 0;
+  const descendandCount = (node: Node<NodeData>) => {
+    const outgoers = getOutgoers({ id: node.id }, nodes, edges);
 
-  const collapsed = isNodeCollapsed(id);
+    return (
+      outgoers.length +
+      outgoers.reduce((acc, child) => acc + descendandCount(child), 0)
+    );
+  };
+
+  console.log(descendandCount(node));
+
+  const collapsed = data.metadata?.isCollapsed ?? false;
   const [hover, setHover] = useState(false);
 
   const MemoizedCollapseButton = useMemo(() => {
-    if (!hasChildren) return null;
-
     return (
       <Button
         onClick={(e) => {
@@ -90,7 +95,7 @@ const BaseNodeWrapperComponent = ({
         </AnimatePresence>
       </Button>
     );
-  }, [hasChildren, collapsed, hover, id, toggleNodeCollapse]);
+  }, [collapsed, hover, toggleNodeCollapse]);
 
   if (!data) {
     return null;
@@ -112,18 +117,15 @@ const BaseNodeWrapperComponent = ({
 
             <div className="absolute w-full h-full -z-[1] -bottom-2 left-2 rounded-lg border-2 border-node-accent/25 bg-zinc-950" />
 
-            <div
-              className="absolute -bottom-2 -right-2 z-10 rounded-full bg-node-accent px-1.5 py-0.5 text-[9px] font-bold text-white shadow-md"
-              title={`${directChildrenCount} hidden item${directChildrenCount !== 1 ? "s" : ""}`}
-            >
-              {directChildrenCount}
+            <div className="absolute -bottom-2 -right-2 z-10 rounded-full bg-node-accent px-1.5 py-0.5 text-[9px] font-bold text-white shadow-md">
+              {1}
             </div>
           </>
         )}
 
         <div className="top-0 left-4 absolute -translate-y-full flex items-center justify-center gap-2">
           <motion.div className="bg-node-accent text-node-text-main rounded-t-sm text-[10px] font-semibold font-mono flex items-center justify-center gap-2">
-            {hasChildren && <>{MemoizedCollapseButton}</>}
+            {<>{MemoizedCollapseButton}</>}
           </motion.div>
 
           <div className="bg-node-accent text-node-text-main rounded-t-sm px-2 py-0.5 text-[10px] font-semibold font-mono flex items-center gap-2">

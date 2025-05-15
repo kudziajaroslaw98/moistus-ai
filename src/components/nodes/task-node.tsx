@@ -13,14 +13,7 @@ interface Task {
   isComplete: boolean;
 }
 
-interface TaskNodeProps extends NodeProps<Node<NodeData>> {
-  onEditNode: (nodeId: string, nodeData: NodeData) => void;
-  // Add saveNodeProperties function to props
-  saveNodeProperties: (
-    nodeId: string,
-    changes: Partial<NodeData>,
-  ) => Promise<void>;
-}
+interface TaskNodeProps extends NodeProps<Node<NodeData>> {}
 
 const TaskNodeComponent = (props: TaskNodeProps) => {
   const { id, data, saveNodeProperties } = props;

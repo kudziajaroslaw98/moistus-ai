@@ -6,9 +6,7 @@ import { memo } from "react";
 import ReactMarkdown from "react-markdown";
 import { BaseNodeWrapper } from "./base-node-wrapper";
 
-interface DefaultNodeProps extends NodeProps<Node<NodeData>> {
-  onEditNode: (nodeId: string, nodeData: NodeData) => void;
-}
+interface DefaultNodeProps extends NodeProps<Node<NodeData>> {}
 
 const DefaultNodeComponent = (props: DefaultNodeProps) => {
   const { data } = props;

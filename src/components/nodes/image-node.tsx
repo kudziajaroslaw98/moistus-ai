@@ -9,7 +9,6 @@ import { memo } from "react";
 import { BaseNodeWrapper } from "./base-node-wrapper";
 
 interface ImageNodeProps extends NodeProps<Node<NodeData>> {
-  onEditNode: (nodeId: string, nodeData: NodeData) => void;
 }
 
 const ImageNodeComponent = (props: ImageNodeProps) => {

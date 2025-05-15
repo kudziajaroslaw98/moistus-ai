@@ -7,7 +7,6 @@ import { memo } from "react";
 import { BaseNodeWrapper } from "./base-node-wrapper";
 
 interface QuestionNodeProps extends NodeProps<Node<NodeData>> {
-  onEditNode: (nodeId: string, nodeData: NodeData) => void;
 }
 
 const QuestionNodeComponent = (props: QuestionNodeProps) => {

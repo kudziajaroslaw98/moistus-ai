@@ -269,13 +269,8 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
 
   const handleNodesChangeWithSave: OnNodesChange = useCallback(
     (changes) => {
-      const shouldUpdate = directNodesChangeHandler(changes);
-
-      // Only save and add to history if the change is not from dragging
-      if (shouldUpdate) {
-        changes.forEach((change) => crudActions.triggerNodeSave(change));
-        addStateToHistory("nodeChange");
-      }
+      changes.forEach((change) => crudActions.triggerNodeSave(change));
+      addStateToHistory("nodeChange");
     },
     [directNodesChangeHandler, crudActions.triggerNodeSave, addStateToHistory],
   );
@@ -373,75 +368,67 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
     [nodes, setNodes, crudActions, addStateToHistory, showNotification],
   );
 
-  const isNodeCollapsed = useCallback(
-    (nodeId: string): boolean => {
-      const node = nodes.find((n) => n.id === nodeId);
-      return node?.data.metadata?.isCollapsed ?? false;
-    },
-    [nodes],
-  );
+  // useEffect(() => {
+  //   const debounceTimeout = setTimeout(() => {
+  //     // Skip unnecessary updates
+  //     if (nodes.length === 0 && initialNodes.length === 0) {
+  //       return;
+  //     }
 
-  useEffect(() => {
-    const debounceTimeout = setTimeout(() => {
-      // Skip unnecessary updates
-      if (nodes.length === 0 && initialNodes.length === 0) {
-        return;
-      }
+  //     // Create Map for O(1) lookups
+  //     const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+  //     const visibilityCache = new Map<string, boolean>();
 
-      // Create Map for O(1) lookups
-      const nodeMap = new Map(nodes.map((node) => [node.id, node]));
-      const visibilityCache = new Map<string, boolean>();
+  //     const getIsAnyAncestorCollapsed = (startingNodeId: string): boolean => {
+  //       // Check cache first
+  //       if (visibilityCache.has(startingNodeId)) {
+  //         return visibilityCache.get(startingNodeId)!;
+  //       }
 
-      const getIsAnyAncestorCollapsed = (startingNodeId: string): boolean => {
-        // Check cache first
-        if (visibilityCache.has(startingNodeId)) {
-          return visibilityCache.get(startingNodeId)!;
-        }
+  //       let currentNodeId: string | null | undefined = startingNodeId;
+  //       const visitedNodes = new Set<string>();
 
-        let currentNodeId: string | null | undefined = startingNodeId;
-        const visitedNodes = new Set<string>();
+  //       while (currentNodeId) {
+  //         const node = nodeMap.get(currentNodeId);
+  //         if (!node || visitedNodes.has(currentNodeId)) break;
 
-        while (currentNodeId) {
-          const node = nodeMap.get(currentNodeId);
-          if (!node || visitedNodes.has(currentNodeId)) break;
+  //         visitedNodes.add(currentNodeId);
 
-          visitedNodes.add(currentNodeId);
+  //         if (node.data.metadata?.isCollapsed) {
+  //           visibilityCache.set(startingNodeId, true);
+  //           return true;
+  //         }
 
-          if (node.data.metadata?.isCollapsed) {
-            visibilityCache.set(startingNodeId, true);
-            return true;
-          }
+  //         currentNodeId = node.data.parent_id;
+  //       }
 
-          currentNodeId = node.data.parent_id;
-        }
+  //       visibilityCache.set(startingNodeId, false);
+  //       return false;
+  //     };
 
-        visibilityCache.set(startingNodeId, false);
-        return false;
-      };
+  //     // Batch updates using a single state update
+  //     const updatedNodes = nodes.map((n) => {
+  //       const shouldBeHidden = getIsAnyAncestorCollapsed(n.id);
+  //       return n.hidden === shouldBeHidden
+  //         ? n
+  //         : { ...n, hidden: shouldBeHidden };
+  //     });
 
-      // Batch updates using a single state update
-      const updatedNodes = nodes.map((n) => {
-        const shouldBeHidden = getIsAnyAncestorCollapsed(n.id);
-        return n.hidden === shouldBeHidden
-          ? n
-          : { ...n, hidden: shouldBeHidden };
-      });
+  //     const updatedEdges = edges.map((e) => {
+  //       const sourceHidden = nodeMap.get(e.source)?.hidden ?? false;
+  //       const targetHidden = nodeMap.get(e.target)?.hidden ?? false;
+  //       const shouldBeHidden = sourceHidden || targetHidden;
+  //       return e.hidden === shouldBeHidden
+  //         ? e
+  //         : { ...e, hidden: shouldBeHidden };
+  //     });
 
-      const updatedEdges = edges.map((e) => {
-        const sourceHidden = nodeMap.get(e.source)?.hidden ?? false;
-        const targetHidden = nodeMap.get(e.target)?.hidden ?? false;
-        const shouldBeHidden = sourceHidden || targetHidden;
-        return e.hidden === shouldBeHidden
-          ? e
-          : { ...e, hidden: shouldBeHidden };
-      });
+  //     setNodes(updatedNodes);
+  //     setEdges(updatedEdges);
+  //   }, 100); // Add 100ms debounce
 
-      setNodes(updatedNodes);
-      setEdges(updatedEdges);
-    }, 100); // Add 100ms debounce
-
-    return () => clearTimeout(debounceTimeout);
-  }, [nodes, edges, setNodes, setEdges, initialNodes]);
+  //   return () => clearTimeout(debounceTimeout);
+  // }, [nodes, edges, setNodes, setEdges, initialNodes]);
 
   // --- Context Value ---
   const contextValue = useMemo(
@@ -511,7 +498,6 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
       mindMap,
       contextMenuState,
       toggleNodeCollapse,
-      isNodeCollapsed,
     }),
     [
       mapId,
@@ -575,7 +561,6 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
       mindMap,
       contextMenuState,
       toggleNodeCollapse,
-      isNodeCollapsed,
     ],
   );
 
