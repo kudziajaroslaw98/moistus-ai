@@ -6,25 +6,21 @@ import {
   Node,
   type InternalNode,
 } from "@xyflow/react";
-import React, { useMemo } from "react";
+import React from "react";
 
 const FloatingConnectionLine: React.FC<
   ConnectionLineComponentProps<Node<NodeData>>
 > = ({ fromPosition, toPosition, toX, toY, fromNode }) => {
-  const targetNode = useMemo(
-    () =>
-      ({
-        id: "connection-target",
-        measured: {
-          width: 1,
-          height: 1,
-        },
-        internals: {
-          positionAbsolute: { x: toX, y: toY },
-        },
-      }) as InternalNode<Node<NodeData>>,
-    [toX, toY],
-  );
+  const targetNode = {
+    id: "connection-target",
+    measured: {
+      width: 1,
+      height: 1,
+    },
+    internals: {
+      positionAbsolute: { x: toX, y: toY },
+    },
+  } as InternalNode<Node<NodeData>>;
 
   if (!fromNode) {
     return null;

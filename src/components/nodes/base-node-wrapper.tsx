@@ -2,7 +2,6 @@ import { useMindMapContext } from "@/contexts/mind-map/mind-map-context"; // Imp
 import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
 import {
-  getOutgoers,
   Handle,
   Node,
   NodeProps,
@@ -40,19 +39,7 @@ const BaseNodeWrapperComponent = ({
     [connection, id],
   );
 
-  const { toggleNodeCollapse, nodes, edges } = useMindMapContext(); // Get collapse functions and edges
-  const node = nodes.find((n) => n.id === id);
-
-  const descendandCount = (node: Node<NodeData>) => {
-    const outgoers = getOutgoers({ id: node.id }, nodes, edges);
-
-    return (
-      outgoers.length +
-      outgoers.reduce((acc, child) => acc + descendandCount(child), 0)
-    );
-  };
-
-  console.log(descendandCount(node));
+  const { toggleNodeCollapse } = useMindMapContext(); // Get collapse functions and edges
 
   const collapsed = data.metadata?.isCollapsed ?? false;
   const [hover, setHover] = useState(false);
@@ -64,7 +51,7 @@ const BaseNodeWrapperComponent = ({
           e.stopPropagation();
           toggleNodeCollapse(id);
         }}
-        className="nodrag nopan z-20 rounded-sm hover:bg-black/20 h-5 w-auto group flex gap-2 px-1 transition-all"
+        className="nodrag nopan z-20 rounded-sm hover:bg-black/20 h-5 w-auto group flex gap-2 px-1 transition-all pointer-events-auto"
         variant={"ghost"}
         title={collapsed ? "Expand Branch" : "Collapse Branch"}
         onHoverStart={() => setHover(true)}
@@ -104,7 +91,7 @@ const BaseNodeWrapperComponent = ({
   return (
     <div
       className={cn(
-        "relative flex h-full min-h-auto min-w-80 flex-col rounded-lg border-2 border-node-accent bg-zinc-950 shadow-lg shadow-node-accent/25 gap-6 transition-all",
+        "relative flex h-full min-h-auto min-w-80 flex-col rounded-lg border-2 border-node-accent bg-zinc-950 shadow-lg shadow-node-accent/25 gap-6 transition-all cursor-move",
         selected && "border-sky-700",
         includePadding ? "p-4" : "p-0",
         nodeClassName,

@@ -14,8 +14,9 @@ import {
   SelectionMode,
   useReactFlow,
   type Connection,
+  type NodeTypes,
 } from "@xyflow/react";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 // Import specific node/edge components only if needed here, otherwise rely on types
 import AnnotationNode from "@/components/nodes/annotation-node";
 import CodeNode from "@/components/nodes/code-node";
@@ -34,33 +35,6 @@ import { AppEdge } from "@/types/app-edge";
 import { EdgeData } from "@/types/edge-data";
 import { NodeData } from "@/types/node-data";
 import FloatingConnectionLine from "../edges/floating-connection-line";
-
-const edgeTypes = {
-  suggestedConnection: SuggestedConnectionEdge,
-  editableEdge: FloatingEdge,
-  defaultEdge: FloatingEdge,
-  floatingEdge: FloatingEdge,
-};
-
-const defaultEdgeOptions = {
-  type: "floatingEdge",
-  markerEnd: {
-    type: MarkerType.ArrowClosed,
-    color: "#b1b1b7",
-  },
-};
-
-const nodeTypesWithProps = {
-  defaultNode: DefaultNode,
-  questionNode: QuestionNode,
-  taskNode: TaskNode,
-  imageNode: ImageNode,
-  resourceNode: ResourceNode,
-  annotationNode: AnnotationNode,
-  codeNode: CodeNode,
-  groupNode: GroupNode,
-  textNode: TextNode,
-};
 
 export function ReactFlowArea() {
   const {
@@ -174,6 +148,61 @@ export function ReactFlowArea() {
     (params: Connection) => crudActions.addEdge(params.source!, params.target!),
     [crudActions.addEdge],
   );
+
+  const nodeTypesWithProps: NodeTypes = useMemo(
+    () => ({
+      defaultNode: (props) => (
+        <DefaultNode {...props} onEditNode={handleOpenNodeEdit} />
+      ),
+      questionNode: (props) => (
+        <QuestionNode {...props} onEditNode={handleOpenNodeEdit} />
+      ),
+      taskNode: (props) => (
+        <TaskNode
+          {...props}
+          onEditNode={handleOpenNodeEdit}
+          saveNodeProperties={crudActions.saveNodeProperties}
+        />
+      ),
+      imageNode: (props) => (
+        <ImageNode {...props} onEditNode={handleOpenNodeEdit} />
+      ),
+      resourceNode: (props) => (
+        <ResourceNode {...props} onEditNode={handleOpenNodeEdit} />
+      ),
+      annotationNode: (props) => (
+        <AnnotationNode {...props} onEditNode={handleOpenNodeEdit} />
+      ),
+      codeNode: (props) => (
+        <CodeNode {...props} onEditNode={handleOpenNodeEdit} />
+      ),
+      groupNode: (props) => (
+        <GroupNode {...props} onEditNode={handleOpenNodeEdit} />
+      ),
+      textNode: (props) => (
+        <TextNode {...props} onEditNode={handleOpenNodeEdit} />
+      ),
+    }),
+    [handleOpenNodeEdit],
+  );
+
+  const edgeTypes = useMemo(
+    () => ({
+      suggestedConnection: SuggestedConnectionEdge,
+      editableEdge: FloatingEdge,
+      defaultEdge: FloatingEdge,
+      floatingEdge: FloatingEdge,
+    }),
+    [],
+  );
+
+  const defaultEdgeOptions = {
+    type: "floatingEdge",
+    markerEnd: {
+      type: MarkerType.ArrowClosed,
+      color: "#b1b1b7",
+    },
+  };
 
   return (
     <ReactFlow
