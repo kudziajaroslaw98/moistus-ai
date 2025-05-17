@@ -61,6 +61,7 @@ export interface AiActions {
   ) => Promise<void>;
   dismissSuggestedConnection: (edgeId: string) => void;
   generateAnswer: (nodeId: string, prompt: string) => Promise<void>;
+  generateFromSelectedNodes: (nodeIds: string[], prompt: string) => Promise<void>;
 }
 
 export interface AiLoadingStates {
@@ -74,6 +75,7 @@ export interface AiLoadingStates {
   isSuggestingMerges: boolean;
   isAcceptingMerge: boolean;
   isGeneratingAnswer: boolean;
+  isGeneratingFromSelectedNodes: boolean;
 }
 
 export interface UseAiFeaturesResult {
@@ -949,6 +951,45 @@ export function useAiFeatures({
     [nodes, saveNodeAiData],
   );
 
+  const generateFromSelectedNodes = useCallback(
+    async (nodeIds: string[], prompt: string) => {
+      if (!mapId || !prompt.trim() || nodeIds.length === 0) {
+        toast.error("Cannot generate content: Please provide a prompt and select at least one node.");
+        return;
+      }
+
+      setLoading("isGeneratingFromSelectedNodes", true);
+      toast.loading("Generating content from selected nodes...");
+
+      try {
+        const response = await fetch("/api/generate-from-selected-nodes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nodeIds, prompt, mapId }),
+        });
+        
+        const result: ApiResponse<{ generatedContent: string }> = await response.json();
+
+        if (result.status === "success" && result.data?.generatedContent) {
+          // Create a new node with the generated content
+          await addNode(null, result.data.generatedContent, "defaultNode");
+          addStateToHistory("generateFromSelectedNodes");
+          toast.success("Content generated from selected nodes.");
+        } else {
+          const errorMsg = result.status === "error" ? result.error : "Failed to generate content from selected nodes.";
+          console.error("Generate from nodes error:", errorMsg);
+          toast.error(errorMsg);
+        }
+      } catch (err) {
+        console.error("Generate from nodes fetch error:", err);
+        toast.error(err instanceof Error ? err.message : "Network error during content generation.");
+      }
+
+      setLoading("isGeneratingFromSelectedNodes", false);
+    },
+    [mapId, addNode, addStateToHistory],
+  );
+
   return {
     aiActions: {
       generateMap,
@@ -967,6 +1008,7 @@ export function useAiFeatures({
       acceptSuggestedConnection,
       dismissSuggestedConnection,
       generateAnswer,
+      generateFromSelectedNodes,
     },
     aiLoadingStates: loadingStates,
     suggestedEdges,

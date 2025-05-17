@@ -51,6 +51,7 @@ export function ReactFlowArea() {
     onNodesChange,
     onEdgesChange,
     isFocusMode,
+    setSelectedNodes,
   } = useMindMapContext();
   const reactFlowInstance = useReactFlow();
   const connectingNodeId = useRef<string | null>(null);
@@ -205,6 +206,10 @@ export function ReactFlowArea() {
     [reactFlowInstance, crudActions],
   );
 
+  const handleSelectionChange = useCallback(({ nodes }) => {
+    setSelectedNodes(nodes);
+  }, [setSelectedNodes]);
+
   return (
     <ReactFlow
       colorMode="dark"
@@ -239,6 +244,7 @@ export function ReactFlowArea() {
       onConnect={(params) =>
         crudActions.addEdge(params.source!, params.target!)
       }
+      onSelectionChange={handleSelectionChange}
     >
       <Controls
         position="top-right"

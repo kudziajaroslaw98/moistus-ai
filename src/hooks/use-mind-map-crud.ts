@@ -1325,8 +1325,14 @@ export function useMindMapCRUD({
         }
 
         // 2. Update the selected edge's metadata/style in DB to be the new parent link
-        const parentLinkStyle = { stroke: "#88aaff", strokeWidth: 4 }; // Define parent link style
-        const defaultStyle = { stroke: "#6c757d", strokeWidth: 2 }; // Define default style
+        const parentLinkStyle = {
+          stroke: edgeToUpdate.data?.style?.stroke ?? "#88aaff",
+          strokeWidth: 4,
+        }; // Define parent link style
+        const defaultStyle = {
+          stroke: edgeToUpdate.data?.style?.stroke ?? "#6c757d",
+          strokeWidth: 2,
+        }; // Define default style
 
         const { error: edgeUpdateError } = await supabase
           .from("edges")

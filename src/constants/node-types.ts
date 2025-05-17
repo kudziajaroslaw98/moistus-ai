@@ -25,7 +25,6 @@ import { NodeData } from "@/types/node-data";
 interface NodeTypeConfig {
   label: string;
   defaultMetadata: Partial<NodeData["metadata"]>;
-  // You can add more properties like icon, description, etc.
 }
 
 export const nodeTypesConfig: Record<string, NodeTypeConfig> = {
@@ -86,7 +85,6 @@ export const nodeTypesConfig: Record<string, NodeTypeConfig> = {
     },
   },
   taskNode: {
-    // Assuming you have a TaskNode or similar
     label: "Task",
     defaultMetadata: {
       tasks: [],
@@ -94,5 +92,4 @@ export const nodeTypesConfig: Record<string, NodeTypeConfig> = {
       priority: undefined,
     },
   },
-  // Add other node types here
 };

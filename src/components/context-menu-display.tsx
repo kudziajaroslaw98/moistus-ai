@@ -65,6 +65,7 @@ interface ContextMenuDisplayProps {
     openContentModal: (nodeId: string) => void;
     suggestConnections: () => void;
     suggestMerges: () => void;
+    generateFromSelectedNodes?: (nodeIds: string[], prompt: string) => Promise<void>;
   };
   aiLoadingStates: AiLoadingStates;
   applyLayout: (direction: "TB" | "LR") => void;
@@ -76,6 +77,8 @@ interface ContextMenuDisplayProps {
     nodeId: string,
     parentId: string | null,
   ) => Promise<void>;
+  selectedNodes?: Node<NodeData>[];
+  setIsGenerateFromNodesModalOpen?: (open: boolean) => void;
 }
 
 export function ContextMenuDisplay({
@@ -94,6 +97,8 @@ export function ContextMenuDisplay({
   reactFlowInstance,
   ref,
   setNodeParentAction,
+  selectedNodes,
+  setIsGenerateFromNodesModalOpen,
 }: ContextMenuDisplayProps) {
   if (!contextMenuState.visible) return null;
 
@@ -562,14 +567,39 @@ export function ContextMenuDisplay({
       </>
     ) : null;
 
+  // Create a selected nodes menu item if we have selectedNodes and generateFromSelectedNodes function
+  const selectedNodesMenuItems = 
+    !nodeId && !edgeId && selectedNodes && selectedNodes.length > 0 && aiActions.generateFromSelectedNodes && setIsGenerateFromNodesModalOpen ? (
+      <>
+        <span className="block w-full rounded-md px-3 py-1.5 text-xs text-zinc-500">
+          Selected Nodes ({selectedNodes.length})
+        </span>
+        
+        <Button
+          variant="ghost"
+          align="left"
+          disabled={isLoading || aiLoadingStates.isGeneratingFromSelectedNodes}
+          onClick={() => handleActionClick(() => {
+            setIsGenerateFromNodesModalOpen(true);
+          }, isLoading || aiLoadingStates.isGeneratingFromSelectedNodes)}
+          className="gap-2"
+        >
+          <Sparkles className="size-4" />
+          <span>Generate content from selected nodes</span>
+        </Button>
+        
+        <hr className="my-1 border-zinc-800" />
+      </>
+    ) : null;
+
   return (
     <div
       ref={ref}
       className="ring-opacity-5 absolute z-[1000] flex min-w-[250px] flex-col gap-1 rounded-sm border border-zinc-800 bg-zinc-950 px-1 py-1 shadow-lg ring-1 ring-black focus:outline-none"
       style={{ top: y, left: x }}
     >
+      {selectedNodesMenuItems}
       {nodeId && nodeMenuItems}
-
       {edgeId && edgeMenuItems}
 
       {!nodeId && !edgeId && paneMenuItems}

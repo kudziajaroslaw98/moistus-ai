@@ -37,6 +37,7 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
 
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [copiedNodes, setCopiedNodes] = useState<Node<NodeData>[]>([]);
+  const [selectedNodes, setSelectedNodes] = useState<Node<NodeData>[] | undefined>(undefined);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isNodeTypeModalOpen, setIsNodeTypeModalOpen] = useState(false);
   const [nodeToAddInfo, setNodeToAddInfo] = useState<{
@@ -545,8 +546,11 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
       handlePaste,
       mindMap,
       contextMenuState,
+      contextMenuHandlers,
       toggleNodeCollapse,
       isNodeCollapsed,
+      selectedNodes,
+      setSelectedNodes,
     }),
     [
       mapId,
@@ -609,6 +613,8 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
       contextMenuState,
       toggleNodeCollapse,
       isNodeCollapsed,
+      selectedNodes,
+      setSelectedNodes,
     ],
   );
 
