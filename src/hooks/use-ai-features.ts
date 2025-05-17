@@ -61,7 +61,10 @@ export interface AiActions {
   ) => Promise<void>;
   dismissSuggestedConnection: (edgeId: string) => void;
   generateAnswer: (nodeId: string, prompt: string) => Promise<void>;
-  generateFromSelectedNodes: (nodeIds: string[], prompt: string) => Promise<void>;
+  generateFromSelectedNodes: (
+    nodeIds: string[],
+    prompt: string,
+  ) => Promise<void>;
 }
 
 export interface AiLoadingStates {
@@ -172,7 +175,7 @@ export function useAiFeatures({
     if (!mapId || !aiPrompt.trim() || loadingStates.isGenerating) return;
 
     setLoading("isGenerating", true);
-    toast.loading("Generating Map...");
+    const toastId = toast.loading("Generating Map...");
 
     try {
       const response = await fetch("/api/generate-map", {
@@ -210,14 +213,14 @@ export function useAiFeatures({
         );
         setAiPrompt("");
         addStateToHistory("generateMap");
-        toast.success("Map structure generated.");
+        toast.success("Map structure generated.", { id: toastId });
       } else {
         const errorMsg =
           result.status === "error"
             ? result.error
             : "Failed to generate map structure.";
         console.error("Generate Map Error:", errorMsg);
-        toast.error(errorMsg);
+        toast.error(errorMsg, { id: toastId });
       }
     } catch (err) {
       console.error("Generate Map Fetch Error:", err);
@@ -225,6 +228,7 @@ export function useAiFeatures({
         err instanceof Error
           ? err.message
           : "Network error during map generation.",
+        { id: toastId },
       );
     }
 
@@ -253,7 +257,7 @@ export function useAiFeatures({
       }
 
       setLoading("isSummarizing", true);
-      toast.loading("Summarizing Node...");
+      const toastId = toast.loading("Summarizing Node...");
 
       try {
         const response = await fetch("/api/summarize-node", {
@@ -273,14 +277,14 @@ export function useAiFeatures({
           ) {
             await addNode(nodeId, `Summary: ${summary}`, "editableNode");
             addStateToHistory("summarizeNode");
-            toast.success("Node summarized.");
+            toast.success("Node summarized.", { id: toastId });
           } else {
-            toast.error("AI could not generate a summary.");
+            toast.error("AI could not generate a summary.", { id: toastId });
           }
         } else {
           const errorMsg = result.error || "Failed to summarize node.";
           console.error("Summarize Node Error:", errorMsg);
-          toast.error(errorMsg);
+          toast.error(errorMsg, { id: toastId });
         }
       } catch (err) {
         console.error("Summarize Node Fetch Error:", err);
@@ -288,6 +292,7 @@ export function useAiFeatures({
           err instanceof Error
             ? err.message
             : "Network error during node summarization.",
+          { id: toastId },
         );
       }
 
@@ -302,7 +307,7 @@ export function useAiFeatures({
       if (!branchRootNode || loadingStates.isSummarizingBranch) return;
 
       setLoading("isSummarizingBranch", true);
-      toast.loading("Summarizing Branch...");
+      const toastId = toast.loading("Summarizing Branch...");
 
       type SummarizeBranchResponse = {
         summaryNode: NodeData | null;
@@ -375,24 +380,28 @@ export function useAiFeatures({
               console.warn(
                 `Summary node ${summaryNode.id} added, but edge creation failed.`,
               );
-              toast.warning("Branch summarized, but connection failed.");
+              toast.warning("Branch summarized, but connection failed.", {
+                id: toastId,
+              });
             }
 
             addStateToHistory("summarizeBranch");
-            toast.success("Branch summarized and added.");
+            toast.success("Branch summarized and added.", { id: toastId });
           } else if (result.data.summaryNode === null) {
-            toast.info("Branch has no content to summarize.");
+            toast.info("Branch has no content to summarize.", { id: toastId });
           } else {
-            toast.error("Failed to add summary node.");
+            toast.error("Failed to add summary node.", { id: toastId });
           }
         } else if (result.status === "error") {
           const errorMsg = result.error || "Failed to summarize branch.";
           console.error("Summarize Branch Error:", errorMsg);
-          toast.error(errorMsg);
+          toast.error(errorMsg, { id: toastId });
         }
       } catch (err) {
         console.error("Summarize Branch Fetch Error:", err);
-        toast.error("Network error during branch summarization.");
+        toast.error("Network error during branch summarization.", {
+          id: toastId,
+        });
       }
 
       setLoading("isSummarizingBranch", false);
@@ -421,7 +430,7 @@ export function useAiFeatures({
       }
 
       setLoading("isExtracting", true);
-      toast.loading("Extracting Concepts...");
+      const toastId = toast.loading("Extracting Concepts...");
 
       try {
         const response = await fetch("/api/extract-concepts", {
@@ -452,43 +461,41 @@ export function useAiFeatures({
               }
 
               addStateToHistory("extractConcepts");
-              toast.success("Concepts extracted and added.");
+              toast.success("Concepts extracted and added.", { id: toastId });
             } else {
-              toast.error("Concepts extracted, but failed to add nodes.");
+              toast.error("Concepts extracted, but failed to add nodes.", {
+                id: toastId,
+              });
             }
           } else {
-            toast.error("AI could not extract concepts.");
+            toast.error("AI could not extract concepts.", { id: toastId });
           }
         } else {
           const errorMsg = result.error || "Failed to extract concepts.";
           console.error("Extract Concepts Error:", errorMsg);
 
-          toast.error(errorMsg);
+          toast.error(errorMsg, { id: toastId });
         }
       } catch (err) {
         console.error("Extract Concepts Fetch Error:", err);
         toast.error(
           err instanceof Error
             ? err.message
-            : "Network error during concept extraction."
+            : "Network error during concept extraction.",
+          { id: toastId },
         );
       }
 
       setLoading("isExtracting", false);
     },
-    [
-      nodes,
-      loadingStates.isExtracting,
-      addNode,
-      addStateToHistory,
-    ],
+    [nodes, loadingStates.isExtracting, addNode, addStateToHistory],
   );
 
   const searchNodes = useCallback(async () => {
     if (!mapId || !aiSearchQuery.trim() || loadingStates.isSearching) return;
 
     setLoading("isSearching", true);
-    toast.loading("Searching Map...");
+    const toastId = toast.loading("Searching Map...");
 
     try {
       const response = await fetch("/api/search-nodes", {
@@ -512,9 +519,9 @@ export function useAiFeatures({
             },
           })),
         );
-        toast.success(
-          `Found ${relevantNodeIds.length} relevant node(s).`
-        );
+        toast.success(`Found ${relevantNodeIds.length} relevant node(s).`, {
+          id: toastId,
+        });
       } else {
         setNodes((nds) =>
           nds.map((node) =>
@@ -525,11 +532,11 @@ export function useAiFeatures({
         );
         const errorMsg =
           result.status === "error" ? result.error : "No relevant nodes found.";
-          
+
         if (result.status === "error") {
-          toast.error(errorMsg);
+          toast.error(errorMsg, { id: toastId });
         } else {
-          toast.info(errorMsg);
+          toast.info(errorMsg, { id: toastId });
         }
       }
     } catch (err) {
@@ -537,7 +544,8 @@ export function useAiFeatures({
       toast.error(
         err instanceof Error
           ? err.message
-          : "Network error during node search."
+          : "Network error during node search.",
+        { id: toastId },
       );
       setNodes((nds) =>
         nds.map((node) =>
@@ -549,12 +557,7 @@ export function useAiFeatures({
     }
 
     setLoading("isSearching", false);
-  }, [
-    mapId,
-    aiSearchQuery,
-    loadingStates.isSearching,
-    setNodes,
-  ]);
+  }, [mapId, aiSearchQuery, loadingStates.isSearching, setNodes]);
 
   const generateContent = useCallback(
     async (nodeId: string, additionalPrompt: string = "") => {
@@ -571,7 +574,7 @@ export function useAiFeatures({
       }
 
       setLoading("isGeneratingContent", true);
-      toast.loading("Generating Content...");
+      const toastId = toast.loading("Generating Content...");
 
       try {
         const response = await fetch("/api/generate-content", {
@@ -595,34 +598,30 @@ export function useAiFeatures({
           ) {
             await addNode(nodeId, generatedContent, "editableNode");
             addStateToHistory("generateContent");
-            toast.success("Content generated and added.");
+            toast.success("Content generated and added.", { id: toastId });
           } else {
-            toast.error(
-              "AI could not generate content based on this node."
-            );
+            toast.error("AI could not generate content based on this node.", {
+              id: toastId,
+            });
           }
         } else {
           const errorMsg = result.error || "Failed to generate content.";
           console.error("Generate Content Error:", errorMsg);
-          toast.error(errorMsg);
+          toast.error(errorMsg, { id: toastId });
         }
       } catch (err) {
         console.error("Generate Content Fetch Error:", err);
         toast.error(
           err instanceof Error
             ? err.message
-            : "Network error during content generation."
+            : "Network error during content generation.",
+          { id: toastId },
         );
       }
 
       setLoading("isGeneratingContent", false);
     },
-    [
-      nodes,
-      loadingStates.isGeneratingContent,
-      addNode,
-      addStateToHistory,
-    ],
+    [nodes, loadingStates.isGeneratingContent, addNode, addStateToHistory],
   );
 
   const suggestConnections = useCallback(async () => {
@@ -630,7 +629,7 @@ export function useAiFeatures({
       return;
 
     setLoading("isSuggestingConnections", true);
-    toast.loading("Suggesting Connections...");
+    const toastId = toast.loading("Suggesting Connections...");
     setSuggestedEdges([]);
 
     try {
@@ -665,38 +664,35 @@ export function useAiFeatures({
               },
             }));
           setSuggestedEdges(suggestedReactFlowEdges);
-          toast.success(
-            `Suggested ${suggestions.length} connection(s).`
-          );
+          toast.success(`Suggested ${suggestions.length} connection(s).`, {
+            id: toastId,
+          });
         } else {
-          toast.info("No new connections suggested.");
+          toast.info("No new connections suggested.", { id: toastId });
         }
       } else {
         const errorMsg = result.error || "Failed to suggest connections.";
         console.error("Suggest Connections Error:", errorMsg);
-        toast.error(errorMsg);
+        toast.error(errorMsg, { id: toastId });
       }
     } catch (err) {
       console.error("Suggest Connections Fetch Error:", err);
       toast.error(
         err instanceof Error
           ? err.message
-          : "Network error during connection suggestion."
+          : "Network error during connection suggestion.",
+        { id: toastId },
       );
     }
 
     setLoading("isSuggestingConnections", false);
-  }, [
-    mapId,
-    nodes.length,
-    loadingStates.isSuggestingConnections,
-  ]);
+  }, [mapId, nodes.length, loadingStates.isSuggestingConnections]);
 
   const suggestMerges = useCallback(async () => {
     if (!mapId || loadingStates.isSuggestingMerges || nodes.length < 2) return;
 
     setLoading("isSuggestingMerges", true);
-    toast.loading("Suggesting Merges...");
+    const toastId = toast.loading("Suggesting Merges...");
     setMergeSuggestions([]);
 
     try {
@@ -714,23 +710,22 @@ export function useAiFeatures({
         if (suggestions && suggestions.length > 0) {
           setMergeSuggestions(suggestions);
           setIsMergeModalOpen(true);
-          toast.success(
-            `Suggested ${suggestions.length} merge(s).`
-          );
+          toast.success(`Suggested ${suggestions.length} merge(s).`);
         } else {
-          toast.info("No merge suggestions found.");
+          toast.info("No merge suggestions found.", { id: toastId });
         }
       } else {
         const errorMsg = result.error || "Failed to suggest merges.";
         console.error("Suggest Merges Error:", errorMsg);
-        toast.error(errorMsg);
+        toast.error(errorMsg, { id: toastId });
       }
     } catch (err) {
       console.error("Suggest Merges Fetch Error:", err);
       toast.error(
         err instanceof Error
           ? err.message
-          : "Network error during merge suggestion."
+          : "Network error during merge suggestion.",
+        { id: toastId },
       );
     }
 
@@ -768,9 +763,7 @@ export function useAiFeatures({
         }
       } catch (error) {
         console.error("Error accepting suggested connection:", error);
-        toast.error(
-          "An error occurred while accepting the connection."
-        );
+        toast.error("An error occurred while accepting the connection.");
       }
     },
     [saveEdge, setSuggestedEdges, addStateToHistory],
@@ -902,21 +895,17 @@ export function useAiFeatures({
       const targetNode = nodes.find((n) => n.id === nodeId);
 
       if (!targetNode || targetNode.data.node_type !== "questionNode") {
-        toast.error(
-          "Invalid node or not a question node for AI answer."
-        );
+        toast.error("Invalid node or not a question node for AI answer.");
         return;
       }
 
       if (targetNode.data.aiData?.aiAnswer) {
-        toast.info(
-          "An AI answer already exists for this question."
-        );
+        toast.info("An AI answer already exists for this question.");
         return;
       }
 
       setLoading("isGeneratingAnswer", true);
-      toast.loading("Generating AI Answer...");
+      const toastId = toast.loading("Generating AI Answer...");
 
       try {
         const response = await fetch("/api/generate-answer", {
@@ -931,18 +920,19 @@ export function useAiFeatures({
             requestAiAnswer: true,
             aiAnswer: result.data.answer,
           });
-          toast.success("AI answer generated and saved.");
+          toast.success("AI answer generated and saved.", { id: toastId });
         } else if (result.status === "error") {
           const errorMsg = result.error || "Failed to generate AI answer.";
           console.error("Generate Answer Error:", errorMsg);
-          toast.error(errorMsg);
+          toast.error(errorMsg, { id: toastId });
         }
       } catch (err) {
         console.error("Generate Answer Fetch Error:", err);
         toast.error(
           err instanceof Error
             ? err.message
-            : "Network error during AI answer generation."
+            : "Network error during AI answer generation.",
+          { id: toastId },
         );
       }
 
@@ -954,12 +944,16 @@ export function useAiFeatures({
   const generateFromSelectedNodes = useCallback(
     async (nodeIds: string[], prompt: string) => {
       if (!mapId || !prompt.trim() || nodeIds.length === 0) {
-        toast.error("Cannot generate content: Please provide a prompt and select at least one node.");
+        toast.error(
+          "Cannot generate content: Please provide a prompt and select at least one node.",
+        );
         return;
       }
 
       setLoading("isGeneratingFromSelectedNodes", true);
-      toast.loading("Generating content from selected nodes...");
+      const toastId = toast.loading(
+        "Generating content from selected nodes...",
+      );
 
       try {
         const response = await fetch("/api/generate-from-selected-nodes", {
@@ -967,22 +961,33 @@ export function useAiFeatures({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ nodeIds, prompt, mapId }),
         });
-        
-        const result: ApiResponse<{ generatedContent: string }> = await response.json();
+
+        const result: ApiResponse<{ generatedContent: string }> =
+          await response.json();
 
         if (result.status === "success" && result.data?.generatedContent) {
           // Create a new node with the generated content
           await addNode(null, result.data.generatedContent, "defaultNode");
           addStateToHistory("generateFromSelectedNodes");
-          toast.success("Content generated from selected nodes.");
+          toast.success("Content generated from selected nodes.", {
+            id: toastId,
+          });
         } else {
-          const errorMsg = result.status === "error" ? result.error : "Failed to generate content from selected nodes.";
+          const errorMsg =
+            result.status === "error"
+              ? result.error
+              : "Failed to generate content from selected nodes.";
           console.error("Generate from nodes error:", errorMsg);
-          toast.error(errorMsg);
+          toast.error(errorMsg, { id: toastId });
         }
       } catch (err) {
         console.error("Generate from nodes fetch error:", err);
-        toast.error(err instanceof Error ? err.message : "Network error during content generation.");
+        toast.error(
+          err instanceof Error
+            ? err.message
+            : "Network error during content generation.",
+          { id: toastId },
+        );
       }
 
       setLoading("isGeneratingFromSelectedNodes", false);

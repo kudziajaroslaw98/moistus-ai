@@ -15,7 +15,7 @@ import {
   useEdgesState,
   useNodesState,
 } from "@xyflow/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
 
@@ -137,7 +137,7 @@ export function useMindMapState(
     [],
   );
   const [edges, setEdges, onEdgesChangeDirect] = useEdgesState<AppEdge>([]);
-
+  const toastIdRef = useRef<string | number | undefined>(undefined);
   const supabase = createClient();
   const {
     data: fetchedMindMapData,
@@ -155,17 +155,14 @@ export function useMindMapState(
             : "An unexpected error occurred loading the map.";
         toast.error(message);
       },
-      onSuccess: () => {
-        toast.success("Mind map loaded.");
-      },
     },
   );
 
   useEffect(() => {
-    if (isLoading) {
-      toast.loading("Loading mind map...");
+    if (isLoading && toastIdRef.current === undefined) {
+      toastIdRef.current = toast.loading("Loading mind map...");
     } else if (!isLoading && fetchedMindMapData && isDataFetching) {
-      toast.success("Mind map loaded.");
+      toast.success("Mind map loaded.", { id: toastIdRef.current });
       setNodes(fetchedMindMapData.nodes);
       setEdges(fetchedMindMapData.edges);
       setMindMapData(fetchedMindMapData.mindMap);

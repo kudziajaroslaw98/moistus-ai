@@ -57,7 +57,7 @@ const BaseNodeWrapperComponent = ({
   return (
     <div
       className={cn(
-        "relative flex h-full min-h-auto min-w-80 flex-col rounded-lg border-2 border-node-accent bg-zinc-950 shadow-lg shadow-node-accent/25 gap-6 transition-all cursor-move",
+        "relative flex h-full min-h-auto min-w-80 flex-col rounded-lg border-2 border-node-accent bg-zinc-950 shadow-lg shadow-node-accent/25 gap-4 transition-all cursor-move",
         selected && "border-sky-700",
         includePadding ? "p-4" : "p-0",
         nodeClassName,

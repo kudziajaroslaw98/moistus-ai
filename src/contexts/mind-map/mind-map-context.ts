@@ -50,8 +50,7 @@ interface MindMapContextProps {
   history: HistoryState[]; // Full history array
   historyIndex: number; // Current index in history
   isHistorySidebarOpen: boolean; // State for the new sidebar
-  nodeToAddInfo: { parentId: string | null; position?: XYPosition } | null;
-  selectedNodes: Node<NodeData>[] | undefined; // Track selected nodes
+  nodeToAddInfo: { parentId: string | null; position?: XYPosition } | null; // Add this line
 
   // Setters / Actions
   setNodes: React.Dispatch<React.SetStateAction<Node<NodeData>[]>>;
@@ -95,7 +94,6 @@ interface MindMapContextProps {
   contextMenuState: ContextMenuState;
   toggleNodeCollapse: (nodeId: string) => Promise<void>; // Added for collapsing
   isNodeCollapsed: (nodeId: string) => boolean; // Helper to check collapse state
-  setSelectedNodes: React.Dispatch<React.SetStateAction<Node<NodeData>[] | undefined>>; // Setter for selected nodes
 }
 
 const MindMapContext = createContext<MindMapContextProps | undefined>(
