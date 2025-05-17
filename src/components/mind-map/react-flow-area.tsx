@@ -1,4 +1,5 @@
 "use client";
+import { ZoomSlider } from "@/components/ui/zoom-slider";
 import {
   Background,
   BackgroundVariant,
@@ -49,6 +50,7 @@ export function ReactFlowArea() {
     setEdgeToEdit,
     onNodesChange,
     onEdgesChange,
+    isFocusMode,
   } = useMindMapContext();
   const reactFlowInstance = useReactFlow();
   const connectingNodeId = useRef<string | null>(null);
@@ -205,39 +207,48 @@ export function ReactFlowArea() {
 
   return (
     <ReactFlow
+      colorMode="dark"
+      multiSelectionKeyCode={["Meta", "Control"]}
+      className="bg-zinc-900"
+      minZoom={0.1}
+      snapToGrid={true}
+      nodesDraggable={true}
+      nodesConnectable={true}
+      selectNodesOnDrag={true}
+      selectionOnDrag={true}
+      fitView={true}
       nodes={nodes}
       edges={edges}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
-      onConnect={(params) =>
-        crudActions.addEdge(params.source!, params.target!)
-      }
       onConnectStart={onConnectStart}
       onConnectEnd={onConnectEnd}
+      onEdgeDoubleClick={handleEdgeDoubleClick}
+      onNodeDoubleClick={handleNodeDoubleClick}
+      nodeTypes={nodeTypesWithProps}
+      edgeTypes={edgeTypes}
+      connectionLineComponent={FloatingConnectionLine}
+      defaultEdgeOptions={defaultEdgeOptions}
       onNodeContextMenu={contextMenuHandlers.onNodeContextMenu}
       onPaneContextMenu={contextMenuHandlers.onPaneContextMenu}
       onEdgeContextMenu={contextMenuHandlers.onEdgeContextMenu}
-      onEdgeDoubleClick={handleEdgeDoubleClick}
-      onNodeDoubleClick={handleNodeDoubleClick}
       onPaneClick={contextMenuHandlers.onPaneClick}
-      nodeTypes={nodeTypesWithProps}
-      edgeTypes={edgeTypes}
-      snapToGrid={true}
-      nodesDraggable={true}
-      nodesConnectable={true}
-      fitView
-      colorMode="dark"
-      multiSelectionKeyCode={["Meta", "Control"]}
       selectionMode={SelectionMode.Partial}
-      selectNodesOnDrag={true}
-      selectionOnDrag={true}
-      connectionLineComponent={FloatingConnectionLine}
       connectionLineType={ConnectionLineType.Bezier}
       connectionMode={ConnectionMode.Loose}
-      className="bg-zinc-900"
-      defaultEdgeOptions={defaultEdgeOptions}
+      onConnect={(params) =>
+        crudActions.addEdge(params.source!, params.target!)
+      }
     >
-      <Controls />
+      <Controls
+        position="top-right"
+        orientation="horizontal"
+        showZoom={false}
+        showFitView={false}
+        className={`${isFocusMode ? "!right-12" : ""} cursor-pointer`}
+      />
+
+      <ZoomSlider position="top-left" />
 
       <Background color="#52525c" gap={16} variant={BackgroundVariant.Dots} />
     </ReactFlow>

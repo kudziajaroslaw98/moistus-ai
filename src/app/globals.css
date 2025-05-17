@@ -73,6 +73,10 @@
   --node-accent: theme("colors.sky.700");
 }
 
+.basic-node {
+  --node-accent: theme("colors.slate.700");
+}
+
 .react-flow__handle {
   opacity: 0;
 }

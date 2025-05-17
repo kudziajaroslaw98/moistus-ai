@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Lora } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -39,6 +40,23 @@ export default function RootLayout({
         <div className="flex h-full w-full flex-col rounded-xl bg-zinc-900 text-zinc-100">
           {children}
         </div>
+
+        <Toaster
+          theme="dark"
+          position="bottom-right"
+          richColors
+          closeButton
+          toastOptions={{
+            classNames: {
+              toast: "toast",
+              title: "title",
+              description: "description",
+              actionButton: "action-button",
+              cancelButton: "cancel-button",
+              closeButton: "close-button",
+            },
+          }}
+        />
       </body>
     </html>
   );

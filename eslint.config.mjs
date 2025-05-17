@@ -28,6 +28,7 @@ const eslintConfig = [
     files: ["**/*.{js,mjs,cjs,jsx,mjsx,ts,tsx,mtsx}"],
     ...reactPlugin.configs.flat.recommended,
     rules: {
+      "react-hooks/exhaustive-deps": "off",
       "react/jsx-newline": "warn",
       "react/hook-use-state": "warn",
       "no-unused-vars": "off",

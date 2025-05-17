@@ -49,7 +49,7 @@ export const transformSupabaseData = (
       type: node.node_type || "defaultNode",
       width: node.width || undefined,
       height: node.height || undefined,
-      parentNode: node.parent_id || undefined, // Add parentNode for grouping
+      parentNode: node.parent_id ? node.parent_id : undefined, // Add parentNode for grouping
       extent: node.parent_id ? "parent" : undefined, // Add extent for grouping
     }),
   );

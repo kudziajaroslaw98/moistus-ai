@@ -1,9 +1,9 @@
-import { NotificationType } from "@/hooks/use-notifications";
 import { EdgeData } from "@/types/edge-data";
 import { NodeData } from "@/types/node-data";
 import { Edge, Node, ReactFlowInstance, XYPosition } from "@xyflow/react";
 import dagre from "dagre";
 import { useCallback, useState } from "react";
+import { toast } from "sonner";
 
 type LayoutDirection = "TB" | "LR";
 
@@ -62,7 +62,6 @@ interface UseLayoutProps {
     actionName?: string,
     newState?: { nodes: Node<NodeData>[]; edges: Edge<EdgeData>[] },
   ) => void;
-  showNotification: (message: string, type: NotificationType) => void;
   saveNodePosition: (nodeId: string, position: XYPosition) => Promise<void>;
 }
 
@@ -77,7 +76,6 @@ export function useLayout({
   setNodes,
   reactFlowInstance,
   addStateToHistory,
-  showNotification,
   saveNodePosition,
 }: UseLayoutProps): UseLayoutResult {
   const [isLoading, setIsLoading] = useState(false);
@@ -85,12 +83,12 @@ export function useLayout({
   const applyLayout = useCallback(
     async (direction: LayoutDirection): Promise<void> => {
       if (nodes.length === 0) {
-        showNotification("Nothing to layout.", "error");
+        toast.error("Nothing to layout.");
         return;
       }
 
       setIsLoading(true);
-      showNotification(`Applying layout (${direction})...`, "success");
+      toast.message(`Applying layout (${direction})...`);
 
       try {
         const { layoutedNodes } = getLayoutedElements(nodes, edges, direction);
@@ -109,14 +107,15 @@ export function useLayout({
           reactFlowInstance?.fitView({ padding: 0.1, duration: 300 });
         }, 50);
 
-        showNotification(`Layout (${direction}) applied and saved.`, "success");
+        toast.success(`Layout (${direction}) applied and saved.`);
       } catch (err: unknown) {
         console.error("Error applying or saving layout:", err);
         const message =
           err instanceof Error
             ? err.message
             : "Failed to apply or save layout.";
-        showNotification(message, "error");
+
+        toast.error(message);
       } finally {
         setIsLoading(false);
       }
@@ -127,7 +126,6 @@ export function useLayout({
       setNodes,
       reactFlowInstance,
       addStateToHistory,
-      showNotification,
       saveNodePosition,
     ],
   );

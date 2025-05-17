@@ -2,10 +2,8 @@ import { useAiFeatures } from "@/hooks/use-ai-features";
 import { useContextMenu } from "@/hooks/use-context-menu";
 import { useLayout } from "@/hooks/use-layout";
 import { useMindMapCRUD } from "@/hooks/use-mind-map-crud";
-import { useMindMapData } from "@/hooks/use-mind-map-data";
 import { useMindMapHistory } from "@/hooks/use-mind-map-history";
 import { useMindMapState } from "@/hooks/use-mind-map-state";
-import { useNotifications } from "@/hooks/use-notifications";
 import { AppEdge } from "@/types/app-edge";
 import { NodeData } from "@/types/node-data";
 import {
@@ -24,6 +22,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { toast } from "sonner";
 import MindMapContext from "./mind-map-context";
 
 interface MindMapProviderProps {
@@ -51,23 +50,17 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
   const [isHistorySidebarOpen, setIsHistorySidebarOpen] = useState(false); // New state
 
   // --- Initialize Hooks ---
-  const { notification, showNotification } = useNotifications();
   const {
     mindMap,
-    initialNodes,
-    initialEdges,
-    isLoading: isDataLoading,
-    error: dataError,
-  } = useMindMapData(mapId);
-
-  const {
     nodes,
     setNodes,
     onNodesChange: directNodesChangeHandler,
     edges,
     setEdges,
     onEdgesChange: directEdgesChangeHandler,
-  } = useMindMapState(initialNodes, initialEdges);
+    stateError,
+    isStateLoading,
+  } = useMindMapState(mapId);
 
   const crudActionsRef = useRef<
     ReturnType<typeof useMindMapCRUD>["crudActions"] | null
@@ -87,13 +80,12 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
     history, // Get history array
     historyIndex, // Get history index
   } = useMindMapHistory({
-    initialNodes,
-    initialEdges,
     nodes,
     edges,
     setNodes,
     setEdges,
     crudActions: crudActionsRef.current,
+    isStateLoading,
   });
 
   const { crudActions, isLoading: isCrudLoading } = useMindMapCRUD({
@@ -103,7 +95,6 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
     setNodes,
     setEdges,
     addStateToHistory,
-    showNotification,
     aiActions: aiActionsRef.current,
   });
 
@@ -133,7 +124,6 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
     saveNodeMetadata: crudActions.saveNodeMetadata,
     saveNodeAiData: crudActions.saveNodeAiData,
     addStateToHistory,
-    showNotification,
     currentHistoryState,
   });
   aiActionsRef.current = aiActions;
@@ -146,18 +136,17 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
     setNodes,
     reactFlowInstance: reactFlowInstance,
     addStateToHistory,
-    showNotification,
     saveNodePosition: crudActions.saveNodePosition,
   });
 
   // --- Combined Loading State ---
   const isLoading = useMemo(
     () =>
-      isDataLoading ||
+      isStateLoading ||
       isCrudLoading ||
       isLayoutLoading ||
       Object.values(aiLoadingStates).some((loading) => loading),
-    [isDataLoading, isCrudLoading, isLayoutLoading, aiLoadingStates],
+    [isStateLoading, isCrudLoading, isLayoutLoading, aiLoadingStates],
   );
 
   // --- UI Actions ---
@@ -177,22 +166,21 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
         selected: false,
       })) as Node<NodeData>[];
       setCopiedNodes(nodesToCopy);
-      showNotification(
+      toast.success(
         `Copied ${selectedNodes.length} node${selectedNodes.length > 1 ? "s" : ""}.`,
-        "success",
       );
     } else {
       setCopiedNodes([]);
     }
-  }, [reactFlowInstance, showNotification]);
+  }, [reactFlowInstance]);
 
   const handlePaste = useCallback(async () => {
     if (copiedNodes.length === 0 || !reactFlowInstance) {
-      showNotification("Nothing to paste.", "error");
+      toast.error("Nothing to paste.");
       return;
     }
 
-    showNotification("Pasting nodes...", "success");
+    toast.message("Pasting nodes...");
     const currentNodes = reactFlowInstance.getNodes();
     const selectedNodes = currentNodes.filter((node) => node.selected);
     const targetParentId =
@@ -246,22 +234,20 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
           nds.map((n) => ({ ...n, selected: pastedNodeIds.includes(n.id) })),
         );
         setEdges((eds) => eds.map((e) => ({ ...e, selected: false })));
-        showNotification(
+        toast.success(
           `Pasted ${successfulNodes.length} node${successfulNodes.length > 1 ? "s" : ""}.`,
-          "success",
         );
       } else {
-        showNotification("Failed to paste nodes.", "error");
+        toast.error("Failed to paste nodes.");
       }
     } catch (error) {
       console.error("Error during paste operation:", error);
-      showNotification("An error occurred while pasting.", "error");
+      toast.error("An error occurred while pasting.");
     }
   }, [
     copiedNodes,
     reactFlowInstance,
     crudActions,
-    showNotification,
     setNodes,
     setEdges,
     addStateToHistory,
@@ -298,6 +284,7 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
     async (nodeId: string) => {
       console.log(`[toggleNodeCollapse] Triggered for nodeId: ${nodeId}`);
       const targetNodeIndex = nodes.findIndex((n) => n.id === nodeId);
+
       if (targetNodeIndex === -1) {
         console.warn(`[toggleNodeCollapse] Node not found: ${nodeId}`);
         return;
@@ -341,13 +328,12 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
           isCollapsed: newCollapsedState,
         });
         addStateToHistory("toggleNodeCollapse");
-        showNotification(
+        toast.success(
           `Branch ${newCollapsedState ? "collapsed" : "expanded"}.`,
-          "success",
         );
       } catch (error) {
-        showNotification("Error saving collapse state.", "error");
-        // Revert optimistic update if save fails
+        toast.error("Error saving collapse state.");
+
         const revertedNodes = nodes.map((n) =>
           n.id === nodeId
             ? {
@@ -365,7 +351,7 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
         setNodes(revertedNodes);
       }
     },
-    [nodes, setNodes, crudActions, addStateToHistory, showNotification],
+    [nodes, setNodes, crudActions, addStateToHistory],
   );
 
   const isNodeCollapsed = useCallback(
@@ -387,7 +373,7 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
     // based on the `isCollapsed` status of parent nodes.
 
     // Only run if there are nodes to process or if initial data has loaded.
-    if (nodes.length === 0 && initialNodes.length === 0) {
+    if (nodes.length === 0) {
       console.log(
         "[Visibility useEffect] Skipped: No nodes and no initial nodes.",
       );
@@ -410,19 +396,24 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
 
     const getIsAnyAncestorCollapsed = (startNodeId: string): boolean => {
       let currentNodeId = startNodeId;
-      // eslint-disable-next-line no-constant-condition
+
       while (true) {
         const node = nodeMap.get(currentNodeId);
+
         if (!node || !node.data.parent_id) {
           return false; // Reached a root node or node not found
         }
+
         const parentNode = nodeMap.get(node.data.parent_id);
+
         if (!parentNode) {
           return false; // Parent not found, break loop
         }
+
         if (parentNode.data.metadata?.isCollapsed) {
           return true; // Found a collapsed ancestor
         }
+
         currentNodeId = parentNode.id; // Move up to the next parent
       }
     };
@@ -449,6 +440,7 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
         );
         nodesChanged = true;
       }
+
       return { ...n, hidden: shouldBeHidden };
     });
 
@@ -466,6 +458,7 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
         );
         edgesChanged = true;
       }
+
       return { ...e, hidden: shouldBeHidden };
     });
 
@@ -473,17 +466,19 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
       console.log("[Visibility useEffect] Applying node visibility changes.");
       setNodes(newNodes);
     }
+
     if (edgesChanged) {
       console.log("[Visibility useEffect] Applying edge visibility changes.");
       setEdges(newEdges);
     }
+
     if (!nodesChanged && !edgesChanged) {
       console.log("[Visibility useEffect] No visibility changes detected.");
     }
     // Dependency array ensures this effect runs when `nodes` or `edges` themselves change (e.g. adding/deleting)
     // or when the content of `nodes` changes in a way that affects collapse (which is handled by `toggleNodeCollapse` calling `setNodes`).
     // `initialNodes` and `initialEdges` are for the first pass after data load.
-  }, [nodes, edges, setNodes, setEdges, initialNodes, initialEdges]);
+  }, [nodes, edges, setNodes, setEdges]);
 
   // --- Context Value ---
   const contextValue = useMemo(
@@ -494,11 +489,10 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
       onNodesChange: handleNodesChangeWithSave,
       onEdgesChange: handleEdgesChangeWithSave,
       isLoading,
-      isDataLoading,
+      isStateLoading,
       isCrudLoading,
       isLayoutLoading,
       aiLoadingStates,
-      notification,
       canUndo,
       canRedo,
       currentHistoryState,
@@ -521,7 +515,6 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
       isHistorySidebarOpen, // Pass sidebar state
       setNodes,
       setEdges,
-      showNotification,
       crudActions,
       aiActions,
       applyLayout,
@@ -560,11 +553,10 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
       nodes,
       edges,
       isLoading,
-      isDataLoading,
+      isStateLoading,
       isCrudLoading,
       isLayoutLoading,
       aiLoadingStates,
-      notification,
       canUndo,
       canRedo,
       currentHistoryState,
@@ -588,7 +580,6 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
       nodeToAddInfo, // Add dependency here
       setNodes,
       setEdges,
-      showNotification,
       crudActions,
       aiActions,
       applyLayout,
@@ -623,14 +614,13 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
 
   // Handle data loading error
   useEffect(() => {
-    if (dataError && !mindMap) {
-      showNotification(`Error loading map: ${dataError}`, "error");
-      // Potentially redirect or show a more permanent error UI
+    if (stateError && !mindMap) {
+      toast.error(`Error loading map: ${stateError}`);
     }
-  }, [dataError, mindMap, showNotification]);
+  }, [stateError, mindMap]);
 
   // Handle initial loading state
-  if (isDataLoading && !mindMap && !dataError) {
+  if (isStateLoading && !mindMap && !stateError) {
     return (
       <div className="flex min-h-full items-center justify-center text-zinc-400">
         Loading mind map...
@@ -639,7 +629,7 @@ export function MindMapProvider({ children }: MindMapProviderProps) {
   }
 
   // Handle case where mapId is invalid or map not found after loading attempt
-  if (!isDataLoading && !mindMap && !dataError && mapId) {
+  if (!isStateLoading && !mindMap && !stateError && mapId) {
     // Added mapId check to ensure it's not a pre-load scenario
     return (
       <div className="flex min-h-full items-center justify-center text-zinc-400">

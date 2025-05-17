@@ -38,6 +38,7 @@ export const transformDataToReactFlow = (
       metadata: {
         ...(edge.metadata || {}),
         pathType: edge.metadata?.pathType,
+        isParentLink: edge.metadata?.isParentLink ?? false,
       },
     },
   }));

@@ -7,7 +7,6 @@ import { useMemo } from "react";
 import { CommandPaletteWrapper } from "./mind-map/command-palette-wrapper";
 import { ContextMenuWrapper } from "./mind-map/context-menu-wrapper";
 import { ModalsWrapper } from "./mind-map/modals-wrapper";
-import { NotificationsWrapper } from "./mind-map/notications-wrapper";
 import { ReactFlowArea } from "./mind-map/react-flow-area";
 import { ToolbarWrapper } from "./mind-map/toolbar-wrapper";
 
@@ -78,8 +77,6 @@ export function MindMapCanvas() {
       <CommandPaletteWrapper />
 
       <ContextMenuWrapper />
-
-      <NotificationsWrapper />
 
       <ModalsWrapper />
 

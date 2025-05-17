@@ -1,5 +1,6 @@
 "use client";
 import { useMindMapContext } from "@/contexts/mind-map/mind-map-context";
+import { toast } from "sonner";
 import { HistorySidebar } from "../history-sidebar";
 import MergeSuggestionsModal from "../merge-suggestions-modal";
 import AiContentPromptModal from "../modals/ai-content-prompt-modal";
@@ -25,7 +26,6 @@ export function ModalsWrapper() {
     setIsNodeTypeModalOpen,
     setNodeToAddInfo,
     crudActions,
-    showNotification,
     nodeToAddInfo,
     // Node Edit Modal
     isNodeEditModalOpen,
@@ -50,7 +50,7 @@ export function ModalsWrapper() {
     if (!info) {
       console.error("Node to add info is missing when selecting type.");
       // Use a more specific error message if possible
-      showNotification("Error adding node: Missing context.", "error");
+      toast.error("Error adding node: Missing context.");
       return; // Exit early if info is missing
     }
 

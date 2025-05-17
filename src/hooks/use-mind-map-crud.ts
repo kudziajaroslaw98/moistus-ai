@@ -2,7 +2,6 @@ import { nodeTypes } from "@/constants/node-types";
 import { deleteNodeById } from "@/helpers/delete-node-and-descendants";
 import generateUuid from "@/helpers/generate-uuid";
 import { createClient } from "@/helpers/supabase/client";
-import { NotificationType } from "@/hooks/use-notifications";
 import { AppEdge } from "@/types/app-edge";
 import { EdgeData } from "@/types/edge-data";
 import { NodeData } from "@/types/node-data";
@@ -17,6 +16,7 @@ import {
   XYPosition,
 } from "@xyflow/react";
 import { useCallback, useRef, useState } from "react";
+import { toast } from "sonner";
 import type { AiActions } from "./use-ai-features";
 
 interface UseMindMapCRUDProps {
@@ -29,7 +29,6 @@ interface UseMindMapCRUDProps {
     actionName?: string,
     stateOverride?: { nodes?: Node<NodeData>[]; edges?: AppEdge[] },
   ) => void;
-  showNotification: (message: string, type: NotificationType) => void;
   aiActions: AiActions | null;
 }
 
@@ -70,6 +69,12 @@ export interface CrudActions {
     initialData?: Partial<EdgeData>,
   ) => Promise<AppEdge | null>;
 
+  setNodeParent: (
+    edgeId: string,
+    nodeId: string,
+    parentId: string | null,
+  ) => Promise<void>;
+
   deleteEdge: (edgeId: string, skipHistory?: boolean) => Promise<void>;
   saveEdgeProperties: (
     edgeId: string,
@@ -92,7 +97,6 @@ export function useMindMapCRUD({
   setNodes,
   setEdges,
   addStateToHistory,
-  showNotification,
   aiActions,
 }: UseMindMapCRUDProps): UseMindMapCRUDResult {
   const [isLoading, setIsLoading] = useState(false);
@@ -150,7 +154,7 @@ export function useMindMapCRUD({
       initialData: Partial<NodeData> = {},
     ): Promise<Node<NodeData> | null> => {
       if (!mapId) {
-        showNotification("Cannot add node: Map ID missing.", "error");
+        toast.error(`Cannot add node: Map ID missing.`);
         return null;
       }
 
@@ -287,10 +291,7 @@ export function useMindMapCRUD({
               "Warning: Failed to save new edge to database:",
               edgeInsertError,
             );
-            showNotification(
-              "Warning: Node created, but connection failed to save.",
-              "error",
-            );
+            toast.error(`Failed to save new edge to database.`);
           } else {
             const finalEdgeData: EdgeData = insertedEdgeData as EdgeData;
             newEdgeReactFlowEdge = {
@@ -330,29 +331,20 @@ export function useMindMapCRUD({
 
         addStateToHistory("addNode", { nodes: finalNodes, edges: finalEdges });
 
-        showNotification("Node added.", "success");
+        toast.success(`Node added.`);
         return newNodeReactFlowNode;
       } catch (err: unknown) {
         console.error("Error adding node:", err);
         const message =
           err instanceof Error ? err.message : "Failed to add node.";
-        showNotification(message, "error");
+        toast.error(message);
 
         return null;
       } finally {
         setIsLoading(false);
       }
     },
-    [
-      mapId,
-      nodes,
-      edges,
-      supabase,
-      setNodes,
-      setEdges,
-      addStateToHistory,
-      showNotification,
-    ],
+    [mapId, nodes, edges, supabase, setNodes, setEdges, addStateToHistory],
   );
 
   const deleteNode = useCallback(
@@ -371,7 +363,7 @@ export function useMindMapCRUD({
         );
 
         if (isRoot && rootNodes.length <= 1) {
-          showNotification("Cannot delete the last root node.", "error");
+          toast.error("Cannot delete the last root node.");
           return;
         }
       }
@@ -401,26 +393,17 @@ export function useMindMapCRUD({
           });
         }
 
-        showNotification("Node(s) deleted.", "success");
+        toast.success("Node(s) deleted.");
       } catch (err: unknown) {
         console.error("Error deleting node:", err);
         const message =
           err instanceof Error ? err.message : "Failed to delete node(s).";
-        showNotification(message, "error");
+        toast.error(message);
       } finally {
         setIsLoading(false);
       }
     },
-    [
-      mapId,
-      nodes,
-      edges,
-      supabase,
-      setNodes,
-      setEdges,
-      addStateToHistory,
-      showNotification,
-    ],
+    [mapId, nodes, edges, supabase, setNodes, setEdges, addStateToHistory],
   );
 
   const saveNodePosition = useCallback(
@@ -447,7 +430,7 @@ export function useMindMapCRUD({
       const node = nodes.find((n) => n.id === nodeId);
 
       if (!node) {
-        showNotification("Node not found for metadata update.", "error");
+        toast.error("Node not found for metadata update.");
         return;
       }
 
@@ -474,13 +457,14 @@ export function useMindMapCRUD({
           ),
         );
         addStateToHistory("updateNodeMetadata"); // Or a more specific action name
-        showNotification("Node metadata updated.", "success");
+
+        toast.success("Node metadata updated.");
       } catch (error) {
         console.error("Failed to save node metadata:", error);
-        showNotification("Error saving node metadata.", "error");
+        toast.error("Failed to save node metadata.");
       }
     },
-    [addStateToHistory, nodes, setNodes, showNotification, supabase],
+    [addStateToHistory, nodes, setNodes, supabase],
   );
 
   const saveNodeAiData = useCallback(
@@ -488,7 +472,7 @@ export function useMindMapCRUD({
       const node = nodes.find((n) => n.id === nodeId);
 
       if (!node) {
-        showNotification("Node not found for metadata update.", "error");
+        toast.error("Node not found for metadata update.");
         return;
       }
 
@@ -515,24 +499,24 @@ export function useMindMapCRUD({
           ),
         );
         addStateToHistory("updateNodeAiData"); // Or a more specific action name
-        showNotification("Node metadata updated.", "success");
+        toast.success("Node metadata updated.");
       } catch (error) {
         console.error("Failed to save node metadata:", error);
-        showNotification("Error saving node metadata.", "error");
+        toast.error("Error saving node metadata.");
       }
     },
-    [addStateToHistory, nodes, setNodes, showNotification, supabase],
+    [addStateToHistory, nodes, setNodes, supabase],
   );
 
   const groupNodes = useCallback(
     async (nodeIds: string[]) => {
       if (nodeIds.length < 2) {
-        showNotification("Select at least two nodes to group.", "error");
+        toast.error("Select at least two nodes to group.");
         return;
       }
 
       if (!mapId) {
-        showNotification("Cannot group nodes: Map ID missing.", "error");
+        toast.error("Cannot group nodes: Map ID missing.");
         return;
       }
 
@@ -541,7 +525,7 @@ export function useMindMapCRUD({
       const user = await supabase.auth.getUser();
 
       if (!user.data.user) {
-        showNotification("User not authenticated.", "error");
+        toast.error("User not authenticated.");
         setIsLoading(false);
         return;
       }
@@ -549,7 +533,7 @@ export function useMindMapCRUD({
       const nodesToGroup = nodes.filter((n) => nodeIds.includes(n.id));
 
       if (nodesToGroup.length !== nodeIds.length) {
-        showNotification("Error: Some selected nodes not found.", "error");
+        toast.error("Error: Some selected nodes not found.");
         setIsLoading(false);
         return;
       }
@@ -608,10 +592,7 @@ export function useMindMapCRUD({
             "Error updating child node parents:",
             childrenUpdateError,
           );
-          showNotification(
-            "Error assigning nodes to the group in DB.",
-            "error",
-          );
+          toast.error("Error updating child node parents.");
         }
 
         let finalNodes: Node<NodeData>[] = [];
@@ -652,25 +633,19 @@ export function useMindMapCRUD({
         });
 
         addStateToHistory("groupNodes", { nodes: finalNodes, edges: edges });
-        showNotification("Nodes grouped successfully.", "success");
+
+        toast.success("Nodes grouped successfully.");
       } catch (err: unknown) {
         console.error("Error grouping nodes:", err);
         const message =
           err instanceof Error ? err.message : "Failed to group nodes.";
-        showNotification(message, "error");
+
+        toast.error(message);
       } finally {
         setIsLoading(false);
       }
     },
-    [
-      mapId,
-      nodes,
-      edges,
-      supabase,
-      setNodes,
-      addStateToHistory,
-      showNotification,
-    ],
+    [mapId, nodes, edges, supabase, setNodes, addStateToHistory],
   );
 
   const saveNodeDimensions = useCallback(
@@ -721,10 +696,10 @@ export function useMindMapCRUD({
           err instanceof Error
             ? err.message
             : `Failed to save content for node ${nodeId}.`;
-        showNotification(message, "error");
+        toast.error(message);
       }
     },
-    [supabase, showNotification],
+    [supabase],
   );
 
   const saveNodeProperties = useCallback(
@@ -774,7 +749,7 @@ export function useMindMapCRUD({
           nodes: finalNodes,
           edges: edges,
         });
-        showNotification("Node properties saved.", "success");
+        toast.success("Node properties saved.");
 
         if (
           updatedNode?.node_type === "questionNode" &&
@@ -791,12 +766,12 @@ export function useMindMapCRUD({
           err instanceof Error
             ? err.message
             : `Failed to save properties for node ${nodeId}.`;
-        showNotification(message, "error");
+        toast.error(message);
       } finally {
         setIsLoading(false);
       }
     },
-    [supabase, setNodes, addStateToHistory, showNotification, edges],
+    [supabase, setNodes, addStateToHistory, edges],
   );
 
   const addEdge = useCallback(
@@ -806,12 +781,12 @@ export function useMindMapCRUD({
       initialData: Partial<EdgeData> = {},
     ): Promise<AppEdge | null> => {
       if (!mapId) {
-        showNotification("Cannot add connection: Map ID missing.", "error");
+        toast.error("Cannot add connection: Map ID missing.");
         return null;
       }
 
       if (sourceId === targetId) {
-        showNotification("Cannot connect a node to itself.", "error");
+        toast.error("Cannot connect a node to itself.");
         return null;
       }
 
@@ -823,10 +798,7 @@ export function useMindMapCRUD({
       );
 
       if (existingEdge) {
-        showNotification(
-          "A connection between these nodes already exists.",
-          "error",
-        );
+        toast.error("A connection between these nodes already exists.");
         return null;
       }
 
@@ -912,29 +884,31 @@ export function useMindMapCRUD({
             `Error updating parent_id for target node ${targetId}:`,
             parentUpdateError,
           );
-          showNotification(
-            "Warning: Connection saved, but failed to set parent relationship in DB.",
-            "error",
+
+          toast.warning(
+            "Connection saved, but failed to set parent relationship in DB.",
           );
           // If DB update fails, nodesStateForHistory remains the original snapshot.
         } else {
           // DB update for parent_id was successful.
           // 1. Update the live local state. This call will trigger React Flow re-renders
           // and any useEffects in MindMapProvider that depend on `nodes`.
-          setNodes((currentNodesValue) => currentNodesValue.map((n) =>
+          setNodes((currentNodesValue) =>
+            currentNodesValue.map((n) =>
               n.id === targetId
                 ? { ...n, data: { ...n.data, parent_id: sourceId } }
                 : n,
-            ));
+            ),
+          );
 
           // 2. For the history snapshot, explicitly create the version of nodes
           // that reflects this successful parent_id update.
           // We base this on the `nodes` array as it was at the beginning of this `addEdge` call's scope.
           nodesStateForHistory = nodes.map((n) =>
-              n.id === targetId
-                ? { ...n, data: { ...n.data, parent_id: sourceId } }
-                : n,
-            );
+            n.id === targetId
+              ? { ...n, data: { ...n.data, parent_id: sourceId } }
+              : n,
+          );
         }
 
         // Add the new edge to the live local state
@@ -942,31 +916,26 @@ export function useMindMapCRUD({
           finalEdges = [...eds, newReactFlowEdge!]; // finalEdges is captured here for history
           return finalEdges;
         });
-        
+
         // Add to history using the correctly constructed nodes snapshot and the final edges.
-        addStateToHistory("addEdge", { nodes: nodesStateForHistory, edges: finalEdges });
-        showNotification("Connection saved.", "success");
+        addStateToHistory("addEdge", {
+          nodes: nodesStateForHistory,
+          edges: finalEdges,
+        });
+        toast.success("Connection saved.");
         return newReactFlowEdge;
       } catch (err: unknown) {
         console.error(`Error saving connection ${sourceId}->${targetId}:`, err);
         const message =
           err instanceof Error ? err.message : "Failed to save connection.";
-        showNotification(message, "error");
+        toast.error(message);
 
         return null;
       } finally {
         setIsLoading(false);
       }
     },
-    [
-      mapId,
-      nodes,
-      edges,
-      supabase,
-      setEdges,
-      addStateToHistory,
-      showNotification,
-    ],
+    [mapId, nodes, edges, supabase, setEdges, addStateToHistory],
   );
 
   const deleteEdge = useCallback(
@@ -993,17 +962,17 @@ export function useMindMapCRUD({
           addStateToHistory("deleteEdge", { edges: nextEdges });
         }
 
-        showNotification("Connection deleted.", "success");
+        toast.success("Connection deleted.");
       } catch (err: unknown) {
         console.error(`Error deleting connection ${edgeId}:`, err);
         const message =
           err instanceof Error ? err.message : "Failed to delete connection.";
-        showNotification(message, "error");
+        toast.error(message);
       } finally {
         setIsLoading(false);
       }
     },
-    [nodes, edges, supabase, setEdges, addStateToHistory, showNotification],
+    [nodes, edges, supabase, setEdges, addStateToHistory],
   );
 
   const saveEdgeProperties = useCallback(
@@ -1139,6 +1108,10 @@ export function useMindMapCRUD({
                     metadata: {
                       ...(edge.data?.metadata || {}),
                       ...(validUpdates.metadata || {}),
+                      isParentLink:
+                        validUpdates.metadata?.isParentLink ??
+                        edge.data?.metadata?.isParentLink ??
+                        false,
                     },
                   },
                 }
@@ -1151,19 +1124,19 @@ export function useMindMapCRUD({
           nodes: nodes,
           edges: finalEdges,
         });
-        showNotification("Connection properties saved.", "success");
+        toast.success("Connection properties saved.");
       } catch (err: unknown) {
         console.error(`Error saving properties for edge ${edgeId}:`, err);
         const message =
           err instanceof Error
             ? err.message
             : `Failed to save properties for edge ${edgeId}.`;
-        showNotification(message, "error");
+        toast.error(message);
       } finally {
         setIsLoading(false);
       }
     },
-    [supabase, nodes, edges, setEdges, addStateToHistory, showNotification],
+    [supabase, nodes, edges, setEdges, addStateToHistory],
   );
 
   const restoreNode = useCallback(
@@ -1210,12 +1183,12 @@ export function useMindMapCRUD({
           err instanceof Error
             ? err.message
             : `Failed to restore node ${node.id}.`;
-        showNotification(message, "error");
+        toast.error(message);
       } finally {
         setIsLoading(false);
       }
     },
-    [mapId, supabase, showNotification],
+    [mapId, supabase],
   );
 
   const restoreEdge = useCallback(
@@ -1273,12 +1246,12 @@ export function useMindMapCRUD({
           err instanceof Error
             ? err.message
             : `Failed to restore edge ${edge.id}.`;
-        showNotification(message, "error");
+        toast.error(message);
       } finally {
         setIsLoading(false);
       }
     },
-    [mapId, supabase, showNotification],
+    [mapId, supabase],
   );
 
   const triggerNodeSave = useCallback(
@@ -1316,6 +1289,145 @@ export function useMindMapCRUD({
     [debounceSave, saveNodePosition, saveNodeDimensions],
   );
 
+  const setNodeParent = useCallback(
+    async (edgeId: string, nodeId: string, parentId: string | null) => {
+      setIsLoading(true);
+
+      try {
+        const edgeToUpdate = edges.find((edge) => edge.id === edgeId);
+        const targetNode = nodes.find((node) => node.id === nodeId);
+
+        if (!edgeToUpdate || !targetNode) {
+          toast.error(
+            "Error setting parent link: Edge or target node not found.",
+          );
+          return;
+        }
+
+        // Find the old parent edge if it exists and is marked as parent link
+        const oldParentEdge = edges.find(
+          (edge) =>
+            edge.target === nodeId &&
+            edge.data?.metadata?.isParentLink === true,
+        );
+
+        // 1. Update target node's parent_id in DB
+        const { error: nodeUpdateError } = await supabase
+          .from("nodes")
+          .update({ parent_id: parentId, updated_at: new Date().toISOString() })
+          .eq("id", nodeId);
+
+        if (nodeUpdateError) {
+          throw new Error(
+            nodeUpdateError.message ||
+              "Failed to update node parent in database.",
+          );
+        }
+
+        // 2. Update the selected edge's metadata/style in DB to be the new parent link
+        const parentLinkStyle = { stroke: "#88aaff", strokeWidth: 4 }; // Define parent link style
+        const defaultStyle = { stroke: "#6c757d", strokeWidth: 2 }; // Define default style
+
+        const { error: edgeUpdateError } = await supabase
+          .from("edges")
+          .update({
+            metadata: { ...edgeToUpdate.data?.metadata, isParentLink: true },
+            style: parentLinkStyle,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", edgeId);
+
+        if (edgeUpdateError) {
+          console.error(
+            "Warning: Failed to update edge as parent link in DB.",
+            edgeUpdateError,
+          );
+          toast.warning(
+            "Parent node updated, but failed to update edge style in DB.",
+          );
+        }
+
+        // 3. If an old parent edge exists, update its metadata/style in DB to be non-parent link
+        if (oldParentEdge && oldParentEdge.id !== edgeId) {
+          const { error: oldEdgeUpdateError } = await supabase
+            .from("edges")
+            .update({
+              metadata: {
+                ...oldParentEdge.data?.metadata,
+                isParentLink: false,
+              },
+              style: defaultStyle,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", oldParentEdge.id);
+
+          if (oldEdgeUpdateError) {
+            console.error(
+              "Warning: Failed to update old parent edge style in DB.",
+              oldEdgeUpdateError,
+            );
+            toast.warning(
+              "Parent node updated, but failed to update old edge style in DB.",
+            );
+          }
+        }
+
+        // 4. Update local state for nodes (specifically the target node's parent_id)
+        const nextNodes = nodes.map((node) =>
+          node.id === nodeId
+            ? { ...node, data: { ...node.data, parent_id: parentId } }
+            : node,
+        );
+        setNodes(nextNodes);
+
+        // 5. Update local state for edges (selected edge and old parent edge)
+        const nextEdges = edges.map((edge) => {
+          if (edge.id === edgeId) {
+            // The new parent edge
+            return {
+              ...edge,
+              id: edge.id,
+              data: {
+                ...edge.data,
+                id: edge.data!.id,
+                metadata: { ...edge.data?.metadata, isParentLink: true },
+              },
+              style: parentLinkStyle,
+            };
+          } else if (oldParentEdge && edge.id === oldParentEdge.id) {
+            // The old parent edge
+            return {
+              ...edge,
+              data: {
+                ...edge.data,
+                id: edge.data!.id,
+                metadata: { ...edge.data?.metadata, isParentLink: false },
+              },
+              style: defaultStyle,
+            };
+          }
+
+          return edge;
+        }) as AppEdge[];
+        setEdges(nextEdges);
+
+        addStateToHistory("setNodeParent", {
+          nodes: nextNodes,
+          edges: nextEdges,
+        });
+        toast.success("Parent link updated.");
+      } catch (err: unknown) {
+        console.error("Error setting parent link:", err);
+        const message =
+          err instanceof Error ? err.message : "Failed to set parent link.";
+        toast.error(message);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [nodes, edges, supabase, setNodes, setEdges, addStateToHistory],
+  );
+
   const triggerEdgeSave = useCallback(
     (change: EdgeChange) => {
       if (change.type === "remove") {
@@ -1340,6 +1452,7 @@ export function useMindMapCRUD({
       triggerNodeSave,
       deleteEdge,
       saveEdgeProperties,
+      setNodeParent,
       groupNodes,
       restoreNode,
       restoreEdge,

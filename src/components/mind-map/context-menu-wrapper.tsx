@@ -60,6 +60,7 @@ export function ContextMenuWrapper() {
       applyLayout={applyLayout}
       isLoading={isLoading}
       reactFlowInstance={reactFlowInstance!}
+      setNodeParentAction={crudActions.setNodeParent}
     />
   );
 }

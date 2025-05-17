@@ -2,18 +2,23 @@ import { AppEdge } from "@/types/app-edge";
 import { HistoryState } from "@/types/history-state";
 import { NodeData } from "@/types/node-data";
 import { Node } from "@xyflow/react";
-import { useCallback, useEffect, useState } from "react";
+import {
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
+import { toast } from "sonner";
 import { CrudActions } from "./use-mind-map-crud"; // Import CrudActions
-import { useNotifications } from "./use-notifications";
 
 interface UseMindMapHistoryProps {
-  initialNodes: Node<NodeData>[];
-  initialEdges: AppEdge[];
   nodes: Node<NodeData>[];
   edges: AppEdge[];
-  setNodes: React.Dispatch<React.SetStateAction<Node<NodeData>[]>>;
-  setEdges: React.Dispatch<React.SetStateAction<AppEdge[]>>;
+  setNodes: Dispatch<SetStateAction<Node<NodeData>[]>>;
+  setEdges: Dispatch<SetStateAction<AppEdge[]>>;
   crudActions: CrudActions | null; // Add crudActions prop
+  isStateLoading: boolean;
 }
 
 interface UseMindMapHistoryResult {
@@ -31,56 +36,30 @@ interface UseMindMapHistoryResult {
   historyIndex: number; // Expose current index
 }
 
-function debounce<F extends (...args: unknown[]) => unknown>(
-  func: F,
-  waitFor: number,
-): (...args: Parameters<F>) => void {
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
-  return (...args: Parameters<F>): void => {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-
-    timeoutId = setTimeout(() => func(...args), waitFor);
-  };
-}
-
 export function useMindMapHistory({
-  initialNodes,
-  initialEdges,
   nodes: currentNodes, // Rename for clarity
   edges: currentEdges, // Rename for clarity
   setNodes,
   setEdges,
   crudActions, // Destructure crudActions
+  isStateLoading,
 }: UseMindMapHistoryProps): UseMindMapHistoryResult {
   const [history, setHistory] = useState<HistoryState[]>([]);
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
-  const { showNotification } = useNotifications();
   const [isReverting, setIsReverting] = useState(false); // Prevent overlapping reverts
 
   useEffect(() => {
-    if (initialNodes.length > 0 || initialEdges.length > 0) {
+    if (!isStateLoading && history.length === 0) {
       const initialState: HistoryState = {
-        nodes: initialNodes,
-        edges: initialEdges,
-        timestamp: Date.now(), // Add timestamp
-        actionName: "initialLoad", // Add action name
-      };
-      setHistory([initialState]);
-      setHistoryIndex(0);
-    } else {
-      const initialState: HistoryState = {
-        nodes: [],
-        edges: [],
+        nodes: currentNodes,
+        edges: currentEdges,
         timestamp: Date.now(), // Add timestamp
         actionName: "initialLoad", // Add action name
       };
       setHistory([initialState]);
       setHistoryIndex(0);
     }
-  }, [initialNodes, initialEdges]);
+  }, [currentNodes, currentEdges, isStateLoading]);
 
   const addStateToHistory = useCallback(
     (
@@ -163,7 +142,7 @@ export function useMindMapHistory({
 
       try {
         await Promise.all(restorePromises);
-        showNotification("Undo node changes successful.", "success");
+        toast.success("Undo node changes successful.");
 
         restorePromises = [];
         edgesToRestore.forEach((edge) => {
@@ -175,25 +154,17 @@ export function useMindMapHistory({
         });
 
         await Promise.all(restorePromises);
-        showNotification("Undo edge changes successful.", "success");
+        toast.success("Undo edge changes successful.");
       } catch (error) {
         console.error("Error during undo DB restore:", error);
-        showNotification(
+        toast.error(
           "Undo changes completed, but DB restore failed for some items.",
-          "error",
         );
       }
     } else {
-      showNotification("Nothing to undo.", "error");
+      toast.info("Nothing to undo.");
     }
-  }, [
-    history,
-    historyIndex,
-    setNodes,
-    setEdges,
-    showNotification,
-    crudActions,
-  ]); // Add crudActions dependency
+  }, [history, historyIndex, crudActions]); // Add crudActions dependency
 
   const handleRedo = useCallback(async () => {
     if (historyIndex < history.length - 1) {
@@ -237,40 +208,30 @@ export function useMindMapHistory({
 
       try {
         await Promise.all(deletePromises);
-        showNotification("Redo successful.", "success");
+        toast.success("Redo successful.");
       } catch (error) {
         console.error("Error during redo DB delete:", error);
-        showNotification(
-          "Redo completed, but DB delete failed for some items.",
-          "error",
-        );
+        toast.error("Redo completed, but DB delete failed for some items.");
       }
     } else {
-      showNotification("Nothing to redo.", "error");
+      toast.info("Nothing to redo.");
     }
-  }, [
-    history,
-    historyIndex,
-    setNodes,
-    setEdges,
-    showNotification,
-    crudActions,
-  ]); // Add crudActions dependency
+  }, [history, historyIndex, crudActions]); // Add crudActions dependency
 
   const revertToHistoryState = useCallback(
     async (index: number) => {
       if (isReverting || index < 0 || index >= history.length) {
-        showNotification("Invalid history state selected.", "error");
+        toast.error("Invalid history state selected.");
         return;
       }
 
       if (index === historyIndex) {
-        showNotification("Already at this history state.", "success");
+        toast.warning("Already at this history state.");
         return;
       }
 
       setIsReverting(true);
-      showNotification(`Reverting to state ${index + 1}...`, "success");
+      toast.info(`Reverting to state ${index + 1}...`);
 
       const targetState = history[index];
       const currentState = history[historyIndex]; // State *before* reverting
@@ -298,17 +259,14 @@ export function useMindMapHistory({
         // ]);
 
         // Simple notification for now
-        showNotification(
-          `Reverted to state ${index + 1}. Review changes.`,
-          "success",
-        );
+        toast.success(`Reverted to state ${index + 1}. Review changes.`);
 
         // IMPORTANT: Reverting doesn't automatically add a new history state.
         // If the user makes changes *after* reverting, a new state will be added,
         // effectively branching the history (like git).
       } catch (error) {
         console.error("Error reverting history state:", error);
-        showNotification("Failed to revert history state.", "error");
+        toast.error("Failed to revert history state.");
         // Attempt to restore the previous state if revert fails? (Could be complex)
         setNodes(currentState.nodes);
         setEdges(currentState.edges);
@@ -317,7 +275,7 @@ export function useMindMapHistory({
         setIsReverting(false);
       }
     },
-    [history, historyIndex, setNodes, setEdges, showNotification, isReverting], // Add crudActions and isReverting
+    [history, historyIndex, isReverting], // Add crudActions and isReverting
   );
 
   const canUndo = historyIndex > 0;

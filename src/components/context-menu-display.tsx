@@ -71,6 +71,11 @@ interface ContextMenuDisplayProps {
   isLoading: boolean;
   reactFlowInstance: ReactFlowInstance;
   ref?: React.RefObject<HTMLDivElement | null>;
+  setNodeParentAction: (
+    edgeId: string,
+    nodeId: string,
+    parentId: string | null,
+  ) => Promise<void>;
 }
 
 export function ContextMenuDisplay({
@@ -88,6 +93,7 @@ export function ContextMenuDisplay({
   isLoading,
   reactFlowInstance,
   ref,
+  setNodeParentAction,
 }: ContextMenuDisplayProps) {
   if (!contextMenuState.visible) return null;
 
@@ -95,6 +101,16 @@ export function ContextMenuDisplay({
   const clickedNode = nodeId ? nodes.find((n) => n.id === nodeId) : null;
   const clickedNodeData = clickedNode?.data;
   const clickedEdge = edgeId ? edges.find((e) => e.id === edgeId) : null;
+  const clickedTargetNode = clickedEdge
+    ? nodes.find((n) => n.id === clickedEdge.target)
+    : null;
+  const isCurrentParentLink =
+    clickedEdge?.data?.metadata?.isParentLink === true;
+  const canBeParentLink =
+    clickedEdge &&
+    clickedTargetNode &&
+    (!clickedTargetNode.data.parent_id ||
+      clickedTargetNode.data.parent_id === clickedEdge.source); // Can set as parent if target has no parent or current parent is this edge's source
 
   const handleActionClick = (action: () => void, disabled?: boolean) => {
     if (disabled) return;
@@ -362,6 +378,30 @@ export function ContextMenuDisplay({
           <span>Delete Edge</span>
         </Button>
 
+        <Button
+          variant="ghost"
+          align="left"
+          disabled={isLoading || !canBeParentLink || isCurrentParentLink}
+          onClick={() =>
+            handleActionClick(
+              () =>
+                setNodeParentAction(
+                  edgeId,
+                  clickedEdge.target,
+                  clickedEdge.source,
+                ),
+              isLoading || !canBeParentLink || isCurrentParentLink,
+            )
+          }
+          className="gap-2"
+        >
+          <GitPullRequestArrow className="size-4" />
+
+          <span>
+            {isCurrentParentLink ? "Is Parent Link" : "Set as Parent Link"}
+          </span>
+        </Button>
+
         <hr className="my-1 border-zinc-800" />
 
         <span className="block w-full rounded-md px-3 py-1.5 text-xs text-zinc-500">
@@ -433,6 +473,8 @@ export function ContextMenuDisplay({
                         metadata: {
                           ...(clickedEdge.data?.metadata || {}),
                           pathType: pathType,
+                          isParentLink:
+                            clickedEdge.data?.metadata?.isParentLink ?? false,
                         },
                       }),
                     isLoading,

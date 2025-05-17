@@ -3,7 +3,7 @@
 import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
 import { Node, NodeProps } from "@xyflow/react";
-import { CheckSquare, Square, SquareCheck } from "lucide-react"; // Import Square icon
+import { Check, Dot, SquareCheck } from "lucide-react"; // Import Square icon
 import { memo, useCallback, useMemo } from "react"; // Import useMemo
 import { BaseNodeWrapper } from "./base-node-wrapper";
 
@@ -65,38 +65,52 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
             Double click or click the menu to add tasks...
           </span>
         ) : (
-          tasks.map((task) => (
-            <div key={task.id} className="flex items-center gap-2 text-sm">
-              <button
-                onClick={() => handleToggleTask(task.id)}
-                className="nodrag flex-shrink-0 cursor-pointer rounded p-0.5 text-zinc-400 hover:text-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-500 focus:ring-offset-1 focus:ring-offset-zinc-950"
-                aria-label={
-                  task.isComplete
-                    ? "Mark task incomplete"
-                    : "Mark task complete"
-                }
-              >
-                {task.isComplete ? (
-                  <CheckSquare className="size-4 text-teal-400" />
-                ) : (
-                  <Square className="size-4" />
-                )}
-              </button>
+          <>
+            <div className="flex gap-2 items-center p-1 font-semibold">
+              <span>Tasks: {tasks.length}</span>
 
-              <span
-                className={cn([
-                  "break-words",
-                  task.isComplete
-                    ? "text-zinc-500 line-through"
-                    : "text-zinc-300",
-                ])}
-              >
-                {task.text || (
-                  <span className="italic text-zinc-600">Empty task</span>
-                )}
+              <Dot className="size-4 text-zinc-700" />
+
+              <span>
+                Done: {tasks.filter((task) => task.isComplete).length}
               </span>
             </div>
-          ))
+
+            {tasks.map((task) => (
+              <div key={task.id} className="flex items-start gap-2 text-sm">
+                <button
+                  onClick={() => handleToggleTask(task.id)}
+                  className="nodrag flex-shrink-0 cursor-pointer rounded p-0.5 text-zinc-400 hover:text-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-500 focus:ring-offset-1 focus:ring-offset-zinc-950"
+                  aria-label={
+                    task.isComplete
+                      ? "Mark task incomplete"
+                      : "Mark task complete"
+                  }
+                >
+                  {task.isComplete ? (
+                    <div className="size-4 flex justify-center items-center border-node-accent border text-node-accent rounded-sm">
+                      <Check className="size-3" />
+                    </div>
+                  ) : (
+                    <div className="size-4 text-node-text-secondary border border-node-text-secondary rounded-sm"></div>
+                  )}
+                </button>
+
+                <span
+                  className={cn([
+                    "break-words",
+                    task.isComplete
+                      ? "text-node-text-checked decoration line-through"
+                      : "text-node-text-secondary",
+                  ])}
+                >
+                  {task.text || (
+                    <span className="italic text-zinc-600">Empty task</span>
+                  )}
+                </span>
+              </div>
+            ))}
+          </>
         )}
       </div>
     </BaseNodeWrapper>

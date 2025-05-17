@@ -1,6 +1,7 @@
 "use client";
 import { useMindMapContext } from "@/contexts/mind-map/mind-map-context";
 import { useCallback, useMemo } from "react";
+import { toast } from "sonner";
 import { CommandPalette } from "../command-palette";
 
 export function CommandPaletteWrapper() {
@@ -17,7 +18,6 @@ export function CommandPaletteWrapper() {
     aiActions,
     applyLayout,
     toggleFocusMode,
-    showNotification,
     setIsNodeTypeModalOpen, // To open node type modal
     setNodeToAddInfo, // To set info for adding node
   } = useMindMapContext();
@@ -48,7 +48,7 @@ export function CommandPaletteWrapper() {
       deleteSelected: () => {
         if (selectedNodeId) crudActions.deleteNode(selectedNodeId);
         else if (selectedEdgeId) crudActions.deleteEdge(selectedEdgeId);
-        else showNotification("Nothing selected to delete.", "error");
+        else toast.error("Nothing selected to delete");
       },
       triggerSuggestConnections: aiActions.suggestConnections,
       triggerSuggestMerges: aiActions.suggestMerges,
@@ -62,7 +62,7 @@ export function CommandPaletteWrapper() {
         if (selectedNodes.length > 1) {
           crudActions.groupNodes(selectedNodes.map((n) => n.id));
         } else {
-          showNotification("Select 2 or more nodes to group.", "error");
+          toast.error("Select 2 or mode nodes to group.");
         }
       },
     }),
@@ -77,7 +77,6 @@ export function CommandPaletteWrapper() {
       applyLayout,
       toggleFocusMode,
       nodes,
-      showNotification,
     ],
   );
 

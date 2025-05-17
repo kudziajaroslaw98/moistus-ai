@@ -102,6 +102,7 @@ export default function EdgeEditModal({
       metadata: {
         ...(edge.data?.metadata || {}), // Preserve existing metadata
         pathType: pathStyle,
+        isParentLink: edge.data?.metadata?.isParentLink ?? false,
       },
     };
 

@@ -30,7 +30,7 @@ interface NodeTypeConfig {
 
 export const nodeTypesConfig: Record<string, NodeTypeConfig> = {
   defaultNode: {
-    label: "Default",
+    label: "Note",
     defaultMetadata: {},
   },
   textNode: {

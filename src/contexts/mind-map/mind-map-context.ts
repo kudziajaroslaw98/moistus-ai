@@ -1,6 +1,5 @@
 import type { AiActions, AiLoadingStates } from "@/hooks/use-ai-features"; // Assuming types are exported
 import type { CrudActions } from "@/hooks/use-mind-map-crud";
-import type { NotificationType } from "@/hooks/use-notifications";
 import type { AiMergeSuggestion } from "@/types/ai-merge-suggestion";
 import type { AppEdge } from "@/types/app-edge";
 import { ContextMenuState } from "@/types/context-menu-state";
@@ -27,11 +26,10 @@ interface MindMapContextProps {
   nodes: Node<NodeData>[];
   edges: AppEdge[];
   isLoading: boolean; // Combined loading state
-  isDataLoading: boolean;
+  isStateLoading: boolean;
   isCrudLoading: boolean;
   isLayoutLoading: boolean;
   aiLoadingStates: AiLoadingStates;
-  notification: { message: string | null; type: NotificationType | null };
   canUndo: boolean;
   canRedo: boolean;
   currentHistoryState: HistoryState | undefined;
@@ -57,7 +55,6 @@ interface MindMapContextProps {
   // Setters / Actions
   setNodes: React.Dispatch<React.SetStateAction<Node<NodeData>[]>>;
   setEdges: React.Dispatch<React.SetStateAction<AppEdge[]>>;
-  showNotification: (message: string, type: NotificationType) => void;
   crudActions: CrudActions;
   aiActions: AiActions;
   applyLayout: (direction: "TB" | "LR") => Promise<void>;
