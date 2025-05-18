@@ -8,6 +8,7 @@ import ResourceNode from "@/components/nodes/resource-node";
 import TaskNode from "@/components/nodes/task-node";
 import TextNode from "@/components/nodes/text-node"; // Import the new TextNode
 
+export type NodeTypes = keyof typeof nodeTypes;
 export const nodeTypes = {
   defaultNode: DefaultNode, // Note Node
   taskNode: TaskNode,

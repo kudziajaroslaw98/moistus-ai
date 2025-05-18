@@ -1,5 +1,4 @@
 "use client";
-import { ZoomSlider } from "@/components/ui/zoom-slider";
 import {
   Background,
   BackgroundVariant,
@@ -8,7 +7,6 @@ import {
   Controls,
   Edge,
   EdgeMouseHandler,
-  MarkerType,
   Node,
   NodeTypes,
   OnConnectStartParams,
@@ -25,38 +23,87 @@ import GroupNode from "@/components/nodes/group-node";
 import ImageNode from "@/components/nodes/image-node";
 import QuestionNode from "@/components/nodes/question-node";
 import ResourceNode from "@/components/nodes/resource-node";
-import TaskNode from "@/components/nodes/task-node";
 import TextNode from "@/components/nodes/text-node";
 
 import FloatingEdge from "@/components/edges/floating-edge";
 import SuggestedConnectionEdge from "@/components/edges/suggested-connection-edge";
-import { useMindMapContext } from "@/contexts/mind-map/mind-map-context";
-import { AppEdge } from "@/types/app-edge";
+import useAppStore from "@/contexts/mind-map/mind-map-store";
 import { EdgeData } from "@/types/edge-data";
 import { NodeData } from "@/types/node-data";
+import { useParams } from "next/navigation";
 import FloatingConnectionLine from "../edges/floating-connection-line";
+import { ZoomSlider } from "../ui/zoom-slider";
 
 export function ReactFlowArea() {
-  const {
-    nodes,
-    edges,
-    suggestedEdges,
-    contextMenuHandlers,
-    setReactFlowInstance,
-    crudActions,
-    setIsNodeEditModalOpen,
-    setNodeToEdit,
-    setIsEdgeEditModalOpen,
-    setEdgeToEdit,
-    onNodesChange,
-    onEdgesChange,
-    isFocusMode,
-    setSelectedNodes,
-  } = useMindMapContext();
+  // const {
+  //   nodes,
+  //   edges,
+  //   suggestedEdges,
+  //   contextMenuHandlers,
+  //   setReactFlowInstance,
+  //   crudActions,
+  //   setIsNodeEditModalOpen,
+  //   setNodeToEdit,
+  //   setIsEdgeEditModalOpen,
+  //   setEdgeToEdit,
+  //   onNodesChange,
+  //   onEdgesChange,
+  //   isFocusMode,
+  //   setSelectedNodes,
+  // } = useMindMapContext();
+  const mapId = useParams().id;
   const reactFlowInstance = useReactFlow();
   const connectingNodeId = useRef<string | null>(null);
   const connectingHandleId = useRef<string | null>(null);
   const connectingHandleType = useRef<"source" | "target" | null>(null);
+
+  const nodes = useAppStore((state) => state.nodes);
+  const edges = useAppStore((state) => state.edges);
+  const isFocusMode = useAppStore((state) => state.isFocusMode);
+  const onNodesChange = useAppStore((state) => state.onNodesChange);
+  const onEdgesChange = useAppStore((state) => state.onEdgesChange);
+  const onConnect = useAppStore((state) => state.onConnect);
+  const setReactFlowInstance = useAppStore(
+    (state) => state.setReactFlowInstance,
+  );
+  const setNodeInfo = useAppStore((state) => state.setNodeInfo);
+  const setPopoverOpen = useAppStore((state) => state.setPopoverOpen);
+  const setEdgeInfo = useAppStore((state) => state.setEdgeInfo);
+  const setMapId = useAppStore((state) => state.setMapId);
+  const addNode = useAppStore((state) => state.addNode);
+  const fetchMindMapData = useAppStore((state) => state.fetchMindMapData);
+
+  // const {
+  //   nodes,
+  //   edges,
+  //   isFocusMode,
+  //   onNodesChange,
+  //   onEdgesChange,
+  //   onConnect,
+  //   setReactFlowInstance,
+  //   setNodeInfo,
+  //   setPopoverOpen,
+  //   setEdgeInfo,
+  //   setMapId,
+  //   addNode,
+  //   fetchMindMapData,
+  // } = useAppStore(
+  //   useShallow((state) => ({
+  //     nodes: state.nodes,
+  //     edges: state.edges,
+  //     isFocusMode: state.isFocusMode,
+  //     onNodesChange: state.onNodesChange,
+  //     onEdgesChange: state.onEdgesChange,
+  //     onConnect: state.onConnect,
+  //     setReactFlowInstance: state.setReactFlowInstance,
+  //     setNodeInfo: state.setNodeInfo,
+  //     setPopoverOpen: state.setPopoverOpen,
+  //     setEdgeInfo: state.setEdgeInfo,
+  //     setMapId: state.setMapId,
+  //     addNode: state.addNode,
+  //     fetchMindMapData: state.fetchMindMapData,
+  //   })),
+  // );
 
   useEffect(() => {
     if (reactFlowInstance) {
@@ -64,72 +111,46 @@ export function ReactFlowArea() {
     }
   }, [reactFlowInstance, setReactFlowInstance]);
 
-  const allEdges = useMemo(
-    () => [...edges, ...suggestedEdges],
-    [edges, suggestedEdges],
+  useEffect(() => {
+    if (!mapId) return;
+    setMapId(mapId as string);
+    fetchMindMapData(mapId as string);
+  }, [fetchMindMapData, mapId]);
+
+  const handleNodeDoubleClick = useCallback(
+    (event: React.MouseEvent, node: Node<NodeData>) => {
+      setNodeInfo(node);
+      setPopoverOpen({ nodeEdit: true });
+    },
+    [],
   );
 
-  const handleNodeDoubleClick = (
-    event: React.MouseEvent,
-    node: Node<NodeData>,
-  ) => {
-    setNodeToEdit(node.data);
-    setIsNodeEditModalOpen(true);
-  };
-
-  const handleEdgeDoubleClick: EdgeMouseHandler<Edge<Partial<EdgeData>>> = (
-    _event,
-    edge,
-  ) => {
-    setEdgeToEdit(edge as AppEdge);
-    setIsEdgeEditModalOpen(true);
-  };
-
-  const handleOpenNodeEdit = useCallback(
-    (nodeId: string, nodeData: NodeData) => {
-      if (nodeData) {
-        setNodeToEdit(nodeData);
-        setIsNodeEditModalOpen(true);
-      }
+  const handleEdgeDoubleClick: EdgeMouseHandler<Edge<EdgeData>> = useCallback(
+    (_event, edge) => {
+      setEdgeInfo(edge);
+      setPopoverOpen({ edgeEdit: true });
     },
-    [setNodeToEdit, setIsNodeEditModalOpen],
+    [],
   );
 
   const nodeTypesWithProps: NodeTypes = useMemo(
     () => ({
-      defaultNode: (props) => (
-        <DefaultNode {...props} onEditNode={handleOpenNodeEdit} />
-      ),
-      questionNode: (props) => (
-        <QuestionNode {...props} onEditNode={handleOpenNodeEdit} />
-      ),
-      taskNode: (props) => (
-        <TaskNode
-          {...props}
-          onEditNode={handleOpenNodeEdit}
-          saveNodeProperties={crudActions.saveNodeProperties}
-        />
-      ),
-      imageNode: (props) => (
-        <ImageNode {...props} onEditNode={handleOpenNodeEdit} />
-      ),
-      resourceNode: (props) => (
-        <ResourceNode {...props} onEditNode={handleOpenNodeEdit} />
-      ),
-      annotationNode: (props) => (
-        <AnnotationNode {...props} onEditNode={handleOpenNodeEdit} />
-      ),
-      codeNode: (props) => (
-        <CodeNode {...props} onEditNode={handleOpenNodeEdit} />
-      ),
-      groupNode: (props) => (
-        <GroupNode {...props} onEditNode={handleOpenNodeEdit} />
-      ),
-      textNode: (props) => (
-        <TextNode {...props} onEditNode={handleOpenNodeEdit} />
-      ),
+      defaultNode: (props) => <DefaultNode {...props} />,
+      questionNode: (props) => <QuestionNode {...props} />,
+      // taskNode: (props) => (
+      //   <TaskNode
+      //     {...props}
+      //     saveNodeProperties={crudActions.saveNodeProperties}
+      //   />
+      // ),
+      imageNode: (props) => <ImageNode {...props} />,
+      resourceNode: (props) => <ResourceNode {...props} />,
+      annotationNode: (props) => <AnnotationNode {...props} />,
+      codeNode: (props) => <CodeNode {...props} />,
+      groupNode: (props) => <GroupNode {...props} />,
+      textNode: (props) => <TextNode {...props} />,
     }),
-    [handleOpenNodeEdit],
+    [],
   );
 
   const edgeTypes = useMemo(
@@ -141,14 +162,6 @@ export function ReactFlowArea() {
     }),
     [],
   );
-
-  const defaultEdgeOptions = {
-    type: "floatingEdge",
-    markerEnd: {
-      type: MarkerType.ArrowClosed,
-      color: "#b1b1b7",
-    },
-  };
 
   const onConnectStart = useCallback(
     (
@@ -191,24 +204,32 @@ export function ReactFlowArea() {
           y: clientY,
         });
 
-        crudActions.addNode(
-          connectingNodeId.current,
-          "New Node",
-          "defaultNode",
-          panePosition,
+        const parentNode = nodes.find(
+          (node) => node.id === connectingNodeId.current,
         );
+
+        addNode({
+          parentNode: parentNode ?? null,
+          position: panePosition,
+          data: {},
+          content: "New Node",
+          nodeType: "defaultNode",
+        });
       }
 
       connectingNodeId.current = null;
       connectingHandleId.current = null;
       connectingHandleType.current = null;
     },
-    [reactFlowInstance, crudActions],
+    [reactFlowInstance, addNode, nodes],
   );
 
-  const handleSelectionChange = useCallback(({ nodes }) => {
-    setSelectedNodes(nodes);
-  }, [setSelectedNodes]);
+  // const handleSelectionChange = useCallback(
+  //   ({ nodes }) => {
+  //     setSelectedNodes(nodes);
+  //   },
+  //   [setSelectedNodes],
+  // );
 
   return (
     <ReactFlow
@@ -233,18 +254,15 @@ export function ReactFlowArea() {
       nodeTypes={nodeTypesWithProps}
       edgeTypes={edgeTypes}
       connectionLineComponent={FloatingConnectionLine}
-      defaultEdgeOptions={defaultEdgeOptions}
-      onNodeContextMenu={contextMenuHandlers.onNodeContextMenu}
-      onPaneContextMenu={contextMenuHandlers.onPaneContextMenu}
-      onEdgeContextMenu={contextMenuHandlers.onEdgeContextMenu}
-      onPaneClick={contextMenuHandlers.onPaneClick}
+      // onNodeContextMenu={contextMenuHandlers.onNodeContextMenu}
+      // onPaneContextMenu={contextMenuHandlers.onPaneContextMenu}
+      // onEdgeContextMenu={contextMenuHandlers.onEdgeContextMenu}
+      // onPaneClick={contextMenuHandlers.onPaneClick}
       selectionMode={SelectionMode.Partial}
       connectionLineType={ConnectionLineType.Bezier}
       connectionMode={ConnectionMode.Loose}
-      onConnect={(params) =>
-        crudActions.addEdge(params.source!, params.target!)
-      }
-      onSelectionChange={handleSelectionChange}
+      onConnect={onConnect}
+      // onSelectionChange={handleSelectionChange}
     >
       <Controls
         position="top-right"

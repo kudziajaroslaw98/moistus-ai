@@ -14,7 +14,6 @@ interface Task {
 }
 
 interface TaskNodeProps extends NodeProps<Node<NodeData>> {
-  onEditNode: (nodeId: string, nodeData: NodeData) => void;
   // Add saveNodeProperties function to props
   saveNodeProperties: (
     nodeId: string,

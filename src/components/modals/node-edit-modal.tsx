@@ -1,6 +1,8 @@
 import { nodeTypesConfig } from "@/constants/node-types";
+import useAppStore from "@/contexts/mind-map/mind-map-store";
 import { NodeData } from "@/types/node-data";
 import React, { Suspense, useEffect, useRef, useState } from "react";
+import { useShallow } from "zustand/shallow";
 import { SidePanel } from "../side-panel";
 import { Button } from "../ui/button";
 import { FormField } from "../ui/form-field";
@@ -56,14 +58,7 @@ const nodeSpecificForms: Record<
   // map other node types to their respective form components
 };
 
-interface NodeEditModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  clearData: () => void;
-  node: NodeData | null;
-  onSave: (nodeId: string, changes: Partial<NodeData>) => Promise<void>;
-  isLoading: boolean;
-}
+interface NodeEditModalProps {}
 
 const getDefaultMetadataForType = (
   nodeType: string,
@@ -72,13 +67,24 @@ const getDefaultMetadataForType = (
   return config?.defaultMetadata || {};
 };
 
-export default function NodeEditModal({
-  isOpen,
-  onClose,
-  node,
-  onSave,
-  isLoading,
-}: NodeEditModalProps) {
+export default function NodeEditModal({}: NodeEditModalProps) {
+  const {
+    popoverOpen,
+    setPopoverOpen,
+    updateNode,
+    nodes,
+    nodeInfo: node,
+  } = useAppStore(
+    useShallow((state) => ({
+      popoverOpen: state.popoverOpen,
+      setPopoverOpen: state.setPopoverOpen,
+      updateNode: state.updateNode,
+      nodes: state.nodes,
+      nodeInfo: state.nodeInfo,
+    })),
+  );
+  const isOpen = popoverOpen.nodeEdit;
+
   const [selectedNodeType, setSelectedNodeType] =
     useState<string>("defaultNode");
   const [isSaving, setIsSaving] = useState(false);
@@ -86,20 +92,20 @@ export default function NodeEditModal({
   const formRef = useRef<NodeFormRef>(null);
 
   useEffect(() => {
-    if (node !== null && isOpen && !isLoading && !isSaving) {
-      const currentType = node?.node_type || "defaultNode";
+    if (node !== null && isOpen && !isSaving) {
+      const currentType = node?.data.node_type || "defaultNode";
       setSelectedNodeType(currentType);
-      setNodeData(node);
+      setNodeData(node?.data);
     }
-  }, [node, isOpen, isLoading, isSaving]);
+  }, [nodes, node, isOpen, isSaving]);
 
   const handleNodeTypeChange = (newType: string) => {
-    if (!node || isLoading || isSaving || newType === selectedNodeType) return;
+    if (!node || isSaving || newType === selectedNodeType) return;
     setSelectedNodeType(newType);
   };
 
   const handleSave = async () => {
-    if (!node || isLoading) return;
+    if (!node || !nodeData) return;
 
     let specificMetadata: Partial<NodeData["metadata"]> | null = null;
 
@@ -108,6 +114,7 @@ export default function NodeEditModal({
     }
 
     const changes: Partial<NodeData> = {
+      ...nodeData,
       content: formRef.current?.getFormData()?.content ?? null,
       node_type: selectedNodeType,
       metadata: specificMetadata,
@@ -137,7 +144,7 @@ export default function NodeEditModal({
     }
 
     setIsSaving(true);
-    await onSave(node.id, changes);
+    await updateNode({ nodeId: node.id, data: changes });
     setIsSaving(false);
     setNodeData((prev) => ({
       ...prev,
@@ -159,10 +166,14 @@ export default function NodeEditModal({
     nodeTypesConfig[selectedNodeType as keyof typeof nodeTypesConfig]?.label ||
     selectedNodeType;
 
+  const handleOnClose = () => {
+    setPopoverOpen({ nodeEdit: false });
+  };
+
   return (
     <SidePanel
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleOnClose}
       title={`Edit Node: ${nodeTypeLabel}`}
     >
       <div className="flex flex-col gap-4">
@@ -171,7 +182,6 @@ export default function NodeEditModal({
             id="nodeType"
             value={selectedNodeType}
             onChange={(e) => handleNodeTypeChange(e.target.value)}
-            disabled={isLoading}
           >
             {Object.keys(nodeTypesConfig).map((typeKey) => (
               <option key={typeKey} value={typeKey}>
@@ -190,11 +200,7 @@ export default function NodeEditModal({
           }
         >
           {NodeSpecificFormComponent && (
-            <NodeSpecificFormComponent
-              ref={formRef}
-              initialData={nodeData}
-              disabled={isLoading}
-            />
+            <NodeSpecificFormComponent ref={formRef} initialData={nodeData} />
           )}
 
           {!NodeSpecificFormComponent && selectedNodeType !== "defaultNode" && (
@@ -205,12 +211,12 @@ export default function NodeEditModal({
         </Suspense>
 
         <div className="mt-auto flex flex-shrink-0 justify-end gap-3 border-t border-zinc-700 pt-4">
-          <Button onClick={onClose} variant="outline" disabled={isLoading}>
+          <Button onClick={handleOnClose} variant="outline">
             Cancel
           </Button>
 
-          <Button onClick={handleSave} disabled={isLoading}>
-            {isLoading ? "Saving..." : "Save Changes"}
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? "Saving..." : "Save Changes"}
           </Button>
         </div>
       </div>

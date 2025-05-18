@@ -5,9 +5,7 @@ import { cn } from "@/utils/cn";
 import { Node, NodeProps, NodeResizer } from "@xyflow/react";
 import { memo, useCallback } from "react";
 
-interface GroupNodeProps extends NodeProps<Node<NodeData>> {
-  onEditNode: (nodeId: string, nodeData: NodeData) => void;
-}
+interface GroupNodeProps extends NodeProps<Node<NodeData>> {}
 
 const PADDING = 40;
 

@@ -11,9 +11,7 @@ import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { BaseNodeWrapper } from "./base-node-wrapper";
 
-interface CodeNodeProps extends NodeProps<Node<NodeData>> {
-  onEditNode: (nodeId: string, nodeData: NodeData) => void;
-}
+interface CodeNodeProps extends NodeProps<Node<NodeData>> {}
 
 const CodeNodeComponent = (props: CodeNodeProps) => {
   const { data } = props;

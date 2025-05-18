@@ -9,9 +9,7 @@ import { memo } from "react";
 import { Button } from "../ui/button";
 import { BaseNodeWrapper } from "./base-node-wrapper";
 
-interface ResourceNodeProps extends NodeProps<Node<NodeData>> {
-  onEditNode: (nodeId: string, nodeData: NodeData) => void;
-}
+interface ResourceNodeProps extends NodeProps<Node<NodeData>> {}
 
 const ResourceNodeComponent = (props: ResourceNodeProps) => {
   const { data } = props;

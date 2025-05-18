@@ -6,9 +6,7 @@ import { CircleHelp } from "lucide-react";
 import { memo } from "react";
 import { BaseNodeWrapper } from "./base-node-wrapper";
 
-interface QuestionNodeProps extends NodeProps<Node<NodeData>> {
-  onEditNode: (nodeId: string, nodeData: NodeData) => void;
-}
+interface QuestionNodeProps extends NodeProps<Node<NodeData>> {}
 
 const QuestionNodeComponent = (props: QuestionNodeProps) => {
   const { data } = props;
