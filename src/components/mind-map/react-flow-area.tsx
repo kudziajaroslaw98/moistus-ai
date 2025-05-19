@@ -27,11 +27,13 @@ import TextNode from "@/components/nodes/text-node";
 
 import FloatingEdge from "@/components/edges/floating-edge";
 import SuggestedConnectionEdge from "@/components/edges/suggested-connection-edge";
+import type { AppNode } from "@/contexts/mind-map/app-state";
 import useAppStore from "@/contexts/mind-map/mind-map-store";
 import { EdgeData } from "@/types/edge-data";
 import { NodeData } from "@/types/node-data";
 import { useParams } from "next/navigation";
 import FloatingConnectionLine from "../edges/floating-connection-line";
+import TaskNode from "../nodes/task-node";
 import { ZoomSlider } from "../ui/zoom-slider";
 
 export function ReactFlowArea() {
@@ -67,11 +69,15 @@ export function ReactFlowArea() {
     (state) => state.setReactFlowInstance,
   );
   const setNodeInfo = useAppStore((state) => state.setNodeInfo);
+  const setSelectedNodes = useAppStore((state) => state.setSelectedNodes);
   const setPopoverOpen = useAppStore((state) => state.setPopoverOpen);
   const setEdgeInfo = useAppStore((state) => state.setEdgeInfo);
   const setMapId = useAppStore((state) => state.setMapId);
   const addNode = useAppStore((state) => state.addNode);
+  const updateNode = useAppStore((state) => state.updateNode);
   const fetchMindMapData = useAppStore((state) => state.fetchMindMapData);
+  const deleteNodes = useAppStore((state) => state.deleteNodes);
+  const deleteEdges = useAppStore((state) => state.deleteEdges);
 
   // const {
   //   nodes,
@@ -133,16 +139,20 @@ export function ReactFlowArea() {
     [],
   );
 
+  const handleUpdateNode = useCallback(
+    (nodeId: string, data: Partial<NodeData>) => {
+      return updateNode({ nodeId: nodeId, data: data });
+    },
+    [],
+  );
+
   const nodeTypesWithProps: NodeTypes = useMemo(
     () => ({
       defaultNode: (props) => <DefaultNode {...props} />,
       questionNode: (props) => <QuestionNode {...props} />,
-      // taskNode: (props) => (
-      //   <TaskNode
-      //     {...props}
-      //     saveNodeProperties={crudActions.saveNodeProperties}
-      //   />
-      // ),
+      taskNode: (props) => (
+        <TaskNode {...props} saveNodeProperties={handleUpdateNode} />
+      ),
       imageNode: (props) => <ImageNode {...props} />,
       resourceNode: (props) => <ResourceNode {...props} />,
       annotationNode: (props) => <AnnotationNode {...props} />,
@@ -224,12 +234,12 @@ export function ReactFlowArea() {
     [reactFlowInstance, addNode, nodes],
   );
 
-  // const handleSelectionChange = useCallback(
-  //   ({ nodes }) => {
-  //     setSelectedNodes(nodes);
-  //   },
-  //   [setSelectedNodes],
-  // );
+  const handleSelectionChange = useCallback(
+    ({ nodes }: { nodes: AppNode[] }) => {
+      setSelectedNodes(nodes);
+    },
+    [setSelectedNodes],
+  );
 
   return (
     <ReactFlow
@@ -251,8 +261,11 @@ export function ReactFlowArea() {
       onConnectEnd={onConnectEnd}
       onEdgeDoubleClick={handleEdgeDoubleClick}
       onNodeDoubleClick={handleNodeDoubleClick}
+      onNodesDelete={deleteNodes}
+      onEdgesDelete={deleteEdges}
       nodeTypes={nodeTypesWithProps}
       edgeTypes={edgeTypes}
+      deleteKeyCode={["Delete"]}
       connectionLineComponent={FloatingConnectionLine}
       // onNodeContextMenu={contextMenuHandlers.onNodeContextMenu}
       // onPaneContextMenu={contextMenuHandlers.onPaneContextMenu}
@@ -262,7 +275,7 @@ export function ReactFlowArea() {
       connectionLineType={ConnectionLineType.Bezier}
       connectionMode={ConnectionMode.Loose}
       onConnect={onConnect}
-      // onSelectionChange={handleSelectionChange}
+      onSelectionChange={handleSelectionChange}
     >
       <Controls
         position="top-right"

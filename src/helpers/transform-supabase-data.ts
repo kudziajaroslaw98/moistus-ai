@@ -69,7 +69,7 @@ export const transformSupabaseData = (
     type: "floatingEdge", // Default to floatingEdge
     label: edge.label || undefined,
     // Handle potential JSON string or object for style
-    animated: edge.animated,
+    animated: JSON.parse(String(edge.animated)),
     markerEnd: edge.markerEnd,
     markerStart: edge.markerStart,
     metadata: edge.metadata,

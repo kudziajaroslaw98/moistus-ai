@@ -1,5 +1,6 @@
 import type { NodeTypes } from "@/constants/node-types";
 import type { AppEdge } from "@/types/app-edge";
+import type { EdgeData } from "@/types/edge-data";
 import type { MindMapData } from "@/types/mind-map-data";
 import type { NodeData } from "@/types/node-data";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -42,6 +43,7 @@ export interface AppState {
   mindMap: MindMapData | null;
   reactFlowInstance: ReactFlowInstance | null;
   nodes: AppNode[];
+  selectedNodes: AppNode[];
   edges: AppEdge[];
   isFocusMode: boolean;
   popoverOpen: {
@@ -72,6 +74,7 @@ export interface AppState {
   setEdgeInfo: (edge: AppEdge | null) => void;
   setReactFlowInstance: (reactFlowInstance: ReactFlowInstance) => void;
   setMapId: (mapId: string | null) => void;
+  setSelectedNodes: (selectedNodes: AppNode[]) => void;
 
   // actions
   toggleFocusMode: () => void;
@@ -92,5 +95,16 @@ export interface AppState {
   updateNode: (props: {
     nodeId: string;
     data: Partial<NodeData>;
+  }) => Promise<void>;
+  deleteNodes: (nodesToDelete: AppNode[]) => Promise<void>;
+  addEdge: (
+    sourceId: string,
+    targetId: string,
+    data: Partial<EdgeData>,
+  ) => Promise<void>;
+  deleteEdges: (edgesToDelete: AppEdge[]) => Promise<void>;
+  updateEdge: (props: {
+    edgeId: string;
+    data: Partial<EdgeData>;
   }) => Promise<void>;
 }

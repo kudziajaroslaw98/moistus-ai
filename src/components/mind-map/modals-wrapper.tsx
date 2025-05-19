@@ -1,5 +1,6 @@
 "use client";
 import { HistorySidebar } from "../history-sidebar";
+import EdgeEditModal from "../modals/edge-edit-modal";
 import NodeEditModal from "../modals/node-edit-modal";
 
 export function ModalsWrapper() {
@@ -108,15 +109,7 @@ export function ModalsWrapper() {
 
       <NodeEditModal />
 
-      {/* <EdgeEditModal
-        isOpen={isEdgeEditModalOpen}
-        onClose={handleCloseEdgeEditModal}
-        edge={edgeToEdit}
-        onSave={crudActions.saveEdgeProperties}
-        isLoading={isCrudLoading}
-        nodes={nodes} // Pass nodes for context/display
-        clearData={() => setEdgeToEdit(null)} // Pass clear function
-      /> */}
+      <EdgeEditModal />
 
       <HistorySidebar />
     </>

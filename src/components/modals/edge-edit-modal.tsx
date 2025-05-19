@@ -1,10 +1,9 @@
-import { AppEdge } from "@/types/app-edge";
+import useAppStore from "@/contexts/mind-map/mind-map-store";
 import { EdgeData } from "@/types/edge-data";
-import { NodeData } from "@/types/node-data";
 import type { PathType } from "@/types/path-types";
-import { Node } from "@xyflow/react";
 import { SquareX } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { SidePanel } from "../side-panel";
 import { Button } from "../ui/button";
 import { FormField } from "../ui/form-field";
@@ -24,25 +23,29 @@ const markerEndOptions = [
   { value: "arrowclosed", label: "Closed Arrow" },
 ];
 
-interface EdgeEditModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  clearData: () => void;
-  edge: AppEdge | null;
-  onSave: (edgeId: string, changes: Partial<EdgeData>) => Promise<void>;
-  isLoading: boolean;
-  nodes: Node<NodeData>[];
-}
+interface EdgeEditModalProps {}
 
-export default function EdgeEditModal({
-  isOpen,
-  onClose,
-  clearData,
-  edge,
-  onSave,
-  isLoading,
-  nodes,
-}: EdgeEditModalProps) {
+export default function EdgeEditModal({}: EdgeEditModalProps) {
+  const {
+    popoverOpen,
+    setPopoverOpen,
+    updateEdge,
+    edges,
+    nodes,
+    edgeInfo: edge,
+    setEdgeInfo,
+  } = useAppStore(
+    useShallow((state) => ({
+      popoverOpen: state.popoverOpen,
+      setPopoverOpen: state.setPopoverOpen,
+      updateEdge: state.updateEdge,
+      edges: state.edges,
+      nodes: state.nodes,
+      edgeInfo: state.edgeInfo,
+      setEdgeInfo: state.setEdgeInfo,
+    })),
+  );
+  const isOpen = popoverOpen.edgeEdit;
   const [label, setLabel] = useState<string>("");
   const [pathStyle, setPathStyle] = useState<PathType>("smoothstep"); // Changed from type to pathStyle
   const [animated, setAnimated] = useState(false);
@@ -51,12 +54,13 @@ export default function EdgeEditModal({
     undefined,
   );
   const [markerEnd, setMarkerEnd] = useState<string | undefined>(undefined);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (edge) {
       setLabel((edge.label as string) || (edge.data?.label as string) || "");
       setPathStyle(edge.data?.metadata?.pathType || "smoothstep"); // Use metadata.pathType
-      setAnimated(edge.animated ?? edge.data?.animated ?? false);
+      setAnimated(Boolean(edge.animated ?? edge.data?.animated));
       setColor(
         (edge.style?.stroke as string) || edge.data?.style?.stroke || "#6c757d",
       );
@@ -90,7 +94,7 @@ export default function EdgeEditModal({
   }, [edge, isOpen]);
 
   const handleSave = async () => {
-    if (!edge || isLoading) return;
+    if (!edge || isSaving) return;
     const changes: Partial<EdgeData> = {
       label: label.trim() === "" ? undefined : label.trim(),
       animated: animated,
@@ -106,7 +110,9 @@ export default function EdgeEditModal({
       },
     };
 
-    await onSave(edge.id, changes);
+    setIsSaving(true);
+    await updateEdge({ edgeId: edge.id, data: changes });
+    setIsSaving(false);
   };
 
   if (!edge) return null;
@@ -126,12 +132,16 @@ export default function EdgeEditModal({
       : textContent || "<Empty>";
   };
 
+  const handleOnClose = () => {
+    setPopoverOpen({ edgeEdit: false });
+    setEdgeInfo(null);
+  };
+
   return (
     <SidePanel
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleOnClose}
       title={`Edit Connection`}
-      clearData={clearData}
     >
       <div className="flex flex-col gap-4">
         <p className="text-sm text-zinc-400">
@@ -164,7 +174,6 @@ export default function EdgeEditModal({
                 type="text"
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
-                disabled={isLoading}
                 placeholder="e.g., leads to, is part of"
               />
             </FormField>
@@ -174,7 +183,6 @@ export default function EdgeEditModal({
                 id="edgePathStyle"
                 value={pathStyle}
                 onChange={(e) => setPathStyle(e.target.value as PathType)}
-                disabled={isLoading}
               >
                 {availablePathTypes.map((pType) => (
                   <option key={pType} value={pType}>
@@ -193,7 +201,6 @@ export default function EdgeEditModal({
                   checked={animated}
                   onChange={(e) => setAnimated(e.target.checked)}
                   className="mr-2 rounded border-zinc-600 text-teal-600 shadow-sm focus:ring-teal-500 disabled:opacity-50"
-                  disabled={isLoading}
                 />
               </FormField>
             </div>
@@ -220,7 +227,6 @@ export default function EdgeEditModal({
                   type="color"
                   value={color || "#000000"}
                   onChange={(e) => setColor(e.target.value)}
-                  disabled={isLoading}
                 />
 
                 {color && (
@@ -257,7 +263,6 @@ export default function EdgeEditModal({
                   }}
                   min="1"
                   max="10"
-                  disabled={isLoading}
                   placeholder="e.g. 2"
                 />
 
@@ -291,7 +296,6 @@ export default function EdgeEditModal({
                   )
                 }
                 className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
-                disabled={isLoading}
               >
                 {markerEndOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -306,12 +310,12 @@ export default function EdgeEditModal({
         {/* Keep footer outside the scrollable area if SidePanel doesn't include one */}
         {/* If SidePanel's children area scrolls, footer needs to be positioned separately or within */}
         <div className="mt-auto flex flex-shrink-0 justify-end gap-3 border-t border-zinc-700 pt-4">
-          <Button onClick={onClose} variant="outline" disabled={isLoading}>
+          <Button onClick={handleOnClose} variant="outline" disabled={isSaving}>
             Cancel
           </Button>
 
-          <Button onClick={handleSave} disabled={isLoading}>
-            {isLoading ? "Saving..." : "Save Changes"}
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? "Saving..." : "Save Changes"}
           </Button>
         </div>
       </div>
