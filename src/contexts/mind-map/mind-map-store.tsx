@@ -1,4 +1,5 @@
 import { defaultEdgeData } from "@/constants/default-edge-data";
+import type { NodeTypes } from "@/constants/node-types";
 import generateUuid from "@/helpers/generate-uuid";
 import mergeEdgeData from "@/helpers/merge-edge-data";
 import { createClient } from "@/helpers/supabase/client";
@@ -10,14 +11,52 @@ import type { MindMapData } from "@/types/mind-map-data";
 import type { NodeData } from "@/types/node-data";
 import type { NodesTableType } from "@/types/nodes-table-type";
 import {
-  addEdge,
   applyEdgeChanges,
   applyNodeChanges,
   type ReactFlowInstance,
 } from "@xyflow/react";
 import { toast } from "sonner";
 import { create } from "zustand";
-import type { AppNode, AppState } from "./app-state";
+import type { AppNode, AppState, LoadingStates } from "./app-state";
+
+// Helper HOF for handling loading states and toasts
+function withLoadingAndToast<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  T extends (...args: any[]) => Promise<any>,
+>(
+  action: T,
+  loadingKey: keyof LoadingStates,
+  options?: {
+    initialMessage?: string;
+    errorMessage?: string;
+    successMessage?: string;
+  },
+): (...args: Parameters<T>) => Promise<Awaited<ReturnType<T>>> {
+  return async (...args) => {
+    const { setLoadingStates } = useAppStore.getState();
+    const toastId = toast.loading(options?.initialMessage || "Loading...");
+
+    setLoadingStates({ [loadingKey]: true });
+
+    try {
+      // Explicitly pass toastId as the last argument
+      const res = await action(...args, toastId);
+      toast.success(options?.successMessage || "Success!", { id: toastId });
+
+      return res;
+    } catch (e) {
+      console.error(`Error in ${String(loadingKey)}:`, e);
+      toast.error(
+        e instanceof Error
+          ? e.message
+          : options?.errorMessage || "An error occurred.",
+        { id: toastId },
+      );
+    } finally {
+      setLoadingStates({ [loadingKey]: false });
+    }
+  };
+}
 
 // this is our useStore hook that we can use in our components to get parts of the store and call actions
 const useAppStore = create<AppState>((set, get) => ({
@@ -115,15 +154,16 @@ const useAppStore = create<AppState>((set, get) => ({
       isFocusMode: !get().isFocusMode,
     });
   },
-  fetchMindMapData: async (mapId: string) => {
-    if (!mapId) {
-      throw new Error("Map ID is required.");
-    }
+  fetchMindMapData: withLoadingAndToast(
+    async (mapId: string) => {
+      if (!mapId) {
+        throw new Error("Map ID is required.");
+      }
 
-    const { data: mindMapData, error: mindMapError } = await get()
-      .supabase.from("mind_maps")
-      .select(
-        `
+      const { data: mindMapData, error: mindMapError } = await get()
+        .supabase.from("mind_maps")
+        .select(
+          `
               id,
               user_id,
               created_at,
@@ -169,55 +209,66 @@ const useAppStore = create<AppState>((set, get) => ({
                 updated_at
               )
             `,
-      )
-      .eq("id", mapId)
-      .single();
+        )
+        .eq("id", mapId)
+        .single();
 
-    if (mindMapError) {
-      console.error("Error fetching from Supabase:", mindMapError);
-      throw new Error(mindMapError.message || "Failed to fetch mind map data.");
-    }
+      if (mindMapError) {
+        console.error("Error fetching from Supabase:", mindMapError);
+        throw new Error(
+          mindMapError.message || "Failed to fetch mind map data.",
+        );
+      }
 
-    if (!mindMapData) {
-      throw new Error("Mind map not found.");
-    }
+      if (!mindMapData) {
+        throw new Error("Mind map not found.");
+      }
 
-    const transformedData = transformSupabaseData(
-      mindMapData as unknown as MindMapData & {
-        nodes: NodesTableType[];
-        edges: EdgesTableType[];
-      },
-    );
-
-    set({
-      mindMap: transformedData.mindMap,
-      nodes: transformedData.reactFlowNodes,
-      edges: transformedData.reactFlowEdges,
-    });
-  },
-  addNode: async (props) => {
-    let { nodeType = "defaultNode" } = props;
-    const { parentNode, position, data = {}, content = "New node" } = props;
-    const { mapId, supabase, nodes, edges } = get();
-    const toastId = toast.loading("Adding node...");
-
-    if (!mapId) {
-      toast.loading(
-        "Attempted to add node with unknown type: ${nodeType}. Falling back to 'defaultNode'.",
-        { id: toastId },
+      const transformedData = transformSupabaseData(
+        mindMapData as unknown as MindMapData & {
+          nodes: NodesTableType[];
+          edges: EdgesTableType[];
+        },
       );
-      nodeType = "defaultNode";
-    }
 
-    set((state) => ({
-      loadingStates: { ...state.loadingStates, isAddingContent: true },
-    }));
+      set({
+        mindMap: transformedData.mindMap,
+        nodes: transformedData.reactFlowNodes,
+        edges: transformedData.reactFlowEdges,
+      });
+    },
+    "isStateLoading",
+    {
+      initialMessage: "Fetching mind map data...",
+      errorMessage: "Failed to fetch mind map data.",
+      successMessage: "Mind map data fetched successfully.",
+    },
+  ),
+  addNode: withLoadingAndToast(
+    async (props: {
+      parentNode: AppNode | null;
+      content?: string;
+      nodeType?: NodeTypes;
+      data?: Partial<NodeData>;
+      position?: { x: number; y: number };
+      toastId?: string;
+    }) => {
+      let { nodeType = "defaultNode" } = props;
+      const { parentNode, position, data = {}, content = "New node" } = props;
+      const { mapId, supabase, nodes, edges } = get();
 
-    const newNodeId = generateUuid();
-    let newNode: AppNode | null = null;
-    let newNodePosition = position;
+      if (!mapId) {
+        toast.loading(
+          "Attempted to add node with unknown type: ${nodeType}. Falling back to 'defaultNode'.",
+          { id: props.toastId },
+        );
+        nodeType = "defaultNode";
+      }
 
-    try {
+      const newNodeId = generateUuid();
+      let newNode: AppNode | null = null;
+      let newNodePosition = position;
+
       if (parentNode) {
         newNodePosition = {
           x: parentNode.position.x + (parentNode.width || 170) + 100,
@@ -275,48 +326,43 @@ const useAppStore = create<AppState>((set, get) => ({
       };
 
       const finalNodes = [...nodes, newNode];
-      const finalEdges = parentNode?.id
-        ? addEdge(
-            {
-              source: parentNode?.id,
-              target: newNodeId,
-              sourceHandle: null,
-              targetHandle: null,
-            },
-            edges,
-          )
-        : edges;
+      const finalEdges = [...edges];
 
+      const addEdge = get().addEdge;
+
+      if (parentNode) {
+        const newEdge = await addEdge(
+          parentNode.id,
+          newNode.id,
+          {
+            source: parentNode.id,
+            target: newNode.id,
+          },
+          props.toastId,
+        );
+
+        finalEdges.push(newEdge);
+      }
       //     TODO: uncomment after implementing it in zustand
       //     addStateToHistory("addNode", { nodes: finalNodes, edges: finalEdges });
-      toast.success("Node added successfully.", { id: toastId });
 
       set({
         nodes: finalNodes,
         edges: finalEdges,
       });
-    } catch (e) {
-      console.error("Error adding node:", e);
-      toast.error(e instanceof Error ? e.message : "Failed to add node.", {
-        id: toastId,
-      });
-      return;
-    } finally {
-      set((state) => ({
-        loadingStates: { ...state.loadingStates, isAddingContent: false },
-      }));
-    }
-  },
-  updateNode: async (props) => {
-    const { nodeId, data } = props;
-    const { supabase } = get();
-    const toastId = toast.loading("Updating node...");
+    },
+    "isAddingContent",
+    {
+      initialMessage: "Adding node...",
+      errorMessage: "Failed to add node.",
+      successMessage: "Node added successfully.",
+    },
+  ),
+  updateNode: withLoadingAndToast(
+    async (props: { nodeId: string; data: Partial<NodeData> }) => {
+      const { nodeId, data } = props;
+      const { supabase } = get();
 
-    set((state) => ({
-      loadingStates: { ...state.loadingStates, isUpdatingContent: true },
-    }));
-
-    try {
       const user = await supabase?.auth.getUser();
       if (!user?.data.user) throw new Error("User not authenticated.");
 
@@ -365,37 +411,26 @@ const useAppStore = create<AppState>((set, get) => ({
         }),
         nodeInfo: updatedNode,
       }));
+    },
+    "isAddingContent",
+    {
+      initialMessage: "Updating node...",
+      errorMessage: "Failed to update node.",
+      successMessage: "Node updated successfully.",
+    },
+  ),
+  deleteNodes: withLoadingAndToast(
+    async (nodesToDelete: AppNode[]) => {
+      const { mapId, supabase, edges, nodes: allNodes } = get();
 
-      toast.success("Node updated successfully.", { id: toastId });
-    } catch (e) {
-      console.error("Error updating node:", e);
-      toast.error(e instanceof Error ? e.message : "Failed to update node.", {
-        id: toastId,
-      });
-      return;
-    } finally {
-      set((state) => ({
-        loadingStates: { ...state.loadingStates, isUpdatingContent: false },
-      }));
-    }
-  },
-  deleteNodes: async (nodesToDelete: AppNode[]) => {
-    const { mapId, supabase, edges, nodes: allNodes } = get();
-    const toastId = toast.loading("Deleting nodes...");
+      if (!mapId || !nodesToDelete) return;
 
-    set((state) => ({
-      loadingStates: { ...state.loadingStates, isUpdatingContent: true },
-    }));
+      const edgesToDelete = edges.filter((edge) =>
+        nodesToDelete.some(
+          (node) => edge.source === node.id || edge.target === node.id,
+        ),
+      );
 
-    if (!mapId || !nodesToDelete) return;
-
-    const edgesToDelete = edges.filter((edge) =>
-      nodesToDelete.some(
-        (node) => edge.source === node.id || edge.target === node.id,
-      ),
-    );
-
-    try {
       const user = await supabase?.auth.getUser();
       if (!user?.data.user) throw new Error("User not authenticated.");
 
@@ -430,37 +465,28 @@ const useAppStore = create<AppState>((set, get) => ({
 
       //     TODO: uncomment after implementing it in zustand
       //     addStateToHistory("deleteNode", { nodes: finalNodes, edges: finalEdges });
-      toast.success("Nodes deleted successfully.", { id: toastId });
 
       set({
         nodes: finalNodes,
         edges: finalEdges,
       });
-    } catch (e) {
-      console.error("Error deleting nodes:", e);
-      toast.error(e instanceof Error ? e.message : "Failed to delete nodes.", {
-        id: toastId,
-      });
-      return;
-    } finally {
-      set((state) => ({
-        loadingStates: { ...state.loadingStates, isUpdatingContent: false },
-      }));
-    }
-  },
-  addEdge: async (
-    sourceId: string,
-    targetId: string,
-    data: Partial<EdgeData>,
-  ) => {
-    const { supabase, mapId, edges, nodes } = get();
-    const toastId = toast.loading("Adding edge...");
+    },
+    "isAddingContent",
+    {
+      initialMessage: "Deleting nodes...",
+      errorMessage: "Failed to delete nodes.",
+      successMessage: "Nodes deleted successfully.",
+    },
+  ),
+  addEdge: withLoadingAndToast(
+    async (
+      sourceId: string,
+      targetId: string,
+      data: Partial<EdgeData>,
+      toastId?: string,
+    ) => {
+      const { supabase, mapId, edges, nodes } = get();
 
-    set((state) => ({
-      loadingStates: { ...state.loadingStates, isAddingContent: true },
-    }));
-
-    try {
       if (!mapId) {
         throw new Error("Cannot add connection: Map ID missing.");
       }
@@ -474,6 +500,8 @@ const useAppStore = create<AppState>((set, get) => ({
           (e.source === targetId && e.target === sourceId),
       );
 
+      console.log("existingEdge", existingEdge);
+
       if (existingEdge) {
         throw new Error("Edge already exists.");
       }
@@ -484,6 +512,8 @@ const useAppStore = create<AppState>((set, get) => ({
         map_id: mapId!,
         user_id: user.data.user.id,
       });
+
+      console.log(sourceId, targetId, data, newEdge);
 
       const { data: insertedEdgeData, error: insertError } = await supabase
         .from("edges")
@@ -540,31 +570,22 @@ const useAppStore = create<AppState>((set, get) => ({
         nodes: finalNodes,
       });
 
+      return newFlowEdge;
+
       //     TODO: uncomment after implementing it in zustand
       //     addStateToHistory("addEdge", { edges: finalEdges, nodes: nodes });
+    },
+    "isAddingContent",
+    {
+      initialMessage: "Adding edge...",
+      errorMessage: "Failed to add edge.",
+      successMessage: "Edge added successfully.",
+    },
+  ),
+  deleteEdges: withLoadingAndToast(
+    async (edgesToDelete: AppEdge[]) => {
+      const { supabase, mapId, edges, nodes } = get();
 
-      toast.success("Edge added successfully.", { id: toastId });
-    } catch (e) {
-      console.error("Error adding edge:", e);
-      toast.error(e instanceof Error ? e.message : "Failed to add edge.", {
-        id: toastId,
-      });
-      return;
-    } finally {
-      set((state) => ({
-        loadingStates: { ...state.loadingStates, isAddingContent: false },
-      }));
-    }
-  },
-  deleteEdges: async (edgesToDelete: AppEdge[]) => {
-    const { supabase, mapId, edges, nodes } = get();
-    const toastId = toast.loading("Deleting edge...");
-
-    set((state) => ({
-      loadingStates: { ...state.loadingStates, isUpdatingContent: true },
-    }));
-
-    try {
       if (!mapId) {
         throw new Error("Cannot delete edge: Map ID missing.");
       }
@@ -605,29 +626,18 @@ const useAppStore = create<AppState>((set, get) => ({
 
       //     TODO: uncomment after implementing it in zustand
       //     addStateToHistory("deleteEdge", { edges: finalEdges, nodes: nodes });
+    },
+    "isAddingContent",
+    {
+      initialMessage: "Deleting edge...",
+      errorMessage: "Failed to delete edge.",
+      successMessage: "Edge deleted successfully.",
+    },
+  ),
+  updateEdge: withLoadingAndToast(
+    async (props: { edgeId: string; data: Partial<EdgeData> }) => {
+      const { supabase, mapId, edges } = get();
 
-      toast.success("Edge deleted successfully.", { id: toastId });
-    } catch (e) {
-      console.error("Error deleting edge:", e);
-      toast.error(e instanceof Error ? e.message : "Failed to delete edge.", {
-        id: toastId,
-      });
-      return;
-    } finally {
-      set((state) => ({
-        loadingStates: { ...state.loadingStates, isUpdatingContent: false },
-      }));
-    }
-  },
-  updateEdge: async (props: { edgeId: string; data: Partial<EdgeData> }) => {
-    const { supabase, mapId, edges } = get();
-    const toastId = toast.loading("Updating edge...");
-
-    set((state) => ({
-      loadingStates: { ...state.loadingStates, isUpdatingContent: true },
-    }));
-
-    try {
       if (!mapId) {
         throw new Error("Cannot update edge: Map ID missing.");
       }
@@ -675,20 +685,14 @@ const useAppStore = create<AppState>((set, get) => ({
 
       //     TODO: uncomment after implementing it in zustand
       //     addStateToHistory("updateEdge", { edges: finalEdges, nodes: nodes });
-
-      toast.success("Edge updated successfully.", { id: toastId });
-    } catch (e) {
-      console.error("Error updating edge:", e);
-      toast.error(e instanceof Error ? e.message : "Failed to update edge.", {
-        id: toastId,
-      });
-      return;
-    } finally {
-      set((state) => ({
-        loadingStates: { ...state.loadingStates, isUpdatingContent: false },
-      }));
-    }
-  },
+    },
+    "isAddingContent",
+    {
+      initialMessage: "Updating edge...",
+      errorMessage: "Failed to update edge.",
+      successMessage: "Edge updated successfully.",
+    },
+  ),
 }));
 
 export default useAppStore;

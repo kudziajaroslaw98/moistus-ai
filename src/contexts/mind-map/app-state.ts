@@ -85,12 +85,14 @@ export interface AppState {
     nodeType,
     data,
     position,
+    toastId,
   }: {
     parentNode: AppNode | null;
     content?: string;
     nodeType?: NodeTypes;
     data?: Partial<NodeData>;
     position?: { x: number; y: number };
+    toastId?: string;
   }) => Promise<void>;
   updateNode: (props: {
     nodeId: string;
@@ -101,7 +103,8 @@ export interface AppState {
     sourceId: string,
     targetId: string,
     data: Partial<EdgeData>,
-  ) => Promise<void>;
+    toastId?: string,
+  ) => Promise<AppEdge>;
   deleteEdges: (edgesToDelete: AppEdge[]) => Promise<void>;
   updateEdge: (props: {
     edgeId: string;
