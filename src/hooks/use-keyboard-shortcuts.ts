@@ -1,3 +1,4 @@
+import useAppStore from "@/contexts/mind-map/mind-map-store";
 import { ReactFlowInstance } from "@xyflow/react";
 import { useEffect } from "react";
 
@@ -14,7 +15,6 @@ interface UseKeyboardShortcutsProps {
   canRedo: boolean;
   isBusy: boolean;
 
-  reactFlowInstance: ReactFlowInstance | null;
 }
 
 export function useKeyboardShortcuts({
@@ -29,8 +29,12 @@ export function useKeyboardShortcuts({
   canUndo,
   canRedo,
   isBusy,
-  reactFlowInstance,
 }: UseKeyboardShortcutsProps): void {
+  const reactFlowInstance = useAppStore((state) => state.reactFlowInstance);
+  const copySelectedNodes = useAppStore((state) => state.copySelectedNodes);
+  const pasteNodes = useAppStore((state) => state.pasteNodes);
+  const selectedNodes = useAppStore((state) => state.selectedNodes);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
@@ -79,13 +83,13 @@ export function useKeyboardShortcuts({
 
       if (isCtrlCmd && event.key.toLowerCase() === "c") {
         event.preventDefault();
-        onCopy();
+        copySelectedNodes();
         return;
       }
 
       if (isCtrlCmd && event.key.toLowerCase() === "v") {
         event.preventDefault();
-        onPaste();
+        pasteNodes();
         return;
       }
 

@@ -10,6 +10,7 @@ import type {
   OnEdgesChange,
   OnNodesChange,
   ReactFlowInstance,
+  XYPosition,
 } from "@xyflow/react";
 
 export type AppNode = Node<NodeData>;
@@ -46,6 +47,10 @@ export interface AppState {
   selectedNodes: AppNode[];
   edges: AppEdge[];
   isFocusMode: boolean;
+  
+  // Clipboard state
+  copiedNodes: AppNode[];
+  copiedEdges: AppEdge[];
   popoverOpen: {
     commandPalette: boolean;
     nodeType: boolean;
@@ -78,6 +83,12 @@ export interface AppState {
 
   // actions
   toggleFocusMode: () => void;
+  copySelectedNodes: () => void;
+  pasteNodes: (position?: XYPosition) => Promise<void>;
+  duplicateNodes: (nodeIds: string[]) => Promise<{
+    nodes: AppNode[];
+    edges: AppEdge[];
+  }>;
   fetchMindMapData: (mapId: string) => Promise<void>;
   addNode: ({
     parentNode,
