@@ -10,6 +10,7 @@ import type { EdgesTableType } from "@/types/edges-table-type";
 import type { MindMapData } from "@/types/mind-map-data";
 import type { NodeData } from "@/types/node-data";
 import type { NodesTableType } from "@/types/nodes-table-type";
+import { debounce } from "@/utils/debounce";
 import type { XYPosition } from "@xyflow/react";
 import {
   applyEdgeChanges,
@@ -19,6 +20,9 @@ import {
 import { toast } from "sonner";
 import { create } from "zustand";
 import type { AppNode, AppState, LoadingStates } from "./app-state";
+
+// Configuration for debounce timing
+const SAVE_DEBOUNCE_MS = 800;
 
 // Helper HOF for handling loading states and toasts
 function withLoadingAndToast<
@@ -94,17 +98,65 @@ const useAppStore = create<AppState>((set, get) => ({
     isSuggestingConnections: false,
     isSummarizingBranch: false,
     isSuggestingMerges: false,
+    isSavingNode: false,
+    isSavingEdge: false,
   },
+  lastSavedNodeTimestamps: {},
+  lastSavedEdgeTimestamps: {},
 
   // Handlers
   onNodesChange: (changes) => {
-    set({
-      nodes: applyNodeChanges(changes, get().nodes),
+    // Apply changes as before
+    const updatedNodes = applyNodeChanges(changes, get().nodes);
+    set({ nodes: updatedNodes });
+
+    // Trigger debounced saves for relevant node changes
+    changes.forEach((change) => {
+      // Only save when changes are complete (not during dragging/resizing)
+      if (
+        change.type === "position" &&
+        change.position &&
+        change.dragging === false
+      ) {
+        get().triggerNodeSave(change.id);
+      } else if (
+        change.type === "dimensions" &&
+        change.dimensions &&
+        change.resizing === false
+      ) {
+        get().triggerNodeSave(change.id);
+      } else if (change.type === "select" || change.type === "remove") {
+        // No need to save for these change types
+        return;
+      } else if (change.type === "add") {
+        // New nodes are handled elsewhere
+        return;
+      } else if (change.type === "replace") {
+        // Data changes should trigger a save
+        get().triggerNodeSave(change.id);
+      }
     });
   },
   onEdgesChange: (changes) => {
-    set({
-      edges: applyEdgeChanges(changes, get().edges),
+    // Apply changes as before
+    const updatedEdges = applyEdgeChanges(changes, get().edges);
+    set({ edges: updatedEdges });
+
+    // Trigger debounced saves for relevant edge changes
+    changes.forEach((change) => {
+      if (change.type === "remove") {
+        // Edge removal is handled elsewhere
+        return;
+      } else if (change.type === "select") {
+        // No need to save for selection changes
+        return;
+      } else if (change.type === "add") {
+        // New edges are handled elsewhere
+        return;
+      } else if (change.type === "replace") {
+        // Data changes should trigger a save
+        get().triggerEdgeSave(change.id);
+      }
     });
   },
   onConnect: (connection) => {
@@ -351,7 +403,7 @@ const useAppStore = create<AppState>((set, get) => ({
                 metadata,
                 aiData,
                 created_at,
-                updated_at 
+                updated_at
               )
             `,
         )
@@ -506,23 +558,9 @@ const useAppStore = create<AppState>((set, get) => ({
   updateNode: withLoadingAndToast(
     async (props: { nodeId: string; data: Partial<NodeData> }) => {
       const { nodeId, data } = props;
-      const { supabase } = get();
-
-      const user = await supabase?.auth.getUser();
-      if (!user?.data.user) throw new Error("User not authenticated.");
-
-      const { error: updateError } = await supabase
-        .from("nodes")
-        .update(data)
-        .eq("id", nodeId)
-        .eq("user_id", user.data.user.id);
-
-      if (updateError) {
-        throw new Error(updateError.message || "Failed to update node.");
-      }
-
       let updatedNode: AppNode | null = null;
 
+      // First update the local state
       set((state) => ({
         nodes: state.nodes.map((node) => {
           if (node.id === nodeId) {
@@ -556,6 +594,9 @@ const useAppStore = create<AppState>((set, get) => ({
         }),
         nodeInfo: updatedNode,
       }));
+
+      // Trigger debounced save to persist changes
+      get().triggerNodeSave(nodeId);
     },
     "isAddingContent",
     {
@@ -777,44 +818,19 @@ const useAppStore = create<AppState>((set, get) => ({
   ),
   updateEdge: withLoadingAndToast(
     async (props: { edgeId: string; data: Partial<EdgeData> }) => {
-      const { supabase, mapId, edges } = get();
+      const { edges } = get();
+      const { edgeId, data } = props;
 
-      if (!mapId) {
-        throw new Error("Cannot update edge: Map ID missing.");
-      }
-
-      const user = await supabase?.auth.getUser();
-      if (!user?.data.user) throw new Error("User not authenticated.");
-
-      const { data: dbEdgeData, error: updateError } = await supabase
-        .from("edges")
-        .update(props.data)
-        .eq("id", props.edgeId)
-        .select("*")
-        .single();
-
-      if (updateError) {
-        throw new Error(updateError.message || "Failed to update edge.");
-      }
-
+      // Update edge in local state first
       const finalEdges = edges.map((edge) => {
-        if (edge.id === props.edgeId) {
+        if (edge.id === edgeId) {
           return {
-            ...dbEdgeData,
-            label: dbEdgeData.label,
-            animated: JSON.parse(String(dbEdgeData.animated)),
-            markerEnd: dbEdgeData.markerEnd,
-            style: {
-              ...edge.style,
-              ...dbEdgeData.style,
-            },
-            markerStart: dbEdgeData.markerStart,
-
+            ...edge,
             data: {
               ...edge.data,
-              ...dbEdgeData,
+              ...data,
             },
-          } as AppEdge;
+          };
         }
 
         return edge;
@@ -824,8 +840,11 @@ const useAppStore = create<AppState>((set, get) => ({
         edges: finalEdges,
       });
 
-      //     TODO: uncomment after implementing it in zustand
-      //     addStateToHistory("updateEdge", { edges: finalEdges, nodes: nodes });
+      // Trigger debounced save to persist changes
+      get().triggerEdgeSave(edgeId);
+
+      // TODO: We can implement history here if needed
+      // addStateToHistory("updateEdge", { edges: finalEdges, nodes: nodes });
     },
     "isAddingContent",
     {
@@ -833,6 +852,144 @@ const useAppStore = create<AppState>((set, get) => ({
       errorMessage: "Failed to update edge.",
       successMessage: "Edge updated successfully.",
     },
+  ),
+
+  // Debounced save functions
+  triggerNodeSave: debounce(
+    withLoadingAndToast(
+      async (nodeId: string) => {
+        const { nodes, supabase, mapId } = get();
+        const node = nodes.find((n) => n.id === nodeId);
+
+        if (!node || !node.data) {
+          console.error(`Node with id ${nodeId} not found or has invalid data`);
+          throw new Error(
+            `Node with id ${nodeId} not found or has invalid data`,
+          );
+        }
+
+        set((state) => ({
+          lastSavedNodeTimestamps: {
+            ...state.lastSavedNodeTimestamps,
+            [nodeId]: Date.now(),
+          },
+        }));
+
+        if (!mapId) {
+          console.error("Cannot save node: No mapId defined");
+          throw new Error("Cannot save node: No mapId defined");
+        }
+
+        const user_id = (await supabase.auth.getUser()).data.user?.id;
+
+        if (!user_id) {
+          throw new Error("Not authenticated");
+        }
+
+        // Prepare node data for saving, ensuring type safety
+        const nodeData: NodesTableType = {
+          id: nodeId,
+          map_id: mapId,
+          user_id: user_id,
+          content: node.data.content || "",
+          metadata: node.data.metadata || {},
+          aiData: node.data.aiData || {},
+          position_x: node.position.x,
+          position_y: node.position.y,
+          width: node.width,
+          height: node.height,
+          node_type: node.type || "defaultNode",
+          updated_at: new Date().toISOString(),
+          created_at: node.data.created_at,
+          parent_id: node.parentId || node.data.parent_id || null,
+        };
+
+        // Save node data to Supabase
+        supabase
+          .from("nodes")
+          .update(nodeData)
+          .eq("id", nodeId)
+          .eq("map_id", mapId)
+          .then(({ error }) => {
+            if (error) {
+              console.error("Error saving node:", error);
+              throw new Error("Failed to save node changes");
+            }
+          });
+      },
+      "isSavingNode",
+      {
+        initialMessage: "Saving node changes...",
+        errorMessage: "Failed to save node chanes.",
+        successMessage: "Saved node successfully.",
+      },
+    ),
+    SAVE_DEBOUNCE_MS,
+  ),
+
+  triggerEdgeSave: debounce(
+    withLoadingAndToast(
+      async (edgeId: string) => {
+        const { edges, supabase, mapId } = get();
+        const edge = edges.find((e) => e.id === edgeId);
+
+        if (!edge || !edge.data) {
+          console.error(`Edge with id ${edgeId} not found or has invalid data`);
+          throw new Error(
+            `Edge with id ${edgeId} not found or has invalid data`,
+          );
+        }
+
+        set((state) => ({
+          lastSavedEdgeTimestamps: {
+            ...state.lastSavedEdgeTimestamps,
+            [edgeId]: Date.now(),
+          },
+        }));
+
+        if (!mapId) {
+          console.error("Cannot save edge: No mapId defined");
+          throw new Error("Cannot save dge: No mapId defined");
+        }
+
+        const user_id = (await supabase.auth.getUser()).data.user?.id;
+
+        if (!user_id) {
+          throw new Error("Not authenticated");
+        }
+
+        // Prepare edge data for saving, ensuring type safety
+        const edgeData: EdgesTableType = {
+          user_id: user_id,
+          id: edgeId,
+          map_id: mapId,
+          source: edge.source || "",
+          target: edge.target || "",
+          data: edge.data || defaultEdgeData,
+          updated_at: new Date().toISOString(),
+        };
+
+        // Save edge data to Supabase
+        supabase
+          .from("edges")
+          .update(edgeData)
+          .eq("id", edgeId)
+          .eq("map_id", mapId)
+          .then(({ error }) => {
+            if (error) {
+              console.error("Error saving edge:", error);
+              throw new Error("Failed to save edge changes");
+            }
+          });
+      },
+      "isSavingEdge",
+      {
+        initialMessage: "Saving edge changes...",
+        errorMessage: "Failed to save edge changes.",
+        successMessage: "Saved edge successfully.",
+      },
+    ),
+    SAVE_DEBOUNCE_MS,
   ),
 }));
 

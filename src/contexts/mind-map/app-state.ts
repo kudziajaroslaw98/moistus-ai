@@ -25,6 +25,8 @@ export interface LoadingStates {
   isSuggestingConnections: boolean;
   isSummarizingBranch: boolean;
   isSuggestingMerges: boolean;
+  isSavingNode: boolean;
+  isSavingEdge: boolean;
 }
 
 export interface Popovers {
@@ -63,6 +65,8 @@ export interface AppState {
   nodeInfo: AppNode | null; // reference to the node currently being edited / added node to
   edgeInfo: AppEdge | null;
   loadingStates: LoadingStates;
+  lastSavedNodeTimestamps: Record<string, number>; // Track when each node was last saved
+  lastSavedEdgeTimestamps: Record<string, number>; // Track when each edge was last saved
 
   // handlers
   onNodesChange: OnNodesChange<AppNode>;
@@ -121,4 +125,6 @@ export interface AppState {
     edgeId: string;
     data: Partial<EdgeData>;
   }) => Promise<void>;
+  triggerNodeSave: (nodeId: string) => void; // Debounced node save function
+  triggerEdgeSave: (edgeId: string) => void; // Debounced edge save function
 }
