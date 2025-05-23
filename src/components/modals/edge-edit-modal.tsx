@@ -60,36 +60,10 @@ export default function EdgeEditModal({}: EdgeEditModalProps) {
     if (edge) {
       setLabel((edge.label as string) || (edge.data?.label as string) || "");
       setPathStyle(edge.data?.metadata?.pathType || "smoothstep"); // Use metadata.pathType
-      setAnimated(Boolean(edge.animated ?? edge.data?.animated));
-      setColor(
-        (edge.style?.stroke as string) || edge.data?.style?.stroke || "#6c757d",
-      );
-      setStrokeWidth(
-        (edge.style?.strokeWidth as number) ||
-          edge.data?.style?.strokeWidth ||
-          undefined,
-      );
-      setMarkerEnd(
-        (edge.markerEnd as string) ||
-          (edge.data?.markerEnd as string) ||
-          "none",
-      );
-    } else {
-      setLabel("");
-      setPathStyle("smoothstep"); // Default path style
-      setAnimated(false);
-      setColor("#6c757d");
-      setStrokeWidth(undefined);
-      setMarkerEnd(undefined);
-    }
-
-    if (!isOpen) {
-      setLabel("");
-      setPathStyle("smoothstep"); // Default path style
-      setAnimated(false);
-      setColor("#6c757d");
-      setStrokeWidth(undefined);
-      setMarkerEnd(undefined);
+      setAnimated(String(edge.data?.animated) === "true");
+      setColor(edge.data?.style?.stroke || "#6c757d");
+      setStrokeWidth(edge.data?.style?.strokeWidth || undefined);
+      setMarkerEnd(edge.data?.markerEnd || "none");
     }
   }, [edge, isOpen]);
 
@@ -139,6 +113,7 @@ export default function EdgeEditModal({}: EdgeEditModalProps) {
 
   return (
     <SidePanel
+      key={edge?.id}
       isOpen={isOpen}
       onClose={handleOnClose}
       title={`Edit Connection`}

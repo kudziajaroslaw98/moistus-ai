@@ -76,6 +76,7 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
     popoverOpen,
     reactFlowInstance,
     contextMenuState,
+    getEdge,
     setContextMenuState,
   } = useAppStore(
     useShallow((state) => ({
@@ -84,6 +85,7 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
       edges: state.edges,
       updateEdge: state.updateEdge,
       addNode: state.addNode,
+      getEdge: state.getEdge,
       deleteNodes: state.deleteNodes,
       deleteEdges: state.deleteEdges,
       loadingStates: state.loadingStates,
@@ -101,8 +103,8 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
     [nodeId, nodes],
   );
   const clickedEdge = useMemo(
-    () => (edgeId ? edges.find((e) => e.id === edgeId) : null),
-    [edgeId, edges],
+    () => (edgeId ? getEdge(edgeId) : null),
+    [edgeId, getEdge],
   );
   const clickedNodeData = clickedNode?.data;
 
@@ -180,9 +182,13 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
 
   const handleUpdateEdgeStyle = useCallback(
     (edgeId: string, data: Partial<EdgeData>) => {
-      updateEdge({ edgeId, data: { ...data } });
+      const edge = getEdge(edgeId);
+
+      if (!edge) return;
+
+      updateEdge({ edgeId, data: { ...edge.data, ...data } });
     },
-    [updateEdge],
+    [updateEdge, getEdge],
   );
 
   const handleEdgesDelete = useCallback(
@@ -195,13 +201,6 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
     },
     [deleteEdges],
   );
-
-  console.log("clickedEdge", clickedEdge);
-  console.log("edgeId", edgeId);
-  console.log("nodeId", nodeId);
-
-  console.log("clickedNode", clickedNode);
-  console.log("pop.contextMenu", popoverOpen.contextMenu);
 
   const nodeMenuItems = nodeId ? (
     <>
@@ -631,8 +630,8 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
                       handleUpdateEdgeStyle(edgeId, {
                         style: {
                           ...clickedEdge.style,
-                          strokeWidth: clickedEdge.style?.strokeWidth || "",
-                          stroke: colorOpt.value || "",
+                          strokeWidth: clickedEdge.data?.style?.strokeWidth,
+                          stroke: colorOpt.value,
                         },
                       }),
                     loadingStates.isStateLoading,

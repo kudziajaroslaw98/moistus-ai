@@ -107,6 +107,7 @@ export interface AppState {
 
   // getters
   getNode: (id: string) => AppNode | undefined;
+  getEdge: (id: string) => AppEdge | undefined;
 
   // actions
   toggleFocusMode: () => void;

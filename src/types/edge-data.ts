@@ -14,8 +14,8 @@ export interface EdgeData extends Record<string, unknown> {
   markerEnd?: string;
   markerStart?: string;
   style?: {
-    stroke: string;
-    strokeWidth: string | number;
+    stroke?: string;
+    strokeWidth?: string | number;
   } | null;
   metadata?: {
     pathType?: PathType; // Added pathType
