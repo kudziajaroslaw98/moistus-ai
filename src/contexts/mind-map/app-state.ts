@@ -37,7 +37,12 @@ export interface Popovers {
   history: boolean;
   mergeSuggestions: boolean;
   aiContent: boolean;
+  generateFromNodesModal: boolean;
+  contextMenu: boolean;
 }
+
+import { ContextMenuState } from "@/types/context-menu-state";
+import type { HistoryState } from "@/types/history-state";
 
 export interface AppState {
   // state
@@ -49,24 +54,38 @@ export interface AppState {
   selectedNodes: AppNode[];
   edges: AppEdge[];
   isFocusMode: boolean;
-  
+
   // Clipboard state
   copiedNodes: AppNode[];
   copiedEdges: AppEdge[];
-  popoverOpen: {
-    commandPalette: boolean;
-    nodeType: boolean;
-    nodeEdit: boolean;
-    edgeEdit: boolean;
-    history: boolean;
-    mergeSuggestions: boolean;
-    aiContent: boolean;
-  };
-  nodeInfo: AppNode | null; // reference to the node currently being edited / added node to
-  edgeInfo: AppEdge | null;
+
+  // History state for undo/redo
+  history: ReadonlyArray<HistoryState>;
+  historyIndex: number;
+  isReverting: boolean;
+
+  // History actions
+  addStateToHistory: (
+    actionName?: string,
+    stateOverride?: { nodes?: AppNode[]; edges?: AppEdge[] },
+  ) => void;
+  handleUndo: () => Promise<void>;
+  handleRedo: () => Promise<void>;
+  revertToHistoryState: (index: number) => Promise<void>;
+
+  // History selectors
+  canUndo: boolean;
+  canRedo: boolean;
+  getCurrentHistoryState: () => HistoryState | undefined;
+
+  popoverOpen: Popovers;
+  nodeInfo: Partial<AppNode> | null; // reference to the node currently being edited / added node to
+  edgeInfo: Partial<AppEdge> | null;
   loadingStates: LoadingStates;
   lastSavedNodeTimestamps: Record<string, number>; // Track when each node was last saved
   lastSavedEdgeTimestamps: Record<string, number>; // Track when each edge was last saved
+
+  contextMenuState: ContextMenuState;
 
   // handlers
   onNodesChange: OnNodesChange<AppNode>;
@@ -84,6 +103,10 @@ export interface AppState {
   setReactFlowInstance: (reactFlowInstance: ReactFlowInstance) => void;
   setMapId: (mapId: string | null) => void;
   setSelectedNodes: (selectedNodes: AppNode[]) => void;
+  setContextMenuState: (state: ContextMenuState) => void;
+
+  // getters
+  getNode: (id: string) => AppNode | undefined;
 
   // actions
   toggleFocusMode: () => void;
@@ -102,7 +125,7 @@ export interface AppState {
     position,
     toastId,
   }: {
-    parentNode: AppNode | null;
+    parentNode: Partial<AppNode> | null;
     content?: string;
     nodeType?: NodeTypes;
     data?: Partial<NodeData>;

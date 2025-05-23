@@ -1,4 +1,4 @@
-import { useMindMapContext } from "@/contexts/mind-map/mind-map-context"; // Import context
+import useAppStore from "@/contexts/mind-map/mind-map-store";
 import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
 import {
@@ -36,11 +36,15 @@ const BaseNodeWrapperComponent = ({
   const connection = useConnection();
   const isTarget = connection.inProgress && connection.fromNode?.id !== id; // Added optional chaining for fromNode
 
-  const {
-    toggleNodeCollapse,
-    isNodeCollapsed,
-    edges: allEdges,
-  } = useMindMapContext(); // Get collapse functions and edges
+  // const {
+  //   toggleNodeCollapse,
+  //   isNodeCollapsed,
+  //   edges: allEdges,
+  // } = useMindMapContext(); // Get collapse functions and edges
+
+  const allEdges = useAppStore((state) => state.edges);
+  const isNodeCollapsed = (nodeId: string) =>
+    data.metadata?.isCollapsed ?? false;
 
   const directChildrenCount = useMemo(() => {
     return allEdges.filter((edge) => edge.source === id).length;
@@ -85,7 +89,7 @@ const BaseNodeWrapperComponent = ({
               <Button
                 onClick={(e) => {
                   e.stopPropagation(); // Prevent node selection/drag
-                  toggleNodeCollapse(id);
+                  // toggleNodeCollapse(id);
                 }}
                 className="nodrag nopan z-20 rounded-sm hover:bg-black/20 h-5 w-auto group flex gap-2 px-1 transition-all"
                 variant={"ghost"}

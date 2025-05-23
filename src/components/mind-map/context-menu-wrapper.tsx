@@ -1,89 +1,77 @@
 "use client";
-import { useMindMapContext } from "@/contexts/mind-map/mind-map-context";
-import useOutsideAlerter from "@/hooks/use-click-outside";
-import { XYPosition } from "@xyflow/react";
-import { useRef, useState } from "react";
+import useAppStore from "@/contexts/mind-map/mind-map-store";
+import { useShallow } from "zustand/shallow";
 import { ContextMenuDisplay } from "../context-menu-display";
 import { GenerateFromNodesModal } from "../modals/generate-from-nodes-modal";
 
 export function ContextMenuWrapper() {
-  const {
-    contextMenuState,
-    contextMenuHandlers,
-    nodes,
-    edges,
-    crudActions,
-    aiActions,
-    aiLoadingStates,
-    applyLayout,
-    isLoading,
-    reactFlowInstance,
-    setIsAiContentModalOpen,
-    aiActions: { setAiContentTargetNodeId },
-    setIsNodeTypeModalOpen,
-    setNodeToAddInfo,
-    selectedNodes,
-  } = useMindMapContext();
+  // const {
+  //   contextMenuState,
+  //   contextMenuHandlers,
+  //   crudActions,
+  //   aiActions,
+  //   applyLayout,
+  //   reactFlowInstance,
+  //   setIsAiContentModalOpen,
+  //   aiActions: { setAiContentTargetNodeId },
+  //   setIsNodeTypeModalOpen,
+  //   setNodeToAddInfo,
+  // } = useMindMapContext();
 
-  const [isGenerateFromNodesModalOpen, setIsGenerateFromNodesModalOpen] = useState(false);
+  const { loadingStates, selectedNodes, popoverOpen } = useAppStore(
+    useShallow((state) => ({
+      loadingStates: state.loadingStates,
+      popoverOpen: state.popoverOpen,
+      selectedNodes: state.selectedNodes,
+    })),
+  );
 
-  const ref = useRef<HTMLDivElement>(null);
-  useOutsideAlerter(ref, contextMenuHandlers.close);
+  const handleGenerateFromNodesSubmit = (prompt: string) => {
+    if (selectedNodes && selectedNodes.length > 0) {
+      return aiActions.generateFromSelectedNodes(
+        selectedNodes.map((node) => node.id),
+        prompt,
+      );
+    }
 
-  const handleOpenNodeTypeModal = (
-    parentId: string | null,
-    position?: XYPosition,
-  ) => {
-    setNodeToAddInfo({ parentId, position });
-    setIsNodeTypeModalOpen(true);
+    return Promise.resolve();
   };
+
+  const aiActions = {
+    summarizeNode: (nodeId: string) => {},
+    summarizeBranch: (nodeId: string) => {},
+    extractConcepts: (nodeId: string) => {},
+    openContentModal: (nodeId: string) => {},
+    suggestConnections: () => {},
+    suggestMerges: () => {},
+    generateFromSelectedNodes: (nodeIds: string[], prompt: string) => {
+      return Promise.resolve();
+    },
+  };
+
+  if (!popoverOpen.contextMenu) {
+    return null;
+  }
 
   return (
     <>
       <ContextMenuDisplay
-        ref={ref}
-        contextMenuState={contextMenuState}
-        closeContextMenu={contextMenuHandlers.close}
-        nodes={nodes}
-        edges={edges}
-        addNode={handleOpenNodeTypeModal}
-        deleteNode={crudActions.deleteNode}
-        deleteEdge={crudActions.deleteEdge}
-        saveEdgeStyle={crudActions.saveEdgeProperties}
         aiActions={{
           summarizeNode: aiActions.summarizeNode,
           summarizeBranch: aiActions.summarizeBranch,
           extractConcepts: aiActions.extractConcepts,
-          openContentModal: (nodeId: string) => {
-            setAiContentTargetNodeId(nodeId);
-            setIsAiContentModalOpen(true);
-          },
+          openContentModal: aiActions.openContentModal,
           suggestConnections: aiActions.suggestConnections,
           suggestMerges: aiActions.suggestMerges,
           generateFromSelectedNodes: aiActions.generateFromSelectedNodes,
         }}
-        aiLoadingStates={aiLoadingStates}
-        applyLayout={applyLayout}
-        isLoading={isLoading}
-        reactFlowInstance={reactFlowInstance!}
-        setNodeParentAction={crudActions.setNodeParent}
-        selectedNodes={selectedNodes}
-        setIsGenerateFromNodesModalOpen={setIsGenerateFromNodesModalOpen}
+        // applyLayout={applyLayout}
+        // setNodeParentAction={crudActions.setNodeParent}
       />
 
       <GenerateFromNodesModal
-        isOpen={isGenerateFromNodesModalOpen}
-        onClose={() => setIsGenerateFromNodesModalOpen(false)}
-        onSubmit={(prompt) => {
-          if (selectedNodes && selectedNodes.length > 0) {
-            return aiActions.generateFromSelectedNodes(
-              selectedNodes.map(node => node.id),
-              prompt
-            );
-          }
-          return Promise.resolve();
-        }}
-        isLoading={aiLoadingStates.isGeneratingFromSelectedNodes || false}
+        onSubmit={handleGenerateFromNodesSubmit}
+        isLoading={loadingStates.isGeneratingContent}
         selectedNodeCount={selectedNodes ? selectedNodes.length : 0}
       />
     </>

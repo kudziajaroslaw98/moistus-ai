@@ -1,25 +1,51 @@
 "use client";
-import { useMindMapContext } from "@/contexts/mind-map/mind-map-context";
+import useAppStore from "@/contexts/mind-map/mind-map-store";
 import { Minimize2 } from "lucide-react";
+import { useCallback } from "react";
+import { useShallow } from "zustand/shallow";
 import { MindMapToolbar } from "../mind-map-toolbar/mind-map-toolbar";
 
 export function ToolbarWrapper() {
+  // const {
+  //   mindMap,
+  //   aiPrompt,
+  //   aiActions,
+  //   aiSearchQuery,
+  //   isLoading,
+  //   aiLoadingStates,
+  //   toggleFocusMode,
+  //   setIsCommandPaletteOpen,
+  //   setIsHistorySidebarOpen, // Get setter for history sidebar
+  // } = useMindMapContext();
   const {
     mindMap,
-    aiPrompt,
-    aiActions,
-    aiSearchQuery,
     handleUndo,
+    toggleFocusMode,
     handleRedo,
     canUndo,
     canRedo,
-    isLoading,
-    aiLoadingStates,
     isFocusMode,
-    toggleFocusMode,
-    setIsCommandPaletteOpen,
-    setIsHistorySidebarOpen, // Get setter for history sidebar
-  } = useMindMapContext();
+    setPopoverOpen,
+  } = useAppStore(
+    useShallow((state) => ({
+      mindMap: state.mindMap,
+      handleUndo: state.handleUndo,
+      handleRedo: state.handleRedo,
+      canUndo: state.canUndo,
+      canRedo: state.canRedo,
+      isFocusMode: state.isFocusMode,
+      toggleFocusMode: state.toggleFocusMode,
+      setPopoverOpen: state.setPopoverOpen,
+    })),
+  );
+
+  const handleCommandPaletteOpen = useCallback(() => {
+    setPopoverOpen({ commandPalette: true });
+  }, []);
+
+  const handleToggleHistorySidebar = useCallback(() => {
+    setPopoverOpen({ history: true });
+  }, []);
 
   if (isFocusMode) {
     return (
@@ -39,21 +65,21 @@ export function ToolbarWrapper() {
   return (
     <MindMapToolbar
       mindMapTitle={mindMap?.title || "Loading..."}
-      aiPrompt={aiPrompt}
-      setAiPrompt={aiActions.setAiPrompt} // Pass down from context
-      aiSearchQuery={aiSearchQuery}
-      setAiSearchQuery={aiActions.setAiSearchQuery} // Pass down from context
-      onGenerateMap={aiActions.generateMap} // Pass down from context
-      onAiSearch={aiActions.searchNodes} // Pass down from context
+      // aiPrompt={aiPrompt}
+      // setAiPrompt={aiActions.setAiPrompt} // Pass down from context
+      // aiSearchQuery={aiSearchQuery}
+      // setAiSearchQuery={aiActions.setAiSearchQuery} // Pass down from context
+      // onGenerateMap={aiActions.generateMap} // Pass down from context
+      // onAiSearch={aiActions.searchNodes} // Pass down from context
       onUndo={handleUndo}
       onRedo={handleRedo}
       canUndo={canUndo}
       canRedo={canRedo}
-      isLoading={isLoading}
-      aiLoadingStates={aiLoadingStates}
+      // isLoading={isLoading}
+      // aiLoadingStates={aiLoadingStates}
       onEnterFocusMode={toggleFocusMode} // Use toggleFocusMode
-      onCommandPaletteOpen={() => setIsCommandPaletteOpen(true)} // Use setter from context
-      onToggleHistorySidebar={() => setIsHistorySidebarOpen((prev) => !prev)} // Add toggle handler
+      onCommandPaletteOpen={handleCommandPaletteOpen} // Use setter from context
+      onToggleHistorySidebar={handleToggleHistorySidebar} // Add toggle handler
     />
   );
 }

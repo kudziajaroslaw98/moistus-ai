@@ -65,6 +65,12 @@ export const transformSupabaseData = (
         ...(edge.metadata || {}), // Spread existing metadata from db
         pathType: edge.metadata?.pathType, // Explicitly map pathType
       },
+      style: {
+        stroke: edge.style?.stroke || "#6c757d",
+        strokeWidth: edge.style?.strokeWidth || 2,
+      },
+      aiData: edge.aiData,
+      animated: JSON.parse(String(edge.animated)),
     } as unknown as EdgeData,
     type: "floatingEdge", // Default to floatingEdge
     label: edge.label || undefined,
@@ -72,11 +78,6 @@ export const transformSupabaseData = (
     animated: JSON.parse(String(edge.animated)),
     markerEnd: edge.markerEnd,
     markerStart: edge.markerStart,
-    metadata: edge.metadata,
-    style: {
-      stroke: edge.style?.stroke || "#6c757d",
-      strokeWidth: edge.style?.strokeWidth || 2,
-    },
     // Include user_id and map_id if needed by AppEdge type
     user_id: edge.user_id,
     map_id: edge.map_id,

@@ -29,6 +29,7 @@ import FloatingEdge from "@/components/edges/floating-edge";
 import SuggestedConnectionEdge from "@/components/edges/suggested-connection-edge";
 import type { AppNode } from "@/contexts/mind-map/app-state";
 import useAppStore from "@/contexts/mind-map/mind-map-store";
+import { useContextMenu } from "@/hooks/use-context-menu";
 import { EdgeData } from "@/types/edge-data";
 import { NodeData } from "@/types/node-data";
 import { useParams } from "next/navigation";
@@ -59,6 +60,8 @@ export function ReactFlowArea() {
   const connectingHandleId = useRef<string | null>(null);
   const connectingHandleType = useRef<"source" | "target" | null>(null);
 
+  const supabase = useAppStore((state) => state.supabase);
+
   const nodes = useAppStore((state) => state.nodes);
   const edges = useAppStore((state) => state.edges);
   const isFocusMode = useAppStore((state) => state.isFocusMode);
@@ -78,6 +81,8 @@ export function ReactFlowArea() {
   const fetchMindMapData = useAppStore((state) => state.fetchMindMapData);
   const deleteNodes = useAppStore((state) => state.deleteNodes);
   const deleteEdges = useAppStore((state) => state.deleteEdges);
+
+  const { contextMenuHandlers } = useContextMenu();
 
   // const {
   //   nodes,
@@ -118,10 +123,10 @@ export function ReactFlowArea() {
   }, [reactFlowInstance, setReactFlowInstance]);
 
   useEffect(() => {
-    if (!mapId) return;
+    if (!mapId || !supabase) return;
     setMapId(mapId as string);
     fetchMindMapData(mapId as string);
-  }, [fetchMindMapData, mapId]);
+  }, [fetchMindMapData, mapId, supabase]);
 
   const handleNodeDoubleClick = useCallback(
     (event: React.MouseEvent, node: Node<NodeData>) => {
@@ -267,10 +272,10 @@ export function ReactFlowArea() {
       edgeTypes={edgeTypes}
       deleteKeyCode={["Delete"]}
       connectionLineComponent={FloatingConnectionLine}
-      // onNodeContextMenu={contextMenuHandlers.onNodeContextMenu}
-      // onPaneContextMenu={contextMenuHandlers.onPaneContextMenu}
-      // onEdgeContextMenu={contextMenuHandlers.onEdgeContextMenu}
-      // onPaneClick={contextMenuHandlers.onPaneClick}
+      onNodeContextMenu={contextMenuHandlers.onNodeContextMenu}
+      onPaneContextMenu={contextMenuHandlers.onPaneContextMenu}
+      onEdgeContextMenu={contextMenuHandlers.onEdgeContextMenu}
+      onPaneClick={contextMenuHandlers.onPaneClick}
       selectionMode={SelectionMode.Partial}
       connectionLineType={ConnectionLineType.Bezier}
       connectionMode={ConnectionMode.Loose}

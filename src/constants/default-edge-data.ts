@@ -17,5 +17,5 @@ export function defaultEdgeData(): Omit<EdgeData, "map_id" | "user_id"> {
     created_at: new Date().toUTCString(),
     updated_at: new Date().toUTCString(),
     animated: false,
-  };
+  } as Omit<EdgeData, "map_id" | "user_id">;
 }

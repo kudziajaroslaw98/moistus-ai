@@ -1,8 +1,10 @@
+import useAppStore from "@/contexts/mind-map/mind-map-store";
 import { ContextMenuState } from "@/types/context-menu-state";
 import { EdgeData } from "@/types/edge-data";
 import { NodeData } from "@/types/node-data";
 import { Edge, EdgeMouseHandler, Node, NodeMouseHandler } from "@xyflow/react";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
+import { useShallow } from "zustand/shallow";
 
 interface ContextMenuHandlers {
   onNodeContextMenu: NodeMouseHandler<Node<NodeData>>;
@@ -13,45 +15,52 @@ interface ContextMenuHandlers {
 }
 
 interface UseContextMenuResult {
-  contextMenuState: ContextMenuState;
+  contextMenuState: ContextMenuState | null;
   contextMenuHandlers: ContextMenuHandlers;
 }
 
 export function useContextMenu(): UseContextMenuResult {
-  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
-    visible: false,
-    x: 0,
-    y: 0,
-    nodeId: null,
-    edgeId: null,
-  });
+  const { contextMenuState, popoverOpen, setPopoverOpen, setContextMenuState } =
+    useAppStore(
+      useShallow((state) => ({
+        contextMenuState: state.contextMenuState,
+        popoverOpen: state.popoverOpen,
+        setPopoverOpen: state.setPopoverOpen,
+        setContextMenuState: state.setContextMenuState,
+      })),
+    );
 
-  const onNodeContextMenu = useCallback<NodeMouseHandler<Node<NodeData>>>(
-    (event, node) => {
+  const onNodeContextMenu = useCallback(
+    (event: React.MouseEvent, node: Node<NodeData>) => {
       event.preventDefault();
-      setContextMenu({
-        visible: true,
+      setPopoverOpen({
+        contextMenu: true,
+      });
+      setContextMenuState({
         x: event.clientX,
         y: event.clientY,
         nodeId: node.id,
         edgeId: null,
       });
     },
-    [],
+    [setPopoverOpen, setContextMenuState],
   );
 
-  const onEdgeContextMenu = useCallback<
-    EdgeMouseHandler<Edge<Partial<EdgeData>>>
-  >((event, edge) => {
-    event.preventDefault();
-    setContextMenu({
-      visible: true,
-      x: event.clientX,
-      y: event.clientY,
-      nodeId: null,
-      edgeId: edge.id,
-    });
-  }, []);
+  const onEdgeContextMenu = useCallback(
+    (event: React.MouseEvent, edge: Edge<Partial<EdgeData>>) => {
+      event.preventDefault();
+      setContextMenuState({
+        x: event.clientX,
+        y: event.clientY,
+        nodeId: null,
+        edgeId: edge.id,
+      });
+      setPopoverOpen({
+        contextMenu: true,
+      });
+    },
+    [setPopoverOpen, setContextMenuState],
+  );
 
   const onPaneContextMenu = useCallback(
     (event: React.MouseEvent | MouseEvent) => {
@@ -63,9 +72,11 @@ export function useContextMenu(): UseContextMenuResult {
         target.closest(".react-flow__node") ||
         target.closest(".react-flow__edge")
       ) {
-        if (contextMenu.visible) {
-          setContextMenu({
-            visible: false,
+        if (popoverOpen.contextMenu) {
+          setPopoverOpen({
+            contextMenu: false,
+          });
+          setContextMenuState({
             x: 0,
             y: 0,
             nodeId: null,
@@ -76,27 +87,37 @@ export function useContextMenu(): UseContextMenuResult {
         return;
       }
 
-      setContextMenu({
-        visible: true,
+      setPopoverOpen({
+        contextMenu: true,
+      });
+      setContextMenuState({
         x: event.clientX,
         y: event.clientY,
         nodeId: null,
         edgeId: null,
       });
     },
-    [contextMenu.visible],
+    [setPopoverOpen, setContextMenuState],
   );
 
   const closeContextMenu = useCallback(() => {
-    setContextMenu({ visible: false, x: 0, y: 0, nodeId: null, edgeId: null });
-  }, []);
+    setPopoverOpen({
+      contextMenu: false,
+    });
+    setContextMenuState({
+      x: 0,
+      y: 0,
+      nodeId: null,
+      edgeId: null,
+    });
+  }, [setPopoverOpen, setContextMenuState]);
 
   const onPaneClick = useCallback(() => {
     closeContextMenu();
   }, [closeContextMenu]);
 
   return {
-    contextMenuState: contextMenu,
+    contextMenuState,
     contextMenuHandlers: {
       onNodeContextMenu,
       onEdgeContextMenu,

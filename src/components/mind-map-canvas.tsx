@@ -1,33 +1,47 @@
 "use client";
 
-import { useMindMapContext } from "@/contexts/mind-map/mind-map-context";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"; // Keep shortcuts here
 import { cn } from "@/utils/cn";
 import { useMemo } from "react";
-import { CommandPaletteWrapper } from "./mind-map/command-palette-wrapper";
-import { ContextMenuWrapper } from "./mind-map/context-menu-wrapper";
 import { ModalsWrapper } from "./mind-map/modals-wrapper";
 import { ReactFlowArea } from "./mind-map/react-flow-area";
 import { ToolbarWrapper } from "./mind-map/toolbar-wrapper";
+
+import useAppStore from "@/contexts/mind-map/mind-map-store";
+import { useShallow } from "zustand/shallow";
+import { CommandPalette } from "./command-palette";
+import { ContextMenuWrapper } from "./mind-map/context-menu-wrapper";
 
 export function MindMapCanvas() {
   // Consume necessary values for keyboard shortcuts
   const {
     handleUndo,
     handleRedo,
-    crudActions,
     handleCopy,
     handlePaste,
     nodes,
-    edges, // Need edges for selectedEdgeId
+    edges,
     canUndo,
     canRedo,
-    isLoading,
-    reactFlowInstance,
-    setIsNodeTypeModalOpen, // For Tab shortcut
-    setNodeToAddInfo, // For Tab shortcut
+    loadingStates,
+    setPopoverOpen,
     isFocusMode,
-  } = useMindMapContext();
+  } = useAppStore(
+    useShallow((state) => ({
+      handleUndo: state.handleUndo,
+      handleRedo: state.handleRedo,
+      handleCopy: state.copySelectedNodes,
+      handlePaste: state.pasteNodes,
+      nodes: state.nodes,
+      edges: state.edges,
+      canUndo: state.canUndo,
+      canRedo: state.canRedo,
+      loadingStates: state.loadingStates,
+      setPopoverOpen: state.setPopoverOpen,
+      isFocusMode: state.isFocusMode,
+    })),
+  );
+  const isLoading = loadingStates.isStateLoading;
 
   const selectedNodeId = useMemo(
     () => nodes.find((n) => n.selected)?.id,
@@ -38,25 +52,13 @@ export function MindMapCanvas() {
     [edges],
   );
 
-  const openNodeTypeModal = (parentId: string | null) => {
-    setNodeToAddInfo({ parentId, position: undefined }); // Define position if needed
-    setIsNodeTypeModalOpen(true);
+  const openNodeTypeModal = () => {
+    setPopoverOpen({ nodeType: true });
   };
 
   useKeyboardShortcuts({
     onUndo: handleUndo,
     onRedo: handleRedo,
-    onDelete: (idToDelete) => {
-      // Determine if it's a node or edge ID
-      if (nodes.some((n) => n.id === idToDelete)) {
-        crudActions.deleteNode(idToDelete);
-      } else if (edges.some((e) => e.id === idToDelete)) {
-        crudActions.deleteEdge(idToDelete);
-      } else {
-        // This case shouldn't happen if selectedId is correct
-        console.warn("Delete shortcut called with unknown ID:", idToDelete);
-      }
-    },
     onAddChild: openNodeTypeModal, // Use wrapper function
     onCopy: handleCopy,
     onPaste: handlePaste,
@@ -65,7 +67,6 @@ export function MindMapCanvas() {
     canUndo: canUndo,
     canRedo: canRedo,
     isBusy: isLoading,
-    reactFlowInstance: reactFlowInstance,
   });
 
   return (
@@ -74,9 +75,7 @@ export function MindMapCanvas() {
       {/* Render the wrapped components */}
       <ToolbarWrapper />
 
-      <CommandPaletteWrapper />
-
-      <ContextMenuWrapper />
+      <CommandPalette />
 
       <ModalsWrapper />
 
@@ -87,6 +86,8 @@ export function MindMapCanvas() {
           isFocusMode ? "h-full mt-0" : "h-[calc(100%-60px)] mt-[60px]",
         ])}
       >
+        <ContextMenuWrapper />
+
         <ReactFlowArea />
       </div>
     </div>

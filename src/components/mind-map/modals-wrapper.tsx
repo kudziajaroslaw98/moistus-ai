@@ -2,6 +2,7 @@
 import { HistorySidebar } from "../history-sidebar";
 import EdgeEditModal from "../modals/edge-edit-modal";
 import NodeEditModal from "../modals/node-edit-modal";
+import SelectNodeTypeModal from "../modals/select-node-type-modal";
 
 export function ModalsWrapper() {
   // const {
@@ -96,16 +97,9 @@ export function ModalsWrapper() {
         nodes={nodes}
         isLoading={aiLoadingStates.isAcceptingMerge}
       />
+      */}
 
-      <SelectNodeTypeModal
-        isOpen={isNodeTypeModalOpen}
-        onClose={() => {
-          // Ensure state is cleared on explicit close/cancel
-          setIsNodeTypeModalOpen(false);
-          setNodeToAddInfo(null);
-        }}
-        onSelectType={handleSelectNodeType}
-      /> */}
+      <SelectNodeTypeModal />
 
       <NodeEditModal />
 

@@ -1,6 +1,6 @@
 "use client";
-import { AiLoadingStates } from "@/hooks/use-ai-features";
 // Add History icon import
+import useAppStore from "@/contexts/mind-map/mind-map-store";
 import {
   ArrowLeft,
   Command,
@@ -11,22 +11,19 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
 
 interface MindMapToolbarProps {
   mindMapTitle: string;
-  aiPrompt: string;
-  setAiPrompt: (value: string) => void;
-  aiSearchQuery: string;
-  setAiSearchQuery: (value: string) => void;
-  onGenerateMap: () => void;
-  onAiSearch: () => void;
+  // aiPrompt: string;
+  // setAiPrompt: (value: string) => void;
+  // aiSearchQuery: string;
+  // setAiSearchQuery: (value: string) => void;
+  // onGenerateMap: () => void;
+  // onAiSearch: () => void;
   onUndo: () => void;
   onRedo: () => void;
-  canUndo: boolean;
-  canRedo: boolean;
-  isLoading: boolean;
-  aiLoadingStates: AiLoadingStates;
+  // isLoading: boolean;
+  // aiLoadingStates: AiLoadingStates;
   onEnterFocusMode: () => void;
   onCommandPaletteOpen: () => void;
   onToggleHistorySidebar: () => void; // New prop
@@ -36,17 +33,18 @@ export function MindMapToolbar({
   mindMapTitle,
   onUndo,
   onRedo,
-  canUndo,
-  canRedo,
-  isLoading,
+  // isLoading,
   onEnterFocusMode,
   onCommandPaletteOpen,
   onToggleHistorySidebar, // Destructure new prop
-  aiPrompt,
-  setAiPrompt,
-  aiLoadingStates,
-  onGenerateMap,
+  // aiPrompt,
+  // setAiPrompt,
+  // aiLoadingStates,
+  // onGenerateMap,
 }: MindMapToolbarProps) {
+  const canUndo = useAppStore((state) => state.canUndo);
+  const canRedo = useAppStore((state) => state.canRedo);
+
   return (
     <div className="absolute top-2 right-2 left-2 z-10 flex flex-wrap items-center justify-between gap-4 rounded-sm bg-zinc-900 p-3 shadow-md">
       {/* Left Section: Back Button, Title & Generate */}
@@ -65,7 +63,7 @@ export function MindMapToolbar({
         </h1>
 
         {/* AI Generation */}
-        <div className="flex items-center gap-2">
+        {/* <div className="flex items-center gap-2">
           <Input
             type="text"
             value={aiPrompt}
@@ -86,7 +84,7 @@ export function MindMapToolbar({
           >
             {aiLoadingStates.isGenerating ? "..." : "Generate"}
           </Button>
-        </div>
+        </div> */}
       </div>
 
       {/* Right Section: Search & History */}
@@ -118,7 +116,7 @@ export function MindMapToolbar({
         <div className="flex items-center gap-2">
           <Button
             onClick={onUndo}
-            disabled={isLoading || !canUndo}
+            disabled={!canUndo}
             title="Undo (Ctrl+Z)"
             variant="secondary"
             size="icon"
@@ -128,7 +126,7 @@ export function MindMapToolbar({
 
           <Button
             onClick={onRedo}
-            disabled={isLoading || !canRedo}
+            disabled={!canRedo}
             title="Redo (Ctrl+Y)"
             variant="secondary"
             size="icon"
@@ -140,7 +138,6 @@ export function MindMapToolbar({
         {/* History Sidebar Toggle Button */}
         <Button
           onClick={onToggleHistorySidebar}
-          disabled={isLoading}
           title="Toggle History Sidebar"
           aria-label="Toggle History Sidebar"
           variant="secondary"
@@ -151,7 +148,6 @@ export function MindMapToolbar({
 
         <Button
           onClick={onCommandPaletteOpen}
-          disabled={isLoading}
           title="Command Palette"
           aria-label="Command Palette"
           variant="secondary"
@@ -163,7 +159,6 @@ export function MindMapToolbar({
         {/* Focus Mode Button */}
         <Button
           onClick={onEnterFocusMode}
-          disabled={isLoading}
           title="Enter Focus Mode"
           aria-label="Enter Focus Mode"
           variant="secondary"

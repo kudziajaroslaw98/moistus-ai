@@ -65,6 +65,125 @@ function withLoadingAndToast<
 
 // this is our useStore hook that we can use in our components to get parts of the store and call actions
 const useAppStore = create<AppState>((set, get) => ({
+  contextMenuState: {
+    x: 0,
+    y: 0,
+    nodeId: null,
+    edgeId: null,
+  },
+  // --- History state ---
+  history: [],
+  historyIndex: -1,
+  isReverting: false,
+  canUndo: false,
+  canRedo: false,
+  setCanUndo: (value: boolean) => set({ canUndo: value }),
+  setCanRedo: (value: boolean) => set({ canRedo: value }),
+
+  // --- History actions ---
+  /**
+   * Adds a new state to the undo/redo history stack. Avoids consecutive duplicates.
+   * @param actionName Optional name for the action
+   * @param stateOverride Optionally override nodes/edges to save
+   */
+  addStateToHistory: (
+    actionName?: string,
+    stateOverride?: { nodes?: AppNode[]; edges?: AppEdge[] },
+  ) => {
+    const { nodes, edges, history, historyIndex } = get();
+    const nodesToSave = stateOverride?.nodes ?? nodes;
+    const edgesToSave = stateOverride?.edges ?? edges;
+    const stateToPush = {
+      nodes: nodesToSave,
+      edges: edgesToSave,
+      timestamp: Date.now(),
+      actionName: actionName || "unknown",
+    };
+    const lastHistoryState = history[historyIndex];
+
+    if (
+      !lastHistoryState ||
+      JSON.stringify({ nodes: stateToPush.nodes, edges: stateToPush.edges }) !==
+        JSON.stringify({
+          nodes: lastHistoryState.nodes,
+          edges: lastHistoryState.edges,
+        })
+    ) {
+      const newHistory = [...history.slice(0, historyIndex + 1), stateToPush];
+      set({
+        history: newHistory,
+        historyIndex: newHistory.length - 1,
+        canUndo: newHistory.length > 1,
+        canRedo: false,
+      });
+    }
+  },
+
+  /**
+   * Undo the last state change, restoring nodes/edges and optionally syncing with DB.
+   */
+  handleUndo: async () => {
+    const { history, historyIndex, setNodes, setEdges } = get();
+
+    if (historyIndex > 0) {
+      const prevState = history[historyIndex - 1];
+      setNodes(prevState.nodes);
+      setEdges(prevState.edges);
+      set({
+        historyIndex: historyIndex - 1,
+        canUndo: historyIndex - 1 > 0,
+        canRedo: true,
+      });
+      // Optionally: sync with DB here if needed
+    }
+  },
+
+  /**
+   * Redo the next state change, restoring nodes/edges and optionally syncing with DB.
+   */
+  handleRedo: async () => {
+    const { history, historyIndex, setNodes, setEdges } = get();
+
+    if (historyIndex < history.length - 1) {
+      const nextState = history[historyIndex + 1];
+      setNodes(nextState.nodes);
+      setEdges(nextState.edges);
+      set({
+        historyIndex: historyIndex + 1,
+        canUndo: true,
+        canRedo: historyIndex + 1 < history.length - 1,
+      });
+      // Optionally: sync with DB here if needed
+    }
+  },
+
+  /**
+   * Revert to a specific history state by index.
+   * @param index The history index to revert to
+   */
+  revertToHistoryState: async (index: number) => {
+    const { history, historyIndex, setNodes, setEdges, isReverting } = get();
+    if (isReverting || index < 0 || index >= history.length) return;
+    if (index === historyIndex) return;
+    set({ isReverting: true });
+    const targetState = history[index];
+    setNodes(targetState.nodes);
+    setEdges(targetState.edges);
+    set({
+      historyIndex: index,
+      isReverting: false,
+      canUndo: index > 0,
+      canRedo: index < history.length - 1,
+    });
+    // Optionally: sync with DB here if needed
+  },
+
+  // --- History selectors ---
+  getCurrentHistoryState: () => {
+    const { history, historyIndex } = get();
+    return history[historyIndex];
+  },
+
   supabase: createClient(),
   mapId: null,
   reactFlowInstance: null,
@@ -77,6 +196,7 @@ const useAppStore = create<AppState>((set, get) => ({
   copiedEdges: [],
 
   popoverOpen: {
+    contextMenu: false,
     commandPalette: false,
     nodeType: false,
     nodeEdit: false,
@@ -84,6 +204,7 @@ const useAppStore = create<AppState>((set, get) => ({
     history: false,
     mergeSuggestions: false,
     aiContent: false,
+    generateFromNodesModal: false,
   },
   nodeInfo: null,
   edgeInfo: null,
@@ -202,6 +323,13 @@ const useAppStore = create<AppState>((set, get) => ({
   },
   setSelectedNodes: (selectedNodes) => {
     set({ selectedNodes });
+  },
+  setContextMenuState: (state) => set({ contextMenuState: state }),
+
+  // Getters
+  getNode: (id: string) => {
+    const nodes = get().nodes;
+    return nodes.find((node) => node.id === id);
   },
   // Actions
   toggleFocusMode: () => {
@@ -443,7 +571,7 @@ const useAppStore = create<AppState>((set, get) => ({
   ),
   addNode: withLoadingAndToast(
     async (props: {
-      parentNode: AppNode | null;
+      parentNode: Partial<AppNode> | null;
       content?: string;
       nodeType?: NodeTypes;
       data?: Partial<NodeData>;
@@ -452,7 +580,7 @@ const useAppStore = create<AppState>((set, get) => ({
     }) => {
       let { nodeType = "defaultNode" } = props;
       const { parentNode, position, data = {}, content = "New node" } = props;
-      const { mapId, supabase, nodes, edges } = get();
+      const { mapId, supabase, nodes, edges, addStateToHistory } = get();
 
       if (!mapId) {
         toast.loading(
@@ -466,7 +594,7 @@ const useAppStore = create<AppState>((set, get) => ({
       let newNode: AppNode | null = null;
       let newNodePosition = position;
 
-      if (parentNode) {
+      if (parentNode && parentNode.position) {
         newNodePosition = {
           x: parentNode.position.x + (parentNode.width || 170) + 100,
           y: parentNode.position.y + (parentNode.height || 60) / 2 - 30,
@@ -527,7 +655,7 @@ const useAppStore = create<AppState>((set, get) => ({
 
       const addEdge = get().addEdge;
 
-      if (parentNode) {
+      if (parentNode && parentNode.id) {
         const newEdge = await addEdge(
           parentNode.id,
           newNode.id,
@@ -540,8 +668,8 @@ const useAppStore = create<AppState>((set, get) => ({
 
         finalEdges.push(newEdge);
       }
-      //     TODO: uncomment after implementing it in zustand
-      //     addStateToHistory("addNode", { nodes: finalNodes, edges: finalEdges });
+
+      addStateToHistory("addNode", { nodes: finalNodes, edges: finalEdges });
 
       set({
         nodes: finalNodes,
@@ -607,7 +735,13 @@ const useAppStore = create<AppState>((set, get) => ({
   ),
   deleteNodes: withLoadingAndToast(
     async (nodesToDelete: AppNode[]) => {
-      const { mapId, supabase, edges, nodes: allNodes } = get();
+      const {
+        mapId,
+        supabase,
+        edges,
+        nodes: allNodes,
+        addStateToHistory,
+      } = get();
 
       if (!mapId || !nodesToDelete) return;
 
@@ -649,8 +783,7 @@ const useAppStore = create<AppState>((set, get) => ({
       const finalNodes = allNodes.filter((n) => !nodesToDelete.includes(n));
       const finalEdges = edges.filter((e) => !edgesToDelete.includes(e));
 
-      //     TODO: uncomment after implementing it in zustand
-      //     addStateToHistory("deleteNode", { nodes: finalNodes, edges: finalEdges });
+      addStateToHistory("deleteNode", { nodes: finalNodes, edges: finalEdges });
 
       set({
         nodes: finalNodes,
@@ -671,7 +804,7 @@ const useAppStore = create<AppState>((set, get) => ({
       data: Partial<EdgeData>,
       toastId?: string,
     ) => {
-      const { supabase, mapId, edges, nodes } = get();
+      const { supabase, mapId, edges, nodes, addStateToHistory } = get();
 
       if (!mapId) {
         throw new Error("Cannot add connection: Map ID missing.");
@@ -752,10 +885,8 @@ const useAppStore = create<AppState>((set, get) => ({
         nodes: finalNodes,
       });
 
+      addStateToHistory("addEdge", { edges: finalEdges, nodes: nodes });
       return newFlowEdge;
-
-      //     TODO: uncomment after implementing it in zustand
-      //     addStateToHistory("addEdge", { edges: finalEdges, nodes: nodes });
     },
     "isAddingContent",
     {
@@ -766,7 +897,7 @@ const useAppStore = create<AppState>((set, get) => ({
   ),
   deleteEdges: withLoadingAndToast(
     async (edgesToDelete: AppEdge[]) => {
-      const { supabase, mapId, edges, nodes } = get();
+      const { supabase, mapId, edges, nodes, addStateToHistory } = get();
 
       if (!mapId) {
         throw new Error("Cannot delete edge: Map ID missing.");
@@ -806,8 +937,7 @@ const useAppStore = create<AppState>((set, get) => ({
         nodes: updatedNodes,
       });
 
-      //     TODO: uncomment after implementing it in zustand
-      //     addStateToHistory("deleteEdge", { edges: finalEdges, nodes: nodes });
+      addStateToHistory("deleteEdge", { edges: finalEdges, nodes: nodes });
     },
     "isAddingContent",
     {
@@ -816,43 +946,47 @@ const useAppStore = create<AppState>((set, get) => ({
       successMessage: "Edge deleted successfully.",
     },
   ),
-  updateEdge: withLoadingAndToast(
-    async (props: { edgeId: string; data: Partial<EdgeData> }) => {
-      const { edges } = get();
-      const { edgeId, data } = props;
+  updateEdge: async (props: { edgeId: string; data: Partial<EdgeData> }) => {
+    const { edges, nodes, addStateToHistory, mapId, supabase } = get();
+    const { edgeId, data } = props;
 
-      // Update edge in local state first
-      const finalEdges = edges.map((edge) => {
-        if (edge.id === edgeId) {
-          return {
-            ...edge,
-            data: {
-              ...edge.data,
-              ...data,
-            },
-          };
-        }
+    const user = (await supabase?.auth.getUser())?.data.user;
 
-        return edge;
-      });
+    if (!user) {
+      toast.error("User not authenticated.");
+      return;
+    }
 
-      set({
-        edges: finalEdges,
-      });
+    // Update edge in local state first
+    const finalEdges = edges.map((edge) => {
+      if (edge.id === edgeId) {
+        return {
+          ...edge,
+          id: edgeId,
+          data: {
+            ...edge.data,
+            ...data,
+            id: edgeId,
+            map_id: mapId!,
+            user_id: user.id,
+          },
+          animated: data.animated ?? edge.animated,
+          style: data.style ?? edge.style,
+        };
+      }
 
-      // Trigger debounced save to persist changes
-      get().triggerEdgeSave(edgeId);
+      return edge;
+    }) as AppEdge[];
 
-      // TODO: We can implement history here if needed
-      // addStateToHistory("updateEdge", { edges: finalEdges, nodes: nodes });
-    },
-    "isAddingContent",
-    {
-      initialMessage: "Updating edge...",
-      errorMessage: "Failed to update edge.",
-      successMessage: "Edge updated successfully.",
-    },
-  ),
+    set({
+      edges: finalEdges,
+    });
+
+    // Trigger debounced save to persist changes
+    get().triggerEdgeSave(edgeId);
+
+    addStateToHistory("updateEdge", { edges: finalEdges, nodes: nodes });
+  },
 
   // Debounced save functions
   triggerNodeSave: debounce(
@@ -930,7 +1064,7 @@ const useAppStore = create<AppState>((set, get) => ({
   triggerEdgeSave: debounce(
     withLoadingAndToast(
       async (edgeId: string) => {
-        const { edges, supabase, mapId } = get();
+        const { edges, supabase, mapId, addStateToHistory, nodes } = get();
         const edge = edges.find((e) => e.id === edgeId);
 
         if (!edge || !edge.data) {
@@ -958,29 +1092,64 @@ const useAppStore = create<AppState>((set, get) => ({
           throw new Error("Not authenticated");
         }
 
+        const defaultEdge: Partial<EdgeData> = defaultEdgeData();
+
         // Prepare edge data for saving, ensuring type safety
-        const edgeData: EdgesTableType = {
+        const edgeData: EdgeData = {
+          ...defaultEdge,
+          ...edge.data,
           user_id: user_id,
           id: edgeId,
           map_id: mapId,
           source: edge.source || "",
           target: edge.target || "",
-          data: edge.data || defaultEdgeData,
           updated_at: new Date().toISOString(),
+          animated: edge.data?.animated || defaultEdge.animated,
+          metadata: {
+            ...defaultEdge.metadata!,
+            ...edge.data?.metadata,
+          },
+          aiData: {
+            ...defaultEdge.aiData,
+            ...edge.data?.aiData,
+          },
+          style: {
+            ...defaultEdge.style!,
+            ...edge.data?.style,
+          },
         };
 
         // Save edge data to Supabase
-        supabase
+        const { data: dbEdge, error } = await supabase
           .from("edges")
           .update(edgeData)
           .eq("id", edgeId)
-          .eq("map_id", mapId)
-          .then(({ error }) => {
-            if (error) {
-              console.error("Error saving edge:", error);
-              throw new Error("Failed to save edge changes");
-            }
-          });
+          .select()
+          .single();
+
+        if (error) {
+          console.error("Error saving edge:", error);
+          throw new Error("Failed to save edge changes");
+        }
+
+        const finalEdges = edges.map((edge) => {
+          if (edge.id === edgeId) {
+            return {
+              ...edge,
+              data: mergeEdgeData(edge.data ?? {}, dbEdge),
+              animated: dbEdge.animated,
+              style: dbEdge.style,
+            };
+          }
+
+          return edge;
+        }) as AppEdge[];
+
+        set({
+          edges: finalEdges,
+        });
+
+        addStateToHistory("updateEdge", { edges: finalEdges, nodes: nodes });
       },
       "isSavingEdge",
       {

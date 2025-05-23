@@ -41,8 +41,10 @@ const FloatingEdgeComponent = ({
   data,
   selected,
 }: EdgeProps<Edge<EdgeData>>) => {
-  const pathType = data?.metadata?.pathType;
-  const pathFunction = useMemo(() => getPathFunction(pathType), [pathType]);
+  const pathFunction = useMemo(
+    () => getPathFunction(data?.metadata?.pathType),
+    [data?.metadata?.pathType],
+  );
   const sourceNode = useInternalNode<Node<NodeData>>(source);
   const targetNode = useInternalNode<Node<NodeData>>(target);
 
@@ -70,12 +72,14 @@ const FloatingEdgeComponent = ({
         markerEnd={markerEnd}
         style={{
           ...style,
-          stroke: selected ? "#3b82f6" : style?.stroke || "#6c757d",
+          ...data?.style,
+          stroke: selected ? "#3b82f6" : data?.style?.stroke || "#6c757d",
         }}
         className={cn(
           "react-flow__edge-path",
           "cursor-pointer",
           "transition-all duration-200 ease-in-out",
+          selected && "animate-pulse",
         )}
       />
 

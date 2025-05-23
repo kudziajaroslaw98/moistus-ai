@@ -1,4 +1,5 @@
 import { nodeTypes } from "@/constants/node-types";
+import useAppStore from "@/contexts/mind-map/mind-map-store";
 import {
   CheckSquare,
   Code,
@@ -10,14 +11,11 @@ import {
   MessageSquare,
   Type, // Import Type icon for TextNode
 } from "lucide-react";
+import { useShallow } from "zustand/shallow";
 import Modal from "../modal";
 import { Button } from "../ui/button";
 
-interface SelectNodeTypeModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSelectType: (nodeType: string) => void;
-}
+interface SelectNodeTypeModalProps {}
 
 const nodeTypeDisplayInfo: Record<
   string,
@@ -34,11 +32,17 @@ const nodeTypeDisplayInfo: Record<
   textNode: { name: "Text", icon: Type }, // Add TextNode
 };
 
-export default function SelectNodeTypeModal({
-  isOpen,
-  onClose,
-  onSelectType,
-}: SelectNodeTypeModalProps) {
+export default function SelectNodeTypeModal() {
+  const { popoverOpen, setPopoverOpen, nodeInfo, setNodeInfo, addNode } =
+    useAppStore(
+      useShallow((state) => ({
+        addNode: state.addNode,
+        setPopoverOpen: state.setPopoverOpen,
+        popoverOpen: state.popoverOpen,
+        nodeInfo: state.nodeInfo,
+        setNodeInfo: state.setNodeInfo,
+      })),
+    );
   const availableTypes = Object.keys(nodeTypes).filter((type) =>
     nodeTypeDisplayInfo.hasOwnProperty(type),
   );
@@ -47,8 +51,28 @@ export default function SelectNodeTypeModal({
     nodeTypeDisplayInfo[a].name.localeCompare(nodeTypeDisplayInfo[b].name),
   );
 
+  const onClose = () => {
+    setPopoverOpen({ nodeType: false });
+    setNodeInfo(null);
+  };
+
+  const handleOnSelectType = (type: string) => {
+    if (!nodeInfo || nodeInfo === null) return;
+    const newNode = nodeInfo;
+    newNode.type = type;
+    addNode({
+      parentNode: { id: nodeInfo.id },
+      nodeType: type,
+    });
+    onClose();
+  };
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Select Node Type">
+    <Modal
+      isOpen={popoverOpen.nodeType}
+      onClose={onClose}
+      title="Select Node Type"
+    >
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         {availableTypes.map((type) => {
           if (type === "groupNode") return null;
@@ -58,7 +82,7 @@ export default function SelectNodeTypeModal({
             <Button
               key={type}
               variant="secondary"
-              onClick={() => onSelectType(type)}
+              onClick={() => handleOnSelectType(type)}
               className="flex h-auto items-center justify-center gap-4 p-4"
             >
               <>

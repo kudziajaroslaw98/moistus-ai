@@ -1,11 +1,9 @@
 import useAppStore from "@/contexts/mind-map/mind-map-store";
-import { ReactFlowInstance } from "@xyflow/react";
 import { useEffect } from "react";
 
 interface UseKeyboardShortcutsProps {
   onUndo: () => void;
   onRedo: () => void;
-  onDelete: (idToDelete: string) => void;
   onAddChild: (parentId: string | null) => void;
   onCopy: () => void;
   onPaste: () => void;
@@ -14,13 +12,11 @@ interface UseKeyboardShortcutsProps {
   canUndo: boolean;
   canRedo: boolean;
   isBusy: boolean;
-
 }
 
 export function useKeyboardShortcuts({
   onUndo,
   onRedo,
-  onDelete,
   onAddChild,
   onCopy,
   onPaste,
@@ -33,7 +29,6 @@ export function useKeyboardShortcuts({
   const reactFlowInstance = useAppStore((state) => state.reactFlowInstance);
   const copySelectedNodes = useAppStore((state) => state.copySelectedNodes);
   const pasteNodes = useAppStore((state) => state.pasteNodes);
-  const selectedNodes = useAppStore((state) => state.selectedNodes);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -93,20 +88,6 @@ export function useKeyboardShortcuts({
         return;
       }
 
-      if (event.key === "Delete") {
-        if (selectedNodeId) {
-          event.preventDefault();
-          onDelete(selectedNodeId);
-          return;
-        }
-
-        if (selectedEdgeId) {
-          event.preventDefault();
-          onDelete(selectedEdgeId);
-          return;
-        }
-      }
-
       if (event.key === "Tab" && selectedNodeId) {
         event.preventDefault();
         onAddChild(selectedNodeId);
@@ -122,7 +103,6 @@ export function useKeyboardShortcuts({
   }, [
     onUndo,
     onRedo,
-    onDelete,
     onAddChild,
     onCopy,
     onPaste,

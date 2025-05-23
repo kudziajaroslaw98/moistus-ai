@@ -1,16 +1,11 @@
 "use client";
-import { AiLoadingStates } from "@/hooks/use-ai-features";
-import { ContextMenuState } from "@/types/context-menu-state";
+import useAppStore from "@/contexts/mind-map/mind-map-store";
 import { EdgeData } from "@/types/edge-data";
-import { NodeData } from "@/types/node-data";
 import type { PathType } from "@/types/path-types";
 import { cn } from "@/utils/cn";
-import { Edge, Node, ReactFlowInstance, XYPosition } from "@xyflow/react";
 import {
   ChevronRight,
   GitPullRequestArrow,
-  LayoutPanelLeft,
-  LayoutPanelTop,
   Network,
   NotepadTextDashed,
   Palette,
@@ -23,7 +18,8 @@ import {
   Sparkles,
   Trash,
 } from "lucide-react";
-import React from "react";
+import React, { useCallback, useMemo } from "react";
+import { useShallow } from "zustand/shallow";
 import ABezierBIcon from "./icons/a-bezier-b";
 import ASmoothstepBIcon from "./icons/a-smoothstep-b";
 import AStepBIcon from "./icons/a-step-b";
@@ -45,19 +41,6 @@ const edgeColorOptions = [
 ];
 
 interface ContextMenuDisplayProps {
-  contextMenuState: ContextMenuState;
-  closeContextMenu: () => void;
-  nodes: Node<NodeData>[];
-  edges: Edge<EdgeData>[];
-  addNode: (parentId: string | null, position?: XYPosition) => void;
-  deleteNode: (nodeId: string) => Promise<void>;
-  deleteEdge: (edgeId: string) => Promise<void>;
-  saveEdgeStyle: (
-    edgeId: string,
-    changes: Partial<
-      Pick<EdgeData, "animated" | "style" | "markerEnd" | "label" | "metadata">
-    >,
-  ) => Promise<void>;
   aiActions: {
     summarizeNode: (nodeId: string) => void;
     summarizeBranch: (nodeId: string) => void;
@@ -65,47 +48,64 @@ interface ContextMenuDisplayProps {
     openContentModal: (nodeId: string) => void;
     suggestConnections: () => void;
     suggestMerges: () => void;
-    generateFromSelectedNodes?: (nodeIds: string[], prompt: string) => Promise<void>;
+    generateFromSelectedNodes?: (
+      nodeIds: string[],
+      prompt: string,
+    ) => Promise<void>;
   };
-  aiLoadingStates: AiLoadingStates;
-  applyLayout: (direction: "TB" | "LR") => void;
-  isLoading: boolean;
-  reactFlowInstance: ReactFlowInstance;
+  // applyLayout: (direction: "TB" | "LR") => void;
   ref?: React.RefObject<HTMLDivElement | null>;
-  setNodeParentAction: (
-    edgeId: string,
-    nodeId: string,
-    parentId: string | null,
-  ) => Promise<void>;
-  selectedNodes?: Node<NodeData>[];
-  setIsGenerateFromNodesModalOpen?: (open: boolean) => void;
+  // setNodeParentAction: (
+  //   edgeId: string,
+  //   nodeId: string,
+  //   parentId: string | null,
+  // ) => Promise<void>;
 }
 
-export function ContextMenuDisplay({
-  contextMenuState,
-  closeContextMenu,
-  nodes,
-  edges,
-  addNode,
-  deleteNode,
-  deleteEdge,
-  saveEdgeStyle,
-  aiActions,
-  aiLoadingStates,
-  applyLayout,
-  isLoading,
-  reactFlowInstance,
-  ref,
-  setNodeParentAction,
-  selectedNodes,
-  setIsGenerateFromNodesModalOpen,
-}: ContextMenuDisplayProps) {
-  if (!contextMenuState.visible) return null;
+export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
+  const {
+    nodes,
+    edges,
+    updateEdge,
+    addNode,
+    deleteNodes,
+    deleteEdges,
+    loadingStates,
+    selectedNodes,
+    setPopoverOpen,
+    popoverOpen,
+    reactFlowInstance,
+    contextMenuState,
+    setContextMenuState,
+  } = useAppStore(
+    useShallow((state) => ({
+      reactFlowInstance: state.reactFlowInstance,
+      nodes: state.nodes,
+      edges: state.edges,
+      updateEdge: state.updateEdge,
+      addNode: state.addNode,
+      deleteNodes: state.deleteNodes,
+      deleteEdges: state.deleteEdges,
+      loadingStates: state.loadingStates,
+      selectedNodes: state.selectedNodes,
+      setPopoverOpen: state.setPopoverOpen,
+      popoverOpen: state.popoverOpen,
+      contextMenuState: state.contextMenuState,
+      setContextMenuState: state.setContextMenuState,
+    })),
+  );
 
   const { x, y, nodeId, edgeId } = contextMenuState;
-  const clickedNode = nodeId ? nodes.find((n) => n.id === nodeId) : null;
+  const clickedNode = useMemo(
+    () => (nodeId ? nodes.find((n) => n.id === nodeId) : null),
+    [nodeId, nodes],
+  );
+  const clickedEdge = useMemo(
+    () => (edgeId ? edges.find((e) => e.id === edgeId) : null),
+    [edgeId, edges],
+  );
   const clickedNodeData = clickedNode?.data;
-  const clickedEdge = edgeId ? edges.find((e) => e.id === edgeId) : null;
+
   const clickedTargetNode = clickedEdge
     ? nodes.find((n) => n.id === clickedEdge.target)
     : null;
@@ -117,10 +117,20 @@ export function ContextMenuDisplay({
     (!clickedTargetNode.data.parent_id ||
       clickedTargetNode.data.parent_id === clickedEdge.source); // Can set as parent if target has no parent or current parent is this edge's source
 
+  const handleCloseContextMenu = () => {
+    setPopoverOpen({ contextMenu: false });
+    setContextMenuState({
+      x: 0,
+      y: 0,
+      nodeId: null,
+      edgeId: null,
+    });
+  };
+
   const handleActionClick = (action: () => void, disabled?: boolean) => {
     if (disabled) return;
     action();
-    closeContextMenu();
+    handleCloseContextMenu();
   };
 
   const getItemIcon = (type: PathType) => {
@@ -138,6 +148,61 @@ export function ContextMenuDisplay({
     }
   };
 
+  const handleAddChild = useCallback(
+    (parentId: string) => {
+      const parentNode = nodes.find((n) => n.id === parentId);
+
+      if (!parentNode) return;
+
+      const position = {
+        x: parentNode.position.x + (parentNode.width || 170) + 100,
+        y: parentNode.position.y + (parentNode.height || 60) / 2 - 30,
+      };
+
+      addNode({
+        parentNode,
+        position,
+      });
+    },
+    [nodes, addNode],
+  );
+
+  const handleDeleteNode = useCallback(
+    (nodeId: string) => {
+      const node = nodes.find((n) => n.id === nodeId);
+
+      if (!node) return;
+
+      deleteNodes([node]);
+    },
+    [deleteNodes],
+  );
+
+  const handleUpdateEdgeStyle = useCallback(
+    (edgeId: string, data: Partial<EdgeData>) => {
+      updateEdge({ edgeId, data: { ...data } });
+    },
+    [updateEdge],
+  );
+
+  const handleEdgesDelete = useCallback(
+    (edgeIds: string[]) => {
+      const edgesToDelete = edges.filter((e) => edgeIds.includes(e.id));
+
+      if (edgesToDelete.length === 0) return;
+
+      deleteEdges(edgesToDelete);
+    },
+    [deleteEdges],
+  );
+
+  console.log("clickedEdge", clickedEdge);
+  console.log("edgeId", edgeId);
+  console.log("nodeId", nodeId);
+
+  console.log("clickedNode", clickedNode);
+  console.log("pop.contextMenu", popoverOpen.contextMenu);
+
   const nodeMenuItems = nodeId ? (
     <>
       <span className="block w-full rounded-md px-3 py-1.5 text-xs text-zinc-500">
@@ -147,8 +212,7 @@ export function ContextMenuDisplay({
       <Button
         variant="ghost"
         align="left"
-        onClick={() => handleActionClick(() => addNode(nodeId), isLoading)}
-        disabled={isLoading}
+        onClick={() => handleAddChild(nodeId)}
         className="gap-2"
       >
         <Plus className="size-4" />
@@ -159,8 +223,7 @@ export function ContextMenuDisplay({
       <Button
         variant="ghost-destructive"
         align="left"
-        onClick={() => handleActionClick(() => deleteNode(nodeId), isLoading)}
-        disabled={isLoading}
+        onClick={() => handleDeleteNode(nodeId)}
         className="gap-2"
       >
         <Trash className="size-4" />
@@ -175,14 +238,14 @@ export function ContextMenuDisplay({
         onClick={() =>
           handleActionClick(
             () => aiActions.summarizeNode(nodeId),
-            isLoading ||
-              aiLoadingStates.isSummarizing ||
+            loadingStates.isStateLoading ||
+              loadingStates.isSummarizing ||
               !clickedNodeData?.content,
           )
         }
         disabled={
-          isLoading ||
-          aiLoadingStates.isSummarizing ||
+          loadingStates.isStateLoading ||
+          loadingStates.isSummarizing ||
           !clickedNodeData?.content
         }
         className="gap-2"
@@ -195,11 +258,13 @@ export function ContextMenuDisplay({
       <Button
         variant="ghost"
         align="left"
-        disabled={isLoading || aiLoadingStates.isSummarizingBranch}
+        disabled={
+          loadingStates.isStateLoading || loadingStates.isSummarizingBranch
+        }
         onClick={() =>
           handleActionClick(
             () => aiActions.summarizeBranch(nodeId),
-            isLoading || aiLoadingStates.isSummarizingBranch,
+            loadingStates.isStateLoading || loadingStates.isSummarizingBranch,
           )
         }
         className="gap-2"
@@ -213,13 +278,15 @@ export function ContextMenuDisplay({
         variant="ghost"
         align="left"
         disabled={
-          isLoading || aiLoadingStates.isExtracting || !clickedNodeData?.content
+          loadingStates.isStateLoading ||
+          loadingStates.isExtracting ||
+          !clickedNodeData?.content
         }
         onClick={() =>
           handleActionClick(
             () => aiActions.extractConcepts(nodeId),
-            isLoading ||
-              aiLoadingStates.isExtracting ||
+            loadingStates.isStateLoading ||
+              loadingStates.isExtracting ||
               !clickedNodeData?.content,
           )
         }
@@ -234,15 +301,15 @@ export function ContextMenuDisplay({
         variant="ghost"
         align="left"
         disabled={
-          isLoading ||
-          aiLoadingStates.isGeneratingContent ||
+          loadingStates.isStateLoading ||
+          loadingStates.isGeneratingContent ||
           !clickedNodeData?.content
         }
         onClick={() =>
           handleActionClick(
             () => aiActions.openContentModal(nodeId),
-            isLoading ||
-              aiLoadingStates.isGeneratingContent ||
+            loadingStates.isStateLoading ||
+              loadingStates.isGeneratingContent ||
               !clickedNodeData?.content,
           )
         }
@@ -265,15 +332,16 @@ export function ContextMenuDisplay({
         <Button
           variant="ghost"
           align="left"
-          disabled={isLoading}
+          disabled={loadingStates.isStateLoading}
           onClick={() =>
             handleActionClick(() => {
+              if (!reactFlowInstance || !contextMenuState) return;
               const flowPosition = reactFlowInstance.screenToFlowPosition({
                 x: contextMenuState.x,
                 y: contextMenuState.y,
               });
-              addNode(null, flowPosition);
-            }, isLoading)
+              addNode({ parentNode: null, position: flowPosition });
+            }, loadingStates.isStateLoading)
           }
           className="gap-2"
         >
@@ -292,15 +360,15 @@ export function ContextMenuDisplay({
           variant="ghost"
           align="left"
           disabled={
-            isLoading ||
-            aiLoadingStates.isSuggestingConnections ||
+            loadingStates.isStateLoading ||
+            loadingStates.isSuggestingConnections ||
             nodes.length < 2
           }
           onClick={() =>
             handleActionClick(
               aiActions.suggestConnections,
-              isLoading ||
-                aiLoadingStates.isSuggestingConnections ||
+              loadingStates.isStateLoading ||
+                loadingStates.isSuggestingConnections ||
                 nodes.length < 2,
             )
           }
@@ -315,13 +383,15 @@ export function ContextMenuDisplay({
           variant="ghost"
           align="left"
           disabled={
-            isLoading || aiLoadingStates.isSuggestingMerges || nodes.length < 2
+            loadingStates.isStateLoading ||
+            loadingStates.isSuggestingMerges ||
+            nodes.length < 2
           }
           onClick={() =>
             handleActionClick(
               aiActions.suggestMerges,
-              isLoading ||
-                aiLoadingStates.isSuggestingMerges ||
+              loadingStates.isStateLoading ||
+                loadingStates.isSuggestingMerges ||
                 nodes.length < 2,
             )
           }
@@ -338,29 +408,39 @@ export function ContextMenuDisplay({
           Layout
         </span>
 
-        <Button
+        {/* <Button
           variant="ghost"
           align="left"
-          disabled={isLoading}
-          onClick={() => handleActionClick(() => applyLayout("TB"), isLoading)}
+          disabled={loadingStates.isStateLoading}
+          onClick={() =>
+            handleActionClick(
+              () => applyLayout("TB"),
+              loadingStates.isStateLoading,
+            )
+          }
           className="gap-2"
         >
           <LayoutPanelTop className="size-4" />
 
           <span>Layout (Top-Bottom)</span>
-        </Button>
+        </Button> */}
 
-        <Button
+        {/* <Button
           variant="ghost"
           align="left"
-          disabled={isLoading}
-          onClick={() => handleActionClick(() => applyLayout("LR"), isLoading)}
+          disabled={loadingStates.isStateLoading}
+          onClick={() =>
+            handleActionClick(
+              () => applyLayout("LR"),
+              loadingStates.isStateLoading,
+            )
+          }
           className="gap-2"
         >
           <LayoutPanelLeft className="size-4" />
 
           <span>Layout (Left-Right)</span>
-        </Button>
+        </Button> */}
       </>
     ) : null;
 
@@ -374,8 +454,13 @@ export function ContextMenuDisplay({
         <Button
           variant="ghost-destructive"
           align="left"
-          disabled={isLoading}
-          onClick={() => handleActionClick(() => deleteEdge(edgeId), isLoading)}
+          disabled={loadingStates.isStateLoading}
+          onClick={() =>
+            handleActionClick(
+              () => handleEdgesDelete([edgeId]),
+              loadingStates.isStateLoading,
+            )
+          }
           className={"gap-2"}
         >
           <Trash className="size-4" />
@@ -386,18 +471,24 @@ export function ContextMenuDisplay({
         <Button
           variant="ghost"
           align="left"
-          disabled={isLoading || !canBeParentLink || isCurrentParentLink}
-          onClick={() =>
-            handleActionClick(
-              () =>
-                setNodeParentAction(
-                  edgeId,
-                  clickedEdge.target,
-                  clickedEdge.source,
-                ),
-              isLoading || !canBeParentLink || isCurrentParentLink,
-            )
+          disabled={
+            loadingStates.isStateLoading ||
+            !canBeParentLink ||
+            isCurrentParentLink
           }
+          // onClick={() =>
+          //   handleActionClick(
+          //     () =>
+          //       setNodeParentAction(
+          //         edgeId,
+          //         clickedEdge.target,
+          //         clickedEdge.source,
+          //       ),
+          //     loadingStates.isStateLoading ||
+          //       !canBeParentLink ||
+          //       isCurrentParentLink,
+          //   )
+          // }
           className="gap-2"
         >
           <GitPullRequestArrow className="size-4" />
@@ -416,14 +507,14 @@ export function ContextMenuDisplay({
         <Button
           variant="ghost"
           align="left"
-          disabled={isLoading}
+          disabled={loadingStates.isStateLoading}
           onClick={() =>
             handleActionClick(
               () =>
-                saveEdgeStyle(edgeId, {
+                handleUpdateEdgeStyle(edgeId, {
                   animated: !clickedEdge.animated,
                 }),
-              isLoading,
+              loadingStates.isStateLoading,
             )
           }
           className="gap-2"
@@ -442,7 +533,7 @@ export function ContextMenuDisplay({
         <div
           className={
             `block w-full rounded-md text-left px-3 py-1.5 h-8 text-xs text-zinc-200 hover:bg-zinc-800 transition-color cursor-pointer ${
-              isLoading
+              loadingStates.isStateLoading
                 ? "opacity-50 cursor-not-allowed hover:bg-transparent"
                 : ""
             }` + " group relative bg-zinc-950"
@@ -474,7 +565,7 @@ export function ContextMenuDisplay({
                 onClick={() =>
                   handleActionClick(
                     () =>
-                      saveEdgeStyle(edgeId, {
+                      handleUpdateEdgeStyle(edgeId, {
                         metadata: {
                           ...(clickedEdge.data?.metadata || {}),
                           pathType: pathType,
@@ -482,11 +573,12 @@ export function ContextMenuDisplay({
                             clickedEdge.data?.metadata?.isParentLink ?? false,
                         },
                       }),
-                    isLoading,
+                    loadingStates.isStateLoading,
                   )
                 }
                 disabled={
-                  clickedEdge.data?.metadata?.pathType === pathType || isLoading
+                  clickedEdge.data?.metadata?.pathType === pathType ||
+                  loadingStates.isStateLoading
                 }
               >
                 {getItemIcon(pathType)}
@@ -502,7 +594,7 @@ export function ContextMenuDisplay({
         <div
           className={
             `block w-full rounded-md text-left px-3 py-1.5 h-8 text-xs text-zinc-200 hover:bg-zinc-800 transition-color cursor-pointer ${
-              isLoading
+              loadingStates.isGeneratingContent
                 ? "opacity-50 cursor-not-allowed hover:bg-transparent"
                 : ""
             }` + " group relative bg-zinc-950"
@@ -536,14 +628,14 @@ export function ContextMenuDisplay({
                 onClick={() =>
                   handleActionClick(
                     () =>
-                      saveEdgeStyle(edgeId, {
+                      handleUpdateEdgeStyle(edgeId, {
                         style: {
                           ...clickedEdge.style,
                           strokeWidth: clickedEdge.style?.strokeWidth || "",
                           stroke: colorOpt.value || "",
                         },
                       }),
-                    isLoading,
+                    loadingStates.isStateLoading,
                   )
                 }
                 disabled={
@@ -551,7 +643,7 @@ export function ContextMenuDisplay({
                     colorOpt.value !== undefined) ||
                   (clickedEdge.style?.stroke === undefined &&
                     colorOpt.value === undefined) ||
-                  isLoading
+                  loadingStates.isStateLoading
                 }
               >
                 <span
@@ -568,38 +660,47 @@ export function ContextMenuDisplay({
     ) : null;
 
   // Create a selected nodes menu item if we have selectedNodes and generateFromSelectedNodes function
-  const selectedNodesMenuItems = 
-    !nodeId && !edgeId && selectedNodes && selectedNodes.length > 0 && aiActions.generateFromSelectedNodes && setIsGenerateFromNodesModalOpen ? (
+  const selectedNodesMenuItems =
+    !nodeId &&
+    !edgeId &&
+    selectedNodes &&
+    selectedNodes.length > 0 &&
+    aiActions.generateFromSelectedNodes &&
+    !popoverOpen.generateFromNodesModal ? (
       <>
         <span className="block w-full rounded-md px-3 py-1.5 text-xs text-zinc-500">
           Selected Nodes ({selectedNodes.length})
         </span>
-        
+
         <Button
           variant="ghost"
           align="left"
-          disabled={isLoading || aiLoadingStates.isGeneratingFromSelectedNodes}
-          onClick={() => handleActionClick(() => {
-            setIsGenerateFromNodesModalOpen(true);
-          }, isLoading || aiLoadingStates.isGeneratingFromSelectedNodes)}
+          disabled={loadingStates.isGeneratingContent}
+          onClick={() =>
+            handleActionClick(() => {
+              setPopoverOpen({ generateFromNodesModal: true });
+            }, loadingStates.isGeneratingContent)
+          }
           className="gap-2"
         >
           <Sparkles className="size-4" />
+
           <span>Generate content from selected nodes</span>
         </Button>
-        
+
         <hr className="my-1 border-zinc-800" />
       </>
     ) : null;
 
   return (
     <div
-      ref={ref}
       className="ring-opacity-5 absolute z-[1000] flex min-w-[250px] flex-col gap-1 rounded-sm border border-zinc-800 bg-zinc-950 px-1 py-1 shadow-lg ring-1 ring-black focus:outline-none"
       style={{ top: y, left: x }}
     >
       {selectedNodesMenuItems}
+
       {nodeId && nodeMenuItems}
+
       {edgeId && edgeMenuItems}
 
       {!nodeId && !edgeId && paneMenuItems}
