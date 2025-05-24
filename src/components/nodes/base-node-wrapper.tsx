@@ -19,7 +19,14 @@ interface BaseNodeWrapperProps extends NodeProps<Node<NodeData>> {
   children: React.ReactNode; // Content specific to the node type
   nodeClassName?: string; // For overall node styling adjustments
   nodeIcon?: ReactNode;
-  nodeType?: "Resource" | "Question" | "Tasks" | "Image" | "Code" | "Note";
+  nodeType?:
+    | "Resource"
+    | "Question"
+    | "Tasks"
+    | "Image"
+    | "Code"
+    | "Note"
+    | "Builder";
   includePadding?: boolean;
 }
 
@@ -34,25 +41,15 @@ const BaseNodeWrapperComponent = ({
   includePadding = true,
 }: BaseNodeWrapperProps) => {
   const connection = useConnection();
-  const isTarget = connection.inProgress && connection.fromNode?.id !== id; // Added optional chaining for fromNode
-
-  // const {
-  //   toggleNodeCollapse,
-  //   isNodeCollapsed,
-  //   edges: allEdges,
-  // } = useMindMapContext(); // Get collapse functions and edges
-
   const allEdges = useAppStore((state) => state.edges);
-  const isNodeCollapsed = (nodeId: string) =>
-    data.metadata?.isCollapsed ?? false;
-
+  const [hover, setHover] = useState(false);
   const directChildrenCount = useMemo(() => {
     return allEdges.filter((edge) => edge.source === id).length;
   }, [allEdges, id]);
-  const hasChildren = directChildrenCount > 0;
 
-  const collapsed = isNodeCollapsed(id);
-  const [hover, setHover] = useState(false);
+  const hasChildren = directChildrenCount > 0;
+  const isTarget = connection.inProgress && connection.fromNode?.id !== id;
+  const collapsed = data.metadata?.isCollapsed ?? false;
 
   if (!data) {
     return null;

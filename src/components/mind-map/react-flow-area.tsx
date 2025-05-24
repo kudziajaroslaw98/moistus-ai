@@ -34,6 +34,7 @@ import { EdgeData } from "@/types/edge-data";
 import { NodeData } from "@/types/node-data";
 import { useParams } from "next/navigation";
 import FloatingConnectionLine from "../edges/floating-connection-line";
+import BuilderNode from "../nodes/builder-node";
 import TaskNode from "../nodes/task-node";
 import { ZoomSlider } from "../ui/zoom-slider";
 
@@ -164,6 +165,7 @@ export function ReactFlowArea() {
       codeNode: (props) => <CodeNode {...props} />,
       groupNode: (props) => <GroupNode {...props} />,
       textNode: (props) => <TextNode {...props} />,
+      builderNode: (props) => <BuilderNode {...props} />,
     }),
     [],
   );

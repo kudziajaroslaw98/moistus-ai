@@ -37,6 +37,7 @@ const AnnotationNodeForm = React.lazy(
 );
 const CodeNodeForm = React.lazy(() => import("../node-forms/code-node-form"));
 const TaskNodeForm = React.lazy(() => import("../node-forms/task-node-form"));
+const BuilderNodeForm = React.lazy(() => import("../node-forms/builder-node-form"));
 // Add other forms here
 
 const nodeSpecificForms: Record<
@@ -55,6 +56,7 @@ const nodeSpecificForms: Record<
   annotationNode: AnnotationNodeForm,
   codeNode: CodeNodeForm,
   taskNode: TaskNodeForm,
+  builderNode: BuilderNodeForm,
   // map other node types to their respective form components
 };
 
@@ -125,7 +127,8 @@ export default function NodeEditModal({}: NodeEditModalProps) {
       specificMetadata &&
       Object.keys(specificMetadata).length === 0 &&
       selectedNodeType !== "defaultNode" &&
-      selectedNodeType !== "groupNode"
+      selectedNodeType !== "groupNode" &&
+      selectedNodeType !== "builderNode"
     ) {
       const defaultMeta = getDefaultMetadataForType(selectedNodeType);
 
@@ -138,7 +141,8 @@ export default function NodeEditModal({}: NodeEditModalProps) {
     } else if (
       !specificMetadata &&
       selectedNodeType !== "defaultNode" &&
-      selectedNodeType !== "groupNode"
+      selectedNodeType !== "groupNode" &&
+      selectedNodeType !== "builderNode"
     ) {
       changes.metadata = null;
     }
@@ -203,7 +207,7 @@ export default function NodeEditModal({}: NodeEditModalProps) {
             <NodeSpecificFormComponent ref={formRef} initialData={nodeData} />
           )}
 
-          {!NodeSpecificFormComponent && selectedNodeType !== "defaultNode" && (
+          {!NodeSpecificFormComponent && selectedNodeType !== "defaultNode" && selectedNodeType !== "builderNode" && (
             <p className="text-sm text-zinc-500 italic">
               No specific properties form configured for this node type.
             </p>

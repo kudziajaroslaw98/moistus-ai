@@ -44,6 +44,8 @@ export const transformSupabaseData = (
         metadata: {
           ...node.metadata,
           showBackground: Boolean(node.metadata?.showBackground),
+          // Preserve builder data if it exists
+          builderData: node.metadata?.builderData || undefined,
         },
       },
       type: node.node_type || "defaultNode",

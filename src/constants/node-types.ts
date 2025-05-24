@@ -93,4 +93,8 @@ export const nodeTypesConfig: Record<string, NodeTypeConfig> = {
       priority: undefined,
     },
   },
+  builderNode: {
+    label: "Builder Element",
+    defaultMetadata: {},
+  },
 };

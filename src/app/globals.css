@@ -77,6 +77,10 @@
   --node-accent: theme("colors.slate.700");
 }
 
+.builder-node {
+  --node-accent: theme("colors.purple.700");
+}
+
 .react-flow__handle {
   opacity: 0;
 }
