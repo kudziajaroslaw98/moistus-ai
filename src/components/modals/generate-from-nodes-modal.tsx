@@ -10,8 +10,6 @@ import { toast } from "sonner";
 import { useShallow } from "zustand/shallow";
 
 interface GenerateFromNodesModalProps {
-  isOpen: boolean;
-  onClose: () => void;
   onSubmit: (prompt: string) => Promise<void>;
   isLoading: boolean;
   selectedNodeCount: number;

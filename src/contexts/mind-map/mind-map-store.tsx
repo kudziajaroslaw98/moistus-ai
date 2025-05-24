@@ -961,12 +961,10 @@ const useAppStore = create<AppState>((set, get) => ({
       return;
     }
 
-    console.log("changes", data);
-
     // Update edge in local state first
     const finalEdges = edges.map((edge) => {
       if (edge.id === edgeId) {
-        const x = {
+        return {
           ...edge,
           id: edgeId,
           data: {
@@ -988,10 +986,7 @@ const useAppStore = create<AppState>((set, get) => ({
               ...data.aiData,
             },
           },
-          animated: data.animated ?? edge.animated,
         };
-        console.log("Edge updated:", x);
-        return x;
       }
 
       return edge;
@@ -1111,8 +1106,6 @@ const useAppStore = create<AppState>((set, get) => ({
           throw new Error("Not authenticated");
         }
 
-        console.log("Edge to save:", edge);
-
         const defaultEdge: Partial<EdgeData> = defaultEdgeData();
 
         // Prepare edge data for saving, ensuring type safety
@@ -1140,8 +1133,6 @@ const useAppStore = create<AppState>((set, get) => ({
           },
         };
 
-        console.log("Edge to save:", edgeData);
-
         // Save edge data to Supabase
         const { data: dbEdge, error } = await supabase
           .from("edges")
@@ -1150,8 +1141,6 @@ const useAppStore = create<AppState>((set, get) => ({
           .select()
           .single();
 
-        console.log("Edge saved:", dbEdge);
-
         if (error) {
           console.error("Error saving edge:", error);
           throw new Error("Failed to save edge changes");
@@ -1159,13 +1148,12 @@ const useAppStore = create<AppState>((set, get) => ({
 
         const finalEdges = edges.map((edge) => {
           if (edge.id === edgeId) {
-            const x = {
+            return {
               ...edge,
               data: mergeEdgeData(edge.data ?? {}, dbEdge),
               animated: JSON.parse(dbEdge.animated),
               style: dbEdge.style,
             };
-            console.log("Edge updated:", edge);
           }
 
           return edge;

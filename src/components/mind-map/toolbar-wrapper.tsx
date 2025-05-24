@@ -22,8 +22,6 @@ export function ToolbarWrapper() {
     handleUndo,
     toggleFocusMode,
     handleRedo,
-    canUndo,
-    canRedo,
     isFocusMode,
     setPopoverOpen,
   } = useAppStore(
@@ -31,8 +29,6 @@ export function ToolbarWrapper() {
       mindMap: state.mindMap,
       handleUndo: state.handleUndo,
       handleRedo: state.handleRedo,
-      canUndo: state.canUndo,
-      canRedo: state.canRedo,
       isFocusMode: state.isFocusMode,
       toggleFocusMode: state.toggleFocusMode,
       setPopoverOpen: state.setPopoverOpen,
@@ -73,8 +69,6 @@ export function ToolbarWrapper() {
       // onAiSearch={aiActions.searchNodes} // Pass down from context
       onUndo={handleUndo}
       onRedo={handleRedo}
-      canUndo={canUndo}
-      canRedo={canRedo}
       // isLoading={isLoading}
       // aiLoadingStates={aiLoadingStates}
       onEnterFocusMode={toggleFocusMode} // Use toggleFocusMode

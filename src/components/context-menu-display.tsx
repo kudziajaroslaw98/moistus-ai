@@ -2,19 +2,15 @@
 import useAppStore from "@/contexts/mind-map/mind-map-store";
 import { EdgeData } from "@/types/edge-data";
 import type { PathType } from "@/types/path-types";
-import { cn } from "@/utils/cn";
 import {
-  ChevronRight,
   GitPullRequestArrow,
   Network,
   NotepadTextDashed,
-  Palette,
   Pause,
   Play,
   Plus,
   ScanBarcode,
   ScanText,
-  Shapes,
   Sparkles,
   Trash,
 } from "lucide-react";
@@ -25,6 +21,8 @@ import ASmoothstepBIcon from "./icons/a-smoothstep-b";
 import AStepBIcon from "./icons/a-step-b";
 import AStrainghtBIcon from "./icons/a-straight-b";
 import { Button } from "./ui/button";
+import { OptionList } from "./ui/option-list";
+import { Tooltip } from "./ui/Tooltip";
 
 const edgePathTypeOptions: PathType[] = [
   "smoothstep",
@@ -118,6 +116,20 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
     clickedTargetNode &&
     (!clickedTargetNode.data.parent_id ||
       clickedTargetNode.data.parent_id === clickedEdge.source); // Can set as parent if target has no parent or current parent is this edge's source
+
+  const edgeColors = useMemo(() => {
+    const isCustomColor =
+      clickedEdge?.data?.style?.stroke !== undefined &&
+      edgeColorOptions.find(
+        (c) => c.value === clickedEdge?.data?.style?.stroke,
+      ) === undefined;
+    return isCustomColor
+      ? [
+          ...edgeColorOptions,
+          { name: "Custom", value: clickedEdge?.data?.style?.stroke },
+        ]
+      : edgeColorOptions;
+  }, [clickedEdge]);
 
   const handleCloseContextMenu = () => {
     setPopoverOpen({ contextMenu: false });
@@ -529,132 +541,104 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
           </span>
         </Button>
 
-        <div
-          className={
-            `block w-full rounded-md text-left px-3 py-1.5 h-8 text-xs text-zinc-200 hover:bg-zinc-800 transition-color cursor-pointer ${
-              loadingStates.isStateLoading
-                ? "opacity-50 cursor-not-allowed hover:bg-transparent"
-                : ""
-            }` + " group relative bg-zinc-950"
-          }
-        >
-          <div className="flex justify-between w-full h-full items-center">
-            <div className="flex items-center gap-2">
-              <Shapes className="size-4" />
+        <span className="block w-full rounded-md px-3 py-1.5 text-xs text-zinc-500">
+          Path Style
+        </span>
 
-              <span>
-                Change Path Style (
-                {clickedEdge.data?.metadata?.pathType || "smoothstep"})
-              </span>
-            </div>
-
-            <ChevronRight className="size-4" />
-          </div>
-
-          <div
-            className={`invisible absolute top-0 left-full z-10 ml-1 flex min-w-[150px] flex-col gap-1 rounded-sm border border-zinc-800 bg-zinc-950 p-1 opacity-0 shadow-lg transition-all delay-100 duration-150 ease-in-out group-hover:visible group-hover:opacity-100 group-hover:delay-0`}
-          >
-            {edgePathTypeOptions.map((pathType) => (
+        <OptionList
+          items={edgePathTypeOptions}
+          direction="horizontal"
+          gap="gap-2"
+          className="w-full"
+          initialFocusIdx={edgePathTypeOptions.findIndex(
+            (type) => clickedEdge.data?.metadata?.pathType === type,
+          )}
+          onItemSelect={(_, idx) => {
+            const pathType = edgePathTypeOptions[idx];
+            handleActionClick(
+              () =>
+                handleUpdateEdgeStyle(edgeId, {
+                  metadata: {
+                    ...(clickedEdge.data?.metadata || {}),
+                    pathType,
+                    isParentLink:
+                      clickedEdge.data?.metadata?.isParentLink ?? false,
+                  },
+                }),
+              loadingStates.isStateLoading,
+            );
+          }}
+          renderItem={(pathType, idx, { focused }) => (
+            <Tooltip
+              content={`${pathType.charAt(0).toUpperCase() + pathType.slice(1)} Path`}
+            >
               <Button
-                variant="ghost"
-                size={"sm"}
-                key={pathType}
-                align={"left"}
-                className={cn(["flex items-center justify-start gap-2"])}
-                onClick={() =>
-                  handleActionClick(
-                    () =>
-                      handleUpdateEdgeStyle(edgeId, {
-                        metadata: {
-                          ...(clickedEdge.data?.metadata || {}),
-                          pathType: pathType,
-                          isParentLink:
-                            clickedEdge.data?.metadata?.isParentLink ?? false,
-                        },
-                      }),
-                    loadingStates.isStateLoading,
-                  )
+                variant={
+                  clickedEdge.data?.metadata?.pathType === pathType
+                    ? "secondary"
+                    : "ghost"
                 }
-                disabled={
-                  clickedEdge.data?.metadata?.pathType === pathType ||
-                  loadingStates.isStateLoading
-                }
+                size="icon"
+                tabIndex={-1}
+                aria-label={`${pathType} path`}
               >
                 {getItemIcon(pathType)}
-
-                {pathType
-                  ? pathType.charAt(0).toUpperCase() + pathType.slice(1)
-                  : "Default"}
               </Button>
-            ))}
-          </div>
-        </div>
+            </Tooltip>
+          )}
+        />
 
-        <div
-          className={
-            `block w-full rounded-md text-left px-3 py-1.5 h-8 text-xs text-zinc-200 hover:bg-zinc-800 transition-color cursor-pointer ${
-              loadingStates.isGeneratingContent
-                ? "opacity-50 cursor-not-allowed hover:bg-transparent"
-                : ""
-            }` + " group relative bg-zinc-950"
-          }
-        >
-          <div className="flex justify-between w-full h-full items-center">
-            <div className="flex items-center gap-2">
-              <Palette className="size-4" />
+        <span className="block w-full rounded-md px-3 py-1.5 text-xs text-zinc-500">
+          Color
+        </span>
 
-              <span>
-                Change Color (
-                {edgeColorOptions.find(
-                  (opt) => opt.value === clickedEdge.style?.stroke,
-                )?.name || "default"}
-                )
-              </span>
-            </div>
-
-            <ChevronRight className="size-4" />
-          </div>
-
-          <div
-            className={`invisible absolute top-0 left-full z-10 ml-1 flex min-w-[120px] flex-col gap-1 rounded-sm border border-zinc-800 bg-zinc-950 p-1 opacity-0 shadow-lg transition-all delay-100 duration-150 ease-in-out group-hover:visible group-hover:opacity-100 group-hover:delay-0`}
-          >
-            {edgeColorOptions.map((colorOpt) => (
-              <Button
-                size={"sm"}
-                variant="ghost"
-                key={colorOpt.name}
-                align={"left"}
-                onClick={() =>
-                  handleActionClick(
-                    () =>
-                      handleUpdateEdgeStyle(edgeId, {
-                        style: {
-                          ...clickedEdge.style,
-                          strokeWidth: clickedEdge.data?.style?.strokeWidth,
-                          stroke: colorOpt.value,
-                        },
-                      }),
-                    loadingStates.isStateLoading,
-                  )
-                }
-                disabled={
-                  (clickedEdge.style?.stroke === colorOpt.value &&
-                    colorOpt.value !== undefined) ||
-                  (clickedEdge.style?.stroke === undefined &&
-                    colorOpt.value === undefined) ||
-                  loadingStates.isStateLoading
-                }
-              >
-                <span
-                  className="mr-2 inline-block h-3 w-3 rounded-full border border-zinc-500"
-                  style={{ backgroundColor: colorOpt.value || "transparent" }}
-                ></span>
-
-                {colorOpt.name}
-              </Button>
-            ))}
-          </div>
-        </div>
+        <OptionList
+          items={edgeColors}
+          direction="horizontal"
+          initialFocusIdx={edgeColors.findIndex(
+            (opt) =>
+              (clickedEdge?.data?.style?.stroke === opt.value &&
+                opt.value !== undefined) ||
+              (clickedEdge?.data?.style?.stroke === undefined &&
+                opt.value === undefined),
+          )}
+          onItemSelect={(_, idx) => {
+            const colorOpt = edgeColorOptions[idx];
+            handleActionClick(
+              () =>
+                handleUpdateEdgeStyle(edgeId, {
+                  style: {
+                    ...clickedEdge.style,
+                    strokeWidth: clickedEdge.data?.style?.strokeWidth,
+                    stroke: colorOpt.value,
+                  },
+                }),
+              loadingStates.isStateLoading,
+            );
+          }}
+          renderItem={(colorOpt, idx, { focused }) => {
+            const isSelected =
+              (clickedEdge?.data?.style?.stroke === colorOpt.value &&
+                colorOpt.value !== undefined) ||
+              (clickedEdge?.data?.style?.stroke === undefined &&
+                colorOpt.value === undefined);
+            return (
+              <Tooltip content={colorOpt.name}>
+                <Button
+                  variant={isSelected ? "secondary" : "ghost"}
+                  size="icon"
+                  tabIndex={-1}
+                  aria-label={colorOpt.name}
+                >
+                  <span
+                    className="inline-block h-3 w-3 rounded-full border border-zinc-500"
+                    style={{ backgroundColor: colorOpt.value || "transparent" }}
+                  ></span>
+                </Button>
+              </Tooltip>
+            );
+          }}
+        />
       </>
     ) : null;
 
@@ -693,7 +677,7 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
 
   return (
     <div
-      className="ring-opacity-5 absolute z-[1000] flex min-w-[250px] flex-col gap-1 rounded-sm border border-zinc-800 bg-zinc-950 px-1 py-1 shadow-lg ring-1 ring-black focus:outline-none"
+      className="ring-opacity-5 absolute z-[1000] flex min-w-[250px] flex-col gap-1 rounded-sm border border-zinc-800 bg-zinc-950 px-2 py-2 shadow-lg ring-1 ring-black focus:outline-none"
       style={{ top: y, left: x }}
     >
       {selectedNodesMenuItems}
