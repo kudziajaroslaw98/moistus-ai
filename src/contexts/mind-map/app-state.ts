@@ -45,6 +45,11 @@ import { ContextMenuState } from "@/types/context-menu-state";
 import type { HistoryState } from "@/types/history-state";
 
 export interface AppState {
+  /**
+   * Sets an edge as a parent link and updates the target node's parent_id.
+   * Optimistically updates Zustand store, then triggers debounced saves.
+   */
+  setParentConnection: (edgeId: string) => void;
   // state
   supabase: SupabaseClient;
   mapId: string | null;

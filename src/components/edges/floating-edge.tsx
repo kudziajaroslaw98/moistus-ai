@@ -11,10 +11,14 @@ import {
   getSmoothStepPath,
   getStraightPath,
   Node,
+  Position,
   useInternalNode,
   type Edge,
 } from "@xyflow/react";
+import { Link } from "lucide-react";
 import { memo, useMemo } from "react";
+import { Tooltip } from "../ui/Tooltip";
+import { Button } from "../ui/button";
 
 // Helper function to get the appropriate path calculation function
 const getPathFunction = (pathType?: PathType) => {
@@ -37,7 +41,6 @@ const FloatingEdgeComponent = ({
   source,
   target,
   style = {},
-  markerEnd,
   data,
   selected,
 }: EdgeProps<Edge<EdgeData>>) => {
@@ -48,32 +51,83 @@ const FloatingEdgeComponent = ({
   const sourceNode = useInternalNode<Node<NodeData>>(source);
   const targetNode = useInternalNode<Node<NodeData>>(target);
 
+  const strokeWidth =
+    parseInt(data?.style?.strokeWidth?.toString() ?? "2") ?? 2;
+
+  const { sourceX, sourceY, targetX, targetY, sourcePos, targetPos } =
+    useMemo(() => {
+      if (!sourceNode || !targetNode) {
+        return {
+          sourceX: 0,
+          sourceY: 0,
+          targetX: 0,
+          targetY: 0,
+          sourcePos: Position.Top,
+          targetPos: Position.Top,
+        };
+      }
+
+      return getFloatingEdgePath(
+        sourceNode,
+        targetNode,
+        data?.markerEnd === "arrowclosed" ? strokeWidth * 2 : 0,
+      );
+    }, [sourceNode, targetNode, data?.markerEnd, strokeWidth]);
+
+  const [edgePath, labelX, labelY] = useMemo(
+    () =>
+      pathFunction({
+        sourceX,
+        sourceY,
+        sourcePosition: sourcePos,
+        targetX,
+        targetY,
+        targetPosition: targetPos,
+      }),
+    [pathFunction, sourceX, sourceY, sourcePos, targetX, targetY, targetPos],
+  );
+
+  const isParentLink = data?.metadata?.isParentLink;
+  const color = selected ? "#3b82f6" : (data?.style?.stroke ?? "#6c757d");
+
   if (!sourceNode || !targetNode) {
     return null;
   }
 
-  const { sourceX, sourceY, targetX, targetY, sourcePos, targetPos } =
-    getFloatingEdgePath(sourceNode, targetNode);
-
-  const [edgePath, labelX, labelY] = pathFunction({
-    sourceX,
-    sourceY,
-    sourcePosition: sourcePos,
-    targetX,
-    targetY,
-    targetPosition: targetPos,
-  });
-
   return (
     <>
+      <defs>
+        <marker
+          markerWidth={16}
+          markerHeight={16}
+          id={`arrow-end-${id}`}
+          refX="0"
+          refY="0"
+          viewBox="-10 -10 20 20"
+          orient="auto"
+          markerUnits="userSpaceOnUse"
+        >
+          <polyline
+            style={{
+              stroke: color,
+              fill: color,
+              strokeWidth,
+            }}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            points="-5,-4 0,0 -5,4 -5,-4"
+          />
+        </marker>
+      </defs>
+
       <BaseEdge
         id={id}
         path={edgePath}
-        markerEnd={markerEnd}
         style={{
           ...style,
           ...data?.style,
-          stroke: selected ? "#3b82f6" : data?.style?.stroke || "#6c757d",
+          stroke: color,
+          strokeWidth,
         }}
         className={cn(
           "react-flow__edge-path",
@@ -81,23 +135,37 @@ const FloatingEdgeComponent = ({
           "transition-all duration-200 ease-in-out",
           selected && "animate-pulse",
         )}
-      />
+        markerEnd={
+          data?.markerEnd === "arrowclosed"
+            ? `url(#arrow-end-${id})`
+            : undefined
+        }
+      >
+        {(data?.label || isParentLink) && (
+          <EdgeLabelRenderer>
+            <div
+              style={{
+                transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+              }}
+              className="nodrag absolute z-[2] pointer-events-auto nopan cursor-pointer flex items-center gap-2 text-xs text-zinc-200"
+            >
+              {data?.label && (
+                <div className="rounded bg-zinc-700 px-4 py-0.5 shadow-sm min-h-6 flex justify-center items-center">
+                  {data?.label}
+                </div>
+              )}
 
-      {data?.label && (
-        <EdgeLabelRenderer>
-          <div
-            style={{
-              position: "absolute",
-              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-              pointerEvents: "all",
-              zIndex: 1, // Ensure label is clickable if needed, though usually not for edges
-            }}
-            className="nodrag nopan cursor-pointer rounded bg-zinc-700 px-1.5 py-0.5 text-xs text-zinc-200 shadow-sm"
-          >
-            {data.label}
-          </div>
-        </EdgeLabelRenderer>
-      )}
+              {isParentLink && (
+                <Tooltip content="Parent Link">
+                  <Button variant="default" size="icon" className="size-6!">
+                    <Link className="size-4" />
+                  </Button>
+                </Tooltip>
+              )}
+            </div>
+          </EdgeLabelRenderer>
+        )}
+      </BaseEdge>
     </>
   );
 };

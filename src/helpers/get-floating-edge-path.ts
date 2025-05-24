@@ -60,10 +60,32 @@ function getEdgePosition(
   return Position.Top;
 }
 
+/**
+ * Returns a point on the line from (x1, y1) to (x2, y2) at distance 'd' from (x2, y2) towards (x1, y1)
+ */
+function movePointBack(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  d: number,
+) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  if (len === 0) return { x: x2, y: y2 };
+  const ratio = (len - d) / len;
+  return {
+    x: x1 + dx * ratio,
+    y: y1 + dy * ratio,
+  };
+}
+
 // Returns the new source and target positions for a floating edge
 export function getFloatingEdgePath(
   sourceNode: InternalNode<Node<NodeData>>,
   targetNode: InternalNode<Node<NodeData>>,
+  offset = 12,
 ) {
   const sourcePoint = getNodeIntersection(sourceNode, targetNode);
   const targetPoint = getNodeIntersection(targetNode, sourceNode);
@@ -71,11 +93,20 @@ export function getFloatingEdgePath(
   const sourcePos = getEdgePosition(sourceNode, sourcePoint);
   const targetPos = getEdgePosition(targetNode, targetPoint);
 
+  // Move the target point back by MARKER_PADDING px so the edge doesn't touch the node
+  const adjustedTarget = movePointBack(
+    sourcePoint.x,
+    sourcePoint.y,
+    targetPoint.x,
+    targetPoint.y,
+    offset,
+  );
+
   return {
     sourceX: sourcePoint.x,
     sourceY: sourcePoint.y,
-    targetX: targetPoint.x,
-    targetY: targetPoint.y,
+    targetX: adjustedTarget.x,
+    targetY: adjustedTarget.y,
     sourcePos,
     targetPos,
   };

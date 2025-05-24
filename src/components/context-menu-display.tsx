@@ -76,6 +76,7 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
     contextMenuState,
     getEdge,
     setContextMenuState,
+    setParentConnection,
   } = useAppStore(
     useShallow((state) => ({
       reactFlowInstance: state.reactFlowInstance,
@@ -92,6 +93,7 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
       popoverOpen: state.popoverOpen,
       contextMenuState: state.contextMenuState,
       setContextMenuState: state.setContextMenuState,
+      setParentConnection: state.setParentConnection,
     })),
   );
 
@@ -487,19 +489,14 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
             !canBeParentLink ||
             isCurrentParentLink
           }
-          // onClick={() =>
-          //   handleActionClick(
-          //     () =>
-          //       setNodeParentAction(
-          //         edgeId,
-          //         clickedEdge.target,
-          //         clickedEdge.source,
-          //       ),
-          //     loadingStates.isStateLoading ||
-          //       !canBeParentLink ||
-          //       isCurrentParentLink,
-          //   )
-          // }
+          onClick={() =>
+            handleActionClick(
+              () => setParentConnection(edgeId),
+              loadingStates.isStateLoading ||
+                !canBeParentLink ||
+                isCurrentParentLink,
+            )
+          }
           className="gap-2"
         >
           <GitPullRequestArrow className="size-4" />

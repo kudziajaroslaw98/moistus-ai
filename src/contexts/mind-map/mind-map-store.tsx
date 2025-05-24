@@ -1002,6 +1002,68 @@ const useAppStore = create<AppState>((set, get) => ({
     addStateToHistory("updateEdge", { edges: finalEdges, nodes: nodes });
   },
 
+  // Set an edge as a parent link and update the target node's parent_id
+  setParentConnection: (edgeId: string) => {
+    const {
+      edges,
+      nodes,
+      triggerEdgeSave,
+      triggerNodeSave,
+      addStateToHistory,
+    } = get();
+
+    const edge = edges.find((e) => e.id === edgeId);
+
+    if (!edge) {
+      toast.error("Edge not found");
+      return;
+    }
+
+    const targetNodeIdx = nodes.findIndex((n) => n.id === edge.target);
+
+    if (targetNodeIdx === -1) {
+      toast.error("Target node not found");
+      return;
+    }
+
+    // Optimistic update
+    const updatedEdges = edges.map((e) =>
+      e.id === edgeId
+        ? {
+            ...e,
+            data: {
+              ...e.data,
+              metadata: {
+                ...(e.data?.metadata ?? {}),
+                isParentLink: true,
+              },
+            },
+          }
+        : e,
+    );
+    const updatedNodes = nodes.map((n, idx) =>
+      idx === targetNodeIdx
+        ? {
+            ...n,
+            data: {
+              ...n.data,
+              parent_id: edge.source,
+            },
+          }
+        : n,
+    );
+
+    set({ edges: updatedEdges as AppEdge[], nodes: updatedNodes });
+
+    // Debounced save and history
+    triggerEdgeSave(edgeId);
+    triggerNodeSave(edge.target);
+    addStateToHistory("setParentConnection", {
+      nodes: updatedNodes,
+      edges: updatedEdges as AppEdge[],
+    });
+  },
+
   // Debounced save functions
   triggerNodeSave: debounce(
     withLoadingAndToast(
