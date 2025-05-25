@@ -277,6 +277,7 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
           title="Remove this node from its current group. The node will become independent while the group remains."
         >
           <Ungroup className="size-4" />
+
           <span>Remove from Group</span>
         </Button>
       )}
@@ -681,10 +682,7 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
 
   // Create a selected nodes menu item if we have selectedNodes
   const selectedNodesMenuItems =
-    !nodeId &&
-    !edgeId &&
-    selectedNodes &&
-    selectedNodes.length > 0 ? (
+    !nodeId && !edgeId && selectedNodes && selectedNodes.length > 0 ? (
       <>
         <span className="block w-full rounded-md px-3 py-1.5 text-xs text-zinc-500">
           Selected Nodes ({selectedNodes.length})
@@ -705,46 +703,51 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
             title="Create a visual group containing the selected nodes. Groups can be moved together and provide visual organization."
           >
             <Group className="size-4" />
+
             <span>Group Selected Nodes</span>
           </Button>
         )}
 
         {/* Ungroup - only show if selected node is a group */}
-        {selectedNodes.length === 1 && selectedNodes[0].data.metadata?.isGroup && (
-          <Button
-            variant="ghost"
-            align="left"
-            disabled={loadingStates.isAddingContent}
-            onClick={() =>
-              handleActionClick(() => {
-                ungroupNodes(selectedNodes[0].id);
-              }, loadingStates.isAddingContent)
-            }
-            className="gap-2"
-            title="Remove the group container while preserving all child nodes. Child nodes will become independent."
-          >
-            <Ungroup className="size-4" />
-            <span>Ungroup</span>
-          </Button>
-        )}
+        {selectedNodes.length === 1 &&
+          selectedNodes[0].data.metadata?.isGroup && (
+            <Button
+              variant="ghost"
+              align="left"
+              disabled={loadingStates.isAddingContent}
+              onClick={() =>
+                handleActionClick(() => {
+                  ungroupNodes(selectedNodes[0].id);
+                }, loadingStates.isAddingContent)
+              }
+              className="gap-2"
+              title="Remove the group container while preserving all child nodes. Child nodes will become independent."
+            >
+              <Ungroup className="size-4" />
+
+              <span>Ungroup</span>
+            </Button>
+          )}
 
         {/* Generate content from selected nodes */}
-        {aiActions.generateFromSelectedNodes && !popoverOpen.generateFromNodesModal && (
-          <Button
-            variant="ghost"
-            align="left"
-            disabled={loadingStates.isGeneratingContent}
-            onClick={() =>
-              handleActionClick(() => {
-                setPopoverOpen({ generateFromNodesModal: true });
-              }, loadingStates.isGeneratingContent)
-            }
-            className="gap-2"
-          >
-            <Sparkles className="size-4" />
-            <span>Generate content from selected nodes</span>
-          </Button>
-        )}
+        {aiActions.generateFromSelectedNodes &&
+          !popoverOpen.generateFromNodesModal && (
+            <Button
+              variant="ghost"
+              align="left"
+              disabled={loadingStates.isGeneratingContent}
+              onClick={() =>
+                handleActionClick(() => {
+                  setPopoverOpen({ generateFromNodesModal: true });
+                }, loadingStates.isGeneratingContent)
+              }
+              className="gap-2"
+            >
+              <Sparkles className="size-4" />
+
+              <span>Generate content from selected nodes</span>
+            </Button>
+          )}
 
         <hr className="my-1 border-zinc-800" />
       </>

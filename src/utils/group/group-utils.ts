@@ -133,7 +133,7 @@ export function areNodesInSameGroup(
   const group1 = node1.data.metadata?.groupId;
   const group2 = node2.data.metadata?.groupId;
 
-  return group1 && group2 && group1 === group2;
+  return group1 !== undefined && group2 !== undefined && group1 === group2;
 }
 
 /**

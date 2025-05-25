@@ -5,7 +5,7 @@ import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
 import { Node, NodeProps, NodeResizer } from "@xyflow/react";
 import { AnimatePresence, motion } from "motion/react";
-import { memo, useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useShallow } from "zustand/shallow";
 
 interface GroupNodeProps extends NodeProps<Node<NodeData>> {
@@ -77,21 +77,31 @@ const GroupNodeComponent = (props: GroupNodeProps) => {
     return {
       x: minX - padding,
       y: minY - padding,
-      width: Math.max(maxX - minX + (padding * 2), 320),
-      height: Math.max(maxY - minY + (padding * 2), 100),
+      width: Math.max(maxX - minX + padding * 2, 320),
+      height: Math.max(maxY - minY + padding * 2, 100),
     };
   }, [childNodes]);
 
   // Auto-resize group to encompass all children (only when dragging ends and not saving)
   useEffect(() => {
-    if (childBounds && reactFlow && !isDraggingNodes && !loadingStates.isSavingNode && childNodes.length > 0) {
+    if (
+      childBounds &&
+      reactFlow &&
+      !isDraggingNodes &&
+      !loadingStates.isSavingNode &&
+      childNodes.length > 0
+    ) {
       const currentNode = reactFlow.getNode(id);
 
       if (currentNode) {
         // Only update if there's a significant difference to prevent infinite loops
-        const positionDiff = Math.abs(currentNode.position.x - childBounds.x) + Math.abs(currentNode.position.y - childBounds.y);
-        const sizeDiff = Math.abs((currentNode.width || 320) - childBounds.width) + Math.abs((currentNode.height || 100) - childBounds.height);
-        
+        const positionDiff =
+          Math.abs(currentNode.position.x - childBounds.x) +
+          Math.abs(currentNode.position.y - childBounds.y);
+        const sizeDiff =
+          Math.abs((currentNode.width || 320) - childBounds.width) +
+          Math.abs((currentNode.height || 100) - childBounds.height);
+
         // Only update if difference is significant (more than 10px)
         if (positionDiff > 10 || sizeDiff > 10) {
           // Clear any existing timeout to debounce updates
@@ -103,10 +113,15 @@ const GroupNodeComponent = (props: GroupNodeProps) => {
             if (!isDraggingNodes && !loadingStates.isSavingNode) {
               // Double-check the node still exists and differences are still significant
               const latestNode = reactFlow.getNode(id);
+
               if (latestNode) {
-                const latestPositionDiff = Math.abs(latestNode.position.x - childBounds.x) + Math.abs(latestNode.position.y - childBounds.y);
-                const latestSizeDiff = Math.abs((latestNode.width || 320) - childBounds.width) + Math.abs((latestNode.height || 100) - childBounds.height);
-                
+                const latestPositionDiff =
+                  Math.abs(latestNode.position.x - childBounds.x) +
+                  Math.abs(latestNode.position.y - childBounds.y);
+                const latestSizeDiff =
+                  Math.abs((latestNode.width || 320) - childBounds.width) +
+                  Math.abs((latestNode.height || 100) - childBounds.height);
+
                 if (latestPositionDiff > 10 || latestSizeDiff > 10) {
                   reactFlow.setNodes((nodes) =>
                     nodes.map((node) =>
@@ -123,12 +138,20 @@ const GroupNodeComponent = (props: GroupNodeProps) => {
                 }
               }
             }
+
             updateTimeoutRef.current = null;
           }, 500);
         }
       }
     }
-  }, [childBounds, id, reactFlow, isDraggingNodes, loadingStates.isSavingNode, childNodes.length]);
+  }, [
+    childBounds,
+    id,
+    reactFlow,
+    isDraggingNodes,
+    loadingStates.isSavingNode,
+    childNodes.length,
+  ]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -142,8 +165,6 @@ const GroupNodeComponent = (props: GroupNodeProps) => {
   const handleDoubleClick = useCallback(() => {
     console.log("Group node double-clicked, potential edit action");
   }, []);
-
-
 
   // Handle drag and drop for adding nodes to group
   const handleDragOver = useCallback((e: React.DragEvent) => {
