@@ -14,6 +14,8 @@ import type {
 } from "@xyflow/react";
 
 export type AppNode = Node<NodeData>;
+export type LayoutDirection = "TB" | "LR";
+
 export interface LoadingStates {
   isAddingContent: boolean;
   isStateLoading: boolean;
@@ -27,6 +29,7 @@ export interface LoadingStates {
   isSuggestingMerges: boolean;
   isSavingNode: boolean;
   isSavingEdge: boolean;
+  isApplyingLayout: boolean; // Added for layout operations
 }
 
 export interface Popovers {
@@ -156,4 +159,7 @@ export interface AppState {
   }) => Promise<void>;
   triggerNodeSave: (nodeId: string) => void; // Debounced node save function
   triggerEdgeSave: (edgeId: string) => void; // Debounced edge save function
+
+  // Layout action
+  applyLayout: (direction: LayoutDirection) => Promise<void>;
 }

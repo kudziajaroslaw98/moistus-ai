@@ -5,11 +5,11 @@ import { cn } from "@/utils/cn";
 import { useMemo } from "react";
 import { ModalsWrapper } from "./mind-map/modals-wrapper";
 import { ReactFlowArea } from "./mind-map/react-flow-area";
-import { ToolbarWrapper } from "./mind-map/toolbar-wrapper";
 
 import useAppStore from "@/contexts/mind-map/mind-map-store";
 import { useShallow } from "zustand/shallow";
 import { CommandPalette } from "./command-palette";
+import { MindMapToolbar } from "./mind-map-toolbar/mind-map-toolbar";
 import { ContextMenuWrapper } from "./mind-map/context-menu-wrapper";
 
 export function MindMapCanvas() {
@@ -73,7 +73,7 @@ export function MindMapCanvas() {
     // Context Provider is now wrapping this component higher up
     <div className="relative h-full w-full overflow-hidden rounded-md bg-zinc-900">
       {/* Render the wrapped components */}
-      <ToolbarWrapper />
+      <MindMapToolbar />
 
       <CommandPalette />
 

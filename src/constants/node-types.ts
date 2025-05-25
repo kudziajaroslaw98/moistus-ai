@@ -94,7 +94,7 @@ export const nodeTypesConfig: Record<string, NodeTypeConfig> = {
     },
   },
   builderNode: {
-    label: "Builder Element",
+    label: "Builder",
     defaultMetadata: {},
   },
 };

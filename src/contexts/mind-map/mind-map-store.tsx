@@ -10,16 +10,70 @@ import type { EdgesTableType } from "@/types/edges-table-type";
 import type { MindMapData } from "@/types/mind-map-data";
 import type { NodeData } from "@/types/node-data";
 import type { NodesTableType } from "@/types/nodes-table-type";
-import { debounce } from "@/utils/debounce";
+import { debouncePerKey } from "@/utils/debounce-per-key";
 import type { XYPosition } from "@xyflow/react";
 import {
   applyEdgeChanges,
   applyNodeChanges,
   type ReactFlowInstance,
 } from "@xyflow/react";
+import dagre from "dagre";
 import { toast } from "sonner";
 import { create } from "zustand";
-import type { AppNode, AppState, LoadingStates } from "./app-state";
+import type {
+  AppNode,
+  AppState,
+  LayoutDirection,
+  LoadingStates,
+} from "./app-state";
+
+// Dagre graph instance for layout calculations
+const g = new dagre.graphlib.Graph();
+g.setDefaultEdgeLabel(() => ({}));
+
+// Helper function to calculate layout using Dagre
+const getLayoutedElements = (
+  nodes: AppNode[],
+  edges: AppEdge[],
+  direction: LayoutDirection = "TB",
+) => {
+  g.setGraph({ rankdir: direction, nodesep: 80, ranksep: 150 });
+
+  nodes.forEach((node) => {
+    const nodeWidth = node.width || 320;
+    const nodeHeight = node.height || 100;
+    g.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+  });
+
+  edges.forEach((edge) => {
+    g.setEdge(edge.source, edge.target);
+  });
+
+  dagre.layout(g);
+
+  const layoutedNodes = nodes.map((node) => {
+    const nodeWithPosition = g.node(node.id);
+
+    if (!nodeWithPosition) {
+      console.warn(`Dagre could not find node ${node.id} during layout.`);
+      return node;
+    }
+
+    const nodeWidth = node.width || 320;
+    const nodeHeight = node.height || 100;
+
+    return {
+      ...node,
+      position: {
+        x: nodeWithPosition.x - nodeWidth / 2,
+        y: nodeWithPosition.y - nodeHeight / 2,
+      },
+      data: node.data, // Preserve existing node data
+    };
+  });
+
+  return { layoutedNodes, layoutedEdges: edges }; // Edges are not modified by dagre layout
+};
 
 // Configuration for debounce timing
 const SAVE_DEBOUNCE_MS = 800;
@@ -221,6 +275,7 @@ const useAppStore = create<AppState>((set, get) => ({
     isSuggestingMerges: false,
     isSavingNode: false,
     isSavingEdge: false,
+    isApplyingLayout: false,
   },
   lastSavedNodeTimestamps: {},
   lastSavedEdgeTimestamps: {},
@@ -1067,7 +1122,7 @@ const useAppStore = create<AppState>((set, get) => ({
   },
 
   // Debounced save functions
-  triggerNodeSave: debounce(
+  triggerNodeSave: debouncePerKey(
     withLoadingAndToast(
       async (nodeId: string) => {
         const { nodes, supabase, mapId } = get();
@@ -1137,9 +1192,10 @@ const useAppStore = create<AppState>((set, get) => ({
       },
     ),
     SAVE_DEBOUNCE_MS,
+    (nodeId: string) => nodeId, // getKey function for triggerNodeSave
   ),
 
-  triggerEdgeSave: debounce(
+  triggerEdgeSave: debouncePerKey(
     withLoadingAndToast(
       async (edgeId: string) => {
         const { edges, supabase, mapId, addStateToHistory, nodes } = get();
@@ -1237,6 +1293,49 @@ const useAppStore = create<AppState>((set, get) => ({
       },
     ),
     SAVE_DEBOUNCE_MS,
+    (edgeId: string) => edgeId, // getKey function for triggerEdgeSave
+  ),
+
+  applyLayout: withLoadingAndToast(
+    async (direction: LayoutDirection) => {
+      const {
+        nodes,
+        edges,
+        setNodes,
+        reactFlowInstance,
+        addStateToHistory,
+        triggerNodeSave, // Use triggerNodeSave for individual node position updates
+      } = get();
+
+      if (nodes.length === 0) {
+        // No need to throw an error that stops execution, just inform the user.
+        toast.error("Nothing to layout. Add some nodes first.");
+        return; // Return early if there are no nodes
+      }
+
+      const { layoutedNodes } = getLayoutedElements(nodes, edges, direction);
+
+      setNodes([...layoutedNodes]); // Update nodes in the store with new positions
+
+      // After nodes are updated in the store, trigger debounced save for each moved node.
+      // triggerNodeSave will pick up the latest position from the store.
+      layoutedNodes.forEach((node) => {
+        triggerNodeSave(node.id);
+      });
+
+      addStateToHistory(`applyLayout (${direction})`);
+
+      // Fit view after a short delay to allow DOM updates and ensure layout is rendered
+      setTimeout(() => {
+        reactFlowInstance?.fitView({ padding: 0.1, duration: 300 });
+      }, 50);
+    },
+    "isApplyingLayout", // Key for loading state
+    {
+      initialMessage: "Applying layout...",
+      successMessage: "Layout applied and node positions are being saved.",
+      errorMessage: "Failed to apply layout.",
+    },
   ),
 }));
 

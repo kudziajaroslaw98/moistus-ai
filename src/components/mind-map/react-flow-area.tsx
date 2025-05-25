@@ -40,20 +40,8 @@ import { ZoomSlider } from "../ui/zoom-slider";
 
 export function ReactFlowArea() {
   // const {
-  //   nodes,
-  //   edges,
   //   suggestedEdges,
-  //   contextMenuHandlers,
-  //   setReactFlowInstance,
   //   crudActions,
-  //   setIsNodeEditModalOpen,
-  //   setNodeToEdit,
-  //   setIsEdgeEditModalOpen,
-  //   setEdgeToEdit,
-  //   onNodesChange,
-  //   onEdgesChange,
-  //   isFocusMode,
-  //   setSelectedNodes,
   // } = useMindMapContext();
   const mapId = useParams().id;
   const reactFlowInstance = useReactFlow();
@@ -84,38 +72,6 @@ export function ReactFlowArea() {
   const deleteEdges = useAppStore((state) => state.deleteEdges);
 
   const { contextMenuHandlers } = useContextMenu();
-
-  // const {
-  //   nodes,
-  //   edges,
-  //   isFocusMode,
-  //   onNodesChange,
-  //   onEdgesChange,
-  //   onConnect,
-  //   setReactFlowInstance,
-  //   setNodeInfo,
-  //   setPopoverOpen,
-  //   setEdgeInfo,
-  //   setMapId,
-  //   addNode,
-  //   fetchMindMapData,
-  // } = useAppStore(
-  //   useShallow((state) => ({
-  //     nodes: state.nodes,
-  //     edges: state.edges,
-  //     isFocusMode: state.isFocusMode,
-  //     onNodesChange: state.onNodesChange,
-  //     onEdgesChange: state.onEdgesChange,
-  //     onConnect: state.onConnect,
-  //     setReactFlowInstance: state.setReactFlowInstance,
-  //     setNodeInfo: state.setNodeInfo,
-  //     setPopoverOpen: state.setPopoverOpen,
-  //     setEdgeInfo: state.setEdgeInfo,
-  //     setMapId: state.setMapId,
-  //     addNode: state.addNode,
-  //     fetchMindMapData: state.fetchMindMapData,
-  //   })),
-  // );
 
   useEffect(() => {
     if (reactFlowInstance) {

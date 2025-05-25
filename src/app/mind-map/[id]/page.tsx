@@ -1,7 +1,15 @@
 "use client";
 
-import MindMapPageWrapper from "@/components/mind-map-page-wrapper";
+import { MindMapCanvas } from "@/components/mind-map-canvas";
+import { ReactFlowProvider } from "@xyflow/react";
 
 export default function MindMapPage() {
-  return <MindMapPageWrapper></MindMapPageWrapper>;
+  return (
+    <ReactFlowProvider>
+      {/* <MindMapProvider> */}
+      <MindMapCanvas />
+
+      {/* </MindMapProvider> */}
+    </ReactFlowProvider>
+  );
 }

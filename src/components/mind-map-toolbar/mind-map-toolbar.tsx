@@ -6,44 +6,63 @@ import {
   Command,
   History,
   Maximize,
+  Minimize2,
   Redo,
   Undo,
 } from "lucide-react";
 import Link from "next/link";
+import { useShallow } from "zustand/shallow";
 import { Button } from "../ui/button";
 
-interface MindMapToolbarProps {
-  mindMapTitle: string;
-  // aiPrompt: string;
-  // setAiPrompt: (value: string) => void;
-  // aiSearchQuery: string;
-  // setAiSearchQuery: (value: string) => void;
-  // onGenerateMap: () => void;
-  // onAiSearch: () => void;
-  onUndo: () => void;
-  onRedo: () => void;
-  // isLoading: boolean;
-  // aiLoadingStates: AiLoadingStates;
-  onEnterFocusMode: () => void;
-  onCommandPaletteOpen: () => void;
-  onToggleHistorySidebar: () => void; // New prop
-}
+export function MindMapToolbar() {
+  const {
+    mindMap,
+    setPopoverOpen,
+    toggleFocusMode,
+    canUndo,
+    canRedo,
+    handleUndo,
+    handleRedo,
+    isFocusMode,
+  } = useAppStore(
+    useShallow((state) => ({
+      mindMap: state.mindMap,
+      setPopoverOpen: state.setPopoverOpen,
+      toggleFocusMode: state.toggleFocusMode,
+      canUndo: state.canUndo,
+      canRedo: state.canRedo,
+      handleUndo: state.handleUndo,
+      handleRedo: state.handleRedo,
+      isFocusMode: state.isFocusMode,
+    })),
+  );
 
-export function MindMapToolbar({
-  mindMapTitle,
-  onUndo,
-  onRedo,
-  // isLoading,
-  onEnterFocusMode,
-  onCommandPaletteOpen,
-  onToggleHistorySidebar, // Destructure new prop
-  // aiPrompt,
-  // setAiPrompt,
-  // aiLoadingStates,
-  // onGenerateMap,
-}: MindMapToolbarProps) {
-  const canUndo = useAppStore((state) => state.canUndo);
-  const canRedo = useAppStore((state) => state.canRedo);
+  const handleCommandPaletteOpen = () => {
+    setPopoverOpen({ commandPalette: true });
+  };
+
+  const handleToggleHistorySidebar = () => {
+    setPopoverOpen({ history: true });
+  };
+
+  const handleToggleFocusMode = () => {
+    toggleFocusMode();
+  };
+
+  if (isFocusMode) {
+    return (
+      <div className="absolute top-3 right-3 z-20">
+        <button
+          onClick={toggleFocusMode} // Use toggleFocusMode directly
+          className="flex items-center justify-center rounded-sm bg-zinc-700 p-2 text-zinc-200 shadow-md transition-colors hover:bg-zinc-600 focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-zinc-900 focus:outline-none"
+          title="Exit Focus Mode"
+          aria-label="Exit Focus Mode"
+        >
+          <Minimize2 className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="absolute top-2 right-2 left-2 z-10 flex flex-wrap items-center justify-between gap-4 rounded-sm bg-zinc-900 p-3 shadow-md">
@@ -59,7 +78,7 @@ export function MindMapToolbar({
         </Link>
 
         <h1 className="mr-2 truncate text-lg font-semibold text-zinc-100 capitalize">
-          {mindMapTitle}
+          {mindMap?.title || "Loading..."}
         </h1>
 
         {/* AI Generation */}
@@ -115,7 +134,7 @@ export function MindMapToolbar({
         {/* Undo/Redo */}
         <div className="flex items-center gap-2">
           <Button
-            onClick={onUndo}
+            onClick={handleUndo}
             disabled={!canUndo}
             title="Undo (Ctrl+Z)"
             variant="secondary"
@@ -125,7 +144,7 @@ export function MindMapToolbar({
           </Button>
 
           <Button
-            onClick={onRedo}
+            onClick={handleRedo}
             disabled={!canRedo}
             title="Redo (Ctrl+Y)"
             variant="secondary"
@@ -137,7 +156,7 @@ export function MindMapToolbar({
 
         {/* History Sidebar Toggle Button */}
         <Button
-          onClick={onToggleHistorySidebar}
+          onClick={handleToggleHistorySidebar}
           title="Toggle History Sidebar"
           aria-label="Toggle History Sidebar"
           variant="secondary"
@@ -147,7 +166,7 @@ export function MindMapToolbar({
         </Button>
 
         <Button
-          onClick={onCommandPaletteOpen}
+          onClick={handleCommandPaletteOpen}
           title="Command Palette"
           aria-label="Command Palette"
           variant="secondary"
@@ -158,7 +177,7 @@ export function MindMapToolbar({
 
         {/* Focus Mode Button */}
         <Button
-          onClick={onEnterFocusMode}
+          onClick={handleToggleFocusMode}
           title="Enter Focus Mode"
           aria-label="Enter Focus Mode"
           variant="secondary"

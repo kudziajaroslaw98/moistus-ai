@@ -4,6 +4,8 @@ import { EdgeData } from "@/types/edge-data";
 import type { PathType } from "@/types/path-types";
 import {
   GitPullRequestArrow,
+  LayoutPanelLeft,
+  LayoutPanelTop,
   Network,
   NotepadTextDashed,
   Pause,
@@ -78,6 +80,7 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
     setContextMenuState,
     setNodeInfo,
     setParentConnection,
+    applyLayout,
   } = useAppStore(
     useShallow((state) => ({
       reactFlowInstance: state.reactFlowInstance,
@@ -96,6 +99,7 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
       contextMenuState: state.contextMenuState,
       setContextMenuState: state.setContextMenuState,
       setParentConnection: state.setParentConnection,
+      applyLayout: state.applyLayout,
     })),
   );
 
@@ -430,7 +434,7 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
           Layout
         </span>
 
-        {/* <Button
+        <Button
           variant="ghost"
           align="left"
           disabled={loadingStates.isStateLoading}
@@ -445,9 +449,9 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
           <LayoutPanelTop className="size-4" />
 
           <span>Layout (Top-Bottom)</span>
-        </Button> */}
+        </Button>
 
-        {/* <Button
+        <Button
           variant="ghost"
           align="left"
           disabled={loadingStates.isStateLoading}
@@ -462,7 +466,7 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
           <LayoutPanelLeft className="size-4" />
 
           <span>Layout (Left-Right)</span>
-        </Button> */}
+        </Button>
       </>
     ) : null;
 

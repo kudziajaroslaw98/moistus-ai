@@ -65,8 +65,6 @@ export function ContextMenuWrapper() {
           suggestMerges: aiActions.suggestMerges,
           generateFromSelectedNodes: aiActions.generateFromSelectedNodes,
         }}
-        // applyLayout={applyLayout}
-        // setNodeParentAction={crudActions.setNodeParent}
       />
 
       <GenerateFromNodesModal

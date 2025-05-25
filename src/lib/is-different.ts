@@ -1,30 +1,22 @@
 export const isDifferent = (a: unknown, b: unknown): boolean => {
   if (a === b) return false;
 
-  // Check if both values are arrays
   if (Array.isArray(a) && Array.isArray(b)) {
     if (a.length !== b.length) return true;
-
-    return a.some((val, index) => isDifferent(val, b[index]));
+    return a.some((val, i) => isDifferent(val, b[i]));
   }
 
-  // Check if both values are objects (but not null)
   if (a && b && typeof a === "object" && typeof b === "object") {
-    const objectA = a as Record<string, unknown>;
-    const objectB = b as Record<string, unknown>;
-
-    if (JSON.stringify(objectA) === "{}" && JSON.stringify(objectB) === "{}")
+    const aObj = a as Record<string, unknown>;
+    const bObj = b as Record<string, unknown>;
+    if (JSON.stringify(aObj) === "{}" && JSON.stringify(bObj) === "{}")
       return false;
-
     const aKeys = Object.keys(a);
     const bKeys = Object.keys(b);
-
     if (aKeys.length !== bKeys.length) return true;
-
-    return aKeys.some((key) => isDifferent(objectA[key], objectB[key]));
+    return aKeys.some((key) => isDifferent(aObj[key], bObj[key]));
   }
 
-  // Default case: treat as primitives or different types
   return true;
 };
 
@@ -34,24 +26,22 @@ export const getDifferentFields = (
 ): Record<string, unknown> => {
   const differences: Record<string, unknown> = {};
 
-  // Check keys in 'a'
   for (const key in a) {
-    if (Object.prototype.hasOwnProperty.call(a, key)) {
-      if (
-        !Object.prototype.hasOwnProperty.call(b, key) ||
-        isDifferent(a[key], b[key])
-      ) {
-        differences[key] = b[key] !== undefined ? b[key] : null; // Store the value from 'b' or null if not in 'b'
-      }
+    if (
+      Object.prototype.hasOwnProperty.call(a, key) &&
+      (!Object.prototype.hasOwnProperty.call(b, key) ||
+        isDifferent(a[key], b[key]))
+    ) {
+      differences[key] = b[key] !== undefined ? b[key] : null;
     }
   }
 
-  // Check keys in 'b' not in 'a'
   for (const key in b) {
-    if (Object.prototype.hasOwnProperty.call(b, key)) {
-      if (!Object.prototype.hasOwnProperty.call(a, key)) {
-        differences[key] = b[key];
-      }
+    if (
+      Object.prototype.hasOwnProperty.call(b, key) &&
+      !Object.prototype.hasOwnProperty.call(a, key)
+    ) {
+      differences[key] = b[key];
     }
   }
 
