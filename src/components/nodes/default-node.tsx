@@ -7,9 +7,25 @@ import { NotepadText } from "lucide-react";
 import { memo } from "react";
 import ReactMarkdown from "react-markdown";
 import { BaseNodeWrapper } from "./base-node-wrapper";
+import { useComments } from "@/hooks/use-comments";
+import useAppStore from "@/contexts/mind-map/mind-map-store";
+import { useShallow } from "zustand/shallow";
 
 const DefaultNodeComponent = (props: NodeProps<Node<NodeData>>) => {
-  const { data } = props;
+  const { id, data } = props;
+
+  const { openCommentsPanel } = useAppStore(
+    useShallow((state) => ({
+      openCommentsPanel: state.openCommentsPanel,
+    })),
+  );
+
+  const { commentSummaries } = useComments({ autoRefresh: true });
+  const commentSummary = commentSummaries.get(id);
+
+  const handleCommentClick = () => {
+    openCommentsPanel(id);
+  };
 
   return (
     <BaseNodeWrapper
@@ -17,14 +33,16 @@ const DefaultNodeComponent = (props: NodeProps<Node<NodeData>>) => {
       nodeClassName={cn(["basic-node h-full gap-0"])}
       nodeType="Note"
       nodeIcon={<NotepadText className="size-4" />}
+      commentSummary={commentSummary}
+      onCommentClick={handleCommentClick}
     >
       {data.content ? (
         <div className="prose p-4 prose-invert flex flex-col gap-2 prose-ul:flex prose-ul:flex-col prose-ul:gap-2 prose-sm max-w-none break-words prose-headings:m-0">
           <ReactMarkdown>{data.content}</ReactMarkdown>
         </div>
       ) : (
-        <span className="text-zinc-500 italic">
-          Double click or click menu to add content...
+        <span className="text-zinc-500 text-sm p-4 italic">
+          Click to add content...
         </span>
       )}
     </BaseNodeWrapper>

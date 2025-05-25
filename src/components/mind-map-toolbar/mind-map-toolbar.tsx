@@ -6,13 +6,17 @@ import {
   Command,
   History,
   Maximize,
+  MessageCircle,
   Minimize2,
   Redo,
   Undo,
+  User,
 } from "lucide-react";
 import Link from "next/link";
 import { useShallow } from "zustand/shallow";
 import { Button } from "../ui/button";
+import { LayoutSelector } from "../layout-selector";
+import { cn } from "@/utils/cn";
 
 export function MindMapToolbar() {
   const {
@@ -24,6 +28,9 @@ export function MindMapToolbar() {
     handleUndo,
     handleRedo,
     isFocusMode,
+    popoverOpen,
+    isCommentsPanelOpen,
+    toggleCommentsPanel,
   } = useAppStore(
     useShallow((state) => ({
       mindMap: state.mindMap,
@@ -34,6 +41,9 @@ export function MindMapToolbar() {
       handleUndo: state.handleUndo,
       handleRedo: state.handleRedo,
       isFocusMode: state.isFocusMode,
+      popoverOpen: state.popoverOpen,
+      isCommentsPanelOpen: state.isCommentsPanelOpen,
+      toggleCommentsPanel: state.toggleCommentsPanel,
     })),
   );
 
@@ -44,6 +54,8 @@ export function MindMapToolbar() {
   const handleToggleHistorySidebar = () => {
     setPopoverOpen({ history: true });
   };
+
+
 
   const handleToggleFocusMode = () => {
     toggleFocusMode();
@@ -131,6 +143,9 @@ export function MindMapToolbar() {
           </Button> */}
         </div>
 
+        {/* Layout Selector */}
+        <LayoutSelector />
+
         {/* Undo/Redo */}
         <div className="flex items-center gap-2">
           <Button
@@ -154,6 +169,17 @@ export function MindMapToolbar() {
           </Button>
         </div>
 
+        {/* Comments Panel Toggle */}
+        <Button
+          onClick={toggleCommentsPanel}
+          title="Toggle Comments Panel (Ctrl+/)"
+          aria-label="Toggle Comments Panel"
+          variant={isCommentsPanelOpen ? "default" : "secondary"}
+          size="icon"
+        >
+          <MessageCircle className="h-4 w-4" />
+        </Button>
+
         {/* History Sidebar Toggle Button */}
         <Button
           onClick={handleToggleHistorySidebar}
@@ -174,6 +200,18 @@ export function MindMapToolbar() {
         >
           <Command className="h-4 w-4" />
         </Button>
+
+        {/* Profile Button */}
+        <Link href="/dashboard/profile">
+          <Button
+            title="Profile Settings"
+            aria-label="Profile Settings"
+            variant="secondary"
+            size="icon"
+          >
+            <User className="h-4 w-4" />
+          </Button>
+        </Link>
 
         {/* Focus Mode Button */}
         <Button

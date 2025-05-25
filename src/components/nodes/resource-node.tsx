@@ -8,11 +8,23 @@ import Link from "next/link";
 import { memo } from "react";
 import { Button } from "../ui/button";
 import { BaseNodeWrapper } from "./base-node-wrapper";
+import { useComments } from "@/hooks/use-comments";
+import useAppStore from "@/contexts/mind-map/mind-map-store";
+import { useShallow } from "zustand/shallow";
 
 interface ResourceNodeProps extends NodeProps<Node<NodeData>> {}
 
 const ResourceNodeComponent = (props: ResourceNodeProps) => {
-  const { data } = props;
+  const { id, data } = props;
+
+  const { openCommentsPanel } = useAppStore(
+    useShallow((state) => ({
+      openCommentsPanel: state.openCommentsPanel,
+    })),
+  );
+
+  const { commentSummaries } = useComments({ autoRefresh: true });
+  const commentSummary = commentSummaries.get(id);
 
   const resourceUrl = data.metadata?.url as string | undefined;
   const title = (data.metadata?.title as string) || data.content || "Resource";
@@ -21,12 +33,18 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
   const imageUrl = data.metadata?.imageUrl as string | undefined;
   const summary = data.metadata?.summary as string | undefined;
 
+  const handleCommentClick = () => {
+    openCommentsPanel(id);
+  };
+
   return (
     <BaseNodeWrapper
       {...props}
       nodeClassName="resource-node"
       nodeType="Resource"
       nodeIcon={<LinkIcon className="size-4" />}
+      commentSummary={commentSummary}
+      onCommentClick={handleCommentClick}
     >
       <>
         {showThumbnail && imageUrl && (

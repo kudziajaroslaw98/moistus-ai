@@ -1,3 +1,10 @@
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { nodeTypesConfig } from "@/constants/node-types";
 import useAppStore from "@/contexts/mind-map/mind-map-store";
 import { NodeData } from "@/types/node-data";
@@ -6,7 +13,6 @@ import { useShallow } from "zustand/shallow";
 import { SidePanel } from "../side-panel";
 import { Button } from "../ui/button";
 import { FormField } from "../ui/form-field";
-import { Select } from "../ui/select";
 import { Spinner } from "../ui/spinner";
 
 // Define the interface for the props that each specific node form will receive
@@ -37,7 +43,9 @@ const AnnotationNodeForm = React.lazy(
 );
 const CodeNodeForm = React.lazy(() => import("../node-forms/code-node-form"));
 const TaskNodeForm = React.lazy(() => import("../node-forms/task-node-form"));
-const BuilderNodeForm = React.lazy(() => import("../node-forms/builder-node-form"));
+const BuilderNodeForm = React.lazy(
+  () => import("../node-forms/builder-node-form"),
+);
 // Add other forms here
 
 const nodeSpecificForms: Record<
@@ -183,16 +191,21 @@ export default function NodeEditModal({}: NodeEditModalProps) {
       <div className="flex flex-col gap-4">
         <FormField id="nodeType" label="Node Type">
           <Select
-            id="nodeType"
             value={selectedNodeType}
-            onChange={(e) => handleNodeTypeChange(e.target.value)}
+            onValueChange={(value) => setSelectedNodeType(value)}
           >
-            {Object.keys(nodeTypesConfig).map((typeKey) => (
-              <option key={typeKey} value={typeKey}>
-                {nodeTypesConfig[typeKey as keyof typeof nodeTypesConfig]
-                  .label || typeKey}
-              </option>
-            ))}
+            <SelectTrigger className="bg-zinc-900 border-zinc-700">
+              <SelectValue />
+            </SelectTrigger>
+
+            <SelectContent>
+              {Object.keys(nodeTypesConfig).map((typeKey) => (
+                <SelectItem key={typeKey} value={typeKey}>
+                  {nodeTypesConfig[typeKey as keyof typeof nodeTypesConfig]
+                    .label || typeKey}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         </FormField>
 
@@ -207,11 +220,13 @@ export default function NodeEditModal({}: NodeEditModalProps) {
             <NodeSpecificFormComponent ref={formRef} initialData={nodeData} />
           )}
 
-          {!NodeSpecificFormComponent && selectedNodeType !== "defaultNode" && selectedNodeType !== "builderNode" && (
-            <p className="text-sm text-zinc-500 italic">
-              No specific properties form configured for this node type.
-            </p>
-          )}
+          {!NodeSpecificFormComponent &&
+            selectedNodeType !== "defaultNode" &&
+            selectedNodeType !== "builderNode" && (
+              <p className="text-sm text-zinc-500 italic">
+                No specific properties form configured for this node type.
+              </p>
+            )}
         </Suspense>
 
         <div className="mt-auto flex flex-shrink-0 justify-end gap-3 border-t border-zinc-700 pt-4">

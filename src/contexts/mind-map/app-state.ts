@@ -12,9 +12,11 @@ import type {
   ReactFlowInstance,
   XYPosition,
 } from "@xyflow/react";
+import type { SpecificLayoutConfig, LayoutResult } from "@/types/layout-types";
+import type { Comment, NodeComment, MapComment, CommentFilter, CommentSort } from "@/types/comment-types";
 
 export type AppNode = Node<NodeData>;
-export type LayoutDirection = "TB" | "LR";
+export type LayoutDirection = "TB" | "LR" | "BT" | "RL";
 
 export interface LoadingStates {
   isAddingContent: boolean;
@@ -29,7 +31,10 @@ export interface LoadingStates {
   isSuggestingMerges: boolean;
   isSavingNode: boolean;
   isSavingEdge: boolean;
-  isApplyingLayout: boolean; // Added for layout operations
+  isApplyingLayout: boolean;
+  isLoadingComments: boolean;
+  isSavingComment: boolean;
+  isDeletingComment: boolean;
 }
 
 export interface Popovers {
@@ -42,6 +47,9 @@ export interface Popovers {
   aiContent: boolean;
   generateFromNodesModal: boolean;
   contextMenu: boolean;
+  layoutSelector: boolean;
+  commentsPanel: boolean;
+  nodeComments: boolean;
 }
 
 import { ContextMenuState } from "@/types/context-menu-state";
@@ -95,6 +103,24 @@ export interface AppState {
   lastSavedEdgeTimestamps: Record<string, number>; // Track when each edge was last saved
 
   contextMenuState: ContextMenuState;
+
+  // Layout state
+  currentLayoutConfig: SpecificLayoutConfig | null;
+  availableLayouts: Array<{
+    id: string;
+    name: string;
+    description: string;
+    category: string;
+    config: SpecificLayoutConfig;
+  }>;
+
+  // Comments state
+  nodeComments: Record<string, NodeComment[]>; // node_id -> comments
+  mapComments: MapComment[];
+  commentFilter: CommentFilter;
+  commentSort: CommentSort;
+  selectedCommentId: string | null;
+  commentDrafts: Record<string, string>; // target_id -> draft content
 
   // handlers
   onNodesChange: OnNodesChange<AppNode>;
@@ -162,8 +188,17 @@ export interface AppState {
   triggerNodeSave: (nodeId: string) => void; // Debounced node save function
   triggerEdgeSave: (edgeId: string) => void; // Debounced edge save function
 
-  // Layout action
+  // Layout actions
   applyLayout: (direction: LayoutDirection) => Promise<void>;
+  applyAdvancedLayout: (config: SpecificLayoutConfig) => Promise<void>;
+  setLayoutConfig: (config: SpecificLayoutConfig) => void;
+  getLayoutPresets: () => Array<{
+    id: string;
+    name: string;
+    description: string;
+    category: string;
+    config: SpecificLayoutConfig;
+  }>;
 
   // Group management actions
   createGroupFromSelected: (label?: string) => Promise<void>;
@@ -178,4 +213,19 @@ export interface AppState {
   getVisibleNodes: () => AppNode[];
   getVisibleEdges: () => AppEdge[];
   toggleNodeCollapse: (nodeId: string) => Promise<void>;
+
+  // Comment functionality
+  fetchNodeComments: (nodeId: string) => Promise<void>;
+  fetchMapComments: () => Promise<void>;
+  addNodeComment: (nodeId: string, content: string, parentId?: string) => Promise<void>;
+  addMapComment: (content: string, position?: { x: number; y: number }, parentId?: string) => Promise<void>;
+  updateComment: (commentId: string, content: string) => Promise<void>;
+  deleteComment: (commentId: string) => Promise<void>;
+  resolveComment: (commentId: string) => Promise<void>;
+  unresolveComment: (commentId: string) => Promise<void>;
+  setCommentFilter: (filter: CommentFilter) => void;
+  setCommentSort: (sort: CommentSort) => void;
+  setSelectedComment: (commentId: string | null) => void;
+  updateCommentDraft: (targetId: string, content: string) => void;
+  clearCommentDraft: (targetId: string) => void;
 }

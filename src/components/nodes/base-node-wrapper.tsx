@@ -1,4 +1,5 @@
 import useAppStore from "@/contexts/mind-map/mind-map-store";
+import { NodeCommentSummary } from "@/types/comment-types";
 import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
 import {
@@ -9,7 +10,7 @@ import {
   Position,
   useConnection,
 } from "@xyflow/react"; // Removed Handle import
-import { ChevronDown, ChevronRight, Group } from "lucide-react"; // Icons for collapse/expand
+import { ChevronDown, ChevronRight, Group, MessageCircle } from "lucide-react"; // Icons for collapse/expand
 import { AnimatePresence, motion } from "motion/react";
 import { memo, type ReactNode, useCallback, useMemo, useState } from "react"; // Added useMemo
 import { useShallow } from "zustand/shallow";
@@ -29,6 +30,8 @@ interface BaseNodeWrapperProps extends NodeProps<Node<NodeData>> {
     | "Note"
     | "Builder";
   includePadding?: boolean;
+  commentSummary?: NodeCommentSummary;
+  onCommentClick?: () => void;
 }
 
 const BaseNodeWrapperComponent = ({
@@ -40,6 +43,8 @@ const BaseNodeWrapperComponent = ({
   nodeIcon,
   nodeType,
   includePadding = true,
+  commentSummary,
+  onCommentClick,
 }: BaseNodeWrapperProps) => {
   const connection = useConnection();
   const { nodes, toggleNodeCollapse, getDirectChildrenCount } = useAppStore(
@@ -124,9 +129,10 @@ const BaseNodeWrapperComponent = ({
                 }}
                 className="nodrag nopan z-20 rounded-sm hover:bg-black/20 h-5 w-auto group flex gap-2 px-1 transition-all"
                 variant={"ghost"}
-                title={collapsed 
-                  ? `Expand Branch (${directChildrenCount} ${directChildrenCount === 1 ? 'child' : 'children'})` 
-                  : `Collapse Branch (${directChildrenCount} ${directChildrenCount === 1 ? 'child' : 'children'})`
+                title={
+                  collapsed
+                    ? `Expand Branch (${directChildrenCount} ${directChildrenCount === 1 ? "child" : "children"})`
+                    : `Collapse Branch (${directChildrenCount} ${directChildrenCount === 1 ? "child" : "children"})`
                 }
                 onHoverStart={() => setHover(true)}
                 onHoverEnd={() => setHover(false)}
@@ -188,6 +194,27 @@ const BaseNodeWrapperComponent = ({
 
             <span>{nodeType}</span>
           </div>
+
+          {/* Comment Indicator */}
+          {commentSummary && commentSummary.comment_count > 0 && (
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCommentClick?.();
+              }}
+              className="nodrag nopan bg-blue-600 hover:bg-blue-700 text-white rounded-t-sm px-2 py-0.5 text-[10px] font-semibold font-mono flex items-center gap-1 transition-all"
+              variant="ghost"
+              title={`${commentSummary.comment_count} comment${commentSummary.comment_count !== 1 ? "s" : ""}${commentSummary.unresolved_count > 0 ? ` (${commentSummary.unresolved_count} unresolved)` : ""}`}
+            >
+              <MessageCircle className="size-3" />
+
+              <span>{commentSummary.comment_count}</span>
+
+              {commentSummary.unresolved_count > 0 && (
+                <span className="bg-red-500 text-white rounded-full size-2 animate-pulse" />
+              )}
+            </Button>
+          )}
         </div>
 
         {children}

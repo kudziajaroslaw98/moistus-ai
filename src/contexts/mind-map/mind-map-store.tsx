@@ -24,6 +24,10 @@ import {
 import dagre from "dagre";
 import { toast } from "sonner";
 import { create } from "zustand";
+import { LayoutAlgorithms } from "@/utils/layout-algorithms";
+import type { SpecificLayoutConfig } from "@/types/layout-types";
+import type { CommentFilter, CommentSort } from "@/types/comment-types";
+import type { ContextMenuState } from "@/types/context-menu-state";
 import type {
   AppNode,
   AppState,
@@ -129,6 +133,18 @@ const useAppStore = create<AppState>((set, get) => ({
     nodeId: null,
     edgeId: null,
   },
+  
+  // Layout state
+  currentLayoutConfig: null,
+  availableLayouts: LayoutAlgorithms.getLayoutPresets(),
+
+  // Comments state
+  nodeComments: {},
+  mapComments: [],
+  commentFilter: {},
+  commentSort: { field: "created_at", direction: "desc" },
+  selectedCommentId: null,
+  commentDrafts: {},
   // --- History state ---
   history: [],
   historyIndex: -1,
@@ -264,7 +280,12 @@ const useAppStore = create<AppState>((set, get) => ({
     mergeSuggestions: false,
     aiContent: false,
     generateFromNodesModal: false,
+    layoutSelector: false,
+    commentsPanel: false,
+    nodeComments: false,
   },
+  isCommentsPanelOpen: false,
+  selectedNodeId: null,
   nodeInfo: null,
   edgeInfo: null,
   loadingStates: {
@@ -281,6 +302,9 @@ const useAppStore = create<AppState>((set, get) => ({
     isSavingNode: false,
     isSavingEdge: false,
     isApplyingLayout: false,
+    isLoadingComments: false,
+    isSavingComment: false,
+    isDeletingComment: false,
   },
   lastSavedNodeTimestamps: {},
   lastSavedEdgeTimestamps: {},
@@ -437,11 +461,31 @@ const useAppStore = create<AppState>((set, get) => ({
   },
   setSelectedNodes: (selectedNodes) => {
     set({ selectedNodes });
+    // Update selectedNodeId for comments panel
+    if (selectedNodes.length === 1) {
+      set({ selectedNodeId: selectedNodes[0].id });
+    } else {
+      set({ selectedNodeId: null });
+    }
   },
   setIsDraggingNodes: (isDraggingNodes) => {
     set({ isDraggingNodes });
   },
   setContextMenuState: (state) => set({ contextMenuState: state }),
+
+  // Comment panel actions
+  toggleCommentsPanel: () => {
+    set({ isCommentsPanelOpen: !get().isCommentsPanelOpen });
+  },
+  openCommentsPanel: (nodeId?: string) => {
+    set({ 
+      isCommentsPanelOpen: true,
+      selectedNodeId: nodeId || get().selectedNodeId
+    });
+  },
+  closeCommentsPanel: () => {
+    set({ isCommentsPanelOpen: false });
+  },
 
   // Getters
   getNode: (id: string) => {
@@ -690,6 +734,7 @@ const useAppStore = create<AppState>((set, get) => ({
       successMessage: "Mind map data fetched successfully.",
     },
   ),
+
   addNode: withLoadingAndToast(
     async (props: {
       parentNode: Partial<AppNode> | null;
@@ -1742,6 +1787,409 @@ const useAppStore = create<AppState>((set, get) => ({
       newCollapsedState ? "collapseNode" : "expandNode",
       { nodes: get().nodes, edges: get().edges }
     );
+  },
+
+  // Enhanced Layout functionality
+  applyAdvancedLayout: withLoadingAndToast(
+    async (config: SpecificLayoutConfig) => {
+      const { nodes, edges, addStateToHistory } = get();
+      
+      const layoutResult = LayoutAlgorithms.applyLayout(nodes, edges, config);
+      
+      const updatedNodes = nodes.map(node => {
+        const layoutNode = layoutResult.nodes.find(ln => ln.id === node.id);
+        return layoutNode ? {
+          ...node,
+          position: layoutNode.position
+        } : node;
+      });
+
+      set({ 
+        nodes: updatedNodes,
+        currentLayoutConfig: config
+      });
+
+      addStateToHistory("applyLayout", { nodes: updatedNodes, edges });
+    },
+    "isApplyingLayout",
+    {
+      initialMessage: "Applying layout...",
+      successMessage: "Layout applied successfully",
+      errorMessage: "Failed to apply layout",
+    },
+  ),
+
+
+  setLayoutConfig: (config: SpecificLayoutConfig) => {
+    set({ currentLayoutConfig: config });
+  },
+
+  getLayoutPresets: () => {
+    return LayoutAlgorithms.getLayoutPresets();
+  },
+
+  // Comment functionality
+  fetchNodeComments: withLoadingAndToast(
+    async (nodeId: string) => {
+      const { supabase, mapId } = get();
+      
+      if (!mapId) {
+        throw new Error("Map ID is required");
+      }
+
+      const { data: comments, error } = await supabase
+        .from("node_comments")
+        .select("*")
+        .eq("node_id", nodeId)
+        .eq("map_id", mapId)
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      set(state => ({
+        nodeComments: {
+          ...state.nodeComments,
+          [nodeId]: comments || []
+        }
+      }));
+    },
+    "isLoadingComments",
+    {
+      initialMessage: "Loading comments...",
+      successMessage: "Comments loaded successfully",
+      errorMessage: "Failed to load comments",
+    },
+  ),
+
+
+  fetchMapComments: withLoadingAndToast(
+    async () => {
+      const { supabase, mapId } = get();
+      
+      if (!mapId) {
+        throw new Error("Map ID is required");
+      }
+
+      const { data: comments, error } = await supabase
+        .from("map_comments")
+        .select("*")
+        .eq("map_id", mapId)
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      set({ mapComments: comments || [] });
+    },
+    "isLoadingComments",
+    {
+      initialMessage: "Loading map comments...",
+      successMessage: "Map comments loaded successfully",
+      errorMessage: "Failed to load map comments",
+    },
+  ),
+
+  addNodeComment: withLoadingAndToast(
+    async (nodeId: string, content: string, parentId?: string) => {
+      const { supabase, mapId } = get();
+      
+      if (!mapId) {
+        throw new Error("Map ID is required");
+      }
+
+      const user = await supabase.auth.getUser();
+      if (!user.data.user) {
+        throw new Error("User not authenticated");
+      }
+
+      const { data: comment, error } = await supabase
+        .from("node_comments")
+        .insert({
+          node_id: nodeId,
+          map_id: mapId,
+          content,
+          author_id: user.data.user.id,
+          parent_comment_id: parentId,
+        })
+        .select("*")
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      set(state => ({
+        nodeComments: {
+          ...state.nodeComments,
+          [nodeId]: [...(state.nodeComments[nodeId] || []), comment]
+        }
+      }));
+
+      // Clear draft
+      get().clearCommentDraft(nodeId);
+    },
+    "isSavingComment",
+    {
+      initialMessage: "Adding comment...",
+      successMessage: "Comment added successfully",
+      errorMessage: "Failed to add comment",
+    },
+  ),
+
+  addMapComment: withLoadingAndToast(
+    async (content: string, position?: { x: number; y: number }, parentId?: string) => {
+      const { supabase, mapId } = get();
+      
+      if (!mapId) {
+        throw new Error("Map ID is required");
+      }
+
+      const user = await supabase.auth.getUser();
+      if (!user.data.user) {
+        throw new Error("User not authenticated");
+      }
+
+      const { data: comment, error } = await supabase
+        .from("map_comments")
+        .insert({
+          map_id: mapId,
+          content,
+          author_id: user.data.user.id,
+          parent_comment_id: parentId,
+          position,
+        })
+        .select("*")
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      set(state => ({
+        mapComments: [...state.mapComments, comment]
+      }));
+
+      // Clear draft
+      get().clearCommentDraft(mapId);
+    },
+    "isSavingComment",
+    {
+      initialMessage: "Adding map comment...",
+      successMessage: "Map comment added successfully",
+      errorMessage: "Failed to add map comment",
+    },
+  ),
+
+  updateComment: withLoadingAndToast(
+    async (commentId: string, content: string) => {
+      const { supabase } = get();
+
+      const { data: comment, error } = await supabase
+        .from("comments")
+        .update({ 
+          content,
+          is_edited: true,
+          edited_at: new Date().toISOString()
+        })
+        .eq("id", commentId)
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Update local state
+      set(state => {
+        const newNodeComments = { ...state.nodeComments };
+        Object.keys(newNodeComments).forEach(nodeId => {
+          newNodeComments[nodeId] = newNodeComments[nodeId].map(c => 
+            c.id === commentId ? { ...c, ...comment } : c
+          );
+        });
+
+        const newMapComments = state.mapComments.map(c => 
+          c.id === commentId ? { ...c, ...comment } : c
+        );
+
+        return {
+          nodeComments: newNodeComments,
+          mapComments: newMapComments
+        };
+      });
+    },
+    "isSavingComment",
+    {
+      initialMessage: "Updating comment...",
+      successMessage: "Comment updated successfully",
+      errorMessage: "Failed to update comment",
+    },
+  ),
+
+  deleteComment: withLoadingAndToast(
+    async (commentId: string) => {
+      const { supabase } = get();
+
+      const { error } = await supabase
+        .from("comments")
+        .delete()
+        .eq("id", commentId);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Update local state
+      set(state => {
+        const newNodeComments = { ...state.nodeComments };
+        Object.keys(newNodeComments).forEach(nodeId => {
+          newNodeComments[nodeId] = newNodeComments[nodeId].filter(c => c.id !== commentId);
+        });
+
+        const newMapComments = state.mapComments.filter(c => c.id !== commentId);
+
+        return {
+          nodeComments: newNodeComments,
+          mapComments: newMapComments,
+          selectedCommentId: state.selectedCommentId === commentId ? null : state.selectedCommentId
+        };
+      });
+    },
+    "isDeletingComment",
+    {
+      initialMessage: "Deleting comment...",
+      successMessage: "Comment deleted successfully",
+      errorMessage: "Failed to delete comment",
+    },
+  ),
+
+  resolveComment: withLoadingAndToast(
+    async (commentId: string) => {
+      const { supabase } = get();
+
+      const user = await supabase.auth.getUser();
+      if (!user.data.user) {
+        throw new Error("User not authenticated");
+      }
+
+      const { data: comment, error } = await supabase
+        .from("comments")
+        .update({ 
+          is_resolved: true,
+          resolved_by: user.data.user.id,
+          resolved_at: new Date().toISOString()
+        })
+        .eq("id", commentId)
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Update local state
+      set(state => {
+        const newNodeComments = { ...state.nodeComments };
+        Object.keys(newNodeComments).forEach(nodeId => {
+          newNodeComments[nodeId] = newNodeComments[nodeId].map(c => 
+            c.id === commentId ? { ...c, ...comment } : c
+          );
+        });
+
+        const newMapComments = state.mapComments.map(c => 
+          c.id === commentId ? { ...c, ...comment } : c
+        );
+
+        return {
+          nodeComments: newNodeComments,
+          mapComments: newMapComments
+        };
+      });
+    },
+    "isSavingComment",
+    {
+      initialMessage: "Resolving comment...",
+      successMessage: "Comment resolved successfully",
+      errorMessage: "Failed to resolve comment",
+    },
+  ),
+
+  unresolveComment: withLoadingAndToast(
+    async (commentId: string) => {
+      const { supabase } = get();
+
+      const { data: comment, error } = await supabase
+        .from("comments")
+        .update({ 
+          is_resolved: false,
+          resolved_by: null,
+          resolved_at: null
+        })
+        .eq("id", commentId)
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Update local state
+      set(state => {
+        const newNodeComments = { ...state.nodeComments };
+        Object.keys(newNodeComments).forEach(nodeId => {
+          newNodeComments[nodeId] = newNodeComments[nodeId].map(c => 
+            c.id === commentId ? { ...c, ...comment } : c
+          );
+        });
+
+        const newMapComments = state.mapComments.map(c => 
+          c.id === commentId ? { ...c, ...comment } : c
+        );
+
+        return {
+          nodeComments: newNodeComments,
+          mapComments: newMapComments
+        };
+      });
+    },
+    "isSavingComment",
+    {
+      initialMessage: "Unresolving comment...",
+      successMessage: "Comment unresolved successfully",
+      errorMessage: "Failed to unresolve comment",
+    },
+  ),
+
+  setCommentFilter: (filter: CommentFilter) => {
+    set({ commentFilter: filter });
+  },
+
+  setCommentSort: (sort: CommentSort) => {
+    set({ commentSort: sort });
+  },
+
+  setSelectedComment: (commentId: string | null) => {
+    set({ selectedCommentId: commentId });
+  },
+
+  updateCommentDraft: (targetId: string, content: string) => {
+    set(state => ({
+      commentDrafts: {
+        ...state.commentDrafts,
+        [targetId]: content
+      }
+    }));
+  },
+
+  clearCommentDraft: (targetId: string) => {
+    set(state => {
+      const newDrafts = { ...state.commentDrafts };
+      delete newDrafts[targetId];
+      return { commentDrafts: newDrafts };
+    });
   },
 }));
 

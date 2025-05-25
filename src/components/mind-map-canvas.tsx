@@ -9,6 +9,7 @@ import { ReactFlowArea } from "./mind-map/react-flow-area";
 import useAppStore from "@/contexts/mind-map/mind-map-store";
 import { useShallow } from "zustand/shallow";
 import { CommandPalette } from "./command-palette";
+import { CommentsPanel } from "./comments-panel";
 import { MindMapToolbar } from "./mind-map-toolbar/mind-map-toolbar";
 import { ContextMenuWrapper } from "./mind-map/context-menu-wrapper";
 
@@ -26,10 +27,13 @@ export function MindMapCanvas() {
     canRedo,
     loadingStates,
     setPopoverOpen,
+    popoverOpen,
     isFocusMode,
     createGroupFromSelected,
     ungroupNodes,
     toggleNodeCollapse,
+    isCommentsPanelOpen,
+    toggleCommentsPanel,
   } = useAppStore(
     useShallow((state) => ({
       handleUndo: state.handleUndo,
@@ -44,9 +48,12 @@ export function MindMapCanvas() {
       loadingStates: state.loadingStates,
       setPopoverOpen: state.setPopoverOpen,
       isFocusMode: state.isFocusMode,
+      popoverOpen: state.popoverOpen,
       createGroupFromSelected: state.createGroupFromSelected,
       ungroupNodes: state.ungroupNodes,
       toggleNodeCollapse: state.toggleNodeCollapse,
+      isCommentsPanelOpen: state.isCommentsPanelOpen,
+      toggleCommentsPanel: state.toggleCommentsPanel,
     })),
   );
   const isLoading = loadingStates.isStateLoading;
@@ -95,30 +102,40 @@ export function MindMapCanvas() {
     isBusy: isLoading,
     onGroup: handleGroup,
     onUngroup: handleUngroup,
+    onToggleComments: toggleCommentsPanel,
     onToggleCollapse: handleToggleCollapse,
   });
 
   return (
     // Context Provider is now wrapping this component higher up
-    <div className="relative h-full w-full overflow-hidden rounded-md bg-zinc-900">
-      {/* Render the wrapped components */}
-      <MindMapToolbar />
+    <div className="relative h-full w-full overflow-hidden rounded-md bg-zinc-900 flex">
+      {/* Main content area */}
+      <div className={cn([
+        "flex-1 relative",
+        isCommentsPanelOpen ? "w-[calc(100%-384px)]" : "w-full"
+      ])}>
+        {/* Render the wrapped components */}
+        <MindMapToolbar />
 
-      <CommandPalette />
+        <CommandPalette />
 
-      <ModalsWrapper />
+        <ModalsWrapper />
 
-      {/* Position the ReactFlowArea */}
-      <div
-        className={cn([
-          "relative w-full transition-all duration-200 ease-in-out",
-          isFocusMode ? "h-full mt-0" : "h-[calc(100%-60px)] mt-[60px]",
-        ])}
-      >
-        <ContextMenuWrapper />
+        {/* Position the ReactFlowArea */}
+        <div
+          className={cn([
+            "relative w-full transition-all duration-200 ease-in-out",
+            isFocusMode ? "h-full mt-0" : "h-[calc(100%-60px)] mt-[60px]",
+          ])}
+        >
+          <ContextMenuWrapper />
 
-        <ReactFlowArea />
+          <ReactFlowArea />
+        </div>
       </div>
+
+      {/* Comments Panel */}
+      <CommentsPanel />
     </div>
   );
 }
