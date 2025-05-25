@@ -29,6 +29,7 @@ export function MindMapCanvas() {
     isFocusMode,
     createGroupFromSelected,
     ungroupNodes,
+    toggleNodeCollapse,
   } = useAppStore(
     useShallow((state) => ({
       handleUndo: state.handleUndo,
@@ -45,6 +46,7 @@ export function MindMapCanvas() {
       isFocusMode: state.isFocusMode,
       createGroupFromSelected: state.createGroupFromSelected,
       ungroupNodes: state.ungroupNodes,
+      toggleNodeCollapse: state.toggleNodeCollapse,
     })),
   );
   const isLoading = loadingStates.isStateLoading;
@@ -74,6 +76,12 @@ export function MindMapCanvas() {
     }
   };
 
+  const handleToggleCollapse = () => {
+    if (selectedNodes.length === 1) {
+      toggleNodeCollapse(selectedNodes[0].id);
+    }
+  };
+
   useKeyboardShortcuts({
     onUndo: handleUndo,
     onRedo: handleRedo,
@@ -87,6 +95,7 @@ export function MindMapCanvas() {
     isBusy: isLoading,
     onGroup: handleGroup,
     onUngroup: handleUngroup,
+    onToggleCollapse: handleToggleCollapse,
   });
 
   return (

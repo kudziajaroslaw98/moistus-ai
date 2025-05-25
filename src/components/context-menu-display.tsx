@@ -3,6 +3,8 @@ import useAppStore from "@/contexts/mind-map/mind-map-store";
 import { EdgeData } from "@/types/edge-data";
 import type { PathType } from "@/types/path-types";
 import {
+  ChevronDown,
+  ChevronRight,
   GitPullRequestArrow,
   Group,
   LayoutPanelLeft,
@@ -86,6 +88,8 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
     createGroupFromSelected,
     ungroupNodes,
     removeNodesFromGroup,
+    toggleNodeCollapse,
+    getDirectChildrenCount,
   } = useAppStore(
     useShallow((state) => ({
       reactFlowInstance: state.reactFlowInstance,
@@ -108,6 +112,8 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
       createGroupFromSelected: state.createGroupFromSelected,
       ungroupNodes: state.ungroupNodes,
       removeNodesFromGroup: state.removeNodesFromGroup,
+      toggleNodeCollapse: state.toggleNodeCollapse,
+      getDirectChildrenCount: state.getDirectChildrenCount,
     })),
   );
 
@@ -261,6 +267,26 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
 
         <span>Add Child</span>
       </Button>
+
+      {/* Collapse/Expand - only show if node has children */}
+      {getDirectChildrenCount(nodeId) > 0 && (
+        <Button
+          variant="ghost"
+          align="left"
+          onClick={() => toggleNodeCollapse(nodeId)}
+          className="gap-2"
+        >
+          {clickedNodeData?.metadata?.isCollapsed ? (
+            <ChevronRight className="size-4" />
+          ) : (
+            <ChevronDown className="size-4" />
+          )}
+
+          <span>
+            {clickedNodeData?.metadata?.isCollapsed ? "Expand" : "Collapse"} Branch
+          </span>
+        </Button>
+      )}
 
       {/* Remove from Group - only show if node belongs to a group */}
       {clickedNodeData?.metadata?.groupId && (

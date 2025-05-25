@@ -51,8 +51,14 @@ export function ReactFlowArea() {
 
   const supabase = useAppStore((state) => state.supabase);
 
-  const nodes = useAppStore((state) => state.nodes);
-  const edges = useAppStore((state) => state.edges);
+  const allNodes = useAppStore((state) => state.nodes);
+  const allEdges = useAppStore((state) => state.edges);
+  const getVisibleNodes = useAppStore((state) => state.getVisibleNodes);
+  const getVisibleEdges = useAppStore((state) => state.getVisibleEdges);
+  
+  // Use visible nodes and edges for rendering (filtered for collapsed branches)
+  const nodes = getVisibleNodes();
+  const edges = getVisibleEdges();
   const isFocusMode = useAppStore((state) => state.isFocusMode);
   const onNodesChange = useAppStore((state) => state.onNodesChange);
   const onEdgesChange = useAppStore((state) => state.onEdgesChange);
@@ -178,7 +184,7 @@ export function ReactFlowArea() {
           y: clientY,
         });
 
-        const parentNode = nodes.find(
+        const parentNode = allNodes.find(
           (node) => node.id === connectingNodeId.current,
         );
 
@@ -195,7 +201,7 @@ export function ReactFlowArea() {
       connectingHandleId.current = null;
       connectingHandleType.current = null;
     },
-    [reactFlowInstance, addNode, nodes],
+    [reactFlowInstance, addNode, allNodes],
   );
 
   const handleSelectionChange = useCallback(

@@ -42,16 +42,17 @@ const BaseNodeWrapperComponent = ({
   includePadding = true,
 }: BaseNodeWrapperProps) => {
   const connection = useConnection();
-  const { allEdges, nodes } = useAppStore(
+  const { nodes, toggleNodeCollapse, getDirectChildrenCount } = useAppStore(
     useShallow((state) => ({
-      allEdges: state.edges,
       nodes: state.nodes,
+      toggleNodeCollapse: state.toggleNodeCollapse,
+      getDirectChildrenCount: state.getDirectChildrenCount,
     })),
   );
   const [hover, setHover] = useState(false);
   const directChildrenCount = useMemo(() => {
-    return allEdges.filter((edge) => edge.source === id).length;
-  }, [allEdges, id]);
+    return getDirectChildrenCount(id);
+  }, [getDirectChildrenCount, id]);
 
   const hasChildren = directChildrenCount > 0;
   const isTarget = connection.inProgress && connection.fromNode?.id !== id;
@@ -119,11 +120,14 @@ const BaseNodeWrapperComponent = ({
               <Button
                 onClick={(e) => {
                   e.stopPropagation(); // Prevent node selection/drag
-                  // toggleNodeCollapse(id);
+                  toggleNodeCollapse(id);
                 }}
                 className="nodrag nopan z-20 rounded-sm hover:bg-black/20 h-5 w-auto group flex gap-2 px-1 transition-all"
                 variant={"ghost"}
-                title={collapsed ? "Expand Branch" : "Collapse Branch"}
+                title={collapsed 
+                  ? `Expand Branch (${directChildrenCount} ${directChildrenCount === 1 ? 'child' : 'children'})` 
+                  : `Collapse Branch (${directChildrenCount} ${directChildrenCount === 1 ? 'child' : 'children'})`
+                }
                 onHoverStart={() => setHover(true)}
                 onHoverEnd={() => setHover(false)}
               >

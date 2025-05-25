@@ -1633,6 +1633,116 @@ const useAppStore = create<AppState>((set, get) => ({
       errorMessage: "Failed to ungroup nodes",
     },
   ),
+
+  // Collapse/Expand functionality
+  getDirectChildrenCount: (nodeId: string): number => {
+    const { edges } = get();
+    return edges.filter(edge => edge.source === nodeId).length;
+  },
+
+  getDescendantNodeIds: (nodeId: string): string[] => {
+    const { edges } = get();
+    const descendants: string[] = [];
+    const visited = new Set<string>();
+
+    const findDescendants = (currentNodeId: string) => {
+      if (visited.has(currentNodeId)) return;
+      visited.add(currentNodeId);
+
+      const childEdges = edges.filter(edge => edge.source === currentNodeId);
+      
+      for (const edge of childEdges) {
+        if (!visited.has(edge.target)) {
+          descendants.push(edge.target);
+          findDescendants(edge.target);
+        }
+      }
+    };
+
+    findDescendants(nodeId);
+    return descendants;
+  },
+
+  getVisibleNodes: (): AppNode[] => {
+    const { nodes } = get();
+    const collapsedNodes = nodes.filter(node => node.data.metadata?.isCollapsed);
+    const hiddenNodeIds = new Set<string>();
+
+    // Collect all descendant IDs of collapsed nodes
+    for (const collapsedNode of collapsedNodes) {
+      const descendants = get().getDescendantNodeIds(collapsedNode.id);
+      descendants.forEach(id => hiddenNodeIds.add(id));
+    }
+
+    // Filter out hidden nodes first
+    const visibleNodes = nodes.filter(node => !hiddenNodeIds.has(node.id));
+
+    // Now handle groups - hide groups if all their children are hidden
+    const groupNodes = visibleNodes.filter(node => node.data.metadata?.isGroup);
+    const finalHiddenNodeIds = new Set(hiddenNodeIds);
+
+    for (const groupNode of groupNodes) {
+      const groupChildren = groupNode.data.metadata?.groupChildren as string[] || [];
+      
+      // If all group children are hidden, hide the group too
+      if (groupChildren.length > 0 && groupChildren.every(childId => hiddenNodeIds.has(childId))) {
+        finalHiddenNodeIds.add(groupNode.id);
+      }
+    }
+
+    // Return only visible nodes (excluding groups with all hidden children)
+    return nodes.filter(node => !finalHiddenNodeIds.has(node.id));
+  },
+
+  getVisibleEdges: (): AppEdge[] => {
+    const { edges, nodes } = get();
+    const visibleNodes = get().getVisibleNodes();
+    const visibleNodeIds = new Set(visibleNodes.map(node => node.id));
+    const collapsedNodeIds = new Set(
+      nodes.filter(node => node.data.metadata?.isCollapsed).map(node => node.id)
+    );
+
+    // Return edges where:
+    // 1. Both source and target are visible, OR
+    // 2. Source is visible and target is a collapsed node (to show connection to collapsed branch)
+    return edges.filter(edge => {
+      const sourceVisible = visibleNodeIds.has(edge.source);
+      const targetVisible = visibleNodeIds.has(edge.target);
+      const targetIsCollapsed = collapsedNodeIds.has(edge.target);
+      
+      return (sourceVisible && targetVisible) || (sourceVisible && targetIsCollapsed);
+    });
+  },
+
+  toggleNodeCollapse: async (nodeId: string): Promise<void> => {
+    const { nodes, updateNode, addStateToHistory } = get();
+    const node = nodes.find(n => n.id === nodeId);
+
+    if (!node) {
+      console.error(`Node with id ${nodeId} not found`);
+      return;
+    }
+
+    const currentCollapsedState = node.data.metadata?.isCollapsed ?? false;
+    const newCollapsedState = !currentCollapsedState;
+
+    // Update the node's collapse state
+    await updateNode({
+      nodeId,
+      data: {
+        metadata: {
+          ...node.data.metadata,
+          isCollapsed: newCollapsedState,
+        },
+      },
+    });
+
+    // Add to history for undo/redo
+    addStateToHistory(
+      newCollapsedState ? "collapseNode" : "expandNode",
+      { nodes: get().nodes, edges: get().edges }
+    );
+  },
 }));
 
 export default useAppStore;

@@ -171,4 +171,11 @@ export interface AppState {
   removeNodesFromGroup: (nodeIds: string[]) => Promise<void>;
   deleteGroup: (groupId: string, preserveChildren?: boolean) => Promise<void>;
   ungroupNodes: (groupId: string) => Promise<void>;
+
+  // Collapse/Expand functionality
+  getDirectChildrenCount: (nodeId: string) => number;
+  getDescendantNodeIds: (nodeId: string) => string[];
+  getVisibleNodes: () => AppNode[];
+  getVisibleEdges: () => AppEdge[];
+  toggleNodeCollapse: (nodeId: string) => Promise<void>;
 }

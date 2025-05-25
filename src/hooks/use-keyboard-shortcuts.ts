@@ -14,6 +14,7 @@ interface UseKeyboardShortcutsProps {
   isBusy: boolean;
   onGroup?: () => void;
   onUngroup?: () => void;
+  onToggleCollapse?: () => void;
 }
 
 export function useKeyboardShortcuts({
@@ -29,6 +30,7 @@ export function useKeyboardShortcuts({
   isBusy,
   onGroup,
   onUngroup,
+  onToggleCollapse,
 }: UseKeyboardShortcutsProps): void {
   const reactFlowInstance = useAppStore((state) => state.reactFlowInstance);
   const copySelectedNodes = useAppStore((state) => state.copySelectedNodes);
@@ -110,6 +112,14 @@ export function useKeyboardShortcuts({
         event.preventDefault();
         if (onUngroup) {
           onUngroup();
+        }
+        return;
+      }
+
+      if ((event.key === "-" || event.key === "+") && selectedNodeId) {
+        event.preventDefault();
+        if (onToggleCollapse) {
+          onToggleCollapse();
         }
         return;
       }
