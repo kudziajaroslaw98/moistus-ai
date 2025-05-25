@@ -6,6 +6,7 @@ import { useDragControls } from "motion/react";
 import { memo, useCallback, useRef, useState } from "react";
 import { useInteractiveElement } from "../../hooks/use-interactive-element";
 import { BuilderElementNode } from "./builder-element-node";
+import { SettingsPopover } from "./settings/settings-popover";
 
 interface BuilderCanvasProps {
   canvas: BuilderCanvasType;
@@ -30,7 +31,10 @@ const BuilderCanvasComponent = ({
   isEditing = false,
 }: BuilderCanvasProps) => {
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
+  const [selectedElementNode, setSelectedElementNode] =
+    useState<HTMLElement | null>(null); // Changed from selectedElementRect
   const canvasRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null); // Add container ref
 
   const updateElement = useCallback(
     (updatedElement: BuilderElement) => {
@@ -41,6 +45,7 @@ const BuilderCanvasComponent = ({
     },
     [canvas, onCanvasUpdate],
   );
+
   const {
     draggingElementId,
     handleDragStart,
@@ -58,20 +63,22 @@ const BuilderCanvasComponent = ({
   });
   const dragControls = useDragControls();
 
+  const currentSelectedElementObject = canvas.elements.find(
+    (el) => el.id === selectedElement,
+  );
+
+  const handleCloseSettingsPopover = useCallback(() => {
+    setSelectedElement(null);
+    setSelectedElementNode(null); // Changed from selectedElementRect
+  }, [setSelectedElement]);
+
   const handleElementClick = useCallback(
-    (elementId: string) => {
+    (elementId: string, domNode: HTMLElement | null) => {
+      // Changed elementRect to domNode
       if (isEditing) {
         setSelectedElement(elementId);
-        // Call handleDragStart from the hook when an element is selected and editing is active
-        // This assumes drag starts immediately on selection if isEditing. If drag is initiated by a separate handle, this might change.
-        // For now, let's assume the drag handle calls dragControls.start(e) which then might trigger hook's handleDragStart internally if needed
-        // The current component's handleDragStart was: setDraggingElement(selectedElement);
-        // The hook's handleDragStart is: setDraggingElementId(selectedElementId);
-        // We need to call the hook's handleDragStart after selection if that's the desired UX.
-        // The motion.div's onPointerDown on the drag handle calls dragControls.start(e).
-        // The hook's handleDragStart is for setting the draggingElementId state.
-        // Let's call it here for now.
-        handleDragStart();
+        setSelectedElementNode(domNode); // Changed from setSelectedElementRect
+        handleDragStart(); // Consider if dragStart needs the node or just ID
       }
     },
     [isEditing, setSelectedElement, handleDragStart],
@@ -80,6 +87,7 @@ const BuilderCanvasComponent = ({
   const handleCanvasClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       setSelectedElement(null);
+      setSelectedElementNode(null); // Changed from selectedElementRect
     }
   };
 
@@ -89,12 +97,16 @@ const BuilderCanvasComponent = ({
     );
     onCanvasUpdate({ ...canvas, elements: updatedElements });
     setSelectedElement(null);
+    setSelectedElementNode(null); // Changed from selectedElementRect
   };
 
   const { width: maxWidth, height: maxHeight } = getCanvasMaxSize(canvas);
 
   return (
-    <div className="w-full bg-zinc-900 rounded-lg p-4">
+    <div
+      ref={containerRef}
+      className="w-full bg-zinc-900 rounded-lg p-4 relative overflow-visible"
+    >
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-zinc-200">Canvas</h3>
 
@@ -165,6 +177,17 @@ const BuilderCanvasComponent = ({
           );
         })}
       </div>
+
+      {/* Move popover outside canvas but inside container */}
+      {isEditing && currentSelectedElementObject && selectedElementNode && (
+        <SettingsPopover
+          key={currentSelectedElementObject.id}
+          selectedElement={currentSelectedElementObject}
+          anchorElement={selectedElementNode} // Changed from elementRect to anchorElement
+          onUpdateElement={updateElement}
+          onClose={handleCloseSettingsPopover}
+        />
+      )}
     </div>
   );
 };

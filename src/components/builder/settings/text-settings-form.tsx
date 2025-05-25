@@ -1,57 +1,132 @@
 import type { BuilderElement } from "@/types/builder-node";
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from "react";
+import { FormField } from "@/components/ui/form-field"; // Added import
+// Assuming Input and Textarea are already imported or available globally, adjust if needed.
+// For this example, I'll assume they are standard HTML elements or custom components that don't need specific import here unless they are from '@/components/ui'
+// Let's assume you have Input and Textarea from '@/components/ui' like in text-node-form.tsx
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 interface TextSettingsFormProps {
-  element: BuilderElement & { type: 'text' }; // Ensure element is of type 'text'
-  onUpdate: (properties: BuilderElement['properties']) => void;
+  element: BuilderElement & { type: "text" }; // Ensure element is of type 'text'
+  // onUpdate will now update the entire element, not just properties, to handle size changes
+  onUpdate: (updatedElement: Partial<BuilderElement>) => void;
 }
 
-export const TextSettingsForm: React.FC<TextSettingsFormProps> = ({ element, onUpdate }) => {
-  // Assuming text elements have a 'text' property
-  const [textContent, setTextContent] = useState(element.properties.text || '');
+export const TextSettingsForm: React.FC<TextSettingsFormProps> = ({
+  element,
+  onUpdate,
+}) => {
+  const [textContent, setTextContent] = useState(element.properties.text || "");
+  const [width, setWidth] = useState(element.position.width);
+  const [height, setHeight] = useState(element.position.height);
 
   useEffect(() => {
-    setTextContent(element.properties.text || '');
-  }, [element.properties.text]);
+    setTextContent(element.properties.text || "");
+    setWidth(element.position.width);
+    setHeight(element.position.height);
+  }, [
+    element.properties.text,
+    element.position.width,
+    element.position.height,
+  ]);
 
   const handleTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setTextContent(event.target.value);
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-    onUpdate({ ...element.properties, text: textContent });
+  const handlePropertyChange = (property: string, value: any) => {
+    onUpdate({
+      id: element.id, // Important to identify which element to update
+      properties: { ...element.properties, [property]: value },
+    });
   };
-  
-  // Auto-save on blur or text change with debounce could be an improvement here
-  const handleBlur = () => {
-    onUpdate({ ...element.properties, text: textContent });
+
+  const handleSizeChange = (dimension: "width" | "height", value: string) => {
+    const numericValue = parseInt(value, 10);
+
+    if (!isNaN(numericValue) && numericValue > 0) {
+      if (dimension === "width") setWidth(numericValue);
+      if (dimension === "height") setHeight(numericValue);
+      onUpdate({
+        id: element.id, // Important to identify which element to update
+        position: { ...element.position, [dimension]: numericValue },
+      });
+    }
+  };
+
+  // Auto-save on blur for text content
+  const handleTextBlur = () => {
+    handlePropertyChange("text", textContent);
+  };
+
+  // Auto-save on blur for size inputs
+  const handleSizeInputBlur = (
+    dimension: "width" | "height",
+    value: number,
+  ) => {
+    onUpdate({
+      id: element.id,
+      position: { ...element.position, [dimension]: value },
+    });
+  };
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    // console.log("Form submitted, default prevented. Updates occur on blur.");
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label htmlFor="textContent" className="block text-sm font-medium text-gray-700">
-          Text Content
-        </label>
-        <textarea
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <FormField label="Text Content" id="textContent">
+        <Textarea
           id="textContent"
-          name="textContent"
+          name="textContent" 
           rows={3}
-          className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           value={textContent}
           onChange={handleTextChange}
-          onBlur={handleBlur} // Update on blur
+          onBlur={handleTextBlur}
         />
+      </FormField>
+
+      <div className="grid grid-cols-2 gap-4"> 
+        <FormField label="Width (px)" id="elementWidth">
+          <Input
+            type="number"
+            id="elementWidth"
+            name="width"
+            value={width}
+            onChange={(e) => setWidth(parseInt(e.target.value, 10) || 0)} 
+            onBlur={(e) =>
+              handleSizeInputBlur(
+                "width",
+                parseInt(e.target.value, 10) || element.position.width,
+              )
+            }
+            min="10"
+          />
+        </FormField>
+
+        <FormField label="Height (px)" id="elementHeight">
+          <Input
+            type="number"
+            id="elementHeight"
+            name="height"
+            value={height}
+            onChange={(e) => setHeight(parseInt(e.target.value, 10) || 0)}
+            onBlur={(e) =>
+              handleSizeInputBlur(
+                "height",
+                parseInt(e.target.value, 10) || element.position.height,
+              )
+            }
+            min="10"
+          />
+        </FormField>
       </div>
+
       {/* Add more text settings here as per requirements (font, size, color, etc.) */}
-      {/* <button 
-        type="submit"
-        className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-      >
-        Apply Changes
-      </button> */}
-      <p className="text-xs text-gray-500">Changes are applied on blur.</p>
+      {/* No explicit submit button as per current design (updates on blur) */}
     </form>
   );
 };

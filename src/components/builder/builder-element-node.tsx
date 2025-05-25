@@ -1,10 +1,14 @@
 import type { BuilderElement } from "@/types/builder-node";
 import { cn } from "@/utils/cn";
+import { MoveDiagonal2, X } from "lucide-react";
 import type { useDragControls } from "motion/react"; // Using MotionProps for motion.div
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import type { CSSProperties, PointerEvent, ReactNode } from "react"; // PointerEvent for onPointerDown
+import { useRef } from "react";
+import { Button } from "../ui/button";
 import {
   ImageElement as ResolvedImageElement,
+  LinkElement as ResolvedLinkElement,
   StatusElement as ResolvedStatusElement,
   TagElement as ResolvedTagElement,
   TextElement as ResolvedTextElement,
@@ -18,6 +22,7 @@ const elementComponentsMap = {
   video: ResolvedVideoElement,
   status: ResolvedStatusElement,
   tag: ResolvedTagElement,
+  link: ResolvedLinkElement, // Added LinkElement
 } as const;
 
 type ElementType = keyof typeof elementComponentsMap;
@@ -30,7 +35,7 @@ export interface BuilderElementNodeProps {
   dragControls: ReturnType<typeof useDragControls>;
   elementLayoutClassName: string;
   elementLayoutStyle: CSSProperties;
-  onElementClick: (elementId: string) => void;
+  onElementClick: (elementId: string, domNode: HTMLElement | null) => void; // Changed elementRect to domNode
   onDrag: (
     element: BuilderElement,
     info: { point: { x: number; y: number } },
@@ -61,6 +66,7 @@ export function BuilderElementNode({
   onDeleteElement,
   onUpdateElement,
 }: BuilderElementNodeProps): ReactNode | null {
+  const elementRef = useRef<HTMLDivElement>(null);
   const ElementComponent = elementComponentsMap[element.type as ElementType];
 
   if (!ElementComponent) {
@@ -79,7 +85,6 @@ export function BuilderElementNode({
     <motion.div
       drag={isEditing && isSelected}
       dragControls={dragControls}
-      dragListener={false}
       dragMomentum={false}
       dragElastic={0}
       dragConstraints={dragConstraints}
@@ -88,37 +93,13 @@ export function BuilderElementNode({
       }
       onDragEnd={() => onDragEnd(element)}
       style={elementLayoutStyle}
-      onClick={() => onElementClick(element.id)}
+      ref={elementRef}
+      onClick={
+        () => onElementClick(element.id, elementRef.current) // Changed to pass elementRef.current
+      }
       className={cn("z-10", isDragging && "opacity-50", elementLayoutClassName)}
-      whileHover={isEditing ? { scale: 1.02 } : {}}
       whileTap={isEditing ? { scale: 0.98 } : {}}
     >
-      {isEditing && isSelected && (
-        <div
-          className="absolute left-1 top-1 w-6 h-6 flex items-center justify-center bg-zinc-700 border border-zinc-400 rounded cursor-move z-30"
-          title="Drag to move"
-          onPointerDown={(e: PointerEvent<HTMLDivElement>) =>
-            dragControls.start(e)
-          }
-        >
-          <svg
-            width="16"
-            height="16"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            className="text-zinc-300"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M8 12h8m-4-4v8"
-            />
-          </svg>
-        </div>
-      )}
-
       <motion.div className="w-full h-full">
         <ElementComponent
           element={element}
@@ -128,34 +109,75 @@ export function BuilderElementNode({
         />
       </motion.div>
 
-      {isEditing && isSelected && (
-        <>
-          <motion.div
-            className="absolute right-0 bottom-0 w-6 h-6 bg-zinc-700 border-2 border-white rounded-full cursor-se-resize z-20"
-            drag
-            dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-            dragElastic={0}
-            dragMomentum={false}
-            onDrag={(event, info) =>
-              onResizeDrag(element, info as { point: { x: number; y: number } })
-            }
-            onDragEnd={() => onResizeEnd(element)}
-          />
-        </>
-      )}
+      <AnimatePresence>
+        {isEditing && isSelected && (
+          <>
+            {/* Delete Button (Modernized version of the red 'X' circle) */}
+            <motion.div
+              key={`delete-${element.id}`} // Unique key for AnimatePresence
+              initial={{ opacity: 0, scale: 0.5, y: -10, x: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0, x: 0 }}
+              exit={{ opacity: 0, scale: 0.5, y: -10, x: 10 }}
+              transition={{
+                type: "spring",
+                stiffness: 500,
+                damping: 30,
+                duration: 0.2,
+              }}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent event bubbling to the element itself
+                onDeleteElement(element.id);
+              }}
+              className="absolute -top-2.5 -right-2.5 rounded-sm flex items-center justify-center text-white shadow-lg z-30 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-75"
+              aria-label="Delete element"
+            >
+              <Button variant="destructive" size="icon" className="size-5">
+                <X className="size-4" />
+              </Button>
+            </motion.div>
 
-      {isEditing && isSelected && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDeleteElement(element.id);
-          }}
-          className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center text-white text-xs z-20"
-          aria-label="Delete element"
-        >
-          ×
-        </button>
-      )}
+            {/* Resize Handle (Modernized visual cue) */}
+            <motion.div
+              key={`resize-${element.id}`} // Unique key
+              className="absolute -bottom-2 -right-2 p-0.5rounded-sm cursor-se-resize z-30 shadow-md backdrop-blur-sm flex items-center justify-center"
+              initial={{ opacity: 0, scale: 0.5, y: 10, x: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0, x: 0 }}
+              exit={{ opacity: 0, scale: 0.5, y: 10, x: 10 }}
+              transition={{
+                type: "spring",
+                stiffness: 500,
+                damping: 30,
+                duration: 0.2,
+                delay: 0.05,
+              }}
+              drag
+              dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+              dragElastic={0}
+              dragMomentum={false}
+              onDrag={(event, info) =>
+                onResizeDrag(
+                  element,
+                  info as { point: { x: number; y: number } },
+                )
+              }
+              onDragEnd={() => onResizeEnd(element)}
+              // Optional: to prevent selection issues while dragging
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <Button
+                variant="secondary"
+                size="icon"
+                className="size-5"
+                onPointerDown={(e: PointerEvent<HTMLButtonElement>) =>
+                  dragControls.start(e)
+                }
+              >
+                <MoveDiagonal2 className="size-4" />
+              </Button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

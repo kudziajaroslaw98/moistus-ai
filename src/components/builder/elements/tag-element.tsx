@@ -35,7 +35,7 @@ const TagElementComponent = ({
   return (
     <div
       className={`
-        w-full h-full flex items-center justify-center p-1 text-xs font-medium
+        w-full h-full flex items-center justify-center p-1 text-xs font-medium cursor-move
         ${isSelected ? "ring-2 ring-teal-500" : ""}
         ${isEditing ? "bg-zinc-800" : ""}
       `}
@@ -45,17 +45,7 @@ const TagElementComponent = ({
         borderRadius: `${borderRadius}px`,
       }}
     >
-      {isEditing ? (
-        <input
-          type="text"
-          value={text}
-          onChange={(e) => handleTextChange(e.target.value)}
-          className="w-full h-full bg-transparent text-center border-none outline-none text-xs"
-          style={{ color: textColor }}
-        />
-      ) : (
-        text
-      )}
+      <span>{text}</span>
     </div>
   );
 };

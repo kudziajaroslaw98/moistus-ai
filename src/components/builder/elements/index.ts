@@ -1,6 +1,7 @@
 export { TextElement, textElementType } from './text-element';
 export { ImageElement, imageElementType } from './image-element';
 export { VideoElement, videoElementType } from './video-element';
+export { LinkElement, linkElementType } from './link-element';
 export { StatusElement, statusElementType } from './status-element';
 export { TagElement, tagElementType } from './tag-element';
 
@@ -10,7 +11,8 @@ import {
   imageElementType, 
   videoElementType, 
   statusElementType, 
-  tagElementType 
+  tagElementType, 
+  linkElementType // Added linkElementType import
 } from './';
 
 export const elementTypes: ElementType[] = [
@@ -19,4 +21,5 @@ export const elementTypes: ElementType[] = [
   videoElementType,
   statusElementType,
   tagElementType,
+  linkElementType, // Added linkElementType to the array
 ];

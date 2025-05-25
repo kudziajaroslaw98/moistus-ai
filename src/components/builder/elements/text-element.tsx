@@ -36,7 +36,7 @@ const TextElementComponent = ({
   return (
     <div
       className={`
-        w-full h-full flex items-center justify-center p-2 rounded
+        w-full h-full flex items-center justify-center p-2 rounded cursor-move
         ${isSelected ? "ring-2 ring-teal-500" : ""}
         ${isEditing ? "bg-zinc-800" : ""}
       `}
@@ -47,22 +47,7 @@ const TextElementComponent = ({
         textAlign: textAlign as any,
       }}
     >
-      {isEditing ? (
-        <input
-          type="text"
-          value={text}
-          onChange={(e) => handleTextChange(e.target.value)}
-          className="w-full h-full bg-transparent border-none outline-none"
-          style={{
-            fontSize: `${fontSize}px`,
-            fontWeight,
-            color,
-            textAlign: textAlign as any,
-          }}
-        />
-      ) : (
-        <span>{text}</span>
-      )}
+      <span>{text}</span>
     </div>
   );
 };
