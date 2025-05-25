@@ -103,7 +103,7 @@ export interface AppState {
   setMindMap: (mindMap: MindMapData) => void;
   setLoadingStates: (loadingStates: Partial<LoadingStates>) => void;
   setPopoverOpen: (popover: Partial<Popovers>) => void;
-  setNodeInfo: (node: AppNode | null) => void;
+  setNodeInfo: (node: Partial<AppNode> | null) => void;
   setEdgeInfo: (edge: AppEdge | null) => void;
   setReactFlowInstance: (reactFlowInstance: ReactFlowInstance) => void;
   setMapId: (mapId: string | null) => void;

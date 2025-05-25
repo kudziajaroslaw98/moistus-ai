@@ -1,4 +1,4 @@
-import { nodeTypes } from "@/constants/node-types";
+import { NodeTypes, nodeTypes } from "@/constants/node-types";
 import useAppStore from "@/contexts/mind-map/mind-map-store";
 import {
   CheckSquare,
@@ -57,13 +57,24 @@ export default function SelectNodeTypeModal() {
   };
 
   const handleOnSelectType = (type: string) => {
-    if (!nodeInfo || nodeInfo === null) return;
-    const newNode = nodeInfo;
-    newNode.type = type;
-    addNode({
-      parentNode: { id: nodeInfo.id },
-      nodeType: type,
-    });
+    if (!nodeInfo || nodeInfo === null || !nodeInfo.id) {
+      addNode({
+        parentNode: null,
+        nodeType: type as NodeTypes,
+        position: {
+          x: nodeInfo?.position?.x || 0,
+          y: nodeInfo?.position?.y || 0,
+        },
+      });
+    } else {
+      const newNode = nodeInfo;
+      newNode.type = type;
+      addNode({
+        parentNode: { id: nodeInfo.id },
+        nodeType: type as NodeTypes,
+      });
+    }
+
     onClose();
   };
 

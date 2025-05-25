@@ -76,6 +76,7 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
     contextMenuState,
     getEdge,
     setContextMenuState,
+    setNodeInfo,
     setParentConnection,
   } = useAppStore(
     useShallow((state) => ({
@@ -84,6 +85,7 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
       edges: state.edges,
       updateEdge: state.updateEdge,
       addNode: state.addNode,
+      setNodeInfo: state.setNodeInfo,
       getEdge: state.getEdge,
       deleteNodes: state.deleteNodes,
       deleteEdges: state.deleteEdges,
@@ -165,20 +167,35 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
   };
 
   const handleAddChild = useCallback(
-    (parentId: string) => {
-      const parentNode = nodes.find((n) => n.id === parentId);
+    (parentId?: string, event?: React.MouseEvent<HTMLButtonElement>) => {
+      if (!parentId) {
+        // get position based on button position and react flow position
+        const reactFlowPosition = reactFlowInstance?.screenToFlowPosition({
+          x: event?.clientX || 0,
+          y: event?.clientY || 0,
+        });
 
-      if (!parentNode) return;
+        if (!reactFlowPosition) return;
 
-      const position = {
-        x: parentNode.position.x + (parentNode.width || 170) + 100,
-        y: parentNode.position.y + (parentNode.height || 60) / 2 - 30,
-      };
+        setNodeInfo({
+          position: reactFlowPosition,
+        });
+        setPopoverOpen({ nodeType: true });
+      } else {
+        const parentNode = nodes.find((n) => n.id === parentId);
 
-      addNode({
-        parentNode,
-        position,
-      });
+        if (!parentNode) return;
+
+        setNodeInfo(parentNode);
+        setPopoverOpen({ nodeType: true });
+      }
+
+      setPopoverOpen({ contextMenu: false });
+
+      // addNode({
+      //   parentNode,
+      //   position,
+      // });
     },
     [nodes, addNode],
   );
@@ -346,17 +363,9 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
           variant="ghost"
           align="left"
           disabled={loadingStates.isStateLoading}
-          onClick={() =>
-            handleActionClick(() => {
-              if (!reactFlowInstance || !contextMenuState) return;
-              const flowPosition = reactFlowInstance.screenToFlowPosition({
-                x: contextMenuState.x,
-                y: contextMenuState.y,
-              });
-              addNode({ parentNode: null, position: flowPosition });
-            }, loadingStates.isStateLoading)
-          }
+          onClick={(e) => handleAddChild(undefined, e)}
           className="gap-2"
+          data-position={JSON.stringify({ x, y })}
         >
           <Plus className="size-4" />
 

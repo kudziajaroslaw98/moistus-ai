@@ -598,7 +598,9 @@ const useAppStore = create<AppState>((set, get) => ({
       let newNode: AppNode | null = null;
       let newNodePosition = position;
 
-      if (parentNode && parentNode.position) {
+      if (position) {
+        newNodePosition = position;
+      } else if (parentNode && parentNode.position) {
         newNodePosition = {
           x: parentNode.position.x + (parentNode.width || 170) + 100,
           y: parentNode.position.y + (parentNode.height || 60) / 2 - 30,
