@@ -1,6 +1,15 @@
 import useAppStore from "@/contexts/mind-map/mind-map-store";
 import { Command } from "cmdk";
-import { Maximize, Plus, Redo, Undo } from "lucide-react";
+import {
+  Group,
+  LayoutPanelLeft,
+  LayoutPanelTop,
+  Maximize,
+  Plus,
+  Redo,
+  Undo,
+  Ungroup,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useShallow } from "zustand/shallow";
 
@@ -25,24 +34,30 @@ export function CommandPalette() {
   const {
     popoverOpen,
     setPopoverOpen,
-    nodes,
+    selectedNodes,
     canUndo,
     canRedo,
     undo,
     redo,
     toggleFocusMode,
-    addNode,
+    applyLayout,
+    createGroupFromSelected,
+    ungroupNodes,
   } = useAppStore(
     useShallow((state) => ({
       popoverOpen: state.popoverOpen,
       setPopoverOpen: state.setPopoverOpen,
       nodes: state.nodes,
+      selectedNodes: state.selectedNodes,
       canUndo: state.canUndo,
       canRedo: state.canRedo,
       undo: state.handleUndo,
       redo: state.handleRedo,
       toggleFocusMode: state.toggleFocusMode,
       addNode: state.addNode,
+      applyLayout: state.applyLayout,
+      createGroupFromSelected: state.createGroupFromSelected,
+      ungroupNodes: state.ungroupNodes,
     })),
   );
 
@@ -68,8 +83,10 @@ export function CommandPalette() {
     [setPopoverOpen],
   );
 
-  const selectedNodesCount = nodes.filter((n) => n.selected).length;
+  const selectedNodesCount = selectedNodes.length;
   const canGroup = selectedNodesCount >= 2;
+  const canUngroup =
+    selectedNodesCount === 1 && selectedNodes[0]?.data.metadata?.isGroup;
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
@@ -143,20 +160,31 @@ export function CommandPalette() {
                 <Maximize className="size-4 text-zinc-400" /> Toggle Focus Mode
               </Command.Item>
 
-              {/* Add Grouping Action */}
-              {/* {actions.groupSelectedNodes && (
+              {/* Group Selected Nodes */}
+              {canGroup && (
                 <Command.Item
-                  onSelect={() => runCommand(actions.groupSelectedNodes)}
-                  disabled={!canGroup}
-                  className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-zinc-800 aria-selected:bg-zinc-700 aria-disabled:opacity-50 aria-disabled:pointer-events-none"
+                  onSelect={() => runCommand(createGroupFromSelected)}
+                  className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-zinc-800 aria-selected:bg-zinc-700"
                 >
-                  <GroupIcon className="size-4 text-zinc-400" />
+                  <Group className="size-4 text-zinc-400" />
 
-                  <span>Group Selected</span>
-
-                  <span>Nodes ({selectedNodesCount}) </span>
+                  <span>Group Selected Nodes ({selectedNodesCount})</span>
                 </Command.Item>
-              )} */}
+              )}
+
+              {/* Ungroup */}
+              {canUngroup && (
+                <Command.Item
+                  onSelect={() =>
+                    runCommand(() => ungroupNodes(selectedNodes[0].id))
+                  }
+                  className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-zinc-800 aria-selected:bg-zinc-700"
+                >
+                  <Ungroup className="size-4 text-zinc-400" />
+
+                  <span>Ungroup</span>
+                </Command.Item>
+              )}
 
               {/* Add Delete Action */}
               {/* <Command.Item
@@ -199,8 +227,8 @@ export function CommandPalette() {
             heading="Layout"
             className="mt-2 text-xs font-medium text-zinc-500"
           >
-            {/* <Command.Item
-              onSelect={() => runCommand(actions.applyLayoutTB)}
+            <Command.Item
+              onSelect={() => runCommand(() => applyLayout("TB"))}
               className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-zinc-800 aria-selected:bg-zinc-700"
             >
               <LayoutPanelTop className="size-4 text-zinc-400" /> Apply
@@ -208,12 +236,12 @@ export function CommandPalette() {
             </Command.Item>
 
             <Command.Item
-              onSelect={() => runCommand(actions.applyLayoutLR)}
+              onSelect={() => runCommand(() => applyLayout("LR"))}
               className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-zinc-800 aria-selected:bg-zinc-700"
             >
               <LayoutPanelLeft className="size-4 text-zinc-400" /> Apply
               Left-to-Right Layout
-            </Command.Item> */}
+            </Command.Item>
           </Command.Group>
 
           {/* Add more groups and commands here */}

@@ -21,11 +21,14 @@ export function MindMapCanvas() {
     handlePaste,
     nodes,
     edges,
+    selectedNodes,
     canUndo,
     canRedo,
     loadingStates,
     setPopoverOpen,
     isFocusMode,
+    createGroupFromSelected,
+    ungroupNodes,
   } = useAppStore(
     useShallow((state) => ({
       handleUndo: state.handleUndo,
@@ -34,11 +37,14 @@ export function MindMapCanvas() {
       handlePaste: state.pasteNodes,
       nodes: state.nodes,
       edges: state.edges,
+      selectedNodes: state.selectedNodes,
       canUndo: state.canUndo,
       canRedo: state.canRedo,
       loadingStates: state.loadingStates,
       setPopoverOpen: state.setPopoverOpen,
       isFocusMode: state.isFocusMode,
+      createGroupFromSelected: state.createGroupFromSelected,
+      ungroupNodes: state.ungroupNodes,
     })),
   );
   const isLoading = loadingStates.isStateLoading;
@@ -56,6 +62,18 @@ export function MindMapCanvas() {
     setPopoverOpen({ nodeType: true });
   };
 
+  const handleGroup = () => {
+    if (selectedNodes.length >= 2) {
+      createGroupFromSelected();
+    }
+  };
+
+  const handleUngroup = () => {
+    if (selectedNodes.length === 1 && selectedNodes[0].data.metadata?.isGroup) {
+      ungroupNodes(selectedNodes[0].id);
+    }
+  };
+
   useKeyboardShortcuts({
     onUndo: handleUndo,
     onRedo: handleRedo,
@@ -67,6 +85,8 @@ export function MindMapCanvas() {
     canUndo: canUndo,
     canRedo: canRedo,
     isBusy: isLoading,
+    onGroup: handleGroup,
+    onUngroup: handleUngroup,
   });
 
   return (

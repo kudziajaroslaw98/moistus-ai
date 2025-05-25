@@ -4,6 +4,7 @@ import { EdgeData } from "@/types/edge-data";
 import type { PathType } from "@/types/path-types";
 import {
   GitPullRequestArrow,
+  Group,
   LayoutPanelLeft,
   LayoutPanelTop,
   Network,
@@ -15,6 +16,7 @@ import {
   ScanText,
   Sparkles,
   Trash,
+  Ungroup,
 } from "lucide-react";
 import React, { useCallback, useMemo } from "react";
 import { useShallow } from "zustand/shallow";
@@ -81,6 +83,9 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
     setNodeInfo,
     setParentConnection,
     applyLayout,
+    createGroupFromSelected,
+    ungroupNodes,
+    removeNodesFromGroup,
   } = useAppStore(
     useShallow((state) => ({
       reactFlowInstance: state.reactFlowInstance,
@@ -100,6 +105,9 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
       setContextMenuState: state.setContextMenuState,
       setParentConnection: state.setParentConnection,
       applyLayout: state.applyLayout,
+      createGroupFromSelected: state.createGroupFromSelected,
+      ungroupNodes: state.ungroupNodes,
+      removeNodesFromGroup: state.removeNodesFromGroup,
     })),
   );
 
@@ -253,6 +261,25 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
 
         <span>Add Child</span>
       </Button>
+
+      {/* Remove from Group - only show if node belongs to a group */}
+      {clickedNodeData?.metadata?.groupId && (
+        <Button
+          variant="ghost"
+          align="left"
+          disabled={loadingStates.isAddingContent}
+          onClick={() =>
+            handleActionClick(() => {
+              removeNodesFromGroup([nodeId]);
+            }, loadingStates.isAddingContent)
+          }
+          className="gap-2"
+          title="Remove this node from its current group. The node will become independent while the group remains."
+        >
+          <Ungroup className="size-4" />
+          <span>Remove from Group</span>
+        </Button>
+      )}
 
       <Button
         variant="ghost-destructive"
@@ -652,34 +679,72 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
       </>
     ) : null;
 
-  // Create a selected nodes menu item if we have selectedNodes and generateFromSelectedNodes function
+  // Create a selected nodes menu item if we have selectedNodes
   const selectedNodesMenuItems =
     !nodeId &&
     !edgeId &&
     selectedNodes &&
-    selectedNodes.length > 0 &&
-    aiActions.generateFromSelectedNodes &&
-    !popoverOpen.generateFromNodesModal ? (
+    selectedNodes.length > 0 ? (
       <>
         <span className="block w-full rounded-md px-3 py-1.5 text-xs text-zinc-500">
           Selected Nodes ({selectedNodes.length})
         </span>
 
-        <Button
-          variant="ghost"
-          align="left"
-          disabled={loadingStates.isGeneratingContent}
-          onClick={() =>
-            handleActionClick(() => {
-              setPopoverOpen({ generateFromNodesModal: true });
-            }, loadingStates.isGeneratingContent)
-          }
-          className="gap-2"
-        >
-          <Sparkles className="size-4" />
+        {/* Group Selected Nodes - only show if 2+ nodes selected */}
+        {selectedNodes.length >= 2 && (
+          <Button
+            variant="ghost"
+            align="left"
+            disabled={loadingStates.isAddingContent}
+            onClick={() =>
+              handleActionClick(() => {
+                createGroupFromSelected();
+              }, loadingStates.isAddingContent)
+            }
+            className="gap-2"
+            title="Create a visual group containing the selected nodes. Groups can be moved together and provide visual organization."
+          >
+            <Group className="size-4" />
+            <span>Group Selected Nodes</span>
+          </Button>
+        )}
 
-          <span>Generate content from selected nodes</span>
-        </Button>
+        {/* Ungroup - only show if selected node is a group */}
+        {selectedNodes.length === 1 && selectedNodes[0].data.metadata?.isGroup && (
+          <Button
+            variant="ghost"
+            align="left"
+            disabled={loadingStates.isAddingContent}
+            onClick={() =>
+              handleActionClick(() => {
+                ungroupNodes(selectedNodes[0].id);
+              }, loadingStates.isAddingContent)
+            }
+            className="gap-2"
+            title="Remove the group container while preserving all child nodes. Child nodes will become independent."
+          >
+            <Ungroup className="size-4" />
+            <span>Ungroup</span>
+          </Button>
+        )}
+
+        {/* Generate content from selected nodes */}
+        {aiActions.generateFromSelectedNodes && !popoverOpen.generateFromNodesModal && (
+          <Button
+            variant="ghost"
+            align="left"
+            disabled={loadingStates.isGeneratingContent}
+            onClick={() =>
+              handleActionClick(() => {
+                setPopoverOpen({ generateFromNodesModal: true });
+              }, loadingStates.isGeneratingContent)
+            }
+            className="gap-2"
+          >
+            <Sparkles className="size-4" />
+            <span>Generate content from selected nodes</span>
+          </Button>
+        )}
 
         <hr className="my-1 border-zinc-800" />
       </>

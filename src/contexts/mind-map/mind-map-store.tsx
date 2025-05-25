@@ -11,6 +11,10 @@ import type { MindMapData } from "@/types/mind-map-data";
 import type { NodeData } from "@/types/node-data";
 import type { NodesTableType } from "@/types/nodes-table-type";
 import { debouncePerKey } from "@/utils/debounce-per-key";
+import {
+  calculateGroupBounds,
+  generateGroupName,
+} from "@/utils/group/group-utils";
 import type { XYPosition } from "@xyflow/react";
 import {
   applyEdgeChanges,
@@ -246,6 +250,7 @@ const useAppStore = create<AppState>((set, get) => ({
   selectedNodes: [],
   edges: [],
   isFocusMode: false,
+  isDraggingNodes: false,
   copiedNodes: [],
   copiedEdges: [],
 
@@ -284,7 +289,50 @@ const useAppStore = create<AppState>((set, get) => ({
   onNodesChange: (changes) => {
     // Apply changes as before
     const updatedNodes = applyNodeChanges(changes, get().nodes);
-    set({ nodes: updatedNodes });
+
+    // Handle group movement synchronization
+    const finalNodes = [...updatedNodes];
+    const processedGroupIds = new Set<string>();
+
+    changes.forEach((change) => {
+      if (change.type === "position" && change.position) {
+        const movedNode = finalNodes.find((n) => n.id === change.id);
+
+        // If a group is moved, move its children (during dragging and after)
+        if (
+          movedNode?.data.metadata?.isGroup &&
+          !processedGroupIds.has(change.id)
+        ) {
+          processedGroupIds.add(change.id);
+          const groupChildren =
+            (movedNode.data.metadata.groupChildren as string[]) || [];
+          const oldPosition = get().nodes.find(
+            (n) => n.id === change.id,
+          )?.position;
+
+          if (oldPosition && groupChildren.length > 0) {
+            const deltaX = change.position.x - oldPosition.x;
+            const deltaY = change.position.y - oldPosition.y;
+
+            groupChildren.forEach((childId) => {
+              const childIndex = finalNodes.findIndex((n) => n.id === childId);
+
+              if (childIndex !== -1) {
+                finalNodes[childIndex] = {
+                  ...finalNodes[childIndex],
+                  position: {
+                    x: finalNodes[childIndex].position.x + deltaX,
+                    y: finalNodes[childIndex].position.y + deltaY,
+                  },
+                };
+              }
+            });
+          }
+        }
+      }
+    });
+
+    set({ nodes: finalNodes });
 
     // Trigger debounced saves for relevant node changes
     changes.forEach((change) => {
@@ -295,6 +343,17 @@ const useAppStore = create<AppState>((set, get) => ({
         change.dragging === false
       ) {
         get().triggerNodeSave(change.id);
+
+        // Also save moved children when group is moved
+        const movedNode = finalNodes.find((n) => n.id === change.id);
+
+        if (movedNode?.data.metadata?.isGroup) {
+          const groupChildren =
+            (movedNode.data.metadata.groupChildren as string[]) || [];
+          groupChildren.forEach((childId) => {
+            get().triggerNodeSave(childId);
+          });
+        }
       } else if (
         change.type === "dimensions" &&
         change.dimensions &&
@@ -378,6 +437,9 @@ const useAppStore = create<AppState>((set, get) => ({
   },
   setSelectedNodes: (selectedNodes) => {
     set({ selectedNodes });
+  },
+  setIsDraggingNodes: (isDraggingNodes) => {
+    set({ isDraggingNodes });
   },
   setContextMenuState: (state) => set({ contextMenuState: state }),
 
@@ -1335,6 +1397,240 @@ const useAppStore = create<AppState>((set, get) => ({
       initialMessage: "Applying layout...",
       successMessage: "Layout applied and node positions are being saved.",
       errorMessage: "Failed to apply layout.",
+    },
+  ),
+
+  // Group management actions
+  createGroupFromSelected: withLoadingAndToast(
+    async (label?: string): Promise<void> => {
+      const { selectedNodes, nodes, addNode, updateNode } = get();
+
+      if (selectedNodes.length < 2) {
+        throw new Error("At least 2 nodes must be selected to create a group");
+      }
+
+      // Calculate bounds for the group using utilities
+      const padding = 40;
+      const bounds = calculateGroupBounds(selectedNodes, padding);
+      const groupLabel = label || generateGroupName(nodes);
+      const groupId = generateUuid();
+
+      // Create the group node
+      await addNode({
+        parentNode: null,
+        content: groupLabel,
+        nodeType: "groupNode",
+        position: { x: bounds.x, y: bounds.y },
+        data: {
+          id: groupId,
+          width: bounds.width,
+          height: bounds.height,
+          metadata: {
+            isGroup: true,
+            groupChildren: selectedNodes.map((n) => n.id),
+            label: groupLabel,
+            backgroundColor: "rgba(113, 113, 122, 0.1)",
+            borderColor: "#52525b",
+            groupPadding: padding,
+          },
+        },
+      });
+
+      // Update selected nodes to reference this group
+      for (const node of selectedNodes) {
+        await updateNode({
+          nodeId: node.id,
+          data: {
+            metadata: {
+              ...node.data.metadata,
+              groupId: groupId,
+            },
+          },
+        });
+      }
+    },
+    "isAddingContent",
+    {
+      initialMessage: "Creating group...",
+      successMessage: "Group created successfully",
+      errorMessage: "Failed to create group",
+    },
+  ),
+
+  addNodesToGroup: withLoadingAndToast(
+    async (groupId: string, nodeIds: string[]): Promise<void> => {
+      const { nodes, updateNode } = get();
+
+      const groupNode = nodes.find((n) => n.id === groupId);
+
+      if (!groupNode || !groupNode.data.metadata?.isGroup) {
+        throw new Error("Invalid group node");
+      }
+
+      const currentChildren =
+        (groupNode.data.metadata.groupChildren as string[]) || [];
+      const newChildren = [...new Set([...currentChildren, ...nodeIds])];
+
+      // Update group node with new children
+      await updateNode({
+        nodeId: groupId,
+        data: {
+          metadata: {
+            ...groupNode.data.metadata,
+            groupChildren: newChildren,
+          },
+        },
+      });
+
+      // Update target nodes to reference this group
+      for (const nodeId of nodeIds) {
+        await updateNode({
+          nodeId,
+          data: {
+            metadata: {
+              groupId: groupId,
+            },
+          },
+        });
+      }
+    },
+    "isAddingContent",
+    {
+      initialMessage: "Adding nodes to group...",
+      successMessage: "Nodes added to group",
+      errorMessage: "Failed to add nodes to group",
+    },
+  ),
+
+  removeNodesFromGroup: withLoadingAndToast(
+    async (nodeIds: string[]): Promise<void> => {
+      const { nodes, updateNode } = get();
+
+      for (const nodeId of nodeIds) {
+        const node = nodes.find((n) => n.id === nodeId);
+        if (!node?.data.metadata?.groupId) continue;
+
+        const groupId = node.data.metadata.groupId;
+        const groupNode = nodes.find((n) => n.id === groupId);
+
+        if (groupNode?.data.metadata?.isGroup) {
+          const currentChildren =
+            (groupNode.data.metadata.groupChildren as string[]) || [];
+          const newChildren = currentChildren.filter((id) => id !== nodeId);
+
+          // Update group node
+          await updateNode({
+            nodeId: groupId,
+            data: {
+              metadata: {
+                ...groupNode.data.metadata,
+                groupChildren: newChildren,
+              },
+            },
+          });
+        }
+
+        // Remove group reference from node
+        await updateNode({
+          nodeId,
+          data: {
+            metadata: {
+              ...node.data.metadata,
+              groupId: undefined,
+            },
+          },
+        });
+      }
+    },
+    "isAddingContent",
+    {
+      initialMessage: "Removing nodes from group...",
+      successMessage: "Nodes removed from group",
+      errorMessage: "Failed to remove nodes from group",
+    },
+  ),
+
+  deleteGroup: withLoadingAndToast(
+    async (
+      groupId: string,
+      preserveChildren: boolean = true,
+    ): Promise<void> => {
+      const { nodes, deleteNodes, updateNode } = get();
+
+      const groupNode = nodes.find((n) => n.id === groupId);
+
+      if (!groupNode?.data.metadata?.isGroup) {
+        throw new Error("Invalid group node");
+      }
+
+      const childNodeIds =
+        (groupNode.data.metadata.groupChildren as string[]) || [];
+
+      if (preserveChildren) {
+        // Remove group reference from child nodes
+        for (const nodeId of childNodeIds) {
+          await updateNode({
+            nodeId,
+            data: {
+              metadata: {
+                groupId: undefined,
+              },
+            },
+          });
+        }
+      } else {
+        // Delete child nodes
+        const childNodes = nodes.filter((n) => childNodeIds.includes(n.id));
+
+        if (childNodes.length > 0) {
+          await deleteNodes(childNodes);
+        }
+      }
+
+      // Delete the group node
+      await deleteNodes([groupNode]);
+    },
+    "isAddingContent",
+    {
+      initialMessage: "Deleting group...",
+      successMessage: "Group deleted successfully",
+      errorMessage: "Failed to delete group",
+    },
+  ),
+
+  ungroupNodes: withLoadingAndToast(
+    async (groupId: string): Promise<void> => {
+      const { nodes, updateNode, deleteNodes } = get();
+
+      const groupNode = nodes.find((n) => n.id === groupId);
+
+      if (!groupNode?.data.metadata?.isGroup) {
+        throw new Error("Invalid group node");
+      }
+
+      const childNodeIds =
+        (groupNode.data.metadata.groupChildren as string[]) || [];
+
+      // Remove group reference from all child nodes
+      for (const nodeId of childNodeIds) {
+        await updateNode({
+          nodeId,
+          data: {
+            metadata: {
+              groupId: undefined,
+            },
+          },
+        });
+      }
+
+      // Delete the group node
+      await deleteNodes([groupNode]);
+    },
+    "isAddingContent",
+    {
+      initialMessage: "Ungrouping nodes...",
+      successMessage: "Nodes ungrouped successfully",
+      errorMessage: "Failed to ungroup nodes",
     },
   ),
 }));

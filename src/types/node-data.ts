@@ -52,6 +52,12 @@ export interface NodeData extends Record<string, unknown> {
     image_url?: string;
     borderColor?: string;
     isCollapsed?: boolean; // Added for collapsible branches
+    
+    // Group-related properties
+    groupId?: string; // ID of the group this node belongs to
+    isGroup?: boolean; // Whether this node is a group container
+    groupChildren?: string[]; // Array of child node IDs (for group nodes)
+    groupPadding?: number; // Padding inside the group
   } | null;
   aiData?: {
     requestAiAnswer?: boolean;

@@ -62,6 +62,7 @@ export interface AppState {
   selectedNodes: AppNode[];
   edges: AppEdge[];
   isFocusMode: boolean;
+  isDraggingNodes: boolean;
 
   // Clipboard state
   copiedNodes: AppNode[];
@@ -112,6 +113,7 @@ export interface AppState {
   setMapId: (mapId: string | null) => void;
   setSelectedNodes: (selectedNodes: AppNode[]) => void;
   setContextMenuState: (state: ContextMenuState) => void;
+  setIsDraggingNodes: (isDragging: boolean) => void;
 
   // getters
   getNode: (id: string) => AppNode | undefined;
@@ -162,4 +164,11 @@ export interface AppState {
 
   // Layout action
   applyLayout: (direction: LayoutDirection) => Promise<void>;
+
+  // Group management actions
+  createGroupFromSelected: (label?: string) => Promise<void>;
+  addNodesToGroup: (groupId: string, nodeIds: string[]) => Promise<void>;
+  removeNodesFromGroup: (nodeIds: string[]) => Promise<void>;
+  deleteGroup: (groupId: string, preserveChildren?: boolean) => Promise<void>;
+  ungroupNodes: (groupId: string) => Promise<void>;
 }

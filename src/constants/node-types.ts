@@ -93,6 +93,17 @@ export const nodeTypesConfig: Record<string, NodeTypeConfig> = {
       priority: undefined,
     },
   },
+  groupNode: {
+    label: "Group",
+    defaultMetadata: {
+      isGroup: true,
+      groupChildren: [],
+      backgroundColor: "rgba(113, 113, 122, 0.1)",
+      borderColor: "#52525b",
+      label: "Group",
+      groupPadding: 40,
+    },
+  },
   builderNode: {
     label: "Builder",
     defaultMetadata: {},

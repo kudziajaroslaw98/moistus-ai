@@ -6,16 +6,9 @@ import { GenerateFromNodesModal } from "../modals/generate-from-nodes-modal";
 
 export function ContextMenuWrapper() {
   // const {
-  //   contextMenuState,
-  //   contextMenuHandlers,
-  //   crudActions,
   //   aiActions,
-  //   applyLayout,
-  //   reactFlowInstance,
   //   setIsAiContentModalOpen,
   //   aiActions: { setAiContentTargetNodeId },
-  //   setIsNodeTypeModalOpen,
-  //   setNodeToAddInfo,
   // } = useMindMapContext();
 
   const { loadingStates, selectedNodes, popoverOpen } = useAppStore(

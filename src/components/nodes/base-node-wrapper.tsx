@@ -9,9 +9,10 @@ import {
   Position,
   useConnection,
 } from "@xyflow/react"; // Removed Handle import
-import { ChevronDown, ChevronRight } from "lucide-react"; // Icons for collapse/expand
+import { ChevronDown, ChevronRight, Group } from "lucide-react"; // Icons for collapse/expand
 import { AnimatePresence, motion } from "motion/react";
-import { memo, type ReactNode, useMemo, useState } from "react"; // Added useMemo
+import { memo, type ReactNode, useCallback, useMemo, useState } from "react"; // Added useMemo
+import { useShallow } from "zustand/shallow";
 import { Button } from "../ui/button";
 
 // Define the props including the onEditNode callback
@@ -41,7 +42,12 @@ const BaseNodeWrapperComponent = ({
   includePadding = true,
 }: BaseNodeWrapperProps) => {
   const connection = useConnection();
-  const allEdges = useAppStore((state) => state.edges);
+  const { allEdges, nodes } = useAppStore(
+    useShallow((state) => ({
+      allEdges: state.edges,
+      nodes: state.nodes,
+    })),
+  );
   const [hover, setHover] = useState(false);
   const directChildrenCount = useMemo(() => {
     return allEdges.filter((edge) => edge.source === id).length;
@@ -50,6 +56,30 @@ const BaseNodeWrapperComponent = ({
   const hasChildren = directChildrenCount > 0;
   const isTarget = connection.inProgress && connection.fromNode?.id !== id;
   const collapsed = data.metadata?.isCollapsed ?? false;
+
+  // Check if this node belongs to a group
+  const belongsToGroup = data.metadata?.groupId;
+  const groupNode = useMemo(() => {
+    if (!belongsToGroup) return null;
+    return nodes.find((n) => n.id === belongsToGroup);
+  }, [belongsToGroup, nodes]);
+
+  // Handle drag start for group integration
+  const handleDragStart = useCallback(
+    (e: React.DragEvent) => {
+      if (data.metadata?.isGroup) return; // Don't allow dragging groups
+
+      e.dataTransfer.setData(
+        "application/reactflow",
+        JSON.stringify({
+          nodeId: id,
+          nodeType: data.node_type,
+        }),
+      );
+      e.dataTransfer.effectAllowed = "move";
+    },
+    [id, data.metadata?.isGroup, data.node_type],
+  );
 
   if (!data) {
     return null;
@@ -63,6 +93,9 @@ const BaseNodeWrapperComponent = ({
         includePadding ? "p-4" : "p-0",
         nodeClassName,
       )}
+      draggable={!data.metadata?.isGroup}
+      onDragStart={handleDragStart}
+      style={{ zIndex: belongsToGroup ? 1 : "auto" }}
     >
       <>
         {collapsed && directChildrenCount > 0 && (
@@ -133,6 +166,18 @@ const BaseNodeWrapperComponent = ({
               </Button>
             )}
           </motion.div>
+
+          {/* Group membership indicator */}
+          {belongsToGroup && groupNode && (
+            <div
+              className="bg-purple-600 text-white rounded-t-sm px-2 py-0.5 text-[10px] font-semibold font-mono flex items-center gap-1"
+              title={`Member of group: ${groupNode.data.metadata?.label || "Group"}`}
+            >
+              <Group className="size-3" />
+
+              <span>{groupNode.data.metadata?.label || "Group"}</span>
+            </div>
+          )}
 
           <div className="bg-node-accent text-node-text-main rounded-t-sm px-2 py-0.5 text-[10px] font-semibold font-mono flex items-center gap-2">
             <span>{nodeIcon}</span>

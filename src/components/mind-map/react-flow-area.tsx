@@ -70,6 +70,7 @@ export function ReactFlowArea() {
   const fetchMindMapData = useAppStore((state) => state.fetchMindMapData);
   const deleteNodes = useAppStore((state) => state.deleteNodes);
   const deleteEdges = useAppStore((state) => state.deleteEdges);
+  const setIsDraggingNodes = useAppStore((state) => state.setIsDraggingNodes);
 
   const { contextMenuHandlers } = useContextMenu();
 
@@ -204,6 +205,17 @@ export function ReactFlowArea() {
     [setSelectedNodes],
   );
 
+  const handleNodeDragStart = useCallback(() => {
+    setIsDraggingNodes(true);
+  }, [setIsDraggingNodes]);
+
+  const handleNodeDragStop = useCallback(() => {
+    // Short delay to ensure drag operation completes before allowing auto-resize
+    setTimeout(() => {
+      setIsDraggingNodes(false);
+    }, 100);
+  }, [setIsDraggingNodes]);
+
   return (
     <ReactFlow
       colorMode="dark"
@@ -239,6 +251,8 @@ export function ReactFlowArea() {
       connectionMode={ConnectionMode.Loose}
       onConnect={onConnect}
       onSelectionChange={handleSelectionChange}
+      onNodeDragStart={handleNodeDragStart}
+      onNodeDragStop={handleNodeDragStop}
     >
       <Controls
         position="top-right"

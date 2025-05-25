@@ -12,6 +12,8 @@ interface UseKeyboardShortcutsProps {
   canUndo: boolean;
   canRedo: boolean;
   isBusy: boolean;
+  onGroup?: () => void;
+  onUngroup?: () => void;
 }
 
 export function useKeyboardShortcuts({
@@ -25,6 +27,8 @@ export function useKeyboardShortcuts({
   canUndo,
   canRedo,
   isBusy,
+  onGroup,
+  onUngroup,
 }: UseKeyboardShortcutsProps): void {
   const reactFlowInstance = useAppStore((state) => state.reactFlowInstance);
   const copySelectedNodes = useAppStore((state) => state.copySelectedNodes);
@@ -91,6 +95,22 @@ export function useKeyboardShortcuts({
       if (event.key === "Tab" && selectedNodeId) {
         event.preventDefault();
         onAddChild(selectedNodeId);
+        return;
+      }
+
+      if (isCtrlCmd && event.key.toLowerCase() === "g" && !event.shiftKey) {
+        event.preventDefault();
+        if (onGroup) {
+          onGroup();
+        }
+        return;
+      }
+
+      if (isCtrlCmd && event.shiftKey && event.key.toLowerCase() === "g") {
+        event.preventDefault();
+        if (onUngroup) {
+          onUngroup();
+        }
         return;
       }
     };

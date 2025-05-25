@@ -2,10 +2,10 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import useFetch from "@/hooks/use-fetch";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import useSWR, { mutate } from "swr";
 
 interface MindMapData {
   id: string;
@@ -17,9 +17,6 @@ interface MindMapData {
 }
 
 export default function DashboardPage() {
-  const [mindMaps, setMindMaps] = useState<MindMapData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [newMapTitle, setNewMapTitle] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [notification, setNotification] = useState<{
@@ -27,8 +24,33 @@ export default function DashboardPage() {
     type: "success" | "error" | null;
   }>({ message: null, type: null });
 
-  const { fetch } = useFetch();
   const router = useRouter();
+
+  // SWR fetcher function
+  const fetcher = async (url: string) => {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch mind maps");
+    }
+
+    const { data } = await response.json();
+    return data.maps;
+  };
+
+  // Use SWR for data fetching with caching
+  const {
+    data: mindMaps = [],
+    error,
+    isLoading,
+  } = useSWR<MindMapData[]>("/api/maps", fetcher, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: true,
+    dedupingInterval: 5000,
+  });
 
   const showNotification = useCallback(
     (message: string, type: "success" | "error") => {
@@ -41,61 +63,37 @@ export default function DashboardPage() {
     [],
   );
 
-  const fetchMindMaps = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    const response = await fetch<{ maps: MindMapData[] }>("/api/maps", {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-    });
-
-    if (response.status === "error") {
-      const errorMsg = response.error || "Failed to fetch mind maps.";
-      setError(errorMsg);
-      // Optionally show notification for fetch error
-      // showNotification(errorMsg, "error");
-    } else {
-      setMindMaps(response.data.maps);
-    }
-
-    setLoading(false);
-  }, []); // Removed showNotification dependency
-
-  useEffect(() => {
-    fetchMindMaps();
-  }, [fetchMindMaps]);
-
   const handleCreateMap = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMapTitle.trim() || isCreating) return;
 
     setIsCreating(true);
-    setError(null);
-    // No pending notification needed, button shows loading state
 
     try {
-      const response = await fetch<{ map: MindMapData }>("/api/maps", {
+      const response = await fetch("/api/maps", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: newMapTitle }),
       });
 
-      if (response.status === "error") {
-        throw new Error(response.error || "Failed to create new mind map.");
+      if (!response.ok) {
+        throw new Error("Failed to create new mind map.");
       }
 
-      setMindMaps([response.data.map, ...mindMaps]);
+      const data = await response.json();
+
+      // Optimistically update the cache
+      mutate("/api/maps", [data.map, ...mindMaps], false);
+
       setNewMapTitle("");
       showNotification("Map created successfully!", "success");
-      router.push(`/mind-map/${response.data.map.id}`);
+      router.push(`/mind-map/${data.map.id}`);
     } catch (err: unknown) {
       console.error("Error creating map:", err);
       const message =
         err instanceof Error
           ? err.message
           : "An error occurred while creating the map.";
-      setError(message); // Keep track of error state
       showNotification(message, "error");
     } finally {
       setIsCreating(false);
@@ -108,19 +106,22 @@ export default function DashboardPage() {
       return;
     }
 
-    // Visually disable or indicate loading on the specific card being deleted (more advanced)
-    setError(null);
-
     try {
       const response = await fetch(`/api/maps/${mapId}`, {
         method: "DELETE",
       });
 
-      if (response.status === "error") {
-        throw new Error(response.error || "Failed to delete mind map.");
+      if (!response.ok) {
+        throw new Error("Failed to delete mind map.");
       }
 
-      setMindMaps(mindMaps.filter((map) => map.id !== mapId));
+      // Optimistically update the cache
+      mutate(
+        "/api/maps",
+        mindMaps.filter((map) => map.id !== mapId),
+        false,
+      );
+
       showNotification("Map deleted successfully.", "success");
     } catch (err: unknown) {
       console.error("Error deleting map:", err);
@@ -128,13 +129,14 @@ export default function DashboardPage() {
         err instanceof Error
           ? err.message
           : "An error occurred while deleting the map.";
-      setError(message); // Keep track of error state
       showNotification(message, "error");
+
+      // Revalidate on error to sync with server state
+      mutate("/api/maps");
     }
-    // Add finally block to remove loading state from card if implemented
   };
 
-  if (loading && mindMaps.length === 0) {
+  if (isLoading && !mindMaps.length) {
     return (
       <div className="flex min-h-screen items-center justify-center text-zinc-400">
         Loading your maps...
@@ -169,14 +171,18 @@ export default function DashboardPage() {
         </form>
 
         {/* Loading/Error State */}
-        {loading && mindMaps.length > 0 && (
+        {isLoading && mindMaps.length > 0 && (
           <p className="mb-4 text-zinc-400">Refreshing maps...</p>
         )}
 
-        {error && <p className="mb-4 text-red-400">Error: {error}</p>}
+        {error && (
+          <p className="mb-4 text-red-400">
+            Error: {error.message || "Failed to load maps"}
+          </p>
+        )}
 
         {/* Mind Map List */}
-        {mindMaps.length === 0 && !loading ? (
+        {mindMaps.length === 0 && !isLoading ? (
           <div className="py-10 text-center text-zinc-400">
             <p>You don&apos;t have any mind maps yet.</p>
 
