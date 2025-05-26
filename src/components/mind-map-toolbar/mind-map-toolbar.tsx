@@ -14,9 +14,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useShallow } from "zustand/shallow";
-import { Button } from "../ui/button";
 import { LayoutSelector } from "../layout-selector";
-import { cn } from "@/utils/cn";
+import { Button } from "../ui/button";
 
 export function MindMapToolbar() {
   const {
@@ -29,8 +28,6 @@ export function MindMapToolbar() {
     handleRedo,
     isFocusMode,
     popoverOpen,
-    isCommentsPanelOpen,
-    toggleCommentsPanel,
   } = useAppStore(
     useShallow((state) => ({
       mindMap: state.mindMap,
@@ -42,8 +39,6 @@ export function MindMapToolbar() {
       handleRedo: state.handleRedo,
       isFocusMode: state.isFocusMode,
       popoverOpen: state.popoverOpen,
-      isCommentsPanelOpen: state.isCommentsPanelOpen,
-      toggleCommentsPanel: state.toggleCommentsPanel,
     })),
   );
 
@@ -55,10 +50,12 @@ export function MindMapToolbar() {
     setPopoverOpen({ history: true });
   };
 
-
-
   const handleToggleFocusMode = () => {
     toggleFocusMode();
+  };
+
+  const handleToggleCommentsPanel = () => {
+    setPopoverOpen({ commentsPanel: true });
   };
 
   if (isFocusMode) {
@@ -171,10 +168,10 @@ export function MindMapToolbar() {
 
         {/* Comments Panel Toggle */}
         <Button
-          onClick={toggleCommentsPanel}
+          onClick={handleToggleCommentsPanel}
           title="Toggle Comments Panel (Ctrl+/)"
           aria-label="Toggle Comments Panel"
-          variant={isCommentsPanelOpen ? "default" : "secondary"}
+          variant={popoverOpen.commentsPanel ? "default" : "secondary"}
           size="icon"
         >
           <MessageCircle className="h-4 w-4" />

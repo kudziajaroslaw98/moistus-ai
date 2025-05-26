@@ -12,7 +12,6 @@ import type { MindMapData } from "@/types/mind-map-data";
 import type { NodeData } from "@/types/node-data";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
-  Node,
   OnConnect,
   OnEdgesChange,
   OnNodesChange,
@@ -20,7 +19,6 @@ import type {
   XYPosition,
 } from "@xyflow/react";
 
-export type AppNode = Node<NodeData>;
 export type LayoutDirection = "TB" | "LR" | "BT" | "RL";
 
 export interface LoadingStates {
@@ -57,6 +55,7 @@ export interface Popovers {
   nodeComments: boolean;
 }
 
+import { AppNode } from "@/types/app-node";
 import { ContextMenuState } from "@/types/context-menu-state";
 import type { HistoryState } from "@/types/history-state";
 
