@@ -1,16 +1,16 @@
 "use client";
 
+import useAppStore from "@/contexts/mind-map/mind-map-store";
+import { useComments } from "@/hooks/use-comments";
 import { NodeData } from "@/types/node-data";
 import { Node, NodeProps } from "@xyflow/react";
 import { ArrowUpRight, Link as LinkIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { memo } from "react";
+import { useShallow } from "zustand/shallow";
 import { Button } from "../ui/button";
 import { BaseNodeWrapper } from "./base-node-wrapper";
-import { useComments } from "@/hooks/use-comments";
-import useAppStore from "@/contexts/mind-map/mind-map-store";
-import { useShallow } from "zustand/shallow";
 
 interface ResourceNodeProps extends NodeProps<Node<NodeData>> {}
 
@@ -23,7 +23,7 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
     })),
   );
 
-  const { commentSummaries } = useComments({ autoRefresh: true });
+  const { commentSummaries } = useComments({ autoRefresh: false });
   const commentSummary = commentSummaries.get(id);
 
   const resourceUrl = data.metadata?.url as string | undefined;

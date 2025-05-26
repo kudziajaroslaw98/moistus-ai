@@ -1,5 +1,6 @@
 "use client";
 
+import useAppStore from "@/contexts/mind-map/mind-map-store";
 import { createClient } from "@/helpers/supabase/client";
 import {
   Comment,
@@ -51,13 +52,9 @@ interface UseCommentsReturn {
 export function useComments(
   options: UseCommentsOptions = {},
 ): UseCommentsReturn {
-  const {
-    nodeId,
-    mapId,
-    autoRefresh = false,
-    refreshInterval = 30000,
-  } = options;
+  const { nodeId, autoRefresh = false, refreshInterval = 30000 } = options;
 
+  const mapId = useAppStore((state) => state.mapId);
   const [comments, setComments] = useState<Comment[]>([]);
   const [nodeComments, setNodeComments] = useState<NodeComment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -80,9 +77,11 @@ export function useComments(
 
       if (existing) {
         existing.comment_count += 1;
+
         if (!comment.is_resolved) {
           existing.unresolved_count += 1;
         }
+
         if (comment.created_at > (existing.last_comment_at || "")) {
           existing.last_comment_at = comment.created_at;
         }
@@ -105,9 +104,7 @@ export function useComments(
     setError(null);
 
     try {
-      let query = supabase
-        .from("node_comments")
-        .select(`
+      let query = supabase.from("node_comments").select(`
           *,
           author:user_profiles!author_id(
             id,
@@ -129,24 +126,30 @@ export function useComments(
       if (nodeId) {
         query = query.eq("node_id", nodeId);
       }
+
       if (mapId) {
         query = query.eq("map_id", mapId);
       }
+
       if (filter.is_resolved !== undefined) {
         query = query.eq("is_resolved", filter.is_resolved);
       }
+
       if (filter.author_id) {
         query = query.eq("author_id", filter.author_id);
       }
+
       if (filter.category) {
         query = query.eq("metadata->>category", filter.category);
       }
+
       if (filter.search_text) {
         query = query.ilike("content", `%${filter.search_text}%`);
       }
 
       // Apply sorting
-      const orderColumn = sort.field === "author_name" ? "author_id" : sort.field;
+      const orderColumn =
+        sort.field === "author_name" ? "author_id" : sort.field;
       query = query.order(orderColumn, { ascending: sort.direction === "asc" });
 
       const { data, error: fetchError } = await query;
@@ -157,18 +160,22 @@ export function useComments(
 
       const commentsData = (data || []).map((comment) => ({
         ...comment,
-        author: comment.author ? {
-          id: comment.author.user_id,
-          full_name: comment.author.full_name,
-          display_name: comment.author.display_name,
-          avatar_url: comment.author.avatar_url,
-        } : null,
-        resolved_by_user: comment.resolved_by_user ? {
-          id: comment.resolved_by_user.user_id,
-          full_name: comment.resolved_by_user.full_name,
-          display_name: comment.resolved_by_user.display_name,
-          avatar_url: comment.resolved_by_user.avatar_url,
-        } : null,
+        author: comment.author
+          ? {
+              id: comment.author.user_id,
+              full_name: comment.author.full_name,
+              display_name: comment.author.display_name,
+              avatar_url: comment.author.avatar_url,
+            }
+          : null,
+        resolved_by_user: comment.resolved_by_user
+          ? {
+              id: comment.resolved_by_user.user_id,
+              full_name: comment.resolved_by_user.full_name,
+              display_name: comment.resolved_by_user.display_name,
+              avatar_url: comment.resolved_by_user.avatar_url,
+            }
+          : null,
       })) as NodeComment[];
 
       setComments(commentsData);
@@ -187,8 +194,10 @@ export function useComments(
       parentId?: string,
     ): Promise<Comment | null> => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
         if (!user) {
           throw new Error("User not authenticated");
         }
@@ -202,7 +211,8 @@ export function useComments(
             author_id: user.id,
             parent_comment_id: parentId,
           })
-          .select(`
+          .select(
+            `
             *,
             author:user_profiles!author_id(
               id,
@@ -211,7 +221,8 @@ export function useComments(
               display_name,
               avatar_url
             )
-          `)
+          `,
+          )
           .single();
 
         if (error) {
@@ -220,12 +231,14 @@ export function useComments(
 
         const newComment = {
           ...data,
-          author: data.author ? {
-            id: data.author.user_id,
-            full_name: data.author.full_name,
-            display_name: data.author.display_name,
-            avatar_url: data.author.avatar_url,
-          } : null,
+          author: data.author
+            ? {
+                id: data.author.user_id,
+                full_name: data.author.full_name,
+                display_name: data.author.display_name,
+                avatar_url: data.author.avatar_url,
+              }
+            : null,
         } as NodeComment;
 
         // Update local state
@@ -298,8 +311,10 @@ export function useComments(
   const resolveComment = useCallback(
     async (commentId: string): Promise<boolean> => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
         if (!user) {
           throw new Error("User not authenticated");
         }
@@ -395,32 +410,32 @@ export function useComments(
     loadComments();
   }, [loadComments]);
 
-  // Auto-refresh if enabled
-  useEffect(() => {
-    if (!autoRefresh) return;
+  // // Auto-refresh if enabled
+  // useEffect(() => {
+  //   if (!autoRefresh) return;
 
-    const interval = setInterval(loadComments, refreshInterval);
-    return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval, loadComments]);
+  //   const interval = setInterval(loadComments, refreshInterval);
+  //   return () => clearInterval(interval);
+  // }, [autoRefresh, refreshInterval, loadComments]);
 
   // Set up real-time subscription for comments
   useEffect(() => {
     if (!mapId && !nodeId) return;
 
-    let channel = supabase
-      .channel('comments_changes')
+    const channel = supabase
+      .channel("comments_changes")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'node_comments',
+          event: "*",
+          schema: "public",
+          table: "node_comments",
           filter: mapId ? `map_id=eq.${mapId}` : `node_id=eq.${nodeId}`,
         },
         () => {
           // Refresh comments when changes occur
           loadComments();
-        }
+        },
       )
       .subscribe();
 

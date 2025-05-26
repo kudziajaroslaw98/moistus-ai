@@ -197,23 +197,27 @@ const BaseNodeWrapperComponent = ({
 
           {/* Comment Indicator */}
           {commentSummary && commentSummary.comment_count > 0 && (
-            <Button
-              onClick={(e) => {
-                e.stopPropagation();
-                onCommentClick?.();
-              }}
-              className="nodrag nopan bg-blue-600 hover:bg-blue-700 text-white rounded-t-sm px-2 py-0.5 text-[10px] font-semibold font-mono flex items-center gap-1 transition-all"
-              variant="ghost"
-              title={`${commentSummary.comment_count} comment${commentSummary.comment_count !== 1 ? "s" : ""}${commentSummary.unresolved_count > 0 ? ` (${commentSummary.unresolved_count} unresolved)` : ""}`}
-            >
-              <MessageCircle className="size-3" />
+            <motion.div className="bg-node-accent text-node-text-main rounded-t-sm text-[10px]  px-2 font-semibold font-mono flex items-center justify-center gap-2">
+              {hasChildren && (
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent node selection/drag
+                    onCommentClick?.();
+                  }}
+                  className="nodrag nopan z-20 rounded-sm hover:bg-black/20 h-5 w-auto group flex gap-2 px-1 transition-all"
+                  variant={"ghost"}
+                  title={`${commentSummary.comment_count} comment${commentSummary.comment_count !== 1 ? "s" : ""}${commentSummary.unresolved_count > 0 ? ` (${commentSummary.unresolved_count} unresolved)` : ""}`}
+                >
+                  <MessageCircle className="size-3" />
 
-              <span>{commentSummary.comment_count}</span>
+                  <span>{commentSummary.comment_count}</span>
 
-              {commentSummary.unresolved_count > 0 && (
-                <span className="bg-red-500 text-white rounded-full size-2 animate-pulse" />
+                  {commentSummary.unresolved_count > 0 && (
+                    <span className="bg-red-500 text-white rounded-full size-2 animate-pulse" />
+                  )}
+                </Button>
               )}
-            </Button>
+            </motion.div>
           )}
         </div>
 

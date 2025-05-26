@@ -1,15 +1,15 @@
 "use client";
 
+import useAppStore from "@/contexts/mind-map/mind-map-store";
+import { useComments } from "@/hooks/use-comments";
 import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
 import { Node, NodeProps } from "@xyflow/react";
 import { NotepadText } from "lucide-react";
 import { memo } from "react";
 import ReactMarkdown from "react-markdown";
-import { BaseNodeWrapper } from "./base-node-wrapper";
-import { useComments } from "@/hooks/use-comments";
-import useAppStore from "@/contexts/mind-map/mind-map-store";
 import { useShallow } from "zustand/shallow";
+import { BaseNodeWrapper } from "./base-node-wrapper";
 
 const DefaultNodeComponent = (props: NodeProps<Node<NodeData>>) => {
   const { id, data } = props;
@@ -20,7 +20,7 @@ const DefaultNodeComponent = (props: NodeProps<Node<NodeData>>) => {
     })),
   );
 
-  const { commentSummaries } = useComments({ autoRefresh: true });
+  const { commentSummaries } = useComments({ autoRefresh: false });
   const commentSummary = commentSummaries.get(id);
 
   const handleCommentClick = () => {

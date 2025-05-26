@@ -404,14 +404,13 @@ interface CommentsPanelProps {
 }
 
 const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
-  const { isCommentsPanelOpen, toggleCommentsPanel, selectedNodeId } =
-    useAppStore(
-      useShallow((state) => ({
-        isCommentsPanelOpen: state.isCommentsPanelOpen,
-        toggleCommentsPanel: state.toggleCommentsPanel,
-        selectedNodeId: state.selectedNodeId,
-      })),
-    );
+  const { selectedNodeId, popoverOpen, setPopoverOpen } = useAppStore(
+    useShallow((state) => ({
+      selectedNodeId: state.selectedNodeId,
+      popoverOpen: state.popoverOpen,
+      setPopoverOpen: state.setPopoverOpen,
+    })),
+  );
 
   const [newComment, setNewComment] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -434,7 +433,7 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
     refresh,
   } = useComments({
     nodeId: targetNodeId,
-    autoRefresh: true,
+    autoRefresh: false,
   });
 
   const newCommentRef = useRef<HTMLTextAreaElement>(null);
@@ -526,7 +525,11 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
   const totalComments = comments.length;
   const unresolvedComments = comments.filter((c) => !c.is_resolved).length;
 
-  if (!isCommentsPanelOpen) return null;
+  const handleToggleCommentsPanel = () => {
+    setPopoverOpen({ commentsPanel: !popoverOpen.commentsPanel });
+  };
+
+  if (!popoverOpen.commentsPanel) return null;
 
   return (
     <AnimatePresence>
@@ -578,7 +581,7 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={toggleCommentsPanel}
+              onClick={handleToggleCommentsPanel}
               className="size-8 p-0"
             >
               <X className="size-4" />

@@ -1,12 +1,16 @@
 import { defaultEdgeData } from "@/constants/default-edge-data";
 import type { NodeTypes } from "@/constants/node-types";
 import generateUuid from "@/helpers/generate-uuid";
+import getLayoutedElements from "@/helpers/get-layouted-elements";
 import mergeEdgeData from "@/helpers/merge-edge-data";
 import { createClient } from "@/helpers/supabase/client";
 import { transformSupabaseData } from "@/helpers/transform-supabase-data";
+import withLoadingAndToast from "@/helpers/with-loading-and-toast";
 import type { AppEdge } from "@/types/app-edge";
+import type { CommentFilter, CommentSort } from "@/types/comment-types";
 import type { EdgeData } from "@/types/edge-data";
 import type { EdgesTableType } from "@/types/edges-table-type";
+import type { SpecificLayoutConfig } from "@/types/layout-types";
 import type { MindMapData } from "@/types/mind-map-data";
 import type { NodeData } from "@/types/node-data";
 import type { NodesTableType } from "@/types/nodes-table-type";
@@ -15,115 +19,21 @@ import {
   calculateGroupBounds,
   generateGroupName,
 } from "@/utils/group/group-utils";
+import { LayoutAlgorithms } from "@/utils/layout-algorithms";
 import type { XYPosition } from "@xyflow/react";
 import {
   applyEdgeChanges,
   applyNodeChanges,
   type ReactFlowInstance,
 } from "@xyflow/react";
-import dagre from "dagre";
 import { toast } from "sonner";
 import { create } from "zustand";
-import { LayoutAlgorithms } from "@/utils/layout-algorithms";
-import type { SpecificLayoutConfig } from "@/types/layout-types";
-import type { CommentFilter, CommentSort } from "@/types/comment-types";
-import type { ContextMenuState } from "@/types/context-menu-state";
-import type {
-  AppNode,
-  AppState,
-  LayoutDirection,
-  LoadingStates,
-} from "./app-state";
-
-// Dagre graph instance for layout calculations
-const g = new dagre.graphlib.Graph();
-g.setDefaultEdgeLabel(() => ({}));
-
-// Helper function to calculate layout using Dagre
-const getLayoutedElements = (
-  nodes: AppNode[],
-  edges: AppEdge[],
-  direction: LayoutDirection = "TB",
-) => {
-  g.setGraph({ rankdir: direction, nodesep: 80, ranksep: 150 });
-
-  nodes.forEach((node) => {
-    const nodeWidth = node.width || 320;
-    const nodeHeight = node.height || 100;
-    g.setNode(node.id, { width: nodeWidth, height: nodeHeight });
-  });
-
-  edges.forEach((edge) => {
-    g.setEdge(edge.source, edge.target);
-  });
-
-  dagre.layout(g);
-
-  const layoutedNodes = nodes.map((node) => {
-    const nodeWithPosition = g.node(node.id);
-
-    if (!nodeWithPosition) {
-      console.warn(`Dagre could not find node ${node.id} during layout.`);
-      return node;
-    }
-
-    const nodeWidth = node.width || 320;
-    const nodeHeight = node.height || 100;
-
-    return {
-      ...node,
-      position: {
-        x: nodeWithPosition.x - nodeWidth / 2,
-        y: nodeWithPosition.y - nodeHeight / 2,
-      },
-      data: node.data, // Preserve existing node data
-    };
-  });
-
-  return { layoutedNodes, layoutedEdges: edges }; // Edges are not modified by dagre layout
-};
+import type { AppNode, AppState, LayoutDirection } from "./app-state";
 
 // Configuration for debounce timing
 const SAVE_DEBOUNCE_MS = 800;
 
 // Helper HOF for handling loading states and toasts
-function withLoadingAndToast<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  T extends (...args: any[]) => Promise<any>,
->(
-  action: T,
-  loadingKey: keyof LoadingStates,
-  options?: {
-    initialMessage?: string;
-    errorMessage?: string;
-    successMessage?: string;
-  },
-): (...args: Parameters<T>) => Promise<Awaited<ReturnType<T>>> {
-  return async (...args) => {
-    const { setLoadingStates } = useAppStore.getState();
-    const toastId = toast.loading(options?.initialMessage || "Loading...");
-
-    setLoadingStates({ [loadingKey]: true });
-
-    try {
-      // Explicitly pass toastId as the last argument
-      const res = await action(...args, toastId);
-      toast.success(options?.successMessage || "Success!", { id: toastId });
-
-      return res;
-    } catch (e) {
-      console.error(`Error in ${String(loadingKey)}:`, e);
-      toast.error(
-        e instanceof Error
-          ? e.message
-          : options?.errorMessage || "An error occurred.",
-        { id: toastId },
-      );
-    } finally {
-      setLoadingStates({ [loadingKey]: false });
-    }
-  };
-}
 
 // this is our useStore hook that we can use in our components to get parts of the store and call actions
 const useAppStore = create<AppState>((set, get) => ({
@@ -133,7 +43,7 @@ const useAppStore = create<AppState>((set, get) => ({
     nodeId: null,
     edgeId: null,
   },
-  
+
   // Layout state
   currentLayoutConfig: null,
   availableLayouts: LayoutAlgorithms.getLayoutPresets(),
@@ -461,6 +371,7 @@ const useAppStore = create<AppState>((set, get) => ({
   },
   setSelectedNodes: (selectedNodes) => {
     set({ selectedNodes });
+
     // Update selectedNodeId for comments panel
     if (selectedNodes.length === 1) {
       set({ selectedNodeId: selectedNodes[0].id });
@@ -472,21 +383,6 @@ const useAppStore = create<AppState>((set, get) => ({
     set({ isDraggingNodes });
   },
   setContextMenuState: (state) => set({ contextMenuState: state }),
-
-  // Comment panel actions
-  toggleCommentsPanel: () => {
-    set({ isCommentsPanelOpen: !get().isCommentsPanelOpen });
-  },
-  openCommentsPanel: (nodeId?: string) => {
-    set({ 
-      isCommentsPanelOpen: true,
-      selectedNodeId: nodeId || get().selectedNodeId
-    });
-  },
-  closeCommentsPanel: () => {
-    set({ isCommentsPanelOpen: false });
-  },
-
   // Getters
   getNode: (id: string) => {
     const nodes = get().nodes;
@@ -1682,7 +1578,7 @@ const useAppStore = create<AppState>((set, get) => ({
   // Collapse/Expand functionality
   getDirectChildrenCount: (nodeId: string): number => {
     const { edges } = get();
-    return edges.filter(edge => edge.source === nodeId).length;
+    return edges.filter((edge) => edge.source === nodeId).length;
   },
 
   getDescendantNodeIds: (nodeId: string): string[] => {
@@ -1694,8 +1590,8 @@ const useAppStore = create<AppState>((set, get) => ({
       if (visited.has(currentNodeId)) return;
       visited.add(currentNodeId);
 
-      const childEdges = edges.filter(edge => edge.source === currentNodeId);
-      
+      const childEdges = edges.filter((edge) => edge.source === currentNodeId);
+
       for (const edge of childEdges) {
         if (!visited.has(edge.target)) {
           descendants.push(edge.target);
@@ -1710,58 +1606,70 @@ const useAppStore = create<AppState>((set, get) => ({
 
   getVisibleNodes: (): AppNode[] => {
     const { nodes } = get();
-    const collapsedNodes = nodes.filter(node => node.data.metadata?.isCollapsed);
+    const collapsedNodes = nodes.filter(
+      (node) => node.data.metadata?.isCollapsed,
+    );
     const hiddenNodeIds = new Set<string>();
 
     // Collect all descendant IDs of collapsed nodes
     for (const collapsedNode of collapsedNodes) {
       const descendants = get().getDescendantNodeIds(collapsedNode.id);
-      descendants.forEach(id => hiddenNodeIds.add(id));
+      descendants.forEach((id) => hiddenNodeIds.add(id));
     }
 
     // Filter out hidden nodes first
-    const visibleNodes = nodes.filter(node => !hiddenNodeIds.has(node.id));
+    const visibleNodes = nodes.filter((node) => !hiddenNodeIds.has(node.id));
 
     // Now handle groups - hide groups if all their children are hidden
-    const groupNodes = visibleNodes.filter(node => node.data.metadata?.isGroup);
+    const groupNodes = visibleNodes.filter(
+      (node) => node.data.metadata?.isGroup,
+    );
     const finalHiddenNodeIds = new Set(hiddenNodeIds);
 
     for (const groupNode of groupNodes) {
-      const groupChildren = groupNode.data.metadata?.groupChildren as string[] || [];
-      
+      const groupChildren =
+        (groupNode.data.metadata?.groupChildren as string[]) || [];
+
       // If all group children are hidden, hide the group too
-      if (groupChildren.length > 0 && groupChildren.every(childId => hiddenNodeIds.has(childId))) {
+      if (
+        groupChildren.length > 0 &&
+        groupChildren.every((childId) => hiddenNodeIds.has(childId))
+      ) {
         finalHiddenNodeIds.add(groupNode.id);
       }
     }
 
     // Return only visible nodes (excluding groups with all hidden children)
-    return nodes.filter(node => !finalHiddenNodeIds.has(node.id));
+    return nodes.filter((node) => !finalHiddenNodeIds.has(node.id));
   },
 
   getVisibleEdges: (): AppEdge[] => {
     const { edges, nodes } = get();
     const visibleNodes = get().getVisibleNodes();
-    const visibleNodeIds = new Set(visibleNodes.map(node => node.id));
+    const visibleNodeIds = new Set(visibleNodes.map((node) => node.id));
     const collapsedNodeIds = new Set(
-      nodes.filter(node => node.data.metadata?.isCollapsed).map(node => node.id)
+      nodes
+        .filter((node) => node.data.metadata?.isCollapsed)
+        .map((node) => node.id),
     );
 
     // Return edges where:
     // 1. Both source and target are visible, OR
     // 2. Source is visible and target is a collapsed node (to show connection to collapsed branch)
-    return edges.filter(edge => {
+    return edges.filter((edge) => {
       const sourceVisible = visibleNodeIds.has(edge.source);
       const targetVisible = visibleNodeIds.has(edge.target);
       const targetIsCollapsed = collapsedNodeIds.has(edge.target);
-      
-      return (sourceVisible && targetVisible) || (sourceVisible && targetIsCollapsed);
+
+      return (
+        (sourceVisible && targetVisible) || (sourceVisible && targetIsCollapsed)
+      );
     });
   },
 
   toggleNodeCollapse: async (nodeId: string): Promise<void> => {
     const { nodes, updateNode, addStateToHistory } = get();
-    const node = nodes.find(n => n.id === nodeId);
+    const node = nodes.find((n) => n.id === nodeId);
 
     if (!node) {
       console.error(`Node with id ${nodeId} not found`);
@@ -1783,30 +1691,32 @@ const useAppStore = create<AppState>((set, get) => ({
     });
 
     // Add to history for undo/redo
-    addStateToHistory(
-      newCollapsedState ? "collapseNode" : "expandNode",
-      { nodes: get().nodes, edges: get().edges }
-    );
+    addStateToHistory(newCollapsedState ? "collapseNode" : "expandNode", {
+      nodes: get().nodes,
+      edges: get().edges,
+    });
   },
 
   // Enhanced Layout functionality
   applyAdvancedLayout: withLoadingAndToast(
     async (config: SpecificLayoutConfig) => {
       const { nodes, edges, addStateToHistory } = get();
-      
+
       const layoutResult = LayoutAlgorithms.applyLayout(nodes, edges, config);
-      
-      const updatedNodes = nodes.map(node => {
-        const layoutNode = layoutResult.nodes.find(ln => ln.id === node.id);
-        return layoutNode ? {
-          ...node,
-          position: layoutNode.position
-        } : node;
+
+      const updatedNodes = nodes.map((node) => {
+        const layoutNode = layoutResult.nodes.find((ln) => ln.id === node.id);
+        return layoutNode
+          ? {
+              ...node,
+              position: layoutNode.position,
+            }
+          : node;
       });
 
-      set({ 
+      set({
         nodes: updatedNodes,
-        currentLayoutConfig: config
+        currentLayoutConfig: config,
       });
 
       addStateToHistory("applyLayout", { nodes: updatedNodes, edges });
@@ -1818,7 +1728,6 @@ const useAppStore = create<AppState>((set, get) => ({
       errorMessage: "Failed to apply layout",
     },
   ),
-
 
   setLayoutConfig: (config: SpecificLayoutConfig) => {
     set({ currentLayoutConfig: config });
@@ -1832,7 +1741,7 @@ const useAppStore = create<AppState>((set, get) => ({
   fetchNodeComments: withLoadingAndToast(
     async (nodeId: string) => {
       const { supabase, mapId } = get();
-      
+
       if (!mapId) {
         throw new Error("Map ID is required");
       }
@@ -1848,11 +1757,11 @@ const useAppStore = create<AppState>((set, get) => ({
         throw new Error(error.message);
       }
 
-      set(state => ({
+      set((state) => ({
         nodeComments: {
           ...state.nodeComments,
-          [nodeId]: comments || []
-        }
+          [nodeId]: comments || [],
+        },
       }));
     },
     "isLoadingComments",
@@ -1863,11 +1772,10 @@ const useAppStore = create<AppState>((set, get) => ({
     },
   ),
 
-
   fetchMapComments: withLoadingAndToast(
     async () => {
       const { supabase, mapId } = get();
-      
+
       if (!mapId) {
         throw new Error("Map ID is required");
       }
@@ -1895,12 +1803,13 @@ const useAppStore = create<AppState>((set, get) => ({
   addNodeComment: withLoadingAndToast(
     async (nodeId: string, content: string, parentId?: string) => {
       const { supabase, mapId } = get();
-      
+
       if (!mapId) {
         throw new Error("Map ID is required");
       }
 
       const user = await supabase.auth.getUser();
+
       if (!user.data.user) {
         throw new Error("User not authenticated");
       }
@@ -1921,11 +1830,11 @@ const useAppStore = create<AppState>((set, get) => ({
         throw new Error(error.message);
       }
 
-      set(state => ({
+      set((state) => ({
         nodeComments: {
           ...state.nodeComments,
-          [nodeId]: [...(state.nodeComments[nodeId] || []), comment]
-        }
+          [nodeId]: [...(state.nodeComments[nodeId] || []), comment],
+        },
       }));
 
       // Clear draft
@@ -1940,14 +1849,19 @@ const useAppStore = create<AppState>((set, get) => ({
   ),
 
   addMapComment: withLoadingAndToast(
-    async (content: string, position?: { x: number; y: number }, parentId?: string) => {
+    async (
+      content: string,
+      position?: { x: number; y: number },
+      parentId?: string,
+    ) => {
       const { supabase, mapId } = get();
-      
+
       if (!mapId) {
         throw new Error("Map ID is required");
       }
 
       const user = await supabase.auth.getUser();
+
       if (!user.data.user) {
         throw new Error("User not authenticated");
       }
@@ -1968,8 +1882,8 @@ const useAppStore = create<AppState>((set, get) => ({
         throw new Error(error.message);
       }
 
-      set(state => ({
-        mapComments: [...state.mapComments, comment]
+      set((state) => ({
+        mapComments: [...state.mapComments, comment],
       }));
 
       // Clear draft
@@ -1989,10 +1903,10 @@ const useAppStore = create<AppState>((set, get) => ({
 
       const { data: comment, error } = await supabase
         .from("comments")
-        .update({ 
+        .update({
           content,
           is_edited: true,
-          edited_at: new Date().toISOString()
+          edited_at: new Date().toISOString(),
         })
         .eq("id", commentId)
         .select()
@@ -2003,21 +1917,21 @@ const useAppStore = create<AppState>((set, get) => ({
       }
 
       // Update local state
-      set(state => {
+      set((state) => {
         const newNodeComments = { ...state.nodeComments };
-        Object.keys(newNodeComments).forEach(nodeId => {
-          newNodeComments[nodeId] = newNodeComments[nodeId].map(c => 
-            c.id === commentId ? { ...c, ...comment } : c
+        Object.keys(newNodeComments).forEach((nodeId) => {
+          newNodeComments[nodeId] = newNodeComments[nodeId].map((c) =>
+            c.id === commentId ? { ...c, ...comment } : c,
           );
         });
 
-        const newMapComments = state.mapComments.map(c => 
-          c.id === commentId ? { ...c, ...comment } : c
+        const newMapComments = state.mapComments.map((c) =>
+          c.id === commentId ? { ...c, ...comment } : c,
         );
 
         return {
           nodeComments: newNodeComments,
-          mapComments: newMapComments
+          mapComments: newMapComments,
         };
       });
     },
@@ -2043,18 +1957,25 @@ const useAppStore = create<AppState>((set, get) => ({
       }
 
       // Update local state
-      set(state => {
+      set((state) => {
         const newNodeComments = { ...state.nodeComments };
-        Object.keys(newNodeComments).forEach(nodeId => {
-          newNodeComments[nodeId] = newNodeComments[nodeId].filter(c => c.id !== commentId);
+        Object.keys(newNodeComments).forEach((nodeId) => {
+          newNodeComments[nodeId] = newNodeComments[nodeId].filter(
+            (c) => c.id !== commentId,
+          );
         });
 
-        const newMapComments = state.mapComments.filter(c => c.id !== commentId);
+        const newMapComments = state.mapComments.filter(
+          (c) => c.id !== commentId,
+        );
 
         return {
           nodeComments: newNodeComments,
           mapComments: newMapComments,
-          selectedCommentId: state.selectedCommentId === commentId ? null : state.selectedCommentId
+          selectedCommentId:
+            state.selectedCommentId === commentId
+              ? null
+              : state.selectedCommentId,
         };
       });
     },
@@ -2071,16 +1992,17 @@ const useAppStore = create<AppState>((set, get) => ({
       const { supabase } = get();
 
       const user = await supabase.auth.getUser();
+
       if (!user.data.user) {
         throw new Error("User not authenticated");
       }
 
       const { data: comment, error } = await supabase
         .from("comments")
-        .update({ 
+        .update({
           is_resolved: true,
           resolved_by: user.data.user.id,
-          resolved_at: new Date().toISOString()
+          resolved_at: new Date().toISOString(),
         })
         .eq("id", commentId)
         .select()
@@ -2091,21 +2013,21 @@ const useAppStore = create<AppState>((set, get) => ({
       }
 
       // Update local state
-      set(state => {
+      set((state) => {
         const newNodeComments = { ...state.nodeComments };
-        Object.keys(newNodeComments).forEach(nodeId => {
-          newNodeComments[nodeId] = newNodeComments[nodeId].map(c => 
-            c.id === commentId ? { ...c, ...comment } : c
+        Object.keys(newNodeComments).forEach((nodeId) => {
+          newNodeComments[nodeId] = newNodeComments[nodeId].map((c) =>
+            c.id === commentId ? { ...c, ...comment } : c,
           );
         });
 
-        const newMapComments = state.mapComments.map(c => 
-          c.id === commentId ? { ...c, ...comment } : c
+        const newMapComments = state.mapComments.map((c) =>
+          c.id === commentId ? { ...c, ...comment } : c,
         );
 
         return {
           nodeComments: newNodeComments,
-          mapComments: newMapComments
+          mapComments: newMapComments,
         };
       });
     },
@@ -2123,10 +2045,10 @@ const useAppStore = create<AppState>((set, get) => ({
 
       const { data: comment, error } = await supabase
         .from("comments")
-        .update({ 
+        .update({
           is_resolved: false,
           resolved_by: null,
-          resolved_at: null
+          resolved_at: null,
         })
         .eq("id", commentId)
         .select()
@@ -2137,21 +2059,21 @@ const useAppStore = create<AppState>((set, get) => ({
       }
 
       // Update local state
-      set(state => {
+      set((state) => {
         const newNodeComments = { ...state.nodeComments };
-        Object.keys(newNodeComments).forEach(nodeId => {
-          newNodeComments[nodeId] = newNodeComments[nodeId].map(c => 
-            c.id === commentId ? { ...c, ...comment } : c
+        Object.keys(newNodeComments).forEach((nodeId) => {
+          newNodeComments[nodeId] = newNodeComments[nodeId].map((c) =>
+            c.id === commentId ? { ...c, ...comment } : c,
           );
         });
 
-        const newMapComments = state.mapComments.map(c => 
-          c.id === commentId ? { ...c, ...comment } : c
+        const newMapComments = state.mapComments.map((c) =>
+          c.id === commentId ? { ...c, ...comment } : c,
         );
 
         return {
           nodeComments: newNodeComments,
-          mapComments: newMapComments
+          mapComments: newMapComments,
         };
       });
     },
@@ -2176,16 +2098,16 @@ const useAppStore = create<AppState>((set, get) => ({
   },
 
   updateCommentDraft: (targetId: string, content: string) => {
-    set(state => ({
+    set((state) => ({
       commentDrafts: {
         ...state.commentDrafts,
-        [targetId]: content
-      }
+        [targetId]: content,
+      },
     }));
   },
 
   clearCommentDraft: (targetId: string) => {
-    set(state => {
+    set((state) => {
       const newDrafts = { ...state.commentDrafts };
       delete newDrafts[targetId];
       return { commentDrafts: newDrafts };

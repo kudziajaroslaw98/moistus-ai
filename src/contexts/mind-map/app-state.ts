@@ -1,6 +1,13 @@
 import type { NodeTypes } from "@/constants/node-types";
 import type { AppEdge } from "@/types/app-edge";
+import type {
+  CommentFilter,
+  CommentSort,
+  MapComment,
+  NodeComment,
+} from "@/types/comment-types";
 import type { EdgeData } from "@/types/edge-data";
+import type { SpecificLayoutConfig } from "@/types/layout-types";
 import type { MindMapData } from "@/types/mind-map-data";
 import type { NodeData } from "@/types/node-data";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -12,8 +19,6 @@ import type {
   ReactFlowInstance,
   XYPosition,
 } from "@xyflow/react";
-import type { SpecificLayoutConfig, LayoutResult } from "@/types/layout-types";
-import type { Comment, NodeComment, MapComment, CommentFilter, CommentSort } from "@/types/comment-types";
 
 export type AppNode = Node<NodeData>;
 export type LayoutDirection = "TB" | "LR" | "BT" | "RL";
@@ -121,6 +126,7 @@ export interface AppState {
   commentSort: CommentSort;
   selectedCommentId: string | null;
   commentDrafts: Record<string, string>; // target_id -> draft content
+  selectedNodeId: string | null;
 
   // handlers
   onNodesChange: OnNodesChange<AppNode>;
@@ -217,8 +223,16 @@ export interface AppState {
   // Comment functionality
   fetchNodeComments: (nodeId: string) => Promise<void>;
   fetchMapComments: () => Promise<void>;
-  addNodeComment: (nodeId: string, content: string, parentId?: string) => Promise<void>;
-  addMapComment: (content: string, position?: { x: number; y: number }, parentId?: string) => Promise<void>;
+  addNodeComment: (
+    nodeId: string,
+    content: string,
+    parentId?: string,
+  ) => Promise<void>;
+  addMapComment: (
+    content: string,
+    position?: { x: number; y: number },
+    parentId?: string,
+  ) => Promise<void>;
   updateComment: (commentId: string, content: string) => Promise<void>;
   deleteComment: (commentId: string) => Promise<void>;
   resolveComment: (commentId: string) => Promise<void>;

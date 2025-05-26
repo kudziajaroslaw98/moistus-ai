@@ -5,14 +5,14 @@ import { Node, NodeProps } from "@xyflow/react";
 import { ClipboardCopy, Code, SquareCode } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 
+import useAppStore from "@/contexts/mind-map/mind-map-store";
+import { useComments } from "@/hooks/use-comments";
 import { memo, useCallback, useState } from "react";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { toast } from "sonner";
+import { useShallow } from "zustand/shallow";
 import { Button } from "../ui/button";
 import { BaseNodeWrapper } from "./base-node-wrapper";
-import { useComments } from "@/hooks/use-comments";
-import useAppStore from "@/contexts/mind-map/mind-map-store";
-import { useShallow } from "zustand/shallow";
 
 interface CodeNodeProps extends NodeProps<Node<NodeData>> {}
 
@@ -25,7 +25,7 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
     })),
   );
 
-  const { commentSummaries } = useComments({ autoRefresh: true });
+  const { commentSummaries } = useComments({ autoRefresh: false });
   const commentSummary = commentSummaries.get(id);
 
   const codeContent = data.content || "";
