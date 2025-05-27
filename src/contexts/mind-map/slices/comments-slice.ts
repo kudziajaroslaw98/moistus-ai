@@ -294,7 +294,7 @@ export const createCommentsSlice: StateCreator<
 
   addNodeComment: withLoadingAndToast(
     async (nodeId: string, content: string, parentId?: string) => {
-      const { supabase, mapId } = get();
+      const { supabase, mapId, clearCommentDraft } = get();
 
       if (!mapId) {
         throw new Error("Map ID is required");
@@ -330,7 +330,7 @@ export const createCommentsSlice: StateCreator<
       }));
 
       // Clear draft
-      get().clearCommentDraft(nodeId);
+      clearCommentDraft(nodeId);
     },
     "isSavingComment",
     {

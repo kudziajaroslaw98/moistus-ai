@@ -308,10 +308,8 @@ function CommentItem({
 
             <span>
               Resolved by{" "}
-
               {comment.resolved_by_user.display_name ||
                 comment.resolved_by_user.full_name}
-
               {comment.resolved_at &&
                 ` • ${formatTimeAgo(comment.resolved_at)}`}
             </span>
@@ -367,7 +365,6 @@ function CommentThread({
             ) : (
               <ChevronRight className="size-3 mr-1" />
             )}
-
             {replies.length} {replies.length === 1 ? "reply" : "replies"}
           </Button>
 
@@ -413,7 +410,7 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
     allComments,
     commentsError,
     commentFilter,
-    isLoadingComments,
+    loadingStates,
     fetchCommentsWithFilters,
     addNodeComment,
     updateComment,
@@ -430,7 +427,7 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
       allComments: state.allComments,
       commentsError: state.commentsError,
       commentFilter: state.commentFilter,
-      isLoadingComments: state.isLoadingComments,
+      loadingStates: state.loadingStates,
       fetchCommentsWithFilters: state.fetchCommentsWithFilters,
       addNodeComment: state.addNodeComment,
       updateComment: state.updateComment,
@@ -446,6 +443,7 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const isLoadingComments = loadingStates.isLoadingComments;
 
   const targetNodeId = nodeId || selectedNodeId;
   const newCommentRef = useRef<HTMLTextAreaElement>(null);
@@ -460,14 +458,13 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
   const handleCreateComment = async () => {
     if (!newComment.trim() || !targetNodeId) return;
 
-    try {
-      await addNodeComment(targetNodeId, newComment.trim(), replyingTo || undefined);
-      setNewComment("");
-      setReplyingTo(null);
-      toast.success("Comment added successfully!");
-    } catch (error) {
-      toast.error("Failed to add comment");
-    }
+    await addNodeComment(
+      targetNodeId,
+      newComment.trim(),
+      replyingTo || undefined,
+    );
+    setNewComment("");
+    setReplyingTo(null);
   };
 
   const handleReply = (commentId: string) => {
@@ -518,7 +515,9 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
         // Root comment
         threads.push({
           comment,
-          replies: allComments.filter((c) => c.parent_comment_id === comment.id),
+          replies: allComments.filter(
+            (c) => c.parent_comment_id === comment.id,
+          ),
         });
       }
 
@@ -655,7 +654,9 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
                 <Select
                   value={commentFilter.category || "all"}
                   onValueChange={(value) =>
-                    setCommentFilter({ category: value === "all" ? undefined : value })
+                    setCommentFilter({
+                      category: value === "all" ? undefined : value,
+                    })
                   }
                 >
                   <SelectTrigger className="bg-zinc-900 border-zinc-700">

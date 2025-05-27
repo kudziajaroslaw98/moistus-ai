@@ -1,5 +1,4 @@
 import useAppStore from "@/contexts/mind-map/mind-map-store";
-import { NodeCommentSummary } from "@/types/comment-types";
 import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
 import {
@@ -18,7 +17,7 @@ import { Button } from "../ui/button";
 
 // Define the props including the onEditNode callback
 interface BaseNodeWrapperProps extends NodeProps<Node<NodeData>> {
-  children: React.ReactNode; // Content specific to the node type
+  children: ReactNode; // Content specific to the node type
   nodeClassName?: string; // For overall node styling adjustments
   nodeIcon?: ReactNode;
   nodeType?:
@@ -30,8 +29,6 @@ interface BaseNodeWrapperProps extends NodeProps<Node<NodeData>> {
     | "Note"
     | "Builder";
   includePadding?: boolean;
-  commentSummary?: NodeCommentSummary;
-  onCommentClick?: () => void;
 }
 
 const BaseNodeWrapperComponent = ({
@@ -43,15 +40,23 @@ const BaseNodeWrapperComponent = ({
   nodeIcon,
   nodeType,
   includePadding = true,
-  commentSummary,
-  onCommentClick,
 }: BaseNodeWrapperProps) => {
   const connection = useConnection();
-  const { nodes, toggleNodeCollapse, getDirectChildrenCount } = useAppStore(
+  const {
+    nodes,
+    toggleNodeCollapse,
+    getDirectChildrenCount,
+    getNodeCommentCount,
+    getUnresolvedCommentCount,
+    setPopoverOpen,
+  } = useAppStore(
     useShallow((state) => ({
       nodes: state.nodes,
       toggleNodeCollapse: state.toggleNodeCollapse,
       getDirectChildrenCount: state.getDirectChildrenCount,
+      getNodeCommentCount: state.getNodeCommentCount,
+      getUnresolvedCommentCount: state.getUnresolvedCommentCount,
+      setPopoverOpen: state.setPopoverOpen,
     })),
   );
   const [hover, setHover] = useState(false);
@@ -90,6 +95,13 @@ const BaseNodeWrapperComponent = ({
   if (!data) {
     return null;
   }
+
+  const commentCount = getNodeCommentCount(id);
+  const unresolvedCount = getUnresolvedCommentCount(id);
+
+  const handleOnCommentClick = () => {
+    setPopoverOpen({ commentsPanel: true });
+  };
 
   return (
     <div
@@ -196,23 +208,20 @@ const BaseNodeWrapperComponent = ({
           </div>
 
           {/* Comment Indicator */}
-          {commentSummary && commentSummary.comment_count > 0 && (
+          {commentCount > 0 && (
             <motion.div className="bg-node-accent text-node-text-main rounded-t-sm text-[10px]  px-2 font-semibold font-mono flex items-center justify-center gap-2">
               {hasChildren && (
                 <Button
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevent node selection/drag
-                    onCommentClick?.();
-                  }}
+                  onClick={handleOnCommentClick}
                   className="nodrag nopan z-20 rounded-sm hover:bg-black/20 h-5 w-auto group flex gap-2 px-1 transition-all"
                   variant={"ghost"}
-                  title={`${commentSummary.comment_count} comment${commentSummary.comment_count !== 1 ? "s" : ""}${commentSummary.unresolved_count > 0 ? ` (${commentSummary.unresolved_count} unresolved)` : ""}`}
+                  title={`${commentCount} comment${commentCount !== 1 ? "s" : ""}${unresolvedCount > 0 ? ` (${unresolvedCount} unresolved)` : ""}`}
                 >
                   <MessageCircle className="size-3" />
 
-                  <span>{commentSummary.comment_count}</span>
+                  <span>{commentCount}</span>
 
-                  {commentSummary.unresolved_count > 0 && (
+                  {unresolvedCount > 0 && (
                     <span className="bg-red-500 text-white rounded-full size-2 animate-pulse" />
                   )}
                 </Button>
