@@ -1,10 +1,11 @@
 import getLayoutedElements from "@/helpers/get-layouted-elements";
 import withLoadingAndToast from "@/helpers/with-loading-and-toast";
+import type { LayoutDirection } from "@/types/layout-direction";
 import type { SpecificLayoutConfig } from "@/types/layout-types";
 import { LayoutAlgorithms } from "@/utils/layout-algorithms";
 import { toast } from "sonner";
 import type { StateCreator } from "zustand";
-import type { AppState, LayoutDirection } from "../app-state";
+import type { AppState } from "../app-state";
 
 export interface LayoutSlice {
   // Layout state

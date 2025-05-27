@@ -1,5 +1,3 @@
-export type LayoutDirection = "TB" | "LR" | "BT" | "RL";
-
 import { ClipboardSlice } from "./slices/clipboard-slice";
 import { CommentsSlice } from "./slices/comments-slice";
 import { CoreDataSlice } from "./slices/core-slice";

@@ -27,11 +27,11 @@ import TextNode from "@/components/nodes/text-node";
 
 import FloatingEdge from "@/components/edges/floating-edge";
 import SuggestedConnectionEdge from "@/components/edges/suggested-connection-edge";
-import type { AppNode } from "@/contexts/mind-map/app-state";
 import useAppStore from "@/contexts/mind-map/mind-map-store";
 import { useContextMenu } from "@/hooks/use-context-menu";
-import { EdgeData } from "@/types/edge-data";
-import { NodeData } from "@/types/node-data";
+import type { AppNode } from "@/types/app-node";
+import type { EdgeData } from "@/types/edge-data";
+import type { NodeData } from "@/types/node-data";
 import { useParams } from "next/navigation";
 import FloatingConnectionLine from "../edges/floating-connection-line";
 import BuilderNode from "../nodes/builder-node";
@@ -55,7 +55,7 @@ export function ReactFlowArea() {
   const allEdges = useAppStore((state) => state.edges);
   const getVisibleNodes = useAppStore((state) => state.getVisibleNodes);
   const getVisibleEdges = useAppStore((state) => state.getVisibleEdges);
-  
+
   // Use visible nodes and edges for rendering (filtered for collapsed branches)
   const nodes = getVisibleNodes();
   const edges = getVisibleEdges();
