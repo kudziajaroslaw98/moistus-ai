@@ -11,7 +11,14 @@ import {
 } from "@xyflow/react"; // Removed Handle import
 import { ChevronDown, ChevronRight, Group, MessageCircle } from "lucide-react"; // Icons for collapse/expand
 import { AnimatePresence, motion } from "motion/react";
-import { memo, type ReactNode, useCallback, useMemo, useState } from "react"; // Added useMemo
+import {
+  memo,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react"; // Added useMemo
 import { useShallow } from "zustand/shallow";
 import { Button } from "../ui/button";
 
@@ -44,18 +51,20 @@ const BaseNodeWrapperComponent = ({
   const connection = useConnection();
   const {
     nodes,
+    nodeComments,
+    commentSummaries,
     toggleNodeCollapse,
     getDirectChildrenCount,
-    getNodeCommentCount,
-    getUnresolvedCommentCount,
     setPopoverOpen,
   } = useAppStore(
     useShallow((state) => ({
       nodes: state.nodes,
+      nodeComments: state.nodeComments,
       toggleNodeCollapse: state.toggleNodeCollapse,
       getDirectChildrenCount: state.getDirectChildrenCount,
       getNodeCommentCount: state.getNodeCommentCount,
       getUnresolvedCommentCount: state.getUnresolvedCommentCount,
+      commentSummaries: state.commentSummaries,
       setPopoverOpen: state.setPopoverOpen,
     })),
   );
@@ -92,12 +101,26 @@ const BaseNodeWrapperComponent = ({
     [id, data.metadata?.isGroup, data.node_type],
   );
 
+  const [commentCount, setCommentCount] = useState(
+    commentSummaries.get(id)?.comment_count || 0,
+  );
+  const [unresolvedCount, setUnresolvedCount] = useState(
+    commentSummaries.get(id)?.unresolved_count || 0,
+  );
+
+  useEffect(() => {
+    const summaries = commentSummaries.get(id);
+    if (!summaries) return;
+
+    setCommentCount(summaries.comment_count || 0);
+    setUnresolvedCount(summaries.unresolved_count || 0);
+
+    console.log(summaries);
+  }, [commentSummaries.get(id)]);
+
   if (!data) {
     return null;
   }
-
-  const commentCount = getNodeCommentCount(id);
-  const unresolvedCount = getUnresolvedCommentCount(id);
 
   const handleOnCommentClick = () => {
     setPopoverOpen({ commentsPanel: true });
@@ -210,22 +233,20 @@ const BaseNodeWrapperComponent = ({
           {/* Comment Indicator */}
           {commentCount > 0 && (
             <motion.div className="bg-node-accent text-node-text-main rounded-t-sm text-[10px]  px-2 font-semibold font-mono flex items-center justify-center gap-2">
-              {hasChildren && (
-                <Button
-                  onClick={handleOnCommentClick}
-                  className="nodrag nopan z-20 rounded-sm hover:bg-black/20 h-5 w-auto group flex gap-2 px-1 transition-all"
-                  variant={"ghost"}
-                  title={`${commentCount} comment${commentCount !== 1 ? "s" : ""}${unresolvedCount > 0 ? ` (${unresolvedCount} unresolved)` : ""}`}
-                >
-                  <MessageCircle className="size-3" />
+              <Button
+                onClick={handleOnCommentClick}
+                className="nodrag nopan z-20 rounded-sm hover:bg-black/20 h-5 w-auto group flex gap-2 px-1 transition-all"
+                variant={"ghost"}
+                title={`${commentCount} comment${commentCount !== 1 ? "s" : ""}${unresolvedCount > 0 ? ` (${unresolvedCount} unresolved)` : ""}`}
+              >
+                <MessageCircle className="size-3" />
 
-                  <span>{commentCount}</span>
+                <span>{commentCount}</span>
 
-                  {unresolvedCount > 0 && (
-                    <span className="bg-red-500 text-white rounded-full size-2 animate-pulse" />
-                  )}
-                </Button>
-              )}
+                {unresolvedCount > 0 && (
+                  <span className="bg-red-500 text-white rounded-full size-2 animate-pulse" />
+                )}
+              </Button>
             </motion.div>
           )}
         </div>

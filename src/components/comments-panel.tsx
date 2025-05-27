@@ -41,7 +41,8 @@ import { Textarea } from "./ui/textarea";
 
 interface CommentItemProps {
   comment: Comment;
-  isReply?: boolean;
+  depth?: number;
+  maxDepth?: number;
   onReply?: (commentId: string) => void;
   onEdit?: (commentId: string, content: string) => void;
   onDelete?: (commentId: string) => void;
@@ -51,7 +52,8 @@ interface CommentItemProps {
 
 function CommentItem({
   comment,
-  isReply = false,
+  depth = 0,
+  maxDepth = 5,
   onReply,
   onEdit,
   onDelete,
@@ -62,6 +64,9 @@ function CommentItem({
   const [editContent, setEditContent] = useState(comment.content);
   const [showActions, setShowActions] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const isReply = depth > 0;
+  const canReply = depth < maxDepth;
 
   useEffect(() => {
     if (isEditing && textareaRef.current) {
@@ -107,7 +112,8 @@ function CommentItem({
     <div
       className={cn(
         "group relative",
-        isReply && "ml-8 border-l-2 border-zinc-700 pl-4 mt-2",
+        isReply && "border-l-2 border-zinc-700 pl-4 mt-3",
+        depth > 0 && "ml-4",
       )}
     >
       <div
@@ -152,9 +158,7 @@ function CommentItem({
 
               <div className="flex items-center gap-2 text-xs text-zinc-500">
                 <Clock className="size-3" />
-
                 <span>{formatTimeAgo(comment.created_at)}</span>
-
                 {comment.is_edited && <span className="italic">(edited)</span>}
               </div>
             </div>
@@ -185,18 +189,20 @@ function CommentItem({
                 Edit
               </Button>
 
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  onReply?.(comment.id);
-                  setShowActions(false);
-                }}
-                className="w-full justify-start gap-2 text-xs"
-              >
-                <Reply className="size-3" />
-                Reply
-              </Button>
+              {canReply && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    onReply?.(comment.id);
+                    setShowActions(false);
+                  }}
+                  className="w-full justify-start gap-2 text-xs"
+                >
+                  <Reply className="size-3" />
+                  Reply
+                </Button>
+              )}
 
               {comment.is_resolved ? (
                 <Button
@@ -305,7 +311,6 @@ function CommentItem({
         {comment.is_resolved && comment.resolved_by_user && (
           <div className="mt-2 text-xs text-green-400 flex items-center gap-1">
             <CheckCircle className="size-3" />
-
             <span>
               Resolved by{" "}
               {comment.resolved_by_user.display_name ||
@@ -322,7 +327,9 @@ function CommentItem({
 
 interface CommentThreadProps {
   comment: Comment;
-  replies: Comment[];
+  allComments: Comment[];
+  depth?: number;
+  maxDepth?: number;
   onReply: (commentId: string) => void;
   onEdit: (commentId: string, content: string) => void;
   onDelete: (commentId: string) => void;
@@ -332,19 +339,26 @@ interface CommentThreadProps {
 
 function CommentThread({
   comment,
-  replies,
+  allComments,
+  depth = 0,
+  maxDepth = 5,
   onReply,
   onEdit,
   onDelete,
   onResolve,
   onUnresolve,
 }: CommentThreadProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(depth < 2); // Auto-expand first 2 levels
+
+  // Get direct replies to this comment
+  const replies = allComments.filter((c) => c.parent_comment_id === comment.id);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <CommentItem
         comment={comment}
+        depth={depth}
+        maxDepth={maxDepth}
         onReply={onReply}
         onEdit={onEdit}
         onDelete={onDelete}
@@ -353,12 +367,12 @@ function CommentThread({
       />
 
       {replies.length > 0 && (
-        <div className="ml-4">
+        <div className={cn("ml-2", depth > 0 && "ml-6")}>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="mb-2 text-xs text-zinc-400 hover:text-zinc-300"
+            className="mb-2 text-xs text-zinc-400 hover:text-zinc-300 h-6"
           >
             {isExpanded ? (
               <ChevronDown className="size-3 mr-1" />
@@ -377,10 +391,12 @@ function CommentThread({
                 className="space-y-2"
               >
                 {replies.map((reply) => (
-                  <CommentItem
+                  <CommentThread
                     key={reply.id}
                     comment={reply}
-                    isReply
+                    allComments={allComments}
+                    depth={depth + 1}
+                    maxDepth={maxDepth}
                     onReply={onReply}
                     onEdit={onEdit}
                     onDelete={onDelete}
@@ -448,7 +464,7 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
   const targetNodeId = nodeId || selectedNodeId;
   const newCommentRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load comments when panel opens or target node changes
+  // Initial load when panel opens or target node changes
   useEffect(() => {
     if (popoverOpen.commentsPanel && targetNodeId) {
       fetchCommentsWithFilters({ nodeId: targetNodeId });
@@ -458,13 +474,18 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
   const handleCreateComment = async () => {
     if (!newComment.trim() || !targetNodeId) return;
 
-    await addNodeComment(
-      targetNodeId,
-      newComment.trim(),
-      replyingTo || undefined,
-    );
-    setNewComment("");
-    setReplyingTo(null);
+    try {
+      await addNodeComment(
+        targetNodeId,
+        newComment.trim(),
+        replyingTo || undefined,
+      );
+      setNewComment("");
+      setReplyingTo(null);
+      toast.success("Comment added successfully!");
+    } catch (error) {
+      toast.error("Failed to add comment");
+    }
   };
 
   const handleReply = (commentId: string) => {
@@ -508,41 +529,34 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
     }
   };
 
-  // Group comments into threads
-  const commentThreads = allComments.reduce(
-    (threads, comment) => {
-      if (!comment.parent_comment_id) {
-        // Root comment
-        threads.push({
-          comment,
-          replies: allComments.filter(
-            (c) => c.parent_comment_id === comment.id,
-          ),
-        });
-      }
-
-      return threads;
-    },
-    [] as { comment: Comment; replies: Comment[] }[],
+  // Build root-level comment threads (comments without parent_comment_id)
+  const rootComments = allComments.filter(
+    (comment) => !comment.parent_comment_id,
   );
 
   // Filter threads based on search
-  const filteredThreads = commentThreads.filter((thread) => {
+  const filteredRootComments = rootComments.filter((comment) => {
     if (!searchQuery) return true;
     const searchLower = searchQuery.toLowerCase();
 
-    return (
-      thread.comment.content.toLowerCase().includes(searchLower) ||
-      thread.replies.some((reply) =>
-        reply.content.toLowerCase().includes(searchLower),
-      ) ||
-      (thread.comment.author?.full_name || "")
-        .toLowerCase()
-        .includes(searchLower) ||
-      (thread.comment.author?.display_name || "")
-        .toLowerCase()
-        .includes(searchLower)
-    );
+    // Check if this comment or any of its nested replies match the search
+    const checkCommentAndReplies = (c: Comment): boolean => {
+      if (
+        c.content.toLowerCase().includes(searchLower) ||
+        (c.author?.full_name || "").toLowerCase().includes(searchLower) ||
+        (c.author?.display_name || "").toLowerCase().includes(searchLower)
+      ) {
+        return true;
+      }
+
+      // Check nested replies recursively
+      const replies = allComments.filter(
+        (reply) => reply.parent_comment_id === c.id,
+      );
+      return replies.some(checkCommentAndReplies);
+    };
+
+    return checkCommentAndReplies(comment);
   });
 
   const totalComments = allComments.length;
@@ -570,10 +584,8 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
         <div className="flex items-center justify-between p-4 border-b border-zinc-800">
           <div className="flex items-center gap-2">
             <MessageCircle className="size-5 text-teal-400" />
-
             <div>
               <h2 className="text-lg font-semibold text-white">Comments</h2>
-
               {targetNodeId && (
                 <p className="text-xs text-zinc-400">
                   {totalComments} comments • {unresolvedComments} unresolved
@@ -595,7 +607,7 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={refreshComments}
+              onClick={() => refreshComments()}
               className="size-8 p-0"
             >
               <Search className="size-4" />
@@ -641,12 +653,9 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
                   <SelectTrigger className="bg-zinc-900 border-zinc-700">
                     <SelectValue />
                   </SelectTrigger>
-
                   <SelectContent>
                     <SelectItem value="all">All</SelectItem>
-
                     <SelectItem value="false">Unresolved</SelectItem>
-
                     <SelectItem value="true">Resolved</SelectItem>
                   </SelectContent>
                 </Select>
@@ -662,18 +671,12 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
                   <SelectTrigger className="bg-zinc-900 border-zinc-700">
                     <SelectValue />
                   </SelectTrigger>
-
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
-
                     <SelectItem value="feedback">Feedback</SelectItem>
-
                     <SelectItem value="question">Question</SelectItem>
-
                     <SelectItem value="suggestion">Suggestion</SelectItem>
-
                     <SelectItem value="issue">Issue</SelectItem>
-
                     <SelectItem value="note">Note</SelectItem>
                   </SelectContent>
                 </Select>
@@ -691,23 +694,20 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
           ) : commentsError ? (
             <div className="flex items-center gap-2 text-red-400 text-sm p-4 bg-red-950/20 rounded-lg">
               <AlertCircle className="size-4" />
-
               <span>{commentsError}</span>
             </div>
-          ) : filteredThreads.length === 0 ? (
+          ) : filteredRootComments.length === 0 ? (
             <div className="text-center py-8 text-zinc-500">
               <MessageCircle className="size-8 mx-auto mb-2 opacity-50" />
-
               <p>No comments yet</p>
-
               <p className="text-xs">Be the first to add a comment!</p>
             </div>
           ) : (
-            filteredThreads.map(({ comment, replies }) => (
+            filteredRootComments.map((comment) => (
               <CommentThread
                 key={comment.id}
                 comment={comment}
-                replies={replies}
+                allComments={allComments}
                 onReply={handleReply}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
@@ -723,9 +723,7 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
           {replyingTo && (
             <div className="mb-2 text-xs text-zinc-400 flex items-center gap-2">
               <Reply className="size-3" />
-
               <span>Replying to comment</span>
-
               <Button
                 variant="ghost"
                 size="sm"
@@ -754,7 +752,6 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
 
             <div className="flex items-center justify-between">
               <p className="text-xs text-zinc-500">Press ⌘+Enter to send</p>
-
               <Button
                 onClick={handleCreateComment}
                 disabled={!newComment.trim()}
@@ -762,7 +759,6 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
                 className="bg-teal-600 hover:bg-teal-700"
               >
                 <Send className="size-3 mr-1" />
-
                 {replyingTo ? "Reply" : "Comment"}
               </Button>
             </div>

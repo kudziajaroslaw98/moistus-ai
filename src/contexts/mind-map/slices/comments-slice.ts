@@ -54,6 +54,7 @@ export interface CommentsSlice {
   clearCommentDraft: (targetId: string) => void;
   setCommentsPanelOpen: (isOpen: boolean) => void;
   setSelectedNodeId: (nodeId: string | null) => void;
+  initializeComments: (mapId?: string) => Promise<void>;
 
   // Enhanced actions from hook
   refreshComments: () => Promise<void>;
@@ -633,6 +634,32 @@ export const createCommentsSlice: StateCreator<
     const { commentSummaries } = get();
     return commentSummaries.get(nodeId)?.comment_count || 0;
   },
+
+  // New initialization method
+  initializeComments: withLoadingAndToast(
+    async (mapId?: string) => {
+      const targetMapId = mapId || get().mapId;
+
+      if (!targetMapId) {
+        throw new Error("Map ID is required for comments initialization");
+      }
+
+      // Fetch initial comments data
+      await get().fetchCommentsWithFilters({ mapId: targetMapId });
+
+      // Set up real-time subscription
+      get().subscribeToComments(targetMapId);
+
+      // Reset any previous error state
+      get().setCommentsError(null);
+    },
+    "isLoadingComments",
+    {
+      initialMessage: "Initializing comments...",
+      successMessage: "Comments initialized successfully",
+      errorMessage: "Failed to initialize comments",
+    },
+  ),
 
   getUnresolvedCommentCount: (nodeId: string): number => {
     const { commentSummaries } = get();

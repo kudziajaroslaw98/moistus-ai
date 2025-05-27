@@ -77,6 +77,7 @@ export function ReactFlowArea() {
   const deleteNodes = useAppStore((state) => state.deleteNodes);
   const deleteEdges = useAppStore((state) => state.deleteEdges);
   const setIsDraggingNodes = useAppStore((state) => state.setIsDraggingNodes);
+  const initializeComments = useAppStore((state) => state.initializeComments);
 
   const { contextMenuHandlers } = useContextMenu();
 
@@ -90,6 +91,7 @@ export function ReactFlowArea() {
     if (!mapId || !supabase) return;
     setMapId(mapId as string);
     fetchMindMapData(mapId as string);
+    initializeComments(mapId as string);
   }, [fetchMindMapData, mapId, supabase]);
 
   const handleNodeDoubleClick = useCallback(
