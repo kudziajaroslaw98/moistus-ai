@@ -2,7 +2,6 @@
 
 import { UserAvatar } from "@/components/ui/user-avatar";
 import useAppStore from "@/contexts/mind-map/mind-map-store";
-import { useComments } from "@/hooks/use-comments";
 import { Comment } from "@/types/comment-types";
 import { cn } from "@/utils/cn";
 import {
@@ -309,8 +308,10 @@ function CommentItem({
 
             <span>
               Resolved by{" "}
+
               {comment.resolved_by_user.display_name ||
                 comment.resolved_by_user.full_name}
+
               {comment.resolved_at &&
                 ` • ${formatTimeAgo(comment.resolved_at)}`}
             </span>
@@ -366,6 +367,7 @@ function CommentThread({
             ) : (
               <ChevronRight className="size-3 mr-1" />
             )}
+
             {replies.length} {replies.length === 1 ? "reply" : "replies"}
           </Button>
 
@@ -404,11 +406,39 @@ interface CommentsPanelProps {
 }
 
 const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
-  const { selectedNodeId, popoverOpen, setPopoverOpen } = useAppStore(
+  const {
+    selectedNodeId,
+    popoverOpen,
+    setPopoverOpen,
+    allComments,
+    commentsError,
+    commentFilter,
+    isLoadingComments,
+    fetchCommentsWithFilters,
+    addNodeComment,
+    updateComment,
+    deleteComment,
+    resolveComment,
+    unresolveComment,
+    setCommentFilter,
+    refreshComments,
+  } = useAppStore(
     useShallow((state) => ({
       selectedNodeId: state.selectedNodeId,
       popoverOpen: state.popoverOpen,
       setPopoverOpen: state.setPopoverOpen,
+      allComments: state.allComments,
+      commentsError: state.commentsError,
+      commentFilter: state.commentFilter,
+      isLoadingComments: state.isLoadingComments,
+      fetchCommentsWithFilters: state.fetchCommentsWithFilters,
+      addNodeComment: state.addNodeComment,
+      updateComment: state.updateComment,
+      deleteComment: state.deleteComment,
+      resolveComment: state.resolveComment,
+      unresolveComment: state.unresolveComment,
+      setCommentFilter: state.setCommentFilter,
+      refreshComments: state.refreshComments,
     })),
   );
 
@@ -418,35 +448,25 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
   const [showFilters, setShowFilters] = useState(false);
 
   const targetNodeId = nodeId || selectedNodeId;
-
-  const {
-    comments,
-    isLoading,
-    error,
-    createComment,
-    updateComment,
-    deleteComment,
-    resolveComment,
-    unresolveComment,
-    filter,
-    setFilter,
-    refresh,
-  } = useComments({
-    nodeId: targetNodeId,
-    autoRefresh: false,
-  });
-
   const newCommentRef = useRef<HTMLTextAreaElement>(null);
 
+  // Load comments when panel opens or target node changes
+  useEffect(() => {
+    if (popoverOpen.commentsPanel && targetNodeId) {
+      fetchCommentsWithFilters({ nodeId: targetNodeId });
+    }
+  }, [popoverOpen.commentsPanel, targetNodeId, fetchCommentsWithFilters]);
+
   const handleCreateComment = async () => {
-    if (!newComment.trim()) return;
+    if (!newComment.trim() || !targetNodeId) return;
 
-    const success = await createComment(newComment, targetNodeId, replyingTo);
-
-    if (success) {
+    try {
+      await addNodeComment(targetNodeId, newComment.trim(), replyingTo || undefined);
       setNewComment("");
       setReplyingTo(null);
       toast.success("Comment added successfully!");
+    } catch (error) {
+      toast.error("Failed to add comment");
     }
   };
 
@@ -456,45 +476,49 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
   };
 
   const handleEdit = async (commentId: string, content: string) => {
-    const success = await updateComment(commentId, content);
-
-    if (success) {
+    try {
+      await updateComment(commentId, content);
       toast.success("Comment updated successfully!");
+    } catch (error) {
+      toast.error("Failed to update comment");
     }
   };
 
   const handleDelete = async (commentId: string) => {
-    const success = await deleteComment(commentId);
-
-    if (success) {
+    try {
+      await deleteComment(commentId);
       toast.success("Comment deleted successfully!");
+    } catch (error) {
+      toast.error("Failed to delete comment");
     }
   };
 
   const handleResolve = async (commentId: string) => {
-    const success = await resolveComment(commentId);
-
-    if (success) {
+    try {
+      await resolveComment(commentId);
       toast.success("Comment resolved!");
+    } catch (error) {
+      toast.error("Failed to resolve comment");
     }
   };
 
   const handleUnresolve = async (commentId: string) => {
-    const success = await unresolveComment(commentId);
-
-    if (success) {
+    try {
+      await unresolveComment(commentId);
       toast.success("Comment unresolved!");
+    } catch (error) {
+      toast.error("Failed to unresolve comment");
     }
   };
 
   // Group comments into threads
-  const commentThreads = comments.reduce(
+  const commentThreads = allComments.reduce(
     (threads, comment) => {
       if (!comment.parent_comment_id) {
         // Root comment
         threads.push({
           comment,
-          replies: comments.filter((c) => c.parent_comment_id === comment.id),
+          replies: allComments.filter((c) => c.parent_comment_id === comment.id),
         });
       }
 
@@ -522,8 +546,8 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
     );
   });
 
-  const totalComments = comments.length;
-  const unresolvedComments = comments.filter((c) => !c.is_resolved).length;
+  const totalComments = allComments.length;
+  const unresolvedComments = allComments.filter((c) => !c.is_resolved).length;
 
   const handleToggleCommentsPanel = () => {
     setPopoverOpen({ commentsPanel: !popoverOpen.commentsPanel });
@@ -572,7 +596,7 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={refresh}
+              onClick={refreshComments}
               className="size-8 p-0"
             >
               <Search className="size-4" />
@@ -602,15 +626,14 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
                 placeholder="Search comments..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg
--zinc-900 border-zinc-700"
+                className="bg-zinc-900 border-zinc-700"
               />
 
               <div className="flex gap-2">
                 <Select
-                  value={filter.is_resolved?.toString() || "all"}
+                  value={commentFilter.is_resolved?.toString() || "all"}
                   onValueChange={(value) =>
-                    setFilter({
+                    setCommentFilter({
                       is_resolved:
                         value === "all" ? undefined : value === "true",
                     })
@@ -630,9 +653,9 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
                 </Select>
 
                 <Select
-                  value={filter.category || "all"}
+                  value={commentFilter.category || "all"}
                   onValueChange={(value) =>
-                    setFilter({ category: value === "all" ? undefined : value })
+                    setCommentFilter({ category: value === "all" ? undefined : value })
                   }
                 >
                   <SelectTrigger className="bg-zinc-900 border-zinc-700">
@@ -660,15 +683,15 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
 
         {/* Comments List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {isLoading ? (
+          {isLoadingComments ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-500" />
             </div>
-          ) : error ? (
+          ) : commentsError ? (
             <div className="flex items-center gap-2 text-red-400 text-sm p-4 bg-red-950/20 rounded-lg">
               <AlertCircle className="size-4" />
 
-              <span>{error}</span>
+              <span>{commentsError}</span>
             </div>
           ) : filteredThreads.length === 0 ? (
             <div className="text-center py-8 text-zinc-500">
