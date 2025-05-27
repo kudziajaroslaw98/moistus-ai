@@ -1,3 +1,5 @@
+import { AvailableNodeTypes } from "./available-node-types";
+
 export interface NodeData extends Record<string, unknown> {
   id: string;
   map_id: string;
@@ -5,7 +7,7 @@ export interface NodeData extends Record<string, unknown> {
   content: string | null;
   position_x: number;
   position_y: number;
-  node_type?: string;
+  node_type?: AvailableNodeTypes;
   width?: number | null;
   height?: number | null;
 
@@ -52,7 +54,7 @@ export interface NodeData extends Record<string, unknown> {
     image_url?: string;
     borderColor?: string;
     isCollapsed?: boolean; // Added for collapsible branches
-    
+
     // Group-related properties
     groupId?: string; // ID of the group this node belongs to
     isGroup?: boolean; // Whether this node is a group container
