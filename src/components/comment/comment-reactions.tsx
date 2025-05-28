@@ -1,3 +1,9 @@
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/Tooltip";
 import { Comment } from "@/types/comment-types";
 import { cn } from "@/utils/cn";
 import {
@@ -8,12 +14,6 @@ import {
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "./ui/tooltip";
 
 const REACTION_EMOJIS = [
   { emoji: "👍", label: "thumbs up" },

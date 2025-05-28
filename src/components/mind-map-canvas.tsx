@@ -9,7 +9,7 @@ import { ReactFlowArea } from "./mind-map/react-flow-area";
 import useAppStore from "@/contexts/mind-map/mind-map-store";
 import { useShallow } from "zustand/shallow";
 import { CommandPalette } from "./command-palette";
-import { CommentsPanel } from "./comments-panel";
+import { CommentsPanel } from "./comment/comment-panel";
 import { MindMapToolbar } from "./mind-map-toolbar/mind-map-toolbar";
 import { ContextMenuWrapper } from "./mind-map/context-menu-wrapper";
 
@@ -110,10 +110,12 @@ export function MindMapCanvas() {
     // Context Provider is now wrapping this component higher up
     <div className="relative h-full w-full overflow-hidden rounded-md bg-zinc-900 flex">
       {/* Main content area */}
-      <div className={cn([
-        "flex-1 relative",
-        isCommentsPanelOpen ? "w-[calc(100%-384px)]" : "w-full"
-      ])}>
+      <div
+        className={cn([
+          "flex-1 relative",
+          isCommentsPanelOpen ? "w-[calc(100%-384px)]" : "w-full",
+        ])}
+      >
         {/* Render the wrapped components */}
         <MindMapToolbar />
 

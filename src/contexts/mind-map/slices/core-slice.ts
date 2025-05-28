@@ -4,7 +4,7 @@ import withLoadingAndToast from "@/helpers/with-loading-and-toast";
 import type { EdgesTableType } from "@/types/edges-table-type";
 import type { MindMapData } from "@/types/mind-map-data";
 import type { NodesTableType } from "@/types/nodes-table-type";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 import type { ReactFlowInstance } from "@xyflow/react";
 import type { StateCreator } from "zustand";
 import type { AppState } from "../app-state";
@@ -14,10 +14,14 @@ export type CoreDataSlice = {
   mindMap: MindMapData | null;
   mapId: string | null;
   reactFlowInstance: ReactFlowInstance | null;
+  currentUser: User | null;
 
   setMindMap: (mindMap: MindMapData | null) => void;
   setReactFlowInstance: (reactFlowInstance: ReactFlowInstance | null) => void;
   setMapId: (mapId: string | null) => void;
+  setCurrentUser: (currentUser: User | null) => void;
+
+  getCurrentUser: () => Promise<User | null>;
 
   fetchMindMapData: (mapId: string) => Promise<void>;
 };
@@ -33,11 +37,22 @@ export const createCoreDataSlice: StateCreator<
   mapId: null,
   reactFlowInstance: null,
   mindMap: null,
+  currentUser: null,
 
   // Actions
   setMindMap: (mindMap) => set({ mindMap }),
   setReactFlowInstance: (reactFlowInstance) => set({ reactFlowInstance }),
   setMapId: (mapId) => set({ mapId }),
+  setCurrentUser: (currentUser) => set({ currentUser }),
+
+  getCurrentUser: async () => {
+    const { data } = await get().supabase.auth.getUser();
+    const currentUser = data?.user;
+
+    set({ currentUser });
+
+    return currentUser;
+  },
 
   fetchMindMapData: withLoadingAndToast(
     async (mapId: string) => {

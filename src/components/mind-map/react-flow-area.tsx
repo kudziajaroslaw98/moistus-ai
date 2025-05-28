@@ -78,10 +78,16 @@ export function ReactFlowArea() {
   const deleteEdges = useAppStore((state) => state.deleteEdges);
   const setIsDraggingNodes = useAppStore((state) => state.setIsDraggingNodes);
   const initializeComments = useAppStore((state) => state.initializeComments);
+  const unsubscribeFromComments = useAppStore(
+    (state) => state.unsubscribeFromComments,
+  );
+  const getCurrentUser = useAppStore((state) => state.getCurrentUser);
 
   const { contextMenuHandlers } = useContextMenu();
 
   useEffect(() => {
+    getCurrentUser();
+
     if (reactFlowInstance) {
       setReactFlowInstance(reactFlowInstance);
     }
@@ -93,6 +99,12 @@ export function ReactFlowArea() {
     fetchMindMapData(mapId as string);
     initializeComments(mapId as string);
   }, [fetchMindMapData, mapId, supabase]);
+
+  useEffect(() => {
+    return () => {
+      unsubscribeFromComments();
+    };
+  }, []);
 
   const handleNodeDoubleClick = useCallback(
     (event: React.MouseEvent, node: Node<NodeData>) => {

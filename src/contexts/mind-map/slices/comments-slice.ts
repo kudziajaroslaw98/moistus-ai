@@ -10,6 +10,23 @@ import type {
 import type { StateCreator } from "zustand";
 import type { AppState } from "../app-state";
 
+// Add reaction types if they don't exist
+interface CommentReaction {
+  id: string;
+  comment_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+}
+
+interface CurrentUser {
+  id: string;
+  email?: string;
+  full_name?: string;
+  display_name?: string;
+  avatar_url?: string;
+}
+
 export interface CommentsSlice {
   // Comments state
   nodeComments: Record<string, NodeComment[]>;
@@ -26,6 +43,9 @@ export interface CommentsSlice {
   commentSummaries: Map<string, NodeCommentSummary>;
   commentsError: string | null;
 
+  // User state
+  currentUser: CurrentUser | null;
+
   // Comments actions
   fetchNodeComments: (nodeId: string) => Promise<void>;
   fetchMapComments: () => Promise<void>;
@@ -37,6 +57,7 @@ export interface CommentsSlice {
     nodeId: string,
     content: string,
     parentId?: string,
+    metadata?: { category?: string; priority?: string },
   ) => Promise<void>;
   addMapComment: (
     content: string,
@@ -63,9 +84,20 @@ export interface CommentsSlice {
   hasUserComments: (nodeId: string) => boolean;
   setCommentsError: (error: string | null) => void;
 
+  // NEW: Reaction methods
+  addCommentReaction: (commentId: string, emoji: string) => Promise<void>;
+  removeCommentReaction: (
+    commentId: string,
+    reactionId: string,
+  ) => Promise<void>;
+
   // Real-time subscription management
   subscribeToComments: (mapId?: string, nodeId?: string) => void;
   unsubscribeFromComments: () => void;
+
+  // User management
+  setCurrentUser: (user: CurrentUser | null) => void;
+  fetchCurrentUser: () => Promise<void>;
 
   // Private subscription reference
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -90,6 +122,7 @@ export const createCommentsSlice: StateCreator<
   allComments: [],
   commentSummaries: new Map(),
   commentsError: null,
+  currentUser: null,
 
   // Private subscription reference
   _commentsSubscription: null,
@@ -119,6 +152,12 @@ export const createCommentsSlice: StateCreator<
           full_name,
           display_name,
           avatar_url
+        ),
+        reactions:comment_reactions(
+          id,
+          user_id,
+          emoji,
+          created_at
         )
       `);
 
@@ -176,6 +215,7 @@ export const createCommentsSlice: StateCreator<
               avatar_url: comment.resolved_by_user.avatar_url,
             }
           : null,
+        reactions: comment.reactions || [],
       })) as NodeComment[];
 
       // Update summaries
@@ -231,6 +271,7 @@ export const createCommentsSlice: StateCreator<
       errorMessage: "Failed to load comments",
     },
   ),
+
   fetchNodeComments: withLoadingAndToast(
     async (nodeId: string) => {
       const { supabase, mapId } = get();
@@ -294,7 +335,12 @@ export const createCommentsSlice: StateCreator<
   ),
 
   addNodeComment: withLoadingAndToast(
-    async (nodeId: string, content: string, parentId?: string) => {
+    async (
+      nodeId: string,
+      content: string,
+      parentId?: string,
+      metadata?: { category?: string; priority?: string },
+    ) => {
       const { supabase, mapId, clearCommentDraft } = get();
 
       if (!mapId) {
@@ -315,6 +361,7 @@ export const createCommentsSlice: StateCreator<
           content,
           author_id: user.data.user.id,
           parent_comment_id: parentId,
+          metadata: metadata || {},
         })
         .select("*")
         .single();
@@ -332,6 +379,9 @@ export const createCommentsSlice: StateCreator<
 
       // Clear draft
       clearCommentDraft(nodeId);
+
+      // Refresh to get updated data with relations
+      await get().refreshComments();
     },
     "isSavingComment",
     {
@@ -395,7 +445,7 @@ export const createCommentsSlice: StateCreator<
       const { supabase } = get();
 
       const { data: comment, error } = await supabase
-        .from("comments")
+        .from("node_comments")
         .update({
           content,
           is_edited: true,
@@ -409,24 +459,8 @@ export const createCommentsSlice: StateCreator<
         throw new Error(error.message);
       }
 
-      // Update local state
-      set((state) => {
-        const newNodeComments = { ...state.nodeComments };
-        Object.keys(newNodeComments).forEach((nodeId) => {
-          newNodeComments[nodeId] = newNodeComments[nodeId].map((c) =>
-            c.id === commentId ? { ...c, ...comment } : c,
-          );
-        });
-
-        const newMapComments = state.mapComments.map((c) =>
-          c.id === commentId ? { ...c, ...comment } : c,
-        );
-
-        return {
-          nodeComments: newNodeComments,
-          mapComments: newMapComments,
-        };
-      });
+      // Refresh to get updated data
+      await get().refreshComments();
     },
     "isSavingComment",
     {
@@ -441,7 +475,7 @@ export const createCommentsSlice: StateCreator<
       const { supabase } = get();
 
       const { error } = await supabase
-        .from("comments")
+        .from("node_comments")
         .delete()
         .eq("id", commentId);
 
@@ -449,28 +483,15 @@ export const createCommentsSlice: StateCreator<
         throw new Error(error.message);
       }
 
-      // Update local state
-      set((state) => {
-        const newNodeComments = { ...state.nodeComments };
-        Object.keys(newNodeComments).forEach((nodeId) => {
-          newNodeComments[nodeId] = newNodeComments[nodeId].filter(
-            (c) => c.id !== commentId,
-          );
-        });
+      // Update local state and refresh
+      set((state) => ({
+        selectedCommentId:
+          state.selectedCommentId === commentId
+            ? null
+            : state.selectedCommentId,
+      }));
 
-        const newMapComments = state.mapComments.filter(
-          (c) => c.id !== commentId,
-        );
-
-        return {
-          nodeComments: newNodeComments,
-          mapComments: newMapComments,
-          selectedCommentId:
-            state.selectedCommentId === commentId
-              ? null
-              : state.selectedCommentId,
-        };
-      });
+      await get().refreshComments();
     },
     "isDeletingComment",
     {
@@ -490,39 +511,21 @@ export const createCommentsSlice: StateCreator<
         throw new Error("User not authenticated");
       }
 
-      const { data: comment, error } = await supabase
-        .from("comments")
+      const { error } = await supabase
+        .from("node_comments")
         .update({
           is_resolved: true,
           resolved_by: user.data.user.id,
           resolved_at: new Date().toISOString(),
         })
-        .eq("id", commentId)
-        .select()
-        .single();
+        .eq("id", commentId);
 
       if (error) {
         throw new Error(error.message);
       }
 
-      // Update local state
-      set((state) => {
-        const newNodeComments = { ...state.nodeComments };
-        Object.keys(newNodeComments).forEach((nodeId) => {
-          newNodeComments[nodeId] = newNodeComments[nodeId].map((c) =>
-            c.id === commentId ? { ...c, ...comment } : c,
-          );
-        });
-
-        const newMapComments = state.mapComments.map((c) =>
-          c.id === commentId ? { ...c, ...comment } : c,
-        );
-
-        return {
-          nodeComments: newNodeComments,
-          mapComments: newMapComments,
-        };
-      });
+      // Refresh to get updated data
+      await get().refreshComments();
     },
     "isSavingComment",
     {
@@ -536,45 +539,84 @@ export const createCommentsSlice: StateCreator<
     async (commentId: string) => {
       const { supabase } = get();
 
-      const { data: comment, error } = await supabase
-        .from("comments")
+      const { error } = await supabase
+        .from("node_comments")
         .update({
           is_resolved: false,
           resolved_by: null,
           resolved_at: null,
         })
-        .eq("id", commentId)
-        .select()
-        .single();
+        .eq("id", commentId);
 
       if (error) {
         throw new Error(error.message);
       }
 
-      // Update local state
-      set((state) => {
-        const newNodeComments = { ...state.nodeComments };
-        Object.keys(newNodeComments).forEach((nodeId) => {
-          newNodeComments[nodeId] = newNodeComments[nodeId].map((c) =>
-            c.id === commentId ? { ...c, ...comment } : c,
-          );
-        });
-
-        const newMapComments = state.mapComments.map((c) =>
-          c.id === commentId ? { ...c, ...comment } : c,
-        );
-
-        return {
-          nodeComments: newNodeComments,
-          mapComments: newMapComments,
-        };
-      });
+      // Refresh to get updated data
+      await get().refreshComments();
     },
     "isSavingComment",
     {
       initialMessage: "Unresolving comment...",
       successMessage: "Comment unresolved successfully",
       errorMessage: "Failed to unresolve comment",
+    },
+  ),
+
+  // NEW: Add comment reaction
+  addCommentReaction: withLoadingAndToast(
+    async (commentId: string, emoji: string) => {
+      const { supabase } = get();
+
+      const currentUser = (await supabase.auth.getUser()).data.user;
+
+      if (!currentUser) {
+        throw new Error("User not logged in");
+      }
+
+      const { error } = await supabase.from("comment_reactions").insert({
+        comment_id: commentId,
+        user_id: currentUser.id,
+        emoji,
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Refresh comments to get updated reactions
+      await get().refreshComments();
+    },
+    "isSavingComment",
+    {
+      initialMessage: "Adding reaction...",
+      successMessage: "Reaction added successfully",
+      errorMessage: "Failed to add reaction",
+    },
+  ),
+
+  // NEW: Remove comment reaction
+  removeCommentReaction: withLoadingAndToast(
+    async (commentId: string, reactionId: string) => {
+      const { supabase } = get();
+
+      const { error } = await supabase
+        .from("comment_reactions")
+        .delete()
+        .eq("id", reactionId);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Refresh comments to get updated reactions
+      await get().refreshComments();
+    },
+    "isSavingComment",
+    {
+      initialMessage: "Removing reaction...",
+      successMessage: "Reaction removed successfully",
+      errorMessage: "Failed to remove reaction",
     },
   ),
 
@@ -644,6 +686,9 @@ export const createCommentsSlice: StateCreator<
         throw new Error("Map ID is required for comments initialization");
       }
 
+      // Fetch current user first
+      await get().fetchCurrentUser();
+
       // Fetch initial comments data
       await get().fetchCommentsWithFilters({ mapId: targetMapId });
 
@@ -675,6 +720,45 @@ export const createCommentsSlice: StateCreator<
     set({ commentsError: error });
   },
 
+  // NEW: User management methods
+  setCurrentUser: (user: CurrentUser | null) => {
+    set({ currentUser: user });
+  },
+
+  fetchCurrentUser: async () => {
+    const { supabase } = get();
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        // Fetch user profile data
+        const { data: profile } = await supabase
+          .from("user_profiles")
+          .select("full_name, display_name, avatar_url")
+          .eq("user_id", user.id)
+          .single();
+
+        const currentUser: CurrentUser = {
+          id: user.id,
+          email: user.email,
+          full_name: profile?.full_name,
+          display_name: profile?.display_name,
+          avatar_url: profile?.avatar_url,
+        };
+
+        set({ currentUser });
+      } else {
+        set({ currentUser: null });
+      }
+    } catch (error) {
+      console.error("Failed to fetch current user:", error);
+      set({ currentUser: null });
+    }
+  },
+
   // Real-time subscription management
   subscribeToComments: (mapId?: string, nodeId?: string) => {
     const { supabase } = get();
@@ -702,9 +786,21 @@ export const createCommentsSlice: StateCreator<
           get().refreshComments();
         },
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "comment_reactions",
+        },
+        () => {
+          // Refresh comments when reactions change
+          get().refreshComments();
+        },
+      )
       .subscribe();
 
-    // Store subscription reference (need to add this to interface)
+    // Store subscription reference
     set({ _commentsSubscription: channel });
   },
 
