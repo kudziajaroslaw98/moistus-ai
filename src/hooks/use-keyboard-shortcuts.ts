@@ -48,7 +48,11 @@ export function useKeyboardShortcuts({
         target.closest(".ql-editor");
 
       // Comments panel toggle (Cmd/Ctrl + /)
-      if ((event.metaKey || event.ctrlKey) && event.key === "/" && !isInputFocused) {
+      if (
+        (event.metaKey || event.ctrlKey) &&
+        event.key === "/" &&
+        !isInputFocused
+      ) {
         event.preventDefault();
         onToggleComments?.();
         return;
@@ -111,25 +115,35 @@ export function useKeyboardShortcuts({
 
       if (isCtrlCmd && event.key.toLowerCase() === "g" && !event.shiftKey) {
         event.preventDefault();
+
         if (onGroup) {
           onGroup();
         }
+
         return;
       }
 
       if (isCtrlCmd && event.shiftKey && event.key.toLowerCase() === "g") {
         event.preventDefault();
+
         if (onUngroup) {
           onUngroup();
         }
+
         return;
       }
 
-      if ((event.key === "-" || event.key === "+") && selectedNodeId) {
+      if (
+        isCtrlCmd &&
+        (event.key === "-" || event.key === "+") &&
+        selectedNodeId
+      ) {
         event.preventDefault();
+
         if (onToggleCollapse) {
           onToggleCollapse();
         }
+
         return;
       }
     };

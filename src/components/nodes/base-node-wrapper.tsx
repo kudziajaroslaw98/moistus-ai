@@ -51,19 +51,15 @@ const BaseNodeWrapperComponent = ({
   const connection = useConnection();
   const {
     nodes,
-    nodeComments,
-    commentSummaries,
     toggleNodeCollapse,
     getDirectChildrenCount,
+    commentSummaries,
     setPopoverOpen,
   } = useAppStore(
     useShallow((state) => ({
       nodes: state.nodes,
-      nodeComments: state.nodeComments,
       toggleNodeCollapse: state.toggleNodeCollapse,
       getDirectChildrenCount: state.getDirectChildrenCount,
-      getNodeCommentCount: state.getNodeCommentCount,
-      getUnresolvedCommentCount: state.getUnresolvedCommentCount,
       commentSummaries: state.commentSummaries,
       setPopoverOpen: state.setPopoverOpen,
     })),
@@ -114,8 +110,6 @@ const BaseNodeWrapperComponent = ({
 
     setCommentCount(summaries.comment_count || 0);
     setUnresolvedCount(summaries.unresolved_count || 0);
-
-    console.log(summaries);
   }, [commentSummaries.get(id)]);
 
   if (!data) {

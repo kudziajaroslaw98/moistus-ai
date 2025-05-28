@@ -33,8 +33,8 @@ const BuilderCanvasComponent = ({
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
   const [selectedElementNode, setSelectedElementNode] =
     useState<HTMLElement | null>(null); // Changed from selectedElementRect
-  const canvasRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null); // Add container ref
+  const canvasRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null); // Add container ref
 
   const updateElement = useCallback(
     (updatedElement: BuilderElement) => {

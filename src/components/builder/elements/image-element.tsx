@@ -1,4 +1,4 @@
-import { BuilderElement } from "@/types/builder-node";
+import { BuilderElement, ImageElementProperties } from "@/types/builder-node";
 import { ImageIcon } from "lucide-react";
 import Image from "next/image";
 import { memo } from "react";
@@ -16,13 +16,8 @@ const ImageElementComponent = ({
   isEditing = false,
   onUpdate,
 }: ImageElementProps) => {
-  const { properties } = element;
-  const {
-    src = "",
-    alt = "Image",
-    objectFit = "cover",
-    borderRadius = 0,
-  } = properties;
+  const properties = element.properties as ImageElementProperties;
+  const { src = "", alt = "Image", objectFit = "cover" } = properties;
 
   const handleSrcChange = (newSrc: string) => {
     if (onUpdate) {
@@ -40,7 +35,6 @@ const ImageElementComponent = ({
         ${isSelected ? "ring-2 ring-teal-500" : ""}
         ${isEditing ? "bg-zinc-800" : ""}
       `}
-      style={{ borderRadius: `${borderRadius}px` }}
     >
       {src ? (
         <Image
@@ -48,7 +42,7 @@ const ImageElementComponent = ({
           alt={alt}
           fill
           className="object-cover"
-          style={{ objectFit: objectFit as any }}
+          style={{ objectFit: objectFit }}
         />
       ) : (
         <div className="w-full h-full bg-zinc-700 flex items-center justify-center">

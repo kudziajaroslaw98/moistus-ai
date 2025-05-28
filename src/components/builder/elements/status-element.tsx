@@ -1,4 +1,4 @@
-import { BuilderElement } from "@/types/builder-node";
+import { BuilderElement, StatusElementProperties } from "@/types/builder-node";
 import { Circle } from "lucide-react";
 import { memo } from "react";
 
@@ -15,12 +15,13 @@ const StatusElementComponent = ({
   isEditing = false,
   onUpdate,
 }: StatusElementProps) => {
-  const { properties } = element;
-  const { status = "active", label = "Status", color = "#10b981" } = properties;
+  const properties = element.properties as StatusElementProperties;
+  const { status = "active", label = "Status" } = properties;
 
   const statusColors = {
     active: "#10b981",
     inactive: "#6b7280",
+    pending: "#fbbf24",
     warning: "#f59e0b",
     error: "#ef4444",
     info: "#3b82f6",
@@ -33,7 +34,7 @@ const StatusElementComponent = ({
         properties: {
           ...properties,
           status: newStatus,
-          color: statusColors[newStatus as keyof typeof statusColors] || color,
+          color: statusColors[newStatus as keyof typeof statusColors],
         },
       });
     }
@@ -47,7 +48,10 @@ const StatusElementComponent = ({
         ${isEditing ? "bg-zinc-800" : ""}
       `}
     >
-      <Circle className="w-3 h-3 fill-current" style={{ color }} />
+      <Circle
+        className="w-3 h-3 fill-current"
+        style={{ color: statusColors[status] }}
+      />
 
       {isEditing ? (
         <select

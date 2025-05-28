@@ -68,8 +68,6 @@ const nodeSpecificForms: Record<
   // map other node types to their respective form components
 };
 
-interface NodeEditModalProps {}
-
 const getDefaultMetadataForType = (
   nodeType: string,
 ): Partial<NodeData["metadata"]> => {
@@ -77,7 +75,7 @@ const getDefaultMetadataForType = (
   return config?.defaultMetadata || {};
 };
 
-export default function NodeEditModal({}: NodeEditModalProps) {
+export default function NodeEditModal() {
   const {
     popoverOpen,
     setPopoverOpen,
@@ -103,9 +101,9 @@ export default function NodeEditModal({}: NodeEditModalProps) {
 
   useEffect(() => {
     if (node !== null && isOpen && !isSaving) {
-      const currentType = node?.data.node_type || "defaultNode";
+      const currentType = node?.data?.node_type || "defaultNode";
       setSelectedNodeType(currentType);
-      setNodeData(node?.data);
+      setNodeData(node.data!);
     }
   }, [nodes, node, isOpen, isSaving]);
 
@@ -156,7 +154,7 @@ export default function NodeEditModal({}: NodeEditModalProps) {
     }
 
     setIsSaving(true);
-    await updateNode({ nodeId: node.id, data: changes });
+    await updateNode({ nodeId: node.id!, data: changes });
     setIsSaving(false);
     setNodeData((prev) => ({
       ...prev,

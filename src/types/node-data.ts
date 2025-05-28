@@ -1,4 +1,5 @@
 import { AvailableNodeTypes } from "./available-node-types";
+import { BuilderNodeData } from "./builder-node";
 
 export interface NodeData extends Record<string, unknown> {
   id: string;
@@ -60,6 +61,8 @@ export interface NodeData extends Record<string, unknown> {
     isGroup?: boolean; // Whether this node is a group container
     groupChildren?: string[]; // Array of child node IDs (for group nodes)
     groupPadding?: number; // Padding inside the group
+
+    builderData?: BuilderNodeData;
   } | null;
   aiData?: {
     requestAiAnswer?: boolean;

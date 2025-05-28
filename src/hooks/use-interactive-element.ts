@@ -12,7 +12,7 @@ interface UseInteractiveElementProps {
   isEditing: boolean;
   selectedElementId: string | null;
   onUpdateElement: (updatedElement: BuilderElement) => void;
-  canvasRef: React.RefObject<HTMLDivElement>;
+  canvasRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export function useInteractiveElement({

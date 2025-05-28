@@ -15,8 +15,6 @@ import { useShallow } from "zustand/shallow";
 import Modal from "../modal";
 import { Button } from "../ui/button";
 
-interface SelectNodeTypeModalProps {}
-
 const nodeTypeDisplayInfo: Record<
   string,
   { name: string; icon: React.ElementType }

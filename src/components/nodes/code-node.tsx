@@ -5,37 +5,21 @@ import { Node, NodeProps } from "@xyflow/react";
 import { ClipboardCopy, Code, SquareCode } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 
-import useAppStore from "@/contexts/mind-map/mind-map-store";
-import { useComments } from "@/hooks/use-comments";
 import { memo, useCallback, useState } from "react";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { toast } from "sonner";
-import { useShallow } from "zustand/shallow";
 import { Button } from "../ui/button";
 import { BaseNodeWrapper } from "./base-node-wrapper";
 
-interface CodeNodeProps extends NodeProps<Node<NodeData>> {}
+type CodeNodeProps = NodeProps<Node<NodeData>>;
 
 const CodeNodeComponent = (props: CodeNodeProps) => {
   const { id, data } = props;
-
-  const { openCommentsPanel } = useAppStore(
-    useShallow((state) => ({
-      openCommentsPanel: state.openCommentsPanel,
-    })),
-  );
-
-  const { commentSummaries } = useComments({ autoRefresh: false });
-  const commentSummary = commentSummaries.get(id);
 
   const codeContent = data.content || "";
   const language = (data.metadata?.language as string) || "javascript";
   const showLineNumbers = Boolean(data.metadata?.showLineNumbers ?? true);
   const [copied, setCopied] = useState(false);
-
-  const handleCommentClick = () => {
-    openCommentsPanel(id);
-  };
 
   const handleCopy = useCallback(async () => {
     if (!codeContent) return;
@@ -58,8 +42,6 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
       nodeType="Code"
       nodeIcon={<Code className="size-4" />}
       includePadding={false}
-      commentSummary={commentSummary}
-      onCommentClick={handleCommentClick}
     >
       <div className="w-full flex-grow overflow-auto ">
         <div className="flex justify-between p-4">

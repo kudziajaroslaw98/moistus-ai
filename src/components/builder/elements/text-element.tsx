@@ -1,4 +1,4 @@
-import { BuilderElement } from "@/types/builder-node";
+import { BuilderElement, TextElementProperties } from "@/types/builder-node";
 import { Type } from "lucide-react";
 import { memo } from "react";
 
@@ -15,7 +15,7 @@ const TextElementComponent = ({
   isEditing = false,
   onUpdate,
 }: TextElementProps) => {
-  const { properties } = element;
+  const properties = element.properties as TextElementProperties;
   const {
     text = "Sample Text",
     fontSize = 14,
@@ -44,7 +44,7 @@ const TextElementComponent = ({
         fontSize: `${fontSize}px`,
         fontWeight,
         color,
-        textAlign: textAlign as any,
+        textAlign: textAlign,
       }}
     >
       <span>{text}</span>

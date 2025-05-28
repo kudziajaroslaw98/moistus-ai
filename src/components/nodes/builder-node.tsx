@@ -8,7 +8,7 @@ import { memo } from "react";
 import { BuilderCanvas } from "../builder/builder-canvas";
 import { BaseNodeWrapper } from "./base-node-wrapper";
 
-interface BuilderNodeProps extends NodeProps<Node<NodeData>> {}
+type BuilderNodeProps = NodeProps<Node<NodeData>>;
 
 const BuilderNodeComponent = (props: BuilderNodeProps) => {
   const { data } = props;

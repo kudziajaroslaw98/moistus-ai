@@ -1,30 +1,18 @@
 "use client";
 
-import useAppStore from "@/contexts/mind-map/mind-map-store";
-import { useComments } from "@/hooks/use-comments";
 import { NodeData } from "@/types/node-data";
 import { Node, NodeProps } from "@xyflow/react";
 import { ArrowUpRight, Link as LinkIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { memo } from "react";
-import { useShallow } from "zustand/shallow";
 import { Button } from "../ui/button";
 import { BaseNodeWrapper } from "./base-node-wrapper";
 
-interface ResourceNodeProps extends NodeProps<Node<NodeData>> {}
+type ResourceNodeProps = NodeProps<Node<NodeData>>;
 
 const ResourceNodeComponent = (props: ResourceNodeProps) => {
   const { id, data } = props;
-
-  const { openCommentsPanel } = useAppStore(
-    useShallow((state) => ({
-      openCommentsPanel: state.openCommentsPanel,
-    })),
-  );
-
-  const { commentSummaries } = useComments({ autoRefresh: false });
-  const commentSummary = commentSummaries.get(id);
 
   const resourceUrl = data.metadata?.url as string | undefined;
   const title = (data.metadata?.title as string) || data.content || "Resource";
@@ -33,18 +21,12 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
   const imageUrl = data.metadata?.imageUrl as string | undefined;
   const summary = data.metadata?.summary as string | undefined;
 
-  const handleCommentClick = () => {
-    openCommentsPanel(id);
-  };
-
   return (
     <BaseNodeWrapper
       {...props}
       nodeClassName="resource-node"
       nodeType="Resource"
       nodeIcon={<LinkIcon className="size-4" />}
-      commentSummary={commentSummary}
-      onCommentClick={handleCommentClick}
     >
       <>
         {showThumbnail && imageUrl && (

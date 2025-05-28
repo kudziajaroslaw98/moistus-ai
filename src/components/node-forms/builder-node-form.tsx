@@ -92,14 +92,16 @@ const BuilderNodeForm = forwardRef<
           if (!isOccupied) {
             const newElement: BuilderElement = {
               id: generateUuid(),
-              type: elementType.id as any,
+              type: elementType.id as BuilderElement["type"],
               position: {
                 x,
                 y,
                 width: elementType.defaultSize.width,
                 height: elementType.defaultSize.height,
               },
-              properties: { ...elementType.defaultProperties },
+              properties: {
+                ...elementType.defaultProperties,
+              },
             };
 
             setCanvas((prev) => ({
@@ -115,14 +117,16 @@ const BuilderNodeForm = forwardRef<
         // If no space found, add to the end and expand canvas if needed
         const newElement: BuilderElement = {
           id: generateUuid(),
-          type: elementType.id as any,
+          type: elementType.id as BuilderElement["type"],
           position: {
             x: 0,
             y: canvas.rows,
             width: elementType.defaultSize.width,
             height: elementType.defaultSize.height,
           },
-          properties: { ...elementType.defaultProperties },
+          properties: {
+            ...elementType.defaultProperties,
+          },
         };
 
         setCanvas((prev) => ({

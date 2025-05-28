@@ -129,8 +129,8 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
         newComment.trim(),
         replyingTo || undefined,
         {
-          category: commentCategory as any,
-          priority: commentPriority as any,
+          category: commentCategory,
+          priority: commentPriority,
         },
       );
       setNewComment("");

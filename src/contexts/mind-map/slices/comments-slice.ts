@@ -43,9 +43,6 @@ export interface CommentsSlice {
   commentSummaries: Map<string, NodeCommentSummary>;
   commentsError: string | null;
 
-  // User state
-  currentUser: CurrentUser | null;
-
   // Comments actions
   fetchNodeComments: (nodeId: string) => Promise<void>;
   fetchMapComments: () => Promise<void>;
@@ -94,10 +91,6 @@ export interface CommentsSlice {
   // Real-time subscription management
   subscribeToComments: (mapId?: string, nodeId?: string) => void;
   unsubscribeFromComments: () => void;
-
-  // User management
-  setCurrentUser: (user: CurrentUser | null) => void;
-  fetchCurrentUser: () => Promise<void>;
 
   // Private subscription reference
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -566,9 +559,7 @@ export const createCommentsSlice: StateCreator<
   // NEW: Add comment reaction
   addCommentReaction: withLoadingAndToast(
     async (commentId: string, emoji: string) => {
-      const { supabase } = get();
-
-      const currentUser = (await supabase.auth.getUser()).data.user;
+      const { supabase, currentUser } = get();
 
       if (!currentUser) {
         throw new Error("User not logged in");
@@ -686,9 +677,6 @@ export const createCommentsSlice: StateCreator<
         throw new Error("Map ID is required for comments initialization");
       }
 
-      // Fetch current user first
-      await get().fetchCurrentUser();
-
       // Fetch initial comments data
       await get().fetchCommentsWithFilters({ mapId: targetMapId });
 
@@ -718,45 +706,6 @@ export const createCommentsSlice: StateCreator<
 
   setCommentsError: (error: string | null) => {
     set({ commentsError: error });
-  },
-
-  // NEW: User management methods
-  setCurrentUser: (user: CurrentUser | null) => {
-    set({ currentUser: user });
-  },
-
-  fetchCurrentUser: async () => {
-    const { supabase } = get();
-
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (user) {
-        // Fetch user profile data
-        const { data: profile } = await supabase
-          .from("user_profiles")
-          .select("full_name, display_name, avatar_url")
-          .eq("user_id", user.id)
-          .single();
-
-        const currentUser: CurrentUser = {
-          id: user.id,
-          email: user.email,
-          full_name: profile?.full_name,
-          display_name: profile?.display_name,
-          avatar_url: profile?.avatar_url,
-        };
-
-        set({ currentUser });
-      } else {
-        set({ currentUser: null });
-      }
-    } catch (error) {
-      console.error("Failed to fetch current user:", error);
-      set({ currentUser: null });
-    }
   },
 
   // Real-time subscription management

@@ -33,7 +33,6 @@ export function MindMapCanvas() {
     ungroupNodes,
     toggleNodeCollapse,
     isCommentsPanelOpen,
-    toggleCommentsPanel,
   } = useAppStore(
     useShallow((state) => ({
       handleUndo: state.handleUndo,
@@ -53,7 +52,6 @@ export function MindMapCanvas() {
       ungroupNodes: state.ungroupNodes,
       toggleNodeCollapse: state.toggleNodeCollapse,
       isCommentsPanelOpen: state.isCommentsPanelOpen,
-      toggleCommentsPanel: state.toggleCommentsPanel,
     })),
   );
   const isLoading = loadingStates.isStateLoading;
@@ -89,6 +87,10 @@ export function MindMapCanvas() {
     }
   };
 
+  const handleToggleComments = () => {
+    setPopoverOpen({ commentsPanel: !popoverOpen.commentsPanel });
+  };
+
   useKeyboardShortcuts({
     onUndo: handleUndo,
     onRedo: handleRedo,
@@ -102,8 +104,8 @@ export function MindMapCanvas() {
     isBusy: isLoading,
     onGroup: handleGroup,
     onUngroup: handleUngroup,
-    onToggleComments: toggleCommentsPanel,
     onToggleCollapse: handleToggleCollapse,
+    onToggleComments: handleToggleComments,
   });
 
   return (

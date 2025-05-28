@@ -6,7 +6,7 @@ import { Node, NodeProps, NodeResizer } from "@xyflow/react";
 import { AlignLeft, Lightbulb, MessageSquare, Quote } from "lucide-react";
 import { memo, useMemo } from "react";
 
-interface AnnotationNodeProps extends NodeProps<Node<NodeData>> {}
+type AnnotationNodeProps = NodeProps<Node<NodeData>>;
 
 const annotationTypeInfo: Record<
   string,
@@ -20,7 +20,7 @@ const annotationTypeInfo: Record<
 };
 
 const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
-  const { id, data, selected, onEditNode } = props;
+  const { id, data, selected } = props;
 
   const fontSize = data.metadata?.fontSize as string | number | undefined;
   const fontWeight = data.metadata?.fontWeight as string | number | undefined;

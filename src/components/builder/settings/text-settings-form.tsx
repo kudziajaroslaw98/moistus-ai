@@ -1,6 +1,9 @@
-import type { BuilderElement } from "@/types/builder-node";
-import React, { useEffect, useState } from "react";
 import { FormField } from "@/components/ui/form-field"; // Added import
+import type {
+  BuilderElement,
+  TextElementProperties,
+} from "@/types/builder-node";
+import React, { useEffect, useState } from "react";
 // Assuming Input and Textarea are already imported or available globally, adjust if needed.
 // For this example, I'll assume they are standard HTML elements or custom components that don't need specific import here unless they are from '@/components/ui'
 // Let's assume you have Input and Textarea from '@/components/ui' like in text-node-form.tsx
@@ -17,16 +20,19 @@ export const TextSettingsForm: React.FC<TextSettingsFormProps> = ({
   element,
   onUpdate,
 }) => {
-  const [textContent, setTextContent] = useState(element.properties.text || "");
+  const textElementProperties = element.properties as TextElementProperties;
+  const [textContent, setTextContent] = useState(
+    textElementProperties?.text || "",
+  );
   const [width, setWidth] = useState(element.position.width);
   const [height, setHeight] = useState(element.position.height);
 
   useEffect(() => {
-    setTextContent(element.properties.text || "");
+    setTextContent(textElementProperties.text || "");
     setWidth(element.position.width);
     setHeight(element.position.height);
   }, [
-    element.properties.text,
+    textElementProperties.text,
     element.position.width,
     element.position.height,
   ]);
@@ -35,10 +41,13 @@ export const TextSettingsForm: React.FC<TextSettingsFormProps> = ({
     setTextContent(event.target.value);
   };
 
-  const handlePropertyChange = (property: string, value: any) => {
+  const handlePropertyChange = (
+    property: keyof TextElementProperties,
+    value: TextElementProperties[keyof TextElementProperties],
+  ) => {
     onUpdate({
       id: element.id, // Important to identify which element to update
-      properties: { ...element.properties, [property]: value },
+      properties: { ...textElementProperties, [property]: value },
     });
   };
 
@@ -81,7 +90,7 @@ export const TextSettingsForm: React.FC<TextSettingsFormProps> = ({
       <FormField label="Text Content" id="textContent">
         <Textarea
           id="textContent"
-          name="textContent" 
+          name="textContent"
           rows={3}
           value={textContent}
           onChange={handleTextChange}
@@ -89,14 +98,14 @@ export const TextSettingsForm: React.FC<TextSettingsFormProps> = ({
         />
       </FormField>
 
-      <div className="grid grid-cols-2 gap-4"> 
+      <div className="grid grid-cols-2 gap-4">
         <FormField label="Width (px)" id="elementWidth">
           <Input
             type="number"
             id="elementWidth"
             name="width"
             value={width}
-            onChange={(e) => setWidth(parseInt(e.target.value, 10) || 0)} 
+            onChange={(e) => setWidth(parseInt(e.target.value, 10) || 0)}
             onBlur={(e) =>
               handleSizeInputBlur(
                 "width",

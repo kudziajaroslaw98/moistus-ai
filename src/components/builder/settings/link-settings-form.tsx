@@ -38,6 +38,11 @@ export function LinkSettingsForm({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleSelectChange = (name: string, value: string): void => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    handleBlur();
+  };
+
   // handleSelectChange is no longer needed in this exact form, as handleChange can be used with HTMLSelectElement
   // If specific logic for select was needed, it would be adapted or merged into handleChange.
 
@@ -126,11 +131,10 @@ export function LinkSettingsForm({
 
       <FormField label="Target" id="target">
         <Select
-          id="target"
           name="target"
           value={formData.target || "_self"}
-          onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-            handleChange(e);
+          onValueChange={(value) => {
+            handleSelectChange("target", value);
             handleBlur();
           }}
         >
@@ -185,11 +189,10 @@ export function LinkSettingsForm({
 
           <FormField label="Button Text Align" id="textAlign">
             <Select
-              id="textAlign"
               name="textAlign"
               value={formData.textAlign || "center"}
-              onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                handleChange(e);
+              onValueChange={(value) => {
+                handleSelectChange("textAlign", value);
                 handleBlur();
               }}
             >

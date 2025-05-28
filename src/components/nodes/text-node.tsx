@@ -5,7 +5,7 @@ import { cn } from "@/utils/cn";
 import { Handle, Node, NodeProps, NodeResizer, Position } from "@xyflow/react";
 import { memo, useMemo } from "react";
 
-interface TextNodeProps extends NodeProps<Node<NodeData>> {}
+type TextNodeProps = NodeProps<Node<NodeData>>;
 
 const TextNodeComponent = (props: TextNodeProps) => {
   const { data, selected } = props;

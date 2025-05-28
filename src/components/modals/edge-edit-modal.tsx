@@ -23,9 +23,7 @@ const markerEndOptions = [
   { value: "arrowclosed", label: "Closed Arrow" },
 ];
 
-interface EdgeEditModalProps {}
-
-export default function EdgeEditModal({}: EdgeEditModalProps) {
+export default function EdgeEditModal() {
   const {
     popoverOpen,
     setPopoverOpen,
@@ -85,7 +83,7 @@ export default function EdgeEditModal({}: EdgeEditModalProps) {
     };
 
     setIsSaving(true);
-    await updateEdge({ edgeId: edge.id, data: changes });
+    await updateEdge({ edgeId: edge.id!, data: changes });
     setIsSaving(false);
   };
 
@@ -96,7 +94,7 @@ export default function EdgeEditModal({}: EdgeEditModalProps) {
   const targetNodeContent =
     nodes.find((n) => n.id === edge.target)?.data?.content || edge.target;
 
-  const getContentSnippet = (content: string): string => {
+  const getContentSnippet = (content: string | undefined): string => {
     if (!content) return "<Empty>";
     const tempDiv = document.createElement("div");
     tempDiv.innerHTML = content;
@@ -155,9 +153,8 @@ export default function EdgeEditModal({}: EdgeEditModalProps) {
 
             <FormField id="edgePathStyle" label="Path Style">
               <Select
-                id="edgePathStyle"
                 value={pathStyle}
-                onChange={(e) => setPathStyle(e.target.value as PathType)}
+                onValueChange={(value) => setPathStyle(value as PathType)}
               >
                 {availablePathTypes.map((pType) => (
                   <option key={pType} value={pType}>
@@ -263,14 +260,10 @@ export default function EdgeEditModal({}: EdgeEditModalProps) {
               </Label>
 
               <Select
-                id="markerEnd"
                 value={markerEnd || "none"}
-                onChange={(e) =>
-                  setMarkerEnd(
-                    e.target.value === "none" ? undefined : e.target.value,
-                  )
+                onValueChange={(value) =>
+                  setMarkerEnd(value === "none" ? undefined : value)
                 }
-                className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
               >
                 {markerEndOptions.map((option) => (
                   <option key={option.value} value={option.value}>

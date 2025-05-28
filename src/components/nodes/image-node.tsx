@@ -8,7 +8,7 @@ import Image from "next/image";
 import { memo } from "react";
 import { BaseNodeWrapper } from "./base-node-wrapper";
 
-interface ImageNodeProps extends NodeProps<Node<NodeData>> {}
+type ImageNodeProps = NodeProps<Node<NodeData>>;
 
 const ImageNodeComponent = (props: ImageNodeProps) => {
   const { data } = props;
