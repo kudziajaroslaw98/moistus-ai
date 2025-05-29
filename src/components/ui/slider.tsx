@@ -15,7 +15,7 @@ interface SliderProps {
 }
 
 const Slider = forwardRef<HTMLDivElement, SliderProps>(
-  ({ 
+  ({
     className,
     min = 0,
     max = 100,
@@ -28,7 +28,7 @@ const Slider = forwardRef<HTMLDivElement, SliderProps>(
     const isControlled = value !== undefined;
     const [internalValue, setInternalValue] = useState(value || defaultValue);
     const trackRef = useRef<HTMLDivElement>(null);
-    
+
     useEffect(() => {
       if (isControlled && value) {
         setInternalValue(value);
@@ -39,6 +39,7 @@ const Slider = forwardRef<HTMLDivElement, SliderProps>(
       if (!isControlled) {
         setInternalValue(newValue);
       }
+
       onValueChange?.(newValue);
     }, [isControlled, onValueChange]);
 
@@ -52,7 +53,7 @@ const Slider = forwardRef<HTMLDivElement, SliderProps>(
     };
 
     return (
-      <div 
+      <div
         ref={ref}
         className={cn(
           "relative flex w-full touch-none select-none items-center",
@@ -61,13 +62,14 @@ const Slider = forwardRef<HTMLDivElement, SliderProps>(
         )}
       >
         <div ref={trackRef} className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-zinc-700">
-          <div 
-            className="absolute h-full bg-teal-500" 
-            style={{ 
-              width: `${getPercentage(internalValue[0])}%` 
+          <div
+            className="absolute h-full bg-teal-500"
+            style={{
+              width: `${getPercentage(internalValue[0])}%`
             }}
           />
         </div>
+
         <input
           type="range"
           min={min}
@@ -81,7 +83,8 @@ const Slider = forwardRef<HTMLDivElement, SliderProps>(
           )}
           disabled={disabled}
         />
-        <div 
+
+        <div
           className="absolute h-4 w-4 rounded-full border border-zinc-600 bg-zinc-100 shadow"
           style={{
             left: `calc(${getPercentage(internalValue[0])}% - 0.5rem)`,

@@ -1,5 +1,6 @@
 "use client";
 
+import useAppStore from "@/contexts/mind-map/mind-map-store";
 import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
 import { Node, NodeProps } from "@xyflow/react";
@@ -13,26 +14,16 @@ interface Task {
   isComplete: boolean;
 }
 
-interface TaskNodeProps extends NodeProps<Node<NodeData>> {
-  // Add saveNodeProperties function to props
-  saveNodeProperties: (
-    nodeId: string,
-    changes: Partial<NodeData>,
-  ) => Promise<void>;
-}
+type TaskNodeProps = NodeProps<Node<NodeData>>;
 
 const TaskNodeComponent = (props: TaskNodeProps) => {
-  const { id, data, saveNodeProperties } = props;
+  const { id, data } = props;
+  const updateNode = useAppStore((state) => state.updateNode);
+
   const tasks: Task[] = useMemo(
     () => data.metadata?.tasks || [],
     [data.metadata?.tasks],
   );
-
-  // Calculate overall completion status
-  // const allTasksComplete = useMemo(
-  //   () => tasks.length > 0 && tasks.every((task) => task.isComplete),
-  //   [tasks],
-  // );
 
   const handleToggleTask = useCallback(
     async (taskId: string) => {
@@ -41,14 +32,15 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
       );
 
       try {
-        await saveNodeProperties(id, {
-          metadata: { ...data.metadata, tasks: updatedTasks },
+        await updateNode({
+          nodeId: id,
+          data: { metadata: { ...data.metadata, tasks: updatedTasks } },
         });
       } catch (error) {
         console.error("Failed to save task status:", error);
       }
     },
-    [tasks, saveNodeProperties, id, data.metadata],
+    [tasks, updateNode, id, data.metadata],
   );
 
   return (

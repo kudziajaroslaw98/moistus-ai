@@ -8,7 +8,7 @@ import type {
   LinkElementProperties,
 } from "@/types/builder-node";
 import {
-  ReactNode,
+  memo,
   useEffect,
   useState,
   type ChangeEvent,
@@ -20,10 +20,10 @@ export interface LinkSettingsFormProps {
   onUpdate: (updatedProperties: Partial<LinkElementProperties>) => void;
 }
 
-export function LinkSettingsForm({
+const LinkSettingsFormComponent = ({
   element,
   onUpdate,
-}: LinkSettingsFormProps): ReactNode {
+}: LinkSettingsFormProps) => {
   const initialProps = element.properties as LinkElementProperties;
   const [formData, setFormData] = useState<LinkElementProperties>(initialProps);
 
@@ -207,4 +207,7 @@ export function LinkSettingsForm({
       )}
     </form>
   );
-}
+};
+
+export const LinkSettingsForm = memo(LinkSettingsFormComponent);
+LinkSettingsForm.displayName = "LinkSettingsForm";

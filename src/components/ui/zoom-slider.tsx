@@ -68,7 +68,7 @@ const ZoomSliderComponent = forwardRef<
       ref={ref}
       position={position}
       className={cn(
-        "flex gap-1 rounded-md bg-zinc-800/80 p-1 text-zinc-200 backdrop-blur-sm border border-zinc-700 shadow-md",
+        "flex gap-1 rounded-md bg-zinc-800/80 px-2 text-zinc-200 backdrop-blur-sm border border-zinc-700 shadow-md",
         className,
       )}
       {...props}

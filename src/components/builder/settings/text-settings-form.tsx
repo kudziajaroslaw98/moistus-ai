@@ -3,7 +3,7 @@ import type {
   BuilderElement,
   TextElementProperties,
 } from "@/types/builder-node";
-import React, { useEffect, useState } from "react";
+import React, { memo, useEffect, useState } from "react";
 // Assuming Input and Textarea are already imported or available globally, adjust if needed.
 // For this example, I'll assume they are standard HTML elements or custom components that don't need specific import here unless they are from '@/components/ui'
 // Let's assume you have Input and Textarea from '@/components/ui' like in text-node-form.tsx
@@ -16,10 +16,10 @@ interface TextSettingsFormProps {
   onUpdate: (updatedElement: Partial<BuilderElement>) => void;
 }
 
-export const TextSettingsForm: React.FC<TextSettingsFormProps> = ({
+const TextSettingsFormComponent = ({
   element,
   onUpdate,
-}) => {
+}: TextSettingsFormProps) => {
   const textElementProperties = element.properties as TextElementProperties;
   const [textContent, setTextContent] = useState(
     textElementProperties?.text || "",
@@ -139,3 +139,6 @@ export const TextSettingsForm: React.FC<TextSettingsFormProps> = ({
     </form>
   );
 };
+
+export const TextSettingsForm = memo(TextSettingsFormComponent);
+TextSettingsForm.displayName = "TextSettingsForm";

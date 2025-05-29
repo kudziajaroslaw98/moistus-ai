@@ -1,4 +1,5 @@
 "use client";
+import useAppStore from "@/contexts/mind-map/mind-map-store";
 import { HistorySidebar } from "../history-sidebar";
 import EdgeEditModal from "../modals/edge-edit-modal";
 import NodeEditModal from "../modals/node-edit-modal";
@@ -18,6 +19,8 @@ export function ModalsWrapper() {
   //   mergeSuggestions,
   //   nodes, // Needed for merge modal node lookup
   // } = useMindMapContext();
+
+  const popoverOpen = useAppStore((store) => store.popoverOpen);
 
   return (
     <>
@@ -46,13 +49,13 @@ export function ModalsWrapper() {
       />
       */}
 
-      <SelectNodeTypeModal />
+      {popoverOpen.nodeType && <SelectNodeTypeModal />}
 
-      <NodeEditModal />
+      {popoverOpen.nodeEdit && <NodeEditModal />}
 
-      <EdgeEditModal />
+      {popoverOpen.edgeEdit && <EdgeEditModal />}
 
-      <HistorySidebar />
+      {popoverOpen.history && <HistorySidebar />}
     </>
   );
 }

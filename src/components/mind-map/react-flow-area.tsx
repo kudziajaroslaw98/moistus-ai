@@ -33,6 +33,7 @@ import type { AppNode } from "@/types/app-node";
 import type { EdgeData } from "@/types/edge-data";
 import type { NodeData } from "@/types/node-data";
 import { useParams } from "next/navigation";
+import { useShallow } from "zustand/shallow";
 import FloatingConnectionLine from "../edges/floating-connection-line";
 import BuilderNode from "../nodes/builder-node";
 import TaskNode from "../nodes/task-node";
@@ -49,39 +50,59 @@ export function ReactFlowArea() {
   const connectingHandleId = useRef<string | null>(null);
   const connectingHandleType = useRef<"source" | "target" | null>(null);
 
-  const supabase = useAppStore((state) => state.supabase);
-
-  const allNodes = useAppStore((state) => state.nodes);
-  const allEdges = useAppStore((state) => state.edges);
-  const getVisibleNodes = useAppStore((state) => state.getVisibleNodes);
-  const getVisibleEdges = useAppStore((state) => state.getVisibleEdges);
-
-  // Use visible nodes and edges for rendering (filtered for collapsed branches)
-  const nodes = getVisibleNodes();
-  const edges = getVisibleEdges();
-  const isFocusMode = useAppStore((state) => state.isFocusMode);
-  const onNodesChange = useAppStore((state) => state.onNodesChange);
-  const onEdgesChange = useAppStore((state) => state.onEdgesChange);
-  const onConnect = useAppStore((state) => state.onConnect);
-  const setReactFlowInstance = useAppStore(
-    (state) => state.setReactFlowInstance,
+  const {
+    supabase,
+    nodes,
+    edges,
+    isFocusMode,
+    onNodesChange,
+    onEdgesChange,
+    onConnect,
+    setReactFlowInstance,
+    setNodeInfo,
+    setSelectedNodes,
+    setPopoverOpen,
+    setEdgeInfo,
+    setMapId,
+    addNode,
+    fetchMindMapData,
+    deleteNodes,
+    isDraggingNodes,
+    deleteEdges,
+    setIsDraggingNodes,
+    initializeComments,
+    unsubscribeFromComments,
+    getCurrentUser,
+    getVisibleEdges,
+    getVisibleNodes,
+  } = useAppStore(
+    useShallow((state) => ({
+      supabase: state.supabase,
+      nodes: state.nodes,
+      edges: state.edges,
+      getVisibleEdges: state.getVisibleEdges,
+      getVisibleNodes: state.getVisibleNodes,
+      isFocusMode: state.isFocusMode,
+      onNodesChange: state.onNodesChange,
+      onEdgesChange: state.onEdgesChange,
+      onConnect: state.onConnect,
+      setReactFlowInstance: state.setReactFlowInstance,
+      setNodeInfo: state.setNodeInfo,
+      setSelectedNodes: state.setSelectedNodes,
+      setPopoverOpen: state.setPopoverOpen,
+      isDraggingNodes: state.isDraggingNodes,
+      setEdgeInfo: state.setEdgeInfo,
+      setMapId: state.setMapId,
+      addNode: state.addNode,
+      fetchMindMapData: state.fetchMindMapData,
+      deleteNodes: state.deleteNodes,
+      deleteEdges: state.deleteEdges,
+      setIsDraggingNodes: state.setIsDraggingNodes,
+      initializeComments: state.initializeComments,
+      unsubscribeFromComments: state.unsubscribeFromComments,
+      getCurrentUser: state.getCurrentUser,
+    })),
   );
-  const setNodeInfo = useAppStore((state) => state.setNodeInfo);
-  const setSelectedNodes = useAppStore((state) => state.setSelectedNodes);
-  const setPopoverOpen = useAppStore((state) => state.setPopoverOpen);
-  const setEdgeInfo = useAppStore((state) => state.setEdgeInfo);
-  const setMapId = useAppStore((state) => state.setMapId);
-  const addNode = useAppStore((state) => state.addNode);
-  const updateNode = useAppStore((state) => state.updateNode);
-  const fetchMindMapData = useAppStore((state) => state.fetchMindMapData);
-  const deleteNodes = useAppStore((state) => state.deleteNodes);
-  const deleteEdges = useAppStore((state) => state.deleteEdges);
-  const setIsDraggingNodes = useAppStore((state) => state.setIsDraggingNodes);
-  const initializeComments = useAppStore((state) => state.initializeComments);
-  const unsubscribeFromComments = useAppStore(
-    (state) => state.unsubscribeFromComments,
-  );
-  const getCurrentUser = useAppStore((state) => state.getCurrentUser);
 
   const { contextMenuHandlers } = useContextMenu();
 
@@ -122,27 +143,18 @@ export function ReactFlowArea() {
     [],
   );
 
-  const handleUpdateNode = useCallback(
-    (nodeId: string, data: Partial<NodeData>) => {
-      return updateNode({ nodeId: nodeId, data: data });
-    },
-    [],
-  );
-
   const nodeTypesWithProps: NodeTypes = useMemo(
     () => ({
-      defaultNode: (props) => <DefaultNode {...props} />,
-      questionNode: (props) => <QuestionNode {...props} />,
-      taskNode: (props) => (
-        <TaskNode {...props} saveNodeProperties={handleUpdateNode} />
-      ),
-      imageNode: (props) => <ImageNode {...props} />,
-      resourceNode: (props) => <ResourceNode {...props} />,
-      annotationNode: (props) => <AnnotationNode {...props} />,
-      codeNode: (props) => <CodeNode {...props} />,
-      groupNode: (props) => <GroupNode {...props} />,
-      textNode: (props) => <TextNode {...props} />,
-      builderNode: (props) => <BuilderNode {...props} />,
+      defaultNode: DefaultNode,
+      questionNode: QuestionNode,
+      taskNode: TaskNode,
+      imageNode: ImageNode,
+      resourceNode: ResourceNode,
+      annotationNode: AnnotationNode,
+      codeNode: CodeNode,
+      groupNode: GroupNode,
+      textNode: TextNode,
+      builderNode: BuilderNode,
     }),
     [],
   );
@@ -153,6 +165,7 @@ export function ReactFlowArea() {
       editableEdge: FloatingEdge,
       defaultEdge: FloatingEdge,
       floatingEdge: FloatingEdge,
+      default: FloatingEdge,
     }),
     [],
   );
@@ -198,7 +211,7 @@ export function ReactFlowArea() {
           y: clientY,
         });
 
-        const parentNode = allNodes.find(
+        const parentNode = nodes.find(
           (node) => node.id === connectingNodeId.current,
         );
 
@@ -215,7 +228,7 @@ export function ReactFlowArea() {
       connectingHandleId.current = null;
       connectingHandleType.current = null;
     },
-    [reactFlowInstance, addNode, allNodes],
+    [reactFlowInstance, addNode, nodes],
   );
 
   const handleSelectionChange = useCallback(
@@ -226,8 +239,10 @@ export function ReactFlowArea() {
   );
 
   const handleNodeDragStart = useCallback(() => {
-    setIsDraggingNodes(true);
-  }, [setIsDraggingNodes]);
+    if (!isDraggingNodes) {
+      setIsDraggingNodes(true);
+    }
+  }, [setIsDraggingNodes, isDraggingNodes]);
 
   const handleNodeDragStop = useCallback(() => {
     // Short delay to ensure drag operation completes before allowing auto-resize
@@ -248,8 +263,8 @@ export function ReactFlowArea() {
       selectNodesOnDrag={true}
       selectionOnDrag={true}
       fitView={true}
-      nodes={nodes}
-      edges={edges}
+      nodes={getVisibleNodes()}
+      edges={getVisibleEdges()}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
       onConnectStart={onConnectStart}
@@ -285,6 +300,8 @@ export function ReactFlowArea() {
       <ZoomSlider position="top-left" />
 
       <Background color="#52525c" gap={16} variant={BackgroundVariant.Dots} />
+
+      {/* <Devtools /> */}
     </ReactFlow>
   );
 }

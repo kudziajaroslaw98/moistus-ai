@@ -1,3 +1,12 @@
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { NodeData } from "@/types/node-data";
 import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 
@@ -7,6 +16,27 @@ interface AnnotationNodeFormProps {
 
 const annotationTypes = ["comment", "idea", "quote", "summary"];
 type AnnotationTypes = "comment" | "idea" | "quote" | "summary";
+const fontSizes = [
+  { value: "8px", label: "8 px" },
+  { value: "9px", label: "9 px" },
+  { value: "11px", label: "11 px" },
+  { value: "12px", label: "12 px" },
+  { value: "13px", label: "13 px" },
+  { value: "15px", label: "15 px" },
+  { value: "16px", label: "16 px" },
+  { value: "19px", label: "19 px" },
+  { value: "21px", label: "21 px" },
+  { value: "24px", label: "24 px" },
+  { value: "27px", label: "27 px" },
+  { value: "29px", label: "29 px" },
+  { value: "32px", label: "32 px" },
+  { value: "35px", label: "35 px" },
+  { value: "37px", label: "37 px" },
+  { value: "48px", label: "48 px" },
+  { value: "64px", label: "64 px" },
+  { value: "80px", label: "80 px" },
+  { value: "96px", label: "96 px" },
+];
 
 const AnnotationNodeForm = forwardRef<
   { getFormData: () => Partial<NodeData> | null },
@@ -14,11 +44,11 @@ const AnnotationNodeForm = forwardRef<
 >(({ initialData }, ref) => {
   const [content, setContent] = useState(initialData?.content || "");
 
-  const [fontSize, setFontSize] = useState<number | string>(
-    (initialData.metadata?.fontSize as number | string) || "",
+  const [fontSize, setFontSize] = useState<string>(
+    (initialData.metadata?.fontSize as string) || "16px",
   );
-  const [fontWeight, setFontWeight] = useState<string | number>(
-    (initialData.metadata?.fontWeight as string | number) || "",
+  const [fontWeight, setFontWeight] = useState<number>(
+    (initialData.metadata?.fontWeight as number) || 400,
   );
 
   const [annotationType, setAnnotationType] = useState<AnnotationTypes>(
@@ -27,8 +57,8 @@ const AnnotationNodeForm = forwardRef<
 
   useEffect(() => {
     setContent(initialData?.content || "");
-    setFontSize((initialData.metadata?.fontSize as number | string) || "");
-    setFontWeight((initialData.metadata?.fontWeight as string | number) || "");
+    setFontSize((initialData.metadata?.fontSize as string) || "16px");
+    setFontWeight((initialData.metadata?.fontWeight as number) || 400);
     setAnnotationType(initialData.metadata?.annotationType || "comment");
   }, [initialData]);
 
@@ -76,20 +106,24 @@ const AnnotationNodeForm = forwardRef<
             Type
           </label>
 
-          <select
-            id="annotationType"
+          <Select
             value={annotationType}
-            onChange={(e) =>
-              setAnnotationType(e.target.value as AnnotationTypes)
+            onValueChange={(value) =>
+              setAnnotationType(value as AnnotationTypes)
             }
-            className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
           >
-            {annotationTypes.map((type) => (
-              <option key={type} value={type} className="capitalize">
-                {type.charAt(0).toUpperCase() + type.slice(1)}{" "}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="bg-zinc-900 border-zinc-700 w-full">
+              <SelectValue placeholder="Select Type" />
+            </SelectTrigger>
+
+            <SelectContent>
+              {annotationTypes.map((type) => (
+                <SelectItem key={type} value={type} className="capitalize">
+                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Font Size Input */}
@@ -101,19 +135,27 @@ const AnnotationNodeForm = forwardRef<
             Font Size (px)
           </label>
 
-          <input
-            id="fontSize"
-            type="number"
-            value={fontSize === "" ? "" : Number(fontSize)}
-            onChange={(e) => {
-              const value = e.target.value;
-              setFontSize(value === "" ? "" : Number(value));
-            }}
-            min="8"
-            max="48"
-            className="w-full rounded-md border border-zinc-600 bg-zinc-700 p-2 text-zinc-100 focus:ring-2 focus:ring-teal-500 focus:outline-none sm:text-sm"
-            placeholder="e.g. 14"
-          />
+          <Select
+            value={fontSize}
+            onValueChange={(value) => setFontSize(value)} // Example: how to update state
+            // defaultValue="12pt" // Or value={selectedSize} if controlled
+          >
+            <SelectTrigger className="bg-zinc-900 border-zinc-700 w-full">
+              <SelectValue placeholder="Select font size" />
+            </SelectTrigger>
+
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Font Sizes</SelectLabel>
+
+                {fontSizes.map((size) => (
+                  <SelectItem key={size.value} value={size.value}>
+                    {size.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Font Weight Select */}
@@ -125,28 +167,30 @@ const AnnotationNodeForm = forwardRef<
             Font Weight
           </label>
 
-          <select
-            id="fontWeight"
-            value={fontWeight || ""}
-            onChange={(e) => setFontWeight(e.target.value)}
-            className="mt-1 block w-full rounded-sm border border-zinc-600 bg-zinc-700 px-3 py-2 text-zinc-100 shadow-sm focus:border-teal-500 focus:ring-teal-500 focus:outline-none sm:text-sm"
+          <Select
+            value={fontWeight.toString()}
+            onValueChange={(value) => setFontWeight(parseInt(value))}
           >
-            <option value="">Default</option>
+            <SelectTrigger className="bg-zinc-900 border-zinc-700 w-full">
+              <SelectValue placeholder="Select Font Weight" />
+            </SelectTrigger>
 
-            <option value="normal">Normal</option>
+            <SelectContent>
+              <SelectItem value="100">Lighter</SelectItem>
 
-            <option value="bold">Bold</option>
+              <SelectItem value="300">Light</SelectItem>
 
-            <option value="lighter">Lighter</option>
+              <SelectItem value="400">Normal</SelectItem>
 
-            <option value="bolder">Bolder</option>
+              <SelectItem value="500">Medium</SelectItem>
 
-            {[100, 200, 300, 400, 500, 600, 700, 800, 900].map((weight) => (
-              <option key={weight} value={weight}>
-                {weight}
-              </option>
-            ))}
-          </select>
+              <SelectItem value="600">Semibold</SelectItem>
+
+              <SelectItem value="700">Bold</SelectItem>
+
+              <SelectItem value="800">Bolder</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
     </div>

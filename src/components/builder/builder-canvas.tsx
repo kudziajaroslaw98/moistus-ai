@@ -193,3 +193,4 @@ const BuilderCanvasComponent = ({
 };
 
 export const BuilderCanvas = memo(BuilderCanvasComponent);
+BuilderCanvas.displayName = "BuilderCanvas";

@@ -2,7 +2,7 @@
 
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"; // Keep shortcuts here
 import { cn } from "@/utils/cn";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { ModalsWrapper } from "./mind-map/modals-wrapper";
 import { ReactFlowArea } from "./mind-map/react-flow-area";
 
@@ -20,7 +20,6 @@ export function MindMapCanvas() {
     handleRedo,
     handleCopy,
     handlePaste,
-    nodes,
     edges,
     selectedNodes,
     canUndo,
@@ -39,7 +38,6 @@ export function MindMapCanvas() {
       handleRedo: state.handleRedo,
       handleCopy: state.copySelectedNodes,
       handlePaste: state.pasteNodes,
-      nodes: state.nodes,
       edges: state.edges,
       selectedNodes: state.selectedNodes,
       canUndo: state.canUndo,
@@ -56,10 +54,7 @@ export function MindMapCanvas() {
   );
   const isLoading = loadingStates.isStateLoading;
 
-  const selectedNodeId = useMemo(
-    () => nodes.find((n) => n.selected)?.id,
-    [nodes],
-  );
+  const selectedNodeId = selectedNodes[0]?.id;
   const selectedEdgeId = useMemo(
     () => edges.find((e) => e.selected)?.id,
     [edges],
@@ -69,27 +64,27 @@ export function MindMapCanvas() {
     setPopoverOpen({ nodeType: true });
   };
 
-  const handleGroup = () => {
+  const handleGroup = useCallback(() => {
     if (selectedNodes.length >= 2) {
       createGroupFromSelected();
     }
-  };
+  }, [selectedNodes, createGroupFromSelected]);
 
-  const handleUngroup = () => {
+  const handleUngroup = useCallback(() => {
     if (selectedNodes.length === 1 && selectedNodes[0].data.metadata?.isGroup) {
       ungroupNodes(selectedNodes[0].id);
     }
-  };
+  }, [selectedNodes, ungroupNodes]);
 
-  const handleToggleCollapse = () => {
+  const handleToggleCollapse = useCallback(() => {
     if (selectedNodes.length === 1) {
       toggleNodeCollapse(selectedNodes[0].id);
     }
-  };
+  }, [selectedNodes, toggleNodeCollapse]);
 
-  const handleToggleComments = () => {
+  const handleToggleComments = useCallback(() => {
     setPopoverOpen({ commentsPanel: !popoverOpen.commentsPanel });
-  };
+  }, [popoverOpen.commentsPanel]);
 
   useKeyboardShortcuts({
     onUndo: handleUndo,
@@ -121,7 +116,7 @@ export function MindMapCanvas() {
         {/* Render the wrapped components */}
         <MindMapToolbar />
 
-        <CommandPalette />
+        {popoverOpen.commandPalette && <CommandPalette />}
 
         <ModalsWrapper />
 
@@ -139,7 +134,7 @@ export function MindMapCanvas() {
       </div>
 
       {/* Comments Panel */}
-      <CommentsPanel />
+      {popoverOpen.commentsPanel && <CommentsPanel />}
     </div>
   );
 }

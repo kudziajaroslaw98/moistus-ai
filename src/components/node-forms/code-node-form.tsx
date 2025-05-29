@@ -3,7 +3,15 @@ import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import { FormField } from "../ui/form-field";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { Select } from "../ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 import { Textarea } from "../ui/textarea";
 
 import { commonLanguages } from "@/constants/common-languages";
@@ -67,15 +75,24 @@ const CodeNodeForm = forwardRef<
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField label="Language" id="codeLanguage">
           <Select
-            id="codeLanguage"
             value={language}
-            onChange={(e) => setLanguage(e.target.value)}
+            onValueChange={(value) => setLanguage(value as string)}
           >
-            {commonLanguages.map((lang) => (
-              <option key={lang.value} value={lang.value}>
-                {lang.label}
-              </option>
-            ))}
+            <SelectTrigger className="bg-zinc-900 border-zinc-700 w-full">
+              <SelectValue placeholder="Select Language" />
+            </SelectTrigger>
+
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Languages</SelectLabel>
+
+                {commonLanguages.map(({ value: lang }) => (
+                  <SelectItem key={lang} value={lang} className="capitalize">
+                    {lang}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
           </Select>
         </FormField>
 

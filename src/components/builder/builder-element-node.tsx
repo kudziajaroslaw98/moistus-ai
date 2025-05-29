@@ -3,8 +3,8 @@ import { cn } from "@/utils/cn";
 import { MoveDiagonal2, X } from "lucide-react";
 import type { useDragControls } from "motion/react"; // Using MotionProps for motion.div
 import { AnimatePresence, motion } from "motion/react";
-import type { CSSProperties, PointerEvent, ReactNode } from "react"; // PointerEvent for onPointerDown
-import { useRef } from "react";
+import type { CSSProperties, PointerEvent } from "react"; // PointerEvent for onPointerDown
+import { memo, useRef } from "react";
 import { Button } from "../ui/button";
 import {
   ImageElement as ResolvedImageElement,
@@ -50,7 +50,7 @@ export interface BuilderElementNodeProps {
   onUpdateElement: (updatedElement: BuilderElement) => void;
 }
 
-export function BuilderElementNode({
+const BuilderElementNodeComponent = ({
   element,
   isEditing,
   isSelected,
@@ -65,7 +65,7 @@ export function BuilderElementNode({
   onResizeEnd,
   onDeleteElement,
   onUpdateElement,
-}: BuilderElementNodeProps): ReactNode | null {
+}: BuilderElementNodeProps) => {
   const elementRef = useRef<HTMLDivElement>(null);
   const ElementComponent = elementComponentsMap[element.type as ElementType];
 
@@ -180,4 +180,7 @@ export function BuilderElementNode({
       </AnimatePresence>
     </motion.div>
   );
-}
+};
+
+export const BuilderElementNode = memo(BuilderElementNodeComponent);
+BuilderElementNode.displayName = "BuilderElementNode";

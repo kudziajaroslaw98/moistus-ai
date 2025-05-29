@@ -9,7 +9,7 @@ import type {
   LinkElementProperties,
 } from "@/types/builder-node";
 import { X } from "lucide-react";
-import React, { forwardRef, useLayoutEffect, useState } from "react";
+import React, { forwardRef, memo, useLayoutEffect, useState } from "react";
 import { LinkSettingsForm } from "./link-settings-form";
 import { TextSettingsForm } from "./text-settings-form";
 
@@ -41,6 +41,7 @@ const ExternalAnchor = forwardRef<
 
   return <div ref={ref} style={style} data-testid="external-anchor" />;
 });
+
 ExternalAnchor.displayName = "ExternalAnchor";
 
 interface SettingsPopoverProps {
@@ -50,12 +51,12 @@ interface SettingsPopoverProps {
   onClose: () => void;
 }
 
-export const SettingsPopover: React.FC<SettingsPopoverProps> = ({
+const SettingsPopoverComponent = ({
   selectedElement,
   anchorElement, // ADDED
   onUpdateElement,
   onClose,
-}) => {
+}: SettingsPopoverProps) => {
   if (!selectedElement || !anchorElement) {
     return null;
   }
@@ -157,3 +158,6 @@ export const SettingsPopover: React.FC<SettingsPopoverProps> = ({
     </Popover>
   );
 };
+
+export const SettingsPopover = memo(SettingsPopoverComponent);
+SettingsPopover.displayName = "SettingsPopover";

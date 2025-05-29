@@ -2,7 +2,15 @@ import { NodeData } from "@/types/node-data";
 import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import { FormField } from "../ui/form-field";
 import { Input } from "../ui/input";
-import { Select } from "../ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 import { Switch } from "../ui/switch";
 import { Textarea } from "../ui/textarea";
 
@@ -16,16 +24,38 @@ const textAlignOptions: ("left" | "center" | "right")[] = [
   "right",
 ];
 
+const fontSizes = [
+  { value: "8px", label: "8 px" },
+  { value: "9px", label: "9 px" },
+  { value: "11px", label: "11 px" },
+  { value: "12px", label: "12 px" },
+  { value: "13px", label: "13 px" },
+  { value: "15px", label: "15 px" },
+  { value: "16px", label: "16 px" },
+  { value: "19px", label: "19 px" },
+  { value: "21px", label: "21 px" },
+  { value: "24px", label: "24 px" },
+  { value: "27px", label: "27 px" },
+  { value: "29px", label: "29 px" },
+  { value: "32px", label: "32 px" },
+  { value: "35px", label: "35 px" },
+  { value: "37px", label: "37 px" },
+  { value: "48px", label: "48 px" },
+  { value: "64px", label: "64 px" },
+  { value: "80px", label: "80 px" },
+  { value: "96px", label: "96 px" },
+];
+
 const TextNodeForm = forwardRef<
   { getFormData: () => Partial<NodeData> | null },
   TextNodeFormProps
 >(({ initialData }, ref) => {
   const [content, setContent] = useState(initialData?.content || "");
-  const [fontSize, setFontSize] = useState<number | string>(
-    initialData.metadata?.fontSize || "",
+  const [fontSize, setFontSize] = useState<string>(
+    initialData.metadata?.fontSize || "16px",
   );
-  const [fontWeight, setFontWeight] = useState<string | number>(
-    initialData.metadata?.fontWeight || "",
+  const [fontWeight, setFontWeight] = useState<number>(
+    initialData.metadata?.fontWeight || 400,
   );
   const [textAlign, setTextAlign] = useState<"left" | "center" | "right">(
     initialData.metadata?.textAlign || "left",
@@ -42,8 +72,8 @@ const TextNodeForm = forwardRef<
 
   useEffect(() => {
     setContent(initialData?.content || "");
-    setFontSize(initialData.metadata?.fontSize || "");
-    setFontWeight(initialData.metadata?.fontWeight || "");
+    setFontSize(initialData.metadata?.fontSize || "16px");
+    setFontWeight(initialData.metadata?.fontWeight || 400);
     setTextAlign(initialData.metadata?.textAlign || "left");
     setShowBackground(Boolean(initialData.metadata?.showBackground ?? false));
     setBackgroundColor(initialData.metadata?.backgroundColor || "#3f3f46");
@@ -81,53 +111,78 @@ const TextNodeForm = forwardRef<
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField label="Font Size (px or %)" id="fontSize">
-          <Input
-            id="fontSize"
-            type="text" // Allow for units like '12px' or '1.2em' or just numbers
+          <Select
             value={fontSize}
-            onChange={(e) => setFontSize(e.target.value)}
-            placeholder="e.g., 16 or 1em"
-          />
+            onValueChange={(value) => setFontSize(value)} // Example: how to update state
+          >
+            <SelectTrigger className="bg-zinc-900 border-zinc-700 w-full">
+              <SelectValue placeholder="Select font size" />
+            </SelectTrigger>
+
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Font Sizes</SelectLabel>
+
+                {fontSizes.map((size) => (
+                  <SelectItem key={size.value} value={size.value}>
+                    {size.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </FormField>
 
         <FormField label="Font Weight" id="fontWeight">
           <Select
-            id="fontWeight"
-            value={String(fontWeight)}
-            onChange={(e) => setFontWeight(e.target.value)}
+            value={fontWeight.toString()}
+            onValueChange={(value) => setFontWeight(parseInt(value))}
           >
-            <option value="">Default</option>
+            <SelectTrigger className="bg-zinc-900 border-zinc-700 w-full">
+              <SelectValue placeholder="Select Font Weight" />
+            </SelectTrigger>
 
-            <option value="normal">Normal</option>
+            <SelectContent>
+              <SelectItem value="100">Lighter</SelectItem>
 
-            <option value="bold">Bold</option>
+              <SelectItem value="300">Light</SelectItem>
 
-            <option value="lighter">Lighter</option>
+              <SelectItem value="400">Normal</SelectItem>
 
-            <option value="bolder">Bolder</option>
+              <SelectItem value="500">Medium</SelectItem>
 
-            {[100, 200, 300, 400, 500, 600, 700, 800, 900].map((w) => (
-              <option key={w} value={w}>
-                {w}
-              </option>
-            ))}
+              <SelectItem value="600">Semibold</SelectItem>
+
+              <SelectItem value="700">Bold</SelectItem>
+
+              <SelectItem value="800">Bolder</SelectItem>
+            </SelectContent>
           </Select>
         </FormField>
       </div>
 
       <FormField label="Text Align" id="textAlign">
         <Select
-          id="textAlign"
           value={textAlign}
-          onChange={(e) =>
-            setTextAlign(e.target.value as "left" | "center" | "right")
+          onValueChange={(value) =>
+            setTextAlign(value as "left" | "center" | "right")
           }
         >
-          {textAlignOptions.map((align) => (
-            <option key={align} value={align} className="capitalize">
-              {align}
-            </option>
-          ))}
+          <SelectTrigger className="bg-zinc-900 border-zinc-700 w-full">
+            <SelectValue placeholder="Select Font Weight" />
+          </SelectTrigger>
+
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Text Align</SelectLabel>
+
+              {textAlignOptions.map((align) => (
+                <SelectItem key={align} value={align} className="capitalize">
+                  {align}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
         </Select>
       </FormField>
 
@@ -140,7 +195,6 @@ const TextNodeForm = forwardRef<
             onChange={(e) => setTextColor(e.target.value)}
           />
         </FormField>
-        <div /> {/* Placeholder for grid alignment */}
       </div>
 
       <div className="flex items-center space-x-2">

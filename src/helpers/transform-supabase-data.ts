@@ -52,7 +52,6 @@ export const transformSupabaseData = (
       width: node.width || undefined,
       height: node.height || undefined,
       parentNode: node.parent_id ? node.parent_id : undefined, // Add parentNode for grouping
-      extent: node.parent_id ? "parent" : undefined, // Add extent for grouping
     }),
   );
 
@@ -65,7 +64,7 @@ export const transformSupabaseData = (
       ...edge, // Spread all properties from db edge
       metadata: {
         ...(edge.metadata || {}), // Spread existing metadata from db
-        pathType: edge.metadata?.pathType, // Explicitly map pathType
+        pathType: edge.metadata?.pathType ?? "bezier", // Explicitly map pathType
       },
       style: {
         stroke: edge.style?.stroke || "#6c757d",

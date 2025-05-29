@@ -32,3 +32,4 @@ const ElementPaletteComponent = ({ onElementSelect }: ElementPaletteProps) => {
 };
 
 export const ElementPalette = memo(ElementPaletteComponent);
+ElementPalette.displayName = "ElementPalette";

@@ -112,3 +112,4 @@ const CanvasControlsComponent = ({
 };
 
 export const CanvasControls = memo(CanvasControlsComponent);
+CanvasControls.displayName = "CanvasControls";

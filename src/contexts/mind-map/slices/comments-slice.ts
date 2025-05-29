@@ -10,23 +10,6 @@ import type {
 import type { StateCreator } from "zustand";
 import type { AppState } from "../app-state";
 
-// Add reaction types if they don't exist
-interface CommentReaction {
-  id: string;
-  comment_id: string;
-  user_id: string;
-  emoji: string;
-  created_at: string;
-}
-
-interface CurrentUser {
-  id: string;
-  email?: string;
-  full_name?: string;
-  display_name?: string;
-  avatar_url?: string;
-}
-
 export interface CommentsSlice {
   // Comments state
   nodeComments: Record<string, NodeComment[]>;
@@ -123,7 +106,13 @@ export const createCommentsSlice: StateCreator<
   // Enhanced fetch with filtering and sorting (from hook)
   fetchCommentsWithFilters: withLoadingAndToast(
     async (options: { nodeId?: string; mapId?: string } = {}) => {
-      const { supabase, mapId: storeMapId, commentFilter, commentSort } = get();
+      const {
+        supabase,
+        mapId: storeMapId,
+        commentFilter,
+        commentSort,
+        commentSummaries,
+      } = get();
       const targetMapId = options.mapId || storeMapId;
 
       if (!targetMapId) {
@@ -212,10 +201,9 @@ export const createCommentsSlice: StateCreator<
       })) as NodeComment[];
 
       // Update summaries
-      const summaries = new Map<string, NodeCommentSummary>();
       commentsData.forEach((comment) => {
         const nodeId = comment.node_id;
-        const existing = summaries.get(nodeId);
+        const existing = commentSummaries.get(nodeId);
 
         if (existing) {
           existing.comment_count += 1;
@@ -227,8 +215,10 @@ export const createCommentsSlice: StateCreator<
           if (comment.created_at > (existing.last_comment_at || "")) {
             existing.last_comment_at = comment.created_at;
           }
+
+          commentSummaries.set(nodeId, { ...existing });
         } else {
-          summaries.set(nodeId, {
+          commentSummaries.set(nodeId, {
             node_id: nodeId,
             comment_count: 1,
             unresolved_count: comment.is_resolved ? 0 : 1,
@@ -240,7 +230,7 @@ export const createCommentsSlice: StateCreator<
 
       set({
         allComments: commentsData,
-        commentSummaries: summaries,
+        commentSummaries: commentSummaries,
         commentsError: null,
       });
 

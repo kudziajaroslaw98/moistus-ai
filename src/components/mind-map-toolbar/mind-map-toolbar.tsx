@@ -13,6 +13,7 @@ import {
   User,
 } from "lucide-react";
 import Link from "next/link";
+import { useCallback } from "react";
 import { useShallow } from "zustand/shallow";
 import { LayoutSelector } from "../layout-selector";
 import { Button } from "../ui/button";
@@ -42,21 +43,21 @@ export function MindMapToolbar() {
     })),
   );
 
-  const handleCommandPaletteOpen = () => {
+  const handleCommandPaletteOpen = useCallback(() => {
     setPopoverOpen({ commandPalette: true });
-  };
+  }, [setPopoverOpen]);
 
-  const handleToggleHistorySidebar = () => {
+  const handleToggleHistorySidebar = useCallback(() => {
     setPopoverOpen({ history: true });
-  };
+  }, [setPopoverOpen]);
 
-  const handleToggleFocusMode = () => {
+  const handleToggleFocusMode = useCallback(() => {
     toggleFocusMode();
-  };
+  }, [toggleFocusMode]);
 
-  const handleToggleCommentsPanel = () => {
+  const handleToggleCommentsPanel = useCallback(() => {
     setPopoverOpen({ commentsPanel: true });
-  };
+  }, [setPopoverOpen]);
 
   if (isFocusMode) {
     return (

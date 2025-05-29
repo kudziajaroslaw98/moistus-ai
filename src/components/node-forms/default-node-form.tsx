@@ -1,6 +1,12 @@
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { NodeData } from "@/types/node-data";
 import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
@@ -83,21 +89,22 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
             {/* Status Select */}
             <FormField id="defaultNodeStatus" label="Status">
               <Select
-                id="defaultNodeStatus"
                 value={status || ""}
-                onChange={(e) =>
-                  setStatus(e.target.value === "" ? undefined : e.target.value)
-                }
+                onValueChange={(value) => setStatus(value)}
               >
-                <option value="">-- Select Status --</option>
+                <SelectTrigger className="bg-zinc-900 border-zinc-700">
+                  <SelectValue placeholder="Select Status" />
+                </SelectTrigger>
 
-                <option value="draft">Draft</option>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
 
-                <option value="in-progress">In Progress</option>
+                  <SelectItem value="in-progress">In Progress</SelectItem>
 
-                <option value="completed">Completed</option>
+                  <SelectItem value="completed">Completed</SelectItem>
 
-                <option value="on-hold">On Hold</option>
+                  <SelectItem value="on-hold">On Hold</SelectItem>
+                </SelectContent>
               </Select>
             </FormField>
 

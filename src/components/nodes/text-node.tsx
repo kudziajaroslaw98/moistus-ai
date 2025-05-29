@@ -9,6 +9,8 @@ type TextNodeProps = NodeProps<Node<NodeData>>;
 
 const TextNodeComponent = (props: TextNodeProps) => {
   const { data, selected } = props;
+  // const connection = useConnection();
+  // const isTarget = connection.inProgress && connection.fromNode?.id !== data.id;
 
   const { content, metadata } = data;
   const {
@@ -72,27 +74,38 @@ const TextNodeComponent = (props: TextNodeProps) => {
       )}
 
       <Handle
-        type="target"
-        position={Position.Top}
-        className="!size-2 !rounded-full !bg-zinc-600 !outline-2 !outline-zinc-800"
+        type="source"
+        position={Position.Bottom}
+        className="w-full h-4 bg-transparent"
       />
 
       <Handle
         type="source"
-        position={Position.Bottom}
-        className="!size-2 !rotate-45 !bg-zinc-400 !outline-2 !outline-zinc-800 !translate-y-1"
+        position={Position.Top}
+        className="w-full h-4 bg-transparent"
       />
 
       <Handle
-        type="target"
+        type="source"
         position={Position.Left}
-        className="!size-2 !rounded-full !bg-zinc-600 !outline-2 !outline-zinc-800"
+        className="w-4 h-full bg-transparent"
       />
 
       <Handle
         type="source"
         position={Position.Right}
-        className="!size-2 !rounded-full !bg-zinc-400 !outline-2 !outline-zinc-800"
+        className="w-4 h-full bg-transparent"
+      />
+
+      <Handle
+        className={cn([
+          "w-full h-full absolute top-0 left-0 rounded-full transform-none border-none opacity-0",
+          "h-1/2 translate-y-1/2",
+          // isTarget ? "h-full" : "h-1/2 translate-y-1/2", // Adjusted for isTarget
+        ])}
+        position={Position.Top}
+        type="target"
+        isConnectableStart={false}
       />
 
       <NodeResizer

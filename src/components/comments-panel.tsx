@@ -158,7 +158,9 @@ function CommentItem({
 
               <div className="flex items-center gap-2 text-xs text-zinc-500">
                 <Clock className="size-3" />
+
                 <span>{formatTimeAgo(comment.created_at)}</span>
+
                 {comment.is_edited && <span className="italic">(edited)</span>}
               </div>
             </div>
@@ -311,6 +313,7 @@ function CommentItem({
         {comment.is_resolved && comment.resolved_by_user && (
           <div className="mt-2 text-xs text-green-400 flex items-center gap-1">
             <CheckCircle className="size-3" />
+
             <span>
               Resolved by{" "}
               {comment.resolved_by_user.display_name ||
@@ -584,8 +587,10 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
         <div className="flex items-center justify-between p-4 border-b border-zinc-800">
           <div className="flex items-center gap-2">
             <MessageCircle className="size-5 text-teal-400" />
+
             <div>
               <h2 className="text-lg font-semibold text-white">Comments</h2>
+
               {targetNodeId && (
                 <p className="text-xs text-zinc-400">
                   {totalComments} comments • {unresolvedComments} unresolved
@@ -653,9 +658,12 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
                   <SelectTrigger className="bg-zinc-900 border-zinc-700">
                     <SelectValue />
                   </SelectTrigger>
+
                   <SelectContent>
                     <SelectItem value="all">All</SelectItem>
+
                     <SelectItem value="false">Unresolved</SelectItem>
+
                     <SelectItem value="true">Resolved</SelectItem>
                   </SelectContent>
                 </Select>
@@ -671,12 +679,18 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
                   <SelectTrigger className="bg-zinc-900 border-zinc-700">
                     <SelectValue />
                   </SelectTrigger>
+
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
+
                     <SelectItem value="feedback">Feedback</SelectItem>
+
                     <SelectItem value="question">Question</SelectItem>
+
                     <SelectItem value="suggestion">Suggestion</SelectItem>
+
                     <SelectItem value="issue">Issue</SelectItem>
+
                     <SelectItem value="note">Note</SelectItem>
                   </SelectContent>
                 </Select>
@@ -694,12 +708,15 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
           ) : commentsError ? (
             <div className="flex items-center gap-2 text-red-400 text-sm p-4 bg-red-950/20 rounded-lg">
               <AlertCircle className="size-4" />
+
               <span>{commentsError}</span>
             </div>
           ) : filteredRootComments.length === 0 ? (
             <div className="text-center py-8 text-zinc-500">
               <MessageCircle className="size-8 mx-auto mb-2 opacity-50" />
+
               <p>No comments yet</p>
+
               <p className="text-xs">Be the first to add a comment!</p>
             </div>
           ) : (
@@ -723,7 +740,9 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
           {replyingTo && (
             <div className="mb-2 text-xs text-zinc-400 flex items-center gap-2">
               <Reply className="size-3" />
+
               <span>Replying to comment</span>
+
               <Button
                 variant="ghost"
                 size="sm"
@@ -752,6 +771,7 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
 
             <div className="flex items-center justify-between">
               <p className="text-xs text-zinc-500">Press ⌘+Enter to send</p>
+
               <Button
                 onClick={handleCreateComment}
                 disabled={!newComment.trim()}
@@ -759,6 +779,7 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
                 className="bg-teal-600 hover:bg-teal-700"
               >
                 <Send className="size-3 mr-1" />
+
                 {replyingTo ? "Reply" : "Comment"}
               </Button>
             </div>

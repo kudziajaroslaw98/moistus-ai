@@ -1,24 +1,10 @@
 import useAppStore from "@/contexts/mind-map/mind-map-store";
 import { NodeData } from "@/types/node-data";
 import { cn } from "@/utils/cn";
-import {
-  Handle,
-  Node,
-  NodeProps,
-  NodeResizer,
-  Position,
-  useConnection,
-} from "@xyflow/react"; // Removed Handle import
+import { Handle, Node, NodeProps, NodeResizer, Position } from "@xyflow/react"; // Removed Handle import
 import { ChevronDown, ChevronRight, Group, MessageCircle } from "lucide-react"; // Icons for collapse/expand
 import { AnimatePresence, motion } from "motion/react";
-import {
-  memo,
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react"; // Added useMemo
+import { memo, type ReactNode, useCallback, useMemo, useState } from "react"; // Added useMemo
 import { useShallow } from "zustand/shallow";
 import { Button } from "../ui/button";
 
@@ -48,7 +34,7 @@ const BaseNodeWrapperComponent = ({
   nodeType,
   includePadding = true,
 }: BaseNodeWrapperProps) => {
-  const connection = useConnection();
+  // const connection = useConnection();
   const {
     nodes,
     toggleNodeCollapse,
@@ -70,7 +56,6 @@ const BaseNodeWrapperComponent = ({
   }, [getDirectChildrenCount, id]);
 
   const hasChildren = directChildrenCount > 0;
-  const isTarget = connection.inProgress && connection.fromNode?.id !== id;
   const collapsed = data.metadata?.isCollapsed ?? false;
 
   // Check if this node belongs to a group
@@ -97,28 +82,43 @@ const BaseNodeWrapperComponent = ({
     [id, data.metadata?.isGroup, data.node_type],
   );
 
-  const [commentCount, setCommentCount] = useState(
-    commentSummaries.get(id)?.comment_count || 0,
-  );
-  const [unresolvedCount, setUnresolvedCount] = useState(
-    commentSummaries.get(id)?.unresolved_count || 0,
-  );
-
-  useEffect(() => {
+  const commentCount = useMemo(() => {
     const summaries = commentSummaries.get(id);
-    if (!summaries) return;
+    if (!summaries) return 0;
 
-    setCommentCount(summaries.comment_count || 0);
-    setUnresolvedCount(summaries.unresolved_count || 0);
-  }, [commentSummaries.get(id)]);
+    return summaries.comment_count || 0;
+  }, [commentSummaries, id]);
+
+  const unresolvedCount = useMemo(() => {
+    const summaries = commentSummaries.get(id);
+    if (!summaries) return 0;
+
+    return summaries.unresolved_count || 0;
+  }, [commentSummaries, id]);
+
+  // const [unresolvedCount, setUnresolvedCount] = useState(
+  //   commentSummaries.get(id)?.unresolved_count || 0,
+  // );
+
+  // useEffect(() => {
+  //   const summaries = commentSummaries.get(id);
+  //   if (!summaries) return;
+
+  //   setCommentCount(summaries.comment_count || 0);
+  //   setUnresolvedCount(summaries.unresolved_count || 0);
+  // }, [commentSummaries.get(id)]);
+
+  const handleOnCommentClick = useCallback(() => {
+    setPopoverOpen({ commentsPanel: true });
+  }, [setPopoverOpen]);
+
+  const handleToggleCollapse = useCallback(() => {
+    toggleNodeCollapse(id);
+  }, [id]);
 
   if (!data) {
     return null;
   }
-
-  const handleOnCommentClick = () => {
-    setPopoverOpen({ commentsPanel: true });
-  };
 
   return (
     <div
@@ -152,10 +152,7 @@ const BaseNodeWrapperComponent = ({
           <motion.div className="bg-node-accent text-node-text-main rounded-t-sm text-[10px] font-semibold font-mono flex items-center justify-center gap-2">
             {hasChildren && (
               <Button
-                onClick={(e) => {
-                  e.stopPropagation(); // Prevent node selection/drag
-                  toggleNodeCollapse(id);
-                }}
+                onClick={handleToggleCollapse}
                 className="nodrag nopan z-20 rounded-sm hover:bg-black/20 h-5 w-auto group flex gap-2 px-1 transition-all"
                 variant={"ghost"}
                 title={
@@ -226,20 +223,27 @@ const BaseNodeWrapperComponent = ({
 
           {/* Comment Indicator */}
           {commentCount > 0 && (
-            <motion.div className="bg-node-accent text-node-text-main rounded-t-sm text-[10px]  px-2 font-semibold font-mono flex items-center justify-center gap-2">
+            <motion.div className="bg-node-accent text-node-text-main rounded-t-sm text-[10px] font-semibold font-mono flex items-center justify-center gap-2">
               <Button
                 onClick={handleOnCommentClick}
-                className="nodrag nopan z-20 rounded-sm hover:bg-black/20 h-5 w-auto group flex gap-2 px-1 transition-all"
+                className="nodrag nopan z-20 rounded-sm hover:bg-black/20 h-5 w-auto group flex gap-2 px-2 relative transition-all"
                 variant={"ghost"}
                 title={`${commentCount} comment${commentCount !== 1 ? "s" : ""}${unresolvedCount > 0 ? ` (${unresolvedCount} unresolved)` : ""}`}
               >
-                <MessageCircle className="size-3" />
+                <MessageCircle
+                  className={cn([
+                    "size-3",
+                    unresolvedCount > 0
+                      ? " fill-sky-500 text-sky-500 animate-pulse"
+                      : "",
+                  ])}
+                />
 
                 <span>{commentCount}</span>
 
-                {unresolvedCount > 0 && (
-                  <span className="bg-red-500 text-white rounded-full size-2 animate-pulse" />
-                )}
+                {/* {unresolvedCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-sky-500 text-white rounded-full size-2 animate-pulse" />
+                )} */}
               </Button>
             </motion.div>
           )}
@@ -261,31 +265,32 @@ const BaseNodeWrapperComponent = ({
         <Handle
           type="source"
           position={Position.Bottom}
-          className="w-full h-4 bg-transparent"
+          className="w-full h-8 bg-transparent"
         />
 
+        {/*
         <Handle
           type="source"
           position={Position.Top}
-          className="w-full h-4 bg-transparent"
-        />
+          className="w-full h-8 bg-transparent"
+        /> */}
 
         <Handle
           type="source"
           position={Position.Left}
-          className="w-4 h-full bg-transparent"
+          className="w-8 h-full bg-transparent"
         />
 
         <Handle
           type="source"
           position={Position.Right}
-          className="w-4 h-full bg-transparent"
+          className="w-8 h-full bg-transparent"
         />
 
         <Handle
           className={cn([
             "w-full h-full absolute top-0 left-0 rounded-full transform-none border-none opacity-0",
-            isTarget ? "h-full" : "h-1/2 translate-y-1/2", // Adjusted for isTarget
+            "h-full", // Adjusted for isTarget
           ])}
           position={Position.Top}
           type="target"
