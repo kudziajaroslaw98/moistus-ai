@@ -1,4 +1,4 @@
-import { BuilderElement } from "@/types/builder-node";
+import { BuilderElement, TagElementProperties } from "@/types/builder-node";
 import { Tag } from "lucide-react";
 import { memo } from "react";
 
@@ -15,12 +15,11 @@ const TagElementComponent = ({
   isEditing = false,
   onUpdate,
 }: TagElementProps) => {
-  const { properties } = element;
+  const properties = element.properties as TagElementProperties;
   const {
     text = "Tag",
     backgroundColor = "#374151",
     textColor = "#ffffff",
-    borderRadius = 12,
   } = properties;
 
   const handleTextChange = (newText: string) => {
@@ -35,14 +34,13 @@ const TagElementComponent = ({
   return (
     <div
       className={`
-        w-full h-full flex items-center justify-center p-1 text-xs font-medium cursor-move
+        w-full h-full flex items-center justify-center p-1 text-xs font-medium cursor-move rounded-md
         ${isSelected ? "ring-2 ring-teal-500" : ""}
         ${isEditing ? "bg-zinc-800" : ""}
       `}
       style={{
         backgroundColor,
         color: textColor,
-        borderRadius: `${borderRadius}px`,
       }}
     >
       <span>{text}</span>

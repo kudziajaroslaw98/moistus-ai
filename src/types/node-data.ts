@@ -37,8 +37,8 @@ export interface NodeData extends Record<string, unknown> {
 
     answer?: string;
 
-    fontSize?: number | string;
-    fontWeight?: string | number;
+    fontSize?: string;
+    fontWeight?: number;
     targetNodeId?: string;
     annotationType?: "comment" | "idea" | "quote" | "summary";
 

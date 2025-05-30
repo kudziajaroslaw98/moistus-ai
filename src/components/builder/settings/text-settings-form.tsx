@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 interface TextSettingsFormProps {
-  element: BuilderElement & { type: "text" }; // Ensure element is of type 'text'
+  element: BuilderElement; // Ensure element is of type 'text'
   // onUpdate will now update the entire element, not just properties, to handle size changes
   onUpdate: (updatedElement: Partial<BuilderElement>) => void;
 }

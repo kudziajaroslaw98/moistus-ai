@@ -1,4 +1,4 @@
-import { AppNode } from "@/contexts/mind-map/app-state";
+import { AppNode } from "@/types/app-node";
 
 export interface GroupBounds {
   x: number;

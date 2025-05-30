@@ -35,8 +35,8 @@ export interface StatusElementProperties {
 
 // Specific properties for TagElement
 export interface TagElementProperties {
-  tagText: string;
-  tagColor?: string; // background color
+  text: string;
+  backgroundColor?: string; // background color
   textColor?: string;
 }
 

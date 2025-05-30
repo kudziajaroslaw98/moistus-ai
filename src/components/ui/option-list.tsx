@@ -1,6 +1,7 @@
 import {
   type KeyboardEvent,
   type ReactNode,
+  RefObject,
   useCallback,
   useEffect,
   useRef,
@@ -26,7 +27,7 @@ export interface OptionListProps<T> {
   renderItem: (
     item: T,
     idx: number,
-    opts: { focused: boolean; ref: React.RefObject<HTMLDivElement> },
+    opts: { focused: boolean; ref: RefObject<HTMLDivElement | null> },
   ) => ReactNode;
   className?: string;
   initialFocusIdx?: number;
@@ -43,7 +44,7 @@ export function OptionList<T>({
   onItemSelect,
 }: OptionListProps<T>): ReactNode {
   const [focusedIdx, setFocusedIdx] = useState<number>(initialFocusIdx);
-  const itemRefs = useRef<Array<React.RefObject<HTMLDivElement>>>(
+  const itemRefs = useRef<Array<RefObject<HTMLDivElement | null>>>(
     items.map(() => ({ current: null })),
   );
 

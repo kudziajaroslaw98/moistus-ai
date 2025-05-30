@@ -1,5 +1,5 @@
-import { LoadingStates } from "@/contexts/mind-map/app-state";
 import useAppStore from "@/contexts/mind-map/mind-map-store";
+import type { LoadingStates } from "@/contexts/mind-map/slices/loading-state-slice";
 import { toast } from "sonner";
 
 function withLoadingAndToast<

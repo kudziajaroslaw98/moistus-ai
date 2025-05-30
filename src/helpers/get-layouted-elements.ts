@@ -1,5 +1,5 @@
-import { AppNode } from "@/contexts/mind-map/app-state";
 import { AppEdge } from "@/types/app-edge";
+import { AppNode } from "@/types/app-node";
 import { LayoutDirection } from "@/types/layout-types";
 import dagre from "dagre";
 

@@ -1,7 +1,7 @@
-export type LayoutAlgorithm = 
-  | "dagre-tb" 
-  | "dagre-lr" 
-  | "dagre-bt" 
+export type LayoutAlgorithm =
+  | "dagre-tb"
+  | "dagre-lr"
+  | "dagre-bt"
   | "dagre-rl"
   | "force-directed"
   | "circular"
@@ -84,7 +84,7 @@ export interface TreeLayoutConfig extends LayoutConfig {
   subtreeSpacing?: number;
 }
 
-export type SpecificLayoutConfig = 
+export type SpecificLayoutConfig =
   | DagreLayoutConfig
   | ForceDirectedLayoutConfig
   | CircularLayoutConfig

@@ -300,8 +300,6 @@ export function ReactFlowArea() {
       <ZoomSlider position="top-left" />
 
       <Background color="#52525c" gap={16} variant={BackgroundVariant.Dots} />
-
-      {/* <Devtools /> */}
     </ReactFlow>
   );
 }

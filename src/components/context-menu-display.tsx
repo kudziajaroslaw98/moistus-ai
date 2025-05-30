@@ -28,7 +28,12 @@ import AStepBIcon from "./icons/a-step-b";
 import AStrainghtBIcon from "./icons/a-straight-b";
 import { Button } from "./ui/button";
 import { OptionList } from "./ui/option-list";
-import { Tooltip } from "./ui/Tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/Tooltip";
 
 const edgePathTypeOptions: PathType[] = [
   "smoothstep",
@@ -283,7 +288,8 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
           )}
 
           <span>
-            {clickedNodeData?.metadata?.isCollapsed ? "Expand" : "Collapse"} Branch
+            {clickedNodeData?.metadata?.isCollapsed ? "Expand" : "Collapse"}{" "}
+            Branch
           </span>
         </Button>
       )}
@@ -633,21 +639,23 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
             );
           }}
           renderItem={(pathType, idx, { focused }) => (
-            <Tooltip
-              content={`${pathType.charAt(0).toUpperCase() + pathType.slice(1)} Path`}
-            >
-              <Button
-                variant={
-                  clickedEdge.data?.metadata?.pathType === pathType
-                    ? "secondary"
-                    : "ghost"
-                }
-                size="icon"
-                tabIndex={-1}
-                aria-label={`${pathType} path`}
-              >
-                {getItemIcon(pathType)}
-              </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={
+                    clickedEdge.data?.metadata?.pathType === pathType
+                      ? "secondary"
+                      : "ghost"
+                  }
+                  size="icon"
+                  tabIndex={-1}
+                  aria-label={`${pathType} path`}
+                >
+                  {getItemIcon(pathType)}
+                </Button>
+              </TooltipTrigger>
+
+              <TooltipContent>{`${pathType.charAt(0).toUpperCase() + pathType.slice(1)} Path`}</TooltipContent>
             </Tooltip>
           )}
         />
@@ -687,18 +695,24 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
               (clickedEdge?.data?.style?.stroke === undefined &&
                 colorOpt.value === undefined);
             return (
-              <Tooltip content={colorOpt.name}>
-                <Button
-                  variant={isSelected ? "secondary" : "ghost"}
-                  size="icon"
-                  tabIndex={-1}
-                  aria-label={colorOpt.name}
-                >
-                  <span
-                    className="inline-block h-3 w-3 rounded-full border border-zinc-500"
-                    style={{ backgroundColor: colorOpt.value || "transparent" }}
-                  ></span>
-                </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={isSelected ? "secondary" : "ghost"}
+                    size="icon"
+                    tabIndex={-1}
+                    aria-label={colorOpt.name}
+                  >
+                    <span
+                      className="inline-block h-3 w-3 rounded-full border border-zinc-500"
+                      style={{
+                        backgroundColor: colorOpt.value || "transparent",
+                      }}
+                    ></span>
+                  </Button>
+                </TooltipTrigger>
+
+                <TooltipContent>{colorOpt.name}</TooltipContent>
               </Tooltip>
             );
           }}
@@ -784,13 +798,15 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
       className="ring-opacity-5 absolute z-[1000] flex min-w-[250px] flex-col gap-1 rounded-sm border border-zinc-800 bg-zinc-950 px-2 py-2 shadow-lg ring-1 ring-black focus:outline-none"
       style={{ top: y, left: x }}
     >
-      {selectedNodesMenuItems}
+      <TooltipProvider>
+        {selectedNodesMenuItems}
 
-      {nodeId && nodeMenuItems}
+        {nodeId && nodeMenuItems}
 
-      {edgeId && edgeMenuItems}
+        {edgeId && edgeMenuItems}
 
-      {!nodeId && !edgeId && paneMenuItems}
+        {!nodeId && !edgeId && paneMenuItems}
+      </TooltipProvider>
     </div>
   );
 }

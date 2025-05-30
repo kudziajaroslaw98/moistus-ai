@@ -74,7 +74,7 @@ export const nodeTypesConfig: Record<string, NodeTypeConfig> = {
     defaultMetadata: {
       annotationType: "comment",
       fontSize: "12px",
-      fontWeight: "normal",
+      fontWeight: 400,
     },
   },
   codeNode: {

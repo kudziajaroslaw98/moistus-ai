@@ -1,6 +1,6 @@
-import type { AppNode } from "@/contexts/mind-map/app-state";
 import type { AppEdge } from "@/types/app-edge";
-import { LayoutResult, SpecificLayoutConfig } from "@/types/layout-types";
+import type { AppNode } from "@/types/app-node";
+import type { LayoutResult, SpecificLayoutConfig } from "@/types/layout-types";
 import dagre from "dagre";
 
 // Simple force simulation for force-directed layout
@@ -51,6 +51,7 @@ export class LayoutAlgorithms {
 
     const layoutedNodes = nodes.map((node) => {
       const nodeWithPosition = g.node(node.id);
+
       if (!nodeWithPosition) {
         return { id: node.id, position: node.position };
       }
@@ -183,6 +184,7 @@ export class LayoutAlgorithms {
     const { radius = 200, startAngle = 0, sortNodes = false } = config;
 
     const sortedNodes = [...nodes];
+
     if (sortNodes) {
       sortedNodes.sort((a, b) =>
         (a.data.content || "").localeCompare(b.data.content || ""),
@@ -260,6 +262,7 @@ export class LayoutAlgorithms {
     const centerNodeObj = centerNode
       ? nodes.find((n) => n.id === centerNode)
       : nodes[0];
+
     if (!centerNodeObj) {
       return this.applyCircularLayout(nodes, edges);
     }
@@ -556,6 +559,7 @@ export class LayoutAlgorithms {
           strength: -300,
           distance: 100,
         },
+        disabled: true,
       },
       {
         id: "circular",
@@ -568,6 +572,7 @@ export class LayoutAlgorithms {
           startAngle: 0,
           sortNodes: false,
         },
+        disabled: true,
       },
       {
         id: "radial",
@@ -579,6 +584,7 @@ export class LayoutAlgorithms {
           nodeSpacing: 80,
           maxRadius: 300,
         },
+        disabled: true,
       },
       {
         id: "grid",
@@ -591,6 +597,7 @@ export class LayoutAlgorithms {
           cellWidth: 350,
           cellHeight: 150,
         },
+        disabled: true,
       },
       {
         id: "tree",
@@ -603,6 +610,7 @@ export class LayoutAlgorithms {
           levelSeparation: 150,
           siblingSpacing: 100,
         },
+        disabled: true,
       },
     ];
   }

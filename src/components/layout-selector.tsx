@@ -295,7 +295,7 @@ export function LayoutSelector() {
       setSelectedPreset(preset.id);
       setCurrentConfig(preset.config);
 
-      if (!showSettings) {
+      if (!showSettings && !preset.disabled) {
         applyAdvancedLayout(preset.config);
         setIsOpen(false);
       }
@@ -393,12 +393,13 @@ export function LayoutSelector() {
                         onClick={() => handlePresetSelect(preset)}
                         className={cn(
                           "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all",
-                          "hover:bg-zinc-800 border border-transparent",
+                          "hover:bg-zinc-800 border border-transparent disabled:opacity-50",
                           isSelected && "bg-zinc-800 border-teal-500/50",
                           isCurrent && !isSelected && "bg-zinc-800/50",
                         )}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
+                        disabled={preset.disabled}
                       >
                         <div
                           className={cn(

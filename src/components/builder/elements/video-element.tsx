@@ -1,4 +1,4 @@
-import { BuilderElement } from "@/types/builder-node";
+import { BuilderElement, VideoElementProperties } from "@/types/builder-node";
 import { PlayCircle } from "lucide-react";
 import { memo } from "react";
 
@@ -15,13 +15,8 @@ const VideoElementComponent = ({
   isEditing = false,
   onUpdate,
 }: VideoElementProps) => {
-  const { properties } = element;
-  const {
-    src = "",
-    autoplay = false,
-    muted = true,
-    controls = true,
-  } = properties;
+  const properties = element.properties as VideoElementProperties;
+  const { src = "", muted = true, controls = true } = properties;
 
   const handleSrcChange = (newSrc: string) => {
     if (onUpdate) {
@@ -43,7 +38,7 @@ const VideoElementComponent = ({
       {src ? (
         <video
           src={src}
-          autoPlay={autoplay}
+          autoPlay={false}
           muted={muted}
           controls={controls}
           className="w-full h-full object-cover"

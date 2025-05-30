@@ -28,6 +28,7 @@ export interface LayoutSlice {
     description: string;
     category: string;
     config: SpecificLayoutConfig;
+    disabled?: boolean;
   }>;
 }
 

@@ -17,7 +17,12 @@ import {
 } from "@xyflow/react";
 import { Link } from "lucide-react";
 import { memo, useMemo } from "react";
-import { Tooltip } from "../ui/Tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../ui/Tooltip";
 import { Button } from "../ui/button";
 
 // Helper function to get the appropriate path calculation function
@@ -156,11 +161,19 @@ const FloatingEdgeComponent = ({
               )}
 
               {isParentLink && (
-                <Tooltip content="Parent Link">
-                  <Button variant="default" size="icon" className="size-6!">
-                    <Link className="size-4" />
-                  </Button>
-                </Tooltip>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Button variant="default" size="icon" className="size-6!">
+                        <Link className="size-4" />
+                      </Button>
+                    </TooltipTrigger>
+
+                    <TooltipContent>
+                      <p>Parent Link</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </div>
           </EdgeLabelRenderer>

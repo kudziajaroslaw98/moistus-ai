@@ -7,7 +7,6 @@ function mergeEdgeData(
   return {
     ...defaultEdge,
     ...newEdge,
-    // @ts-expect-error TODO: inspect later
     style: {
       ...defaultEdge.style,
       ...newEdge.style,
