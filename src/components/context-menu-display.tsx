@@ -88,7 +88,6 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
     getEdge,
     setContextMenuState,
     setNodeInfo,
-    setParentConnection,
     applyLayout,
     createGroupFromSelected,
     ungroupNodes,
@@ -112,7 +111,6 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
       popoverOpen: state.popoverOpen,
       contextMenuState: state.contextMenuState,
       setContextMenuState: state.setContextMenuState,
-      setParentConnection: state.setParentConnection,
       applyLayout: state.applyLayout,
       createGroupFromSelected: state.createGroupFromSelected,
       ungroupNodes: state.ungroupNodes,
@@ -132,17 +130,6 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
     [edgeId, getEdge],
   );
   const clickedNodeData = clickedNode?.data;
-
-  const clickedTargetNode = clickedEdge
-    ? nodes.find((n) => n.id === clickedEdge.target)
-    : null;
-  const isCurrentParentLink =
-    clickedEdge?.data?.metadata?.isParentLink === true;
-  const canBeParentLink =
-    clickedEdge &&
-    clickedTargetNode &&
-    (!clickedTargetNode.data.parent_id ||
-      clickedTargetNode.data.parent_id === clickedEdge.source); // Can set as parent if target has no parent or current parent is this edge's source
 
   const edgeColors = useMemo(() => {
     const isCustomColor =
@@ -554,31 +541,6 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
           <span>Delete Edge</span>
         </Button>
 
-        <Button
-          variant="ghost"
-          align="left"
-          disabled={
-            loadingStates.isStateLoading ||
-            !canBeParentLink ||
-            isCurrentParentLink
-          }
-          onClick={() =>
-            handleActionClick(
-              () => setParentConnection(edgeId),
-              loadingStates.isStateLoading ||
-                !canBeParentLink ||
-                isCurrentParentLink,
-            )
-          }
-          className="gap-2"
-        >
-          <GitPullRequestArrow className="size-4" />
-
-          <span>
-            {isCurrentParentLink ? "Is Parent Link" : "Set as Parent Link"}
-          </span>
-        </Button>
-
         <hr className="my-1 border-zinc-800" />
 
         <span className="block w-full rounded-md px-3 py-1.5 text-xs text-zinc-500">
@@ -631,8 +593,6 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
                   metadata: {
                     ...(clickedEdge.data?.metadata || {}),
                     pathType,
-                    isParentLink:
-                      clickedEdge.data?.metadata?.isParentLink ?? false,
                   },
                 }),
               loadingStates.isStateLoading,

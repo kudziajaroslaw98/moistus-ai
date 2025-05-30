@@ -174,7 +174,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
         source: insertedEdgeData.source,
         target: insertedEdgeData.target,
         type: "floatingEdge", // Ensure type is floatingEdge
-        animated: true,
+        animated: false,
         label: insertedEdgeData.label,
         style: {
           stroke: insertedEdgeData.style?.stroke || "#6c757d",
@@ -458,7 +458,6 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
               ...e.data,
               metadata: {
                 ...(e.data?.metadata ?? {}),
-                isParentLink: true,
               },
             },
           }

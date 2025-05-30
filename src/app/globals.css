@@ -117,9 +117,13 @@
   --node-accent: theme("colors.purple.700");
 }
 
-.react-flow__handle {
-  opacity: 0;
+.text-node {
+  --node-accent: theme("colors.stone.900");
 }
+
+/* .react-flow__handle {
+  opacity: 0;
+} */
 
 :root {
   --radius: 0.625rem;

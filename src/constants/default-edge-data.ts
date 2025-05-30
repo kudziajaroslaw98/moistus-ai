@@ -10,7 +10,6 @@ export function defaultEdgeData(): Omit<EdgeData, "map_id" | "user_id"> {
     },
     aiData: {},
     metadata: {
-      isParentLink: false,
       pathType: "bezier",
     },
     type: "floatingEdge",

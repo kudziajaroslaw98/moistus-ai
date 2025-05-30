@@ -15,7 +15,6 @@ function mergeEdgeData(
       ...defaultEdge.aiData,
       ...newEdge.aiData,
     },
-    // @ts-expect-error TODO: inspect later
     metadata: {
       ...defaultEdge.metadata,
       ...newEdge.metadata,

@@ -58,7 +58,7 @@ const TextNodeForm = forwardRef<
     initialData.metadata?.fontWeight || 400,
   );
   const [textAlign, setTextAlign] = useState<"left" | "center" | "right">(
-    initialData.metadata?.textAlign || "left",
+    initialData.metadata?.textAlign || "center",
   );
   const [showBackground, setShowBackground] = useState(
     Boolean(initialData.metadata?.showBackground ?? false),
@@ -74,7 +74,7 @@ const TextNodeForm = forwardRef<
     setContent(initialData?.content || "");
     setFontSize(initialData.metadata?.fontSize || "16px");
     setFontWeight(initialData.metadata?.fontWeight || 400);
-    setTextAlign(initialData.metadata?.textAlign || "left");
+    setTextAlign(initialData.metadata?.textAlign || "center");
     setShowBackground(Boolean(initialData.metadata?.showBackground ?? false));
     setBackgroundColor(initialData.metadata?.backgroundColor || "#3f3f46");
     setTextColor(initialData.metadata?.textColor || "#fafafa");

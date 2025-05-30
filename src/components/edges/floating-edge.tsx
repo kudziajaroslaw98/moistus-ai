@@ -15,15 +15,7 @@ import {
   useInternalNode,
   type Edge,
 } from "@xyflow/react";
-import { Link } from "lucide-react";
 import { memo, useMemo } from "react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../ui/Tooltip";
-import { Button } from "../ui/button";
 
 // Helper function to get the appropriate path calculation function
 const getPathFunction = (pathType?: PathType) => {
@@ -72,11 +64,7 @@ const FloatingEdgeComponent = ({
         };
       }
 
-      return getFloatingEdgePath(
-        sourceNode,
-        targetNode,
-        data?.markerEnd === "arrowclosed" ? strokeWidth * 2 : 0,
-      );
+      return getFloatingEdgePath(sourceNode, targetNode, strokeWidth * 2);
     }, [sourceNode, targetNode, data?.markerEnd, strokeWidth]);
 
   const [edgePath, labelX, labelY] = useMemo(
@@ -92,7 +80,6 @@ const FloatingEdgeComponent = ({
     [pathFunction, sourceX, sourceY, sourcePos, targetX, targetY, targetPos],
   );
 
-  const isParentLink = data?.metadata?.isParentLink;
   const color = selected ? "#3b82f6" : (data?.style?.stroke ?? "#6c757d");
 
   if (!sourceNode || !targetNode) {
@@ -123,6 +110,27 @@ const FloatingEdgeComponent = ({
             points="-5,-4 0,0 -5,4 -5,-4"
           />
         </marker>
+
+        {/* add marker circle start */}
+        <marker
+          markerWidth={16}
+          markerHeight={16}
+          id={`circle-start-${id}`}
+          refX="0"
+          refY="0"
+          viewBox="-10 -10 20 20"
+          orient="auto"
+          markerUnits="userSpaceOnUse"
+        >
+          <circle
+            style={{
+              stroke: color,
+              fill: color,
+              strokeWidth,
+            }}
+            r="5"
+          />
+        </marker>
       </defs>
 
       <BaseEdge
@@ -140,13 +148,10 @@ const FloatingEdgeComponent = ({
           "transition-all duration-200 ease-in-out",
           selected && "animate-pulse",
         )}
-        markerEnd={
-          data?.markerEnd === "arrowclosed"
-            ? `url(#arrow-end-${id})`
-            : undefined
-        }
+        markerStart={`url(#circle-start-${id}`}
+        markerEnd={`url(#arrow-end-${id})`}
       >
-        {(data?.label || isParentLink) && (
+        {data?.label && (
           <EdgeLabelRenderer>
             <div
               style={{
@@ -158,22 +163,6 @@ const FloatingEdgeComponent = ({
                 <div className="rounded bg-zinc-700 px-4 py-0.5 shadow-sm min-h-6 flex justify-center items-center">
                   {data?.label}
                 </div>
-              )}
-
-              {isParentLink && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Button variant="default" size="icon" className="size-6!">
-                        <Link className="size-4" />
-                      </Button>
-                    </TooltipTrigger>
-
-                    <TooltipContent>
-                      <p>Parent Link</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
               )}
             </div>
           </EdgeLabelRenderer>

@@ -19,7 +19,6 @@ export interface EdgeData extends Record<string, unknown> {
   } | null;
   metadata?: {
     pathType?: PathType; // Added pathType
-    isParentLink: boolean;
   } | null;
   aiData?: {
     isSuggested?: boolean | null;
