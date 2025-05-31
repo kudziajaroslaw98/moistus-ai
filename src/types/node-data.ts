@@ -44,6 +44,7 @@ export interface NodeData extends Record<string, unknown> {
 
     // New properties for TextNode
     textAlign?: "left" | "center" | "right";
+    fontStyle?: "normal" | "italic";
     showBackground?: boolean;
     backgroundColor?: string;
     textColor?: string;
