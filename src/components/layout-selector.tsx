@@ -16,7 +16,7 @@ import {
   Zap,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { useShallow } from "zustand/shallow";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -262,7 +262,7 @@ function LayoutConfigPanel({ config, onConfigChange }: LayoutConfigPanelProps) {
   );
 }
 
-export function LayoutSelector() {
+const LayoutSelectorComponent = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -450,4 +450,7 @@ export function LayoutSelector() {
       </PopoverContent>
     </Popover>
   );
-}
+};
+
+export const LayoutSelector = memo(LayoutSelectorComponent);
+LayoutSelector.displayName = "LayoutSelector";

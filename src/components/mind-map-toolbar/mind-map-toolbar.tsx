@@ -13,12 +13,12 @@ import {
   User,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback } from "react";
+import { memo, useCallback } from "react";
 import { useShallow } from "zustand/shallow";
 import { LayoutSelector } from "../layout-selector";
 import { Button } from "../ui/button";
 
-export function MindMapToolbar() {
+const MindMapToolbarComponent = () => {
   const {
     mindMap,
     setPopoverOpen,
@@ -224,4 +224,7 @@ export function MindMapToolbar() {
       </div>
     </div>
   );
-}
+};
+
+export const MindMapToolbar = memo(MindMapToolbarComponent);
+MindMapToolbar.displayName = "MindMapToolbar";

@@ -220,7 +220,7 @@ export function ReactFlowArea() {
           position: panePosition,
           data: {},
           content: "New Node",
-          nodeType: "defaultNode",
+          nodeType: parentNode?.data?.node_type ?? "defaultNode",
         });
       }
 

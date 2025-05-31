@@ -8,6 +8,13 @@ import { memo } from "react";
 import ReactMarkdown from "react-markdown";
 import { BaseNodeWrapper } from "./base-node-wrapper";
 
+const MarkdownWrapperComponent = ({ content }: { content: string }) => {
+  return <ReactMarkdown>{content}</ReactMarkdown>;
+};
+
+const MarkdownWrapper = memo(MarkdownWrapperComponent);
+MarkdownWrapper.displayName = "MarkdownWrapper";
+
 const DefaultNodeComponent = (props: NodeProps<Node<NodeData>>) => {
   const { id, data } = props;
 
@@ -20,7 +27,7 @@ const DefaultNodeComponent = (props: NodeProps<Node<NodeData>>) => {
     >
       {data.content ? (
         <div className="prose p-4 prose-invert flex flex-col gap-2 prose-ul:flex prose-ul:flex-col prose-ul:gap-2 prose-sm max-w-none break-words prose-headings:m-0">
-          <ReactMarkdown>{data.content}</ReactMarkdown>
+          <MarkdownWrapper content={data.content} />
         </div>
       ) : (
         <span className="text-zinc-500 text-sm p-4 italic">

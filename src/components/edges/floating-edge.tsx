@@ -65,7 +65,7 @@ const FloatingEdgeComponent = ({
       }
 
       return getFloatingEdgePath(sourceNode, targetNode, strokeWidth * 2);
-    }, [sourceNode, targetNode, data?.markerEnd, strokeWidth]);
+    }, [sourceNode, targetNode, strokeWidth]);
 
   const [edgePath, labelX, labelY] = useMemo(
     () =>
