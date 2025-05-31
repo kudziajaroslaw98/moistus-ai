@@ -1,3 +1,4 @@
+import useAppStore from "@/contexts/mind-map/mind-map-store";
 import { getFloatingEdgePath } from "@/helpers/get-floating-edge-path";
 import { EdgeData } from "@/types/edge-data";
 import type { NodeData } from "@/types/node-data";
@@ -15,7 +16,10 @@ import {
   useInternalNode,
   type Edge,
 } from "@xyflow/react";
-import { memo, useMemo } from "react";
+import { X } from "lucide-react";
+import { memo, useMemo, useState } from "react";
+import { useShallow } from "zustand/shallow";
+import { Button } from "../ui/button";
 
 // Helper function to get the appropriate path calculation function
 const getPathFunction = (pathType?: PathType) => {
@@ -41,6 +45,14 @@ const FloatingEdgeComponent = ({
   data,
   selected,
 }: EdgeProps<Edge<EdgeData>>) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  const { deleteEdges } = useAppStore(
+    useShallow((state) => ({
+      deleteEdges: state.deleteEdges,
+    })),
+  );
+
   const pathFunction = useMemo(
     () => getPathFunction(data?.metadata?.pathType),
     [data?.metadata?.pathType],
@@ -81,6 +93,11 @@ const FloatingEdgeComponent = ({
   );
 
   const color = selected ? "#3b82f6" : (data?.style?.stroke ?? "#6c757d");
+
+  const handleDeleteEdge = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    deleteEdges([{ id, source, target, data }]);
+  };
 
   if (!sourceNode || !targetNode) {
     return null;
@@ -150,23 +167,44 @@ const FloatingEdgeComponent = ({
         )}
         markerStart={`url(#circle-start-${id}`}
         markerEnd={`url(#arrow-end-${id})`}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
-        {data?.label && (
-          <EdgeLabelRenderer>
-            <div
-              style={{
-                transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+        <EdgeLabelRenderer>
+          <div
+            style={{
+              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+            }}
+            className="nodrag absolute z-[2] pointer-events-auto nopan flex items-center gap-2 text-xs text-zinc-200"
+          >
+            {data?.label && (
+              <div className="rounded bg-zinc-700 px-4 py-0.5 shadow-sm min-h-6 flex justify-center items-center cursor-pointer">
+                {data?.label}
+              </div>
+            )}
+
+            {/* Animated Delete Button */}
+            <Button
+              variant={"destructive"}
+              size={"icon"}
+              initial={{ opacity: 0, y: 10, scale: 0.8 }}
+              animate={
+                isHovered || selected
+                  ? { opacity: 1, y: 0, scale: 1 }
+                  : { opacity: 0, y: 10, scale: 0.8 }
+              }
+              transition={{
+                duration: 0.2,
+                ease: "easeOut",
               }}
-              className="nodrag absolute z-[2] pointer-events-auto nopan cursor-pointer flex items-center gap-2 text-xs text-zinc-200"
+              onClick={handleDeleteEdge}
+              title="Delete connection"
+              className="!size-6"
             >
-              {data?.label && (
-                <div className="rounded bg-zinc-700 px-4 py-0.5 shadow-sm min-h-6 flex justify-center items-center">
-                  {data?.label}
-                </div>
-              )}
-            </div>
-          </EdgeLabelRenderer>
-        )}
+              <X className="w-3 h-3" />
+            </Button>
+          </div>
+        </EdgeLabelRenderer>
       </BaseEdge>
     </>
   );

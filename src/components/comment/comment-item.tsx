@@ -1,4 +1,6 @@
-import { Comment } from "@/types/comment-types";
+import useAppStore from "@/contexts/mind-map/mind-map-store";
+import { isNodeComment } from "@/helpers/guards/is-node-comment";
+import { MapComment, NodeComment } from "@/types/comment-types";
 import { cn } from "@/utils/cn";
 import {
   Popover,
@@ -13,6 +15,7 @@ import {
   Eye,
   Flag,
   MoreHorizontal,
+  Navigation,
   Pencil,
   Pin,
   Reply,
@@ -21,6 +24,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useShallow } from "zustand/shallow";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
@@ -30,7 +34,7 @@ import { CommentMentions } from "./comment-mentions";
 import { CommentReactions } from "./comment-reactions";
 
 interface CommentItemProps {
-  comment: Comment;
+  comment: NodeComment | MapComment;
   depth?: number;
   maxDepth?: number;
   onReply?: (commentId: string) => void;
@@ -41,6 +45,7 @@ interface CommentItemProps {
   onAddReaction?: (commentId: string, emoji: string) => void;
   onRemoveReaction?: (commentId: string, reactionId: string) => void;
   currentUserId?: string;
+  nodeId?: string;
 }
 
 export function CommentItem({
@@ -60,6 +65,12 @@ export function CommentItem({
   const [editContent, setEditContent] = useState(comment.content);
   const [showActions, setShowActions] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const { centerOnNode } = useAppStore(
+    useShallow((state) => ({
+      centerOnNode: state.centerOnNode,
+    })),
+  );
 
   const isReply = depth > 0;
   const canReply = depth < maxDepth;
@@ -104,6 +115,12 @@ export function CommentItem({
 
   const displayName =
     comment.author?.display_name || comment.author?.full_name || "Anonymous";
+
+  const handleNavigateToNode = () => {
+    if (isNodeComment(comment)) {
+      centerOnNode(comment.node_id);
+    }
+  };
 
   return (
     <div
@@ -150,6 +167,18 @@ export function CommentItem({
 
                 {comment.is_resolved && (
                   <CheckCircle className="size-3 text-green-400" />
+                )}
+
+                {isNodeComment(comment) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleNavigateToNode}
+                    className="size-6 p-0 text-teal-400 hover:text-teal-300 hover:bg-teal-950/30"
+                    title="Go to node"
+                  >
+                    <Navigation className="size-3" />
+                  </Button>
                 )}
               </div>
 

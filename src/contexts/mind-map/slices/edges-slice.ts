@@ -227,6 +227,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
   deleteEdges: withLoadingAndToast(
     async (edgesToDelete: AppEdge[]) => {
       const { supabase, mapId, edges, nodes, addStateToHistory } = get();
+      const deleteIds = edgesToDelete.map((edge) => edge.id);
 
       if (!mapId) {
         throw new Error("Cannot delete edge: Map ID missing.");
@@ -238,17 +239,14 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
       const { error: deleteError } = await supabase
         .from("edges")
         .delete()
-        .in(
-          "id",
-          edgesToDelete.map((edge) => edge.id),
-        )
+        .in("id", deleteIds)
         .eq("map_id", mapId);
 
       if (deleteError) {
         throw new Error(deleteError.message || "Failed to delete edge.");
       }
 
-      const finalEdges = edges.filter((e) => !edgesToDelete.includes(e));
+      const finalEdges = edges.filter((e) => !deleteIds.includes(e.id));
 
       const updatedNodes = nodes.map((node) => {
         const newParents = node.parentId

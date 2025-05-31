@@ -1,4 +1,4 @@
-import { Comment } from "@/types/comment-types";
+import { Comment, MapComment, NodeComment } from "@/types/comment-types";
 import { cn } from "@/utils/cn";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -43,7 +43,7 @@ export function CommentThread({
   return (
     <div className="space-y-2">
       <CommentItem
-        comment={comment}
+        comment={comment as NodeComment | MapComment}
         depth={depth}
         maxDepth={maxDepth}
         onReply={onReply}

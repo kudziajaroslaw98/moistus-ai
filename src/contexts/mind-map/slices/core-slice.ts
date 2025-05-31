@@ -22,6 +22,7 @@ export type CoreDataSlice = {
   setCurrentUser: (currentUser: User | null) => void;
 
   getCurrentUser: () => Promise<User | null>;
+  centerOnNode: (nodeId: string) => void;
 
   fetchMindMapData: (mapId: string) => Promise<void>;
 };
@@ -52,6 +53,31 @@ export const createCoreDataSlice: StateCreator<
     set({ currentUser });
 
     return currentUser;
+  },
+
+  centerOnNode: (nodeId: string) => {
+    const { reactFlowInstance, nodes } = get();
+
+    if (!reactFlowInstance) {
+      console.warn("ReactFlow instance not available");
+      return;
+    }
+
+    const node = nodes.find((n) => n.id === nodeId);
+
+    if (!node) {
+      console.warn(`Node with id ${nodeId} not found`);
+      return;
+    }
+
+    // Center the view on the node with smooth animation
+    reactFlowInstance.setCenter(
+      node.position.x + (node.width || 0) / 2,
+      node.position.y + (node.height || 0) / 2,
+      { zoom: 1.2, duration: 800 },
+    );
+    reactFlowInstance.updateNode(nodeId, { selected: true });
+    get().setSelectedNodes([node]);
   },
 
   fetchMindMapData: withLoadingAndToast(
