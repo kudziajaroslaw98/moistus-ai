@@ -325,102 +325,92 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
     addStateToHistory("updateEdge", { edges: finalEdges, nodes: nodes });
   },
   triggerEdgeSave: debouncePerKey(
-    withLoadingAndToast(
-      async (edgeId: string) => {
-        const { edges, supabase, mapId, addStateToHistory, nodes } = get();
-        const edge = edges.find((e) => e.id === edgeId);
+    async (edgeId: string) => {
+      const { edges, supabase, mapId, addStateToHistory, nodes } = get();
+      const edge = edges.find((e) => e.id === edgeId);
 
-        if (!edge || !edge.data) {
-          console.error(`Edge with id ${edgeId} not found or has invalid data`);
-          throw new Error(
-            `Edge with id ${edgeId} not found or has invalid data`,
-          );
+      if (!edge || !edge.data) {
+        console.error(`Edge with id ${edgeId} not found or has invalid data`);
+        throw new Error(`Edge with id ${edgeId} not found or has invalid data`);
+      }
+
+      set((state) => ({
+        lastSavedEdgeTimestamps: {
+          ...state.lastSavedEdgeTimestamps,
+          [edgeId]: Date.now(),
+        },
+      }));
+
+      if (!mapId) {
+        console.error("Cannot save edge: No mapId defined");
+        throw new Error("Cannot save dge: No mapId defined");
+      }
+
+      const user_id = (await supabase.auth.getUser()).data.user?.id;
+
+      if (!user_id) {
+        throw new Error("Not authenticated");
+      }
+
+      const defaultEdge: Partial<EdgeData> = defaultEdgeData();
+
+      // Prepare edge data for saving, ensuring type safety
+      const edgeData: EdgeData = {
+        ...defaultEdge,
+        ...edge.data,
+        user_id: user_id,
+        id: edgeId,
+        map_id: mapId,
+        source: edge.source || "",
+        target: edge.target || "",
+        updated_at: new Date().toISOString(),
+        animated: edge.data?.animated || defaultEdge.animated,
+        metadata: {
+          ...defaultEdge.metadata!,
+          ...edge.data?.metadata,
+        },
+        aiData: {
+          ...defaultEdge.aiData,
+          ...edge.data?.aiData,
+        },
+        style: {
+          ...defaultEdge.style!,
+          ...edge.data?.style,
+        },
+      };
+
+      // Save edge data to Supabase
+      const { data: dbEdge, error } = await supabase
+        .from("edges")
+        .update(edgeData)
+        .eq("id", edgeId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error saving edge:", error);
+        throw new Error("Failed to save edge changes");
+      }
+
+      const finalEdges = edges.map((edge) => {
+        if (edge.id === edgeId) {
+          return {
+            ...edge,
+            data: mergeEdgeData(edge.data ?? {}, dbEdge),
+            animated: JSON.parse(dbEdge.animated),
+            style: dbEdge.style,
+          };
         }
 
-        set((state) => ({
-          lastSavedEdgeTimestamps: {
-            ...state.lastSavedEdgeTimestamps,
-            [edgeId]: Date.now(),
-          },
-        }));
+        return edge;
+      }) as AppEdge[];
 
-        if (!mapId) {
-          console.error("Cannot save edge: No mapId defined");
-          throw new Error("Cannot save dge: No mapId defined");
-        }
+      set({
+        edges: finalEdges,
+      });
 
-        const user_id = (await supabase.auth.getUser()).data.user?.id;
-
-        if (!user_id) {
-          throw new Error("Not authenticated");
-        }
-
-        const defaultEdge: Partial<EdgeData> = defaultEdgeData();
-
-        // Prepare edge data for saving, ensuring type safety
-        const edgeData: EdgeData = {
-          ...defaultEdge,
-          ...edge.data,
-          user_id: user_id,
-          id: edgeId,
-          map_id: mapId,
-          source: edge.source || "",
-          target: edge.target || "",
-          updated_at: new Date().toISOString(),
-          animated: edge.data?.animated || defaultEdge.animated,
-          metadata: {
-            ...defaultEdge.metadata!,
-            ...edge.data?.metadata,
-          },
-          aiData: {
-            ...defaultEdge.aiData,
-            ...edge.data?.aiData,
-          },
-          style: {
-            ...defaultEdge.style!,
-            ...edge.data?.style,
-          },
-        };
-
-        // Save edge data to Supabase
-        const { data: dbEdge, error } = await supabase
-          .from("edges")
-          .update(edgeData)
-          .eq("id", edgeId)
-          .select()
-          .single();
-
-        if (error) {
-          console.error("Error saving edge:", error);
-          throw new Error("Failed to save edge changes");
-        }
-
-        const finalEdges = edges.map((edge) => {
-          if (edge.id === edgeId) {
-            return {
-              ...edge,
-              data: mergeEdgeData(edge.data ?? {}, dbEdge),
-              animated: JSON.parse(dbEdge.animated),
-              style: dbEdge.style,
-            };
-          }
-
-          return edge;
-        }) as AppEdge[];
-
-        set({
-          edges: finalEdges,
-        });
-
-        addStateToHistory("updateEdge", { edges: finalEdges, nodes: nodes });
-      },
-      "isSavingEdge",
-      {
-        initialMessage: "Saving edge changes...",
-        errorMessage: "Failed to save edge changes.",
-        successMessage: "Saved edge successfully.",
-      },
-    ),
+      addStateToHistory("updateEdge", { edges: finalEdges, nodes: nodes });
+    },
     STORE_SAVE_DEBOUNCE_MS,
     (edgeId: string) => edgeId, // getKey function for triggerEdgeSave
   ),

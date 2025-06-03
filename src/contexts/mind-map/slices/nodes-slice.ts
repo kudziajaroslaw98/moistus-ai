@@ -287,56 +287,48 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
       successMessage: "Node added successfully.",
     },
   ),
-  updateNode: withLoadingAndToast(
-    async (props: { nodeId: string; data: Partial<NodeData> }) => {
-      const { nodeId, data } = props;
-      let updatedNode: AppNode | null = null;
+  updateNode: async (props: { nodeId: string; data: Partial<NodeData> }) => {
+    const { nodeId, data } = props;
+    let updatedNode: AppNode | null = null;
 
-      // First update the local state
-      set((state) => ({
-        nodes: state.nodes.map((node) => {
-          if (node.id === nodeId) {
-            updatedNode = {
-              ...node,
-              type: data.node_type || node.type,
-              width: data.width || node.width,
-              height: data.height || node.height,
-              position: {
-                x: data.position_x || node.position.x,
-                y: data.position_y || node.position.y,
+    // First update the local state
+    set((state) => ({
+      nodes: state.nodes.map((node) => {
+        if (node.id === nodeId) {
+          updatedNode = {
+            ...node,
+            type: data.node_type || node.type,
+            width: data.width || node.width,
+            height: data.height || node.height,
+            position: {
+              x: data.position_x || node.position.x,
+              y: data.position_y || node.position.y,
+            },
+            data: {
+              ...node.data,
+              ...data,
+              metadata: {
+                ...node.data.metadata,
+                ...data.metadata,
               },
-              data: {
-                ...node.data,
-                ...data,
-                metadata: {
-                  ...node.data.metadata,
-                  ...data.metadata,
-                },
-                aiData: {
-                  ...node.data.aiData,
-                  ...data.aiData,
-                },
+              aiData: {
+                ...node.data.aiData,
+                ...data.aiData,
               },
-            };
+            },
+          };
 
-            return updatedNode;
-          }
+          return updatedNode;
+        }
 
-          return node;
-        }),
-        nodeInfo: updatedNode,
-      }));
+        return node;
+      }),
+      nodeInfo: updatedNode,
+    }));
 
-      // Trigger debounced save to persist changes
-      get().triggerNodeSave(nodeId);
-    },
-    "isAddingContent",
-    {
-      initialMessage: "Updating node...",
-      errorMessage: "Failed to update node.",
-      successMessage: "Node updated successfully.",
-    },
-  ),
+    // Trigger debounced save to persist changes
+    get().triggerNodeSave(nodeId);
+  },
   deleteNodes: withLoadingAndToast(
     async (nodesToDelete: AppNode[]) => {
       const {
@@ -403,74 +395,64 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
   ),
 
   triggerNodeSave: debouncePerKey(
-    withLoadingAndToast(
-      async (nodeId: string) => {
-        const { nodes, supabase, mapId } = get();
-        const node = nodes.find((n) => n.id === nodeId);
+    async (nodeId: string) => {
+      const { nodes, supabase, mapId } = get();
+      const node = nodes.find((n) => n.id === nodeId);
 
-        if (!node || !node.data) {
-          console.error(`Node with id ${nodeId} not found or has invalid data`);
-          throw new Error(
-            `Node with id ${nodeId} not found or has invalid data`,
-          );
-        }
+      if (!node || !node.data) {
+        console.error(`Node with id ${nodeId} not found or has invalid data`);
+        throw new Error(`Node with id ${nodeId} not found or has invalid data`);
+      }
 
-        set((state) => ({
-          lastSavedNodeTimestamps: {
-            ...state.lastSavedNodeTimestamps,
-            [nodeId]: Date.now(),
-          },
-        }));
+      set((state) => ({
+        lastSavedNodeTimestamps: {
+          ...state.lastSavedNodeTimestamps,
+          [nodeId]: Date.now(),
+        },
+      }));
 
-        if (!mapId) {
-          console.error("Cannot save node: No mapId defined");
-          throw new Error("Cannot save node: No mapId defined");
-        }
+      if (!mapId) {
+        console.error("Cannot save node: No mapId defined");
+        throw new Error("Cannot save node: No mapId defined");
+      }
 
-        const user_id = (await supabase.auth.getUser()).data.user?.id;
+      const user_id = (await supabase.auth.getUser()).data.user?.id;
 
-        if (!user_id) {
-          throw new Error("Not authenticated");
-        }
+      if (!user_id) {
+        throw new Error("Not authenticated");
+      }
 
-        // Prepare node data for saving, ensuring type safety
-        const nodeData: NodesTableType = {
-          id: nodeId,
-          map_id: mapId,
-          user_id: user_id,
-          content: node.data.content || "",
-          metadata: node.data.metadata || {},
-          aiData: node.data.aiData || {},
-          position_x: node.position.x,
-          position_y: node.position.y,
-          width: node.width,
-          height: node.height,
-          node_type: node.type || "defaultNode",
-          updated_at: new Date().toISOString(),
-          created_at: node.data.created_at,
-          parent_id: node.parentId || node.data.parent_id || null,
-        };
+      // Prepare node data for saving, ensuring type safety
+      const nodeData: NodesTableType = {
+        id: nodeId,
+        map_id: mapId,
+        user_id: user_id,
+        content: node.data.content || "",
+        metadata: node.data.metadata || {},
+        aiData: node.data.aiData || {},
+        position_x: node.position.x,
+        position_y: node.position.y,
+        width: node.width,
+        height: node.height,
+        node_type: node.type || "defaultNode",
+        updated_at: new Date().toISOString(),
+        created_at: node.data.created_at,
+        parent_id: node.parentId || node.data.parent_id || null,
+      };
 
-        // Save node data to Supabase
-        supabase
-          .from("nodes")
-          .update(nodeData)
-          .eq("id", nodeId)
-          .eq("map_id", mapId)
-          .then(({ error }) => {
-            if (error) {
-              console.error("Error saving node:", error);
-              throw new Error("Failed to save node changes");
-            }
-          });
-      },
-      "isSavingNode",
-      {
-        initialMessage: "Saving node changes...",
-        errorMessage: "Failed to save node chanes.",
-        successMessage: "Saved node successfully.",
-      },
-    ),
+      // Save node data to Supabase
+      supabase
+        .from("nodes")
+        .update(nodeData)
+        .eq("id", nodeId)
+        .eq("map_id", mapId)
+        .then(({ error }) => {
+          if (error) {
+            console.error("Error saving node:", error);
+            throw new Error("Failed to save node changes");
+          }
+        });
+    },
     STORE_SAVE_DEBOUNCE_MS,
     (nodeId: string) => nodeId, // getKey function for triggerNodeSave
   ),
