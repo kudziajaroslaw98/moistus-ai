@@ -1,4 +1,5 @@
 import { ClipboardSlice } from "./slices/clipboard-slice";
+import { CollaborationSlice } from "./slices/collaboration-slice";
 import { CommentsSlice } from "./slices/comments-slice";
 import { CoreDataSlice } from "./slices/core-slice";
 import { EdgesSlice } from "./slices/edges-slice";
@@ -19,4 +20,5 @@ export interface AppState
     HistorySlice,
     LayoutSlice,
     GroupsSlice,
-    CommentsSlice {}
+    CommentsSlice,
+    CollaborationSlice {}

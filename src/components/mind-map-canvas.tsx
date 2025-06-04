@@ -12,8 +12,17 @@ import { CommandPalette } from "./command-palette";
 import { CommentsPanel } from "./comment/comment-panel";
 import { MindMapToolbar } from "./mind-map-toolbar/mind-map-toolbar";
 import { ContextMenuWrapper } from "./mind-map/context-menu-wrapper";
+import { AvatarStack } from "./collaboration/avatar-stack/avatar-stack";
+import { useCollaboration } from "@/hooks/use-collaboration";
+import { useParams } from "next/navigation";
 
 export function MindMapCanvas() {
+  const params = useParams();
+  const mapId = params.id as string;
+  
+  // Initialize collaboration
+  const collaboration = useCollaboration(mapId);
+  
   // Consume necessary values for keyboard shortcuts
   const {
     handleUndo,
@@ -86,6 +95,13 @@ export function MindMapCanvas() {
     setPopoverOpen({ commentsPanel: !popoverOpen.commentsPanel });
   }, [popoverOpen.commentsPanel]);
 
+  // Handle user avatar clicks - center view on user's cursor
+  const handleUserClick = useCallback((user: { user_id: string; name: string }) => {
+    console.log('Center view on user:', user);
+    // TODO: Implement view centering on user cursor position
+    // This will be implemented when cursor tracking is added
+  }, []);
+
   useKeyboardShortcuts({
     onUndo: handleUndo,
     onRedo: handleRedo,
@@ -130,6 +146,16 @@ export function MindMapCanvas() {
           <ContextMenuWrapper />
 
           <ReactFlowArea />
+          
+          {/* Collaboration Avatar Stack */}
+          {collaboration.state.isConnected && (
+            <div className="absolute top-4 right-4 z-50">
+              <AvatarStack 
+                onUserClick={handleUserClick}
+                size="md"
+              />
+            </div>
+          )}
         </div>
       </div>
 
