@@ -4,6 +4,7 @@ import { HistorySidebar } from "../history-sidebar";
 import EdgeEditModal from "../modals/edge-edit-modal";
 import NodeEditModal from "../modals/node-edit-modal";
 import SelectNodeTypeModal from "../modals/select-node-type-modal";
+import { SharePanel } from "../sharing/share-panel";
 
 export function ModalsWrapper() {
   // const {
@@ -19,8 +20,8 @@ export function ModalsWrapper() {
   //   mergeSuggestions,
   //   nodes, // Needed for merge modal node lookup
   // } = useMindMapContext();
-
-  const popoverOpen = useAppStore((store) => store.popoverOpen);
+  //
+  const popoverOpen = useAppStore((state) => state.popoverOpen);
 
   return (
     <>
@@ -56,6 +57,8 @@ export function ModalsWrapper() {
       {popoverOpen.edgeEdit && <EdgeEditModal />}
 
       {popoverOpen.history && <HistorySidebar />}
+
+      {popoverOpen.sharePanel && <SharePanel />}
     </>
   );
 }

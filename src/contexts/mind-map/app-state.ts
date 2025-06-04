@@ -8,6 +8,7 @@ import { HistorySlice } from "./slices/history-slice";
 import { LayoutSlice } from "./slices/layout-slice";
 import { LoadingStatesSlice } from "./slices/loading-state-slice";
 import { NodesSlice } from "./slices/nodes-slice";
+import { SharingSlice } from "./slices/sharing-slice";
 import { UIStateSlice } from "./slices/ui-slice";
 
 export interface AppState
@@ -21,4 +22,5 @@ export interface AppState
     LayoutSlice,
     GroupsSlice,
     CommentsSlice,
-    CollaborationSlice {}
+    CollaborationSlice,
+    SharingSlice {}

@@ -17,6 +17,11 @@ export interface Popovers {
   layoutSelector: boolean;
   commentsPanel: boolean;
   nodeComments: boolean;
+  sharePanel: boolean;
+  joinRoom: boolean;
+  permissionManager: boolean;
+  roomCodeDisplay: boolean;
+  guestSignup: boolean;
 }
 
 export interface UIStateSlice {
@@ -59,6 +64,11 @@ export const createUiStateSlice: StateCreator<
     layoutSelector: false,
     commentsPanel: false,
     nodeComments: false,
+    sharePanel: false,
+    joinRoom: false,
+    permissionManager: false,
+    roomCodeDisplay: false,
+    guestSignup: false,
   },
   nodeInfo: null,
   edgeInfo: null,

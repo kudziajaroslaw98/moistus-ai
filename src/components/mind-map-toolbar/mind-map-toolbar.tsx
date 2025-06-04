@@ -9,6 +9,7 @@ import {
   MessageCircle,
   Minimize2,
   Redo,
+  Share2,
   Undo,
   User,
 } from "lucide-react";
@@ -57,6 +58,10 @@ const MindMapToolbarComponent = () => {
 
   const handleToggleCommentsPanel = useCallback(() => {
     setPopoverOpen({ commentsPanel: true });
+  }, [setPopoverOpen]);
+
+  const handleToggleSharePanel = useCallback(() => {
+    setPopoverOpen({ sharePanel: true });
   }, [setPopoverOpen]);
 
   if (isFocusMode) {
@@ -166,6 +171,17 @@ const MindMapToolbarComponent = () => {
             <Redo className="size-4" />
           </Button>
         </div>
+
+        {/* Share Panel Toggle */}
+        <Button
+          onClick={handleToggleSharePanel}
+          title="Share Mind Map"
+          aria-label="Share Mind Map"
+          variant={popoverOpen.sharePanel ? "default" : "secondary"}
+          size="icon"
+        >
+          <Share2 className="h-4 w-4" />
+        </Button>
 
         {/* Comments Panel Toggle */}
         <Button

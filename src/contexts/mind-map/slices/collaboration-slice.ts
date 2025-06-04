@@ -10,6 +10,7 @@ import {
   SelectionType,
   UpdatePresenceRequest,
 } from "@/types/collaboration-types";
+import { RealtimeChannel } from "@supabase/supabase-js";
 import { throttle } from "throttle-debounce";
 import { StateCreator } from "zustand";
 
@@ -73,7 +74,7 @@ export const createCollaborationSlice: StateCreator<
   [],
   CollaborationSlice
 > = (set, get) => {
-  let presenceChannel: BroadcastChannel | null = null;
+  let presenceChannel: RealtimeChannel | null = null;
   let currentMapId: string | null = null;
   let heartbeatInterval: NodeJS.Timeout | null = null;
 
@@ -98,9 +99,11 @@ export const createCollaborationSlice: StateCreator<
 
   const generateUserColor = (userId: string): string => {
     let hash = 0;
+
     for (let i = 0; i < userId.length; i++) {
       hash = userId.charCodeAt(i) + ((hash << 5) - hash);
     }
+
     return userColors[Math.abs(hash) % userColors.length];
   };
 
