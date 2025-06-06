@@ -1,1 +1,1 @@
-export type markerEnd = "arrow" | "arrowclosed";
+export type markerEnd = 'arrow' | 'arrowclosed';

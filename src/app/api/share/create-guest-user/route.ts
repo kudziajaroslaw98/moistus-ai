@@ -1,99 +1,125 @@
-import { createClient } from "@/helpers/supabase/server";
-import { GuestUser } from "@/types/sharing-types";
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
+import { respondError, respondSuccess } from '@/helpers/api/responses';
+import { withOptionalAuthValidation } from '@/helpers/api/with-optional-auth-validation';
+import crypto from 'crypto';
+import { z } from 'zod';
 
-const createGuestUserSchema = z.object({
-  display_name: z.string().min(1).max(255),
-  email: z.string().email().optional(),
-  session_id: z.string().min(1).max(255),
-  fingerprint_hash: z.string().optional(),
-  session_data: z.record(z.unknown()).optional().default({}),
+const CreateGuestUserSchema = z.object({
+	display_name: z
+		.string()
+		.min(1)
+		.max(50)
+		.transform((val) => val.trim()),
+	email: z.string().email().optional(),
+	session_id: z.string().min(32).max(128),
+	fingerprint_hash: z.string().length(64).optional(),
+	session_data: z.record(z.unknown()).optional(),
 });
 
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient();
+export const POST = withOptionalAuthValidation(
+	CreateGuestUserSchema,
+	async (req, data, supabase, user) => {
+		// If user is authenticated, they shouldn't create guest sessions
+		if (user) {
+			return respondError(
+				'Authenticated users cannot create guest sessions',
+				400
+			);
+		}
 
-    // Parse and validate request body
-    const body = await request.json();
-    const validatedData = createGuestUserSchema.parse(body);
+		// 1. Check for existing session
+		const { data: existingGuest } = await supabase
+			.from('guest_users')
+			.select('id, display_name, avatar_url, email, last_activity')
+			.eq('session_id', data.session_id)
+			.single();
 
-    // Check if session_id already exists
-    const { data: existingGuest } = await supabase
-      .from("guest_users")
-      .select("id")
-      .eq("session_id", validatedData.session_id)
-      .single();
+		if (existingGuest) {
+			// Update last activity and return existing guest
+			await supabase
+				.from('guest_users')
+				.update({
+					last_activity: new Date().toISOString(),
+					display_name: data.display_name, // Allow name updates
+					email: data.email || existingGuest.email, // Update email if provided
+				})
+				.eq('id', existingGuest.id);
 
-    if (existingGuest) {
-      return NextResponse.json(
-        { error: "Session already exists" },
-        { status: 409 },
-      );
-    }
+			return respondSuccess({
+				guest_user_id: existingGuest.id,
+				session_token: data.session_id,
+				display_name: data.display_name,
+				email: data.email || existingGuest.email,
+				avatar_url: existingGuest.avatar_url,
+				is_existing: true,
+			});
+		}
 
-    // Create guest user record
-    const { data: guestUser, error: createError } = await supabase
-      .from("guest_users")
-      .insert({
-        display_name: validatedData.display_name,
-        email: validatedData.email,
-        session_id: validatedData.session_id,
-        fingerprint_hash: validatedData.fingerprint_hash,
-        session_data: validatedData.session_data,
-        first_seen: new Date().toISOString(),
-        last_activity: new Date().toISOString(),
-      })
-      .select()
-      .single();
+		// 2. Generate avatar URL using database function
+		const { data: avatarUrl, error: avatarError } = await supabase.rpc(
+			'generate_avatar_url',
+			{ p_seed: data.session_id }
+		);
 
-    if (createError) {
-      console.error("Error creating guest user:", createError);
-      return NextResponse.json(
-        { error: "Failed to create guest user" },
-        { status: 500 },
-      );
-    }
+		if (avatarError) {
+			console.error('Failed to generate avatar:', avatarError);
+		}
 
-    // Transform to GuestUser type
-    const guest: GuestUser = {
-      id: guestUser.id,
-      session_id: guestUser.session_id,
-      display_name: guestUser.display_name,
-      email: guestUser.email,
-      avatar_url: guestUser.avatar_url,
-      fingerprint_hash: guestUser.fingerprint_hash,
-      first_seen: guestUser.first_seen,
-      last_activity: guestUser.last_activity,
-      conversion_date: guestUser.conversion_date,
-      converted_user_id: guestUser.converted_user_id,
-      session_data: guestUser.session_data || {},
-      created_at: guestUser.created_at,
-      updated_at: guestUser.updated_at,
-    };
+		// 3. Create new guest user
+		const { data: guest, error: createError } = await supabase
+			.from('guest_users')
+			.insert({
+				session_id: data.session_id,
+				display_name: data.display_name,
+				email: data.email,
+				avatar_url:
+					avatarUrl ||
+					`https://api.dicebear.com/7.x/avataaars/svg?seed=${data.session_id}`,
+				fingerprint_hash: data.fingerprint_hash,
+				session_data: data.session_data || {},
+				first_seen: new Date().toISOString(),
+				last_activity: new Date().toISOString(),
+			})
+			.select()
+			.single();
 
-    // Set guest session in response for RLS policies
-    const response = NextResponse.json(guest, { status: 201 });
-    response.headers.set(
-      "Set-Cookie",
-      `guest_session_id=${validatedData.session_id}; Path=/; HttpOnly; SameSite=Strict`,
-    );
+		if (createError) {
+			console.error('Failed to create guest user:', createError);
+			return respondError('Failed to create guest user', 500);
+		}
 
-    return response;
-  } catch (error) {
-    console.error("Error in create-guest-user:", error);
+		// 4. Create secure session token
+		const sessionToken = crypto
+			.createHash('sha256')
+			.update(`${guest.id}:${data.session_id}:${Date.now()}`)
+			.digest('hex');
 
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Invalid request data", details: error.errors },
-        { status: 400 },
-      );
-    }
+		// 5. Set secure session cookie
+		const response = respondSuccess({
+			guest_user_id: guest.id,
+			session_token: data.session_id,
+			display_name: guest.display_name,
+			email: guest.email,
+			avatar_url: guest.avatar_url,
+			is_existing: false,
+		});
 
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
-  }
-}
+		// Set cookie for session persistence
+		response.cookies.set('guest_session', data.session_id, {
+			httpOnly: true,
+			secure: process.env.NODE_ENV === 'production',
+			sameSite: 'strict',
+			maxAge: 60 * 60 * 24 * 7, // 7 days
+			path: '/',
+		});
+
+		// Also set a non-httpOnly cookie for client-side access
+		response.cookies.set('guest_session_id', guest.id, {
+			secure: process.env.NODE_ENV === 'production',
+			sameSite: 'strict',
+			maxAge: 60 * 60 * 24 * 7, // 7 days
+			path: '/',
+		});
+
+		return response;
+	}
+);

@@ -8,19 +8,19 @@
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  delay: number,
+	func: T,
+	delay: number
 ): (...args: Parameters<T>) => void {
-  let timeoutId: NodeJS.Timeout | null = null;
+	let timeoutId: NodeJS.Timeout | null = null;
 
-  return function (this: unknown, ...args: Parameters<T>) {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
+	return function (this: unknown, ...args: Parameters<T>) {
+		if (timeoutId) {
+			clearTimeout(timeoutId);
+		}
 
-    timeoutId = setTimeout(() => {
-      func.apply(this, args);
-      timeoutId = null;
-    }, delay);
-  };
+		timeoutId = setTimeout(() => {
+			func.apply(this, args);
+			timeoutId = null;
+		}, delay);
+	};
 }

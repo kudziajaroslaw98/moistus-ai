@@ -1,8 +1,8 @@
-import { MapComment, NodeComment } from "@/types/comment-types";
+import { MapComment, NodeComment } from '@/types/comment-types';
 
 export function isNodeComment(
-  comment: NodeComment | MapComment,
+	comment: NodeComment | MapComment
 ): comment is NodeComment {
-  // @ts-expect-error checking if comment is NodeComment
-  return comment?.node_id !== undefined;
+	// @ts-expect-error checking if comment is NodeComment
+	return comment?.node_id !== undefined;
 }

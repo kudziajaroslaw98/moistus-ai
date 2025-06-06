@@ -274,12 +274,34 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Function to update current user count for share tokens
+CREATE OR REPLACE FUNCTION update_share_token_user_count()
+RETURNS void AS $$
+BEGIN
+    UPDATE share_tokens st
+    SET current_users = (
+        SELECT COUNT(DISTINCT COALESCE(up.user_id::text, gu.session_id))
+        FROM user_presence up
+        LEFT JOIN guest_users gu ON up.user_id IS NULL
+        JOIN share_access_logs sal ON (
+            sal.user_id = up.user_id OR sal.guest_user_id = gu.id
+        )
+        WHERE sal.share_token_id = st.id
+        AND up.map_id = st.map_id
+        AND up.status IN ('active', 'idle')
+        AND up.last_activity > NOW() - INTERVAL '5 minutes'
+    )
+    WHERE st.is_active = true;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Grant necessary permissions
 GRANT ALL ON share_tokens TO authenticated;
 GRANT ALL ON guest_users TO authenticated;
 GRANT ALL ON share_access_logs TO authenticated;
 GRANT EXECUTE ON FUNCTION generate_room_code() TO authenticated;
 GRANT EXECUTE ON FUNCTION validate_share_access(varchar, uuid, varchar) TO authenticated;
+GRANT EXECUTE ON FUNCTION update_share_token_user_count() TO authenticated;
 
 -- Grant permissions for anonymous users (guest access)
 GRANT SELECT ON share_tokens TO anon;

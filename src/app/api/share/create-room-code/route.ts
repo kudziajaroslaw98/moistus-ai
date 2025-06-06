@@ -1,141 +1,94 @@
-import { createClient } from "@/helpers/supabase/server";
-import { ShareToken } from "@/types/sharing-types";
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
+import { respondError, respondSuccess } from '@/helpers/api/responses';
+import { withApiValidation } from '@/helpers/api/with-api-validation';
+import { z } from 'zod';
 
-const createRoomCodeSchema = z.object({
-  map_id: z.string().uuid(),
-  role: z.enum(["owner", "editor", "commenter", "viewer"]),
-  can_edit: z.boolean().optional().default(false),
-  can_comment: z.boolean().optional().default(true),
-  can_view: z.boolean().optional().default(true),
-  max_users: z.number().min(1).max(100).optional().default(50),
-  expires_at: z.string().optional(),
-  created_by: z.string().uuid(),
+const CreateRoomCodeSchema = z.object({
+	map_id: z.string().uuid(),
+	role: z.enum(['editor', 'commenter', 'viewer']).default('viewer'),
+	can_edit: z.boolean().optional(),
+	can_comment: z.boolean().optional(),
+	can_view: z.boolean().optional(),
+	max_users: z.number().min(1).max(100).default(50),
+	expires_in_hours: z.number().min(1).max(168).optional(), // Max 1 week
 });
 
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient();
+export const POST = withApiValidation(
+	CreateRoomCodeSchema,
+	async (req, data, supabase, user) => {
+		// 1. Verify user owns the map
+		const { data: map, error: mapError } = await supabase
+			.from('mind_maps')
+			.select('id, title')
+			.eq('id', data.map_id)
+			.eq('user_id', user.id)
+			.single();
 
-    // Verify authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+		if (mapError || !map) {
+			return respondError('Map not found or unauthorized', 403);
+		}
 
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+		// 2. Generate unique room code using database function
+		const { data: tokenData, error: tokenError } = await supabase.rpc(
+			'generate_unique_room_code'
+		);
 
-    // Parse and validate request body
-    const body = await request.json();
-    const validatedData = createRoomCodeSchema.parse(body);
+		if (tokenError || !tokenData) {
+			console.error('Failed to generate room code:', tokenError);
+			return respondError('Failed to generate room code', 500);
+		}
 
-    // Verify user owns the map or has permission to share it
-    const { data: mapData, error: mapError } = await supabase
-      .from("mind_maps")
-      .select("id, user_id")
-      .eq("id", validatedData.map_id)
-      .single();
+		// 3. Calculate expiration
+		const expires_at = data.expires_in_hours
+			? new Date(
+					Date.now() + data.expires_in_hours * 60 * 60 * 1000
+				).toISOString()
+			: null;
 
-    if (mapError || !mapData) {
-      return NextResponse.json(
-        { error: "Mind map not found" },
-        { status: 404 },
-      );
-    }
+		// 4. Create permissions object
+		const permissions = {
+			role: data.role,
+			can_edit: data.can_edit ?? data.role === 'editor',
+			can_comment: data.can_comment ?? data.role !== 'viewer',
+			can_view: data.can_view ?? true,
+		};
 
-    if (mapData.user_id !== user.id) {
-      // Check if user has sharing permissions through existing shares
-      const { data: shareData } = await supabase
-        .from("mind_map_shares")
-        .select("can_edit")
-        .eq("map_id", validatedData.map_id)
-        .eq("user_id", user.id)
-        .single();
+		// 5. Create share token
+		const { data: token, error: createError } = await supabase
+			.from('share_tokens')
+			.insert({
+				map_id: data.map_id,
+				token: tokenData,
+				token_type: 'room_code',
+				permissions,
+				max_users: data.max_users,
+				expires_at,
+				created_by: user.id,
+			})
+			.select()
+			.single();
 
-      if (!shareData?.can_edit) {
-        return NextResponse.json(
-          { error: "Permission denied" },
-          { status: 403 },
-        );
-      }
-    }
+		if (createError) {
+			console.error('Failed to create share token:', createError);
+			return respondError('Failed to create room code', 500);
+		}
 
-    // Generate unique room code
-    const { data: roomCode, error: codeError } =
-      await supabase.rpc("generate_room_code");
+		// 6. Generate share link and QR code data
+		const shareLink = `${process.env.NEXT_PUBLIC_APP_URL}/join?code=${token.token}`;
+		const qrCodeData = {
+			value: shareLink,
+			size: 256,
+			level: 'M' as const,
+		};
 
-    if (codeError || !roomCode) {
-      return NextResponse.json(
-        { error: "Failed to generate room code" },
-        { status: 500 },
-      );
-    }
-
-    // Create permissions object
-    const permissions = {
-      role: validatedData.role,
-      can_edit: validatedData.can_edit,
-      can_comment: validatedData.can_comment,
-      can_view: validatedData.can_view,
-    };
-
-    // Create share token
-    const { data: shareToken, error: createError } = await supabase
-      .from("share_tokens")
-      .insert({
-        map_id: validatedData.map_id,
-        token: roomCode,
-        token_type: "room_code",
-        permissions,
-        max_users: validatedData.max_users,
-        expires_at: validatedData.expires_at,
-        created_by: user.id,
-      })
-      .select()
-      .single();
-
-    if (createError) {
-      console.error("Error creating share token:", createError);
-      return NextResponse.json(
-        { error: "Failed to create room code" },
-        { status: 500 },
-      );
-    }
-
-    // Transform to ShareToken type
-    const token: ShareToken = {
-      id: shareToken.id,
-      map_id: shareToken.map_id,
-      token: shareToken.token,
-      token_type: shareToken.token_type,
-      share_link_hash: shareToken.share_link_hash,
-      permissions: shareToken.permissions,
-      max_users: shareToken.max_users,
-      current_users: shareToken.current_users || 0,
-      expires_at: shareToken.expires_at,
-      is_active: shareToken.is_active,
-      created_by: shareToken.created_by,
-      created_at: shareToken.created_at,
-      updated_at: shareToken.updated_at,
-    };
-
-    return NextResponse.json(token, { status: 201 });
-  } catch (error) {
-    console.error("Error in create-room-code:", error);
-
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Invalid request data", details: error.errors },
-        { status: 400 },
-      );
-    }
-
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
-  }
-}
+		return respondSuccess({
+			token: token.token,
+			share_link: shareLink,
+			qr_code_data: qrCodeData,
+			expires_at: token.expires_at,
+			permissions: token.permissions,
+			max_users: token.max_users,
+			current_users: token.current_users || 0,
+			map_title: map.title,
+		});
+	}
+);

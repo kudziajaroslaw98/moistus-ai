@@ -1,125 +1,146 @@
-import { createClient } from "@/helpers/supabase/server";
-import { ShareAccessValidation } from "@/types/sharing-types";
-import { PostgrestSingleResponse } from "@supabase/postgrest-js";
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
+import { respondError, respondSuccess } from '@/helpers/api/responses';
+import { withOptionalAuthValidation } from '@/helpers/api/with-optional-auth-validation';
+import { NextRequest } from 'next/server';
+import { z } from 'zod';
 
-const validateAccessSchema = z.object({
-  token: z.string().length(6),
-  guest_session_id: z.string().optional(),
+type ShareTokenWithMap = {
+	id: string;
+	map_id: string;
+	token: string;
+	permissions: {
+		role: string;
+		can_edit: boolean;
+		can_comment: boolean;
+		can_view: boolean;
+	};
+	max_users: number;
+	current_users: number;
+	expires_at: string | null;
+	is_active: boolean;
+	mind_map: {
+		id: string;
+		title: string;
+		description: string;
+		user_id: string;
+	};
+};
+
+const ValidateAccessSchema = z.object({
+	token: z.string().min(1).max(10),
 });
 
-export async function POST(request: NextRequest) {
-  try {
-    const supabase = await createClient();
+export const POST = withOptionalAuthValidation(
+	ValidateAccessSchema,
+	async (req, data, supabase, user) => {
+		// 1. Validate and format the token
+		const { data: formattedToken, error: formatError } = await supabase.rpc(
+			'validate_room_code',
+			{ p_code: data.token }
+		);
 
-    // Parse and validate request body
-    const body = await request.json();
-    const { token, guest_session_id } = validateAccessSchema.parse(body);
+		if (formatError || !formattedToken) {
+			return respondError('Invalid room code format', 400);
+		}
 
-    // Get current user (might be null for guest access)
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+		// 2. Look up the token with map information
+		const { data: tokenData, error: tokenError } = await supabase
+			.from('share_tokens')
+			.select(
+				`
+        id,
+        map_id,
+        token,
+        permissions,
+        max_users,
+        current_users,
+        expires_at,
+        is_active,
+        mind_map:mind_maps!inner (
+          id,
+          title,
+          description,
+          user_id
+        )
+      `
+			)
+			.eq('token', formattedToken)
+			.eq('token_type', 'room_code')
+			.single<ShareTokenWithMap>();
 
-    // Use the database function to validate access
-    const {
-      data: validationResult,
-      error: validationError,
-    }: PostgrestSingleResponse<ShareAccessValidation> = await supabase
-      .rpc("validate_share_access", {
-        token_param: token,
-        user_id_param: user?.id || null,
-        guest_session_id_param: guest_session_id || null,
-      })
-      .single();
+		if (tokenError || !tokenData) {
+			return respondError('Room code not found', 404);
+		}
 
-    if (validationError) {
-      console.error("Error validating share access:", validationError);
-      return NextResponse.json(
-        { error: "Failed to validate access" },
-        { status: 500 },
-      );
-    }
+		// 3. Check if token is active
+		if (!tokenData.is_active) {
+			return respondError('Room code has been deactivated', 410);
+		}
 
-    // Transform result to ShareAccessValidation type
-    const validation: ShareAccessValidation = {
-      share_token_id: validationResult.share_token_id,
-      map_id: validationResult.map_id,
-      permissions: validationResult.permissions,
-      is_valid: validationResult.is_valid,
-      error_message: validationResult.error_message,
-    };
+		// 4. Check expiration
+		if (tokenData.expires_at && new Date(tokenData.expires_at) < new Date()) {
+			return respondError('Room code has expired', 410);
+		}
 
-    return NextResponse.json(validation);
-  } catch (error) {
-    console.error("Error in validate-access:", error);
+		// 5. Check if room is full
+		const isFull = tokenData.current_users >= tokenData.max_users;
 
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Invalid request data", details: error.errors },
-        { status: 400 },
-      );
-    }
+		// 6. Get map owner info
+		let ownerName = 'Unknown';
+		let hasExistingAccess = false;
 
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
-  }
-}
+		if (user) {
+			const { data: ownerData } = await supabase
+				.from('auth.users')
+				.select('email, raw_user_meta_data')
+				.eq('id', tokenData.mind_map.user_id)
+				.single();
 
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const token = searchParams.get("token");
+			ownerName =
+				ownerData?.raw_user_meta_data?.full_name ||
+				ownerData?.email?.split('@')[0] ||
+				'Unknown';
 
-    if (!token || token.length !== 6) {
-      return NextResponse.json(
-        { error: "Invalid token format" },
-        { status: 400 },
-      );
-    }
+			// 7. Check if user already has access (if authenticated)
+			const { data: existingShare } = await supabase
+				.from('mind_map_shares')
+				.select('id')
+				.eq('map_id', tokenData.map_id)
+				.eq('user_id', user.id)
+				.single();
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+			hasExistingAccess = !!existingShare;
+		}
 
-    // Use the database function to validate access
-    const {
-      data: validationResult,
-      error: validationError,
-    }: PostgrestSingleResponse<ShareAccessValidation> = await supabase
-      .rpc("validate_share_access", {
-        token_param: token,
-        user_id_param: user?.id || null,
-        guest_session_id_param: null,
-      })
-      .single();
+		return respondSuccess({
+			is_valid: true,
+			share_token_id: tokenData.id,
+			map_id: tokenData.map_id,
+			map_title: tokenData.mind_map.title,
+			map_description: tokenData.mind_map.description,
+			map_owner: {
+				id: tokenData.mind_map.user_id,
+				name: ownerName,
+			},
+			permissions: tokenData.permissions,
+			is_full: isFull,
+			current_users: tokenData.current_users,
+			max_users: tokenData.max_users,
+			expires_at: tokenData.expires_at,
+			has_existing_access: hasExistingAccess,
+			requires_auth: false, // Room codes don't require auth
+		});
+	}
+);
 
-    if (validationError) {
-      console.error("Error validating share access:", validationError);
-      return NextResponse.json(
-        { error: "Failed to validate access" },
-        { status: 500 },
-      );
-    }
+// GET endpoint for simple validation
+export const GET = async (request: NextRequest) => {
+	const searchParams = request.nextUrl.searchParams;
+	const token = searchParams.get('token');
 
-    const validation: ShareAccessValidation = {
-      share_token_id: validationResult?.share_token_id,
-      map_id: validationResult?.map_id,
-      permissions: validationResult?.permissions,
-      is_valid: validationResult?.is_valid,
-      error_message: validationResult?.error_message,
-    };
+	if (!token) {
+		return respondError('Token parameter is required', 400);
+	}
 
-    return NextResponse.json(validation);
-  } catch (error) {
-    console.error("Error in validate-access GET:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
-  }
-}
+	// Reuse the POST logic
+	return POST(request);
+};

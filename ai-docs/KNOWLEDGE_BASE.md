@@ -4,6 +4,9 @@
 
 Moistus AI is a modern mind mapping platform built with Next.js 15, React 19, and Supabase. The application focuses on intelligent, AI-powered mind mapping with collaborative features and seamless user experience.
 
+## User Patterns
+- user use withApiValidation, respondSuccess, respondError helper functions in api routes.
+
 ## Technical Architecture
 
 ### Core Technology Stack
@@ -71,8 +74,15 @@ Moistus AI is a modern mind mapping platform built with Next.js 15, React 19, an
 src/
 ├── app/ (Next.js App Router)
 ├── components/ (Reusable UI components)
+│   ├── sharing/ (Share panel, room codes)
+│   ├── collaboration/ (Avatar stack, presence)
+│   └── ui/ (Base UI components)
 ├── contexts/ (Zustand store and slices)
+│   └── mind-map/
+│       └── slices/ (collaboration, sharing, etc.)
 ├── types/ (TypeScript definitions)
+│   ├── sharing-types.ts (Comprehensive sharing interfaces)
+│   └── collaboration-types.ts (Real-time collaboration types)
 ├── lib/ (Utilities and configurations)
 ├── hooks/ (Custom React hooks)
 └── utils/ (Helper functions)
@@ -83,6 +93,7 @@ src/
 - **Zod Validation**: Request/response validation
 - **Error Handling**: Consistent error response format
 - **Authentication Middleware**: Supabase session validation
+- **Sharing API Structure**: Dedicated `/api/share` endpoints for room codes, guest users, and access validation
 
 ## UI/UX Patterns
 
@@ -122,6 +133,16 @@ src/
 - **Scalability**: Support 50+ concurrent participants per session
 - **Offline Resilience**: Graceful degradation when connectivity issues occur
 - **Cross-platform**: Consistent experience across devices and browsers
+
+### Implementation Architecture
+- **Gamified Access**: 6-character room codes (Kahoot-style) for easy sharing
+- **Guest-First Design**: Allow immediate participation without account creation
+- **Progressive Registration**: Optional conversion from guest to registered user with incentives
+- **Comprehensive Type System**: Full TypeScript definitions for sharing and collaboration already exist
+- **Existing Foundation**: SharePanel and RoomCodeDisplay components already started
+- **API Structure**: Share endpoints already scaffolded under `/api/share`
+- **State Management**: Dedicated collaboration-slice and sharing-slice in Zustand store
+- **Real-time Infrastructure**: Supabase presence channels for cursor tracking and live updates
 
 ## Performance Optimization
 
@@ -198,12 +219,23 @@ src/
 - **Side Panel Component**: Reusable, consistent modal experience
 - **TypeScript Integration**: Strong type safety reduces runtime errors
 - **Supabase Real-time**: Excellent for collaborative features
+- **Type-First Development**: Comprehensive type definitions exist before implementation
+- **Modular API Routes**: Well-organized API structure with clear separation of concerns
 
 ### Areas for Improvement
 - **Testing Coverage**: Need comprehensive test suite
 - **Error Handling**: More consistent error boundaries and user feedback
 - **Performance Monitoring**: Better visibility into production performance
 - **Documentation**: More inline code documentation for complex logic
+
+### Collaboration Implementation Insights
+- **Phased Approach**: 12-week implementation plan with clear milestones
+- **Database-First**: Migration and RLS policies before API implementation
+- **UI Component Hierarchy**: SharePanel → RoomCodeDisplay → JoinRoom → GuestSignup
+- **Real-time Considerations**: Cursor throttling and activity pagination for performance
+- **Analytics Integration**: Built-in activity tracking and usage analytics
+- **Mobile-First Design**: Touch-optimized interfaces and responsive layouts
+- **Security by Design**: Guest isolation, permission validation, and audit logging
 
 ---
 

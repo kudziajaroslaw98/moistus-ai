@@ -1,4 +1,4 @@
--- Moistus AI Sharing Features - Database Setup Script
+ -- Moistus AI Sharing Features - Database Setup Script
 -- Run this script to set up all sharing-specific tables and policies
 
 -- Enable required extensions
@@ -24,9 +24,9 @@ CREATE TABLE share_tokens (
     created_by UUID REFERENCES auth.users(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
+
     CONSTRAINT valid_permissions CHECK (
-        permissions ? 'role' AND 
+        permissions ? 'role' AND
         permissions->>'role' IN ('owner', 'editor', 'commenter', 'viewer')
     )
 );
@@ -61,7 +61,7 @@ CREATE TABLE share_access_logs (
     session_duration INTEGER, -- Duration in seconds for leave events
     metadata JSONB DEFAULT '{}',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
+
     CONSTRAINT user_or_guest_required CHECK (
         (user_id IS NOT NULL AND guest_user_id IS NULL) OR
         (user_id IS NULL AND guest_user_id IS NOT NULL)
@@ -151,7 +151,7 @@ CREATE POLICY "Users can log their own access" ON share_access_logs
     FOR INSERT WITH CHECK (
         (user_id = (select auth.uid()) AND guest_user_id IS NULL) OR
         (user_id IS NULL AND guest_user_id IN (
-            SELECT id FROM guest_users 
+            SELECT id FROM guest_users
             WHERE session_id = current_setting('app.guest_session_id', true)
         ))
     );
@@ -189,12 +189,12 @@ BEGIN
         FOR i IN 1..6 LOOP
             result := result || substr(chars, floor(random() * length(chars) + 1)::integer, 1);
         END LOOP;
-        
+
         -- Check if code already exists
         IF NOT EXISTS (SELECT 1 FROM share_tokens WHERE token = result AND is_active = true) THEN
             RETURN result;
         END IF;
-        
+
         attempts := attempts + 1;
         IF attempts >= max_attempts THEN
             RAISE EXCEPTION 'Unable to generate unique room code after % attempts', max_attempts;
@@ -270,15 +270,15 @@ BEGIN
 
     -- Check if token exists
     IF NOT FOUND THEN
-        RETURN QUERY SELECT 
-            NULL::uuid, NULL::uuid, NULL::jsonb, 
+        RETURN QUERY SELECT
+            NULL::uuid, NULL::uuid, NULL::jsonb,
             false, 'Invalid or expired room code'::text;
         RETURN;
     END IF;
 
     -- Check if token is expired
     IF share_record.expires_at IS NOT NULL AND share_record.expires_at < NOW() THEN
-        RETURN QUERY SELECT 
+        RETURN QUERY SELECT
             share_record.id, share_record.map_id, share_record.permissions,
             false, 'Room code has expired'::text;
         RETURN;
@@ -286,14 +286,14 @@ BEGIN
 
     -- Check user limit
     IF share_record.current_users >= share_record.max_users THEN
-        RETURN QUERY SELECT 
+        RETURN QUERY SELECT
             share_record.id, share_record.map_id, share_record.permissions,
             false, 'Room is full'::text;
         RETURN;
     END IF;
 
     -- Valid access
-    RETURN QUERY SELECT 
+    RETURN QUERY SELECT
         share_record.id, share_record.map_id, share_record.permissions,
         true, NULL::text;
 END;

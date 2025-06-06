@@ -1,1 +1,1 @@
-export type LayoutDirection = "TB" | "LR" | "BT" | "RL";
+export type LayoutDirection = 'TB' | 'LR' | 'BT' | 'RL';

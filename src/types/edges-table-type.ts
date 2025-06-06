@@ -1,5 +1,5 @@
-import type { EdgeData } from "./edge-data";
+import type { EdgeData } from './edge-data';
 
 export interface EdgesTableType extends EdgeData {
-  user_id: string;
+	user_id: string;
 }
