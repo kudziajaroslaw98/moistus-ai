@@ -35,7 +35,7 @@ export default function RootLayout({
 			suppressHydrationWarning={true}
 		>
 			<body
-				className={`${geistSans.variable} ${geistMono.variable} ${lora.variable} h-full w-full bg-zinc-950 p-2 antialiased`}
+				className={`${geistSans.variable} ${geistMono.variable} ${lora.variable} dark h-full w-full bg-zinc-950 p-2 antialiased`}
 				suppressHydrationWarning={true}
 			>
 				<div className='flex h-full w-full flex-col rounded-xl bg-zinc-900 text-zinc-100'>
