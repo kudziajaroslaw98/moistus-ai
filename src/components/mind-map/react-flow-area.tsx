@@ -72,6 +72,7 @@ export function ReactFlowArea() {
 		setIsDraggingNodes,
 		initializeComments,
 		unsubscribeFromComments,
+		unsubscribeFromRealtimeUpdates,
 		getCurrentUser,
 		getVisibleEdges,
 		getVisibleNodes,
@@ -100,6 +101,7 @@ export function ReactFlowArea() {
 			setIsDraggingNodes: state.setIsDraggingNodes,
 			initializeComments: state.initializeComments,
 			unsubscribeFromComments: state.unsubscribeFromComments,
+			unsubscribeFromRealtimeUpdates: state.unsubscribeFromRealtimeUpdates,
 			getCurrentUser: state.getCurrentUser,
 		}))
 	);
@@ -124,6 +126,7 @@ export function ReactFlowArea() {
 	useEffect(() => {
 		return () => {
 			unsubscribeFromComments();
+			unsubscribeFromRealtimeUpdates();
 		};
 	}, []);
 

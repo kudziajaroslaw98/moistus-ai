@@ -66,6 +66,7 @@ export function SharePanel({
 		createRoomCode,
 		refreshRoomCode,
 		revokeRoomCode,
+		refreshTokens,
 		subscribeToSharingUpdates,
 		unsubscribeFromSharing,
 		currentUser,
@@ -79,6 +80,7 @@ export function SharePanel({
 			createRoomCode: state.createRoomCode,
 			refreshRoomCode: state.refreshRoomCode,
 			revokeRoomCode: state.revokeRoomCode,
+			refreshTokens: state.refreshTokens,
 			subscribeToSharingUpdates: state.subscribeToSharingUpdates,
 			unsubscribeFromSharing: state.unsubscribeFromSharing,
 			currentUser: state.currentUser,
@@ -112,6 +114,13 @@ export function SharePanel({
 		},
 	});
 
+	// Load existing tokens when panel opens
+	useEffect(() => {
+		if (isOpen && mapId) {
+			refreshTokens();
+		}
+	}, [isOpen, mapId, refreshTokens]);
+
 	// Subscribe to real-time updates when panel opens
 	useEffect(() => {
 		if (isOpen && mapId) {
@@ -143,13 +152,12 @@ export function SharePanel({
 		setIsGeneratingCode(true);
 
 		try {
-			await createRoomCode({
-				map_id: mapId,
+			await createRoomCode(mapId, {
 				role: roomCodeSettings.role,
-				max_users: roomCodeSettings.maxUsers,
-				expires_at: new Date(
+				maxUsers: roomCodeSettings.maxUsers,
+				expiresAt: new Date(
 					Date.now() + roomCodeSettings.expiresInHours * 60 * 60 * 1000
-				).toUTCString(),
+				).toISOString(),
 			});
 			toast.success('Room code generated successfully!');
 		} catch (error) {

@@ -142,6 +142,9 @@ export const createCoreDataSlice: StateCreator<
 				nodes: transformedData.reactFlowNodes,
 				edges: transformedData.reactFlowEdges,
 			});
+
+			// Start real-time subscriptions after successful data load
+			await get().subscribeToRealtimeUpdates(mapId);
 		},
 		'isStateLoading',
 		{
@@ -150,4 +153,30 @@ export const createCoreDataSlice: StateCreator<
 			successMessage: 'Mind map data fetched successfully.',
 		}
 	),
-});
+
+	subscribeToRealtimeUpdates: async (mapId: string) => {
+		try {
+			console.log('Starting real-time subscriptions for map:', mapId);
+			await Promise.all([
+				get().subscribeToNodes(mapId),
+				get().subscribeToEdges(mapId)
+			]);
+			console.log('Real-time subscriptions started successfully');
+		} catch (error) {
+			console.error('Failed to start real-time subscriptions:', error);
+		}
+	},
+
+	unsubscribeFromRealtimeUpdates: async () => {
+		try {
+			console.log('Stopping real-time subscriptions');
+			await Promise.all([
+				get().unsubscribeFromNodes(),
+				get().unsubscribeFromEdges()
+			]);
+			console.log('Real-time subscriptions stopped successfully');
+		} catch (error) {
+			console.error('Failed to stop real-time subscriptions:', error);
+		}
+	},
+	});

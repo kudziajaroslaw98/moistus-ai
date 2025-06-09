@@ -29,17 +29,10 @@ import { LoadingStates } from '@/types/loading-states';
 import type { MindMapData } from '@/types/mind-map-data';
 import type { NodeData } from '@/types/node-data';
 import {
-	CreateGuestUserRequest,
-	CreateRoomCodeRequest,
-	GuestUser,
-	JoinRoomRequest,
-	ShareAccessLog,
-	ShareAccessType,
-	ShareAccessValidation,
 	ShareToken,
 	SharingError,
 } from '@/types/sharing-types';
-import type { SupabaseClient, User } from '@supabase/supabase-js';
+import type { SupabaseClient, User, RealtimeChannel } from '@supabase/supabase-js';
 import type {
 	OnConnect,
 	OnEdgesChange,
@@ -179,7 +172,6 @@ export interface CommentsSlice {
 	unsubscribeFromComments: () => void;
 
 	// Private subscription reference
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	_commentsSubscription: any;
 }
 
@@ -200,6 +192,10 @@ export interface CoreDataSlice {
 	centerOnNode: (nodeId: string) => void;
 
 	fetchMindMapData: (mapId: string) => Promise<void>;
+
+	// Real-time subscription management
+	subscribeToRealtimeUpdates: (mapId: string) => Promise<void>;
+	unsubscribeFromRealtimeUpdates: () => Promise<void>;
 }
 
 // Edges Slice
@@ -233,6 +229,11 @@ export interface EdgesSlice {
 	}) => Promise<void>;
 	triggerEdgeSave: (edgeId: string) => void;
 	setParentConnection: (edgeId: string) => void;
+
+	// Real-time subscription management
+	subscribeToEdges: (mapId: string) => Promise<void>;
+	unsubscribeFromEdges: () => Promise<void>;
+	_edgesSubscription: RealtimeChannel | null;
 }
 
 // Groups Slice
@@ -346,93 +347,77 @@ export interface NodesSlice {
 	getDescendantNodeIds: (nodeId: string) => string[];
 	getVisibleNodes: () => AppNode[];
 	toggleNodeCollapse: (nodeId: string) => Promise<void>;
+
+	// Real-time subscription management
+	subscribeToNodes: (mapId: string) => Promise<void>;
+	unsubscribeFromNodes: () => Promise<void>;
+	_nodesSubscription: RealtimeChannel | null;
+}
+
+// Anonymous User Interface
+interface AnonymousUser {
+	user_id: string;
+	display_name: string;
+	avatar_url?: string;
+	is_anonymous: boolean;
+	created_at: string;
+}
+
+// Join Room Result Interface
+interface JoinRoomResult {
+	map_id: string;
+	map_title: string;
+	map_description?: string;
+	permissions: any;
+	user_id: string;
+	is_anonymous: boolean;
+	user_display_name: string;
+	user_avatar?: string;
+	websocket_channel: string;
+	share_token_id: string;
+	join_method: string;
 }
 
 // Sharing State
 export interface SharingState {
-	// Room codes and tokens
+	// State
 	shareTokens: ShareToken[];
 	activeToken?: ShareToken;
 	isCreatingToken: boolean;
-
-	// Guest users
-	guestUsers: GuestUser[];
-	currentGuestUser?: GuestUser;
-	isGuestSession: boolean;
-
-	// Access logs and analytics
-	accessLogs: ShareAccessLog[];
-	currentUsers: number;
-
-	// UI state
 	isJoiningRoom: boolean;
-	isValidatingAccess: boolean;
+	authUser?: AnonymousUser;
 	sharingError?: SharingError;
-
-	// Real-time connection
-	sharingChannel?: any;
-	isConnectedToSharing: boolean;
+	lastJoinResult?: JoinRoomResult;
 }
 
 // Sharing Slice
 export interface SharingSlice extends SharingState {
-	// Room code management
-	createRoomCode: (request: CreateRoomCodeRequest) => Promise<ShareToken>;
-	refreshRoomCode: (tokenId: string) => Promise<ShareToken>;
+	// Actions
+	createRoomCode: (mapId: string, options?: {
+		role?: string;
+		maxUsers?: number;
+		expiresAt?: string;
+	}) => Promise<ShareToken>;
+	
+	joinRoom: (roomCode: string, displayName?: string) => Promise<JoinRoomResult>;
+	
+	upgradeAnonymousUser: (email: string, password: string, displayName?: string) => Promise<boolean>;
+	
+	ensureAuthenticated: (displayName?: string) => Promise<boolean>;
+	
+	refreshTokens: () => Promise<void>;
+	
+	refreshRoomCode: (tokenId: string) => Promise<void>;
+	
 	revokeRoomCode: (tokenId: string) => Promise<void>;
-	updateTokenPermissions: (
-		tokenId: string,
-		permissions: Partial<ShareToken['permissions']>
-	) => Promise<ShareToken>;
-
-	// Room joining and access
-	validateRoomAccess: (token: string) => Promise<ShareAccessValidation>;
-	joinRoom: (request: JoinRoomRequest) => Promise<{
-		mapId: string;
-		permissions: ShareToken['permissions'];
-		isGuest: boolean;
-	}>;
-	leaveRoom: (tokenId: string) => Promise<void>;
-
-	// Guest user management
-	createGuestUser: (request: CreateGuestUserRequest) => Promise<GuestUser>;
-	updateGuestUser: (
-		guestId: string,
-		updates: Partial<GuestUser>
-	) => Promise<GuestUser>;
-	convertGuestToUser: (guestId: string, userId: string) => Promise<void>;
-	endGuestSession: () => Promise<void>;
-
-	// Access logging
-	logAccess: (
-		tokenId: string,
-		accessType: ShareAccessType,
-		metadata?: Record<string, unknown>
-	) => Promise<void>;
-	loadAccessLogs: (tokenId: string) => Promise<void>;
-
-	// Real-time sharing
-	subscribeToSharingUpdates: (mapId: string) => Promise<void>;
-	unsubscribeFromSharing: () => Promise<void>;
-
-	// Utility functions
-	generateRoomCode: () => Promise<string>;
-	validatePermissions: (token: ShareToken, action: string) => boolean;
-	getUserCount: (tokenId: string) => Promise<number>;
-	isTokenExpired: (token: ShareToken) => boolean;
-
-	// State management
-	setActiveToken: (token: ShareToken | undefined) => void;
-	setSharingError: (error: SharingError | undefined) => void;
-	clearSharingData: () => void;
-
-	// Internal state management
-	_addShareToken: (token: ShareToken) => void;
-	_updateShareToken: (tokenId: string, updates: Partial<ShareToken>) => void;
-	_removeShareToken: (tokenId: string) => void;
-	_addGuestUser: (user: GuestUser) => void;
-	_updateGuestUser: (userId: string, updates: Partial<GuestUser>) => void;
-	_removeGuestUser: (userId: string) => void;
+	
+	subscribeToSharingUpdates: (mapId: string) => void;
+	
+	unsubscribeFromSharing: () => void;
+	
+	clearError: () => void;
+	
+	reset: () => void;
 }
 
 // UI State

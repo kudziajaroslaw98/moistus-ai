@@ -7,6 +7,7 @@ import type { AppEdge } from '@/types/app-edge';
 import type { EdgeData } from '@/types/edge-data';
 import { debouncePerKey } from '@/utils/debounce-per-key';
 import { applyEdgeChanges } from '@xyflow/react';
+import { RealtimeChannel } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import type { StateCreator } from 'zustand';
 import type { AppState, EdgesSlice } from '../app-state';
@@ -14,10 +15,90 @@ import type { AppState, EdgesSlice } from '../app-state';
 export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 	set,
 	get
-) => ({
-	// state
-	edges: [],
-	lastSavedEdgeTimestamps: {},
+) => {
+	// Handle real-time edge events
+	const handleEdgeRealtimeEvent = (payload: any) => {
+		const { eventType, new: newRecord, old: oldRecord } = payload;
+		const { edges, lastSavedEdgeTimestamps } = get();
+
+		// Skip if this change was made by current user recently (prevent loops)
+		const edgeId = newRecord?.id || oldRecord?.id;
+		if (edgeId && lastSavedEdgeTimestamps[edgeId]) {
+			const timeSinceLastSave = Date.now() - lastSavedEdgeTimestamps[edgeId];
+			if (timeSinceLastSave < 1000) { // Skip if saved within last second
+				return;
+			}
+		}
+
+		switch (eventType) {
+			case 'INSERT': {
+				if (newRecord) {
+					// Check if edge already exists (prevent duplicates)
+					const existingEdge = edges.find(e => e.id === newRecord.id);
+					if (!existingEdge) {
+						const newEdge: AppEdge = {
+							id: newRecord.id,
+							source: newRecord.source,
+							target: newRecord.target,
+							type: 'floatingEdge',
+							animated: newRecord.animated || false,
+							label: newRecord.label,
+							style: {
+								stroke: newRecord.style?.stroke || '#6c757d',
+								strokeWidth: newRecord.style?.strokeWidth || 2,
+							},
+							markerEnd: newRecord.markerEnd,
+							data: newRecord,
+						};
+						
+						set({ edges: [...edges, newEdge] });
+						console.log('Real-time: Edge added', newRecord.id);
+					}
+				}
+				break;
+			}
+			case 'UPDATE': {
+				if (newRecord) {
+					const updatedEdges = edges.map(edge => {
+						if (edge.id === newRecord.id) {
+							return {
+								...edge,
+								source: newRecord.source,
+								target: newRecord.target,
+								animated: newRecord.animated || false,
+								label: newRecord.label,
+								style: {
+									stroke: newRecord.style?.stroke || edge.style?.stroke || '#6c757d',
+									strokeWidth: newRecord.style?.strokeWidth || edge.style?.strokeWidth || 2,
+								},
+								markerEnd: newRecord.markerEnd,
+								data: newRecord,
+							};
+						}
+						return edge;
+					});
+					
+					set({ edges: updatedEdges });
+					console.log('Real-time: Edge updated', newRecord.id);
+				}
+				break;
+			}
+			case 'DELETE': {
+				if (oldRecord) {
+					const filteredEdges = edges.filter(edge => edge.id !== oldRecord.id);
+					set({ edges: filteredEdges });
+					console.log('Real-time: Edge deleted', oldRecord.id);
+				}
+				break;
+			}
+		}
+	};
+
+	return {
+		// state
+		edges: [],
+		lastSavedEdgeTimestamps: {},
+		_edgesSubscription: null,
 
 	// handlers
 	onEdgesChange: (changes) => {
@@ -437,4 +518,53 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 			edges: updatedEdges as AppEdge[],
 		});
 	},
-});
+
+	subscribeToEdges: async (mapId: string) => {
+		const { supabase, _edgesSubscription } = get();
+		
+		// Unsubscribe from existing subscription first
+		if (_edgesSubscription) {
+			await _edgesSubscription.unsubscribe();
+		}
+
+		try {
+			const channel = supabase
+				.channel(`mind-map-edges-${mapId}`)
+				.on(
+					'postgres_changes',
+					{
+						event: '*',
+						schema: 'public',
+						table: 'edges',
+						filter: `map_id=eq.${mapId}`
+					},
+					handleEdgeRealtimeEvent
+				)
+				.subscribe((status: string) => {
+					if (status === 'SUBSCRIBED') {
+						console.log('Subscribed to edges real-time updates for map:', mapId);
+					} else if (status === 'CHANNEL_ERROR') {
+						console.error('Error subscribing to edges real-time updates');
+					}
+				});
+
+			set({ _edgesSubscription: channel });
+		} catch (error) {
+			console.error('Failed to subscribe to edges updates:', error);
+		}
+	},
+
+	unsubscribeFromEdges: async () => {
+		const { _edgesSubscription } = get();
+		
+		if (_edgesSubscription) {
+			try {
+				await _edgesSubscription.unsubscribe();
+				set({ _edgesSubscription: null });
+				console.log('Unsubscribed from edges real-time updates');
+			} catch (error) {
+				console.error('Error unsubscribing from edges updates:', error);
+			}
+		}
+	},
+};

@@ -1,5 +1,5 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
-import { withApiValidation } from '@/helpers/api/with-api-validation';
+import { withAuthValidation } from '@/helpers/api/with-auth-validation';
 import { z } from 'zod';
 
 const CreateRoomCodeSchema = z.object({
@@ -12,7 +12,7 @@ const CreateRoomCodeSchema = z.object({
 	expires_in_hours: z.number().min(1).max(168).optional(), // Max 1 week
 });
 
-export const POST = withApiValidation(
+export const POST = withAuthValidation(
 	CreateRoomCodeSchema,
 	async (req, data, supabase, user) => {
 		// 1. Verify user owns the map
@@ -27,14 +27,35 @@ export const POST = withApiValidation(
 			return respondError('Map not found or unauthorized', 403);
 		}
 
-		// 2. Generate unique room code using database function
-		const { data: tokenData, error: tokenError } = await supabase.rpc(
-			'generate_unique_room_code'
-		);
+		// 2. Generate unique room code directly
+		const generateRoomCode = () => {
+			const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+			let result = '';
+			for (let i = 0; i < 6; i++) {
+				result += chars.charAt(Math.floor(Math.random() * chars.length));
+			}
+			return `${result.slice(0, 3)}-${result.slice(3)}`;
+		};
 
-		if (tokenError || !tokenData) {
-			console.error('Failed to generate room code:', tokenError);
-			return respondError('Failed to generate room code', 500);
+		let tokenData = generateRoomCode();
+		
+		// Ensure uniqueness by checking existing tokens
+		let attempts = 0;
+		while (attempts < 10) {
+			const { data: existing } = await supabase
+				.from('share_tokens')
+				.select('token')
+				.eq('token', tokenData)
+				.eq('is_active', true)
+				.single();
+			
+			if (!existing) break;
+			tokenData = generateRoomCode();
+			attempts++;
+		}
+
+		if (attempts >= 10) {
+			return respondError('Failed to generate unique room code', 500);
 		}
 
 		// 3. Calculate expiration
@@ -72,23 +93,7 @@ export const POST = withApiValidation(
 			return respondError('Failed to create room code', 500);
 		}
 
-		// 6. Generate share link and QR code data
-		const shareLink = `${process.env.NEXT_PUBLIC_APP_URL}/join?code=${token.token}`;
-		const qrCodeData = {
-			value: shareLink,
-			size: 256,
-			level: 'M' as const,
-		};
-
-		return respondSuccess({
-			token: token.token,
-			share_link: shareLink,
-			qr_code_data: qrCodeData,
-			expires_at: token.expires_at,
-			permissions: token.permissions,
-			max_users: token.max_users,
-			current_users: token.current_users || 0,
-			map_title: map.title,
-		});
+		// 6. Return the complete token object
+		return respondSuccess(token);
 	}
 );

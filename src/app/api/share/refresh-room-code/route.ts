@@ -2,12 +2,12 @@ import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withAuthValidation } from '@/helpers/api/with-auth-validation';
 import { z } from 'zod';
 
-const RevokeRoomCodeSchema = z.object({
+const RefreshRoomCodeSchema = z.object({
 	token_id: z.string().uuid('Invalid token ID format'),
 });
 
 export const POST = withAuthValidation(
-	RevokeRoomCodeSchema,
+	RefreshRoomCodeSchema,
 	async (req, data, supabase, user) => {
 		try {
 			// Verify the token exists and belongs to the user
@@ -27,49 +27,41 @@ export const POST = withAuthValidation(
 				);
 			}
 
-			// Deactivate the token (don't delete for audit purposes)
-			const { error: updateError } = await supabase
+			// Generate new random token
+			const newToken = Math.random().toString(36).substring(2, 8).toUpperCase();
+			const formattedToken = `${newToken.slice(0, 3)}-${newToken.slice(3)}`;
+
+			// Update the token in database
+			const { data: updatedToken, error: updateError } = await supabase
 				.from('share_tokens')
 				.update({
-					is_active: false,
+					token: formattedToken,
 					updated_at: new Date().toISOString(),
 				})
-				.eq('id', data.token_id);
+				.eq('id', data.token_id)
+				.select('*')
+				.single();
 
 			if (updateError) {
-				console.error('Failed to revoke room code:', updateError);
+				console.error('Failed to refresh room code:', updateError);
 				return respondError(
-					'Failed to revoke room code',
+					'Failed to refresh room code',
 					500,
 					updateError.message
 				);
 			}
 
-			// Also deactivate any existing share permissions for this token
-			const { error: shareError } = await supabase
-				.from('mind_map_shares')
-				.update({
-					is_active: false,
-					updated_at: new Date().toISOString(),
-				})
-				.eq('share_token_id', data.token_id);
-
-			if (shareError) {
-				console.error('Failed to revoke share permissions:', shareError);
-				// Continue anyway, token is already revoked
-			}
-
 			return respondSuccess(
-				{ token_id: data.token_id },
+				updatedToken,
 				200,
-				'Room code revoked successfully'
+				'Room code refreshed successfully'
 			);
 
 		} catch (error) {
-			console.error('Revoke room code error:', error);
+			console.error('Refresh room code error:', error);
 			const message = error instanceof Error ? error.message : 'Unknown error occurred';
 			return respondError(
-				'Failed to revoke room code',
+				'Failed to refresh room code',
 				500,
 				message
 			);

@@ -15,10 +15,6 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import useAppStore from '@/contexts/mind-map/mind-map-store';
 import {
-	CreateGuestUserRequest,
-	ShareAccessValidation,
-} from '@/types/sharing-types';
-import {
 	AlertCircle,
 	Brain,
 	CheckCircle,
@@ -30,124 +26,95 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { toast } from 'sonner';
 
 interface JoinRoomPageProps {
-	params: {
+	params: Promise<{
 		token: string;
-	};
+	}>;
 }
 
 export default function JoinRoomPage({ params }: JoinRoomPageProps) {
+	const { token } = use(params);
 	const router = useRouter();
 	const {
-		validateRoomAccess,
 		joinRoom,
-		createGuestUser,
-		isValidatingAccess,
+		ensureAuthenticated,
 		isJoiningRoom,
 		sharingError,
-		setSharingError,
+		clearError,
 	} = useAppStore();
 
-	const [validation, setValidation] = useState<ShareAccessValidation | null>(
-		null
-	);
-	const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-	const [guestInfo, setGuestInfo] = useState<CreateGuestUserRequest>({
-		display_name: '',
-		email: '',
-		session_id: '',
-		fingerprint_hash: '',
-	});
+	const [displayName, setDisplayName] = useState('');
 	const [isLoading, setIsLoading] = useState(true);
 	const [step, setStep] = useState<
-		'validating' | 'guest-signup' | 'joining' | 'success' | 'error'
+		'validating' | 'display-name' | 'joining' | 'success' | 'error'
 	>('validating');
+	const [joinResult, setJoinResult] = useState<any>(null);
 
 	useEffect(() => {
-		const generateSessionId = () => {
-			return `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-		};
-
-		const checkAuthAndValidate = async () => {
+		const validateTokenAndPrepare = async () => {
 			try {
-				// Check if user is authenticated
-				const response = await fetch('/api/auth/user');
-				const userAuthenticated = response.ok;
-				setIsAuthenticated(userAuthenticated);
+				// Clear any previous errors
+				clearError();
 
-				// Validate the room token
-				const validationResult = await validateRoomAccess(params.token);
-				setValidation(validationResult);
-
-				if (validationResult.is_valid) {
-					if (userAuthenticated) {
-						// Authenticated user can join directly
-						await handleJoinRoom();
-					} else {
-						// Guest user needs to provide info
-						setGuestInfo((prev) => ({
-							...prev,
-							session_id: generateSessionId(),
-						}));
-						setStep('guest-signup');
-					}
-				} else {
+				// Validate token format
+				const upperToken = token?.toUpperCase();
+				if (!upperToken || !/^[A-Z0-9]{3}-[A-Z0-9]{3}$/i.test(upperToken)) {
 					setStep('error');
+					return;
 				}
+
+				// Generate a default display name
+				const defaultName = `User ${Date.now().toString().slice(-4)}`;
+				setDisplayName(defaultName);
+
+				// Move to display name step
+				setStep('display-name');
 			} catch (error) {
-				console.error('Error validating room:', error);
+				console.error('Error validating token:', error);
 				setStep('error');
 			} finally {
 				setIsLoading(false);
 			}
 		};
 
-		if (params.token && params.token.length === 6) {
-			checkAuthAndValidate();
-		} else {
-			setStep('error');
-			setIsLoading(false);
-		}
-	}, [params.token]);
+		validateTokenAndPrepare();
+	}, [token, clearError]);
 
 	const handleJoinRoom = async () => {
-		if (!validation) return;
-
-		setStep('joining');
-
-		try {
-			const result = await joinRoom({
-				token: params.token,
-				guest_info: !isAuthenticated ? guestInfo : undefined,
-			});
-
-			setStep('success');
-			toast.success('Successfully joined the room!');
-
-			// Redirect to the mind map
-			setTimeout(() => {
-				router.push(`/mind-map/${result.mapId}`);
-			}, 1500);
-		} catch (error) {
-			setStep('error');
-			toast.error('Failed to join room');
-		}
-	};
-
-	const handleGuestSignup = async () => {
-		if (!guestInfo.display_name.trim()) {
+		if (!displayName.trim()) {
 			toast.error('Please enter your name');
 			return;
 		}
 
+		setStep('joining');
+
 		try {
-			await createGuestUser(guestInfo);
-			await handleJoinRoom();
+			// Ensure user is authenticated (anonymous sign-in happens automatically)
+			const isAuthenticated = await ensureAuthenticated(displayName.trim());
+			if (!isAuthenticated) {
+				throw new Error('Failed to authenticate');
+			}
+
+			// Join the room with the token
+			const result = await joinRoom(token.toUpperCase(), displayName.trim());
+			setJoinResult(result);
+			setStep('success');
+			
+			toast.success('Successfully joined the room!');
+
+			// Redirect to the mind map
+			setTimeout(() => {
+				router.push(`/mind-map/${result.map_id}`);
+			}, 1500);
 		} catch (error) {
-			toast.error('Failed to create guest session');
+			console.error('Failed to join room:', error);
+			setStep('error');
+			toast.error(
+				error instanceof Error ? error.message : 'Failed to join room'
+			);
 		}
 	};
 
@@ -183,16 +150,14 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 				>
 					<div className='relative'>
 						<Brain className='h-12 w-12 text-teal-400 mx-auto animate-pulse' />
-
 						<div className='absolute inset-0 bg-teal-400/20 rounded-full animate-ping' />
 					</div>
 
 					<div className='space-y-2'>
 						<h2 className='text-xl font-semibold text-zinc-100'>
-							Validating Room Code
+							Preparing Room Access
 						</h2>
-
-						<p className='text-zinc-400'>Checking access permissions...</p>
+						<p className='text-zinc-400'>Validating room code...</p>
 					</div>
 
 					<div className='flex items-center justify-center gap-1'>
@@ -217,7 +182,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 		);
 	}
 
-	if (step === 'error' || (validation && !validation.is_valid)) {
+	if (step === 'error' || sharingError) {
 		return (
 			<div className='min-h-screen bg-zinc-950 flex items-center justify-center p-4'>
 				<motion.div
@@ -228,24 +193,19 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 					<Card className='border-red-900/50 bg-zinc-900'>
 						<CardHeader className='text-center'>
 							<AlertCircle className='h-12 w-12 text-red-400 mx-auto mb-4' />
-
 							<CardTitle className='text-red-400'>
 								Unable to Join Room
 							</CardTitle>
-
 							<CardDescription>
-								{validation?.error_message ||
-									sharingError?.message ||
-									'Invalid or expired room code'}
+								{sharingError?.message || 'Invalid or expired room code'}
 							</CardDescription>
 						</CardHeader>
 
 						<CardContent className='space-y-4'>
 							<Alert className='border-red-900/50 bg-red-950/50'>
 								<AlertCircle className='h-4 w-4' />
-
 								<AlertDescription className='text-red-300'>
-									Room code: <code className='font-mono'>{params.token}</code>
+									Room code: <code className='font-mono'>{token}</code>
 								</AlertDescription>
 							</Alert>
 
@@ -257,7 +217,6 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 								>
 									Go to Dashboard
 								</Button>
-
 								<Button
 									onClick={() => window.location.reload()}
 									variant='ghost'
@@ -288,7 +247,6 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 						className='relative'
 					>
 						<CheckCircle className='h-16 w-16 text-green-400 mx-auto' />
-
 						<motion.div
 							className='absolute inset-0 bg-green-400/20 rounded-full'
 							animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
@@ -298,10 +256,9 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 
 					<div className='space-y-2'>
 						<h2 className='text-2xl font-bold text-zinc-100'>
-							Welcome to the Room!
+							Welcome to {joinResult?.map_title || 'the Mind Map'}!
 						</h2>
-
-						<p className='text-zinc-400'>Redirecting you to the mind map...</p>
+						<p className='text-zinc-400'>Redirecting you to the collaboration...</p>
 					</div>
 
 					<div className='flex items-center justify-center gap-1'>
@@ -335,14 +292,12 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 					className='text-center space-y-4'
 				>
 					<RefreshCw className='h-12 w-12 text-teal-400 mx-auto animate-spin' />
-
 					<div className='space-y-2'>
 						<h2 className='text-xl font-semibold text-zinc-100'>
 							Joining Room
 						</h2>
-
 						<p className='text-zinc-400'>
-							Setting up your collaboration session...
+							Setting up your anonymous session...
 						</p>
 					</div>
 				</motion.div>
@@ -350,7 +305,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 		);
 	}
 
-	// Guest signup step
+	// Display name input step
 	return (
 		<div className='min-h-screen bg-zinc-950 flex items-center justify-center p-4'>
 			<motion.div
@@ -361,102 +316,61 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 				<Card className='border-zinc-800 bg-zinc-900'>
 					<CardHeader className='text-center'>
 						<Brain className='h-10 w-10 text-teal-400 mx-auto mb-4' />
-
 						<CardTitle className='text-zinc-100'>
 							Join Collaboration Room
 						</CardTitle>
-
 						<CardDescription>
-							You&apos;re joining a shared mind map. Enter your details to
-							continue.
+							You&apos;re joining a shared mind map. Enter your name to continue as an anonymous user.
 						</CardDescription>
 					</CardHeader>
 
 					<CardContent className='space-y-6'>
 						{/* Room Info */}
-						{validation && (
-							<div className='p-4 rounded-lg border border-zinc-700 bg-zinc-800/50 space-y-3'>
-								<div className='flex items-center justify-between'>
-									<span className='text-sm text-zinc-400'>Room Code</span>
-
-									<code className='text-sm font-mono text-teal-400 bg-zinc-900 px-2 py-1 rounded'>
-										{params.token}
-									</code>
-								</div>
-
-								<div className='flex items-center justify-between'>
-									<span className='text-sm text-zinc-400'>Your Role</span>
-
-									<Badge variant='outline' className='flex items-center gap-1'>
-										{getRoleIcon(validation.permissions.role)}
-
-										{validation.permissions.role}
-									</Badge>
-								</div>
-
-								<p className='text-xs text-zinc-500'>
-									{getRoleDescription(validation.permissions.role)}
-								</p>
+						<div className='p-4 rounded-lg border border-zinc-700 bg-zinc-800/50 space-y-3'>
+							<div className='flex items-center justify-between'>
+								<span className='text-sm text-zinc-400'>Room Code</span>
+								<code className='text-sm font-mono text-teal-400 bg-zinc-900 px-2 py-1 rounded'>
+									{token}
+								</code>
 							</div>
-						)}
+							<p className='text-xs text-zinc-500'>
+								You&apos;ll join with anonymous access. You can upgrade to a full account anytime.
+							</p>
+						</div>
 
 						<Separator />
 
-						{/* Guest Info Form */}
+						{/* Display Name Form */}
 						<div className='space-y-4'>
 							<div className='space-y-2'>
 								<Label
 									htmlFor='display_name'
 									className='text-sm font-medium text-zinc-300'
 								>
-									Your Name *
+									Your Display Name
 								</Label>
-
 								<Input
 									id='display_name'
 									placeholder='Enter your name'
-									value={guestInfo.display_name}
-									onChange={(e) =>
-										setGuestInfo((prev) => ({
-											...prev,
-											display_name: e.target.value,
-										}))
-									}
+									value={displayName}
+									onChange={(e) => setDisplayName(e.target.value)}
 									className='bg-zinc-800 border-zinc-700'
 									autoComplete='name'
+									onKeyDown={(e) => {
+										if (e.key === 'Enter' && displayName.trim()) {
+											handleJoinRoom();
+										}
+									}}
 								/>
-							</div>
-
-							<div className='space-y-2'>
-								<Label
-									htmlFor='email'
-									className='text-sm font-medium text-zinc-300'
-								>
-									Email (Optional)
-								</Label>
-
-								<Input
-									id='email'
-									type='email'
-									placeholder='your@email.com'
-									value={guestInfo.email}
-									onChange={(e) =>
-										setGuestInfo((prev) => ({ ...prev, email: e.target.value }))
-									}
-									className='bg-zinc-800 border-zinc-700'
-									autoComplete='email'
-								/>
-
 								<p className='text-xs text-zinc-500'>
-									We&apos;ll use this to convert your session to a full account
-									later
+									This is how other collaborators will see you
 								</p>
 							</div>
 						</div>
 
 						<Button
-							onClick={handleGuestSignup}
-							disabled={isJoiningRoom || !guestInfo.display_name.trim()}
+							onClick={handleJoinRoom}
+							disabled={isJoiningRoom || !displayName.trim()}
 							className='w-full'
 						>
 							{isJoiningRoom ? (
@@ -467,7 +381,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 							) : (
 								<>
 									<Users className='mr-2 h-4 w-4' />
-									Join as Guest
+									Join Anonymously
 								</>
 							)}
 						</Button>
@@ -475,10 +389,8 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 						{/* Benefits */}
 						<div className='text-center space-y-3'>
 							<p className='text-xs text-zinc-500'>
-								Joining as a guest gives you temporary access. You can upgrade
-								to a full account anytime.
+								Anonymous access gives you instant collaboration. You can create a full account later to save your work.
 							</p>
-
 							<Button
 								variant='ghost'
 								size='sm'
