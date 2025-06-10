@@ -94,6 +94,8 @@ export const createCollaborationSlice: StateCreator<
 					map_id: currentMapId,
 					...updates,
 					last_activity: new Date().toISOString(),
+				}, {
+					onConflict: 'user_id,map_id'
 				});
 			} catch (error) {
 				console.error('Failed to update presence:', error);
@@ -237,7 +239,9 @@ export const createCollaborationSlice: StateCreator<
 					last_activity: new Date().toISOString(),
 				};
 
-				await supabase.from('user_presence').upsert(presenceData);
+				await supabase.from('user_presence').upsert(presenceData, {
+					onConflict: 'user_id,map_id'
+				});
 
 				if (presenceChannel) {
 					await presenceChannel.track({
@@ -284,7 +288,7 @@ export const createCollaborationSlice: StateCreator<
 
 				await supabase
 					.from('user_presence')
-					.update({ status: 'offline' })
+					.delete()
 					.eq('user_id', currentUser.user.id)
 					.eq('map_id', currentMapId);
 

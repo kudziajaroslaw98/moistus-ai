@@ -136,6 +136,45 @@ Extensible node types: Default, Text, Image, Resource, Question, Annotation, Cod
 - **Motion Integration**: Use `motion/react` for smooth animations
 - **Micro-interactions**: Immediate visual feedback for user actions
 - **State Transitions**: Smooth component state changes
+- **Scroll Animations**: Use `whileInView` for viewport-triggered animations
+- **Stagger Effects**: Sequential animations for lists and grids using `staggerChildren`
+- **Performance**: GPU-accelerated transforms only (opacity, transform)
+- **Accessibility**: Respect `prefers-reduced-motion` media query
+
+#### Landing Page Animation Variants
+```typescript
+// Scroll reveal animation
+const scrollReveal = {
+  hidden: { opacity: 0, y: 50 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.6, ease: "easeOut" }
+  }
+}
+
+// Fade and scale animation
+const fadeScale = {
+  hidden: { opacity: 0, scale: 0.95 },
+  visible: { 
+    opacity: 1, 
+    scale: 1,
+    transition: { duration: 0.5 }
+  }
+}
+
+// Stagger container
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2
+    }
+  }
+}
+```
 
 ---
 

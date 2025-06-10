@@ -1,12 +1,12 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { CollaborationUser } from '@/types/sharing-types';
+import { ActiveUser } from '@/types/collaboration-types';
 import { AnimatePresence, motion } from 'motion/react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UserCursorProps {
-	user: CollaborationUser;
+	user: ActiveUser;
 	position: { x: number; y: number };
 	color: string;
 	isActive: boolean;
@@ -203,21 +203,21 @@ export function UserCursor({
 									{user.avatar_url ? (
 										<img
 											src={user.avatar_url}
-											alt={user.display_name}
+											alt={user.name}
 											className='w-full h-full rounded-full object-cover'
 										/>
 									) : (
-										<span>{getInitials(user.display_name)}</span>
+										<span>{getInitials(user.name)}</span>
 									)}
 								</div>
 
 								{/* Name */}
 								<span className='text-white text-sm font-medium whitespace-nowrap'>
-									{user.display_name}
+									{user.name}
 								</span>
 
 								{/* Activity indicator */}
-								{user.current_activity && user.current_activity !== 'idle' && (
+								{user.presence?.status && user.presence.status !== 'idle' && (
 									<motion.div
 										initial={{ scale: 0 }}
 										animate={{ scale: 1 }}
@@ -261,38 +261,104 @@ export function UserCursor({
 	);
 }
 
+// Enhanced cursor data interface
+interface CursorData {
+	position: { x: number; y: number };
+	user: ActiveUser;
+	lastUpdate: number;
+	isActive: boolean;
+}
+
 // Cursor layer component to manage multiple cursors
 interface CursorLayerProps {
-	users: CollaborationUser[];
+	users: ActiveUser[];
 	currentUserId: string;
 	className?: string;
+	hideInactiveAfterMs?: number;
 }
 
 export function CursorLayer({
 	users,
 	currentUserId,
 	className,
+	hideInactiveAfterMs = 5000,
 }: CursorLayerProps) {
-	const [userPositions, setUserPositions] = useState<
-		Record<string, { x: number; y: number }>
-	>({});
+	const [cursorsData, setCursorsData] = useState<Record<string, CursorData>>({});
+	const inactivityTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
 	// Filter out current user
-	const otherUsers = users.filter((u) => u.id !== currentUserId);
+	const otherUsers = users.filter((u) => u.user_id !== currentUserId);
 
-	// Listen for cursor position updates (this would come from your real-time system)
+	// Clean up inactive cursors
+	const cleanupInactiveCursor = useCallback((userId: string) => {
+		setCursorsData((prev) => {
+			const newData = { ...prev };
+			if (newData[userId]) {
+				newData[userId] = {
+					...newData[userId],
+					isActive: false,
+				};
+			}
+			return newData;
+		});
+
+		// Remove completely after additional delay
+		setTimeout(() => {
+			setCursorsData((prev) => {
+				const newData = { ...prev };
+				delete newData[userId];
+				return newData;
+			});
+		}, 1000);
+	}, []);
+
+	// Reset inactivity timer for a user
+	const resetInactivityTimer = useCallback((userId: string) => {
+		// Clear existing timer
+		const existingTimer = inactivityTimersRef.current.get(userId);
+		if (existingTimer) {
+			clearTimeout(existingTimer);
+		}
+
+		// Set new timer
+		if (hideInactiveAfterMs > 0) {
+			const timer = setTimeout(() => {
+				cleanupInactiveCursor(userId);
+				inactivityTimersRef.current.delete(userId);
+			}, hideInactiveAfterMs);
+
+			inactivityTimersRef.current.set(userId, timer);
+		}
+	}, [hideInactiveAfterMs, cleanupInactiveCursor]);
+
+	// Listen for cursor position updates
 	useEffect(() => {
 		const handleCursorUpdate = (
 			event: CustomEvent<{
 				userId: string;
 				position: { x: number; y: number };
+				user: ActiveUser;
+				timestamp: number;
 			}>
 		) => {
-			const { userId, position } = event.detail;
-			setUserPositions((prev) => ({
+			const { userId, position, user, timestamp } = event.detail;
+			
+			// Skip our own cursor
+			if (userId === currentUserId) return;
+
+			// Update cursor data
+			setCursorsData((prev) => ({
 				...prev,
-				[userId]: position,
+				[userId]: {
+					position,
+					user,
+					lastUpdate: timestamp,
+					isActive: true,
+				},
 			}));
+
+			// Reset inactivity timer
+			resetInactivityTimer(userId);
 		};
 
 		window.addEventListener('cursorUpdate' as any, handleCursorUpdate);
@@ -300,25 +366,33 @@ export function CursorLayer({
 		return () => {
 			window.removeEventListener('cursorUpdate' as any, handleCursorUpdate);
 		};
+	}, [currentUserId, resetInactivityTimer]);
+
+	// Cleanup timers on unmount
+	useEffect(() => {
+		return () => {
+			inactivityTimersRef.current.forEach((timer) => clearTimeout(timer));
+			inactivityTimersRef.current.clear();
+		};
 	}, []);
+
+	// Filter and render active cursors
+	const activeCursors = Object.entries(cursorsData).filter(([_, data]) => 
+		data.isActive && otherUsers.some(u => u.user_id === data.user.user_id)
+	);
 
 	return (
 		<div className={cn('fixed inset-0 pointer-events-none z-50', className)}>
-			{otherUsers.map((user) => {
-				const position = userPositions[user.id];
-				if (!position) return null;
-
-				return (
-					<UserCursor
-						key={user.id}
-						user={user}
-						position={position}
-						color={getUserCursorColor(user.id)}
-						isActive={true}
-						showLabel={true}
-					/>
-				);
-			})}
+			{activeCursors.map(([userId, cursorData]) => (
+				<UserCursor
+					key={userId}
+					user={cursorData.user}
+					position={cursorData.position}
+					color={getUserCursorColor(userId)}
+					isActive={cursorData.isActive}
+					showLabel={true}
+				/>
+			))}
 		</div>
 	);
 }

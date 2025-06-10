@@ -2,15 +2,17 @@
 
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'; // Keep shortcuts here
 import { cn } from '@/utils/cn';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef, useEffect } from 'react';
 import { ModalsWrapper } from './mind-map/modals-wrapper';
 import { ReactFlowArea } from './mind-map/react-flow-area';
 
 import useAppStore from '@/contexts/mind-map/mind-map-store';
 import { useCollaboration } from '@/hooks/use-collaboration';
+import { useRealtimeCursorsBridge } from '@/hooks/use-realtime-cursors-bridge';
 import { useParams } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
 import { AvatarStack } from './collaboration/avatar-stack/avatar-stack';
+import { CursorLayer } from './collaboration/user-cursor';
 import { CommandPalette } from './command-palette';
 import { CommentsPanel } from './comment/comment-panel';
 import { MindMapToolbar } from './mind-map-toolbar/mind-map-toolbar';
@@ -22,6 +24,17 @@ export function MindMapCanvas() {
 
 	// Initialize collaboration
 	const collaboration = useCollaboration(mapId);
+
+	// Container ref for cursor positioning
+	const containerRef = useRef<HTMLDivElement>(null);
+
+	// Initialize realtime cursors
+	const { isConnected: cursorConnected } = useRealtimeCursorsBridge({
+		mapId,
+		enabled: true,
+		throttleMs: 50,
+		containerRef: containerRef as React.RefObject<HTMLElement>,
+	});
 
 	// Consume necessary values for keyboard shortcuts
 	const {
@@ -41,6 +54,9 @@ export function MindMapCanvas() {
 		ungroupNodes,
 		toggleNodeCollapse,
 		isCommentsPanelOpen,
+		activeUsers,
+		currentUser,
+		getCurrentUser,
 	} = useAppStore(
 		useShallow((state) => ({
 			handleUndo: state.handleUndo,
@@ -53,15 +69,25 @@ export function MindMapCanvas() {
 			canRedo: state.canRedo,
 			loadingStates: state.loadingStates,
 			setPopoverOpen: state.setPopoverOpen,
-			isFocusMode: state.isFocusMode,
 			popoverOpen: state.popoverOpen,
+			isFocusMode: state.isFocusMode,
 			createGroupFromSelected: state.createGroupFromSelected,
 			ungroupNodes: state.ungroupNodes,
 			toggleNodeCollapse: state.toggleNodeCollapse,
 			isCommentsPanelOpen: state.isCommentsPanelOpen,
+			activeUsers: state.activeUsers,
+			currentUser: state.currentUser,
+			getCurrentUser: state.getCurrentUser,
 		}))
 	);
 	const isLoading = loadingStates.isStateLoading;
+
+	// Initialize current user on mount
+	useEffect(() => {
+		if (!currentUser) {
+			getCurrentUser();
+		}
+	}, [currentUser, getCurrentUser]);
 
 	const selectedNodeId = selectedNodes[0]?.id;
 	const selectedEdgeId = useMemo(
@@ -124,7 +150,10 @@ export function MindMapCanvas() {
 
 	return (
 		// Context Provider is now wrapping this component higher up
-		<div className='relative h-full w-full overflow-hidden rounded-md bg-zinc-900 flex'>
+		<div 
+			ref={containerRef}
+			className='relative h-full w-full overflow-hidden rounded-md bg-zinc-900 flex'
+		>
 			{/* Main content area */}
 			<div
 				className={cn([
@@ -161,6 +190,15 @@ export function MindMapCanvas() {
 
 			{/* Comments Panel */}
 			{popoverOpen.commentsPanel && <CommentsPanel />}
+
+			{/* Realtime Cursors Layer */}
+			{cursorConnected && currentUser && (
+				<CursorLayer
+					users={activeUsers}
+					currentUserId={currentUser.id}
+					hideInactiveAfterMs={5000}
+				/>
+			)}
 		</div>
 	);
 }
