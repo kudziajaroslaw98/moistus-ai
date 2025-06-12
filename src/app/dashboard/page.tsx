@@ -1,5 +1,6 @@
 'use client';
 
+import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
@@ -256,9 +257,10 @@ export default function DashboardPage() {
 	}
 
 	return (
-		<div className='min-h-screen w-full p-6 md:p-8'>
-			<div className='mx-auto h-full w-full max-w-6xl'>
-				<h1 className='mb-8 text-3xl font-bold text-white'>My Mind Map</h1>
+		<div className='min-h-screen w-full'>
+			<DashboardHeader />
+			<div className='p-6 md:p-8'>
+				<div className='mx-auto h-full w-full max-w-6xl'>
 
 				{/* Search Bar */}
 				<div className='mb-8'>
@@ -383,6 +385,7 @@ export default function DashboardPage() {
 						{notification.message}
 					</div>
 				)}
+				</div>
 			</div>
 		</div>
 	);

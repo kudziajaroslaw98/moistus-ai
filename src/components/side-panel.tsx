@@ -52,7 +52,7 @@ export function SidePanel({
 						</div>
 
 						{/* Panel Body - Scrollable */}
-						<div className='flex-grow overflow-y-auto p-4 md:p-6'>
+						<div className='flex-grow overflow-y-auto max-h-screen p-4 md:p-6'>
 							{children}
 						</div>
 					</div>

@@ -1,8 +1,8 @@
-import { createClient } from '@/helpers/supabase/client';
+import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import { ShareRole, ShareToken, ShareTokenType, SharingError } from '@/types/sharing-types';
 import { StateCreator } from 'zustand';
 
-const supabase = createClient();
+const supabase = getSharedSupabaseClient();
 
 // Simplified types for anonymous auth system
 
@@ -90,51 +90,104 @@ export const createSharingSlice: StateCreator<
 		// Ensure user is authenticated (anonymous or full)
 		ensureAuthenticated: async (displayName?: string) => {
 			try {
-				const { data: { user }, error } = await supabase.auth.getUser();
+				console.log('ensureAuthenticated: Starting authentication check...');
 				
-				if (error || !user) {
-					// Sign in anonymously
-					const { data: authData, error: signInError } = await supabase.auth.signInAnonymously();
+				// First, check if we already have a session
+				const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+				
+				if (sessionError) {
+					console.warn('ensureAuthenticated: Session check failed:', sessionError);
+				}
+				
+				// Then get the user
+				const { data: { user }, error: userError } = await supabase.auth.getUser();
+				
+				if (userError) {
+					console.warn('ensureAuthenticated: User check failed:', userError);
+				}
+				
+				if (user && session) {
+					console.log('ensureAuthenticated: Existing user found, checking profile...');
 					
-					if (signInError || !authData.user) {
-						throw new Error('Failed to authenticate anonymously');
+					// User already authenticated, get their profile
+					const { data: profile, error: profileError } = await supabase
+						.from('user_profiles')
+						.select('display_name, avatar_url, is_anonymous')
+						.eq('user_id', user.id)
+						.single();
+					
+					if (profileError) {
+						console.warn('ensureAuthenticated: Profile fetch failed:', profileError);
+						// Continue with fallback data
 					}
 					
-					// Create anonymous user profile
-					const defaultDisplayName = displayName || `User ${authData.user.id.slice(0, 8)}`;
-					const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${authData.user.id}`;
-					
-					const anonymousUser: AnonymousUser = {
-						user_id: authData.user.id,
-						display_name: defaultDisplayName,
-						avatar_url: avatarUrl,
-						is_anonymous: true,
-						created_at: new Date().toISOString()
+					const authUser: AnonymousUser = {
+						user_id: user.id,
+						display_name: profile?.display_name || displayName || `User ${user.id.slice(0, 8)}`,
+						avatar_url: profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`,
+						is_anonymous: profile?.is_anonymous || user.is_anonymous || false,
+						created_at: user.created_at
 					};
 					
-					set({ authUser: anonymousUser });
+					console.log('ensureAuthenticated: Using existing user:', { 
+						user_id: authUser.user_id, 
+						is_anonymous: authUser.is_anonymous 
+					});
+					
+					set({ authUser, sharingError: undefined });
 					return true;
 				}
 				
-				// User already authenticated, get their profile
-				const { data: profile } = await supabase
+				// No valid session, create anonymous user
+				console.log('ensureAuthenticated: No existing session, creating anonymous user...');
+				
+				const { data: authData, error: signInError } = await supabase.auth.signInAnonymously({
+					options: {
+						data: {
+							display_name: displayName || `Anonymous User`,
+						}
+					}
+				});
+				
+				if (signInError || !authData.user) {
+					console.error('ensureAuthenticated: Anonymous sign-in failed:', signInError);
+					throw new Error(signInError?.message || 'Failed to authenticate anonymously');
+				}
+				
+				console.log('ensureAuthenticated: Anonymous user created:', authData.user.id);
+				
+				// Wait a moment for the profile to be created by the trigger
+				await new Promise(resolve => setTimeout(resolve, 100));
+				
+				// Get the newly created profile (created by database trigger)
+				const { data: newProfile } = await supabase
 					.from('user_profiles')
 					.select('display_name, avatar_url, is_anonymous')
-					.eq('user_id', user.id)
+					.eq('user_id', authData.user.id)
 					.single();
 				
-				const authUser: AnonymousUser = {
-					user_id: user.id,
-					display_name: profile?.display_name || displayName || `User ${user.id.slice(0, 8)}`,
-					avatar_url: profile?.avatar_url,
-					is_anonymous: profile?.is_anonymous || false,
-					created_at: user.created_at
+				const defaultDisplayName = displayName || newProfile?.display_name || `User ${authData.user.id.slice(0, 8)}`;
+				const avatarUrl = newProfile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${authData.user.id}`;
+				
+				const anonymousUser: AnonymousUser = {
+					user_id: authData.user.id,
+					display_name: defaultDisplayName,
+					avatar_url: avatarUrl,
+					is_anonymous: true,
+					created_at: new Date().toISOString()
 				};
 				
-				set({ authUser });
+				console.log('ensureAuthenticated: Anonymous user setup complete:', { 
+					user_id: anonymousUser.user_id, 
+					display_name: anonymousUser.display_name 
+				});
+				
+				set({ authUser: anonymousUser, sharingError: undefined });
 				return true;
 				
 			} catch (error) {
+				console.error('ensureAuthenticated: Authentication failed:', error);
+				
 				const sharingError: SharingError = {
 					code: 'PERMISSION_DENIED',
 					message: error instanceof Error ? error.message : 'Authentication failed'

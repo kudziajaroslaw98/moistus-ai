@@ -1,4 +1,4 @@
-import { createClient } from '@/helpers/supabase/client';
+import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import { XYPosition } from '@xyflow/react';
 
 /**
@@ -10,7 +10,7 @@ export async function saveNodePosition(
 	nodeId: string,
 	position: XYPosition
 ): Promise<void> {
-	const supabase = createClient();
+	const supabase = getSharedSupabaseClient();
 
 	const {
 		data: { user },

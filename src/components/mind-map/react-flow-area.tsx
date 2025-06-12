@@ -10,6 +10,7 @@ import {
 	Node,
 	NodeTypes,
 	OnConnectStartParams,
+	Panel,
 	ReactFlow,
 	SelectionMode,
 	useReactFlow,
@@ -37,6 +38,7 @@ import { useShallow } from 'zustand/shallow';
 import FloatingConnectionLine from '../edges/floating-connection-line';
 import BuilderNode from '../nodes/builder-node';
 import TaskNode from '../nodes/task-node';
+import { RealtimeAvatarStack } from '../realtime/realtime-avatar-stack';
 import { ZoomSlider } from '../ui/zoom-slider';
 
 export function ReactFlowArea() {
@@ -303,6 +305,10 @@ export function ReactFlowArea() {
 			<ZoomSlider position='top-left' />
 
 			<Background color='#52525c' gap={16} variant={BackgroundVariant.Dots} />
+
+			<Panel position='bottom-left'>
+				<RealtimeAvatarStack roomName={`mind_map:${mapId}:users`} />
+			</Panel>
 		</ReactFlow>
 	);
 }

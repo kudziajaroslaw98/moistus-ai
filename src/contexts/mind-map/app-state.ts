@@ -1,17 +1,6 @@
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import { AvailableNodeTypes } from '@/types/available-node-types';
-import {
-	ActiveUser,
-	ActivityFilters,
-	CollaborationState,
-	CollaborativeNodeState,
-	CreateActivityRequest,
-	CursorInteractionState,
-	PresenceStatus,
-	SelectionType,
-	UpdatePresenceRequest,
-} from '@/types/collaboration-types';
 import type {
 	Comment,
 	CommentFilter,
@@ -28,11 +17,12 @@ import type { SpecificLayoutConfig } from '@/types/layout-types';
 import { LoadingStates } from '@/types/loading-states';
 import type { MindMapData } from '@/types/mind-map-data';
 import type { NodeData } from '@/types/node-data';
-import {
-	ShareToken,
-	SharingError,
-} from '@/types/sharing-types';
-import type { SupabaseClient, User, RealtimeChannel } from '@supabase/supabase-js';
+import { ShareToken, SharingError } from '@/types/sharing-types';
+import type {
+	RealtimeChannel,
+	SupabaseClient,
+	User,
+} from '@supabase/supabase-js';
 import type {
 	OnConnect,
 	OnEdgesChange,
@@ -54,55 +44,6 @@ export interface ClipboardSlice {
 		nodes: AppNode[];
 		edges: AppEdge[];
 	}>;
-}
-
-// Collaboration Slice
-export interface CollaborationSlice extends CollaborationState {
-	// Connection management
-	connect: (mapId: string) => Promise<void>;
-	disconnect: () => Promise<void>;
-
-	// Presence management
-	joinMap: (mapId: string) => Promise<void>;
-	leaveMap: () => Promise<void>;
-	updatePresence: (updates: Partial<UpdatePresenceRequest>) => Promise<void>;
-	setUserStatus: (status: PresenceStatus) => Promise<void>;
-
-	// Cursor tracking
-	updateCursor: (
-		position: { x: number; y: number },
-		viewport: { x: number; y: number; zoom: number }
-	) => void;
-	setCursorInteractionState: (state: CursorInteractionState) => void;
-	toggleCursorVisibility: (show: boolean) => void;
-
-	// Node selection management
-	selectNode: (nodeId: string, selectionType?: SelectionType) => Promise<void>;
-	deselectNode: (nodeId: string) => Promise<void>;
-	clearSelections: () => Promise<void>;
-	setNodeEditingState: (nodeId: string, isEditing: boolean) => void;
-	checkEditPermission: (nodeId: string) => boolean;
-
-	// Activity tracking
-	logActivity: (activity: CreateActivityRequest) => Promise<void>;
-	loadActivities: (filters?: ActivityFilters) => Promise<void>;
-	setActivityFilters: (filters: Partial<ActivityFilters>) => void;
-	clearActivityFilters: () => void;
-
-	// UI state management
-	toggleActivityFeed: () => void;
-	togglePresenceIndicators: () => void;
-
-	// Utility functions
-	getUserColor: (userId: string) => string;
-	isUserActive: (userId: string) => boolean;
-	getNodeCollaborativeState: (nodeId: string) => CollaborativeNodeState;
-	getActiveCollaborationUser: () => ActiveUser | undefined;
-
-	// Internal state management
-	_addActiveUser: (user: ActiveUser) => void;
-	_removeActiveUser: (userId: string) => void;
-	_updateActiveUser: (userId: string, updates: Partial<ActiveUser>) => void;
 }
 
 // Comments Slice
@@ -393,30 +334,37 @@ export interface SharingState {
 // Sharing Slice
 export interface SharingSlice extends SharingState {
 	// Actions
-	createRoomCode: (mapId: string, options?: {
-		role?: string;
-		maxUsers?: number;
-		expiresAt?: string;
-	}) => Promise<ShareToken>;
-	
+	createRoomCode: (
+		mapId: string,
+		options?: {
+			role?: string;
+			maxUsers?: number;
+			expiresAt?: string;
+		}
+	) => Promise<ShareToken>;
+
 	joinRoom: (roomCode: string, displayName?: string) => Promise<JoinRoomResult>;
-	
-	upgradeAnonymousUser: (email: string, password: string, displayName?: string) => Promise<boolean>;
-	
+
+	upgradeAnonymousUser: (
+		email: string,
+		password: string,
+		displayName?: string
+	) => Promise<boolean>;
+
 	ensureAuthenticated: (displayName?: string) => Promise<boolean>;
-	
+
 	refreshTokens: () => Promise<void>;
-	
+
 	refreshRoomCode: (tokenId: string) => Promise<void>;
-	
+
 	revokeRoomCode: (tokenId: string) => Promise<void>;
-	
+
 	subscribeToSharingUpdates: (mapId: string) => void;
-	
+
 	unsubscribeFromSharing: () => void;
-	
+
 	clearError: () => void;
-	
+
 	reset: () => void;
 }
 
@@ -473,5 +421,4 @@ export interface AppState
 		LayoutSlice,
 		GroupsSlice,
 		CommentsSlice,
-		CollaborationSlice,
 		SharingSlice {}

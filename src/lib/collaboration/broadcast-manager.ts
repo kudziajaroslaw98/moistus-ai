@@ -1,4 +1,4 @@
-import { createClient } from '@/helpers/supabase/client';
+import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
 export interface BroadcastEvent {
@@ -56,7 +56,7 @@ export interface BroadcastManagerConfig {
 }
 
 export class BroadcastManager {
-	private supabase = createClient();
+	private supabase = getSharedSupabaseClient();
 	private channel: RealtimeChannel | null = null;
 	private config: BroadcastManagerConfig;
 	private subscribers: Map<string, Set<BroadcastCallback>> = new Map();

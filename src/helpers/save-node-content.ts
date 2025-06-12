@@ -1,7 +1,7 @@
-import { createClient } from './supabase/client';
+import { getSharedSupabaseClient } from './supabase/shared-client';
 
 export const saveNodeContent = async (nodeId: string, content: string) => {
-	const supabase = createClient();
+	const supabase = getSharedSupabaseClient();
 
 	const trimmedContent = content.trim();
 	const { error } = await supabase

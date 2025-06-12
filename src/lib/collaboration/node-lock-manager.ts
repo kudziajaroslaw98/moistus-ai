@@ -1,4 +1,4 @@
-import { createClient } from '@/helpers/supabase/client';
+import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import { BroadcastManager } from './broadcast-manager';
 
 export interface NodeLock {
@@ -50,7 +50,7 @@ export class NodeLockManager {
 	private config: NodeLockManagerConfig;
 	private expirationTimers: Map<string, NodeJS.Timeout> = new Map();
 	private queueTimers: Map<string, NodeJS.Timeout> = new Map();
-	private supabase = createClient();
+	private supabase = getSharedSupabaseClient();
 
 	constructor(config: NodeLockManagerConfig) {
 		this.config = {

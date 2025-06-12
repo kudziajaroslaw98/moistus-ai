@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import type { AppState } from './app-state';
 import { createClipboardSlice } from './slices/clipboard-slice';
-import { createCollaborationSlice } from './slices/collaboration-slice';
 import { createCommentsSlice } from './slices/comments-slice';
 import { createCoreDataSlice } from './slices/core-slice';
 import { createEdgeSlice } from './slices/edges-slice';
@@ -24,7 +23,6 @@ const useAppStore = create<AppState>((...args) => ({
 	...createLayoutSlice(...args),
 	...createGroupsSlice(...args),
 	...createCommentsSlice(...args),
-	...createCollaborationSlice(...args),
 	...createSharingSlice(...args),
 }));
 

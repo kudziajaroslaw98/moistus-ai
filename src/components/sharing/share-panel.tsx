@@ -323,7 +323,7 @@ export function SharePanel({
 							<Tabs
 								value={activeTab}
 								onValueChange={(v) => setActiveTab(v as any)}
-								className='flex-1'
+								className='flex-1 max-h-screen overflow-y-auto'
 							>
 								<TabsList className='grid w-full grid-cols-3'>
 									<TabsTrigger value='room-code'>

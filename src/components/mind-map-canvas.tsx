@@ -2,39 +2,22 @@
 
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'; // Keep shortcuts here
 import { cn } from '@/utils/cn';
-import { useCallback, useMemo, useRef, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { ModalsWrapper } from './mind-map/modals-wrapper';
 import { ReactFlowArea } from './mind-map/react-flow-area';
 
 import useAppStore from '@/contexts/mind-map/mind-map-store';
-import { useCollaboration } from '@/hooks/use-collaboration';
-import { useRealtimeCursorsBridge } from '@/hooks/use-realtime-cursors-bridge';
 import { useParams } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
-import { AvatarStack } from './collaboration/avatar-stack/avatar-stack';
-import { CursorLayer } from './collaboration/user-cursor';
 import { CommandPalette } from './command-palette';
 import { CommentsPanel } from './comment/comment-panel';
 import { MindMapToolbar } from './mind-map-toolbar/mind-map-toolbar';
 import { ContextMenuWrapper } from './mind-map/context-menu-wrapper';
+import { RealtimeCursors } from './realtime/realtime-cursor';
 
 export function MindMapCanvas() {
 	const params = useParams();
 	const mapId = params.id as string;
-
-	// Initialize collaboration
-	const collaboration = useCollaboration(mapId);
-
-	// Container ref for cursor positioning
-	const containerRef = useRef<HTMLDivElement>(null);
-
-	// Initialize realtime cursors
-	const { isConnected: cursorConnected } = useRealtimeCursorsBridge({
-		mapId,
-		enabled: true,
-		throttleMs: 50,
-		containerRef: containerRef as React.RefObject<HTMLElement>,
-	});
 
 	// Consume necessary values for keyboard shortcuts
 	const {
@@ -54,7 +37,6 @@ export function MindMapCanvas() {
 		ungroupNodes,
 		toggleNodeCollapse,
 		isCommentsPanelOpen,
-		activeUsers,
 		currentUser,
 		getCurrentUser,
 	} = useAppStore(
@@ -121,16 +103,6 @@ export function MindMapCanvas() {
 		setPopoverOpen({ commentsPanel: !popoverOpen.commentsPanel });
 	}, [popoverOpen.commentsPanel]);
 
-	// Handle user avatar clicks - center view on user's cursor
-	const handleUserClick = useCallback(
-		(user: { user_id: string; name: string }) => {
-			console.log('Center view on user:', user);
-			// TODO: Implement view centering on user cursor position
-			// This will be implemented when cursor tracking is added
-		},
-		[]
-	);
-
 	useKeyboardShortcuts({
 		onUndo: handleUndo,
 		onRedo: handleRedo,
@@ -150,10 +122,7 @@ export function MindMapCanvas() {
 
 	return (
 		// Context Provider is now wrapping this component higher up
-		<div 
-			ref={containerRef}
-			className='relative h-full w-full overflow-hidden rounded-md bg-zinc-900 flex'
-		>
+		<div className='relative h-full w-full overflow-hidden rounded-md bg-zinc-900 flex'>
 			{/* Main content area */}
 			<div
 				className={cn([
@@ -178,27 +147,16 @@ export function MindMapCanvas() {
 					<ContextMenuWrapper />
 
 					<ReactFlowArea />
-
-					{/* Collaboration Avatar Stack */}
-					{collaboration.state.isConnected && (
-						<div className='absolute top-4 right-4 z-50'>
-							<AvatarStack onUserClick={handleUserClick} size='md' />
-						</div>
-					)}
 				</div>
 			</div>
 
 			{/* Comments Panel */}
 			{popoverOpen.commentsPanel && <CommentsPanel />}
 
-			{/* Realtime Cursors Layer */}
-			{cursorConnected && currentUser && (
-				<CursorLayer
-					users={activeUsers}
-					currentUserId={currentUser.id}
-					hideInactiveAfterMs={5000}
-				/>
-			)}
+			<RealtimeCursors
+				roomName={`mind_map:${mapId}:cursor`}
+				username={currentUser?.user_metadata?.display_name || 'Anonymous'}
+			/>
 		</div>
 	);
 }

@@ -275,6 +275,43 @@ const staggerContainer = {
 - **Performance Indexes**: ✅ Added indexes for `is_anonymous` and `last_activity` queries
 - **JSONB Metadata**: Flexible node and edge metadata storage
 - **Input Sanitization**: Zod-based validation across all inputs
+- **Shared Client Architecture**: ✅ Fixed anonymous authentication by implementing shared Supabase client instance across all store slices
+- **User Profile Creation Trigger**: ✅ Fixed missing user_profiles for anonymous users with robust trigger system
+- **Realtime Optimization**: ✅ Replaced custom comment notification triggers with native Supabase Realtime for better performance
+
+#### Critical Anonymous Authentication Fixes
+
+Fixed critical issues preventing anonymous users from accessing shared mind maps:
+
+**1. Multiple Supabase Client Instance Problem:**
+- **Issue**: Each store slice created separate client instances, breaking session sharing
+- **Impact**: Anonymous auth in sharing slice not recognized by core slice during data fetching
+- **Solution**: Implemented `getSharedSupabaseClient()` for consistent authentication state
+- **Files Updated**: All store slices, helper functions, and collaboration libraries
+
+**2. Missing User Profile Trigger:**
+- **Issue**: Anonymous users created without corresponding `user_profiles` records
+- **Impact**: API calls failed with "JSON object requested, multiple (or no) rows returned" error
+- **Solution**: Created robust `create_user_profile_on_signup()` trigger with retry logic
+- **Features**: Handles anonymous and regular users, provides fallback defaults, includes error handling
+
+**Updated RLS Policies:**
+- `mind_maps`: Allow anonymous access to maps with active share tokens
+- `nodes`: Allow anonymous read access to nodes from shared maps  
+- `edges`: Allow anonymous read access to edges from shared maps
+- All policies now use `(select auth.uid())` consistently for better performance
+
+**Trigger Implementation:**
+- Automatically creates user_profiles for all new auth.users
+- Handles metadata extraction safely with JSONB parsing
+- Provides sensible defaults for anonymous users
+- Includes conflict resolution and error recovery
+
+**Performance Optimizations:**
+- ✅ Removed redundant custom comment notification triggers in favor of Supabase Realtime
+- ✅ Comment system now uses native WebSocket-based change detection
+- ✅ Eliminated PL/pgSQL overhead for comment notifications
+- ✅ Simplified debugging with built-in Realtime filtering and monitoring
 
 ---
 

@@ -1,4 +1,4 @@
-import { createClient } from '@/helpers/supabase/client';
+import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import { transformSupabaseData } from '@/helpers/transform-supabase-data';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
 import type { EdgesTableType } from '@/types/edges-table-type';
@@ -14,7 +14,7 @@ export const createCoreDataSlice: StateCreator<
 	CoreDataSlice
 > = (set, get) => ({
 	// Initial state
-	supabase: createClient(),
+	supabase: getSharedSupabaseClient(),
 	mapId: null,
 	reactFlowInstance: null,
 	mindMap: null,
