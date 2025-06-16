@@ -36,16 +36,12 @@ export const useRealtimeSelectionPresenceRoom = (roomName: string) => {
 					selectedNodes: string[];
 				}>();
 
-				const newUsers = Object.entries(newState)
-					.map(([key, values]) => ({
-						id: values[0].id,
-						name: values[0].name,
-						image: values[0].image,
-						selectedNodes: values[0].selectedNodes,
-					}))
-					.filter(
-						(user) => user.id !== currentUser?.id
-					) as RealtimeUserSelection[];
+				const newUsers = Object.entries(newState).map(([key, values]) => ({
+					id: values[0].id,
+					name: values[0].name,
+					image: values[0].image,
+					selectedNodes: values[0].selectedNodes,
+				}));
 				setUsers(newUsers);
 				setRealtimeSelectedNodes(newUsers);
 			})
