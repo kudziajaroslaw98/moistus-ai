@@ -39,6 +39,7 @@ import FloatingConnectionLine from '../edges/floating-connection-line';
 import BuilderNode from '../nodes/builder-node';
 import TaskNode from '../nodes/task-node';
 import { RealtimeAvatarStack } from '../realtime/realtime-avatar-stack';
+import { RealtimeCursors } from '../realtime/realtime-cursor';
 import { ZoomSlider } from '../ui/zoom-slider';
 
 export function ReactFlowArea() {
@@ -76,6 +77,7 @@ export function ReactFlowArea() {
 		unsubscribeFromComments,
 		unsubscribeFromRealtimeUpdates,
 		getCurrentUser,
+		currentUser,
 		getVisibleEdges,
 		getVisibleNodes,
 	} = useAppStore(
@@ -105,6 +107,7 @@ export function ReactFlowArea() {
 			unsubscribeFromComments: state.unsubscribeFromComments,
 			unsubscribeFromRealtimeUpdates: state.unsubscribeFromRealtimeUpdates,
 			getCurrentUser: state.getCurrentUser,
+			currentUser: state.currentUser,
 		}))
 	);
 
@@ -308,6 +311,25 @@ export function ReactFlowArea() {
 
 			<Panel position='bottom-left'>
 				<RealtimeAvatarStack roomName={`mind_map:${mapId}:users`} />
+			</Panel>
+
+			<Panel
+				position='top-left'
+				className='pointer-events-none'
+				style={{
+					width: '100%',
+					height: '100%',
+					position: 'absolute',
+					top: 0,
+					left: 0,
+					pointerEvents: 'none',
+					zIndex: 1,
+				}}
+			>
+				<RealtimeCursors
+					roomName={`mind_map:${mapId}:cursor`}
+					reactFlowInstance={reactFlowInstance}
+				/>
 			</Panel>
 		</ReactFlow>
 	);

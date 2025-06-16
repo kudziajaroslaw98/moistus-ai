@@ -11,8 +11,9 @@ import {
 } from '@xyflow/react';
 import { Plus } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { memo, type ReactNode, useCallback } from 'react';
+import { memo, type ReactNode, useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
+import { AvatarStack } from '../ui/avatar-stack';
 import { Button } from '../ui/button';
 import CollapseButton from './node-additions/collapse-button';
 import CollapsedIndicator from './node-additions/collapsed-indicator';
@@ -48,13 +49,15 @@ const BaseNodeWrapperComponent = ({
 	includePadding = true,
 	hideNodeType = false,
 }: BaseNodeWrapperProps) => {
-	const { addNode, getNode, isDraggingNodes } = useAppStore(
-		useShallow((state) => ({
-			addNode: state.addNode,
-			getNode: state.getNode,
-			isDraggingNodes: state.isDraggingNodes,
-		}))
-	);
+	const { addNode, getNode, isDraggingNodes, realtimeSelectedNodes } =
+		useAppStore(
+			useShallow((state) => ({
+				addNode: state.addNode,
+				getNode: state.getNode,
+				isDraggingNodes: state.isDraggingNodes,
+				realtimeSelectedNodes: state.realtimeSelectedNodes,
+			}))
+		);
 
 	const connection = useConnection();
 	const isTarget = connection?.toNode?.id === id;
@@ -76,6 +79,13 @@ const BaseNodeWrapperComponent = ({
 			nodeType: currentNode?.data?.node_type ?? 'defaultNode',
 		});
 	}, [id]);
+
+	const avatars = useMemo(() => {
+		if (!realtimeSelectedNodes) return [];
+		return realtimeSelectedNodes.filter((user) =>
+			user.selectedNodes?.includes(id)
+		);
+	}, [realtimeSelectedNodes]);
 
 	if (!data) {
 		return null;
@@ -112,6 +122,20 @@ const BaseNodeWrapperComponent = ({
 				</div>
 
 				{children}
+
+				<AnimatePresence mode='popLayout'>
+					{avatars.length > 0 && (
+						<motion.div
+							initial={{ opacity: 0, scale: 0.98, y: -10 }}
+							animate={{ opacity: 1, scale: 1, y: 0 }}
+							exit={{ opacity: 0, scale: 0.98, y: -10 }}
+							transition={{ duration: 0.2 }}
+							className='inline-flex h-auto w-full'
+						>
+							<AvatarStack avatars={avatars} size={'sm'} />
+						</motion.div>
+					)}
+				</AnimatePresence>
 
 				{!isDraggingNodes && (
 					<>

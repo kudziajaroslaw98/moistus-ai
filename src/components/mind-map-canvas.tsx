@@ -7,13 +7,13 @@ import { ModalsWrapper } from './mind-map/modals-wrapper';
 import { ReactFlowArea } from './mind-map/react-flow-area';
 
 import useAppStore from '@/contexts/mind-map/mind-map-store';
+import { useRealtimeSelectionPresenceRoom } from '@/hooks/use-realtime-selection-presence-room';
 import { useParams } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
 import { CommandPalette } from './command-palette';
 import { CommentsPanel } from './comment/comment-panel';
 import { MindMapToolbar } from './mind-map-toolbar/mind-map-toolbar';
 import { ContextMenuWrapper } from './mind-map/context-menu-wrapper';
-import { RealtimeCursors } from './realtime/realtime-cursor';
 
 export function MindMapCanvas() {
 	const params = useParams();
@@ -57,12 +57,13 @@ export function MindMapCanvas() {
 			ungroupNodes: state.ungroupNodes,
 			toggleNodeCollapse: state.toggleNodeCollapse,
 			isCommentsPanelOpen: state.isCommentsPanelOpen,
-			activeUsers: state.activeUsers,
 			currentUser: state.currentUser,
 			getCurrentUser: state.getCurrentUser,
 		}))
 	);
 	const isLoading = loadingStates.isStateLoading;
+
+	useRealtimeSelectionPresenceRoom(`mind-map:${mapId}:selected-nodes`);
 
 	// Initialize current user on mount
 	useEffect(() => {
@@ -152,11 +153,6 @@ export function MindMapCanvas() {
 
 			{/* Comments Panel */}
 			{popoverOpen.commentsPanel && <CommentsPanel />}
-
-			<RealtimeCursors
-				roomName={`mind_map:${mapId}:cursor`}
-				username={currentUser?.user_metadata?.display_name || 'Anonymous'}
-			/>
 		</div>
 	);
 }

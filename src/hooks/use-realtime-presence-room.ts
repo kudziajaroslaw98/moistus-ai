@@ -19,16 +19,12 @@ export const useRealtimePresenceRoom = (roomName: string) => {
 
 	const [users, setUsers] = useState<Record<string, RealtimeUser>>({});
 
-	console.log(currentUserName, currentUserImage, roomName);
-
 	useEffect(() => {
 		const room = supabase.channel(roomName);
 
 		room
 			.on('presence', { event: 'sync' }, () => {
 				const newState = room.presenceState<{ image: string; name: string }>();
-
-				console.log(newState);
 
 				const newUsers = Object.fromEntries(
 					Object.entries(newState).map(([key, values]) => [

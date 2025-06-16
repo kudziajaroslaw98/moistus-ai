@@ -1,6 +1,8 @@
 import { createClient } from '@/helpers/supabase/client';
 import { RealtimeChannel } from '@supabase/supabase-js';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import type { ReactFlowInstance } from '@xyflow/react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCurrentUserName } from './use-current-username';
 
 /**
  * Throttle a callback to a certain delay, It will only call the callback if the delay has passed, with the arguments
@@ -61,15 +63,18 @@ type CursorEventPayload = {
 
 export const useRealtimeCursors = ({
 	roomName,
-	username,
 	throttleMs,
+	reactFlowInstance,
+	debug = false,
 }: {
 	roomName: string;
-	username: string;
 	throttleMs: number;
+	reactFlowInstance?: ReactFlowInstance;
+	debug?: boolean;
 }) => {
-	const [color] = useState(generateRandomColor());
-	const [userId] = useState(generateRandomNumber());
+	const username = useCurrentUserName();
+	const color = useMemo(() => generateRandomColor(), []);
+	const userId = useMemo(() => generateRandomNumber(), []);
 	const [cursors, setCursors] = useState<Record<string, CursorEventPayload>>(
 		{}
 	);
@@ -80,11 +85,32 @@ export const useRealtimeCursors = ({
 		(event: MouseEvent) => {
 			const { clientX, clientY } = event;
 
+			// Transform viewport coordinates to pane coordinates if ReactFlow instance is available
+			let position = { x: clientX, y: clientY };
+
+			if (reactFlowInstance) {
+				try {
+					position = reactFlowInstance.screenToFlowPosition({
+						x: clientX,
+						y: clientY,
+					});
+
+					if (debug) {
+						console.log('Cursor transform:', {
+							viewport: { x: clientX, y: clientY },
+							pane: position,
+							zoom: reactFlowInstance.getViewport().zoom,
+						});
+					}
+				} catch (error) {
+					// Fallback to viewport coordinates if transformation fails
+					console.warn('Failed to transform cursor coordinates:', error);
+					position = { x: clientX, y: clientY };
+				}
+			}
+
 			const payload: CursorEventPayload = {
-				position: {
-					x: clientX,
-					y: clientY,
-				},
+				position,
 				user: {
 					id: userId,
 					name: username,
@@ -93,13 +119,20 @@ export const useRealtimeCursors = ({
 				timestamp: new Date().getTime(),
 			};
 
-			channelRef.current?.send({
-				type: 'broadcast',
-				event: EVENT_NAME,
-				payload: payload,
-			});
+			if (debug) {
+				console.log('Sending cursor:', payload);
+			}
+
+			// Send cursor position
+			if (channelRef.current && payload.user.name && payload.user.id) {
+				channelRef.current.send({
+					type: 'broadcast',
+					event: EVENT_NAME,
+					payload: payload,
+				});
+			}
 		},
-		[color, userId, username]
+		[color, userId, username, reactFlowInstance, debug]
 	);
 
 	const handleMouseMove = useThrottleCallback(callback, throttleMs);
@@ -108,43 +141,110 @@ export const useRealtimeCursors = ({
 		const channel = supabase.channel(roomName);
 		channelRef.current = channel;
 
+		if (debug) {
+			console.log('Setting up cursor channel:', roomName);
+		}
+
 		channel
 			.on(
 				'broadcast',
 				{ event: EVENT_NAME },
 				(data: { payload: CursorEventPayload }) => {
+					if (debug) {
+						console.log('Raw cursor data received:', data);
+					}
+
+					// Validate received payload
+					if (!data?.payload?.user?.id || !data?.payload?.position) {
+						console.warn('Invalid cursor payload received:', data);
+						return;
+					}
+
 					const { user } = data.payload;
+
 					// Don't render your own cursor
-					if (user.id === userId) return;
+					if (user.id === userId) {
+						if (debug) {
+							console.log('Ignoring own cursor');
+						}
+						return;
+					}
+
+					if (debug) {
+						console.log('Processing cursor from user:', user.name, user.id);
+					}
 
 					setCursors((prev) => {
-						if (prev[userId]) {
-							delete prev[userId];
-						}
-
-						return {
+						const newCursors = {
 							...prev,
 							[user.id]: data.payload,
 						};
+
+						if (debug) {
+							console.log('Updated cursors state:', Object.keys(newCursors));
+						}
+
+						return newCursors;
 					});
 				}
 			)
 			.subscribe();
 
 		return () => {
+			if (debug) {
+				console.log('Unsubscribing from cursor channel');
+			}
 			channel.unsubscribe();
 		};
-	}, []);
+	}, [userId, debug]);
 
 	useEffect(() => {
-		// Add event listener for mousemove
-		window.addEventListener('mousemove', handleMouseMove);
+		// Add event listener for mousemove on document but filter to ReactFlow area
+		const handleMouseMoveFiltered = (event: MouseEvent) => {
+			// Check if mouse is over ReactFlow area
+			const reactFlowElement = document.querySelector('.react-flow');
+			if (!reactFlowElement) return;
+
+			const rect = reactFlowElement.getBoundingClientRect();
+			const { clientX, clientY } = event;
+
+			// Only process if mouse is within ReactFlow bounds
+			if (
+				clientX >= rect.left &&
+				clientX <= rect.right &&
+				clientY >= rect.top &&
+				clientY <= rect.bottom
+			) {
+				handleMouseMove(event);
+			}
+		};
+
+		document.addEventListener('mousemove', handleMouseMoveFiltered);
 
 		// Cleanup on unmount
 		return () => {
-			window.removeEventListener('mousemove', handleMouseMove);
+			document.removeEventListener('mousemove', handleMouseMoveFiltered);
 		};
 	}, [handleMouseMove]);
+
+	// Cleanup stale cursors periodically
+	useEffect(() => {
+		const cleanupInterval = setInterval(() => {
+			const now = Date.now();
+			const STALE_THRESHOLD = 10000; // 10 seconds
+
+			setCursors((prev) => {
+				const filtered = Object.fromEntries(
+					Object.entries(prev).filter(([_, cursor]) => {
+						return now - cursor.timestamp < STALE_THRESHOLD;
+					})
+				);
+				return filtered;
+			});
+		}, 5000); // Check every 5 seconds
+
+		return () => clearInterval(cleanupInterval);
+	}, []);
 
 	return { cursors };
 };

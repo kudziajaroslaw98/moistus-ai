@@ -258,6 +258,27 @@ const staggerContainer = {
 - **Anonymous User Access**: ✅ Complete persistent session support across browser restarts
 - **Real-time Presence**: ✅ Supabase channels optimized for anonymous and full user collaboration
 - **Anonymous Upgrade**: ✅ Seamless account conversion with data preservation
+- **Pane-Relative Cursors**: ✅ Advanced realtime cursor system with ReactFlow coordinate transformation, zoom-aware scaling, and viewport-independent positioning
+
+#### Advanced Realtime Cursor System
+
+**Pane-Relative Positioning:**
+- ✅ **Coordinate Transformation**: Viewport coordinates automatically converted to ReactFlow pane coordinates using `screenToFlowPosition()`
+- ✅ **Zoom-Aware Scaling**: Cursors maintain consistent size across all zoom levels with inverse scaling: `scale(${1 / viewport.zoom})`
+- ✅ **ReactFlow Integration**: Cursors rendered as ReactFlow Panel components for proper containment within the pane
+- ✅ **Performance Optimization**: 50ms throttling, visibility culling, and automatic stale cursor cleanup (10-second timeout)
+
+**Technical Implementation:**
+- ✅ **Hook Architecture**: Enhanced `useRealtimeCursors` with ReactFlow instance integration and coordinate validation
+- ✅ **Error Handling**: Robust fallback mechanisms for transformation failures and invalid coordinates
+- ✅ **Realtime Communication**: Supabase broadcast channels with payload validation and user filtering
+- ✅ **Viewport Tracking**: Real-time viewport change detection using `useViewport()` hook for dynamic scaling
+
+**User Experience:**
+- ✅ **Accurate Positioning**: Cursors appear at exact same relative position for all users regardless of zoom/pan state
+- ✅ **Smooth Transitions**: 20ms transition duration for fluid cursor movement
+- ✅ **Visual Consistency**: Cursors maintain proper size and visibility across different viewport configurations
+- ✅ **Debug Support**: Optional debug mode with comprehensive coordinate transformation logging
 
 ### AI Integration Features
 

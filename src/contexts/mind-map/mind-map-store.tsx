@@ -9,6 +9,7 @@ import { createHistorySlice } from './slices/history-slice';
 import { createLayoutSlice } from './slices/layout-slice';
 import { createLoadingStateSlice } from './slices/loading-state-slice';
 import { createNodeSlice } from './slices/nodes-slice';
+import { createRealtimeSlice } from './slices/realtime-slice';
 import { createSharingSlice } from './slices/sharing-slice';
 import { createUiStateSlice } from './slices/ui-slice';
 
@@ -24,6 +25,7 @@ const useAppStore = create<AppState>((...args) => ({
 	...createGroupsSlice(...args),
 	...createCommentsSlice(...args),
 	...createSharingSlice(...args),
+	...createRealtimeSlice(...args),
 }));
 
 export default useAppStore;

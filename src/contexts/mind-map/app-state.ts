@@ -1,3 +1,4 @@
+import type { RealtimeUserSelection } from '@/hooks/use-realtime-selection-presence-room';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import { AvailableNodeTypes } from '@/types/available-node-types';
@@ -409,6 +410,15 @@ export interface UIStateSlice {
 	toggleFocusMode: () => void;
 }
 
+// Realtime Slice
+export interface RealtimeSlice {
+	// Realtime state
+	realtimeSelectedNodes: RealtimeUserSelection[];
+
+	// Realtime setters
+	setRealtimeSelectedNodes: (nodes: RealtimeUserSelection[]) => void;
+}
+
 // Combined App State
 export interface AppState
 	extends CoreDataSlice,
@@ -421,4 +431,5 @@ export interface AppState
 		LayoutSlice,
 		GroupsSlice,
 		CommentsSlice,
-		SharingSlice {}
+		SharingSlice,
+		RealtimeSlice {}
