@@ -31,15 +31,29 @@ const steps = [
 		color: 'from-blue-500 to-cyan-500',
 		demo: {
 			nodes: [
-				{ id: 'center', label: 'Project Ideas', x: 50, y: 50, size: 12 },
-				{ id: 'node1', label: 'Research', x: 30, y: 30, size: 8 },
-				{ id: 'node2', label: 'Design', x: 70, y: 30, size: 8 },
-				{ id: 'node3', label: 'Development', x: 50, y: 70, size: 8 },
+				{
+					id: 'center',
+					label: 'Project Ideas',
+					x: 50,
+					y: 50,
+					size: 12,
+					isAI: false,
+				},
+				{ id: 'node1', label: 'Research', x: 30, y: 30, size: 8, isAI: false },
+				{ id: 'node2', label: 'Design', x: 70, y: 30, size: 8, isAI: false },
+				{
+					id: 'node3',
+					label: 'Development',
+					x: 50,
+					y: 70,
+					size: 8,
+					isAI: false,
+				},
 			],
 			connections: [
-				{ from: 'center', to: 'node1' },
-				{ from: 'center', to: 'node2' },
-				{ from: 'center', to: 'node3' },
+				{ from: 'center', to: 'node1', isAI: false },
+				{ from: 'center', to: 'node2', isAI: false },
+				{ from: 'center', to: 'node3', isAI: false },
 			],
 		},
 	},
@@ -53,10 +67,24 @@ const steps = [
 		color: 'from-violet-500 to-purple-500',
 		demo: {
 			nodes: [
-				{ id: 'center', label: 'Project Ideas', x: 50, y: 50, size: 12 },
-				{ id: 'node1', label: 'Research', x: 30, y: 30, size: 8 },
-				{ id: 'node2', label: 'Design', x: 70, y: 30, size: 8 },
-				{ id: 'node3', label: 'Development', x: 50, y: 70, size: 8 },
+				{
+					id: 'center',
+					label: 'Project Ideas',
+					x: 50,
+					y: 50,
+					size: 12,
+					isAI: false,
+				},
+				{ id: 'node1', label: 'Research', x: 30, y: 30, size: 8, isAI: false },
+				{ id: 'node2', label: 'Design', x: 70, y: 30, size: 8, isAI: false },
+				{
+					id: 'node3',
+					label: 'Development',
+					x: 50,
+					y: 70,
+					size: 8,
+					isAI: false,
+				},
 				{
 					id: 'ai1',
 					label: 'Market Analysis',
@@ -75,9 +103,9 @@ const steps = [
 				},
 			],
 			connections: [
-				{ from: 'center', to: 'node1' },
-				{ from: 'center', to: 'node2' },
-				{ from: 'center', to: 'node3' },
+				{ from: 'center', to: 'node1', isAI: false },
+				{ from: 'center', to: 'node2', isAI: false },
+				{ from: 'center', to: 'node3', isAI: false },
 				{ from: 'node1', to: 'ai1', isAI: true },
 				{ from: 'node2', to: 'ai2', isAI: true },
 			],
@@ -93,15 +121,45 @@ const steps = [
 		color: 'from-emerald-500 to-green-500',
 		demo: {
 			nodes: [
-				{ id: 'map1', label: 'Project Ideas', x: 30, y: 40, size: 10 },
-				{ id: 'map2', label: 'Team Goals', x: 70, y: 40, size: 10 },
-				{ id: 'user1', label: 'Alice', x: 30, y: 70, size: 6, isUser: true },
-				{ id: 'user2', label: 'Bob', x: 70, y: 70, size: 6, isUser: true },
+				{
+					id: 'map1',
+					label: 'Project Ideas',
+					x: 30,
+					y: 40,
+					size: 10,
+					isAI: false,
+				},
+				{
+					id: 'map2',
+					label: 'Team Goals',
+					x: 70,
+					y: 40,
+					size: 10,
+					isAI: false,
+				},
+				{
+					id: 'user1',
+					label: 'Alice',
+					x: 30,
+					y: 70,
+					size: 6,
+					isUser: true,
+					isAI: false,
+				},
+				{
+					id: 'user2',
+					label: 'Bob',
+					x: 70,
+					y: 70,
+					size: 6,
+					isUser: true,
+					isAI: false,
+				},
 			],
 			connections: [
-				{ from: 'map1', to: 'map2', isDashed: true },
-				{ from: 'user1', to: 'map1' },
-				{ from: 'user2', to: 'map2' },
+				{ from: 'map1', to: 'map2', isDashed: true, isAI: false },
+				{ from: 'user1', to: 'map1', isAI: false },
+				{ from: 'user2', to: 'map2', isAI: false },
 			],
 		},
 	},
@@ -115,17 +173,24 @@ const steps = [
 		color: 'from-amber-500 to-orange-500',
 		demo: {
 			nodes: [
-				{ id: 'center', label: 'Knowledge Base', x: 50, y: 50, size: 12 },
-				{ id: 'export1', label: 'PDF', x: 30, y: 30, size: 6 },
-				{ id: 'export2', label: 'Notion', x: 70, y: 30, size: 6 },
-				{ id: 'export3', label: 'Slack', x: 30, y: 70, size: 6 },
-				{ id: 'export4', label: 'Docs', x: 70, y: 70, size: 6 },
+				{
+					id: 'center',
+					label: 'Knowledge Base',
+					x: 50,
+					y: 50,
+					size: 12,
+					isAI: false,
+				},
+				{ id: 'export1', label: 'PDF', x: 30, y: 30, size: 6, isAI: false },
+				{ id: 'export2', label: 'Notion', x: 70, y: 30, size: 6, isAI: false },
+				{ id: 'export3', label: 'Slack', x: 30, y: 70, size: 6, isAI: false },
+				{ id: 'export4', label: 'Docs', x: 70, y: 70, size: 6, isAI: false },
 			],
 			connections: [
-				{ from: 'center', to: 'export1' },
-				{ from: 'center', to: 'export2' },
-				{ from: 'center', to: 'export3' },
-				{ from: 'center', to: 'export4' },
+				{ from: 'center', to: 'export1', isAI: false },
+				{ from: 'center', to: 'export2', isAI: false },
+				{ from: 'center', to: 'export3', isAI: false },
+				{ from: 'center', to: 'export4', isAI: false },
 			],
 		},
 	},
@@ -167,7 +232,7 @@ function StepDemo({
 										y2={toNode.y}
 										stroke={connection.isAI ? '#8b5cf6' : '#3b82f6'}
 										strokeWidth='0.5'
-										strokeDasharray={connection.isDashed ? '2 2' : '0'}
+										strokeDasharray={connection?.isDashed ? '2 2' : '0'}
 										initial={{ pathLength: 0, opacity: 0 }}
 										animate={{ pathLength: 1, opacity: 0.6 }}
 										exit={{ pathLength: 0, opacity: 0 }}

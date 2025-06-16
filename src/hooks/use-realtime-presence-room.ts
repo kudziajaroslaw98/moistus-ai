@@ -1,9 +1,11 @@
 'use client';
 
+import useAppStore from '@/contexts/mind-map/mind-map-store';
 import { createClient } from '@/helpers/supabase/client';
 import { useCurrentUserImage } from '@/hooks/use-current-user-image';
 import { useCurrentUserName } from '@/hooks/use-current-username';
 import { useEffect, useState } from 'react';
+import { useUserColor } from './use-user-color';
 
 const supabase = createClient();
 
@@ -14,7 +16,11 @@ export type RealtimeUser = {
 };
 
 export const useRealtimePresenceRoom = (roomName: string) => {
-	const currentUserImage = useCurrentUserImage();
+	const currentUser = useAppStore((state) => state.currentUser);
+	const { hex: color } = useUserColor(
+		currentUser?.id || currentUser?.email || 'Anonymous'
+	);
+	const currentUserImage = useCurrentUserImage(color);
 	const currentUserName = useCurrentUserName();
 
 	const [users, setUsers] = useState<Record<string, RealtimeUser>>({});

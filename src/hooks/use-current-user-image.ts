@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 // DiceBear avatar styles - you can easily switch between different visual styles
 const AVATAR_STYLES = [
 	'avataaars', // Pixar-style characters
+	'avataaars-neutral', // Neutral Pixar-style characters
 	'personas', // Professional illustrations
 	'fun-emoji', // Fun emoji faces
 	'bottts', // Robot avatars
+	'bottts-neutral',
 	'lorelei', // Illustrated portraits
 	'adventurer', // Adventure-themed
 ] as const;
@@ -15,24 +17,28 @@ type AvatarStyle = (typeof AVATAR_STYLES)[number];
 
 interface AvatarOptions {
 	style?: AvatarStyle;
+	backgroundColor?: string;
 }
 
 const generateFallbackAvatar = (seed: string, options: AvatarOptions = {}) => {
-	const { style = 'avataaars' } = options;
+	const { style = 'bottts-neutral', backgroundColor = '09090b' } = options;
 
 	const baseUrl = `https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(seed)}`;
 	const params = new URLSearchParams();
 
 	// Set background color (use predefined or custom hex)
-	params.append('backgroundColor', '09090b');
+	if (backgroundColor) {
+		params.set('backgroundColor', backgroundColor.replace('#', ''));
+	}
 
 	return `${baseUrl}&${params.toString()}`;
 };
 
-export const useCurrentUserImage = () => {
+export const useCurrentUserImage = (backgroundColor?: string) => {
 	const [image, setImage] = useState<string>(
 		generateFallbackAvatar('User', {
-			style: 'avataaars',
+			style: 'lorelei',
+			backgroundColor,
 		})
 	);
 
@@ -52,13 +58,14 @@ export const useCurrentUserImage = () => {
 				// Generate fallback avatar based on user email or ID
 				const seed = user?.email || user?.id || 'Anonymous';
 				const fallbackUrl = generateFallbackAvatar(seed, {
-					style: 'avataaars',
+					style: 'lorelei',
+					backgroundColor,
 				});
 				setImage(fallbackUrl);
 			}
 		};
 		fetchUserImage();
-	}, []);
+	}, [backgroundColor]);
 
 	return image;
 };

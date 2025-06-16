@@ -4,13 +4,12 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from '@/components/ui/Tooltip';
-import { RealtimeUserSelection } from '@/hooks/use-realtime-selection-presence-room';
 import { cn } from '@/lib/utils';
 import { cva, type VariantProps } from 'class-variance-authority';
 import * as React from 'react';
 
 const avatarStackVariants = cva(
-	'*:data-[slot=avatar]:ring-sky-500 flex *:data-[slot=avatar]:ring-2',
+	'*:data-[slot=avatar]:ring-zinc-950 flex *:data-[slot=avatar]:ring-2',
 	{
 		variants: {
 			orientation: {
@@ -34,7 +33,7 @@ const avatarStackVariants = cva(
 export interface AvatarStackProps
 	extends React.HTMLAttributes<HTMLDivElement>,
 		VariantProps<typeof avatarStackVariants> {
-	avatars: RealtimeUserSelection[];
+	avatars: { image: string; name: string }[];
 	maxAvatarsAmount?: number;
 }
 

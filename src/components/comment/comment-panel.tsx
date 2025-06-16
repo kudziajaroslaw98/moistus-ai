@@ -66,7 +66,6 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
 		// Add these new methods to your store
 		addCommentReaction,
 		removeCommentReaction,
-		getCurrentUser,
 		currentUser,
 	} = useAppStore(
 		useShallow((state) => ({
@@ -90,7 +89,6 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
 			addCommentReaction: state.addCommentReaction || (() => Promise.resolve()),
 			removeCommentReaction:
 				state.removeCommentReaction || (() => Promise.resolve()),
-			getCurrentUser: state.getCurrentUser,
 			currentUser: state.currentUser,
 		}))
 	);

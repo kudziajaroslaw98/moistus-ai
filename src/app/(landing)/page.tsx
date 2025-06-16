@@ -2,7 +2,6 @@ import { Metadata } from 'next';
 import dynamic from 'next/dynamic';
 import Header from '../../components/landing/header';
 import HeroSection from '../../components/landing/hero-section';
-import PerformanceTracker from '../../components/landing/performance-tracker';
 
 // Lazy load below-fold components for better performance
 const FeaturesGrid = dynamic(
@@ -109,7 +108,6 @@ export const metadata: Metadata = {
 export default function Home() {
 	return (
 		<>
-			<PerformanceTracker />
 			<Header />
 			<main className='bg-zinc-950'>
 				<HeroSection />

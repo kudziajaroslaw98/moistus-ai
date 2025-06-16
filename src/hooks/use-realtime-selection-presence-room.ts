@@ -3,6 +3,7 @@ import { createClient } from '@/helpers/supabase/client';
 import { useEffect, useState } from 'react';
 import { useCurrentUserImage } from './use-current-user-image';
 import { useCurrentUserName } from './use-current-username';
+import { useUserColor } from './use-user-color';
 
 const supabase = createClient();
 
@@ -14,12 +15,15 @@ export type RealtimeUserSelection = {
 };
 
 export const useRealtimeSelectionPresenceRoom = (roomName: string) => {
-	const currentUserImage = useCurrentUserImage();
+	const currentUser = useAppStore((state) => state.currentUser);
+	const { hex: color } = useUserColor(
+		currentUser?.id || currentUser?.email || 'Anonymous'
+	);
+	const currentUserImage = useCurrentUserImage(color);
 	const currentUserName = useCurrentUserName();
 	const setRealtimeSelectedNodes = useAppStore(
 		(state) => state.setRealtimeSelectedNodes
 	);
-	const currentUser = useAppStore((state) => state.currentUser);
 
 	const [users, setUsers] = useState<RealtimeUserSelection[]>([]);
 	const selectedNodes = useAppStore((state) => state.selectedNodes);
