@@ -1,14 +1,14 @@
-import { SupabaseClient } from "@supabase/supabase-js";
+import { SupabaseClient } from '@supabase/supabase-js';
 
 export const deleteNodeById = async (
-  nodeId: string,
-  supabase: SupabaseClient,
+	nodeId: string,
+	supabase: SupabaseClient
 ) => {
-  const { error } = await supabase.from("nodes").delete().eq("id", nodeId);
+	const { error } = await supabase.from('nodes').delete().eq('id', nodeId);
 
-  if (error) {
-    console.error("Error deleting node and descendants:", error);
+	if (error) {
+		console.error('Error deleting node and descendants:', error);
 
-    throw error;
-  }
+		throw error;
+	}
 };

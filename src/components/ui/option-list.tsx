@@ -1,12 +1,12 @@
 import {
-  type KeyboardEvent,
-  type ReactNode,
-  RefObject,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+	type KeyboardEvent,
+	type ReactNode,
+	RefObject,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+} from 'react';
 
 /**
  * Flexible, accessible list component for option pickers.
@@ -21,106 +21,106 @@ import {
  * @param onItemSelect Optional callback for selection (item, idx)
  */
 export interface OptionListProps<T> {
-  items: readonly T[];
-  direction?: "horizontal" | "vertical";
-  gap?: string;
-  renderItem: (
-    item: T,
-    idx: number,
-    opts: { focused: boolean; ref: RefObject<HTMLDivElement | null> },
-  ) => ReactNode;
-  className?: string;
-  initialFocusIdx?: number;
-  onItemSelect?: (item: T, idx: number) => void;
+	items: readonly T[];
+	direction?: 'horizontal' | 'vertical';
+	gap?: string;
+	renderItem: (
+		item: T,
+		idx: number,
+		opts: { focused: boolean; ref: RefObject<HTMLDivElement | null> }
+	) => ReactNode;
+	className?: string;
+	initialFocusIdx?: number;
+	onItemSelect?: (item: T, idx: number) => void;
 }
 
 export function OptionList<T>({
-  items,
-  direction = "horizontal",
-  gap = "gap-2",
-  renderItem,
-  className = "",
-  initialFocusIdx = 0,
-  onItemSelect,
+	items,
+	direction = 'horizontal',
+	gap = 'gap-2',
+	renderItem,
+	className = '',
+	initialFocusIdx = 0,
+	onItemSelect,
 }: OptionListProps<T>): ReactNode {
-  const [focusedIdx, setFocusedIdx] = useState<number>(initialFocusIdx);
-  const itemRefs = useRef<Array<RefObject<HTMLDivElement | null>>>(
-    items.map(() => ({ current: null })),
-  );
+	const [focusedIdx, setFocusedIdx] = useState<number>(initialFocusIdx);
+	const itemRefs = useRef<Array<RefObject<HTMLDivElement | null>>>(
+		items.map(() => ({ current: null }))
+	);
 
-  // Ensure refs are always up to date
-  useEffect(() => {
-    if (itemRefs.current.length !== items.length) {
-      itemRefs.current = items.map(() => ({ current: null }));
-    }
-  }, [items.length]);
+	// Ensure refs are always up to date
+	useEffect(() => {
+		if (itemRefs.current.length !== items.length) {
+			itemRefs.current = items.map(() => ({ current: null }));
+		}
+	}, [items.length]);
 
-  // Focus the current item
-  useEffect(() => {
-    if (itemRefs.current[focusedIdx]?.current) {
-      itemRefs.current[focusedIdx].current!.focus();
-    }
-  }, [focusedIdx, items]);
+	// Focus the current item
+	useEffect(() => {
+		if (itemRefs.current[focusedIdx]?.current) {
+			itemRefs.current[focusedIdx].current!.focus();
+		}
+	}, [focusedIdx, items]);
 
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLDivElement>) => {
-      if (items.length === 0) return;
-      let nextIdx = focusedIdx;
+	const handleKeyDown = useCallback(
+		(e: KeyboardEvent<HTMLDivElement>) => {
+			if (items.length === 0) return;
+			let nextIdx = focusedIdx;
 
-      if (
-        (direction === "horizontal" && e.key === "ArrowRight") ||
-        (direction === "vertical" && e.key === "ArrowDown")
-      ) {
-        nextIdx = (focusedIdx + 1) % items.length;
-        e.preventDefault();
-      } else if (
-        (direction === "horizontal" && e.key === "ArrowLeft") ||
-        (direction === "vertical" && e.key === "ArrowUp")
-      ) {
-        nextIdx = (focusedIdx - 1 + items.length) % items.length;
-        e.preventDefault();
-      } else if (e.key === "Home") {
-        nextIdx = 0;
-        e.preventDefault();
-      } else if (e.key === "End") {
-        nextIdx = items.length - 1;
-        e.preventDefault();
-      } else if (e.key === "Enter" || e.key === " ") {
-        if (onItemSelect) onItemSelect(items[focusedIdx], focusedIdx);
-        e.preventDefault();
-      }
+			if (
+				(direction === 'horizontal' && e.key === 'ArrowRight') ||
+				(direction === 'vertical' && e.key === 'ArrowDown')
+			) {
+				nextIdx = (focusedIdx + 1) % items.length;
+				e.preventDefault();
+			} else if (
+				(direction === 'horizontal' && e.key === 'ArrowLeft') ||
+				(direction === 'vertical' && e.key === 'ArrowUp')
+			) {
+				nextIdx = (focusedIdx - 1 + items.length) % items.length;
+				e.preventDefault();
+			} else if (e.key === 'Home') {
+				nextIdx = 0;
+				e.preventDefault();
+			} else if (e.key === 'End') {
+				nextIdx = items.length - 1;
+				e.preventDefault();
+			} else if (e.key === 'Enter' || e.key === ' ') {
+				if (onItemSelect) onItemSelect(items[focusedIdx], focusedIdx);
+				e.preventDefault();
+			}
 
-      setFocusedIdx(nextIdx);
-    },
-    [direction, focusedIdx, items, onItemSelect],
-  );
+			setFocusedIdx(nextIdx);
+		},
+		[direction, focusedIdx, items, onItemSelect]
+	);
 
-  return (
-    <div
-      role="listbox"
-      aria-orientation={direction}
-      tabIndex={0}
-      className={`flex ${direction === "vertical" ? "flex-col" : "flex-row"} ${gap} ${className}`}
-      onKeyDown={handleKeyDown}
-    >
-      {items.map((item, idx) => {
-        const ref =
-          itemRefs.current[idx] || (itemRefs.current[idx] = { current: null });
-        return (
-          <div
-            key={idx}
-            ref={ref}
-            role="option"
-            tabIndex={focusedIdx === idx ? 0 : -1}
-            aria-selected={focusedIdx === idx}
-            className="outline-none focus-visible:ring-2 focus-visible:ring-blue-400 rounded"
-            onFocus={() => setFocusedIdx(idx)}
-            onClick={() => onItemSelect && onItemSelect(item, idx)}
-          >
-            {renderItem(item, idx, { focused: focusedIdx === idx, ref })}
-          </div>
-        );
-      })}
-    </div>
-  );
+	return (
+		<div
+			role='listbox'
+			aria-orientation={direction}
+			tabIndex={0}
+			className={`flex ${direction === 'vertical' ? 'flex-col' : 'flex-row'} ${gap} ${className}`}
+			onKeyDown={handleKeyDown}
+		>
+			{items.map((item, idx) => {
+				const ref =
+					itemRefs.current[idx] || (itemRefs.current[idx] = { current: null });
+				return (
+					<div
+						key={idx}
+						ref={ref}
+						role='option'
+						tabIndex={focusedIdx === idx ? 0 : -1}
+						aria-selected={focusedIdx === idx}
+						className='outline-none focus-visible:ring-2 focus-visible:ring-blue-400 rounded'
+						onFocus={() => setFocusedIdx(idx)}
+						onClick={() => onItemSelect && onItemSelect(item, idx)}
+					>
+						{renderItem(item, idx, { focused: focusedIdx === idx, ref })}
+					</div>
+				);
+			})}
+		</div>
+	);
 }

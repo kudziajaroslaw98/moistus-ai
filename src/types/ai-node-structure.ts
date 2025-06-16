@@ -1,4 +1,4 @@
 export interface AiNodeStructure {
-  content: string;
-  children?: AiNodeStructure[];
+	content: string;
+	children?: AiNodeStructure[];
 }

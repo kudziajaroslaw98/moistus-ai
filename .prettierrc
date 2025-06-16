@@ -3,5 +3,17 @@
   "prettier-plugin-organize-attributes",
     "prettier-plugin-organize-imports"],
   "tailwindStylesheet": "./src/app/globals.css",
-  "tailwindFunctions": ["clsx"]
+  "tailwindFunctions": ["clsx"],
+  "endOfLine": "lf",
+  "singleQuote": true,
+   "printWidth": 80,
+  "tabWidth": 2,
+  "useTabs": true,
+  "semi": true,
+  "quoteProps": "as-needed",
+  "jsxSingleQuote": true,
+  "trailingComma": "es5",
+  "bracketSpacing": true,
+  "bracketSameLine": false,
+  "proseWrap": "preserve"
 }

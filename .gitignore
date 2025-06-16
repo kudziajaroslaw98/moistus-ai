@@ -49,3 +49,7 @@ next-env.d.ts
 .windsurf
 .aider.**
 .cursor
+
+#supabase
+./supabase
+ai-docs

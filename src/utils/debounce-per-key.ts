@@ -9,22 +9,22 @@
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function debouncePerKey<T extends (...args: any[]) => any>(
-  func: T,
-  delay: number,
-  getKey: (...args: Parameters<T>) => string | number,
+	func: T,
+	delay: number,
+	getKey: (...args: Parameters<T>) => string | number
 ): (...args: Parameters<T>) => void {
-  const timers: Record<string | number, NodeJS.Timeout> = {};
+	const timers: Record<string | number, NodeJS.Timeout> = {};
 
-  return function (this: unknown, ...args: Parameters<T>) {
-    const key = getKey(...args);
+	return function (this: unknown, ...args: Parameters<T>) {
+		const key = getKey(...args);
 
-    if (timers[key]) {
-      clearTimeout(timers[key]);
-    }
+		if (timers[key]) {
+			clearTimeout(timers[key]);
+		}
 
-    timers[key] = setTimeout(() => {
-      func.apply(this, args);
-      delete timers[key]; // Clean up the timer for this key once executed
-    }, delay);
-  };
+		timers[key] = setTimeout(() => {
+			func.apply(this, args);
+			delete timers[key]; // Clean up the timer for this key once executed
+		}, delay);
+	};
 }
