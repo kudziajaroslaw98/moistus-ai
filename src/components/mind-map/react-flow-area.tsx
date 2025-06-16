@@ -41,6 +41,7 @@ import TaskNode from '../nodes/task-node';
 import { RealtimeAvatarStack } from '../realtime/realtime-avatar-stack';
 import { RealtimeCursors } from '../realtime/realtime-cursor';
 import { ZoomSlider } from '../ui/zoom-slider';
+import { ZoomSelect } from '../zoom-select';
 
 export function ReactFlowArea() {
 	// const {
@@ -305,7 +306,7 @@ export function ReactFlowArea() {
 				className={`${isFocusMode ? '!right-12' : ''} cursor-pointer`}
 			/>
 
-			<ZoomSlider position='top-left' />
+			{isFocusMode ? <ZoomSelect /> : <ZoomSlider position='top-left' />}
 
 			<Background color='#52525c' gap={16} variant={BackgroundVariant.Dots} />
 
