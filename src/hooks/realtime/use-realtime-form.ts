@@ -21,6 +21,7 @@ export function useRealtimeForm(
 ) {
 	const {
 		currentUser,
+		userProfile,
 		mapId,
 		supabase,
 		formState,
@@ -33,9 +34,15 @@ export function useRealtimeForm(
 		hasFormConflicts,
 		getFormConflicts,
 		resolveFormConflict,
+		trackFieldActivity,
+		trackRemoteFieldActivity,
+		getFieldActivity,
+		getActiveUsersForField,
+		fieldActivities,
 	} = useAppStore(
 		useShallow((state) => ({
 			currentUser: state.currentUser,
+			userProfile: state.userProfile,
 			mapId: state.mapId,
 			supabase: state.supabase,
 			formState: state.formState,
@@ -48,6 +55,11 @@ export function useRealtimeForm(
 			hasFormConflicts: state.hasFormConflicts,
 			getFormConflicts: state.getFormConflicts,
 			resolveFormConflict: state.resolveFormConflict,
+			trackFieldActivity: state.trackFieldActivity,
+			trackRemoteFieldActivity: state.trackRemoteFieldActivity,
+			getFieldActivity: state.getFieldActivity,
+			getActiveUsersForField: state.getActiveUsersForField,
+			fieldActivities: state.fieldActivities,
 		}))
 	);
 
@@ -120,7 +132,6 @@ export function useRealtimeForm(
 		currentUser?.id,
 		mapId,
 		roomName,
-		setFormConnectionStatus,
 		// ✅ Only connection parameters - no state dependencies
 	]);
 
@@ -190,7 +201,34 @@ export function useRealtimeForm(
 		// ✅ Only dependencies needed for broadcast handling
 	]);
 
-	// 4. FORM STATE INITIALIZATION - Separate effect
+	// 4. FIELD ACTIVITY BROADCAST HANDLERS - Listen for field activity from other users
+	useEffect(() => {
+		const room = roomRef.current;
+		if (!room || !currentUser?.id) return;
+
+		const handleFieldActivity = ({ payload }: { payload: any }) => {
+			if (payload.user_id === currentUser.id) return; // Ignore own activity
+
+			console.log(
+				`[useRealtimeForm] Received field activity from ${payload.user_id}: ${payload.type} on ${payload.field_name}`
+			);
+
+			// Update local field activity state based on remote user activity
+			if (payload.user_profile) {
+				trackRemoteFieldActivity(
+					payload.field_name,
+					payload.type,
+					payload.user_id,
+					payload.user_profile,
+					payload.node_id
+				);
+			}
+		};
+
+		room.on('broadcast', { event: 'field_activity' }, handleFieldActivity);
+	}, [currentUser?.id, trackFieldActivity]);
+
+	// 5. FORM STATE INITIALIZATION - Separate effect
 	useEffect(() => {
 		if (currentUser?.id && mapId) {
 			console.log(
@@ -202,10 +240,13 @@ export function useRealtimeForm(
 
 	// Enhanced field update function
 	const updateField = useCallback(
-		(fieldName: string, value: any) => {
+		(fieldName: string, value: any, nodeId?: string) => {
 			if (!currentUser?.id) return;
 
 			updateFormField(fieldName, value, currentUser.id);
+
+			// Track field activity for editing
+			trackFieldActivity(fieldName, 'edit', nodeId);
 
 			// Create the complete field state for broadcasting
 			const timestamp = Date.now();
@@ -221,7 +262,80 @@ export function useRealtimeForm(
 				},
 			});
 		},
-		[currentUser?.id, updateFormField, debouncedBroadcast, formState.fields]
+		[
+			currentUser?.id,
+			updateFormField,
+			debouncedBroadcast,
+			formState.fields,
+			trackFieldActivity,
+		]
+	);
+
+	// Field activity tracking functions
+	const trackFieldFocus = useCallback(
+		(fieldName: string, nodeId?: string) => {
+			const room = roomRef.current;
+			if (!currentUser?.id || !userProfile || !room) return;
+
+			console.log(`[useRealtimeForm] Broadcasting field focus: ${fieldName}`);
+			trackFieldActivity(fieldName, 'focus', nodeId);
+
+			// Broadcast field activity to other users
+			if (room) {
+				room.send({
+					type: 'broadcast',
+					event: 'field_activity',
+					payload: {
+						type: 'focus',
+						user_id: currentUser.id,
+						map_id: mapId,
+						field_name: fieldName,
+						node_id: nodeId,
+						timestamp: Date.now(),
+						user_profile: {
+							displayName: userProfile.displayName,
+							avatarUrl: userProfile.avatarUrl || '',
+							color: userProfile.color,
+							isAnonymous: userProfile.isAnonymous,
+						},
+					},
+				});
+			}
+		},
+		[fieldActivities, currentUser?.id, userProfile, mapId]
+	);
+
+	const trackFieldBlur = useCallback(
+		(fieldName: string, nodeId?: string) => {
+			if (!currentUser?.id || !userProfile) return;
+
+			console.log(`[useRealtimeForm] Broadcasting field blur: ${fieldName}`);
+			trackFieldActivity(fieldName, 'blur', nodeId);
+
+			// Broadcast field activity to other users
+			const room = roomRef.current;
+			if (room) {
+				room.send({
+					type: 'broadcast',
+					event: 'field_activity',
+					payload: {
+						type: 'blur',
+						user_id: currentUser.id,
+						map_id: mapId,
+						field_name: fieldName,
+						node_id: nodeId,
+						timestamp: Date.now(),
+						user_profile: {
+							displayName: userProfile.displayName,
+							avatarUrl: userProfile.avatarUrl || '',
+							color: userProfile.color,
+							isAnonymous: userProfile.isAnonymous,
+						},
+					},
+				});
+			}
+		},
+		[fieldActivities, currentUser?.id, userProfile, mapId]
 	);
 
 	// Return enhanced API
@@ -235,5 +349,11 @@ export function useRealtimeForm(
 		resolveConflict: resolveFormConflict,
 		getFieldValue: (fieldName: string) => formState.fields[fieldName]?.value,
 		getFieldState: (fieldName: string) => formState.fields[fieldName],
+
+		// Field activity tracking methods
+		trackFieldFocus,
+		trackFieldBlur,
+		getFieldActivity,
+		getActiveUsersForField,
 	};
 }

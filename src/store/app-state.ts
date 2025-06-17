@@ -1,9 +1,13 @@
+import type { UserProfile } from '@/helpers/user-profile-helpers';
 import type { RealtimeUserSelection } from '@/hooks/realtime/use-realtime-selection-presence-room';
 import type {
+	FieldActivityState,
+	FieldActivityUser,
 	FormConflict,
 	MergeStrategy,
 	RealtimeFormFieldState,
 	RealtimeFormState,
+	UserFieldPresence,
 } from '@/store/slices/realtime-slice';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
@@ -130,12 +134,15 @@ export interface CoreDataSlice {
 	mapId: string | null;
 	reactFlowInstance: ReactFlowInstance | null;
 	currentUser: User | null;
+	userProfile: UserProfile | null;
 
 	setMindMap: (mindMap: MindMapData | null) => void;
 	setReactFlowInstance: (reactFlowInstance: ReactFlowInstance | null) => void;
 	setMapId: (mapId: string | null) => void;
 	setCurrentUser: (currentUser: User | null) => void;
+	setUserProfile: (userProfile: UserProfile | null) => void;
 
+	generateUserProfile: (user: User | null) => UserProfile | null;
 	getCurrentUser: () => Promise<User | null>;
 	centerOnNode: (nodeId: string) => void;
 
@@ -432,6 +439,10 @@ export interface RealtimeSlice {
 	formState: RealtimeFormState;
 	enhancedFormState: EnhancedFormState;
 
+	// Field activity state
+	fieldActivities: Record<string, FieldActivityState>;
+	userFieldPresences: Record<string, UserFieldPresence>;
+
 	// Basic setters (maintaining compatibility)
 	setRealtimeSelectedNodes: (nodes: RealtimeUserSelection[]) => void;
 	setFormState: (formState: Record<string, any>) => void;
@@ -463,6 +474,30 @@ export interface RealtimeSlice {
 	hasFormConflicts: () => boolean;
 	getFormConflicts: () => FormConflict[];
 	resetFormState: (userId: string, mapId: string) => void;
+
+	// Field activity tracking methods
+	trackFieldActivity: (
+		fieldName: string,
+		action: 'focus' | 'blur' | 'edit',
+		nodeId?: string
+	) => void;
+	trackRemoteFieldActivity: (
+		fieldName: string,
+		action: 'focus' | 'blur' | 'edit',
+		remoteUserId: string,
+		remoteUserProfile: {
+			displayName: string;
+			avatarUrl: string;
+			color: string;
+			isAnonymous: boolean;
+		},
+		nodeId?: string
+	) => void;
+	getFieldActivity: (fieldName: string) => FieldActivityState | null;
+	getActiveUsersForField: (fieldName: string) => FieldActivityUser[];
+	clearFieldActivity: () => void;
+	updateUserFieldPresence: (presence: Partial<UserFieldPresence>) => void;
+	getUserFieldPresence: (userId: string) => UserFieldPresence | null;
 }
 
 // Combined App State
