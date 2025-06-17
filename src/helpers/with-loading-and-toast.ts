@@ -1,4 +1,4 @@
-import useAppStore from '@/contexts/mind-map/mind-map-store';
+import useAppStore from '@/store/mind-map-store';
 import type { LoadingStates } from '@/types/loading-states';
 import { toast } from 'sonner';
 

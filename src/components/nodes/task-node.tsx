@@ -1,6 +1,6 @@
 'use client';
 
-import useAppStore from '@/contexts/mind-map/mind-map-store';
+import useAppStore from '@/store/mind-map-store';
 import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
 import { Node, NodeProps } from '@xyflow/react';

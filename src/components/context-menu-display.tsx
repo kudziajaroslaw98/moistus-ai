@@ -1,5 +1,5 @@
 'use client';
-import useAppStore from '@/contexts/mind-map/mind-map-store';
+import useAppStore from '@/store/mind-map-store';
 import { EdgeData } from '@/types/edge-data';
 import type { PathType } from '@/types/path-types';
 import {

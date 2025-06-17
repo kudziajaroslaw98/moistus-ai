@@ -28,8 +28,8 @@ import TextNode from '@/components/nodes/text-node';
 
 import FloatingEdge from '@/components/edges/floating-edge';
 // import SuggestedConnectionEdge from "@/components/edges/suggested-connection-edge";
-import useAppStore from '@/contexts/mind-map/mind-map-store';
 import { useContextMenu } from '@/hooks/use-context-menu';
+import useAppStore from '@/store/mind-map-store';
 import type { AppNode } from '@/types/app-node';
 import type { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';

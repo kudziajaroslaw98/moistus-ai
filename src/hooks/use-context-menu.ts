@@ -1,4 +1,4 @@
-import useAppStore from '@/contexts/mind-map/mind-map-store';
+import useAppStore from '@/store/mind-map-store';
 import { ContextMenuState } from '@/types/context-menu-state';
 import { EdgeData } from '@/types/edge-data';
 import { NodeData } from '@/types/node-data';

@@ -1,7 +1,6 @@
 'use client';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
 	Card,
@@ -13,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import useAppStore from '@/contexts/mind-map/mind-map-store';
+import useAppStore from '@/store/mind-map-store';
 import {
 	AlertCircle,
 	Brain,
@@ -26,7 +25,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, use } from 'react';
+import { use, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 interface JoinRoomPageProps {
@@ -102,7 +101,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 			const result = await joinRoom(token.toUpperCase(), displayName.trim());
 			setJoinResult(result);
 			setStep('success');
-			
+
 			toast.success('Successfully joined the room!');
 
 			// Redirect to the mind map
@@ -258,7 +257,9 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 						<h2 className='text-2xl font-bold text-zinc-100'>
 							Welcome to {joinResult?.map_title || 'the Mind Map'}!
 						</h2>
-						<p className='text-zinc-400'>Redirecting you to the collaboration...</p>
+						<p className='text-zinc-400'>
+							Redirecting you to the collaboration...
+						</p>
 					</div>
 
 					<div className='flex items-center justify-center gap-1'>
@@ -320,7 +321,8 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 							Join Collaboration Room
 						</CardTitle>
 						<CardDescription>
-							You&apos;re joining a shared mind map. Enter your name to continue as an anonymous user.
+							You&apos;re joining a shared mind map. Enter your name to continue
+							as an anonymous user.
 						</CardDescription>
 					</CardHeader>
 
@@ -334,7 +336,8 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 								</code>
 							</div>
 							<p className='text-xs text-zinc-500'>
-								You&apos;ll join with anonymous access. You can upgrade to a full account anytime.
+								You&apos;ll join with anonymous access. You can upgrade to a
+								full account anytime.
 							</p>
 						</div>
 
@@ -389,7 +392,8 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 						{/* Benefits */}
 						<div className='text-center space-y-3'>
 							<p className='text-xs text-zinc-500'>
-								Anonymous access gives you instant collaboration. You can create a full account later to save your work.
+								Anonymous access gives you instant collaboration. You can create
+								a full account later to save your work.
 							</p>
 							<Button
 								variant='ghost'

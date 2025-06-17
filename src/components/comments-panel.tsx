@@ -1,7 +1,7 @@
 'use client';
 
 import { UserAvatar } from '@/components/ui/user-avatar';
-import useAppStore from '@/contexts/mind-map/mind-map-store';
+import useAppStore from '@/store/mind-map-store';
 import { Comment } from '@/types/comment-types';
 import { cn } from '@/utils/cn';
 import {

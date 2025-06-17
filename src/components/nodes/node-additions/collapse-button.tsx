@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import useAppStore from '@/contexts/mind-map/mind-map-store';
+import useAppStore from '@/store/mind-map-store';
 import { useNodeId } from '@xyflow/react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';

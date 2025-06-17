@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import useAppStore from '@/contexts/mind-map/mind-map-store';
+import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import { useNodeId } from '@xyflow/react';
 import { MessageCircle } from 'lucide-react';

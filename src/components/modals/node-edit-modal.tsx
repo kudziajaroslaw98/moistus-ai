@@ -6,7 +6,7 @@ import {
 	SelectValue,
 } from '@/components/ui/select';
 import { nodeTypesConfig } from '@/constants/node-types';
-import useAppStore from '@/contexts/mind-map/mind-map-store';
+import useAppStore from '@/store/mind-map-store';
 import { NodeData } from '@/types/node-data';
 import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/shallow';

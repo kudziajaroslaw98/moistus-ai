@@ -6,8 +6,8 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { ModalsWrapper } from './mind-map/modals-wrapper';
 import { ReactFlowArea } from './mind-map/react-flow-area';
 
-import useAppStore from '@/contexts/mind-map/mind-map-store';
 import { useRealtimeSelectionPresenceRoom } from '@/hooks/use-realtime-selection-presence-room';
+import useAppStore from '@/store/mind-map-store';
 import { useParams } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
 import { CommandPalette } from './command-palette';

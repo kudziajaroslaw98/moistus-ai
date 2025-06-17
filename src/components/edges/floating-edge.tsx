@@ -1,5 +1,5 @@
-import useAppStore from '@/contexts/mind-map/mind-map-store';
 import { getFloatingEdgePath } from '@/helpers/get-floating-edge-path';
+import useAppStore from '@/store/mind-map-store';
 import { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';
 import type { PathType } from '@/types/path-types';

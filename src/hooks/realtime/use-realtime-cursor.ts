@@ -1,5 +1,5 @@
-import useAppStore from '@/contexts/mind-map/mind-map-store';
 import { createClient } from '@/helpers/supabase/client';
+import useAppStore from '@/store/mind-map-store';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import type { ReactFlowInstance } from '@xyflow/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';

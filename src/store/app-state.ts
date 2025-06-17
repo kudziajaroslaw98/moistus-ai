@@ -1,4 +1,10 @@
-import type { RealtimeUserSelection } from '@/hooks/use-realtime-selection-presence-room';
+import type {
+	FormConflict,
+	MergeStrategy,
+	RealtimeFormFieldState,
+	RealtimeFormState,
+} from '@/hooks/realtime/use-realtime-form-enhanced';
+import type { RealtimeUserSelection } from '@/hooks/realtime/use-realtime-selection-presence-room';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import { AvailableNodeTypes } from '@/types/available-node-types';
@@ -410,13 +416,59 @@ export interface UIStateSlice {
 	toggleFocusMode: () => void;
 }
 
+// Enhanced Form State
+export interface EnhancedFormState {
+	isConnected: boolean;
+	activeUsers: string[];
+	conflicts: FormConflict[];
+	pendingUpdates: Record<string, any>;
+	optimisticUpdates: Record<string, RealtimeFormFieldState>;
+}
+
 // Realtime Slice
 export interface RealtimeSlice {
 	// Realtime state
 	realtimeSelectedNodes: RealtimeUserSelection[];
+	formState: RealtimeFormState;
+	enhancedFormState: EnhancedFormState;
 
-	// Realtime setters
+	// Basic setters (maintaining compatibility)
 	setRealtimeSelectedNodes: (nodes: RealtimeUserSelection[]) => void;
+	setFormState: (formState: Record<string, any>) => void;
+
+	// Enhanced form state management
+	updateFormField: (fieldName: string, value: any, userId: string) => void;
+
+	// Field locking methods
+	lockFormField: (fieldName: string, userId: string) => void;
+	unlockFormField: (fieldName: string) => void;
+	isFormFieldLocked: (fieldName: string, currentUserId: string) => boolean;
+	getFormFieldLocker: (fieldName: string) => string | null;
+
+	// Conflict management
+	addFormConflict: (conflict: FormConflict) => void;
+	resolveFormConflict: (
+		fieldName: string,
+		resolution: 'local' | 'remote'
+	) => void;
+	clearFormConflicts: () => void;
+
+	// Connection and user management
+	setFormConnectionStatus: (isConnected: boolean) => void;
+	setFormActiveUsers: (users: string[]) => void;
+
+	// Form state merging with conflict detection
+	mergeFormState: (
+		remoteState: RealtimeFormState,
+		strategy?: MergeStrategy
+	) => void;
+
+	// Utility methods
+	getFormFieldValue: (fieldName: string) => any;
+	getFormFieldState: (fieldName: string) => RealtimeFormFieldState | null;
+	hasFormConflicts: () => boolean;
+	getFormConflicts: () => FormConflict[];
+	resetFormState: (userId: string, mapId: string) => void;
 }
 
 // Combined App State

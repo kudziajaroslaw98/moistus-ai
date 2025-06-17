@@ -1,5 +1,5 @@
 'use client';
-import useAppStore from '@/contexts/mind-map/mind-map-store';
+import useAppStore from '@/store/mind-map-store';
 import { HistorySidebar } from '../history-sidebar';
 import EdgeEditModal from '../modals/edge-edit-modal';
 import NodeEditModal from '../modals/node-edit-modal';

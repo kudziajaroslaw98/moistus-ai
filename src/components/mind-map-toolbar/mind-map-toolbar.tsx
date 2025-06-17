@@ -1,6 +1,6 @@
 'use client';
 // Add History icon import
-import useAppStore from '@/contexts/mind-map/mind-map-store';
+import useAppStore from '@/store/mind-map-store';
 import {
 	ArrowLeft,
 	Command,

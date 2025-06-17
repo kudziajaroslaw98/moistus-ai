@@ -1,6 +1,6 @@
 'use client';
 
-import useAppStore from '@/contexts/mind-map/mind-map-store';
+import useAppStore from '@/store/mind-map-store';
 import { SpecificLayoutConfig } from '@/types/layout-types';
 import { cn } from '@/utils/cn';
 import {
