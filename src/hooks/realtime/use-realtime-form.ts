@@ -26,10 +26,6 @@ export function useRealtimeForm(
 		formState,
 		enhancedFormState,
 		updateFormField,
-		lockFormField,
-		unlockFormField,
-		isFormFieldLocked,
-		getFormFieldLocker,
 		mergeFormState,
 		setFormConnectionStatus,
 		setFormActiveUsers,
@@ -45,10 +41,6 @@ export function useRealtimeForm(
 			formState: state.formState,
 			enhancedFormState: state.enhancedFormState,
 			updateFormField: state.updateFormField,
-			lockFormField: state.lockFormField,
-			unlockFormField: state.unlockFormField,
-			isFormFieldLocked: state.isFormFieldLocked,
-			getFormFieldLocker: state.getFormFieldLocker,
 			mergeFormState: state.mergeFormState,
 			setFormConnectionStatus: state.setFormConnectionStatus,
 			setFormActiveUsers: state.setFormActiveUsers,
@@ -176,11 +168,11 @@ export function useRealtimeForm(
 				`[useRealtimeForm] Received form update from ${payload.user_id}`
 			);
 
+			// Use the complete field states directly from the broadcast
 			const remoteFormState: RealtimeFormState = {
 				user_id: payload.user_id,
 				map_id: payload.map_id,
-				fields: payload.updates,
-				activeFields: {},
+				fields: payload.updates, // Now contains complete RealtimeFormFieldState objects
 				metadata: {
 					lastSyncedAt: payload.timestamp,
 					version: 1,
@@ -190,28 +182,11 @@ export function useRealtimeForm(
 			mergeFormState(remoteFormState, mergeStrategy);
 		};
 
-		const handleFieldLock = ({ payload }: { payload: any }) => {
-			if (payload.user_id === currentUser.id) return;
-
-			console.log(
-				`[useRealtimeForm] Field lock event: ${payload.action} ${payload.fieldName}`
-			);
-
-			if (payload.action === 'lock') {
-				lockFormField(payload.fieldName, payload.user_id);
-			} else if (payload.action === 'unlock') {
-				unlockFormField(payload.fieldName);
-			}
-		};
-
 		room.on('broadcast', { event: 'form_update' }, handleFormUpdate);
-		room.on('broadcast', { event: 'field_lock' }, handleFieldLock);
 	}, [
 		currentUser?.id,
 		mergeStrategy,
 		mergeFormState,
-		lockFormField,
-		unlockFormField,
 		// ✅ Only dependencies needed for broadcast handling
 	]);
 
@@ -230,81 +205,29 @@ export function useRealtimeForm(
 		(fieldName: string, value: any) => {
 			if (!currentUser?.id) return;
 
-			// Check if field is locked
-			if (isFormFieldLocked(fieldName, currentUser.id)) {
-				console.warn(`Field ${fieldName} is locked by another user`);
-				return;
-			}
-
 			updateFormField(fieldName, value, currentUser.id);
-			debouncedBroadcast({ [fieldName]: { value, timestamp: Date.now() } });
-		},
-		[currentUser?.id, isFormFieldLocked, updateFormField, debouncedBroadcast]
-	);
 
-	// Field locking helpers
-	const lockField = useCallback(
-		(fieldName: string) => {
-			if (!currentUser?.id || !roomRef.current) return;
+			// Create the complete field state for broadcasting
+			const timestamp = Date.now();
+			const currentField = formState.fields[fieldName];
+			const newVersion = (currentField?.version || 0) + 1;
 
-			lockFormField(fieldName, currentUser.id);
-
-			// Broadcast lock event
-			roomRef.current.send({
-				type: 'broadcast',
-				event: 'field_lock',
-				payload: {
-					action: 'lock',
-					fieldName,
-					user_id: currentUser.id,
+			debouncedBroadcast({
+				[fieldName]: {
+					value,
+					lastModified: timestamp,
+					lastModifiedBy: currentUser.id,
+					version: newVersion,
 				},
 			});
 		},
-		[currentUser?.id, lockFormField]
-	);
-
-	const unlockField = useCallback(
-		(fieldName: string) => {
-			if (!roomRef.current) return;
-
-			unlockFormField(fieldName);
-
-			// Broadcast unlock event
-			roomRef.current.send({
-				type: 'broadcast',
-				event: 'field_lock',
-				payload: {
-					action: 'unlock',
-					fieldName,
-					user_id: currentUser?.id,
-				},
-			});
-		},
-		[currentUser?.id, unlockFormField]
-	);
-
-	const isFieldLocked = useCallback(
-		(fieldName: string) => {
-			return isFormFieldLocked(fieldName, currentUser?.id || '');
-		},
-		[isFormFieldLocked, currentUser?.id]
-	);
-
-	const getFieldLocker = useCallback(
-		(fieldName: string) => {
-			return getFormFieldLocker(fieldName);
-		},
-		[getFormFieldLocker]
+		[currentUser?.id, updateFormField, debouncedBroadcast, formState.fields]
 	);
 
 	// Return enhanced API
 	return {
 		formState,
 		updateField,
-		lockField,
-		unlockField,
-		isFieldLocked,
-		getFieldLocker,
 		isConnected: enhancedFormState.isConnected,
 		activeUsers: enhancedFormState.activeUsers,
 		conflicts: getFormConflicts(),

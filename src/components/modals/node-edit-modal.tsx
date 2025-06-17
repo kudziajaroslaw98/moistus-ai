@@ -29,8 +29,6 @@ export interface NodeFormRef {
 
 // Enhanced interface for real-time capable forms
 export interface EnhancedNodeFormRef extends NodeFormRef {
-	lockField: (fieldName: string) => void;
-	unlockField: (fieldName: string) => void;
 	forceSync: () => void;
 }
 

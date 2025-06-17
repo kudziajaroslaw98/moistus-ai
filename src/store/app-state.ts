@@ -439,12 +439,6 @@ export interface RealtimeSlice {
 	// Enhanced form state management
 	updateFormField: (fieldName: string, value: any, userId: string) => void;
 
-	// Field locking methods
-	lockFormField: (fieldName: string, userId: string) => void;
-	unlockFormField: (fieldName: string) => void;
-	isFormFieldLocked: (fieldName: string, currentUserId: string) => boolean;
-	getFormFieldLocker: (fieldName: string) => string | null;
-
 	// Conflict management
 	addFormConflict: (conflict: FormConflict) => void;
 	resolveFormConflict: (

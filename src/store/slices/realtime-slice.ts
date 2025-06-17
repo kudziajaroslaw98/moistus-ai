@@ -18,7 +18,6 @@ export interface RealtimeFormState {
 	user_id: string;
 	map_id: string;
 	fields: Record<string, RealtimeFormFieldState>;
-	activeFields: Record<string, string>; // fieldName -> userId
 	metadata: {
 		lastSyncedAt: number;
 		version: number;
@@ -47,7 +46,6 @@ export const createRealtimeSlice: StateCreator<
 		user_id: '',
 		map_id: '',
 		fields: {},
-		activeFields: {},
 		metadata: {
 			lastSyncedAt: Date.now(),
 			version: 1,
@@ -73,7 +71,6 @@ export const createRealtimeSlice: StateCreator<
 				user_id: formState.user_id || '',
 				map_id: formState.map_id || '',
 				fields: formState.fields || {},
-				activeFields: formState.activeFields || {},
 				metadata: formState.metadata || {
 					lastSyncedAt: Date.now(),
 					version: 1,
@@ -109,43 +106,6 @@ export const createRealtimeSlice: StateCreator<
 				},
 			},
 		}));
-	},
-
-	// Field locking methods
-	lockFormField: (fieldName: string, userId: string) => {
-		set((state) => ({
-			formState: {
-				...state.formState,
-				activeFields: {
-					...state.formState.activeFields,
-					[fieldName]: userId,
-				},
-			},
-		}));
-	},
-
-	unlockFormField: (fieldName: string) => {
-		set((state) => {
-			const { [fieldName]: _, ...remainingActiveFields } =
-				state.formState.activeFields;
-			return {
-				formState: {
-					...state.formState,
-					activeFields: remainingActiveFields,
-				},
-			};
-		});
-	},
-
-	isFormFieldLocked: (fieldName: string, currentUserId: string) => {
-		const state = get();
-		const lockedBy = state.formState.activeFields[fieldName];
-		return Boolean(lockedBy && lockedBy !== currentUserId);
-	},
-
-	getFormFieldLocker: (fieldName: string) => {
-		const state = get();
-		return state.formState.activeFields[fieldName] || null;
 	},
 
 	// Conflict management
@@ -290,10 +250,6 @@ export const createRealtimeSlice: StateCreator<
 			formState: {
 				...localState,
 				fields: mergedFields,
-				activeFields: {
-					...localState.activeFields,
-					...remoteState.activeFields,
-				},
 				metadata: {
 					lastSyncedAt: Date.now(),
 					version:
@@ -337,7 +293,6 @@ export const createRealtimeSlice: StateCreator<
 				user_id: userId,
 				map_id: mapId,
 				fields: {},
-				activeFields: {},
 				metadata: {
 					lastSyncedAt: Date.now(),
 					version: 1,

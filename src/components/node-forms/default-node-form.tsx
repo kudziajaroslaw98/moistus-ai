@@ -1,4 +1,4 @@
-import { ActiveUsers, getUserColor } from '@/components/realtime/active-users';
+import { ActiveUsers } from '@/components/realtime/active-users';
 import { ConflictResolutionModal } from '@/components/realtime/conflict-resolution-modal';
 import { ConnectionStatus } from '@/components/realtime/connection-status';
 import { FormField } from '@/components/ui/form-field';
@@ -26,8 +26,6 @@ interface DefaultNodeFormProps {
 
 interface DefaultNodeFormRef {
 	getFormData: () => Partial<NodeData> | null;
-	lockField: (fieldName: string) => void;
-	unlockField: (fieldName: string) => void;
 	forceSync: () => void;
 }
 
@@ -45,15 +43,12 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
 			updateField,
 			getFieldValue,
 			getFieldState,
-			lockField,
-			unlockField,
-			isFieldLocked,
-			getFieldLocker,
 			isConnected,
 			activeUsers,
 			conflicts,
 			resolveConflict,
-		} = useRealtimeForm(`node-form-${nodeId}`, 'newest-timestamp');
+			hasConflicts,
+		} = useRealtimeForm(`form:${nodeId}`, 'newest-timestamp');
 
 		// Local state for form initialization (hybrid approach)
 		const [isInitialized, setIsInitialized] = useState(false);
@@ -93,22 +88,8 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
 
 		// Handle field locks if callback provided
 		useEffect(() => {
-			if (onFieldLock) {
-				const fieldNames = [
-					'content',
-					'tags',
-					'status',
-					'importance',
-					'sourceUrl',
-				];
-				fieldNames.forEach((fieldName) => {
-					const locker = getFieldLocker(fieldName);
-					if (locker && locker !== currentUser?.id) {
-						onFieldLock(fieldName, locker);
-					}
-				});
-			}
-		}, [activeUsers, onFieldLock, getFieldLocker, currentUser?.id]);
+			// Real-time collaboration effects - simplified without field locking
+		}, [activeUsers]);
 
 		useImperativeHandle(ref, () => ({
 			getFormData: () => {
@@ -127,8 +108,6 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
 				};
 				return formData;
 			},
-			lockField,
-			unlockField,
 			forceSync: () => {
 				// Force sync by updating all fields with current values
 				const fieldNames = [
@@ -155,10 +134,6 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
 		const sourceUrl = getFieldValue('sourceUrl') || '';
 
 		// Helper function to get user color for field indicators
-		const getFieldUserColor = (fieldName: string) => {
-			const locker = getFieldLocker(fieldName);
-			return locker ? getUserColor(locker) : '#3b82f6';
-		};
 
 		return (
 			<>
@@ -182,25 +157,13 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
 					</div>
 
 					{/* General Content Field */}
-					<FormField
-						id='defaultNodeContent'
-						label='Content'
-						isBeingEdited={isFieldLocked('content')}
-						editedBy={getFieldLocker('content')}
-						userColor={getFieldUserColor('content')}
-					>
+					<FormField id='defaultNodeContent' label='Content'>
 						<Textarea
 							id='defaultNodeContent'
 							value={content}
 							onChange={(e) => updateField('content', e.target.value)}
-							onFocus={() => lockField('content')}
-							onBlur={() => unlockField('content')}
 							placeholder='Enter node content...'
 							className='min-h-[150px]'
-							disabled={
-								isFieldLocked('content') &&
-								getFieldLocker('content') !== currentUser?.id
-							}
 						/>
 					</FormField>
 
@@ -212,13 +175,7 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
 
 						<div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
 							{/* Tags Input */}
-							<FormField
-								id='defaultNodeTags'
-								label='Tags (comma-separated)'
-								isBeingEdited={isFieldLocked('tags')}
-								editedBy={getFieldLocker('tags')}
-								userColor={getFieldUserColor('tags')}
-							>
+							<FormField id='defaultNodeTags' label='Tags (comma-separated)'>
 								<Input
 									id='defaultNodeTags'
 									type='text'
@@ -230,38 +187,15 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
 											.filter((tag) => tag.length > 0);
 										updateField('tags', newTags);
 									}}
-									onFocus={() => lockField('tags')}
-									onBlur={() => unlockField('tags')}
 									placeholder='e.g. idea, research'
-									disabled={
-										isFieldLocked('tags') &&
-										getFieldLocker('tags') !== currentUser?.id
-									}
 								/>
 							</FormField>
 
 							{/* Status Select */}
-							<FormField
-								id='defaultNodeStatus'
-								label='Status'
-								isBeingEdited={isFieldLocked('status')}
-								editedBy={getFieldLocker('status')}
-								userColor={getFieldUserColor('status')}
-							>
+							<FormField id='defaultNodeStatus' label='Status'>
 								<Select
 									value={status || ''}
 									onValueChange={(value) => updateField('status', value)}
-									onOpenChange={(open) => {
-										if (open) {
-											lockField('status');
-										} else {
-											unlockField('status');
-										}
-									}}
-									disabled={
-										isFieldLocked('status') &&
-										getFieldLocker('status') !== currentUser?.id
-									}
 								>
 									<SelectTrigger className='bg-zinc-900 border-zinc-700'>
 										<SelectValue placeholder='Select Status' />
@@ -280,13 +214,7 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
 							</FormField>
 
 							{/* Importance Input */}
-							<FormField
-								id='defaultNodeImportance'
-								label='Importance (1-5)'
-								isBeingEdited={isFieldLocked('importance')}
-								editedBy={getFieldLocker('importance')}
-								userColor={getFieldUserColor('importance')}
-							>
+							<FormField id='defaultNodeImportance' label='Importance (1-5)'>
 								<Input
 									id='defaultNodeImportance'
 									type='number'
@@ -295,38 +223,21 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
 										const value = parseInt(e.target.value, 10);
 										updateField('importance', isNaN(value) ? undefined : value);
 									}}
-									onFocus={() => lockField('importance')}
-									onBlur={() => unlockField('importance')}
 									min='1'
 									max='5'
-									placeholder='e.g. 3'
-									disabled={
-										isFieldLocked('importance') &&
-										getFieldLocker('importance') !== currentUser?.id
-									}
+									step='1'
+									placeholder='3'
 								/>
 							</FormField>
 
 							{/* Source URL Input */}
-							<FormField
-								id='defaultNodeSourceUrl'
-								label='Source URL'
-								isBeingEdited={isFieldLocked('sourceUrl')}
-								editedBy={getFieldLocker('sourceUrl')}
-								userColor={getFieldUserColor('sourceUrl')}
-							>
+							<FormField id='defaultNodeSourceUrl' label='Source URL'>
 								<Input
 									id='defaultNodeSourceUrl'
 									type='url'
 									value={sourceUrl}
 									onChange={(e) => updateField('sourceUrl', e.target.value)}
-									onFocus={() => lockField('sourceUrl')}
-									onBlur={() => unlockField('sourceUrl')}
 									placeholder='http://example.com'
-									disabled={
-										isFieldLocked('sourceUrl') &&
-										getFieldLocker('sourceUrl') !== currentUser?.id
-									}
 								/>
 							</FormField>
 						</div>
