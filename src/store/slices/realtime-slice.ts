@@ -251,7 +251,7 @@ export const createRealtimeSlice: StateCreator<
 
 			// Check for conflicts
 			if (
-				localField.version !== remoteField.version &&
+				localField.version !== remoteField.version ||
 				localField.lastModified !== remoteField.lastModified
 			) {
 				const conflict: FormConflict = {
@@ -386,7 +386,7 @@ export const createRealtimeSlice: StateCreator<
 			userProfile: {
 				displayName: userProfile.displayName,
 				avatarUrl: userProfile.avatarUrl || '',
-				color: userProfile.color,
+				color: userProfile.color.hex,
 				isAnonymous: userProfile.isAnonymous,
 			},
 		};

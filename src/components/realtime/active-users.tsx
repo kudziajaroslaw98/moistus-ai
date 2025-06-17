@@ -13,13 +13,20 @@ interface ActiveUsersProps {
 	maxDisplay?: number;
 }
 
-export function ActiveUsers({ users, className }: ActiveUsersProps) {
+export function ActiveUsers({
+	users,
+	className,
+	maxDisplay,
+	currentUserId,
+}: ActiveUsersProps) {
 	// Filter out current user and limit display
 	const avatars = useMemo(() => {
-		return users.map((user) => ({
-			name: generateFunName(user),
-			image: generateFallbackAvatar(user),
-		}));
+		return users
+			.filter((user) => user !== currentUserId)
+			.map((user) => ({
+				name: generateFunName(user),
+				image: generateFallbackAvatar(user),
+			}));
 	}, [users]);
 
 	if (users.length === 0) {
@@ -39,7 +46,7 @@ export function ActiveUsers({ users, className }: ActiveUsersProps) {
 	return (
 		<div className={cn('flex items-center gap-2', className)}>
 			<div className='flex items-center -space-x-2'>
-				<AvatarStack avatars={avatars} />
+				<AvatarStack avatars={avatars} maxAvatarsAmount={maxDisplay ?? 7} />
 			</div>
 		</div>
 	);

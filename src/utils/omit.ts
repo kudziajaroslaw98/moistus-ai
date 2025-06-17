@@ -9,8 +9,6 @@ export function omit<T extends Record<string, any>, K extends keyof T>(
 	obj: T,
 	keys: K | K[]
 ): Omit<T, K> {
-	// obj is guaranteed to be an object by the generic constraint
-
 	const keysToOmit = Array.isArray(keys) ? keys : [keys];
 	const result = {} as Omit<T, K>;
 
