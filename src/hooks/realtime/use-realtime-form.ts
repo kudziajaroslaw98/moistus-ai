@@ -1,65 +1,19 @@
 import useAppStore from '@/store/mind-map-store';
+import type {
+	MergeStrategy,
+	RealtimeFormState,
+} from '@/store/slices/realtime-slice';
 import { debounce } from '@/utils/debounce';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/shallow';
 
-export interface RealtimeFormFieldState {
-	value: any;
-	lastModified: number;
-	lastModifiedBy: string;
-	version: number;
-}
-
-export interface RealtimeFormState {
-	user_id: string;
-	map_id: string;
-	fields: Record<string, RealtimeFormFieldState>;
-	activeFields: Record<string, string>; // fieldName -> userId
-	metadata: {
-		lastSyncedAt: number;
-		version: number;
-	};
-}
-
-export interface FormConflict {
-	fieldName: string;
-	localValue: any;
-	remoteValue: any;
-	localTimestamp: number;
-	remoteTimestamp: number;
-	localUser: string;
-	remoteUser: string;
-}
-
-export type MergeStrategy =
-	| 'last-writer-wins'
-	| 'newest-timestamp'
-	| 'manual'
-	| 'field-level';
-
-export interface RealtimeFormConfig {
-	mergeStrategy?: MergeStrategy;
-	debounceMs?: number;
-	enableFieldLocking?: boolean;
-	onConflict?: (conflict: FormConflict) => 'local' | 'remote' | 'merge';
-	onFieldLocked?: (fieldName: string, lockedBy: string) => void;
-	onFieldUnlocked?: (fieldName: string) => void;
-	syncOnMount?: boolean;
-}
-
-interface UseRealtimeFormEnhancedReturn {
-	formState: RealtimeFormState;
-	updateField: (fieldName: string, value: any) => void;
-	lockField: (fieldName: string) => void;
-	unlockField: (fieldName: string) => void;
-	isFieldLocked: (fieldName: string) => boolean;
-	getFieldLocker: (fieldName: string) => string | null;
-	forceSync: () => void;
-	isConnected: boolean;
-	activeUsers: string[];
-	conflicts: FormConflict[];
-	resolveConflict: (fieldName: string, resolution: 'local' | 'remote') => void;
-}
+// Re-export types for backward compatibility
+export type {
+	FormConflict,
+	MergeStrategy,
+	RealtimeFormFieldState,
+	RealtimeFormState,
+} from '@/store/slices/realtime-slice';
 
 export function useRealtimeForm(
 	roomName: string,
@@ -105,10 +59,13 @@ export function useRealtimeForm(
 		}))
 	);
 
-	// Debounced broadcast function
+	// Store room connection in ref to prevent subscription recreation
+	const roomRef = useRef<any>(null);
+
+	// Debounced broadcast function (stable)
 	const debouncedBroadcast = useCallback(
 		debounce((updates: Record<string, any>) => {
-			const room = supabase.channel(roomName);
+			const room = roomRef.current;
 			if (!room || !currentUser?.id) return;
 
 			room.send({
@@ -126,15 +83,14 @@ export function useRealtimeForm(
 		[currentUser?.id, mapId]
 	);
 
-	// Initialize form state on mount
+	// 1. SUBSCRIPTION MANAGEMENT - Minimal dependencies, no state
 	useEffect(() => {
-		if (currentUser?.id && mapId) {
-			resetFormState(currentUser.id, mapId);
+		if (!supabase || !currentUser?.id || !mapId) {
+			setFormConnectionStatus(false);
+			return;
 		}
-	}, [currentUser?.id, mapId, resetFormState]);
 
-	useEffect(() => {
-		if (!supabase || !currentUser?.id || !mapId) return;
+		console.log(`[useRealtimeForm] Creating room subscription: ${roomName}`);
 
 		const room = supabase.channel(roomName, {
 			config: {
@@ -143,26 +99,82 @@ export function useRealtimeForm(
 			},
 		});
 
-		// Handle presence sync
-		room.on('presence', { event: 'sync' }, () => {
-			const presenceState = room.presenceState<RealtimeFormState>();
+		// Store room in ref for other effects to use
+		roomRef.current = room;
+
+		// Subscribe and track presence
+		room.subscribe(async (status: string) => {
+			console.log(`[useRealtimeForm] Connection status: ${status}`);
+			setFormConnectionStatus(status === 'SUBSCRIBED');
+
+			if (status === 'SUBSCRIBED') {
+				// Get current form state when subscribing (no dependency cascade)
+				const currentFormState = useAppStore.getState().formState;
+				await room.track(currentFormState);
+			}
+		});
+
+		// Cleanup function
+		return () => {
+			console.log(
+				`[useRealtimeForm] Cleaning up room subscription: ${roomName}`
+			);
+			roomRef.current = null;
+			room.unsubscribe();
+			setFormConnectionStatus(false);
+		};
+	}, [
+		supabase,
+		currentUser?.id,
+		mapId,
+		roomName,
+		setFormConnectionStatus,
+		// ✅ Only connection parameters - no state dependencies
+	]);
+
+	// 2. PRESENCE EVENT HANDLERS - Separate effect
+	useEffect(() => {
+		const room = roomRef.current;
+		if (!room || !currentUser?.id) return;
+
+		const handlePresenceSync = () => {
+			const presenceState = room.presenceState();
 			const users = Object.keys(presenceState);
+
+			console.log(`[useRealtimeForm] Presence sync - users: ${users.length}`);
 			setFormActiveUsers(users);
 
 			// Merge remote states
 			if (users.length > 1) {
 				const remoteStates = Object.values(presenceState).flat();
-				remoteStates.forEach((remoteState) => {
-					if (remoteState.user_id !== currentUser.id) {
-						mergeFormState(remoteState, mergeStrategy);
+				remoteStates.forEach((remoteState: any) => {
+					if (remoteState && remoteState.user_id !== currentUser.id) {
+						mergeFormState(remoteState as RealtimeFormState, mergeStrategy);
 					}
 				});
 			}
-		});
+		};
 
-		// Handle broadcast events
-		room.on('broadcast', { event: 'form_update' }, ({ payload }) => {
+		room.on('presence', { event: 'sync' }, handlePresenceSync);
+	}, [
+		currentUser?.id,
+		mergeStrategy,
+		mergeFormState,
+		setFormActiveUsers,
+		// ✅ Only dependencies needed for presence handling
+	]);
+
+	// 3. BROADCAST EVENT HANDLERS - Separate effect
+	useEffect(() => {
+		const room = roomRef.current;
+		if (!room || !currentUser?.id) return;
+
+		const handleFormUpdate = ({ payload }: { payload: any }) => {
 			if (payload.user_id === currentUser.id) return; // Ignore own updates
+
+			console.log(
+				`[useRealtimeForm] Received form update from ${payload.user_id}`
+			);
 
 			const remoteFormState: RealtimeFormState = {
 				user_id: payload.user_id,
@@ -176,45 +188,42 @@ export function useRealtimeForm(
 			};
 
 			mergeFormState(remoteFormState, mergeStrategy);
-		});
+		};
 
-		// Handle field lock events
-		room.on('broadcast', { event: 'field_lock' }, ({ payload }) => {
+		const handleFieldLock = ({ payload }: { payload: any }) => {
 			if (payload.user_id === currentUser.id) return;
+
+			console.log(
+				`[useRealtimeForm] Field lock event: ${payload.action} ${payload.fieldName}`
+			);
 
 			if (payload.action === 'lock') {
 				lockFormField(payload.fieldName, payload.user_id);
 			} else if (payload.action === 'unlock') {
 				unlockFormField(payload.fieldName);
 			}
-		});
-
-		// Subscribe and track presence
-		room.subscribe(async (status) => {
-			setFormConnectionStatus(status === 'SUBSCRIBED');
-
-			if (status === 'SUBSCRIBED') {
-				await room.track(formState);
-			}
-		});
-
-		return () => {
-			room.unsubscribe();
-			setFormConnectionStatus(false);
 		};
+
+		room.on('broadcast', { event: 'form_update' }, handleFormUpdate);
+		room.on('broadcast', { event: 'field_lock' }, handleFieldLock);
 	}, [
-		supabase,
 		currentUser?.id,
-		mapId,
-		roomName,
 		mergeStrategy,
-		formState,
 		mergeFormState,
-		setFormConnectionStatus,
-		setFormActiveUsers,
 		lockFormField,
 		unlockFormField,
+		// ✅ Only dependencies needed for broadcast handling
 	]);
+
+	// 4. FORM STATE INITIALIZATION - Separate effect
+	useEffect(() => {
+		if (currentUser?.id && mapId) {
+			console.log(
+				`[useRealtimeForm] Initializing form state for user ${currentUser.id}`
+			);
+			resetFormState(currentUser.id, mapId);
+		}
+	}, [currentUser?.id, mapId, resetFormState]);
 
 	// Enhanced field update function
 	const updateField = useCallback(
@@ -236,17 +245,42 @@ export function useRealtimeForm(
 	// Field locking helpers
 	const lockField = useCallback(
 		(fieldName: string) => {
-			if (!currentUser?.id) return;
+			if (!currentUser?.id || !roomRef.current) return;
+
 			lockFormField(fieldName, currentUser.id);
+
+			// Broadcast lock event
+			roomRef.current.send({
+				type: 'broadcast',
+				event: 'field_lock',
+				payload: {
+					action: 'lock',
+					fieldName,
+					user_id: currentUser.id,
+				},
+			});
 		},
 		[currentUser?.id, lockFormField]
 	);
 
 	const unlockField = useCallback(
 		(fieldName: string) => {
+			if (!roomRef.current) return;
+
 			unlockFormField(fieldName);
+
+			// Broadcast unlock event
+			roomRef.current.send({
+				type: 'broadcast',
+				event: 'field_lock',
+				payload: {
+					action: 'unlock',
+					fieldName,
+					user_id: currentUser?.id,
+				},
+			});
 		},
-		[unlockFormField]
+		[currentUser?.id, unlockFormField]
 	);
 
 	const isFieldLocked = useCallback(

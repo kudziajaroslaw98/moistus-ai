@@ -12,6 +12,7 @@ import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 
 interface AnnotationNodeFormProps {
 	initialData: Partial<NodeData>;
+	nodeId?: string;
 }
 
 const annotationTypes = ['comment', 'idea', 'quote', 'summary'];

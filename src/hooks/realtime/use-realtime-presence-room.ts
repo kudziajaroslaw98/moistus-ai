@@ -5,7 +5,7 @@ import { useCurrentUserImage } from '@/hooks/use-current-user-image';
 import { useCurrentUserName } from '@/hooks/use-current-username';
 import useAppStore from '@/store/mind-map-store';
 import { useEffect, useState } from 'react';
-import { useUserColor } from './use-user-color';
+import { useUserColor } from '../use-user-color';
 
 const supabase = createClient();
 

@@ -3,6 +3,7 @@ import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 
 interface QuestionNodeFormProps {
 	initialData: Partial<NodeData>;
+	nodeId?: string;
 }
 
 const QuestionNodeForm = forwardRef<

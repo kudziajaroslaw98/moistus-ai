@@ -1,10 +1,10 @@
+import type { RealtimeUserSelection } from '@/hooks/realtime/use-realtime-selection-presence-room';
 import type {
 	FormConflict,
 	MergeStrategy,
 	RealtimeFormFieldState,
 	RealtimeFormState,
-} from '@/hooks/realtime/use-realtime-form-enhanced';
-import type { RealtimeUserSelection } from '@/hooks/realtime/use-realtime-selection-presence-room';
+} from '@/store/slices/realtime-slice';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import { AvailableNodeTypes } from '@/types/available-node-types';

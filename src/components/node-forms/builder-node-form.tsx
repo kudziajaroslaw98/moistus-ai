@@ -14,6 +14,7 @@ import { Button } from '../ui/button';
 
 interface BuilderNodeFormProps {
 	initialData: Partial<NodeData>;
+	nodeId?: string;
 }
 
 const defaultCanvas: BuilderCanvas = {

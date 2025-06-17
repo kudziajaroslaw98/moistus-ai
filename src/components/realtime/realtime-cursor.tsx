@@ -1,7 +1,7 @@
 'use client';
 
 import { Cursor } from '@/components/ui/cursor';
-import { useRealtimeCursors } from '@/hooks/use-realtime-cursor';
+import { useRealtimeCursors } from '@/hooks/realtime/use-realtime-cursor';
 import type { ReactFlowInstance } from '@xyflow/react';
 import { useViewport } from '@xyflow/react';
 

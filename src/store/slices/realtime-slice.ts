@@ -1,11 +1,39 @@
-import type {
-	FormConflict,
-	MergeStrategy,
-	RealtimeFormFieldState,
-	RealtimeFormState,
-} from '@/hooks/realtime/use-realtime-form';
 import { StateCreator } from 'zustand';
 import { AppState, RealtimeSlice } from '../app-state';
+
+export type MergeStrategy =
+	| 'last-writer-wins'
+	| 'newest-timestamp'
+	| 'manual'
+	| 'field-level';
+
+export interface RealtimeFormFieldState {
+	value: any;
+	lastModified: number;
+	lastModifiedBy: string;
+	version: number;
+}
+
+export interface RealtimeFormState {
+	user_id: string;
+	map_id: string;
+	fields: Record<string, RealtimeFormFieldState>;
+	activeFields: Record<string, string>; // fieldName -> userId
+	metadata: {
+		lastSyncedAt: number;
+		version: number;
+	};
+}
+
+export interface FormConflict {
+	fieldName: string;
+	localValue: any;
+	remoteValue: any;
+	localTimestamp: number;
+	remoteTimestamp: number;
+	localUser: string;
+	remoteUser: string;
+}
 
 export const createRealtimeSlice: StateCreator<
 	AppState,

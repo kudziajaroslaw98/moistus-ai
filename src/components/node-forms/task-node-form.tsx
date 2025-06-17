@@ -15,6 +15,7 @@ interface Task {
 
 interface TaskNodeFormProps {
 	initialData: Partial<NodeData>;
+	nodeId?: string;
 }
 
 const TaskNodeForm = forwardRef<

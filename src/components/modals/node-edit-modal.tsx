@@ -19,11 +19,19 @@ import { Spinner } from '../ui/spinner';
 export interface NodeSpecificFormProps {
 	initialData: Partial<NodeData>; // Changed from initialMetadata to initialData
 	disabled?: boolean;
+	nodeId: string;
 }
 
 // Define the interface for the ref that each specific node form must expose
 export interface NodeFormRef {
 	getFormData: () => Partial<NodeData> | null;
+}
+
+// Enhanced interface for real-time capable forms
+export interface EnhancedNodeFormRef extends NodeFormRef {
+	lockField: (fieldName: string) => void;
+	unlockField: (fieldName: string) => void;
+	forceSync: () => void;
 }
 
 // Lazy load form components
@@ -52,7 +60,7 @@ const nodeSpecificForms: Record<
 	keyof typeof nodeTypesConfig,
 	React.LazyExoticComponent<
 		React.ForwardRefExoticComponent<
-			NodeSpecificFormProps & React.RefAttributes<NodeFormRef>
+			NodeSpecificFormProps & React.RefAttributes<any>
 		>
 	>
 > = {
@@ -97,7 +105,7 @@ export default function NodeEditModal() {
 		useState<string>('defaultNode');
 	const [isSaving, setIsSaving] = useState(false);
 	const [nodeData, setNodeData] = useState<Partial<NodeData>>({});
-	const formRef = useRef<NodeFormRef>(null);
+	const formRef = useRef<NodeFormRef | EnhancedNodeFormRef>(null);
 
 	useEffect(() => {
 		if (node !== null && isOpen && !isSaving) {
@@ -214,8 +222,12 @@ export default function NodeEditModal() {
 						</div>
 					}
 				>
-					{NodeSpecificFormComponent && (
-						<NodeSpecificFormComponent ref={formRef} initialData={nodeData} />
+					{NodeSpecificFormComponent && node?.id && (
+						<NodeSpecificFormComponent
+							ref={formRef}
+							initialData={nodeData}
+							nodeId={node.id}
+						/>
 					)}
 
 					{!NodeSpecificFormComponent &&
