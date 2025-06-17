@@ -1,6 +1,6 @@
 'use client';
 // Add History icon import
-import useAppStore from '@/contexts/mind-map/mind-map-store';
+import useAppStore from '@/store/mind-map-store';
 import {
 	ArrowLeft,
 	Command,
@@ -66,7 +66,7 @@ const MindMapToolbarComponent = () => {
 
 	if (isFocusMode) {
 		return (
-			<div className='absolute top-3 right-3 z-20'>
+			<div className='absolute top-[15px] right-[15px] z-20'>
 				<button
 					onClick={toggleFocusMode} // Use toggleFocusMode directly
 					className='flex items-center justify-center rounded-sm bg-zinc-700 p-2 text-zinc-200 shadow-md transition-colors hover:bg-zinc-600 focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-zinc-900 focus:outline-none'
@@ -80,7 +80,7 @@ const MindMapToolbarComponent = () => {
 	}
 
 	return (
-		<div className='absolute top-2 right-2 left-2 z-10 flex flex-wrap items-center justify-between gap-4 rounded-sm bg-zinc-900 p-3 shadow-md'>
+		<div className='absolute top-2 right-[15px] left-[15px] z-10 flex flex-wrap items-center justify-between gap-4 rounded-sm bg-zinc-900 p-3 shadow-md'>
 			{/* Left Section: Back Button, Title & Generate */}
 			<div className='flex flex-wrap items-center gap-4'>
 				{/* Back to Dashboard Link */}

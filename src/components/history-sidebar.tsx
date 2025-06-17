@@ -1,4 +1,4 @@
-import useAppStore from '@/contexts/mind-map/mind-map-store';
+import useAppStore from '@/store/mind-map-store';
 import { HistoryState } from '@/types/history-state';
 import { cn } from '@/utils/cn';
 import { AnimatePresence, motion } from 'motion/react';

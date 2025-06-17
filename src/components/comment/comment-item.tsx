@@ -1,5 +1,5 @@
-import useAppStore from '@/contexts/mind-map/mind-map-store';
 import { isNodeComment } from '@/helpers/guards/is-node-comment';
+import useAppStore from '@/store/mind-map-store';
 import { MapComment, NodeComment } from '@/types/comment-types';
 import { cn } from '@/utils/cn';
 import {

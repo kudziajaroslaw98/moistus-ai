@@ -1,4 +1,14 @@
-import type { RealtimeUserSelection } from '@/hooks/use-realtime-selection-presence-room';
+import type { UserProfile } from '@/helpers/user-profile-helpers';
+import type { RealtimeUserSelection } from '@/hooks/realtime/use-realtime-selection-presence-room';
+import type {
+	FieldActivityState,
+	FieldActivityUser,
+	FormConflict,
+	MergeStrategy,
+	RealtimeFormFieldState,
+	RealtimeFormState,
+	UserFieldPresence,
+} from '@/store/slices/realtime-slice';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import { AvailableNodeTypes } from '@/types/available-node-types';
@@ -124,12 +134,15 @@ export interface CoreDataSlice {
 	mapId: string | null;
 	reactFlowInstance: ReactFlowInstance | null;
 	currentUser: User | null;
+	userProfile: UserProfile | null;
 
 	setMindMap: (mindMap: MindMapData | null) => void;
 	setReactFlowInstance: (reactFlowInstance: ReactFlowInstance | null) => void;
 	setMapId: (mapId: string | null) => void;
 	setCurrentUser: (currentUser: User | null) => void;
+	setUserProfile: (userProfile: UserProfile | null) => void;
 
+	generateUserProfile: (user: User | null) => UserProfile | null;
 	getCurrentUser: () => Promise<User | null>;
 	centerOnNode: (nodeId: string) => void;
 
@@ -410,13 +423,81 @@ export interface UIStateSlice {
 	toggleFocusMode: () => void;
 }
 
+// Enhanced Form State
+export interface EnhancedFormState {
+	isConnected: boolean;
+	activeUsers: string[];
+	conflicts: FormConflict[];
+	pendingUpdates: Record<string, any>;
+	optimisticUpdates: Record<string, RealtimeFormFieldState>;
+}
+
 // Realtime Slice
 export interface RealtimeSlice {
 	// Realtime state
 	realtimeSelectedNodes: RealtimeUserSelection[];
+	formState: RealtimeFormState;
+	enhancedFormState: EnhancedFormState;
 
-	// Realtime setters
+	// Field activity state
+	fieldActivities: Record<string, FieldActivityState>;
+	userFieldPresences: Record<string, UserFieldPresence>;
+
+	// Basic setters (maintaining compatibility)
 	setRealtimeSelectedNodes: (nodes: RealtimeUserSelection[]) => void;
+	setFormState: (formState: Record<string, any>) => void;
+
+	// Enhanced form state management
+	updateFormField: (fieldName: string, value: any, userId: string) => void;
+
+	// Conflict management
+	addFormConflict: (conflict: FormConflict) => void;
+	resolveFormConflict: (
+		fieldName: string,
+		resolution: 'local' | 'remote'
+	) => void;
+	clearFormConflicts: () => void;
+
+	// Connection and user management
+	setFormConnectionStatus: (isConnected: boolean) => void;
+	setFormActiveUsers: (users: string[]) => void;
+
+	// Form state merging with conflict detection
+	mergeFormState: (
+		remoteState: RealtimeFormState,
+		strategy?: MergeStrategy
+	) => void;
+
+	// Utility methods
+	getFormFieldValue: (fieldName: string) => any;
+	getFormFieldState: (fieldName: string) => RealtimeFormFieldState | null;
+	hasFormConflicts: () => boolean;
+	getFormConflicts: () => FormConflict[];
+	resetFormState: (userId: string, mapId: string) => void;
+
+	// Field activity tracking methods
+	trackFieldActivity: (
+		fieldName: string,
+		action: 'focus' | 'blur' | 'edit',
+		nodeId?: string
+	) => void;
+	trackRemoteFieldActivity: (
+		fieldName: string,
+		action: 'focus' | 'blur' | 'edit',
+		remoteUserId: string,
+		remoteUserProfile: {
+			displayName: string;
+			avatarUrl: string;
+			color: string;
+			isAnonymous: boolean;
+		},
+		nodeId?: string
+	) => void;
+	getFieldActivity: (fieldName: string) => FieldActivityState | null;
+	getActiveUsersForField: (fieldName: string) => FieldActivityUser[];
+	clearFieldActivity: () => void;
+	updateUserFieldPresence: (presence: Partial<UserFieldPresence>) => void;
+	getUserFieldPresence: (userId: string) => UserFieldPresence | null;
 }
 
 // Combined App State

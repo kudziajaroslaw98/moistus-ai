@@ -1,4 +1,4 @@
-import useAppStore from '@/contexts/mind-map/mind-map-store';
+import useAppStore from '@/store/mind-map-store';
 import { Command } from 'cmdk';
 import {
 	Group,

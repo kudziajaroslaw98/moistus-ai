@@ -17,7 +17,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from '@/components/ui/Tooltip';
-import useAppStore from '@/contexts/mind-map/mind-map-store';
+import useAppStore from '@/store/mind-map-store';
 import { Comment } from '@/types/comment-types';
 import { cn } from '@/utils/cn';
 import {

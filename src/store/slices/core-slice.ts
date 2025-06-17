@@ -1,9 +1,16 @@
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import { transformSupabaseData } from '@/helpers/transform-supabase-data';
+import {
+	generateFallbackAvatar,
+	generateFunName,
+	generateUserColor,
+	type UserProfile,
+} from '@/helpers/user-profile-helpers';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
 import type { EdgesTableType } from '@/types/edges-table-type';
 import type { MindMapData } from '@/types/mind-map-data';
 import type { NodesTableType } from '@/types/nodes-table-type';
+import type { User } from '@supabase/supabase-js';
 import type { StateCreator } from 'zustand';
 import type { AppState, CoreDataSlice } from '../app-state';
 
@@ -19,18 +26,52 @@ export const createCoreDataSlice: StateCreator<
 	reactFlowInstance: null,
 	mindMap: null,
 	currentUser: null,
+	userProfile: null,
 
 	// Actions
 	setMindMap: (mindMap) => set({ mindMap }),
 	setReactFlowInstance: (reactFlowInstance) => set({ reactFlowInstance }),
 	setMapId: (mapId) => set({ mapId }),
-	setCurrentUser: (currentUser) => set({ currentUser }),
+	setCurrentUser: (currentUser) => {
+		set({ currentUser });
+		// Auto-generate user profile when current user changes
+		const userProfile = get().generateUserProfile(currentUser);
+		set({ userProfile });
+	},
+	setUserProfile: (userProfile) => set({ userProfile }),
+
+	generateUserProfile: (user: User | null): UserProfile | null => {
+		if (!user) return null;
+
+		const displayName =
+			user.user_metadata?.display_name ||
+			user.user_metadata?.full_name ||
+			user.email?.split('@')[0] ||
+			generateFunName(user.id);
+
+		const isAnonymous =
+			!user.email || user.user_metadata?.is_anonymous === true;
+
+		return {
+			id: user.id,
+			email: user.email,
+			displayName,
+			avatarUrl:
+				user.user_metadata?.avatar_url || generateFallbackAvatar(user.id),
+			color: generateUserColor(user.id),
+			isAnonymous,
+		};
+	},
 
 	getCurrentUser: async () => {
 		const { data } = await get().supabase.auth.getUser();
 		const currentUser = data?.user;
 
 		set({ currentUser });
+
+		// Auto-generate user profile
+		const userProfile = get().generateUserProfile(currentUser);
+		set({ userProfile });
 
 		return currentUser;
 	},
@@ -159,7 +200,7 @@ export const createCoreDataSlice: StateCreator<
 			console.log('Starting real-time subscriptions for map:', mapId);
 			await Promise.all([
 				get().subscribeToNodes(mapId),
-				get().subscribeToEdges(mapId)
+				get().subscribeToEdges(mapId),
 			]);
 			console.log('Real-time subscriptions started successfully');
 		} catch (error) {
@@ -172,11 +213,11 @@ export const createCoreDataSlice: StateCreator<
 			console.log('Stopping real-time subscriptions');
 			await Promise.all([
 				get().unsubscribeFromNodes(),
-				get().unsubscribeFromEdges()
+				get().unsubscribeFromEdges(),
 			]);
 			console.log('Real-time subscriptions stopped successfully');
 		} catch (error) {
 			console.error('Failed to stop real-time subscriptions:', error);
 		}
 	},
-	});
+});

@@ -56,7 +56,7 @@ export const useCurrentUserImage = (backgroundColor?: string) => {
 				setImage(avatarUrl);
 			} else {
 				// Generate fallback avatar based on user email or ID
-				const seed = user?.email || user?.id || 'Anonymous';
+				const seed = user?.id || 'Anonymous';
 				const fallbackUrl = generateFallbackAvatar(seed, {
 					style: 'lorelei',
 					backgroundColor,

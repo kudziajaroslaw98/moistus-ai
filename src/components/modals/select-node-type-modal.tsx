@@ -1,5 +1,5 @@
 import { NodeTypes, nodeTypes } from '@/constants/node-types';
-import useAppStore from '@/contexts/mind-map/mind-map-store';
+import useAppStore from '@/store/mind-map-store';
 import {
 	CheckSquare,
 	Code,

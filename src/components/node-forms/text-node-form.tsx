@@ -16,6 +16,7 @@ import { Textarea } from '../ui/textarea';
 
 interface TextNodeFormProps {
 	initialData: Partial<NodeData>;
+	nodeId?: string;
 }
 
 const textAlignOptions: ('left' | 'center' | 'right')[] = [

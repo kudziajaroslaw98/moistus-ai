@@ -1,9 +1,9 @@
-import useAppStore from '@/contexts/mind-map/mind-map-store';
 import { createClient } from '@/helpers/supabase/client';
+import useAppStore from '@/store/mind-map-store';
 import { useEffect, useState } from 'react';
-import { useCurrentUserImage } from './use-current-user-image';
-import { useCurrentUserName } from './use-current-username';
-import { useUserColor } from './use-user-color';
+import { useCurrentUserImage } from '../use-current-user-image';
+import { useCurrentUserName } from '../use-current-username';
+import { useUserColor } from '../use-user-color';
 
 const supabase = createClient();
 

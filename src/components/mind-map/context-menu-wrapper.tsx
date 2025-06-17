@@ -1,5 +1,5 @@
 'use client';
-import useAppStore from '@/contexts/mind-map/mind-map-store';
+import useAppStore from '@/store/mind-map-store';
 import { useShallow } from 'zustand/shallow';
 import { ContextMenuDisplay } from '../context-menu-display';
 import { GenerateFromNodesModal } from '../modals/generate-from-nodes-modal';

@@ -6,6 +6,7 @@ import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 
 interface ResourceNodeFormProps {
 	initialData: Partial<NodeData>;
+	nodeId?: string;
 }
 
 interface UrlMetadata {

@@ -1,4 +1,4 @@
-import useAppStore from '@/contexts/mind-map/mind-map-store';
+import useAppStore from '@/store/mind-map-store';
 import { useEffect } from 'react';
 
 interface UseKeyboardShortcutsProps {

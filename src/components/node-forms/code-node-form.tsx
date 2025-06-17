@@ -18,6 +18,7 @@ import { commonLanguages } from '@/constants/common-languages';
 
 interface CodeNodeFormProps {
 	initialData: Partial<NodeData>;
+	nodeId?: string;
 }
 
 const CodeNodeForm = forwardRef<

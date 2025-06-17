@@ -1,4 +1,4 @@
-// import { useMindMapContext } from "@/contexts/mind-map/mind-map-context";
+// import { useMindMapContext } from "@/store/mind-map-context";
 // import { EdgeData } from "@/types/edge-data";
 // import {
 //   Edge,

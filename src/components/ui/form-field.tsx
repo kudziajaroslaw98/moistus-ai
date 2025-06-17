@@ -8,6 +8,7 @@ interface FormFieldProps {
 	children: ReactNode;
 	error?: string;
 	className?: string;
+	avatarStacks?: ReactNode;
 }
 
 export function FormField({
@@ -16,13 +17,19 @@ export function FormField({
 	children,
 	error,
 	className,
+	avatarStacks,
 }: FormFieldProps) {
 	return (
-		<div className={cn('space-y-2', className)}>
+		<div className={cn('space-y-2 relative', className)}>
 			<Label htmlFor={id} className='flex flex-col gap-2'>
-				{label}
+				<div className='flex items-center justify-between'>
+					<span>{label}</span>
+					{avatarStacks && <div>{avatarStacks}</div>}
+				</div>
 
-				{children}
+				<div className={cn('transition-all duration-200', className)}>
+					{children}
+				</div>
 			</Label>
 
 			{error && <p className='mt-1 text-sm text-rose-500'>{error}</p>}

@@ -3,6 +3,7 @@ import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 
 interface ImageNodeFormProps {
 	initialData: Partial<NodeData>;
+	nodeId?: string;
 }
 
 const ImageNodeForm = forwardRef<
