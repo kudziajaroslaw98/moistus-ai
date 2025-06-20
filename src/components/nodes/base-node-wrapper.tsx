@@ -49,15 +49,23 @@ const BaseNodeWrapperComponent = ({
 	includePadding = true,
 	hideNodeType = false,
 }: BaseNodeWrapperProps) => {
-	const { addNode, getNode, isDraggingNodes, realtimeSelectedNodes } =
-		useAppStore(
-			useShallow((state) => ({
-				addNode: state.addNode,
-				getNode: state.getNode,
-				isDraggingNodes: state.isDraggingNodes,
-				realtimeSelectedNodes: state.realtimeSelectedNodes,
-			}))
-		);
+	const {
+		addNode,
+		getNode,
+		isDraggingNodes,
+		realtimeSelectedNodes,
+		currentUser,
+		selectedNodes,
+	} = useAppStore(
+		useShallow((state) => ({
+			addNode: state.addNode,
+			getNode: state.getNode,
+			isDraggingNodes: state.isDraggingNodes,
+			realtimeSelectedNodes: state.realtimeSelectedNodes,
+			currentUser: state.currentUser,
+			selectedNodes: state.selectedNodes,
+		}))
+	);
 
 	const connection = useConnection();
 	const isTarget = connection?.toNode?.id === id;
@@ -82,8 +90,8 @@ const BaseNodeWrapperComponent = ({
 
 	const avatars = useMemo(() => {
 		if (!realtimeSelectedNodes) return [];
-		return realtimeSelectedNodes.filter((user) =>
-			user.selectedNodes?.includes(id)
+		return realtimeSelectedNodes.filter(
+			(user) => user.selectedNodes?.includes(id) && user.id !== currentUser?.id
 		);
 	}, [realtimeSelectedNodes]);
 
@@ -121,21 +129,23 @@ const BaseNodeWrapperComponent = ({
 					<CommentButton />
 				</div>
 
-				{children}
+				<div className='-bottom-10 left-0 flex absolute'>
+					<AnimatePresence mode='popLayout'>
+						{avatars.length > 0 && (
+							<motion.div
+								initial={{ opacity: 0, scale: 0.98, y: -10 }}
+								animate={{ opacity: 1, scale: 1, y: 0 }}
+								exit={{ opacity: 0, scale: 0.98, y: -10 }}
+								transition={{ duration: 0.2 }}
+								className='inline-flex h-auto w-full'
+							>
+								<AvatarStack avatars={avatars} size={'sm'} />
+							</motion.div>
+						)}
+					</AnimatePresence>
+				</div>
 
-				<AnimatePresence mode='popLayout'>
-					{avatars.length > 0 && (
-						<motion.div
-							initial={{ opacity: 0, scale: 0.98, y: -10 }}
-							animate={{ opacity: 1, scale: 1, y: 0 }}
-							exit={{ opacity: 0, scale: 0.98, y: -10 }}
-							transition={{ duration: 0.2 }}
-							className='inline-flex h-auto w-full'
-						>
-							<AvatarStack avatars={avatars} size={'sm'} />
-						</motion.div>
-					)}
-				</AnimatePresence>
+				{children}
 
 				{!isDraggingNodes && (
 					<>
@@ -193,7 +203,7 @@ const BaseNodeWrapperComponent = ({
 
 						{/* Add New Node Button - Only visible when selected */}
 						<AnimatePresence>
-							{selected && (
+							{selected && selectedNodes.length === 1 && (
 								<>
 									{/* add connection line to node */}
 									<motion.hr

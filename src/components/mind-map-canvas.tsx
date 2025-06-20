@@ -39,6 +39,7 @@ export function MindMapCanvas() {
 		isCommentsPanelOpen,
 		currentUser,
 		getCurrentUser,
+		setNodeInfo,
 	} = useAppStore(
 		useShallow((state) => ({
 			handleUndo: state.handleUndo,
@@ -59,6 +60,7 @@ export function MindMapCanvas() {
 			isCommentsPanelOpen: state.isCommentsPanelOpen,
 			currentUser: state.currentUser,
 			getCurrentUser: state.getCurrentUser,
+			setNodeInfo: state.setNodeInfo,
 		}))
 	);
 	const isLoading = loadingStates.isStateLoading;
@@ -78,7 +80,15 @@ export function MindMapCanvas() {
 		[edges]
 	);
 
-	const openNodeTypeModal = () => {
+	const openNodeTypeModal = (parentId?: string | null) => {
+		// If parentId is provided, find and set the parent node
+		if (parentId) {
+			const parentNode = selectedNodes.find((node) => node.id === parentId);
+			if (parentNode) {
+				setNodeInfo(parentNode);
+			}
+		}
+
 		setPopoverOpen({ nodeType: true });
 	};
 
@@ -107,7 +117,9 @@ export function MindMapCanvas() {
 	useKeyboardShortcuts({
 		onUndo: handleUndo,
 		onRedo: handleRedo,
-		onAddChild: openNodeTypeModal, // Use wrapper function
+		onAddChild: (parentId) => {
+			openNodeTypeModal(parentId);
+		},
 		onCopy: handleCopy,
 		onPaste: handlePaste,
 		selectedNodeId: selectedNodeId,
@@ -123,7 +135,7 @@ export function MindMapCanvas() {
 
 	return (
 		// Context Provider is now wrapping this component higher up
-		<div className='relative h-full w-full overflow-hidden rounded-md bg-zinc-900 flex'>
+		<div className='relative h-full w-full overflow-hidden rounded-md flex'>
 			{/* Main content area */}
 			<div
 				className={cn([
@@ -142,7 +154,7 @@ export function MindMapCanvas() {
 				<div
 					className={cn([
 						'relative w-full transition-all duration-200 ease-in-out',
-						isFocusMode ? 'h-full mt-0' : 'h-[calc(100%-60px)] mt-[60px]',
+						isFocusMode ? 'h-full mt-0' : 'h-full',
 					])}
 				>
 					<ContextMenuWrapper />

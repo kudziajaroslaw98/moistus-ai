@@ -24,14 +24,14 @@ export const RealtimeCursors = ({
 	const viewport = useViewport();
 
 	return (
-		<div className='absolute inset-0 pointer-events-none overflow-hidden'>
+		<>
 			{Object.keys(cursors).map((id) => {
 				// Cap the cursor scale between 0.5x and 2x for readability
 
 				return (
 					<Cursor
 						key={id}
-						className='absolute transition-transform ease-in-out pointer-events-none'
+						className='fixed transition-transform !z-[100] ease-in-out pointer-events-none'
 						style={{
 							transitionDuration: '20ms',
 							transform: `translate(${cursors[id].position.x * viewport.zoom + viewport.x - 32}px, ${cursors[id].position.y * viewport.zoom + viewport.y - 32}px) scale(${viewport.zoom})`,
@@ -41,6 +41,6 @@ export const RealtimeCursors = ({
 					/>
 				);
 			})}
-		</div>
+		</>
 	);
 };

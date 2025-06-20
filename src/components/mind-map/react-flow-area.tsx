@@ -4,7 +4,6 @@ import {
 	BackgroundVariant,
 	ConnectionLineType,
 	ConnectionMode,
-	Controls,
 	Edge,
 	EdgeMouseHandler,
 	Node,
@@ -33,6 +32,8 @@ import useAppStore from '@/store/mind-map-store';
 import type { AppNode } from '@/types/app-node';
 import type { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';
+import { ArrowLeft, Command, Maximize, Share2 } from 'lucide-react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
 import FloatingConnectionLine from '../edges/floating-connection-line';
@@ -40,8 +41,7 @@ import BuilderNode from '../nodes/builder-node';
 import TaskNode from '../nodes/task-node';
 import { RealtimeAvatarStack } from '../realtime/realtime-avatar-stack';
 import { RealtimeCursors } from '../realtime/realtime-cursor';
-import { ZoomSlider } from '../ui/zoom-slider';
-import { ZoomSelect } from '../zoom-select';
+import { Button } from '../ui/button';
 
 export function ReactFlowArea() {
 	// const {
@@ -66,6 +66,7 @@ export function ReactFlowArea() {
 		setNodeInfo,
 		setSelectedNodes,
 		setPopoverOpen,
+		popoverOpen,
 		setEdgeInfo,
 		setMapId,
 		addNode,
@@ -81,6 +82,8 @@ export function ReactFlowArea() {
 		currentUser,
 		getVisibleEdges,
 		getVisibleNodes,
+		toggleFocusMode,
+		mindMap,
 	} = useAppStore(
 		useShallow((state) => ({
 			supabase: state.supabase,
@@ -96,6 +99,7 @@ export function ReactFlowArea() {
 			setNodeInfo: state.setNodeInfo,
 			setSelectedNodes: state.setSelectedNodes,
 			setPopoverOpen: state.setPopoverOpen,
+			popoverOpen: state.popoverOpen,
 			isDraggingNodes: state.isDraggingNodes,
 			setEdgeInfo: state.setEdgeInfo,
 			setMapId: state.setMapId,
@@ -109,6 +113,8 @@ export function ReactFlowArea() {
 			unsubscribeFromRealtimeUpdates: state.unsubscribeFromRealtimeUpdates,
 			getCurrentUser: state.getCurrentUser,
 			currentUser: state.currentUser,
+			toggleFocusMode: state.toggleFocusMode,
+			mindMap: state.mindMap,
 		}))
 	);
 
@@ -181,7 +187,7 @@ export function ReactFlowArea() {
 
 	const onConnectStart = useCallback(
 		(
-			_: MouseEvent | TouchEvent,
+			event: MouseEvent | TouchEvent,
 			{ nodeId, handleId, handleType }: OnConnectStartParams
 		) => {
 			connectingNodeId.current = nodeId;
@@ -206,14 +212,13 @@ export function ReactFlowArea() {
 				connectingNodeId.current &&
 				connectingHandleType.current === 'source'
 			) {
-				const clientX =
-					'touches' in event
-						? event.touches[0].clientX
-						: (event as MouseEvent).clientX;
-				const clientY =
-					'touches' in event
-						? event.touches[0].clientY
-						: (event as MouseEvent).clientY;
+				const isTouchEvent = 'touches' in event;
+				const clientX = isTouchEvent
+					? event.changedTouches[0]?.clientX
+					: (event as MouseEvent).clientX;
+				const clientY = isTouchEvent
+					? event.changedTouches[0]?.clientY
+					: (event as MouseEvent).clientY;
 
 				const panePosition = reactFlowInstance.screenToFlowPosition({
 					x: clientX,
@@ -260,6 +265,18 @@ export function ReactFlowArea() {
 		}, 100);
 	}, [setIsDraggingNodes]);
 
+	const handleToggleSharePanel = useCallback(() => {
+		setPopoverOpen({ sharePanel: true });
+	}, [setPopoverOpen]);
+
+	const handleCommandPaletteOpen = useCallback(() => {
+		setPopoverOpen({ commandPalette: true });
+	}, [setPopoverOpen]);
+
+	const handleToggleFocusMode = useCallback(() => {
+		toggleFocusMode();
+	}, [toggleFocusMode]);
+
 	return (
 		<ReactFlow
 			colorMode='dark'
@@ -298,35 +315,76 @@ export function ReactFlowArea() {
 			onNodeDragStart={handleNodeDragStart}
 			onNodeDragStop={handleNodeDragStop}
 		>
-			<Controls
+			{/* <Controls
 				position='top-right'
 				orientation='horizontal'
 				showZoom={false}
 				showFitView={false}
 				className={`${isFocusMode ? '!right-12' : ''} cursor-pointer`}
-			/>
+			/> */}
 
-			{isFocusMode ? <ZoomSelect /> : <ZoomSlider position='top-left' />}
+			{/* {isFocusMode ? <ZoomSelect /> : <ZoomSlider position='top-left' />} */}
 
 			<Background color='#52525c' gap={16} variant={BackgroundVariant.Dots} />
 
-			<Panel position='bottom-left'>
-				<RealtimeAvatarStack roomName={`mind_map:${mapId}:users`} />
+			<Panel position='top-left'>
+				<div className='flex flex-wrap items-center gap-4'>
+					{/* Back to Dashboard Link */}
+					<Link
+						href='/dashboard'
+						className='flex items-center justify-center rounded-sm p-1.5 text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-zinc-100 focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none bg-zinc-950 border border-zinc-800'
+						title='Back to Dashboard'
+					>
+						<ArrowLeft className='h-4 w-4' />
+					</Link>
+
+					<span className='mr-2 truncate text-zinc-100 text-lg font-semibold capitalize'>
+						{mindMap?.title || 'Loading...'}
+					</span>
+				</div>
 			</Panel>
 
-			<Panel
-				position='top-left'
-				className='pointer-events-none'
-				style={{
-					width: '100%',
-					height: '100%',
-					position: 'absolute',
-					top: 0,
-					left: 0,
-					pointerEvents: 'none',
-					zIndex: 1,
-				}}
-			>
+			<Panel position='top-right' className='z-20'>
+				<div className='flex gap-4 '>
+					<div className='flex gap-2'>
+						<Button
+							onClick={handleCommandPaletteOpen}
+							title='Command Palette'
+							aria-label='Command Palette'
+							variant='secondary'
+							size='icon'
+						>
+							<Command className='h-4 w-4' />
+						</Button>
+
+						<Button
+							onClick={handleToggleFocusMode}
+							title='Enter Focus Mode'
+							aria-label='Enter Focus Mode'
+							variant='secondary'
+							size='icon'
+						>
+							<Maximize className='h-4 w-4' />
+						</Button>
+
+						<Button
+							onClick={handleToggleSharePanel}
+							title='Share Mind Map'
+							aria-label='Share Mind Map'
+							variant={popoverOpen.sharePanel ? 'default' : 'secondary'}
+							size='icon'
+						>
+							<Share2 className='h-4 w-4' />
+						</Button>
+					</div>
+
+					<RealtimeAvatarStack roomName={`mind_map:${mapId}:users`} />
+				</div>
+			</Panel>
+
+			<Panel position='bottom-center'></Panel>
+
+			<Panel position='top-left'>
 				<RealtimeCursors
 					roomName={`mind_map:${mapId}:cursor`}
 					reactFlowInstance={reactFlowInstance}

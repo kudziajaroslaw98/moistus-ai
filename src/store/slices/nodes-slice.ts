@@ -56,14 +56,39 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 			}
 			case 'UPDATE': {
 				if (newRecord) {
+					const existingNode = nodes.find((n) => n.id === newRecord.id);
+					const oldPosition = existingNode
+						? { x: existingNode.position.x, y: existingNode.position.y }
+						: null;
+					const newPosition = {
+						x: newRecord.position_x,
+						y: newRecord.position_y,
+					};
+
+					// Check if this node was recently moved locally (within last 2 seconds)
+					const wasRecentlyMoved =
+						lastSavedNodeTimestamps[newRecord.id] &&
+						Date.now() - lastSavedNodeTimestamps[newRecord.id] < 2000;
+
+					const positionChanged =
+						oldPosition &&
+						(oldPosition.x !== newPosition.x ||
+							oldPosition.y !== newPosition.y);
+
 					const updatedNodes = nodes.map((node) => {
 						if (node.id === newRecord.id) {
+							// Only update position if it wasn't recently moved locally
+							const shouldUpdatePosition =
+								!wasRecentlyMoved || !positionChanged;
+
 							return {
 								...node,
-								position: {
-									x: newRecord.position_x,
-									y: newRecord.position_y,
-								},
+								position: shouldUpdatePosition
+									? {
+											x: newRecord.position_x,
+											y: newRecord.position_y,
+										}
+									: node.position,
 								data: newRecord,
 								type: newRecord.node_type || node.type,
 								width: newRecord.width || node.width,
@@ -233,10 +258,94 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				if (position) {
 					newNodePosition = position;
 				} else if (parentNode && parentNode.position) {
-					newNodePosition = {
-						x: parentNode.position.x + (parentNode.width || 170) + 100,
-						y: parentNode.position.y + (parentNode.height || 60) / 2 - 30,
-					};
+					// Get current viewport center if reactFlowInstance is available
+					const { reactFlowInstance } = get();
+					let viewportCenter = null;
+
+					if (reactFlowInstance) {
+						try {
+							const viewport = reactFlowInstance.getViewport();
+							const bounds =
+								reactFlowInstance.getNodes().length > 0
+									? { width: window.innerWidth, height: window.innerHeight }
+									: { width: 800, height: 600 };
+
+							viewportCenter = reactFlowInstance.screenToFlowPosition({
+								x: bounds.width / 2,
+								y: bounds.height / 2,
+							});
+						} catch (e) {
+							console.warn('Could not get viewport center:', e);
+						}
+					}
+
+					// If parent is far from viewport center, position near viewport instead
+					if (viewportCenter) {
+						const distanceFromViewport = Math.sqrt(
+							Math.pow(parentNode.position.x - viewportCenter.x, 2) +
+								Math.pow(parentNode.position.y - viewportCenter.y, 2)
+						);
+
+						// If parent is more than 1000px away from viewport center, use viewport-relative positioning
+						if (distanceFromViewport > 1000) {
+							newNodePosition = {
+								x: viewportCenter.x + 50,
+								y: viewportCenter.y + 50,
+							};
+						} else {
+							// Use improved parent-relative positioning with better spacing
+							const parentWidth = parentNode.width || 170;
+							const parentHeight = parentNode.height || 60;
+							const horizontalSpacing = 150; // Increased spacing
+							const verticalOffset = 20; // Reduced vertical offset
+
+							// Check for existing children to avoid overlap
+							const childNodes = nodes.filter((node) =>
+								edges.some(
+									(edge) =>
+										edge.source === parentNode.id && edge.target === node.id
+								)
+							);
+
+							// Calculate position based on number of existing children
+							const childCount = childNodes.length;
+							const verticalSpacing = 80; // Spacing between children
+
+							newNodePosition = {
+								x: parentNode.position.x + parentWidth + horizontalSpacing,
+								y:
+									parentNode.position.y +
+									childCount * verticalSpacing +
+									verticalOffset,
+							};
+						}
+					} else {
+						// Fallback to improved parent-relative positioning
+						const parentWidth = parentNode.width || 170;
+						const parentHeight = parentNode.height || 60;
+						const horizontalSpacing = 150; // Increased spacing
+						const verticalOffset = 20; // Reduced vertical offset
+
+						// Check for existing children to avoid overlap
+						const childNodes = nodes.filter((node) =>
+							edges.some(
+								(edge) =>
+									edge.source === parentNode.id && edge.target === node.id
+							)
+						);
+
+						// Calculate position based on number of existing children
+						const childCount = childNodes.length;
+						const verticalSpacing = 80; // Spacing between children
+
+						newNodePosition = {
+							x: parentNode.position.x + parentWidth + horizontalSpacing,
+							y:
+								parentNode.position.y +
+								childCount * verticalSpacing +
+								verticalOffset,
+						};
+					}
 				} else {
 					newNodePosition = {
 						x: Math.random() * 400 + 50,

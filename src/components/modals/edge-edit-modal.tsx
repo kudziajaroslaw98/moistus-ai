@@ -84,6 +84,7 @@ export default function EdgeEditModal() {
 		setIsSaving(true);
 		await updateEdge({ edgeId: edge.id!, data: changes });
 		setIsSaving(false);
+		handleOnClose();
 	};
 
 	if (!edge) return null;

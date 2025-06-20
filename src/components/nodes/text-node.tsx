@@ -25,8 +25,11 @@ const TextNodeComponent = (props: TextNodeProps) => {
 	const { data } = props;
 
 	const { content, metadata } = data;
-	const { updateNode } = useAppStore(
-		useShallow((state) => ({ updateNode: state.updateNode }))
+	const { updateNode, selectedNodes } = useAppStore(
+		useShallow((state) => ({
+			updateNode: state.updateNode,
+			selectedNodes: state.selectedNodes,
+		}))
 	);
 	const {
 		fontSize = '14px',
@@ -73,7 +76,10 @@ const TextNodeComponent = (props: TextNodeProps) => {
 
 	return (
 		<>
-			<NodeToolbar isVisible={props.selected} position={Position.Top}>
+			<NodeToolbar
+				isVisible={props.selected && selectedNodes.length === 1}
+				position={Position.Top}
+			>
 				<motion.div
 					className='flex gap-2 bg-zinc-950 border-zinc-500 p-2 rounded-sm'
 					initial={{ opacity: 0, scale: 0.9, y: 20 }}

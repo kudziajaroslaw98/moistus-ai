@@ -175,6 +175,7 @@ export default function NodeEditModal() {
 				...changes.aiData,
 			},
 		}));
+		handleOnClose();
 	};
 
 	const NodeSpecificFormComponent = nodeSpecificForms[selectedNodeType] || null;
