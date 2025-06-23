@@ -10,6 +10,7 @@ export const RealtimeAvatarStack = ({ roomName }: { roomName: string }) => {
 		if (!usersMap) return [];
 
 		const avatars = Object.values(usersMap).map((user) => ({
+			id: user.id,
 			name: user.name,
 			image: user.image,
 		}));

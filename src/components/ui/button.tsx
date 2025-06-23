@@ -28,6 +28,8 @@ const buttonVariants = cva(
 				sm: 'h-8 px-3 py-1.5 text-xs',
 				lg: 'h-12 px-6 py-3 text-sm',
 				icon: '!h-8 !w-8 p-0',
+				'icon-md': '!h-10 !w-10 p-0',
+				'icon-lg': '!h-12 w-12 p-0',
 			},
 			align: {
 				default: 'justify-center',

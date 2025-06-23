@@ -6,6 +6,7 @@ import {
 	ConnectionMode,
 	Edge,
 	EdgeMouseHandler,
+	MiniMap,
 	Node,
 	NodeTypes,
 	OnConnectStartParams,
@@ -27,12 +28,34 @@ import TextNode from '@/components/nodes/text-node';
 
 import FloatingEdge from '@/components/edges/floating-edge';
 // import SuggestedConnectionEdge from "@/components/edges/suggested-connection-edge";
+import {
+	Breadcrumb,
+	BreadcrumbItem,
+	BreadcrumbLink,
+	BreadcrumbList,
+	BreadcrumbPage,
+	BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 import { useContextMenu } from '@/hooks/use-context-menu';
 import useAppStore from '@/store/mind-map-store';
 import type { AppNode } from '@/types/app-node';
 import type { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';
-import { ArrowLeft, Command, Maximize, Share2 } from 'lucide-react';
+import {
+	Command,
+	History,
+	LayoutDashboard,
+	MessageCircle,
+	MousePointer2,
+	Move,
+	Redo,
+	Share2,
+	Slash,
+	SquarePlus,
+	Type,
+	Undo,
+	Waypoints,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
@@ -273,6 +296,10 @@ export function ReactFlowArea() {
 		setPopoverOpen({ commandPalette: true });
 	}, [setPopoverOpen]);
 
+	const handleToggleHistorySidebar = useCallback(() => {
+		setPopoverOpen({ history: true });
+	}, [setPopoverOpen]);
+
 	const handleToggleFocusMode = useCallback(() => {
 		toggleFocusMode();
 	}, [toggleFocusMode]);
@@ -328,25 +355,74 @@ export function ReactFlowArea() {
 			<Background color='#52525c' gap={16} variant={BackgroundVariant.Dots} />
 
 			<Panel position='top-left'>
-				<div className='flex flex-wrap items-center gap-4'>
-					{/* Back to Dashboard Link */}
-					<Link
-						href='/dashboard'
-						className='flex items-center justify-center rounded-sm p-1.5 text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-zinc-100 focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none bg-zinc-950 border border-zinc-800'
-						title='Back to Dashboard'
-					>
-						<ArrowLeft className='h-4 w-4' />
-					</Link>
+				<div className='flex justify-center items-center gap-8'>
+					<Breadcrumb>
+						<BreadcrumbList>
+							<BreadcrumbItem>
+								<BreadcrumbLink asChild>
+									<Link href='/dashboard'>Moistus AI</Link>
+								</BreadcrumbLink>
+							</BreadcrumbItem>
+							<BreadcrumbSeparator>
+								<Slash />
+							</BreadcrumbSeparator>
+							<BreadcrumbItem>
+								<BreadcrumbPage className='capitalize'>
+									{mindMap?.title || 'Loading...'}
+								</BreadcrumbPage>
+							</BreadcrumbItem>
+						</BreadcrumbList>
+					</Breadcrumb>
 
-					<span className='mr-2 truncate text-zinc-100 text-lg font-semibold capitalize'>
-						{mindMap?.title || 'Loading...'}
-					</span>
+					<div className='flex gap-2'>
+						<Button
+							// onClick={handleUndo}
+							// disabled={!canUndo}
+							title='Undo (Ctrl+Z)'
+							variant='secondary'
+							size='icon'
+						>
+							<Undo className='size-4' />
+						</Button>
+
+						<Button
+							// onClick={handleRedo}
+							// disabled={!canRedo}
+							title='Redo (Ctrl+Y)'
+							variant='secondary'
+							size='icon'
+						>
+							<Redo className='size-4' />
+						</Button>
+
+						<Button
+							onClick={handleToggleHistorySidebar}
+							title='Toggle History Sidebar'
+							aria-label='Toggle History Sidebar'
+							variant='secondary'
+							size='icon'
+						>
+							<History className='h-4 w-4' />
+						</Button>
+					</div>
 				</div>
 			</Panel>
 
 			<Panel position='top-right' className='z-20'>
-				<div className='flex gap-4 '>
+				<div className='flex gap-8'>
 					<div className='flex gap-2'>
+						{/* Profile Button */}
+						{/* <Link href='/dashboard/profile'>
+							<Button
+								title='Profile Settings'
+								aria-label='Profile Settings'
+								variant='secondary'
+								size='icon'
+							>
+								<User className='h-4 w-4' />
+							</Button>
+						</Link> */}
+
 						<Button
 							onClick={handleCommandPaletteOpen}
 							title='Command Palette'
@@ -357,7 +433,7 @@ export function ReactFlowArea() {
 							<Command className='h-4 w-4' />
 						</Button>
 
-						<Button
+						{/* <Button
 							onClick={handleToggleFocusMode}
 							title='Enter Focus Mode'
 							aria-label='Enter Focus Mode'
@@ -365,6 +441,19 @@ export function ReactFlowArea() {
 							size='icon'
 						>
 							<Maximize className='h-4 w-4' />
+						</Button> */}
+					</div>
+					<RealtimeAvatarStack roomName={`mind_map:${mapId}:users`} />
+
+					<div className='flex gap-2'>
+						<Button
+							// onClick={handleToggleCommentsPanel}
+							title='Toggle Comments Panel (Ctrl+/)'
+							aria-label='Toggle Comments Panel'
+							variant={popoverOpen.commentsPanel ? 'default' : 'secondary'}
+							size='icon'
+						>
+							<MessageCircle className='h-4 w-4' />
 						</Button>
 
 						<Button
@@ -372,17 +461,71 @@ export function ReactFlowArea() {
 							title='Share Mind Map'
 							aria-label='Share Mind Map'
 							variant={popoverOpen.sharePanel ? 'default' : 'secondary'}
-							size='icon'
+							className='gap-2'
 						>
-							<Share2 className='h-4 w-4' />
+							Share <Share2 className='size-3' />
 						</Button>
 					</div>
-
-					<RealtimeAvatarStack roomName={`mind_map:${mapId}:users`} />
 				</div>
 			</Panel>
 
-			<Panel position='bottom-center'></Panel>
+			<Panel position='bottom-center'>
+				<div className='flex gap-2'>
+					<Button
+						title='default cursor'
+						aria-label='default cursor'
+						variant={'secondary'}
+						size={'icon-md'}
+					>
+						<MousePointer2 className='size-4' />
+					</Button>
+
+					<Button
+						title='move cursor'
+						aria-label='move cursor'
+						variant={'secondary'}
+						size={'icon-md'}
+					>
+						<Move className='size-4' />
+					</Button>
+
+					<Button
+						title='add node'
+						aria-label='add node'
+						variant={'secondary'}
+						size={'icon-md'}
+					>
+						<SquarePlus className='size-4' />
+					</Button>
+
+					<Button
+						title='connect nodes'
+						aria-label='connect nodes'
+						variant={'secondary'}
+						size={'icon-md'}
+					>
+						<Waypoints className='size-4' />
+					</Button>
+
+					<Button
+						title='add text'
+						aria-label='add text'
+						variant={'secondary'}
+						size={'icon-md'}
+					>
+						<Type className='size-4' />
+					</Button>
+
+					<Button
+						title='layout'
+						aria-label='layout'
+						variant={'secondary'}
+						size={'icon-md'}
+					>
+						<LayoutDashboard className='size-4' />
+					</Button>
+				</div>
+			</Panel>
 
 			<Panel position='top-left'>
 				<RealtimeCursors
@@ -390,6 +533,8 @@ export function ReactFlowArea() {
 					reactFlowInstance={reactFlowInstance}
 				/>
 			</Panel>
+
+			<MiniMap position='bottom-right' />
 		</ReactFlow>
 	);
 }

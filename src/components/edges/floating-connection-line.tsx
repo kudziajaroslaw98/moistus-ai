@@ -4,6 +4,7 @@ import {
 	ConnectionLineComponentProps,
 	getBezierPath,
 	Node,
+	useConnection,
 	type InternalNode,
 } from '@xyflow/react';
 import React from 'react';
@@ -11,6 +12,8 @@ import React from 'react';
 const FloatingConnectionLine: React.FC<
 	ConnectionLineComponentProps<Node<NodeData>>
 > = ({ fromPosition, toPosition, toX, toY, fromNode }) => {
+	const connection = useConnection();
+
 	if (!fromNode) {
 		return null;
 	}
@@ -38,24 +41,42 @@ const FloatingConnectionLine: React.FC<
 		targetY: targetY || toY,
 	});
 
+	// Show text when dragging over pane (no target node)
+	const isOverPane = connection.inProgress && !connection.toNode;
+
 	return (
 		<g>
 			<path
 				fill='none'
-				stroke='#3b82f6'
+				stroke='#14b8a6'
 				strokeWidth={2}
-				className='animated'
+				className='animate-dash-flow'
 				d={edgePath}
 			/>
 
 			<circle
 				cx={targetX || toX}
 				cy={targetY || toY}
-				fill='#3b82f6'
-				r={3}
-				stroke='#3b82f6'
+				fill='#14b8a6'
+				r={4}
+				stroke='#14b8a6'
 				strokeWidth={2}
 			/>
+
+			{isOverPane && (
+				<g className='animate-in fade-in duration-200'>
+					<text
+						x={targetX || toX}
+						y={(targetY || toY) - 16}
+						textAnchor='middle'
+						className='text-sm font-medium pointer-events-none'
+						fill='#f4f4f5'
+						fontSize={14}
+					>
+						Release to create new
+					</text>
+				</g>
+			)}
 		</g>
 	);
 };
