@@ -49,15 +49,25 @@ const BaseNodeWrapperComponent = ({
 	includePadding = true,
 	hideNodeType = false,
 }: BaseNodeWrapperProps) => {
-	const { addNode, getNode, isDraggingNodes, realtimeSelectedNodes } =
-		useAppStore(
-			useShallow((state) => ({
-				addNode: state.addNode,
-				getNode: state.getNode,
-				isDraggingNodes: state.isDraggingNodes,
-				realtimeSelectedNodes: state.realtimeSelectedNodes,
-			}))
-		);
+	const {
+		addNode,
+		getNode,
+		isDraggingNodes,
+		realtimeSelectedNodes,
+		currentUser,
+		selectedNodes,
+		activeTool,
+	} = useAppStore(
+		useShallow((state) => ({
+			addNode: state.addNode,
+			getNode: state.getNode,
+			isDraggingNodes: state.isDraggingNodes,
+			realtimeSelectedNodes: state.realtimeSelectedNodes,
+			currentUser: state.currentUser,
+			selectedNodes: state.selectedNodes,
+			activeTool: state.activeTool,
+		}))
+	);
 
 	const connection = useConnection();
 	const isTarget = connection?.toNode?.id === id;
@@ -82,8 +92,8 @@ const BaseNodeWrapperComponent = ({
 
 	const avatars = useMemo(() => {
 		if (!realtimeSelectedNodes) return [];
-		return realtimeSelectedNodes.filter((user) =>
-			user.selectedNodes?.includes(id)
+		return realtimeSelectedNodes.filter(
+			(user) => user.selectedNodes?.includes(id) && user.id !== currentUser?.id
 		);
 	}, [realtimeSelectedNodes]);
 
@@ -121,21 +131,23 @@ const BaseNodeWrapperComponent = ({
 					<CommentButton />
 				</div>
 
-				{children}
+				<div className='-bottom-10 left-0 flex absolute'>
+					<AnimatePresence mode='popLayout'>
+						{avatars.length > 0 && (
+							<motion.div
+								initial={{ opacity: 0, scale: 0.98, y: -10 }}
+								animate={{ opacity: 1, scale: 1, y: 0 }}
+								exit={{ opacity: 0, scale: 0.98, y: -10 }}
+								transition={{ duration: 0.2 }}
+								className='inline-flex h-auto w-full'
+							>
+								<AvatarStack avatars={avatars} size={'sm'} />
+							</motion.div>
+						)}
+					</AnimatePresence>
+				</div>
 
-				<AnimatePresence mode='popLayout'>
-					{avatars.length > 0 && (
-						<motion.div
-							initial={{ opacity: 0, scale: 0.98, y: -10 }}
-							animate={{ opacity: 1, scale: 1, y: 0 }}
-							exit={{ opacity: 0, scale: 0.98, y: -10 }}
-							transition={{ duration: 0.2 }}
-							className='inline-flex h-auto w-full'
-						>
-							<AvatarStack avatars={avatars} size={'sm'} />
-						</motion.div>
-					)}
-				</AnimatePresence>
+				{children}
 
 				{!isDraggingNodes && (
 					<>
@@ -170,21 +182,36 @@ const BaseNodeWrapperComponent = ({
 							)}
 						/>
 
-						<Handle
-							type='source'
-							position={Position.Top}
-							className={cn(
-								'w-12 h-1 rounded-xs border-2 transition-all duration-200',
-								'!bg-node-accent border-node-accent opacity-100 shadow-lg',
-								'-translate-y-[1px]'
-							)}
-						/>
+						{activeTool === 'connector' ? (
+							<Handle
+								type='source'
+								position={Position.Top}
+								className={cn([
+									'w-full h-full z-20 translate-y-1/2 transition-colors',
+									connection.inProgress
+										? '!bg-transparent'
+										: '!bg-sky-500/20 animate-pulse',
+								])}
+							/>
+						) : (
+							<Handle
+								type='source'
+								position={Position.Top}
+								className={cn(
+									'w-12 h-1 rounded-xs border-2 transition-all duration-200',
+									'!bg-node-accent border-node-accent opacity-100 shadow-lg',
+									'-translate-y-[1px]'
+								)}
+							/>
+						)}
 
 						{/* Target Handle */}
 						<Handle
 							className={cn([
-								'w-full h-full translate-y-1/2 absolute top-0 left-0 border-none opacity-0 cursor-move',
+								'w-full translate-y-1/2 absolute top-0 left-0 border-none opacity-0 cursor-move',
 								isTarget && '!bg-blue-500/50 animate-pulse',
+								connection.inProgress ? 'h-full' : 'h-0',
+								activeTool === 'connector' ? 'z-10' : 'z-[21]',
 							])}
 							position={Position.Top}
 							type='target'
@@ -193,7 +220,7 @@ const BaseNodeWrapperComponent = ({
 
 						{/* Add New Node Button - Only visible when selected */}
 						<AnimatePresence>
-							{selected && (
+							{selected && selectedNodes.length === 1 && (
 								<>
 									{/* add connection line to node */}
 									<motion.hr

@@ -86,11 +86,6 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
 			setShowConflictModal(conflicts.length > 0);
 		}, [conflicts, onConflict]);
 
-		// Handle field locks if callback provided
-		useEffect(() => {
-			// Real-time collaboration effects - simplified without field locking
-		}, [activeUsers]);
-
 		useImperativeHandle(ref, () => ({
 			getFormData: () => {
 				const content = getFieldValue('content') || '';

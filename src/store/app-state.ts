@@ -29,6 +29,7 @@ import { LoadingStates } from '@/types/loading-states';
 import type { MindMapData } from '@/types/mind-map-data';
 import type { NodeData } from '@/types/node-data';
 import { ShareToken, SharingError } from '@/types/sharing-types';
+import { Tool } from '@/types/tool';
 import type {
 	RealtimeChannel,
 	SupabaseClient,
@@ -135,7 +136,9 @@ export interface CoreDataSlice {
 	reactFlowInstance: ReactFlowInstance | null;
 	currentUser: User | null;
 	userProfile: UserProfile | null;
+	activeTool: Tool;
 
+	setActiveTool: (tool: Tool) => void;
 	setMindMap: (mindMap: MindMapData | null) => void;
 	setReactFlowInstance: (reactFlowInstance: ReactFlowInstance | null) => void;
 	setMapId: (mapId: string | null) => void;

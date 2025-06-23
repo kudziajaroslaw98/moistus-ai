@@ -10,7 +10,7 @@ const buttonVariants = cva(
 			variant: {
 				default: 'bg-teal-600 text-white hover:bg-teal-700 focus:ring-teal-500',
 				secondary:
-					'bg-zinc-600 text-zinc-200 hover:bg-zinc-700 focus:ring-zinc-500',
+					'bg-zinc-950 border-zinc-800 border-2 text-zinc-200 hover:bg-zinc-700 focus:ring-zinc-500',
 				destructive:
 					'bg-rose-600 text-white hover:bg-rose-700 focus:ring-rose-500',
 				ghost:
@@ -26,8 +26,11 @@ const buttonVariants = cva(
 			size: {
 				default: 'h-8 px-3 py-1.5 text-xs',
 				sm: 'h-8 px-3 py-1.5 text-xs',
+				md: 'h-10 px-4 py-2 text-sm',
 				lg: 'h-12 px-6 py-3 text-sm',
 				icon: '!h-8 !w-8 p-0',
+				'icon-md': '!h-10 !w-10 p-0',
+				'icon-lg': '!h-12 w-12 p-0',
 			},
 			align: {
 				default: 'justify-center',

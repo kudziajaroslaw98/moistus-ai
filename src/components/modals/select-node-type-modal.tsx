@@ -55,21 +55,21 @@ export default function SelectNodeTypeModal() {
 	};
 
 	const handleOnSelectType = (type: string) => {
-		if (!nodeInfo || nodeInfo === null || !nodeInfo.id) {
+		if (nodeInfo && nodeInfo.id) {
+			addNode({
+				parentNode: nodeInfo,
+				nodeType: type as NodeTypes,
+			});
+		} else {
+			const position = {
+				x: nodeInfo?.position?.x || 0,
+				y: nodeInfo?.position?.y || 0,
+			};
+
 			addNode({
 				parentNode: null,
 				nodeType: type as NodeTypes,
-				position: {
-					x: nodeInfo?.position?.x || 0,
-					y: nodeInfo?.position?.y || 0,
-				},
-			});
-		} else {
-			const newNode = nodeInfo;
-			newNode.type = type;
-			addNode({
-				parentNode: { id: nodeInfo.id },
-				nodeType: type as NodeTypes,
+				position,
 			});
 		}
 

@@ -1,23 +1,10 @@
 'use client';
 // Add History icon import
 import useAppStore from '@/store/mind-map-store';
-import {
-	ArrowLeft,
-	Command,
-	History,
-	Maximize,
-	MessageCircle,
-	Minimize2,
-	Redo,
-	Share2,
-	Undo,
-	User,
-} from 'lucide-react';
+import { ArrowLeft, Minimize2 } from 'lucide-react';
 import Link from 'next/link';
 import { memo, useCallback } from 'react';
 import { useShallow } from 'zustand/shallow';
-import { LayoutSelector } from '../layout-selector';
-import { Button } from '../ui/button';
 
 const MindMapToolbarComponent = () => {
 	const {
@@ -44,32 +31,24 @@ const MindMapToolbarComponent = () => {
 		}))
 	);
 
-	const handleCommandPaletteOpen = useCallback(() => {
-		setPopoverOpen({ commandPalette: true });
-	}, [setPopoverOpen]);
-
 	const handleToggleHistorySidebar = useCallback(() => {
 		setPopoverOpen({ history: true });
 	}, [setPopoverOpen]);
-
-	const handleToggleFocusMode = useCallback(() => {
-		toggleFocusMode();
-	}, [toggleFocusMode]);
 
 	const handleToggleCommentsPanel = useCallback(() => {
 		setPopoverOpen({ commentsPanel: true });
 	}, [setPopoverOpen]);
 
-	const handleToggleSharePanel = useCallback(() => {
-		setPopoverOpen({ sharePanel: true });
-	}, [setPopoverOpen]);
+	// const handleToggleSharePanel = useCallback(() => {
+	// 	setPopoverOpen({ sharePanel: true });
+	// }, [setPopoverOpen]);
 
 	if (isFocusMode) {
 		return (
 			<div className='absolute top-[15px] right-[15px] z-20'>
 				<button
 					onClick={toggleFocusMode} // Use toggleFocusMode directly
-					className='flex items-center justify-center rounded-sm bg-zinc-700 p-2 text-zinc-200 shadow-md transition-colors hover:bg-zinc-600 focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-zinc-900 focus:outline-none'
+					className='flex items-center justify-center rounded-sm bg-zinc-700 p-2 text-zinc-200 transition-colors hover:bg-zinc-600 focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-zinc-900 focus:outline-none'
 					title='Exit Focus Mode'
 					aria-label='Exit Focus Mode'
 				>
@@ -80,7 +59,7 @@ const MindMapToolbarComponent = () => {
 	}
 
 	return (
-		<div className='absolute top-2 right-[15px] left-[15px] z-10 flex flex-wrap items-center justify-between gap-4 rounded-sm bg-zinc-900 p-3 shadow-md'>
+		<div className='absolute top-2 right-[15px] left-[15px]  flex flex-wrap items-center justify-between gap-4 rounded-sm p-3'>
 			{/* Left Section: Back Button, Title & Generate */}
 			<div className='flex flex-wrap items-center gap-4'>
 				{/* Back to Dashboard Link */}
@@ -147,10 +126,10 @@ const MindMapToolbarComponent = () => {
 				</div>
 
 				{/* Layout Selector */}
-				<LayoutSelector />
+				{/* <LayoutSelector /> */}
 
 				{/* Undo/Redo */}
-				<div className='flex items-center gap-2'>
+				{/* <div className='flex items-center gap-2'>
 					<Button
 						onClick={handleUndo}
 						disabled={!canUndo}
@@ -170,10 +149,10 @@ const MindMapToolbarComponent = () => {
 					>
 						<Redo className='size-4' />
 					</Button>
-				</div>
+				</div> */}
 
 				{/* Share Panel Toggle */}
-				<Button
+				{/* <Button
 					onClick={handleToggleSharePanel}
 					title='Share Mind Map'
 					aria-label='Share Mind Map'
@@ -181,10 +160,10 @@ const MindMapToolbarComponent = () => {
 					size='icon'
 				>
 					<Share2 className='h-4 w-4' />
-				</Button>
+				</Button> */}
 
 				{/* Comments Panel Toggle */}
-				<Button
+				{/* <Button
 					onClick={handleToggleCommentsPanel}
 					title='Toggle Comments Panel (Ctrl+/)'
 					aria-label='Toggle Comments Panel'
@@ -192,10 +171,10 @@ const MindMapToolbarComponent = () => {
 					size='icon'
 				>
 					<MessageCircle className='h-4 w-4' />
-				</Button>
+				</Button> */}
 
 				{/* History Sidebar Toggle Button */}
-				<Button
+				{/* <Button
 					onClick={handleToggleHistorySidebar}
 					title='Toggle History Sidebar'
 					aria-label='Toggle History Sidebar'
@@ -203,20 +182,10 @@ const MindMapToolbarComponent = () => {
 					size='icon'
 				>
 					<History className='h-4 w-4' />
-				</Button>
-
-				<Button
-					onClick={handleCommandPaletteOpen}
-					title='Command Palette'
-					aria-label='Command Palette'
-					variant='secondary'
-					size='icon'
-				>
-					<Command className='h-4 w-4' />
-				</Button>
+				</Button> */}
 
 				{/* Profile Button */}
-				<Link href='/dashboard/profile'>
+				{/* <Link href='/dashboard/profile'>
 					<Button
 						title='Profile Settings'
 						aria-label='Profile Settings'
@@ -225,18 +194,9 @@ const MindMapToolbarComponent = () => {
 					>
 						<User className='h-4 w-4' />
 					</Button>
-				</Link>
+				</Link> */}
 
 				{/* Focus Mode Button */}
-				<Button
-					onClick={handleToggleFocusMode}
-					title='Enter Focus Mode'
-					aria-label='Enter Focus Mode'
-					variant='secondary'
-					size='icon'
-				>
-					<Maximize className='h-4 w-4' />
-				</Button>
 			</div>
 		</div>
 	);

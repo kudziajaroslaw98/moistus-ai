@@ -30,12 +30,20 @@ export const useRealtimePresenceRoom = (roomName: string) => {
 
 		room
 			.on('presence', { event: 'sync' }, () => {
-				const newState = room.presenceState<{ image: string; name: string }>();
+				const newState = room.presenceState<{
+					id: string;
+					image: string;
+					name: string;
+				}>();
 
 				const newUsers = Object.fromEntries(
 					Object.entries(newState).map(([key, values]) => [
 						key,
-						{ name: values[0].name, image: values[0].image },
+						{
+							id: values[0].id,
+							name: values[0].name,
+							image: values[0].image,
+						},
 					])
 				) as Record<string, RealtimeUser>;
 				setUsers(newUsers);
@@ -46,6 +54,7 @@ export const useRealtimePresenceRoom = (roomName: string) => {
 				}
 
 				await room.track({
+					id: currentUser?.id,
 					name: currentUserName,
 					image: currentUserImage,
 				});

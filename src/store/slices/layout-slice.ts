@@ -1,8 +1,14 @@
-import getLayoutedElements from '@/helpers/get-layouted-elements';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
 import type { LayoutDirection } from '@/types/layout-direction';
-import type { SpecificLayoutConfig } from '@/types/layout-types';
-import { LayoutAlgorithms } from '@/utils/layout-algorithms';
+import type {
+	ELKLayoutConfig,
+	SpecificLayoutConfig,
+} from '@/types/layout-types';
+import {
+	applyDirectionalLayout,
+	getELKLayoutPresets,
+	layoutWithELK,
+} from '@/utils/elk-graph-utils';
 import { toast } from 'sonner';
 import type { StateCreator } from 'zustand';
 import type { AppState, LayoutSlice } from '../app-state';
@@ -13,7 +19,7 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 ) => ({
 	// state
 	currentLayoutConfig: null,
-	availableLayouts: LayoutAlgorithms.getLayoutPresets(),
+	availableLayouts: getELKLayoutPresets(),
 
 	// setters
 	setLayoutConfig: (config: SpecificLayoutConfig) => {
@@ -22,7 +28,7 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 
 	// getters
 	getLayoutPresets: () => {
-		return LayoutAlgorithms.getLayoutPresets();
+		return getELKLayoutPresets();
 	},
 
 	// actions
@@ -34,33 +40,34 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 				setNodes,
 				reactFlowInstance,
 				addStateToHistory,
-				triggerNodeSave, // Use triggerNodeSave for individual node position updates
+				triggerNodeSave,
 			} = get();
 
 			if (nodes.length === 0) {
-				// No need to throw an error that stops execution, just inform the user.
 				toast.error('Nothing to layout. Add some nodes first.');
-				return; // Return early if there are no nodes
+				return;
 			}
 
-			const { layoutedNodes } = getLayoutedElements(nodes, edges, direction);
+			// Use ELK.js for layout computation
+			const result = await applyDirectionalLayout(nodes, edges, direction);
 
-			setNodes([...layoutedNodes]); // Update nodes in the store with new positions
-
-			// After nodes are updated in the store, trigger debounced save for each moved node.
-			// triggerNodeSave will pick up the latest position from the store.
-			layoutedNodes.forEach((node) => {
-				triggerNodeSave(node.id);
+			// Update positions
+			const updatedNodes = nodes.map((node) => {
+				const layoutNode = result.nodes.find((n) => n.id === node.id);
+				return layoutNode ? { ...node, position: layoutNode.position } : node;
 			});
 
+			setNodes(updatedNodes);
+
+			// Save and fit view
+			updatedNodes.forEach((node) => triggerNodeSave(node.id));
 			addStateToHistory(`applyLayout (${direction})`);
 
-			// Fit view after a short delay to allow DOM updates and ensure layout is rendered
 			setTimeout(() => {
 				reactFlowInstance?.fitView({ padding: 0.1, duration: 300 });
 			}, 50);
 		},
-		'isApplyingLayout', // Key for loading state
+		'isApplyingLayout',
 		{
 			initialMessage: 'Applying layout...',
 			successMessage: 'Layout applied and node positions are being saved.',
@@ -69,32 +76,55 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 	),
 	applyAdvancedLayout: withLoadingAndToast(
 		async (config: SpecificLayoutConfig) => {
-			const { nodes, edges, addStateToHistory } = get();
+			const {
+				nodes,
+				edges,
+				setNodes,
+				reactFlowInstance,
+				addStateToHistory,
+				triggerNodeSave,
+			} = get();
 
-			const layoutResult = LayoutAlgorithms.applyLayout(nodes, edges, config);
+			if (nodes.length === 0) {
+				toast.error('Nothing to layout. Add some nodes first.');
+				return;
+			}
 
-			const updatedNodes = nodes.map((node) => {
-				const layoutNode = layoutResult.nodes.find((ln) => ln.id === node.id);
-				return layoutNode
-					? {
-							...node,
-							position: layoutNode.position,
-						}
-					: node;
-			});
+			// Check if it's an ELK layout config
+			if ('algorithm' in config && config.algorithm.startsWith('elk.')) {
+				const elkConfig = config as ELKLayoutConfig;
 
-			set({
-				nodes: updatedNodes,
-				currentLayoutConfig: config,
-			});
+				const result = await layoutWithELK(nodes, edges, {
+					algorithm: elkConfig.algorithm,
+					direction: elkConfig.direction,
+					layoutOptions: elkConfig.layoutOptions,
+					useWorker: false,
+				});
 
-			addStateToHistory('applyLayout', { nodes: updatedNodes, edges });
+				const updatedNodes = nodes.map((node) => {
+					const layoutNode = result.nodes.find((ln) => ln.id === node.id);
+					return layoutNode ? { ...node, position: layoutNode.position } : node;
+				});
+
+				setNodes(updatedNodes);
+				updatedNodes.forEach((node) => triggerNodeSave(node.id));
+				addStateToHistory('applyAdvancedLayout');
+
+				setTimeout(() => {
+					reactFlowInstance?.fitView({ padding: 0.1, duration: 300 });
+				}, 50);
+			} else {
+				// Fallback for non-ELK configs (if any remain)
+				throw new Error('Unsupported layout configuration');
+			}
+
+			set({ currentLayoutConfig: config });
 		},
 		'isApplyingLayout',
 		{
-			initialMessage: 'Applying layout...',
-			successMessage: 'Layout applied successfully',
-			errorMessage: 'Failed to apply layout',
+			initialMessage: 'Applying advanced layout...',
+			successMessage: 'Advanced layout applied successfully',
+			errorMessage: 'Failed to apply advanced layout',
 		}
 	),
 });

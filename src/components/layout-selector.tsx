@@ -10,6 +10,7 @@ import {
 	ArrowUp,
 	Circle,
 	Grid,
+	LayoutDashboard,
 	Network,
 	Settings,
 	TreePine,
@@ -22,6 +23,7 @@ import { Button } from './ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
 const layoutIcons: Record<string, React.ElementType> = {
+	// Legacy algorithm names (still used in configs)
 	'dagre-tb': ArrowDown,
 	'dagre-lr': ArrowRight,
 	'dagre-bt': ArrowUp,
@@ -32,6 +34,18 @@ const layoutIcons: Record<string, React.ElementType> = {
 	grid: Grid,
 	tree: TreePine,
 	hierarchical: ArrowDown,
+	// New ELK preset IDs
+	'elk-layered-tb': ArrowDown,
+	'elk-layered-lr': ArrowRight,
+	'elk-layered-bt': ArrowUp,
+	'elk-layered-rl': ArrowLeft,
+	'elk-force': Zap,
+	'elk-radial': Network,
+	'elk-circular': Circle,
+	'elk-box': Grid,
+	'elk-mrtree': TreePine,
+	'elk-stress': Zap,
+	'elk-random': Settings,
 };
 
 const layoutCategories = {
@@ -319,16 +333,14 @@ const LayoutSelectorComponent = () => {
 		<Popover open={isOpen} onOpenChange={setIsOpen}>
 			<PopoverTrigger asChild>
 				<Button
-					variant='ghost'
-					size='sm'
+					variant='secondary'
+					size='icon-md'
 					className={cn(
 						'gap-2 text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800',
 						currentLayoutConfig && 'text-teal-400'
 					)}
 				>
-					<Network className='size-4' />
-
-					<span>Layout</span>
+					<LayoutDashboard className='size-4' />
 
 					{currentLayoutConfig && (
 						<div className='size-2 rounded-full bg-teal-400' />
