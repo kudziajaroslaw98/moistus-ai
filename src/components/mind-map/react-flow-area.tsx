@@ -41,20 +41,15 @@ import useAppStore from '@/store/mind-map-store';
 import type { AppNode } from '@/types/app-node';
 import type { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';
+import { cn } from '@/utils/cn';
 import {
 	Command,
 	History,
-	LayoutDashboard,
 	MessageCircle,
-	MousePointer2,
-	Move,
 	Redo,
 	Share2,
 	Slash,
-	SquarePlus,
-	Type,
 	Undo,
-	Waypoints,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -64,6 +59,7 @@ import BuilderNode from '../nodes/builder-node';
 import TaskNode from '../nodes/task-node';
 import { RealtimeAvatarStack } from '../realtime/realtime-avatar-stack';
 import { RealtimeCursors } from '../realtime/realtime-cursor';
+import { Toolbar } from '../toolbar';
 import { Button } from '../ui/button';
 
 export function ReactFlowArea() {
@@ -107,6 +103,8 @@ export function ReactFlowArea() {
 		getVisibleNodes,
 		toggleFocusMode,
 		mindMap,
+		activeTool,
+		setActiveTool,
 	} = useAppStore(
 		useShallow((state) => ({
 			supabase: state.supabase,
@@ -138,6 +136,8 @@ export function ReactFlowArea() {
 			currentUser: state.currentUser,
 			toggleFocusMode: state.toggleFocusMode,
 			mindMap: state.mindMap,
+			activeTool: state.activeTool,
+			setActiveTool: state.setActiveTool,
 		}))
 	);
 
@@ -304,17 +304,24 @@ export function ReactFlowArea() {
 		toggleFocusMode();
 	}, [toggleFocusMode]);
 
+	const isSelectMode = activeTool === 'default';
+	const isPanningMode = activeTool === 'pan';
+
 	return (
 		<ReactFlow
 			colorMode='dark'
 			multiSelectionKeyCode={['Meta', 'Control']}
-			className='bg-zinc-900'
+			className={cn([
+				'bg-zinc-900',
+				isPanningMode && 'cursor-grab',
+				activeTool === 'node' || (activeTool === 'text' && 'cursor-crosshair'),
+			])}
 			minZoom={0.1}
 			snapToGrid={true}
-			nodesDraggable={true}
-			nodesConnectable={true}
-			selectNodesOnDrag={true}
-			selectionOnDrag={true}
+			nodesDraggable={isSelectMode}
+			nodesConnectable={isSelectMode || activeTool === 'connector'}
+			elementsSelectable={isSelectMode}
+			panOnDrag={isSelectMode || isPanningMode}
 			fitView={true}
 			nodes={getVisibleNodes()}
 			edges={getVisibleEdges()}
@@ -470,61 +477,7 @@ export function ReactFlowArea() {
 			</Panel>
 
 			<Panel position='bottom-center'>
-				<div className='flex gap-2'>
-					<Button
-						title='default cursor'
-						aria-label='default cursor'
-						variant={'secondary'}
-						size={'icon-md'}
-					>
-						<MousePointer2 className='size-4' />
-					</Button>
-
-					<Button
-						title='move cursor'
-						aria-label='move cursor'
-						variant={'secondary'}
-						size={'icon-md'}
-					>
-						<Move className='size-4' />
-					</Button>
-
-					<Button
-						title='add node'
-						aria-label='add node'
-						variant={'secondary'}
-						size={'icon-md'}
-					>
-						<SquarePlus className='size-4' />
-					</Button>
-
-					<Button
-						title='connect nodes'
-						aria-label='connect nodes'
-						variant={'secondary'}
-						size={'icon-md'}
-					>
-						<Waypoints className='size-4' />
-					</Button>
-
-					<Button
-						title='add text'
-						aria-label='add text'
-						variant={'secondary'}
-						size={'icon-md'}
-					>
-						<Type className='size-4' />
-					</Button>
-
-					<Button
-						title='layout'
-						aria-label='layout'
-						variant={'secondary'}
-						size={'icon-md'}
-					>
-						<LayoutDashboard className='size-4' />
-					</Button>
-				</div>
+				<Toolbar />
 			</Panel>
 
 			<Panel position='top-left'>

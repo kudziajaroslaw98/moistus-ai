@@ -8,9 +8,51 @@ export type LayoutAlgorithm =
 	| 'hierarchical'
 	| 'grid'
 	| 'radial'
-	| 'tree';
+	| 'tree'
+	| 'elk.layered'
+	| 'elk.force'
+	| 'elk.radial'
+	| 'org.eclipse.elk.circular'
+	| 'elk.box'
+	| 'elk.mrtree'
+	| 'elk.stress'
+	| 'elk.random';
+
+export type ELKAlgorithm =
+	| 'elk.layered'
+	| 'elk.force'
+	| 'elk.radial'
+	| 'org.eclipse.elk.circular'
+	| 'elk.box'
+	| 'elk.mrtree'
+	| 'elk.stress'
+	| 'elk.random';
 
 export type LayoutDirection = 'TB' | 'LR' | 'BT' | 'RL';
+
+// ELK.js specific interfaces
+export interface ELKNode {
+	id: string;
+	x?: number;
+	y?: number;
+	width?: number;
+	height?: number;
+	children?: ELKNode[];
+	edges?: ELKEdge[];
+	layoutOptions?: Record<string, any>;
+}
+
+export interface ELKEdge {
+	id: string;
+	sources: string[];
+	targets: string[];
+	layoutOptions?: Record<string, any>;
+}
+
+export interface ELKGraph extends ELKNode {
+	children: ELKNode[];
+	edges: ELKEdge[];
+}
 
 export interface LayoutConfig {
 	algorithm: LayoutAlgorithm;
@@ -84,6 +126,11 @@ export interface TreeLayoutConfig extends LayoutConfig {
 	subtreeSpacing?: number;
 }
 
+export interface ELKLayoutConfig extends LayoutConfig {
+	algorithm: ELKAlgorithm;
+	layoutOptions: Record<string, any>;
+}
+
 export type SpecificLayoutConfig =
 	| DagreLayoutConfig
 	| ForceDirectedLayoutConfig
@@ -91,7 +138,8 @@ export type SpecificLayoutConfig =
 	| HierarchicalLayoutConfig
 	| GridLayoutConfig
 	| RadialLayoutConfig
-	| TreeLayoutConfig;
+	| TreeLayoutConfig
+	| ELKLayoutConfig;
 
 export interface LayoutPreset {
 	id: string;

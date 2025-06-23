@@ -2,15 +2,16 @@ import useAppStore from '@/store/mind-map-store';
 import { ContextMenuState } from '@/types/context-menu-state';
 import { EdgeData } from '@/types/edge-data';
 import { NodeData } from '@/types/node-data';
+import { ReactMouseEvent } from '@/types/react-mouse-event';
 import { Edge, EdgeMouseHandler, Node, NodeMouseHandler } from '@xyflow/react';
 import { useCallback } from 'react';
 import { useShallow } from 'zustand/shallow';
 
 interface ContextMenuHandlers {
 	onNodeContextMenu: NodeMouseHandler<Node<NodeData>>;
-	onPaneContextMenu: (event: React.MouseEvent | MouseEvent) => void;
+	onPaneContextMenu: (event: ReactMouseEvent | MouseEvent) => void;
 	onEdgeContextMenu: EdgeMouseHandler<Edge<Partial<EdgeData>>>;
-	onPaneClick: () => void;
+	onPaneClick: (event: ReactMouseEvent) => void;
 	close: () => void;
 }
 
@@ -20,18 +21,32 @@ interface UseContextMenuResult {
 }
 
 export function useContextMenu(): UseContextMenuResult {
-	const { contextMenuState, popoverOpen, setPopoverOpen, setContextMenuState } =
-		useAppStore(
-			useShallow((state) => ({
-				contextMenuState: state.contextMenuState,
-				popoverOpen: state.popoverOpen,
-				setPopoverOpen: state.setPopoverOpen,
-				setContextMenuState: state.setContextMenuState,
-			}))
-		);
+	const {
+		reactFlowInstance,
+		contextMenuState,
+		popoverOpen,
+		setPopoverOpen,
+		setContextMenuState,
+		activeTool,
+		setActiveTool,
+		addNode,
+		addEdge,
+	} = useAppStore(
+		useShallow((state) => ({
+			reactFlowInstance: state.reactFlowInstance,
+			contextMenuState: state.contextMenuState,
+			popoverOpen: state.popoverOpen,
+			setPopoverOpen: state.setPopoverOpen,
+			setContextMenuState: state.setContextMenuState,
+			activeTool: state.activeTool,
+			setActiveTool: state.setActiveTool,
+			addNode: state.addNode,
+			addEdge: state.addEdge,
+		}))
+	);
 
 	const onNodeContextMenu = useCallback(
-		(event: React.MouseEvent, node: Node<NodeData>) => {
+		(event: ReactMouseEvent, node: Node<NodeData>) => {
 			event.preventDefault();
 			setPopoverOpen({
 				contextMenu: true,
@@ -47,7 +62,7 @@ export function useContextMenu(): UseContextMenuResult {
 	);
 
 	const onEdgeContextMenu = useCallback(
-		(event: React.MouseEvent, edge: Edge<Partial<EdgeData>>) => {
+		(event: ReactMouseEvent, edge: Edge<Partial<EdgeData>>) => {
 			event.preventDefault();
 			setContextMenuState({
 				x: event.clientX,
@@ -63,7 +78,7 @@ export function useContextMenu(): UseContextMenuResult {
 	);
 
 	const onPaneContextMenu = useCallback(
-		(event: React.MouseEvent | MouseEvent) => {
+		(event: ReactMouseEvent | MouseEvent) => {
 			event.preventDefault();
 
 			const target = event.target as Element;
@@ -112,9 +127,37 @@ export function useContextMenu(): UseContextMenuResult {
 		});
 	}, [setPopoverOpen, setContextMenuState]);
 
-	const onPaneClick = useCallback(() => {
-		closeContextMenu();
-	}, [closeContextMenu]);
+	const onPaneClick = useCallback(
+		(event: ReactMouseEvent) => {
+			const position = reactFlowInstance?.screenToFlowPosition({
+				x: event.clientX,
+				y: event.clientY,
+			});
+
+			if (activeTool === 'node') {
+				addNode({
+					parentNode: null,
+					content: 'New node from pane click',
+					nodeType: 'defaultNode',
+					position,
+				});
+				setActiveTool('default'); // Switch back to select tool for a better UX
+			}
+
+			if (activeTool === 'text') {
+				addNode({
+					parentNode: null,
+					content: 'New node from pane click',
+					nodeType: 'textNode',
+					position,
+				});
+				setActiveTool('default'); // Switch back to select tool for a better UX
+			}
+
+			closeContextMenu();
+		},
+		[closeContextMenu, activeTool]
+	);
 
 	return {
 		contextMenuState,

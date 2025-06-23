@@ -1,254 +1,125 @@
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
-import type { LayoutResult, SpecificLayoutConfig } from '@/types/layout-types';
-import dagre from 'dagre';
-
-// Simple force simulation for force-directed layout
-interface ForceNode {
-	id: string;
-	x: number;
-	y: number;
-	vx: number;
-	vy: number;
-	fx?: number;
-	fy?: number;
-}
-
-interface ForceLink {
-	source: string;
-	target: string;
-}
+import type {
+	ELKAlgorithm,
+	LayoutDirection,
+	LayoutResult,
+	SpecificLayoutConfig,
+} from '@/types/layout-types';
+import { layoutWithELK } from './elk-graph-utils';
 
 export class LayoutAlgorithms {
-	private static applyDagreLayout(
-		nodes: AppNode[],
-		edges: AppEdge[],
-		direction: string = 'TB',
-		nodeSpacing: number = 80,
-		rankSpacing: number = 150
-	): LayoutResult {
-		const g = new dagre.graphlib.Graph();
-		g.setDefaultEdgeLabel(() => ({}));
-		g.setGraph({
-			rankdir: direction,
-			nodesep: nodeSpacing,
-			ranksep: rankSpacing,
-			marginx: 20,
-			marginy: 20,
-		});
-
-		nodes.forEach((node) => {
-			const nodeWidth = node.width || 320;
-			const nodeHeight = node.height || 100;
-			g.setNode(node.id, { width: nodeWidth, height: nodeHeight });
-		});
-
-		edges.forEach((edge) => {
-			g.setEdge(edge.source, edge.target);
-		});
-
-		dagre.layout(g);
-
-		const layoutedNodes = nodes.map((node) => {
-			const nodeWithPosition = g.node(node.id);
-
-			if (!nodeWithPosition) {
-				return { id: node.id, position: node.position };
-			}
-
-			const nodeWidth = node.width || 320;
-			const nodeHeight = node.height || 100;
-
-			return {
-				id: node.id,
-				position: {
-					x: nodeWithPosition.x - nodeWidth / 2,
-					y: nodeWithPosition.y - nodeHeight / 2,
-				},
-			};
-		});
-
-		return {
-			nodes: layoutedNodes,
-			edges: edges.map((e) => ({
-				id: e.id,
-				source: e.source,
-				target: e.target,
-			})),
-		};
+	// Map legacy algorithm names to ELK.js equivalents
+	private static mapAlgorithmToELK(algorithm: string): ELKAlgorithm {
+		switch (algorithm) {
+			case 'dagre-tb':
+			case 'dagre-lr':
+			case 'dagre-bt':
+			case 'dagre-rl':
+			case 'hierarchical':
+				return 'elk.layered';
+			case 'force-directed':
+				return 'elk.force';
+			case 'circular':
+				return 'org.eclipse.elk.circular';
+			case 'radial':
+				return 'elk.radial';
+			case 'tree':
+				return 'elk.mrtree';
+			case 'grid':
+				return 'elk.box'; // Use box packing for grid-like layout
+			default:
+				return 'elk.layered';
+		}
 	}
 
-	private static applyForceDirectedLayout(
+	// Map legacy direction to ELK direction
+	private static mapDirectionToELK(
+		algorithm: string,
+		direction?: string
+	): LayoutDirection {
+		if (algorithm === 'dagre-tb') return 'TB';
+		if (algorithm === 'dagre-lr') return 'LR';
+		if (algorithm === 'dagre-bt') return 'BT';
+		if (algorithm === 'dagre-rl') return 'RL';
+
+		return (direction as LayoutDirection) || 'TB';
+	}
+
+	// Apply ELK layered layout (replaces dagre layouts)
+	private static async applyELKLayeredLayout(
+		nodes: AppNode[],
+		edges: AppEdge[],
+		direction: LayoutDirection = 'TB',
+		nodeSpacing: number = 80,
+		rankSpacing: number = 150
+	): Promise<LayoutResult> {
+		return layoutWithELK(nodes, edges, {
+			algorithm: 'elk.layered',
+			direction,
+			layoutOptions: {
+				'elk.layered.spacing.nodeNodeBetweenLayers': rankSpacing,
+				'elk.layered.spacing.nodeNode': nodeSpacing,
+				'elk.spacing.nodeNode': nodeSpacing,
+				'elk.spacing.edgeNode': 40,
+			},
+			useWorker: false,
+		});
+	}
+
+	// Apply ELK force-directed layout
+	private static async applyELKForceLayout(
 		nodes: AppNode[],
 		edges: AppEdge[],
 		config: { iterations?: number; strength?: number; distance?: number } = {}
-	): LayoutResult {
-		const { iterations = 300, strength = -300, distance = 100 } = config;
+	): Promise<LayoutResult> {
+		const { iterations = 300, strength = 0.5 } = config;
 
-		const forceNodes: ForceNode[] = nodes.map((node) => ({
-			id: node.id,
-			x: node.position.x + Math.random() * 100,
-			y: node.position.y + Math.random() * 100,
-			vx: 0,
-			vy: 0,
-		}));
-
-		const links: ForceLink[] = edges.map((edge) => ({
-			source: edge.source,
-			target: edge.target,
-		}));
-
-		// Simple force simulation
-		for (let i = 0; i < iterations; i++) {
-			const alpha = 0.3 * (1 - i / iterations);
-
-			// Reset forces
-			forceNodes.forEach((node) => {
-				node.vx = 0;
-				node.vy = 0;
-			});
-
-			// Repulsion force between all nodes
-			for (let j = 0; j < forceNodes.length; j++) {
-				for (let k = j + 1; k < forceNodes.length; k++) {
-					const a = forceNodes[j];
-					const b = forceNodes[k];
-
-					const dx = b.x - a.x;
-					const dy = b.y - a.y;
-					const distanceSquared = dx * dx + dy * dy;
-
-					if (distanceSquared > 0) {
-						const distance = Math.sqrt(distanceSquared);
-						const force = (strength * alpha) / distance;
-
-						const fx = (dx / distance) * force;
-						const fy = (dy / distance) * force;
-
-						a.vx -= fx;
-						a.vy -= fy;
-						b.vx += fx;
-						b.vy += fy;
-					}
-				}
-			}
-
-			// Attraction force for connected nodes
-			links.forEach((link) => {
-				const source = forceNodes.find((n) => n.id === link.source);
-				const target = forceNodes.find((n) => n.id === link.target);
-
-				if (source && target) {
-					const dx = target.x - source.x;
-					const dy = target.y - source.y;
-					const dist = Math.sqrt(dx * dx + dy * dy);
-
-					if (dist > 0) {
-						const force = (dist - distance) * alpha * 0.1;
-						const fx = (dx / dist) * force;
-						const fy = (dy / dist) * force;
-
-						source.vx += fx;
-						source.vy += fy;
-						target.vx -= fx;
-						target.vy -= fy;
-					}
-				}
-			});
-
-			// Apply velocities
-			forceNodes.forEach((node) => {
-				if (node.fx === undefined) node.x += node.vx;
-				if (node.fy === undefined) node.y += node.vy;
-			});
-		}
-
-		return {
-			nodes: forceNodes.map((node) => ({
-				id: node.id,
-				position: { x: node.x, y: node.y },
-			})),
-			edges: edges.map((e) => ({
-				id: e.id,
-				source: e.source,
-				target: e.target,
-			})),
-		};
+		return layoutWithELK(nodes, edges, {
+			algorithm: 'elk.force',
+			layoutOptions: {
+				'elk.force.iterations': iterations,
+				'elk.force.repulsivePower': strength,
+				'elk.force.temperature': 0.001,
+				'elk.spacing.nodeNode': 80,
+			},
+			useWorker: false,
+		});
 	}
 
-	private static applyCircularLayout(
+	// Apply ELK circular layout
+	private static async applyELKCircularLayout(
 		nodes: AppNode[],
 		edges: AppEdge[],
 		config: { radius?: number; startAngle?: number; sortNodes?: boolean } = {}
-	): LayoutResult {
-		const { radius = 200, startAngle = 0, sortNodes = false } = config;
-
-		const sortedNodes = [...nodes];
-
-		if (sortNodes) {
-			sortedNodes.sort((a, b) =>
-				(a.data.content || '').localeCompare(b.data.content || '')
-			);
-		}
-
-		const angleStep = (2 * Math.PI) / sortedNodes.length;
-
-		const layoutedNodes = sortedNodes.map((node, index) => {
-			const angle = startAngle + index * angleStep;
-			return {
-				id: node.id,
-				position: {
-					x: Math.cos(angle) * radius,
-					y: Math.sin(angle) * radius,
-				},
-			};
+	): Promise<LayoutResult> {
+		return layoutWithELK(nodes, edges, {
+			algorithm: 'org.eclipse.elk.circular',
+			layoutOptions: {
+				'elk.spacing.nodeNode': 80,
+			},
+			useWorker: false,
 		});
-
-		return {
-			nodes: layoutedNodes,
-			edges: edges.map((e) => ({
-				id: e.id,
-				source: e.source,
-				target: e.target,
-			})),
-		};
 	}
 
-	private static applyGridLayout(
+	// Apply ELK box layout (replaces grid layout)
+	private static async applyELKBoxLayout(
 		nodes: AppNode[],
 		edges: AppEdge[],
 		config: { columns?: number; cellWidth?: number; cellHeight?: number } = {}
-	): LayoutResult {
-		const {
-			columns = Math.ceil(Math.sqrt(nodes.length)),
-			cellWidth = 350,
-			cellHeight = 150,
-		} = config;
-
-		const layoutedNodes = nodes.map((node, index) => {
-			const row = Math.floor(index / columns);
-			const col = index % columns;
-
-			return {
-				id: node.id,
-				position: {
-					x: col * cellWidth,
-					y: row * cellHeight,
-				},
-			};
+	): Promise<LayoutResult> {
+		return layoutWithELK(nodes, edges, {
+			algorithm: 'elk.box',
+			layoutOptions: {
+				'elk.box.packingMode': 'SIMPLE',
+				'elk.spacing.nodeNode': 20,
+			},
+			useWorker: false,
 		});
-
-		return {
-			nodes: layoutedNodes,
-			edges: edges.map((e) => ({
-				id: e.id,
-				source: e.source,
-				target: e.target,
-			})),
-		};
 	}
 
-	private static applyRadialLayout(
+	// Apply ELK radial layout
+	private static async applyELKRadialLayout(
 		nodes: AppNode[],
 		edges: AppEdge[],
 		config: {
@@ -256,94 +127,22 @@ export class LayoutAlgorithms {
 			maxRadius?: number;
 			nodeSpacing?: number;
 		} = {}
-	): LayoutResult {
-		const { centerNode, maxRadius = 300, nodeSpacing = 80 } = config;
+	): Promise<LayoutResult> {
+		const { nodeSpacing = 80 } = config;
 
-		const centerNodeObj = centerNode
-			? nodes.find((n) => n.id === centerNode)
-			: nodes[0];
-
-		if (!centerNodeObj) {
-			return this.applyCircularLayout(nodes, edges);
-		}
-
-		const remainingNodes = nodes.filter((n) => n.id !== centerNodeObj.id);
-		const levels: string[][] = [];
-
-		// Build levels based on edges
-		const visited = new Set<string>();
-		const queue: { id: string; level: number }[] = [
-			{ id: centerNodeObj.id, level: 0 },
-		];
-		visited.add(centerNodeObj.id);
-
-		while (queue.length > 0) {
-			const { id: currentId, level } = queue.shift()!;
-
-			if (!levels[level]) levels[level] = [];
-			levels[level].push(currentId);
-
-			const neighbors = edges
-				.filter((e) => e.source === currentId || e.target === currentId)
-				.map((e) => (e.source === currentId ? e.target : e.source))
-				.filter((nodeId) => !visited.has(nodeId));
-
-			neighbors.forEach((neighborId) => {
-				visited.add(neighborId);
-				queue.push({ id: neighborId, level: level + 1 });
-			});
-		}
-
-		// Add remaining unconnected nodes to the last level
-		remainingNodes.forEach((node) => {
-			if (!visited.has(node.id)) {
-				const lastLevel = levels.length;
-				if (!levels[lastLevel]) levels[lastLevel] = [];
-				levels[lastLevel].push(node.id);
-			}
+		return layoutWithELK(nodes, edges, {
+			algorithm: 'elk.radial',
+			layoutOptions: {
+				'elk.radial.radius': config.maxRadius || 200,
+				'elk.radial.compactor': 'NONE',
+				'elk.spacing.nodeNode': nodeSpacing,
+			},
+			useWorker: false,
 		});
-
-		// Position nodes
-		const layoutedNodes: Array<{
-			id: string;
-			position: { x: number; y: number };
-		}> = [];
-
-		levels.forEach((levelNodes, levelIndex) => {
-			if (levelIndex === 0) {
-				// Center node
-				layoutedNodes.push({
-					id: levelNodes[0],
-					position: { x: 0, y: 0 },
-				});
-			} else {
-				const radius = Math.min(levelIndex * nodeSpacing, maxRadius);
-				const angleStep = (2 * Math.PI) / levelNodes.length;
-
-				levelNodes.forEach((nodeId, nodeIndex) => {
-					const angle = nodeIndex * angleStep;
-					layoutedNodes.push({
-						id: nodeId,
-						position: {
-							x: Math.cos(angle) * radius,
-							y: Math.sin(angle) * radius,
-						},
-					});
-				});
-			}
-		});
-
-		return {
-			nodes: layoutedNodes,
-			edges: edges.map((e) => ({
-				id: e.id,
-				source: e.source,
-				target: e.target,
-			})),
-		};
 	}
 
-	private static applyTreeLayout(
+	// Apply ELK tree layout (using mrtree)
+	private static async applyELKTreeLayout(
 		nodes: AppNode[],
 		edges: AppEdge[],
 		config: {
@@ -351,179 +150,135 @@ export class LayoutAlgorithms {
 			levelSeparation?: number;
 			siblingSpacing?: number;
 		} = {}
-	): LayoutResult {
-		const {
-			direction = 'TB',
-			levelSeparation = 150,
-			siblingSpacing = 100,
-		} = config;
+	): Promise<LayoutResult> {
+		const { levelSeparation = 150, siblingSpacing = 100 } = config;
 
-		// Find root nodes (nodes with no incoming edges)
-		const rootNodes = nodes.filter(
-			(node) => !edges.some((edge) => edge.target === node.id)
-		);
-
-		if (rootNodes.length === 0) {
-			return this.applyDagreLayout(nodes, edges, direction);
-		}
-
-		// Use the first root as the main root
-		const root = rootNodes[0];
-		const layoutedNodes: Array<{
-			id: string;
-			position: { x: number; y: number };
-		}> = [];
-
-		// Build tree structure
-		const buildTree = (
-			nodeId: string,
-			level: number,
-			xOffset: number
-		): number => {
-			const children = edges
-				.filter((e) => e.source === nodeId)
-				.map((e) => e.target);
-
-			if (direction === 'TB' || direction === 'BT') {
-				const y =
-					direction === 'TB'
-						? level * levelSeparation
-						: -level * levelSeparation;
-				layoutedNodes.push({
-					id: nodeId,
-					position: { x: xOffset, y },
-				});
-			} else {
-				const x =
-					direction === 'LR'
-						? level * levelSeparation
-						: -level * levelSeparation;
-				layoutedNodes.push({
-					id: nodeId,
-					position: { x, y: xOffset },
-				});
-			}
-
-			let currentOffset =
-				xOffset - ((children.length - 1) * siblingSpacing) / 2;
-			children.forEach((childId) => {
-				currentOffset = buildTree(childId, level + 1, currentOffset);
-				currentOffset += siblingSpacing;
-			});
-
-			return xOffset;
-		};
-
-		buildTree(root.id, 0, 0);
-
-		// Add any remaining nodes that weren't connected
-		const processedIds = new Set(layoutedNodes.map((n) => n.id));
-		nodes.forEach((node, index) => {
-			if (!processedIds.has(node.id)) {
-				layoutedNodes.push({
-					id: node.id,
-					position: {
-						x: (index - processedIds.size) * siblingSpacing,
-						y: (rootNodes.length + 1) * levelSeparation,
-					},
-				});
-			}
+		return layoutWithELK(nodes, edges, {
+			algorithm: 'elk.mrtree',
+			direction: (config.direction as LayoutDirection) || 'TB',
+			layoutOptions: {
+				'elk.mrtree.searchOrder': 'DFS',
+				'elk.spacing.nodeNode': siblingSpacing,
+				'elk.spacing.nodeNodeBetweenLayers': levelSeparation,
+			},
+			useWorker: false,
 		});
-
-		return {
-			nodes: layoutedNodes,
-			edges: edges.map((e) => ({
-				id: e.id,
-				source: e.source,
-				target: e.target,
-			})),
-		};
 	}
 
-	public static applyLayout(
+	// Main layout application method
+	public static async applyLayout(
 		nodes: AppNode[],
 		edges: AppEdge[],
 		config: SpecificLayoutConfig
-	): LayoutResult {
-		switch (config.algorithm) {
-			case 'dagre-tb':
-				return this.applyDagreLayout(
-					nodes,
-					edges,
-					'TB',
-					config.nodeSpacing,
-					config.rankSpacing
-				);
-			case 'dagre-lr':
-				return this.applyDagreLayout(
-					nodes,
-					edges,
-					'LR',
-					config.nodeSpacing,
-					config.rankSpacing
-				);
-			case 'dagre-bt':
-				return this.applyDagreLayout(
-					nodes,
-					edges,
-					'BT',
-					config.nodeSpacing,
-					config.rankSpacing
-				);
-			case 'dagre-rl':
-				return this.applyDagreLayout(
-					nodes,
-					edges,
-					'RL',
-					config.nodeSpacing,
-					config.rankSpacing
-				);
-			case 'force-directed':
-				return this.applyForceDirectedLayout(nodes, edges, {
-					iterations: config.iterations,
-					strength: (config as unknown as { strength?: number }).strength,
-					distance: (config as unknown as { distance?: number }).distance,
-				});
-			case 'circular':
-				return this.applyCircularLayout(nodes, edges, {
-					radius: (config as unknown as { radius?: number }).radius,
-					startAngle: (config as unknown as { startAngle?: number }).startAngle,
-					sortNodes: (config as unknown as { sortNodes?: boolean }).sortNodes,
-				});
-			case 'grid':
-				return this.applyGridLayout(nodes, edges, {
-					columns: (config as unknown as { columns?: number }).columns,
-					cellWidth: (config as unknown as { cellWidth?: number }).cellWidth,
-					cellHeight: (config as unknown as { cellHeight?: number }).cellHeight,
-				});
-			case 'radial':
-				return this.applyRadialLayout(nodes, edges, {
-					centerNode: (config as unknown as { centerNode?: string }).centerNode,
-					maxRadius: (config as unknown as { maxRadius?: number }).maxRadius,
-					nodeSpacing: config.nodeSpacing,
-				});
-			case 'tree':
-				return this.applyTreeLayout(nodes, edges, {
-					direction: config.direction,
-					levelSeparation: (config as unknown as { levelSeparation?: number })
-						.levelSeparation,
-					siblingSpacing: (config as unknown as { siblingSpacing?: number })
-						.siblingSpacing,
-				});
-			case 'hierarchical':
-				// For now, use dagre as hierarchical layout
-				return this.applyDagreLayout(
-					nodes,
-					edges,
-					config.direction || 'TB',
-					config.nodeSpacing,
-					config.rankSpacing
-				);
-			default:
-				return this.applyDagreLayout(nodes, edges);
+	): Promise<LayoutResult> {
+		if (!nodes || nodes.length === 0) {
+			return { nodes: [], edges: [] };
+		}
+
+		try {
+			switch (config.algorithm) {
+				case 'dagre-tb':
+					return this.applyELKLayeredLayout(
+						nodes,
+						edges,
+						'TB',
+						config.nodeSpacing || 80,
+						config.rankSpacing || 150
+					);
+
+				case 'dagre-lr':
+					return this.applyELKLayeredLayout(
+						nodes,
+						edges,
+						'LR',
+						config.nodeSpacing || 80,
+						config.rankSpacing || 150
+					);
+
+				case 'dagre-bt':
+					return this.applyELKLayeredLayout(
+						nodes,
+						edges,
+						'BT',
+						config.nodeSpacing || 80,
+						config.rankSpacing || 150
+					);
+
+				case 'dagre-rl':
+					return this.applyELKLayeredLayout(
+						nodes,
+						edges,
+						'RL',
+						config.nodeSpacing || 80,
+						config.rankSpacing || 150
+					);
+
+				case 'force-directed':
+					return this.applyELKForceLayout(nodes, edges, {
+						iterations: config.iterations || 300,
+						strength: (config as any).strength,
+						distance: (config as any).distance,
+					});
+
+				case 'circular':
+					return this.applyELKCircularLayout(nodes, edges, {
+						radius: (config as any).radius,
+						startAngle: (config as any).startAngle,
+						sortNodes: (config as any).sortNodes,
+					});
+
+				case 'grid':
+					return this.applyELKBoxLayout(nodes, edges, {
+						columns: (config as any).columns,
+						cellWidth: (config as any).cellWidth,
+						cellHeight: (config as any).cellHeight,
+					});
+
+				case 'radial':
+					return this.applyELKRadialLayout(nodes, edges, {
+						centerNode: (config as any).centerNode,
+						maxRadius: (config as any).maxRadius,
+						nodeSpacing: config.nodeSpacing || 80,
+					});
+
+				case 'tree':
+					return this.applyELKTreeLayout(nodes, edges, {
+						direction: config.direction,
+						levelSeparation: (config as any).levelSeparation,
+						siblingSpacing: (config as any).siblingSpacing,
+					});
+
+				case 'hierarchical':
+					return this.applyELKLayeredLayout(
+						nodes,
+						edges,
+						config.direction || 'TB',
+						config.nodeSpacing || 80,
+						config.rankSpacing || 150
+					);
+
+				default:
+					// Default to ELK layered layout
+					return this.applyELKLayeredLayout(nodes, edges);
+			}
+		} catch (error) {
+			console.error('Layout application failed:', error);
+			// Return original positions on error
+			return {
+				nodes: nodes.map((node) => ({
+					id: node.id,
+					position: node.position,
+				})),
+				edges: edges.map((edge) => ({
+					id: edge.id,
+					source: edge.source,
+					target: edge.target,
+				})),
+			};
 		}
 	}
 
+	// Get layout presets - now returns ELK.js based presets
 	public static getLayoutPresets() {
 		return [
 			{
@@ -549,69 +304,98 @@ export class LayoutAlgorithms {
 				},
 			},
 			{
+				id: 'dagre-bt',
+				name: 'Bottom to Top',
+				description: 'Hierarchical layout flowing from bottom to top',
+				category: 'hierarchical' as const,
+				config: {
+					algorithm: 'dagre-bt' as const,
+					nodeSpacing: 80,
+					rankSpacing: 150,
+				},
+			},
+			{
+				id: 'dagre-rl',
+				name: 'Right to Left',
+				description: 'Hierarchical layout flowing from right to left',
+				category: 'hierarchical' as const,
+				config: {
+					algorithm: 'dagre-rl' as const,
+					nodeSpacing: 80,
+					rankSpacing: 150,
+				},
+			},
+			{
 				id: 'force-directed',
 				name: 'Force Directed',
-				description: 'Organic layout using force simulation',
+				description: 'Physics-based organic layout using ELK force simulation',
 				category: 'force' as const,
 				config: {
 					algorithm: 'force-directed' as const,
 					iterations: 300,
-					strength: -300,
-					distance: 100,
 				},
-				disabled: true,
 			},
 			{
 				id: 'circular',
 				name: 'Circular',
-				description: 'Arrange nodes in a circle',
+				description: 'Arrange nodes in a circle using ELK circular algorithm',
 				category: 'geometric' as const,
 				config: {
 					algorithm: 'circular' as const,
-					radius: 200,
-					startAngle: 0,
-					sortNodes: false,
 				},
-				disabled: true,
 			},
 			{
 				id: 'radial',
 				name: 'Radial',
-				description: 'Radial layout from center node',
+				description:
+					'Radial layout from center node using ELK radial algorithm',
 				category: 'hierarchical' as const,
 				config: {
 					algorithm: 'radial' as const,
 					nodeSpacing: 80,
-					maxRadius: 300,
 				},
-				disabled: true,
 			},
 			{
 				id: 'grid',
 				name: 'Grid',
-				description: 'Organize nodes in a grid pattern',
+				description: 'Box packing layout for efficient space usage',
 				category: 'geometric' as const,
 				config: {
 					algorithm: 'grid' as const,
-					columns: 4,
-					cellWidth: 350,
-					cellHeight: 150,
 				},
-				disabled: true,
 			},
 			{
 				id: 'tree',
 				name: 'Tree',
-				description: 'Tree layout with proper hierarchy',
+				description: 'Multi-root tree layout using ELK mrtree algorithm',
 				category: 'hierarchical' as const,
 				config: {
 					algorithm: 'tree' as const,
 					direction: 'TB' as const,
-					levelSeparation: 150,
-					siblingSpacing: 100,
 				},
-				disabled: true,
 			},
 		];
+	}
+
+	// Utility method to get ELK algorithm from legacy algorithm name
+	public static getELKAlgorithm(algorithm: string): ELKAlgorithm {
+		return this.mapAlgorithmToELK(algorithm);
+	}
+
+	// Utility method to check if an algorithm is supported
+	public static isAlgorithmSupported(algorithm: string): boolean {
+		const supportedAlgorithms = [
+			'dagre-tb',
+			'dagre-lr',
+			'dagre-bt',
+			'dagre-rl',
+			'force-directed',
+			'circular',
+			'grid',
+			'radial',
+			'tree',
+			'hierarchical',
+		];
+		return supportedAlgorithms.includes(algorithm);
 	}
 }

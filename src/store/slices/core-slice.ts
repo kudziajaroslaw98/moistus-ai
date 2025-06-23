@@ -27,8 +27,10 @@ export const createCoreDataSlice: StateCreator<
 	mindMap: null,
 	currentUser: null,
 	userProfile: null,
+	activeTool: 'default',
 
 	// Actions
+	setActiveTool: (activeTool) => set({ activeTool }),
 	setMindMap: (mindMap) => set({ mindMap }),
 	setReactFlowInstance: (reactFlowInstance) => set({ reactFlowInstance }),
 	setMapId: (mapId) => set({ mapId }),

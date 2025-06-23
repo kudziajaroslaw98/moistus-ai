@@ -14,6 +14,7 @@ _A modern mind mapping platform built with Next.js 15, React 19, and Supabase. T
 - **Styling**: Tailwind CSS with utility-first approach
 - **Animation**: Motion (Framer Motion) - use `motion/react`
 - **Mind Map Rendering**: ReactFlow for interactive canvas
+- **Layout Engine**: ELK.js (Eclipse Layout Kernel) for advanced graph layouts
 - **AI Integration**: Google Gemini for content generation and intelligence
 - **Form Handling**: React Hook Form with Zod validation
 
@@ -38,8 +39,28 @@ src/
 │   └── collaboration-types.ts (Real-time collaboration types)
 ├── lib/ (Utilities and configurations)
 ├── hooks/ (Custom React hooks)
-└── utils/ (Helper functions)
+├── utils/ (Helper functions)
+│   ├── elk-graph-utils.ts (ELK.js layout utilities)
+│   └── layout-algorithms.ts (Layout algorithm implementations)
 ```
+
+### Layout System Architecture
+
+**ELK.js Migration (2024)**
+
+- **Migration**: Complete migration from dagre to ELK.js for enhanced layout capabilities
+- **Algorithms**: 15+ advanced layout algorithms including force-directed, radial, circular, and hierarchical
+- **Architecture**: Centralized layout logic in `layout-slice.ts` with ELK.js utilities
+- **Performance**: Optimized for Next.js with dynamic imports and server-side compatibility
+- **Web Workers**: Infrastructure ready for background processing (disabled by default for SSR compatibility)
+
+**Available Layout Algorithms**:
+
+- **Hierarchical**: `elk.layered` (TB, LR, BT, RL directions)
+- **Force-Based**: `elk.force` (physics-based organic layouts)
+- **Geometric**: `elk.radial`, `org.eclipse.elk.circular`, `elk.box`
+- **Tree Structures**: `elk.mrtree` (multi-root tree layouts)
+- **Specialized**: `elk.stress` (stress minimization), `elk.random`
 
 ---
 
@@ -48,6 +69,45 @@ src/
 ## Standards
 
 - **Supabase Client over api routes**: When possible use Supabase client functionality over api routes
+- **Layout System**: Use ELK.js through centralized `elk-graph-utils.ts` utilities
+- **Async Layout Operations**: All layout computations are async and wrapped with loading states
+- **Layout Caching**: Implement result caching for performance optimization (up to 50 cached results)
+
+### Layout System Patterns
+
+**ELK.js Usage Pattern**:
+
+```typescript
+// Use centralized layout utilities
+import { layoutWithELK, applyDirectionalLayout } from '@/utils/elk-graph-utils';
+
+// For simple directional layouts
+const result = await applyDirectionalLayout(nodes, edges, 'TB');
+
+// For advanced configurations
+const result = await layoutWithELK(nodes, edges, {
+	algorithm: 'elk.force',
+	layoutOptions: {
+		'elk.force.iterations': 300,
+		'elk.spacing.nodeNode': 80,
+	},
+});
+```
+
+**Layout Configuration Pattern**:
+
+```typescript
+// Define layout configs with proper typing
+const config: ELKLayoutConfig = {
+	algorithm: 'elk.layered',
+	direction: 'TB',
+	layoutOptions: {
+		'elk.direction': 'DOWN',
+		'elk.layered.spacing.nodeNodeBetweenLayers': 150,
+		'elk.spacing.nodeNode': 80,
+	},
+};
+```
 
 ### Development Quality Standards
 
@@ -142,38 +202,39 @@ Extensible node types: Default, Text, Image, Resource, Question, Annotation, Cod
 - **Accessibility**: Respect `prefers-reduced-motion` media query
 
 #### Landing Page Animation Variants
+
 ```typescript
 // Scroll reveal animation
 const scrollReveal = {
-  hidden: { opacity: 0, y: 50 },
-  visible: { 
-    opacity: 1, 
-    y: 0,
-    transition: { duration: 0.6, ease: "easeOut" }
-  }
-}
+	hidden: { opacity: 0, y: 50 },
+	visible: {
+		opacity: 1,
+		y: 0,
+		transition: { duration: 0.6, ease: 'easeOut' },
+	},
+};
 
 // Fade and scale animation
 const fadeScale = {
-  hidden: { opacity: 0, scale: 0.95 },
-  visible: { 
-    opacity: 1, 
-    scale: 1,
-    transition: { duration: 0.5 }
-  }
-}
+	hidden: { opacity: 0, scale: 0.95 },
+	visible: {
+		opacity: 1,
+		scale: 1,
+		transition: { duration: 0.5 },
+	},
+};
 
 // Stagger container
 const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.2
-    }
-  }
-}
+	hidden: { opacity: 0 },
+	visible: {
+		opacity: 1,
+		transition: {
+			staggerChildren: 0.1,
+			delayChildren: 0.2,
+		},
+	},
+};
 ```
 
 ---
@@ -263,18 +324,21 @@ const staggerContainer = {
 #### Advanced Realtime Cursor System
 
 **Pane-Relative Positioning:**
+
 - ✅ **Coordinate Transformation**: Viewport coordinates automatically converted to ReactFlow pane coordinates using `screenToFlowPosition()`
 - ✅ **Zoom-Aware Scaling**: Cursors maintain consistent size across all zoom levels with inverse scaling: `scale(${1 / viewport.zoom})`
 - ✅ **ReactFlow Integration**: Cursors rendered as ReactFlow Panel components for proper containment within the pane
 - ✅ **Performance Optimization**: 50ms throttling, visibility culling, and automatic stale cursor cleanup (10-second timeout)
 
 **Technical Implementation:**
+
 - ✅ **Hook Architecture**: Enhanced `useRealtimeCursors` with ReactFlow instance integration and coordinate validation
 - ✅ **Error Handling**: Robust fallback mechanisms for transformation failures and invalid coordinates
 - ✅ **Realtime Communication**: Supabase broadcast channels with payload validation and user filtering
 - ✅ **Viewport Tracking**: Real-time viewport change detection using `useViewport()` hook for dynamic scaling
 
 **User Experience:**
+
 - ✅ **Accurate Positioning**: Cursors appear at exact same relative position for all users regardless of zoom/pan state
 - ✅ **Smooth Transitions**: 20ms transition duration for fluid cursor movement
 - ✅ **Visual Consistency**: Cursors maintain proper size and visibility across different viewport configurations
@@ -305,30 +369,35 @@ const staggerContainer = {
 Fixed critical issues preventing anonymous users from accessing shared mind maps:
 
 **1. Multiple Supabase Client Instance Problem:**
+
 - **Issue**: Each store slice created separate client instances, breaking session sharing
 - **Impact**: Anonymous auth in sharing slice not recognized by core slice during data fetching
 - **Solution**: Implemented `getSharedSupabaseClient()` for consistent authentication state
 - **Files Updated**: All store slices, helper functions, and collaboration libraries
 
 **2. Missing User Profile Trigger:**
+
 - **Issue**: Anonymous users created without corresponding `user_profiles` records
 - **Impact**: API calls failed with "JSON object requested, multiple (or no) rows returned" error
 - **Solution**: Created robust `create_user_profile_on_signup()` trigger with retry logic
 - **Features**: Handles anonymous and regular users, provides fallback defaults, includes error handling
 
 **Updated RLS Policies:**
+
 - `mind_maps`: Allow anonymous access to maps with active share tokens
-- `nodes`: Allow anonymous read access to nodes from shared maps  
+- `nodes`: Allow anonymous read access to nodes from shared maps
 - `edges`: Allow anonymous read access to edges from shared maps
 - All policies now use `(select auth.uid())` consistently for better performance
 
 **Trigger Implementation:**
+
 - Automatically creates user_profiles for all new auth.users
 - Handles metadata extraction safely with JSONB parsing
 - Provides sensible defaults for anonymous users
 - Includes conflict resolution and error recovery
 
 **Performance Optimizations:**
+
 - ✅ Removed redundant custom comment notification triggers in favor of Supabase Realtime
 - ✅ Comment system now uses native WebSocket-based change detection
 - ✅ Eliminated PL/pgSQL overhead for comment notifications
