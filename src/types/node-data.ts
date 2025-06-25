@@ -1,5 +1,6 @@
 import { AvailableNodeTypes } from './available-node-types';
 import { BuilderNodeData } from './builder-node';
+import { SuggestionContext } from './ghost-node';
 
 export interface NodeData extends Record<string, unknown> {
 	id: string;
@@ -64,6 +65,10 @@ export interface NodeData extends Record<string, unknown> {
 		groupPadding?: number; // Padding inside the group
 
 		builderData?: BuilderNodeData;
+		suggestedContent?: string;
+		suggestedType?: AvailableNodeTypes;
+		confidence?: number;
+		context?: SuggestionContext;
 	} | null;
 	aiData?: {
 		requestAiAnswer?: boolean;

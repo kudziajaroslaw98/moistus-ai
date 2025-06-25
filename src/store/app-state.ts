@@ -9,6 +9,7 @@ import type {
 	RealtimeFormState,
 	UserFieldPresence,
 } from '@/store/slices/realtime-slice';
+import type { SuggestionsSlice } from '@/store/slices/suggestions-slice';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import { AvailableNodeTypes } from '@/types/available-node-types';
@@ -516,4 +517,5 @@ export interface AppState
 		GroupsSlice,
 		CommentsSlice,
 		SharingSlice,
-		RealtimeSlice {}
+		RealtimeSlice,
+		SuggestionsSlice {}

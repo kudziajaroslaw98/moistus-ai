@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { handleApiError, isApiErrorWithStatus, waitlistApi } from '@/lib/api';
 import {
 	waitlistFormSchema,
 	type WaitlistFormData,
@@ -66,17 +67,8 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 		}
 
 		try {
-			// Simulate API call - replace with actual API endpoint
-			await new Promise((resolve, reject) => {
-				setTimeout(() => {
-					// Simulate random success/failure for demo
-					if (Math.random() > 0.1) {
-						resolve(true);
-					} else {
-						reject(new Error('Something went wrong. Please try again.'));
-					}
-				}, 1500);
-			});
+			// Call the waitlist API
+			const result = await waitlistApi.submit(data.email);
 
 			// Success handling
 			localStorage.setItem(STORAGE_KEY, data.email);
@@ -92,11 +84,19 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 				setIsSuccess(false);
 			}, 5000);
 		} catch (error) {
-			// Error handling
-			const errorMessage =
-				error instanceof Error
-					? error.message
-					: 'Something went wrong. Please try again.';
+			// Handle API errors
+			if (isApiErrorWithStatus(error, 409)) {
+				// Email already exists - show as form error
+				setError('email', {
+					type: 'manual',
+					message: handleApiError(error),
+				});
+				setIsSubmitting(false);
+				return;
+			}
+
+			// Other errors - show as general error
+			const errorMessage = handleApiError(error);
 			setSubmitError(errorMessage);
 		} finally {
 			setIsSubmitting(false);
