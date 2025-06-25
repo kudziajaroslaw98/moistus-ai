@@ -6,7 +6,6 @@ import {
 	ConnectionMode,
 	Edge,
 	EdgeMouseHandler,
-	MiniMap,
 	Node,
 	NodeTypes,
 	OnConnectStartParams,
@@ -20,6 +19,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import AnnotationNode from '@/components/nodes/annotation-node';
 import CodeNode from '@/components/nodes/code-node';
 import DefaultNode from '@/components/nodes/default-node';
+import { GhostNode } from '@/components/nodes/ghost-node';
 import GroupNode from '@/components/nodes/group-node';
 import ImageNode from '@/components/nodes/image-node';
 import QuestionNode from '@/components/nodes/question-node';
@@ -37,6 +37,7 @@ import {
 	BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { useContextMenu } from '@/hooks/use-context-menu';
+import { useNodeSuggestion } from '@/hooks/use-node-suggestion';
 import useAppStore from '@/store/mind-map-store';
 import type { AppNode } from '@/types/app-node';
 import type { EdgeData } from '@/types/edge-data';
@@ -59,6 +60,7 @@ import BuilderNode from '../nodes/builder-node';
 import TaskNode from '../nodes/task-node';
 import { RealtimeAvatarStack } from '../realtime/realtime-avatar-stack';
 import { RealtimeCursors } from '../realtime/realtime-cursor';
+import { SuggestionControls } from '../suggestion-controls';
 import { Toolbar } from '../toolbar';
 import { Button } from '../ui/button';
 
@@ -105,6 +107,7 @@ export function ReactFlowArea() {
 		mindMap,
 		activeTool,
 		setActiveTool,
+		ghostNodes,
 	} = useAppStore(
 		useShallow((state) => ({
 			supabase: state.supabase,
@@ -138,10 +141,16 @@ export function ReactFlowArea() {
 			mindMap: state.mindMap,
 			activeTool: state.activeTool,
 			setActiveTool: state.setActiveTool,
+			ghostNodes: state.ghostNodes,
 		}))
 	);
 
 	const { contextMenuHandlers } = useContextMenu();
+	const {
+		generateSuggestionsForNode,
+		generateSuggestionsForConnection,
+		isGenerating,
+	} = useNodeSuggestion();
 
 	useEffect(() => {
 		getCurrentUser();
@@ -170,7 +179,19 @@ export function ReactFlowArea() {
 			setNodeInfo(node);
 			setPopoverOpen({ nodeEdit: true });
 		},
-		[]
+		[setNodeInfo, setPopoverOpen]
+	);
+
+	const handleNodeClick = useCallback(
+		(event: React.MouseEvent, node: Node<NodeData>) => {
+			if (activeTool === 'magic-wand' && !isGenerating) {
+				event.preventDefault();
+				event.stopPropagation();
+				generateSuggestionsForNode(node.id, 'magic-wand');
+				setActiveTool('default');
+			}
+		},
+		[activeTool, isGenerating, generateSuggestionsForNode]
 	);
 
 	const handleEdgeDoubleClick: EdgeMouseHandler<Edge<EdgeData>> = useCallback(
@@ -193,6 +214,7 @@ export function ReactFlowArea() {
 			groupNode: GroupNode,
 			textNode: TextNode,
 			builderNode: BuilderNode,
+			ghostNode: GhostNode,
 		}),
 		[]
 	);
@@ -248,24 +270,19 @@ export function ReactFlowArea() {
 					y: clientY,
 				});
 
-				const parentNode = nodes.find(
-					(node) => node.id === connectingNodeId.current
+				// Trigger AI suggestions for dangling edge
+				generateSuggestionsForConnection(
+					connectingNodeId.current,
+					panePosition,
+					'related to' // Default relationship type
 				);
-
-				addNode({
-					parentNode: parentNode ?? null,
-					position: panePosition,
-					data: {},
-					content: 'New Node',
-					nodeType: parentNode?.data?.node_type ?? 'defaultNode',
-				});
 			}
 
 			connectingNodeId.current = null;
 			connectingHandleId.current = null;
 			connectingHandleType.current = null;
 		},
-		[reactFlowInstance, addNode, nodes]
+		[reactFlowInstance, generateSuggestionsForConnection]
 	);
 
 	const handleSelectionChange = useCallback(
@@ -323,13 +340,14 @@ export function ReactFlowArea() {
 			elementsSelectable={isSelectMode}
 			panOnDrag={isSelectMode || isPanningMode}
 			fitView={true}
-			nodes={getVisibleNodes()}
+			nodes={[...getVisibleNodes(), ...ghostNodes]}
 			edges={getVisibleEdges()}
 			onNodesChange={onNodesChange}
 			onEdgesChange={onEdgesChange}
 			onConnectStart={onConnectStart}
 			onConnectEnd={onConnectEnd}
 			onEdgeDoubleClick={handleEdgeDoubleClick}
+			onNodeClick={handleNodeClick}
 			onNodeDoubleClick={handleNodeDoubleClick}
 			onNodesDelete={deleteNodes}
 			onEdgesDelete={deleteEdges}
@@ -487,7 +505,11 @@ export function ReactFlowArea() {
 				/>
 			</Panel>
 
-			<MiniMap position='bottom-right' />
+			{/* <MiniMap position='bottom-right' /> */}
+
+			<Panel position='bottom-right'>
+				<SuggestionControls />
+			</Panel>
 		</ReactFlow>
 	);
 }

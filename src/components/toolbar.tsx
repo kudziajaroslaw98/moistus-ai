@@ -8,6 +8,7 @@ import {
 	MousePointer2,
 	Plus,
 	Share2,
+	Sparkles,
 	Type,
 } from 'lucide-react';
 import { useShallow } from 'zustand/shallow';
@@ -27,6 +28,7 @@ const tools: ToolButton[] = [
 	{ id: 'separator-0', icon: null, label: null },
 	{ id: 'node', icon: <Plus size={20} />, label: 'Add Node' },
 	{ id: 'text', icon: <Type size={20} />, label: 'Text' },
+	{ id: 'magic-wand', icon: <Sparkles size={20} />, label: 'AI Suggestions' },
 	{ id: 'separator-1', icon: null, label: null },
 	{ id: 'layout', icon: <LayoutGrid size={20} />, label: 'Auto-Layout' },
 ];

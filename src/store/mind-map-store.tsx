@@ -11,6 +11,7 @@ import { createLoadingStateSlice } from './slices/loading-state-slice';
 import { createNodeSlice } from './slices/nodes-slice';
 import { createRealtimeSlice } from './slices/realtime-slice';
 import { createSharingSlice } from './slices/sharing-slice';
+import { createSuggestionsSlice } from './slices/suggestions-slice';
 import { createUiStateSlice } from './slices/ui-slice';
 
 const useAppStore = create<AppState>((...args) => ({
@@ -25,6 +26,7 @@ const useAppStore = create<AppState>((...args) => ({
 	...createGroupsSlice(...args),
 	...createCommentsSlice(...args),
 	...createSharingSlice(...args),
+	...createSuggestionsSlice(...args),
 	...createRealtimeSlice(...args),
 }));
 

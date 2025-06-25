@@ -1,7 +1,8 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) throw new Error('Missing GEMINI_API_KEY environment variable');
+const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+if (!apiKey)
+	throw new Error('Missing GOOGLE_GENERATIVE_AI_API_KEY environment variable');
 
 const genAI = new GoogleGenerativeAI(apiKey);
 const defaultModelName = 'gemini-2.5-flash-preview-04-17';

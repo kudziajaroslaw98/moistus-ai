@@ -1,1 +1,8 @@
-export type Tool = 'default' | 'pan' | 'node' | 'connector' | 'text' | 'layout';
+export type Tool =
+	| 'default'
+	| 'pan'
+	| 'node'
+	| 'connector'
+	| 'text'
+	| 'layout'
+	| 'magic-wand';

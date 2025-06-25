@@ -8,4 +8,5 @@ export type AvailableNodeTypes =
 	| 'codeNode'
 	| 'taskNode'
 	| 'builderNode'
+	| 'ghostNode'
 	| (string & {});
