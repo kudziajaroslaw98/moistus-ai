@@ -40,7 +40,12 @@ async function apiRequest<T>(
 
 	try {
 		const response = await fetch(url, config);
-		const data = await response.json();
+		let data;
+		try {
+			data = await response.json();
+		} catch (parseError) {
+			data = { error: 'Invalid response format' };
+		}
 
 		if (!response.ok) {
 			throw new ApiError(

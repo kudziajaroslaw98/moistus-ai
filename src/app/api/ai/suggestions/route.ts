@@ -50,6 +50,14 @@ export async function POST(request: Request) {
 			return Response.json({ error: 'Invalid nodes data' }, { status: 400 });
 		}
 
+		if (!edges || !Array.isArray(edges)) {
+			return Response.json({ error: 'Invalid edges data' }, { status: 400 });
+		}
+
+		if (!mapId || typeof mapId !== 'string') {
+			return Response.json({ error: 'Invalid mapId' }, { status: 400 });
+		}
+
 		if (!context || !context.trigger) {
 			return Response.json({ error: 'Invalid context data' }, { status: 400 });
 		}
@@ -144,7 +152,7 @@ function buildSuggestionContext(
 	edges: AppEdge[],
 	context: SuggestionContext
 ): string {
-	const relevantNodes = getRelevantNodes(nodes, context);
+	const relevantNodes = getRelevantNodes(nodes, edges, context);
 	const relevantEdges = getRelevantEdges(edges, context);
 
 	let contextString = '';
@@ -199,8 +207,21 @@ function buildSuggestionContext(
 	return contextString;
 }
 
+/**
+ * Identifies and returns the most relevant nodes for building suggestion context
+ * @param nodes - Array of all nodes in the mind map
+ * @param edges - Array of all edges representing connections between nodes
+ * @param context - Suggestion context containing trigger information and source node
+ * @returns Array of relevant nodes, limited to 5 for optimal context building
+ *
+ * Logic:
+ * - If sourceNodeId is provided: Returns the source node plus its connected neighbors
+ * - If no sourceNodeId: Returns the most recent 5 nodes as general context
+ * - Connected nodes are found by traversing edges to build meaningful relationships
+ */
 function getRelevantNodes(
 	nodes: AppNode[],
+	edges: AppEdge[],
 	context: SuggestionContext
 ): AppNode[] {
 	if (context.sourceNodeId) {
@@ -209,7 +230,7 @@ function getRelevantNodes(
 		if (sourceNode) {
 			return [
 				sourceNode,
-				...getConnectedNodes(nodes, context.sourceNodeId),
+				...getConnectedNodes(nodes, edges, context.sourceNodeId),
 			].slice(0, 5);
 		}
 	}
@@ -233,10 +254,37 @@ function getRelevantEdges(
 	return edges.slice(-5); // Last 5 edges as context
 }
 
-function getConnectedNodes(nodes: AppNode[], nodeId: string): AppNode[] {
-	// This would need access to edges to find connected nodes
-	// For now, return empty array - this could be enhanced
-	return [];
+/**
+ * Finds all nodes connected to the given nodeId via edges
+ * @param nodes - Array of all nodes in the graph
+ * @param edges - Array of all edges representing connections between nodes
+ * @param nodeId - The ID of the node to find connections for
+ * @returns Array of connected nodes (deduplicated)
+ */
+function getConnectedNodes(
+	nodes: AppNode[],
+	edges: AppEdge[],
+	nodeId: string
+): AppNode[] {
+	// Validate inputs
+	if (!nodeId || !edges || !nodes) {
+		return [];
+	}
+
+	// Find all edges connected to the given nodeId (both incoming and outgoing)
+	const connectedEdges = edges.filter(
+		(edge) => edge.source === nodeId || edge.target === nodeId
+	);
+
+	// Get the connected node IDs and deduplicate using Set
+	const connectedNodeIds = new Set(
+		connectedEdges.map((edge) =>
+			edge.source === nodeId ? edge.target : edge.source
+		)
+	);
+
+	// Filter the nodes array to get the connected nodes
+	return nodes.filter((node) => connectedNodeIds.has(node.id));
 }
 
 // Prompt Engineering

@@ -66,6 +66,7 @@ export function SuggestionControls({ className }: SuggestionControlsProps) {
 							variant='ghost'
 							size='sm'
 							className='h-6 w-6 p-0 text-zinc-400 hover:text-zinc-200'
+							aria-label='Clear all suggestions'
 						>
 							<X className='h-3 w-3' />
 						</Button>

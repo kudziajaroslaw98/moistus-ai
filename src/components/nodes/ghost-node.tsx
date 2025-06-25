@@ -3,19 +3,26 @@
 import { cn } from '@/lib/utils';
 import type { AvailableNodeTypes } from '@/types/available-node-types';
 import { type Node, type NodeProps } from '@xyflow/react';
-import { Check, Sparkles, X } from 'lucide-react';
+import {
+	Check,
+	CheckSquare,
+	Code,
+	HelpCircle,
+	Image,
+	Link,
+	MessageSquare,
+	Settings,
+	Sparkles,
+	Type,
+	X,
+} from 'lucide-react';
 import { motion } from 'motion/react';
 
-export interface SuggestionContext {
-	sourceNodeId?: string;
-	targetNodeId?: string;
-	relationshipType?: string;
-	trigger: 'magic-wand' | 'dangling-edge' | 'auto';
-}
-
 import useAppStore from '@/store/mind-map-store';
+import type { SuggestionContext } from '@/types/ghost-node';
 import type { NodeData } from '@/types/node-data';
 import { useShallow } from 'zustand/shallow';
+import { Button } from '../ui/button';
 
 interface GhostNodeMetadata {
 	suggestedContent: string;
@@ -76,15 +83,29 @@ const getNodeTypeColor = (nodeType: AvailableNodeTypes) => {
 };
 
 const getNodeTypeIcon = (nodeType: AvailableNodeTypes) => {
-	// Return appropriate icon based on node type
-	// For now, using Sparkles as default AI suggestion icon
-	return <Sparkles className='h-3 w-3' />;
+	switch (nodeType) {
+		case 'textNode':
+			return <Type className='h-3 w-3' />;
+		case 'imageNode':
+			return <Image className='h-3 w-3' />;
+		case 'resourceNode':
+			return <Link className='h-3 w-3' />;
+		case 'questionNode':
+			return <HelpCircle className='h-3 w-3' />;
+		case 'annotationNode':
+			return <MessageSquare className='h-3 w-3' />;
+		case 'codeNode':
+			return <Code className='h-3 w-3' />;
+		case 'taskNode':
+			return <CheckSquare className='h-3 w-3' />;
+		case 'builderNode':
+			return <Settings className='h-3 w-3' />;
+		default:
+			return <Sparkles className='h-3 w-3' />;
+	}
 };
 
 export function GhostNode({ id, data }: GhostNodeProps) {
-	const ghostData = data.metadata as GhostNodeMetadata;
-
-	const { suggestedContent, suggestedType, confidence, context } = ghostData;
 	const { acceptSuggestion, rejectSuggestion } = useAppStore(
 		useShallow((state) => ({
 			acceptSuggestion: state.acceptSuggestion,
@@ -92,9 +113,24 @@ export function GhostNode({ id, data }: GhostNodeProps) {
 		}))
 	);
 
-	if (!ghostData) {
+	const isGhostNodeMetadata = (
+		metadata: any
+	): metadata is GhostNodeMetadata => {
+		return (
+			metadata &&
+			typeof metadata.suggestedContent === 'string' &&
+			typeof metadata.suggestedType === 'string' &&
+			typeof metadata.confidence === 'number'
+		);
+	};
+
+	const ghostData = data.metadata;
+	if (!isGhostNodeMetadata(ghostData)) {
 		return null;
 	}
+
+	const { suggestedContent, suggestedType, confidence, context } =
+		ghostData as GhostNodeMetadata;
 
 	const nodeColorClasses = getNodeTypeColor(suggestedType);
 	const nodeIcon = getNodeTypeIcon(suggestedType);
@@ -162,7 +198,7 @@ export function GhostNode({ id, data }: GhostNodeProps) {
 
 			{/* Action buttons */}
 			<div className='flex gap-2'>
-				<motion.button
+				<Button
 					whileHover={{ scale: 1.05 }}
 					whileTap={{ scale: 0.95 }}
 					onClick={(e) => {
@@ -174,12 +210,13 @@ export function GhostNode({ id, data }: GhostNodeProps) {
 						'bg-green-600/80 text-green-100 hover:bg-green-600',
 						'transition-colors duration-200'
 					)}
+					aria-label={`Accept suggestion: ${suggestedContent.substring(0, 50)}...`}
 				>
 					<Check className='h-3 w-3' />
 					Accept
-				</motion.button>
+				</Button>
 
-				<motion.button
+				<Button
 					whileHover={{ scale: 1.05 }}
 					whileTap={{ scale: 0.95 }}
 					onClick={(e) => {
@@ -191,14 +228,12 @@ export function GhostNode({ id, data }: GhostNodeProps) {
 						'bg-red-600/80 text-red-100 hover:bg-red-600',
 						'transition-colors duration-200'
 					)}
+					aria-label={`Reject suggestion: ${suggestedContent.substring(0, 50)}...`}
 				>
 					<X className='h-3 w-3' />
 					Reject
-				</motion.button>
+				</Button>
 			</div>
-
-			{/* Subtle glow effect */}
-			<div className='absolute inset-0 -z-10 rounded-lg bg-gradient-to-r from-blue-500/10 to-purple-500/10 blur-sm' />
 		</motion.div>
 	);
 }

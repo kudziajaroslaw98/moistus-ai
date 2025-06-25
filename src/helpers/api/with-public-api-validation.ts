@@ -18,8 +18,41 @@ export function withPublicApiValidation<TBody, TResponseData>(
 		const supabase = await createClient();
 
 		try {
-			const body =
-				req.method === 'GET' ? {} : await req.json().catch(() => ({}));
+			let body = {};
+
+			// Only attempt to parse body for non-GET requests
+			if (req.method !== 'GET') {
+				const contentType =
+					req.headers.get('content-type')?.toLowerCase() || '';
+
+				// Only parse JSON if Content-Type indicates JSON
+				if (contentType.includes('application/json')) {
+					try {
+						body = await req.json();
+					} catch (jsonError) {
+						console.warn(
+							`Failed to parse JSON body for ${req.method} ${req.url}:`,
+							jsonError instanceof Error ? jsonError.message : 'Unknown error'
+						);
+						// If JSON parsing fails, keep body as empty object
+						body = {};
+					}
+				} else if (contentType.includes('application/x-www-form-urlencoded')) {
+					// Handle form data by converting to object
+					try {
+						const formData = await req.formData();
+						body = Object.fromEntries(formData.entries());
+					} catch (formError) {
+						console.warn(
+							`Failed to parse form data for ${req.method} ${req.url}:`,
+							formError instanceof Error ? formError.message : 'Unknown error'
+						);
+						body = {};
+					}
+				}
+				// For other content types (multipart/form-data, text/plain, etc.),
+				// body remains empty object as they require special handling
+			}
 			const validationResult = schema.safeParse(body);
 
 			if (!validationResult.success) {
