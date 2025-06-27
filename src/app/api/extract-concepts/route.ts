@@ -1,10 +1,15 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
-import { defaultModel, parseAiJsonResponse } from '@/lib/ai/gemini';
+import { openai } from '@ai-sdk/openai';
+import { generateObject } from 'ai';
 import { z } from 'zod';
 
 const requestBodySchema = z.object({
 	nodeId: z.string().uuid('Invalid node ID format'),
+});
+
+const conceptsSchema = z.object({
+	concepts: z.array(z.string()),
 });
 
 export const POST = withApiValidation(
@@ -29,44 +34,33 @@ export const POST = withApiValidation(
 					statusNumber === 404
 						? 'Node not found.'
 						: 'Error fetching node content.';
-				return respondError(statusText, 404, fetchError?.message || statusText);
+				return respondError(
+					statusText,
+					statusNumber,
+					fetchError?.message || statusText
+				);
 			}
 
 			const contentToAnalyze = nodeData.content;
 
 			if (!contentToAnalyze || contentToAnalyze.trim().length === 0) {
-				return respondSuccess(
-					{ concepts: ['Node has no content to analyze.'] },
-					200,
-					'Node has no content to analyze.'
+				return respondError(
+					'Node has no content to analyze.',
+					400,
+					'Cannot extract concepts from empty content.'
 				);
 			}
 
-			const aiPrompt = `Extract the key concepts, terms, or subtopics from the following text.
-    Return the result as a JSON array of strings.
-    Example format: ["Concept 1", "Concept 2", "Concept 3"]
-    Ensure the output is ONLY the JSON array, nothing else.\n\n${contentToAnalyze}`;
+			const aiPrompt = `Extract the key concepts, terms, or subtopics from the following text.`;
 
-			const result = await defaultModel.generateContent(aiPrompt);
-			const rawText = result.response.text();
-			let concepts: string[] = [];
-
-			const parsedResponse = parseAiJsonResponse<string[]>(rawText);
-
-			if (
-				parsedResponse &&
-				Array.isArray(parsedResponse) &&
-				parsedResponse.every((item) => typeof item === 'string')
-			) {
-				concepts = parsedResponse;
-			} else {
-				console.error('Failed to parse AI response as JSON array');
-				console.error('AI Response Text:', rawText);
-				concepts = [rawText.trim()]; // Fallback
-			}
+			const { object } = await generateObject({
+				model: openai('gpt-4o'),
+				schema: conceptsSchema,
+				prompt: `${aiPrompt}\n\n${contentToAnalyze}`,
+			});
 
 			return respondSuccess(
-				{ concepts: concepts },
+				{ concepts: object.concepts },
 				200,
 				'Concepts extracted successfully.'
 			);

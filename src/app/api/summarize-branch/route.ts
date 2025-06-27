@@ -1,7 +1,8 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
 import generateUuid from '@/helpers/generate-uuid'; // Added for new node ID
-import { defaultModel } from '@/lib/ai/gemini';
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
 import type { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';
 // Database types - Assuming you have these generated or defined
@@ -147,109 +148,14 @@ export const POST = withApiValidation(
 				return respondSuccess({ summaryNode: null, summaryEdge: null }, 200);
 			}
 
-			const aiPrompt = `Summarize the following content from a mind map branch, represented hierarchically. Include key details from metadata like source URLs, completion status, image presence, etc., where relevant. Focus on the main ideas and relationships. Output only the summary text.
+			const aiPrompt = `Summarize the following content from a mind map branch, represented hierarchically. Include key details from metadata like source URLs, completion status, image presence, etc., where relevant. Focus on the main ideas and relationships. Output only the summary text.\n\nBranch Content:\n${branchContent}`;
 
-Branch Content:
-${branchContent}`;
+			const result = streamText({
+				model: openai('gpt-4o'),
+				prompt: aiPrompt,
+			});
 
-			const result = await defaultModel.generateContent(aiPrompt);
-			const response = result.response;
-			const summary = response.text().trim();
-
-			if (!summary) {
-				return respondError(
-					'AI failed to generate a summary.',
-					500,
-					'AI response was empty.'
-				);
-			}
-
-			// --- Create Annotation Node with Summary ---
-			const summaryNodeId = generateUuid();
-			const user = (await supabase.auth.getUser()).data.user;
-
-			if (!user) {
-				return respondError('User not authenticated.', 401);
-			}
-
-			const summaryNodePosition = {
-				x: rootNode.position_x + 50,
-				y: rootNode.position_y + 150,
-			};
-
-			const newNodeData: NewNodePayload = {
-				id: summaryNodeId,
-				map_id: rootNode.map_id,
-				user_id: user.id,
-				parent_id: nodeId,
-				content: summary, // Use the generated summary directly
-				created_at: new Date().toUTCString(),
-				updated_at: new Date().toUTCString(),
-				node_type: 'annotationNode',
-				position_x: summaryNodePosition.x,
-				position_y: summaryNodePosition.y,
-				metadata: {
-					annotationType: 'summary',
-					sourceBranchNodeId: nodeId,
-				},
-				width: 150,
-				height: 40,
-			};
-
-			const { data: insertedNode, error: insertError } = await supabase
-				.from('nodes')
-				.insert(newNodeData)
-				.select()
-				.single();
-
-			if (insertError || !insertedNode) {
-				console.error('Error inserting summary node:', insertError);
-				return respondError(
-					'Failed to save summary node.',
-					500,
-					insertError?.message || 'Insert operation failed'
-				);
-			}
-
-			// --- Create Edge from Root to Summary Node ---
-			const summaryEdgeId = generateUuid();
-			const newEdgeData: NewEdgePayload = {
-				id: summaryEdgeId,
-				map_id: rootNode.map_id,
-				user_id: user.id,
-				source: nodeId,
-				target: summaryNodeId,
-				type: 'smoothstep',
-			};
-
-			const { data: insertedEdge, error: edgeInsertError } = await supabase
-				.from('edges')
-				.insert(newEdgeData)
-				.select()
-				.single();
-
-			if (edgeInsertError || !insertedEdge) {
-				console.warn(
-					'Warning: Summary node created, but failed to add edge:',
-					edgeInsertError
-				);
-				return respondSuccess(
-					{
-						summaryNode: insertedNode,
-						summaryEdge: null,
-					},
-					200
-				);
-			}
-
-			// --- Return Success with Node and Edge Data ---
-			return respondSuccess(
-				{
-					summaryNode: insertedNode,
-					summaryEdge: insertedEdge,
-				},
-				200
-			);
+			return result.toTextStreamResponse();
 		} catch (error) {
 			console.error('Error during AI branch summarization:', error);
 			return respondError(

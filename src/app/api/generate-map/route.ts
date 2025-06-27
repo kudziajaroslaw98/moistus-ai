@@ -1,19 +1,19 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
-import { defaultModel, parseAiJsonResponse } from '@/lib/ai/gemini';
+import { openai } from '@ai-sdk/openai';
+import { generateObject } from 'ai';
 import { z } from 'zod';
 
 const requestBodySchema = z.object({
 	prompt: z.string().min(1, 'Prompt cannot be empty'),
 });
 
-// Define a simple structure type for clarity
-interface MindMapStructure {
-	root: {
-		content: string;
-		children?: MindMapStructure[];
-	};
-}
+const mindMapStructureSchema = z.object({
+	root: z.object({
+		content: z.string(),
+		children: z.array(z.lazy(() => mindMapStructureSchema)).optional(),
+	}),
+});
 
 export const POST = withApiValidation(
 	requestBodySchema,
@@ -42,34 +42,11 @@ export const POST = withApiValidation(
     }
     Ensure the output is ONLY the JSON object, nothing else.`;
 
-			const result = await defaultModel.generateContent(aiPrompt);
-			const response = result.response;
-			const text = response.text();
-
-			let aiStructure: MindMapStructure | null;
-
-			try {
-				aiStructure = parseAiJsonResponse<MindMapStructure>(text);
-
-				if (
-					!aiStructure ||
-					typeof aiStructure !== 'object' ||
-					!aiStructure.root ||
-					typeof aiStructure.root.content !== 'string'
-				) {
-					throw new Error('Parsed structure is invalid.');
-				}
-			} catch (parseError) {
-				console.error('Failed to parse AI response as JSON:', parseError);
-				console.error('AI Response Text:', text);
-				return respondError(
-					'Failed to parse AI response structure',
-					500,
-					parseError instanceof Error
-						? parseError.message
-						: 'AI response parsing failed.'
-				);
-			}
+			const { object: aiStructure } = await generateObject({
+				model: openai('gpt-4o'),
+				schema: mindMapStructureSchema,
+				prompt: aiPrompt,
+			});
 
 			return respondSuccess(
 				{ structure: aiStructure },

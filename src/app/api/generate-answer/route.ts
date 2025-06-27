@@ -1,6 +1,7 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
-import { defaultModel } from '@/lib/ai/gemini';
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
@@ -117,26 +118,12 @@ export const POST = withApiValidation(
 
 			const aiPrompt = `${contextPrompt}Please answer the following question based on your knowledge and the provided context (if any), make sure to summarize the answer in a very short paragraph. Do not include thinking in the response.:\n\nQuestion: "${questionNode.content}"\n\nAnswer:`;
 
-			const result = await defaultModel.generateContent(aiPrompt);
-			const response = result.response;
-			const generatedAnswer = response.text().trim();
+			const result = streamText({
+				model: openai('gpt-4o'),
+				prompt: aiPrompt,
+			});
 
-			if (!generatedAnswer) {
-				return respondError(
-					'AI failed to generate an answer.',
-					500,
-					'AI response was empty.'
-				);
-			}
-
-			// The client (useAiFeatures) will call saveNodeMetadata to update the node.
-			// This API just returns the answer.
-
-			return respondSuccess(
-				{ answer: generatedAnswer },
-				200,
-				'AI answer generated successfully.'
-			);
+			return result.toTextStreamResponse();
 		} catch (error) {
 			console.error('Error generating AI answer:', error);
 			return respondError(
@@ -147,3 +134,4 @@ export const POST = withApiValidation(
 		}
 	}
 );
+

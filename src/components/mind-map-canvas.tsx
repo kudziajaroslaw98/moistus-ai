@@ -12,7 +12,6 @@ import { useParams } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
 import { CommandPalette } from './command-palette';
 import { CommentsPanel } from './comment/comment-panel';
-import { MindMapToolbar } from './mind-map-toolbar/mind-map-toolbar';
 import { ContextMenuWrapper } from './mind-map/context-menu-wrapper';
 
 export function MindMapCanvas() {
@@ -143,9 +142,6 @@ export function MindMapCanvas() {
 					isCommentsPanelOpen ? 'w-[calc(100%-384px)]' : 'w-full',
 				])}
 			>
-				{/* Render the wrapped components */}
-				<MindMapToolbar />
-
 				{popoverOpen.commandPalette && <CommandPalette />}
 
 				<ModalsWrapper />

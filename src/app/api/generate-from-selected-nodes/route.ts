@@ -1,6 +1,7 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
-import { defaultModel } from '@/lib/ai/gemini';
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
 import { z } from 'zod';
 
 // Define validation schema for the request body
@@ -55,29 +56,18 @@ export const POST = withApiValidation(
 				})
 				.join('; ');
 
-			// In a production environment, you'd call your AI service here
-			// For example, using OpenAI API or your own AI service
-
-			// This is a mock implementation for the sake of this example
-			// Replace this with your actual AI implementation
 			const aiPrompt = `# Generated Content
         Based on this prompt: "${prompt}"
         Analyze ${nodeIds.length} nodes:
         ${formattedContent}
         `;
 
-			const result = await defaultModel.generateContent(aiPrompt);
-			const generatedContent = result.response.text().trim();
+			const result = streamText({
+				model: openai('gpt-4o'),
+				prompt: aiPrompt,
+			});
 
-			if (!generatedContent) {
-				return respondError(
-					'AI failed to generate the response.',
-					500,
-					'AI response was empty.'
-				);
-			}
-
-			return respondSuccess({ generatedContent });
+			return result.toTextStreamResponse();
 		} catch (error) {
 			console.error('Error generating content from nodes:', error);
 			return respondError(
