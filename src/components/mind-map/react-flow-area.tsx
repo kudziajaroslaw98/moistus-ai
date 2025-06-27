@@ -63,6 +63,7 @@ import { RealtimeCursors } from '../realtime/realtime-cursor';
 import { SuggestionControls } from '../suggestion-controls';
 import { Toolbar } from '../toolbar';
 import { Button } from '../ui/button';
+import { ZoomSelect } from '../zoom-select';
 
 export function ReactFlowArea() {
 	// const {
@@ -493,6 +494,8 @@ export function ReactFlowArea() {
 					</div>
 				</div>
 			</Panel>
+
+			<ZoomSelect position='bottom-left' />
 
 			<Panel position='bottom-center'>
 				<Toolbar />

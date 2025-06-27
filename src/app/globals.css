@@ -118,7 +118,7 @@
 }
 
 .text-node {
-	--node-accent: theme('colors.stone.900');
+	--node-accent: theme('colors.stone.600');
 }
 
 /* .react-flow__handle {

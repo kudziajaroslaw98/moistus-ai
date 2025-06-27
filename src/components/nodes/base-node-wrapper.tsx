@@ -11,7 +11,7 @@ import {
 } from '@xyflow/react';
 import { Plus } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { memo, type ReactNode, useCallback, useMemo } from 'react';
+import { memo, type ReactNode, useCallback, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { AvatarStack } from '../ui/avatar-stack';
 import { Button } from '../ui/button';
@@ -69,6 +69,7 @@ const BaseNodeWrapperComponent = ({
 		}))
 	);
 
+	const nodeRef = useRef();
 	const connection = useConnection();
 	const isTarget = connection?.toNode?.id === id;
 
@@ -104,12 +105,12 @@ const BaseNodeWrapperComponent = ({
 	return (
 		<div
 			className={cn(
-				'relative flex h-full min-h-auto min-w-80 flex-col rounded-lg border-2 border-node-accent bg-zinc-950 shadow-lg shadow-node-accent/25 gap-4 transition-all cursor-move',
+				'relative flex h-full min-h-auto min-w-80 flex-col rounded-sm border-2 border-node-accent bg-zinc-950 shadow-lg shadow-node-accent/25 gap-4 transition-all cursor-move',
 				selected && 'border-sky-700',
 				includePadding ? 'p-4' : 'p-0',
 				nodeClassName
 			)}
-			style={{ zIndex: belongsToGroup ? 1 : 'auto' }}
+			style={{ zIndex: belongsToGroup ? 1 : 'auto', height: 'auto' }}
 		>
 			<>
 				<CollapsedIndicator />
@@ -161,7 +162,7 @@ const BaseNodeWrapperComponent = ({
 								'translate-y-[1px]'
 							)}
 						/>
-
+						{/*
 						<Handle
 							type='source'
 							position={Position.Left}
@@ -180,9 +181,9 @@ const BaseNodeWrapperComponent = ({
 								'!bg-node-accent border-node-accent opacity-100 shadow-lg',
 								'translate-x-[1px]'
 							)}
-						/>
+						/> */}
 
-						{activeTool === 'connector' ? (
+						{activeTool === 'connector' && (
 							<Handle
 								type='source'
 								position={Position.Top}
@@ -192,16 +193,6 @@ const BaseNodeWrapperComponent = ({
 										? '!bg-transparent'
 										: '!bg-sky-500/20 animate-pulse',
 								])}
-							/>
-						) : (
-							<Handle
-								type='source'
-								position={Position.Top}
-								className={cn(
-									'w-12 h-1 rounded-xs border-2 transition-all duration-200',
-									'!bg-node-accent border-node-accent opacity-100 shadow-lg',
-									'-translate-y-[1px]'
-								)}
 							/>
 						)}
 
@@ -255,6 +246,8 @@ const BaseNodeWrapperComponent = ({
 							isVisible={selected}
 							minWidth={100}
 							minHeight={30}
+							maxWidth={600}
+							maxHeight={nodeRef.current?.height ?? 600}
 							handleClassName='!w-3 !h-3 !bg-node-accent border-node-text-secondary'
 						/>
 					</>

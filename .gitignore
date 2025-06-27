@@ -53,3 +53,6 @@ next-env.d.ts
 #supabase
 ./supabase
 ai-docs
+
+#context-files
+**/project-context.txt

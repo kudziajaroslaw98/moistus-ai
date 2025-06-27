@@ -30,11 +30,11 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 		>
 			<>
 				{showThumbnail && imageUrl && (
-					<div className='pointer-events-none relative flex w-full justify-center h-2/5'>
+					<div className='pointer-events-none relative flex w-full justify-center aspect-16/9  '>
 						<Image
 							src={imageUrl}
 							alt={title}
-							className='nodrag rounded-md object-cover shadow-md'
+							className='nodrag rounded-md object-contain shadow-md'
 							onError={(e) => {
 								e.currentTarget.src =
 									'https://placehold.co/200x120?text=Image+Error';
@@ -45,7 +45,6 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 						/>
 					</div>
 				)}
-
 				{title && (
 					<div className='flex text-lg font-bold text-node-text-main tracking-tight leading-5'>
 						<span className='float-left'>{title}</span>

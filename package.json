@@ -60,9 +60,7 @@
     "zustand": "^5.0.4"
   },
   "devDependencies": {
-    "@agentdeskai/browser-tools-server": "^1.2.1",
     "@eslint/eslintrc": "^3",
-    "@supabase/mcp-server-supabase": "^0.4.2",
     "@tailwindcss/postcss": "^4",
     "@tailwindcss/typography": "^0.5.16",
     "@types/diff": "^5.0.3",
@@ -76,7 +74,6 @@
     "eslint-config-next": "15.3.1",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-react": "^7.37.5",
-    "mcp-knowledge-graph": "^1.0.3",
     "prettier": "^3.5.3",
     "prettier-plugin-organize-attributes": "^1.0.0",
     "prettier-plugin-organize-imports": "^4.1.0",

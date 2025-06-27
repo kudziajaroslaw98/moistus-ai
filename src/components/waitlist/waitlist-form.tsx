@@ -188,7 +188,7 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 								exit={{ opacity: 0 }}
 								className='flex items-center gap-2'
 							>
-								<span>Get Early Access</span>
+								<span>Sign up for Early Access</span>
 								<ArrowRight className='h-5 w-5' />
 							</motion.div>
 						)}
