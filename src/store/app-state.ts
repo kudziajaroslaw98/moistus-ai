@@ -1,5 +1,6 @@
 import type { UserProfile } from '@/helpers/user-profile-helpers';
 import type { RealtimeUserSelection } from '@/hooks/realtime/use-realtime-selection-presence-room';
+import type { ChatSlice } from '@/store/slices/chat-slice';
 import type {
 	FieldActivityState,
 	FieldActivityUser,
@@ -518,4 +519,5 @@ export interface AppState
 		CommentsSlice,
 		SharingSlice,
 		RealtimeSlice,
-		SuggestionsSlice {}
+		SuggestionsSlice,
+		ChatSlice {}

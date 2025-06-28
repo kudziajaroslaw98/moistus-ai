@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { AppState } from './app-state';
+import { createChatSlice } from './slices/chat-slice';
 import { createClipboardSlice } from './slices/clipboard-slice';
 import { createCommentsSlice } from './slices/comments-slice';
 import { createCoreDataSlice } from './slices/core-slice';
@@ -28,6 +29,7 @@ const useAppStore = create<AppState>((...args) => ({
 	...createSharingSlice(...args),
 	...createSuggestionsSlice(...args),
 	...createRealtimeSlice(...args),
+	...createChatSlice(...args),
 }));
 
 export default useAppStore;

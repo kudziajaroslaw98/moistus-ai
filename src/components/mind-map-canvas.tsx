@@ -10,6 +10,7 @@ import { useRealtimeSelectionPresenceRoom } from '@/hooks/realtime/use-realtime-
 import useAppStore from '@/store/mind-map-store';
 import { useParams } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
+import { ChatPanel } from './chat/chat-panel';
 import { CommandPalette } from './command-palette';
 import { CommentsPanel } from './comment/comment-panel';
 import { ContextMenuWrapper } from './mind-map/context-menu-wrapper';
@@ -161,6 +162,9 @@ export function MindMapCanvas() {
 
 			{/* Comments Panel */}
 			{popoverOpen.commentsPanel && <CommentsPanel />}
+
+			{/* Chat Panel */}
+			<ChatPanel />
 		</div>
 	);
 }

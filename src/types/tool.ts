@@ -5,4 +5,5 @@ export type Tool =
 	| 'connector'
 	| 'text'
 	| 'layout'
-	| 'magic-wand';
+	| 'magic-wand'
+	| 'chat';

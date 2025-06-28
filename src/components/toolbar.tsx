@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import {
 	Hand,
 	LayoutGrid,
+	MessageSquare,
 	MousePointer2,
 	Plus,
 	Share2,
@@ -30,15 +31,17 @@ const tools: ToolButton[] = [
 	{ id: 'text', icon: <Type size={20} />, label: 'Text' },
 	{ id: 'magic-wand', icon: <Sparkles size={20} />, label: 'AI Suggestions' },
 	{ id: 'separator-1', icon: null, label: null },
+	{ id: 'chat', icon: <MessageSquare size={20} />, label: 'AI Chat' },
 	{ id: 'layout', icon: <LayoutGrid size={20} />, label: 'Auto-Layout' },
 ];
 
 export const Toolbar = () => {
-	const { activeTool, setActiveTool, applyLayout } = useAppStore(
+	const { activeTool, setActiveTool, applyLayout, toggleChat } = useAppStore(
 		useShallow((state) => ({
 			activeTool: state.activeTool,
 			setActiveTool: state.setActiveTool,
 			applyLayout: state.applyLayout,
+			toggleChat: state.toggleChat,
 		}))
 	);
 
@@ -50,6 +53,9 @@ export const Toolbar = () => {
 		if (toolId === 'layout') {
 			applyLayout('LR');
 			setActiveTool('default');
+		} else if (toolId === 'chat') {
+			toggleChat();
+			// Don't change the active tool for chat
 		} else {
 			setActiveTool(toolId as Tool);
 		}
@@ -73,7 +79,13 @@ export const Toolbar = () => {
 						<Button
 							key={tool.id}
 							onClick={() => onToolChange(tool.id)}
-							variant={activeTool === tool.id ? 'default' : 'secondary'}
+							variant={
+								activeTool === tool.id &&
+								tool.id !== 'chat' &&
+								tool.id !== 'layout'
+									? 'default'
+									: 'secondary'
+							}
 							title={tool.label ?? `Tool ${index}`}
 							size={'icon-md'}
 						>
