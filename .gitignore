@@ -56,3 +56,6 @@ ai-docs
 
 #context-files
 **/project-context.txt
+
+# Sentry Config File
+.env.sentry-build-plugin

@@ -16,7 +16,7 @@ const eslintConfig = [
 	{
 		rules: {
 			'padding-line-between-statements': [
-				'off',
+				'warn',
 				{ blankLine: 'always', prev: '*', next: 'block' },
 				{ blankLine: 'always', prev: 'block', next: '*' },
 				{ blankLine: 'always', prev: '*', next: 'block-like' },
@@ -29,18 +29,18 @@ const eslintConfig = [
 		...reactPlugin.configs.flat.recommended,
 		rules: {
 			'react-hooks/exhaustive-deps': 'off',
-			'react/jsx-newline': 'off',
+			'react/jsx-newline': 'warn',
 			'react/hook-use-state': 'warn',
-			'no-unused-vars': 'off',
+			'no-unused-vars': 'warn',
 			'@typescript-eslint/no-unused-vars': [
-				'off', // or "error"
+				'warn', // or "error"
 				{
 					argsIgnorePattern: '^_',
 					varsIgnorePattern: '^_',
 					caughtErrorsIgnorePattern: '^_',
 				},
 			],
-			'@typescript-eslint/no-explicit-any': 'off',
+			'@typescript-eslint/no-explicit-any': 'warn',
 		},
 		languageOptions: {
 			...reactPlugin.configs.flat.recommended.languageOptions,
