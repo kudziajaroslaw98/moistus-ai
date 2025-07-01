@@ -1,3 +1,4 @@
+import type { AiMergeSuggestion } from '@/types/ai-merge-suggestion';
 import type { AppNode } from '@/types/app-node';
 import type { AvailableNodeTypes } from '@/types/available-node-types';
 import type { NodeSuggestion, SuggestionContext } from '@/types/ghost-node';
@@ -6,17 +7,25 @@ import type { AppState } from '../app-state';
 
 export interface SuggestionsSlice {
 	// State
+	aiFeature: 'suggest-nodes' | 'suggest-connections' | 'suggest-merges';
 	ghostNodes: AppNode[];
 	isGeneratingSuggestions: boolean;
 	suggestionError: string | null;
+	mergeSuggestions: AiMergeSuggestion[];
 
 	// Actions
+	setAiFeature: (
+		feature: 'suggest-nodes' | 'suggest-connections' | 'suggest-merges'
+	) => void;
 	addGhostNode: (suggestion: NodeSuggestion) => void;
 	removeGhostNode: (nodeId: string) => void;
 	clearGhostNodes: () => void;
 	acceptSuggestion: (nodeId: string) => Promise<void>;
 	rejectSuggestion: (nodeId: string) => void;
 	generateSuggestions: (context: SuggestionContext) => Promise<void>;
+	generateConnectionSuggestions: () => Promise<void>;
+	generateMergeSuggestions: () => Promise<void>;
+	setMergeSuggestions: (suggestions: AiMergeSuggestion[]) => void;
 
 	// Helper methods
 	getGhostNodeById: (nodeId: string) => AppNode | undefined;
@@ -30,11 +39,18 @@ export const createSuggestionsSlice: StateCreator<
 	SuggestionsSlice
 > = (set, get) => ({
 	// Initial state
+	aiFeature: 'suggest-nodes',
 	ghostNodes: [],
 	isGeneratingSuggestions: false,
 	suggestionError: null,
+	mergeSuggestions: [],
 
 	// Actions
+	setAiFeature: (
+		feature: 'suggest-nodes' | 'suggest-connections' | 'suggest-merges'
+	) => {
+		set({ aiFeature: feature });
+	},
 	addGhostNode: (suggestion: NodeSuggestion) => {
 		const { mapId } = get();
 		const ghostNode: AppNode = {
@@ -199,6 +215,82 @@ export const createSuggestionsSlice: StateCreator<
 		} finally {
 			set({ isGeneratingSuggestions: false });
 		}
+	},
+
+	generateConnectionSuggestions: async () => {
+		const { nodes, edges, mapId, addEdge } = get();
+		set({ isGeneratingSuggestions: true, suggestionError: null });
+
+		try {
+			const response = await fetch('/api/ai/suggest-connections', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ nodes, edges, mapId }),
+			});
+
+			if (!response.ok) {
+				throw new Error(
+					`Failed to generate suggestions: ${response.statusText}`
+				);
+			}
+
+			const { suggestions } = await response.json();
+
+			if (suggestions && Array.isArray(suggestions)) {
+				suggestions.forEach((s) =>
+					addEdge(s.source, s.target, { label: s.label })
+				);
+			}
+		} catch (error) {
+			console.error('Error generating connection suggestions:', error);
+			set({
+				suggestionError:
+					error instanceof Error
+						? error.message
+						: 'Failed to generate connection suggestions',
+			});
+		} finally {
+			set({ isGeneratingSuggestions: false });
+		}
+	},
+
+	generateMergeSuggestions: async () => {
+		const { nodes, edges, mapId, setMergeSuggestions } = get();
+		set({ isGeneratingSuggestions: true, suggestionError: null });
+
+		try {
+			const response = await fetch('/api/ai/suggest-merges', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ nodes, edges, mapId }),
+			});
+
+			if (!response.ok) {
+				throw new Error(
+					`Failed to generate suggestions: ${response.statusText}`
+				);
+			}
+
+			const { suggestions } = await response.json();
+
+			if (suggestions && Array.isArray(suggestions)) {
+				setMergeSuggestions(suggestions);
+			}
+		} catch (error) {
+			console.error('Error generating merge suggestions:', error);
+			set({
+				suggestionError:
+					error instanceof Error
+						? error.message
+						: 'Failed to generate merge suggestions',
+			});
+		} finally {
+			set({ isGeneratingSuggestions: false });
+		}
+	},
+
+	setMergeSuggestions: (suggestions: AiMergeSuggestion[]) => {
+		set({ mergeSuggestions: suggestions });
 	},
 
 	// Helper methods

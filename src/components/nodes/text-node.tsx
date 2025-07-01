@@ -149,7 +149,7 @@ const TextNodeComponent = (props: TextNodeProps) => {
 			>
 				<div
 					className={cn(
-						'flex items-center min-h-8 w-full',
+						'flex items-center min-h-8 w-full whitespace-break-spaces',
 						textAlign === 'center' && 'justify-center',
 						textAlign === 'right' && 'justify-end',
 						textAlign === 'left' && 'justify-start'

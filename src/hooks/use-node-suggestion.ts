@@ -48,6 +48,8 @@ export function useNodeSuggestion() {
     addGhostNode,
     clearGhostNodes,
     generateSuggestions,
+    generateConnectionSuggestions,
+    generateMergeSuggestions,
     reactFlowInstance,
   } = useAppStore(
     useShallow((state) => ({
@@ -57,6 +59,8 @@ export function useNodeSuggestion() {
       addGhostNode: state.addGhostNode,
       clearGhostNodes: state.clearGhostNodes,
       generateSuggestions: state.generateSuggestions,
+      generateConnectionSuggestions: state.generateConnectionSuggestions,
+      generateMergeSuggestions: state.generateMergeSuggestions,
       reactFlowInstance: state.reactFlowInstance,
     }))
   );
@@ -167,6 +171,27 @@ export function useNodeSuggestion() {
     [generateSuggestionsForPosition]
   );
 
+  const generateInitialSuggestions = useCallback(async () => {
+    if (!mapId) {
+      setError('Map ID is not available');
+      return;
+    }
+
+    setIsGenerating(true);
+    setError(null);
+
+    try {
+      await generateConnectionSuggestions();
+      await generateMergeSuggestions();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to generate initial suggestions';
+      setError(errorMessage);
+      console.error('Error generating initial suggestions:', err);
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [mapId, generateConnectionSuggestions, generateMergeSuggestions]);
+
   const clearAllSuggestions = useCallback(() => {
     clearGhostNodes();
     setError(null);
@@ -186,6 +211,7 @@ export function useNodeSuggestion() {
     generateSuggestionsForNode,
     generateSuggestionsForPosition,
     generateSuggestionsForConnection,
+    generateInitialSuggestions,
     clearAllSuggestions,
     retry,
 

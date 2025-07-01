@@ -10,7 +10,7 @@ type ApiHandler<TBody, TResponseData> = (
 	validatedBody: TBody,
 	supabase: Awaited<ReturnType<typeof createClient>>, // Pass Supabase client
 	user: User
-) => Promise<NextResponse<ApiResponse<TResponseData>>>;
+) => Promise<NextResponse<ApiResponse<TResponseData>> | Response>;
 
 export function withApiValidation<TBody, TResponseData>(
 	schema: ZodSchema<TBody>,

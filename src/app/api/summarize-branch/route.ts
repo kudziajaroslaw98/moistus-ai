@@ -1,10 +1,9 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
-import generateUuid from '@/helpers/generate-uuid'; // Added for new node ID
-import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
 import type { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
 // Database types - Assuming you have these generated or defined
 import { z } from 'zod';
 
@@ -151,7 +150,7 @@ export const POST = withApiValidation(
 			const aiPrompt = `Summarize the following content from a mind map branch, represented hierarchically. Include key details from metadata like source URLs, completion status, image presence, etc., where relevant. Focus on the main ideas and relationships. Output only the summary text.\n\nBranch Content:\n${branchContent}`;
 
 			const result = streamText({
-				model: openai('gpt-4o'),
+				model: openai('o4-mini'),
 				prompt: aiPrompt,
 			});
 

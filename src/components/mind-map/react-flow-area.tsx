@@ -79,8 +79,6 @@ export function ReactFlowArea() {
 	const {
 		supabase,
 		nodes,
-		edges,
-		isFocusMode,
 		onNodesChange,
 		onEdgesChange,
 		onConnect,
@@ -101,10 +99,8 @@ export function ReactFlowArea() {
 		unsubscribeFromComments,
 		unsubscribeFromRealtimeUpdates,
 		getCurrentUser,
-		currentUser,
 		getVisibleEdges,
 		getVisibleNodes,
-		toggleFocusMode,
 		mindMap,
 		activeTool,
 		setActiveTool,
@@ -113,7 +109,6 @@ export function ReactFlowArea() {
 		useShallow((state) => ({
 			supabase: state.supabase,
 			nodes: state.nodes,
-			edges: state.edges,
 			getVisibleEdges: state.getVisibleEdges,
 			getVisibleNodes: state.getVisibleNodes,
 			isFocusMode: state.isFocusMode,
@@ -137,7 +132,6 @@ export function ReactFlowArea() {
 			unsubscribeFromComments: state.unsubscribeFromComments,
 			unsubscribeFromRealtimeUpdates: state.unsubscribeFromRealtimeUpdates,
 			getCurrentUser: state.getCurrentUser,
-			currentUser: state.currentUser,
 			toggleFocusMode: state.toggleFocusMode,
 			mindMap: state.mindMap,
 			activeTool: state.activeTool,
@@ -147,11 +141,7 @@ export function ReactFlowArea() {
 	);
 
 	const { contextMenuHandlers } = useContextMenu();
-	const {
-		generateSuggestionsForNode,
-		generateSuggestionsForConnection,
-		isGenerating,
-	} = useNodeSuggestion();
+	const { generateSuggestionsForNode, isGenerating } = useNodeSuggestion();
 
 	useEffect(() => {
 		getCurrentUser();
@@ -271,19 +261,24 @@ export function ReactFlowArea() {
 					y: clientY,
 				});
 
-				// Trigger AI suggestions for dangling edge
-				generateSuggestionsForConnection(
-					connectingNodeId.current,
-					panePosition,
-					'related to' // Default relationship type
+				const parentNode = nodes.find(
+					(node) => node.id === connectingNodeId.current
 				);
+
+				addNode({
+					parentNode: parentNode ?? null,
+					position: panePosition,
+					data: {},
+					content: 'New Node',
+					nodeType: parentNode?.data?.node_type ?? 'defaultNode',
+				});
 			}
 
 			connectingNodeId.current = null;
 			connectingHandleId.current = null;
 			connectingHandleType.current = null;
 		},
-		[reactFlowInstance, generateSuggestionsForConnection]
+		[reactFlowInstance, nodes, addNode]
 	);
 
 	const handleSelectionChange = useCallback(
@@ -318,10 +313,6 @@ export function ReactFlowArea() {
 		setPopoverOpen({ history: true });
 	}, [setPopoverOpen]);
 
-	const handleToggleFocusMode = useCallback(() => {
-		toggleFocusMode();
-	}, [toggleFocusMode]);
-
 	const isSelectMode = activeTool === 'default';
 	const isPanningMode = activeTool === 'pan';
 
@@ -339,7 +330,7 @@ export function ReactFlowArea() {
 			nodesDraggable={isSelectMode}
 			nodesConnectable={isSelectMode || activeTool === 'connector'}
 			elementsSelectable={isSelectMode}
-			panOnDrag={isSelectMode || isPanningMode}
+			panOnDrag={true}
 			fitView={true}
 			nodes={[...getVisibleNodes(), ...ghostNodes]}
 			edges={getVisibleEdges()}
@@ -389,9 +380,11 @@ export function ReactFlowArea() {
 									<Link href='/dashboard'>Moistus AI</Link>
 								</BreadcrumbLink>
 							</BreadcrumbItem>
+
 							<BreadcrumbSeparator>
 								<Slash />
 							</BreadcrumbSeparator>
+
 							<BreadcrumbItem>
 								<BreadcrumbPage className='capitalize'>
 									{mindMap?.title || 'Loading...'}
@@ -469,6 +462,7 @@ export function ReactFlowArea() {
 							<Maximize className='h-4 w-4' />
 						</Button> */}
 					</div>
+
 					<RealtimeAvatarStack roomName={`mind_map:${mapId}:users`} />
 
 					<div className='flex gap-2'>

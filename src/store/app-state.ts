@@ -406,6 +406,7 @@ export interface Popovers {
 	permissionManager: boolean;
 	roomCodeDisplay: boolean;
 	guestSignup: boolean;
+	aiChat: boolean;
 }
 
 export interface UIStateSlice {

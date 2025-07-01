@@ -14,7 +14,10 @@ import {
 } from 'lucide-react';
 import { useShallow } from 'zustand/shallow';
 import { Button } from './ui/button';
+import { Label } from './ui/label';
+import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Separator } from './ui/separator';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/Tooltip';
 
 interface ToolButton {
 	id: Tool | `separator-${number}`;
@@ -36,12 +39,25 @@ const tools: ToolButton[] = [
 ];
 
 export const Toolbar = () => {
-	const { activeTool, setActiveTool, applyLayout, toggleChat } = useAppStore(
+	const {
+		aiFeature,
+		setAiFeature,
+		activeTool,
+		setActiveTool,
+		applyLayout,
+		setPopoverOpen,
+		generateConnectionSuggestions,
+		generateMergeSuggestions,
+	} = useAppStore(
 		useShallow((state) => ({
 			activeTool: state.activeTool,
 			setActiveTool: state.setActiveTool,
 			applyLayout: state.applyLayout,
-			toggleChat: state.toggleChat,
+			setPopoverOpen: state.setPopoverOpen,
+			setAiFeature: state.setAiFeature,
+			aiFeature: state.aiFeature,
+			generateConnectionSuggestions: state.generateConnectionSuggestions,
+			generateMergeSuggestions: state.generateMergeSuggestions,
 		}))
 	);
 
@@ -54,10 +70,24 @@ export const Toolbar = () => {
 			applyLayout('LR');
 			setActiveTool('default');
 		} else if (toolId === 'chat') {
-			toggleChat();
+			setPopoverOpen({ aiChat: true });
 			// Don't change the active tool for chat
 		} else {
 			setActiveTool(toolId as Tool);
+		}
+	};
+
+	const handleAiFeatureSelect = (
+		feature: 'suggest-nodes' | 'suggest-connections' | 'suggest-merges'
+	) => {
+		if (feature === 'suggest-nodes') {
+			setAiFeature('suggest-nodes');
+		} else if (feature === 'suggest-connections') {
+			generateConnectionSuggestions();
+			setAiFeature('suggest-connections');
+		} else if (feature === 'suggest-merges') {
+			setAiFeature('suggest-merges');
+			generateMergeSuggestions();
 		}
 	};
 
@@ -68,14 +98,71 @@ export const Toolbar = () => {
 			transition={{ type: 'spring', stiffness: 100, damping: 15 }}
 		>
 			<div className='flex h-full w-full items-center gap-2 p-2 bg-gray-950 border border-gray-900 rounded-md shadow-2xl'>
-				{tools.map((tool, index) =>
-					tool.id.startsWith('separator') ? (
-						<Separator
-							key={tool.id + '' + index}
-							orientation='vertical'
-							className='!bg-zinc-700 !h-4  flex'
-						/>
-					) : (
+				{tools.map((tool, index) => {
+					if (tool.id.startsWith('separator')) {
+						return (
+							<Separator
+								key={tool.id + '' + index}
+								orientation='vertical'
+								className='!bg-zinc-700 !h-4  flex'
+							/>
+						);
+					}
+
+					if (tool.id === 'magic-wand') {
+						return (
+							<Tooltip key={tool.id}>
+								<TooltipTrigger asChild>
+									<Button
+										onClick={() => onToolChange(tool.id)}
+										variant={activeTool === tool.id ? 'default' : 'secondary'}
+										title={tool.label ?? `Tool ${index}`}
+										size={'icon-md'}
+									>
+										{tool.icon}
+									</Button>
+								</TooltipTrigger>
+
+								<TooltipContent className='p-4'>
+									<RadioGroup
+										onValueChange={handleAiFeatureSelect}
+										value={aiFeature}
+									>
+										<div className='flex items-center gap-2'>
+											<RadioGroupItem
+												value='suggest-nodes'
+												id='suggest-nodes'
+											/>
+
+											<Label htmlFor='suggest-nodes'>Suggest Nodes</Label>
+										</div>
+
+										<div className='flex items-center gap-2'>
+											<RadioGroupItem
+												value='suggest-connections'
+												id='suggest-connections'
+											/>
+
+											<Label htmlFor='suggest-connections'>
+												Suggest Connections
+											</Label>
+										</div>
+
+										<div className='flex items-center gap-2'>
+											<RadioGroupItem
+												value='suggest-merges'
+												id='suggest-merges'
+											/>
+
+											<Label htmlFor='suggest-merges'>Suggest Merges</Label>
+										</div>
+									</RadioGroup>
+								</TooltipContent>
+							</Tooltip>
+						);
+					}
+
+					return (
 						<Button
 							key={tool.id}
 							onClick={() => onToolChange(tool.id)}
@@ -91,8 +178,8 @@ export const Toolbar = () => {
 						>
 							{tool.icon}
 						</Button>
-					)
-				)}
+					);
+				})}
 			</div>
 		</motion.div>
 	);

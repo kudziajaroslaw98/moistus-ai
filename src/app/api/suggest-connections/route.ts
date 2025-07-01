@@ -60,7 +60,7 @@ export const POST = withApiValidation(
 			const aiPrompt = `Given the following list of mind map nodes (ID: Content), identify potential conceptual connections between pairs of nodes.\n    Suggest connections that represent relationships like "related to", "leads to", "is an example of", etc.\n    Only suggest connections between nodes that are NOT already directly connected (i.e., targetNodeId's parent_id is not sourceNodeId). You don't have the parent information, so focus on conceptual similarity or logical flow based on content.`;
 
 			const { object } = await generateObject({
-				model: openai('gpt-4o'),
+				model: openai('o4-mini'),
 				schema: aiResponseSchema,
 				prompt: `${aiPrompt}\n\nNodes:\n${nodeContentList}`,
 			});

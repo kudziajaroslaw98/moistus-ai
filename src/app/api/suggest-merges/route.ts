@@ -2,7 +2,6 @@ import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
 import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
-import { AiMergeSuggestion } from '@/types/ai-merge-suggestion';
 import { z } from 'zod';
 
 const requestBodySchema = z.object({
@@ -57,7 +56,7 @@ export const POST = withApiValidation(
 			const aiPrompt = `Given the following list of mind map nodes (ID: Content), identify pairs of nodes that are semantically similar or cover overlapping topics and could potentially be merged.\n         Only suggest pairs where node1Id and node2Id are different.\n         Focus on semantic similarity, not just exact text matches.`;
 
 			const { object } = await generateObject({
-				model: openai('gpt-4o'),
+				model: openai('o4-mini'),
 				schema: aiResponseSchema,
 				prompt: `${aiPrompt}\n\nNodes:\n${nodeContentList}`,
 			});

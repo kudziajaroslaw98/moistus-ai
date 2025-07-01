@@ -1,8 +1,8 @@
-import { respondError, respondSuccess } from '@/helpers/api/responses';
+import { respondError } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { streamText } from 'ai';
 import { z } from 'zod';
 
 const requestBodySchema = z.object({
@@ -119,7 +119,7 @@ export const POST = withApiValidation(
 			const aiPrompt = `${contextPrompt}Please answer the following question based on your knowledge and the provided context (if any), make sure to summarize the answer in a very short paragraph. Do not include thinking in the response.:\n\nQuestion: "${questionNode.content}"\n\nAnswer:`;
 
 			const result = streamText({
-				model: openai('gpt-4o'),
+				model: openai('o4-mini'),
 				prompt: aiPrompt,
 			});
 
@@ -134,4 +134,3 @@ export const POST = withApiValidation(
 		}
 	}
 );
-
