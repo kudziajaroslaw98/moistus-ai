@@ -1,4 +1,4 @@
-'use client';
+use client';
 
 import { UserAvatar } from '@/components/ui/user-avatar';
 import useAppStore from '@/store/mind-map-store';

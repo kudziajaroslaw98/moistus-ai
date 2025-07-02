@@ -11,7 +11,7 @@ function withLoadingAndToast<
 	options?: {
 		initialMessage?: string;
 		errorMessage?: string;
-		successMessage?: string;
+		successMessage?: string | null;
 	}
 ): (...args: Parameters<T>) => Promise<Awaited<ReturnType<T>>> {
 	return async (...args) => {
@@ -23,7 +23,10 @@ function withLoadingAndToast<
 		try {
 			// Explicitly pass toastId as the last argument
 			const res = await action(...args, toastId);
-			toast.success(options?.successMessage || 'Success!', { id: toastId });
+
+			if (options?.successMessage || options?.successMessage !== null) {
+				toast.success(options?.successMessage || 'Success!', { id: toastId });
+			}
 
 			return res;
 		} catch (e) {

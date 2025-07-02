@@ -3,4 +3,5 @@ export interface AiMergeSuggestion {
 	node2Id: string;
 	similarityScore?: number;
 	reason?: string;
+	confidence?: number;
 }

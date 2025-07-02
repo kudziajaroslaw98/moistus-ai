@@ -259,132 +259,135 @@ export default function DashboardPage() {
 	return (
 		<div className='min-h-screen w-full'>
 			<DashboardHeader />
+
 			<div className='p-6 md:p-8'>
 				<div className='mx-auto h-full w-full max-w-6xl'>
+					{/* Search Bar */}
+					<div className='mb-8'>
+						<div className='relative max-w-2xl'>
+							<div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
+								<svg
+									className='h-5 w-5 text-zinc-400'
+									fill='none'
+									viewBox='0 0 24 24'
+									stroke='currentColor'
+								>
+									<path
+										strokeLinecap='round'
+										strokeLinejoin='round'
+										strokeWidth={2}
+										d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'
+									/>
+								</svg>
+							</div>
 
-				{/* Search Bar */}
-				<div className='mb-8'>
-					<div className='relative max-w-2xl'>
-						<div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
-							<svg
-								className='h-5 w-5 text-zinc-400'
-								fill='none'
-								viewBox='0 0 24 24'
-								stroke='currentColor'
-							>
-								<path
-									strokeLinecap='round'
-									strokeLinejoin='round'
-									strokeWidth={2}
-									d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'
-								/>
-							</svg>
+							<Input
+								type='text'
+								placeholder='Search'
+								className='pl-10 bg-zinc-800/50 border-zinc-700 text-white placeholder-zinc-400 focus:border-zinc-500'
+							/>
 						</div>
-
-						<Input
-							type='text'
-							placeholder='Search'
-							className='pl-10 bg-zinc-800/50 border-zinc-700 text-white placeholder-zinc-400 focus:border-zinc-500'
-						/>
 					</div>
-				</div>
 
-				{/* Loading/Error State */}
-				{isLoading && mindMaps.length > 0 && (
-					<p className='mb-4 text-zinc-400'>Refreshing maps...</p>
-				)}
+					{/* Loading/Error State */}
+					{isLoading && mindMaps.length > 0 && (
+						<p className='mb-4 text-zinc-400'>Refreshing maps...</p>
+					)}
 
-				{error && (
-					<p className='mb-4 text-red-400'>
-						Error: {error.message || 'Failed to load maps'}
-					</p>
-				)}
+					{error && (
+						<p className='mb-4 text-red-400'>
+							Error: {error.message || 'Failed to load maps'}
+						</p>
+					)}
 
-				{/* Mind Map Grid or Empty State */}
-				{mindMaps.length === 0 && !isLoading ? (
-					<div className='py-20'>
-						<div className='text-center max-w-md mx-auto'>
-							<div className='border-2 border-dashed border-zinc-600 rounded-lg p-12 mb-6'>
-								<h2 className='text-xl text-white mb-2'>
-									Create your first mind map
-								</h2>
+					{/* Mind Map Grid or Empty State */}
+					{mindMaps.length === 0 && !isLoading ? (
+						<div className='py-20'>
+							<div className='text-center max-w-md mx-auto'>
+								<div className='border-2 border-dashed border-zinc-600 rounded-lg p-12 mb-6'>
+									<h2 className='text-xl text-white mb-2'>
+										Create your first mind map
+									</h2>
 
-								<p className='text-zinc-400 mb-6'>
-									Start with a central idea and branch out to explore related
-									concepts and details.
-								</p>
+									<p className='text-zinc-400 mb-6'>
+										Start with a central idea and branch out to explore related
+										concepts and details.
+									</p>
 
-								{/* Create New Map Form */}
-								<form onSubmit={handleCreateMap} className='space-y-4'>
+									{/* Create New Map Form */}
+									<form onSubmit={handleCreateMap} className='space-y-4'>
+										<Input
+											type='text'
+											value={newMapTitle}
+											onChange={(e) => setNewMapTitle(e.target.value)}
+											placeholder='Enter map title...'
+											className='bg-zinc-800/50 border-zinc-700 text-white placeholder-zinc-400'
+											disabled={isCreating}
+										/>
+
+										<Button
+											type='submit'
+											disabled={!newMapTitle.trim() || isCreating}
+											className='w-full bg-blue-600 hover:bg-blue-700'
+										>
+											{isCreating ? 'Creating...' : 'New Map'}
+										</Button>
+									</form>
+								</div>
+							</div>
+						</div>
+					) : (
+						<>
+							{/* Create New Map Form - Compact version when maps exist */}
+							<div className='mb-8'>
+								<form
+									onSubmit={handleCreateMap}
+									className='flex gap-3 max-w-md'
+								>
 									<Input
 										type='text'
 										value={newMapTitle}
 										onChange={(e) => setNewMapTitle(e.target.value)}
-										placeholder='Enter map title...'
-										className='bg-zinc-800/50 border-zinc-700 text-white placeholder-zinc-400'
+										placeholder='New map title...'
+										className='flex-grow bg-zinc-800/50 border-zinc-700 text-white placeholder-zinc-400'
 										disabled={isCreating}
 									/>
 
 									<Button
 										type='submit'
 										disabled={!newMapTitle.trim() || isCreating}
-										className='w-full bg-blue-600 hover:bg-blue-700'
+										className='bg-blue-600 hover:bg-blue-700'
 									>
-										{isCreating ? 'Creating...' : 'New Map'}
+										{isCreating ? 'Creating...' : 'Create'}
 									</Button>
 								</form>
 							</div>
-						</div>
-					</div>
-				) : (
-					<>
-						{/* Create New Map Form - Compact version when maps exist */}
-						<div className='mb-8'>
-							<form onSubmit={handleCreateMap} className='flex gap-3 max-w-md'>
-								<Input
-									type='text'
-									value={newMapTitle}
-									onChange={(e) => setNewMapTitle(e.target.value)}
-									placeholder='New map title...'
-									className='flex-grow bg-zinc-800/50 border-zinc-700 text-white placeholder-zinc-400'
-									disabled={isCreating}
-								/>
 
-								<Button
-									type='submit'
-									disabled={!newMapTitle.trim() || isCreating}
-									className='bg-blue-600 hover:bg-blue-700'
-								>
-									{isCreating ? 'Creating...' : 'Create'}
-								</Button>
-							</form>
-						</div>
+							{/* Mind Maps Grid */}
+							<div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-6'>
+								{mindMaps.map((map) => (
+									<MindMapPreview
+										key={map.id}
+										map={map}
+										onDelete={handleDeleteMap}
+									/>
+								))}
+							</div>
+						</>
+					)}
 
-						{/* Mind Maps Grid */}
-						<div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-6'>
-							{mindMaps.map((map) => (
-								<MindMapPreview
-									key={map.id}
-									map={map}
-									onDelete={handleDeleteMap}
-								/>
-							))}
+					{/* Notification Display */}
+					{notification.message && (
+						<div
+							className={`fixed right-5 bottom-5 z-50 max-w-sm rounded-lg p-4 text-sm font-medium shadow-lg ${
+								notification.type === 'success'
+									? 'bg-emerald-600 text-white'
+									: 'bg-rose-600 text-white'
+							}`}
+						>
+							{notification.message}
 						</div>
-					</>
-				)}
-
-				{/* Notification Display */}
-				{notification.message && (
-					<div
-						className={`fixed right-5 bottom-5 z-50 max-w-sm rounded-lg p-4 text-sm font-medium shadow-lg ${
-							notification.type === 'success'
-								? 'bg-emerald-600 text-white'
-								: 'bg-rose-600 text-white'
-						}`}
-					>
-						{notification.message}
-					</div>
-				)}
+					)}
 				</div>
 			</div>
 		</div>

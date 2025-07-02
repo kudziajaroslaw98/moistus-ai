@@ -157,11 +157,12 @@ const BaseNodeWrapperComponent = ({
 							type='source'
 							position={Position.Bottom}
 							className={cn(
-								'w-12 h-1 rounded-xs border-2 transition-all duration-200',
+								'w-12 h-2 rounded-xs border-2 transition-all duration-200',
 								'!bg-node-accent border-node-accent opacity-100 shadow-lg',
 								'translate-y-[1px]'
 							)}
 						/>
+
 						{/*
 						<Handle
 							type='source'

@@ -27,7 +27,7 @@ import ResourceNode from '@/components/nodes/resource-node';
 import TextNode from '@/components/nodes/text-node';
 
 import FloatingEdge from '@/components/edges/floating-edge';
-// import SuggestedConnectionEdge from "@/components/edges/suggested-connection-edge";
+import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edge';
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -56,6 +56,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
 import FloatingConnectionLine from '../edges/floating-connection-line';
+import { SuggestedMergeEdge } from '../edges/suggested-merge-edge';
 import BuilderNode from '../nodes/builder-node';
 import TaskNode from '../nodes/task-node';
 import { RealtimeAvatarStack } from '../realtime/realtime-avatar-stack';
@@ -212,7 +213,8 @@ export function ReactFlowArea() {
 
 	const edgeTypes = useMemo(
 		() => ({
-			// suggestedConnection: SuggestedConnectionEdge,
+			suggestedMerge: SuggestedMergeEdge,
+			suggestedConnection: SuggestedConnectionEdge,
 			editableEdge: FloatingEdge,
 			defaultEdge: FloatingEdge,
 			floatingEdge: FloatingEdge,

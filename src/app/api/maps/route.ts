@@ -9,7 +9,7 @@ const requestBodySchema = z.object({
 });
 
 export const GET = withApiValidation(
-	z.any().nullish(),
+	z.undefined(),
 	async (req, validatedBody, supabase, user) => {
 		try {
 			const { data: maps, error: fetchError } = await supabase

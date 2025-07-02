@@ -11,6 +11,15 @@ import { toast } from 'sonner';
 import type { StateCreator } from 'zustand';
 import type { AppState, EdgesSlice } from '../app-state';
 
+// Utility function to determine edge type based on data
+const getEdgeType = (edgeData: Partial<EdgeData>): string => {
+	if (edgeData.aiData?.isSuggested) {
+		return 'suggestedConnection';
+	}
+
+	return 'floatingEdge';
+};
+
 export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 	set,
 	get
@@ -22,8 +31,10 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 
 		// Skip if this change was made by current user recently (prevent loops)
 		const edgeId = newRecord?.id || oldRecord?.id;
+
 		if (edgeId && lastSavedEdgeTimestamps[edgeId]) {
 			const timeSinceLastSave = Date.now() - lastSavedEdgeTimestamps[edgeId];
+
 			if (timeSinceLastSave < 1000) {
 				// Skip if saved within last second
 				return;
@@ -35,12 +46,13 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 				if (newRecord) {
 					// Check if edge already exists (prevent duplicates)
 					const existingEdge = edges.find((e) => e.id === newRecord.id);
+
 					if (!existingEdge) {
 						const newEdge: AppEdge = {
 							id: newRecord.id,
 							source: newRecord.source,
 							target: newRecord.target,
-							type: 'floatingEdge',
+							type: getEdgeType(newRecord),
 							animated: newRecord.animated || false,
 							label: newRecord.label,
 							style: {
@@ -55,8 +67,10 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 						console.log('Real-time: Edge added', newRecord.id);
 					}
 				}
+
 				break;
 			}
+
 			case 'UPDATE': {
 				if (newRecord) {
 					const updatedEdges = edges.map((edge) => {
@@ -79,14 +93,17 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 								data: newRecord,
 							};
 						}
+
 						return edge;
 					});
 
 					set({ edges: updatedEdges });
 					console.log('Real-time: Edge updated', newRecord.id);
 				}
+
 				break;
 			}
+
 			case 'DELETE': {
 				if (oldRecord) {
 					const filteredEdges = edges.filter(
@@ -95,6 +112,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					set({ edges: filteredEdges });
 					console.log('Real-time: Edge deleted', oldRecord.id);
 				}
+
 				break;
 			}
 		}
@@ -205,11 +223,13 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 				}
 
 				const newEdge = mergeEdgeData(defaultEdgeData(), {
-					type: 'floatingEdge',
 					...data,
 					map_id: mapId!,
 					user_id: user.data.user.id,
 				});
+
+				// Determine edge type after merging data
+				const edgeType = getEdgeType(newEdge);
 
 				const { data: insertedEdgeData, error: insertError } = await supabase
 					.from('edges')
@@ -225,7 +245,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					id: insertedEdgeData.id,
 					source: insertedEdgeData.source,
 					target: insertedEdgeData.target,
-					type: 'floatingEdge', // Ensure type is floatingEdge
+					type: edgeType,
 					animated: false,
 					label: insertedEdgeData.label,
 					style: {

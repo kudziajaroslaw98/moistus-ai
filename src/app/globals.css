@@ -205,17 +205,13 @@
 
 /* Enhanced Connection Line Animations */
 @keyframes dash-flow {
-	0% {
-		stroke-dashoffset: 0;
-	}
-	100% {
-		stroke-dashoffset: -12;
+	to {
+		stroke-dashoffset: -20;
 	}
 }
 
 .animate-dash-flow {
-	stroke-dasharray: 8, 4;
-	animation: dash-flow 1s linear infinite;
+	animation: dash-flow 2s linear infinite;
 }
 
 /* Radial gradient utility */

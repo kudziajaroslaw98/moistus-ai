@@ -109,57 +109,63 @@ export const createCoreDataSlice: StateCreator<
 				throw new Error('Map ID is required.');
 			}
 
+			// const { data: mindMapData, error: mindMapError } = await get()
+			// 	.supabase.from('mind_maps')
+			// 	.select(
+			// 		`
+			//            id,
+			//            user_id,
+			//            created_at,
+			//            updated_at,
+			//            description,
+			//            title,
+			//            tags,
+			//            visibility,
+			//            thumbnailUrl,
+			//            nodes (
+			//            id,
+			//              map_id,
+			//              parent_id,
+			//              content,
+			//              position_x,
+			//              position_y,
+			//              width,
+			//              height,
+			//              node_type,
+			//              tags,
+			//              status,
+			//              importance,
+			//              sourceUrl,
+			//              metadata,
+			//              aiData,
+			//              created_at,
+			//              updated_at
+			//            ),
+			//            edges (
+			//              id,
+			//              map_id,
+			//              source,
+			//              target,
+			//              label,
+			//              type,
+			//               animated,
+			//              markerEnd,
+			//              markerStart,
+			//              style,
+			//              metadata,
+			//              aiData,
+			//              created_at,
+			//              updated_at
+			//            )
+			//          `
+			// 	)
+			// 	.eq('id', mapId)
+			// 	.single();
+
 			const { data: mindMapData, error: mindMapError } = await get()
-				.supabase.from('mind_maps')
-				.select(
-					`
-              id,
-              user_id,
-              created_at,
-              updated_at,
-              description,
-              title,
-              tags,
-              visibility,
-              thumbnailUrl,
-              nodes (
-              id,
-                map_id,
-                parent_id,
-                content,
-                position_x,
-                position_y,
-                width,
-                height,
-                node_type,
-                tags,
-                status,
-                importance,
-                sourceUrl,
-                metadata,
-                aiData,
-                created_at,
-                updated_at
-              ),
-              edges (
-                id,
-                map_id,
-                source,
-                target,
-                label,
-                type,
-                 animated,
-                markerEnd,
-                markerStart,
-                style,
-                metadata,
-                aiData,
-                created_at,
-                updated_at
-              )
-            `
-				)
-				.eq('id', mapId)
+				.supabase.from('map_graph_aggregated_view')
+				.select('*')
+				.eq('map_id', mapId)
 				.single();
 
 			if (mindMapError) {
