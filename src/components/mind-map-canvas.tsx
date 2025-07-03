@@ -11,6 +11,7 @@ import useAppStore from '@/store/mind-map-store';
 import { useParams } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
 import { AiChat } from './ai-chat/ai-chat';
+import { AIStreamMediator } from './ai/ai-stream-mediator';
 import { CommandPalette } from './command-palette';
 import { CommentsPanel } from './comment/comment-panel';
 import { ContextMenuWrapper } from './mind-map/context-menu-wrapper';
@@ -84,6 +85,7 @@ export function MindMapCanvas() {
 		// If parentId is provided, find and set the parent node
 		if (parentId) {
 			const parentNode = selectedNodes.find((node) => node.id === parentId);
+
 			if (parentNode) {
 				setNodeInfo(parentNode);
 			}
@@ -144,6 +146,8 @@ export function MindMapCanvas() {
 				])}
 			>
 				{popoverOpen.commandPalette && <CommandPalette />}
+
+				<AIStreamMediator />
 
 				<ModalsWrapper />
 

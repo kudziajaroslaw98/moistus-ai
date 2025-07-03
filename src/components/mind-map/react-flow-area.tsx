@@ -106,6 +106,7 @@ export function ReactFlowArea() {
 		activeTool,
 		setActiveTool,
 		ghostNodes,
+		isStreaming,
 	} = useAppStore(
 		useShallow((state) => ({
 			supabase: state.supabase,
@@ -138,11 +139,12 @@ export function ReactFlowArea() {
 			activeTool: state.activeTool,
 			setActiveTool: state.setActiveTool,
 			ghostNodes: state.ghostNodes,
+			isStreaming: state.isStreaming,
 		}))
 	);
 
 	const { contextMenuHandlers } = useContextMenu();
-	const { generateSuggestionsForNode, isGenerating } = useNodeSuggestion();
+	const { generateSuggestionsForNode } = useNodeSuggestion();
 
 	useEffect(() => {
 		getCurrentUser();
@@ -176,14 +178,14 @@ export function ReactFlowArea() {
 
 	const handleNodeClick = useCallback(
 		(event: React.MouseEvent, node: Node<NodeData>) => {
-			if (activeTool === 'magic-wand' && !isGenerating) {
+			if (activeTool === 'magic-wand' && !isStreaming) {
 				event.preventDefault();
 				event.stopPropagation();
 				generateSuggestionsForNode(node.id, 'magic-wand');
 				setActiveTool('default');
 			}
 		},
-		[activeTool, isGenerating, generateSuggestionsForNode]
+		[activeTool, isStreaming, generateSuggestionsForNode]
 	);
 
 	const handleEdgeDoubleClick: EdgeMouseHandler<Edge<EdgeData>> = useCallback(

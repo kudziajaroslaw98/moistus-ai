@@ -10,6 +10,13 @@ import { toast } from 'sonner';
 import type { StateCreator } from 'zustand';
 import type { AppState } from '../app-state';
 
+interface StreamTrigger {
+	id: string; // Unique ID for this request
+	body: Record<string, unknown>;
+	api: string; // The API endpoint to hit
+	onStreamChunk: (chunk: unknown) => void;
+}
+
 export interface SuggestionsSlice {
 	// State
 	aiFeature: 'suggest-nodes' | 'suggest-connections' | 'suggest-merges';
@@ -17,6 +24,13 @@ export interface SuggestionsSlice {
 	isGeneratingSuggestions: boolean;
 	suggestionError: string | null;
 	mergeSuggestions: AiMergeSuggestion[];
+	isStreaming: boolean;
+	streamingError: string | null;
+
+	activeStreamId: string | null;
+	streamTrigger: StreamTrigger | null;
+	rawStreamContent: string;
+	lastProcessedIndex: number; // New state to track stream parsing
 
 	// Actions
 	setAiFeature: (
@@ -40,6 +54,15 @@ export interface SuggestionsSlice {
 	acceptMerge: (suggestion: AiMergeSuggestion) => Promise<void>;
 	rejectMerge: (suggestion: AiMergeSuggestion) => void;
 
+	triggerStream: (
+		api: string,
+		body: Record<string, unknown>,
+		onStreamChunk: (chunk: any) => void
+	) => void;
+	updateStreamContent: (streamId: string, contentChunk: string) => void;
+	finishStream: (streamId: string) => void;
+	abortStream: (reason: string) => void;
+
 	// Helper methods
 	getGhostNodeById: (nodeId: string) => AppNode | undefined;
 	hasGhostNodes: () => boolean;
@@ -57,6 +80,13 @@ export const createSuggestionsSlice: StateCreator<
 	isGeneratingSuggestions: false,
 	suggestionError: null,
 	mergeSuggestions: [],
+	isStreaming: false,
+	streamingError: null,
+
+	activeStreamId: null,
+	streamTrigger: null,
+	rawStreamContent: '',
+	lastProcessedIndex: 0,
 
 	// Actions
 	setAiFeature: (
@@ -170,12 +200,15 @@ export const createSuggestionsSlice: StateCreator<
 	},
 
 	generateSuggestions: async (context: SuggestionContext) => {
-		const { nodes, edges, mapId, addGhostNode } = get();
-
-		set({
-			isGeneratingSuggestions: true,
-			suggestionError: null,
-		});
+		const {
+			nodes,
+			edges,
+			mapId,
+			addGhostNode,
+			clearGhostNodes,
+			triggerStream,
+			lastProcessedIndex,
+		} = get();
 
 		try {
 			const suggestionContext = {
@@ -185,39 +218,71 @@ export const createSuggestionsSlice: StateCreator<
 				context,
 			};
 
-			// Call the AI API endpoint
-			const response = await fetch('/api/ai/suggestions', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify(suggestionContext),
-			});
+			console.log('before trigger');
 
-			if (!response.ok) {
-				throw new Error(
-					`Failed to generate suggestions: ${response.statusText}`
-				);
-			}
+			clearGhostNodes();
 
 			const sourceNode = nodes.find((node) => node.id === context.sourceNodeId);
-			const { suggestions } = await response.json();
 
-			// Add each suggestion as a ghost node
-			if (suggestions && Array.isArray(suggestions)) {
-				suggestions.forEach((suggestion: NodeSuggestion, index) => {
+			// Trigger the stream with a specific callback for handling node suggestions
+			triggerStream(
+				'/api/ai/suggestions', // Ensure you create this endpoint
+				suggestionContext,
+				(suggestionChunk) => {
+					// This is the callback! It's specific to this action.
+					// Here, we can validate the chunk with Zod if desired.
+					console.log('chunk', suggestionChunk);
 					addGhostNode({
-						...suggestion,
+						...(suggestionChunk as NodeSuggestion),
 						position: {
-							x: (sourceNode?.position.x ?? 0) + index * 300 + index * 25,
+							x:
+								(sourceNode?.position.x ?? 0) +
+								lastProcessedIndex * 300 +
+								lastProcessedIndex * 25,
 							y:
 								(sourceNode?.position.y ?? 0) +
 								(sourceNode?.height ?? sourceNode?.data.height ?? 0) +
 								50,
 						},
 					});
-				});
-			}
+					// FIX IT
+					set({ lastProcessedIndex: lastProcessedIndex + 1 });
+				}
+			);
+
+			// // Call the AI API endpoint
+			// const response = await fetch('/api/ai/suggestions', {
+			// 	method: 'POST',
+			// 	headers: {
+			// 		'Content-Type': 'application/json',
+			// 	},
+			// 	body: JSON.stringify(suggestionContext),
+			// });
+
+			// if (!response.ok) {
+			// 	throw new Error(
+			// 		`Failed to generate suggestions: ${response.statusText}`
+			// 	);
+			// }
+
+			// const sourceNode = nodes.find((node) => node.id === context.sourceNodeId);
+			// const { suggestions } = await response.json();
+
+			// // Add each suggestion as a ghost node
+			// if (suggestions && Array.isArray(suggestions)) {
+			// 	suggestions.forEach((suggestion: NodeSuggestion, index) => {
+			// 		addGhostNode({
+			// 			...suggestion,
+			// 			position: {
+			// 				x: (sourceNode?.position.x ?? 0) + index * 300 + index * 25,
+			// 				y:
+			// 					(sourceNode?.position.y ?? 0) +
+			// 					(sourceNode?.height ?? sourceNode?.data.height ?? 0) +
+			// 					50,
+			// 			},
+			// 		});
+			// 	});
+			// }
 		} catch (error) {
 			console.error('Error generating suggestions:', error);
 			set({
@@ -541,6 +606,117 @@ export const createSuggestionsSlice: StateCreator<
 					)
 			),
 		}));
+	},
+
+	triggerStream: (api, body, onStreamChunk) => {
+		const { isStreaming } = get();
+
+		if (isStreaming === true) {
+			return;
+		}
+
+		const streamId = `stream_${Date.now()}`;
+		set({
+			isStreaming: true,
+			suggestionError: null,
+			rawStreamContent: '',
+			lastProcessedIndex: 0, // Reset for new stream
+			activeStreamId: streamId,
+			streamTrigger: {
+				id: streamId,
+				api,
+				body,
+				onStreamChunk, // Store the callback
+			},
+		});
+	},
+
+	updateStreamContent: (streamId, newContent) => {
+		if (get().activeStreamId !== streamId) return;
+
+		console.log(newContent);
+
+		set({ rawStreamContent: newContent });
+
+		const { streamTrigger, lastProcessedIndex } = get();
+		if (!streamTrigger) return;
+
+		let currentIndex = lastProcessedIndex;
+		let updatedIndex = lastProcessedIndex;
+
+		// Skip initial array bracket if present
+		if (currentIndex === 0 && newContent.startsWith('[')) {
+			currentIndex = 1;
+		}
+
+		while (currentIndex < newContent.length) {
+			let braceCount = 0;
+			let objectStartIndex = -1;
+
+			// Find the start of the next potential object
+			for (let i = currentIndex; i < newContent.length; i++) {
+				if (newContent[i] === '{') {
+					objectStartIndex = i;
+					break;
+				}
+			}
+
+			if (objectStartIndex === -1) break; // No more objects to start parsing
+
+			// Find the end of this object by matching braces
+			let objectEndIndex = -1;
+			braceCount = 1;
+
+			for (let i = objectStartIndex + 1; i < newContent.length; i++) {
+				if (newContent[i] === '{') braceCount++;
+				if (newContent[i] === '}') braceCount--;
+
+				if (braceCount === 0) {
+					objectEndIndex = i;
+					break;
+				}
+			}
+
+			if (objectEndIndex !== -1) {
+				const objectStr = newContent.substring(
+					objectStartIndex,
+					objectEndIndex + 1
+				);
+
+				try {
+					const parsedObject = JSON.parse(objectStr);
+					// Success! Execute the callback with the parsed object.
+					streamTrigger.onStreamChunk(parsedObject);
+					// Move the index to process the next part of the stream
+					updatedIndex = objectEndIndex + 1;
+					currentIndex = updatedIndex;
+				} catch (e) {
+					// Incomplete JSON object, wait for more data.
+					break;
+				}
+			} else {
+				// Incomplete object, break and wait for more data.
+				break;
+			}
+		}
+
+		// Save our parsing progress
+		set({ lastProcessedIndex: updatedIndex });
+	},
+
+	finishStream: (streamId) => {
+		if (get().activeStreamId !== streamId) return;
+		// Final parse attempt could be added here if needed, but the current `updateStreamContent` is robust.
+		set({ isStreaming: false, activeStreamId: null, streamTrigger: null });
+	},
+
+	abortStream: (reason) => {
+		set({
+			isStreaming: false,
+			suggestionError: reason,
+			activeStreamId: null,
+			streamTrigger: null,
+		});
 	},
 
 	// Helper methods

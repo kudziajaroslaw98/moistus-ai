@@ -1,221 +1,230 @@
 'use client';
 
-import { useCallback, useState } from 'react';
-import { z } from 'zod';
 import useAppStore from '@/store/mind-map-store';
 import type { SuggestionContext } from '@/types/ghost-node';
+import { useCallback, useState } from 'react';
+import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 
 // Schema for ghost node suggestion validation
 const ghostNodeSuggestionSchema = z.object({
-  suggestions: z.array(z.object({
-    id: z.string(),
-    content: z.string(),
-    nodeType: z.enum([
-      'defaultNode',
-      'textNode',
-      'imageNode',
-      'resourceNode',
-      'questionNode',
-      'annotationNode',
-      'codeNode',
-      'taskNode',
-      'builderNode'
-    ] as const),
-    confidence: z.number().min(0).max(1),
-    position: z.object({
-      x: z.number(),
-      y: z.number()
-    }),
-    context: z.object({
-      sourceNodeId: z.string().optional(),
-      targetNodeId: z.string().optional(),
-      relationshipType: z.string().optional(),
-      trigger: z.enum(['magic-wand', 'dangling-edge', 'auto'])
-    }),
-    reasoning: z.string().optional()
-  }))
+	suggestions: z.array(
+		z.object({
+			id: z.string(),
+			content: z.string(),
+			nodeType: z.enum([
+				'defaultNode',
+				'textNode',
+				'imageNode',
+				'resourceNode',
+				'questionNode',
+				'annotationNode',
+				'codeNode',
+				'taskNode',
+				'builderNode',
+			] as const),
+			confidence: z.number().min(0).max(1),
+			position: z.object({
+				x: z.number(),
+				y: z.number(),
+			}),
+			context: z.object({
+				sourceNodeId: z.string().optional(),
+				targetNodeId: z.string().optional(),
+				relationshipType: z.string().optional(),
+				trigger: z.enum(['magic-wand', 'dangling-edge', 'auto']),
+			}),
+			reasoning: z.string().optional(),
+		})
+	),
 });
 
 export function useNodeSuggestion() {
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+	const [isGenerating, setIsGenerating] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
-  const {
-    nodes,
-    edges,
-    mapId,
-    addGhostNode,
-    clearGhostNodes,
-    generateSuggestions,
-    generateConnectionSuggestions,
-    generateMergeSuggestions,
-    reactFlowInstance,
-  } = useAppStore(
-    useShallow((state) => ({
-      nodes: state.nodes,
-      edges: state.edges,
-      mapId: state.mapId,
-      addGhostNode: state.addGhostNode,
-      clearGhostNodes: state.clearGhostNodes,
-      generateSuggestions: state.generateSuggestions,
-      generateConnectionSuggestions: state.generateConnectionSuggestions,
-      generateMergeSuggestions: state.generateMergeSuggestions,
-      reactFlowInstance: state.reactFlowInstance,
-    }))
-  );
+	const {
+		nodes,
+		edges,
+		mapId,
+		addGhostNode,
+		clearGhostNodes,
+		generateSuggestions,
+		generateConnectionSuggestions,
+		generateMergeSuggestions,
+		reactFlowInstance,
+	} = useAppStore(
+		useShallow((state) => ({
+			nodes: state.nodes,
+			edges: state.edges,
+			mapId: state.mapId,
+			addGhostNode: state.addGhostNode,
+			clearGhostNodes: state.clearGhostNodes,
+			generateSuggestions: state.generateSuggestions,
+			generateConnectionSuggestions: state.generateConnectionSuggestions,
+			generateMergeSuggestions: state.generateMergeSuggestions,
+			reactFlowInstance: state.reactFlowInstance,
+		}))
+	);
 
-  const generateSuggestionsForNode = useCallback(
-    async (nodeId: string, trigger: 'magic-wand' | 'dangling-edge' | 'auto' = 'magic-wand') => {
-      if (!reactFlowInstance || !mapId) {
-        setError('ReactFlow instance or map ID is not available');
-        return;
-      }
+	const generateSuggestionsForNode = useCallback(
+		async (
+			nodeId: string,
+			trigger: 'magic-wand' | 'dangling-edge' | 'auto' = 'magic-wand'
+		) => {
+			try {
+				const context: SuggestionContext = {
+					sourceNodeId: nodeId,
+					trigger,
+				};
 
-      setIsGenerating(true);
-      setError(null);
+				generateSuggestions(context);
+			} catch (err) {
+				const errorMessage =
+					err instanceof Error ? err.message : 'Failed to generate suggestions';
+				setError(errorMessage);
+				console.error('Error generating suggestions:', err);
+			}
+		},
+		[reactFlowInstance, mapId, generateSuggestions]
+	);
 
-      try {
-        const context: SuggestionContext = {
-          sourceNodeId: nodeId,
-          trigger,
-        };
+	const generateSuggestionsForPosition = useCallback(
+		async (
+			position: { x: number; y: number },
+			trigger: 'magic-wand' | 'dangling-edge' | 'auto' = 'auto',
+			sourceNodeId?: string,
+			relationshipType?: string
+		) => {
+			if (!reactFlowInstance || !mapId) {
+				setError('ReactFlow instance or map ID is not available');
+				return;
+			}
 
-        await generateSuggestions(context);
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to generate suggestions';
-        setError(errorMessage);
-        console.error('Error generating suggestions:', err);
-      } finally {
-        setIsGenerating(false);
-      }
-    },
-    [reactFlowInstance, mapId, generateSuggestions]
-  );
+			setIsGenerating(true);
+			setError(null);
 
-  const generateSuggestionsForPosition = useCallback(
-    async (
-      position: { x: number; y: number },
-      trigger: 'magic-wand' | 'dangling-edge' | 'auto' = 'auto',
-      sourceNodeId?: string,
-      relationshipType?: string
-    ) => {
-      if (!reactFlowInstance || !mapId) {
-        setError('ReactFlow instance or map ID is not available');
-        return;
-      }
+			try {
+				const context: SuggestionContext = {
+					sourceNodeId,
+					relationshipType,
+					trigger,
+				};
 
-      setIsGenerating(true);
-      setError(null);
+				// Override the generateSuggestions to use custom position
+				const suggestionContext = {
+					nodes,
+					edges,
+					mapId,
+					context,
+					position, // Custom position for dangling edge suggestions
+				};
 
-      try {
-        const context: SuggestionContext = {
-          sourceNodeId,
-          relationshipType,
-          trigger,
-        };
+				const response = await fetch('/api/ai/suggestions', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify(suggestionContext),
+				});
 
-        // Override the generateSuggestions to use custom position
-        const suggestionContext = {
-          nodes,
-          edges,
-          mapId,
-          context,
-          position, // Custom position for dangling edge suggestions
-        };
+				if (!response.ok) {
+					throw new Error(
+						`Failed to generate suggestions: ${response.statusText}`
+					);
+				}
 
-        const response = await fetch('/api/ai/suggestions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(suggestionContext),
-        });
+				const data = await response.json();
+				const validatedData = ghostNodeSuggestionSchema.parse(data);
 
-        if (!response.ok) {
-          throw new Error(`Failed to generate suggestions: ${response.statusText}`);
-        }
+				// Add each suggestion as a ghost node with the custom position
+				if (
+					validatedData.suggestions &&
+					Array.isArray(validatedData.suggestions)
+				) {
+					validatedData.suggestions.forEach((suggestion) => {
+						addGhostNode({
+							...suggestion,
+							position, // Use the provided position
+						});
+					});
+				}
+			} catch (err) {
+				const errorMessage =
+					err instanceof Error ? err.message : 'Failed to generate suggestions';
+				setError(errorMessage);
+				console.error('Error generating suggestions:', err);
+			} finally {
+				setIsGenerating(false);
+			}
+		},
+		[reactFlowInstance, mapId, nodes, edges, addGhostNode]
+	);
 
-        const data = await response.json();
-        const validatedData = ghostNodeSuggestionSchema.parse(data);
+	const generateSuggestionsForConnection = useCallback(
+		async (
+			sourceNodeId: string,
+			targetPosition: { x: number; y: number },
+			relationshipType?: string
+		) => {
+			return generateSuggestionsForPosition(
+				targetPosition,
+				'dangling-edge',
+				sourceNodeId,
+				relationshipType
+			);
+		},
+		[generateSuggestionsForPosition]
+	);
 
-        // Add each suggestion as a ghost node with the custom position
-        if (validatedData.suggestions && Array.isArray(validatedData.suggestions)) {
-          validatedData.suggestions.forEach((suggestion) => {
-            addGhostNode({
-              ...suggestion,
-              position, // Use the provided position
-            });
-          });
-        }
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to generate suggestions';
-        setError(errorMessage);
-        console.error('Error generating suggestions:', err);
-      } finally {
-        setIsGenerating(false);
-      }
-    },
-    [reactFlowInstance, mapId, nodes, edges, addGhostNode]
-  );
+	const generateInitialSuggestions = useCallback(async () => {
+		if (!mapId) {
+			setError('Map ID is not available');
+			return;
+		}
 
-  const generateSuggestionsForConnection = useCallback(
-    async (sourceNodeId: string, targetPosition: { x: number; y: number }, relationshipType?: string) => {
-      return generateSuggestionsForPosition(
-        targetPosition,
-        'dangling-edge',
-        sourceNodeId,
-        relationshipType
-      );
-    },
-    [generateSuggestionsForPosition]
-  );
+		setIsGenerating(true);
+		setError(null);
 
-  const generateInitialSuggestions = useCallback(async () => {
-    if (!mapId) {
-      setError('Map ID is not available');
-      return;
-    }
+		try {
+			await generateConnectionSuggestions();
+			await generateMergeSuggestions();
+		} catch (err) {
+			const errorMessage =
+				err instanceof Error
+					? err.message
+					: 'Failed to generate initial suggestions';
+			setError(errorMessage);
+			console.error('Error generating initial suggestions:', err);
+		} finally {
+			setIsGenerating(false);
+		}
+	}, [mapId, generateConnectionSuggestions, generateMergeSuggestions]);
 
-    setIsGenerating(true);
-    setError(null);
+	const clearAllSuggestions = useCallback(() => {
+		clearGhostNodes();
+		setError(null);
+	}, [clearGhostNodes]);
 
-    try {
-      await generateConnectionSuggestions();
-      await generateMergeSuggestions();
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to generate initial suggestions';
-      setError(errorMessage);
-      console.error('Error generating initial suggestions:', err);
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [mapId, generateConnectionSuggestions, generateMergeSuggestions]);
+	const retry = useCallback(() => {
+		setError(null);
+	}, []);
 
-  const clearAllSuggestions = useCallback(() => {
-    clearGhostNodes();
-    setError(null);
-  }, [clearGhostNodes]);
+	return {
+		// State
+		isGenerating,
+		error,
+		hasError: !!error,
 
-  const retry = useCallback(() => {
-    setError(null);
-  }, []);
+		// Methods
+		generateSuggestionsForNode,
+		generateSuggestionsForPosition,
+		generateSuggestionsForConnection,
+		generateInitialSuggestions,
+		clearAllSuggestions,
+		retry,
 
-  return {
-    // State
-    isGenerating,
-    error,
-    hasError: !!error,
-
-    // Methods
-    generateSuggestionsForNode,
-    generateSuggestionsForPosition,
-    generateSuggestionsForConnection,
-    generateInitialSuggestions,
-    clearAllSuggestions,
-    retry,
-
-    // Utilities
-    canGenerateSuggestions: !!reactFlowInstance && !!mapId,
-  };
+		// Utilities
+		canGenerateSuggestions: !!reactFlowInstance && !!mapId,
+	};
 }
