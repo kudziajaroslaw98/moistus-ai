@@ -27,6 +27,7 @@ export const createUiStateSlice: StateCreator<
 		roomCodeDisplay: false,
 		guestSignup: false,
 		aiChat: false,
+		referenceSearch: false,
 	},
 	nodeInfo: null,
 	edgeInfo: null,

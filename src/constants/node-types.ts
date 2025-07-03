@@ -4,6 +4,7 @@ import DefaultNode from '@/components/nodes/default-node';
 import GroupNode from '@/components/nodes/group-node';
 import ImageNode from '@/components/nodes/image-node';
 import QuestionNode from '@/components/nodes/question-node';
+import ReferenceNode from '@/components/nodes/reference-node';
 import ResourceNode from '@/components/nodes/resource-node';
 import TaskNode from '@/components/nodes/task-node';
 import TextNode from '@/components/nodes/text-node'; // Import the new TextNode
@@ -19,6 +20,7 @@ export const nodeTypes = {
 	groupNode: GroupNode,
 	codeNode: CodeNode,
 	textNode: TextNode, // Add the new TextNode
+	referenceNode: ReferenceNode,
 };
 
 import { NodeData } from '@/types/node-data';
@@ -107,5 +109,14 @@ export const nodeTypesConfig: Record<string, NodeTypeConfig> = {
 	builderNode: {
 		label: 'Builder',
 		defaultMetadata: {},
+	},
+	referenceNode: {
+		label: 'Reference',
+		defaultMetadata: {
+			targetMapId: null, // UUID of the map being referenced
+			targetNodeId: null, // UUID of the node being referenced
+			targetMapTitle: 'Untitled Map', // Title of the map for display
+			contentSnippet: 'No content', // Snippet of the referenced node's content
+		},
 	},
 };

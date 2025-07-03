@@ -33,7 +33,8 @@ interface BaseNodeWrapperProps extends NodeProps<Node<NodeData>> {
 		| 'Code'
 		| 'Note'
 		| 'Builder'
-		| 'Text';
+		| 'Text'
+		| 'Reference';
 	includePadding?: boolean;
 	hideNodeType?: boolean;
 }

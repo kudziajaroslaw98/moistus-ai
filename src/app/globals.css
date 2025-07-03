@@ -121,6 +121,10 @@
 	--node-accent: theme('colors.stone.600');
 }
 
+.reference-node {
+	--node-accent: theme('colors.cyan.700');
+}
+
 /* .react-flow__handle {
   opacity: 0;
 } */

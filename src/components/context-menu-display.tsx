@@ -9,6 +9,7 @@ import {
 	Group,
 	LayoutPanelLeft,
 	LayoutPanelTop,
+	LocateFixed,
 	Network,
 	NotepadTextDashed,
 	Pause,
@@ -243,6 +244,10 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
 		[deleteEdges]
 	);
 
+	const handleAddReference = () => {
+		setPopoverOpen({ referenceSearch: true });
+	};
+
 	const nodeMenuItems = nodeId ? (
 		<>
 			<span className='block w-full rounded-md px-3 py-1.5 text-xs text-zinc-500'>
@@ -421,6 +426,19 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
 					<Plus className='size-4' />
 
 					<span>Add Node Here</span>
+				</Button>
+
+				<Button
+					variant='ghost'
+					align='left'
+					disabled={loadingStates.isStateLoading}
+					onClick={handleAddReference}
+					className='gap-2'
+					data-position={JSON.stringify({ x, y })}
+				>
+					<LocateFixed className='size-4' />
+
+					<span>Add Reference</span>
 				</Button>
 
 				<hr className='my-1 border-zinc-800' />

@@ -1,10 +1,11 @@
-import type { EdgeProps } from '@xyflow/react';
+import type { Edge, EdgeProps } from '@xyflow/react';
 import type { CSSProperties } from 'react';
 import type { AiMergeSuggestion } from './ai-merge-suggestion';
+import { EdgeData } from './edge-data';
 
-export type SuggestedMergeEdgeProps = EdgeProps<MergeEdgeData>;
+export type SuggestedMergeEdgeProps = EdgeProps<Edge<MergeEdgeData>>;
 
-export interface MergeEdgeData {
+export interface MergeEdgeData extends EdgeData {
 	id: string;
 	map_id: string;
 	user_id: string;

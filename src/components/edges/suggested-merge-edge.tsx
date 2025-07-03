@@ -7,10 +7,10 @@ import { SuggestedMergeEdgeProps } from '@/types/merge-edge-data';
 import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath } from '@xyflow/react';
 import { Check, Merge, X } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useCallback, type FC } from 'react';
+import { useCallback } from 'react';
 import { useShallow } from 'zustand/shallow';
 
-export const SuggestedMergeEdge: FC<SuggestedMergeEdgeProps> = (props) => {
+export const SuggestedMergeEdge = (props: SuggestedMergeEdgeProps) => {
 	const { id, data, selected } = props;
 
 	const { acceptMerge, rejectMerge } = useAppStore(

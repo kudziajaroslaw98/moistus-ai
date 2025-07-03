@@ -21,6 +21,7 @@ import { motion } from 'motion/react';
 import useAppStore from '@/store/mind-map-store';
 import type { SuggestionContext } from '@/types/ghost-node';
 import type { NodeData } from '@/types/node-data';
+import { memo, useCallback } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { Button } from '../ui/button';
 
@@ -36,24 +37,24 @@ type GhostNodeProps = NodeProps<Node<NodeData>>;
 const ghostNodeVariants = {
 	initial: {
 		opacity: 0,
-		scale: 0.8,
-		y: 10,
+		scale: 0.95,
+		y: 40,
 	},
 	animate: {
 		opacity: 1,
 		scale: 1,
 		y: 0,
 		transition: {
-			type: 'spring',
-			stiffness: 300,
-			damping: 25,
+			ease: 'easeOut',
 			duration: 0.3,
 		},
 	},
 	exit: {
 		opacity: 0,
-		scale: 0.9,
+		scale: 0.95,
+		y: 40,
 		transition: {
+			ease: 'easeOut',
 			duration: 0.2,
 		},
 	},
@@ -105,7 +106,7 @@ const getNodeTypeIcon = (nodeType: AvailableNodeTypes) => {
 	}
 };
 
-export function GhostNode({ id, data }: GhostNodeProps) {
+function GhostNodeComponent({ id, data }: GhostNodeProps) {
 	const { acceptSuggestion, rejectSuggestion } = useAppStore(
 		useShallow((state) => ({
 			acceptSuggestion: state.acceptSuggestion,
@@ -124,13 +125,20 @@ export function GhostNode({ id, data }: GhostNodeProps) {
 		);
 	};
 
-	const ghostData = data.metadata;
-	if (!isGhostNodeMetadata(ghostData)) {
+	const onAccept = useCallback(() => {
+		acceptSuggestion(id);
+	}, [id, acceptSuggestion]);
+
+	const onReject = useCallback(() => {
+		rejectSuggestion(id);
+	}, [id, rejectSuggestion]);
+
+	if (!isGhostNodeMetadata(data.metadata)) {
 		return null;
 	}
 
 	const { suggestedContent, suggestedType, confidence, context } =
-		ghostData as GhostNodeMetadata;
+		data.metadata as GhostNodeMetadata;
 
 	const nodeColorClasses = getNodeTypeColor(suggestedType);
 	const nodeIcon = getNodeTypeIcon(suggestedType);
@@ -142,16 +150,9 @@ export function GhostNode({ id, data }: GhostNodeProps) {
 				? 'text-yellow-400'
 				: 'text-red-400';
 
-	const onAccept = () => {
-		acceptSuggestion(id);
-	};
-
-	const onReject = () => {
-		rejectSuggestion(id);
-	};
-
 	return (
 		<motion.div
+			key={id}
 			variants={ghostNodeVariants}
 			initial='initial'
 			animate={['animate']}
@@ -167,20 +168,20 @@ export function GhostNode({ id, data }: GhostNodeProps) {
 			<div className='mb-2 flex items-center justify-between'>
 				<div className='flex items-center gap-1.5'>
 					{nodeIcon}
+
 					<span className='text-xs font-medium text-zinc-300'>
 						AI Suggestion
 					</span>
 				</div>
+
 				<div className={cn('text-xs font-medium', confidenceColor)}>
 					{Math.round(confidence * 100)}%
 				</div>
 			</div>
 
 			{/* Suggested content */}
-			<div className='mb-3 text-sm text-zinc-200'>
-				{suggestedContent.length > 100
-					? `${suggestedContent.substring(0, 100)}...`
-					: suggestedContent}
+			<div className='mb-3 text-sm text-zinc-200 line-clamp-3 hover:line-clamp-none'>
+				{suggestedContent}
 			</div>
 
 			{/* Node type indicator */}
@@ -237,3 +238,6 @@ export function GhostNode({ id, data }: GhostNodeProps) {
 		</motion.div>
 	);
 }
+
+export const GhostNode = memo(GhostNodeComponent);
+GhostNode.displayName = 'GhostNode';

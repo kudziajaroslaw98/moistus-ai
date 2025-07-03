@@ -6,6 +6,7 @@ import {
 	ConnectionMode,
 	Edge,
 	EdgeMouseHandler,
+	EdgeTypes,
 	Node,
 	NodeTypes,
 	OnConnectStartParams,
@@ -58,13 +59,12 @@ import { useShallow } from 'zustand/shallow';
 import FloatingConnectionLine from '../edges/floating-connection-line';
 import { SuggestedMergeEdge } from '../edges/suggested-merge-edge';
 import BuilderNode from '../nodes/builder-node';
+import ReferenceNode from '../nodes/reference-node';
 import TaskNode from '../nodes/task-node';
 import { RealtimeAvatarStack } from '../realtime/realtime-avatar-stack';
 import { RealtimeCursors } from '../realtime/realtime-cursor';
-import { SuggestionControls } from '../suggestion-controls';
 import { Toolbar } from '../toolbar';
 import { Button } from '../ui/button';
-import { ZoomSelect } from '../zoom-select';
 
 export function ReactFlowArea() {
 	// const {
@@ -209,11 +209,12 @@ export function ReactFlowArea() {
 			textNode: TextNode,
 			builderNode: BuilderNode,
 			ghostNode: GhostNode,
+			referenceNode: ReferenceNode,
 		}),
 		[]
 	);
 
-	const edgeTypes = useMemo(
+	const edgeTypes: EdgeTypes = useMemo(
 		() => ({
 			suggestedMerge: SuggestedMergeEdge,
 			suggestedConnection: SuggestedConnectionEdge,
@@ -493,7 +494,7 @@ export function ReactFlowArea() {
 				</div>
 			</Panel>
 
-			<ZoomSelect position='bottom-left' />
+			{/* <ZoomSelect position='bottom-left' /> */}
 
 			<Panel position='bottom-center'>
 				<Toolbar />
@@ -508,9 +509,7 @@ export function ReactFlowArea() {
 
 			{/* <MiniMap position='bottom-right' /> */}
 
-			<Panel position='bottom-right'>
-				<SuggestionControls />
-			</Panel>
+			<Panel position='bottom-right'>{/* <SuggestionControls /> */}</Panel>
 		</ReactFlow>
 	);
 }

@@ -1,8 +1,10 @@
 'use client';
 
+import { suggestionObjectSchema } from '@/app/api/ai/suggestions/route';
 import useAppStore from '@/store/mind-map-store';
-import { useCompletion } from '@ai-sdk/react';
+import { experimental_useObject as useObject } from '@ai-sdk/react';
 import { useEffect, useRef } from 'react';
+import z from 'zod';
 import { useShallow } from 'zustand/shallow';
 
 export function AIStreamMediator() {
@@ -17,59 +19,79 @@ export function AIStreamMediator() {
 			}))
 		);
 
-	const { completion, complete, isLoading, error } = useCompletion({
-		api: streamTrigger?.api,
+	// const { completion, complete, isLoading, error } = useCompletion({
+	// 	api: streamTrigger?.api,
+	// });
+	const { object, submit } = useObject({
+		api: streamTrigger?.api ?? '',
+		schema: z.array(suggestionObjectSchema),
+		onFinish: (event) => {
+			console.dir(event, { depth: 0 });
+			finishStream(streamTrigger?.id);
+			currentStreamIdRef.current = '';
+		},
+		onError: (error) => {
+			abortStream(error.message);
+			currentStreamIdRef.current = '';
+		},
 	});
 	const currentStreamIdRef = useRef<string>('');
+	const chunks = useRef<unknown[]>([]);
 
 	// This effect triggers the AI generation when the store state changes.
 	useEffect(() => {
-		console.log('trigger effect');
-		console.dir(streamTrigger, { depth: 0 });
-		console.log(currentStreamIdRef.current !== streamTrigger?.id);
-
 		if (
 			streamTrigger &&
+			streamTrigger !== null &&
 			currentStreamIdRef.current !== streamTrigger.id &&
 			isStreaming
 		) {
-			console.log('trigger effect in');
 			const bodyPayload = {
 				...streamTrigger.body,
 				// Include any other data your API needs, like nodes/edges
 			};
+			currentStreamIdRef.current = streamTrigger.id;
 
-			complete('', {
-				body: bodyPayload,
-				// You can add headers if needed
-			});
+			submit(bodyPayload);
+			// complete('', {
+			// 	body: bodyPayload,
+			// 	// You can add headers if needed
+			// });
 		}
-	}, [streamTrigger, isStreaming, complete]);
+	}, [streamTrigger?.id, streamTrigger?.body, isStreaming, submit]);
 
 	// This effect listens for changes from the hook and updates the store.
 	useEffect(() => {
-		if (!streamTrigger) return;
+		if (!streamTrigger || streamTrigger === null) return;
 
-		if (completion) {
-			updateStreamContent(streamTrigger.id, completion);
-		}
-	}, [completion, streamTrigger, updateStreamContent]);
+		if (object) {
+			chunks.current = object;
 
-	// This effect handles the end of the stream (success or error).
-	useEffect(() => {
-		if (!streamTrigger) return;
-
-		if (!isLoading && (completion || error)) {
-			if (error) {
-				console.error('AI Stream Error:', error);
-				abortStream(error.message);
-				currentStreamIdRef.current = '';
-			} else {
-				finishStream(streamTrigger.id);
-				currentStreamIdRef.current = '';
+			if (chunks.current.length > 0) {
+				streamTrigger.onStreamChunk({
+					...object?.[chunks.current.length - 1],
+					index: chunks.current.length - 1,
+				});
 			}
+			// updateStreamContent(streamTrigger.id, object);
 		}
-	}, [isLoading, completion, error, streamTrigger, finishStream, abortStream]);
+	}, [object, streamTrigger]);
+
+	// // This effect handles the end of the stream (success or error).
+	// useEffect(() => {
+	// 	if (!streamTrigger) return;
+
+	// 	if (!isLoading && (object || error)) {
+	// 		if (error) {
+	// 			console.error('AI Stream Error:', error);
+	// 			abortStream(error.message);
+	// 			currentStreamIdRef.current = '';
+	// 		} else {
+	// 			finishStream(streamTrigger.id);
+	// 			currentStreamIdRef.current = '';
+	// 		}
+	// 	}
+	// }, [isLoading, object, error, streamTrigger, finishStream, abortStream]);
 
 	// This component does not render anything.
 	return null;

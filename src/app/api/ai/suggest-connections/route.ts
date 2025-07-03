@@ -2,45 +2,41 @@ import { createNodeContextExtractor } from '@/helpers/extract-node-context';
 import { createClient } from '@/helpers/supabase/server';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
-import { openai } from '@ai-sdk/openai';
-import { generateObject } from 'ai';
+import { google } from '@ai-sdk/google';
+import { streamObject } from 'ai';
 import { z } from 'zod';
 
 // Zod schema for connection suggestion validation
 const connectionSuggestionSchema = z.object({
-	suggestions: z.array(
-		z.object({
-			id: z.string(),
-			sourceNodeId: z.string(),
-			targetNodeId: z.string(),
-			label: z.string().nullable(),
-			reason: z.string(),
-			confidence: z.number().min(0).max(1),
-			relationshipType: z.enum([
-				'related-to',
-				'leads-to',
-				'is-example-of',
-				'depends-on',
-				'contradicts',
-				'supports',
-				'elaborates-on',
-				'summarizes',
-				'implements',
-				'extends',
-				'references',
-				'causes',
-				'prevents',
-				'enables',
-				'questions',
-				'answers',
-			]),
-			metadata: z.object({
-				strength: z.enum(['weak', 'moderate', 'strong']),
-				bidirectional: z.boolean(),
-				contextualRelevance: z.number().min(0).max(1),
-			}),
-		})
-	),
+	id: z.string(),
+	sourceNodeId: z.string(),
+	targetNodeId: z.string(),
+	label: z.string().nullable(),
+	reason: z.string(),
+	confidence: z.number().min(0).max(1),
+	relationshipType: z.enum([
+		'related-to',
+		'leads-to',
+		'is-example-of',
+		'depends-on',
+		'contradicts',
+		'supports',
+		'elaborates-on',
+		'summarizes',
+		'implements',
+		'extends',
+		'references',
+		'causes',
+		'prevents',
+		'enables',
+		'questions',
+		'answers',
+	]),
+	metadata: z.object({
+		strength: z.enum(['weak', 'moderate', 'strong']),
+		bidirectional: z.boolean(),
+		contextualRelevance: z.number().min(0).max(1),
+	}),
 });
 
 // Request body validation schema
@@ -108,19 +104,11 @@ export async function POST(request: Request) {
 			edges as AppEdge[]
 		);
 
-		// Create existing connections set for deduplication
-		const existingConnections = new Set<string>(
-			edges.map((edge: AppEdge) => `${edge.source}->${edge.target}`)
-		);
-
-		// Generate connection suggestions using AI with streaming
-		//
-
 		console.log('Generating connection suggestions...');
 
-		const result = generateObject({
-			model: openai('o4-mini'),
-			output: 'object',
+		const result = streamObject({
+			model: google('gemini-2.5-flash'),
+			output: 'array',
 			schema: connectionSuggestionSchema,
 			messages: [
 				{
@@ -145,29 +133,7 @@ export async function POST(request: Request) {
 			],
 		});
 
-		console.dir(result, { depth: 0 });
-
-		// For now, we'll collect the final result instead of streaming
-		// This can be converted to true streaming later if needed
-		const finalResult = await result;
-
-		console.log('Final results ', finalResult);
-
-		// Post-process suggestions
-		const processedSuggestions = await postProcessSuggestions(
-			finalResult.object.suggestions || [],
-			nodes as AppNode[],
-			existingConnections
-		);
-
-		return Response.json({
-			suggestions: processedSuggestions,
-			metadata: {
-				totalNodes: nodes.length,
-				existingConnections: edges.length,
-				suggestionsGenerated: processedSuggestions.length,
-			},
-		});
+		return result.toTextStreamResponse();
 	} catch (error) {
 		console.error('Error generating connection suggestions:', error);
 
@@ -363,50 +329,6 @@ function formatExistingConnections(edges: AppEdge[], nodes: AppNode[]): string {
 	});
 
 	return formatted.join('\n');
-}
-
-/**
- * Post-processes AI suggestions to ensure quality and validity
- */
-async function postProcessSuggestions(
-	suggestions: any[],
-	nodes: AppNode[],
-	existingConnections: Set<string>
-): Promise<any[]> {
-	const validNodeIds = new Set(nodes.map((n) => n.id));
-
-	return suggestions
-		.filter((suggestion) => {
-			// Validate node IDs exist
-			if (
-				!validNodeIds.has(suggestion.sourceNodeId) ||
-				!validNodeIds.has(suggestion.targetNodeId)
-			) {
-				return false;
-			}
-
-			// Ensure not self-connection
-			if (suggestion.sourceNodeId === suggestion.targetNodeId) {
-				return false;
-			}
-
-			// Check for duplicate connections
-			const connectionKey = `${suggestion.sourceNodeId}->${suggestion.targetNodeId}`;
-			const reverseKey = `${suggestion.targetNodeId}->${suggestion.sourceNodeId}`;
-
-			return (
-				!existingConnections.has(connectionKey) &&
-				!existingConnections.has(reverseKey)
-			);
-		})
-		.map((suggestion) => ({
-			...suggestion,
-			id:
-				suggestion.id ||
-				`connection-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-		}))
-		.sort((a, b) => b.confidence - a.confidence) // Sort by confidence
-		.slice(0, 8); // Limit to top 8 suggestions
 }
 
 // Comprehensive AI prompt for connection suggestions

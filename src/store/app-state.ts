@@ -407,6 +407,7 @@ export interface Popovers {
 	roomCodeDisplay: boolean;
 	guestSignup: boolean;
 	aiChat: boolean;
+	referenceSearch: boolean;
 }
 
 export interface UIStateSlice {

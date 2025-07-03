@@ -6,7 +6,6 @@ import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import type { AvailableNodeTypes } from '@/types/available-node-types';
 import type { NodeSuggestion, SuggestionContext } from '@/types/ghost-node';
-import { toast } from 'sonner';
 import type { StateCreator } from 'zustand';
 import type { AppState } from '../app-state';
 
@@ -30,6 +29,7 @@ export interface SuggestionsSlice {
 	activeStreamId: string | null;
 	streamTrigger: StreamTrigger | null;
 	rawStreamContent: string;
+	chunks: unknown[];
 	lastProcessedIndex: number; // New state to track stream parsing
 
 	// Actions
@@ -86,6 +86,7 @@ export const createSuggestionsSlice: StateCreator<
 	activeStreamId: null,
 	streamTrigger: null,
 	rawStreamContent: '',
+	chunks: [],
 	lastProcessedIndex: 0,
 
 	// Actions
@@ -97,12 +98,13 @@ export const createSuggestionsSlice: StateCreator<
 
 	addGhostNode: (suggestion: NodeSuggestion) => {
 		const { mapId } = get();
+		const ghostId = generateUuid();
 		const ghostNode: AppNode = {
-			id: suggestion.id,
+			id: ghostId,
 			type: 'ghostNode',
 			position: suggestion.position,
 			data: {
-				id: suggestion.id,
+				id: ghostId,
 				map_id: mapId || '',
 				parent_id: null,
 				content: suggestion.content,
@@ -207,7 +209,6 @@ export const createSuggestionsSlice: StateCreator<
 			addGhostNode,
 			clearGhostNodes,
 			triggerStream,
-			lastProcessedIndex,
 		} = get();
 
 		try {
@@ -228,25 +229,26 @@ export const createSuggestionsSlice: StateCreator<
 			triggerStream(
 				'/api/ai/suggestions', // Ensure you create this endpoint
 				suggestionContext,
-				(suggestionChunk) => {
+				(suggestionChunk: NodeSuggestion & { index: number }) => {
 					// This is the callback! It's specific to this action.
 					// Here, we can validate the chunk with Zod if desired.
 					console.log('chunk', suggestionChunk);
-					addGhostNode({
-						...(suggestionChunk as NodeSuggestion),
-						position: {
-							x:
-								(sourceNode?.position.x ?? 0) +
-								lastProcessedIndex * 300 +
-								lastProcessedIndex * 25,
-							y:
-								(sourceNode?.position.y ?? 0) +
-								(sourceNode?.height ?? sourceNode?.data.height ?? 0) +
-								50,
-						},
-					});
-					// FIX IT
-					set({ lastProcessedIndex: lastProcessedIndex + 1 });
+
+					if (suggestionChunk) {
+						addGhostNode({
+							...suggestionChunk,
+							position: {
+								x:
+									(sourceNode?.position.x ?? 0) +
+									suggestionChunk.index * 300 +
+									suggestionChunk.index * 25,
+								y:
+									(sourceNode?.position.y ?? 0) +
+									(sourceNode?.height ?? sourceNode?.data.height ?? 0) +
+									50,
+							},
+						});
+					}
 				}
 			);
 
@@ -297,30 +299,24 @@ export const createSuggestionsSlice: StateCreator<
 	},
 
 	generateConnectionSuggestions: async () => {
-		const { mapId } = get();
+		const { mapId, triggerStream, addConnectionSuggestion } = get();
 		set({ isGeneratingSuggestions: true, suggestionError: null });
 
 		try {
 			// TEMPORARY: Create test suggestion for debugging
-			const response = await fetch('/api/ai/suggest-connections', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ mapId }),
-			});
+			triggerStream(
+				'/api/ai/suggest-connections', // Ensure you create this endpoint
+				{ mapId },
+				(suggestionChunk: AiConnectionSuggestion) => {
+					// This is the callback! It's specific to this action.
+					// Here, we can validate the chunk with Zod if desired.
+					console.log('chunk', suggestionChunk);
 
-			if (!response.ok) {
-				throw new Error(
-					`Failed to generate suggestions: ${response.statusText}`
-				);
-			}
-
-			const { suggestions } = await response.json();
-
-			if (suggestions && Array.isArray(suggestions)) {
-				suggestions.forEach((suggestion) => {
-					get().addConnectionSuggestion(suggestion);
-				});
-			}
+					if (suggestionChunk) {
+						addConnectionSuggestion(suggestionChunk);
+					}
+				}
+			);
 		} catch (error) {
 			console.error('Error generating connection suggestions:', error);
 			set({
@@ -441,7 +437,7 @@ export const createSuggestionsSlice: StateCreator<
 
 	generateMergeSuggestions: withLoadingAndToast(
 		async (toastId?: string) => {
-			const { mapId, edges } = get();
+			const { mapId, edges, triggerStream } = get();
 
 			if (!mapId) {
 				// We throw an error here so the HOF can catch it and show a toast.
@@ -452,28 +448,16 @@ export const createSuggestionsSlice: StateCreator<
 			set({ suggestionError: null });
 
 			try {
-				// Call our new API route
-				const response = await fetch('/api/ai/suggest-merges', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ mapId }),
-				});
+				triggerStream(
+					'/api/ai/suggest-merges', // Ensure you create this endpoint
+					{ mapId },
+					(suggestion: AiMergeSuggestion) => {
+						// This is the callback! It's specific to this action.
+						// Here, we can validate the chunk with Zod if desired.
+						console.log('chunk', suggestion);
 
-				if (!response.ok) {
-					const errorData = await response.json();
-					throw new Error(
-						errorData.error || `Server responded with ${response.status}`
-					);
-				}
-
-				const result = await response.json();
-				const suggestions: AiMergeSuggestion[] = result.data.suggestions;
-
-				if (suggestions && suggestions.length > 0) {
-					const newEdges: AppEdge[] = suggestions.map((suggestion) => {
-						// Create a new "suggestedMerge" edge for each suggestion
 						const edgeId = `merge-suggestion-${suggestion.node1Id}-${suggestion.node2Id}`;
-						return {
+						const newEdge = {
 							id: edgeId,
 							source: suggestion.node1Id,
 							target: suggestion.node2Id,
@@ -509,24 +493,88 @@ export const createSuggestionsSlice: StateCreator<
 								},
 							},
 						};
-					});
 
-					set({
-						edges: [
-							...edges.filter((e) => e.type !== 'suggestedMerge'),
-							...newEdges,
-						], // Clear old merge suggestions and add new ones
-					});
+						set((state) => ({
+							...state,
+							edges: [...state.edges, newEdge], // Clear old merge suggestions and add new ones
+						}));
+					}
+				);
+				// // Call our new API route
+				// const response = await fetch('/api/ai/suggest-merges', {
+				// 	method: 'POST',
+				// 	headers: { 'Content-Type': 'application/json' },
+				// 	body: JSON.stringify({ mapId }),
+				// });
 
-					// Return a success message for the HOF to display
-					toast.success(
-						`Found ${suggestions.length} potential merge(s) for you to review.`,
-						{ id: toastId }
-					);
-				} else {
-					// Return an info message
-					toast.info('No new merge suggestions found.', { id: toastId });
-				}
+				// if (!response.ok) {
+				// 	const errorData = await response.json();
+				// 	throw new Error(
+				// 		errorData.error || `Server responded with ${response.status}`
+				// 	);
+				// }
+
+				// const result = await response.json();
+				// const suggestions: AiMergeSuggestion[] = result.data.suggestions;
+
+				// if (suggestions && suggestions.length > 0) {
+				// 	const newEdges: AppEdge[] = suggestions.map((suggestion) => {
+				// 		// Create a new "suggestedMerge" edge for each suggestion
+				// 		const edgeId = `merge-suggestion-${suggestion.node1Id}-${suggestion.node2Id}`;
+				// 		return {
+				// 			id: edgeId,
+				// 			source: suggestion.node1Id,
+				// 			target: suggestion.node2Id,
+				// 			type: 'suggestedMerge', // This matches the key in edgeTypes
+				// 			animated: true,
+				// 			label: null, // Label is handled inside the component
+				// 			data: {
+				// 				id: edgeId,
+				// 				map_id: mapId,
+				// 				user_id: 'system', // AI is the user
+				// 				source: suggestion.node1Id,
+				// 				target: suggestion.node2Id,
+				// 				type: 'suggestedMerge',
+				// 				label: null,
+				// 				created_at: new Date().toISOString(),
+				// 				updated_at: new Date().toISOString(),
+				// 				animated: true,
+				// 				style: {
+				// 					stroke: '#9333ea', // purple-600
+				// 					strokeWidth: 2,
+				// 					strokeDasharray: '5 5',
+				// 				},
+				// 				metadata: {
+				// 					pathType: 'smoothstep' as const,
+				// 					interactionMode: 'both' as const,
+				// 				},
+				// 				aiData: {
+				// 					isSuggested: true,
+				// 					suggestion,
+				// 					confidence: suggestion.confidence || 0.8, // Use score or default
+				// 					reason: suggestion.reason || 'AI suggested merge',
+				// 					similarityScore: suggestion.similarityScore,
+				// 				},
+				// 			},
+				// 		};
+				// 	});
+
+				// 	set({
+				// 		edges: [
+				// 			...edges.filter((e) => e.type !== 'suggestedMerge'),
+				// 			...newEdges,
+				// 		], // Clear old merge suggestions and add new ones
+				// 	});
+
+				// Return a success message for the HOF to display
+				// 	toast.success(
+				// 		`Found ${suggestions.length} potential merge(s) for you to review.`,
+				// 		{ id: toastId }
+				// 	);
+				// } else {
+				// 	// Return an info message
+				// 	toast.info('No new merge suggestions found.', { id: toastId });
+				// }
 			} catch (error) {
 				const errorMessage =
 					error instanceof Error
@@ -707,7 +755,12 @@ export const createSuggestionsSlice: StateCreator<
 	finishStream: (streamId) => {
 		if (get().activeStreamId !== streamId) return;
 		// Final parse attempt could be added here if needed, but the current `updateStreamContent` is robust.
-		set({ isStreaming: false, activeStreamId: null, streamTrigger: null });
+		set({
+			isStreaming: false,
+			activeStreamId: null,
+			streamTrigger: null,
+			chunks: [],
+		});
 	},
 
 	abortStream: (reason) => {
@@ -716,6 +769,7 @@ export const createSuggestionsSlice: StateCreator<
 			suggestionError: reason,
 			activeStreamId: null,
 			streamTrigger: null,
+			chunks: [],
 		});
 	},
 
