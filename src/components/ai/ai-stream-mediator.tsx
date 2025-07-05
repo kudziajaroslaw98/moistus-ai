@@ -1,98 +1,85 @@
 'use client';
 
-import { suggestionObjectSchema } from '@/app/api/ai/suggestions/route';
 import useAppStore from '@/store/mind-map-store';
-import { experimental_useObject as useObject } from '@ai-sdk/react';
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import { useEffect, useRef } from 'react';
-import z from 'zod';
 import { useShallow } from 'zustand/shallow';
 
 export function AIStreamMediator() {
-	const streamTrigger = useAppStore((state) => state.streamTrigger);
-	const { updateStreamContent, finishStream, abortStream, isStreaming } =
+	const { streamTrigger, abortStream, finishStream, streamingAPI } =
 		useAppStore(
 			useShallow((state) => ({
-				isStreaming: state.isStreaming,
-				updateStreamContent: state.updateStreamContent,
-				finishStream: state.finishStream,
+				streamTrigger: state.streamTrigger,
 				abortStream: state.abortStream,
+				finishStream: state.finishStream,
+				streamingAPI: state.streamingAPI,
 			}))
 		);
 
-	// const { completion, complete, isLoading, error } = useCompletion({
-	// 	api: streamTrigger?.api,
-	// });
-	const { object, submit } = useObject({
-		api: streamTrigger?.api ?? '',
-		schema: z.array(suggestionObjectSchema),
-		onFinish: (event) => {
-			console.dir(event, { depth: 0 });
-			finishStream(streamTrigger?.id);
-			currentStreamIdRef.current = '';
-		},
-		onError: (error) => {
-			abortStream(error.message);
-			currentStreamIdRef.current = '';
+	const processedChunksCountRef = useRef(0);
+	const currentStreamIdRef = useRef<string | null>(null);
+
+	const { messages, sendMessage, setMessages, error } = useChat({
+		transport: new DefaultChatTransport({
+			api: streamingAPI,
+		}),
+		onFinish: () => {
+			if (currentStreamIdRef.current) {
+				finishStream(currentStreamIdRef.current);
+				currentStreamIdRef.current = null;
+			}
 		},
 	});
-	const currentStreamIdRef = useRef<string>('');
-	const chunks = useRef<unknown[]>([]);
 
-	// This effect triggers the AI generation when the store state changes.
+	// Effect 1: Trigger the stream when requested by the store
 	useEffect(() => {
 		if (
 			streamTrigger &&
-			streamTrigger !== null &&
-			currentStreamIdRef.current !== streamTrigger.id &&
-			isStreaming
+			streamingAPI !== null &&
+			streamTrigger.id !== null &&
+			streamTrigger.id !== currentStreamIdRef.current
 		) {
-			const bodyPayload = {
-				...streamTrigger.body,
-				// Include any other data your API needs, like nodes/edges
-			};
 			currentStreamIdRef.current = streamTrigger.id;
+			processedChunksCountRef.current = 0; // Reset chunk count for the new stream
+			setMessages([]); // Start with a clean slate for this new process
 
-			submit(bodyPayload);
-			// complete('', {
-			// 	body: bodyPayload,
-			// 	// You can add headers if needed
-			// });
+			sendMessage({
+				text: JSON.stringify(streamTrigger.body),
+			});
 		}
-	}, [streamTrigger?.id, streamTrigger?.body, isStreaming, submit]);
+	}, [streamTrigger, sendMessage, streamingAPI, setMessages]);
 
-	// This effect listens for changes from the hook and updates the store.
+	// Effect 2: Process new chunks from the stream as they arrive
 	useEffect(() => {
-		if (!streamTrigger || streamTrigger === null) return;
+		if (!streamTrigger) return;
 
-		if (object) {
-			chunks.current = object;
+		const lastMessage = messages[messages.length - 1];
 
-			if (chunks.current.length > 0) {
-				streamTrigger.onStreamChunk({
-					...object?.[chunks.current.length - 1],
-					index: chunks.current.length - 1,
-				});
-			}
-			// updateStreamContent(streamTrigger.id, object);
+		console.dir(lastMessage, { depth: null });
+
+		// if (lastMessage?.role === 'assistant' && Array.isArray(lastMessage)) {
+		// 	const allChunks = lastMessage.content;
+		// 	const newChunks = allChunks.slice(processedChunksCountRef.current);
+
+		// 	if (newChunks.length > 0) {
+		// 		for (const chunk of newChunks) {
+		// 			// The mediator calls the specific callback provided by the trigger
+		// 			streamTrigger.onStreamChunk(chunk);
+		// 		}
+
+		// 		processedChunksCountRef.current = allChunks.length;
+		// 	}
+		// }
+	}, [messages, streamTrigger]);
+
+	// Effect 3: Handle any top-level stream errors
+	useEffect(() => {
+		if (error) {
+			abortStream(error.message);
+			currentStreamIdRef.current = null;
 		}
-	}, [object, streamTrigger]);
+	}, [error, abortStream]);
 
-	// // This effect handles the end of the stream (success or error).
-	// useEffect(() => {
-	// 	if (!streamTrigger) return;
-
-	// 	if (!isLoading && (object || error)) {
-	// 		if (error) {
-	// 			console.error('AI Stream Error:', error);
-	// 			abortStream(error.message);
-	// 			currentStreamIdRef.current = '';
-	// 		} else {
-	// 			finishStream(streamTrigger.id);
-	// 			currentStreamIdRef.current = '';
-	// 		}
-	// 	}
-	// }, [isLoading, object, error, streamTrigger, finishStream, abortStream]);
-
-	// This component does not render anything.
-	return null;
+	return null; // This component is headless
 }

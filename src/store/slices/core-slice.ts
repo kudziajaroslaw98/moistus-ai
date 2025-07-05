@@ -41,6 +41,7 @@ export const createCoreDataSlice: StateCreator<
 		set({ userProfile });
 	},
 	setUserProfile: (userProfile) => set({ userProfile }),
+	setState: (state: Partial<AppState>) => set({ ...state }),
 
 	generateUserProfile: (user: User | null): UserProfile | null => {
 		if (!user) return null;

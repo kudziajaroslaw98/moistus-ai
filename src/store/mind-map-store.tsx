@@ -12,6 +12,7 @@ import { createLoadingStateSlice } from './slices/loading-state-slice';
 import { createNodeSlice } from './slices/nodes-slice';
 import { createRealtimeSlice } from './slices/realtime-slice';
 import { createSharingSlice } from './slices/sharing-slice';
+import { createStreamingToastSlice } from './slices/streaming-toast-slice';
 import { createSuggestionsSlice } from './slices/suggestions-slice';
 import { createUiStateSlice } from './slices/ui-slice';
 
@@ -30,6 +31,7 @@ const useAppStore = create<AppState>((...args) => ({
 	...createSuggestionsSlice(...args),
 	...createRealtimeSlice(...args),
 	...createChatSlice(...args),
+	...createStreamingToastSlice(...args),
 }));
 
 export default useAppStore;

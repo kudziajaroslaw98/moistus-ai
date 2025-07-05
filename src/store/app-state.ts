@@ -31,6 +31,7 @@ import { LoadingStates } from '@/types/loading-states';
 import type { MindMapData } from '@/types/mind-map-data';
 import type { NodeData } from '@/types/node-data';
 import { ShareToken, SharingError } from '@/types/sharing-types';
+import { StreamingToastState } from '@/types/streaming-toast-state';
 import { Tool } from '@/types/tool';
 import type {
 	RealtimeChannel,
@@ -507,6 +508,16 @@ export interface RealtimeSlice {
 	getUserFieldPresence: (userId: string) => UserFieldPresence | null;
 }
 
+export interface StreamingToastSlice {
+	streamingToast: StreamingToastState;
+	showStreamingToast: (header: string) => void;
+	updateStreamingToast: (
+		update: Partial<Omit<StreamingToastState, 'isOpen' | 'toastId'>>
+	) => void;
+	hideStreamingToast: () => void;
+	setStreamingToastError: (error: string) => void;
+}
+
 // Combined App State
 export interface AppState
 	extends CoreDataSlice,
@@ -522,4 +533,5 @@ export interface AppState
 		SharingSlice,
 		RealtimeSlice,
 		SuggestionsSlice,
-		ChatSlice {}
+		ChatSlice,
+		StreamingToastSlice {}

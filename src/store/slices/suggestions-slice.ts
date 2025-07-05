@@ -10,7 +10,7 @@ import type { StateCreator } from 'zustand';
 import type { AppState } from '../app-state';
 
 interface StreamTrigger {
-	id: string; // Unique ID for this request
+	id: string | null; // Unique ID for this request
 	body: Record<string, unknown>;
 	api: string; // The API endpoint to hit
 	onStreamChunk: (chunk: unknown) => void;
@@ -31,6 +31,7 @@ export interface SuggestionsSlice {
 	rawStreamContent: string;
 	chunks: unknown[];
 	lastProcessedIndex: number; // New state to track stream parsing
+	streamingAPI: string | null;
 
 	// Actions
 	setAiFeature: (
@@ -44,7 +45,7 @@ export interface SuggestionsSlice {
 	acceptSuggestion: (nodeId: string) => Promise<void>;
 	rejectSuggestion: (nodeId: string) => void;
 
-	generateConnectionSuggestions: () => Promise<void>;
+	generateConnectionSuggestions: () => void;
 	acceptConnectionSuggestion: (edgeId: string) => Promise<void>;
 	rejectConnectionSuggestion: (edgeId: string) => void;
 	addConnectionSuggestion: (suggestion: AiConnectionSuggestion) => void;
@@ -88,6 +89,7 @@ export const createSuggestionsSlice: StateCreator<
 	rawStreamContent: '',
 	chunks: [],
 	lastProcessedIndex: 0,
+	streamingAPI: null,
 
 	// Actions
 	setAiFeature: (
@@ -298,36 +300,68 @@ export const createSuggestionsSlice: StateCreator<
 		}
 	},
 
-	generateConnectionSuggestions: async () => {
-		const { mapId, triggerStream, addConnectionSuggestion } = get();
-		set({ isGeneratingSuggestions: true, suggestionError: null });
+	generateConnectionSuggestions: () => {
+		const {
+			mapId,
+			triggerStream,
+			clearGhostNodes,
+			showStreamingToast,
+			updateStreamingToast,
+			setStreamingToastError,
+			hideStreamingToast,
+			addConnectionSuggestion,
+		} = get();
 
-		try {
-			// TEMPORARY: Create test suggestion for debugging
-			triggerStream(
-				'/api/ai/suggest-connections', // Ensure you create this endpoint
-				{ mapId },
-				(suggestionChunk: AiConnectionSuggestion) => {
-					// This is the callback! It's specific to this action.
-					// Here, we can validate the chunk with Zod if desired.
-					console.log('chunk', suggestionChunk);
+		set({
+			streamingAPI: '/api/ai/suggest-connections',
+		});
 
-					if (suggestionChunk) {
-						addConnectionSuggestion(suggestionChunk);
-					}
-				}
-			);
-		} catch (error) {
-			console.error('Error generating connection suggestions:', error);
-			set({
-				suggestionError:
-					error instanceof Error
-						? error.message
-						: 'Failed to generate connection suggestions',
-			});
-		} finally {
-			set({ isGeneratingSuggestions: false });
+		if (!mapId) {
+			console.error('Cannot suggest connections without a mapId.');
+			return;
 		}
+
+		// 1. Define the specific chunk handler for THIS process.
+		// This function knows how to interpret the data from the stream.
+		const handleChunk = (chunk: any) => {
+			if (!chunk || !chunk.type) return;
+
+			switch (chunk.type) {
+				// This is a status update for our toast UI.
+				case 'data-stream-status':
+					if (chunk.data.error) {
+						setStreamingToastError(chunk.data.error);
+					} else {
+						updateStreamingToast(chunk.data.message);
+					}
+
+					break;
+
+				// This is a streamed AI-generated object.
+				case 'data-connection-suggestion':
+					addConnectionSuggestion(chunk.data.partialObject);
+					break;
+
+				case 'finish':
+					setTimeout(() => hideStreamingToast(), 3000);
+					break;
+
+				default:
+					// Ignore 'start' or other event types if no action is needed
+					break;
+			}
+		};
+
+		// 2. Clear previous suggestions and show the initial toast
+		clearGhostNodes();
+		showStreamingToast('Suggesting Connections');
+
+		// 3. Trigger the generic stream mediator.
+		triggerStream(
+			'/api/ai/suggest-connections', // The API endpoint to call
+			{ mapId }, // The body for the request
+			handleChunk // The specific callback to process the stream data
+		);
 	},
 
 	acceptConnectionSuggestion: async (edgeId: string) => {
@@ -759,6 +793,7 @@ export const createSuggestionsSlice: StateCreator<
 			isStreaming: false,
 			activeStreamId: null,
 			streamTrigger: null,
+			streamingAPI: null,
 			chunks: [],
 		});
 	},
@@ -769,6 +804,7 @@ export const createSuggestionsSlice: StateCreator<
 			suggestionError: reason,
 			activeStreamId: null,
 			streamTrigger: null,
+			streamingAPI: null,
 			chunks: [],
 		});
 	},

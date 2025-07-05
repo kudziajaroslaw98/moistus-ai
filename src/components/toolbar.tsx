@@ -43,6 +43,7 @@ export const Toolbar = () => {
 		aiFeature,
 		setAiFeature,
 		activeTool,
+		setState,
 		setActiveTool,
 		applyLayout,
 		setPopoverOpen,
@@ -51,6 +52,7 @@ export const Toolbar = () => {
 	} = useAppStore(
 		useShallow((state) => ({
 			activeTool: state.activeTool,
+			setState: state.setState,
 			setActiveTool: state.setActiveTool,
 			applyLayout: state.applyLayout,
 			setPopoverOpen: state.setPopoverOpen,
@@ -72,6 +74,17 @@ export const Toolbar = () => {
 		} else if (toolId === 'chat') {
 			setPopoverOpen({ aiChat: true });
 			// Don't change the active tool for chat
+		} else if (toolId === 'magic-wand') {
+			switch (aiFeature) {
+				case 'suggest-connections':
+					generateConnectionSuggestions();
+					break;
+				case 'suggest-merges':
+					generateMergeSuggestions();
+					break;
+				default:
+					break;
+			}
 		} else {
 			setActiveTool(toolId as Tool);
 		}
@@ -83,11 +96,13 @@ export const Toolbar = () => {
 		if (feature === 'suggest-nodes') {
 			setAiFeature('suggest-nodes');
 		} else if (feature === 'suggest-connections') {
-			generateConnectionSuggestions();
+			// generateConnectionSuggestions();
+			setState({ streamingAPI: '/api/ai/suggest-connections' });
 			setAiFeature('suggest-connections');
 		} else if (feature === 'suggest-merges') {
+			setState({ streamingAPI: '/api/ai/suggest-merges' });
 			setAiFeature('suggest-merges');
-			generateMergeSuggestions();
+			// generateMergeSuggestions();
 		}
 	};
 
