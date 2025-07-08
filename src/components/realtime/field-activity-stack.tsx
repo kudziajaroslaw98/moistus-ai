@@ -132,6 +132,7 @@ export function FieldActivityStack({
 									alt={user.displayName}
 									className='object-cover'
 								/>
+
 								<AvatarFallback
 									className={cn(
 										'font-semibold text-white',
@@ -173,13 +174,17 @@ export function FieldActivityStack({
 							)}
 						</motion.div>
 					</TooltipTrigger>
+
 					<TooltipContent side='top' className='z-50'>
 						<div className='text-center'>
 							<p className='font-medium'>{user.displayName}</p>
+
 							<p className='text-xs text-zinc-400'>
 								{user.displayName} •{' '}
+
 								{isRecentlyActive ? 'Active now' : 'Recently active'}
 							</p>
+
 							{user.isAnonymous && (
 								<p className='text-xs text-amber-400'>Guest user</p>
 							)}
@@ -230,6 +235,7 @@ export function FieldActivityStack({
 							? `${filteredUsers[0].displayName} is editing`
 							: `${filteredUsers.length} users editing`}
 					</span>
+
 					{filteredUsers.length === 1 && (
 						<span className='text-xs text-zinc-500'>
 							{filteredUsers[0].displayName}

@@ -201,6 +201,7 @@ export const getMotionVariant = (variant: Variants): Variants => {
       visible: { opacity: 1, transition: { duration: 0.01 } },
     };
   }
+
   return variant;
 };
 

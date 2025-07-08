@@ -198,6 +198,7 @@ const BuilderNodeForm = forwardRef<
 
 			<div className='text-sm text-zinc-400'>
 				Elements: {canvas.elements.length} | Canvas: {canvas.columns}×
+
 				{canvas.rows}
 			</div>
 		</div>

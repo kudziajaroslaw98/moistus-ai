@@ -31,10 +31,12 @@ export const SuggestedMergeEdge = (props: SuggestedMergeEdgeProps) => {
 	});
 
 	const handleAccept = useCallback(() => {
+		if (!data?.aiData?.suggestion) return;
 		acceptMerge(data?.aiData.suggestion).catch((err) => console.error(err));
 	}, [acceptMerge, data?.aiData.suggestion]);
 
 	const handleReject = useCallback(() => {
+		if (!data?.aiData?.suggestion) return;
 		rejectMerge(data?.aiData.suggestion);
 	}, [rejectMerge, data?.aiData.suggestion]);
 
@@ -71,14 +73,16 @@ export const SuggestedMergeEdge = (props: SuggestedMergeEdgeProps) => {
 								<span>Merge Suggestion</span>
 							</div>
 
-							<p className='max-w-xs text-center'>{data?.aiData?.reason}</p>
+							<p className='max-w-xs text-center'>
+								{data?.aiData?.suggestion?.reason}
+							</p>
 
 							<span className='text-xs'>
-								Similarity: {data?.aiData?.similarityScore}
+								Similarity: {data?.aiData?.suggestion?.similarityScore}
 							</span>
 
 							<span className='text-xs'>
-								Confidence: {data?.aiData?.confidence}
+								Confidence: {data?.aiData?.suggestion?.confidence}
 							</span>
 						</div>
 

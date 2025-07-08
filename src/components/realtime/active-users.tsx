@@ -38,6 +38,7 @@ export function ActiveUsers({
 				)}
 			>
 				<div className='w-2 h-2 rounded-full bg-zinc-600' />
+
 				<span>Only you</span>
 			</div>
 		);

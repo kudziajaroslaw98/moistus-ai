@@ -314,6 +314,7 @@ export function useRealtimeForm(
 
 			// Broadcast field activity to other users
 			const room = roomRef.current;
+
 			if (room) {
 				room.send({
 					type: 'broadcast',

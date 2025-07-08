@@ -45,6 +45,7 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 						/>
 					</div>
 				)}
+
 				{title && (
 					<div className='flex text-lg font-bold text-node-text-main tracking-tight leading-5'>
 						<span className='float-left'>{title}</span>

@@ -11,6 +11,7 @@ export const POST = withPublicApiValidation(
 
 			// Check rate limiting first
 			const rateLimitResult = checkRateLimit(req);
+
 			if (!rateLimitResult.allowed) {
 				const resetTime = new Date(rateLimitResult.resetTime);
 				return respondError(

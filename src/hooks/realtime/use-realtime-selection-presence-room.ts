@@ -51,6 +51,7 @@ export const useRealtimeSelectionPresenceRoom = (roomName: string) => {
 			})
 			.subscribe(async (status) => {
 				console.log(status);
+
 				if (status !== 'SUBSCRIBED') {
 					return;
 				}

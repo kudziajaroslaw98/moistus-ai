@@ -23,5 +23,12 @@ export interface EdgeData extends Record<string, unknown> {
 	aiData?: {
 		isSuggested?: boolean | null;
 		reason?: string | null;
+		suggestion?: {
+			node1Id: string;
+			node2Id: string;
+			reason?: string;
+			similarityScore?: number;
+			confidence?: number;
+		};
 	} | null;
 }

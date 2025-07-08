@@ -61,18 +61,23 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
 				if (initialData.content !== undefined) {
 					updateField('content', initialData.content || '', nodeId);
 				}
+
 				if (initialData.tags !== undefined) {
 					updateField('tags', initialData.tags || [], nodeId);
 				}
+
 				if (initialData.status !== undefined) {
 					updateField('status', initialData.status, nodeId);
 				}
+
 				if (initialData.importance !== undefined) {
 					updateField('importance', initialData.importance, nodeId);
 				}
+
 				if (initialData.sourceUrl !== undefined) {
 					updateField('sourceUrl', initialData.sourceUrl || '', nodeId);
 				}
+
 				setIsInitialized(true);
 			}
 		}, [initialData, isInitialized, updateField, nodeId]);
@@ -82,6 +87,7 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
 			if (onConflict && conflicts.length > 0) {
 				conflicts.forEach(onConflict);
 			}
+
 			// Show conflict modal when conflicts are detected
 			setShowConflictModal(conflicts.length > 0);
 		}, [conflicts, onConflict]);
@@ -114,6 +120,7 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
 				];
 				fieldNames.forEach((fieldName) => {
 					const value = getFieldValue(fieldName);
+
 					if (value !== undefined) {
 						updateField(fieldName, value, nodeId);
 					}
@@ -137,15 +144,18 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
 					<div className='flex items-center justify-between p-3 bg-zinc-900/50 rounded-lg border border-zinc-800'>
 						<div className='flex items-center gap-4'>
 							<ConnectionStatus isConnected={isConnected} showLabel={true} />
+
 							<ActiveUsers
 								users={activeUsers}
 								currentUserId={currentUser?.id}
 								maxDisplay={3}
 							/>
 						</div>
+
 						{conflicts.length > 0 && (
 							<div className='text-xs text-amber-500 flex items-center gap-2'>
 								<div className='w-2 h-2 bg-amber-500 rounded-full animate-pulse' />
+
 								{conflicts.length} conflict{conflicts.length > 1 ? 's' : ''}
 							</div>
 						)}

@@ -64,6 +64,7 @@ const AvatarStack = ({
 					<TooltipTrigger asChild>
 						<Avatar className='hover:z-10'>
 							<AvatarImage src={avatar.image} />
+
 							<AvatarFallback>
 								{avatar.name
 									?.split(' ')
@@ -74,6 +75,7 @@ const AvatarStack = ({
 							</AvatarFallback>
 						</Avatar>
 					</TooltipTrigger>
+
 					<TooltipContent>
 						<p>{avatar.name}</p>
 					</TooltipContent>
@@ -89,6 +91,7 @@ const AvatarStack = ({
 							</AvatarFallback>
 						</Avatar>
 					</TooltipTrigger>
+
 					<TooltipContent>
 						{hiddenAvatars.map(({ name }, index) => (
 							<p key={`${name}-${index}`}>{name}</p>

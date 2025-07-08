@@ -24,6 +24,7 @@ export function FormField({
 			<Label htmlFor={id} className='flex flex-col gap-2'>
 				<div className='flex items-center justify-between'>
 					<span>{label}</span>
+
 					{avatarStacks && <div>{avatarStacks}</div>}
 				</div>
 

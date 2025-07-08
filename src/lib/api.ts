@@ -41,6 +41,7 @@ async function apiRequest<T>(
 	try {
 		const response = await fetch(url, config);
 		let data;
+
 		try {
 			data = await response.json();
 		} catch (parseError) {

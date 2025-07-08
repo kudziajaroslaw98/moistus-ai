@@ -79,12 +79,15 @@ export function ConflictResolutionModal({
 								<div className='w-10 h-10 bg-amber-500/20 rounded-full flex items-center justify-center'>
 									<AlertTriangle className='w-5 h-5 text-amber-500' />
 								</div>
+
 								<div>
 									<h2 className='text-xl font-semibold text-zinc-100'>
 										Resolve Conflicts
 									</h2>
+
 									<p className='text-sm text-zinc-400'>
 										{conflicts.length} field
+
 										{conflicts.length > 1 ? 's have' : ' has'} conflicting
 										changes
 									</p>
@@ -103,6 +106,7 @@ export function ConflictResolutionModal({
 										<h3 className='text-lg font-medium text-zinc-200 mb-2'>
 											{formatFieldName(conflict.fieldName)}
 										</h3>
+
 										<p className='text-sm text-zinc-400'>
 											Two users edited this field at the same time. Choose which
 											version to keep.
@@ -114,14 +118,18 @@ export function ConflictResolutionModal({
 										<div className='bg-zinc-800/50 rounded-lg p-4 border border-zinc-700'>
 											<div className='flex items-center gap-2 mb-3'>
 												<User className='w-4 h-4 text-blue-400' />
+
 												<span className='text-sm font-medium text-blue-400'>
 													Your Version
 												</span>
+
 												<div className='flex items-center gap-1 text-xs text-zinc-500 ml-auto'>
 													<Clock className='w-3 h-3' />
+
 													{formatTimestamp(conflict.localTimestamp)}
 												</div>
 											</div>
+
 											<div className='bg-zinc-900 rounded border border-zinc-600 p-3'>
 												<pre className='text-sm text-zinc-300 whitespace-pre-wrap break-words'>
 													{formatValue(conflict.localValue)}
@@ -133,14 +141,18 @@ export function ConflictResolutionModal({
 										<div className='bg-zinc-800/50 rounded-lg p-4 border border-zinc-700'>
 											<div className='flex items-center gap-2 mb-3'>
 												<User className='w-4 h-4 text-green-400' />
+
 												<span className='text-sm font-medium text-green-400'>
 													{conflict.remoteUser || 'Other User'}&apos;s Version
 												</span>
+
 												<div className='flex items-center gap-1 text-xs text-zinc-500 ml-auto'>
 													<Clock className='w-3 h-3' />
+
 													{formatTimestamp(conflict.remoteTimestamp)}
 												</div>
 											</div>
+
 											<div className='bg-zinc-900 rounded border border-zinc-600 p-3'>
 												<pre className='text-sm text-zinc-300 whitespace-pre-wrap break-words'>
 													{formatValue(conflict.remoteValue)}
@@ -162,6 +174,7 @@ export function ConflictResolutionModal({
 											) : null}
 											Keep Your Version
 										</Button>
+
 										<Button
 											onClick={() =>
 												handleResolve(conflict.fieldName, 'remote')
@@ -173,6 +186,7 @@ export function ConflictResolutionModal({
 											{resolving === conflict.fieldName ? (
 												<div className='w-4 h-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin mr-2' />
 											) : null}
+
 											Keep {conflict.remoteUser || 'Other'}&apos;s Version
 										</Button>
 									</div>
@@ -186,6 +200,7 @@ export function ConflictResolutionModal({
 								<p className='text-sm text-zinc-400'>
 									Resolve conflicts to continue collaborative editing
 								</p>
+
 								{onClose && (
 									<Button onClick={onClose} variant='ghost' size='sm'>
 										Close

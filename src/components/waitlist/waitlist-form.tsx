@@ -46,6 +46,7 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 	// Check if user has already signed up
 	useEffect(() => {
 		const storedEmail = localStorage.getItem(STORAGE_KEY);
+
 		if (storedEmail) {
 			setPreviousEmail(storedEmail);
 		}
@@ -120,6 +121,7 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 					>
 						<div className='relative'>
 							<Mail className='absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-500 pointer-events-none' />
+
 							<Input
 								{...register('email')}
 								id='email'
@@ -146,6 +148,7 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 								className='text-sm text-red-400 flex items-center gap-1'
 							>
 								<AlertCircle className='h-3 w-3' />
+
 								{errors.email.message}
 							</motion.p>
 						)}
@@ -167,6 +170,7 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 								className='flex items-center gap-2 text-white'
 							>
 								<Loader2 className='h-5 w-5 animate-spin' />
+
 								<span>Joining waitlist...</span>
 							</motion.div>
 						) : isSuccess ? (
@@ -178,6 +182,7 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 								className='flex items-center gap-2 text-white'
 							>
 								<CheckCircle className='h-5 w-5' />
+
 								<span>You&apos;re on the list!</span>
 							</motion.div>
 						) : (
@@ -189,6 +194,7 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 								className='flex items-center gap-2'
 							>
 								<span>Sign up for Early Access</span>
+
 								<ArrowRight className='h-5 w-5' />
 							</motion.div>
 						)}
@@ -208,6 +214,7 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 					>
 						<p className='text-sm text-red-400 flex items-center gap-2'>
 							<AlertCircle className='h-4 w-4 flex-shrink-0' />
+
 							{submitError}
 						</p>
 					</motion.div>
@@ -225,6 +232,7 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 						className='mt-4 text-sm text-zinc-500 text-center'
 					>
 						Already signed up with a different email?{' '}
+
 						<button
 							type='button'
 							onClick={() => {

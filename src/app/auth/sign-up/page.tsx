@@ -82,6 +82,7 @@ export default function SignUp() {
 
 				<p className='mt-4 text-center text-sm text-zinc-400'>
 					Already have an account?{' '}
+
 					<Link
 						href='/auth/sign-in'
 						className='font-medium text-teal-400 hover:text-teal-300'

@@ -1,5 +1,5 @@
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
-import { ShareRole, ShareToken, ShareTokenType, SharingError } from '@/types/sharing-types';
+import { ShareToken, SharingError } from '@/types/sharing-types';
 import { StateCreator } from 'zustand';
 
 const supabase = getSharedSupabaseClient();
@@ -19,8 +19,6 @@ interface JoinRoomResult {
 	share_token_id: string;
 	join_method: string;
 }
-
-
 
 interface AnonymousUser {
 	user_id: string;
@@ -43,30 +41,37 @@ interface SharingSlice {
 	_sharingSubscription?: any;
 
 	// Actions
-	createRoomCode: (mapId: string, options?: {
-		role?: string;
-		maxUsers?: number;
-		expiresAt?: string;
-	}) => Promise<ShareToken>;
-	
+	createRoomCode: (
+		mapId: string,
+		options?: {
+			role?: string;
+			maxUsers?: number;
+			expiresAt?: string;
+		}
+	) => Promise<ShareToken>;
+
 	joinRoom: (roomCode: string, displayName?: string) => Promise<JoinRoomResult>;
-	
-	upgradeAnonymousUser: (email: string, password: string, displayName?: string) => Promise<boolean>;
-	
+
+	upgradeAnonymousUser: (
+		email: string,
+		password: string,
+		displayName?: string
+	) => Promise<boolean>;
+
 	ensureAuthenticated: (displayName?: string) => Promise<boolean>;
-	
+
 	refreshTokens: () => Promise<void>;
-	
+
 	refreshRoomCode: (tokenId: string) => Promise<void>;
-	
+
 	revokeRoomCode: (tokenId: string) => Promise<void>;
-	
+
 	subscribeToSharingUpdates: (mapId: string) => void;
-	
+
 	unsubscribeFromSharing: () => void;
-	
+
 	clearError: () => void;
-	
+
 	reset: () => void;
 }
 
@@ -91,108 +96,143 @@ export const createSharingSlice: StateCreator<
 		ensureAuthenticated: async (displayName?: string) => {
 			try {
 				console.log('ensureAuthenticated: Starting authentication check...');
-				
+
 				// First, check if we already have a session
-				const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-				
+				const {
+					data: { session },
+					error: sessionError,
+				} = await supabase.auth.getSession();
+
 				if (sessionError) {
-					console.warn('ensureAuthenticated: Session check failed:', sessionError);
+					console.warn(
+						'ensureAuthenticated: Session check failed:',
+						sessionError
+					);
 				}
-				
+
 				// Then get the user
-				const { data: { user }, error: userError } = await supabase.auth.getUser();
-				
+				const {
+					data: { user },
+					error: userError,
+				} = await supabase.auth.getUser();
+
 				if (userError) {
 					console.warn('ensureAuthenticated: User check failed:', userError);
 				}
-				
+
 				if (user && session) {
-					console.log('ensureAuthenticated: Existing user found, checking profile...');
-					
+					console.log(
+						'ensureAuthenticated: Existing user found, checking profile...'
+					);
+
 					// User already authenticated, get their profile
 					const { data: profile, error: profileError } = await supabase
 						.from('user_profiles')
 						.select('display_name, avatar_url, is_anonymous')
 						.eq('user_id', user.id)
 						.single();
-					
+
 					if (profileError) {
-						console.warn('ensureAuthenticated: Profile fetch failed:', profileError);
+						console.warn(
+							'ensureAuthenticated: Profile fetch failed:',
+							profileError
+						);
 						// Continue with fallback data
 					}
-					
+
 					const authUser: AnonymousUser = {
 						user_id: user.id,
-						display_name: profile?.display_name || displayName || `User ${user.id.slice(0, 8)}`,
-						avatar_url: profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`,
+						display_name:
+							profile?.display_name ||
+							displayName ||
+							`User ${user.id.slice(0, 8)}`,
+						avatar_url:
+							profile?.avatar_url ||
+							`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`,
 						is_anonymous: profile?.is_anonymous || user.is_anonymous || false,
-						created_at: user.created_at
+						created_at: user.created_at,
 					};
-					
-					console.log('ensureAuthenticated: Using existing user:', { 
-						user_id: authUser.user_id, 
-						is_anonymous: authUser.is_anonymous 
+
+					console.log('ensureAuthenticated: Using existing user:', {
+						user_id: authUser.user_id,
+						is_anonymous: authUser.is_anonymous,
 					});
-					
+
 					set({ authUser, sharingError: undefined });
 					return true;
 				}
-				
+
 				// No valid session, create anonymous user
-				console.log('ensureAuthenticated: No existing session, creating anonymous user...');
-				
-				const { data: authData, error: signInError } = await supabase.auth.signInAnonymously({
-					options: {
-						data: {
-							display_name: displayName || `Anonymous User`,
-						}
-					}
-				});
-				
+				console.log(
+					'ensureAuthenticated: No existing session, creating anonymous user...'
+				);
+
+				const { data: authData, error: signInError } =
+					await supabase.auth.signInAnonymously({
+						options: {
+							data: {
+								display_name: displayName || `Anonymous User`,
+							},
+						},
+					});
+
 				if (signInError || !authData.user) {
-					console.error('ensureAuthenticated: Anonymous sign-in failed:', signInError);
-					throw new Error(signInError?.message || 'Failed to authenticate anonymously');
+					console.error(
+						'ensureAuthenticated: Anonymous sign-in failed:',
+						signInError
+					);
+					throw new Error(
+						signInError?.message || 'Failed to authenticate anonymously'
+					);
 				}
-				
-				console.log('ensureAuthenticated: Anonymous user created:', authData.user.id);
-				
+
+				console.log(
+					'ensureAuthenticated: Anonymous user created:',
+					authData.user.id
+				);
+
 				// Wait a moment for the profile to be created by the trigger
-				await new Promise(resolve => setTimeout(resolve, 100));
-				
+				await new Promise((resolve) => setTimeout(resolve, 100));
+
 				// Get the newly created profile (created by database trigger)
 				const { data: newProfile } = await supabase
 					.from('user_profiles')
 					.select('display_name, avatar_url, is_anonymous')
 					.eq('user_id', authData.user.id)
 					.single();
-				
-				const defaultDisplayName = displayName || newProfile?.display_name || `User ${authData.user.id.slice(0, 8)}`;
-				const avatarUrl = newProfile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${authData.user.id}`;
-				
+
+				const defaultDisplayName =
+					displayName ||
+					newProfile?.display_name ||
+					`User ${authData.user.id.slice(0, 8)}`;
+				const avatarUrl =
+					newProfile?.avatar_url ||
+					`https://api.dicebear.com/7.x/avataaars/svg?seed=${authData.user.id}`;
+
 				const anonymousUser: AnonymousUser = {
 					user_id: authData.user.id,
 					display_name: defaultDisplayName,
 					avatar_url: avatarUrl,
 					is_anonymous: true,
-					created_at: new Date().toISOString()
+					created_at: new Date().toISOString(),
 				};
-				
-				console.log('ensureAuthenticated: Anonymous user setup complete:', { 
-					user_id: anonymousUser.user_id, 
-					display_name: anonymousUser.display_name 
+
+				console.log('ensureAuthenticated: Anonymous user setup complete:', {
+					user_id: anonymousUser.user_id,
+					display_name: anonymousUser.display_name,
 				});
-				
+
 				set({ authUser: anonymousUser, sharingError: undefined });
 				return true;
-				
 			} catch (error) {
 				console.error('ensureAuthenticated: Authentication failed:', error);
-				
+
 				const sharingError: SharingError = {
 					code: 'PERMISSION_DENIED',
-					message: error instanceof Error ? error.message : 'Authentication failed'
+					message:
+						error instanceof Error ? error.message : 'Authentication failed',
 				};
-				
+
 				set({ sharingError });
 				return false;
 			}
@@ -205,12 +245,14 @@ export const createSharingSlice: StateCreator<
 			try {
 				// Ensure user is authenticated
 				const isAuthenticated = await get().ensureAuthenticated();
+
 				if (!isAuthenticated) {
 					throw new Error('Authentication required');
 				}
 
 				// Convert expiresAt ISO string to hours from now if provided
 				let expiresInHours;
+
 				if (options.expiresAt) {
 					const expiresDate = new Date(options.expiresAt);
 					const nowDate = new Date();
@@ -247,7 +289,10 @@ export const createSharingSlice: StateCreator<
 			} catch (error) {
 				const sharingError: SharingError = {
 					code: 'UNKNOWN',
-					message: error instanceof Error ? error.message : 'Failed to create room code'
+					message:
+						error instanceof Error
+							? error.message
+							: 'Failed to create room code',
 				};
 
 				set({
@@ -266,6 +311,7 @@ export const createSharingSlice: StateCreator<
 			try {
 				// Ensure user is authenticated first
 				const isAuthenticated = await get().ensureAuthenticated(displayName);
+
 				if (!isAuthenticated) {
 					throw new Error('Failed to authenticate');
 				}
@@ -296,7 +342,8 @@ export const createSharingSlice: StateCreator<
 			} catch (error) {
 				const sharingError: SharingError = {
 					code: 'INVALID_ROOM_CODE',
-					message: error instanceof Error ? error.message : 'Failed to join room'
+					message:
+						error instanceof Error ? error.message : 'Failed to join room',
 				};
 
 				set({
@@ -309,9 +356,14 @@ export const createSharingSlice: StateCreator<
 		},
 
 		// Upgrade anonymous user to full user
-		upgradeAnonymousUser: async (email: string, password: string, displayName?: string) => {
+		upgradeAnonymousUser: async (
+			email: string,
+			password: string,
+			displayName?: string
+		) => {
 			try {
 				const currentUser = get().authUser;
+
 				if (!currentUser?.is_anonymous) {
 					throw new Error('User is not anonymous or not found');
 				}
@@ -332,7 +384,7 @@ export const createSharingSlice: StateCreator<
 				}
 
 				const result = await response.json();
-				
+
 				// Update current user state
 				const updatedUser: AnonymousUser = {
 					...currentUser,
@@ -340,16 +392,19 @@ export const createSharingSlice: StateCreator<
 					is_anonymous: false,
 				};
 
-				set({ 
+				set({
 					authUser: updatedUser,
-					sharingError: undefined 
+					sharingError: undefined,
 				});
 
 				return true;
 			} catch (error) {
 				const sharingError: SharingError = {
 					code: 'UNKNOWN',
-					message: error instanceof Error ? error.message : 'Failed to upgrade account'
+					message:
+						error instanceof Error
+							? error.message
+							: 'Failed to upgrade account',
 				};
 
 				set({ sharingError });
@@ -360,7 +415,9 @@ export const createSharingSlice: StateCreator<
 		// Refresh user's share tokens
 		refreshTokens: async () => {
 			try {
-				const { data: { user } } = await supabase.auth.getUser();
+				const {
+					data: { user },
+				} = await supabase.auth.getUser();
 				if (!user) return;
 
 				const { data: tokens, error } = await supabase
@@ -399,15 +456,21 @@ export const createSharingSlice: StateCreator<
 				const updatedToken: ShareToken = result.data;
 
 				set((state) => ({
-					shareTokens: state.shareTokens.map(token => 
+					shareTokens: state.shareTokens.map((token) =>
 						token.id === tokenId ? updatedToken : token
 					),
-					activeToken: state.activeToken?.id === tokenId ? updatedToken : state.activeToken,
+					activeToken:
+						state.activeToken?.id === tokenId
+							? updatedToken
+							: state.activeToken,
 				}));
 			} catch (error) {
 				const sharingError: SharingError = {
 					code: 'UNKNOWN',
-					message: error instanceof Error ? error.message : 'Failed to refresh room code'
+					message:
+						error instanceof Error
+							? error.message
+							: 'Failed to refresh room code',
 				};
 
 				set({ sharingError });
@@ -430,13 +493,19 @@ export const createSharingSlice: StateCreator<
 				}
 
 				set((state) => ({
-					shareTokens: state.shareTokens.filter(token => token.id !== tokenId),
-					activeToken: state.activeToken?.id === tokenId ? undefined : state.activeToken,
+					shareTokens: state.shareTokens.filter(
+						(token) => token.id !== tokenId
+					),
+					activeToken:
+						state.activeToken?.id === tokenId ? undefined : state.activeToken,
 				}));
 			} catch (error) {
 				const sharingError: SharingError = {
 					code: 'UNKNOWN',
-					message: error instanceof Error ? error.message : 'Failed to revoke room code'
+					message:
+						error instanceof Error
+							? error.message
+							: 'Failed to revoke room code',
 				};
 
 				set({ sharingError });
@@ -491,6 +560,7 @@ export const createSharingSlice: StateCreator<
 		// Unsubscribe from real-time sharing updates
 		unsubscribeFromSharing: () => {
 			const state = get();
+
 			if (state._sharingSubscription) {
 				supabase.removeChannel(state._sharingSubscription);
 				set({ _sharingSubscription: undefined });
@@ -519,4 +589,4 @@ export const createSharingSlice: StateCreator<
 };
 
 // Export the type for use in other parts of the app
-export type { SharingSlice, JoinRoomResult, AnonymousUser };
+export type { AnonymousUser, JoinRoomResult, SharingSlice };

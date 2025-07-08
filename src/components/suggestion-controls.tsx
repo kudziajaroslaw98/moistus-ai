@@ -56,10 +56,12 @@ export function SuggestionControls({ className }: SuggestionControlsProps) {
 				<div className='flex items-center justify-between mb-3'>
 					<div className='flex items-center gap-2'>
 						<Sparkles className='h-4 w-4 text-blue-400' />
+
 						<span className='text-sm font-medium text-zinc-200'>
 							AI Suggestions
 						</span>
 					</div>
+
 					{hasSuggestions && (
 						<Button
 							onClick={clearAllSuggestions}
@@ -81,6 +83,7 @@ export function SuggestionControls({ className }: SuggestionControlsProps) {
 						className='flex items-center gap-2 text-zinc-400 text-sm'
 					>
 						<Loader2 className='h-4 w-4 animate-spin' />
+
 						<span>Generating suggestions...</span>
 					</motion.div>
 				)}
@@ -94,11 +97,14 @@ export function SuggestionControls({ className }: SuggestionControlsProps) {
 					>
 						<div className='flex items-center gap-2 text-red-400 text-sm'>
 							<AlertCircle className='h-4 w-4' />
+
 							<span>Error generating suggestions</span>
 						</div>
+
 						<p className='text-xs text-zinc-500 leading-relaxed'>
 							{suggestionError}
 						</p>
+
 						<Button
 							onClick={retry}
 							variant='secondary'
@@ -120,8 +126,10 @@ export function SuggestionControls({ className }: SuggestionControlsProps) {
 					>
 						<div className='flex items-center gap-2 text-zinc-300 text-sm'>
 							<Lightbulb className='h-4 w-4 text-yellow-400' />
+
 							<span>
 								{ghostNodes.length} suggestion
+
 								{ghostNodes.length !== 1 ? 's' : ''} available
 							</span>
 						</div>
@@ -154,6 +162,7 @@ export function SuggestionControls({ className }: SuggestionControlsProps) {
 					>
 						<div className='text-xs text-zinc-500'>
 							Confidence:{' '}
+
 							{ghostNodes.map((node, index) => {
 								const confidence = node.data.metadata?.confidence || 0;
 								return (
@@ -170,6 +179,7 @@ export function SuggestionControls({ className }: SuggestionControlsProps) {
 										>
 											{Math.round(confidence * 100)}%
 										</span>
+
 										{index < ghostNodes.length - 1 && ', '}
 									</span>
 								);

@@ -16,7 +16,9 @@ export default function MinimalFooter() {
 				{/* Copyright */}
 				<div className='flex items-center gap-1'>
 					<span>© {currentYear}</span>
+
 					<span className='text-zinc-600'>•</span>
+
 					<span>Moistus AI</span>
 				</div>
 			</div>

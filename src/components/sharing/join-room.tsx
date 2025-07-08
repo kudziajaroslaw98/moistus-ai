@@ -166,6 +166,7 @@ export function JoinRoom({
 			<div className='bg-zinc-900 border border-zinc-800 rounded-lg p-6 shadow-xl'>
 				<div className='text-center mb-6'>
 					<h2 className='text-2xl font-bold text-white mb-2'>Join Room</h2>
+
 					<p className='text-zinc-400 text-sm'>
 						Enter the room code to collaborate on a mind map
 					</p>
@@ -180,6 +181,7 @@ export function JoinRoom({
 						>
 							Room Code
 						</label>
+
 						<input
 							id='roomCode'
 							type='text'
@@ -190,6 +192,7 @@ export function JoinRoom({
 							maxLength={7}
 							disabled={isJoining}
 						/>
+
 						{errors.roomCode && (
 							<p className='mt-1 text-sm text-red-400'>
 								{errors.roomCode.message}
@@ -205,6 +208,7 @@ export function JoinRoom({
 						>
 							Your Display Name
 						</label>
+
 						<input
 							id='displayName'
 							type='text'
@@ -213,6 +217,7 @@ export function JoinRoom({
 							{...register('displayName')}
 							disabled={isJoining}
 						/>
+
 						{errors.displayName && (
 							<p className='mt-1 text-sm text-red-400'>
 								{errors.displayName.message}

@@ -34,10 +34,12 @@ const ReferenceNodeComponent = (props: ReferenceNodeProps) => {
 					{hasValidReference ? (
 						<>
 							<blockquote className='mt-2 border-l-2 border-zinc-600 pl-4 italic text-zinc-400'>
-								"{contentSnippet || 'Referenced content...'}"
+								&quot;{contentSnippet || 'Referenced content...'}&quot;
 							</blockquote>
+
 							<div className='mt-3 text-xs text-zinc-500'>
-								From:{' '}
+								<span>From: </span>
+
 								<span className='font-medium text-zinc-400'>
 									{targetMapTitle || 'Another Map'}
 								</span>
@@ -59,6 +61,7 @@ const ReferenceNodeComponent = (props: ReferenceNodeProps) => {
 					>
 						<div className='flex items-center justify-center gap-2'>
 							<span>Go to Reference</span>
+
 							<ArrowUpRight className='size-3' />
 						</div>
 					</Link>

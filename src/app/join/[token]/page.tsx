@@ -60,6 +60,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 
 				// Validate token format
 				const upperToken = token?.toUpperCase();
+
 				if (!upperToken || !/^[A-Z0-9]{3}-[A-Z0-9]{3}$/i.test(upperToken)) {
 					setStep('error');
 					return;
@@ -93,6 +94,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 		try {
 			// Ensure user is authenticated (anonymous sign-in happens automatically)
 			const isAuthenticated = await ensureAuthenticated(displayName.trim());
+
 			if (!isAuthenticated) {
 				throw new Error('Failed to authenticate');
 			}
@@ -149,6 +151,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 				>
 					<div className='relative'>
 						<Brain className='h-12 w-12 text-teal-400 mx-auto animate-pulse' />
+
 						<div className='absolute inset-0 bg-teal-400/20 rounded-full animate-ping' />
 					</div>
 
@@ -156,6 +159,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 						<h2 className='text-xl font-semibold text-zinc-100'>
 							Preparing Room Access
 						</h2>
+
 						<p className='text-zinc-400'>Validating room code...</p>
 					</div>
 
@@ -192,9 +196,11 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 					<Card className='border-red-900/50 bg-zinc-900'>
 						<CardHeader className='text-center'>
 							<AlertCircle className='h-12 w-12 text-red-400 mx-auto mb-4' />
+
 							<CardTitle className='text-red-400'>
 								Unable to Join Room
 							</CardTitle>
+
 							<CardDescription>
 								{sharingError?.message || 'Invalid or expired room code'}
 							</CardDescription>
@@ -203,6 +209,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 						<CardContent className='space-y-4'>
 							<Alert className='border-red-900/50 bg-red-950/50'>
 								<AlertCircle className='h-4 w-4' />
+
 								<AlertDescription className='text-red-300'>
 									Room code: <code className='font-mono'>{token}</code>
 								</AlertDescription>
@@ -216,6 +223,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 								>
 									Go to Dashboard
 								</Button>
+
 								<Button
 									onClick={() => window.location.reload()}
 									variant='ghost'
@@ -246,6 +254,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 						className='relative'
 					>
 						<CheckCircle className='h-16 w-16 text-green-400 mx-auto' />
+
 						<motion.div
 							className='absolute inset-0 bg-green-400/20 rounded-full'
 							animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
@@ -257,6 +266,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 						<h2 className='text-2xl font-bold text-zinc-100'>
 							Welcome to {joinResult?.map_title || 'the Mind Map'}!
 						</h2>
+
 						<p className='text-zinc-400'>
 							Redirecting you to the collaboration...
 						</p>
@@ -293,10 +303,12 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 					className='text-center space-y-4'
 				>
 					<RefreshCw className='h-12 w-12 text-teal-400 mx-auto animate-spin' />
+
 					<div className='space-y-2'>
 						<h2 className='text-xl font-semibold text-zinc-100'>
 							Joining Room
 						</h2>
+
 						<p className='text-zinc-400'>
 							Setting up your anonymous session...
 						</p>
@@ -317,9 +329,11 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 				<Card className='border-zinc-800 bg-zinc-900'>
 					<CardHeader className='text-center'>
 						<Brain className='h-10 w-10 text-teal-400 mx-auto mb-4' />
+
 						<CardTitle className='text-zinc-100'>
 							Join Collaboration Room
 						</CardTitle>
+
 						<CardDescription>
 							You&apos;re joining a shared mind map. Enter your name to continue
 							as an anonymous user.
@@ -331,10 +345,12 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 						<div className='p-4 rounded-lg border border-zinc-700 bg-zinc-800/50 space-y-3'>
 							<div className='flex items-center justify-between'>
 								<span className='text-sm text-zinc-400'>Room Code</span>
+
 								<code className='text-sm font-mono text-teal-400 bg-zinc-900 px-2 py-1 rounded'>
 									{token}
 								</code>
 							</div>
+
 							<p className='text-xs text-zinc-500'>
 								You&apos;ll join with anonymous access. You can upgrade to a
 								full account anytime.
@@ -352,6 +368,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 								>
 									Your Display Name
 								</Label>
+
 								<Input
 									id='display_name'
 									placeholder='Enter your name'
@@ -365,6 +382,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 										}
 									}}
 								/>
+
 								<p className='text-xs text-zinc-500'>
 									This is how other collaborators will see you
 								</p>
@@ -395,6 +413,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 								Anonymous access gives you instant collaboration. You can create
 								a full account later to save your work.
 							</p>
+
 							<Button
 								variant='ghost'
 								size='sm'

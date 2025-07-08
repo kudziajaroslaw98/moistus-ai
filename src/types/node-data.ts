@@ -69,6 +69,11 @@ export interface NodeData extends Record<string, unknown> {
 		suggestedType?: AvailableNodeTypes;
 		confidence?: number;
 		context?: SuggestionContext;
+
+		// referencing
+		targetMapId?: string;
+		targetMapTitle?: string;
+		contentSnippet?: string;
 	} | null;
 	aiData?: {
 		requestAiAnswer?: boolean;

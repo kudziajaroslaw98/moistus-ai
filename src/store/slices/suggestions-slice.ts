@@ -6,6 +6,7 @@ import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import type { AvailableNodeTypes } from '@/types/available-node-types';
 import type { NodeSuggestion, SuggestionContext } from '@/types/ghost-node';
+import { ToastStep } from '@/types/streaming-toast-state';
 import type { StateCreator } from 'zustand';
 import type { AppState } from '../app-state';
 
@@ -310,6 +311,7 @@ export const createSuggestionsSlice: StateCreator<
 			setStreamingToastError,
 			hideStreamingToast,
 			addConnectionSuggestion,
+			setStreamSteps,
 		} = get();
 
 		set({
@@ -327,23 +329,33 @@ export const createSuggestionsSlice: StateCreator<
 			if (!chunk || !chunk.type) return;
 
 			switch (chunk.type) {
+				case 'data-stream-info':
+					if (chunk.data?.steps) {
+						setStreamSteps(chunk.data.steps);
+					}
+
+					if (
+						chunk.data?.steps?.every(
+							(step: ToastStep) => step.status === 'completed'
+						)
+					) {
+						hideStreamingToast();
+					}
+
+					break;
 				// This is a status update for our toast UI.
 				case 'data-stream-status':
 					if (chunk.data.error) {
 						setStreamingToastError(chunk.data.error);
 					} else {
-						updateStreamingToast(chunk.data.message);
+						updateStreamingToast(chunk.data);
 					}
 
 					break;
 
 				// This is a streamed AI-generated object.
 				case 'data-connection-suggestion':
-					addConnectionSuggestion(chunk.data.partialObject);
-					break;
-
-				case 'finish':
-					setTimeout(() => hideStreamingToast(), 3000);
+					addConnectionSuggestion(chunk.data);
 					break;
 
 				default:
@@ -520,10 +532,13 @@ export const createSuggestionsSlice: StateCreator<
 								},
 								aiData: {
 									isSuggested: true,
-									suggestion,
-									confidence: suggestion.confidence || 0.8, // Use score or default
-									reason: suggestion.reason || 'AI suggested merge',
-									similarityScore: suggestion.similarityScore,
+									suggestion: {
+										node1Id: suggestion.node1Id,
+										node2Id: suggestion.node2Id,
+										confidence: suggestion.confidence || 0.8,
+										reason: suggestion.reason || 'AI suggested merge',
+										similarityScore: suggestion.similarityScore,
+									},
 								},
 							},
 						};
@@ -681,10 +696,10 @@ export const createSuggestionsSlice: StateCreator<
 		set((state) => ({
 			mergeSuggestions: state.mergeSuggestions.filter((s) => s !== suggestion),
 			edges: state.edges.filter(
-				(e) =>
+				(e: AppEdge) =>
 					!(
-						e.data.aiData?.suggestion?.node1Id === suggestion.node1Id &&
-						e.data.aiData?.suggestion?.node2Id === suggestion.node2Id
+						e.data?.aiData?.suggestion?.node1Id === suggestion.node1Id &&
+						e.data?.aiData?.suggestion?.node2Id === suggestion.node2Id
 					)
 			),
 		}));
@@ -789,6 +804,7 @@ export const createSuggestionsSlice: StateCreator<
 	finishStream: (streamId) => {
 		if (get().activeStreamId !== streamId) return;
 		// Final parse attempt could be added here if needed, but the current `updateStreamContent` is robust.
+		get().hideStreamingToast();
 		set({
 			isStreaming: false,
 			activeStreamId: null,

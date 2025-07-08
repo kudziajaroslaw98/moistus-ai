@@ -36,7 +36,6 @@ src/
 │       └── slices/ (collaboration, sharing, etc.)
 ├── types/ (TypeScript definitions)
 │   ├── sharing-types.ts (Comprehensive sharing interfaces)
-│   └── collaboration-types.ts (Real-time collaboration types)
 ├── lib/ (Utilities and configurations)
 ├── hooks/ (Custom React hooks)
 ├── utils/ (Helper functions)

@@ -46,11 +46,13 @@ export const generateUserColor = (
 
 	// Generate hash from userId
 	let hash = 0;
+
 	for (let i = 0; i < userId.length; i++) {
 		const char = userId.charCodeAt(i);
 		hash = (hash << 5) - hash + char;
 		hash = hash & hash; // Convert to 32-bit integer
 	}
+
 	hash = Math.abs(hash);
 
 	// Generate HSL values
@@ -184,6 +186,7 @@ export const generateFunName = (userId: string): string => {
 
 	// Simple hash function to make it deterministic
 	let hash = 0;
+
 	for (let i = 0; i < userId.length; i++) {
 		const char = userId.charCodeAt(i);
 		hash = (hash << 5) - hash + char;
@@ -202,11 +205,13 @@ export const generateFunName = (userId: string): string => {
  */
 export const hashString = (str: string): number => {
 	let hash = 0;
+
 	for (let i = 0; i < str.length; i++) {
 		const char = str.charCodeAt(i);
 		hash = (hash << 5) - hash + char;
 		hash = hash & hash; // Convert to 32-bit integer
 	}
+
 	return Math.abs(hash);
 };
 

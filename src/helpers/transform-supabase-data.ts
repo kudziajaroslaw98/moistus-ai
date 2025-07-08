@@ -85,7 +85,7 @@ export const transformSupabaseData = (
 	}));
 
 	return {
-		mindMap: mindMap as MindMapData, // Cast the remaining map data
+		mindMap: { ...mindMap, id: mindMap?.map_id ?? mindMap?.id } as MindMapData, // Cast the remaining map data
 		reactFlowNodes,
 		reactFlowEdges,
 	};

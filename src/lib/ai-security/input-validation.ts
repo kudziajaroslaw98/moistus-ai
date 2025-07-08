@@ -133,6 +133,7 @@ export function sanitizePrompt(
 	// Basic profanity filtering
 	for (const word of filterConfig.profanityList) {
 		const regex = new RegExp(`\\b${word}\\b`, 'gi');
+
 		if (regex.test(sanitized)) {
 			sanitized = sanitized.replace(regex, '***');
 			warnings.push('Inappropriate content filtered');
@@ -387,6 +388,7 @@ export function detectPromptInjection(prompt: string): {
 
 	for (const check of injectionPatterns) {
 		const matches = prompt.match(check.pattern);
+
 		if (matches) {
 			detectedPatterns.push(check.name);
 			confidence = Math.max(confidence, check.weight);
@@ -411,9 +413,11 @@ const validationCache = new Map<string, { result: any; timestamp: number }>();
 
 export function getCachedValidation<T>(key: string, ttl: number = 300000): T | null {
 	const cached = validationCache.get(key);
+
 	if (cached && Date.now() - cached.timestamp < ttl) {
 		return cached.result as T;
 	}
+
 	validationCache.delete(key);
 	return null;
 }
@@ -424,6 +428,7 @@ export function setCachedValidation<T>(key: string, result: T): void {
 	// Clean up old entries
 	if (validationCache.size > 1000) {
 		const now = Date.now();
+
 		for (const [k, v] of validationCache.entries()) {
 			if (now - v.timestamp > 600000) { // 10 minutes
 				validationCache.delete(k);

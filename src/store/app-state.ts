@@ -1,3 +1,5 @@
+// eslint-disable-file @typescript-eslint/no-unused-vars
+
 import type { UserProfile } from '@/helpers/user-profile-helpers';
 import type { RealtimeUserSelection } from '@/hooks/realtime/use-realtime-selection-presence-room';
 import type { ChatSlice } from '@/store/slices/chat-slice';
@@ -31,7 +33,7 @@ import { LoadingStates } from '@/types/loading-states';
 import type { MindMapData } from '@/types/mind-map-data';
 import type { NodeData } from '@/types/node-data';
 import { ShareToken, SharingError } from '@/types/sharing-types';
-import { StreamingToastState } from '@/types/streaming-toast-state';
+import { StreamingToastState, ToastStep } from '@/types/streaming-toast-state';
 import { Tool } from '@/types/tool';
 import type {
 	RealtimeChannel,
@@ -512,10 +514,12 @@ export interface StreamingToastSlice {
 	streamingToast: StreamingToastState;
 	showStreamingToast: (header: string) => void;
 	updateStreamingToast: (
-		update: Partial<Omit<StreamingToastState, 'isOpen' | 'toastId'>>
+		update: Partial<Omit<StreamingToastState, 'isOpen' | 'toastId' | 'steps'>>
 	) => void;
 	hideStreamingToast: () => void;
 	setStreamingToastError: (error: string) => void;
+	setStreamSteps: (steps: ToastStep[]) => void;
+	clearToast: () => void;
 }
 
 // Combined App State

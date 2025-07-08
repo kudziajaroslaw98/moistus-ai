@@ -22,8 +22,10 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 
 		// Skip if this change was made by current user recently (prevent loops)
 		const nodeId = newRecord?.id || oldRecord?.id;
+
 		if (nodeId && lastSavedNodeTimestamps[nodeId]) {
 			const timeSinceLastSave = Date.now() - lastSavedNodeTimestamps[nodeId];
+
 			if (timeSinceLastSave < 1000) {
 				// Skip if saved within last second
 				return;
@@ -35,6 +37,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				if (newRecord) {
 					// Check if node already exists (prevent duplicates)
 					const existingNode = nodes.find((n) => n.id === newRecord.id);
+
 					if (!existingNode) {
 						const newNode: AppNode = {
 							id: newRecord.id,
@@ -52,8 +55,10 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 						console.log('Real-time: Node added', newRecord.id);
 					}
 				}
+
 				break;
 			}
+
 			case 'UPDATE': {
 				if (newRecord) {
 					const existingNode = nodes.find((n) => n.id === newRecord.id);
@@ -95,14 +100,17 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 								height: newRecord.height || node.height,
 							};
 						}
+
 						return node;
 					});
 
 					set({ nodes: updatedNodes });
 					console.log('Real-time: Node updated', newRecord.id);
 				}
+
 				break;
 			}
+
 			case 'DELETE': {
 				if (oldRecord) {
 					const filteredNodes = nodes.filter(
@@ -111,6 +119,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					set({ nodes: filteredNodes });
 					console.log('Real-time: Node deleted', oldRecord.id);
 				}
+
 				break;
 			}
 		}

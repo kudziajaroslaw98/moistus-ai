@@ -2,10 +2,12 @@
 
 'use client';
 
+import { cn } from '@/lib/utils';
 import useAppStore from '@/store/mind-map-store';
-import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { ToastStep } from '@/types/streaming-toast-state';
+import { AlertCircle, CheckCircle, Circle, Info, Loader } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/shallow';
 
@@ -14,7 +16,7 @@ import { useShallow } from 'zustand/shallow';
  * It subscribes to the Zustand store and uses `sonner` to show, update, or dismiss the toast.
  */
 export function StreamingToast() {
-	const { streamingToast, hideStreamingToast } = useAppStore(
+	const { streamingToast } = useAppStore(
 		useShallow((state) => ({
 			streamingToast: state.streamingToast,
 			hideStreamingToast: state.hideStreamingToast,
@@ -24,42 +26,106 @@ export function StreamingToast() {
 
 	useEffect(() => {
 		if (isOpen && toastId) {
-			// Use toast.custom to render a React component inside the toast.
-			// We give it an infinite duration because we control its dismissal manually.
-			toast.custom((t) => <ToastUI {...streamingToast} />, {
+			toast(<ToastUI {...streamingToast} />, {
 				id: toastId,
 				duration: Infinity,
+				classNames: {
+					toast: '!h-auto !p-0',
+					title: 'w-full h-auto',
+					content: 'w-full h-auto',
+				},
 			});
-		} else if (toastId) {
-			// If the toast is no longer "open" in our state, we dismiss it.
-			toast.dismiss(toastId);
 		}
-	}, [isOpen, toastId, streamingToast]); // Re-render the toast whenever its content changes.
+	}, [isOpen, toastId, streamingToast]);
 
-	// This component does not render any direct UI.
 	return null;
+}
+
+const stepIcons = {
+	pending: <Circle className='w-4 h-4 text-zinc-500' />,
+	active: <Loader className='w-4 h-4 text-zinc-300 animate-spin' />,
+	completed: <CheckCircle className='w-4 h-4 text-green-500' />,
+	error: <AlertCircle className='w-4 h-4 text-red-500' />,
+};
+
+function StepItem({ step }: { step: ToastStep }) {
+	const { name, status } = step;
+	const isCompleted = status === 'completed';
+
+	return (
+		<motion.div
+			initial={{ opacity: 0, y: 5 }}
+			animate={{ opacity: 1, y: 0 }}
+			exit={{ opacity: 0 }}
+			transition={{ duration: 0.3, ease: 'easeOut' }}
+			className='flex items-center gap-3 text-sm'
+		>
+			<div className='flex-shrink-0 w-4 h-4 flex items-center justify-center'>
+				{stepIcons[status]}
+			</div>
+
+			<div className='relative flex-grow'>
+				<span
+					className={cn(
+						'relative',
+						'transition-colors duration-300',
+						isCompleted ? 'text-zinc-700' : 'text-zinc-300',
+						status === 'active' && 'text-white font-medium'
+					)}
+				>
+					{name}
+
+					{isCompleted && (
+						<motion.div
+							className='absolute top-1/2 left-0 h-px bg-zinc-700'
+							initial={{ width: '0%' }}
+							animate={{ width: '100%' }}
+							transition={{ duration: 0.4, ease: 'easeOut' }}
+						/>
+					)}
+				</span>
+			</div>
+		</motion.div>
+	);
 }
 
 /**
  * The actual UI for the toast, rendered by `sonner`.
  */
-function ToastUI({ header, message, step, totalSteps, error }: any) {
+function ToastUI({
+	header,
+	message,
+	error,
+	steps,
+}: {
+	header: string;
+	message: string;
+	error: string | null;
+	steps: ToastStep[];
+}) {
+	const [isHovered, setIsHovered] = useState(false);
 	const isError = !!error;
-	const isComplete = !isError && step >= totalSteps;
+	const isProcessComplete =
+		!isError && steps.every((s) => s.status === 'completed');
 
 	return (
-		<div className='w-80 p-4 bg-zinc-900 border border-zinc-700 rounded-lg shadow-lg flex items-start gap-4'>
+		<motion.div
+			layout
+			className='flex items-start gap-4 h-auto p-4'
+			onMouseEnter={() => setIsHovered(true)}
+			onMouseLeave={() => setIsHovered(false)}
+		>
 			<div className='flex-shrink-0 pt-1'>
 				{isError ? (
 					<AlertCircle className='w-5 h-5 text-red-500' />
-				) : isComplete ? (
+				) : isProcessComplete ? (
 					<CheckCircle className='w-5 h-5 text-green-500' />
 				) : (
-					<Loader2 className='w-5 h-5 text-blue-500 animate-spin' />
+					<Loader className='w-5 h-5 text-zinc-300 animate-spin' />
 				)}
 			</div>
 
-			<div className='flex-grow overflow-hidden'>
+			<div className='h-auto'>
 				<p className='font-semibold text-white'>{header}</p>
 
 				{/* This div creates a fixed-height container for the animated messages */}
@@ -71,26 +137,60 @@ function ToastUI({ header, message, step, totalSteps, error }: any) {
 							animate={{ opacity: 1, y: 0 }}
 							exit={{ opacity: 0, y: -10 }}
 							transition={{ duration: 0.3, ease: 'easeOut' }}
-							className='absolute inset-0 text-sm text-zinc-400'
+							className='text-sm text-zinc-400'
 						>
 							{isError ? error : message}
 						</motion.p>
 					</AnimatePresence>
 				</div>
 
-				{/* Progress Bar */}
-				{!isError && (
-					<div className='w-full bg-zinc-700 rounded-full h-1 mt-3'>
+				<AnimatePresence>
+					{isHovered && steps && steps.length > 0 && (
 						<motion.div
-							className={isComplete ? 'bg-green-500' : 'bg-blue-500'}
-							initial={{ width: '0%' }}
-							animate={{ width: `${(step / totalSteps) * 100}%` }}
-							transition={{ duration: 0.5, ease: 'easeOut' }}
-							style={{ height: '100%', borderRadius: '9999px' }}
-						/>
-					</div>
-				)}
+							key='steps-container'
+							initial={{
+								opacity: 0,
+								maxHeight: 0,
+								filter: 'blur(3px)',
+								marginTop: 0,
+							}}
+							animate={{
+								opacity: 1,
+								maxHeight: '400px',
+								filter: 'blur(0px)',
+								marginTop: 16,
+							}}
+							exit={{
+								opacity: 0,
+								maxHeight: 0,
+								filter: 'blur(3px)',
+								marginTop: 0,
+							}}
+							transition={{ duration: 0.3, ease: 'easeOut' }}
+						>
+							{steps.map((s: ToastStep) => (
+								<StepItem key={s.id} step={s} />
+							))}
+						</motion.div>
+					)}
+				</AnimatePresence>
+
+				<AnimatePresence>
+					{!isError && !isProcessComplete && steps?.length > 0 && (
+						<motion.div
+							key='hover-hint'
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							exit={{ opacity: 0 }}
+							className='flex items-center gap-1.5 text-xs text-zinc-500 mt-2'
+						>
+							<Info className='w-3 h-3' />
+
+							<span>Hover for details</span>
+						</motion.div>
+					)}
+				</AnimatePresence>
 			</div>
-		</div>
+		</motion.div>
 	);
 }

@@ -61,6 +61,7 @@ const generateFunName = (seed?: string): string => {
 
 	// Simple hash function to make it deterministic
 	let hash = 0;
+
 	for (let i = 0; i < seed.length; i++) {
 		const char = seed.charCodeAt(i);
 		hash = (hash << 5) - hash + char;
@@ -79,6 +80,7 @@ export const useCurrentUserName = () => {
 	useEffect(() => {
 		const fetchProfileName = async () => {
 			const { data, error } = await createClient().auth.getSession();
+
 			if (error) {
 				console.error(error);
 			}

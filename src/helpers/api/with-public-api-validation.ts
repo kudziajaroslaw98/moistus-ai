@@ -53,6 +53,7 @@ export function withPublicApiValidation<TBody, TResponseData>(
 				// For other content types (multipart/form-data, text/plain, etc.),
 				// body remains empty object as they require special handling
 			}
+
 			const validationResult = schema.safeParse(body);
 
 			if (!validationResult.success) {

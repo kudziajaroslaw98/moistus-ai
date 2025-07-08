@@ -175,6 +175,7 @@ export function UpgradeAnonymousPrompt({
               </button>
               
               <h2 className="text-2xl font-bold mb-2">Unlock Full Features</h2>
+
               <p className="text-teal-100">
                 Create a free account to save your progress and access premium features
               </p>
@@ -196,8 +197,10 @@ export function UpgradeAnonymousPrompt({
                       <div className="flex-shrink-0 w-8 h-8 bg-teal-600/20 rounded-lg flex items-center justify-center">
                         <Icon className="w-4 h-4 text-teal-400" />
                       </div>
+
                       <div>
                         <h3 className="font-medium text-white text-sm">{benefit.title}</h3>
+
                         <p className="text-zinc-400 text-xs mt-1">{benefit.description}</p>
                       </div>
                     </motion.div>
@@ -212,6 +215,7 @@ export function UpgradeAnonymousPrompt({
                   <label htmlFor="email" className="block text-sm font-medium text-zinc-300 mb-2">
                     Email Address
                   </label>
+
                   <input
                     id="email"
                     type="email"
@@ -220,6 +224,7 @@ export function UpgradeAnonymousPrompt({
                     {...register('email')}
                     disabled={isUpgrading}
                   />
+
                   {errors.email && (
                     <p className="mt-1 text-sm text-red-400">{errors.email.message}</p>
                   )}
@@ -230,6 +235,7 @@ export function UpgradeAnonymousPrompt({
                   <label htmlFor="password" className="block text-sm font-medium text-zinc-300 mb-2">
                     Password
                   </label>
+
                   <input
                     id="password"
                     type="password"
@@ -238,6 +244,7 @@ export function UpgradeAnonymousPrompt({
                     {...register('password')}
                     disabled={isUpgrading}
                   />
+
                   {errors.password && (
                     <p className="mt-1 text-sm text-red-400">{errors.password.message}</p>
                   )}
@@ -248,6 +255,7 @@ export function UpgradeAnonymousPrompt({
                   <label htmlFor="confirmPassword" className="block text-sm font-medium text-zinc-300 mb-2">
                     Confirm Password
                   </label>
+
                   <input
                     id="confirmPassword"
                     type="password"
@@ -256,6 +264,7 @@ export function UpgradeAnonymousPrompt({
                     {...register('confirmPassword')}
                     disabled={isUpgrading}
                   />
+
                   {errors.confirmPassword && (
                     <p className="mt-1 text-sm text-red-400">{errors.confirmPassword.message}</p>
                   )}
@@ -266,6 +275,7 @@ export function UpgradeAnonymousPrompt({
                   <label htmlFor="displayName" className="block text-sm font-medium text-zinc-300 mb-2">
                     Display Name (optional)
                   </label>
+
                   <input
                     id="displayName"
                     type="text"
@@ -274,6 +284,7 @@ export function UpgradeAnonymousPrompt({
                     {...register('displayName')}
                     disabled={isUpgrading}
                   />
+
                   {errors.displayName && (
                     <p className="mt-1 text-sm text-red-400">{errors.displayName.message}</p>
                   )}

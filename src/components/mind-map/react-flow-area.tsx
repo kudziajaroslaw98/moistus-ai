@@ -318,6 +318,10 @@ export function ReactFlowArea() {
 		setPopoverOpen({ history: true });
 	}, [setPopoverOpen]);
 
+	const handleToggleCommentsPanel = useCallback(() => {
+		setPopoverOpen({ commentsPanel: true });
+	}, [setPopoverOpen]);
+
 	const isSelectMode = activeTool === 'default';
 	const isPanningMode = activeTool === 'pan';
 
@@ -472,7 +476,7 @@ export function ReactFlowArea() {
 
 					<div className='flex gap-2'>
 						<Button
-							// onClick={handleToggleCommentsPanel}
+							onClick={handleToggleCommentsPanel}
 							title='Toggle Comments Panel (Ctrl+/)'
 							aria-label='Toggle Comments Panel'
 							variant={popoverOpen.commentsPanel ? 'default' : 'secondary'}

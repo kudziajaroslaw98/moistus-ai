@@ -83,6 +83,7 @@ export default function Home() {
 		<>
 			<main className='relative min-h-screen flex flex-col z-10'>
 				<BackgroundEffects />
+
 				{/* Hero Section */}
 				<section className='flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8 py-20 relative z-20'>
 					<div className='w-full max-w-2xl mx-auto text-center gap-12 flex flex-col'>
@@ -90,6 +91,7 @@ export default function Home() {
 						<div className='mb-8 animate-fade-in'>
 							<div className='inline-flex items-center gap-3'>
 								<div className='h-12 w-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/25' />
+
 								<span className='text-2xl font-bold text-zinc-50'>
 									Moistus AI
 								</span>
@@ -108,6 +110,7 @@ export default function Home() {
 							{/* Headline */}
 							<h1 className='mb-6 text-4xl sm:text-5xl lg:text-6xl font-bold text-zinc-50 leading-tight animate-fade-in-up delay-200'>
 								Transform Your Thoughts Into{' '}
+
 								<span className='text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-purple-600'>
 									Connected Knowledge
 								</span>
@@ -140,8 +143,10 @@ export default function Home() {
 										clipRule='evenodd'
 									/>
 								</svg>
+
 								<span>No spam, ever</span>
 							</div>
+
 							<div className='flex items-center gap-2'>
 								<svg
 									className='h-4 w-4 text-emerald-500'
@@ -154,6 +159,7 @@ export default function Home() {
 										clipRule='evenodd'
 									/>
 								</svg>
+
 								<span>Be the first to know</span>
 							</div>
 						</div>

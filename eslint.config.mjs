@@ -31,7 +31,7 @@ const eslintConfig = [
 			'react-hooks/exhaustive-deps': 'off',
 			'react/jsx-newline': 'warn',
 			'react/hook-use-state': 'warn',
-			'no-unused-vars': 'warn',
+			'no-unused-vars': ['warn', { args: 'none' }],
 			'@typescript-eslint/no-unused-vars': [
 				'warn', // or "error"
 				{

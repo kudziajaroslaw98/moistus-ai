@@ -22,6 +22,7 @@ export const ZoomSelect = forwardRef<
 				fitView();
 			} else {
 				const zoomValue = parseFloat(value);
+
 				if (!isNaN(zoomValue)) {
 					zoomTo(zoomValue);
 				}
@@ -56,9 +57,12 @@ export const ZoomSelect = forwardRef<
 				<SelectTrigger className='w-[140px] bg-primary-foreground' size='sm'>
 					<SelectValue placeholder='Zoom' />
 				</SelectTrigger>
+
 				<SelectContent>
 					<SelectItem value='best-fit'>Best Fit</SelectItem>
+
 					<div className='mx-2 my-1 border-t' />
+
 					{zoomLevels.map((level) => (
 						<SelectItem key={level} value={level}>
 							{`${(parseFloat(level) * 100).toFixed(0)}%`}

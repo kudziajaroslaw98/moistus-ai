@@ -270,11 +270,13 @@ export const createRealtimeSlice: StateCreator<
 						if (remoteField.lastModified > localField.lastModified) {
 							mergedFields[fieldName] = remoteField;
 						}
+
 						break;
 					case 'last-writer-wins':
 						if (remoteField.version > localField.version) {
 							mergedFields[fieldName] = remoteField;
 						}
+
 						break;
 					case 'manual':
 						newConflicts.push(conflict);
@@ -284,6 +286,7 @@ export const createRealtimeSlice: StateCreator<
 						if (remoteField.lastModified > localField.lastModified) {
 							mergedFields[fieldName] = remoteField;
 						}
+
 						break;
 				}
 			} else if (remoteField.lastModified > localField.lastModified) {

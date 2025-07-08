@@ -213,18 +213,21 @@ const validateLayoutInput = (nodes: AppNode[], edges: AppEdge[]): void => {
 	const duplicateNodes = nodeIds.filter(
 		(id, index) => nodeIds.indexOf(id) !== index
 	);
+
 	if (duplicateNodes.length > 0) {
 		throw new Error(`Duplicate node IDs found: ${duplicateNodes.join(', ')}`);
 	}
 
 	// Validate edge references
 	const nodeIdSet = new Set(nodeIds);
+
 	for (const edge of edges) {
 		if (!nodeIdSet.has(edge.source)) {
 			throw new Error(
 				`Edge ${edge.id} references unknown source: ${edge.source}`
 			);
 		}
+
 		if (!nodeIdSet.has(edge.target)) {
 			throw new Error(
 				`Edge ${edge.id} references unknown target: ${edge.target}`
@@ -525,6 +528,7 @@ export const layoutWithELKCached = async (
 	// Limit cache size to prevent memory issues
 	if (layoutCache.size > 50) {
 		const firstKey = layoutCache.keys().next().value;
+
 		if (firstKey) {
 			layoutCache.delete(firstKey);
 		}

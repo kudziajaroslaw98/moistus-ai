@@ -142,8 +142,10 @@ export function DashboardHeader({ className = '' }: DashboardHeaderProps) {
 					<div className='flex items-center space-x-4'>
 						<h1 className='text-xl font-semibold text-white'>Dashboard</h1>
 					</div>
+
 					<div className='flex items-center space-x-3'>
 						<div className='h-8 w-8 animate-pulse rounded-full bg-zinc-700'></div>
+
 						<div className='h-4 w-24 animate-pulse rounded bg-zinc-700'></div>
 					</div>
 				</div>
@@ -161,6 +163,7 @@ export function DashboardHeader({ className = '' }: DashboardHeaderProps) {
 					<div className='flex items-center space-x-4'>
 						<h1 className='text-xl font-semibold text-white'>Dashboard</h1>
 					</div>
+
 					<div className='text-sm text-red-400'>Error: {error}</div>
 				</div>
 			</header>
@@ -190,6 +193,7 @@ export function DashboardHeader({ className = '' }: DashboardHeaderProps) {
 								{/* User Info */}
 								<div className='hidden sm:block text-left'>
 									<div className='text-sm font-medium text-white'>{name}</div>
+
 									<div className='text-xs text-zinc-400'>{subtitle}</div>
 								</div>
 
@@ -205,7 +209,9 @@ export function DashboardHeader({ className = '' }: DashboardHeaderProps) {
 							{/* User Info Header */}
 							<div className='px-3 py-2'>
 								<div className='text-sm font-medium text-white'>{name}</div>
+
 								<div className='text-xs text-zinc-400'>{subtitle}</div>
+
 								{user?.is_anonymous && (
 									<div className='mt-1 text-xs text-amber-400'>
 										⚠️ Anonymous account
@@ -237,6 +243,7 @@ export function DashboardHeader({ className = '' }: DashboardHeaderProps) {
 							{user?.is_anonymous && (
 								<>
 									<DropdownMenuSeparator className='bg-zinc-700' />
+
 									<DropdownMenuItem
 										className='cursor-pointer text-blue-400 focus:bg-zinc-800 focus:text-blue-300'
 										onClick={() => {
@@ -258,6 +265,7 @@ export function DashboardHeader({ className = '' }: DashboardHeaderProps) {
 								disabled={isLoggingOut}
 							>
 								<LogOut className='mr-2 h-4 w-4' />
+
 								{isLoggingOut ? 'Signing out...' : 'Sign out'}
 							</DropdownMenuItem>
 						</DropdownMenuContent>

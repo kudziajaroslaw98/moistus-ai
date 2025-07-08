@@ -69,6 +69,7 @@ export function CommentThread({
 						) : (
 							<ChevronRight className='size-3 mr-1' />
 						)}
+
 						{replies.length} {replies.length === 1 ? 'reply' : 'replies'}
 					</Button>
 

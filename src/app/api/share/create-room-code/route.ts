@@ -31,9 +31,11 @@ export const POST = withAuthValidation(
 		const generateRoomCode = () => {
 			const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 			let result = '';
+
 			for (let i = 0; i < 6; i++) {
 				result += chars.charAt(Math.floor(Math.random() * chars.length));
 			}
+
 			return `${result.slice(0, 3)}-${result.slice(3)}`;
 		};
 
@@ -41,6 +43,7 @@ export const POST = withAuthValidation(
 		
 		// Ensure uniqueness by checking existing tokens
 		let attempts = 0;
+
 		while (attempts < 10) {
 			const { data: existing } = await supabase
 				.from('share_tokens')

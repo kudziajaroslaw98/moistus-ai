@@ -28,6 +28,7 @@ const useThrottleCallback = <Params extends unknown[], Return>(
 					clearTimeout(timeout.current);
 					timeout.current = null;
 				}
+
 				lastCall.current = now;
 				callback(...args);
 			} else if (!timeout.current) {
@@ -175,6 +176,7 @@ export const useRealtimeCursors = ({
 						if (debug) {
 							console.log('Ignoring own cursor');
 						}
+
 						return;
 					}
 
@@ -202,6 +204,7 @@ export const useRealtimeCursors = ({
 			if (debug) {
 				console.log('Unsubscribing from cursor channel');
 			}
+
 			channel.unsubscribe();
 		};
 	}, [userId, debug]);

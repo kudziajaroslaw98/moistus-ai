@@ -63,6 +63,7 @@ export function resetSharedSupabaseClient(): void {
     // Clean up any subscriptions before resetting
     sharedSupabaseClient.removeAllChannels();
   }
+
   sharedSupabaseClient = null;
 }
 

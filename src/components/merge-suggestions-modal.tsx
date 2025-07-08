@@ -39,6 +39,7 @@ export default function MergeSuggestionsModal({
 			) : (
 				<div className='flex max-h-[60vh] flex-col gap-4 overflow-y-auto pr-2'>
 					{' '}
+
 					{/* Add max height and scroll */}
 					{suggestions.map((suggestion, index) => (
 						<div
@@ -51,6 +52,7 @@ export default function MergeSuggestionsModal({
 									{getNodeContentSnippet(suggestion.node2Id)}
 								</span>
 								&quot; into &quot;
+
 								<span className='font-semibold text-zinc-100 italic'>
 									{getNodeContentSnippet(suggestion.node1Id)}
 								</span>

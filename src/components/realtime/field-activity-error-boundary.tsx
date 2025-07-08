@@ -38,6 +38,7 @@ export class FieldActivityErrorBoundary extends Component<
 					<div className="p-2 text-xs text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded">
 						<div className="flex items-center gap-2">
 							<div className="w-2 h-2 bg-amber-500 rounded-full" />
+
 							<span>Collaboration temporarily unavailable</span>
 						</div>
 					</div>

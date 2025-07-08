@@ -34,6 +34,7 @@ class InMemoryRateLimiter {
 
 	private cleanup(): void {
 		const now = Date.now();
+
 		for (const [key, entry] of this.cache.entries()) {
 			// Use firstAttempt instead of lastAttempt to avoid premature deletions
 			// This ensures entries are only cleaned up after their rate limit window expires
@@ -109,6 +110,7 @@ class InMemoryRateLimiter {
 			clearInterval(this.cleanupInterval);
 			this.cleanupInterval = null;
 		}
+
 		this.cache.clear();
 	}
 
@@ -207,6 +209,7 @@ export function getClientIP(request: Request): string | null {
 	// Try each header in order
 	for (const headerName of headerNames) {
 		const headerValue = request.headers.get(headerName);
+
 		if (!headerValue) {
 			continue;
 		}
@@ -214,9 +217,11 @@ export function getClientIP(request: Request): string | null {
 		// Handle x-forwarded-for which can contain multiple IPs
 		if (headerName === 'x-forwarded-for') {
 			const ips = headerValue.split(',');
+
 			// Take the first IP (original client) but validate it
 			for (const ip of ips) {
 				const sanitized = sanitizeIP(ip);
+
 				if (sanitized) {
 					// Additional validation: reject private/local IPs in forwarded headers
 					// to prevent spoofing (unless in development)
@@ -231,6 +236,7 @@ export function getClientIP(request: Request): string | null {
 		} else {
 			// For other headers, expect single IP
 			const sanitized = sanitizeIP(headerValue);
+
 			if (sanitized) {
 				return sanitized;
 			}
@@ -243,6 +249,7 @@ export function getClientIP(request: Request): string | null {
 		// In some environments, the request might have connection info
 		// This is implementation-specific and may not always be available
 		const url = new URL(request.url);
+
 		if (url.hostname && isValidIP(url.hostname)) {
 			return url.hostname;
 		}

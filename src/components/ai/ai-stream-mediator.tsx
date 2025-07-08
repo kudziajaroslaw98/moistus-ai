@@ -2,7 +2,7 @@
 
 import useAppStore from '@/store/mind-map-store';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
+import { DefaultChatTransport, UIMessage } from 'ai';
 import { useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/shallow';
 
@@ -22,7 +22,7 @@ export function AIStreamMediator() {
 
 	const { messages, sendMessage, setMessages, error } = useChat({
 		transport: new DefaultChatTransport({
-			api: streamingAPI,
+			api: '/api/ai/suggest-connections',
 		}),
 		onFinish: () => {
 			if (currentStreamIdRef.current) {
@@ -58,19 +58,21 @@ export function AIStreamMediator() {
 
 		console.dir(lastMessage, { depth: null });
 
-		// if (lastMessage?.role === 'assistant' && Array.isArray(lastMessage)) {
-		// 	const allChunks = lastMessage.content;
-		// 	const newChunks = allChunks.slice(processedChunksCountRef.current);
+		if (lastMessage?.role === 'assistant' && Array.isArray(lastMessage.parts)) {
+			const allChunks = lastMessage.parts;
+			const newChunks: UIMessage['parts'] = allChunks.slice(
+				processedChunksCountRef.current
+			);
 
-		// 	if (newChunks.length > 0) {
-		// 		for (const chunk of newChunks) {
-		// 			// The mediator calls the specific callback provided by the trigger
-		// 			streamTrigger.onStreamChunk(chunk);
-		// 		}
+			if (newChunks.length > 0) {
+				for (const chunk of newChunks) {
+					// The mediator calls the specific callback provided by the trigger
+					streamTrigger.onStreamChunk(chunk);
+				}
 
-		// 		processedChunksCountRef.current = allChunks.length;
-		// 	}
-		// }
+				processedChunksCountRef.current = allChunks.length;
+			}
+		}
 	}, [messages, streamTrigger]);
 
 	// Effect 3: Handle any top-level stream errors

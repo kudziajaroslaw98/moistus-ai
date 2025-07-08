@@ -15,6 +15,7 @@ import { AIStreamMediator } from './ai/ai-stream-mediator';
 import { CommandPalette } from './command-palette';
 import { CommentsPanel } from './comment/comment-panel';
 import { ContextMenuWrapper } from './mind-map/context-menu-wrapper';
+import { StreamingToast } from './streaming-toast';
 
 export function MindMapCanvas() {
 	const params = useParams();
@@ -148,6 +149,8 @@ export function MindMapCanvas() {
 				{popoverOpen.commandPalette && <CommandPalette />}
 
 				<AIStreamMediator />
+
+				<StreamingToast />
 
 				<ModalsWrapper />
 

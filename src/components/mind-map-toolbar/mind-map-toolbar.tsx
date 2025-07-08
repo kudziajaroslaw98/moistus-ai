@@ -3,7 +3,7 @@
 import useAppStore from '@/store/mind-map-store';
 import { ArrowLeft, Minimize2 } from 'lucide-react';
 import Link from 'next/link';
-import { memo, useCallback } from 'react';
+import { memo } from 'react';
 import { useShallow } from 'zustand/shallow';
 
 const MindMapToolbarComponent = () => {
@@ -30,14 +30,6 @@ const MindMapToolbarComponent = () => {
 			popoverOpen: state.popoverOpen,
 		}))
 	);
-
-	const handleToggleHistorySidebar = useCallback(() => {
-		setPopoverOpen({ history: true });
-	}, [setPopoverOpen]);
-
-	const handleToggleCommentsPanel = useCallback(() => {
-		setPopoverOpen({ commentsPanel: true });
-	}, [setPopoverOpen]);
 
 	// const handleToggleSharePanel = useCallback(() => {
 	// 	setPopoverOpen({ sharePanel: true });

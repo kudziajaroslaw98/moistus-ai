@@ -67,6 +67,7 @@ export default function FeatureCard({
 					>
 						<Icon className='h-full w-full text-white' />
 					</div>
+
 					{/* Icon glow effect */}
 					<div
 						className={`absolute inset-0 h-12 w-12 rounded-xl bg-gradient-to-br ${gradient} blur-xl opacity-50 group-hover:opacity-70 transition-opacity`}
@@ -77,6 +78,7 @@ export default function FeatureCard({
 				<h3 className='relative mb-2 text-lg font-semibold text-zinc-50'>
 					{title}
 				</h3>
+
 				<p className='relative text-sm text-zinc-400 leading-relaxed'>
 					{description}
 				</p>

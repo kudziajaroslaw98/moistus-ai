@@ -45,6 +45,7 @@ export const useCurrentUserImage = (backgroundColor?: string) => {
 	useEffect(() => {
 		const fetchUserImage = async () => {
 			const { data, error } = await createClient().auth.getSession();
+
 			if (error) {
 				console.error(error);
 			}
@@ -64,6 +65,7 @@ export const useCurrentUserImage = (backgroundColor?: string) => {
 				setImage(fallbackUrl);
 			}
 		};
+
 		fetchUserImage();
 	}, [backgroundColor]);
 
