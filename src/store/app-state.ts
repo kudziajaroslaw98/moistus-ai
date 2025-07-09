@@ -149,6 +149,7 @@ export interface CoreDataSlice {
 	setMapId: (mapId: string | null) => void;
 	setCurrentUser: (currentUser: User | null) => void;
 	setUserProfile: (userProfile: UserProfile | null) => void;
+	setState: (state: Partial<AppState>) => void;
 
 	generateUserProfile: (user: User | null) => UserProfile | null;
 	getCurrentUser: () => Promise<User | null>;
@@ -421,6 +422,7 @@ export interface UIStateSlice {
 	contextMenuState: ContextMenuState;
 	isFocusMode: boolean;
 	isDraggingNodes: boolean;
+	editingNodeId: string | null;
 
 	// UI setters
 	setPopoverOpen: (popover: Partial<Popovers>) => void;

@@ -39,6 +39,7 @@ export const createUiStateSlice: StateCreator<
 	},
 	isFocusMode: false,
 	isDraggingNodes: false,
+	editingNodeId: null,
 
 	// setters
 	setEdgeInfo: (edgeInfo) => {

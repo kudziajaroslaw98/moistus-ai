@@ -13,8 +13,9 @@ import {
 	Text,
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { memo, useMemo } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
+import { AutoResizeTextarea } from '../ui/auto-resize-textarea';
 import { Toggle } from '../ui/toggle';
 import { ToggleGroup, ToggleGroupItem } from '../ui/toggle-group';
 import { BaseNodeWrapper } from './base-node-wrapper';
@@ -22,15 +23,21 @@ import { BaseNodeWrapper } from './base-node-wrapper';
 type TextNodeProps = NodeProps<Node<NodeData>>;
 
 const TextNodeComponent = (props: TextNodeProps) => {
-	const { data } = props;
+	const { id, data } = props;
 
 	const { content, metadata } = data;
-	const { updateNode, selectedNodes } = useAppStore(
+	const { updateNode, selectedNodes, editingNodeId, setState } = useAppStore(
 		useShallow((state) => ({
 			updateNode: state.updateNode,
 			selectedNodes: state.selectedNodes,
+			editingNodeId: state.editingNodeId,
+			setState: state.setState,
 		}))
 	);
+
+	const [localContent, setLocalContent] = useState(content || '');
+	const textareaRef = useRef<HTMLTextAreaElement>(null);
+	const isEditing = editingNodeId === id;
 	const {
 		fontSize = '14px',
 		fontWeight = 'normal',
@@ -38,6 +45,19 @@ const TextNodeComponent = (props: TextNodeProps) => {
 		textColor = '#fafafa', // Default to a light text color
 		fontStyle = 'normal',
 	} = metadata ?? {};
+
+	useEffect(() => {
+		if (!isEditing) {
+			setLocalContent(content || '');
+		}
+	}, [content, isEditing]);
+
+	useEffect(() => {
+		if (isEditing && textareaRef.current) {
+			textareaRef.current.focus();
+			textareaRef.current.select();
+		}
+	}, [isEditing]);
 
 	const textStyle = useMemo(() => {
 		const style: React.CSSProperties = {
@@ -72,6 +92,35 @@ const TextNodeComponent = (props: TextNodeProps) => {
 				},
 			},
 		});
+	};
+
+	const handleDoubleClick = () => {
+		setLocalContent(content || '');
+		setState({ editingNodeId: id });
+	};
+
+	const saveChanges = () => {
+		if (localContent !== content) {
+			updateNode({ nodeId: id, data: { content: localContent } });
+		}
+
+		setState({ editingNodeId: null });
+	};
+
+	const handleBlur = () => {
+		saveChanges();
+	};
+
+	const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+		if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+			e.preventDefault();
+			saveChanges();
+		}
+
+		if (e.key === 'Escape') {
+			setState({ editingNodeId: null });
+			setLocalContent(content || '');
+		}
 	};
 
 	return (
@@ -147,19 +196,33 @@ const TextNodeComponent = (props: TextNodeProps) => {
 				hideNodeType={true}
 				includePadding={false}
 			>
-				<div
-					className={cn(
-						'flex items-center min-h-8 w-full whitespace-break-spaces',
-						textAlign === 'center' && 'justify-center',
-						textAlign === 'right' && 'justify-end',
-						textAlign === 'left' && 'justify-start'
-					)}
-					style={textStyle}
-				>
-					{content || (
-						<span className='italic opacity-70 text-sm'>
-							{props.selected ? 'Double click to edit...' : 'Text...'}
-						</span>
+				<div onDoubleClick={handleDoubleClick} className='w-full h-full'>
+					{isEditing ? (
+						<AutoResizeTextarea
+							ref={textareaRef}
+							value={localContent}
+							onChange={(e) => setLocalContent(e.target.value)}
+							onBlur={handleBlur}
+							onKeyDown={handleKeyDown}
+							className='nodrag nopan nowheel w-full bg-transparent border-0 resize-none focus:outline-none focus:ring-0 !text-left p-0 m-0'
+							style={textStyle}
+						/>
+					) : (
+						<div
+							className={cn(
+								'flex items-center min-h-8 w-full whitespace-break-spaces',
+								textAlign === 'center' && 'justify-center',
+								textAlign === 'right' && 'justify-end',
+								textAlign === 'left' && 'justify-start'
+							)}
+							style={textStyle}
+						>
+							{content || (
+								<span className='italic opacity-70 text-sm'>
+									{props.selected ? 'Double click to edit...' : 'Text...'}
+								</span>
+							)}
+						</div>
 					)}
 				</div>
 			</BaseNodeWrapper>
