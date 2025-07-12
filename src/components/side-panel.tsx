@@ -32,7 +32,7 @@ export function SidePanel({
 						ease: [0.4, 0, 0.2, 1],
 					}}
 					className={cn(
-						'fixed top-0 right-0 bottom-0 z-40 h-full w-full max-w-fit min-w-sm transform bg-zinc-950 shadow-xl',
+						'fixed top-0 right-0 bottom-0 z-40 h-full w-full max-w-xl min-w-sm transform bg-zinc-950 shadow-xl',
 						className
 					)}
 				>

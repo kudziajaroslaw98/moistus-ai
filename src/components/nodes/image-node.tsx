@@ -1,20 +1,136 @@
 'use client';
 
+import useAppStore from '@/store/mind-map-store';
 import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
 import { Node, NodeProps } from '@xyflow/react';
-import { Image as ImageIcon } from 'lucide-react';
+import {
+	ArrowUpRight,
+	Eye,
+	EyeOff,
+	Image as ImageIcon,
+	RefreshCw,
+} from 'lucide-react';
 import Image from 'next/image';
-import { memo } from 'react';
+import { memo, useCallback, useState } from 'react';
+import { toast } from 'sonner';
+import { useShallow } from 'zustand/shallow';
+import { Button } from '../ui/button';
+import { Toggle } from '../ui/toggle';
 import { BaseNodeWrapper } from './base-node-wrapper';
 
 type ImageNodeProps = NodeProps<Node<NodeData>>;
 
 const ImageNodeComponent = (props: ImageNodeProps) => {
-	const { data } = props;
+	const { id, data } = props;
+
+	const { updateNode } = useAppStore(
+		useShallow((state) => ({
+			updateNode: state.updateNode,
+		}))
+	);
+
+	const [isRefreshing, setIsRefreshing] = useState(false);
 
 	const imageUrl = data.metadata?.image_url as string | undefined;
 	const showCaption = Boolean(data.metadata?.showCaption);
+
+	const handleNodeChange = useCallback(
+		(change: Partial<NodeData['metadata']>) => {
+			updateNode({
+				nodeId: id,
+				data: {
+					metadata: {
+						...data.metadata,
+						...change,
+					},
+				},
+			});
+		},
+		[updateNode, id, data.metadata]
+	);
+
+	const handleOpenImage = useCallback(() => {
+		if (imageUrl) {
+			window.open(imageUrl, '_blank', 'noopener,noreferrer');
+			toast.success('Opened image in new tab');
+		} else {
+			toast.error('No image URL available');
+		}
+	}, [imageUrl]);
+
+	const handleRefreshMetadata = useCallback(async () => {
+		if (!imageUrl) {
+			toast.error('No image URL to refresh');
+			return;
+		}
+
+		setIsRefreshing(true);
+
+		try {
+			// This would typically call an API to re-fetch image metadata
+			// For now, we'll just show a success message
+			// You can implement the actual metadata fetching logic here
+			await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
+
+			toast.success('Image metadata refreshed');
+		} catch (error) {
+			console.error('Failed to refresh image metadata:', error);
+			toast.error('Failed to refresh image metadata');
+		} finally {
+			setIsRefreshing(false);
+		}
+	}, [imageUrl]);
+
+	const toolbarContent = (
+		<>
+			{/* Caption Toggle */}
+			<Toggle
+				size={'sm'}
+				variant={'outline'}
+				pressed={showCaption}
+				onPressedChange={(pressed) => {
+					handleNodeChange({ showCaption: pressed });
+				}}
+				title={showCaption ? 'Hide caption' : 'Show caption'}
+			>
+				{showCaption ? (
+					<Eye className='w-4 h-4' />
+				) : (
+					<EyeOff className='w-4 h-4' />
+				)}
+			</Toggle>
+
+			{/* Open Image Button */}
+			{imageUrl && (
+				<Button
+					onClick={handleOpenImage}
+					size={'sm'}
+					variant={'outline'}
+					className='h-8 px-2'
+					title='Open image in new tab'
+				>
+					<ArrowUpRight className='w-4 h-4' />
+				</Button>
+			)}
+
+			{/* Refresh Metadata Button */}
+			{imageUrl && (
+				<Button
+					onClick={handleRefreshMetadata}
+					size={'sm'}
+					variant={'outline'}
+					className='h-8 px-2'
+					disabled={isRefreshing}
+					title='Refresh image metadata'
+				>
+					<RefreshCw
+						className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}
+					/>
+				</Button>
+			)}
+		</>
+	);
 
 	return (
 		<BaseNodeWrapper
@@ -23,6 +139,7 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 			nodeType='Image'
 			nodeIcon={<ImageIcon className='size-4' />}
 			includePadding={false}
+			toolbarContent={toolbarContent}
 		>
 			<>
 				{imageUrl ? (

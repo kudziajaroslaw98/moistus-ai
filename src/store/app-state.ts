@@ -33,6 +33,7 @@ import { LoadingStates } from '@/types/loading-states';
 import type { MindMapData } from '@/types/mind-map-data';
 import type { NodeData } from '@/types/node-data';
 import { ShareToken, SharingError } from '@/types/sharing-types';
+import { SnapLine } from '@/types/snap-line';
 import { StreamingToastState, ToastStep } from '@/types/streaming-toast-state';
 import { Tool } from '@/types/tool';
 import type {
@@ -423,6 +424,7 @@ export interface UIStateSlice {
 	isFocusMode: boolean;
 	isDraggingNodes: boolean;
 	editingNodeId: string | null;
+	snapLines: SnapLine[];
 
 	// UI setters
 	setPopoverOpen: (popover: Partial<Popovers>) => void;

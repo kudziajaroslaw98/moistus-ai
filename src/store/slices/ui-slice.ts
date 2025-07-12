@@ -40,6 +40,7 @@ export const createUiStateSlice: StateCreator<
 	isFocusMode: false,
 	isDraggingNodes: false,
 	editingNodeId: null,
+	snapLines: [],
 
 	// setters
 	setEdgeInfo: (edgeInfo) => {

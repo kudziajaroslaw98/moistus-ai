@@ -181,7 +181,7 @@ function ToastUI({
 							key='hover-hint'
 							initial={{ opacity: 0 }}
 							animate={{ opacity: 1 }}
-							exit={{ opacity: 0 }}
+							exit={{ opacity: 0, height: 0, overflowY: 'clip', y: -10 }}
 							className='flex items-center gap-1.5 text-xs text-zinc-500 mt-2'
 						>
 							<Info className='w-3 h-3' />

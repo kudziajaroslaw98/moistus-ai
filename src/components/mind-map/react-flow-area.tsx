@@ -107,6 +107,7 @@ export function ReactFlowArea() {
 		setActiveTool,
 		ghostNodes,
 		isStreaming,
+		aiFeature,
 	} = useAppStore(
 		useShallow((state) => ({
 			supabase: state.supabase,
@@ -140,6 +141,7 @@ export function ReactFlowArea() {
 			setActiveTool: state.setActiveTool,
 			ghostNodes: state.ghostNodes,
 			isStreaming: state.isStreaming,
+			aiFeature: state.aiFeature,
 		}))
 	);
 
@@ -178,7 +180,7 @@ export function ReactFlowArea() {
 
 	const handleNodeClick = useCallback(
 		(event: React.MouseEvent, node: Node<NodeData>) => {
-			if (activeTool === 'magic-wand' && !isStreaming) {
+			if (activeTool === 'magic-wand' && aiFeature === 'suggest-nodes') {
 				event.preventDefault();
 				event.stopPropagation();
 				generateSuggestionsForNode(node.id, 'magic-wand');
@@ -336,6 +338,7 @@ export function ReactFlowArea() {
 			])}
 			minZoom={0.1}
 			snapToGrid={true}
+			snapGrid={[16, 16]}
 			nodesDraggable={isSelectMode}
 			nodesConnectable={isSelectMode || activeTool === 'connector'}
 			elementsSelectable={isSelectMode}
@@ -349,7 +352,6 @@ export function ReactFlowArea() {
 			onConnectEnd={onConnectEnd}
 			onEdgeDoubleClick={handleEdgeDoubleClick}
 			onNodeClick={handleNodeClick}
-			onNodeDoubleClick={handleNodeDoubleClick}
 			onNodesDelete={deleteNodes}
 			onEdgesDelete={deleteEdges}
 			nodeTypes={nodeTypesWithProps}

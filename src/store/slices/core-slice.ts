@@ -106,6 +106,8 @@ export const createCoreDataSlice: StateCreator<
 
 	fetchMindMapData: withLoadingAndToast(
 		async (mapId: string) => {
+			const { reactFlowInstance } = get();
+
 			if (!mapId) {
 				throw new Error('Map ID is required.');
 			}

@@ -3,7 +3,7 @@
 import useAppStore from '@/store/mind-map-store';
 import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
-import { Node, NodeProps, NodeToolbar, Position } from '@xyflow/react';
+import { Node, NodeProps } from '@xyflow/react';
 import {
 	AlignCenter,
 	AlignLeft,
@@ -12,7 +12,6 @@ import {
 	Italic,
 	Text,
 } from 'lucide-react';
-import { motion } from 'motion/react';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { AutoResizeTextarea } from '../ui/auto-resize-textarea';
@@ -123,110 +122,99 @@ const TextNodeComponent = (props: TextNodeProps) => {
 		}
 	};
 
-	return (
+	const toolbarContent = (
 		<>
-			<NodeToolbar
-				isVisible={props.selected && selectedNodes.length === 1}
-				position={Position.Top}
+			<Toggle
+				size={'sm'}
+				variant={'outline'}
+				pressed={data.metadata?.fontWeight === 600}
+				onPressedChange={(toggle) => {
+					handleNodeChange({
+						fontWeight: toggle ? 600 : 400,
+					});
+				}}
 			>
-				<motion.div
-					className='flex gap-2 bg-zinc-950 border-zinc-500 p-2 rounded-sm'
-					initial={{ opacity: 0, scale: 0.9, y: 20 }}
-					animate={{ opacity: 1, scale: 1, y: 0 }}
-					exit={{ opacity: 0, scale: 0.9, y: 20 }}
-					transition={{ duration: 0.3 }}
+				<Bold className='w-4 h-4' />
+			</Toggle>
+
+			<Toggle
+				size={'sm'}
+				variant={'outline'}
+				pressed={data.metadata?.fontStyle === 'italic'}
+				onPressedChange={(toggle) => {
+					handleNodeChange({
+						fontStyle: toggle ? 'italic' : 'normal',
+					});
+				}}
+			>
+				<Italic className='w-4 h-4' />
+			</Toggle>
+
+			<ToggleGroup
+				type='single'
+				size={'sm'}
+				variant={'outline'}
+				value={data.metadata?.textAlign || 'center'}
+				onValueChange={(value) => {
+					handleNodeChange({
+						textAlign: value as 'left' | 'center' | 'right',
+					});
+				}}
+			>
+				<ToggleGroupItem value='left'>
+					<AlignLeft className='w-4 h-4' />
+				</ToggleGroupItem>
+
+				<ToggleGroupItem value='center'>
+					<AlignCenter className='w-4 h-4' />
+				</ToggleGroupItem>
+
+				<ToggleGroupItem value='right'>
+					<AlignRight className='w-4 h-4' />
+				</ToggleGroupItem>
+			</ToggleGroup>
+		</>
+	);
+
+	return (
+		<BaseNodeWrapper
+			{...props}
+			nodeType='Text'
+			nodeIcon={<Text className='w-3 h-3' />}
+			nodeClassName='text-node min-w-fit min-h-fit h-full p-4' // Adjust minimum width for text nodes
+			hideNodeType={true}
+			includePadding={false}
+			toolbarContent={toolbarContent}
+			onDoubleClick={handleDoubleClick}
+		>
+			{isEditing ? (
+				<AutoResizeTextarea
+					ref={textareaRef}
+					value={localContent}
+					onChange={(e) => setLocalContent(e.target.value)}
+					onBlur={handleBlur}
+					onKeyDown={handleKeyDown}
+					className='nodrag nopan nowheel w-full bg-transparent border-0 resize-none focus:outline-none focus:ring-0 text-inherit p-0 m-0'
+					style={textStyle}
+				/>
+			) : (
+				<div
+					className={cn(
+						'flex items-center min-h-8 w-full whitespace-break-spaces',
+						textAlign === 'center' && 'justify-center',
+						textAlign === 'right' && 'justify-end',
+						textAlign === 'left' && 'justify-start'
+					)}
+					style={textStyle}
 				>
-					<Toggle
-						size={'sm'}
-						variant={'outline'}
-						pressed={data.metadata?.fontWeight === 600}
-						onPressedChange={(toggle) => {
-							handleNodeChange({
-								fontWeight: toggle ? 600 : 400,
-							});
-						}}
-					>
-						<Bold className='w-4 h-4' />
-					</Toggle>
-
-					<Toggle
-						size={'sm'}
-						variant={'outline'}
-						pressed={data.metadata?.fontStyle === 'italic'}
-						onPressedChange={(toggle) => {
-							handleNodeChange({
-								fontStyle: toggle ? 'italic' : 'normal',
-							});
-						}}
-					>
-						<Italic className='w-4 h-4' />
-					</Toggle>
-
-					<ToggleGroup
-						type='single'
-						size={'sm'}
-						variant={'outline'}
-						value={data.metadata?.textAlign || 'center'}
-						onValueChange={(value) => {
-							handleNodeChange({
-								textAlign: value as 'left' | 'center' | 'right',
-							});
-						}}
-					>
-						<ToggleGroupItem value='left'>
-							<AlignLeft className='w-4 h-4' />
-						</ToggleGroupItem>
-
-						<ToggleGroupItem value='center'>
-							<AlignCenter className='w-4 h-4' />
-						</ToggleGroupItem>
-
-						<ToggleGroupItem value='right'>
-							<AlignRight className='w-4 h-4' />
-						</ToggleGroupItem>
-					</ToggleGroup>
-				</motion.div>
-			</NodeToolbar>
-
-			<BaseNodeWrapper
-				{...props}
-				nodeType='Text'
-				nodeIcon={<Text className='w-3 h-3' />}
-				nodeClassName='text-node min-w-fit min-h-fit h-full p-4' // Adjust minimum width for text nodes
-				hideNodeType={true}
-				includePadding={false}
-			>
-				<div onDoubleClick={handleDoubleClick} className='w-full h-full'>
-					{isEditing ? (
-						<AutoResizeTextarea
-							ref={textareaRef}
-							value={localContent}
-							onChange={(e) => setLocalContent(e.target.value)}
-							onBlur={handleBlur}
-							onKeyDown={handleKeyDown}
-							className='nodrag nopan nowheel w-full bg-transparent border-0 resize-none focus:outline-none focus:ring-0 !text-left p-0 m-0'
-							style={textStyle}
-						/>
-					) : (
-						<div
-							className={cn(
-								'flex items-center min-h-8 w-full whitespace-break-spaces',
-								textAlign === 'center' && 'justify-center',
-								textAlign === 'right' && 'justify-end',
-								textAlign === 'left' && 'justify-start'
-							)}
-							style={textStyle}
-						>
-							{content || (
-								<span className='italic opacity-70 text-sm'>
-									{props.selected ? 'Double click to edit...' : 'Text...'}
-								</span>
-							)}
-						</div>
+					{content || (
+						<span className='italic opacity-70 text-sm'>
+							{props.selected ? 'Double click to edit...' : 'Text...'}
+						</span>
 					)}
 				</div>
-			</BaseNodeWrapper>
-		</>
+			)}
+		</BaseNodeWrapper>
 	);
 };
 

@@ -93,174 +93,179 @@ export async function POST(req: Request) {
 			},
 		];
 
-		const stream = createUIMessageStream({
-			execute: async ({ writer }) => {
-				try {
-					const wait = (ms: number) =>
-						new Promise((resolve) => setTimeout(resolve, ms));
+		return createUIMessageStreamResponse({
+			stream: createUIMessageStream({
+				execute: async ({ writer }) => {
+					try {
+						const wait = (ms: number) =>
+							new Promise((resolve) => setTimeout(resolve, ms));
 
-					writer.write({
-						type: 'start',
-					});
-					writer.write({
-						type: 'data-stream-info',
-						data: {
-							steps: totalSteps,
-						},
-					});
+						writer.write({
+							type: 'start',
+						});
 
-					writer.write({
-						type: 'data-stream-status',
-						data: {
-							header: streamHeader,
-							message: 'Validating request...',
-							step: 1,
-							stepName: totalSteps[0].name,
-							totalSteps: totalSteps.length,
-						},
-					});
+						writer.write({
+							type: 'data-stream-info',
+							data: {
+								steps: totalSteps,
+							},
+						});
 
-					await wait(3000);
+						writer.write({
+							type: 'data-stream-status',
+							data: {
+								header: streamHeader,
+								message: 'Validating request...',
+								step: 1,
+								stepName: totalSteps[0].name,
+								totalSteps: totalSteps.length,
+							},
+						});
 
-					// Safely extract mapId from the last message's text part
-					//
-					console.dir(messages, { depth: null });
+						await wait(3000);
 
-					const lastUserMessage = messages
-						.filter((m) => m.role === 'user')
-						.pop();
+						// Safely extract mapId from the last message's text part
+						//
+						console.dir(messages, { depth: null });
 
-					console.dir(lastUserMessage, { depth: null });
-					console.dir(lastUserMessage?.parts, { depth: null });
+						const lastUserMessage = messages
+							.filter((m) => m.role === 'user')
+							.pop();
 
-					if (
-						!lastUserMessage ||
-						!lastUserMessage.parts.filter((part) => part.type === 'text')?.[0]
-					) {
-						throw new Error('Invalid request format: User message not found.');
-					}
+						console.dir(lastUserMessage, { depth: null });
+						console.dir(lastUserMessage?.parts, { depth: null });
 
-					const { mapId } = JSON.parse(
-						lastUserMessage.parts.filter((part) => part.type === 'text')[0].text
-					);
-					const mapValidation = z.string().uuid().safeParse(mapId);
+						if (
+							!lastUserMessage ||
+							!lastUserMessage.parts.filter((part) => part.type === 'text')?.[0]
+						) {
+							throw new Error(
+								'Invalid request format: User message not found.'
+							);
+						}
 
-					if (!mapValidation.success) {
-						throw new Error(`Invalid Map ID: ${mapValidation.error.message}`);
-					}
-
-					// --- Step 2: Fetch Data ---
-					writer.write({
-						type: 'data-stream-status',
-						data: {
-							header: streamHeader,
-							message: 'Fetching map data...',
-							step: 2,
-							stepName: totalSteps[1].name,
-							totalSteps: totalSteps.length,
-						},
-					});
-
-					await wait(3000);
-
-					const { data: mapData, error } = await supabase
-						.from('map_graph_aggregated_view')
-						.select('nodes,edges')
-						.eq('map_id', mapId)
-						.single();
-
-					if (error || mapData === null) {
-						throw new Error(
-							`Failed to fetch map data: ${error?.message || 'Not found'}`
+						const { mapId } = JSON.parse(
+							lastUserMessage.parts.filter((part) => part.type === 'text')[0]
+								.text
 						);
+						const mapValidation = z.string().uuid().safeParse(mapId);
+
+						if (!mapValidation.success) {
+							throw new Error(`Invalid Map ID: ${mapValidation.error.message}`);
+						}
+
+						// --- Step 2: Fetch Data ---
+						writer.write({
+							type: 'data-stream-status',
+							data: {
+								header: streamHeader,
+								message: 'Fetching map data...',
+								step: 2,
+								stepName: totalSteps[1].name,
+								totalSteps: totalSteps.length,
+							},
+						});
+
+						await wait(3000);
+
+						const { data: mapData, error } = await supabase
+							.from('map_graph_aggregated_view')
+							.select('nodes,edges')
+							.eq('map_id', mapId)
+							.single();
+
+						if (error || mapData === null) {
+							throw new Error(
+								`Failed to fetch map data: ${error?.message || 'Not found'}`
+							);
+						}
+
+						// --- Step 3: Prepare Context & Query AI ---
+						writer.write({
+							type: 'data-stream-status',
+							data: {
+								header: streamHeader,
+								message: 'Querying AI model...',
+								step: 3,
+								stepName: totalSteps[2].name,
+								totalSteps: totalSteps.length,
+							},
+						});
+
+						await wait(3000);
+
+						const contextPrompt = `Based on the following mind map data, suggest meaningful connections. Nodes: ${JSON.stringify(mapData.nodes)}. Edges: ${JSON.stringify(mapData.edges)}.`;
+						// const response = streamObject({
+						// 	model: openai('o4-mini'),
+						// 	schema: connectionSuggestionSchema,
+						// 	output: 'array',
+						// 	messages: convertToModelMessages([
+						// 		{
+						// 			role: 'system',
+						// 			parts: [{ type: 'text', text: contextPrompt }],
+						// 		},
+						// 		{
+						// 			role: 'user',
+						// 			parts: [
+						// 				{
+						// 					type: 'text',
+						// 					text: 'Please provide a list of suggested connections.',
+						// 				},
+						// 			],
+						// 		},
+						// 	]),
+						// });
+
+						// --- Step 4: Stream Results ---
+						writer.write({
+							type: 'data-stream-status',
+							data: {
+								header: streamHeader,
+								message: 'Streaming results...',
+								step: 4,
+								stepName: totalSteps[3].name,
+								totalSteps: totalSteps.length,
+							},
+						});
+
+						await wait(3000);
+
+						// for await (const element of response.elementStream) {
+						// 	if (connectionSuggestionSchema.safeParse(element).success) {
+						// 		writer.write({
+						// 			type: 'data-connection-suggestion',
+						// 			data: element,
+						// 		});
+						// 	}
+						// }
+
+						writer.write({
+							type: 'data-stream-info',
+							data: {
+								steps: totalSteps.map((step) => ({
+									...step,
+									status: 'completed',
+								})),
+							},
+						});
+						console.log('finish');
+						writer.write({
+							type: 'finish',
+						});
+					} catch (e) {
+						const error =
+							e instanceof Error ? e : new Error('An unknown error occurred.');
+						console.error('Streaming process failed:', error);
+						writer.write({
+							type: 'data-stream-status',
+							data: { header: streamHeader, error: error.message },
+						});
+					} finally {
+						writer.write({ type: 'finish' });
 					}
-
-					// --- Step 3: Prepare Context & Query AI ---
-					writer.write({
-						type: 'data-stream-status',
-						data: {
-							header: streamHeader,
-							message: 'Querying AI model...',
-							step: 3,
-							stepName: totalSteps[2].name,
-							totalSteps: totalSteps.length,
-						},
-					});
-
-					await wait(3000);
-
-					const contextPrompt = `Based on the following mind map data, suggest meaningful connections. Nodes: ${JSON.stringify(mapData.nodes)}. Edges: ${JSON.stringify(mapData.edges)}.`;
-					// const response = streamObject({
-					// 	model: openai('o4-mini'),
-					// 	schema: connectionSuggestionSchema,
-					// 	output: 'array',
-					// 	messages: convertToModelMessages([
-					// 		{
-					// 			role: 'system',
-					// 			parts: [{ type: 'text', text: contextPrompt }],
-					// 		},
-					// 		{
-					// 			role: 'user',
-					// 			parts: [
-					// 				{
-					// 					type: 'text',
-					// 					text: 'Please provide a list of suggested connections.',
-					// 				},
-					// 			],
-					// 		},
-					// 	]),
-					// });
-
-					// --- Step 4: Stream Results ---
-					writer.write({
-						type: 'data-stream-status',
-						data: {
-							header: streamHeader,
-							message: 'Streaming results...',
-							step: 4,
-							stepName: totalSteps[3].name,
-							totalSteps: totalSteps.length,
-						},
-					});
-
-					await wait(3000);
-
-					// for await (const element of response.elementStream) {
-					// 	if (connectionSuggestionSchema.safeParse(element).success) {
-					// 		writer.write({
-					// 			type: 'data-connection-suggestion',
-					// 			data: element,
-					// 		});
-					// 	}
-					// }
-
-					writer.write({
-						type: 'data-stream-info',
-						data: {
-							steps: totalSteps.map((step) => ({
-								...step,
-								status: 'completed',
-							})),
-						},
-					});
-					writer.write({
-						type: 'finish',
-					});
-				} catch (e) {
-					const error =
-						e instanceof Error ? e : new Error('An unknown error occurred.');
-					console.error('Streaming process failed:', error);
-					writer.write({
-						type: 'data-stream-status',
-						data: { header: streamHeader, error: error.message },
-					});
-				} finally {
-					writer.write({ type: 'finish' });
-				}
-			},
+				},
+			}),
 		});
-
-		return createUIMessageStreamResponse({ stream });
 	} catch (e) {
 		console.error('Error in POST handler:', e);
 		return new Response(JSON.stringify({ error: 'Invalid request' }), {

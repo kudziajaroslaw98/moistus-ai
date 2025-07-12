@@ -5,8 +5,9 @@ import type { AppNode } from '@/types/app-node';
 import { AvailableNodeTypes } from '@/types/available-node-types';
 import type { NodeData } from '@/types/node-data';
 import { NodesTableType } from '@/types/nodes-table-type';
+import { SnapLine } from '@/types/snap-line';
 import { debouncePerKey } from '@/utils/debounce-per-key';
-import { applyNodeChanges } from '@xyflow/react';
+import { applyNodeChanges, NodeChange } from '@xyflow/react';
 import { toast } from 'sonner';
 import type { StateCreator } from 'zustand';
 import type { AppState, NodesSlice } from '../app-state';
@@ -362,15 +363,15 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					};
 				}
 
-				const user = await supabase?.auth.getUser();
-				if (!user?.data.user) throw new Error('User not authenticated.');
+				const user = await supabase?.auth.getSession();
+				if (!user?.data.session) throw new Error('User not authenticated.');
 
 				const newNodeDbData: Omit<NodeData, 'created_at' | 'updated_at'> & {
 					created_at?: string;
 					updated_at?: string;
 				} = {
 					id: newNodeId,
-					user_id: user.data.user.id,
+					user_id: user.data.session.user.id,
 					map_id: mapId,
 					parent_id: parentNode?.id,
 					content: content,
@@ -500,8 +501,9 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				// 	)
 				// );
 
-				const user = await supabase?.auth.getUser();
-				if (!user?.data.user) throw new Error('User not authenticated.');
+				const user_id = (await supabase.auth.getSession()).data.session?.user
+					?.id;
+				if (!user_id) throw new Error('User not authenticated.');
 
 				const { data: newNodes, error: deleteError } = await supabase
 					.from('nodes')
@@ -510,7 +512,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 						'id',
 						nodesToDelete.map((node) => node.id)
 					)
-					.eq('user_id', user.data.user.id)
+					.eq('user_id', user_id)
 					.select();
 
 				// const { data: newEdges, error: deleteEdgesError } = await supabase
@@ -578,7 +580,8 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					throw new Error('Cannot save node: No mapId defined');
 				}
 
-				const user_id = (await supabase.auth.getUser()).data.user?.id;
+				const user_id = (await supabase.auth.getSession()).data.session?.user
+					?.id;
 
 				if (!user_id) {
 					throw new Error('Not authenticated');

@@ -83,6 +83,7 @@ export const Toolbar = () => {
 					generateMergeSuggestions();
 					break;
 				default:
+					setActiveTool(toolId as Tool);
 					break;
 			}
 		} else {

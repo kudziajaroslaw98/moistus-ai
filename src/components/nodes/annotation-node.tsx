@@ -1,37 +1,89 @@
 'use client';
 
+import useAppStore from '@/store/mind-map-store';
 import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
-import { Node, NodeProps, NodeResizer } from '@xyflow/react';
-import { AlignLeft, Lightbulb, MessageSquare, Quote } from 'lucide-react';
-import { memo, useMemo } from 'react';
+import { Node, NodeProps } from '@xyflow/react';
+import { AlignLeft, Lightbulb, MessageSquare, Quote, Type } from 'lucide-react';
+import { memo, useCallback, useMemo } from 'react';
+import { useShallow } from 'zustand/shallow';
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '../ui/select';
+import { Toggle } from '../ui/toggle';
+import { BaseNodeWrapper } from './base-node-wrapper';
 
 type AnnotationNodeProps = NodeProps<Node<NodeData>>;
 
 const annotationTypeInfo: Record<
 	string,
-	{ icon: React.ElementType; textColorClass: string }
+	{ icon: React.ElementType; textColorClass: string; label: string }
 > = {
-	comment: { icon: MessageSquare, textColorClass: 'text-zinc-400' },
-	idea: { icon: Lightbulb, textColorClass: 'text-yellow-400' },
-	quote: { icon: Quote, textColorClass: 'text-blue-300' },
-	summary: { icon: AlignLeft, textColorClass: 'text-green-400' },
-	default: { icon: MessageSquare, textColorClass: 'text-zinc-400' },
+	comment: {
+		icon: MessageSquare,
+		textColorClass: 'text-zinc-400',
+		label: 'Comment',
+	},
+	idea: { icon: Lightbulb, textColorClass: 'text-yellow-400', label: 'Idea' },
+	quote: { icon: Quote, textColorClass: 'text-blue-300', label: 'Quote' },
+	summary: {
+		icon: AlignLeft,
+		textColorClass: 'text-green-400',
+		label: 'Summary',
+	},
+	default: {
+		icon: MessageSquare,
+		textColorClass: 'text-zinc-400',
+		label: 'Comment',
+	},
 };
+
+const fontSizeOptions = [
+	{ value: '12px', label: '12px' },
+	{ value: '14px', label: '14px' },
+	{ value: '16px', label: '16px' },
+	{ value: '18px', label: '18px' },
+	{ value: '20px', label: '20px' },
+	{ value: '24px', label: '24px' },
+];
 
 const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 	const { id, data, selected } = props;
 
-	const fontSize = data.metadata?.fontSize as string | number | undefined;
+	const { updateNode } = useAppStore(
+		useShallow((state) => ({
+			updateNode: state.updateNode,
+		}))
+	);
+
+	const fontSize = data.metadata?.fontSize as string | undefined;
 	const fontWeight = data.metadata?.fontWeight as string | number | undefined;
-	const annotationType = (data.metadata?.annotationType as string) || 'default';
+	const annotationType = (data.metadata?.annotationType as string) || 'comment';
+
+	const handleNodeChange = useCallback(
+		(change: Partial<NodeData['metadata']>) => {
+			updateNode({
+				nodeId: id,
+				data: {
+					metadata: {
+						...data.metadata,
+						...change,
+					},
+				},
+			});
+		},
+		[updateNode, id, data.metadata]
+	);
 
 	const contentStyle = useMemo(() => {
 		const style: React.CSSProperties = {};
 
 		if (fontSize) {
-			style.fontSize =
-				typeof fontSize === 'number' ? `${fontSize}px` : fontSize;
+			style.fontSize = fontSize;
 		}
 
 		if (fontWeight && annotationType !== 'quote') {
@@ -47,14 +99,80 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 
 	const isQuote = annotationType === 'quote';
 
-	return (
-		<div
-			className={cn([
-				'relative flex h-full min-h-20 min-w-80 flex-col gap-1 rounded p-2 text-center transition-all',
+	const toolbarContent = (
+		<>
+			{/* Font Size Selector */}
+			<Select
+				value={fontSize || '14px'}
+				onValueChange={(value) => handleNodeChange({ fontSize: value })}
+			>
+				<SelectTrigger className='h-8 w-20' size='sm'>
+					<SelectValue />
+				</SelectTrigger>
 
-				selected && 'ring-1 ring-sky-600 ring-offset-2 ring-offset-zinc-900',
-				typeInfo.textColorClass,
-			])}
+				<SelectContent>
+					{fontSizeOptions.map((option) => (
+						<SelectItem key={option.value} value={option.value}>
+							{option.label}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
+
+			{/* Font Weight Toggle */}
+			<Toggle
+				size={'sm'}
+				variant={'outline'}
+				pressed={fontWeight === 'bold' || fontWeight === 600}
+				onPressedChange={(pressed) => {
+					handleNodeChange({
+						fontWeight: pressed ? 'bold' : 'normal',
+					});
+				}}
+				disabled={isQuote} // Quotes always use italic styling
+			>
+				<Type className='w-4 h-4' />
+			</Toggle>
+
+			{/* Annotation Type Selector */}
+			<Select
+				value={annotationType}
+				onValueChange={(value) => handleNodeChange({ annotationType: value })}
+			>
+				<SelectTrigger className='h-8 w-24' size='sm'>
+					<div className='flex items-center gap-1'>
+						<TypeIcon className='w-3 h-3' />
+
+						<SelectValue />
+					</div>
+				</SelectTrigger>
+
+				<SelectContent>
+					{Object.entries(annotationTypeInfo).map(([key, info]) => {
+						if (key === 'default') return null;
+						const Icon = info.icon;
+						return (
+							<SelectItem key={key} value={key}>
+								<div className='flex items-center gap-2'>
+									<Icon className='w-3 h-3' />
+
+									{info.label}
+								</div>
+							</SelectItem>
+						);
+					})}
+				</SelectContent>
+			</Select>
+		</>
+	);
+
+	return (
+		<BaseNodeWrapper
+			{...props}
+			nodeClassName={cn(['annotation-node', typeInfo.textColorClass])}
+			nodeType='Annotation'
+			nodeIcon={<TypeIcon className='size-4' />}
+			toolbarContent={toolbarContent}
 		>
 			{/* --- Quote Specific Layout --- */}
 			{isQuote ? (
@@ -65,7 +183,7 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 						className='pointer-events-none absolute -top-4 -left-4 font-lora text-6xl text-current opacity-20'
 						style={{ lineHeight: '1' }}
 					>
-						“
+						"
 					</span>
 
 					{/* Content */}
@@ -88,7 +206,7 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 						className='pointer-events-none absolute -right-4 -bottom-4 font-lora text-6xl text-current opacity-20'
 						style={{ lineHeight: '0.5' }}
 					>
-						”
+						"
 					</span>
 				</div>
 			) : (
@@ -121,16 +239,7 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 					</div>
 				</>
 			)}
-
-			{/* No handles for annotation nodes */}
-
-			<NodeResizer
-				color='#0069a8'
-				isVisible={selected}
-				minWidth={100}
-				minHeight={30}
-			/>
-		</div>
+		</BaseNodeWrapper>
 	);
 };
 

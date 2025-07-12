@@ -4,8 +4,17 @@ import useAppStore from '@/store/mind-map-store';
 import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
 import { Node, NodeProps } from '@xyflow/react';
-import { Check, Dot, SquareCheck } from 'lucide-react'; // Import Square icon
+import {
+	Check,
+	CheckCheck,
+	Dot,
+	Plus,
+	SquareCheck,
+	Trash2,
+} from 'lucide-react'; // Import Square icon
 import { memo, useCallback, useMemo } from 'react'; // Import useMemo
+import { toast } from 'sonner';
+import { Button } from '../ui/button';
 import { BaseNodeWrapper } from './base-node-wrapper';
 
 interface Task {
@@ -23,6 +32,11 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 	const tasks: Task[] = useMemo(
 		() => data.metadata?.tasks || [],
 		[data.metadata?.tasks]
+	);
+
+	const completedTasks = useMemo(
+		() => tasks.filter((task) => task.isComplete),
+		[tasks]
 	);
 
 	const handleToggleTask = useCallback(
@@ -43,12 +57,126 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 		[tasks, updateNode, id, data.metadata]
 	);
 
+	const handleAddTask = useCallback(async () => {
+		const newTask: Task = {
+			id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+			text: 'New task',
+			isComplete: false,
+		};
+
+		const updatedTasks = [...tasks, newTask];
+
+		try {
+			await updateNode({
+				nodeId: id,
+				data: { metadata: { ...data.metadata, tasks: updatedTasks } },
+			});
+			toast.success('Task added');
+		} catch (error) {
+			console.error('Failed to add task:', error);
+			toast.error('Failed to add task');
+		}
+	}, [tasks, updateNode, id, data.metadata]);
+
+	const handleCompleteAll = useCallback(async () => {
+		if (tasks.length === 0) {
+			toast.error('No tasks to complete');
+			return;
+		}
+
+		const updatedTasks = tasks.map((task) => ({
+			...task,
+			isComplete: true,
+		}));
+
+		try {
+			await updateNode({
+				nodeId: id,
+				data: { metadata: { ...data.metadata, tasks: updatedTasks } },
+			});
+			toast.success('All tasks completed');
+		} catch (error) {
+			console.error('Failed to complete all tasks:', error);
+			toast.error('Failed to complete all tasks');
+		}
+	}, [tasks, updateNode, id, data.metadata]);
+
+	const handleClearCompleted = useCallback(async () => {
+		if (completedTasks.length === 0) {
+			toast.error('No completed tasks to clear');
+			return;
+		}
+
+		const updatedTasks = tasks.filter((task) => !task.isComplete);
+
+		try {
+			await updateNode({
+				nodeId: id,
+				data: { metadata: { ...data.metadata, tasks: updatedTasks } },
+			});
+			toast.success(`Cleared ${completedTasks.length} completed task(s)`);
+		} catch (error) {
+			console.error('Failed to clear completed tasks:', error);
+			toast.error('Failed to clear completed tasks');
+		}
+	}, [tasks, completedTasks.length, updateNode, id, data.metadata]);
+
+	const toolbarContent = (
+		<>
+			{/* Add Task Button */}
+			<Button
+				onClick={handleAddTask}
+				size={'sm'}
+				variant={'outline'}
+				className='h-8 px-2'
+				title='Add new task'
+			>
+				<Plus className='w-4 h-4' />
+			</Button>
+
+			{/* Task Counter Badge */}
+			{tasks.length > 0 && (
+				<div className='flex items-center gap-1 px-2 py-1 rounded text-xs bg-blue-600/20 text-blue-400'>
+					<SquareCheck className='w-3 h-3' />
+					{completedTasks.length}/{tasks.length}
+				</div>
+			)}
+
+			{/* Complete All Button */}
+			{tasks.length > 0 && completedTasks.length < tasks.length && (
+				<Button
+					onClick={handleCompleteAll}
+					size={'sm'}
+					variant={'outline'}
+					className='h-8 px-2'
+					title='Mark all tasks as complete'
+				>
+					<CheckCheck className='w-4 h-4' />
+				</Button>
+			)}
+
+			{/* Clear Completed Button */}
+			{completedTasks.length > 0 && (
+				<Button
+					onClick={handleClearCompleted}
+					size={'sm'}
+					variant={'outline'}
+					className='h-8 px-2 text-red-400 hover:text-red-300'
+					title='Remove completed tasks'
+				>
+					<Trash2 className='w-4 h-4' />
+				</Button>
+			)}
+		</>
+	);
+
 	return (
 		<BaseNodeWrapper
 			{...props}
 			nodeClassName='task-node'
 			nodeType='Tasks'
 			nodeIcon={<SquareCheck className='size-4' />}
+			toolbarContent={toolbarContent}
 		>
 			<div className='flex flex-col gap-1.5'>
 				{tasks.length === 0 ? (

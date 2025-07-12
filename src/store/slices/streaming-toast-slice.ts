@@ -100,6 +100,12 @@ export const createStreamingToastSlice: StateCreator<
 	 */
 	hideStreamingToast: () => {
 		const { streamingToast } = get();
+		set({
+			streamingToast: {
+				...streamingToast,
+				message: 'Streaming complete',
+			},
+		});
 		console.log('Hiding streaming toast');
 
 		setTimeout(() => {
