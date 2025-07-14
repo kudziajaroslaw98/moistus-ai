@@ -106,15 +106,11 @@ export const nodeTypesConfig: Record<string, NodeTypeConfig> = {
 			groupPadding: 40,
 		},
 	},
-	builderNode: {
-		label: 'Builder',
-		defaultMetadata: {},
-	},
 	referenceNode: {
 		label: 'Reference',
 		defaultMetadata: {
-			targetMapId: null, // UUID of the map being referenced
-			targetNodeId: null, // UUID of the node being referenced
+			targetMapId: undefined, // UUID of the map being referenced
+			targetNodeId: undefined, // UUID of the node being referenced
 			targetMapTitle: 'Untitled Map', // Title of the map for display
 			contentSnippet: 'No content', // Snippet of the referenced node's content
 		},

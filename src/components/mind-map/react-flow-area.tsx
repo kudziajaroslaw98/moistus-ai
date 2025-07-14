@@ -58,7 +58,6 @@ import { useParams } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
 import FloatingConnectionLine from '../edges/floating-connection-line';
 import { SuggestedMergeEdge } from '../edges/suggested-merge-edge';
-import BuilderNode from '../nodes/builder-node';
 import ReferenceNode from '../nodes/reference-node';
 import TaskNode from '../nodes/task-node';
 import { RealtimeAvatarStack } from '../realtime/realtime-avatar-stack';
@@ -209,7 +208,6 @@ export function ReactFlowArea() {
 			codeNode: CodeNode,
 			groupNode: GroupNode,
 			textNode: TextNode,
-			builderNode: BuilderNode,
 			ghostNode: GhostNode,
 			referenceNode: ReferenceNode,
 		}),

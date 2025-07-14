@@ -218,7 +218,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 						(e.source === targetId && e.target === sourceId)
 				);
 
-				if (existingEdge) {
+				if (existingEdge && existingEdge.data?.aiData?.isSuggested === false) {
 					throw new Error('Edge already exists.');
 				}
 

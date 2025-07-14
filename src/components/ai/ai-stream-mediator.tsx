@@ -21,12 +21,11 @@ export function AIStreamMediator() {
 	const currentStreamIdRef = useRef<string | null>(null);
 
 	const { sendMessage, setMessages } = useChat({
-		id: `${streamingAPI}`,
+		id: `${streamTrigger?.id || 'unknown'}`,
 		transport: new DefaultChatTransport({
 			api: streamingAPI ?? '/api/chat',
 		}),
 		onData: (data) => {
-			console.log(data);
 			streamTrigger?.onStreamChunk(data);
 		},
 		onError: (error) => {

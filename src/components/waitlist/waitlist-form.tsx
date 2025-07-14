@@ -127,7 +127,7 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 								id='email'
 								type='email'
 								placeholder='Enter your email for early access'
-								className='!h-12 !flex pl-12 pr-4 bg-zinc-900/50 border-zinc-800 text-zinc-100 placeholder:text-zinc-500 focus:border-violet-500/50 focus:ring-violet-500/20'
+								className='!h-12 !flex pl-12 pr-4 !bg-zinc-950 !border-zinc-800 !text-zinc-100 !placeholder:text-zinc-500 focus:border-violet-500/75 focus:ring-violet-500/75'
 								disabled={isSubmitting || isSuccess}
 								aria-label='Email address'
 								aria-invalid={!!errors.email}
@@ -232,7 +232,6 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 						className='mt-4 text-sm text-zinc-500 text-center'
 					>
 						Already signed up with a different email?{' '}
-
 						<button
 							type='button'
 							onClick={() => {

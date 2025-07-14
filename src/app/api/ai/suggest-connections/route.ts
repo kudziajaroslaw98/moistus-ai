@@ -1,9 +1,12 @@
 // src/app/api/ai/suggest-connections/route.ts
 
 import { createClient } from '@/helpers/supabase/server';
+import { openai } from '@ai-sdk/openai';
 import {
+	convertToModelMessages,
 	createUIMessageStream,
 	createUIMessageStreamResponse,
+	streamObject,
 	UIMessage,
 } from 'ai';
 import { z } from 'zod';
@@ -88,7 +91,12 @@ export async function POST(req: Request) {
 			},
 			{
 				id: 'generate-connections',
-				name: 'Generate Connections',
+				name: 'Generate Connection Suggestions',
+				status: 'pending',
+			},
+			{
+				id: 'stream-results',
+				name: 'Streaming Results',
 				status: 'pending',
 			},
 		];
@@ -122,7 +130,7 @@ export async function POST(req: Request) {
 							},
 						});
 
-						await wait(3000);
+						await wait(1000);
 
 						// Safely extract mapId from the last message's text part
 						//
@@ -166,7 +174,7 @@ export async function POST(req: Request) {
 							},
 						});
 
-						await wait(3000);
+						await wait(1000);
 
 						const { data: mapData, error } = await supabase
 							.from('map_graph_aggregated_view')
@@ -192,52 +200,67 @@ export async function POST(req: Request) {
 							},
 						});
 
-						await wait(3000);
+						await wait(1000);
 
 						const contextPrompt = `Based on the following mind map data, suggest meaningful connections. Nodes: ${JSON.stringify(mapData.nodes)}. Edges: ${JSON.stringify(mapData.edges)}.`;
-						// const response = streamObject({
-						// 	model: openai('o4-mini'),
-						// 	schema: connectionSuggestionSchema,
-						// 	output: 'array',
-						// 	messages: convertToModelMessages([
-						// 		{
-						// 			role: 'system',
-						// 			parts: [{ type: 'text', text: contextPrompt }],
-						// 		},
-						// 		{
-						// 			role: 'user',
-						// 			parts: [
-						// 				{
-						// 					type: 'text',
-						// 					text: 'Please provide a list of suggested connections.',
-						// 				},
-						// 			],
-						// 		},
-						// 	]),
-						// });
+						const response = streamObject({
+							model: openai('o4-mini'),
+							schema: connectionSuggestionSchema,
+							output: 'array',
+							messages: convertToModelMessages([
+								{
+									role: 'system',
+									parts: [{ type: 'text', text: contextPrompt }],
+								},
+								{
+									role: 'user',
+									parts: [
+										{
+											type: 'text',
+											text: 'Please provide a list of (1) suggested connections.',
+										},
+									],
+								},
+							]),
+						});
 
 						// --- Step 4: Stream Results ---
 						writer.write({
 							type: 'data-stream-status',
 							data: {
 								header: streamHeader,
-								message: 'Streaming results...',
+								message: 'Generating results...',
 								step: 4,
 								stepName: totalSteps[3].name,
 								totalSteps: totalSteps.length,
 							},
 						});
 
-						await wait(3000);
+						await wait(1000);
+						let status = 'pending';
 
-						// for await (const element of response.elementStream) {
-						// 	if (connectionSuggestionSchema.safeParse(element).success) {
-						// 		writer.write({
-						// 			type: 'data-connection-suggestion',
-						// 			data: element,
-						// 		});
-						// 	}
-						// }
+						for await (const element of response.elementStream) {
+							if (status === 'pending') {
+								status = 'streaming';
+								writer.write({
+									type: 'data-stream-status',
+									data: {
+										header: streamHeader,
+										message: 'Streaming results...',
+										step: 5,
+										stepName: totalSteps[4].name,
+										totalSteps: totalSteps.length,
+									},
+								});
+							}
+
+							if (connectionSuggestionSchema.safeParse(element).success) {
+								writer.write({
+									type: 'data-connection-suggestion',
+									data: element,
+								});
+							}
+						}
 
 						writer.write({
 							type: 'data-stream-info',
@@ -248,7 +271,6 @@ export async function POST(req: Request) {
 								})),
 							},
 						});
-						console.log('finish');
 						writer.write({
 							type: 'finish',
 						});

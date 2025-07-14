@@ -7,7 +7,7 @@ export default function BackgroundEffects() {
 		<div className='fixed inset-0 z-0 overflow-hidden pointer-events-none'>
 			{/* Grid pattern overlay */}
 			<div
-				className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-5"
+				className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-90"
 				style={{ backgroundSize: '50px 50px' }}
 			/>
 
@@ -16,12 +16,12 @@ export default function BackgroundEffects() {
 				{/* Primary orb - violet/purple */}
 				<motion.div
 					animate={{
-						x: [0, 30, -30, 0],
-						y: [0, -30, 30, 0],
-						scale: [1, 1.1, 0.9, 1],
+						x: [0, 30, -140, 0],
+						y: [0, -100, 30, 0],
+						scale: [1, 1.5, 0.9, 1],
 					}}
 					transition={{
-						duration: 30,
+						duration: 10,
 						ease: 'easeInOut',
 						repeat: Infinity,
 						repeatType: 'loop',
@@ -34,12 +34,12 @@ export default function BackgroundEffects() {
 				{/* Secondary orb - blue/indigo */}
 				<motion.div
 					animate={{
-						x: [0, -40, 40, 0],
-						y: [0, 40, -40, 0],
-						scale: [1, 0.95, 1.05, 1],
+						x: [0, -120, 40, 0],
+						y: [0, 40, -160, 0],
+						scale: [1, 0.95, 1.2, 1],
 					}}
 					transition={{
-						duration: 35,
+						duration: 10,
 						ease: 'easeInOut',
 						repeat: Infinity,
 						repeatType: 'loop',
@@ -52,12 +52,12 @@ export default function BackgroundEffects() {
 				{/* Accent orb - smaller, emerald */}
 				<motion.div
 					animate={{
-						x: [0, 50, -20, 0],
-						y: [0, -20, 50, 0],
-						scale: [1, 1.1, 0.9, 1],
+						x: [0, 100, -100, 0],
+						y: [0, -200, 120, 0],
+						scale: [1.4, 1.2, 0.9, 1],
 					}}
 					transition={{
-						duration: 25,
+						duration: 10,
 						ease: 'easeInOut',
 						repeat: Infinity,
 						repeatType: 'loop',
@@ -66,28 +66,10 @@ export default function BackgroundEffects() {
 				>
 					<div className='w-full h-full bg-gradient-to-br from-emerald-500/10 to-teal-600/10 rounded-full blur-3xl' />
 				</motion.div>
-
-				{/* Extra subtle orb for depth */}
-				<motion.div
-					animate={{
-						x: [0, -20, 50, 0],
-						y: [0, 60, -20, 0],
-						scale: [1, 0.9, 1.05, 1],
-					}}
-					transition={{
-						duration: 40,
-						ease: 'easeInOut',
-						repeat: Infinity,
-						repeatType: 'loop',
-					}}
-					className='absolute bottom-1/3 left-1/2 w-[400px] h-[400px]'
-				>
-					<div className='w-full h-full bg-gradient-to-br from-violet-600/10 to-blue-600/10 rounded-full blur-3xl' />
-				</motion.div>
 			</div>
 
 			{/* Vignette overlay for depth perception */}
-			<div className='absolute inset-0 bg-radial-gradient from-transparent via-transparent to-zinc-950/70' />
+			<div className='absolute inset-0 bg-radial-gradient from-transparent via-transparent to-zinc-900/70 ' />
 		</div>
 	);
 }

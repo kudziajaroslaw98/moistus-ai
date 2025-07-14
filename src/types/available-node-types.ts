@@ -7,6 +7,5 @@ export type AvailableNodeTypes =
 	| 'annotationNode'
 	| 'codeNode'
 	| 'taskNode'
-	| 'builderNode'
 	| 'ghostNode'
 	| (string & {});

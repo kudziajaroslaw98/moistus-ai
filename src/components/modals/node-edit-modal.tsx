@@ -49,9 +49,6 @@ const AnnotationNodeForm = React.lazy(
 );
 const CodeNodeForm = React.lazy(() => import('../node-forms/code-node-form'));
 const TaskNodeForm = React.lazy(() => import('../node-forms/task-node-form'));
-const BuilderNodeForm = React.lazy(
-	() => import('../node-forms/builder-node-form')
-);
 // Add other forms here
 
 const nodeSpecificForms: Record<
@@ -70,7 +67,6 @@ const nodeSpecificForms: Record<
 	annotationNode: AnnotationNodeForm,
 	codeNode: CodeNodeForm,
 	taskNode: TaskNodeForm,
-	builderNode: BuilderNodeForm,
 	// map other node types to their respective form components
 };
 

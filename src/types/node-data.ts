@@ -1,5 +1,4 @@
 import { AvailableNodeTypes } from './available-node-types';
-import { BuilderNodeData } from './builder-node';
 import { SuggestionContext } from './ghost-node';
 
 export interface NodeData extends Record<string, unknown> {
@@ -64,7 +63,6 @@ export interface NodeData extends Record<string, unknown> {
 		groupChildren?: string[]; // Array of child node IDs (for group nodes)
 		groupPadding?: number; // Padding inside the group
 
-		builderData?: BuilderNodeData;
 		suggestedContent?: string;
 		suggestedType?: AvailableNodeTypes;
 		confidence?: number;

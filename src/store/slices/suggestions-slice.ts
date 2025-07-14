@@ -5,7 +5,6 @@ import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import type { AvailableNodeTypes } from '@/types/available-node-types';
 import type { NodeSuggestion, SuggestionContext } from '@/types/ghost-node';
-import { ToastStep } from '@/types/streaming-toast-state';
 import type { StateCreator } from 'zustand';
 import type { AppState } from '../app-state';
 
@@ -206,6 +205,11 @@ export const createSuggestionsSlice: StateCreator<
 			addGhostNode,
 			clearGhostNodes,
 			triggerStream,
+			showStreamingToast,
+			updateStreamingToast,
+			setStreamingToastError,
+			hideStreamingToast,
+			setStreamSteps,
 		} = get();
 
 		set({
@@ -220,72 +224,67 @@ export const createSuggestionsSlice: StateCreator<
 				context,
 			};
 
-			console.log('before trigger');
-
+			// Clear any existing ghost nodes before generating new suggestions
 			clearGhostNodes();
 
 			const sourceNode = nodes.find((node) => node.id === context.sourceNodeId);
+
+			// Define the specific chunk handler for THIS process
+			const handleChunk = (chunk: any) => {
+				if (!chunk || !chunk.type) return;
+
+				switch (chunk.type) {
+					case 'data-stream-info':
+						if (chunk.data?.steps) {
+							setStreamSteps(chunk.data.steps);
+						}
+
+						break;
+
+					case 'data-stream-status':
+						if (chunk.data.error) {
+							setStreamingToastError(chunk.data.error);
+						} else {
+							updateStreamingToast(chunk.data);
+						}
+
+						break;
+
+					case 'data-node-suggestion':
+						if (chunk.data) {
+							const suggestionChunk = chunk.data;
+							addGhostNode({
+								...suggestionChunk,
+								position: {
+									x:
+										(sourceNode?.position.x ?? 0) +
+										(suggestionChunk.index || 0) * 300 +
+										(suggestionChunk.index || 0) * 25,
+									y:
+										(sourceNode?.position.y ?? 0) +
+										(sourceNode?.height ?? sourceNode?.data.height ?? 0) +
+										50,
+								},
+							});
+						}
+
+						break;
+
+					default:
+						// Ignore 'start' or other event types if no action is needed
+						break;
+				}
+			};
+
+			// Show the initial toast
+			showStreamingToast('Generating Node Suggestions');
 
 			// Trigger the stream with a specific callback for handling node suggestions
 			triggerStream(
 				'/api/ai/suggestions', // Ensure you create this endpoint
 				suggestionContext,
-				(suggestionChunk: NodeSuggestion & { index: number }) => {
-					// This is the callback! It's specific to this action.
-					// Here, we can validate the chunk with Zod if desired.
-					console.log('chunk', suggestionChunk);
-
-					if (suggestionChunk) {
-						addGhostNode({
-							...suggestionChunk,
-							position: {
-								x:
-									(sourceNode?.position.x ?? 0) +
-									suggestionChunk.index * 300 +
-									suggestionChunk.index * 25,
-								y:
-									(sourceNode?.position.y ?? 0) +
-									(sourceNode?.height ?? sourceNode?.data.height ?? 0) +
-									50,
-							},
-						});
-					}
-				}
+				handleChunk
 			);
-
-			// // Call the AI API endpoint
-			// const response = await fetch('/api/ai/suggestions', {
-			// 	method: 'POST',
-			// 	headers: {
-			// 		'Content-Type': 'application/json',
-			// 	},
-			// 	body: JSON.stringify(suggestionContext),
-			// });
-
-			// if (!response.ok) {
-			// 	throw new Error(
-			// 		`Failed to generate suggestions: ${response.statusText}`
-			// 	);
-			// }
-
-			// const sourceNode = nodes.find((node) => node.id === context.sourceNodeId);
-			// const { suggestions } = await response.json();
-
-			// // Add each suggestion as a ghost node
-			// if (suggestions && Array.isArray(suggestions)) {
-			// 	suggestions.forEach((suggestion: NodeSuggestion, index) => {
-			// 		addGhostNode({
-			// 			...suggestion,
-			// 			position: {
-			// 				x: (sourceNode?.position.x ?? 0) + index * 300 + index * 25,
-			// 				y:
-			// 					(sourceNode?.position.y ?? 0) +
-			// 					(sourceNode?.height ?? sourceNode?.data.height ?? 0) +
-			// 					50,
-			// 			},
-			// 		});
-			// 	});
-			// }
 		} catch (error) {
 			console.error('Error generating suggestions:', error);
 			set({
@@ -326,14 +325,6 @@ export const createSuggestionsSlice: StateCreator<
 				case 'data-stream-info':
 					if (chunk.data?.steps) {
 						setStreamSteps(chunk.data.steps);
-					}
-
-					if (
-						chunk.data?.steps?.every(
-							(step: ToastStep) => step.status === 'completed'
-						)
-					) {
-						hideStreamingToast();
 					}
 
 					break;
@@ -415,7 +406,7 @@ export const createSuggestionsSlice: StateCreator<
 
 	addConnectionSuggestion: (suggestion: AiConnectionSuggestion) => {
 		const { edges, mapId } = get();
-		const { sourceNodeId, targetNodeId, reason } = suggestion;
+		const { sourceNodeId, targetNodeId, reason, label } = suggestion;
 
 		// Check if suggestion already exists
 		const existingEdge = edges.find(
@@ -437,7 +428,7 @@ export const createSuggestionsSlice: StateCreator<
 			target: targetNodeId,
 			type: 'suggestedConnection',
 			animated: false,
-			label: null,
+			label: label,
 			style: {
 				stroke: '#f59e0b',
 				strokeWidth: 2,
@@ -450,7 +441,7 @@ export const createSuggestionsSlice: StateCreator<
 				source: sourceNodeId,
 				target: targetNodeId,
 				type: 'suggestedConnection',
-				label: null,
+				label: label,
 				created_at: new Date().toISOString(),
 				updated_at: new Date().toISOString(),
 				animated: false,
@@ -476,11 +467,14 @@ export const createSuggestionsSlice: StateCreator<
 	},
 
 	generateMergeSuggestions: () => {
-		const { mapId, edges, triggerStream } = get();
-
-		set({
-			streamingAPI: '/api/ai/suggest-merges',
-		});
+		const {
+			mapId,
+			triggerStream,
+			showStreamingToast,
+			updateStreamingToast,
+			setStreamingToastError,
+			setStreamSteps,
+		} = get();
 
 		if (!mapId) {
 			// We throw an error here so the HOF can catch it and show a toast.
@@ -491,136 +485,89 @@ export const createSuggestionsSlice: StateCreator<
 		set({ suggestionError: null });
 
 		try {
+			// Define the specific chunk handler for merge suggestions
+			const handleChunk = (chunk: any) => {
+				if (!chunk || !chunk.type) return;
+
+				switch (chunk.type) {
+					case 'data-stream-info':
+						setStreamSteps(chunk.data.steps);
+
+						break;
+
+					case 'data-stream-status':
+						if (chunk.data.error) {
+							setStreamingToastError(chunk.data.error);
+						} else {
+							updateStreamingToast(chunk.data);
+						}
+
+						break;
+
+					case 'data-merge-suggestion':
+						const suggestion = chunk.data;
+						const edgeId = `merge-suggestion-${suggestion.node1Id}-${suggestion.node2Id}`;
+						const newEdge = {
+							id: edgeId,
+							source: suggestion.node1Id,
+							target: suggestion.node2Id,
+							type: 'suggestedMerge', // This matches the key in edgeTypes
+							animated: true,
+							label: null, // Label is handled inside the component
+							data: {
+								id: edgeId,
+								map_id: mapId,
+								user_id: 'system', // AI is the user
+								source: suggestion.node1Id,
+								target: suggestion.node2Id,
+								type: 'suggestedMerge',
+								label: null,
+								created_at: new Date().toISOString(),
+								updated_at: new Date().toISOString(),
+								animated: true,
+								style: {
+									stroke: '#9333ea', // purple-600
+									strokeWidth: 2,
+									strokeDasharray: '5 5',
+								},
+								metadata: {
+									pathType: 'smoothstep' as const,
+									interactionMode: 'both' as const,
+								},
+								aiData: {
+									isSuggested: true,
+									suggestion: {
+										node1Id: suggestion.node1Id,
+										node2Id: suggestion.node2Id,
+										confidence: suggestion.confidence || 0.8,
+										reason: suggestion.reason || 'AI suggested merge',
+										similarityScore: suggestion.similarityScore,
+									},
+								},
+							},
+						};
+
+						set((state) => ({
+							...state,
+							edges: [...state.edges, newEdge], // Clear old merge suggestions and add new ones
+						}));
+
+						break;
+
+					default:
+						// Ignore 'start' or other event types if no action is needed
+						break;
+				}
+			};
+
+			// Show the initial toast
+			showStreamingToast('Suggesting Node Merges');
+
 			triggerStream(
 				'/api/ai/suggest-merges', // Ensure you create this endpoint
 				{ mapId },
-				(suggestion: AiMergeSuggestion) => {
-					// This is the callback! It's specific to this action.
-					// Here, we can validate the chunk with Zod if desired.
-					console.log('chunk', suggestion);
-
-					const edgeId = `merge-suggestion-${suggestion.node1Id}-${suggestion.node2Id}`;
-					const newEdge = {
-						id: edgeId,
-						source: suggestion.node1Id,
-						target: suggestion.node2Id,
-						type: 'suggestedMerge', // This matches the key in edgeTypes
-						animated: true,
-						label: null, // Label is handled inside the component
-						data: {
-							id: edgeId,
-							map_id: mapId,
-							user_id: 'system', // AI is the user
-							source: suggestion.node1Id,
-							target: suggestion.node2Id,
-							type: 'suggestedMerge',
-							label: null,
-							created_at: new Date().toISOString(),
-							updated_at: new Date().toISOString(),
-							animated: true,
-							style: {
-								stroke: '#9333ea', // purple-600
-								strokeWidth: 2,
-								strokeDasharray: '5 5',
-							},
-							metadata: {
-								pathType: 'smoothstep' as const,
-								interactionMode: 'both' as const,
-							},
-							aiData: {
-								isSuggested: true,
-								suggestion: {
-									node1Id: suggestion.node1Id,
-									node2Id: suggestion.node2Id,
-									confidence: suggestion.confidence || 0.8,
-									reason: suggestion.reason || 'AI suggested merge',
-									similarityScore: suggestion.similarityScore,
-								},
-							},
-						},
-					};
-
-					set((state) => ({
-						...state,
-						edges: [...state.edges, newEdge], // Clear old merge suggestions and add new ones
-					}));
-				}
+				handleChunk
 			);
-			// // Call our new API route
-			// const response = await fetch('/api/ai/suggest-merges', {
-			// 	method: 'POST',
-			// 	headers: { 'Content-Type': 'application/json' },
-			// 	body: JSON.stringify({ mapId }),
-			// });
-
-			// if (!response.ok) {
-			// 	const errorData = await response.json();
-			// 	throw new Error(
-			// 		errorData.error || `Server responded with ${response.status}`
-			// 	);
-			// }
-
-			// const result = await response.json();
-			// const suggestions: AiMergeSuggestion[] = result.data.suggestions;
-
-			// if (suggestions && suggestions.length > 0) {
-			// 	const newEdges: AppEdge[] = suggestions.map((suggestion) => {
-			// 		// Create a new "suggestedMerge" edge for each suggestion
-			// 		const edgeId = `merge-suggestion-${suggestion.node1Id}-${suggestion.node2Id}`;
-			// 		return {
-			// 			id: edgeId,
-			// 			source: suggestion.node1Id,
-			// 			target: suggestion.node2Id,
-			// 			type: 'suggestedMerge', // This matches the key in edgeTypes
-			// 			animated: true,
-			// 			label: null, // Label is handled inside the component
-			// 			data: {
-			// 				id: edgeId,
-			// 				map_id: mapId,
-			// 				user_id: 'system', // AI is the user
-			// 				source: suggestion.node1Id,
-			// 				target: suggestion.node2Id,
-			// 				type: 'suggestedMerge',
-			// 				label: null,
-			// 				created_at: new Date().toISOString(),
-			// 				updated_at: new Date().toISOString(),
-			// 				animated: true,
-			// 				style: {
-			// 					stroke: '#9333ea', // purple-600
-			// 					strokeWidth: 2,
-			// 					strokeDasharray: '5 5',
-			// 				},
-			// 				metadata: {
-			// 					pathType: 'smoothstep' as const,
-			// 					interactionMode: 'both' as const,
-			// 				},
-			// 				aiData: {
-			// 					isSuggested: true,
-			// 					suggestion,
-			// 					confidence: suggestion.confidence || 0.8, // Use score or default
-			// 					reason: suggestion.reason || 'AI suggested merge',
-			// 					similarityScore: suggestion.similarityScore,
-			// 				},
-			// 			},
-			// 		};
-			// 	});
-
-			// 	set({
-			// 		edges: [
-			// 			...edges.filter((e) => e.type !== 'suggestedMerge'),
-			// 			...newEdges,
-			// 		], // Clear old merge suggestions and add new ones
-			// 	});
-
-			// Return a success message for the HOF to display
-			// 	toast.success(
-			// 		`Found ${suggestions.length} potential merge(s) for you to review.`,
-			// 		{ id: toastId }
-			// 	);
-			// } else {
-			// 	// Return an info message
-			// 	toast.info('No new merge suggestions found.', { id: toastId });
-			// }
 		} catch (error) {
 			const errorMessage =
 				error instanceof Error
@@ -729,6 +676,7 @@ export const createSuggestionsSlice: StateCreator<
 	},
 
 	abortStream: (reason) => {
+		get().hideStreamingToast();
 		set({
 			isStreaming: false,
 			suggestionError: reason,

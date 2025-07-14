@@ -19,7 +19,7 @@ export default function MinimalFooter() {
 
 					<span className='text-zinc-600'>•</span>
 
-					<span>Moistus AI</span>
+					<span>Moistus</span>
 				</div>
 			</div>
 		</motion.footer>

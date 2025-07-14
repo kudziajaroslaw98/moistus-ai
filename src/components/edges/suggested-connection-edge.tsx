@@ -47,12 +47,13 @@ const SuggestedConnectionEdgeComponent = ({
 }: EdgeProps<Edge<EdgeData>>) => {
 	const [isProcessing, setIsProcessing] = useState(false);
 
-	const { addEdge, deleteEdges } = useAppStore(
-		useShallow((state) => ({
-			addEdge: state.addEdge,
-			deleteEdges: state.deleteEdges,
-		}))
-	);
+	const { acceptConnectionSuggestion, rejectConnectionSuggestion } =
+		useAppStore(
+			useShallow((state) => ({
+				acceptConnectionSuggestion: state.acceptConnectionSuggestion,
+				rejectConnectionSuggestion: state.rejectConnectionSuggestion,
+			}))
+		);
 
 	const pathFunction = useMemo(
 		() => getPathFunction(data?.metadata?.pathType),
@@ -110,21 +111,7 @@ const SuggestedConnectionEdgeComponent = ({
 		setIsProcessing(true);
 
 		try {
-			// Convert suggestion to regular edge
-			await addEdge(source, target, {
-				...data,
-				aiData: {
-					...data?.aiData,
-					isSuggested: false,
-				},
-				style: {
-					...data?.style,
-					stroke: '#6c757d', // Regular edge color
-				},
-			});
-
-			// Remove the suggestion edge
-			deleteEdges([{ id, source, target, data }]);
+			acceptConnectionSuggestion(id);
 		} catch (error) {
 			console.error('Failed to accept suggestion:', error);
 		} finally {
@@ -136,8 +123,7 @@ const SuggestedConnectionEdgeComponent = ({
 		e.stopPropagation();
 		if (isProcessing) return;
 
-		// Simply remove the suggestion edge
-		deleteEdges([{ id, source, target, data }]);
+		rejectConnectionSuggestion(id);
 	};
 
 	if (!sourceNode || !targetNode) {
