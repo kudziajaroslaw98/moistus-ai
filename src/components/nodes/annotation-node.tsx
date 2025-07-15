@@ -19,10 +19,7 @@ import { BaseNodeWrapper } from './base-node-wrapper';
 
 type AnnotationNodeProps = NodeProps<Node<NodeData>>;
 
-const annotationTypeInfo: Record<
-	string,
-	{ icon: React.ElementType; textColorClass: string; label: string }
-> = {
+const annotationTypeInfo = {
 	comment: {
 		icon: MessageSquare,
 		textColorClass: 'text-zinc-400',
@@ -35,12 +32,9 @@ const annotationTypeInfo: Record<
 		textColorClass: 'text-green-400',
 		label: 'Summary',
 	},
-	default: {
-		icon: MessageSquare,
-		textColorClass: 'text-zinc-400',
-		label: 'Comment',
-	},
 };
+
+type AnnotationType = keyof typeof annotationTypeInfo;
 
 const fontSizeOptions = [
 	{ value: '12px', label: '12px' },
@@ -94,7 +88,8 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 	}, [fontSize, fontWeight, annotationType]);
 
 	const typeInfo =
-		annotationTypeInfo[annotationType] || annotationTypeInfo.default;
+		annotationTypeInfo[annotationType as AnnotationType] ||
+		annotationTypeInfo.comment;
 	const TypeIcon = typeInfo.icon;
 
 	const isQuote = annotationType === 'quote';
@@ -137,7 +132,9 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 			{/* Annotation Type Selector */}
 			<Select
 				value={annotationType}
-				onValueChange={(value) => handleNodeChange({ annotationType: value })}
+				onValueChange={(value: AnnotationType) =>
+					handleNodeChange({ annotationType: value })
+				}
 			>
 				<SelectTrigger className='h-8 w-24' size='sm'>
 					<div className='flex items-center gap-1'>
@@ -183,7 +180,7 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 						className='pointer-events-none absolute -top-4 -left-4 font-lora text-6xl text-current opacity-20'
 						style={{ lineHeight: '1' }}
 					>
-						"
+						&quot;
 					</span>
 
 					{/* Content */}
@@ -206,7 +203,7 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 						className='pointer-events-none absolute -right-4 -bottom-4 font-lora text-6xl text-current opacity-20'
 						style={{ lineHeight: '0.5' }}
 					>
-						"
+						&quot;
 					</span>
 				</div>
 			) : (

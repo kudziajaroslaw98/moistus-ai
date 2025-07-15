@@ -44,8 +44,6 @@ export const transformSupabaseData = (
 				metadata: {
 					...node.metadata,
 					showBackground: Boolean(node.metadata?.showBackground),
-					// Preserve builder data if it exists
-					builderData: node.metadata?.builderData || undefined,
 				},
 			},
 			type: node.node_type || 'defaultNode',
@@ -85,6 +83,7 @@ export const transformSupabaseData = (
 	}));
 
 	return {
+		// @ts-expect-error map_id is available only from the initial fetch
 		mindMap: { ...mindMap, id: mindMap?.map_id ?? mindMap?.id } as MindMapData, // Cast the remaining map data
 		reactFlowNodes,
 		reactFlowEdges,

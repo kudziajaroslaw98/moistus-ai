@@ -65,11 +65,6 @@ export function createNodeContextExtractor(
 					? strategy.taskNode(node)
 					: extractTaskNodeContext(nodeData);
 
-			case 'builderNode':
-				return strategy.builderNode
-					? strategy.builderNode(node)
-					: extractBuilderNodeContext(nodeData);
-
 			case 'ghostNode':
 				return strategy.ghostNode
 					? strategy.ghostNode(node)
@@ -228,20 +223,6 @@ function extractTaskNodeContext(node: NodeData): string {
 			.join(', ');
 		parts.push(`Tasks: ${tasksList}`);
 	}
-
-	return parts.join(' | ');
-}
-
-function extractBuilderNodeContext(node: NodeData): string {
-	const builderData = node?.metadata?.builderData;
-	const content = node?.content || '';
-
-	const parts = [
-		`ID: ${node?.id}`,
-		'Builder Node',
-		content && `Content: ${content}`,
-		builderData && 'Has builder configuration',
-	].filter(Boolean);
 
 	return parts.join(' | ');
 }

@@ -55,7 +55,7 @@ const TextNodeForm = forwardRef<
 	const [fontSize, setFontSize] = useState<string>(
 		initialData.metadata?.fontSize || '16px'
 	);
-	const [fontWeight, setFontWeight] = useState<number>(
+	const [fontWeight, setFontWeight] = useState<number | string>(
 		initialData.metadata?.fontWeight || 400
 	);
 	const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>(

@@ -1,4 +1,4 @@
-use client';
+'use client';
 
 import { UserAvatar } from '@/components/ui/user-avatar';
 import useAppStore from '@/store/mind-map-store';
@@ -316,8 +316,10 @@ function CommentItem({
 
 						<span>
 							Resolved by{' '}
+
 							{comment.resolved_by_user.display_name ||
 								comment.resolved_by_user.full_name}
+
 							{comment.resolved_at &&
 								` • ${formatTimeAgo(comment.resolved_at)}`}
 						</span>
@@ -382,6 +384,7 @@ function CommentThread({
 						) : (
 							<ChevronRight className='size-3 mr-1' />
 						)}
+
 						{replies.length} {replies.length === 1 ? 'reply' : 'replies'}
 					</Button>
 

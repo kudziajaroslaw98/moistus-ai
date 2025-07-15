@@ -12,7 +12,7 @@ import {
 } from '@xyflow/react';
 import { Plus, Settings } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { memo, type ReactNode, useCallback, useMemo, useRef } from 'react';
+import { memo, type ReactNode, useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { AvatarStack } from '../ui/avatar-stack';
 import { Button } from '../ui/button';
@@ -28,6 +28,7 @@ interface BaseNodeWrapperProps extends NodeProps<Node<NodeData>> {
 	nodeIcon?: ReactNode;
 	nodeType?:
 		| 'Resource'
+		| 'Annotation'
 		| 'Question'
 		| 'Tasks'
 		| 'Image'
@@ -79,7 +80,6 @@ const BaseNodeWrapperComponent = ({
 		}))
 	);
 
-	const nodeRef = useRef();
 	const connection = useConnection();
 	const isTarget = connection?.toNode?.id === id;
 
@@ -312,7 +312,6 @@ const BaseNodeWrapperComponent = ({
 								minWidth={100}
 								minHeight={30}
 								maxWidth={600}
-								maxHeight={nodeRef.current?.height ?? 600}
 								handleClassName='!w-3 !h-3 !bg-node-accent border-node-text-secondary'
 							/>
 						</>
