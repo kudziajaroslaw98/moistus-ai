@@ -3,6 +3,7 @@
 import type { UserProfile } from '@/helpers/user-profile-helpers';
 import type { RealtimeUserSelection } from '@/hooks/realtime/use-realtime-selection-presence-room';
 import type { ChatSlice } from '@/store/slices/chat-slice';
+import type { OnboardingSlice } from '@/store/slices/onboarding-slice';
 import type {
 	FieldActivityState,
 	FieldActivityUser,
@@ -12,6 +13,7 @@ import type {
 	RealtimeFormState,
 	UserFieldPresence,
 } from '@/store/slices/realtime-slice';
+import type { SubscriptionSlice } from '@/store/slices/subscription-slice';
 import type { SuggestionsSlice } from '@/store/slices/suggestions-slice';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
@@ -32,7 +34,7 @@ import type { SpecificLayoutConfig } from '@/types/layout-types';
 import { LoadingStates } from '@/types/loading-states';
 import type { MindMapData } from '@/types/mind-map-data';
 import type { NodeData } from '@/types/node-data';
-import { ShareToken, SharingError } from '@/types/sharing-types';
+import { SharedUser, ShareToken, SharingError } from '@/types/sharing-types';
 import { SnapLine } from '@/types/snap-line';
 import { StreamingToastState, ToastStep } from '@/types/streaming-toast-state';
 import { Tool } from '@/types/tool';
@@ -345,19 +347,21 @@ interface JoinRoomResult {
 
 // Sharing State
 export interface SharingState {
-	// State
 	shareTokens: ShareToken[];
 	activeToken?: ShareToken;
+	currentShares?: SharedUser[];
 	isCreatingToken: boolean;
 	isJoiningRoom: boolean;
 	authUser?: AnonymousUser;
 	sharingError?: SharingError;
 	lastJoinResult?: JoinRoomResult;
+	_sharingSubscription?: any;
 }
 
 // Sharing Slice
 export interface SharingSlice extends SharingState {
-	// Actions
+	getCurrentShareUsers: () => Promise<void>;
+
 	createRoomCode: (
 		mapId: string,
 		options?: {
@@ -542,4 +546,6 @@ export interface AppState
 		RealtimeSlice,
 		SuggestionsSlice,
 		ChatSlice,
-		StreamingToastSlice {}
+		StreamingToastSlice,
+		SubscriptionSlice,
+		OnboardingSlice {}

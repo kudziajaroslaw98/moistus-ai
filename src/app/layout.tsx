@@ -1,3 +1,4 @@
+import { ClientProviders } from '@/components/providers/client-providers';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Lora } from 'next/font/google';
 import { Toaster } from 'sonner';
@@ -38,9 +39,11 @@ export default function RootLayout({
 				className={`${geistSans.variable} ${geistMono.variable} ${lora.variable} dark h-full w-full bg-zinc-950 antialiased`}
 				suppressHydrationWarning={true}
 			>
-				<div className='flex h-full w-full flex-col rounded-xl bg-zinc-900 text-zinc-100'>
-					{children}
-				</div>
+				<ClientProviders>
+					<div className='flex h-full w-full flex-col rounded-xl bg-zinc-900 text-zinc-100'>
+						{children}
+					</div>
+				</ClientProviders>
 
 				<Toaster
 					theme='dark'

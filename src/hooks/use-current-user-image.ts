@@ -20,7 +20,10 @@ interface AvatarOptions {
 	backgroundColor?: string;
 }
 
-const generateFallbackAvatar = (seed: string, options: AvatarOptions = {}) => {
+export const generateFallbackAvatar = (
+	seed: string,
+	options: AvatarOptions = {}
+) => {
 	const { style = 'bottts-neutral', backgroundColor = '09090b' } = options;
 
 	const baseUrl = `https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(seed)}`;

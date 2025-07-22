@@ -13,25 +13,10 @@ import {
 	SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
 import useAppStore from '@/store/mind-map-store';
-import {
-	CreateShareRequest,
-	SharePanelProps,
-	ShareRole,
-} from '@/types/sharing-types';
+import { SharePanelProps, ShareRole } from '@/types/sharing-types';
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-	Link2,
-	Loader2,
-	Mail,
-	QrCode,
-	Send,
-	Shield,
-	Trash2,
-	Users,
-	X,
-} from 'lucide-react';
+import { Link2, Loader2, QrCode, Shield, Trash2, Users, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -49,7 +34,6 @@ const createShareSchema = z.object({
 type CreateShareFormData = z.infer<typeof createShareSchema>;
 
 export function SharePanel({
-	currentShares = [],
 	onShareCreated,
 	onShareUpdated,
 	onShareDeleted,
@@ -62,17 +46,17 @@ export function SharePanel({
 
 	const {
 		shareTokens,
-		activeToken,
 		createRoomCode,
 		refreshRoomCode,
 		revokeRoomCode,
 		refreshTokens,
 		subscribeToSharingUpdates,
 		unsubscribeFromSharing,
-		currentUser,
 		setPopoverOpen,
 		popoverOpen,
 		mindMap,
+		getCurrentShareUsers,
+		currentShares,
 	} = useAppStore(
 		useShallow((state) => ({
 			shareTokens: state.shareTokens,
@@ -87,6 +71,8 @@ export function SharePanel({
 			popoverOpen: state.popoverOpen,
 			setPopoverOpen: state.setPopoverOpen,
 			mindMap: state.mindMap,
+			getCurrentShareUsers: state.getCurrentShareUsers,
+			currentShares: state.currentShares,
 		}))
 	);
 
@@ -125,6 +111,7 @@ export function SharePanel({
 	useEffect(() => {
 		if (isOpen && mapId) {
 			subscribeToSharingUpdates(mapId);
+			getCurrentShareUsers();
 		}
 
 		return () => {
@@ -188,42 +175,44 @@ export function SharePanel({
 		}
 	};
 
-	const handleDirectShare = async (data: {
-		email: string;
-		role: 'owner' | 'editor' | 'commenter' | 'viewer';
-		message?: string;
-	}) => {
-		setIsSendingInvite(true);
+	// TODO: for future expansion
+	// const handleDirectShare = async (data: {
+	// 	email: string;
+	// 	role: 'owner' | 'editor' | 'commenter' | 'viewer';
+	// 	message?: string;
+	// }) => {
+	// 	setIsSendingInvite(true);
 
-		try {
-			const response = await fetch('/api/share/create-direct-share', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					map_id: mapId,
-					user_email: data.email,
-					role: data.role,
-					message: data.message,
-					send_notification: true,
-				} as CreateShareRequest),
-			});
+	// 	try {
+	// 		const response = await fetch('/api/share/create-direct-share', {
+	// 			method: 'POST',
+	// 			headers: { 'Content-Type': 'application/json' },
+	// 			body: JSON.stringify({
+	// 				map_id: mapId,
+	// 				user_email: data.email,
+	// 				role: data.role,
+	// 				message: data.message,
+	// 				send_notification: true,
+	// 			} as CreateShareRequest),
+	// 		});
 
-			if (!response.ok) {
-				throw new Error('Failed to send invitation');
-			}
+	// 		if (!response.ok) {
+	// 			throw new Error('Failed to send invitation');
+	// 		}
 
-			const share = await response.json();
-			onShareCreated?.(share);
-			toast.success(`Invitation sent to ${data.email}`);
-			reset();
-		} catch (error) {
-			console.error('Failed to send invitation:', error);
-			toast.error('Failed to send invitation. Please try again.');
-		} finally {
-			setIsSendingInvite(false);
-		}
-	};
+	// 		const share = await response.json();
+	// 		onShareCreated?.(share);
+	// 		toast.success(`Invitation sent to ${data.email}`);
+	// 		reset();
+	// 	} catch (error) {
+	// 		console.error('Failed to send invitation:', error);
+	// 		toast.error('Failed to send invitation. Please try again.');
+	// 	} finally {
+	// 		setIsSendingInvite(false);
+	// 	}
+	// };
 
+	// TODO: Implement backend logic
 	const handleUpdateShareRole = async (shareId: string, newRole: ShareRole) => {
 		try {
 			const response = await fetch(`/api/share/update-share/${shareId}`, {
@@ -245,6 +234,7 @@ export function SharePanel({
 		}
 	};
 
+	// TODO: Implement backend logic
 	const handleDeleteShare = async (shareId: string) => {
 		try {
 			const response = await fetch(`/api/share/delete-share/${shareId}`, {
@@ -260,21 +250,6 @@ export function SharePanel({
 		} catch (error) {
 			console.error('Failed to delete share:', error);
 			toast.error('Failed to remove share');
-		}
-	};
-
-	const getRoleBadgeVariant = (role: ShareRole) => {
-		switch (role) {
-			case 'owner':
-				return 'default';
-			case 'editor':
-				return 'secondary';
-			case 'commenter':
-				return 'outline';
-			case 'viewer':
-				return 'ghost';
-			default:
-				return 'ghost';
 		}
 	};
 
@@ -325,16 +300,17 @@ export function SharePanel({
 								onValueChange={(v) => setActiveTab(v as any)}
 								className='flex-1 max-h-screen overflow-y-auto'
 							>
-								<TabsList className='grid w-full grid-cols-3'>
+								<TabsList className='grid w-full grid-cols-2'>
 									<TabsTrigger value='room-code'>
 										<Link2 className='mr-2 h-4 w-4' />
 										Room Code
 									</TabsTrigger>
 
-									<TabsTrigger value='direct-share'>
+									{/* TODO: Implement Direct Share Tab */}
+									{/* <TabsTrigger value='direct-share'>
 										<Mail className='mr-2 h-4 w-4' />
 										Direct Share
-									</TabsTrigger>
+									</TabsTrigger> */}
 
 									<TabsTrigger value='manage'>
 										<Users className='mr-2 h-4 w-4' />
@@ -487,8 +463,9 @@ export function SharePanel({
 									</div>
 								</TabsContent>
 
+								{/* TODO: Implement Direct Share Tab */}
 								{/* Direct Share Tab */}
-								<TabsContent value='direct-share' className='flex-1 p-4'>
+								{/* <TabsContent value='direct-share' className='flex-1 p-4'>
 									<form
 										onSubmit={handleSubmit(handleDirectShare)}
 										className='space-y-4'
@@ -568,13 +545,13 @@ export function SharePanel({
 											)}
 										</Button>
 									</form>
-								</TabsContent>
+								</TabsContent> */}
 
 								{/* Manage Access Tab */}
 								<TabsContent value='manage' className='flex-1'>
 									<ScrollArea className='h-full'>
 										<div className='space-y-4 p-4'>
-											{currentShares.length === 0 ? (
+											{!currentShares || currentShares.length === 0 ? (
 												<div className='rounded-lg border-2 border-dashed p-8 text-center'>
 													<Users className='mx-auto h-12 w-12 text-muted-foreground' />
 
@@ -598,7 +575,9 @@ export function SharePanel({
 																	<AvatarImage src={share.avatar_url} />
 
 																	<AvatarFallback>
-																		{share.name.charAt(0).toUpperCase()}
+																		{share.profile?.display_name
+																			?.charAt(0)
+																			.toUpperCase()}
 																	</AvatarFallback>
 																</Avatar>
 

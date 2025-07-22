@@ -1,6 +1,9 @@
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
-import { ShareToken, SharingError } from '@/types/sharing-types';
+import { generateFallbackAvatar } from '@/helpers/user-profile-helpers';
+import { ShareAccessWithProfile } from '@/types/share-access-with-profiles';
+import { SharedUser, ShareToken, SharingError } from '@/types/sharing-types';
 import { StateCreator } from 'zustand';
+import { AppState, SharingSlice } from '../app-state';
 
 const supabase = getSharedSupabaseClient();
 
@@ -28,55 +31,8 @@ interface AnonymousUser {
 	created_at: string;
 }
 
-// Simplified sharing slice interface
-interface SharingSlice {
-	// State
-	shareTokens: ShareToken[];
-	activeToken?: ShareToken;
-	isCreatingToken: boolean;
-	isJoiningRoom: boolean;
-	authUser?: AnonymousUser;
-	sharingError?: SharingError;
-	lastJoinResult?: JoinRoomResult;
-	_sharingSubscription?: any;
-
-	// Actions
-	createRoomCode: (
-		mapId: string,
-		options?: {
-			role?: string;
-			maxUsers?: number;
-			expiresAt?: string;
-		}
-	) => Promise<ShareToken>;
-
-	joinRoom: (roomCode: string, displayName?: string) => Promise<JoinRoomResult>;
-
-	upgradeAnonymousUser: (
-		email: string,
-		password: string,
-		displayName?: string
-	) => Promise<boolean>;
-
-	ensureAuthenticated: (displayName?: string) => Promise<boolean>;
-
-	refreshTokens: () => Promise<void>;
-
-	refreshRoomCode: (tokenId: string) => Promise<void>;
-
-	revokeRoomCode: (tokenId: string) => Promise<void>;
-
-	subscribeToSharingUpdates: (mapId: string) => void;
-
-	unsubscribeFromSharing: () => void;
-
-	clearError: () => void;
-
-	reset: () => void;
-}
-
 export const createSharingSlice: StateCreator<
-	SharingSlice,
+	AppState,
 	[],
 	[],
 	SharingSlice
@@ -84,6 +40,7 @@ export const createSharingSlice: StateCreator<
 	return {
 		// Initial state
 		shareTokens: [],
+		currentShares: [],
 		activeToken: undefined,
 		isCreatingToken: false,
 		isJoiningRoom: false,
@@ -91,6 +48,58 @@ export const createSharingSlice: StateCreator<
 		sharingError: undefined,
 		lastJoinResult: undefined,
 		_sharingSubscription: undefined,
+
+		getCurrentShareUsers: async () => {
+			const { supabase, mapId, setState } = get();
+
+			const {
+				data,
+				error,
+			}: { data: ShareAccessWithProfile[] | null; error: Error | null } =
+				await supabase
+					.from('share_access_with_profiles')
+					.select(`*`)
+					.eq('map_id', mapId);
+
+			console.log(data);
+
+			if (error || !data) {
+				console.error('Error fetching current shares:', error);
+				return;
+			}
+
+			const currentShares: SharedUser[] = data.map((shareAccessProfile) => ({
+				id: shareAccessProfile.profile_user_id,
+				user_id: shareAccessProfile.user_id,
+				name: shareAccessProfile.full_name,
+				email: shareAccessProfile.email,
+				avatar_url: generateFallbackAvatar(shareAccessProfile.user_id),
+				profile: {
+					display_name: shareAccessProfile.display_name,
+					role: shareAccessProfile.role,
+				},
+				isAnonymous: shareAccessProfile.is_anonymous,
+				share: {
+					id: shareAccessProfile.share_token_id!,
+					map_id: shareAccessProfile.map_id,
+					user_id: shareAccessProfile.user_id,
+					can_edit: shareAccessProfile.can_edit,
+					can_comment: shareAccessProfile.can_comment,
+					can_view: shareAccessProfile.can_view,
+					role: shareAccessProfile.role,
+					shared_by: shareAccessProfile.token_created_by,
+					shared_at: shareAccessProfile.created_at,
+					created_at: shareAccessProfile.created_at,
+					updated_at: shareAccessProfile.updated_at,
+				},
+			}));
+
+			setState({
+				currentShares: currentShares,
+			});
+
+			console.log(currentShares);
+		},
 
 		// Ensure user is authenticated (anonymous or full)
 		ensureAuthenticated: async (displayName?: string) => {

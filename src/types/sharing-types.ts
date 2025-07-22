@@ -73,10 +73,11 @@ export interface SharePanelProps {
 export interface SharedUser {
 	id: string;
 	user_id: string;
-	name: string;
-	email: string;
-	avatar_url?: string;
+	name: string | null;
+	email: string | null;
+	avatar_url: string;
 	share: MindMapShare;
+	isAnonymous?: boolean;
 	profile?: {
 		display_name?: string;
 		role?: string;
