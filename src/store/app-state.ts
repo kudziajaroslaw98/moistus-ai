@@ -419,6 +419,25 @@ export interface Popovers {
 	referenceSearch: boolean;
 }
 
+// InlineNodeCreator types
+export interface InlineCreatorState {
+	isOpen: boolean;
+	position: XYPosition;
+	screenPosition: XYPosition;
+	mode: 'quick' | 'structured';
+	selectedCommand: string | null;
+	filterQuery: string;
+	parentNode: AppNode | null;
+	suggestedType: AvailableNodeTypes | null;
+}
+
+export interface InlineCreatorOptions {
+	position: XYPosition;
+	screenPosition?: XYPosition;
+	parentNode?: AppNode | null;
+	suggestedType?: AvailableNodeTypes | null;
+}
+
 export interface UIStateSlice {
 	// UI state
 	popoverOpen: Popovers;
@@ -429,6 +448,7 @@ export interface UIStateSlice {
 	isDraggingNodes: boolean;
 	editingNodeId: string | null;
 	snapLines: SnapLine[];
+	inlineCreator: InlineCreatorState;
 
 	// UI setters
 	setPopoverOpen: (popover: Partial<Popovers>) => void;
@@ -439,6 +459,13 @@ export interface UIStateSlice {
 
 	// UI actions
 	toggleFocusMode: () => void;
+
+	// InlineNodeCreator actions
+	openInlineCreator: (options: InlineCreatorOptions) => void;
+	closeInlineCreator: () => void;
+	setInlineCreatorCommand: (command: string) => void;
+	setInlineCreatorMode: (mode: 'quick' | 'structured') => void;
+	setInlineCreatorFilterQuery: (query: string) => void;
 }
 
 // Enhanced Form State

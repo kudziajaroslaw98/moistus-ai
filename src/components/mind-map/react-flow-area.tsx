@@ -15,7 +15,7 @@ import {
 	SelectionMode,
 	useReactFlow,
 } from '@xyflow/react';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 // Import specific node/edge components only if needed here, otherwise rely on types
 import AnnotationNode from '@/components/nodes/annotation-node';
 import CodeNode from '@/components/nodes/code-node';
@@ -75,6 +75,7 @@ export function ReactFlowArea() {
 	const connectingNodeId = useRef<string | null>(null);
 	const connectingHandleId = useRef<string | null>(null);
 	const connectingHandleType = useRef<'source' | 'target' | null>(null);
+	const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
 	const {
 		supabase,
@@ -98,6 +99,7 @@ export function ReactFlowArea() {
 		initializeComments,
 		unsubscribeFromComments,
 		unsubscribeFromRealtimeUpdates,
+		openInlineCreator,
 		getCurrentUser,
 		getVisibleEdges,
 		getVisibleNodes,
@@ -133,6 +135,7 @@ export function ReactFlowArea() {
 			initializeComments: state.initializeComments,
 			unsubscribeFromComments: state.unsubscribeFromComments,
 			unsubscribeFromRealtimeUpdates: state.unsubscribeFromRealtimeUpdates,
+			openInlineCreator: state.openInlineCreator,
 			getCurrentUser: state.getCurrentUser,
 			toggleFocusMode: state.toggleFocusMode,
 			mindMap: state.mindMap,
@@ -168,6 +171,40 @@ export function ReactFlowArea() {
 			unsubscribeFromRealtimeUpdates();
 		};
 	}, []);
+
+	// Track mouse position for InlineNodeCreator
+	useEffect(() => {
+		const handleMouseMove = (e: MouseEvent) => {
+			setMousePosition({ x: e.clientX, y: e.clientY });
+		};
+
+		window.addEventListener('mousemove', handleMouseMove);
+		return () => window.removeEventListener('mousemove', handleMouseMove);
+	}, []);
+
+	// Handle "/" key to open InlineNodeCreator
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			// Check if "/" key is pressed and not in an input
+			if (e.key === '/' && !isInputElement(e.target)) {
+				e.preventDefault();
+
+				const position = reactFlowInstance?.screenToFlowPosition({
+					x: mousePosition.x,
+					y: mousePosition.y,
+				}) || { x: 0, y: 0 };
+
+				openInlineCreator({
+					position,
+					screenPosition: mousePosition,
+					parentNode: null,
+				});
+			}
+		};
+
+		window.addEventListener('keydown', handleKeyDown);
+		return () => window.removeEventListener('keydown', handleKeyDown);
+	}, [mousePosition, openInlineCreator, reactFlowInstance]);
 
 	const handleNodeDoubleClick = useCallback(
 		(event: React.MouseEvent, node: Node<NodeData>) => {
@@ -261,21 +298,19 @@ export function ReactFlowArea() {
 					? event.changedTouches[0]?.clientY
 					: (event as MouseEvent).clientY;
 
-				const panePosition = reactFlowInstance.screenToFlowPosition({
-					x: clientX,
-					y: clientY,
-				});
+				const screenPosition = { x: clientX, y: clientY };
+				const flowPosition =
+					reactFlowInstance.screenToFlowPosition(screenPosition);
 
 				const parentNode = nodes.find(
 					(node) => node.id === connectingNodeId.current
 				);
 
-				addNode({
+				openInlineCreator({
+					position: flowPosition,
+					screenPosition,
 					parentNode: parentNode ?? null,
-					position: panePosition,
-					data: {},
-					content: 'New Node',
-					nodeType: parentNode?.data?.node_type ?? 'defaultNode',
+					suggestedType: parentNode?.data?.node_type ?? 'defaultNode',
 				});
 			}
 
@@ -283,7 +318,7 @@ export function ReactFlowArea() {
 			connectingHandleId.current = null;
 			connectingHandleType.current = null;
 		},
-		[reactFlowInstance, nodes, addNode]
+		[reactFlowInstance, nodes, openInlineCreator]
 	);
 
 	const handleSelectionChange = useCallback(
@@ -321,6 +356,18 @@ export function ReactFlowArea() {
 	const handleToggleCommentsPanel = useCallback(() => {
 		setPopoverOpen({ commentsPanel: true });
 	}, [setPopoverOpen]);
+
+	// Helper to check if target is an input element
+	const isInputElement = (target: EventTarget | null): boolean => {
+		if (!target || !(target instanceof HTMLElement)) return false;
+		const tagName = target.tagName.toLowerCase();
+		return (
+			tagName === 'input' ||
+			tagName === 'textarea' ||
+			tagName === 'select' ||
+			target.contentEditable === 'true'
+		);
+	};
 
 	const isSelectMode = activeTool === 'default';
 	const isPanningMode = activeTool === 'pan';

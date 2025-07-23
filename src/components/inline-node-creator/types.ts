@@ -1,0 +1,138 @@
+import type { AvailableNodeTypes } from '@/types/available-node-types';
+import type { AppNode } from '@/types/app-node';
+import type { ReactNode } from 'react';
+
+// Field configuration types
+export type FieldType =
+  | 'text'
+  | 'textarea'
+  | 'select'
+  | 'date'
+  | 'array'
+  | 'code'
+  | 'url'
+  | 'image'
+  | 'checkbox'
+  | 'task';
+
+export interface FieldConfig {
+  name: string;
+  type: FieldType;
+  label?: string;
+  placeholder?: string;
+  required?: boolean;
+  options?: Array<{ value: string; label: string }>;
+  itemType?: string;
+  validation?: (value: any) => string | null;
+}
+
+// Node command configuration
+export interface NodeCommand {
+  command: string;
+  label: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  nodeType: AvailableNodeTypes;
+  category: 'content' | 'media' | 'interactive' | 'annotation';
+  quickParse?: QuickParser;
+  fields?: FieldConfig[];
+  examples?: string[];
+  isPro?: boolean;
+}
+
+// Parser types
+export type QuickParser<T = any> = (input: string) => T;
+
+// Parsed data types for each node type
+export interface ParsedNoteData {
+  content: string;
+  tags?: string[];
+  priority?: 'low' | 'medium' | 'high';
+}
+
+export interface ParsedTaskData {
+  tasks: Array<{
+    id: string;
+    text: string;
+    isComplete: boolean;
+  }>;
+  dueDate?: Date;
+  priority?: 'low' | 'medium' | 'high';
+  assignee?: string;
+  tags?: string[];
+}
+
+export interface ParsedCodeData {
+  language?: string;
+  code: string;
+  filename?: string;
+  lineNumbers?: boolean;
+}
+
+export interface ParsedImageData {
+  url?: string;
+  alt?: string;
+  caption?: string;
+  source?: string;
+}
+
+export interface ParsedResourceData {
+  url: string;
+  title?: string;
+  description?: string;
+  type?: 'link' | 'document' | 'video' | 'other';
+}
+
+export interface ParsedAnnotationData {
+  text: string;
+  type?: 'note' | 'warning' | 'info' | 'success' | 'error';
+  icon?: string;
+}
+
+export interface ParsedQuestionData {
+  question: string;
+  answer?: string;
+  options?: string[];
+  type?: 'open' | 'multiple-choice' | 'yes-no';
+}
+
+// Component props types
+export interface CommandPaletteProps {
+  commands: NodeCommand[];
+  onSelectCommand: (command: NodeCommand) => void;
+  filterQuery: string;
+  onFilterChange: (query: string) => void;
+  activeIndex: number | null;
+  itemsRef: React.MutableRefObject<(HTMLElement | null)[]>;
+}
+
+export interface QuickInputProps {
+  command: NodeCommand;
+  parentNode: AppNode | null;
+  position: { x: number; y: number };
+}
+
+export interface StructuredInputProps {
+  command: NodeCommand;
+  parentNode: AppNode | null;
+  position: { x: number; y: number };
+}
+
+export interface ModeToggleProps {
+  mode: 'quick' | 'structured';
+  onToggle: (mode: 'quick' | 'structured') => void;
+}
+
+export interface CommandItemProps {
+  command: NodeCommand;
+  isSelected: boolean;
+  onSelect: (command: NodeCommand) => void;
+  style?: React.CSSProperties;
+}
+
+// Creation result type
+export interface NodeCreationResult {
+  success: boolean;
+  nodeId?: string;
+  error?: string;
+}

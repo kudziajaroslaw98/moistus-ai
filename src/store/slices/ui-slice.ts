@@ -42,6 +42,18 @@ export const createUiStateSlice: StateCreator<
 	editingNodeId: null,
 	snapLines: [],
 
+	// InlineNodeCreator state
+	inlineCreator: {
+		isOpen: false,
+		position: { x: 0, y: 0 },
+		screenPosition: { x: 0, y: 0 },
+		mode: 'quick',
+		selectedCommand: null,
+		filterQuery: '',
+		parentNode: null,
+		suggestedType: null,
+	},
+
 	// setters
 	setEdgeInfo: (edgeInfo) => {
 		set({ edgeInfo });
@@ -61,6 +73,56 @@ export const createUiStateSlice: StateCreator<
 	toggleFocusMode: () => {
 		set({
 			isFocusMode: !get().isFocusMode,
+		});
+	},
+
+	// InlineNodeCreator actions
+	openInlineCreator: (options) => {
+		set({
+			inlineCreator: {
+				...get().inlineCreator,
+				isOpen: true,
+				position: options.position,
+				screenPosition: options.screenPosition || options.position,
+				parentNode: options.parentNode || null,
+				suggestedType: options.suggestedType || null,
+				filterQuery: '',
+				selectedCommand: null,
+			},
+		});
+	},
+	closeInlineCreator: () => {
+		set({
+			inlineCreator: {
+				...get().inlineCreator,
+				isOpen: false,
+				filterQuery: '',
+				selectedCommand: null,
+			},
+		});
+	},
+	setInlineCreatorCommand: (command) => {
+		set({
+			inlineCreator: {
+				...get().inlineCreator,
+				selectedCommand: command,
+			},
+		});
+	},
+	setInlineCreatorMode: (mode) => {
+		set({
+			inlineCreator: {
+				...get().inlineCreator,
+				mode,
+			},
+		});
+	},
+	setInlineCreatorFilterQuery: (query) => {
+		set({
+			inlineCreator: {
+				...get().inlineCreator,
+				filterQuery: query,
+			},
 		});
 	},
 });

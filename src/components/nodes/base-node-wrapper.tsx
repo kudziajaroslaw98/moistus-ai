@@ -9,6 +9,7 @@ import {
 	NodeToolbar,
 	Position,
 	useConnection,
+	useReactFlow,
 } from '@xyflow/react';
 import { Plus, Settings } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -57,49 +58,54 @@ const BaseNodeWrapperComponent = ({
 	onDoubleClick,
 }: BaseNodeWrapperProps) => {
 	const {
-		addNode,
 		getNode,
-		isDraggingNodes,
+		addNode,
 		realtimeSelectedNodes,
+		isDraggingNodes,
+
 		currentUser,
 		selectedNodes,
 		activeTool,
 		setPopoverOpen,
 		setNodeInfo,
+		openInlineCreator,
 	} = useAppStore(
 		useShallow((state) => ({
-			addNode: state.addNode,
 			getNode: state.getNode,
-			isDraggingNodes: state.isDraggingNodes,
+			addNode: state.addNode,
 			realtimeSelectedNodes: state.realtimeSelectedNodes,
 			currentUser: state.currentUser,
 			selectedNodes: state.selectedNodes,
 			activeTool: state.activeTool,
 			setPopoverOpen: state.setPopoverOpen,
 			setNodeInfo: state.setNodeInfo,
+			openInlineCreator: state.openInlineCreator,
+			isDraggingNodes: state.isDraggingNodes,
 		}))
 	);
 
 	const connection = useConnection();
 	const isTarget = connection?.toNode?.id === id;
+	const reactFlowInstance = useReactFlow();
 
 	// Check if this node belongs to a group
 	const belongsToGroup = data.metadata?.groupId;
 	const handleAddNewNode = useCallback(() => {
 		const currentNode = getNode(id);
-
 		if (!currentNode) return;
 
-		addNode({
+		const position = {
+			x: currentNode.position.x + (currentNode.width || 0) / 2,
+			y: currentNode.position.y + (currentNode.height || 0) + 80,
+		};
+
+		openInlineCreator({
+			position,
+			screenPosition: reactFlowInstance.flowToScreenPosition(position),
 			parentNode: currentNode,
-			content: `New node from ${currentNode?.id} node`,
-			position: {
-				x: currentNode.position.x,
-				y: currentNode.position.y + (currentNode?.height ?? 0) + 50,
-			},
-			nodeType: currentNode?.data?.node_type ?? 'defaultNode',
+			suggestedType: currentNode?.data?.node_type ?? 'defaultNode',
 		});
-	}, [id]);
+	}, [id, getNode, openInlineCreator, reactFlowInstance]);
 
 	const handleNodeEdit = useCallback(() => {
 		const currentNode = getNode(id);
