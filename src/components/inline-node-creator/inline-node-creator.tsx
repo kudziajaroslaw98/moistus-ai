@@ -3,16 +3,10 @@
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import {
-	FloatingPortal,
-	autoPlacement,
 	autoUpdate,
-	flip,
-	offset,
-	shift,
 	useDismiss,
 	useFloating,
 	useInteractions,
-	useListNavigation,
 } from '@floating-ui/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -75,50 +69,14 @@ export const InlineNodeCreator: React.FC = () => {
 		);
 	}, [inlineCreator.filterQuery]);
 
-	// Floating UI setup
-	const { refs, floatingStyles, context } = useFloating({
+	const { refs, context } = useFloating({
 		open: inlineCreator.isOpen,
 		onOpenChange: (open) => {
 			if (!open) closeInlineCreator();
 		},
-		placement: 'bottom-start',
-		middleware: [
-			offset(10),
-			flip({
-				fallbackPlacements: ['top-start', 'bottom-start'],
-			}),
-			shift({ padding: 20 }),
-			autoPlacement({
-				allowedPlacements: [
-					'top-start',
-					'bottom-start',
-					'top-end',
-					'bottom-end',
-				],
-			}),
-		],
+
 		whileElementsMounted: autoUpdate,
 	});
-
-	// Set reference element position
-	useEffect(() => {
-		if (inlineCreator.isOpen && refs.setReference) {
-			// Create a virtual element at the cursor position
-			const virtualElement = {
-				getBoundingClientRect: () => ({
-					width: 0,
-					height: 0,
-					x: inlineCreator.screenPosition.x,
-					y: inlineCreator.screenPosition.y,
-					top: inlineCreator.screenPosition.y,
-					left: inlineCreator.screenPosition.x,
-					right: inlineCreator.screenPosition.x,
-					bottom: inlineCreator.screenPosition.y,
-				}),
-			};
-			refs.setReference(virtualElement as any);
-		}
-	}, [inlineCreator.isOpen, inlineCreator.screenPosition, refs]);
 
 	// Interactions
 	const dismiss = useDismiss(context, {
@@ -126,17 +84,7 @@ export const InlineNodeCreator: React.FC = () => {
 		outsidePress: true,
 	});
 
-	const listNavigation = useListNavigation(context, {
-		listRef: itemsRef,
-		activeIndex,
-		onNavigate: setActiveIndex,
-		loop: true,
-	});
-
-	const { getReferenceProps, getFloatingProps } = useInteractions([
-		dismiss,
-		listNavigation,
-	]);
+	const { getReferenceProps } = useInteractions([dismiss]);
 
 	// Handle command selection
 	const handleSelectCommand = useCallback(
@@ -194,25 +142,25 @@ export const InlineNodeCreator: React.FC = () => {
 	);
 
 	const theme = {
-		container: 'bg-zinc-950 border border-zinc-800 rounded-lg shadow-2xl',
-		content: 'max-h-[480px] overflow-hidden',
+		container:
+			'bg-zinc-950 border border-zinc-800 w-xl rounded-md shadow-2xl h-auto overflow-hidden',
 	};
 
 	return (
-		<FloatingPortal>
+		<div className='absolute flex flex-col items-center w-full h-full bg-zinc-950/50 z-[100] backdrop-blur-sm pt-32'>
 			<AnimatePresence>
 				{inlineCreator.isOpen && (
+					// clicking outside this should close the inline node creator
 					<motion.div
 						ref={refs.setFloating}
-						style={floatingStyles}
-						className={cn(theme.container, 'z-50')}
+						{...getReferenceProps()}
+						className={cn(theme.container)}
 						variants={animationVariants.container}
 						initial='initial'
 						animate='animate'
 						exit='exit'
-						{...getFloatingProps()}
 					>
-						<div className={theme.content}>
+						<AnimatePresence mode='wait'>
 							{!selectedCommand ? (
 								<CommandPalette
 									commands={filteredCommands}
@@ -224,6 +172,11 @@ export const InlineNodeCreator: React.FC = () => {
 								/>
 							) : (
 								<>
+									<ModeToggle
+										mode={inlineCreator.mode}
+										onToggle={(mode) => setInlineCreatorMode(mode)}
+									/>
+
 									{inlineCreator.mode === 'quick' ? (
 										<QuickInput
 											command={selectedCommand}
@@ -237,17 +190,12 @@ export const InlineNodeCreator: React.FC = () => {
 											position={inlineCreator.position}
 										/>
 									)}
-
-									<ModeToggle
-										mode={inlineCreator.mode}
-										onToggle={(mode) => setInlineCreatorMode(mode)}
-									/>
 								</>
 							)}
-						</div>
+						</AnimatePresence>
 					</motion.div>
 				)}
 			</AnimatePresence>
-		</FloatingPortal>
+		</div>
 	);
 };

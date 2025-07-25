@@ -5,11 +5,14 @@ import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
 import { Node, NodeProps } from '@xyflow/react';
 import {
+	Calendar,
 	Check,
 	CheckCheck,
 	Dot,
+	Flag,
 	Plus,
 	SquareCheck,
+	Tag,
 	Trash2,
 } from 'lucide-react'; // Import Square icon
 import { memo, useCallback, useMemo } from 'react'; // Import useMemo
@@ -138,7 +141,6 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 			{tasks.length > 0 && (
 				<div className='flex items-center gap-1 px-2 py-1 rounded text-xs bg-blue-600/20 text-blue-400'>
 					<SquareCheck className='w-3 h-3' />
-
 					{completedTasks.length}/{tasks.length}
 				</div>
 			)}
@@ -180,6 +182,53 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 			toolbarContent={toolbarContent}
 		>
 			<div className='flex flex-col gap-1.5'>
+				{/* Task metadata (priority, due date, tags) */}
+				{(data.metadata?.priority ||
+					data.metadata?.dueDate ||
+					data.metadata?.tags?.length > 0) && (
+					<div className='flex flex-wrap gap-2 items-center text-xs mb-2 pb-2 border-b border-zinc-800'>
+						{data.metadata?.priority && (
+							<div
+								className={cn(
+									'flex items-center gap-1 px-2 py-1 rounded',
+									data.metadata.priority === 'high' &&
+										'bg-red-500/20 text-red-400',
+									data.metadata.priority === 'medium' &&
+										'bg-yellow-500/20 text-yellow-400',
+									data.metadata.priority === 'low' &&
+										'bg-green-500/20 text-green-400'
+								)}
+							>
+								<Flag className='w-3 h-3' />
+
+								{data.metadata.priority}
+							</div>
+						)}
+
+						{data.metadata?.dueDate && (
+							<div className='flex items-center gap-1 px-2 py-1 rounded bg-blue-500/20 text-blue-400'>
+								<Calendar className='w-3 h-3' />
+
+								{new Date(data.metadata.dueDate).toLocaleDateString()}
+							</div>
+						)}
+
+						{data.metadata?.tags && data.metadata.tags.length > 0 && (
+							<div className='flex items-center gap-1 px-2 py-1 rounded bg-purple-500/20 text-purple-400'>
+								<Tag className='w-3 h-3' />
+
+								{data.metadata.tags.join(', ')}
+							</div>
+						)}
+
+						{data.metadata?.assignee && (
+							<div className='flex items-center gap-1 px-2 py-1 rounded bg-teal-500/20 text-teal-400'>
+								@{data.metadata.assignee}
+							</div>
+						)}
+					</div>
+				)}
+
 				{tasks.length === 0 ? (
 					<span className='text-zinc-500 italic'>
 						Double click or click the menu to add tasks...

@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/utils/cn';
-import { Sparkles, List } from 'lucide-react';
+import { List, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import type { ModeToggleProps } from './types';
 
@@ -16,13 +16,13 @@ const theme = {
 
 export const ModeToggle: React.FC<ModeToggleProps> = ({ mode, onToggle }) => {
 	return (
-		<div className="px-4 pb-3 border-t border-zinc-800">
-			<div className="flex items-center justify-between">
-				<span className="text-xs text-zinc-500">Input Mode</span>
+		<div className='p-4 border-b border-zinc-800'>
+			<div className='flex items-center justify-between'>
+				<span className='text-xs text-zinc-500'>Input Mode</span>
 
 				<div className={theme.container}>
 					<button
-						type="button"
+						type='button'
 						onClick={() => onToggle('quick')}
 						className={cn(
 							theme.button,
@@ -31,7 +31,7 @@ export const ModeToggle: React.FC<ModeToggleProps> = ({ mode, onToggle }) => {
 					>
 						{mode === 'quick' && (
 							<motion.div
-								layoutId="mode-indicator"
+								layoutId='mode-indicator'
 								className={theme.indicator}
 								transition={{
 									type: 'spring',
@@ -41,14 +41,14 @@ export const ModeToggle: React.FC<ModeToggleProps> = ({ mode, onToggle }) => {
 							/>
 						)}
 
-						<span className="relative z-10 flex items-center gap-1.5">
+						<span className='relative z-10 flex items-center gap-1.5'>
 							<Sparkles className={theme.icon} />
 							Quick
 						</span>
 					</button>
 
 					<button
-						type="button"
+						type='button'
 						onClick={() => onToggle('structured')}
 						className={cn(
 							theme.button,
@@ -57,7 +57,7 @@ export const ModeToggle: React.FC<ModeToggleProps> = ({ mode, onToggle }) => {
 					>
 						{mode === 'structured' && (
 							<motion.div
-								layoutId="mode-indicator"
+								layoutId='mode-indicator'
 								className={theme.indicator}
 								transition={{
 									type: 'spring',
@@ -67,7 +67,7 @@ export const ModeToggle: React.FC<ModeToggleProps> = ({ mode, onToggle }) => {
 							/>
 						)}
 
-						<span className="relative z-10 flex items-center gap-1.5">
+						<span className='relative z-10 flex items-center gap-1.5'>
 							<List className={theme.icon} />
 							Form
 						</span>
@@ -75,7 +75,7 @@ export const ModeToggle: React.FC<ModeToggleProps> = ({ mode, onToggle }) => {
 				</div>
 			</div>
 
-			<p className="text-xs text-zinc-600 mt-2">
+			<p className='text-xs text-zinc-600 mt-2'>
 				{mode === 'quick'
 					? 'Type naturally with smart parsing'
 					: 'Fill in structured fields'}

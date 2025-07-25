@@ -5,9 +5,8 @@ import type { AppNode } from '@/types/app-node';
 import { AvailableNodeTypes } from '@/types/available-node-types';
 import type { NodeData } from '@/types/node-data';
 import { NodesTableType } from '@/types/nodes-table-type';
-import { SnapLine } from '@/types/snap-line';
 import { debouncePerKey } from '@/utils/debounce-per-key';
-import { applyNodeChanges, NodeChange } from '@xyflow/react';
+import { applyNodeChanges, XYPosition } from '@xyflow/react';
 import { toast } from 'sonner';
 import type { StateCreator } from 'zustand';
 import type { AppState, NodesSlice } from '../app-state';
@@ -263,103 +262,37 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 
 				const newNodeId = generateUuid();
 				let newNode: AppNode | null = null;
-				let newNodePosition = position;
+				let newNodePosition: XYPosition = {
+					x: 0,
+					y: 0,
+				};
 
 				if (position) {
 					newNodePosition = position;
 				} else if (parentNode && parentNode.position) {
-					// Get current viewport center if reactFlowInstance is available
-					const { reactFlowInstance } = get();
-					let viewportCenter = null;
-
-					if (reactFlowInstance) {
-						try {
-							const viewport = reactFlowInstance.getViewport();
-							const bounds =
-								reactFlowInstance.getNodes().length > 0
-									? { width: window.innerWidth, height: window.innerHeight }
-									: { width: 800, height: 600 };
-
-							viewportCenter = reactFlowInstance.screenToFlowPosition({
-								x: bounds.width / 2,
-								y: bounds.height / 2,
-							});
-						} catch (e) {
-							console.warn('Could not get viewport center:', e);
-						}
-					}
-
 					// If parent is far from viewport center, position near viewport instead
-					if (viewportCenter) {
-						const distanceFromViewport = Math.sqrt(
-							Math.pow(parentNode.position.x - viewportCenter.x, 2) +
-								Math.pow(parentNode.position.y - viewportCenter.y, 2)
-						);
 
-						// If parent is more than 1000px away from viewport center, use viewport-relative positioning
-						if (distanceFromViewport > 1000) {
-							newNodePosition = {
-								x: viewportCenter.x + 50,
-								y: viewportCenter.y + 50,
-							};
-						} else {
-							// Use improved parent-relative positioning with better spacing
-							const parentWidth = parentNode.width || 170;
-							const parentHeight = parentNode.height || 60;
-							const horizontalSpacing = 150; // Increased spacing
-							const verticalOffset = 20; // Reduced vertical offset
+					// Use improved parent-relative positioning with better spacing
+					const parentWidth = parentNode.width || 170;
+					const parentHeight = parentNode.height || 60;
+					const verticalSpacing = 80; // Spacing between children
+					const verticalOffset = 20; // Reduced vertical offset
 
-							// Check for existing children to avoid overlap
-							const childNodes = nodes.filter((node) =>
-								edges.some(
-									(edge) =>
-										edge.source === parentNode.id && edge.target === node.id
-								)
-							);
+					// Check for existing children to avoid overlap
+					const childNodes = nodes.filter((node) =>
+						edges.some(
+							(edge) => edge.source === parentNode.id && edge.target === node.id
+						)
+					);
 
-							// Calculate position based on number of existing children
-							const childCount = childNodes.length;
-							const verticalSpacing = 80; // Spacing between children
+					// Calculate position based on number of existing children
+					const childCount = childNodes.length;
 
-							newNodePosition = {
-								x: parentNode.position.x + parentWidth + horizontalSpacing,
-								y:
-									parentNode.position.y +
-									childCount * verticalSpacing +
-									verticalOffset,
-							};
-						}
-					} else {
-						// Fallback to improved parent-relative positioning
-						const parentWidth = parentNode.width || 170;
-						const parentHeight = parentNode.height || 60;
-						const horizontalSpacing = 150; // Increased spacing
-						const verticalOffset = 20; // Reduced vertical offset
-
-						// Check for existing children to avoid overlap
-						const childNodes = nodes.filter((node) =>
-							edges.some(
-								(edge) =>
-									edge.source === parentNode.id && edge.target === node.id
-							)
-						);
-
-						// Calculate position based on number of existing children
-						const childCount = childNodes.length;
-						const verticalSpacing = 80; // Spacing between children
-
-						newNodePosition = {
-							x: parentNode.position.x + parentWidth + horizontalSpacing,
-							y:
-								parentNode.position.y +
-								childCount * verticalSpacing +
-								verticalOffset,
-						};
-					}
-				} else {
 					newNodePosition = {
-						x: Math.random() * 400 + 50,
-						y: Math.random() * 400 + 50,
+						x: parentNode.position.x + parentWidth + 60,
+						y:
+							parentNode.position.y +
+							(childCount * verticalSpacing + (childCount - 1) * parentHeight),
 					};
 				}
 

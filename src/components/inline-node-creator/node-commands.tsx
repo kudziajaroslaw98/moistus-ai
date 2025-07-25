@@ -1,11 +1,14 @@
 import {
+	Calendar,
 	CheckSquare,
 	Code,
 	FileText,
+	Flag,
 	Image,
 	Lightbulb,
 	Link,
 	MessageCircle,
+	Tag,
 	Type,
 } from 'lucide-react';
 import {
@@ -30,6 +33,22 @@ export const nodeCommands: NodeCommand[] = [
 		category: 'content',
 		quickParse: parseNoteInput,
 		examples: ['Meeting notes @important', 'Project update #in-progress'],
+		parsingPatterns: [
+			{
+				pattern: '#priority',
+				description: 'Set priority level',
+				examples: ['#high', '#medium', '#low'],
+				category: 'metadata',
+				icon: Flag,
+			},
+			{
+				pattern: '[tags]',
+				description: 'Add comma-separated tags',
+				examples: ['[meeting, important]', '[idea, research]'],
+				category: 'metadata',
+				icon: Tag,
+			},
+		],
 	},
 	{
 		command: '/task',
@@ -70,6 +89,41 @@ export const nodeCommands: NodeCommand[] = [
 			'Sprint tasks: Backend API, Frontend UI, Testing',
 			'- [ ] Review PR\n- [ ] Fix bugs\n- [ ] Deploy',
 			'Buy milk, Send email, Call client @today',
+		],
+		parsingPatterns: [
+			{
+				pattern: '@date',
+				description: 'Set due date',
+				examples: ['@tomorrow', '@friday', '@2024-01-15'],
+				category: 'metadata',
+				icon: Calendar,
+			},
+			{
+				pattern: '#priority',
+				description: 'Set priority level',
+				examples: ['#high', '#medium', '#low'],
+				category: 'metadata',
+				icon: Flag,
+			},
+			{
+				pattern: '; or ,',
+				description: 'Separate multiple tasks',
+				examples: ['Task 1; Task 2', 'Buy milk, Send email'],
+				category: 'formatting',
+			},
+			{
+				pattern: '- [ ]',
+				description: 'Markdown task list',
+				examples: ['- [ ] Review PR\n- [ ] Fix bugs\n- [ ] Deploy'],
+				category: 'formatting',
+				insertText: '- [ ] ',
+			},
+			{
+				pattern: 'Title:',
+				description: 'List with title',
+				examples: ['Sprint tasks: Backend, Frontend, Testing'],
+				category: 'formatting',
+			},
 		],
 	},
 	{
@@ -119,6 +173,21 @@ export const nodeCommands: NodeCommand[] = [
 			},
 		],
 		examples: ['```js const sum = (a, b) => a + b', 'python file:utils.py'],
+		parsingPatterns: [
+			{
+				pattern: '```language',
+				description: 'Code block with syntax highlighting',
+				examples: ['```javascript', '```python', '```sql'],
+				category: 'formatting',
+				insertText: '```',
+			},
+			{
+				pattern: 'file:filename',
+				description: 'Specify filename',
+				examples: ['javascript file:utils.js', 'python file:main.py'],
+				category: 'metadata',
+			},
+		],
 	},
 	{
 		command: '/image',
@@ -150,6 +219,20 @@ export const nodeCommands: NodeCommand[] = [
 			},
 		],
 		examples: ['https://example.com/diagram.png "System Architecture"'],
+		parsingPatterns: [
+			{
+				pattern: '"alt text"',
+				description: 'Add alt text after URL',
+				examples: ['https://example.com/image.jpg "Description"'],
+				category: 'metadata',
+			},
+			{
+				pattern: 'caption:text',
+				description: 'Add caption',
+				examples: ['https://example.com/img.png caption:Figure 1'],
+				category: 'metadata',
+			},
+		],
 	},
 	{
 		command: '/link',
@@ -181,6 +264,20 @@ export const nodeCommands: NodeCommand[] = [
 			},
 		],
 		examples: ['https://docs.example.com/api "API Documentation"'],
+		parsingPatterns: [
+			{
+				pattern: '"title"',
+				description: 'Add title after URL',
+				examples: ['https://example.com "My Resource"'],
+				category: 'metadata',
+			},
+			{
+				pattern: 'desc:text',
+				description: 'Add description',
+				examples: ['https://example.com desc:Useful reference'],
+				category: 'metadata',
+			},
+		],
 	},
 	{
 		command: '/question',
@@ -213,6 +310,20 @@ export const nodeCommands: NodeCommand[] = [
 			'How can we improve user engagement?',
 			'Should we migrate to TypeScript? [yes/no]',
 		],
+		parsingPatterns: [
+			{
+				pattern: '[yes/no]',
+				description: 'Yes/no question type',
+				examples: ['[yes/no]', '[y/n]'],
+				category: 'structure',
+			},
+			{
+				pattern: '[opt1,opt2,opt3]',
+				description: 'Multiple choice options',
+				examples: ['[small,medium,large]', '[red,green,blue]'],
+				category: 'structure',
+			},
+		],
 	},
 	{
 		command: '/annotation',
@@ -244,6 +355,44 @@ export const nodeCommands: NodeCommand[] = [
 			},
 		],
 		examples: ['⚠️ Breaking change in v2.0', '✅ Deployment successful'],
+		parsingPatterns: [
+			{
+				pattern: '⚠️',
+				description: 'Warning annotation',
+				examples: ['⚠️ Breaking change'],
+				category: 'formatting',
+			},
+			{
+				pattern: '✅',
+				description: 'Success annotation',
+				examples: ['✅ Tests passed'],
+				category: 'formatting',
+			},
+			{
+				pattern: 'ℹ️',
+				description: 'Info annotation',
+				examples: ['ℹ️ API endpoint updated'],
+				category: 'formatting',
+			},
+			{
+				pattern: '❌',
+				description: 'Error annotation',
+				examples: ['❌ Build failed'],
+				category: 'formatting',
+			},
+			{
+				pattern: '💡',
+				description: 'Note/idea annotation',
+				examples: ['💡 Consider caching'],
+				category: 'formatting',
+			},
+			{
+				pattern: 'type:',
+				description: 'Type prefix',
+				examples: ['warning: Check permissions', 'info: New feature'],
+				category: 'structure',
+			},
+		],
 	},
 	{
 		command: '/text',
@@ -263,6 +412,7 @@ export const nodeCommands: NodeCommand[] = [
 			},
 		],
 		examples: ['Quick note', 'Important reminder'],
+		parsingPatterns: [], // Text nodes have no special patterns
 	},
 ];
 

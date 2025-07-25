@@ -59,7 +59,6 @@ const BaseNodeWrapperComponent = ({
 }: BaseNodeWrapperProps) => {
 	const {
 		getNode,
-		addNode,
 		realtimeSelectedNodes,
 		isDraggingNodes,
 

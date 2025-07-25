@@ -7,7 +7,9 @@ import { motion } from 'motion/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { createNodeFromCommand } from './node-creator';
+import { ParsingLegend } from './parsing-legend';
 import type { QuickInputProps } from './types';
+import { announceToScreenReader, replaceSelection } from './utils/text-utils';
 
 const theme = {
 	container: 'p-4',
@@ -34,6 +36,10 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 	const [error, setError] = useState<string | null>(null);
 	const [isCreating, setIsCreating] = useState(false);
 	const [currentExampleIndex, setCurrentExampleIndex] = useState(0);
+	const [legendCollapsed, setLegendCollapsed] = useState(
+		() => localStorage.getItem('parsingLegendCollapsed') === 'true'
+	);
+	const [cursorPosition, setCursorPosition] = useState(0);
 
 	const { closeInlineCreator, addNode } = useAppStore(
 		useShallow((state) => ({
@@ -46,6 +52,24 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 	useEffect(() => {
 		inputRef.current?.focus();
 	}, []);
+
+	// Save legend preference
+	useEffect(() => {
+		localStorage.setItem('parsingLegendCollapsed', String(legendCollapsed));
+	}, [legendCollapsed]);
+
+	// Handle keyboard shortcut for legend toggle
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if ((e.metaKey || e.ctrlKey) && e.key === '/') {
+				e.preventDefault();
+				setLegendCollapsed(!legendCollapsed);
+			}
+		};
+
+		window.addEventListener('keydown', handleKeyDown);
+		return () => window.removeEventListener('keydown', handleKeyDown);
+	}, [legendCollapsed]);
 
 	// Parse input in real-time for preview
 	useEffect(() => {
@@ -69,27 +93,18 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 	const handleCreate = useCallback(async () => {
 		if (!value.trim() || isCreating) return;
 
-		setIsCreating(true);
-		setError(null);
-
 		try {
 			const nodeData = command.quickParse
 				? command.quickParse(value)
 				: { content: value };
 
-			const result = await createNodeFromCommand({
+			createNodeFromCommand({
 				command,
 				data: nodeData,
-				position,
 				parentNode,
 				addNode,
 			});
-
-			if (result.success) {
-				closeInlineCreator();
-			} else {
-				setError(result.error || 'Failed to create node');
-			}
+			closeInlineCreator();
 		} catch (err) {
 			setError('An error occurred while creating the node');
 		} finally {
@@ -105,13 +120,56 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 		isCreating,
 	]);
 
+	// Handle pattern insertion from legend
+	const handlePatternInsert = useCallback(
+		(pattern: string, insertText?: string) => {
+			const textToInsert = insertText || pattern;
+			const textarea = inputRef.current;
+
+			if (!textarea) return;
+
+			const start = textarea.selectionStart || 0;
+			const end = textarea.selectionEnd || 0;
+			const { newValue, newCursorPosition } = replaceSelection(
+				value,
+				textToInsert,
+				start,
+				end
+			);
+
+			setValue(newValue);
+
+			// Update cursor position after React renders
+			setTimeout(() => {
+				textarea.focus();
+				textarea.setSelectionRange(newCursorPosition, newCursorPosition);
+
+				// Announce insertion to screen readers
+				announceToScreenReader(
+					`Pattern ${pattern} inserted at cursor position`
+				);
+			}, 0);
+		},
+		[value]
+	);
+
+	// Track cursor position
+	const handleSelectionChange = useCallback(() => {
+		const textarea = inputRef.current;
+
+		if (textarea) {
+			setCursorPosition(textarea.selectionStart || 0);
+		}
+	}, []);
+
 	// Handle keyboard shortcuts
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent) => {
-			if (e.key === 'Enter' && !e.shiftKey) {
+			if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
 				e.preventDefault();
 				handleCreate();
 			}
+			// Enter without modifiers will create a new line (default behavior)
 		},
 		[handleCreate]
 	);
@@ -250,6 +308,7 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 				value={value}
 				onChange={(e) => setValue(e.target.value)}
 				onKeyDown={handleKeyDown}
+				onSelect={handleSelectionChange}
 				placeholder={`Type naturally... ${command.examples?.[0] || ''}`}
 				className={cn(
 					theme.input,
@@ -258,6 +317,25 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 				)}
 				disabled={isCreating}
 			/>
+
+			{/* Parsing Legend */}
+			{command.parsingPatterns && command.parsingPatterns.length > 0 && (
+				<div className='mt-3'>
+					<ParsingLegend
+						patterns={command.parsingPatterns}
+						onPatternClick={handlePatternInsert}
+						isCollapsed={legendCollapsed}
+						onToggleCollapse={() => setLegendCollapsed(!legendCollapsed)}
+					/>
+				</div>
+			)}
+
+			{/* Show hint for nodes without patterns */}
+			{(!command.parsingPatterns || command.parsingPatterns.length === 0) && (
+				<div className='mt-3 text-xs text-zinc-500'>
+					<p>This node type accepts plain text input without special syntax.</p>
+				</div>
+			)}
 
 			{preview && (
 				<motion.div
@@ -304,7 +382,7 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 
 			<div className='flex items-center justify-between mt-4'>
 				<span className='text-xs text-zinc-500'>
-					Press Enter to create • Shift+Enter for new line
+					Press Ctrl+Enter to create • Enter for new line
 				</span>
 
 				<button

@@ -21,6 +21,7 @@ export interface NodeData extends Record<string, unknown> {
 		title?: string;
 		dueDate?: string;
 		priority?: string | number;
+		assignee?: string[];
 		tasks?: { id: string; text: string; isComplete: boolean }[];
 
 		url?: string;
@@ -53,9 +54,13 @@ export interface NodeData extends Record<string, unknown> {
 		language?: string;
 		showLineNumbers?: boolean;
 		fileName?: string;
-		image_url?: string;
 		borderColor?: string;
 		isCollapsed?: boolean; // Added for collapsible branches
+		resourceType?: string;
+
+		// ImageNode properties
+		image_url?: string;
+		source?: string;
 
 		// Group-related properties
 		groupId?: string; // ID of the group this node belongs to

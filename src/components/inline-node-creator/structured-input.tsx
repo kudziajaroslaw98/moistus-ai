@@ -445,6 +445,12 @@ export const StructuredInput: React.FC<StructuredInputProps> = ({
 					e.preventDefault();
 					handleSubmit();
 				}}
+				onKeyDown={(e) => {
+					if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+						e.preventDefault();
+						handleSubmit();
+					}
+				}}
 			>
 				{command.fields?.map((field, index) => renderField(field, index))}
 
@@ -460,7 +466,7 @@ export const StructuredInput: React.FC<StructuredInputProps> = ({
 
 				<div className='flex items-center justify-between mt-6'>
 					<span className='text-xs text-zinc-500'>
-						Fill in the fields and press Enter
+						Fill in the fields and press Ctrl+Enter
 					</span>
 
 					<button
