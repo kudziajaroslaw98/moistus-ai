@@ -73,7 +73,7 @@ const TaskNodeForm = forwardRef<
 				<p className='text-sm text-zinc-500 italic'>No tasks added yet.</p>
 			)}
 
-			<div className='flex flex-col gap-3 max-h-96 overflow-y-auto pr-2'>
+			<div className='flex flex-col gap-3 max-h-full overflow-y-auto pr-2'>
 				{tasks.map((task, index) => (
 					<div key={task.id} className='flex items-center gap-2'>
 						<FormField

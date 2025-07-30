@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { memo, useCallback, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/shallow';
 import { Button } from '../ui/button';
@@ -87,67 +87,78 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 		}
 	}, [resourceUrl]);
 
-	const toolbarContent = (
-		<>
-			{/* Thumbnail Toggle */}
-			<Toggle
-				size={'sm'}
-				variant={'outline'}
-				pressed={showThumbnail}
-				onPressedChange={(pressed) => {
-					handleNodeChange({ showThumbnail: pressed });
-				}}
-				title={showThumbnail ? 'Hide thumbnail' : 'Show thumbnail'}
-			>
-				{showThumbnail ? (
-					<Eye className='w-4 h-4' />
-				) : (
-					<EyeOff className='w-4 h-4' />
+	const toolbarContent = useMemo(
+		() => (
+			<>
+				{/* Thumbnail Toggle */}
+				<Toggle
+					size={'sm'}
+					variant={'outline'}
+					pressed={showThumbnail}
+					onPressedChange={(pressed) => {
+						handleNodeChange({ showThumbnail: pressed });
+					}}
+					title={showThumbnail ? 'Hide thumbnail' : 'Show thumbnail'}
+				>
+					{showThumbnail ? (
+						<Eye className='w-4 h-4' />
+					) : (
+						<EyeOff className='w-4 h-4' />
+					)}
+				</Toggle>
+
+				{/* Summary Toggle */}
+				<Toggle
+					size={'sm'}
+					variant={'outline'}
+					pressed={showSummary}
+					onPressedChange={(pressed) => {
+						handleNodeChange({ showSummary: pressed });
+					}}
+					title={showSummary ? 'Hide summary' : 'Show summary'}
+				>
+					<FileText className='w-4 h-4' />
+				</Toggle>
+
+				{/* Open Link Button */}
+				{resourceUrl && (
+					<Button
+						onClick={handleOpenLink}
+						size={'sm'}
+						variant={'outline'}
+						className='h-8 px-2'
+						title='Open link in new tab'
+					>
+						<ArrowUpRight className='w-4 h-4' />
+					</Button>
 				)}
-			</Toggle>
 
-			{/* Summary Toggle */}
-			<Toggle
-				size={'sm'}
-				variant={'outline'}
-				pressed={showSummary}
-				onPressedChange={(pressed) => {
-					handleNodeChange({ showSummary: pressed });
-				}}
-				title={showSummary ? 'Hide summary' : 'Show summary'}
-			>
-				<FileText className='w-4 h-4' />
-			</Toggle>
-
-			{/* Open Link Button */}
-			{resourceUrl && (
-				<Button
-					onClick={handleOpenLink}
-					size={'sm'}
-					variant={'outline'}
-					className='h-8 px-2'
-					title='Open link in new tab'
-				>
-					<ArrowUpRight className='w-4 h-4' />
-				</Button>
-			)}
-
-			{/* Refresh Metadata Button */}
-			{resourceUrl && (
-				<Button
-					onClick={handleRefreshMetadata}
-					size={'sm'}
-					variant={'outline'}
-					className='h-8 px-2'
-					disabled={isRefreshing}
-					title='Refresh metadata'
-				>
-					<RefreshCw
-						className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}
-					/>
-				</Button>
-			)}
-		</>
+				{/* Refresh Metadata Button */}
+				{resourceUrl && (
+					<Button
+						onClick={handleRefreshMetadata}
+						size={'sm'}
+						variant={'outline'}
+						className='h-8 px-2'
+						disabled={isRefreshing}
+						title='Refresh metadata'
+					>
+						<RefreshCw
+							className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}
+						/>
+					</Button>
+				)}
+			</>
+		),
+		[
+			showThumbnail,
+			showSummary,
+			resourceUrl,
+			isRefreshing,
+			handleNodeChange,
+			handleOpenLink,
+			handleRefreshMetadata,
+		]
 	);
 
 	return (

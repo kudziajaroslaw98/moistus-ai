@@ -270,29 +270,13 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				if (position) {
 					newNodePosition = position;
 				} else if (parentNode && parentNode.position) {
-					// If parent is far from viewport center, position near viewport instead
-
 					// Use improved parent-relative positioning with better spacing
-					const parentWidth = parentNode.width || 170;
 					const parentHeight = parentNode.height || 60;
-					const verticalSpacing = 80; // Spacing between children
-					const verticalOffset = 20; // Reduced vertical offset
-
-					// Check for existing children to avoid overlap
-					const childNodes = nodes.filter((node) =>
-						edges.some(
-							(edge) => edge.source === parentNode.id && edge.target === node.id
-						)
-					);
 
 					// Calculate position based on number of existing children
-					const childCount = childNodes.length;
-
 					newNodePosition = {
-						x: parentNode.position.x + parentWidth + 60,
-						y:
-							parentNode.position.y +
-							(childCount * verticalSpacing + (childCount - 1) * parentHeight),
+						x: parentNode.position.x,
+						y: parentNode.position.y + parentHeight + 60,
 					};
 				}
 
@@ -428,11 +412,11 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 
 				if (!mapId || !nodesToDelete) return;
 
-				// const edgesToDelete = edges.filter((edge) =>
-				// 	nodesToDelete.some(
-				// 		(node) => edge.source === node.id || edge.target === node.id
-				// 	)
-				// );
+				const edgesToDelete = edges.filter((edge) =>
+					nodesToDelete.some(
+						(node) => edge.source === node.id || edge.target === node.id
+					)
+				);
 
 				const user_id = (await supabase.auth.getSession()).data.session?.user
 					?.id;
@@ -448,28 +432,12 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					.eq('user_id', user_id)
 					.select();
 
-				// const { data: newEdges, error: deleteEdgesError } = await supabase
-				// 	.from('edges')
-				// 	.delete()
-				// 	.in(
-				// 		'id',
-				// 		edgesToDelete.map((edge) => edge.id)
-				// 	)
-				// 	.eq('user_id', user.data.user.id).select()
-
 				if (deleteError) {
 					throw new Error(deleteError.message || 'Failed to delete nodes.');
 				}
 
-				// if (deleteEdgesError) {
-				// 	throw new Error(
-				// 		deleteEdgesError.message || 'Failed to delete edges.'
-				// 	);
-				// }
-
 				const finalNodes = allNodes.filter((n) => !nodesToDelete.includes(n));
-				// const finalEdges = edges.filter((e) => !edgesToDelete.includes(e));
-				const finalEdges = edges;
+				const finalEdges = edges.filter((e) => !edgesToDelete.includes(e));
 
 				addStateToHistory('deleteNode', {
 					nodes: finalNodes,

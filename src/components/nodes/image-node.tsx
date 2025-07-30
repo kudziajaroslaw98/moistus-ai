@@ -12,7 +12,7 @@ import {
 	RefreshCw,
 } from 'lucide-react';
 import Image from 'next/image';
-import { memo, useCallback, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/shallow';
 import { Button } from '../ui/button';
@@ -82,54 +82,64 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 		}
 	}, [imageUrl]);
 
-	const toolbarContent = (
-		<>
-			{/* Caption Toggle */}
-			<Toggle
-				size={'sm'}
-				variant={'outline'}
-				pressed={showCaption}
-				onPressedChange={(pressed) => {
-					handleNodeChange({ showCaption: pressed });
-				}}
-				title={showCaption ? 'Hide caption' : 'Show caption'}
-			>
-				{showCaption ? (
-					<Eye className='w-4 h-4' />
-				) : (
-					<EyeOff className='w-4 h-4' />
+	const toolbarContent = useMemo(
+		() => (
+			<>
+				{/* Caption Toggle */}
+				<Toggle
+					size={'sm'}
+					variant={'outline'}
+					pressed={showCaption}
+					onPressedChange={(pressed) => {
+						handleNodeChange({ showCaption: pressed });
+					}}
+					title={showCaption ? 'Hide caption' : 'Show caption'}
+				>
+					{showCaption ? (
+						<Eye className='w-4 h-4' />
+					) : (
+						<EyeOff className='w-4 h-4' />
+					)}
+				</Toggle>
+
+				{/* Open Image Button */}
+				{imageUrl && (
+					<Button
+						onClick={handleOpenImage}
+						size={'sm'}
+						variant={'outline'}
+						className='h-8 px-2'
+						title='Open image in new tab'
+					>
+						<ArrowUpRight className='w-4 h-4' />
+					</Button>
 				)}
-			</Toggle>
 
-			{/* Open Image Button */}
-			{imageUrl && (
-				<Button
-					onClick={handleOpenImage}
-					size={'sm'}
-					variant={'outline'}
-					className='h-8 px-2'
-					title='Open image in new tab'
-				>
-					<ArrowUpRight className='w-4 h-4' />
-				</Button>
-			)}
-
-			{/* Refresh Metadata Button */}
-			{imageUrl && (
-				<Button
-					onClick={handleRefreshMetadata}
-					size={'sm'}
-					variant={'outline'}
-					className='h-8 px-2'
-					disabled={isRefreshing}
-					title='Refresh image metadata'
-				>
-					<RefreshCw
-						className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}
-					/>
-				</Button>
-			)}
-		</>
+				{/* Refresh Metadata Button */}
+				{imageUrl && (
+					<Button
+						onClick={handleRefreshMetadata}
+						size={'sm'}
+						variant={'outline'}
+						className='h-8 px-2'
+						disabled={isRefreshing}
+						title='Refresh image metadata'
+					>
+						<RefreshCw
+							className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}
+						/>
+					</Button>
+				)}
+			</>
+		),
+		[
+			showCaption,
+			imageUrl,
+			isRefreshing,
+			handleNodeChange,
+			handleOpenImage,
+			handleRefreshMetadata,
+		]
 	);
 
 	return (

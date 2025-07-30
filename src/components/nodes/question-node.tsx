@@ -12,7 +12,7 @@ import {
 	Sparkles,
 	X,
 } from 'lucide-react';
-import { memo, useCallback, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/shallow';
 import { Button } from '../ui/button';
@@ -132,72 +132,83 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 
 	const answerStatus = getAnswerStatus();
 
-	const toolbarContent = (
-		<>
-			{/* AI Answer Toggle */}
-			<Toggle
-				size={'sm'}
-				variant={'outline'}
-				pressed={requestAiAnswer || !!aiAnswer}
-				onPressedChange={handleToggleRequest}
-				disabled={isGenerating}
-				title={aiAnswer ? 'AI answer exists' : 'Request AI answer'}
-			>
-				<Sparkles className='w-4 h-4' />
-			</Toggle>
-
-			{/* Answer Status Indicator */}
-			{answerStatus === 'pending' && (
-				<div className='flex items-center gap-1 px-2 py-1 rounded text-xs bg-yellow-600/20 text-yellow-400'>
-					<Clock className='w-3 h-3 animate-spin' />
-					Pending
-				</div>
-			)}
-
-			{answerStatus === 'answered' && (
-				<div className='flex items-center gap-1 px-2 py-1 rounded text-xs bg-green-600/20 text-green-400'>
-					<CheckCircle className='w-3 h-3' />
-					Answered
-				</div>
-			)}
-
-			{answerStatus === 'none' && (
-				<div className='flex items-center gap-1 px-2 py-1 rounded text-xs bg-gray-600/20 text-gray-400'>
-					<AlertCircle className='w-3 h-3' />
-					None
-				</div>
-			)}
-
-			{/* Regenerate Answer Button */}
-			{aiAnswer && (
-				<Button
-					onClick={handleGenerateAnswer}
+	const toolbarContent = useMemo(
+		() => (
+			<>
+				{/* AI Answer Toggle */}
+				<Toggle
 					size={'sm'}
 					variant={'outline'}
-					className='h-8 px-2'
+					pressed={requestAiAnswer || !!aiAnswer}
+					onPressedChange={handleToggleRequest}
 					disabled={isGenerating}
-					title='Regenerate AI answer'
+					title={aiAnswer ? 'AI answer exists' : 'Request AI answer'}
 				>
-					<RefreshCw
-						className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`}
-					/>
-				</Button>
-			)}
+					<Sparkles className='w-4 h-4' />
+				</Toggle>
 
-			{/* Clear Answer Button */}
-			{aiAnswer && (
-				<Button
-					onClick={handleClearAnswer}
-					size={'sm'}
-					variant={'outline'}
-					className='h-8 px-2 text-red-400 hover:text-red-300'
-					disabled={isGenerating}
-					title='Clear AI answer'
-				>
-					<X className='w-4 h-4' />
-				</Button>
-			)}
-		</>
+				{/* Answer Status Indicator */}
+				{answerStatus === 'pending' && (
+					<div className='flex items-center gap-1 px-2 py-1 rounded text-xs bg-yellow-600/20 text-yellow-400'>
+						<Clock className='w-3 h-3 animate-spin' />
+						Pending
+					</div>
+				)}
+
+				{answerStatus === 'answered' && (
+					<div className='flex items-center gap-1 px-2 py-1 rounded text-xs bg-green-600/20 text-green-400'>
+						<CheckCircle className='w-3 h-3' />
+						Answered
+					</div>
+				)}
+
+				{answerStatus === 'none' && (
+					<div className='flex items-center gap-1 px-2 py-1 rounded text-xs bg-gray-600/20 text-gray-400'>
+						<AlertCircle className='w-3 h-3' />
+						None
+					</div>
+				)}
+
+				{/* Regenerate Answer Button */}
+				{aiAnswer && (
+					<Button
+						onClick={handleGenerateAnswer}
+						size={'sm'}
+						variant={'outline'}
+						className='h-8 px-2'
+						disabled={isGenerating}
+						title='Regenerate AI answer'
+					>
+						<RefreshCw
+							className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`}
+						/>
+					</Button>
+				)}
+
+				{/* Clear Answer Button */}
+				{aiAnswer && (
+					<Button
+						onClick={handleClearAnswer}
+						size={'sm'}
+						variant={'outline'}
+						className='h-8 px-2 text-red-400 hover:text-red-300'
+						disabled={isGenerating}
+						title='Clear AI answer'
+					>
+						<X className='w-4 h-4' />
+					</Button>
+				)}
+			</>
+		),
+		[
+			requestAiAnswer,
+			aiAnswer,
+			isGenerating,
+			answerStatus,
+			handleToggleRequest,
+			handleGenerateAnswer,
+			handleClearAnswer,
+		]
 	);
 
 	return (

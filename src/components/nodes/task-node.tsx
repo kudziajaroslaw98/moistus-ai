@@ -124,53 +124,62 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 		}
 	}, [tasks, completedTasks.length, updateNode, id, data.metadata]);
 
-	const toolbarContent = (
-		<>
-			{/* Add Task Button */}
-			<Button
-				onClick={handleAddTask}
-				size={'sm'}
-				variant={'outline'}
-				className='h-8 px-2'
-				title='Add new task'
-			>
-				<Plus className='w-4 h-4' />
-			</Button>
-
-			{/* Task Counter Badge */}
-			{tasks.length > 0 && (
-				<div className='flex items-center gap-1 px-2 py-1 rounded text-xs bg-blue-600/20 text-blue-400'>
-					<SquareCheck className='w-3 h-3' />
-					{completedTasks.length}/{tasks.length}
-				</div>
-			)}
-
-			{/* Complete All Button */}
-			{tasks.length > 0 && completedTasks.length < tasks.length && (
+	const toolbarContent = useMemo(
+		() => (
+			<>
+				{/* Add Task Button */}
 				<Button
-					onClick={handleCompleteAll}
+					onClick={handleAddTask}
 					size={'sm'}
 					variant={'outline'}
 					className='h-8 px-2'
-					title='Mark all tasks as complete'
+					title='Add new task'
 				>
-					<CheckCheck className='w-4 h-4' />
+					<Plus className='w-4 h-4' />
 				</Button>
-			)}
 
-			{/* Clear Completed Button */}
-			{completedTasks.length > 0 && (
-				<Button
-					onClick={handleClearCompleted}
-					size={'sm'}
-					variant={'outline'}
-					className='h-8 px-2 text-red-400 hover:text-red-300'
-					title='Remove completed tasks'
-				>
-					<Trash2 className='w-4 h-4' />
-				</Button>
-			)}
-		</>
+				{/* Task Counter Badge */}
+				{tasks.length > 0 && (
+					<div className='flex items-center gap-1 px-2 py-1 rounded text-xs bg-blue-600/20 text-blue-400'>
+						<SquareCheck className='w-3 h-3' />
+						{completedTasks.length}/{tasks.length}
+					</div>
+				)}
+
+				{/* Complete All Button */}
+				{tasks.length > 0 && completedTasks.length < tasks.length && (
+					<Button
+						onClick={handleCompleteAll}
+						size={'sm'}
+						variant={'outline'}
+						className='h-8 px-2'
+						title='Mark all tasks as complete'
+					>
+						<CheckCheck className='w-4 h-4' />
+					</Button>
+				)}
+
+				{/* Clear Completed Button */}
+				{completedTasks.length > 0 && (
+					<Button
+						onClick={handleClearCompleted}
+						size={'sm'}
+						variant={'outline'}
+						className='h-8 px-2 text-red-400 hover:text-red-300'
+						title='Remove completed tasks'
+					>
+						<Trash2 className='w-4 h-4' />
+					</Button>
+				)}
+			</>
+		),
+		[
+			completedTasks,
+			tasks,
+			handleCompleteAll,
+			handleClearCompleted,
+			handleAddTask,
+		]
 	);
 
 	return (
@@ -185,7 +194,7 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 				{/* Task metadata (priority, due date, tags) */}
 				{(data.metadata?.priority ||
 					data.metadata?.dueDate ||
-					data.metadata?.tags?.length > 0) && (
+					(data?.tags && data?.tags?.length > 0)) && (
 					<div className='flex flex-wrap gap-2 items-center text-xs mb-2 pb-2 border-b border-zinc-800'>
 						{data.metadata?.priority && (
 							<div
@@ -213,11 +222,11 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 							</div>
 						)}
 
-						{data.metadata?.tags && data.metadata.tags.length > 0 && (
+						{data?.tags && data.tags.length > 0 && (
 							<div className='flex items-center gap-1 px-2 py-1 rounded bg-purple-500/20 text-purple-400'>
 								<Tag className='w-3 h-3' />
 
-								{data.metadata.tags.join(', ')}
+								{data.tags.join(', ')}
 							</div>
 						)}
 

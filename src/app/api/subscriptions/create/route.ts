@@ -91,6 +91,9 @@ export async function POST(req: NextRequest) {
 			expand: ['latest_invoice.payment_intent'],
 		});
 
+		const currentPeriodStart = subscription.items.data[0].current_period_start;
+		const currentPeriodEnd = subscription.items.data[0].current_period_end;
+
 		// Save subscription to database
 		const { error: dbError } = await supabase
 			.from('user_subscriptions')
@@ -100,12 +103,8 @@ export async function POST(req: NextRequest) {
 				stripe_subscription_id: subscription.id,
 				stripe_customer_id: customerId,
 				status: subscription.status,
-				current_period_start: new Date(
-					subscription.current_period_start * 1000
-				).toISOString(),
-				current_period_end: new Date(
-					subscription.current_period_end * 1000
-				).toISOString(),
+				current_period_start: new Date(currentPeriodStart).toISOString(),
+				current_period_end: new Date(currentPeriodEnd).toISOString(),
 				cancel_at_period_end: subscription.cancel_at_period_end,
 				metadata: {
 					stripe_price_id: priceId,
@@ -118,7 +117,9 @@ export async function POST(req: NextRequest) {
 			throw new Error('Failed to save subscription to database');
 		}
 
-		const latestInvoice = subscription.latest_invoice as Stripe.Invoice;
+		const latestInvoice = subscription.latest_invoice as Stripe.Invoice & {
+			payment_intent: Stripe.PaymentIntent;
+		};
 		const paymentIntent = latestInvoice.payment_intent as Stripe.PaymentIntent;
 
 		return NextResponse.json({

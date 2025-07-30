@@ -11,6 +11,7 @@ import {
 import { AnimatePresence, motion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
+import { AnimateChangeInHeight } from '../animate-change-in-height';
 import { CommandPalette } from './command-palette';
 import { ModeToggle } from './mode-toggle';
 import { nodeCommands } from './node-commands';
@@ -36,7 +37,7 @@ const animationVariants = {
 	},
 };
 
-export const InlineNodeCreator: React.FC = () => {
+export const InlineNodeCreator = () => {
 	const {
 		inlineCreator,
 		closeInlineCreator,
@@ -135,15 +136,17 @@ export const InlineNodeCreator: React.FC = () => {
 		setInlineCreatorMode,
 	]);
 
-	if (!inlineCreator.isOpen) return null;
-
-	const selectedCommand = nodeCommands.find(
-		(cmd) => cmd.command === inlineCreator.selectedCommand
+	const selectedCommand = useMemo(
+		() =>
+			nodeCommands.find((cmd) => cmd.command === inlineCreator.selectedCommand),
+		[inlineCreator.selectedCommand]
 	);
+
+	if (!inlineCreator.isOpen) return null;
 
 	const theme = {
 		container:
-			'bg-zinc-950 border border-zinc-800 w-xl rounded-md shadow-2xl h-auto overflow-hidden',
+			'bg-zinc-950 border border-zinc-800 w-2xl rounded-md shadow-2xl h-auto overflow-hidden',
 	};
 
 	return (
@@ -160,18 +163,30 @@ export const InlineNodeCreator: React.FC = () => {
 						animate='animate'
 						exit='exit'
 					>
-						<AnimatePresence mode='wait'>
+						<AnimateChangeInHeight>
 							{!selectedCommand ? (
-								<CommandPalette
-									commands={filteredCommands}
-									onSelectCommand={handleSelectCommand}
-									filterQuery={inlineCreator.filterQuery}
-									onFilterChange={setInlineCreatorFilterQuery}
-									activeIndex={activeIndex}
-									itemsRef={itemsRef}
-								/>
+								<motion.div
+									variants={animationVariants.container}
+									initial='initial'
+									animate='animate'
+									exit='exit'
+								>
+									<CommandPalette
+										commands={filteredCommands}
+										onSelectCommand={handleSelectCommand}
+										filterQuery={inlineCreator.filterQuery}
+										onFilterChange={setInlineCreatorFilterQuery}
+										activeIndex={activeIndex}
+										itemsRef={itemsRef}
+									/>
+								</motion.div>
 							) : (
-								<>
+								<motion.div
+									variants={animationVariants.container}
+									initial='initial'
+									animate='animate'
+									exit='exit'
+								>
 									<ModeToggle
 										mode={inlineCreator.mode}
 										onToggle={(mode) => setInlineCreatorMode(mode)}
@@ -190,9 +205,9 @@ export const InlineNodeCreator: React.FC = () => {
 											position={inlineCreator.position}
 										/>
 									)}
-								</>
+								</motion.div>
 							)}
-						</AnimatePresence>
+						</AnimateChangeInHeight>
 					</motion.div>
 				)}
 			</AnimatePresence>

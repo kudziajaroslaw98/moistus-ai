@@ -9,7 +9,6 @@ import {
 	NodeToolbar,
 	Position,
 	useConnection,
-	useReactFlow,
 } from '@xyflow/react';
 import { Plus, Settings } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -68,6 +67,7 @@ const BaseNodeWrapperComponent = ({
 		setPopoverOpen,
 		setNodeInfo,
 		openInlineCreator,
+		reactFlowInstance,
 	} = useAppStore(
 		useShallow((state) => ({
 			getNode: state.getNode,
@@ -80,12 +80,12 @@ const BaseNodeWrapperComponent = ({
 			setNodeInfo: state.setNodeInfo,
 			openInlineCreator: state.openInlineCreator,
 			isDraggingNodes: state.isDraggingNodes,
+			reactFlowInstance: state.reactFlowInstance,
 		}))
 	);
 
 	const connection = useConnection();
 	const isTarget = connection?.toNode?.id === id;
-	const reactFlowInstance = useReactFlow();
 
 	// Check if this node belongs to a group
 	const belongsToGroup = data.metadata?.groupId;
@@ -100,7 +100,7 @@ const BaseNodeWrapperComponent = ({
 
 		openInlineCreator({
 			position,
-			screenPosition: reactFlowInstance.flowToScreenPosition(position),
+			screenPosition: reactFlowInstance?.flowToScreenPosition(position),
 			parentNode: currentNode,
 			suggestedType: currentNode?.data?.node_type ?? 'defaultNode',
 		});
@@ -144,10 +144,7 @@ const BaseNodeWrapperComponent = ({
 		<>
 			{/* Node Toolbar */}
 			{(toolbarContent || selected) && (
-				<NodeToolbar
-					isVisible={selected && selectedNodes.length === 1}
-					position={Position.Top}
-				>
+				<NodeToolbar position={Position.Top}>
 					<motion.div
 						className='flex gap-2 bg-zinc-950 border-zinc-500 p-2 rounded-sm'
 						initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -174,7 +171,8 @@ const BaseNodeWrapperComponent = ({
 					'relative flex h-full min-h-auto min-w-80 flex-col rounded-sm border-2 border-node-accent bg-zinc-950 shadow-lg shadow-node-accent/25 gap-4 transition-all cursor-move',
 					selected && 'border-sky-700',
 					includePadding ? 'p-4' : 'p-0',
-					nodeClassName
+					nodeClassName,
+					activeTool === 'pan' && 'pointer-events-none'
 				)}
 				style={{ zIndex: belongsToGroup ? 1 : 'auto', height: 'auto' }}
 				onDoubleClick={handleDoubleClick}

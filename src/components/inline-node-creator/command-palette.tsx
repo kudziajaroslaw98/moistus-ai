@@ -2,7 +2,7 @@
 
 import { cn } from '@/utils/cn';
 import { Command } from 'cmdk';
-import { useCallback, useEffect, useRef } from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 import { AnimateChangeInHeight } from '../animate-change-in-height';
 import { Separator } from '../ui/separator';
 import { commandCategories } from './node-commands';
@@ -11,20 +11,19 @@ import type { CommandPaletteProps, NodeCommand } from './types';
 const theme = {
 	input:
 		'bg-zinc-950 text-zinc-100 placeholder-zinc-500 placeholder:font-medium border-0 focus:ring-0',
-	item: 'h-auto hover:bg-zinc-800 py-1 cursor-pointer transition-colors aria-selected:bg-teal-800/10 rounded-sm px-4',
+	item: 'h-auto hover:bg-zinc-800 py-1 cursor-pointer transition-colors aria-selected:bg-teal-800/30 rounded-sm px-4',
 	icon: 'text-zinc-400 group-hover:text-zinc-300',
 	category:
 		'text-xs text-zinc-500 uppercase tracking-wider font-semibold px-3 pb-1',
 };
 
-export const CommandPalette: React.FC<CommandPaletteProps> = ({
+const CommandPaletteComponent = ({
 	commands,
 	onSelectCommand,
 	filterQuery,
 	onFilterChange,
-	activeIndex,
 	itemsRef,
-}) => {
+}: CommandPaletteProps) => {
 	const inputRef = useRef<HTMLInputElement>(null);
 
 	// Focus input on mount
@@ -32,8 +31,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 		inputRef.current?.focus();
 	}, []);
 
-	// Group commands by category
-	const groupedCommands = useCallback(() => {
+	const groupedCommands = useMemo(() => {
 		const groups: Record<string, NodeCommand[]> = {};
 
 		commands.forEach((cmd) => {
@@ -50,8 +48,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
 		return groups;
 	}, [commands]);
-
-	const groups = groupedCommands();
 
 	return (
 		<Command>
@@ -79,8 +75,11 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 							</p>
 						</Command.Empty>
 					) : (
-						Object.entries(groups).map(
-							([category, categoryCommands], groupIndex) => (
+						Object.entries(groupedCommands).map(
+							(
+								[category, categoryCommands]: [string, NodeCommand[]],
+								groupIndex
+							) => (
 								<Command.Group key={category} className=''>
 									{groupIndex > 0 && <div className='h-2' />}
 
@@ -169,3 +168,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 		</Command>
 	);
 };
+
+export const CommandPalette = memo(CommandPaletteComponent);
+CommandPalette.displayName = 'CommandPalette';

@@ -368,8 +368,9 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 							id: edgeId,
 							map_id: mapId!,
 							user_id: user.id,
+							animated: data.animated === true,
 							style: {
-								...edge.style,
+								...edge.data?.style,
 								...data.style,
 							},
 							metadata: {
@@ -388,7 +389,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 			}) as AppEdge[];
 
 			set({
-				edges: finalEdges,
+				edges: [...finalEdges],
 			});
 
 			// Trigger debounced save to persist changes

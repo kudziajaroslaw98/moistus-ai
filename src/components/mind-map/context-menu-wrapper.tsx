@@ -1,7 +1,7 @@
 'use client';
 import useAppStore from '@/store/mind-map-store';
 import { useShallow } from 'zustand/shallow';
-import { ContextMenuDisplay } from '../context-menu-display';
+import { ContextMenuDisplay } from '../context-menu/context-menu-display-simplified';
 import { GenerateFromNodesModal } from '../modals/generate-from-nodes-modal';
 
 export function ContextMenuWrapper() {

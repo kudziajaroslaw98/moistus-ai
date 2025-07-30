@@ -6,7 +6,7 @@ import { Node, NodeProps } from '@xyflow/react';
 import { ClipboardCopy, Code, Eye, EyeOff, SquareCode } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 
-import { memo, useCallback, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/shallow';
@@ -84,55 +84,58 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 		}
 	}, [codeContent]);
 
-	const toolbarContent = (
-		<>
-			{/* Language Selector */}
-			<Select
-				value={language}
-				onValueChange={(value) => handleNodeChange({ language: value })}
-			>
-				<SelectTrigger className='h-8 w-32' size='sm'>
-					<SelectValue />
-				</SelectTrigger>
+	const toolbarContent = useMemo(
+		() => (
+			<>
+				{/* Language Selector */}
+				<Select
+					value={language}
+					onValueChange={(value) => handleNodeChange({ language: value })}
+				>
+					<SelectTrigger className='h-8 w-32' size='sm'>
+						<SelectValue />
+					</SelectTrigger>
 
-				<SelectContent>
-					{languageOptions.map((option) => (
-						<SelectItem key={option.value} value={option.value}>
-							{option.label}
-						</SelectItem>
-					))}
-				</SelectContent>
-			</Select>
+					<SelectContent>
+						{languageOptions.map((option) => (
+							<SelectItem key={option.value} value={option.value}>
+								{option.label}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
 
-			{/* Line Numbers Toggle */}
-			<Toggle
-				size={'sm'}
-				variant={'outline'}
-				pressed={showLineNumbers}
-				onPressedChange={(pressed) => {
-					handleNodeChange({ showLineNumbers: pressed });
-				}}
-				title={showLineNumbers ? 'Hide line numbers' : 'Show line numbers'}
-			>
-				{showLineNumbers ? (
-					<Eye className='w-4 h-4' />
-				) : (
-					<EyeOff className='w-4 h-4' />
-				)}
-			</Toggle>
+				{/* Line Numbers Toggle */}
+				<Toggle
+					size={'sm'}
+					variant={'outline'}
+					pressed={showLineNumbers}
+					onPressedChange={(pressed) => {
+						handleNodeChange({ showLineNumbers: pressed });
+					}}
+					title={showLineNumbers ? 'Hide line numbers' : 'Show line numbers'}
+				>
+					{showLineNumbers ? (
+						<Eye className='w-4 h-4' />
+					) : (
+						<EyeOff className='w-4 h-4' />
+					)}
+				</Toggle>
 
-			{/* Copy Code Button (moved to toolbar) */}
-			<Button
-				onClick={handleCopy}
-				size={'sm'}
-				variant={'outline'}
-				className='h-8 px-2'
-				disabled={copied}
-				title='Copy code to clipboard'
-			>
-				<ClipboardCopy className='w-4 h-4' />
-			</Button>
-		</>
+				{/* Copy Code Button (moved to toolbar) */}
+				<Button
+					onClick={handleCopy}
+					size={'sm'}
+					variant={'outline'}
+					className='h-8 px-2'
+					disabled={copied}
+					title='Copy code to clipboard'
+				>
+					<ClipboardCopy className='w-4 h-4' />
+				</Button>
+			</>
+		),
+		[language, showLineNumbers, copied, handleNodeChange, handleCopy]
 	);
 
 	return (

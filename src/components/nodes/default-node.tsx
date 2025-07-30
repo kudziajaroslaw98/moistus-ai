@@ -5,7 +5,7 @@ import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
 import { Node, NodeProps } from '@xyflow/react';
 import { AlertCircle, Flag, NotepadText, Star } from 'lucide-react';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useShallow } from 'zustand/shallow';
 import { AutoResizeTextarea } from '../ui/auto-resize-textarea';
@@ -111,93 +111,96 @@ const DefaultNodeComponent = (props: NodeProps<Node<NodeData>>) => {
 		{ value: 5, label: '⭐⭐⭐⭐⭐', title: 'Critical importance' },
 	];
 
-	const toolbarContent = (
-		<>
-			{/* Status Selector */}
-			<Select
-				value={status || ''}
-				onValueChange={(value) => handleNodeChange({ status: value })}
-			>
-				<SelectTrigger className='h-8 w-32' size='sm'>
-					<div className='flex items-center gap-1'>
+	const toolbarContent = useMemo(
+		() => (
+			<>
+				{/* Status Selector */}
+				<Select
+					value={status || ''}
+					onValueChange={(value) => handleNodeChange({ status: value })}
+				>
+					<SelectTrigger className='h-8 w-32' size='sm'>
+						<div className='flex items-center gap-1'>
+							{status && (
+								<>
+									{(() => {
+										const statusOption = statusOptions.find(
+											(opt) => opt.value === status
+										);
+
+										if (statusOption) {
+											const Icon = statusOption.icon;
+											return <Icon className='w-3 h-3' />;
+										}
+
+										return null;
+									})()}
+								</>
+							)}
+
+							<SelectValue placeholder='Status' />
+						</div>
+					</SelectTrigger>
+
+					<SelectContent position='popper'>
+						{statusOptions.map((option) => {
+							const Icon = option.icon;
+							return (
+								<SelectItem key={option.value} value={option.value}>
+									<div className='flex items-center gap-2'>
+										<Icon className='w-3 h-3' />
+
+										{option.label}
+									</div>
+								</SelectItem>
+							);
+						})}
+					</SelectContent>
+				</Select>
+
+				{/* Importance Selector */}
+				<Select
+					value={importance?.toString() || ''}
+					onValueChange={(value) =>
+						handleNodeChange({ importance: value ? parseInt(value) : null })
+					}
+				>
+					<SelectTrigger className='h-8 w-24' size='sm'>
+						<SelectValue placeholder='Priority' />
+					</SelectTrigger>
+
+					<SelectContent>
+						{importanceOptions.map((option) => (
+							<SelectItem
+								key={option.value}
+								value={option.value.toString()}
+								title={option.title}
+							>
+								{option.label}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
+
+				{/* Status/Importance Display Badge */}
+				{(status || importance) && (
+					<div className='flex items-center gap-1 px-2 py-1 rounded text-xs bg-blue-600/20 text-blue-400'>
 						{status && (
-							<>
-								{(() => {
-									const statusOption = statusOptions.find(
-										(opt) => opt.value === status
-									);
-
-									if (statusOption) {
-										const Icon = statusOption.icon;
-										return <Icon className='w-3 h-3' />;
-									}
-
-									return null;
-								})()}
-							</>
+							<span className='capitalize text-xs'>
+								{status.replace('-', ' ')}
+							</span>
 						)}
 
-						<SelectValue placeholder='Status' />
+						{status && importance && <span>•</span>}
+
+						{importance && (
+							<span>{importanceOptions[importance - 1]?.label}</span>
+						)}
 					</div>
-				</SelectTrigger>
-
-				<SelectContent position='popper'>
-					{statusOptions.map((option) => {
-						const Icon = option.icon;
-						return (
-							<SelectItem key={option.value} value={option.value}>
-								<div className='flex items-center gap-2'>
-									<Icon className='w-3 h-3' />
-
-									{option.label}
-								</div>
-							</SelectItem>
-						);
-					})}
-				</SelectContent>
-			</Select>
-
-			{/* Importance Selector */}
-			<Select
-				value={importance?.toString() || ''}
-				onValueChange={(value) =>
-					handleNodeChange({ importance: value ? parseInt(value) : null })
-				}
-			>
-				<SelectTrigger className='h-8 w-24' size='sm'>
-					<SelectValue placeholder='Priority' />
-				</SelectTrigger>
-
-				<SelectContent>
-					{importanceOptions.map((option) => (
-						<SelectItem
-							key={option.value}
-							value={option.value.toString()}
-							title={option.title}
-						>
-							{option.label}
-						</SelectItem>
-					))}
-				</SelectContent>
-			</Select>
-
-			{/* Status/Importance Display Badge */}
-			{(status || importance) && (
-				<div className='flex items-center gap-1 px-2 py-1 rounded text-xs bg-blue-600/20 text-blue-400'>
-					{status && (
-						<span className='capitalize text-xs'>
-							{status.replace('-', ' ')}
-						</span>
-					)}
-
-					{status && importance && <span>•</span>}
-
-					{importance && (
-						<span>{importanceOptions[importance - 1]?.label}</span>
-					)}
-				</div>
-			)}
-		</>
+				)}
+			</>
+		),
+		[status, importance, handleNodeChange, statusOptions, importanceOptions]
 	);
 
 	return (

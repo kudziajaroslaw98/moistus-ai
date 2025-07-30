@@ -94,73 +94,76 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 
 	const isQuote = annotationType === 'quote';
 
-	const toolbarContent = (
-		<>
-			{/* Font Size Selector */}
-			<Select
-				value={fontSize || '14px'}
-				onValueChange={(value) => handleNodeChange({ fontSize: value })}
-			>
-				<SelectTrigger className='h-8 w-20' size='sm'>
-					<SelectValue />
-				</SelectTrigger>
-
-				<SelectContent>
-					{fontSizeOptions.map((option) => (
-						<SelectItem key={option.value} value={option.value}>
-							{option.label}
-						</SelectItem>
-					))}
-				</SelectContent>
-			</Select>
-
-			{/* Font Weight Toggle */}
-			<Toggle
-				size={'sm'}
-				variant={'outline'}
-				pressed={fontWeight === 'bold' || fontWeight === 600}
-				onPressedChange={(pressed) => {
-					handleNodeChange({
-						fontWeight: pressed ? 'bold' : 'normal',
-					});
-				}}
-				disabled={isQuote} // Quotes always use italic styling
-			>
-				<Type className='w-4 h-4' />
-			</Toggle>
-
-			{/* Annotation Type Selector */}
-			<Select
-				value={annotationType}
-				onValueChange={(value: AnnotationType) =>
-					handleNodeChange({ annotationType: value })
-				}
-			>
-				<SelectTrigger className='h-8 w-24' size='sm'>
-					<div className='flex items-center gap-1'>
-						<TypeIcon className='w-3 h-3' />
-
+	const toolbarContent = useMemo(
+		() => (
+			<>
+				{/* Font Size Selector */}
+				<Select
+					value={fontSize || '14px'}
+					onValueChange={(value) => handleNodeChange({ fontSize: value })}
+				>
+					<SelectTrigger className='h-8 w-20' size='sm'>
 						<SelectValue />
-					</div>
-				</SelectTrigger>
+					</SelectTrigger>
 
-				<SelectContent>
-					{Object.entries(annotationTypeInfo).map(([key, info]) => {
-						if (key === 'default') return null;
-						const Icon = info.icon;
-						return (
-							<SelectItem key={key} value={key}>
-								<div className='flex items-center gap-2'>
-									<Icon className='w-3 h-3' />
-
-									{info.label}
-								</div>
+					<SelectContent>
+						{fontSizeOptions.map((option) => (
+							<SelectItem key={option.value} value={option.value}>
+								{option.label}
 							</SelectItem>
-						);
-					})}
-				</SelectContent>
-			</Select>
-		</>
+						))}
+					</SelectContent>
+				</Select>
+
+				{/* Font Weight Toggle */}
+				<Toggle
+					size={'sm'}
+					variant={'outline'}
+					pressed={fontWeight === 'bold' || fontWeight === 600}
+					onPressedChange={(pressed) => {
+						handleNodeChange({
+							fontWeight: pressed ? 'bold' : 'normal',
+						});
+					}}
+					disabled={isQuote} // Quotes always use italic styling
+				>
+					<Type className='w-4 h-4' />
+				</Toggle>
+
+				{/* Annotation Type Selector */}
+				<Select
+					value={annotationType}
+					onValueChange={(value: AnnotationType) =>
+						handleNodeChange({ annotationType: value })
+					}
+				>
+					<SelectTrigger className='h-8 w-24' size='sm'>
+						<div className='flex items-center gap-1'>
+							<TypeIcon className='w-3 h-3' />
+
+							<SelectValue />
+						</div>
+					</SelectTrigger>
+
+					<SelectContent>
+						{Object.entries(annotationTypeInfo).map(([key, info]) => {
+							if (key === 'default') return null;
+							const Icon = info.icon;
+							return (
+								<SelectItem key={key} value={key}>
+									<div className='flex items-center gap-2'>
+										<Icon className='w-3 h-3' />
+
+										{info.label}
+									</div>
+								</SelectItem>
+							);
+						})}
+					</SelectContent>
+				</Select>
+			</>
+		),
+		[fontSize, fontWeight, annotationType, isQuote, handleNodeChange, TypeIcon]
 	);
 
 	return (

@@ -12,7 +12,7 @@ import {
 	Italic,
 	Text,
 } from 'lucide-react';
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { AutoResizeTextarea } from '../ui/auto-resize-textarea';
 import { Toggle } from '../ui/toggle';
@@ -82,16 +82,19 @@ const TextNodeComponent = (props: TextNodeProps) => {
 		return style;
 	}, [fontSize, fontWeight, fontStyle, textAlign, textColor]);
 
-	const handleNodeChange = (change: Partial<NodeData['metadata']>) => {
-		updateNode({
-			nodeId: data.id,
-			data: {
-				metadata: {
-					...change,
+	const handleNodeChange = useCallback(
+		(change: Partial<NodeData['metadata']>) => {
+			updateNode({
+				nodeId: data.id,
+				data: {
+					metadata: {
+						...change,
+					},
 				},
-			},
-		});
-	};
+			});
+		},
+		[updateNode, data.id]
+	);
 
 	const handleDoubleClick = () => {
 		setLocalContent(content || '');
@@ -122,58 +125,66 @@ const TextNodeComponent = (props: TextNodeProps) => {
 		}
 	};
 
-	const toolbarContent = (
-		<>
-			<Toggle
-				size={'sm'}
-				variant={'outline'}
-				pressed={data.metadata?.fontWeight === 600}
-				onPressedChange={(toggle) => {
-					handleNodeChange({
-						fontWeight: toggle ? 600 : 400,
-					});
-				}}
-			>
-				<Bold className='w-4 h-4' />
-			</Toggle>
+	const toolbarContent = useMemo(
+		() => (
+			<>
+				<Toggle
+					size={'sm'}
+					variant={'outline'}
+					pressed={data.metadata?.fontWeight === 600}
+					onPressedChange={(toggle) => {
+						handleNodeChange({
+							fontWeight: toggle ? 600 : 400,
+						});
+					}}
+				>
+					<Bold className='w-4 h-4' />
+				</Toggle>
 
-			<Toggle
-				size={'sm'}
-				variant={'outline'}
-				pressed={data.metadata?.fontStyle === 'italic'}
-				onPressedChange={(toggle) => {
-					handleNodeChange({
-						fontStyle: toggle ? 'italic' : 'normal',
-					});
-				}}
-			>
-				<Italic className='w-4 h-4' />
-			</Toggle>
+				<Toggle
+					size={'sm'}
+					variant={'outline'}
+					pressed={data.metadata?.fontStyle === 'italic'}
+					onPressedChange={(toggle) => {
+						handleNodeChange({
+							fontStyle: toggle ? 'italic' : 'normal',
+						});
+					}}
+				>
+					<Italic className='w-4 h-4' />
+				</Toggle>
 
-			<ToggleGroup
-				type='single'
-				size={'sm'}
-				variant={'outline'}
-				value={data.metadata?.textAlign || 'center'}
-				onValueChange={(value) => {
-					handleNodeChange({
-						textAlign: value as 'left' | 'center' | 'right',
-					});
-				}}
-			>
-				<ToggleGroupItem value='left'>
-					<AlignLeft className='w-4 h-4' />
-				</ToggleGroupItem>
+				<ToggleGroup
+					type='single'
+					size={'sm'}
+					variant={'outline'}
+					value={data.metadata?.textAlign || 'center'}
+					onValueChange={(value) => {
+						handleNodeChange({
+							textAlign: value as 'left' | 'center' | 'right',
+						});
+					}}
+				>
+					<ToggleGroupItem value='left'>
+						<AlignLeft className='w-4 h-4' />
+					</ToggleGroupItem>
 
-				<ToggleGroupItem value='center'>
-					<AlignCenter className='w-4 h-4' />
-				</ToggleGroupItem>
+					<ToggleGroupItem value='center'>
+						<AlignCenter className='w-4 h-4' />
+					</ToggleGroupItem>
 
-				<ToggleGroupItem value='right'>
-					<AlignRight className='w-4 h-4' />
-				</ToggleGroupItem>
-			</ToggleGroup>
-		</>
+					<ToggleGroupItem value='right'>
+						<AlignRight className='w-4 h-4' />
+					</ToggleGroupItem>
+				</ToggleGroup>
+			</>
+		),
+		[
+			data.metadata?.fontWeight,
+			data.metadata?.fontStyle,
+			data.metadata?.textAlign,
+			handleNodeChange,
+		]
 	);
 
 	return (
