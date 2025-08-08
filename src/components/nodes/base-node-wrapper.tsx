@@ -178,11 +178,11 @@ const BaseNodeWrapperComponent = ({
 				onDoubleClick={handleDoubleClick}
 			>
 				<>
-					<CollapsedIndicator />
+					<CollapsedIndicator data={data} />
 
 					{/* Top header with node info */}
 					<div className='top-0 left-4 absolute -translate-y-full flex items-center justify-center gap-2'>
-						<CollapseButton />
+						<CollapseButton data={data} />
 
 						<GroupButton />
 
@@ -229,27 +229,6 @@ const BaseNodeWrapperComponent = ({
 									'translate-y-[1px]'
 								)}
 							/>
-
-							{/*
-						<Handle
-							type='source'
-							position={Position.Left}
-							className={cn(
-								'w-1 h-12 rounded-xs border-2 transition-all duration-200',
-								'!bg-node-accent border-node-accent opacity-100 shadow-lg',
-								'-translate-x-[1px]'
-							)}
-						/>
-
-						<Handle
-							type='source'
-							position={Position.Right}
-							className={cn(
-								'w-1 h-12 rounded-xs border-2 transition-all duration-200',
-								'!bg-node-accent border-node-accent opacity-100 shadow-lg',
-								'translate-x-[1px]'
-							)}
-						/> */}
 
 							{activeTool === 'connector' && (
 								<Handle
@@ -312,7 +291,7 @@ const BaseNodeWrapperComponent = ({
 							<NodeResizer
 								color='#0069a8'
 								isVisible={selected}
-								minWidth={100}
+								minWidth={120}
 								minHeight={30}
 								maxWidth={600}
 								handleClassName='!w-3 !h-3 !bg-node-accent border-node-text-secondary'

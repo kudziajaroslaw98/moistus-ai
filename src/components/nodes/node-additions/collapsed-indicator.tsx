@@ -1,25 +1,20 @@
 import useAppStore from '@/store/mind-map-store';
-import { useNodeId } from '@xyflow/react';
-import { memo } from 'motion/react';
-import { useMemo } from 'react';
+import { NodeData } from '@/types/node-data';
+import { memo, useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
 
-const CollapsedIndicatorComponent = () => {
-	const { getDirectChildrenCount, getNode } = useAppStore(
+const CollapsedIndicatorComponent = (props: { data: NodeData }) => {
+	const { data } = props;
+	const { getDirectChildrenCount } = useAppStore(
 		useShallow((state) => ({
 			getDirectChildrenCount: state.getDirectChildrenCount,
-			getNode: state.getNode,
 		}))
 	);
-	const nodeId = useNodeId();
-	const data = useMemo(() => getNode(nodeId!)?.data, [getNode, nodeId]);
 	const directChildrenCount = useMemo(() => {
-		return getDirectChildrenCount(nodeId!);
-	}, [getDirectChildrenCount, nodeId]);
+		return getDirectChildrenCount(data.id!);
+	}, [getDirectChildrenCount, data]);
 
-	const collapsed = useMemo(() => {
-		return data?.metadata?.isCollapsed ?? false;
-	}, [data?.metadata?.isCollapsed]);
+	const collapsed = data?.metadata?.isCollapsed ?? false;
 
 	if (!collapsed || directChildrenCount === 0) {
 		return null;
@@ -27,7 +22,7 @@ const CollapsedIndicatorComponent = () => {
 
 	return (
 		<>
-			<div className='absolute w-full h-full -z-[2] left-3 -bottom-3 rounded-lg border-2 border-node-accent/25 bg-zinc-950' />
+			<div className='absolute w-full h-full -z-[2] left-3.5 -bottom-3.5 rounded-lg border-2 border-node-accent/25 bg-zinc-950' />
 
 			<div className='absolute w-full h-full -z-[1] -bottom-2 left-2 rounded-lg border-2 border-node-accent/25 bg-zinc-950' />
 

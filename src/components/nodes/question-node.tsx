@@ -220,7 +220,7 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 			toolbarContent={toolbarContent}
 		>
 			{/* Content Area - now display only */}
-			<div className='text-node-text-main text-xl font-bold tracking-tight leading-5 text-center'>
+			<div className='text-node-text-main text-xl font-bold tracking-tight leading-6 text-center'>
 				{data.content || (
 					<span className='text-zinc-500 italic'>
 						Double click or click the menu to add content...

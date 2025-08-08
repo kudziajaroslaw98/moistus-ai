@@ -53,6 +53,7 @@ import {
 	Slash,
 	Undo,
 } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
@@ -109,6 +110,8 @@ export function ReactFlowArea() {
 		ghostNodes,
 		isStreaming,
 		aiFeature,
+		canRedo,
+		canUndo,
 	} = useAppStore(
 		useShallow((state) => ({
 			supabase: state.supabase,
@@ -144,6 +147,8 @@ export function ReactFlowArea() {
 			ghostNodes: state.ghostNodes,
 			isStreaming: state.isStreaming,
 			aiFeature: state.aiFeature,
+			canRedo: state.canRedo,
+			canUndo: state.canUndo,
 		}))
 	);
 
@@ -415,25 +420,25 @@ export function ReactFlowArea() {
 			onNodeDragStart={handleNodeDragStart}
 			onNodeDragStop={handleNodeDragStop}
 		>
-			{/* <Controls
-				position='top-right'
-				orientation='horizontal'
-				showZoom={false}
-				showFitView={false}
-				className={`${isFocusMode ? '!right-12' : ''} cursor-pointer`}
-			/> */}
-
-			{/* {isFocusMode ? <ZoomSelect /> : <ZoomSlider position='top-left' />} */}
-
 			<Background color='#52525c' gap={16} variant={BackgroundVariant.Dots} />
 
-			<Panel position='top-left'>
-				<div className='flex justify-center items-center gap-8'>
+			<Panel
+				position='top-left'
+				className='!m-0 p-4 right-0 flex justify-between bg-linear-180 to-transparent via-80% via-zinc-950/75 from-zinc-950'
+			>
+				<div className='flex items-center gap-8'>
 					<Breadcrumb>
 						<BreadcrumbList>
 							<BreadcrumbItem>
 								<BreadcrumbLink asChild>
-									<Link href='/dashboard'>Moistus AI</Link>
+									<Link href='/dashboard'>
+										<Image
+											src='/images/moistus.svg'
+											alt='Moistus Logo'
+											width={60}
+											height={60}
+										/>
+									</Link>
 								</BreadcrumbLink>
 							</BreadcrumbItem>
 
@@ -450,9 +455,10 @@ export function ReactFlowArea() {
 					</Breadcrumb>
 
 					<div className='flex gap-2'>
+						{/*TODO: Uncomment redo/undo when optimized history implemented*/}
 						<Button
 							// onClick={handleUndo}
-							// disabled={!canUndo}
+							disabled={!canUndo}
 							title='Undo (Ctrl+Z)'
 							variant='secondary'
 							size='icon'
@@ -460,9 +466,10 @@ export function ReactFlowArea() {
 							<Undo className='size-4' />
 						</Button>
 
+						{/*TODO: Uncomment redo/undo when optimized history implemented*/}
 						<Button
 							// onClick={handleRedo}
-							// disabled={!canRedo}
+							disabled={!canRedo}
 							title='Redo (Ctrl+Y)'
 							variant='secondary'
 							size='icon'
@@ -481,10 +488,8 @@ export function ReactFlowArea() {
 						</Button>
 					</div>
 				</div>
-			</Panel>
 
-			<Panel position='top-right' className='z-20'>
-				<div className='flex gap-8'>
+				<div className='flex items-center gap-8'>
 					<div className='flex gap-2'>
 						{/* Profile Button */}
 						{/* <Link href='/dashboard/profile'>
@@ -545,8 +550,6 @@ export function ReactFlowArea() {
 				</div>
 			</Panel>
 
-			{/* <ZoomSelect position='bottom-left' /> */}
-
 			<Panel position='bottom-center'>
 				<Toolbar />
 			</Panel>
@@ -557,10 +560,6 @@ export function ReactFlowArea() {
 					reactFlowInstance={reactFlowInstance}
 				/>
 			</Panel>
-
-			{/* <MiniMap position='bottom-right' /> */}
-
-			<Panel position='bottom-right'>{/* <SuggestionControls /> */}</Panel>
 		</ReactFlow>
 	);
 }

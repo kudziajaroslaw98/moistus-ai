@@ -31,22 +31,23 @@ export const createCommentsSlice: StateCreator<
 	_commentsSubscription: null,
 
 	// Enhanced fetch with filtering and sorting (from hook)
-	fetchCommentsWithFilters: withLoadingAndToast(
-		async (options: { nodeId?: string; mapId?: string } = {}) => {
-			const {
-				supabase,
-				mapId: storeMapId,
-				commentFilter,
-				commentSort,
-				commentSummaries,
-			} = get();
-			const targetMapId = options.mapId || storeMapId;
+	fetchCommentsWithFilters: async (
+		options: { nodeId?: string; mapId?: string } = {}
+	) => {
+		const {
+			supabase,
+			mapId: storeMapId,
+			commentFilter,
+			commentSort,
+			commentSummaries,
+		} = get();
+		const targetMapId = options.mapId || storeMapId;
 
-			if (!targetMapId) {
-				throw new Error('Map ID is required');
-			}
+		if (!targetMapId) {
+			throw new Error('Map ID is required');
+		}
 
-			let query = supabase.from('node_comments').select(`
+		let query = supabase.from('node_comments').select(`
         *,
         author:user_profiles!author_id(
           id,
@@ -70,117 +71,110 @@ export const createCommentsSlice: StateCreator<
         )
       `);
 
-			// Apply filters
-			if (options.nodeId) {
-				query = query.eq('node_id', options.nodeId);
-			}
-
-			query = query.eq('map_id', targetMapId);
-
-			if (commentFilter.is_resolved !== undefined) {
-				query = query.eq('is_resolved', commentFilter.is_resolved);
-			}
-
-			if (commentFilter.author_id) {
-				query = query.eq('author_id', commentFilter.author_id);
-			}
-
-			if (commentFilter.category) {
-				query = query.eq('metadata->>category', commentFilter.category);
-			}
-
-			if (commentFilter.search_text) {
-				query = query.ilike('content', `%${commentFilter.search_text}%`);
-			}
-
-			// Apply sorting
-			const orderColumn =
-				commentSort.field === 'author_name' ? 'author_id' : commentSort.field;
-			query = query.order(orderColumn, {
-				ascending: commentSort.direction === 'asc',
-			});
-
-			const { data, error } = await query;
-
-			if (error) {
-				throw new Error(error.message);
-			}
-
-			const commentsData = (data || []).map((comment) => ({
-				...comment,
-				author: comment.author
-					? {
-							id: comment.author.user_id,
-							full_name: comment.author.full_name,
-							display_name: comment.author.display_name,
-							avatar_url: comment.author.avatar_url,
-						}
-					: null,
-				resolved_by_user: comment.resolved_by_user
-					? {
-							id: comment.resolved_by_user.user_id,
-							full_name: comment.resolved_by_user.full_name,
-							display_name: comment.resolved_by_user.display_name,
-							avatar_url: comment.resolved_by_user.avatar_url,
-						}
-					: null,
-				reactions: comment.reactions || [],
-			})) as NodeComment[];
-
-			// Update summaries
-			commentsData.forEach((comment) => {
-				const nodeId = comment.node_id;
-				const existing = commentSummaries.get(nodeId);
-
-				if (existing) {
-					existing.comment_count += 1;
-
-					if (!comment.is_resolved) {
-						existing.unresolved_count += 1;
-					}
-
-					if (comment.created_at > (existing.last_comment_at || '')) {
-						existing.last_comment_at = comment.created_at;
-					}
-
-					commentSummaries.set(nodeId, { ...existing });
-				} else {
-					commentSummaries.set(nodeId, {
-						node_id: nodeId,
-						comment_count: 1,
-						unresolved_count: comment.is_resolved ? 0 : 1,
-						last_comment_at: comment.created_at,
-						has_user_comments: true, // TODO: Check if current user has comments
-					});
-				}
-			});
-
-			set({
-				allComments: commentsData,
-				commentSummaries: commentSummaries,
-				commentsError: null,
-			});
-
-			// Also update nodeComments for specific node
-			if (options.nodeId) {
-				const nodeComments = commentsData.filter(
-					(c) => c.node_id === options.nodeId
-				);
-				set((state) => ({
-					nodeComments: {
-						...state.nodeComments,
-						[options.nodeId!]: nodeComments,
-					},
-				}));
-			}
-		},
-		'isLoadingComments',
-		{
-			initialMessage: 'Loading comments...',
-			successMessage: 'Comments loaded successfully',
-			errorMessage: 'Failed to load comments',
+		// Apply filters
+		if (options.nodeId) {
+			query = query.eq('node_id', options.nodeId);
 		}
-	),
+
+		query = query.eq('map_id', targetMapId);
+
+		if (commentFilter.is_resolved !== undefined) {
+			query = query.eq('is_resolved', commentFilter.is_resolved);
+		}
+
+		if (commentFilter.author_id) {
+			query = query.eq('author_id', commentFilter.author_id);
+		}
+
+		if (commentFilter.category) {
+			query = query.eq('metadata->>category', commentFilter.category);
+		}
+
+		if (commentFilter.search_text) {
+			query = query.ilike('content', `%${commentFilter.search_text}%`);
+		}
+
+		// Apply sorting
+		const orderColumn =
+			commentSort.field === 'author_name' ? 'author_id' : commentSort.field;
+		query = query.order(orderColumn, {
+			ascending: commentSort.direction === 'asc',
+		});
+
+		const { data, error } = await query;
+
+		if (error) {
+			throw new Error(error.message);
+		}
+
+		const commentsData = (data || []).map((comment) => ({
+			...comment,
+			author: comment.author
+				? {
+						id: comment.author.user_id,
+						full_name: comment.author.full_name,
+						display_name: comment.author.display_name,
+						avatar_url: comment.author.avatar_url,
+					}
+				: null,
+			resolved_by_user: comment.resolved_by_user
+				? {
+						id: comment.resolved_by_user.user_id,
+						full_name: comment.resolved_by_user.full_name,
+						display_name: comment.resolved_by_user.display_name,
+						avatar_url: comment.resolved_by_user.avatar_url,
+					}
+				: null,
+			reactions: comment.reactions || [],
+		})) as NodeComment[];
+
+		// Update summaries
+		commentsData.forEach((comment) => {
+			const nodeId = comment.node_id;
+			const existing = commentSummaries.get(nodeId);
+
+			if (existing) {
+				existing.comment_count += 1;
+
+				if (!comment.is_resolved) {
+					existing.unresolved_count += 1;
+				}
+
+				if (comment.created_at > (existing.last_comment_at || '')) {
+					existing.last_comment_at = comment.created_at;
+				}
+
+				commentSummaries.set(nodeId, { ...existing });
+			} else {
+				commentSummaries.set(nodeId, {
+					node_id: nodeId,
+					comment_count: 1,
+					unresolved_count: comment.is_resolved ? 0 : 1,
+					last_comment_at: comment.created_at,
+					has_user_comments: true, // TODO: Check if current user has comments
+				});
+			}
+		});
+
+		set({
+			allComments: commentsData,
+			commentSummaries: commentSummaries,
+			commentsError: null,
+		});
+
+		// Also update nodeComments for specific node
+		if (options.nodeId) {
+			const nodeComments = commentsData.filter(
+				(c) => c.node_id === options.nodeId
+			);
+			set((state) => ({
+				nodeComments: {
+					...state.nodeComments,
+					[options.nodeId!]: nodeComments,
+				},
+			}));
+		}
+	},
 
 	fetchNodeComments: withLoadingAndToast(
 		async (nodeId: string) => {

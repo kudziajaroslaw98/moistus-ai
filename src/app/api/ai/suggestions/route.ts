@@ -1,3 +1,4 @@
+import { extractNodesContext } from '@/helpers/extract-node-context';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import type { SuggestionContext } from '@/types/ghost-node';
@@ -356,26 +357,9 @@ function buildSuggestionContext(
 	// Add node information
 	if (relevantNodes.length > 0) {
 		contextString += 'Relevant Nodes:\n';
-		relevantNodes.forEach((node, index) => {
-			contextString += `${index + 1}. ${node.data.content || 'Untitled'} (Type: ${node.data.node_type || 'default'})\n`;
-
-			// Add metadata if available
-			if (node.data.metadata) {
-				if (node.data.metadata.title) {
-					contextString += `   Title: ${node.data.metadata.title}\n`;
-				}
-
-				if (node.data.metadata.summary) {
-					contextString += `   Summary: ${node.data.metadata.summary}\n`;
-				}
-
-				if (node.data.tags && node.data.tags.length > 0) {
-					contextString += `   Tags: ${node.data.tags.join(', ')}\n`;
-				}
-			}
-
-			contextString += '\n';
-		});
+		contextString += extractNodesContext(
+			relevantNodes.map((node) => node.data)
+		).join('; ');
 	}
 
 	// Add edge information

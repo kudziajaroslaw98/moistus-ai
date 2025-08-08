@@ -2,7 +2,7 @@
 
 import { cn } from '@/utils/cn';
 import { List, Sparkles } from 'lucide-react';
-import { motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import type { ModeToggleProps } from './types';
 
 const theme = {
@@ -18,7 +18,32 @@ export const ModeToggle: React.FC<ModeToggleProps> = ({ mode, onToggle }) => {
 	return (
 		<div className='p-4 border-b border-zinc-800'>
 			<div className='flex items-center justify-between'>
-				<span className='text-xs text-zinc-500'>Input Mode</span>
+				<div className='flex flex-col gap-1'>
+					<span className='text-xs text-zinc-300'>Input Mode</span>
+					<p className='text-xs text-zinc-500'>
+						<AnimatePresence mode='popLayout'>
+							{mode === 'quick' ? (
+								<motion.span
+									key='quick'
+									initial={{ opacity: 0, x: -10 }}
+									animate={{ opacity: 1, x: 0, transition: { delay: 0.2 } }}
+									exit={{ opacity: 0, x: 10 }}
+								>
+									Type naturally with smart parsing
+								</motion.span>
+							) : (
+								<motion.span
+									key='structured'
+									initial={{ opacity: 0, x: -10 }}
+									animate={{ opacity: 1, x: 0, transition: { delay: 0.2 } }}
+									exit={{ opacity: 0, x: 10 }}
+								>
+									Fill in structured field
+								</motion.span>
+							)}
+						</AnimatePresence>
+					</p>
+				</div>
 
 				<div className={theme.container}>
 					<button
@@ -74,12 +99,6 @@ export const ModeToggle: React.FC<ModeToggleProps> = ({ mode, onToggle }) => {
 					</button>
 				</div>
 			</div>
-
-			<p className='text-xs text-zinc-600 mt-2'>
-				{mode === 'quick'
-					? 'Type naturally with smart parsing'
-					: 'Fill in structured fields'}
-			</p>
 		</div>
 	);
 };

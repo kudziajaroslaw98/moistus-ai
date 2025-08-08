@@ -1,7 +1,6 @@
 // components/Toolbar.tsx
 import useAppStore from '@/store/mind-map-store';
 import type { Tool } from '@/types/tool';
-import { motion } from 'framer-motion';
 import {
 	Hand,
 	LayoutGrid,
@@ -12,6 +11,7 @@ import {
 	Sparkles,
 	Type,
 } from 'lucide-react';
+import { motion } from 'motion/react';
 import { useShallow } from 'zustand/shallow';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
@@ -26,16 +26,28 @@ interface ToolButton {
 }
 
 const tools: ToolButton[] = [
-	{ id: 'default', icon: <MousePointer2 size={20} />, label: 'Select' },
-	{ id: 'pan', icon: <Hand size={20} />, label: 'Pan' },
-	{ id: 'connector', icon: <Share2 size={20} />, label: 'Connect' },
+	{
+		id: 'default',
+		icon: <MousePointer2 className='size-4' />,
+		label: 'Select',
+	},
+	{ id: 'pan', icon: <Hand className='size-4' />, label: 'Pan' },
+	{ id: 'connector', icon: <Share2 className='size-4' />, label: 'Connect' },
 	{ id: 'separator-0', icon: null, label: null },
-	{ id: 'node', icon: <Plus size={20} />, label: 'Add Node' },
-	{ id: 'text', icon: <Type size={20} />, label: 'Text' },
-	{ id: 'magic-wand', icon: <Sparkles size={20} />, label: 'AI Suggestions' },
+	{ id: 'node', icon: <Plus className='size-4' />, label: 'Add Node' },
+	{ id: 'text', icon: <Type className='size-4' />, label: 'Text' },
+	{
+		id: 'magic-wand',
+		icon: <Sparkles className='size-4' />,
+		label: 'AI Suggestions',
+	},
 	{ id: 'separator-1', icon: null, label: null },
-	{ id: 'chat', icon: <MessageSquare size={20} />, label: 'AI Chat' },
-	{ id: 'layout', icon: <LayoutGrid size={20} />, label: 'Auto-Layout' },
+	{ id: 'chat', icon: <MessageSquare className='size-4' />, label: 'AI Chat' },
+	{
+		id: 'layout',
+		icon: <LayoutGrid className='size-4' />,
+		label: 'Auto-Layout',
+	},
 ];
 
 export const Toolbar = () => {
@@ -97,13 +109,11 @@ export const Toolbar = () => {
 		if (feature === 'suggest-nodes') {
 			setAiFeature('suggest-nodes');
 		} else if (feature === 'suggest-connections') {
-			// generateConnectionSuggestions();
 			setState({ streamingAPI: '/api/ai/suggest-connections' });
 			setAiFeature('suggest-connections');
 		} else if (feature === 'suggest-merges') {
 			setState({ streamingAPI: '/api/ai/suggest-merges' });
 			setAiFeature('suggest-merges');
-			// generateMergeSuggestions();
 		}
 	};
 
@@ -113,7 +123,7 @@ export const Toolbar = () => {
 			animate={{ y: 0, opacity: 1 }}
 			transition={{ type: 'spring', stiffness: 100, damping: 15 }}
 		>
-			<div className='flex h-full w-full items-center gap-2 p-2 bg-gray-950 border border-gray-900 rounded-md shadow-2xl'>
+			<div className='flex h-full w-full items-center gap-2 p-2 bg-zinc-950 border border-zinc-900 rounded-xl shadow-2xl'>
 				{tools.map((tool, index) => {
 					if (tool.id.startsWith('separator')) {
 						return (
@@ -133,7 +143,7 @@ export const Toolbar = () => {
 										onClick={() => onToolChange(tool.id)}
 										variant={activeTool === tool.id ? 'default' : 'secondary'}
 										title={tool.label ?? `Tool ${index}`}
-										size={'icon-md'}
+										size={'icon'}
 									>
 										{tool.icon}
 									</Button>
@@ -190,7 +200,7 @@ export const Toolbar = () => {
 									: 'secondary'
 							}
 							title={tool.label ?? `Tool ${index}`}
-							size={'icon-md'}
+							size={'icon'}
 						>
 							{tool.icon}
 						</Button>

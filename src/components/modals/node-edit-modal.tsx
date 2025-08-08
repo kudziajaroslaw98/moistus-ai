@@ -135,8 +135,7 @@ export default function NodeEditModal() {
 			specificMetadata &&
 			Object.keys(specificMetadata).length === 0 &&
 			selectedNodeType !== 'defaultNode' &&
-			selectedNodeType !== 'groupNode' &&
-			selectedNodeType !== 'builderNode'
+			selectedNodeType !== 'groupNode'
 		) {
 			const defaultMeta = getDefaultMetadataForType(selectedNodeType);
 
@@ -149,8 +148,7 @@ export default function NodeEditModal() {
 		} else if (
 			!specificMetadata &&
 			selectedNodeType !== 'defaultNode' &&
-			selectedNodeType !== 'groupNode' &&
-			selectedNodeType !== 'builderNode'
+			selectedNodeType !== 'groupNode'
 		) {
 			changes.metadata = null;
 		}

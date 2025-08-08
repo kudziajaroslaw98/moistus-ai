@@ -1,22 +1,22 @@
 import { Button } from '@/components/ui/button';
 import useAppStore from '@/store/mind-map-store';
+import { NodeData } from '@/types/node-data';
 import { useNodeId } from '@xyflow/react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 
-const CollapseButtonComponent = () => {
-	const { getDirectChildrenCount, getNode, toggleNodeCollapse } = useAppStore(
+const CollapseButtonComponent = (props: { data: NodeData }) => {
+	const { getDirectChildrenCount, toggleNodeCollapse } = useAppStore(
 		useShallow((state) => ({
 			getDirectChildrenCount: state.getDirectChildrenCount,
-			getNode: state.getNode,
 			toggleNodeCollapse: state.toggleNodeCollapse,
 		}))
 	);
 	const [hover, setHover] = useState(false);
 	const nodeId = useNodeId();
-	const data = useMemo(() => getNode(nodeId!)?.data, [getNode, nodeId]);
+	const { data } = props;
 	const directChildrenCount = useMemo(() => {
 		return getDirectChildrenCount(nodeId!);
 	}, [getDirectChildrenCount, nodeId]);
@@ -33,7 +33,7 @@ const CollapseButtonComponent = () => {
 			{hasChildren && (
 				<Button
 					onClick={handleToggleCollapse}
-					className='nodrag nopan z-20 rounded-sm hover:bg-black/20 h-5 w-auto group flex gap-2 px-1 transition-all'
+					className='nodrag nopan z-20 rounded-sm hover:bg-black/20 h-5 w-auto group flex px-1 transition-all'
 					variant={'ghost'}
 					title={
 						collapsed
@@ -43,8 +43,8 @@ const CollapseButtonComponent = () => {
 					onHoverStart={() => setHover(true)}
 					onHoverEnd={() => setHover(false)}
 				>
-					{collapsed ? (
-						<ChevronRight className='size-3' />
+					{!collapsed ? (
+						<ChevronUp className='size-3' />
 					) : (
 						<ChevronDown className='size-3' />
 					)}
@@ -53,9 +53,9 @@ const CollapseButtonComponent = () => {
 						{hover && (
 							<motion.span
 								key={`hover-${hover}`}
-								initial={{ width: 0, opacity: 0 }}
-								animate={{ width: 'auto', opacity: 1 }}
-								exit={{ width: 0, opacity: 0 }}
+								initial={{ width: 0, opacity: 0, paddingLeft: 0 }}
+								animate={{ width: '10ch', opacity: 1, paddingLeft: 8 }}
+								exit={{ width: 0, opacity: 0, paddingLeft: 0 }}
 								transition={{
 									width: { duration: 0.25 },
 									opacity: { duration: 0.4 },
