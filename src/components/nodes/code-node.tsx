@@ -20,6 +20,7 @@ import {
 } from '../ui/select';
 import { Toggle } from '../ui/toggle';
 import { BaseNodeWrapper } from './base-node-wrapper';
+import { NodeMetadata } from './shared';
 
 type CodeNodeProps = NodeProps<Node<NodeData>>;
 
@@ -189,6 +190,19 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 				>
 					{codeContent || '// Add code snippet here...'}
 				</SyntaxHighlighter>
+
+				{/* Metadata Display */}
+				{data.metadata && Object.keys(data.metadata).length > 0 && (
+					<div className='p-4 border-t border-zinc-800'>
+						<NodeMetadata
+							nodeId={id}
+							metadata={data.metadata}
+							layout='horizontal'
+							maxItems={4}
+							className='w-full'
+						/>
+					</div>
+				)}
 			</div>
 		</BaseNodeWrapper>
 	);

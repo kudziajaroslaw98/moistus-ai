@@ -114,6 +114,30 @@ export interface ParsedQuestionData {
 	type?: 'open' | 'multiple-choice' | 'yes-no';
 }
 
+export interface ParsedTextData {
+	content: string;
+	metadata?: {
+		fontSize?: string;
+		fontWeight?: number | 'normal' | 'bold';
+		fontStyle?: 'normal' | 'italic';
+		textAlign?: 'left' | 'center' | 'right';
+		textColor?: string;
+	};
+}
+
+// Parsing utility types
+export interface ParsedColor {
+	value: string;
+	type: 'hex' | 'rgb' | 'tailwind' | 'named';
+	isValid: boolean;
+}
+
+export interface ParsedSize {
+	value: number;
+	unit: 'px' | 'rem' | 'em' | '%';
+	isValid: boolean;
+}
+
 // Component props types
 export interface CommandPaletteProps {
 	commands: NodeCommand[];

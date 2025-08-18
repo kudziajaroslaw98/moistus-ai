@@ -12,13 +12,14 @@ import {
 	Flag,
 	Plus,
 	SquareCheck,
-	Tag,
 	Trash2,
+	User,
 } from 'lucide-react'; // Import Square icon
 import { memo, useCallback, useMemo } from 'react'; // Import useMemo
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { BaseNodeWrapper } from './base-node-wrapper';
+import { MetadataBadge, NodeTags } from './shared';
 
 interface Task {
 	id: string;
@@ -194,46 +195,41 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 				{/* Task metadata (priority, due date, tags) */}
 				{(data.metadata?.priority ||
 					data.metadata?.dueDate ||
-					(data?.tags && data?.tags?.length > 0)) && (
+					(data?.metadata?.tags && data?.metadata?.tags?.length > 0)) && (
 					<div className='flex flex-wrap gap-2 items-center text-xs mb-2 pb-2 border-b border-zinc-800'>
 						{data.metadata?.priority && (
-							<div
-								className={cn(
-									'flex items-center gap-1 px-2 py-1 rounded',
-									data.metadata.priority === 'high' &&
-										'bg-red-500/20 text-red-400',
-									data.metadata.priority === 'medium' &&
-										'bg-yellow-500/20 text-yellow-400',
-									data.metadata.priority === 'low' &&
-										'bg-green-500/20 text-green-400'
-								)}
-							>
-								<Flag className='w-3 h-3' />
-
-								{data.metadata.priority}
-							</div>
+							<MetadataBadge
+								type='priority'
+								value={data.metadata.priority}
+								icon={Flag}
+								size='sm'
+							/>
 						)}
 
 						{data.metadata?.dueDate && (
-							<div className='flex items-center gap-1 px-2 py-1 rounded bg-blue-500/20 text-blue-400'>
-								<Calendar className='w-3 h-3' />
-
-								{new Date(data.metadata.dueDate).toLocaleDateString()}
-							</div>
+							<MetadataBadge
+								type='date'
+								value={new Date(data.metadata.dueDate).toLocaleDateString()}
+								icon={Calendar}
+								size='sm'
+							/>
 						)}
 
-						{data?.tags && data.tags.length > 0 && (
-							<div className='flex items-center gap-1 px-2 py-1 rounded bg-purple-500/20 text-purple-400'>
-								<Tag className='w-3 h-3' />
-
-								{data.tags.join(', ')}
-							</div>
+						{data?.metadata?.tags && data.metadata?.tags.length > 0 && (
+							<NodeTags
+								tags={data.metadata?.tags}
+								maxVisible={3}
+								className='inline-flex'
+							/>
 						)}
 
 						{data.metadata?.assignee && (
-							<div className='flex items-center gap-1 px-2 py-1 rounded bg-teal-500/20 text-teal-400'>
-								@{data.metadata.assignee}
-							</div>
+							<MetadataBadge
+								type='assignee'
+								value={`@${data.metadata.assignee}`}
+								icon={User}
+								size='sm'
+							/>
 						)}
 					</div>
 				)}

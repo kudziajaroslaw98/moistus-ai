@@ -18,6 +18,7 @@ import { useShallow } from 'zustand/shallow';
 import { Button } from '../ui/button';
 import { Toggle } from '../ui/toggle';
 import { BaseNodeWrapper } from './base-node-wrapper';
+import { NodeMetadata } from './shared';
 
 type ImageNodeProps = NodeProps<Node<NodeData>>;
 
@@ -32,7 +33,7 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 
 	const [isRefreshing, setIsRefreshing] = useState(false);
 
-	const imageUrl = data.metadata?.image_url as string | undefined;
+	const imageUrl = data.metadata?.imageUrl as string | undefined;
 	const showCaption = Boolean(data.metadata?.showCaption);
 
 	const handleNodeChange = useCallback(
@@ -186,6 +187,19 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 								No caption added. Double click or click the menu to add one...
 							</span>
 						)}
+					</div>
+				)}
+
+				{/* Metadata Display */}
+				{data.metadata && Object.keys(data.metadata).length > 0 && (
+					<div className='px-4 pb-4'>
+						<NodeMetadata
+							nodeId={id}
+							metadata={data.metadata}
+							layout='horizontal'
+							maxItems={4}
+							className='w-full'
+						/>
 					</div>
 				)}
 			</>

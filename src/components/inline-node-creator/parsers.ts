@@ -7,6 +7,7 @@ import type {
 	ParsedQuestionData,
 	ParsedResourceData,
 	ParsedTaskData,
+	ParsedTextData,
 } from './types';
 
 // Helper function to parse date strings
@@ -443,9 +444,76 @@ export const parseQuestionInput = (input: string): ParsedQuestionData => {
 	};
 };
 
-// Simple text parser
-export const parseTextInput = (input: string): { content: string } => {
-	return {
-		content: input.trim(),
+// Parse text input with formatting patterns
+export const parseTextInput = (input: string): ParsedTextData => {
+	const patterns = {
+		fontSize: /@(\d+)(px|rem|em)?/g,
+		bold: /\*\*(.*?)\*\*/g,
+		italic: /(?<!\*)\*([^*]+)\*(?!\*)|\b_([^_]+)_\b/g,
+		alignment: /align:(left|center|right)/i,
+		color: /color:([#\w-]+)/i,
 	};
+
+	let content = input;
+	const metadata: ParsedTextData['metadata'] = {};
+
+	// Extract font size
+	const sizeMatches = Array.from(content.matchAll(patterns.fontSize));
+
+	if (sizeMatches.length > 0) {
+		const lastMatch = sizeMatches[sizeMatches.length - 1];
+		const size = lastMatch[1];
+		const unit = lastMatch[2] || 'px';
+		metadata.fontSize = `${size}${unit}`;
+		// Remove all size patterns from content
+		content = content.replace(patterns.fontSize, '');
+	}
+
+	// Extract alignment
+	const alignMatch = patterns.alignment.exec(content);
+
+	if (alignMatch) {
+		metadata.textAlign = alignMatch[1].toLowerCase() as
+			| 'left'
+			| 'center'
+			| 'right';
+		content = content.replace(patterns.alignment, '');
+	}
+
+	// Extract color
+	const colorMatch = patterns.color.exec(content);
+
+	if (colorMatch) {
+		metadata.textColor = colorMatch[1];
+		content = content.replace(patterns.color, '');
+	}
+
+	// Check for bold formatting (but keep the text)
+	if (patterns.bold.test(content)) {
+		metadata.fontWeight = 'bold';
+		// Replace **text** with just text
+		content = content.replace(patterns.bold, '$1');
+	}
+
+	// Check for italic formatting (but keep the text)
+	if (patterns.italic.test(content)) {
+		metadata.fontStyle = 'italic';
+		// Replace *text* or _text_ with just text
+		content = content.replace(patterns.italic, '$1$2');
+	}
+
+	// Clean up the content
+	content = content.trim();
+
+	// Return parsed data
+	const result: ParsedTextData = {
+		content,
+	};
+
+	// Only add metadata if we have any
+	if (Object.keys(metadata).length > 0) {
+		result.metadata = metadata;
+	}
+
+	return result;
 };

@@ -4,20 +4,21 @@ import useAppStore from '@/store/mind-map-store';
 import { NodeData } from '@/types/node-data';
 import { Node, NodeProps } from '@xyflow/react';
 import {
-	AlertCircle,
 	CheckCircle,
 	CircleHelp,
-	Clock,
+	Loader,
 	RefreshCw,
 	Sparkles,
 	X,
 } from 'lucide-react';
+import { motion } from 'motion/react';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/shallow';
 import { Button } from '../ui/button';
 import { Toggle } from '../ui/toggle';
 import { BaseNodeWrapper } from './base-node-wrapper';
+import { MetadataBadge } from './shared';
 
 type QuestionNodeProps = NodeProps<Node<NodeData>>;
 
@@ -31,22 +32,21 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 	);
 
 	const [isGenerating, setIsGenerating] = useState(false);
-	const aiAnswer = data.aiData?.aiAnswer as string | undefined;
-	const requestAiAnswer = Boolean(data.aiData?.requestAiAnswer);
+	const aiAnswer = data.metadata?.answer as string | undefined;
 
 	const handleNodeChange = useCallback(
-		(change: Partial<NodeData['aiData']>) => {
+		(change: Partial<NodeData['metadata']>) => {
 			updateNode({
 				nodeId: id,
 				data: {
-					aiData: {
-						...data.aiData,
+					metadata: {
+						...data.metadata,
 						...change,
 					},
 				},
 			});
 		},
-		[updateNode, id, data.aiData]
+		[updateNode, id, data.metadata]
 	);
 
 	const handleGenerateAnswer = useCallback(async () => {
@@ -89,8 +89,7 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 
 				// Update the answer in real-time as it streams
 				handleNodeChange({
-					aiAnswer: accumulatedAnswer,
-					requestAiAnswer: false,
+					answer: accumulatedAnswer,
 				});
 			}
 
@@ -98,7 +97,6 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 		} catch (error) {
 			console.error('Error generating AI answer:', error);
 			toast.error('Failed to generate AI answer');
-			handleNodeChange({ requestAiAnswer: false });
 		} finally {
 			setIsGenerating(false);
 		}
@@ -106,8 +104,7 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 
 	const handleClearAnswer = useCallback(() => {
 		handleNodeChange({
-			aiAnswer: undefined,
-			requestAiAnswer: false,
+			answer: undefined,
 		});
 		toast.success('AI answer cleared');
 	}, [handleNodeChange]);
@@ -117,7 +114,6 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 			if (pressed && !aiAnswer) {
 				handleGenerateAnswer();
 			} else {
-				handleNodeChange({ requestAiAnswer: pressed });
 			}
 		},
 		[aiAnswer, handleGenerateAnswer, handleNodeChange]
@@ -136,37 +132,59 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 		() => (
 			<>
 				{/* AI Answer Toggle */}
-				<Toggle
-					size={'sm'}
-					variant={'outline'}
-					pressed={requestAiAnswer || !!aiAnswer}
-					onPressedChange={handleToggleRequest}
-					disabled={isGenerating}
-					title={aiAnswer ? 'AI answer exists' : 'Request AI answer'}
-				>
-					<Sparkles className='w-4 h-4' />
-				</Toggle>
+				{answerStatus === 'none' && (
+					<motion.div
+						initial={{ opacity: 0, x: -10, width: 0 }}
+						animate={{ opacity: 1, x: 0, width: 'auto' }}
+						exit={{ opacity: 0, x: -10, width: 0 }}
+						transition={{
+							opacity: {
+								duration: 0.2,
+							},
+							x: {
+								duration: 0.25,
+							},
+							width: {
+								duration: 0.15,
+							},
+						}}
+					>
+						<Toggle
+							size={'sm'}
+							variant={'outline'}
+							pressed={!!aiAnswer}
+							onPressedChange={handleToggleRequest}
+							disabled={isGenerating}
+							title={aiAnswer ? 'AI answer exists' : 'Request AI answer'}
+							className='px-4 text-sm gap-2'
+						>
+							<span>Answer with AI</span>
+
+							<Sparkles className='w-4 h-4' />
+						</Toggle>
+					</motion.div>
+				)}
 
 				{/* Answer Status Indicator */}
 				{answerStatus === 'pending' && (
-					<div className='flex items-center gap-1 px-2 py-1 rounded text-xs bg-yellow-600/20 text-yellow-400'>
-						<Clock className='w-3 h-3 animate-spin' />
-						Pending
-					</div>
+					<MetadataBadge
+						type='status'
+						value='Pending'
+						icon={Loader}
+						variant='warning'
+						size='sm'
+						className='[&_svg]:animate-spin'
+					/>
 				)}
 
 				{answerStatus === 'answered' && (
-					<div className='flex items-center gap-1 px-2 py-1 rounded text-xs bg-green-600/20 text-green-400'>
-						<CheckCircle className='w-3 h-3' />
-						Answered
-					</div>
-				)}
-
-				{answerStatus === 'none' && (
-					<div className='flex items-center gap-1 px-2 py-1 rounded text-xs bg-gray-600/20 text-gray-400'>
-						<AlertCircle className='w-3 h-3' />
-						None
-					</div>
+					<MetadataBadge
+						type='status'
+						value='Answered'
+						icon={CheckCircle}
+						variant='success'
+						size='sm'
+					/>
 				)}
 
 				{/* Regenerate Answer Button */}
@@ -201,7 +219,6 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 			</>
 		),
 		[
-			requestAiAnswer,
 			aiAnswer,
 			isGenerating,
 			answerStatus,

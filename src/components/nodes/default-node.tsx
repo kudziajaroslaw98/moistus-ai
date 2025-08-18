@@ -17,6 +17,7 @@ import {
 	SelectValue,
 } from '../ui/select';
 import { BaseNodeWrapper } from './base-node-wrapper';
+import { NodeMetadata, NodeTags } from './shared';
 
 const MarkdownWrapperComponent = ({ content }: { content: string }) => {
 	return <ReactMarkdown>{content}</ReactMarkdown>;
@@ -39,8 +40,9 @@ const DefaultNodeComponent = (props: NodeProps<Node<NodeData>>) => {
 	const [localContent, setLocalContent] = useState(data.content || '');
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const isEditing = editingNodeId === id;
-	const status = data.status as string | undefined;
-	const importance = data.importance as number | undefined;
+	const status = data.metadata?.status as string | undefined;
+	const priority = data.metadata?.priority as number | undefined;
+	const tags = data.metadata?.tags as string[] | undefined;
 
 	const handleNodeChange = useCallback(
 		(change: Partial<NodeData>) => {
@@ -103,12 +105,10 @@ const DefaultNodeComponent = (props: NodeProps<Node<NodeData>>) => {
 		{ value: 'on-hold', label: 'On Hold', icon: AlertCircle },
 	];
 
-	const importanceOptions = [
-		{ value: 1, label: '⭐', title: 'Low importance' },
-		{ value: 2, label: '⭐⭐', title: 'Medium-low importance' },
-		{ value: 3, label: '⭐⭐⭐', title: 'Medium importance' },
-		{ value: 4, label: '⭐⭐⭐⭐', title: 'High importance' },
-		{ value: 5, label: '⭐⭐⭐⭐⭐', title: 'Critical importance' },
+	const priorityOptions = [
+		{ value: 'low', title: 'Low' },
+		{ value: 'medium', title: 'Medium' },
+		{ value: 'high', title: 'High' },
 	];
 
 	const toolbarContent = useMemo(
@@ -117,7 +117,9 @@ const DefaultNodeComponent = (props: NodeProps<Node<NodeData>>) => {
 				{/* Status Selector */}
 				<Select
 					value={status || ''}
-					onValueChange={(value) => handleNodeChange({ status: value })}
+					onValueChange={(value) =>
+						handleNodeChange({ metadata: { status: value } })
+					}
 				>
 					<SelectTrigger className='h-8 w-32' size='sm'>
 						<div className='flex items-center gap-1'>
@@ -160,30 +162,32 @@ const DefaultNodeComponent = (props: NodeProps<Node<NodeData>>) => {
 
 				{/* Importance Selector */}
 				<Select
-					value={importance?.toString() || ''}
+					value={priority?.toString() || ''}
 					onValueChange={(value) =>
-						handleNodeChange({ importance: value ? parseInt(value) : null })
+						handleNodeChange({
+							metadata: { priority: value || null },
+						})
 					}
 				>
-					<SelectTrigger className='h-8 w-24' size='sm'>
+					<SelectTrigger className='h-8 w-32' size='sm'>
 						<SelectValue placeholder='Priority' />
 					</SelectTrigger>
 
 					<SelectContent>
-						{importanceOptions.map((option) => (
+						{priorityOptions.map((option) => (
 							<SelectItem
 								key={option.value}
 								value={option.value.toString()}
 								title={option.title}
 							>
-								{option.label}
+								{option.value}
 							</SelectItem>
 						))}
 					</SelectContent>
 				</Select>
 
 				{/* Status/Importance Display Badge */}
-				{(status || importance) && (
+				{(status || priority) && (
 					<div className='flex items-center gap-1 px-2 py-1 rounded text-xs bg-blue-600/20 text-blue-400'>
 						{status && (
 							<span className='capitalize text-xs'>
@@ -191,16 +195,14 @@ const DefaultNodeComponent = (props: NodeProps<Node<NodeData>>) => {
 							</span>
 						)}
 
-						{status && importance && <span>•</span>}
+						{status && priority && <span>•</span>}
 
-						{importance && (
-							<span>{importanceOptions[importance - 1]?.label}</span>
-						)}
+						{priority && <span>{priorityOptions[priority - 1]?.value}</span>}
 					</div>
 				)}
 			</>
 		),
-		[status, importance, handleNodeChange, statusOptions, importanceOptions]
+		[status, priority, handleNodeChange, statusOptions, priorityOptions]
 	);
 
 	return (
@@ -226,6 +228,27 @@ const DefaultNodeComponent = (props: NodeProps<Node<NodeData>>) => {
 					<MarkdownWrapper
 						content={data.content || 'Double click to edit...'}
 					/>
+
+					{tags && tags.length > 0 && (
+						<NodeTags
+							tags={tags}
+							className='mt-2'
+							onTagClick={(tag) => console.log('Tag clicked:', tag)}
+						/>
+					)}
+
+					{/* Additional Metadata Display */}
+					{data.metadata && Object.keys(data.metadata).length > 0 && (
+						<div className='mt-2 pt-2 border-t border-zinc-800/50'>
+							<NodeMetadata
+								nodeId={id}
+								metadata={data.metadata}
+								layout='horizontal'
+								maxItems={3}
+								className='w-full'
+							/>
+						</div>
+					)}
 				</div>
 			)}
 		</BaseNodeWrapper>

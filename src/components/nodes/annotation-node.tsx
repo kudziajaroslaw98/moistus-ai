@@ -4,7 +4,7 @@ import useAppStore from '@/store/mind-map-store';
 import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
 import { Node, NodeProps } from '@xyflow/react';
-import { AlignLeft, Lightbulb, MessageSquare, Quote, Type } from 'lucide-react';
+import { AlignLeft, Bold, Lightbulb, MessageSquare, Quote } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
 import {
@@ -15,7 +15,7 @@ import {
 	SelectValue,
 } from '../ui/select';
 import { Toggle } from '../ui/toggle';
-import { BaseNodeWrapper } from './base-node-wrapper';
+import { BaseInlineWrapper } from './base-inline-wrapper';
 
 type AnnotationNodeProps = NodeProps<Node<NodeData>>;
 
@@ -56,7 +56,10 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 
 	const fontSize = data.metadata?.fontSize as string | undefined;
 	const fontWeight = data.metadata?.fontWeight as string | number | undefined;
-	const annotationType = (data.metadata?.annotationType as string) || 'comment';
+	const annotationType =
+		(data.metadata?.annotationType as AnnotationType) || 'comment';
+	const capitalizedAnnotationType =
+		annotationType.charAt(0).toUpperCase() + annotationType.slice(1);
 
 	const handleNodeChange = useCallback(
 		(change: Partial<NodeData['metadata']>) => {
@@ -102,7 +105,7 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 					value={fontSize || '14px'}
 					onValueChange={(value) => handleNodeChange({ fontSize: value })}
 				>
-					<SelectTrigger className='h-8 w-20' size='sm'>
+					<SelectTrigger className='h-8 w-24' size='sm'>
 						<SelectValue />
 					</SelectTrigger>
 
@@ -127,7 +130,7 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 					}}
 					disabled={isQuote} // Quotes always use italic styling
 				>
-					<Type className='w-4 h-4' />
+					<Bold className='w-4 h-4' />
 				</Toggle>
 
 				{/* Annotation Type Selector */}
@@ -137,10 +140,8 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 						handleNodeChange({ annotationType: value })
 					}
 				>
-					<SelectTrigger className='h-8 w-24' size='sm'>
+					<SelectTrigger className='h-8 w-32' size='sm'>
 						<div className='flex items-center gap-1'>
-							<TypeIcon className='w-3 h-3' />
-
 							<SelectValue />
 						</div>
 					</SelectTrigger>
@@ -167,79 +168,89 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 	);
 
 	return (
-		<BaseNodeWrapper
+		<BaseInlineWrapper
 			{...props}
-			nodeClassName={cn(['annotation-node', typeInfo.textColorClass])}
-			nodeType='Annotation'
+			nodeClassName={cn([`annotation-node-${annotationType}`])}
+			nodeType={capitalizedAnnotationType}
 			nodeIcon={<TypeIcon className='size-4' />}
 			toolbarContent={toolbarContent}
+			includePadding={false}
 		>
-			{/* --- Quote Specific Layout --- */}
-			{isQuote ? (
-				<div className='relative flex items-center py-2'>
-					{/* Large Opening Quote */}
-					<span
-						aria-hidden='true'
-						className='pointer-events-none absolute -top-4 -left-4 font-lora text-6xl text-current opacity-20'
-						style={{ lineHeight: '1' }}
-					>
-						&quot;
-					</span>
+			<div
+				className={cn([
+					'relative flex h-full min-h-20 min-w-80 flex-col gap-1 rounded text-center transition-all',
 
-					{/* Content */}
-					<div
-						className={cn([
-							'font-lora text-base break-words whitespace-pre-wrap italic',
-							typeInfo.textColorClass,
-						])}
-						style={contentStyle}
-					>
-						{data.content || (
-							<span className='text-current italic opacity-60'>
-								Add quote...
-							</span>
-						)}
-					</div>
+					selected && 'ring-1 ring-sky-600 ring-offset-2 ring-offset-zinc-900',
+					typeInfo.textColorClass,
+				])}
+			>
+				{/* --- Quote Specific Layout --- */}
+				{isQuote ? (
+					<div className='relative flex items-center py-2'>
+						{/* Large Opening Quote */}
+						<span
+							aria-hidden='true'
+							className='pointer-events-none absolute -top-4 -left-4 font-lora text-6xl text-current opacity-20'
+							style={{ lineHeight: '1' }}
+						>
+							“
+						</span>
 
-					<span
-						aria-hidden='true'
-						className='pointer-events-none absolute -right-4 -bottom-4 font-lora text-6xl text-current opacity-20'
-						style={{ lineHeight: '0.5' }}
-					>
-						&quot;
-					</span>
-				</div>
-			) : (
-				<>
-					{/* --- Default Layout for other types --- */}
-					<div className='mb-1 flex items-center justify-between'>
-						{/* Icon and Type Label */}
-						<div className='flex items-center gap-1.5 opacity-80'>
-							<TypeIcon className='size-3.5 flex-shrink-0' />
-
-							<span className='text-xs font-medium tracking-wider uppercase'>
-								{annotationType}
-							</span>
+						{/* Content */}
+						<div
+							className={cn([
+								'font-lora text-base w-full break-words text-center whitespace-pre-wrap italic',
+								typeInfo.textColorClass,
+							])}
+							style={contentStyle}
+						>
+							{data.content || (
+								<span className='text-current italic opacity-60'>
+									Add quote...
+								</span>
+							)}
 						</div>
-					</div>
 
-					{/* Content */}
-					<div
-						className={cn([
-							'text-sm break-words whitespace-pre-wrap',
-							typeInfo.textColorClass,
-						])}
-						style={contentStyle}
-					>
-						{data.content || (
-							<span className='text-current italic opacity-60'>
-								Add content...
-							</span>
-						)}
+						<span
+							aria-hidden='true'
+							className='pointer-events-none absolute -right-4 -bottom-4 font-lora text-6xl text-current opacity-20'
+							style={{ lineHeight: '0.5' }}
+						>
+							”
+						</span>
 					</div>
-				</>
-			)}
-		</BaseNodeWrapper>
+				) : (
+					<>
+						{/* --- Default Layout for other types --- */}
+						<div className='mb-1 flex items-center justify-between'>
+							{/* Icon and Type Label */}
+							<div className='flex items-center gap-1.5 opacity-80'>
+								<TypeIcon className='size-3.5 flex-shrink-0' />
+
+								<span className='text-xs font-medium tracking-wider uppercase'>
+									{annotationType}
+								</span>
+							</div>
+						</div>
+
+						{/* Content */}
+						<div
+							className={cn([
+								'text-sm break-words whitespace-pre-wrap',
+								typeInfo.textColorClass,
+							])}
+							style={contentStyle}
+						>
+							{data.content || (
+								<span className='text-current italic opacity-60'>
+									Add content...
+								</span>
+							)}
+						</div>
+					</>
+				)}
+			</div>
+		</BaseInlineWrapper>
 	);
 };
 

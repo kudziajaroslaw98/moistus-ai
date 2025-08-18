@@ -4,7 +4,7 @@ import { HTMLMotionProps, motion } from 'motion/react';
 import { forwardRef } from 'react';
 
 const buttonVariants = cva(
-	'inline-flex items-center rounded-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-800 disabled:opacity-50 disabled:pointer-events-none',
+	'inline-flex items-center rounded-sm font-medium transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-800 disabled:opacity-50 disabled:pointer-events-none',
 	{
 		variants: {
 			variant: {

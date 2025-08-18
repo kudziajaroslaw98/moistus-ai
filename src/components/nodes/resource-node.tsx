@@ -19,6 +19,7 @@ import { useShallow } from 'zustand/shallow';
 import { Button } from '../ui/button';
 import { Toggle } from '../ui/toggle';
 import { BaseNodeWrapper } from './base-node-wrapper';
+import { NodeMetadata } from './shared';
 
 type ResourceNodeProps = NodeProps<Node<NodeData>>;
 
@@ -33,11 +34,11 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 
 	const [isRefreshing, setIsRefreshing] = useState(false);
 
-	const resourceUrl = data.metadata?.url as string | undefined;
 	const title = (data.metadata?.title as string) || data.content || 'Resource';
 	const showThumbnail = Boolean(data.metadata?.showThumbnail);
 	const showSummary = Boolean(data.metadata?.showSummary);
 	const imageUrl = data.metadata?.imageUrl as string | undefined;
+	const resourceUrl = data.metadata?.url as string | undefined;
 	const summary = data.metadata?.summary as string | undefined;
 
 	const handleNodeChange = useCallback(
@@ -241,6 +242,19 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 						<div className='text-left tracking-normal text-sm text-node-text-secondary'>
 							{summary}
 						</div>
+					</div>
+				)}
+
+				{/* Metadata Display */}
+				{data.metadata && Object.keys(data.metadata).length > 0 && (
+					<div className='mt-4'>
+						<NodeMetadata
+							nodeId={id}
+							metadata={data.metadata}
+							layout='horizontal'
+							maxItems={4}
+							className='w-full'
+						/>
 					</div>
 				)}
 			</>

@@ -199,6 +199,8 @@ export function ReactFlowArea() {
 					y: mousePosition.y,
 				}) || { x: 0, y: 0 };
 
+				console.log('Mouse position:', mousePosition);
+
 				openInlineCreator({
 					position,
 					screenPosition: mousePosition,

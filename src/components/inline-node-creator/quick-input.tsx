@@ -92,6 +92,7 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 			createNodeFromCommand({
 				command,
 				data: nodeData,
+				position,
 				parentNode,
 				addNode,
 			});

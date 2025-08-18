@@ -20,6 +20,7 @@ export const ModeToggle: React.FC<ModeToggleProps> = ({ mode, onToggle }) => {
 			<div className='flex items-center justify-between'>
 				<div className='flex flex-col gap-1'>
 					<span className='text-xs text-zinc-300'>Input Mode</span>
+
 					<p className='text-xs text-zinc-500'>
 						<AnimatePresence mode='popLayout'>
 							{mode === 'quick' ? (

@@ -2,6 +2,9 @@ import { AvailableNodeTypes } from './available-node-types';
 import { SuggestionContext } from './ghost-node';
 
 export interface NodeData extends Record<string, unknown> {
+	// ==========================================
+	// Core Fields - Required for all nodes
+	// ==========================================
 	id: string;
 	map_id: string;
 	parent_id: string | null;
@@ -11,82 +14,114 @@ export interface NodeData extends Record<string, unknown> {
 	node_type?: AvailableNodeTypes;
 	width?: number | null;
 	height?: number | null;
+	created_at: string;
+	updated_at: string;
 
-	tags?: string[] | null;
-	status?: string | null;
-	importance?: number | null;
-	sourceUrl?: string | null;
-
+	// ==========================================
+	// Metadata - Node-specific properties
+	// ==========================================
 	metadata?: {
+		// ------------------------------------------
+		// Display & Layout Properties
+		// ------------------------------------------
 		title?: string;
-		dueDate?: string;
-		priority?: string | number;
-		assignee?: string[];
-		tasks?: { id: string; text: string; isComplete: boolean }[];
+		label?: string;
+		showBackground?: boolean;
+		backgroundColor?: string;
+		borderColor?: string;
+		isCollapsed?: boolean;
 
+		// ==========================================
+		// Common Fields - Used across multiple nodes
+		// ==========================================
+		tags?: string[] | null;
+		status?: string | null; // 'draft' | 'in-progress' | 'completed' | 'on-hold'
+		priority?: string | null; // 'low' | 'medium' | 'high'
+
+		// ------------------------------------------
+		// Text Formatting (TextNode, AnnotationNode)
+		// ------------------------------------------
+		fontSize?: string;
+		fontWeight?: number | string;
+		fontStyle?: 'normal' | 'italic';
+		textAlign?: 'left' | 'center' | 'right';
+		textColor?: string;
+
+		// ------------------------------------------
+		// Task Properties (TaskNode)
+		// ------------------------------------------
+		tasks?: { id: string; text: string; isComplete: boolean }[];
+		dueDate?: string;
+		assignee?: string[];
+
+		// ------------------------------------------
+		// Resource/Link Properties (ResourceNode)
+		// ------------------------------------------
 		url?: string;
 		faviconUrl?: string;
 		thumbnailUrl?: string;
-		summary?: string;
-		showThumbnail?: boolean;
-		showSummary?: boolean;
+		resourceType?: string;
 
+		// ------------------------------------------
+		// Image Properties (ImageNode)
+		// ------------------------------------------
 		imageUrl?: string;
 		altText?: string;
 		caption?: string;
 		showCaption?: boolean;
+		source?: string;
 
-		answer?: string;
-
-		fontSize?: string;
-		fontWeight?: number | string;
-		targetNodeId?: string;
-		annotationType?: 'comment' | 'idea' | 'quote' | 'summary';
-
-		// New properties for TextNode
-		textAlign?: 'left' | 'center' | 'right';
-		fontStyle?: 'normal' | 'italic';
-		showBackground?: boolean;
-		backgroundColor?: string;
-		textColor?: string;
-		label?: string;
-		sourceBranchNodeId?: string;
+		// ------------------------------------------
+		// Code Properties (CodeNode)
+		// ------------------------------------------
 		language?: string;
 		showLineNumbers?: boolean;
 		fileName?: string;
-		borderColor?: string;
-		isCollapsed?: boolean; // Added for collapsible branches
-		resourceType?: string;
 
-		// ImageNode properties
-		image_url?: string;
-		source?: string;
+		// ------------------------------------------
+		// Annotation Properties (AnnotationNode)
+		// ------------------------------------------
+		annotationType?: 'comment' | 'idea' | 'quote' | 'summary';
 
-		// Group-related properties
+		// ------------------------------------------
+		// Content Enhancement Properties
+		// ------------------------------------------
+		// These can be user-provided or AI-generated
+		answer?: string; // For QuestionNode - can be AI or user answer
+		summary?: string; // For ResourceNode or any node - can be AI or user summary
+		showSummary?: boolean;
+		showThumbnail?: boolean;
+
+		// Flags to indicate AI-generated content
+		isAiGenerated?: boolean; // General flag for any AI content
+
+		// AI-specific properties
+		embedding?: number[]; // Vector embedding for semantic search
+		extractedConcepts?: string[]; // AI-extracted key concepts
+		isSearchResult?: boolean; // Whether this node appeared in search results
+		confidence?: number; // AI confidence score (0-1)
+
+		// ------------------------------------------
+		// Group Properties (GroupNode)
+		// ------------------------------------------
 		groupId?: string; // ID of the group this node belongs to
 		isGroup?: boolean; // Whether this node is a group container
 		groupChildren?: string[]; // Array of child node IDs (for group nodes)
 		groupPadding?: number; // Padding inside the group
 
-		suggestedContent?: string;
-		suggestedType?: AvailableNodeTypes;
-		confidence?: number;
-		context?: SuggestionContext;
-
-		// referencing
+		// ------------------------------------------
+		// Reference Properties (ReferenceNode)
+		// ------------------------------------------
+		targetNodeId?: string;
 		targetMapId?: string;
 		targetMapTitle?: string;
 		contentSnippet?: string;
-	} | null;
-	aiData?: {
-		requestAiAnswer?: boolean;
-		aiAnswer?: string;
-		embedding?: number[];
-		aiSummary?: string;
-		extractedConcepts?: string[];
-		isSearchResult?: boolean;
-	} | null;
 
-	created_at: string;
-	updated_at: string;
+		// ------------------------------------------
+		// Ghost Node Properties (AI Suggestions)
+		// ------------------------------------------
+		suggestedContent?: string;
+		suggestedType?: AvailableNodeTypes;
+		context?: SuggestionContext;
+	} | null;
 }

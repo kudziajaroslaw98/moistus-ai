@@ -130,6 +130,7 @@ const transformDataForNodeType = (
 		case 'textNode':
 			return {
 				content: data.content || '',
+				metadata: data.metadata || {},
 			};
 
 		default:

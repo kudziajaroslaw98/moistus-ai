@@ -16,13 +16,10 @@ import { memo, type ReactNode, useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { AvatarStack } from '../ui/avatar-stack';
 import { Button } from '../ui/button';
-import CollapseButton from './node-additions/collapse-button';
 import CollapsedIndicator from './node-additions/collapsed-indicator';
-import CommentButton from './node-additions/comment-button';
-import GroupButton from './node-additions/group-button';
 
 // Define the props including the onEditNode callback
-interface BaseNodeWrapperProps extends NodeProps<Node<NodeData>> {
+interface BaseInlineWrapperProps extends NodeProps<Node<NodeData>> {
 	children: ReactNode; // Content specific to the node type
 	nodeClassName?: string; // For overall node styling adjustments
 	nodeIcon?: ReactNode;
@@ -44,7 +41,7 @@ interface BaseNodeWrapperProps extends NodeProps<Node<NodeData>> {
 	onDoubleClick?: (event: React.MouseEvent, node: Node<NodeData>) => void; // Optional double-click override
 }
 
-const BaseNodeWrapperComponent = ({
+const BaseInlineWrapperComponent = ({
 	id,
 	data,
 	selected,
@@ -56,7 +53,7 @@ const BaseNodeWrapperComponent = ({
 	hideNodeType = false,
 	toolbarContent,
 	onDoubleClick,
-}: BaseNodeWrapperProps) => {
+}: BaseInlineWrapperProps) => {
 	const {
 		getNode,
 		realtimeSelectedNodes,
@@ -169,34 +166,17 @@ const BaseNodeWrapperComponent = ({
 
 			<div
 				className={cn(
-					'relative hover:scale-[1.01] hover:-translate-y-1 flex h-full min-h-auto min-w-80 flex-col rounded-sm border-2 border-node-accent bg-zinc-950 shadow-lg hover:shadow-zinc-900/75 shadow-node-accent/25 gap-4 transition-all cursor-pointer',
+					'relative hover:scale-[1.01] hover:-translate-y-1 flex h-full min-h-auto min-w-80 flex-col rounded-sm gap-4 transition-all cursor-pointer',
 					selected && 'border-sky-700',
 					includePadding ? 'p-4' : 'p-0',
 					nodeClassName,
-					activeTool === 'pan' && 'pointer-events-none !cursor-move'
+					activeTool === 'pan' && 'pointer-events-none'
 				)}
 				style={{ zIndex: belongsToGroup ? 1 : 'auto', height: 'auto' }}
 				onDoubleClick={handleDoubleClick}
 			>
 				<>
 					<CollapsedIndicator data={data} />
-
-					{/* Top header with node info */}
-					<div className='top-0 left-4 absolute -translate-y-full flex items-center justify-center gap-2'>
-						<CollapseButton data={data} />
-
-						<GroupButton />
-
-						{!hideNodeType && (
-							<div className='bg-node-accent text-node-text-main rounded-t-sm px-2 py-0.5 text-[10px] font-semibold font-mono flex items-center gap-2'>
-								<span>{nodeIcon}</span>
-
-								<span>{nodeType}</span>
-							</div>
-						)}
-
-						<CommentButton />
-					</div>
 
 					<div className='-bottom-10 left-0 flex absolute'>
 						<AnimatePresence mode='popLayout'>
@@ -225,10 +205,9 @@ const BaseNodeWrapperComponent = ({
 								type='source'
 								position={Position.Bottom}
 								className={cn(
-									'w-12 h-2 rounded-xs border-2 transition-all duration-200',
+									'collapse rounded-xs transition-all duration-200',
 									'!bg-node-accent border-node-accent opacity-100 shadow-lg',
-									'translate-y-[1px]',
-									activeTool === 'pan' && '!pointer-events-none'
+									'translate-y-[1px]'
 								)}
 							/>
 
@@ -293,7 +272,7 @@ const BaseNodeWrapperComponent = ({
 							<NodeResizer
 								color='#0069a8'
 								isVisible={selected}
-								minWidth={120}
+								minWidth={320}
 								minHeight={30}
 								maxWidth={600}
 								handleClassName='!w-3 !h-3 !bg-node-accent border-node-text-secondary'
@@ -306,5 +285,5 @@ const BaseNodeWrapperComponent = ({
 	);
 };
 
-export const BaseNodeWrapper = memo(BaseNodeWrapperComponent);
-BaseNodeWrapper.displayName = 'BaseNodeWrapper';
+export const BaseInlineWrapper = memo(BaseInlineWrapperComponent);
+BaseInlineWrapper.displayName = 'BaseInlineWrapper';

@@ -411,8 +411,46 @@ export const nodeCommands: NodeCommand[] = [
 				placeholder: 'Enter your text...',
 			},
 		],
-		examples: ['Quick note', 'Important reminder'],
-		parsingPatterns: [], // Text nodes have no special patterns
+		examples: [
+			'**Bold text** @24px',
+			'*Italic note* align:center',
+			'Important message color:red @32px',
+		],
+		parsingPatterns: [
+			{
+				pattern: '@size',
+				description: 'Set font size',
+				examples: ['@16px', '@24px', '@32px', '@2rem'],
+				category: 'formatting',
+				insertText: '@24px',
+			},
+			{
+				pattern: '**text**',
+				description: 'Make text bold',
+				examples: ['**Important**', '**Warning**'],
+				category: 'formatting',
+			},
+			{
+				pattern: '*text*',
+				description: 'Make text italic',
+				examples: ['*emphasis*', '_note_'],
+				category: 'formatting',
+			},
+			{
+				pattern: 'align:direction',
+				description: 'Set text alignment',
+				examples: ['align:left', 'align:center', 'align:right'],
+				category: 'formatting',
+				insertText: 'align:center',
+			},
+			{
+				pattern: 'color:value',
+				description: 'Set text color',
+				examples: ['color:red', 'color:#ff0000', 'color:blue-500'],
+				category: 'formatting',
+				insertText: 'color:',
+			},
+		],
 	},
 ];
 

@@ -113,8 +113,20 @@
 	--node-accent: theme('colors.slate.700');
 }
 
-.builder-node {
+.annotation-node-comment {
+	--node-accent: theme('colors.blue.700');
+}
+
+.annotation-node-idea {
+	--node-accent: theme('colors.yellow.700');
+}
+
+.annotation-node-quote {
 	--node-accent: theme('colors.purple.700');
+}
+
+.annotation-node-summary {
+	--node-accent: theme('colors.green.700');
 }
 
 .text-node {
