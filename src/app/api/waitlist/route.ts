@@ -1,7 +1,7 @@
+import { checkRateLimit, getClientIP } from '@/helpers/api/rate-limiter';
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withPublicApiValidation } from '@/helpers/api/with-public-api-validation';
-import { checkRateLimit, getClientIP } from '@/helpers/api/rate-limiter';
-import { waitlistFormSchema, type WaitlistFormData } from '@/lib/validations/waitlist';
+import { waitlistFormSchema } from '@/lib/validations/waitlist';
 
 export const POST = withPublicApiValidation(
 	waitlistFormSchema,
@@ -65,7 +65,7 @@ export const POST = withPublicApiValidation(
 							timestamp: new Date().toISOString(),
 							headers: {
 								'user-agent': userAgent,
-								'referer': referrer,
+								referer: referrer,
 							},
 						},
 					},

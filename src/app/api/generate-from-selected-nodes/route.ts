@@ -1,4 +1,4 @@
-import { respondError, respondSuccess } from '@/helpers/api/responses';
+import { respondError } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';

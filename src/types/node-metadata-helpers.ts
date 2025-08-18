@@ -59,12 +59,14 @@ export const FONT_STYLE = {
 // Type Guards
 // ==========================================
 
-export type NodeStatus = typeof NODE_STATUS[keyof typeof NODE_STATUS];
-export type NodePriority = typeof NODE_PRIORITY[keyof typeof NODE_PRIORITY];
-export type NodeImportance = typeof NODE_IMPORTANCE[keyof typeof NODE_IMPORTANCE];
-export type AnnotationType = typeof ANNOTATION_TYPES[keyof typeof ANNOTATION_TYPES];
-export type TextAlign = typeof TEXT_ALIGN[keyof typeof TEXT_ALIGN];
-export type FontStyle = typeof FONT_STYLE[keyof typeof FONT_STYLE];
+export type NodeStatus = (typeof NODE_STATUS)[keyof typeof NODE_STATUS];
+export type NodePriority = (typeof NODE_PRIORITY)[keyof typeof NODE_PRIORITY];
+export type NodeImportance =
+	(typeof NODE_IMPORTANCE)[keyof typeof NODE_IMPORTANCE];
+export type AnnotationType =
+	(typeof ANNOTATION_TYPES)[keyof typeof ANNOTATION_TYPES];
+export type TextAlign = (typeof TEXT_ALIGN)[keyof typeof TEXT_ALIGN];
+export type FontStyle = (typeof FONT_STYLE)[keyof typeof FONT_STYLE];
 
 // ==========================================
 // Helper Functions
@@ -95,7 +97,9 @@ export const isGroupContainer = (data: NodeData): boolean => {
  * Check if a node has AI data
  */
 export const hasAIData = (data: NodeData): boolean => {
-	return Boolean(data.aiData && (data.aiData.aiAnswer || data.aiData.aiSummary));
+	return Boolean(
+		data.aiData && (data.aiData.aiAnswer || data.aiData.aiSummary)
+	);
 };
 
 /**
@@ -109,7 +113,9 @@ export const isCollapsed = (data: NodeData): boolean => {
  * Get display title for a node
  */
 export const getNodeDisplayTitle = (data: NodeData): string => {
-	return data.metadata?.title || data.metadata?.label || data.content || 'Untitled';
+	return (
+		data.metadata?.title || data.metadata?.label || data.content || 'Untitled'
+	);
 };
 
 /**
@@ -137,7 +143,9 @@ export const getTaskCompletionPercentage = (data: NodeData): number => {
 		return 0;
 	}
 
-	const completed = data.metadata.tasks.filter(task => task.isComplete).length;
+	const completed = data.metadata.tasks.filter(
+		(task) => task.isComplete
+	).length;
 	return Math.round((completed / data.metadata.tasks.length) * 100);
 };
 
@@ -169,8 +177,8 @@ export const getNodeTags = (data: NodeData): string[] => {
 export const isGhostNode = (data: NodeData): boolean => {
 	return Boolean(
 		data.metadata?.suggestedContent &&
-		data.metadata?.suggestedType &&
-		data.metadata?.confidence !== undefined
+			data.metadata?.suggestedType &&
+			data.metadata?.confidence !== undefined
 	);
 };
 
@@ -214,7 +222,9 @@ export const isDueDateOverdue = (data: NodeData): boolean => {
 /**
  * Get node type category for styling/grouping
  */
-export const getNodeCategory = (data: NodeData): 'content' | 'media' | 'interactive' | 'annotation' | 'structure' => {
+export const getNodeCategory = (
+	data: NodeData
+): 'content' | 'media' | 'interactive' | 'annotation' | 'structure' => {
 	switch (data.node_type) {
 		case 'defaultNode':
 		case 'textNode':

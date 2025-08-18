@@ -232,7 +232,6 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 						className='mt-4 text-sm text-zinc-500 text-center'
 					>
 						Already signed up with a different email?{' '}
-
 						<button
 							type='button'
 							onClick={() => {

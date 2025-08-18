@@ -3,19 +3,19 @@
 import { MetadataTheme } from '@/themes/metadata-theme';
 import { cn } from '@/utils/cn';
 import {
+	AlertCircle,
+	AlertTriangle,
 	Calendar,
 	CheckCircle,
 	Clock,
 	Flag,
 	Hash,
+	Info,
 	Tag,
 	User,
-	AlertCircle,
-	Info,
-	AlertTriangle,
 	XCircle,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import { memo, useMemo } from 'react';
 import { MetadataBadge } from './MetadataBadge';
 import { NodeTags } from './NodeTags';
@@ -49,7 +49,12 @@ const getMetadataTypeInfo = (key: string, value: any) => {
 	}
 
 	// Dates
-	if (key === 'dueDate' || key === 'date' || key === 'createdAt' || key === 'updatedAt') {
+	if (
+		key === 'dueDate' ||
+		key === 'date' ||
+		key === 'createdAt' ||
+		key === 'updatedAt'
+	) {
 		const dateValue = value instanceof Date ? value : new Date(value);
 
 		if (!isNaN(dateValue.getTime())) {
@@ -233,7 +238,7 @@ const NodeMetadataComponent = ({
 				className
 			)}
 		>
-			<AnimatePresence mode="popLayout">
+			<AnimatePresence mode='popLayout'>
 				{metadataItems.map((item, index) => (
 					<motion.div
 						key={`${item.key}-${index}`}
@@ -272,7 +277,7 @@ const NodeMetadataComponent = ({
 								type={item.type as any}
 								value={item.value}
 								icon={item.icon}
-								size="sm"
+								size='sm'
 								onClick={
 									interactive && onMetadataClick
 										? (value) => onMetadataClick(item.type, value)

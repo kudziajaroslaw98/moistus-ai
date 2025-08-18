@@ -155,7 +155,6 @@ const DefaultNodeForm = forwardRef<DefaultNodeFormRef, DefaultNodeFormProps>(
 						{conflicts.length > 0 && (
 							<div className='text-xs text-amber-500 flex items-center gap-2'>
 								<div className='w-2 h-2 bg-amber-500 rounded-full animate-pulse' />
-
 								{conflicts.length} conflict{conflicts.length > 1 ? 's' : ''}
 							</div>
 						)}

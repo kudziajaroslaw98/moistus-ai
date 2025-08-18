@@ -15,10 +15,10 @@ import {
 	SidebarGroup,
 	SidebarHeader,
 	SidebarSeparator,
+	SidebarTrigger,
 	useSidebar,
 } from '../ui/sidebar';
-import { Tooltip, TooltipTrigger } from '../ui/tooltip';
-import { TooltipContent } from '../ui/Tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/Tooltip';
 
 interface DashboardLayoutProps {
 	children: ReactNode;
@@ -72,7 +72,8 @@ const bottomNavItems: NavItem[] = [
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
 	const pathname = usePathname();
-	const { open: sidebarCollapsed } = useSidebar();
+	const { open: sidebarOpen } = useSidebar();
+	const sidebarCollapsed = !sidebarOpen;
 
 	const isItemActive = (href: string) => {
 		if (href === '/dashboard') {
@@ -82,10 +83,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 		return pathname.startsWith(href);
 	};
 
-	const handleTooltipOpenChange = (open: boolean) => {
-		if (!sidebarCollapsed) {
-			return false;
-		} else return open;
+	const handleTooltipOpenChange = () => {
+		if (sidebarCollapsed) {
+			console.log(sidebarCollapsed, true);
+			return true;
+		}
+
+		console.log(sidebarCollapsed, false);
+
+		return false;
 	};
 
 	const NavItemComponent = ({ item }: { item: NavItem }) => {
@@ -93,7 +99,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
 		return (
 			<Link href={item.href}>
-				<Tooltip onOpenChange={handleTooltipOpenChange}>
+				<Tooltip
+					onOpenChange={handleTooltipOpenChange}
+					disabled={!sidebarCollapsed}
+				>
 					<TooltipTrigger className='w-full flex'>
 						<motion.div
 							className={cn(
@@ -101,10 +110,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 								'hover:bg-zinc-800/50',
 								isActive && 'bg-zinc-800 text-white',
 								!isActive && 'text-zinc-400 hover:text-white',
-								!sidebarCollapsed ? 'p-2' : 'px-3 py-2.5'
+								sidebarCollapsed ? 'p-2' : 'px-3 py-2.5'
 							)}
-							whileHover={{ scale: 1.02 }}
-							whileTap={{ scale: 0.98 }}
 						>
 							{/* Active Indicator */}
 							{isActive && (
@@ -124,7 +131,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
 							{/* Label */}
 							<AnimatePresence mode='wait'>
-								{sidebarCollapsed && (
+								{!sidebarCollapsed && (
 									<motion.span
 										initial={{ opacity: 0, x: -10 }}
 										animate={{ opacity: 1, x: 0 }}
@@ -138,7 +145,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 							</AnimatePresence>
 
 							{/* Badge */}
-							{item.badge && sidebarCollapsed && (
+							{item.badge && !sidebarCollapsed && (
 								<motion.div
 									initial={{ scale: 0 }}
 									animate={{ scale: 1 }}
@@ -153,8 +160,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 						</motion.div>
 					</TooltipTrigger>
 
-					<TooltipContent data-side='right'>
-						<span className='ml-2 text-zinc-400'>{item.label}</span>
+					<TooltipContent>
+						<span>{item.label}</span>
 					</TooltipContent>
 				</Tooltip>
 			</Link>
@@ -169,53 +176,55 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 			{/* Sidebar */}
 			<Sidebar variant='floating' collapsible='icon'>
 				<SidebarHeader className='border-b border-zinc-800'>
-					{/* Logo/Brand */}
-					<div className='flex items-center justify-center p-4'>
-						{!sidebarCollapsed ? (
-							<Link href='/dashboard'>
-								<Image
-									src='/images/moistus.svg'
-									alt='Moistus Logo'
-									width={80}
-									height={80}
-								/>
-							</Link>
-						) : (
-							<Link href='/dashboard'>
-								<Image
-									src='/images/moistus.svg'
-									alt='Moistus Logo'
-									width={120}
-									height={80}
-								/>
-							</Link>
+					{/* Header with Logo and Trigger */}
+					<div
+						className={cn([
+							'flex items-center',
+							!sidebarCollapsed ? ' justify-between p-4' : 'justify-center p-0',
+						])}
+					>
+						{/* Logo/Brand */}
+						{!sidebarCollapsed && (
+							<div className='flex items-center'>
+								<Link href='/dashboard' className='flex items-center gap-2'>
+									<Image
+										src='/images/moistus.svg'
+										alt='Moistus Logo'
+										width={120}
+										height={80}
+									/>
+								</Link>
+							</div>
 						)}
+
+						{/* Collapse Button */}
+						<SidebarTrigger />
 					</div>
 				</SidebarHeader>
 
 				{/* New Map Button */}
 				<SidebarContent className='w-full'>
 					<SidebarGroup
-						className={cn(['w-full', sidebarCollapsed ? 'p-4 pb-2' : ''])}
+						className={cn(['w-full', !sidebarCollapsed ? 'p-4 pb-2' : ''])}
 					>
 						<Button
 							className={cn(
 								'w-full bg-sky-600 hover:bg-sky-700 text-white',
 								'shadow-lg hover:shadow-sky-600/25',
-								sidebarCollapsed && 'px-0'
+								!sidebarCollapsed && 'px-0'
 							)}
-							size={!sidebarCollapsed ? 'icon' : 'default'}
+							size={sidebarCollapsed ? 'icon' : 'default'}
 						>
 							<Plus className='h-4 w-4' />
 
-							{sidebarCollapsed && <span className='ml-2'>New Map</span>}
+							{!sidebarCollapsed && <span className='ml-2'>New Map</span>}
 						</Button>
 					</SidebarGroup>
 
 					<SidebarSeparator />
 
 					<SidebarGroup
-						className={cn(['w-full', sidebarCollapsed ? 'p-4' : ''])}
+						className={cn(['w-full', !sidebarCollapsed ? 'p-4' : ''])}
 					>
 						<nav className='flex-grow overflow-clip '>
 							<div className='flex gap-1 flex-col'>
@@ -231,7 +240,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 					<div
 						className={cn([
 							'border-t border-zinc-800 ',
-							sidebarCollapsed ? 'p-3' : '',
+							!sidebarCollapsed ? 'p-3' : '',
 						])}
 					>
 						<div className='space-y-1'>

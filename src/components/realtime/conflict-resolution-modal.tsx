@@ -87,7 +87,6 @@ export function ConflictResolutionModal({
 
 									<p className='text-sm text-zinc-400'>
 										{conflicts.length} field
-
 										{conflicts.length > 1 ? 's have' : ' has'} conflicting
 										changes
 									</p>
@@ -186,7 +185,6 @@ export function ConflictResolutionModal({
 											{resolving === conflict.fieldName ? (
 												<div className='w-4 h-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin mr-2' />
 											) : null}
-
 											Keep {conflict.remoteUser || 'Other'}&apos;s Version
 										</Button>
 									</div>

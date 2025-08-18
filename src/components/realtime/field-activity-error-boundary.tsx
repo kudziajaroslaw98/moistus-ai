@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, ErrorInfo, ReactNode } from 'react';
 
 interface ErrorBoundaryState {
 	hasError: boolean;
@@ -27,7 +27,11 @@ export class FieldActivityErrorBoundary extends Component<
 	}
 
 	componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-		console.error('FieldActivityErrorBoundary caught an error:', error, errorInfo);
+		console.error(
+			'FieldActivityErrorBoundary caught an error:',
+			error,
+			errorInfo
+		);
 		this.props.onError?.(error, errorInfo);
 	}
 
@@ -35,9 +39,9 @@ export class FieldActivityErrorBoundary extends Component<
 		if (this.state.hasError) {
 			return (
 				this.props.fallback || (
-					<div className="p-2 text-xs text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded">
-						<div className="flex items-center gap-2">
-							<div className="w-2 h-2 bg-amber-500 rounded-full" />
+					<div className='p-2 text-xs text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded'>
+						<div className='flex items-center gap-2'>
+							<div className='w-2 h-2 bg-amber-500 rounded-full' />
 
 							<span>Collaboration temporarily unavailable</span>
 						</div>

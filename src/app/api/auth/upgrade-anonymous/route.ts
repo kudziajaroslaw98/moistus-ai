@@ -1,6 +1,5 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withAuthValidation } from '@/helpers/api/with-auth-validation';
-import { createClient } from '@/helpers/supabase/server';
 import { z } from 'zod';
 
 const UpgradeAnonymousSchema = z.object({
@@ -49,22 +48,21 @@ export const POST = withAuthValidation(
 				{
 					user_id_param: user.id,
 					email_param: data.email,
-					full_name_param: data.display_name || profile.display_name
+					full_name_param: data.display_name || profile.display_name,
 				}
 			);
 
 			if (upgradeError) {
 				console.error('Failed to upgrade user profile:', upgradeError);
-				return respondError(
-					'Failed to upgrade user profile',
-					500
-				);
+				return respondError('Failed to upgrade user profile', 500);
 			}
 
 			// 4. Get updated profile information
 			const { data: updatedProfile, error: fetchError } = await supabase
 				.from('user_profiles')
-				.select('user_id, full_name, display_name, email, is_anonymous, avatar_url')
+				.select(
+					'user_id, full_name, display_name, email, is_anonymous, avatar_url'
+				)
 				.eq('user_id', user.id)
 				.single();
 
@@ -83,11 +81,10 @@ export const POST = withAuthValidation(
 					email: data.email,
 					full_name: data.display_name || profile.display_name,
 					display_name: data.display_name || profile.display_name,
-					is_anonymous: false
+					is_anonymous: false,
 				},
-				message: 'Account successfully upgraded to full user'
+				message: 'Account successfully upgraded to full user',
 			});
-
 		} catch (error) {
 			console.error('Upgrade anonymous user error:', error);
 			return respondError(

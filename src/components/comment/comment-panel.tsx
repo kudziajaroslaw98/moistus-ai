@@ -358,7 +358,6 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
 							>
 								<Filter className='size-3 mr-1' />
 								Filters
-
 								{showFilters ? (
 									<ChevronDown className='size-3 ml-1' />
 								) : (

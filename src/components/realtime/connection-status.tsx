@@ -1,5 +1,5 @@
 import { cn } from '@/utils/cn';
-import { Wifi, WifiOff, Loader2 } from 'lucide-react';
+import { Loader2, Wifi, WifiOff } from 'lucide-react';
 
 interface ConnectionStatusProps {
 	isConnected: boolean;
@@ -14,7 +14,7 @@ export function ConnectionStatus({
 	isConnecting = false,
 	onRetry,
 	className,
-	showLabel = true
+	showLabel = true,
 }: ConnectionStatusProps) {
 	const getStatusConfig = () => {
 		if (isConnecting) {
@@ -24,7 +24,7 @@ export function ConnectionStatus({
 				bgColor: 'bg-yellow-500/20',
 				label: 'Connecting...',
 				pulse: false,
-				animate: 'animate-spin'
+				animate: 'animate-spin',
 			};
 		}
 
@@ -35,7 +35,7 @@ export function ConnectionStatus({
 				bgColor: 'bg-green-500/20',
 				label: 'Connected',
 				pulse: true,
-				animate: ''
+				animate: '',
 			};
 		}
 
@@ -45,7 +45,7 @@ export function ConnectionStatus({
 			bgColor: 'bg-red-500/20',
 			label: 'Disconnected',
 			pulse: false,
-			animate: ''
+			animate: '',
 		};
 	};
 
@@ -60,13 +60,7 @@ export function ConnectionStatus({
 					config.bgColor
 				)}
 			>
-				<Icon
-					className={cn(
-						'w-3 h-3',
-						config.color,
-						config.animate
-					)}
-				/>
+				<Icon className={cn('w-3 h-3', config.color, config.animate)} />
 
 				{config.pulse && (
 					<div

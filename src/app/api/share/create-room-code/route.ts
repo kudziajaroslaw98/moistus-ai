@@ -40,7 +40,7 @@ export const POST = withAuthValidation(
 		};
 
 		let tokenData = generateRoomCode();
-		
+
 		// Ensure uniqueness by checking existing tokens
 		let attempts = 0;
 
@@ -51,7 +51,7 @@ export const POST = withAuthValidation(
 				.eq('token', tokenData)
 				.eq('is_active', true)
 				.single();
-			
+
 			if (!existing) break;
 			tokenData = generateRoomCode();
 			attempts++;

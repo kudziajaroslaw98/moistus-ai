@@ -59,11 +59,9 @@ export function GenerateFromNodesModal({
 				<div className='bg-zinc-800/40 p-4 rounded-md border border-zinc-700'>
 					<p className='text-sm text-zinc-300'>
 						Using AI to generate content based on{' '}
-
 						<span className='font-semibold text-teal-400'>
 							{selectedNodeCount}
 						</span>{' '}
-
 						selected {selectedNodeCount === 1 ? 'node' : 'nodes'}
 					</p>
 

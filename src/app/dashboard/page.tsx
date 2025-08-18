@@ -12,7 +12,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarProvider, useSidebar } from '@/components/ui/sidebar';
 import { cn } from '@/utils/cn';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -82,8 +82,10 @@ const fetcher = async (url: string) => {
 	return data;
 };
 
-export default function DashboardPage() {
+function DashboardContent() {
 	const router = useRouter();
+	const { open: sidebarOpen } = useSidebar();
+	const sidebarCollapsed = !sidebarOpen;
 
 	// State
 	const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -385,264 +387,258 @@ export default function DashboardPage() {
 
 	if (mapsLoading && !mapsData.maps.length) {
 		return (
-			<SidebarProvider>
-				<DashboardLayout>
-					<div className='flex min-h-screen items-center justify-center text-zinc-400'>
-						Loading your maps...
-					</div>
-				</DashboardLayout>
-			</SidebarProvider>
+			<DashboardLayout>
+				<div className='flex min-h-screen items-center justify-center text-zinc-400'>
+					Loading your maps...
+				</div>
+			</DashboardLayout>
 		);
 	}
 
 	return (
-		<SidebarProvider>
-			<DashboardLayout>
-				<div className='flex h-full'>
-					{/* Sidebar with Folders */}
-					<AnimatePresence>
-						{showSidebar && (
-							<motion.aside
-								initial={{ width: 0, opacity: 0 }}
-								animate={{ width: 280, opacity: 1 }}
-								exit={{ width: 0, opacity: 0 }}
-								transition={{ duration: 0.3 }}
-								className='border-r border-zinc-800 bg-zinc-900/50 relative'
-							>
-								<SidebarTrigger
-									className={cn([
-										'absolute top-4 -left-6 z-50 group-data-[collapsed="false"]:-left-12',
-									])}
-								/>
+		<DashboardLayout>
+			<div className='flex h-full'>
+				{/* Sidebar with Folders */}
+				<AnimatePresence>
+					{showSidebar && (
+						<motion.aside
+							initial={{ width: 0, opacity: 0 }}
+							animate={{ width: 280, opacity: 1 }}
+							exit={{ width: 0, opacity: 0 }}
+							transition={{ duration: 0.3 }}
+							className='border-r border-zinc-800 bg-zinc-900/50 relative'
+						>
+							<DashboardSidebar
+								folders={foldersData.folders}
+								currentFolderId={currentFolderId}
+								onFolderSelect={setCurrentFolderId}
+								onFolderCreate={handleFolderCreate}
+								onFolderUpdate={handleFolderUpdate}
+								onFolderDelete={handleFolderDelete}
+							/>
+						</motion.aside>
+					)}
+				</AnimatePresence>
 
-								<DashboardSidebar
-									folders={foldersData.folders}
-									currentFolderId={currentFolderId}
-									onFolderSelect={setCurrentFolderId}
-									onFolderCreate={handleFolderCreate}
-									onFolderUpdate={handleFolderUpdate}
-									onFolderDelete={handleFolderDelete}
-								/>
-							</motion.aside>
-						)}
-					</AnimatePresence>
+				{/* Main Content */}
+				<div className='flex-grow w-full overflow-auto'>
+					<div className='p-6 md:p-8'>
+						<div className='mx-auto max-w-7xl'>
+							{/* Header */}
+							<div className='mb-8'>
+								<h1 className='text-2xl font-bold text-white mb-2'>
+									{currentFolderId
+										? foldersData.folders.find((f) => f.id === currentFolderId)
+												?.name || 'Folder'
+										: 'All Mind Maps'}
+								</h1>
 
-					{/* Main Content */}
-					<div className='flex-grow w-full overflow-auto'>
-						<div className='p-6 md:p-8'>
-							<div className='mx-auto max-w-7xl'>
-								{/* Header */}
-								<div className='mb-8'>
-									<h1 className='text-2xl font-bold text-white mb-2'>
-										{currentFolderId
-											? foldersData.folders.find(
-													(f) => f.id === currentFolderId
-												)?.name || 'Folder'
-											: 'All Mind Maps'}
-									</h1>
+								{/* Create New Map Form */}
+								<form
+									onSubmit={handleCreateMap}
+									className='flex gap-3 max-w-md mb-6'
+								>
+									<Input
+										type='text'
+										value={newMapTitle}
+										onChange={(e) => setNewMapTitle(e.target.value)}
+										placeholder='New map title...'
+										className='flex-grow bg-zinc-800/50 border-zinc-700 text-white placeholder-zinc-400'
+										disabled={isCreatingMap}
+									/>
 
-									{/* Create New Map Form */}
-									<form
-										onSubmit={handleCreateMap}
-										className='flex gap-3 max-w-md mb-6'
+									<Button
+										type='submit'
+										disabled={!newMapTitle.trim() || isCreatingMap}
+										className='bg-sky-600 hover:bg-sky-700'
 									>
-										<Input
-											type='text'
-											value={newMapTitle}
-											onChange={(e) => setNewMapTitle(e.target.value)}
-											placeholder='New map title...'
-											className='flex-grow bg-zinc-800/50 border-zinc-700 text-white placeholder-zinc-400'
-											disabled={isCreatingMap}
-										/>
+										<Plus className='h-4 w-4 mr-2' />
 
-										<Button
-											type='submit'
-											disabled={!newMapTitle.trim() || isCreatingMap}
-											className='bg-sky-600 hover:bg-sky-700'
-										>
-											<Plus className='h-4 w-4 mr-2' />
+										{isCreatingMap ? 'Creating...' : 'Create'}
+									</Button>
+								</form>
 
-											{isCreatingMap ? 'Creating...' : 'Create'}
-										</Button>
-									</form>
+								{/* Toolbar */}
+								<div className='flex items-center justify-between gap-4'>
+									{/* Search */}
+									<div className='flex-grow max-w-md'>
+										<div className='relative'>
+											<Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400' />
 
-									{/* Toolbar */}
-									<div className='flex items-center justify-between gap-4'>
-										{/* Search */}
-										<div className='flex-grow max-w-md'>
-											<div className='relative'>
-												<Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400' />
-
-												<Input
-													type='text'
-													value={searchQuery}
-													onChange={(e) => setSearchQuery(e.target.value)}
-													placeholder='Search maps...'
-													className='pl-10 bg-zinc-800/50 border-zinc-700 text-white placeholder-zinc-400'
-												/>
-											</div>
+											<Input
+												type='text'
+												value={searchQuery}
+												onChange={(e) => setSearchQuery(e.target.value)}
+												placeholder='Search maps...'
+												className='pl-10 bg-zinc-800/50 border-zinc-700 text-white placeholder-zinc-400'
+											/>
 										</div>
+									</div>
 
-										{/* Actions */}
-										<div className='flex items-center gap-2'>
-											{/* Bulk Actions */}
-											{selectedMaps.size > 0 && (
-												<motion.div
-													initial={{ opacity: 0, scale: 0.9 }}
-													animate={{ opacity: 1, scale: 1 }}
-													exit={{ opacity: 0, scale: 0.9 }}
-													className='flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700'
-												>
-													<span className='text-sm text-zinc-300'>
-														{selectedMaps.size} selected
-													</span>
-
-													<Button
-														onClick={handleBulkDelete}
-														variant='ghost'
-														size='sm'
-														className='text-red-400 hover:text-red-300'
-													>
-														<Trash2 className='h-4 w-4' />
-													</Button>
-
-													<Button
-														onClick={() => setSelectedMaps(new Set())}
-														variant='ghost'
-														size='sm'
-													>
-														Clear
-													</Button>
-												</motion.div>
-											)}
-
-											{/* Filter */}
-											<Select
-												value={filterBy}
-												onValueChange={setFilterBy as any}
+									{/* Actions */}
+									<div className='flex items-center gap-2'>
+										{/* Bulk Actions */}
+										{selectedMaps.size > 0 && (
+											<motion.div
+												initial={{ opacity: 0, scale: 0.9 }}
+												animate={{ opacity: 1, scale: 1 }}
+												exit={{ opacity: 0, scale: 0.9 }}
+												className='flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700'
 											>
-												<SelectTrigger className='w-36 bg-zinc-800/50 border-zinc-700'>
-													<Filter className='h-4 w-4 mr-2' />
+												<span className='text-sm text-zinc-300'>
+													{selectedMaps.size} selected
+												</span>
 
-													<SelectValue />
-												</SelectTrigger>
-
-												<SelectContent className='bg-zinc-900 border-zinc-800'>
-													<SelectItem value='all'>All Maps</SelectItem>
-
-													<SelectItem value='owned'>My Maps</SelectItem>
-
-													<SelectItem value='shared'>Shared</SelectItem>
-												</SelectContent>
-											</Select>
-
-											{/* Sort */}
-											<Select value={sortBy} onValueChange={setSortBy as any}>
-												<SelectTrigger className='w-44 bg-zinc-800/50 border-zinc-700'>
-													<SortAsc className='h-4 w-4 mr-2' />
-
-													<SelectValue />
-												</SelectTrigger>
-
-												<SelectContent className='bg-zinc-900 border-zinc-800'>
-													<SelectItem value='updated'>Last Updated</SelectItem>
-
-													<SelectItem value='created'>Created</SelectItem>
-
-													<SelectItem value='name'>Name</SelectItem>
-												</SelectContent>
-											</Select>
-
-											{/* View Mode */}
-											<div className='flex items-center rounded-lg bg-zinc-800/50 border border-zinc-700 p-1'>
 												<Button
-													onClick={() => setViewMode('grid')}
+													onClick={handleBulkDelete}
 													variant='ghost'
 													size='sm'
-													className={cn(
-														'h-7 px-2',
-														viewMode === 'grid' && 'bg-zinc-700'
-													)}
+													className='text-red-400 hover:text-red-300'
 												>
-													<Grid3x3 className='h-4 w-4' />
+													<Trash2 className='h-4 w-4' />
 												</Button>
 
 												<Button
-													onClick={() => setViewMode('list')}
+													onClick={() => setSelectedMaps(new Set())}
 													variant='ghost'
 													size='sm'
-													className={cn(
-														'h-7 px-2',
-														viewMode === 'list' && 'bg-zinc-700'
-													)}
 												>
-													<List className='h-4 w-4' />
+													Clear
 												</Button>
-											</div>
+											</motion.div>
+										)}
+
+										{/* Filter */}
+										<Select value={filterBy} onValueChange={setFilterBy as any}>
+											<SelectTrigger className='w-36 bg-zinc-800/50 border-zinc-700'>
+												<Filter className='h-4 w-4 mr-2' />
+
+												<SelectValue />
+											</SelectTrigger>
+
+											<SelectContent className='bg-zinc-900 border-zinc-800'>
+												<SelectItem value='all'>All Maps</SelectItem>
+
+												<SelectItem value='owned'>My Maps</SelectItem>
+
+												<SelectItem value='shared'>Shared</SelectItem>
+											</SelectContent>
+										</Select>
+
+										{/* Sort */}
+										<Select value={sortBy} onValueChange={setSortBy as any}>
+											<SelectTrigger className='w-44 bg-zinc-800/50 border-zinc-700'>
+												<SortAsc className='h-4 w-4 mr-2' />
+
+												<SelectValue />
+											</SelectTrigger>
+
+											<SelectContent className='bg-zinc-900 border-zinc-800'>
+												<SelectItem value='updated'>Last Updated</SelectItem>
+
+												<SelectItem value='created'>Created</SelectItem>
+
+												<SelectItem value='name'>Name</SelectItem>
+											</SelectContent>
+										</Select>
+
+										{/* View Mode */}
+										<div className='flex items-center rounded-lg bg-zinc-800/50 border border-zinc-700 p-1'>
+											<Button
+												onClick={() => setViewMode('grid')}
+												variant='ghost'
+												size='sm'
+												className={cn(
+													'h-7 px-2',
+													viewMode === 'grid' && 'bg-zinc-700'
+												)}
+											>
+												<Grid3x3 className='h-4 w-4' />
+											</Button>
+
+											<Button
+												onClick={() => setViewMode('list')}
+												variant='ghost'
+												size='sm'
+												className={cn(
+													'h-7 px-2',
+													viewMode === 'list' && 'bg-zinc-700'
+												)}
+											>
+												<List className='h-4 w-4' />
+											</Button>
 										</div>
 									</div>
 								</div>
+							</div>
 
-								{/* Select All */}
-								{filteredMaps.length > 0 && (
-									<div className='mb-4'>
-										<label className='flex items-center gap-2 text-sm text-zinc-400'>
-											<input
-												type='checkbox'
-												checked={selectedMaps.size === filteredMaps.length}
-												onChange={handleSelectAll}
-												className='h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-sky-600'
-											/>
-											Select all ({filteredMaps.length} maps)
-										</label>
-									</div>
-								)}
+							{/* Select All */}
+							{filteredMaps.length > 0 && (
+								<div className='mb-4'>
+									<label className='flex items-center gap-2 text-sm text-zinc-400'>
+										<input
+											type='checkbox'
+											checked={selectedMaps.size === filteredMaps.length}
+											onChange={handleSelectAll}
+											className='h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-sky-600'
+										/>
+										Select all ({filteredMaps.length} maps)
+									</label>
+								</div>
+							)}
 
-								{/* Mind Maps Grid/List */}
-								{filteredMaps.length === 0 ? (
-									<div className='py-20'>
-										<div className='text-center max-w-md mx-auto'>
-											<div className='border-2 border-dashed border-zinc-600 rounded-lg p-12'>
-												<h2 className='text-xl text-white mb-2'>
-													{searchQuery ? 'No maps found' : 'No mind maps yet'}
-												</h2>
+							{/* Mind Maps Grid/List */}
+							{filteredMaps.length === 0 ? (
+								<div className='py-20'>
+									<div className='text-center max-w-md mx-auto'>
+										<div className='border-2 border-dashed border-zinc-600 rounded-lg p-12'>
+											<h2 className='text-xl text-white mb-2'>
+												{searchQuery ? 'No maps found' : 'No mind maps yet'}
+											</h2>
 
-												<p className='text-zinc-400 mb-6'>
-													{searchQuery
-														? 'Try adjusting your search or filters'
-														: 'Create your first mind map to get started'}
-												</p>
-											</div>
+											<p className='text-zinc-400 mb-6'>
+												{searchQuery
+													? 'Try adjusting your search or filters'
+													: 'Create your first mind map to get started'}
+											</p>
 										</div>
 									</div>
-								) : (
-									<div
-										className={cn(
-											viewMode === 'grid'
-												? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'
-												: 'space-y-2'
-										)}
-									>
-										<AnimatePresence mode='popLayout'>
-											{filteredMaps.map((map) => (
-												<MindMapCard
-													key={map.id}
-													map={map}
-													selected={selectedMaps.has(map.id)}
-													onSelect={handleSelectMap}
-													onDelete={handleDeleteMap}
-													onDuplicate={handleDuplicateMap}
-													viewMode={viewMode}
-												/>
-											))}
-										</AnimatePresence>
-									</div>
-								)}
-							</div>
+								</div>
+							) : (
+								<div
+									className={cn(
+										viewMode === 'grid'
+											? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'
+											: 'space-y-2'
+									)}
+								>
+									<AnimatePresence mode='popLayout'>
+										{filteredMaps.map((map) => (
+											<MindMapCard
+												key={map.id}
+												map={map}
+												selected={selectedMaps.has(map.id)}
+												onSelect={handleSelectMap}
+												onDelete={handleDeleteMap}
+												onDuplicate={handleDuplicateMap}
+												viewMode={viewMode}
+											/>
+										))}
+									</AnimatePresence>
+								</div>
+							)}
 						</div>
 					</div>
 				</div>
-			</DashboardLayout>
+			</div>
+		</DashboardLayout>
+	);
+}
+
+export default function DashboardPage() {
+	return (
+		<SidebarProvider>
+			<DashboardContent />
 		</SidebarProvider>
 	);
 }

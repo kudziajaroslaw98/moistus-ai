@@ -64,15 +64,11 @@ export const POST = withAuthValidation(
 				200,
 				'Room code revoked successfully'
 			);
-
 		} catch (error) {
 			console.error('Revoke room code error:', error);
-			const message = error instanceof Error ? error.message : 'Unknown error occurred';
-			return respondError(
-				'Failed to revoke room code',
-				500,
-				message
-			);
+			const message =
+				error instanceof Error ? error.message : 'Unknown error occurred';
+			return respondError('Failed to revoke room code', 500, message);
 		}
 	}
 );

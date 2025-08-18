@@ -56,15 +56,11 @@ export const POST = withAuthValidation(
 				200,
 				'Room code refreshed successfully'
 			);
-
 		} catch (error) {
 			console.error('Refresh room code error:', error);
-			const message = error instanceof Error ? error.message : 'Unknown error occurred';
-			return respondError(
-				'Failed to refresh room code',
-				500,
-				message
-			);
+			const message =
+				error instanceof Error ? error.message : 'Unknown error occurred';
+			return respondError('Failed to refresh room code', 500, message);
 		}
 	}
 );

@@ -190,7 +190,6 @@ export function CommentItem({
 								{comment.is_edited && (
 									<span className='italic'>
 										(edited{' '}
-
 										{comment.edited_at ? formatTimeAgo(comment.edited_at) : ''})
 									</span>
 								)}
@@ -350,7 +349,6 @@ export function CommentItem({
 								)}
 							>
 								<Flag className='size-2 mr-1' />
-
 								{comment.metadata.priority} priority
 							</Badge>
 						)}
@@ -395,10 +393,8 @@ export function CommentItem({
 
 						<span>
 							Resolved by{' '}
-
 							{comment.resolved_by_user.display_name ||
 								comment.resolved_by_user.full_name}
-
 							{comment.resolved_at &&
 								` • ${formatTimeAgo(comment.resolved_at)}`}
 						</span>

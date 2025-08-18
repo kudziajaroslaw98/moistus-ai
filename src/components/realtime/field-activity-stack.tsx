@@ -181,7 +181,6 @@ export function FieldActivityStack({
 
 							<p className='text-xs text-zinc-400'>
 								{user.displayName} •{' '}
-
 								{isRecentlyActive ? 'Active now' : 'Recently active'}
 							</p>
 
