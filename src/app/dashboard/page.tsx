@@ -582,6 +582,7 @@ function DashboardContent() {
 											onChange={handleSelectAll}
 											className='h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-sky-600'
 										/>
+
 										Select all ({filteredMaps.length} maps)
 									</label>
 								</div>

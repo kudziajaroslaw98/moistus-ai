@@ -143,6 +143,7 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 				{tasks.length > 0 && (
 					<div className='flex items-center gap-1 px-2 py-1 rounded text-xs bg-blue-600/20 text-blue-400'>
 						<SquareCheck className='w-3 h-3' />
+
 						{completedTasks.length}/{tasks.length}
 					</div>
 				)}

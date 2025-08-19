@@ -419,6 +419,7 @@ export const StructuredInput: React.FC<StructuredInputProps> = ({
 								disabled={isCreating}
 							>
 								<Plus className='w-3 h-3' />
+
 								Add {field.itemType || 'item'}
 							</button>
 						</div>

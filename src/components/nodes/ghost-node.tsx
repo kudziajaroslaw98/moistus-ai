@@ -191,6 +191,7 @@ function GhostNodeComponent({ id, data }: GhostNodeProps) {
 			{context && (
 				<div className='mb-3 text-xs text-zinc-500'>
 					Trigger: {context.trigger}
+
 					{context.relationshipType && (
 						<span className='ml-2'>→ {context.relationshipType}</span>
 					)}

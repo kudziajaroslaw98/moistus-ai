@@ -129,6 +129,7 @@ export function SuggestionControls({ className }: SuggestionControlsProps) {
 
 							<span>
 								{ghostNodes.length} suggestion
+
 								{ghostNodes.length !== 1 ? 's' : ''} available
 							</span>
 						</div>
@@ -161,6 +162,7 @@ export function SuggestionControls({ className }: SuggestionControlsProps) {
 					>
 						<div className='text-xs text-zinc-500'>
 							Confidence:{' '}
+
 							{ghostNodes.map((node, index) => {
 								const confidence = node.data.metadata?.confidence || 0;
 								return (

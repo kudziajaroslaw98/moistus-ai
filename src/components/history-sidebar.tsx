@@ -141,6 +141,7 @@ export function HistorySidebar() {
 
 												<span className='text-xs text-zinc-500'>
 													Nodes: {state.nodes.length}, Edges:{' '}
+
 													{state.edges.length}
 												</span>
 											</div>
