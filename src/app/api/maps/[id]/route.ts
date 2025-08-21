@@ -8,6 +8,7 @@ export async function DELETE(
 	const supabaseServer = await createClient();
 
 	try {
+		console.log('before');
 		const { id: mapId } = await params;
 
 		// Get the authenticated user
@@ -24,11 +25,15 @@ export async function DELETE(
 			);
 		}
 
+		console.log('before2');
+
 		const { error: deleteError } = await supabaseServer
 			.from('mind_maps')
 			.delete()
 			.eq('id', mapId)
 			.eq('user_id', user.id); // Ensure the user owns the map
+
+		console.log('before3');
 
 		if (deleteError) {
 			console.error('Error deleting mind map:', deleteError);
@@ -43,6 +48,8 @@ export async function DELETE(
 
 			return respondError('Error deleting mind map.', 500, deleteError.message);
 		}
+
+		console.log('before4');
 
 		// If deletion is successful (and ON DELETE CASCADE is set up for nodes)
 		return respondSuccess(

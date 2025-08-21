@@ -1,10 +1,13 @@
 'use client';
 
+import { CreateMapCard } from '@/components/dashboard/create-map-card';
+import { CreateMapDialog } from '@/components/dashboard/create-map-dialog';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar';
 import { MindMapCard } from '@/components/dashboard/mind-map-card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { SearchInput } from '@/components/ui/search-input';
 import {
 	Select,
 	SelectContent,
@@ -25,7 +28,7 @@ import {
 	Trash2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR, { mutate } from 'swr';
 
@@ -99,6 +102,7 @@ function DashboardContent() {
 	const [isCreatingMap, setIsCreatingMap] = useState(false);
 	const [newMapTitle, setNewMapTitle] = useState('');
 	const [showSidebar, setShowSidebar] = useState(true);
+	const [showCreateDialog, setShowCreateDialog] = useState(false);
 
 	// Fetch mind maps
 	const {
@@ -166,9 +170,8 @@ function DashboardContent() {
 		});
 
 	// Handlers
-	const handleCreateMap = async (e?: React.FormEvent) => {
-		e?.preventDefault();
-		if (!newMapTitle.trim() || isCreatingMap) return;
+	const handleCreateMap = async (title: string) => {
+		if (!title.trim() || isCreatingMap) return;
 
 		setIsCreatingMap(true);
 
@@ -177,7 +180,7 @@ function DashboardContent() {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					title: newMapTitle,
+					title: title.trim(),
 					folder_id: currentFolderId,
 				}),
 			});
@@ -186,7 +189,7 @@ function DashboardContent() {
 				throw new Error('Failed to create new mind map.');
 			}
 
-			const data = await response.json();
+			const { data } = await response.json();
 
 			// Optimistically update the cache
 			mutate(
@@ -197,9 +200,10 @@ function DashboardContent() {
 				false
 			);
 
-			setNewMapTitle('');
+			console.log(data.map.id);
+
 			toast.success('Map created successfully!');
-			router.push(`/mind-map/${data.map.id}`);
+			router.push(`/mind-map/${data.map?.id}`);
 		} catch (err: unknown) {
 			console.error('Error creating map:', err);
 			toast.error('Failed to create map');
@@ -214,9 +218,11 @@ function DashboardContent() {
 		}
 
 		try {
+			console.log('before');
 			const response = await fetch(`/api/maps/${mapId}`, {
 				method: 'DELETE',
 			});
+			console.log('response', response);
 
 			if (!response.ok) {
 				throw new Error('Failed to delete mind map.');
@@ -311,13 +317,25 @@ function DashboardContent() {
 		});
 	}, []);
 
-	const handleSelectAll = useCallback(() => {
-		if (selectedMaps.size === filteredMaps.length) {
-			setSelectedMaps(new Set());
-		} else {
-			setSelectedMaps(new Set(filteredMaps.map((map) => map.id)));
-		}
-	}, [selectedMaps.size, filteredMaps]);
+	const handleSelectAll = useCallback(
+		(checked?: boolean) => {
+			if (typeof checked === 'boolean') {
+				if (checked) {
+					setSelectedMaps(new Set(filteredMaps.map((map) => map.id)));
+				} else {
+					setSelectedMaps(new Set());
+				}
+			} else {
+				// Legacy behavior for direct calls
+				if (selectedMaps.size === filteredMaps.length) {
+					setSelectedMaps(new Set());
+				} else {
+					setSelectedMaps(new Set(filteredMaps.map((map) => map.id)));
+				}
+			}
+		},
+		[selectedMaps.size, filteredMaps]
+	);
 
 	// Folder handlers
 	const handleFolderCreate = async (parentId: string | null, name: string) => {
@@ -385,6 +403,85 @@ function DashboardContent() {
 		}
 	};
 
+	// Keyboard navigation and shortcuts
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			// Global keyboard shortcuts
+			if (e.ctrlKey || e.metaKey) {
+				switch (e.key.toLowerCase()) {
+					case 'n':
+						e.preventDefault();
+						// Open create map dialog
+						setShowCreateDialog(true);
+						break;
+					case 'f':
+						e.preventDefault();
+						// Focus on search input
+						document
+							.querySelector<HTMLInputElement>(
+								'input[placeholder="Search maps..."]'
+							)
+							?.focus();
+						break;
+					case 'a':
+						if (filteredMaps.length > 0) {
+							e.preventDefault();
+							// Select all maps
+							handleSelectAll();
+						}
+
+						break;
+					case '1':
+						e.preventDefault();
+						// Switch to grid view
+						setViewMode('grid');
+						break;
+					case '2':
+						e.preventDefault();
+						// Switch to list view
+						setViewMode('list');
+						break;
+				}
+			} else {
+				switch (e.key) {
+					case 'Escape':
+						// Clear selection or search
+						if (selectedMaps.size > 0) {
+							setSelectedMaps(new Set());
+						} else if (searchQuery) {
+							setSearchQuery('');
+						} else if (filterBy !== 'all') {
+							setFilterBy('all');
+						}
+
+						break;
+					case 'Delete':
+					case 'Backspace':
+						if (
+							selectedMaps.size > 0 &&
+							document.activeElement?.tagName !== 'INPUT'
+						) {
+							e.preventDefault();
+							// Bulk delete selected maps
+							handleBulkDelete();
+						}
+
+						break;
+				}
+			}
+		};
+
+		document.addEventListener('keydown', handleKeyDown);
+		return () => document.removeEventListener('keydown', handleKeyDown);
+	}, [
+		selectedMaps,
+		searchQuery,
+		filterBy,
+		filteredMaps.length,
+		handleSelectAll,
+		handleBulkDelete,
+	]);
+
 	if (mapsLoading && !mapsData.maps.length) {
 		return (
 			<DashboardLayout>
@@ -425,98 +522,73 @@ function DashboardContent() {
 					<div className='p-6 md:p-8'>
 						<div className='mx-auto max-w-7xl'>
 							{/* Header */}
-							<div className='mb-8'>
-								<h1 className='text-2xl font-bold text-white mb-2'>
-									{currentFolderId
-										? foldersData.folders.find((f) => f.id === currentFolderId)
-												?.name || 'Folder'
-										: 'All Mind Maps'}
-								</h1>
+							<div className='mb-10'>
+								<div className='flex items-center justify-between mb-8'>
+									<h1 className='text-3xl font-bold text-white tracking-tight'>
+										{currentFolderId
+											? foldersData.folders.find(
+													(f) => f.id === currentFolderId
+												)?.name || 'Folder'
+											: 'All Mind Maps'}
+									</h1>
 
-								{/* Create New Map Form */}
-								<form
-									onSubmit={handleCreateMap}
-									className='flex gap-3 max-w-md mb-6'
-								>
-									<Input
-										type='text'
-										value={newMapTitle}
-										onChange={(e) => setNewMapTitle(e.target.value)}
-										placeholder='New map title...'
-										className='flex-grow bg-zinc-800/50 border-zinc-700 text-white placeholder-zinc-400'
-										disabled={isCreatingMap}
-									/>
+									{/* Keyboard Shortcuts Help */}
+									<div className='text-xs text-zinc-400 space-y-1 hidden lg:block'>
+										<div className='flex gap-6'>
+											<span>
+												<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
+													Ctrl+N
+												</kbd>{' '}
+												<span className='text-zinc-500'>New map</span>
+											</span>
 
-									<Button
-										type='submit'
-										disabled={!newMapTitle.trim() || isCreatingMap}
-										className='bg-sky-600 hover:bg-sky-700'
-									>
-										<Plus className='h-4 w-4 mr-2' />
+											<span>
+												<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
+													Ctrl+F
+												</kbd>{' '}
+												<span className='text-zinc-500'>Search</span>
+											</span>
 
-										{isCreatingMap ? 'Creating...' : 'Create'}
-									</Button>
-								</form>
+											<span>
+												<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
+													Ctrl+A
+												</kbd>{' '}
+												<span className='text-zinc-500'>Select all</span>
+											</span>
 
-								{/* Toolbar */}
-								<div className='flex items-center justify-between gap-4'>
-									{/* Search */}
-									<div className='flex-grow max-w-md'>
-										<div className='relative'>
-											<Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400' />
-
-											<Input
-												type='text'
-												value={searchQuery}
-												onChange={(e) => setSearchQuery(e.target.value)}
-												placeholder='Search maps...'
-												className='pl-10 bg-zinc-800/50 border-zinc-700 text-white placeholder-zinc-400'
-											/>
+											<span>
+												<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
+													Ctrl+1/2
+												</kbd>{' '}
+												<span className='text-zinc-500'>View mode</span>
+											</span>
 										</div>
+									</div>
+								</div>
+
+								{/* Enhanced Toolbar with Better Mobile Layout */}
+								<div className='flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-6 p-2 rounded-xl bg-zinc-950 border border-zinc-800/50 shadow-lg'>
+									{/* Search */}
+									<div className='flex-grow max-w-full sm:max-w-md'>
+										<SearchInput
+											value={searchQuery}
+											onChange={(e) => setSearchQuery(e.target.value)}
+											placeholder='Search maps...'
+											className='touch-manipulation'
+										/>
 									</div>
 
 									{/* Actions */}
-									<div className='flex items-center gap-2'>
-										{/* Bulk Actions */}
-										{selectedMaps.size > 0 && (
-											<motion.div
-												initial={{ opacity: 0, scale: 0.9 }}
-												animate={{ opacity: 1, scale: 1 }}
-												exit={{ opacity: 0, scale: 0.9 }}
-												className='flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700'
-											>
-												<span className='text-sm text-zinc-300'>
-													{selectedMaps.size} selected
-												</span>
-
-												<Button
-													onClick={handleBulkDelete}
-													variant='ghost'
-													size='sm'
-													className='text-red-400 hover:text-red-300'
-												>
-													<Trash2 className='h-4 w-4' />
-												</Button>
-
-												<Button
-													onClick={() => setSelectedMaps(new Set())}
-													variant='ghost'
-													size='sm'
-												>
-													Clear
-												</Button>
-											</motion.div>
-										)}
-
+									<div className='flex items-center gap-2 flex-wrap sm:flex-nowrap'>
 										{/* Filter */}
 										<Select value={filterBy} onValueChange={setFilterBy as any}>
-											<SelectTrigger className='w-36 bg-zinc-800/50 border-zinc-700'>
+											<SelectTrigger className='w-36 bg-zinc-800/30 backdrop-blur-sm border-zinc-700/50 hover:border-zinc-600/50 transition-colors duration-200'>
 												<Filter className='h-4 w-4 mr-2' />
 
 												<SelectValue />
 											</SelectTrigger>
 
-											<SelectContent className='bg-zinc-900 border-zinc-800'>
+											<SelectContent className='bg-zinc-900/95 backdrop-blur-sm border-zinc-800/50 shadow-xl'>
 												<SelectItem value='all'>All Maps</SelectItem>
 
 												<SelectItem value='owned'>My Maps</SelectItem>
@@ -527,13 +599,13 @@ function DashboardContent() {
 
 										{/* Sort */}
 										<Select value={sortBy} onValueChange={setSortBy as any}>
-											<SelectTrigger className='w-44 bg-zinc-800/50 border-zinc-700'>
+											<SelectTrigger className='w-44 bg-zinc-800/30 backdrop-blur-sm border-zinc-700/50 hover:border-zinc-600/50 transition-colors duration-200'>
 												<SortAsc className='h-4 w-4 mr-2' />
 
 												<SelectValue />
 											</SelectTrigger>
 
-											<SelectContent className='bg-zinc-900 border-zinc-800'>
+											<SelectContent className='bg-zinc-900/95 backdrop-blur-sm border-zinc-800/50 shadow-xl'>
 												<SelectItem value='updated'>Last Updated</SelectItem>
 
 												<SelectItem value='created'>Created</SelectItem>
@@ -542,14 +614,14 @@ function DashboardContent() {
 											</SelectContent>
 										</Select>
 
-										{/* View Mode */}
-										<div className='flex items-center rounded-lg bg-zinc-800/50 border border-zinc-700 p-1'>
+										{/* Enhanced View Mode with Touch-Friendly Buttons */}
+										<div className='flex items-center rounded-lg bg-zinc-800/30 backdrop-blur-sm border border-zinc-700/50 p-1 shadow-sm'>
 											<Button
 												onClick={() => setViewMode('grid')}
 												variant='ghost'
 												size='sm'
 												className={cn(
-													'h-7 px-2',
+													'h-10 px-3 sm:h-7 sm:px-2 min-w-[44px] sm:min-w-0 touch-manipulation',
 													viewMode === 'grid' && 'bg-zinc-700'
 												)}
 											>
@@ -561,7 +633,7 @@ function DashboardContent() {
 												variant='ghost'
 												size='sm'
 												className={cn(
-													'h-7 px-2',
+													'h-10 px-3 sm:h-7 sm:px-2 min-w-[44px] sm:min-w-0 touch-manipulation',
 													viewMode === 'list' && 'bg-zinc-700'
 												)}
 											>
@@ -574,64 +646,191 @@ function DashboardContent() {
 
 							{/* Select All */}
 							{filteredMaps.length > 0 && (
-								<div className='mb-4'>
-									<label className='flex items-center gap-2 text-sm text-zinc-400'>
-										<input
-											type='checkbox'
+								<div className='mb-4 flex gap-2 h-9'>
+									<label className='flex items-center gap-3 text-sm text-zinc-400 cursor-pointer'>
+										<Checkbox
 											checked={selectedMaps.size === filteredMaps.length}
 											onChange={handleSelectAll}
-											className='h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-sky-600'
+											size='sm'
+											variant='default'
 										/>
-
 										Select all ({filteredMaps.length} maps)
 									</label>
+
+									{selectedMaps.size > 0 && (
+										<motion.div
+											initial={{ opacity: 0, scale: 0.9 }}
+											animate={{ opacity: 1, scale: 1 }}
+											exit={{ opacity: 0, scale: 0.9 }}
+											className='h-9 flex items-center gap-2 px-3 rounded-lg'
+										>
+											<span className='text-sm text-zinc-300'>
+												{selectedMaps.size} selected
+											</span>
+
+											<Button
+												onClick={handleBulkDelete}
+												variant='secondary'
+												size='icon'
+												className='text-red-400 hover:text-red-300'
+											>
+												<Trash2 className='size-4' />
+											</Button>
+
+											<Button
+												onClick={() => setSelectedMaps(new Set())}
+												variant='secondary'
+												size='sm'
+											>
+												Clear
+											</Button>
+										</motion.div>
+									)}
 								</div>
 							)}
 
 							{/* Mind Maps Grid/List */}
-							{filteredMaps.length === 0 ? (
-								<div className='py-20'>
-									<div className='text-center max-w-md mx-auto'>
-										<div className='border-2 border-dashed border-zinc-600 rounded-lg p-12'>
-											<h2 className='text-xl text-white mb-2'>
-												{searchQuery ? 'No maps found' : 'No mind maps yet'}
-											</h2>
+							<div
+								className={cn(
+									viewMode === 'grid'
+										? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6'
+										: 'space-y-2'
+								)}
+							>
+								{/* Create New Map Card - Always first */}
+								<CreateMapCard
+									onClick={() => setShowCreateDialog(true)}
+									viewMode={viewMode}
+								/>
 
-											<p className='text-zinc-400 mb-6'>
-												{searchQuery
-													? 'Try adjusting your search or filters'
-													: 'Create your first mind map to get started'}
-											</p>
-										</div>
+								{/* Existing Mind Maps */}
+								<AnimatePresence mode='popLayout'>
+									{filteredMaps.map((map) => (
+										<MindMapCard
+											key={map.id}
+											map={map}
+											selected={selectedMaps.has(map.id)}
+											onSelect={handleSelectMap}
+											onDelete={handleDeleteMap}
+											onDuplicate={handleDuplicateMap}
+											viewMode={viewMode}
+										/>
+									))}
+								</AnimatePresence>
+							</div>
+
+							{/* Empty State for No Maps */}
+							{filteredMaps.length === 0 && (
+								<div className='py-20'>
+									<div className='text-center max-w-lg mx-auto'>
+										{searchQuery || filterBy !== 'all' ? (
+											// Search/Filter Empty State
+											<div className='space-y-6'>
+												<div className='w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-zinc-700 to-zinc-800 flex items-center justify-center'>
+													<Search className='w-10 h-10 text-zinc-400' />
+												</div>
+
+												<div className='space-y-3'>
+													<h2 className='text-2xl font-semibold text-white'>
+														No maps found
+													</h2>
+
+													<p className='text-zinc-400 text-lg'>
+														Try adjusting your search terms or filters to find
+														what you're looking for.
+													</p>
+												</div>
+
+												<div className='flex flex-col sm:flex-row gap-3 justify-center'>
+													<Button
+														onClick={() => {
+															setSearchQuery('');
+															setFilterBy('all');
+															setCurrentFolderId(null);
+														}}
+														variant='outline'
+														className='border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800'
+													>
+														Clear all filters
+													</Button>
+
+													<Button
+														onClick={() => setShowCreateDialog(true)}
+														className='bg-sky-600 hover:bg-sky-700'
+													>
+														<Plus className='w-4 h-4 mr-2' />
+														Create new map
+													</Button>
+												</div>
+											</div>
+										) : (
+											// Welcome Empty State
+											<div className='space-y-8'>
+												<div className='w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-sky-500/20 to-purple-500/20 flex items-center justify-center border-2 border-dashed border-sky-500/30'>
+													<div className='w-16 h-16 rounded-full bg-gradient-to-br from-sky-500 to-purple-500 flex items-center justify-center'>
+														<Plus className='w-8 h-8 text-white' />
+													</div>
+												</div>
+
+												<div className='space-y-4'>
+													<h2 className='text-3xl font-bold text-white'>
+														Welcome to your dashboard
+													</h2>
+
+													<p className='text-zinc-400 text-lg max-w-md mx-auto'>
+														Create your first mind map to start organizing your
+														thoughts, ideas, and projects visually.
+													</p>
+												</div>
+
+												<div className='space-y-4'>
+													<Button
+														onClick={() => setShowCreateDialog(true)}
+														size='lg'
+														className='bg-sky-600 hover:bg-sky-700 text-lg px-8 py-3 h-auto'
+														disabled={isCreatingMap}
+													>
+														<Plus className='w-5 h-5 mr-2' />
+														Create your first map
+													</Button>
+
+													<div className='flex items-center gap-4 text-sm text-zinc-500'>
+														<div className='flex items-center gap-2'>
+															<div className='w-2 h-2 rounded-full bg-sky-500' />
+
+															<span>Organize ideas visually</span>
+														</div>
+
+														<div className='flex items-center gap-2'>
+															<div className='w-2 h-2 rounded-full bg-purple-500' />
+
+															<span>Collaborate with teams</span>
+														</div>
+
+														<div className='flex items-center gap-2'>
+															<div className='w-2 h-2 rounded-full bg-green-500' />
+
+															<span>AI-powered suggestions</span>
+														</div>
+													</div>
+												</div>
+											</div>
+										)}
 									</div>
-								</div>
-							) : (
-								<div
-									className={cn(
-										viewMode === 'grid'
-											? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'
-											: 'space-y-2'
-									)}
-								>
-									<AnimatePresence mode='popLayout'>
-										{filteredMaps.map((map) => (
-											<MindMapCard
-												key={map.id}
-												map={map}
-												selected={selectedMaps.has(map.id)}
-												onSelect={handleSelectMap}
-												onDelete={handleDeleteMap}
-												onDuplicate={handleDuplicateMap}
-												viewMode={viewMode}
-											/>
-										))}
-									</AnimatePresence>
 								</div>
 							)}
 						</div>
 					</div>
 				</div>
 			</div>
+
+			{/* Create Map Dialog */}
+			<CreateMapDialog
+				open={showCreateDialog}
+				onOpenChange={setShowCreateDialog}
+				onSubmit={handleCreateMap}
+				disabled={isCreatingMap}
+			/>
 		</DashboardLayout>
 	);
 }

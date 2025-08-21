@@ -21,7 +21,7 @@ const buttonVariants = cva(
 					'border border-zinc-600 bg-transparent hover:bg-zinc-700 text-zinc-300',
 				success:
 					'bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500',
-				sky: 'bg-sky-600 text-white hover:bg-sky-700 focus:ring-sky-500',
+				sky: 'bg-gradient-to-r from-sky-600 to-sky-700 text-white shadow-lg shadow-sky-600/25 hover:shadow-xl hover:shadow-sky-600/30 focus:ring-sky-500 transition-all duration-200',
 			},
 			size: {
 				default: 'h-8 px-3 py-1.5 text-xs',
@@ -29,6 +29,8 @@ const buttonVariants = cva(
 				md: 'h-10 px-4 py-2 text-sm',
 				lg: 'h-12 px-6 py-3 text-sm',
 				icon: '!h-8 !w-8 p-0',
+				'icon-sm': '!h-6 !w-6 p-0',
+				'icon-xs': '!h-4 !w-4 p-0',
 				'icon-md': '!h-10 !w-10 p-0',
 				'icon-lg': '!h-12 w-12 p-0',
 			},

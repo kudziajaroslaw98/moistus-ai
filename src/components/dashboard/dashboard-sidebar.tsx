@@ -367,7 +367,7 @@ export const DashboardSidebar = memo(
 		return (
 			<div className={cn('flex flex-col h-full', className)}>
 				{/* Search */}
-				<div className='p-3 border-b border-zinc-800'>
+				<div className='p-2.5 border-b border-zinc-800'>
 					<div className='relative'>
 						<Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400' />
 
@@ -375,7 +375,7 @@ export const DashboardSidebar = memo(
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
 							placeholder='Search folders...'
-							className='pl-9 h-9 bg-zinc-800/50 border-zinc-700 text-sm'
+							className='pl-9 text-sm'
 						/>
 					</div>
 				</div>
