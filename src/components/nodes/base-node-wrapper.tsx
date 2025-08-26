@@ -68,6 +68,7 @@ const BaseNodeWrapperComponent = ({
 		setPopoverOpen,
 		setNodeInfo,
 		openInlineCreator,
+		openNodeEditor,
 		reactFlowInstance,
 	} = useAppStore(
 		useShallow((state) => ({
@@ -80,6 +81,7 @@ const BaseNodeWrapperComponent = ({
 			setPopoverOpen: state.setPopoverOpen,
 			setNodeInfo: state.setNodeInfo,
 			openInlineCreator: state.openInlineCreator,
+			openNodeEditor: state.openNodeEditor,
 			isDraggingNodes: state.isDraggingNodes,
 			reactFlowInstance: state.reactFlowInstance,
 		}))
@@ -111,9 +113,12 @@ const BaseNodeWrapperComponent = ({
 		const currentNode = getNode(id);
 		if (!currentNode) return;
 
-		setNodeInfo(currentNode);
-		setPopoverOpen({ nodeEdit: true });
-	}, [id, getNode, setNodeInfo, setPopoverOpen]);
+		openNodeEditor({
+			mode: 'edit',
+			position: currentNode.position,
+			existingNodeId: id,
+		});
+	}, [id, getNode, openNodeEditor]);
 
 	const handleDoubleClick = useCallback(
 		(event: React.MouseEvent) => {

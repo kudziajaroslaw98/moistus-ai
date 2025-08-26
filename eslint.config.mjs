@@ -14,6 +14,9 @@ const compat = new FlatCompat({
 const eslintConfig = [
 	...compat.extends('next/core-web-vitals', 'next/typescript'),
 	{
+		linterOptions: {
+			reportUnusedDisableDirectives: true,
+		},
 		rules: {
 			'padding-line-between-statements': [
 				'warn',
@@ -26,14 +29,17 @@ const eslintConfig = [
 	},
 	{
 		files: ['**/*.{js,mjs,cjs,jsx,mjsx,ts,tsx,mtsx}'],
-		...reactPlugin.configs.flat.recommended,
+		plugins: {
+			react: reactPlugin,
+		},
 		rules: {
+			...reactPlugin.configs.flat.recommended.rules,
 			'react-hooks/exhaustive-deps': 'off',
 			'react/jsx-newline': 'warn',
 			'react/hook-use-state': 'warn',
 			'no-unused-vars': ['warn', { args: 'none' }],
 			'@typescript-eslint/no-unused-vars': [
-				'warn', // or "error"
+				'warn',
 				{
 					argsIgnorePattern: '^_',
 					varsIgnorePattern: '^_',

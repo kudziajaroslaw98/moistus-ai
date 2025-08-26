@@ -17,6 +17,7 @@ import { createStreamingToastSlice } from './slices/streaming-toast-slice';
 import { createSubscriptionSlice } from './slices/subscription-slice';
 import { createSuggestionsSlice } from './slices/suggestions-slice';
 import { createUiStateSlice } from './slices/ui-slice';
+import { createUserProfileSlice } from './slices/user-profile-slice';
 
 const useAppStore = create<AppState>((...args) => ({
 	...createCoreDataSlice(...args),
@@ -36,6 +37,7 @@ const useAppStore = create<AppState>((...args) => ({
 	...createStreamingToastSlice(...args),
 	...createSubscriptionSlice(...args),
 	...createOnboardingSlice(...args),
+	...createUserProfileSlice(...args),
 }));
 
 export default useAppStore;

@@ -4,6 +4,7 @@ import { PathType } from '@/types/path-types';
 import {
 	ChevronDown,
 	ChevronRight,
+	Edit,
 	GitPullRequestArrow,
 	Group,
 	LayoutPanelLeft,
@@ -63,6 +64,7 @@ export function useContextMenuConfig({
 		removeNodesFromGroup,
 		toggleNodeCollapse,
 		getDirectChildrenCount,
+		openNodeEditor,
 	} = useAppStore(
 		useShallow((state) => ({
 			reactFlowInstance: state.reactFlowInstance,
@@ -82,6 +84,7 @@ export function useContextMenuConfig({
 			removeNodesFromGroup: state.removeNodesFromGroup,
 			toggleNodeCollapse: state.toggleNodeCollapse,
 			getDirectChildrenCount: state.getDirectChildrenCount,
+			openNodeEditor: state.openNodeEditor,
 		}))
 	);
 
@@ -109,6 +112,19 @@ export function useContextMenuConfig({
 			{
 				id: 'node-actions',
 				items: [
+					{
+						id: 'edit-node',
+						icon: <Edit className='h-4 w-4' />,
+						label: 'Edit Node',
+						onClick: () => {
+							openNodeEditor({
+								mode: 'edit',
+								position: clickedNode.position,
+								existingNodeId: clickedNode.id,
+							});
+							onClose();
+						},
+					},
 					{
 						id: 'add-child',
 						icon: <Plus className='h-4 w-4' />,
@@ -221,6 +237,7 @@ export function useContextMenuConfig({
 		addNode,
 		toggleNodeCollapse,
 		removeNodesFromGroup,
+		openNodeEditor,
 		deleteNodes,
 		getDirectChildrenCount,
 		aiActions,

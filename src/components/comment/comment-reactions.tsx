@@ -75,7 +75,7 @@ export function CommentReactions({
 				return (
 					<TooltipProvider key={emoji}>
 						<Tooltip>
-							<TooltipTrigger asChild>
+							<TooltipTrigger>
 								<Button
 									variant='ghost'
 									size='sm'

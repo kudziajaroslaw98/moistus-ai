@@ -12,9 +12,8 @@ import {
 	Italic,
 	Text,
 } from 'lucide-react';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
-import { AutoResizeTextarea } from '../ui/auto-resize-textarea';
 import { Toggle } from '../ui/toggle';
 import { ToggleGroup, ToggleGroupItem } from '../ui/toggle-group';
 import { BaseNodeWrapper } from './base-node-wrapper';
@@ -25,18 +24,15 @@ const TextNodeComponent = (props: TextNodeProps) => {
 	const { id, data } = props;
 
 	const { content, metadata } = data;
-	const { updateNode, selectedNodes, editingNodeId, setState } = useAppStore(
+	const { updateNode, selectedNodes, openNodeEditor, getNode } = useAppStore(
 		useShallow((state) => ({
 			updateNode: state.updateNode,
 			selectedNodes: state.selectedNodes,
-			editingNodeId: state.editingNodeId,
-			setState: state.setState,
+			openNodeEditor: state.openNodeEditor,
+			getNode: state.getNode,
 		}))
 	);
 
-	const [localContent, setLocalContent] = useState(content || '');
-	const textareaRef = useRef<HTMLTextAreaElement>(null);
-	const isEditing = editingNodeId === id;
 	const {
 		fontSize = '14px',
 		fontWeight = 'normal',
@@ -45,18 +41,6 @@ const TextNodeComponent = (props: TextNodeProps) => {
 		fontStyle = 'normal',
 	} = metadata ?? {};
 
-	useEffect(() => {
-		if (!isEditing) {
-			setLocalContent(content || '');
-		}
-	}, [content, isEditing]);
-
-	useEffect(() => {
-		if (isEditing && textareaRef.current) {
-			textareaRef.current.focus();
-			textareaRef.current.select();
-		}
-	}, [isEditing]);
 
 	const textStyle = useMemo(() => {
 		const style: React.CSSProperties = {
@@ -96,34 +80,20 @@ const TextNodeComponent = (props: TextNodeProps) => {
 		[updateNode, data.id]
 	);
 
-	const handleDoubleClick = () => {
-		setLocalContent(content || '');
-		setState({ editingNodeId: id });
-	};
+	const handleDoubleClick = useCallback(
+		(event: React.MouseEvent) => {
+			const currentNode = getNode(id);
+			if (!currentNode) return;
+	
+			openNodeEditor({
+				mode: 'edit',
+				position: currentNode.position,
+				existingNodeId: id,
+			});
+		},
+		[id, getNode, openNodeEditor]
+	);
 
-	const saveChanges = () => {
-		if (localContent !== content) {
-			updateNode({ nodeId: id, data: { content: localContent } });
-		}
-
-		setState({ editingNodeId: null });
-	};
-
-	const handleBlur = () => {
-		saveChanges();
-	};
-
-	const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-		if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-			e.preventDefault();
-			saveChanges();
-		}
-
-		if (e.key === 'Escape') {
-			setState({ editingNodeId: null });
-			setLocalContent(content || '');
-		}
-	};
 
 	const toolbarContent = useMemo(
 		() => (
@@ -198,33 +168,21 @@ const TextNodeComponent = (props: TextNodeProps) => {
 			toolbarContent={toolbarContent}
 			onDoubleClick={handleDoubleClick}
 		>
-			{isEditing ? (
-				<AutoResizeTextarea
-					ref={textareaRef}
-					value={localContent}
-					onChange={(e) => setLocalContent(e.target.value)}
-					onBlur={handleBlur}
-					onKeyDown={handleKeyDown}
-					className='nodrag nopan nowheel w-full bg-transparent border-0 resize-none focus:outline-none focus:ring-0 text-inherit p-0 m-0'
-					style={textStyle}
-				/>
-			) : (
-				<div
-					className={cn(
-						'flex items-center min-h-8 w-full whitespace-break-spaces',
-						textAlign === 'center' && 'justify-center',
-						textAlign === 'right' && 'justify-end',
-						textAlign === 'left' && 'justify-start'
-					)}
-					style={textStyle}
-				>
-					{content || (
-						<span className='italic opacity-70 text-sm'>
-							{props.selected ? 'Double click to edit...' : 'Text...'}
-						</span>
-					)}
-				</div>
-			)}
+			<div
+				className={cn(
+					'flex items-center min-h-8 w-full whitespace-break-spaces',
+					textAlign === 'center' && 'justify-center',
+					textAlign === 'right' && 'justify-end',
+					textAlign === 'left' && 'justify-start'
+				)}
+				style={textStyle}
+			>
+				{content || (
+					<span className='italic opacity-70 text-sm'>
+						{props.selected ? 'Double click to edit...' : 'Text...'}
+					</span>
+				)}
+			</div>
 		</BaseNodeWrapper>
 	);
 };

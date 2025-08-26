@@ -5,15 +5,13 @@ import type { RealtimeUserSelection } from '@/hooks/realtime/use-realtime-select
 import type { ChatSlice } from '@/store/slices/chat-slice';
 import type { OnboardingSlice } from '@/store/slices/onboarding-slice';
 import type {
-	FieldActivityState,
-	FieldActivityUser,
 	FormConflict,
 	MergeStrategy,
 	RealtimeFormFieldState,
 	RealtimeFormState,
-	UserFieldPresence,
 } from '@/store/slices/realtime-slice';
 import type { SubscriptionSlice } from '@/store/slices/subscription-slice';
+import type { UserProfileSlice } from '@/store/slices/user-profile-slice';
 import type { SuggestionsSlice } from '@/store/slices/suggestions-slice';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
@@ -400,7 +398,6 @@ export interface SharingSlice extends SharingState {
 export interface Popovers {
 	commandPalette: boolean;
 	nodeType: boolean;
-	nodeEdit: boolean;
 	edgeEdit: boolean;
 	history: boolean;
 	mergeSuggestions: boolean;
@@ -438,6 +435,29 @@ export interface InlineCreatorOptions {
 	suggestedType?: AvailableNodeTypes | null;
 }
 
+// NodeEditor types (new universal editor)
+export interface NodeEditorState {
+	isOpen: boolean;
+	mode: 'create' | 'edit';
+	position: XYPosition;
+	screenPosition: XYPosition;
+	editorMode: 'quick' | 'structured';
+	selectedCommand: string | null;
+	filterQuery: string;
+	parentNode: AppNode | null;
+	existingNodeId: string | null; // For edit mode
+	suggestedType: AvailableNodeTypes | null;
+}
+
+export interface NodeEditorOptions {
+	mode: 'create' | 'edit';
+	position: XYPosition;
+	screenPosition?: XYPosition;
+	parentNode?: AppNode | null;
+	existingNodeId?: string | null;
+	suggestedType?: AvailableNodeTypes | null;
+}
+
 export interface UIStateSlice {
 	// UI state
 	popoverOpen: Popovers;
@@ -446,9 +466,10 @@ export interface UIStateSlice {
 	contextMenuState: ContextMenuState;
 	isFocusMode: boolean;
 	isDraggingNodes: boolean;
-	editingNodeId: string | null;
+	// editingNodeId: string | null; // Removed - replaced by NodeEditor system
 	snapLines: SnapLine[];
 	inlineCreator: InlineCreatorState;
+	nodeEditor: NodeEditorState;
 
 	// UI setters
 	setPopoverOpen: (popover: Partial<Popovers>) => void;
@@ -460,12 +481,19 @@ export interface UIStateSlice {
 	// UI actions
 	toggleFocusMode: () => void;
 
-	// InlineNodeCreator actions
+	// InlineNodeCreator actions (deprecated - will be replaced by nodeEditor)
 	openInlineCreator: (options: InlineCreatorOptions) => void;
 	closeInlineCreator: () => void;
 	setInlineCreatorCommand: (command: string) => void;
 	setInlineCreatorMode: (mode: 'quick' | 'structured') => void;
 	setInlineCreatorFilterQuery: (query: string) => void;
+
+	// NodeEditor actions (new universal editor)
+	openNodeEditor: (options: NodeEditorOptions) => void;
+	closeNodeEditor: () => void;
+	setNodeEditorCommand: (command: string) => void;
+	setNodeEditorMode: (mode: 'quick' | 'structured') => void;
+	setNodeEditorFilterQuery: (query: string) => void;
 }
 
 // Enhanced Form State
@@ -484,9 +512,6 @@ export interface RealtimeSlice {
 	formState: RealtimeFormState;
 	enhancedFormState: EnhancedFormState;
 
-	// Field activity state
-	fieldActivities: Record<string, FieldActivityState>;
-	userFieldPresences: Record<string, UserFieldPresence>;
 
 	// Basic setters (maintaining compatibility)
 	setRealtimeSelectedNodes: (nodes: RealtimeUserSelection[]) => void;
@@ -520,29 +545,6 @@ export interface RealtimeSlice {
 	getFormConflicts: () => FormConflict[];
 	resetFormState: (userId: string, mapId: string) => void;
 
-	// Field activity tracking methods
-	trackFieldActivity: (
-		fieldName: string,
-		action: 'focus' | 'blur' | 'edit',
-		nodeId?: string
-	) => void;
-	trackRemoteFieldActivity: (
-		fieldName: string,
-		action: 'focus' | 'blur' | 'edit',
-		remoteUserId: string,
-		remoteUserProfile: {
-			displayName: string;
-			avatarUrl: string;
-			color: string;
-			isAnonymous: boolean;
-		},
-		nodeId?: string
-	) => void;
-	getFieldActivity: (fieldName: string) => FieldActivityState | null;
-	getActiveUsersForField: (fieldName: string) => FieldActivityUser[];
-	clearFieldActivity: () => void;
-	updateUserFieldPresence: (presence: Partial<UserFieldPresence>) => void;
-	getUserFieldPresence: (userId: string) => UserFieldPresence | null;
 }
 
 export interface StreamingToastSlice {
@@ -575,4 +577,5 @@ export interface AppState
 		ChatSlice,
 		StreamingToastSlice,
 		SubscriptionSlice,
-		OnboardingSlice {}
+		OnboardingSlice,
+		UserProfileSlice {}

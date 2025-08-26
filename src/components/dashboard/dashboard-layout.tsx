@@ -33,6 +33,8 @@ interface NavItem {
 	badge?: number | string;
 	isActive?: boolean;
 	subItems?: NavItem[];
+	disabled?: boolean;
+	comingSoon?: boolean;
 }
 
 const mainNavItems: NavItem[] = [
@@ -47,18 +49,24 @@ const mainNavItems: NavItem[] = [
 		label: 'Teams',
 		icon: <Users className='h-4 w-4' />,
 		href: '/dashboard/teams',
+		disabled: true,
+		comingSoon: true,
 	},
 	{
 		id: 'templates',
 		label: 'Templates',
 		icon: <Star className='h-4 w-4' />,
 		href: '/dashboard/templates',
+		disabled: true,
+		comingSoon: true,
 	},
 	{
 		id: 'archive',
 		label: 'Archive',
 		icon: <Archive className='h-4 w-4' />,
 		href: '/dashboard/archive',
+		disabled: true,
+		comingSoon: true,
 	},
 ];
 
@@ -86,6 +94,73 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
 	const NavItemComponent = ({ item }: { item: NavItem }) => {
 		const isActive = isItemActive(item.href);
+
+		const renderBadge = () => {
+			if (item.comingSoon) {
+				return (
+					<motion.div
+						initial={{ scale: 0 }}
+						animate={{ scale: 1 }}
+						className='px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30'
+					>
+						Coming Soon
+					</motion.div>
+				);
+			}
+			if (item.badge) {
+				return (
+					<motion.div
+						initial={{ scale: 0 }}
+						animate={{ scale: 1 }}
+						className={cn(
+							'px-2 py-0.5 rounded-full text-xs font-medium',
+							'bg-zinc-700 text-zinc-300'
+						)}
+					>
+						{item.badge}
+					</motion.div>
+				);
+			}
+			return undefined;
+		};
+
+		if (item.disabled) {
+			const content = (
+				<SidebarItem
+					icon={
+						<div className={cn('flex-shrink-0 text-zinc-500')}>
+							{item.icon}
+						</div>
+					}
+					label={item.label}
+					isActive={false}
+					onClick={() => {}}
+					collapsed={sidebarCollapsed}
+					badge={renderBadge()}
+					className='cursor-not-allowed opacity-70'
+				/>
+			);
+
+			if (sidebarCollapsed) {
+				return (
+					<Tooltip>
+						<TooltipTrigger className='w-full flex'>
+							{content}
+						</TooltipTrigger>
+						<TooltipContent>
+							<div className='flex flex-col gap-1'>
+								<span>{item.label}</span>
+								{item.comingSoon && (
+									<span className='text-xs text-amber-400'>Coming Soon</span>
+								)}
+							</div>
+						</TooltipContent>
+					</Tooltip>
+				);
+			}
+
+			return content;
+		}
 
 		if (sidebarCollapsed) {
 			return (
@@ -126,20 +201,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 					label={item.label}
 					isActive={isActive}
 					onClick={() => {}}
-					badge={
-						item.badge ? (
-							<motion.div
-								initial={{ scale: 0 }}
-								animate={{ scale: 1 }}
-								className={cn(
-									'px-2 py-0.5 rounded-full text-xs font-medium',
-									'bg-zinc-700 text-zinc-300'
-								)}
-							>
-								{item.badge}
-							</motion.div>
-						) : undefined
-					}
+					badge={renderBadge()}
 				/>
 			</Link>
 		);

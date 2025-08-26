@@ -101,6 +101,7 @@ export function ReactFlowArea() {
 		unsubscribeFromComments,
 		unsubscribeFromRealtimeUpdates,
 		openInlineCreator,
+		openNodeEditor,
 		getCurrentUser,
 		getVisibleEdges,
 		getVisibleNodes,
@@ -139,6 +140,7 @@ export function ReactFlowArea() {
 			unsubscribeFromComments: state.unsubscribeFromComments,
 			unsubscribeFromRealtimeUpdates: state.unsubscribeFromRealtimeUpdates,
 			openInlineCreator: state.openInlineCreator,
+			openNodeEditor: state.openNodeEditor,
 			getCurrentUser: state.getCurrentUser,
 			toggleFocusMode: state.toggleFocusMode,
 			mindMap: state.mindMap,
@@ -215,10 +217,13 @@ export function ReactFlowArea() {
 
 	const handleNodeDoubleClick = useCallback(
 		(event: React.MouseEvent, node: Node<NodeData>) => {
-			setNodeInfo(node);
-			setPopoverOpen({ nodeEdit: true });
+			openNodeEditor({
+				mode: 'edit',
+				position: node.position,
+				existingNodeId: node.id,
+			});
 		},
-		[setNodeInfo, setPopoverOpen]
+		[openNodeEditor]
 	);
 
 	const handleNodeClick = useCallback(

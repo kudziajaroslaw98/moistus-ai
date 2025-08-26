@@ -2,7 +2,7 @@
 import useAppStore from '@/store/mind-map-store';
 import { HistorySidebar } from '../history-sidebar';
 import EdgeEditModal from '../modals/edge-edit-modal';
-import NodeEditModal from '../modals/node-edit-modal';
+// import NodeEditModal from '../modals/node-edit-modal'; // Replaced by NodeEditor
 import { ReferenceSearchModal } from '../modals/reference-search-modal';
 import SelectNodeTypeModal from '../modals/select-node-type-modal';
 import { SharePanel } from '../sharing/share-panel';
@@ -56,7 +56,8 @@ export function ModalsWrapper() {
 
 			{popoverOpen.nodeType && <SelectNodeTypeModal />}
 
-			{popoverOpen.nodeEdit && <NodeEditModal />}
+			{/* {popoverOpen.nodeEdit && <NodeEditModal />} */}
+			{/* NodeEdit modal replaced by NodeEditor component */}
 
 			{popoverOpen.edgeEdit && <EdgeEditModal />}
 

@@ -286,7 +286,7 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
 
 						<div className='flex items-center gap-1'>
 							<Tooltip>
-								<TooltipTrigger asChild>
+								<TooltipTrigger>
 									<Button
 										variant='ghost'
 										size='sm'
@@ -301,7 +301,7 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
 							</Tooltip>
 
 							<Tooltip>
-								<TooltipTrigger asChild>
+								<TooltipTrigger>
 									<Button
 										variant='ghost'
 										size='sm'
@@ -580,7 +580,7 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
 								</Button>
 
 								<Tooltip>
-									<TooltipTrigger asChild>
+									<TooltipTrigger>
 										<Button
 											variant='ghost'
 											size='sm'

@@ -138,15 +138,16 @@ export const Toolbar = () => {
 					if (tool.id === 'magic-wand') {
 						return (
 							<Tooltip key={tool.id}>
-								<TooltipTrigger asChild>
-									<Button
-										onClick={() => onToolChange(tool.id)}
-										variant={activeTool === tool.id ? 'default' : 'secondary'}
-										title={tool.label ?? `Tool ${index}`}
-										size={'icon'}
-									>
-										{tool.icon}
-									</Button>
+								<TooltipTrigger
+									onClick={() => onToolChange(tool.id)}
+									title={tool.label ?? `Tool ${index}`}
+									className={`inline-flex items-center rounded-sm font-medium transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-800 disabled:opacity-50 disabled:pointer-events-none !h-8 !w-8 p-0 justify-center ${
+										activeTool === tool.id 
+											? 'bg-teal-600 text-white hover:bg-teal-700 focus:ring-teal-500'
+											: 'bg-zinc-950 border-zinc-900 border-2 text-zinc-200 hover:bg-zinc-700 focus:ring-zinc-500'
+									}`}
+								>
+									{tool.icon}
 								</TooltipTrigger>
 
 								<TooltipContent className='p-4'>

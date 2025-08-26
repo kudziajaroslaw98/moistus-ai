@@ -5,10 +5,9 @@ import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
 import { Node, NodeProps } from '@xyflow/react';
 import { AlertCircle, Flag, NotepadText, Star } from 'lucide-react';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useShallow } from 'zustand/shallow';
-import { AutoResizeTextarea } from '../ui/auto-resize-textarea';
 import {
 	Select,
 	SelectContent,
@@ -29,17 +28,14 @@ MarkdownWrapper.displayName = 'MarkdownWrapper';
 const DefaultNodeComponent = (props: NodeProps<Node<NodeData>>) => {
 	const { id, data } = props;
 
-	const { editingNodeId, setState, updateNode } = useAppStore(
+	const { openNodeEditor, updateNode, getNode } = useAppStore(
 		useShallow((state) => ({
-			editingNodeId: state.editingNodeId,
+			openNodeEditor: state.openNodeEditor,
 			updateNode: state.updateNode,
-			setState: state.setState,
+			getNode: state.getNode,
 		}))
 	);
 
-	const [localContent, setLocalContent] = useState(data.content || '');
-	const textareaRef = useRef<HTMLTextAreaElement>(null);
-	const isEditing = editingNodeId === id;
 	const status = data.metadata?.status as string | undefined;
 	const priority = data.metadata?.priority as number | undefined;
 	const tags = data.metadata?.tags as string[] | undefined;
@@ -54,49 +50,21 @@ const DefaultNodeComponent = (props: NodeProps<Node<NodeData>>) => {
 		[updateNode, id]
 	);
 
-	useEffect(() => {
-		if (!isEditing) {
-			setLocalContent(data.content || '');
-			setState({ editingNodeId: null });
-		}
-	}, [data.content, isEditing]);
 
-	// This effect is now only for focusing the textarea, not resizing.
-	useEffect(() => {
-		if (isEditing && textareaRef.current) {
-			textareaRef.current.focus();
-			textareaRef.current.select();
-		}
-	}, [isEditing]);
+	const handleDoubleClick = useCallback(
+		(event: React.MouseEvent) => {
+			const currentNode = getNode(id);
+			if (!currentNode) return;
+	
+			openNodeEditor({
+				mode: 'edit',
+				position: currentNode.position,
+				existingNodeId: id,
+			});
+		},
+		[id, getNode, openNodeEditor]
+	);
 
-	const handleDoubleClick = () => {
-		setLocalContent(data.content || '');
-		setState({ editingNodeId: id });
-	};
-
-	const saveChanges = () => {
-		if (localContent !== data.content) {
-			updateNode({ nodeId: id, data: { content: localContent } });
-		}
-
-		setState({ editingNodeId: null });
-	};
-
-	const handleBlur = () => {
-		saveChanges();
-	};
-
-	const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-		if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-			e.preventDefault();
-			saveChanges();
-		}
-
-		if (e.key === 'Escape') {
-			setState({ editingNodeId: null });
-			setLocalContent(data.content || '');
-		}
-	};
 
 	const statusOptions = [
 		{ value: 'draft', label: 'Draft', icon: AlertCircle },
@@ -214,43 +182,32 @@ const DefaultNodeComponent = (props: NodeProps<Node<NodeData>>) => {
 			toolbarContent={toolbarContent}
 			onDoubleClick={handleDoubleClick}
 		>
-			{isEditing ? (
-				<AutoResizeTextarea
-					ref={textareaRef}
-					value={localContent}
-					onChange={(e) => setLocalContent(e.target.value)}
-					onBlur={handleBlur}
-					onKeyDown={handleKeyDown}
-					className='nodrag nopan nowheel w-full bg-transparent border-0 resize-none focus:outline-none focus:ring-0 text-leftinherit p-0 m-0'
+			<div className='prose p-4 prose-invert flex flex-col gap-2 prose-ul:flex prose-ul:flex-col prose-ul:gap-2 prose-sm max-w-none break-words prose-headings:m-0'>
+				<MarkdownWrapper
+					content={data.content || 'Double click to edit...'}
 				/>
-			) : (
-				<div className='prose p-4 prose-invert flex flex-col gap-2 prose-ul:flex prose-ul:flex-col prose-ul:gap-2 prose-sm max-w-none break-words prose-headings:m-0'>
-					<MarkdownWrapper
-						content={data.content || 'Double click to edit...'}
+
+				{tags && tags.length > 0 && (
+					<NodeTags
+						tags={tags}
+						className='mt-2'
+						onTagClick={(tag) => console.log('Tag clicked:', tag)}
 					/>
+				)}
 
-					{tags && tags.length > 0 && (
-						<NodeTags
-							tags={tags}
-							className='mt-2'
-							onTagClick={(tag) => console.log('Tag clicked:', tag)}
+				{/* Additional Metadata Display */}
+				{data.metadata && Object.keys(data.metadata).length > 0 && (
+					<div className='mt-2 pt-2 border-t border-zinc-800/50'>
+						<NodeMetadata
+							nodeId={id}
+							metadata={data.metadata}
+							layout='horizontal'
+							maxItems={3}
+							className='w-full'
 						/>
-					)}
-
-					{/* Additional Metadata Display */}
-					{data.metadata && Object.keys(data.metadata).length > 0 && (
-						<div className='mt-2 pt-2 border-t border-zinc-800/50'>
-							<NodeMetadata
-								nodeId={id}
-								metadata={data.metadata}
-								layout='horizontal'
-								maxItems={3}
-								className='w-full'
-							/>
-						</div>
-					)}
-				</div>
-			)}
+					</div>
+				)}
+			</div>
 		</BaseNodeWrapper>
 	);
 };

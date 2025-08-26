@@ -3,7 +3,7 @@
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'; // Keep shortcuts here
 import { cn } from '@/utils/cn';
 import { useCallback, useEffect, useMemo } from 'react';
-import InlineNodeCreator from './inline-node-creator';
+import NodeEditor from './node-editor';
 import { ModalsWrapper } from './mind-map/modals-wrapper';
 import { ReactFlowArea } from './mind-map/react-flow-area';
 
@@ -155,7 +155,7 @@ export function MindMapCanvas() {
 
 				<ModalsWrapper />
 
-				<InlineNodeCreator />
+				<NodeEditor />
 
 				{/* Position the ReactFlowArea */}
 				<div

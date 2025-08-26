@@ -5,7 +5,10 @@
       "mcp__context7__get-library-docs",
       "mcp__grep__searchGitHub",
       "Bash(pnpm lint:*)",
-      "Bash(pnpm run lint:*)"
+      "Bash(pnpm run lint:*)",
+      "Bash(npx tsc:*)",
+      "Bash(mv:*)",
+      "Bash(npm run lint)"
     ],
     "deny": [],
     "ask": []

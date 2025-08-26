@@ -12,7 +12,6 @@ export const createUiStateSlice: StateCreator<
 		contextMenu: false,
 		commandPalette: false,
 		nodeType: false,
-		nodeEdit: false,
 		edgeEdit: false,
 		history: false,
 		mergeSuggestions: false,
@@ -39,7 +38,7 @@ export const createUiStateSlice: StateCreator<
 	},
 	isFocusMode: false,
 	isDraggingNodes: false,
-	editingNodeId: null,
+	// editingNodeId: null, // Removed - replaced by NodeEditor system
 	snapLines: [],
 
 	// InlineNodeCreator state
@@ -51,6 +50,20 @@ export const createUiStateSlice: StateCreator<
 		selectedCommand: null,
 		filterQuery: '',
 		parentNode: null,
+		suggestedType: null,
+	},
+
+	// NodeEditor state (new universal editor)
+	nodeEditor: {
+		isOpen: false,
+		mode: 'create',
+		position: { x: 0, y: 0 },
+		screenPosition: { x: 0, y: 0 },
+		editorMode: 'quick',
+		selectedCommand: null,
+		filterQuery: '',
+		parentNode: null,
+		existingNodeId: null,
 		suggestedType: null,
 	},
 
@@ -121,6 +134,59 @@ export const createUiStateSlice: StateCreator<
 		set({
 			inlineCreator: {
 				...get().inlineCreator,
+				filterQuery: query,
+			},
+		});
+	},
+
+	// NodeEditor actions (new universal editor)
+	openNodeEditor: (options) => {
+		set({
+			nodeEditor: {
+				...get().nodeEditor,
+				isOpen: true,
+				mode: options.mode,
+				position: options.position,
+				screenPosition: options.screenPosition || options.position,
+				parentNode: options.parentNode || null,
+				existingNodeId: options.existingNodeId || null,
+				suggestedType: options.suggestedType || null,
+				filterQuery: '',
+				selectedCommand: null,
+			},
+		});
+	},
+	closeNodeEditor: () => {
+		set({
+			nodeEditor: {
+				...get().nodeEditor,
+				isOpen: false,
+				filterQuery: '',
+				selectedCommand: null,
+				existingNodeId: null,
+			},
+		});
+	},
+	setNodeEditorCommand: (command) => {
+		set({
+			nodeEditor: {
+				...get().nodeEditor,
+				selectedCommand: command,
+			},
+		});
+	},
+	setNodeEditorMode: (mode) => {
+		set({
+			nodeEditor: {
+				...get().nodeEditor,
+				editorMode: mode,
+			},
+		});
+	},
+	setNodeEditorFilterQuery: (query) => {
+		set({
+			nodeEditor: {
+				...get().nodeEditor,
 				filterQuery: query,
 			},
 		});

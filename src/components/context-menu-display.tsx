@@ -618,7 +618,7 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
 					}}
 					renderItem={(pathType, idx, { focused }) => (
 						<Tooltip>
-							<TooltipTrigger asChild>
+							<TooltipTrigger>
 								<Button
 									variant={
 										clickedEdge.data?.metadata?.pathType === pathType
@@ -674,7 +674,7 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
 								colorOpt.value === undefined);
 						return (
 							<Tooltip>
-								<TooltipTrigger asChild>
+								<TooltipTrigger>
 									<Button
 										variant={isSelected ? 'secondary' : 'ghost'}
 										size='icon'

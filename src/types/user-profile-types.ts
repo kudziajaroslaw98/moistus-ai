@@ -18,6 +18,7 @@ export interface UserProfile {
 	};
 	preferences?: {
 		theme?: 'light' | 'dark' | 'system';
+		accentColor?: string;
 		language?: string;
 		timezone?: string;
 		notifications?: {
@@ -57,6 +58,7 @@ export interface UserProfileUpdate {
 	};
 	preferences?: {
 		theme?: 'light' | 'dark' | 'system';
+		accentColor?: string;
 		language?: string;
 		timezone?: string;
 		notifications?: {
@@ -123,6 +125,7 @@ export interface UserProfileFormData {
 	};
 	preferences: {
 		theme: 'light' | 'dark' | 'system';
+		accentColor: string;
 		language: string;
 		timezone: string;
 		notifications: {
