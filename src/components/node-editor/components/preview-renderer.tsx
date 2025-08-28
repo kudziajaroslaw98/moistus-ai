@@ -37,7 +37,12 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 									}}
 								>
 									<motion.div
-										className='w-3 h-3 border border-zinc-600 rounded-sm'
+										className={cn(
+											'w-3 h-3 border border-zinc-600 rounded-sm flex items-center justify-center',
+											task.isComplete && 'bg-teal-500 border-teal-500'
+										)}
+										data-iscomplete={task.isComplete}
+										data-task-text={task.text}
 										initial={{ scale: 0 }}
 										animate={{ scale: 1 }}
 										transition={{
@@ -45,10 +50,27 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 											duration: 0.15,
 											ease: 'easeOut',
 										}}
-									/>
+									>
+										{task.isComplete && (
+											<motion.div
+												className='text-white text-xs'
+												initial={{ scale: 0 }}
+												animate={{ scale: 1 }}
+												transition={{
+													delay: index * 0.05 + 0.2,
+													duration: 0.15,
+												}}
+											>
+												✓
+											</motion.div>
+										)}
+									</motion.div>
 
 									<motion.span
-										className='text-sm'
+										className={cn(
+											'text-sm',
+											task.isComplete && 'line-through text-zinc-500'
+										)}
 										initial={{ opacity: 0 }}
 										animate={{ opacity: 1 }}
 										transition={{

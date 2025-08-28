@@ -6,7 +6,6 @@ import { z } from 'zod';
 // Define schema for creating a new map
 const requestBodySchema = z.object({
 	title: z.string().min(1, 'Map title cannot be empty'),
-	folder_id: z.string().uuid().optional().nullable(),
 	team_id: z.string().uuid().optional().nullable(),
 	description: z.string().optional().nullable(),
 	is_template: z.boolean().optional(),
@@ -23,11 +22,6 @@ export const GET = withApiValidation(
 				.select(
 					`
 					*,
-					folder:map_folders!folder_id(
-						id,
-						name,
-						color
-					),
 					team:teams!team_id(
 						id,
 						name,
@@ -83,7 +77,6 @@ export const POST = withApiValidation(
 		try {
 			const {
 				title,
-				folder_id,
 				team_id,
 				description,
 				is_template,
@@ -110,35 +103,6 @@ export const POST = withApiValidation(
 				}
 			}
 
-			// If folder_id is provided, verify it exists and user has access
-			if (folder_id) {
-				const { data: folder } = await supabase
-					.from('map_folders')
-					.select('id, user_id, team_id')
-					.eq('id', folder_id)
-					.single();
-
-				if (!folder) {
-					return respondError(
-						'Folder not found.',
-						404,
-						'The specified folder does not exist.'
-					);
-				}
-
-				// Check access to folder
-				const hasAccess =
-					folder.user_id === user.id ||
-					(folder.team_id && team_id === folder.team_id);
-
-				if (!hasAccess) {
-					return respondError(
-						'Insufficient permissions for this folder.',
-						403,
-						'You do not have access to this folder.'
-					);
-				}
-			}
 
 			// Insert the new mind map into the database
 			const { data: newMap, error: insertError } = await supabase
@@ -150,7 +114,6 @@ export const POST = withApiValidation(
 						team_id: team_id || null,
 						title: title,
 						description: description || null,
-						folder_id: folder_id || null,
 						is_template: is_template || false,
 						template_category: template_category || null,
 					},
@@ -158,11 +121,6 @@ export const POST = withApiValidation(
 				.select(
 					`
 					*,
-					folder:map_folders!folder_id(
-						id,
-						name,
-						color
-					),
 					team:teams!team_id(
 						id,
 						name,

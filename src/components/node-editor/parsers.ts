@@ -102,59 +102,24 @@ export const parseTaskInput = (input: string): ParsedTaskData => {
 		priority: /#(low|medium|high)/i,
 		assignee: /\+(\w+)/g,
 		tags: /\[([\w,\s]+)\]/g,
-		markdownTask: /^[-*]\s*\[\s*\]\s*(.+)$/gm,
+		markdownTask: /^(?:[-*]\s*)?\[([x\s])\]\s*(.+)$/gm,
 		colonPrefix: /^(.+?):\s*(.+)$/,
 	};
 
 	let content = input;
 	const metadata: Partial<ParsedTaskData> = { tasks: [] };
 
-	// Extract global metadata (applies to all tasks)
-	const dateMatch = patterns.dueDate.exec(content);
-
-	if (dateMatch) {
-		metadata.dueDate = parseDateString(dateMatch[1]);
-		content = content.replace(patterns.dueDate, '');
-	}
-
-	const priorityMatch = patterns.priority.exec(content);
-
-	if (priorityMatch) {
-		metadata.priority = priorityMatch[1].toLowerCase() as
-			| 'low'
-			| 'medium'
-			| 'high';
-		content = content.replace(patterns.priority, '');
-	}
-
-	const assigneeMatch = patterns.assignee.exec(content);
-
-	if (assigneeMatch) {
-		metadata.assignee = assigneeMatch[1];
-		content = content.replace(patterns.assignee, '');
-	}
-
-	// Extract tags
-	const tags: string[] = [];
-	let tagMatch;
-
-	while ((tagMatch = patterns.tags.exec(content)) !== null) {
-		tags.push(...tagMatch[1].split(',').map((t) => t.trim()));
-	}
-
-	if (tags.length > 0) {
-		metadata.tags = tags;
-		content = content.replace(patterns.tags, '');
-	}
-
-	// Parse multiple tasks
-	let taskTexts: string[] = [];
+	// Parse multiple tasks FIRST before extracting metadata
+	let taskTexts: (string | { text: string; isComplete: boolean })[] = [];
 
 	// Check for markdown-style task list
 	const markdownTasks = Array.from(content.matchAll(patterns.markdownTask));
 
 	if (markdownTasks.length > 0) {
-		taskTexts = markdownTasks.map((match) => match[1].trim());
+		taskTexts = markdownTasks.map((match) => ({
+			text: match[2].trim(),
+			isComplete: match[1].toLowerCase() === 'x'
+		}));
 	} else {
 		// Check for colon-prefixed list (e.g., "Sprint tasks: task1; task2; task3")
 		const colonMatch = patterns.colonPrefix.exec(content);
@@ -211,10 +176,10 @@ export const parseTaskInput = (input: string): ParsedTaskData => {
 	}
 
 	// Create task objects
-	metadata.tasks = taskTexts.map((text) => ({
+	metadata.tasks = taskTexts.map((task) => ({
 		id: nanoid(),
-		text: text,
-		isComplete: false,
+		text: typeof task === 'string' ? task : task.text,
+		isComplete: typeof task === 'string' ? false : task.isComplete,
 	}));
 
 	// If no tasks were parsed, create a default empty task
@@ -226,6 +191,42 @@ export const parseTaskInput = (input: string): ParsedTaskData => {
 				isComplete: false,
 			},
 		];
+	}
+
+	// Extract global metadata (applies to all tasks) AFTER parsing tasks
+	const dateMatch = patterns.dueDate.exec(input);
+
+	if (dateMatch) {
+		metadata.dueDate = parseDateString(dateMatch[1]);
+	}
+
+	const priorityMatch = patterns.priority.exec(input);
+
+	if (priorityMatch) {
+		metadata.priority = priorityMatch[1].toLowerCase() as
+			| 'low'
+			| 'medium'
+			| 'high';
+	}
+
+	const assigneeMatch = patterns.assignee.exec(input);
+
+	if (assigneeMatch) {
+		metadata.assignee = assigneeMatch[1];
+	}
+
+	// Extract tags
+	const tags: string[] = [];
+	let tagMatch;
+	// Reset regex state
+	patterns.tags.lastIndex = 0;
+
+	while ((tagMatch = patterns.tags.exec(input)) !== null) {
+		tags.push(...tagMatch[1].split(',').map((t) => t.trim()));
+	}
+
+	if (tags.length > 0) {
+		metadata.tags = tags;
 	}
 
 	return metadata as ParsedTaskData;

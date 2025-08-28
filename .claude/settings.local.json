@@ -8,9 +8,19 @@
       "Bash(pnpm run lint:*)",
       "Bash(npx tsc:*)",
       "Bash(mv:*)",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "mcp__kapture__list_tabs",
+      "mcp__kapture__screenshot"
     ],
     "deny": [],
     "ask": []
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ],
+  "statusLine": {
+    "type": "command",
+    "command": "input=$(cat); current_dir=$(echo \"$input\" | jq -r '.workspace.current_dir'); model_name=$(echo \"$input\" | jq -r '.model.display_name'); output_style=$(echo \"$input\" | jq -r '.output_style.name'); printf \"\\033[36m%s\\033[0m \\033[32m%s\\033[0m \\033[35m[%s]\\033[0m\" \"$(basename \"$current_dir\")\" \"$model_name\" \"$output_style\""
   }
 }

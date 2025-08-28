@@ -197,7 +197,7 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 			<ComponentHeader icon={command.icon} label={command.label} />
 
 			{/* Input and Preview Side by Side */}
-			<div className='flex items-start gap-4'>
+			<div className='flex items-stretch gap-4'>
 				<InputSection
 					value={value}
 					onChange={setValue}

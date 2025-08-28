@@ -13,7 +13,7 @@ interface PreviewSectionProps {
 }
 
 const theme = {
-	preview: 'bg-zinc-900/50 border border-zinc-800 rounded-md p-3 mt-0 min-h-[120px] max-h-[200px] overflow-auto flex flex-col',
+	preview: 'bg-zinc-900/50 border border-zinc-800 rounded-md p-3 mt-0 min-h-[60px] max-h-[80vh] overflow-auto flex flex-col',
 	previewLabel: 'text-xs text-zinc-500 uppercase tracking-wider mb-1 flex-shrink-0',
 	previewContent: 'text-sm text-zinc-300 flex-1',
 };

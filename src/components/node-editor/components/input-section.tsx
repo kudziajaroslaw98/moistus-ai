@@ -1,5 +1,6 @@
 'use client';
 
+import { AutoResizeTextarea } from '@/components/ui/auto-resize-textarea';
 import { cn } from '@/utils/cn';
 import { motion } from 'motion/react';
 import { useEffect, useRef } from 'react';
@@ -37,7 +38,7 @@ export const InputSection: React.FC<InputSectionProps> = ({
 
 	return (
 		<div className={cn('flex-1', className)}>
-			<motion.textarea
+			<AutoResizeTextarea
 				ref={inputRef}
 				value={value}
 				onChange={(e) => onChange(e.target.value)}
@@ -47,7 +48,7 @@ export const InputSection: React.FC<InputSectionProps> = ({
 				className={cn(
 					theme.input,
 					'w-full px-3 py-2 text-sm rounded-md resize-none',
-					'min-h-[120px] max-h-[200px]'
+					'min-h-[60px] max-h-[216px] overflow-auto'
 				)}
 				disabled={disabled}
 				initial={{ opacity: 0, x: -20 }}

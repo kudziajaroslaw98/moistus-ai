@@ -13,7 +13,6 @@ import { cn } from '@/utils/cn';
 import {
 	Archive,
 	Copy,
-	Folder,
 	MoreVertical,
 	Share2,
 	Trash2,
@@ -30,16 +29,10 @@ interface MindMapData {
 	description: string | null;
 	created_at: string;
 	updated_at: string;
-	folder_id?: string | null;
 	team_id?: string | null;
 	is_template?: boolean;
 	template_category?: string;
 	// Additional metadata
-	folder?: {
-		id: string;
-		name: string;
-		color: string;
-	};
 	team?: {
 		id: string;
 		name: string;
@@ -57,7 +50,6 @@ interface MindMapCardProps {
 	onSelect?: (id: string, isSelected: boolean) => void;
 	onDelete?: (id: string) => void;
 	onDuplicate?: (id: string) => void;
-	onMove?: (id: string, folderId: string | null) => void;
 	onArchive?: (id: string) => void;
 	onShare?: (id: string) => void;
 	viewMode?: 'grid' | 'list' | 'compact';
@@ -69,7 +61,6 @@ const MindMapCardComponent = ({
 	onSelect,
 	onDelete,
 	onDuplicate,
-	onMove,
 	onArchive,
 	onShare,
 	viewMode = 'grid',
@@ -264,17 +255,6 @@ const MindMapCardComponent = ({
 							<h3 className='text-white font-medium truncate'>{map.title}</h3>
 
 							<div className='flex items-center gap-4 mt-1 text-xs text-zinc-400'>
-								{map.folder && (
-									<span className='flex items-center gap-1'>
-										<Folder
-											className='h-3 w-3'
-											style={{ color: map.folder.color }}
-										/>
-
-										{map.folder.name}
-									</span>
-								)}
-
 								{map.team && (
 									<span className='flex items-center gap-1'>
 										<Users className='h-3 w-3' />
@@ -320,13 +300,6 @@ const MindMapCardComponent = ({
 								<DropdownMenuItem onClick={() => onDuplicate(map.id)}>
 									<Copy className='mr-2 h-4 w-4' />
 									Duplicate
-								</DropdownMenuItem>
-							)}
-
-							{onMove && (
-								<DropdownMenuItem onClick={() => onMove(map.id, null)}>
-									<Folder className='mr-2 h-4 w-4' />
-									Move to folder
 								</DropdownMenuItem>
 							)}
 
@@ -424,19 +397,6 @@ const MindMapCardComponent = ({
 
 					{/* Metadata Badges */}
 					<div className='absolute top-3 right-3 z-30 flex items-center gap-2'>
-						{map.folder && (
-							<motion.div
-								initial={{ opacity: 0, x: 10 }}
-								animate={{ opacity: isHovered ? 1 : 0, x: isHovered ? 0 : 10 }}
-								className='px-2 py-1 rounded-full bg-black/50 backdrop-blur-sm'
-							>
-								<Folder
-									className='h-3 w-3'
-									style={{ color: map.folder.color }}
-								/>
-							</motion.div>
-						)}
-
 						{map.team && (
 							<motion.div
 								initial={{ opacity: 0, x: 10 }}
@@ -550,13 +510,6 @@ const MindMapCardComponent = ({
 							<DropdownMenuItem onClick={() => onDuplicate(map.id)}>
 								<Copy className='mr-2 h-4 w-4' />
 								Duplicate
-							</DropdownMenuItem>
-						)}
-
-						{onMove && (
-							<DropdownMenuItem onClick={() => onMove(map.id, null)}>
-								<Folder className='mr-2 h-4 w-4' />
-								Move to folder
 							</DropdownMenuItem>
 						)}
 

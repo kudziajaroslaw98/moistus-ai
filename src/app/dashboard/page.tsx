@@ -3,7 +3,6 @@
 import { CreateMapCard } from '@/components/dashboard/create-map-card';
 import { CreateMapDialog } from '@/components/dashboard/create-map-dialog';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
-import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar';
 import { MindMapCard } from '@/components/dashboard/mind-map-card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -39,15 +38,9 @@ interface MindMapData {
 	description: string | null;
 	created_at: string;
 	updated_at: string;
-	folder_id?: string | null;
 	team_id?: string | null;
 	is_template?: boolean;
 	template_category?: string;
-	folder?: {
-		id: string;
-		name: string;
-		color: string;
-	};
 	team?: {
 		id: string;
 		name: string;
@@ -59,16 +52,6 @@ interface MindMapData {
 	};
 }
 
-interface FolderData {
-	id: string;
-	name: string;
-	color: string;
-	icon?: string;
-	parent_id: string | null;
-	position: number;
-	map_count?: number;
-	children?: FolderData[];
-}
 
 // SWR fetcher function
 const fetcher = async (url: string) => {
@@ -98,10 +81,8 @@ function DashboardContent() {
 	);
 	const [filterBy, setFilterBy] = useState<'all' | 'owned' | 'shared'>('all');
 	const [selectedMaps, setSelectedMaps] = useState<Set<string>>(new Set());
-	const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
 	const [isCreatingMap, setIsCreatingMap] = useState(false);
 	const [newMapTitle, setNewMapTitle] = useState('');
-	const [showSidebar, setShowSidebar] = useState(true);
 	const [showCreateDialog, setShowCreateDialog] = useState(false);
 
 	// Fetch mind maps
@@ -115,26 +96,10 @@ function DashboardContent() {
 		dedupingInterval: 5000,
 	});
 
-	// Fetch folders
-	const {
-		data: foldersData = { folders: [] },
-		error: foldersError,
-		isLoading: foldersLoading,
-	} = useSWR<{ folders: FolderData[] }>('/api/folders', fetcher, {
-		revalidateOnFocus: false,
-		revalidateOnReconnect: true,
-		dedupingInterval: 5000,
-		loadingTimeout: 20000,
-	});
 
 	// Filter and sort maps
 	const filteredMaps = mapsData.maps
 		.filter((map) => {
-			// Folder filter
-			if (currentFolderId && map.folder_id !== currentFolderId) {
-				return false;
-			}
-
 			// Search filter
 			if (searchQuery) {
 				const query = searchQuery.toLowerCase();
@@ -181,7 +146,6 @@ function DashboardContent() {
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					title: title.trim(),
-					folder_id: currentFolderId,
 				}),
 			});
 
@@ -337,71 +301,6 @@ function DashboardContent() {
 		[selectedMaps.size, filteredMaps]
 	);
 
-	// Folder handlers
-	const handleFolderCreate = async (parentId: string | null, name: string) => {
-		try {
-			const response = await fetch('/api/folders', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ name, parent_id: parentId }),
-			});
-
-			if (!response.ok) {
-				throw new Error('Failed to create folder');
-			}
-
-			mutate('/api/folders');
-			toast.success('Folder created successfully');
-		} catch (err) {
-			console.error('Error creating folder:', err);
-			toast.error('Failed to create folder');
-		}
-	};
-
-	const handleFolderUpdate = async (
-		folderId: string,
-		updates: Partial<FolderData>
-	) => {
-		try {
-			const response = await fetch(`/api/folders/${folderId}`, {
-				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(updates),
-			});
-
-			if (!response.ok) {
-				throw new Error('Failed to update folder');
-			}
-
-			mutate('/api/folders');
-			toast.success('Folder updated successfully');
-		} catch (err) {
-			console.error('Error updating folder:', err);
-			toast.error('Failed to update folder');
-		}
-	};
-
-	const handleFolderDelete = async (folderId: string) => {
-		if (!confirm('Delete this folder? Maps will be moved to root.')) {
-			return;
-		}
-
-		try {
-			const response = await fetch(`/api/folders/${folderId}`, {
-				method: 'DELETE',
-			});
-
-			if (!response.ok) {
-				throw new Error('Failed to delete folder');
-			}
-
-			mutate('/api/folders');
-			toast.success('Folder deleted successfully');
-		} catch (err) {
-			console.error('Error deleting folder:', err);
-			toast.error('Failed to delete folder');
-		}
-	};
 
 	// Keyboard navigation and shortcuts
 	useEffect(() => {
@@ -495,28 +394,6 @@ function DashboardContent() {
 	return (
 		<DashboardLayout>
 			<div className='flex h-full'>
-				{/* Sidebar with Folders */}
-				<AnimatePresence>
-					{showSidebar && (
-						<motion.aside
-							initial={{ width: 0, opacity: 0 }}
-							animate={{ width: 280, opacity: 1 }}
-							exit={{ width: 0, opacity: 0 }}
-							transition={{ duration: 0.3 }}
-							className='border-r border-zinc-800 bg-zinc-900/50 relative'
-						>
-							<DashboardSidebar
-								folders={foldersData.folders}
-								currentFolderId={currentFolderId}
-								onFolderSelect={setCurrentFolderId}
-								onFolderCreate={handleFolderCreate}
-								onFolderUpdate={handleFolderUpdate}
-								onFolderDelete={handleFolderDelete}
-							/>
-						</motion.aside>
-					)}
-				</AnimatePresence>
-
 				{/* Main Content */}
 				<div className='flex-grow w-full overflow-auto'>
 					<div className='p-6 md:p-8'>
@@ -525,11 +402,7 @@ function DashboardContent() {
 							<div className='mb-10'>
 								<div className='flex items-center justify-between mb-8'>
 									<h1 className='text-3xl font-bold text-white tracking-tight'>
-										{currentFolderId
-											? foldersData.folders.find(
-													(f) => f.id === currentFolderId
-												)?.name || 'Folder'
-											: 'All Mind Maps'}
+										Mind Maps
 									</h1>
 
 									{/* Keyboard Shortcuts Help */}
@@ -746,7 +619,6 @@ function DashboardContent() {
 														onClick={() => {
 															setSearchQuery('');
 															setFilterBy('all');
-															setCurrentFolderId(null);
 														}}
 														variant='outline'
 														className='border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800'

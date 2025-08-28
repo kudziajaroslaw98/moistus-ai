@@ -206,7 +206,7 @@ export const NodeEditor = () => {
 
 	const theme = {
 		container:
-			'bg-zinc-950 border border-zinc-800 w-2xl rounded-md shadow-2xl h-auto overflow-hidden',
+			'bg-zinc-950 border border-zinc-800 w-2xl rounded-md shadow-2xl overflow-hidden',
 	};
 
 	return (
