@@ -74,6 +74,11 @@ export interface ParsedTaskData {
 		id: string;
 		text: string;
 		isComplete: boolean;
+		patterns?: Array<{
+			type: 'date' | 'priority' | 'color' | 'tag' | 'assignee';
+			value: string;
+			display: string;
+		}>;
 	}>;
 	dueDate?: Date;
 	priority?: 'low' | 'medium' | 'high';

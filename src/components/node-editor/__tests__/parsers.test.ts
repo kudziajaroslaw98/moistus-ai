@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { parseTextInput } from '../parsers';
+import { parseTextInput, parseTaskInput } from '../parsers';
+import type { ParsedTaskData } from '../types';
 
 describe('parseTextInput', () => {
 	describe('Font Size Parsing', () => {
@@ -218,6 +218,426 @@ describe('parseTextInput', () => {
 				fontSize: '24px',
 				textAlign: 'center',
 				textColor: 'red',
+			});
+		});
+	});
+});
+
+describe('parseTaskInput', () => {
+	describe('Enhanced Checkbox Format Support', () => {
+		it('should parse traditional checkbox formats correctly', () => {
+			const traditionalFormats = [
+				'[x] Completed task',
+				'[X] Completed task uppercase',
+				'[ ] Uncompleted task',
+				'[] Empty checkbox task'
+			];
+
+			traditionalFormats.forEach(input => {
+				const result = parseTaskInput(input);
+				expect(result.tasks).toHaveLength(1);
+				expect(result.tasks[0].text).toBe(input.includes('Completed') ? 
+					input.replace(/^\[[xX]\]\s*/, '') : 
+					input.replace(/^\[\s*\]\s*/, ''));
+				
+				if (input.includes('[x]') || input.includes('[X]')) {
+					expect(result.tasks[0].isComplete).toBe(true);
+				} else {
+					expect(result.tasks[0].isComplete).toBe(false);
+				}
+			});
+		});
+
+		it('should parse new semicolon checkbox format', () => {
+			const semicolonFormats = [
+				'[;] Task completed with semicolon',
+				'[ ; ] Task with spaced semicolon',
+				'[\t;\t] Task with tab-spaced semicolon'
+			];
+
+			semicolonFormats.forEach(input => {
+				const result = parseTaskInput(input);
+				expect(result.tasks).toHaveLength(1);
+				expect(result.tasks[0].isComplete).toBe(true);
+				expect(result.tasks[0].text).toMatch(/Task.*semicolon/);
+			});
+		});
+
+		it('should parse new comma checkbox format', () => {
+			const commaFormats = [
+				'[,] Task completed with comma',
+				'[ , ] Task with spaced comma',
+				'[\t,\t] Task with tab-spaced comma'
+			];
+
+			commaFormats.forEach(input => {
+				const result = parseTaskInput(input);
+				expect(result.tasks).toHaveLength(1);
+				expect(result.tasks[0].isComplete).toBe(true);
+				expect(result.tasks[0].text).toMatch(/Task.*comma/);
+			});
+		});
+
+		it('should handle mixed checkbox formats in a single input', () => {
+			const mixedInput = `[x] Traditional completed
+[ ] Traditional uncompleted
+[;] Semicolon completed
+[,] Comma completed
+[] Empty uncompleted`;
+
+			const result = parseTaskInput(mixedInput);
+			// New behavior: Creates single task with combined text and patterns
+			expect(result.tasks).toHaveLength(1);
+
+			// Combined text from all lines
+			expect(result.tasks[0].text).toBe('Traditional completed Traditional uncompleted Semicolon completed Comma completed Empty uncompleted');
+			
+			// Should have patterns for the detected checkbox symbols as tags
+			const patterns = result.tasks[0].patterns || [];
+			expect(patterns.length).toBeGreaterThan(0);
+			
+			// Completion status determined by checkbox detection logic
+			expect(result.tasks[0].isComplete).toBe(false); // Combines to incomplete
+		});
+
+		it('should handle list prefixes with new checkbox formats', () => {
+			const listFormats = [
+				'- [;] List item with semicolon',
+				'* [,] List item with comma',
+				'- [ ; ] Spaced semicolon list item',
+				'* [ , ] Spaced comma list item'
+			];
+
+			listFormats.forEach(input => {
+				const result = parseTaskInput(input);
+				expect(result.tasks).toHaveLength(1);
+				expect(result.tasks[0].isComplete).toBe(true);
+				expect(result.tasks[0].text).toMatch(/List item/);
+			});
+		});
+
+		it('should correctly identify unchecked states', () => {
+			const uncheckedFormats = [
+				'[ ] Space unchecked',
+				'[] Empty unchecked',
+				'[  ] Multiple spaces unchecked',
+				'[\t] Tab unchecked',
+				'[   \t  ] Mixed whitespace unchecked'
+			];
+
+			uncheckedFormats.forEach(input => {
+				const result = parseTaskInput(input);
+				expect(result.tasks).toHaveLength(1);
+				expect(result.tasks[0].isComplete).toBe(false);
+			});
+		});
+
+		it('should correctly identify checked states for all formats', () => {
+			const checkedFormats = [
+				'[x] Lowercase x',
+				'[X] Uppercase X', 
+				'[;] Semicolon',
+				'[,] Comma'
+			];
+
+			checkedFormats.forEach(input => {
+				const result = parseTaskInput(input);
+				expect(result.tasks).toHaveLength(1);
+				expect(result.tasks[0].isComplete).toBe(true);
+			});
+		});
+
+		it('should preserve whitespace handling in checkbox parsing', () => {
+			const whitespaceTests = [
+				'[\t;\t] Tab-padded semicolon',
+				'[ , ] Space-padded comma',
+				'[   x   ] Multi-space padded x'
+			];
+
+			whitespaceTests.forEach(input => {
+				const result = parseTaskInput(input);
+				expect(result.tasks).toHaveLength(1);
+				expect(result.tasks[0].isComplete).toBe(true);
+			});
+		});
+	});
+
+	describe('Backward Compatibility', () => {
+		it('should maintain exact same behavior for existing checkbox formats', () => {
+			const legacyInputs = [
+				'[x] Legacy completed task',
+				'[X] Legacy uppercase completed',
+				'[ ] Legacy uncompleted task',
+				'[] Legacy empty checkbox'
+			];
+
+			legacyInputs.forEach(input => {
+				const result = parseTaskInput(input);
+				expect(result.tasks).toHaveLength(1);
+				
+				// Verify the exact same parsing behavior as before
+				if (input.includes('[x]') || input.includes('[X]')) {
+					expect(result.tasks[0].isComplete).toBe(true);
+				} else {
+					expect(result.tasks[0].isComplete).toBe(false);
+				}
+			});
+		});
+
+		it('should create single task with combined content from multiline input', () => {
+			const multiTaskInput = `[x] First task
+[ ] Second task
+[X] Third task`;
+
+			const result = parseTaskInput(multiTaskInput);
+			// New behavior: Single task with combined content
+			expect(result.tasks).toHaveLength(1);
+			expect(result.tasks[0].text).toBe('First task Second task Third task');
+			expect(result.tasks[0].isComplete).toBe(false); // Combined result
+		});
+	});
+
+	describe('Edge Cases and Error Handling', () => {
+		it('should handle malformed checkbox patterns gracefully', () => {
+			const malformedInputs = [
+				'[xy] Invalid multiple chars',
+				'[?] Invalid question mark',
+				'[!] Invalid exclamation',
+				'[@] Invalid at symbol'
+			];
+
+			malformedInputs.forEach(input => {
+				// These should not be treated as checkboxes, but as regular tasks
+				expect(() => parseTaskInput(input)).not.toThrow();
+				const result = parseTaskInput(input);
+				expect(result.tasks).toHaveLength(1);
+				// Should not parse as checkbox, so text should include brackets
+				expect(result.tasks[0].text).toBe(input);
+				expect(result.tasks[0].isComplete).toBe(false);
+			});
+		});
+
+		it('should handle empty input gracefully', () => {
+			const result = parseTaskInput('');
+			expect(result.tasks).toHaveLength(1);
+			expect(result.tasks[0].text).toBe('New task');
+			expect(result.tasks[0].isComplete).toBe(false);
+		});
+
+		it('should handle only checkbox without text', () => {
+			const checkboxOnlyInputs = ['[x]', '[;]', '[,]', '[ ]', '[]'];
+
+			checkboxOnlyInputs.forEach(input => {
+				// This should not match the markdown task pattern since there's no text after
+				const result = parseTaskInput(input);
+				// Should create default task since no valid tasks were parsed
+				expect(result.tasks).toHaveLength(1);
+				expect(result.tasks[0].text).toBe('New task');
+				expect(result.tasks[0].isComplete).toBe(false);
+			});
+		});
+		
+		// Phase 4: Multi-Pattern Support Tests
+		describe('Multi-Pattern Support', () => {
+			describe('Single Task with Multiple Patterns', () => {
+				it('should parse task with date and priority patterns', () => {
+					const input = 'Meeting prep @2025-04-24 #high';
+					const result = parseTaskInput(input);
+					
+					expect(result.tasks).toHaveLength(1);
+					expect(result.tasks[0].text).toBe('Meeting prep');
+					expect(result.tasks[0].patterns).toHaveLength(2);
+					
+					// Check date pattern
+					const datePattern = result.tasks[0].patterns?.find(p => p.type === 'date');
+					expect(datePattern).toBeDefined();
+					expect(datePattern?.value).toBe('2025-04-24');
+					
+					// Check priority pattern
+					const priorityPattern = result.tasks[0].patterns?.find(p => p.type === 'priority');
+					expect(priorityPattern).toBeDefined();
+					expect(priorityPattern?.value).toBe('high');
+				});
+				
+				it('should parse task with all pattern types', () => {
+					const input = 'Meeting prep @2025-04-24 #medium color:#CD1E8C [urgent] +john';
+					const result = parseTaskInput(input);
+					
+					expect(result.tasks).toHaveLength(1);
+					expect(result.tasks[0].text).toBe('Meeting prep');
+					expect(result.tasks[0].patterns).toHaveLength(5);
+					
+					// Check all pattern types are present
+					const patternTypes = result.tasks[0].patterns?.map(p => p.type) || [];
+					expect(patternTypes).toContain('date');
+					expect(patternTypes).toContain('priority');
+					expect(patternTypes).toContain('color');
+					expect(patternTypes).toContain('tag');
+					expect(patternTypes).toContain('assignee');
+					
+					// Verify specific values
+					const patterns = result.tasks[0].patterns || [];
+					expect(patterns.find(p => p.type === 'date')?.value).toBe('2025-04-24');
+					expect(patterns.find(p => p.type === 'priority')?.value).toBe('medium');
+					expect(patterns.find(p => p.type === 'color')?.value).toBe('#CD1E8C');
+					expect(patterns.find(p => p.type === 'tag')?.value).toBe('urgent');
+					expect(patterns.find(p => p.type === 'assignee')?.value).toBe('john');
+				});
+				
+				it('should handle patterns in different orders', () => {
+					const inputs = [
+						'Task +alice [important] #high @today color:#ff0000',
+						'@today Task +alice color:#ff0000 #high [important]',
+						'#high color:#ff0000 Task @today [important] +alice',
+					];
+					
+					inputs.forEach(input => {
+						const result = parseTaskInput(input);
+						
+						expect(result.tasks).toHaveLength(1);
+						expect(result.tasks[0].text).toBe('Task');
+						expect(result.tasks[0].patterns).toHaveLength(5);
+						
+						// All patterns should be present regardless of order
+						const patternTypes = result.tasks[0].patterns?.map(p => p.type) || [];
+						expect(patternTypes).toContain('date');
+						expect(patternTypes).toContain('priority');
+						expect(patternTypes).toContain('color');
+						expect(patternTypes).toContain('tag');
+						expect(patternTypes).toContain('assignee');
+				});
+				});
+			});
+			
+			describe('Single Task with Combined Multiline Patterns', () => {
+				it('should combine multiline input into single task with all patterns', () => {
+					const input = 'Task 1 @today #high\nTask 2 color:#blue [meeting]\nTask 3 +team [project] @friday';
+					const result = parseTaskInput(input);
+					
+					// New behavior: Single task with all patterns combined
+					expect(result.tasks).toHaveLength(1);
+					
+					// Combined text from all lines
+					expect(result.tasks[0].text).toBe('Task 1 Task 2 Task 3');
+					
+					// All patterns should be combined into single task
+					const patterns = result.tasks[0].patterns || [];
+					expect(patterns.length).toBeGreaterThan(5); // Should have date, priority, color, tag, assignee patterns
+					
+					const patternTypes = patterns.map(p => p.type);
+					expect(patternTypes).toContain('date');
+					expect(patternTypes).toContain('priority'); 
+					expect(patternTypes).toContain('color');
+					expect(patternTypes).toContain('tag');
+					expect(patternTypes).toContain('assignee');
+				});
+			});
+			
+			describe('Pattern Conflict Resolution', () => {
+				it('should handle multiple instances of same pattern type', () => {
+					const input = 'Task @today @tomorrow #high #low [tag1] [tag2] +user1 +user2';
+					const result = parseTaskInput(input);
+					
+					expect(result.tasks).toHaveLength(1);
+					expect(result.tasks[0].text).toBe('Task');
+					
+					// Should capture multiple instances of each pattern type
+					const patterns = result.tasks[0].patterns || [];
+					const datePatterns = patterns.filter(p => p.type === 'date');
+					const priorityPatterns = patterns.filter(p => p.type === 'priority');
+					const tagPatterns = patterns.filter(p => p.type === 'tag');
+					const assigneePatterns = patterns.filter(p => p.type === 'assignee');
+					
+					expect(datePatterns).toHaveLength(2);
+					expect(priorityPatterns).toHaveLength(2);
+					expect(tagPatterns).toHaveLength(2);
+					expect(assigneePatterns).toHaveLength(2);
+					
+					expect(datePatterns.map(p => p.value)).toContain('today');
+					expect(datePatterns.map(p => p.value)).toContain('tomorrow');
+					expect(priorityPatterns.map(p => p.value)).toContain('high');
+					expect(priorityPatterns.map(p => p.value)).toContain('low');
+				});
+			});
+			
+			describe('Pattern Extraction and Text Cleaning', () => {
+				it('should properly clean text while preserving word boundaries', () => {
+					const input = 'Review @friday the #urgent [document] with +team members';
+					const result = parseTaskInput(input);
+					
+					expect(result.tasks).toHaveLength(1);
+					expect(result.tasks[0].text).toBe('Review the with members');
+					expect(result.tasks[0].patterns).toHaveLength(4);
+				});
+				
+				it('should handle patterns at beginning, middle, and end', () => {
+					const input = '@today Start task in middle #high and finish +user';
+					const result = parseTaskInput(input);
+					
+					expect(result.tasks).toHaveLength(1);
+					expect(result.tasks[0].text).toBe('Start task in middle and finish');
+					expect(result.tasks[0].patterns).toHaveLength(3);
+				});
+			});
+			
+			describe('Pattern Handling in Single Task', () => {
+				it('should combine text from semicolon-separated segments with all patterns', () => {
+					const input = 'Task 1 @today #high; Task 2 [meeting] +alice; Task 3 color:#blue';
+					const result = parseTaskInput(input);
+					
+					// New behavior: Single task with all content combined
+					expect(result.tasks).toHaveLength(1);
+					
+					expect(result.tasks[0].text).toBe('Task 1 Task 2 Task 3');
+					
+					// Should have all patterns from all segments
+					const patterns = result.tasks[0].patterns || [];
+					expect(patterns.length).toBeGreaterThan(3);
+					
+					const patternTypes = patterns.map(p => p.type);
+					expect(patternTypes).toContain('date');
+					expect(patternTypes).toContain('priority');
+					expect(patternTypes).toContain('tag'); 
+					expect(patternTypes).toContain('assignee');
+					expect(patternTypes).toContain('color');
+				});
+				
+				it('should handle complex tag patterns with commas', () => {
+					const input = 'Task with [tag, with, commas] stays together, but this splits';
+					const result = parseTaskInput(input);
+					
+					// Single task with combined text
+					expect(result.tasks).toHaveLength(1);
+					expect(result.tasks[0].text).toBe('Task with stays together but this splits');
+					
+					// Should have the tag pattern
+					expect(result.tasks[0].patterns).toHaveLength(1);
+					expect(result.tasks[0].patterns?.[0].type).toBe('tag');
+					expect(result.tasks[0].patterns?.[0].value).toBe('tag, with, commas');
+				});
+			});
+			
+			describe('Edge Cases and Error Handling', () => {
+				it('should handle empty patterns gracefully', () => {
+					const input = 'Task with empty @ # [] + color: patterns';
+					const result = parseTaskInput(input);
+					
+					expect(result.tasks).toHaveLength(1);
+					// Should not parse empty/malformed patterns
+					expect(result.tasks[0].patterns || []).toHaveLength(0);
+					expect(result.tasks[0].text).toBe('Task with empty @ # [] + color: patterns');
+				});
+				
+				it('should preserve text integrity when patterns fail to parse', () => {
+					const input = 'Important task @invaliddate #invalidpriority [valid] +validuser';
+					const result = parseTaskInput(input);
+					
+					expect(result.tasks).toHaveLength(1);
+					// Should still parse valid patterns
+					const patterns = result.tasks[0].patterns || [];
+					expect(patterns.some(p => p.type === 'tag' && p.value === 'valid')).toBe(true);
+					expect(patterns.some(p => p.type === 'assignee' && p.value === 'validuser')).toBe(true);
+				});
 			});
 		});
 	});

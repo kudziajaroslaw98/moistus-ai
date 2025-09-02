@@ -160,3 +160,4 @@ When creating new node types:
 - Theme definitions in `src/themes/`
 - Prefer Radix UI primitives for complex interactions
 - When animating components use motion (called framer-motion previously)
+- all documentation files you generate place in ./ai-docs/[feature]/[doc-name].md

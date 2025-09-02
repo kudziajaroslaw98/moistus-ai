@@ -13,9 +13,9 @@ interface PreviewSectionProps {
 }
 
 const theme = {
-	preview: 'bg-zinc-900/50 border border-zinc-800 rounded-md p-3 mt-0 min-h-[60px] max-h-[80vh] overflow-auto flex flex-col',
+	preview: 'bg-zinc-900/50 border border-zinc-800 rounded-md p-3 mt-0 min-h-[60px] max-h-[216px] overflow-auto flex flex-col',
 	previewLabel: 'text-xs text-zinc-500 uppercase tracking-wider mb-1 flex-shrink-0',
-	previewContent: 'text-sm text-zinc-300 flex-1',
+	previewContent: 'text-sm flex-1',
 };
 
 export const PreviewSection: React.FC<PreviewSectionProps> = ({
@@ -25,7 +25,7 @@ export const PreviewSection: React.FC<PreviewSectionProps> = ({
 	className,
 }) => {
 	return (
-		<div className={cn('flex-1', className)}>
+		<div className={cn('flex-1 min-w-0', className)}>
 			<AnimatePresence>
 				{preview && (
 					<motion.div
@@ -47,10 +47,11 @@ export const PreviewSection: React.FC<PreviewSectionProps> = ({
 
 						<AnimateChangeInHeight>
 							<motion.div
-								className={theme.previewContent}
+								className={cn(theme.previewContent, 'text-zinc-300')}
 								initial={{ opacity: 0, y: 5 }}
 								animate={{ opacity: 1, y: 0 }}
 								transition={{ delay: 0.15, duration: 0.2 }}
+								style={{ color: 'rgb(212, 212, 216)' }}
 							>
 								<PreviewRenderer preview={preview} nodeType={nodeType} />
 							</motion.div>
