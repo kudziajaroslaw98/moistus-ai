@@ -11,7 +11,7 @@ import {
 	CompletionCacheEntry,
 	PATTERN_REGISTRY,
 	DEFAULT_COMPLETION_CONFIG
-} from "./completion-types"
+} from "../../utils/completion-types"
 import { 
 	detectPatternContext, 
 	getCompletionItemsForPattern,

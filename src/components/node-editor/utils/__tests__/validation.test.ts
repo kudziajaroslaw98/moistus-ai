@@ -8,7 +8,7 @@ import {
 	findIncompletePatterns, 
 	getValidationResults,
 	type ValidationError 
-} from '../validation';
+} from '../../domain/validators';
 
 describe('Validation System', () => {
 	describe('validateInput - Date Validation (@pattern)', () => {

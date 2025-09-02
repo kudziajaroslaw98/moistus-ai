@@ -12,7 +12,7 @@ export {
 	getChildPosition,
 	validateNodeData,
 } from './node-creator';
-export * from './parsers';
+export * from './domain/parsers';
 export { ParsingLegend, PatternCategory, PatternItem } from './parsing-legend';
 export { QuickInput } from './quick-input';
 export { StructuredInput } from './structured-input';

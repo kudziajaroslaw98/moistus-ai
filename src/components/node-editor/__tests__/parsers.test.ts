@@ -1,4 +1,4 @@
-import { parseTextInput, parseTaskInput } from '../parsers';
+import { parseTextInput, parseTaskInput } from '../domain/parsers';
 import type { ParsedTaskData } from '../types';
 
 describe('parseTextInput', () => {

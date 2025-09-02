@@ -12,7 +12,7 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ValidationTooltip } from '../validation-tooltip';
 import { FloatingCompletionPanel } from '../floating-completion-panel';
-import { type ValidationError } from '../../utils/validation';
+import { type ValidationError } from '../../domain/validators';
 import { type PatternType } from '../../utils/prism-custom-grammar';
 
 describe('Z-Index Hierarchy Integration', () => {

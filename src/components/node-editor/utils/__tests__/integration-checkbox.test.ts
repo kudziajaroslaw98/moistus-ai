@@ -3,8 +3,8 @@
  * Tests the complete workflow from validation to parsing
  */
 
-import { validateInput, getValidationResults } from '../validation';
-import { parseTaskInput } from '../../parsers';
+import { validateInput, getValidationResults } from '../../domain/validators';
+import { parseTaskInput } from '../../domain/parsers';
 
 describe('Checkbox Integration Tests', () => {
 	test('should validate and parse all supported checkbox formats correctly', () => {

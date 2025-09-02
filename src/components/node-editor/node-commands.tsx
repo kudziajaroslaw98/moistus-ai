@@ -20,7 +20,7 @@ import {
 	parseResourceInput,
 	parseTaskInput,
 	parseTextInput,
-} from './parsers';
+} from './domain/parsers';
 import type { NodeCommand } from './types';
 
 export const nodeCommands: NodeCommand[] = [

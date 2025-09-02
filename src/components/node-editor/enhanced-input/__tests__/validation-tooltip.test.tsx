@@ -7,7 +7,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ValidationTooltip } from '../validation-tooltip';
-import { type ValidationError } from '../../utils/validation';
+import { type ValidationError } from '../../domain/validators';
 
 // Mock motion components
 jest.mock('motion/react', () => ({

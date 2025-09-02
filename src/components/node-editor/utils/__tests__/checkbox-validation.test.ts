@@ -3,8 +3,8 @@
  * Tests only the new checkbox validation and parsing functionality
  */
 
-import { validateInput } from '../validation';
-import { parseTaskInput } from '../../parsers';
+import { validateInput } from '../../domain/validators';
+import { parseTaskInput } from '../../domain/parsers';
 
 describe('Enhanced Checkbox Format Support', () => {
 	describe('Validation System', () => {

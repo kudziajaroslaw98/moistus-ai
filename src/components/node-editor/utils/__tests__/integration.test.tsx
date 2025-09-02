@@ -9,7 +9,7 @@ import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 // Import the actual validation functions to test them properly
-import { validateInput, getValidationResults } from '../validation';
+import { validateInput, getValidationResults } from '../../domain/validators';
 
 // Import test fixtures
 import testFixtures, { regressionTests, userWorkflows, realWorldInputs } from './test-fixtures';

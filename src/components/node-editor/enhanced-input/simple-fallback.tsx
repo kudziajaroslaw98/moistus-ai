@@ -4,7 +4,7 @@ import React, { forwardRef, useState, useMemo } from 'react';
 import { motion, type MotionProps } from 'motion/react';
 import { cn } from '@/utils/cn';
 import { ValidationTooltip } from './validation-tooltip';
-import { getValidationResults } from '../utils/validation';
+import { getValidationResults } from '../domain/validators';
 
 interface SimpleFallbackProps {
 	value: string;

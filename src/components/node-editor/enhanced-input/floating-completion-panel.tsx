@@ -22,9 +22,9 @@ import {
 	dateCompletions, 
 	priorityCompletions, 
 	commonTagCompletions,
-	fuzzySearch,
-	type CompletionItem 
-} from '../utils/completion-data';
+	searchAllCompletions
+} from '../domain/completion-providers';
+import type { CompletionItem } from '../utils/completion-types';
 
 interface FloatingCompletionPanelProps {
 	isOpen: boolean;
@@ -50,7 +50,7 @@ export const FloatingCompletionPanel: React.FC<FloatingCompletionPanelProps> = (
 	
 	const listRef = useRef<Array<HTMLElement | null>>([]);
 	const listContentRef = useRef(
-		fuzzySearch(currentValue, getCompletionsForType(type))
+		searchAllCompletions(currentValue, 8)
 	);
 	const typeaheadRef = useRef<string>('');
 
@@ -76,7 +76,7 @@ export const FloatingCompletionPanel: React.FC<FloatingCompletionPanelProps> = (
 	const filteredCompletions = useMemo(() => {
 		if (!type) return [];
 		const baseCompletions = getCompletionsForType(type);
-		return fuzzySearch(currentValue, baseCompletions, 8);
+		return searchAllCompletions(currentValue, 8);
 	}, [type, currentValue]);
 
 	// Update list content for typeahead

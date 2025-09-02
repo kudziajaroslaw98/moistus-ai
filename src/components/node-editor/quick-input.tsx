@@ -14,7 +14,7 @@ import { PreviewSection } from './components/preview-section';
 import { createOrUpdateNodeFromCommand, transformNodeToQuickInputString } from './node-updater';
 import { ParsingLegend } from './parsing-legend';
 import type { QuickInputProps } from './types';
-import { announceToScreenReader } from './utils/text-utils';
+import { announceToScreenReader } from './domain/utilities/text-utils';
 
 const theme = {
 	container: 'p-4',

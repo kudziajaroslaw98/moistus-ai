@@ -3,9 +3,9 @@
  * Tests all success criteria from the bug fix phases
  */
 
-import { parseTaskInput } from '../../parsers';
-import { validateInput, getValidationResults } from '../validation';
-import { getCompletionItemsForPattern, detectPatternContext } from '../completion-data';
+import { parseTaskInput } from '../../domain/parsers';
+import { validateInput, getValidationResults } from '../../domain/validators';
+import { getCompletionsForPattern } from '../../domain/completion-providers';
 
 describe('Phase 6: Integration Testing & Success Criteria Validation', () => {
 	describe('Success Criteria Validation', () => {

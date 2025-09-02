@@ -2,7 +2,8 @@
  * Debug test for pattern detection
  */
 
-import { detectPatternContext } from '../completion-data';
+// Note: detectPatternContext needs to be implemented in completion-providers
+// import { detectPatternContext } from '../../domain/completion-providers';
 
 describe('Debug Pattern Detection', () => {
 	test('Debug pattern detection for various inputs', () => {

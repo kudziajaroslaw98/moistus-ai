@@ -3,7 +3,7 @@
  */
 
 import { createValidationDecorations } from '../codemirror-decorations';
-import { ValidationError } from '../validation';
+import { ValidationError } from '../../domain/validators';
 
 describe('createValidationDecorations', () => {
 	it('should create error decorations with correct class', () => {

@@ -1,11 +1,16 @@
 /**
- * CodeMirror pattern decorations for real-time syntax highlighting
- * Provides colored backgrounds for mindmap patterns (@date, #priority, etc.)
+ * CodeMirror Decorations - Pattern Highlighting and Validation
+ * Combines pattern decorations (syntax highlighting) and validation decorations (error highlighting)
  */
 
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
 import { StateField, StateEffect } from "@codemirror/state";
-import { PATTERN_REGISTRY, PatternType } from "./completion-types";
+import { ValidationError, getValidationResults } from "../validation";
+import { PATTERN_REGISTRY, PatternType } from "../utils";
+
+// ========================================
+// PATTERN DECORATIONS (SYNTAX HIGHLIGHTING)
+// ========================================
 
 // Pattern detection result
 interface PatternMatch {
@@ -84,7 +89,7 @@ function detectAllPatterns(text: string): PatternMatch[] {
  * Create CodeMirror decorations from pattern matches
  */
 function createPatternDecorations(matches: PatternMatch[]): DecorationSet {
-	const decorations: Decoration[] = [];
+	const decorationRanges = [];
 	
 	for (const match of matches) {
 		// Ensure indices are valid
@@ -103,11 +108,65 @@ function createPatternDecorations(matches: PatternMatch[]): DecorationSet {
 			}
 		});
 		
-		decorations.push(decoration.range(match.start, match.end));
+		decorationRanges.push(decoration.range(match.start, match.end));
 	}
 	
-	return Decoration.set(decorations);
+	return Decoration.set(decorationRanges);
 }
+
+// ========================================
+// VALIDATION DECORATIONS (ERROR HIGHLIGHTING)
+// ========================================
+
+// State effect to update validation decorations
+const updateValidationDecorations = StateEffect.define<ValidationError[]>();
+
+/**
+ * Create CodeMirror decorations from validation errors
+ */
+function createValidationDecorations(errors: ValidationError[]): DecorationSet {
+	const decorationRanges = [];
+	
+	for (const error of errors) {
+		// Ensure indices are valid
+		if (error.startIndex < 0 || error.endIndex <= error.startIndex) {
+			continue;
+		}
+		
+		// Create decoration based on error type
+		let className: string;
+		switch (error.type) {
+			case 'error':
+				className = 'cm-error-decoration';
+				break;
+			case 'warning':
+				className = 'cm-warning-decoration';
+				break;
+			case 'suggestion':
+				className = 'cm-suggestion-decoration';
+				break;
+			default:
+				className = 'cm-error-decoration';
+		}
+		
+		const decoration = Decoration.mark({
+			class: className,
+			attributes: {
+				'data-validation-message': error.message,
+				'data-validation-type': error.type,
+				...(error.suggestion && { 'data-validation-suggestion': error.suggestion })
+			}
+		});
+		
+		decorationRanges.push(decoration.range(error.startIndex, error.endIndex));
+	}
+	
+	return Decoration.set(decorationRanges);
+}
+
+// ========================================
+// COMBINED STATE MANAGEMENT
+// ========================================
 
 // State field to manage pattern decorations
 const patternDecorationsField = StateField.define<DecorationSet>({
@@ -130,15 +189,40 @@ const patternDecorationsField = StateField.define<DecorationSet>({
 	provide: f => EditorView.decorations.from(f)
 });
 
-// Debounced pattern update function
+// State field to manage validation decorations
+const validationDecorationsField = StateField.define<DecorationSet>({
+	create() {
+		return Decoration.none;
+	},
+	update(decorations, tr) {
+		// Apply position mapping for document changes
+		decorations = decorations.map(tr.changes);
+		
+		// Update decorations if effect is present
+		for (const effect of tr.effects) {
+			if (effect.is(updateValidationDecorations)) {
+				decorations = createValidationDecorations(effect.value);
+			}
+		}
+		
+		return decorations;
+	},
+	provide: f => EditorView.decorations.from(f)
+});
+
+// ========================================
+// VIEW PLUGINS FOR REAL-TIME UPDATES
+// ========================================
+
+// Debounced update functions
 let patternUpdateTimeout: NodeJS.Timeout | null = null;
+let validationUpdateTimeout: NodeJS.Timeout | null = null;
 
 // View plugin to handle real-time pattern detection
 const patternPlugin = ViewPlugin.fromClass(
 	class {
 		constructor(private view: EditorView) {
 			// Defer initial pattern detection to avoid "update in progress" error
-			// This prevents conflicts with CodeMirror's initialization cycle
 			setTimeout(() => this.updatePatterns(), 0);
 		}
 		
@@ -175,6 +259,45 @@ const patternPlugin = ViewPlugin.fromClass(
 		}
 	}
 );
+
+// View plugin to handle validation updates
+const validationPlugin = ViewPlugin.fromClass(
+	class {
+		constructor(private view: EditorView) {}
+		
+		update(update: ViewUpdate) {
+			// Only update if document content changed
+			if (!update.docChanged) return;
+			
+			// Clear existing timeout
+			if (validationUpdateTimeout) {
+				clearTimeout(validationUpdateTimeout);
+			}
+			
+			// Debounce validation updates to prevent performance issues
+			validationUpdateTimeout = setTimeout(() => {
+				const text = update.view.state.doc.toString();
+				const validationErrors = getValidationResults(text);
+				
+				// Dispatch decoration update
+				update.view.dispatch({
+					effects: updateValidationDecorations.of(validationErrors)
+				});
+			}, 300); // 300ms debounce
+		}
+		
+		destroy() {
+			if (validationUpdateTimeout) {
+				clearTimeout(validationUpdateTimeout);
+				validationUpdateTimeout = null;
+			}
+		}
+	}
+);
+
+// ========================================
+// STYLING THEMES
+// ========================================
 
 // Theme for pattern decoration styles - matching preview-renderer colors
 export const patternDecorationTheme = EditorView.theme({
@@ -234,12 +357,79 @@ export const patternDecorationTheme = EditorView.theme({
 	}
 }, { dark: true });
 
+// Theme for validation decoration styles
+export const validationDecorationTheme = EditorView.theme({
+	'.cm-error-decoration': {
+		textDecoration: 'wavy underline red',
+		textDecorationThickness: '2px',
+		textUnderlineOffset: '2px',
+		WebkitTextDecorationLine: 'underline',
+		WebkitTextDecorationStyle: 'wavy',
+		WebkitTextDecorationColor: '#ef4444'
+	},
+	'.cm-warning-decoration': {
+		textDecoration: 'wavy underline orange',
+		textDecorationThickness: '1px', 
+		textUnderlineOffset: '2px',
+		WebkitTextDecorationLine: 'underline',
+		WebkitTextDecorationStyle: 'wavy',
+		WebkitTextDecorationColor: '#f97316'
+	},
+	'.cm-suggestion-decoration': {
+		textDecoration: 'wavy underline blue',
+		textDecorationThickness: '1px',
+		textUnderlineOffset: '2px',
+		WebkitTextDecorationLine: 'underline',
+		WebkitTextDecorationStyle: 'wavy',
+		WebkitTextDecorationColor: '#3b82f6'
+	},
+	// Fallback for browsers that don't support wavy underlines
+	'@supports not (text-decoration-style: wavy)': {
+		'.cm-error-decoration': {
+			backgroundColor: 'rgba(239, 68, 68, 0.2)',
+			borderBottom: '2px solid #ef4444',
+			borderRadius: '2px'
+		},
+		'.cm-warning-decoration': {
+			backgroundColor: 'rgba(249, 115, 22, 0.2)',
+			borderBottom: '1px solid #f97316',
+			borderRadius: '2px'
+		},
+		'.cm-suggestion-decoration': {
+			backgroundColor: 'rgba(59, 130, 246, 0.2)',
+			borderBottom: '1px solid #3b82f6',
+			borderRadius: '2px'
+		}
+	}
+});
+
+// ========================================
+// EXPORTS
+// ========================================
+
 // Export the pattern decoration extensions
 export const patternDecorations = [
 	patternDecorationsField,
 	patternPlugin,
 	patternDecorationTheme
 ];
+
+// Export the validation decoration extensions  
+export const validationDecorations = [
+	validationDecorationsField,
+	validationPlugin,
+	validationDecorationTheme
+];
+
+// Export all decorations as a single extension
+export const allDecorations = [
+	...patternDecorations,
+	...validationDecorations
+];
+
+// ========================================
+// UTILITY FUNCTIONS
+// ========================================
 
 // Helper function to manually trigger pattern update
 export function triggerPatternUpdate(view: EditorView) {
@@ -250,7 +440,20 @@ export function triggerPatternUpdate(view: EditorView) {
 	});
 }
 
+// Helper function to manually trigger validation update
+export function triggerValidationUpdate(view: EditorView, text: string) {
+	const validationErrors = getValidationResults(text);
+	view.dispatch({
+		effects: updateValidationDecorations.of(validationErrors)
+	});
+}
+
 // Utility function to get all pattern matches for external use
 export function getPatternMatches(text: string): PatternMatch[] {
 	return detectAllPatterns(text);
+}
+
+// Utility function to get validation errors for external use
+export function getValidationErrors(text: string): ValidationError[] {
+	return getValidationResults(text);
 }

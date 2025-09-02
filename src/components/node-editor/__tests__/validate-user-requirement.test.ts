@@ -1,4 +1,4 @@
-import { parseTaskInput } from '../parsers';
+import { parseTaskInput } from '../domain/parsers';
 
 describe('User Requirement Validation', () => {
 	it('should match exact user requirement', () => {

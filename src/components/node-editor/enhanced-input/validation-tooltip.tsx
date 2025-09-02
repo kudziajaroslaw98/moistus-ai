@@ -2,7 +2,7 @@
 
 import React, { useRef } from 'react';
 import { cn } from '@/utils/cn';
-import { type ValidationError } from '../utils/validation';
+import { type ValidationError } from '../domain/validators';
 
 interface ValidationTooltipProps {
 	children: React.ReactNode;

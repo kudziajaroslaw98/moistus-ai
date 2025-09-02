@@ -27,7 +27,10 @@
       "Bash(npm test:*)",
       "Bash(npx jest:*)",
       "Bash(npm run test:*)",
-      "Bash(pnpm build:*)"
+      "Bash(pnpm build:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(npx tsx:*)"
     ],
     "deny": [],
     "ask": []

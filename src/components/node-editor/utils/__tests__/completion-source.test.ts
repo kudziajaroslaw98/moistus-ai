@@ -10,7 +10,7 @@ import {
   clearCompletionCache, 
   getCompletionCacheSize 
 } from '../completion-source'
-import { CompletionItem } from '../completion-data'
+import type { CompletionItem } from '../../utils/completion-types'
 
 // Mock the completion-data module
 jest.mock('../completion-data', () => ({

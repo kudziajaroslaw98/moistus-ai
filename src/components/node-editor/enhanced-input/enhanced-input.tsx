@@ -6,12 +6,12 @@ import { EditorState, Compartment } from '@codemirror/state';
 import { autocompletion } from '@codemirror/autocomplete';
 import { motion, type MotionProps } from 'motion/react';
 import { cn } from '@/utils/cn';
-import { mindmapLang, mindmapCSS } from '../utils/codemirror-mindmap-lang';
+import { mindmapLang, mindmapCSS } from '../domain/codemirror/codemirror-mindmap-lang';
 import { ValidationTooltip } from './validation-tooltip';
-import { getValidationResults } from '../utils/validation';
-import { universalCompletionSource } from '../utils/universal-completion-source';
-import { validationDecorations } from '../utils/codemirror-decorations';
-import { patternDecorations } from '../utils/codemirror-pattern-decorations';
+import { getValidationResults } from '../domain/validators';
+import { universalCompletionSource } from '../domain/completion-providers/universal-completion-source';
+import { validationDecorations } from '../domain/codemirror/codemirror-decorations';
+import { patternDecorations } from '../domain/codemirror/codemirror-pattern-decorations';
 
 interface EnhancedInputProps {
 	value: string;

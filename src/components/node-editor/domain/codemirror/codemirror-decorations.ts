@@ -5,7 +5,7 @@
 
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
 import { StateField, StateEffect } from "@codemirror/state";
-import { ValidationError, getValidationResults } from "./validation";
+import { ValidationError, getValidationResults } from "../validators";
 
 // State effect to update validation decorations
 const updateValidationDecorations = StateEffect.define<ValidationError[]>();

@@ -1,4 +1,4 @@
-import { parseTaskInput } from '../parsers';
+import { parseTaskInput } from '../domain/parsers';
 
 describe('Single Task Restructure', () => {
 	describe('Core Functionality', () => {

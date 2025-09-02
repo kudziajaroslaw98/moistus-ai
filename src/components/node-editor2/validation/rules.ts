@@ -1,25 +1,43 @@
 /**
- * Validation utilities for pattern inputs
- * Provides real-time validation with detailed error messages
+ * Consolidated validation rules and logic
+ * Contains all validation functionality for colors, dates, patterns, and more
  */
 
+/**
+ * ValidationError interface - defines the structure of validation results
+ */
 export interface ValidationError {
 	type: 'error' | 'warning' | 'suggestion';
 	message: string;
 	startIndex: number;
 	endIndex: number;
 	suggestion?: string;
-	errorCode?: string; // For programmatic error handling
-	contextualHint?: string; // For showing format hints
+	errorCode: string;
+	contextualHint?: string;
 	quickFixes?: Array<{
 		label: string;
 		replacement: string;
 		description?: string;
-	}>; // For actionable suggestions
+	}>;
 }
 
-// Validate hex colors
-const validateColor = (colorValue: string, startIndex: number): ValidationError | null => {
+/**
+ * Pattern validator configuration
+ */
+interface PatternValidator {
+	regex: RegExp;
+	type: 'color' | 'date' | 'priority' | 'tag' | 'assignee';
+	validator: (match: RegExpExecArray) => ValidationError | null;
+}
+
+// =============================================================================
+// COLOR VALIDATION RULES
+// =============================================================================
+
+/**
+ * Validate hex colors with comprehensive error handling and quick fixes
+ */
+export const validateColor = (colorValue: string, startIndex: number): ValidationError | null => {
 	// Check if it's a valid hex color (3 or 6 characters after #)
 	const hexPattern = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 	
@@ -46,13 +64,149 @@ const validateColor = (colorValue: string, startIndex: number): ValidationError 
 	return null;
 };
 
-// Helper function to check if a year is a leap year
-const isLeapYear = (year: number): boolean => {
+/**
+ * Validate RGB/RGBA color format
+ */
+export const validateRgbColor = (colorValue: string, startIndex: number): ValidationError | null => {
+	const rgbPattern = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([01]?\.?\d*))?\s*\)$/;
+	const match = colorValue.match(rgbPattern);
+	
+	if (!match) {
+		return {
+			type: 'error',
+			message: 'Invalid RGB color format. Use rgb(r,g,b) or rgba(r,g,b,a).',
+			startIndex,
+			endIndex: startIndex + colorValue.length,
+			suggestion: 'rgb(0, 0, 0)',
+			errorCode: 'RGB_FORMAT_INVALID',
+			contextualHint: 'RGB values should be 0-255, alpha 0-1',
+			quickFixes: [
+				{ label: 'Fix format', replacement: 'rgb(0, 0, 0)', description: 'Use valid RGB format' },
+				{ label: 'Use red', replacement: 'rgb(255, 0, 0)', description: 'Set to red color' },
+				{ label: 'Use blue', replacement: 'rgb(0, 0, 255)', description: 'Set to blue color' }
+			]
+		};
+	}
+	
+	const [, r, g, b, a] = match;
+	const red = parseInt(r, 10);
+	const green = parseInt(g, 10);
+	const blue = parseInt(b, 10);
+	const alpha = a ? parseFloat(a) : 1;
+	
+	if (red > 255 || green > 255 || blue > 255) {
+		return {
+			type: 'error',
+			message: 'RGB values must be between 0-255.',
+			startIndex,
+			endIndex: startIndex + colorValue.length,
+			suggestion: `rgb(${Math.min(red, 255)}, ${Math.min(green, 255)}, ${Math.min(blue, 255)})`,
+			errorCode: 'RGB_VALUES_OUT_OF_RANGE'
+		};
+	}
+	
+	if (alpha > 1 || alpha < 0) {
+		return {
+			type: 'error',
+			message: 'Alpha value must be between 0-1.',
+			startIndex,
+			endIndex: startIndex + colorValue.length,
+			suggestion: `rgba(${red}, ${green}, ${blue}, ${Math.max(0, Math.min(1, alpha))})`,
+			errorCode: 'ALPHA_VALUE_OUT_OF_RANGE'
+		};
+	}
+	
+	return null;
+};
+
+/**
+ * Validate named colors
+ */
+export const validateNamedColor = (colorValue: string, startIndex: number): ValidationError | null => {
+	const namedColors = [
+		'red', 'blue', 'green', 'yellow', 'orange', 'purple', 'pink',
+		'black', 'white', 'gray', 'grey', 'brown', 'cyan', 'magenta'
+	];
+	
+	const normalizedColor = colorValue.toLowerCase();
+	if (!namedColors.includes(normalizedColor)) {
+		const suggestions = namedColors.filter(color => 
+			color.startsWith(normalizedColor.charAt(0))
+		).slice(0, 3);
+		
+		return {
+			type: 'warning',
+			message: `Unknown named color: ${colorValue}`,
+			startIndex,
+			endIndex: startIndex + colorValue.length,
+			suggestion: suggestions[0] || 'black',
+			errorCode: 'UNKNOWN_NAMED_COLOR',
+			contextualHint: `Valid named colors: ${namedColors.join(', ')}`,
+			quickFixes: suggestions.map(color => ({
+				label: `Use ${color}`,
+				replacement: color,
+				description: `Change to ${color}`
+			}))
+		};
+	}
+	
+	return null;
+};
+
+/**
+ * Check if color value is valid in any format
+ */
+export const isValidColor = (colorValue: string): boolean => {
+	// Check hex
+	if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(colorValue)) {
+		return true;
+	}
+	
+	// Check RGB/RGBA
+	if (/^rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*[01]?\.?\d*)?\s*\)$/.test(colorValue)) {
+		return true;
+	}
+	
+	// Check named colors
+	const namedColors = ['red', 'blue', 'green', 'yellow', 'orange', 'purple', 'pink', 'black', 'white', 'gray', 'grey'];
+	return namedColors.includes(colorValue.toLowerCase());
+};
+
+/**
+ * Convert color to hex format if possible
+ */
+export const convertToHex = (colorValue: string): string | null => {
+	// Already hex
+	if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(colorValue)) {
+		return colorValue.toUpperCase();
+	}
+	
+	// Named color conversion
+	const namedColors: Record<string, string> = {
+		red: '#FF0000', blue: '#0000FF', green: '#008000',
+		yellow: '#FFFF00', orange: '#FFA500', purple: '#800080',
+		pink: '#FFC0CB', black: '#000000', white: '#FFFFFF',
+		gray: '#808080', grey: '#808080'
+	};
+	
+	return namedColors[colorValue.toLowerCase()] || null;
+};
+
+// =============================================================================
+// DATE VALIDATION RULES
+// =============================================================================
+
+/**
+ * Check if a year is a leap year
+ */
+export const isLeapYear = (year: number): boolean => {
 	return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
 };
 
-// Helper function to get days in a month
-const getDaysInMonth = (month: number, year: number): number => {
+/**
+ * Get the number of days in a specific month and year
+ */
+export const getDaysInMonth = (month: number, year: number): number => {
 	const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 	if (month === 2 && isLeapYear(year)) {
 		return 29;
@@ -60,8 +214,10 @@ const getDaysInMonth = (month: number, year: number): number => {
 	return daysInMonth[month - 1] || 0;
 };
 
-// Helper function to get month name
-const getMonthName = (month: number): string => {
+/**
+ * Get month name from month number (1-12)
+ */
+export const getMonthName = (month: number): string => {
 	const months = [
 		'January', 'February', 'March', 'April', 'May', 'June',
 		'July', 'August', 'September', 'October', 'November', 'December'
@@ -69,30 +225,43 @@ const getMonthName = (month: number): string => {
 	return months[month - 1] || 'Unknown';
 };
 
-// Helper function to suggest closest valid date
-const suggestClosestValidDate = (year: number, month: number, invalidDay: number): string => {
+/**
+ * Suggest the closest valid date for invalid calendar dates
+ */
+export const suggestClosestValidDate = (year: number, month: number, invalidDay: number): string => {
 	const maxDays = getDaysInMonth(month, year);
 	const suggestedDay = Math.min(invalidDay, maxDays);
 	return `${year}-${month.toString().padStart(2, '0')}-${suggestedDay.toString().padStart(2, '0')}`;
 };
 
-// Validate date formats with comprehensive calendar date checking
-const validateDate = (dateValue: string, startIndex: number): ValidationError | null => {
+/**
+ * Get list of valid date keywords
+ */
+export const getValidDateKeywords = (): string[] => {
+	return [
+		'today', 'tomorrow', 'yesterday',
+		'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+		'week', 'month', 'next', 'last'
+	];
+};
+
+/**
+ * Check if a string is a valid date keyword
+ */
+export const isValidDateKeyword = (dateValue: string): boolean => {
+	const lowerDate = dateValue.toLowerCase().trim();
+	return getValidDateKeywords().includes(lowerDate);
+};
+
+/**
+ * Validate date formats with comprehensive calendar date checking
+ */
+export const validateDate = (dateValue: string, startIndex: number): ValidationError | null => {
 	const lowerDate = dateValue.toLowerCase().trim();
 	
-	// Skip validation for very short partial numeric inputs that look like incomplete dates
-	if (/^\d{1,2}$/.test(dateValue)) {
-		return null; // Only skip 1-2 digit numbers like "2" or "20"
-	}
-	
-	// Skip validation for 3-digit numbers that look like partial years
-	if (/^\d{3}$/.test(dateValue)) {
-		return null; // Skip "202" as it's likely partial "2024"
-	}
-	
-	// Skip validation for 4-digit years that look complete but might be partial
-	if (/^\d{4}$/.test(dateValue)) {
-		return null; // Skip "2024" as it could be partial date input
+	// Skip validation for partial numeric inputs that look like incomplete dates
+	if (/^\d{1,4}$/.test(dateValue)) {
+		return null; // Skip partial years and days
 	}
 	
 	// Skip validation for partial date patterns that look like they're still being typed
@@ -100,15 +269,8 @@ const validateDate = (dateValue: string, startIndex: number): ValidationError | 
 		return null;
 	}
 	
-	// Known valid date keywords
-	const validKeywords = [
-		'today', 'tomorrow', 'yesterday',
-		'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
-		'week', 'month', 'next', 'last'
-	];
-	
 	// Check if it's a valid keyword
-	if (validKeywords.includes(lowerDate)) {
+	if (isValidDateKeyword(lowerDate)) {
 		return null;
 	}
 	
@@ -322,16 +484,40 @@ const validateDate = (dateValue: string, startIndex: number): ValidationError | 
 	};
 };
 
-// Import priority completions to ensure validation matches completion data
-import { priorityCompletions } from './completion-data';
-
-// Get all valid priority values from completion data
-const getValidPriorities = (): string[] => {
-	return priorityCompletions.map(item => item.value.toLowerCase());
+/**
+ * Quick validation for date format only (without comprehensive calendar checking)
+ */
+export const isValidDateFormat = (dateValue: string): boolean => {
+	const lowerDate = dateValue.toLowerCase().trim();
+	
+	// Check keywords
+	if (isValidDateKeyword(lowerDate)) {
+		return true;
+	}
+	
+	// Check YYYY-MM-DD format
+	return /^\d{4}-\d{1,2}-\d{1,2}$/.test(dateValue);
 };
 
-// Validate priority values
-const validatePriority = (priorityValue: string, startIndex: number): ValidationError | null => {
+// =============================================================================
+// PATTERN VALIDATION RULES (Priority, Tag, Assignee)
+// =============================================================================
+
+/**
+ * Get valid priority values
+ */
+export const getValidPriorities = (): string[] => {
+	return [
+		'critical', 'high', 'medium', 'low', 
+		'urgent', 'asap', 'blocked', 'waiting', 
+		'review', 'done', 'todo', 'next', 'later'
+	];
+};
+
+/**
+ * Validate priority values against known valid priorities
+ */
+export const validatePriority = (priorityValue: string, startIndex: number): ValidationError | null => {
 	// Skip validation for very short partial inputs that could be partial valid priorities
 	if (priorityValue.length <= 2) {
 		const validPriorities = getValidPriorities();
@@ -376,8 +562,10 @@ const validatePriority = (priorityValue: string, startIndex: number): Validation
 	return null;
 };
 
-// Validate tag format
-const validateTag = (tagContent: string, startIndex: number): ValidationError | null => {
+/**
+ * Validate tag format and detect task checkboxes
+ */
+export const validateTag = (tagContent: string, startIndex: number): ValidationError | null => {
 	// Check if this is a task checkbox (valid patterns: x, X, space, empty)
 	// Supported checkbox formats:
 	// - [ ] - unchecked (space)
@@ -397,26 +585,55 @@ const validateTag = (tagContent: string, startIndex: number): ValidationError | 
 			message: 'Tags cannot be empty.',
 			startIndex,
 			endIndex: startIndex + tagContent.length,
-			suggestion: 'new-tag'
+			suggestion: 'new-tag',
+			errorCode: 'TAG_EMPTY',
+			contextualHint: 'Tags should contain descriptive text',
+			quickFixes: [
+				{ label: 'Add "important"', replacement: 'important', description: 'Add important tag' },
+				{ label: 'Add "todo"', replacement: 'todo', description: 'Add todo tag' },
+				{ label: 'Add "work"', replacement: 'work', description: 'Add work tag' }
+			]
 		};
 	}
 	
 	// Check for invalid characters (basic validation)
 	const invalidChars = /[<>'"]/;
 	if (invalidChars.test(tagContent)) {
+		const cleanTag = tagContent.replace(/[<>'"]/g, '');
 		return {
 			type: 'warning',
 			message: 'Tags contain special characters that may cause issues.',
 			startIndex,
-			endIndex: startIndex + tagContent.length
+			endIndex: startIndex + tagContent.length,
+			suggestion: cleanTag,
+			errorCode: 'TAG_INVALID_CHARS',
+			contextualHint: 'Avoid using <, >, \', " in tags',
+			quickFixes: [
+				{ label: 'Remove special chars', replacement: cleanTag, description: 'Remove problematic characters' }
+			]
+		};
+	}
+	
+	// Check for overly long tags
+	if (tagContent.length > 50) {
+		return {
+			type: 'warning',
+			message: 'Tag is very long. Consider shortening for better readability.',
+			startIndex,
+			endIndex: startIndex + tagContent.length,
+			suggestion: tagContent.substring(0, 47) + '...',
+			errorCode: 'TAG_TOO_LONG',
+			contextualHint: 'Tags should be short and descriptive'
 		};
 	}
 	
 	return null;
 };
 
-// Validate assignee format
-const validateAssignee = (assigneeValue: string, startIndex: number): ValidationError | null => {
+/**
+ * Validate assignee username format
+ */
+export const validateAssignee = (assigneeValue: string, startIndex: number): ValidationError | null => {
 	// Skip validation for very short partial inputs that look like they're being typed
 	if (assigneeValue.length <= 1 && /^[a-zA-Z]$/.test(assigneeValue)) {
 		return null;
@@ -426,19 +643,89 @@ const validateAssignee = (assigneeValue: string, startIndex: number): Validation
 	const usernamePattern = /^[a-zA-Z][a-zA-Z0-9._-]*$/;
 	
 	if (!usernamePattern.test(assigneeValue)) {
+		const cleanAssignee = assigneeValue.replace(/[^a-zA-Z0-9._-]/g, '').toLowerCase() || 'username';
+		
 		return {
 			type: 'error',
 			message: 'Invalid assignee format. Must start with letter and contain only letters, numbers, dots, underscores, or hyphens.',
 			startIndex,
 			endIndex: startIndex + assigneeValue.length,
-			suggestion: assigneeValue.replace(/[^a-zA-Z0-9._-]/g, '').toLowerCase() || 'username'
+			suggestion: cleanAssignee,
+			errorCode: 'ASSIGNEE_INVALID_FORMAT',
+			contextualHint: 'Username format: start with letter, use letters, numbers, dots, underscores, or hyphens',
+			quickFixes: [
+				{ label: 'Fix format', replacement: cleanAssignee, description: 'Remove invalid characters' },
+				{ label: 'Use "user"', replacement: 'user', description: 'Set to generic username' }
+			]
+		};
+	}
+	
+	// Check for overly long usernames
+	if (assigneeValue.length > 30) {
+		return {
+			type: 'warning',
+			message: 'Username is very long. Consider using a shorter alias.',
+			startIndex,
+			endIndex: startIndex + assigneeValue.length,
+			suggestion: assigneeValue.substring(0, 27) + '...',
+			errorCode: 'ASSIGNEE_TOO_LONG',
+			contextualHint: 'Usernames should be concise for readability'
 		};
 	}
 	
 	return null;
 };
 
-// Main validation function
+/**
+ * Check if priority is valid
+ */
+export const isValidPriority = (priority: string): boolean => {
+	return getValidPriorities().includes(priority.toLowerCase());
+};
+
+/**
+ * Check if tag content is valid
+ */
+export const isValidTag = (tagContent: string): boolean => {
+	if (!tagContent.trim()) return false;
+	if (/[<>'"]/g.test(tagContent)) return false;
+	return true;
+};
+
+/**
+ * Check if assignee format is valid
+ */
+export const isValidAssignee = (assignee: string): boolean => {
+	const usernamePattern = /^[a-zA-Z][a-zA-Z0-9._-]*$/;
+	return usernamePattern.test(assignee) && assignee.length <= 30;
+};
+
+/**
+ * Get suggested priorities based on partial input
+ */
+export const getSuggestedPriorities = (partial: string): string[] => {
+	const validPriorities = getValidPriorities();
+	const lowerPartial = partial.toLowerCase();
+	
+	return validPriorities
+		.filter(priority => priority.startsWith(lowerPartial))
+		.slice(0, 5);
+};
+
+/**
+ * Get common tag suggestions
+ */
+export const getCommonTagSuggestions = (): string[] => {
+	return ['important', 'urgent', 'work', 'personal', 'meeting', 'todo', 'idea', 'bug', 'feature'];
+};
+
+// =============================================================================
+// MAIN VALIDATION ORCHESTRATION
+// =============================================================================
+
+/**
+ * Main validation function that orchestrates all pattern validators
+ */
 export const validateInput = (text: string): ValidationError[] => {
 	const errors: ValidationError[] = [];
 	
@@ -448,12 +735,12 @@ export const validateInput = (text: string): ValidationError[] => {
 			return errors;
 		}
 		
-		// Pattern definitions for validation
-		// Order matters! More specific patterns should come first
-		const patterns = [
+		// Pattern definitions for validation - order matters!
+		const patterns: PatternValidator[] = [
+			// Tag patterns - must come first to avoid conflicts
 			{
 				regex: /\[([^\]]*)\]/g,
-				type: 'tag' as const,
+				type: 'tag',
 				validator: (match: RegExpExecArray) => {
 					try {
 						const content = match[1];
@@ -465,9 +752,11 @@ export const validateInput = (text: string): ValidationError[] => {
 					}
 				}
 			},
+			
+			// Color patterns - must come before priority to avoid conflicts
 			{
 				regex: /color:([^,\s\]]*)/gi,
-				type: 'color' as const,
+				type: 'color',
 				validator: (match: RegExpExecArray) => {
 					try {
 						const color = match[1];
@@ -480,7 +769,8 @@ export const validateInput = (text: string): ValidationError[] => {
 								message: 'Invalid hex color format. Use #RGB or #RRGGBB format.',
 								startIndex,
 								endIndex: startIndex + color.length,
-								suggestion: '#000000'
+								suggestion: '#000000',
+								errorCode: 'COLOR_FORMAT_INVALID'
 							};
 						}
 						
@@ -491,25 +781,27 @@ export const validateInput = (text: string): ValidationError[] => {
 					}
 				}
 			},
+			
+			// Priority patterns
 			{
 				regex: /#([a-zA-Z]+)/gi,
-				type: 'priority' as const,
+				type: 'priority',
 				validator: (match: RegExpExecArray) => {
 					try {
 						const priority = match[1];
-						// Skip empty priority matches
 						if (!priority || priority.length === 0) {
 							return null;
 						}
+						
 						// Skip if this looks like part of a hex color in a color: pattern
 						const fullText = match.input || '';
 						const matchStart = match.index!;
-						// Look for 'color:' before this match (more generous range)
 						const beforeMatch = fullText.substring(Math.max(0, matchStart - 10), matchStart);
 						if (beforeMatch.toLowerCase().includes('color:')) {
 							return null;
 						}
-						// Also skip if the match looks like a hex color (contains hex chars)
+						
+						// Skip if the match looks like a hex color
 						if (/^[0-9a-fA-F]+$/.test(priority)) {
 							return null;
 						}
@@ -522,29 +814,16 @@ export const validateInput = (text: string): ValidationError[] => {
 					}
 				}
 			},
+			
+			// Date patterns
 			{
 				regex: /@([a-zA-Z]\w*|\d[\d\-\/]*)/g,
-				type: 'date' as const,
+				type: 'date',
 				validator: (match: RegExpExecArray) => {
 					try {
 						const date = match[1];
-						// Skip single character date matches
 						if (!date || date.length === 0) {
 							return null;
-						}
-						
-						// Skip if this @ is part of an assignee pattern (preceded by +)
-						const fullText = match.input || '';
-						const matchStart = match.index!;
-						// Look for '+' before this @ match (check a reasonable range before)
-						for (let i = Math.max(0, matchStart - 20); i < matchStart; i++) {
-							if (fullText[i] === '+') {
-								// Check if there are only valid assignee characters between + and @
-								const between = fullText.substring(i + 1, matchStart);
-								if (/^[a-zA-Z][a-zA-Z0-9._-]*$/.test(between)) {
-									return null; // Skip this date validation as it's part of an assignee
-								}
-							}
 						}
 						
 						const startIndex = match.index! + 1; // Skip @
@@ -555,44 +834,16 @@ export const validateInput = (text: string): ValidationError[] => {
 					}
 				}
 			},
+			
+			// Assignee patterns
 			{
-				regex: /\+(\S+)/g,
-				type: 'assignee' as const,
+				regex: /\+([a-zA-Z][a-zA-Z0-9._-]*)/g,
+				type: 'assignee',
 				validator: (match: RegExpExecArray) => {
 					try {
 						const assignee = match[1];
-						// Skip empty assignee matches
 						if (!assignee || assignee.length === 0) {
 							return null;
-						}
-						
-						const fullText = match.input || '';
-						const matchEnd = match.index! + match[0].length;
-						
-						// Check if there's a space immediately after this assignee (suggests malformed input like "+user space")
-						if (matchEnd < fullText.length && fullText[matchEnd] === ' ') {
-							// Look ahead to see what comes after the space
-							const afterSpace = fullText.substring(matchEnd + 1).trim();
-							
-							// Only flag as error if:
-							// 1. There's text after the space AND
-							// 2. It doesn't start with a pattern character (@+#[color:) AND  
-							// 3. It looks like it could be part of an intended username (single word, no spaces)
-							if (afterSpace && 
-								!afterSpace.match(/^[@+#\[c]/) && // Not a pattern starter 
-								!/^color:/i.test(afterSpace) && // Not a color pattern
-								afterSpace.split(' ')[0].length > 0 && // Has content
-								afterSpace.split(' ').length === 1) { // Single word (no additional spaces)
-								
-								// This looks like a malformed assignee with space
-								return {
-									type: 'error',
-									message: 'Invalid assignee format. Usernames cannot contain spaces.',
-									startIndex: match.index! + 1, // Skip +
-									endIndex: matchEnd + afterSpace.split(' ')[0].length + 1, // Include the problematic part
-									suggestion: assignee + afterSpace.split(' ')[0].replace(/[^a-zA-Z0-9._-]/g, '') || 'username'
-								};
-							}
 						}
 						
 						const startIndex = match.index! + 1; // Skip +
@@ -605,161 +856,106 @@ export const validateInput = (text: string): ValidationError[] => {
 			}
 		];
 		
-		// Run validation for each pattern
-		patterns.forEach(({ regex, validator }) => {
-			try {
-				let match;
-				regex.lastIndex = 0; // Reset regex state
-				
-				while ((match = regex.exec(text)) !== null) {
-					// Add the full text to the match object for context
-					match.input = text;
-					const error = validator(match);
-					if (error) {
-						errors.push(error);
-					}
-					
-					// Prevent infinite loops
-					if (regex.lastIndex === match.index) {
-						break;
-					}
+		// Apply all validators
+		for (const pattern of patterns) {
+			pattern.regex.lastIndex = 0; // Reset regex state
+			let match;
+			
+			while ((match = pattern.regex.exec(text)) !== null) {
+				const validationError = pattern.validator(match);
+				if (validationError) {
+					errors.push(validationError);
 				}
-			} catch (error) {
-				console.error('Pattern matching error:', error);
+				
+				// Prevent infinite loops
+				if (pattern.regex.lastIndex === match.index) {
+					pattern.regex.lastIndex++;
+				}
 			}
-		});
+		}
 		
+		return errors;
 	} catch (error) {
-		console.error('validateInput error:', error);
+		console.error('Validation orchestrator error:', error);
+		return [];
 	}
-	
-	return errors;
 };
 
-// Check for optimization suggestions
-const findSuggestions = (text: string): ValidationError[] => {
+/**
+ * Find optimization suggestions for the input
+ */
+export const findSuggestions = (text: string): ValidationError[] => {
 	const suggestions: ValidationError[] = [];
 	
 	try {
-		// Suggest more specific priority when using generic terms
-		if (text.includes('#normal') || text.includes('#regular')) {
-			const match = text.match(/#(normal|regular)/);
+		// Suggest adding patterns for common words
+		if (text.includes('urgent') && !text.includes('#urgent')) {
+			suggestions.push({
+				type: 'suggestion',
+				message: 'Consider using #urgent for better priority visibility.',
+				startIndex: text.indexOf('urgent'),
+				endIndex: text.indexOf('urgent') + 6,
+				suggestion: '#urgent',
+				errorCode: 'PRIORITY_SUGGESTION'
+			});
+		}
+		
+		// Suggest date patterns for date-like words
+		if (/(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i.test(text) && !text.includes('@')) {
+			const match = text.match(/(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i);
 			if (match) {
-				const startIndex = text.indexOf(match[0]) + 1; // Skip #
+				const word = match[0];
+				const index = match.index!;
 				suggestions.push({
 					type: 'suggestion',
-					message: 'Consider using "medium" instead for better clarity.',
-					startIndex,
-					endIndex: startIndex + match[1].length,
-					suggestion: 'medium'
+					message: `Consider using @${word} for date pattern.`,
+					startIndex: index,
+					endIndex: index + word.length,
+					suggestion: `@${word}`,
+					errorCode: 'DATE_PATTERN_SUGGESTION'
 				});
 			}
 		}
 		
-		// Suggest using tags for common organizational words
-		if (text.includes('urgent') || text.includes('important')) {
-			const match = text.match(/\b(urgent|important)\b/i);
-			if (match) {
-				const startIndex = text.indexOf(match[0]);
-				suggestions.push({
-					type: 'suggestion',
-					message: 'Consider using a tag format for better organization.',
-					startIndex,
-					endIndex: startIndex + match[0].length,
-					suggestion: `[${match[0].toLowerCase()}]`
-				});
-			}
-		}
-		
+		return suggestions;
 	} catch (error) {
-		console.error('findSuggestions error:', error);
+		console.error('Suggestions error:', error);
+		return [];
 	}
-	
-	return suggestions;
 };
 
-// Check for incomplete patterns (for warnings)
+/**
+ * Find incomplete patterns that might need completion
+ */
 export const findIncompletePatterns = (text: string): ValidationError[] => {
 	const warnings: ValidationError[] = [];
 	
 	try {
-		// Don't show warnings for very short text (but allow single character pattern warnings)
-		if (text.length < 1) {
-			return warnings;
-		}
-		
-		// Look for incomplete patterns at the end of text
+		// Check for incomplete patterns
 		const incompletePatterns = [
-			{
-				regex: /\[[^\]]*$/,
-				message: 'Incomplete tag - missing closing bracket',
-				type: 'warning' as const,
-				minLength: 1 // Show even for single [ character
-			},
-			{
-				regex: /color:\s*#?[0-9a-fA-F]{0,2}$/i,
-				message: 'Incomplete color - provide a hex color value',
-				type: 'warning' as const,
-				minLength: 6
-			},
-			{
-				regex: /@\s*$/,
-				message: 'Incomplete date - provide a date value',
-				type: 'warning' as const,
-				minLength: 2
-			},
-			{
-				regex: /\+\s*$/,
-				message: 'Incomplete assignee - provide a username',
-				type: 'warning' as const,
-				minLength: 2
-			},
-			{
-				regex: /#\s*$/,
-				message: 'Incomplete priority - use low, medium, or high',
-				type: 'warning' as const,
-				minLength: 2
-			}
+			{ pattern: /@$/, message: 'Incomplete date pattern' },
+			{ pattern: /#$/, message: 'Incomplete priority pattern' },
+			{ pattern: /\+$/, message: 'Incomplete assignee pattern' },
+			{ pattern: /color:$/, message: 'Incomplete color pattern' },
+			{ pattern: /\[$/, message: 'Incomplete tag pattern' }
 		];
 		
-		incompletePatterns.forEach(({ regex, message, type, minLength }) => {
-			try {
-				regex.lastIndex = 0; // Reset regex state
-				const match = regex.exec(text);
-				if (match && text.length >= minLength) {
-					warnings.push({
-						type,
-						message,
-						startIndex: match.index,
-						endIndex: match.index + match[0].length
-					});
-				}
-			} catch (error) {
-				console.error('Incomplete pattern matching error:', error);
+		for (const incomplete of incompletePatterns) {
+			const match = incomplete.pattern.exec(text);
+			if (match) {
+				warnings.push({
+					type: 'warning',
+					message: incomplete.message,
+					startIndex: match.index,
+					endIndex: match.index + match[0].length,
+					errorCode: 'PATTERN_INCOMPLETE'
+				});
 			}
-		});
-		
-	} catch (error) {
-		console.error('findIncompletePatterns error:', error);
-	}
-	
-	return warnings;
-};
-
-// Get all validation errors, warnings, and suggestions
-export const getValidationResults = (text: string): ValidationError[] => {
-	try {
-		if (!text || typeof text !== 'string') {
-			return [];
 		}
 		
-		const errors = validateInput(text);
-		const warnings = findIncompletePatterns(text);
-		const suggestions = findSuggestions(text);
-		
-		return [...errors, ...warnings, ...suggestions];
+		return warnings;
 	} catch (error) {
-		console.error('getValidationResults error:', error);
+		console.error('Incomplete patterns error:', error);
 		return [];
 	}
 };
