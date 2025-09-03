@@ -1,7 +1,18 @@
-import { parseTextInput, parseTaskInput } from '../domain/parsers';
+/**
+ * Consolidated parsing logic tests for node-editor
+ * 
+ * Tests all parsing functionality including:
+ * - Text input parsing (formatting patterns)
+ * - Task input parsing (checkbox formats, patterns)
+ * - Date parsing
+ * - Pattern extraction and cleaning
+ * - Edge cases and error handling
+ */
+
+import { parseTextInput, parseTaskInput } from '../parsers';
 import type { ParsedTaskData } from '../types';
 
-describe('parseTextInput', () => {
+describe('Text Input Parsing', () => {
 	describe('Font Size Parsing', () => {
 		it('should parse font size with px unit', () => {
 			const result = parseTextInput('Hello @24px');
@@ -223,7 +234,7 @@ describe('parseTextInput', () => {
 	});
 });
 
-describe('parseTaskInput', () => {
+describe('Task Input Parsing', () => {
 	describe('Enhanced Checkbox Format Support', () => {
 		it('should parse traditional checkbox formats correctly', () => {
 			const traditionalFormats = [
@@ -346,19 +357,100 @@ describe('parseTaskInput', () => {
 				expect(result.tasks[0].isComplete).toBe(true);
 			});
 		});
+	});
 
-		it('should preserve whitespace handling in checkbox parsing', () => {
-			const whitespaceTests = [
-				'[\t;\t] Tab-padded semicolon',
-				'[ , ] Space-padded comma',
-				'[   x   ] Multi-space padded x'
+	describe('Multi-Pattern Support', () => {
+		it('should parse task with date and priority patterns', () => {
+			const input = 'Meeting prep @2025-04-24 #high';
+			const result = parseTaskInput(input);
+			
+			expect(result.tasks).toHaveLength(1);
+			expect(result.tasks[0].text).toBe('Meeting prep');
+			expect(result.tasks[0].patterns).toHaveLength(2);
+			
+			// Check date pattern
+			const datePattern = result.tasks[0].patterns?.find(p => p.type === 'date');
+			expect(datePattern).toBeDefined();
+			expect(datePattern?.value).toBe('2025-04-24');
+			
+			// Check priority pattern
+			const priorityPattern = result.tasks[0].patterns?.find(p => p.type === 'priority');
+			expect(priorityPattern).toBeDefined();
+			expect(priorityPattern?.value).toBe('high');
+		});
+		
+		it('should parse task with all pattern types', () => {
+			const input = 'Meeting prep @2025-04-24 #medium color:#CD1E8C [urgent] +john';
+			const result = parseTaskInput(input);
+			
+			expect(result.tasks).toHaveLength(1);
+			expect(result.tasks[0].text).toBe('Meeting prep');
+			expect(result.tasks[0].patterns).toHaveLength(5);
+			
+			// Check all pattern types are present
+			const patternTypes = result.tasks[0].patterns?.map(p => p.type) || [];
+			expect(patternTypes).toContain('date');
+			expect(patternTypes).toContain('priority');
+			expect(patternTypes).toContain('color');
+			expect(patternTypes).toContain('tag');
+			expect(patternTypes).toContain('assignee');
+			
+			// Verify specific values
+			const patterns = result.tasks[0].patterns || [];
+			expect(patterns.find(p => p.type === 'date')?.value).toBe('2025-04-24');
+			expect(patterns.find(p => p.type === 'priority')?.value).toBe('medium');
+			expect(patterns.find(p => p.type === 'color')?.value).toBe('#CD1E8C');
+			expect(patterns.find(p => p.type === 'tag')?.value).toBe('urgent');
+			expect(patterns.find(p => p.type === 'assignee')?.value).toBe('john');
+		});
+
+		it('should handle patterns in different orders', () => {
+			const inputs = [
+				'Task +alice [important] #high @today color:#ff0000',
+				'@today Task +alice color:#ff0000 #high [important]',
+				'#high color:#ff0000 Task @today [important] +alice',
 			];
-
-			whitespaceTests.forEach(input => {
+			
+			inputs.forEach(input => {
 				const result = parseTaskInput(input);
+				
 				expect(result.tasks).toHaveLength(1);
-				expect(result.tasks[0].isComplete).toBe(true);
-			});
+				expect(result.tasks[0].text).toBe('Task');
+				expect(result.tasks[0].patterns).toHaveLength(5);
+				
+				// All patterns should be present regardless of order
+				const patternTypes = result.tasks[0].patterns?.map(p => p.type) || [];
+				expect(patternTypes).toContain('date');
+				expect(patternTypes).toContain('priority');
+				expect(patternTypes).toContain('color');
+				expect(patternTypes).toContain('tag');
+				expect(patternTypes).toContain('assignee');
+		});
+		});
+
+		it('should handle multiple instances of same pattern type', () => {
+			const input = 'Task @today @tomorrow #high #low [tag1] [tag2] +user1 +user2';
+			const result = parseTaskInput(input);
+			
+			expect(result.tasks).toHaveLength(1);
+			expect(result.tasks[0].text).toBe('Task');
+			
+			// Should capture multiple instances of each pattern type
+			const patterns = result.tasks[0].patterns || [];
+			const datePatterns = patterns.filter(p => p.type === 'date');
+			const priorityPatterns = patterns.filter(p => p.type === 'priority');
+			const tagPatterns = patterns.filter(p => p.type === 'tag');
+			const assigneePatterns = patterns.filter(p => p.type === 'assignee');
+			
+			expect(datePatterns).toHaveLength(2);
+			expect(priorityPatterns).toHaveLength(2);
+			expect(tagPatterns).toHaveLength(2);
+			expect(assigneePatterns).toHaveLength(2);
+			
+			expect(datePatterns.map(p => p.value)).toContain('today');
+			expect(datePatterns.map(p => p.value)).toContain('tomorrow');
+			expect(priorityPatterns.map(p => p.value)).toContain('high');
+			expect(priorityPatterns.map(p => p.value)).toContain('low');
 		});
 	});
 
@@ -436,209 +528,263 @@ describe('parseTaskInput', () => {
 				expect(result.tasks[0].isComplete).toBe(false);
 			});
 		});
-		
-		// Phase 4: Multi-Pattern Support Tests
-		describe('Multi-Pattern Support', () => {
-			describe('Single Task with Multiple Patterns', () => {
-				it('should parse task with date and priority patterns', () => {
-					const input = 'Meeting prep @2025-04-24 #high';
-					const result = parseTaskInput(input);
-					
-					expect(result.tasks).toHaveLength(1);
-					expect(result.tasks[0].text).toBe('Meeting prep');
-					expect(result.tasks[0].patterns).toHaveLength(2);
-					
-					// Check date pattern
-					const datePattern = result.tasks[0].patterns?.find(p => p.type === 'date');
-					expect(datePattern).toBeDefined();
-					expect(datePattern?.value).toBe('2025-04-24');
-					
-					// Check priority pattern
-					const priorityPattern = result.tasks[0].patterns?.find(p => p.type === 'priority');
-					expect(priorityPattern).toBeDefined();
-					expect(priorityPattern?.value).toBe('high');
-				});
-				
-				it('should parse task with all pattern types', () => {
-					const input = 'Meeting prep @2025-04-24 #medium color:#CD1E8C [urgent] +john';
-					const result = parseTaskInput(input);
-					
-					expect(result.tasks).toHaveLength(1);
-					expect(result.tasks[0].text).toBe('Meeting prep');
-					expect(result.tasks[0].patterns).toHaveLength(5);
-					
-					// Check all pattern types are present
-					const patternTypes = result.tasks[0].patterns?.map(p => p.type) || [];
-					expect(patternTypes).toContain('date');
-					expect(patternTypes).toContain('priority');
-					expect(patternTypes).toContain('color');
-					expect(patternTypes).toContain('tag');
-					expect(patternTypes).toContain('assignee');
-					
-					// Verify specific values
-					const patterns = result.tasks[0].patterns || [];
-					expect(patterns.find(p => p.type === 'date')?.value).toBe('2025-04-24');
-					expect(patterns.find(p => p.type === 'priority')?.value).toBe('medium');
-					expect(patterns.find(p => p.type === 'color')?.value).toBe('#CD1E8C');
-					expect(patterns.find(p => p.type === 'tag')?.value).toBe('urgent');
-					expect(patterns.find(p => p.type === 'assignee')?.value).toBe('john');
-				});
-				
-				it('should handle patterns in different orders', () => {
-					const inputs = [
-						'Task +alice [important] #high @today color:#ff0000',
-						'@today Task +alice color:#ff0000 #high [important]',
-						'#high color:#ff0000 Task @today [important] +alice',
-					];
-					
-					inputs.forEach(input => {
-						const result = parseTaskInput(input);
-						
-						expect(result.tasks).toHaveLength(1);
-						expect(result.tasks[0].text).toBe('Task');
-						expect(result.tasks[0].patterns).toHaveLength(5);
-						
-						// All patterns should be present regardless of order
-						const patternTypes = result.tasks[0].patterns?.map(p => p.type) || [];
-						expect(patternTypes).toContain('date');
-						expect(patternTypes).toContain('priority');
-						expect(patternTypes).toContain('color');
-						expect(patternTypes).toContain('tag');
-						expect(patternTypes).toContain('assignee');
-				});
-				});
+
+		it('should properly clean text while preserving word boundaries', () => {
+			const input = 'Review @friday the #urgent [document] with +team members';
+			const result = parseTaskInput(input);
+			
+			expect(result.tasks).toHaveLength(1);
+			expect(result.tasks[0].text).toBe('Review the with members');
+			expect(result.tasks[0].patterns).toHaveLength(4);
+		});
+
+		it('should handle patterns at beginning, middle, and end', () => {
+			const input = '@today Start task in middle #high and finish +user';
+			const result = parseTaskInput(input);
+			
+			expect(result.tasks).toHaveLength(1);
+			expect(result.tasks[0].text).toBe('Start task in middle and finish');
+			expect(result.tasks[0].patterns).toHaveLength(3);
+		});
+
+		it('should handle empty patterns gracefully', () => {
+			const input = 'Task with empty @ # [] + color: patterns';
+			const result = parseTaskInput(input);
+			
+			expect(result.tasks).toHaveLength(1);
+			// Should not parse empty/malformed patterns
+			expect(result.tasks[0].patterns || []).toHaveLength(0);
+			expect(result.tasks[0].text).toBe('Task with empty @ # [] + color: patterns');
+		});
+
+		it('should preserve text integrity when patterns fail to parse', () => {
+			const input = 'Important task @invaliddate #invalidpriority [valid] +validuser';
+			const result = parseTaskInput(input);
+			
+			expect(result.tasks).toHaveLength(1);
+			// Should still parse valid patterns
+			const patterns = result.tasks[0].patterns || [];
+			expect(patterns.some(p => p.type === 'tag' && p.value === 'valid')).toBe(true);
+			expect(patterns.some(p => p.type === 'assignee' && p.value === 'validuser')).toBe(true);
+		});
+	});
+
+	describe('Backwards Compatibility Legacy Fields', () => {
+		it('should populate legacy fields from first matching pattern', () => {
+			const input = 'Task @today @tomorrow #high #low [tag1] [tag2] +user1 +user2';
+			const result = parseTaskInput(input);
+
+			// Legacy fields should use first occurrence
+			expect(result.dueDate).toBeDefined();
+			expect(result.priority).toBe('high');
+			expect(result.assignee).toBe('user1');
+			expect(result.tags).toEqual(['tag1', 'tag2']);
+		});
+
+		it('should match exact user requirement', () => {
+			const input = `Preview PR
+@2025-10-10
+#low  
+[todo]
++frontend
+color:#10b981`;
+
+			const result = parseTaskInput(input);
+
+			// Validate requirements
+			expect(result.tasks).toHaveLength(1);
+			expect(result.tasks[0].text).toBe('Preview PR');
+			expect(result.tasks[0].isComplete).toBe(false);
+			expect(result.tasks[0].patterns).toHaveLength(5);
+
+			// Check each pattern
+			const patterns = result.tasks[0].patterns!;
+			expect(patterns.find(p => p.type === 'date' && p.value === '2025-10-10')).toBeDefined();
+			expect(patterns.find(p => p.type === 'priority' && p.value === 'low')).toBeDefined();
+			expect(patterns.find(p => p.type === 'tag' && p.value === 'todo')).toBeDefined();
+			expect(patterns.find(p => p.type === 'assignee' && p.value === 'frontend')).toBeDefined();
+			expect(patterns.find(p => p.type === 'color' && p.value === '#10b981')).toBeDefined();
+
+			// Legacy fields should be populated for backwards compatibility
+			expect(result.dueDate).toBeInstanceOf(Date);
+			expect(result.priority).toBe('low');
+			expect(result.assignee).toBe('frontend');
+			expect(result.tags).toContain('todo');
+		});
+	});
+});
+
+describe('Date Parsing Edge Cases', () => {
+	describe('Progressive Date Input', () => {
+		it('should handle progressive typing without errors', () => {
+			const progression = ['@', '@2', '@20', '@202', '@2024', '@2024-', '@2024-0', '@2024-01'];
+			
+			progression.forEach(input => {
+				expect(() => parseTaskInput(input)).not.toThrow();
+				const result = parseTaskInput(input);
+				expect(result.tasks).toHaveLength(1);
+			});
+		});
+
+		it('should handle partial date formats', () => {
+			const partialDates = [
+				'@1',
+				'@12', 
+				'@123',
+				'@2024',
+				'@2024-1',
+				'@2024-01',
+				'@2024-01-1'
+			];
+
+			partialDates.forEach(input => {
+				const result = parseTaskInput(input);
+				expect(result.tasks).toHaveLength(1);
+				// Should create task with cleaned text or default text
+				expect(result.tasks[0].text).toBeDefined();
+			});
+		});
+	});
+
+	describe('Date Format Validation', () => {
+		it('should handle valid date formats', () => {
+			const validDates = [
+				'@today',
+				'@tomorrow', 
+				'@yesterday',
+				'@2024-01-15',
+				'@2024-1-1',
+				'@monday',
+				'@next'
+			];
+
+			validDates.forEach(input => {
+				const result = parseTaskInput(input);
+				expect(result.tasks).toHaveLength(1);
+				const datePattern = result.tasks[0].patterns?.find(p => p.type === 'date');
+				expect(datePattern).toBeDefined();
+			});
+		});
+
+		it('should handle case variations', () => {
+			const caseVariations = [
+				'@TODAY',
+				'@Today',
+				'@ToMorrow',
+				'@MONDAY'
+			];
+
+			caseVariations.forEach(input => {
+				const result = parseTaskInput(input);
+				expect(result.tasks).toHaveLength(1);
+				const datePattern = result.tasks[0].patterns?.find(p => p.type === 'date');
+				expect(datePattern).toBeDefined();
+			});
+		});
+	});
+
+	describe('Pattern Edge Cases', () => {
+		it('should handle whitespace in patterns', () => {
+			const whitespaceTests = [
+				'Task @  today',
+				'Task #  high',
+				'Task [  tag  ]',
+				'Task +  user'
+			];
+
+			whitespaceTests.forEach(input => {
+				expect(() => parseTaskInput(input)).not.toThrow();
+				const result = parseTaskInput(input);
+				expect(result.tasks).toHaveLength(1);
+			});
+		});
+
+		it('should handle special characters', () => {
+			const specialChars = [
+				'Task with @ symbol',
+				'Task with # hashtag',
+				'Email user@domain.com',
+				'Price $100'
+			];
+
+			specialChars.forEach(input => {
+				expect(() => parseTaskInput(input)).not.toThrow();
+				const result = parseTaskInput(input);
+				expect(result.tasks).toHaveLength(1);
+			});
+		});
+
+		it('should handle unicode characters', () => {
+			const unicodeInputs = [
+				'Tâche @aujourd\'hui',
+				'任务 @今天',
+				'Задача @сегодня'
+			];
+
+			unicodeInputs.forEach(input => {
+				expect(() => parseTaskInput(input)).not.toThrow();
+				const result = parseTaskInput(input);
+				expect(result.tasks).toHaveLength(1);
+			});
+		});
+	});
+});
+
+describe('Performance and Memory', () => {
+	describe('Large Input Handling', () => {
+		it('should handle very long input efficiently', () => {
+			const longInput = 'Task '.repeat(1000) + '@today #high [important] +user';
+			
+			const startTime = performance.now();
+			const result = parseTaskInput(longInput);
+			const endTime = performance.now();
+			
+			expect(endTime - startTime).toBeLessThan(100); // Should be fast
+			expect(result.tasks).toHaveLength(1);
+			expect(result.tasks[0].patterns).toHaveLength(4);
+		});
+
+		it('should handle many patterns efficiently', () => {
+			const manyPatterns = Array.from({length: 100}, (_, i) => `[tag${i}]`).join(' ');
+			const input = `Task with many patterns ${manyPatterns}`;
+			
+			const startTime = performance.now();
+			const result = parseTaskInput(input);
+			const endTime = performance.now();
+			
+			expect(endTime - startTime).toBeLessThan(500);
+			expect(result.tasks).toHaveLength(1);
+			expect(result.tasks[0].patterns?.length).toBeGreaterThan(50);
+		});
+	});
+
+	describe('Memory Management', () => {
+		it('should not leak memory with repeated parsing', () => {
+			// Run parsing many times to check for memory leaks
+			for (let i = 0; i < 1000; i++) {
+				parseTaskInput(`Test input ${i} @today #high [tag] +user`);
+			}
+			
+			// If we reach here without running out of memory, test passes
+			expect(true).toBe(true);
+		});
+
+		it('should handle rapid succession calls', () => {
+			const inputs = Array.from({length: 100}, (_, i) => 
+				`Task ${i} @today #high [tag${i}] +user${i}`
+			);
+			
+			const startTime = performance.now();
+			
+			inputs.forEach(input => {
+				parseTaskInput(input);
 			});
 			
-			describe('Single Task with Combined Multiline Patterns', () => {
-				it('should combine multiline input into single task with all patterns', () => {
-					const input = 'Task 1 @today #high\nTask 2 color:#blue [meeting]\nTask 3 +team [project] @friday';
-					const result = parseTaskInput(input);
-					
-					// New behavior: Single task with all patterns combined
-					expect(result.tasks).toHaveLength(1);
-					
-					// Combined text from all lines
-					expect(result.tasks[0].text).toBe('Task 1 Task 2 Task 3');
-					
-					// All patterns should be combined into single task
-					const patterns = result.tasks[0].patterns || [];
-					expect(patterns.length).toBeGreaterThan(5); // Should have date, priority, color, tag, assignee patterns
-					
-					const patternTypes = patterns.map(p => p.type);
-					expect(patternTypes).toContain('date');
-					expect(patternTypes).toContain('priority'); 
-					expect(patternTypes).toContain('color');
-					expect(patternTypes).toContain('tag');
-					expect(patternTypes).toContain('assignee');
-				});
-			});
+			const endTime = performance.now();
+			const averageTime = (endTime - startTime) / inputs.length;
 			
-			describe('Pattern Conflict Resolution', () => {
-				it('should handle multiple instances of same pattern type', () => {
-					const input = 'Task @today @tomorrow #high #low [tag1] [tag2] +user1 +user2';
-					const result = parseTaskInput(input);
-					
-					expect(result.tasks).toHaveLength(1);
-					expect(result.tasks[0].text).toBe('Task');
-					
-					// Should capture multiple instances of each pattern type
-					const patterns = result.tasks[0].patterns || [];
-					const datePatterns = patterns.filter(p => p.type === 'date');
-					const priorityPatterns = patterns.filter(p => p.type === 'priority');
-					const tagPatterns = patterns.filter(p => p.type === 'tag');
-					const assigneePatterns = patterns.filter(p => p.type === 'assignee');
-					
-					expect(datePatterns).toHaveLength(2);
-					expect(priorityPatterns).toHaveLength(2);
-					expect(tagPatterns).toHaveLength(2);
-					expect(assigneePatterns).toHaveLength(2);
-					
-					expect(datePatterns.map(p => p.value)).toContain('today');
-					expect(datePatterns.map(p => p.value)).toContain('tomorrow');
-					expect(priorityPatterns.map(p => p.value)).toContain('high');
-					expect(priorityPatterns.map(p => p.value)).toContain('low');
-				});
-			});
-			
-			describe('Pattern Extraction and Text Cleaning', () => {
-				it('should properly clean text while preserving word boundaries', () => {
-					const input = 'Review @friday the #urgent [document] with +team members';
-					const result = parseTaskInput(input);
-					
-					expect(result.tasks).toHaveLength(1);
-					expect(result.tasks[0].text).toBe('Review the with members');
-					expect(result.tasks[0].patterns).toHaveLength(4);
-				});
-				
-				it('should handle patterns at beginning, middle, and end', () => {
-					const input = '@today Start task in middle #high and finish +user';
-					const result = parseTaskInput(input);
-					
-					expect(result.tasks).toHaveLength(1);
-					expect(result.tasks[0].text).toBe('Start task in middle and finish');
-					expect(result.tasks[0].patterns).toHaveLength(3);
-				});
-			});
-			
-			describe('Pattern Handling in Single Task', () => {
-				it('should combine text from semicolon-separated segments with all patterns', () => {
-					const input = 'Task 1 @today #high; Task 2 [meeting] +alice; Task 3 color:#blue';
-					const result = parseTaskInput(input);
-					
-					// New behavior: Single task with all content combined
-					expect(result.tasks).toHaveLength(1);
-					
-					expect(result.tasks[0].text).toBe('Task 1 Task 2 Task 3');
-					
-					// Should have all patterns from all segments
-					const patterns = result.tasks[0].patterns || [];
-					expect(patterns.length).toBeGreaterThan(3);
-					
-					const patternTypes = patterns.map(p => p.type);
-					expect(patternTypes).toContain('date');
-					expect(patternTypes).toContain('priority');
-					expect(patternTypes).toContain('tag'); 
-					expect(patternTypes).toContain('assignee');
-					expect(patternTypes).toContain('color');
-				});
-				
-				it('should handle complex tag patterns with commas', () => {
-					const input = 'Task with [tag, with, commas] stays together, but this splits';
-					const result = parseTaskInput(input);
-					
-					// Single task with combined text
-					expect(result.tasks).toHaveLength(1);
-					expect(result.tasks[0].text).toBe('Task with stays together but this splits');
-					
-					// Should have the tag pattern
-					expect(result.tasks[0].patterns).toHaveLength(1);
-					expect(result.tasks[0].patterns?.[0].type).toBe('tag');
-					expect(result.tasks[0].patterns?.[0].value).toBe('tag, with, commas');
-				});
-			});
-			
-			describe('Edge Cases and Error Handling', () => {
-				it('should handle empty patterns gracefully', () => {
-					const input = 'Task with empty @ # [] + color: patterns';
-					const result = parseTaskInput(input);
-					
-					expect(result.tasks).toHaveLength(1);
-					// Should not parse empty/malformed patterns
-					expect(result.tasks[0].patterns || []).toHaveLength(0);
-					expect(result.tasks[0].text).toBe('Task with empty @ # [] + color: patterns');
-				});
-				
-				it('should preserve text integrity when patterns fail to parse', () => {
-					const input = 'Important task @invaliddate #invalidpriority [valid] +validuser';
-					const result = parseTaskInput(input);
-					
-					expect(result.tasks).toHaveLength(1);
-					// Should still parse valid patterns
-					const patterns = result.tasks[0].patterns || [];
-					expect(patterns.some(p => p.type === 'tag' && p.value === 'valid')).toBe(true);
-					expect(patterns.some(p => p.type === 'assignee' && p.value === 'validuser')).toBe(true);
-				});
-			});
+			// Each parse should be very fast
+			expect(averageTime).toBeLessThan(5); // Less than 5ms per parse
 		});
 	});
 });

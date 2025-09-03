@@ -1,5 +1,5 @@
 /**
- * End-to-end integration tests for node-editor2
+ * End-to-end integration tests for node-editor
  * 
  * Tests the complete system integration including:
  * - Full user workflows and interactions

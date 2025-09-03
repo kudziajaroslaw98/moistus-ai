@@ -1,5 +1,5 @@
 /**
- * Consolidated completion functionality tests for node-editor2
+ * Consolidated completion functionality tests for node-editor
  * 
  * Tests all completion functionality including:
  * - Pattern detection and matching

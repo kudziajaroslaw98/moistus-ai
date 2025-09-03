@@ -1,5 +1,5 @@
 /**
- * Structured input mode tests for node-editor2
+ * Structured input mode tests for node-editor
  * 
  * Tests the structured form input component functionality including:
  * - Form-based input with dedicated fields

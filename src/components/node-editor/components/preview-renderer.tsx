@@ -255,7 +255,6 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 								>
 									<span className='opacity-70'>🏷️</span>
 									<span className='flex items-center gap-0.5'>
-										<span className='opacity-70 text-xs'>Tags:</span>
 										<span className='font-medium'>{tag}</span>
 									</span>
 								</motion.div>

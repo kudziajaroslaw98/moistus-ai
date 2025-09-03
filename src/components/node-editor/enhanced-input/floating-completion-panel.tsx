@@ -16,15 +16,15 @@ import {
 } from '@floating-ui/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { cn } from '@/utils/cn';
-import { type PatternType } from '../utils/prism-custom-grammar';
+import { type PatternType } from '../parsers';
 import { 
-	colorCompletions, 
-	dateCompletions, 
-	priorityCompletions, 
-	commonTagCompletions,
-	searchAllCompletions
-} from '../domain/completion-providers';
-import type { CompletionItem } from '../utils/completion-types';
+	getColorCompletions, 
+	getDateCompletions, 
+	getPriorityCompletions, 
+	getTagCompletions,
+	getCompletionsForPattern
+} from '../completions';
+import type { CompletionItem } from '../completions';
 
 interface FloatingCompletionPanelProps {
 	isOpen: boolean;
@@ -49,34 +49,19 @@ export const FloatingCompletionPanel: React.FC<FloatingCompletionPanelProps> = (
 	const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 	
 	const listRef = useRef<Array<HTMLElement | null>>([]);
-	const listContentRef = useRef(
-		searchAllCompletions(currentValue, 8)
-	);
+	const listContentRef = useRef<string[]>([]);
 	const typeaheadRef = useRef<string>('');
 
 	// Get completions based on pattern type
 	function getCompletionsForType(patternType: PatternType | null): CompletionItem[] {
-		switch (patternType) {
-			case 'color':
-				return colorCompletions;
-			case 'date':
-				return dateCompletions;
-			case 'priority':
-				return priorityCompletions;
-			case 'tag':
-				return commonTagCompletions;
-			case 'assignee':
-				return []; // For now, assignee is free-text
-			default:
-				return [];
-		}
+		if (!patternType) return [];
+		return getCompletionsForPattern(patternType, currentValue || '');
 	}
 
 	// Filter completions based on current input
 	const filteredCompletions = useMemo(() => {
 		if (!type) return [];
-		const baseCompletions = getCompletionsForType(type);
-		return searchAllCompletions(currentValue, 8);
+		return getCompletionsForType(type);
 	}, [type, currentValue]);
 
 	// Update list content for typeahead

@@ -1,5 +1,5 @@
 /**
- * Consolidated validation rule tests for node-editor2
+ * Consolidated validation rule tests for node-editor
  * 
  * Tests all validation functionality including:
  * - Date validation rules and patterns

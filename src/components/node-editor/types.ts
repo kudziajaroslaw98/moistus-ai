@@ -1,6 +1,6 @@
-import type { AppNode } from '@/types/app-node';
-import type { AvailableNodeTypes } from '@/types/available-node-types';
-import type { NodeData } from '@/types/node-data';
+import type { AppNode } from '../../types/app-node';
+import type { AvailableNodeTypes } from '../../types/available-node-types';
+import type { NodeData } from '../../types/node-data';
 import type { LucideIcon } from 'lucide-react';
 
 // Pattern category types

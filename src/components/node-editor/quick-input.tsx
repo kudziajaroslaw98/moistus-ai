@@ -12,9 +12,9 @@ import { ExamplesSection } from './components/examples-section';
 import { InputSection } from './components/input-section';
 import { PreviewSection } from './components/preview-section';
 import { createOrUpdateNodeFromCommand, transformNodeToQuickInputString } from './node-updater';
-import { ParsingLegend } from './parsing-legend';
+import { ParsingLegend } from './components/parsing-legend';
 import type { QuickInputProps } from './types';
-import { announceToScreenReader } from './domain/utilities/text-utils';
+import { announceToScreenReader } from './utils/text-utils';
 
 const theme = {
 	container: 'p-4',

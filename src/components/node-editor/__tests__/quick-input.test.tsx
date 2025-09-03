@@ -1,5 +1,5 @@
 /**
- * Quick input mode tests for node-editor2
+ * Quick input mode tests for node-editor
  * 
  * Tests the quick input component functionality including:
  * - Text-based input and parsing
