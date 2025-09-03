@@ -468,7 +468,7 @@ export interface ScoredCompletionItem extends CompletionItem {
 }
 
 // Pattern types supported by the universal completion system
-export type PatternType = 'date' | 'priority' | 'color' | 'tag' | 'assignee';
+export type PatternType = 'date' | 'priority' | 'color' | 'tag' | 'assignee' | 'checkbox';
 
 // Date pattern subtypes for more granular matching
 export type DatePatternSubtype = 'word' | 'partial-date' | 'full-date';
@@ -713,7 +713,7 @@ export const PATTERN_REGISTRY: PatternRegistry = {
 	},
 	tag: {
 		regex: /\[([^\[\]]*)$/,
-		decorationRegex: /\[([^\[\]]*)\]/g,
+		decorationRegex: /\[(?![xX;,\s]*\])([^\[\]]+)\]/g, // Exclude checkbox patterns
 		validationPattern: /^\[[\w\s-]*$/,
 		prefix: '[',
 		suffix: ']',
@@ -727,6 +727,15 @@ export const PATTERN_REGISTRY: PatternRegistry = {
 		prefix: '+',
 		completionType: 'function',
 		description: 'Assignee references (+john, +team-lead, +me)',
+	},
+	checkbox: {
+		regex: /^\s*(?:[-*]\s*)?\[[xX\s]*\]\s*/,
+		decorationRegex: /^\s*(?:[-*]\s*)?\[[xX\s]*\]\s*.*/gm,
+		validationPattern: /^\s*(?:[-*]\s*)?\[[xX\s]*\]\s*/,
+		prefix: '[',
+		suffix: ']',
+		completionType: 'keyword',
+		description: 'Task checkboxes ([], [x])',
 	},
 };
 

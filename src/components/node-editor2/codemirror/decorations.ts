@@ -354,6 +354,17 @@ export const patternDecorationTheme = EditorView.theme({
 		padding: '1px 3px',
 		marginLeft: '1px',
 		marginRight: '1px',
+	},
+	
+	// Checkbox pattern ([x], []) - Dark gray background theme
+	'.cm-pattern-checkbox': {
+		backgroundColor: 'rgba(39, 39, 42, 0.5)', // zinc-900/50
+		borderRadius: '4px',
+		padding: '2px 4px',
+		display: 'block',
+		margin: '2px 0',
+		width: 'calc(100% - 8px)',
+		color: 'inherit',
 	}
 }, { dark: true });
 

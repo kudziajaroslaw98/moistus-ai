@@ -113,13 +113,35 @@ const parseCheckboxLine = (line: string): ParsedTask | null => {
 
 /**
  * Parse multiple checkbox lines into tasks with aggregated metadata
+ * Now handles full input including non-checkbox lines for metadata
  */
-const parseMultipleCheckboxLines = (checkboxLines: string[]): ParsedTaskData => {
+const parseMultipleCheckboxLines = (fullInput: string): ParsedTaskData => {
+	const lines = fullInput.trim().split('\n');
+	
+	// Separate checkbox lines from metadata lines
+	const checkboxLines = lines.filter(line => {
+		const trimmedLine = line.trim();
+		return /^\s*(?:[-*]\s*)?\[[xX;,\s]*\]\s*.+/.test(trimmedLine);
+	});
+	
+	const metadataLines = lines.filter(line => {
+		const trimmedLine = line.trim();
+		// Lines that are not checkboxes but contain patterns
+		return !(/^\s*(?:[-*]\s*)?\[[xX;,\s]*\]\s*.+/.test(trimmedLine)) && trimmedLine.length > 0;
+	});
+	
 	// Parse each checkbox line
 	const tasks = checkboxLines.map(line => parseCheckboxLine(line)).filter(Boolean) as (ParsedTask & { _tempPatterns?: any[] })[];
 	
-	// Extract all patterns from all tasks for node-level metadata
-	const allPatterns = tasks.flatMap(task => task._tempPatterns || []);
+	// Extract patterns from both task lines and metadata lines
+	const taskPatterns = tasks.flatMap(task => task._tempPatterns || []);
+	const metadataPatterns = metadataLines.flatMap(line => {
+		const parsed = parseEmbeddedPatterns(line);
+		return parsed.patterns || [];
+	});
+	
+	// Combine all patterns for node-level metadata
+	const allPatterns = [...taskPatterns, ...metadataPatterns];
 	
 	// Clean up tasks to remove temporary patterns
 	const cleanTasks = tasks.map(task => {
@@ -214,11 +236,13 @@ export const parseTaskInput = (input: string): ParsedTaskData => {
 	});
 
 	if (checkboxLines.length > 1) {
-		// Multiple checkbox lines detected - create separate tasks for each
-		return parseMultipleCheckboxLines(checkboxLines);
+		// Multiple checkbox lines detected - pass full input for metadata handling
+		return parseMultipleCheckboxLines(trimmedInput);
 	} else {
-		// Single input (checkbox or plain text)
-		return parseSingleInput(trimmedInput);
+		// Single input (checkbox or plain text) - join lines for parsing
+		// This allows metadata on separate lines while preserving checkbox recognition
+		const singleLineInput = trimmedInput.replace(/\n/g, ' ');
+		return parseSingleInput(singleLineInput);
 	}
 };
 

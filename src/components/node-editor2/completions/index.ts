@@ -158,7 +158,18 @@ export const universalCompletionSource = (context: any) => {
 	if (text.slice(cursor - 5, cursor).includes('@')) patternType = 'date';
 	else if (text.slice(cursor - 5, cursor).includes('#')) patternType = 'priority';
 	else if (text.slice(cursor - 8, cursor).includes('color:')) patternType = 'color';
-	else if (text.slice(cursor - 5, cursor).includes('[')) patternType = 'tag';
+	else if (text.slice(cursor - 5, cursor).includes('[')) {
+		// Check if this is a tag pattern (not a checkbox)
+		const bracketContext = text.slice(Math.max(0, cursor - 10), cursor);
+		const bracketIndex = bracketContext.lastIndexOf('[');
+		if (bracketIndex !== -1) {
+			const afterBracket = bracketContext.slice(bracketIndex + 1);
+			// Only trigger tag completions if there's content after '[' that's not checkbox-related
+			if (afterBracket.length > 0 && !/^[xX\s,;]*$/.test(afterBracket)) {
+				patternType = 'tag';
+			}
+		}
+	}
 	else if (text.slice(cursor - 5, cursor).includes('+')) patternType = 'assignee';
 
 	if (!patternType) return null;

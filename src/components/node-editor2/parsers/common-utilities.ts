@@ -6,7 +6,7 @@
 import { parseDateString, formatDateForDisplay as formatDateDisplay } from './date-parser';
 
 // Pattern types supported by the completion system
-export type PatternType = 'date' | 'priority' | 'color' | 'tag' | 'assignee';
+export type PatternType = 'date' | 'priority' | 'color' | 'tag' | 'assignee' | 'checkbox';
 
 /**
  * Format color values for display
