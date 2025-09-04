@@ -46,8 +46,12 @@ const extractMetadataFromPatterns = (patterns: Array<{type: string, value: strin
 				}
 				break;
 			case 'priority':
-				if (!result.priority && ['low', 'medium', 'high'].includes(pattern.value)) {
-					result.priority = pattern.value as 'low' | 'medium' | 'high';
+				if (!result.priority) {
+					// Accept all priority values that are suggested by completions
+					const validPriorities = ['low', 'medium', 'high', 'critical', 'urgent', 'asap', 'blocked', 'waiting'];
+					if (validPriorities.includes(pattern.value.toLowerCase())) {
+						result.priority = pattern.value.toLowerCase();
+					}
 				}
 				break;
 			case 'assignee':

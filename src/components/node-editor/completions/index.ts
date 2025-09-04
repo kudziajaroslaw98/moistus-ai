@@ -144,48 +144,174 @@ export const getCompletionsForPattern = (patternType: string, query: string): Co
 
 /**
  * Universal completion source for CodeMirror
- * Detects patterns and provides appropriate completions
+ * Detects patterns and provides appropriate completions with improved pattern detection
  */
 export const universalCompletionSource = (context: any) => {
-	const word = context.matchBefore(/\w*/);
-	if (!word) return null;
-
 	const text = context.state.doc.toString();
 	const cursor = context.pos;
 	
-	// Simple pattern detection
-	let patternType = '';
-	if (text.slice(cursor - 5, cursor).includes('@')) patternType = 'date';
-	else if (text.slice(cursor - 5, cursor).includes('#')) patternType = 'priority';
-	else if (text.slice(cursor - 8, cursor).includes('color:')) patternType = 'color';
-	else if (text.slice(cursor - 5, cursor).includes('[')) {
-		// Check if this is a tag pattern (not a checkbox)
-		const bracketContext = text.slice(Math.max(0, cursor - 10), cursor);
-		const bracketIndex = bracketContext.lastIndexOf('[');
-		if (bracketIndex !== -1) {
-			const afterBracket = bracketContext.slice(bracketIndex + 1);
-			// Only trigger tag completions if there's content after '[' that's not checkbox-related
-			if (afterBracket.length > 0 && !/^[xX\s,;]*$/.test(afterBracket)) {
-				patternType = 'tag';
+	// Look at text before cursor to find pattern triggers
+	const beforeCursor = text.slice(Math.max(0, cursor - 20), cursor);
+	
+	// Define pattern matchers with their triggers and word boundaries
+	const patternMatchers = [
+		{
+			pattern: /@(\w*)$/,
+			type: 'date',
+			triggerLength: 1 // '@' character
+		},
+		{
+			pattern: /#(\w*)$/,
+			type: 'priority',
+			triggerLength: 1 // '#' character
+		},
+		{
+			pattern: /color:(\w*)$/,
+			type: 'color',
+			triggerLength: 6 // 'color:' length
+		},
+		{
+			pattern: /\+(\w*)$/,
+			type: 'assignee',
+			triggerLength: 1 // '+' character
+		},
+		{
+			pattern: /\[([^\]]*?)$/,
+			type: 'tag',
+			triggerLength: 1, // '[' character
+			validate: (match: RegExpMatchArray) => {
+				// Exclude checkbox patterns
+				const content = match[1];
+				return !/^[xX\s,;]*$/.test(content);
 			}
 		}
+	];
+	
+	// Find matching pattern
+	let matchedPattern = null;
+	let patternType = '';
+	let matchResult = null;
+	let queryStart = cursor;
+	
+	for (const matcher of patternMatchers) {
+		const match = beforeCursor.match(matcher.pattern);
+		if (match) {
+			// Validate match if validator provided
+			if (matcher.validate && !matcher.validate(match)) {
+				continue;
+			}
+			
+			matchedPattern = matcher;
+			patternType = matcher.type;
+			matchResult = match;
+			queryStart = cursor - match[1].length; // Start of the query part (after trigger)
+			break;
+		}
 	}
-	else if (text.slice(cursor - 5, cursor).includes('+')) patternType = 'assignee';
-
-	if (!patternType) return null;
-
-	const query = word.text;
+	
+	if (!patternType || !matchResult) return null;
+	
+	const query = matchResult[1] || ''; // The query part after the trigger
 	const completions = getCompletionsForPattern(patternType, query);
+	
+	if (completions.length === 0) return null;
 
 	return {
-		from: word.from,
+		from: queryStart,
 		options: completions.map(item => ({
 			label: item.value,
 			detail: item.description,
 			info: item.label,
+			type: getCompletionType(patternType),
+			section: {
+				name: getPatternSectionName(patternType),
+				rank: getPatternRank(patternType)
+			},
+			boost: getPatternBoost(patternType, item.value, query)
 		}))
 	};
 };
+
+/**
+ * Get completion type for styling
+ */
+function getCompletionType(patternType: string): string {
+	switch (patternType) {
+		case 'date': return 'keyword';
+		case 'priority': return 'variable';
+		case 'color': return 'property';
+		case 'tag': return 'type';
+		case 'assignee': return 'function';
+		default: return 'text';
+	}
+}
+
+/**
+ * Get section name for grouping
+ */
+function getPatternSectionName(patternType: string): string {
+	switch (patternType) {
+		case 'date': return 'Dates';
+		case 'priority': return 'Priority';
+		case 'color': return 'Colors';
+		case 'tag': return 'Tags';
+		case 'assignee': return 'Assignees';
+		default: return 'Patterns';
+	}
+}
+
+/**
+ * Get section rank for ordering (lower numbers appear first)
+ */
+function getPatternRank(patternType: string): number {
+	switch (patternType) {
+		case 'date': return 5;
+		case 'priority': return 6;
+		case 'assignee': return 7;
+		case 'tag': return 8;
+		case 'color': return 9;
+		default: return 10;
+	}
+}
+
+/**
+ * Calculate boost for relevance sorting
+ */
+function getPatternBoost(patternType: string, value: string, query: string): number {
+	let boost = 0;
+	
+	// Exact match gets highest boost
+	if (value.toLowerCase() === query.toLowerCase()) {
+		boost += 100;
+	}
+	// Starts with query gets high boost
+	else if (value.toLowerCase().startsWith(query.toLowerCase())) {
+		boost += 50;
+	}
+	// Contains query gets medium boost
+	else if (value.toLowerCase().includes(query.toLowerCase())) {
+		boost += 25;
+	}
+	
+	// Priority-specific boosts
+	if (patternType === 'priority') {
+		const priorityBoosts: Record<string, number> = {
+			'high': 10, 'urgent': 9, 'critical': 8, 'asap': 7,
+			'medium': 5, 'low': 3, 'blocked': 2, 'waiting': 1
+		};
+		boost += priorityBoosts[value] || 0;
+	}
+	
+	// Date-specific boosts
+	if (patternType === 'date') {
+		const dateBoosts: Record<string, number> = {
+			'today': 15, 'tomorrow': 10, 'yesterday': 5
+		};
+		boost += dateBoosts[value] || 0;
+	}
+	
+	return boost;
+}
 
 // Export as default for backward compatibility
 export default universalCompletionSource;

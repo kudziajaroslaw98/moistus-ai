@@ -205,8 +205,15 @@ export const createEnhancedEditor = (
 	});
 };
 
-// Export the new extensions
+// Export the new extensions and completion functions
 export {
 	createCommandCompletions,
 	createCommandDecorations
 };
+
+// Export completion functions for integration
+export { 
+	commandCompletions,
+	nodeTypeCompletions,
+	slashCommandCompletions
+} from './command-completions';

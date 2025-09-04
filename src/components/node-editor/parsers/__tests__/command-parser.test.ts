@@ -1,5 +1,5 @@
 /**
- * Command Parser Tests
+ * Comprehensive Command Parser Tests
  * 
  * Tests the command parsing functionality for:
  * - Node type detection ($nodeType patterns)
@@ -8,6 +8,8 @@
  * - Integration with command registry
  * - Cursor position handling
  * - Edge cases and error handling
+ * - Performance optimizations
+ * - Unicode and international support
  */
 
 import {
@@ -21,8 +23,8 @@ import {
   hasCommandTriggers,
   extractAllCommandTriggers,
   debugParseText
-} from '../parsers/command-parser';
-import { commandRegistry } from '../commands/command-registry';
+} from '../command-parser';
+import { commandRegistry } from '../../commands/command-registry';
 
 describe('Node Type Detection', () => {
   describe('Basic Node Type Detection', () => {

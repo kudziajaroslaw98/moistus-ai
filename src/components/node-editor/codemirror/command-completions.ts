@@ -486,5 +486,6 @@ export {
   slashCommandCompletions,
   nodeTypeChangeEffect,
   commandExecutedEffect,
-  commandCompletionState
+  commandCompletionState,
+  mapTriggerToNodeType
 };

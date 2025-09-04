@@ -3,24 +3,8 @@
  * Entry point for the command system used in inline node type switching
  */
 
-export {
-	commandRegistry,
-	registerDefaultCommands,
-	executeCommand,
-	getCommandsByCategory,
-	getCommandsByTriggerPrefix,
-	searchCommands,
-} from './default-commands';
-
-export type {
-	Command,
-	CommandContext,
-	CommandResult,
-	CommandAction,
-} from './default-commands';
-
-// Export the enhanced command registry
-export { CommandRegistry, commandRegistry as registry } from './command-registry';
+// Export the enhanced command registry as main export
+export { CommandRegistry, commandRegistry } from './command-registry';
 
 // Export command parser utilities
 export {
@@ -37,10 +21,11 @@ export type {
 
 // Export enhanced types
 export type {
-	Command as EnhancedCommand,
+	Command,
 	CommandCategory,
 	CommandTrigger,
+	CommandContext,
+	CommandResult,
 	CommandSearchOptions,
-	CommandResult as EnhancedCommandResult,
 	RegistryStats,
 } from './types';

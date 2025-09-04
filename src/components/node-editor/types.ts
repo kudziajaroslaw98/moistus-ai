@@ -62,11 +62,14 @@ export interface NodeCommand {
 // Parser types
 export type QuickParser<T = any> = (input: string) => T;
 
+// Priority levels supported by the system
+export type PriorityLevel = 'low' | 'medium' | 'high' | 'critical' | 'urgent' | 'asap' | 'blocked' | 'waiting';
+
 // Parsed data types for each node type
 export interface ParsedNoteData {
 	content: string;
 	tags?: string[];
-	priority?: 'low' | 'medium' | 'high';
+	priority?: PriorityLevel;
 }
 
 export interface ParsedTaskData {
@@ -81,7 +84,7 @@ export interface ParsedTaskData {
 		}>;
 	}>;
 	dueDate?: Date;
-	priority?: 'low' | 'medium' | 'high';
+	priority?: PriorityLevel;
 	assignee?: string;
 	tags?: string[];
 }

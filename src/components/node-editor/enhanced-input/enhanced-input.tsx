@@ -11,7 +11,7 @@ import { ValidationTooltip } from './validation-tooltip';
 import { getValidationResults } from '../validation';
 import universalCompletionSource from '../completions';
 import { validationDecorations, patternDecorations } from '../codemirror/decorations';
-import { createCommandCompletions, createCommandDecorations } from '../codemirror';
+import { createCommandDecorations, commandCompletions } from '../codemirror';
 
 interface EnhancedInputProps {
 	value: string;
@@ -59,7 +59,8 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 		const editableCompartment = useRef(new Compartment());
 		const [validationTooltipOpen, setValidationTooltipOpen] = useState(false);
 		const initializedRef = useRef(false);
-		const isUserTypingRef = useRef(false);
+		const isInternalChangeRef = useRef(false);
+		const lastKnownValueRef = useRef(value);
 
 		// Get validation results with error boundary
 		const validationErrors = useMemo(() => {
@@ -118,7 +119,48 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 			}
 		}, []);
 
-		// Initialize CodeMirror editor with DOM stability checks
+		// Define event handlers outside useEffect for proper cleanup access
+		const handleNodeTypeChange = useCallback((event: CustomEvent) => {
+			try {
+				console.log('Node type change event:', event.detail);
+				
+				// Call parent callback if provided
+				if (onNodeTypeChange && event.detail?.nodeType) {
+					onNodeTypeChange(event.detail.nodeType);
+				}
+				
+				// Emit a custom event that parent components can listen to (backward compatibility)
+				const nodeTypeChangeEvent = new CustomEvent('nodeEditorTypeChange', {
+					detail: event.detail,
+					bubbles: true
+				});
+				editorViewRef.current?.dom.dispatchEvent(nodeTypeChangeEvent);
+			} catch (error) {
+				console.error('Error handling node type change:', error);
+			}
+		}, [onNodeTypeChange]);
+		
+		const handleCommandExecuted = useCallback((event: CustomEvent) => {
+			try {
+				console.log('Command executed event:', event.detail);
+				
+				// Call parent callback if provided
+				if (onCommandExecuted && event.detail) {
+					onCommandExecuted(event.detail);
+				}
+				
+				// Emit a custom event that parent components can listen to (backward compatibility)
+				const commandExecutedEvent = new CustomEvent('nodeEditorCommandExecuted', {
+					detail: event.detail,
+					bubbles: true
+				});
+				editorViewRef.current?.dom.dispatchEvent(commandExecutedEvent);
+			} catch (error) {
+				console.error('Error handling command executed:', error);
+			}
+		}, [onCommandExecuted]);
+
+		// Initialize CodeMirror editor with stable dependencies (avoids recreation on callback changes)
 		useEffect(() => {
 			if (!editorRef.current || editorViewRef.current || !editorRef.current.isConnected) {
 				return;
@@ -126,9 +168,6 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 
 			console.log('Initializing CodeMirror editor...')
 			
-			// Define event handlers for cleanup access
-			let handleNodeTypeChange: (event: CustomEvent) => void;
-			let handleCommandExecuted: (event: CustomEvent) => void;
 			try {
 				// Build extensions array based on feature flags
 				const extensions = [
@@ -139,34 +178,62 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 					patternDecorations,
 				];
 
-				// Add command extensions if enabled (highest priority)
+				// Build completion sources array
+				const completionSources = [];
+
+				// Add universal completion for patterns (base priority)
+				completionSources.push(universalCompletionSource);
+
+				// Add command completions source if enabled (higher priority)
 				if (enableCommands) {
-					extensions.push(
-						createCommandCompletions(), // Command completions first
-						createCommandDecorations()  // Command decorations
-					);
+					completionSources.unshift(commandCompletions); // Higher priority
+					extensions.push(createCommandDecorations()); // Add command decorations
 				}
 
-				// Add universal completion for patterns (lower priority)
+				// Add combined autocompletion extension
 				extensions.push(
 					autocompletion({
-						override: [universalCompletionSource],
-						maxRenderedOptions: 12,
-						defaultKeymap: !enableCommands, // Let command completions handle keymap if enabled
+						override: completionSources,
+						maxRenderedOptions: 15,
+						defaultKeymap: true,
 						closeOnBlur: true,
 						activateOnTyping: true,
 						activateOnCompletion: () => true,
-						interactionDelay: enableCommands ? 100 : 75, // Slightly higher delay when commands enabled
+						interactionDelay: enableCommands ? 100 : 75,
 						selectOnOpen: false,
 						optionClass: (completion) => {
-							const classes = ['pattern-completion-item'];
-							if (completion.section?.name) {
-								classes.push(`completion-category-${completion.section.name.toLowerCase()}`);
+							const classes = [];
+							
+							// Add type-specific classes
+							if (completion.section && typeof completion.section === 'object' && 'name' in completion.section) {
+								const sectionName = completion.section.name;
+								if (sectionName === 'Node Types') {
+									classes.push('command-completion-item', `completion-section-${sectionName.toLowerCase().replace(/\s+/g, '-')}`);
+								} else {
+									classes.push('pattern-completion-item', `completion-category-${sectionName.toLowerCase()}`);
+								}
+							} else {
+								// Fallback for items without sections
+								classes.push('pattern-completion-item');
 							}
+							
 							if (completion.type) {
 								classes.push(`completion-type-${completion.type}`);
 							}
+							
 							return classes.join(' ');
+						},
+						compareCompletions: (a, b) => {
+							// Prioritize by boost, then section rank, then alphabetical
+							const boostDiff = (b.boost || 0) - (a.boost || 0);
+							if (boostDiff !== 0) return boostDiff;
+							
+							const aSectionRank = (a.section && typeof a.section === 'object' && 'rank' in a.section) ? a.section.rank : 10;
+							const bSectionRank = (b.section && typeof b.section === 'object' && 'rank' in b.section) ? b.section.rank : 10;
+							const sectionDiff = aSectionRank - bSectionRank;
+							if (sectionDiff !== 0) return sectionDiff;
+							
+							return a.label.localeCompare(b.label);
 						}
 					})
 				);
@@ -177,15 +244,11 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 						...extensions,
 					EditorView.updateListener.of((update) => {
 						try {
-							if (update.docChanged) {
-								// Only call onChange for user-initiated changes
+							if (update.docChanged && !isInternalChangeRef.current) {
+								// This is a user-initiated change
 								const newValue = update.state.doc.toString();
-								isUserTypingRef.current = true;
+								lastKnownValueRef.current = newValue;
 								onChange(newValue);
-								// Reset the flag after a brief delay to allow React to process
-								setTimeout(() => {
-									isUserTypingRef.current = false;
-								}, 50);
 								
 								// Debug log for completion testing - supports patterns and commands
 								const patterns = ['@', '#', 'color:', '[', '+'];
@@ -358,54 +421,6 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 
 				editorViewRef.current = view;
 				initializedRef.current = true;
-				
-				// Define event handlers
-				handleNodeTypeChange = (event: CustomEvent) => {
-					try {
-						console.log('Node type change event:', event.detail);
-						
-						// Call parent callback if provided
-						if (onNodeTypeChange && event.detail?.nodeType) {
-							onNodeTypeChange(event.detail.nodeType);
-						}
-						
-						// Emit a custom event that parent components can listen to (backward compatibility)
-						const nodeTypeChangeEvent = new CustomEvent('nodeEditorTypeChange', {
-							detail: event.detail,
-							bubbles: true
-						});
-						view.dom.dispatchEvent(nodeTypeChangeEvent);
-					} catch (error) {
-						console.error('Error handling node type change:', error);
-					}
-				};
-				
-				handleCommandExecuted = (event: CustomEvent) => {
-					try {
-						console.log('Command executed event:', event.detail);
-						
-						// Call parent callback if provided
-						if (onCommandExecuted && event.detail) {
-							onCommandExecuted(event.detail);
-						}
-						
-						// Emit a custom event that parent components can listen to (backward compatibility)
-						const commandExecutedEvent = new CustomEvent('nodeEditorCommandExecuted', {
-							detail: event.detail,
-							bubbles: true
-						});
-						view.dom.dispatchEvent(commandExecutedEvent);
-					} catch (error) {
-						console.error('Error handling command executed:', error);
-					}
-				};
-				
-				// Only add command event listeners if commands are enabled
-				if (enableCommands) {
-					view.dom.addEventListener('nodeTypeChange', handleNodeTypeChange);
-					view.dom.addEventListener('commandExecuted', handleCommandExecuted);
-				}
-				
 				view.focus();
 			} catch (error) {
 				console.error('Failed to initialize CodeMirror editor:', error);
@@ -465,12 +480,6 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 
 			return () => {
 				try {
-					if (editorViewRef.current && enableCommands && handleNodeTypeChange && handleCommandExecuted) {
-						// Remove custom event listeners only if they were added
-						editorViewRef.current.dom.removeEventListener('nodeTypeChange', handleNodeTypeChange);
-						editorViewRef.current.dom.removeEventListener('commandExecuted', handleCommandExecuted);
-					}
-					
 					if (editorViewRef.current) {
 						editorViewRef.current.destroy();
 						editorViewRef.current = null;
@@ -481,7 +490,27 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 					console.error('Error cleaning up CodeMirror:', error);
 				}
 			};
-		}, []); // Empty dependency array - only run once
+		}, [enableCommands, disabled]); // Only stable dependencies - no callbacks!
+
+		// Separate event listener management (can change without recreating editor)
+		useEffect(() => {
+			const view = editorViewRef.current;
+			if (!view || !view.dom || !enableCommands) {
+				return;
+			}
+
+			// Add command event listeners
+			view.dom.addEventListener('nodeTypeChange', handleNodeTypeChange);
+			view.dom.addEventListener('commandExecuted', handleCommandExecuted);
+
+			return () => {
+				// Clean up event listeners
+				if (view.dom) {
+					view.dom.removeEventListener('nodeTypeChange', handleNodeTypeChange);
+					view.dom.removeEventListener('commandExecuted', handleCommandExecuted);
+				}
+			};
+		}, [handleNodeTypeChange, handleCommandExecuted, enableCommands]);
 
 		// Handle disabled state changes with DOM validity check
 		useEffect(() => {
@@ -497,9 +526,9 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 			}
 		}, [disabled]);
 
-		// DISABLED: External value sync is causing the clearing issue
-		// The editor will be controlled entirely by user input
-		// External updates will be handled differently when needed
+		// Disable external value sync - let CodeMirror manage its own state
+		// The editor will update the parent through onChange callbacks
+		// This prevents cursor reset issues
 
 		return (
 			<>

@@ -35,6 +35,12 @@ export const nodeCommands: NodeCommand[] = [
 		examples: ['Meeting notes @important', 'Project update #in-progress'],
 		parsingPatterns: [
 			{
+				pattern: '$note',
+				description: 'Switch to note node type',
+				category: 'metadata',
+				example: '$note Meeting notes @important',
+			},
+			{
 				pattern: '#priority',
 				description: 'Set priority level',
 				examples: ['#high', '#medium', '#low'],
@@ -91,6 +97,12 @@ export const nodeCommands: NodeCommand[] = [
 			'Buy milk, Send email, Call client @today',
 		],
 		parsingPatterns: [
+			{
+				pattern: '$task',
+				description: 'Switch to task list node type',
+				category: 'metadata',
+				example: '$task Review PR; Fix bugs @friday #high',
+			},
 			{
 				pattern: '@date',
 				description: 'Set due date',
@@ -175,6 +187,12 @@ export const nodeCommands: NodeCommand[] = [
 		examples: ['```js const sum = (a, b) => a + b', 'python file:utils.py'],
 		parsingPatterns: [
 			{
+				pattern: '$code',
+				description: 'Switch to code block node type',
+				category: 'metadata',
+				example: '$code ```js const sum = (a, b) => a + b',
+			},
+			{
 				pattern: '```language',
 				description: 'Code block with syntax highlighting',
 				examples: ['```javascript', '```python', '```sql'],
@@ -221,6 +239,12 @@ export const nodeCommands: NodeCommand[] = [
 		examples: ['https://example.com/diagram.png "System Architecture"'],
 		parsingPatterns: [
 			{
+				pattern: '$image',
+				description: 'Switch to image node type',
+				category: 'metadata',
+				example: '$image https://example.com/diagram.png "System Architecture"',
+			},
+			{
 				pattern: '"alt text"',
 				description: 'Add alt text after URL',
 				examples: ['https://example.com/image.jpg "Description"'],
@@ -265,6 +289,12 @@ export const nodeCommands: NodeCommand[] = [
 		],
 		examples: ['https://docs.example.com/api "API Documentation"'],
 		parsingPatterns: [
+			{
+				pattern: '$link',
+				description: 'Switch to resource link node type',
+				category: 'metadata',
+				example: '$link https://docs.example.com/api "API Documentation"',
+			},
 			{
 				pattern: '"title"',
 				description: 'Add title after URL',
@@ -312,6 +342,12 @@ export const nodeCommands: NodeCommand[] = [
 		],
 		parsingPatterns: [
 			{
+				pattern: '$question',
+				description: 'Switch to question node type',
+				category: 'metadata',
+				example: '$question How can we improve user engagement?',
+			},
+			{
 				pattern: '[yes/no]',
 				description: 'Yes/no question type',
 				examples: ['[yes/no]', '[y/n]'],
@@ -356,6 +392,12 @@ export const nodeCommands: NodeCommand[] = [
 		],
 		examples: ['⚠️ Breaking change in v2.0', '✅ Deployment successful'],
 		parsingPatterns: [
+			{
+				pattern: '$annotation',
+				description: 'Switch to annotation node type',
+				category: 'metadata',
+				example: '$annotation ⚠️ Breaking change in v2.0',
+			},
 			{
 				pattern: '⚠️',
 				description: 'Warning annotation',
@@ -417,6 +459,12 @@ export const nodeCommands: NodeCommand[] = [
 			'Important message color:red @32px',
 		],
 		parsingPatterns: [
+			{
+				pattern: '$text',
+				description: 'Switch to text node type',
+				category: 'metadata',
+				example: '$text **Bold text** @24px align:center',
+			},
 			{
 				pattern: '@size',
 				description: 'Set font size',

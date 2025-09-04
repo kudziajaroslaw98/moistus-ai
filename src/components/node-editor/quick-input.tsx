@@ -26,6 +26,7 @@ import {
 	type CommandTriggerResult,
 } from './commands';
 import type { AvailableNodeTypes } from '@/types/available-node-types';
+import { nodeCommands } from './node-commands';
 
 const theme = {
 	container: 'p-4',
@@ -98,17 +99,20 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 		return () => window.removeEventListener('keydown', handleKeyDown);
 	}, [legendCollapsed]);
 
-	// Process node type switches automatically
+	// Process node type switches automatically (legacy fallback only)
 	useEffect(() => {
 		if (!value || lastProcessedText.current === value) {
 			return;
 		}
 
-		// Check for node type switches
+		// Only use legacy processing if commands are disabled or as fallback
+		// The primary processing should happen via CodeMirror events
 		if (shouldAutoProcessSwitch(value, currentNodeType)) {
 			const processed = processNodeTypeSwitch(value, cursorPosition, currentNodeType);
 			
 			if (processed.hasSwitch && processed.nodeType && processed.nodeType !== currentNodeType) {
+				console.log('Legacy node type switch detected:', processed.nodeType);
+				
 				// Update node type and clean text
 				setCurrentNodeType(processed.nodeType);
 				setValue(processed.processedText);
@@ -130,16 +134,19 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 	// Parse input in real-time for preview using current node type
 	useEffect(() => {
 		// Get the current command configuration based on node type
-		const currentCommand = { ...command, nodeType: currentNodeType };
+		const currentCommand = nodeCommands.find(cmd => cmd.nodeType === currentNodeType) || command;
 		
-		if (!value.trim() || !currentCommand.quickParse) {
+		// Clean the input by removing any $nodeType prefix (e.g., $task, $note)
+		const cleanValue = value.replace(/^\$\w+\s*/, '').trim();
+		
+		if (!cleanValue || !currentCommand.quickParse) {
 			setPreview(null);
 			setError(null);
 			return;
 		}
 
 		try {
-			const parsed = currentCommand.quickParse(value);
+			const parsed = currentCommand.quickParse(cleanValue);
 			setPreview(parsed);
 			setError(null);
 		} catch (err) {
@@ -156,10 +163,14 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 			setIsCreating(true);
 			
 			// Use current node type for command configuration
-			const currentCommand = { ...command, nodeType: currentNodeType };
+			const currentCommand = nodeCommands.find(cmd => cmd.nodeType === currentNodeType) || command;
+			
+			// Clean the input by removing any $nodeType prefix
+			const cleanValue = value.replace(/^\$\w+\s*/, '').trim() || value;
+			
 			const nodeData = currentCommand.quickParse
-				? currentCommand.quickParse(value)
-				: { content: value };
+				? currentCommand.quickParse(cleanValue)
+				: { content: cleanValue };
 
 			const result = await createOrUpdateNodeFromCommand({
 				command: currentCommand,
@@ -274,13 +285,21 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 		}
 	}, [value, cursorPosition, currentNodeType]);
 
-	// Handle node type change from enhanced input
+	// Handle node type change from enhanced input (CodeMirror events)
 	const handleNodeTypeChange = useCallback((nodeType: AvailableNodeTypes) => {
 		if (nodeType !== currentNodeType) {
+			console.log('CodeMirror node type change:', nodeType);
+			
 			setCurrentNodeType(nodeType);
-			announceToScreenReader(`Switched to ${nodeType.replace('Node', '').toLowerCase()} node type`);
+			
+			// Update lastProcessedText to prevent legacy processing from interfering
+			lastProcessedText.current = value;
+			
+			// Announce the change
+			const nodeTypeName = nodeType.replace('Node', '').toLowerCase();
+			announceToScreenReader(`Switched to ${nodeTypeName} node type`);
 		}
-	}, [currentNodeType]);
+	}, [currentNodeType, value]);
 
 	// Handle command execution from enhanced input
 	const handleCommandExecuted = useCallback((commandData: any) => {
@@ -370,7 +389,7 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 						transition={{ duration: 0.3, ease: 'easeInOut' }}
 					>
 						<ParsingLegend
-							patterns={command.parsingPatterns}
+							patterns={(nodeCommands.find(cmd => cmd.nodeType === currentNodeType) || command).parsingPatterns}
 							onPatternClick={handlePatternInsert}
 							isCollapsed={legendCollapsed}
 							onToggleCollapse={() => setLegendCollapsed(!legendCollapsed)}

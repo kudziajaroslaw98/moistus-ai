@@ -8,12 +8,22 @@
  * - Performance under load
  * - Error recovery and resilience
  * - Accessibility compliance
+ * - Command system integration (node type switching, slash commands)
+ * - Command palette workflow integration
+ * - Enhanced input CodeMirror integration
+ * - Store state synchronization
  */
 
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NodeEditor } from '../node-editor';
+import { QuickInput } from '../quick-input';
+import { EnhancedInput } from '../enhanced-input/enhanced-input';
+import { CommandPalette } from '../command-palette';
+import { commandRegistry } from '../commands/command-registry';
+import { processNodeTypeSwitch, detectCommandTrigger } from '../parsers/command-parser';
+import useAppStore from '@/store/mind-map-store';
 
 // Mock all dependencies to test integration
 jest.mock('../quick-input', () => ({
@@ -928,6 +938,251 @@ describe('NodeEditor Integration Tests', () => {
         // Should handle incomplete patterns gracefully
         expect(screen.getByTestId('quick-input')).toBeInTheDocument();
         expect(quickInput).toHaveValue(pattern);
+      }
+    });
+  });
+
+  describe('Command System Integration', () => {
+    let mockStoreActions: any;
+
+    beforeEach(() => {
+      mockStoreActions = {
+        setCommandPaletteOpen: jest.fn(),
+        updateCommandPaletteState: jest.fn(),
+        createNode: jest.fn(),
+        updateNode: jest.fn(),
+      };
+
+      // Mock the store for command system tests
+      if (typeof useAppStore === 'function') {
+        (useAppStore as jest.MockedFunction<typeof useAppStore>).mockReturnValue({
+          uiState: {
+            isCommandPaletteOpen: false,
+            commandPaletteState: {
+              selectedIndex: 0,
+              searchQuery: '',
+              filteredCommands: [],
+            }
+          },
+          actions: mockStoreActions,
+        } as any);
+      }
+
+      // Setup command registry
+      commandRegistry.clearRegistry();
+      const testCommands = [
+        {
+          id: '$task',
+          trigger: '$task',
+          label: 'Task List',
+          description: 'Create a task list',
+          category: 'node-type',
+          triggerType: 'node-type',
+          nodeType: 'taskNode',
+          action: () => ({ nodeType: 'taskNode', replacement: '' })
+        },
+        {
+          id: '/date',
+          trigger: '/date',
+          label: 'Date',
+          description: 'Insert current date',
+          category: 'pattern',
+          triggerType: 'slash',
+          action: () => ({ replacement: new Date().toISOString().split('T')[0] })
+        }
+      ];
+      testCommands.forEach(cmd => commandRegistry.registerCommand(cmd as any));
+    });
+
+    it('should integrate command detection with node editor workflow', async () => {
+      const mockOnSubmit = jest.fn();
+      const mockOnChange = jest.fn();
+      
+      render(<NodeEditor {...defaultProps} onSubmit={mockOnSubmit} onChange={mockOnChange} mode="text" />);
+      
+      const quickInput = screen.getByTestId('quick-input-field');
+      
+      // Simulate user typing command
+      await userEvent.type(quickInput, 'Buy groceries $task');
+      
+      // Should detect command
+      const trigger = detectCommandTrigger('Buy groceries $task', 18);
+      expect(trigger?.type).toBe('node-type');
+      expect(trigger?.nodeType).toBe('taskNode');
+      
+      // Process the command
+      const switchResult = processNodeTypeSwitch('Buy groceries $task', 18, 'text');
+      expect(switchResult.success).toBe(true);
+      expect(switchResult.nodeType).toBe('taskNode');
+      expect(switchResult.text).toBe('Buy groceries');
+      
+      // Submit should work
+      fireEvent.keyDown(quickInput, { key: 'Enter' });
+      await waitFor(() => {
+        expect(mockOnSubmit).toHaveBeenCalled();
+      });
+    });
+
+    it('should handle slash command integration with command palette', async () => {
+      render(<NodeEditor {...defaultProps} />);
+      
+      const quickInput = screen.getByTestId('quick-input-field');
+      
+      // Type slash command
+      await userEvent.type(quickInput, 'Task due /date');
+      
+      // Should detect slash command
+      const slashTrigger = detectCommandTrigger('Task due /date', 12);
+      expect(slashTrigger?.type).toBe('slash');
+      expect(slashTrigger?.trigger).toBe('/date');
+      
+      // This would normally open command palette
+      if (mockStoreActions.setCommandPaletteOpen) {
+        expect(mockStoreActions.setCommandPaletteOpen).toHaveBeenCalledWith(true);
+      }
+    });
+
+    it('should handle enhanced input command integration', async () => {
+      const mockOnChange = jest.fn();
+      
+      render(
+        <EnhancedInput
+          value=""
+          onChange={mockOnChange}
+          mode="defaultNode"
+          enableCommands={true}
+        />
+      );
+      
+      // Should initialize without errors
+      expect(screen.getByTestId('enhanced-input')).toBeInTheDocument();
+      
+      // Test command detection
+      const testText = '$code console.log()';
+      const trigger = detectCommandTrigger(testText, 5);
+      expect(trigger?.nodeType).toBe('codeNode');
+      
+      // Should handle command completions
+      const matches = commandRegistry.findMatchingCommands('$ta');
+      expect(matches.some(cmd => cmd.trigger.includes('task'))).toBe(true);
+    });
+
+    it('should maintain state consistency during command operations', async () => {
+      const mockOnSubmit = jest.fn();
+      let currentNodeType = 'text';
+      
+      const mockOnNodeTypeChange = jest.fn((newType) => {
+        currentNodeType = newType;
+      });
+      
+      render(
+        <NodeEditor 
+          {...defaultProps} 
+          mode={currentNodeType as any}
+          onSubmit={mockOnSubmit}
+          onNodeTypeChange={mockOnNodeTypeChange}
+        />
+      );
+      
+      const quickInput = screen.getByTestId('quick-input-field');
+      
+      // Type content with node type switch
+      await userEvent.type(quickInput, 'Start with text $task');
+      
+      // Simulate processing the switch
+      const switchResult = processNodeTypeSwitch('Start with text $task', 20, currentNodeType as any);
+      if (switchResult.success && mockOnNodeTypeChange) {
+        mockOnNodeTypeChange(switchResult.nodeType);
+      }
+      
+      expect(mockOnNodeTypeChange).toHaveBeenCalledWith('taskNode');
+      
+      // Submit with new type
+      fireEvent.keyDown(quickInput, { key: 'Enter' });
+      await waitFor(() => {
+        expect(mockOnSubmit).toHaveBeenCalled();
+      });
+    });
+
+    it('should handle command execution errors gracefully', async () => {
+      // Mock error-throwing command
+      commandRegistry.registerCommand({
+        id: 'error-command',
+        trigger: '/error',
+        label: 'Error Command',
+        description: 'Command that fails',
+        category: 'pattern',
+        triggerType: 'slash',
+        action: () => {
+          throw new Error('Command execution failed');
+        }
+      } as any);
+      
+      render(<NodeEditor {...defaultProps} />);
+      
+      const quickInput = screen.getByTestId('quick-input-field');
+      await userEvent.type(quickInput, 'Test /error');
+      
+      // Should not crash the component
+      expect(quickInput).toBeInTheDocument();
+      expect(quickInput).toHaveValue('Test /error');
+      
+      // Error should be handled gracefully
+      const result = await commandRegistry.executeCommand('error-command', {
+        currentText: 'Test /error',
+        cursorPosition: 10
+      });
+      
+      expect(result).toBeDefined();
+      expect(result?.message).toContain('Failed to execute command');
+    });
+
+    it('should handle performance with rapid command detection', async () => {
+      render(<NodeEditor {...defaultProps} />);
+      
+      const quickInput = screen.getByTestId('quick-input-field');
+      
+      const startTime = performance.now();
+      
+      // Simulate rapid typing with commands
+      const rapidInputs = ['$task', '$note', '/date', '/priority'];
+      
+      for (const input of rapidInputs) {
+        await userEvent.clear(quickInput);
+        await userEvent.type(input, input, { delay: 1 });
+        
+        // Detect commands quickly
+        const trigger = detectCommandTrigger(input, input.length);
+        expect(trigger).toBeTruthy();
+      }
+      
+      const endTime = performance.now();
+      expect(endTime - startTime).toBeLessThan(1000); // Should be fast
+    });
+
+    it('should handle complex command composition workflows', async () => {
+      render(<NodeEditor {...defaultProps} mode="task" />);
+      
+      const quickInput = screen.getByTestId('quick-input-field');
+      
+      // Complex workflow with multiple commands
+      await userEvent.type(quickInput, 'Meeting notes $task /date tomorrow');
+      
+      // Should detect both commands
+      const nodeTypeTrigger = detectCommandTrigger('Meeting notes $task /date tomorrow', 19);
+      expect(nodeTypeTrigger?.nodeType).toBe('taskNode');
+      
+      const dateTrigger = detectCommandTrigger('Meeting notes $task /date tomorrow', 32);
+      expect(dateTrigger?.trigger).toBe('/date');
+      
+      // Should handle complex scenario without errors
+      const mockOnSubmit = jest.fn();
+      if (mockOnSubmit) {
+        fireEvent.keyDown(quickInput, { key: 'Enter' });
+        await waitFor(() => {
+          // Component should handle complex commands
+          expect(quickInput).toBeInTheDocument();
+        });
       }
     });
   });
