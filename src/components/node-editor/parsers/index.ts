@@ -8,8 +8,29 @@ export { parseTaskInput } from './task-parser';
 export { parseNoteInput, parseTextInput, parseAnnotationInput, parseQuestionInput } from './content-parsers';
 export { parseCodeInput, parseImageInput, parseResourceInput } from './media-parsers';
 
+// Export command parser functions
+export {
+  detectNodeTypeSwitch,
+  detectSlashCommand,
+  processNodeTypeSwitch,
+  isValidNodeTypeTrigger,
+  isValidSlashCommand,
+  getValidNodeTypeTriggers,
+  getValidSlashCommands,
+  hasCommandTriggers,
+  extractAllCommandTriggers,
+  debugParseText
+} from './command-parser';
+
 // Export utility types (no conflicts expected)
 export type { PatternType } from './common-utilities';
+
+// Export command parser types
+export type {
+  NodeTypeTrigger,
+  CommandTrigger,
+  NodeTypeSwitchResult
+} from './command-parser';
 
 // Import all parsers for registry
 import { parseTaskInput } from './task-parser';

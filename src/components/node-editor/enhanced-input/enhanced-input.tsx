@@ -10,8 +10,8 @@ import { mindmapLang, mindmapCSS } from '../codemirror/language';
 import { ValidationTooltip } from './validation-tooltip';
 import { getValidationResults } from '../validation';
 import universalCompletionSource from '../completions';
-import { validationDecorations } from '../codemirror/decorations';
-import { patternDecorations } from '../codemirror/decorations';
+import { validationDecorations, patternDecorations } from '../codemirror/decorations';
+import { createCommandCompletions, createCommandDecorations } from '../codemirror';
 
 interface EnhancedInputProps {
 	value: string;
@@ -25,6 +25,11 @@ interface EnhancedInputProps {
 	animate?: MotionProps['animate'];
 	transition?: MotionProps['transition'];
 	whileFocus?: MotionProps['whileFocus'];
+	// Command completion integration props
+	onNodeTypeChange?: (nodeType: string) => void;
+	onCommandExecuted?: (command: any) => void;
+	enableCommands?: boolean; // Feature flag
+	currentNodeType?: string; // Current node type context
 }
 
 export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
@@ -40,6 +45,11 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 		animate,
 		transition,
 		whileFocus,
+		// Command completion props
+		onNodeTypeChange,
+		onCommandExecuted,
+		enableCommands = true, // Default enabled
+		currentNodeType,
 		...rest
 	}, ref) => {
 		const editorRef = useRef<HTMLDivElement>(null);
@@ -115,72 +125,56 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 			}
 
 			console.log('Initializing CodeMirror editor...')
+			
+			// Define event handlers for cleanup access
+			let handleNodeTypeChange: (event: CustomEvent) => void;
+			let handleCommandExecuted: (event: CustomEvent) => void;
 			try {
-				editorState.current = EditorState.create({ 
-				doc: value,
-				extensions: [
+				// Build extensions array based on feature flags
+				const extensions = [
 					mindmapLang(),
-					validationDecorations,
-					patternDecorations,
 					EditorView.lineWrapping, // Enable line wrapping for long text
 					editableCompartment.current.of(EditorView.editable.of(!disabled)),
-					// Universal completion system with pattern detection
-					(() => {
-						try {
-							return autocompletion({
-								override: [universalCompletionSource],
-								maxRenderedOptions: 12, // Increased for more comprehensive results
-								defaultKeymap: true,
-								closeOnBlur: true,
-								activateOnTyping: true,
-								activateOnCompletion: () => true,
-								interactionDelay: 0,
-								selectOnOpen: false,
-								optionClass: (completion) => {
-									// Add custom CSS classes based on completion type
-									const classes = ['completion-item'];
-									if (completion.section?.name) {
-										classes.push(`completion-category-${completion.section.name.toLowerCase()}`);
-									}
-									if (completion.type) {
-										classes.push(`completion-type-${completion.type}`);
-									}
-									return classes.join(' ');
-								},
-								compareCompletions: (a, b) => {
-									// Custom sorting: boost first, then section rank, then alphabetical
-									const boostDiff = (b.boost || 0) - (a.boost || 0);
-									if (boostDiff !== 0) return boostDiff;
-									
-									const sectionDiff = (a.section?.rank || 10) - (b.section?.rank || 10);
-									if (sectionDiff !== 0) return sectionDiff;
-									
-									return a.label.localeCompare(b.label);
-								}
-							});
-						} catch (error) {
-							console.error('Universal completion extension failed:', error);
-							// Fallback to basic autocompletion
-							return autocompletion({
-								override: [(context) => {
-									const text = context.state.doc.toString();
-									if (text.includes('@')) {
-										return {
-											from: context.pos,
-											options: [
-												{ label: 'today', type: 'keyword' },
-												{ label: 'tomorrow', type: 'keyword' }
-											]
-										};
-									}
-									return null;
-								}],
-								maxRenderedOptions: 5,
-								defaultKeymap: true,
-								closeOnBlur: true
-							});
+					validationDecorations,
+					patternDecorations,
+				];
+
+				// Add command extensions if enabled (highest priority)
+				if (enableCommands) {
+					extensions.push(
+						createCommandCompletions(), // Command completions first
+						createCommandDecorations()  // Command decorations
+					);
+				}
+
+				// Add universal completion for patterns (lower priority)
+				extensions.push(
+					autocompletion({
+						override: [universalCompletionSource],
+						maxRenderedOptions: 12,
+						defaultKeymap: !enableCommands, // Let command completions handle keymap if enabled
+						closeOnBlur: true,
+						activateOnTyping: true,
+						activateOnCompletion: () => true,
+						interactionDelay: enableCommands ? 100 : 75, // Slightly higher delay when commands enabled
+						selectOnOpen: false,
+						optionClass: (completion) => {
+							const classes = ['pattern-completion-item'];
+							if (completion.section?.name) {
+								classes.push(`completion-category-${completion.section.name.toLowerCase()}`);
+							}
+							if (completion.type) {
+								classes.push(`completion-type-${completion.type}`);
+							}
+							return classes.join(' ');
 						}
-					})(),
+					})
+				);
+
+				editorState.current = EditorState.create({ 
+					doc: value,
+					extensions: [
+						...extensions,
 					EditorView.updateListener.of((update) => {
 						try {
 							if (update.docChanged) {
@@ -193,11 +187,14 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 									isUserTypingRef.current = false;
 								}, 50);
 								
-								// Debug log for completion testing - now supports all patterns
+								// Debug log for completion testing - supports patterns and commands
 								const patterns = ['@', '#', 'color:', '[', '+'];
-								const detectedPatterns = patterns.filter(pattern => newValue.includes(pattern));
-								if (detectedPatterns.length > 0) {
-									console.log(`Enhanced input: Pattern(s) detected [${detectedPatterns.join(', ')}], universal completion should be available`);
+								const commandTriggers = enableCommands ? ['$', '/'] : [];
+								const allTriggers = [...patterns, ...commandTriggers];
+								const detectedTriggers = allTriggers.filter(trigger => newValue.includes(trigger));
+								if (detectedTriggers.length > 0) {
+									const triggerTypes = enableCommands ? 'patterns/commands' : 'patterns';
+									console.log(`Enhanced input: ${triggerTypes} detected [${detectedTriggers.join(', ')}], completions should be available`);
 								}
 							}
 							if (update.selectionSet) {
@@ -361,6 +358,54 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 
 				editorViewRef.current = view;
 				initializedRef.current = true;
+				
+				// Define event handlers
+				handleNodeTypeChange = (event: CustomEvent) => {
+					try {
+						console.log('Node type change event:', event.detail);
+						
+						// Call parent callback if provided
+						if (onNodeTypeChange && event.detail?.nodeType) {
+							onNodeTypeChange(event.detail.nodeType);
+						}
+						
+						// Emit a custom event that parent components can listen to (backward compatibility)
+						const nodeTypeChangeEvent = new CustomEvent('nodeEditorTypeChange', {
+							detail: event.detail,
+							bubbles: true
+						});
+						view.dom.dispatchEvent(nodeTypeChangeEvent);
+					} catch (error) {
+						console.error('Error handling node type change:', error);
+					}
+				};
+				
+				handleCommandExecuted = (event: CustomEvent) => {
+					try {
+						console.log('Command executed event:', event.detail);
+						
+						// Call parent callback if provided
+						if (onCommandExecuted && event.detail) {
+							onCommandExecuted(event.detail);
+						}
+						
+						// Emit a custom event that parent components can listen to (backward compatibility)
+						const commandExecutedEvent = new CustomEvent('nodeEditorCommandExecuted', {
+							detail: event.detail,
+							bubbles: true
+						});
+						view.dom.dispatchEvent(commandExecutedEvent);
+					} catch (error) {
+						console.error('Error handling command executed:', error);
+					}
+				};
+				
+				// Only add command event listeners if commands are enabled
+				if (enableCommands) {
+					view.dom.addEventListener('nodeTypeChange', handleNodeTypeChange);
+					view.dom.addEventListener('commandExecuted', handleCommandExecuted);
+				}
+				
 				view.focus();
 			} catch (error) {
 				console.error('Failed to initialize CodeMirror editor:', error);
@@ -420,6 +465,12 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 
 			return () => {
 				try {
+					if (editorViewRef.current && enableCommands && handleNodeTypeChange && handleCommandExecuted) {
+						// Remove custom event listeners only if they were added
+						editorViewRef.current.dom.removeEventListener('nodeTypeChange', handleNodeTypeChange);
+						editorViewRef.current.dom.removeEventListener('commandExecuted', handleCommandExecuted);
+					}
+					
 					if (editorViewRef.current) {
 						editorViewRef.current.destroy();
 						editorViewRef.current = null;

@@ -13,6 +13,7 @@ import type {
 import type { SubscriptionSlice } from '@/store/slices/subscription-slice';
 import type { UserProfileSlice } from '@/store/slices/user-profile-slice';
 import type { SuggestionsSlice } from '@/store/slices/suggestions-slice';
+import type { NodeCommand } from '@/components/node-editor/types';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import { AvailableNodeTypes } from '@/types/available-node-types';
@@ -458,6 +459,25 @@ export interface NodeEditorOptions {
 	suggestedType?: AvailableNodeTypes | null;
 }
 
+// CommandPalette types
+export interface CommandPaletteState {
+	isOpen: boolean;
+	position: XYPosition;
+	searchQuery: string;
+	selectedIndex: number;
+	filteredCommands: NodeCommand[];
+	trigger: '/' | '$' | null;
+	anchorPosition: number;
+	activeNodeType: string;
+}
+
+export interface CommandPaletteOptions {
+	position: XYPosition;
+	trigger: '/' | '$' | null;
+	anchorPosition: number;
+	activeNodeType?: string;
+}
+
 export interface UIStateSlice {
 	// UI state
 	popoverOpen: Popovers;
@@ -470,6 +490,7 @@ export interface UIStateSlice {
 	snapLines: SnapLine[];
 	inlineCreator: InlineCreatorState;
 	nodeEditor: NodeEditorState;
+	commandPalette: CommandPaletteState;
 
 	// UI setters
 	setPopoverOpen: (popover: Partial<Popovers>) => void;
@@ -494,6 +515,14 @@ export interface UIStateSlice {
 	setNodeEditorCommand: (command: string) => void;
 	setNodeEditorMode: (mode: 'quick' | 'structured') => void;
 	setNodeEditorFilterQuery: (query: string) => void;
+
+	// CommandPalette actions
+	openCommandPalette: (options: CommandPaletteOptions) => void;
+	closeCommandPalette: () => void;
+	setCommandPaletteSearch: (query: string) => void;
+	setCommandPaletteSelection: (index: number) => void;
+	navigateCommandPalette: (direction: 'up' | 'down') => void;
+	executeCommand: (command: NodeCommand) => void;
 }
 
 // Enhanced Form State

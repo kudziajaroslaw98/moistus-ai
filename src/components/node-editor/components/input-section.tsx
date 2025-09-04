@@ -12,6 +12,11 @@ interface InputSectionProps {
 	placeholder: string;
 	disabled: boolean;
 	className?: string;
+	// Command system integration props
+	enableCommands?: boolean;
+	currentNodeType?: string;
+	onNodeTypeChange?: (nodeType: string) => void;
+	onCommandExecuted?: (command: any) => void;
 }
 
 export const InputSection: React.FC<InputSectionProps> = ({
@@ -22,6 +27,11 @@ export const InputSection: React.FC<InputSectionProps> = ({
 	placeholder,
 	disabled,
 	className,
+	// Command system props
+	enableCommands,
+	currentNodeType,
+	onNodeTypeChange,
+	onCommandExecuted,
 }) => {
 	const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -42,6 +52,10 @@ export const InputSection: React.FC<InputSectionProps> = ({
 				scale: 1.01,
 				transition: { duration: 0.2 },
 			}}
+			enableCommands={enableCommands}
+			currentNodeType={currentNodeType}
+			onNodeTypeChange={onNodeTypeChange}
+			onCommandExecuted={onCommandExecuted}
 		/>
 	);
 };
