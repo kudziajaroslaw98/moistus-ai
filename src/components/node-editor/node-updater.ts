@@ -178,16 +178,20 @@ export const transformNodeToQuickInputString = (
 	switch (nodeType) {
 		case 'defaultNode':
 			let content = data.content || '';
-			if (data.metadata?.tags && data.metadata.tags.length > 0) {
-				content += `\n[${data.metadata.tags.join(', ')}]`;
+			const tags = data.tags || data.metadata?.tags;
+			const priority = data.priority || data.metadata?.priority;
+			
+			if (tags && tags.length > 0) {
+				content += `\n[${tags.join(', ')}]`;
 			}
-			if (data.metadata?.priority && data.metadata.priority !== 'medium') {
-				content += ` #${data.metadata.priority}`;
+			if (priority && priority !== 'medium') {
+				content += ` #${priority}`;
 			}
 			return content;
 
 		case 'taskNode':
-			const tasks = data.metadata?.tasks || [];
+			// Try both flat structure (data.tasks) and nested structure (data.metadata.tasks)
+			const tasks = data.tasks || data.metadata?.tasks || [];
 			let taskContent = '';
 			tasks.forEach((task: any) => {
 				taskContent += `${task.isComplete ? '[x]' : '[ ]'} ${task.text}\n`;
@@ -195,21 +199,27 @@ export const transformNodeToQuickInputString = (
 			
 			// Add metadata patterns with new unique prefixes
 			const metadataParts = [];
-			if (data.metadata?.dueDate) {
-				metadataParts.push(`^${data.metadata.dueDate.slice(0, 10)}`);
+			const taskDueDate = data.dueDate || data.metadata?.dueDate;
+			const taskPriority = data.priority || data.metadata?.priority;
+			const taskAssignee = data.assignee || data.metadata?.assignee;
+			const taskTags = data.tags || data.metadata?.tags;
+			
+			if (taskDueDate) {
+				const dateStr = typeof taskDueDate === 'string' ? taskDueDate : taskDueDate.toString();
+				metadataParts.push(`^${dateStr.slice(0, 10)}`);
 			}
-			if (data.metadata?.priority && data.metadata.priority !== 'medium') {
-				metadataParts.push(`#${data.metadata.priority}`);
+			if (taskPriority && taskPriority !== 'medium') {
+				metadataParts.push(`#${taskPriority}`);
 			}
-			if (data.metadata?.assignee) {
+			if (taskAssignee) {
 				// Fix: properly handle assignee array
-				const assigneeList = Array.isArray(data.metadata.assignee) 
-					? data.metadata.assignee.join(',') 
-					: data.metadata.assignee;
+				const assigneeList = Array.isArray(taskAssignee) 
+					? taskAssignee.join(',') 
+					: taskAssignee;
 				metadataParts.push(`@${assigneeList}`);
 			}
-			if (data.metadata?.tags && data.metadata.tags.length > 0) {
-				metadataParts.push(`[${data.metadata.tags.join(', ')}]`);
+			if (taskTags && taskTags.length > 0) {
+				metadataParts.push(`[${taskTags.join(', ')}]`);
 			}
 			
 			if (metadataParts.length > 0) {
@@ -226,19 +236,26 @@ export const transformNodeToQuickInputString = (
 			return codeContent;
 
 		case 'imageNode':
-			let imageContent = data.metadata?.imageUrl || data.metadata?.url || '';
-			if (data.metadata?.altText) {
-				imageContent += ` "${data.metadata.altText}"`;
+			const imageUrl = data.imageUrl || data.url || data.metadata?.imageUrl || data.metadata?.url || '';
+			const altText = data.altText || data.metadata?.altText;
+			const caption = data.caption || data.metadata?.caption;
+			
+			let imageContent = imageUrl;
+			if (altText) {
+				imageContent += ` "${altText}"`;
 			}
-			if (data.metadata?.caption) {
-				imageContent += ` cap:${data.metadata.caption}`;
+			if (caption) {
+				imageContent += ` cap:${caption}`;
 			}
 			return imageContent;
 
 		case 'resourceNode':
-			let resourceContent = data.metadata?.url || '';
-			if (data.metadata?.title) {
-				resourceContent += ` "${data.metadata.title}"`;
+			const resourceUrl = data.url || data.metadata?.url || '';
+			const resourceTitle = data.title || data.metadata?.title;
+			
+			let resourceContent = resourceUrl;
+			if (resourceTitle) {
+				resourceContent += ` "${resourceTitle}"`;
 			}
 			if (data.content) {
 				resourceContent += ` desc:${data.content}`;
@@ -255,7 +272,7 @@ export const transformNodeToQuickInputString = (
 				'note': '💡'
 			};
 			
-			const annotationType = data.metadata?.annotationType || 'note';
+			const annotationType = data.annotationType || data.type || data.metadata?.annotationType || 'note';
 			const emoji = typeEmojiMap[annotationType];
 			
 			if (emoji) {
@@ -267,11 +284,13 @@ export const transformNodeToQuickInputString = (
 
 		case 'questionNode':
 			let questionContent = data.content || '';
+			const questionType = data.type || data.metadata?.type;
+			const options = data.options || data.metadata?.options;
 			
-			if (data.metadata?.type === 'yes-no') {
+			if (questionType === 'yes-no') {
 				questionContent += ' [yes/no]';
-			} else if (data.metadata?.type === 'multiple-choice' && data.metadata?.options) {
-				questionContent += ` [${data.metadata.options.join(',')}]`;
+			} else if (questionType === 'multiple-choice' && options) {
+				questionContent += ` [${options.join(',')}]`;
 			}
 			
 			return questionContent;
@@ -280,22 +299,29 @@ export const transformNodeToQuickInputString = (
 			let textContent = data.content || '';
 			const metaParts = [];
 			
+			// Handle both flat and nested metadata structures
+			const fontSize = data.fontSize || data.metadata?.fontSize;
+			const textAlign = data.textAlign || data.metadata?.textAlign;
+			const textColor = data.textColor || data.metadata?.textColor;
+			const fontWeight = data.fontWeight || data.metadata?.fontWeight;
+			const fontStyle = data.fontStyle || data.metadata?.fontStyle;
+			
 			// Add formatting patterns with new unique prefixes
-			if (data.metadata?.fontSize && data.metadata.fontSize !== '14px') {
-				metaParts.push(`sz:${data.metadata.fontSize}`);
+			if (fontSize && fontSize !== '14px') {
+				metaParts.push(`sz:${fontSize}`);
 			}
-			if (data.metadata?.textAlign && data.metadata.textAlign !== 'left') {
-				metaParts.push(`align:${data.metadata.textAlign}`);
+			if (textAlign && textAlign !== 'left') {
+				metaParts.push(`align:${textAlign}`);
 			}
-			if (data.metadata?.textColor && data.metadata.textColor !== '#000000') {
-				metaParts.push(`color:${data.metadata.textColor}`);
+			if (textColor && textColor !== '#000000') {
+				metaParts.push(`color:${textColor}`);
 			}
 			
 			// Apply text formatting
-			if (data.metadata?.fontWeight === 'bold') {
+			if (fontWeight === 'bold') {
 				textContent = `**${textContent}**`;
 			}
-			if (data.metadata?.fontStyle === 'italic') {
+			if (fontStyle === 'italic') {
 				textContent = `*${textContent}*`;
 			}
 			
