@@ -73,7 +73,7 @@ export const formatPriorityForDisplay = (priority: string): string => {
 
 /**
  * Extract all embedded patterns from text
- * Parses @dates, #priority, [tags], +assignee, color:value patterns
+ * Parses ^dates, #priority, [tags], @assignee, color:value patterns
  */
 export const parseEmbeddedPatterns = (text: string): { 
 	cleanText: string; 
@@ -88,9 +88,9 @@ export const parseEmbeddedPatterns = (text: string): {
 	
 	// Define pattern matchers with their type information
 	const patternMatchers = [
-		// Date patterns (@date) - must come first to avoid conflicts
+		// Date patterns (^date) - must come first to avoid conflicts
 		{
-			regex: /@([^@\s#\[\]+]+)/g,
+			regex: /\^([^\^\s#\[\]+]+)/g,
 			type: 'date' as PatternType,
 			extract: (match: RegExpExecArray) => {
 				const dateStr = match[1];
@@ -145,9 +145,9 @@ export const parseEmbeddedPatterns = (text: string): {
 				};
 			}
 		},
-		// Assignee patterns (+assignee)
+		// Assignee patterns (@assignee)
 		{
-			regex: /\+([^+\s@#\[\]:]+)/g,
+			regex: /@([^@\s#\[\]:]+)/g,
 			type: 'assignee' as PatternType,
 			extract: (match: RegExpExecArray) => {
 				const assignee = match[1];

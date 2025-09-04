@@ -61,12 +61,12 @@ export const parseCodeInput = (input: string): ParsedCodeData => {
 
 /**
  * Parse image input with alt text and captions
- * Supports: URL "alt text", URL caption:description
+ * Supports: URL "alt text", URL cap:description
  */
 export const parseImageInput = (input: string): ParsedImageData => {
 	const patterns = {
 		urlWithAlt: /^(.+?)\s+"([^"]+)"$/,
-		urlWithCaption: /^(.+?)\s+caption:(.+)$/i,
+		urlWithCaption: /^(.+?)\s+cap:(.+)$/i,
 	};
 
 	// Check for URL with alt text

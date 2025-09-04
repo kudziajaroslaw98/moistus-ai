@@ -38,7 +38,32 @@
       "mcp__supabase__get_logs",
       "mcp__supabase__get_advisors",
       "mcp__supabase__get_project_url",
-      "mcp__supabase__get_anon_key"
+      "mcp__supabase__get_anon_key",
+      "Read(/C:\\Users\\speed\\.claude/**)",
+      "Bash(powershell:*)",
+      "Read(/D:\\_GITHUB\\moistus-ai\\src\\components\\node-editor\\parsers/**)",
+      "Read(/D:\\_GITHUB\\moistus-ai\\src\\components\\node-editor/**)",
+      "Read(/D:\\_GITHUB\\moistus-ai\\src\\components\\node-editor/**)",
+      "Read(/D:\\_GITHUB\\moistus-ai\\src\\components\\node-editor/**)",
+      "Read(/D:\\_GITHUB\\moistus-ai\\src\\components\\node-editor/**)",
+      "Read(/D:\\_GITHUB\\moistus-ai\\src\\types/**)",
+      "Read(/D:\\_GITHUB\\moistus-ai\\src\\types/**)",
+      "Read(/D:\\_GITHUB\\moistus-ai\\src\\components\\node-editor\\__tests__/**)",
+      "Read(/D:\\_GITHUB\\moistus-ai\\src/**)",
+      "Read(/D:\\_GITHUB\\moistus-ai\\src\\components\\node-editor\\parsers/**)",
+      "Read(/D:\\_GITHUB\\moistus-ai\\src\\components\\node-editor\\parsers/**)",
+      "Read(/D:\\_GITHUB\\moistus-ai\\src\\components\\node-editor\\parsers/**)",
+      "Read(/D:\\_GITHUB\\moistus-ai\\src\\components\\node-editor/**)",
+      "Read(/D:\\_GITHUB\\moistus-ai\\src\\components\\node-editor/**)",
+      "Read(/D:\\_GITHUB\\moistus-ai\\src\\components\\node-editor/**)",
+      "Read(/D:\\_GITHUB\\moistus-ai\\src\\components\\node-editor/**)",
+      "Read(/D:\\_GITHUB\\moistus-ai\\src\\components\\node-editor/**)",
+      "Read(/D:\\_GITHUB\\moistus-ai\\src\\components\\node-editor\\parsers/**)",
+      "Read(/D:\\_GITHUB\\moistus-ai\\src\\components\\node-editor\\parsers/**)",
+      "Read(/D:\\_GITHUB\\moistus-ai\\src\\components\\node-editor\\parsers/**)",
+      "Read(/D:\\_GITHUB\\moistus-ai\\src\\components\\node-editor\\parsers/**)",
+      "Read(/D:\\_GITHUB\\moistus-ai\\src\\components\\node-editor/**)",
+      "Read(/D:\\_GITHUB\\moistus-ai\\src\\components\\node-editor/**)"
     ],
     "deny": [
       "mcp__supabase__list_organizations",
@@ -64,8 +89,5 @@
   "enabledMcpjsonServers": [
     "supabase"
   ],
-  "statusLine": {
-    "type": "command",
-    "command": "input=$(cat); current_dir=$(echo \"$input\" | jq -r '.workspace.current_dir'); model_name=$(echo \"$input\" | jq -r '.model.display_name'); output_style=$(echo \"$input\" | jq -r '.output_style.name'); printf \"\\033[36m%s\\033[0m \\033[32m%s\\033[0m \\033[35m[%s]\\033[0m\" \"$(basename \"$current_dir\")\" \"$model_name\" \"$output_style\""
-  }
+  "outputStyle": "Explanatory"
 }

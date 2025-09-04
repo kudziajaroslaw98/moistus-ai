@@ -153,7 +153,7 @@ export const formatPriorityForDisplay = (priority: string): string => {
 
 /**
  * Extract all embedded patterns from text
- * Parses @dates, #priority, [tags], +assignee, color:value patterns
+ * Parses ^dates, #priority, [tags], @assignee, color:value patterns
  */
 export const parseEmbeddedPatterns = (text: string): { 
   cleanText: string; 

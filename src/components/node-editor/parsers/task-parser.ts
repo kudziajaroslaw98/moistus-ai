@@ -220,7 +220,7 @@ const parseSingleInput = (input: string): ParsedTaskData => {
  * Supports:
  * - Single tasks with or without checkboxes
  * - Multiple checkbox lines
- * - Embedded patterns: @date, #priority, [tags], +assignee, color:value
+ * - Embedded patterns: ^date, #priority, [tags], @assignee, color:value
  */
 export const parseTaskInput = (input: string): ParsedTaskData => {
 	if (!input || typeof input !== 'string') {

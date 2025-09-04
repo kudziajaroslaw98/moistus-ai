@@ -46,11 +46,11 @@ export const parseNoteInput = (input: string): ParsedNoteData => {
 
 /**
  * Parse text input with formatting options
- * Supports: @fontSize, **bold**, *italic*, align:direction, color:value
+ * Supports: sz:fontSize, **bold**, *italic*, align:direction, color:value
  */
 export const parseTextInput = (input: string): ParsedTextData => {
 	const patterns = {
-		fontSize: /@(\d+)(px|rem|em)?/g,
+		fontSize: /sz:(\d+)(px|rem|em)?/g,
 		bold: /\*\*(.*?)\*\*/g,
 		italic: /(?<!\*)\*([^*]+)\*(?!\*)|\b_([^_]+)_\b/g,
 		alignment: /align:(left|center|right)/i,

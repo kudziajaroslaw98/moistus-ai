@@ -193,16 +193,20 @@ export const transformNodeToQuickInputString = (
 				taskContent += `${task.isComplete ? '[x]' : '[ ]'} ${task.text}\n`;
 			});
 			
-			// Add metadata patterns
+			// Add metadata patterns with new unique prefixes
 			const metadataParts = [];
 			if (data.metadata?.dueDate) {
-				metadataParts.push(`@${data.metadata.dueDate.slice(0, 10)}`);
+				metadataParts.push(`^${data.metadata.dueDate.slice(0, 10)}`);
 			}
 			if (data.metadata?.priority && data.metadata.priority !== 'medium') {
 				metadataParts.push(`#${data.metadata.priority}`);
 			}
 			if (data.metadata?.assignee) {
-				metadataParts.push(`+${data.metadata.assignee}`);
+				// Fix: properly handle assignee array
+				const assigneeList = Array.isArray(data.metadata.assignee) 
+					? data.metadata.assignee.join(',') 
+					: data.metadata.assignee;
+				metadataParts.push(`@${assigneeList}`);
 			}
 			if (data.metadata?.tags && data.metadata.tags.length > 0) {
 				metadataParts.push(`[${data.metadata.tags.join(', ')}]`);
@@ -227,7 +231,7 @@ export const transformNodeToQuickInputString = (
 				imageContent += ` "${data.metadata.altText}"`;
 			}
 			if (data.metadata?.caption) {
-				imageContent += ` caption:${data.metadata.caption}`;
+				imageContent += ` cap:${data.metadata.caption}`;
 			}
 			return imageContent;
 
@@ -276,9 +280,9 @@ export const transformNodeToQuickInputString = (
 			let textContent = data.content || '';
 			const metaParts = [];
 			
-			// Add formatting patterns
+			// Add formatting patterns with new unique prefixes
 			if (data.metadata?.fontSize && data.metadata.fontSize !== '14px') {
-				metaParts.push(`@${data.metadata.fontSize}`);
+				metaParts.push(`sz:${data.metadata.fontSize}`);
 			}
 			if (data.metadata?.textAlign && data.metadata.textAlign !== 'left') {
 				metaParts.push(`align:${data.metadata.textAlign}`);

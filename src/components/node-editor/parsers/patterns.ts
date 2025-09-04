@@ -14,25 +14,25 @@ import type { PatternType } from '../utils';
  * Used across all parsers for consistent pattern detection
  */
 export const EMBEDDED_PATTERNS = {
-  // Date patterns (@date) - must come first to avoid conflicts
+  // Date patterns (^date) - new unique prefix to avoid conflicts
   date: {
-    regex: /@([^@\s#\[\]+]+)/g,
+    regex: /\^([^\^\s#\[\]+]+)/g,
     type: 'date' as PatternType,
   },
   
-  // Priority patterns (#priority)
+  // Priority patterns (#priority) - unchanged
   priority: {
     regex: /#([^#\s@\[\]+:]+)/g,
     type: 'priority' as PatternType,
   },
   
-  // Color patterns (color:value) - must be before general text patterns
+  // Color patterns (color:value) - unchanged
   color: {
     regex: /color:([^\s@\[\]]+)/g,
     type: 'color' as PatternType,
   },
   
-  // Tag patterns ([tag]) - Enhanced to handle comma-separated tags, but exclude checkbox patterns
+  // Tag patterns ([tag]) - unchanged
   tag: {
     regex: /\[([^\[\]@#+:]+)\]/g,
     type: 'tag' as PatternType,
@@ -40,9 +40,9 @@ export const EMBEDDED_PATTERNS = {
     exclusionPattern: /^[xX;,\s]*$/,
   },
   
-  // Assignee patterns (+assignee)
+  // Assignee patterns (@assignee) - changed from + to @ for social media convention
   assignee: {
-    regex: /\+([^+\s@#\[\]:]+)/g,
+    regex: /@([^@\s#\[\]:]+)/g,
     type: 'assignee' as PatternType,
   },
 } as const;
@@ -77,7 +77,7 @@ export const NOTE_PATTERNS = {
  * Text formatting patterns
  */
 export const TEXT_PATTERNS = {
-  fontSize: /@(\d+)(px|rem|em)?/g,
+  fontSize: /sz:(\d+)(px|rem|em)?/g,
   bold: /\*\*(.*?)\*\*/g,
   italic: /(?<!\*)\*([^*]+)\*(?!\*)|\b_([^_]+)_\b/g,
   alignment: /align:(left|center|right)/i,
@@ -110,7 +110,7 @@ export const LANGUAGE_PATTERNS: Array<[RegExp, string]> = [
  */
 export const IMAGE_PATTERNS = {
   urlWithAlt: /^(.+?)\s+"([^"]+)"$/,
-  urlWithCaption: /^(.+?)\s+caption:(.+)$/i,
+  urlWithCaption: /^(.+?)\s+cap:(.+)$/i,
 } as const;
 
 /**
