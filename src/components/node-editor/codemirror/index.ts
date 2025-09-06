@@ -9,6 +9,7 @@ import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { bracketMatching, indentOnInput } from '@codemirror/language';
 import { createCommandCompletions } from './command-completions';
 import { createCommandDecorations } from './command-decorations';
+import { nodeEditorTheme } from './themes';
 
 /**
  * Create a basic CodeMirror editor configuration
@@ -33,25 +34,8 @@ export const createBasicEditor = (
 			...historyKeymap,
 		]),
 
-		// Basic theme
-		EditorView.theme({
-			'&': {
-				fontSize: '14px',
-				fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-			},
-			'.cm-content': {
-				padding: '8px',
-				minHeight: '60px',
-			},
-			'.cm-editor': {
-				borderRadius: '6px',
-				border: '1px solid #e5e5e5',
-			},
-			'.cm-focused': {
-				outline: 'none',
-				borderColor: '#3b82f6',
-			},
-		}),
+		// Use node editor theme
+		nodeEditorTheme,
 	];
 
 	const state = EditorState.create({
@@ -143,55 +127,8 @@ export const createEnhancedEditor = (
 		...(enableCommandCompletions ? [createCommandCompletions()] : []),
 		...(enableCommandDecorations ? [createCommandDecorations()] : []),
 
-		// Enhanced theme with command styling
-		EditorView.theme({
-			'&': {
-				fontSize: '14px',
-				fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-			},
-			'.cm-content': {
-				padding: '8px',
-				minHeight: '60px',
-			},
-			'.cm-editor': {
-				borderRadius: '6px',
-				border: '1px solid #e5e5e5',
-			},
-			'.cm-focused': {
-				outline: 'none',
-				borderColor: '#3b82f6',
-			},
-			// Command completion styling
-			'.cm-tooltip-autocomplete': {
-				backgroundColor: 'rgb(39 39 42)',
-				border: '1px solid rgb(63 63 70)',
-				borderRadius: '8px',
-				color: 'rgb(244 244 245)',
-				fontSize: '14px',
-				boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
-			},
-			'.command-completion-item': {
-				padding: '6px 12px',
-				borderRadius: '4px',
-				margin: '2px',
-			},
-			'.completion-section-node-types': {
-				borderLeft: '3px solid rgb(34 197 94)',
-				backgroundColor: 'rgba(34, 197, 94, 0.05)',
-			},
-			'.completion-section-patterns': {
-				borderLeft: '3px solid rgb(59 130 246)',
-				backgroundColor: 'rgba(59, 130, 246, 0.05)',
-			},
-			'.completion-section-formatting': {
-				borderLeft: '3px solid rgb(251 191 36)',
-				backgroundColor: 'rgba(251, 191, 36, 0.05)',
-			},
-			'.completion-section-templates': {
-				borderLeft: '3px solid rgb(168 85 247)',
-				backgroundColor: 'rgba(168, 85, 247, 0.05)',
-			}
-		}),
+		// Use node editor theme
+		nodeEditorTheme,
 	];
 
 	const state = EditorState.create({

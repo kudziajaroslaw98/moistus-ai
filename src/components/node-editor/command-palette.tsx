@@ -13,12 +13,12 @@ import { useShallow } from 'zustand/react/shallow';
 
 const theme = {
 	input:
-		'bg-zinc-950 text-zinc-100 placeholder-zinc-500 placeholder:font-medium border-0 focus:ring-0',
-	item: 'h-auto hover:bg-zinc-800 py-1 cursor-pointer transition-all duration-200 aria-selected:bg-teal-800/30 hover:scale-[1.02] rounded-sm px-4',
-	icon: 'text-zinc-400 group-hover:text-zinc-300 group-data-[selected=true]:text-teal-400',
+		'bg-zinc-950/90 text-zinc-100 placeholder-zinc-500 placeholder:font-medium border-0 focus:ring-0 backdrop-blur-sm',
+	item: 'h-auto hover:bg-zinc-800/60 py-2.5 px-4 cursor-pointer transition-all duration-300 ease-out aria-selected:bg-teal-900/20 aria-selected:ring-1 aria-selected:ring-teal-500/30 hover:scale-[1.01] rounded-md',
+	icon: 'text-zinc-400 group-hover:text-zinc-300 group-data-[selected=true]:text-teal-400 transition-colors duration-200',
 	category:
-		'text-xs text-zinc-500 uppercase tracking-wider font-semibold px-3 pb-1 flex items-center gap-2',
-	triggerBadge: 'px-2 py-1 bg-zinc-800 text-zinc-400 rounded text-xs font-mono',
+		'text-xs text-zinc-400 uppercase tracking-wider font-semibold px-4 pb-2 pt-1 flex items-center gap-2 border-b border-zinc-800/50',
+	triggerBadge: 'px-2.5 py-1 bg-zinc-800/80 text-zinc-400 rounded-md text-xs font-mono shadow-sm',
 	commandMeta: 'text-xs text-zinc-500 opacity-75',
 };
 
@@ -32,28 +32,28 @@ const categoryIcons = {
 
 // Animation variants
 const containerVariants = {
-	hidden: { opacity: 0, scale: 0.95, y: -10 },
+	hidden: { opacity: 0, scale: 0.96, y: -12 },
 	visible: { 
 		opacity: 1, 
 		scale: 1, 
 		y: 0,
 		transition: {
-			duration: 0.2,
+			duration: 0.25,
 			ease: [0.23, 1, 0.32, 1],
-			staggerChildren: 0.02
+			staggerChildren: 0.03
 		}
 	},
 	exit: { 
 		opacity: 0, 
-		scale: 0.95, 
-		y: -10,
-		transition: { duration: 0.15 }
+		scale: 0.96, 
+		y: -8,
+		transition: { duration: 0.2, ease: [0.4, 0, 1, 1] }
 	}
 };
 
 const itemVariants = {
-	hidden: { opacity: 0, x: -8 },
-	visible: { opacity: 1, x: 0 }
+	hidden: { opacity: 0, x: -12 },
+	visible: { opacity: 1, x: 0, transition: { duration: 0.3, ease: [0.23, 1, 0.32, 1] } }
 };
 
 interface EnhancedCommandPaletteProps {
@@ -185,7 +185,7 @@ const CommandPaletteComponent = ({
 
 	return (
 		<div className={cn(
-			"fixed inset-0 z-50 bg-black/20 backdrop-blur-sm",
+			"fixed inset-0 z-50 bg-black/30 backdrop-blur-sm",
 			className
 		)}>
 			<AnimatePresence>
@@ -194,14 +194,14 @@ const CommandPaletteComponent = ({
 					initial="hidden"
 					animate="visible"
 					exit="exit"
-					className="absolute w-96 max-w-[90vw] bg-zinc-950 border border-zinc-800 rounded-lg shadow-2xl overflow-hidden"
+					className="absolute w-[420px] max-w-[90vw] bg-zinc-950/95 backdrop-blur-md border border-zinc-800/80 rounded-xl shadow-2xl ring-1 ring-teal-500/10 overflow-hidden"
 					style={{
-						left: Math.min(commandPalette.position.x, window.innerWidth - 400),
-						top: Math.min(commandPalette.position.y + 20, window.innerHeight - 400),
+						left: Math.min(commandPalette.position.x, window.innerWidth - 440),
+						top: Math.min(commandPalette.position.y + 20, window.innerHeight - 500),
 					}}
 				>
 					{/* Header with trigger indication */}
-					<div className="px-4 py-3 border-b border-zinc-800 bg-zinc-900/50">
+					<div className="px-4 py-3 border-b border-zinc-800/60 bg-gradient-to-r from-zinc-900/60 to-zinc-800/40">
 						<div className="flex items-center gap-3">
 							{commandPalette.trigger && (
 								<span className={theme.triggerBadge}>
@@ -224,10 +224,10 @@ const CommandPaletteComponent = ({
 							value={commandPalette.searchQuery}
 							onValueChange={handleSearchChange}
 							placeholder={commandPalette.trigger === '$' ? 'Search node types...' : 'Search commands...'}
-							className={cn(theme.input, 'w-full px-4 py-3 text-sm outline-0 bg-zinc-950')}
+							className={cn(theme.input, 'w-full px-4 py-3.5 text-sm outline-0 bg-zinc-950/80')}
 						/>
 
-						<Command.List className='max-h-64 overflow-y-auto p-2'>
+						<Command.List className='max-h-[400px] overflow-y-auto p-1'>
 							{registryCommands.length === 0 ? (
 								<Command.Empty className='p-8 text-center'>
 									<div className='text-zinc-600 mb-2'>
@@ -247,14 +247,14 @@ const CommandPaletteComponent = ({
 									
 									return (
 										<Command.Group key={category}>
-											{groupIndex > 0 && <div className='h-2' />}
+											{groupIndex > 0 && <div className='h-3' />}
 
 											<div className={theme.category}>
-												<CategoryIcon className='w-3 h-3' />
+												<CategoryIcon className='w-3.5 h-3.5 text-teal-500/70' />
 												{category}
 											</div>
 
-											<div className='flex flex-col px-2'>
+											<div className='flex flex-col px-1 pb-2'>
 												{categoryCommands.map((command, index) => {
 													const Icon = command.icon;
 													const globalIndex = registryCommands.findIndex(cmd => cmd.id === command.id);
@@ -264,8 +264,8 @@ const CommandPaletteComponent = ({
 														<motion.div
 															key={command.id}
 															variants={itemVariants}
-															whileHover={{ x: 4 }}
-															whileTap={{ scale: 0.98 }}
+															whileHover={{ x: 2, scale: 1.005 }}
+															whileTap={{ scale: 0.995 }}
 														>
 															<Command.Item
 																value={command.trigger}
@@ -273,8 +273,8 @@ const CommandPaletteComponent = ({
 																data-selected={isSelected}
 																className={cn(
 																	theme.item,
-																	'group flex items-center gap-3 mb-1',
-																	isSelected && 'bg-teal-800/30 ring-1 ring-teal-500/30'
+																	'group flex items-center gap-3 mb-1.5 shadow-sm',
+																	isSelected && 'bg-teal-900/25 ring-1 ring-teal-500/40 shadow-teal-500/10'
 																)}
 																ref={(el) => {
 																	if (globalIndex >= 0 && el) {
@@ -282,7 +282,7 @@ const CommandPaletteComponent = ({
 																	}
 																}}
 															>
-																<Icon className={cn(theme.icon, 'w-4 h-4 flex-shrink-0')} />
+																<Icon className={cn(theme.icon, 'w-4.5 h-4.5 flex-shrink-0')} />
 
 																<div className='flex flex-col flex-1 min-w-0'>
 																	<div className='font-medium text-sm text-zinc-100 truncate flex items-center gap-2'>
@@ -294,19 +294,19 @@ const CommandPaletteComponent = ({
 																		)}
 																	</div>
 
-																	<div className='text-xs text-zinc-400 truncate'>
+																	<div className='text-xs text-zinc-500 truncate leading-relaxed'>
 																		{command.description}
 																	</div>
 
 																	{command.examples && command.examples.length > 0 && (
-																		<div className='text-xs text-zinc-600 mt-1 opacity-75'>
+																		<div className='text-xs text-zinc-600 mt-1.5 opacity-80 font-mono'>
 																			Example: {command.examples[0]}
 																		</div>
 																	)}
 																</div>
 
 																{command.isPro && (
-																	<span className='text-xs text-teal-500 font-medium px-1.5 py-0.5 bg-teal-500/10 rounded'>
+																	<span className='text-xs text-teal-400 font-semibold px-2 py-1 bg-teal-500/15 border border-teal-500/20 rounded-md shadow-sm'>
 																		PRO
 																	</span>
 																)}
@@ -323,23 +323,23 @@ const CommandPaletteComponent = ({
 					</Command>
 
 					{/* Enhanced Footer */}
-					<div className='px-4 py-3 border-t border-zinc-800 bg-zinc-900/30'>
+					<div className='px-4 py-3 border-t border-zinc-800/60 bg-gradient-to-r from-zinc-900/40 to-zinc-800/30 backdrop-blur-sm'>
 						<div className='flex items-center justify-between text-xs text-zinc-500'>
 							<div className='flex items-center gap-4'>
-								<span className='flex gap-1 items-center'>
-									<kbd className='px-1.5 py-0.5 bg-zinc-800/75 rounded text-zinc-400 font-mono'>↑↓</kbd>
-									navigate
+								<span className='flex gap-1.5 items-center'>
+									<kbd className='px-2 py-1 bg-zinc-800/90 border border-zinc-700/50 rounded-md text-zinc-400 font-mono text-xs shadow-sm'>↑↓</kbd>
+									<span className='text-zinc-400'>navigate</span>
 								</span>
-								<span className='flex gap-1 items-center'>
-									<kbd className='px-1.5 py-0.5 bg-zinc-800/75 rounded text-zinc-400 font-mono'>↵</kbd>
-									select
+								<span className='flex gap-1.5 items-center'>
+									<kbd className='px-2 py-1 bg-zinc-800/90 border border-zinc-700/50 rounded-md text-zinc-400 font-mono text-xs shadow-sm'>↵</kbd>
+									<span className='text-zinc-400'>select</span>
 								</span>
-								<span className='flex gap-1 items-center'>
-									<kbd className='px-1.5 py-0.5 bg-zinc-800/75 rounded text-zinc-400 font-mono'>esc</kbd>
-									close
+								<span className='flex gap-1.5 items-center'>
+									<kbd className='px-2 py-1 bg-zinc-800/90 border border-zinc-700/50 rounded-md text-zinc-400 font-mono text-xs shadow-sm'>esc</kbd>
+									<span className='text-zinc-400'>close</span>
 								</span>
 							</div>
-							<div className='text-zinc-600'>
+							<div className='text-zinc-600 font-medium'>
 								Command Registry
 							</div>
 						</div>

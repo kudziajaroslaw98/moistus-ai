@@ -13,6 +13,7 @@ import type {
 import type { SubscriptionSlice } from '@/store/slices/subscription-slice';
 import type { UserProfileSlice } from '@/store/slices/user-profile-slice';
 import type { SuggestionsSlice } from '@/store/slices/suggestions-slice';
+import type { QuickInputSlice } from '@/store/slices/quick-input-slice';
 import type { NodeCommand } from '@/components/node-editor/types';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
@@ -607,4 +608,5 @@ export interface AppState
 		StreamingToastSlice,
 		SubscriptionSlice,
 		OnboardingSlice,
-		UserProfileSlice {}
+		UserProfileSlice,
+		QuickInputSlice {}

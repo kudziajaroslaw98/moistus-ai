@@ -171,9 +171,9 @@ export const FloatingCompletionPanel: React.FC<FloatingCompletionPanelProps> = (
 					transition={{ duration: 0.15 }}
 					onKeyDown={handleKeyDown}
 				>
-					<div className="bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl py-2 min-w-[200px] sm:min-w-[240px] max-w-[280px] sm:max-w-[320px] max-h-[180px] sm:max-h-[240px] overflow-auto">
+					<div className="bg-zinc-950/95 border border-zinc-800/80 rounded-xl shadow-2xl backdrop-blur-md ring-1 ring-teal-500/10 py-2 min-w-[280px] sm:min-w-[320px] max-w-[340px] sm:max-w-[380px] max-h-[400px] overflow-auto">
 						{/* Header */}
-						<div className="px-3 py-1 text-xs text-zinc-400 font-medium border-b border-zinc-700 mb-1">
+						<div className="px-4 py-2 text-xs text-zinc-400 font-semibold border-b border-zinc-800/60 mb-1 bg-gradient-to-r from-zinc-900/60 to-zinc-800/40">
 							{getTypeLabel(type)} suggestions
 						</div>
 						
@@ -191,12 +191,12 @@ export const FloatingCompletionPanel: React.FC<FloatingCompletionPanelProps> = (
 										}
 									})}
 									className={cn(
-										'px-3 py-3 sm:py-2 cursor-pointer flex items-center justify-between',
-										'text-sm sm:text-sm transition-colors duration-150',
+										'px-4 py-3 sm:py-2.5 cursor-pointer flex items-center justify-between',
+										'text-sm transition-all duration-300 ease-out rounded-md mx-2 mb-1',
 										'min-h-[44px] sm:min-h-[auto]', // 44px is minimum touch target
 										activeIndex === index 
-											? 'bg-zinc-700 text-zinc-100' 
-											: 'text-zinc-300 hover:bg-zinc-750 active:bg-zinc-700'
+											? 'bg-teal-900/25 text-zinc-100 ring-1 ring-teal-500/40 shadow-teal-500/10 transform translate-x-1' 
+											: 'text-zinc-300 hover:bg-zinc-800/60 active:bg-zinc-700'
 									)}
 									initial={{ opacity: 0, x: -10 }}
 									animate={{ opacity: 1, x: 0 }}
@@ -224,8 +224,21 @@ export const FloatingCompletionPanel: React.FC<FloatingCompletionPanelProps> = (
 						</div>
 						
 						{/* Footer hint */}
-						<div className="px-3 py-1 text-xs text-zinc-500 border-t border-zinc-700 mt-1">
-							↑↓ Navigate • Enter Select • Esc Close
+						<div className="px-4 py-2 text-xs text-zinc-500 border-t border-zinc-800/60 mt-1 bg-gradient-to-r from-zinc-900/40 to-zinc-800/30 backdrop-blur-sm">
+							<div className="flex items-center gap-3">
+								<span className="flex gap-1 items-center">
+									<kbd className="px-1.5 py-0.5 bg-zinc-800/90 border border-zinc-700/50 rounded text-zinc-400 font-mono text-xs">↑↓</kbd>
+									<span className="text-zinc-400">navigate</span>
+								</span>
+								<span className="flex gap-1 items-center">
+									<kbd className="px-1.5 py-0.5 bg-zinc-800/90 border border-zinc-700/50 rounded text-zinc-400 font-mono text-xs">↵</kbd>
+									<span className="text-zinc-400">select</span>
+								</span>
+								<span className="flex gap-1 items-center">
+									<kbd className="px-1.5 py-0.5 bg-zinc-800/90 border border-zinc-700/50 rounded text-zinc-400 font-mono text-xs">esc</kbd>
+									<span className="text-zinc-400">close</span>
+								</span>
+							</div>
 						</div>
 					</div>
 				</motion.div>

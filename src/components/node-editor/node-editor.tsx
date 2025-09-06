@@ -45,6 +45,7 @@ export const NodeEditor = () => {
 		setNodeEditorMode,
 		setNodeEditorFilterQuery,
 		nodes,
+		resetQuickInput,
 	} = useAppStore(
 		useShallow((state) => ({
 			nodeEditor: state.nodeEditor,
@@ -53,6 +54,7 @@ export const NodeEditor = () => {
 			setNodeEditorMode: state.setNodeEditorMode,
 			setNodeEditorFilterQuery: state.setNodeEditorFilterQuery,
 			nodes: state.nodes,
+			resetQuickInput: state.resetQuickInput,
 		}))
 	);
 
@@ -97,8 +99,10 @@ export const NodeEditor = () => {
 		// Clean up when editor closes
 		if (!nodeEditor.isOpen) {
 			initializedRef.current = null;
+			// Reset QuickInput state when editor closes to prevent stale data
+			resetQuickInput();
 		}
-	}, [nodeEditor.isOpen, mode, nodeEditor.existingNodeId]);
+	}, [nodeEditor.isOpen, mode, nodeEditor.existingNodeId, resetQuickInput]);
 
 	// Filter commands based on search query
 	const filteredCommands = useMemo(() => {
@@ -206,7 +210,7 @@ export const NodeEditor = () => {
 
 	const theme = {
 		container:
-			'bg-zinc-950 border border-zinc-800 w-2xl rounded-md shadow-2xl overflow-hidden',
+			'bg-zinc-950 border border-zinc-800 w-2xl rounded-md shadow-2xl',
 	};
 
 	return (
@@ -223,7 +227,7 @@ export const NodeEditor = () => {
 						animate='animate'
 						exit='exit'
 					>
-						<AnimateChangeInHeight>
+						<AnimateChangeInHeight easingPreset='responsive'>
 							{!selectedCommand || showTypePicker ? (
 								<motion.div
 									variants={animationVariants.container}

@@ -14,6 +14,7 @@ import { defaultHighlightStyle } from "@codemirror/language";
 // Import our custom extensions
 import { validationDecorations, patternDecorations } from './decorations';
 import { mindmapLang } from './language';
+import { nodeEditorTheme } from './themes';
 
 /**
  * Basic CodeMirror editor configuration
@@ -34,28 +35,8 @@ export const basicSetup: Extension = [
 		...completionKeymap,
 	]),
 
-	// Editor styling
-	EditorView.theme({
-		'&': {
-			fontSize: '14px',
-			fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
-		},
-		'.cm-content': {
-			padding: '12px',
-			minHeight: '60px',
-		},
-		'.cm-focused': {
-			outline: 'none',
-		},
-		'.cm-editor': {
-			borderRadius: '6px',
-			border: '1px solid rgba(255, 255, 255, 0.1)',
-			backgroundColor: 'rgba(0, 0, 0, 0.2)',
-		},
-		'.cm-scroller': {
-			fontFamily: 'inherit',
-		},
-	}, { dark: true }),
+	// Use node editor theme
+	nodeEditorTheme,
 
 	// Line wrapping
 	EditorView.lineWrapping,
@@ -65,8 +46,26 @@ export const basicSetup: Extension = [
  * Mind map editor configuration with pattern highlighting and validation
  */
 export const mindmapEditorSetup: Extension = [
-	// Basic setup
-	basicSetup,
+	// Core functionality
+	history(),
+	bracketMatching(),
+	closeBrackets(),
+	autocompletion(),
+	indentOnInput(),
+	syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+
+	// Keymaps
+	keymap.of([
+		...defaultKeymap,
+		...historyKeymap,
+		...completionKeymap,
+	]),
+
+	// Line wrapping
+	EditorView.lineWrapping,
+	
+	// Node editor theme
+	nodeEditorTheme,
 	
 	// Mind map language support
 	mindmapLang(),

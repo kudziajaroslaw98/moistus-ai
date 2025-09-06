@@ -2,16 +2,20 @@
 
 import React, { forwardRef, useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { EditorView } from '@codemirror/view';
-import { EditorState, Compartment } from '@codemirror/state';
+import { EditorState, Compartment, Annotation } from '@codemirror/state';
 import { autocompletion } from '@codemirror/autocomplete';
 import { motion, type MotionProps } from 'motion/react';
 import { cn } from '@/utils/cn';
-import { mindmapLang, mindmapCSS } from '../codemirror/language';
+import { mindmapLang } from '../codemirror/language';
 import { ValidationTooltip } from './validation-tooltip';
 import { getValidationResults } from '../validation';
 import universalCompletionSource from '../completions';
 import { validationDecorations, patternDecorations } from '../codemirror/decorations';
 import { createCommandDecorations, commandCompletions } from '../codemirror';
+import { nodeEditorTheme } from '../codemirror/themes';
+
+// Annotation to mark external (programmatic) changes to prevent infinite loops
+const ExternalChange = Annotation.define<boolean>();
 
 interface EnhancedInputProps {
 	value: string;
@@ -194,13 +198,14 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 				extensions.push(
 					autocompletion({
 						override: completionSources,
-						maxRenderedOptions: 15,
+						maxRenderedOptions: 25,
 						defaultKeymap: true,
-						closeOnBlur: true,
+						closeOnBlur: false,
 						activateOnTyping: true,
 						activateOnCompletion: () => true,
 						interactionDelay: enableCommands ? 100 : 75,
 						selectOnOpen: false,
+						icons: false, // Disable built-in icons since we have custom ones
 						optionClass: (completion) => {
 							const classes = [];
 							
@@ -234,7 +239,33 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 							if (sectionDiff !== 0) return sectionDiff;
 							
 							return a.label.localeCompare(b.label);
-						}
+						},
+						addToOptions: [{
+							render: (completion: any, state, view) => {
+								// Only render color swatches for color completions
+								if (!completion.hexColor) return null;
+								
+								const swatch = document.createElement('div');
+								swatch.className = 'color-swatch';
+								swatch.style.cssText = `
+									width: 16px; 
+									height: 16px; 
+									border-radius: 3px; 
+									background-color: ${completion.hexColor}; 
+									border: 1px solid rgba(255, 255, 255, 0.2);
+									flex-shrink: 0;
+									margin-right: 8px;
+								`;
+								
+								// Handle white color special case for better visibility
+								if (completion.hexColor.toLowerCase() === '#ffffff' || completion.hexColor.toLowerCase() === 'white') {
+									swatch.style.border = '1px solid rgba(0, 0, 0, 0.3)';
+								}
+								
+								return swatch;
+							},
+							position: 0 // Position the swatch at the beginning
+						}]
 					})
 				);
 
@@ -244,7 +275,8 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 						...extensions,
 					EditorView.updateListener.of((update) => {
 						try {
-							if (update.docChanged && !isInternalChangeRef.current) {
+							// Ignore external changes to prevent infinite loops
+							if (update.docChanged && !isInternalChangeRef.current && !update.transactions.some(tr => tr.annotation(ExternalChange))) {
 								// This is a user-initiated change
 								const newValue = update.state.doc.toString();
 								lastKnownValueRef.current = newValue;
@@ -277,140 +309,8 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 							return false;
 						}
 					}),
-					EditorView.theme({
-						'&': {
-							fontSize: '16px',
-							fontFamily: 'inherit',
-						},
-						'.cm-content': {
-							minHeight: '60px',
-							maxHeight: '216px',
-							padding: '12px',
-							backgroundColor: 'rgba(24, 24, 27, 0.5)',
-							color: 'rgb(212, 212, 216)',
-							border: '1px solid rgb(39, 39, 42)',
-							borderRadius: '6px',
-							outline: 'none',
-							wordWrap: 'break-word',
-							overflowWrap: 'break-word',
-							whiteSpace: 'pre-wrap',
-						},
-						'.cm-focused .cm-content': {
-							outline: 'none',
-							borderColor: 'rgb(20, 184, 166)',
-							boxShadow: '0 0 0 1px rgb(20, 184, 166)',
-						},
-						'.cm-editor': {
-							borderRadius: '6px',
-							backgroundColor: 'transparent',
-						},
-						'.cm-scroller': {
-							fontFamily: 'inherit',
-							lineHeight: '1.4',
-						},
-						// Enhanced autocompletion dropdown styling
-						'.cm-tooltip-autocomplete': {
-							backgroundColor: 'rgb(39 39 42)',
-							border: '1px solid rgb(63 63 70)',
-							borderRadius: '8px',
-							color: 'rgb(244 244 245)',
-							fontSize: '14px',
-							boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.1)',
-							maxHeight: '300px',
-							minWidth: '280px',
-						},
-						'.cm-tooltip-autocomplete ul': {
-							maxHeight: '280px',
-						},
-						'.cm-tooltip-autocomplete ul li': {
-							padding: '6px 12px',
-							borderRadius: '4px',
-							margin: '2px 4px',
-							cursor: 'pointer',
-							transition: 'background-color 0.15s ease',
-						},
-						'.cm-tooltip-autocomplete ul li[aria-selected]': {
-							backgroundColor: 'rgb(20 184 166)',
-							color: 'rgb(255 255 255)',
-						},
-						'.cm-tooltip-autocomplete ul li:hover': {
-							backgroundColor: 'rgb(63 63 70)',
-						},
-						'.cm-tooltip-autocomplete-disabled': {
-							opacity: '0.5',
-						},
-						// Completion content styling
-						'.cm-completionLabel': {
-							color: 'rgb(244 244 245)',
-							fontWeight: '500',
-							display: 'flex',
-							alignItems: 'center',
-							gap: '6px',
-						},
-						'.cm-completionDetail': {
-							color: 'rgb(161 161 170)',
-							fontSize: '12px',
-							marginTop: '2px',
-							lineHeight: '1.3',
-						},
-						'.cm-completionMatchedText': {
-							backgroundColor: 'rgb(255 255 0)',
-							color: 'rgb(0 0 0)',
-							borderRadius: '2px',
-							padding: '0 1px',
-						},
-						// Pattern-specific completion type styling
-						'.completion-type-keyword::before': {
-							content: '"📅"',
-							marginRight: '4px',
-							fontSize: '12px',
-						},
-						'.completion-type-variable::before': {
-							content: '"🔥"',
-							marginRight: '4px',
-							fontSize: '12px',
-						},
-						'.completion-type-property::before': {
-							content: '"🎨"',
-							marginRight: '4px',
-							fontSize: '12px',
-						},
-						'.completion-type-type::before': {
-							content: '"🏷️"',
-							marginRight: '4px',
-							fontSize: '12px',
-						},
-						'.completion-type-function::before': {
-							content: '"👤"',
-							marginRight: '4px',
-							fontSize: '12px',
-						},
-						// Category-specific styling to match preview patterns
-						'.completion-category-quick': {
-							borderLeft: '3px solid rgb(34 197 94)',
-							backgroundColor: 'rgba(34, 197, 94, 0.05)',
-						},
-						'.completion-category-priority': {
-							borderLeft: '3px solid rgb(239 68 68)',
-							backgroundColor: 'rgba(239, 68, 68, 0.05)',
-						},
-						'.completion-category-basic': {
-							borderLeft: '3px solid rgb(59 130 246)',
-							backgroundColor: 'rgba(59, 130, 246, 0.05)',
-						},
-						'.completion-category-status': {
-							borderLeft: '3px solid rgb(251 191 36)',
-							backgroundColor: 'rgba(251, 191, 36, 0.05)',
-						},
-						'.completion-category-work': {
-							borderLeft: '3px solid rgb(168 85 247)',
-							backgroundColor: 'rgba(168, 85, 247, 0.05)',
-						},
-						'.completion-category-special': {
-							borderLeft: '3px solid rgb(14 165 233)',
-							backgroundColor: 'rgba(14, 165, 233, 0.05)',
-						}
-					}, { dark: true })
+					// Use node editor theme
+					nodeEditorTheme
 				]
 				});
 
@@ -435,33 +335,18 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 							EditorView.lineWrapping, // Enable line wrapping for fallback editor too
 							editableCompartment.current.of(EditorView.editable.of(!disabled)),
 							EditorView.updateListener.of((update) => {
-								if (update.docChanged) {
-									onChange(update.state.doc.toString());
+								// Ignore external changes in fallback editor too
+								if (update.docChanged && !update.transactions.some(tr => tr.annotation(ExternalChange))) {
+									const newValue = update.state.doc.toString();
+									lastKnownValueRef.current = newValue;
+									onChange(newValue);
 								}
 								if (update.selectionSet) {
 									onSelectionChange();
 								}
 							}),
-							EditorView.theme({
-								'&': { fontSize: '16px', fontFamily: 'inherit' },
-								'.cm-content': {
-									minHeight: '60px',
-									maxHeight: '216px',
-									padding: '12px',
-									backgroundColor: 'rgba(24, 24, 27, 0.5)',
-									color: 'rgb(212, 212, 216)',
-									border: '1px solid rgb(39, 39, 42)',
-									borderRadius: '6px',
-									outline: 'none',
-									wordWrap: 'break-word',
-									overflowWrap: 'break-word',
-									whiteSpace: 'pre-wrap',
-								},
-								'.cm-editor': {
-									borderRadius: '6px',
-									backgroundColor: 'transparent'
-								}
-							}, { dark: true })
+							// Use node editor theme for fallback editor
+							nodeEditorTheme
 						]
 					});
 
@@ -526,9 +411,36 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 			}
 		}, [disabled]);
 
-		// Disable external value sync - let CodeMirror manage its own state
-		// The editor will update the parent through onChange callbacks
-		// This prevents cursor reset issues
+		// Sync external value changes to CodeMirror (with loop prevention)
+		useEffect(() => {
+			const view = editorViewRef.current;
+			if (!view || !view.dom || !view.dom.isConnected) {
+				return;
+			}
+
+			const currentContent = view.state.doc.toString();
+			
+			// Only update if values actually differ
+			if (value !== currentContent && value !== lastKnownValueRef.current) {
+				// Preserve cursor position
+				const currentSelection = view.state.selection.main;
+				
+				view.dispatch({
+					changes: { 
+						from: 0, 
+						to: currentContent.length, 
+						insert: value || '' 
+					},
+					annotations: [ExternalChange.of(true)],
+					// Restore cursor position if it's within the new content
+					selection: value && currentSelection.from <= (value || '').length 
+						? currentSelection 
+						: undefined
+				});
+				
+				lastKnownValueRef.current = value;
+			}
+		}, [value]);
 
 		return (
 			<>
@@ -542,6 +454,7 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 						hasErrors && 'has-validation-errors',
 						hasWarnings && 'has-validation-warnings',
 						hasSuggestions && 'has-validation-suggestions',
+						'z-[100]',
 						className
 					)}
 					initial={initial}

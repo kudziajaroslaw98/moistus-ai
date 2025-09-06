@@ -40,13 +40,10 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 	mode = 'create',
 	existingNode,
 }) => {
-	const [value, setValue] = useState('');
+	// Local UI state
 	const [preview, setPreview] = useState<any>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [isCreating, setIsCreating] = useState(false);
-
-	// Command system state
-	const [currentNodeType, setCurrentNodeType] = useState<AvailableNodeTypes>(command.nodeType);
 	const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 	const [commandPalettePosition, setCommandPalettePosition] = useState({ x: 0, y: 0 });
 	const lastProcessedText = useRef('');
@@ -54,7 +51,29 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 	const [legendCollapsed, setLegendCollapsed] = useState(
 		() => localStorage.getItem('parsingLegendCollapsed') === 'true'
 	);
-	const [cursorPosition, setCursorPosition] = useState(0);
+
+	// Zustand state for persistence across remounts
+	const {
+		quickInputValue: value,
+		quickInputNodeType: currentNodeType,
+		quickInputCursorPosition: cursorPosition,
+		setQuickInputValue: setValue,
+		setQuickInputNodeType: setCurrentNodeType,
+		setQuickInputCursorPosition: setCursorPosition,
+		initializeQuickInput,
+		resetQuickInput,
+	} = useAppStore(
+		useShallow((state) => ({
+			quickInputValue: state.quickInputValue,
+			quickInputNodeType: state.quickInputNodeType,
+			quickInputCursorPosition: state.quickInputCursorPosition,
+			setQuickInputValue: state.setQuickInputValue,
+			setQuickInputNodeType: state.setQuickInputNodeType,
+			setQuickInputCursorPosition: state.setQuickInputCursorPosition,
+			initializeQuickInput: state.initializeQuickInput,
+			resetQuickInput: state.resetQuickInput,
+		}))
+	);
 
 	const { 
 		closeInlineCreator, 
@@ -70,16 +89,24 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 		}))
 	);
 
-	// Initialize value with existing node content in edit mode
+	// Initialize QuickInput state when component mounts or mode changes
 	useEffect(() => {
 		if (mode === 'edit' && existingNode) {
+			// Edit mode: initialize with existing node content (only once)
 			const initialContent = transformNodeToQuickInputString(
 				existingNode,
 				command.nodeType
 			);
-			setValue(initialContent);
+			initializeQuickInput(initialContent, command.nodeType);
+		} else if (mode === 'create') {
+			// Create mode: initialize with empty state but set node type
+			if (currentNodeType !== command.nodeType) {
+				setCurrentNodeType(command.nodeType);
+			}
+			// Don't reset value in create mode to preserve user input across remounts
 		}
-	}, [mode, existingNode, command.nodeType]);
+	}, [mode, existingNode?.id, command.nodeType, currentNodeType, initializeQuickInput, setCurrentNodeType]);
+
 
 	// Save legend preference
 	useEffect(() => {
@@ -101,7 +128,7 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 
 	// Process node type switches automatically (legacy fallback only)
 	useEffect(() => {
-		if (!value || lastProcessedText.current === value) {
+		if (!value || !currentNodeType || lastProcessedText.current === value) {
 			return;
 		}
 
@@ -114,7 +141,7 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 				console.log('Legacy node type switch detected:', processed.nodeType);
 				
 				// Update node type and clean text
-				setCurrentNodeType(processed.nodeType);
+				setCurrentNodeType(processed.nodeType as AvailableNodeTypes);
 				setValue(processed.processedText);
 				lastProcessedText.current = processed.processedText;
 				
@@ -129,12 +156,13 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 		}
 		
 		lastProcessedText.current = value;
-	}, [value, cursorPosition, currentNodeType]);
+	}, [value, cursorPosition, currentNodeType, setCurrentNodeType, setValue, setCursorPosition]);
 
 	// Parse input in real-time for preview using current node type
 	useEffect(() => {
 		// Get the current command configuration based on node type
-		const currentCommand = nodeCommands.find(cmd => cmd.nodeType === currentNodeType) || command;
+		const effectiveNodeType = currentNodeType || command.nodeType;
+		const currentCommand = nodeCommands.find(cmd => cmd.nodeType === effectiveNodeType) || command;
 		
 		// Clean the input by removing any $nodeType prefix (e.g., $task, $note)
 		const cleanValue = value.replace(/^\$\w+\s*/, '').trim();
@@ -163,7 +191,8 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 			setIsCreating(true);
 			
 			// Use current node type for command configuration
-			const currentCommand = nodeCommands.find(cmd => cmd.nodeType === currentNodeType) || command;
+			const effectiveNodeType = currentNodeType || command.nodeType;
+			const currentCommand = nodeCommands.find(cmd => cmd.nodeType === effectiveNodeType) || command;
 			
 			// Clean the input by removing any $nodeType prefix
 			const cleanValue = value.replace(/^\$\w+\s*/, '').trim() || value;
@@ -233,7 +262,7 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 		// This would need access to the textarea ref from InputSection
 		// For now, we'll track cursor position differently
 		setCursorPosition(value.length);
-	}, [value]);
+	}, [value, setCursorPosition]);
 
 	// Handle command palette trigger
 	const handleCommandPaletteTrigger = useCallback((position: { x: number; y: number }) => {
@@ -373,7 +402,7 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 
 				<PreviewSection
 					preview={preview}
-					nodeType={currentNodeType}
+					nodeType={currentNodeType || command.nodeType}
 					hasInput={value.trim().length > 0}
 				/>
 			</div>
@@ -389,7 +418,7 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 						transition={{ duration: 0.3, ease: 'easeInOut' }}
 					>
 						<ParsingLegend
-							patterns={(nodeCommands.find(cmd => cmd.nodeType === currentNodeType) || command).parsingPatterns}
+							patterns={(nodeCommands.find(cmd => cmd.nodeType === (currentNodeType || command.nodeType)) || command).parsingPatterns}
 							onPatternClick={handlePatternInsert}
 							isCollapsed={legendCollapsed}
 							onToggleCollapse={() => setLegendCollapsed(!legendCollapsed)}

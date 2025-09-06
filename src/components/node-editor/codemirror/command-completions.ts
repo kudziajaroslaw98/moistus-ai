@@ -443,13 +443,14 @@ export function createCommandCompletions(): Extension {
     commandCompletionState,
     autocompletion({
       override: [commandCompletions],
-      maxRenderedOptions: 15,
+      maxRenderedOptions: 25, // Increased from 15 to show more completions
       defaultKeymap: true,
       closeOnBlur: true,
       activateOnTyping: true,
       activateOnCompletion: () => true,
       interactionDelay: 75, // Small delay for smoother experience
       selectOnOpen: false,
+      tooltipClass: () => 'enhanced-completion-tooltip',
       optionClass: (completion) => {
         const classes = ['command-completion-item'];
         

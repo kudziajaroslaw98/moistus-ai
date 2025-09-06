@@ -301,7 +301,7 @@ const validationPlugin = ViewPlugin.fromClass(
 
 // Theme for pattern decoration styles - matching preview-renderer colors
 export const patternDecorationTheme = EditorView.theme({
-	// Date pattern (@today, @2025-10-15) - Blue theme
+	// Date pattern (^today, ^2025-10-15) - Blue theme
 	'.cm-pattern-date': {
 		backgroundColor: 'rgba(59, 130, 246, 0.1)', // bg-blue-500/10
 		color: 'rgb(96, 165, 250)', // text-blue-400
@@ -345,11 +345,22 @@ export const patternDecorationTheme = EditorView.theme({
 		marginRight: '1px',
 	},
 	
-	// Assignee pattern (+john, +team) - Orange theme
+	// Assignee pattern (@john, @team) - Orange theme
 	'.cm-pattern-assignee': {
 		backgroundColor: 'rgba(249, 115, 22, 0.1)', // bg-orange-500/10
 		color: 'rgb(251, 146, 60)', // text-orange-400
 		border: '1px solid rgba(249, 115, 22, 0.2)', // border-orange-500/20
+		borderRadius: '4px',
+		padding: '1px 3px',
+		marginLeft: '1px',
+		marginRight: '1px',
+	},
+	
+	// Font size pattern (sz:16px, sz:1.2rem) - Cyan theme
+	'.cm-pattern-fontSize': {
+		backgroundColor: 'rgba(6, 182, 212, 0.1)', // bg-cyan-500/10
+		color: 'rgb(34, 211, 238)', // text-cyan-400
+		border: '1px solid rgba(6, 182, 212, 0.2)', // border-cyan-500/20
 		borderRadius: '4px',
 		padding: '1px 3px',
 		marginLeft: '1px',

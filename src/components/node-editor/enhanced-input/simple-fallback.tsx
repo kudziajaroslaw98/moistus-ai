@@ -74,7 +74,7 @@ export const SimpleFallback = forwardRef<HTMLTextAreaElement, SimpleFallbackProp
 							placeholder={placeholder}
 							disabled={disabled}
 							className={cn(
-								'w-full min-h-[60px] max-h-[216px] p-3 rounded-md border-0 outline-none resize-none',
+								'w-full min-h-[60px] max-h-[480px] p-3 rounded-md border-0 outline-none resize-none',
 								'bg-zinc-900 text-zinc-100 placeholder-zinc-500',
 								'focus:ring-1 focus:ring-teal-500',
 								'font-inherit leading-relaxed',

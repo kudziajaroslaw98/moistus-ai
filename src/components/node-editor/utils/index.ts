@@ -468,7 +468,7 @@ export interface ScoredCompletionItem extends CompletionItem {
 }
 
 // Pattern types supported by the universal completion system
-export type PatternType = 'date' | 'priority' | 'color' | 'tag' | 'assignee' | 'checkbox';
+export type PatternType = 'date' | 'priority' | 'color' | 'tag' | 'assignee' | 'checkbox' | 'fontSize';
 
 // Date pattern subtypes for more granular matching
 export type DatePatternSubtype = 'word' | 'partial-date' | 'full-date';
@@ -617,7 +617,7 @@ export interface PatternValidationResult {
 
 // Export type guards for runtime type checking
 export const isPatternType = (value: string): value is PatternType => {
-	return ['date', 'priority', 'color', 'tag', 'assignee'].includes(value);
+	return ['date', 'priority', 'color', 'tag', 'assignee', 'checkbox', 'fontSize'].includes(value);
 };
 
 export const isCompletionItem = (value: unknown): value is CompletionItem => {
@@ -688,12 +688,12 @@ export const DEFAULT_FUZZY_SEARCH_CONFIG: FuzzySearchConfig = {
 // Pattern registry with all supported patterns
 export const PATTERN_REGISTRY: PatternRegistry = {
 	date: {
-		regex: /@([^@\s]*)$/,
-		decorationRegex: /@([^@\s]*)/g,
-		validationPattern: /^@[\w-]*$/,
-		prefix: '@',
+		regex: /\^([^\^\s]*)$/,
+		decorationRegex: /\^([^\^\s]*)/g,
+		validationPattern: /^\^[\w-]*$/,
+		prefix: '^',
 		completionType: 'keyword',
-		description: 'Date and time references (@today, @tomorrow, @monday, @2025-01-15)',
+		description: 'Date and time references (^today, ^tomorrow, ^monday, ^2025-01-15)',
 	},
 	priority: {
 		regex: /#([^#\s]*)$/,
@@ -721,12 +721,12 @@ export const PATTERN_REGISTRY: PatternRegistry = {
 		description: 'Tags and categories ([meeting], [urgent], [todo])',
 	},
 	assignee: {
-		regex: /\+([^+\s]*)$/,
-		decorationRegex: /\+([^+\s]*)/g,
-		validationPattern: /^\+[\w.-]*$/,
-		prefix: '+',
+		regex: /@([^@\s]*)$/,
+		decorationRegex: /@([^@\s]*)/g,
+		validationPattern: /^@[\w.-]*$/,
+		prefix: '@',
 		completionType: 'function',
-		description: 'Assignee references (+john, +team-lead, +me)',
+		description: 'Assignee references (@john, @team-lead, @me)',
 	},
 	checkbox: {
 		regex: /^\s*(?:[-*]\s*)?\[[xX\s]*\]\s*/,
@@ -736,6 +736,14 @@ export const PATTERN_REGISTRY: PatternRegistry = {
 		suffix: ']',
 		completionType: 'keyword',
 		description: 'Task checkboxes ([], [x])',
+	},
+	fontSize: {
+		regex: /sz:([^\s]*)$/,
+		decorationRegex: /sz:([^\s]*)/g,
+		validationPattern: /^sz:[\d.]+(?:px|rem|em|%)?$/,
+		prefix: 'sz:',
+		completionType: 'property',
+		description: 'Font size values (sz:16px, sz:1.2rem, sz:14)',
 	},
 };
 

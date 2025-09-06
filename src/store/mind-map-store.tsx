@@ -16,6 +16,7 @@ import { createSharingSlice } from './slices/sharing-slice';
 import { createStreamingToastSlice } from './slices/streaming-toast-slice';
 import { createSubscriptionSlice } from './slices/subscription-slice';
 import { createSuggestionsSlice } from './slices/suggestions-slice';
+import { createQuickInputSlice } from './slices/quick-input-slice';
 import { createUiStateSlice } from './slices/ui-slice';
 import { createUserProfileSlice } from './slices/user-profile-slice';
 
@@ -32,6 +33,7 @@ const useAppStore = create<AppState>((...args) => ({
 	...createCommentsSlice(...args),
 	...createSharingSlice(...args),
 	...createSuggestionsSlice(...args),
+	...createQuickInputSlice(...args),
 	...createRealtimeSlice(...args),
 	...createChatSlice(...args),
 	...createStreamingToastSlice(...args),

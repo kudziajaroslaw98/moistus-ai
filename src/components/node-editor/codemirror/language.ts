@@ -97,53 +97,6 @@ const tokenTagMap = {
 // CSS STYLING
 // ========================================
 
-// Export CSS classes for custom styling
-export const mindmapCSS = `
-  .cm-tag {
-    background-color: rgb(59 130 246 / 0.2);
-    color: rgb(191 219 254);
-    border-radius: 0.25rem;
-    padding: 0.125rem 0.25rem;
-    font-weight: 500;
-  }
-
-  .cm-priority {
-    background-color: rgb(34 197 94 / 0.2);
-    color: rgb(187 247 208);
-    border-radius: 0.25rem;
-    padding: 0.125rem 0.25rem;
-    font-weight: 600;
-  }
-
-  .cm-color {
-    background-color: rgb(168 85 247 / 0.2);
-    color: rgb(221 214 254);
-    border-radius: 0.25rem;
-    padding: 0.125rem 0.25rem;
-    font-family: ui-monospace, SFMono-Regular, monospace;
-    font-size: 0.875rem;
-  }
-
-  .cm-date {
-    background-color: rgb(16 185 129 / 0.2);
-    color: rgb(167 243 208);
-    border-radius: 0.25rem;
-    padding: 0.125rem 0.25rem;
-    font-weight: 500;
-  }
-
-  .cm-assignee {
-    background-color: rgb(139 92 246 / 0.2);
-    color: rgb(196 181 253);
-    border-radius: 0.25rem;
-    padding: 0.125rem 0.25rem;
-    font-weight: 500;
-  }
-
-  .cm-text {
-    color: rgb(228 228 231);
-  }
-`;
 
 // ========================================
 // LANGUAGE SUPPORT CREATION
