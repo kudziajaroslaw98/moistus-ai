@@ -6,13 +6,12 @@ import {
 	Node,
 	NodeProps,
 	NodeResizer,
-	NodeToolbar,
 	Position,
 	useConnection,
 } from '@xyflow/react';
-import { Plus, Settings } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { memo, type ReactNode, useCallback, useMemo } from 'react';
+import { memo, type ReactNode, useCallback, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { AvatarStack } from '../ui/avatar-stack';
 import { Button } from '../ui/button';
@@ -21,27 +20,17 @@ import CollapsedIndicator from './node-additions/collapsed-indicator';
 import CommentButton from './node-additions/comment-button';
 import GroupButton from './node-additions/group-button';
 
-// Define the props including the onEditNode callback
 interface BaseNodeWrapperProps extends NodeProps<Node<NodeData>> {
-	children: ReactNode; // Content specific to the node type
-	nodeClassName?: string; // For overall node styling adjustments
+	children: ReactNode;
+	nodeClassName?: string;
 	nodeIcon?: ReactNode;
-	nodeType?:
-		| 'Resource'
-		| 'Annotation'
-		| 'Question'
-		| 'Tasks'
-		| 'Image'
-		| 'Code'
-		| 'Note'
-		| 'Text'
-		| 'Reference'
-		| (string & {});
-
+	nodeType?: string;
 	includePadding?: boolean;
 	hideNodeType?: boolean;
-	toolbarContent?: ReactNode; // Optional toolbar content
-	onDoubleClick?: (event: React.MouseEvent, node: Node<NodeData>) => void; // Optional double-click override
+	// Semantic accent for user organization
+	accentColor?: string;
+	// Elevation level for Material Design hierarchy (0-24)
+	elevation?: number;
 }
 
 const BaseNodeWrapperComponent = ({
@@ -54,86 +43,53 @@ const BaseNodeWrapperComponent = ({
 	nodeType,
 	includePadding = true,
 	hideNodeType = false,
-	toolbarContent,
-	onDoubleClick,
+	accentColor,
+	elevation = 1,
 }: BaseNodeWrapperProps) => {
 	const {
+		addNode,
 		getNode,
-		realtimeSelectedNodes,
 		isDraggingNodes,
-
+		realtimeSelectedNodes,
 		currentUser,
 		selectedNodes,
 		activeTool,
-		setPopoverOpen,
-		setNodeInfo,
-		openInlineCreator,
-		openNodeEditor,
-		reactFlowInstance,
 	} = useAppStore(
 		useShallow((state) => ({
-			getNode: state.getNode,
 			addNode: state.addNode,
+			getNode: state.getNode,
+			isDraggingNodes: state.isDraggingNodes,
 			realtimeSelectedNodes: state.realtimeSelectedNodes,
 			currentUser: state.currentUser,
 			selectedNodes: state.selectedNodes,
 			activeTool: state.activeTool,
-			setPopoverOpen: state.setPopoverOpen,
-			setNodeInfo: state.setNodeInfo,
-			openInlineCreator: state.openInlineCreator,
-			openNodeEditor: state.openNodeEditor,
-			isDraggingNodes: state.isDraggingNodes,
-			reactFlowInstance: state.reactFlowInstance,
 		}))
 	);
 
+	const nodeRef = useRef();
 	const connection = useConnection();
 	const isTarget = connection?.toNode?.id === id;
 
+	// User-defined accent color takes precedence
+	const userAccentColor = data.metadata?.accentColor as string | undefined;
+	const finalAccentColor = userAccentColor || accentColor;
+
 	// Check if this node belongs to a group
 	const belongsToGroup = data.metadata?.groupId;
+	
 	const handleAddNewNode = useCallback(() => {
 		const currentNode = getNode(id);
 		if (!currentNode) return;
-
-		const position = {
-			x: currentNode.position.x + (currentNode.width || 0) / 2,
-			y: currentNode.position.y + (currentNode.height || 0) + 80,
-		};
-
-		openInlineCreator({
-			position,
-			screenPosition: reactFlowInstance?.flowToScreenPosition(position),
+		addNode({
 			parentNode: currentNode,
-			suggestedType: currentNode?.data?.node_type ?? 'defaultNode',
+			content: `New node from ${currentNode?.id} node`,
+			position: {
+				x: currentNode.position.x,
+				y: currentNode.position.y + (currentNode?.height ?? 0) + 50,
+			},
+			nodeType: currentNode?.data?.node_type ?? 'defaultNode',
 		});
-	}, [id, getNode, openInlineCreator, reactFlowInstance]);
-
-	const handleNodeEdit = useCallback(() => {
-		const currentNode = getNode(id);
-		if (!currentNode) return;
-
-		openNodeEditor({
-			mode: 'edit',
-			position: currentNode.position,
-			existingNodeId: id,
-		});
-	}, [id, getNode, openNodeEditor]);
-
-	const handleDoubleClick = useCallback(
-		(event: React.MouseEvent) => {
-			if (onDoubleClick) {
-				const currentNode = getNode(id);
-
-				if (currentNode) {
-					onDoubleClick(event, currentNode);
-				}
-			} else {
-				handleNodeEdit();
-			}
-		},
-		[onDoubleClick, id, getNode, handleNodeEdit]
-	);
+	}, [id]);
 
 	const avatars = useMemo(() => {
 		if (!realtimeSelectedNodes) return [];
@@ -146,168 +102,217 @@ const BaseNodeWrapperComponent = ({
 		return null;
 	}
 
-	return (
-		<>
-			{/* Node Toolbar */}
-			{(toolbarContent || selected) && (
-				<NodeToolbar position={Position.Top}>
-					<motion.div
-						className='flex gap-2 bg-zinc-950 border-zinc-500 p-2 rounded-sm'
-						initial={{ opacity: 0, scale: 0.9, y: 20 }}
-						animate={{ opacity: 1, scale: 1, y: 0 }}
-						exit={{ opacity: 0, scale: 0.9, y: 20 }}
-						transition={{ duration: 0.3 }}
-					>
-						{toolbarContent}
+	// Material Design elevation system for dark themes
+	// Base: #121212, then progressively lighter based on elevation
+	const getElevationColor = (level: number) => {
+		const elevationMap: Record<number, string> = {
+			0: '#121212', // Base background
+			1: '#1E1E1E', // Cards, default nodes
+			2: '#222222', // Raised cards
+			4: '#272727', // App bars
+			6: '#2C2C2C', // FABs, snackbars
+			8: '#2F2F2F', // Navigation drawers
+			12: '#333333', // Modals
+			16: '#353535', // Sheets
+			24: '#383838', // Dialogs
+		};
+		return elevationMap[level] || elevationMap[1];
+	};
 
-						<Button
-							size='sm'
-							variant='outline'
-							onClick={handleNodeEdit}
-							className='h-8 w-8 p-0'
-						>
-							<Settings className='w-4 h-4' />
-						</Button>
-					</motion.div>
-				</NodeToolbar>
+	// Dynamic styles following Material Design dark theme principles
+	const nodeStyles: React.CSSProperties = {
+		backgroundColor: getElevationColor(elevation),
+		// No traditional shadows - elevation through color
+		boxShadow: selected 
+			? `0 0 0 1px rgba(96, 165, 250, 0.5), inset 0 0 0 1px rgba(96, 165, 250, 0.2)`
+			: 'none',
+		// Subtle border for definition
+		border: `1px solid ${selected ? 'rgba(96, 165, 250, 0.3)' : 'rgba(255, 255, 255, 0.06)'}`,
+		// Micro-animation for depth perception
+		transform: selected ? 'translateY(-1px)' : 'translateY(0)',
+		transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+	};
+
+	// Accent color system - subtle and sophisticated
+	const accentStyles: React.CSSProperties = finalAccentColor ? {
+		borderTop: `2px solid ${finalAccentColor}`,
+		borderTopLeftRadius: '8px',
+		borderTopRightRadius: '8px',
+	} : {};
+
+	return (
+		<div
+			className={cn(
+				'relative flex h-full min-h-auto min-w-80 flex-col rounded-lg cursor-move',
+				includePadding ? 'p-4' : 'p-0',
+				nodeClassName
+			)}
+			style={{
+				...nodeStyles,
+				...accentStyles,
+				zIndex: belongsToGroup ? 1 : 'auto',
+				height: 'auto',
+				gap: '1rem',
+			}}
+		>
+			{/* Node type indicator - semantic and minimal */}
+			{nodeIcon && !hideNodeType && (
+				<div className='absolute -top-7 left-0 z-10'>
+					<div className='flex items-center gap-1.5 px-2 py-0.5 rounded-t-md'
+						style={{ 
+							backgroundColor: getElevationColor(4),
+							border: '1px solid rgba(255, 255, 255, 0.06)',
+							borderBottom: 'none'
+						}}>
+						<span style={{ opacity: 0.6, display: 'flex' }}>{nodeIcon}</span>
+						{nodeType && (
+							<span className='text-[10px] font-mono uppercase tracking-wider'
+								style={{ color: 'rgba(255, 255, 255, 0.38)' }}>
+								{nodeType}
+							</span>
+						)}
+					</div>
+				</div>
 			)}
 
-			<div
-				className={cn(
-					'relative hover:scale-[1.01] hover:-translate-y-1 flex h-full min-h-auto min-w-80 flex-col rounded-sm border-2 border-node-accent bg-zinc-950 shadow-lg hover:shadow-zinc-900/75 shadow-node-accent/25 gap-4 transition-all cursor-pointer',
-					selected && 'border-sky-700',
-					includePadding ? 'p-4' : 'p-0',
-					nodeClassName,
-					activeTool === 'pan' && 'pointer-events-none !cursor-move'
-				)}
-				style={{ zIndex: belongsToGroup ? 1 : 'auto', height: 'auto' }}
-				onDoubleClick={handleDoubleClick}
-			>
-				<>
-					<CollapsedIndicator data={data} />
+			{/* Ambient glow for selected state - very subtle */}
+			{selected && (
+				<div className='absolute inset-0 rounded-lg pointer-events-none'
+					style={{
+						background: 'radial-gradient(circle at center, rgba(96, 165, 250, 0.03) 0%, transparent 70%)',
+						zIndex: -1,
+					}}
+				/>
+			)}
 
-					{/* Top header with node info */}
-					<div className='top-0 left-4 absolute -translate-y-full flex items-center justify-center gap-2'>
-						<CollapseButton data={data} />
+			<>
+				<CollapsedIndicator />
 
-						<GroupButton />
+				{/* Top header controls */}
+				<div className='top-0 left-4 absolute -translate-y-full flex items-center justify-center gap-2'>
+					<CollapseButton />
+					<GroupButton />
+					<CommentButton />
+				</div>
 
-						{!hideNodeType && (
-							<div className='bg-node-accent text-node-text-main rounded-t-sm px-2 py-0.5 text-[10px] font-semibold font-mono flex items-center gap-2'>
-								<span>{nodeIcon}</span>
-
-								<span>{nodeType}</span>
-							</div>
+				{/* Avatar stack for collaboration */}
+				<div className='-bottom-10 left-0 flex absolute'>
+					<AnimatePresence mode='popLayout'>
+						{avatars.length > 0 && (
+							<motion.div
+								initial={{ opacity: 0, scale: 0.98, y: -10 }}
+								animate={{ opacity: 1, scale: 1, y: 0 }}
+								exit={{ opacity: 0, scale: 0.98, y: -10 }}
+								transition={{ duration: 0.2 }}
+								className='inline-flex h-auto w-full'
+							>
+								<AvatarStack avatars={avatars} size={'sm'} />
+							</motion.div>
 						)}
+					</AnimatePresence>
+				</div>
 
-						<CommentButton />
-					</div>
+				{/* Main content */}
+				<div className={cn(
+					'flex flex-col gap-4',
+					nodeIcon && !hideNodeType && 'mt-2'
+				)}>
+					{children}
+				</div>
 
-					<div className='-bottom-10 left-0 flex absolute'>
-						<AnimatePresence mode='popLayout'>
-							{avatars.length > 0 && (
-								<motion.div
-									initial={{ opacity: 0, scale: 0.98, y: -10 }}
-									animate={{ opacity: 1, scale: 1, y: 0 }}
-									exit={{ opacity: 0, scale: 0.98, y: -10 }}
-									transition={{ duration: 0.2 }}
-									className='inline-flex h-auto w-full'
-								>
-									<AvatarStack avatars={avatars} size={'sm'} />
-								</motion.div>
+				{!isDraggingNodes && (
+					<>
+						{/* Connection handles - minimal and functional */}
+						<Handle
+							type='source'
+							position={Position.Bottom}
+							className={cn(
+								'!w-2 !h-2 rounded-full transition-all duration-200',
+								'!bg-transparent !border !border-white/20',
+								'hover:!bg-white/10 hover:!border-white/40 hover:scale-125'
 							)}
-						</AnimatePresence>
-					</div>
+							style={{
+								bottom: '-4px',
+							}}
+						/>
 
-					<div onDoubleClick={handleDoubleClick} className='w-full h-full'>
-						{children}
-					</div>
-
-					{!isDraggingNodes && (
-						<>
-							{/* Enhanced Connection Handles with Visual Feedback */}
+						{activeTool === 'connector' && (
 							<Handle
 								type='source'
-								position={Position.Bottom}
-								className={cn(
-									'w-12 h-2 rounded-xs border-2 transition-all duration-200',
-									'!bg-node-accent border-node-accent opacity-100 shadow-lg',
-									'translate-y-[1px]',
-									activeTool === 'pan' && '!pointer-events-none'
-								)}
-							/>
-
-							{activeTool === 'connector' && (
-								<Handle
-									type='source'
-									position={Position.Top}
-									className={cn([
-										'w-full h-full z-20 translate-y-1/2 transition-colors',
-										connection.inProgress
-											? '!bg-transparent'
-											: '!bg-sky-500/20 animate-pulse',
-									])}
-								/>
-							)}
-
-							{/* Target Handle */}
-							<Handle
-								className={cn([
-									'w-full translate-y-1/2 absolute top-0 left-0 border-none opacity-0 cursor-move',
-									isTarget && '!bg-blue-500/50 animate-pulse',
-									connection.inProgress ? 'h-full' : 'h-0',
-									activeTool === 'connector' ? 'z-10' : 'z-[21]',
-								])}
 								position={Position.Top}
-								type='target'
-								isConnectableStart={false}
+								className={cn([
+									'w-full h-full z-20 translate-y-1/2 transition-colors',
+									connection.inProgress
+										? '!bg-transparent'
+										: '!bg-sky-500/10',
+								])}
 							/>
+						)}
 
-							{/* Add New Node Button - Only visible when selected */}
-							<AnimatePresence>
-								{selected && selectedNodes.length === 1 && (
-									<>
-										{/* add connection line to node */}
-										<motion.hr
-											initial={{ opacity: 0, scale: 0.8 }}
-											animate={{ opacity: 1, scale: 1 }}
-											exit={{ opacity: 0, scale: 0.8 }}
-											transition={{ duration: 0.2 }}
-											className='absolute -bottom-16 h-16 w-1 bg-node-accent right-1/2 z-[19] '
-										/>
+						<Handle
+							className={cn([
+								'w-full translate-y-1/2 absolute top-0 left-0 border-none opacity-0 cursor-move',
+								isTarget && '!bg-blue-500/30',
+								connection.inProgress ? 'h-full' : 'h-0',
+								activeTool === 'connector' ? 'z-10' : 'z-[21]',
+							])}
+							position={Position.Top}
+							type='target'
+							isConnectableStart={false}
+						/>
 
-										<motion.div
-											initial={{ opacity: 0, scale: 0.8 }}
-											animate={{ opacity: 1, scale: 1 }}
-											exit={{ opacity: 0, scale: 0.8 }}
-											transition={{ duration: 0.2 }}
-											className='absolute -bottom-16 right-1/2 z-20 translate-x-[10px]'
+						{/* Add New Node Button - follows Material Design FAB principles */}
+						<AnimatePresence>
+							{selected && selectedNodes.length === 1 && (
+								<>
+									<motion.div
+										initial={{ opacity: 0, scaleY: 0 }}
+										animate={{ opacity: 0.3, scaleY: 1 }}
+										exit={{ opacity: 0, scaleY: 0 }}
+										transition={{ duration: 0.2 }}
+										className='absolute -bottom-12 left-1/2 -translate-x-1/2 w-[1px] h-12'
+										style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+									/>
+									<motion.div
+										initial={{ opacity: 0, scale: 0.8 }}
+										animate={{ opacity: 1, scale: 1 }}
+										exit={{ opacity: 0, scale: 0.8 }}
+										transition={{ duration: 0.2, type: 'spring', stiffness: 300 }}
+										className='absolute -bottom-[60px] left-1/2 -translate-x-1/2 z-20'
+									>
+										<Button
+											onClick={handleAddNewNode}
+											className='nodrag nopan rounded-full w-10 h-10 p-0 transition-all duration-200 hover:scale-110'
+											style={{
+												backgroundColor: getElevationColor(6),
+												border: '1px solid rgba(255, 255, 255, 0.1)',
+											}}
+											title='Add new connected node'
 										>
-											<Button
-												onClick={handleAddNewNode}
-												className='nodrag nopan rounded-full size-6 p-0 bg-node-accent/90 hover:bg-node-accent border-2 border-node-text-main shadow-lg transition-all duration-200 hover:scale-110'
-												title='Add new connected node'
-											>
-												<Plus className='size-3' />
-											</Button>
-										</motion.div>
-									</>
-								)}
-							</AnimatePresence>
+											<Plus className='w-5 h-5' style={{ color: 'rgba(255, 255, 255, 0.87)' }} />
+										</Button>
+									</motion.div>
+								</>
+							)}
+						</AnimatePresence>
 
-							<NodeResizer
-								color='#0069a8'
-								isVisible={selected}
-								minWidth={120}
-								minHeight={30}
-								maxWidth={600}
-								handleClassName='!w-3 !h-3 !bg-node-accent border-node-text-secondary'
-							/>
-						</>
-					)}
-				</>
-			</div>
-		</>
+						<NodeResizer
+							color='rgba(96, 165, 250, 0.4)'
+							isVisible={selected}
+							minWidth={100}
+							minHeight={30}
+							maxWidth={600}
+							maxHeight={nodeRef.current?.height ?? 600}
+							handleClassName='!w-2 !h-2 !rounded-full'
+							handleStyle={{
+								backgroundColor: selected ? 'rgba(96, 165, 250, 0.6)' : 'rgba(255, 255, 255, 0.2)',
+								border: '1px solid rgba(255, 255, 255, 0.3)',
+							}}
+						/>
+					</>
+				)}
+			</>
+		</div>
 	);
 };
 

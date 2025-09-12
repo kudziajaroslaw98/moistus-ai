@@ -1,25 +1,198 @@
 'use client';
 
-import useAppStore from '@/store/mind-map-store';
 import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
 import { Node, NodeProps } from '@xyflow/react';
-import { AlertCircle, Flag, NotepadText, Star } from 'lucide-react';
-import { memo, useCallback, useMemo } from 'react';
+import { FileText } from 'lucide-react';
+import { memo } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { useShallow } from 'zustand/shallow';
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from '../ui/select';
 import { BaseNodeWrapper } from './base-node-wrapper';
-import { NodeMetadata, NodeTags } from './shared';
 
 const MarkdownWrapperComponent = ({ content }: { content: string }) => {
-	return <ReactMarkdown>{content}</ReactMarkdown>;
+	// Custom markdown components following Material Design dark theme principles
+	return (
+		<ReactMarkdown
+			components={{
+				// Headers with progressive de-emphasis
+				h1: ({children}) => (
+					<h1 className='mb-3 pb-2' style={{
+						fontSize: '20px',
+						fontWeight: 500,
+						color: 'rgba(255, 255, 255, 0.87)', // High emphasis
+						borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+						lineHeight: 1.3,
+					}}>
+						{children}
+					</h1>
+				),
+				h2: ({children}) => (
+					<h2 className='mb-2 mt-3' style={{
+						fontSize: '18px',
+						fontWeight: 500,
+						color: 'rgba(255, 255, 255, 0.87)',
+						lineHeight: 1.4,
+					}}>
+						{children}
+					</h2>
+				),
+				h3: ({children}) => (
+					<h3 className='mb-2 mt-2' style={{
+						fontSize: '16px',
+						fontWeight: 500,
+						color: 'rgba(255, 255, 255, 0.60)', // Medium emphasis
+						lineHeight: 1.5,
+					}}>
+						{children}
+					</h3>
+				),
+				// Paragraphs with proper line height for readability
+				p: ({children}) => (
+					<p className='mb-3' style={{
+						color: 'rgba(255, 255, 255, 0.60)',
+						fontSize: '14px',
+						lineHeight: 1.7,
+						letterSpacing: '0.01em',
+					}}>
+						{children}
+					</p>
+				),
+				// Lists with subtle bullets
+				ul: ({children}) => (
+					<ul className='mb-3 space-y-1 pl-4'>
+						{children}
+					</ul>
+				),
+				li: ({children}) => (
+					<li className='flex items-start gap-2' style={{
+						color: 'rgba(255, 255, 255, 0.60)',
+						fontSize: '14px',
+						lineHeight: 1.6,
+					}}>
+						<span style={{ color: 'rgba(96, 165, 250, 0.5)' }}>•</span>
+						<span className='flex-1'>{children}</span>
+					</li>
+				),
+				// Inline code with elevation
+				code: ({children, className}) => {
+					// Check if it's a code block (has language class)
+					const isBlock = className?.includes('language-');
+					
+					if (isBlock) {
+						return (
+							<code className={className} style={{
+								fontFamily: 'var(--font-geist-mono)',
+								fontSize: '13px',
+								lineHeight: 1.6,
+							}}>
+								{children}
+							</code>
+						);
+					}
+					
+					// Inline code
+					return (
+						<code className='px-1.5 py-0.5 rounded' style={{
+							backgroundColor: 'rgba(96, 165, 250, 0.15)',
+							color: 'rgba(147, 197, 253, 0.87)',
+							fontFamily: 'var(--font-geist-mono)',
+							fontSize: '0.9em',
+						}}>
+							{children}
+						</code>
+					);
+				},
+				// Code blocks with proper elevation
+				pre: ({children}) => (
+					<pre className='p-3 rounded-md mb-3 overflow-x-auto' style={{
+						backgroundColor: '#121212', // Base elevation
+						border: '1px solid rgba(255, 255, 255, 0.06)',
+					}}>
+						{children}
+					</pre>
+				),
+				// Links with accessible color
+				a: ({children, href}) => (
+					<a 
+						href={href} 
+						className='underline underline-offset-2 transition-colors hover:no-underline'
+						style={{
+							color: 'rgba(147, 197, 253, 0.87)',
+						}}
+						target='_blank'
+						rel='noopener noreferrer'
+					>
+						{children}
+					</a>
+				),
+				// Blockquotes with subtle accent
+				blockquote: ({children}) => (
+					<blockquote className='pl-4 py-2 my-3 italic' style={{
+						borderLeft: '3px solid rgba(96, 165, 250, 0.3)',
+						color: 'rgba(255, 255, 255, 0.38)',
+						backgroundColor: 'rgba(96, 165, 250, 0.05)',
+					}}>
+						{children}
+					</blockquote>
+				),
+				// Horizontal rules
+				hr: () => (
+					<hr className='my-4' style={{
+						border: 'none',
+						height: '1px',
+						background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1) 20%, rgba(255, 255, 255, 0.1) 80%, transparent)',
+					}} />
+				),
+				// Tables with proper dark theme styling
+				table: ({children}) => (
+					<div className='overflow-x-auto mb-3'>
+						<table className='w-full' style={{
+							borderCollapse: 'collapse',
+							fontSize: '14px',
+						}}>
+							{children}
+						</table>
+					</div>
+				),
+				th: ({children}) => (
+					<th className='text-left p-2' style={{
+						borderBottom: '2px solid rgba(255, 255, 255, 0.1)',
+						color: 'rgba(255, 255, 255, 0.87)',
+						fontWeight: 500,
+					}}>
+						{children}
+					</th>
+				),
+				td: ({children}) => (
+					<td className='p-2' style={{
+						borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+						color: 'rgba(255, 255, 255, 0.60)',
+					}}>
+						{children}
+					</td>
+				),
+				// Strong emphasis
+				strong: ({children}) => (
+					<strong style={{
+						color: 'rgba(255, 255, 255, 0.87)',
+						fontWeight: 600,
+					}}>
+						{children}
+					</strong>
+				),
+				// Emphasis
+				em: ({children}) => (
+					<em style={{
+						color: 'rgba(255, 255, 255, 0.60)',
+						fontStyle: 'italic',
+					}}>
+						{children}
+					</em>
+				),
+			}}
+		>
+			{content}
+		</ReactMarkdown>
+	);
 };
 
 const MarkdownWrapper = memo(MarkdownWrapperComponent);
@@ -28,186 +201,29 @@ MarkdownWrapper.displayName = 'MarkdownWrapper';
 const DefaultNodeComponent = (props: NodeProps<Node<NodeData>>) => {
 	const { id, data } = props;
 
-	const { openNodeEditor, updateNode, getNode } = useAppStore(
-		useShallow((state) => ({
-			openNodeEditor: state.openNodeEditor,
-			updateNode: state.updateNode,
-			getNode: state.getNode,
-		}))
-	);
-
-	const status = data.metadata?.status as string | undefined;
-	const priority = data.metadata?.priority as number | undefined;
-	const tags = data.metadata?.tags as string[] | undefined;
-
-	const handleNodeChange = useCallback(
-		(change: Partial<NodeData>) => {
-			updateNode({
-				nodeId: id,
-				data: change,
-			});
-		},
-		[updateNode, id]
-	);
-
-
-	const handleDoubleClick = useCallback(
-		(event: React.MouseEvent) => {
-			const currentNode = getNode(id);
-			if (!currentNode) return;
-	
-			openNodeEditor({
-				mode: 'edit',
-				position: currentNode.position,
-				existingNodeId: id,
-			});
-		},
-		[id, getNode, openNodeEditor]
-	);
-
-
-	const statusOptions = [
-		{ value: 'draft', label: 'Draft', icon: AlertCircle },
-		{ value: 'in-progress', label: 'In Progress', icon: Flag },
-		{ value: 'completed', label: 'Completed', icon: Star },
-		{ value: 'on-hold', label: 'On Hold', icon: AlertCircle },
-	];
-
-	const priorityOptions = [
-		{ value: 'low', title: 'Low' },
-		{ value: 'medium', title: 'Medium' },
-		{ value: 'high', title: 'High' },
-	];
-
-	const toolbarContent = useMemo(
-		() => (
-			<>
-				{/* Status Selector */}
-				<Select
-					value={status || ''}
-					onValueChange={(value) =>
-						handleNodeChange({ metadata: { status: value } })
-					}
-				>
-					<SelectTrigger className='h-8 w-32' size='sm'>
-						<div className='flex items-center gap-1'>
-							{status && (
-								<>
-									{(() => {
-										const statusOption = statusOptions.find(
-											(opt) => opt.value === status
-										);
-
-										if (statusOption) {
-											const Icon = statusOption.icon;
-											return <Icon className='w-3 h-3' />;
-										}
-
-										return null;
-									})()}
-								</>
-							)}
-
-							<SelectValue placeholder='Status' />
-						</div>
-					</SelectTrigger>
-
-					<SelectContent position='popper'>
-						{statusOptions.map((option) => {
-							const Icon = option.icon;
-							return (
-								<SelectItem key={option.value} value={option.value}>
-									<div className='flex items-center gap-2'>
-										<Icon className='w-3 h-3' />
-
-										{option.label}
-									</div>
-								</SelectItem>
-							);
-						})}
-					</SelectContent>
-				</Select>
-
-				{/* Importance Selector */}
-				<Select
-					value={priority?.toString() || ''}
-					onValueChange={(value) =>
-						handleNodeChange({
-							metadata: { priority: value || null },
-						})
-					}
-				>
-					<SelectTrigger className='h-8 w-32' size='sm'>
-						<SelectValue placeholder='Priority' />
-					</SelectTrigger>
-
-					<SelectContent>
-						{priorityOptions.map((option) => (
-							<SelectItem
-								key={option.value}
-								value={option.value.toString()}
-								title={option.title}
-							>
-								{option.value}
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
-
-				{/* Status/Importance Display Badge */}
-				{(status || priority) && (
-					<div className='flex items-center gap-1 px-2 py-1 rounded text-xs bg-blue-600/20 text-blue-400'>
-						{status && (
-							<span className='capitalize text-xs'>
-								{status.replace('-', ' ')}
-							</span>
-						)}
-
-						{status && priority && <span>•</span>}
-
-						{priority && <span>{priorityOptions[priority - 1]?.value}</span>}
-					</div>
-				)}
-			</>
-		),
-		[status, priority, handleNodeChange, statusOptions, priorityOptions]
-	);
-
 	return (
 		<BaseNodeWrapper
 			{...props}
-			nodeClassName={cn(['basic-node h-full gap-0'])}
+			nodeClassName={cn(['basic-node h-full'])}
 			nodeType='Note'
-			nodeIcon={<NotepadText className='size-4' />}
-			toolbarContent={toolbarContent}
-			onDoubleClick={handleDoubleClick}
+			nodeIcon={<FileText className='size-4' />}
+			elevation={1}
 		>
-			<div className='prose p-4 prose-invert flex flex-col gap-2 prose-ul:flex prose-ul:flex-col prose-ul:gap-2 prose-sm max-w-none break-words prose-headings:m-0'>
-				<MarkdownWrapper
-					content={data.content || 'Double click to edit...'}
-				/>
-
-				{tags && tags.length > 0 && (
-					<NodeTags
-						tags={tags}
-						className='mt-2'
-						onTagClick={(tag) => console.log('Tag clicked:', tag)}
-					/>
-				)}
-
-				{/* Additional Metadata Display */}
-				{data.metadata && Object.keys(data.metadata).length > 0 && (
-					<div className='mt-2 pt-2 border-t border-zinc-800/50'>
-						<NodeMetadata
-							nodeId={id}
-							metadata={data.metadata}
-							layout='horizontal'
-							maxItems={3}
-							className='w-full'
-						/>
-					</div>
-				)}
-			</div>
+			{data.content ? (
+				<div className='max-w-none break-words'>
+					<MarkdownWrapper content={data.content} />
+				</div>
+			) : (
+				<div className='text-center py-4'>
+					<span style={{ 
+						color: 'rgba(255, 255, 255, 0.38)', 
+						fontSize: '14px',
+						fontStyle: 'italic'
+					}}>
+						Click to add content...
+					</span>
+				</div>
+			)}
 		</BaseNodeWrapper>
 	);
 };

@@ -1,208 +1,273 @@
 'use client';
 
-import useAppStore from '@/store/mind-map-store';
 import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
 import { Node, NodeProps } from '@xyflow/react';
-import {
-	ArrowUpRight,
-	Eye,
-	EyeOff,
-	Image as ImageIcon,
-	RefreshCw,
-} from 'lucide-react';
+import { Image as ImageIcon, ImageOff, Loader2 } from 'lucide-react';
 import Image from 'next/image';
-import { memo, useCallback, useMemo, useState } from 'react';
-import { toast } from 'sonner';
-import { useShallow } from 'zustand/shallow';
-import { Button } from '../ui/button';
-import { Toggle } from '../ui/toggle';
+import { memo, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { BaseNodeWrapper } from './base-node-wrapper';
-import { NodeMetadata } from './shared';
 
 type ImageNodeProps = NodeProps<Node<NodeData>>;
 
 const ImageNodeComponent = (props: ImageNodeProps) => {
-	const { id, data } = props;
+	const { data } = props;
+	const [imageState, setImageState] = useState<'loading' | 'loaded' | 'error'>('loading');
+	const [aspectRatio, setAspectRatio] = useState<number>(16/9); // Default aspect ratio
 
-	const { updateNode } = useAppStore(
-		useShallow((state) => ({
-			updateNode: state.updateNode,
-		}))
-	);
-
-	const [isRefreshing, setIsRefreshing] = useState(false);
-
-	const imageUrl = data.metadata?.imageUrl as string | undefined;
+	const imageUrl = data.metadata?.image_url as string | undefined;
 	const showCaption = Boolean(data.metadata?.showCaption);
+	const fitMode = (data.metadata?.fitMode as 'cover' | 'contain' | 'fill') || 'cover';
+	const altText = (data.metadata?.altText as string) || data.content || 'Image';
 
-	const handleNodeChange = useCallback(
-		(change: Partial<NodeData['metadata']>) => {
-			updateNode({
-				nodeId: id,
-				data: {
-					metadata: {
-						...data.metadata,
-						...change,
-					},
-				},
-			});
-		},
-		[updateNode, id, data.metadata]
-	);
-
-	const handleOpenImage = useCallback(() => {
-		if (imageUrl) {
-			window.open(imageUrl, '_blank', 'noopener,noreferrer');
-			toast.success('Opened image in new tab');
-		} else {
-			toast.error('No image URL available');
+	const handleImageLoad = (event: any) => {
+		const img = event.target;
+		if (img.naturalWidth && img.naturalHeight) {
+			setAspectRatio(img.naturalWidth / img.naturalHeight);
 		}
-	}, [imageUrl]);
-
-	const handleRefreshMetadata = useCallback(async () => {
-		if (!imageUrl) {
-			toast.error('No image URL to refresh');
-			return;
-		}
-
-		setIsRefreshing(true);
-
-		try {
-			// This would typically call an API to re-fetch image metadata
-			// For now, we'll just show a success message
-			// You can implement the actual metadata fetching logic here
-			await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
-
-			toast.success('Image metadata refreshed');
-		} catch (error) {
-			console.error('Failed to refresh image metadata:', error);
-			toast.error('Failed to refresh image metadata');
-		} finally {
-			setIsRefreshing(false);
-		}
-	}, [imageUrl]);
-
-	const toolbarContent = useMemo(
-		() => (
-			<>
-				{/* Caption Toggle */}
-				<Toggle
-					size={'sm'}
-					variant={'outline'}
-					pressed={showCaption}
-					onPressedChange={(pressed) => {
-						handleNodeChange({ showCaption: pressed });
-					}}
-					title={showCaption ? 'Hide caption' : 'Show caption'}
-				>
-					{showCaption ? (
-						<Eye className='w-4 h-4' />
-					) : (
-						<EyeOff className='w-4 h-4' />
-					)}
-				</Toggle>
-
-				{/* Open Image Button */}
-				{imageUrl && (
-					<Button
-						onClick={handleOpenImage}
-						size={'sm'}
-						variant={'outline'}
-						className='h-8 px-2'
-						title='Open image in new tab'
-					>
-						<ArrowUpRight className='w-4 h-4' />
-					</Button>
-				)}
-
-				{/* Refresh Metadata Button */}
-				{imageUrl && (
-					<Button
-						onClick={handleRefreshMetadata}
-						size={'sm'}
-						variant={'outline'}
-						className='h-8 px-2'
-						disabled={isRefreshing}
-						title='Refresh image metadata'
-					>
-						<RefreshCw
-							className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}
-						/>
-					</Button>
-				)}
-			</>
-		),
-		[
-			showCaption,
-			imageUrl,
-			isRefreshing,
-			handleNodeChange,
-			handleOpenImage,
-			handleRefreshMetadata,
-		]
-	);
+		setImageState('loaded');
+	};
 
 	return (
 		<BaseNodeWrapper
 			{...props}
-			nodeClassName={cn(['image-node h-full gap-0'])}
+			nodeClassName={cn(['image-node h-full'])}
 			nodeType='Image'
 			nodeIcon={<ImageIcon className='size-4' />}
 			includePadding={false}
-			toolbarContent={toolbarContent}
+			elevation={1}
 		>
-			<>
+			<div className='flex flex-col h-full'>
 				{imageUrl ? (
-					<div className='relative flex w-full h-full min-h-32 rounded-md'>
-						<Image
-							src={imageUrl}
-							alt={data.content || 'Node Image'}
-							className={cn([
-								'nodrag pointer-events-none h-full w-full min-h-32 object-cover',
-								showCaption ? 'rounded-t-md' : 'rounded-md',
-							])}
-							onClick={(e) => e.stopPropagation()}
-							onError={(e) => {
-								e.currentTarget.src =
-									'https://placehold.co/200x120?text=Image+Error';
-							}}
-							placeholder='empty'
-							loading='lazy'
-							priority={false}
-							fill={true}
-						/>
+					<div className='relative w-full overflow-hidden rounded-t-lg'
+						style={{
+							// Dynamic aspect ratio based on image or fallback to 16:9
+							aspectRatio: data.metadata?.aspectRatio || aspectRatio,
+							backgroundColor: '#121212', // Base elevation for loading
+							minHeight: '120px',
+							maxHeight: '400px',
+						}}>
+						
+						{/* Loading state with elegant skeleton */}
+						<AnimatePresence>
+							{imageState === 'loading' && (
+								<motion.div
+									initial={{ opacity: 0 }}
+									animate={{ opacity: 1 }}
+									exit={{ opacity: 0 }}
+									className='absolute inset-0 flex items-center justify-center'
+									style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}
+								>
+									<motion.div
+										animate={{ rotate: 360 }}
+										transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+									>
+										<Loader2 className='w-6 h-6' 
+											style={{ color: 'rgba(255, 255, 255, 0.2)' }} />
+									</motion.div>
+								</motion.div>
+							)}
+						</AnimatePresence>
+
+						{/* Error state with helpful feedback */}
+						{imageState === 'error' ? (
+							<motion.div
+								initial={{ opacity: 0, scale: 0.95 }}
+								animate={{ opacity: 1, scale: 1 }}
+								className='absolute inset-0 flex flex-col items-center justify-center p-4'
+								style={{ 
+									backgroundColor: 'rgba(239, 68, 68, 0.05)',
+									border: '1px solid rgba(239, 68, 68, 0.2)',
+								}}
+							>
+								<ImageOff className='w-8 h-8 mb-2' 
+									style={{ color: 'rgba(239, 68, 68, 0.5)' }} />
+								<span style={{
+									fontSize: '13px',
+									color: 'rgba(255, 255, 255, 0.6)',
+									textAlign: 'center',
+								}}>
+									Unable to load image
+								</span>
+								<span style={{
+									fontSize: '11px',
+									color: 'rgba(255, 255, 255, 0.38)',
+									marginTop: '4px',
+									wordBreak: 'break-all',
+									textAlign: 'center',
+									maxWidth: '200px',
+								}}>
+									{imageUrl.length > 50 ? imageUrl.substring(0, 50) + '...' : imageUrl}
+								</span>
+							</motion.div>
+						) : (
+							<>
+								{/* Main image with smooth loading transition */}
+								<Image
+									src={imageUrl}
+									alt={altText}
+									className={cn([
+										'nodrag pointer-events-none transition-all duration-500',
+										fitMode === 'contain' && 'object-contain',
+										fitMode === 'cover' && 'object-cover',
+										fitMode === 'fill' && 'object-fill',
+									])}
+									style={{
+										opacity: imageState === 'loaded' ? 1 : 0,
+										filter: imageState === 'loaded' ? 'none' : 'blur(8px)',
+									}}
+									onLoad={handleImageLoad}
+									onError={() => setImageState('error')}
+									placeholder='empty'
+									loading='lazy'
+									priority={false}
+									fill={true}
+									sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
+								/>
+
+								{/* Image overlay gradient for better text readability when caption is shown */}
+								{showCaption && imageState === 'loaded' && (
+									<div className='absolute bottom-0 left-0 right-0 h-20 pointer-events-none'
+										style={{
+											background: 'linear-gradient(to top, rgba(18, 18, 18, 0.9) 0%, transparent 100%)',
+										}}
+									/>
+								)}
+
+								{/* Image controls overlay on hover */}
+								<motion.div
+									className='absolute top-2 right-2 flex gap-2 opacity-0 hover:opacity-100 transition-opacity duration-200'
+									initial={{ opacity: 0 }}
+									whileHover={{ opacity: 1 }}
+								>
+									{/* View full size button */}
+									<button
+										className='p-1.5 rounded-md backdrop-blur-md'
+										style={{
+											backgroundColor: 'rgba(18, 18, 18, 0.8)',
+											border: '1px solid rgba(255, 255, 255, 0.1)',
+										}}
+										onClick={() => window.open(imageUrl, '_blank')}
+										title='View full size'
+									>
+										<ImageIcon className='w-3.5 h-3.5' 
+											style={{ color: 'rgba(255, 255, 255, 0.87)' }} />
+									</button>
+								</motion.div>
+							</>
+						)}
+
+						{/* Loading progress bar */}
+						<AnimatePresence>
+							{imageState === 'loading' && (
+								<motion.div
+									initial={{ scaleX: 0 }}
+									animate={{ scaleX: 1 }}
+									exit={{ opacity: 0 }}
+									transition={{ duration: 2, ease: 'linear' }}
+									className='absolute bottom-0 left-0 right-0 h-0.5 origin-left'
+									style={{
+										backgroundColor: 'rgba(96, 165, 250, 0.5)',
+									}}
+								/>
+							)}
+						</AnimatePresence>
 					</div>
 				) : (
-					<div className='flex h-[50px] w-full items-center justify-center rounded-md bg-zinc-800 text-xs text-node-text-secondary'>
-						No Image URL
+					<div className='flex h-32 w-full items-center justify-center rounded-lg'
+						style={{
+							backgroundColor: 'rgba(255, 255, 255, 0.02)',
+							border: '1px dashed rgba(255, 255, 255, 0.1)',
+						}}>
+						<div className='text-center'>
+							<ImageIcon className='w-8 h-8 mx-auto mb-2' 
+								style={{ color: 'rgba(255, 255, 255, 0.2)' }} />
+							<span style={{
+								fontSize: '12px',
+								color: 'rgba(255, 255, 255, 0.38)',
+							}}>
+								No image URL provided
+							</span>
+						</div>
 					</div>
 				)}
 
-				{/* Content Area (for caption/description) - now display only */}
+				{/* Caption area with sophisticated typography */}
 				{showCaption && (
-					<div className='p-4 text-sm whitespace-pre-wrap text-node-text-secondary'>
-						{data.content || (
-							<span className='text-zinc-500 italic'>
-								No caption added. Double click or click the menu to add one...
+					<div className='p-4' 
+						style={{ 
+							backgroundColor: '#1E1E1E', // Elevation 1
+							borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+						}}>
+						{data.content ? (
+							<div>
+								{/* Caption text */}
+								<p style={{
+									fontSize: '13px',
+									color: 'rgba(255, 255, 255, 0.87)',
+									lineHeight: 1.6,
+									letterSpacing: '0.01em',
+									marginBottom: '4px',
+								}}>
+									{data.content}
+								</p>
+								
+								{/* Image metadata if available */}
+								{data.metadata?.photographer && (
+									<span style={{
+										fontSize: '11px',
+										color: 'rgba(255, 255, 255, 0.38)',
+										fontStyle: 'italic',
+									}}>
+										Photo by {data.metadata.photographer}
+									</span>
+								)}
+							</div>
+						) : (
+							<span style={{
+								fontSize: '13px',
+								color: 'rgba(255, 255, 255, 0.38)',
+								fontStyle: 'italic',
+							}}>
+								No caption added. Double click to add one...
 							</span>
+						)}
+
+						{/* Image info bar */}
+						{imageState === 'loaded' && data.metadata?.showInfo && (
+							<div className='flex items-center gap-3 mt-3 pt-3'
+								style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+								{data.metadata?.dimensions && (
+									<span style={{
+										fontSize: '11px',
+										color: 'rgba(255, 255, 255, 0.38)',
+									}}>
+										{data.metadata.dimensions}
+									</span>
+								)}
+								{data.metadata?.fileSize && (
+									<span style={{
+										fontSize: '11px',
+										color: 'rgba(255, 255, 255, 0.38)',
+									}}>
+										{data.metadata.fileSize}
+									</span>
+								)}
+								{data.metadata?.format && (
+									<span style={{
+										fontSize: '11px',
+										color: 'rgba(255, 255, 255, 0.38)',
+										textTransform: 'uppercase',
+									}}>
+										{data.metadata.format}
+									</span>
+								)}
+							</div>
 						)}
 					</div>
 				)}
-
-				{/* Metadata Display */}
-				{data.metadata && Object.keys(data.metadata).length > 0 && (
-					<div className='px-4 pb-4'>
-						<NodeMetadata
-							nodeId={id}
-							metadata={data.metadata}
-							layout='horizontal'
-							maxItems={4}
-							className='w-full'
-						/>
-					</div>
-				)}
-			</>
+			</div>
 		</BaseNodeWrapper>
 	);
 };

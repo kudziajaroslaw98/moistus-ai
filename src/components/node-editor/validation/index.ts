@@ -3,12 +3,13 @@
  * Provides basic validation for common patterns
  */
 
-import { isValidDateString } from '../parsers/date-parser';
+import { isValidDateString } from '../parsers/common-utilities';
 
 export interface ValidationError {
 	message: string;
 	position?: { start: number; end: number };
 	severity: 'error' | 'warning' | 'info';
+	type: 'error' | 'warning' | 'suggestion';
 	suggestions?: string[];
 }
 
@@ -61,7 +62,8 @@ export const validateInput = (input: string): ValidationError[] => {
 	if (!input || input.trim().length === 0) {
 		errors.push({
 			message: 'Input cannot be empty',
-			severity: 'error'
+			severity: 'error',
+			type: 'error'
 		});
 	}
 	
@@ -102,11 +104,41 @@ export const getValidationResults = (text: string): ValidationError[] => {
 		return errors; // Don't show error for empty input
 	}
 	
+	// Check for multiple node type triggers
+	const nodeTypeTriggers = text.match(/\$\w+/g);
+	if (nodeTypeTriggers && nodeTypeTriggers.length > 1) {
+		// Find positions of all triggers after the first one
+		const nodeTypePattern = /\$\w+/g;
+		let match;
+		let foundFirst = false;
+		
+		while ((match = nodeTypePattern.exec(text)) !== null) {
+			if (foundFirst) {
+				// This is an additional trigger - mark as error
+				errors.push({
+					message: `Multiple node type triggers found. Remove "${match[0]}" or use only one per input.`,
+					position: { start: match.index, end: match.index + match[0].length },
+					severity: 'error',
+					type: 'error',
+					suggestions: [`Remove ${match[0]}`]
+				});
+			} else {
+				foundFirst = true;
+			}
+			
+			// Prevent infinite loop
+			if (nodeTypePattern.lastIndex === match.index) {
+				nodeTypePattern.lastIndex++;
+			}
+		}
+	}
+	
 	// Check for incomplete patterns
 	if (text.includes('@') && !text.match(/@\w+/)) {
 		errors.push({
 			message: 'Incomplete date pattern. Try @today, @tomorrow, or @YYYY-MM-DD',
 			severity: 'warning',
+			type: 'warning',
 			suggestions: ['@today', '@tomorrow', '@monday']
 		});
 	}
@@ -115,6 +147,7 @@ export const getValidationResults = (text: string): ValidationError[] => {
 		errors.push({
 			message: 'Incomplete priority pattern. Try #high, #medium, or #low',
 			severity: 'warning',
+			type: 'warning',
 			suggestions: ['#high', '#medium', '#low']
 		});
 	}
@@ -123,6 +156,7 @@ export const getValidationResults = (text: string): ValidationError[] => {
 		errors.push({
 			message: 'Incomplete color pattern. Try color:red, color:#ff0000',
 			severity: 'warning',
+			type: 'warning',
 			suggestions: ['color:red', 'color:blue', 'color:#ff0000']
 		});
 	}
@@ -130,7 +164,8 @@ export const getValidationResults = (text: string): ValidationError[] => {
 	if (text.includes('[') && !text.includes(']')) {
 		errors.push({
 			message: 'Unclosed tag pattern. Close with ]',
-			severity: 'error'
+			severity: 'error',
+			type: 'error'
 		});
 	}
 	
@@ -138,4 +173,4 @@ export const getValidationResults = (text: string): ValidationError[] => {
 };
 
 // Re-export from parsers for convenience
-export { isValidDateString } from '../parsers/date-parser';
+export { isValidDateString } from '../parsers/common-utilities';

@@ -31,6 +31,7 @@ export interface NodeTypeChangeEvent extends CustomEvent {
     nodeType: AvailableNodeTypes;
     text: string;
     cursorPosition: number;
+    triggerText?: string; // Optional trigger that caused the change
   };
 }
 
@@ -183,40 +184,48 @@ function nodeTypeCompletions(context: CompletionContext): CompletionResult | nul
           return;
         }
         
-        // Remove the trigger and any following whitespace
+        // Get the completed trigger (e.g., "$task")
+        const completedTrigger = cmd.trigger;
+        
+        // Get the rest of the text after the partial trigger
         const fullText = view.state.doc.toString();
+        const beforeTrigger = fullText.slice(0, from);
         const afterTrigger = fullText.slice(to);
-        const nextSpaceMatch = afterTrigger.match(/^\s+/);
-        const endPos = nextSpaceMatch ? to + nextSpaceMatch[0].length : to;
         
-        // Extract remaining content
-        const remainingText = fullText.slice(endPos).trim();
+        // Complete the trigger and add a space for better UX
+        // Always add a space after the trigger to make it easy to start typing content
+        const insertText = completedTrigger + ' ';
         
-        // Replace the trigger with remaining content
+        // Calculate new cursor position (after the completed trigger)
+        const newCursorPos = from + insertText.length;
+        const newFullText = beforeTrigger + insertText + afterTrigger;
+        
+        // Apply the completion with explicit text changes
         view.dispatch({
           changes: {
-            from: triggerStart,
-            to: endPos,
-            insert: remainingText
+            from: from,           // Start of the partial trigger
+            to: to,               // End of the partial trigger
+            insert: insertText    // Insert the completed trigger
           },
           selection: {
-            anchor: triggerStart + remainingText.length
+            anchor: newCursorPos  // Position cursor after the completed trigger
           },
           effects: [
             nodeTypeChangeEffect.of({
               nodeType,
-              text: remainingText,
-              cursorPosition: triggerStart + remainingText.length
+              text: newFullText,
+              cursorPosition: newCursorPos
             })
           ]
         });
         
-        // Dispatch custom event
+        // Dispatch custom event with the new text
         const event = new CustomEvent('nodeTypeChange', {
           detail: {
             nodeType,
-            text: remainingText,
-            cursorPosition: triggerStart + remainingText.length
+            text: newFullText,
+            cursorPosition: newCursorPos,
+            triggerText: completedTrigger
           }
         }) as NodeTypeChangeEvent;
         

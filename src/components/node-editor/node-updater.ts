@@ -88,28 +88,34 @@ export const createOrUpdateNodeFromCommand = async ({
 	}
 };
 
+// Helper to get universal form data fields
+const getUniversalFormData = (data: NodeData) => ({
+	priority: data.metadata?.priority || 'medium',
+	assignee: data.metadata?.assignee ? (Array.isArray(data.metadata.assignee) ? data.metadata.assignee.join(', ') : data.metadata.assignee) : '',
+	status: data.metadata?.status || '',
+	dueDate: data.metadata?.dueDate ? data.metadata.dueDate.slice(0, 10) : '',
+	tags: data.metadata?.tags || [],
+});
+
 // Transform existing node data back to form data for editing
 export const transformNodeToFormData = (
 	node: AppNode,
 	nodeType: string
 ): any => {
 	const { data } = node;
+	const universalFormData = getUniversalFormData(data);
 
 	switch (nodeType) {
 		case 'defaultNode':
 			return {
 				content: data.content || '',
-				tags: data.metadata?.tags || [],
-				priority: data.metadata?.priority || 'medium',
+				...universalFormData,
 			};
 
 		case 'taskNode':
 			return {
 				tasks: data.metadata?.tasks || [],
-				dueDate: data.metadata?.dueDate ? data.metadata.dueDate.slice(0, 10) : '',
-				priority: data.metadata?.priority || 'medium',
-				assignee: data.metadata?.assignee ? data.metadata.assignee.join(', ') : '',
-				tags: data.metadata?.tags || [],
+				...universalFormData,
 			};
 
 		case 'codeNode':
@@ -118,6 +124,7 @@ export const transformNodeToFormData = (
 				language: data.metadata?.language || 'javascript',
 				filename: data.metadata?.fileName || '',
 				lineNumbers: data.metadata?.showLineNumbers !== false,
+				...universalFormData,
 			};
 
 		case 'imageNode':
@@ -126,6 +133,7 @@ export const transformNodeToFormData = (
 				alt: data.metadata?.altText || '',
 				caption: data.metadata?.caption || '',
 				source: data.metadata?.source || '',
+				...universalFormData,
 			};
 
 		case 'resourceNode':
@@ -134,12 +142,14 @@ export const transformNodeToFormData = (
 				title: data.metadata?.title || '',
 				description: data.content || '',
 				type: data.metadata?.resourceType || 'link',
+				...universalFormData,
 			};
 
 		case 'annotationNode':
 			return {
 				text: data.content || '',
 				type: data.metadata?.annotationType || 'comment',
+				...universalFormData,
 			};
 
 		case 'questionNode':
@@ -147,123 +157,317 @@ export const transformNodeToFormData = (
 				question: data.content || '',
 				answer: data.metadata?.answer || '',
 				type: 'open',
+				...universalFormData,
 			};
 
 		case 'textNode':
 			return {
 				content: data.content || '',
-				metadata: {
-					fontSize: data.metadata?.fontSize || '14px',
-					fontWeight: data.metadata?.fontWeight || 'normal',
-					fontStyle: data.metadata?.fontStyle || 'normal',
-					textAlign: data.metadata?.textAlign || 'left',
-					textColor: data.metadata?.textColor || '#000000',
-				},
+				fontSize: data.metadata?.fontSize || '14px',
+				fontWeight: data.metadata?.fontWeight || 'normal',
+				fontStyle: data.metadata?.fontStyle || 'normal',
+				textAlign: data.metadata?.textAlign || 'left',
+				textColor: data.metadata?.textColor || '#000000',
+				backgroundColor: data.metadata?.backgroundColor || '',
+				borderColor: data.metadata?.borderColor || '',
+				...universalFormData,
+			};
+
+		case 'groupNode':
+			return {
+				content: data.content || '',
+				groupId: data.metadata?.groupId || '',
+				groupPadding: data.metadata?.groupPadding || 0,
+				isCollapsed: data.metadata?.isCollapsed || false,
+				...universalFormData,
+			};
+
+		case 'referenceNode':
+			return {
+				content: data.content || '',
+				targetNodeId: data.metadata?.targetNodeId || '',
+				targetMapId: data.metadata?.targetMapId || '',
+				confidence: data.metadata?.confidence || 0,
+				isAiGenerated: data.metadata?.isAiGenerated || false,
+				...universalFormData,
 			};
 
 		default:
 			return {
 				content: data.content || '',
+				...universalFormData,
 			};
 	}
 };
 
-// Helper to convert form data for quick input parsing
+/**
+ * Universal metadata serializer helper - extracts common metadata for all nodes
+ */
+const serializeUniversalMetadata = (metadata?: NodeData['metadata']): string => {
+	if (!metadata) return '';
+	
+	const parts: string[] = [];
+	
+	// Universal metadata that applies to ALL node types
+	if (metadata.assignee?.length) {
+		const assignees = Array.isArray(metadata.assignee) 
+			? metadata.assignee.join(',') 
+			: String(metadata.assignee);
+		parts.push(`@${assignees}`);
+	}
+	
+	if (metadata.priority) {
+		parts.push(`#${metadata.priority}`);
+	}
+	
+	if (metadata.dueDate) {
+		const date = typeof metadata.dueDate === 'string' 
+			? metadata.dueDate.slice(0, 10)
+			: new Date(metadata.dueDate).toISOString().slice(0, 10);
+		parts.push(`^${date}`);
+	}
+	
+	if (metadata.status) {
+		parts.push(`!${metadata.status}`);
+	}
+	
+	if (metadata.tags?.length) {
+		parts.push(`[${metadata.tags.join(', ')}]`);
+	}
+	
+	return parts.join(' ');
+};
+
+/**
+ * Node-specific metadata serializer - only includes relevant patterns per node type
+ */
+const serializeNodeSpecificMetadata = (nodeType: string, metadata?: NodeData['metadata']): string => {
+	if (!metadata) return '';
+	
+	const parts: string[] = [];
+	
+	switch (nodeType) {
+		case 'textNode':
+			// Text formatting patterns
+			if (metadata.fontSize) {
+				parts.push(`~${metadata.fontSize}`);
+			}
+			
+			if (metadata.fontWeight && metadata.fontWeight !== 'normal') {
+				parts.push(`*${metadata.fontWeight}`);
+			}
+			
+			if (metadata.fontStyle === 'italic') {
+				parts.push(`/italic`);
+			}
+			
+			if (metadata.textAlign && metadata.textAlign !== 'left') {
+				parts.push(`>${metadata.textAlign}`);
+			}
+			
+			if (metadata.textColor) {
+				parts.push(`color:${metadata.textColor}`);
+			}
+			
+			if (metadata.backgroundColor) {
+				parts.push(`bg:${metadata.backgroundColor}`);
+			}
+			
+			if (metadata.borderColor) {
+				parts.push(`border:${metadata.borderColor}`);
+			}
+			break;
+
+		case 'imageNode':
+			// Image-specific patterns
+			if (metadata.altText) {
+				const escapedAlt = metadata.altText.replace(/"/g, '\\"');
+				parts.push(`alt:"${escapedAlt}"`);
+			}
+			
+			if (metadata.caption) {
+				const escapedCaption = metadata.caption.replace(/"/g, '\\"');
+				parts.push(`cap:"${escapedCaption}"`);
+			}
+			
+			if (metadata.source) {
+				const escapedSource = metadata.source.replace(/"/g, '\\"');
+				parts.push(`src:"${escapedSource}"`);
+			}
+			break;
+
+		case 'codeNode':
+			// Code-specific patterns
+			if (metadata.language) {
+				parts.push(`lang:${metadata.language}`);
+			}
+			
+			if (metadata.fileName) {
+				parts.push(`file:${metadata.fileName}`);
+			}
+			
+			if (metadata.showLineNumbers !== undefined) {
+				parts.push(`lines:${metadata.showLineNumbers ? 'on' : 'off'}`);
+			}
+			break;
+
+		case 'resourceNode':
+			// Resource-specific patterns
+			if (metadata.url) {
+				parts.push(`url:${metadata.url}`);
+			}
+			
+			if (metadata.title) {
+				const escapedTitle = metadata.title.replace(/"/g, '\\"');
+				parts.push(`title:"${escapedTitle}"`);
+			}
+			
+			if (metadata.resourceType) {
+				parts.push(`restype:${metadata.resourceType}`);
+			}
+			break;
+
+		case 'annotationNode':
+			// Annotation-specific patterns
+			if (metadata.annotationType) {
+				parts.push(`type:${metadata.annotationType}`);
+			}
+			break;
+
+		case 'questionNode':
+			// Question-specific patterns
+			if (metadata.answer) {
+				const escapedAnswer = metadata.answer.replace(/"/g, '\\"');
+				parts.push(`answer:"${escapedAnswer}"`);
+			}
+			break;
+
+		case 'groupNode':
+			// Group-specific patterns
+			if (metadata.groupId) {
+				parts.push(`groupid:${metadata.groupId}`);
+			}
+			
+			if (metadata.groupPadding !== undefined) {
+				parts.push(`padding:${metadata.groupPadding}`);
+			}
+			
+			if (metadata.isCollapsed !== undefined) {
+				parts.push(`collapsed:${metadata.isCollapsed ? 'on' : 'off'}`);
+			}
+			break;
+
+		case 'referenceNode':
+			// Reference-specific patterns
+			if (metadata.targetNodeId) {
+				parts.push(`target:${metadata.targetNodeId}`);
+			}
+			
+			if (metadata.targetMapId) {
+				parts.push(`targetmap:${metadata.targetMapId}`);
+			}
+			
+			if (metadata.confidence !== undefined) {
+				parts.push(`confidence:${metadata.confidence}`);
+			}
+			
+			if (metadata.isAiGenerated) {
+				parts.push(`ai:true`);
+			}
+			break;
+
+		// taskNode and defaultNode only use universal metadata
+		case 'taskNode':
+		case 'defaultNode':
+		default:
+			// No node-specific patterns for these types
+			break;
+	}
+	
+	return parts.join(' ');
+};
+
+// Helper to convert form data for quick input parsing with node-specific metadata support
 export const transformNodeToQuickInputString = (
 	node: AppNode,
 	nodeType: string
 ): string => {
 	const { data } = node;
 
+	// Get universal and node-specific metadata
+	const universalMetadata = serializeUniversalMetadata(data.metadata);
+	const nodeSpecificMetadata = serializeNodeSpecificMetadata(nodeType, data.metadata);
+	
+	// Combine metadata parts
+	const allMetadata = [universalMetadata, nodeSpecificMetadata]
+		.filter(Boolean)
+		.join(' ');
+
 	switch (nodeType) {
 		case 'defaultNode':
 			let content = data.content || '';
-			const tags = data.tags || data.metadata?.tags;
-			const priority = data.priority || data.metadata?.priority;
-			
-			if (tags && tags.length > 0) {
-				content += `\n[${tags.join(', ')}]`;
-			}
-			if (priority && priority !== 'medium') {
-				content += ` #${priority}`;
+			if (allMetadata) {
+				content += ` ${allMetadata}`;
 			}
 			return content;
 
 		case 'taskNode':
-			// Try both flat structure (data.tasks) and nested structure (data.metadata.tasks)
+			// Serialize tasks first
 			const tasks = data.tasks || data.metadata?.tasks || [];
 			let taskContent = '';
 			tasks.forEach((task: any) => {
 				taskContent += `${task.isComplete ? '[x]' : '[ ]'} ${task.text}\n`;
 			});
 			
-			// Add metadata patterns with new unique prefixes
-			const metadataParts = [];
-			const taskDueDate = data.dueDate || data.metadata?.dueDate;
-			const taskPriority = data.priority || data.metadata?.priority;
-			const taskAssignee = data.assignee || data.metadata?.assignee;
-			const taskTags = data.tags || data.metadata?.tags;
-			
-			if (taskDueDate) {
-				const dateStr = typeof taskDueDate === 'string' ? taskDueDate : taskDueDate.toString();
-				metadataParts.push(`^${dateStr.slice(0, 10)}`);
-			}
-			if (taskPriority && taskPriority !== 'medium') {
-				metadataParts.push(`#${taskPriority}`);
-			}
-			if (taskAssignee) {
-				// Fix: properly handle assignee array
-				const assigneeList = Array.isArray(taskAssignee) 
-					? taskAssignee.join(',') 
-					: taskAssignee;
-				metadataParts.push(`@${assigneeList}`);
-			}
-			if (taskTags && taskTags.length > 0) {
-				metadataParts.push(`[${taskTags.join(', ')}]`);
+			// Add metadata
+			if (allMetadata) {
+				taskContent += `${allMetadata}`;
 			}
 			
-			if (metadataParts.length > 0) {
-				taskContent += `\n${metadataParts.join(' ')}`;
-			}
-			
-			return taskContent;
+			return taskContent.trim();
 
 		case 'codeNode':
+			// Start with code block
 			let codeContent = `\`\`\`${data.metadata?.language || 'javascript'}\n${data.content || ''}\n\`\`\``;
-			if (data.metadata?.fileName) {
-				codeContent = `file:${data.metadata.fileName}\n${codeContent}`;
+			
+			// Add metadata (includes universal and code-specific patterns)
+			if (allMetadata) {
+				codeContent += `\n${allMetadata}`;
 			}
+			
 			return codeContent;
 
 		case 'imageNode':
+			// Start with primary image URL
 			const imageUrl = data.imageUrl || data.url || data.metadata?.imageUrl || data.metadata?.url || '';
-			const altText = data.altText || data.metadata?.altText;
-			const caption = data.caption || data.metadata?.caption;
-			
 			let imageContent = imageUrl;
-			if (altText) {
-				imageContent += ` "${altText}"`;
+			
+			// Add metadata (includes universal and image-specific patterns)
+			if (allMetadata) {
+				imageContent += ` ${allMetadata}`;
 			}
-			if (caption) {
-				imageContent += ` cap:${caption}`;
-			}
+			
 			return imageContent;
 
 		case 'resourceNode':
+			// Start with primary URL
 			const resourceUrl = data.url || data.metadata?.url || '';
-			const resourceTitle = data.title || data.metadata?.title;
-			
 			let resourceContent = resourceUrl;
-			if (resourceTitle) {
-				resourceContent += ` "${resourceTitle}"`;
-			}
+			
+			// Add description if present
 			if (data.content) {
-				resourceContent += ` desc:${data.content}`;
+				resourceContent += ` desc:"${data.content.replace(/"/g, '\\"')}"`;
 			}
+			
+			// Add metadata (includes universal and resource-specific patterns)
+			if (allMetadata) {
+				resourceContent += ` ${allMetadata}`;
+			}
+			
 			return resourceContent;
 
 		case 'annotationNode':
-			// Map annotation types to emojis if we have icon data, otherwise use type: format
+			// Keep emoji mapping for backward compatibility
 			const typeEmojiMap: Record<string, string> = {
 				'warning': '⚠️',
 				'success': '✅',
@@ -275,64 +479,69 @@ export const transformNodeToQuickInputString = (
 			const annotationType = data.annotationType || data.type || data.metadata?.annotationType || 'note';
 			const emoji = typeEmojiMap[annotationType];
 			
+			let annotationContent = '';
 			if (emoji) {
-				return `${emoji} ${data.content || ''}`;
+				annotationContent = `${emoji} ${data.content || ''}`;
 			} else {
-				return `${annotationType}: ${data.content || ''}`;
+				annotationContent = `${data.content || ''}`;
 			}
 			
+			// Add metadata (includes universal and annotation-specific patterns)
+			if (allMetadata) {
+				annotationContent += ` ${allMetadata}`;
+			}
+			
+			return annotationContent;
 
 		case 'questionNode':
 			let questionContent = data.content || '';
-			const questionType = data.type || data.metadata?.type;
-			const options = data.options || data.metadata?.options;
 			
-			if (questionType === 'yes-no') {
-				questionContent += ' [yes/no]';
-			} else if (questionType === 'multiple-choice' && options) {
-				questionContent += ` [${options.join(',')}]`;
+			// Add metadata (includes universal and question-specific patterns)
+			if (allMetadata) {
+				questionContent += ` ${allMetadata}`;
 			}
 			
 			return questionContent;
 
 		case 'textNode':
 			let textContent = data.content || '';
-			const metaParts = [];
 			
-			// Handle both flat and nested metadata structures
-			const fontSize = data.fontSize || data.metadata?.fontSize;
-			const textAlign = data.textAlign || data.metadata?.textAlign;
-			const textColor = data.textColor || data.metadata?.textColor;
-			const fontWeight = data.fontWeight || data.metadata?.fontWeight;
-			const fontStyle = data.fontStyle || data.metadata?.fontStyle;
-			
-			// Add formatting patterns with new unique prefixes
-			if (fontSize && fontSize !== '14px') {
-				metaParts.push(`sz:${fontSize}`);
-			}
-			if (textAlign && textAlign !== 'left') {
-				metaParts.push(`align:${textAlign}`);
-			}
-			if (textColor && textColor !== '#000000') {
-				metaParts.push(`color:${textColor}`);
-			}
-			
-			// Apply text formatting
-			if (fontWeight === 'bold') {
-				textContent = `**${textContent}**`;
-			}
-			if (fontStyle === 'italic') {
-				textContent = `*${textContent}*`;
-			}
-			
-			// Add metadata patterns
-			if (metaParts.length > 0) {
-				textContent += ` ${metaParts.join(' ')}`;
+			// Add metadata (includes universal and text formatting patterns)
+			if (allMetadata) {
+				textContent += ` ${allMetadata}`;
 			}
 			
 			return textContent;
 
+		case 'groupNode':
+			let groupContent = data.content || data.metadata?.label || 'Group';
+			
+			// Add metadata (includes universal and group-specific patterns)
+			if (allMetadata) {
+				groupContent += ` ${allMetadata}`;
+			}
+			
+			return groupContent;
+
+		case 'referenceNode':
+			let refContent = data.content || '';
+			
+			// Add metadata (includes universal and reference-specific patterns)
+			if (allMetadata) {
+				refContent += ` ${allMetadata}`;
+			}
+			
+			return refContent;
+
 		default:
-			return data.content || '';
+			// Universal fallback for any new node types
+			let defaultContent = data.content || '';
+			
+			// Add universal metadata only (no node-specific patterns for unknown types)
+			if (universalMetadata) {
+				defaultContent += ` ${universalMetadata}`;
+			}
+			
+			return defaultContent;
 	}
 };

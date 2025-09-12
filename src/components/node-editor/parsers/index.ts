@@ -1,146 +1,115 @@
 /**
- * Parser factory and exports
- * Centralized access to all node parsers with factory pattern
+ * Universal Parser Exports
+ * Single source of truth for all node parsing functionality
  */
 
-// Export main parser functions
-export { parseTaskInput } from './task-parser';
-export { parseNoteInput, parseTextInput, parseAnnotationInput, parseQuestionInput } from './content-parsers';
-export { parseCodeInput, parseImageInput, parseResourceInput } from './media-parsers';
+// Export the main universal parser function
+export { parseInput } from './common-utilities';
 
-// Export command parser functions
+// Export command parser functions (still needed for command system)
 export {
-  detectNodeTypeSwitch,
-  detectSlashCommand,
-  processNodeTypeSwitch,
-  isValidNodeTypeTrigger,
-  isValidSlashCommand,
-  getValidNodeTypeTriggers,
-  getValidSlashCommands,
-  hasCommandTriggers,
-  extractAllCommandTriggers,
-  debugParseText
+	debugParseText,
+	detectNodeTypeSwitch,
+	detectSlashCommand,
+	extractAllCommandTriggers,
+	getValidNodeTypeTriggers,
+	getValidSlashCommands,
+	hasCommandTriggers,
+	isValidNodeTypeTrigger,
+	isValidSlashCommand,
+	processNodeTypeSwitch,
 } from './command-parser';
 
-// Export utility types (no conflicts expected)
-export type { PatternType } from './common-utilities';
+// Export utility functions from common-utilities
+export {
+	detectLanguageFromContent,
+	extractAllPatterns,
+	formatColorValue,
+	formatDateForDisplay,
+	formatPriorityForDisplay,
+	hasCheckboxSyntax,
+	hasEmbeddedPatterns,
+	isValidDateString,
+	isValidUrl,
+	parseDateString,
+} from './common-utilities';
+
+// Export types
+export type { ExtractedData, PatternType } from './common-utilities';
 
 // Export command parser types
 export type {
-  NodeTypeTrigger,
-  CommandTrigger,
-  NodeTypeSwitchResult
+	CommandTrigger,
+	NodeTypeSwitchResult,
+	NodeTypeTrigger,
 } from './command-parser';
 
-// Import all parsers for registry
-import { parseTaskInput } from './task-parser';
-import { parseNoteInput, parseTextInput, parseAnnotationInput, parseQuestionInput } from './content-parsers';
-import { parseCodeInput, parseImageInput, parseResourceInput } from './media-parsers';
-
-// Import types
-import type {
-	ParsedTaskData,
-	ParsedNoteData,
-	ParsedTextData,
-	ParsedAnnotationData,
-	ParsedQuestionData,
-	ParsedCodeData,
-	ParsedImageData,
-	ParsedResourceData,
-	QuickParser,
-} from '../types';
+// Import the universal parser for backward compatibility helpers
 import type { AvailableNodeTypes } from '../../../types/available-node-types';
-
-// Parser registry type
-export interface ParserRegistry {
-	task: QuickParser<ParsedTaskData>;
-	note: QuickParser<ParsedNoteData>;
-	text: QuickParser<ParsedTextData>;
-	annotation: QuickParser<ParsedAnnotationData>;
-	question: QuickParser<ParsedQuestionData>;
-	code: QuickParser<ParsedCodeData>;
-	image: QuickParser<ParsedImageData>;
-	resource: QuickParser<ParsedResourceData>;
-	defaultNode: QuickParser<ParsedNoteData>; // Alias for backward compatibility
-	taskNode: QuickParser<ParsedTaskData>; // Alias for backward compatibility
-	textNode: QuickParser<ParsedTextData>; // Alias for backward compatibility
-	annotationNode: QuickParser<ParsedAnnotationData>; // Alias for backward compatibility
-	questionNode: QuickParser<ParsedQuestionData>; // Alias for backward compatibility
-	codeNode: QuickParser<ParsedCodeData>; // Alias for backward compatibility
-	imageNode: QuickParser<ParsedImageData>; // Alias for backward compatibility
-	resourceNode: QuickParser<ParsedResourceData>; // Alias for backward compatibility
-}
+import type { NodeData } from '../../../types/node-data';
+import { parseInput } from './common-utilities';
 
 /**
- * Parser registry - maps node types to their parsers
+ * Universal parser function - replaces all node-specific parsers
+ * @param input - Text input to parse
+ * @returns Partial NodeData with universal metadata extraction
  */
-export const parserRegistry: ParserRegistry = {
-	task: parseTaskInput,
-	note: parseNoteInput,
-	text: parseTextInput,
-	annotation: parseAnnotationInput,
-	question: parseQuestionInput,
-	code: parseCodeInput,
-	image: parseImageInput,
-	resource: parseResourceInput,
-	defaultNode: parseNoteInput, // Default node uses note parser
-	taskNode: parseTaskInput,
-	textNode: parseTextInput,
-	annotationNode: parseAnnotationInput,
-	questionNode: parseQuestionInput,
-	codeNode: parseCodeInput,
-	imageNode: parseImageInput,
-	resourceNode: parseResourceInput,
+export const parseUniversalInput = (input: string): Partial<NodeData> => {
+	return parseInput(input);
 };
 
 /**
- * Parser factory - get parser for a specific node type
+ * Backward compatibility: Parse input for any node type using universal parser
+ * @param nodeType - Node type (ignored - universal parsing)
+ * @param input - Text input to parse
+ * @returns Partial NodeData with universal metadata
  */
-export const getParserForNodeType = <T = any>(nodeType: AvailableNodeTypes): QuickParser<T> | null => {
-	const parser = parserRegistry[nodeType as keyof ParserRegistry];
-	return parser as QuickParser<T> || null;
+export const parseInputForNodeType = (
+	nodeType: AvailableNodeTypes,
+	input: string
+): Partial<NodeData> => {
+	// Universal parsing - node type doesn't matter for metadata extraction
+	return parseInput(input);
 };
 
 /**
- * Parse input using the appropriate parser for node type
- */
-export const parseInputForNodeType = <T = any>(nodeType: AvailableNodeTypes, input: string): T | null => {
-	const parser = getParserForNodeType<T>(nodeType);
-	if (!parser) {
-		console.warn(`No parser found for node type: ${nodeType}`);
-		return null;
-	}
-	
-	try {
-		return parser(input);
-	} catch (error) {
-		console.error(`Parser error for node type ${nodeType}:`, error);
-		return null;
-	}
-};
-
-/**
- * Check if a parser exists for a node type
+ * Check if universal parser can handle input (always true)
+ * @param nodeType - Node type (ignored)
+ * @returns Always true - universal parser handles all inputs
  */
 export const hasParserForNodeType = (nodeType: AvailableNodeTypes): boolean => {
-	return nodeType in parserRegistry;
+	return true; // Universal parser handles all node types
 };
 
 /**
- * Get list of supported node types
+ * Get list of supported node types (all types)
+ * @returns All available node types
  */
 export const getSupportedNodeTypes = (): AvailableNodeTypes[] => {
-	return Object.keys(parserRegistry) as AvailableNodeTypes[];
+	return [
+		'defaultNode',
+		'taskNode',
+		'textNode',
+		'annotationNode',
+		'questionNode',
+		'codeNode',
+		'imageNode',
+		'resourceNode',
+		'groupNode',
+		'referenceNode',
+	];
 };
 
 /**
- * Default parser fallback - uses note parser
+ * Default parser fallback - uses universal parser
+ * @param input - Text input to parse
+ * @returns Partial NodeData with universal metadata
  */
-export const parseWithFallback = (input: string): ParsedNoteData => {
+export const parseWithFallback = (input: string): Partial<NodeData> => {
 	try {
-		return parseNoteInput(input);
+		return parseInput(input);
 	} catch (error) {
-		console.error('Parser fallback error:', error);
+		console.error('Universal parser error:', error);
 		return { content: input || '' };
 	}
 };

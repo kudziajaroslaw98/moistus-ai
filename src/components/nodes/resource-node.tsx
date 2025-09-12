@@ -1,166 +1,38 @@
 'use client';
 
-import useAppStore from '@/store/mind-map-store';
 import { NodeData } from '@/types/node-data';
 import { Node, NodeProps } from '@xyflow/react';
-import {
-	ArrowUpRight,
-	Eye,
-	EyeOff,
-	FileText,
-	Link as LinkIcon,
-	RefreshCw,
-} from 'lucide-react';
+import { ExternalLink, Link as LinkIcon, Globe } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { memo, useCallback, useMemo, useState } from 'react';
-import { toast } from 'sonner';
-import { useShallow } from 'zustand/shallow';
+import { memo, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Button } from '../ui/button';
-import { Toggle } from '../ui/toggle';
 import { BaseNodeWrapper } from './base-node-wrapper';
-import { NodeMetadata } from './shared';
 
 type ResourceNodeProps = NodeProps<Node<NodeData>>;
 
 const ResourceNodeComponent = (props: ResourceNodeProps) => {
 	const { id, data } = props;
+	const [imageError, setImageError] = useState(false);
+	const [imageLoading, setImageLoading] = useState(true);
 
-	const { updateNode } = useAppStore(
-		useShallow((state) => ({
-			updateNode: state.updateNode,
-		}))
-	);
-
-	const [isRefreshing, setIsRefreshing] = useState(false);
-
+	const resourceUrl = data.metadata?.url as string | undefined;
 	const title = (data.metadata?.title as string) || data.content || 'Resource';
 	const showThumbnail = Boolean(data.metadata?.showThumbnail);
 	const showSummary = Boolean(data.metadata?.showSummary);
 	const imageUrl = data.metadata?.imageUrl as string | undefined;
-	const resourceUrl = data.metadata?.url as string | undefined;
 	const summary = data.metadata?.summary as string | undefined;
 
-	const handleNodeChange = useCallback(
-		(change: Partial<NodeData['metadata']>) => {
-			updateNode({
-				nodeId: id,
-				data: {
-					metadata: {
-						...data.metadata,
-						...change,
-					},
-				},
-			});
-		},
-		[updateNode, id, data.metadata]
-	);
-
-	const handleOpenLink = useCallback(() => {
-		if (resourceUrl) {
-			window.open(resourceUrl, '_blank', 'noopener,noreferrer');
-			toast.success('Opened link in new tab');
-		} else {
-			toast.error('No URL available');
-		}
-	}, [resourceUrl]);
-
-	const handleRefreshMetadata = useCallback(async () => {
-		if (!resourceUrl) {
-			toast.error('No URL to refresh');
-			return;
-		}
-
-		setIsRefreshing(true);
-
+	// Extract domain for display
+	const getDomain = (url: string) => {
 		try {
-			// This would typically call an API to re-fetch metadata
-			// For now, we'll just show a success message
-			// You can implement the actual metadata fetching logic here
-			await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
-
-			toast.success('Metadata refreshed');
-		} catch (error) {
-			console.error('Failed to refresh metadata:', error);
-			toast.error('Failed to refresh metadata');
-		} finally {
-			setIsRefreshing(false);
+			const domain = new URL(url).hostname;
+			return domain.replace('www.', '');
+		} catch {
+			return 'link';
 		}
-	}, [resourceUrl]);
-
-	const toolbarContent = useMemo(
-		() => (
-			<>
-				{/* Thumbnail Toggle */}
-				<Toggle
-					size={'sm'}
-					variant={'outline'}
-					pressed={showThumbnail}
-					onPressedChange={(pressed) => {
-						handleNodeChange({ showThumbnail: pressed });
-					}}
-					title={showThumbnail ? 'Hide thumbnail' : 'Show thumbnail'}
-				>
-					{showThumbnail ? (
-						<Eye className='w-4 h-4' />
-					) : (
-						<EyeOff className='w-4 h-4' />
-					)}
-				</Toggle>
-
-				{/* Summary Toggle */}
-				<Toggle
-					size={'sm'}
-					variant={'outline'}
-					pressed={showSummary}
-					onPressedChange={(pressed) => {
-						handleNodeChange({ showSummary: pressed });
-					}}
-					title={showSummary ? 'Hide summary' : 'Show summary'}
-				>
-					<FileText className='w-4 h-4' />
-				</Toggle>
-
-				{/* Open Link Button */}
-				{resourceUrl && (
-					<Button
-						onClick={handleOpenLink}
-						size={'sm'}
-						variant={'outline'}
-						className='h-8 px-2'
-						title='Open link in new tab'
-					>
-						<ArrowUpRight className='w-4 h-4' />
-					</Button>
-				)}
-
-				{/* Refresh Metadata Button */}
-				{resourceUrl && (
-					<Button
-						onClick={handleRefreshMetadata}
-						size={'sm'}
-						variant={'outline'}
-						className='h-8 px-2'
-						disabled={isRefreshing}
-						title='Refresh metadata'
-					>
-						<RefreshCw
-							className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}
-						/>
-					</Button>
-				)}
-			</>
-		),
-		[
-			showThumbnail,
-			showSummary,
-			resourceUrl,
-			isRefreshing,
-			handleNodeChange,
-			handleOpenLink,
-			handleRefreshMetadata,
-		]
-	);
+	};
 
 	return (
 		<BaseNodeWrapper
@@ -168,96 +40,213 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 			nodeClassName='resource-node'
 			nodeType='Resource'
 			nodeIcon={<LinkIcon className='size-4' />}
-			toolbarContent={toolbarContent}
+			elevation={1}
 		>
-			<>
+			<div className='flex flex-col gap-3'>
+				{/* Thumbnail with sophisticated loading states */}
 				{showThumbnail && imageUrl && (
-					<div className='pointer-events-none relative flex w-full justify-center aspect-16/9  '>
-						<Image
-							src={imageUrl}
-							alt={title}
-							className='nodrag rounded-md object-contain shadow-md'
-							onError={(e) => {
-								e.currentTarget.src =
-									'https://placehold.co/200x120?text=Image+Error';
-							}}
-							loading='lazy'
-							fill={true}
-							unoptimized={true}
-						/>
-					</div>
-				)}
-
-				{title && (
-					<div className='flex text-lg font-bold text-node-text-main tracking-tight leading-5'>
-						<span className='float-left'>{title}</span>
-
-						{resourceUrl && (
-							<Link
-								href={resourceUrl}
-								target='_blank'
-								rel='noopener noreferrer'
-								className='cursor-pointer'
-							>
-								<Button
-									variant={'ghost'}
-									className='float-right p-2 rounded-md !size-12'
+					<div className='relative w-full aspect-video rounded-md overflow-hidden'
+						style={{ 
+							backgroundColor: '#121212', // Base elevation for loading state
+							border: '1px solid rgba(255, 255, 255, 0.06)'
+						}}>
+						
+						{/* Loading skeleton */}
+						<AnimatePresence>
+							{imageLoading && !imageError && (
+								<motion.div
+									initial={{ opacity: 0 }}
+									animate={{ opacity: 1 }}
+									exit={{ opacity: 0 }}
+									className='absolute inset-0 flex items-center justify-center'
 								>
-									<ArrowUpRight className='size-10 text-node-accent' />
-								</Button>
-							</Link>
+									<div className='w-full h-full animate-pulse'
+										style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
+									/>
+									<Globe className='absolute w-8 h-8' 
+										style={{ color: 'rgba(255, 255, 255, 0.1)' }} />
+								</motion.div>
+							)}
+						</AnimatePresence>
+
+						{!imageError ? (
+							<Image
+								src={imageUrl}
+								alt={title}
+								className='object-cover'
+								onError={() => {
+									setImageError(true);
+									setImageLoading(false);
+								}}
+								onLoad={() => setImageLoading(false)}
+								loading='lazy'
+								fill={true}
+								unoptimized={true}
+								style={{ 
+									opacity: imageLoading ? 0 : 1,
+									transition: 'opacity 0.3s ease-out'
+								}}
+							/>
+						) : (
+							<div className='absolute inset-0 flex items-center justify-center'
+								style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
+								<div className='text-center'>
+									<Globe className='w-8 h-8 mx-auto mb-2' 
+										style={{ color: 'rgba(255, 255, 255, 0.2)' }} />
+									<span style={{ 
+										fontSize: '12px',
+										color: 'rgba(255, 255, 255, 0.38)'
+									}}>
+										Preview unavailable
+									</span>
+								</div>
+							</div>
 						)}
 					</div>
 				)}
 
-				{/* Description/Content if different from title */}
+				{/* Title and link section with refined layout */}
+				<div className='flex items-start justify-between gap-3'>
+					<div className='flex-1 min-w-0'>
+						<h3 style={{
+							fontSize: '16px',
+							fontWeight: 500,
+							color: 'rgba(255, 255, 255, 0.87)',
+							lineHeight: 1.4,
+							marginBottom: '4px',
+							wordBreak: 'break-word',
+						}}>
+							{title}
+						</h3>
+						
+						{/* Domain display with subtle styling */}
+						{resourceUrl && (
+							<div className='flex items-center gap-1.5'>
+								<Globe className='w-3 h-3 flex-shrink-0' 
+									style={{ color: 'rgba(147, 197, 253, 0.6)' }} />
+								<span style={{
+									fontSize: '12px',
+									color: 'rgba(147, 197, 253, 0.6)',
+									letterSpacing: '0.01em',
+								}}>
+									{getDomain(resourceUrl)}
+								</span>
+							</div>
+						)}
+					</div>
+
+					{/* External link button with hover effects */}
+					{resourceUrl && (
+						<Link
+							href={resourceUrl}
+							target='_blank'
+							rel='noopener noreferrer'
+							className='group'
+						>
+							<Button
+								variant={'ghost'}
+								className='p-2 rounded-md transition-all duration-200 hover:scale-110'
+								style={{
+									backgroundColor: 'transparent',
+									border: '1px solid rgba(255, 255, 255, 0.06)',
+								}}
+								onMouseEnter={(e) => {
+									e.currentTarget.style.backgroundColor = 'rgba(147, 197, 253, 0.1)';
+									e.currentTarget.style.borderColor = 'rgba(147, 197, 253, 0.3)';
+								}}
+								onMouseLeave={(e) => {
+									e.currentTarget.style.backgroundColor = 'transparent';
+									e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)';
+								}}
+							>
+								<ExternalLink className='w-4 h-4' 
+									style={{ color: 'rgba(147, 197, 253, 0.87)' }} />
+							</Button>
+						</Link>
+					)}
+				</div>
+
+				{/* Description with proper emphasis */}
 				{data.content && data.content !== title && (
-					<div className='text-node-text-secondary tracking-tight'>
+					<p style={{
+						fontSize: '14px',
+						color: 'rgba(255, 255, 255, 0.60)',
+						lineHeight: 1.6,
+						letterSpacing: '0.01em',
+					}}>
 						{data.content}
-					</div>
+					</p>
 				)}
 
-				{/* Display URL in a truncated format */}
-				{resourceUrl && (
-					<div
-						className='truncate text-sm text-node-accent tracking-tight'
-						title={resourceUrl}
-					>
-						{resourceUrl.length > 40
-							? resourceUrl.substring(0, 40) + '...'
-							: resourceUrl}
+				{/* AI Summary section with elegant presentation */}
+				<AnimatePresence>
+					{showSummary && summary && (
+						<motion.div
+							initial={{ opacity: 0, height: 0 }}
+							animate={{ opacity: 1, height: 'auto' }}
+							exit={{ opacity: 0, height: 0 }}
+							transition={{ duration: 0.3 }}
+							className='overflow-hidden'
+						>
+							{/* Divider with gradient */}
+							<div className='relative py-2'>
+								<div className='absolute inset-x-0 top-1/2 -translate-y-1/2 h-[1px]'
+									style={{
+										background: 'linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.2) 30%, rgba(52, 211, 153, 0.2) 70%, transparent)',
+									}}
+								/>
+								<div className='relative flex justify-center'>
+									<span className='px-3 py-1 rounded-full text-xs font-medium'
+										style={{
+											backgroundColor: '#1E1E1E',
+											border: '1px solid rgba(52, 211, 153, 0.2)',
+											color: 'rgba(52, 211, 153, 0.87)',
+											letterSpacing: '0.05em',
+											textTransform: 'uppercase',
+										}}>
+										AI Summary
+									</span>
+								</div>
+							</div>
+
+							{/* Summary content in a subtle container */}
+							<div className='p-3 rounded-md'
+								style={{
+									backgroundColor: 'rgba(52, 211, 153, 0.05)',
+									border: '1px solid rgba(52, 211, 153, 0.1)',
+								}}>
+								<p style={{
+									fontSize: '13px',
+									color: 'rgba(255, 255, 255, 0.60)',
+									lineHeight: 1.7,
+									letterSpacing: '0.01em',
+									margin: 0,
+								}}>
+									{summary}
+								</p>
+							</div>
+						</motion.div>
+					)}
+				</AnimatePresence>
+
+				{/* URL display for debugging - only in development */}
+				{process.env.NODE_ENV === 'development' && resourceUrl && (
+					<div className='mt-2 p-2 rounded'
+						style={{
+							backgroundColor: 'rgba(255, 255, 255, 0.02)',
+							border: '1px solid rgba(255, 255, 255, 0.06)',
+						}}>
+						<code style={{
+							fontSize: '11px',
+							color: 'rgba(255, 255, 255, 0.38)',
+							wordBreak: 'break-all',
+							fontFamily: 'var(--font-geist-mono)',
+						}}>
+							{resourceUrl}
+						</code>
 					</div>
 				)}
-
-				{showSummary && summary && (
-					<div className='mt-4 flex flex-col gap-4'>
-						<div className='text-center text-sm font-medium text-node-text-secondary w-full relative'>
-							<hr className='bg-node-accent w-full h-0.5 border-0 top-1/2 left-0 absolute z-1' />
-
-							<span className='relative px-4 py-1 font-lora font-semibold bg-node-accent rounded-md text-node-text-main z-10'>
-								AI Summary
-							</span>
-						</div>
-
-						<div className='text-left tracking-normal text-sm text-node-text-secondary'>
-							{summary}
-						</div>
-					</div>
-				)}
-
-				{/* Metadata Display */}
-				{data.metadata && Object.keys(data.metadata).length > 0 && (
-					<div className='mt-4'>
-						<NodeMetadata
-							nodeId={id}
-							metadata={data.metadata}
-							layout='horizontal'
-							maxItems={4}
-							className='w-full'
-						/>
-					</div>
-				)}
-			</>
+			</div>
 		</BaseNodeWrapper>
 	);
 };

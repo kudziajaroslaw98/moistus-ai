@@ -1,86 +1,71 @@
 'use client';
 
-import useAppStore from '@/store/mind-map-store';
 import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
-import { Node, NodeProps } from '@xyflow/react';
-import { AlignLeft, Bold, Lightbulb, MessageSquare, Quote } from 'lucide-react';
-import { memo, useCallback, useMemo } from 'react';
-import { useShallow } from 'zustand/shallow';
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from '../ui/select';
-import { Toggle } from '../ui/toggle';
-import { BaseInlineWrapper } from './base-inline-wrapper';
+import { Node, NodeProps, NodeResizer } from '@xyflow/react';
+import { AlignLeft, Lightbulb, MessageSquare, Quote } from 'lucide-react';
+import { memo, useMemo } from 'react';
+import { motion } from 'motion/react';
 
 type AnnotationNodeProps = NodeProps<Node<NodeData>>;
 
-const annotationTypeInfo = {
-	comment: {
-		icon: MessageSquare,
-		textColorClass: 'text-zinc-400',
-		label: 'Comment',
+// Refined color system for annotations - desaturated for dark theme
+const annotationTypeInfo: Record<
+	string,
+	{ 
+		icon: React.ElementType; 
+		colorRgb: string; // Base RGB values for flexible opacity
+		bgOpacity: number;
+		borderOpacity: number;
+	}
+> = {
+	comment: { 
+		icon: MessageSquare, 
+		colorRgb: '147, 197, 253', // Desaturated blue
+		bgOpacity: 0.08,
+		borderOpacity: 0.2,
 	},
-	idea: { icon: Lightbulb, textColorClass: 'text-yellow-400', label: 'Idea' },
-	quote: { icon: Quote, textColorClass: 'text-blue-300', label: 'Quote' },
-	summary: {
-		icon: AlignLeft,
-		textColorClass: 'text-green-400',
-		label: 'Summary',
+	idea: { 
+		icon: Lightbulb, 
+		colorRgb: '251, 191, 36', // Desaturated amber
+		bgOpacity: 0.08,
+		borderOpacity: 0.2,
+	},
+	quote: { 
+		icon: Quote, 
+		colorRgb: '167, 139, 250', // Desaturated violet
+		bgOpacity: 0.06,
+		borderOpacity: 0.15,
+	},
+	summary: { 
+		icon: AlignLeft, 
+		colorRgb: '52, 211, 153', // Desaturated emerald
+		bgOpacity: 0.08,
+		borderOpacity: 0.2,
+	},
+	default: { 
+		icon: MessageSquare, 
+		colorRgb: '255, 255, 255',
+		bgOpacity: 0.05,
+		borderOpacity: 0.1,
 	},
 };
-
-type AnnotationType = keyof typeof annotationTypeInfo;
-
-const fontSizeOptions = [
-	{ value: '12px', label: '12px' },
-	{ value: '14px', label: '14px' },
-	{ value: '16px', label: '16px' },
-	{ value: '18px', label: '18px' },
-	{ value: '20px', label: '20px' },
-	{ value: '24px', label: '24px' },
-];
 
 const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 	const { id, data, selected } = props;
 
-	const { updateNode } = useAppStore(
-		useShallow((state) => ({
-			updateNode: state.updateNode,
-		}))
-	);
-
-	const fontSize = data.metadata?.fontSize as string | undefined;
+	const fontSize = data.metadata?.fontSize as string | number | undefined;
 	const fontWeight = data.metadata?.fontWeight as string | number | undefined;
-	const annotationType =
-		(data.metadata?.annotationType as AnnotationType) || 'comment';
-	const capitalizedAnnotationType =
-		annotationType.charAt(0).toUpperCase() + annotationType.slice(1);
-
-	const handleNodeChange = useCallback(
-		(change: Partial<NodeData['metadata']>) => {
-			updateNode({
-				nodeId: id,
-				data: {
-					metadata: {
-						...data.metadata,
-						...change,
-					},
-				},
-			});
-		},
-		[updateNode, id, data.metadata]
-	);
+	const annotationType = (data.metadata?.annotationType as string) || 'default';
 
 	const contentStyle = useMemo(() => {
-		const style: React.CSSProperties = {};
+		const style: React.CSSProperties = {
+			lineHeight: 1.6,
+			letterSpacing: '0.01em',
+		};
 
 		if (fontSize) {
-			style.fontSize = fontSize;
+			style.fontSize = typeof fontSize === 'number' ? `${fontSize}px` : fontSize;
 		}
 
 		if (fontWeight && annotationType !== 'quote') {
@@ -90,167 +75,227 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 		return style;
 	}, [fontSize, fontWeight, annotationType]);
 
-	const typeInfo =
-		annotationTypeInfo[annotationType as AnnotationType] ||
-		annotationTypeInfo.comment;
+	const typeInfo = annotationTypeInfo[annotationType] || annotationTypeInfo.default;
 	const TypeIcon = typeInfo.icon;
-
 	const isQuote = annotationType === 'quote';
 
-	const toolbarContent = useMemo(
-		() => (
-			<>
-				{/* Font Size Selector */}
-				<Select
-					value={fontSize || '14px'}
-					onValueChange={(value) => handleNodeChange({ fontSize: value })}
-				>
-					<SelectTrigger className='h-8 w-24' size='sm'>
-						<SelectValue />
-					</SelectTrigger>
-
-					<SelectContent>
-						{fontSizeOptions.map((option) => (
-							<SelectItem key={option.value} value={option.value}>
-								{option.label}
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
-
-				{/* Font Weight Toggle */}
-				<Toggle
-					size={'sm'}
-					variant={'outline'}
-					pressed={fontWeight === 'bold' || fontWeight === 600}
-					onPressedChange={(pressed) => {
-						handleNodeChange({
-							fontWeight: pressed ? 'bold' : 'normal',
-						});
-					}}
-					disabled={isQuote} // Quotes always use italic styling
-				>
-					<Bold className='w-4 h-4' />
-				</Toggle>
-
-				{/* Annotation Type Selector */}
-				<Select
-					value={annotationType}
-					onValueChange={(value: AnnotationType) =>
-						handleNodeChange({ annotationType: value })
-					}
-				>
-					<SelectTrigger className='h-8 w-32' size='sm'>
-						<div className='flex items-center gap-1'>
-							<SelectValue />
-						</div>
-					</SelectTrigger>
-
-					<SelectContent>
-						{Object.entries(annotationTypeInfo).map(([key, info]) => {
-							if (key === 'default') return null;
-							const Icon = info.icon;
-							return (
-								<SelectItem key={key} value={key}>
-									<div className='flex items-center gap-2'>
-										<Icon className='w-3 h-3' />
-
-										{info.label}
-									</div>
-								</SelectItem>
-							);
-						})}
-					</SelectContent>
-				</Select>
-			</>
-		),
-		[fontSize, fontWeight, annotationType, isQuote, handleNodeChange, TypeIcon]
-	);
+	// Create dynamic styles based on annotation type
+	const nodeStyles: React.CSSProperties = {
+		backgroundColor: `rgba(${typeInfo.colorRgb}, ${typeInfo.bgOpacity})`,
+		border: `1px solid rgba(${typeInfo.colorRgb}, ${typeInfo.borderOpacity})`,
+		backdropFilter: 'blur(8px)',
+		WebkitBackdropFilter: 'blur(8px)',
+		boxShadow: selected 
+			? `0 0 0 1px rgba(${typeInfo.colorRgb}, 0.4), inset 0 0 0 1px rgba(${typeInfo.colorRgb}, 0.2)`
+			: 'none',
+		transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+	};
 
 	return (
-		<BaseInlineWrapper
-			{...props}
-			nodeClassName={cn([`annotation-node-${annotationType}`])}
-			nodeType={capitalizedAnnotationType}
-			nodeIcon={<TypeIcon className='size-4' />}
-			toolbarContent={toolbarContent}
-			includePadding={false}
+		<motion.div
+			className={cn([
+				'relative flex h-full min-h-20 min-w-80 flex-col gap-2 rounded-lg p-3 text-center transition-all',
+			])}
+			style={nodeStyles}
+			initial={{ opacity: 0, scale: 0.95 }}
+			animate={{ opacity: 1, scale: 1 }}
+			transition={{ duration: 0.2 }}
 		>
-			<div
-				className={cn([
-					'relative flex h-full min-h-20 min-w-80 flex-col gap-1 rounded text-center transition-all',
+			{/* Quote-specific elegant layout */}
+			{isQuote ? (
+				<div className='relative flex flex-col items-center py-3 px-4'>
+					{/* Large decorative quote marks - very subtle */}
+					<span
+						aria-hidden='true'
+						className='absolute -top-2 -left-2 pointer-events-none select-none'
+						style={{ 
+							fontSize: '48px',
+							lineHeight: '1',
+							color: `rgba(${typeInfo.colorRgb}, 0.1)`,
+							fontFamily: 'Georgia, serif',
+							fontWeight: 300,
+						}}
+					>
+						"
+					</span>
 
-					selected && 'ring-1 ring-sky-600 ring-offset-2 ring-offset-zinc-900',
-					typeInfo.textColorClass,
-				])}
-			>
-				{/* --- Quote Specific Layout --- */}
-				{isQuote ? (
-					<div className='relative flex items-center py-2'>
-						{/* Large Opening Quote */}
-						<span
-							aria-hidden='true'
-							className='pointer-events-none absolute -top-4 -left-4 font-lora text-6xl text-current opacity-20'
-							style={{ lineHeight: '1' }}
-						>
-							“
-						</span>
-
-						{/* Content */}
-						<div
-							className={cn([
-								'font-lora text-base w-full break-words text-center whitespace-pre-wrap italic',
-								typeInfo.textColorClass,
-							])}
-							style={contentStyle}
-						>
-							{data.content || (
-								<span className='text-current italic opacity-60'>
-									Add quote...
-								</span>
-							)}
-						</div>
-
-						<span
-							aria-hidden='true'
-							className='pointer-events-none absolute -right-4 -bottom-4 font-lora text-6xl text-current opacity-20'
-							style={{ lineHeight: '0.5' }}
-						>
-							”
-						</span>
+					{/* Quote content with serif font for elegance */}
+					<div
+						className='relative z-10 px-6'
+						style={{
+							...contentStyle,
+							fontFamily: 'Georgia, serif',
+							fontStyle: 'italic',
+							fontSize: fontSize || '15px',
+							color: 'rgba(255, 255, 255, 0.87)',
+							textAlign: 'center',
+						}}
+					>
+						{data.content || (
+							<span style={{ 
+								color: 'rgba(255, 255, 255, 0.38)',
+								fontStyle: 'italic' 
+							}}>
+								Add quote...
+							</span>
+						)}
 					</div>
-				) : (
-					<>
-						{/* --- Default Layout for other types --- */}
-						<div className='mb-1 flex items-center justify-between'>
-							{/* Icon and Type Label */}
-							<div className='flex items-center gap-1.5 opacity-80'>
-								<TypeIcon className='size-3.5 flex-shrink-0' />
 
-								<span className='text-xs font-medium tracking-wider uppercase'>
-									{annotationType}
-								</span>
+					<span
+						aria-hidden='true'
+						className='absolute -bottom-2 -right-2 pointer-events-none select-none'
+						style={{ 
+							fontSize: '48px',
+							lineHeight: '0.5',
+							color: `rgba(${typeInfo.colorRgb}, 0.1)`,
+							fontFamily: 'Georgia, serif',
+							fontWeight: 300,
+						}}
+					>
+						"
+					</span>
+
+					{/* Attribution line if available */}
+					{data.metadata?.author && (
+						<div className='mt-3 text-right w-full px-6'>
+							<span style={{
+								fontSize: '12px',
+								color: `rgba(${typeInfo.colorRgb}, 0.87)`,
+								fontWeight: 500,
+							}}>
+								— {data.metadata.author}
+							</span>
+						</div>
+					)}
+				</div>
+			) : (
+				<>
+					{/* Default layout for other annotation types */}
+					<div className='flex items-center justify-between mb-1'>
+						{/* Icon and type label with refined styling */}
+						<div className='flex items-center gap-2'>
+							<div className='p-1.5 rounded'
+								style={{
+									backgroundColor: `rgba(${typeInfo.colorRgb}, 0.1)`,
+									border: `1px solid rgba(${typeInfo.colorRgb}, 0.2)`,
+								}}>
+								<TypeIcon className='size-3.5' 
+									style={{ color: `rgba(${typeInfo.colorRgb}, 0.87)` }} />
 							</div>
+							<span style={{
+								fontSize: '11px',
+								fontWeight: 500,
+								letterSpacing: '0.05em',
+								textTransform: 'uppercase',
+								color: `rgba(${typeInfo.colorRgb}, 0.87)`,
+							}}>
+								{annotationType}
+							</span>
 						</div>
 
-						{/* Content */}
-						<div
-							className={cn([
-								'text-sm break-words whitespace-pre-wrap',
-								typeInfo.textColorClass,
-							])}
-							style={contentStyle}
-						>
-							{data.content || (
-								<span className='text-current italic opacity-60'>
-									Add content...
-								</span>
-							)}
+						{/* Timestamp if available */}
+						{data.metadata?.timestamp && (
+							<span style={{
+								fontSize: '11px',
+								color: 'rgba(255, 255, 255, 0.38)',
+							}}>
+								{new Date(data.metadata.timestamp).toLocaleDateString()}
+							</span>
+						)}
+					</div>
+
+					{/* Content area with proper text hierarchy */}
+					<div
+						className='text-left px-1'
+						style={{
+							...contentStyle,
+							fontSize: fontSize || '14px',
+							color: annotationType === 'idea' 
+								? 'rgba(255, 255, 255, 0.87)' // High emphasis for ideas
+								: 'rgba(255, 255, 255, 0.60)', // Medium emphasis for others
+						}}
+					>
+						{data.content || (
+							<span style={{ 
+								color: 'rgba(255, 255, 255, 0.38)',
+								fontStyle: 'italic',
+								fontSize: '13px',
+							}}>
+								Add {annotationType}...
+							</span>
+						)}
+					</div>
+
+					{/* Priority or importance indicator for ideas */}
+					{annotationType === 'idea' && data.metadata?.priority && (
+						<div className='mt-2 flex items-center gap-1'>
+							{[...Array(3)].map((_, i) => (
+								<div
+									key={i}
+									className='w-1.5 h-1.5 rounded-full'
+									style={{
+										backgroundColor: i < (data.metadata?.priority as number)
+											? `rgba(${typeInfo.colorRgb}, 0.6)`
+											: 'rgba(255, 255, 255, 0.1)',
+									}}
+								/>
+							))}
+							<span style={{
+								fontSize: '11px',
+								color: 'rgba(255, 255, 255, 0.38)',
+								marginLeft: '4px',
+							}}>
+								Priority
+							</span>
 						</div>
-					</>
-				)}
-			</div>
-		</BaseInlineWrapper>
+					)}
+
+					{/* Tag system for better organization */}
+					{data.metadata?.tags && Array.isArray(data.metadata.tags) && (
+						<div className='flex flex-wrap gap-1 mt-2'>
+							{data.metadata.tags.map((tag: string, index: number) => (
+								<span
+									key={index}
+									className='px-2 py-0.5 rounded-full'
+									style={{
+										fontSize: '11px',
+										backgroundColor: 'rgba(255, 255, 255, 0.05)',
+										border: '1px solid rgba(255, 255, 255, 0.1)',
+										color: 'rgba(255, 255, 255, 0.6)',
+									}}
+								>
+									{tag}
+								</span>
+							))}
+						</div>
+					)}
+				</>
+			)}
+
+			{/* Hover effect - subtle glow */}
+			<motion.div
+				className='absolute inset-0 rounded-lg pointer-events-none'
+				initial={{ opacity: 0 }}
+				whileHover={{ opacity: 1 }}
+				transition={{ duration: 0.2 }}
+				style={{
+					background: `radial-gradient(circle at center, rgba(${typeInfo.colorRgb}, 0.05) 0%, transparent 70%)`,
+					zIndex: -1,
+				}}
+			/>
+
+			<NodeResizer
+				color={`rgba(${typeInfo.colorRgb}, 0.4)`}
+				isVisible={selected}
+				minWidth={100}
+				minHeight={30}
+				handleClassName='!w-2 !h-2 !rounded-full'
+				handleStyle={{
+					backgroundColor: `rgba(${typeInfo.colorRgb}, 0.6)`,
+					border: `1px solid rgba(${typeInfo.colorRgb}, 0.3)`,
+				}}
+			/>
+		</motion.div>
 	);
 };
 

@@ -1,265 +1,199 @@
 'use client';
 
-import useAppStore from '@/store/mind-map-store';
 import { NodeData } from '@/types/node-data';
 import { Node, NodeProps } from '@xyflow/react';
-import {
-	CheckCircle,
-	CircleHelp,
-	Loader,
-	RefreshCw,
-	Sparkles,
-	X,
-} from 'lucide-react';
-import { motion } from 'motion/react';
-import { memo, useCallback, useMemo, useState } from 'react';
-import { toast } from 'sonner';
-import { useShallow } from 'zustand/shallow';
-import { Button } from '../ui/button';
-import { Toggle } from '../ui/toggle';
+import { HelpCircle, Sparkles } from 'lucide-react';
+import { memo } from 'react';
 import { BaseNodeWrapper } from './base-node-wrapper';
-import { MetadataBadge } from './shared';
+import { motion, AnimatePresence } from 'motion/react';
 
 type QuestionNodeProps = NodeProps<Node<NodeData>>;
 
 const QuestionNodeComponent = (props: QuestionNodeProps) => {
-	const { id, data } = props;
-
-	const { updateNode } = useAppStore(
-		useShallow((state) => ({
-			updateNode: state.updateNode,
-		}))
-	);
-
-	const [isGenerating, setIsGenerating] = useState(false);
-	const aiAnswer = data.metadata?.answer as string | undefined;
-
-	const handleNodeChange = useCallback(
-		(change: Partial<NodeData['metadata']>) => {
-			updateNode({
-				nodeId: id,
-				data: {
-					metadata: {
-						...data.metadata,
-						...change,
-					},
-				},
-			});
-		},
-		[updateNode, id, data.metadata]
-	);
-
-	const handleGenerateAnswer = useCallback(async () => {
-		if (!data.content?.trim()) {
-			toast.error('Please add a question first');
-			return;
-		}
-
-		setIsGenerating(true);
-
-		try {
-			const response = await fetch('/api/generate-answer', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({
-					nodeId: id,
-				}),
-			});
-
-			if (!response.ok) {
-				throw new Error('Failed to generate AI answer');
-			}
-
-			const reader = response.body?.getReader();
-
-			if (!reader) {
-				throw new Error('No response body');
-			}
-
-			let accumulatedAnswer = '';
-
-			while (true) {
-				const { done, value } = await reader.read();
-				if (done) break;
-
-				const chunk = new TextDecoder().decode(value);
-				accumulatedAnswer += chunk;
-
-				// Update the answer in real-time as it streams
-				handleNodeChange({
-					answer: accumulatedAnswer,
-				});
-			}
-
-			toast.success('AI answer generated successfully');
-		} catch (error) {
-			console.error('Error generating AI answer:', error);
-			toast.error('Failed to generate AI answer');
-		} finally {
-			setIsGenerating(false);
-		}
-	}, [id, data.content, handleNodeChange]);
-
-	const handleClearAnswer = useCallback(() => {
-		handleNodeChange({
-			answer: undefined,
-		});
-		toast.success('AI answer cleared');
-	}, [handleNodeChange]);
-
-	const handleToggleRequest = useCallback(
-		(pressed: boolean) => {
-			if (pressed && !aiAnswer) {
-				handleGenerateAnswer();
-			} else {
-			}
-		},
-		[aiAnswer, handleGenerateAnswer, handleNodeChange]
-	);
-
-	// Determine answer status
-	const getAnswerStatus = useCallback(() => {
-		if (isGenerating) return 'pending';
-		if (aiAnswer) return 'answered';
-		return 'none';
-	}, [isGenerating, aiAnswer]);
-
-	const answerStatus = getAnswerStatus();
-
-	const toolbarContent = useMemo(
-		() => (
-			<>
-				{/* AI Answer Toggle */}
-				{answerStatus === 'none' && (
-					<motion.div
-						initial={{ opacity: 0, x: -10, width: 0 }}
-						animate={{ opacity: 1, x: 0, width: 'auto' }}
-						exit={{ opacity: 0, x: -10, width: 0 }}
-						transition={{
-							opacity: {
-								duration: 0.2,
-							},
-							x: {
-								duration: 0.25,
-							},
-							width: {
-								duration: 0.15,
-							},
-						}}
-					>
-						<Toggle
-							size={'sm'}
-							variant={'outline'}
-							pressed={!!aiAnswer}
-							onPressedChange={handleToggleRequest}
-							disabled={isGenerating}
-							title={aiAnswer ? 'AI answer exists' : 'Request AI answer'}
-							className='px-4 text-sm gap-2'
-						>
-							<span>Answer with AI</span>
-
-							<Sparkles className='w-4 h-4' />
-						</Toggle>
-					</motion.div>
-				)}
-
-				{/* Answer Status Indicator */}
-				{answerStatus === 'pending' && (
-					<MetadataBadge
-						type='status'
-						value='Pending'
-						icon={Loader}
-						variant='warning'
-						size='sm'
-						className='[&_svg]:animate-spin'
-					/>
-				)}
-
-				{answerStatus === 'answered' && (
-					<MetadataBadge
-						type='status'
-						value='Answered'
-						icon={CheckCircle}
-						variant='success'
-						size='sm'
-					/>
-				)}
-
-				{/* Regenerate Answer Button */}
-				{aiAnswer && (
-					<Button
-						onClick={handleGenerateAnswer}
-						size={'sm'}
-						variant={'outline'}
-						className='h-8 px-2'
-						disabled={isGenerating}
-						title='Regenerate AI answer'
-					>
-						<RefreshCw
-							className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`}
-						/>
-					</Button>
-				)}
-
-				{/* Clear Answer Button */}
-				{aiAnswer && (
-					<Button
-						onClick={handleClearAnswer}
-						size={'sm'}
-						variant={'outline'}
-						className='h-8 px-2 text-red-400 hover:text-red-300'
-						disabled={isGenerating}
-						title='Clear AI answer'
-					>
-						<X className='w-4 h-4' />
-					</Button>
-				)}
-			</>
-		),
-		[
-			aiAnswer,
-			isGenerating,
-			answerStatus,
-			handleToggleRequest,
-			handleGenerateAnswer,
-			handleClearAnswer,
-		]
-	);
+	const { data } = props;
+	const aiAnswer = data.aiData?.aiAnswer as string | undefined;
+	const isAnswered = Boolean(aiAnswer);
 
 	return (
 		<BaseNodeWrapper
 			{...props}
 			nodeClassName='question-node'
 			nodeType='Question'
-			nodeIcon={<CircleHelp className='size-4' />}
-			toolbarContent={toolbarContent}
+			nodeIcon={<HelpCircle className='size-4' />}
+			elevation={isAnswered ? 2 : 1} // Slightly elevated when answered
 		>
-			{/* Content Area - now display only */}
-			<div className='text-node-text-main text-xl font-bold tracking-tight leading-6 text-center'>
-				{data.content || (
-					<span className='text-zinc-500 italic'>
-						Double click or click the menu to add content...
-					</span>
-				)}
-			</div>
-
-			{aiAnswer && (
-				<div className='mt-4 flex flex-col gap-4 w-full'>
-					<div className='text-center text-sm font-medium text-node-text-secondary w-full relative'>
-						<hr className='bg-node-accent w-full h-0.5 border-0 top-1/2 left-0 absolute z-1' />
-
-						<span className='relative px-4 py-1 font-lora font-semibold bg-node-accent rounded-md text-node-text-main z-10'>
-							AI Answer
-						</span>
+			<div className='flex flex-col gap-4'>
+				{/* Question content with emphasis hierarchy */}
+				<div className='relative'>
+					{/* Subtle question mark watermark - positioned better */}
+					<div 
+						className='absolute -top-2 -right-2 select-none pointer-events-none'
+						style={{
+							fontSize: '48px',
+							fontWeight: 300,
+							color: 'rgba(96, 165, 250, 0.03)',
+							transform: 'rotate(12deg)',
+						}}
+					>
+						?
+					</div>
+					
+					{/* Main question text */}
+					<div className='relative z-10 text-center px-2'>
+						{data.content ? (
+							<h3 style={{
+								fontSize: '18px',
+								fontWeight: 500,
+								color: 'rgba(255, 255, 255, 0.87)', // High emphasis
+								lineHeight: 1.4,
+								letterSpacing: '0.01em',
+							}}>
+								{data.content}
+							</h3>
+						) : (
+							<span style={{
+								color: 'rgba(255, 255, 255, 0.38)',
+								fontSize: '14px',
+								fontStyle: 'italic',
+							}}>
+								Double click or click the menu to add a question...
+							</span>
+						)}
 					</div>
 
-					<div className='w-full text-left text-sm text-node-text-secondary whitespace-normal'>
-						{aiAnswer}
-					</div>
+					{/* Status indicator for unanswered questions */}
+					{data.content && !isAnswered && (
+						<motion.div 
+							className='flex items-center justify-center gap-2 mt-3'
+							initial={{ opacity: 0, y: -5 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ duration: 0.3 }}
+						>
+							<div className='flex items-center gap-1.5 px-3 py-1 rounded-full'
+								style={{
+									backgroundColor: 'rgba(251, 191, 36, 0.1)', // Amber with low opacity
+									border: '1px solid rgba(251, 191, 36, 0.2)',
+								}}>
+								<motion.div
+									animate={{ 
+										opacity: [0.4, 1, 0.4],
+									}}
+									transition={{ 
+										duration: 2,
+										repeat: Infinity,
+										ease: 'easeInOut'
+									}}
+									className='w-1.5 h-1.5 rounded-full'
+									style={{ backgroundColor: 'rgba(251, 191, 36, 0.8)' }}
+								/>
+								<span style={{
+									fontSize: '12px',
+									color: 'rgba(251, 191, 36, 0.87)',
+									fontWeight: 500,
+								}}>
+									Awaiting answer
+								</span>
+							</div>
+						</motion.div>
+					)}
 				</div>
-			)}
+
+				{/* AI Answer section with sophisticated styling */}
+				<AnimatePresence>
+					{aiAnswer && (
+						<motion.div
+							initial={{ opacity: 0, height: 0 }}
+							animate={{ opacity: 1, height: 'auto' }}
+							exit={{ opacity: 0, height: 0 }}
+							transition={{ duration: 0.3 }}
+							className='overflow-hidden'
+						>
+							{/* Elegant divider with gradient */}
+							<div className='relative py-3'>
+								<div className='absolute inset-x-0 top-1/2 -translate-y-1/2 h-[1px]'
+									style={{
+										background: 'linear-gradient(90deg, transparent, rgba(147, 197, 253, 0.2) 30%, rgba(147, 197, 253, 0.2) 70%, transparent)',
+									}}
+								/>
+								<div className='relative flex justify-center'>
+									<div className='flex items-center gap-2 px-3 py-1.5 rounded-full'
+										style={{
+											backgroundColor: '#1E1E1E', // Elevation 1
+											border: '1px solid rgba(147, 197, 253, 0.2)',
+										}}>
+										<Sparkles className='w-3 h-3' style={{ color: 'rgba(147, 197, 253, 0.87)' }} />
+										<span style={{
+											fontSize: '12px',
+											color: 'rgba(147, 197, 253, 0.87)',
+											fontWeight: 500,
+											letterSpacing: '0.05em',
+											textTransform: 'uppercase',
+										}}>
+											AI Answer
+										</span>
+									</div>
+								</div>
+							</div>
+
+							{/* Answer content with glassmorphic container */}
+							<div className='p-4 rounded-lg'
+								style={{
+									backgroundColor: 'rgba(96, 165, 250, 0.05)',
+									border: '1px solid rgba(96, 165, 250, 0.1)',
+									backdropFilter: 'blur(8px)',
+								}}>
+								<div style={{
+									fontSize: '14px',
+									color: 'rgba(255, 255, 255, 0.60)', // Medium emphasis for body text
+									lineHeight: 1.7,
+									letterSpacing: '0.01em',
+								}}>
+									{aiAnswer}
+								</div>
+
+								{/* Optional confidence indicator */}
+								{data.aiData?.confidence && (
+									<div className='mt-3 flex items-center gap-2'>
+										<div className='flex-1 h-1 rounded-full overflow-hidden'
+											style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}>
+											<div 
+												className='h-full rounded-full transition-all duration-500'
+												style={{
+													width: `${data.aiData.confidence * 100}%`,
+													backgroundColor: data.aiData.confidence > 0.8 
+														? 'rgba(52, 211, 153, 0.5)'
+														: data.aiData.confidence > 0.5
+														? 'rgba(251, 191, 36, 0.5)'
+														: 'rgba(239, 68, 68, 0.5)'
+												}}
+											/>
+										</div>
+										<span style={{
+											fontSize: '11px',
+											color: 'rgba(255, 255, 255, 0.38)',
+										}}>
+											{Math.round(data.aiData.confidence * 100)}% confidence
+										</span>
+									</div>
+								)}
+							</div>
+
+							{/* Source attribution if available */}
+							{data.aiData?.source && (
+								<div className='mt-2 text-right'>
+									<span style={{
+										fontSize: '11px',
+										color: 'rgba(255, 255, 255, 0.38)',
+										fontStyle: 'italic',
+									}}>
+										Source: {data.aiData.source}
+									</span>
+								</div>
+							)}
+						</motion.div>
+					)}
+				</AnimatePresence>
+			</div>
 		</BaseNodeWrapper>
 	);
 };

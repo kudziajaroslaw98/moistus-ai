@@ -83,46 +83,96 @@ function decorateNodeTypeTriggers(
   // Use regex to find all positions of node type triggers
   const nodeTypePattern = /\$(\w+)/g;
   let match;
+  const foundTriggers: { trigger: string; start: number; end: number; valid: boolean }[] = [];
   
+  // First pass: collect all triggers
   while ((match = nodeTypePattern.exec(text)) !== null) {
     const start = match.index;
     const end = start + match[0].length;
     const trigger = match[0];
     const nodeType = match[1];
     
+    const command = commandRegistry.getCommand(trigger);
+    const isValid = command !== undefined;
+    
+    foundTriggers.push({ trigger, start, end, valid: isValid });
+    
+    // Prevent infinite loop
+    if (nodeTypePattern.lastIndex === match.index) {
+      nodeTypePattern.lastIndex++;
+    }
+  }
+  
+  // Determine which trigger should be the "active" one (first valid one)
+  const activeTrigger = foundTriggers.find(t => t.valid);
+  
+  // Second pass: create decorations
+  foundTriggers.forEach((triggerInfo, index) => {
+    const { trigger, start, end, valid } = triggerInfo;
+    const nodeType = trigger.slice(1); // Remove $
+    
     // Check if this trigger is near the cursor (within 10 characters)
     const isNearCursor = Math.abs(cursorPos - start) <= 10 || Math.abs(cursorPos - end) <= 10;
     
     if (isNearCursor) {
-      // Check if the trigger is valid
       const command = commandRegistry.getCommand(trigger);
-      const isValid = command !== undefined;
+      
+      // Determine decoration class based on status
+      let decorationClass = 'command-trigger node-type-trigger';
+      let isActive = false;
+      let isMultiple = false;
+      
+      if (!valid) {
+        decorationClass += ' invalid';
+      } else if (activeTrigger && triggerInfo === activeTrigger) {
+        // This is the active (primary) trigger
+        decorationClass += ' valid active';
+        isActive = true;
+      } else if (foundTriggers.filter(t => t.valid).length > 1) {
+        // This is an additional valid trigger (should be shown as error)
+        decorationClass += ' multiple-trigger invalid';
+        isMultiple = true;
+      } else {
+        decorationClass += ' valid';
+      }
       
       // Create main trigger decoration
       decorations.push({
         from: start,
         to: end,
         value: Decoration.mark({
-          class: `command-trigger node-type-trigger ${isValid ? 'valid' : 'invalid'}`,
+          class: decorationClass,
           attributes: {
             'data-trigger': trigger,
             'data-node-type': nodeType,
-            'data-valid': isValid.toString()
+            'data-valid': valid.toString(),
+            'data-active': isActive.toString(),
+            'data-multiple': isMultiple.toString()
           }
         })
       });
       
       // Add hint widget after the trigger
-      if (isValid && command) {
+      if (valid && command && !isMultiple) {
+        const hintText = isActive ? ` → ${command.label}` : ` → ${command.label}`;
         decorations.push({
           from: end,
           to: end,
           value: Decoration.widget({
-            widget: new TriggerHintWidget('node-type', ` → ${command.label}`, true),
+            widget: new TriggerHintWidget('node-type', hintText, true),
             side: 1
           })
         });
-      } else {
+      } else if (isMultiple) {
+        decorations.push({
+          from: end,
+          to: end,
+          value: Decoration.widget({
+            widget: new TriggerHintWidget('node-type', ` (remove duplicate)`, false),
+            side: 1
+          })
+        });
+      } else if (!valid) {
         decorations.push({
           from: end,
           to: end,
@@ -133,12 +183,7 @@ function decorateNodeTypeTriggers(
         });
       }
     }
-    
-    // Prevent infinite loop
-    if (nodeTypePattern.lastIndex === match.index) {
-      nodeTypePattern.lastIndex++;
-    }
-  }
+  });
 }
 
 /**
@@ -292,6 +337,28 @@ const commandDecorationTheme = EditorView.theme({
     color: 'rgb(34, 197, 94)',
     border: '1px solid rgba(34, 197, 94, 0.3)',
   },
+  '.node-type-trigger.active': {
+    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    color: 'rgb(99, 102, 241)',
+    border: '1px solid rgba(99, 102, 241, 0.3)',
+    textDecoration: 'wavy underline rgba(99, 102, 241, 0.8)',
+    textDecorationThickness: '2px',
+    textUnderlineOffset: '3px',
+    WebkitTextDecorationLine: 'underline',
+    WebkitTextDecorationStyle: 'wavy',
+    WebkitTextDecorationColor: 'rgba(99, 102, 241, 0.8)',
+  },
+  '.node-type-trigger.multiple-trigger': {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    color: 'rgb(239, 68, 68)',
+    border: '1px solid rgba(239, 68, 68, 0.3)',
+    textDecoration: 'wavy underline rgba(239, 68, 68, 0.8)',
+    textDecorationThickness: '2px',
+    textUnderlineOffset: '3px',
+    WebkitTextDecorationLine: 'underline',
+    WebkitTextDecorationStyle: 'wavy',
+    WebkitTextDecorationColor: 'rgba(239, 68, 68, 0.8)',
+  },
   '.node-type-trigger.invalid': {
     backgroundColor: 'rgba(239, 68, 68, 0.15)',
     color: 'rgb(239, 68, 68)',
@@ -385,6 +452,22 @@ const commandDecorationTheme = EditorView.theme({
   // Focus/selection effects
   '.cm-focused .command-trigger': {
     boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.2)',
+  },
+  
+  // Fallback styles for browsers that don't support wavy underlines
+  '@supports not (text-decoration-style: wavy)': {
+    '.node-type-trigger.active': {
+      boxShadow: '0 3px 0 -1px rgba(99, 102, 241, 0.6)',
+      borderBottomWidth: '2px',
+      borderBottomStyle: 'dotted',
+      borderBottomColor: 'rgba(99, 102, 241, 0.8)',
+    },
+    '.node-type-trigger.multiple-trigger': {
+      boxShadow: '0 3px 0 -1px rgba(239, 68, 68, 0.6)',
+      borderBottomWidth: '2px',
+      borderBottomStyle: 'dotted',
+      borderBottomColor: 'rgba(239, 68, 68, 0.8)',
+    }
   }
 }, { dark: true });
 

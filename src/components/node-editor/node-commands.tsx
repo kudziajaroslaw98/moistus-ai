@@ -11,16 +11,7 @@ import {
 	Tag,
 	Type,
 } from 'lucide-react';
-import {
-	parseAnnotationInput,
-	parseCodeInput,
-	parseImageInput,
-	parseNoteInput,
-	parseQuestionInput,
-	parseResourceInput,
-	parseTaskInput,
-	parseTextInput,
-} from './parsers';
+import { parseInput } from './parsers';
 import type { NodeCommand } from './types';
 
 export const nodeCommands: NodeCommand[] = [
@@ -31,7 +22,7 @@ export const nodeCommands: NodeCommand[] = [
 		icon: FileText,
 		nodeType: 'defaultNode',
 		category: 'content',
-		quickParse: parseNoteInput,
+		quickParse: parseInput,
 		examples: ['Meeting notes #important', 'Project update #in-progress'],
 		parsingPatterns: [
 			{
@@ -63,7 +54,7 @@ export const nodeCommands: NodeCommand[] = [
 		icon: CheckSquare,
 		nodeType: 'taskNode',
 		category: 'interactive',
-		quickParse: parseTaskInput,
+		quickParse: parseInput,
 		fields: [
 			{
 				name: 'tasks',
@@ -145,7 +136,7 @@ export const nodeCommands: NodeCommand[] = [
 		icon: Code,
 		nodeType: 'codeNode',
 		category: 'content',
-		quickParse: parseCodeInput,
+		quickParse: parseInput,
 		fields: [
 			{
 				name: 'language',
@@ -214,7 +205,7 @@ export const nodeCommands: NodeCommand[] = [
 		icon: Image,
 		nodeType: 'imageNode',
 		category: 'media',
-		quickParse: parseImageInput,
+		quickParse: parseInput,
 		fields: [
 			{
 				name: 'url',
@@ -265,7 +256,7 @@ export const nodeCommands: NodeCommand[] = [
 		icon: Link,
 		nodeType: 'resourceNode',
 		category: 'media',
-		quickParse: parseResourceInput,
+		quickParse: parseInput,
 		fields: [
 			{
 				name: 'url',
@@ -316,7 +307,7 @@ export const nodeCommands: NodeCommand[] = [
 		icon: MessageCircle,
 		nodeType: 'questionNode',
 		category: 'interactive',
-		quickParse: parseQuestionInput,
+		quickParse: parseInput,
 		fields: [
 			{
 				name: 'question',
@@ -368,7 +359,7 @@ export const nodeCommands: NodeCommand[] = [
 		icon: Lightbulb,
 		nodeType: 'annotationNode',
 		category: 'annotation',
-		quickParse: parseAnnotationInput,
+		quickParse: parseInput,
 		fields: [
 			{
 				name: 'text',
@@ -443,7 +434,7 @@ export const nodeCommands: NodeCommand[] = [
 		icon: Type,
 		nodeType: 'textNode',
 		category: 'content',
-		quickParse: parseTextInput,
+		quickParse: parseInput,
 		fields: [
 			{
 				name: 'content',

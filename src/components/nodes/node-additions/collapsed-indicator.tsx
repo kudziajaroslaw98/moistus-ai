@@ -11,7 +11,7 @@ const CollapsedIndicatorComponent = (props: { data: NodeData }) => {
 		}))
 	);
 	const directChildrenCount = useMemo(() => {
-		return getDirectChildrenCount(data.id!);
+		return getDirectChildrenCount(data?.id!);
 	}, [getDirectChildrenCount, data]);
 
 	const collapsed = data?.metadata?.isCollapsed ?? false;

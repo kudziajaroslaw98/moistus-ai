@@ -55,87 +55,163 @@ export const createNodeFromCommand = async ({
 	}
 };
 
+// Helper to extract universal metadata that applies to all node types
+const getUniversalMetadata = (data: any) => {
+	const universalMeta: any = {};
+	
+	if (data.metadata?.priority || data.priority) {
+		universalMeta.priority = data.metadata?.priority || data.priority;
+	}
+	
+	if (data.metadata?.assignee || data.assignee) {
+		universalMeta.assignee = data.metadata?.assignee || data.assignee;
+	}
+	
+	if (data.metadata?.status || data.status) {
+		universalMeta.status = data.metadata?.status || data.status;
+	}
+	
+	if (data.metadata?.dueDate || data.dueDate) {
+		universalMeta.dueDate = new Date(data.metadata?.dueDate || data.dueDate).toISOString();
+	}
+	
+	return universalMeta;
+};
+
 // Transform parsed data based on node type
 export const transformDataForNodeType = (
 	nodeType: string,
 	data: any
 ): Partial<NodeData> => {
+	const universalMetadata = getUniversalMetadata(data);
+	const baseTags = data.metadata?.tags || data.tags || [];
+
 	switch (nodeType) {
 		case 'defaultNode':
 			return {
 				content: data.content || '',
-				tags: data.tags || [],
+				tags: baseTags,
 				metadata: {
-					priority: data.priority,
+					...universalMetadata,
 				},
 			};
 
 		case 'taskNode':
 			return {
+				content: data.content || '',
+				tags: baseTags,
 				metadata: {
-					tasks: data.tasks || [],
-					dueDate: data.dueDate?.toISOString(),
-					priority: data.priority,
-					assignee: data.assignee,
+					...universalMetadata,
+					tasks: data.metadata?.tasks || data.tasks || [],
 				},
-				tags: data.tags || [],
 			};
 
 		case 'codeNode':
 			return {
-				content: data.code || '',
+				content: data.code || data.content || '',
+				tags: baseTags,
 				metadata: {
-					language: data.language || 'plaintext',
-					fileName: data.filename,
+					...universalMetadata,
+					language: data.metadata?.language || data.language || 'plaintext',
+					fileName: data.metadata?.fileName || data.filename,
 					showLineNumbers: data.lineNumbers !== false,
 				},
 			};
 
 		case 'imageNode':
 			return {
+				content: data.content || '',
+				tags: baseTags,
 				metadata: {
-					image_url: data.url || '',
-					altText: data.alt || '',
-					caption: data.caption || '',
-					source: data.source,
+					...universalMetadata,
+					imageUrl: data.metadata?.imageUrl || data.url || '',
+					altText: data.metadata?.altText || data.alt || '',
+					caption: data.metadata?.caption || data.caption || '',
+					source: data.metadata?.source || data.source,
 				},
 			};
 
 		case 'resourceNode':
 			return {
-				content: data.description || '',
+				content: data.content || data.description || '',
+				tags: baseTags,
 				metadata: {
-					url: data.url || '',
-					title: data.title || '',
-					resourceType: data.type || 'link',
+					...universalMetadata,
+					url: data.metadata?.url || data.url || '',
+					title: data.metadata?.title || data.title || '',
+					resourceType: data.metadata?.resourceType || data.type || 'link',
 				},
 			};
 
 		case 'annotationNode':
 			return {
-				content: data.text || '',
+				content: data.content || data.text || '',
+				tags: baseTags,
 				metadata: {
-					annotationType: data.type || 'comment',
+					...universalMetadata,
+					annotationType: data.metadata?.annotationType || data.type || 'comment',
 				},
 			};
 
 		case 'questionNode':
 			return {
-				content: data.question || '',
-				aiData: {
-					aiAnswer: data.answer || '',
+				content: data.content || data.question || '',
+				tags: baseTags,
+				metadata: {
+					...universalMetadata,
+					answer: data.metadata?.answer || data.answer || '',
 				},
 			};
 
 		case 'textNode':
 			return {
 				content: data.content || '',
-				metadata: data.metadata || {},
+				tags: baseTags,
+				metadata: {
+					...universalMetadata,
+					fontSize: data.metadata?.fontSize || data.fontSize,
+					fontWeight: data.metadata?.fontWeight || data.fontWeight,
+					fontStyle: data.metadata?.fontStyle || data.fontStyle,
+					textAlign: data.metadata?.textAlign || data.textAlign,
+					textColor: data.metadata?.textColor || data.textColor,
+					backgroundColor: data.metadata?.backgroundColor || data.backgroundColor,
+					borderColor: data.metadata?.borderColor || data.borderColor,
+				},
+			};
+
+		case 'groupNode':
+			return {
+				content: data.content || '',
+				tags: baseTags,
+				metadata: {
+					...universalMetadata,
+					groupId: data.metadata?.groupId || data.groupId,
+					groupPadding: data.metadata?.groupPadding || data.groupPadding,
+					isCollapsed: data.metadata?.isCollapsed || data.isCollapsed,
+				},
+			};
+
+		case 'referenceNode':
+			return {
+				content: data.content || '',
+				tags: baseTags,
+				metadata: {
+					...universalMetadata,
+					targetNodeId: data.metadata?.targetNodeId || data.targetNodeId,
+					targetMapId: data.metadata?.targetMapId || data.targetMapId,
+					confidence: data.metadata?.confidence || data.confidence,
+					isAiGenerated: data.metadata?.isAiGenerated || data.isAiGenerated,
+				},
 			};
 
 		default:
+			// Fallback for any unknown node types
 			return {
-				content: JSON.stringify(data),
+				content: data.content || '',
+				tags: baseTags,
+				metadata: {
+					...universalMetadata,
+				},
 			};
 	}
 };

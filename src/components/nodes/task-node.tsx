@@ -4,22 +4,10 @@ import useAppStore from '@/store/mind-map-store';
 import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
 import { Node, NodeProps } from '@xyflow/react';
-import {
-	Calendar,
-	Check,
-	CheckCheck,
-	Dot,
-	Flag,
-	Plus,
-	SquareCheck,
-	Trash2,
-	User,
-} from 'lucide-react'; // Import Square icon
-import { memo, useCallback, useMemo } from 'react'; // Import useMemo
-import { toast } from 'sonner';
-import { Button } from '../ui/button';
+import { Check, CheckSquare } from 'lucide-react';
+import { memo, useCallback, useMemo } from 'react';
 import { BaseNodeWrapper } from './base-node-wrapper';
-import { MetadataBadge, NodeTags } from './shared';
+import {motion} from 'motion/react'
 
 interface Task {
 	id: string;
@@ -36,11 +24,6 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 	const tasks: Task[] = useMemo(
 		() => data.metadata?.tasks || [],
 		[data.metadata?.tasks]
-	);
-
-	const completedTasks = useMemo(
-		() => tasks.filter((task) => task.isComplete),
-		[tasks]
 	);
 
 	const handleToggleTask = useCallback(
@@ -61,230 +44,158 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 		[tasks, updateNode, id, data.metadata]
 	);
 
-	const handleAddTask = useCallback(async () => {
-		const newTask: Task = {
-			id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-			text: 'New task',
-			isComplete: false,
-		};
-
-		const updatedTasks = [...tasks, newTask];
-
-		try {
-			await updateNode({
-				nodeId: id,
-				data: { metadata: { ...data.metadata, tasks: updatedTasks } },
-			});
-			toast.success('Task added');
-		} catch (error) {
-			console.error('Failed to add task:', error);
-			toast.error('Failed to add task');
-		}
-	}, [tasks, updateNode, id, data.metadata]);
-
-	const handleCompleteAll = useCallback(async () => {
-		if (tasks.length === 0) {
-			toast.error('No tasks to complete');
-			return;
-		}
-
-		const updatedTasks = tasks.map((task) => ({
-			...task,
-			isComplete: true,
-		}));
-
-		try {
-			await updateNode({
-				nodeId: id,
-				data: { metadata: { ...data.metadata, tasks: updatedTasks } },
-			});
-			toast.success('All tasks completed');
-		} catch (error) {
-			console.error('Failed to complete all tasks:', error);
-			toast.error('Failed to complete all tasks');
-		}
-	}, [tasks, updateNode, id, data.metadata]);
-
-	const handleClearCompleted = useCallback(async () => {
-		if (completedTasks.length === 0) {
-			toast.error('No completed tasks to clear');
-			return;
-		}
-
-		const updatedTasks = tasks.filter((task) => !task.isComplete);
-
-		try {
-			await updateNode({
-				nodeId: id,
-				data: { metadata: { ...data.metadata, tasks: updatedTasks } },
-			});
-			toast.success(`Cleared ${completedTasks.length} completed task(s)`);
-		} catch (error) {
-			console.error('Failed to clear completed tasks:', error);
-			toast.error('Failed to clear completed tasks');
-		}
-	}, [tasks, completedTasks.length, updateNode, id, data.metadata]);
-
-	const toolbarContent = useMemo(
-		() => (
-			<>
-				{/* Add Task Button */}
-				<Button
-					onClick={handleAddTask}
-					size={'sm'}
-					variant={'outline'}
-					className='h-8 px-2'
-					title='Add new task'
-				>
-					<Plus className='w-4 h-4' />
-				</Button>
-
-				{/* Task Counter Badge */}
-				{tasks.length > 0 && (
-					<div className='flex items-center gap-1 px-2 py-1 rounded text-xs bg-blue-600/20 text-blue-400'>
-						<SquareCheck className='w-3 h-3' />
-
-						{completedTasks.length}/{tasks.length}
-					</div>
-				)}
-
-				{/* Complete All Button */}
-				{tasks.length > 0 && completedTasks.length < tasks.length && (
-					<Button
-						onClick={handleCompleteAll}
-						size={'sm'}
-						variant={'outline'}
-						className='h-8 px-2'
-						title='Mark all tasks as complete'
-					>
-						<CheckCheck className='w-4 h-4' />
-					</Button>
-				)}
-
-				{/* Clear Completed Button */}
-				{completedTasks.length > 0 && (
-					<Button
-						onClick={handleClearCompleted}
-						size={'sm'}
-						variant={'outline'}
-						className='h-8 px-2 text-red-400 hover:text-red-300'
-						title='Remove completed tasks'
-					>
-						<Trash2 className='w-4 h-4' />
-					</Button>
-				)}
-			</>
-		),
-		[
-			completedTasks,
-			tasks,
-			handleCompleteAll,
-			handleClearCompleted,
-			handleAddTask,
-		]
-	);
+	// Calculate completion statistics
+	const stats = useMemo(() => {
+		const completed = tasks.filter(t => t.isComplete).length;
+		const total = tasks.length;
+		const percentage = total > 0 ? (completed / total) * 100 : 0;
+		return { completed, total, percentage };
+	}, [tasks]);
 
 	return (
 		<BaseNodeWrapper
 			{...props}
 			nodeClassName='task-node'
 			nodeType='Tasks'
-			nodeIcon={<SquareCheck className='size-4' />}
-			toolbarContent={toolbarContent}
+			nodeIcon={<CheckSquare className='size-4' />}
+			elevation={1}
 		>
-			<div className='flex flex-col gap-1.5'>
-				{/* Task metadata (priority, due date, tags) */}
-				{(data.metadata?.priority ||
-					data.metadata?.dueDate ||
-					(data?.metadata?.tags && data?.metadata?.tags?.length > 0)) && (
-					<div className='flex flex-wrap gap-2 items-center text-xs mb-2 pb-2 border-b border-zinc-800'>
-						{data.metadata?.priority && (
-							<MetadataBadge
-								type='priority'
-								value={data.metadata.priority}
-								icon={Flag}
-								size='sm'
-							/>
-						)}
-
-						{data.metadata?.dueDate && (
-							<MetadataBadge
-								type='date'
-								value={new Date(data.metadata.dueDate).toLocaleDateString()}
-								icon={Calendar}
-								size='sm'
-							/>
-						)}
-
-						{data?.metadata?.tags && data.metadata?.tags.length > 0 && (
-							<NodeTags
-								tags={data.metadata?.tags}
-								maxVisible={3}
-								className='inline-flex'
-							/>
-						)}
-
-						{data.metadata?.assignee && (
-							<MetadataBadge
-								type='assignee'
-								value={`@${data.metadata.assignee}`}
-								icon={User}
-								size='sm'
-							/>
-						)}
-					</div>
-				)}
-
+			<div className='flex flex-col gap-3'>
 				{tasks.length === 0 ? (
-					<span className='text-zinc-500 italic'>
+					<span style={{ 
+						color: 'rgba(255, 255, 255, 0.38)', 
+						fontStyle: 'italic',
+						fontSize: '14px',
+						textAlign: 'center',
+						padding: '8px 0'
+					}}>
 						Double click or click the menu to add tasks...
 					</span>
 				) : (
 					<>
-						<div className='flex gap-2 items-center p-1 font-semibold'>
-							<span>Tasks: {tasks.length}</span>
-
-							<Dot className='size-4 text-zinc-700' />
-
-							<span>
-								Done: {tasks.filter((task) => task.isComplete).length}
-							</span>
-						</div>
-
-						{tasks.map((task) => (
-							<div key={task.id} className='flex items-start gap-2 text-sm'>
-								<button
-									onClick={() => handleToggleTask(task.id)}
-									className='nodrag flex-shrink-0 cursor-pointer rounded p-0.5 text-zinc-400 hover:text-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-500 focus:ring-offset-1 focus:ring-offset-zinc-950'
-									aria-label={
-										task.isComplete
-											? 'Mark task incomplete'
-											: 'Mark task complete'
-									}
-								>
-									{task.isComplete ? (
-										<div className='size-4 flex justify-center items-center border-node-accent border text-node-accent rounded-sm'>
-											<Check className='size-3' />
-										</div>
-									) : (
-										<div className='size-4 text-node-text-secondary border border-node-text-secondary rounded-sm'></div>
-									)}
-								</button>
-
-								<span
-									className={cn([
-										'break-words',
-										task.isComplete
-											? 'text-node-text-checked decoration line-through'
-											: 'text-node-text-secondary',
-									])}
-								>
-									{task.text || (
-										<span className='italic text-zinc-600'>Empty task</span>
-									)}
+						{/* Progress indicator using Material Design principles */}
+						<div className='space-y-2'>
+							{/* Stats bar */}
+							<div className='flex items-center justify-between text-sm'>
+								<span style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+									Progress
+								</span>
+								<span style={{ 
+									color: stats.percentage === 100 
+										? 'rgba(52, 211, 153, 0.87)' // Desaturated green for dark theme
+										: 'rgba(255, 255, 255, 0.87)' 
+								}}>
+									{stats.completed}/{stats.total}
 								</span>
 							</div>
-						))}
+							
+							{/* Progress bar with subtle gradient */}
+							<div className='relative w-full h-1 rounded-full overflow-hidden'
+								style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}>
+								<motion.div 
+									className='h-full rounded-full transition-all duration-500 ease-out'
+									style={{ 
+										width: `${stats.percentage}%`,
+										background: stats.percentage === 100
+											? 'linear-gradient(90deg, rgba(52, 211, 153, 0.6) 0%, rgba(52, 211, 153, 0.8) 100%)'
+											: 'linear-gradient(90deg, rgba(96, 165, 250, 0.5) 0%, rgba(96, 165, 250, 0.7) 100%)'
+									}}
+									initial={{ width: 0 }}
+									animate={{ width: `${stats.percentage}%` }}
+								/>
+							</div>
+						</div>
+
+						{/* Task list with Material Design interaction patterns */}
+						<div className='flex flex-col gap-1'>
+							{tasks.map((task, index) => (
+								<motion.div 
+									key={task.id} 
+									className={cn(
+										'flex items-start gap-3 p-2 -mx-2 rounded-md transition-all cursor-pointer group',
+										'hover:bg-white/[0.03]'
+									)}
+									onClick={() => handleToggleTask(task.id)}
+									initial={{ opacity: 0, x: -10 }}
+									animate={{ opacity: 1, x: 0 }}
+									transition={{ delay: index * 0.05 }}
+								>
+									{/* Custom checkbox following Material Design */}
+									<div className='mt-0.5 flex-shrink-0'>
+										<div 
+											className='relative w-5 h-5 rounded transition-all duration-200'
+											style={{
+												border: task.isComplete 
+													? '2px solid rgba(52, 211, 153, 0.8)'
+													: '2px solid rgba(255, 255, 255, 0.38)',
+												backgroundColor: task.isComplete 
+													? 'rgba(52, 211, 153, 0.15)'
+													: 'transparent',
+											}}
+										>
+											{task.isComplete && (
+												<motion.div
+													initial={{ scale: 0, opacity: 0 }}
+													animate={{ scale: 1, opacity: 1 }}
+													transition={{ type: 'spring', stiffness: 500 }}
+													className='absolute inset-0 flex items-center justify-center'
+												>
+													<Check 
+														className='w-3 h-3' 
+														style={{ color: 'rgba(52, 211, 153, 0.87)' }}
+													/>
+												</motion.div>
+											)}
+										</div>
+									</div>
+
+									{/* Task text with proper emphasis hierarchy */}
+									<span
+										className={cn([
+											'flex-1 select-none transition-all duration-200',
+											task.isComplete && 'line-through'
+										])}
+										style={{
+											color: task.isComplete 
+												? 'rgba(255, 255, 255, 0.38)' // Disabled state
+												: 'rgba(255, 255, 255, 0.87)', // High emphasis
+											fontSize: '14px',
+											lineHeight: '20px',
+										}}
+									>
+										{task.text || (
+											<span style={{ 
+												fontStyle: 'italic',
+												color: 'rgba(255, 255, 255, 0.38)'
+											}}>
+												Empty task
+											</span>
+										)}
+									</span>
+								</motion.div>
+							))}
+						</div>
+
+						{/* Completion celebration - subtle animation */}
+						{stats.percentage === 100 && (
+							<motion.div
+								initial={{ opacity: 0, scale: 0.9 }}
+								animate={{ opacity: 1, scale: 1 }}
+								className='text-center py-2 px-3 rounded-md'
+								style={{
+									backgroundColor: 'rgba(52, 211, 153, 0.1)',
+									border: '1px solid rgba(52, 211, 153, 0.2)',
+								}}
+							>
+								<span style={{ 
+									color: 'rgba(52, 211, 153, 0.87)',
+									fontSize: '13px',
+									fontWeight: 500
+								}}>
+									All tasks complete! 🎉
+								</span>
+							</motion.div>
+						)}
 					</>
 				)}
 			</div>

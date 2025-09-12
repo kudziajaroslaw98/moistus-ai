@@ -132,6 +132,14 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 			return;
 		}
 
+		// Skip legacy processing when CodeMirror commands are enabled
+		// This prevents conflicts with our new trigger-keeping system
+		const hasEnabledCommands = true; // EnhancedInput has enableCommands={true}
+		if (hasEnabledCommands) {
+			lastProcessedText.current = value;
+			return;
+		}
+
 		// Only use legacy processing if commands are disabled or as fallback
 		// The primary processing should happen via CodeMirror events
 		if (shouldAutoProcessSwitch(value, currentNodeType)) {

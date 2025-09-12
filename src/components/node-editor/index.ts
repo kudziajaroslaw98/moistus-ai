@@ -1,13 +1,12 @@
+export { CommandPalette } from './command-palette';
+export { ModeToggle } from './mode-toggle';
 export { NodeEditor as default } from './node-editor';
 export { QuickInput } from './quick-input';
 export { StructuredInput } from './structured-input';
-export { ModeToggle } from './mode-toggle';
-export { CommandPalette } from './command-palette';
 
 // Enhanced Input Components
 export { EnhancedInput } from './enhanced-input/enhanced-input';
 export { FloatingCompletionPanel } from './enhanced-input/floating-completion-panel';
-export { SimpleFallback } from './enhanced-input/simple-fallback';
 export { ValidationTooltip } from './enhanced-input/validation-tooltip';
 
 // Component Pieces
@@ -29,22 +28,22 @@ export { useNodeEditor } from './hooks/use-node-editor';
 
 // Core Functions
 export {
-	nodeCommands,
+	commandCategories,
 	getCommandByType,
 	getCommandsByCategory,
-	commandCategories,
+	nodeCommands,
 } from './node-commands';
 export {
 	createNodeFromCommand,
-	transformDataForNodeType,
 	getChildPosition,
+	transformDataForNodeType,
 	validateNodeData,
 } from './node-creator';
 export {
-	updateNodeFromCommand,
 	createOrUpdateNodeFromCommand,
 	transformNodeToFormData,
 	transformNodeToQuickInputString,
+	updateNodeFromCommand,
 } from './node-updater';
 
 // Parser System
@@ -58,9 +57,3 @@ export * from './completions';
 
 // CodeMirror Integration
 export * from './codemirror';
-
-// Utilities
-export * from './utils';
-
-// Types
-export * from './types';
