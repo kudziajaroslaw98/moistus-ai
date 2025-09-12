@@ -19,6 +19,7 @@ import CollapseButton from './node-additions/collapse-button';
 import CollapsedIndicator from './node-additions/collapsed-indicator';
 import CommentButton from './node-additions/comment-button';
 import GroupButton from './node-additions/group-button';
+import { UniversalMetadataBar } from './shared';
 
 interface BaseNodeWrapperProps extends NodeProps<Node<NodeData>> {
 	children: ReactNode;
@@ -212,11 +213,38 @@ const BaseNodeWrapperComponent = ({
 					</AnimatePresence>
 				</div>
 
-				{/* Main content */}
+				{/* Main content with metadata bar integration */}
 				<div className={cn(
-					'flex flex-col gap-4',
-					nodeIcon && !hideNodeType && 'mt-2'
+					'flex flex-col',
 				)}>
+					{/* Universal Metadata Bar - positioned at the top of content */}
+					{/* Only show when node has actual metadata to display */}
+					{data.metadata && (
+						Object.keys(data.metadata).some(key => 
+							data.metadata?.[key] !== undefined && 
+							data.metadata?.[key] !== null &&
+							data.metadata?.[key] !== ''
+						) && (
+							<UniversalMetadataBar
+								metadata={data.metadata}
+								nodeType={data.node_type || 'defaultNode'}
+								selected={selected}
+								className={cn([
+									!includePadding ? 'p-4':'p-0 pb-4'
+								])}
+								onMetadataClick={(type, value) => {
+									// Handle metadata interactions
+									console.log(`Metadata clicked: ${type} = ${value}`);
+									// You can add custom handlers here, such as:
+									// - Filter by tag
+									// - Show all nodes assigned to a user
+									// - Show all high priority items
+								}}
+							/>
+						)
+					)}
+					
+					{/* Main node content */}
 					{children}
 				</div>
 

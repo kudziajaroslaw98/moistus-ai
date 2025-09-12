@@ -1,16 +1,16 @@
-export { MetadataBadge } from './MetadataBadge';
+export { MetadataBadge } from './metadata-badge';
 export type {
 	BadgeSize,
 	BadgeType,
 	BadgeVariant,
 	MetadataBadgeProps,
-} from './MetadataBadge';
+} from './metadata-badge';
 
-export { NodeTags } from './NodeTags';
-export type { NodeTagsProps } from './NodeTags';
+export { NodeTags } from './node-tabs';
+export type { NodeTagsProps } from './node-tabs';
 
-export { NodeMetadata } from './NodeMetadata';
-export type { NodeMetadataProps } from './NodeMetadata';
+export { NodeMetadata } from './node-metadata';
+export type { NodeMetadataProps } from './node-metadata';
 
-export { UniversalMetadataBar, useMetadataRelevance } from './UniversalMetadataBar';
-export type { UniversalMetadataBarProps } from './UniversalMetadataBar';
+export { UniversalMetadataBar, useMetadataRelevance } from './universal-metadata-bar';
+export type { UniversalMetadataBarProps } from './universal-metadata-bar';

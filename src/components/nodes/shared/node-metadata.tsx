@@ -17,8 +17,8 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { memo, useMemo } from 'react';
-import { MetadataBadge } from './MetadataBadge';
-import { NodeTags } from './NodeTags';
+import { MetadataBadge } from './metadata-badge';
+import { NodeTags } from './node-tabs';
 
 export interface NodeMetadataProps {
 	nodeId?: string;
