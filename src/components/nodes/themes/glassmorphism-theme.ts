@@ -143,6 +143,43 @@ export const GlassmorphismTheme = {
 		},
 	},
 
+	// Ghost node (AI suggestions) specific styling
+	ghost: {
+		background: 'rgba(113, 113, 122, 0.1)', // Zinc with low opacity
+		border: 'rgba(255, 255, 255, 0.08)', // Dashed border
+		borderStyle: 'dashed',
+		borderWidth: '2px',
+		
+		// Confidence level colors
+		confidence: {
+			high: 'rgba(34, 197, 94, 0.87)', // Green for 80%+
+			medium: 'rgba(251, 191, 36, 0.87)', // Yellow for 60-80%
+			low: 'rgba(239, 68, 68, 0.87)', // Red for <60%
+		},
+		
+		// Action buttons
+		actions: {
+			accept: {
+				background: 'rgba(34, 197, 94, 0.8)',
+				hover: 'rgba(34, 197, 94, 1)',
+				text: 'rgba(220, 252, 231, 1)', // Green-50
+			},
+			reject: {
+				background: 'rgba(239, 68, 68, 0.8)',
+				hover: 'rgba(239, 68, 68, 1)',
+				text: 'rgba(254, 226, 226, 1)', // Red-50
+			},
+		},
+		
+		// Animation variants
+		animation: {
+			initial: { opacity: 0, scale: 0.95, y: 40 },
+			animate: { opacity: 1, scale: 1, y: 0 },
+			exit: { opacity: 0, scale: 0.95, y: 40 },
+			transition: { ease: 'easeOut', duration: 0.3 },
+		},
+	},
+
 	// Progress and status indicators
 	indicators: {
 		// Progress bars
