@@ -58,6 +58,7 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 			nodeClassName='task-node'
 			nodeType='Tasks'
 			nodeIcon={<CheckSquare className='size-4' />}
+			hideNodeType
 			elevation={1}
 		>
 			<div className='flex flex-col gap-3'>

@@ -215,7 +215,7 @@ const BaseNodeWrapperComponent = ({
 
 				{/* Main content with metadata bar integration */}
 				<div className={cn(
-					'flex flex-col',
+					'flex flex-col'
 				)}>
 					{/* Universal Metadata Bar - positioned at the top of content */}
 					{/* Only show when node has actual metadata to display */}
@@ -230,7 +230,7 @@ const BaseNodeWrapperComponent = ({
 								nodeType={data.node_type || 'defaultNode'}
 								selected={selected}
 								className={cn([
-									!includePadding ? 'p-4':'p-0 pb-4'
+									includePadding ? 'p-0 pb-4' : 'p-4'
 								])}
 								onMetadataClick={(type, value) => {
 									// Handle metadata interactions

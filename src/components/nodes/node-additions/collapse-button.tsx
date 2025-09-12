@@ -28,47 +28,76 @@ const CollapseButtonComponent = (props: { data: NodeData }) => {
 		toggleNodeCollapse(nodeId!);
 	}, [nodeId, toggleNodeCollapse]);
 
-	return (
-		<motion.div className='bg-node-accent text-node-text-main rounded-t-sm text-[10px] font-semibold font-mono flex items-center justify-center gap-2'>
-			{hasChildren && (
-				<Button
-					onClick={handleToggleCollapse}
-					className='nodrag nopan z-20 rounded-sm hover:bg-black/20 h-5 w-auto group flex px-1 transition-all'
-					variant={'ghost'}
-					title={
-						collapsed
-							? `Expand Branch (${directChildrenCount} ${directChildrenCount === 1 ? 'child' : 'children'})`
-							: `Collapse Branch (${directChildrenCount} ${directChildrenCount === 1 ? 'child' : 'children'})`
-					}
-					onHoverStart={() => setHover(true)}
-					onHoverEnd={() => setHover(false)}
-				>
-					{!collapsed ? (
-						<ChevronUp className='size-3' />
-					) : (
-						<ChevronDown className='size-3' />
-					)}
+	// Don't render anything if no children
+	if (!hasChildren) return null;
 
-					<AnimatePresence>
-						{hover && (
-							<motion.span
-								key={`hover-${hover}`}
-								initial={{ width: 0, opacity: 0, paddingLeft: 0 }}
-								animate={{ width: '10ch', opacity: 1, paddingLeft: 8 }}
-								exit={{ width: 0, opacity: 0, paddingLeft: 0 }}
-								transition={{
-									width: { duration: 0.25 },
-									opacity: { duration: 0.4 },
-									ease: 'easeOut',
-								}}
-							>
-								{collapsed ? 'Expand' : 'Collapse'}
-							</motion.span>
-						)}
-					</AnimatePresence>
-				</Button>
+	return (
+		<Button
+			onClick={handleToggleCollapse}
+			className='nodrag nopan z-20 rounded-md hover:scale-105 h-6 w-auto flex items-center px-1.5 transition-all'
+			variant={'ghost'}
+			style={{
+				backgroundColor: hover ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.05)',
+				border: '1px solid rgba(255, 255, 255, 0.1)',
+				color: 'rgba(255, 255, 255, 0.87)',
+			}}
+			title={
+				collapsed
+					? `Expand Branch (${directChildrenCount} ${directChildrenCount === 1 ? 'child' : 'children'})`
+					: `Collapse Branch (${directChildrenCount} ${directChildrenCount === 1 ? 'child' : 'children'})`
+			}
+			onMouseEnter={() => setHover(true)}
+			onMouseLeave={() => setHover(false)}
+		>
+			<motion.div
+				animate={{ rotate: collapsed ? 0 : 180 }}
+				transition={{ duration: 0.2 }}
+				className='flex items-center'
+			>
+				<ChevronDown className='size-3' style={{ color: 'rgba(255, 255, 255, 0.6)' }} />
+			</motion.div>
+
+			<AnimatePresence>
+				{hover && (
+					<motion.span
+						key='label'
+						initial={{ width: 0, opacity: 0, marginLeft: 0 }}
+						animate={{ width: 'auto', opacity: 1, marginLeft: 4 }}
+						exit={{ width: 0, opacity: 0, marginLeft: 0 }}
+						transition={{
+							duration: 0.2,
+							ease: 'easeOut',
+						}}
+						style={{
+							fontSize: '11px',
+							color: 'rgba(255, 255, 255, 0.6)',
+							overflow: 'hidden',
+							whiteSpace: 'nowrap',
+						}}
+					>
+						{collapsed ? 'Expand' : 'Collapse'}
+					</motion.span>
+				)}
+			</AnimatePresence>
+
+			{/* Badge showing child count */}
+			{directChildrenCount > 0 && (
+				<span
+					style={{
+						marginLeft: hover ? '4px' : '2px',
+						padding: '0 4px',
+						borderRadius: '4px',
+						fontSize: '10px',
+						backgroundColor: 'rgba(96, 165, 250, 0.15)',
+						color: 'rgba(147, 197, 253, 0.87)',
+						fontWeight: 600,
+						transition: 'all 0.2s',
+					}}
+				>
+					{directChildrenCount}
+				</span>
 			)}
-		</motion.div>
+		</Button>
 	);
 };
 

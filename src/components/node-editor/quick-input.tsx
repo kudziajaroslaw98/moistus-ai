@@ -99,13 +99,14 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 			);
 			initializeQuickInput(initialContent, command.nodeType);
 		} else if (mode === 'create') {
-			// Create mode: initialize with empty state but set node type
-			if (currentNodeType !== command.nodeType) {
+			// Create mode: only set initial node type if none exists
+			// Don't override user-selected node types from $nodeType switching
+			if (!currentNodeType) {
 				setCurrentNodeType(command.nodeType);
 			}
 			// Don't reset value in create mode to preserve user input across remounts
 		}
-	}, [mode, existingNode?.id, command.nodeType, currentNodeType, initializeQuickInput, setCurrentNodeType]);
+	}, [mode, existingNode?.id, command.nodeType, initializeQuickInput, setCurrentNodeType]);
 
 
 	// Save legend preference
@@ -129,14 +130,6 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 	// Process node type switches automatically (legacy fallback only)
 	useEffect(() => {
 		if (!value || !currentNodeType || lastProcessedText.current === value) {
-			return;
-		}
-
-		// Skip legacy processing when CodeMirror commands are enabled
-		// This prevents conflicts with our new trigger-keeping system
-		const hasEnabledCommands = true; // EnhancedInput has enableCommands={true}
-		if (hasEnabledCommands) {
-			lastProcessedText.current = value;
 			return;
 		}
 

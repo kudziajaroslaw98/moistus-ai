@@ -175,7 +175,8 @@ const TextNodeComponent = (props: TextNodeProps) => {
 				nodeType='Text'
 				nodeIcon={<Type className='w-3 h-3' />}
 				nodeClassName='text-node min-w-fit min-h-fit h-full'
-				hideNodeType={false}
+			hideNodeType
+
 				includePadding={true}
 				elevation={1}
 			>

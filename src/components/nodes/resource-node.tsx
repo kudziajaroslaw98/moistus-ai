@@ -39,6 +39,8 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 			{...props}
 			nodeClassName='resource-node'
 			nodeType='Resource'
+			hideNodeType
+
 			nodeIcon={<LinkIcon className='size-4' />}
 			elevation={1}
 		>

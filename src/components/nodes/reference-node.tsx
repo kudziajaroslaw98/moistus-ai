@@ -26,6 +26,7 @@ const ReferenceNodeComponent = (props: ReferenceNodeProps) => {
 			{...props}
 			nodeClassName='reference-node'
 			nodeType='Reference'
+			hideNodeType
 			nodeIcon={<BookMarked className='size-4' />}
 			includePadding={false}
 		>

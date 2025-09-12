@@ -149,6 +149,7 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 			nodeType='Code'
 			nodeIcon={<Code className='size-4' />}
 			includePadding={false}
+			hideNodeType
 			elevation={1}
 		>
 			<div className='w-full flex-grow overflow-hidden rounded-lg'

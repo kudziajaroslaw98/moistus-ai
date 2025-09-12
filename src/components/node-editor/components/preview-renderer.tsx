@@ -88,15 +88,20 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 
 	switch (nodeType) {
 		case 'taskNode':
+			// Handle both old format (preview.tasks) and new format (preview.metadata.tasks)
+			const tasks = preview.tasks || (preview.metadata && preview.metadata.tasks) || [];
+			// Handle metadata from either location
+			const metadata = preview.metadata || preview;
+			
 			return (
 				<motion.div
 					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
 					transition={{ duration: 0.2 }}
 				>
-					{preview.tasks && preview.tasks.length > 0 ? (
+					{tasks && tasks.length > 0 ? (
 						<div className='space-y-1.5'>
-							{preview.tasks.slice(0, 5).map((task: any, index: number) => (
+							{tasks.slice(0, 5).map((task: any, index: number) => (
 								<motion.div
 									key={index}
 									className='space-y-1'
@@ -164,14 +169,14 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 								</motion.div>
 							))}
 
-							{preview.tasks.length > 5 && (
+							{tasks.length > 5 && (
 								<motion.div
 									className='text-xs text-zinc-500 pl-5'
 									initial={{ opacity: 0, y: 10 }}
 									animate={{ opacity: 1, y: 0 }}
 									transition={{ delay: 0.3, duration: 0.2 }}
 								>
-									+{preview.tasks.length - 5} more tasks...
+									+{tasks.length - 5} more tasks...
 								</motion.div>
 							)}
 						</div>
@@ -205,7 +210,7 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 					)}
 
 					{/* Node-level metadata display */}
-					{(preview.dueDate || preview.priority || (preview.tags && preview.tags.length > 0) || preview.assignee) && (
+					{(metadata.dueDate || metadata.priority || (metadata.tags && metadata.tags.length > 0) || metadata.assignee) && (
 						<motion.div
 							className='mt-3 pt-2 border-t border-zinc-700/50 flex flex-wrap gap-1'
 							initial={{ opacity: 0, y: 10 }}
@@ -213,7 +218,7 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 							transition={{ delay: 0.4, duration: 0.2 }}
 						>
 							{/* Due Date */}
-							{preview.dueDate && (
+							{metadata.dueDate && (
 								<motion.div
 									className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20'
 									initial={{ opacity: 0, scale: 0.8 }}
@@ -223,13 +228,13 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 									<span className='opacity-70'>📅</span>
 									<span className='flex items-center gap-0.5'>
 										<span className='opacity-70 text-xs'>Due:</span>
-										<span className='font-medium'>{preview.dueDate.toLocaleDateString ? preview.dueDate.toLocaleDateString() : preview.dueDate}</span>
+										<span className='font-medium'>{metadata.dueDate.toLocaleDateString ? metadata.dueDate.toLocaleDateString() : metadata.dueDate}</span>
 									</span>
 								</motion.div>
 							)}
 
 							{/* Priority */}
-							{preview.priority && (
+							{metadata.priority && (
 								<motion.div
 									className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20'
 									initial={{ opacity: 0, scale: 0.8 }}
@@ -239,13 +244,13 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 									<span className='opacity-70'>🔥</span>
 									<span className='flex items-center gap-0.5'>
 										<span className='opacity-70 text-xs'>Priority:</span>
-										<span className='font-medium capitalize'>{preview.priority}</span>
+										<span className='font-medium capitalize'>{metadata.priority}</span>
 									</span>
 								</motion.div>
 							)}
 
 							{/* Tags */}
-							{preview.tags && preview.tags.length > 0 && preview.tags.map((tag, tagIndex) => (
+							{metadata.tags && metadata.tags.length > 0 && metadata.tags.map((tag, tagIndex) => (
 								<motion.div
 									key={`tag-${tagIndex}`}
 									className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20'
@@ -261,7 +266,7 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 							))}
 
 							{/* Assignee */}
-							{preview.assignee && (
+							{metadata.assignee && (
 								<motion.div
 									className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20'
 									initial={{ opacity: 0, scale: 0.8 }}
@@ -271,7 +276,7 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 									<span className='opacity-70'>👤</span>
 									<span className='flex items-center gap-0.5'>
 										<span className='opacity-70 text-xs'>Assigned:</span>
-										<span className='font-medium'>{preview.assignee}</span>
+										<span className='font-medium'>{metadata.assignee}</span>
 									</span>
 								</motion.div>
 							)}

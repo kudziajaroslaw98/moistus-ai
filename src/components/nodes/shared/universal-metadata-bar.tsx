@@ -262,7 +262,7 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(({
 						bgColor={config.bgColor}
 						borderColor={config.borderColor}
 						onClick={() => onMetadataClick?.('priority', metadata.priority)}
-						size={selected ? 'sm' : 'xs'}
+						size={'xs'}
 					/>
 				),
 				order: 1
@@ -285,7 +285,7 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(({
 							bgColor={`${config.color.replace('0.87', '0.1')}`}
 							borderColor={`${config.color.replace('0.87', '0.2')}`}
 							onClick={() => onMetadataClick?.('status', metadata.status)}
-							size={selected ? 'sm' : 'xs'}
+							size={'xs'}
 						/>
 					),
 					order: 2
@@ -307,7 +307,7 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(({
 						icon={User}
 						label={assigneeString}
 						onClick={() => onMetadataClick?.('assignee', metadata.assignee)}
-						size={selected ? 'sm' : 'xs'}
+						size={ 'xs'}
 					/>
 				),
 				order: 3
@@ -348,7 +348,7 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(({
 						bgColor={`${dateColor.replace('0.87', '0.1')}`}
 						borderColor={`${dateColor.replace('0.87', '0.2')}`}
 						onClick={() => onMetadataClick?.('dueDate', metadata.dueDate)}
-						size={selected ? 'sm' : 'xs'}
+						size={'xs'}
 					/>
 				),
 				order: 4
@@ -379,8 +379,8 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(({
 
 	// Container styling adapts based on selection state
 	const containerStyle: React.CSSProperties = {
-		backgroundColor: selected ? 'rgba(255, 255, 255, 0.02)' : 'transparent',
-		borderBottom: selected ? '1px solid rgba(255, 255, 255, 0.06)' : 'none',
+		backgroundColor: 'transparent',
+		borderBottom: 'none',
 		transition: 'all 0.2s ease',
 	};
 

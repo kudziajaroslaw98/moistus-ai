@@ -19,6 +19,7 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 			{...props}
 			nodeClassName='question-node'
 			nodeType='Question'
+			hideNodeType
 			nodeIcon={<HelpCircle className='size-4' />}
 			elevation={isAnswered ? 2 : 1} // Slightly elevated when answered
 		>
