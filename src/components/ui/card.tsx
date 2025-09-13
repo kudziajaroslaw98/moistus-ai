@@ -1,15 +1,21 @@
 import * as React from 'react';
 
 import { cn } from '@/lib/utils';
+import { GlassmorphismTheme } from '../nodes/themes/glassmorphism-theme';
 
 function Card({ className, ...props }: React.ComponentProps<'div'>) {
 	return (
 		<div
 			data-slot='card'
 			className={cn(
-				'bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm',
+				'flex flex-col gap-6 rounded-xl shadow-sm py-6',
 				className
 			)}
+			style={{
+				backgroundColor: GlassmorphismTheme.elevation[2], // Raised card elevation
+				border: `1px solid ${GlassmorphismTheme.borders.default}`,
+				color: GlassmorphismTheme.text.high,
+			}}
 			{...props}
 		/>
 	);
