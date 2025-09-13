@@ -6,8 +6,10 @@ import { HelpCircle, Sparkles } from 'lucide-react';
 import { memo } from 'react';
 import { BaseNodeWrapper } from './base-node-wrapper';
 import { motion, AnimatePresence } from 'motion/react';
+import { GlassmorphismTheme } from './themes/glassmorphism-theme';
+import { type TypedNodeProps } from './core/types';
 
-type QuestionNodeProps = NodeProps<Node<NodeData>>;
+type QuestionNodeProps = TypedNodeProps<'questionNode'>;
 
 const QuestionNodeComponent = (props: QuestionNodeProps) => {
 	const { data } = props;
@@ -45,7 +47,7 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 							<h3 style={{
 								fontSize: '18px',
 								fontWeight: 500,
-								color: 'rgba(255, 255, 255, 0.87)', // High emphasis
+								color: GlassmorphismTheme.text.high,
 								lineHeight: 1.4,
 								letterSpacing: '0.01em',
 							}}>
@@ -53,7 +55,7 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 							</h3>
 						) : (
 							<span style={{
-								color: 'rgba(255, 255, 255, 0.38)',
+								color: GlassmorphismTheme.text.disabled,
 								fontSize: '14px',
 								fontStyle: 'italic',
 							}}>
@@ -72,8 +74,8 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 						>
 							<div className='flex items-center gap-1.5 px-3 py-1 rounded-full'
 								style={{
-									backgroundColor: 'rgba(251, 191, 36, 0.1)', // Amber with low opacity
-									border: '1px solid rgba(251, 191, 36, 0.2)',
+									backgroundColor: 'rgba(251, 191, 36, 0.1)',
+									border: `1px solid ${GlassmorphismTheme.indicators.status.pending}`,
 								}}>
 								<motion.div
 									animate={{ 
@@ -85,11 +87,11 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 										ease: 'easeInOut'
 									}}
 									className='w-1.5 h-1.5 rounded-full'
-									style={{ backgroundColor: 'rgba(251, 191, 36, 0.8)' }}
+									style={{ backgroundColor: GlassmorphismTheme.indicators.status.pending }}
 								/>
 								<span style={{
 									fontSize: '12px',
-									color: 'rgba(251, 191, 36, 0.87)',
+									color: GlassmorphismTheme.indicators.status.pending,
 									fontWeight: 500,
 								}}>
 									Awaiting answer
@@ -119,7 +121,7 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 								<div className='relative flex justify-center'>
 									<div className='flex items-center gap-2 px-3 py-1.5 rounded-full'
 										style={{
-											backgroundColor: '#1E1E1E', // Elevation 1
+											backgroundColor: GlassmorphismTheme.elevation[1],
 											border: '1px solid rgba(147, 197, 253, 0.2)',
 										}}>
 										<Sparkles className='w-3 h-3' style={{ color: 'rgba(147, 197, 253, 0.87)' }} />
@@ -145,7 +147,7 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 								}}>
 								<div style={{
 									fontSize: '14px',
-									color: 'rgba(255, 255, 255, 0.60)', // Medium emphasis for body text
+									color: GlassmorphismTheme.text.medium,
 									lineHeight: 1.7,
 									letterSpacing: '0.01em',
 								}}>
@@ -156,22 +158,22 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 								{data.aiData?.confidence && (
 									<div className='mt-3 flex items-center gap-2'>
 										<div className='flex-1 h-1 rounded-full overflow-hidden'
-											style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}>
+											style={{ backgroundColor: GlassmorphismTheme.indicators.progress.background }}>
 											<div 
 												className='h-full rounded-full transition-all duration-500'
 												style={{
 													width: `${data.aiData.confidence * 100}%`,
 													backgroundColor: data.aiData.confidence > 0.8 
-														? 'rgba(52, 211, 153, 0.5)'
+														? GlassmorphismTheme.indicators.status.complete
 														: data.aiData.confidence > 0.5
-														? 'rgba(251, 191, 36, 0.5)'
-														: 'rgba(239, 68, 68, 0.5)'
+														? GlassmorphismTheme.indicators.status.pending
+														: GlassmorphismTheme.indicators.status.error
 												}}
 											/>
 										</div>
 										<span style={{
 											fontSize: '11px',
-											color: 'rgba(255, 255, 255, 0.38)',
+											color: GlassmorphismTheme.text.disabled,
 										}}>
 											{Math.round(data.aiData.confidence * 100)}% confidence
 										</span>
@@ -184,7 +186,7 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 								<div className='mt-2 text-right'>
 									<span style={{
 										fontSize: '11px',
-										color: 'rgba(255, 255, 255, 0.38)',
+										color: GlassmorphismTheme.text.disabled,
 										fontStyle: 'italic',
 									}}>
 										Source: {data.aiData.source}
