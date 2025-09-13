@@ -9,8 +9,10 @@ import { memo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Button } from '../ui/button';
 import { BaseNodeWrapper } from './base-node-wrapper';
+import { GlassmorphismTheme } from './themes/glassmorphism-theme';
+import { type TypedNodeProps } from './core/types';
 
-type ResourceNodeProps = NodeProps<Node<NodeData>>;
+type ResourceNodeProps = TypedNodeProps<'resourceNode'>;
 
 const ResourceNodeComponent = (props: ResourceNodeProps) => {
 	const { id, data } = props;
@@ -49,8 +51,8 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 				{showThumbnail && imageUrl && (
 					<div className='relative w-full aspect-video rounded-md overflow-hidden'
 						style={{ 
-							backgroundColor: '#121212', // Base elevation for loading state
-							border: '1px solid rgba(255, 255, 255, 0.06)'
+							backgroundColor: GlassmorphismTheme.elevation[0],
+							border: `1px solid ${GlassmorphismTheme.borders.default}`
 						}}>
 						
 						{/* Loading skeleton */}
@@ -97,7 +99,7 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 										style={{ color: 'rgba(255, 255, 255, 0.2)' }} />
 									<span style={{ 
 										fontSize: '12px',
-										color: 'rgba(255, 255, 255, 0.38)'
+										color: GlassmorphismTheme.text.disabled
 									}}>
 										Preview unavailable
 									</span>
@@ -113,7 +115,7 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 						<h3 style={{
 							fontSize: '16px',
 							fontWeight: 500,
-							color: 'rgba(255, 255, 255, 0.87)',
+							color: GlassmorphismTheme.text.high,
 							lineHeight: 1.4,
 							marginBottom: '4px',
 							wordBreak: 'break-word',
@@ -150,7 +152,7 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 								className='p-2 rounded-md transition-all duration-200 hover:scale-110'
 								style={{
 									backgroundColor: 'transparent',
-									border: '1px solid rgba(255, 255, 255, 0.06)',
+									border: `1px solid ${GlassmorphismTheme.borders.default}`,
 								}}
 								onMouseEnter={(e) => {
 									e.currentTarget.style.backgroundColor = 'rgba(147, 197, 253, 0.1)';
@@ -158,7 +160,7 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 								}}
 								onMouseLeave={(e) => {
 									e.currentTarget.style.backgroundColor = 'transparent';
-									e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)';
+									e.currentTarget.style.borderColor = GlassmorphismTheme.borders.default;
 								}}
 							>
 								<ExternalLink className='w-4 h-4' 
@@ -172,7 +174,7 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 				{data.content && data.content !== title && (
 					<p style={{
 						fontSize: '14px',
-						color: 'rgba(255, 255, 255, 0.60)',
+						color: GlassmorphismTheme.text.medium,
 						lineHeight: 1.6,
 						letterSpacing: '0.01em',
 					}}>
@@ -200,9 +202,9 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 								<div className='relative flex justify-center'>
 									<span className='px-3 py-1 rounded-full text-xs font-medium'
 										style={{
-											backgroundColor: '#1E1E1E',
-											border: '1px solid rgba(52, 211, 153, 0.2)',
-											color: 'rgba(52, 211, 153, 0.87)',
+											backgroundColor: GlassmorphismTheme.elevation[1],
+											border: `1px solid ${GlassmorphismTheme.indicators.status.complete}`,
+											color: GlassmorphismTheme.indicators.status.complete,
 											letterSpacing: '0.05em',
 											textTransform: 'uppercase',
 										}}>
@@ -215,11 +217,11 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 							<div className='p-3 rounded-md'
 								style={{
 									backgroundColor: 'rgba(52, 211, 153, 0.05)',
-									border: '1px solid rgba(52, 211, 153, 0.1)',
+									border: `1px solid ${GlassmorphismTheme.indicators.status.complete}`,
 								}}>
 								<p style={{
 									fontSize: '13px',
-									color: 'rgba(255, 255, 255, 0.60)',
+									color: GlassmorphismTheme.text.medium,
 									lineHeight: 1.7,
 									letterSpacing: '0.01em',
 									margin: 0,
@@ -236,11 +238,11 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 					<div className='mt-2 p-2 rounded'
 						style={{
 							backgroundColor: 'rgba(255, 255, 255, 0.02)',
-							border: '1px solid rgba(255, 255, 255, 0.06)',
+							border: `1px solid ${GlassmorphismTheme.borders.default}`,
 						}}>
 						<code style={{
 							fontSize: '11px',
-							color: 'rgba(255, 255, 255, 0.38)',
+							color: GlassmorphismTheme.text.disabled,
 							wordBreak: 'break-all',
 							fontFamily: 'var(--font-geist-mono)',
 						}}>
