@@ -7,6 +7,7 @@ import { FileText } from 'lucide-react';
 import { memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { BaseNodeWrapper } from './base-node-wrapper';
+import { GlassmorphismTheme } from './themes/glassmorphism-theme';
 
 const MarkdownWrapperComponent = ({ content }: { content: string }) => {
 	// Custom markdown components following Material Design dark theme principles
@@ -18,8 +19,8 @@ const MarkdownWrapperComponent = ({ content }: { content: string }) => {
 					<h1 className='mb-3 pb-2' style={{
 						fontSize: '20px',
 						fontWeight: 500,
-						color: 'rgba(255, 255, 255, 0.87)', // High emphasis
-						borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+						color: GlassmorphismTheme.text.high, // High emphasis
+						borderBottom: `1px solid ${GlassmorphismTheme.borders.default}`,
 						lineHeight: 1.3,
 					}}>
 						{children}
@@ -29,7 +30,7 @@ const MarkdownWrapperComponent = ({ content }: { content: string }) => {
 					<h2 className='mb-2 mt-3' style={{
 						fontSize: '18px',
 						fontWeight: 500,
-						color: 'rgba(255, 255, 255, 0.87)',
+						color: GlassmorphismTheme.text.high,
 						lineHeight: 1.4,
 					}}>
 						{children}
@@ -39,7 +40,7 @@ const MarkdownWrapperComponent = ({ content }: { content: string }) => {
 					<h3 className='mb-2 mt-2' style={{
 						fontSize: '16px',
 						fontWeight: 500,
-						color: 'rgba(255, 255, 255, 0.60)', // Medium emphasis
+						color: GlassmorphismTheme.text.medium, // Medium emphasis
 						lineHeight: 1.5,
 					}}>
 						{children}
@@ -48,7 +49,7 @@ const MarkdownWrapperComponent = ({ content }: { content: string }) => {
 				// Paragraphs with proper line height for readability
 				p: ({children}) => (
 					<p className='mb-3' style={{
-						color: 'rgba(255, 255, 255, 0.60)',
+						color: GlassmorphismTheme.text.medium,
 						fontSize: '14px',
 						lineHeight: 1.7,
 						letterSpacing: '0.01em',
@@ -64,7 +65,7 @@ const MarkdownWrapperComponent = ({ content }: { content: string }) => {
 				),
 				li: ({children}) => (
 					<li className='flex items-start gap-2' style={{
-						color: 'rgba(255, 255, 255, 0.60)',
+						color: GlassmorphismTheme.text.medium,
 						fontSize: '14px',
 						lineHeight: 1.6,
 					}}>
@@ -104,8 +105,8 @@ const MarkdownWrapperComponent = ({ content }: { content: string }) => {
 				// Code blocks with proper elevation
 				pre: ({children}) => (
 					<pre className='p-3 rounded-md mb-3 overflow-x-auto' style={{
-						backgroundColor: '#121212', // Base elevation
-						border: '1px solid rgba(255, 255, 255, 0.06)',
+						backgroundColor: GlassmorphismTheme.elevation[0], // Base elevation
+						border: `1px solid ${GlassmorphismTheme.borders.default}`,
 					}}>
 						{children}
 					</pre>
@@ -128,7 +129,7 @@ const MarkdownWrapperComponent = ({ content }: { content: string }) => {
 				blockquote: ({children}) => (
 					<blockquote className='pl-4 py-2 my-3 italic' style={{
 						borderLeft: '3px solid rgba(96, 165, 250, 0.3)',
-						color: 'rgba(255, 255, 255, 0.38)',
+						color: GlassmorphismTheme.text.disabled,
 						backgroundColor: 'rgba(96, 165, 250, 0.05)',
 					}}>
 						{children}
@@ -139,7 +140,7 @@ const MarkdownWrapperComponent = ({ content }: { content: string }) => {
 					<hr className='my-4' style={{
 						border: 'none',
 						height: '1px',
-						background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1) 20%, rgba(255, 255, 255, 0.1) 80%, transparent)',
+						background: `linear-gradient(90deg, transparent, ${GlassmorphismTheme.borders.hover} 20%, ${GlassmorphismTheme.borders.hover} 80%, transparent)`,
 					}} />
 				),
 				// Tables with proper dark theme styling
@@ -155,8 +156,8 @@ const MarkdownWrapperComponent = ({ content }: { content: string }) => {
 				),
 				th: ({children}) => (
 					<th className='text-left p-2' style={{
-						borderBottom: '2px solid rgba(255, 255, 255, 0.1)',
-						color: 'rgba(255, 255, 255, 0.87)',
+						borderBottom: `2px solid ${GlassmorphismTheme.borders.hover}`,
+						color: GlassmorphismTheme.text.high,
 						fontWeight: 500,
 					}}>
 						{children}
@@ -164,8 +165,8 @@ const MarkdownWrapperComponent = ({ content }: { content: string }) => {
 				),
 				td: ({children}) => (
 					<td className='p-2' style={{
-						borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
-						color: 'rgba(255, 255, 255, 0.60)',
+						borderBottom: `1px solid ${GlassmorphismTheme.borders.default}`,
+						color: GlassmorphismTheme.text.medium,
 					}}>
 						{children}
 					</td>
@@ -173,7 +174,7 @@ const MarkdownWrapperComponent = ({ content }: { content: string }) => {
 				// Strong emphasis
 				strong: ({children}) => (
 					<strong style={{
-						color: 'rgba(255, 255, 255, 0.87)',
+						color: GlassmorphismTheme.text.high,
 						fontWeight: 600,
 					}}>
 						{children}
@@ -182,7 +183,7 @@ const MarkdownWrapperComponent = ({ content }: { content: string }) => {
 				// Emphasis
 				em: ({children}) => (
 					<em style={{
-						color: 'rgba(255, 255, 255, 0.60)',
+						color: GlassmorphismTheme.text.medium,
 						fontStyle: 'italic',
 					}}>
 						{children}
@@ -217,7 +218,7 @@ const DefaultNodeComponent = (props: NodeProps<Node<NodeData>>) => {
 			) : (
 				<div className='text-center py-4'>
 					<span style={{ 
-						color: 'rgba(255, 255, 255, 0.38)', 
+						color: GlassmorphismTheme.text.disabled, 
 						fontSize: '14px',
 						fontStyle: 'italic'
 					}}>
