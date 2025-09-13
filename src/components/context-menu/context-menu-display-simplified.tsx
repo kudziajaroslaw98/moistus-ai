@@ -236,26 +236,25 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
 				{popoverOpen.contextMenu && (
 					<motion.div
 						ref={refs.setFloating}
-						style={floatingStyles}
-						{...getFloatingProps()}
+						style={{
+							...floatingStyles, // Spread Floating UI styles first
+							zIndex: 9999, // Add our z-index fix
+							backgroundColor: GlassmorphismTheme.elevation[24], // Context menu elevation
+							border: `1px solid ${GlassmorphismTheme.borders.default}`,
+							backdropFilter: 'blur(8px)',
+						}}
 						variants={menuVariants}
 						initial='hidden'
 						animate='visible'
 						exit='exit'
 						className='ring-opacity-5 flex min-w-[250px] flex-col gap-1 rounded-sm shadow-lg ring-1 ring-black focus:outline-none px-2 py-2'
-						style={{
-							backgroundColor: GlassmorphismTheme.elevation[24], // Context menu elevation
-							border: `1px solid ${GlassmorphismTheme.borders.default}`,
-							backdropFilter: 'blur(8px)',
-							zIndex: 9999, // Ensure context menu appears above everything
-							position: 'relative',
-						}}
 						role='menu'
 						aria-label='Context menu'
 						aria-orientation='vertical'
 						aria-activedescendant={
 							activeIndex !== null ? `menu-item-${activeIndex}` : undefined
 						}
+						{...getFloatingProps()}
 					>
 						<ContextMenuRenderer
 							sections={menuConfig}
