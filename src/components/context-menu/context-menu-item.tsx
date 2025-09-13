@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import React from 'react';
 import { Button } from '../ui/button';
+import { GlassmorphismTheme } from '../nodes/themes/glassmorphism-theme';
 
 interface ContextMenuItemProps {
 	icon: React.ReactNode;
@@ -32,10 +33,15 @@ export const ContextMenuItem = React.forwardRef<
 		},
 		ref
 	) => {
-		const variantClasses = {
-			default: '',
-			destructive: 'text-red-400 hover:text-red-300',
-			primary: 'text-blue-400 hover:text-blue-300',
+		const getVariantStyles = (variant: string) => {
+			switch (variant) {
+				case 'destructive':
+					return { color: 'rgba(239, 68, 68, 0.87)' }; // Red
+				case 'primary':
+					return { color: 'rgba(96, 165, 250, 0.87)' }; // Blue
+				default:
+					return { color: GlassmorphismTheme.text.high };
+			}
 		};
 
 		return (
@@ -43,7 +49,6 @@ export const ContextMenuItem = React.forwardRef<
 				ref={ref}
 				className={cn(
 					'h-8 w-full justify-start gap-2 p-2 text-sm',
-					variantClasses[variant],
 					className
 				)}
 				variant='ghost'
@@ -52,6 +57,7 @@ export const ContextMenuItem = React.forwardRef<
 				role='menuitem'
 				aria-disabled={disabled || loading}
 				aria-describedby={shortcut ? `${label}-shortcut` : undefined}
+				style={getVariantStyles(variant)}
 			>
 				{loading ? (
 					<Loader2 className='h-4 w-4 animate-spin' />
@@ -64,7 +70,8 @@ export const ContextMenuItem = React.forwardRef<
 				{shortcut && (
 					<span
 						id={`${label}-shortcut`}
-						className='ml-auto text-xs text-zinc-500'
+						className='ml-auto text-xs'
+						style={{ color: GlassmorphismTheme.text.disabled }}
 					>
 						{shortcut}
 					</span>

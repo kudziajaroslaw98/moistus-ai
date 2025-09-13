@@ -16,6 +16,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { ContextMenuRenderer } from './context-menu-renderer';
 import { useContextMenuConfig } from './use-context-menu-config';
+import { GlassmorphismTheme } from '../nodes/themes/glassmorphism-theme';
 
 interface ContextMenuDisplayProps {
 	aiActions: {
@@ -241,7 +242,14 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
 						initial='hidden'
 						animate='visible'
 						exit='exit'
-						className='ring-opacity-5 z-[1000] flex min-w-[250px] flex-col gap-1 rounded-sm border border-zinc-800 bg-zinc-950 px-2 py-2 shadow-lg ring-1 ring-black focus:outline-none'
+						className='ring-opacity-5 flex min-w-[250px] flex-col gap-1 rounded-sm shadow-lg ring-1 ring-black focus:outline-none px-2 py-2'
+						style={{
+							backgroundColor: GlassmorphismTheme.elevation[24], // Context menu elevation
+							border: `1px solid ${GlassmorphismTheme.borders.default}`,
+							backdropFilter: 'blur(8px)',
+							zIndex: 9999, // Ensure context menu appears above everything
+							position: 'relative',
+						}}
 						role='menu'
 						aria-label='Context menu'
 						aria-orientation='vertical'
