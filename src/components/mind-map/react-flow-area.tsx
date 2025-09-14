@@ -61,11 +61,11 @@ import FloatingConnectionLine from '../edges/floating-connection-line';
 import { SuggestedMergeEdge } from '../edges/suggested-merge-edge';
 import ReferenceNode from '../nodes/reference-node';
 import TaskNode from '../nodes/task-node';
+import { GlassmorphismTheme } from '../nodes/themes/glassmorphism-theme';
 import { RealtimeAvatarStack } from '../realtime/realtime-avatar-stack';
 import { RealtimeCursors } from '../realtime/realtime-cursor';
 import { Toolbar } from '../toolbar';
 import { Button } from '../ui/button';
-import { GlassmorphismTheme } from '../nodes/themes/glassmorphism-theme';
 
 export function ReactFlowArea() {
 	// const {
@@ -430,18 +430,18 @@ export function ReactFlowArea() {
 			onNodeDragStart={handleNodeDragStart}
 			onNodeDragStop={handleNodeDragStop}
 		>
-			<Background 
-				color='rgba(255, 255, 255, 0.06)' 
-				gap={16} 
-				variant={BackgroundVariant.Dots} 
+			<Background
+				color='rgba(255, 255, 255, 0.06)'
+				gap={16}
+				variant={BackgroundVariant.Dots}
 			/>
 
 			<Panel
 				position='top-left'
-				className='!m-0 p-4 right-0 flex justify-between'
+				className='!m-0 p-2 px-8 right-0 flex justify-between'
 				style={{
-					background: `linear-gradient(180deg, ${GlassmorphismTheme.elevation[8]} 0%, ${GlassmorphismTheme.elevation[8]}80 80%, transparent 100%)`,
-					backdropFilter: 'blur(8px)',
+					background: `rgba(39, 39, 39, 0.3)`, // Subtle glassmorphism for floating app bar
+					backdropFilter: 'blur(4px)', // Reduced blur for subtlety
 				}}
 			>
 				<div className='flex items-center gap-8'>

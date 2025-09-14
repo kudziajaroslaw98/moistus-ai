@@ -1,6 +1,6 @@
 /**
  * Comprehensive TypeScript Types for Node Components
- * 
+ *
  * This file provides strict typing for all node types and their metadata,
  * improving type safety and developer experience throughout the application.
  */
@@ -15,20 +15,20 @@ export interface BaseNodeMetadata {
 	tags?: string[];
 	priority?: 'low' | 'medium' | 'high' | 'critical';
 	status?: 'pending' | 'in-progress' | 'completed' | 'blocked';
-	assignee?: string | string[];
+	assignee?: string[];
 	dueDate?: string;
-	
+
 	// Visual customization
 	accentColor?: string;
 	backgroundColor?: string;
 	borderColor?: string;
-	
+
 	// Grouping
 	groupId?: string;
 	isGroup?: boolean;
 	groupChildren?: string[];
 	groupPadding?: number;
-	
+
 	// Layout & display
 	isCollapsed?: boolean;
 	showBackground?: boolean;
@@ -166,10 +166,13 @@ export interface NodeMetadataMap {
 }
 
 // Discriminated union for type-safe metadata access
-export type TypedNodeMetadata<T extends AvailableNodeTypes> = NodeMetadataMap[T];
+export type TypedNodeMetadata<T extends AvailableNodeTypes> =
+	NodeMetadataMap[T];
 
 // Enhanced NodeData with strict typing
-export interface TypedNodeData<T extends AvailableNodeTypes = AvailableNodeTypes> {
+export interface TypedNodeData<
+	T extends AvailableNodeTypes = AvailableNodeTypes,
+> {
 	id: string;
 	map_id: string;
 	parent_id: string | null;
@@ -188,11 +191,14 @@ export interface TypedNodeData<T extends AvailableNodeTypes = AvailableNodeTypes
 export type TypedNode<T extends AvailableNodeTypes> = Node<TypedNodeData<T>>;
 
 // Type-safe NodeProps
-export type TypedNodeProps<T extends AvailableNodeTypes> = NodeProps<TypedNode<T>>;
+export type TypedNodeProps<T extends AvailableNodeTypes> = NodeProps<
+	TypedNode<T>
+>;
 
 // Enhanced BaseNodeWrapper props with better typing
-export interface BaseNodeWrapperProps<T extends AvailableNodeTypes = AvailableNodeTypes> 
-	extends NodeProps<TypedNode<T>> {
+export interface BaseNodeWrapperProps<
+	T extends AvailableNodeTypes = AvailableNodeTypes,
+> extends NodeProps<TypedNode<T>> {
 	children: ReactNode;
 	nodeClassName?: string;
 	nodeIcon?: ReactNode;
@@ -204,76 +210,120 @@ export interface BaseNodeWrapperProps<T extends AvailableNodeTypes = AvailableNo
 }
 
 // Type guards for runtime type checking
-export function isTaskNode(node: TypedNode<any>): node is TypedNode<'taskNode'> {
+export function isTaskNode(
+	node: TypedNode<any>
+): node is TypedNode<'taskNode'> {
 	return node.data.node_type === 'taskNode';
 }
 
-export function isImageNode(node: TypedNode<any>): node is TypedNode<'imageNode'> {
+export function isImageNode(
+	node: TypedNode<any>
+): node is TypedNode<'imageNode'> {
 	return node.data.node_type === 'imageNode';
 }
 
-export function isResourceNode(node: TypedNode<any>): node is TypedNode<'resourceNode'> {
+export function isResourceNode(
+	node: TypedNode<any>
+): node is TypedNode<'resourceNode'> {
 	return node.data.node_type === 'resourceNode';
 }
 
-export function isQuestionNode(node: TypedNode<any>): node is TypedNode<'questionNode'> {
+export function isQuestionNode(
+	node: TypedNode<any>
+): node is TypedNode<'questionNode'> {
 	return node.data.node_type === 'questionNode';
 }
 
-export function isCodeNode(node: TypedNode<any>): node is TypedNode<'codeNode'> {
+export function isCodeNode(
+	node: TypedNode<any>
+): node is TypedNode<'codeNode'> {
 	return node.data.node_type === 'codeNode';
 }
 
-export function isAnnotationNode(node: TypedNode<any>): node is TypedNode<'annotationNode'> {
+export function isAnnotationNode(
+	node: TypedNode<any>
+): node is TypedNode<'annotationNode'> {
 	return node.data.node_type === 'annotationNode';
 }
 
-export function isTextNode(node: TypedNode<any>): node is TypedNode<'textNode'> {
+export function isTextNode(
+	node: TypedNode<any>
+): node is TypedNode<'textNode'> {
 	return node.data.node_type === 'textNode';
 }
 
-export function isGroupNode(node: TypedNode<any>): node is TypedNode<'groupNode'> {
+export function isGroupNode(
+	node: TypedNode<any>
+): node is TypedNode<'groupNode'> {
 	return node.data.node_type === 'groupNode';
 }
 
-export function isReferenceNode(node: TypedNode<any>): node is TypedNode<'referenceNode'> {
+export function isReferenceNode(
+	node: TypedNode<any>
+): node is TypedNode<'referenceNode'> {
 	return node.data.node_type === 'referenceNode';
 }
 
-export function isGhostNode(node: TypedNode<any>): node is TypedNode<'ghostNode'> {
+export function isGhostNode(
+	node: TypedNode<any>
+): node is TypedNode<'ghostNode'> {
 	return node.data.node_type === 'ghostNode';
 }
 
 // Metadata validation helpers
-export function validateTaskMetadata(metadata: any): metadata is TaskNodeMetadata {
+export function validateTaskMetadata(
+	metadata: any
+): metadata is TaskNodeMetadata {
 	return metadata && Array.isArray(metadata.tasks);
 }
 
-export function validateImageMetadata(metadata: any): metadata is ImageNodeMetadata {
-	return metadata && (typeof metadata.imageUrl === 'string' || typeof metadata.image_url === 'string');
+export function validateImageMetadata(
+	metadata: any
+): metadata is ImageNodeMetadata {
+	return (
+		metadata &&
+		(typeof metadata.imageUrl === 'string' ||
+			typeof metadata.image_url === 'string')
+	);
 }
 
-export function validateResourceMetadata(metadata: any): metadata is ResourceNodeMetadata {
+export function validateResourceMetadata(
+	metadata: any
+): metadata is ResourceNodeMetadata {
 	return metadata && typeof metadata.url === 'string';
 }
 
-export function validateQuestionMetadata(metadata: any): metadata is QuestionNodeMetadata {
+export function validateQuestionMetadata(
+	metadata: any
+): metadata is QuestionNodeMetadata {
 	return metadata !== null && typeof metadata === 'object';
 }
 
-export function validateCodeMetadata(metadata: any): metadata is CodeNodeMetadata {
+export function validateCodeMetadata(
+	metadata: any
+): metadata is CodeNodeMetadata {
 	return metadata && typeof metadata.language === 'string';
 }
 
-export function validateAnnotationMetadata(metadata: any): metadata is AnnotationNodeMetadata {
+export function validateAnnotationMetadata(
+	metadata: any
+): metadata is AnnotationNodeMetadata {
 	return metadata && typeof metadata.annotationType === 'string';
 }
 
-export function validateGroupMetadata(metadata: any): metadata is GroupNodeMetadata {
-	return metadata && metadata.isGroup === true && Array.isArray(metadata.groupChildren);
+export function validateGroupMetadata(
+	metadata: any
+): metadata is GroupNodeMetadata {
+	return (
+		metadata &&
+		metadata.isGroup === true &&
+		Array.isArray(metadata.groupChildren)
+	);
 }
 
-export function validateGhostMetadata(metadata: any): metadata is GhostNodeMetadata {
+export function validateGhostMetadata(
+	metadata: any
+): metadata is GhostNodeMetadata {
 	return (
 		metadata &&
 		typeof metadata.suggestedContent === 'string' &&
@@ -290,6 +340,7 @@ export function getTypedMetadata<T extends AvailableNodeTypes>(
 	if (node.data.node_type !== nodeType) {
 		return null;
 	}
+
 	return (node.data.metadata as TypedNodeMetadata<T>) || null;
 }
 
@@ -299,9 +350,10 @@ export function hasRequiredMetadata<T extends AvailableNodeTypes>(
 	requiredProps: Array<keyof TypedNodeMetadata<T>>
 ): boolean {
 	if (!node.data.metadata) return false;
-	
-	return requiredProps.every(prop => 
-		prop in node.data.metadata! && node.data.metadata![prop] !== undefined
+
+	return requiredProps.every(
+		(prop) =>
+			prop in node.data.metadata! && node.data.metadata![prop] !== undefined
 	);
 }
 

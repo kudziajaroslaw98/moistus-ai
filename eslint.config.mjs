@@ -35,6 +35,11 @@ const eslintConfig = [
 		rules: {
 			...reactPlugin.configs.flat.recommended.rules,
 			'react-hooks/exhaustive-deps': 'off',
+			'react/react-in-jsx-scope': 'off',
+			'react/jsx-filename-extension': [
+				1,
+				{ extensions: ['.js', '.jsx', '.tsx', '.ts'] },
+			],
 			'react/jsx-newline': 'warn',
 			'react/hook-use-state': 'warn',
 			'no-unused-vars': ['warn', { args: 'none' }],

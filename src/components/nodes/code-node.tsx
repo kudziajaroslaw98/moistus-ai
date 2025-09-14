@@ -2,14 +2,7 @@
 
 import { NodeData } from '@/types/node-data';
 import { Node, NodeProps } from '@xyflow/react';
-import {
-	Check,
-	Code,
-	Copy,
-	Maximize2,
-	Minimize2,
-	Terminal,
-} from 'lucide-react';
+import { Check, Code, Copy, Maximize2, Minimize2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { memo, useCallback, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -93,7 +86,6 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 	const language = (data.metadata?.language as string) || 'javascript';
 	const showLineNumbers = Boolean(data.metadata?.showLineNumbers ?? true);
 	const fileName = data.metadata?.fileName as string | undefined;
-	const isExecutable = Boolean(data.metadata?.isExecutable);
 
 	// Get language icon based on language
 	const getLanguageIcon = (lang: string) => {
@@ -200,32 +192,6 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 								)}
 							</div>
 						</div>
-
-						{/* Executable indicator */}
-						{isExecutable && (
-							<div
-								className='flex items-center gap-1 px-2 py-0.5 rounded'
-								style={{
-									backgroundColor: `rgba(52, 211, 153, 0.1)`,
-									border: `1px solid rgba(52, 211, 153, 0.2)`,
-								}}
-							>
-								<Terminal
-									className='w-3 h-3'
-									style={{ color: 'rgba(52, 211, 153, 0.87)' }}
-								/>
-
-								<span
-									style={{
-										fontSize: '11px',
-										color: 'rgba(52, 211, 153, 0.87)',
-										fontWeight: 500,
-									}}
-								>
-									Executable
-								</span>
-							</div>
-						)}
 					</div>
 
 					{/* Action buttons */}
@@ -355,40 +321,6 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 						/>
 					)}
 				</div>
-
-				{/* Footer with execution status or metadata */}
-				{data.metadata?.lastExecuted && (
-					<div
-						className='px-4 py-2'
-						style={{
-							backgroundColor: GlassmorphismTheme.elevation[1],
-							borderTop: `1px solid ${GlassmorphismTheme.borders.default}`,
-						}}
-					>
-						<div className='flex items-center justify-between'>
-							<span
-								style={{
-									fontSize: '11px',
-									color: GlassmorphismTheme.text.disabled,
-								}}
-							>
-								Last executed:{' '}
-								{new Date(data.metadata.lastExecuted).toLocaleString()}
-							</span>
-
-							{data.metadata?.executionTime && (
-								<span
-									style={{
-										fontSize: '11px',
-										color: 'rgba(52, 211, 153, 0.6)',
-									}}
-								>
-									{data.metadata.executionTime}ms
-								</span>
-							)}
-						</div>
-					</div>
-				)}
 			</div>
 		</BaseNodeWrapper>
 	);
