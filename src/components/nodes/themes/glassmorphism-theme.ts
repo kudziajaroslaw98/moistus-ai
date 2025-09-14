@@ -9,8 +9,9 @@
 export const GlassmorphismTheme = {
 	// Material Design elevation system for dark themes
 	// Base: #121212, then progressively lighter based on elevation
+	// Added sunken effect for code blocks and input fields
 	elevation: {
-		0: '#121212', // Base background
+		0: '#121212', // Base canvas background
 		1: '#1E1E1E', // Cards, default nodes
 		2: '#222222', // Raised cards
 		4: '#272727', // App bars
@@ -19,6 +20,8 @@ export const GlassmorphismTheme = {
 		12: '#333333', // Modals
 		16: '#353535', // Sheets
 		24: '#383838', // Dialogs
+		// Sunken effects (darker than base for inset appearance)
+		sunken: '#0D0D0D', // Code blocks, text inputs
 	},
 
 	// Border system - subtle and sophisticated
@@ -38,14 +41,18 @@ export const GlassmorphismTheme = {
 
 	// Shadow and selection effects
 	effects: {
-		// Selection glow
-		selectedShadow: '0 0 0 1px rgba(96, 165, 250, 0.5), inset 0 0 0 1px rgba(96, 165, 250, 0.2)',
+		// Selection glow - double border technique for proper focus states
+		selectedShadow: '0 0 0 1px rgba(96, 165, 250, 0.3), 0 0 0 2px rgba(96, 165, 250, 0.15)',
+		
+		// Focus state - double border for accessibility
+		focusShadow: '0 0 0 1px rgba(96, 165, 250, 0.4), 0 0 0 2px rgba(96, 165, 250, 0.2)',
 		
 		// Ambient glow for selected state
 		ambientGlow: 'radial-gradient(circle at center, rgba(96, 165, 250, 0.03) 0%, transparent 70%)',
 		
-		// Glassmorphism backdrop
-		glassmorphism: 'blur(12px)',
+		// Glassmorphism backdrop for special elements
+		glassmorphism: 'blur(8px)',
+		specialCardBackdrop: 'rgba(20, 20, 30, 0.7)',
 		
 		// Smooth transitions
 		transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -122,8 +129,20 @@ export const GlassmorphismTheme = {
 		},
 	},
 
-	// Button and interaction styling
+	// Button and interaction styling - standardized Material Design controls
 	buttons: {
+		// Standard control button specifications
+		standard: {
+			height: '24px', // Consistent height for all control buttons
+			padding: '0 6px', // Consistent padding
+			background: 'rgba(255, 255, 255, 0.05)', // Subtle background
+			border: '1px solid rgba(255, 255, 255, 0.1)', // Definition border
+			borderRadius: '4px', // Subtle rounding
+			color: 'rgba(255, 255, 255, 0.87)', // High emphasis text
+			fontSize: '12px',
+			minGap: '4px', // 4px minimum between interactive elements
+		},
+		
 		// Add new node button (FAB style)
 		fab: {
 			size: '2.5rem', // w-10 h-10
@@ -180,28 +199,29 @@ export const GlassmorphismTheme = {
 		},
 	},
 
-	// Progress and status indicators
+	// Progress and status indicators - updated with desaturated colors
 	indicators: {
-		// Progress bars
+		// Progress bars with 25-30% desaturated colors
 		progress: {
-			background: 'rgba(255, 255, 255, 0.06)',
-			fill: 'linear-gradient(90deg, rgba(96, 165, 250, 0.5) 0%, rgba(96, 165, 250, 0.7) 100%)',
-			completeFill: 'linear-gradient(90deg, rgba(52, 211, 153, 0.6) 0%, rgba(52, 211, 153, 0.8) 100%)',
+			background: 'rgba(255, 255, 255, 0.06)', // Semantic track color
+			fill: 'linear-gradient(90deg, rgba(96, 165, 250, 0.6) 0%, rgba(96, 165, 250, 0.8) 100%)', // Desaturated blue #60A5FA
+			completeFill: 'linear-gradient(90deg, rgba(52, 211, 153, 0.7) 0%, rgba(52, 211, 153, 0.9) 100%)', // Desaturated green #34D399
 			height: '0.25rem', // h-1
 		},
 		
-		// Status dots
+		// Status dots with desaturated semantic colors
 		status: {
-			pending: 'rgba(251, 191, 36, 0.8)', // Amber
-			complete: 'rgba(52, 211, 153, 0.87)', // Emerald
-			error: 'rgba(239, 68, 68, 0.87)', // Red
+			pending: 'rgba(251, 191, 36, 0.87)', // Desaturated amber #FBBF24
+			complete: 'rgba(52, 211, 153, 0.87)', // Desaturated emerald #34D399
+			error: 'rgba(239, 68, 68, 0.87)', // Desaturated red (kept same for accessibility)
 		},
 	},
 };
 
 // Helper function to get elevation color
-export const getElevationColor = (level: number): string => {
+export const getElevationColor = (level: number | 'sunken'): string => {
 	const elevationMap = GlassmorphismTheme.elevation;
+	if (level === 'sunken') return elevationMap.sunken;
 	return elevationMap[level as keyof typeof elevationMap] || elevationMap[1];
 };
 
@@ -239,7 +259,7 @@ export const createNodeStyles = (
 };
 
 // Type definitions for theme usage
-export type ElevationLevel = keyof typeof GlassmorphismTheme.elevation;
+export type ElevationLevel = keyof typeof GlassmorphismTheme.elevation | 'sunken';
 export type BorderType = keyof typeof GlassmorphismTheme.borders;
 export type TextEmphasis = keyof typeof GlassmorphismTheme.text;
 export type AnimationDuration = keyof typeof GlassmorphismTheme.animations.duration;

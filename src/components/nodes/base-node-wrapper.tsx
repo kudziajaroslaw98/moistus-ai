@@ -110,13 +110,15 @@ const BaseNodeWrapperComponent = ({
 	// Dynamic styles using centralized theme system
 	const nodeStyles: React.CSSProperties = {
 		backgroundColor: getElevationColor(elevation),
-		// No traditional shadows - elevation through color
+		// Proper focus states with double border technique for accessibility
 		boxShadow: selected ? theme.effects.selectedShadow : 'none',
-		// Subtle border for definition
+		// Subtle border with proper hover states
 		border: `1px solid ${selected ? theme.borders.selected : theme.borders.default}`,
 		// Micro-animation for depth perception
 		transform: selected ? theme.effects.selectedTransform : theme.effects.defaultTransform,
 		transition: theme.effects.transition,
+		// Ensure proper focus handling
+		outline: 'none',
 	};
 
 	// Accent color system - subtle and sophisticated

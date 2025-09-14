@@ -2,18 +2,17 @@
 
 import { NodeData } from '@/types/node-data';
 import { Node, NodeProps } from '@xyflow/react';
-import { 
-	Code, 
-	Copy, 
-	Check, 
-	Terminal, 
-	FileCode,
+import {
+	Check,
+	Code,
+	Copy,
 	Maximize2,
-	Minimize2 
+	Minimize2,
+	Terminal,
 } from 'lucide-react';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { AnimatePresence, motion } from 'motion/react';
 import { memo, useCallback, useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { BaseNodeWrapper } from './base-node-wrapper';
@@ -23,11 +22,14 @@ import { GlassmorphismTheme } from './themes/glassmorphism-theme';
 const customDarkTheme = {
 	'pre[class*="language-"]': {
 		color: GlassmorphismTheme.text.high,
-		background: GlassmorphismTheme.elevation[0], // Darker than node background for contrast
+		background: GlassmorphismTheme.elevation.sunken, // Sunken effect - darker than node background
 		fontFamily: 'var(--font-geist-mono), monospace',
 		fontSize: '13px',
 		lineHeight: '1.6',
 		letterSpacing: '0.02em',
+		border: `1px solid ${GlassmorphismTheme.borders.default}`,
+		borderRadius: '6px',
+		padding: '1rem',
 	},
 	'code[class*="language-"]': {
 		color: GlassmorphismTheme.text.high,
@@ -38,7 +40,7 @@ const customDarkTheme = {
 	prolog: { color: GlassmorphismTheme.text.disabled },
 	doctype: { color: GlassmorphismTheme.text.disabled },
 	cdata: { color: GlassmorphismTheme.text.disabled },
-	
+
 	punctuation: { color: GlassmorphismTheme.text.medium },
 	property: { color: 'rgba(147, 197, 253, 0.87)' }, // Desaturated blue
 	tag: { color: 'rgba(239, 68, 68, 0.87)' }, // Desaturated red
@@ -47,30 +49,30 @@ const customDarkTheme = {
 	constant: { color: 'rgba(251, 191, 36, 0.87)' },
 	symbol: { color: 'rgba(251, 191, 36, 0.87)' },
 	deleted: { color: 'rgba(239, 68, 68, 0.87)' },
-	
+
 	selector: { color: 'rgba(52, 211, 153, 0.87)' }, // Desaturated emerald
 	'attr-name': { color: 'rgba(52, 211, 153, 0.87)' },
 	string: { color: 'rgba(52, 211, 153, 0.87)' },
 	char: { color: 'rgba(52, 211, 153, 0.87)' },
 	builtin: { color: 'rgba(52, 211, 153, 0.87)' },
 	inserted: { color: 'rgba(52, 211, 153, 0.87)' },
-	
+
 	operator: { color: 'rgba(167, 139, 250, 0.87)' }, // Desaturated violet
 	entity: { color: 'rgba(167, 139, 250, 0.87)' },
 	url: { color: 'rgba(167, 139, 250, 0.87)' },
 	variable: { color: 'rgba(167, 139, 250, 0.87)' },
-	
+
 	atrule: { color: 'rgba(251, 191, 36, 0.87)' },
 	'attr-value': { color: 'rgba(147, 197, 253, 0.87)' },
 	function: { color: 'rgba(251, 146, 60, 0.87)' }, // Desaturated orange
 	'class-name': { color: 'rgba(251, 146, 60, 0.87)' },
-	
+
 	keyword: { color: 'rgba(167, 139, 250, 0.87)' },
 	regex: { color: 'rgba(251, 191, 36, 0.87)' },
 	important: { color: 'rgba(239, 68, 68, 0.87)', fontWeight: 'bold' },
 	bold: { fontWeight: 'bold' },
 	italic: { fontStyle: 'italic' },
-	
+
 	// Line numbers
 	'.line-numbers .line-numbers-rows': {
 		borderRight: `1px solid ${GlassmorphismTheme.borders.default}`,
@@ -153,71 +155,73 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 			hideNodeType
 			elevation={1}
 		>
-			<div className='w-full flex-grow overflow-hidden rounded-lg'
+			<div
+				className='w-full flex-grow overflow-hidden rounded-lg'
 				style={{
 					backgroundColor: GlassmorphismTheme.elevation[0], // Darker background for code
 					border: `1px solid ${GlassmorphismTheme.borders.default}`,
-				}}>
-				
+				}}
+			>
 				{/* Header with file info and controls */}
-				<div className='flex items-center justify-between px-4 py-3'
+				<div
+					className='flex items-center justify-between px-4 py-3'
 					style={{
 						backgroundColor: GlassmorphismTheme.elevation[1], // Elevation 1
 						borderBottom: `1px solid ${GlassmorphismTheme.borders.default}`,
-					}}>
+					}}
+				>
 					<div className='flex items-center gap-3'>
 						{/* Language indicator */}
 						<div className='flex items-center gap-2'>
 							<span className='text-base'>{getLanguageIcon(language)}</span>
+
 							<div className='flex flex-col'>
-								<span style={{
-									fontSize: '13px',
-									fontWeight: 500,
-									color: GlassmorphismTheme.text.high,
-									textTransform: 'capitalize',
-								}}>
+								<span
+									style={{
+										fontSize: '13px',
+										fontWeight: 500,
+										color: GlassmorphismTheme.text.high,
+										textTransform: 'capitalize',
+									}}
+								>
 									{language}
 								</span>
+
 								{fileName && (
-									<span style={{
-										fontSize: '11px',
-										color: GlassmorphismTheme.text.disabled,
-										fontFamily: 'var(--font-geist-mono)',
-									}}>
+									<span
+										style={{
+											fontSize: '11px',
+											color: GlassmorphismTheme.text.disabled,
+											fontFamily: 'var(--font-geist-mono)',
+										}}
+									>
 										{fileName}
 									</span>
 								)}
 							</div>
 						</div>
 
-						{/* Line count badge */}
-						<div className='px-2 py-0.5 rounded'
-							style={{
-								backgroundColor: `rgba(255, 255, 255, 0.05)`,
-								border: `1px solid ${GlassmorphismTheme.borders.hover}`,
-							}}>
-							<span style={{
-								fontSize: '11px',
-								color: GlassmorphismTheme.text.medium,
-							}}>
-								{lineCount} {lineCount === 1 ? 'line' : 'lines'}
-							</span>
-						</div>
-
 						{/* Executable indicator */}
 						{isExecutable && (
-							<div className='flex items-center gap-1 px-2 py-0.5 rounded'
+							<div
+								className='flex items-center gap-1 px-2 py-0.5 rounded'
 								style={{
 									backgroundColor: `rgba(52, 211, 153, 0.1)`,
 									border: `1px solid rgba(52, 211, 153, 0.2)`,
-								}}>
-								<Terminal className='w-3 h-3' 
-									style={{ color: 'rgba(52, 211, 153, 0.87)' }} />
-								<span style={{
-									fontSize: '11px',
-									color: 'rgba(52, 211, 153, 0.87)',
-									fontWeight: 500,
-								}}>
+								}}
+							>
+								<Terminal
+									className='w-3 h-3'
+									style={{ color: 'rgba(52, 211, 153, 0.87)' }}
+								/>
+
+								<span
+									style={{
+										fontSize: '11px',
+										color: 'rgba(52, 211, 153, 0.87)',
+										fontWeight: 500,
+									}}
+								>
 									Executable
 								</span>
 							</div>
@@ -240,11 +244,15 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 								title={isExpanded ? 'Collapse' : 'Expand'}
 							>
 								{isExpanded ? (
-									<Minimize2 className='w-3.5 h-3.5' 
-										style={{ color: GlassmorphismTheme.text.medium }} />
+									<Minimize2
+										className='w-3.5 h-3.5'
+										style={{ color: GlassmorphismTheme.text.medium }}
+									/>
 								) : (
-									<Maximize2 className='w-3.5 h-3.5' 
-										style={{ color: GlassmorphismTheme.text.medium }} />
+									<Maximize2
+										className='w-3.5 h-3.5'
+										style={{ color: GlassmorphismTheme.text.medium }}
+									/>
 								)}
 							</Button>
 						)}
@@ -256,11 +264,11 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 							variant={'ghost'}
 							className='!cursor-pointer w-8 h-8 p-0 relative overflow-hidden'
 							style={{
-								backgroundColor: copied 
-									? 'rgba(52, 211, 153, 0.1)' 
+								backgroundColor: copied
+									? 'rgba(52, 211, 153, 0.1)'
 									: 'transparent',
-								border: copied 
-									? '1px solid rgba(52, 211, 153, 0.3)' 
+								border: copied
+									? '1px solid rgba(52, 211, 153, 0.3)'
 									: `1px solid ${GlassmorphismTheme.borders.hover}`,
 								transition: 'all 0.2s ease',
 							}}
@@ -275,8 +283,10 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 										exit={{ scale: 0, rotate: 180 }}
 										transition={{ type: 'spring', stiffness: 400 }}
 									>
-										<Check className='w-3.5 h-3.5' 
-											style={{ color: 'rgba(52, 211, 153, 0.87)' }} />
+										<Check
+											className='w-3.5 h-3.5'
+											style={{ color: 'rgba(52, 211, 153, 0.87)' }}
+										/>
 									</motion.div>
 								) : (
 									<motion.div
@@ -286,8 +296,10 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 										exit={{ scale: 0, rotate: -180 }}
 										transition={{ type: 'spring', stiffness: 400 }}
 									>
-										<Copy className='w-3.5 h-3.5' 
-											style={{ color: 'rgba(147, 197, 253, 0.87)' }} />
+										<Copy
+											className='w-3.5 h-3.5'
+											style={{ color: 'rgba(147, 197, 253, 0.87)' }}
+										/>
 									</motion.div>
 								)}
 							</AnimatePresence>
@@ -296,11 +308,13 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 				</div>
 
 				{/* Code content with syntax highlighting */}
-				<div className='relative overflow-auto'
+				<div
+					className='relative overflow-auto'
 					style={{
 						maxHeight: isExpanded ? 'none' : '400px',
 						transition: 'max-height 0.3s ease',
-					}}>
+					}}
+				>
 					<SyntaxHighlighter
 						language={language}
 						style={customDarkTheme}
@@ -333,7 +347,8 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 
 					{/* Gradient overlay for collapsed state */}
 					{!isExpanded && lineCount > 20 && (
-						<div className='absolute bottom-0 left-0 right-0 h-12 pointer-events-none'
+						<div
+							className='absolute bottom-0 left-0 right-0 h-12 pointer-events-none'
 							style={{
 								background: `linear-gradient(to top, ${GlassmorphismTheme.elevation[0]} 0%, transparent 100%)`,
 							}}
@@ -343,23 +358,31 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 
 				{/* Footer with execution status or metadata */}
 				{data.metadata?.lastExecuted && (
-					<div className='px-4 py-2'
+					<div
+						className='px-4 py-2'
 						style={{
 							backgroundColor: GlassmorphismTheme.elevation[1],
 							borderTop: `1px solid ${GlassmorphismTheme.borders.default}`,
-						}}>
+						}}
+					>
 						<div className='flex items-center justify-between'>
-							<span style={{
-								fontSize: '11px',
-								color: GlassmorphismTheme.text.disabled,
-							}}>
-								Last executed: {new Date(data.metadata.lastExecuted).toLocaleString()}
-							</span>
-							{data.metadata?.executionTime && (
-								<span style={{
+							<span
+								style={{
 									fontSize: '11px',
-									color: 'rgba(52, 211, 153, 0.6)',
-								}}>
+									color: GlassmorphismTheme.text.disabled,
+								}}
+							>
+								Last executed:{' '}
+								{new Date(data.metadata.lastExecuted).toLocaleString()}
+							</span>
+
+							{data.metadata?.executionTime && (
+								<span
+									style={{
+										fontSize: '11px',
+										color: 'rgba(52, 211, 153, 0.6)',
+									}}
+								>
 									{data.metadata.executionTime}ms
 								</span>
 							)}

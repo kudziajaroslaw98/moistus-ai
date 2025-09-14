@@ -387,10 +387,13 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(({
 	return (
 		<motion.div
 			className={cn(
-				'flex flex-wrap items-center gap-2 px-3 py-2',
+				'flex flex-wrap items-center px-4 py-2',
 				className
 			)}
-			style={containerStyle}
+			style={{
+				...containerStyle,
+				gap: '6px', // 6px gap between metadata items as specified in Material Design
+			}}
 			initial={{ opacity: 0, height: 0 }}
 			animate={{ opacity: 1, height: 'auto' }}
 			exit={{ opacity: 0, height: 0 }}

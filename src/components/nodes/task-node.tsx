@@ -86,16 +86,17 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 								</span>
 							</div>
 							
-							{/* Progress bar with subtle gradient */}
+							{/* Progress bar with Material Design semantic colors */}
 							<div className='relative w-full h-1 rounded-full overflow-hidden'
 								style={{ backgroundColor: GlassmorphismTheme.indicators.progress.background }}>
 								<motion.div 
-									className='h-full rounded-full transition-all duration-500 ease-out'
+									className='h-full rounded-full'
 									style={{ 
 										width: `${stats.percentage}%`,
 										background: stats.percentage === 100
-											? GlassmorphismTheme.indicators.progress.completeFill
-											: GlassmorphismTheme.indicators.progress.fill
+											? GlassmorphismTheme.indicators.progress.completeFill // Green for complete
+											: GlassmorphismTheme.indicators.progress.fill, // Blue for in-progress
+										transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
 									}}
 									initial={{ width: 0 }}
 									animate={{ width: `${stats.percentage}%` }}
