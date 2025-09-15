@@ -18,7 +18,9 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 	);
 	const [aspectRatio, setAspectRatio] = useState<number>(16 / 9); // Default aspect ratio
 
-	const imageUrl = (data.metadata?.image_url || data.metadata?.imageUrl) as string | undefined;
+	const imageUrl = (data.metadata?.image_url || data.metadata?.imageUrl) as
+		| string
+		| undefined;
 	const showCaption = Boolean(data.metadata?.showCaption);
 	const fitMode =
 		(data.metadata?.fitMode as 'cover' | 'contain' | 'fill') || 'cover';
@@ -45,7 +47,7 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 			<div className='flex flex-col h-full'>
 				{imageUrl ? (
 					<div
-						className='relative w-full overflow-hidden rounded-t-lg'
+						className='relative w-full overflow-hidden rounded-lg'
 						style={{
 							// Dynamic aspect ratio based on image or fallback to 16:9
 							aspectRatio: data.metadata?.aspectRatio || aspectRatio,

@@ -29,7 +29,10 @@ export const nodeCommands: NodeCommand[] = [
 				pattern: '$note',
 				description: 'Switch to note node type',
 				category: 'metadata',
-				example: '$note Meeting notes #important',
+				examples: [
+					'$note Meeting notes #important',
+					'$note Project update #in-progress',
+				],
 			},
 			{
 				pattern: '#priority',
@@ -92,7 +95,10 @@ export const nodeCommands: NodeCommand[] = [
 				pattern: '$task',
 				description: 'Switch to task list node type',
 				category: 'metadata',
-				example: '$task Review PR; Fix bugs ^friday #high',
+				examples: [
+					'$task Review PR; Fix bugs ^friday #high',
+					'$task Buy milk, Send email',
+				],
 			},
 			{
 				pattern: '^date',
@@ -181,7 +187,10 @@ export const nodeCommands: NodeCommand[] = [
 				pattern: '$code',
 				description: 'Switch to code block node type',
 				category: 'metadata',
-				example: '$code ```js const sum = (a, b) => a + b',
+				examples: [
+					'$code ```js const sum = (a, b) => a + b',
+					'$code python file:utils.py',
+				],
 			},
 			{
 				pattern: '```language',
@@ -233,7 +242,10 @@ export const nodeCommands: NodeCommand[] = [
 				pattern: '$image',
 				description: 'Switch to image node type',
 				category: 'metadata',
-				example: '$image https://example.com/diagram.png "System Architecture"',
+				examples: [
+					'$image https://example.com/diagram.png "System Architecture"',
+					'$image https://example.com/image.jpg "Description"',
+				],
 			},
 			{
 				pattern: '"alt text"',
@@ -284,7 +296,10 @@ export const nodeCommands: NodeCommand[] = [
 				pattern: '$link',
 				description: 'Switch to resource link node type',
 				category: 'metadata',
-				example: '$link https://docs.example.com/api "API Documentation"',
+				examples: [
+					'$link https://docs.example.com/api "API Documentation"',
+					'$link https://example.com "My Resource"',
+				],
 			},
 			{
 				pattern: '"title"',
@@ -336,7 +351,10 @@ export const nodeCommands: NodeCommand[] = [
 				pattern: '$question',
 				description: 'Switch to question node type',
 				category: 'metadata',
-				example: '$question How can we improve user engagement?',
+				examples: [
+					'$question How can we improve user engagement?',
+					'$question Should we migrate to TypeScript? [yes/no]',
+				],
 			},
 			{
 				pattern: '[yes/no]',
@@ -387,7 +405,10 @@ export const nodeCommands: NodeCommand[] = [
 				pattern: '$annotation',
 				description: 'Switch to annotation node type',
 				category: 'metadata',
-				example: '$annotation ⚠️ Breaking change in v2.0',
+				examples: [
+					'$annotation ⚠️ Breaking change in v2.0',
+					'$annotation ✅ Deployment successful',
+				],
 			},
 			{
 				pattern: '⚠️',
@@ -454,7 +475,11 @@ export const nodeCommands: NodeCommand[] = [
 				pattern: '$text',
 				description: 'Switch to text node type',
 				category: 'metadata',
-				example: '$text **Bold text** sz:24px align:center',
+				examples: [
+					'$text **Bold text** sz:24px align:center',
+					'$text *Italic note* sz:18px align:left',
+					'$text Important message color:red sz:24px align:center',
+				],
 			},
 			{
 				pattern: 'sz:size',

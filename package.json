@@ -14,9 +14,9 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
-    "@ai-sdk/google": "2.0.2",
-    "@ai-sdk/openai": "2.0.4",
-    "@ai-sdk/react": "2.0.5",
+    "@ai-sdk/google": "2.0.14",
+    "@ai-sdk/openai": "2.0.30",
+    "@ai-sdk/react": "2.0.44",
     "@base-ui-components/react": "1.0.0-beta.2",
     "@codemirror/autocomplete": "^6.18.6",
     "@codemirror/commands": "^6.8.1",
@@ -110,5 +110,6 @@
     "ts-jest": "^29.4.1",
     "tw-animate-css": "1.3.0",
     "typescript": "^5.9.2"
-  }
+  },
+  "packageManager": "pnpm@10.16.1+sha512.0e155aa2629db8672b49e8475da6226aa4bdea85fdcdfdc15350874946d4f3c91faaf64cbdc4a5d1ab8002f473d5c3fcedcd197989cf0390f9badd3c04678706"
 }
