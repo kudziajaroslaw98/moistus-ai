@@ -316,6 +316,7 @@ function mapTriggerToNodeType(trigger: string): AvailableNodeTypes | null {
 		$question: 'questionNode',
 		$annotation: 'annotationNode',
 		$text: 'textNode',
+		$reference: 'referenceNode',
 		$default: 'defaultNode',
 	};
 
@@ -343,6 +344,7 @@ export function getValidNodeTypeTriggers(): string[] {
 		'$question',
 		'$annotation',
 		'$text',
+		'$reference',
 		'$default',
 	];
 }

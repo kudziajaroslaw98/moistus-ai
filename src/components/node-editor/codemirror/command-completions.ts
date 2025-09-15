@@ -438,9 +438,10 @@ function mapTriggerToNodeType(trigger: string): AvailableNodeTypes | null {
     '$link': 'resourceNode',
     '$question': 'questionNode',
     '$annotation': 'annotationNode',
-    '$text': 'textNode'
+    '$text': 'textNode',
+    '$reference': 'referenceNode'
   };
-  
+
   return mapping[trigger] || null;
 }
 

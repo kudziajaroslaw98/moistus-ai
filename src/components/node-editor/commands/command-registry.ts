@@ -517,6 +517,17 @@ export class CommandRegistry {
         keywords: ['text', 'typography', 'content'],
         examples: ['$text', '$text **Bold text** @24px'],
         priority: 8
+      },
+      {
+        trigger: '$reference',
+        label: 'Reference',
+        description: 'Switch to reference node type',
+        icon: Link,
+        category: 'node-type',
+        triggerType: 'node-type',
+        keywords: ['reference', 'link', 'cross-reference'],
+        examples: ['$reference', '$reference target:node-123'],
+        priority: 9
       }
     ];
 
@@ -861,7 +872,8 @@ Action Items:
       '$link': 'resourceNode',
       '$question': 'questionNode',
       '$annotation': 'annotationNode',
-      '$text': 'textNode'
+      '$text': 'textNode',
+      '$reference': 'referenceNode'
     };
 
     return mapping[trigger] || 'defaultNode';

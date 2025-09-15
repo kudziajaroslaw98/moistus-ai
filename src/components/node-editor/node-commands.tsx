@@ -516,6 +516,71 @@ export const nodeCommands: NodeCommand[] = [
 			},
 		],
 	},
+	{
+		nodeType: 'referenceNode',
+		category: 'content',
+		quickParse: (input: string) => {
+			const result = {
+				content: input,
+				metadata: {} as any,
+			};
+
+			// Parse target references
+			const targetMatch = input.match(/target:([^\s]+)/);
+			if (targetMatch) {
+				result.metadata.targetNodeId = targetMatch[1];
+				result.content = input.replace(/target:[^\s]+/, '').trim();
+			}
+
+			// Parse map references
+			const mapMatch = input.match(/map:([^\s]+)/);
+			if (mapMatch) {
+				result.metadata.targetMapId = mapMatch[1];
+				result.content = input.replace(/map:[^\s]+/, '').trim();
+			}
+
+			// Parse confidence level
+			const confidenceMatch = input.match(/confidence:(\d+(?:\.\d+)?)/);
+			if (confidenceMatch) {
+				result.metadata.confidence = parseFloat(confidenceMatch[1]);
+				result.content = input.replace(/confidence:[^\s]+/, '').trim();
+			}
+
+			return result;
+		},
+		patterns: [
+			{
+				pattern: '$reference',
+				description: 'Switch to reference node type',
+				category: 'metadata',
+				examples: [
+					'$reference target:node-123',
+					'$reference Cross-reference to analysis map:analysis-456',
+				],
+			},
+			{
+				pattern: 'target:nodeId',
+				description: 'Reference target node ID',
+				examples: ['target:node-123', 'target:analysis-456'],
+				category: 'metadata',
+				insertText: 'target:',
+			},
+			{
+				pattern: 'map:mapId',
+				description: 'Reference target map ID',
+				examples: ['map:brainstorm-789', 'map:analysis-456'],
+				category: 'metadata',
+				insertText: 'map:',
+			},
+			{
+				pattern: 'confidence:level',
+				description: 'Set confidence level (0-1)',
+				examples: ['confidence:0.8', 'confidence:0.95'],
+				category: 'metadata',
+				insertText: 'confidence:0.8',
+			},
+		],
+	},
 ];
 
 // Helper function to get command by type
