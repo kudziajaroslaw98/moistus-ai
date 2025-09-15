@@ -548,7 +548,7 @@ export const nodeCommands: NodeCommand[] = [
 
 			return result;
 		},
-		patterns: [
+		parsingPatterns: [
 			{
 				pattern: '$reference',
 				description: 'Switch to reference node type',

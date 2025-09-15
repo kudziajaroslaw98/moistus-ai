@@ -419,7 +419,7 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 						transition={{ duration: 0.3, ease: 'easeInOut' }}
 					>
 						<ParsingLegend
-							patterns={(nodeCommands.find(cmd => cmd.nodeType === (currentNodeType || command.nodeType)) || command).parsingPatterns}
+							patterns={(nodeCommands.find(cmd => cmd.nodeType === (currentNodeType || command.nodeType)) || command).parsingPatterns || []}
 							onPatternClick={handlePatternInsert}
 							isCollapsed={legendCollapsed}
 							onToggleCollapse={() => setLegendCollapsed(!legendCollapsed)}
