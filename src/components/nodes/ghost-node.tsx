@@ -2,7 +2,6 @@
 
 import { cn } from '@/lib/utils';
 import type { AvailableNodeTypes } from '@/types/available-node-types';
-import { type Node, type NodeProps } from '@xyflow/react';
 import {
 	Check,
 	CheckSquare,
@@ -20,7 +19,6 @@ import { motion } from 'motion/react';
 
 import useAppStore from '@/store/mind-map-store';
 import type { SuggestionContext } from '@/types/ghost-node';
-import type { NodeData } from '@/types/node-data';
 import { memo, useCallback } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { Button } from '../ui/button';
