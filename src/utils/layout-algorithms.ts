@@ -9,42 +9,9 @@ import type {
 import { layoutWithELK } from './elk-graph-utils';
 
 export class LayoutAlgorithms {
-	// Map legacy algorithm names to ELK.js equivalents
-	private static mapAlgorithmToELK(algorithm: string): ELKAlgorithm {
-		switch (algorithm) {
-			case 'dagre-tb':
-			case 'dagre-lr':
-			case 'dagre-bt':
-			case 'dagre-rl':
-			case 'hierarchical':
-				return 'elk.layered';
-			case 'force-directed':
-				return 'elk.force';
-			case 'circular':
-				return 'org.eclipse.elk.circular';
-			case 'radial':
-				return 'elk.radial';
-			case 'tree':
-				return 'elk.mrtree';
-			case 'grid':
-				return 'elk.box'; // Use box packing for grid-like layout
-			default:
-				return 'elk.layered';
-		}
-	}
 
-	// Map legacy direction to ELK direction
-	private static mapDirectionToELK(
-		algorithm: string,
-		direction?: string
-	): LayoutDirection {
-		if (algorithm === 'dagre-tb') return 'TB';
-		if (algorithm === 'dagre-lr') return 'LR';
-		if (algorithm === 'dagre-bt') return 'BT';
-		if (algorithm === 'dagre-rl') return 'RL';
 
-		return (direction as LayoutDirection) || 'TB';
-	}
+
 
 	// Apply ELK layered layout (replaces dagre layouts)
 	private static async applyELKLayeredLayout(
@@ -377,10 +344,7 @@ export class LayoutAlgorithms {
 		];
 	}
 
-	// Utility method to get ELK algorithm from legacy algorithm name
-	public static getELKAlgorithm(algorithm: string): ELKAlgorithm {
-		return this.mapAlgorithmToELK(algorithm);
-	}
+
 
 	// Utility method to check if an algorithm is supported
 	public static isAlgorithmSupported(algorithm: string): boolean {
