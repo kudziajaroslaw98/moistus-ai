@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 
 import { cn } from '@/lib/utils';
-import * as React from 'react';
+import { ComponentProps } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 
 interface DropdownMenuProps {
@@ -26,7 +26,7 @@ export function DropdownMenuTrigger({
 	asChild,
 	children,
 	...props
-}: React.ComponentProps<typeof PopoverTrigger>) {
+}: ComponentProps<typeof PopoverTrigger>) {
 	return (
 		<PopoverTrigger asChild={asChild} {...props}>
 			{children}
@@ -35,7 +35,7 @@ export function DropdownMenuTrigger({
 }
 
 interface DropdownMenuContentProps
-	extends React.ComponentProps<typeof PopoverContent> {
+	extends ComponentProps<typeof PopoverContent> {
 	className?: string;
 }
 
@@ -121,3 +121,4 @@ export function DropdownMenuLabel({
 		</div>
 	);
 }
+

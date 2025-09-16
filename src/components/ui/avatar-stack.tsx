@@ -1,4 +1,4 @@
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+﻿import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
 	Tooltip,
 	TooltipContent,
@@ -6,7 +6,7 @@ import {
 } from '@/components/ui/Tooltip';
 import { cn } from '@/lib/utils';
 import { cva, type VariantProps } from 'class-variance-authority';
-import * as React from 'react';
+import { ComponentProps } from 'react';
 
 const avatarStackVariants = cva(
 	'*:data-[slot=avatar]:ring-zinc-950 flex *:data-[slot=avatar]:ring-2',
@@ -104,3 +104,4 @@ const AvatarStack = ({
 };
 
 export { AvatarStack, avatarStackVariants };
+
