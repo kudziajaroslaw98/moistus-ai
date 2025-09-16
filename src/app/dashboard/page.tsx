@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/select';
 import { SidebarProvider, useSidebar } from '@/components/ui/sidebar';
 import { cn } from '@/utils/cn';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'motion/react';
 import {
 	Filter,
 	Grid3x3,

@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/utils/cn';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Plus } from 'lucide-react';
 
 interface CreateMapCardProps {
