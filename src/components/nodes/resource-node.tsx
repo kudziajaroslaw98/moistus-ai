@@ -1,7 +1,5 @@
 'use client';
 
-import { NodeData } from '@/types/node-data';
-import { Node, NodeProps } from '@xyflow/react';
 import { ExternalLink, Link as LinkIcon, Globe } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';

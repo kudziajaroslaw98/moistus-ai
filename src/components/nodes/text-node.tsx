@@ -1,9 +1,7 @@
 'use client';
 
 import useAppStore from '@/store/mind-map-store';
-import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
-import { Node, NodeProps } from '@xyflow/react';
 import { Type } from 'lucide-react';
 import { memo, useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';

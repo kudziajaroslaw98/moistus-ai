@@ -1,8 +1,6 @@
 'use client';
 
-import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
-import { Node, NodeProps } from '@xyflow/react';
 import { AlignLeft, Lightbulb, MessageSquare, Quote } from 'lucide-react';
 import { memo, useMemo } from 'react';
 import { motion } from 'motion/react';
