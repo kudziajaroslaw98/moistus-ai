@@ -238,6 +238,10 @@ export const nodeEditorTheme = EditorView.theme(
 			borderLeft: '3px solid rgb(139 92 246)',
 			backgroundColor: 'rgba(139, 92, 246, 0.08)',
 		},
+		'.completion-section-referenced-nodes': {
+			borderLeft: '3px solid rgb(236, 72, 153)',
+			backgroundColor: 'rgba(236, 72, 153, 0.08)',
+		},
 
 		// Pattern-specific completion type icons
 		'.completion-type-keyword::before': {
@@ -269,6 +273,82 @@ export const nodeEditorTheme = EditorView.theme(
 		// Remove emoji icons for color completions since they have swatches
 		'.completion-category-colors.completion-type-property::before': {
 			display: 'none',
+		},
+
+		// ========================================
+		// REFERENCE COMPLETION SPECIFIC STYLING
+		// ========================================
+
+		// Reference completion tooltip
+		'.reference-completion-tooltip': {
+			borderLeft: '4px solid rgb(236, 72, 153) !important',
+			background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.12) 0%, rgba(9, 9, 11, 0.95) 25%) !important',
+		},
+
+		// Reference completion items
+		'.reference-completion-item': {
+			position: 'relative',
+			borderLeft: '2px solid rgba(236, 72, 153, 0.3)',
+			paddingLeft: '14px !important',
+		},
+		'.reference-completion-item::before': {
+			content: '"🔗"',
+			position: 'absolute',
+			left: '6px',
+			top: '50%',
+			transform: 'translateY(-50%)',
+			fontSize: '14px',
+			opacity: '0.8',
+		},
+		'.reference-completion-item:hover::before': {
+			opacity: '1',
+		},
+		'.reference-completion-item[aria-selected="true"]': {
+			borderLeft: '3px solid rgb(236, 72, 153) !important',
+			backgroundColor: 'rgba(236, 72, 153, 0.15) !important',
+		},
+		'.reference-completion-item[aria-selected="true"]::before': {
+			opacity: '1',
+			fontSize: '15px',
+		},
+
+		// Reference completion content styling
+		'.reference-completion-item .cm-completionLabel': {
+			fontWeight: '500',
+			color: 'rgb(253, 224, 71)',
+		},
+		'.reference-completion-item .cm-completionDetail': {
+			color: 'rgba(236, 72, 153, 0.9)',
+			fontSize: '12px',
+			fontWeight: '600',
+		},
+		'.reference-completion-item[aria-selected="true"] .cm-completionDetail': {
+			color: 'rgb(244, 114, 182)',
+		},
+
+		// Loading state for reference search
+		'.reference-search-loading': {
+			opacity: '0.7',
+			position: 'relative',
+		},
+		'.reference-search-loading::after': {
+			content: '""',
+			position: 'absolute',
+			top: '50%',
+			right: '12px',
+			transform: 'translateY(-50%)',
+			width: '12px',
+			height: '12px',
+			border: '2px solid rgba(236, 72, 153, 0.3)',
+			borderTop: '2px solid rgb(236, 72, 153)',
+			borderRadius: '50%',
+			animation: 'spin 1s linear infinite',
+		},
+
+		// Spin animation for loading indicator
+		'@keyframes spin': {
+			'0%': { transform: 'translateY(-50%) rotate(0deg)' },
+			'100%': { transform: 'translateY(-50%) rotate(360deg)' },
 		},
 
 		// Category-specific styling

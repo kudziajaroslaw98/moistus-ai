@@ -388,11 +388,41 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 				</motion.div>
 			);
 
+		case 'referenceNode':
+			return (
+				<motion.div
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					transition={{ duration: 0.2 }}
+					className="space-y-2"
+				>
+					{preview.referencePreview ? (
+						<div className="space-y-2">
+							<div className="flex items-center gap-2">
+								<span className="text-pink-400">🔗</span>
+								<span className="text-pink-400 font-medium">Reference Selected</span>
+							</div>
+							<blockquote className="border-l-2 border-pink-500/30 pl-3 text-sm text-zinc-300 italic">
+								"{preview.referencePreview.contentSnippet?.slice(0, 100) || 'Referenced content...'}"
+							</blockquote>
+							<div className="text-xs text-pink-300">
+								From: <span className="font-medium">{preview.referencePreview.targetMapTitle || 'Unknown Map'}</span>
+							</div>
+						</div>
+					) : (
+						<div className="flex items-center gap-2 text-zinc-500">
+							<span>🔗</span>
+							<span className="text-sm">Type @ to search for nodes to reference...</span>
+						</div>
+					)}
+				</motion.div>
+			);
+
 		default:
 			return (
 				<motion.div
 					className='text-sm'
-					style={{ 
+					style={{
 						color: 'rgb(212, 212, 216)',
 						fontSize: '16px',
 						lineHeight: '1.4'

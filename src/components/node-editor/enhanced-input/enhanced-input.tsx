@@ -193,6 +193,38 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 			[onCommandExecuted]
 		);
 
+		const handleReferenceSelected = useCallback(
+			(event: CustomEvent) => {
+				try {
+					console.log('Reference selected event:', event.detail);
+
+					// Call parent callback if provided (for future extensibility)
+					if (onCommandExecuted && event.detail) {
+						// Treat reference selection as a command execution
+						onCommandExecuted({
+							commandId: 'reference-selected',
+							result: event.detail,
+							text: event.detail.displayText,
+							cursorPosition: 0
+						});
+					}
+
+					// Emit a custom event that parent components can listen to
+					const referenceSelectedEvent = new CustomEvent(
+						'nodeEditorReferenceSelected',
+						{
+							detail: event.detail,
+							bubbles: true,
+						}
+					);
+					editorViewRef.current?.dom.dispatchEvent(referenceSelectedEvent);
+				} catch (error) {
+					console.error('Error handling reference selected:', error);
+				}
+			},
+			[onCommandExecuted]
+		);
+
 		// Initialize CodeMirror editor with stable dependencies (avoids recreation on callback changes)
 		useEffect(() => {
 			if (
@@ -468,6 +500,7 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 			// Add command event listeners
 			view.dom.addEventListener('nodeTypeChange', handleNodeTypeChange);
 			view.dom.addEventListener('commandExecuted', handleCommandExecuted);
+			view.dom.addEventListener('referenceSelected', handleReferenceSelected);
 
 			return () => {
 				// Clean up event listeners
@@ -477,9 +510,13 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 						'commandExecuted',
 						handleCommandExecuted
 					);
+					view.dom.removeEventListener(
+						'referenceSelected',
+						handleReferenceSelected
+					);
 				}
 			};
-		}, [handleNodeTypeChange, handleCommandExecuted, enableCommands]);
+		}, [handleNodeTypeChange, handleCommandExecuted, handleReferenceSelected, enableCommands]);
 
 		// Handle disabled state changes with DOM validity check
 		useEffect(() => {

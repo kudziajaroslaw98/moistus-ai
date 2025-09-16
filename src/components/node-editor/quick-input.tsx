@@ -21,7 +21,6 @@ import {
 	processNodeTypeSwitch,
 	detectCommandTrigger,
 	shouldAutoProcessSwitch,
-	type EnhancedCommand,
 	type NodeTypeSwitchResult,
 	type CommandTriggerResult,
 } from './commands';
@@ -46,6 +45,12 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 	const [isCreating, setIsCreating] = useState(false);
 	const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 	const [commandPalettePosition, setCommandPalettePosition] = useState({ x: 0, y: 0 });
+	const [referenceMetadata, setReferenceMetadata] = useState<{
+		targetNodeId?: string;
+		targetMapId?: string;
+		targetMapTitle?: string;
+		contentSnippet?: string;
+	} | null>(null);
 	const lastProcessedText = useRef('');
 
 	const [legendCollapsed, setLegendCollapsed] = useState(
@@ -176,13 +181,26 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 
 		try {
 			const parsed = currentCommand.quickParse(cleanValue);
-			setPreview(parsed);
+
+			// Enhance preview with reference metadata for reference nodes
+			if (effectiveNodeType === 'referenceNode' && referenceMetadata) {
+				const enhancedPreview = {
+					...parsed,
+					referencePreview: {
+						targetMapTitle: referenceMetadata.targetMapTitle,
+						contentSnippet: referenceMetadata.contentSnippet,
+					}
+				};
+				setPreview(enhancedPreview);
+			} else {
+				setPreview(parsed);
+			}
 			setError(null);
 		} catch (err) {
 			setPreview(null);
 			setError('Invalid input format');
 		}
-	}, [value, command, currentNodeType]);
+	}, [value, command, currentNodeType, referenceMetadata]);
 
 	// Handle node creation with current node type
 	const handleCreate = useCallback(async () => {
@@ -201,6 +219,16 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 			const nodeData = currentCommand.quickParse
 				? currentCommand.quickParse(cleanValue)
 				: { content: cleanValue };
+
+			// Merge reference metadata for reference nodes
+			if (effectiveNodeType === 'referenceNode' && referenceMetadata) {
+				Object.assign(nodeData, {
+					targetNodeId: referenceMetadata.targetNodeId,
+					targetMapId: referenceMetadata.targetMapId,
+					targetMapTitle: referenceMetadata.targetMapTitle,
+					contentSnippet: referenceMetadata.contentSnippet,
+				});
+			}
 
 			const result = await createOrUpdateNodeFromCommand({
 				command: currentCommand,
@@ -333,7 +361,17 @@ export const QuickInput: React.FC<QuickInputProps> = ({
 
 	// Handle command execution from enhanced input
 	const handleCommandExecuted = useCallback((commandData: any) => {
-		if (commandData.command) {
+		if (commandData.commandId === 'reference-selected') {
+			// Handle reference selection
+			const referenceData = commandData.result;
+			setReferenceMetadata({
+				targetNodeId: referenceData.targetNodeId,
+				targetMapId: referenceData.targetMapId,
+				targetMapTitle: referenceData.targetMapTitle,
+				contentSnippet: referenceData.contentSnippet,
+			});
+			announceToScreenReader(`Selected reference: ${referenceData.contentSnippet?.slice(0, 50) || 'Unknown content'}`);
+		} else if (commandData.command) {
 			handleCommandExecute(commandData.command);
 		}
 	}, [handleCommandExecute]);

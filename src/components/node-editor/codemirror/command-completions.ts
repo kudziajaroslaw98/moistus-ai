@@ -22,6 +22,11 @@ import { commandRegistry } from '../commands/command-registry';
 import { detectNodeTypeSwitch, detectSlashCommand } from '../parsers/command-parser';
 import type { Command } from '../commands/types';
 import type { AvailableNodeTypes } from '../../../types/available-node-types';
+import {
+  referenceCompletionSource,
+  referenceCompletionState,
+  isInReferenceSearchMode
+} from './reference-completions';
 
 /**
  * Custom event types for command completion integration
@@ -112,19 +117,25 @@ function commandCompletions(context: CompletionContext): CompletionResult | null
   try {
     const { state, pos } = context;
     const text = state.doc.toString();
-    
-    // Try node type completions first
+
+    // Try reference completions first when in reference search mode
+    if (isInReferenceSearchMode(context)) {
+      // Return promise for async reference completions
+      return referenceCompletionSource(context) as any;
+    }
+
+    // Try node type completions
     const nodeTypeResult = nodeTypeCompletions(context);
     if (nodeTypeResult) {
       return nodeTypeResult;
     }
-    
+
     // Try slash command completions
     const slashResult = slashCommandCompletions(context);
     if (slashResult) {
       return slashResult;
     }
-    
+
     return null;
   } catch (error) {
     console.error('Command completions error:', error);
@@ -451,6 +462,7 @@ function mapTriggerToNodeType(trigger: string): AvailableNodeTypes | null {
 export function createCommandCompletions(): Extension {
   return [
     commandCompletionState,
+    referenceCompletionState, // Add reference completion state
     autocompletion({
       override: [commandCompletions],
       maxRenderedOptions: 25, // Increased from 15 to show more completions
@@ -458,32 +470,53 @@ export function createCommandCompletions(): Extension {
       closeOnBlur: true,
       activateOnTyping: true,
       activateOnCompletion: () => true,
-      interactionDelay: 75, // Small delay for smoother experience
+      interactionDelay: 100, // Slightly longer delay for async operations
       selectOnOpen: false,
-      tooltipClass: () => 'enhanced-completion-tooltip',
+      tooltipClass: (completion) => {
+        // Add special styling for reference completions
+        const classes = ['enhanced-completion-tooltip'];
+        if (completion.section && typeof completion.section === 'object' && 'name' in completion.section) {
+          if (completion.section.name === 'Referenced Nodes') {
+            classes.push('reference-completion-tooltip');
+          }
+        }
+        return classes.join(' ');
+      },
       optionClass: (completion) => {
         const classes = ['command-completion-item'];
-        
+
         if (completion.section && typeof completion.section === 'object' && 'name' in completion.section) {
           classes.push(`completion-section-${completion.section.name.toLowerCase().replace(/\s+/g, '-')}`);
+
+          // Add special class for reference completions
+          if (completion.section.name === 'Referenced Nodes') {
+            classes.push('reference-completion-item');
+          }
         }
-        
+
         if (completion.type) {
           classes.push(`completion-type-${completion.type}`);
         }
-        
+
         return classes.join(' ');
       },
       compareCompletions: (a, b) => {
+        // Prioritize reference completions when in reference mode
+        const aIsReference = a.section && typeof a.section === 'object' && 'name' in a.section && a.section.name === 'Referenced Nodes';
+        const bIsReference = b.section && typeof b.section === 'object' && 'name' in b.section && b.section.name === 'Referenced Nodes';
+
+        if (aIsReference && !bIsReference) return -1;
+        if (!aIsReference && bIsReference) return 1;
+
         // Prioritize by boost, then section rank, then alphabetical
         const boostDiff = (b.boost || 0) - (a.boost || 0);
         if (boostDiff !== 0) return boostDiff;
-        
+
         const aSectionRank = (a.section && typeof a.section === 'object' && 'rank' in a.section) ? a.section.rank : 10;
         const bSectionRank = (b.section && typeof b.section === 'object' && 'rank' in b.section) ? b.section.rank : 10;
         const sectionDiff = aSectionRank - bSectionRank;
         if (sectionDiff !== 0) return sectionDiff;
-        
+
         return a.label.localeCompare(b.label);
       }
     })
@@ -498,5 +531,9 @@ export {
   nodeTypeChangeEffect,
   commandExecutedEffect,
   commandCompletionState,
-  mapTriggerToNodeType
+  mapTriggerToNodeType,
+  // Re-export reference completion utilities
+  referenceCompletionSource,
+  referenceCompletionState,
+  isInReferenceSearchMode
 };

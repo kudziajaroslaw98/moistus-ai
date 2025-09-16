@@ -517,8 +517,12 @@ export const nodeCommands: NodeCommand[] = [
 		],
 	},
 	{
+		command: '/reference',
 		nodeType: 'referenceNode',
 		category: 'content',
+		label: 'Reference',
+		description: 'Create a reference to another node or analysis map',
+		icon: Link,
 		quickParse: (input: string) => {
 			const result = {
 				content: input,
