@@ -1,7 +1,7 @@
 import {
 	type KeyboardEvent,
 	type ReactNode,
-	RefObject,
+	type RefObject,
 	useCallback,
 	useEffect,
 	useRef,

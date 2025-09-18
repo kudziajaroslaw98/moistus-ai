@@ -153,6 +153,7 @@ const BaseNodeWrapperComponent = ({
 							borderBottom: 'none'
 						}}>
 						<span style={{ opacity: 0.6, display: 'flex' }}>{nodeIcon}</span>
+
 						{nodeType && (
 							<span className='text-[10px] font-mono uppercase tracking-wider'
 								style={{ color: 'rgba(255, 255, 255, 0.38)' }}>
@@ -179,7 +180,9 @@ const BaseNodeWrapperComponent = ({
 				{/* Top header controls */}
 				<div className='top-0 left-4 absolute -translate-y-full flex items-center justify-center gap-2'>
 					<CollapseButton />
+
 					<GroupButton />
+
 					<CommentButton />
 				</div>
 
@@ -298,6 +301,7 @@ const BaseNodeWrapperComponent = ({
 										className='absolute -bottom-12 left-1/2 -translate-x-1/2 w-[1px] h-12'
 										style={{ backgroundColor: theme.borders.hover }}
 									/>
+
 									<motion.div
 										initial={{ opacity: 0, scale: 0.8 }}
 										animate={{ opacity: 1, scale: 1 }}

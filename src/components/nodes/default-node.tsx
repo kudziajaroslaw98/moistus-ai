@@ -70,6 +70,7 @@ const MarkdownWrapperComponent = ({ content }: { content: string }) => {
 						lineHeight: 1.6,
 					}}>
 						<span style={{ color: 'rgba(96, 165, 250, 0.5)' }}>•</span>
+
 						<span className='flex-1'>{children}</span>
 					</li>
 				),

@@ -273,23 +273,28 @@ export class NodeFactory {
 				if (node.data.metadata && !Array.isArray((node.data.metadata as any).tasks)) {
 					errors.push('Task node must have tasks array in metadata');
 				}
+
 				break;
 				
 			case 'groupNode':
 				const groupMeta = node.data.metadata as any;
 				if (!groupMeta?.isGroup) errors.push('Group node must have isGroup: true in metadata');
+
 				if (!Array.isArray(groupMeta?.groupChildren)) {
 					errors.push('Group node must have groupChildren array in metadata');
 				}
+
 				break;
 				
 			case 'ghostNode':
 				const ghostMeta = node.data.metadata as any;
 				if (!ghostMeta?.suggestedContent) errors.push('Ghost node must have suggestedContent');
 				if (!ghostMeta?.suggestedType) errors.push('Ghost node must have suggestedType');
+
 				if (typeof ghostMeta?.confidence !== 'number') {
 					errors.push('Ghost node must have confidence number');
 				}
+
 				break;
 		}
 

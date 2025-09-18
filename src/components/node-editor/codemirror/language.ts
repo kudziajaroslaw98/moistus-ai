@@ -133,7 +133,7 @@ export function getSyntaxInfo(text: string, position: number): {
   tokenText: string;
 } {
   // Create a simple stream to parse at the given position
-  let currentPos = 0;
+  const currentPos = 0;
   let tokenStart = 0;
   let tokenEnd = 0;
   let tokenType: string | null = null;
@@ -160,6 +160,7 @@ export function getSyntaxInfo(text: string, position: number): {
           break;
         }
       }
+
       break;
     }
     
@@ -201,6 +202,7 @@ function parseLine(line: string): Array<{
   
   for (const pattern of patterns) {
     let match;
+
     while ((match = pattern.regex.exec(line)) !== null) {
       tokens.push({
         type: pattern.type,

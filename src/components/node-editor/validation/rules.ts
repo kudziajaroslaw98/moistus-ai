@@ -129,6 +129,7 @@ export const validateNamedColor = (colorValue: string, startIndex: number): Vali
 	];
 	
 	const normalizedColor = colorValue.toLowerCase();
+
 	if (!namedColors.includes(normalizedColor)) {
 		const suggestions = namedColors.filter(color => 
 			color.startsWith(normalizedColor.charAt(0))
@@ -208,9 +209,11 @@ export const isLeapYear = (year: number): boolean => {
  */
 export const getDaysInMonth = (month: number, year: number): number => {
 	const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
 	if (month === 2 && isLeapYear(year)) {
 		return 29;
 	}
+
 	return daysInMonth[month - 1] || 0;
 };
 
@@ -573,6 +576,7 @@ export const validateTag = (tagContent: string, startIndex: number): ValidationE
 	// - [X] - checked (uppercase X)
 	// - [] - unchecked (empty brackets)
 	const taskCheckboxPattern = /^[\s]*[xX]?[\s]*$/;
+
 	if (taskCheckboxPattern.test(tagContent)) {
 		// This is a valid task checkbox, no validation needed
 		return null;
@@ -598,6 +602,7 @@ export const validateTag = (tagContent: string, startIndex: number): ValidationE
 	
 	// Check for invalid characters (basic validation)
 	const invalidChars = /[<>'"]/;
+
 	if (invalidChars.test(tagContent)) {
 		const cleanTag = tagContent.replace(/[<>'"]/g, '');
 		return {
@@ -789,6 +794,7 @@ export const validateInput = (text: string): ValidationError[] => {
 				validator: (match: RegExpExecArray) => {
 					try {
 						const priority = match[1];
+
 						if (!priority || priority.length === 0) {
 							return null;
 						}
@@ -797,6 +803,7 @@ export const validateInput = (text: string): ValidationError[] => {
 						const fullText = match.input || '';
 						const matchStart = match.index!;
 						const beforeMatch = fullText.substring(Math.max(0, matchStart - 10), matchStart);
+
 						if (beforeMatch.toLowerCase().includes('color:')) {
 							return null;
 						}
@@ -822,6 +829,7 @@ export const validateInput = (text: string): ValidationError[] => {
 				validator: (match: RegExpExecArray) => {
 					try {
 						const date = match[1];
+
 						if (!date || date.length === 0) {
 							return null;
 						}
@@ -842,6 +850,7 @@ export const validateInput = (text: string): ValidationError[] => {
 				validator: (match: RegExpExecArray) => {
 					try {
 						const assignee = match[1];
+
 						if (!assignee || assignee.length === 0) {
 							return null;
 						}
@@ -863,6 +872,7 @@ export const validateInput = (text: string): ValidationError[] => {
 			
 			while ((match = pattern.regex.exec(text)) !== null) {
 				const validationError = pattern.validator(match);
+
 				if (validationError) {
 					errors.push(validationError);
 				}
@@ -903,6 +913,7 @@ export const findSuggestions = (text: string): ValidationError[] => {
 		// Suggest date patterns for date-like words
 		if (/(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i.test(text) && !text.includes('@')) {
 			const match = text.match(/(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i);
+
 			if (match) {
 				const word = match[0];
 				const index = match.index!;
@@ -942,6 +953,7 @@ export const findIncompletePatterns = (text: string): ValidationError[] => {
 		
 		for (const incomplete of incompletePatterns) {
 			const match = incomplete.pattern.exec(text);
+
 			if (match) {
 				warnings.push({
 					type: 'warning',

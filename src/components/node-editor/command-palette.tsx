@@ -164,6 +164,7 @@ const CommandPaletteComponent = ({
 	// Handle command execution
 	const handleExecuteCommand = () => {
 		const selectedCommand = registryCommands[commandPalette.selectedIndex];
+
 		if (selectedCommand) {
 			onCommandExecute?.(selectedCommand);
 			executeCommand(selectedCommand as any); // Legacy support
@@ -208,10 +209,12 @@ const CommandPaletteComponent = ({
 									{commandPalette.trigger}
 								</span>
 							)}
+
 							<span className="text-sm font-medium text-zinc-300">
 								{commandPalette.trigger === '$' ? 'Node Types' : 
 								 commandPalette.trigger === '/' ? 'Commands' : 'Command Palette'}
 							</span>
+
 							<span className={theme.commandMeta}>
 								{registryCommands.length} commands
 							</span>
@@ -233,7 +236,9 @@ const CommandPaletteComponent = ({
 									<div className='text-zinc-600 mb-2'>
 										<Sparkles className='w-8 h-8 mx-auto' />
 									</div>
+
 									<p className='text-sm text-zinc-500'>No commands found</p>
+
 									<p className='text-xs text-zinc-600 mt-1'>
 										Try a different search term
 									</p>
@@ -251,6 +256,7 @@ const CommandPaletteComponent = ({
 
 											<div className={theme.category}>
 												<CategoryIcon className='w-3.5 h-3.5 text-teal-500/70' />
+
 												{category}
 											</div>
 
@@ -287,6 +293,7 @@ const CommandPaletteComponent = ({
 																<div className='flex flex-col flex-1 min-w-0'>
 																	<div className='font-medium text-sm text-zinc-100 truncate flex items-center gap-2'>
 																		{command.label}
+
 																		{command.shortcuts && command.shortcuts.length > 0 && (
 																			<span className='text-xs text-zinc-500 font-mono bg-zinc-800 px-1 rounded'>
 																				{command.shortcuts[0]}
@@ -328,17 +335,23 @@ const CommandPaletteComponent = ({
 							<div className='flex items-center gap-4'>
 								<span className='flex gap-1.5 items-center'>
 									<kbd className='px-2 py-1 bg-zinc-800/90 border border-zinc-700/50 rounded-md text-zinc-400 font-mono text-xs shadow-sm'>↑↓</kbd>
+
 									<span className='text-zinc-400'>navigate</span>
 								</span>
+
 								<span className='flex gap-1.5 items-center'>
 									<kbd className='px-2 py-1 bg-zinc-800/90 border border-zinc-700/50 rounded-md text-zinc-400 font-mono text-xs shadow-sm'>↵</kbd>
+
 									<span className='text-zinc-400'>select</span>
 								</span>
+
 								<span className='flex gap-1.5 items-center'>
 									<kbd className='px-2 py-1 bg-zinc-800/90 border border-zinc-700/50 rounded-md text-zinc-400 font-mono text-xs shadow-sm'>esc</kbd>
+
 									<span className='text-zinc-400'>close</span>
 								</span>
 							</div>
+
 							<div className='text-zinc-600 font-medium'>
 								Command Registry
 							</div>

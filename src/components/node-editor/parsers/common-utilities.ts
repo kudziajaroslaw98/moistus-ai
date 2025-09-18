@@ -377,7 +377,7 @@ const PATTERNS = {
 	},
 
 	targetMapId: {
-		regex: /targetmap:([^\s@\[\]]+)/g,
+		regex: /map:([^\s@\[\]]+)/g,
 		type: 'targetMapId' as PatternType,
 	},
 

@@ -83,6 +83,7 @@ export const NodeContent = forwardRef<HTMLDivElement, NodeContentProps>(({
 						delay: 0,
 					}}
 				/>
+
 				<motion.div
 					className="w-1 h-4 rounded-full"
 					style={{ backgroundColor: theme.text.disabled }}
@@ -93,6 +94,7 @@ export const NodeContent = forwardRef<HTMLDivElement, NodeContentProps>(({
 						delay: 0.2,
 					}}
 				/>
+
 				<motion.div
 					className="w-1 h-4 rounded-full"
 					style={{ backgroundColor: theme.text.disabled }}
@@ -103,6 +105,7 @@ export const NodeContent = forwardRef<HTMLDivElement, NodeContentProps>(({
 						delay: 0.4,
 					}}
 				/>
+
 				<span 
 					className="ml-2"
 					style={{ 

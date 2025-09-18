@@ -84,10 +84,13 @@ export function CreateMapDialog({
 				>
 					<p className='text-xs text-zinc-500'>
 						Press{' '}
+
 						<kbd className='px-1.5 py-0.5 mx-1 bg-zinc-800/50 rounded border border-zinc-700/50 text-xs'>
 							Enter
 						</kbd>{' '}
+
 						to create or{' '}
+
 						<kbd className='px-1.5 py-0.5 mx-1 bg-zinc-800/50 rounded border border-zinc-700/50 text-xs'>
 							Esc
 						</kbd>{' '}

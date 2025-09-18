@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import * as TabsPrimitive from '@radix-ui/react-tabs';
-import { ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -64,4 +64,3 @@ function TabsContent({
 }
 
 export { Tabs, TabsContent, TabsList, TabsTrigger };
-

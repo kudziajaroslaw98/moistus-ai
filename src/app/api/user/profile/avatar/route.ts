@@ -27,6 +27,7 @@ export async function POST(request: Request) {
 
 		// Validate file type
 		const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
 		if (!allowedTypes.includes(file.type)) {
 			return NextResponse.json(
 				{ error: 'Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed' },
@@ -36,6 +37,7 @@ export async function POST(request: Request) {
 
 		// Validate file size (2MB limit)
 		const maxSize = 2 * 1024 * 1024; // 2MB
+
 		if (file.size > maxSize) {
 			return NextResponse.json(
 				{ error: 'File size too large. Maximum size is 2MB' },

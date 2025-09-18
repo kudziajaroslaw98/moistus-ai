@@ -521,7 +521,7 @@ export const nodeCommands: NodeCommand[] = [
 		nodeType: 'referenceNode',
 		category: 'content',
 		label: 'Reference',
-		description: 'Create a reference to another node or analysis map',
+		description: 'Create a reference to another node or map by searching content',
 		icon: Link,
 		quickParse: (input: string) => {
 			const result = {
@@ -529,27 +529,35 @@ export const nodeCommands: NodeCommand[] = [
 				metadata: {} as any,
 			};
 
-			// Parse target references
+			// Clean content first by removing all existing patterns to prevent duplication
+			const cleanContent = input
+				.replace(/target:[^\s]+\s*/g, '') // Remove all target: patterns
+				.replace(/map:[^\s]+\s*/g, '')    // Remove all map: patterns
+				.replace(/confidence:[^\s]+\s*/g, '') // Remove all confidence: patterns
+				.trim();
+
+			// Parse target references (use last occurrence only)
 			const targetMatch = input.match(/target:([^\s]+)/);
+
 			if (targetMatch) {
 				result.metadata.targetNodeId = targetMatch[1];
-				result.content = input.replace(/target:[^\s]+/, '').trim();
 			}
 
-			// Parse map references
+			// Parse map references (use last occurrence only)
 			const mapMatch = input.match(/map:([^\s]+)/);
+
 			if (mapMatch) {
 				result.metadata.targetMapId = mapMatch[1];
-				result.content = input.replace(/map:[^\s]+/, '').trim();
 			}
 
-			// Parse confidence level
+			// Parse confidence level (use last occurrence only)
 			const confidenceMatch = input.match(/confidence:(\d+(?:\.\d+)?)/);
+
 			if (confidenceMatch) {
 				result.metadata.confidence = parseFloat(confidenceMatch[1]);
-				result.content = input.replace(/confidence:[^\s]+/, '').trim();
 			}
 
+			result.content = cleanContent;
 			return result;
 		},
 		parsingPatterns: [
@@ -558,8 +566,9 @@ export const nodeCommands: NodeCommand[] = [
 				description: 'Switch to reference node type',
 				category: 'metadata',
 				examples: [
-					'$reference target:node-123',
-					'$reference Cross-reference to analysis map:analysis-456',
+					'$reference meeting notes #important',
+					'$reference API documentation !in-progress',
+					'$reference Cross-reference to project analysis',
 				],
 			},
 			{

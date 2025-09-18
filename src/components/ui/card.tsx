@@ -1,16 +1,12 @@
-import * as React from 'react';
-
 import { cn } from '@/lib/utils';
+import type { ComponentProps } from 'react';
 import { GlassmorphismTheme } from '../nodes/themes/glassmorphism-theme';
 
-function Card({ className, ...props }: React.ComponentProps<'div'>) {
+function Card({ className, ...props }: ComponentProps<'div'>) {
 	return (
 		<div
 			data-slot='card'
-			className={cn(
-				'flex flex-col gap-6 rounded-xl shadow-sm py-6',
-				className
-			)}
+			className={cn('flex flex-col gap-6 rounded-xl shadow-sm py-6', className)}
 			style={{
 				backgroundColor: GlassmorphismTheme.elevation[2], // Raised card elevation
 				border: `1px solid ${GlassmorphismTheme.borders.default}`,
@@ -21,7 +17,7 @@ function Card({ className, ...props }: React.ComponentProps<'div'>) {
 	);
 }
 
-function CardHeader({ className, ...props }: React.ComponentProps<'div'>) {
+function CardHeader({ className, ...props }: ComponentProps<'div'>) {
 	return (
 		<div
 			data-slot='card-header'
@@ -34,7 +30,7 @@ function CardHeader({ className, ...props }: React.ComponentProps<'div'>) {
 	);
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<'div'>) {
+function CardTitle({ className, ...props }: ComponentProps<'div'>) {
 	return (
 		<div
 			data-slot='card-title'
@@ -44,7 +40,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<'div'>) {
 	);
 }
 
-function CardDescription({ className, ...props }: React.ComponentProps<'div'>) {
+function CardDescription({ className, ...props }: ComponentProps<'div'>) {
 	return (
 		<div
 			data-slot='card-description'
@@ -54,7 +50,7 @@ function CardDescription({ className, ...props }: React.ComponentProps<'div'>) {
 	);
 }
 
-function CardAction({ className, ...props }: React.ComponentProps<'div'>) {
+function CardAction({ className, ...props }: ComponentProps<'div'>) {
 	return (
 		<div
 			data-slot='card-action'
@@ -67,7 +63,7 @@ function CardAction({ className, ...props }: React.ComponentProps<'div'>) {
 	);
 }
 
-function CardContent({ className, ...props }: React.ComponentProps<'div'>) {
+function CardContent({ className, ...props }: ComponentProps<'div'>) {
 	return (
 		<div
 			data-slot='card-content'
@@ -77,7 +73,7 @@ function CardContent({ className, ...props }: React.ComponentProps<'div'>) {
 	);
 }
 
-function CardFooter({ className, ...props }: React.ComponentProps<'div'>) {
+function CardFooter({ className, ...props }: ComponentProps<'div'>) {
 	return (
 		<div
 			data-slot='card-footer'

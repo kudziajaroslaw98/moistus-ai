@@ -340,6 +340,7 @@ export const universalCompletionSource = (context: any) => {
 	
 	for (const matcher of patternMatchers) {
 		const match = beforeCursor.match(matcher.pattern);
+
 		if (match) {
 			// Validate match if validator provided
 			if (matcher.validate && !matcher.validate(match)) {

@@ -26,6 +26,7 @@ export const ModeToggle: React.FC<ModeToggleProps> = ({
 				<div className='flex flex-col gap-1'>
 					<div className='flex items-center justify-between'>
 						<span className='text-xs text-zinc-300'>Input Mode</span>
+
 						{onShowTypePicker && selectedCommand && (
 							<button
 								onClick={onShowTypePicker}

@@ -28,9 +28,11 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 
 	const handleImageLoad = (event: any) => {
 		const img = event.target;
+
 		if (img.naturalWidth && img.naturalHeight) {
 			setAspectRatio(img.naturalWidth / img.naturalHeight);
 		}
+
 		setImageState('loaded');
 	};
 
@@ -98,6 +100,7 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 									className='w-8 h-8 mb-2'
 									style={{ color: GlassmorphismTheme.indicators.status.error }}
 								/>
+
 								<span
 									style={{
 										fontSize: '13px',
@@ -107,6 +110,7 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 								>
 									Unable to load image
 								</span>
+
 								<span
 									style={{
 										fontSize: '11px',
@@ -213,6 +217,7 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 								className='w-8 h-8 mx-auto mb-2'
 								style={{ color: 'rgba(255, 255, 255, 0.2)' }}
 							/>
+
 							<span
 								style={{
 									fontSize: '12px',
@@ -292,6 +297,7 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 										{data.metadata.dimensions}
 									</span>
 								)}
+
 								{data.metadata?.fileSize && (
 									<span
 										style={{
@@ -302,6 +308,7 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 										{data.metadata.fileSize}
 									</span>
 								)}
+
 								{data.metadata?.format && (
 									<span
 										style={{

@@ -230,16 +230,19 @@ export default function NotificationsSettingsPage() {
 			<div className='flex items-center justify-between'>
 				<div>
 					<h2 className='text-2xl font-bold text-white'>Notification Settings</h2>
+
 					<p className='text-zinc-400 mt-1'>
 						Configure how and when you receive notifications
 					</p>
 				</div>
+
 				<Button
 					onClick={handleSave}
 					disabled={isSaving}
 					className='bg-sky-600 hover:bg-sky-700'
 				>
 					<Save className='size-4 mr-2' />
+
 					{isSaving ? 'Saving...' : 'Save Changes'}
 				</Button>
 			</div>
@@ -251,18 +254,22 @@ export default function NotificationsSettingsPage() {
 						<Mail className='size-5' />
 						Email Notifications
 					</CardTitle>
+
 					<CardDescription>
 						Configure when you receive email notifications
 					</CardDescription>
 				</CardHeader>
+
 				<CardContent className='space-y-4'>
 					<div className='flex items-center justify-between p-3 bg-zinc-800/30 rounded-lg'>
 						<div>
 							<Label className='text-white'>Enable email notifications</Label>
+
 							<p className='text-sm text-zinc-400'>
 								Master control for all email notifications
 							</p>
 						</div>
+
 						<Switch
 							checked={settings.email.enabled}
 							onCheckedChange={(checked) => updateEmailSetting('enabled', checked)}
@@ -276,10 +283,12 @@ export default function NotificationsSettingsPage() {
 							<div className='flex items-center justify-between'>
 								<div>
 									<Label>Comments</Label>
+
 									<p className='text-sm text-zinc-400'>
 										Get notified when someone comments on your mind maps
 									</p>
 								</div>
+
 								<Switch
 									checked={settings.email.comments}
 									onCheckedChange={(checked) => updateEmailSetting('comments', checked)}
@@ -289,10 +298,12 @@ export default function NotificationsSettingsPage() {
 							<div className='flex items-center justify-between'>
 								<div>
 									<Label>Mentions</Label>
+
 									<p className='text-sm text-zinc-400'>
 										Get notified when someone mentions you
 									</p>
 								</div>
+
 								<Switch
 									checked={settings.email.mentions}
 									onCheckedChange={(checked) => updateEmailSetting('mentions', checked)}
@@ -302,10 +313,12 @@ export default function NotificationsSettingsPage() {
 							<div className='flex items-center justify-between'>
 								<div>
 									<Label>Reactions</Label>
+
 									<p className='text-sm text-zinc-400'>
 										Get notified when someone reacts to your content
 									</p>
 								</div>
+
 								<Switch
 									checked={settings.email.reactions}
 									onCheckedChange={(checked) => updateEmailSetting('reactions', checked)}
@@ -315,10 +328,12 @@ export default function NotificationsSettingsPage() {
 							<div className='flex items-center justify-between'>
 								<div>
 									<Label>Collaboration invites</Label>
+
 									<p className='text-sm text-zinc-400'>
 										Get notified when you're invited to collaborate
 									</p>
 								</div>
+
 								<Switch
 									checked={settings.email.collaborations}
 									onCheckedChange={(checked) => updateEmailSetting('collaborations', checked)}
@@ -328,10 +343,12 @@ export default function NotificationsSettingsPage() {
 							<div className='flex items-center justify-between'>
 								<div>
 									<Label>Product updates</Label>
+
 									<p className='text-sm text-zinc-400'>
 										Get notified about new features and improvements
 									</p>
 								</div>
+
 								<Switch
 									checked={settings.email.updates}
 									onCheckedChange={(checked) => updateEmailSetting('updates', checked)}
@@ -341,10 +358,12 @@ export default function NotificationsSettingsPage() {
 							<div className='flex items-center justify-between'>
 								<div>
 									<Label>Marketing emails</Label>
+
 									<p className='text-sm text-zinc-400'>
 										Receive tips, tutorials, and promotional content
 									</p>
 								</div>
+
 								<Switch
 									checked={settings.email.marketing}
 									onCheckedChange={(checked) => updateEmailSetting('marketing', checked)}
@@ -362,18 +381,22 @@ export default function NotificationsSettingsPage() {
 						<Smartphone className='size-5' />
 						Push Notifications
 					</CardTitle>
+
 					<CardDescription>
 						Configure browser and mobile push notifications
 					</CardDescription>
 				</CardHeader>
+
 				<CardContent className='space-y-4'>
 					<div className='flex items-center justify-between p-3 bg-zinc-800/30 rounded-lg'>
 						<div>
 							<Label className='text-white'>Enable push notifications</Label>
+
 							<p className='text-sm text-zinc-400'>
 								Master control for all push notifications
 							</p>
 						</div>
+
 						<Switch
 							checked={settings.push.enabled}
 							onCheckedChange={(checked) => updatePushSetting('enabled', checked)}
@@ -387,10 +410,12 @@ export default function NotificationsSettingsPage() {
 							<div className='flex items-center justify-between'>
 								<div>
 									<Label>Comments</Label>
+
 									<p className='text-sm text-zinc-400'>
 										Get push notifications for comments
 									</p>
 								</div>
+
 								<Switch
 									checked={settings.push.comments}
 									onCheckedChange={(checked) => updatePushSetting('comments', checked)}
@@ -400,10 +425,12 @@ export default function NotificationsSettingsPage() {
 							<div className='flex items-center justify-between'>
 								<div>
 									<Label>Mentions</Label>
+
 									<p className='text-sm text-zinc-400'>
 										Get push notifications for mentions
 									</p>
 								</div>
+
 								<Switch
 									checked={settings.push.mentions}
 									onCheckedChange={(checked) => updatePushSetting('mentions', checked)}
@@ -413,10 +440,12 @@ export default function NotificationsSettingsPage() {
 							<div className='flex items-center justify-between'>
 								<div>
 									<Label>Reactions</Label>
+
 									<p className='text-sm text-zinc-400'>
 										Get push notifications for reactions
 									</p>
 								</div>
+
 								<Switch
 									checked={settings.push.reactions}
 									onCheckedChange={(checked) => updatePushSetting('reactions', checked)}
@@ -426,10 +455,12 @@ export default function NotificationsSettingsPage() {
 							<div className='flex items-center justify-between'>
 								<div>
 									<Label>Collaboration invites</Label>
+
 									<p className='text-sm text-zinc-400'>
 										Get push notifications for collaboration invites
 									</p>
 								</div>
+
 								<Switch
 									checked={settings.push.collaborations}
 									onCheckedChange={(checked) => updatePushSetting('collaborations', checked)}
@@ -447,13 +478,16 @@ export default function NotificationsSettingsPage() {
 						<Bell className='size-5' />
 						Notification Preferences
 					</CardTitle>
+
 					<CardDescription>
 						Customize how notifications are delivered
 					</CardDescription>
 				</CardHeader>
+
 				<CardContent className='space-y-6'>
 					<div className='space-y-3'>
 						<Label>Notification frequency</Label>
+
 						<Select
 							value={settings.frequency}
 							onValueChange={(value: 'instant' | 'daily' | 'weekly') =>
@@ -463,6 +497,7 @@ export default function NotificationsSettingsPage() {
 							<SelectTrigger className='bg-zinc-800 border-zinc-600'>
 								<SelectValue />
 							</SelectTrigger>
+
 							<SelectContent>
 								<SelectItem value='instant'>
 									<div className='flex items-center gap-2'>
@@ -470,12 +505,14 @@ export default function NotificationsSettingsPage() {
 										Instant - Receive notifications immediately
 									</div>
 								</SelectItem>
+
 								<SelectItem value='daily'>
 									<div className='flex items-center gap-2'>
 										<MessageSquare className='size-4' />
 										Daily digest - Once per day summary
 									</div>
 								</SelectItem>
+
 								<SelectItem value='weekly'>
 									<div className='flex items-center gap-2'>
 										<BellOff className='size-4' />
@@ -492,10 +529,12 @@ export default function NotificationsSettingsPage() {
 						<div className='flex items-center justify-between'>
 							<div>
 								<Label className='text-white'>Quiet hours</Label>
+
 								<p className='text-sm text-zinc-400'>
 									Pause notifications during specific hours
 								</p>
 							</div>
+
 							<Switch
 								checked={settings.quietHours.enabled}
 								onCheckedChange={(checked) => updateQuietHours('enabled', checked)}
@@ -506,6 +545,7 @@ export default function NotificationsSettingsPage() {
 							<div className='grid grid-cols-2 gap-4 pl-6'>
 								<div className='space-y-2'>
 									<Label htmlFor='quiet-start'>Start time</Label>
+
 									<Select
 										value={settings.quietHours.start}
 										onValueChange={(value) => updateQuietHours('start', value)}
@@ -513,6 +553,7 @@ export default function NotificationsSettingsPage() {
 										<SelectTrigger className='bg-zinc-800 border-zinc-600'>
 											<SelectValue />
 										</SelectTrigger>
+
 										<SelectContent>
 											{Array.from({ length: 24 }, (_, i) => {
 												const hour = i.toString().padStart(2, '0');
@@ -525,8 +566,10 @@ export default function NotificationsSettingsPage() {
 										</SelectContent>
 									</Select>
 								</div>
+
 								<div className='space-y-2'>
 									<Label htmlFor='quiet-end'>End time</Label>
+
 									<Select
 										value={settings.quietHours.end}
 										onValueChange={(value) => updateQuietHours('end', value)}
@@ -534,6 +577,7 @@ export default function NotificationsSettingsPage() {
 										<SelectTrigger className='bg-zinc-800 border-zinc-600'>
 											<SelectValue />
 										</SelectTrigger>
+
 										<SelectContent>
 											{Array.from({ length: 24 }, (_, i) => {
 												const hour = i.toString().padStart(2, '0');

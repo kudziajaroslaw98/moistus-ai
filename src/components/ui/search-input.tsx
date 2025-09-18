@@ -1,6 +1,12 @@
 import { cn } from '@/utils/cn';
 import { Search } from 'lucide-react';
-import { InputHTMLAttributes, forwardRef, useState } from 'react';
+import {
+	forwardRef,
+	useState,
+	type ChangeEvent,
+	type FocusEvent,
+	type InputHTMLAttributes,
+} from 'react';
 import { Input } from './input';
 
 export interface SearchInputProps
@@ -15,17 +21,17 @@ const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
 			!!props.value || !!props.defaultValue
 		);
 
-		const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+		const handleFocus = (e: FocusEvent<HTMLInputElement>) => {
 			setIsFocused(true);
 			props.onFocus?.(e);
 		};
 
-		const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+		const handleBlur = (e: FocusEvent<HTMLInputElement>) => {
 			setIsFocused(false);
 			props.onBlur?.(e);
 		};
 
-		const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
 			setHasValue(!!e.target.value);
 			props.onChange?.(e);
 		};

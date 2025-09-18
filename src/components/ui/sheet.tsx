@@ -2,7 +2,7 @@
 
 import * as SheetPrimitive from '@radix-ui/react-dialog';
 import { XIcon } from 'lucide-react';
-import { ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 import { cn } from '@/lib/utils';
 import { GlassmorphismTheme } from '../nodes/themes/glassmorphism-theme';
@@ -17,9 +17,7 @@ function SheetTrigger({
 	return <SheetPrimitive.Trigger data-slot='sheet-trigger' {...props} />;
 }
 
-function SheetClose({
-	...props
-}: ComponentProps<typeof SheetPrimitive.Close>) {
+function SheetClose({ ...props }: ComponentProps<typeof SheetPrimitive.Close>) {
 	return <SheetPrimitive.Close data-slot='sheet-close' {...props} />;
 }
 
@@ -77,10 +75,16 @@ function SheetContent({
 				)}
 				style={{
 					backgroundColor: GlassmorphismTheme.elevation[16], // Sheet elevation
-					border: side === 'right' ? `1px solid ${GlassmorphismTheme.borders.default}` :
-						side === 'left' ? `1px solid ${GlassmorphismTheme.borders.default}` :
-						side === 'top' ? `1px solid ${GlassmorphismTheme.borders.default}` :
-						side === 'bottom' ? `1px solid ${GlassmorphismTheme.borders.default}` : 'none',
+					border:
+						side === 'right'
+							? `1px solid ${GlassmorphismTheme.borders.default}`
+							: side === 'left'
+								? `1px solid ${GlassmorphismTheme.borders.default}`
+								: side === 'top'
+									? `1px solid ${GlassmorphismTheme.borders.default}`
+									: side === 'bottom'
+										? `1px solid ${GlassmorphismTheme.borders.default}`
+										: 'none',
 					backdropFilter: 'blur(12px)',
 					color: GlassmorphismTheme.text.high,
 				}}
@@ -154,4 +158,3 @@ export {
 	SheetTitle,
 	SheetTrigger,
 };
-

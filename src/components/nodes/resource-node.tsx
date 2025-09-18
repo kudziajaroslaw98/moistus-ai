@@ -65,6 +65,7 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 									<div className='w-full h-full animate-pulse'
 										style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
 									/>
+
 									<Globe className='absolute w-8 h-8' 
 										style={{ color: 'rgba(255, 255, 255, 0.1)' }} />
 								</motion.div>
@@ -95,6 +96,7 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 								<div className='text-center'>
 									<Globe className='w-8 h-8 mx-auto mb-2' 
 										style={{ color: 'rgba(255, 255, 255, 0.2)' }} />
+
 									<span style={{ 
 										fontSize: '12px',
 										color: GlassmorphismTheme.text.disabled
@@ -126,6 +128,7 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 							<div className='flex items-center gap-1.5'>
 								<Globe className='w-3 h-3 flex-shrink-0' 
 									style={{ color: 'rgba(147, 197, 253, 0.6)' }} />
+
 								<span style={{
 									fontSize: '12px',
 									color: 'rgba(147, 197, 253, 0.6)',
@@ -197,6 +200,7 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 										background: 'linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.2) 30%, rgba(52, 211, 153, 0.2) 70%, transparent)',
 									}}
 								/>
+
 								<div className='relative flex justify-center'>
 									<span className='px-3 py-1 rounded-full text-xs font-medium'
 										style={{

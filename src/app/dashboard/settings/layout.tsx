@@ -78,6 +78,7 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
 		if (href === '/dashboard/settings') {
 			return pathname === href;
 		}
+
 		return pathname === href;
 	};
 
@@ -86,6 +87,7 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
 			{/* Header */}
 			<div className='mb-8'>
 				<h1 className='text-3xl font-bold text-white mb-2'>Settings</h1>
+
 				<p className='text-zinc-400'>
 					Manage your account settings and application preferences
 				</p>
@@ -119,6 +121,7 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
 									>
 										{item.icon}
 									</div>
+
 									<div className='min-w-0'>
 										<div
 											className={cn(
@@ -128,6 +131,7 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
 										>
 											{item.label}
 										</div>
+
 										<div
 											className={cn(
 												'text-xs mt-0.5',

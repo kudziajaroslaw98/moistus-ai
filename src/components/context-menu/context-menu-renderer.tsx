@@ -1,12 +1,12 @@
 'use client';
-import React from 'react';
+import { Fragment } from 'react';
 import { ContextMenuItem } from './context-menu-item';
 import { ContextMenuSection } from './context-menu-section';
 import { MenuSection } from './types';
 
 interface ContextMenuRendererProps {
 	sections: MenuSection[];
-	menuItemsRef?: React.MutableRefObject<(HTMLButtonElement | null)[]>;
+	menuItemsRef?: MutableRefObject<(HTMLButtonElement | null)[]>;
 }
 
 export function ContextMenuRenderer({
@@ -26,11 +26,7 @@ export function ContextMenuRenderer({
 				const sectionContent = visibleItems.map((item) => {
 					// If the item has a custom component, render it directly
 					if (item.customComponent) {
-						return (
-							<React.Fragment key={item.id}>
-								{item.customComponent}
-							</React.Fragment>
-						);
+						return <Fragment key={item.id}>{item.customComponent}</Fragment>;
 					}
 
 					// Otherwise render the standard menu item
@@ -68,9 +64,7 @@ export function ContextMenuRenderer({
 					);
 				}
 
-				return (
-					<React.Fragment key={section.id}>{sectionContent}</React.Fragment>
-				);
+				return <Fragment key={section.id}>{sectionContent}</Fragment>;
 			})}
 		</>
 	);

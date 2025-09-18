@@ -25,6 +25,8 @@ import type { AvailableNodeTypes } from '../../../types/available-node-types';
 import {
   referenceCompletionSource,
   referenceCompletionState,
+  currentNodeTypeState,
+  nodeTypeUpdateEffect,
   isInReferenceSearchMode
 } from './reference-completions';
 
@@ -113,25 +115,32 @@ const commandCompletionState = StateField.define({
 /**
  * Main completion source for command triggers
  */
-function commandCompletions(context: CompletionContext): CompletionResult | null {
+async function commandCompletions(context: CompletionContext): Promise<CompletionResult | null> {
   try {
     const { state, pos } = context;
     const text = state.doc.toString();
 
+    console.log('🎯 commandCompletions called');
+
     // Try reference completions first when in reference search mode
     if (isInReferenceSearchMode(context)) {
-      // Return promise for async reference completions
-      return referenceCompletionSource(context) as any;
+      console.log('🔄 Reference search mode detected, calling referenceCompletionSource');
+      // Properly await async reference completions
+      const result = await referenceCompletionSource(context);
+      console.log('🎯 Reference completion result:', JSON.stringify(result));
+      return result;
     }
 
     // Try node type completions
     const nodeTypeResult = nodeTypeCompletions(context);
+
     if (nodeTypeResult) {
       return nodeTypeResult;
     }
 
     // Try slash command completions
     const slashResult = slashCommandCompletions(context);
+
     if (slashResult) {
       return slashResult;
     }
@@ -190,6 +199,7 @@ function nodeTypeCompletions(context: CompletionContext): CompletionResult | nul
     apply: (view: EditorView, completion: Completion, from: number, to: number) => {
       try {
         const nodeType = mapTriggerToNodeType(cmd.trigger);
+
         if (!nodeType) {
           console.error(`No node type mapping for trigger: ${cmd.trigger}`);
           return;
@@ -293,9 +303,11 @@ function slashCommandCompletions(context: CompletionContext): CompletionResult |
   // Group commands by category
   const commandsByCategory = matchingCommands.reduce((acc, cmd) => {
     const category = cmd.category;
+
     if (!acc[category]) {
       acc[category] = [];
     }
+
     acc[category].push(cmd);
     return acc;
   }, {} as Record<string, Command[]>);
@@ -463,6 +475,7 @@ export function createCommandCompletions(): Extension {
   return [
     commandCompletionState,
     referenceCompletionState, // Add reference completion state
+    currentNodeTypeState, // Add current node type state
     autocompletion({
       override: [commandCompletions],
       maxRenderedOptions: 25, // Increased from 15 to show more completions
@@ -475,11 +488,13 @@ export function createCommandCompletions(): Extension {
       tooltipClass: (completion) => {
         // Add special styling for reference completions
         const classes = ['enhanced-completion-tooltip'];
+
         if (completion.section && typeof completion.section === 'object' && 'name' in completion.section) {
           if (completion.section.name === 'Referenced Nodes') {
             classes.push('reference-completion-tooltip');
           }
         }
+
         return classes.join(' ');
       },
       optionClass: (completion) => {

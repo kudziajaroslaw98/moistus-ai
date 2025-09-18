@@ -1,6 +1,6 @@
 import { cn } from '@/utils/cn';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { HTMLMotionProps, motion } from 'motion/react';
+import { type HTMLMotionProps, motion } from 'motion/react';
 import { forwardRef } from 'react';
 
 const buttonVariants = cva(
@@ -9,21 +9,19 @@ const buttonVariants = cva(
 		variants: {
 			variant: {
 				default: 'bg-teal-600 text-white hover:bg-teal-700',
-				secondary:
-					'border text-white/87 hover:text-white hover:bg-white/5',
-				destructive:
-					'bg-rose-600 text-white hover:bg-rose-700',
+				secondary: 'border text-white/87 hover:text-white hover:bg-white/5',
+				destructive: 'bg-rose-600 text-white hover:bg-rose-700',
 				ghost:
 					'bg-transparent hover:bg-white/5 text-white/60 hover:text-white/87',
 				'ghost-destructive':
 					'bg-transparent hover:bg-rose-600/10 text-rose-400 hover:text-rose-300',
 				outline:
 					'border bg-transparent hover:bg-white/5 text-white/60 hover:text-white/87',
-				success:
-					'bg-emerald-600 text-white hover:bg-emerald-700',
+				success: 'bg-emerald-600 text-white hover:bg-emerald-700',
 				sky: 'bg-gradient-to-r from-sky-600 to-sky-700 text-white shadow-lg shadow-sky-600/25 hover:shadow-xl hover:shadow-sky-600/30 transition-all duration-200',
 				// Material Design control button variant
-				control: 'h-6 px-1.5 text-xs border border-white/10 bg-white/5 text-white/87 hover:bg-white/10 hover:border-white/20 rounded',
+				control:
+					'h-6 px-1.5 text-xs border border-white/10 bg-white/5 text-white/87 hover:bg-white/10 hover:border-white/20 rounded',
 			},
 			size: {
 				default: 'h-8 px-3 py-1.5 text-xs rounded-sm',

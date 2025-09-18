@@ -107,6 +107,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 					</motion.div>
 				);
 			}
+
 			if (item.badge) {
 				return (
 					<motion.div
@@ -121,6 +122,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 					</motion.div>
 				);
 			}
+
 			return undefined;
 		};
 
@@ -147,9 +149,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 						<TooltipTrigger className='w-full flex'>
 							{content}
 						</TooltipTrigger>
+
 						<TooltipContent>
 							<div className='flex flex-col gap-1'>
 								<span>{item.label}</span>
+
 								{item.comingSoon && (
 									<span className='text-xs text-amber-400'>Coming Soon</span>
 								)}

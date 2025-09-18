@@ -1,5 +1,5 @@
 import { cva, type VariantProps } from 'class-variance-authority';
-import { ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -47,10 +47,7 @@ function AlertTitle({ className, ...props }: ComponentProps<'div'>) {
 	);
 }
 
-function AlertDescription({
-	className,
-	...props
-}: ComponentProps<'div'>) {
+function AlertDescription({ className, ...props }: ComponentProps<'div'>) {
 	return (
 		<div
 			data-slot='alert-description'

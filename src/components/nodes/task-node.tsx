@@ -75,6 +75,7 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 								<span style={{ color: GlassmorphismTheme.text.medium }}>
 									Progress
 								</span>
+
 								<span style={{ 
 									color: stats.percentage === 100 
 										? GlassmorphismTheme.indicators.status.complete

@@ -238,16 +238,19 @@ export default function PrivacySettingsPage() {
 			<div className='flex items-center justify-between'>
 				<div>
 					<h2 className='text-2xl font-bold text-white'>Privacy Settings</h2>
+
 					<p className='text-zinc-400 mt-1'>
 						Control your data visibility and privacy preferences
 					</p>
 				</div>
+
 				<Button
 					onClick={handleSave}
 					disabled={isSaving}
 					className='bg-sky-600 hover:bg-sky-700'
 				>
 					<Save className='size-4 mr-2' />
+
 					{isSaving ? 'Saving...' : 'Save Changes'}
 				</Button>
 			</div>
@@ -259,13 +262,16 @@ export default function PrivacySettingsPage() {
 						<Eye className='size-5' />
 						Profile Visibility
 					</CardTitle>
+
 					<CardDescription>
 						Control who can see your profile information
 					</CardDescription>
 				</CardHeader>
+
 				<CardContent className='space-y-4'>
 					<div className='space-y-2'>
 						<Label>Profile visibility</Label>
+
 						<Select
 							value={settings.profile.visibility}
 							onValueChange={(value: 'public' | 'connections' | 'private') =>
@@ -275,6 +281,7 @@ export default function PrivacySettingsPage() {
 							<SelectTrigger className='bg-zinc-800 border-zinc-600'>
 								<SelectValue />
 							</SelectTrigger>
+
 							<SelectContent>
 								<SelectItem value='public'>
 									<div className='flex items-center gap-2'>
@@ -282,12 +289,14 @@ export default function PrivacySettingsPage() {
 										Public - Anyone can see your profile
 									</div>
 								</SelectItem>
+
 								<SelectItem value='connections'>
 									<div className='flex items-center gap-2'>
 										<Users className='size-4' />
 										Connections only - Only people you collaborate with
 									</div>
 								</SelectItem>
+
 								<SelectItem value='private'>
 									<div className='flex items-center gap-2'>
 										<Lock className='size-4' />
@@ -305,10 +314,12 @@ export default function PrivacySettingsPage() {
 							<div className='flex items-center justify-between'>
 								<div>
 									<Label>Show email address</Label>
+
 									<p className='text-sm text-zinc-400'>
 										Display your email on your public profile
 									</p>
 								</div>
+
 								<Switch
 									checked={settings.profile.showEmail}
 									onCheckedChange={(checked) => updateProfileSetting('showEmail', checked)}
@@ -318,10 +329,12 @@ export default function PrivacySettingsPage() {
 							<div className='flex items-center justify-between'>
 								<div>
 									<Label>Show location</Label>
+
 									<p className='text-sm text-zinc-400'>
 										Display your location on your public profile
 									</p>
 								</div>
+
 								<Switch
 									checked={settings.profile.showLocation}
 									onCheckedChange={(checked) => updateProfileSetting('showLocation', checked)}
@@ -331,10 +344,12 @@ export default function PrivacySettingsPage() {
 							<div className='flex items-center justify-between'>
 								<div>
 									<Label>Show company</Label>
+
 									<p className='text-sm text-zinc-400'>
 										Display your company information on your profile
 									</p>
 								</div>
+
 								<Switch
 									checked={settings.profile.showCompany}
 									onCheckedChange={(checked) => updateProfileSetting('showCompany', checked)}
@@ -344,10 +359,12 @@ export default function PrivacySettingsPage() {
 							<div className='flex items-center justify-between'>
 								<div>
 									<Label>Show activity</Label>
+
 									<p className='text-sm text-zinc-400'>
 										Display your recent activity and mind maps
 									</p>
 								</div>
+
 								<Switch
 									checked={settings.profile.showActivity}
 									onCheckedChange={(checked) => updateProfileSetting('showActivity', checked)}
@@ -365,13 +382,16 @@ export default function PrivacySettingsPage() {
 						<Shield className='size-5' />
 						Mind Map Privacy
 					</CardTitle>
+
 					<CardDescription>
 						Control the default privacy settings for your mind maps
 					</CardDescription>
 				</CardHeader>
+
 				<CardContent className='space-y-4'>
 					<div className='space-y-2'>
 						<Label>Default visibility for new mind maps</Label>
+
 						<Select
 							value={settings.mindMaps.defaultVisibility}
 							onValueChange={(value: 'public' | 'private' | 'unlisted') =>
@@ -381,6 +401,7 @@ export default function PrivacySettingsPage() {
 							<SelectTrigger className='bg-zinc-800 border-zinc-600'>
 								<SelectValue />
 							</SelectTrigger>
+
 							<SelectContent>
 								<SelectItem value='public'>
 									<div className='flex items-center gap-2'>
@@ -388,12 +409,14 @@ export default function PrivacySettingsPage() {
 										Public - Visible to everyone
 									</div>
 								</SelectItem>
+
 								<SelectItem value='unlisted'>
 									<div className='flex items-center gap-2'>
 										<EyeOff className='size-4' />
 										Unlisted - Only accessible via link
 									</div>
 								</SelectItem>
+
 								<SelectItem value='private'>
 									<div className='flex items-center gap-2'>
 										<Lock className='size-4' />
@@ -409,10 +432,12 @@ export default function PrivacySettingsPage() {
 					<div className='flex items-center justify-between'>
 						<div>
 							<Label>Allow search engine indexing</Label>
+
 							<p className='text-sm text-zinc-400'>
 								Allow search engines to index your public mind maps
 							</p>
 						</div>
+
 						<Switch
 							checked={settings.mindMaps.allowSearchIndexing}
 							onCheckedChange={(checked) => updateMindMapSetting('allowSearchIndexing', checked)}
@@ -422,10 +447,12 @@ export default function PrivacySettingsPage() {
 					<div className='flex items-center justify-between'>
 						<div>
 							<Label>Allow comments by default</Label>
+
 							<p className='text-sm text-zinc-400'>
 								Enable comments on new mind maps by default
 							</p>
 						</div>
+
 						<Switch
 							checked={settings.mindMaps.allowComments}
 							onCheckedChange={(checked) => updateMindMapSetting('allowComments', checked)}
@@ -435,10 +462,12 @@ export default function PrivacySettingsPage() {
 					<div className='flex items-center justify-between'>
 						<div>
 							<Label>Allow reactions by default</Label>
+
 							<p className='text-sm text-zinc-400'>
 								Enable reactions on new mind maps by default
 							</p>
 						</div>
+
 						<Switch
 							checked={settings.mindMaps.allowReactions}
 							onCheckedChange={(checked) => updateMindMapSetting('allowReactions', checked)}
@@ -454,18 +483,22 @@ export default function PrivacySettingsPage() {
 						<Shield className='size-5' />
 						Data Usage
 					</CardTitle>
+
 					<CardDescription>
 						Control how your data is used to improve our services
 					</CardDescription>
 				</CardHeader>
+
 				<CardContent className='space-y-4'>
 					<div className='flex items-center justify-between'>
 						<div>
 							<Label>Analytics and performance</Label>
+
 							<p className='text-sm text-zinc-400'>
 								Help us understand how you use the app to improve performance
 							</p>
 						</div>
+
 						<Switch
 							checked={settings.data.allowAnalytics}
 							onCheckedChange={(checked) => updateDataSetting('allowAnalytics', checked)}
@@ -475,10 +508,12 @@ export default function PrivacySettingsPage() {
 					<div className='flex items-center justify-between'>
 						<div>
 							<Label>Product improvement</Label>
+
 							<p className='text-sm text-zinc-400'>
 								Allow us to use your usage data to improve features
 							</p>
 						</div>
+
 						<Switch
 							checked={settings.data.allowImprovement}
 							onCheckedChange={(checked) => updateDataSetting('allowImprovement', checked)}
@@ -488,10 +523,12 @@ export default function PrivacySettingsPage() {
 					<div className='flex items-center justify-between'>
 						<div>
 							<Label>Marketing and recommendations</Label>
+
 							<p className='text-sm text-zinc-400'>
 								Use your data to personalize content and recommendations
 							</p>
 						</div>
+
 						<Switch
 							checked={settings.data.allowMarketing}
 							onCheckedChange={(checked) => updateDataSetting('allowMarketing', checked)}
@@ -507,18 +544,22 @@ export default function PrivacySettingsPage() {
 						<Lock className='size-5' />
 						Active Sessions
 					</CardTitle>
+
 					<CardDescription>
 						Manage your active login sessions across devices
 					</CardDescription>
 				</CardHeader>
+
 				<CardContent className='space-y-4'>
 					<div className='flex items-center justify-between p-4 bg-zinc-800/30 rounded-lg'>
 						<div>
 							<Label className='text-white'>Active sessions</Label>
+
 							<p className='text-sm text-zinc-400'>
 								You have {settings.sessions.activeCount} active sessions. Last activity: {settings.sessions.lastActivity}
 							</p>
 						</div>
+
 						<Button variant='outline' size='sm'>
 							Manage Sessions
 						</Button>
@@ -533,18 +574,22 @@ export default function PrivacySettingsPage() {
 						<Download className='size-5' />
 						Data Management
 					</CardTitle>
+
 					<CardDescription>
 						Export your data or delete your account
 					</CardDescription>
 				</CardHeader>
+
 				<CardContent className='space-y-4'>
 					<div className='flex items-center justify-between p-4 bg-zinc-800/30 rounded-lg'>
 						<div>
 							<Label className='text-white'>Export your data</Label>
+
 							<p className='text-sm text-zinc-400'>
 								Download all your mind maps, profile data, and settings
 							</p>
 						</div>
+
 						<Button
 							variant='outline'
 							size='sm'
@@ -552,6 +597,7 @@ export default function PrivacySettingsPage() {
 							disabled={isExporting}
 						>
 							<Download className='size-4 mr-2' />
+
 							{isExporting ? 'Exporting...' : 'Export Data'}
 						</Button>
 					</div>
@@ -561,10 +607,12 @@ export default function PrivacySettingsPage() {
 					<div className='flex items-center justify-between p-4 bg-red-950/20 rounded-lg border border-red-800/30'>
 						<div>
 							<Label className='text-red-400'>Delete Account</Label>
+
 							<p className='text-sm text-red-300/70'>
 								Permanently delete your account and all associated data
 							</p>
 						</div>
+
 						<Button variant='destructive' size='sm'>
 							<Trash2 className='size-4 mr-2' />
 							Delete Account

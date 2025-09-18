@@ -45,7 +45,9 @@
       "Read(/D:\\_GITHUB\\moistus-ai\\src\\components\\nodes/**)",
       "Read(/D:\\_GITHUB\\moistus-ai\\src\\components\\nodes/**)",
       "Read(/D:\\_GITHUB\\moistus-ai\\src\\components\\nodes/**)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "mcp__browsermcp__browser_get_console_logs",
+      "mcp__browsermcp__browser_click"
     ],
     "deny": [
       "mcp__supabase__list_organizations",

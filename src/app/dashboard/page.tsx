@@ -412,6 +412,7 @@ function DashboardContent() {
 												<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
 													Ctrl+N
 												</kbd>{' '}
+
 												<span className='text-zinc-500'>New map</span>
 											</span>
 
@@ -419,6 +420,7 @@ function DashboardContent() {
 												<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
 													Ctrl+F
 												</kbd>{' '}
+
 												<span className='text-zinc-500'>Search</span>
 											</span>
 
@@ -426,6 +428,7 @@ function DashboardContent() {
 												<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
 													Ctrl+A
 												</kbd>{' '}
+
 												<span className='text-zinc-500'>Select all</span>
 											</span>
 
@@ -433,6 +436,7 @@ function DashboardContent() {
 												<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
 													Ctrl+1/2
 												</kbd>{' '}
+
 												<span className='text-zinc-500'>View mode</span>
 											</span>
 										</div>
@@ -527,6 +531,7 @@ function DashboardContent() {
 											size='sm'
 											variant='default'
 										/>
+
 										Select all ({filteredMaps.length} maps)
 									</label>
 
@@ -610,7 +615,7 @@ function DashboardContent() {
 
 													<p className='text-zinc-400 text-lg'>
 														Try adjusting your search terms or filters to find
-														what you're looking for.
+														what you&apos;re looking for.
 													</p>
 												</div>
 

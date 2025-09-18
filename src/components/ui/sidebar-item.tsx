@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
-import { ReactNode, useCallback } from 'react';
+import { type KeyboardEvent, type ReactNode, useCallback } from 'react';
 
 interface SidebarItemProps {
 	icon: ReactNode;
@@ -16,7 +16,7 @@ interface SidebarItemProps {
 	className?: string;
 	disabled?: boolean;
 	children?: ReactNode;
-	onKeyDown?: (e: React.KeyboardEvent) => void;
+	onKeyDown?: (e: KeyboardEvent) => void;
 	tabIndex?: number;
 	collapsed?: boolean;
 }
@@ -38,7 +38,7 @@ export const SidebarItem = ({
 	collapsed = false,
 }: SidebarItemProps) => {
 	const handleKeyDown = useCallback(
-		(e: React.KeyboardEvent) => {
+		(e: KeyboardEvent) => {
 			if (disabled) return;
 
 			// Call custom onKeyDown if provided

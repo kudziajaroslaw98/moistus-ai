@@ -2,7 +2,7 @@
 
 import { cn } from '@/utils/cn';
 import {
-	ChangeEvent,
+	type ChangeEvent,
 	forwardRef,
 	useCallback,
 	useEffect,

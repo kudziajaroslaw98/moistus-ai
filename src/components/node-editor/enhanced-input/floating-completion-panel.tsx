@@ -129,6 +129,7 @@ export const FloatingCompletionPanel: React.FC<FloatingCompletionPanelProps> = (
 		if (event.key === 'Enter' && activeIndex != null) {
 			event.preventDefault();
 			const selectedItem = filteredCompletions[activeIndex];
+
 			if (selectedItem) {
 				handleSelect(selectedItem, activeIndex);
 			}
@@ -204,8 +205,10 @@ export const FloatingCompletionPanel: React.FC<FloatingCompletionPanelProps> = (
 								>
 									<div className="flex items-center gap-2">
 										{getTypeIcon(type)}
+
 										<div className="flex flex-col">
 											<span className="font-medium">{item.label}</span>
+
 											{item.description && (
 												<span className="text-xs text-zinc-500">{item.description}</span>
 											)}
@@ -228,14 +231,19 @@ export const FloatingCompletionPanel: React.FC<FloatingCompletionPanelProps> = (
 							<div className="flex items-center gap-3">
 								<span className="flex gap-1 items-center">
 									<kbd className="px-1.5 py-0.5 bg-zinc-800/90 border border-zinc-700/50 rounded text-zinc-400 font-mono text-xs">↑↓</kbd>
+
 									<span className="text-zinc-400">navigate</span>
 								</span>
+
 								<span className="flex gap-1 items-center">
 									<kbd className="px-1.5 py-0.5 bg-zinc-800/90 border border-zinc-700/50 rounded text-zinc-400 font-mono text-xs">↵</kbd>
+
 									<span className="text-zinc-400">select</span>
 								</span>
+
 								<span className="flex gap-1 items-center">
 									<kbd className="px-1.5 py-0.5 bg-zinc-800/90 border border-zinc-700/50 rounded text-zinc-400 font-mono text-xs">esc</kbd>
+
 									<span className="text-zinc-400">close</span>
 								</span>
 							</div>

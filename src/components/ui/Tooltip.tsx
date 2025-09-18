@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { Tooltip as BaseTooltip } from '@base-ui-components/react/tooltip';
-import { ComponentProps } from 'react';
+import { type ComponentProps } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -86,4 +86,3 @@ function TooltipContent({
 }
 
 export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger };
-

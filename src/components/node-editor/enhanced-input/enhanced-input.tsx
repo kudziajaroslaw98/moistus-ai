@@ -14,6 +14,7 @@ import React, {
 	useState,
 } from 'react';
 import { commandCompletions, createCommandDecorations } from '../codemirror';
+import { nodeTypeUpdateEffect } from '../codemirror/reference-completions';
 import {
 	patternDecorations,
 	validationDecorations,
@@ -121,6 +122,7 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 			(startIndex: number, endIndex: number, replacement: string) => {
 				try {
 					const view = editorViewRef.current;
+
 					if (!view || !view.dom || !view.dom.isConnected) {
 						return;
 					}
@@ -281,6 +283,7 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 								'name' in completion.section
 							) {
 								const sectionName = completion.section.name;
+
 								if (sectionName === 'Node Types') {
 									classes.push(
 										'command-completion-item',
@@ -385,6 +388,7 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 									const detectedTriggers = allTriggers.filter((trigger) =>
 										newValue.includes(trigger)
 									);
+
 									if (detectedTriggers.length > 0) {
 										const triggerTypes = enableCommands
 											? 'patterns/commands'
@@ -394,6 +398,7 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 										);
 									}
 								}
+
 								if (update.selectionSet) {
 									onSelectionChange();
 								}
@@ -411,6 +416,7 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 									onKeyDown(reactEvent);
 									return true;
 								}
+
 								return false;
 							},
 						}),
@@ -426,9 +432,30 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 
 				editorViewRef.current = view;
 				initializedRef.current = true;
+
+				// Initialize node type state if currentNodeType is provided
+				if (currentNodeType) {
+					console.log('🔧 Initializing node type state:', JSON.stringify(currentNodeType));
+					view.dispatch({
+						effects: nodeTypeUpdateEffect.of(currentNodeType as any),
+					});
+					console.log('✅ Node type state initialized');
+				} else {
+					console.log('⚠️ No currentNodeType provided to enhanced input');
+					// FALLBACK: Try to detect reference node context from the placeholder or other hints
+					if (placeholder && placeholder.toLowerCase().includes('reference')) {
+						console.log('🔍 Detected reference context from placeholder, setting referenceNode type');
+						view.dispatch({
+							effects: nodeTypeUpdateEffect.of('referenceNode' as any),
+						});
+						console.log('✅ Fallback reference node type set');
+					}
+				}
+
 				view.focus();
 			} catch (error) {
 				console.error('Failed to initialize CodeMirror editor:', error);
+
 				// Fallback: just create a basic editor without autocompletion
 				try {
 					editorState.current = EditorState.create({
@@ -451,6 +478,7 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 									lastKnownValueRef.current = newValue;
 									onChange(newValue);
 								}
+
 								if (update.selectionSet) {
 									onSelectionChange();
 								}
@@ -467,6 +495,26 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 
 					editorViewRef.current = view;
 					initializedRef.current = true;
+
+					// Initialize node type state if currentNodeType is provided (fallback editor)
+					if (currentNodeType) {
+						console.log('🔧 Initializing node type state (fallback):', JSON.stringify(currentNodeType));
+						view.dispatch({
+							effects: nodeTypeUpdateEffect.of(currentNodeType as any),
+						});
+						console.log('✅ Node type state initialized (fallback)');
+					} else {
+						console.log('⚠️ No currentNodeType provided to fallback editor');
+						// FALLBACK: Try to detect reference node context from the placeholder
+						if (placeholder && placeholder.toLowerCase().includes('reference')) {
+							console.log('🔍 Detected reference context from placeholder (fallback), setting referenceNode type');
+							view.dispatch({
+								effects: nodeTypeUpdateEffect.of('referenceNode' as any),
+							});
+							console.log('✅ Fallback reference node type set (fallback editor)');
+						}
+					}
+
 					view.focus();
 				} catch (fallbackError) {
 					console.error(
@@ -482,6 +530,7 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 						editorViewRef.current.destroy();
 						editorViewRef.current = null;
 					}
+
 					editorState.current = null;
 					initializedRef.current = false;
 				} catch (error) {
@@ -493,6 +542,7 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 		// Separate event listener management (can change without recreating editor)
 		useEffect(() => {
 			const view = editorViewRef.current;
+
 			if (!view || !view.dom || !enableCommands) {
 				return;
 			}
@@ -522,6 +572,7 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 		useEffect(() => {
 			try {
 				const view = editorViewRef.current;
+
 				if (view && view.dom && view.dom.isConnected) {
 					view.dispatch({
 						effects: editableCompartment.current.reconfigure(
@@ -534,9 +585,31 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 			}
 		}, [disabled]);
 
+		// Sync current node type to CodeMirror state
+		useEffect(() => {
+			try {
+				const view = editorViewRef.current;
+
+				console.log('🔄 Node type changed, updating state:', JSON.stringify(currentNodeType));
+
+				if (view && view.dom && view.dom.isConnected) {
+					console.log('📡 Dispatching nodeTypeUpdateEffect:', JSON.stringify(currentNodeType));
+					view.dispatch({
+						effects: nodeTypeUpdateEffect.of(currentNodeType as any),
+					});
+					console.log('✅ Node type state updated');
+				} else {
+					console.log('⚠️ Editor not available for node type update');
+				}
+			} catch (error) {
+				console.error('Error updating node type state:', error);
+			}
+		}, [currentNodeType]);
+
 		// Sync external value changes to CodeMirror (with loop prevention)
 		useEffect(() => {
 			const view = editorViewRef.current;
+
 			if (!view || !view.dom || !view.dom.isConnected) {
 				return;
 			}

@@ -14,9 +14,9 @@ import {
 import { AnimatePresence, motion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
+import { GlassmorphismTheme } from '../nodes/themes/glassmorphism-theme';
 import { ContextMenuRenderer } from './context-menu-renderer';
 import { useContextMenuConfig } from './use-context-menu-config';
-import { GlassmorphismTheme } from '../nodes/themes/glassmorphism-theme';
 
 interface ContextMenuDisplayProps {
 	aiActions: {
@@ -247,7 +247,7 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
 						initial='hidden'
 						animate='visible'
 						exit='exit'
-						className='ring-opacity-5 flex min-w-[250px] flex-col gap-1 rounded-sm shadow-lg ring-1 ring-black focus:outline-none px-2 py-2'
+						className='ring-opacity-5 flex min-w-[250px] flex-col gap-1 rounded-sm shadow-lg ring-1 ring-zinc-700 focus:outline-none px-2 py-2'
 						role='menu'
 						aria-label='Context menu'
 						aria-orientation='vertical'

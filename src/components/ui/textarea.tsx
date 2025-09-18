@@ -1,9 +1,8 @@
 import { cn } from '@/utils/cn';
-import { HTMLMotionProps, motion } from 'motion/react';
-import { TextareaHTMLAttributes, forwardRef } from 'react';
+import { type HTMLMotionProps, motion } from 'motion/react';
+import { forwardRef } from 'react';
 
-export interface TextareaProps
-	extends HTMLMotionProps<'textarea'> {
+export interface TextareaProps extends HTMLMotionProps<'textarea'> {
 	error?: boolean;
 }
 

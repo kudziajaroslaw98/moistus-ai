@@ -191,6 +191,7 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 									<TypeIcon className='size-3.5' 
 										style={{ color: `rgba(${typeInfo.colorRgb}, 0.87)` }} />
 								</div>
+
 								<span style={{
 									fontSize: '11px',
 									fontWeight: 500,
@@ -249,6 +250,7 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 										}}
 									/>
 								))}
+
 								<span style={{
 									fontSize: '11px',
 									color: 'rgba(255, 255, 255, 0.38)',

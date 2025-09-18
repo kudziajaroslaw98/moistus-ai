@@ -1,4 +1,3 @@
-// src/components/nodes/reference-node.tsx (New File)
 'use client';
 
 import { NodeData } from '@/types/node-data';
@@ -17,9 +16,13 @@ const ReferenceNodeComponent = (props: ReferenceNodeProps) => {
 	const { targetMapId, targetNodeId, targetMapTitle, contentSnippet } =
 		data.metadata || {};
 
-	const hasValidReference = targetMapId && targetNodeId;
+	const hasValidReference = targetMapId || targetNodeId;
 	const referenceUrl = hasValidReference
-		? `/mind-map/${targetMapId}?node=${targetNodeId}`
+		? targetMapId && targetNodeId
+			? `/mind-map/${targetMapId}?node=${targetNodeId}`
+			: targetMapId
+				? `/mind-map/${targetMapId}`
+				: '#'
 		: '#';
 
 	return (
@@ -35,27 +38,35 @@ const ReferenceNodeComponent = (props: ReferenceNodeProps) => {
 				<div className='p-4 flex-grow'>
 					{hasValidReference ? (
 						<>
-							<blockquote className='mt-2 border-l-2 pl-4 italic'
+							<blockquote
+								className='mt-2 border-l-2 pl-4 italic'
 								style={{
 									borderColor: GlassmorphismTheme.borders.default,
 									color: GlassmorphismTheme.text.medium,
-								}}>
-								&quot;{contentSnippet || 'Referenced content...'}&quot;
+								}}
+							>
+								&quot;{contentSnippet || data.content || 'Referenced content...'}&quot;
 							</blockquote>
 
-							<div className='mt-3 text-xs'
-								style={{ color: GlassmorphismTheme.text.disabled }}>
+							<div
+								className='mt-3 text-xs'
+								style={{ color: GlassmorphismTheme.text.disabled }}
+							>
 								<span>From: </span>
 
-								<span className='font-medium'
-									style={{ color: GlassmorphismTheme.text.medium }}>
+								<span
+									className='font-medium'
+									style={{ color: GlassmorphismTheme.text.medium }}
+								>
 									{targetMapTitle || 'Another Map'}
 								</span>
 							</div>
 						</>
 					) : (
-						<div className='italic text-center py-4'
-							style={{ color: GlassmorphismTheme.text.disabled }}>
+						<div
+							className='italic text-center py-4'
+							style={{ color: GlassmorphismTheme.text.disabled }}
+						>
 							Invalid reference. Please edit.
 						</div>
 					)}

@@ -75,6 +75,7 @@ export const ValidationTooltip: React.FC<ValidationTooltipProps> = ({
 								? 'bg-red-950/95 border-red-500/50'
 								: 'bg-yellow-950/95 border-yellow-500/50'
 						)} />
+
 						<div className={cn(
 							'absolute -top-1 left-4 w-4 h-4 rotate-45',
 							hasErrors 
@@ -108,13 +109,16 @@ export const ValidationTooltip: React.FC<ValidationTooltipProps> = ({
 												<span className="text-blue-400 text-base">💡</span>
 											)}
 										</div>
+
 										<div className="flex-1 min-w-0">
 											<p className="font-medium leading-tight">{error.message}</p>
+
 											{error.contextualHint && (
 												<p className="text-xs opacity-75 mt-1 leading-tight">
 													{error.contextualHint}
 												</p>
 											)}
+
 											{error.suggestion && !error.quickFixes && (
 												<p className="text-xs opacity-80 mt-1 leading-tight">
 													Try: <code className="px-1.5 py-0.5 rounded bg-black/30 text-xs font-mono">{error.suggestion}</code>

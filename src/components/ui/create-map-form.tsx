@@ -3,7 +3,7 @@
 import { cn } from '@/utils/cn';
 import { Plus } from 'lucide-react';
 import { motion } from 'motion/react';
-import { forwardRef, useState } from 'react';
+import { type FormEvent, forwardRef, useState } from 'react';
 import { Input } from './input';
 
 export interface CreateMapFormProps {
@@ -30,7 +30,7 @@ const CreateMapForm = forwardRef<HTMLFormElement, CreateMapFormProps>(
 		const [title, setTitle] = useState('');
 		const [isSubmitting, setIsSubmitting] = useState(false);
 
-		const handleSubmit = async (e: React.FormEvent) => {
+		const handleSubmit = async (e: FormEvent) => {
 			e.preventDefault();
 			if (!title.trim() || isSubmitting || disabled) return;
 

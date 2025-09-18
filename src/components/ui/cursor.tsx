@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { MousePointer2 } from 'lucide-react';
+import { type CSSProperties } from 'react';
 
 export const Cursor = ({
 	className,
@@ -8,7 +9,7 @@ export const Cursor = ({
 	name,
 }: {
 	className?: string;
-	style?: React.CSSProperties;
+	style?: CSSProperties;
 	color: string;
 	name: string;
 }) => {

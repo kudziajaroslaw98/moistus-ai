@@ -141,6 +141,7 @@ function GhostNodeComponent(props: GhostNodeProps) {
 				<div className='mb-2 flex items-center justify-between'>
 					<div className='flex items-center gap-1.5'>
 						{nodeIcon}
+
 						<span 
 							className='text-xs font-medium'
 							style={{ color: GlassmorphismTheme.text.medium }}
@@ -180,6 +181,7 @@ function GhostNodeComponent(props: GhostNodeProps) {
 						style={{ color: GlassmorphismTheme.text.disabled }}
 					>
 						Trigger: {context.trigger}
+
 						{context.relationshipType && (
 							<span className='ml-2'>→ {context.relationshipType}</span>
 						)}

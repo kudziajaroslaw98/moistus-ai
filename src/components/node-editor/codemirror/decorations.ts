@@ -35,6 +35,7 @@ function detectAllPatterns(text: string): PatternMatch[] {
 		const globalRegex = config.decorationRegex;
 		
 		let match;
+
 		while ((match = globalRegex.exec(text)) !== null) {
 			// Calculate the full pattern boundaries
 			const start = match.index;
@@ -48,13 +49,16 @@ function detectAllPatterns(text: string): PatternMatch[] {
 					if (text[end] === ']') {
 						end++;
 					}
+
 					break;
 				case 'color':
 					// For colors, extend to include the full value
 					const colorMatch = text.substring(start).match(/^color:[#\w-]+/);
+
 					if (colorMatch) {
 						end = start + colorMatch[0].length;
 					}
+
 					break;
 			}
 			
@@ -72,6 +76,7 @@ function detectAllPatterns(text: string): PatternMatch[] {
 	
 	// Remove overlapping matches (keep the first/longest one)
 	const nonOverlapping: PatternMatch[] = [];
+
 	for (const match of matches) {
 		const hasOverlap = nonOverlapping.some(existing => 
 			match.start < existing.end && match.end > existing.start
@@ -135,6 +140,7 @@ function createValidationDecorations(errors: ValidationError[]): DecorationSet {
 		
 		// Create decoration based on error type
 		let className: string;
+
 		switch (error.type) {
 			case 'error':
 				className = 'cm-error-decoration';
