@@ -226,8 +226,10 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 									transition={{ delay: 0.45, duration: 0.15 }}
 								>
 									<span className='opacity-70'>📅</span>
+
 									<span className='flex items-center gap-0.5'>
 										<span className='opacity-70 text-xs'>Due:</span>
+
 										<span className='font-medium'>{metadata.dueDate.toLocaleDateString ? metadata.dueDate.toLocaleDateString() : metadata.dueDate}</span>
 									</span>
 								</motion.div>
@@ -242,8 +244,10 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 									transition={{ delay: 0.5, duration: 0.15 }}
 								>
 									<span className='opacity-70'>🔥</span>
+
 									<span className='flex items-center gap-0.5'>
 										<span className='opacity-70 text-xs'>Priority:</span>
+
 										<span className='font-medium capitalize'>{metadata.priority}</span>
 									</span>
 								</motion.div>
@@ -259,6 +263,7 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 									transition={{ delay: 0.55 + tagIndex * 0.05, duration: 0.15 }}
 								>
 									<span className='opacity-70'>🏷️</span>
+
 									<span className='flex items-center gap-0.5'>
 										<span className='font-medium'>{tag}</span>
 									</span>
@@ -274,8 +279,10 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 									transition={{ delay: 0.6, duration: 0.15 }}
 								>
 									<span className='opacity-70'>👤</span>
+
 									<span className='flex items-center gap-0.5'>
 										<span className='opacity-70 text-xs'>Assigned:</span>
+
 										<span className='font-medium'>{metadata.assignee}</span>
 									</span>
 								</motion.div>
@@ -388,11 +395,45 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 				</motion.div>
 			);
 
+		case 'referenceNode':
+			return (
+				<motion.div
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					transition={{ duration: 0.2 }}
+					className="space-y-2"
+				>
+					{preview.referencePreview ? (
+						<div className="space-y-2">
+							<div className="flex items-center gap-2">
+								<span className="text-pink-400">🔗</span>
+
+								<span className="text-pink-400 font-medium">Reference Selected</span>
+							</div>
+
+							<blockquote className="border-l-2 border-pink-500/30 pl-3 text-sm text-zinc-300 italic">
+								"{preview.referencePreview.contentSnippet?.slice(0, 100) || 'Referenced content...'}"
+							</blockquote>
+
+							<div className="text-xs text-pink-300">
+								From: <span className="font-medium">{preview.referencePreview.targetMapTitle || 'Unknown Map'}</span>
+							</div>
+						</div>
+					) : (
+						<div className="flex items-center gap-2 text-zinc-500">
+							<span>🔗</span>
+
+							<span className="text-sm">Type to search for nodes to reference...</span>
+						</div>
+					)}
+				</motion.div>
+			);
+
 		default:
 			return (
 				<motion.div
 					className='text-sm'
-					style={{ 
+					style={{
 						color: 'rgb(212, 212, 216)',
 						fontSize: '16px',
 						lineHeight: '1.4'

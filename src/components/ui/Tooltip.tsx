@@ -1,14 +1,14 @@
-'use client';
+﻿'use client';
 
 import { Tooltip as BaseTooltip } from '@base-ui-components/react/tooltip';
-import * as React from 'react';
+import { type ComponentProps } from 'react';
 
 import { cn } from '@/lib/utils';
 
 function TooltipProvider({
 	delay = 0,
 	...props
-}: React.ComponentProps<typeof BaseTooltip.Provider>) {
+}: ComponentProps<typeof BaseTooltip.Provider>) {
 	return (
 		<BaseTooltip.Provider
 			data-slot='tooltip-provider'
@@ -18,7 +18,7 @@ function TooltipProvider({
 	);
 }
 
-function ArrowSvg(props: React.ComponentProps<'svg'>) {
+function ArrowSvg(props: ComponentProps<'svg'>) {
 	return (
 		<svg width='20' height='10' viewBox='0 0 20 10' fill='none' {...props}>
 			<path
@@ -39,7 +39,7 @@ function ArrowSvg(props: React.ComponentProps<'svg'>) {
 	);
 }
 
-function Tooltip({ ...props }: React.ComponentProps<typeof BaseTooltip.Root>) {
+function Tooltip({ ...props }: ComponentProps<typeof BaseTooltip.Root>) {
 	return (
 		<TooltipProvider>
 			<BaseTooltip.Root data-slot='tooltip' {...props} />
@@ -49,7 +49,7 @@ function Tooltip({ ...props }: React.ComponentProps<typeof BaseTooltip.Root>) {
 
 function TooltipTrigger({
 	...props
-}: React.ComponentProps<typeof BaseTooltip.Trigger>) {
+}: ComponentProps<typeof BaseTooltip.Trigger>) {
 	return <BaseTooltip.Trigger data-slot='tooltip-trigger' {...props} />;
 }
 
@@ -57,7 +57,7 @@ function TooltipContent({
 	className,
 	children,
 	...props
-}: React.ComponentProps<typeof BaseTooltip.Popup>) {
+}: ComponentProps<typeof BaseTooltip.Popup>) {
 	return (
 		<BaseTooltip.Portal>
 			<BaseTooltip.Positioner

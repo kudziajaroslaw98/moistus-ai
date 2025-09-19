@@ -18,6 +18,7 @@ import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Separator } from './ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/Tooltip';
+import { GlassmorphismTheme } from './nodes/themes/glassmorphism-theme';
 
 interface ToolButton {
 	id: Tool | `separator-${number}`;
@@ -123,14 +124,23 @@ export const Toolbar = () => {
 			animate={{ y: 0, opacity: 1 }}
 			transition={{ type: 'spring', stiffness: 100, damping: 15 }}
 		>
-			<div className='flex h-full w-full items-center gap-2 p-2 bg-zinc-950 border border-zinc-900 rounded-xl shadow-2xl'>
+			<div 
+				className='flex h-full w-full items-center gap-2 p-2 rounded-xl shadow-2xl'
+				style={{
+					backgroundColor: GlassmorphismTheme.elevation[4], // App bar elevation
+					border: `1px solid ${GlassmorphismTheme.borders.default}`,
+					backdropFilter: 'blur(8px)',
+				}}>
 				{tools.map((tool, index) => {
 					if (tool.id.startsWith('separator')) {
 						return (
 							<Separator
 								key={tool.id + '' + index}
 								orientation='vertical'
-								className='!bg-zinc-700 !h-4  flex'
+								className='!h-4 flex'
+								style={{
+									backgroundColor: GlassmorphismTheme.borders.default,
+								}}
 							/>
 						);
 					}
@@ -141,11 +151,28 @@ export const Toolbar = () => {
 								<TooltipTrigger
 									onClick={() => onToolChange(tool.id)}
 									title={tool.label ?? `Tool ${index}`}
-									className={`inline-flex items-center rounded-sm font-medium transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-800 disabled:opacity-50 disabled:pointer-events-none !h-8 !w-8 p-0 justify-center ${
-										activeTool === tool.id 
-											? 'bg-teal-600 text-white hover:bg-teal-700 focus:ring-teal-500'
-											: 'bg-zinc-950 border-zinc-900 border-2 text-zinc-200 hover:bg-zinc-700 focus:ring-zinc-500'
-									}`}
+									className="inline-flex items-center rounded-sm font-medium transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none !h-8 !w-8 p-0 justify-center"
+									style={{
+										backgroundColor: activeTool === tool.id 
+											? 'rgba(20, 184, 166, 0.87)' // Teal accent for active
+											: GlassmorphismTheme.elevation[1],
+										border: `2px solid ${activeTool === tool.id 
+											? 'rgba(20, 184, 166, 0.3)'
+											: GlassmorphismTheme.borders.default}`,
+										color: activeTool === tool.id 
+											? GlassmorphismTheme.text.high
+											: GlassmorphismTheme.text.medium,
+									}}
+									onMouseEnter={(e) => {
+										if (activeTool !== tool.id) {
+											e.currentTarget.style.backgroundColor = GlassmorphismTheme.elevation[2];
+										}
+									}}
+									onMouseLeave={(e) => {
+										if (activeTool !== tool.id) {
+											e.currentTarget.style.backgroundColor = GlassmorphismTheme.elevation[1];
+										}
+									}}
 								>
 									{tool.icon}
 								</TooltipTrigger>

@@ -56,6 +56,7 @@ export class NodeEditorErrorBoundary extends Component<ErrorBoundaryProps, Error
 
 		// Auto-retry after 3 seconds if under retry limit
 		const maxRetries = this.props.maxRetries ?? 2;
+
 		if (this.state.retryCount < maxRetries) {
 			this.retryTimeoutId = setTimeout(() => {
 				this.handleRetry();
@@ -102,12 +103,15 @@ export class NodeEditorErrorBoundary extends Component<ErrorBoundaryProps, Error
 			return (
 				<div className="flex flex-col items-center justify-center p-8 bg-red-50 border-2 border-red-200 rounded-lg min-h-[200px]">
 					<AlertTriangle className="w-12 h-12 text-red-500 mb-4" />
+
 					<h3 className="text-lg font-semibold text-red-800 mb-2">
 						Node Editor Error
 					</h3>
+
 					<p className="text-red-600 text-center mb-4 max-w-md">
 						Something went wrong while rendering the node editor. 
 						{canRetry && retryCount === 0 && ' Automatically retrying...'}
+
 						{canRetry && retryCount > 0 && ` (Retry ${retryCount}/${maxRetries})`}
 					</p>
 					
@@ -116,6 +120,7 @@ export class NodeEditorErrorBoundary extends Component<ErrorBoundaryProps, Error
 							<summary className="text-sm text-red-700 cursor-pointer hover:text-red-800">
 								Error Details
 							</summary>
+
 							<div className="mt-2 p-2 bg-red-100 rounded text-xs text-red-800 font-mono break-all">
 								{error.message}
 							</div>

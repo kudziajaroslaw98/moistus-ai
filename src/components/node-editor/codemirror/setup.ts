@@ -83,12 +83,14 @@ export const mindmapEditorSetup: Extension = [
 	EditorView.domEventHandlers({
 		focus: (event, view) => {
 			const element = event.target as HTMLElement;
+
 			if (element.getAttribute('data-placeholder')) {
 				element.removeAttribute('data-placeholder');
 			}
 		},
 		blur: (event, view) => {
 			const element = event.target as HTMLElement;
+
 			if (view.state.doc.toString().trim() === '') {
 				element.setAttribute('data-placeholder', 'Enter your content...');
 			}

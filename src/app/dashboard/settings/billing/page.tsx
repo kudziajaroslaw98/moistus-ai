@@ -189,6 +189,7 @@ export default function BillingSettingsPage() {
 		if (mb >= 1024) {
 			return `${(mb / 1024).toFixed(1)}GB`;
 		}
+
 		return `${mb}MB`;
 	};
 
@@ -218,6 +219,7 @@ export default function BillingSettingsPage() {
 			{/* Header */}
 			<div>
 				<h2 className='text-2xl font-bold text-white'>Billing & Subscription</h2>
+
 				<p className='text-zinc-400 mt-1'>
 					Manage your subscription, usage, and billing information
 				</p>
@@ -230,10 +232,12 @@ export default function BillingSettingsPage() {
 						<Star className='size-5' />
 						Current Plan
 					</CardTitle>
+
 					<CardDescription>
 						Your current subscription and billing status
 					</CardDescription>
 				</CardHeader>
+
 				<CardContent className='space-y-4'>
 					<div className='flex items-center justify-between'>
 						<div className='flex items-center gap-4'>
@@ -241,6 +245,7 @@ export default function BillingSettingsPage() {
 								<h3 className={`text-lg font-semibold ${planFeatures[subscription.plan].color}`}>
 									{planFeatures[subscription.plan].name}
 								</h3>
+
 								<p className='text-zinc-400'>
 									{planFeatures[subscription.plan].price ? (
 										<>
@@ -251,6 +256,7 @@ export default function BillingSettingsPage() {
 									)}
 								</p>
 							</div>
+
 							{getStatusBadge(subscription.status)}
 						</div>
 						
@@ -267,13 +273,17 @@ export default function BillingSettingsPage() {
 					<div className='grid grid-cols-1 md:grid-cols-2 gap-4 text-sm'>
 						<div>
 							<span className='text-zinc-400'>Billing period:</span>
+
 							<p className='text-white'>
 								{new Date(subscription.currentPeriodStart).toLocaleDateString()} - {' '}
+
 								{new Date(subscription.currentPeriodEnd).toLocaleDateString()}
 							</p>
 						</div>
+
 						<div>
 							<span className='text-zinc-400'>Next billing date:</span>
+
 							<p className='text-white'>
 								{new Date(subscription.currentPeriodEnd).toLocaleDateString()}
 							</p>
@@ -283,6 +293,7 @@ export default function BillingSettingsPage() {
 					{subscription.cancelAtPeriodEnd && (
 						<div className='p-3 bg-orange-950/30 border border-orange-800/30 rounded-lg flex items-center gap-2'>
 							<AlertTriangle className='size-4 text-orange-400' />
+
 							<span className='text-orange-200 text-sm'>
 								Your subscription will be canceled on {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
 							</span>
@@ -293,6 +304,7 @@ export default function BillingSettingsPage() {
 						{planFeatures[subscription.plan].features.map((feature, index) => (
 							<Badge key={index} variant='secondary' className='bg-zinc-800 text-zinc-300'>
 								<Check className='size-3 mr-1' />
+
 								{feature}
 							</Badge>
 						))}
@@ -304,19 +316,23 @@ export default function BillingSettingsPage() {
 			<Card className='bg-zinc-900 border-zinc-700'>
 				<CardHeader>
 					<CardTitle className='text-white'>Usage</CardTitle>
+
 					<CardDescription>
 						Your current usage for this billing period
 					</CardDescription>
 				</CardHeader>
+
 				<CardContent className='space-y-6'>
 					<div className='space-y-4'>
 						<div>
 							<div className='flex items-center justify-between mb-2'>
 								<span className='text-white'>Mind Maps</span>
+
 								<span className='text-zinc-400'>
 									{usage.mindMaps.used} {usage.mindMaps.limit === -1 ? '' : `/ ${usage.mindMaps.limit}`}
 								</span>
 							</div>
+
 							{usage.mindMaps.limit !== -1 && (
 								<Progress value={getUsagePercentage(usage.mindMaps.used, usage.mindMaps.limit)} />
 							)}
@@ -325,30 +341,36 @@ export default function BillingSettingsPage() {
 						<div>
 							<div className='flex items-center justify-between mb-2'>
 								<span className='text-white'>Collaborators</span>
+
 								<span className='text-zinc-400'>
 									{usage.collaborators.used} / {usage.collaborators.limit}
 								</span>
 							</div>
+
 							<Progress value={getUsagePercentage(usage.collaborators.used, usage.collaborators.limit)} />
 						</div>
 
 						<div>
 							<div className='flex items-center justify-between mb-2'>
 								<span className='text-white'>Storage</span>
+
 								<span className='text-zinc-400'>
 									{formatStorageSize(usage.storage.used)} / {formatStorageSize(usage.storage.limit)}
 								</span>
 							</div>
+
 							<Progress value={getUsagePercentage(usage.storage.used, usage.storage.limit)} />
 						</div>
 
 						<div>
 							<div className='flex items-center justify-between mb-2'>
 								<span className='text-white'>Exports this month</span>
+
 								<span className='text-zinc-400'>
 									{usage.exports.used} / {usage.exports.limit}
 								</span>
 							</div>
+
 							<Progress value={getUsagePercentage(usage.exports.used, usage.exports.limit)} />
 						</div>
 					</div>
@@ -362,10 +384,12 @@ export default function BillingSettingsPage() {
 						<CreditCard className='size-5' />
 						Payment Methods
 					</CardTitle>
+
 					<CardDescription>
 						Manage your payment methods
 					</CardDescription>
 				</CardHeader>
+
 				<CardContent className='space-y-4'>
 					{paymentMethods.map((method) => (
 						<div
@@ -378,12 +402,14 @@ export default function BillingSettingsPage() {
 								) : (
 									<div className='size-5 bg-blue-600 rounded' />
 								)}
+
 								<div>
 									{method.type === 'card' ? (
 										<>
 											<p className='text-white'>
 												•••• •••• •••• {method.last4}
 											</p>
+
 											<p className='text-sm text-zinc-400'>
 												{method.brand?.toUpperCase()} • Expires {method.expiryMonth}/{method.expiryYear}
 											</p>
@@ -391,6 +417,7 @@ export default function BillingSettingsPage() {
 									) : (
 										<>
 											<p className='text-white'>PayPal</p>
+
 											<p className='text-sm text-zinc-400'>
 												Connected payment method
 											</p>
@@ -398,18 +425,21 @@ export default function BillingSettingsPage() {
 									)}
 								</div>
 							</div>
+
 							<div className='flex items-center gap-2'>
 								{method.isDefault && (
 									<Badge variant='secondary' className='bg-sky-900/50 text-sky-200 border-sky-700/50'>
 										Default
 									</Badge>
 								)}
+
 								<Button variant='outline' size='sm'>
 									Edit
 								</Button>
 							</div>
 						</div>
 					))}
+
 					<Button variant='outline' className='w-full'>
 						Add Payment Method
 					</Button>
@@ -423,10 +453,12 @@ export default function BillingSettingsPage() {
 						<Calendar className='size-5' />
 						Billing History
 					</CardTitle>
+
 					<CardDescription>
 						Download your invoices and view payment history
 					</CardDescription>
 				</CardHeader>
+
 				<CardContent className='space-y-4'>
 					{invoices.map((invoice) => (
 						<div
@@ -436,10 +468,12 @@ export default function BillingSettingsPage() {
 							<div className='flex items-center gap-4'>
 								<div>
 									<p className='text-white font-medium'>{invoice.number}</p>
+
 									<p className='text-sm text-zinc-400'>
 										{new Date(invoice.date).toLocaleDateString()}
 									</p>
 								</div>
+
 								<Badge
 									className={
 										invoice.status === 'paid'
@@ -452,10 +486,12 @@ export default function BillingSettingsPage() {
 									{invoice.status}
 								</Badge>
 							</div>
+
 							<div className='flex items-center gap-4'>
 								<span className='text-white font-medium'>
 									${invoice.amount} {invoice.currency}
 								</span>
+
 								<Button variant='outline' size='sm'>
 									<Download className='size-4 mr-2' />
 									Download
@@ -463,6 +499,7 @@ export default function BillingSettingsPage() {
 							</div>
 						</div>
 					))}
+
 					<Button variant='outline' className='w-full'>
 						<ExternalLink className='size-4 mr-2' />
 						View All Invoices
@@ -475,20 +512,24 @@ export default function BillingSettingsPage() {
 				<Card className='bg-zinc-900 border-zinc-700'>
 					<CardHeader>
 						<CardTitle className='text-red-400'>Cancel Subscription</CardTitle>
+
 						<CardDescription>
 							Cancel your subscription and downgrade to the free plan
 						</CardDescription>
 					</CardHeader>
+
 					<CardContent>
 						<div className='flex items-center justify-between p-4 bg-red-950/20 rounded-lg border border-red-800/30'>
 							<div>
 								<p className='text-red-200 font-medium'>
 									Cancel your subscription
 								</p>
+
 								<p className='text-sm text-red-300/70'>
 									You'll keep access until the end of your billing period
 								</p>
 							</div>
+
 							<Button
 								variant='destructive'
 								size='sm'

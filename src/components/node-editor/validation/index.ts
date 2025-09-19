@@ -106,6 +106,7 @@ export const getValidationResults = (text: string): ValidationError[] => {
 	
 	// Check for multiple node type triggers
 	const nodeTypeTriggers = text.match(/\$\w+/g);
+
 	if (nodeTypeTriggers && nodeTypeTriggers.length > 1) {
 		// Find positions of all triggers after the first one
 		const nodeTypePattern = /\$\w+/g;

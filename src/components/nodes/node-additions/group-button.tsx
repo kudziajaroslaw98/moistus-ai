@@ -34,6 +34,7 @@ const GroupButtonComponent = () => {
 			title={`Member of group: ${groupLabel}`}
 		>
 			<Group className='size-3' style={{ color: 'rgba(167, 139, 250, 0.87)' }} />
+
 			<span style={{ 
 				color: 'rgba(167, 139, 250, 0.87)',
 				fontWeight: 500,

@@ -97,10 +97,13 @@ export const useNodeEditor = (): UseNodeEditorReturn => {
 	const autoSelectCommandForNode = useCallback(() => {
 		if (mode === 'edit' && existingNode && !selectedCommand && !showTypePicker) {
 			const nodeType = existingNode.data?.node_type;
+
 			if (nodeType) {
 				const command = getCommandByType(nodeType);
+
 				if (command) {
 					setNodeEditorCommand(command.command);
+
 					// Only reset showTypePicker if this is a new node being opened
 					if (initializedRef.current !== existingNodeId) {
 						setShowTypePicker(false);

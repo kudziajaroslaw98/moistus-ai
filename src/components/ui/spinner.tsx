@@ -1,11 +1,11 @@
 import { cn } from '@/utils/cn'; // Assuming you have a cn utility for classnames
-import React from 'react';
+import type { FC, SVGProps } from 'react';
 
-interface SpinnerProps extends React.SVGProps<SVGSVGElement> {
+interface SpinnerProps extends SVGProps<SVGSVGElement> {
 	size?: 'sm' | 'md' | 'lg' | number;
 }
 
-export const Spinner: React.FC<SpinnerProps> = ({
+export const Spinner: FC<SpinnerProps> = ({
 	className,
 	size = 'md',
 	...props

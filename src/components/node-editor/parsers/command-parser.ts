@@ -316,6 +316,7 @@ function mapTriggerToNodeType(trigger: string): AvailableNodeTypes | null {
 		$question: 'questionNode',
 		$annotation: 'annotationNode',
 		$text: 'textNode',
+		$reference: 'referenceNode',
 		$default: 'defaultNode',
 	};
 
@@ -343,6 +344,7 @@ export function getValidNodeTypeTriggers(): string[] {
 		'$question',
 		'$annotation',
 		'$text',
+		'$reference',
 		'$default',
 	];
 }
@@ -378,6 +380,7 @@ export function hasCommandTriggers(text: string): boolean {
 
 	// Check for node type triggers
 	PATTERNS.nodeType.lastIndex = 0;
+
 	if (PATTERNS.nodeType.test(text)) {
 		return true;
 	}
@@ -404,8 +407,10 @@ export function extractAllCommandTriggers(text: string): {
 	// Extract node type triggers
 	PATTERNS.nodeType.lastIndex = 0;
 	let match;
+
 	while ((match = PATTERNS.nodeType.exec(text)) !== null) {
 		nodeTypeTriggers.push(match[0]);
+
 		if (PATTERNS.nodeType.lastIndex === match.index) {
 			PATTERNS.nodeType.lastIndex++;
 		}
@@ -413,8 +418,10 @@ export function extractAllCommandTriggers(text: string): {
 
 	// Extract slash commands
 	PATTERNS.slashCommand.lastIndex = 0;
+
 	while ((match = PATTERNS.slashCommand.exec(text)) !== null) {
 		slashCommands.push(match[1]);
+
 		if (PATTERNS.slashCommand.lastIndex === match.index) {
 			PATTERNS.slashCommand.lastIndex++;
 		}

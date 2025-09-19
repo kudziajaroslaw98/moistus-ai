@@ -12,5 +12,5 @@ export type { NodeTagsProps } from './node-tabs';
 export { NodeMetadata } from './node-metadata';
 export type { NodeMetadataProps } from './node-metadata';
 
-export { UniversalMetadataBar, useMetadataRelevance } from './universal-metadata-bar';
+export { UniversalMetadataBar } from './universal-metadata-bar';
 export type { UniversalMetadataBarProps } from './universal-metadata-bar';

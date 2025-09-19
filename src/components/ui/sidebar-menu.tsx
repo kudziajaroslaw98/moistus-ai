@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import {
 	DropdownMenuContent,
 	DropdownMenuItem,
@@ -24,10 +24,7 @@ export const SidebarDropdownMenu = ({
 }: SidebarDropdownMenuProps) => {
 	return (
 		<DropdownMenuContent
-			className={cn(
-				'w-48 bg-zinc-900 border-zinc-700 shadow-xl',
-				className
-			)}
+			className={cn('w-48 bg-zinc-900 border-zinc-700 shadow-xl', className)}
 			align={align}
 			sideOffset={sideOffset}
 			{...props}
@@ -102,7 +99,9 @@ interface MenuSeparatorProps {
 }
 
 export const MenuSeparator = ({ className }: MenuSeparatorProps) => {
-	return <DropdownMenuSeparator className={cn('my-1 bg-zinc-800', className)} />;
+	return (
+		<DropdownMenuSeparator className={cn('my-1 bg-zinc-800', className)} />
+	);
 };
 
 interface MenuInfoItemProps {

@@ -1,29 +1,23 @@
 'use client';
 
 import useAppStore from '@/store/mind-map-store';
-import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
-import { Node, NodeProps } from '@xyflow/react';
 import { Check, CheckSquare } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { BaseNodeWrapper } from './base-node-wrapper';
-import {motion} from 'motion/react'
+import { motion } from 'motion/react';
+import { GlassmorphismTheme } from './themes/glassmorphism-theme';
+import { type TypedNodeProps, type TaskNodeMetadata } from './core/types';
 
-interface Task {
-	id: string;
-	text: string;
-	isComplete: boolean;
-}
-
-type TaskNodeProps = NodeProps<Node<NodeData>>;
+type TaskNodeProps = TypedNodeProps<'taskNode'>;
 
 const TaskNodeComponent = (props: TaskNodeProps) => {
 	const { id, data } = props;
 	const updateNode = useAppStore((state) => state.updateNode);
 
-	const tasks: Task[] = useMemo(
-		() => data.metadata?.tasks || [],
-		[data.metadata?.tasks]
+	const tasks = useMemo(
+		() => (data.metadata as TaskNodeMetadata)?.tasks || [],
+		[data.metadata]
 	);
 
 	const handleToggleTask = useCallback(
@@ -64,7 +58,7 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 			<div className='flex flex-col gap-3'>
 				{tasks.length === 0 ? (
 					<span style={{ 
-						color: 'rgba(255, 255, 255, 0.38)', 
+						color: GlassmorphismTheme.text.disabled, 
 						fontStyle: 'italic',
 						fontSize: '14px',
 						textAlign: 'center',
@@ -78,28 +72,30 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 						<div className='space-y-2'>
 							{/* Stats bar */}
 							<div className='flex items-center justify-between text-sm'>
-								<span style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+								<span style={{ color: GlassmorphismTheme.text.medium }}>
 									Progress
 								</span>
+
 								<span style={{ 
 									color: stats.percentage === 100 
-										? 'rgba(52, 211, 153, 0.87)' // Desaturated green for dark theme
-										: 'rgba(255, 255, 255, 0.87)' 
+										? GlassmorphismTheme.indicators.status.complete
+										: GlassmorphismTheme.text.high
 								}}>
 									{stats.completed}/{stats.total}
 								</span>
 							</div>
 							
-							{/* Progress bar with subtle gradient */}
+							{/* Progress bar with Material Design semantic colors */}
 							<div className='relative w-full h-1 rounded-full overflow-hidden'
-								style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}>
+								style={{ backgroundColor: GlassmorphismTheme.indicators.progress.background }}>
 								<motion.div 
-									className='h-full rounded-full transition-all duration-500 ease-out'
+									className='h-full rounded-full'
 									style={{ 
 										width: `${stats.percentage}%`,
 										background: stats.percentage === 100
-											? 'linear-gradient(90deg, rgba(52, 211, 153, 0.6) 0%, rgba(52, 211, 153, 0.8) 100%)'
-											: 'linear-gradient(90deg, rgba(96, 165, 250, 0.5) 0%, rgba(96, 165, 250, 0.7) 100%)'
+											? GlassmorphismTheme.indicators.progress.completeFill // Green for complete
+											: GlassmorphismTheme.indicators.progress.fill, // Blue for in-progress
+										transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
 									}}
 									initial={{ width: 0 }}
 									animate={{ width: `${stats.percentage}%` }}
@@ -127,8 +123,8 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 											className='relative w-5 h-5 rounded transition-all duration-200'
 											style={{
 												border: task.isComplete 
-													? '2px solid rgba(52, 211, 153, 0.8)'
-													: '2px solid rgba(255, 255, 255, 0.38)',
+													? `2px solid ${GlassmorphismTheme.indicators.status.complete}`
+													: `2px solid ${GlassmorphismTheme.text.disabled}`,
 												backgroundColor: task.isComplete 
 													? 'rgba(52, 211, 153, 0.15)'
 													: 'transparent',
@@ -143,7 +139,7 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 												>
 													<Check 
 														className='w-3 h-3' 
-														style={{ color: 'rgba(52, 211, 153, 0.87)' }}
+														style={{ color: GlassmorphismTheme.indicators.status.complete }}
 													/>
 												</motion.div>
 											)}
@@ -158,8 +154,8 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 										])}
 										style={{
 											color: task.isComplete 
-												? 'rgba(255, 255, 255, 0.38)' // Disabled state
-												: 'rgba(255, 255, 255, 0.87)', // High emphasis
+												? GlassmorphismTheme.text.disabled
+												: GlassmorphismTheme.text.high,
 											fontSize: '14px',
 											lineHeight: '20px',
 										}}
@@ -167,7 +163,7 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 										{task.text || (
 											<span style={{ 
 												fontStyle: 'italic',
-												color: 'rgba(255, 255, 255, 0.38)'
+												color: GlassmorphismTheme.text.disabled
 											}}>
 												Empty task
 											</span>
@@ -185,11 +181,11 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 								className='text-center py-2 px-3 rounded-md'
 								style={{
 									backgroundColor: 'rgba(52, 211, 153, 0.1)',
-									border: '1px solid rgba(52, 211, 153, 0.2)',
+									border: `1px solid ${GlassmorphismTheme.indicators.status.complete}`,
 								}}
 							>
 								<span style={{ 
-									color: 'rgba(52, 211, 153, 0.87)',
+									color: GlassmorphismTheme.indicators.status.complete,
 									fontSize: '13px',
 									fontWeight: 500
 								}}>

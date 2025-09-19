@@ -243,16 +243,19 @@ export default function GeneralSettingsPage() {
 			<div className='flex items-center justify-between'>
 				<div>
 					<h2 className='text-2xl font-bold text-white'>General Settings</h2>
+
 					<p className='text-zinc-400 mt-1'>
 						Manage your account and profile information
 					</p>
 				</div>
+
 				<Button
 					onClick={handleSave}
 					disabled={isSaving}
 					className='bg-sky-600 hover:bg-sky-700'
 				>
 					<Save className='size-4 mr-2' />
+
 					{isSaving ? 'Saving...' : 'Save Changes'}
 				</Button>
 			</div>
@@ -261,14 +264,19 @@ export default function GeneralSettingsPage() {
 			<Card className='bg-zinc-900 border-zinc-700'>
 				<CardHeader>
 					<CardTitle className='text-white'>Profile Picture</CardTitle>
+
 					<CardDescription>Update your profile picture</CardDescription>
 				</CardHeader>
+
 				<CardContent className='flex items-center gap-6'>
 					<UserAvatar user={userProfile} size='2xl' />
+
 					<div className='space-y-2'>
 						<Button variant='outline' className='relative'>
 							<Camera className='size-4 mr-2' />
+
 							Upload Photo
+
 							<input
 								type='file'
 								accept='image/*'
@@ -279,6 +287,7 @@ export default function GeneralSettingsPage() {
 								}}
 							/>
 						</Button>
+
 						<p className='text-xs text-zinc-500'>
 							JPG, PNG or GIF. Max size 2MB.
 						</p>
@@ -290,12 +299,15 @@ export default function GeneralSettingsPage() {
 			<Card className='bg-zinc-900 border-zinc-700'>
 				<CardHeader>
 					<CardTitle className='text-white'>Basic Information</CardTitle>
+
 					<CardDescription>Your public profile information</CardDescription>
 				</CardHeader>
+
 				<CardContent className='space-y-4'>
 					<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
 						<div className='space-y-2'>
 							<Label htmlFor='full_name'>Full Name</Label>
+
 							<Input
 								id='full_name'
 								value={formData.full_name}
@@ -303,8 +315,10 @@ export default function GeneralSettingsPage() {
 								className='bg-zinc-800 border-zinc-600'
 							/>
 						</div>
+
 						<div className='space-y-2'>
 							<Label htmlFor='display_name'>Display Name</Label>
+
 							<Input
 								id='display_name'
 								value={formData.display_name}
@@ -316,6 +330,7 @@ export default function GeneralSettingsPage() {
 
 					<div className='space-y-2'>
 						<Label htmlFor='bio'>Bio</Label>
+
 						<Textarea
 							id='bio'
 							value={formData.bio}
@@ -332,6 +347,7 @@ export default function GeneralSettingsPage() {
 								<MapPin className='size-4 inline mr-1' />
 								Location
 							</Label>
+
 							<Input
 								id='location'
 								value={formData.location}
@@ -340,11 +356,13 @@ export default function GeneralSettingsPage() {
 								placeholder='City, Country'
 							/>
 						</div>
+
 						<div className='space-y-2'>
 							<Label htmlFor='website'>
 								<Globe className='size-4 inline mr-1' />
 								Website
 							</Label>
+
 							<Input
 								id='website'
 								type='url'
@@ -362,6 +380,7 @@ export default function GeneralSettingsPage() {
 								<Building className='size-4 inline mr-1' />
 								Company
 							</Label>
+
 							<Input
 								id='company'
 								value={formData.company}
@@ -369,11 +388,13 @@ export default function GeneralSettingsPage() {
 								className='bg-zinc-800 border-zinc-600'
 							/>
 						</div>
+
 						<div className='space-y-2'>
 							<Label htmlFor='job_title'>
 								<Briefcase className='size-4 inline mr-1' />
 								Job Title
 							</Label>
+
 							<Input
 								id='job_title'
 								value={formData.job_title}
@@ -389,8 +410,10 @@ export default function GeneralSettingsPage() {
 			<Card className='bg-zinc-900 border-zinc-700'>
 				<CardHeader>
 					<CardTitle className='text-white'>Skills</CardTitle>
+
 					<CardDescription>Add your skills and expertise</CardDescription>
 				</CardHeader>
+
 				<CardContent className='space-y-4'>
 					<div className='flex gap-2'>
 						<Input
@@ -400,10 +423,12 @@ export default function GeneralSettingsPage() {
 							placeholder='Add a skill...'
 							className='bg-zinc-800 border-zinc-600'
 						/>
+
 						<Button onClick={addSkill} size='sm'>
 							<Plus className='size-4' />
 						</Button>
 					</div>
+
 					<div className='flex flex-wrap gap-2'>
 						{formData.skills.map((skill) => (
 							<Badge
@@ -412,6 +437,7 @@ export default function GeneralSettingsPage() {
 								className='bg-sky-900/50 text-sky-200 hover:bg-sky-800 border border-sky-700/50'
 							>
 								{skill}
+
 								<button
 									onClick={() => removeSkill(skill)}
 									className='ml-1 hover:text-red-400'
@@ -428,18 +454,22 @@ export default function GeneralSettingsPage() {
 			<Card className='bg-zinc-900 border-zinc-700'>
 				<CardHeader>
 					<CardTitle className='text-white'>Account Management</CardTitle>
+
 					<CardDescription>
 						Manage your account settings and security
 					</CardDescription>
 				</CardHeader>
+
 				<CardContent className='space-y-4'>
 					<div className='flex items-center justify-between p-4 bg-zinc-800/50 rounded-lg'>
 						<div>
 							<Label className='text-white'>Change Password</Label>
+
 							<p className='text-sm text-zinc-400'>
 								Update your account password for better security
 							</p>
 						</div>
+
 						<Button variant='outline' size='sm'>
 							Change Password
 						</Button>
@@ -448,10 +478,12 @@ export default function GeneralSettingsPage() {
 					<div className='flex items-center justify-between p-4 bg-zinc-800/50 rounded-lg'>
 						<div>
 							<Label className='text-white'>Two-Factor Authentication</Label>
+
 							<p className='text-sm text-zinc-400'>
 								Add an extra layer of security to your account
 							</p>
 						</div>
+
 						<Button variant='outline' size='sm'>
 							Enable 2FA
 						</Button>
@@ -462,10 +494,12 @@ export default function GeneralSettingsPage() {
 					<div className='flex items-center justify-between p-4 bg-red-950/20 rounded-lg border border-red-800/30'>
 						<div>
 							<Label className='text-red-400'>Delete Account</Label>
+
 							<p className='text-sm text-red-300/70'>
 								Permanently delete your account and all associated data
 							</p>
 						</div>
+
 						<Button variant='destructive' size='sm'>
 							<Trash2 className='size-4 mr-2' />
 							Delete

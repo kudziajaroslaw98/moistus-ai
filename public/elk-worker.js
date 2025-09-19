@@ -19,6 +19,7 @@ self.addEventListener('message', async (event) => {
 
 				// Create ELK instance
 				const ELK = self.ELK || self.elk;
+
 				if (!ELK) {
 					throw new Error('ELK.js not available in worker');
 				}
@@ -42,6 +43,7 @@ self.addEventListener('message', async (event) => {
 					requestId,
 				});
 			}
+
 			break;
 
 		case 'WORKER_INIT':

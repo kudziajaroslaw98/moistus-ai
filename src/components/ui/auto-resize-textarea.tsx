@@ -1,6 +1,6 @@
 'use client';
 
-import { Textarea, TextareaProps } from '@/components/ui/textarea';
+import { Textarea, type TextareaProps } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { forwardRef, useEffect, useRef } from 'react';
 

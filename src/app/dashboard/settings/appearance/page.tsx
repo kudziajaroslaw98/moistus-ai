@@ -217,16 +217,19 @@ export default function AppearanceSettingsPage() {
 			<div className='flex items-center justify-between'>
 				<div>
 					<h2 className='text-2xl font-bold text-white'>Appearance Settings</h2>
+
 					<p className='text-zinc-400 mt-1'>
 						Customize the look and feel of your workspace
 					</p>
 				</div>
+
 				<Button
 					onClick={handleSave}
 					disabled={isSaving}
 					className='bg-sky-600 hover:bg-sky-700'
 				>
 					<Save className='size-4 mr-2' />
+
 					{isSaving ? 'Saving...' : 'Save Changes'}
 				</Button>
 			</div>
@@ -238,13 +241,16 @@ export default function AppearanceSettingsPage() {
 						<Palette className='size-5' />
 						Theme
 					</CardTitle>
+
 					<CardDescription>
 						Choose your preferred color scheme
 					</CardDescription>
 				</CardHeader>
+
 				<CardContent className='space-y-6'>
 					<div className='space-y-3'>
 						<Label>Color scheme</Label>
+
 						<div className='grid grid-cols-3 gap-3'>
 							<button
 								onClick={() => updateSetting('theme', 'light')}
@@ -256,9 +262,11 @@ export default function AppearanceSettingsPage() {
 							>
 								<div className='flex flex-col items-center gap-2'>
 									<Sun className='size-5 text-yellow-500' />
+
 									<span className='text-sm font-medium text-white'>Light</span>
 								</div>
 							</button>
+
 							<button
 								onClick={() => updateSetting('theme', 'dark')}
 								className={`p-4 rounded-lg border-2 transition-colors ${
@@ -269,9 +277,11 @@ export default function AppearanceSettingsPage() {
 							>
 								<div className='flex flex-col items-center gap-2'>
 									<Moon className='size-5 text-blue-500' />
+
 									<span className='text-sm font-medium text-white'>Dark</span>
 								</div>
 							</button>
+
 							<button
 								onClick={() => updateSetting('theme', 'system')}
 								className={`p-4 rounded-lg border-2 transition-colors ${
@@ -282,6 +292,7 @@ export default function AppearanceSettingsPage() {
 							>
 								<div className='flex flex-col items-center gap-2'>
 									<Monitor className='size-5 text-zinc-400' />
+
 									<span className='text-sm font-medium text-white'>System</span>
 								</div>
 							</button>
@@ -292,6 +303,7 @@ export default function AppearanceSettingsPage() {
 
 					<div className='space-y-3'>
 						<Label>Accent color</Label>
+
 						<div className='grid grid-cols-7 gap-2'>
 							{accentColors.map((color) => (
 								<button
@@ -317,16 +329,19 @@ export default function AppearanceSettingsPage() {
 						<Clock className='size-5' />
 						Region
 					</CardTitle>
+
 					<CardDescription>
 						Set your timezone preference
 					</CardDescription>
 				</CardHeader>
+
 				<CardContent className='space-y-4'>
 					<div className='space-y-2'>
 						<Label>
 							<Clock className='size-4 inline mr-1' />
 							Timezone
 						</Label>
+
 						<Select
 							value={settings.timezone}
 							onValueChange={(value) => updateSetting('timezone', value)}
@@ -334,6 +349,7 @@ export default function AppearanceSettingsPage() {
 							<SelectTrigger className='bg-zinc-800 border-zinc-600'>
 								<SelectValue />
 							</SelectTrigger>
+
 							<SelectContent>
 								{timezones.map((tz) => (
 									<SelectItem key={tz.value} value={tz.value}>
@@ -353,20 +369,24 @@ export default function AppearanceSettingsPage() {
 						<Monitor className='size-5' />
 						Display
 					</CardTitle>
+
 					<CardDescription>
 						Customize the display and interface options
 					</CardDescription>
 				</CardHeader>
+
 				<CardContent className='space-y-6'>
 					{/* Note: Font size and compact mode removed - not functional without major architecture changes */}
 
 					<div className='flex items-center justify-between'>
 						<div>
 							<Label>Animations</Label>
+
 							<p className='text-sm text-zinc-400'>
 								Enable smooth transitions and animations
 							</p>
 						</div>
+
 						<Switch
 							checked={settings.animations}
 							onCheckedChange={(checked) => updateSetting('animations', checked)}
@@ -376,10 +396,12 @@ export default function AppearanceSettingsPage() {
 					<div className='flex items-center justify-between'>
 						<div>
 							<Label>Reduce motion</Label>
+
 							<p className='text-sm text-zinc-400'>
 								Minimize motion for accessibility (overrides animations)
 							</p>
 						</div>
+
 						<Switch
 							checked={settings.reducedMotion}
 							onCheckedChange={(checked) => updateSetting('reducedMotion', checked)}
@@ -395,18 +417,22 @@ export default function AppearanceSettingsPage() {
 						<Zap className='size-5' />
 						Mind Map Canvas
 					</CardTitle>
+
 					<CardDescription>
 						Customize the mind map editing experience
 					</CardDescription>
 				</CardHeader>
+
 				<CardContent className='space-y-6'>
 					<div className='flex items-center justify-between'>
 						<div>
 							<Label>Show grid</Label>
+
 							<p className='text-sm text-zinc-400'>
 								Display a grid overlay on the canvas
 							</p>
 						</div>
+
 						<Switch
 							checked={settings.canvas.gridVisible}
 							onCheckedChange={(checked) => updateCanvasSetting('gridVisible', checked)}
@@ -416,10 +442,12 @@ export default function AppearanceSettingsPage() {
 					<div className='flex items-center justify-between'>
 						<div>
 							<Label>Snap to grid</Label>
+
 							<p className='text-sm text-zinc-400'>
 								Automatically align nodes to the grid
 							</p>
 						</div>
+
 						<Switch
 							checked={settings.canvas.snapToGrid}
 							onCheckedChange={(checked) => updateCanvasSetting('snapToGrid', checked)}

@@ -82,6 +82,11 @@ const chevronVariants = {
 const groupPatternsByCategory = (
 	patterns: ParsingPattern[]
 ): Record<PatternCategory, ParsingPattern[]> => {
+	// Safety check: handle undefined or null patterns
+	if (!patterns || !Array.isArray(patterns)) {
+		return {} as Record<PatternCategory, ParsingPattern[]>;
+	}
+
 	return patterns.reduce(
 		(acc, pattern) => {
 			if (!acc[pattern.category]) {

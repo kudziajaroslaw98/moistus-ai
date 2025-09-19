@@ -3,7 +3,7 @@
 import { cn } from '@/utils/cn';
 import {
 	Panel,
-	PanelProps,
+	type PanelProps,
 	useOnViewportChange,
 	useReactFlow,
 	useStore,

@@ -197,16 +197,19 @@ export default function CollaborationSettingsPage() {
 			<div className='flex items-center justify-between'>
 				<div>
 					<h2 className='text-2xl font-bold text-white'>Collaboration Settings</h2>
+
 					<p className='text-zinc-400 mt-1'>
 						Manage team access and collaboration preferences
 					</p>
 				</div>
+
 				<Button
 					onClick={handleSave}
 					disabled={isSaving}
 					className='bg-sky-600 hover:bg-sky-700'
 				>
 					<Save className='size-4 mr-2' />
+
 					{isSaving ? 'Saving...' : 'Save Changes'}
 				</Button>
 			</div>
@@ -218,14 +221,17 @@ export default function CollaborationSettingsPage() {
 						<Users className='size-5' />
 						Team Members
 					</CardTitle>
+
 					<CardDescription>
 						Manage who has access to your workspace
 					</CardDescription>
 				</CardHeader>
+
 				<CardContent className='space-y-4'>
 					{/* Invite new member */}
 					<div className='p-4 bg-zinc-800/30 rounded-lg space-y-3'>
 						<Label className='text-white'>Invite new member</Label>
+
 						<div className='flex gap-2'>
 							<Input
 								placeholder='email@example.com'
@@ -233,6 +239,7 @@ export default function CollaborationSettingsPage() {
 								onChange={(e) => setNewMemberEmail(e.target.value)}
 								className='bg-zinc-800 border-zinc-600 flex-1'
 							/>
+
 							<Select
 								value={newMemberRole}
 								onValueChange={(value: 'admin' | 'member') => setNewMemberRole(value)}
@@ -240,11 +247,14 @@ export default function CollaborationSettingsPage() {
 								<SelectTrigger className='bg-zinc-800 border-zinc-600 w-32'>
 									<SelectValue />
 								</SelectTrigger>
+
 								<SelectContent>
 									<SelectItem value='member'>Member</SelectItem>
+
 									<SelectItem value='admin'>Admin</SelectItem>
 								</SelectContent>
 							</Select>
+
 							<Button onClick={handleInviteMember} size='sm'>
 								<UserPlus className='size-4 mr-2' />
 								Invite
@@ -263,23 +273,29 @@ export default function CollaborationSettingsPage() {
 							>
 								<div className='flex items-center gap-3'>
 									<UserAvatar user={member} size='sm' />
+
 									<div>
 										<div className='flex items-center gap-2'>
 											<span className='font-medium text-white'>{member.name}</span>
+
 											{member.role === 'owner' && (
 												<Crown className='size-4 text-amber-400' />
 											)}
 										</div>
+
 										<p className='text-sm text-zinc-400'>{member.email}</p>
 									</div>
 								</div>
+
 								<div className='flex items-center gap-2'>
 									<Badge className={getRoleBadgeColor(member.role)}>
 										{member.role}
 									</Badge>
+
 									<Badge className={getStatusBadgeColor(member.status)}>
 										{member.status}
 									</Badge>
+
 									{member.role !== 'owner' && (
 										<Button variant='ghost' size='sm'>
 											<MoreHorizontal className='size-4' />
@@ -294,8 +310,10 @@ export default function CollaborationSettingsPage() {
 					{pendingInvitations.length > 0 && (
 						<>
 							<Separator className='bg-zinc-700' />
+
 							<div className='space-y-3'>
 								<Label className='text-white'>Pending invitations</Label>
+
 								{pendingInvitations.map((invitation) => (
 									<div
 										key={invitation.id}
@@ -305,22 +323,27 @@ export default function CollaborationSettingsPage() {
 											<div className='w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center'>
 												<Mail className='size-4 text-zinc-400' />
 											</div>
+
 											<div>
 												<span className='font-medium text-white'>
 													{invitation.email}
 												</span>
+
 												<p className='text-sm text-zinc-400'>
 													Expires {new Date(invitation.expiresAt).toLocaleDateString()}
 												</p>
 											</div>
 										</div>
+
 										<div className='flex items-center gap-2'>
 											<Badge className={getRoleBadgeColor(invitation.role)}>
 												{invitation.role}
 											</Badge>
+
 											<Badge className='bg-yellow-900/50 text-yellow-200 border-yellow-700/50'>
 												pending
 											</Badge>
+
 											<Button variant='ghost' size='sm'>
 												<Trash2 className='size-4 text-red-400' />
 											</Button>
@@ -340,13 +363,16 @@ export default function CollaborationSettingsPage() {
 						<Share className='size-5' />
 						Sharing Settings
 					</CardTitle>
+
 					<CardDescription>
 						Configure default permissions and sharing behavior
 					</CardDescription>
 				</CardHeader>
+
 				<CardContent className='space-y-4'>
 					<div className='space-y-2'>
 						<Label>Default permissions for new collaborators</Label>
+
 						<Select
 							value={settings.defaultPermissions}
 							onValueChange={(value: 'view' | 'comment' | 'edit') =>
@@ -356,9 +382,12 @@ export default function CollaborationSettingsPage() {
 							<SelectTrigger className='bg-zinc-800 border-zinc-600'>
 								<SelectValue />
 							</SelectTrigger>
+
 							<SelectContent>
 								<SelectItem value='view'>View only - Can see content</SelectItem>
+
 								<SelectItem value='comment'>Comment - Can add comments</SelectItem>
+
 								<SelectItem value='edit'>Edit - Can modify content</SelectItem>
 							</SelectContent>
 						</Select>
@@ -369,10 +398,12 @@ export default function CollaborationSettingsPage() {
 					<div className='flex items-center justify-between'>
 						<div>
 							<Label>Allow public sharing links</Label>
+
 							<p className='text-sm text-zinc-400'>
 								Enable creating shareable links for mind maps
 							</p>
 						</div>
+
 						<Switch
 							checked={settings.allowPublicLinks}
 							onCheckedChange={(checked) => updateSetting('allowPublicLinks', checked)}
@@ -382,6 +413,7 @@ export default function CollaborationSettingsPage() {
 					{settings.allowPublicLinks && (
 						<div className='space-y-2 pl-6'>
 							<Label>Share link expiry</Label>
+
 							<Select
 								value={settings.shareLinkExpiry}
 								onValueChange={(value: 'never' | '24h' | '7d' | '30d') =>
@@ -391,6 +423,7 @@ export default function CollaborationSettingsPage() {
 								<SelectTrigger className='bg-zinc-800 border-zinc-600'>
 									<SelectValue />
 								</SelectTrigger>
+
 								<SelectContent>
 									<SelectItem value='never'>
 										<div className='flex items-center gap-2'>
@@ -398,18 +431,21 @@ export default function CollaborationSettingsPage() {
 											Never expire
 										</div>
 									</SelectItem>
+
 									<SelectItem value='24h'>
 										<div className='flex items-center gap-2'>
 											<Clock className='size-4' />
 											24 hours
 										</div>
 									</SelectItem>
+
 									<SelectItem value='7d'>
 										<div className='flex items-center gap-2'>
 											<Clock className='size-4' />
 											7 days
 										</div>
 									</SelectItem>
+
 									<SelectItem value='30d'>
 										<div className='flex items-center gap-2'>
 											<Clock className='size-4' />
@@ -426,10 +462,12 @@ export default function CollaborationSettingsPage() {
 					<div className='flex items-center justify-between'>
 						<div>
 							<Label>Require approval for new collaborators</Label>
+
 							<p className='text-sm text-zinc-400'>
 								New collaborators must be approved before gaining access
 							</p>
 						</div>
+
 						<Switch
 							checked={settings.requireApproval}
 							onCheckedChange={(checked) => updateSetting('requireApproval', checked)}
@@ -438,6 +476,7 @@ export default function CollaborationSettingsPage() {
 
 					<div className='space-y-2'>
 						<Label>Auto-accept collaboration requests from</Label>
+
 						<Select
 							value={settings.autoAcceptFrom}
 							onValueChange={(value: 'none' | 'connections' | 'domain') =>
@@ -447,9 +486,12 @@ export default function CollaborationSettingsPage() {
 							<SelectTrigger className='bg-zinc-800 border-zinc-600'>
 								<SelectValue />
 							</SelectTrigger>
+
 							<SelectContent>
 								<SelectItem value='none'>None - Always require approval</SelectItem>
+
 								<SelectItem value='connections'>Existing connections</SelectItem>
+
 								<SelectItem value='domain'>Trusted domains</SelectItem>
 							</SelectContent>
 						</Select>
@@ -461,10 +503,12 @@ export default function CollaborationSettingsPage() {
 			<Card className='bg-zinc-900 border-zinc-700'>
 				<CardHeader>
 					<CardTitle className='text-white'>Trusted Domains</CardTitle>
+
 					<CardDescription>
 						Automatically approve collaboration requests from these domains
 					</CardDescription>
 				</CardHeader>
+
 				<CardContent className='space-y-4'>
 					<div className='flex gap-2'>
 						<Input
@@ -474,10 +518,12 @@ export default function CollaborationSettingsPage() {
 							onKeyPress={(e) => e.key === 'Enter' && addTrustedDomain()}
 							className='bg-zinc-800 border-zinc-600'
 						/>
+
 						<Button onClick={addTrustedDomain} size='sm'>
 							<Plus className='size-4' />
 						</Button>
 					</div>
+
 					<div className='flex flex-wrap gap-2'>
 						{settings.trustedDomains.map((domain) => (
 							<Badge
@@ -486,6 +532,7 @@ export default function CollaborationSettingsPage() {
 								className='bg-sky-900/50 text-sky-200 hover:bg-sky-800 border border-sky-700/50'
 							>
 								{domain}
+
 								<button
 									onClick={() => removeTrustedDomain(domain)}
 									className='ml-1 hover:text-red-400'
@@ -502,18 +549,22 @@ export default function CollaborationSettingsPage() {
 			<Card className='bg-zinc-900 border-zinc-700'>
 				<CardHeader>
 					<CardTitle className='text-white'>Collaboration Notifications</CardTitle>
+
 					<CardDescription>
 						Configure notifications for collaboration activities
 					</CardDescription>
 				</CardHeader>
+
 				<CardContent className='space-y-4'>
 					<div className='flex items-center justify-between'>
 						<div>
 							<Label>Collaboration invitations</Label>
+
 							<p className='text-sm text-zinc-400'>
 								Get notified when someone invites you to collaborate
 							</p>
 						</div>
+
 						<Switch
 							checked={settings.notifications.invitations}
 							onCheckedChange={(checked) => updateNotificationSetting('invitations', checked)}
@@ -523,10 +574,12 @@ export default function CollaborationSettingsPage() {
 					<div className='flex items-center justify-between'>
 						<div>
 							<Label>Mentions in comments</Label>
+
 							<p className='text-sm text-zinc-400'>
 								Get notified when someone mentions you in comments
 							</p>
 						</div>
+
 						<Switch
 							checked={settings.notifications.mentions}
 							onCheckedChange={(checked) => updateNotificationSetting('mentions', checked)}
@@ -536,10 +589,12 @@ export default function CollaborationSettingsPage() {
 					<div className='flex items-center justify-between'>
 						<div>
 							<Label>Content edits</Label>
+
 							<p className='text-sm text-zinc-400'>
 								Get notified when collaborators edit shared content
 							</p>
 						</div>
+
 						<Switch
 							checked={settings.notifications.edits}
 							onCheckedChange={(checked) => updateNotificationSetting('edits', checked)}
@@ -549,10 +604,12 @@ export default function CollaborationSettingsPage() {
 					<div className='flex items-center justify-between'>
 						<div>
 							<Label>New comments</Label>
+
 							<p className='text-sm text-zinc-400'>
 								Get notified when someone comments on shared content
 							</p>
 						</div>
+
 						<Switch
 							checked={settings.notifications.comments}
 							onCheckedChange={(checked) => updateNotificationSetting('comments', checked)}

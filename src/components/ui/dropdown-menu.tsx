@@ -2,19 +2,20 @@
 
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 import { CheckIcon, ChevronRightIcon, CircleIcon } from 'lucide-react';
-import * as React from 'react';
+import type { ComponentProps } from 'react';
 
 import { cn } from '@/lib/utils';
+import { GlassmorphismTheme } from '../nodes/themes/glassmorphism-theme';
 
 function DropdownMenu({
 	...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
+}: ComponentProps<typeof DropdownMenuPrimitive.Root>) {
 	return <DropdownMenuPrimitive.Root data-slot='dropdown-menu' {...props} />;
 }
 
 function DropdownMenuPortal({
 	...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Portal>) {
+}: ComponentProps<typeof DropdownMenuPrimitive.Portal>) {
 	return (
 		<DropdownMenuPrimitive.Portal data-slot='dropdown-menu-portal' {...props} />
 	);
@@ -22,7 +23,7 @@ function DropdownMenuPortal({
 
 function DropdownMenuTrigger({
 	...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Trigger>) {
+}: ComponentProps<typeof DropdownMenuPrimitive.Trigger>) {
 	return (
 		<DropdownMenuPrimitive.Trigger
 			data-slot='dropdown-menu-trigger'
@@ -35,16 +36,22 @@ function DropdownMenuContent({
 	className,
 	sideOffset = 4,
 	...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
+}: ComponentProps<typeof DropdownMenuPrimitive.Content>) {
 	return (
 		<DropdownMenuPrimitive.Portal>
 			<DropdownMenuPrimitive.Content
 				data-slot='dropdown-menu-content'
 				sideOffset={sideOffset}
 				className={cn(
-					'bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md',
+					'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md shadow-md p-1',
 					className
 				)}
+				style={{
+					backgroundColor: GlassmorphismTheme.elevation[24], // Menu elevation
+					border: `1px solid ${GlassmorphismTheme.borders.default}`,
+					color: GlassmorphismTheme.text.high,
+					backdropFilter: 'blur(8px)',
+				}}
 				{...props}
 			/>
 		</DropdownMenuPrimitive.Portal>
@@ -53,7 +60,7 @@ function DropdownMenuContent({
 
 function DropdownMenuGroup({
 	...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Group>) {
+}: ComponentProps<typeof DropdownMenuPrimitive.Group>) {
 	return (
 		<DropdownMenuPrimitive.Group data-slot='dropdown-menu-group' {...props} />
 	);
@@ -64,7 +71,7 @@ function DropdownMenuItem({
 	inset,
 	variant = 'default',
 	...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Item> & {
+}: ComponentProps<typeof DropdownMenuPrimitive.Item> & {
 	inset?: boolean;
 	variant?: 'default' | 'destructive';
 }) {
@@ -87,7 +94,7 @@ function DropdownMenuCheckboxItem({
 	children,
 	checked,
 	...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem>) {
+}: ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem>) {
 	return (
 		<DropdownMenuPrimitive.CheckboxItem
 			data-slot='dropdown-menu-checkbox-item'
@@ -111,7 +118,7 @@ function DropdownMenuCheckboxItem({
 
 function DropdownMenuRadioGroup({
 	...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.RadioGroup>) {
+}: ComponentProps<typeof DropdownMenuPrimitive.RadioGroup>) {
 	return (
 		<DropdownMenuPrimitive.RadioGroup
 			data-slot='dropdown-menu-radio-group'
@@ -124,7 +131,7 @@ function DropdownMenuRadioItem({
 	className,
 	children,
 	...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.RadioItem>) {
+}: ComponentProps<typeof DropdownMenuPrimitive.RadioItem>) {
 	return (
 		<DropdownMenuPrimitive.RadioItem
 			data-slot='dropdown-menu-radio-item'
@@ -149,7 +156,7 @@ function DropdownMenuLabel({
 	className,
 	inset,
 	...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Label> & {
+}: ComponentProps<typeof DropdownMenuPrimitive.Label> & {
 	inset?: boolean;
 }) {
 	return (
@@ -168,7 +175,7 @@ function DropdownMenuLabel({
 function DropdownMenuSeparator({
 	className,
 	...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Separator>) {
+}: ComponentProps<typeof DropdownMenuPrimitive.Separator>) {
 	return (
 		<DropdownMenuPrimitive.Separator
 			data-slot='dropdown-menu-separator'
@@ -178,10 +185,7 @@ function DropdownMenuSeparator({
 	);
 }
 
-function DropdownMenuShortcut({
-	className,
-	...props
-}: React.ComponentProps<'span'>) {
+function DropdownMenuShortcut({ className, ...props }: ComponentProps<'span'>) {
 	return (
 		<span
 			data-slot='dropdown-menu-shortcut'
@@ -196,7 +200,7 @@ function DropdownMenuShortcut({
 
 function DropdownMenuSub({
 	...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Sub>) {
+}: ComponentProps<typeof DropdownMenuPrimitive.Sub>) {
 	return <DropdownMenuPrimitive.Sub data-slot='dropdown-menu-sub' {...props} />;
 }
 
@@ -205,7 +209,7 @@ function DropdownMenuSubTrigger({
 	inset,
 	children,
 	...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.SubTrigger> & {
+}: ComponentProps<typeof DropdownMenuPrimitive.SubTrigger> & {
 	inset?: boolean;
 }) {
 	return (
@@ -228,14 +232,20 @@ function DropdownMenuSubTrigger({
 function DropdownMenuSubContent({
 	className,
 	...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.SubContent>) {
+}: ComponentProps<typeof DropdownMenuPrimitive.SubContent>) {
 	return (
 		<DropdownMenuPrimitive.SubContent
 			data-slot='dropdown-menu-sub-content'
 			className={cn(
-				'bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-md border p-1 shadow-lg',
+				'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-md shadow-lg p-1',
 				className
 			)}
+			style={{
+				backgroundColor: GlassmorphismTheme.elevation[24], // Submenu elevation
+				border: `1px solid ${GlassmorphismTheme.borders.default}`,
+				color: GlassmorphismTheme.text.high,
+				backdropFilter: 'blur(8px)',
+			}}
 			{...props}
 		/>
 	);

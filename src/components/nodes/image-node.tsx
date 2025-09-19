@@ -1,31 +1,38 @@
 'use client';
 
-import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
-import { Node, NodeProps } from '@xyflow/react';
 import { Image as ImageIcon, ImageOff, Loader2 } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import Image from 'next/image';
 import { memo, useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { BaseNodeWrapper } from './base-node-wrapper';
+import { type TypedNodeProps } from './core/types';
+import { GlassmorphismTheme } from './themes/glassmorphism-theme';
 
-type ImageNodeProps = NodeProps<Node<NodeData>>;
+type ImageNodeProps = TypedNodeProps<'imageNode'>;
 
 const ImageNodeComponent = (props: ImageNodeProps) => {
 	const { data } = props;
-	const [imageState, setImageState] = useState<'loading' | 'loaded' | 'error'>('loading');
-	const [aspectRatio, setAspectRatio] = useState<number>(16/9); // Default aspect ratio
+	const [imageState, setImageState] = useState<'loading' | 'loaded' | 'error'>(
+		'loading'
+	);
+	const [aspectRatio, setAspectRatio] = useState<number>(16 / 9); // Default aspect ratio
 
-	const imageUrl = data.metadata?.image_url as string | undefined;
+	const imageUrl = (data.metadata?.image_url || data.metadata?.imageUrl) as
+		| string
+		| undefined;
 	const showCaption = Boolean(data.metadata?.showCaption);
-	const fitMode = (data.metadata?.fitMode as 'cover' | 'contain' | 'fill') || 'cover';
+	const fitMode =
+		(data.metadata?.fitMode as 'cover' | 'contain' | 'fill') || 'cover';
 	const altText = (data.metadata?.altText as string) || data.content || 'Image';
 
 	const handleImageLoad = (event: any) => {
 		const img = event.target;
+
 		if (img.naturalWidth && img.naturalHeight) {
 			setAspectRatio(img.naturalWidth / img.naturalHeight);
 		}
+
 		setImageState('loaded');
 	};
 
@@ -36,19 +43,21 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 			nodeType='Image'
 			nodeIcon={<ImageIcon className='size-4' />}
 			includePadding={false}
+			hideNodeType
 			elevation={1}
 		>
 			<div className='flex flex-col h-full'>
 				{imageUrl ? (
-					<div className='relative w-full overflow-hidden rounded-t-lg'
+					<div
+						className='relative w-full overflow-hidden rounded-lg'
 						style={{
 							// Dynamic aspect ratio based on image or fallback to 16:9
 							aspectRatio: data.metadata?.aspectRatio || aspectRatio,
-							backgroundColor: '#121212', // Base elevation for loading
+							backgroundColor: GlassmorphismTheme.elevation[0],
 							minHeight: '120px',
 							maxHeight: '400px',
-						}}>
-						
+						}}
+					>
 						{/* Loading state with elegant skeleton */}
 						<AnimatePresence>
 							{imageState === 'loading' && (
@@ -61,10 +70,16 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 								>
 									<motion.div
 										animate={{ rotate: 360 }}
-										transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+										transition={{
+											duration: 1.5,
+											repeat: Infinity,
+											ease: 'linear',
+										}}
 									>
-										<Loader2 className='w-6 h-6' 
-											style={{ color: 'rgba(255, 255, 255, 0.2)' }} />
+										<Loader2
+											className='w-6 h-6'
+											style={{ color: 'rgba(255, 255, 255, 0.2)' }}
+										/>
 									</motion.div>
 								</motion.div>
 							)}
@@ -76,29 +91,39 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 								initial={{ opacity: 0, scale: 0.95 }}
 								animate={{ opacity: 1, scale: 1 }}
 								className='absolute inset-0 flex flex-col items-center justify-center p-4'
-								style={{ 
+								style={{
 									backgroundColor: 'rgba(239, 68, 68, 0.05)',
-									border: '1px solid rgba(239, 68, 68, 0.2)',
+									border: `1px solid ${GlassmorphismTheme.indicators.status.error}`,
 								}}
 							>
-								<ImageOff className='w-8 h-8 mb-2' 
-									style={{ color: 'rgba(239, 68, 68, 0.5)' }} />
-								<span style={{
-									fontSize: '13px',
-									color: 'rgba(255, 255, 255, 0.6)',
-									textAlign: 'center',
-								}}>
+								<ImageOff
+									className='w-8 h-8 mb-2'
+									style={{ color: GlassmorphismTheme.indicators.status.error }}
+								/>
+
+								<span
+									style={{
+										fontSize: '13px',
+										color: GlassmorphismTheme.text.medium,
+										textAlign: 'center',
+									}}
+								>
 									Unable to load image
 								</span>
-								<span style={{
-									fontSize: '11px',
-									color: 'rgba(255, 255, 255, 0.38)',
-									marginTop: '4px',
-									wordBreak: 'break-all',
-									textAlign: 'center',
-									maxWidth: '200px',
-								}}>
-									{imageUrl.length > 50 ? imageUrl.substring(0, 50) + '...' : imageUrl}
+
+								<span
+									style={{
+										fontSize: '11px',
+										color: GlassmorphismTheme.text.disabled,
+										marginTop: '4px',
+										wordBreak: 'break-all',
+										textAlign: 'center',
+										maxWidth: '200px',
+									}}
+								>
+									{imageUrl.length > 50
+										? imageUrl.substring(0, 50) + '...'
+										: imageUrl}
 								</span>
 							</motion.div>
 						) : (
@@ -128,9 +153,11 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 
 								{/* Image overlay gradient for better text readability when caption is shown */}
 								{showCaption && imageState === 'loaded' && (
-									<div className='absolute bottom-0 left-0 right-0 h-20 pointer-events-none'
+									<div
+										className='absolute bottom-0 left-0 right-0 h-20 pointer-events-none'
 										style={{
-											background: 'linear-gradient(to top, rgba(18, 18, 18, 0.9) 0%, transparent 100%)',
+											background:
+												'linear-gradient(to top, rgba(18, 18, 18, 0.9) 0%, transparent 100%)',
 										}}
 									/>
 								)}
@@ -146,13 +173,15 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 										className='p-1.5 rounded-md backdrop-blur-md'
 										style={{
 											backgroundColor: 'rgba(18, 18, 18, 0.8)',
-											border: '1px solid rgba(255, 255, 255, 0.1)',
+											border: `1px solid ${GlassmorphismTheme.borders.hover}`,
 										}}
 										onClick={() => window.open(imageUrl, '_blank')}
 										title='View full size'
 									>
-										<ImageIcon className='w-3.5 h-3.5' 
-											style={{ color: 'rgba(255, 255, 255, 0.87)' }} />
+										<ImageIcon
+											className='w-3.5 h-3.5'
+											style={{ color: GlassmorphismTheme.text.high }}
+										/>
 									</button>
 								</motion.div>
 							</>
@@ -168,25 +197,33 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 									transition={{ duration: 2, ease: 'linear' }}
 									className='absolute bottom-0 left-0 right-0 h-0.5 origin-left'
 									style={{
-										backgroundColor: 'rgba(96, 165, 250, 0.5)',
+										backgroundColor:
+											GlassmorphismTheme.indicators.progress.fill,
 									}}
 								/>
 							)}
 						</AnimatePresence>
 					</div>
 				) : (
-					<div className='flex h-32 w-full items-center justify-center rounded-lg'
+					<div
+						className='flex h-32 w-full items-center justify-center rounded-lg'
 						style={{
 							backgroundColor: 'rgba(255, 255, 255, 0.02)',
-							border: '1px dashed rgba(255, 255, 255, 0.1)',
-						}}>
+							border: `1px dashed ${GlassmorphismTheme.borders.hover}`,
+						}}
+					>
 						<div className='text-center'>
-							<ImageIcon className='w-8 h-8 mx-auto mb-2' 
-								style={{ color: 'rgba(255, 255, 255, 0.2)' }} />
-							<span style={{
-								fontSize: '12px',
-								color: 'rgba(255, 255, 255, 0.38)',
-							}}>
+							<ImageIcon
+								className='w-8 h-8 mx-auto mb-2'
+								style={{ color: 'rgba(255, 255, 255, 0.2)' }}
+							/>
+
+							<span
+								style={{
+									fontSize: '12px',
+									color: GlassmorphismTheme.text.disabled,
+								}}
+							>
 								No image URL provided
 							</span>
 						</div>
@@ -195,71 +232,91 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 
 				{/* Caption area with sophisticated typography */}
 				{showCaption && (
-					<div className='p-4' 
-						style={{ 
-							backgroundColor: '#1E1E1E', // Elevation 1
-							borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-						}}>
+					<div
+						className='p-4'
+						style={{
+							backgroundColor: GlassmorphismTheme.elevation[1],
+							borderTop: `1px solid ${GlassmorphismTheme.borders.default}`,
+						}}
+					>
 						{data.content ? (
 							<div>
 								{/* Caption text */}
-								<p style={{
-									fontSize: '13px',
-									color: 'rgba(255, 255, 255, 0.87)',
-									lineHeight: 1.6,
-									letterSpacing: '0.01em',
-									marginBottom: '4px',
-								}}>
+								<p
+									style={{
+										fontSize: '13px',
+										color: GlassmorphismTheme.text.high,
+										lineHeight: 1.6,
+										letterSpacing: '0.01em',
+										marginBottom: '4px',
+									}}
+								>
 									{data.content}
 								</p>
-								
+
 								{/* Image metadata if available */}
 								{data.metadata?.photographer && (
-									<span style={{
-										fontSize: '11px',
-										color: 'rgba(255, 255, 255, 0.38)',
-										fontStyle: 'italic',
-									}}>
+									<span
+										style={{
+											fontSize: '11px',
+											color: GlassmorphismTheme.text.disabled,
+											fontStyle: 'italic',
+										}}
+									>
 										Photo by {data.metadata.photographer}
 									</span>
 								)}
 							</div>
 						) : (
-							<span style={{
-								fontSize: '13px',
-								color: 'rgba(255, 255, 255, 0.38)',
-								fontStyle: 'italic',
-							}}>
+							<span
+								style={{
+									fontSize: '13px',
+									color: GlassmorphismTheme.text.disabled,
+									fontStyle: 'italic',
+								}}
+							>
 								No caption added. Double click to add one...
 							</span>
 						)}
 
 						{/* Image info bar */}
 						{imageState === 'loaded' && data.metadata?.showInfo && (
-							<div className='flex items-center gap-3 mt-3 pt-3'
-								style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+							<div
+								className='flex items-center gap-3 mt-3 pt-3'
+								style={{
+									borderTop: `1px solid ${GlassmorphismTheme.borders.default}`,
+								}}
+							>
 								{data.metadata?.dimensions && (
-									<span style={{
-										fontSize: '11px',
-										color: 'rgba(255, 255, 255, 0.38)',
-									}}>
+									<span
+										style={{
+											fontSize: '11px',
+											color: GlassmorphismTheme.text.disabled,
+										}}
+									>
 										{data.metadata.dimensions}
 									</span>
 								)}
+
 								{data.metadata?.fileSize && (
-									<span style={{
-										fontSize: '11px',
-										color: 'rgba(255, 255, 255, 0.38)',
-									}}>
+									<span
+										style={{
+											fontSize: '11px',
+											color: GlassmorphismTheme.text.disabled,
+										}}
+									>
 										{data.metadata.fileSize}
 									</span>
 								)}
+
 								{data.metadata?.format && (
-									<span style={{
-										fontSize: '11px',
-										color: 'rgba(255, 255, 255, 0.38)',
-										textTransform: 'uppercase',
-									}}>
+									<span
+										style={{
+											fontSize: '11px',
+											color: GlassmorphismTheme.text.disabled,
+											textTransform: 'uppercase',
+										}}
+									>
 										{data.metadata.format}
 									</span>
 								)}

@@ -137,15 +137,18 @@ const MetadataBadge = memo<{
 				color: color || 'rgba(255, 255, 255, 0.6)',
 				opacity: isHovered ? 1 : 0.8
 			}} />
+
 			<span style={{ 
 				fontWeight: 500,
 				letterSpacing: '0.01em'
 			}}>
 				{label}
 			</span>
+
 			{value && (
 				<>
 					<span style={{ opacity: 0.5 }}>·</span>
+
 					<span style={{ opacity: 0.87 }}>{value}</span>
 				</>
 			)}
@@ -213,6 +216,7 @@ const NodeTags = memo<{
 					whileTap={{ scale: 0.95 }}
 				>
 					<span>{isExpanded ? 'Less' : `+${tags.length - maxVisible}`}</span>
+
 					<motion.div
 						animate={{ rotate: isExpanded ? 90 : 0 }}
 						transition={{ duration: 0.2 }}
@@ -273,6 +277,7 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(({
 		if (metadata.status) {
 			const statusKey = metadata.status.toLowerCase().replace(' ', '-');
 			const config = statusConfig[statusKey as keyof typeof statusConfig];
+
 			if (config) {
 				items.push({
 					type: 'status',
@@ -387,10 +392,13 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(({
 	return (
 		<motion.div
 			className={cn(
-				'flex flex-wrap items-center gap-2 px-3 py-2',
+				'flex flex-wrap items-center px-4 py-2',
 				className
 			)}
-			style={containerStyle}
+			style={{
+				...containerStyle,
+				gap: '6px', // 6px gap between metadata items as specified in Material Design
+			}}
 			initial={{ opacity: 0, height: 0 }}
 			animate={{ opacity: 1, height: 'auto' }}
 			exit={{ opacity: 0, height: 0 }}

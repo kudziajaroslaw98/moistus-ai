@@ -21,7 +21,7 @@ import {
 	Trash,
 	Ungroup,
 } from 'lucide-react';
-import React, { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, type MouseEvent, type RefObject } from 'react';
 import { useShallow } from 'zustand/shallow';
 import ABezierBIcon from './icons/a-bezier-b';
 import ASmoothstepBIcon from './icons/a-smoothstep-b';
@@ -64,7 +64,7 @@ interface ContextMenuDisplayProps {
 		) => Promise<void>;
 	};
 	// applyLayout: (direction: "TB" | "LR") => void;
-	ref?: React.RefObject<HTMLDivElement | null>;
+	ref?: RefObject<HTMLDivElement | null>;
 	// setNodeParentAction: (
 	//   edgeId: string,
 	//   nodeId: string,
@@ -178,7 +178,7 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
 	};
 
 	const handleAddChild = useCallback(
-		(parentId?: string, event?: React.MouseEvent<HTMLButtonElement>) => {
+		(parentId?: string, event?: MouseEvent<HTMLButtonElement>) => {
 			if (!parentId) {
 				// get position based on button position and react flow position
 				const reactFlowPosition = reactFlowInstance?.screenToFlowPosition({

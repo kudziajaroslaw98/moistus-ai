@@ -2,7 +2,6 @@
 
 import { cn } from '@/lib/utils';
 import type { AvailableNodeTypes } from '@/types/available-node-types';
-import { type Node, type NodeProps } from '@xyflow/react';
 import {
 	Check,
 	CheckSquare,
@@ -20,67 +19,34 @@ import { motion } from 'motion/react';
 
 import useAppStore from '@/store/mind-map-store';
 import type { SuggestionContext } from '@/types/ghost-node';
-import type { NodeData } from '@/types/node-data';
 import { memo, useCallback } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { Button } from '../ui/button';
+import { BaseNodeWrapper } from './base-node-wrapper';
+import { GlassmorphismTheme } from './themes/glassmorphism-theme';
+import { 
+	isGhostNode, 
+	validateGhostMetadata, 
+	type TypedNodeProps 
+} from './core/types';
 
-interface GhostNodeMetadata {
-	suggestedContent: string;
-	suggestedType: AvailableNodeTypes;
-	confidence: number;
-	context?: SuggestionContext;
-}
-
-type GhostNodeProps = NodeProps<Node<NodeData>>;
-
-const ghostNodeVariants = {
-	initial: {
-		opacity: 0,
-		scale: 0.95,
-		y: 40,
-	},
-	animate: {
-		opacity: 1,
-		scale: 1,
-		y: 0,
-		transition: {
-			ease: 'easeOut',
-			duration: 0.3,
-		},
-	},
-	exit: {
-		opacity: 0,
-		scale: 0.95,
-		y: 40,
-		transition: {
-			ease: 'easeOut',
-			duration: 0.2,
-		},
-	},
-};
+type GhostNodeProps = TypedNodeProps<'ghostNode'>;
 
 const getNodeTypeColor = (nodeType: AvailableNodeTypes) => {
-	switch (nodeType) {
-		case 'textNode':
-			return 'border-blue-400/50 bg-blue-950';
-		case 'imageNode':
-			return 'border-purple-400/50 bg-purple-950';
-		case 'resourceNode':
-			return 'border-green-400/50 bg-green-950';
-		case 'questionNode':
-			return 'border-yellow-400/50 bg-yellow-950';
-		case 'annotationNode':
-			return 'border-orange-400/50 bg-orange-950';
-		case 'codeNode':
-			return 'border-gray-400/50 bg-gray-950';
-		case 'taskNode':
-			return 'border-red-400/50 bg-red-950';
-		case 'builderNode':
-			return 'border-indigo-400/50 bg-indigo-950';
-		default:
-			return 'border-zinc-400/50 bg-zinc-950';
-	}
+	// Use theme-consistent colors with glassmorphism approach
+	const colorMap = {
+		textNode: 'rgba(96, 165, 250, 0.1)', // Blue
+		imageNode: 'rgba(168, 85, 247, 0.1)', // Purple  
+		resourceNode: 'rgba(34, 197, 94, 0.1)', // Green
+		questionNode: 'rgba(251, 191, 36, 0.1)', // Yellow
+		annotationNode: 'rgba(249, 115, 22, 0.1)', // Orange
+		codeNode: 'rgba(156, 163, 175, 0.1)', // Gray
+		taskNode: 'rgba(239, 68, 68, 0.1)', // Red
+		builderNode: 'rgba(99, 102, 241, 0.1)', // Indigo
+		default: GlassmorphismTheme.ghost.background,
+	};
+	
+	return colorMap[nodeType] || colorMap.default;
 };
 
 const getNodeTypeIcon = (nodeType: AvailableNodeTypes) => {
@@ -106,24 +72,14 @@ const getNodeTypeIcon = (nodeType: AvailableNodeTypes) => {
 	}
 };
 
-function GhostNodeComponent({ id, data }: GhostNodeProps) {
+function GhostNodeComponent(props: GhostNodeProps) {
+	const { id, data } = props;
 	const { acceptSuggestion, rejectSuggestion } = useAppStore(
 		useShallow((state) => ({
 			acceptSuggestion: state.acceptSuggestion,
 			rejectSuggestion: state.rejectSuggestion,
 		}))
 	);
-
-	const isGhostNodeMetadata = (
-		metadata: any
-	): metadata is GhostNodeMetadata => {
-		return (
-			metadata &&
-			typeof metadata.suggestedContent === 'string' &&
-			typeof metadata.suggestedType === 'string' &&
-			typeof metadata.confidence === 'number'
-		);
-	};
 
 	const onAccept = useCallback(() => {
 		acceptSuggestion(id);
@@ -133,110 +89,161 @@ function GhostNodeComponent({ id, data }: GhostNodeProps) {
 		rejectSuggestion(id);
 	}, [id, rejectSuggestion]);
 
-	if (!isGhostNodeMetadata(data.metadata)) {
+	// Use centralized validation
+	if (!validateGhostMetadata(data.metadata)) {
 		return null;
 	}
 
-	const { suggestedContent, suggestedType, confidence, context } =
-		data.metadata as GhostNodeMetadata;
+	const { suggestedContent, suggestedType, confidence, context } = data.metadata;
 
-	const nodeColorClasses = getNodeTypeColor(suggestedType);
+	const backgroundColor = getNodeTypeColor(suggestedType);
 	const nodeIcon = getNodeTypeIcon(suggestedType);
 
-	const confidenceColor =
-		confidence >= 0.8
-			? 'text-green-400'
+	// Use theme-based confidence colors
+	const confidenceColor = 
+		confidence >= 0.8 
+			? GlassmorphismTheme.ghost.confidence.high
 			: confidence >= 0.6
-				? 'text-yellow-400'
-				: 'text-red-400';
+				? GlassmorphismTheme.ghost.confidence.medium 
+				: GlassmorphismTheme.ghost.confidence.low;
+
+	// Create custom ghost node styles
+	const ghostStyles: React.CSSProperties = {
+		backgroundColor,
+		border: `${GlassmorphismTheme.ghost.borderWidth} ${GlassmorphismTheme.ghost.borderStyle} ${GlassmorphismTheme.ghost.border}`,
+		minWidth: '200px',
+		maxWidth: '300px',
+		zIndex: 1000,
+	};
 
 	return (
-		<motion.div
-			key={id}
-			variants={ghostNodeVariants}
-			initial='initial'
-			animate={['animate']}
-			exit='exit'
-			className={cn(
-				'z-[1000] min-w-[200px] max-w-[300px] rounded-lg border-2 border-dashed p-3',
-				'shadow-lg ',
-				'cursor-pointer select-none',
-				nodeColorClasses
-			)}
+		<BaseNodeWrapper
+			{...props}
+			nodeClassName="ghost-node"
+			nodeType="AI Suggestion"
+			nodeIcon={<Sparkles className="size-4" />}
+			hideNodeType={true}
+			elevation={2}
+			includePadding={false}
 		>
-			{/* Header with AI indicator and confidence */}
-			<div className='mb-2 flex items-center justify-between'>
-				<div className='flex items-center gap-1.5'>
-					{nodeIcon}
+			<motion.div
+				key={id}
+				variants={GlassmorphismTheme.ghost.animation}
+				initial="initial"
+				animate="animate"
+				exit="exit"
+				className={cn(
+					'rounded-lg p-3 cursor-pointer select-none shadow-lg'
+				)}
+				style={ghostStyles}
+			>
+				{/* Header with AI indicator and confidence */}
+				<div className='mb-2 flex items-center justify-between'>
+					<div className='flex items-center gap-1.5'>
+						{nodeIcon}
 
-					<span className='text-xs font-medium text-zinc-300'>
-						AI Suggestion
-					</span>
+						<span 
+							className='text-xs font-medium'
+							style={{ color: GlassmorphismTheme.text.medium }}
+						>
+							AI Suggestion
+						</span>
+					</div>
+
+					<div 
+						className='text-xs font-medium'
+						style={{ color: confidenceColor }}
+					>
+						{Math.round(confidence * 100)}%
+					</div>
 				</div>
 
-				<div className={cn('text-xs font-medium', confidenceColor)}>
-					{Math.round(confidence * 100)}%
-				</div>
-			</div>
-
-			{/* Suggested content */}
-			<div className='mb-3 text-sm text-zinc-200 line-clamp-3 hover:line-clamp-none'>
-				{suggestedContent}
-			</div>
-
-			{/* Node type indicator */}
-			<div className='mb-3 text-xs text-zinc-400'>Type: {suggestedType}</div>
-
-			{/* Context information */}
-			{context && (
-				<div className='mb-3 text-xs text-zinc-500'>
-					Trigger: {context.trigger}
-
-					{context.relationshipType && (
-						<span className='ml-2'>→ {context.relationshipType}</span>
-					)}
-				</div>
-			)}
-
-			{/* Action buttons */}
-			<div className='flex gap-2'>
-				<Button
-					whileHover={{ scale: 1.05 }}
-					whileTap={{ scale: 0.95 }}
-					onClick={(e) => {
-						e.stopPropagation();
-						onAccept();
-					}}
-					className={cn(
-						'flex items-center gap-1 rounded px-2 py-1 text-xs font-medium',
-						'bg-green-600/80 text-green-100 hover:bg-green-600',
-						'transition-colors duration-200'
-					)}
-					aria-label={`Accept suggestion: ${suggestedContent.substring(0, 50)}...`}
+				{/* Suggested content */}
+				<div 
+					className='mb-3 text-sm line-clamp-3 hover:line-clamp-none'
+					style={{ color: GlassmorphismTheme.text.high }}
 				>
-					<Check className='h-3 w-3' />
-					Accept
-				</Button>
+					{suggestedContent}
+				</div>
 
-				<Button
-					whileHover={{ scale: 1.05 }}
-					whileTap={{ scale: 0.95 }}
-					onClick={(e) => {
-						e.stopPropagation();
-						onReject();
-					}}
-					className={cn(
-						'flex items-center gap-1 rounded px-2 py-1 text-xs font-medium',
-						'bg-red-600/80 text-red-100 hover:bg-red-600',
-						'transition-colors duration-200'
-					)}
-					aria-label={`Reject suggestion: ${suggestedContent.substring(0, 50)}...`}
+				{/* Node type indicator */}
+				<div 
+					className='mb-3 text-xs'
+					style={{ color: GlassmorphismTheme.text.disabled }}
 				>
-					<X className='h-3 w-3' />
-					Reject
-				</Button>
-			</div>
-		</motion.div>
+					Type: {suggestedType}
+				</div>
+
+				{/* Context information */}
+				{context && (
+					<div 
+						className='mb-3 text-xs'
+						style={{ color: GlassmorphismTheme.text.disabled }}
+					>
+						Trigger: {context.trigger}
+
+						{context.relationshipType && (
+							<span className='ml-2'>→ {context.relationshipType}</span>
+						)}
+					</div>
+				)}
+
+				{/* Action buttons */}
+				<div className='flex gap-2'>
+					<motion.button
+						whileHover={{ scale: 1.05 }}
+						whileTap={{ scale: 0.95 }}
+						onClick={(e) => {
+							e.stopPropagation();
+							onAccept();
+						}}
+						className='flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors duration-200'
+						style={{
+							backgroundColor: GlassmorphismTheme.ghost.actions.accept.background,
+							color: GlassmorphismTheme.ghost.actions.accept.text,
+						}}
+						onMouseEnter={(e) => {
+							(e.target as HTMLButtonElement).style.backgroundColor = 
+								GlassmorphismTheme.ghost.actions.accept.hover;
+						}}
+						onMouseLeave={(e) => {
+							(e.target as HTMLButtonElement).style.backgroundColor = 
+								GlassmorphismTheme.ghost.actions.accept.background;
+						}}
+						aria-label={`Accept suggestion: ${suggestedContent.substring(0, 50)}...`}
+					>
+						<Check className='h-3 w-3' />
+						Accept
+					</motion.button>
+
+					<motion.button
+						whileHover={{ scale: 1.05 }}
+						whileTap={{ scale: 0.95 }}
+						onClick={(e) => {
+							e.stopPropagation();
+							onReject();
+						}}
+						className='flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors duration-200'
+						style={{
+							backgroundColor: GlassmorphismTheme.ghost.actions.reject.background,
+							color: GlassmorphismTheme.ghost.actions.reject.text,
+						}}
+						onMouseEnter={(e) => {
+							(e.target as HTMLButtonElement).style.backgroundColor = 
+								GlassmorphismTheme.ghost.actions.reject.hover;
+						}}
+						onMouseLeave={(e) => {
+							(e.target as HTMLButtonElement).style.backgroundColor = 
+								GlassmorphismTheme.ghost.actions.reject.background;
+						}}
+						aria-label={`Reject suggestion: ${suggestedContent.substring(0, 50)}...`}
+					>
+						<X className='h-3 w-3' />
+						Reject
+					</motion.button>
+				</div>
+			</motion.div>
+		</BaseNodeWrapper>
 	);
 }
 

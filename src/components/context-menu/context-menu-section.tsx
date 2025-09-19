@@ -1,6 +1,7 @@
 'use client';
 import { cn } from '@/lib/utils';
 import React from 'react';
+import { GlassmorphismTheme } from '../nodes/themes/glassmorphism-theme';
 
 interface ContextMenuSectionProps {
 	title?: string;
@@ -17,10 +18,22 @@ export function ContextMenuSection({
 }: ContextMenuSectionProps) {
 	return (
 		<div className={cn('relative', className)}>
-			{showDivider && <hr className='my-1 border-zinc-800' />}
+			{showDivider && (
+				<hr 
+					className='my-1' 
+					style={{ 
+						borderColor: GlassmorphismTheme.borders.default,
+						borderWidth: '1px',
+						borderStyle: 'solid',
+					}} 
+				/>
+			)}
 
 			{title && (
-				<div className='px-2 py-1 text-xs font-medium text-zinc-400'>
+				<div 
+					className='px-2 py-1 text-xs font-medium'
+					style={{ color: GlassmorphismTheme.text.medium }}
+				>
 					{title}
 				</div>
 			)}

@@ -119,14 +119,26 @@ export const transformDataForNodeType = (
 			};
 
 		case 'imageNode':
+			// Extract URL from content using regex
+			const urlRegex = /https?:\/\/[^\s]+/g;
+			const urlMatch = data.content?.match(urlRegex);
+			const extractedUrl = urlMatch ? urlMatch[0] : '';
+
+			// Remove URL from content to use rest as caption
+			const caption = extractedUrl
+				? data.content?.replace(extractedUrl, ' ').replace(/\s+/g, ' ').trim()
+				: data.content || '';
+
 			return {
-				content: data.content || '',
+				content: caption,
 				tags: baseTags,
 				metadata: {
 					...universalMetadata,
-					imageUrl: data.metadata?.imageUrl || data.url || '',
-					altText: data.metadata?.altText || data.alt || '',
-					caption: data.metadata?.caption || data.caption || '',
+					imageUrl: data.metadata?.imageUrl || data.url || extractedUrl || '',
+					altText: data.metadata?.altText || data.alt || caption || 'Image',
+					caption: data.metadata?.caption || data.caption || caption || '',
+					showCaption: Boolean(caption),
+					fitMode: data.metadata?.fitMode || 'cover',
 					source: data.metadata?.source || data.source,
 				},
 			};
@@ -254,12 +266,17 @@ export const validateNodeData = (
 			break;
 
 		case 'imageNode':
-			if (!data.url || data.url.trim() === '') {
+			// Check for URL in data.url, metadata, or content
+			const urlRegex = /https?:\/\/[^\s]+/g;
+			const contentUrl = data.content?.match(urlRegex)?.[0];
+			const imageUrl = data.metadata?.imageUrl || data.url || contentUrl;
+
+			if (!imageUrl || imageUrl.trim() === '') {
 				return { isValid: false, error: 'Image URL is required' };
 			}
 
 			try {
-				new URL(data.url);
+				new URL(imageUrl);
 			} catch {
 				return { isValid: false, error: 'Invalid image URL' };
 			}

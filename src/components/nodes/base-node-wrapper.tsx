@@ -20,6 +20,7 @@ import CollapsedIndicator from './node-additions/collapsed-indicator';
 import CommentButton from './node-additions/comment-button';
 import GroupButton from './node-additions/group-button';
 import { UniversalMetadataBar } from './shared';
+import { GlassmorphismTheme, getElevationColor, createNodeStyles } from './themes/glassmorphism-theme';
 
 interface BaseNodeWrapperProps extends NodeProps<Node<NodeData>> {
 	children: ReactNode;
@@ -103,35 +104,21 @@ const BaseNodeWrapperComponent = ({
 		return null;
 	}
 
-	// Material Design elevation system for dark themes
-	// Base: #121212, then progressively lighter based on elevation
-	const getElevationColor = (level: number) => {
-		const elevationMap: Record<number, string> = {
-			0: '#121212', // Base background
-			1: '#1E1E1E', // Cards, default nodes
-			2: '#222222', // Raised cards
-			4: '#272727', // App bars
-			6: '#2C2C2C', // FABs, snackbars
-			8: '#2F2F2F', // Navigation drawers
-			12: '#333333', // Modals
-			16: '#353535', // Sheets
-			24: '#383838', // Dialogs
-		};
-		return elevationMap[level] || elevationMap[1];
-	};
+	// Use centralized theme system
+	const theme = GlassmorphismTheme;
 
-	// Dynamic styles following Material Design dark theme principles
+	// Dynamic styles using centralized theme system
 	const nodeStyles: React.CSSProperties = {
 		backgroundColor: getElevationColor(elevation),
-		// No traditional shadows - elevation through color
-		boxShadow: selected 
-			? `0 0 0 1px rgba(96, 165, 250, 0.5), inset 0 0 0 1px rgba(96, 165, 250, 0.2)`
-			: 'none',
-		// Subtle border for definition
-		border: `1px solid ${selected ? 'rgba(96, 165, 250, 0.3)' : 'rgba(255, 255, 255, 0.06)'}`,
+		// Proper focus states with double border technique for accessibility
+		boxShadow: selected ? theme.effects.selectedShadow : 'none',
+		// Subtle border with proper hover states
+		border: `1px solid ${selected ? theme.borders.selected : theme.borders.default}`,
 		// Micro-animation for depth perception
-		transform: selected ? 'translateY(-1px)' : 'translateY(0)',
-		transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+		transform: selected ? theme.effects.selectedTransform : theme.effects.defaultTransform,
+		transition: theme.effects.transition,
+		// Ensure proper focus handling
+		outline: 'none',
 	};
 
 	// Accent color system - subtle and sophisticated
@@ -166,6 +153,7 @@ const BaseNodeWrapperComponent = ({
 							borderBottom: 'none'
 						}}>
 						<span style={{ opacity: 0.6, display: 'flex' }}>{nodeIcon}</span>
+
 						{nodeType && (
 							<span className='text-[10px] font-mono uppercase tracking-wider'
 								style={{ color: 'rgba(255, 255, 255, 0.38)' }}>
@@ -180,7 +168,7 @@ const BaseNodeWrapperComponent = ({
 			{selected && (
 				<div className='absolute inset-0 rounded-lg pointer-events-none'
 					style={{
-						background: 'radial-gradient(circle at center, rgba(96, 165, 250, 0.03) 0%, transparent 70%)',
+						background: theme.effects.ambientGlow,
 						zIndex: -1,
 					}}
 				/>
@@ -192,7 +180,9 @@ const BaseNodeWrapperComponent = ({
 				{/* Top header controls */}
 				<div className='top-0 left-4 absolute -translate-y-full flex items-center justify-center gap-2'>
 					<CollapseButton />
+
 					<GroupButton />
+
 					<CommentButton />
 				</div>
 
@@ -256,11 +246,21 @@ const BaseNodeWrapperComponent = ({
 							position={Position.Bottom}
 							className={cn(
 								'!w-2 !h-2 rounded-full transition-all duration-200',
-								'!bg-transparent !border !border-white/20',
-								'hover:!bg-white/10 hover:!border-white/40 hover:scale-125'
+								'!bg-transparent !border',
+								'hover:scale-125'
 							)}
 							style={{
-								bottom: '-4px',
+								bottom: theme.node.handle.bottom,
+								border: `1px solid ${theme.borders.default}`,
+								backgroundColor: theme.node.handle.background,
+							}}
+							onMouseEnter={(e) => {
+								e.currentTarget.style.backgroundColor = theme.node.handle.hoverBackground;
+								e.currentTarget.style.border = `1px solid ${theme.borders.hover}`;
+							}}
+							onMouseLeave={(e) => {
+								e.currentTarget.style.backgroundColor = theme.node.handle.background;
+								e.currentTarget.style.border = `1px solid ${theme.borders.default}`;
 							}}
 						/>
 
@@ -299,8 +299,9 @@ const BaseNodeWrapperComponent = ({
 										exit={{ opacity: 0, scaleY: 0 }}
 										transition={{ duration: 0.2 }}
 										className='absolute -bottom-12 left-1/2 -translate-x-1/2 w-[1px] h-12'
-										style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+										style={{ backgroundColor: theme.borders.hover }}
 									/>
+
 									<motion.div
 										initial={{ opacity: 0, scale: 0.8 }}
 										animate={{ opacity: 1, scale: 1 }}
@@ -313,11 +314,11 @@ const BaseNodeWrapperComponent = ({
 											className='nodrag nopan rounded-full w-10 h-10 p-0 transition-all duration-200 hover:scale-110'
 											style={{
 												backgroundColor: getElevationColor(6),
-												border: '1px solid rgba(255, 255, 255, 0.1)',
+												border: `1px solid ${theme.borders.hover}`,
 											}}
 											title='Add new connected node'
 										>
-											<Plus className='w-5 h-5' style={{ color: 'rgba(255, 255, 255, 0.87)' }} />
+											<Plus className='w-5 h-5' style={{ color: theme.text.high }} />
 										</Button>
 									</motion.div>
 								</>
@@ -325,7 +326,7 @@ const BaseNodeWrapperComponent = ({
 						</AnimatePresence>
 
 						<NodeResizer
-							color='rgba(96, 165, 250, 0.4)'
+							color={theme.node.resizer.color}
 							isVisible={selected}
 							minWidth={100}
 							minHeight={30}
@@ -333,8 +334,8 @@ const BaseNodeWrapperComponent = ({
 							maxHeight={nodeRef.current?.height ?? 600}
 							handleClassName='!w-2 !h-2 !rounded-full'
 							handleStyle={{
-								backgroundColor: selected ? 'rgba(96, 165, 250, 0.6)' : 'rgba(255, 255, 255, 0.2)',
-								border: '1px solid rgba(255, 255, 255, 0.3)',
+								backgroundColor: selected ? theme.node.resizer.selectedBackground : theme.borders.default,
+								border: theme.node.resizer.border,
 							}}
 						/>
 					</>

@@ -73,10 +73,13 @@ export const NodeEditor = () => {
 	useEffect(() => {
 		if (mode === 'edit' && existingNode && !nodeEditor.selectedCommand && !showTypePicker) {
 			const nodeType = existingNode.data?.node_type;
+
 			if (nodeType) {
 				const command = getCommandByType(nodeType);
+
 				if (command) {
 					setNodeEditorCommand(command.command);
+
 					// Only reset showTypePicker if this is a new node being opened
 					if (initializedRef.current !== nodeEditor.existingNodeId) {
 						setShowTypePicker(false);

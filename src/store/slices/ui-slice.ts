@@ -217,6 +217,7 @@ export const createUiStateSlice: StateCreator<
 				// For '$' trigger, show only variable/data type commands
 				return ['content', 'media'].includes(command.category);
 			}
+
 			return true;
 		});
 
@@ -257,6 +258,7 @@ export const createUiStateSlice: StateCreator<
 			} else if (commandPalette.trigger === '$') {
 				return ['content', 'media'].includes(command.category);
 			}
+
 			return true;
 		});
 

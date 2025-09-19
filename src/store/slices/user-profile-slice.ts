@@ -42,6 +42,7 @@ export const createUserProfileSlice: StateCreator<
 	// Load user profile from database
 	loadUserProfile: async () => {
 		const { supabase } = get();
+
 		if (!supabase) {
 			set({ profileError: 'Supabase client not initialized' });
 			return;
@@ -51,6 +52,7 @@ export const createUserProfileSlice: StateCreator<
 
 		try {
 			const { data: { user } } = await supabase.auth.getUser();
+
 			if (!user) {
 				set({ profileError: 'User not authenticated', isLoadingProfile: false });
 				return;
@@ -120,6 +122,7 @@ export const createUserProfileSlice: StateCreator<
 	// Update user profile
 	updateUserProfile: async (updates: UserProfileUpdate) => {
 		const { supabase, userProfile } = get();
+
 		if (!supabase || !userProfile) {
 			set({ profileError: 'Supabase client or profile not available' });
 			return;
@@ -152,6 +155,7 @@ export const createUserProfileSlice: StateCreator<
 	// Update preferences specifically
 	updatePreferences: async (preferences: Partial<UserProfile['preferences']>) => {
 		const { supabase, userProfile } = get();
+
 		if (!supabase || !userProfile) {
 			set({ profileError: 'Supabase client or profile not available' });
 			return;
@@ -218,6 +222,7 @@ export const createUserProfileSlice: StateCreator<
 	// Unsubscribe from real-time changes
 	unsubscribeFromProfileChanges: () => {
 		const { profileSubscription } = get();
+
 		if (profileSubscription) {
 			profileSubscription.unsubscribe();
 			set({ profileSubscription: null });
@@ -232,9 +237,11 @@ export const createUserProfileSlice: StateCreator<
 	// Reset profile state (useful for logout)
 	resetProfileState: () => {
 		const { profileSubscription } = get();
+
 		if (profileSubscription) {
 			profileSubscription.unsubscribe();
 		}
+
 		set({
 			userProfile: null,
 			isLoadingProfile: false,

@@ -1,6 +1,6 @@
 'use client';
 
-import { PublicUserProfile } from '@/types/user-profile-types';
+import type { PublicUserProfile } from '@/types/user-profile-types';
 import { cn } from '@/utils/cn';
 import { User } from 'lucide-react';
 import { memo } from 'react';

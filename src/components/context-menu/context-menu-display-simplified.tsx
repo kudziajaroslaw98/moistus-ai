@@ -14,6 +14,7 @@ import {
 import { AnimatePresence, motion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
+import { GlassmorphismTheme } from '../nodes/themes/glassmorphism-theme';
 import { ContextMenuRenderer } from './context-menu-renderer';
 import { useContextMenuConfig } from './use-context-menu-config';
 
@@ -235,19 +236,25 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
 				{popoverOpen.contextMenu && (
 					<motion.div
 						ref={refs.setFloating}
-						style={floatingStyles}
-						{...getFloatingProps()}
+						style={{
+							...floatingStyles, // Spread Floating UI styles first
+							zIndex: 9999, // Add our z-index fix
+							backgroundColor: GlassmorphismTheme.elevation[24], // Context menu elevation
+							border: `1px solid ${GlassmorphismTheme.borders.default}`,
+							backdropFilter: 'blur(8px)',
+						}}
 						variants={menuVariants}
 						initial='hidden'
 						animate='visible'
 						exit='exit'
-						className='ring-opacity-5 z-[1000] flex min-w-[250px] flex-col gap-1 rounded-sm border border-zinc-800 bg-zinc-950 px-2 py-2 shadow-lg ring-1 ring-black focus:outline-none'
+						className='ring-opacity-5 flex min-w-[250px] flex-col gap-1 rounded-sm shadow-lg ring-1 ring-zinc-700 focus:outline-none px-2 py-2'
 						role='menu'
 						aria-label='Context menu'
 						aria-orientation='vertical'
 						aria-activedescendant={
 							activeIndex !== null ? `menu-item-${activeIndex}` : undefined
 						}
+						{...getFloatingProps()}
 					>
 						<ContextMenuRenderer
 							sections={menuConfig}

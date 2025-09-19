@@ -276,6 +276,7 @@ const serializeNodeSpecificMetadata = (nodeType: string, metadata?: NodeData['me
 			if (metadata.borderColor) {
 				parts.push(`border:${metadata.borderColor}`);
 			}
+
 			break;
 
 		case 'imageNode':
@@ -294,6 +295,7 @@ const serializeNodeSpecificMetadata = (nodeType: string, metadata?: NodeData['me
 				const escapedSource = metadata.source.replace(/"/g, '\\"');
 				parts.push(`src:"${escapedSource}"`);
 			}
+
 			break;
 
 		case 'codeNode':
@@ -309,6 +311,7 @@ const serializeNodeSpecificMetadata = (nodeType: string, metadata?: NodeData['me
 			if (metadata.showLineNumbers !== undefined) {
 				parts.push(`lines:${metadata.showLineNumbers ? 'on' : 'off'}`);
 			}
+
 			break;
 
 		case 'resourceNode':
@@ -325,6 +328,7 @@ const serializeNodeSpecificMetadata = (nodeType: string, metadata?: NodeData['me
 			if (metadata.resourceType) {
 				parts.push(`restype:${metadata.resourceType}`);
 			}
+
 			break;
 
 		case 'annotationNode':
@@ -332,6 +336,7 @@ const serializeNodeSpecificMetadata = (nodeType: string, metadata?: NodeData['me
 			if (metadata.annotationType) {
 				parts.push(`type:${metadata.annotationType}`);
 			}
+
 			break;
 
 		case 'questionNode':
@@ -340,6 +345,7 @@ const serializeNodeSpecificMetadata = (nodeType: string, metadata?: NodeData['me
 				const escapedAnswer = metadata.answer.replace(/"/g, '\\"');
 				parts.push(`answer:"${escapedAnswer}"`);
 			}
+
 			break;
 
 		case 'groupNode':
@@ -355,6 +361,7 @@ const serializeNodeSpecificMetadata = (nodeType: string, metadata?: NodeData['me
 			if (metadata.isCollapsed !== undefined) {
 				parts.push(`collapsed:${metadata.isCollapsed ? 'on' : 'off'}`);
 			}
+
 			break;
 
 		case 'referenceNode':
@@ -364,7 +371,7 @@ const serializeNodeSpecificMetadata = (nodeType: string, metadata?: NodeData['me
 			}
 			
 			if (metadata.targetMapId) {
-				parts.push(`targetmap:${metadata.targetMapId}`);
+				parts.push(`map:${metadata.targetMapId}`);
 			}
 			
 			if (metadata.confidence !== undefined) {
@@ -374,6 +381,7 @@ const serializeNodeSpecificMetadata = (nodeType: string, metadata?: NodeData['me
 			if (metadata.isAiGenerated) {
 				parts.push(`ai:true`);
 			}
+
 			break;
 
 		// taskNode and defaultNode only use universal metadata
@@ -406,9 +414,11 @@ export const transformNodeToQuickInputString = (
 	switch (nodeType) {
 		case 'defaultNode':
 			let content = data.content || '';
+
 			if (allMetadata) {
 				content += ` ${allMetadata}`;
 			}
+
 			return content;
 
 		case 'taskNode':
@@ -480,6 +490,7 @@ export const transformNodeToQuickInputString = (
 			const emoji = typeEmojiMap[annotationType];
 			
 			let annotationContent = '';
+
 			if (emoji) {
 				annotationContent = `${emoji} ${data.content || ''}`;
 			} else {

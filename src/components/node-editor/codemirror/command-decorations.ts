@@ -307,6 +307,7 @@ const commandDecorationsPlugin = ViewPlugin.fromClass(
     
     update(update: ViewUpdate) {
       const newDecorations = updateDecorations(update);
+
       if (newDecorations !== null) {
         this.decorations = newDecorations;
       }

@@ -61,6 +61,7 @@ import FloatingConnectionLine from '../edges/floating-connection-line';
 import { SuggestedMergeEdge } from '../edges/suggested-merge-edge';
 import ReferenceNode from '../nodes/reference-node';
 import TaskNode from '../nodes/task-node';
+import { GlassmorphismTheme } from '../nodes/themes/glassmorphism-theme';
 import { RealtimeAvatarStack } from '../realtime/realtime-avatar-stack';
 import { RealtimeCursors } from '../realtime/realtime-cursor';
 import { Toolbar } from '../toolbar';
@@ -389,10 +390,12 @@ export function ReactFlowArea() {
 			colorMode='dark'
 			multiSelectionKeyCode={['Meta', 'Control']}
 			className={cn([
-				'bg-zinc-900',
 				isPanningMode && 'cursor-grab',
 				activeTool === 'node' || (activeTool === 'text' && 'cursor-crosshair'),
 			])}
+			style={{
+				backgroundColor: GlassmorphismTheme.elevation[0], // Base background
+			}}
 			minZoom={0.1}
 			snapToGrid={true}
 			snapGrid={[16, 16]}
@@ -427,11 +430,19 @@ export function ReactFlowArea() {
 			onNodeDragStart={handleNodeDragStart}
 			onNodeDragStop={handleNodeDragStop}
 		>
-			<Background color='#52525c' gap={16} variant={BackgroundVariant.Dots} />
+			<Background
+				color='rgba(255, 255, 255, 0.06)'
+				gap={16}
+				variant={BackgroundVariant.Dots}
+			/>
 
 			<Panel
 				position='top-left'
-				className='!m-0 p-4 right-0 flex justify-between bg-linear-180 to-transparent via-80% via-zinc-950/75 from-zinc-950'
+				className='!m-0 p-2 px-8 right-0 flex justify-between'
+				style={{
+					background: `rgba(39, 39, 39, 0.3)`, // Subtle glassmorphism for floating app bar
+					backdropFilter: 'blur(4px)', // Reduced blur for subtlety
+				}}
 			>
 				<div className='flex items-center gap-8'>
 					<Breadcrumb>

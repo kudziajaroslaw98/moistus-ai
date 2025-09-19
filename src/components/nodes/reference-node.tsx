@@ -1,4 +1,3 @@
-// src/components/nodes/reference-node.tsx (New File)
 'use client';
 
 import { NodeData } from '@/types/node-data';
@@ -7,6 +6,7 @@ import { ArrowUpRight, BookMarked } from 'lucide-react';
 import Link from 'next/link';
 import { memo } from 'react';
 import { BaseNodeWrapper } from './base-node-wrapper';
+import { GlassmorphismTheme } from './themes/glassmorphism-theme';
 
 type ReferenceNodeProps = NodeProps<Node<NodeData>>;
 
@@ -16,9 +16,13 @@ const ReferenceNodeComponent = (props: ReferenceNodeProps) => {
 	const { targetMapId, targetNodeId, targetMapTitle, contentSnippet } =
 		data.metadata || {};
 
-	const hasValidReference = targetMapId && targetNodeId;
+	const hasValidReference = targetMapId || targetNodeId;
 	const referenceUrl = hasValidReference
-		? `/mind-map/${targetMapId}?node=${targetNodeId}`
+		? targetMapId && targetNodeId
+			? `/mind-map/${targetMapId}?node=${targetNodeId}`
+			: targetMapId
+				? `/mind-map/${targetMapId}`
+				: '#'
 		: '#';
 
 	return (
@@ -34,20 +38,35 @@ const ReferenceNodeComponent = (props: ReferenceNodeProps) => {
 				<div className='p-4 flex-grow'>
 					{hasValidReference ? (
 						<>
-							<blockquote className='mt-2 border-l-2 border-zinc-600 pl-4 italic text-zinc-400'>
-								&quot;{contentSnippet || 'Referenced content...'}&quot;
+							<blockquote
+								className='mt-2 border-l-2 pl-4 italic'
+								style={{
+									borderColor: GlassmorphismTheme.borders.default,
+									color: GlassmorphismTheme.text.medium,
+								}}
+							>
+								&quot;{contentSnippet || data.content || 'Referenced content...'}&quot;
 							</blockquote>
 
-							<div className='mt-3 text-xs text-zinc-500'>
+							<div
+								className='mt-3 text-xs'
+								style={{ color: GlassmorphismTheme.text.disabled }}
+							>
 								<span>From: </span>
 
-								<span className='font-medium text-zinc-400'>
+								<span
+									className='font-medium'
+									style={{ color: GlassmorphismTheme.text.medium }}
+								>
 									{targetMapTitle || 'Another Map'}
 								</span>
 							</div>
 						</>
 					) : (
-						<div className='text-zinc-500 italic text-center py-4'>
+						<div
+							className='italic text-center py-4'
+							style={{ color: GlassmorphismTheme.text.disabled }}
+						>
 							Invalid reference. Please edit.
 						</div>
 					)}
@@ -58,7 +77,17 @@ const ReferenceNodeComponent = (props: ReferenceNodeProps) => {
 						href={referenceUrl}
 						target='_blank'
 						rel='noopener noreferrer'
-						className='nodrag block bg-zinc-800/50 hover:bg-zinc-700/50 transition-colors text-zinc-300 p-2 text-xs font-medium rounded-b-sm'
+						className='nodrag block transition-colors p-2 text-xs font-medium rounded-b-sm'
+						style={{
+							backgroundColor: `${GlassmorphismTheme.elevation[2]}80`,
+							color: GlassmorphismTheme.text.medium,
+						}}
+						onMouseEnter={(e) => {
+							e.currentTarget.style.backgroundColor = `${GlassmorphismTheme.elevation[4]}80`;
+						}}
+						onMouseLeave={(e) => {
+							e.currentTarget.style.backgroundColor = `${GlassmorphismTheme.elevation[2]}80`;
+						}}
 					>
 						<div className='flex items-center justify-center gap-2'>
 							<span>Go to Reference</span>
