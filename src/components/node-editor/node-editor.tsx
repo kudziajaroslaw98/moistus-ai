@@ -12,11 +12,11 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { AnimateChangeInHeight } from '../animate-change-in-height';
-import { CommandPalette } from './command-palette';
-import { ModeToggle } from './mode-toggle';
-import { nodeCommands, getCommandByType } from './node-commands';
-import { QuickInput } from './quick-input';
-import { StructuredInput } from './structured-input';
+import { CommandPalette } from './components/command-palette';
+import { QuickInput } from './components/inputs/quick-input';
+import { StructuredInput } from './components/inputs/structured-input';
+import { ModeToggle } from './components/mode-toggle';
+import { getCommandByType, nodeCommands } from './core/commands/node-commands';
 import type { NodeCommand } from './types';
 
 const animationVariants = {
@@ -65,13 +65,18 @@ export const NodeEditor = () => {
 
 	// Get mode and existing node data from store
 	const mode = nodeEditor.mode;
-	const existingNode = nodeEditor.existingNodeId 
-		? nodes.find(node => node.id === nodeEditor.existingNodeId)
+	const existingNode = nodeEditor.existingNodeId
+		? nodes.find((node) => node.id === nodeEditor.existingNodeId)
 		: undefined;
 
 	// Auto-select command for existing nodes in edit mode
 	useEffect(() => {
-		if (mode === 'edit' && existingNode && !nodeEditor.selectedCommand && !showTypePicker) {
+		if (
+			mode === 'edit' &&
+			existingNode &&
+			!nodeEditor.selectedCommand &&
+			!showTypePicker
+		) {
 			const nodeType = existingNode.data?.node_type;
 
 			if (nodeType) {
@@ -87,7 +92,14 @@ export const NodeEditor = () => {
 				}
 			}
 		}
-	}, [mode, existingNode, nodeEditor.selectedCommand, nodeEditor.existingNodeId, setNodeEditorCommand, showTypePicker]);
+	}, [
+		mode,
+		existingNode,
+		nodeEditor.selectedCommand,
+		nodeEditor.existingNodeId,
+		setNodeEditorCommand,
+		showTypePicker,
+	]);
 
 	// Reset showTypePicker only when NodeEditor first opens for a different node
 	useEffect(() => {
@@ -98,7 +110,7 @@ export const NodeEditor = () => {
 				initializedRef.current = nodeEditor.existingNodeId;
 			}
 		}
-		
+
 		// Clean up when editor closes
 		if (!nodeEditor.isOpen) {
 			initializedRef.current = null;
@@ -160,7 +172,11 @@ export const NodeEditor = () => {
 			if (!nodeEditor.isOpen) return;
 
 			// Ctrl+T to show type picker (when in content editing mode)
-			if ((e.ctrlKey || e.metaKey) && e.key === 't' && nodeEditor.selectedCommand) {
+			if (
+				(e.ctrlKey || e.metaKey) &&
+				e.key === 't' &&
+				nodeEditor.selectedCommand
+			) {
 				e.preventDefault();
 				handleShowTypePicker();
 				return;
@@ -212,8 +228,7 @@ export const NodeEditor = () => {
 	if (!nodeEditor.isOpen) return null;
 
 	const theme = {
-		container:
-			'bg-zinc-950 border border-zinc-800 w-2xl rounded-md shadow-2xl',
+		container: 'bg-zinc-950 border border-zinc-800 w-2xl rounded-md shadow-2xl',
 	};
 
 	return (
@@ -287,3 +302,5 @@ export const NodeEditor = () => {
 		</div>
 	);
 };
+
+export default NodeEditor;

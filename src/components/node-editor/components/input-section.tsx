@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useRef } from 'react';
-import { EnhancedInput } from '../enhanced-input/enhanced-input';
 import { cn } from '@/utils/cn';
+import React, { useRef } from 'react';
+import { EnhancedInput } from './inputs/enhanced-input';
 
 interface InputSectionProps {
 	value: string;

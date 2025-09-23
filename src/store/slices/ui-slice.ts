@@ -1,7 +1,6 @@
+import { nodeCommands } from '@/components/node-editor/core/commands/node-commands';
 import { StateCreator } from 'zustand';
 import { AppState, UIStateSlice } from '../app-state';
-import { nodeCommands } from '@/components/node-editor/node-commands';
-import type { NodeCommand } from '@/components/node-editor/types';
 
 export const createUiStateSlice: StateCreator<
 	AppState,
@@ -209,7 +208,7 @@ export const createUiStateSlice: StateCreator<
 	// CommandPalette actions
 	openCommandPalette: (options) => {
 		// Filter commands based on trigger type
-		const filteredCommands = nodeCommands.filter(command => {
+		const filteredCommands = nodeCommands.filter((command) => {
 			if (options.trigger === '/') {
 				// For '/' trigger, show all commands
 				return true;
@@ -252,7 +251,7 @@ export const createUiStateSlice: StateCreator<
 
 	setCommandPaletteSearch: (query) => {
 		const { commandPalette } = get();
-		const allCommands = nodeCommands.filter(command => {
+		const allCommands = nodeCommands.filter((command) => {
 			if (commandPalette.trigger === '/') {
 				return true;
 			} else if (commandPalette.trigger === '$') {
@@ -263,13 +262,15 @@ export const createUiStateSlice: StateCreator<
 		});
 
 		// Filter commands based on search query
-		const filteredCommands = query.trim() === '' 
-			? allCommands
-			: allCommands.filter(command => 
-				command.label.toLowerCase().includes(query.toLowerCase()) ||
-				command.command.toLowerCase().includes(query.toLowerCase()) ||
-				command.description.toLowerCase().includes(query.toLowerCase())
-			);
+		const filteredCommands =
+			query.trim() === ''
+				? allCommands
+				: allCommands.filter(
+						(command) =>
+							command.label.toLowerCase().includes(query.toLowerCase()) ||
+							command.command.toLowerCase().includes(query.toLowerCase()) ||
+							command.description.toLowerCase().includes(query.toLowerCase())
+					);
 
 		set({
 			commandPalette: {
@@ -285,7 +286,7 @@ export const createUiStateSlice: StateCreator<
 		const { commandPalette } = get();
 		const maxIndex = Math.max(0, commandPalette.filteredCommands.length - 1);
 		const validIndex = Math.max(0, Math.min(index, maxIndex));
-		
+
 		set({
 			commandPalette: {
 				...commandPalette,
@@ -298,13 +299,13 @@ export const createUiStateSlice: StateCreator<
 		const { commandPalette } = get();
 		const maxIndex = Math.max(0, commandPalette.filteredCommands.length - 1);
 		let newIndex = commandPalette.selectedIndex;
-		
+
 		if (direction === 'up') {
 			newIndex = newIndex > 0 ? newIndex - 1 : maxIndex;
 		} else if (direction === 'down') {
 			newIndex = newIndex < maxIndex ? newIndex + 1 : 0;
 		}
-		
+
 		set({
 			commandPalette: {
 				...commandPalette,
@@ -315,11 +316,16 @@ export const createUiStateSlice: StateCreator<
 
 	executeCommand: (command) => {
 		const { commandPalette } = get();
-		
+
 		// This will be used by the CodeMirror extension to handle the command execution
 		// The actual node creation/editing will be handled by the calling component
-		console.log('Executing command:', command, 'at position:', commandPalette.position);
-		
+		console.log(
+			'Executing command:',
+			command,
+			'at position:',
+			commandPalette.position
+		);
+
 		// Close the command palette after execution
 		get().closeCommandPalette();
 	},

@@ -1,8 +1,11 @@
 import { AppState } from '@/store/app-state';
 import type { AppNode } from '@/types/app-node';
 import type { NodeData } from '@/types/node-data';
+import {
+	createNodeFromCommand,
+	transformDataForNodeType,
+} from './node-creator';
 import type { NodeCommand, NodeCreationResult } from './types';
-import { createNodeFromCommand, transformDataForNodeType } from './node-creator';
 
 interface UpdateNodeOptions {
 	command: NodeCommand;
@@ -91,7 +94,11 @@ export const createOrUpdateNodeFromCommand = async ({
 // Helper to get universal form data fields
 const getUniversalFormData = (data: NodeData) => ({
 	priority: data.metadata?.priority || 'medium',
-	assignee: data.metadata?.assignee ? (Array.isArray(data.metadata.assignee) ? data.metadata.assignee.join(', ') : data.metadata.assignee) : '',
+	assignee: data.metadata?.assignee
+		? Array.isArray(data.metadata.assignee)
+			? data.metadata.assignee.join(', ')
+			: data.metadata.assignee
+		: '',
 	status: data.metadata?.status || '',
 	dueDate: data.metadata?.dueDate ? data.metadata.dueDate.slice(0, 10) : '',
 	tags: data.metadata?.tags || [],
@@ -203,76 +210,82 @@ export const transformNodeToFormData = (
 /**
  * Universal metadata serializer helper - extracts common metadata for all nodes
  */
-const serializeUniversalMetadata = (metadata?: NodeData['metadata']): string => {
+const serializeUniversalMetadata = (
+	metadata?: NodeData['metadata']
+): string => {
 	if (!metadata) return '';
-	
+
 	const parts: string[] = [];
-	
+
 	// Universal metadata that applies to ALL node types
 	if (metadata.assignee?.length) {
-		const assignees = Array.isArray(metadata.assignee) 
-			? metadata.assignee.join(',') 
+		const assignees = Array.isArray(metadata.assignee)
+			? metadata.assignee.join(',')
 			: String(metadata.assignee);
 		parts.push(`@${assignees}`);
 	}
-	
+
 	if (metadata.priority) {
 		parts.push(`#${metadata.priority}`);
 	}
-	
+
 	if (metadata.dueDate) {
-		const date = typeof metadata.dueDate === 'string' 
-			? metadata.dueDate.slice(0, 10)
-			: new Date(metadata.dueDate).toISOString().slice(0, 10);
+		const date =
+			typeof metadata.dueDate === 'string'
+				? metadata.dueDate.slice(0, 10)
+				: new Date(metadata.dueDate).toISOString().slice(0, 10);
 		parts.push(`^${date}`);
 	}
-	
+
 	if (metadata.status) {
 		parts.push(`!${metadata.status}`);
 	}
-	
+
 	if (metadata.tags?.length) {
 		parts.push(`[${metadata.tags.join(', ')}]`);
 	}
-	
+
 	return parts.join(' ');
 };
 
 /**
  * Node-specific metadata serializer - only includes relevant patterns per node type
  */
-const serializeNodeSpecificMetadata = (nodeType: string, metadata?: NodeData['metadata']): string => {
+const serializeNodeSpecificMetadata = (
+	nodeType: string,
+	metadata?: NodeData['metadata']
+): string => {
 	if (!metadata) return '';
-	
+
 	const parts: string[] = [];
-	
+
 	switch (nodeType) {
 		case 'textNode':
 			// Text formatting patterns
 			if (metadata.fontSize) {
 				parts.push(`~${metadata.fontSize}`);
 			}
-			
+
 			if (metadata.fontWeight && metadata.fontWeight !== 'normal') {
 				parts.push(`*${metadata.fontWeight}`);
 			}
-			
+
 			if (metadata.fontStyle === 'italic') {
 				parts.push(`/italic`);
 			}
-			
+
 			if (metadata.textAlign && metadata.textAlign !== 'left') {
 				parts.push(`>${metadata.textAlign}`);
 			}
-			
+
 			if (metadata.textColor) {
 				parts.push(`color:${metadata.textColor}`);
 			}
-			
+
 			if (metadata.backgroundColor) {
 				parts.push(`bg:${metadata.backgroundColor}`);
 			}
-			
+
 			if (metadata.borderColor) {
 				parts.push(`border:${metadata.borderColor}`);
 			}
@@ -285,12 +298,12 @@ const serializeNodeSpecificMetadata = (nodeType: string, metadata?: NodeData['me
 				const escapedAlt = metadata.altText.replace(/"/g, '\\"');
 				parts.push(`alt:"${escapedAlt}"`);
 			}
-			
+
 			if (metadata.caption) {
 				const escapedCaption = metadata.caption.replace(/"/g, '\\"');
 				parts.push(`cap:"${escapedCaption}"`);
 			}
-			
+
 			if (metadata.source) {
 				const escapedSource = metadata.source.replace(/"/g, '\\"');
 				parts.push(`src:"${escapedSource}"`);
@@ -303,11 +316,11 @@ const serializeNodeSpecificMetadata = (nodeType: string, metadata?: NodeData['me
 			if (metadata.language) {
 				parts.push(`lang:${metadata.language}`);
 			}
-			
+
 			if (metadata.fileName) {
 				parts.push(`file:${metadata.fileName}`);
 			}
-			
+
 			if (metadata.showLineNumbers !== undefined) {
 				parts.push(`lines:${metadata.showLineNumbers ? 'on' : 'off'}`);
 			}
@@ -319,12 +332,12 @@ const serializeNodeSpecificMetadata = (nodeType: string, metadata?: NodeData['me
 			if (metadata.url) {
 				parts.push(`url:${metadata.url}`);
 			}
-			
+
 			if (metadata.title) {
 				const escapedTitle = metadata.title.replace(/"/g, '\\"');
 				parts.push(`title:"${escapedTitle}"`);
 			}
-			
+
 			if (metadata.resourceType) {
 				parts.push(`restype:${metadata.resourceType}`);
 			}
@@ -353,11 +366,11 @@ const serializeNodeSpecificMetadata = (nodeType: string, metadata?: NodeData['me
 			if (metadata.groupId) {
 				parts.push(`groupid:${metadata.groupId}`);
 			}
-			
+
 			if (metadata.groupPadding !== undefined) {
 				parts.push(`padding:${metadata.groupPadding}`);
 			}
-			
+
 			if (metadata.isCollapsed !== undefined) {
 				parts.push(`collapsed:${metadata.isCollapsed ? 'on' : 'off'}`);
 			}
@@ -369,15 +382,15 @@ const serializeNodeSpecificMetadata = (nodeType: string, metadata?: NodeData['me
 			if (metadata.targetNodeId) {
 				parts.push(`target:${metadata.targetNodeId}`);
 			}
-			
+
 			if (metadata.targetMapId) {
 				parts.push(`map:${metadata.targetMapId}`);
 			}
-			
+
 			if (metadata.confidence !== undefined) {
 				parts.push(`confidence:${metadata.confidence}`);
 			}
-			
+
 			if (metadata.isAiGenerated) {
 				parts.push(`ai:true`);
 			}
@@ -391,7 +404,7 @@ const serializeNodeSpecificMetadata = (nodeType: string, metadata?: NodeData['me
 			// No node-specific patterns for these types
 			break;
 	}
-	
+
 	return parts.join(' ');
 };
 
@@ -404,8 +417,11 @@ export const transformNodeToQuickInputString = (
 
 	// Get universal and node-specific metadata
 	const universalMetadata = serializeUniversalMetadata(data.metadata);
-	const nodeSpecificMetadata = serializeNodeSpecificMetadata(nodeType, data.metadata);
-	
+	const nodeSpecificMetadata = serializeNodeSpecificMetadata(
+		nodeType,
+		data.metadata
+	);
+
 	// Combine metadata parts
 	const allMetadata = [universalMetadata, nodeSpecificMetadata]
 		.filter(Boolean)
@@ -428,67 +444,76 @@ export const transformNodeToQuickInputString = (
 			tasks.forEach((task: any) => {
 				taskContent += `${task.isComplete ? '[x]' : '[ ]'} ${task.text}\n`;
 			});
-			
+
 			// Add metadata
 			if (allMetadata) {
 				taskContent += `${allMetadata}`;
 			}
-			
+
 			return taskContent.trim();
 
 		case 'codeNode':
 			// Start with code block
 			let codeContent = `\`\`\`${data.metadata?.language || 'javascript'}\n${data.content || ''}\n\`\`\``;
-			
+
 			// Add metadata (includes universal and code-specific patterns)
 			if (allMetadata) {
 				codeContent += `\n${allMetadata}`;
 			}
-			
+
 			return codeContent;
 
 		case 'imageNode':
 			// Start with primary image URL
-			const imageUrl = data.imageUrl || data.url || data.metadata?.imageUrl || data.metadata?.url || '';
+			const imageUrl =
+				data.imageUrl ||
+				data.url ||
+				data.metadata?.imageUrl ||
+				data.metadata?.url ||
+				'';
 			let imageContent = imageUrl;
-			
+
 			// Add metadata (includes universal and image-specific patterns)
 			if (allMetadata) {
 				imageContent += ` ${allMetadata}`;
 			}
-			
+
 			return imageContent;
 
 		case 'resourceNode':
 			// Start with primary URL
 			const resourceUrl = data.url || data.metadata?.url || '';
 			let resourceContent = resourceUrl;
-			
+
 			// Add description if present
 			if (data.content) {
 				resourceContent += ` desc:"${data.content.replace(/"/g, '\\"')}"`;
 			}
-			
+
 			// Add metadata (includes universal and resource-specific patterns)
 			if (allMetadata) {
 				resourceContent += ` ${allMetadata}`;
 			}
-			
+
 			return resourceContent;
 
 		case 'annotationNode':
 			// Keep emoji mapping for backward compatibility
 			const typeEmojiMap: Record<string, string> = {
-				'warning': '⚠️',
-				'success': '✅',
-				'info': 'ℹ️',
-				'error': '❌',
-				'note': '💡'
+				warning: '⚠️',
+				success: '✅',
+				info: 'ℹ️',
+				error: '❌',
+				note: '💡',
 			};
-			
-			const annotationType = data.annotationType || data.type || data.metadata?.annotationType || 'note';
+
+			const annotationType =
+				data.annotationType ||
+				data.type ||
+				data.metadata?.annotationType ||
+				'note';
 			const emoji = typeEmojiMap[annotationType];
-			
+
 			let annotationContent = '';
 
 			if (emoji) {
@@ -496,63 +521,63 @@ export const transformNodeToQuickInputString = (
 			} else {
 				annotationContent = `${data.content || ''}`;
 			}
-			
+
 			// Add metadata (includes universal and annotation-specific patterns)
 			if (allMetadata) {
 				annotationContent += ` ${allMetadata}`;
 			}
-			
+
 			return annotationContent;
 
 		case 'questionNode':
 			let questionContent = data.content || '';
-			
+
 			// Add metadata (includes universal and question-specific patterns)
 			if (allMetadata) {
 				questionContent += ` ${allMetadata}`;
 			}
-			
+
 			return questionContent;
 
 		case 'textNode':
 			let textContent = data.content || '';
-			
+
 			// Add metadata (includes universal and text formatting patterns)
 			if (allMetadata) {
 				textContent += ` ${allMetadata}`;
 			}
-			
+
 			return textContent;
 
 		case 'groupNode':
 			let groupContent = data.content || data.metadata?.label || 'Group';
-			
+
 			// Add metadata (includes universal and group-specific patterns)
 			if (allMetadata) {
 				groupContent += ` ${allMetadata}`;
 			}
-			
+
 			return groupContent;
 
 		case 'referenceNode':
 			let refContent = data.content || '';
-			
+
 			// Add metadata (includes universal and reference-specific patterns)
 			if (allMetadata) {
 				refContent += ` ${allMetadata}`;
 			}
-			
+
 			return refContent;
 
 		default:
 			// Universal fallback for any new node types
 			let defaultContent = data.content || '';
-			
+
 			// Add universal metadata only (no node-specific patterns for unknown types)
 			if (universalMetadata) {
 				defaultContent += ` ${universalMetadata}`;
 			}
-			
+
 			return defaultContent;
 	}
 };

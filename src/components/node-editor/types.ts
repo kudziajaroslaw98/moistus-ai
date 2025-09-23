@@ -1,7 +1,7 @@
+import type { LucideIcon } from 'lucide-react';
 import type { AppNode } from '../../types/app-node';
 import type { AvailableNodeTypes } from '../../types/available-node-types';
 import type { NodeData } from '../../types/node-data';
-import type { LucideIcon } from 'lucide-react';
 
 // Pattern category types
 export type PatternCategory =
@@ -63,7 +63,15 @@ export interface NodeCommand {
 export type QuickParser<T = any> = (input: string) => T;
 
 // Priority levels supported by the system
-export type PriorityLevel = 'low' | 'medium' | 'high' | 'critical' | 'urgent' | 'asap' | 'blocked' | 'waiting';
+export type PriorityLevel =
+	| 'low'
+	| 'medium'
+	| 'high'
+	| 'critical'
+	| 'urgent'
+	| 'asap'
+	| 'blocked'
+	| 'waiting';
 
 // Parsed data types for each node type
 export interface ParsedNoteData {
