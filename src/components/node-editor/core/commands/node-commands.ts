@@ -1,3 +1,8 @@
+/**
+ * Node Commands - UI configurations for node creation
+ * Bridges centralized command definitions with UI-specific requirements
+ */
+
 import {
 	Calendar,
 	CheckSquare,
@@ -13,26 +18,67 @@ import {
 } from 'lucide-react';
 import type { NodeCommand } from '../../types';
 import { parseInput } from '../parsers/pattern-parser';
+import { nodeTypeCommands } from './definitions/node-type-commands';
+import type { Command } from './command-types';
 
-export const nodeCommands: NodeCommand[] = [
-	{
-		command: '/note',
-		label: 'Note',
-		description: 'Create a basic note with markdown support',
-		icon: FileText,
-		nodeType: 'defaultNode',
-		category: 'content',
+/**
+ * Map centralized commands to UI node commands
+ * Enriches command definitions with UI-specific fields and parsing
+ */
+function createNodeCommand(
+	baseCommand: Command,
+	uiConfig: Partial<NodeCommand>
+): NodeCommand {
+	return {
+		command: baseCommand.trigger.replace('$', '/'), // Convert $note to /note for UI
+		label: baseCommand.label,
+		description: baseCommand.description,
+		icon: baseCommand.icon,
+		nodeType: baseCommand.nodeType!,
+		category: mapCategory(baseCommand.category),
 		quickParse: parseInput,
+		...uiConfig,
+	};
+}
+
+/**
+ * Map command categories to node command categories
+ */
+function mapCategory(category: string): NodeCommand['category'] {
+	const categoryMap: Record<string, NodeCommand['category']> = {
+		'content': 'content',
+		'media': 'media',
+		'interactive': 'interactive',
+		'annotation': 'annotation',
+		'node-type': 'content',
+		'pattern': 'content',
+		'format': 'content',
+		'template': 'content',
+	};
+	return categoryMap[category] || 'content';
+}
+
+/**
+ * Get base command by node type
+ */
+function getBaseCommand(nodeType: string): Command | undefined {
+	return nodeTypeCommands.find(cmd => cmd.nodeType === nodeType);
+}
+
+/**
+ * Node command UI configurations
+ * Uses centralized definitions as base, adds UI-specific fields
+ */
+export const nodeCommands: NodeCommand[] = [
+	// Note Node
+	createNodeCommand(getBaseCommand('defaultNode')!, {
 		examples: ['Meeting notes #important', 'Project update #in-progress'],
 		parsingPatterns: [
 			{
 				pattern: '$note',
 				description: 'Switch to note node type',
 				category: 'metadata',
-				examples: [
-					'$note Meeting notes #important',
-					'$note Project update #in-progress',
-				],
+				examples: ['$note Meeting notes #important', '$note Project update #in-progress'],
 			},
 			{
 				pattern: '#priority',
@@ -49,15 +95,10 @@ export const nodeCommands: NodeCommand[] = [
 				icon: Tag,
 			},
 		],
-	},
-	{
-		command: '/task',
-		label: 'Task List',
-		description: 'Create a task list with checkboxes',
-		icon: CheckSquare,
-		nodeType: 'taskNode',
-		category: 'interactive',
-		quickParse: parseInput,
+	}),
+
+	// Task Node
+	createNodeCommand(getBaseCommand('taskNode')!, {
 		fields: [
 			{
 				name: 'tasks',
@@ -95,10 +136,7 @@ export const nodeCommands: NodeCommand[] = [
 				pattern: '$task',
 				description: 'Switch to task list node type',
 				category: 'metadata',
-				examples: [
-					'$task Review PR; Fix bugs ^friday #high',
-					'$task Buy milk, Send email',
-				],
+				examples: ['$task Review PR; Fix bugs ^friday #high', '$task Buy milk, Send email'],
 			},
 			{
 				pattern: '^date',
@@ -134,15 +172,10 @@ export const nodeCommands: NodeCommand[] = [
 				category: 'formatting',
 			},
 		],
-	},
-	{
-		command: '/code',
-		label: 'Code Block',
-		description: 'Add a syntax-highlighted code snippet',
-		icon: Code,
-		nodeType: 'codeNode',
-		category: 'content',
-		quickParse: parseInput,
+	}),
+
+	// Code Node
+	createNodeCommand(getBaseCommand('codeNode')!, {
 		fields: [
 			{
 				name: 'language',
@@ -187,10 +220,7 @@ export const nodeCommands: NodeCommand[] = [
 				pattern: '$code',
 				description: 'Switch to code block node type',
 				category: 'metadata',
-				examples: [
-					'$code ```js const sum = (a, b) => a + b',
-					'$code python file:utils.py',
-				],
+				examples: ['$code ```js const sum = (a, b) => a + b', '$code python file:utils.py'],
 			},
 			{
 				pattern: '```language',
@@ -206,15 +236,10 @@ export const nodeCommands: NodeCommand[] = [
 				category: 'metadata',
 			},
 		],
-	},
-	{
-		command: '/image',
-		label: 'Image',
-		description: 'Add an image from URL or upload',
-		icon: Image,
-		nodeType: 'imageNode',
-		category: 'media',
-		quickParse: parseInput,
+	}),
+
+	// Image Node
+	createNodeCommand(getBaseCommand('imageNode')!, {
 		fields: [
 			{
 				name: 'url',
@@ -260,15 +285,11 @@ export const nodeCommands: NodeCommand[] = [
 				category: 'metadata',
 			},
 		],
-	},
-	{
-		command: '/link',
-		label: 'Resource Link',
-		description: 'Add a web link or document reference',
-		icon: Link,
-		nodeType: 'resourceNode',
-		category: 'media',
-		quickParse: parseInput,
+	}),
+
+	// Resource Link Node
+	createNodeCommand(getBaseCommand('resourceNode')!, {
+		command: '/link', // Keep as /link for UI
 		fields: [
 			{
 				name: 'url',
@@ -314,37 +335,35 @@ export const nodeCommands: NodeCommand[] = [
 				category: 'metadata',
 			},
 		],
-	},
-	{
-		command: '/question',
-		label: 'Question',
-		description: 'Create a question node for brainstorming',
-		icon: MessageCircle,
-		nodeType: 'questionNode',
-		category: 'interactive',
-		quickParse: parseInput,
+	}),
+
+	// Question Node
+	createNodeCommand(getBaseCommand('questionNode')!, {
 		fields: [
 			{
 				name: 'question',
 				type: 'textarea',
 				label: 'Question',
 				required: true,
-				placeholder: 'What question do you want to explore?',
+				placeholder: 'What decision needs to be made?',
 			},
 			{
 				name: 'type',
 				type: 'select',
 				label: 'Question Type',
 				options: [
-					{ value: 'open', label: 'Open-ended' },
-					{ value: 'multiple-choice', label: 'Multiple Choice' },
-					{ value: 'yes-no', label: 'Yes/No' },
+					{ value: 'binary', label: 'Yes/No' },
+					{ value: 'multiple', label: 'Multiple Choice' },
 				],
 			},
 		],
 		examples: [
-			'How can we improve user engagement?',
-			'Should we migrate to TypeScript? [yes/no]',
+			'Should we migrate to TypeScript?',
+			'Should we refactor this component? [yes/no]',
+			'Which framework should we use? [React,Vue,Angular]',
+			'What deployment strategy? [Blue-Green,Canary,Rolling]',
+			'Do we need more testing?',
+			'Which database to choose? [PostgreSQL,MongoDB,MySQL]',
 		],
 		parsingPatterns: [
 			{
@@ -352,32 +371,27 @@ export const nodeCommands: NodeCommand[] = [
 				description: 'Switch to question node type',
 				category: 'metadata',
 				examples: [
-					'$question How can we improve user engagement?',
-					'$question Should we migrate to TypeScript? [yes/no]',
+					'$question Should we migrate to TypeScript?',
+					'$question Which approach is better? [A,B,C]',
 				],
 			},
 			{
 				pattern: '[yes/no]',
-				description: 'Yes/no question type',
+				description: 'Binary yes/no question',
 				examples: ['[yes/no]', '[y/n]'],
 				category: 'structure',
 			},
 			{
 				pattern: '[opt1,opt2,opt3]',
 				description: 'Multiple choice options',
-				examples: ['[small,medium,large]', '[red,green,blue]'],
+				examples: ['[Build,Buy,Partner]', '[React,Vue,Angular]'],
 				category: 'structure',
 			},
 		],
-	},
-	{
-		command: '/annotation',
-		label: 'Annotation',
-		description: 'Add a colored annotation or callout',
-		icon: Lightbulb,
-		nodeType: 'annotationNode',
-		category: 'annotation',
-		quickParse: parseInput,
+	}),
+
+	// Annotation Node
+	createNodeCommand(getBaseCommand('annotationNode')!, {
 		fields: [
 			{
 				name: 'text',
@@ -405,10 +419,7 @@ export const nodeCommands: NodeCommand[] = [
 				pattern: '$annotation',
 				description: 'Switch to annotation node type',
 				category: 'metadata',
-				examples: [
-					'$annotation ⚠️ Breaking change in v2.0',
-					'$annotation ✅ Deployment successful',
-				],
+				examples: ['$annotation ⚠️ Breaking change in v2.0', '$annotation ✅ Deployment successful'],
 			},
 			{
 				pattern: '⚠️',
@@ -447,15 +458,10 @@ export const nodeCommands: NodeCommand[] = [
 				category: 'structure',
 			},
 		],
-	},
-	{
-		command: '/text',
-		label: 'Text',
-		description: 'Create a simple text node',
-		icon: Type,
-		nodeType: 'textNode',
-		category: 'content',
-		quickParse: parseInput,
+	}),
+
+	// Text Node
+	createNodeCommand(getBaseCommand('textNode')!, {
 		fields: [
 			{
 				name: 'content',
@@ -465,11 +471,7 @@ export const nodeCommands: NodeCommand[] = [
 				placeholder: 'Enter your text...',
 			},
 		],
-		examples: [
-			'**Bold text** @24px',
-			'*Italic note* align:center',
-			'Important message color:red @32px',
-		],
+		examples: ['**Bold text** @24px', '*Italic note* align:center', 'Important message color:red @32px'],
 		parsingPatterns: [
 			{
 				pattern: '$text',
@@ -515,15 +517,10 @@ export const nodeCommands: NodeCommand[] = [
 				insertText: 'color:',
 			},
 		],
-	},
-	{
-		command: '/reference',
-		nodeType: 'referenceNode',
-		category: 'content',
-		label: 'Reference',
-		description:
-			'Create a reference to another node or map by searching content',
-		icon: Link,
+	}),
+
+	// Reference Node
+	createNodeCommand(getBaseCommand('referenceNode')!, {
 		quickParse: (input: string) => {
 			const result = {
 				content: input,
@@ -539,21 +536,18 @@ export const nodeCommands: NodeCommand[] = [
 
 			// Parse target references (use last occurrence only)
 			const targetMatch = input.match(/target:([^\s]+)/);
-
 			if (targetMatch) {
 				result.metadata.targetNodeId = targetMatch[1];
 			}
 
 			// Parse map references (use last occurrence only)
 			const mapMatch = input.match(/map:([^\s]+)/);
-
 			if (mapMatch) {
 				result.metadata.targetMapId = mapMatch[1];
 			}
 
 			// Parse confidence level (use last occurrence only)
 			const confidenceMatch = input.match(/confidence:(\d+(?:\.\d+)?)/);
-
 			if (confidenceMatch) {
 				result.metadata.confidence = parseFloat(confidenceMatch[1]);
 			}
@@ -594,7 +588,7 @@ export const nodeCommands: NodeCommand[] = [
 				insertText: 'confidence:0.8',
 			},
 		],
-	},
+	}),
 ];
 
 // Helper function to get command by type

@@ -1,5 +1,6 @@
 /**
- * Command Executor - Handles command execution and processing
+ * Command Executor - Simplified command execution and processing
+ * Works with the refactored modular command system
  */
 
 import type { AvailableNodeTypes } from '../../../../types/available-node-types';
@@ -19,30 +20,30 @@ export async function executeCommand(
 	commandId: string,
 	context: CommandContext
 ): Promise<CommandResult> {
-	const command = commandRegistry.get(commandId);
+	return commandRegistry.executeCommand(commandId, context);
+}
 
-	if (!command) {
-		return {
-			success: false,
-			message: `Command '${commandId}' not found`,
-		};
-	}
-
+/**
+ * Execute a command directly
+ */
+export async function executeCommandDirect(
+	command: Command,
+	context: CommandContext
+): Promise<CommandResult> {
 	if (!command.action) {
 		return {
 			success: false,
-			message: `Command '${commandId}' has no action defined`,
+			message: `Command '${command.id}' has no action defined`,
 		};
 	}
 
 	try {
-		const result = await command.action(context);
-		return result;
+		return await command.action(context);
 	} catch (error) {
-		console.error(`Error executing command '${commandId}':`, error);
+		console.error(`Error executing command '${command.id}':`, error);
 		return {
 			success: false,
-			message: `Failed to execute command: ${error instanceof Error ? error.message : 'Unknown error'}`,
+			message: error instanceof Error ? error.message : 'Unknown error',
 		};
 	}
 }
@@ -55,7 +56,7 @@ export function detectCommandTrigger(text: string): CommandTriggerResult {
 	const nodeTypeMatch = text.match(/\$(\w+)/);
 	if (nodeTypeMatch) {
 		const trigger = `$${nodeTypeMatch[1]}`;
-		const matches = commandRegistry.findMatching(text);
+		const matches = commandRegistry.findMatchingCommands(text);
 
 		return {
 			hasTrigger: true,
@@ -72,7 +73,7 @@ export function detectCommandTrigger(text: string): CommandTriggerResult {
 	const slashMatch = text.match(/\/(\w+)/);
 	if (slashMatch) {
 		const trigger = `/${slashMatch[1]}`;
-		const matches = commandRegistry.findMatching(text);
+		const matches = commandRegistry.findMatchingCommands(text);
 
 		return {
 			hasTrigger: true,
@@ -138,22 +139,21 @@ export function processNodeTypeSwitch(text: string): NodeTypeSwitchResult {
 }
 
 /**
- * Get completions for partial command input
+ * Get command completions for partial input
  */
 export function getCommandCompletions(
 	input: string,
 	limit: number = 10
 ): Command[] {
-	// Detect what type of trigger we're dealing with
 	const triggerResult = detectCommandTrigger(input);
 
 	if (!triggerResult.hasTrigger) {
 		// Check if user is starting to type a trigger
 		if (input.endsWith('$')) {
-			return commandRegistry.getByTriggerType('node-type').slice(0, limit);
+			return commandRegistry.getCommandsByTriggerType('node-type').slice(0, limit);
 		}
 		if (input.endsWith('/')) {
-			return commandRegistry.getByTriggerType('slash').slice(0, limit);
+			return commandRegistry.getCommandsByTriggerType('slash').slice(0, limit);
 		}
 		return [];
 	}
@@ -163,52 +163,60 @@ export function getCommandCompletions(
 }
 
 /**
- * Create a default action for node type switching
- */
-export function createNodeTypeSwitchAction(
-	nodeType: AvailableNodeTypes
-): CommandResult {
-	return {
-		nodeType,
-		success: true,
-		closePanel: true,
-		message: `Switched to ${nodeType}`,
-	};
-}
-
-/**
- * Create a default action for pattern insertion
- */
-export function createPatternInsertionAction(pattern: string): CommandResult {
-	return {
-		replacement: pattern,
-		success: true,
-		closePanel: true,
-	};
-}
-
-/**
  * Apply a command to the current context
  */
 export async function applyCommand(
 	command: Command,
 	context: CommandContext
 ): Promise<CommandResult> {
-	if (!command.action) {
-		// Use default actions based on command type
-		if (command.triggerType === 'node-type' && command.nodeType) {
-			return createNodeTypeSwitchAction(command.nodeType);
-		}
+	return executeCommandDirect(command, context);
+}
 
-		if (command.triggerType === 'slash') {
-			return createPatternInsertionAction(command.trigger);
-		}
+/**
+ * Get suggested commands based on context
+ */
+export function getSuggestedCommands(
+	context: CommandContext,
+	limit: number = 5
+): Command[] {
+	const { text, nodeType } = context;
 
-		return {
-			success: false,
-			message: 'Command has no action defined',
-		};
+	// If text is empty, suggest node type commands
+	if (!text || text.trim().length === 0) {
+		return commandRegistry.getCommandsByTriggerType('node-type').slice(0, limit);
 	}
 
-	return executeCommand(command.id, context);
+	// If text starts with trigger, get completions
+	if (text.startsWith('$') || text.startsWith('/')) {
+		return getCommandCompletions(text, limit);
+	}
+
+	// Otherwise suggest relevant commands based on node type
+	if (nodeType) {
+		return commandRegistry.searchCommands({
+			category: getNodeTypeCategory(nodeType),
+			limit,
+		});
+	}
+
+	return [];
+}
+
+/**
+ * Helper to map node type to command category
+ */
+function getNodeTypeCategory(nodeType: AvailableNodeTypes): string {
+	const categoryMap: Record<string, string> = {
+		defaultNode: 'content',
+		textNode: 'content',
+		codeNode: 'content',
+		taskNode: 'interactive',
+		questionNode: 'interactive',
+		imageNode: 'media',
+		resourceNode: 'media',
+		annotationNode: 'annotation',
+		referenceNode: 'content',
+	};
+
+	return categoryMap[nodeType] || 'content';
 }

@@ -12,6 +12,7 @@ export type CommandCategory =
 	| 'content'
 	| 'media'
 	| 'interactive'
+	| 'node-type'
 	| 'annotation'
 	| 'pattern'
 	| 'format'

@@ -103,7 +103,10 @@ const validationPlugin = ViewPlugin.fromClass(
 		timeout: NodeJS.Timeout | null = null;
 
 		constructor(view: EditorView) {
-			this.updateValidations(view);
+			// Schedule initial validation after construction
+			this.timeout = setTimeout(() => {
+				this.updateValidations(view);
+			}, 0);
 		}
 
 		update(update: ViewUpdate) {

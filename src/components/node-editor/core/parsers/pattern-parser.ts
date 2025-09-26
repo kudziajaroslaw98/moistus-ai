@@ -3,15 +3,7 @@
  * Handles extraction and processing of metadata patterns from text input
  */
 
-export type PatternType =
-	| 'date'
-	| 'priority'
-	| 'tag'
-	| 'assignee'
-	| 'color'
-	| 'fontSize'
-	| 'status'
-	| 'checkbox';
+export type PatternType = keyof typeof PATTERN_MATCHERS;
 
 export interface ExtractedPattern {
 	type: PatternType;
@@ -21,7 +13,7 @@ export interface ExtractedPattern {
 	endIndex: number;
 }
 
-export interface ParsedMetadata {
+export interface ParsedMetadata extends Partial<Record<keyof typeof PATTERN_MATCHERS,unknown>> {
 	priority?: string;
 	dueDate?: string | Date;
 	assignee?: string | string[];
@@ -29,7 +21,11 @@ export interface ParsedMetadata {
 	tags?: string[];
 	color?: string;
 	fontSize?: string;
-	[key: string]: any;
+	questionType?: 'binary' | 'multiple';
+	responseFormat?: {
+		options: Array<{ id: string; label: string }>;
+		allowMultiple: boolean;
+	}
 }
 
 // Pattern matchers with improved regex
@@ -42,6 +38,9 @@ const PATTERN_MATCHERS = {
 	tag: /\[([^\[\]]+)\]/g,
 	color: /(?:^|\s)color:([#\w-]+)/gi,
 	fontSize: /(?:^|\s)sz:(\d+(?:px|rem|em)?)/gi,
+	options: /(?:^|\s)options:\[([a-zA-Z0-9,\s]*)\]/gi,
+	multiple: /(?:^|\s)multiple:(true|false)/gi,
+	question: /(?:^|\s)question:(binary|multiple)/gi,
 	checkbox: /\[([ x])\]/gi,
 } as const;
 
@@ -184,6 +183,35 @@ export function parseMetadata(text: string): ParsedMetadata {
 				break;
 			case 'fontSize':
 				metadata.fontSize = pattern.value;
+				break;
+			case 'question':
+				metadata.questionType = pattern.value as 'binary' | 'multiple';
+				break;
+			case 'multiple':
+				// Initialize responseFormat if it doesn't exist
+				if (!metadata.responseFormat) {
+					metadata.responseFormat = {
+						options: [],
+						allowMultiple: false
+					};
+				}
+				// Convert string to boolean
+				metadata.responseFormat.allowMultiple = pattern.value.toLowerCase() === 'true';
+				break;
+			case 'options':
+				// Initialize responseFormat if it doesn't exist
+				if (!metadata.responseFormat) {
+					metadata.responseFormat = {
+						options: [],
+						allowMultiple: false
+					};
+				}
+				// Parse options string into array of objects
+				const optionStrings = pattern.value.split(',').map(opt => opt.trim()).filter(opt => opt.length > 0);
+				metadata.responseFormat.options = optionStrings.map((opt, index) => ({
+					id: `option-${index}`,
+					label: opt
+				}));
 				break;
 		}
 	}

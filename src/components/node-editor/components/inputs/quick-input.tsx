@@ -175,9 +175,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 		// The primary processing should happen via CodeMirror events
 		if (shouldAutoProcessSwitch(value, currentNodeType)) {
 			const processed = processNodeTypeSwitch(
-				value,
-				cursorPosition,
-				currentNodeType
+				value
 			);
 
 			if (
@@ -306,6 +304,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 				closeInlineCreator();
 			}
 		} catch (err) {
+			console.log
 			setError(
 				`An error occurred while ${mode === 'edit' ? 'updating' : 'creating'} the node`
 			);

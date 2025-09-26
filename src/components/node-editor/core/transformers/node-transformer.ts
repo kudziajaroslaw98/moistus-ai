@@ -111,9 +111,14 @@ export function nodeToFormData(
 		formData.priority = data.metadata.priority || 'medium';
 		formData.assignee = data.metadata.assignee || '';
 		formData.status = data.metadata.status || '';
-		formData.dueDate = data.metadata.dueDate
-			? new Date(data.metadata.dueDate).toISOString().split('T')[0]
-			: '';
+		if (data.metadata.dueDate) {
+			const date = new Date(data.metadata.dueDate);
+			formData.dueDate = !isNaN(date.getTime())
+				? date.toISOString().split('T')[0]
+				: '';
+		} else {
+			formData.dueDate = '';
+		}
 		formData.tags = data.metadata.tags || [];
 	}
 
@@ -187,8 +192,11 @@ export function nodeToQuickInput(
 	}
 
 	if (metadata.dueDate) {
-		const date = new Date(metadata.dueDate).toISOString().split('T')[0];
-		result += ` ^${date}`;
+		const date = new Date(metadata.dueDate);
+		if (!isNaN(date.getTime())) {
+			const dateStr = date.toISOString().split('T')[0];
+			result += ` ^${dateStr}`;
+		}
 	}
 
 	if (metadata.assignee) {

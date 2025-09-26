@@ -281,21 +281,21 @@ export function validateIncompleteDatePattern(
 	if (match && match.index !== undefined) {
 		return {
 			type: 'warning',
-			message: 'Incomplete date pattern. Try @today, @tomorrow, or @YYYY-MM-DD',
+			message: 'Incomplete date pattern. Try ^today, ^tomorrow, or ^YYYY-MM-DD',
 			startIndex: context?.startIndex ?? match.index,
 			endIndex: context?.endIndex ?? match.index + 1,
 			errorCode: 'DATE_PATTERN_INCOMPLETE',
-			suggestion: '@today',
+			suggestion: '^today',
 			quickFixes: [
-				{ label: '@today', replacement: '@today', description: 'Set to today' },
+				{ label: '^today', replacement: '^today', description: 'Set to today' },
 				{
-					label: '@tomorrow',
-					replacement: '@tomorrow',
+					label: '^tomorrow',
+					replacement: '^tomorrow',
 					description: 'Set to tomorrow',
 				},
 				{
-					label: '@monday',
-					replacement: '@monday',
+					label: '^monday',
+					replacement: '^monday',
 					description: 'Set to next Monday',
 				},
 			],

@@ -68,7 +68,14 @@ export const nodeTypesConfig: Record<string, NodeTypeConfig> = {
 	questionNode: {
 		label: 'Question',
 		defaultMetadata: {
-			answer: '',
+			answer: '', // AI-generated answer (kept for backward compatibility)
+			questionType: 'binary' as 'binary' | 'multiple',
+			responseFormat: {
+				options: [],
+				allowMultiple: false,
+			},
+			responses: [],
+			source: undefined as string | undefined,
 		},
 	},
 	annotationNode: {

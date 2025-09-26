@@ -84,10 +84,24 @@ export interface NodeData extends Record<string, unknown> {
 		annotationType?: 'comment' | 'idea' | 'quote' | 'summary';
 
 		// ------------------------------------------
+		// Question Properties (QuestionNode)
+		// ------------------------------------------
+		answer?: string; // For QuestionNode - can be AI or user answer
+		questionType?: 'binary'|'multiple'
+		responseFormat?: {
+			options: Array<{ id: string; label: string }>
+			allowMultiple: boolean
+		}
+		responses?: Array<{
+				userId?: string;
+				answer: boolean | string | string[];
+				timestamp: string;
+			}>
+
+		// ------------------------------------------
 		// Content Enhancement Properties
 		// ------------------------------------------
 		// These can be user-provided or AI-generated
-		answer?: string; // For QuestionNode - can be AI or user answer
 		summary?: string; // For ResourceNode or any node - can be AI or user summary
 		showSummary?: boolean;
 		showThumbnail?: boolean;

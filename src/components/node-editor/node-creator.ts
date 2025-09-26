@@ -72,7 +72,12 @@ const getUniversalMetadata = (data: any) => {
 	}
 	
 	if (data.metadata?.dueDate || data.dueDate) {
-		universalMeta.dueDate = new Date(data.metadata?.dueDate || data.dueDate).toISOString();
+		const dateValue = data.metadata?.dueDate || data.dueDate;
+		// Check if it's a valid date
+		const date = new Date(dateValue);
+		if (!isNaN(date.getTime())) {
+			universalMeta.dueDate = date.toISOString();
+		}
 	}
 	
 	return universalMeta;
@@ -172,6 +177,12 @@ export const transformDataForNodeType = (
 				metadata: {
 					...universalMetadata,
 					answer: data.metadata?.answer || data.answer || '',
+					questionType: data.metadata?.questionType || undefined,
+					responseFormat: {
+						options: data.metadata?.responseFormat?.options || [],
+						allowMultiple: data.metadata?.responseFormat?.allowMultiple
+					},
+					responses: data.metadata?.responses || [],
 				},
 			};
 

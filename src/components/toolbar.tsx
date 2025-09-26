@@ -82,7 +82,7 @@ export const Toolbar = () => {
 		}
 
 		if (toolId === 'layout') {
-			applyLayout('LR');
+			applyLayout('LR'); // Always use left-to-right for now
 			setActiveTool('default');
 		} else if (toolId === 'chat') {
 			setPopoverOpen({ aiChat: true });

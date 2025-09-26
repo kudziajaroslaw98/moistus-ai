@@ -23,6 +23,9 @@ export type PatternType =
 	| 'fontStyle'
 	| 'textAlign'
 	| 'backgroundColor'
+	| 'options'
+	| 'question'
+	| 'multiple'
 	| 'borderColor'
 	| 'title'
 	| 'label'
@@ -140,6 +143,39 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 			display: formatColorForDisplay(match[1]),
 		}),
 		metadataKey: 'backgroundColor',
+	},
+
+	// Question type pattern: question:value
+	{
+		regex: /(?:^|\s)question:(binary|multiple)/gi,
+		type: 'question',
+		extract: (match) => ({
+			value: match[1],
+			display: `question:${match[1]}`,
+		}),
+		metadataKey: 'questionType',
+	},
+
+	// Is multiple question pattern: multiple:value
+	{
+		regex: /(?:^|\s)multiple:(true|false)/gi,
+		type: 'multiple',
+		extract: (match) => ({
+			value: match[1],
+			display: `multiple:${match[1]}`,
+		}),
+		metadataKey: 'responseFormat.allowMultiple',
+	},
+
+		// Is multiple question pattern: multiple:value
+	{
+		regex: /(?:^|\s)options:\[([a-zA-Z0-9,\s]*)\]/gi,
+		type: 'options',
+		extract: (match) => ({
+			value: match[1],
+			display: `options:[${match[1]}]`,
+		}),
+		metadataKey: 'responseFormat.options',
 	},
 
 	// Border color pattern: border:value

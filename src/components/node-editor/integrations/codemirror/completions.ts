@@ -282,7 +282,7 @@ export function createCompletions(): CompletionSource {
 		// Node type completions ($)
 		if (prefix.startsWith('$')) {
 			const search = prefix.slice(1).toLowerCase();
-			const nodeTypes = commandRegistry.getByTriggerType('node-type');
+			const nodeTypes = commandRegistry.getCommandsByTriggerType('node-type');
 			const options = nodeTypes
 				.filter((cmd) => cmd.trigger.toLowerCase().includes(search))
 				.map((cmd) => ({
@@ -304,7 +304,7 @@ export function createCompletions(): CompletionSource {
 		// Slash command completions (/)
 		if (prefix.startsWith('/')) {
 			const search = prefix.slice(1).toLowerCase();
-			const commands = commandRegistry.getByTriggerType('slash');
+			const commands = commandRegistry.getCommandsByTriggerType('slash');
 			const options = commands
 				.filter((cmd) => cmd.trigger.toLowerCase().includes(search))
 				.map((cmd) => ({

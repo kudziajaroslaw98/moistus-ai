@@ -201,13 +201,23 @@ function createDecorations(view: EditorView): DecorationSet {
  */
 const decorationPlugin = ViewPlugin.fromClass(
 	class {
+		timeout: NodeJS.Timeout | null = null;
+
 		constructor(view: EditorView) {
-			this.updateDecorations(view);
+			// Schedule initial decoration update after construction
+			this.timeout = setTimeout(() => {
+				this.updateDecorations(view);
+			}, 0);
 		}
 
 		update(update: ViewUpdate) {
 			if (update.docChanged || update.viewportChanged) {
-				this.updateDecorations(update.view);
+				// Clear any pending timeout
+				if (this.timeout) clearTimeout(this.timeout);
+				// Schedule decoration update
+				this.timeout = setTimeout(() => {
+					this.updateDecorations(update.view);
+				}, 0);
 			}
 		}
 
@@ -216,6 +226,10 @@ const decorationPlugin = ViewPlugin.fromClass(
 			view.dispatch({
 				effects: updateDecorations.of(decorations),
 			});
+		}
+
+		destroy() {
+			if (this.timeout) clearTimeout(this.timeout);
 		}
 	}
 );

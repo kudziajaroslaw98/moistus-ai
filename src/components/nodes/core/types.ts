@@ -84,12 +84,30 @@ export interface ResourceNodeMetadata extends BaseNodeMetadata {
 	resourceType?: string;
 }
 
-// Question metadata
+// Question metadata - Simple decision-making questions
 export interface QuestionNodeMetadata extends BaseNodeMetadata {
-	answer?: string;
-	isAnswered?: boolean;
-	confidence?: number;
+	// Backward compatibility
+	answer?: string; // AI-generated answer
 	source?: string;
+
+	// Question features
+	questionType?: 'binary' | 'multiple';
+	isAnswered?: boolean;
+	userResponse?: boolean | string | string[]; // Binary: boolean, Multiple: string(s)
+
+	// Response format configuration
+	responseFormat?: {
+		// For multiple choice
+		options?: Array<{ id: string; label: string }>;
+		allowMultiple?: boolean;
+	};
+
+	// Response tracking (for collaborative responses)
+	responses?: Array<{
+		userId?: string;
+		answer: boolean | string | string[];
+		timestamp: string;
+	}>;
 }
 
 // Code-specific metadata

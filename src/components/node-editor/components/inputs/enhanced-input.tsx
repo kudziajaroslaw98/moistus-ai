@@ -1,8 +1,6 @@
 'use client';
 
 import { cn } from '@/utils/cn';
-import { autocompletion } from '@codemirror/autocomplete';
-import { Annotation, Compartment, EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { motion, type MotionProps } from 'motion/react';
 import React, {
@@ -13,11 +11,12 @@ import React, {
 	useRef,
 	useState,
 } from 'react';
-import { nodeEditorTheme } from '../../integrations/codemirror';
+import { validateInput } from '../../core/validators/input-validator';
+import { createNodeEditor } from '../../integrations/codemirror/setup';
 import { ValidationTooltip } from './validation-tooltip';
 
-// Annotation to mark external (programmatic) changes to prevent infinite loops
-const ExternalChange = Annotation.define<boolean>();
+// Internal change tracking for preventing infinite loops
+let isInternalChange = false;
 
 interface EnhancedInputProps {
 	value: string;
@@ -35,7 +34,7 @@ interface EnhancedInputProps {
 	onNodeTypeChange?: (nodeType: string) => void;
 	onCommandExecuted?: (command: any) => void;
 	enableCommands?: boolean; // Feature flag
-	currentNodeType?: string; // Current node type context
+	currentNodeType?: string; // Current node type context (handled automatically by new setup)
 }
 
 export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
@@ -63,18 +62,16 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 	) => {
 		const editorRef = useRef<HTMLDivElement>(null);
 		const editorViewRef = useRef<EditorView | null>(null);
-		const editorState = useRef<EditorState | null>(null);
 		const containerRef = useRef<HTMLDivElement>(null);
-		const editableCompartment = useRef(new Compartment());
 		const [validationTooltipOpen, setValidationTooltipOpen] = useState(false);
 		const initializedRef = useRef(false);
-		const isInternalChangeRef = useRef(false);
 		const lastKnownValueRef = useRef(value);
 
-		// Get validation results with error boundary
+		// Get validation results with error boundary using new validator
 		const validationErrors = useMemo(() => {
 			try {
-				return getValidationResults(value);
+				const result = validateInput(value);
+				return [...(result.errors || []), ...(result.warnings || [])];
 			} catch (error) {
 				console.error('Validation error:', error);
 				return [];
@@ -218,7 +215,7 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 			[onCommandExecuted]
 		);
 
-		// Initialize CodeMirror editor with stable dependencies (avoids recreation on callback changes)
+		// Initialize CodeMirror editor with unified setup
 		useEffect(() => {
 			if (
 				!editorRef.current ||
@@ -228,306 +225,64 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 				return;
 			}
 
-			console.log('Initializing CodeMirror editor...');
+			console.log('Initializing CodeMirror editor with unified setup...');
 
 			try {
-				// Build extensions array based on feature flags
-				const extensions = [
-					mindmapLang(),
-					EditorView.lineWrapping, // Enable line wrapping for long text
-					editableCompartment.current.of(EditorView.editable.of(!disabled)),
-					validationDecorations,
-					patternDecorations,
-				];
-
-				// Build completion sources array
-				const completionSources = [];
-
-				// Add universal completion for patterns (base priority)
-				completionSources.push(universalCompletionSource);
-
-				// Add command completions source if enabled (higher priority)
-				if (enableCommands) {
-					completionSources.unshift(commandCompletions); // Higher priority
-					extensions.push(createCommandDecorations()); // Add command decorations
-				}
-
-				// Add combined autocompletion extension
-				extensions.push(
-					autocompletion({
-						override: completionSources,
-						maxRenderedOptions: 25,
-						defaultKeymap: true,
-						closeOnBlur: false,
-						activateOnTyping: true,
-						activateOnCompletion: () => true,
-						interactionDelay: enableCommands ? 100 : 75,
-						selectOnOpen: false,
-						icons: false, // Disable built-in icons since we have custom ones
-						optionClass: (completion) => {
-							const classes = [];
-
-							// Add type-specific classes
-							if (
-								completion.section &&
-								typeof completion.section === 'object' &&
-								'name' in completion.section
-							) {
-								const sectionName = completion.section.name;
-
-								if (sectionName === 'Node Types') {
-									classes.push(
-										'command-completion-item',
-										`completion-section-${sectionName.toLowerCase().replace(/\s+/g, '-')}`
-									);
-								} else {
-									classes.push(
-										'pattern-completion-item',
-										`completion-category-${sectionName.toLowerCase()}`
-									);
-								}
-							} else {
-								// Fallback for items without sections
-								classes.push('pattern-completion-item');
-							}
-
-							if (completion.type) {
-								classes.push(`completion-type-${completion.type}`);
-							}
-
-							return classes.join(' ');
-						},
-						compareCompletions: (a, b) => {
-							// Prioritize by boost, then section rank, then alphabetical
-							const boostDiff = (b.boost || 0) - (a.boost || 0);
-							if (boostDiff !== 0) return boostDiff;
-
-							const aSectionRank =
-								a.section &&
-								typeof a.section === 'object' &&
-								'rank' in a.section
-									? a.section.rank
-									: 10;
-							const bSectionRank =
-								b.section &&
-								typeof b.section === 'object' &&
-								'rank' in b.section
-									? b.section.rank
-									: 10;
-							const sectionDiff = aSectionRank - bSectionRank;
-							if (sectionDiff !== 0) return sectionDiff;
-
-							return a.label.localeCompare(b.label);
-						},
-						addToOptions: [
+				// Use the new unified createNodeEditor function
+				const view = createNodeEditor(editorRef.current, {
+					initialContent: value,
+					placeholder:
+						placeholder ||
+						'Type # for tags, @ for people, ^ for dates, ! for priority...',
+					enableCompletions: true,
+					enablePatternHighlighting: true,
+					enableValidation: true,
+					onContentChange: (newValue) => {
+						// Prevent infinite loops with external changes
+						if (!isInternalChange && newValue !== lastKnownValueRef.current) {
+							lastKnownValueRef.current = newValue;
+							onChange(newValue);
+						}
+					},
+					onNodeTypeChange: (nodeType) => {
+						if (onNodeTypeChange) {
+							onNodeTypeChange(nodeType);
+						}
+						// Emit custom event for backward compatibility
+						const nodeTypeChangeEvent = new CustomEvent(
+							'nodeEditorTypeChange',
 							{
-								render: (completion: any, state, view) => {
-									// Only render color swatches for color completions
-									if (!completion.hexColor) return null;
-
-									const swatch = document.createElement('div');
-									swatch.className = 'color-swatch';
-									swatch.style.cssText = `
-									width: 16px;
-									height: 16px;
-									border-radius: 3px;
-									background-color: ${completion.hexColor};
-									border: 1px solid rgba(255, 255, 255, 0.2);
-									flex-shrink: 0;
-									margin-right: 8px;
-								`;
-
-									// Handle white color special case for better visibility
-									if (
-										completion.hexColor.toLowerCase() === '#ffffff' ||
-										completion.hexColor.toLowerCase() === 'white'
-									) {
-										swatch.style.border = '1px solid rgba(0, 0, 0, 0.3)';
-									}
-
-									return swatch;
-								},
-								position: 0, // Position the swatch at the beginning
-							},
-						],
-					})
-				);
-
-				editorState.current = EditorState.create({
-					doc: value,
-					extensions: [
-						...extensions,
-						EditorView.updateListener.of((update) => {
-							try {
-								// Ignore external changes to prevent infinite loops
-								if (
-									update.docChanged &&
-									!isInternalChangeRef.current &&
-									!update.transactions.some((tr) =>
-										tr.annotation(ExternalChange)
-									)
-								) {
-									// This is a user-initiated change
-									const newValue = update.state.doc.toString();
-									lastKnownValueRef.current = newValue;
-									onChange(newValue);
-
-									// Debug log for completion testing - supports patterns and commands
-									const patterns = ['@', '#', 'color:', '[', '+'];
-									const commandTriggers = enableCommands ? ['$', '/'] : [];
-									const allTriggers = [...patterns, ...commandTriggers];
-									const detectedTriggers = allTriggers.filter((trigger) =>
-										newValue.includes(trigger)
-									);
-
-									if (detectedTriggers.length > 0) {
-										const triggerTypes = enableCommands
-											? 'patterns/commands'
-											: 'patterns';
-										console.log(
-											`Enhanced input: ${triggerTypes} detected [${detectedTriggers.join(', ')}], completions should be available`
-										);
-									}
-								}
-
-								if (update.selectionSet) {
-									onSelectionChange();
-								}
-							} catch (error) {
-								console.error('CodeMirror update listener error:', error);
+								detail: { nodeType },
+								bubbles: true,
 							}
-						}),
-						EditorView.domEventHandlers({
-							keydown: (event, view) => {
-								if (
-									(event.key === 'Enter' && event.metaKey) ||
-									(event.key === 'Enter' && event.ctrlKey)
-								) {
-									const reactEvent = event as unknown as React.KeyboardEvent;
-									onKeyDown(reactEvent);
-									return true;
-								}
-
-								return false;
-							},
-						}),
-						// Use node editor theme
-						nodeEditorTheme,
-					],
-				});
-
-				const view = new EditorView({
-					state: editorState.current,
-					parent: editorRef.current,
+						);
+						editorRef.current?.dispatchEvent(nodeTypeChangeEvent);
+					},
 				});
 
 				editorViewRef.current = view;
 				initializedRef.current = true;
 
-				// Initialize node type state if currentNodeType is provided
-				if (currentNodeType) {
-					console.log(
-						'🔧 Initializing node type state:',
-						JSON.stringify(currentNodeType)
-					);
-					view.dispatch({
-						effects: nodeTypeUpdateEffect.of(currentNodeType as any),
-					});
-					console.log('✅ Node type state initialized');
-				} else {
-					console.log('⚠️ No currentNodeType provided to enhanced input');
-					// FALLBACK: Try to detect reference node context from the placeholder or other hints
-					if (placeholder && placeholder.toLowerCase().includes('reference')) {
-						console.log(
-							'🔍 Detected reference context from placeholder, setting referenceNode type'
-						);
-						view.dispatch({
-							effects: nodeTypeUpdateEffect.of('referenceNode' as any),
-						});
-						console.log('✅ Fallback reference node type set');
+				// Add custom keydown handler for Ctrl+Enter / Cmd+Enter
+				view.dom.addEventListener('keydown', (event: KeyboardEvent) => {
+					if (
+						(event.key === 'Enter' && event.metaKey) ||
+						(event.key === 'Enter' && event.ctrlKey)
+					) {
+						const reactEvent = event as unknown as React.KeyboardEvent;
+						onKeyDown(reactEvent);
+						event.preventDefault();
 					}
-				}
+				});
+
+				// Add selection change listener
+				view.dom.addEventListener('click', () => {
+					onSelectionChange();
+				});
 
 				view.focus();
 			} catch (error) {
 				console.error('Failed to initialize CodeMirror editor:', error);
-
-				// Fallback: just create a basic editor without autocompletion
-				try {
-					editorState.current = EditorState.create({
-						doc: value,
-						extensions: [
-							mindmapLang(),
-							validationDecorations,
-							patternDecorations,
-							EditorView.lineWrapping, // Enable line wrapping for fallback editor too
-							editableCompartment.current.of(EditorView.editable.of(!disabled)),
-							EditorView.updateListener.of((update) => {
-								// Ignore external changes in fallback editor too
-								if (
-									update.docChanged &&
-									!update.transactions.some((tr) =>
-										tr.annotation(ExternalChange)
-									)
-								) {
-									const newValue = update.state.doc.toString();
-									lastKnownValueRef.current = newValue;
-									onChange(newValue);
-								}
-
-								if (update.selectionSet) {
-									onSelectionChange();
-								}
-							}),
-							// Use node editor theme for fallback editor
-							nodeEditorTheme,
-						],
-					});
-
-					const view = new EditorView({
-						state: editorState.current,
-						parent: editorRef.current,
-					});
-
-					editorViewRef.current = view;
-					initializedRef.current = true;
-
-					// Initialize node type state if currentNodeType is provided (fallback editor)
-					if (currentNodeType) {
-						console.log(
-							'🔧 Initializing node type state (fallback):',
-							JSON.stringify(currentNodeType)
-						);
-						view.dispatch({
-							effects: nodeTypeUpdateEffect.of(currentNodeType as any),
-						});
-						console.log('✅ Node type state initialized (fallback)');
-					} else {
-						console.log('⚠️ No currentNodeType provided to fallback editor');
-						// FALLBACK: Try to detect reference node context from the placeholder
-						if (
-							placeholder &&
-							placeholder.toLowerCase().includes('reference')
-						) {
-							console.log(
-								'🔍 Detected reference context from placeholder (fallback), setting referenceNode type'
-							);
-							view.dispatch({
-								effects: nodeTypeUpdateEffect.of('referenceNode' as any),
-							});
-							console.log(
-								'✅ Fallback reference node type set (fallback editor)'
-							);
-						}
-					}
-
-					view.focus();
-				} catch (fallbackError) {
-					console.error(
-						'Even fallback editor initialization failed:',
-						fallbackError
-					);
-				}
 			}
 
 			return () => {
@@ -536,8 +291,6 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 						editorViewRef.current.destroy();
 						editorViewRef.current = null;
 					}
-
-					editorState.current = null;
 					initializedRef.current = false;
 				} catch (error) {
 					console.error('Error cleaning up CodeMirror:', error);
@@ -554,21 +307,33 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 			}
 
 			// Add command event listeners
-			view.dom.addEventListener('nodeTypeChange', handleNodeTypeChange);
-			view.dom.addEventListener('commandExecuted', handleCommandExecuted);
-			view.dom.addEventListener('referenceSelected', handleReferenceSelected);
+			view.dom.addEventListener(
+				'nodeTypeChange',
+				handleNodeTypeChange as EventListener
+			);
+			view.dom.addEventListener(
+				'commandExecuted',
+				handleCommandExecuted as EventListener
+			);
+			view.dom.addEventListener(
+				'referenceSelected',
+				handleReferenceSelected as EventListener
+			);
 
 			return () => {
 				// Clean up event listeners
 				if (view.dom) {
-					view.dom.removeEventListener('nodeTypeChange', handleNodeTypeChange);
+					view.dom.removeEventListener(
+						'nodeTypeChange',
+						handleNodeTypeChange as EventListener
+					);
 					view.dom.removeEventListener(
 						'commandExecuted',
-						handleCommandExecuted
+						handleCommandExecuted as EventListener
 					);
 					view.dom.removeEventListener(
 						'referenceSelected',
-						handleReferenceSelected
+						handleReferenceSelected as EventListener
 					);
 				}
 			};
@@ -584,44 +349,14 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 			try {
 				const view = editorViewRef.current;
 
-				if (view && view.dom && view.dom.isConnected) {
-					view.dispatch({
-						effects: editableCompartment.current.reconfigure(
-							EditorView.editable.of(!disabled)
-						),
-					});
-				}
+				// The new setup handles disabled state automatically through the initial configuration
+				// No need for manual reconfiguration
 			} catch (error) {
 				console.error('Error updating disabled state:', error);
 			}
 		}, [disabled]);
 
-		// Sync current node type to CodeMirror state
-		useEffect(() => {
-			try {
-				const view = editorViewRef.current;
-
-				console.log(
-					'🔄 Node type changed, updating state:',
-					JSON.stringify(currentNodeType)
-				);
-
-				if (view && view.dom && view.dom.isConnected) {
-					console.log(
-						'📡 Dispatching nodeTypeUpdateEffect:',
-						JSON.stringify(currentNodeType)
-					);
-					view.dispatch({
-						effects: nodeTypeUpdateEffect.of(currentNodeType as any),
-					});
-					console.log('✅ Node type state updated');
-				} else {
-					console.log('⚠️ Editor not available for node type update');
-				}
-			} catch (error) {
-				console.error('Error updating node type state:', error);
-			}
-		}, [currentNodeType]);
+		// Node type changes are handled automatically by the new setup through pattern detection
 
 		// Sync external value changes to CodeMirror (with loop prevention)
 		useEffect(() => {
@@ -635,22 +370,16 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 
 			// Only update if values actually differ
 			if (value !== currentContent && value !== lastKnownValueRef.current) {
-				// Preserve cursor position
-				const currentSelection = view.state.selection.main;
-
+				// Use the new setup's content update mechanism
+				isInternalChange = true;
 				view.dispatch({
 					changes: {
 						from: 0,
 						to: currentContent.length,
 						insert: value || '',
 					},
-					annotations: [ExternalChange.of(true)],
-					// Restore cursor position if it's within the new content
-					selection:
-						value && currentSelection.from <= (value || '').length
-							? currentSelection
-							: undefined,
 				});
+				isInternalChange = false;
 
 				lastKnownValueRef.current = value;
 			}

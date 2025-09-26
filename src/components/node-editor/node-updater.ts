@@ -163,7 +163,8 @@ export const transformNodeToFormData = (
 			return {
 				question: data.content || '',
 				answer: data.metadata?.answer || '',
-				type: 'open',
+				questionType: data.metadata?.questionType || 'binary',
+				responseFormat: data.metadata?.responseFormat,
 				...universalFormData,
 			};
 
@@ -230,11 +231,17 @@ const serializeUniversalMetadata = (
 	}
 
 	if (metadata.dueDate) {
-		const date =
-			typeof metadata.dueDate === 'string'
-				? metadata.dueDate.slice(0, 10)
-				: new Date(metadata.dueDate).toISOString().slice(0, 10);
-		parts.push(`^${date}`);
+		if (typeof metadata.dueDate === 'string') {
+			const dateStr = metadata.dueDate.slice(0, 10);
+			parts.push(`^${dateStr}`);
+		} else {
+			const dateObj = new Date(metadata.dueDate);
+			// Only add date if it's valid
+			if (!isNaN(dateObj.getTime())) {
+				const dateStr = dateObj.toISOString().slice(0, 10);
+				parts.push(`^${dateStr}`);
+			}
+		}
 	}
 
 	if (metadata.status) {
@@ -357,6 +364,17 @@ const serializeNodeSpecificMetadata = (
 			if (metadata.answer) {
 				const escapedAnswer = metadata.answer.replace(/"/g, '\\"');
 				parts.push(`answer:"${escapedAnswer}"`);
+			}
+
+			if(metadata?.questionType){
+				parts.push(`question:${metadata?.questionType}`);
+			}else{
+				parts.push(`question:binary`)
+			}
+
+			if(metadata?.responseFormat){
+				parts.push(`multiple:${metadata?.responseFormat?.allowMultiple ? 'true' : 'false'}`);
+				parts.push(`options:[${metadata?.responseFormat?.options.map(o=>o.label)?.join(',')}]`);
 			}
 
 			break;

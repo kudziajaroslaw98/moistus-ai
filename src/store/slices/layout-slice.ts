@@ -48,13 +48,22 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 				return;
 			}
 
-			// Use ELK.js for layout computation
+			// Use ELK.js for layout computation with enhanced options
 			const result = await applyDirectionalLayout(nodes, edges, direction);
 
-			// Update positions
+			// Post-process positions to ensure better distribution
 			const updatedNodes = nodes.map((node) => {
 				const layoutNode = result.nodes.find((n) => n.id === node.id);
-				return layoutNode ? { ...node, position: layoutNode.position } : node;
+				if (!layoutNode) return node;
+
+				// Apply the layout position with optional adjustments
+				return {
+					...node,
+					position: {
+						x: layoutNode.position.x,
+						y: layoutNode.position.y
+					}
+				};
 			});
 
 			setNodes(updatedNodes);

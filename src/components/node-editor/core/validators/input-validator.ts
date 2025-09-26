@@ -22,7 +22,7 @@ const VALIDATION_RULES: ValidationRule[] = [
 		pattern: /\$\w+/g,
 		validate: (match, text) => {
 			const allMatches = text.match(/\$\w+/g) || [];
-			if (allMatches.length > 1 && allMatches.indexOf(match[0]) > 0) {
+			if (allMatches.length > 1 && allMatches.indexOf(match[0] as string) > 0) {
 				return {
 					message: `Multiple node type triggers found. Remove "${match[0]}"`,
 					startIndex: match.index,
@@ -43,7 +43,7 @@ const VALIDATION_RULES: ValidationRule[] = [
 
 	// Invalid date format
 	{
-		pattern: /@([^\s@]+)/g, // Changed from ^ to @ to match our pattern
+		pattern: /\^([^\s^]+)/g, // Using ^ prefix for dates
 		validate: (match) => {
 			const dateValue = match[1];
 			if (!isValidDateString(dateValue)) {
@@ -52,11 +52,11 @@ const VALIDATION_RULES: ValidationRule[] = [
 					startIndex: match.index,
 					endIndex: match.index + match[0].length,
 					type: 'warning',
-					suggestion: 'Use @today, @tomorrow, or @YYYY-MM-DD',
+					suggestion: 'Use ^today, ^tomorrow, or ^YYYY-MM-DD',
 					quickFixes: [
-						{ label: 'Today', replacement: '@today' },
-						{ label: 'Tomorrow', replacement: '@tomorrow' },
-						{ label: 'Next Monday', replacement: '@monday' },
+						{ label: 'Today', replacement: '^today' },
+						{ label: 'Tomorrow', replacement: '^tomorrow' },
+						{ label: 'Next Monday', replacement: '^monday' },
 					],
 				};
 			}
@@ -176,7 +176,7 @@ export function validateInput(text: string): ValidationResult {
 		isValid: errors.length === 0,
 		errors,
 		warnings,
-		suggestions,
+		suggestions: [],
 	};
 }
 
@@ -187,15 +187,15 @@ function checkIncompletePatterns(
 	text: string,
 	warnings: ValidationError[]
 ): void {
-	// Check for incomplete date pattern (using @)
-	const dateMatch = text.match(/@(?!\w)/);
+	// Check for incomplete date pattern (using ^)
+	const dateMatch = text.match(/\^(?!\w)/);
 	if (dateMatch && dateMatch.index !== undefined) {
 		warnings.push({
 			message: 'Incomplete date pattern',
 			startIndex: dateMatch.index,
 			endIndex: dateMatch.index + 1,
 			type: 'info',
-			suggestion: 'Complete the date: @today, @tomorrow, @2024-01-01',
+			suggestion: 'Complete the date: ^today, ^tomorrow, ^2024-01-01',
 		});
 	}
 
