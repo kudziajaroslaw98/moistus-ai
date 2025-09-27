@@ -8,6 +8,7 @@ import type {
 	LayoutDirection,
 	LayoutResult,
 } from '@/types/layout-types';
+import { getNodeDimensions } from './node-dimension-utils';
 // ELK.js will be dynamically imported to avoid SSR issues
 
 // Direction mapping from our format to ELK format
@@ -26,30 +27,6 @@ const directionToELK = (direction: LayoutDirection): string => {
 	}
 };
 
-// Get default dimensions based on node type
-const getNodeTypeDimensions = (nodeType: string | undefined): { width: number; height: number } => {
-	// Define minimum dimensions for each node type
-	// IMPORTANT: For layout purposes, we cap heights to prevent dominating the layout
-	const nodeTypeDimensions: Record<string, { width: number; height: number }> = {
-		// Compact nodes
-		annotationNode: { width: 280, height: 60 },
-		// Standard nodes
-		defaultNode: { width: 320, height: 80 },
-		textNode: { width: 320, height: 90 },
-		// Content-heavy nodes - capped heights for layout
-		taskNode: { width: 340, height: 100 }, // Capped from 150
-		questionNode: { width: 340, height: 100 }, // Capped from 140
-		codeNode: { width: 380, height: 120 }, // Capped from 200
-		resourceNode: { width: 340, height: 80 },
-		imageNode: { width: 320, height: 140 }, // Capped from 240
-		// Container nodes
-		groupNode: { width: 380, height: 150 }, // Capped from 300
-		referenceNode: { width: 320, height: 80 },
-	};
-
-	return nodeTypeDimensions[nodeType || 'defaultNode'] || nodeTypeDimensions.defaultNode;
-};
-
 // Transform React Flow format to ELK format
 export const transformToELKGraph = (
 	nodes: AppNode[],
@@ -64,22 +41,13 @@ export const transformToELKGraph = (
 	}
 
 	const elkNodes: ELKNode[] = nodes.map((node) => {
-		const fallbackDimensions = getNodeTypeDimensions(node.data?.node_type);
-		const nodeType = node.data?.node_type || 'defaultNode';
+		// Use unified dimension system with proper constraints
+		const dimensions = getNodeDimensions(node);
 
-		// Use measured dimensions if available, otherwise use type-specific defaults
-		// Add minimal padding to measured dimensions
-		const padding = 5;
-
-		// For layout purposes, we cap heights to prevent tall nodes from breaking the layout
-		// This is especially important for task nodes with many items
-		let width = node.width
-			? Math.max(node.width + padding, fallbackDimensions.width)
-			: fallbackDimensions.width;
-
-		let height = node.height
-			? Math.max(node.height + padding, fallbackDimensions.height)
-			: fallbackDimensions.height;
+		// Add padding for layout spacing
+		const padding = 30;
+		const width = dimensions.width + padding;
+		const height = dimensions.height + padding;
 
 		return {
 			id: node.id,
@@ -174,9 +142,10 @@ const getAdaptiveSpacing = (nodes: AppNode[], direction?: LayoutDirection): { ho
 		const nodeType = node.data?.node_type || 'defaultNode';
 		nodeTypeCounts[nodeType] = (nodeTypeCounts[nodeType] || 0) + 1;
 
-		const dimensions = getNodeTypeDimensions(nodeType);
-		const nodeHeight = node.height || dimensions.height;
-		const nodeWidth = node.width || dimensions.width;
+		// Use unified dimensions with constraints
+		const dimensions = getNodeDimensions(node);
+		const nodeHeight = dimensions.height;
+		const nodeWidth = dimensions.width;
 
 		maxNodeHeight = Math.max(maxNodeHeight, nodeHeight);
 		maxNodeWidth = Math.max(maxNodeWidth, nodeWidth);
@@ -207,8 +176,8 @@ const getAdaptiveSpacing = (nodes: AppNode[], direction?: LayoutDirection): { ho
 	let heightSum = 0;
 	nodes.forEach(node => {
 		const nodeType = node.data?.node_type || 'defaultNode';
-		const dimensions = getNodeTypeDimensions(nodeType);
-		const cappedHeight = getCappedNodeHeight(nodeType, node.height || dimensions.height);
+		const dimensions = getNodeDimensions(node);
+		const cappedHeight = getCappedNodeHeight(nodeType, dimensions.height);
 		effectiveMaxHeight = Math.max(effectiveMaxHeight, cappedHeight);
 		heightSum += cappedHeight;
 	});
@@ -506,7 +475,7 @@ export const applyDirectionalLayout = async (
 			'elk.layered.spacing.nodeNodeBetweenLayers': '100',
 			'elk.layered.spacing.nodeNode': '80',
 			'elk.layered.spacing.edgeEdge': '40',
-			'elk.layered.spacing.edgeNodeBetweenLayers': '40',
+			'elk.layered.spacing.edgeNodeBetweenLayers': '80',
 
 			// LINEAR_SEGMENTS for perfect alignment
 			'elk.layered.nodePlacement.strategy': 'LINEAR_SEGMENTS',
@@ -515,10 +484,10 @@ export const applyDirectionalLayout = async (
 			// 'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED', // Balance nodes in layer
 
 			// Crossing minimization for cleaner edges
-			// 'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
-			// 'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-			// 'elk.layered.crossingMinimization.greedySwitch': 'TWO_SIDED',
-			// 'elk.layered.crossingMinimization.semiInteractive': true,
+			'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
+			'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+			'elk.layered.crossingMinimization.greedySwitch': 'TWO_SIDED',
+			'elk.layered.crossingMinimization.semiInteractive': true,
 
 			// Alignment for better vertical organization
 			// 'elk.alignment': 'CENTER',

@@ -400,6 +400,50 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 			// Trigger debounced save to persist changes
 			get().triggerNodeSave(nodeId);
 		},
+		updateNodeDimensions: (nodeId: string, width: number, height: number) => {
+			const { nodes } = get();
+			const node = nodes.find((n) => n.id === nodeId);
+
+			if (!node) return;
+
+			// Check if dimensions have actually changed (>5px threshold)
+			const currentWidth = node.measured?.width || node.width || 0;
+			const currentHeight = node.measured?.height || node.height || 0;
+			const widthChanged = Math.abs(width - currentWidth) > 5;
+			const heightChanged = Math.abs(height - currentHeight) > 5;
+
+			// If dimensions haven't changed significantly, skip update
+			if (!widthChanged && !heightChanged) {
+				return;
+			}
+
+			// Update the node dimensions in local state
+			set((state) => ({
+				nodes: state.nodes.map((node) => {
+					if (node.id === nodeId) {
+						return {
+							...node,
+							// Update both the node dimensions and data dimensions
+							width,
+							height,
+							measured: {
+								width,
+								height,
+							},
+							data: {
+								...node.data,
+								width,
+								height,
+							},
+						};
+					}
+					return node;
+				}),
+			}));
+
+			// Trigger debounced save to persist dimension changes
+			get().triggerNodeSave(nodeId);
+		},
 		deleteNodes: withLoadingAndToast(
 			async (nodesToDelete: AppNode[]) => {
 				const {

@@ -1,6 +1,8 @@
+import { useNodeDimensions } from '@/hooks/use-node-dimensions';
 import useAppStore from '@/store/mind-map-store';
 import { type NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
+import { getNodeConstraints } from '@/utils/node-dimension-utils';
 import {
 	Handle,
 	type Node,
@@ -17,7 +19,6 @@ import {
 	memo,
 	useCallback,
 	useMemo,
-	useRef,
 } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { AvatarStack } from '../ui/avatar-stack';
@@ -52,7 +53,7 @@ const BaseNodeWrapperComponent = ({
 	children,
 	nodeClassName,
 	nodeIcon,
-	nodeType,
+	nodeType = 'defaultNode',
 	includePadding = true,
 	hideNodeType = false,
 	accentColor,
@@ -78,9 +79,30 @@ const BaseNodeWrapperComponent = ({
 		}))
 	);
 
-	const nodeRef = useRef<HTMLDivElement | null>(null);
 	const connection = useConnection();
 	const isTarget = connection?.toNode?.id === id;
+
+	// Get node-specific constraints
+	const actualNodeType = data?.node_type || 'defaultNode';
+	const constraints = getNodeConstraints(actualNodeType);
+
+	// Use controlled dimensions hook
+	const {
+		dimensions,
+		isResizing,
+		handleResizeStart,
+		handleResize,
+		handleResizeEnd,
+		shouldResize,
+		nodeRef,
+	} = useNodeDimensions(id, {
+		minWidth: constraints.minWidth,
+		minHeight: constraints.minHeight,
+		maxWidth: constraints.maxWidth,
+		maxHeight: constraints.maxHeight, // undefined = unlimited
+		autoHeight: true,
+		debounceMs: 100,
+	});
 
 	// User-defined accent color takes precedence
 	const userAccentColor = data.metadata?.accentColor as string | undefined;
@@ -144,8 +166,9 @@ const BaseNodeWrapperComponent = ({
 
 	return (
 		<div
+			ref={nodeRef}
 			className={cn(
-				'relative flex h-full min-h-auto min-w-80 flex-col rounded-lg cursor-move',
+				'relative flex h-auto min-w-80 flex-col rounded-lg cursor-move',
 				includePadding ? 'p-4' : 'p-0',
 				nodeClassName
 			)}
@@ -153,7 +176,6 @@ const BaseNodeWrapperComponent = ({
 				...nodeStyles,
 				...accentStyles,
 				zIndex: belongsToGroup ? 1 : 'auto',
-				height: 'auto',
 				gap: '1rem',
 			}}
 		>
@@ -350,10 +372,14 @@ const BaseNodeWrapperComponent = ({
 						<NodeResizer
 							color={theme.node.resizer.color}
 							isVisible={selected}
-							minWidth={280}
-							minHeight={80}
-							maxWidth={800}
-							maxHeight={nodeRef.current?.scrollHeight ?? 600}
+							minWidth={constraints.minWidth}
+							minHeight={constraints.minHeight}
+							maxWidth={constraints.maxWidth}
+							maxHeight={constraints.maxHeight ?? Number.MAX_SAFE_INTEGER}
+							onResizeStart={handleResizeStart}
+							onResize={handleResize}
+							onResizeEnd={handleResizeEnd}
+							shouldResize={shouldResize}
 							handleClassName='!w-2 !h-2 !rounded-full'
 							handleStyle={{
 								backgroundColor: selected

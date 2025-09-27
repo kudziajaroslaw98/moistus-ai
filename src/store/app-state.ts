@@ -306,6 +306,7 @@ export interface NodesSlice {
 		nodeId: string;
 		data: Partial<NodeData>;
 	}) => Promise<void>;
+	updateNodeDimensions: (nodeId: string, width: number, height: number) => void;
 	deleteNodes: (nodesToDelete: AppNode[]) => Promise<void>;
 	triggerNodeSave: (nodeId: string) => void;
 
