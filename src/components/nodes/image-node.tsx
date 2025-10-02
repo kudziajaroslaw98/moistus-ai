@@ -49,7 +49,7 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 			<div className='flex flex-col h-full'>
 				{imageUrl ? (
 					<div
-						className='relative w-full overflow-hidden rounded-lg'
+						className='relative w-full h-full overflow-hidden rounded-lg'
 						style={{
 							// Dynamic aspect ratio based on image or fallback to 16:9
 							aspectRatio: data.metadata?.aspectRatio || aspectRatio,

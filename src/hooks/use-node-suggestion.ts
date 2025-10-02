@@ -21,7 +21,6 @@ const ghostNodeSuggestionSchema = z.object({
 				'annotationNode',
 				'codeNode',
 				'taskNode',
-				'builderNode',
 			] as const),
 			confidence: z.number().min(0).max(1),
 			position: z.object({

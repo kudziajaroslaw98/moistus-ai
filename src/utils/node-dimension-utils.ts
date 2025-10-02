@@ -14,7 +14,7 @@ export const NODE_DIMENSION_DEFAULTS = {
 export const NODE_TYPE_DIMENSIONS: Record<string, { minHeight?: number }> = {
 	taskNode: { minHeight: 100 }, // Tasks can grow with content
 	codeNode: { minHeight: 120 }, // Code blocks grow with lines
-	imageNode: { minHeight: 200 }, // Images need minimum height
+	imageNode: { minHeight: 100 }, // Images need minimum height
 	groupNode: { minHeight: 200 }, // Groups grow with children
 } as const;
 

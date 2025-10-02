@@ -245,7 +245,7 @@ const BaseNodeWrapperComponent = ({
 				</div>
 
 				{/* Main content with metadata bar integration */}
-				<div className={cn('flex flex-col')}>
+				<div className={cn('flex flex-col h-full')}>
 					{/* Universal Metadata Bar - positioned at the top of content */}
 					{/* Only show when node has actual metadata to display */}
 					{data.metadata &&
