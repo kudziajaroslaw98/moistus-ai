@@ -1,86 +1,22 @@
 /**
- * Node Factory for Type-Safe Node Creation
- * 
- * This factory provides a centralized way to create nodes with proper typing
- * and validation, ensuring consistency across the application.
+ * Node Factory - Type-Safe Node Creation
+ *
+ * Provides utilities for creating nodes with proper typing and defaults.
+ * All defaults are derived from the NodeRegistry.
  */
 
-import { AvailableNodeTypes } from '@/types/available-node-types';
-import { Position } from '@xyflow/react';
-import { 
-	TypedNodeData, 
-	TypedNode, 
+import {
+	TypedNodeData,
+	TypedNode,
 	NodeMetadataMap,
-	createTypedNodeData 
-} from './types';
+	createTypedNodeData,
+} from '@/components/nodes/core/types';
+import { NodeRegistry, type AvailableNodeTypes } from './node-registry';
 
-// Default metadata for each node type
-const DEFAULT_METADATA: Partial<NodeMetadataMap> = {
-	defaultNode: {},
-	
-	textNode: {
-		fontSize: '14px',
-		textAlign: 'left',
-		fontWeight: 400,
-		fontStyle: 'normal',
-		textColor: 'rgba(255, 255, 255, 0.87)',
-	},
-	
-	taskNode: {
-		tasks: [],
-		status: 'pending',
-	},
-	
-	imageNode: {
-		showCaption: true,
-		fitMode: 'cover',
-		altText: '',
-	},
-	
-	resourceNode: {
-		showThumbnail: true,
-		showSummary: true,
-		url: '',
-	},
-	
-	questionNode: {
-		isAnswered: false,
-	},
-	
-	codeNode: {
-		language: 'javascript',
-		showLineNumbers: true,
-		fileName: '',
-	},
-	
-	annotationNode: {
-		annotationType: 'comment',
-		fontSize: '14px',
-		fontWeight: 400,
-	},
-	
-	groupNode: {
-		isGroup: true,
-		groupChildren: [],
-		groupPadding: 40,
-		label: 'Group',
-		backgroundColor: 'rgba(113, 113, 122, 0.1)',
-		borderColor: '#52525b',
-	},
-	
-	referenceNode: {
-		targetMapTitle: 'Untitled Map',
-		contentSnippet: 'No content',
-	},
-	
-	ghostNode: {
-		suggestedContent: '',
-		suggestedType: 'defaultNode',
-		confidence: 0,
-	},
-};
+// ═══════════════════════════════════════════════
+// BASE NODE CREATION OPTIONS
+// ═══════════════════════════════════════════════
 
-// Base node creation options
 export interface CreateNodeOptions<T extends AvailableNodeTypes> {
 	id?: string;
 	mapId: string;
@@ -94,21 +30,20 @@ export interface CreateNodeOptions<T extends AvailableNodeTypes> {
 }
 
 // React Flow node creation options
-export interface CreateReactFlowNodeOptions<T extends AvailableNodeTypes> 
+export interface CreateReactFlowNodeOptions<T extends AvailableNodeTypes>
 	extends CreateNodeOptions<T> {
 	selected?: boolean;
 	dragging?: boolean;
 	zIndex?: number;
 }
 
-/**
- * Node Factory Class
- * 
- * Provides methods for creating type-safe nodes with validation and defaults.
- */
+// ═══════════════════════════════════════════════
+// NODE FACTORY CLASS
+// ═══════════════════════════════════════════════
+
 export class NodeFactory {
 	/**
-	 * Create a typed node with proper defaults and validation
+	 * Create a typed node with proper defaults from registry
 	 */
 	static create<T extends AvailableNodeTypes>(
 		options: CreateNodeOptions<T>
@@ -125,14 +60,20 @@ export class NodeFactory {
 			height,
 		} = options;
 
+		// Get defaults from registry
+		const defaultMeta = NodeRegistry.getDefaultMetadata(nodeType);
+		const defaultDimensions = NodeRegistry.getDimensions(nodeType);
+
 		// Merge with defaults
-		const defaultMeta = DEFAULT_METADATA[nodeType] || {};
 		const mergedMetadata = {
 			...defaultMeta,
 			...metadata,
 		} as NodeMetadataMap[T];
 
 		const now = new Date().toISOString();
+
+		// Warn if deprecated (development only)
+		NodeRegistry.warnIfDeprecated(nodeType);
 
 		return createTypedNodeData(nodeType, {
 			id,
@@ -141,8 +82,8 @@ export class NodeFactory {
 			content,
 			position_x: position.x,
 			position_y: position.y,
-			width: width || null,
-			height: height || null,
+			width: width || defaultDimensions.default.width,
+			height: height || defaultDimensions.default.height,
 			created_at: now,
 			updated_at: now,
 			metadata: mergedMetadata,
@@ -156,7 +97,7 @@ export class NodeFactory {
 		options: CreateReactFlowNodeOptions<T>
 	): TypedNode<T> {
 		const nodeData = this.create(options);
-		
+
 		return {
 			id: nodeData.id,
 			type: nodeData.node_type,
@@ -165,8 +106,8 @@ export class NodeFactory {
 				y: nodeData.position_y,
 			},
 			data: nodeData,
-			width: nodeData.width || undefined,
-			height: nodeData.height || undefined,
+			width: nodeData.width ?? undefined,
+			height: nodeData.height ?? undefined,
 			selected: options.selected || false,
 			dragging: options.dragging || false,
 			zIndex: options.zIndex || 1,
@@ -184,7 +125,7 @@ export class NodeFactory {
 		}
 	): TypedNode<T> {
 		const { offsetX = 0, offsetY = 150 } = options;
-		
+
 		return this.createReactFlowNode({
 			...options,
 			mapId: parentNode.data.map_id,
@@ -207,10 +148,10 @@ export class NodeFactory {
 			clearMetadata?: boolean;
 		}
 	): TypedNode<T> {
-		const { 
-			newId = crypto.randomUUID(), 
-			position, 
-			clearMetadata = false 
+		const {
+			newId = crypto.randomUUID(),
+			position,
+			clearMetadata = false,
 		} = options || {};
 
 		const newPosition = position || {
@@ -218,7 +159,9 @@ export class NodeFactory {
 			y: sourceNode.position.y + 50,
 		};
 
-		const metadata = clearMetadata ? {} : sourceNode.data.metadata;
+		const metadata = clearMetadata
+			? NodeRegistry.getDefaultMetadata(sourceNode.data.node_type)
+			: sourceNode.data.metadata;
 
 		return this.createReactFlowNode({
 			id: newId,
@@ -264,38 +207,36 @@ export class NodeFactory {
 		if (!node.id) errors.push('Node ID is required');
 		if (!node.data.map_id) errors.push('Map ID is required');
 		if (!node.data.node_type) errors.push('Node type is required');
-		if (typeof node.position.x !== 'number') errors.push('Position X must be a number');
-		if (typeof node.position.y !== 'number') errors.push('Position Y must be a number');
+		if (typeof node.position.x !== 'number')
+			errors.push('Position X must be a number');
+		if (typeof node.position.y !== 'number')
+			errors.push('Position Y must be a number');
 
-		// Validate node-specific requirements
-		switch (node.data.node_type) {
-			case 'taskNode':
-				if (node.data.metadata && !Array.isArray((node.data.metadata as any).tasks)) {
-					errors.push('Task node must have tasks array in metadata');
+		// Validate node type exists in registry
+		if (!NodeRegistry.isValidType(node.data.node_type)) {
+			errors.push(`Invalid node type: ${node.data.node_type}`);
+		} else {
+			// Validate metadata using Zod schema
+			const metadataValidation = NodeRegistry.validateMetadata(
+				node.data.node_type,
+				node.data.metadata
+			);
+
+			if (!metadataValidation.success) {
+				errors.push(
+					`Metadata validation failed: ${metadataValidation.error.message}`
+				);
+			}
+
+			// Check deprecated status
+			if (NodeRegistry.isDeprecated(node.data.node_type)) {
+				const info = NodeRegistry.getDeprecationInfo(node.data.node_type);
+				if (info) {
+					errors.push(
+						`Node type "${node.data.node_type}" is deprecated: ${info.reason}`
+					);
 				}
-
-				break;
-				
-			case 'groupNode':
-				const groupMeta = node.data.metadata as any;
-				if (!groupMeta?.isGroup) errors.push('Group node must have isGroup: true in metadata');
-
-				if (!Array.isArray(groupMeta?.groupChildren)) {
-					errors.push('Group node must have groupChildren array in metadata');
-				}
-
-				break;
-				
-			case 'ghostNode':
-				const ghostMeta = node.data.metadata as any;
-				if (!ghostMeta?.suggestedContent) errors.push('Ghost node must have suggestedContent');
-				if (!ghostMeta?.suggestedType) errors.push('Ghost node must have suggestedType');
-
-				if (typeof ghostMeta?.confidence !== 'number') {
-					errors.push('Ghost node must have confidence number');
-				}
-
-				break;
+			}
 		}
 
 		return {
@@ -305,61 +246,97 @@ export class NodeFactory {
 	}
 
 	/**
-	 * Get default metadata for a node type
-	 */
-	static getDefaultMetadata<T extends AvailableNodeTypes>(
-		nodeType: T
-	): NodeMetadataMap[T] {
-		return (DEFAULT_METADATA[nodeType] || {}) as NodeMetadataMap[T];
-	}
-
-	/**
 	 * Create a batch of nodes efficiently
 	 */
 	static createBatch<T extends AvailableNodeTypes>(
 		nodes: CreateReactFlowNodeOptions<T>[]
 	): TypedNode<T>[] {
-		return nodes.map(options => this.createReactFlowNode(options));
+		return nodes.map((options) => this.createReactFlowNode(options));
+	}
+
+	/**
+	 * Get default node data for a type (useful for testing)
+	 */
+	static getDefaults<T extends AvailableNodeTypes>(nodeType: T) {
+		return {
+			metadata: NodeRegistry.getDefaultMetadata(nodeType),
+			dimensions: NodeRegistry.getDimensions(nodeType),
+			behavior: NodeRegistry.getBehavior(nodeType),
+			features: NodeRegistry.getFeatures(nodeType),
+		};
 	}
 }
 
-// Convenience functions for common node creation patterns
+// ═══════════════════════════════════════════════
+// CONVENIENCE FUNCTIONS
+// ═══════════════════════════════════════════════
+
+/**
+ * Create a defaultNode (Note)
+ */
 export const createDefaultNode = (
 	options: Omit<CreateNodeOptions<'defaultNode'>, 'nodeType'>
 ) => NodeFactory.create({ ...options, nodeType: 'defaultNode' });
 
-export const createTaskNode = (
-	options: Omit<CreateNodeOptions<'taskNode'>, 'nodeType'>
-) => NodeFactory.create({ ...options, nodeType: 'taskNode' });
-
-export const createImageNode = (
-	options: Omit<CreateNodeOptions<'imageNode'>, 'nodeType'>
-) => NodeFactory.create({ ...options, nodeType: 'imageNode' });
-
-export const createResourceNode = (
-	options: Omit<CreateNodeOptions<'resourceNode'>, 'nodeType'>
-) => NodeFactory.create({ ...options, nodeType: 'resourceNode' });
-
-export const createQuestionNode = (
-	options: Omit<CreateNodeOptions<'questionNode'>, 'nodeType'>
-) => NodeFactory.create({ ...options, nodeType: 'questionNode' });
-
-export const createCodeNode = (
-	options: Omit<CreateNodeOptions<'codeNode'>, 'nodeType'>
-) => NodeFactory.create({ ...options, nodeType: 'codeNode' });
-
+/**
+ * Create a textNode
+ */
 export const createTextNode = (
 	options: Omit<CreateNodeOptions<'textNode'>, 'nodeType'>
 ) => NodeFactory.create({ ...options, nodeType: 'textNode' });
 
+/**
+ * Create a taskNode
+ */
+export const createTaskNode = (
+	options: Omit<CreateNodeOptions<'taskNode'>, 'nodeType'>
+) => NodeFactory.create({ ...options, nodeType: 'taskNode' });
+
+/**
+ * Create an imageNode
+ */
+export const createImageNode = (
+	options: Omit<CreateNodeOptions<'imageNode'>, 'nodeType'>
+) => NodeFactory.create({ ...options, nodeType: 'imageNode' });
+
+/**
+ * Create a resourceNode
+ */
+export const createResourceNode = (
+	options: Omit<CreateNodeOptions<'resourceNode'>, 'nodeType'>
+) => NodeFactory.create({ ...options, nodeType: 'resourceNode' });
+
+/**
+ * Create a questionNode
+ */
+export const createQuestionNode = (
+	options: Omit<CreateNodeOptions<'questionNode'>, 'nodeType'>
+) => NodeFactory.create({ ...options, nodeType: 'questionNode' });
+
+/**
+ * Create a codeNode
+ */
+export const createCodeNode = (
+	options: Omit<CreateNodeOptions<'codeNode'>, 'nodeType'>
+) => NodeFactory.create({ ...options, nodeType: 'codeNode' });
+
+/**
+ * Create an annotationNode
+ */
 export const createAnnotationNode = (
 	options: Omit<CreateNodeOptions<'annotationNode'>, 'nodeType'>
 ) => NodeFactory.create({ ...options, nodeType: 'annotationNode' });
 
+/**
+ * Create a groupNode
+ */
 export const createGroupNode = (
 	options: Omit<CreateNodeOptions<'groupNode'>, 'nodeType'>
 ) => NodeFactory.create({ ...options, nodeType: 'groupNode' });
 
+/**
+ * Create a referenceNode
+ */
 export const createReferenceNode = (
 	options: Omit<CreateNodeOptions<'referenceNode'>, 'nodeType'>
 ) => NodeFactory.create({ ...options, nodeType: 'referenceNode' });

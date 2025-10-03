@@ -1,5 +1,9 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
+import {
+	checkAIFeatureAccess,
+	trackAIFeatureUsage,
+} from '@/helpers/api/with-ai-feature-gate';
 import type { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';
 import { openai } from '@ai-sdk/openai';
@@ -17,7 +21,18 @@ const requestBodySchema = z.object({
 
 export const POST = withApiValidation(
 	requestBodySchema,
-	async (req, validatedBody, supabase) => {
+	async (req, validatedBody, supabase, user) => {
+		// Check AI feature access
+		const { hasAccess, isPro, error } = await checkAIFeatureAccess(
+			user,
+			supabase,
+			'summarize'
+		);
+
+		if (!hasAccess && error) {
+			return error;
+		}
+
 		try {
 			const { nodeId } = validatedBody;
 
@@ -152,6 +167,22 @@ export const POST = withApiValidation(
 			const result = streamText({
 				model: openai('o4-mini'),
 				prompt: aiPrompt,
+			});
+
+			// Track usage for free tier users
+			// Count all nodes in the branch (root + descendants)
+			const countDescendants = (currentNodeId: string): number => {
+				let count = 1; // Current node
+				const children = childrenMap.get(currentNodeId) || [];
+				for (const child of children) {
+					count += countDescendants(child.id);
+				}
+				return count;
+			};
+
+			await trackAIFeatureUsage(user, supabase, 'summarize', isPro, {
+				nodeId,
+				nodeCount: countDescendants(nodeId),
 			});
 
 			return result.toTextStreamResponse();

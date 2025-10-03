@@ -30,6 +30,8 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR, { mutate } from 'swr';
+import useAppStore from '@/store/mind-map-store';
+import { useShallow } from 'zustand/react/shallow';
 
 interface MindMapData {
 	id: string;
@@ -72,6 +74,16 @@ function DashboardContent() {
 	const router = useRouter();
 	const { open: sidebarOpen } = useSidebar();
 	const sidebarCollapsed = !sidebarOpen;
+
+	// Trial state
+	const { isTrialing, getTrialDaysRemaining } = useAppStore(
+		useShallow((state) => ({
+			isTrialing: state.isTrialing,
+			getTrialDaysRemaining: state.getTrialDaysRemaining,
+		}))
+	);
+
+	const trialDays = getTrialDaysRemaining?.() ?? null;
 
 	// State
 	const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -398,6 +410,18 @@ function DashboardContent() {
 				<div className='flex-grow w-full overflow-auto'>
 					<div className='p-6 md:p-8'>
 						<div className='mx-auto max-w-7xl'>
+							{/* Trial Badge */}
+							{isTrialing?.() && trialDays !== null && (
+								<div className='mb-4 rounded-lg bg-purple-500/10 border border-purple-500/20 p-4'>
+									<p className='text-sm font-medium text-purple-600'>
+										✨ Trial Active: {trialDays} days remaining
+									</p>
+									<p className='text-xs text-muted-foreground mt-1'>
+										Enjoying Pro features? Your trial ends soon.
+									</p>
+								</div>
+							)}
+
 							{/* Header */}
 							<div className='mb-10'>
 								<div className='flex items-center justify-between mb-8'>

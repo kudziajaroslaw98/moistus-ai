@@ -5,7 +5,7 @@
  * improving type safety and developer experience throughout the application.
  */
 
-import { AvailableNodeTypes } from '@/types/available-node-types';
+import { AvailableNodeTypes } from '@/registry';
 import { Node, NodeProps } from '@xyflow/react';
 import { ReactNode } from 'react';
 

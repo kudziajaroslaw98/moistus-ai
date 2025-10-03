@@ -1,15 +1,15 @@
 /**
  * Shared Node Content Component
- * 
+ *
  * Provides consistent content wrapper styling and behavior across all node types.
  * Handles common content patterns like empty states, loading states, and scrolling.
  */
 
 'use client';
 
-import { ReactNode, forwardRef } from 'react';
 import { cn } from '@/utils/cn';
-import { motion, AnimatePresence } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
+import { ReactNode, forwardRef } from 'react';
 import { GlassmorphismTheme } from '../themes/glassmorphism-theme';
 
 export interface NodeContentProps {
@@ -27,169 +27,154 @@ export interface NodeContentProps {
 	onDoubleClick?: () => void;
 }
 
-export const NodeContent = forwardRef<HTMLDivElement, NodeContentProps>(({
-	children,
-	className = '',
-	isEmpty = false,
-	isLoading = false,
-	emptyMessage = 'Click to add content...',
-	loadingMessage = 'Loading...',
-	scrollable = false,
-	maxHeight,
-	padding = true,
-	center = false,
-	onClick,
-	onDoubleClick,
-}, ref) => {
-	const theme = GlassmorphismTheme;
+export const NodeContent = forwardRef<HTMLDivElement, NodeContentProps>(
+	(
+		{
+			children,
+			className = '',
+			isEmpty = false,
+			isLoading = false,
+			emptyMessage = 'Click to add content...',
+			loadingMessage = 'Loading...',
+			scrollable = false,
+			maxHeight,
+			padding = true,
+			center = false,
+			onClick,
+			onDoubleClick,
+		},
+		ref
+	) => {
+		const theme = GlassmorphismTheme;
 
-	const contentStyles = {
-		maxHeight: scrollable && maxHeight ? maxHeight : undefined,
-		overflow: scrollable ? 'auto' as const : 'visible' as const,
-	};
+		const contentStyles = {
+			maxHeight: scrollable && maxHeight ? maxHeight : undefined,
+			overflow: scrollable ? ('auto' as const) : ('visible' as const),
+		};
 
-	// Empty state component
-	const EmptyState = () => (
-		<div 
-			className={cn(
-				'flex items-center justify-center py-4',
-				center && 'text-center'
-			)}
-			style={{ minHeight: '60px' }}
-		>
-			<span 
-				style={{ 
-					color: theme.text.disabled,
-					fontSize: '14px',
-					fontStyle: 'italic',
-				}}
+		// Empty state component
+		const EmptyState = () => (
+			<div
+				className={cn(
+					'flex items-center justify-center py-4',
+					center && 'text-center'
+				)}
+				style={{ minHeight: '60px' }}
 			>
-				{emptyMessage}
-			</span>
-		</div>
-	);
-
-	// Loading state component
-	const LoadingState = () => (
-		<div className="flex items-center justify-center py-4">
-			<div className="flex items-center gap-2">
-				<motion.div
-					className="w-1 h-4 rounded-full"
-					style={{ backgroundColor: theme.text.disabled }}
-					animate={{ scaleY: [1, 0.5, 1] }}
-					transition={{ 
-						repeat: Infinity, 
-						duration: 0.8,
-						delay: 0,
-					}}
-				/>
-
-				<motion.div
-					className="w-1 h-4 rounded-full"
-					style={{ backgroundColor: theme.text.disabled }}
-					animate={{ scaleY: [1, 0.5, 1] }}
-					transition={{ 
-						repeat: Infinity, 
-						duration: 0.8,
-						delay: 0.2,
-					}}
-				/>
-
-				<motion.div
-					className="w-1 h-4 rounded-full"
-					style={{ backgroundColor: theme.text.disabled }}
-					animate={{ scaleY: [1, 0.5, 1] }}
-					transition={{ 
-						repeat: Infinity, 
-						duration: 0.8,
-						delay: 0.4,
-					}}
-				/>
-
-				<span 
-					className="ml-2"
-					style={{ 
+				<span
+					style={{
 						color: theme.text.disabled,
 						fontSize: '14px',
+						fontStyle: 'italic',
 					}}
 				>
-					{loadingMessage}
+					{emptyMessage}
 				</span>
 			</div>
-		</div>
-	);
+		);
 
-	return (
-		<div
-			ref={ref}
-			className={cn(
-				'relative w-full h-full',
-				padding && 'p-1',
-				center && 'flex items-center justify-center',
-				scrollable && 'overflow-hidden',
-				className
-			)}
-			style={contentStyles}
-			onClick={onClick}
-			onDoubleClick={onDoubleClick}
-		>
-			<AnimatePresence mode="wait">
-				{isLoading ? (
+		// Loading state component
+		const LoadingState = () => (
+			<div className='flex items-center justify-center py-4'>
+				<div className='flex items-center gap-2'>
 					<motion.div
-						key="loading"
-						initial={{ opacity: 0 }}
-						animate={{ opacity: 1 }}
-						exit={{ opacity: 0 }}
-						transition={{ duration: 0.2 }}
-					>
-						<LoadingState />
-					</motion.div>
-				) : isEmpty ? (
+						className='w-1 h-4 rounded-full'
+						style={{ backgroundColor: theme.text.disabled }}
+						animate={{ scaleY: [1, 0.5, 1] }}
+						transition={{
+							repeat: Infinity,
+							duration: 0.8,
+							delay: 0,
+						}}
+					/>
+
 					<motion.div
-						key="empty"
-						initial={{ opacity: 0 }}
-						animate={{ opacity: 1 }}
-						exit={{ opacity: 0 }}
-						transition={{ duration: 0.2 }}
-					>
-						<EmptyState />
-					</motion.div>
-				) : (
+						className='w-1 h-4 rounded-full'
+						style={{ backgroundColor: theme.text.disabled }}
+						animate={{ scaleY: [1, 0.5, 1] }}
+						transition={{
+							repeat: Infinity,
+							duration: 0.8,
+							delay: 0.2,
+						}}
+					/>
+
 					<motion.div
-						key="content"
-						initial={{ opacity: 0, y: 5 }}
-						animate={{ opacity: 1, y: 0 }}
-						exit={{ opacity: 0, y: -5 }}
-						transition={{ duration: 0.2 }}
-						className="w-full h-full"
+						className='w-1 h-4 rounded-full'
+						style={{ backgroundColor: theme.text.disabled }}
+						animate={{ scaleY: [1, 0.5, 1] }}
+						transition={{
+							repeat: Infinity,
+							duration: 0.8,
+							delay: 0.4,
+						}}
+					/>
+
+					<span
+						className='ml-2'
+						style={{
+							color: theme.text.disabled,
+							fontSize: '14px',
+						}}
 					>
-						{children}
-					</motion.div>
+						{loadingMessage}
+					</span>
+				</div>
+			</div>
+		);
+
+		return (
+			<div
+				ref={ref}
+				className={cn(
+					'relative w-full h-full',
+					padding && 'p-1',
+					center && 'flex items-center justify-center',
+					scrollable && 'overflow-hidden',
+					className
 				)}
-			</AnimatePresence>
-
-			{/* Scrollbar styling for webkit browsers */}
-			{scrollable && (
-				<style jsx>{`
-					div::-webkit-scrollbar {
-						width: 6px;
-					}
-					div::-webkit-scrollbar-track {
-						background: ${theme.elevation[0]};
-						border-radius: 3px;
-					}
-					div::-webkit-scrollbar-thumb {
-						background: ${theme.borders.default};
-						border-radius: 3px;
-					}
-					div::-webkit-scrollbar-thumb:hover {
-						background: ${theme.borders.hover};
-					}
-				`}</style>
-			)}
-		</div>
-	);
-});
+				style={contentStyles}
+				onClick={onClick}
+				onDoubleClick={onDoubleClick}
+			>
+				<AnimatePresence mode='wait'>
+					{isLoading ? (
+						<motion.div
+							key='loading'
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							exit={{ opacity: 0 }}
+							transition={{ duration: 0.2 }}
+						>
+							<LoadingState />
+						</motion.div>
+					) : isEmpty ? (
+						<motion.div
+							key='empty'
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							exit={{ opacity: 0 }}
+							transition={{ duration: 0.2 }}
+						>
+							<EmptyState />
+						</motion.div>
+					) : (
+						<motion.div
+							key='content'
+							initial={{ opacity: 0, y: 5 }}
+							animate={{ opacity: 1, y: 0 }}
+							exit={{ opacity: 0, y: -5 }}
+							transition={{ duration: 0.2 }}
+							className='w-full h-full'
+						>
+							{children}
+						</motion.div>
+					)}
+				</AnimatePresence>
+			</div>
+		);
+	}
+);
 
 NodeContent.displayName = 'NodeContent';
 
@@ -202,22 +187,22 @@ export interface TextContentProps {
 	placeholder?: string;
 }
 
-export const TextContent = ({ 
-	content, 
-	style, 
+export const TextContent = ({
+	content,
+	style,
 	className = '',
-	placeholder = 'Add text...'
+	placeholder = 'Add text...',
 }: TextContentProps) => {
 	const theme = GlassmorphismTheme;
 
 	return (
-		<NodeContent 
+		<NodeContent
 			isEmpty={!content}
 			emptyMessage={placeholder}
 			className={className}
 		>
-			<div 
-				className="w-full break-words"
+			<div
+				className='w-full break-words'
 				style={{
 					color: theme.text.high,
 					fontSize: '14px',
@@ -240,12 +225,12 @@ export interface CodeContentProps {
 	placeholder?: string;
 }
 
-export const CodeContent = ({ 
-	code, 
+export const CodeContent = ({
+	code,
 	language = 'javascript',
 	showLineNumbers = true,
 	maxHeight = '400px',
-	placeholder = 'Add code...'
+	placeholder = 'Add code...',
 }: CodeContentProps) => {
 	return (
 		<NodeContent
@@ -255,8 +240,8 @@ export const CodeContent = ({
 			maxHeight={maxHeight}
 			padding={false}
 		>
-			<pre 
-				className="p-3 rounded-md overflow-x-auto"
+			<pre
+				className='p-3 rounded-md overflow-x-auto'
 				style={{
 					backgroundColor: '#0d0d0d',
 					border: '1px solid rgba(255, 255, 255, 0.06)',
@@ -296,11 +281,14 @@ export const MediaContent = ({
 			isEmpty={isEmpty || error}
 			isLoading={isLoading}
 			emptyMessage={error ? 'Failed to load media' : placeholder}
-			loadingMessage="Loading media..."
+			loadingMessage='Loading media...'
 			padding={false}
 			center={isEmpty || error || isLoading}
 		>
-			{children || (src && <img src={src} alt={alt} className="w-full h-full object-cover" />)}
+			{children ||
+				(src && (
+					<img src={src} alt={alt} className='w-full h-full object-cover' />
+				))}
 		</NodeContent>
 	);
 };

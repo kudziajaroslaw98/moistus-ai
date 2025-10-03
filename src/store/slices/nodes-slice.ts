@@ -2,7 +2,7 @@ import { STORE_SAVE_DEBOUNCE_MS } from '@/constants/store-save-debounce-ms';
 import generateUuid from '@/helpers/generate-uuid';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
 import type { AppNode } from '@/types/app-node';
-import { AvailableNodeTypes } from '@/types/available-node-types';
+import { AvailableNodeTypes } from '@/registry';
 import type { NodeData } from '@/types/node-data';
 import { NodesTableType } from '@/types/nodes-table-type';
 import { debouncePerKey } from '@/utils/debounce-per-key';
@@ -250,7 +250,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 			}) => {
 				let { nodeType = 'defaultNode' } = props;
 				const { parentNode, position, data = {}, content = 'New node' } = props;
-				const { mapId, supabase, nodes, edges, addStateToHistory } = get();
+				const { mapId, supabase, nodes, edges, addStateToHistory, currentSubscription } = get();
 
 				if (!mapId) {
 					toast.loading(
@@ -258,6 +258,21 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 						{ id: props.toastId }
 					);
 					nodeType = 'defaultNode';
+				}
+
+				// Check node creation limit for free tier users
+				const isPro = currentSubscription?.plan?.name === 'pro' || currentSubscription?.plan?.name === 'enterprise';
+				const limit = currentSubscription?.plan?.limits?.nodesPerMap ?? 50; // Free tier default
+
+				if (!isPro && limit !== -1) {
+					const currentNodeCount = nodes.length;
+
+					if (currentNodeCount >= limit) {
+						// Throw error which will be displayed as a toast by withLoadingAndToast
+						throw new Error(
+							`Node limit reached (${limit} nodes per map). Upgrade to Pro for unlimited nodes.`
+						);
+					}
 				}
 
 				const newNodeId = generateUuid();

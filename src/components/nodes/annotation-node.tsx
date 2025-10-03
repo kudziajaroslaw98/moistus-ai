@@ -129,7 +129,7 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 								fontWeight: 300,
 							}}
 						>
-							"
+							&quot;
 						</span>
 
 						{/* Quote content with serif font for elegance */}
@@ -167,7 +167,7 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 								fontWeight: 300,
 							}}
 						>
-							"
+							&quot;
 						</span>
 
 						{/* Attribution line if available */}

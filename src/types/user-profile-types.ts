@@ -10,6 +10,11 @@ export interface UserProfile {
 	company?: string;
 	job_title?: string;
 	skills?: string[];
+	isAnonymous?: boolean;
+	color?: {
+		hsl: string;
+		hex: string;
+	};
 	social_links?: {
 		twitter?: string;
 		linkedin?: string;
@@ -50,6 +55,10 @@ export interface UserProfileUpdate {
 	company?: string;
 	job_title?: string;
 	skills?: string[];
+	color?: {
+		hsl: string;
+		hex: string;
+	};
 	social_links?: {
 		twitter?: string;
 		linkedin?: string;
@@ -90,6 +99,11 @@ export interface PublicUserProfile {
 	company?: string;
 	job_title?: string;
 	skills?: string[];
+	isAnonymous?: boolean;
+	color?: {
+		hsl: string;
+		hex: string;
+	};
 	social_links?: {
 		twitter?: string;
 		linkedin?: string;

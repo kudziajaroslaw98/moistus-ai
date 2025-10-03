@@ -19,11 +19,11 @@ import { toast } from 'sonner';
 
 interface RoomCodeDisplayProps {
 	token: ShareToken;
+	showQRCode?: boolean;
+	className?: string;
 	onRefresh?: (tokenId: string) => Promise<void>;
 	onRevoke?: (tokenId: string) => Promise<void>;
 	onCopy?: (token: string) => void;
-	showQRCode?: boolean;
-	className?: string;
 }
 
 export function RoomCodeDisplay({

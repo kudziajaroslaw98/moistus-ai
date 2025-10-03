@@ -14,6 +14,9 @@ const compat = new FlatCompat({
 const eslintConfig = [
 	...compat.extends('next/core-web-vitals', 'next/typescript'),
 	{
+		ignores: ['.next/**', 'node_modules/**'],
+	},
+	{
 		linterOptions: {
 			reportUnusedDisableDirectives: true,
 		},
@@ -36,6 +39,7 @@ const eslintConfig = [
 			...reactPlugin.configs.flat.recommended.rules,
 			'react-hooks/exhaustive-deps': 'off',
 			'react/react-in-jsx-scope': 'off',
+			'react/prop-types': 'off', // TypeScript provides type safety
 			'react/jsx-filename-extension': [
 				1,
 				{ extensions: ['.js', '.jsx', '.tsx', '.ts'] },

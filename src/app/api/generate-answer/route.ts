@@ -1,5 +1,9 @@
 import { respondError } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
+import {
+	checkAIFeatureAccess,
+	trackAIFeatureUsage,
+} from '@/helpers/api/with-ai-feature-gate';
 import { openai } from '@ai-sdk/openai';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { streamText } from 'ai';
@@ -51,7 +55,18 @@ async function getAncestorContext(
 
 export const POST = withApiValidation(
 	requestBodySchema,
-	async (req, validatedBody, supabase) => {
+	async (req, validatedBody, supabase, user) => {
+		// Check AI feature access
+		const { hasAccess, isPro, error } = await checkAIFeatureAccess(
+			user,
+			supabase,
+			'answer'
+		);
+
+		if (!hasAccess && error) {
+			return error;
+		}
+
 		try {
 			const { nodeId } = validatedBody;
 
@@ -121,6 +136,12 @@ export const POST = withApiValidation(
 			const result = streamText({
 				model: openai('o4-mini'),
 				prompt: aiPrompt,
+			});
+
+			// Track usage for free tier users
+			await trackAIFeatureUsage(user, supabase, 'answer', isPro, {
+				nodeId,
+				questionLength: questionNode.content.length,
 			});
 
 			return result.toTextStreamResponse();

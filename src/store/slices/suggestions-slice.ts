@@ -3,7 +3,7 @@ import type { AiConnectionSuggestion } from '@/types/ai-connection-suggestion';
 import type { AiMergeSuggestion } from '@/types/ai-merge-suggestion';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
-import type { AvailableNodeTypes } from '@/types/available-node-types';
+import type { AvailableNodeTypes } from '@/registry';
 import type { NodeSuggestion, SuggestionContext } from '@/types/ghost-node';
 import type { StateCreator } from 'zustand';
 import type { AppState } from '../app-state';

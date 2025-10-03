@@ -10,4 +10,5 @@ export type ApiResponse<T> =
 			error: string;
 			statusNumber?: number;
 			statusText?: string;
+			data?: Record<string, unknown> | string;
 	  };

@@ -3,7 +3,7 @@
  */
 
 import type { LucideIcon } from 'lucide-react';
-import type { AvailableNodeTypes } from '../../../../types/available-node-types';
+import type { AvailableNodeTypes } from '@/registry';
 
 /**
  * Command categories for grouping related commands

@@ -1,5 +1,12 @@
 import { extractNodesContext } from '@/helpers/extract-node-context';
 import { createClient } from '@/helpers/supabase/server';
+import {
+	requireSubscription,
+	checkUsageLimit,
+	getAIUsageCount,
+	trackAIUsage,
+	SubscriptionError,
+} from '@/helpers/api/with-subscription-check';
 import { openai } from '@ai-sdk/openai';
 import {
 	createUIMessageStream,
@@ -39,9 +46,56 @@ export const maxDuration = 30;
 
 export async function POST(req: Request) {
 	try {
+		// Get authenticated user
+		const supabase = await createClient();
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+
+		if (!user) {
+			return new Response(
+				JSON.stringify({
+					error: 'Unauthorized. Please sign in to use AI features.',
+				}),
+				{ status: 401, headers: { 'Content-Type': 'application/json' } }
+			);
+		}
+
+		// Check subscription and usage limits
+		let hasProAccess = false;
+		try {
+			await requireSubscription(user, supabase, 'pro');
+			hasProAccess = true;
+		} catch (error) {
+			if (error instanceof SubscriptionError) {
+				const currentUsage = await getAIUsageCount(user, supabase, 'merges');
+				const { allowed, limit, remaining } = await checkUsageLimit(
+					user,
+					supabase,
+					'aiSuggestions',
+					currentUsage
+				);
+
+				if (!allowed) {
+					return new Response(
+						JSON.stringify({
+							error: `AI limit reached (${limit} per month). Upgrade to Pro.`,
+							code: 'LIMIT_REACHED',
+							currentUsage,
+							limit,
+							remaining: 0,
+							upgradeUrl: '/dashboard/settings/billing',
+						}),
+						{ status: 402, headers: { 'Content-Type': 'application/json' } }
+					);
+				}
+			} else {
+				throw error;
+			}
+		}
+
 		// Extract the body sent by the useChat hook
 		const { messages }: { messages: UIMessage[] } = await req.json();
-		const supabase = await createClient();
 		const streamHeader = 'Suggesting Node Merges';
 		const totalSteps = [
 			{
@@ -255,6 +309,7 @@ export async function POST(req: Request) {
 						const validNodeIds = new Set(nodesData.map((node) => node.id));
 						const processedPairs = new Set<string>();
 						let status = 'pending';
+						let mergeCount = 0;
 
 						for await (const element of result.elementStream) {
 							if (status === 'pending') {
@@ -290,6 +345,7 @@ export async function POST(req: Request) {
 											type: 'data-merge-suggestion',
 											data: element,
 										});
+										mergeCount++;
 									}
 								}
 							}
@@ -304,6 +360,13 @@ export async function POST(req: Request) {
 								})),
 							},
 						});
+
+						// Track usage for free tier users
+						if (!hasProAccess) {
+							await trackAIUsage(user, supabase, 'merges', {
+								mergeCount,
+							});
+						}
 
 						writer.write({
 							type: 'finish',

@@ -1,6 +1,13 @@
 // src/app/api/ai/suggest-connections/route.ts
 
 import { createClient } from '@/helpers/supabase/server';
+import {
+	requireSubscription,
+	checkUsageLimit,
+	getAIUsageCount,
+	trackAIUsage,
+	SubscriptionError,
+} from '@/helpers/api/with-subscription-check';
 import { openai } from '@ai-sdk/openai';
 import {
 	convertToModelMessages,
@@ -69,9 +76,60 @@ const streamStatusSchema = z.object({
 // The entire POST function is now the API route handler
 export async function POST(req: Request) {
 	try {
+		// Get authenticated user
+		const supabase = await createClient();
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+
+		if (!user) {
+			return new Response(
+				JSON.stringify({
+					error: 'Unauthorized. Please sign in to use AI features.',
+				}),
+				{ status: 401, headers: { 'Content-Type': 'application/json' } }
+			);
+		}
+
+		// Check subscription and usage limits
+		let hasProAccess = false;
+		try {
+			await requireSubscription(user, supabase, 'pro');
+			hasProAccess = true;
+		} catch (error) {
+			if (error instanceof SubscriptionError) {
+				const currentUsage = await getAIUsageCount(
+					user,
+					supabase,
+					'connections'
+				);
+				const { allowed, limit, remaining } = await checkUsageLimit(
+					user,
+					supabase,
+					'aiSuggestions',
+					currentUsage
+				);
+
+				if (!allowed) {
+					return new Response(
+						JSON.stringify({
+							error: `AI limit reached (${limit} per month). Upgrade to Pro.`,
+							code: 'LIMIT_REACHED',
+							currentUsage,
+							limit,
+							remaining: 0,
+							upgradeUrl: '/dashboard/settings/billing',
+						}),
+						{ status: 402, headers: { 'Content-Type': 'application/json' } }
+					);
+				}
+			} else {
+				throw error;
+			}
+		}
+
 		// Extract the body sent by the useChat hook
 		const { messages }: { messages: UIMessage[] } = await req.json();
-		const supabase = await createClient();
 		const streamHeader = 'Suggesting Connections';
 		const totalSteps = [
 			{
@@ -238,6 +296,7 @@ export async function POST(req: Request) {
 
 						await wait(1000);
 						let status = 'pending';
+						let connectionIndex = 0;
 
 						for await (const element of response.elementStream) {
 							if (status === 'pending') {
@@ -259,6 +318,7 @@ export async function POST(req: Request) {
 									type: 'data-connection-suggestion',
 									data: element,
 								});
+								connectionIndex++;
 							}
 						}
 
@@ -271,6 +331,14 @@ export async function POST(req: Request) {
 								})),
 							},
 						});
+
+						// Track usage for free tier users
+						if (!hasProAccess) {
+							await trackAIUsage(user, supabase, 'connections', {
+								connectionCount: connectionIndex,
+							});
+						}
+
 						writer.write({
 							type: 'finish',
 						});

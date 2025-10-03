@@ -1,4 +1,4 @@
-import { AvailableNodeTypes } from './available-node-types';
+import { AvailableNodeTypes } from '@/registry';
 import { SuggestionContext } from './ghost-node';
 
 export interface NodeData extends Record<string, unknown> {
@@ -30,6 +30,7 @@ export interface NodeData extends Record<string, unknown> {
 		backgroundColor?: string;
 		borderColor?: string;
 		isCollapsed?: boolean;
+		accentColor?: string;
 
 		// ==========================================
 		// Common Fields - Used across multiple nodes
@@ -87,16 +88,16 @@ export interface NodeData extends Record<string, unknown> {
 		// Question Properties (QuestionNode)
 		// ------------------------------------------
 		answer?: string; // For QuestionNode - can be AI or user answer
-		questionType?: 'binary'|'multiple'
+		questionType?: 'binary' | 'multiple';
 		responseFormat?: {
-			options: Array<{ id: string; label: string }>
-			allowMultiple: boolean
-		}
+			options: Array<{ id: string; label: string }>;
+			allowMultiple: boolean;
+		};
 		responses?: Array<{
-				userId?: string;
-				answer: boolean | string | string[];
-				timestamp: string;
-			}>
+			userId?: string;
+			answer: boolean | string | string[];
+			timestamp: string;
+		}>;
 
 		// ------------------------------------------
 		// Content Enhancement Properties

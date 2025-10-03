@@ -16,16 +16,7 @@ import {
 	useReactFlow,
 } from '@xyflow/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-// Import specific node/edge components only if needed here, otherwise rely on types
-import AnnotationNode from '@/components/nodes/annotation-node';
-import CodeNode from '@/components/nodes/code-node';
-import DefaultNode from '@/components/nodes/default-node';
-import { GhostNode } from '@/components/nodes/ghost-node';
-import GroupNode from '@/components/nodes/group-node';
-import ImageNode from '@/components/nodes/image-node';
-import QuestionNode from '@/components/nodes/question-node';
-import ResourceNode from '@/components/nodes/resource-node';
-import TextNode from '@/components/nodes/text-node';
+import { NodeRegistry } from '@/registry';
 
 import FloatingEdge from '@/components/edges/floating-edge';
 import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edge';
@@ -59,13 +50,12 @@ import { useParams } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
 import FloatingConnectionLine from '../edges/floating-connection-line';
 import { SuggestedMergeEdge } from '../edges/suggested-merge-edge';
-import ReferenceNode from '../nodes/reference-node';
-import TaskNode from '../nodes/task-node';
 import { GlassmorphismTheme } from '../nodes/themes/glassmorphism-theme';
 import { RealtimeAvatarStack } from '../realtime/realtime-avatar-stack';
 import { RealtimeCursors } from '../realtime/realtime-cursor';
 import { Toolbar } from '../toolbar';
 import { Button } from '../ui/button';
+import { UpgradeModal } from '@/components/modals/upgrade-modal';
 
 export function ReactFlowArea() {
 	// const {
@@ -249,19 +239,7 @@ export function ReactFlowArea() {
 	);
 
 	const nodeTypesWithProps: NodeTypes = useMemo(
-		() => ({
-			defaultNode: DefaultNode,
-			questionNode: QuestionNode,
-			taskNode: TaskNode,
-			imageNode: ImageNode,
-			resourceNode: ResourceNode,
-			annotationNode: AnnotationNode,
-			codeNode: CodeNode,
-			groupNode: GroupNode,
-			textNode: TextNode,
-			ghostNode: GhostNode,
-			referenceNode: ReferenceNode,
-		}),
+		() => NodeRegistry.getComponentMap(),
 		[]
 	);
 
@@ -385,9 +363,11 @@ export function ReactFlowArea() {
 
 	const isSelectMode = activeTool === 'default';
 	const isPanningMode = activeTool === 'pan';
+	const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
 	return (
-		<ReactFlow
+		<>
+			<ReactFlow
 			colorMode='dark'
 			multiSelectionKeyCode={['Meta', 'Control']}
 			className={cn([
@@ -580,5 +560,7 @@ export function ReactFlowArea() {
 				/>
 			</Panel>
 		</ReactFlow>
+		<UpgradeModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} />
+		</>
 	);
 }

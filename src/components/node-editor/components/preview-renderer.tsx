@@ -9,7 +9,10 @@ interface PreviewRendererProps {
 }
 
 // Helper function to get pattern labels for better UX
-const getPatternLabel = (patternType: string, display: string): { label: string; value: string } => {
+const getPatternLabel = (
+	patternType: string,
+	display: string
+): { label: string; value: string } => {
 	switch (patternType) {
 		case 'date':
 			return { label: 'Due:', value: display };
@@ -35,7 +38,7 @@ const getPatternStyles = (patternType: string) => {
 				text: 'text-blue-400',
 				border: 'border border-blue-500/20',
 				icon: 'text-blue-400',
-				emoji: '📅'
+				emoji: '📅',
 			};
 		case 'priority':
 			return {
@@ -43,7 +46,7 @@ const getPatternStyles = (patternType: string) => {
 				text: 'text-red-400',
 				border: 'border border-red-500/20',
 				icon: 'text-red-400',
-				emoji: '🔥'
+				emoji: '🔥',
 			};
 		case 'color':
 			return {
@@ -51,7 +54,7 @@ const getPatternStyles = (patternType: string) => {
 				text: 'text-purple-400',
 				border: 'border border-purple-500/20',
 				icon: 'text-purple-400',
-				emoji: '🎨'
+				emoji: '🎨',
 			};
 		case 'tag':
 			return {
@@ -59,7 +62,7 @@ const getPatternStyles = (patternType: string) => {
 				text: 'text-green-400',
 				border: 'border border-green-500/20',
 				icon: 'text-green-400',
-				emoji: '🏷️'
+				emoji: '🏷️',
 			};
 		case 'assignee':
 			return {
@@ -67,7 +70,7 @@ const getPatternStyles = (patternType: string) => {
 				text: 'text-orange-400',
 				border: 'border border-orange-500/20',
 				icon: 'text-orange-400',
-				emoji: '👤'
+				emoji: '👤',
 			};
 		default:
 			return {
@@ -75,7 +78,7 @@ const getPatternStyles = (patternType: string) => {
 				text: 'text-zinc-400',
 				border: 'border border-zinc-600/50',
 				icon: 'text-zinc-400',
-				emoji: '•'
+				emoji: '•',
 			};
 	}
 };
@@ -89,10 +92,11 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 	switch (nodeType) {
 		case 'taskNode':
 			// Handle both old format (preview.tasks) and new format (preview.metadata.tasks)
-			const tasks = preview.tasks || (preview.metadata && preview.metadata.tasks) || [];
+			const tasks =
+				preview.tasks || (preview.metadata && preview.metadata.tasks) || [];
 			// Handle metadata from either location
 			const metadata = preview.metadata || preview;
-			
+
 			return (
 				<motion.div
 					initial={{ opacity: 0 }}
@@ -150,10 +154,12 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 												'text-sm',
 												task.isComplete && 'line-through text-zinc-500'
 											)}
-											style={{ 
-												color: task.isComplete ? 'rgb(113, 113, 122)' : 'rgb(212, 212, 216)',
+											style={{
+												color: task.isComplete
+													? 'rgb(113, 113, 122)'
+													: 'rgb(212, 212, 216)',
 												fontSize: '16px',
-												lineHeight: '1.4'
+												lineHeight: '1.4',
 											}}
 											initial={{ opacity: 0 }}
 											animate={{ opacity: 1 }}
@@ -165,7 +171,6 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 											{task.text}
 										</motion.span>
 									</div>
-
 								</motion.div>
 							))}
 
@@ -195,10 +200,10 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 							/>
 
 							<motion.span
-								style={{ 
+								style={{
 									color: 'rgb(212, 212, 216)',
 									fontSize: '16px',
-									lineHeight: '1.4'
+									lineHeight: '1.4',
 								}}
 								initial={{ opacity: 0, x: -10 }}
 								animate={{ opacity: 1, x: 0 }}
@@ -210,7 +215,10 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 					)}
 
 					{/* Node-level metadata display */}
-					{(metadata.dueDate || metadata.priority || (metadata.tags && metadata.tags.length > 0) || metadata.assignee) && (
+					{(metadata.dueDate ||
+						metadata.priority ||
+						(metadata.tags && metadata.tags.length > 0) ||
+						metadata.assignee) && (
 						<motion.div
 							className='mt-3 pt-2 border-t border-zinc-700/50 flex flex-wrap gap-1'
 							initial={{ opacity: 0, y: 10 }}
@@ -230,7 +238,11 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 									<span className='flex items-center gap-0.5'>
 										<span className='opacity-70 text-xs'>Due:</span>
 
-										<span className='font-medium'>{metadata.dueDate.toLocaleDateString ? metadata.dueDate.toLocaleDateString() : metadata.dueDate}</span>
+										<span className='font-medium'>
+											{metadata.dueDate.toLocaleDateString
+												? metadata.dueDate.toLocaleDateString()
+												: metadata.dueDate}
+										</span>
 									</span>
 								</motion.div>
 							)}
@@ -248,27 +260,34 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 									<span className='flex items-center gap-0.5'>
 										<span className='opacity-70 text-xs'>Priority:</span>
 
-										<span className='font-medium capitalize'>{metadata.priority}</span>
+										<span className='font-medium capitalize'>
+											{metadata.priority}
+										</span>
 									</span>
 								</motion.div>
 							)}
 
 							{/* Tags */}
-							{metadata.tags && metadata.tags.length > 0 && metadata.tags.map((tag, tagIndex) => (
-								<motion.div
-									key={`tag-${tagIndex}`}
-									className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20'
-									initial={{ opacity: 0, scale: 0.8 }}
-									animate={{ opacity: 1, scale: 1 }}
-									transition={{ delay: 0.55 + tagIndex * 0.05, duration: 0.15 }}
-								>
-									<span className='opacity-70'>🏷️</span>
+							{metadata.tags &&
+								metadata.tags.length > 0 &&
+								metadata.tags.map((tag, tagIndex) => (
+									<motion.div
+										key={`tag-${tagIndex}`}
+										className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20'
+										initial={{ opacity: 0, scale: 0.8 }}
+										animate={{ opacity: 1, scale: 1 }}
+										transition={{
+											delay: 0.55 + tagIndex * 0.05,
+											duration: 0.15,
+										}}
+									>
+										<span className='opacity-70'>🏷️</span>
 
-									<span className='flex items-center gap-0.5'>
-										<span className='font-medium'>{tag}</span>
-									</span>
-								</motion.div>
-							))}
+										<span className='flex items-center gap-0.5'>
+											<span className='font-medium'>{tag}</span>
+										</span>
+									</motion.div>
+								))}
 
 							{/* Assignee */}
 							{metadata.assignee && (
@@ -289,7 +308,6 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 							)}
 						</motion.div>
 					)}
-
 				</motion.div>
 			);
 
@@ -401,29 +419,39 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
 					transition={{ duration: 0.2 }}
-					className="space-y-2"
+					className='space-y-2'
 				>
 					{preview.referencePreview ? (
-						<div className="space-y-2">
-							<div className="flex items-center gap-2">
-								<span className="text-pink-400">🔗</span>
+						<div className='space-y-2'>
+							<div className='flex items-center gap-2'>
+								<span className='text-pink-400'>🔗</span>
 
-								<span className="text-pink-400 font-medium">Reference Selected</span>
+								<span className='text-pink-400 font-medium'>
+									Reference Selected
+								</span>
 							</div>
 
-							<blockquote className="border-l-2 border-pink-500/30 pl-3 text-sm text-zinc-300 italic">
-								"{preview.referencePreview.contentSnippet?.slice(0, 100) || 'Referenced content...'}"
+							<blockquote className='border-l-2 border-pink-500/30 pl-3 text-sm text-zinc-300 italic'>
+								&quot;
+								{preview.referencePreview.contentSnippet?.slice(0, 100) ||
+									'Referenced content...'}
+								&quot;
 							</blockquote>
 
-							<div className="text-xs text-pink-300">
-								From: <span className="font-medium">{preview.referencePreview.targetMapTitle || 'Unknown Map'}</span>
+							<div className='text-xs text-pink-300'>
+								From:{' '}
+								<span className='font-medium'>
+									{preview.referencePreview.targetMapTitle || 'Unknown Map'}
+								</span>
 							</div>
 						</div>
 					) : (
-						<div className="flex items-center gap-2 text-zinc-500">
+						<div className='flex items-center gap-2 text-zinc-500'>
 							<span>🔗</span>
 
-							<span className="text-sm">Type to search for nodes to reference...</span>
+							<span className='text-sm'>
+								Type to search for nodes to reference...
+							</span>
 						</div>
 					)}
 				</motion.div>
@@ -436,7 +464,7 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 					style={{
 						color: 'rgb(212, 212, 216)',
 						fontSize: '16px',
-						lineHeight: '1.4'
+						lineHeight: '1.4',
 					}}
 					initial={{ opacity: 0, y: 10 }}
 					animate={{ opacity: 1, y: 0 }}

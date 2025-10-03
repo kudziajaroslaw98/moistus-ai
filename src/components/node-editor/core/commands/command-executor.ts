@@ -3,7 +3,7 @@
  * Works with the refactored modular command system
  */
 
-import type { AvailableNodeTypes } from '../../../../types/available-node-types';
+import type { AvailableNodeTypes } from '@/registry';
 import { commandRegistry } from './command-registry';
 import type {
 	Command,

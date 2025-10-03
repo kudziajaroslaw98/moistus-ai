@@ -1,5 +1,5 @@
 import { AppNode } from '@/types/app-node';
-import { AvailableNodeTypes } from '@/types/available-node-types';
+import { AvailableNodeTypes } from '@/registry';
 import { NodeData } from '@/types/node-data';
 import { isAppNode } from './guards/is-app-node';
 

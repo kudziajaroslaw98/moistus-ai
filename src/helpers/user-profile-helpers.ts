@@ -6,16 +6,6 @@
  * to ensure the same input always produces the same output.
  */
 
-// User Profile Interface
-export interface UserProfile {
-	id: string;
-	email?: string;
-	displayName: string;
-	avatarUrl?: string;
-	color: { hsl: string; hex: string };
-	isAnonymous: boolean;
-}
-
 /**
  * Generate a professional avatar using DiceBear API
  */

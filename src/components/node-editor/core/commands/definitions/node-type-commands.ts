@@ -1,165 +1,58 @@
 /**
  * Node Type Commands - Commands for switching between node types
+ *
+ * AUTOMATICALLY GENERATED from NodeRegistry
  */
 
-import {
-	CheckSquare,
-	Code,
-	FileText,
-	Hash,
-	Image,
-	Lightbulb,
-	Link,
-	MessageCircle,
-	Type,
-} from 'lucide-react';
+import { NodeRegistry, NODE_REGISTRY } from '@/registry';
 import type { Command } from '../command-types';
 import { createNodeTypeSwitchAction } from '../actions/action-factory';
+
+/**
+ * Generate node type commands from registry
+ * This ensures commands stay in sync with registry configuration
+ */
+function generateNodeTypeCommands(): Command[] {
+	const commands: Command[] = [];
+	let priority = 1;
+
+	// Get all types with command triggers
+	for (const nodeType of NodeRegistry.getCreatableTypes()) {
+		const config = NODE_REGISTRY[nodeType];
+
+		// Skip nodes without command triggers (like groupNode)
+		if (!config.commandTrigger) continue;
+
+		commands.push({
+			id: `node-type-${nodeType}`,
+			trigger: config.commandTrigger,
+			label: config.label,
+			description: config.description,
+			icon: config.icon,
+			category: config.category === 'structure' ? 'interactive' :
+			          config.category === 'ai' ? 'interactive' :
+			          config.category,
+			triggerType: 'node-type' as const,
+			nodeType,
+			action: createNodeTypeSwitchAction(nodeType),
+			keywords: config.keywords,
+			examples: config.examples,
+			priority: priority++,
+		});
+	}
+
+	return commands;
+}
 
 /**
  * Node type command definitions
  * Uses $ prefix for quick node type switching
  */
-export const nodeTypeCommands: Command[] = [
-	{
-		id: 'node-type-note',
-		trigger: '$note',
-		label: 'Note',
-		description: 'Create a basic note with markdown support',
-		icon: FileText,
-		category: 'content',
-		triggerType: 'node-type',
-		nodeType: 'defaultNode',
-		action: createNodeTypeSwitchAction('defaultNode'),
-		keywords: ['note', 'text', 'content', 'memo'],
-		examples: ['$note Meeting notes', '$note Project update'],
-		priority: 1,
-	},
-	{
-		id: 'node-type-task',
-		trigger: '$task',
-		label: 'Task List',
-		description: 'Create a task list with checkboxes',
-		icon: CheckSquare,
-		category: 'interactive',
-		triggerType: 'node-type',
-		nodeType: 'taskNode',
-		action: createNodeTypeSwitchAction('taskNode'),
-		keywords: ['task', 'todo', 'checklist', 'checkbox'],
-		examples: ['$task Review PR', '$task Buy milk; Send email'],
-		priority: 2,
-	},
-	{
-		id: 'node-type-code',
-		trigger: '$code',
-		label: 'Code Block',
-		description: 'Add a syntax-highlighted code snippet',
-		icon: Code,
-		category: 'content',
-		triggerType: 'node-type',
-		nodeType: 'codeNode',
-		action: createNodeTypeSwitchAction('codeNode'),
-		keywords: ['code', 'snippet', 'programming', 'script'],
-		examples: ['$code javascript', '$code python file:main.py'],
-		priority: 3,
-	},
-	{
-		id: 'node-type-image',
-		trigger: '$image',
-		label: 'Image',
-		description: 'Add an image from URL or upload',
-		icon: Image,
-		category: 'media',
-		triggerType: 'node-type',
-		nodeType: 'imageNode',
-		action: createNodeTypeSwitchAction('imageNode'),
-		keywords: ['image', 'picture', 'photo', 'diagram'],
-		examples: ['$image https://example.com/diagram.png'],
-		priority: 4,
-	},
-	{
-		id: 'node-type-link',
-		trigger: '$link',
-		label: 'Resource Link',
-		description: 'Add a web link or document reference',
-		icon: Link,
-		category: 'media',
-		triggerType: 'node-type',
-		nodeType: 'resourceNode',
-		action: createNodeTypeSwitchAction('resourceNode'),
-		keywords: ['link', 'url', 'resource', 'reference'],
-		examples: ['$link https://docs.example.com'],
-		priority: 5,
-	},
-	{
-		id: 'node-type-question',
-		trigger: '$question',
-		label: 'Question',
-		description: 'Create a decision-making question',
-		icon: MessageCircle,
-		category: 'interactive',
-		triggerType: 'node-type',
-		nodeType: 'questionNode',
-		action: createNodeTypeSwitchAction('questionNode'),
-		keywords: ['question', 'inquiry', 'decision', 'choice'],
-		examples: ['$question Should we migrate to TypeScript?'],
-		priority: 6,
-	},
-	{
-		id: 'node-type-annotation',
-		trigger: '$annotation',
-		label: 'Annotation',
-		description: 'Add a colored annotation or callout',
-		icon: Lightbulb,
-		category: 'annotation',
-		triggerType: 'node-type',
-		nodeType: 'annotationNode',
-		action: createNodeTypeSwitchAction('annotationNode'),
-		keywords: ['annotation', 'note', 'callout', 'comment'],
-		examples: ['$annotation ⚠️ Breaking change'],
-		priority: 7,
-	},
-	{
-		id: 'node-type-text',
-		trigger: '$text',
-		label: 'Text',
-		description: 'Create formatted text content',
-		icon: Type,
-		category: 'content',
-		triggerType: 'node-type',
-		nodeType: 'textNode',
-		action: createNodeTypeSwitchAction('textNode'),
-		keywords: ['text', 'typography', 'formatted', 'styled'],
-		examples: ['$text **Bold text** @24px'],
-		priority: 8,
-	},
-	{
-		id: 'node-type-reference',
-		trigger: '$reference',
-		label: 'Reference',
-		description: 'Reference another node or map',
-		icon: Hash,
-		category: 'content',
-		triggerType: 'node-type',
-		nodeType: 'referenceNode',
-		action: createNodeTypeSwitchAction('referenceNode'),
-		keywords: ['reference', 'link', 'cross-reference', 'connection'],
-		examples: ['$reference target:node-123'],
-		priority: 9,
-	},
-];
+export const nodeTypeCommands: Command[] = generateNodeTypeCommands();
 
 /**
  * Map trigger strings to node types for quick lookup
+ * Generated from registry
  */
-export const triggerToNodeType: Record<string, string> = {
-	'$note': 'defaultNode',
-	'$task': 'taskNode',
-	'$code': 'codeNode',
-	'$image': 'imageNode',
-	'$link': 'resourceNode',
-	'$question': 'questionNode',
-	'$annotation': 'annotationNode',
-	'$text': 'textNode',
-	'$reference': 'referenceNode',
-};
+export const triggerToNodeType: Record<string, string> =
+	NodeRegistry.getCommandTriggerMap();

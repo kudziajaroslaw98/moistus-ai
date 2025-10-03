@@ -14,8 +14,8 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { UserAvatar } from '@/components/ui/user-avatar';
-import { UserProfile, UserProfileFormData } from '@/types/user-profile-types';
 import useAppStore from '@/store/mind-map-store';
+import { UserProfileFormData } from '@/types/user-profile-types';
 import {
 	Briefcase,
 	Building,
@@ -120,18 +120,27 @@ export default function GeneralSettingsPage() {
 					language: userProfile.preferences?.language || 'en',
 					timezone: userProfile.preferences?.timezone || 'UTC',
 					notifications: {
-						email_comments: userProfile.preferences?.notifications?.email_comments ?? true,
-						email_mentions: userProfile.preferences?.notifications?.email_mentions ?? true,
-						email_reactions: userProfile.preferences?.notifications?.email_reactions ?? false,
-						push_comments: userProfile.preferences?.notifications?.push_comments ?? true,
-						push_mentions: userProfile.preferences?.notifications?.push_mentions ?? true,
-						push_reactions: userProfile.preferences?.notifications?.push_reactions ?? false,
+						email_comments:
+							userProfile.preferences?.notifications?.email_comments ?? true,
+						email_mentions:
+							userProfile.preferences?.notifications?.email_mentions ?? true,
+						email_reactions:
+							userProfile.preferences?.notifications?.email_reactions ?? false,
+						push_comments:
+							userProfile.preferences?.notifications?.push_comments ?? true,
+						push_mentions:
+							userProfile.preferences?.notifications?.push_mentions ?? true,
+						push_reactions:
+							userProfile.preferences?.notifications?.push_reactions ?? false,
 					},
 					privacy: {
 						show_email: userProfile.preferences?.privacy?.show_email ?? false,
-						show_location: userProfile.preferences?.privacy?.show_location ?? true,
-						show_company: userProfile.preferences?.privacy?.show_company ?? true,
-						profile_visibility: userProfile.preferences?.privacy?.profile_visibility || 'public',
+						show_location:
+							userProfile.preferences?.privacy?.show_location ?? true,
+						show_company:
+							userProfile.preferences?.privacy?.show_company ?? true,
+						profile_visibility:
+							userProfile.preferences?.privacy?.profile_visibility || 'public',
 					},
 				},
 			});
@@ -274,9 +283,7 @@ export default function GeneralSettingsPage() {
 					<div className='space-y-2'>
 						<Button variant='outline' className='relative'>
 							<Camera className='size-4 mr-2' />
-
 							Upload Photo
-
 							<input
 								type='file'
 								accept='image/*'

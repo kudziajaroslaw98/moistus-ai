@@ -1,19 +1,9 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import type { AvailableNodeTypes } from '@/types/available-node-types';
-import {
-	Check,
-	CheckSquare,
-	Code,
-	HelpCircle,
-	Image,
-	Link,
-	MessageSquare,
-	Sparkles,
-	Type,
-	X,
-} from 'lucide-react';
+import type { AvailableNodeTypes } from '@/registry';
+import { NodeRegistry } from '@/registry';
+import { Check, Sparkles, X } from 'lucide-react';
 import { motion } from 'motion/react';
 
 import useAppStore from '@/store/mind-map-store';
@@ -42,24 +32,8 @@ const getNodeTypeColor = (nodeType: AvailableNodeTypes) => {
 };
 
 const getNodeTypeIcon = (nodeType: AvailableNodeTypes) => {
-	switch (nodeType) {
-		case 'textNode':
-			return <Type className='h-3 w-3' />;
-		case 'imageNode':
-			return <Image className='h-3 w-3' />;
-		case 'resourceNode':
-			return <Link className='h-3 w-3' />;
-		case 'questionNode':
-			return <HelpCircle className='h-3 w-3' />;
-		case 'annotationNode':
-			return <MessageSquare className='h-3 w-3' />;
-		case 'codeNode':
-			return <Code className='h-3 w-3' />;
-		case 'taskNode':
-			return <CheckSquare className='h-3 w-3' />;
-		default:
-			return <Sparkles className='h-3 w-3' />;
-	}
+	const Icon = NodeRegistry.getDisplayInfo(nodeType).icon;
+	return <Icon className='h-3 w-3' />;
 };
 
 function GhostNodeComponent(props: GhostNodeProps) {

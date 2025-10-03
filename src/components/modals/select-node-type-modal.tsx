@@ -1,34 +1,8 @@
-import { NodeTypes, nodeTypes } from '@/constants/node-types';
+import { NodeRegistry, AvailableNodeTypes } from '@/registry';
 import useAppStore from '@/store/mind-map-store';
-import {
-	CheckSquare,
-	Code,
-	FileText,
-	GroupIcon,
-	HelpCircle,
-	Image,
-	Link,
-	MessageSquare,
-	Type, // Import Type icon for TextNode
-} from 'lucide-react';
 import { useShallow } from 'zustand/shallow';
 import Modal from '../modal';
 import { Button } from '../ui/button';
-
-const nodeTypeDisplayInfo: Record<
-	string,
-	{ name: string; icon: React.ElementType }
-> = {
-	defaultNode: { name: 'Basic Note', icon: FileText },
-	taskNode: { name: 'Task', icon: CheckSquare },
-	imageNode: { name: 'Image', icon: Image },
-	questionNode: { name: 'Question', icon: HelpCircle },
-	resourceNode: { name: 'Resource/Link', icon: Link },
-	groupNode: { name: 'Group', icon: GroupIcon },
-	annotationNode: { name: 'Annotation', icon: MessageSquare },
-	codeNode: { name: 'Code Snippet', icon: Code },
-	textNode: { name: 'Text', icon: Type }, // Add TextNode
-};
 
 export default function SelectNodeTypeModal() {
 	const { popoverOpen, setPopoverOpen, nodeInfo, setNodeInfo, addNode } =
@@ -41,13 +15,14 @@ export default function SelectNodeTypeModal() {
 				setNodeInfo: state.setNodeInfo,
 			}))
 		);
-	const availableTypes = Object.keys(nodeTypes).filter((type) =>
-		nodeTypeDisplayInfo.hasOwnProperty(type)
-	);
-
-	availableTypes.sort((a, b) =>
-		nodeTypeDisplayInfo[a].name.localeCompare(nodeTypeDisplayInfo[b].name)
-	);
+	// Get creatable types from registry and sort by label
+	const availableTypes = NodeRegistry.getCreatableTypes()
+		.filter((type) => type !== 'groupNode') // Exclude groupNode
+		.sort((a, b) => {
+			const labelA = NodeRegistry.getDisplayInfo(a).label;
+			const labelB = NodeRegistry.getDisplayInfo(b).label;
+			return labelA.localeCompare(labelB);
+		});
 
 	const onClose = () => {
 		setPopoverOpen({ nodeType: false });
@@ -58,7 +33,7 @@ export default function SelectNodeTypeModal() {
 		if (nodeInfo && nodeInfo.id) {
 			addNode({
 				parentNode: nodeInfo,
-				nodeType: type as NodeTypes,
+				nodeType: type as AvailableNodeTypes,
 			});
 		} else {
 			const position = {
@@ -68,7 +43,7 @@ export default function SelectNodeTypeModal() {
 
 			addNode({
 				parentNode: null,
-				nodeType: type as NodeTypes,
+				nodeType: type as AvailableNodeTypes,
 				position,
 			});
 		}
@@ -84,9 +59,7 @@ export default function SelectNodeTypeModal() {
 		>
 			<div className='grid grid-cols-2 gap-3 md:grid-cols-3'>
 				{availableTypes.map((type) => {
-					if (type === 'groupNode') return null;
-
-					const { name, icon: Icon } = nodeTypeDisplayInfo[type];
+					const { label, icon: Icon } = NodeRegistry.getDisplayInfo(type);
 					return (
 						<Button
 							key={type}
@@ -97,7 +70,7 @@ export default function SelectNodeTypeModal() {
 							<>
 								<Icon size={20} className='text-teal-400' />
 
-								<span className='text-xs'>{name}</span>
+								<span className='text-xs'>{label}</span>
 							</>
 						</Button>
 					);

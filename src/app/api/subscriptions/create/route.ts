@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-	apiVersion: '2025-06-30.basil',
+	apiVersion: '2025-07-30.basil',
 });
 
 export async function POST(req: NextRequest) {
@@ -80,10 +80,16 @@ export async function POST(req: NextRequest) {
 			},
 		});
 
-		// Create subscription
+		// Create subscription with trial
 		const subscription = await stripe.subscriptions.create({
 			customer: customerId,
 			items: [{ price: priceId }],
+			trial_period_days: 14, // 2-week trial
+			trial_settings: {
+				end_behavior: {
+					missing_payment_method: 'cancel', // Cancel if no payment at trial end
+				},
+			},
 			payment_settings: {
 				payment_method_types: ['card'],
 				save_default_payment_method: 'on_subscription',
@@ -102,12 +108,16 @@ export async function POST(req: NextRequest) {
 				plan_id: planId,
 				stripe_subscription_id: subscription.id,
 				stripe_customer_id: customerId,
-				status: subscription.status,
+				status: subscription.status, // Will be 'trialing'
 				current_period_start: new Date(currentPeriodStart).toISOString(),
 				current_period_end: new Date(currentPeriodEnd).toISOString(),
+				trial_end: subscription.trial_end
+					? new Date(subscription.trial_end * 1000).toISOString()
+					: null,
 				cancel_at_period_end: subscription.cancel_at_period_end,
 				metadata: {
 					stripe_price_id: priceId,
+					trial_days: 14,
 				},
 			});
 

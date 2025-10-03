@@ -17,7 +17,7 @@ import type { QuickInputSlice } from '@/store/slices/quick-input-slice';
 import type { NodeCommand } from '@/components/node-editor/types';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
-import { AvailableNodeTypes } from '@/types/available-node-types';
+import { AvailableNodeTypes } from '@/registry';
 import type {
 	Comment,
 	CommentFilter,

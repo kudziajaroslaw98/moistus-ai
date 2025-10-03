@@ -1,7 +1,7 @@
 'use client';
 
 import useAppStore from '@/store/mind-map-store';
-import type { AvailableNodeTypes } from '@/types/available-node-types';
+import type { AvailableNodeTypes } from '@/registry';
 import { AnimatePresence, motion } from 'motion/react';
 import {
 	useCallback,

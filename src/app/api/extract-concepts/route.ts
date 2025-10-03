@@ -1,5 +1,9 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
+import {
+	checkAIFeatureAccess,
+	trackAIFeatureUsage,
+} from '@/helpers/api/with-ai-feature-gate';
 import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 import { z } from 'zod';
@@ -14,7 +18,18 @@ const conceptsSchema = z.object({
 
 export const POST = withApiValidation(
 	requestBodySchema,
-	async (req, validatedBody, supabase) => {
+	async (req, validatedBody, supabase, user) => {
+		// Check AI feature access
+		const { hasAccess, isPro, error } = await checkAIFeatureAccess(
+			user,
+			supabase,
+			'concepts'
+		);
+
+		if (!hasAccess && error) {
+			return error;
+		}
+
 		try {
 			const { nodeId } = validatedBody;
 
@@ -57,6 +72,12 @@ export const POST = withApiValidation(
 				model: openai('gpt-4o'),
 				schema: conceptsSchema,
 				prompt: `${aiPrompt}\n\n${contentToAnalyze}`,
+			});
+
+			// Track usage for free tier users
+			await trackAIFeatureUsage(user, supabase, 'concepts', isPro, {
+				nodeId,
+				conceptCount: object.concepts.length,
 			});
 
 			return respondSuccess(

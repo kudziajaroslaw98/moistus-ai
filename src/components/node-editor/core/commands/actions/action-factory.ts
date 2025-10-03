@@ -3,8 +3,12 @@
  * Eliminates duplication by providing centralized action creators
  */
 
-import type { AvailableNodeTypes } from '@/types/available-node-types';
-import type { CommandAction, CommandContext, CommandResult } from '../command-types';
+import type { AvailableNodeTypes } from '@/registry';
+import type {
+	CommandAction,
+	CommandContext,
+	CommandResult,
+} from '../command-types';
 
 /**
  * Creates an action for switching node types
@@ -76,7 +80,8 @@ export function createFormatAction(
 
 			newText = beforeCursor + formattedText + afterCursor;
 			// Position cursor in the middle of format markers
-			newCursorPosition = beforeCursor.length + Math.floor(formattedText.length / 2);
+			newCursorPosition =
+				beforeCursor.length + Math.floor(formattedText.length / 2);
 		}
 
 		return {
@@ -96,9 +101,8 @@ export function createTemplateAction(
 	template: string | ((context: CommandContext) => string)
 ): CommandAction {
 	return (context: CommandContext): CommandResult => {
-		const templateText = typeof template === 'function'
-			? template(context)
-			: template;
+		const templateText =
+			typeof template === 'function' ? template(context) : template;
 
 		const newText = context.text.replace(/\/\w+/, templateText);
 
@@ -130,13 +134,16 @@ export function createCompositeAction(
 
 			// Update context for next action
 			if (lastResult.replacement !== undefined) {
-				currentContext.text = lastResult.replacement;
+				currentContext = { ...currentContext, text: lastResult.replacement };
 			}
 			if (lastResult.cursorPosition !== undefined) {
-				currentContext.cursorPosition = lastResult.cursorPosition;
+				currentContext = {
+					...currentContext,
+					cursorPosition: lastResult.cursorPosition,
+				};
 			}
 			if (lastResult.nodeType !== undefined) {
-				currentContext.nodeType = lastResult.nodeType;
+				currentContext = { ...currentContext, nodeType: lastResult.nodeType };
 			}
 		}
 
@@ -163,14 +170,18 @@ export const patternGenerators = {
  * Text formatters for common formatting
  */
 export const textFormatters = {
-	bold: (text: string) => text ? `**${text}**` : '****',
-	italic: (text: string) => text ? `*${text}*` : '**',
-	underline: (text: string) => text ? `__${text}__` : '____',
-	strikethrough: (text: string) => text ? `~~${text}~~` : '~~~~',
-	code: (text: string) => text ? `\`${text}\`` : '``',
+	bold: (text: string) => (text ? `**${text}**` : '****'),
+	italic: (text: string) => (text ? `*${text}*` : '**'),
+	underline: (text: string) => (text ? `__${text}__` : '____'),
+	strikethrough: (text: string) => (text ? `~~${text}~~` : '~~~~'),
+	code: (text: string) => (text ? `\`${text}\`` : '``'),
 	codeBlock: (text: string, lang: string = '') =>
 		text ? `\`\`\`${lang}\n${text}\n\`\`\`` : `\`\`\`${lang}\n\n\`\`\``,
-	quote: (text: string) => text.split('\n').map(line => `> ${line}`).join('\n'),
+	quote: (text: string) =>
+		text
+			.split('\n')
+			.map((line) => `> ${line}`)
+			.join('\n'),
 	link: (text: string, url: string = '') => `[${text}](${url})`,
 };
 
@@ -207,7 +218,9 @@ Attendees:
 ### Blockers
 - None`,
 
-	projectChecklist: (projectName: string = 'Project') => `# ${projectName} Checklist
+	projectChecklist: (
+		projectName: string = 'Project'
+	) => `# ${projectName} Checklist
 
 ## Planning
 - [ ] Define requirements

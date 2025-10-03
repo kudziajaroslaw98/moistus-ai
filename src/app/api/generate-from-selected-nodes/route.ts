@@ -1,5 +1,9 @@
 import { respondError } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
+import {
+	checkAIFeatureAccess,
+	trackAIFeatureUsage,
+} from '@/helpers/api/with-ai-feature-gate';
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { z } from 'zod';
@@ -14,6 +18,17 @@ const generateFromSelectedNodesSchema = z.object({
 export const POST = withApiValidation(
 	generateFromSelectedNodesSchema,
 	async (req, validatedBody, supabase, user) => {
+		// Check AI feature access
+		const { hasAccess, isPro, error } = await checkAIFeatureAccess(
+			user,
+			supabase,
+			'generation'
+		);
+
+		if (!hasAccess && error) {
+			return error;
+		}
+
 		const { nodeIds, prompt, mapId } = validatedBody;
 
 		// Verify the user has access to this map
@@ -65,6 +80,13 @@ export const POST = withApiValidation(
 			const result = streamText({
 				model: openai('gpt-4o'),
 				prompt: aiPrompt,
+			});
+
+			// Track usage for free tier users
+			await trackAIFeatureUsage(user, supabase, 'generation', isPro, {
+				mapId,
+				nodeCount: nodeIds.length,
+				promptLength: prompt.length,
 			});
 
 			return result.toTextStreamResponse();

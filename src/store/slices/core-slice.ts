@@ -4,12 +4,12 @@ import {
 	generateFallbackAvatar,
 	generateFunName,
 	generateUserColor,
-	type UserProfile,
 } from '@/helpers/user-profile-helpers';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
 import type { EdgesTableType } from '@/types/edges-table-type';
 import type { MindMapData } from '@/types/mind-map-data';
 import type { NodesTableType } from '@/types/nodes-table-type';
+import { UserProfile } from '@/types/user-profile-types';
 import type { User } from '@supabase/supabase-js';
 import type { StateCreator } from 'zustand';
 import type { AppState, CoreDataSlice } from '../app-state';
@@ -57,10 +57,21 @@ export const createCoreDataSlice: StateCreator<
 
 		return {
 			id: user.id,
-			email: user.email,
-			displayName,
-			avatarUrl:
+			user_id: user.id,
+			full_name: user.user_metadata?.full_name || '',
+			display_name: user.user_metadata?.display_name || '',
+			avatar_url:
 				user.user_metadata?.avatar_url || generateFallbackAvatar(user.id),
+			bio: '',
+			location: '',
+			website: '',
+			company: '',
+			job_title: '',
+			skills: [],
+			social_links: {},
+			preferences: {},
+			created_at: new Date().toISOString(),
+			updated_at: new Date().toISOString(),
 			color: generateUserColor(user.id),
 			isAnonymous,
 		};

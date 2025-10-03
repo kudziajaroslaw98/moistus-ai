@@ -3,10 +3,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-	apiVersion: '2025-06-30.basil',
+	apiVersion: '2025-09-30.clover',
 });
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+
+// Extend Invoice type to include webhook-specific properties
+interface WebhookInvoice extends Stripe.Invoice {
+	subscription: string | Stripe.Subscription | null;
+	payment_intent: string | Stripe.PaymentIntent | null;
+}
 
 async function handleSubscriptionChange(subscription: Stripe.Subscription) {
 	const supabase = await createClient();
@@ -64,14 +70,25 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 	}
 }
 
-async function handlePaymentSuccess(invoice: Stripe.Invoice) {
+async function handlePaymentSuccess(invoice: WebhookInvoice) {
 	const supabase = await createClient();
+
+	// Extract subscription ID (can be string or expanded object)
+	const subscriptionId =
+		typeof invoice.subscription === 'string'
+			? invoice.subscription
+			: invoice.subscription?.id;
+
+	if (!subscriptionId) {
+		console.error('No subscription found for invoice:', invoice.id);
+		return;
+	}
 
 	// Find the user subscription
 	const { data: userSubscription } = await supabase
 		.from('user_subscriptions')
 		.select('*')
-		.eq('stripe_subscription_id', invoice.subscription)
+		.eq('stripe_subscription_id', subscriptionId)
 		.single();
 
 	if (!userSubscription) {
@@ -79,18 +96,24 @@ async function handlePaymentSuccess(invoice: Stripe.Invoice) {
 		return;
 	}
 
+	// Extract payment intent ID (can be string or expanded object)
+	const paymentIntentId =
+		typeof invoice.payment_intent === 'string'
+			? invoice.payment_intent
+			: invoice.payment_intent?.id;
+
 	// Record payment in history
 	const { error } = await supabase.from('payment_history').insert({
 		user_id: userSubscription.user_id,
 		subscription_id: userSubscription.id,
-		stripe_payment_intent_id: invoice.payment_intent as string,
+		stripe_payment_intent_id: paymentIntentId as string,
 		amount: invoice.amount_paid / 100, // Convert from cents
 		currency: invoice.currency.toUpperCase(),
 		status: 'succeeded',
 		description: `Payment for ${invoice.period_start ? new Date(invoice.period_start * 1000).toLocaleDateString() : 'subscription'}`,
 		metadata: {
 			stripe_invoice_id: invoice.id,
-			stripe_subscription_id: invoice.subscription,
+			stripe_subscription_id: subscriptionId,
 		},
 	});
 
@@ -99,14 +122,25 @@ async function handlePaymentSuccess(invoice: Stripe.Invoice) {
 	}
 }
 
-async function handlePaymentFailed(invoice: Stripe.Invoice) {
+async function handlePaymentFailed(invoice: WebhookInvoice) {
 	const supabase = await createClient();
+
+	// Extract subscription ID (can be string or expanded object)
+	const subscriptionId =
+		typeof invoice.subscription === 'string'
+			? invoice.subscription
+			: invoice.subscription?.id;
+
+	if (!subscriptionId) {
+		console.error('No subscription found for failed invoice:', invoice.id);
+		return;
+	}
 
 	// Find the user subscription
 	const { data: userSubscription } = await supabase
 		.from('user_subscriptions')
 		.select('*')
-		.eq('stripe_subscription_id', invoice.subscription)
+		.eq('stripe_subscription_id', subscriptionId)
 		.single();
 
 	if (!userSubscription) {
@@ -114,24 +148,47 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
 		return;
 	}
 
+	// Extract payment intent ID (can be string or expanded object)
+	const paymentIntentId =
+		typeof invoice.payment_intent === 'string'
+			? invoice.payment_intent
+			: invoice.payment_intent?.id;
+
 	// Record failed payment
 	const { error } = await supabase.from('payment_history').insert({
 		user_id: userSubscription.user_id,
 		subscription_id: userSubscription.id,
-		stripe_payment_intent_id: invoice.payment_intent as string,
+		stripe_payment_intent_id: paymentIntentId as string,
 		amount: invoice.amount_due / 100,
 		currency: invoice.currency.toUpperCase(),
 		status: 'failed',
 		description: 'Payment failed',
 		metadata: {
 			stripe_invoice_id: invoice.id,
-			stripe_subscription_id: invoice.subscription,
+			stripe_subscription_id: subscriptionId,
 			failure_reason: invoice.last_finalization_error?.message,
 		},
 	});
 
 	if (error) {
 		console.error('Error recording failed payment:', error);
+	}
+}
+
+async function handleTrialEnding(subscription: Stripe.Subscription) {
+	const supabase = await createClient();
+
+	const { data: userSub } = await supabase
+		.from('user_subscriptions')
+		.select('user_id, trial_end')
+		.eq('stripe_subscription_id', subscription.id)
+		.single();
+
+	if (userSub) {
+		// TODO: Send email notification
+		// TODO: Create in-app notification
+		console.log(`Trial ending soon for user: ${userSub.user_id}`);
+		// You can add email/notification logic here
 	}
 }
 
@@ -164,11 +221,16 @@ export async function POST(req: NextRequest) {
 				break;
 
 			case 'invoice.payment_succeeded':
-				await handlePaymentSuccess(event.data.object as Stripe.Invoice);
+				await handlePaymentSuccess(event.data.object as WebhookInvoice);
 				break;
 
 			case 'invoice.payment_failed':
-				await handlePaymentFailed(event.data.object as Stripe.Invoice);
+				await handlePaymentFailed(event.data.object as WebhookInvoice);
+				break;
+
+			case 'customer.subscription.trial_will_end':
+				// 3 days before trial ends
+				await handleTrialEnding(event.data.object as Stripe.Subscription);
 				break;
 
 			default:

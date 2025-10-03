@@ -20,7 +20,8 @@ export function respondSuccess<T>(
 export function respondError(
 	error: string,
 	status: number = 500,
-	statusText?: string
+	statusText?: string,
+	data?: Record<string, unknown> | string
 ): NextResponse<ApiResponse<never>> {
 	return NextResponse.json<ApiResponse<never>>(
 		{
@@ -28,6 +29,7 @@ export function respondError(
 			error,
 			statusNumber: status,
 			statusText: statusText ?? 'Error',
+			data,
 		},
 		{ status }
 	);

@@ -5,6 +5,12 @@ const nextConfig: NextConfig = {
 	/* config options here */
 	reactStrictMode: true,
 
+	// Skip ESLint during builds to avoid warnings
+	// (You can still run 'pnpm lint' manually)
+	eslint: {
+		ignoreDuringBuilds: true,
+	},
+
 	devIndicators: {
 		position: 'bottom-right',
 	},

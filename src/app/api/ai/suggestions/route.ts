@@ -10,6 +10,15 @@ import {
 	UIMessage,
 } from 'ai';
 import { z } from 'zod';
+import { createClient } from '@/helpers/supabase/server';
+import {
+	requireSubscription,
+	checkUsageLimit,
+	getAIUsageCount,
+	trackAIUsage,
+	getBillingPeriodStart,
+	SubscriptionError,
+} from '@/helpers/api/with-subscription-check';
 
 // Zod schema for a single suggestion object from the AI
 const suggestionObjectSchema = z.object({
@@ -100,6 +109,60 @@ export const maxDuration = 30;
 
 export async function POST(req: Request) {
 	try {
+		// Get authenticated user
+		const supabase = await createClient();
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+
+		if (!user) {
+			return new Response(
+				JSON.stringify({
+					error: 'Unauthorized. Please sign in to use AI suggestions.',
+				}),
+				{ status: 401, headers: { 'Content-Type': 'application/json' } }
+			);
+		}
+
+		// Check subscription and usage limits
+		let hasProAccess = false;
+		try {
+			// Try to validate Pro subscription
+			await requireSubscription(user, supabase, 'pro');
+			hasProAccess = true;
+		} catch (error) {
+			if (error instanceof SubscriptionError) {
+				// User doesn't have Pro - check if they're within free tier limits
+				const currentUsage = await getAIUsageCount(
+					user,
+					supabase,
+					'suggestions'
+				);
+				const { allowed, limit, remaining } = await checkUsageLimit(
+					user,
+					supabase,
+					'aiSuggestions',
+					currentUsage
+				);
+
+				if (!allowed) {
+					return new Response(
+						JSON.stringify({
+							error: `AI suggestion limit reached (${limit} per month). Upgrade to Pro for unlimited AI suggestions.`,
+							code: 'LIMIT_REACHED',
+							currentUsage,
+							limit,
+							remaining: 0,
+							upgradeUrl: '/dashboard/settings/billing',
+						}),
+						{ status: 402, headers: { 'Content-Type': 'application/json' } }
+					);
+				}
+			} else {
+				throw error;
+			}
+		}
+
 		// Extract the body sent by the useChat hook
 		const { messages }: { messages: UIMessage[] } = await req.json();
 
@@ -317,6 +380,15 @@ export async function POST(req: Request) {
 								})),
 							},
 						});
+
+						// Track usage for free tier users
+						if (!hasProAccess) {
+							await trackAIUsage(user, supabase, 'suggestions', {
+								mapId,
+								trigger: context.trigger,
+								suggestionCount: suggestionIndex,
+							});
+						}
 
 						writer.write({
 							type: 'finish',

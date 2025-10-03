@@ -1,8 +1,8 @@
 import useAppStore from '@/store/mind-map-store';
 import { NodeData } from '@/types/node-data';
+import { AnimatePresence, motion } from 'motion/react';
 import { memo, useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
-import { motion, AnimatePresence } from 'motion/react';
 
 const CollapsedIndicatorComponent = (props: { data: NodeData }) => {
 	const { data } = props;
@@ -12,7 +12,7 @@ const CollapsedIndicatorComponent = (props: { data: NodeData }) => {
 		}))
 	);
 	const directChildrenCount = useMemo(() => {
-		return getDirectChildrenCount(data?.id!);
+		return getDirectChildrenCount(data.id!);
 	}, [getDirectChildrenCount, data]);
 
 	const collapsed = data?.metadata?.isCollapsed ?? false;
@@ -68,11 +68,11 @@ const CollapsedIndicatorComponent = (props: { data: NodeData }) => {
 						initial={{ scale: 0, opacity: 0 }}
 						animate={{ scale: 1, opacity: 1 }}
 						exit={{ scale: 0, opacity: 0 }}
-						transition={{ 
-							type: 'spring', 
-							stiffness: 400, 
+						transition={{
+							type: 'spring',
+							stiffness: 400,
 							damping: 25,
-							delay: 0.1 
+							delay: 0.1,
 						}}
 						className='absolute -bottom-1.5 -right-1.5 z-10'
 					>
@@ -80,12 +80,13 @@ const CollapsedIndicatorComponent = (props: { data: NodeData }) => {
 						<div
 							className='absolute inset-0 rounded-full'
 							style={{
-								background: 'radial-gradient(circle, rgba(96, 165, 250, 0.2) 0%, transparent 70%)',
+								background:
+									'radial-gradient(circle, rgba(96, 165, 250, 0.2) 0%, transparent 70%)',
 								filter: 'blur(8px)',
 								transform: 'scale(2)',
 							}}
 						/>
-						
+
 						{/* Badge container */}
 						<div
 							className='relative rounded-full px-2 py-0.5 flex items-center justify-center min-w-[20px]'
@@ -93,18 +94,21 @@ const CollapsedIndicatorComponent = (props: { data: NodeData }) => {
 								backgroundColor: 'rgba(30, 30, 30, 0.9)',
 								border: '1px solid rgba(96, 165, 250, 0.3)',
 								backdropFilter: 'blur(8px)',
-								boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+								boxShadow:
+									'0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
 							}}
 							title={`${directChildrenCount} hidden ${directChildrenCount === 1 ? 'item' : 'items'}`}
 						>
 							{/* Count text with proper hierarchy */}
-							<span style={{
-								fontSize: '10px',
-								fontWeight: 600,
-								color: 'rgba(147, 197, 253, 0.87)',
-								letterSpacing: '0.02em',
-								lineHeight: 1,
-							}}>
+							<span
+								style={{
+									fontSize: '10px',
+									fontWeight: 600,
+									color: 'rgba(147, 197, 253, 0.87)',
+									letterSpacing: '0.02em',
+									lineHeight: 1,
+								}}
+							>
 								{directChildrenCount > 99 ? '99+' : directChildrenCount}
 							</span>
 						</div>
@@ -133,7 +137,8 @@ const CollapsedIndicatorComponent = (props: { data: NodeData }) => {
 					<div
 						className='absolute inset-0 rounded-lg pointer-events-none'
 						style={{
-							background: 'linear-gradient(135deg, transparent 60%, rgba(0, 0, 0, 0.05) 100%)',
+							background:
+								'linear-gradient(135deg, transparent 60%, rgba(0, 0, 0, 0.05) 100%)',
 						}}
 					/>
 				</>

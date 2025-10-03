@@ -15,11 +15,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import useAppStore from '@/store/mind-map-store';
 import { SharePanelProps, ShareRole } from '@/types/sharing-types';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Link2, Loader2, QrCode, Shield, Trash2, Users, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { useShallow } from 'zustand/shallow';
@@ -34,7 +32,7 @@ const createShareSchema = z.object({
 type CreateShareFormData = z.infer<typeof createShareSchema>;
 
 export function SharePanel({
-	onShareCreated,
+	// onShareCreated,
 	onShareUpdated,
 	onShareDeleted,
 }: SharePanelProps) {
@@ -42,7 +40,7 @@ export function SharePanel({
 		'room-code' | 'direct-share' | 'manage'
 	>('room-code');
 	const [isGeneratingCode, setIsGeneratingCode] = useState(false);
-	const [isSendingInvite, setIsSendingInvite] = useState(false);
+	// const [isSendingInvite, setIsSendingInvite] = useState(false);
 
 	const {
 		shareTokens,
@@ -87,18 +85,18 @@ export function SharePanel({
 	});
 
 	// Direct share form
-	const {
-		register,
-		handleSubmit,
-		formState: { errors },
-		reset,
-		setValue,
-	} = useForm<CreateShareFormData>({
-		resolver: zodResolver(createShareSchema),
-		defaultValues: {
-			role: 'viewer',
-		},
-	});
+	// const {
+	// 	register,
+	// 	handleSubmit,
+	// 	formState: { errors },
+	// 	reset,
+	// 	setValue,
+	// } = useForm<CreateShareFormData>({
+	// 	resolver: zodResolver(createShareSchema),
+	// 	defaultValues: {
+	// 		role: 'viewer',
+	// 	},
+	// });
 
 	// Load existing tokens when panel opens
 	useEffect(() => {
