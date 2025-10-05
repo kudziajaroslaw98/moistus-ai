@@ -195,7 +195,7 @@ const FloatingEdgeComponent = ({
 							}
 							transition={{
 								duration: 0.2,
-								ease: 'easeOut',
+								ease: 'easeOut' as const,
 							}}
 							onClick={handleDeleteEdge}
 							title='Delete connection'

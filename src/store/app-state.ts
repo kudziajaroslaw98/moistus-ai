@@ -1,6 +1,6 @@
 // eslint-disable-file @typescript-eslint/no-unused-vars
 
-import type { UserProfile } from '@/helpers/user-profile-helpers';
+import type { UserProfile } from '@/types/user-profile-types';
 import type { RealtimeUserSelection } from '@/hooks/realtime/use-realtime-selection-presence-room';
 import type { ChatSlice } from '@/store/slices/chat-slice';
 import type { OnboardingSlice } from '@/store/slices/onboarding-slice';
@@ -14,10 +14,10 @@ import type { SubscriptionSlice } from '@/store/slices/subscription-slice';
 import type { UserProfileSlice } from '@/store/slices/user-profile-slice';
 import type { SuggestionsSlice } from '@/store/slices/suggestions-slice';
 import type { QuickInputSlice } from '@/store/slices/quick-input-slice';
-import type { NodeCommand } from '@/components/node-editor/types';
+import type { Command } from '@/components/node-editor/core/commands/command-types';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
-import { AvailableNodeTypes } from '@/registry';
+import { AvailableNodeTypes } from '@/registry/node-registry';
 import type {
 	Comment,
 	CommentFilter,
@@ -445,7 +445,7 @@ export interface NodeEditorState {
 	position: XYPosition;
 	screenPosition: XYPosition;
 	editorMode: 'quick' | 'structured';
-	selectedCommand: string | null;
+	selectedCommand: Command | null; // Store full command object from command-registry
 	filterQuery: string;
 	parentNode: AppNode | null;
 	existingNodeId: string | null; // For edit mode
@@ -467,7 +467,7 @@ export interface CommandPaletteState {
 	position: XYPosition;
 	searchQuery: string;
 	selectedIndex: number;
-	filteredCommands: NodeCommand[];
+	filteredCommands: Command[];
 	trigger: '/' | '$' | null;
 	anchorPosition: number;
 	activeNodeType: string;
@@ -514,7 +514,7 @@ export interface UIStateSlice {
 	// NodeEditor actions (new universal editor)
 	openNodeEditor: (options: NodeEditorOptions) => void;
 	closeNodeEditor: () => void;
-	setNodeEditorCommand: (command: string) => void;
+	setNodeEditorCommand: (command: Command | null) => void; // Full Command object from command-registry
 	setNodeEditorMode: (mode: 'quick' | 'structured') => void;
 	setNodeEditorFilterQuery: (query: string) => void;
 
@@ -524,7 +524,7 @@ export interface UIStateSlice {
 	setCommandPaletteSearch: (query: string) => void;
 	setCommandPaletteSelection: (index: number) => void;
 	navigateCommandPalette: (direction: 'up' | 'down') => void;
-	executeCommand: (command: NodeCommand) => void;
+	executeCommand: (command: Command) => void;
 }
 
 // Enhanced Form State

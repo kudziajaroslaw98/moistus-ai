@@ -215,6 +215,7 @@ export function getContrastColor(bgColor: string): string {
 		rgb = hexToRgb(color);
 	} else if (color.startsWith('rgb')) {
 		const match = color.match(/\d+/g);
+
 		if (match && match.length >= 3) {
 			rgb = {
 				r: parseInt(match[0], 10),
@@ -259,6 +260,7 @@ export function lightenColor(color: string, percent: number): string {
 		rgb = hexToRgb(parsed);
 	} else if (parsed.startsWith('rgb')) {
 		const match = parsed.match(/\d+/g);
+
 		if (match && match.length >= 3) {
 			rgb = {
 				r: parseInt(match[0], 10),
@@ -291,6 +293,7 @@ export function darkenColor(color: string, percent: number): string {
 		rgb = hexToRgb(parsed);
 	} else if (parsed.startsWith('rgb')) {
 		const match = parsed.match(/\d+/g);
+
 		if (match && match.length >= 3) {
 			rgb = {
 				r: parseInt(match[0], 10),

@@ -23,7 +23,7 @@ interface UseDimensionsReturn {
 	handleResize: (event: unknown, params: ResizeParams) => void;
 	handleResizeEnd: (event: unknown, params: ResizeParams) => void;
 	shouldResize: (event: unknown, params: ResizeParams) => boolean;
-	nodeRef: React.RefObject<HTMLDivElement>;
+	nodeRef: React.RefObject<HTMLDivElement | null>;
 }
 
 const DEFAULT_MIN_WIDTH = 280;
@@ -207,6 +207,7 @@ export function useNodeDimensions(
 				resizeObserverRef.current.disconnect();
 				resizeObserverRef.current = null;
 			}
+
 			if (debounceTimerRef.current) {
 				clearTimeout(debounceTimerRef.current);
 			}

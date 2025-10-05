@@ -100,9 +100,11 @@ export function createNodeEditor(
 						// Check for $nodeType patterns
 						const text = tr.newDoc.toString();
 						const nodeTypeMatch = text.match(/^\$(\w+)\s/);
+
 						if (nodeTypeMatch) {
 							onNodeTypeChange(nodeTypeMatch[1]);
 						}
+
 						return null;
 					}),
 				]
@@ -178,6 +180,7 @@ export function replaceSelection(view: EditorView, text: string): void {
 
 export function undo(view: EditorView): void {
 	const undoCmd = defaultKeymap.find((k) => k.key === 'Mod-z');
+
 	if (undoCmd?.run) {
 		undoCmd.run(view);
 	}
@@ -187,6 +190,7 @@ export function redo(view: EditorView): void {
 	const redoCmd = defaultKeymap.find(
 		(k) => k.key === 'Mod-y' || k.key === 'Mod-Shift-z'
 	);
+
 	if (redoCmd?.run) {
 		redoCmd.run(view);
 	}

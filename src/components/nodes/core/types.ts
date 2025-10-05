@@ -5,7 +5,7 @@
  * improving type safety and developer experience throughout the application.
  */
 
-import { AvailableNodeTypes } from '@/registry';
+import { AvailableNodeTypes } from '@/registry/node-registry';
 import { Node, NodeProps } from '@xyflow/react';
 import { ReactNode } from 'react';
 
@@ -48,7 +48,7 @@ export interface TaskNodeMetadata extends BaseNodeMetadata {
 
 // Text formatting metadata
 export interface TextNodeMetadata extends BaseNodeMetadata {
-	fontSize?: string | number;
+	fontSize?: string;
 	fontWeight?: string | number;
 	fontStyle?: 'normal' | 'italic';
 	textAlign?: 'left' | 'center' | 'right';
@@ -123,7 +123,7 @@ export interface CodeNodeMetadata extends BaseNodeMetadata {
 // Annotation metadata
 export interface AnnotationNodeMetadata extends BaseNodeMetadata {
 	annotationType?: 'comment' | 'idea' | 'quote' | 'summary';
-	fontSize?: string | number;
+	fontSize?: string;
 	fontWeight?: string | number;
 	author?: string;
 	timestamp?: string;
@@ -151,8 +151,10 @@ export interface GhostNodeMetadata extends BaseNodeMetadata {
 	suggestedType: AvailableNodeTypes;
 	confidence: number;
 	context?: {
-		trigger: string;
+		sourceNodeId?: string;
+		targetNodeId?: string;
 		relationshipType?: string;
+		trigger: 'magic-wand' | 'dangling-edge' | 'auto';
 	};
 }
 
@@ -190,7 +192,7 @@ export type TypedNodeMetadata<T extends AvailableNodeTypes> =
 // Enhanced NodeData with strict typing
 export interface TypedNodeData<
 	T extends AvailableNodeTypes = AvailableNodeTypes,
-> {
+> extends Record<string, unknown> {
 	id: string;
 	map_id: string;
 	parent_id: string | null;
@@ -225,6 +227,11 @@ export interface BaseNodeWrapperProps<
 	hideNodeType?: boolean;
 	accentColor?: string;
 	elevation?: number;
+	metadataColorOverrides?: {
+		accentColor?: string;
+		bgOpacity?: number;
+		borderOpacity?: number;
+	};
 }
 
 // Type guards for runtime type checking

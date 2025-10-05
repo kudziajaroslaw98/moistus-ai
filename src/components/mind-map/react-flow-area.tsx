@@ -16,7 +16,7 @@ import {
 	useReactFlow,
 } from '@xyflow/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { NodeRegistry } from '@/registry';
+import { NodeRegistry } from '@/registry/node-registry';
 
 import FloatingEdge from '@/components/edges/floating-edge';
 import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edge';
@@ -220,6 +220,7 @@ export function ReactFlowArea() {
 	const handleNodeClick = useCallback(
 		(event: React.MouseEvent, node: Node<NodeData>) => {
 			console.log(node);
+
 			if (activeTool === 'magic-wand' && aiFeature === 'suggest-nodes') {
 				event.preventDefault();
 				event.stopPropagation();
@@ -560,6 +561,7 @@ export function ReactFlowArea() {
 				/>
 			</Panel>
 		</ReactFlow>
+
 		<UpgradeModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} />
 		</>
 	);

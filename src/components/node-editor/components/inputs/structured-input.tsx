@@ -53,7 +53,7 @@ export const StructuredInput: React.FC<StructuredInputProps> = ({
 
 		if (mode === 'edit' && existingNode) {
 			// Pre-populate with existing node data
-			const existingData = transformNodeToFormData(existingNode, command.nodeType);
+			const existingData = transformNodeToFormData(existingNode, command.nodeType || 'defaultNode');
 			setFormData(existingData);
 		} else {
 			// Initialize with default values for create mode

@@ -184,7 +184,7 @@ export const createUiStateSlice: StateCreator<
 		set({
 			nodeEditor: {
 				...get().nodeEditor,
-				selectedCommand: command,
+				selectedCommand: command, // Now stores full NodeCommand object
 			},
 		});
 	},
@@ -268,7 +268,7 @@ export const createUiStateSlice: StateCreator<
 				: allCommands.filter(
 						(command) =>
 							command.label.toLowerCase().includes(query.toLowerCase()) ||
-							command.command.toLowerCase().includes(query.toLowerCase()) ||
+							command.trigger.toLowerCase().includes(query.toLowerCase()) ||
 							command.description.toLowerCase().includes(query.toLowerCase())
 					);
 

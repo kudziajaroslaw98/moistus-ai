@@ -1,5 +1,5 @@
 import type { StateCreator } from 'zustand';
-import type { AvailableNodeTypes } from '@/registry';
+import type { AvailableNodeTypes } from '@/registry/node-registry';
 
 export interface QuickInputSlice {
 	// Quick Input state

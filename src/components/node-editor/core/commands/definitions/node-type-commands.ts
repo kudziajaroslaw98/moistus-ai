@@ -4,7 +4,7 @@
  * AUTOMATICALLY GENERATED from NodeRegistry
  */
 
-import { NodeRegistry, NODE_REGISTRY } from '@/registry';
+import { NodeRegistry, NODE_REGISTRY } from '@/registry/node-registry';
 import type { Command } from '../command-types';
 import { createNodeTypeSwitchAction } from '../actions/action-factory';
 

@@ -22,7 +22,7 @@ export default function BackgroundEffects() {
 					}}
 					transition={{
 						duration: 10,
-						ease: 'easeInOut',
+						ease: 'easeInOut' as const,
 						repeat: Infinity,
 						repeatType: 'loop',
 					}}
@@ -40,7 +40,7 @@ export default function BackgroundEffects() {
 					}}
 					transition={{
 						duration: 10,
-						ease: 'easeInOut',
+						ease: 'easeInOut' as const,
 						repeat: Infinity,
 						repeatType: 'loop',
 					}}
@@ -58,7 +58,7 @@ export default function BackgroundEffects() {
 					}}
 					transition={{
 						duration: 10,
-						ease: 'easeInOut',
+						ease: 'easeInOut' as const,
 						repeat: Infinity,
 						repeatType: 'loop',
 					}}

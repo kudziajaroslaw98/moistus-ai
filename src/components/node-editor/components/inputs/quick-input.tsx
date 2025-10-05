@@ -1,7 +1,7 @@
 'use client';
 
+import type { AvailableNodeTypes } from '@/registry/node-registry';
 import useAppStore from '@/store/mind-map-store';
-import type { AvailableNodeTypes } from '@/registry';
 import { AnimatePresence, motion } from 'motion/react';
 import {
 	useCallback,
@@ -9,27 +9,28 @@ import {
 	useRef,
 	useState,
 	type FC,
-	type KeyboardEvent,
+	type KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
 import { useShallow } from 'zustand/shallow';
-import { CommandPalette } from '../command-palette';
-import { commandRegistry } from '../../core/commands/command-registry';
+import type { Command } from '../../core/commands/command-types';
 import { processNodeTypeSwitch } from '../../core/commands/command-executor';
-import { ActionBar } from '../action-bar';
-import { ArrowIndicator } from '../arrow-indicator';
-import { ComponentHeader } from '../component-header';
-import { ErrorDisplay } from '../error-display';
-import { ExamplesSection } from '../examples-section';
-import { InputSection } from '../input-section';
-import { ParsingLegend } from '../parsing-legend';
-import { PreviewSection } from '../preview-section';
+import { commandRegistry } from '../../core/commands/command-registry';
 import { nodeCommands } from '../../core/commands/node-commands';
+import { announceToScreenReader } from '../../core/utils/text-utils';
 import {
 	createOrUpdateNodeFromCommand,
 	transformNodeToQuickInputString,
 } from '../../node-updater';
 import type { QuickInputProps } from '../../types';
-import { announceToScreenReader } from '../../core/utils/text-utils';
+import { ActionBar } from '../action-bar';
+import { ArrowIndicator } from '../arrow-indicator';
+import { CommandPalette } from '../command-palette';
+import { ComponentHeader } from '../component-header';
+import { ErrorDisplay } from '../error-display';
+import { ExamplesSection } from '../examples-section';
+import { EnhancedInput } from './enhanced-input';
+import { ParsingLegend } from '../parsing-legend';
+import { PreviewSection } from '../preview-section';
 
 const theme = {
 	container: 'p-4',
@@ -37,7 +38,10 @@ const theme = {
 };
 
 // Helper function to determine if we should auto-process node type switch
-const shouldAutoProcessSwitch = (text: string, currentNodeType?: string): boolean => {
+const shouldAutoProcessSwitch = (
+	text: string,
+	currentNodeType?: string
+): boolean => {
 	// Check if text starts with a node type trigger (e.g., $task, $note)
 	const nodeTypeTriggerPattern = /^\$\w+\s/;
 	return nodeTypeTriggerPattern.test(text);
@@ -106,36 +110,53 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 	// Initialize QuickInput state when component mounts or mode changes
 	useEffect(() => {
-		console.log('🔧 QuickInput useEffect initialization:', JSON.stringify({
-			mode,
-			hasExistingNode: !!existingNode,
-			existingNodeId: existingNode?.id,
-			commandNodeType: command.nodeType,
-			currentNodeType
-		}));
+		console.log(
+			'🔧 QuickInput useEffect initialization:',
+			JSON.stringify({
+				mode,
+				hasExistingNode: !!existingNode,
+				existingNodeId: existingNode?.id,
+				commandNodeType: command.nodeType,
+				currentNodeType,
+			})
+		);
 
 		if (mode === 'edit' && existingNode) {
 			// Edit mode: initialize with existing node content (only once)
 			console.log('✅ Edit mode detected, calling initializeQuickInput');
+			const nodeType = command.nodeType || 'defaultNode';
 			const initialContent = transformNodeToQuickInputString(
 				existingNode,
-				command.nodeType
+				nodeType
 			);
-			console.log('📝 Initial content for edit mode:', JSON.stringify(initialContent));
-			initializeQuickInput(initialContent, command.nodeType);
+			console.log(
+				'📝 Initial content for edit mode:',
+				JSON.stringify(initialContent)
+			);
+			initializeQuickInput(initialContent, nodeType);
 		} else if (mode === 'create') {
 			// Create mode: only set initial node type if none exists
 			// Don't override user-selected node types from $nodeType switching
-			console.log('🔧 QuickInput create mode initialization:', JSON.stringify({
-				currentNodeType,
-				commandNodeType: command.nodeType,
-				shouldSetNodeType: !currentNodeType
-			}));
-			if (!currentNodeType) {
-				console.log('✅ Setting node type to:', JSON.stringify(command.nodeType));
+			console.log(
+				'🔧 QuickInput create mode initialization:',
+				JSON.stringify({
+					currentNodeType,
+					commandNodeType: command.nodeType,
+					shouldSetNodeType: !currentNodeType,
+				})
+			);
+
+			if (!currentNodeType && command.nodeType) {
+				console.log(
+					'✅ Setting node type to:',
+					JSON.stringify(command.nodeType)
+				);
 				setCurrentNodeType(command.nodeType);
 			} else {
-				console.log('⚠️ Node type already set, not overriding:', JSON.stringify(currentNodeType));
+				console.log(
+					'⚠️ Node type already set, not overriding:',
+					JSON.stringify(currentNodeType)
+				);
 			}
 			// Don't reset value in create mode to preserve user input across remounts
 		}
@@ -174,9 +195,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 		// Only use legacy processing if commands are disabled or as fallback
 		// The primary processing should happen via CodeMirror events
 		if (shouldAutoProcessSwitch(value, currentNodeType)) {
-			const processed = processNodeTypeSwitch(
-				value
-			);
+			const processed = processNodeTypeSwitch(value);
 
 			if (
 				processed.hasSwitch &&
@@ -304,7 +323,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 				closeInlineCreator();
 			}
 		} catch (err) {
-			console.log
+			console.log;
 			setError(
 				`An error occurred while ${mode === 'edit' ? 'updating' : 'creating'} the node`
 			);
@@ -360,18 +379,25 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 	// Handle command execution from palette or enhanced input
 	const handleCommandExecute = useCallback(
-		async (command: EnhancedCommand) => {
+		async (command: Command) => {
 			try {
 				const context = {
-					currentText: value,
+					text: value, // Fixed: was 'currentText', should be 'text'
 					cursorPosition,
-					selection: null,
-					timestamp: Date.now(),
+					selection: null as any, // CommandContext expects optional selection
 				};
 
-				// Use the registry executeCommand method
+				// Use the registry executeCommand method - but command doesn't have id
+				// NodeCommand extends Command which should have id
+				const commandId = (command as any).id;
+
+				if (!commandId) {
+					console.error('Command missing id:', command);
+					return;
+				}
+
 				const result = await commandRegistry.executeCommand(
-					command.id,
+					commandId,
 					context
 				);
 
@@ -458,7 +484,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 	// Handle keyboard shortcuts
 	const handleKeyDown = useCallback(
-		(e: KeyboardEvent) => {
+		(e: ReactKeyboardEvent) => {
 			if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
 				e.preventDefault();
 				handleCreate();
@@ -466,7 +492,13 @@ export const QuickInput: FC<QuickInputProps> = ({
 			}
 
 			// Handle command palette trigger with '/'
-			if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+			if (
+				e.key === '/' &&
+				!e.ctrlKey &&
+				!e.metaKey &&
+				!e.altKey &&
+				e.currentTarget !== null
+			) {
 				// Let the input handle the character first, then trigger palette
 				setTimeout(() => {
 					const rect = e.currentTarget.getBoundingClientRect();
@@ -492,21 +524,28 @@ export const QuickInput: FC<QuickInputProps> = ({
 			initial={{ opacity: 0, scale: 0.95, y: -10 }}
 			animate={{ opacity: 1, scale: 1, y: 0 }}
 			exit={{ opacity: 0, scale: 0.95, y: -10 }}
-			transition={{ duration: 0.2, ease: 'easeOut' }}
+			transition={{ duration: 0.2, ease: 'easeOut' as const }}
 		>
 			<ComponentHeader icon={command.icon} label={command.label} />
 
 			{/* Input and Preview Side by Side - Fixed 50/50 Layout */}
 			<div className='flex items-stretch gap-3'>
-				<InputSection
+				<EnhancedInput
 					value={value}
 					onChange={setValue}
 					onKeyDown={handleKeyDown}
 					onSelectionChange={handleSelectionChange}
 					placeholder={`Type naturally... ${command.examples?.[0] || ''}`}
 					disabled={isCreating}
+					className='flex-1 min-w-0'
+					initial={{ opacity: 1, x: -20 }}
+					animate={{ opacity: 1, x: 0 }}
+					transition={{ delay: 0.15, duration: 0.3, ease: 'easeOut' as const }}
+					whileFocus={{
+						scale: 1.01,
+						transition: { duration: 0.2 },
+					}}
 					enableCommands={true}
-					currentNodeType={currentNodeType}
 					onNodeTypeChange={handleNodeTypeChange}
 					onCommandExecuted={handleCommandExecuted}
 				/>
@@ -515,7 +554,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 				<PreviewSection
 					preview={preview}
-					nodeType={currentNodeType || command.nodeType}
+					nodeType={currentNodeType || command.nodeType || 'defaultNode'}
 					hasInput={value.trim().length > 0}
 				/>
 			</div>
@@ -528,7 +567,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 						initial={{ opacity: 0, height: 0 }}
 						animate={{ opacity: 1, height: 'auto' }}
 						exit={{ opacity: 0, height: 0 }}
-						transition={{ duration: 0.3, ease: 'easeInOut' }}
+						transition={{ duration: 0.3, ease: 'easeInOut' as const }}
 					>
 						<ParsingLegend
 							patterns={
@@ -555,7 +594,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 						initial={{ opacity: 0, y: -10 }}
 						animate={{ opacity: 1, y: 0 }}
 						exit={{ opacity: 0, y: -10 }}
-						transition={{ delay: 0.2, duration: 0.3, ease: 'easeOut' }}
+						transition={{ delay: 0.2, duration: 0.3, ease: 'easeOut' as const }}
 					>
 						<p>
 							This node type accepts plain text input without special syntax.

@@ -1,5 +1,5 @@
 'use client';
-import { Fragment } from 'react';
+import { Fragment, MutableRefObject } from 'react';
 import { ContextMenuItem } from './context-menu-item';
 import { ContextMenuSection } from './context-menu-section';
 import { MenuSection } from './types';
@@ -35,7 +35,7 @@ export function ContextMenuRenderer({
 							key={item.id}
 							ref={
 								menuItemsRef
-									? (el) => (menuItemsRef.current[itemIndex++] = el)
+									? (el) => { menuItemsRef.current[itemIndex++] = el; }
 									: undefined
 							}
 							icon={item.icon}

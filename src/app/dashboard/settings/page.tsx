@@ -283,7 +283,9 @@ export default function GeneralSettingsPage() {
 					<div className='space-y-2'>
 						<Button variant='outline' className='relative'>
 							<Camera className='size-4 mr-2' />
+
 							Upload Photo
+
 							<input
 								type='file'
 								accept='image/*'

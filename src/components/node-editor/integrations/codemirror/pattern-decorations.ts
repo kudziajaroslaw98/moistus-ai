@@ -82,6 +82,7 @@ const PATTERNS: PatternConfig[] = [
 		regex: /!{1,3}(?!\w)|!(high|medium|low|critical|urgent|1|2|3)\b/gi,
 		className: (match) => {
 			const value = match[0];
+
 			if (
 				value === '!!!' ||
 				match[1] === 'high' ||
@@ -90,9 +91,11 @@ const PATTERNS: PatternConfig[] = [
 			) {
 				return PATTERN_STYLES.priorityHigh;
 			}
+
 			if (value === '!!' || match[1] === 'medium' || match[1] === '2') {
 				return PATTERN_STYLES.priorityMedium;
 			}
+
 			return PATTERN_STYLES.priorityLow;
 		},
 	},

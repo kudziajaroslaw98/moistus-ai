@@ -206,7 +206,7 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
 			y: 0,
 			transition: {
 				duration: 0.2,
-				ease: 'easeOut',
+				ease: 'easeOut' as const,
 			},
 		},
 		exit: {
@@ -215,7 +215,7 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
 			y: -5,
 			transition: {
 				duration: 0.15,
-				ease: 'easeIn',
+				ease: 'easeIn' as const,
 			},
 		},
 	};

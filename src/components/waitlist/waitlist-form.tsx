@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, SubmitHandler } from 'react-hook-form';
 import { fadeIn, formFieldFocus, successPulse } from './animations';
 
 interface WaitlistFormProps {
@@ -40,7 +40,7 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 		reset,
 		setError,
 	} = useForm<WaitlistFormData>({
-		resolver: zodResolver(waitlistFormSchema),
+		resolver: zodResolver(waitlistFormSchema) as any,
 	});
 
 	// Check if user has already signed up
@@ -52,7 +52,7 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 		}
 	}, []);
 
-	const onSubmit = async (data: WaitlistFormData) => {
+	const onSubmit: SubmitHandler<WaitlistFormData> = async (data) => {
 		// Reset states
 		setIsSubmitting(true);
 		setSubmitError(null);

@@ -1,5 +1,8 @@
 'use client';
 
+import { AvailableNodeTypes } from '@/registry/node-registry';
+import { assertAvailableNodeTypeWithLog } from '@/registry/type-guards';
+import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import { EditorView } from '@codemirror/view';
 import { motion, type MotionProps } from 'motion/react';
@@ -11,6 +14,7 @@ import React, {
 	useRef,
 	useState,
 } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { validateInput } from '../../core/validators/input-validator';
 import { createNodeEditor } from '../../integrations/codemirror/setup';
 import { ValidationTooltip } from './validation-tooltip';
@@ -31,10 +35,9 @@ interface EnhancedInputProps {
 	transition?: MotionProps['transition'];
 	whileFocus?: MotionProps['whileFocus'];
 	// Command completion integration props
-	onNodeTypeChange?: (nodeType: string) => void;
+	onNodeTypeChange?: (nodeType: AvailableNodeTypes) => void;
 	onCommandExecuted?: (command: any) => void;
 	enableCommands?: boolean; // Feature flag
-	currentNodeType?: string; // Current node type context (handled automatically by new setup)
 }
 
 export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
@@ -55,7 +58,6 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 			onNodeTypeChange,
 			onCommandExecuted,
 			enableCommands = true, // Default enabled
-			currentNodeType,
 			...rest
 		},
 		ref
@@ -83,6 +85,12 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 		);
 		const hasSuggestions = validationErrors.some(
 			(error) => error.type === 'suggestion'
+		);
+
+		const { quickInputNodeType: currentNodeType } = useAppStore(
+			useShallow((state) => ({
+				quickInputNodeType: state.quickInputNodeType,
+			}))
 		);
 
 		// Debounced validation tooltip to prevent rapid state changes
@@ -245,18 +253,22 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 						}
 					},
 					onNodeTypeChange: (nodeType) => {
-						if (onNodeTypeChange) {
-							onNodeTypeChange(nodeType);
-						}
-						// Emit custom event for backward compatibility
-						const nodeTypeChangeEvent = new CustomEvent(
-							'nodeEditorTypeChange',
-							{
-								detail: { nodeType },
-								bubbles: true,
+						// Validate node type with logging guard
+						if (assertAvailableNodeTypeWithLog(nodeType, 'onNodeTypeChange')) {
+							if (onNodeTypeChange) {
+								onNodeTypeChange(nodeType);
 							}
-						);
-						editorRef.current?.dispatchEvent(nodeTypeChangeEvent);
+
+							// Emit custom event for backward compatibility
+							const nodeTypeChangeEvent = new CustomEvent(
+								'nodeEditorTypeChange',
+								{
+									detail: { nodeType },
+									bubbles: true,
+								}
+							);
+							editorRef.current?.dispatchEvent(nodeTypeChangeEvent);
+						}
 					},
 				});
 
@@ -291,6 +303,7 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 						editorViewRef.current.destroy();
 						editorViewRef.current = null;
 					}
+
 					initializedRef.current = false;
 				} catch (error) {
 					console.error('Error cleaning up CodeMirror:', error);

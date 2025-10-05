@@ -190,7 +190,7 @@ export function useContextMenuConfig({
 						icon: <Sparkles className='h-4 w-4' />,
 						label: 'Summarize Node',
 						onClick: () => aiActions.summarizeNode(clickedNode.id),
-						loading: loadingStates.isSummarizingNode,
+						loading: loadingStates.isSummarizing,
 					},
 					{
 						id: 'summarize-branch',
@@ -204,7 +204,7 @@ export function useContextMenuConfig({
 						icon: <ScanBarcode className='h-4 w-4' />,
 						label: 'Extract Concepts',
 						onClick: () => aiActions.extractConcepts(clickedNode.id),
-						loading: loadingStates.isExtractingConcepts,
+						loading: loadingStates.isExtracting,
 					},
 					{
 						id: 'generate-content',
@@ -459,7 +459,7 @@ export function useContextMenuConfig({
 						icon: <Ungroup className='h-4 w-4' />,
 						label: 'Ungroup',
 						onClick: () => {
-							ungroupNodes([selectedNodes[0].id]);
+							ungroupNodes(selectedNodes[0].id);
 							onClose();
 						},
 						hidden: !isSingleGroupSelected,

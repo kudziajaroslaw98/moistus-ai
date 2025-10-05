@@ -166,7 +166,7 @@ export class NodeFactory {
 		return this.createReactFlowNode({
 			id: newId,
 			mapId: sourceNode.data.map_id,
-			content: sourceNode.data.content,
+			content: sourceNode.data.content ?? undefined,
 			position: newPosition,
 			nodeType: sourceNode.data.node_type,
 			metadata: metadata as Partial<NodeMetadataMap[T]>,
@@ -231,6 +231,7 @@ export class NodeFactory {
 			// Check deprecated status
 			if (NodeRegistry.isDeprecated(node.data.node_type)) {
 				const info = NodeRegistry.getDeprecationInfo(node.data.node_type);
+
 				if (info) {
 					errors.push(
 						`Node type "${node.data.node_type}" is deprecated: ${info.reason}`

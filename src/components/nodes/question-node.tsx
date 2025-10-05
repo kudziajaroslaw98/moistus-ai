@@ -76,7 +76,7 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 				updates.questionType = 'multiple';
 				needsUpdate = true;
 			}
-		} else if (parsedOptions.questionType === 'binary' && responseFormat.options?.length > 0) {
+		} else if (parsedOptions.questionType === 'binary' && (responseFormat.options?.length ?? 0) > 0) {
 			// Clear options if switching to binary
 			updates.responseFormat = {
 				...responseFormat,
@@ -237,6 +237,7 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 								className='w-3 h-3'
 								style={{ color: 'rgba(147, 197, 253, 0.7)' }}
 							/>
+
 							<span
 								style={{
 									fontSize: '12px',
@@ -246,6 +247,7 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 							>
 								AI Insight
 							</span>
+
 							{isExpanded ? (
 								<ChevronUp className='w-3 h-3' style={{ color: 'rgba(147, 197, 253, 0.7)' }} />
 							) : (

@@ -1,21 +1,22 @@
 import { AppState } from '@/store/app-state';
 import type { AppNode } from '@/types/app-node';
 import type { NodeData } from '@/types/node-data';
+import type { Command } from './core/commands/command-types';
 import {
 	createNodeFromCommand,
 	transformDataForNodeType,
 } from './node-creator';
-import type { NodeCommand, NodeCreationResult } from './types';
+import type { NodeCreationResult } from './types';
 
 interface UpdateNodeOptions {
-	command: NodeCommand;
+	command: Command;
 	data: any;
 	existingNode: AppNode;
 	updateNode: AppState['updateNode'];
 }
 
 interface CreateOrUpdateNodeOptions {
-	command: NodeCommand;
+	command: Command;
 	data: any;
 	mode: 'create' | 'edit';
 	position?: { x: number; y: number };
@@ -32,8 +33,11 @@ export const updateNodeFromCommand = async ({
 	updateNode,
 }: UpdateNodeOptions): Promise<NodeCreationResult> => {
 	try {
+		// Get node type with fallback
+		const nodeType = command.nodeType || existingNode.data?.node_type || 'defaultNode';
+
 		// Transform parsed data into node-specific data structure
-		const nodeData = transformDataForNodeType(command.nodeType, data);
+		const nodeData = transformDataForNodeType(nodeType, data);
 
 		// Update the existing node with new data
 		await updateNode({
@@ -210,6 +214,12 @@ export const transformNodeToFormData = (
 
 /**
  * Universal metadata serializer helper - extracts common metadata for all nodes
+ * Uses patterns from pattern-extractor.ts:
+ * - Tags: #tag
+ * - Assignee: @person
+ * - Due Date: ^date
+ * - Priority: ! (low), !! (medium), !!! (high), or !word
+ * - Status: :status
  */
 const serializeUniversalMetadata = (
 	metadata?: NodeData['metadata']
@@ -218,24 +228,31 @@ const serializeUniversalMetadata = (
 
 	const parts: string[] = [];
 
-	// Universal metadata that applies to ALL node types
+	// Tags: #tag1 #tag2 (pattern-extractor.ts line 212)
+	if (metadata.tags?.length) {
+		metadata.tags.forEach(tag => {
+			parts.push(`#${tag}`);
+		});
+	}
+
+	// Assignee: @person1 @person2 (pattern-extractor.ts line 223)
 	if (metadata.assignee?.length) {
 		const assignees = Array.isArray(metadata.assignee)
-			? metadata.assignee.join(',')
-			: String(metadata.assignee);
-		parts.push(`@${assignees}`);
+			? metadata.assignee
+			: [String(metadata.assignee)];
+		assignees.forEach(assignee => {
+			parts.push(`@${assignee}`);
+		});
 	}
 
-	if (metadata.priority) {
-		parts.push(`#${metadata.priority}`);
-	}
-
+	// Due Date: ^date (pattern-extractor.ts line 101)
 	if (metadata.dueDate) {
 		if (typeof metadata.dueDate === 'string') {
 			const dateStr = metadata.dueDate.slice(0, 10);
 			parts.push(`^${dateStr}`);
 		} else {
 			const dateObj = new Date(metadata.dueDate);
+
 			// Only add date if it's valid
 			if (!isNaN(dateObj.getTime())) {
 				const dateStr = dateObj.toISOString().slice(0, 10);
@@ -244,12 +261,26 @@ const serializeUniversalMetadata = (
 		}
 	}
 
-	if (metadata.status) {
-		parts.push(`!${metadata.status}`);
+	// Priority: ! or !! or !!! or !word (pattern-extractor.ts line 116)
+	if (metadata.priority) {
+		const priority = metadata.priority.toLowerCase();
+
+		// Use shorthand notation for common priorities
+		if (priority === 'low') {
+			parts.push(`!`);
+		} else if (priority === 'medium') {
+			parts.push(`!!`);
+		} else if (priority === 'high') {
+			parts.push(`!!!`);
+		} else {
+			// For other priorities, use !word format
+			parts.push(`!${priority}`);
+		}
 	}
 
-	if (metadata.tags?.length) {
-		parts.push(`[${metadata.tags.join(', ')}]`);
+	// Status: :status (pattern-extractor.ts line 234)
+	if (metadata.status) {
+		parts.push(`:${metadata.status}`);
 	}
 
 	return parts.join(' ');
@@ -374,7 +405,7 @@ const serializeNodeSpecificMetadata = (
 
 			if(metadata?.responseFormat){
 				parts.push(`multiple:${metadata?.responseFormat?.allowMultiple ? 'true' : 'false'}`);
-				parts.push(`options:[${metadata?.responseFormat?.options.map(o=>o.label)?.join(',')}]`);
+				parts.push(`options:[${metadata?.responseFormat?.options?.map(o=>o.label)?.join(',')}]`);
 			}
 
 			break;
@@ -457,10 +488,12 @@ export const transformNodeToQuickInputString = (
 
 		case 'taskNode':
 			// Serialize tasks first
-			const tasks = data.tasks || data.metadata?.tasks || [];
+			const tasks = (data.tasks || data.metadata?.tasks || []) as any[];
 			let taskContent = '';
 			tasks.forEach((task: any) => {
-				taskContent += `${task.isComplete ? '[x]' : '[ ]'} ${task.text}\n`;
+				// Handle both isComplete and completed properties for compatibility
+				const isComplete = task.isComplete ?? task.completed ?? false;
+				taskContent += `${isComplete ? '[x]' : '[ ]'} ${task.text}\n`;
 			});
 
 			// Add metadata
@@ -483,13 +516,13 @@ export const transformNodeToQuickInputString = (
 
 		case 'imageNode':
 			// Start with primary image URL
-			const imageUrl =
-				data.imageUrl ||
+			const imageUrl: string =
+				(data.imageUrl ||
 				data.url ||
 				data.metadata?.imageUrl ||
 				data.metadata?.url ||
-				'';
-			let imageContent = imageUrl;
+				'') as string;
+			let imageContent: string = imageUrl;
 
 			// Add metadata (includes universal and image-specific patterns)
 			if (allMetadata) {
@@ -500,8 +533,8 @@ export const transformNodeToQuickInputString = (
 
 		case 'resourceNode':
 			// Start with primary URL
-			const resourceUrl = data.url || data.metadata?.url || '';
-			let resourceContent = resourceUrl;
+			const resourceUrl: string = (data.url || data.metadata?.url || '') as string;
+			let resourceContent: string = resourceUrl;
 
 			// Add description if present
 			if (data.content) {
@@ -525,11 +558,11 @@ export const transformNodeToQuickInputString = (
 				note: '💡',
 			};
 
-			const annotationType =
-				data.annotationType ||
+			const annotationType: string =
+				(data.annotationType ||
 				data.type ||
 				data.metadata?.annotationType ||
-				'note';
+				'note') as string;
 			const emoji = typeEmojiMap[annotationType];
 
 			let annotationContent = '';

@@ -174,9 +174,11 @@ export const POST = withApiValidation(
 			const countDescendants = (currentNodeId: string): number => {
 				let count = 1; // Current node
 				const children = childrenMap.get(currentNodeId) || [];
+
 				for (const child of children) {
 					count += countDescendants(child.id);
 				}
+
 				return count;
 			};
 

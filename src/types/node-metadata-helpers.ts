@@ -97,9 +97,7 @@ export const isGroupContainer = (data: NodeData): boolean => {
  * Check if a node has AI data
  */
 export const hasAIData = (data: NodeData): boolean => {
-	return Boolean(
-		data.aiData && (data.aiData.aiAnswer || data.aiData.aiSummary)
-	);
+	return Boolean(data.metadata?.answer);
 };
 
 /**

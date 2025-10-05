@@ -21,7 +21,8 @@ const VALIDATION_RULES: ValidationRule[] = [
 	{
 		pattern: /\$\w+/g,
 		validate: (match, text) => {
-			const allMatches = text.match(/\$\w+/g) || [];
+			const allMatches: string[] = text.match(/\$\w+/g) || [];
+
 			if (allMatches.length > 1 && allMatches.indexOf(match[0] as string) > 0) {
 				return {
 					message: `Multiple node type triggers found. Remove "${match[0]}"`,
@@ -37,6 +38,7 @@ const VALIDATION_RULES: ValidationRule[] = [
 					],
 				};
 			}
+
 			return null;
 		},
 	},
@@ -46,6 +48,7 @@ const VALIDATION_RULES: ValidationRule[] = [
 		pattern: /\^([^\s^]+)/g, // Using ^ prefix for dates
 		validate: (match) => {
 			const dateValue = match[1];
+
 			if (!isValidDateString(dateValue)) {
 				return {
 					message: `Invalid date format: "${dateValue}"`,
@@ -60,29 +63,18 @@ const VALIDATION_RULES: ValidationRule[] = [
 					],
 				};
 			}
+
 			return null;
 		},
 	},
 
-	// Invalid priority
+	// Invalid priority (uses ! prefix)
 	{
-		pattern: /#(\w+)/g,
+		pattern: /!(high|medium|low|critical|urgent|asap|blocked|waiting|1|2|3)\b/gi,
 		validate: (match) => {
 			const priority = match[1].toLowerCase();
-			if (!isValidPriority(priority)) {
-				const validPriorities = ['low', 'medium', 'high', 'critical', 'urgent'];
-				return {
-					message: `Invalid priority: "${priority}"`,
-					startIndex: match.index,
-					endIndex: match.index + match[0].length,
-					type: 'warning',
-					suggestion: 'Use: low, medium, high, critical, urgent',
-					quickFixes: validPriorities.map((p) => ({
-						label: p.charAt(0).toUpperCase() + p.slice(1),
-						replacement: `#${p}`,
-					})),
-				};
-			}
+			// All matched values are valid, so no error
+			// This rule is kept for future validation if needed
 			return null;
 		},
 	},
@@ -92,6 +84,7 @@ const VALIDATION_RULES: ValidationRule[] = [
 		pattern: /color:([^\s]+)/gi,
 		validate: (match) => {
 			const color = match[1];
+
 			if (!isValidColor(color)) {
 				return {
 					message: `Invalid color format: "${color}"`,
@@ -106,6 +99,7 @@ const VALIDATION_RULES: ValidationRule[] = [
 					],
 				};
 			}
+
 			return null;
 		},
 	},
@@ -150,6 +144,7 @@ export function validateInput(text: string): ValidationResult {
 
 		while ((match = rule.pattern.exec(text)) !== null) {
 			const error = rule.validate(match, text);
+
 			if (error) {
 				if (error.type === 'error') {
 					errors.push(error);
@@ -189,6 +184,7 @@ function checkIncompletePatterns(
 ): void {
 	// Check for incomplete date pattern (using ^)
 	const dateMatch = text.match(/\^(?!\w)/);
+
 	if (dateMatch && dateMatch.index !== undefined) {
 		warnings.push({
 			message: 'Incomplete date pattern',
@@ -199,20 +195,22 @@ function checkIncompletePatterns(
 		});
 	}
 
-	// Check for incomplete priority pattern
-	const priorityMatch = text.match(/#(?!\w)/);
+	// Check for incomplete priority pattern (uses ! prefix)
+	const priorityMatch = text.match(/!(?!\w)/);
+
 	if (priorityMatch && priorityMatch.index !== undefined) {
 		warnings.push({
 			message: 'Incomplete priority pattern',
 			startIndex: priorityMatch.index,
 			endIndex: priorityMatch.index + 1,
 			type: 'info',
-			suggestion: 'Complete the priority: #high, #medium, #low',
+			suggestion: 'Complete the priority: !high, !medium, !low, or use !, !!, !!!',
 		});
 	}
 
 	// Check for incomplete color pattern
 	const colorMatch = text.match(/color:(?!\S)/);
+
 	if (colorMatch && colorMatch.index !== undefined) {
 		warnings.push({
 			message: 'Incomplete color pattern',

@@ -1,7 +1,5 @@
 'use client';
 
-import { NodeData } from '@/types/node-data';
-import { Node, NodeProps } from '@xyflow/react';
 import { Check, Code, Copy, Maximize2, Minimize2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { memo, useCallback, useState } from 'react';
@@ -9,6 +7,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { BaseNodeWrapper } from './base-node-wrapper';
+import { TypedNodeProps } from './core/types';
 import { GlassmorphismTheme } from './themes/glassmorphism-theme';
 
 // Custom dark theme optimized for readability
@@ -75,7 +74,7 @@ const customDarkTheme = {
 	},
 };
 
-type CodeNodeProps = NodeProps<Node<NodeData>>;
+type CodeNodeProps = TypedNodeProps<'codeNode'>;
 
 const CodeNodeComponent = (props: CodeNodeProps) => {
 	const { id, data } = props;

@@ -23,7 +23,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 			className={cn('flex items-center justify-between mt-4', className)}
 			initial={{ opacity: 0, y: 15 }}
 			animate={{ opacity: 1, y: 0 }}
-			transition={{ delay: 0.4, duration: 0.3, ease: 'easeOut' }}
+			transition={{ delay: 0.4, duration: 0.3, ease: 'easeOut' as const }}
 		>
 			<motion.span
 				className='text-xs text-zinc-500'
@@ -52,7 +52,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 				}}
 				initial={{ opacity: 0, x: 10 }}
 				animate={{ opacity: 1, x: 0 }}
-				transition={{ delay: 0.45, duration: 0.3, ease: 'easeOut' }}
+				transition={{ delay: 0.45, duration: 0.3, ease: 'easeOut' as const }}
 			>
 				<AnimatePresence mode='wait'>
 					<motion.span

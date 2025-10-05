@@ -650,7 +650,7 @@ export class NodeRegistry {
 	 */
 	static getActiveTypes(): ActiveNodeTypes[] {
 		return this.getAllTypes().filter(
-			(type) => NODE_REGISTRY[type].status !== 'deprecated'
+			(type) => (NODE_REGISTRY[type].status as string) !== 'deprecated'
 		) as ActiveNodeTypes[];
 	}
 
@@ -699,10 +699,12 @@ export class NodeRegistry {
 	 */
 	static getCommandTriggerMap(): Record<string, AvailableNodeTypes> {
 		const map: Record<string, AvailableNodeTypes> = {};
+
 		for (const type of this.getAllTypes()) {
 			const trigger = NODE_REGISTRY[type].commandTrigger;
 			if (trigger) map[trigger] = type;
 		}
+
 		return map;
 	}
 
@@ -732,7 +734,7 @@ export class NodeRegistry {
 	 * Check if a node type is deprecated
 	 */
 	static isDeprecated(type: AvailableNodeTypes): boolean {
-		return NODE_REGISTRY[type].status === 'deprecated';
+		return (NODE_REGISTRY[type].status as string) === 'deprecated';
 	}
 
 	/**
@@ -744,7 +746,7 @@ export class NodeRegistry {
 		replacement: any | null;
 	} | null {
 		const config = NODE_REGISTRY[type];
-		if (config.status !== 'deprecated') return null;
+		if ((config.status as string) !== 'deprecated') return null;
 		return (config as any).deprecation || null;
 	}
 
@@ -754,6 +756,7 @@ export class NodeRegistry {
 	static warnIfDeprecated(type: AvailableNodeTypes): void {
 		if (process.env.NODE_ENV === 'development') {
 			const info = this.getDeprecationInfo(type);
+
 			if (info) {
 				console.warn(
 					`⚠️ Node type "${type}" is deprecated since ${info.since}\n` +

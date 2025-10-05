@@ -1,66 +1,25 @@
+import type { AvailableNodeTypes } from '@/registry/node-registry';
 import type { LucideIcon } from 'lucide-react';
+import { ComponentType } from 'react';
 import type { AppNode } from '../../types/app-node';
-import type { AvailableNodeTypes } from '@/registry';
 import type { NodeData } from '../../types/node-data';
+import type {
+	Command,
+	FieldType,
+	FieldConfig,
+	PatternCategory,
+	ParsingPattern,
+	QuickParser,
+} from './core/commands/command-types';
 
-// Pattern category types
-export type PatternCategory =
-	| 'metadata'
-	| 'formatting'
-	| 'content'
-	| 'structure';
-
-// Individual parsing pattern
-export interface ParsingPattern {
-	pattern: string; // The syntax pattern (e.g., "@date")
-	description: string; // Human-readable description
-	examples: string[]; // Array of example usage
-	category: PatternCategory; // Pattern category for grouping
-	insertText?: string; // Optional text to insert (if different from pattern)
-	icon?: LucideIcon; // Optional icon for visual representation
-}
-
-// Field configuration types
-export type FieldType =
-	| 'text'
-	| 'textarea'
-	| 'select'
-	| 'date'
-	| 'array'
-	| 'code'
-	| 'url'
-	| 'image'
-	| 'checkbox'
-	| 'task';
-
-export interface FieldConfig {
-	name: string;
-	type: FieldType;
-	label?: string;
-	placeholder?: string;
-	required?: boolean;
-	options?: Array<{ value: string; label: string }>;
-	itemType?: string;
-	validation?: (value: any) => string | null;
-}
-
-// Node command configuration
-export interface NodeCommand {
-	command: string;
-	label: string;
-	description: string;
-	icon: React.ComponentType<{ className?: string }>;
-	nodeType: AvailableNodeTypes;
-	category: 'content' | 'media' | 'interactive' | 'annotation';
-	quickParse?: QuickParser;
-	fields?: FieldConfig[];
-	examples?: string[];
-	isPro?: boolean;
-	parsingPatterns?: ParsingPattern[];
-}
-
-// Parser types
-export type QuickParser<T = any> = (input: string) => T;
+// Re-export types from command-types for backwards compatibility
+export type {
+	FieldType,
+	FieldConfig,
+	PatternCategory,
+	ParsingPattern,
+	QuickParser,
+} from './core/commands/command-types';
 
 // Priority levels supported by the system
 export type PriorityLevel =
@@ -157,8 +116,8 @@ export interface ParsedSize {
 
 // Component props types
 export interface CommandPaletteProps {
-	commands: NodeCommand[];
-	onSelectCommand: (command: NodeCommand) => void;
+	commands: Command[];
+	onSelectCommand: (command: Command) => void;
 	filterQuery: string;
 	onFilterChange: (query: string) => void;
 	activeIndex: number | null;
@@ -166,7 +125,7 @@ export interface CommandPaletteProps {
 }
 
 export interface QuickInputProps {
-	command: NodeCommand;
+	command: Command;
 	parentNode: AppNode | null;
 	position: { x: number; y: number };
 	mode?: 'create' | 'edit';
@@ -174,7 +133,7 @@ export interface QuickInputProps {
 }
 
 export interface StructuredInputProps {
-	command: NodeCommand;
+	command: Command;
 	parentNode: AppNode | null;
 	position: { x: number; y: number };
 	mode?: 'create' | 'edit';
@@ -187,7 +146,7 @@ export interface NodeEditorProps {
 	existingNode?: AppNode;
 	position: { x: number; y: number };
 	parentNode?: AppNode;
-	command?: NodeCommand;
+	command?: Command;
 	onUpdate?: (nodeId: string, data: Partial<NodeData>) => void;
 	onCancel?: () => void;
 }
@@ -196,13 +155,13 @@ export interface ModeToggleProps {
 	mode: 'quick' | 'structured';
 	onToggle: (mode: 'quick' | 'structured') => void;
 	onShowTypePicker?: () => void;
-	selectedCommand?: NodeCommand;
+	selectedCommand?: Command;
 }
 
 export interface CommandItemProps {
-	command: NodeCommand;
+	command: Command;
 	isSelected: boolean;
-	onSelect: (command: NodeCommand) => void;
+	onSelect: (command: Command) => void;
 	style?: React.CSSProperties;
 }
 

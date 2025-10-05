@@ -4,7 +4,7 @@ import { createClient } from '@/helpers/supabase/client';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'motion/react';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, SubmitHandler } from 'react-hook-form';
 import { z } from 'zod';
 
 const supabase = createClient();
@@ -53,7 +53,7 @@ export function JoinRoom({
 		setValue,
 		watch,
 	} = useForm<JoinRoomForm>({
-		resolver: zodResolver(JoinRoomSchema),
+		resolver: zodResolver(JoinRoomSchema) as any,
 		defaultValues: {
 			roomCode: roomCode.toUpperCase(),
 			displayName: '',
@@ -113,7 +113,7 @@ export function JoinRoom({
 		}
 	};
 
-	const onSubmit = async (data: JoinRoomForm) => {
+	const onSubmit: SubmitHandler<JoinRoomForm> = async (data) => {
 		setIsJoining(true);
 		setJoinError('');
 
@@ -249,7 +249,7 @@ export function JoinRoom({
 								<motion.div
 									className='w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2'
 									animate={{ rotate: 360 }}
-									transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+									transition={{ duration: 1, repeat: Infinity, ease: 'linear' as const }}
 								/>
 								Joining Room...
 							</>

@@ -1,12 +1,9 @@
 import { useNodeDimensions } from '@/hooks/use-node-dimensions';
 import useAppStore from '@/store/mind-map-store';
-import { type NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
 import { getNodeConstraints } from '@/utils/node-dimension-utils';
 import {
 	Handle,
-	type Node,
-	type NodeProps,
 	NodeResizer,
 	Position,
 	useConnection,
@@ -15,7 +12,6 @@ import { Plus } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
 	type CSSProperties,
-	type ReactNode,
 	memo,
 	useCallback,
 	useMemo,
@@ -27,24 +23,12 @@ import CollapseButton from './node-additions/collapse-button';
 import CollapsedIndicator from './node-additions/collapsed-indicator';
 import CommentButton from './node-additions/comment-button';
 import GroupButton from './node-additions/group-button';
+import { type BaseNodeWrapperProps } from './core/types';
 import { UniversalMetadataBar } from './shared/universal-metadata-bar';
 import {
 	GlassmorphismTheme,
 	getElevationColor,
 } from './themes/glassmorphism-theme';
-
-interface BaseNodeWrapperProps extends NodeProps<Node<NodeData>> {
-	children: ReactNode;
-	nodeClassName?: string;
-	nodeIcon?: ReactNode;
-	nodeType?: string;
-	includePadding?: boolean;
-	hideNodeType?: boolean;
-	// Semantic accent for user organization
-	accentColor?: string;
-	// Elevation level for Material Design hierarchy (0-24)
-	elevation?: number;
-}
 
 const BaseNodeWrapperComponent = ({
 	id,
@@ -58,6 +42,7 @@ const BaseNodeWrapperComponent = ({
 	hideNodeType = false,
 	accentColor,
 	elevation = 1,
+	metadataColorOverrides,
 }: BaseNodeWrapperProps) => {
 	const {
 		addNode,
@@ -249,17 +234,18 @@ const BaseNodeWrapperComponent = ({
 					{/* Universal Metadata Bar - positioned at the top of content */}
 					{/* Only show when node has actual metadata to display */}
 					{data.metadata &&
-						Object.keys(data.metadata).some(
-							(key) =>
-								data.metadata?.[key] !== undefined &&
-								data.metadata?.[key] !== null &&
-								data.metadata?.[key] !== ''
+						Object.values(data.metadata).some(
+							(value) =>
+								value !== undefined &&
+								value !== null &&
+								value !== ''
 						) && (
 							<UniversalMetadataBar
 								metadata={data.metadata}
 								nodeType={data.node_type || 'defaultNode'}
 								selected={selected}
 								className={cn([includePadding ? 'p-0 pb-4' : 'p-4'])}
+								colorOverrides={metadataColorOverrides}
 								onMetadataClick={(type, value) => {
 									// Handle metadata interactions
 									console.log(`Metadata clicked: ${type} = ${value}`);

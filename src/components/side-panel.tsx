@@ -29,7 +29,7 @@ export function SidePanel({
 					exit={{ x: '100%', opacity: 0 }}
 					transition={{
 						duration: 0.3,
-						ease: [0.4, 0, 0.2, 1],
+						ease: [0.4, 0, 0.2, 1] as const,
 					}}
 					className={cn(
 						'fixed top-0 right-0 bottom-0 z-40 h-full w-full max-w-xl min-w-sm transform bg-zinc-950 shadow-xl',

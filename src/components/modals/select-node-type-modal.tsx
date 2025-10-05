@@ -1,4 +1,4 @@
-import { NodeRegistry, AvailableNodeTypes } from '@/registry';
+import { NodeRegistry, AvailableNodeTypes } from '@/registry/node-registry';
 import useAppStore from '@/store/mind-map-store';
 import { useShallow } from 'zustand/shallow';
 import Modal from '../modal';

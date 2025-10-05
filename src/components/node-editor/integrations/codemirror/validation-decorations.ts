@@ -68,6 +68,7 @@ function buildValidationDecorations(view: EditorView): DecorationSet {
 
 		// Choose decoration style based on severity
 		let className = 'cm-validation-error';
+
 		if (error.type === 'warning') {
 			className = 'cm-validation-warning';
 		} else if (error.type === 'info' || error.type === 'suggestion') {
@@ -141,12 +142,14 @@ const validationTooltips = hoverTooltip((view, pos) => {
 
 	decorations.between(pos, pos, (from, to, decoration) => {
 		const spec = decoration.spec;
+
 		if (spec?.attributes?.['data-error']) {
 			const message = spec.attributes['data-error'];
 			const suggestion = spec.attributes['data-suggestion'];
 
 			// Create tooltip content
 			let content = message;
+
 			if (suggestion) {
 				content += `\n💡 ${suggestion}`;
 			}

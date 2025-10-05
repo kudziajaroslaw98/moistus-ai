@@ -21,6 +21,7 @@ export const MultipleChoiceResponse = ({
 }: MultipleChoiceResponseProps) => {
 	// Ensure options have valid structure
 	const validOptions = options.filter(opt => opt && opt.id && opt.label);
+
 	const handleSelect = (optionId: string) => {
 		if (allowMultiple) {
 			const currentValue = (value as string[]) || [];
@@ -37,6 +38,7 @@ export const MultipleChoiceResponse = ({
 		if (allowMultiple) {
 			return ((value as string[]) || []).includes(optionId);
 		}
+
 		return value === optionId;
 	};
 
@@ -91,6 +93,7 @@ export const MultipleChoiceResponse = ({
 							/>
 						)}
 					</div>
+
 					<span style={{
 						color: isSelected(option.id) ? '#3b82f6' : GlassmorphismTheme.text.high,
 						fontWeight: isSelected(option.id) ? 500 : 400,

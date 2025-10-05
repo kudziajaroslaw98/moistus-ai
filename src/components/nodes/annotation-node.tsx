@@ -1,14 +1,13 @@
 'use client';
 
-import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
-import { Node, NodeProps } from '@xyflow/react';
 import { AlignLeft, Lightbulb, MessageSquare, Quote } from 'lucide-react';
 import { motion } from 'motion/react';
 import { memo, useMemo } from 'react';
 import { BaseNodeWrapper } from './base-node-wrapper';
+import { type TypedNodeProps } from './core/types';
 
-type AnnotationNodeProps = NodeProps<Node<NodeData>>;
+type AnnotationNodeProps = TypedNodeProps<'annotationNode'>;
 
 // Refined color system for annotations - desaturated for dark theme
 const annotationTypeInfo: Record<
@@ -103,6 +102,11 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 			hideNodeType
 			elevation={1}
 			includePadding={false}
+			metadataColorOverrides={{
+				accentColor: typeInfo.colorRgb,
+				bgOpacity: typeInfo.bgOpacity,
+				borderOpacity: typeInfo.borderOpacity,
+			}}
 		>
 			{/* Custom annotation content with preserved styling */}
 			<motion.div
@@ -254,54 +258,6 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 								</span>
 							)}
 						</div>
-
-						{/* Priority or importance indicator for ideas */}
-						{annotationType === 'idea' && data.metadata?.priority && (
-							<div className='mt-2 flex items-center gap-1'>
-								{[...Array(3)].map((_, i) => (
-									<div
-										key={i}
-										className='w-1.5 h-1.5 rounded-full'
-										style={{
-											backgroundColor:
-												i < (data.metadata?.priority as number)
-													? `rgba(${typeInfo.colorRgb}, 0.6)`
-													: 'rgba(255, 255, 255, 0.1)',
-										}}
-									/>
-								))}
-
-								<span
-									style={{
-										fontSize: '11px',
-										color: 'rgba(255, 255, 255, 0.38)',
-										marginLeft: '4px',
-									}}
-								>
-									Priority
-								</span>
-							</div>
-						)}
-
-						{/* Tag system for better organization */}
-						{data.metadata?.tags && Array.isArray(data.metadata.tags) && (
-							<div className='flex flex-wrap gap-1 mt-2'>
-								{data.metadata.tags.map((tag: string, index: number) => (
-									<span
-										key={index}
-										className='px-2 py-0.5 rounded-full'
-										style={{
-											fontSize: '11px',
-											backgroundColor: 'rgba(255, 255, 255, 0.05)',
-											border: '1px solid rgba(255, 255, 255, 0.1)',
-											color: 'rgba(255, 255, 255, 0.6)',
-										}}
-									>
-										{tag}
-									</span>
-								))}
-							</div>
-						)}
 					</>
 				)}
 

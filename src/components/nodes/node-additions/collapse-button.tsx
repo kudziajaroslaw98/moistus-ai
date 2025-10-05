@@ -66,7 +66,7 @@ const CollapseButtonComponent = (props: { data: NodeData }) => {
 						exit={{ width: 0, opacity: 0, marginLeft: 0 }}
 						transition={{
 							duration: 0.2,
-							ease: 'easeOut',
+							ease: 'easeOut' as const,
 						}}
 						style={{
 							fontSize: '11px',

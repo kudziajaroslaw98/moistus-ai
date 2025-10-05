@@ -6,39 +6,28 @@
  */
 
 // Toolbar components
-export { 
+export {
 	SharedNodeToolbar,
-	type NodeToolbarProps 
-} from './NodeToolbar';
+	type NodeToolbarProps
+} from './node-toolbar';
 
 export {
-	TextFormattingControls,
-	NodeActionControls,
-	ExpandControl,
-	CopyFeedback,
-	ToolbarSeparator,
-	type TextFormattingProps,
-	type NodeActionProps,
-	type ExpandControlProps,
-	type CopyFeedbackProps,
-} from './ToolbarControls';
+	CopyFeedback, ExpandControl, NodeActionControls, TextFormattingControls, ToolbarSeparator, type CopyFeedbackProps, type ExpandControlProps, type NodeActionProps, type TextFormattingProps
+} from './toolbar-controls';
 
 // Content components
 export {
-	NodeContent,
-	TextContent,
 	CodeContent,
-	MediaContent,
-	type NodeContentProps,
-	type TextContentProps,
-	type CodeContentProps,
-	type MediaContentProps,
-} from './NodeContent';
+	MediaContent, NodeContent,
+	TextContent, type CodeContentProps,
+	type MediaContentProps, type NodeContentProps,
+	type TextContentProps
+} from './node-content';
 
 // Re-export default for convenience
-import NodeToolbar from './NodeToolbar';
-import ToolbarControls from './ToolbarControls';
-import NodeContent from './NodeContent';
+import NodeContent from './node-content';
+import NodeToolbar from './node-toolbar';
+import ToolbarControls from './toolbar-controls';
 
 export default {
 	NodeToolbar,

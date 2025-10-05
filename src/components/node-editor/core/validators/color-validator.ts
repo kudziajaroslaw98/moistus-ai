@@ -240,6 +240,7 @@ function getColorQuickFixes(value: string): QuickFix[] {
 
 	// Try to parse and fix
 	const parsed = parseColor(value);
+
 	if (parsed) {
 		fixes.push({
 			label: 'Use parsed color',
@@ -295,6 +296,7 @@ export function createColorValidator(options?: {
 
 			for (const format of options.formats) {
 				const validator = formatValidators[format];
+
 				if (validator) {
 					const error = validator(value, context);
 					if (!error) return null; // Valid in this format

@@ -1,8 +1,8 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import type { AvailableNodeTypes } from '@/registry';
-import { NodeRegistry } from '@/registry';
+import type { AvailableNodeTypes } from '@/registry/node-registry';
+import { NodeRegistry } from '@/registry/node-registry';
 import { Check, Sparkles, X } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -17,7 +17,7 @@ type GhostNodeProps = TypedNodeProps<'ghostNode'>;
 
 const getNodeTypeColor = (nodeType: AvailableNodeTypes) => {
 	// Use theme-consistent colors with glassmorphism approach
-	const colorMap = {
+	const colorMap: Record<AvailableNodeTypes, string> = {
 		textNode: 'rgba(96, 165, 250, 0.1)', // Blue
 		imageNode: 'rgba(168, 85, 247, 0.1)', // Purple
 		resourceNode: 'rgba(34, 197, 94, 0.1)', // Green
@@ -25,10 +25,13 @@ const getNodeTypeColor = (nodeType: AvailableNodeTypes) => {
 		annotationNode: 'rgba(249, 115, 22, 0.1)', // Orange
 		codeNode: 'rgba(156, 163, 175, 0.1)', // Gray
 		taskNode: 'rgba(239, 68, 68, 0.1)', // Red
-		default: GlassmorphismTheme.ghost.background,
-	};
+		defaultNode: GlassmorphismTheme.ghost.background,
+		referenceNode: GlassmorphismTheme.ghost.background,
+		groupNode: GlassmorphismTheme.ghost.background,
+		ghostNode: GlassmorphismTheme.ghost.background,
+	} as const;
 
-	return colorMap[nodeType] || colorMap.default;
+	return colorMap[nodeType] || colorMap.defaultNode;
 };
 
 const getNodeTypeIcon = (nodeType: AvailableNodeTypes) => {
@@ -144,6 +147,7 @@ function GhostNodeComponent(props: GhostNodeProps) {
 						style={{ color: GlassmorphismTheme.text.disabled }}
 					>
 						Trigger: {context.trigger}
+
 						{context.relationshipType && (
 							<span className='ml-2'>→ {context.relationshipType}</span>
 						)}

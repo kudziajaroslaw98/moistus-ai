@@ -124,10 +124,10 @@ export default function PrivacySettingsPage() {
 				...prev,
 				profile: {
 					...prev.profile,
-					visibility: prefs.profile_visibility || 'public',
-					showEmail: prefs.show_email,
-					showLocation: prefs.show_location,
-					showCompany: prefs.show_company,
+					visibility: prefs?.profile_visibility || 'public',
+					showEmail: prefs?.show_email ?? false,
+					showLocation: prefs?.show_location ?? true,
+					showCompany: prefs?.show_company ?? true,
 				},
 			}));
 		}

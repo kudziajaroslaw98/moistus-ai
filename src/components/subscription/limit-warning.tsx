@@ -179,7 +179,7 @@ export function UsageMeter({
 				<motion.div
 					initial={{ width: 0 }}
 					animate={{ width: `${Math.min(percentageUsed, 100)}%` }}
-					transition={{ duration: 0.5, ease: 'easeOut' }}
+					transition={{ duration: 0.5, ease: 'easeOut' as const }}
 					className={`h-full rounded-full ${
 						isAtLimit
 							? 'bg-red-500'

@@ -32,6 +32,7 @@ export const BinaryResponse = ({
 				)}
 			>
 				<Check className='w-4 h-4' style={{ color: value === true ? '#10b981' : GlassmorphismTheme.text.medium }} />
+
 				<span style={{
 					color: value === true ? '#10b981' : GlassmorphismTheme.text.medium,
 					fontWeight: value === true ? 600 : 400
@@ -54,6 +55,7 @@ export const BinaryResponse = ({
 				)}
 			>
 				<X className='w-4 h-4' style={{ color: value === false ? '#ef4444' : GlassmorphismTheme.text.medium }} />
+
 				<span style={{
 					color: value === false ? '#ef4444' : GlassmorphismTheme.text.medium,
 					fontWeight: value === false ? 600 : 400

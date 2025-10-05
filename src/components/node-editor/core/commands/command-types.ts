@@ -3,7 +3,7 @@
  */
 
 import type { LucideIcon } from 'lucide-react';
-import type { AvailableNodeTypes } from '@/registry';
+import type { AvailableNodeTypes } from '@/registry/node-registry';
 
 /**
  * Command categories for grouping related commands
@@ -22,6 +22,11 @@ export type CommandCategory =
  * Trigger types for command activation
  */
 export type CommandTriggerType = 'node-type' | 'slash' | 'shortcut';
+
+/**
+ * Alias for CommandTriggerType (used in registry methods)
+ */
+export type CommandTrigger = CommandTriggerType;
 
 /**
  * Command execution context
@@ -59,6 +64,55 @@ export type CommandAction = (
 ) => CommandResult | Promise<CommandResult>;
 
 /**
+ * Field configuration for structured input
+ */
+export type FieldType =
+	| 'text'
+	| 'textarea'
+	| 'select'
+	| 'date'
+	| 'array'
+	| 'code'
+	| 'url'
+	| 'image'
+	| 'checkbox'
+	| 'task';
+
+export interface FieldConfig {
+	name: string;
+	type: FieldType;
+	label?: string;
+	placeholder?: string;
+	required?: boolean;
+	options?: Array<{ value: string; label: string }>;
+	itemType?: string;
+	validation?: (value: any) => string | null;
+}
+
+/**
+ * Parsing pattern for quick input
+ */
+export type PatternCategory =
+	| 'metadata'
+	| 'formatting'
+	| 'content'
+	| 'structure';
+
+export interface ParsingPattern {
+	pattern: string;
+	description: string;
+	examples: string[];
+	category: PatternCategory;
+	insertText?: string;
+	icon?: LucideIcon;
+}
+
+/**
+ * Quick parser function type
+ */
+export type QuickParser<T = any> = (input: string) => T;
+
+/**
  * Command definition
  */
 export interface Command {
@@ -77,6 +131,10 @@ export interface Command {
 	priority?: number;
 	isPro?: boolean;
 	isEnabled?: boolean;
+	// UI-specific fields (optional)
+	quickParse?: QuickParser;
+	fields?: FieldConfig[];
+	parsingPatterns?: ParsingPattern[];
 }
 
 /**
@@ -90,15 +148,6 @@ export interface CommandSearchOptions {
 	limit?: number;
 	includePro?: boolean;
 	includeDisabled?: boolean;
-}
-
-/**
- * Command validation result
- */
-export interface CommandValidationResult {
-	isValid: boolean;
-	errors: string[];
-	warnings?: string[];
 }
 
 /**
@@ -125,46 +174,4 @@ export interface NodeTypeSwitchResult {
 	cursorPosition: number;
 	trigger?: string;
 	remainingContent?: string;
-}
-
-/**
- * Command registration options
- */
-export interface CommandRegistrationOptions {
-	replace?: boolean;
-	validate?: boolean;
-	silent?: boolean;
-}
-
-/**
- * Registry event types
- */
-export type RegistryEventType =
-	| 'command-registered'
-	| 'command-unregistered'
-	| 'command-executed'
-	| 'registry-cleared';
-
-/**
- * Registry event
- */
-export interface RegistryEvent {
-	type: RegistryEventType;
-	commandId?: string;
-	command?: Command;
-	timestamp: number;
-}
-
-/**
- * Registry event listener
- */
-export type RegistryEventListener = (event: RegistryEvent) => void;
-
-/**
- * Command registry statistics
- */
-export interface RegistryStats {
-	totalCommands: number;
-	commandsByCategory: Record<CommandCategory, number>;
-	commandsByTriggerType: Record<CommandTriggerType, number>;
 }

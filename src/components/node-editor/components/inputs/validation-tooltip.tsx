@@ -2,7 +2,7 @@
 
 import React, { useRef } from 'react';
 import { cn } from '@/utils/cn';
-import { type ValidationError } from '../validation';
+import { type ValidationError } from '../../core/validators/validation-types';
 
 interface ValidationTooltipProps {
 	children: React.ReactNode;
@@ -130,11 +130,11 @@ export const ValidationTooltip: React.FC<ValidationTooltipProps> = ({
 									{/* Quick Fix Buttons */}
 									{error.quickFixes && error.quickFixes.length > 0 && onQuickFix && (
 										<div className="flex flex-wrap gap-2 ml-6">
-											{error.quickFixes.map((fix, fixIndex) => (
+											{error.quickFixes.map((fix: any, fixIndex: number) => (
 												<button
 													key={fixIndex}
 													onClick={() => {
-														onQuickFix(error.startIndex, error.endIndex, fix.replacement);
+														onQuickFix(error.startIndex || 0, error.endIndex || 0, fix.replacement);
 														onOpenChange(false);
 													}}
 													className={cn(

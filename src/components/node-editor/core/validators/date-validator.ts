@@ -59,6 +59,7 @@ export function validateFutureDate(
 	if (baseError) return baseError;
 
 	const date = parseDateString(dateStr);
+
 	if (!date) {
 		return {
 			type: 'error',
@@ -115,6 +116,7 @@ export function validatePastDate(
 	if (baseError) return baseError;
 
 	const date = parseDateString(dateStr);
+
 	if (!date) {
 		return {
 			type: 'error',
@@ -167,6 +169,7 @@ export function validateDateRange(
 	if (baseError) return baseError;
 
 	const date = parseDateString(dateStr);
+
 	if (!date) {
 		return {
 			type: 'error',

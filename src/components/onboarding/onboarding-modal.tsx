@@ -25,7 +25,7 @@ const stepVariants = {
 };
 
 const transition = {
-	type: 'spring',
+	type: 'spring' as const,
 	stiffness: 300,
 	damping: 30,
 };
@@ -72,7 +72,7 @@ export function OnboardingModal() {
 				return (
 					<WelcomeStep
 						onContinue={nextOnboardingStep}
-						userName={useAppStore.getState().userProfile?.displayName}
+						userName={useAppStore.getState().userProfile?.display_name}
 					/>
 				);
 			case 1:

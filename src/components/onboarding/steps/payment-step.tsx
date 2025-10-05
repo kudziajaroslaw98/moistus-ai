@@ -127,14 +127,29 @@ function PaymentForm({
 				throw new Error(result.error);
 			}
 
-			// If subscription requires additional action (3D Secure)
+			// Handle additional confirmation if client secret is provided
 			if (result.clientSecret) {
-				const { error: confirmError } = await stripe.confirmCardPayment(
-					result.clientSecret
-				);
+				// Determine intent type by prefix:
+				// - 'seti_' = SetupIntent (trial subscription, verify card only)
+				// - 'pi_' = PaymentIntent (immediate payment subscription, charge card)
+				if (result.clientSecret.startsWith('seti_')) {
+					// Trial subscription: confirm setup intent (verify card, no charge)
+					const { error: confirmError } = await stripe.confirmCardSetup(
+						result.clientSecret
+					);
 
-				if (confirmError) {
-					throw new Error(confirmError.message);
+					if (confirmError) {
+						throw new Error(confirmError.message);
+					}
+				} else if (result.clientSecret.startsWith('pi_')) {
+					// Immediate payment: confirm payment intent (charge card now)
+					const { error: confirmError } = await stripe.confirmCardPayment(
+						result.clientSecret
+					);
+
+					if (confirmError) {
+						throw new Error(confirmError.message);
+					}
 				}
 			}
 
@@ -148,10 +163,20 @@ function PaymentForm({
 		}
 	};
 
-	const planPrice =
+	// Try to get price from database plans first, fallback to hardcoded constants
+	const dbPlanPrice =
 		availablePlans.find((p) => p.name === selectedPlan)?.[
 			billingCycle === 'monthly' ? 'priceMonthly' : 'priceYearly'
-		] || 0;
+		];
+
+	// Fallback to hardcoded pricing if database query failed
+	const planPrice =
+		dbPlanPrice ??
+		(selectedPlan === 'pro'
+			? billingCycle === 'monthly'
+				? 12
+				: 120
+			: 0);
 
 	return (
 		<form onSubmit={handleSubmit} className='space-y-6'>
@@ -235,7 +260,7 @@ function PaymentForm({
 						<span className='flex items-center gap-2'>
 							<motion.div
 								animate={{ rotate: 360 }}
-								transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+								transition={{ duration: 1, repeat: Infinity, ease: 'linear' as const }}
 								className='w-4 h-4 border-2 border-zinc-900 border-t-transparent rounded-full'
 							/>
 							Processing...

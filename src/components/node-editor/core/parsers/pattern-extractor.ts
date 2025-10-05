@@ -26,6 +26,7 @@ export type PatternType =
 	| 'options'
 	| 'question'
 	| 'multiple'
+	| 'reference'
 	| 'borderColor'
 	| 'title'
 	| 'label'
@@ -65,6 +66,24 @@ export interface ExtractedData {
 }
 
 /**
+ * Parsed metadata type for backwards compatibility with pattern-parser
+ */
+export interface ParsedMetadata extends Partial<Record<PatternType, unknown>> {
+	priority?: string;
+	dueDate?: string | Date;
+	assignee?: string | string[];
+	status?: string;
+	tags?: string[];
+	color?: string;
+	fontSize?: string;
+	questionType?: 'binary' | 'multiple';
+	responseFormat?: {
+		options: Array<{ id: string; label: string }>;
+		allowMultiple: boolean;
+	};
+}
+
+/**
  * Pattern configuration
  */
 interface PatternConfig {
@@ -90,7 +109,7 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 				display: date ? formatDateForDisplay(date, dateStr) : dateStr,
 			};
 		},
-		metadataKey: 'date',
+		metadataKey: 'dueDate', // Changed from 'date' to match PreviewRenderer expectations
 	},
 
 	// Priority pattern: !priority (like !high, !1, or !! for medium, !!! for high)
@@ -167,7 +186,7 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 		metadataKey: 'responseFormat.allowMultiple',
 	},
 
-		// Is multiple question pattern: multiple:value
+		// Question options pattern: options:[value,value2,value3]
 	{
 		regex: /(?:^|\s)options:\[([a-zA-Z0-9,\s]*)\]/gi,
 		type: 'options',
@@ -329,7 +348,6 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 export function extractAllPatterns(text: string): ExtractedData {
 	const patterns: ExtractedPattern[] = [];
 	const metadata: Record<string, any> = {};
-	let cleanText = text;
 
 	// Extract patterns using configurations
 	for (const config of PATTERN_CONFIGS) {
@@ -351,24 +369,37 @@ export function extractAllPatterns(text: string): ExtractedData {
 			if (config.metadataKey) {
 				if (config.type === 'tag') {
 					// Tags are stored as array
-					metadata[config.metadataKey] = value.split(',').map((t) => t.trim());
+					if (!metadata[config.metadataKey]) {
+						metadata[config.metadataKey] = [];
+					}
+
+					metadata[config.metadataKey].push(value);
 				} else {
 					metadata[config.metadataKey] = value;
 				}
 			}
-
-			// Remove from clean text
-			cleanText = cleanText.replace(match[0], '');
 		}
 	}
 
-	// Extract checkbox patterns
-	const checkboxPatterns = extractCheckboxPatterns(cleanText);
+	// Extract checkbox patterns from ORIGINAL text
+	const checkboxPatterns = extractCheckboxPatterns(text);
 	patterns.push(...checkboxPatterns);
 
-	// Extract formatting patterns (bold, italic)
-	const formattingPatterns = extractFormattingPatterns(cleanText);
+	// Extract formatting patterns (bold, italic) from ORIGINAL text
+	const formattingPatterns = extractFormattingPatterns(text);
 	patterns.push(...formattingPatterns);
+
+	// Build clean text by removing all pattern matches from the text
+	// Sort patterns by position (descending) to remove from end to start
+	const sortedPatterns = [...patterns].sort((a, b) => b.position - a.position);
+	let cleanText = text;
+
+	for (const pattern of sortedPatterns) {
+		// Remove pattern from text using position
+		cleanText =
+			cleanText.slice(0, pattern.position) +
+			cleanText.slice(pattern.position + pattern.raw.length);
+	}
 
 	// Clean up the text
 	cleanText = cleanText
@@ -387,11 +418,21 @@ export function extractAllPatterns(text: string): ExtractedData {
  */
 function extractCheckboxPatterns(text: string): ExtractedPattern[] {
 	const patterns: ExtractedPattern[] = [];
-	const checkboxRegex = /^[-*]\s*\[([ xX])\]/gm;
+	// Match [], [ ], [x], [X] but not [[reference]] patterns
+	const checkboxRegex = /\[([ xX]?)\]/g;
 	let match;
 
 	while ((match = checkboxRegex.exec(text)) !== null) {
-		const isChecked = match[1].toLowerCase() === 'x';
+		// Skip if this is part of a [[reference]] pattern
+		const charBefore = text[match.index - 1];
+		const charAfter = text[match.index + match[0].length];
+
+		if (charBefore === '[' || charAfter === ']') {
+			continue; // Skip [[...]] patterns
+		}
+
+		const checkboxContent = match[1] || '';
+		const isChecked = checkboxContent.toLowerCase() === 'x';
 		patterns.push({
 			type: 'checkbox',
 			value: isChecked ? 'checked' : 'unchecked',
@@ -447,9 +488,69 @@ function extractFormattingPatterns(text: string): ExtractedPattern[] {
 }
 
 /**
- * Parse input text into node data
+ * Parse input text for quick input mode (used by node-commands)
+ * Returns structured data compatible with QuickParser type
+ * Returns ALL extracted metadata - no data loss
  */
-export function parseInput(input: string): Partial<NodeData> {
+export function parseInput(input: string): {
+	content: string;
+	metadata: Record<string, any>;
+	patterns: ExtractedPattern[];
+} {
+	const { cleanText, patterns, metadata } = extractAllPatterns(input);
+
+	// Process nested metadata keys (e.g., 'responseFormat.options' -> responseFormat.options)
+	const processedMetadata: Record<string, any> = {};
+
+	for (const [key, value] of Object.entries(metadata)) {
+		if (key.includes('.')) {
+			// Handle nested keys like 'responseFormat.options'
+			const parts = key.split('.');
+			const parentKey = parts[0];
+			const childKey = parts[1];
+
+			if (!processedMetadata[parentKey]) {
+				processedMetadata[parentKey] = {};
+			}
+
+			// Convert string 'true'/'false' to boolean for allowMultiple
+			if (childKey === 'allowMultiple') {
+				processedMetadata[parentKey][childKey] = value === 'true';
+			}
+			// Parse options string into array of objects
+			else if (childKey === 'options') {
+				processedMetadata[parentKey][childKey] = value
+					.split(',')
+					.map((opt: string, index: number) => ({
+						id: `option-${index}`,
+						label: opt.trim(),
+					}));
+			} else {
+				processedMetadata[parentKey][childKey] = value;
+			}
+		} else {
+			// Direct key
+			processedMetadata[key] = value;
+		}
+	}
+
+	// Process tasks if checkbox patterns are found
+	if (hasCheckboxSyntax(input)) {
+		const tasks = parseTaskList(input);
+		processedMetadata.tasks = tasks;
+	}
+
+	return {
+		content: cleanText,
+		metadata: processedMetadata,
+		patterns,
+	};
+}
+
+/**
+ * Parse input text into node data (alternative API)
+ */
+export function parseInputToNodeData(input: string): Partial<NodeData> {
 	const { cleanText, metadata } = extractAllPatterns(input);
 
 	const nodeData: Partial<NodeData> = {
@@ -470,25 +571,52 @@ export function parseInput(input: string): Partial<NodeData> {
  * Check if text contains checkbox syntax
  */
 export function hasCheckboxSyntax(text: string): boolean {
-	return /^[-*]\s*\[[ xX]\]/m.test(text);
+	// Check for checkbox patterns: [], [ ], [x], [X]
+	// Exclude [[reference]] patterns by checking surrounding characters
+	const matches = text.matchAll(/\[([ xX]?)\]/g);
+
+	for (const match of matches) {
+		const charBefore = text[match.index! - 1];
+		const charAfter = text[match.index! + match[0].length];
+
+		// If not part of [[...]], it's a checkbox
+		if (charBefore !== '[' && charAfter !== ']') {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 /**
  * Parse task list from text
+ * Returns tasks with isComplete property to match TaskNode expectations
  */
 export function parseTaskList(
 	text: string
-): Array<{ text: string; completed: boolean }> {
-	const lines = text.split('\n');
-	const tasks: Array<{ text: string; completed: boolean }> = [];
+): Array<{ text: string; isComplete: boolean; id?: string }> {
+	// Split by newlines (handle both \n and \r\n)
+	const lines = text.split(/\r?\n/);
+	const tasks: Array<{ text: string; isComplete: boolean; id?: string }> = [];
 
 	for (const line of lines) {
-		const match = line.match(/^[-*]\s*\[([ xX])\]\s*(.+)/);
+		// Simpler regex: Match checkbox at start of line
+		// Matches: [], [ ], [x], [X] but not [[reference]]
+		const match = line.match(/^\s*\[([ xX]?)\]\s*(.+)/);
+
 		if (match) {
-			tasks.push({
-				text: match[2].trim(),
-				completed: match[1].toLowerCase() === 'x',
-			});
+			const checkboxContent = match[1] || ''; // Space, x, X, or empty
+			const taskText = match[2].trim();
+
+			// Only add if there's actual task text
+			if (taskText) {
+				const isCompleted = checkboxContent.toLowerCase() === 'x';
+				tasks.push({
+					text: taskText,
+					isComplete: isCompleted,
+					id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+				});
+			}
 		}
 	}
 
@@ -504,6 +632,7 @@ export function hasEmbeddedPatterns(text: string): boolean {
 			return true;
 		}
 	}
+
 	return hasCheckboxSyntax(text);
 }
 
@@ -511,7 +640,8 @@ export function hasEmbeddedPatterns(text: string): boolean {
  * Count tasks in text
  */
 export function countTasks(text: string): number {
-	const matches = text.match(/^[-*]\s*\[[ xX]\]/gm);
+	// Match [], [ ], [x], [X] but not [[reference]] patterns
+	const matches = text.match(/(?<!\[)\[([ xX]?)\](?!\])/g);
 	return matches ? matches.length : 0;
 }
 

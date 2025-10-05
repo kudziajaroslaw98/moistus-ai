@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-	apiVersion: '2025-07-30.basil',
+	apiVersion: '2025-09-30.clover',
 });
 
 export async function POST(req: NextRequest) {
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
 				payment_method_types: ['card'],
 				save_default_payment_method: 'on_subscription',
 			},
-			expand: ['latest_invoice.payment_intent'],
+			expand: ['latest_invoice.payment_intent', 'pending_setup_intent'],
 		});
 
 		const currentPeriodStart = subscription.items.data[0].current_period_start;
@@ -127,14 +127,32 @@ export async function POST(req: NextRequest) {
 			throw new Error('Failed to save subscription to database');
 		}
 
-		const latestInvoice = subscription.latest_invoice as Stripe.Invoice & {
-			payment_intent: Stripe.PaymentIntent;
-		};
-		const paymentIntent = latestInvoice.payment_intent as Stripe.PaymentIntent;
+		// Get client_secret based on subscription type
+		// For trial subscriptions: use pending_setup_intent (card verification, no charge)
+		// For immediate payment: use latest_invoice.payment_intent (card charged now)
+		let clientSecret: string | null = null;
+
+		if (subscription.pending_setup_intent) {
+			// Trial subscription - card will be verified but not charged
+			const setupIntent =
+				subscription.pending_setup_intent as Stripe.SetupIntent;
+			clientSecret = setupIntent.client_secret;
+		} else if (subscription.latest_invoice) {
+			// Immediate payment subscription - card will be charged now
+			const latestInvoice = subscription.latest_invoice as Stripe.Invoice & {
+				payment_intent: Stripe.PaymentIntent;
+			};
+
+			if (latestInvoice.payment_intent) {
+				const paymentIntent =
+					latestInvoice.payment_intent as Stripe.PaymentIntent;
+				clientSecret = paymentIntent.client_secret || null;
+			}
+		}
 
 		return NextResponse.json({
 			subscriptionId: subscription.id,
-			clientSecret: paymentIntent.client_secret,
+			clientSecret,
 			status: subscription.status,
 		});
 	} catch (error) {

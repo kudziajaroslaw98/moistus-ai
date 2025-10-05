@@ -1,13 +1,14 @@
 'use client';
 
-import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
-import { Node, NodeProps } from '@xyflow/react';
 import { FileText } from 'lucide-react';
 import { memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { BaseNodeWrapper } from './base-node-wrapper';
+import { type TypedNodeProps } from './core/types';
 import { GlassmorphismTheme } from './themes/glassmorphism-theme';
+
+type DefaultNodeProps = TypedNodeProps<'defaultNode'>;
 
 const MarkdownWrapperComponent = ({ content }: { content: string }) => {
 	// Custom markdown components following Material Design dark theme principles
@@ -200,7 +201,7 @@ const MarkdownWrapperComponent = ({ content }: { content: string }) => {
 const MarkdownWrapper = memo(MarkdownWrapperComponent);
 MarkdownWrapper.displayName = 'MarkdownWrapper';
 
-const DefaultNodeComponent = (props: NodeProps<Node<NodeData>>) => {
+const DefaultNodeComponent = (props: DefaultNodeProps) => {
 	const { id, data } = props;
 
 	return (

@@ -53,6 +53,7 @@ export function parseQuestionOptions(content: string): {
 
 	// Check for multiple choice options [opt1,opt2,opt3]
 	const optionsMatch = content.match(/\[([^\]]+)\]/);
+
 	if (optionsMatch && optionsMatch[1].includes(',')) {
 		result.questionType = 'multiple';
 		result.options = optionsMatch[1].split(',').map(opt => opt.trim());

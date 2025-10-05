@@ -57,7 +57,7 @@ function StepItem({ step }: { step: ToastStep }) {
 			initial={{ opacity: 0, y: 5 }}
 			animate={{ opacity: 1, y: 0 }}
 			exit={{ opacity: 0 }}
-			transition={{ duration: 0.3, ease: 'easeOut' }}
+			transition={{ duration: 0.3, ease: 'easeOut' as const }}
 			className='flex items-center gap-3 text-sm'
 		>
 			<div className='flex-shrink-0 w-4 h-4 flex items-center justify-center'>
@@ -80,7 +80,7 @@ function StepItem({ step }: { step: ToastStep }) {
 							className='absolute top-1/2 left-0 h-px bg-zinc-700'
 							initial={{ width: '0%' }}
 							animate={{ width: '100%' }}
-							transition={{ duration: 0.4, ease: 'easeOut' }}
+							transition={{ duration: 0.4, ease: 'easeOut' as const }}
 						/>
 					)}
 				</span>
@@ -136,7 +136,7 @@ function ToastUI({
 							initial={{ opacity: 0, y: 10 }}
 							animate={{ opacity: 1, y: 0 }}
 							exit={{ opacity: 0, y: -10 }}
-							transition={{ duration: 0.3, ease: 'easeOut' }}
+							transition={{ duration: 0.3, ease: 'easeOut' as const }}
 							className='text-sm text-zinc-400'
 						>
 							{isError ? error : message}
@@ -166,7 +166,7 @@ function ToastUI({
 								filter: 'blur(3px)',
 								marginTop: 0,
 							}}
-							transition={{ duration: 0.3, ease: 'easeOut' }}
+							transition={{ duration: 0.3, ease: 'easeOut' as const }}
 						>
 							{steps.map((s: ToastStep) => (
 								<StepItem key={s.id} step={s} />

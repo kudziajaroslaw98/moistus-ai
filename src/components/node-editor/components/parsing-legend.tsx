@@ -59,7 +59,7 @@ const contentVariants = {
 		height: 'auto',
 		opacity: 1,
 		transition: {
-			height: { duration: 0.3, ease: 'easeOut' },
+			height: { duration: 0.3, ease: 'easeOut' as const },
 			opacity: { duration: 0.2, delay: 0.1 },
 		},
 	},
@@ -67,7 +67,7 @@ const contentVariants = {
 		height: 0,
 		opacity: 0,
 		transition: {
-			height: { duration: 0.3, ease: 'easeIn' },
+			height: { duration: 0.3, ease: 'easeIn' as const },
 			opacity: { duration: 0.2 },
 		},
 	},

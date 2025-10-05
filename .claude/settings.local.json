@@ -52,7 +52,12 @@
       "mcp__browsermcp__browser_wait",
       "mcp__browsermcp__browser_screenshot",
       "mcp__browsermcp__browser_snapshot",
-      "mcp__stripe__search_stripe_documentation"
+      "mcp__stripe__search_stripe_documentation",
+      "Bash(while read file)",
+      "Bash(do sed -i \"s/ease: ''''\\([^'''']*\\)''''/ease: ''''\\1'''' as const/g\" \"$file\" sed -i \"s/ease: \"\"\\([^\"\"]*\\)\"\"/ease: \"\"\\1\"\" as const/g\" \"$file\" sed -i 's/ease: \\(\\[[^]]*\\]\\)/ease: \\1 as const/g' \"$file\" done)",
+      "Bash(pnpm type-check:*)",
+      "mcp__browsermcp__browser_press_key",
+      "mcp__browsermcp__browser_type"
     ],
     "deny": [
       "mcp__supabase__list_organizations",

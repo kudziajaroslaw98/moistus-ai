@@ -15,8 +15,8 @@ import {
 	SelectValue,
 } from '@/components/ui/select';
 import { SidebarProvider, useSidebar } from '@/components/ui/sidebar';
+import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
-import { AnimatePresence, motion } from 'motion/react';
 import {
 	Filter,
 	Grid3x3,
@@ -26,11 +26,11 @@ import {
 	SortAsc,
 	Trash2,
 } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR, { mutate } from 'swr';
-import useAppStore from '@/store/mind-map-store';
 import { useShallow } from 'zustand/react/shallow';
 
 interface MindMapData {
@@ -53,7 +53,6 @@ interface MindMapData {
 		edges: number;
 	};
 }
-
 
 // SWR fetcher function
 const fetcher = async (url: string) => {
@@ -107,7 +106,6 @@ function DashboardContent() {
 		revalidateOnReconnect: true,
 		dedupingInterval: 5000,
 	});
-
 
 	// Filter and sort maps
 	const filteredMaps = mapsData.maps
@@ -313,7 +311,6 @@ function DashboardContent() {
 		[selectedMaps.size, filteredMaps]
 	);
 
-
 	// Keyboard navigation and shortcuts
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
@@ -416,6 +413,7 @@ function DashboardContent() {
 									<p className='text-sm font-medium text-purple-600'>
 										✨ Trial Active: {trialDays} days remaining
 									</p>
+
 									<p className='text-xs text-muted-foreground mt-1'>
 										Enjoying Pro features? Your trial ends soon.
 									</p>

@@ -124,7 +124,7 @@ const CollapsedIndicatorComponent = (props: { data: NodeData }) => {
 								transition={{
 									duration: 2,
 									repeat: Infinity,
-									ease: 'easeInOut',
+									ease: 'easeInOut' as const,
 								}}
 								style={{
 									border: '1px solid rgba(96, 165, 250, 0.5)',

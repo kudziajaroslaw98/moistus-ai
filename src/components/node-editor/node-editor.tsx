@@ -16,8 +16,8 @@ import { CommandPalette } from './components/command-palette';
 import { QuickInput } from './components/inputs/quick-input';
 import { StructuredInput } from './components/inputs/structured-input';
 import { ModeToggle } from './components/mode-toggle';
+import type { Command } from './core/commands/command-types';
 import { getCommandByType, nodeCommands } from './core/commands/node-commands';
-import type { NodeCommand } from './types';
 
 const animationVariants = {
 	container: {
@@ -26,7 +26,7 @@ const animationVariants = {
 			opacity: 1,
 			scale: 1,
 			y: 0,
-			transition: { duration: 0.2, ease: 'easeOut' },
+			transition: { duration: 0.2, ease: 'easeOut' as const },
 		},
 		exit: {
 			opacity: 0,
@@ -83,7 +83,7 @@ export const NodeEditor = () => {
 				const command = getCommandByType(nodeType);
 
 				if (command) {
-					setNodeEditorCommand(command.command);
+					setNodeEditorCommand(command); // Pass full command object
 
 					// Only reset showTypePicker if this is a new node being opened
 					if (initializedRef.current !== nodeEditor.existingNodeId) {
@@ -126,7 +126,7 @@ export const NodeEditor = () => {
 		const query = nodeEditor.filterQuery.toLowerCase();
 		return nodeCommands.filter(
 			(cmd) =>
-				cmd.command.toLowerCase().includes(query) ||
+				cmd.trigger.toLowerCase().includes(query) ||
 				cmd.label.toLowerCase().includes(query) ||
 				cmd.description.toLowerCase().includes(query)
 		);
@@ -151,8 +151,8 @@ export const NodeEditor = () => {
 
 	// Handle command selection
 	const handleSelectCommand = useCallback(
-		(command: NodeCommand) => {
-			setNodeEditorCommand(command.command);
+		(command: Command) => {
+			setNodeEditorCommand(command); // Pass full command object
 			setActiveIndex(null);
 			setShowTypePicker(false);
 		},
@@ -162,7 +162,7 @@ export const NodeEditor = () => {
 	// Handle showing type picker
 	const handleShowTypePicker = useCallback(() => {
 		setShowTypePicker(true);
-		setNodeEditorCommand(null);
+		setNodeEditorCommand(null); // Clear command
 		setNodeEditorFilterQuery('');
 	}, [setNodeEditorCommand, setNodeEditorFilterQuery]);
 
@@ -219,11 +219,8 @@ export const NodeEditor = () => {
 		showTypePicker,
 	]);
 
-	const selectedCommand = useMemo(
-		() =>
-			nodeCommands.find((cmd) => cmd.command === nodeEditor.selectedCommand),
-		[nodeEditor.selectedCommand]
-	);
+	// selectedCommand is now stored directly in state as NodeCommand object
+	const selectedCommand = nodeEditor.selectedCommand;
 
 	if (!nodeEditor.isOpen) return null;
 
@@ -253,14 +250,7 @@ export const NodeEditor = () => {
 									animate='animate'
 									exit='exit'
 								>
-									<CommandPalette
-										commands={filteredCommands}
-										onSelectCommand={handleSelectCommand}
-										filterQuery={nodeEditor.filterQuery}
-										onFilterChange={setNodeEditorFilterQuery}
-										activeIndex={activeIndex}
-										itemsRef={itemsRef}
-									/>
+									<CommandPalette onCommandExecute={handleSelectCommand} />
 								</motion.div>
 							) : (
 								<motion.div

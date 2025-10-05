@@ -69,7 +69,7 @@ const CommentButtonComponent = () => {
 					transition={{
 						duration: 2,
 						repeat: Infinity,
-						ease: 'easeInOut',
+						ease: 'easeInOut' as const,
 					}}
 					style={{
 						backgroundColor: 'rgba(96, 165, 250, 0.2)',
@@ -116,7 +116,7 @@ const CommentButtonComponent = () => {
 					transition={{
 						duration: 2,
 						repeat: Infinity,
-						ease: 'easeInOut',
+						ease: 'easeInOut' as const,
 					}}
 				/>
 			)}

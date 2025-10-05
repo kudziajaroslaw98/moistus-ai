@@ -1,6 +1,6 @@
 /**
- * Command Registry (Refactored) - Simplified command management system
- * Uses modular command definitions to eliminate duplication
+ * Command Registry - Simplified command management system
+ * Single source of truth for node type commands
  */
 
 import type {
@@ -10,26 +10,16 @@ import type {
 	CommandResult,
 	CommandSearchOptions,
 	CommandTrigger,
-	CommandValidationResult,
-	RegistryEvent,
-	RegistryEventListener,
-	RegistryEventType,
-	RegistryStats,
 } from './command-types';
 import { nodeTypeCommands } from './definitions/node-type-commands';
-import { patternCommands } from './definitions/pattern-commands';
-import { allFormatCommands } from './definitions/format-commands';
-import { templateCommands } from './definitions/template-commands';
 
 /**
- * Simplified Command Registry using modular definitions
- * Single source of truth for command management
+ * Simplified Command Registry
+ * Manages only node-type commands (no events, no custom commands, no stats)
  */
 export class CommandRegistry {
 	private static instance: CommandRegistry;
 	private commands = new Map<string, Command>();
-	private eventListeners = new Map<RegistryEventType, RegistryEventListener[]>();
-	private customCommands = new Map<string, Command>();
 
 	private constructor() {
 		this.initializeCommands();
@@ -42,55 +32,17 @@ export class CommandRegistry {
 		if (!CommandRegistry.instance) {
 			CommandRegistry.instance = new CommandRegistry();
 		}
+
 		return CommandRegistry.instance;
 	}
 
 	/**
-	 * Initialize registry with default commands
+	 * Initialize registry with node type commands
 	 */
 	private initializeCommands(): void {
-		// Load all predefined commands from definitions
-		const allCommands = [
-			...nodeTypeCommands,
-			...patternCommands,
-			...allFormatCommands,
-			...templateCommands,
-		];
-
-		allCommands.forEach(command => {
+		nodeTypeCommands.forEach(command => {
 			this.commands.set(command.id, command);
 		});
-	}
-
-	/**
-	 * Register a custom command (in addition to defaults)
-	 */
-	public registerCustomCommand(
-		command: Command,
-		options: { replace?: boolean } = {}
-	): boolean {
-		const validation = this.validateCommand(command);
-		if (!validation.isValid) {
-			console.error('Command validation failed:', validation.errors);
-			return false;
-		}
-
-		const commandId = command.id;
-
-		// Check if it would override a default command
-		if (this.commands.has(commandId) && !options.replace) {
-			console.warn(`Command '${commandId}' already exists. Use replace option to override.`);
-			return false;
-		}
-
-		// Store in custom commands map
-		this.customCommands.set(commandId, command);
-
-		// Add to main registry
-		this.commands.set(commandId, command);
-
-		this.emitEvent('command-registered', commandId, command);
-		return true;
 	}
 
 	/**
@@ -206,9 +158,7 @@ export class CommandRegistry {
 		}
 
 		try {
-			const result = await command.action(context);
-			this.emitEvent('command-executed', commandId, command);
-			return result;
+			return await command.action(context);
 		} catch (error) {
 			console.error(`Error executing command '${commandId}':`, error);
 			return {
@@ -223,20 +173,6 @@ export class CommandRegistry {
 	 */
 	public getAllCommands(): Command[] {
 		return Array.from(this.commands.values());
-	}
-
-	/**
-	 * Get custom commands only
-	 */
-	public getCustomCommands(): Command[] {
-		return Array.from(this.customCommands.values());
-	}
-
-	/**
-	 * Get commands by category
-	 */
-	public getCommandsByCategory(category: CommandCategory): Command[] {
-		return this.searchCommands({ category });
 	}
 
 	/**
@@ -255,6 +191,7 @@ export class CommandRegistry {
 		// Check for node type triggers ($nodeType)
 		if (input.includes('$')) {
 			const nodeTypeMatch = input.match(/\$(\w+)/);
+
 			if (nodeTypeMatch) {
 				const pattern = `$${nodeTypeMatch[1]}`;
 				results.push(...this.searchCommands({
@@ -267,6 +204,7 @@ export class CommandRegistry {
 		// Check for slash commands (/command)
 		if (input.includes('/')) {
 			const slashMatch = input.match(/\/(\w+)/);
+
 			if (slashMatch) {
 				const pattern = `/${slashMatch[1]}`;
 				results.push(...this.searchCommands({
@@ -277,139 +215,6 @@ export class CommandRegistry {
 		}
 
 		return results;
-	}
-
-	/**
-	 * Get registry statistics
-	 */
-	public getStats(): RegistryStats {
-		const commands = this.getAllCommands();
-
-		const commandsByCategory: Record<CommandCategory, number> = {
-			'node-type': 0,
-			'pattern': 0,
-			'format': 0,
-			'template': 0,
-			'content': 0,
-			'media': 0,
-			'interactive': 0,
-			'annotation': 0,
-		};
-
-		const commandsByTriggerType: Record<CommandTrigger, number> = {
-			'node-type': 0,
-			'slash': 0,
-			'shortcut': 0,
-		};
-
-		commands.forEach(cmd => {
-			commandsByCategory[cmd.category]++;
-			commandsByTriggerType[cmd.triggerType]++;
-		});
-
-		return {
-			totalCommands: commands.length,
-			commandsByCategory,
-			commandsByTriggerType,
-		};
-	}
-
-	/**
-	 * Add event listener
-	 */
-	public addEventListener(
-		eventType: RegistryEventType,
-		listener: RegistryEventListener
-	): void {
-		if (!this.eventListeners.has(eventType)) {
-			this.eventListeners.set(eventType, []);
-		}
-		this.eventListeners.get(eventType)!.push(listener);
-	}
-
-	/**
-	 * Remove event listener
-	 */
-	public removeEventListener(
-		eventType: RegistryEventType,
-		listener: RegistryEventListener
-	): void {
-		const listeners = this.eventListeners.get(eventType);
-		if (listeners) {
-			const index = listeners.indexOf(listener);
-			if (index > -1) {
-				listeners.splice(index, 1);
-			}
-		}
-	}
-
-	/**
-	 * Validate command structure
-	 */
-	private validateCommand(command: Command): CommandValidationResult {
-		const errors: string[] = [];
-
-		if (!command.id || command.id.trim().length === 0) {
-			errors.push('Command ID is required');
-		}
-
-		if (!command.trigger || command.trigger.trim().length === 0) {
-			errors.push('Command trigger is required');
-		}
-
-		if (!command.label || command.label.trim().length === 0) {
-			errors.push('Command label is required');
-		}
-
-		if (!command.category) {
-			errors.push('Command category is required');
-		}
-
-		if (!command.triggerType) {
-			errors.push('Command trigger type is required');
-		}
-
-		return {
-			isValid: errors.length === 0,
-			errors,
-		};
-	}
-
-	/**
-	 * Emit event to listeners
-	 */
-	private emitEvent(
-		type: RegistryEventType,
-		commandId?: string,
-		command?: Command
-	): void {
-		const event: RegistryEvent = {
-			type,
-			commandId,
-			command,
-			timestamp: Date.now(),
-		};
-
-		const listeners = this.eventListeners.get(type);
-		if (listeners) {
-			listeners.forEach(listener => {
-				try {
-					listener(event);
-				} catch (error) {
-					console.error('Error in registry event listener:', error);
-				}
-			});
-		}
-	}
-
-	/**
-	 * Reset registry to defaults
-	 */
-	public resetToDefaults(): void {
-		this.commands.clear();
-		this.customCommands.clear();
-		this.initializeCommands();
-		this.emitEvent('registry-cleared');
 	}
 }
 

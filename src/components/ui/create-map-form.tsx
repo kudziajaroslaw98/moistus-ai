@@ -89,7 +89,7 @@ const CreateMapForm = forwardRef<HTMLFormElement, CreateMapFormProps>(
 								animate={isSubmitting ? { rotate: 360 } : { rotate: 0 }}
 								transition={
 									isSubmitting
-										? { duration: 1, repeat: Infinity, ease: 'linear' }
+										? { duration: 1, repeat: Infinity, ease: 'linear' as const }
 										: {}
 								}
 							>

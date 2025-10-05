@@ -22,7 +22,7 @@ export function CreateMapCard({
 			whileTap={{ scale: 0.98 }}
 			initial={{ opacity: 0, scale: 0.9 }}
 			animate={{ opacity: 1, scale: 1 }}
-			transition={{ duration: 0.3, ease: 'easeOut' }}
+			transition={{ duration: 0.3, ease: 'easeOut' as const }}
 			className={cn(
 				'group/new-card relative cursor-pointer overflow-hidden',
 				viewMode === 'grid'
@@ -47,7 +47,7 @@ export function CreateMapCard({
 				{/* Icon Container */}
 				<motion.div
 					whileHover={{ scale: 1.1 }}
-					transition={{ duration: 0.3, ease: 'easeOut' }}
+					transition={{ duration: 0.3, ease: 'easeOut' as const }}
 					className='relative mb-3 flex items-center justify-center'
 				>
 					{/* Icon Background */}
@@ -79,7 +79,7 @@ export function CreateMapCard({
 				{viewMode === 'list' && (
 					<motion.div
 						animate={{ x: [0, 4, 0] }}
-						transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+						transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' as const }}
 						className='ml-auto opacity-0 group-hover/new-card:opacity-100 transition-opacity duration-300'
 					>
 						<div className='w-2 h-2 border-r-2 border-t-2 border-sky-400 rotate-45' />

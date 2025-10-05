@@ -126,6 +126,7 @@ export async function POST(req: Request) {
 
 		// Check subscription and usage limits
 		let hasProAccess = false;
+
 		try {
 			// Try to validate Pro subscription
 			await requireSubscription(user, supabase, 'pro');

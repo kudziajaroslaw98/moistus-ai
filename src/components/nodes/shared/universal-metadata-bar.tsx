@@ -22,6 +22,11 @@ export interface UniversalMetadataBarProps {
 	selected?: boolean;
 	className?: string;
 	onMetadataClick?: (type: string, value: any) => void;
+	colorOverrides?: {
+		accentColor?: string; // RGB values like "147, 197, 253"
+		bgOpacity?: number;
+		borderOpacity?: number;
+	};
 }
 
 // Priority levels with Material Design color system - desaturated for dark theme
@@ -91,7 +96,7 @@ const statusConfig = {
  * is selected and minimal information when not.
  */
 export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
-	({ metadata, nodeType, selected = false, className, onMetadataClick }) => {
+	({ metadata, nodeType, selected = false, className, onMetadataClick, colorOverrides }) => {
 		// Determine what metadata to show based on availability and relevance
 		const metadataItems = useMemo(() => {
 			if (!metadata) return [];
@@ -127,24 +132,26 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
 				const statusKey = metadata.status.toLowerCase().replace(' ', '-');
 				const config = statusConfig[statusKey as keyof typeof statusConfig];
 
-				if (config) {
-					items.push({
-						type: 'status',
-						component: (
-							<MetadataBadge
-								key='status'
-								icon={config.icon}
-								label={metadata.status}
-								color={config.color}
-								bgColor={`${config.color.replace('0.87', '0.1')}`}
-								borderColor={`${config.color.replace('0.87', '0.2')}`}
-								onClick={() => onMetadataClick?.('status', metadata.status)}
-								size={'xs'}
-							/>
-						),
-						order: 2,
-					});
-				}
+				// Use config if found, otherwise use default styling for custom status values
+				const statusColor = config?.color || 'rgba(168, 85, 247, 0.87)'; // Purple for custom
+				const statusIcon = config?.icon || Circle;
+
+				items.push({
+					type: 'status',
+					component: (
+						<MetadataBadge
+							key='status'
+							icon={statusIcon}
+							label={metadata.status}
+							color={statusColor}
+							bgColor={`${statusColor.replace('0.87', '0.1')}`}
+							borderColor={`${statusColor.replace('0.87', '0.2')}`}
+							onClick={() => onMetadataClick?.('status', metadata.status)}
+							size={'xs'}
+						/>
+					),
+					order: 2,
+				});
 			}
 
 			// Assignee - show avatar or initials
@@ -221,6 +228,7 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
 							tags={metadata.tags}
 							maxVisible={selected ? 5 : 2}
 							onTagClick={(tag) => onMetadataClick?.('tag', tag)}
+							accentColor={colorOverrides?.accentColor}
 						/>
 					),
 					order: 5,
@@ -228,7 +236,7 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
 			}
 
 			return items.sort((a, b) => a.order - b.order);
-		}, [metadata, selected, onMetadataClick]);
+		}, [metadata, selected, onMetadataClick, colorOverrides]);
 
 		// Don't render if no metadata
 		if (metadataItems.length === 0) return null;

@@ -16,47 +16,9 @@ import {
 	Tag,
 	Type,
 } from 'lucide-react';
-import type { NodeCommand } from '../../types';
-import { parseInput } from '../parsers/pattern-parser';
+import { parseInput } from '../parsers/pattern-extractor';
 import { nodeTypeCommands } from './definitions/node-type-commands';
 import type { Command } from './command-types';
-
-/**
- * Map centralized commands to UI node commands
- * Enriches command definitions with UI-specific fields and parsing
- */
-function createNodeCommand(
-	baseCommand: Command,
-	uiConfig: Partial<NodeCommand>
-): NodeCommand {
-	return {
-		command: baseCommand.trigger.replace('$', '/'), // Convert $note to /note for UI
-		label: baseCommand.label,
-		description: baseCommand.description,
-		icon: baseCommand.icon,
-		nodeType: baseCommand.nodeType!,
-		category: mapCategory(baseCommand.category),
-		quickParse: parseInput,
-		...uiConfig,
-	};
-}
-
-/**
- * Map command categories to node command categories
- */
-function mapCategory(category: string): NodeCommand['category'] {
-	const categoryMap: Record<string, NodeCommand['category']> = {
-		'content': 'content',
-		'media': 'media',
-		'interactive': 'interactive',
-		'annotation': 'annotation',
-		'node-type': 'content',
-		'pattern': 'content',
-		'format': 'content',
-		'template': 'content',
-	};
-	return categoryMap[category] || 'content';
-}
 
 /**
  * Get base command by node type
@@ -69,9 +31,11 @@ function getBaseCommand(nodeType: string): Command | undefined {
  * Node command UI configurations
  * Uses centralized definitions as base, adds UI-specific fields
  */
-export const nodeCommands: NodeCommand[] = [
+export const nodeCommands: Command[] = [
 	// Note Node
-	createNodeCommand(getBaseCommand('defaultNode')!, {
+	{
+		...getBaseCommand('defaultNode')!,
+		quickParse: parseInput,
 		examples: ['Meeting notes #important', 'Project update #in-progress'],
 		parsingPatterns: [
 			{
@@ -81,24 +45,26 @@ export const nodeCommands: NodeCommand[] = [
 				examples: ['$note Meeting notes #important', '$note Project update #in-progress'],
 			},
 			{
-				pattern: '#priority',
+				pattern: '!priority',
 				description: 'Set priority level',
-				examples: ['#high', '#medium', '#low'],
+				examples: ['!high', '!medium', '!low', '!', '!!', '!!!', '!1', '!2', '!3'],
 				category: 'metadata',
 				icon: Flag,
 			},
 			{
-				pattern: '[tags]',
-				description: 'Add comma-separated tags',
-				examples: ['[meeting, important]', '[idea, research]'],
+				pattern: '#tag',
+				description: 'Add hashtag',
+				examples: ['#meeting', '#important', '#urgent #bug'],
 				category: 'metadata',
 				icon: Tag,
 			},
 		],
-	}),
+	},
 
 	// Task Node
-	createNodeCommand(getBaseCommand('taskNode')!, {
+	{
+		...getBaseCommand('taskNode')!,
+		quickParse: parseInput,
 		fields: [
 			{
 				name: 'tasks',
@@ -146,9 +112,9 @@ export const nodeCommands: NodeCommand[] = [
 				icon: Calendar,
 			},
 			{
-				pattern: '#priority',
+				pattern: '!priority',
 				description: 'Set priority level',
-				examples: ['#high', '#medium', '#low'],
+				examples: ['!high', '!medium', '!low'],
 				category: 'metadata',
 				icon: Flag,
 			},
@@ -172,10 +138,12 @@ export const nodeCommands: NodeCommand[] = [
 				category: 'formatting',
 			},
 		],
-	}),
+	},
 
 	// Code Node
-	createNodeCommand(getBaseCommand('codeNode')!, {
+	{
+		...getBaseCommand('codeNode')!,
+		quickParse: parseInput,
 		fields: [
 			{
 				name: 'language',
@@ -236,10 +204,12 @@ export const nodeCommands: NodeCommand[] = [
 				category: 'metadata',
 			},
 		],
-	}),
+	},
 
 	// Image Node
-	createNodeCommand(getBaseCommand('imageNode')!, {
+	{
+		...getBaseCommand('imageNode')!,
+		quickParse: parseInput,
 		fields: [
 			{
 				name: 'url',
@@ -285,11 +255,12 @@ export const nodeCommands: NodeCommand[] = [
 				category: 'metadata',
 			},
 		],
-	}),
+	},
 
 	// Resource Link Node
-	createNodeCommand(getBaseCommand('resourceNode')!, {
-		command: '/link', // Keep as /link for UI
+	{
+		...getBaseCommand('resourceNode')!,
+		quickParse: parseInput,
 		fields: [
 			{
 				name: 'url',
@@ -335,10 +306,12 @@ export const nodeCommands: NodeCommand[] = [
 				category: 'metadata',
 			},
 		],
-	}),
+	},
 
 	// Question Node
-	createNodeCommand(getBaseCommand('questionNode')!, {
+	{
+		...getBaseCommand('questionNode')!,
+		quickParse: parseInput,
 		fields: [
 			{
 				name: 'question',
@@ -388,10 +361,12 @@ export const nodeCommands: NodeCommand[] = [
 				category: 'structure',
 			},
 		],
-	}),
+	},
 
 	// Annotation Node
-	createNodeCommand(getBaseCommand('annotationNode')!, {
+	{
+		...getBaseCommand('annotationNode')!,
+		quickParse: parseInput,
 		fields: [
 			{
 				name: 'text',
@@ -458,10 +433,12 @@ export const nodeCommands: NodeCommand[] = [
 				category: 'structure',
 			},
 		],
-	}),
+	},
 
 	// Text Node
-	createNodeCommand(getBaseCommand('textNode')!, {
+	{
+		...getBaseCommand('textNode')!,
+		quickParse: parseInput,
 		fields: [
 			{
 				name: 'content',
@@ -517,10 +494,11 @@ export const nodeCommands: NodeCommand[] = [
 				insertText: 'color:',
 			},
 		],
-	}),
+	},
 
 	// Reference Node
-	createNodeCommand(getBaseCommand('referenceNode')!, {
+	{
+		...getBaseCommand('referenceNode')!,
 		quickParse: (input: string) => {
 			const result = {
 				content: input,
@@ -536,18 +514,21 @@ export const nodeCommands: NodeCommand[] = [
 
 			// Parse target references (use last occurrence only)
 			const targetMatch = input.match(/target:([^\s]+)/);
+
 			if (targetMatch) {
 				result.metadata.targetNodeId = targetMatch[1];
 			}
 
 			// Parse map references (use last occurrence only)
 			const mapMatch = input.match(/map:([^\s]+)/);
+
 			if (mapMatch) {
 				result.metadata.targetMapId = mapMatch[1];
 			}
 
 			// Parse confidence level (use last occurrence only)
 			const confidenceMatch = input.match(/confidence:(\d+(?:\.\d+)?)/);
+
 			if (confidenceMatch) {
 				result.metadata.confidence = parseFloat(confidenceMatch[1]);
 			}
@@ -588,16 +569,16 @@ export const nodeCommands: NodeCommand[] = [
 				insertText: 'confidence:0.8',
 			},
 		],
-	}),
+	},
 ];
 
 // Helper function to get command by type
-export const getCommandByType = (nodeType: string): NodeCommand | undefined => {
+export const getCommandByType = (nodeType: string): Command | undefined => {
 	return nodeCommands.find((cmd) => cmd.nodeType === nodeType);
 };
 
 // Helper function to get commands by category
-export const getCommandsByCategory = (category: string): NodeCommand[] => {
+export const getCommandsByCategory = (category: string): Command[] => {
 	return nodeCommands.filter((cmd) => cmd.category === category);
 };
 

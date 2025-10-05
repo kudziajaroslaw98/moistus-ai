@@ -272,7 +272,7 @@ export default function CollaborationSettingsPage() {
 								className='flex items-center justify-between p-3 bg-zinc-800/30 rounded-lg'
 							>
 								<div className='flex items-center gap-3'>
-									<UserAvatar user={member} size='sm' />
+									<UserAvatar user={member as any} size='sm' />
 
 									<div>
 										<div className='flex items-center gap-2'>

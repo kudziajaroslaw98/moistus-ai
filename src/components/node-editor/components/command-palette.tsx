@@ -33,27 +33,27 @@ const categoryIcons = {
 // Animation variants
 const containerVariants = {
 	hidden: { opacity: 0, scale: 0.96, y: -12 },
-	visible: { 
-		opacity: 1, 
-		scale: 1, 
+	visible: {
+		opacity: 1,
+		scale: 1,
 		y: 0,
 		transition: {
 			duration: 0.25,
-			ease: [0.23, 1, 0.32, 1],
+			ease: [0.23, 1, 0.32, 1] as const,
 			staggerChildren: 0.03
 		}
 	},
-	exit: { 
-		opacity: 0, 
-		scale: 0.96, 
+	exit: {
+		opacity: 0,
+		scale: 0.96,
 		y: -8,
-		transition: { duration: 0.2, ease: [0.4, 0, 1, 1] }
+		transition: { duration: 0.2, ease: [0.4, 0, 1, 1] as const }
 	}
 };
 
 const itemVariants = {
 	hidden: { opacity: 0, x: -12 },
-	visible: { opacity: 1, x: 0, transition: { duration: 0.3, ease: [0.23, 1, 0.32, 1] } }
+	visible: { opacity: 1, x: 0, transition: { duration: 0.3, ease: [0.23, 1, 0.32, 1] as const } }
 };
 
 interface EnhancedCommandPaletteProps {
@@ -248,7 +248,7 @@ const CommandPaletteComponent = ({
 									[category, categoryCommands]: [string, RegistryCommand[]],
 									groupIndex
 								) => {
-									const CategoryIcon = categoryIcons[categoryCommands[0]?.category] || Hash;
+									const CategoryIcon = categoryIcons[categoryCommands[0]?.category as keyof typeof categoryIcons] || Hash;
 									
 									return (
 										<Command.Group key={category}>

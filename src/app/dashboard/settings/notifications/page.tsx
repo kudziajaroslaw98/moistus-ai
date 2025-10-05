@@ -119,19 +119,19 @@ export default function NotificationsSettingsPage() {
 			const prefs = getNotificationPreferences();
 			setSettings({
 				email: {
-					enabled: prefs.email_comments || prefs.email_mentions || prefs.email_reactions,
-					comments: prefs.email_comments,
-					mentions: prefs.email_mentions,
-					reactions: prefs.email_reactions,
+					enabled: !!(prefs?.email_comments || prefs?.email_mentions || prefs?.email_reactions),
+					comments: prefs?.email_comments ?? false,
+					mentions: prefs?.email_mentions ?? false,
+					reactions: prefs?.email_reactions ?? false,
 					collaborations: true, // Default
 					updates: true, // Default
 					marketing: false, // Default
 				},
 				push: {
-					enabled: prefs.push_comments || prefs.push_mentions || prefs.push_reactions,
-					comments: prefs.push_comments,
-					mentions: prefs.push_mentions,
-					reactions: prefs.push_reactions,
+					enabled: !!(prefs?.push_comments || prefs?.push_mentions || prefs?.push_reactions),
+					comments: prefs?.push_comments ?? false,
+					mentions: prefs?.push_mentions ?? false,
+					reactions: prefs?.push_reactions ?? false,
 					collaborations: true, // Default
 				},
 				frequency: 'instant', // Default

@@ -274,7 +274,7 @@ export const MediaContent = ({
 	children,
 }: MediaContentProps) => {
 	const isEmpty = !src && !children;
-	const isLoading = loading && src;
+	const isLoading = Boolean(loading && src);
 
 	return (
 		<NodeContent

@@ -1,17 +1,18 @@
 'use client';
 
 import useAppStore from '@/store/mind-map-store';
+import { type NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
 import { Type } from 'lucide-react';
 import { memo, useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { BaseNodeWrapper } from './base-node-wrapper';
-import { SharedNodeToolbar } from './components/NodeToolbar';
-import { TextFormattingControls } from './components/ToolbarControls';
-import { GlassmorphismTheme } from './themes/glassmorphism-theme';
-import { 
-	type TypedNodeProps 
+import { SharedNodeToolbar } from './components/node-toolbar';
+import { TextFormattingControls } from './components/toolbar-controls';
+import {
+	type TypedNodeProps
 } from './core/types';
+import { GlassmorphismTheme } from './themes/glassmorphism-theme';
 
 type TextNodeProps = TypedNodeProps<'textNode'>;
 

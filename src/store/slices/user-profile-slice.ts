@@ -23,8 +23,8 @@ export interface UserProfileSlice {
 	getTheme: () => 'light' | 'dark' | 'system';
 	getLanguage: () => string;
 	getTimezone: () => string;
-	getNotificationPreferences: () => UserProfile['preferences']['notifications'];
-	getPrivacyPreferences: () => UserProfile['preferences']['privacy'];
+	getNotificationPreferences: () => NonNullable<UserProfile['preferences']>['notifications'];
+	getPrivacyPreferences: () => NonNullable<UserProfile['preferences']>['privacy'];
 }
 
 export const createUserProfileSlice: StateCreator<

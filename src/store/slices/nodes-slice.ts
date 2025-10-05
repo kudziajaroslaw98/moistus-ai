@@ -2,7 +2,7 @@ import { STORE_SAVE_DEBOUNCE_MS } from '@/constants/store-save-debounce-ms';
 import generateUuid from '@/helpers/generate-uuid';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
 import type { AppNode } from '@/types/app-node';
-import { AvailableNodeTypes } from '@/registry';
+import { AvailableNodeTypes } from '@/registry/node-registry';
 import type { NodeData } from '@/types/node-data';
 import { NodesTableType } from '@/types/nodes-table-type';
 import { debouncePerKey } from '@/utils/debounce-per-key';
@@ -261,17 +261,21 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				}
 
 				// Check node creation limit for free tier users
-				const isPro = currentSubscription?.plan?.name === 'pro' || currentSubscription?.plan?.name === 'enterprise';
-				const limit = currentSubscription?.plan?.limits?.nodesPerMap ?? 50; // Free tier default
+				const devBypass = process.env.NEXT_PUBLIC_DEV_BYPASS_LIMITS === 'true';
 
-				if (!isPro && limit !== -1) {
-					const currentNodeCount = nodes.length;
+				if (!devBypass) {
+					const isPro = currentSubscription?.plan?.name === 'pro' || currentSubscription?.plan?.name === 'enterprise';
+					const limit = currentSubscription?.plan?.limits?.nodesPerMap ?? 50; // Free tier default
 
-					if (currentNodeCount >= limit) {
-						// Throw error which will be displayed as a toast by withLoadingAndToast
-						throw new Error(
-							`Node limit reached (${limit} nodes per map). Upgrade to Pro for unlimited nodes.`
-						);
+					if (!isPro && limit !== -1) {
+						const currentNodeCount = nodes.length;
+
+						if (currentNodeCount >= limit) {
+							// Throw error which will be displayed as a toast by withLoadingAndToast
+							throw new Error(
+								`Node limit reached (${limit} nodes per map). Upgrade to Pro for unlimited nodes.`
+							);
+						}
 					}
 				}
 
@@ -398,8 +402,8 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 									...data.metadata,
 								},
 								aiData: {
-									...node.data.aiData,
-									...data.aiData,
+									...(node.data.aiData || {}),
+									...(data.aiData || {}),
 								},
 							},
 						};
@@ -452,6 +456,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 							},
 						};
 					}
+
 					return node;
 				}),
 			}));
@@ -559,7 +564,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					position_y: node.position.y,
 					width: node.width,
 					height: node.height,
-					node_type: node.type || 'defaultNode',
+					node_type: (node.type || 'defaultNode') as AvailableNodeTypes,
 					updated_at: new Date().toISOString(),
 					created_at: node.data.created_at,
 					parent_id: node.parentId || node.data.parent_id || null,

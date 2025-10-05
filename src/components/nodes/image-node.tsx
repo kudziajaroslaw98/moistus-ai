@@ -73,7 +73,7 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 										transition={{
 											duration: 1.5,
 											repeat: Infinity,
-											ease: 'linear',
+											ease: 'linear' as const,
 										}}
 									>
 										<Loader2
@@ -194,7 +194,7 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 									initial={{ scaleX: 0 }}
 									animate={{ scaleX: 1 }}
 									exit={{ opacity: 0 }}
-									transition={{ duration: 2, ease: 'linear' }}
+									transition={{ duration: 2, ease: 'linear' as const }}
 									className='absolute bottom-0 left-0 right-0 h-0.5 origin-left'
 									style={{
 										backgroundColor:

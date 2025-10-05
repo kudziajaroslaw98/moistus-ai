@@ -69,6 +69,7 @@ export default function ProfilePage() {
 		},
 		preferences: {
 			theme: 'dark',
+			accentColor: '#06b6d4',
 			language: 'en',
 			timezone: 'UTC',
 			notifications: {

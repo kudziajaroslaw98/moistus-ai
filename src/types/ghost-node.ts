@@ -1,4 +1,4 @@
-import type { AvailableNodeTypes } from '@/registry';
+import type { AvailableNodeTypes } from '@/registry/node-registry';
 import { NodeData } from './node-data';
 
 export interface SuggestionContext {

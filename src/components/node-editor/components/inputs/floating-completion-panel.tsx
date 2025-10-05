@@ -16,15 +16,15 @@ import {
 } from '@floating-ui/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { cn } from '@/utils/cn';
-import { type PatternType } from '../parsers';
-import { 
-	getColorCompletions, 
-	getDateCompletions, 
-	getPriorityCompletions, 
+import { type PatternType } from '../../core/parsers/pattern-extractor';
+import {
+	getColorCompletions,
+	getDateCompletions,
+	getPriorityCompletions,
 	getTagCompletions,
 	getCompletionsForPattern
-} from '../completions';
-import type { CompletionItem } from '../completions';
+} from '../../core/completions';
+import type { CompletionItem } from '../../core/completions';
 
 interface FloatingCompletionPanelProps {
 	isOpen: boolean;

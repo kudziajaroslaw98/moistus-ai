@@ -4,7 +4,7 @@
  */
 
 import type { AppNode } from '../../../../types/app-node';
-import type { AvailableNodeTypes } from '@/registry';
+import type { AvailableNodeTypes } from '@/registry/node-registry';
 import type { NodeData } from '../../../../types/node-data';
 
 /**
@@ -111,6 +111,7 @@ export function nodeToFormData(
 		formData.priority = data.metadata.priority || 'medium';
 		formData.assignee = data.metadata.assignee || '';
 		formData.status = data.metadata.status || '';
+
 		if (data.metadata.dueDate) {
 			const date = new Date(data.metadata.dueDate);
 			formData.dueDate = !isNaN(date.getTime())
@@ -119,6 +120,7 @@ export function nodeToFormData(
 		} else {
 			formData.dueDate = '';
 		}
+
 		formData.tags = data.metadata.tags || [];
 	}
 
@@ -193,6 +195,7 @@ export function nodeToQuickInput(
 
 	if (metadata.dueDate) {
 		const date = new Date(metadata.dueDate);
+
 		if (!isNaN(date.getTime())) {
 			const dateStr = date.toISOString().split('T')[0];
 			result += ` ^${dateStr}`;
@@ -225,21 +228,25 @@ export function nodeToQuickInput(
 				);
 				result = taskLines.join('\n') + (result ? '\n' + result : '');
 			}
+
 			break;
 
 		case 'codeNode':
 			if (metadata.language) {
 				result = `\`\`\`${metadata.language}\n${data.content || ''}\n\`\`\``;
 			}
+
 			break;
 
 		case 'imageNode':
 			if (metadata.imageUrl) {
 				result = metadata.imageUrl;
+
 				if (metadata.altText) {
 					result += ` "${metadata.altText}"`;
 				}
 			}
+
 			break;
 	}
 
@@ -266,16 +273,19 @@ export function validateNodeData(
 			if (!data.tasks || data.tasks.length === 0) {
 				errors.push('At least one task is required');
 			}
+
 			break;
 
 		case 'codeNode':
 			if (!data.code || data.code.trim() === '') {
 				errors.push('Code content is required');
 			}
+
 			break;
 
 		case 'imageNode':
 			const imageUrl = data.url || data.metadata?.imageUrl;
+
 			if (!imageUrl) {
 				errors.push('Image URL is required');
 			} else {
@@ -285,10 +295,12 @@ export function validateNodeData(
 					errors.push('Invalid image URL');
 				}
 			}
+
 			break;
 
 		case 'resourceNode':
 			const resourceUrl = data.url || data.metadata?.url;
+
 			if (!resourceUrl) {
 				errors.push('Resource URL is required');
 			} else {
@@ -298,6 +310,7 @@ export function validateNodeData(
 					errors.push('Invalid resource URL');
 				}
 			}
+
 			break;
 	}
 

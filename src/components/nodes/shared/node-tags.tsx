@@ -11,7 +11,8 @@ export const NodeTags = memo<{
 	tags: string[];
 	maxVisible?: number;
 	onTagClick?: (tag: string) => void;
-}>(({ tags, maxVisible = 3, onTagClick }) => {
+	accentColor?: string; // RGB values like "167, 139, 250"
+}>(({ tags, maxVisible = 3, onTagClick, accentColor = '167, 139, 250' }) => {
 	const [isExpanded, setIsExpanded] = useState(false);
 	const hasMore = tags.length > maxVisible;
 	const visibleTags = isExpanded ? tags : tags.slice(0, maxVisible);
@@ -32,9 +33,9 @@ export const NodeTags = memo<{
 						className='px-2 py-0.5 rounded-full cursor-pointer'
 						style={{
 							fontSize: '11px',
-							backgroundColor: 'rgba(167, 139, 250, 0.1)',
-							border: '1px solid rgba(167, 139, 250, 0.2)',
-							color: 'rgba(167, 139, 250, 0.87)',
+							backgroundColor: `rgba(${accentColor}, 0.1)`,
+							border: `1px solid rgba(${accentColor}, 0.2)`,
+							color: `rgba(${accentColor}, 0.87)`,
 						}}
 						onClick={() => onTagClick?.(tag)}
 						whileHover={{ scale: 1.05 }}

@@ -3,10 +3,11 @@
  * Works with the refactored modular command system
  */
 
-import type { AvailableNodeTypes } from '@/registry';
+import type { AvailableNodeTypes } from '@/registry/node-registry';
 import { commandRegistry } from './command-registry';
 import type {
 	Command,
+	CommandCategory,
 	CommandContext,
 	CommandResult,
 	CommandTriggerResult,
@@ -54,6 +55,7 @@ export async function executeCommandDirect(
 export function detectCommandTrigger(text: string): CommandTriggerResult {
 	// Check for node type trigger ($nodeType)
 	const nodeTypeMatch = text.match(/\$(\w+)/);
+
 	if (nodeTypeMatch) {
 		const trigger = `$${nodeTypeMatch[1]}`;
 		const matches = commandRegistry.findMatchingCommands(text);
@@ -71,6 +73,7 @@ export function detectCommandTrigger(text: string): CommandTriggerResult {
 
 	// Check for slash command (/command)
 	const slashMatch = text.match(/\/(\w+)/);
+
 	if (slashMatch) {
 		const trigger = `/${slashMatch[1]}`;
 		const matches = commandRegistry.findMatchingCommands(text);
@@ -113,6 +116,7 @@ export function processNodeTypeSwitch(text: string): NodeTypeSwitchResult {
 
 	// Get the command to determine node type
 	const command = triggerResult.matches?.[0];
+
 	if (!command || !command.nodeType) {
 		return {
 			hasSwitch: false,
@@ -152,9 +156,11 @@ export function getCommandCompletions(
 		if (input.endsWith('$')) {
 			return commandRegistry.getCommandsByTriggerType('node-type').slice(0, limit);
 		}
+
 		if (input.endsWith('/')) {
 			return commandRegistry.getCommandsByTriggerType('slash').slice(0, limit);
 		}
+
 		return [];
 	}
 
@@ -205,8 +211,8 @@ export function getSuggestedCommands(
 /**
  * Helper to map node type to command category
  */
-function getNodeTypeCategory(nodeType: AvailableNodeTypes): string {
-	const categoryMap: Record<string, string> = {
+function getNodeTypeCategory(nodeType: AvailableNodeTypes): CommandCategory {
+	const categoryMap: Record<string, CommandCategory> = {
 		defaultNode: 'content',
 		textNode: 'content',
 		codeNode: 'content',

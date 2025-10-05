@@ -1,8 +1,8 @@
 'use client';
 
 import useAppStore from '@/store/mind-map-store';
-import { NodeRegistry } from '@/registry';
-import type { SuggestionContext } from '@/types/ghost-node';
+import { NodeRegistry, type AvailableNodeTypes } from '@/registry/node-registry';
+import type { SuggestionContext, NodeSuggestion } from '@/types/ghost-node';
 import { useCallback, useState } from 'react';
 import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
@@ -137,8 +137,9 @@ export function useNodeSuggestion() {
 					validatedData.suggestions.forEach((suggestion) => {
 						addGhostNode({
 							...suggestion,
+							nodeType: suggestion.nodeType as AvailableNodeTypes,
 							position, // Use the provided position
-						});
+						} as NodeSuggestion);
 					});
 				}
 			} catch (err) {

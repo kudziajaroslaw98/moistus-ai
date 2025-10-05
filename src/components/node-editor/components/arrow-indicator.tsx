@@ -18,7 +18,7 @@ export const ArrowIndicator: React.FC<ArrowIndicatorProps> = ({
 						initial={{ opacity: 0, scale: 0, x: -10 }}
 						animate={{ opacity: 1, scale: 1, x: 0 }}
 						exit={{ opacity: 0, scale: 0, x: -10 }}
-						transition={{ duration: 0.2, ease: 'easeOut' }}
+						transition={{ duration: 0.2, ease: 'easeOut' as const }}
 						className='p-2 rounded-full bg-teal-500/10 border border-teal-500/20'
 					>
 						<motion.div
@@ -28,7 +28,7 @@ export const ArrowIndicator: React.FC<ArrowIndicatorProps> = ({
 							transition={{
 								duration: 6,
 								repeat: Infinity,
-								ease: 'easeInOut',
+								ease: 'easeInOut' as const,
 							}}
 						>
 							<ArrowRight className='w-4 h-4 text-teal-500' />

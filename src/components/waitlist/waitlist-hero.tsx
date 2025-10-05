@@ -7,7 +7,7 @@ export function WaitlistHero() {
 			<motion.div
 				initial={{ opacity: 0, y: 40 }}
 				animate={{ opacity: 1, y: 0 }}
-				transition={{ duration: 0.7, ease: 'easeOut' }}
+				transition={{ duration: 0.7, ease: 'easeOut' as const }}
 				className='text-4xl font-bold flex flex-col tracking-tight text-white sm:text-5xl md:text-6xl'
 			>
 				<span className='whitespace-nowrap'>

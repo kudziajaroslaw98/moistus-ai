@@ -302,6 +302,7 @@ export function detectLanguage(code: string, fileName?: string): string {
 	// Check file extension first if provided
 	if (fileName) {
 		const ext = getFileExtension(fileName);
+
 		for (const lang of LANGUAGE_PATTERNS) {
 			if (lang.fileExtensions?.includes(ext)) {
 				return lang.language;
@@ -318,6 +319,7 @@ export function detectLanguage(code: string, fileName?: string): string {
 		// Check patterns
 		for (const pattern of lang.patterns) {
 			const matches = code.match(pattern);
+
 			if (matches) {
 				score += matches.length * (lang.weight || 1);
 			}
@@ -328,6 +330,7 @@ export function detectLanguage(code: string, fileName?: string): string {
 			for (const keyword of lang.keywords) {
 				const keywordRegex = new RegExp(`\\b${keyword}\\b`, 'gi');
 				const matches = code.match(keywordRegex);
+
 				if (matches) {
 					score += matches.length * 0.5;
 				}

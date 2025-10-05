@@ -115,7 +115,7 @@ export function HistorySidebar() {
 											animate={{ opacity: 1, y: 0 }}
 											exit={{ opacity: 0, y: 30 }}
 											transition={{
-												ease: 'easeOut',
+												ease: 'easeOut' as const,
 												duration: 0.5,
 											}}
 											className={cn(

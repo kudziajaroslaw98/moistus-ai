@@ -59,6 +59,7 @@ export function parseDateString(dateStr: string): Date | undefined {
 
 	// Try parsing as standard date
 	const parsed = new Date(dateStr);
+
 	if (!isNaN(parsed.getTime())) {
 		return parsed;
 	}
@@ -72,8 +73,10 @@ export function parseDateString(dateStr: string): Date | undefined {
 
 	for (const format of formats) {
 		const match = dateStr.match(format);
+
 		if (match) {
 			const date = new Date(dateStr);
+
 			if (!isNaN(date.getTime())) {
 				return date;
 			}
@@ -177,6 +180,7 @@ export function parseDateRange(rangeStr: string): { start?: Date; end?: Date } {
 	}
 
 	const single = parseDateString(rangeStr);
+
 	if (single) {
 		return { start: single, end: single };
 	}

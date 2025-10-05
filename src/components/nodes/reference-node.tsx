@@ -1,14 +1,13 @@
 'use client';
 
-import { NodeData } from '@/types/node-data';
-import { Node, NodeProps } from '@xyflow/react';
 import { ArrowUpRight, BookMarked } from 'lucide-react';
 import Link from 'next/link';
 import { memo } from 'react';
 import { BaseNodeWrapper } from './base-node-wrapper';
+import { type TypedNodeProps } from './core/types';
 import { GlassmorphismTheme } from './themes/glassmorphism-theme';
 
-type ReferenceNodeProps = NodeProps<Node<NodeData>>;
+type ReferenceNodeProps = TypedNodeProps<'referenceNode'>;
 
 const ReferenceNodeComponent = (props: ReferenceNodeProps) => {
 	const { data } = props;

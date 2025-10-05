@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Save, Shield, Users, X, Zap } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, SubmitHandler } from 'react-hook-form';
 import { z } from 'zod';
 
 const supabase = createClient();
@@ -62,7 +62,7 @@ export function UpgradeAnonymousPrompt({
 		formState: { errors },
 		reset,
 	} = useForm<UpgradeForm>({
-		resolver: zodResolver(UpgradeSchema),
+		resolver: zodResolver(UpgradeSchema) as any,
 		defaultValues: {
 			displayName: userDisplayName || '',
 		},
@@ -88,7 +88,7 @@ export function UpgradeAnonymousPrompt({
 		onDismiss?.();
 	};
 
-	const onSubmit = async (data: UpgradeForm) => {
+	const onSubmit: SubmitHandler<UpgradeForm> = async (data) => {
 		setIsUpgrading(true);
 		setUpgradeError('');
 
@@ -166,7 +166,7 @@ export function UpgradeAnonymousPrompt({
 						initial={{ opacity: 0, scale: 0.9, y: 20 }}
 						animate={{ opacity: 1, scale: 1, y: 0 }}
 						exit={{ opacity: 0, scale: 0.9, y: 20 }}
-						transition={{ duration: 0.3, ease: 'easeOut' }}
+						transition={{ duration: 0.3, ease: 'easeOut' as const }}
 						className={`fixed inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 
                        md:w-full md:max-w-2xl bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl z-50 
                        overflow-hidden ${className}`}
@@ -361,7 +361,7 @@ export function UpgradeAnonymousPrompt({
 													transition={{
 														duration: 1,
 														repeat: Infinity,
-														ease: 'linear',
+														ease: 'linear' as const,
 													}}
 												/>
 												Upgrading...

@@ -1,4 +1,4 @@
-import { AvailableNodeTypes } from '@/registry';
+import { AvailableNodeTypes } from '@/registry/node-registry';
 import { SuggestionContext } from './ghost-node';
 
 export interface NodeData extends Record<string, unknown> {
@@ -83,6 +83,8 @@ export interface NodeData extends Record<string, unknown> {
 		// Annotation Properties (AnnotationNode)
 		// ------------------------------------------
 		annotationType?: 'comment' | 'idea' | 'quote' | 'summary';
+		author?: string;
+		timestamp?: string;
 
 		// ------------------------------------------
 		// Question Properties (QuestionNode)
@@ -90,9 +92,11 @@ export interface NodeData extends Record<string, unknown> {
 		answer?: string; // For QuestionNode - can be AI or user answer
 		questionType?: 'binary' | 'multiple';
 		responseFormat?: {
-			options: Array<{ id: string; label: string }>;
-			allowMultiple: boolean;
+			options?: Array<{ id: string; label: string }>;
+			allowMultiple?: boolean;
 		};
+		userResponse?: boolean | string | string[];
+		isAnswered?: boolean;
 		responses?: Array<{
 			userId?: string;
 			answer: boolean | string | string[];
