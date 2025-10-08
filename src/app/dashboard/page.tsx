@@ -14,7 +14,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
-import { SidebarProvider, useSidebar } from '@/components/ui/sidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import {
@@ -54,6 +54,9 @@ interface MindMapData {
 	};
 }
 
+type FilterType = 'all' | 'owned' | 'shared';
+type SortByType = 'updated' | 'created' | 'name';
+
 // SWR fetcher function
 const fetcher = async (url: string) => {
 	const response = await fetch(url, {
@@ -71,8 +74,6 @@ const fetcher = async (url: string) => {
 
 function DashboardContent() {
 	const router = useRouter();
-	const { open: sidebarOpen } = useSidebar();
-	const sidebarCollapsed = !sidebarOpen;
 
 	// Trial state
 	const { isTrialing, getTrialDaysRemaining } = useAppStore(
@@ -87,21 +88,16 @@ function DashboardContent() {
 	// State
 	const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 	const [searchQuery, setSearchQuery] = useState('');
-	const [sortBy, setSortBy] = useState<'updated' | 'created' | 'name'>(
-		'updated'
-	);
-	const [filterBy, setFilterBy] = useState<'all' | 'owned' | 'shared'>('all');
+	const [sortBy, setSortBy] = useState<SortByType>('updated');
+	const [filterBy, setFilterBy] = useState<FilterType>('all');
 	const [selectedMaps, setSelectedMaps] = useState<Set<string>>(new Set());
 	const [isCreatingMap, setIsCreatingMap] = useState(false);
-	const [newMapTitle, setNewMapTitle] = useState('');
 	const [showCreateDialog, setShowCreateDialog] = useState(false);
 
 	// Fetch mind maps
-	const {
-		data: mapsData = { maps: [] },
-		error: mapsError,
-		isLoading: mapsLoading,
-	} = useSWR<{ maps: MindMapData[] }>('/api/maps', fetcher, {
+	const { data: mapsData = { maps: [] }, isLoading: mapsLoading } = useSWR<{
+		maps: MindMapData[];
+	}>('/api/maps', fetcher, {
 		revalidateOnFocus: false,
 		revalidateOnReconnect: true,
 		dedupingInterval: 5000,
@@ -226,8 +222,6 @@ function DashboardContent() {
 			if (!response.ok) {
 				throw new Error('Failed to duplicate mind map.');
 			}
-
-			const data = await response.json();
 
 			// Refresh the maps list
 			mutate('/api/maps');
@@ -433,7 +427,7 @@ function DashboardContent() {
 											<span>
 												<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
 													Ctrl+N
-												</kbd>{' '}
+												</kbd>
 
 												<span className='text-zinc-500'>New map</span>
 											</span>
@@ -441,7 +435,7 @@ function DashboardContent() {
 											<span>
 												<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
 													Ctrl+F
-												</kbd>{' '}
+												</kbd>
 
 												<span className='text-zinc-500'>Search</span>
 											</span>
@@ -449,7 +443,7 @@ function DashboardContent() {
 											<span>
 												<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
 													Ctrl+A
-												</kbd>{' '}
+												</kbd>
 
 												<span className='text-zinc-500'>Select all</span>
 											</span>
@@ -457,7 +451,7 @@ function DashboardContent() {
 											<span>
 												<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
 													Ctrl+1/2
-												</kbd>{' '}
+												</kbd>
 
 												<span className='text-zinc-500'>View mode</span>
 											</span>
@@ -480,7 +474,7 @@ function DashboardContent() {
 									{/* Actions */}
 									<div className='flex items-center gap-2 flex-wrap sm:flex-nowrap'>
 										{/* Filter */}
-										<Select value={filterBy} onValueChange={setFilterBy as any}>
+										<Select value={filterBy} onValueChange={setFilterBy}>
 											<SelectTrigger className='w-36 bg-zinc-800/30 backdrop-blur-sm border-zinc-700/50 hover:border-zinc-600/50 transition-colors duration-200'>
 												<Filter className='h-4 w-4 mr-2' />
 
@@ -497,7 +491,7 @@ function DashboardContent() {
 										</Select>
 
 										{/* Sort */}
-										<Select value={sortBy} onValueChange={setSortBy as any}>
+										<Select value={sortBy} onValueChange={setSortBy}>
 											<SelectTrigger className='w-44 bg-zinc-800/30 backdrop-blur-sm border-zinc-700/50 hover:border-zinc-600/50 transition-colors duration-200'>
 												<SortAsc className='h-4 w-4 mr-2' />
 
@@ -554,7 +548,7 @@ function DashboardContent() {
 											variant='default'
 										/>
 
-										Select all ({filteredMaps.length} maps)
+										<span>Select all ({filteredMaps.length} maps)</span>
 									</label>
 
 									{selectedMaps.size > 0 && (

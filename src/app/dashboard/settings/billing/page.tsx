@@ -11,7 +11,6 @@ import {
 } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
 import {
 	AlertTriangle,
 	Calendar,
@@ -66,7 +65,12 @@ const planFeatures = {
 	free: {
 		name: 'Free',
 		price: 0,
-		features: ['5 mind maps', '1 collaborator', '100MB storage', 'Basic templates'],
+		features: [
+			'5 mind maps',
+			'1 collaborator',
+			'100MB storage',
+			'Basic templates',
+		],
 		color: 'text-zinc-400',
 	},
 	pro: {
@@ -113,7 +117,7 @@ export default function BillingSettingsPage() {
 	const [isLoading, setIsLoading] = useState(false);
 
 	// Mock data
-	const [subscription] = useState<Subscription>({
+	const [subscription, _setSubscription] = useState<Subscription>({
 		id: 'sub_123',
 		plan: 'pro',
 		status: 'active',
@@ -122,14 +126,14 @@ export default function BillingSettingsPage() {
 		cancelAtPeriodEnd: false,
 	});
 
-	const [usage] = useState<Usage>({
+	const [usage, _setUsage] = useState<Usage>({
 		mindMaps: { used: 23, limit: -1 }, // -1 means unlimited
 		collaborators: { used: 3, limit: 5 },
 		storage: { used: 1250, limit: 5120 }, // in MB
 		exports: { used: 45, limit: 100 },
 	});
 
-	const [paymentMethods] = useState<PaymentMethod[]>([
+	const [paymentMethods, _setPaymentMethods] = useState<PaymentMethod[]>([
 		{
 			id: 'pm_123',
 			type: 'card',
@@ -146,7 +150,7 @@ export default function BillingSettingsPage() {
 		},
 	]);
 
-	const [invoices] = useState<Invoice[]>([
+	const [invoices, _setInvoices] = useState<Invoice[]>([
 		{
 			id: 'inv_123',
 			number: 'INV-2024-001',
@@ -172,8 +176,10 @@ export default function BillingSettingsPage() {
 
 		try {
 			// TODO: Implement subscription cancellation
-			toast.success('Subscription will be canceled at the end of the billing period');
-		} catch (error) {
+			toast.success(
+				'Subscription will be canceled at the end of the billing period'
+			);
+		} catch {
 			toast.error('Failed to cancel subscription');
 		} finally {
 			setIsLoading(false);
@@ -200,25 +206,36 @@ export default function BillingSettingsPage() {
 
 	const getStatusBadge = (status: string) => {
 		const statusConfig = {
-			active: { color: 'bg-green-900/50 text-green-200 border-green-700/50', label: 'Active' },
-			canceled: { color: 'bg-red-900/50 text-red-200 border-red-700/50', label: 'Canceled' },
-			past_due: { color: 'bg-orange-900/50 text-orange-200 border-orange-700/50', label: 'Past Due' },
-			trialing: { color: 'bg-blue-900/50 text-blue-200 border-blue-700/50', label: 'Trial' },
+			active: {
+				color: 'bg-green-900/50 text-green-200 border-green-700/50',
+				label: 'Active',
+			},
+			canceled: {
+				color: 'bg-red-900/50 text-red-200 border-red-700/50',
+				label: 'Canceled',
+			},
+			past_due: {
+				color: 'bg-orange-900/50 text-orange-200 border-orange-700/50',
+				label: 'Past Due',
+			},
+			trialing: {
+				color: 'bg-blue-900/50 text-blue-200 border-blue-700/50',
+				label: 'Trial',
+			},
 		};
 
-		const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.active;
-		return (
-			<Badge className={config.color}>
-				{config.label}
-			</Badge>
-		);
+		const config =
+			statusConfig[status as keyof typeof statusConfig] || statusConfig.active;
+		return <Badge className={config.color}>{config.label}</Badge>;
 	};
 
 	return (
 		<div className='space-y-6'>
 			{/* Header */}
 			<div>
-				<h2 className='text-2xl font-bold text-white'>Billing & Subscription</h2>
+				<h2 className='text-2xl font-bold text-white'>
+					Billing & Subscription
+				</h2>
 
 				<p className='text-zinc-400 mt-1'>
 					Manage your subscription, usage, and billing information
@@ -242,15 +259,15 @@ export default function BillingSettingsPage() {
 					<div className='flex items-center justify-between'>
 						<div className='flex items-center gap-4'>
 							<div>
-								<h3 className={`text-lg font-semibold ${planFeatures[subscription.plan].color}`}>
+								<h3
+									className={`text-lg font-semibold ${planFeatures[subscription.plan].color}`}
+								>
 									{planFeatures[subscription.plan].name}
 								</h3>
 
 								<p className='text-zinc-400'>
 									{planFeatures[subscription.plan].price ? (
-										<>
-											${planFeatures[subscription.plan].price}/month
-										</>
+										<>${planFeatures[subscription.plan].price}/month</>
 									) : (
 										'Custom pricing'
 									)}
@@ -259,9 +276,12 @@ export default function BillingSettingsPage() {
 
 							{getStatusBadge(subscription.status)}
 						</div>
-						
+
 						{subscription.plan !== 'enterprise' && (
-							<Button onClick={() => handleUpgrade('team')} className='bg-sky-600 hover:bg-sky-700'>
+							<Button
+								onClick={() => handleUpgrade('team')}
+								className='bg-sky-600 hover:bg-sky-700'
+							>
 								<Zap className='size-4 mr-2' />
 								Upgrade
 							</Button>
@@ -274,10 +294,18 @@ export default function BillingSettingsPage() {
 						<div>
 							<span className='text-zinc-400'>Billing period:</span>
 
-							<p className='text-white'>
-								{new Date(subscription.currentPeriodStart).toLocaleDateString()} - {' '}
+							<p className='text-white flex gap-1'>
+								<span>
+									{new Date(
+										subscription.currentPeriodStart
+									).toLocaleDateString()}
+								</span>
 
-								{new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+								<span>-</span>
+
+								<span>
+									{new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+								</span>
 							</p>
 						</div>
 
@@ -294,15 +322,23 @@ export default function BillingSettingsPage() {
 						<div className='p-3 bg-orange-950/30 border border-orange-800/30 rounded-lg flex items-center gap-2'>
 							<AlertTriangle className='size-4 text-orange-400' />
 
-							<span className='text-orange-200 text-sm'>
-								Your subscription will be canceled on {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+							<span className='text-orange-200 text-sm flex gap-1'>
+								<span>Your subscription will be canceled on</span>
+
+								<span>
+									{new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+								</span>
 							</span>
 						</div>
 					)}
 
 					<div className='flex flex-wrap gap-2'>
 						{planFeatures[subscription.plan].features.map((feature, index) => (
-							<Badge key={index} variant='secondary' className='bg-zinc-800 text-zinc-300'>
+							<Badge
+								key={index}
+								variant='secondary'
+								className='bg-zinc-800 text-zinc-300'
+							>
 								<Check className='size-3 mr-1' />
 
 								{feature}
@@ -328,13 +364,24 @@ export default function BillingSettingsPage() {
 							<div className='flex items-center justify-between mb-2'>
 								<span className='text-white'>Mind Maps</span>
 
-								<span className='text-zinc-400'>
-									{usage.mindMaps.used} {usage.mindMaps.limit === -1 ? '' : `/ ${usage.mindMaps.limit}`}
+								<span className='text-zinc-400 flex gap-1'>
+									<span>{usage.mindMaps.used} </span>
+
+									<span>
+										{usage.mindMaps.limit === -1
+											? ''
+											: `/ ${usage.mindMaps.limit}`}
+									</span>
 								</span>
 							</div>
 
 							{usage.mindMaps.limit !== -1 && (
-								<Progress value={getUsagePercentage(usage.mindMaps.used, usage.mindMaps.limit)} />
+								<Progress
+									value={getUsagePercentage(
+										usage.mindMaps.used,
+										usage.mindMaps.limit
+									)}
+								/>
 							)}
 						</div>
 
@@ -347,31 +394,54 @@ export default function BillingSettingsPage() {
 								</span>
 							</div>
 
-							<Progress value={getUsagePercentage(usage.collaborators.used, usage.collaborators.limit)} />
+							<Progress
+								value={getUsagePercentage(
+									usage.collaborators.used,
+									usage.collaborators.limit
+								)}
+							/>
 						</div>
 
 						<div>
 							<div className='flex items-center justify-between mb-2'>
 								<span className='text-white'>Storage</span>
 
-								<span className='text-zinc-400'>
-									{formatStorageSize(usage.storage.used)} / {formatStorageSize(usage.storage.limit)}
+								<span className='text-zinc-400 flex gap-1'>
+									<span>{formatStorageSize(usage.storage.used)}</span>
+
+									<span>/</span>
+
+									<span>{formatStorageSize(usage.storage.limit)}</span>
 								</span>
 							</div>
 
-							<Progress value={getUsagePercentage(usage.storage.used, usage.storage.limit)} />
+							<Progress
+								value={getUsagePercentage(
+									usage.storage.used,
+									usage.storage.limit
+								)}
+							/>
 						</div>
 
 						<div>
 							<div className='flex items-center justify-between mb-2'>
 								<span className='text-white'>Exports this month</span>
 
-								<span className='text-zinc-400'>
-									{usage.exports.used} / {usage.exports.limit}
+								<span className='text-zinc-400 gap-1 flex'>
+									<span>{usage.exports.used}</span>
+
+									<span>/</span>
+
+									<span>{usage.exports.limit}</span>
 								</span>
 							</div>
 
-							<Progress value={getUsagePercentage(usage.exports.used, usage.exports.limit)} />
+							<Progress
+								value={getUsagePercentage(
+									usage.exports.used,
+									usage.exports.limit
+								)}
+							/>
 						</div>
 					</div>
 				</CardContent>
@@ -382,12 +452,11 @@ export default function BillingSettingsPage() {
 				<CardHeader>
 					<CardTitle className='text-white flex items-center gap-2'>
 						<CreditCard className='size-5' />
-						Payment Methods
+
+						<span>Payment Methods</span>
 					</CardTitle>
 
-					<CardDescription>
-						Manage your payment methods
-					</CardDescription>
+					<CardDescription>Manage your payment methods</CardDescription>
 				</CardHeader>
 
 				<CardContent className='space-y-4'>
@@ -410,8 +479,18 @@ export default function BillingSettingsPage() {
 												•••• •••• •••• {method.last4}
 											</p>
 
-											<p className='text-sm text-zinc-400'>
-												{method.brand?.toUpperCase()} • Expires {method.expiryMonth}/{method.expiryYear}
+											<p className='text-sm text-zinc-400 flex gap-1'>
+												<span>{method.brand?.toUpperCase()}</span>
+
+												<span>• Expires</span>
+
+												<span className='flex gap-1'>
+													<span>{method.expiryMonth}</span>
+
+													<span>/</span>
+
+													<span>{method.expiryYear}</span>
+												</span>
 											</p>
 										</>
 									) : (
@@ -428,7 +507,10 @@ export default function BillingSettingsPage() {
 
 							<div className='flex items-center gap-2'>
 								{method.isDefault && (
-									<Badge variant='secondary' className='bg-sky-900/50 text-sky-200 border-sky-700/50'>
+									<Badge
+										variant='secondary'
+										className='bg-sky-900/50 text-sky-200 border-sky-700/50'
+									>
 										Default
 									</Badge>
 								)}
@@ -451,7 +533,8 @@ export default function BillingSettingsPage() {
 				<CardHeader>
 					<CardTitle className='text-white flex items-center gap-2'>
 						<Calendar className='size-5' />
-						Billing History
+
+						<span>Billing History</span>
 					</CardTitle>
 
 					<CardDescription>
@@ -479,8 +562,8 @@ export default function BillingSettingsPage() {
 										invoice.status === 'paid'
 											? 'bg-green-900/50 text-green-200 border-green-700/50'
 											: invoice.status === 'pending'
-											? 'bg-yellow-900/50 text-yellow-200 border-yellow-700/50'
-											: 'bg-red-900/50 text-red-200 border-red-700/50'
+												? 'bg-yellow-900/50 text-yellow-200 border-yellow-700/50'
+												: 'bg-red-900/50 text-red-200 border-red-700/50'
 									}
 								>
 									{invoice.status}
@@ -489,7 +572,10 @@ export default function BillingSettingsPage() {
 
 							<div className='flex items-center gap-4'>
 								<span className='text-white font-medium'>
-									${invoice.amount} {invoice.currency}
+									<span className='flex gap-1'>
+										<span>${invoice.amount}</span>
+										<span>{invoice.currency}</span>
+									</span>
 								</span>
 
 								<Button variant='outline' size='sm'>
@@ -526,7 +612,7 @@ export default function BillingSettingsPage() {
 								</p>
 
 								<p className='text-sm text-red-300/70'>
-									You'll keep access until the end of your billing period
+									You&apos;ll keep access until the end of your billing period
 								</p>
 							</div>
 

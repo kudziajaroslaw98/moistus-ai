@@ -5,7 +5,6 @@ import { WaitlistHero } from '@/components/waitlist/waitlist-hero';
 import { Clock } from 'lucide-react';
 import { Metadata } from 'next';
 import Image from 'next/image';
-import React from 'react';
 
 export const metadata: Metadata = {
 	title: 'Moistus AI - AI-Powered Mind Mapping | Join the Waitlist',
@@ -56,29 +55,6 @@ export const metadata: Metadata = {
 		},
 	},
 };
-
-const _features = [
-	{
-		iconName: 'Brain',
-		title: 'AI-Powered Intelligence',
-		description:
-			'Our AI understands context and suggests connections you might have missed.',
-		gradient: 'from-violet-500 to-purple-600',
-	},
-	{
-		iconName: 'Users',
-		title: 'Real-time Collaboration',
-		description:
-			'Work together seamlessly with your team, see changes instantly.',
-		gradient: 'from-blue-500 to-indigo-600',
-	},
-	{
-		iconName: 'Search',
-		title: 'Semantic Search',
-		description: 'Find anything in your knowledge base using natural language.',
-		gradient: 'from-emerald-500 to-teal-600',
-	},
-];
 
 export default function Home() {
 	return (

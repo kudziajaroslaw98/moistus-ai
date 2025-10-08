@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
+import useAppStore from '@/store/mind-map-store';
 import {
 	Bell,
 	BellOff,
@@ -25,11 +26,9 @@ import {
 	MessageSquare,
 	Save,
 	Smartphone,
-	Users,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import useAppStore from '@/store/mind-map-store';
 import { useShallow } from 'zustand/shallow';
 
 interface NotificationSettings {
@@ -119,7 +118,11 @@ export default function NotificationsSettingsPage() {
 			const prefs = getNotificationPreferences();
 			setSettings({
 				email: {
-					enabled: !!(prefs?.email_comments || prefs?.email_mentions || prefs?.email_reactions),
+					enabled: !!(
+						prefs?.email_comments ||
+						prefs?.email_mentions ||
+						prefs?.email_reactions
+					),
 					comments: prefs?.email_comments ?? false,
 					mentions: prefs?.email_mentions ?? false,
 					reactions: prefs?.email_reactions ?? false,
@@ -128,7 +131,11 @@ export default function NotificationsSettingsPage() {
 					marketing: false, // Default
 				},
 				push: {
-					enabled: !!(prefs?.push_comments || prefs?.push_mentions || prefs?.push_reactions),
+					enabled: !!(
+						prefs?.push_comments ||
+						prefs?.push_mentions ||
+						prefs?.push_reactions
+					),
 					comments: prefs?.push_comments ?? false,
 					mentions: prefs?.push_mentions ?? false,
 					reactions: prefs?.push_reactions ?? false,
@@ -186,7 +193,10 @@ export default function NotificationsSettingsPage() {
 		}
 	};
 
-	const updateEmailSetting = (key: keyof NotificationSettings['email'], value: boolean) => {
+	const updateEmailSetting = (
+		key: keyof NotificationSettings['email'],
+		value: boolean
+	) => {
 		setSettings((prev) => ({
 			...prev,
 			email: {
@@ -196,7 +206,10 @@ export default function NotificationsSettingsPage() {
 		}));
 	};
 
-	const updatePushSetting = (key: keyof NotificationSettings['push'], value: boolean) => {
+	const updatePushSetting = (
+		key: keyof NotificationSettings['push'],
+		value: boolean
+	) => {
 		setSettings((prev) => ({
 			...prev,
 			push: {
@@ -206,7 +219,10 @@ export default function NotificationsSettingsPage() {
 		}));
 	};
 
-	const updateQuietHours = (key: keyof NotificationSettings['quietHours'], value: boolean | string) => {
+	const updateQuietHours = (
+		key: keyof NotificationSettings['quietHours'],
+		value: boolean | string
+	) => {
 		setSettings((prev) => ({
 			...prev,
 			quietHours: {
@@ -229,7 +245,9 @@ export default function NotificationsSettingsPage() {
 			{/* Header */}
 			<div className='flex items-center justify-between'>
 				<div>
-					<h2 className='text-2xl font-bold text-white'>Notification Settings</h2>
+					<h2 className='text-2xl font-bold text-white'>
+						Notification Settings
+					</h2>
 
 					<p className='text-zinc-400 mt-1'>
 						Configure how and when you receive notifications
@@ -272,14 +290,16 @@ export default function NotificationsSettingsPage() {
 
 						<Switch
 							checked={settings.email.enabled}
-							onCheckedChange={(checked) => updateEmailSetting('enabled', checked)}
+							onCheckedChange={(checked) =>
+								updateEmailSetting('enabled', checked)
+							}
 						/>
 					</div>
 
 					{settings.email.enabled && (
 						<>
 							<Separator className='bg-zinc-700' />
-							
+
 							<div className='flex items-center justify-between'>
 								<div>
 									<Label>Comments</Label>
@@ -291,7 +311,9 @@ export default function NotificationsSettingsPage() {
 
 								<Switch
 									checked={settings.email.comments}
-									onCheckedChange={(checked) => updateEmailSetting('comments', checked)}
+									onCheckedChange={(checked) =>
+										updateEmailSetting('comments', checked)
+									}
 								/>
 							</div>
 
@@ -306,7 +328,9 @@ export default function NotificationsSettingsPage() {
 
 								<Switch
 									checked={settings.email.mentions}
-									onCheckedChange={(checked) => updateEmailSetting('mentions', checked)}
+									onCheckedChange={(checked) =>
+										updateEmailSetting('mentions', checked)
+									}
 								/>
 							</div>
 
@@ -321,7 +345,9 @@ export default function NotificationsSettingsPage() {
 
 								<Switch
 									checked={settings.email.reactions}
-									onCheckedChange={(checked) => updateEmailSetting('reactions', checked)}
+									onCheckedChange={(checked) =>
+										updateEmailSetting('reactions', checked)
+									}
 								/>
 							</div>
 
@@ -330,13 +356,15 @@ export default function NotificationsSettingsPage() {
 									<Label>Collaboration invites</Label>
 
 									<p className='text-sm text-zinc-400'>
-										Get notified when you're invited to collaborate
+										Get notified when you&apos;re invited to collaborate
 									</p>
 								</div>
 
 								<Switch
 									checked={settings.email.collaborations}
-									onCheckedChange={(checked) => updateEmailSetting('collaborations', checked)}
+									onCheckedChange={(checked) =>
+										updateEmailSetting('collaborations', checked)
+									}
 								/>
 							</div>
 
@@ -351,7 +379,9 @@ export default function NotificationsSettingsPage() {
 
 								<Switch
 									checked={settings.email.updates}
-									onCheckedChange={(checked) => updateEmailSetting('updates', checked)}
+									onCheckedChange={(checked) =>
+										updateEmailSetting('updates', checked)
+									}
 								/>
 							</div>
 
@@ -366,7 +396,9 @@ export default function NotificationsSettingsPage() {
 
 								<Switch
 									checked={settings.email.marketing}
-									onCheckedChange={(checked) => updateEmailSetting('marketing', checked)}
+									onCheckedChange={(checked) =>
+										updateEmailSetting('marketing', checked)
+									}
 								/>
 							</div>
 						</>
@@ -399,14 +431,16 @@ export default function NotificationsSettingsPage() {
 
 						<Switch
 							checked={settings.push.enabled}
-							onCheckedChange={(checked) => updatePushSetting('enabled', checked)}
+							onCheckedChange={(checked) =>
+								updatePushSetting('enabled', checked)
+							}
 						/>
 					</div>
 
 					{settings.push.enabled && (
 						<>
 							<Separator className='bg-zinc-700' />
-							
+
 							<div className='flex items-center justify-between'>
 								<div>
 									<Label>Comments</Label>
@@ -418,7 +452,9 @@ export default function NotificationsSettingsPage() {
 
 								<Switch
 									checked={settings.push.comments}
-									onCheckedChange={(checked) => updatePushSetting('comments', checked)}
+									onCheckedChange={(checked) =>
+										updatePushSetting('comments', checked)
+									}
 								/>
 							</div>
 
@@ -433,7 +469,9 @@ export default function NotificationsSettingsPage() {
 
 								<Switch
 									checked={settings.push.mentions}
-									onCheckedChange={(checked) => updatePushSetting('mentions', checked)}
+									onCheckedChange={(checked) =>
+										updatePushSetting('mentions', checked)
+									}
 								/>
 							</div>
 
@@ -448,7 +486,9 @@ export default function NotificationsSettingsPage() {
 
 								<Switch
 									checked={settings.push.reactions}
-									onCheckedChange={(checked) => updatePushSetting('reactions', checked)}
+									onCheckedChange={(checked) =>
+										updatePushSetting('reactions', checked)
+									}
 								/>
 							</div>
 
@@ -463,7 +503,9 @@ export default function NotificationsSettingsPage() {
 
 								<Switch
 									checked={settings.push.collaborations}
-									onCheckedChange={(checked) => updatePushSetting('collaborations', checked)}
+									onCheckedChange={(checked) =>
+										updatePushSetting('collaborations', checked)
+									}
 								/>
 							</div>
 						</>
@@ -537,7 +579,9 @@ export default function NotificationsSettingsPage() {
 
 							<Switch
 								checked={settings.quietHours.enabled}
-								onCheckedChange={(checked) => updateQuietHours('enabled', checked)}
+								onCheckedChange={(checked) =>
+									updateQuietHours('enabled', checked)
+								}
 							/>
 						</div>
 

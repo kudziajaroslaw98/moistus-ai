@@ -22,7 +22,7 @@ interface PrivacySettings {
 	};
 }
 
-export async function GET(request: Request) {
+export async function GET() {
 	try {
 		const supabase = await createClient();
 
@@ -87,10 +87,10 @@ export async function PUT(request: Request) {
 		const settings: PrivacySettings = body;
 
 		// TODO: Validate and save privacy settings to database
-		
-		return NextResponse.json({ 
+
+		return NextResponse.json({
 			data: settings,
-			message: 'Privacy settings updated successfully' 
+			message: 'Privacy settings updated successfully'
 		});
 	} catch (error) {
 		console.error('Error in user/privacy PUT:', error);

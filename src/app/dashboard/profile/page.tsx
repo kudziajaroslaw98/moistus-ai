@@ -198,7 +198,7 @@ export default function ProfilePage() {
 		}
 	};
 
-	const handleAvatarUpload = useCallback(async (file: File) => {
+	const handleAvatarUpload = useCallback(async (_file: File) => {
 		try {
 			// TODO: Implement avatar upload
 			// const formData = new FormData();
@@ -324,8 +324,7 @@ export default function ProfilePage() {
 							<div className='space-y-2'>
 								<Button variant='outline' className='relative'>
 									<Camera className='size-4 mr-2' />
-									Upload Photo
-
+									<span>Upload Photo</span>
 									<input
 										type='file'
 										accept='image/*'

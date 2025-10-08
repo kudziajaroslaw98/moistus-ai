@@ -84,7 +84,7 @@ export async function POST(req: Request) {
 							code: 'LIMIT_REACHED',
 							currentUsage,
 							limit,
-							remaining: 0,
+							remaining: remaining,
 							upgradeUrl: '/dashboard/settings/billing',
 						}),
 						{ status: 402, headers: { 'Content-Type': 'application/json' } }

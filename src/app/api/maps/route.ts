@@ -15,7 +15,7 @@ const requestBodySchema = z.object({
 
 export const GET = withApiValidation(
 	z.any().nullish(),
-	async (req, validatedBody, supabase, user) => {
+	async (_req, _validatedBody, supabase, _user) => {
 		try {
 			// Build the query
 			const query = supabase
@@ -107,7 +107,7 @@ export const POST = withApiValidation(
 						{
 							currentUsage: currentMapsCount,
 							limit,
-							remaining: 0,
+							remaining: remaining,
 							upgradeUrl: '/dashboard/settings/billing',
 						}
 					);

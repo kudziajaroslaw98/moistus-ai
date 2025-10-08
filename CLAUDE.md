@@ -27,6 +27,11 @@ pnpm pretty          # Prettier
 
 **Stack**: Next.js 15 (App Router) • React 19 • TypeScript • Zustand (19 slices) • React Flow (canvas) • Motion (animations) • Supabase (auth/DB/realtime) • Tailwind CSS • Gemini AI
 
+## Animations
+For animations, we use the `motion` library from Framer Motion. This library provides a simple and powerful way to create smooth and responsive animations in React applications. We use it to animate the nodes and edges of the mind map, as well as the UI elements such as modals and panels.
+
+Guideline @./animation-guidelines.md
+
 ### State Management (19 Slices)
 
 **Store**: `src/store/mind-map-store.tsx`

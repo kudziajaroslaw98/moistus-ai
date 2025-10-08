@@ -1,6 +1,6 @@
 export const maxDuration = 60;
 
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
 	// 	try {
 	// 		// Apply rate limiting
 	// 		const rateLimitResult = await withRateLimit(request, chatRateLimit);

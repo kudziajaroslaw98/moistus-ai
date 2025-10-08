@@ -43,7 +43,7 @@ export const POST = withAuthValidation(
 			}
 
 			// 3. Update user profile using database function
-			const { data: upgradeResult, error: upgradeError } = await supabase.rpc(
+			const { error: upgradeError } = await supabase.rpc(
 				'upgrade_anonymous_to_full_user',
 				{
 					user_id_param: user.id,

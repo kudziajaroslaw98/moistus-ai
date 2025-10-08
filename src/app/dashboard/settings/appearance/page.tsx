@@ -18,18 +18,10 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import {
-	Clock,
-	Monitor,
-	Moon,
-	Palette,
-	Save,
-	Sun,
-	Zap,
-} from 'lucide-react';
+import useAppStore from '@/store/mind-map-store';
+import { Clock, Monitor, Moon, Palette, Save, Sun, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import useAppStore from '@/store/mind-map-store';
 import { useShallow } from 'zustand/shallow';
 
 interface AppearanceSettings {
@@ -86,7 +78,6 @@ export default function AppearanceSettingsPage() {
 		loadUserProfile,
 		updatePreferences,
 		clearProfileError,
-		getTheme,
 		unsubscribeFromProfileChanges,
 	} = useAppStore(
 		useShallow((state) => ({
@@ -96,7 +87,6 @@ export default function AppearanceSettingsPage() {
 			loadUserProfile: state.loadUserProfile,
 			updatePreferences: state.updatePreferences,
 			clearProfileError: state.clearProfileError,
-			getTheme: state.getTheme,
 			unsubscribeFromProfileChanges: state.unsubscribeFromProfileChanges,
 		}))
 	);
@@ -242,9 +232,7 @@ export default function AppearanceSettingsPage() {
 						Theme
 					</CardTitle>
 
-					<CardDescription>
-						Choose your preferred color scheme
-					</CardDescription>
+					<CardDescription>Choose your preferred color scheme</CardDescription>
 				</CardHeader>
 
 				<CardContent className='space-y-6'>
@@ -330,9 +318,7 @@ export default function AppearanceSettingsPage() {
 						Region
 					</CardTitle>
 
-					<CardDescription>
-						Set your timezone preference
-					</CardDescription>
+					<CardDescription>Set your timezone preference</CardDescription>
 				</CardHeader>
 
 				<CardContent className='space-y-4'>
@@ -389,7 +375,9 @@ export default function AppearanceSettingsPage() {
 
 						<Switch
 							checked={settings.animations}
-							onCheckedChange={(checked) => updateSetting('animations', checked)}
+							onCheckedChange={(checked) =>
+								updateSetting('animations', checked)
+							}
 						/>
 					</div>
 
@@ -404,7 +392,9 @@ export default function AppearanceSettingsPage() {
 
 						<Switch
 							checked={settings.reducedMotion}
-							onCheckedChange={(checked) => updateSetting('reducedMotion', checked)}
+							onCheckedChange={(checked) =>
+								updateSetting('reducedMotion', checked)
+							}
 						/>
 					</div>
 				</CardContent>
@@ -435,7 +425,9 @@ export default function AppearanceSettingsPage() {
 
 						<Switch
 							checked={settings.canvas.gridVisible}
-							onCheckedChange={(checked) => updateCanvasSetting('gridVisible', checked)}
+							onCheckedChange={(checked) =>
+								updateCanvasSetting('gridVisible', checked)
+							}
 						/>
 					</div>
 
@@ -450,14 +442,16 @@ export default function AppearanceSettingsPage() {
 
 						<Switch
 							checked={settings.canvas.snapToGrid}
-							onCheckedChange={(checked) => updateCanvasSetting('snapToGrid', checked)}
+							onCheckedChange={(checked) =>
+								updateCanvasSetting('snapToGrid', checked)
+							}
 						/>
 					</div>
 
 					{/* Note: Zoom settings removed - hardcoded in ReactFlow component (minZoom={0.1}, fitView={true}) */}
 					<p className='text-sm text-zinc-500 italic'>
-						Note: Grid and snap settings are currently hardcoded in the canvas component. 
-						Future updates will make these settings functional.
+						Note: Grid and snap settings are currently hardcoded in the canvas
+						component. Future updates will make these settings functional.
 					</p>
 				</CardContent>
 			</Card>

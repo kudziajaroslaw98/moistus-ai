@@ -63,16 +63,6 @@ const connectionSuggestionSchema = z.object({
 	}),
 });
 
-const streamStatusSchema = z.object({
-	type: z.string(),
-	data: z.object({
-		message: z.string().nullable(),
-		error: z.string().nullable(),
-		step: z.number().nullable(),
-		totalSteps: z.number().nullable(),
-	}),
-});
-
 // The entire POST function is now the API route handler
 export async function POST(req: Request) {
 	try {
@@ -118,7 +108,7 @@ export async function POST(req: Request) {
 							code: 'LIMIT_REACHED',
 							currentUsage,
 							limit,
-							remaining: 0,
+							remaining,
 							upgradeUrl: '/dashboard/settings/billing',
 						}),
 						{ status: 402, headers: { 'Content-Type': 'application/json' } }

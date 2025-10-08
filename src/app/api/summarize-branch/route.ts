@@ -1,27 +1,22 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
-import { withApiValidation } from '@/helpers/api/with-api-validation';
 import {
-	checkAIFeatureAccess,
-	trackAIFeatureUsage,
+    checkAIFeatureAccess,
+    trackAIFeatureUsage,
 } from '@/helpers/api/with-ai-feature-gate';
-import type { EdgeData } from '@/types/edge-data';
-import type { NodeData } from '@/types/node-data';
+import { withApiValidation } from '@/helpers/api/with-api-validation';
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 // Database types - Assuming you have these generated or defined
 import { z } from 'zod';
 
 // Define types for the new node and edge based on your Supabase schema
-type NewNodePayload = NodeData;
-type NewEdgePayload = EdgeData;
-
 const requestBodySchema = z.object({
 	nodeId: z.string().uuid('Invalid node ID format'),
 });
 
 export const POST = withApiValidation(
 	requestBodySchema,
-	async (req, validatedBody, supabase, user) => {
+	async (_req, validatedBody, supabase, user) => {
 		// Check AI feature access
 		const { hasAccess, isPro, error } = await checkAIFeatureAccess(
 			user,

@@ -1,5 +1,3 @@
-// src/app/api/nodes/create-reference/route.ts (Updated)
-
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
 import generateUuid from '@/helpers/generate-uuid';
@@ -14,7 +12,7 @@ const createReferenceSchema = z.object({
 
 export const POST = withApiValidation(
 	createReferenceSchema,
-	async (req, validatedBody, supabase, user) => {
+	async (_req, validatedBody, supabase, user) => {
 		try {
 			const { sourceMapId, targetMapId, targetNodeId, position } =
 				validatedBody;
@@ -36,7 +34,7 @@ export const POST = withApiValidation(
 			const contentSnippet =
 				targetData.content?.substring(0, 100) || 'Untitled Node';
 			const targetMapTitle =
-				(targetData.mind_maps as any)?.title || 'Another Map';
+				(targetData.mind_maps as { title?: string })?.title || 'Another Map';
 
 			// 2. Use the transactional function to create the node and the reference link
 			const referenceNodeId = generateUuid();

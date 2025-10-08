@@ -19,7 +19,7 @@ interface AppearanceSettings {
 	};
 }
 
-export async function GET(request: Request) {
+export async function GET() {
 	try {
 		const supabase = await createClient();
 
@@ -81,10 +81,10 @@ export async function PUT(request: Request) {
 		const settings: AppearanceSettings = body;
 
 		// TODO: Validate and save appearance settings to database
-		
-		return NextResponse.json({ 
+
+		return NextResponse.json({
 			data: settings,
-			message: 'Appearance settings updated successfully' 
+			message: 'Appearance settings updated successfully'
 		});
 	} catch (error) {
 		console.error('Error in user/appearance PUT:', error);
