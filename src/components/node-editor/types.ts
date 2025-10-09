@@ -1,15 +1,9 @@
-import type { AvailableNodeTypes } from '@/registry/node-registry';
-import type { LucideIcon } from 'lucide-react';
-import { ComponentType } from 'react';
 import type { AppNode } from '../../types/app-node';
 import type { NodeData } from '../../types/node-data';
 import type {
 	Command,
-	FieldType,
-	FieldConfig,
 	PatternCategory,
 	ParsingPattern,
-	QuickParser,
 } from './core/commands/command-types';
 
 // Re-export types from command-types for backwards compatibility

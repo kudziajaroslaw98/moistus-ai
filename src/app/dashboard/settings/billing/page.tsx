@@ -117,23 +117,23 @@ export default function BillingSettingsPage() {
 	const [isLoading, setIsLoading] = useState(false);
 
 	// Mock data
-	const [subscription, _setSubscription] = useState<Subscription>({
+	const subscription : Subscription={
 		id: 'sub_123',
 		plan: 'pro',
 		status: 'active',
 		currentPeriodStart: '2024-03-01',
 		currentPeriodEnd: '2024-04-01',
 		cancelAtPeriodEnd: false,
-	});
+	};
 
-	const [usage, _setUsage] = useState<Usage>({
+	const usage: Usage = {
 		mindMaps: { used: 23, limit: -1 }, // -1 means unlimited
 		collaborators: { used: 3, limit: 5 },
 		storage: { used: 1250, limit: 5120 }, // in MB
 		exports: { used: 45, limit: 100 },
-	});
+	};
 
-	const [paymentMethods, _setPaymentMethods] = useState<PaymentMethod[]>([
+	const paymentMethods : PaymentMethod[]=[
 		{
 			id: 'pm_123',
 			type: 'card',
@@ -148,9 +148,9 @@ export default function BillingSettingsPage() {
 			type: 'paypal',
 			isDefault: false,
 		},
-	]);
+	];
 
-	const [invoices, _setInvoices] = useState<Invoice[]>([
+	const invoices:Invoice[]=[
 		{
 			id: 'inv_123',
 			number: 'INV-2024-001',
@@ -169,7 +169,7 @@ export default function BillingSettingsPage() {
 			date: '2024-02-01',
 			downloadUrl: '#',
 		},
-	]);
+	];
 
 	const handleCancelSubscription = async () => {
 		setIsLoading(true);
@@ -390,7 +390,9 @@ export default function BillingSettingsPage() {
 								<span className='text-white'>Collaborators</span>
 
 								<span className='text-zinc-400'>
-									{usage.collaborators.used} / {usage.collaborators.limit}
+									{usage.collaborators.used} /{' '}
+
+									{usage.collaborators.limit}
 								</span>
 							</div>
 
@@ -574,6 +576,7 @@ export default function BillingSettingsPage() {
 								<span className='text-white font-medium'>
 									<span className='flex gap-1'>
 										<span>${invoice.amount}</span>
+
 										<span>{invoice.currency}</span>
 									</span>
 								</span>

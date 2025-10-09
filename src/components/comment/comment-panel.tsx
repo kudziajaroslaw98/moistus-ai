@@ -134,7 +134,7 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
 			setNewComment('');
 			setReplyingTo(null);
 			toast.success('Comment added successfully!');
-		} catch (error) {
+		} catch {
 			toast.error('Failed to add comment');
 		}
 	};
@@ -148,7 +148,7 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
 		try {
 			await updateComment(commentId, content);
 			toast.success('Comment updated successfully!');
-		} catch (error) {
+		} catch {
 			toast.error('Failed to update comment');
 		}
 	};
@@ -157,7 +157,7 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
 		try {
 			await deleteComment(commentId);
 			toast.success('Comment deleted successfully!');
-		} catch (error) {
+		} catch {
 			toast.error('Failed to delete comment');
 		}
 	};
@@ -166,7 +166,7 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
 		try {
 			await resolveComment(commentId);
 			toast.success('Comment resolved!');
-		} catch (error) {
+		} catch {
 			toast.error('Failed to resolve comment');
 		}
 	};
@@ -175,7 +175,7 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
 		try {
 			await unresolveComment(commentId);
 			toast.success('Comment unresolved!');
-		} catch (error) {
+		} catch {
 			toast.error('Failed to unresolve comment');
 		}
 	};
@@ -183,7 +183,7 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
 	const handleAddReaction = async (commentId: string, emoji: string) => {
 		try {
 			await addCommentReaction(commentId, emoji);
-		} catch (error) {
+		} catch {
 			toast.error('Failed to add reaction');
 		}
 	};
@@ -194,7 +194,7 @@ const CommentsPanelComponent = ({ nodeId, className }: CommentsPanelProps) => {
 	) => {
 		try {
 			await removeCommentReaction(commentId, reactionId);
-		} catch (error) {
+		} catch {
 			toast.error('Failed to remove reaction');
 		}
 	};

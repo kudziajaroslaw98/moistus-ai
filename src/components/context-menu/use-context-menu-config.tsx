@@ -5,7 +5,6 @@ import {
 	ChevronDown,
 	ChevronRight,
 	Edit,
-	GitPullRequestArrow,
 	Group,
 	LayoutPanelLeft,
 	LayoutPanelTop,
@@ -15,11 +14,8 @@ import {
 	Pause,
 	Play,
 	Plus,
-	ScanBarcode,
-	ScanText,
-	Sparkles,
 	Trash,
-	Ungroup,
+	Ungroup
 } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
@@ -28,16 +24,8 @@ import { MenuSection } from './types';
 
 interface UseContextMenuConfigProps {
 	aiActions: {
-		summarizeNode: (nodeId: string) => void;
-		summarizeBranch: (nodeId: string) => void;
-		extractConcepts: (nodeId: string) => void;
-		openContentModal: (nodeId: string) => void;
 		suggestConnections: () => void;
 		suggestMerges: () => void;
-		generateFromSelectedNodes?: (
-			nodeIds: string[],
-			prompt: string
-		) => Promise<void>;
 	};
 	onClose: () => void;
 }
@@ -179,38 +167,6 @@ export function useContextMenuConfig({
 							onClose();
 						},
 						hidden: !clickedNode.parentId,
-					},
-				],
-			},
-			{
-				id: 'node-ai-actions',
-				items: [
-					{
-						id: 'summarize-node',
-						icon: <Sparkles className='h-4 w-4' />,
-						label: 'Summarize Node',
-						onClick: () => aiActions.summarizeNode(clickedNode.id),
-						loading: loadingStates.isSummarizing,
-					},
-					{
-						id: 'summarize-branch',
-						icon: <GitPullRequestArrow className='h-4 w-4' />,
-						label: 'Summarize Branch',
-						onClick: () => aiActions.summarizeBranch(clickedNode.id),
-						loading: loadingStates.isSummarizingBranch,
-					},
-					{
-						id: 'extract-concepts',
-						icon: <ScanBarcode className='h-4 w-4' />,
-						label: 'Extract Concepts',
-						onClick: () => aiActions.extractConcepts(clickedNode.id),
-						loading: loadingStates.isExtracting,
-					},
-					{
-						id: 'generate-content',
-						icon: <ScanText className='h-4 w-4' />,
-						label: 'Generate Content',
-						onClick: () => aiActions.openContentModal(clickedNode.id),
 					},
 				],
 			},
@@ -463,21 +419,6 @@ export function useContextMenuConfig({
 							onClose();
 						},
 						hidden: !isSingleGroupSelected,
-					},
-				],
-			},
-			{
-				id: 'selected-ai',
-				items: [
-					{
-						id: 'generate-from-nodes',
-						icon: <Sparkles className='h-4 w-4' />,
-						label: 'Generate from Selected Nodes',
-						onClick: () => {
-							setPopoverOpen({ generateFromNodesModal: true });
-							onClose();
-						},
-						hidden: !aiActions.generateFromSelectedNodes,
 					},
 				],
 			},

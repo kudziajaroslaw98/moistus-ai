@@ -260,18 +260,6 @@ function getColorQuickFixes(value: string): QuickFix[] {
 	return fixes;
 }
 
-/**
- * Validate color contrast
- */
-export function validateColorContrast(
-	foreground: string,
-	background: string,
-	minRatio: number = 4.5
-): ValidationError | null {
-	// This would require implementing WCAG contrast ratio calculation
-	// For now, return null (no error)
-	return null;
-}
 
 /**
  * Create color validator with options

@@ -197,7 +197,7 @@ export const StructuredInput: React.FC<StructuredInputProps> = ({
 			} else {
 				setErrors({ _form: result.error || `Failed to ${mode === 'edit' ? 'update' : 'create'} node` });
 			}
-		} catch (err) {
+		} catch {
 			setErrors({ _form: `An error occurred while ${mode === 'edit' ? 'updating' : 'creating'} the node` });
 		} finally {
 			setIsCreating(false);

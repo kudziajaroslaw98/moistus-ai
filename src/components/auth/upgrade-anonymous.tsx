@@ -1,14 +1,11 @@
 'use client';
 
-import { createClient } from '@/helpers/supabase/client';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Save, Shield, Users, X, Zap } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { z } from 'zod';
-
-const supabase = createClient();
 
 const UpgradeSchema = z
 	.object({
@@ -60,9 +57,8 @@ export function UpgradeAnonymousPrompt({
 		register,
 		handleSubmit,
 		formState: { errors },
-		reset,
 	} = useForm<UpgradeForm>({
-		resolver: zodResolver(UpgradeSchema) as any,
+		resolver: zodResolver(UpgradeSchema),
 		defaultValues: {
 			displayName: userDisplayName || '',
 		},

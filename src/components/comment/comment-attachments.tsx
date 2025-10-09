@@ -19,7 +19,7 @@ export function CommentAttachments({
 					className='flex items-center gap-2 p-2 bg-zinc-800/50 rounded text-xs'
 				>
 					{attachment.type === 'image' && (
-						<Image className='size-3 text-blue-400' />
+						<Image className='size-3 text-blue-400' aria-label='Image attachment' />
 					)}
 
 					{attachment.type === 'file' && (

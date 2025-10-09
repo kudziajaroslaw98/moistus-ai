@@ -2,7 +2,6 @@
 
 import { AvailableNodeTypes } from '@/registry/node-registry';
 import { assertAvailableNodeTypeWithLog } from '@/registry/type-guards';
-import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import { EditorView } from '@codemirror/view';
 import { motion, type MotionProps } from 'motion/react';
@@ -14,7 +13,6 @@ import React, {
 	useRef,
 	useState,
 } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 import { validateInput } from '../../core/validators/input-validator';
 import { createNodeEditor } from '../../integrations/codemirror/setup';
 import { ValidationTooltip } from './validation-tooltip';
@@ -53,14 +51,11 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 			initial,
 			animate,
 			transition,
-			whileFocus,
-			// Command completion props
 			onNodeTypeChange,
 			onCommandExecuted,
 			enableCommands = true, // Default enabled
 			...rest
 		},
-		ref
 	) => {
 		const editorRef = useRef<HTMLDivElement>(null);
 		const editorViewRef = useRef<EditorView | null>(null);
@@ -87,11 +82,6 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 			(error) => error.type === 'suggestion'
 		);
 
-		const { quickInputNodeType: currentNodeType } = useAppStore(
-			useShallow((state) => ({
-				quickInputNodeType: state.quickInputNodeType,
-			}))
-		);
 
 		// Debounced validation tooltip to prevent rapid state changes
 		const debouncedShowTooltip = useCallback(() => {
@@ -118,7 +108,6 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 			(startIndex: number, endIndex: number, replacement: string) => {
 				try {
 					const view = editorViewRef.current;
-
 					if (!view || !view.dom || !view.dom.isConnected) {
 						return;
 					}
@@ -357,24 +346,11 @@ export const EnhancedInput = forwardRef<HTMLDivElement, EnhancedInputProps>(
 			enableCommands,
 		]);
 
-		// Handle disabled state changes with DOM validity check
-		useEffect(() => {
-			try {
-				const view = editorViewRef.current;
 
-				// The new setup handles disabled state automatically through the initial configuration
-				// No need for manual reconfiguration
-			} catch (error) {
-				console.error('Error updating disabled state:', error);
-			}
-		}, [disabled]);
-
-		// Node type changes are handled automatically by the new setup through pattern detection
 
 		// Sync external value changes to CodeMirror (with loop prevention)
 		useEffect(() => {
 			const view = editorViewRef.current;
-
 			if (!view || !view.dom || !view.dom.isConnected) {
 				return;
 			}

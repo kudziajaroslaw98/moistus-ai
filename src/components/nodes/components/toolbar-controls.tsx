@@ -7,23 +7,23 @@
 
 'use client';
 
-import { 
-	Bold, 
-	Italic, 
-	AlignLeft, 
-	AlignCenter, 
+import {
+	AlignCenter,
+	AlignLeft,
 	AlignRight,
-	Settings,
+	Bold,
 	Copy,
-	Trash2,
 	Edit3,
+	Italic,
 	Maximize2,
 	Minimize2,
+	Settings,
+	Trash2,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
+import { Button } from '../../ui/button';
 import { Toggle } from '../../ui/toggle';
 import { ToggleGroup, ToggleGroupItem } from '../../ui/toggle-group';
-import { Button } from '../../ui/button';
 import { GlassmorphismTheme } from '../themes/glassmorphism-theme';
 
 // Text formatting controls
@@ -334,10 +334,12 @@ export const ToolbarSeparator = () => {
 	);
 };
 
-export default {
+const ToolbarControls = {
 	TextFormattingControls,
 	NodeActionControls,
 	ExpandControl,
 	CopyFeedback,
 	ToolbarSeparator,
 };
+
+export default ToolbarControls;

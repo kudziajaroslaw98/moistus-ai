@@ -173,7 +173,7 @@ export const ParsingLegend: React.FC<ParsingLegendProps> = memo(
 								{/* Display patterns by category */}
 								{(['metadata', 'formatting', 'structure', 'content'] as const)
 									.filter((category) => groupedPatterns[category]?.length > 0)
-									.map((category, index) => (
+									.map((category) => (
 										<PatternCategoryComponent
 											key={category}
 											category={category}

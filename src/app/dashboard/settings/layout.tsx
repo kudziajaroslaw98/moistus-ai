@@ -4,7 +4,6 @@ import { cn } from '@/utils/cn';
 import {
 	Bell,
 	CreditCard,
-	Eye,
 	Palette,
 	Settings,
 	Shield,

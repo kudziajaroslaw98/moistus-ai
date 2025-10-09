@@ -12,7 +12,7 @@ export interface MessageProps extends ChatMessage {
 }
 
 function MessageComponent({
-	id,
+	id: _id,
 	content,
 	role,
 	timestamp,
@@ -25,7 +25,6 @@ function MessageComponent({
 	const [showMeta, setShowMeta] = useState(showMetadata);
 
 	const isUser = role === 'user';
-	const isAssistant = role === 'assistant';
 	const isSystem = role === 'system';
 
 	const handleCopy = async () => {

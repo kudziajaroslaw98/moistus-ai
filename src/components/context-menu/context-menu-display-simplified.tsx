@@ -20,16 +20,8 @@ import { useContextMenuConfig } from './use-context-menu-config';
 
 interface ContextMenuDisplayProps {
 	aiActions: {
-		summarizeNode: (nodeId: string) => void;
-		summarizeBranch: (nodeId: string) => void;
-		extractConcepts: (nodeId: string) => void;
-		openContentModal: (nodeId: string) => void;
 		suggestConnections: () => void;
 		suggestMerges: () => void;
-		generateFromSelectedNodes?: (
-			nodeIds: string[],
-			prompt: string
-		) => Promise<void>;
 	};
 }
 

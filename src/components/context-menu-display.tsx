@@ -616,7 +616,7 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
 							loadingStates.isStateLoading
 						);
 					}}
-					renderItem={(pathType, idx, { focused }) => (
+					renderItem={(pathType, _idx, { focused: _focused }) => (
 						<Tooltip>
 							<TooltipTrigger>
 								<Button
@@ -666,7 +666,7 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
 							loadingStates.isStateLoading
 						);
 					}}
-					renderItem={(colorOpt, idx, { focused }) => {
+					renderItem={(colorOpt, _idx, { focused: _focused }) => {
 						const isSelected =
 							(clickedEdge?.data?.style?.stroke === colorOpt.value &&
 								colorOpt.value !== undefined) ||

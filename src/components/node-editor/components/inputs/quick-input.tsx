@@ -12,9 +12,9 @@ import {
 	type KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
 import { useShallow } from 'zustand/shallow';
-import type { Command } from '../../core/commands/command-types';
 import { processNodeTypeSwitch } from '../../core/commands/command-executor';
 import { commandRegistry } from '../../core/commands/command-registry';
+import type { Command } from '../../core/commands/command-types';
 import { nodeCommands } from '../../core/commands/node-commands';
 import { announceToScreenReader } from '../../core/utils/text-utils';
 import {
@@ -28,9 +28,9 @@ import { CommandPalette } from '../command-palette';
 import { ComponentHeader } from '../component-header';
 import { ErrorDisplay } from '../error-display';
 import { ExamplesSection } from '../examples-section';
-import { EnhancedInput } from './enhanced-input';
 import { ParsingLegend } from '../parsing-legend';
 import { PreviewSection } from '../preview-section';
+import { EnhancedInput } from './enhanced-input';
 
 const theme = {
 	container: 'p-4',
@@ -84,7 +84,6 @@ export const QuickInput: FC<QuickInputProps> = ({
 		setQuickInputNodeType: setCurrentNodeType,
 		setQuickInputCursorPosition: setCursorPosition,
 		initializeQuickInput,
-		resetQuickInput,
 	} = useAppStore(
 		useShallow((state) => ({
 			quickInputValue: state.quickInputValue,
@@ -94,7 +93,6 @@ export const QuickInput: FC<QuickInputProps> = ({
 			setQuickInputNodeType: state.setQuickInputNodeType,
 			setQuickInputCursorPosition: state.setQuickInputCursorPosition,
 			initializeQuickInput: state.initializeQuickInput,
-			resetQuickInput: state.resetQuickInput,
 		}))
 	);
 
@@ -265,7 +263,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 			}
 
 			setError(null);
-		} catch (err) {
+		} catch {
 			setPreview(null);
 			setError('Invalid input format');
 		}
@@ -323,7 +321,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 				closeInlineCreator();
 			}
 		} catch (err) {
-			console.log;
+			console.error('Error creating/updating node:', err);
 			setError(
 				`An error occurred while ${mode === 'edit' ? 'updating' : 'creating'} the node`
 			);

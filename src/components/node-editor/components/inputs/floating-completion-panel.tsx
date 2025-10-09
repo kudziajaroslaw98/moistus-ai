@@ -1,30 +1,26 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { 
-	useFloating, 
-	autoUpdate, 
-	offset, 
-	flip, 
-	shift, 
-	useDismiss, 
-	useRole, 
-	useInteractions,
+import { cn } from '@/utils/cn';
+import {
+	autoUpdate,
+	flip,
 	FloatingFocusManager,
+	offset,
+	shift,
+	useDismiss,
+	useFloating,
+	useInteractions,
 	useListNavigation,
+	useRole,
 	useTypeahead
 } from '@floating-ui/react';
 import { AnimatePresence, motion } from 'motion/react';
-import { cn } from '@/utils/cn';
-import { type PatternType } from '../../core/parsers/pattern-extractor';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { CompletionItem } from '../../core/completions';
 import {
-	getColorCompletions,
-	getDateCompletions,
-	getPriorityCompletions,
-	getTagCompletions,
 	getCompletionsForPattern
 } from '../../core/completions';
-import type { CompletionItem } from '../../core/completions';
+import { type PatternType } from '../../core/parsers/pattern-extractor';
 
 interface FloatingCompletionPanelProps {
 	isOpen: boolean;
@@ -43,7 +39,6 @@ export const FloatingCompletionPanel: React.FC<FloatingCompletionPanelProps> = (
 	onSelect,
 	onClose,
 	anchorRef,
-	cursorPosition,
 }) => {
 	const [activeIndex, setActiveIndex] = useState<number | null>(null);
 	const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -110,7 +105,7 @@ export const FloatingCompletionPanel: React.FC<FloatingCompletionPanelProps> = (
 		}
 	});
 
-	const { getReferenceProps, getFloatingProps, getItemProps } = useInteractions([
+	const { getFloatingProps, getItemProps } = useInteractions([
 		dismiss,
 		role,
 		listNavigation,

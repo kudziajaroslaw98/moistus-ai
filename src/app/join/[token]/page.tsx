@@ -13,16 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import useAppStore from '@/store/mind-map-store';
-import {
-	AlertCircle,
-	Brain,
-	CheckCircle,
-	Edit,
-	Eye,
-	MessageSquare,
-	RefreshCw,
-	Users,
-} from 'lucide-react';
+import type { JoinRoomResult } from '@/store/slices/sharing-slice';
+import { AlertCircle, Brain, CheckCircle, RefreshCw, Users } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
@@ -50,7 +42,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 	const [step, setStep] = useState<
 		'validating' | 'display-name' | 'joining' | 'success' | 'error'
 	>('validating');
-	const [joinResult, setJoinResult] = useState<any>(null);
+	const [joinResult, setJoinResult] = useState<JoinRoomResult | null>(null);
 
 	useEffect(() => {
 		const validateTokenAndPrepare = async () => {
@@ -116,28 +108,6 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 			toast.error(
 				error instanceof Error ? error.message : 'Failed to join room'
 			);
-		}
-	};
-
-	const getRoleIcon = (role: string) => {
-		switch (role) {
-			case 'editor':
-				return <Edit className='h-4 w-4' />;
-			case 'commenter':
-				return <MessageSquare className='h-4 w-4' />;
-			default:
-				return <Eye className='h-4 w-4' />;
-		}
-	};
-
-	const getRoleDescription = (role: string) => {
-		switch (role) {
-			case 'editor':
-				return 'You can view, edit, and modify the mind map';
-			case 'commenter':
-				return 'You can view the mind map and add comments';
-			default:
-				return 'You can view the mind map';
 		}
 	};
 

@@ -324,7 +324,9 @@ export default function ProfilePage() {
 							<div className='space-y-2'>
 								<Button variant='outline' className='relative'>
 									<Camera className='size-4 mr-2' />
+
 									<span>Upload Photo</span>
+
 									<input
 										type='file'
 										accept='image/*'

@@ -18,7 +18,7 @@ interface SearchResult {
 }
 
 export function ReferenceSearchModal() {
-	const { popoverOpen, setPopoverOpen, addNode, mapId, reactFlowInstance } =
+	const { popoverOpen, setPopoverOpen, mapId, reactFlowInstance } =
 		useAppStore(
 			useShallow((state) => ({
 				popoverOpen: state.popoverOpen,
@@ -84,7 +84,7 @@ export function ReferenceSearchModal() {
 		});
 
 		if (response.ok) {
-			const newNodeData = await response.json();
+			const _newNodeData = await response.json(); 
 			// The API now returns the created node. You can add it directly
 			// to the local state for an optimistic update, but since your
 			// store is already set up with realtime subscriptions, the new

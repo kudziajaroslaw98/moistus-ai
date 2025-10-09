@@ -7,7 +7,7 @@ interface CommentMentionsProps {
 }
 
 export function CommentMentions({
-	mentions = [],
+	mentions: _mentions = [],
 	mentionedUsers = [],
 }: CommentMentionsProps) {
 	if (!mentionedUsers.length) return null;

@@ -57,7 +57,8 @@
       "Bash(do sed -i \"s/ease: ''''\\([^'''']*\\)''''/ease: ''''\\1'''' as const/g\" \"$file\" sed -i \"s/ease: \"\"\\([^\"\"]*\\)\"\"/ease: \"\"\\1\"\" as const/g\" \"$file\" sed -i 's/ease: \\(\\[[^]]*\\]\\)/ease: \\1 as const/g' \"$file\" done)",
       "Bash(pnpm type-check:*)",
       "mcp__browsermcp__browser_press_key",
-      "mcp__browsermcp__browser_type"
+      "mcp__browsermcp__browser_type",
+      "Bash(awk:*)"
     ],
     "deny": [
       "mcp__supabase__list_organizations",

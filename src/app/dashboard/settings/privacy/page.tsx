@@ -556,7 +556,9 @@ export default function PrivacySettingsPage() {
 							<Label className='text-white'>Active sessions</Label>
 
 							<p className='text-sm text-zinc-400'>
-								You have {settings.sessions.activeCount} active sessions. Last activity: {settings.sessions.lastActivity}
+								You have {settings.sessions.activeCount} active sessions. Last
+
+								activity: {settings.sessions.lastActivity}
 							</p>
 						</div>
 

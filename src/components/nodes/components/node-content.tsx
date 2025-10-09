@@ -293,9 +293,11 @@ export const MediaContent = ({
 	);
 };
 
-export default {
+const NodeContentComponents = {
 	NodeContent,
 	TextContent,
 	CodeContent,
 	MediaContent,
 };
+
+export default NodeContentComponents;

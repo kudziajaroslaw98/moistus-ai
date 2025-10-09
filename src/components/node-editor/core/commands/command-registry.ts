@@ -5,7 +5,6 @@
 
 import type {
 	Command,
-	CommandCategory,
 	CommandContext,
 	CommandResult,
 	CommandSearchOptions,

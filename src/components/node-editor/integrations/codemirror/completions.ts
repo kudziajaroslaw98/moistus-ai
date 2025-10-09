@@ -10,20 +10,6 @@ import {
 } from '@codemirror/autocomplete';
 import { commandRegistry } from '../../core/commands/command-registry';
 
-/**
- * Icon map for different completion types
- */
-const COMPLETION_ICONS = {
-	tag: '#',
-	assignee: '@',
-	date: '^',
-	priority: '!',
-	status: ':',
-	reference: '[[',
-	nodeType: '$',
-	command: '/',
-	color: '🎨',
-};
 
 /**
  * Common tag suggestions
@@ -140,13 +126,11 @@ export function createCompletions(): CompletionSource {
 	return (context: CompletionContext): CompletionResult | null => {
 		const { pos, state } = context;
 		const line = state.doc.lineAt(pos);
-		const textBefore = line.text.slice(0, pos - line.from);
 		const word = context.matchBefore(/\S*/);
 
 		if (!word) return null;
 
 		// Check for different pattern types
-		const lastChar = word.text.slice(-1);
 		const prefix = word.text;
 
 		// Tag completions (#)

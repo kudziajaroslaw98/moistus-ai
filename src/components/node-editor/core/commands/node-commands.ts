@@ -6,15 +6,11 @@
 import {
 	Calendar,
 	CheckSquare,
-	Code,
 	FileText,
 	Flag,
 	Image,
 	Lightbulb,
-	Link,
-	MessageCircle,
 	Tag,
-	Type,
 } from 'lucide-react';
 import { parseInput } from '../parsers/pattern-extractor';
 import { nodeTypeCommands } from './definitions/node-type-commands';

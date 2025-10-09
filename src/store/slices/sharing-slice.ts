@@ -9,7 +9,7 @@ const supabase = getSharedSupabaseClient();
 
 // Simplified types for anonymous auth system
 
-interface JoinRoomResult {
+export interface JoinRoomResult {
 	map_id: string;
 	map_title: string;
 	map_description?: string;
@@ -598,4 +598,5 @@ export const createSharingSlice: StateCreator<
 };
 
 // Export the type for use in other parts of the app
-export type { AnonymousUser, JoinRoomResult, SharingSlice };
+export type { AnonymousUser, SharingSlice };
+

@@ -29,8 +29,10 @@ import NodeContent from './node-content';
 import NodeToolbar from './node-toolbar';
 import ToolbarControls from './toolbar-controls';
 
-export default {
+const NodeComponents = {
 	NodeToolbar,
 	ToolbarControls,
 	NodeContent,
 };
+
+export default NodeComponents;

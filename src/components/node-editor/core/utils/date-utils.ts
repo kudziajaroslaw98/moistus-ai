@@ -89,7 +89,7 @@ export function parseDateString(dateStr: string): Date | undefined {
 /**
  * Format a date for display
  */
-export function formatDateForDisplay(date: Date, original: string): string {
+export function formatDateForDisplay(date: Date): string {
 	const today = new Date();
 	today.setHours(0, 0, 0, 0);
 

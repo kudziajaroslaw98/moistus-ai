@@ -5,7 +5,6 @@
 
 import { isValidColor } from '../utils/color-utils';
 import { isValidDateString } from '../utils/date-utils';
-import { isValidPriority } from '../utils/priority-utils';
 import type { ValidationError, ValidationResult } from './validation-types';
 
 export interface ValidationRule {
@@ -73,8 +72,6 @@ const VALIDATION_RULES: ValidationRule[] = [
 		pattern: /!(high|medium|low|critical|urgent|asap|blocked|waiting|1|2|3)\b/gi,
 		validate: (match) => {
 			const priority = match[1].toLowerCase();
-			// All matched values are valid, so no error
-			// This rule is kept for future validation if needed
 			return null;
 		},
 	},

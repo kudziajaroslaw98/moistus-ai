@@ -1,4 +1,5 @@
 'use client';
+import { NodeRegistry } from '@/registry/node-registry';
 import {
 	Background,
 	BackgroundVariant,
@@ -16,10 +17,10 @@ import {
 	useReactFlow,
 } from '@xyflow/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { NodeRegistry } from '@/registry/node-registry';
 
 import FloatingEdge from '@/components/edges/floating-edge';
 import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edge';
+import { UpgradeModal } from '@/components/modals/upgrade-modal';
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -55,7 +56,6 @@ import { RealtimeAvatarStack } from '../realtime/realtime-avatar-stack';
 import { RealtimeCursors } from '../realtime/realtime-cursor';
 import { Toolbar } from '../toolbar';
 import { Button } from '../ui/button';
-import { UpgradeModal } from '@/components/modals/upgrade-modal';
 
 export function ReactFlowArea() {
 	// const {
@@ -76,13 +76,13 @@ export function ReactFlowArea() {
 		onEdgesChange,
 		onConnect,
 		setReactFlowInstance,
-		setNodeInfo,
+		setNodeInfo: setNodeInfo,
 		setSelectedNodes,
 		setPopoverOpen,
 		popoverOpen,
 		setEdgeInfo,
 		setMapId,
-		addNode,
+		addNode: addNode,
 		fetchMindMapData,
 		deleteNodes,
 		isDraggingNodes,
@@ -206,7 +206,7 @@ export function ReactFlowArea() {
 		return () => window.removeEventListener('keydown', handleKeyDown);
 	}, [mousePosition, openInlineCreator, reactFlowInstance]);
 
-	const handleNodeDoubleClick = useCallback(
+	const handleNodeDoubleClick = useCallback( 
 		(event: React.MouseEvent, node: Node<NodeData>) => {
 			openNodeEditor({
 				mode: 'edit',

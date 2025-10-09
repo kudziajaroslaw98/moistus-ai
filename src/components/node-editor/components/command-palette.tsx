@@ -1,15 +1,14 @@
 'use client';
 
+import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import { Command } from 'cmdk';
+import { DollarSign, Hash, Sparkles, Zap } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { memo, useEffect, useMemo, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Separator } from '@/components/ui/separator';
+import { useShallow } from 'zustand/react/shallow';
 import { commandRegistry } from '../core/commands/command-registry';
 import { Command as RegistryCommand } from '../core/commands/command-types';
-import useAppStore from '@/store/mind-map-store';
-import { Hash, DollarSign, Zap, Sparkles } from 'lucide-react';
-import { useShallow } from 'zustand/react/shallow';
 
 const theme = {
 	input:
@@ -75,7 +74,6 @@ const CommandPaletteComponent = ({
 		commandPalette,
 		closeCommandPalette,
 		setCommandPaletteSearch,
-		setCommandPaletteSelection,
 		navigateCommandPalette,
 		executeCommand
 	} = useAppStore(
@@ -83,7 +81,6 @@ const CommandPaletteComponent = ({
 			commandPalette: state.commandPalette,
 			closeCommandPalette: state.closeCommandPalette,
 			setCommandPaletteSearch: state.setCommandPaletteSearch,
-			setCommandPaletteSelection: state.setCommandPaletteSelection,
 			navigateCommandPalette: state.navigateCommandPalette,
 			executeCommand: state.executeCommand,
 		}))
@@ -261,7 +258,7 @@ const CommandPaletteComponent = ({
 											</div>
 
 											<div className='flex flex-col px-1 pb-2'>
-												{categoryCommands.map((command, index) => {
+												{categoryCommands.map((command) => {
 													const Icon = command.icon;
 													const globalIndex = registryCommands.findIndex(cmd => cmd.id === command.id);
 													const isSelected = globalIndex === commandPalette.selectedIndex;

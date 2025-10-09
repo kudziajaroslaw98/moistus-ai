@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import type { AppState } from '@/store/app-state';
 import useAppStore from '@/store/mind-map-store';
 import { SuggestedMergeEdgeProps } from '@/types/merge-edge-data';
 import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath } from '@xyflow/react';
@@ -11,10 +12,10 @@ import { useCallback } from 'react';
 import { useShallow } from 'zustand/shallow';
 
 export const SuggestedMergeEdge = (props: SuggestedMergeEdgeProps) => {
-	const { id, data, selected } = props;
+	const { id, data } = props;
 
 	const { acceptMerge, rejectMerge } = useAppStore(
-		useShallow((state) => ({
+		useShallow((state: AppState) => ({
 			acceptMerge: state.acceptMerge,
 			rejectMerge: state.rejectMerge,
 		}))

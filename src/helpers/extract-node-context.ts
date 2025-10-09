@@ -1,12 +1,12 @@
-import { AppNode } from '@/types/app-node';
-import { AvailableNodeTypes } from '@/registry/node-registry';
-import { NodeData } from '@/types/node-data';
+import type { AvailableNodeTypes } from '@/registry/node-registry';
+import type { AppNode } from '@/types/app-node';
+import type { NodeData } from '@/types/node-data';
 import { isAppNode } from './guards/is-app-node';
 
 type NodeContextExtractor = (node: AppNode | NodeData) => string;
 
 type NodeExtractionStrategy = {
-	[K in AvailableNodeTypes]?: NodeContextExtractor;
+	[key in AvailableNodeTypes]?: NodeContextExtractor;
 };
 
 export function createNodeContextExtractor(

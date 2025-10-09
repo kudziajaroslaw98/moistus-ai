@@ -28,7 +28,6 @@ export default function EdgeEditModal() {
 		popoverOpen,
 		setPopoverOpen,
 		updateEdge,
-		edges,
 		nodes,
 		edgeInfo: edge,
 		setEdgeInfo,

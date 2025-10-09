@@ -393,7 +393,7 @@ export function createTypedNodeData<T extends AvailableNodeTypes>(
 	} as TypedNodeData<T>;
 }
 
-export default {
+const NodeTypeUtils = {
 	// Export all types and utilities
 	isTaskNode,
 	isImageNode,
@@ -417,3 +417,5 @@ export default {
 	hasRequiredMetadata,
 	createTypedNodeData,
 };
+
+export default NodeTypeUtils;

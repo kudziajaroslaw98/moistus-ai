@@ -197,11 +197,11 @@ export default function GeneralSettingsPage() {
 		}
 	};
 
-	const handleAvatarUpload = useCallback(async (file: File) => {
+	const handleAvatarUpload = useCallback(async (_file: File) => {
 		try {
 			// TODO: Implement avatar upload
 			// const formDataUpload = new FormData();
-			// formDataUpload.append('avatar', file);
+			// formDataUpload.append('avatar', _file);
 			// const response = await fetch('/api/user/profile/avatar', {
 			//   method: 'POST',
 			//   body: formDataUpload,
