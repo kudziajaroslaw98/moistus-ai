@@ -7,25 +7,31 @@ import ASmoothstepBIcon from '../icons/a-smoothstep-b';
 import AStepBIcon from '../icons/a-step-b';
 import AStrainghtBIcon from '../icons/a-straight-b';
 import { ToggleGroup, ToggleGroupItem } from '../ui/toggle-group';
+import { GlassmorphismTheme } from '../nodes/themes/glassmorphism-theme';
 
-interface EdgeStyleOptionsProps {
+interface EdgeStyleSelectorProps {
 	edge: Edge<Partial<EdgeData>>;
 	onPathTypeChange: (pathType: PathType) => void;
 	onColorChange: (color: string | undefined) => void;
 }
 
 const getItemIcon = (type: PathType) => {
+	const iconProps = {
+		className: 'size-4',
+		style: { stroke: GlassmorphismTheme.text.high },
+	};
+
 	switch (type) {
 		case 'smoothstep':
-			return <ASmoothstepBIcon className='size-4 stroke-zinc-200' />;
+			return <ASmoothstepBIcon {...iconProps} />;
 		case 'step':
-			return <AStepBIcon className='size-4 stroke-zinc-200' />;
+			return <AStepBIcon {...iconProps} />;
 		case 'straight':
-			return <AStrainghtBIcon className='size-4 stroke-zinc-200' />;
+			return <AStrainghtBIcon {...iconProps} />;
 		case 'bezier':
-			return <ABezierBIcon className='size-4 stroke-zinc-200' />;
+			return <ABezierBIcon {...iconProps} />;
 		default:
-			return <ASmoothstepBIcon className='size-4 stroke-zinc-200' />;
+			return <ASmoothstepBIcon {...iconProps} />;
 	}
 };
 
@@ -44,13 +50,12 @@ const colorOptions = [
 	{ name: 'Rose', value: '#fb7185' },
 ];
 
-export function EdgeStyleOptions({
+export function EdgeStyleSelector({
 	edge,
 	onPathTypeChange,
 	onColorChange,
-}: EdgeStyleOptionsProps) {
+}: EdgeStyleSelectorProps) {
 	// Generate edge color options including custom color
-
 	const isCustomColor =
 		edge.data?.style?.stroke !== undefined &&
 		colorOptions.find((c) => c.value === edge.data?.style?.stroke) ===
@@ -63,7 +68,10 @@ export function EdgeStyleOptions({
 	return (
 		<>
 			{/* Path Style Section */}
-			<span className='block w-full rounded-md px-2 py-1 text-xs font-medium text-zinc-400'>
+			<span
+				className='block w-full rounded-md px-2 py-1 text-xs font-medium'
+				style={{ color: GlassmorphismTheme.text.medium }}
+			>
 				Path Style
 			</span>
 
@@ -85,7 +93,11 @@ export function EdgeStyleOptions({
 				))}
 			</ToggleGroup>
 
-			<span className='block w-full rounded-md px-2 py-1 text-xs font-medium text-zinc-400'>
+			{/* Color Section */}
+			<span
+				className='block w-full rounded-md px-2 py-1 text-xs font-medium'
+				style={{ color: GlassmorphismTheme.text.medium }}
+			>
 				Color
 			</span>
 
@@ -106,9 +118,10 @@ export function EdgeStyleOptions({
 						className='h-8 w-8 p-0'
 					>
 						<span
-							className='inline-block h-3 w-3 rounded-full border border-zinc-500'
+							className='inline-block h-3 w-3 rounded-full'
 							style={{
 								backgroundColor: colorOpt.value || 'transparent',
+								border: `1px solid ${GlassmorphismTheme.borders.default}`,
 							}}
 						/>
 					</ToggleGroupItem>

@@ -12,13 +12,20 @@ import {
 	useRole,
 } from '@floating-ui/react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+	Fragment,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from 'react';
 import { useShallow } from 'zustand/shallow';
 import { GlassmorphismTheme } from '../nodes/themes/glassmorphism-theme';
-import { ContextMenuRenderer } from './context-menu-renderer';
+import { ContextMenuItem } from './context-menu-item';
 import { useContextMenuConfig } from './use-context-menu-config';
 
-interface ContextMenuDisplayProps {
+interface ContextMenuProps {
 	aiActions: {
 		suggestConnections: () => void;
 		suggestMerges: () => void;
@@ -49,7 +56,7 @@ function createVirtualElement(x: number, y: number): VirtualElement {
 	};
 }
 
-export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
+export function ContextMenu({ aiActions }: ContextMenuProps) {
 	const { contextMenuState, popoverOpen, setPopoverOpen, setContextMenuState } =
 		useAppStore(
 			useShallow((state) => ({
@@ -186,6 +193,7 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
 		}
 	}, [popoverOpen.contextMenu]);
 
+	// Animation variants following animation-guidelines.md
 	const menuVariants = {
 		hidden: {
 			opacity: 0,
@@ -198,18 +206,113 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
 			y: 0,
 			transition: {
 				duration: 0.2,
-				ease: 'easeOut' as const,
+				ease: [0.215, 0.61, 0.355, 1] as const, // ease-out-cubic from animation-guidelines.md
 			},
 		},
 		exit: {
 			opacity: 0,
-			scale: 0.95,
+			scale: 0.98,
 			y: -5,
 			transition: {
 				duration: 0.15,
-				ease: 'easeIn' as const,
+				ease: [0.25, 0.46, 0.45, 0.94] as const, // ease-out-quad from animation-guidelines.md (NOT ease-in!)
 			},
 		},
+	};
+
+	// Stagger animation for menu items
+	const itemVariants = {
+		hidden: { opacity: 0 },
+		visible: (custom: number) => ({
+			opacity: 1,
+			transition: {
+				duration: 0.2,
+				ease: [0.215, 0.61, 0.355, 1] as const, // ease-out-cubic
+			},
+		}),
+	};
+
+	// Render menu sections with inlined logic
+	const renderSections = () => {
+		let itemIndex = 0;
+
+		return menuConfig.map((section, sectionIndex) => {
+			// Filter out hidden items
+			const visibleItems = section.items.filter((item) => !item.hidden);
+
+			if (visibleItems.length === 0) return null;
+
+			const sectionContent = visibleItems.map((item, itemInSectionIndex) => {
+				// If the item has a custom component, render it directly
+				if (item.customComponent) {
+					return (
+						<motion.div
+							key={item.id}
+							custom={itemIndex++}
+							variants={itemVariants}
+							initial='hidden'
+							animate='visible'
+						>
+							{item.customComponent}
+						</motion.div>
+					);
+				}
+
+				// Otherwise render the standard menu item
+				return (
+					<motion.div
+						key={item.id}
+						custom={itemIndex}
+						variants={itemVariants}
+						initial='hidden'
+						animate='visible'
+					>
+						<ContextMenuItem
+							ref={(el) => {
+								menuItemsRef.current[itemIndex++] = el;
+							}}
+							icon={item.icon}
+							label={item.label}
+							onClick={item.onClick}
+							disabled={item.disabled}
+							variant={item.variant}
+							shortcut={item.shortcut}
+							loading={item.loading}
+						/>
+					</motion.div>
+				);
+			});
+
+			// Render section with divider and optional title (inlined section logic)
+			return (
+				<Fragment key={section.id}>
+					{/* Divider - show before sections after the first */}
+					{section.showDivider !== false && sectionIndex > 0 && (
+						<hr
+							className='my-1'
+							style={{
+								borderColor: GlassmorphismTheme.borders.default,
+								borderWidth: '1px',
+								borderStyle: 'solid',
+							}}
+						/>
+					)}
+
+					{/* Section title */}
+					{section.title && (
+						<div
+							className='px-2 py-1 text-xs font-medium'
+							style={{ color: GlassmorphismTheme.text.medium }}
+						>
+							{section.title}
+						</div>
+					)}
+
+					{/* Section items */}
+					<div className='flex flex-col gap-0.5'>{sectionContent}</div>
+				</Fragment>
+			);
+		});
 	};
 
 	// Don't render if menu is not open or coordinates are not set
@@ -229,17 +332,18 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
 					<motion.div
 						ref={refs.setFloating}
 						style={{
-							...floatingStyles, // Spread Floating UI styles first
-							zIndex: 9999, // Add our z-index fix
-							backgroundColor: GlassmorphismTheme.elevation[24], // Context menu elevation
+							...floatingStyles,
+							zIndex: 9999,
+							backgroundColor: GlassmorphismTheme.elevation[24],
 							border: `1px solid ${GlassmorphismTheme.borders.default}`,
-							backdropFilter: 'blur(8px)',
+							backdropFilter: GlassmorphismTheme.effects.glassmorphism,
+							boxShadow: `0 0 0 1px ${GlassmorphismTheme.borders.default}`,
 						}}
 						variants={menuVariants}
 						initial='hidden'
 						animate='visible'
 						exit='exit'
-						className='ring-opacity-5 flex min-w-[250px] flex-col gap-1 rounded-sm shadow-lg ring-1 ring-zinc-700 focus:outline-none px-2 py-2'
+						className='flex min-w-[250px] flex-col gap-1 rounded-sm px-2 py-2 focus:outline-none motion-reduce:transform-none'
 						role='menu'
 						aria-label='Context menu'
 						aria-orientation='vertical'
@@ -248,10 +352,7 @@ export function ContextMenuDisplay({ aiActions }: ContextMenuDisplayProps) {
 						}
 						{...getFloatingProps()}
 					>
-						<ContextMenuRenderer
-							sections={menuConfig}
-							menuItemsRef={menuItemsRef}
-						/>
+						{renderSections()}
 					</motion.div>
 				)}
 			</AnimatePresence>

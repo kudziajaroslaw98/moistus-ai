@@ -39,7 +39,7 @@ export function MindMapCanvas() {
 		toggleNodeCollapse,
 		currentUser,
 		getCurrentUser,
-		setNodeInfo,
+		openNodeEditor,
 	} = useAppStore(
 		useShallow((state) => ({
 			handleUndo: state.handleUndo,
@@ -59,7 +59,7 @@ export function MindMapCanvas() {
 			toggleNodeCollapse: state.toggleNodeCollapse,
 			currentUser: state.currentUser,
 			getCurrentUser: state.getCurrentUser,
-			setNodeInfo: state.setNodeInfo,
+			openNodeEditor: state.openNodeEditor,
 		}))
 	);
 	const isLoading = loadingStates.isStateLoading;
@@ -78,19 +78,6 @@ export function MindMapCanvas() {
 		() => edges.find((e) => e.selected)?.id,
 		[edges]
 	);
-
-	const openNodeTypeModal = (parentId?: string | null) => {
-		// If parentId is provided, find and set the parent node
-		if (parentId) {
-			const parentNode = selectedNodes.find((node) => node.id === parentId);
-
-			if (parentNode) {
-				setNodeInfo(parentNode);
-			}
-		}
-
-		setPopoverOpen({ nodeType: true });
-	};
 
 	const handleGroup = useCallback(() => {
 		if (selectedNodes.length >= 2) {
@@ -113,8 +100,15 @@ export function MindMapCanvas() {
 	useKeyboardShortcuts({
 		onUndo: handleUndo,
 		onRedo: handleRedo,
-		onAddChild: (parentId) => {
-			openNodeTypeModal(parentId);
+		onAddChild: () => {
+			const selected = selectedNodes[0];
+			openNodeEditor({
+				mode: 'create',
+				position: {
+					x: selected.position.x + (selected.measured?.width ?? 0) + 100,
+					y: selected.position.y,
+				},
+			});
 		},
 		onCopy: handleCopy,
 		onPaste: handlePaste,

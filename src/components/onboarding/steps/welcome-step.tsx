@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { GlassmorphismTheme } from '@/components/nodes/themes/glassmorphism-theme';
 import { Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -12,20 +13,28 @@ interface WelcomeStepProps {
 export function WelcomeStep({ onContinue, userName }: WelcomeStepProps) {
 	return (
 		<div className='flex flex-col items-center justify-center h-full p-12 text-center'>
-			{/* Logo animation */}
+			{/* Logo animation - using ease-out-quart for entrance */}
 			<motion.div
-				initial={{ scale: 0, rotate: -180 }}
-				animate={{ scale: 1, rotate: 0 }}
+				initial={{ scale: 0.8, opacity: 0 }}
+				animate={{ scale: 1, opacity: 1 }}
 				transition={{
-					type: 'spring',
-					stiffness: 260,
-					damping: 20,
+					duration: 0.3,
+					ease: [0.165, 0.84, 0.44, 1], // ease-out-quart from animation guidelines
 					delay: 0.1,
 				}}
 				className='mb-8'
 			>
-				<div className='w-24 h-24 bg-gradient-to-br from-teal-400 to-teal-600 rounded-2xl flex items-center justify-center'>
-					<Sparkles className='w-12 h-12 text-zinc-900' />
+				<div
+					className='w-24 h-24 rounded-2xl flex items-center justify-center'
+					style={{
+						background: 'linear-gradient(135deg, rgba(52, 211, 153, 0.8) 0%, rgba(52, 211, 153, 0.6) 100%)',
+						boxShadow: '0 8px 32px rgba(52, 211, 153, 0.2)',
+					}}
+				>
+					<Sparkles
+						className='w-12 h-12'
+						style={{ color: GlassmorphismTheme.elevation[0] }}
+					/>
 				</div>
 			</motion.div>
 
@@ -33,8 +42,13 @@ export function WelcomeStep({ onContinue, userName }: WelcomeStepProps) {
 			<motion.h1
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
-				transition={{ delay: 0.3 }}
-				className='text-4xl font-bold text-zinc-50 mb-4'
+				transition={{
+					duration: 0.3,
+					ease: [0.165, 0.84, 0.44, 1],
+					delay: 0.2,
+				}}
+				className='text-4xl font-bold mb-4'
+				style={{ color: GlassmorphismTheme.text.high }}
 			>
 				Welcome to Moistus AI{userName ? `, ${userName}` : ''}!
 			</motion.h1>
@@ -42,18 +56,23 @@ export function WelcomeStep({ onContinue, userName }: WelcomeStepProps) {
 			<motion.p
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
-				transition={{ delay: 0.4 }}
-				className='text-xl text-zinc-400 mb-8 max-w-2xl'
+				transition={{
+					duration: 0.3,
+					ease: [0.165, 0.84, 0.44, 1],
+					delay: 0.3,
+				}}
+				className='text-xl mb-8 max-w-2xl'
+				style={{ color: GlassmorphismTheme.text.medium }}
 			>
 				Transform your ideas into beautiful mind maps with AI-powered
 				intelligence
 			</motion.p>
 
-			{/* Feature highlights with typewriter effect */}
+			{/* Feature highlights - staggered entrance */}
 			<motion.div
 				initial={{ opacity: 0 }}
 				animate={{ opacity: 1 }}
-				transition={{ delay: 0.6 }}
+				transition={{ duration: 0.2, delay: 0.4 }}
 				className='space-y-3 mb-12'
 			>
 				{[
@@ -66,8 +85,12 @@ export function WelcomeStep({ onContinue, userName }: WelcomeStepProps) {
 						key={index}
 						initial={{ opacity: 0, x: -20 }}
 						animate={{ opacity: 1, x: 0 }}
-						transition={{ delay: 0.7 + index * 0.1 }}
-						className='text-zinc-300'
+						transition={{
+							duration: 0.2,
+							ease: [0.165, 0.84, 0.44, 1], // ease-out-quart
+							delay: 0.5 + index * 0.1,
+						}}
+						style={{ color: GlassmorphismTheme.text.high }}
 					>
 						{feature}
 					</motion.div>
@@ -78,12 +101,30 @@ export function WelcomeStep({ onContinue, userName }: WelcomeStepProps) {
 			<motion.div
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
-				transition={{ delay: 1.2 }}
+				transition={{
+					duration: 0.3,
+					ease: [0.165, 0.84, 0.44, 1],
+					delay: 0.9,
+				}}
 			>
 				<Button
 					onClick={onContinue}
 					size='lg'
-					className='bg-teal-500 hover:bg-teal-600 text-zinc-900 font-semibold px-8 py-3 text-lg'
+					className='font-semibold px-8 py-3 text-lg transition-all'
+					style={{
+						backgroundColor: 'rgba(52, 211, 153, 0.8)',
+						color: GlassmorphismTheme.elevation[0],
+						transitionDuration: '200ms',
+						transitionTimingFunction: 'ease',
+					}}
+					onMouseEnter={(e) => {
+						e.currentTarget.style.backgroundColor = 'rgba(52, 211, 153, 1)';
+						e.currentTarget.style.transform = 'translateY(-2px)';
+					}}
+					onMouseLeave={(e) => {
+						e.currentTarget.style.backgroundColor = 'rgba(52, 211, 153, 0.8)';
+						e.currentTarget.style.transform = 'translateY(0)';
+					}}
 				>
 					Get Started
 				</Button>

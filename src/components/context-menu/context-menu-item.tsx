@@ -33,14 +33,27 @@ export const ContextMenuItem = React.forwardRef<
 		},
 		ref
 	) => {
-		const getVariantStyles = (variant: string) => {
+		const getVariantStyles = (variant: string): React.CSSProperties => {
+			const baseStyles: React.CSSProperties = {
+				transition: 'color 200ms ease, background-color 200ms ease, opacity 200ms ease',
+			};
+
 			switch (variant) {
 				case 'destructive':
-					return { color: 'rgba(239, 68, 68, 0.87)' }; // Red
+					return {
+						...baseStyles,
+						color: GlassmorphismTheme.indicators.status.error,
+					};
 				case 'primary':
-					return { color: 'rgba(96, 165, 250, 0.87)' }; // Blue
+					return {
+						...baseStyles,
+						color: 'rgba(96, 165, 250, 0.87)', // Blue accent
+					};
 				default:
-					return { color: GlassmorphismTheme.text.high };
+					return {
+						...baseStyles,
+						color: GlassmorphismTheme.text.high,
+					};
 			}
 		};
 
@@ -49,6 +62,7 @@ export const ContextMenuItem = React.forwardRef<
 				ref={ref}
 				className={cn(
 					'h-8 w-full justify-start gap-2 p-2 text-sm',
+					'@media (hover: hover) and (pointer: fine) { transition-property: color, background-color, opacity }',
 					className
 				)}
 				variant='ghost'

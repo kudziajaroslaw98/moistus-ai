@@ -1,15 +1,9 @@
 'use client';
 import useAppStore from '@/store/mind-map-store';
 import { useShallow } from 'zustand/shallow';
-import { ContextMenuDisplay } from '../context-menu/context-menu-display-simplified';
+import { ContextMenu } from '../context-menu/context-menu';
 
 export function ContextMenuWrapper() {
-	// const {
-	//   aiActions,
-	//   setIsAiContentModalOpen,
-	//   aiActions: { setAiContentTargetNodeId },
-	// } = useMindMapContext();
-
 	const { popoverOpen } = useAppStore(
 		useShallow((state) => ({
 			popoverOpen: state.popoverOpen,
@@ -26,13 +20,11 @@ export function ContextMenuWrapper() {
 	}
 
 	return (
-		<>
-			<ContextMenuDisplay
-				aiActions={{
-					suggestConnections: aiActions.suggestConnections,
-					suggestMerges: aiActions.suggestMerges,
-				}}
-			/>
-		</>
+		<ContextMenu
+			aiActions={{
+				suggestConnections: aiActions.suggestConnections,
+				suggestMerges: aiActions.suggestMerges,
+			}}
+		/>
 	);
 }
