@@ -139,10 +139,9 @@ export function HistorySidebar() {
 													{formatTimestamp(state.timestamp)}
 												</span>
 
-												<span className='text-xs text-zinc-500'>
-													Nodes: {state.nodes.length}, Edges:{' '}
-
-													{state.edges.length}
+												<span className='text-xs text-zinc-500 flex gap-1'>
+													<span>Nodes: {state.nodes.length},</span>
+													<span>Edges: {state.edges.length}</span>
 												</span>
 											</div>
 

@@ -36,15 +36,7 @@ import type { AppNode } from '@/types/app-node';
 import type { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
-import {
-	Command,
-	History,
-	MessageCircle,
-	Redo,
-	Share2,
-	Slash,
-	Undo,
-} from 'lucide-react';
+import { Command, History, Redo, Share2, Slash, Undo } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -58,10 +50,6 @@ import { Toolbar } from '../toolbar';
 import { Button } from '../ui/button';
 
 export function ReactFlowArea() {
-	// const {
-	//   suggestedEdges,
-	//   crudActions,
-	// } = useMindMapContext();
 	const mapId = useParams().id;
 	const reactFlowInstance = useReactFlow();
 	const connectingNodeId = useRef<string | null>(null);
@@ -76,7 +64,6 @@ export function ReactFlowArea() {
 		onEdgesChange,
 		onConnect,
 		setReactFlowInstance,
-		setNodeInfo: setNodeInfo,
 		setSelectedNodes,
 		setPopoverOpen,
 		popoverOpen,
@@ -88,10 +75,7 @@ export function ReactFlowArea() {
 		isDraggingNodes,
 		deleteEdges,
 		setIsDraggingNodes,
-		initializeComments,
-		unsubscribeFromComments,
 		unsubscribeFromRealtimeUpdates,
-		openInlineCreator,
 		openNodeEditor,
 		getCurrentUser,
 		getVisibleEdges,
@@ -115,7 +99,6 @@ export function ReactFlowArea() {
 			onEdgesChange: state.onEdgesChange,
 			onConnect: state.onConnect,
 			setReactFlowInstance: state.setReactFlowInstance,
-			setNodeInfo: state.setNodeInfo,
 			setSelectedNodes: state.setSelectedNodes,
 			setPopoverOpen: state.setPopoverOpen,
 			popoverOpen: state.popoverOpen,
@@ -127,10 +110,7 @@ export function ReactFlowArea() {
 			deleteNodes: state.deleteNodes,
 			deleteEdges: state.deleteEdges,
 			setIsDraggingNodes: state.setIsDraggingNodes,
-			initializeComments: state.initializeComments,
-			unsubscribeFromComments: state.unsubscribeFromComments,
 			unsubscribeFromRealtimeUpdates: state.unsubscribeFromRealtimeUpdates,
-			openInlineCreator: state.openInlineCreator,
 			openNodeEditor: state.openNodeEditor,
 			getCurrentUser: state.getCurrentUser,
 			toggleFocusMode: state.toggleFocusMode,
@@ -160,12 +140,10 @@ export function ReactFlowArea() {
 		if (!mapId || !supabase) return;
 		setMapId(mapId as string);
 		fetchMindMapData(mapId as string);
-		initializeComments(mapId as string);
 	}, [fetchMindMapData, mapId, supabase]);
 
 	useEffect(() => {
 		return () => {
-			unsubscribeFromComments();
 			unsubscribeFromRealtimeUpdates();
 		};
 	}, []);
@@ -194,19 +172,20 @@ export function ReactFlowArea() {
 
 				console.log('Mouse position:', mousePosition);
 
-				openInlineCreator({
+				openNodeEditor({
 					position,
 					screenPosition: mousePosition,
 					parentNode: null,
+					mode: 'create',
 				});
 			}
 		};
 
 		window.addEventListener('keydown', handleKeyDown);
 		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, [mousePosition, openInlineCreator, reactFlowInstance]);
+	}, [mousePosition, openNodeEditor, reactFlowInstance]);
 
-	const handleNodeDoubleClick = useCallback( 
+	const handleNodeDoubleClick = useCallback(
 		(event: React.MouseEvent, node: Node<NodeData>) => {
 			openNodeEditor({
 				mode: 'edit',
@@ -299,10 +278,11 @@ export function ReactFlowArea() {
 					(node) => node.id === connectingNodeId.current
 				);
 
-				openInlineCreator({
+				openNodeEditor({
 					position: flowPosition,
 					screenPosition,
 					parentNode: parentNode ?? null,
+					mode: 'create',
 					suggestedType: parentNode?.data?.node_type ?? 'defaultNode',
 				});
 			}
@@ -311,7 +291,7 @@ export function ReactFlowArea() {
 			connectingHandleId.current = null;
 			connectingHandleType.current = null;
 		},
-		[reactFlowInstance, nodes, openInlineCreator]
+		[reactFlowInstance, nodes, openNodeEditor]
 	);
 
 	const handleSelectionChange = useCallback(
@@ -346,10 +326,6 @@ export function ReactFlowArea() {
 		setPopoverOpen({ history: true });
 	}, [setPopoverOpen]);
 
-	const handleToggleCommentsPanel = useCallback(() => {
-		setPopoverOpen({ commentsPanel: true });
-	}, [setPopoverOpen]);
-
 	// Helper to check if target is an input element
 	const isInputElement = (target: EventTarget | null): boolean => {
 		if (!target || !(target instanceof HTMLElement)) return false;
@@ -369,130 +345,131 @@ export function ReactFlowArea() {
 	return (
 		<>
 			<ReactFlow
-			colorMode='dark'
-			multiSelectionKeyCode={['Meta', 'Control']}
-			className={cn([
-				isPanningMode && 'cursor-grab',
-				activeTool === 'node' || (activeTool === 'text' && 'cursor-crosshair'),
-			])}
-			style={{
-				backgroundColor: GlassmorphismTheme.elevation[0], // Base background
-			}}
-			minZoom={0.1}
-			snapToGrid={true}
-			snapGrid={[16, 16]}
-			nodesDraggable={isSelectMode}
-			nodesConnectable={isSelectMode || activeTool === 'connector'}
-			elementsSelectable={isSelectMode}
-			panOnDrag={true}
-			fitView={true}
-			nodes={[...getVisibleNodes(), ...ghostNodes]}
-			edges={getVisibleEdges()}
-			onNodesChange={onNodesChange}
-			onEdgesChange={onEdgesChange}
-			onConnectStart={onConnectStart}
-			onConnectEnd={onConnectEnd}
-			onEdgeDoubleClick={handleEdgeDoubleClick}
-			onNodeClick={handleNodeClick}
-			onNodesDelete={deleteNodes}
-			onEdgesDelete={deleteEdges}
-			nodeTypes={nodeTypesWithProps}
-			edgeTypes={edgeTypes}
-			deleteKeyCode={['Delete']}
-			connectionLineComponent={FloatingConnectionLine}
-			onNodeContextMenu={contextMenuHandlers.onNodeContextMenu}
-			onPaneContextMenu={contextMenuHandlers.onPaneContextMenu}
-			onEdgeContextMenu={contextMenuHandlers.onEdgeContextMenu}
-			onPaneClick={contextMenuHandlers.onPaneClick}
-			selectionMode={SelectionMode.Partial}
-			connectionLineType={ConnectionLineType.Bezier}
-			connectionMode={ConnectionMode.Loose}
-			onConnect={onConnect}
-			onSelectionChange={handleSelectionChange}
-			onNodeDragStart={handleNodeDragStart}
-			onNodeDragStop={handleNodeDragStop}
-		>
-			<Background
-				color='rgba(255, 255, 255, 0.06)'
-				gap={16}
-				variant={BackgroundVariant.Dots}
-			/>
-
-			<Panel
-				position='top-left'
-				className='!m-0 p-2 px-8 right-0 flex justify-between'
+				colorMode='dark'
+				multiSelectionKeyCode={['Meta', 'Control']}
+				className={cn([
+					isPanningMode && 'cursor-grab',
+					activeTool === 'node' ||
+						(activeTool === 'text' && 'cursor-crosshair'),
+				])}
 				style={{
-					background: `rgba(39, 39, 39, 0.3)`, // Subtle glassmorphism for floating app bar
-					backdropFilter: 'blur(4px)', // Reduced blur for subtlety
+					backgroundColor: GlassmorphismTheme.elevation[0], // Base background
 				}}
+				minZoom={0.1}
+				snapToGrid={true}
+				snapGrid={[16, 16]}
+				nodesDraggable={isSelectMode}
+				nodesConnectable={isSelectMode || activeTool === 'connector'}
+				elementsSelectable={isSelectMode}
+				panOnDrag={true}
+				fitView={true}
+				nodes={[...getVisibleNodes(), ...ghostNodes]}
+				edges={getVisibleEdges()}
+				onNodesChange={onNodesChange}
+				onEdgesChange={onEdgesChange}
+				onConnectStart={onConnectStart}
+				onConnectEnd={onConnectEnd}
+				onEdgeDoubleClick={handleEdgeDoubleClick}
+				onNodeClick={handleNodeClick}
+				onNodesDelete={deleteNodes}
+				onEdgesDelete={deleteEdges}
+				nodeTypes={nodeTypesWithProps}
+				edgeTypes={edgeTypes}
+				deleteKeyCode={['Delete']}
+				connectionLineComponent={FloatingConnectionLine}
+				onNodeContextMenu={contextMenuHandlers.onNodeContextMenu}
+				onPaneContextMenu={contextMenuHandlers.onPaneContextMenu}
+				onEdgeContextMenu={contextMenuHandlers.onEdgeContextMenu}
+				onPaneClick={contextMenuHandlers.onPaneClick}
+				selectionMode={SelectionMode.Partial}
+				connectionLineType={ConnectionLineType.Bezier}
+				connectionMode={ConnectionMode.Loose}
+				onConnect={onConnect}
+				onSelectionChange={handleSelectionChange}
+				onNodeDragStart={handleNodeDragStart}
+				onNodeDragStop={handleNodeDragStop}
 			>
-				<div className='flex items-center gap-8'>
-					<Breadcrumb>
-						<BreadcrumbList>
-							<BreadcrumbItem>
-								<BreadcrumbLink asChild>
-									<Link href='/dashboard'>
-										<Image
-											src='/images/moistus.svg'
-											alt='Moistus Logo'
-											width={60}
-											height={60}
-										/>
-									</Link>
-								</BreadcrumbLink>
-							</BreadcrumbItem>
+				<Background
+					color='rgba(255, 255, 255, 0.06)'
+					gap={16}
+					variant={BackgroundVariant.Dots}
+				/>
 
-							<BreadcrumbSeparator>
-								<Slash />
-							</BreadcrumbSeparator>
+				<Panel
+					position='top-left'
+					className='!m-0 p-2 px-8 right-0 flex justify-between'
+					style={{
+						background: `rgba(39, 39, 39, 0.3)`, // Subtle glassmorphism for floating app bar
+						backdropFilter: 'blur(4px)', // Reduced blur for subtlety
+					}}
+				>
+					<div className='flex items-center gap-8'>
+						<Breadcrumb>
+							<BreadcrumbList>
+								<BreadcrumbItem>
+									<BreadcrumbLink asChild>
+										<Link href='/dashboard'>
+											<Image
+												src='/images/moistus.svg'
+												alt='Moistus Logo'
+												width={60}
+												height={60}
+											/>
+										</Link>
+									</BreadcrumbLink>
+								</BreadcrumbItem>
 
-							<BreadcrumbItem>
-								<BreadcrumbPage className='capitalize'>
-									{mindMap?.title || 'Loading...'}
-								</BreadcrumbPage>
-							</BreadcrumbItem>
-						</BreadcrumbList>
-					</Breadcrumb>
+								<BreadcrumbSeparator>
+									<Slash />
+								</BreadcrumbSeparator>
 
-					<div className='flex gap-2'>
-						{/*TODO: Uncomment redo/undo when optimized history implemented*/}
-						<Button
-							// onClick={handleUndo}
-							disabled={!canUndo}
-							title='Undo (Ctrl+Z)'
-							variant='secondary'
-							size='icon'
-						>
-							<Undo className='size-4' />
-						</Button>
+								<BreadcrumbItem>
+									<BreadcrumbPage className='capitalize'>
+										{mindMap?.title || 'Loading...'}
+									</BreadcrumbPage>
+								</BreadcrumbItem>
+							</BreadcrumbList>
+						</Breadcrumb>
 
-						{/*TODO: Uncomment redo/undo when optimized history implemented*/}
-						<Button
-							// onClick={handleRedo}
-							disabled={!canRedo}
-							title='Redo (Ctrl+Y)'
-							variant='secondary'
-							size='icon'
-						>
-							<Redo className='size-4' />
-						</Button>
+						<div className='flex gap-2'>
+							{/*TODO: Uncomment redo/undo when optimized history implemented*/}
+							<Button
+								// onClick={handleUndo}
+								disabled={!canUndo}
+								title='Undo (Ctrl+Z)'
+								variant='secondary'
+								size='icon'
+							>
+								<Undo className='size-4' />
+							</Button>
 
-						<Button
-							onClick={handleToggleHistorySidebar}
-							title='Toggle History Sidebar'
-							aria-label='Toggle History Sidebar'
-							variant='secondary'
-							size='icon'
-						>
-							<History className='h-4 w-4' />
-						</Button>
+							{/*TODO: Uncomment redo/undo when optimized history implemented*/}
+							<Button
+								// onClick={handleRedo}
+								disabled={!canRedo}
+								title='Redo (Ctrl+Y)'
+								variant='secondary'
+								size='icon'
+							>
+								<Redo className='size-4' />
+							</Button>
+
+							<Button
+								onClick={handleToggleHistorySidebar}
+								title='Toggle History Sidebar'
+								aria-label='Toggle History Sidebar'
+								variant='secondary'
+								size='icon'
+							>
+								<History className='h-4 w-4' />
+							</Button>
+						</div>
 					</div>
-				</div>
 
-				<div className='flex items-center gap-8'>
-					<div className='flex gap-2'>
-						{/* Profile Button */}
-						{/* <Link href='/dashboard/profile'>
+					<div className='flex items-center gap-8'>
+						<div className='flex gap-2'>
+							{/* Profile Button */}
+							{/* <Link href='/dashboard/profile'>
 							<Button
 								title='Profile Settings'
 								aria-label='Profile Settings'
@@ -503,66 +480,49 @@ export function ReactFlowArea() {
 							</Button>
 						</Link> */}
 
-						<Button
-							onClick={handleCommandPaletteOpen}
-							title='Command Palette'
-							aria-label='Command Palette'
-							variant='secondary'
-							size='icon'
-						>
-							<Command className='h-4 w-4' />
-						</Button>
+							<Button
+								onClick={handleCommandPaletteOpen}
+								title='Command Palette'
+								aria-label='Command Palette'
+								variant='secondary'
+								size='icon'
+							>
+								<Command className='h-4 w-4' />
+							</Button>
+						</div>
 
-						{/* <Button
-							onClick={handleToggleFocusMode}
-							title='Enter Focus Mode'
-							aria-label='Enter Focus Mode'
-							variant='secondary'
-							size='icon'
-						>
-							<Maximize className='h-4 w-4' />
-						</Button> */}
+						<RealtimeAvatarStack roomName={`mind_map:${mapId}:users`} />
+
+						<div className='flex gap-2'>
+							<Button
+								onClick={handleToggleSharePanel}
+								title='Share Mind Map'
+								aria-label='Share Mind Map'
+								variant={popoverOpen.sharePanel ? 'default' : 'secondary'}
+								className='gap-2'
+							>
+								Share <Share2 className='size-3' />
+							</Button>
+						</div>
 					</div>
+				</Panel>
 
-					<RealtimeAvatarStack roomName={`mind_map:${mapId}:users`} />
+				<Panel position='bottom-center'>
+					<Toolbar />
+				</Panel>
 
-					<div className='flex gap-2'>
-						<Button
-							onClick={handleToggleCommentsPanel}
-							title='Toggle Comments Panel (Ctrl+/)'
-							aria-label='Toggle Comments Panel'
-							variant={popoverOpen.commentsPanel ? 'default' : 'secondary'}
-							size='icon'
-						>
-							<MessageCircle className='h-4 w-4' />
-						</Button>
+				<Panel position='top-left'>
+					<RealtimeCursors
+						roomName={`mind_map:${mapId}:cursor`}
+						reactFlowInstance={reactFlowInstance}
+					/>
+				</Panel>
+			</ReactFlow>
 
-						<Button
-							onClick={handleToggleSharePanel}
-							title='Share Mind Map'
-							aria-label='Share Mind Map'
-							variant={popoverOpen.sharePanel ? 'default' : 'secondary'}
-							className='gap-2'
-						>
-							Share <Share2 className='size-3' />
-						</Button>
-					</div>
-				</div>
-			</Panel>
-
-			<Panel position='bottom-center'>
-				<Toolbar />
-			</Panel>
-
-			<Panel position='top-left'>
-				<RealtimeCursors
-					roomName={`mind_map:${mapId}:cursor`}
-					reactFlowInstance={reactFlowInstance}
-				/>
-			</Panel>
-		</ReactFlow>
-
-		<UpgradeModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} />
+			<UpgradeModal
+				open={showUpgradeModal}
+				onOpenChange={setShowUpgradeModal}
+			/>
 		</>
 	);
 }

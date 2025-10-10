@@ -1,31 +1,16 @@
 // eslint-disable-file @typescript-eslint/no-unused-vars
 
-import type { UserProfile } from '@/types/user-profile-types';
+import type { Command } from '@/components/node-editor/core/commands/command-types';
 import type { RealtimeUserSelection } from '@/hooks/realtime/use-realtime-selection-presence-room';
+import { AvailableNodeTypes } from '@/registry/node-registry';
 import type { ChatSlice } from '@/store/slices/chat-slice';
 import type { OnboardingSlice } from '@/store/slices/onboarding-slice';
-import type {
-	FormConflict,
-	MergeStrategy,
-	RealtimeFormFieldState,
-	RealtimeFormState,
-} from '@/store/slices/realtime-slice';
-import type { SubscriptionSlice } from '@/store/slices/subscription-slice';
-import type { UserProfileSlice } from '@/store/slices/user-profile-slice';
-import type { SuggestionsSlice } from '@/store/slices/suggestions-slice';
 import type { QuickInputSlice } from '@/store/slices/quick-input-slice';
-import type { Command } from '@/components/node-editor/core/commands/command-types';
+import type { SubscriptionSlice } from '@/store/slices/subscription-slice';
+import type { SuggestionsSlice } from '@/store/slices/suggestions-slice';
+import type { UserProfileSlice } from '@/store/slices/user-profile-slice';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
-import { AvailableNodeTypes } from '@/registry/node-registry';
-import type {
-	Comment,
-	CommentFilter,
-	CommentSort,
-	MapComment,
-	NodeComment,
-	NodeCommentSummary,
-} from '@/types/comment-types';
 import { ContextMenuState } from '@/types/context-menu-state';
 import type { EdgeData } from '@/types/edge-data';
 import { HistoryState } from '@/types/history-state';
@@ -38,6 +23,7 @@ import { SharedUser, ShareToken, SharingError } from '@/types/sharing-types';
 import { SnapLine } from '@/types/snap-line';
 import { StreamingToastState, ToastStep } from '@/types/streaming-toast-state';
 import { Tool } from '@/types/tool';
+import type { UserProfile } from '@/types/user-profile-types';
 import type {
 	RealtimeChannel,
 	SupabaseClient,
@@ -64,76 +50,6 @@ export interface ClipboardSlice {
 		nodes: AppNode[];
 		edges: AppEdge[];
 	}>;
-}
-
-// Comments Slice
-export interface CommentsSlice {
-	// Comments state
-	nodeComments: Record<string, NodeComment[]>;
-	mapComments: MapComment[];
-	commentFilter: CommentFilter;
-	commentSort: CommentSort;
-	selectedCommentId: string | null;
-	commentDrafts: Record<string, string>;
-	isCommentsPanelOpen: boolean;
-	selectedNodeId: string | null;
-
-	// Enhanced state from hook
-	allComments: Comment[];
-	commentSummaries: Map<string, NodeCommentSummary>;
-	commentsError: string | null;
-
-	// Comments actions
-	fetchNodeComments: (nodeId: string) => Promise<void>;
-	fetchMapComments: () => Promise<void>;
-	fetchCommentsWithFilters: (options?: {
-		nodeId?: string;
-		mapId?: string;
-	}) => Promise<void>;
-	addNodeComment: (
-		nodeId: string,
-		content: string,
-		parentId?: string,
-		metadata?: { category?: string; priority?: string }
-	) => Promise<void>;
-	addMapComment: (
-		content: string,
-		position?: { x: number; y: number },
-		parentId?: string
-	) => Promise<void>;
-	updateComment: (commentId: string, content: string) => Promise<void>;
-	deleteComment: (commentId: string) => Promise<void>;
-	resolveComment: (commentId: string) => Promise<void>;
-	unresolveComment: (commentId: string) => Promise<void>;
-	setCommentFilter: (filter: Partial<CommentFilter>) => void;
-	setCommentSort: (sort: CommentSort) => void;
-	setSelectedComment: (commentId: string | null) => void;
-	updateCommentDraft: (targetId: string, content: string) => void;
-	clearCommentDraft: (targetId: string) => void;
-	setCommentsPanelOpen: (isOpen: boolean) => void;
-	setSelectedNodeId: (nodeId: string | null) => void;
-	initializeComments: (mapId?: string) => Promise<void>;
-
-	// Enhanced actions from hook
-	refreshComments: () => Promise<void>;
-	getNodeCommentCount: (nodeId: string) => number;
-	getUnresolvedCommentCount: (nodeId: string) => number;
-	hasUserComments: (nodeId: string) => boolean;
-	setCommentsError: (error: string | null) => void;
-
-	// NEW: Reaction methods
-	addCommentReaction: (commentId: string, emoji: string) => Promise<void>;
-	removeCommentReaction: (
-		commentId: string,
-		reactionId: string
-	) => Promise<void>;
-
-	// Real-time subscription management
-	subscribeToComments: (mapId?: string, nodeId?: string) => void;
-	unsubscribeFromComments: () => void;
-
-	// Private subscription reference
-	_commentsSubscription: any;
 }
 
 // Core Data Slice
@@ -400,7 +316,6 @@ export interface SharingSlice extends SharingState {
 // UI State
 export interface Popovers {
 	commandPalette: boolean;
-	nodeType: boolean;
 	edgeEdit: boolean;
 	history: boolean;
 	mergeSuggestions: boolean;
@@ -408,8 +323,6 @@ export interface Popovers {
 	generateFromNodesModal: boolean;
 	contextMenu: boolean;
 	layoutSelector: boolean;
-	commentsPanel: boolean;
-	nodeComments: boolean;
 	sharePanel: boolean;
 	joinRoom: boolean;
 	permissionManager: boolean;
@@ -483,20 +396,17 @@ export interface CommandPaletteOptions {
 export interface UIStateSlice {
 	// UI state
 	popoverOpen: Popovers;
-	nodeInfo: Partial<AppNode> | null;
 	edgeInfo: Partial<AppEdge> | null;
 	contextMenuState: ContextMenuState;
 	isFocusMode: boolean;
 	isDraggingNodes: boolean;
 	// editingNodeId: string | null; // Removed - replaced by NodeEditor system
 	snapLines: SnapLine[];
-	inlineCreator: InlineCreatorState;
 	nodeEditor: NodeEditorState;
 	commandPalette: CommandPaletteState;
 
 	// UI setters
 	setPopoverOpen: (popover: Partial<Popovers>) => void;
-	setNodeInfo: (node: Partial<AppNode> | null) => void;
 	setEdgeInfo: (edge: AppEdge | null) => void;
 	setContextMenuState: (state: ContextMenuState) => void;
 	setIsDraggingNodes: (isDragging: boolean) => void;
@@ -504,14 +414,6 @@ export interface UIStateSlice {
 	// UI actions
 	toggleFocusMode: () => void;
 
-	// InlineNodeCreator actions (deprecated - will be replaced by nodeEditor)
-	openInlineCreator: (options: InlineCreatorOptions) => void;
-	closeInlineCreator: () => void;
-	setInlineCreatorCommand: (command: string) => void;
-	setInlineCreatorMode: (mode: 'quick' | 'structured') => void;
-	setInlineCreatorFilterQuery: (query: string) => void;
-
-	// NodeEditor actions (new universal editor)
 	openNodeEditor: (options: NodeEditorOptions) => void;
 	closeNodeEditor: () => void;
 	setNodeEditorCommand: (command: Command | null) => void; // Full Command object from command-registry
@@ -527,55 +429,12 @@ export interface UIStateSlice {
 	executeCommand: (command: Command) => void;
 }
 
-// Enhanced Form State
-export interface EnhancedFormState {
-	isConnected: boolean;
-	activeUsers: string[];
-	conflicts: FormConflict[];
-	pendingUpdates: Record<string, any>;
-	optimisticUpdates: Record<string, RealtimeFormFieldState>;
-}
-
 // Realtime Slice
 export interface RealtimeSlice {
 	// Realtime state
 	realtimeSelectedNodes: RealtimeUserSelection[];
-	formState: RealtimeFormState;
-	enhancedFormState: EnhancedFormState;
-
-
 	// Basic setters (maintaining compatibility)
 	setRealtimeSelectedNodes: (nodes: RealtimeUserSelection[]) => void;
-	setFormState: (formState: Record<string, any>) => void;
-
-	// Enhanced form state management
-	updateFormField: (fieldName: string, value: any, userId: string) => void;
-
-	// Conflict management
-	addFormConflict: (conflict: FormConflict) => void;
-	resolveFormConflict: (
-		fieldName: string,
-		resolution: 'local' | 'remote'
-	) => void;
-	clearFormConflicts: () => void;
-
-	// Connection and user management
-	setFormConnectionStatus: (isConnected: boolean) => void;
-	setFormActiveUsers: (users: string[]) => void;
-
-	// Form state merging with conflict detection
-	mergeFormState: (
-		remoteState: RealtimeFormState,
-		strategy?: MergeStrategy
-	) => void;
-
-	// Utility methods
-	getFormFieldValue: (fieldName: string) => any;
-	getFormFieldState: (fieldName: string) => RealtimeFormFieldState | null;
-	hasFormConflicts: () => boolean;
-	getFormConflicts: () => FormConflict[];
-	resetFormState: (userId: string, mapId: string) => void;
-
 }
 
 export interface StreamingToastSlice {
@@ -601,7 +460,6 @@ export interface AppState
 		HistorySlice,
 		LayoutSlice,
 		GroupsSlice,
-		CommentsSlice,
 		SharingSlice,
 		RealtimeSlice,
 		SuggestionsSlice,

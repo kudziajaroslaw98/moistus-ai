@@ -59,10 +59,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 	const [error, setError] = useState<string | null>(null);
 	const [isCreating, setIsCreating] = useState(false);
 	const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-	const [commandPalettePosition, setCommandPalettePosition] = useState({
-		x: 0,
-		y: 0,
-	});
+
 	const [referenceMetadata, setReferenceMetadata] = useState<{
 		targetNodeId?: string;
 		targetMapId?: string;
@@ -368,7 +365,6 @@ export const QuickInput: FC<QuickInputProps> = ({
 	// Handle command palette trigger
 	const handleCommandPaletteTrigger = useCallback(
 		(position: { x: number; y: number }) => {
-			setCommandPalettePosition(position);
 			setCommandPaletteOpen(true);
 			// Note: openCommandPalette from store not available yet
 		},
@@ -382,22 +378,18 @@ export const QuickInput: FC<QuickInputProps> = ({
 				const context = {
 					text: value, // Fixed: was 'currentText', should be 'text'
 					cursorPosition,
-					selection: null as any, // CommandContext expects optional selection
 				};
 
 				// Use the registry executeCommand method - but command doesn't have id
 				// NodeCommand extends Command which should have id
-				const commandId = (command as any).id;
+				const commandId = command.id;
 
 				if (!commandId) {
 					console.error('Command missing id:', command);
 					return;
 				}
 
-				const result = await commandRegistry.executeCommand(
-					commandId,
-					context
-				);
+				const result = await commandRegistry.executeCommand(commandId, context);
 
 				if (result) {
 					// Apply command result
@@ -454,8 +446,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 	// Handle command execution from enhanced input
 	const handleCommandExecuted = useCallback(
-		(commandData: any) => {
-			if (commandData.commandId === 'reference-selected') {
+		(commandData: Command) => {
+			if (commandData.id === 'reference-selected') {
 				// Handle reference selection
 				const referenceData = commandData.result;
 				setReferenceMetadata({

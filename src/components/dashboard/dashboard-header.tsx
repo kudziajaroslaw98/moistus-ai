@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { createClient } from '@/helpers/supabase/client';
+import { NodeData } from '@/types/node-data';
 import { PublicUserProfile } from '@/types/user-profile-types';
 import { ChevronDown, LogOut, Settings, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -19,7 +20,7 @@ interface UserProfile extends PublicUserProfile {
 	email?: string;
 	is_anonymous: boolean;
 	last_activity?: string;
-	metadata?: any;
+	metadata?: Partial<NodeData['metadata']>;
 }
 
 interface DashboardHeaderProps {

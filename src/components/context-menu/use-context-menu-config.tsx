@@ -38,7 +38,6 @@ export function useContextMenuConfig({
 		nodes,
 		edges,
 		updateEdge,
-		addNode,
 		deleteNodes,
 		deleteEdges,
 		loadingStates,
@@ -59,7 +58,6 @@ export function useContextMenuConfig({
 			nodes: state.nodes,
 			edges: state.edges,
 			updateEdge: state.updateEdge,
-			addNode: state.addNode,
 			deleteNodes: state.deleteNodes,
 			deleteEdges: state.deleteEdges,
 			loadingStates: state.loadingStates,
@@ -131,11 +129,10 @@ export function useContextMenuConfig({
 									y: parentNodeBounds.y + parentNodeBounds.height + 100,
 								};
 
-								addNode({
-									parentNode: clickedNode,
-									content: 'New Child Node',
-									nodeType: 'defaultNode',
+								openNodeEditor({
+									mode: 'create',
 									position: childPosition,
+									parentNode: clickedNode,
 								});
 
 								onClose();
@@ -190,7 +187,6 @@ export function useContextMenuConfig({
 		clickedNode,
 		clickedNodeData,
 		reactFlowInstance,
-		addNode,
 		toggleNodeCollapse,
 		removeNodesFromGroup,
 		openNodeEditor,
@@ -302,11 +298,10 @@ export function useContextMenuConfig({
 									x,
 									y,
 								});
-								addNode({
-									parentNode: null,
-									content: 'New Node',
-									nodeType: 'defaultNode',
+								openNodeEditor({
+									mode: 'create',
 									position,
+									parentNode: null,
 								});
 								onClose();
 							}
@@ -322,11 +317,11 @@ export function useContextMenuConfig({
 									x,
 									y,
 								});
-								addNode({
-									parentNode: null,
-									content: 'Reference',
-									nodeType: 'referenceNode',
+								openNodeEditor({
+									mode: 'create',
 									position,
+									parentNode: null,
+									suggestedType: 'referenceNode',
 								});
 								onClose();
 							}
@@ -381,7 +376,7 @@ export function useContextMenuConfig({
 		reactFlowInstance,
 		x,
 		y,
-		addNode,
+		openNodeEditor,
 		aiActions,
 		loadingStates,
 		applyLayout,

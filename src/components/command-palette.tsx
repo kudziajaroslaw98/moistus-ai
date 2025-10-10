@@ -43,6 +43,8 @@ export function CommandPalette() {
 		applyLayout,
 		createGroupFromSelected,
 		ungroupNodes,
+		openNodeEditor,
+		reactFlowInstance,
 	} = useAppStore(
 		useShallow((state) => ({
 			popoverOpen: state.popoverOpen,
@@ -56,6 +58,8 @@ export function CommandPalette() {
 			applyLayout: state.applyLayout,
 			createGroupFromSelected: state.createGroupFromSelected,
 			ungroupNodes: state.ungroupNodes,
+			openNodeEditor: state.openNodeEditor,
+			reactFlowInstance: state.reactFlowInstance,
 		}))
 	);
 
@@ -94,7 +98,19 @@ export function CommandPalette() {
 	);
 
 	const handleAddNode = () => {
-		setPopoverOpen({ nodeType: true });
+		// Open node editor in center of viewport
+		const position = reactFlowInstance?.screenToFlowPosition({
+			x: window.innerWidth / 2,
+			y: window.innerHeight / 2,
+		}) || { x: 0, y: 0 };
+
+		openNodeEditor({
+			mode: 'create',
+			position,
+			parentNode: null,
+		});
+
+		setPopoverOpen({ commandPalette: false });
 	};
 
 	return (

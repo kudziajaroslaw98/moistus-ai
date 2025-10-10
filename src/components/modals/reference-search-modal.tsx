@@ -18,16 +18,15 @@ interface SearchResult {
 }
 
 export function ReferenceSearchModal() {
-	const { popoverOpen, setPopoverOpen, mapId, reactFlowInstance } =
-		useAppStore(
-			useShallow((state) => ({
-				popoverOpen: state.popoverOpen,
-				setPopoverOpen: state.setPopoverOpen,
-				addNode: state.addNode,
-				mapId: state.mapId,
-				reactFlowInstance: state.reactFlowInstance,
-			}))
-		);
+	const { popoverOpen, setPopoverOpen, mapId, reactFlowInstance } = useAppStore(
+		useShallow((state) => ({
+			popoverOpen: state.popoverOpen,
+			setPopoverOpen: state.setPopoverOpen,
+			addNode: state.addNode,
+			mapId: state.mapId,
+			reactFlowInstance: state.reactFlowInstance,
+		}))
+	);
 
 	const [query, setQuery] = useState('');
 	const [debouncedQuery] = useDebounce(query, 500);
@@ -84,11 +83,6 @@ export function ReferenceSearchModal() {
 		});
 
 		if (response.ok) {
-			const _newNodeData = await response.json(); 
-			// The API now returns the created node. You can add it directly
-			// to the local state for an optimistic update, but since your
-			// store is already set up with realtime subscriptions, the new
-			// node will appear automatically.
 			toast.success('Reference created!');
 		} else {
 			toast.error('Failed to create reference.');

@@ -12,15 +12,12 @@ export const createUiStateSlice: StateCreator<
 	popoverOpen: {
 		contextMenu: false,
 		commandPalette: false,
-		nodeType: false,
 		edgeEdit: false,
 		history: false,
 		mergeSuggestions: false,
 		aiContent: false,
 		generateFromNodesModal: false,
 		layoutSelector: false,
-		commentsPanel: false,
-		nodeComments: false,
 		sharePanel: false,
 		joinRoom: false,
 		permissionManager: false,
@@ -29,7 +26,6 @@ export const createUiStateSlice: StateCreator<
 		aiChat: false,
 		referenceSearch: false,
 	},
-	nodeInfo: null,
 	edgeInfo: null,
 	contextMenuState: {
 		x: 0,
@@ -42,17 +38,6 @@ export const createUiStateSlice: StateCreator<
 	// editingNodeId: null, // Removed - replaced by NodeEditor system
 	snapLines: [],
 
-	// InlineNodeCreator state
-	inlineCreator: {
-		isOpen: false,
-		position: { x: 0, y: 0 },
-		screenPosition: { x: 0, y: 0 },
-		mode: 'quick',
-		selectedCommand: null,
-		filterQuery: '',
-		parentNode: null,
-		suggestedType: null,
-	},
 
 	// NodeEditor state (new universal editor)
 	nodeEditor: {
@@ -84,9 +69,7 @@ export const createUiStateSlice: StateCreator<
 	setEdgeInfo: (edgeInfo) => {
 		set({ edgeInfo });
 	},
-	setNodeInfo: (nodeInfo) => {
-		set({ nodeInfo });
-	},
+
 	setPopoverOpen: (popover) => {
 		set({ popoverOpen: { ...get().popoverOpen, ...popover } });
 	},
@@ -101,57 +84,6 @@ export const createUiStateSlice: StateCreator<
 			isFocusMode: !get().isFocusMode,
 		});
 	},
-
-	// InlineNodeCreator actions
-	openInlineCreator: (options) => {
-		set({
-			inlineCreator: {
-				...get().inlineCreator,
-				isOpen: true,
-				position: options.position,
-				screenPosition: options.screenPosition || options.position,
-				parentNode: options.parentNode || null,
-				suggestedType: options.suggestedType || null,
-				filterQuery: '',
-				selectedCommand: null,
-			},
-		});
-	},
-	closeInlineCreator: () => {
-		set({
-			inlineCreator: {
-				...get().inlineCreator,
-				isOpen: false,
-				filterQuery: '',
-				selectedCommand: null,
-			},
-		});
-	},
-	setInlineCreatorCommand: (command) => {
-		set({
-			inlineCreator: {
-				...get().inlineCreator,
-				selectedCommand: command,
-			},
-		});
-	},
-	setInlineCreatorMode: (mode) => {
-		set({
-			inlineCreator: {
-				...get().inlineCreator,
-				mode,
-			},
-		});
-	},
-	setInlineCreatorFilterQuery: (query) => {
-		set({
-			inlineCreator: {
-				...get().inlineCreator,
-				filterQuery: query,
-			},
-		});
-	},
-
 	// NodeEditor actions (new universal editor)
 	openNodeEditor: (options) => {
 		set({

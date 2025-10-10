@@ -11,10 +11,8 @@ import { useRealtimeSelectionPresenceRoom } from '@/hooks/realtime/use-realtime-
 import useAppStore from '@/store/mind-map-store';
 import { useParams } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
-import { AiChat } from './ai-chat/ai-chat';
 import { AIStreamMediator } from './ai/ai-stream-mediator';
 import { CommandPalette } from './command-palette';
-import { CommentsPanel } from './comment/comment-panel';
 import { ContextMenuWrapper } from './mind-map/context-menu-wrapper';
 import { StreamingToast } from './streaming-toast';
 
@@ -39,7 +37,6 @@ export function MindMapCanvas() {
 		createGroupFromSelected,
 		ungroupNodes,
 		toggleNodeCollapse,
-		isCommentsPanelOpen,
 		currentUser,
 		getCurrentUser,
 		setNodeInfo,
@@ -60,7 +57,6 @@ export function MindMapCanvas() {
 			createGroupFromSelected: state.createGroupFromSelected,
 			ungroupNodes: state.ungroupNodes,
 			toggleNodeCollapse: state.toggleNodeCollapse,
-			isCommentsPanelOpen: state.isCommentsPanelOpen,
 			currentUser: state.currentUser,
 			getCurrentUser: state.getCurrentUser,
 			setNodeInfo: state.setNodeInfo,
@@ -114,10 +110,6 @@ export function MindMapCanvas() {
 		}
 	}, [selectedNodes, toggleNodeCollapse]);
 
-	const handleToggleComments = useCallback(() => {
-		setPopoverOpen({ commentsPanel: !popoverOpen.commentsPanel });
-	}, [popoverOpen.commentsPanel]);
-
 	useKeyboardShortcuts({
 		onUndo: handleUndo,
 		onRedo: handleRedo,
@@ -134,19 +126,13 @@ export function MindMapCanvas() {
 		onGroup: handleGroup,
 		onUngroup: handleUngroup,
 		onToggleCollapse: handleToggleCollapse,
-		onToggleComments: handleToggleComments,
 	});
 
 	return (
 		// Context Provider is now wrapping this component higher up
 		<div className='relative h-full w-full overflow-hidden rounded-md flex'>
 			{/* Main content area */}
-			<div
-				className={cn([
-					'flex-1 relative',
-					isCommentsPanelOpen ? 'w-[calc(100%-384px)]' : 'w-full',
-				])}
-			>
+			<div className='flex-1 relative w-full'>
 				{popoverOpen.commandPalette && <CommandPalette />}
 
 				<AIStreamMediator />
@@ -169,12 +155,6 @@ export function MindMapCanvas() {
 					<ReactFlowArea />
 				</div>
 			</div>
-
-			{/* Comments Panel */}
-			{popoverOpen.commentsPanel && <CommentsPanel />}
-
-			{/* Chat Panel */}
-			<AiChat />
 		</div>
 	);
 }

@@ -32,7 +32,7 @@ For animations, we use the `motion` library from Framer Motion. This library pro
 
 Guideline @./animation-guidelines.md
 
-### State Management (19 Slices)
+### State Management (18 Slices)
 
 **Store**: `src/store/mind-map-store.tsx`
 
@@ -45,7 +45,6 @@ Guideline @./animation-guidelines.md
 **Collaboration & Real-time:**
 - `realtime-slice` - Form field sync, conflict detection/resolution, active users
 - `sharing-slice` - Room codes, anonymous auth, share permissions
-- `comments-slice` - Node/map comments, threading, reactions, real-time sync
 
 **AI Features:**
 - `chat-slice` - AI chat messages, context, preferences, response styles
@@ -101,7 +100,6 @@ Guideline @./animation-guidelines.md
 - `modals/` - Edge edit, AI content prompt, node type selector, reference search
 - `context-menu/` - Context menu system
 - `dashboard/` - Dashboard components
-- `comment/` - Comment system UI
 - `sharing/` - Sharing components
 - `subscription/` - Subscription UI
 - `onboarding/` - Onboarding flow

@@ -10,15 +10,11 @@ export function ContextMenuWrapper() {
 	//   aiActions: { setAiContentTargetNodeId },
 	// } = useMindMapContext();
 
-	const { loadingStates, selectedNodes, popoverOpen } = useAppStore(
+	const { popoverOpen } = useAppStore(
 		useShallow((state) => ({
-			loadingStates: state.loadingStates,
 			popoverOpen: state.popoverOpen,
-			selectedNodes: state.selectedNodes,
 		}))
 	);
-
-	
 
 	const aiActions = {
 		suggestConnections: () => {},
@@ -37,8 +33,6 @@ export function ContextMenuWrapper() {
 					suggestMerges: aiActions.suggestMerges,
 				}}
 			/>
-
-			
 		</>
 	);
 }

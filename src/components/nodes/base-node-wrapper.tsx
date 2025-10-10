@@ -21,7 +21,6 @@ import { AvatarStack } from '../ui/avatar-stack';
 import { Button } from '../ui/button';
 import CollapseButton from './node-additions/collapse-button';
 import CollapsedIndicator from './node-additions/collapsed-indicator';
-import CommentButton from './node-additions/comment-button';
 import GroupButton from './node-additions/group-button';
 import { type BaseNodeWrapperProps } from './core/types';
 import { UniversalMetadataBar } from './shared/universal-metadata-bar';
@@ -45,7 +44,7 @@ const BaseNodeWrapperComponent = ({
 	metadataColorOverrides,
 }: BaseNodeWrapperProps) => {
 	const {
-		addNode,
+		openNodeEditor,
 		getNode,
 		isDraggingNodes,
 		realtimeSelectedNodes,
@@ -54,7 +53,7 @@ const BaseNodeWrapperComponent = ({
 		activeTool,
 	} = useAppStore(
 		useShallow((state) => ({
-			addNode: state.addNode,
+			openNodeEditor: state.openNodeEditor,
 			getNode: state.getNode,
 			isDraggingNodes: state.isDraggingNodes,
 			realtimeSelectedNodes: state.realtimeSelectedNodes,
@@ -99,16 +98,16 @@ const BaseNodeWrapperComponent = ({
 	const handleAddNewNode = useCallback(() => {
 		const currentNode = getNode(id);
 		if (!currentNode) return;
-		addNode({
+		const position = {
+			x: currentNode.position.x,
+			y: currentNode.position.y + (currentNode?.height ?? 0) + 50,
+		};
+		openNodeEditor({
+			mode: 'create',
+			position,
 			parentNode: currentNode,
-			content: `New node from ${currentNode?.id} node`,
-			position: {
-				x: currentNode.position.x,
-				y: currentNode.position.y + (currentNode?.height ?? 0) + 50,
-			},
-			nodeType: currentNode?.data?.node_type ?? 'defaultNode',
 		});
-	}, [id]);
+	}, [id, getNode, openNodeEditor]);
 
 	const avatars = useMemo(() => {
 		if (!realtimeSelectedNodes) return [];
@@ -208,8 +207,6 @@ const BaseNodeWrapperComponent = ({
 					<CollapseButton data={data} />
 
 					<GroupButton />
-
-					<CommentButton />
 				</div>
 
 				{/* Avatar stack for collaboration */}

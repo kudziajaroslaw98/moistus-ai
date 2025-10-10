@@ -15,7 +15,6 @@ interface UseKeyboardShortcutsProps {
 	onGroup?: () => void;
 	onUngroup?: () => void;
 	onToggleCollapse?: () => void;
-	onToggleComments?: () => void;
 }
 
 export function useKeyboardShortcuts({
@@ -32,7 +31,6 @@ export function useKeyboardShortcuts({
 	onGroup,
 	onUngroup,
 	onToggleCollapse,
-	onToggleComments,
 }: UseKeyboardShortcutsProps): void {
 	const reactFlowInstance = useAppStore((state) => state.reactFlowInstance);
 	const copySelectedNodes = useAppStore((state) => state.copySelectedNodes);
@@ -46,17 +44,6 @@ export function useKeyboardShortcuts({
 				target.tagName === 'TEXTAREA' ||
 				target.isContentEditable ||
 				target.closest('.ql-editor');
-
-			// Comments panel toggle (Cmd/Ctrl + /)
-			if (
-				(event.metaKey || event.ctrlKey) &&
-				event.key === '/' &&
-				!isInputFocused
-			) {
-				event.preventDefault();
-				onToggleComments?.();
-				return;
-			}
 
 			if (
 				isInputFocused &&

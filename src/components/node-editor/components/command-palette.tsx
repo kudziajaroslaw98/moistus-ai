@@ -8,7 +8,10 @@ import { AnimatePresence, motion } from 'motion/react';
 import { memo, useEffect, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { commandRegistry } from '../core/commands/command-registry';
-import { Command as RegistryCommand } from '../core/commands/command-types';
+import {
+	type CommandSearchOptions,
+	type Command as RegistryCommand,
+} from '../core/commands/command-types';
 
 const theme = {
 	input:
@@ -17,16 +20,17 @@ const theme = {
 	icon: 'text-zinc-400 group-hover:text-zinc-300 group-data-[selected=true]:text-teal-400 transition-colors duration-200',
 	category:
 		'text-xs text-zinc-400 uppercase tracking-wider font-semibold px-4 pb-2 pt-1 flex items-center gap-2 border-b border-zinc-800/50',
-	triggerBadge: 'px-2.5 py-1 bg-zinc-800/80 text-zinc-400 rounded-md text-xs font-mono shadow-sm',
+	triggerBadge:
+		'px-2.5 py-1 bg-zinc-800/80 text-zinc-400 rounded-md text-xs font-mono shadow-sm',
 	commandMeta: 'text-xs text-zinc-500 opacity-75',
 };
 
 // Category icons mapping
 const categoryIcons = {
 	'node-type': Hash,
-	'pattern': Sparkles,
-	'format': Zap,
-	'template': DollarSign,
+	pattern: Sparkles,
+	format: Zap,
+	template: DollarSign,
 };
 
 // Animation variants
@@ -39,20 +43,24 @@ const containerVariants = {
 		transition: {
 			duration: 0.25,
 			ease: [0.23, 1, 0.32, 1] as const,
-			staggerChildren: 0.03
-		}
+			staggerChildren: 0.03,
+		},
 	},
 	exit: {
 		opacity: 0,
 		scale: 0.96,
 		y: -8,
-		transition: { duration: 0.2, ease: [0.4, 0, 1, 1] as const }
-	}
+		transition: { duration: 0.2, ease: [0.4, 0, 1, 1] as const },
+	},
 };
 
 const itemVariants = {
 	hidden: { opacity: 0, x: -12 },
-	visible: { opacity: 1, x: 0, transition: { duration: 0.3, ease: [0.23, 1, 0.32, 1] as const } }
+	visible: {
+		opacity: 1,
+		x: 0,
+		transition: { duration: 0.3, ease: [0.23, 1, 0.32, 1] as const },
+	},
 };
 
 interface EnhancedCommandPaletteProps {
@@ -75,7 +83,7 @@ const CommandPaletteComponent = ({
 		closeCommandPalette,
 		setCommandPaletteSearch,
 		navigateCommandPalette,
-		executeCommand
+		executeCommand,
 	} = useAppStore(
 		useShallow((state) => ({
 			commandPalette: state.commandPalette,
@@ -88,9 +96,9 @@ const CommandPaletteComponent = ({
 
 	// Get commands from registry based on trigger and search
 	const registryCommands = useMemo(() => {
-		const searchOptions: any = {
+		const searchOptions: CommandSearchOptions = {
 			query: commandPalette.searchQuery,
-			limit: 50
+			limit: 50,
 		};
 
 		// Filter by trigger type
@@ -108,7 +116,9 @@ const CommandPaletteComponent = ({
 		const groups: Record<string, RegistryCommand[]> = {};
 
 		registryCommands.forEach((cmd) => {
-			const categoryLabel = cmd.category.charAt(0).toUpperCase() + cmd.category.slice(1).replace('-', ' ');
+			const categoryLabel =
+				cmd.category.charAt(0).toUpperCase() +
+				cmd.category.slice(1).replace('-', ' ');
 
 			if (!groups[categoryLabel]) {
 				groups[categoryLabel] = [];
@@ -182,34 +192,42 @@ const CommandPaletteComponent = ({
 	if (!commandPalette.isOpen) return null;
 
 	return (
-		<div className={cn(
-			"fixed inset-0 z-50 bg-black/30 backdrop-blur-sm",
-			className
-		)}>
+		<div
+			className={cn(
+				'fixed inset-0 z-50 bg-black/30 backdrop-blur-sm',
+				className
+			)}
+		>
 			<AnimatePresence>
 				<motion.div
 					variants={containerVariants}
-					initial="hidden"
-					animate="visible"
-					exit="exit"
-					className="absolute w-[420px] max-w-[90vw] bg-zinc-950/95 backdrop-blur-md border border-zinc-800/80 rounded-xl shadow-2xl ring-1 ring-teal-500/10 overflow-hidden"
+					initial='hidden'
+					animate='visible'
+					exit='exit'
+					className='absolute w-[420px] max-w-[90vw] bg-zinc-950/95 backdrop-blur-md border border-zinc-800/80 rounded-xl shadow-2xl ring-1 ring-teal-500/10 overflow-hidden'
 					style={{
 						left: Math.min(commandPalette.position.x, window.innerWidth - 440),
-						top: Math.min(commandPalette.position.y + 20, window.innerHeight - 500),
+						top: Math.min(
+							commandPalette.position.y + 20,
+							window.innerHeight - 500
+						),
 					}}
 				>
 					{/* Header with trigger indication */}
-					<div className="px-4 py-3 border-b border-zinc-800/60 bg-gradient-to-r from-zinc-900/60 to-zinc-800/40">
-						<div className="flex items-center gap-3">
+					<div className='px-4 py-3 border-b border-zinc-800/60 bg-gradient-to-r from-zinc-900/60 to-zinc-800/40'>
+						<div className='flex items-center gap-3'>
 							{commandPalette.trigger && (
 								<span className={theme.triggerBadge}>
 									{commandPalette.trigger}
 								</span>
 							)}
 
-							<span className="text-sm font-medium text-zinc-300">
-								{commandPalette.trigger === '$' ? 'Node Types' : 
-								 commandPalette.trigger === '/' ? 'Commands' : 'Command Palette'}
+							<span className='text-sm font-medium text-zinc-300'>
+								{commandPalette.trigger === '$'
+									? 'Node Types'
+									: commandPalette.trigger === '/'
+										? 'Commands'
+										: 'Command Palette'}
 							</span>
 
 							<span className={theme.commandMeta}>
@@ -223,8 +241,15 @@ const CommandPaletteComponent = ({
 							ref={inputRef}
 							value={commandPalette.searchQuery}
 							onValueChange={handleSearchChange}
-							placeholder={commandPalette.trigger === '$' ? 'Search node types...' : 'Search commands...'}
-							className={cn(theme.input, 'w-full px-4 py-3.5 text-sm outline-0 bg-zinc-950/80')}
+							placeholder={
+								commandPalette.trigger === '$'
+									? 'Search node types...'
+									: 'Search commands...'
+							}
+							className={cn(
+								theme.input,
+								'w-full px-4 py-3.5 text-sm outline-0 bg-zinc-950/80'
+							)}
 						/>
 
 						<Command.List className='max-h-[400px] overflow-y-auto p-1'>
@@ -241,87 +266,104 @@ const CommandPaletteComponent = ({
 									</p>
 								</Command.Empty>
 							) : (
-								Object.entries(groupedCommands).map((
-									[category, categoryCommands]: [string, RegistryCommand[]],
-									groupIndex
-								) => {
-									const CategoryIcon = categoryIcons[categoryCommands[0]?.category as keyof typeof categoryIcons] || Hash;
-									
-									return (
-										<Command.Group key={category}>
-											{groupIndex > 0 && <div className='h-3' />}
+								Object.entries(groupedCommands).map(
+									(
+										[category, categoryCommands]: [string, RegistryCommand[]],
+										groupIndex
+									) => {
+										const CategoryIcon =
+											categoryIcons[
+												categoryCommands[0]
+													?.category as keyof typeof categoryIcons
+											] || Hash;
 
-											<div className={theme.category}>
-												<CategoryIcon className='w-3.5 h-3.5 text-teal-500/70' />
+										return (
+											<Command.Group key={category}>
+												{groupIndex > 0 && <div className='h-3' />}
 
-												{category}
-											</div>
+												<div className={theme.category}>
+													<CategoryIcon className='w-3.5 h-3.5 text-teal-500/70' />
 
-											<div className='flex flex-col px-1 pb-2'>
-												{categoryCommands.map((command) => {
-													const Icon = command.icon;
-													const globalIndex = registryCommands.findIndex(cmd => cmd.id === command.id);
-													const isSelected = globalIndex === commandPalette.selectedIndex;
-													
-													return (
-														<motion.div
-															key={command.id}
-															variants={itemVariants}
-															whileHover={{ x: 2, scale: 1.005 }}
-															whileTap={{ scale: 0.995 }}
-														>
-															<Command.Item
-																value={command.trigger}
-																onSelect={handleExecuteCommand}
-																data-selected={isSelected}
-																className={cn(
-																	theme.item,
-																	'group flex items-center gap-3 mb-1.5 shadow-sm',
-																	isSelected && 'bg-teal-900/25 ring-1 ring-teal-500/40 shadow-teal-500/10'
-																)}
-																ref={(el) => {
-																	if (globalIndex >= 0 && el) {
-																		itemsRef.current[globalIndex] = el;
-																	}
-																}}
+													{category}
+												</div>
+
+												<div className='flex flex-col px-1 pb-2'>
+													{categoryCommands.map((command) => {
+														const Icon = command.icon;
+														const globalIndex = registryCommands.findIndex(
+															(cmd) => cmd.id === command.id
+														);
+														const isSelected =
+															globalIndex === commandPalette.selectedIndex;
+
+														return (
+															<motion.div
+																key={command.id}
+																variants={itemVariants}
+																whileHover={{ x: 2, scale: 1.005 }}
+																whileTap={{ scale: 0.995 }}
 															>
-																<Icon className={cn(theme.icon, 'w-4.5 h-4.5 flex-shrink-0')} />
-
-																<div className='flex flex-col flex-1 min-w-0'>
-																	<div className='font-medium text-sm text-zinc-100 truncate flex items-center gap-2'>
-																		{command.label}
-
-																		{command.shortcuts && command.shortcuts.length > 0 && (
-																			<span className='text-xs text-zinc-500 font-mono bg-zinc-800 px-1 rounded'>
-																				{command.shortcuts[0]}
-																			</span>
-																		)}
-																	</div>
-
-																	<div className='text-xs text-zinc-500 truncate leading-relaxed'>
-																		{command.description}
-																	</div>
-
-																	{command.examples && command.examples.length > 0 && (
-																		<div className='text-xs text-zinc-600 mt-1.5 opacity-80 font-mono'>
-																			Example: {command.examples[0]}
-																		</div>
+																<Command.Item
+																	value={command.trigger}
+																	onSelect={handleExecuteCommand}
+																	data-selected={isSelected}
+																	className={cn(
+																		theme.item,
+																		'group flex items-center gap-3 mb-1.5 shadow-sm',
+																		isSelected &&
+																			'bg-teal-900/25 ring-1 ring-teal-500/40 shadow-teal-500/10'
 																	)}
-																</div>
+																	ref={(el) => {
+																		if (globalIndex >= 0 && el) {
+																			itemsRef.current[globalIndex] = el;
+																		}
+																	}}
+																>
+																	<Icon
+																		className={cn(
+																			theme.icon,
+																			'w-4.5 h-4.5 flex-shrink-0'
+																		)}
+																	/>
 
-																{command.isPro && (
-																	<span className='text-xs text-teal-400 font-semibold px-2 py-1 bg-teal-500/15 border border-teal-500/20 rounded-md shadow-sm'>
-																		PRO
-																	</span>
-																)}
-															</Command.Item>
-														</motion.div>
-													);
-												})}
-											</div>
-										</Command.Group>
-									);
-								})
+																	<div className='flex flex-col flex-1 min-w-0'>
+																		<div className='font-medium text-sm text-zinc-100 truncate flex items-center gap-2'>
+																			{command.label}
+
+																			{command.shortcuts &&
+																				command.shortcuts.length > 0 && (
+																					<span className='text-xs text-zinc-500 font-mono bg-zinc-800 px-1 rounded'>
+																						{command.shortcuts[0]}
+																					</span>
+																				)}
+																		</div>
+
+																		<div className='text-xs text-zinc-500 truncate leading-relaxed'>
+																			{command.description}
+																		</div>
+
+																		{command.examples &&
+																			command.examples.length > 0 && (
+																				<div className='text-xs text-zinc-600 mt-1.5 opacity-80 font-mono'>
+																					Example: {command.examples[0]}
+																				</div>
+																			)}
+																	</div>
+
+																	{command.isPro && (
+																		<span className='text-xs text-teal-400 font-semibold px-2 py-1 bg-teal-500/15 border border-teal-500/20 rounded-md shadow-sm'>
+																			PRO
+																		</span>
+																	)}
+																</Command.Item>
+															</motion.div>
+														);
+													})}
+												</div>
+											</Command.Group>
+										);
+									}
+								)
 							)}
 						</Command.List>
 					</Command>
@@ -331,27 +373,31 @@ const CommandPaletteComponent = ({
 						<div className='flex items-center justify-between text-xs text-zinc-500'>
 							<div className='flex items-center gap-4'>
 								<span className='flex gap-1.5 items-center'>
-									<kbd className='px-2 py-1 bg-zinc-800/90 border border-zinc-700/50 rounded-md text-zinc-400 font-mono text-xs shadow-sm'>↑↓</kbd>
+									<kbd className='px-2 py-1 bg-zinc-800/90 border border-zinc-700/50 rounded-md text-zinc-400 font-mono text-xs shadow-sm'>
+										↑↓
+									</kbd>
 
 									<span className='text-zinc-400'>navigate</span>
 								</span>
 
 								<span className='flex gap-1.5 items-center'>
-									<kbd className='px-2 py-1 bg-zinc-800/90 border border-zinc-700/50 rounded-md text-zinc-400 font-mono text-xs shadow-sm'>↵</kbd>
+									<kbd className='px-2 py-1 bg-zinc-800/90 border border-zinc-700/50 rounded-md text-zinc-400 font-mono text-xs shadow-sm'>
+										↵
+									</kbd>
 
 									<span className='text-zinc-400'>select</span>
 								</span>
 
 								<span className='flex gap-1.5 items-center'>
-									<kbd className='px-2 py-1 bg-zinc-800/90 border border-zinc-700/50 rounded-md text-zinc-400 font-mono text-xs shadow-sm'>esc</kbd>
+									<kbd className='px-2 py-1 bg-zinc-800/90 border border-zinc-700/50 rounded-md text-zinc-400 font-mono text-xs shadow-sm'>
+										esc
+									</kbd>
 
 									<span className='text-zinc-400'>close</span>
 								</span>
 							</div>
 
-							<div className='text-zinc-600 font-medium'>
-								Command Registry
-							</div>
+							<div className='text-zinc-600 font-medium'>Command Registry</div>
 						</div>
 					</div>
 				</motion.div>

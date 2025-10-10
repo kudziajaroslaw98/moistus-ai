@@ -3,7 +3,6 @@ import useAppStore from '@/store/mind-map-store';
 import { HistorySidebar } from '../history-sidebar';
 import EdgeEditModal from '../modals/edge-edit-modal';
 import { ReferenceSearchModal } from '../modals/reference-search-modal';
-import SelectNodeTypeModal from '../modals/select-node-type-modal';
 import { SharePanel } from '../sharing/share-panel';
 
 export function ModalsWrapper() {
@@ -14,8 +13,6 @@ export function ModalsWrapper() {
 
 	return (
 		<>
-			{popoverOpen.nodeType && <SelectNodeTypeModal />}
-
 			{popoverOpen.edgeEdit && <EdgeEditModal />}
 
 			{popoverOpen.history && <HistorySidebar />}

@@ -73,7 +73,9 @@ interface PendingInvitation {
 export default function CollaborationSettingsPage() {
 	const [isSaving, setIsSaving] = useState(false);
 	const [newMemberEmail, setNewMemberEmail] = useState('');
-	const [newMemberRole, setNewMemberRole] = useState<'admin' | 'member'>('member');
+	const [newMemberRole, setNewMemberRole] = useState<'admin' | 'member'>(
+		'member'
+	);
 	const [newDomain, setNewDomain] = useState('');
 
 	const [settings, setSettings] = useState<CollaborationSettings>({
@@ -90,10 +92,6 @@ export default function CollaborationSettingsPage() {
 			comments: false,
 		},
 	});
-
-	// Empty state - no team members or invitations loaded
-	const [teamMembers] = useState<TeamMember[]>([]);
-	const [pendingInvitations] = useState<PendingInvitation[]>([]);
 
 	const handleSave = async () => {
 		setIsSaving(true);
@@ -126,7 +124,10 @@ export default function CollaborationSettingsPage() {
 	};
 
 	const addTrustedDomain = () => {
-		if (newDomain.trim() && !settings.trustedDomains.includes(newDomain.trim())) {
+		if (
+			newDomain.trim() &&
+			!settings.trustedDomains.includes(newDomain.trim())
+		) {
 			setSettings((prev) => ({
 				...prev,
 				trustedDomains: [...prev.trustedDomains, newDomain.trim()],
@@ -152,7 +153,9 @@ export default function CollaborationSettingsPage() {
 		}));
 	};
 
-	const updateNotificationSetting = <K extends keyof CollaborationSettings['notifications']>(
+	const updateNotificationSetting = <
+		K extends keyof CollaborationSettings['notifications'],
+	>(
 		key: K,
 		value: CollaborationSettings['notifications'][K]
 	) => {
@@ -196,7 +199,9 @@ export default function CollaborationSettingsPage() {
 			{/* Header */}
 			<div className='flex items-center justify-between'>
 				<div>
-					<h2 className='text-2xl font-bold text-white'>Collaboration Settings</h2>
+					<h2 className='text-2xl font-bold text-white'>
+						Collaboration Settings
+					</h2>
 
 					<p className='text-zinc-400 mt-1'>
 						Manage team access and collaboration preferences
@@ -242,7 +247,9 @@ export default function CollaborationSettingsPage() {
 
 							<Select
 								value={newMemberRole}
-								onValueChange={(value: 'admin' | 'member') => setNewMemberRole(value)}
+								onValueChange={(value: 'admin' | 'member') =>
+									setNewMemberRole(value)
+								}
 							>
 								<SelectTrigger className='bg-zinc-800 border-zinc-600 w-32'>
 									<SelectValue />
@@ -285,7 +292,9 @@ export default function CollaborationSettingsPage() {
 
 									<div>
 										<div className='flex items-center gap-2'>
-											<span className='font-medium text-white'>{member.name}</span>
+											<span className='font-medium text-white'>
+												{member.name}
+											</span>
 
 											{member.role === 'owner' && (
 												<Crown className='size-4 text-amber-400' />
@@ -339,7 +348,8 @@ export default function CollaborationSettingsPage() {
 												</span>
 
 												<p className='text-sm text-zinc-400'>
-													Expires {new Date(invitation.expiresAt).toLocaleDateString()}
+													Expires{' '}
+													{new Date(invitation.expiresAt).toLocaleDateString()}
 												</p>
 											</div>
 										</div>
@@ -393,9 +403,13 @@ export default function CollaborationSettingsPage() {
 							</SelectTrigger>
 
 							<SelectContent>
-								<SelectItem value='view'>View only - Can see content</SelectItem>
+								<SelectItem value='view'>
+									View only - Can see content
+								</SelectItem>
 
-								<SelectItem value='comment'>Comment - Can add comments</SelectItem>
+								<SelectItem value='comment'>
+									Comment - Can add comments
+								</SelectItem>
 
 								<SelectItem value='edit'>Edit - Can modify content</SelectItem>
 							</SelectContent>
@@ -415,7 +429,9 @@ export default function CollaborationSettingsPage() {
 
 						<Switch
 							checked={settings.allowPublicLinks}
-							onCheckedChange={(checked) => updateSetting('allowPublicLinks', checked)}
+							onCheckedChange={(checked) =>
+								updateSetting('allowPublicLinks', checked)
+							}
 						/>
 					</div>
 
@@ -450,8 +466,7 @@ export default function CollaborationSettingsPage() {
 
 									<SelectItem value='7d'>
 										<div className='flex items-center gap-2'>
-											<Clock className='size-4' />
-											7 days
+											<Clock className='size-4' />7 days
 										</div>
 									</SelectItem>
 
@@ -479,7 +494,9 @@ export default function CollaborationSettingsPage() {
 
 						<Switch
 							checked={settings.requireApproval}
-							onCheckedChange={(checked) => updateSetting('requireApproval', checked)}
+							onCheckedChange={(checked) =>
+								updateSetting('requireApproval', checked)
+							}
 						/>
 					</div>
 
@@ -497,9 +514,13 @@ export default function CollaborationSettingsPage() {
 							</SelectTrigger>
 
 							<SelectContent>
-								<SelectItem value='none'>None - Always require approval</SelectItem>
+								<SelectItem value='none'>
+									None - Always require approval
+								</SelectItem>
 
-								<SelectItem value='connections'>Existing connections</SelectItem>
+								<SelectItem value='connections'>
+									Existing connections
+								</SelectItem>
 
 								<SelectItem value='domain'>Trusted domains</SelectItem>
 							</SelectContent>
@@ -557,7 +578,9 @@ export default function CollaborationSettingsPage() {
 			{/* Collaboration Notifications */}
 			<Card className='bg-zinc-900 border-zinc-700'>
 				<CardHeader>
-					<CardTitle className='text-white'>Collaboration Notifications</CardTitle>
+					<CardTitle className='text-white'>
+						Collaboration Notifications
+					</CardTitle>
 
 					<CardDescription>
 						Configure notifications for collaboration activities
@@ -576,7 +599,9 @@ export default function CollaborationSettingsPage() {
 
 						<Switch
 							checked={settings.notifications.invitations}
-							onCheckedChange={(checked) => updateNotificationSetting('invitations', checked)}
+							onCheckedChange={(checked) =>
+								updateNotificationSetting('invitations', checked)
+							}
 						/>
 					</div>
 
@@ -591,7 +616,9 @@ export default function CollaborationSettingsPage() {
 
 						<Switch
 							checked={settings.notifications.mentions}
-							onCheckedChange={(checked) => updateNotificationSetting('mentions', checked)}
+							onCheckedChange={(checked) =>
+								updateNotificationSetting('mentions', checked)
+							}
 						/>
 					</div>
 
@@ -606,7 +633,9 @@ export default function CollaborationSettingsPage() {
 
 						<Switch
 							checked={settings.notifications.edits}
-							onCheckedChange={(checked) => updateNotificationSetting('edits', checked)}
+							onCheckedChange={(checked) =>
+								updateNotificationSetting('edits', checked)
+							}
 						/>
 					</div>
 
@@ -621,7 +650,9 @@ export default function CollaborationSettingsPage() {
 
 						<Switch
 							checked={settings.notifications.comments}
-							onCheckedChange={(checked) => updateNotificationSetting('comments', checked)}
+							onCheckedChange={(checked) =>
+								updateNotificationSetting('comments', checked)
+							}
 						/>
 					</div>
 				</CardContent>
