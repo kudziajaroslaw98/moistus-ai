@@ -93,10 +93,9 @@ export const QuickInput: FC<QuickInputProps> = ({
 		}))
 	);
 
-	const { closeInlineCreator, closeNodeEditor, addNode, updateNode } =
+	const {  closeNodeEditor, addNode, updateNode } =
 		useAppStore(
 			useShallow((state) => ({
-				closeInlineCreator: state.closeInlineCreator,
 				closeNodeEditor: state.closeNodeEditor,
 				addNode: state.addNode,
 				updateNode: state.updateNode,
@@ -314,8 +313,6 @@ export const QuickInput: FC<QuickInputProps> = ({
 			// Close the appropriate editor based on context
 			if (mode === 'edit') {
 				closeNodeEditor();
-			} else {
-				closeInlineCreator();
 			}
 		} catch (err) {
 			console.error('Error creating/updating node:', err);
@@ -333,7 +330,6 @@ export const QuickInput: FC<QuickInputProps> = ({
 		parentNode,
 		addNode,
 		updateNode,
-		closeInlineCreator,
 		closeNodeEditor,
 		isCreating,
 		mode,
