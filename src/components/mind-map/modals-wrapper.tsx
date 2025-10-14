@@ -1,6 +1,6 @@
 'use client';
 import useAppStore from '@/store/mind-map-store';
-import { HistorySidebar } from '../history-sidebar';
+import { HistorySidebar } from '../history/history-sidebar';
 import EdgeEditModal from '../modals/edge-edit-modal';
 import { ReferenceSearchModal } from '../modals/reference-search-modal';
 import { SharePanel } from '../sharing/share-panel';
@@ -15,7 +15,7 @@ export function ModalsWrapper() {
 		<>
 			{popoverOpen.edgeEdit && <EdgeEditModal />}
 
-			{popoverOpen.history && <HistorySidebar />}
+			<HistorySidebar />
 
 			{popoverOpen.sharePanel && mindMap && currentUser && (
 				<SharePanel

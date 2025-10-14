@@ -38,7 +38,7 @@ export function HistorySidebar() {
 
 	useEffect(() => {
 		loadFromDB();
-	}, [loadFromDB]);
+	}, [popoverOpen.history, loadFromDB]);
 
 	const handleClose = () => setPopoverOpen({ history: false });
 
