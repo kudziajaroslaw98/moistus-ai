@@ -139,12 +139,12 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 	return (
 		<BaseNodeWrapper
 			{...props}
-			nodeClassName='code-node'
-			nodeType='Code'
-			nodeIcon={<Code className='size-4' />}
-			includePadding={false}
 			hideNodeType
 			elevation={1}
+			includePadding={false}
+			nodeClassName='code-node'
+			nodeIcon={<Code className='size-4' />}
+			nodeType='Code'
 		>
 			<div
 				className='w-full flex-grow overflow-hidden rounded-lg'
@@ -198,15 +198,15 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 						{/* Expand/Collapse for long code */}
 						{lineCount > 20 && (
 							<Button
-								onClick={() => setIsExpanded(!isExpanded)}
-								size={'icon'}
-								variant={'ghost'}
 								className='!cursor-pointer w-8 h-8 p-0'
+								size={'icon'}
+								title={isExpanded ? 'Collapse' : 'Expand'}
+								variant={'ghost'}
 								style={{
 									backgroundColor: 'transparent',
 									border: `1px solid ${GlassmorphismTheme.borders.hover}`,
 								}}
-								title={isExpanded ? 'Collapse' : 'Expand'}
+								onClick={() => setIsExpanded(!isExpanded)}
 							>
 								{isExpanded ? (
 									<Minimize2
@@ -224,10 +224,10 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 
 						{/* Copy button with animation */}
 						<Button
-							onClick={handleCopy}
+							className='!cursor-pointer w-8 h-8 p-0 relative overflow-hidden'
+							disabled={copied}
 							size={'icon'}
 							variant={'ghost'}
-							className='!cursor-pointer w-8 h-8 p-0 relative overflow-hidden'
 							style={{
 								backgroundColor: copied
 									? 'rgba(52, 211, 153, 0.1)'
@@ -237,15 +237,15 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 									: `1px solid ${GlassmorphismTheme.borders.hover}`,
 								transition: 'all 0.2s ease',
 							}}
-							disabled={copied}
+							onClick={handleCopy}
 						>
 							<AnimatePresence mode='wait'>
 								{copied ? (
 									<motion.div
-										key='check'
-										initial={{ scale: 0, rotate: -180 }}
 										animate={{ scale: 1, rotate: 0 }}
 										exit={{ scale: 0, rotate: 180 }}
+										initial={{ scale: 0, rotate: -180 }}
+										key='check'
 										transition={{ type: 'spring', stiffness: 400 }}
 									>
 										<Check
@@ -255,10 +255,10 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 									</motion.div>
 								) : (
 									<motion.div
-										key='copy'
-										initial={{ scale: 0, rotate: 180 }}
 										animate={{ scale: 1, rotate: 0 }}
 										exit={{ scale: 0, rotate: -180 }}
+										initial={{ scale: 0, rotate: 180 }}
+										key='copy'
 										transition={{ type: 'spring', stiffness: 400 }}
 									>
 										<Copy
@@ -282,10 +282,17 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 				>
 					<SyntaxHighlighter
 						language={language}
-						style={customDarkTheme}
 						showLineNumbers={showLineNumbers}
+						style={customDarkTheme}
 						wrapLines={true}
 						wrapLongLines={true}
+						codeTagProps={{
+							style: {
+								fontFamily: 'var(--font-geist-mono)',
+								lineHeight: '1.6',
+								letterSpacing: '0.02em',
+							},
+						}}
 						customStyle={{
 							margin: 0,
 							padding: '1rem',
@@ -298,13 +305,6 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 							minWidth: '3em',
 							paddingRight: '1em',
 							userSelect: 'none',
-						}}
-						codeTagProps={{
-							style: {
-								fontFamily: 'var(--font-geist-mono)',
-								lineHeight: '1.6',
-								letterSpacing: '0.02em',
-							},
 						}}
 					>
 						{codeContent || '// Add code snippet here...'}

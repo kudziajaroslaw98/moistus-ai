@@ -33,7 +33,6 @@ const CollapseButtonComponent = (props: { data: NodeData }) => {
 
 	return (
 		<Button
-			onClick={handleToggleCollapse}
 			className='nodrag nopan z-20 rounded-md hover:scale-105 h-6 w-auto flex items-center px-1.5 transition-all'
 			variant={'ghost'}
 			style={{
@@ -46,13 +45,14 @@ const CollapseButtonComponent = (props: { data: NodeData }) => {
 					? `Expand Branch (${directChildrenCount} ${directChildrenCount === 1 ? 'child' : 'children'})`
 					: `Collapse Branch (${directChildrenCount} ${directChildrenCount === 1 ? 'child' : 'children'})`
 			}
+			onClick={handleToggleCollapse}
 			onMouseEnter={() => setHover(true)}
 			onMouseLeave={() => setHover(false)}
 		>
 			<motion.div
 				animate={{ rotate: collapsed ? 0 : 180 }}
-				transition={{ duration: 0.2 }}
 				className='flex items-center'
+				transition={{ duration: 0.2 }}
 			>
 				<ChevronDown className='size-3' style={{ color: 'rgba(255, 255, 255, 0.6)' }} />
 			</motion.div>
@@ -60,19 +60,19 @@ const CollapseButtonComponent = (props: { data: NodeData }) => {
 			<AnimatePresence>
 				{hover && (
 					<motion.span
-						key='label'
-						initial={{ width: 0, opacity: 0, marginLeft: 0 }}
 						animate={{ width: 'auto', opacity: 1, marginLeft: 4 }}
 						exit={{ width: 0, opacity: 0, marginLeft: 0 }}
-						transition={{
-							duration: 0.2,
-							ease: 'easeOut' as const,
-						}}
+						initial={{ width: 0, opacity: 0, marginLeft: 0 }}
+						key='label'
 						style={{
 							fontSize: '11px',
 							color: 'rgba(255, 255, 255, 0.6)',
 							overflow: 'hidden',
 							whiteSpace: 'nowrap',
+						}}
+						transition={{
+							duration: 0.2,
+							ease: 'easeOut' as const,
 						}}
 					>
 						{collapsed ? 'Expand' : 'Collapse'}

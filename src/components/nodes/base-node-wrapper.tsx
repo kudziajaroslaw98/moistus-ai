@@ -214,11 +214,11 @@ const BaseNodeWrapperComponent = ({
 					<AnimatePresence mode='popLayout'>
 						{avatars.length > 0 && (
 							<motion.div
-								initial={{ opacity: 0, scale: 0.98, y: -10 }}
 								animate={{ opacity: 1, scale: 1, y: 0 }}
-								exit={{ opacity: 0, scale: 0.98, y: -10 }}
-								transition={{ duration: 0.2 }}
 								className='inline-flex h-auto w-full'
+								exit={{ opacity: 0, scale: 0.98, y: -10 }}
+								initial={{ opacity: 0, scale: 0.98, y: -10 }}
+								transition={{ duration: 0.2 }}
 							>
 								<AvatarStack avatars={avatars} size={'sm'} />
 							</motion.div>
@@ -238,11 +238,11 @@ const BaseNodeWrapperComponent = ({
 								value !== ''
 						) && (
 							<UniversalMetadataBar
+								className={cn([includePadding ? 'p-0 pb-4' : 'p-4'])}
+								colorOverrides={metadataColorOverrides}
 								metadata={data.metadata}
 								nodeType={data.node_type || 'defaultNode'}
 								selected={selected}
-								className={cn([includePadding ? 'p-0 pb-4' : 'p-4'])}
-								colorOverrides={metadataColorOverrides}
 								onMetadataClick={(type, value) => {
 									// Handle metadata interactions
 									console.log(`Metadata clicked: ${type} = ${value}`);
@@ -262,8 +262,8 @@ const BaseNodeWrapperComponent = ({
 					<>
 						{/* Connection handles - minimal and functional */}
 						<Handle
-							type='source'
 							position={Position.Bottom}
+							type='source'
 							className={cn(
 								'!w-2 !h-2 rounded-full transition-all duration-200',
 								'!bg-transparent !border',
@@ -288,8 +288,8 @@ const BaseNodeWrapperComponent = ({
 
 						{activeTool === 'connector' && (
 							<Handle
-								type='source'
 								position={Position.Top}
+								type='source'
 								className={cn([
 									'w-full h-full z-20 translate-y-1/2 transition-colors',
 									connection.inProgress ? '!bg-transparent' : '!bg-sky-500/10',
@@ -298,15 +298,15 @@ const BaseNodeWrapperComponent = ({
 						)}
 
 						<Handle
+							isConnectableStart={false}
+							position={Position.Top}
+							type='target'
 							className={cn([
 								'w-full translate-y-1/2 absolute top-0 left-0 border-none opacity-0 cursor-move',
 								isTarget && '!bg-blue-500/30',
 								connection.inProgress ? 'h-full' : 'h-0',
 								activeTool === 'connector' ? 'z-10' : 'z-[21]',
 							])}
-							position={Position.Top}
-							type='target'
-							isConnectableStart={false}
 						/>
 
 						{/* Add New Node Button - follows Material Design FAB principles */}
@@ -314,33 +314,33 @@ const BaseNodeWrapperComponent = ({
 							{selected && selectedNodes.length === 1 && (
 								<>
 									<motion.div
-										initial={{ opacity: 0, scaleY: 0 }}
 										animate={{ opacity: 0.3, scaleY: 1 }}
-										exit={{ opacity: 0, scaleY: 0 }}
-										transition={{ duration: 0.2 }}
 										className='absolute -bottom-12 left-1/2 -translate-x-1/2 w-[1px] h-12'
+										exit={{ opacity: 0, scaleY: 0 }}
+										initial={{ opacity: 0, scaleY: 0 }}
 										style={{ backgroundColor: theme.borders.hover }}
+										transition={{ duration: 0.2 }}
 									/>
 
 									<motion.div
-										initial={{ opacity: 0, scale: 0.8 }}
 										animate={{ opacity: 1, scale: 1 }}
+										className='absolute -bottom-[60px] left-1/2 -translate-x-1/2 z-20'
 										exit={{ opacity: 0, scale: 0.8 }}
+										initial={{ opacity: 0, scale: 0.8 }}
 										transition={{
 											duration: 0.2,
 											type: 'spring',
 											stiffness: 300,
 										}}
-										className='absolute -bottom-[60px] left-1/2 -translate-x-1/2 z-20'
 									>
 										<Button
-											onClick={handleAddNewNode}
 											className='nodrag nopan rounded-full w-10 h-10 p-0 transition-all duration-200 hover:scale-110'
+											title='Add new connected node'
 											style={{
 												backgroundColor: getElevationColor(6),
 												border: `1px solid ${theme.borders.hover}`,
 											}}
-											title='Add new connected node'
+											onClick={handleAddNewNode}
 										>
 											<Plus
 												className='w-5 h-5'
@@ -354,22 +354,22 @@ const BaseNodeWrapperComponent = ({
 
 						<NodeResizer
 							color={theme.node.resizer.color}
-							isVisible={selected}
-							minWidth={constraints.minWidth}
-							minHeight={constraints.minHeight}
-							maxWidth={constraints.maxWidth}
-							maxHeight={constraints.maxHeight ?? Number.MAX_SAFE_INTEGER}
-							onResizeStart={handleResizeStart}
-							onResize={handleResize}
-							onResizeEnd={handleResizeEnd}
-							shouldResize={shouldResize}
 							handleClassName='!w-2 !h-2 !rounded-full'
+							isVisible={selected}
+							maxHeight={constraints.maxHeight ?? Number.MAX_SAFE_INTEGER}
+							maxWidth={constraints.maxWidth}
+							minHeight={constraints.minHeight}
+							minWidth={constraints.minWidth}
+							shouldResize={shouldResize}
 							handleStyle={{
 								backgroundColor: selected
 									? theme.node.resizer.selectedBackground
 									: theme.borders.default,
 								border: theme.node.resizer.border,
 							}}
+							onResize={handleResize}
+							onResizeEnd={handleResizeEnd}
+							onResizeStart={handleResizeStart}
 						/>
 					</>
 				)}

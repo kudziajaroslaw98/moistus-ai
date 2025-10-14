@@ -99,9 +99,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 			if (item.comingSoon) {
 				return (
 					<motion.div
-						initial={{ scale: 0 }}
 						animate={{ scale: 1 }}
 						className='px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30'
+						initial={{ scale: 0 }}
 					>
 						Coming Soon
 					</motion.div>
@@ -111,8 +111,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 			if (item.badge) {
 				return (
 					<motion.div
-						initial={{ scale: 0 }}
 						animate={{ scale: 1 }}
+						initial={{ scale: 0 }}
 						className={cn(
 							'px-2 py-0.5 rounded-full text-xs font-medium',
 							'bg-zinc-700 text-zinc-300'
@@ -129,17 +129,17 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 		if (item.disabled) {
 			const content = (
 				<SidebarItem
+					badge={renderBadge()}
+					className='cursor-not-allowed opacity-70'
+					collapsed={sidebarCollapsed}
+					isActive={false}
+					label={item.label}
 					icon={
 						<div className={cn('flex-shrink-0 text-zinc-500')}>
 							{item.icon}
 						</div>
 					}
-					label={item.label}
-					isActive={false}
 					onClick={() => {}}
-					collapsed={sidebarCollapsed}
-					badge={renderBadge()}
-					className='cursor-not-allowed opacity-70'
 				/>
 			);
 
@@ -172,6 +172,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 					<Tooltip>
 						<TooltipTrigger className='w-full flex'>
 							<SidebarItem
+								collapsed={true}
+								isActive={isActive}
+								label={item.label}
 								icon={
 									<div
 										className={cn('flex-shrink-0', isActive && 'text-sky-400')}
@@ -179,10 +182,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 										{item.icon}
 									</div>
 								}
-								label={item.label}
-								isActive={isActive}
 								onClick={() => {}}
-								collapsed={true}
 							/>
 						</TooltipTrigger>
 
@@ -197,15 +197,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 		return (
 			<Link href={item.href}>
 				<SidebarItem
+					badge={renderBadge()}
+					isActive={isActive}
+					label={item.label}
 					icon={
 						<div className={cn('flex-shrink-0', isActive && 'text-sky-400')}>
 							{item.icon}
 						</div>
 					}
-					label={item.label}
-					isActive={isActive}
 					onClick={() => {}}
-					badge={renderBadge()}
 				/>
 			</Link>
 		);
@@ -231,12 +231,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 						{/* Logo/Brand */}
 						{!sidebarCollapsed && (
 							<div className='flex items-center'>
-								<Link href='/dashboard' className='flex items-center gap-2'>
+								<Link className='flex items-center gap-2' href='/dashboard'>
 									<Image
-										src='/images/moistus.svg'
 										alt='Moistus Logo'
-										width={120}
 										height={80}
+										src='/images/moistus.svg'
+										width={120}
 									/>
 								</Link>
 							</div>
@@ -251,12 +251,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 				<SidebarContent className='w-full'>
 					<SidebarSection className={cn(['w-full h-16 p-4 px-2'])}>
 						<Button
+							size={sidebarCollapsed ? 'icon' : 'default'}
 							className={cn(
 								'w-full bg-sky-600 hover:bg-sky-700 text-white',
 								'shadow-lg hover:shadow-sky-600/25',
 								!sidebarCollapsed && 'px-0'
 							)}
-							size={sidebarCollapsed ? 'icon' : 'default'}
 						>
 							<Plus className='h-4 w-4' />
 
@@ -269,7 +269,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 					>
 						<SidebarSection showDivider={false}>
 							{mainNavItems.map((item) => (
-								<NavItemComponent key={item.id} item={item} />
+								<NavItemComponent item={item} key={item.id} />
 							))}
 						</SidebarSection>
 					</SidebarGroup>
@@ -278,7 +278,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 				<SidebarFooter className='border-t border-zinc-800'>
 					<SidebarSection showDivider={false}>
 						{bottomNavItems.map((item) => (
-							<NavItemComponent key={item.id} item={item} />
+							<NavItemComponent item={item} key={item.id} />
 						))}
 					</SidebarSection>
 				</SidebarFooter>

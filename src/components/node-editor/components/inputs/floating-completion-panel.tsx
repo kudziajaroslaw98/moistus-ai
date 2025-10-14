@@ -152,18 +152,18 @@ export const FloatingCompletionPanel: React.FC<FloatingCompletionPanelProps> = (
 		<AnimatePresence>
 			<FloatingFocusManager
 				context={context}
-				modal={false}
 				initialFocus={-1}
+				modal={false}
 				returnFocus={false}
 			>
 				<motion.div
 					{...getFloatingProps()}
+					animate={{ opacity: 1, scale: 1, y: 0 }}
+					className="z-50"
+					exit={{ opacity: 0, scale: 0.95, y: -10 }}
+					initial={{ opacity: 0, scale: 0.95, y: -10 }}
 					ref={refs.setFloating}
 					style={floatingStyles}
-					className="z-50"
-					initial={{ opacity: 0, scale: 0.95, y: -10 }}
-					animate={{ opacity: 1, scale: 1, y: 0 }}
-					exit={{ opacity: 0, scale: 0.95, y: -10 }}
 					transition={{ duration: 0.15 }}
 					onKeyDown={handleKeyDown}
 				>
@@ -186,6 +186,9 @@ export const FloatingCompletionPanel: React.FC<FloatingCompletionPanelProps> = (
 											handleSelect(item, index);
 										}
 									})}
+									animate={{ opacity: 1, x: 0 }}
+									initial={{ opacity: 0, x: -10 }}
+									transition={{ delay: index * 0.02, duration: 0.15 }}
 									className={cn(
 										'px-4 py-3 sm:py-2.5 cursor-pointer flex items-center justify-between',
 										'text-sm transition-all duration-300 ease-out rounded-md mx-2 mb-1',
@@ -194,9 +197,6 @@ export const FloatingCompletionPanel: React.FC<FloatingCompletionPanelProps> = (
 											? 'bg-teal-900/25 text-zinc-100 ring-1 ring-teal-500/40 shadow-teal-500/10 transform translate-x-1' 
 											: 'text-zinc-300 hover:bg-zinc-800/60 active:bg-zinc-700'
 									)}
-									initial={{ opacity: 0, x: -10 }}
-									animate={{ opacity: 1, x: 0 }}
-									transition={{ delay: index * 0.02, duration: 0.15 }}
 								>
 									<div className="flex items-center gap-2">
 										{getTypeIcon(type)}

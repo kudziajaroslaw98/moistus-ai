@@ -39,12 +39,12 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 	return (
 		<BaseNodeWrapper
 			{...props}
-			nodeClassName={cn(['image-node h-full'])}
-			nodeType='Image'
-			nodeIcon={<ImageIcon className='size-4' />}
-			includePadding={false}
 			hideNodeType
 			elevation={1}
+			includePadding={false}
+			nodeClassName={cn(['image-node h-full'])}
+			nodeIcon={<ImageIcon className='size-4' />}
+			nodeType='Image'
 		>
 			<div className='flex flex-col h-full'>
 				{imageUrl ? (
@@ -62,10 +62,10 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 						<AnimatePresence>
 							{imageState === 'loading' && (
 								<motion.div
-									initial={{ opacity: 0 }}
 									animate={{ opacity: 1 }}
-									exit={{ opacity: 0 }}
 									className='absolute inset-0 flex items-center justify-center'
+									exit={{ opacity: 0 }}
+									initial={{ opacity: 0 }}
 									style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}
 								>
 									<motion.div
@@ -88,9 +88,9 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 						{/* Error state with helpful feedback */}
 						{imageState === 'error' ? (
 							<motion.div
-								initial={{ opacity: 0, scale: 0.95 }}
 								animate={{ opacity: 1, scale: 1 }}
 								className='absolute inset-0 flex flex-col items-center justify-center p-4'
+								initial={{ opacity: 0, scale: 0.95 }}
 								style={{
 									backgroundColor: 'rgba(239, 68, 68, 0.05)',
 									border: `1px solid ${GlassmorphismTheme.indicators.status.error}`,
@@ -130,8 +130,13 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 							<>
 								{/* Main image with smooth loading transition */}
 								<Image
-									src={imageUrl}
 									alt={altText}
+									fill={true}
+									loading='lazy'
+									placeholder='empty'
+									priority={false}
+									sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
+									src={imageUrl}
 									className={cn([
 										'nodrag pointer-events-none transition-all duration-500',
 										fitMode === 'contain' && 'object-contain',
@@ -142,13 +147,8 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 										opacity: imageState === 'loaded' ? 1 : 0,
 										filter: imageState === 'loaded' ? 'none' : 'blur(8px)',
 									}}
-									onLoad={handleImageLoad}
 									onError={() => setImageState('error')}
-									placeholder='empty'
-									loading='lazy'
-									priority={false}
-									fill={true}
-									sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
+									onLoad={handleImageLoad}
 								/>
 
 								{/* Image overlay gradient for better text readability when caption is shown */}
@@ -171,12 +171,12 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 									{/* View full size button */}
 									<button
 										className='p-1.5 rounded-md backdrop-blur-md'
+										title='View full size'
 										style={{
 											backgroundColor: 'rgba(18, 18, 18, 0.8)',
 											border: `1px solid ${GlassmorphismTheme.borders.hover}`,
 										}}
 										onClick={() => window.open(imageUrl, '_blank')}
-										title='View full size'
 									>
 										<ImageIcon
 											className='w-3.5 h-3.5'
@@ -191,11 +191,11 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 						<AnimatePresence>
 							{imageState === 'loading' && (
 								<motion.div
-									initial={{ scaleX: 0 }}
 									animate={{ scaleX: 1 }}
-									exit={{ opacity: 0 }}
-									transition={{ duration: 2, ease: 'linear' as const }}
 									className='absolute bottom-0 left-0 right-0 h-0.5 origin-left'
+									exit={{ opacity: 0 }}
+									initial={{ scaleX: 0 }}
+									transition={{ duration: 2, ease: 'linear' as const }}
 									style={{
 										backgroundColor:
 											GlassmorphismTheme.indicators.progress.fill,

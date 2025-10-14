@@ -96,12 +96,12 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 	return (
 		<BaseNodeWrapper
 			{...props}
-			nodeClassName='annotation-node'
-			nodeType='Annotation'
-			nodeIcon={<TypeIcon className='size-4' />}
 			hideNodeType
 			elevation={1}
 			includePadding={false}
+			nodeClassName='annotation-node'
+			nodeIcon={<TypeIcon className='size-4' />}
+			nodeType='Annotation'
 			metadataColorOverrides={{
 				accentColor: typeInfo.colorRgb,
 				bgOpacity: typeInfo.bgOpacity,
@@ -110,13 +110,13 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 		>
 			{/* Custom annotation content with preserved styling */}
 			<motion.div
+				animate={{ opacity: 1, scale: 1 }}
+				initial={{ opacity: 0, scale: 0.95 }}
+				style={nodeStyles}
+				transition={{ duration: 0.2 }}
 				className={cn([
 					'relative flex h-full min-h-20 min-w-80 flex-col gap-2 rounded-lg p-3 text-center',
 				])}
-				style={nodeStyles}
-				initial={{ opacity: 0, scale: 0.95 }}
-				animate={{ opacity: 1, scale: 1 }}
-				transition={{ duration: 0.2 }}
 			>
 				{/* Quote-specific elegant layout */}
 				{isQuote ? (
@@ -265,8 +265,8 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 				<motion.div
 					className='absolute inset-0 rounded-lg pointer-events-none'
 					initial={{ opacity: 0 }}
-					whileHover={{ opacity: 1 }}
 					transition={{ duration: 0.2 }}
+					whileHover={{ opacity: 1 }}
 					style={{
 						background: `radial-gradient(circle at center, rgba(${typeInfo.colorRgb}, 0.05) 0%, transparent 70%)`,
 						zIndex: -1,

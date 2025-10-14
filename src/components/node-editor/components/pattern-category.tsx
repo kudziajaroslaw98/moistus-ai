@@ -33,10 +33,10 @@ export const PatternCategory: React.FC<PatternCategoryProps> = memo(
 				<div className='space-y-1'>
 					{patterns.map((pattern, index) => (
 						<PatternItem
+							isInteractive
 							key={`${pattern.pattern}-${index}`}
 							pattern={pattern}
 							onClick={onPatternClick}
-							isInteractive
 						/>
 					))}
 				</div>

@@ -150,18 +150,18 @@ export function UpgradeAnonymousPrompt({
 				<>
 					{/* Backdrop */}
 					<motion.div
-						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
-						exit={{ opacity: 0 }}
 						className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50'
+						exit={{ opacity: 0 }}
+						initial={{ opacity: 0 }}
 						onClick={handleDismiss}
 					/>
 
 					{/* Modal */}
 					<motion.div
-						initial={{ opacity: 0, scale: 0.9, y: 20 }}
 						animate={{ opacity: 1, scale: 1, y: 0 }}
 						exit={{ opacity: 0, scale: 0.9, y: 20 }}
+						initial={{ opacity: 0, scale: 0.9, y: 20 }}
 						transition={{ duration: 0.3, ease: 'easeOut' as const }}
 						className={`fixed inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 
                        md:w-full md:max-w-2xl bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl z-50 
@@ -170,9 +170,9 @@ export function UpgradeAnonymousPrompt({
 						{/* Header */}
 						<div className='relative bg-gradient-to-r from-teal-600 to-teal-700 p-6 text-white'>
 							<button
-								onClick={handleDismiss}
 								className='absolute top-4 right-4 p-1 hover:bg-white/20 rounded-lg transition-colors'
 								disabled={isUpgrading}
+								onClick={handleDismiss}
 							>
 								<X className='w-5 h-5' />
 							</button>
@@ -192,11 +192,11 @@ export function UpgradeAnonymousPrompt({
 									const Icon = benefit.icon;
 									return (
 										<motion.div
-											key={benefit.title}
-											initial={{ opacity: 0, y: 10 }}
 											animate={{ opacity: 1, y: 0 }}
-											transition={{ delay: index * 0.1 }}
 											className='flex items-start space-x-3 p-3 bg-zinc-800/50 rounded-lg'
+											initial={{ opacity: 0, y: 10 }}
+											key={benefit.title}
+											transition={{ delay: index * 0.1 }}
 										>
 											<div className='flex-shrink-0 w-8 h-8 bg-teal-600/20 rounded-lg flex items-center justify-center'>
 												<Icon className='w-4 h-4 text-teal-400' />
@@ -217,21 +217,21 @@ export function UpgradeAnonymousPrompt({
 							</div>
 
 							{/* Upgrade Form */}
-							<form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
+							<form className='space-y-4' onSubmit={handleSubmit(onSubmit)}>
 								{/* Email */}
 								<div>
 									<label
-										htmlFor='email'
 										className='block text-sm font-medium text-zinc-300 mb-2'
+										htmlFor='email'
 									>
 										Email Address
 									</label>
 
 									<input
-										id='email'
-										type='email'
-										placeholder='your@email.com'
 										className='w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent'
+										id='email'
+										placeholder='your@email.com'
+										type='email'
 										{...register('email')}
 										disabled={isUpgrading}
 									/>
@@ -246,17 +246,17 @@ export function UpgradeAnonymousPrompt({
 								{/* Password */}
 								<div>
 									<label
-										htmlFor='password'
 										className='block text-sm font-medium text-zinc-300 mb-2'
+										htmlFor='password'
 									>
 										Password
 									</label>
 
 									<input
-										id='password'
-										type='password'
-										placeholder='Create a secure password'
 										className='w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent'
+										id='password'
+										placeholder='Create a secure password'
+										type='password'
 										{...register('password')}
 										disabled={isUpgrading}
 									/>
@@ -271,17 +271,17 @@ export function UpgradeAnonymousPrompt({
 								{/* Confirm Password */}
 								<div>
 									<label
-										htmlFor='confirmPassword'
 										className='block text-sm font-medium text-zinc-300 mb-2'
+										htmlFor='confirmPassword'
 									>
 										Confirm Password
 									</label>
 
 									<input
-										id='confirmPassword'
-										type='password'
-										placeholder='Confirm your password'
 										className='w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent'
+										id='confirmPassword'
+										placeholder='Confirm your password'
+										type='password'
 										{...register('confirmPassword')}
 										disabled={isUpgrading}
 									/>
@@ -296,17 +296,17 @@ export function UpgradeAnonymousPrompt({
 								{/* Display Name (optional) */}
 								<div>
 									<label
-										htmlFor='displayName'
 										className='block text-sm font-medium text-zinc-300 mb-2'
+										htmlFor='displayName'
 									>
 										Display Name (optional)
 									</label>
 
 									<input
-										id='displayName'
-										type='text'
-										placeholder={userDisplayName || 'Your display name'}
 										className='w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent'
+										id='displayName'
+										placeholder={userDisplayName || 'Your display name'}
+										type='text'
 										{...register('displayName')}
 										disabled={isUpgrading}
 									/>
@@ -321,9 +321,9 @@ export function UpgradeAnonymousPrompt({
 								{/* Error Display */}
 								{upgradeError && (
 									<motion.div
-										initial={{ opacity: 0, scale: 0.95 }}
 										animate={{ opacity: 1, scale: 1 }}
 										className='p-3 bg-red-900/50 border border-red-700 rounded-md'
+										initial={{ opacity: 0, scale: 0.95 }}
 									>
 										<p className='text-red-300 text-sm'>{upgradeError}</p>
 									</motion.div>
@@ -332,28 +332,28 @@ export function UpgradeAnonymousPrompt({
 								{/* Buttons */}
 								<div className='flex space-x-3 pt-4'>
 									<motion.button
-										type='button'
-										onClick={handleDismiss}
-										disabled={isUpgrading}
 										className='flex-1 px-4 py-3 bg-zinc-700 hover:bg-zinc-600 disabled:bg-zinc-800 disabled:cursor-not-allowed text-white font-medium rounded-md transition-colors duration-200'
+										disabled={isUpgrading}
+										type='button'
 										whileHover={{ scale: 1.02 }}
 										whileTap={{ scale: 0.98 }}
+										onClick={handleDismiss}
 									>
 										Maybe Later
 									</motion.button>
 
 									<motion.button
-										type='submit'
-										disabled={isUpgrading}
 										className='flex-1 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-800 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-md transition-colors duration-200 flex items-center justify-center'
+										disabled={isUpgrading}
+										type='submit'
 										whileHover={{ scale: isUpgrading ? 1 : 1.02 }}
 										whileTap={{ scale: isUpgrading ? 1 : 0.98 }}
 									>
 										{isUpgrading ? (
 											<>
 												<motion.div
-													className='w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2'
 													animate={{ rotate: 360 }}
+													className='w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2'
 													transition={{
 														duration: 1,
 														repeat: Infinity,

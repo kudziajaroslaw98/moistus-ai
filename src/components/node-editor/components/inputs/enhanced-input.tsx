@@ -377,8 +377,11 @@ export const EnhancedInput = ({
 	return (
 		<>
 			<motion.div
-				ref={containerRef}
+				animate={animate}
 				data-testid='enhanced-input-container'
+				initial={initial}
+				ref={containerRef}
+				transition={transition}
 				className={cn(
 					'enhanced-input-container flex-1 relative',
 					hasErrors && 'has-validation-errors',
@@ -387,9 +390,6 @@ export const EnhancedInput = ({
 					'z-[100]',
 					className
 				)}
-				initial={initial}
-				animate={animate}
-				transition={transition}
 				{...rest}
 			>
 				<ValidationTooltip

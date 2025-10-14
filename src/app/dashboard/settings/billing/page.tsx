@@ -117,7 +117,7 @@ export default function BillingSettingsPage() {
 	const [isLoading, setIsLoading] = useState(false);
 
 	// Mock data
-	const subscription : Subscription={
+	const subscription: Subscription = {
 		id: 'sub_123',
 		plan: 'pro',
 		status: 'active',
@@ -133,7 +133,7 @@ export default function BillingSettingsPage() {
 		exports: { used: 45, limit: 100 },
 	};
 
-	const paymentMethods : PaymentMethod[]=[
+	const paymentMethods: PaymentMethod[] = [
 		{
 			id: 'pm_123',
 			type: 'card',
@@ -150,7 +150,7 @@ export default function BillingSettingsPage() {
 		},
 	];
 
-	const invoices:Invoice[]=[
+	const invoices: Invoice[] = [
 		{
 			id: 'inv_123',
 			number: 'INV-2024-001',
@@ -279,8 +279,8 @@ export default function BillingSettingsPage() {
 
 						{subscription.plan !== 'enterprise' && (
 							<Button
-								onClick={() => handleUpgrade('team')}
 								className='bg-sky-600 hover:bg-sky-700'
+								onClick={() => handleUpgrade('team')}
 							>
 								<Zap className='size-4 mr-2' />
 								Upgrade
@@ -335,9 +335,9 @@ export default function BillingSettingsPage() {
 					<div className='flex flex-wrap gap-2'>
 						{planFeatures[subscription.plan].features.map((feature, index) => (
 							<Badge
+								className='bg-zinc-800 text-zinc-300'
 								key={index}
 								variant='secondary'
-								className='bg-zinc-800 text-zinc-300'
 							>
 								<Check className='size-3 mr-1' />
 
@@ -389,10 +389,12 @@ export default function BillingSettingsPage() {
 							<div className='flex items-center justify-between mb-2'>
 								<span className='text-white'>Collaborators</span>
 
-								<span className='text-zinc-400'>
-									{usage.collaborators.used} /{' '}
+								<span className='text-zinc-400 flex gap-1'>
+									<span>{usage.collaborators.used}</span>
 
-									{usage.collaborators.limit}
+									<span>/</span>
+
+									<span>{usage.collaborators.limit}</span>
 								</span>
 							</div>
 
@@ -464,8 +466,8 @@ export default function BillingSettingsPage() {
 				<CardContent className='space-y-4'>
 					{paymentMethods.map((method) => (
 						<div
-							key={method.id}
 							className='flex items-center justify-between p-4 bg-zinc-800/30 rounded-lg'
+							key={method.id}
 						>
 							<div className='flex items-center gap-3'>
 								{method.type === 'card' ? (
@@ -510,21 +512,21 @@ export default function BillingSettingsPage() {
 							<div className='flex items-center gap-2'>
 								{method.isDefault && (
 									<Badge
-										variant='secondary'
 										className='bg-sky-900/50 text-sky-200 border-sky-700/50'
+										variant='secondary'
 									>
 										Default
 									</Badge>
 								)}
 
-								<Button variant='outline' size='sm'>
+								<Button size='sm' variant='outline'>
 									Edit
 								</Button>
 							</div>
 						</div>
 					))}
 
-					<Button variant='outline' className='w-full'>
+					<Button className='w-full' variant='outline'>
 						Add Payment Method
 					</Button>
 				</CardContent>
@@ -547,8 +549,8 @@ export default function BillingSettingsPage() {
 				<CardContent className='space-y-4'>
 					{invoices.map((invoice) => (
 						<div
-							key={invoice.id}
 							className='flex items-center justify-between p-4 bg-zinc-800/30 rounded-lg'
+							key={invoice.id}
 						>
 							<div className='flex items-center gap-4'>
 								<div>
@@ -581,7 +583,7 @@ export default function BillingSettingsPage() {
 									</span>
 								</span>
 
-								<Button variant='outline' size='sm'>
+								<Button size='sm' variant='outline'>
 									<Download className='size-4 mr-2' />
 									Download
 								</Button>
@@ -589,7 +591,7 @@ export default function BillingSettingsPage() {
 						</div>
 					))}
 
-					<Button variant='outline' className='w-full'>
+					<Button className='w-full' variant='outline'>
 						<ExternalLink className='size-4 mr-2' />
 						View All Invoices
 					</Button>
@@ -620,10 +622,10 @@ export default function BillingSettingsPage() {
 							</div>
 
 							<Button
-								variant='destructive'
-								size='sm'
-								onClick={handleCancelSubscription}
 								disabled={isLoading}
+								size='sm'
+								variant='destructive'
+								onClick={handleCancelSubscription}
 							>
 								{isLoading ? 'Canceling...' : 'Cancel Subscription'}
 							</Button>

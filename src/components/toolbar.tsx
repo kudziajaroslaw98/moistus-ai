@@ -124,8 +124,8 @@ export const Toolbar = () => {
 
 	return (
 		<motion.div
-			initial={{ y: 100, opacity: 0 }}
 			animate={{ y: 0, opacity: 1 }}
+			initial={{ y: 100, opacity: 0 }}
 			transition={{ type: 'spring', stiffness: 100, damping: 15 }}
 		>
 			<div
@@ -140,9 +140,9 @@ export const Toolbar = () => {
 					if (tool.id.startsWith('separator')) {
 						return (
 							<Separator
+								className='!h-4 flex'
 								key={tool.id + '' + index}
 								orientation='vertical'
-								className='!h-4 flex'
 								style={{
 									backgroundColor: GlassmorphismTheme.borders.default,
 								}}
@@ -154,9 +154,8 @@ export const Toolbar = () => {
 						return (
 							<Tooltip key={tool.id}>
 								<TooltipTrigger
-									onClick={() => onToolChange(tool.id)}
-									title={tool.label ?? `Tool ${index}`}
 									className='inline-flex items-center rounded-sm font-medium transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none !h-8 !w-8 p-0 justify-center'
+									title={tool.label ?? `Tool ${index}`}
 									style={{
 										backgroundColor:
 											activeTool === tool.id
@@ -172,6 +171,7 @@ export const Toolbar = () => {
 												? GlassmorphismTheme.text.high
 												: GlassmorphismTheme.text.medium,
 									}}
+									onClick={() => onToolChange(tool.id)}
 									onMouseEnter={(e) => {
 										if (activeTool !== tool.id) {
 											e.currentTarget.style.backgroundColor =
@@ -190,13 +190,13 @@ export const Toolbar = () => {
 
 								<TooltipContent className='p-4'>
 									<RadioGroup
-										onValueChange={handleAiFeatureSelect}
 										value={aiFeature}
+										onValueChange={handleAiFeatureSelect}
 									>
 										<div className='flex items-center gap-2'>
 											<RadioGroupItem
-												value='suggest-nodes'
 												id='suggest-nodes'
+												value='suggest-nodes'
 											/>
 
 											<Label htmlFor='suggest-nodes'>Suggest Nodes</Label>
@@ -204,8 +204,8 @@ export const Toolbar = () => {
 
 										<div className='flex items-center gap-2'>
 											<RadioGroupItem
-												value='suggest-connections'
 												id='suggest-connections'
+												value='suggest-connections'
 											/>
 
 											<Label htmlFor='suggest-connections'>
@@ -215,8 +215,8 @@ export const Toolbar = () => {
 
 										<div className='flex items-center gap-2'>
 											<RadioGroupItem
-												value='suggest-merges'
 												id='suggest-merges'
+												value='suggest-merges'
 											/>
 
 											<Label htmlFor='suggest-merges'>Suggest Merges</Label>
@@ -230,7 +230,8 @@ export const Toolbar = () => {
 					return (
 						<Button
 							key={tool.id}
-							onClick={() => onToolChange(tool.id)}
+							size={'icon'}
+							title={tool.label ?? `Tool ${index}`}
 							variant={
 								activeTool === tool.id &&
 								tool.id !== 'chat' &&
@@ -238,8 +239,7 @@ export const Toolbar = () => {
 									? 'default'
 									: 'secondary'
 							}
-							title={tool.label ?? `Tool ${index}`}
-							size={'icon'}
+							onClick={() => onToolChange(tool.id)}
 						>
 							{tool.icon}
 						</Button>

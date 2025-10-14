@@ -57,13 +57,13 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 	return (
 		<BaseNodeWrapper
 			{...props}
-			nodeClassName='resource-node'
-			nodeType='Resource'
 			hideNodeType
-			nodeIcon={<LinkIcon className='size-4' />}
 			elevation={1}
+			nodeClassName='resource-node'
+			nodeIcon={<LinkIcon className='size-4' />}
+			nodeType='Resource'
 		>
-			<div ref={containerRef} className='flex flex-col gap-3'>
+			<div className='flex flex-col gap-3' ref={containerRef}>
 				{/* Thumbnail with sophisticated loading states */}
 				{showThumbnail && imageUrl && (
 					<div
@@ -77,10 +77,10 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 						<AnimatePresence>
 							{imageLoading && !imageError && (
 								<motion.div
-									initial={{ opacity: 0 }}
 									animate={{ opacity: 1 }}
-									exit={{ opacity: 0 }}
 									className='absolute inset-0 flex items-center justify-center'
+									exit={{ opacity: 0 }}
+									initial={{ opacity: 0 }}
 								>
 									<div
 										className='w-full h-full animate-pulse'
@@ -97,9 +97,16 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 
 						{!imageError ? (
 							<Image
-								src={imageUrl}
 								alt={title}
 								className='object-cover'
+								fill={true}
+								loading='lazy'
+								src={imageUrl}
+								unoptimized={true}
+								style={{
+									opacity: imageLoading ? 0 : 1,
+									transition: 'opacity 0.3s ease-out',
+								}}
 								onError={() => {
 									setImageError(true);
 									setImageLoading(false);
@@ -108,13 +115,6 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 									setImageLoading(false);
 									// Remeasure after image loads (affects height)
 									setTimeout(remeasureNode, 50);
-								}}
-								loading='lazy'
-								fill={true}
-								unoptimized={true}
-								style={{
-									opacity: imageLoading ? 0 : 1,
-									transition: 'opacity 0.3s ease-out',
 								}}
 							/>
 						) : (
@@ -182,14 +182,14 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 					{/* External link button with hover effects */}
 					{resourceUrl && (
 						<Link
-							href={resourceUrl}
-							target='_blank'
-							rel='noopener noreferrer'
 							className='group'
+							href={resourceUrl}
+							rel='noopener noreferrer'
+							target='_blank'
 						>
 							<Button
-								variant={'ghost'}
 								className='p-2 rounded-md transition-all duration-200 hover:scale-110'
+								variant={'ghost'}
 								style={{
 									backgroundColor: 'transparent',
 									border: `1px solid ${GlassmorphismTheme.borders.default}`,
@@ -233,15 +233,15 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 				<AnimatePresence>
 					{showSummary && summary && (
 						<motion.div
-							initial={{ opacity: 0, height: 0 }}
 							animate={{ opacity: 1, height: 'auto' }}
+							className='overflow-hidden'
 							exit={{ opacity: 0, height: 0 }}
+							initial={{ opacity: 0, height: 0 }}
 							transition={{ duration: 0.3 }}
 							onAnimationComplete={() => {
 								// Remeasure after animation completes
 								remeasureNode();
 							}}
-							className='overflow-hidden'
 						>
 							{/* Divider with gradient */}
 							<div className='relative py-2'>

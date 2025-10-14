@@ -17,7 +17,7 @@ export default function AiContentPromptModal({
 	};
 
 	return (
-		<Modal isOpen={isOpen} onClose={onClose} title='Generate Content (AI)'>
+		<Modal isOpen={isOpen} title='Generate Content (AI)' onClose={onClose}>
 			<div className='flex flex-col gap-4'>
 				<p className='text-sm text-zinc-300'>
 					Enter an optional prompt to guide the AI content generation for the
@@ -26,16 +26,16 @@ export default function AiContentPromptModal({
 				</p>
 
 				<Input
+					disabled={isLoading}
+					placeholder='e.g., Explain in simpler terms, Add examples...'
 					value={prompt}
 					onChange={(e) => setPrompt(e.target.value)}
-					placeholder='e.g., Explain in simpler terms, Add examples...'
-					disabled={isLoading}
 				/>
 
 				<Button
-					onClick={handleGenerateClick}
 					disabled={isLoading}
 					variant='default'
+					onClick={handleGenerateClick}
 				>
 					{isLoading ? 'Generating...' : 'Generate Content'}
 				</Button>

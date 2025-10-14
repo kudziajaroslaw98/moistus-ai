@@ -258,7 +258,7 @@
 	);
 }
 
-/* Animation utilities */
+/* Animation utilities - Following animation guidelines */
 @keyframes fade-in {
 	0% {
 		opacity: 0;
@@ -279,10 +279,33 @@
 	}
 }
 
+/* Animations should be 0.2s-0.3s max per guidelines */
 .animate-fade-in {
-	animation: fade-in 0.6s ease-out forwards;
+	animation: fade-in 0.2s ease-out forwards;
 }
 
 .animate-fade-in-up {
-	animation: fade-in-up 0.6s ease-out forwards;
+	animation: fade-in-up 0.2s cubic-bezier(0.215, 0.61, 0.355, 1) forwards;
+}
+
+/* Accessibility: Disable transforms for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+	.animate-fade-in-up {
+		animation: fade-in 0.2s ease-out forwards;
+	}
+
+	/* Disable all transform-based animations */
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+
+	/* Allow opacity transitions */
+	* {
+		transition-property: opacity, color, background-color !important;
+	}
 }

@@ -52,8 +52,8 @@ export function GenerateFromNodesModal({
 	return (
 		<SidePanel
 			isOpen={popoverOpen.generateFromNodesModal}
-			onClose={handleClose}
 			title='Generate content from selected nodes'
+			onClose={handleClose}
 		>
 			<div className='flex flex-col gap-6'>
 				<div className='bg-zinc-800/40 p-4 rounded-md border border-zinc-700'>
@@ -78,38 +78,38 @@ export function GenerateFromNodesModal({
 
 				<div className='flex flex-col gap-2'>
 					<label
-						htmlFor='ai-prompt'
 						className='text-sm font-medium text-zinc-300'
+						htmlFor='ai-prompt'
 					>
 						Your prompt
 					</label>
 
 					<Textarea
-						id='ai-prompt'
-						ref={textareaRef}
+						autoFocus
 						className={`min-h-[220px] bg-zinc-900 border-zinc-700 focus:border-teal-500 resize-none ${isLoading ? 'opacity-60' : ''}`}
+						disabled={isLoading}
+						id='ai-prompt'
 						placeholder="Enter your prompt for the AI (e.g., 'Summarize these nodes' or 'Extract key concepts')"
+						ref={textareaRef}
 						value={prompt}
 						onChange={(e) => setPrompt(e.target.value)}
-						disabled={isLoading}
-						autoFocus
 					/>
 				</div>
 
 				<div className='flex justify-end gap-3 pt-4 border-t border-zinc-800'>
 					<Button
+						className='text-zinc-300 hover:text-zinc-100'
+						disabled={isLoading}
 						variant='ghost'
 						onClick={handleClose}
-						disabled={isLoading}
-						className='text-zinc-300 hover:text-zinc-100'
 					>
 						Cancel
 					</Button>
 
 					<Button
-						onClick={handleSubmit}
-						disabled={isLoading || !prompt.trim()}
 						className='bg-teal-600 hover:bg-teal-500 text-white'
+						disabled={isLoading || !prompt.trim()}
+						onClick={handleSubmit}
 					>
 						{isLoading ? (
 							<span className='flex items-center gap-1.5'>

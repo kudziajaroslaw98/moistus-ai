@@ -131,11 +131,11 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 	return (
 		<BaseNodeWrapper
 			{...props}
-			nodeClassName='question-node'
-			nodeType='Question'
 			hideNodeType
-			nodeIcon={<HelpCircle className='size-4' />}
 			elevation={isAnswered ? 2 : 1}
+			nodeClassName='question-node'
+			nodeIcon={<HelpCircle className='size-4' />}
+			nodeType='Question'
 		>
 			<div className='flex flex-col gap-3'>
 				{/* Question content */}
@@ -181,8 +181,8 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 
 							{questionType === 'multiple' && (
 								<MultipleChoiceResponse
+									allowMultiple={responseFormat.allowMultiple || false}
 									value={userResponse as string | string[]}
-									onChange={handleResponseChange}
 									options={
 										responseFormat.options && responseFormat.options.length > 0
 											? responseFormat.options
@@ -197,7 +197,7 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 													{ id: '3', label: 'Option C' },
 												]
 									}
-									allowMultiple={responseFormat.allowMultiple || false}
+									onChange={handleResponseChange}
 								/>
 							)}
 						</div>
@@ -224,14 +224,14 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 				{hasAIAnswer && (
 					<div>
 						<motion.button
-							onClick={() => setIsExpanded(!isExpanded)}
 							className='w-full flex items-center justify-center gap-2 py-1.5 rounded-md transition-all'
+							whileHover={{ scale: 1.02 }}
+							whileTap={{ scale: 0.98 }}
 							style={{
 								backgroundColor: 'rgba(147, 197, 253, 0.05)',
 								border: '1px solid rgba(147, 197, 253, 0.1)',
 							}}
-							whileHover={{ scale: 1.02 }}
-							whileTap={{ scale: 0.98 }}
+							onClick={() => setIsExpanded(!isExpanded)}
 						>
 							<Sparkles
 								className='w-3 h-3'
@@ -258,11 +258,11 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 						<AnimatePresence>
 							{isExpanded && (
 								<motion.div
-									initial={{ opacity: 0, height: 0 }}
 									animate={{ opacity: 1, height: 'auto' }}
-									exit={{ opacity: 0, height: 0 }}
-									transition={{ duration: 0.2 }}
 									className='overflow-hidden'
+									exit={{ opacity: 0, height: 0 }}
+									initial={{ opacity: 0, height: 0 }}
+									transition={{ duration: 0.2 }}
 								>
 									<div
 										className='mt-2 p-3 rounded-md'

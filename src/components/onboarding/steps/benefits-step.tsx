@@ -81,13 +81,13 @@ export function BenefitsStep({ onContinue, onBack }: BenefitsStepProps) {
 		<div className='flex flex-col h-full w-full p-12'>
 			{/* Header */}
 			<motion.div
-				initial={{ opacity: 0, y: -20 }}
 				animate={{ opacity: 1, y: 0 }}
+				className='text-center mb-12'
+				initial={{ opacity: 0, y: -20 }}
 				transition={{
 					duration: 0.3,
 					ease: [0.165, 0.84, 0.44, 1], // ease-out-quart
 				}}
-				className='text-center mb-12'
 			>
 				<h2
 					className='text-3xl font-bold mb-4'
@@ -108,15 +108,15 @@ export function BenefitsStep({ onContinue, onBack }: BenefitsStepProps) {
 			<div className='w-full grid grid-cols-2 lg:grid-cols-3 gap-6 flex-1 mb-12'>
 				{benefits.map((benefit, index) => (
 					<motion.div
-						key={benefit.id}
-						initial={{ opacity: 0, y: 20, scale: 0.95 }}
 						animate={{ opacity: 1, y: 0, scale: 1 }}
+						className='relative group'
+						initial={{ opacity: 0, y: 20, scale: 0.95 }}
+						key={benefit.id}
 						transition={{
 							duration: 0.3,
 							ease: [0.165, 0.84, 0.44, 1], // ease-out-quart
 							delay: benefit.delay,
 						}}
-						className='relative group'
 						onMouseEnter={(e) => {
 							e.currentTarget.style.transform = 'translateY(-4px)';
 						}}
@@ -180,24 +180,24 @@ export function BenefitsStep({ onContinue, onBack }: BenefitsStepProps) {
 
 			{/* Navigation */}
 			<motion.div
-				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
+				className='flex items-center justify-between'
+				initial={{ opacity: 0, y: 20 }}
 				transition={{
 					duration: 0.3,
 					ease: [0.165, 0.84, 0.44, 1],
 					delay: 0.6,
 				}}
-				className='flex items-center justify-between'
 			>
 				<Button
-					onClick={onBack}
-					variant='ghost'
 					className='transition-colors'
+					variant='ghost'
 					style={{
 						color: GlassmorphismTheme.text.medium,
 						transitionDuration: '200ms',
 						transitionTimingFunction: 'ease',
 					}}
+					onClick={onBack}
 					onMouseEnter={(e) => {
 						e.currentTarget.style.color = GlassmorphismTheme.text.high;
 					}}
@@ -209,15 +209,15 @@ export function BenefitsStep({ onContinue, onBack }: BenefitsStepProps) {
 				</Button>
 
 				<Button
-					onClick={onContinue}
-					size='lg'
 					className='font-semibold px-8 transition-all'
+					size='lg'
 					style={{
 						backgroundColor: 'rgba(52, 211, 153, 0.8)',
 						color: GlassmorphismTheme.elevation[0],
 						transitionDuration: '200ms',
 						transitionTimingFunction: 'ease',
 					}}
+					onClick={onContinue}
 					onMouseEnter={(e) => {
 						e.currentTarget.style.backgroundColor = 'rgba(52, 211, 153, 1)';
 						e.currentTarget.style.transform = 'translateY(-2px)';

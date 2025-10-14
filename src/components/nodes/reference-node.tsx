@@ -27,11 +27,11 @@ const ReferenceNodeComponent = (props: ReferenceNodeProps) => {
 	return (
 		<BaseNodeWrapper
 			{...props}
-			nodeClassName='reference-node'
-			nodeType='Reference'
 			hideNodeType
-			nodeIcon={<BookMarked className='size-4' />}
 			includePadding={false}
+			nodeClassName='reference-node'
+			nodeIcon={<BookMarked className='size-4' />}
+			nodeType='Reference'
 		>
 			<div className='flex flex-col h-full'>
 				<div className='p-4 flex-grow'>
@@ -73,10 +73,10 @@ const ReferenceNodeComponent = (props: ReferenceNodeProps) => {
 
 				{hasValidReference && (
 					<Link
-						href={referenceUrl}
-						target='_blank'
-						rel='noopener noreferrer'
 						className='nodrag block transition-colors p-2 text-xs font-medium rounded-b-sm'
+						href={referenceUrl}
+						rel='noopener noreferrer'
+						target='_blank'
 						style={{
 							backgroundColor: `${GlassmorphismTheme.elevation[2]}80`,
 							color: GlassmorphismTheme.text.medium,

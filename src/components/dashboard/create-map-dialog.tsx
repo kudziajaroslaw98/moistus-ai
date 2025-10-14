@@ -60,27 +60,27 @@ export function CreateMapDialog({
 
 				{/* Form Section */}
 				<motion.div
-					initial={{ opacity: 0, y: 10 }}
 					animate={{ opacity: 1, y: 0 }}
-					transition={{ delay: 0.1, duration: 0.3 }}
 					className='relative z-10 mt-6'
+					initial={{ opacity: 0, y: 10 }}
+					transition={{ delay: 0.1, duration: 0.3 }}
 				>
 					<CreateMapForm
-						onSubmit={handleSubmit}
-						placeholder='Enter mind map title...'
+						buttonText='Create Map'
 						className='w-full'
 						disabled={disabled}
-						buttonText='Create Map'
 						loadingText='Creating...'
+						placeholder='Enter mind map title...'
+						onSubmit={handleSubmit}
 					/>
 				</motion.div>
 
 				{/* Subtle Tip */}
 				<motion.div
-					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
-					transition={{ delay: 0.3, duration: 0.3 }}
 					className='relative z-10 mt-4 text-center'
+					initial={{ opacity: 0 }}
+					transition={{ delay: 0.3, duration: 0.3 }}
 				>
 					<p className='text-xs text-zinc-500'>
 						Press{' '}

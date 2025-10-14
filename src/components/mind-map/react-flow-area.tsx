@@ -346,7 +346,24 @@ export function ReactFlowArea() {
 		<>
 			<ReactFlow
 				colorMode='dark'
+				connectionLineComponent={FloatingConnectionLine}
+				connectionLineType={ConnectionLineType.Bezier}
+				connectionMode={ConnectionMode.Loose}
+				deleteKeyCode={['Delete']}
+				edges={getVisibleEdges()}
+				edgeTypes={edgeTypes}
+				elementsSelectable={isSelectMode}
+				fitView={true}
+				minZoom={0.1}
 				multiSelectionKeyCode={['Meta', 'Control']}
+				nodes={[...getVisibleNodes(), ...ghostNodes]}
+				nodesConnectable={isSelectMode || activeTool === 'connector'}
+				nodesDraggable={isSelectMode}
+				nodeTypes={nodeTypesWithProps}
+				panOnDrag={true}
+				selectionMode={SelectionMode.Partial}
+				snapGrid={[16, 16]}
+				snapToGrid={true}
 				className={cn([
 					isPanningMode && 'cursor-grab',
 					activeTool === 'node' ||
@@ -355,39 +372,22 @@ export function ReactFlowArea() {
 				style={{
 					backgroundColor: GlassmorphismTheme.elevation[0], // Base background
 				}}
-				minZoom={0.1}
-				snapToGrid={true}
-				snapGrid={[16, 16]}
-				nodesDraggable={isSelectMode}
-				nodesConnectable={isSelectMode || activeTool === 'connector'}
-				elementsSelectable={isSelectMode}
-				panOnDrag={true}
-				fitView={true}
-				nodes={[...getVisibleNodes(), ...ghostNodes]}
-				edges={getVisibleEdges()}
-				onNodesChange={onNodesChange}
-				onEdgesChange={onEdgesChange}
-				onConnectStart={onConnectStart}
-				onConnectEnd={onConnectEnd}
-				onEdgeDoubleClick={handleEdgeDoubleClick}
-				onNodeClick={handleNodeClick}
-				onNodesDelete={deleteNodes}
-				onEdgesDelete={deleteEdges}
-				nodeTypes={nodeTypesWithProps}
-				edgeTypes={edgeTypes}
-				deleteKeyCode={['Delete']}
-				connectionLineComponent={FloatingConnectionLine}
-				onNodeContextMenu={contextMenuHandlers.onNodeContextMenu}
-				onPaneContextMenu={contextMenuHandlers.onPaneContextMenu}
-				onEdgeContextMenu={contextMenuHandlers.onEdgeContextMenu}
-				onPaneClick={contextMenuHandlers.onPaneClick}
-				selectionMode={SelectionMode.Partial}
-				connectionLineType={ConnectionLineType.Bezier}
-				connectionMode={ConnectionMode.Loose}
 				onConnect={onConnect}
-				onSelectionChange={handleSelectionChange}
+				onConnectEnd={onConnectEnd}
+				onConnectStart={onConnectStart}
+				onEdgeContextMenu={contextMenuHandlers.onEdgeContextMenu}
+				onEdgeDoubleClick={handleEdgeDoubleClick}
+				onEdgesChange={onEdgesChange}
+				onEdgesDelete={deleteEdges}
+				onNodeClick={handleNodeClick}
+				onNodeContextMenu={contextMenuHandlers.onNodeContextMenu}
 				onNodeDragStart={handleNodeDragStart}
 				onNodeDragStop={handleNodeDragStop}
+				onNodesChange={onNodesChange}
+				onNodesDelete={deleteNodes}
+				onPaneClick={contextMenuHandlers.onPaneClick}
+				onPaneContextMenu={contextMenuHandlers.onPaneContextMenu}
+				onSelectionChange={handleSelectionChange}
 			>
 				<Background
 					color='rgba(255, 255, 255, 0.06)'
@@ -396,8 +396,8 @@ export function ReactFlowArea() {
 				/>
 
 				<Panel
-					position='top-left'
 					className='!m-0 p-2 px-8 right-0 flex justify-between'
+					position='top-left'
 					style={{
 						background: `rgba(39, 39, 39, 0.3)`, // Subtle glassmorphism for floating app bar
 						backdropFilter: 'blur(4px)', // Reduced blur for subtlety
@@ -410,10 +410,10 @@ export function ReactFlowArea() {
 									<BreadcrumbLink asChild>
 										<Link href='/dashboard'>
 											<Image
-												src='/images/moistus.svg'
 												alt='Moistus Logo'
-												width={60}
 												height={60}
+												src='/images/moistus.svg'
+												width={60}
 											/>
 										</Link>
 									</BreadcrumbLink>
@@ -436,9 +436,9 @@ export function ReactFlowArea() {
 							<Button
 								// onClick={handleUndo}
 								disabled={!canUndo}
+								size='icon'
 								title='Undo (Ctrl+Z)'
 								variant='secondary'
-								size='icon'
 							>
 								<Undo className='size-4' />
 							</Button>
@@ -447,19 +447,19 @@ export function ReactFlowArea() {
 							<Button
 								// onClick={handleRedo}
 								disabled={!canRedo}
+								size='icon'
 								title='Redo (Ctrl+Y)'
 								variant='secondary'
-								size='icon'
 							>
 								<Redo className='size-4' />
 							</Button>
 
 							<Button
-								onClick={handleToggleHistorySidebar}
-								title='Toggle History Sidebar'
 								aria-label='Toggle History Sidebar'
-								variant='secondary'
 								size='icon'
+								title='Toggle History Sidebar'
+								variant='secondary'
+								onClick={handleToggleHistorySidebar}
 							>
 								<History className='h-4 w-4' />
 							</Button>
@@ -481,11 +481,11 @@ export function ReactFlowArea() {
 						</Link> */}
 
 							<Button
-								onClick={handleCommandPaletteOpen}
-								title='Command Palette'
 								aria-label='Command Palette'
-								variant='secondary'
 								size='icon'
+								title='Command Palette'
+								variant='secondary'
+								onClick={handleCommandPaletteOpen}
 							>
 								<Command className='h-4 w-4' />
 							</Button>
@@ -495,11 +495,11 @@ export function ReactFlowArea() {
 
 						<div className='flex gap-2'>
 							<Button
-								onClick={handleToggleSharePanel}
-								title='Share Mind Map'
 								aria-label='Share Mind Map'
-								variant={popoverOpen.sharePanel ? 'default' : 'secondary'}
 								className='gap-2'
+								title='Share Mind Map'
+								variant={popoverOpen.sharePanel ? 'default' : 'secondary'}
+								onClick={handleToggleSharePanel}
 							>
 								Share <Share2 className='size-3' />
 							</Button>
@@ -513,8 +513,8 @@ export function ReactFlowArea() {
 
 				<Panel position='top-left'>
 					<RealtimeCursors
-						roomName={`mind_map:${mapId}:cursor`}
 						reactFlowInstance={reactFlowInstance}
+						roomName={`mind_map:${mapId}:cursor`}
 					/>
 				</Panel>
 			</ReactFlow>

@@ -29,17 +29,17 @@ export const PreviewSection: React.FC<PreviewSectionProps> = ({
 			<AnimatePresence>
 				{preview && (
 					<motion.div
-						className={theme.preview}
-						initial={{ opacity: 0, x: 20, scale: 0.95 }}
-						animate={{ opacity: 1, x: 0, scale: 1 }}
-						exit={{ opacity: 0, x: 20, scale: 0.95 }}
-						transition={{ duration: 0.25, ease: 'easeOut' as const }}
 						layout
+						animate={{ opacity: 1, x: 0, scale: 1 }}
+						className={theme.preview}
+						exit={{ opacity: 0, x: 20, scale: 0.95 }}
+						initial={{ opacity: 0, x: 20, scale: 0.95 }}
+						transition={{ duration: 0.25, ease: 'easeOut' as const }}
 					>
 						<motion.div
+							animate={{ opacity: 1 }}
 							className={theme.previewLabel}
 							initial={{ opacity: 0 }}
-							animate={{ opacity: 1 }}
 							transition={{ delay: 0.1, duration: 0.2 }}
 						>
 							Preview
@@ -47,13 +47,13 @@ export const PreviewSection: React.FC<PreviewSectionProps> = ({
 
 						<AnimateChangeInHeight>
 							<motion.div
+								animate={{ opacity: 1, y: 0 }}
 								className={cn(theme.previewContent, 'text-zinc-300')}
 								initial={{ opacity: 0, y: 5 }}
-								animate={{ opacity: 1, y: 0 }}
-								transition={{ delay: 0.15, duration: 0.2 }}
 								style={{ color: 'rgb(212, 212, 216)' }}
+								transition={{ delay: 0.15, duration: 0.2 }}
 							>
-								<PreviewRenderer preview={preview} nodeType={nodeType} />
+								<PreviewRenderer nodeType={nodeType} preview={preview} />
 							</motion.div>
 						</AnimateChangeInHeight>
 					</motion.div>
@@ -64,10 +64,10 @@ export const PreviewSection: React.FC<PreviewSectionProps> = ({
 			<AnimatePresence>
 				{!preview && hasInput && (
 					<motion.div
-						className={cn(theme.preview, 'border-dashed opacity-50')}
-						initial={{ opacity: 0, x: 20 }}
 						animate={{ opacity: 0.5, x: 0 }}
+						className={cn(theme.preview, 'border-dashed opacity-50')}
 						exit={{ opacity: 0, x: 20 }}
+						initial={{ opacity: 0, x: 20 }}
 						transition={{ duration: 0.2 }}
 					>
 						<div className={theme.previewLabel}>Preview</div>

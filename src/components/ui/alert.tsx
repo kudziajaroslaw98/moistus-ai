@@ -26,9 +26,9 @@ function Alert({
 }: ComponentProps<'div'> & VariantProps<typeof alertVariants>) {
 	return (
 		<div
+			className={cn(alertVariants({ variant }), className)}
 			data-slot='alert'
 			role='alert'
-			className={cn(alertVariants({ variant }), className)}
 			{...props}
 		/>
 	);

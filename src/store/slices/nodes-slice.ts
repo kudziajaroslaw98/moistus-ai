@@ -363,7 +363,9 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					finalEdges.push(newEdge);
 				}
 
-				addStateToHistory('addNode', { nodes: finalNodes, edges: finalEdges });
+addStateToHistory('addNode', { nodes: finalNodes, edges: finalEdges });
+// Persist precise delta (prev vs next)
+get().persistDeltaEvent('addNode', { nodes, edges }, { nodes: finalNodes, edges: finalEdges });
 
 				set({
 					nodes: finalNodes,
@@ -377,7 +379,9 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				successMessage: 'Node added successfully.',
 			}
 		),
-		updateNode: async (props: { nodeId: string; data: Partial<NodeData> }) => {
+updateNode: async (props: { nodeId: string; data: Partial<NodeData> }) => {
+			const prevNodes = get().nodes;
+			const prevEdges = get().edges;
 			const { nodeId, data } = props;
 			let updatedNode: AppNode | null = null;
 
@@ -416,10 +420,20 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				nodeInfo: updatedNode,
 			}));
 
-			// Trigger debounced save to persist changes
-			get().triggerNodeSave(nodeId);
-		},
-		updateNodeDimensions: (nodeId: string, width: number, height: number) => {
+				// Trigger debounced save to persist changes
+				get().triggerNodeSave(nodeId);
+
+				// Record delta event in history (only changed fields will be saved)
+get().addStateToHistory('saveNodeProperties', {
+					nodes: get().nodes,
+					edges: get().edges,
+				});
+// Persist precise delta
+get().persistDeltaEvent('saveNodeProperties', { nodes: prevNodes, edges: prevEdges }, { nodes: get().nodes, edges: get().edges });
+			},
+updateNodeDimensions: (nodeId: string, width: number, height: number) => {
+			const prevNodes = get().nodes;
+			const prevEdges = get().edges;
 			const { nodes } = get();
 			const node = nodes.find((n) => n.id === nodeId);
 
@@ -463,6 +477,14 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 
 			// Trigger debounced save to persist dimension changes
 			get().triggerNodeSave(nodeId);
+
+			// Record delta event in history for dimension change
+get().addStateToHistory('updateNodeDimensions', {
+				nodes: get().nodes,
+				edges: get().edges,
+			});
+// Persist precise delta for dimension change
+get().persistDeltaEvent('updateNodeDimensions', { nodes: prevNodes, edges: prevEdges }, { nodes: get().nodes, edges: get().edges });
 		},
 		deleteNodes: withLoadingAndToast(
 			async (nodesToDelete: AppNode[]) => {

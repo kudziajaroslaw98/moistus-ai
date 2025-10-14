@@ -54,11 +54,11 @@ function StepItem({ step }: { step: ToastStep }) {
 
 	return (
 		<motion.div
-			initial={{ opacity: 0, y: 5 }}
 			animate={{ opacity: 1, y: 0 }}
-			exit={{ opacity: 0 }}
-			transition={{ duration: 0.3, ease: 'easeOut' as const }}
 			className='flex items-center gap-3 text-sm'
+			exit={{ opacity: 0 }}
+			initial={{ opacity: 0, y: 5 }}
+			transition={{ duration: 0.3, ease: 'easeOut' as const }}
 		>
 			<div className='flex-shrink-0 w-4 h-4 flex items-center justify-center'>
 				{stepIcons[status]}
@@ -77,9 +77,9 @@ function StepItem({ step }: { step: ToastStep }) {
 
 					{isCompleted && (
 						<motion.div
+							animate={{ width: '100%' }}
 							className='absolute top-1/2 left-0 h-px bg-zinc-700'
 							initial={{ width: '0%' }}
-							animate={{ width: '100%' }}
 							transition={{ duration: 0.4, ease: 'easeOut' as const }}
 						/>
 					)}
@@ -132,12 +132,12 @@ function ToastUI({
 				<div className='relative h-5 mt-1'>
 					<AnimatePresence mode='popLayout'>
 						<motion.p
-							key={message || error} // Change key to trigger animation
-							initial={{ opacity: 0, y: 10 }}
 							animate={{ opacity: 1, y: 0 }}
-							exit={{ opacity: 0, y: -10 }}
-							transition={{ duration: 0.3, ease: 'easeOut' as const }}
 							className='text-sm text-zinc-400'
+							exit={{ opacity: 0, y: -10 }}
+							initial={{ opacity: 0, y: 10 }}
+							key={message || error} // Change key to trigger animation
+							transition={{ duration: 0.3, ease: 'easeOut' as const }}
 						>
 							{isError ? error : message}
 						</motion.p>
@@ -148,12 +148,7 @@ function ToastUI({
 					{isHovered && steps && steps.length > 0 && (
 						<motion.div
 							key='steps-container'
-							initial={{
-								opacity: 0,
-								maxHeight: 0,
-								filter: 'blur(3px)',
-								marginTop: 0,
-							}}
+							transition={{ duration: 0.3, ease: 'easeOut' as const }}
 							animate={{
 								opacity: 1,
 								maxHeight: '400px',
@@ -166,7 +161,12 @@ function ToastUI({
 								filter: 'blur(3px)',
 								marginTop: 0,
 							}}
-							transition={{ duration: 0.3, ease: 'easeOut' as const }}
+							initial={{
+								opacity: 0,
+								maxHeight: 0,
+								filter: 'blur(3px)',
+								marginTop: 0,
+							}}
 						>
 							{steps.map((s: ToastStep) => (
 								<StepItem key={s.id} step={s} />
@@ -178,11 +178,11 @@ function ToastUI({
 				<AnimatePresence>
 					{!isError && !isProcessComplete && steps?.length > 0 && (
 						<motion.div
-							key='hover-hint'
-							initial={{ opacity: 0 }}
 							animate={{ opacity: 1 }}
-							exit={{ opacity: 0, height: 0, overflowY: 'clip', y: -10 }}
 							className='flex items-center gap-1.5 text-xs text-zinc-500 mt-2'
+							exit={{ opacity: 0, height: 0, overflowY: 'clip', y: -10 }}
+							initial={{ opacity: 0 }}
+							key='hover-hint'
 						>
 							<Info className='w-3 h-3' />
 

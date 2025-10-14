@@ -98,13 +98,13 @@ export function PricingStep({
 		<div className='flex flex-col h-full p-12'>
 			{/* Header */}
 			<motion.div
-				initial={{ opacity: 0, y: -20 }}
 				animate={{ opacity: 1, y: 0 }}
+				className='text-center mb-8'
+				initial={{ opacity: 0, y: -20 }}
 				transition={{
 					duration: 0.3,
 					ease: [0.165, 0.84, 0.44, 1], // ease-out-quart
 				}}
-				className='text-center mb-8'
 			>
 				<h2
 					className='text-3xl font-bold mb-4'
@@ -128,7 +128,6 @@ export function PricingStep({
 					}}
 				>
 					<button
-						onClick={handleToggleBilling}
 						className='px-4 py-2 rounded-md text-sm font-medium transition-all'
 						style={{
 							backgroundColor:
@@ -142,6 +141,7 @@ export function PricingStep({
 							transitionDuration: '200ms',
 							transitionTimingFunction: 'ease',
 						}}
+						onClick={handleToggleBilling}
 						onMouseEnter={(e) => {
 							if (billingCycle !== 'monthly') {
 								e.currentTarget.style.color = GlassmorphismTheme.text.high;
@@ -157,7 +157,6 @@ export function PricingStep({
 					</button>
 
 					<button
-						onClick={handleToggleBilling}
 						className='px-4 py-2 rounded-md text-sm font-medium transition-all'
 						style={{
 							backgroundColor:
@@ -171,6 +170,7 @@ export function PricingStep({
 							transitionDuration: '200ms',
 							transitionTimingFunction: 'ease',
 						}}
+						onClick={handleToggleBilling}
 						onMouseEnter={(e) => {
 							if (billingCycle !== 'yearly') {
 								e.currentTarget.style.color = GlassmorphismTheme.text.high;
@@ -197,16 +197,11 @@ export function PricingStep({
 			<div className='grid grid-cols-2 gap-8 max-w-4xl mx-auto flex-1 mb-8'>
 				{pricingTiers.map((tier, index) => (
 					<motion.div
-						key={tier.id}
 						layout
-						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
-						transition={{
-							duration: 0.3,
-							ease: [0.165, 0.84, 0.44, 1],
-							delay: (index + 1) * 0.1,
-						}}
 						className='relative rounded-xl cursor-pointer'
+						initial={{ opacity: 0, y: 20 }}
+						key={tier.id}
 						style={{
 							border: `1px solid ${
 								selectedPlan === tier.id
@@ -222,6 +217,11 @@ export function PricingStep({
 								tier.recommended && selectedPlan === tier.id
 									? GlassmorphismTheme.effects.selectedShadow
 									: 'none',
+						}}
+						transition={{
+							duration: 0.3,
+							ease: [0.165, 0.84, 0.44, 1],
+							delay: (index + 1) * 0.1,
 						}}
 						onClick={() => handleSelectPlan(tier.id)}
 						onMouseEnter={(e) => {
@@ -297,7 +297,7 @@ export function PricingStep({
 
 							<div className='space-y-3 flex-1'>
 								{tier.features.map((feature) => (
-									<div key={feature} className='flex items-start gap-2'>
+									<div className='flex items-start gap-2' key={feature}>
 										<Check
 											className='w-4 h-4 mt-0.5 flex-shrink-0'
 											style={{
@@ -315,7 +315,7 @@ export function PricingStep({
 								))}
 
 								{tier.limitations?.map((limitation) => (
-									<div key={limitation} className='flex items-start gap-2'>
+									<div className='flex items-start gap-2' key={limitation}>
 										<X
 											className='w-4 h-4 mt-0.5 flex-shrink-0'
 											style={{ color: GlassmorphismTheme.text.disabled }}
@@ -377,24 +377,24 @@ export function PricingStep({
 
 			{/* Navigation */}
 			<motion.div
-				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
+				className='flex items-center justify-between'
+				initial={{ opacity: 0, y: 20 }}
 				transition={{
 					duration: 0.3,
 					ease: [0.165, 0.84, 0.44, 1],
 					delay: 0.4,
 				}}
-				className='flex items-center justify-between'
 			>
 				<Button
-					onClick={onBack}
-					variant='ghost'
 					className='transition-colors'
+					variant='ghost'
 					style={{
 						color: GlassmorphismTheme.text.medium,
 						transitionDuration: '200ms',
 						transitionTimingFunction: 'ease',
 					}}
+					onClick={onBack}
 					onMouseEnter={(e) => {
 						e.currentTarget.style.color = GlassmorphismTheme.text.high;
 					}}
@@ -406,10 +406,9 @@ export function PricingStep({
 				</Button>
 
 				<Button
-					onClick={handleContinue}
-					size='lg'
-					disabled={!selectedPlan}
 					className='font-semibold px-8 transition-all'
+					disabled={!selectedPlan}
+					size='lg'
 					style={{
 						backgroundColor: selectedPlan
 							? 'rgba(52, 211, 153, 0.8)'
@@ -421,6 +420,7 @@ export function PricingStep({
 						transitionTimingFunction: 'ease',
 						opacity: selectedPlan ? 1 : 0.5,
 					}}
+					onClick={handleContinue}
 					onMouseEnter={(e) => {
 						if (selectedPlan) {
 							e.currentTarget.style.backgroundColor = 'rgba(52, 211, 153, 1)';

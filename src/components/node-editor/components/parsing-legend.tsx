@@ -114,19 +114,19 @@ export const ParsingLegend: React.FC<ParsingLegendProps> = memo(
 
 		return (
 			<motion.div
+				animate={{ height: 'auto' }}
 				className={cn(theme.legend.container, className)}
 				initial={false}
-				animate={{ height: 'auto' }}
 			>
 				{/* Header */}
 				<div
+					aria-controls='parsing-legend-content'
+					aria-expanded={!isCollapsed}
+					aria-label='Toggle parsing syntax help'
 					className={theme.legend.header}
-					onClick={onToggleCollapse}
 					role='button'
 					tabIndex={0}
-					aria-expanded={!isCollapsed}
-					aria-controls='parsing-legend-content'
-					aria-label='Toggle parsing syntax help'
+					onClick={onToggleCollapse}
 					onKeyDown={(e) => {
 						if (e.key === 'Enter' || e.key === ' ') {
 							e.preventDefault();
@@ -138,16 +138,16 @@ export const ParsingLegend: React.FC<ParsingLegendProps> = memo(
 
 					<div className={theme.legend.toggle.button}>
 						<kbd
-							className={theme.legend.toggle.shortcut}
 							aria-label='Keyboard shortcut'
+							className={theme.legend.toggle.shortcut}
 						>
 							Ctrl + /
 						</kbd>
 
 						<motion.div
-							variants={chevronVariants}
 							animate={isCollapsed ? 'closed' : 'open'}
 							transition={{ duration: 0.2 }}
+							variants={chevronVariants}
 						>
 							<ChevronDown className={theme.legend.toggle.icon} />
 						</motion.div>
@@ -158,25 +158,25 @@ export const ParsingLegend: React.FC<ParsingLegendProps> = memo(
 				<AnimatePresence initial={false}>
 					{!isCollapsed && (
 						<motion.div
-							id='parsing-legend-content'
-							variants={contentVariants}
-							initial='closed'
 							animate='open'
-							exit='closed'
 							className='overflow-hidden'
+							exit='closed'
+							id='parsing-legend-content'
+							initial='closed'
+							variants={contentVariants}
 						>
 							<div
+								aria-label='Parsing syntax patterns'
 								className={theme.legend.content}
 								role='region'
-								aria-label='Parsing syntax patterns'
 							>
 								{/* Display patterns by category */}
 								{(['metadata', 'formatting', 'structure', 'content'] as const)
 									.filter((category) => groupedPatterns[category]?.length > 0)
 									.map((category) => (
 										<PatternCategoryComponent
-											key={category}
 											category={category}
+											key={category}
 											patterns={groupedPatterns[category]}
 											onPatternClick={onPatternClick}
 										/>

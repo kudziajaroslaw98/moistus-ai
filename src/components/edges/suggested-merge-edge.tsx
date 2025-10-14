@@ -45,8 +45,8 @@ export const SuggestedMergeEdge = (props: SuggestedMergeEdgeProps) => {
 		<>
 			<BaseEdge
 				id={id}
-				path={edgePath}
 				markerEnd={props.markerEnd}
+				path={edgePath}
 				style={{ strokeWidth: 2 }}
 				className={cn(
 					'!stroke-purple-600 opacity-80 [stroke-dasharray:5_5] transition-all duration-200',
@@ -57,15 +57,15 @@ export const SuggestedMergeEdge = (props: SuggestedMergeEdgeProps) => {
 
 			<EdgeLabelRenderer>
 				<div
+					className='nodrag nopan absolute z-10 pointer-events-auto '
 					style={{
 						transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
 					}}
-					className='nodrag nopan absolute z-10 pointer-events-auto '
 				>
 					<motion.div
-						initial={{ opacity: 0, scale: 0.8 }}
 						animate={{ opacity: 1, scale: 1 }}
 						className='flex flex-col items-center gap-2'
+						initial={{ opacity: 0, scale: 0.8 }}
 					>
 						<div className='flex items-center gap-2 flex-col p-2 rounded-md border border-zinc-700 bg-zinc-800/80  shadow-lg'>
 							<div className='flex cursor-default items-center gap-1.5  text-xs font-medium text-zinc-100'>
@@ -89,17 +89,17 @@ export const SuggestedMergeEdge = (props: SuggestedMergeEdgeProps) => {
 
 						<div className='flex items-center gap-1.5'>
 							<Button
-								onClick={handleAccept}
-								size='icon'
 								className='h-6 w-6 bg-green-600 hover:bg-green-500'
+								size='icon'
+								onClick={handleAccept}
 							>
 								<Check className='h-4 w-4' />
 							</Button>
 
 							<Button
-								onClick={handleReject}
-								size='icon'
 								className='h-6 w-6 bg-red-600 hover:bg-red-500'
+								size='icon'
+								onClick={handleReject}
 							>
 								<X className='h-4 w-4' />
 							</Button>

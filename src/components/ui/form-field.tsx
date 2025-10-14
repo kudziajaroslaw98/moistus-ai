@@ -21,7 +21,7 @@ export function FormField({
 }: FormFieldProps) {
 	return (
 		<div className={cn('space-y-2 relative', className)}>
-			<Label htmlFor={id} className='flex flex-col gap-2'>
+			<Label className='flex flex-col gap-2' htmlFor={id}>
 				<div className='flex items-center justify-between'>
 					<span>{label}</span>
 

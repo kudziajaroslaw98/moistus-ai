@@ -49,8 +49,8 @@ export const ZoomSelect = forwardRef<
 
 	return (
 		<Panel
-			ref={ref}
 			className={cn('flex bg-primary-foreground text-foreground', className)}
+			ref={ref}
 			{...props}
 		>
 			<Select onValueChange={handleZoomChange}>

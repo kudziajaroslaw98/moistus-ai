@@ -96,15 +96,15 @@ export function ReferenceSearchModal() {
 	return (
 		<Modal
 			isOpen={popoverOpen.referenceSearch}
-			onClose={onClose}
 			title='Reference a Node'
+			onClose={onClose}
 		>
 			<div className='space-y-4'>
 				<Input
+					autoFocus
 					placeholder='Search for a node...'
 					value={query}
 					onChange={(e) => setQuery(e.target.value)}
-					autoFocus
 				/>
 
 				<div className='max-h-80 overflow-y-auto space-y-2'>
@@ -112,9 +112,9 @@ export function ReferenceSearchModal() {
 
 					{results.map((res) => (
 						<div
+							className='p-2 rounded hover:bg-zinc-800 cursor-pointer'
 							key={res.node_id}
 							onClick={() => handleSelect(res)}
-							className='p-2 rounded hover:bg-zinc-800 cursor-pointer'
 						>
 							<p className='text-zinc-100'>{res.node_content}</p>
 

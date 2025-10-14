@@ -35,9 +35,9 @@ function JoinPageContent() {
 		<div className='min-h-screen bg-zinc-950 flex items-center justify-center p-4'>
 			<div className='w-full max-w-md'>
 				<JoinRoom
-					onJoinSuccessCallback={handleJoinSuccess}
-					onError={handleJoinError}
 					roomCode={roomCode || undefined}
+					onError={handleJoinError}
+					onJoinSuccessCallback={handleJoinSuccess}
 				/>
 			</div>
 		</div>

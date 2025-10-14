@@ -255,9 +255,9 @@ export default function NotificationsSettingsPage() {
 				</div>
 
 				<Button
-					onClick={handleSave}
-					disabled={isSaving}
 					className='bg-sky-600 hover:bg-sky-700'
+					disabled={isSaving}
+					onClick={handleSave}
 				>
 					<Save className='size-4 mr-2' />
 

@@ -255,18 +255,18 @@ export function SharePanel({
 		<AnimatePresence>
 			{isOpen && (
 				<motion.div
-					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
-					exit={{ opacity: 0 }}
 					className='fixed inset-0 z-50 bg-black/50'
+					exit={{ opacity: 0 }}
+					initial={{ opacity: 0 }}
 					onClick={handleOnClose}
 				>
 					<motion.div
-						initial={{ x: '100%' }}
 						animate={{ x: 0 }}
-						exit={{ x: '100%' }}
-						transition={{ type: 'spring', damping: 20 }}
 						className='absolute right-0 h-full w-full max-w-md bg-background shadow-xl'
+						exit={{ x: '100%' }}
+						initial={{ x: '100%' }}
+						transition={{ type: 'spring', damping: 20 }}
 						onClick={(e) => e.stopPropagation()}
 					>
 						<div className='flex h-full flex-col'>
@@ -283,10 +283,10 @@ export function SharePanel({
 								</div>
 
 								<Button
-									variant='ghost'
-									size='icon'
-									onClick={handleOnClose}
 									className='shrink-0'
+									size='icon'
+									variant='ghost'
+									onClick={handleOnClose}
 								>
 									<X className='h-4 w-4' />
 								</Button>
@@ -294,9 +294,9 @@ export function SharePanel({
 
 							{/* Tabs */}
 							<Tabs
+								className='flex-1 max-h-screen overflow-y-auto'
 								value={activeTab}
 								onValueChange={(v) => setActiveTab(v as any)}
-								className='flex-1 max-h-screen overflow-y-auto'
 							>
 								<TabsList className='grid w-full grid-cols-2'>
 									<TabsTrigger value='room-code'>
@@ -317,17 +317,17 @@ export function SharePanel({
 								</TabsList>
 
 								{/* Room Code Tab */}
-								<TabsContent value='room-code' className='flex-1 p-4'>
+								<TabsContent className='flex-1 p-4' value='room-code'>
 									<div className='space-y-6'>
 										{mapRoomCodes.length > 0 ? (
 											<div className='space-y-4'>
 												{mapRoomCodes.map((token) => (
 													<RoomCodeDisplay
+														showQRCode
 														key={token.id}
 														token={token}
 														onRefresh={handleRefreshCode}
 														onRevoke={handleRevokeCode}
-														showQRCode
 													/>
 												))}
 											</div>
@@ -397,9 +397,9 @@ export function SharePanel({
 												<Label>Maximum Users</Label>
 
 												<Input
-													type='number'
-													min={1}
 													max={100}
+													min={1}
+													type='number'
 													value={roomCodeSettings.maxUsers}
 													onChange={(e) =>
 														setRoomCodeSettings((prev) => ({
@@ -441,9 +441,9 @@ export function SharePanel({
 											</div>
 
 											<Button
-												onClick={handleGenerateRoomCode}
-												disabled={isGeneratingCode}
 												className='w-full'
+												disabled={isGeneratingCode}
+												onClick={handleGenerateRoomCode}
 											>
 												{isGeneratingCode ? (
 													<>
@@ -546,7 +546,7 @@ export function SharePanel({
 								</TabsContent> */}
 
 								{/* Manage Access Tab */}
-								<TabsContent value='manage' className='flex-1'>
+								<TabsContent className='flex-1' value='manage'>
 									<ScrollArea className='h-full'>
 										<div className='space-y-4 p-4'>
 											{!currentShares || currentShares.length === 0 ? (
@@ -565,8 +565,8 @@ export function SharePanel({
 												<div className='space-y-2'>
 													{currentShares.map((share) => (
 														<div
-															key={share.id}
 															className='flex items-center justify-between rounded-lg border p-3'
+															key={share.id}
 														>
 															<div className='flex items-center gap-3'>
 																<Avatar className='h-8 w-8'>
@@ -592,6 +592,7 @@ export function SharePanel({
 
 															<div className='flex items-center gap-2'>
 																<Select
+																	disabled={share.share.role === 'owner'}
 																	value={share.share.role}
 																	onValueChange={(v) =>
 																		handleUpdateShareRole(
@@ -599,7 +600,6 @@ export function SharePanel({
 																			v as ShareRole
 																		)
 																	}
-																	disabled={share.share.role === 'owner'}
 																>
 																	<SelectTrigger className='h-8 w-[110px]'>
 																		<SelectValue />
@@ -619,7 +619,7 @@ export function SharePanel({
 																		</SelectItem>
 
 																		{share.share.role === 'owner' && (
-																			<SelectItem value='owner' disabled>
+																			<SelectItem disabled value='owner'>
 																				Owner
 																			</SelectItem>
 																		)}
@@ -628,12 +628,12 @@ export function SharePanel({
 
 																{share.share.role !== 'owner' && (
 																	<Button
-																		variant='ghost'
+																		className='h-8 w-8'
 																		size='icon'
+																		variant='ghost'
 																		onClick={() =>
 																			handleDeleteShare(share.share.id)
 																		}
-																		className='h-8 w-8'
 																	>
 																		<Trash2 className='h-4 w-4' />
 																	</Button>

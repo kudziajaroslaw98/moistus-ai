@@ -227,22 +227,22 @@ export const StructuredInput: React.FC<StructuredInputProps> = ({
 			case 'text':
 			case 'url':
 				return (
-					<div key={field.name} className={theme.field}>
-						<label htmlFor={field.name} className={theme.label}>
+					<div className={theme.field} key={field.name}>
+						<label className={theme.label} htmlFor={field.name}>
 							{field.label || field.name}
 
 							{field.required && <span className='text-red-400 ml-1'>*</span>}
 						</label>
 
 						<input
-							ref={isFirstField ? firstInputRef : undefined}
+							className={cn(theme.input, 'w-full px-3 py-2 text-sm rounded-md')}
+							disabled={isCreating}
 							id={field.name}
+							placeholder={field.placeholder}
+							ref={isFirstField ? firstInputRef : undefined}
 							type={field.type === 'url' ? 'url' : 'text'}
 							value={value || ''}
 							onChange={(e) => handleFieldChange(field.name, e.target.value)}
-							placeholder={field.placeholder}
-							className={cn(theme.input, 'w-full px-3 py-2 text-sm rounded-md')}
-							disabled={isCreating}
 						/>
 
 						{error && <div className={theme.error}>{error}</div>}
@@ -252,25 +252,25 @@ export const StructuredInput: React.FC<StructuredInputProps> = ({
 			case 'textarea':
 			case 'code':
 				return (
-					<div key={field.name} className={theme.field}>
-						<label htmlFor={field.name} className={theme.label}>
+					<div className={theme.field} key={field.name}>
+						<label className={theme.label} htmlFor={field.name}>
 							{field.label || field.name}
 
 							{field.required && <span className='text-red-400 ml-1'>*</span>}
 						</label>
 
 						<textarea
+							disabled={isCreating}
 							id={field.name}
-							value={value || ''}
-							onChange={(e) => handleFieldChange(field.name, e.target.value)}
 							placeholder={field.placeholder}
 							rows={field.type === 'code' ? 10 : 4}
+							value={value || ''}
 							className={cn(
 								theme.input,
 								'w-full px-3 py-2 text-sm rounded-md resize-none',
 								field.type === 'code' && 'font-mono'
 							)}
-							disabled={isCreating}
+							onChange={(e) => handleFieldChange(field.name, e.target.value)}
 						/>
 
 						{error && <div className={theme.error}>{error}</div>}
@@ -279,22 +279,22 @@ export const StructuredInput: React.FC<StructuredInputProps> = ({
 
 			case 'select':
 				return (
-					<div key={field.name} className={theme.field}>
-						<label htmlFor={field.name} className={theme.label}>
+					<div className={theme.field} key={field.name}>
+						<label className={theme.label} htmlFor={field.name}>
 							{field.label || field.name}
 
 							{field.required && <span className='text-red-400 ml-1'>*</span>}
 						</label>
 
 						<select
+							disabled={isCreating}
 							id={field.name}
 							value={value || ''}
-							onChange={(e) => handleFieldChange(field.name, e.target.value)}
 							className={cn(
 								theme.select,
 								'w-full px-3 py-2 text-sm rounded-md'
 							)}
-							disabled={isCreating}
+							onChange={(e) => handleFieldChange(field.name, e.target.value)}
 						>
 							<option value=''>
 								Select {field.label?.toLowerCase() || 'option'}
@@ -313,8 +313,8 @@ export const StructuredInput: React.FC<StructuredInputProps> = ({
 
 			case 'date':
 				return (
-					<div key={field.name} className={theme.field}>
-						<label htmlFor={field.name} className={theme.label}>
+					<div className={theme.field} key={field.name}>
+						<label className={theme.label} htmlFor={field.name}>
 							{field.label || field.name}
 
 							{field.required && <span className='text-red-400 ml-1'>*</span>}
@@ -322,15 +322,15 @@ export const StructuredInput: React.FC<StructuredInputProps> = ({
 
 						<div className='relative'>
 							<input
+								disabled={isCreating}
 								id={field.name}
 								type='date'
 								value={value || ''}
-								onChange={(e) => handleFieldChange(field.name, e.target.value)}
 								className={cn(
 									theme.input,
 									'w-full px-3 py-2 text-sm rounded-md pr-10'
 								)}
-								disabled={isCreating}
+								onChange={(e) => handleFieldChange(field.name, e.target.value)}
 							/>
 
 							<Calendar className='absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none' />
@@ -342,16 +342,16 @@ export const StructuredInput: React.FC<StructuredInputProps> = ({
 
 			case 'checkbox':
 				return (
-					<div key={field.name} className={theme.field}>
+					<div className={theme.field} key={field.name}>
 						<label className='flex items-center gap-2 cursor-pointer'>
 							<input
-								type='checkbox'
 								checked={value || false}
+								className='w-4 h-4 bg-zinc-900 border-zinc-700 text-teal-500 rounded focus:ring-teal-500'
+								disabled={isCreating}
+								type='checkbox'
 								onChange={(e) =>
 									handleFieldChange(field.name, e.target.checked)
 								}
-								className='w-4 h-4 bg-zinc-900 border-zinc-700 text-teal-500 rounded focus:ring-teal-500'
-								disabled={isCreating}
 							/>
 
 							<span className='text-sm text-zinc-300'>
@@ -367,7 +367,7 @@ export const StructuredInput: React.FC<StructuredInputProps> = ({
 
 			case 'array':
 				return (
-					<div key={field.name} className={theme.field}>
+					<div className={theme.field} key={field.name}>
 						<label className={theme.label}>
 							{field.label || field.name}
 
@@ -376,59 +376,59 @@ export const StructuredInput: React.FC<StructuredInputProps> = ({
 
 						<div className={theme.arrayContainer}>
 							{(value || []).map((item: any, idx: number) => (
-								<div key={idx} className={theme.arrayItem}>
+								<div className={theme.arrayItem} key={idx}>
 									{field.itemType === 'task' ? (
 										<>
 											<input
-												type='checkbox'
 												checked={item.isComplete || false}
+												className='w-4 h-4 bg-zinc-900 border-zinc-700 text-teal-500 rounded'
+												disabled={isCreating}
+												type='checkbox'
 												onChange={(e) =>
 													handleArrayItemChange(field.name, idx, {
 														...item,
 														isComplete: e.target.checked,
 													})
 												}
-												className='w-4 h-4 bg-zinc-900 border-zinc-700 text-teal-500 rounded'
-												disabled={isCreating}
 											/>
 
 											<input
+												disabled={isCreating}
+												placeholder='Task description'
 												type='text'
 												value={item.text || ''}
+												className={cn(
+													theme.input,
+													'flex-1 px-3 py-1.5 text-sm rounded-md'
+												)}
 												onChange={(e) =>
 													handleArrayItemChange(field.name, idx, {
 														...item,
 														text: e.target.value,
 													})
 												}
-												placeholder='Task description'
-												className={cn(
-													theme.input,
-													'flex-1 px-3 py-1.5 text-sm rounded-md'
-												)}
-												disabled={isCreating}
 											/>
 										</>
 									) : (
 										<input
+											disabled={isCreating}
+											placeholder={`Item ${idx + 1}`}
 											type='text'
 											value={item || ''}
-											onChange={(e) =>
-												handleArrayItemChange(field.name, idx, e.target.value)
-											}
-											placeholder={`Item ${idx + 1}`}
 											className={cn(
 												theme.input,
 												'flex-1 px-3 py-1.5 text-sm rounded-md'
 											)}
-											disabled={isCreating}
+											onChange={(e) =>
+												handleArrayItemChange(field.name, idx, e.target.value)
+											}
 										/>
 									)}
 
 									<button
-										onClick={() => handleArrayRemove(field.name, idx)}
 										className={theme.removeButton}
 										disabled={isCreating}
+										onClick={() => handleArrayRemove(field.name, idx)}
 									>
 										<Trash2 className='w-4 h-4' />
 									</button>
@@ -436,9 +436,9 @@ export const StructuredInput: React.FC<StructuredInputProps> = ({
 							))}
 
 							<button
-								onClick={() => handleArrayAdd(field.name, field.itemType)}
 								className={theme.addButton}
 								disabled={isCreating}
+								onClick={() => handleArrayAdd(field.name, field.itemType)}
 							>
 								<Plus className='w-3 h-3' />
 
@@ -464,24 +464,24 @@ export const StructuredInput: React.FC<StructuredInputProps> = ({
 			</div>
 
 			<form
-				onSubmit={(e) => {
-					e.preventDefault();
-					handleSubmit();
-				}}
 				onKeyDown={(e) => {
 					if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
 						e.preventDefault();
 						handleSubmit();
 					}
 				}}
+				onSubmit={(e) => {
+					e.preventDefault();
+					handleSubmit();
+				}}
 			>
 				{command.fields?.map((field, index) => renderField(field, index))}
 
 				{errors._form && (
 					<motion.div
+						animate={{ opacity: 1 }}
 						className='text-xs text-red-400 mb-4'
 						initial={{ opacity: 0 }}
-						animate={{ opacity: 1 }}
 					>
 						{errors._form}
 					</motion.div>
@@ -493,8 +493,8 @@ export const StructuredInput: React.FC<StructuredInputProps> = ({
 					</span>
 
 					<button
-						type='submit'
 						disabled={isCreating}
+						type='submit'
 						className={cn(
 							'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
 							'bg-teal-600 hover:bg-teal-700 text-white',

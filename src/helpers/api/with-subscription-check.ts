@@ -1,7 +1,9 @@
+import { TypedNodeMetadata } from '@/components/nodes/core/types';
+import { SubscriptionPlan } from '@/store/slices/subscription-slice';
 import { SupabaseClient, User } from '@supabase/supabase-js';
 
 export interface SubscriptionValidation {
-	subscription: any;
+	subscription: SubscriptionPlan;
 	plan: {
 		name: string;
 		displayName: string;
@@ -16,6 +18,7 @@ export interface SubscriptionValidation {
 
 export class SubscriptionError extends Error {
 	code: string;
+
 	constructor(message: string, code: string) {
 		super(message);
 		this.code = code;
@@ -152,7 +155,7 @@ export async function trackAIUsage(
 	user: User,
 	supabase: SupabaseClient,
 	feature: string,
-	metadata: Record<string, any> = {}
+	metadata: Record<string, TypedNodeMetadata<'defaultNode'>> = {}
 ): Promise<void> {
 	await supabase.from('ai_usage_log').insert({
 		user_id: user.id,

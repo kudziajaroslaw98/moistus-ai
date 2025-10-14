@@ -223,13 +223,13 @@ export function ContextMenu({ aiActions }: ContextMenuProps) {
 	// Stagger animation for menu items
 	const itemVariants = {
 		hidden: { opacity: 0 },
-		visible: (custom: number) => ({
+		visible: {
 			opacity: 1,
 			transition: {
 				duration: 0.2,
 				ease: [0.215, 0.61, 0.355, 1] as const, // ease-out-cubic
 			},
-		}),
+		},
 	};
 
 	// Render menu sections with inlined logic
@@ -242,16 +242,16 @@ export function ContextMenu({ aiActions }: ContextMenuProps) {
 
 			if (visibleItems.length === 0) return null;
 
-			const sectionContent = visibleItems.map((item, itemInSectionIndex) => {
+			const sectionContent = visibleItems.map((item) => {
 				// If the item has a custom component, render it directly
 				if (item.customComponent) {
 					return (
 						<motion.div
-							key={item.id}
-							custom={itemIndex++}
-							variants={itemVariants}
-							initial='hidden'
 							animate='visible'
+							custom={itemIndex++}
+							initial='hidden'
+							key={item.id}
+							variants={itemVariants}
 						>
 							{item.customComponent}
 						</motion.div>
@@ -261,23 +261,23 @@ export function ContextMenu({ aiActions }: ContextMenuProps) {
 				// Otherwise render the standard menu item
 				return (
 					<motion.div
-						key={item.id}
-						custom={itemIndex}
-						variants={itemVariants}
-						initial='hidden'
 						animate='visible'
+						custom={itemIndex}
+						initial='hidden'
+						key={item.id}
+						variants={itemVariants}
 					>
 						<ContextMenuItem
+							disabled={item.disabled}
+							icon={item.icon}
+							label={item.label}
+							loading={item.loading}
+							shortcut={item.shortcut}
+							variant={item.variant}
 							ref={(el) => {
 								menuItemsRef.current[itemIndex++] = el;
 							}}
-							icon={item.icon}
-							label={item.label}
 							onClick={item.onClick}
-							disabled={item.disabled}
-							variant={item.variant}
-							shortcut={item.shortcut}
-							loading={item.loading}
 						/>
 					</motion.div>
 				);
@@ -330,7 +330,18 @@ export function ContextMenu({ aiActions }: ContextMenuProps) {
 			<AnimatePresence>
 				{popoverOpen.contextMenu && (
 					<motion.div
+						animate='visible'
+						aria-label='Context menu'
+						aria-orientation='vertical'
+						className='flex min-w-[250px] flex-col gap-1 rounded-sm px-2 py-2 focus:outline-none motion-reduce:transform-none'
+						exit='exit'
+						initial='hidden'
 						ref={refs.setFloating}
+						role='menu'
+						variants={menuVariants}
+						aria-activedescendant={
+							activeIndex !== null ? `menu-item-${activeIndex}` : undefined
+						}
 						style={{
 							...floatingStyles,
 							zIndex: 9999,
@@ -339,17 +350,6 @@ export function ContextMenu({ aiActions }: ContextMenuProps) {
 							backdropFilter: GlassmorphismTheme.effects.glassmorphism,
 							boxShadow: `0 0 0 1px ${GlassmorphismTheme.borders.default}`,
 						}}
-						variants={menuVariants}
-						initial='hidden'
-						animate='visible'
-						exit='exit'
-						className='flex min-w-[250px] flex-col gap-1 rounded-sm px-2 py-2 focus:outline-none motion-reduce:transform-none'
-						role='menu'
-						aria-label='Context menu'
-						aria-orientation='vertical'
-						aria-activedescendant={
-							activeIndex !== null ? `menu-item-${activeIndex}` : undefined
-						}
 						{...getFloatingProps()}
 					>
 						{renderSections()}

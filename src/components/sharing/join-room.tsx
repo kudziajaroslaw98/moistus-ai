@@ -158,10 +158,10 @@ export function JoinRoom({
 
 	return (
 		<motion.div
-			initial={{ opacity: 0, y: 20 }}
 			animate={{ opacity: 1, y: 0 }}
-			transition={{ duration: 0.3 }}
 			className={`w-full max-w-md mx-auto ${className}`}
+			initial={{ opacity: 0, y: 20 }}
+			transition={{ duration: 0.3 }}
 		>
 			<div className='bg-zinc-900 border border-zinc-800 rounded-lg p-6 shadow-xl'>
 				<div className='text-center mb-6'>
@@ -172,25 +172,25 @@ export function JoinRoom({
 					</p>
 				</div>
 
-				<form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
+				<form className='space-y-4' onSubmit={handleSubmit(onSubmit)}>
 					{/* Room Code Input */}
 					<div>
 						<label
-							htmlFor='roomCode'
 							className='block text-sm font-medium text-zinc-300 mb-2'
+							htmlFor='roomCode'
 						>
 							Room Code
 						</label>
 
 						<input
-							id='roomCode'
-							type='text'
-							placeholder='ABC-123'
 							className='w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-center text-lg font-mono tracking-wider'
+							disabled={isJoining}
+							id='roomCode'
+							maxLength={7}
+							placeholder='ABC-123'
+							type='text'
 							value={formatRoomCode(watchedRoomCode || '')}
 							onChange={handleRoomCodeChange}
-							maxLength={7}
-							disabled={isJoining}
 						/>
 
 						{errors.roomCode && (
@@ -203,17 +203,17 @@ export function JoinRoom({
 					{/* Display Name Input */}
 					<div>
 						<label
-							htmlFor='displayName'
 							className='block text-sm font-medium text-zinc-300 mb-2'
+							htmlFor='displayName'
 						>
 							Your Display Name
 						</label>
 
 						<input
-							id='displayName'
-							type='text'
-							placeholder='Enter your name'
 							className='w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent'
+							id='displayName'
+							placeholder='Enter your name'
+							type='text'
 							{...register('displayName')}
 							disabled={isJoining}
 						/>
@@ -228,9 +228,9 @@ export function JoinRoom({
 					{/* Error Display */}
 					{joinError && (
 						<motion.div
-							initial={{ opacity: 0, scale: 0.95 }}
 							animate={{ opacity: 1, scale: 1 }}
 							className='p-3 bg-red-900/50 border border-red-700 rounded-md'
+							initial={{ opacity: 0, scale: 0.95 }}
 						>
 							<p className='text-red-300 text-sm'>{joinError}</p>
 						</motion.div>
@@ -238,17 +238,17 @@ export function JoinRoom({
 
 					{/* Submit Button */}
 					<motion.button
-						type='submit'
-						disabled={isJoining}
 						className='w-full bg-teal-600 hover:bg-teal-700 disabled:bg-zinc-700 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-md transition-colors duration-200 flex items-center justify-center'
+						disabled={isJoining}
+						type='submit'
 						whileHover={{ scale: isJoining ? 1 : 1.02 }}
 						whileTap={{ scale: isJoining ? 1 : 0.98 }}
 					>
 						{isJoining ? (
 							<>
 								<motion.div
-									className='w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2'
 									animate={{ rotate: 360 }}
+									className='w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2'
 									transition={{ duration: 1, repeat: Infinity, ease: 'linear' as const }}
 								/>
 								Joining Room...

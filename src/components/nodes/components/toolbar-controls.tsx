@@ -63,12 +63,12 @@ export const TextFormattingControls = ({
 			{/* Bold Toggle */}
 			{onBoldToggle && (
 				<Toggle
-					size="sm"
-					variant="outline"
-					pressed={isBold}
-					onPressedChange={onBoldToggle}
 					className="h-8 w-8 p-0"
+					pressed={isBold}
+					size="sm"
 					style={isBold ? activeStyle : controlStyle}
+					variant="outline"
+					onPressedChange={onBoldToggle}
 				>
 					<Bold className="w-4 h-4" />
 				</Toggle>
@@ -77,12 +77,12 @@ export const TextFormattingControls = ({
 			{/* Italic Toggle */}
 			{onItalicToggle && (
 				<Toggle
-					size="sm"
-					variant="outline"
-					pressed={isItalic}
-					onPressedChange={onItalicToggle}
 					className="h-8 w-8 p-0"
+					pressed={isItalic}
+					size="sm"
 					style={isItalic ? activeStyle : controlStyle}
+					variant="outline"
+					onPressedChange={onItalicToggle}
 				>
 					<Italic className="w-4 h-4" />
 				</Toggle>
@@ -97,26 +97,26 @@ export const TextFormattingControls = ({
 					/>
 					
 					<ToggleGroup
-						type="single"
+						className="gap-0"
 						size="sm"
-						variant="outline"
+						type="single"
 						value={alignment}
+						variant="outline"
 						onValueChange={(value) => {
 							if (value) onAlignmentChange(value as 'left' | 'center' | 'right');
 						}}
-						className="gap-0"
 					>
 						<ToggleGroupItem 
-							value="left" 
-							className="h-8 w-8 p-0 rounded-r-none"
+							className="h-8 w-8 p-0 rounded-r-none" 
 							style={alignment === 'left' ? activeStyle : controlStyle}
+							value="left"
 						>
 							<AlignLeft className="w-4 h-4" />
 						</ToggleGroupItem>
 						
 						<ToggleGroupItem 
-							value="center" 
-							className="h-8 w-8 p-0 rounded-none border-x-0"
+							className="h-8 w-8 p-0 rounded-none border-x-0" 
+							value="center"
 							style={{
 								...alignment === 'center' ? activeStyle : controlStyle,
 								borderLeft: 'none',
@@ -127,9 +127,9 @@ export const TextFormattingControls = ({
 						</ToggleGroupItem>
 						
 						<ToggleGroupItem 
-							value="right" 
-							className="h-8 w-8 p-0 rounded-l-none"
+							className="h-8 w-8 p-0 rounded-l-none" 
 							style={alignment === 'right' ? activeStyle : controlStyle}
+							value="right"
 						>
 							<AlignRight className="w-4 h-4" />
 						</ToggleGroupItem>
@@ -174,12 +174,12 @@ export const NodeActionControls = ({
 		<>
 			{showEdit && onEdit && (
 				<Button
-					size="sm"
-					variant="outline"
-					onClick={onEdit}
 					className="h-8 w-8 p-0"
+					size="sm"
 					style={buttonStyle}
 					title="Edit content"
+					variant="outline"
+					onClick={onEdit}
 				>
 					<Edit3 className="w-4 h-4" />
 				</Button>
@@ -187,12 +187,12 @@ export const NodeActionControls = ({
 
 			{showCopy && onCopy && (
 				<Button
-					size="sm"
-					variant="outline"
-					onClick={onCopy}
 					className="h-8 w-8 p-0"
+					size="sm"
 					style={buttonStyle}
 					title="Copy node"
+					variant="outline"
+					onClick={onCopy}
 				>
 					<Copy className="w-4 h-4" />
 				</Button>
@@ -200,16 +200,16 @@ export const NodeActionControls = ({
 
 			{showDelete && onDelete && (
 				<Button
-					size="sm"
-					variant="outline"
-					onClick={onDelete}
 					className="h-8 w-8 p-0"
+					size="sm"
+					title="Delete node"
+					variant="outline"
 					style={{
 						...buttonStyle,
 						color: 'rgba(239, 68, 68, 0.87)',
 						borderColor: 'rgba(239, 68, 68, 0.3)',
 					}}
-					title="Delete node"
+					onClick={onDelete}
 				>
 					<Trash2 className="w-4 h-4" />
 				</Button>
@@ -217,12 +217,12 @@ export const NodeActionControls = ({
 
 			{showSettings && onSettings && (
 				<Button
-					size="sm"
-					variant="outline"
-					onClick={onSettings}
 					className="h-8 w-8 p-0"
+					size="sm"
 					style={buttonStyle}
 					title="Node settings"
+					variant="outline"
+					onClick={onSettings}
 				>
 					<Settings className="w-4 h-4" />
 				</Button>
@@ -249,16 +249,16 @@ export const ExpandControl = ({
 
 	return (
 		<Button
-			size="sm"
-			variant="outline"
-			onClick={() => onToggle(!isExpanded)}
 			className="h-8 w-8 p-0"
+			size="sm"
+			title={isExpanded ? 'Collapse' : 'Expand'}
+			variant="outline"
 			style={{
 				backgroundColor: 'transparent',
 				border: `1px solid ${theme.borders.hover}`,
 				color: theme.text.medium,
 			}}
-			title={isExpanded ? 'Collapse' : 'Expand'}
+			onClick={() => onToggle(!isExpanded)}
 		>
 			{isExpanded ? (
 				<Minimize2 className="w-4 h-4" />
@@ -281,10 +281,10 @@ export const CopyFeedback = ({ copied }: CopyFeedbackProps) => {
 		<AnimatePresence mode="wait">
 			{copied ? (
 				<motion.div
-					key="check"
-					initial={{ scale: 0, rotate: -180 }}
 					animate={{ scale: 1, rotate: 0 }}
 					exit={{ scale: 0, rotate: 180 }}
+					initial={{ scale: 0, rotate: -180 }}
+					key="check"
 					transition={{ type: 'spring', stiffness: 400 }}
 					style={{
 						width: '16px',
@@ -309,10 +309,10 @@ export const CopyFeedback = ({ copied }: CopyFeedbackProps) => {
 				</motion.div>
 			) : (
 				<motion.div
-					key="copy"
-					initial={{ scale: 0, rotate: 180 }}
 					animate={{ scale: 1, rotate: 0 }}
 					exit={{ scale: 0, rotate: -180 }}
+					initial={{ scale: 0, rotate: 180 }}
+					key="copy"
 					transition={{ type: 'spring', stiffness: 400 }}
 				>
 					<Copy className="w-4 h-4" style={{ color: theme.text.medium }} />

@@ -200,11 +200,11 @@ const CommandPaletteComponent = ({
 		>
 			<AnimatePresence>
 				<motion.div
-					variants={containerVariants}
-					initial='hidden'
 					animate='visible'
-					exit='exit'
 					className='absolute w-[420px] max-w-[90vw] bg-zinc-950/95 backdrop-blur-md border border-zinc-800/80 rounded-xl shadow-2xl ring-1 ring-teal-500/10 overflow-hidden'
+					exit='exit'
+					initial='hidden'
+					variants={containerVariants}
 					style={{
 						left: Math.min(commandPalette.position.x, window.innerWidth - 440),
 						top: Math.min(
@@ -240,16 +240,16 @@ const CommandPaletteComponent = ({
 						<Command.Input
 							ref={inputRef}
 							value={commandPalette.searchQuery}
-							onValueChange={handleSearchChange}
+							className={cn(
+								theme.input,
+								'w-full px-4 py-3.5 text-sm outline-0 bg-zinc-950/80'
+							)}
 							placeholder={
 								commandPalette.trigger === '$'
 									? 'Search node types...'
 									: 'Search commands...'
 							}
-							className={cn(
-								theme.input,
-								'w-full px-4 py-3.5 text-sm outline-0 bg-zinc-950/80'
-							)}
+							onValueChange={handleSearchChange}
 						/>
 
 						<Command.List className='max-h-[400px] overflow-y-auto p-1'>
@@ -304,9 +304,8 @@ const CommandPaletteComponent = ({
 																whileTap={{ scale: 0.995 }}
 															>
 																<Command.Item
-																	value={command.trigger}
-																	onSelect={handleExecuteCommand}
 																	data-selected={isSelected}
+																	value={command.trigger}
 																	className={cn(
 																		theme.item,
 																		'group flex items-center gap-3 mb-1.5 shadow-sm',
@@ -318,6 +317,7 @@ const CommandPaletteComponent = ({
 																			itemsRef.current[globalIndex] = el;
 																		}
 																	}}
+																	onSelect={handleExecuteCommand}
 																>
 																	<Icon
 																		className={cn(

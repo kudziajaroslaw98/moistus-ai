@@ -18,6 +18,7 @@ import { nodeTypeCommands } from './definitions/node-type-commands';
  */
 export class CommandRegistry {
 	private static instance: CommandRegistry;
+
 	private commands = new Map<string, Command>();
 
 	private constructor() {

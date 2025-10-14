@@ -40,6 +40,11 @@ export const PatternItem: React.FC<PatternItemProps> = memo(
 
 		return (
 			<motion.div
+				aria-label={`${pattern.pattern}: ${pattern.description}`}
+				role={isInteractive ? 'button' : 'listitem'}
+				tabIndex={isInteractive ? 0 : -1}
+				whileHover={isInteractive ? { scale: 1.01 } : {}}
+				whileTap={isInteractive ? { scale: 0.99 } : {}}
 				className={cn(
 					theme.pattern.item,
 					isInteractive && 'cursor-pointer',
@@ -47,14 +52,9 @@ export const PatternItem: React.FC<PatternItemProps> = memo(
 					isClicked && theme.pattern.clicked
 				)}
 				onClick={handleClick}
+				onKeyDown={handleKeyDown}
 				onMouseEnter={() => setIsHovered(true)}
 				onMouseLeave={() => setIsHovered(false)}
-				whileHover={isInteractive ? { scale: 1.01 } : {}}
-				whileTap={isInteractive ? { scale: 0.99 } : {}}
-				role={isInteractive ? 'button' : 'listitem'}
-				tabIndex={isInteractive ? 0 : -1}
-				onKeyDown={handleKeyDown}
-				aria-label={`${pattern.pattern}: ${pattern.description}`}
 			>
 				<div className='flex items-center gap-2 flex-shrink-0'>
 					{pattern.icon && <pattern.icon className={theme.pattern.icon} />}
@@ -78,10 +78,10 @@ export const PatternItem: React.FC<PatternItemProps> = memo(
 
 				{isInteractive && isHovered && (
 					<motion.span
-						className='text-xs text-zinc-500 hidden sm:block'
-						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
+						className='text-xs text-zinc-500 hidden sm:block'
 						exit={{ opacity: 0 }}
+						initial={{ opacity: 0 }}
 					>
 						Click to insert
 					</motion.span>

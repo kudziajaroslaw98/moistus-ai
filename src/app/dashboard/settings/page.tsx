@@ -259,9 +259,9 @@ export default function GeneralSettingsPage() {
 				</div>
 
 				<Button
-					onClick={handleSave}
-					disabled={isSaving}
 					className='bg-sky-600 hover:bg-sky-700'
+					disabled={isSaving}
+					onClick={handleSave}
 				>
 					<Save className='size-4 mr-2' />
 
@@ -278,18 +278,18 @@ export default function GeneralSettingsPage() {
 				</CardHeader>
 
 				<CardContent className='flex items-center gap-6'>
-					<UserAvatar user={userProfile} size='2xl' />
+					<UserAvatar size='2xl' user={userProfile} />
 
 					<div className='space-y-2'>
-						<Button variant='outline' className='relative'>
+						<Button className='relative' variant='outline'>
 							<Camera className='size-4 mr-2' />
 
 							Upload Photo
 
 							<input
-								type='file'
 								accept='image/*'
 								className='absolute inset-0 opacity-0 cursor-pointer'
+								type='file'
 								onChange={(e) => {
 									const file = e.target.files?.[0];
 									if (file) handleAvatarUpload(file);
@@ -318,10 +318,10 @@ export default function GeneralSettingsPage() {
 							<Label htmlFor='full_name'>Full Name</Label>
 
 							<Input
+								className='bg-zinc-800 border-zinc-600'
 								id='full_name'
 								value={formData.full_name}
 								onChange={(e) => updateFormData('full_name', e.target.value)}
-								className='bg-zinc-800 border-zinc-600'
 							/>
 						</div>
 
@@ -329,10 +329,10 @@ export default function GeneralSettingsPage() {
 							<Label htmlFor='display_name'>Display Name</Label>
 
 							<Input
+								className='bg-zinc-800 border-zinc-600'
 								id='display_name'
 								value={formData.display_name}
 								onChange={(e) => updateFormData('display_name', e.target.value)}
-								className='bg-zinc-800 border-zinc-600'
 							/>
 						</div>
 					</div>
@@ -341,12 +341,12 @@ export default function GeneralSettingsPage() {
 						<Label htmlFor='bio'>Bio</Label>
 
 						<Textarea
+							className='bg-zinc-800 border-zinc-600'
 							id='bio'
+							placeholder='Tell us about yourself...'
+							rows={3}
 							value={formData.bio}
 							onChange={(e) => updateFormData('bio', e.target.value)}
-							className='bg-zinc-800 border-zinc-600'
-							rows={3}
-							placeholder='Tell us about yourself...'
 						/>
 					</div>
 
@@ -358,11 +358,11 @@ export default function GeneralSettingsPage() {
 							</Label>
 
 							<Input
+								className='bg-zinc-800 border-zinc-600'
 								id='location'
+								placeholder='City, Country'
 								value={formData.location}
 								onChange={(e) => updateFormData('location', e.target.value)}
-								className='bg-zinc-800 border-zinc-600'
-								placeholder='City, Country'
 							/>
 						</div>
 
@@ -373,12 +373,12 @@ export default function GeneralSettingsPage() {
 							</Label>
 
 							<Input
+								className='bg-zinc-800 border-zinc-600'
 								id='website'
+								placeholder='https://example.com'
 								type='url'
 								value={formData.website}
 								onChange={(e) => updateFormData('website', e.target.value)}
-								className='bg-zinc-800 border-zinc-600'
-								placeholder='https://example.com'
 							/>
 						</div>
 					</div>
@@ -391,10 +391,10 @@ export default function GeneralSettingsPage() {
 							</Label>
 
 							<Input
+								className='bg-zinc-800 border-zinc-600'
 								id='company'
 								value={formData.company}
 								onChange={(e) => updateFormData('company', e.target.value)}
-								className='bg-zinc-800 border-zinc-600'
 							/>
 						</div>
 
@@ -405,10 +405,10 @@ export default function GeneralSettingsPage() {
 							</Label>
 
 							<Input
+								className='bg-zinc-800 border-zinc-600'
 								id='job_title'
 								value={formData.job_title}
 								onChange={(e) => updateFormData('job_title', e.target.value)}
-								className='bg-zinc-800 border-zinc-600'
 							/>
 						</div>
 					</div>
@@ -426,14 +426,14 @@ export default function GeneralSettingsPage() {
 				<CardContent className='space-y-4'>
 					<div className='flex gap-2'>
 						<Input
+							className='bg-zinc-800 border-zinc-600'
+							placeholder='Add a skill...'
 							value={newSkill}
 							onChange={(e) => setNewSkill(e.target.value)}
 							onKeyPress={(e) => e.key === 'Enter' && addSkill()}
-							placeholder='Add a skill...'
-							className='bg-zinc-800 border-zinc-600'
 						/>
 
-						<Button onClick={addSkill} size='sm'>
+						<Button size='sm' onClick={addSkill}>
 							<Plus className='size-4' />
 						</Button>
 					</div>
@@ -441,15 +441,15 @@ export default function GeneralSettingsPage() {
 					<div className='flex flex-wrap gap-2'>
 						{formData.skills.map((skill) => (
 							<Badge
+								className='bg-sky-900/50 text-sky-200 hover:bg-sky-800 border border-sky-700/50'
 								key={skill}
 								variant='secondary'
-								className='bg-sky-900/50 text-sky-200 hover:bg-sky-800 border border-sky-700/50'
 							>
 								{skill}
 
 								<button
-									onClick={() => removeSkill(skill)}
 									className='ml-1 hover:text-red-400'
+									onClick={() => removeSkill(skill)}
 								>
 									<X className='size-3' />
 								</button>
@@ -479,7 +479,7 @@ export default function GeneralSettingsPage() {
 							</p>
 						</div>
 
-						<Button variant='outline' size='sm'>
+						<Button size='sm' variant='outline'>
 							Change Password
 						</Button>
 					</div>
@@ -493,7 +493,7 @@ export default function GeneralSettingsPage() {
 							</p>
 						</div>
 
-						<Button variant='outline' size='sm'>
+						<Button size='sm' variant='outline'>
 							Enable 2FA
 						</Button>
 					</div>
@@ -509,7 +509,7 @@ export default function GeneralSettingsPage() {
 							</p>
 						</div>
 
-						<Button variant='destructive' size='sm'>
+						<Button size='sm' variant='destructive'>
 							<Trash2 className='size-4 mr-2' />
 							Delete
 						</Button>

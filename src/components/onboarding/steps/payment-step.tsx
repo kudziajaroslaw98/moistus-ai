@@ -180,7 +180,7 @@ function PaymentForm({
 			: 0);
 
 	return (
-		<form onSubmit={handleSubmit} className='space-y-6'>
+		<form className='space-y-6' onSubmit={handleSubmit}>
 			<div>
 				<Label
 					htmlFor='email'
@@ -190,19 +190,19 @@ function PaymentForm({
 				</Label>
 
 				<Input
+					required
+					className='mt-1'
+					disabled={isProcessing || succeeded}
 					id='email'
+					placeholder='you@example.com'
 					type='email'
 					value={email}
-					onChange={(e) => setEmail(e.target.value)}
-					placeholder='you@example.com'
-					required
-					disabled={isProcessing || succeeded}
-					className='mt-1'
 					style={{
 						backgroundColor: GlassmorphismTheme.elevation[2],
 						borderColor: GlassmorphismTheme.borders.default,
 						color: GlassmorphismTheme.text.high,
 					}}
+					onChange={(e) => setEmail(e.target.value)}
 				/>
 			</div>
 
@@ -230,14 +230,14 @@ function PaymentForm({
 
 			{error && (
 				<motion.div
-					initial={{ opacity: 0, y: -10 }}
 					animate={{ opacity: 1, y: 0 }}
+					className='flex items-center gap-2 text-sm'
+					initial={{ opacity: 0, y: -10 }}
+					style={{ color: GlassmorphismTheme.indicators.status.error }}
 					transition={{
 						duration: 0.2,
 						ease: [0.165, 0.84, 0.44, 1], // ease-out-quart
 					}}
-					className='flex items-center gap-2 text-sm'
-					style={{ color: GlassmorphismTheme.indicators.status.error }}
 				>
 					<AlertCircle className='w-4 h-4' />
 
@@ -247,13 +247,13 @@ function PaymentForm({
 
 			{succeeded && (
 				<motion.div
-					initial={{ opacity: 0, scale: 0.8 }}
 					animate={{ opacity: 1, scale: 1 }}
+					className='text-center py-4'
+					initial={{ opacity: 0, scale: 0.8 }}
 					transition={{
 						duration: 0.3,
 						ease: [0.165, 0.84, 0.44, 1],
 					}}
-					className='text-center py-4'
 				>
 					<div
 						className='w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3'
@@ -262,8 +262,8 @@ function PaymentForm({
 						}}
 					>
 						<motion.div
-							initial={{ scale: 0 }}
 							animate={{ scale: 1 }}
+							initial={{ scale: 0 }}
 							transition={{
 								delay: 0.2,
 								duration: 0.3,
@@ -288,16 +288,16 @@ function PaymentForm({
 
 			<div className='flex items-center justify-between pt-4'>
 				<Button
-					type='button'
-					onClick={onBack}
-					variant='ghost'
-					disabled={isProcessing || succeeded}
 					className='transition-colors'
+					disabled={isProcessing || succeeded}
+					type='button'
+					variant='ghost'
 					style={{
 						color: GlassmorphismTheme.text.medium,
 						transitionDuration: '200ms',
 						transitionTimingFunction: 'ease',
 					}}
+					onClick={onBack}
 					onMouseEnter={(e) => {
 						if (!isProcessing && !succeeded) {
 							e.currentTarget.style.color = GlassmorphismTheme.text.high;
@@ -313,9 +313,9 @@ function PaymentForm({
 				</Button>
 
 				<Button
-					type='submit'
-					disabled={!stripe || isProcessing || succeeded}
 					className='font-semibold px-8 transition-all'
+					disabled={!stripe || isProcessing || succeeded}
+					type='submit'
 					style={{
 						backgroundColor: 'rgba(52, 211, 153, 0.8)',
 						color: GlassmorphismTheme.elevation[0],
@@ -341,8 +341,8 @@ function PaymentForm({
 						<span className='flex items-center gap-2'>
 							<motion.div
 								animate={{ rotate: 360 }}
-								transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
 								className='w-4 h-4 rounded-full'
+								transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
 								style={{
 									border: `2px solid ${GlassmorphismTheme.elevation[0]}`,
 									borderTopColor: 'transparent',
@@ -364,13 +364,13 @@ export function PaymentStep(props: PaymentStepProps) {
 		<div className='flex flex-col h-full p-12'>
 			{/* Header */}
 			<motion.div
-				initial={{ opacity: 0, y: -20 }}
 				animate={{ opacity: 1, y: 0 }}
+				className='text-center mb-8'
+				initial={{ opacity: 0, y: -20 }}
 				transition={{
 					duration: 0.3,
 					ease: [0.165, 0.84, 0.44, 1], // ease-out-quart
 				}}
-				className='text-center mb-8'
 			>
 				<h2
 					className='text-3xl font-bold mb-4'
@@ -389,14 +389,14 @@ export function PaymentStep(props: PaymentStepProps) {
 
 			{/* Payment Form */}
 			<motion.div
-				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
+				className='max-w-md mx-auto w-full flex-1'
+				initial={{ opacity: 0, y: 20 }}
 				transition={{
 					duration: 0.3,
 					ease: [0.165, 0.84, 0.44, 1],
 					delay: 0.1,
 				}}
-				className='max-w-md mx-auto w-full flex-1'
 			>
 				<Elements stripe={stripePromise}>
 					<PaymentForm {...props} />
@@ -405,11 +405,11 @@ export function PaymentStep(props: PaymentStepProps) {
 
 			{/* Security badges */}
 			<motion.div
-				initial={{ opacity: 0 }}
 				animate={{ opacity: 1 }}
-				transition={{ duration: 0.3, delay: 0.3 }}
 				className='flex items-center justify-center gap-4 text-sm mt-8'
+				initial={{ opacity: 0 }}
 				style={{ color: GlassmorphismTheme.text.disabled }}
+				transition={{ duration: 0.3, delay: 0.3 }}
 			>
 				<div className='flex items-center gap-2'>
 					<Lock className='w-4 h-4' />

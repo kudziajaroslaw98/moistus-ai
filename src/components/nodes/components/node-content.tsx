@@ -55,11 +55,11 @@ export const NodeContent = forwardRef<HTMLDivElement, NodeContentProps>(
 		// Empty state component
 		const EmptyState = () => (
 			<div
+				style={{ minHeight: '60px' }}
 				className={cn(
 					'flex items-center justify-center py-4',
 					center && 'text-center'
 				)}
-				style={{ minHeight: '60px' }}
 			>
 				<span
 					style={{
@@ -78,9 +78,9 @@ export const NodeContent = forwardRef<HTMLDivElement, NodeContentProps>(
 			<div className='flex items-center justify-center py-4'>
 				<div className='flex items-center gap-2'>
 					<motion.div
+						animate={{ scaleY: [1, 0.5, 1] }}
 						className='w-1 h-4 rounded-full'
 						style={{ backgroundColor: theme.text.disabled }}
-						animate={{ scaleY: [1, 0.5, 1] }}
 						transition={{
 							repeat: Infinity,
 							duration: 0.8,
@@ -89,9 +89,9 @@ export const NodeContent = forwardRef<HTMLDivElement, NodeContentProps>(
 					/>
 
 					<motion.div
+						animate={{ scaleY: [1, 0.5, 1] }}
 						className='w-1 h-4 rounded-full'
 						style={{ backgroundColor: theme.text.disabled }}
-						animate={{ scaleY: [1, 0.5, 1] }}
 						transition={{
 							repeat: Infinity,
 							duration: 0.8,
@@ -100,9 +100,9 @@ export const NodeContent = forwardRef<HTMLDivElement, NodeContentProps>(
 					/>
 
 					<motion.div
+						animate={{ scaleY: [1, 0.5, 1] }}
 						className='w-1 h-4 rounded-full'
 						style={{ backgroundColor: theme.text.disabled }}
-						animate={{ scaleY: [1, 0.5, 1] }}
 						transition={{
 							repeat: Infinity,
 							duration: 0.8,
@@ -126,6 +126,7 @@ export const NodeContent = forwardRef<HTMLDivElement, NodeContentProps>(
 		return (
 			<div
 				ref={ref}
+				style={contentStyles}
 				className={cn(
 					'relative w-full h-full',
 					padding && 'p-1',
@@ -133,39 +134,38 @@ export const NodeContent = forwardRef<HTMLDivElement, NodeContentProps>(
 					scrollable && 'overflow-hidden',
 					className
 				)}
-				style={contentStyles}
 				onClick={onClick}
 				onDoubleClick={onDoubleClick}
 			>
 				<AnimatePresence mode='wait'>
 					{isLoading ? (
 						<motion.div
-							key='loading'
-							initial={{ opacity: 0 }}
 							animate={{ opacity: 1 }}
 							exit={{ opacity: 0 }}
+							initial={{ opacity: 0 }}
+							key='loading'
 							transition={{ duration: 0.2 }}
 						>
 							<LoadingState />
 						</motion.div>
 					) : isEmpty ? (
 						<motion.div
-							key='empty'
-							initial={{ opacity: 0 }}
 							animate={{ opacity: 1 }}
 							exit={{ opacity: 0 }}
+							initial={{ opacity: 0 }}
+							key='empty'
 							transition={{ duration: 0.2 }}
 						>
 							<EmptyState />
 						</motion.div>
 					) : (
 						<motion.div
-							key='content'
-							initial={{ opacity: 0, y: 5 }}
 							animate={{ opacity: 1, y: 0 }}
-							exit={{ opacity: 0, y: -5 }}
-							transition={{ duration: 0.2 }}
 							className='w-full h-full'
+							exit={{ opacity: 0, y: -5 }}
+							initial={{ opacity: 0, y: 5 }}
+							key='content'
+							transition={{ duration: 0.2 }}
 						>
 							{children}
 						</motion.div>
@@ -197,9 +197,9 @@ export const TextContent = ({
 
 	return (
 		<NodeContent
-			isEmpty={!content}
-			emptyMessage={placeholder}
 			className={className}
+			emptyMessage={placeholder}
+			isEmpty={!content}
 		>
 			<div
 				className='w-full break-words'
@@ -234,11 +234,11 @@ export const CodeContent = ({
 }: CodeContentProps) => {
 	return (
 		<NodeContent
-			isEmpty={!code}
 			emptyMessage={placeholder}
-			scrollable={true}
+			isEmpty={!code}
 			maxHeight={maxHeight}
 			padding={false}
+			scrollable={true}
 		>
 			<pre
 				className='p-3 rounded-md overflow-x-auto'
@@ -278,16 +278,16 @@ export const MediaContent = ({
 
 	return (
 		<NodeContent
+			center={isEmpty || error || isLoading}
+			emptyMessage={error ? 'Failed to load media' : placeholder}
 			isEmpty={isEmpty || error}
 			isLoading={isLoading}
-			emptyMessage={error ? 'Failed to load media' : placeholder}
 			loadingMessage='Loading media...'
 			padding={false}
-			center={isEmpty || error || isLoading}
 		>
 			{children ||
 				(src && (
-					<img src={src} alt={alt} className='w-full h-full object-cover' />
+					<img alt={alt} className='w-full h-full object-cover' src={src} />
 				))}
 		</NodeContent>
 	);

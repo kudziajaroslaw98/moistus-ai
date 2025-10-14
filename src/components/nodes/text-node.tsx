@@ -71,40 +71,42 @@ const TextNodeComponent = (props: TextNodeProps) => {
 				isVisible={props.selected && selectedNodes.length === 1}
 			>
 				<TextFormattingControls
-					isBold={fontWeight === 600}
-					onBoldToggle={(bold) => handleNodeChange({ fontWeight: bold ? 600 : 400 })}
-					isItalic={fontStyle === 'italic'}
-					onItalicToggle={(italic) => handleNodeChange({ fontStyle: italic ? 'italic' : 'normal' })}
 					alignment={textAlign}
+					isBold={fontWeight === 600}
+					isItalic={fontStyle === 'italic'}
 					onAlignmentChange={(alignment) => handleNodeChange({ textAlign: alignment })}
+					onBoldToggle={(bold) => handleNodeChange({ fontWeight: bold ? 600 : 400 })}
+					onItalicToggle={(italic) => handleNodeChange({ fontStyle: italic ? 'italic' : 'normal' })}
 				/>
 			</SharedNodeToolbar>
 
 			<BaseNodeWrapper
 				{...props}
-				nodeType='Text'
-				nodeIcon={<Type className='w-3 h-3' />}
-				nodeClassName='text-node min-w-fit min-h-fit h-full'
-			hideNodeType
-
-				includePadding={true}
+				hideNodeType
 				elevation={1}
+				includePadding={true}
+			nodeClassName='text-node min-w-fit min-h-fit h-full'
+
+				nodeIcon={<Type className='w-3 h-3' />}
+				nodeType='Text'
 			>
 				<div
+					style={textStyle}
 					className={cn(
 						'flex items-center min-h-8 w-full',
 						textAlign === 'center' && 'justify-center',
 						textAlign === 'right' && 'justify-end',
 						textAlign === 'left' && 'justify-start'
 					)}
-					style={textStyle}
 				>
 					{content || (
-						<span style={{ 
+						<span
+style={{ 
 							color: GlassmorphismTheme.text.disabled, 
 							fontStyle: 'italic',
 							fontSize: '14px' 
-						}}>
+						}}
+						>
 							{props.selected ? 'Double click to edit...' : 'Text...'}
 						</span>
 					)}

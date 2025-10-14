@@ -43,9 +43,9 @@ const UserAvatarComponent = ({
 
 	const avatarContent = user?.avatar_url ? (
 		<img
-			src={user.avatar_url}
 			alt={displayName || 'User avatar'}
 			className='size-full object-cover'
+			src={user.avatar_url}
 			onError={(e) => {
 				// Fallback to initials if image fails to load
 				const target = e.target as HTMLImageElement;
@@ -60,6 +60,7 @@ const UserAvatarComponent = ({
 
 	const avatar = (
 		<div
+			title={showTooltip ? displayName || 'Unknown User' : undefined}
 			className={cn(
 				'rounded-full overflow-hidden border-2 border-zinc-600 bg-zinc-800 flex items-center justify-center transition-all cursor-pointer hover:border-zinc-500',
 				sizeClasses[size],
@@ -67,7 +68,6 @@ const UserAvatarComponent = ({
 				className
 			)}
 			onClick={onClick}
-			title={showTooltip ? displayName || 'Unknown User' : undefined}
 		>
 			{avatarContent}
 

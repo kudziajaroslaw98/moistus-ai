@@ -101,8 +101,8 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
 							const isActive = isItemActive(item.href);
 							return (
 								<Link
-									key={item.id}
 									href={item.href}
+									key={item.id}
 									className={cn(
 										'flex items-start gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 group',
 										isActive

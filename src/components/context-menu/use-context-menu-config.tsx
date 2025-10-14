@@ -1,6 +1,10 @@
 'use client';
+import type { NodeEditorState } from '@/store/app-state';
 import useAppStore from '@/store/mind-map-store';
-import { PathType } from '@/types/path-types';
+import type { AppNode } from '@/types/app-node';
+import type { EdgeData } from '@/types/edge-data';
+import type { PathType } from '@/types/path-types';
+import { type Edge, type Node, type ReactFlowInstance } from '@xyflow/react';
 import {
 	ChevronDown,
 	ChevronRight,
@@ -15,14 +19,12 @@ import {
 	Play,
 	Plus,
 	Trash,
-	Ungroup
+	Ungroup,
 } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
-import { type Node, type Edge } from '@xyflow/react';
 import { useShallow } from 'zustand/shallow';
 import { EdgeStyleSelector } from './edge-style-selector';
-import { MenuSection } from './types';
-import type { EdgeData } from '@/types/edge-data';
+import type { MenuSection } from './types';
 
 interface UseContextMenuConfigProps {
 	aiActions: {
@@ -37,13 +39,13 @@ interface UseContextMenuConfigProps {
 // ============================================================================
 
 interface BuildNodeMenuParams {
-	clickedNode: Node;
+	clickedNode: AppNode;
 	hasChildren: boolean;
-	openNodeEditor: any;
-	toggleNodeCollapse: any;
-	removeNodesFromGroup: any;
-	deleteNodes: any;
-	reactFlowInstance: any;
+	openNodeEditor: (params: Partial<NodeEditorState>) => void;
+	toggleNodeCollapse: (nodeId: string) => void;
+	removeNodesFromGroup: (nodeIds: string[]) => void;
+	deleteNodes: (nodes: AppNode[]) => void;
+	reactFlowInstance: ReactFlowInstance;
 	onClose: () => void;
 }
 
@@ -174,22 +176,22 @@ function buildEdgeMenu(params: BuildEdgeMenuParams): MenuSection[] {
 					customComponent: (
 						<EdgeStyleSelector
 							edge={clickedEdge}
-							onPathTypeChange={(pathType: PathType) => {
-								updateEdge({
-									edgeId: clickedEdge.id,
-									data: {
-										metadata: {
-											pathType,
-										},
-									},
-								});
-							}}
 							onColorChange={(color: string | undefined) => {
 								updateEdge({
 									edgeId: clickedEdge.id,
 									data: {
 										style: {
 											stroke: color,
+										},
+									},
+								});
+							}}
+							onPathTypeChange={(pathType: PathType) => {
+								updateEdge({
+									edgeId: clickedEdge.id,
+									data: {
+										metadata: {
+											pathType,
 										},
 									},
 								});

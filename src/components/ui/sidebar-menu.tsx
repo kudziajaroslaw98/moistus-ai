@@ -24,8 +24,8 @@ export const SidebarDropdownMenu = ({
 }: SidebarDropdownMenuProps) => {
 	return (
 		<DropdownMenuContent
-			className={cn('w-48 bg-zinc-900 border-zinc-700 shadow-xl', className)}
 			align={align}
+			className={cn('w-48 bg-zinc-900 border-zinc-700 shadow-xl', className)}
 			sideOffset={sideOffset}
 			{...props}
 		>
@@ -55,6 +55,7 @@ export const MenuItem = ({
 }: MenuItemProps) => {
 	return (
 		<DropdownMenuItem
+			disabled={disabled}
 			className={cn(
 				'flex items-center gap-3 px-3 py-2 cursor-pointer',
 				variant === 'danger' &&
@@ -65,7 +66,6 @@ export const MenuItem = ({
 				className
 			)}
 			onClick={disabled ? undefined : onClick}
-			disabled={disabled}
 		>
 			{/* Icon */}
 			{icon && (

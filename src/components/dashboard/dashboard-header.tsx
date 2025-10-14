@@ -84,7 +84,7 @@ export function DashboardHeader({ className = '' }: DashboardHeaderProps) {
 		} finally {
 			setIsLoading(false);
 		}
-	}, [supabase]);
+	}, []);
 
 	// Handle logout
 	const handleLogout = useCallback(async () => {
@@ -112,7 +112,7 @@ export function DashboardHeader({ className = '' }: DashboardHeaderProps) {
 		} finally {
 			setIsLoggingOut(false);
 		}
-	}, [isLoggingOut, supabase, router]);
+	}, [isLoggingOut, router]);
 
 	// Load user profile on mount
 	useEffect(() => {
@@ -184,12 +184,12 @@ export function DashboardHeader({ className = '' }: DashboardHeaderProps) {
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button
-								variant='ghost'
 								className='flex items-center space-x-3 hover:bg-zinc-800 focus:bg-zinc-800'
 								disabled={isLoggingOut}
+								variant='ghost'
 							>
 								{/* User Avatar */}
-								<UserAvatar user={user} size='md' className='h-8 w-8' />
+								<UserAvatar className='h-8 w-8' size='md' user={user} />
 
 								{/* User Info */}
 								<div className='hidden sm:block text-left'>
@@ -262,8 +262,8 @@ export function DashboardHeader({ className = '' }: DashboardHeaderProps) {
 							{/* Logout */}
 							<DropdownMenuItem
 								className='cursor-pointer text-red-400 focus:bg-zinc-800 focus:text-red-300'
-								onClick={handleLogout}
 								disabled={isLoggingOut}
+								onClick={handleLogout}
 							>
 								<LogOut className='mr-2 h-4 w-4' />
 

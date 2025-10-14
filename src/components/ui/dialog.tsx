@@ -81,8 +81,8 @@ function DialogContent({
 
 				{showCloseButton && (
 					<DialogPrimitive.Close
-						data-slot='dialog-close'
 						className="ring-offset-background cursor-pointer focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+						data-slot='dialog-close'
 					>
 						<XIcon />
 
@@ -97,8 +97,8 @@ function DialogContent({
 function DialogHeader({ className, ...props }: ComponentProps<'div'>) {
 	return (
 		<div
-			data-slot='dialog-header'
 			className={cn('flex flex-col gap-2 text-center sm:text-left', className)}
+			data-slot='dialog-header'
 			{...props}
 		/>
 	);
@@ -123,8 +123,8 @@ function DialogTitle({
 }: ComponentProps<typeof DialogPrimitive.Title>) {
 	return (
 		<DialogPrimitive.Title
-			data-slot='dialog-title'
 			className={cn('text-lg leading-none font-semibold', className)}
+			data-slot='dialog-title'
 			{...props}
 		/>
 	);
@@ -136,8 +136,8 @@ function DialogDescription({
 }: ComponentProps<typeof DialogPrimitive.Description>) {
 	return (
 		<DialogPrimitive.Description
-			data-slot='dialog-description'
 			className={cn('text-muted-foreground text-sm', className)}
+			data-slot='dialog-description'
 			{...props}
 		/>
 	);

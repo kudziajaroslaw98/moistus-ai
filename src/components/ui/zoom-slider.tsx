@@ -65,8 +65,8 @@ const ZoomSliderComponent = forwardRef<
 
 	return (
 		<Panel
-			ref={ref}
 			position={position}
+			ref={ref}
 			className={cn(
 				'flex gap-1 rounded-md bg-zinc-800/80 px-2 text-zinc-200 h-8 backdrop-blur-sm border border-zinc-700 shadow-md',
 				className
@@ -74,46 +74,46 @@ const ZoomSliderComponent = forwardRef<
 			{...props}
 		>
 			<Button
-				variant='ghost'
 				size='icon'
-				onClick={handleZoomOut}
 				title='Zoom out'
+				variant='ghost'
+				onClick={handleZoomOut}
 			>
 				<Minus className='size-4' />
 			</Button>
 
 			<Slider
 				className='w-[140px]'
-				value={[zoom]}
-				min={minZoom}
 				max={maxZoom}
+				min={minZoom}
 				step={0.01}
+				value={[zoom]}
 				onValueChange={handleZoomChange}
 			/>
 
 			<Button
-				variant='ghost'
 				size='icon'
-				onClick={handleZoomIn}
 				title='Zoom in'
+				variant='ghost'
+				onClick={handleZoomIn}
 			>
 				<Plus className='size-4' />
 			</Button>
 
 			<Button
 				className='min-w-16 tabular-nums text-xs'
+				title='Reset zoom to 100%'
 				variant='ghost'
 				onClick={handleResetZoom}
-				title='Reset zoom to 100%'
 			>
 				{(100 * zoom).toFixed(0)}%
 			</Button>
 
 			<Button
-				variant='ghost'
 				size='icon'
-				onClick={handleFitView}
 				title='Fit view'
+				variant='ghost'
+				onClick={handleFitView}
 			>
 				<Maximize className='size-4' />
 			</Button>

@@ -115,9 +115,9 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 		return (
 			<div className='min-h-screen bg-zinc-950 flex items-center justify-center p-4'>
 				<motion.div
-					initial={{ opacity: 0, scale: 0.9 }}
 					animate={{ opacity: 1, scale: 1 }}
 					className='text-center space-y-4'
+					initial={{ opacity: 0, scale: 0.9 }}
 				>
 					<div className='relative'>
 						<Brain className='h-12 w-12 text-teal-400 mx-auto animate-pulse' />
@@ -136,8 +136,8 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 					<div className='flex items-center justify-center gap-1'>
 						{[0, 1, 2].map((i) => (
 							<motion.div
-								key={i}
 								className='w-2 h-2 bg-teal-400 rounded-full'
+								key={i}
 								animate={{
 									scale: [1, 1.2, 1],
 									opacity: [0.5, 1, 0.5],
@@ -159,9 +159,9 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 		return (
 			<div className='min-h-screen bg-zinc-950 flex items-center justify-center p-4'>
 				<motion.div
-					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
 					className='w-full max-w-md'
+					initial={{ opacity: 0, y: 20 }}
 				>
 					<Card className='border-red-900/50 bg-zinc-900'>
 						<CardHeader className='text-center'>
@@ -187,17 +187,17 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 
 							<div className='space-y-2'>
 								<Button
-									onClick={() => router.push('/dashboard')}
 									className='w-full'
 									variant='outline'
+									onClick={() => router.push('/dashboard')}
 								>
 									Go to Dashboard
 								</Button>
 
 								<Button
-									onClick={() => window.location.reload()}
-									variant='ghost'
 									className='w-full'
+									variant='ghost'
+									onClick={() => window.location.reload()}
 								>
 									Try Again
 								</Button>
@@ -213,21 +213,21 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 		return (
 			<div className='min-h-screen bg-zinc-950 flex items-center justify-center p-4'>
 				<motion.div
-					initial={{ opacity: 0, scale: 0.9 }}
 					animate={{ opacity: 1, scale: 1 }}
 					className='text-center space-y-6'
+					initial={{ opacity: 0, scale: 0.9 }}
 				>
 					<motion.div
-						initial={{ scale: 0 }}
 						animate={{ scale: 1 }}
-						transition={{ delay: 0.2 }}
 						className='relative'
+						initial={{ scale: 0 }}
+						transition={{ delay: 0.2 }}
 					>
 						<CheckCircle className='h-16 w-16 text-green-400 mx-auto' />
 
 						<motion.div
-							className='absolute inset-0 bg-green-400/20 rounded-full'
 							animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+							className='absolute inset-0 bg-green-400/20 rounded-full'
 							transition={{ duration: 2, repeat: Infinity }}
 						/>
 					</motion.div>
@@ -245,8 +245,8 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 					<div className='flex items-center justify-center gap-1'>
 						{[0, 1, 2].map((i) => (
 							<motion.div
-								key={i}
 								className='w-2 h-2 bg-green-400 rounded-full'
+								key={i}
 								animate={{
 									scale: [1, 1.2, 1],
 									opacity: [0.5, 1, 0.5],
@@ -268,9 +268,9 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 		return (
 			<div className='min-h-screen bg-zinc-950 flex items-center justify-center p-4'>
 				<motion.div
-					initial={{ opacity: 0, scale: 0.9 }}
 					animate={{ opacity: 1, scale: 1 }}
 					className='text-center space-y-4'
+					initial={{ opacity: 0, scale: 0.9 }}
 				>
 					<RefreshCw className='h-12 w-12 text-teal-400 mx-auto animate-spin' />
 
@@ -292,9 +292,9 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 	return (
 		<div className='min-h-screen bg-zinc-950 flex items-center justify-center p-4'>
 			<motion.div
-				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
 				className='w-full max-w-md'
+				initial={{ opacity: 0, y: 20 }}
 			>
 				<Card className='border-zinc-800 bg-zinc-900'>
 					<CardHeader className='text-center'>
@@ -333,19 +333,19 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 						<div className='space-y-4'>
 							<div className='space-y-2'>
 								<Label
-									htmlFor='display_name'
 									className='text-sm font-medium text-zinc-300'
+									htmlFor='display_name'
 								>
 									Your Display Name
 								</Label>
 
 								<Input
+									autoComplete='name'
+									className='bg-zinc-800 border-zinc-700'
 									id='display_name'
 									placeholder='Enter your name'
 									value={displayName}
 									onChange={(e) => setDisplayName(e.target.value)}
-									className='bg-zinc-800 border-zinc-700'
-									autoComplete='name'
 									onKeyDown={(e) => {
 										if (e.key === 'Enter' && displayName.trim()) {
 											handleJoinRoom();
@@ -360,9 +360,9 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 						</div>
 
 						<Button
-							onClick={handleJoinRoom}
-							disabled={isJoiningRoom || !displayName.trim()}
 							className='w-full'
+							disabled={isJoiningRoom || !displayName.trim()}
+							onClick={handleJoinRoom}
 						>
 							{isJoiningRoom ? (
 								<>
@@ -385,10 +385,10 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 							</p>
 
 							<Button
-								variant='ghost'
-								size='sm'
-								onClick={() => router.push('/auth/signin')}
 								className='text-xs'
+								size='sm'
+								variant='ghost'
+								onClick={() => router.push('/auth/signin')}
 							>
 								Already have an account? Sign in
 							</Button>

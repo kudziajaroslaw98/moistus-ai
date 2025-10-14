@@ -47,11 +47,11 @@ const FloatingConnectionLine: React.FC<
 	return (
 		<g>
 			<path
+				className='animate-dash-flow'
+				d={edgePath}
 				fill='none'
 				stroke='#14b8a6'
 				strokeWidth={2}
-				className='animate-dash-flow'
-				d={edgePath}
 			/>
 
 			<circle
@@ -66,12 +66,12 @@ const FloatingConnectionLine: React.FC<
 			{isOverPane && (
 				<g className='animate-in fade-in duration-200'>
 					<text
-						x={targetX || toX}
-						y={(targetY || toY) - 16}
-						textAnchor='middle'
 						className='text-sm font-medium pointer-events-none'
 						fill='#f4f4f5'
 						fontSize={14}
+						textAnchor='middle'
+						x={targetX || toX}
+						y={(targetY || toY) - 16}
 					>
 						Release to create new
 					</text>

@@ -505,11 +505,11 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 	return (
 		<motion.div
-			layoutId={command.label}
-			className={theme.container}
-			initial={{ opacity: 0, scale: 0.95, y: -10 }}
 			animate={{ opacity: 1, scale: 1, y: 0 }}
+			className={theme.container}
 			exit={{ opacity: 0, scale: 0.95, y: -10 }}
+			initial={{ opacity: 0, scale: 0.95, y: -10 }}
+			layoutId={command.label}
 			transition={{ duration: 0.2, ease: 'easeOut' as const }}
 		>
 			<ComponentHeader icon={command.icon} label={command.label} />
@@ -517,31 +517,31 @@ export const QuickInput: FC<QuickInputProps> = ({
 			{/* Input and Preview Side by Side - Fixed 50/50 Layout */}
 			<div className='flex items-stretch gap-3'>
 				<EnhancedInput
-					value={value}
-					onChange={setValue}
-					onKeyDown={handleKeyDown}
-					onSelectionChange={handleSelectionChange}
-					placeholder={`Type naturally... ${command.examples?.[0] || ''}`}
-					disabled={isCreating}
-					className='flex-1 min-w-0'
-					initial={{ opacity: 1, x: -20 }}
 					animate={{ opacity: 1, x: 0 }}
+					className='flex-1 min-w-0'
+					disabled={isCreating}
+					enableCommands={true}
+					initial={{ opacity: 1, x: -20 }}
+					placeholder={`Type naturally... ${command.examples?.[0] || ''}`}
 					transition={{ delay: 0.15, duration: 0.3, ease: 'easeOut' as const }}
+					value={value}
 					whileFocus={{
 						scale: 1.01,
 						transition: { duration: 0.2 },
 					}}
-					enableCommands={true}
-					onNodeTypeChange={handleNodeTypeChange}
+					onChange={setValue}
 					onCommandExecuted={handleCommandExecuted}
+					onKeyDown={handleKeyDown}
+					onNodeTypeChange={handleNodeTypeChange}
+					onSelectionChange={handleSelectionChange}
 				/>
 
 				<ArrowIndicator isVisible={value.trim().length > 0} />
 
 				<PreviewSection
-					preview={preview}
-					nodeType={currentNodeType || command.nodeType || 'defaultNode'}
 					hasInput={value.trim().length > 0}
+					nodeType={currentNodeType || command.nodeType || 'defaultNode'}
+					preview={preview}
 				/>
 			</div>
 
@@ -549,13 +549,14 @@ export const QuickInput: FC<QuickInputProps> = ({
 			<AnimatePresence>
 				{command.parsingPatterns && command.parsingPatterns.length > 0 && (
 					<motion.div
-						className='mt-3'
-						initial={{ opacity: 0, height: 0 }}
 						animate={{ opacity: 1, height: 'auto' }}
+						className='mt-3'
 						exit={{ opacity: 0, height: 0 }}
+						initial={{ opacity: 0, height: 0 }}
 						transition={{ duration: 0.3, ease: 'easeInOut' as const }}
 					>
 						<ParsingLegend
+							isCollapsed={legendCollapsed}
 							patterns={
 								(
 									nodeCommands.find(
@@ -565,7 +566,6 @@ export const QuickInput: FC<QuickInputProps> = ({
 								).parsingPatterns || []
 							}
 							onPatternClick={handlePatternInsert}
-							isCollapsed={legendCollapsed}
 							onToggleCollapse={() => setLegendCollapsed(!legendCollapsed)}
 						/>
 					</motion.div>
@@ -576,10 +576,10 @@ export const QuickInput: FC<QuickInputProps> = ({
 			<AnimatePresence>
 				{(!command.parsingPatterns || command.parsingPatterns.length === 0) && (
 					<motion.div
-						className='mt-3 text-xs text-zinc-500'
-						initial={{ opacity: 0, y: -10 }}
 						animate={{ opacity: 1, y: 0 }}
+						className='mt-3 text-xs text-zinc-500'
 						exit={{ opacity: 0, y: -10 }}
+						initial={{ opacity: 0, y: -10 }}
 						transition={{ delay: 0.2, duration: 0.3, ease: 'easeOut' as const }}
 					>
 						<p>
@@ -598,26 +598,26 @@ export const QuickInput: FC<QuickInputProps> = ({
 			<ErrorDisplay error={error} />
 
 			<ActionBar
-				onCreate={handleCreate}
 				canCreate={value.trim().length > 0}
 				isCreating={isCreating}
 				mode={mode}
+				onCreate={handleCreate}
 			/>
 
 			{/* Command Palette Integration */}
 			<AnimatePresence>
 				{commandPaletteOpen && (
 					<motion.div
-						initial={{ opacity: 0, scale: 0.95 }}
 						animate={{ opacity: 1, scale: 1 }}
-						exit={{ opacity: 0, scale: 0.95 }}
-						transition={{ duration: 0.2 }}
 						className='fixed inset-0 z-50 pointer-events-none'
+						exit={{ opacity: 0, scale: 0.95 }}
+						initial={{ opacity: 0, scale: 0.95 }}
+						transition={{ duration: 0.2 }}
 					>
 						<CommandPalette
-							onCommandExecute={handleCommandExecute}
-							onClose={handlePaletteClose}
 							className='pointer-events-auto'
+							onClose={handlePaletteClose}
+							onCommandExecute={handleCommandExecute}
 						/>
 					</motion.div>
 				)}

@@ -87,21 +87,21 @@ function GhostNodeComponent(props: GhostNodeProps) {
 	return (
 		<BaseNodeWrapper
 			{...props}
-			nodeClassName='ghost-node'
-			nodeType='AI Suggestion'
-			nodeIcon={<Sparkles className='size-4' />}
-			hideNodeType={true}
 			elevation={2}
+			hideNodeType={true}
 			includePadding={false}
+			nodeClassName='ghost-node'
+			nodeIcon={<Sparkles className='size-4' />}
+			nodeType='AI Suggestion'
 		>
 			<motion.div
-				key={id}
-				variants={GlassmorphismTheme.ghost.animation}
-				initial='initial'
 				animate='animate'
-				exit='exit'
 				className={cn('rounded-lg p-3 cursor-pointer select-none shadow-lg')}
+				exit='exit'
+				initial='initial'
+				key={id}
 				style={ghostStyles}
+				variants={GlassmorphismTheme.ghost.animation}
 			>
 				{/* Header with AI indicator and confidence */}
 				<div className='mb-2 flex items-center justify-between'>
@@ -157,17 +157,18 @@ function GhostNodeComponent(props: GhostNodeProps) {
 				{/* Action buttons */}
 				<div className='flex gap-2'>
 					<motion.button
+						aria-label={`Accept suggestion: ${suggestedContent.substring(0, 50)}...`}
+						className='flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors duration-200'
 						whileHover={{ scale: 1.05 }}
 						whileTap={{ scale: 0.95 }}
-						onClick={(e) => {
-							e.stopPropagation();
-							onAccept();
-						}}
-						className='flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors duration-200'
 						style={{
 							backgroundColor:
 								GlassmorphismTheme.ghost.actions.accept.background,
 							color: GlassmorphismTheme.ghost.actions.accept.text,
+						}}
+						onClick={(e) => {
+							e.stopPropagation();
+							onAccept();
 						}}
 						onMouseEnter={(e) => {
 							(e.target as HTMLButtonElement).style.backgroundColor =
@@ -177,24 +178,24 @@ function GhostNodeComponent(props: GhostNodeProps) {
 							(e.target as HTMLButtonElement).style.backgroundColor =
 								GlassmorphismTheme.ghost.actions.accept.background;
 						}}
-						aria-label={`Accept suggestion: ${suggestedContent.substring(0, 50)}...`}
 					>
 						<Check className='h-3 w-3' />
 						Accept
 					</motion.button>
 
 					<motion.button
+						aria-label={`Reject suggestion: ${suggestedContent.substring(0, 50)}...`}
+						className='flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors duration-200'
 						whileHover={{ scale: 1.05 }}
 						whileTap={{ scale: 0.95 }}
-						onClick={(e) => {
-							e.stopPropagation();
-							onReject();
-						}}
-						className='flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors duration-200'
 						style={{
 							backgroundColor:
 								GlassmorphismTheme.ghost.actions.reject.background,
 							color: GlassmorphismTheme.ghost.actions.reject.text,
+						}}
+						onClick={(e) => {
+							e.stopPropagation();
+							onReject();
 						}}
 						onMouseEnter={(e) => {
 							(e.target as HTMLButtonElement).style.backgroundColor =
@@ -204,7 +205,6 @@ function GhostNodeComponent(props: GhostNodeProps) {
 							(e.target as HTMLButtonElement).style.backgroundColor =
 								GlassmorphismTheme.ghost.actions.reject.background;
 						}}
-						aria-label={`Reject suggestion: ${suggestedContent.substring(0, 50)}...`}
 					>
 						<X className='h-3 w-3' />
 						Reject

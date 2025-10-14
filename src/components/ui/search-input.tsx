@@ -50,12 +50,12 @@ const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
 
 				{/* Input Field */}
 				<Input
-					ref={ref}
 					className={cn('pl-10 pr-4 py-2.5')}
 					placeholder={placeholder}
-					onFocus={handleFocus}
+					ref={ref}
 					onBlur={handleBlur}
 					onChange={handleChange}
+					onFocus={handleFocus}
 					{...props}
 				/>
 

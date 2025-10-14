@@ -245,9 +245,9 @@ export default function PrivacySettingsPage() {
 				</div>
 
 				<Button
-					onClick={handleSave}
-					disabled={isSaving}
 					className='bg-sky-600 hover:bg-sky-700'
+					disabled={isSaving}
+					onClick={handleSave}
 				>
 					<Save className='size-4 mr-2' />
 
@@ -562,7 +562,7 @@ export default function PrivacySettingsPage() {
 							</p>
 						</div>
 
-						<Button variant='outline' size='sm'>
+						<Button size='sm' variant='outline'>
 							Manage Sessions
 						</Button>
 					</div>
@@ -593,10 +593,10 @@ export default function PrivacySettingsPage() {
 						</div>
 
 						<Button
-							variant='outline'
-							size='sm'
-							onClick={handleDataExport}
 							disabled={isExporting}
+							size='sm'
+							variant='outline'
+							onClick={handleDataExport}
 						>
 							<Download className='size-4 mr-2' />
 
@@ -615,7 +615,7 @@ export default function PrivacySettingsPage() {
 							</p>
 						</div>
 
-						<Button variant='destructive' size='sm'>
+						<Button size='sm' variant='destructive'>
 							<Trash2 className='size-4 mr-2' />
 							Delete Account
 						</Button>

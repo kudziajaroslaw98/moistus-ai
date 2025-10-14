@@ -110,10 +110,10 @@ export default function EdgeEditModal() {
 
 	return (
 		<SidePanel
-			key={edge?.id}
 			isOpen={isOpen}
-			onClose={handleOnClose}
+			key={edge?.id}
 			title={`Edit Connection`}
+			onClose={handleOnClose}
 		>
 			<div className='flex flex-col gap-4'>
 				<p className='text-sm text-zinc-400'>
@@ -143,10 +143,10 @@ export default function EdgeEditModal() {
 						<FormField id='edgeLabel' label='Label'>
 							<Input
 								id='edgeLabel'
+								placeholder='e.g., leads to, is part of'
 								type='text'
 								value={label}
 								onChange={(e) => setLabel(e.target.value)}
-								placeholder='e.g., leads to, is part of'
 							/>
 						</FormField>
 
@@ -168,10 +168,10 @@ export default function EdgeEditModal() {
 						<div>
 							<FormField id='edgeAnimated' label='Animated'>
 								<Input
-									type='checkbox'
 									checked={animated}
-									onChange={(e) => setAnimated(e.target.checked)}
 									className='mr-2 rounded border-zinc-600 text-teal-600 shadow-sm focus:ring-teal-500 disabled:opacity-50'
+									type='checkbox'
+									onChange={(e) => setAnimated(e.target.checked)}
 								/>
 							</FormField>
 						</div>
@@ -186,8 +186,8 @@ export default function EdgeEditModal() {
 					<div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
 						<div className='flex flex-col gap-2'>
 							<Label
-								htmlFor='edgeColor'
 								className='block text-sm font-medium text-zinc-400'
+								htmlFor='edgeColor'
 							>
 								Color
 							</Label>
@@ -215,8 +215,8 @@ export default function EdgeEditModal() {
 						{/* Stroke Width Input */}
 						<div className='flex flex-col gap-2'>
 							<Label
-								htmlFor='strokeWidth'
 								className='block text-sm font-medium text-zinc-400'
+								htmlFor='strokeWidth'
 							>
 								Stroke Width (px)
 							</Label>
@@ -224,6 +224,9 @@ export default function EdgeEditModal() {
 							<div className='flex items-center gap-2'>
 								<Input
 									id='strokeWidth'
+									max='10'
+									min='1'
+									placeholder='e.g. 2'
 									type='number'
 									value={strokeWidth ?? ''}
 									onChange={(e) => {
@@ -232,9 +235,6 @@ export default function EdgeEditModal() {
 											isNaN(value) || value <= 0 ? undefined : value
 										);
 									}}
-									min='1'
-									max='10'
-									placeholder='e.g. 2'
 								/>
 
 								{strokeWidth !== undefined && (
@@ -252,8 +252,8 @@ export default function EdgeEditModal() {
 						{/* Marker End Select */}
 						<div>
 							<Label
-								htmlFor='markerEnd'
 								className='block text-sm font-medium text-zinc-400'
+								htmlFor='markerEnd'
 							>
 								Arrow Style (Marker End)
 							</Label>
@@ -277,11 +277,11 @@ export default function EdgeEditModal() {
 				{/* Keep footer outside the scrollable area if SidePanel doesn't include one */}
 				{/* If SidePanel's children area scrolls, footer needs to be positioned separately or within */}
 				<div className='mt-auto flex flex-shrink-0 justify-end gap-3 border-t border-zinc-700 pt-4'>
-					<Button onClick={handleOnClose} variant='outline' disabled={isSaving}>
+					<Button disabled={isSaving} variant='outline' onClick={handleOnClose}>
 						Cancel
 					</Button>
 
-					<Button onClick={handleSave} disabled={isSaving}>
+					<Button disabled={isSaving} onClick={handleSave}>
 						{isSaving ? 'Saving...' : 'Save Changes'}
 					</Button>
 				</div>

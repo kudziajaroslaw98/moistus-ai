@@ -36,11 +36,11 @@ const CollapsedIndicatorComponent = (props: { data: NodeData }) => {
 				<>
 					{/* First shadow layer - furthest back */}
 					<motion.div
-						initial={{ opacity: 0, scale: 0.95 }}
 						animate={{ opacity: 1, scale: 1 }}
-						exit={{ opacity: 0, scale: 0.95 }}
-						transition={{ duration: 0.2, delay: 0.05 }}
 						className='absolute w-full h-full -z-[2] left-3 -bottom-3 rounded-lg'
+						exit={{ opacity: 0, scale: 0.95 }}
+						initial={{ opacity: 0, scale: 0.95 }}
+						transition={{ duration: 0.2, delay: 0.05 }}
 						style={{
 							backgroundColor: '#0d0d0d',
 							border: '1px solid rgba(255, 255, 255, 0.03)',
@@ -51,11 +51,11 @@ const CollapsedIndicatorComponent = (props: { data: NodeData }) => {
 
 					{/* Second shadow layer - middle */}
 					<motion.div
-						initial={{ opacity: 0, scale: 0.97 }}
 						animate={{ opacity: 1, scale: 1 }}
-						exit={{ opacity: 0, scale: 0.97 }}
-						transition={{ duration: 0.2, delay: 0.03 }}
 						className='absolute w-full h-full -z-[1] left-1.5 -bottom-1.5 rounded-lg'
+						exit={{ opacity: 0, scale: 0.97 }}
+						initial={{ opacity: 0, scale: 0.97 }}
+						transition={{ duration: 0.2, delay: 0.03 }}
 						style={{
 							backgroundColor: '#121212',
 							border: '1px solid rgba(255, 255, 255, 0.05)',
@@ -65,16 +65,16 @@ const CollapsedIndicatorComponent = (props: { data: NodeData }) => {
 
 					{/* Count badge with sophisticated styling */}
 					<motion.div
-						initial={{ scale: 0, opacity: 0 }}
 						animate={{ scale: 1, opacity: 1 }}
+						className='absolute -bottom-1.5 -right-1.5 z-10'
 						exit={{ scale: 0, opacity: 0 }}
+						initial={{ scale: 0, opacity: 0 }}
 						transition={{
 							type: 'spring',
 							stiffness: 400,
 							damping: 25,
 							delay: 0.1,
 						}}
-						className='absolute -bottom-1.5 -right-1.5 z-10'
 					>
 						{/* Glow effect behind badge */}
 						<div
@@ -90,6 +90,7 @@ const CollapsedIndicatorComponent = (props: { data: NodeData }) => {
 						{/* Badge container */}
 						<div
 							className='relative rounded-full px-2 py-0.5 flex items-center justify-center min-w-[20px]'
+							title={`${directChildrenCount} hidden ${directChildrenCount === 1 ? 'item' : 'items'}`}
 							style={{
 								backgroundColor: 'rgba(30, 30, 30, 0.9)',
 								border: '1px solid rgba(96, 165, 250, 0.3)',
@@ -97,7 +98,6 @@ const CollapsedIndicatorComponent = (props: { data: NodeData }) => {
 								boxShadow:
 									'0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
 							}}
-							title={`${directChildrenCount} hidden ${directChildrenCount === 1 ? 'item' : 'items'}`}
 						>
 							{/* Count text with proper hierarchy */}
 							<span
@@ -121,13 +121,13 @@ const CollapsedIndicatorComponent = (props: { data: NodeData }) => {
 									scale: [1, 1.3, 1],
 									opacity: [0.3, 0, 0.3],
 								}}
+								style={{
+									border: '1px solid rgba(96, 165, 250, 0.5)',
+								}}
 								transition={{
 									duration: 2,
 									repeat: Infinity,
 									ease: 'easeInOut' as const,
-								}}
-								style={{
-									border: '1px solid rgba(96, 165, 250, 0.5)',
 								}}
 							/>
 						)}

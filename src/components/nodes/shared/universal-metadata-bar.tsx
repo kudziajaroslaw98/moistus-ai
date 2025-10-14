@@ -113,14 +113,14 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
 					type: 'priority',
 					component: (
 						<MetadataBadge
-							key='priority'
-							icon={config.icon}
-							label={config.label}
-							color={config.color}
 							bgColor={config.bgColor}
 							borderColor={config.borderColor}
-							onClick={() => onMetadataClick?.('priority', metadata.priority)}
+							color={config.color}
+							icon={config.icon}
+							key='priority'
+							label={config.label}
 							size={'xs'}
+							onClick={() => onMetadataClick?.('priority', metadata.priority)}
 						/>
 					),
 					order: 1,
@@ -140,14 +140,14 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
 					type: 'status',
 					component: (
 						<MetadataBadge
-							key='status'
-							icon={statusIcon}
-							label={metadata.status}
-							color={statusColor}
 							bgColor={`${statusColor.replace('0.87', '0.1')}`}
 							borderColor={`${statusColor.replace('0.87', '0.2')}`}
-							onClick={() => onMetadataClick?.('status', metadata.status)}
+							color={statusColor}
+							icon={statusIcon}
+							key='status'
+							label={metadata.status}
 							size={'xs'}
+							onClick={() => onMetadataClick?.('status', metadata.status)}
 						/>
 					),
 					order: 2,
@@ -164,11 +164,11 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
 					type: 'assignee',
 					component: (
 						<MetadataBadge
-							key='assignee'
 							icon={User}
+							key='assignee'
 							label={assigneeString}
-							onClick={() => onMetadataClick?.('assignee', metadata.assignee)}
 							size={'xs'}
+							onClick={() => onMetadataClick?.('assignee', metadata.assignee)}
 						/>
 					),
 					order: 3,
@@ -204,14 +204,14 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
 					type: 'dueDate',
 					component: (
 						<MetadataBadge
-							key='dueDate'
-							icon={Calendar}
-							label={dateLabel}
-							color={dateColor}
 							bgColor={`${dateColor.replace('0.87', '0.1')}`}
 							borderColor={`${dateColor.replace('0.87', '0.2')}`}
-							onClick={() => onMetadataClick?.('dueDate', metadata.dueDate)}
+							color={dateColor}
+							icon={Calendar}
+							key='dueDate'
+							label={dateLabel}
 							size={'xs'}
+							onClick={() => onMetadataClick?.('dueDate', metadata.dueDate)}
 						/>
 					),
 					order: 4,
@@ -224,11 +224,11 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
 					type: 'tags',
 					component: (
 						<NodeTags
-							key='tags'
-							tags={metadata.tags}
-							maxVisible={selected ? 5 : 2}
-							onTagClick={(tag) => onMetadataClick?.('tag', tag)}
 							accentColor={colorOverrides?.accentColor}
+							key='tags'
+							maxVisible={selected ? 5 : 2}
+							tags={metadata.tags}
+							onTagClick={(tag) => onMetadataClick?.('tag', tag)}
 						/>
 					),
 					order: 5,
@@ -250,15 +250,15 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
 
 		return (
 			<motion.div
+				animate={{ opacity: 1, height: 'auto' }}
 				className={cn('flex flex-wrap items-center px-4 py-2', className)}
+				exit={{ opacity: 0, height: 0 }}
+				initial={{ opacity: 0, height: 0 }}
+				transition={{ duration: 0.2 }}
 				style={{
 					...containerStyle,
 					gap: '6px', // 6px gap between metadata items as specified in Material Design
 				}}
-				initial={{ opacity: 0, height: 0 }}
-				animate={{ opacity: 1, height: 'auto' }}
-				exit={{ opacity: 0, height: 0 }}
-				transition={{ duration: 0.2 }}
 			>
 				{metadataItems.map((item) => item.component)}
 			</motion.div>

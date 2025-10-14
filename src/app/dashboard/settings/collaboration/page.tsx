@@ -52,24 +52,6 @@ interface CollaborationSettings {
 	};
 }
 
-interface TeamMember {
-	id: string;
-	name: string;
-	email: string;
-	role: 'owner' | 'admin' | 'member';
-	status: 'active' | 'pending' | 'inactive';
-	avatar?: string;
-	joinedAt: string;
-}
-
-interface PendingInvitation {
-	id: string;
-	email: string;
-	role: 'admin' | 'member';
-	invitedAt: string;
-	expiresAt: string;
-}
-
 export default function CollaborationSettingsPage() {
 	const [isSaving, setIsSaving] = useState(false);
 	const [newMemberEmail, setNewMemberEmail] = useState('');
@@ -209,9 +191,9 @@ export default function CollaborationSettingsPage() {
 				</div>
 
 				<Button
-					onClick={handleSave}
-					disabled={isSaving}
 					className='bg-sky-600 hover:bg-sky-700'
+					disabled={isSaving}
+					onClick={handleSave}
 				>
 					<Save className='size-4 mr-2' />
 
@@ -239,10 +221,10 @@ export default function CollaborationSettingsPage() {
 
 						<div className='flex gap-2'>
 							<Input
+								className='bg-zinc-800 border-zinc-600 flex-1'
 								placeholder='email@example.com'
 								value={newMemberEmail}
 								onChange={(e) => setNewMemberEmail(e.target.value)}
-								className='bg-zinc-800 border-zinc-600 flex-1'
 							/>
 
 							<Select
@@ -262,7 +244,7 @@ export default function CollaborationSettingsPage() {
 								</SelectContent>
 							</Select>
 
-							<Button onClick={handleInviteMember} size='sm'>
+							<Button size='sm' onClick={handleInviteMember}>
 								<UserPlus className='size-4 mr-2' />
 								Invite
 							</Button>
@@ -275,11 +257,12 @@ export default function CollaborationSettingsPage() {
 					<div className='space-y-3'>
 						{teamMembers.map((member) => (
 							<div
-								key={member.id}
 								className='flex items-center justify-between p-3 bg-zinc-800/30 rounded-lg'
+								key={member.id}
 							>
 								<div className='flex items-center gap-3'>
 									<UserAvatar
+										size='sm'
 										user={{
 											id: member.id,
 											user_id: member.id,
@@ -287,7 +270,6 @@ export default function CollaborationSettingsPage() {
 											avatar_url: member.avatar,
 											created_at: member.joinedAt,
 										}}
-										size='sm'
 									/>
 
 									<div>
@@ -315,7 +297,7 @@ export default function CollaborationSettingsPage() {
 									</Badge>
 
 									{member.role !== 'owner' && (
-										<Button variant='ghost' size='sm'>
+										<Button size='sm' variant='ghost'>
 											<MoreHorizontal className='size-4' />
 										</Button>
 									)}
@@ -334,8 +316,8 @@ export default function CollaborationSettingsPage() {
 
 								{pendingInvitations.map((invitation) => (
 									<div
-										key={invitation.id}
 										className='flex items-center justify-between p-3 bg-zinc-800/30 rounded-lg border border-yellow-700/30'
+										key={invitation.id}
 									>
 										<div className='flex items-center gap-3'>
 											<div className='w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center'>
@@ -347,9 +329,14 @@ export default function CollaborationSettingsPage() {
 													{invitation.email}
 												</span>
 
-												<p className='text-sm text-zinc-400'>
-													Expires{' '}
-													{new Date(invitation.expiresAt).toLocaleDateString()}
+												<p className='text-sm text-zinc-400 flex gap-1'>
+													<span>Expires</span>
+
+													<span>
+														{new Date(
+															invitation.expiresAt
+														).toLocaleDateString()}
+													</span>
 												</p>
 											</div>
 										</div>
@@ -363,7 +350,7 @@ export default function CollaborationSettingsPage() {
 												pending
 											</Badge>
 
-											<Button variant='ghost' size='sm'>
+											<Button size='sm' variant='ghost'>
 												<Trash2 className='size-4 text-red-400' />
 											</Button>
 										</div>
@@ -542,14 +529,14 @@ export default function CollaborationSettingsPage() {
 				<CardContent className='space-y-4'>
 					<div className='flex gap-2'>
 						<Input
+							className='bg-zinc-800 border-zinc-600'
 							placeholder='company.com'
 							value={newDomain}
 							onChange={(e) => setNewDomain(e.target.value)}
 							onKeyPress={(e) => e.key === 'Enter' && addTrustedDomain()}
-							className='bg-zinc-800 border-zinc-600'
 						/>
 
-						<Button onClick={addTrustedDomain} size='sm'>
+						<Button size='sm' onClick={addTrustedDomain}>
 							<Plus className='size-4' />
 						</Button>
 					</div>
@@ -557,15 +544,15 @@ export default function CollaborationSettingsPage() {
 					<div className='flex flex-wrap gap-2'>
 						{settings.trustedDomains.map((domain) => (
 							<Badge
+								className='bg-sky-900/50 text-sky-200 hover:bg-sky-800 border border-sky-700/50'
 								key={domain}
 								variant='secondary'
-								className='bg-sky-900/50 text-sky-200 hover:bg-sky-800 border border-sky-700/50'
 							>
 								{domain}
 
 								<button
-									onClick={() => removeTrustedDomain(domain)}
 									className='ml-1 hover:text-red-400'
+									onClick={() => removeTrustedDomain(domain)}
 								>
 									<Trash2 className='size-3' />
 								</button>

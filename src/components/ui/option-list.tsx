@@ -97,10 +97,10 @@ export function OptionList<T>({
 
 	return (
 		<div
-			role='listbox'
 			aria-orientation={direction}
-			tabIndex={0}
 			className={`flex ${direction === 'vertical' ? 'flex-col' : 'flex-row'} ${gap} ${className}`}
+			role='listbox'
+			tabIndex={0}
 			onKeyDown={handleKeyDown}
 		>
 			{items.map((item, idx) => {
@@ -108,14 +108,14 @@ export function OptionList<T>({
 					itemRefs.current[idx] || (itemRefs.current[idx] = { current: null });
 				return (
 					<div
+						aria-selected={focusedIdx === idx}
+						className='outline-none focus-visible:ring-2 focus-visible:ring-blue-400 rounded'
 						key={idx}
 						ref={ref}
 						role='option'
 						tabIndex={focusedIdx === idx ? 0 : -1}
-						aria-selected={focusedIdx === idx}
-						className='outline-none focus-visible:ring-2 focus-visible:ring-blue-400 rounded'
-						onFocus={() => setFocusedIdx(idx)}
 						onClick={() => onItemSelect && onItemSelect(item, idx)}
+						onFocus={() => setFocusedIdx(idx)}
 					>
 						{renderItem(item, idx, { focused: focusedIdx === idx, ref })}
 					</div>

@@ -31,8 +31,8 @@ export default function RootLayout({
 }>) {
 	return (
 		<html
-			lang='en'
 			className='box-border flex h-full w-full'
+			lang='en'
 			suppressHydrationWarning={true}
 		>
 			<body
@@ -46,10 +46,10 @@ export default function RootLayout({
 				</ClientProviders>
 
 				<Toaster
-					theme='dark'
-					position='bottom-right'
-					richColors
 					closeButton
+					richColors
+					position='bottom-right'
+					theme='dark'
 					toastOptions={{
 						classNames: {
 							toast: 'toast',

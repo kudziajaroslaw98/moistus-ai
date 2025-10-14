@@ -40,12 +40,11 @@ export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(
 
 		return (
 			<button
-				ref={ref}
-				type='button'
-				role='checkbox'
 				aria-checked={checked}
 				disabled={disabled}
-				onClick={handleClick}
+				ref={ref}
+				role='checkbox'
+				type='button'
 				className={cn(
 					'relative flex items-center justify-center rounded border-2 transition-all',
 					'focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-zinc-900',
@@ -66,9 +65,11 @@ export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(
 					],
 					className
 				)}
+				onClick={handleClick}
 			>
 				{/* Checkmark */}
 				<motion.div
+					className='flex items-center justify-center'
 					initial={false}
 					animate={{
 						scale: checked ? 1 : 0,
@@ -79,7 +80,6 @@ export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(
 						stiffness: 500,
 						damping: 30,
 					}}
-					className='flex items-center justify-center'
 				>
 					<Check
 						className={cn(

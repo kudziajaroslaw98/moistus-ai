@@ -236,51 +236,51 @@ export const NodeEditor = () => {
 					<motion.div
 						ref={refs.setFloating}
 						{...getReferenceProps()}
-						className={cn(theme.container)}
-						variants={animationVariants.container}
-						initial='initial'
 						animate='animate'
+						className={cn(theme.container)}
 						exit='exit'
+						initial='initial'
+						variants={animationVariants.container}
 					>
 						<AnimateChangeInHeight easingPreset='responsive'>
 							{!selectedCommand || showTypePicker ? (
 								<motion.div
-									variants={animationVariants.container}
-									initial='initial'
 									animate='animate'
 									exit='exit'
+									initial='initial'
+									variants={animationVariants.container}
 								>
 									<CommandPalette onCommandExecute={handleSelectCommand} />
 								</motion.div>
 							) : (
 								<motion.div
-									variants={animationVariants.container}
-									initial='initial'
 									animate='animate'
 									exit='exit'
+									initial='initial'
+									variants={animationVariants.container}
 								>
 									<ModeToggle
 										mode={nodeEditor.editorMode}
-										onToggle={(mode) => setNodeEditorMode(mode)}
-										onShowTypePicker={handleShowTypePicker}
 										selectedCommand={selectedCommand}
+										onShowTypePicker={handleShowTypePicker}
+										onToggle={(mode) => setNodeEditorMode(mode)}
 									/>
 
 									{nodeEditor.editorMode === 'quick' ? (
 										<QuickInput
 											command={selectedCommand}
+											existingNode={existingNode}
+											mode={mode}
 											parentNode={nodeEditor.parentNode}
 											position={nodeEditor.position}
-											mode={mode}
-											existingNode={existingNode}
 										/>
 									) : (
 										<StructuredInput
 											command={selectedCommand}
+											existingNode={existingNode}
+											mode={mode}
 											parentNode={nodeEditor.parentNode}
 											position={nodeEditor.position}
-											mode={mode}
-											existingNode={existingNode}
 										/>
 									)}
 								</motion.div>

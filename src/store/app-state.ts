@@ -13,6 +13,7 @@ import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import { ContextMenuState } from '@/types/context-menu-state';
 import type { EdgeData } from '@/types/edge-data';
+import type { HistoryItem } from '@/types/history-state';
 import { HistoryState } from '@/types/history-state';
 import type { LayoutDirection } from '@/types/layout-direction';
 import type { SpecificLayoutConfig } from '@/types/layout-types';
@@ -132,9 +133,16 @@ export interface GroupsSlice {
 // History Slice
 export interface HistorySlice {
 	// History state
-	history: ReadonlyArray<HistoryState>;
-	historyIndex: number;
+	history: ReadonlyArray<HistoryState>; // chronological asc (oldest -> newest)
+	/** Parallel metadata for history entries loaded from DB (e.g., snapshotId, counts) */
+	historyMeta: ReadonlyArray<HistoryItem>; // chronological asc (oldest -> newest)
+	historyIndex: number; // index into history/historyMeta
 	isReverting: boolean;
+
+	// Pagination
+	historyPageOffset: number;
+	historyPageLimit: number;
+	historyHasMore: boolean;
 
 	// History actions
 	addStateToHistory: (
@@ -144,6 +152,14 @@ export interface HistorySlice {
 	handleUndo: () => Promise<void>;
 	handleRedo: () => Promise<void>;
 	revertToHistoryState: (index: number) => Promise<void>;
+	loadHistoryFromDB: () => Promise<void>; // New: load recent history metadata from API
+	loadMoreHistory: (mapId: string) => Promise<void>; // Pagination: load older history
+	createSnapshot: (actionName?: string, isMajor?: boolean) => Promise<void>; // Pro-only manual checkpoint
+	persistDeltaEvent: (
+		actionName: string,
+		prev: { nodes: AppNode[]; edges: AppEdge[] },
+		next: { nodes: AppNode[]; edges: AppEdge[] }
+	) => Promise<void>;
 
 	// History selectors
 	canUndo: boolean;

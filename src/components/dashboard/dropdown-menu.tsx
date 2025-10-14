@@ -76,6 +76,7 @@ export function DropdownMenuItem({
 }: DropdownMenuItemProps) {
 	return (
 		<button
+			disabled={disabled}
 			className={cn(
 				'flex w-full items-center px-3 py-2 text-sm text-zinc-300 rounded-sm transition-colors',
 				'hover:bg-zinc-800 hover:text-white focus:bg-zinc-800 focus:text-white focus:outline-none',
@@ -83,7 +84,6 @@ export function DropdownMenuItem({
 				className
 			)}
 			onClick={onClick}
-			disabled={disabled}
 			{...props}
 		>
 			{children}

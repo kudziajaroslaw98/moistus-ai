@@ -7,14 +7,6 @@ const nextConfig: NextConfig = {
 	devIndicators: {
 		position: 'bottom-right',
 	},
-	rewrites: async () => {
-		return [
-			{
-				source: '/api/:path*',
-				destination: `${process.env.NEXT_PUBLIC_APP_LOCAL_HREF}/api/:path*`,
-			},
-		];
-	},
 	images: {
 		remotePatterns: [
 			{

@@ -238,18 +238,18 @@ const GroupNodeComponent = (props: GroupNodeProps) => {
 				zIndex: 0, // Keep groups at base level
 			}}
 			onDoubleClick={handleDoubleClick}
-			onDragOver={handleDragOver}
 			onDragLeave={handleDragLeave}
+			onDragOver={handleDragOver}
 			onDrop={handleDrop}
 		>
 			{/* Animated selection indicator for child nodes */}
 			<AnimatePresence>
 				{hasSelectedChildren && !selected && (
 					<motion.div
-						initial={{ opacity: 0, scale: 0.95 }}
 						animate={{ opacity: 1, scale: 1 }}
-						exit={{ opacity: 0, scale: 0.95 }}
 						className='absolute inset-0 rounded-lg border-2 border-yellow-400/30 bg-yellow-400/5 pointer-events-none'
+						exit={{ opacity: 0, scale: 0.95 }}
+						initial={{ opacity: 0, scale: 0.95 }}
 						style={{ zIndex: -1 }}
 					/>
 				)}
@@ -257,6 +257,10 @@ const GroupNodeComponent = (props: GroupNodeProps) => {
 
 			{displayLabel && (
 				<motion.div
+					transition={{ duration: 0.2 }}
+					animate={{
+						scale: isDragOver ? 1.05 : 1,
+					}}
 					className={cn(
 						'absolute -top-6 left-2 rounded-t-md px-2 py-0.5 text-xs font-medium shadow-md z-10 pointer-events-none transition-colors duration-200',
 						selected
@@ -265,10 +269,6 @@ const GroupNodeComponent = (props: GroupNodeProps) => {
 								? 'bg-yellow-700 text-yellow-100'
 								: 'bg-zinc-700 text-zinc-200'
 					)}
-					animate={{
-						scale: isDragOver ? 1.05 : 1,
-					}}
-					transition={{ duration: 0.2 }}
 				>
 					{displayLabel}
 
@@ -282,24 +282,24 @@ const GroupNodeComponent = (props: GroupNodeProps) => {
 			<AnimatePresence>
 				{(childNodes.length === 0 || isDragOver) && (
 					<motion.div
-						className='absolute inset-0 flex items-center justify-center pointer-events-none'
-						initial={{ opacity: 0, y: 10 }}
 						animate={{ opacity: 1, y: 0 }}
+						className='absolute inset-0 flex items-center justify-center pointer-events-none'
 						exit={{ opacity: 0, y: -10 }}
+						initial={{ opacity: 0, y: 10 }}
 						transition={{ duration: 0.2 }}
 					>
 						<motion.div
+							transition={{ duration: 0.2 }}
+							animate={{
+								scale: isDragOver ? 1.05 : 1,
+								borderColor: isDragOver ? '#0ea5e9' : '#374151',
+							}}
 							className={cn(
 								'text-sm font-medium px-3 py-2 rounded-md border transition-all duration-200',
 								isDragOver
 									? 'text-sky-300 bg-sky-900/50 border-sky-600'
 									: 'text-zinc-500 bg-zinc-800/50 border-zinc-700'
 							)}
-							animate={{
-								scale: isDragOver ? 1.05 : 1,
-								borderColor: isDragOver ? '#0ea5e9' : '#374151',
-							}}
-							transition={{ duration: 0.2 }}
 						>
 							{isDragOver
 								? 'Drop node here to add to group'
@@ -313,8 +313,8 @@ const GroupNodeComponent = (props: GroupNodeProps) => {
 			<NodeResizer
 				color='#0069a8'
 				isVisible={selected}
-				minWidth={150}
 				minHeight={100}
+				minWidth={150}
 				handleStyle={{
 					width: 8,
 					height: 8,

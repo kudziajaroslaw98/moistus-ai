@@ -73,7 +73,7 @@ export function CommandPalette() {
 
 		document.addEventListener('keydown', down);
 		return () => document.removeEventListener('keydown', down);
-	}, [popoverOpen]);
+	}, [setPopoverOpen, popoverOpen]);
 
 	const runCommand = useCallback(
 		(command?: () => void) => {
@@ -115,10 +115,10 @@ export function CommandPalette() {
 
 	return (
 		<Command.Dialog
+			className='fixed inset-0 z-50 flex items-start justify-center pt-[15vh]'
+			label='Global Command Menu'
 			open={popoverOpen.commandPalette}
 			onOpenChange={handleOpenChange}
-			label='Global Command Menu'
-			className='fixed inset-0 z-50 flex items-start justify-center pt-[15vh]'
 		>
 			<div
 				className='fixed inset-0 bg-black/30 backdrop-blur-sm'
@@ -127,10 +127,10 @@ export function CommandPalette() {
 
 			<div className='z-10 w-full max-w-xl rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-200 shadow-lg'>
 				<Command.Input
+					className='w-full border-b border-zinc-700 bg-transparent px-4 py-3 text-sm focus:outline-none'
+					placeholder='Type a command or search...'
 					value={search}
 					onValueChange={setSearch}
-					placeholder='Type a command or search...'
-					className='w-full border-b border-zinc-700 bg-transparent px-4 py-3 text-sm focus:outline-none'
 				/>
 
 				<Command.List className='max-h-[400px] overflow-y-auto p-4'>
@@ -140,36 +140,36 @@ export function CommandPalette() {
 
 					{/* General Actions Group */}
 					<Command.Group
-						heading='Actions'
 						className='text-xs font-medium text-zinc-500 gap-4'
+						heading='Actions'
 					>
 						<div className='flex flex-col py-2'>
 							<Command.Item
-								onSelect={() => runCommand(handleAddNode)}
 								className='flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-zinc-800 aria-selected:bg-zinc-700'
+								onSelect={() => runCommand(handleAddNode)}
 							>
 								<Plus className='size-4 text-teal-400' /> Add Node
 							</Command.Item>
 
 							<Command.Item
-								onSelect={() => runCommand(undo)}
-								disabled={!canUndo}
 								className='flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-zinc-800 aria-selected:bg-zinc-700 aria-disabled:opacity-50 aria-disabled:pointer-events-none'
+								disabled={!canUndo}
+								onSelect={() => runCommand(undo)}
 							>
 								<Undo className='size-4 text-zinc-400' /> Undo
 							</Command.Item>
 
 							<Command.Item
-								onSelect={() => runCommand(redo)}
-								disabled={!canRedo}
 								className='flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-zinc-800 aria-selected:bg-zinc-700 aria-disabled:opacity-50 aria-disabled:pointer-events-none'
+								disabled={!canRedo}
+								onSelect={() => runCommand(redo)}
 							>
 								<Redo className='size-4 text-zinc-400' /> Redo
 							</Command.Item>
 
 							<Command.Item
-								onSelect={() => runCommand(toggleFocusMode)}
 								className='flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-zinc-800 aria-selected:bg-zinc-700'
+								onSelect={() => runCommand(toggleFocusMode)}
 							>
 								<Maximize className='size-4 text-zinc-400' /> Toggle Focus Mode
 							</Command.Item>
@@ -177,8 +177,8 @@ export function CommandPalette() {
 							{/* Group Selected Nodes */}
 							{canGroup && (
 								<Command.Item
-									onSelect={() => runCommand(createGroupFromSelected)}
 									className='flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-zinc-800 aria-selected:bg-zinc-700'
+									onSelect={() => runCommand(createGroupFromSelected)}
 								>
 									<Group className='size-4 text-zinc-400' />
 
@@ -189,10 +189,10 @@ export function CommandPalette() {
 							{/* Ungroup */}
 							{canUngroup && (
 								<Command.Item
+									className='flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-zinc-800 aria-selected:bg-zinc-700'
 									onSelect={() =>
 										runCommand(() => ungroupNodes(selectedNodes[0].id))
 									}
-									className='flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-zinc-800 aria-selected:bg-zinc-700'
 								>
 									<Ungroup className='size-4 text-zinc-400' />
 
@@ -238,20 +238,20 @@ export function CommandPalette() {
 
 					{/* Layout Actions Group */}
 					<Command.Group
-						heading='Layout'
 						className='mt-2 text-xs font-medium text-zinc-500'
+						heading='Layout'
 					>
 						<Command.Item
-							onSelect={() => runCommand(() => applyLayout('TB'))}
 							className='flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-zinc-800 aria-selected:bg-zinc-700'
+							onSelect={() => runCommand(() => applyLayout('TB'))}
 						>
 							<LayoutPanelTop className='size-4 text-zinc-400' /> Apply
 							Top-to-Bottom Layout
 						</Command.Item>
 
 						<Command.Item
-							onSelect={() => runCommand(() => applyLayout('LR'))}
 							className='flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-zinc-800 aria-selected:bg-zinc-700'
+							onSelect={() => runCommand(() => applyLayout('LR'))}
 						>
 							<LayoutPanelLeft className='size-4 text-zinc-400' /> Apply
 							Left-to-Right Layout

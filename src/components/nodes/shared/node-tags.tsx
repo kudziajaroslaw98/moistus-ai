@@ -22,24 +22,24 @@ export const NodeTags = memo<{
 			<AnimatePresence mode='popLayout'>
 				{visibleTags.map((tag, index) => (
 					<motion.span
-						key={tag}
-						initial={{ opacity: 0, scale: 0.8 }}
 						animate={{ opacity: 1, scale: 1 }}
-						exit={{ opacity: 0, scale: 0.8 }}
-						transition={{
-							duration: 0.2,
-							delay: index * 0.03,
-						}}
 						className='px-2 py-0.5 rounded-full cursor-pointer'
+						exit={{ opacity: 0, scale: 0.8 }}
+						initial={{ opacity: 0, scale: 0.8 }}
+						key={tag}
+						whileHover={{ scale: 1.05 }}
+						whileTap={{ scale: 0.95 }}
 						style={{
 							fontSize: '11px',
 							backgroundColor: `rgba(${accentColor}, 0.1)`,
 							border: `1px solid rgba(${accentColor}, 0.2)`,
 							color: `rgba(${accentColor}, 0.87)`,
 						}}
+						transition={{
+							duration: 0.2,
+							delay: index * 0.03,
+						}}
 						onClick={() => onTagClick?.(tag)}
-						whileHover={{ scale: 1.05 }}
-						whileTap={{ scale: 0.95 }}
 					>
 						#{tag}
 					</motion.span>
@@ -49,6 +49,8 @@ export const NodeTags = memo<{
 			{hasMore && (
 				<motion.button
 					className='px-1.5 py-0.5 rounded-full flex items-center gap-0.5'
+					whileHover={{ scale: 1.05 }}
+					whileTap={{ scale: 0.95 }}
 					style={{
 						fontSize: '11px',
 						backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -56,8 +58,6 @@ export const NodeTags = memo<{
 						color: 'rgba(255, 255, 255, 0.6)',
 					}}
 					onClick={() => setIsExpanded(!isExpanded)}
-					whileHover={{ scale: 1.05 }}
-					whileTap={{ scale: 0.95 }}
 				>
 					<span>{isExpanded ? 'Less' : `+${tags.length - maxVisible}`}</span>
 

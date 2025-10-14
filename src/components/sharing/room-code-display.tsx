@@ -109,9 +109,9 @@ export function RoomCodeDisplay({
 
 	return (
 		<motion.div
-			initial={{ opacity: 0, y: 10 }}
 			animate={{ opacity: 1, y: 0 }}
 			className={`p-4 rounded-lg border border-zinc-700 bg-zinc-800/50 space-y-4 ${className}`}
+			initial={{ opacity: 0, y: 10 }}
 		>
 			{/* Header */}
 			<div className='flex items-center justify-between'>
@@ -135,7 +135,7 @@ export function RoomCodeDisplay({
 						</Badge>
 
 						{isExpired && (
-							<Badge variant='destructive' className='text-xs'>
+							<Badge className='text-xs' variant='destructive'>
 								Expired
 							</Badge>
 						)}
@@ -146,32 +146,32 @@ export function RoomCodeDisplay({
 
 				<div className='flex items-center gap-1'>
 					<Button
+						className='h-8 w-8 p-0'
 						size='sm'
+						title='Copy room code'
 						variant='ghost'
 						onClick={handleCopyCode}
-						className='h-8 w-8 p-0'
-						title='Copy room code'
 					>
 						<Copy className='h-4 w-4' />
 					</Button>
 
 					<Button
+						className='h-8 w-8 p-0'
 						size='sm'
+						title='Copy share link'
 						variant='ghost'
 						onClick={handleCopyLink}
-						className='h-8 w-8 p-0'
-						title='Copy share link'
 					>
 						<ExternalLink className='h-4 w-4' />
 					</Button>
 
 					{showQRCode && (
 						<Button
+							className='h-8 w-8 p-0'
 							size='sm'
+							title='Show QR code'
 							variant='ghost'
 							onClick={() => setShowQR(!showQR)}
-							className='h-8 w-8 p-0'
-							title='Show QR code'
 						>
 							<QrCode className='h-4 w-4' />
 						</Button>
@@ -179,12 +179,12 @@ export function RoomCodeDisplay({
 
 					{onRefresh && (
 						<Button
+							className='h-8 w-8 p-0'
+							disabled={isRefreshing || isExpired}
 							size='sm'
+							title='Refresh room code'
 							variant='ghost'
 							onClick={handleRefresh}
-							disabled={isRefreshing || isExpired}
-							className='h-8 w-8 p-0'
-							title='Refresh room code'
 						>
 							<RefreshCw
 								className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
@@ -194,11 +194,11 @@ export function RoomCodeDisplay({
 
 					{onRevoke && (
 						<Button
+							className='h-8 w-8 p-0 text-red-400 hover:text-red-300'
 							size='sm'
+							title='Revoke room code'
 							variant='ghost'
 							onClick={handleRevoke}
-							className='h-8 w-8 p-0 text-red-400 hover:text-red-300'
-							title='Revoke room code'
 						>
 							<X className='h-4 w-4' />
 						</Button>
@@ -214,13 +214,18 @@ export function RoomCodeDisplay({
 					<div className='flex items-center gap-2'>
 						<Users className='h-4 w-4 text-zinc-400' />
 
-						<span className='text-sm text-zinc-300'>
-							{token.current_users} / {token.max_users}
+						<span className='text-sm text-zinc-300 flex gap-1'>
+							<span>{token.current_users}</span>
+
+							<span>/</span>
+
+							<span>{token.max_users}</span>
 						</span>
 					</div>
 
 					<div className='w-full bg-zinc-700 rounded-full h-1.5'>
 						<div
+							style={{ width: `${Math.min(usagePercentage, 100)}%` }}
 							className={`h-1.5 rounded-full transition-all duration-300 ${
 								usagePercentage > 80
 									? 'bg-red-500'
@@ -228,7 +233,6 @@ export function RoomCodeDisplay({
 										? 'bg-yellow-500'
 										: 'bg-green-500'
 							}`}
-							style={{ width: `${Math.min(usagePercentage, 100)}%` }}
 						/>
 					</div>
 				</div>
@@ -256,19 +260,19 @@ export function RoomCodeDisplay({
 
 				<div className='flex flex-wrap gap-2'>
 					{token.permissions.can_view && (
-						<Badge variant='secondary' className='text-xs'>
+						<Badge className='text-xs' variant='secondary'>
 							View
 						</Badge>
 					)}
 
 					{token.permissions.can_comment && (
-						<Badge variant='secondary' className='text-xs'>
+						<Badge className='text-xs' variant='secondary'>
 							Comment
 						</Badge>
 					)}
 
 					{token.permissions.can_edit && (
-						<Badge variant='secondary' className='text-xs'>
+						<Badge className='text-xs' variant='secondary'>
 							Edit
 						</Badge>
 					)}
@@ -278,10 +282,10 @@ export function RoomCodeDisplay({
 			{/* QR Code placeholder */}
 			{showQR && (
 				<motion.div
-					initial={{ opacity: 0, height: 0 }}
 					animate={{ opacity: 1, height: 'auto' }}
-					exit={{ opacity: 0, height: 0 }}
 					className='space-y-2'
+					exit={{ opacity: 0, height: 0 }}
+					initial={{ opacity: 0, height: 0 }}
 				>
 					<Separator className='bg-zinc-700' />
 
@@ -305,10 +309,10 @@ export function RoomCodeDisplay({
 					</code>
 
 					<Button
+						className='h-6 w-6 p-0 flex-shrink-0'
 						size='sm'
 						variant='ghost'
 						onClick={handleCopyLink}
-						className='h-6 w-6 p-0 flex-shrink-0'
 					>
 						<Copy className='h-3 w-3' />
 					</Button>

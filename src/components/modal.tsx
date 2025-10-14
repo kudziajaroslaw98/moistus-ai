@@ -23,22 +23,22 @@ export default function Modal({
 					<h2 className='text-lg font-semibold text-zinc-100'>{title}</h2>
 
 					<button
-						onClick={onClose}
-						className='rounded-sm p-1 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-100 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none'
 						aria-label='Close modal'
+						className='rounded-sm p-1 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-100 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none'
+						onClick={onClose}
 					>
 						<svg
-							xmlns='http://www.w3.org/2000/svg'
 							className='h-5 w-5'
 							fill='none'
-							viewBox='0 0 24 24'
 							stroke='currentColor'
 							strokeWidth={2}
+							viewBox='0 0 24 24'
+							xmlns='http://www.w3.org/2000/svg'
 						>
 							<path
+								d='M6 18L18 6M6 6l12 12'
 								strokeLinecap='round'
 								strokeLinejoin='round'
-								d='M6 18L18 6M6 6l12 12'
 							/>
 						</svg>
 					</button>

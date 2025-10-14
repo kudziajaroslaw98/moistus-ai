@@ -60,7 +60,7 @@ export function AIStreamMediator() {
 				text: JSON.stringify(streamTrigger.body),
 			});
 		}
-	}, [streamTrigger, sendMessage, streamingAPI]);
+	}, [streamTrigger, setMessages, sendMessage, streamingAPI]);
 
 	return null; // This component is headless
 }

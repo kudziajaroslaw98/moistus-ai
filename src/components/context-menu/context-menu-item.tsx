@@ -59,19 +59,19 @@ export const ContextMenuItem = React.forwardRef<
 
 		return (
 			<Button
+				aria-describedby={shortcut ? `${label}-shortcut` : undefined}
+				aria-disabled={disabled || loading}
+				disabled={disabled || loading}
 				ref={ref}
+				role='menuitem'
+				style={getVariantStyles(variant)}
+				variant='ghost'
 				className={cn(
 					'h-8 w-full justify-start gap-2 p-2 text-sm',
 					'@media (hover: hover) and (pointer: fine) { transition-property: color, background-color, opacity }',
 					className
 				)}
-				variant='ghost'
 				onClick={onClick}
-				disabled={disabled || loading}
-				role='menuitem'
-				aria-disabled={disabled || loading}
-				aria-describedby={shortcut ? `${label}-shortcut` : undefined}
-				style={getVariantStyles(variant)}
 			>
 				{loading ? (
 					<Loader2 className='h-4 w-4 animate-spin' />
@@ -83,8 +83,8 @@ export const ContextMenuItem = React.forwardRef<
 
 				{shortcut && (
 					<span
-						id={`${label}-shortcut`}
 						className='ml-auto text-xs'
+						id={`${label}-shortcut`}
 						style={{ color: GlassmorphismTheme.text.disabled }}
 					>
 						{shortcut}

@@ -32,22 +32,22 @@ export const SharedNodeToolbar = ({
 	return (
 		<NodeToolbar
 			isVisible={isVisible}
-			position={position}
 			offset={offset}
+			position={position}
 		>
 			<AnimatePresence>
 				{isVisible && (
 					<motion.div
+						animate={{ opacity: 1, scale: 1, y: 0 }}
 						className={`flex gap-1 p-2 rounded-lg ${className}`}
+						exit={{ opacity: 0, scale: 0.95, y: 10 }}
+						initial={{ opacity: 0, scale: 0.95, y: 10 }}
 						style={{
 							backgroundColor: theme.elevation[4], // App bar elevation
 							border: `1px solid ${theme.borders.default}`,
 							backdropFilter: theme.effects.glassmorphism,
 							boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
 						}}
-						initial={{ opacity: 0, scale: 0.95, y: 10 }}
-						animate={{ opacity: 1, scale: 1, y: 0 }}
-						exit={{ opacity: 0, scale: 0.95, y: 10 }}
 						transition={{ 
 							duration: 0.2, 
 							type: 'spring', 

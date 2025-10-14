@@ -39,10 +39,10 @@ export function AIFeatureButton({
 	if (isLoading) {
 		return (
 			<Button
-				variant={variant}
-				size={size}
 				className={cn('relative', className)}
 				disabled={disabled}
+				size={size}
+				variant={variant}
 			>
 				<Sparkles className='w-4 h-4 mr-2' />
 
@@ -60,8 +60,8 @@ export function AIFeatureButton({
 				whileTap={{ scale: 0.98 }}
 			>
 				<Button
-					variant={variant}
 					size={size}
+					variant={variant}
 					className={cn(
 						'relative group',
 						variant === 'default' && 'bg-zinc-700 hover:bg-zinc-600',
@@ -82,9 +82,9 @@ export function AIFeatureButton({
 
 					{/* Hover tooltip */}
 					<motion.div
+						className='absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded-md text-xs text-zinc-300 whitespace-nowrap pointer-events-none'
 						initial={{ opacity: 0, y: 5 }}
 						whileHover={{ opacity: 1, y: 0 }}
-						className='absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded-md text-xs text-zinc-300 whitespace-nowrap pointer-events-none'
 					>
 						Upgrade to Pro to use AI features
 					</motion.div>
@@ -96,11 +96,11 @@ export function AIFeatureButton({
 	// User has access, show normal button
 	return (
 		<Button
-			variant={variant}
-			size={size}
 			className={cn('relative', className)}
-			onClick={handleClick}
 			disabled={disabled}
+			size={size}
+			variant={variant}
+			onClick={handleClick}
 		>
 			<Sparkles className='w-4 h-4 mr-2' />
 
@@ -124,9 +124,9 @@ export function AIGenerateSuggestions() {
 			<h3 className='text-lg font-semibold text-zinc-50'>AI Suggestions</h3>
 
 			<AIFeatureButton
-				onClick={handleGenerateSuggestions}
-				variant='outline'
 				className='w-full'
+				variant='outline'
+				onClick={handleGenerateSuggestions}
 			>
 				Generate AI Suggestions
 			</AIFeatureButton>

@@ -76,17 +76,17 @@ export function EdgeStyleSelector({
 			</span>
 
 			<ToggleGroup
+				className='flex px-2 pb-2'
 				type='single'
 				value={edge.data?.metadata?.pathType}
 				onValueChange={(value) => value && onPathTypeChange(value as PathType)}
-				className='flex px-2 pb-2'
 			>
 				{pathTypeOptions.map((pathType) => (
 					<ToggleGroupItem
-						key={pathType}
-						value={pathType}
 						aria-label={`${pathType} path`}
 						className='h-8 w-8 p-0'
+						key={pathType}
+						value={pathType}
 					>
 						{getItemIcon(pathType)}
 					</ToggleGroupItem>
@@ -102,20 +102,20 @@ export function EdgeStyleSelector({
 			</span>
 
 			<ToggleGroup
+				className='flex px-2 pb-2'
 				type='single'
 				value={edge.data?.style?.stroke}
 				onValueChange={(value) => {
 					const color = value === 'default' ? undefined : value;
 					onColorChange(color);
 				}}
-				className='flex px-2 pb-2'
 			>
 				{edgeColors.map((colorOpt) => (
 					<ToggleGroupItem
-						key={colorOpt.name}
-						value={colorOpt.value || 'default'}
 						aria-label={colorOpt.name}
 						className='h-8 w-8 p-0'
+						key={colorOpt.name}
+						value={colorOpt.value || 'default'}
 					>
 						<span
 							className='inline-block h-3 w-3 rounded-full'

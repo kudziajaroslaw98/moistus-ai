@@ -50,26 +50,26 @@ const CreateMapForm = forwardRef<HTMLFormElement, CreateMapFormProps>(
 
 		return (
 			<form
+				className={cn('group relative max-w-md', className)}
 				ref={ref}
 				onSubmit={handleSubmit}
-				className={cn('group relative max-w-md', className)}
 			>
 				{/* Unified Input Group Container */}
 				<div className='relative flex items-center rounded-lg border border-zinc-700/50 bg-zinc-800/30 backdrop-blur-sm shadow-lg transition-all duration-200 hover:border-zinc-600/50 hover:bg-zinc-800/50 focus-within:border-sky-500/60 focus-within:bg-zinc-800/70 focus-within:ring-2 focus-within:ring-sky-500/20 focus-within:ring-offset-2 focus-within:ring-offset-zinc-900'>
 					{/* Input Field */}
 					<Input
+						className='flex-1 !bg-transparent focus:!bg-transparent focus:border-transparent shadow-none focus:ring-offset-0 ring-transparent !border-transparent px-4 py-2.5 text-zinc-100 placeholder-zinc-400 focus:!outline-none focus:ring-0 disabled:opacity-50'
+						disabled={disabled || isSubmitting}
+						placeholder={placeholder}
 						type='text'
 						value={title}
 						onChange={(e) => setTitle(e.target.value)}
-						placeholder={placeholder}
-						disabled={disabled || isSubmitting}
-						className='flex-1 !bg-transparent focus:!bg-transparent focus:border-transparent shadow-none focus:ring-offset-0 ring-transparent !border-transparent px-4 py-2.5 text-zinc-100 placeholder-zinc-400 focus:!outline-none focus:ring-0 disabled:opacity-50'
 					/>
 
 					{/* Create Button */}
 					<motion.button
-						type='submit'
 						disabled={isDisabled}
+						type='submit'
 						whileHover={!isDisabled ? { scale: 1.02 } : {}}
 						whileTap={!isDisabled ? { scale: 0.98 } : {}}
 						className={cn(

@@ -30,14 +30,14 @@ export const RealtimeCursors = ({
 
 				return (
 					<Cursor
-						key={id}
 						className='fixed transition-transform !z-[100] ease-in-out pointer-events-none'
+						color={cursors[id].color}
+						key={id}
+						name={cursors[id].user.name}
 						style={{
 							transitionDuration: '20ms',
 							transform: `translate(${cursors[id].position.x * viewport.zoom + viewport.x - 32}px, ${cursors[id].position.y * viewport.zoom + viewport.y - 32}px) scale(${viewport.zoom})`,
 						}}
-						color={cursors[id].color}
-						name={cursors[id].user.name}
 					/>
 				);
 			})}

@@ -72,24 +72,24 @@ export function OnboardingModal() {
 			case 0:
 				return (
 					<WelcomeStep
-						onContinue={nextOnboardingStep}
 						userName={useAppStore.getState().userProfile?.display_name}
+						onContinue={nextOnboardingStep}
 					/>
 				);
 			case 1:
 				return (
 					<BenefitsStep
-						onContinue={nextOnboardingStep}
 						onBack={previousOnboardingStep}
+						onContinue={nextOnboardingStep}
 					/>
 				);
 			case 2:
 				return (
 					<PricingStep
-						onContinue={nextOnboardingStep}
-						onBack={previousOnboardingStep}
-						selectedPlan={onboardingData.selectedPlan || null}
 						billingCycle={onboardingData.billingCycle || 'monthly'}
+						selectedPlan={onboardingData.selectedPlan || null}
+						onBack={previousOnboardingStep}
+						onContinue={nextOnboardingStep}
 					/>
 				);
 			case 3:
@@ -100,10 +100,10 @@ export function OnboardingModal() {
 				) {
 					return (
 						<PaymentStep
-							onComplete={nextOnboardingStep}
-							onBack={previousOnboardingStep}
-							selectedPlan={onboardingData.selectedPlan}
 							billingCycle={onboardingData.billingCycle || 'monthly'}
+							selectedPlan={onboardingData.selectedPlan}
+							onBack={previousOnboardingStep}
+							onComplete={nextOnboardingStep}
 						/>
 					);
 				}
@@ -121,28 +121,28 @@ export function OnboardingModal() {
 		<Dialog open={showOnboarding} onOpenChange={handleClose}>
 			<DialogContent
 				className='flex !w-full !max-w-4xl p-0 overflow-hidden'
+				showCloseButton={false}
 				style={{
 					backgroundColor: GlassmorphismTheme.elevation[2],
 					borderColor: GlassmorphismTheme.borders.default,
 					borderWidth: '1px',
 				}}
-				showCloseButton={false}
-				onPointerDownOutside={(e) => e.preventDefault()}
 				onInteractOutside={(e) => e.preventDefault()}
+				onPointerDownOutside={(e) => e.preventDefault()}
 			>
 				<motion.div
-					layout='size'
 					className='relative h-auto w-full flex flex-col'
+					layout='size'
 				>
 					{/* Skip button */}
 					<button
-						onClick={handleSkip}
-						disabled={isAnimating}
 						className='absolute top-4 right-4 z-10 text-sm transition-colors'
+						disabled={isAnimating}
 						style={{
 							color: GlassmorphismTheme.text.medium,
 							transitionDuration: GlassmorphismTheme.animations.duration.normal,
 						}}
+						onClick={handleSkip}
 						onMouseEnter={(e) => {
 							e.currentTarget.style.color = GlassmorphismTheme.text.high;
 						}}
@@ -156,19 +156,19 @@ export function OnboardingModal() {
 					{/* Step content */}
 					<div className='flex p-4 overflow-hidden'>
 						<AnimatePresence
+							custom={onboardingDirection}
 							initial={false}
 							mode='popLayout'
-							custom={onboardingDirection}
 						>
 							<motion.div
-								key={onboardingStep}
-								custom={onboardingDirection}
-								variants={stepVariants}
-								initial='enter'
 								animate='center'
-								exit='exit'
-								transition={transition}
 								className='flex flex-col w-full h-full overflow-hidden'
+								custom={onboardingDirection}
+								exit='exit'
+								initial='enter'
+								key={onboardingStep}
+								transition={transition}
+								variants={stepVariants}
 							>
 								{renderStep()}
 							</motion.div>
@@ -185,8 +185,8 @@ export function OnboardingModal() {
 						<div className='flex items-center justify-center gap-2'>
 							{[0, 1, 2].map((step) => (
 								<div
-									key={step}
 									className='h-2 rounded-full'
+									key={step}
 									style={{
 										width: step === onboardingStep ? '32px' : '8px',
 										backgroundColor:

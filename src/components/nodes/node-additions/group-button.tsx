@@ -26,20 +26,22 @@ const GroupButtonComponent = () => {
 	return (
 		<div
 			className='flex items-center gap-1.5 px-2 py-1 rounded-md transition-all cursor-default'
+			title={`Member of group: ${groupLabel}`}
 			style={{
 				backgroundColor: 'rgba(167, 139, 250, 0.1)',
 				border: '1px solid rgba(167, 139, 250, 0.2)',
 				fontSize: '11px',
 			}}
-			title={`Member of group: ${groupLabel}`}
 		>
 			<Group className='size-3' style={{ color: 'rgba(167, 139, 250, 0.87)' }} />
 
-			<span style={{ 
+			<span
+style={{ 
 				color: 'rgba(167, 139, 250, 0.87)',
 				fontWeight: 500,
 				letterSpacing: '0.01em'
-			}}>
+			}}
+			>
 				{groupLabel}
 			</span>
 		</div>
