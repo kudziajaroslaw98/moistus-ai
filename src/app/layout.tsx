@@ -36,7 +36,7 @@ export default function RootLayout({
 			suppressHydrationWarning={true}
 		>
 			<body
-				className={`${geistSans.variable} ${geistMono.variable} ${lora.variable} dark h-full w-full bg-zinc-950 antialiased`}
+				className={`${geistSans.variable} ${geistMono.variable} ${lora.variable} dark h-full w-full bg-zinc-950`}
 				suppressHydrationWarning={true}
 			>
 				<ClientProviders>

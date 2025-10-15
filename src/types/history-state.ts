@@ -15,19 +15,30 @@ export interface HistoryState {
 
 // ===== New types for DB-backed history (non-breaking additions) =====
 
-// Patch-only delta structure (no before/after)
+// Bidirectional patch structure (supports undo/redo)
 export interface HistoryPatchOp {
 	id: string;
 	type: 'node' | 'edge';
 	op: 'add' | 'remove' | 'patch';
-	value?: Partial<Node<NodeData> | AppEdge>; // for add
-	patch?: Record<string, any>; // for patch (dotted paths)
+	value?: Partial<Node<NodeData> | AppEdge>; // for add (forward)
+	removedValue?: Partial<Node<NodeData> | AppEdge>; // for remove (backward - what was removed)
+	patch?: Record<string, any>; // for patch (dotted paths - forward: old -> new)
+	reversePatch?: Record<string, any>; // for patch (backward: new -> old, enables undo)
 }
 
 export interface HistoryDelta {
 	operation: 'add' | 'update' | 'delete' | 'batch'; // top-level label
 	entityType: 'node' | 'edge' | 'mixed';
 	changes: HistoryPatchOp[];
+}
+
+// Delta with attribution for collaborative history
+export interface AttributedHistoryDelta extends HistoryDelta {
+	userId: string;
+	userName: string;
+	userAvatar?: string;
+	actionName: string;
+	timestamp: number;
 }
 
 export interface HistoryDbItem {

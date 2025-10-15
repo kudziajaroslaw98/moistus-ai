@@ -1,8 +1,11 @@
+import {
+	GlassmorphismTheme,
+	getElevationColor,
+} from '@/components/nodes/themes/glassmorphism-theme';
 import { cn } from '@/utils/cn';
 import { X } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import React from 'react';
-import { GlassmorphismTheme, getElevationColor } from '@/components/nodes/themes/glassmorphism-theme';
 
 interface SidePanelProps {
 	isOpen: boolean;
@@ -31,9 +34,7 @@ export function SidePanel({
 	};
 
 	// Reduced motion: instant transitions
-	const transition = shouldReduceMotion
-		? { duration: 0 }
-		: springConfig;
+	const transition = shouldReduceMotion ? { duration: 0 } : springConfig;
 
 	return (
 		<AnimatePresence mode='popLayout'>
@@ -55,10 +56,9 @@ export function SidePanel({
 					style={{
 						backgroundColor: getElevationColor(8),
 						borderLeft: `1px solid ${theme.borders.default}`,
-						willChange: 'transform, opacity',
 					}}
 					className={cn(
-						'fixed top-0 right-0 bottom-0 z-40 h-full w-full max-w-xl min-w-sm shadow-xl',
+						'fixed top-0 right-0 bottom-0 z-40 h-full w-full max-w-xl min-w-sm shadow-xl will-change-transform',
 						className
 					)}
 					transition={transition}

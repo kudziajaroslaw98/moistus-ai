@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server';
 
 export async function POST(
 	req: Request,
-	{ params }: { params: { mapId: string } }
+	{ params }: { params: Promise<{ mapId: string }> }
 ) {
 	try {
 		const supabase = await createClient();
@@ -17,7 +17,7 @@ export async function POST(
 		if (!user)
 			return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
-		const mapId = params.mapId;
+		const { mapId } = await params;
 		const body = await req.json().catch(() => ({}));
 		const { snapshotId, eventId } = body as {
 			snapshotId?: string;

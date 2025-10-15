@@ -28,9 +28,14 @@ export function calculateDelta(
   }
 
   // Removed nodes
-  for (const [id] of oldNodeMap) {
+  for (const [id, oldNode] of oldNodeMap) {
     if (!newNodeMap.has(id)) {
-      changes.push({ id, type: 'node', op: 'remove' });
+      changes.push({
+        id,
+        type: 'node',
+        op: 'remove',
+        removedValue: minimizeNode(oldNode) // Store what was removed for undo
+      });
     }
   }
 
@@ -40,7 +45,14 @@ export function calculateDelta(
     if (oldNode) {
       const patch = diffToDottedPatch(oldNode, newNode);
       if (Object.keys(patch).length > 0) {
-        changes.push({ id, type: 'node', op: 'patch', patch });
+        const reversePatch = createReversePatch(oldNode, patch);
+        changes.push({
+          id,
+          type: 'node',
+          op: 'patch',
+          patch, // Forward: old -> new
+          reversePatch // Backward: new -> old (for undo)
+        });
       }
     }
   }
@@ -55,9 +67,14 @@ export function calculateDelta(
     }
   }
 
-  for (const [id] of oldEdgeMap) {
+  for (const [id, oldEdge] of oldEdgeMap) {
     if (!newEdgeMap.has(id)) {
-      changes.push({ id, type: 'edge', op: 'remove' });
+      changes.push({
+        id,
+        type: 'edge',
+        op: 'remove',
+        removedValue: minimizeEdge(oldEdge) // Store what was removed for undo
+      });
     }
   }
 
@@ -66,7 +83,14 @@ export function calculateDelta(
     if (oldEdge) {
       const patch = diffToDottedPatch(oldEdge, newEdge);
       if (Object.keys(patch).length > 0) {
-        changes.push({ id, type: 'edge', op: 'patch', patch });
+        const reversePatch = createReversePatch(oldEdge, patch);
+        changes.push({
+          id,
+          type: 'edge',
+          op: 'patch',
+          patch, // Forward: old -> new
+          reversePatch // Backward: new -> old (for undo)
+        });
       }
     }
   }
@@ -275,6 +299,86 @@ function isPrimitive(v: any): boolean {
 
 function deepEqual(a: any, b: any): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
+ * Creates a reverse patch that can undo the forward patch.
+ * For each path in the patch, extracts the old value from the original object.
+ */
+function createReversePatch(originalObject: any, forwardPatch: Record<string, any>): Record<string, any> {
+  const reverse: Record<string, any> = {};
+  for (const [path, newValue] of Object.entries(forwardPatch)) {
+    reverse[path] = getByPath(originalObject, path);
+  }
+  return reverse;
+}
+
+/**
+ * Gets a value from an object by dotted path.
+ * E.g., getByPath({a: {b: {c: 5}}}, 'a.b.c') returns 5
+ */
+function getByPath(obj: any, path: string): any {
+  if (!path) return obj;
+  const parts = path.split('.');
+  let current = obj;
+  for (const part of parts) {
+    if (current == null) return undefined;
+    current = current[part];
+  }
+  return current;
+}
+
+/**
+ * Applies a delta in reverse (for undo).
+ * Uses reversePatch and removedValue fields to restore previous state.
+ */
+export function applyDeltaReverse(
+  baseState: { nodes: AppNode[]; edges: AppEdge[] },
+  delta: HistoryDelta
+): { nodes: AppNode[]; edges: AppEdge[] } {
+  let nodes = [...baseState.nodes];
+  let edges = [...baseState.edges];
+
+  // Process changes in reverse order
+  for (let i = delta.changes.length - 1; i >= 0; i--) {
+    const change = delta.changes[i];
+
+    if (change.type === 'node') {
+      if (change.op === 'add') {
+        // Reverse of add is remove
+        nodes = nodes.filter((n) => n.id !== change.id);
+      } else if (change.op === 'remove') {
+        // Reverse of remove is add back what was removed
+        if (change.removedValue) {
+          nodes.push({ ...change.removedValue, id: change.id } as AppNode);
+        }
+      } else if (change.op === 'patch' && change.reversePatch) {
+        // Apply reverse patch
+        const idx = nodes.findIndex((n) => n.id === change.id);
+        if (idx !== -1) {
+          nodes[idx] = applyDottedPatch(nodes[idx], change.reversePatch) as AppNode;
+        }
+      }
+    } else if (change.type === 'edge') {
+      if (change.op === 'add') {
+        // Reverse of add is remove
+        edges = edges.filter((e) => e.id !== change.id);
+      } else if (change.op === 'remove') {
+        // Reverse of remove is add back what was removed
+        if (change.removedValue) {
+          edges.push({ ...change.removedValue, id: change.id } as AppEdge);
+        }
+      } else if (change.op === 'patch' && change.reversePatch) {
+        // Apply reverse patch
+        const idx = edges.findIndex((e) => e.id === change.id);
+        if (idx !== -1) {
+          edges[idx] = applyDottedPatch(edges[idx], change.reversePatch) as AppEdge;
+        }
+      }
+    }
+  }
+
+  return { nodes, edges };
 }
 
 /**

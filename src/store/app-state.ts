@@ -165,6 +165,7 @@ export interface HistorySlice {
 	canUndo: boolean;
 	canRedo: boolean;
 	getCurrentHistoryState: () => HistoryState | undefined;
+	canRevertChange: (delta?: any) => boolean; // Permission check for collaborative history
 }
 
 // Layout Slice

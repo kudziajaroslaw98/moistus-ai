@@ -2,10 +2,23 @@
 
 import GlassmorphismTheme from '@/components/nodes/themes/glassmorphism-theme';
 import useAppStore from '@/store/mind-map-store';
-import type { HistoryItem as HistoryMeta } from '@/types/history-state';
+import type {
+	AttributedHistoryDelta,
+	HistoryItem as HistoryMeta,
+} from '@/types/history-state';
 import { cn } from '@/utils/cn';
-import { Clock, GitCommit, Milestone, Pencil, Plus, Trash } from 'lucide-react';
+import {
+	Clock,
+	GitCommit,
+	Lock,
+	Milestone,
+	Pencil,
+	Plus,
+	Trash,
+	User,
+} from 'lucide-react';
 import { motion } from 'motion/react';
+import Image from 'next/image';
 import { Button } from '../ui/button';
 
 interface Props {
@@ -17,9 +30,26 @@ interface Props {
 export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 	const isLoading = useAppStore((s) => s.loadingStates?.isStateLoading);
 	const revertToHistoryState = useAppStore((s) => s.revertToHistoryState);
+	const history = useAppStore((s) => s.history);
+	const canRevertChange = useAppStore((s) => s.canRevertChange);
+	const currentUser = useAppStore((s) => s.currentUser);
+
+	// Get delta for attribution
+	const historyEntry = history[originalIndex] as any;
+	const delta = historyEntry?._delta as AttributedHistoryDelta | undefined;
 
 	const handleRevert = () => {
 		if (!isLoading) revertToHistoryState(originalIndex);
+	};
+
+	// Check if user has permission to revert this change
+	const hasPermission = canRevertChange(delta);
+
+	// Display user name
+	const getUserDisplay = (): string => {
+		if (!delta) return '';
+		if (delta.userId === currentUser?.id) return 'You';
+		return delta.userName || 'Unknown';
 	};
 
 	const formatTimestamp = (timestamp: number): string => {
@@ -48,13 +78,13 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 
 	return (
 		<motion.div
-			animate={{ opacity: 1, y: 0, scale: 1 }}
+			animate={{ opacity: 1, y: 0 }}
 			exit={{ opacity: 0, y: 20 }}
 			initial={{ opacity: 0, y: -20 }}
 			transition={{ ease: [0.215, 0.61, 0.355, 1], duration: 0.3 }}
 			whileHover={{ scale: 1.01 }}
 			className={cn(
-				'flex items-start gap-3 rounded-lg border p-3 will-change-transform',
+				'flex items-start gap-3 rounded-lg border p-3 ',
 				isCurrent
 					? 'border-teal-500 bg-teal-900/20 shadow-[0_0_0_1px_rgba(96,165,250,0.3)]'
 					: 'border-white/6 bg-[#1E1E1E] hover:border-white/10 hover:bg-[#222222]'
@@ -89,9 +119,38 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 							{meta.actionName}
 						</h4>
 
-						<p className='text-xs text-white/60'>
-							{formatTimestamp(meta.timestamp)}
-						</p>
+						{/* User attribution */}
+						{delta && (
+							<div className='mt-1 flex items-center gap-1.5'>
+								{delta.userAvatar ? (
+									<Image
+										alt={delta.userName}
+										className='rounded-full'
+										height={16}
+										src={delta.userAvatar}
+										width={16}
+									/>
+								) : (
+									<User className='h-4 w-4 text-white/38' />
+								)}
+
+								<span className='text-xs text-white/60'>
+									{getUserDisplay()}
+								</span>
+
+								<span className='text-xs text-white/38'>•</span>
+
+								<span className='text-xs text-white/60'>
+									{formatTimestamp(meta.timestamp)}
+								</span>
+							</div>
+						)}
+
+						{!delta && (
+							<p className='text-xs text-white/60'>
+								{formatTimestamp(meta.timestamp)}
+							</p>
+						)}
 
 						<div className='mt-1 flex flex-wrap gap-3 text-xs text-white/38'>
 							{typeof meta.nodeCount === 'number' && (
@@ -114,20 +173,27 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 
 					{!isCurrent && (
 						<Button
-							disabled={isLoading}
+							disabled={isLoading || !hasPermission}
 							size='sm'
 							variant='outline'
 							className={cn(
-								'h-6 px-2 text-xs',
+								'h-6 px-2 text-xs gap-1',
 								'border-white/10 text-white/87',
-								'hover:border-white/20 hover:bg-white/5'
+								'hover:border-white/20 hover:bg-white/5',
+								!hasPermission && 'cursor-not-allowed opacity-50'
 							)}
 							style={{
 								backgroundColor: GlassmorphismTheme.buttons.standard.background,
 								borderColor: GlassmorphismTheme.buttons.standard.border,
 							}}
 							onClick={handleRevert}
+							title={
+								!hasPermission
+									? 'You do not have permission to revert this change'
+									: 'Revert to this state'
+							}
 						>
+							{!hasPermission && <Lock className='h-3 w-3' />}
 							Revert
 						</Button>
 					)}

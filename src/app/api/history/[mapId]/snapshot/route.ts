@@ -1,18 +1,19 @@
-import { NextResponse } from 'next/server';
 import { createClient } from '@/helpers/supabase/server';
+import { NextResponse } from 'next/server';
 
 export async function POST(
 	req: Request,
-	{ params }: { params: { mapId: string } }
+	{ params }: { params: Promise<{ mapId: string }> }
 ) {
 	try {
 		const supabase = await createClient();
 		const {
 			data: { user },
 		} = await supabase.auth.getUser();
-		if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+		if (!user)
+			return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
-		const mapId = params.mapId;
+		const { mapId } = await params;
 		const body = await req.json().catch(() => ({}));
 		const { actionName, nodes = [], edges = [], isMajor = true } = body;
 
@@ -23,7 +24,10 @@ export async function POST(
 			.eq('id', mapId)
 			.single();
 		if (!map || map.user_id !== user.id) {
-			return NextResponse.json({ error: 'Map not found or access denied' }, { status: 404 });
+			return NextResponse.json(
+				{ error: 'Map not found or access denied' },
+				{ status: 404 }
+			);
 		}
 
 		// Treat users with active/trialing subscription as Pro
@@ -68,7 +72,10 @@ export async function POST(
 			.single();
 		if (error) {
 			console.error('Failed to create snapshot:', error);
-			return NextResponse.json({ error: 'Failed to create snapshot' }, { status: 500 });
+			return NextResponse.json(
+				{ error: 'Failed to create snapshot' },
+				{ status: 500 }
+			);
 		}
 
 		return NextResponse.json({
@@ -78,6 +85,9 @@ export async function POST(
 		});
 	} catch (error) {
 		console.error('Snapshot error:', error);
-		return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+		return NextResponse.json(
+			{ error: 'Internal server error' },
+			{ status: 500 }
+		);
 	}
 }
