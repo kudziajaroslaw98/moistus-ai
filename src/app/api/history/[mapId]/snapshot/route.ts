@@ -78,6 +78,25 @@ export async function POST(
 			);
 		}
 
+		// Update the current history pointer to the new snapshot
+		try {
+			await supabase.from('map_history_current').upsert(
+				{
+					map_id: mapId,
+					snapshot_id: inserted.id,
+					event_id: null,
+					updated_by: user.id,
+					updated_at: new Date().toISOString(),
+				},
+				{ onConflict: 'map_id' }
+			);
+		} catch (pointerErr) {
+			console.error(
+				'Failed to update current history pointer (snapshot):',
+				pointerErr
+			);
+		}
+
 		return NextResponse.json({
 			snapshotId: inserted.id,
 			snapshotIndex: inserted.snapshot_index,

@@ -449,7 +449,12 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				{ nodes: get().nodes, edges: get().edges }
 			);
 		},
-		updateNodeDimensions: (nodeId: string, width: number, height: number) => {
+		updateNodeDimensions: (
+			nodeId: string,
+			width: number,
+			height: number,
+			imageSize?: { width: number; height: number }
+		) => {
 			const prevNodes = get().nodes;
 			const prevEdges = get().edges;
 			const { nodes } = get();
@@ -464,8 +469,8 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 			// Check if dimensions have actually changed (>5px threshold)
 			const currentWidth = node.measured?.width || node.width || 0;
 			const currentHeight = node.measured?.height || node.height || 0;
-			const widthChanged = Math.abs(snappedWidth - currentWidth) > 5;
-			const heightChanged = Math.abs(snappedHeight - currentHeight) > 5;
+			const widthChanged = Math.abs(snappedWidth - currentWidth) > 15;
+			const heightChanged = Math.abs(snappedHeight - currentHeight) > 15;
 
 			// If dimensions haven't changed significantly, skip update
 			if (!widthChanged && !heightChanged) {
@@ -489,6 +494,10 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 								...node.data,
 								width: snappedWidth,
 								height: snappedHeight,
+								metadata: {
+									...node.data.metadata,
+									imageSize: imageSize,
+								},
 							},
 						};
 					}
@@ -556,7 +565,8 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				const finalEdges = edges.filter((e) => !edgesToDelete.includes(e));
 
 				// Determine action name based on deletion count
-				const actionName = nodesToDelete.length === 1 ? 'deleteNode' : 'deleteNodes';
+				const actionName =
+					nodesToDelete.length === 1 ? 'deleteNode' : 'deleteNodes';
 
 				// Add to in-memory history for undo/redo
 				addStateToHistory(actionName, {

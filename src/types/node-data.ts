@@ -62,6 +62,7 @@ export interface NodeData extends Record<string, unknown> {
 		faviconUrl?: string;
 		thumbnailUrl?: string;
 		resourceType?: string;
+		imageSize?: { width: number; height: number };
 
 		// ------------------------------------------
 		// Image Properties (ImageNode)

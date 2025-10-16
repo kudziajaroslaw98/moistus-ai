@@ -417,16 +417,47 @@ export const createHistorySlice: StateCreator<
 				.single();
 			const nextEventIndex = (lastEvent?.event_index ?? -1) + 1;
 
-			await supabase.from('map_history_events').insert({
-				map_id: mapId,
-				user_id: userId,
-				snapshot_id: snapshotId,
-				event_index: nextEventIndex,
-				action_name: actionName,
-				operation_type: delta.operation,
-				entity_type: delta.entityType,
-				changes: delta,
-			});
+			// Insert event and retrieve its id to move the current pointer
+			const { data: insertedEv } = await supabase
+				.from('map_history_events')
+				.insert({
+					map_id: mapId,
+					user_id: userId,
+					snapshot_id: snapshotId,
+					event_index: nextEventIndex,
+					action_name: actionName,
+					operation_type: delta.operation,
+					entity_type: delta.entityType,
+					changes: delta,
+				})
+				.select('id, snapshot_id')
+				.single();
+
+			if (insertedEv) {
+				try {
+					await supabase.from('map_history_current').upsert(
+						{
+							map_id: mapId,
+							snapshot_id: insertedEv.snapshot_id,
+							event_id: insertedEv.id,
+							updated_by: userId,
+							updated_at: new Date().toISOString(),
+						},
+						{ onConflict: 'map_id' }
+					);
+
+					// If history panel is open, refresh to reflect new current pointer
+					const { popoverOpen, loadHistoryFromDB, mapId: currentMapId } = get();
+					if (popoverOpen?.history && currentMapId) {
+						await loadHistoryFromDB();
+					}
+				} catch (pointerErr) {
+					console.error(
+						'Failed to update current history pointer:',
+						pointerErr
+					);
+				}
+			}
 		} catch (e) {
 			console.error('persistDeltaEvent failed:', e);
 		}

@@ -82,6 +82,7 @@ export interface ResourceNodeMetadata extends BaseNodeMetadata {
 	showThumbnail?: boolean;
 	title?: string;
 	resourceType?: string;
+	imageSize?: { width: number; height: number };
 }
 
 // Question metadata - Simple decision-making questions

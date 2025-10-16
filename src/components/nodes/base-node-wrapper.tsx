@@ -134,7 +134,7 @@ const BaseNodeWrapperComponent = ({
 		<div
 			ref={nodeRef}
 			className={cn(
-				'h-auto min-w-80 flex-col rounded-lg cursor-move',
+				'h-full min-w-80 flex-col rounded-lg cursor-move',
 				includePadding ? 'p-4' : 'p-0',
 				nodeClassName
 			)}
@@ -146,7 +146,6 @@ const BaseNodeWrapperComponent = ({
 				backgroundImage: 'url("/images/groovepaper.png")',
 				backgroundRepeat: 'repeat',
 				opacity: 1,
-				mixBlendMode: 'darken',
 				gap: '1rem',
 			}}
 		>

@@ -61,13 +61,13 @@ interface PatternConfig {
 const PATTERNS: PatternConfig[] = [
 	// Tags: #tag
 	{
-		regex: /#[a-zA-Z][a-zA-Z0-9_-]*/g,
+		regex: /(?<!:)#[a-zA-Z][a-zA-Z0-9_-]*/g,
 		className: PATTERN_STYLES.tag,
 	},
 
 	// Assignees: @person
 	{
-		regex: /@[a-zA-Z][a-zA-Z0-9_-]*/g,
+		regex: /(?<!:)@[a-zA-Z][a-zA-Z0-9_-]*/g,
 		className: PATTERN_STYLES.assignee,
 	},
 

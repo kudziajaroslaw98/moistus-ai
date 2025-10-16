@@ -210,7 +210,7 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 
 	// Tag pattern: #tag (like #bug, #feature, #urgent)
 	{
-		regex: /#([a-zA-Z][a-zA-Z0-9_-]*)/g,
+		regex: /(?<!:)#([a-zA-Z][a-zA-Z0-9_-]*)/g,
 		type: 'tag',
 		extract: (match) => ({
 			value: match[1],
@@ -221,7 +221,7 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 
 	// Assignee pattern: @person (like @john, @team-lead)
 	{
-		regex: /@([a-zA-Z][a-zA-Z0-9_-]*)/g,
+		regex: /(?<!:)@([a-zA-Z][a-zA-Z0-9_-]*)/g,
 		type: 'assignee',
 		extract: (match) => ({
 			value: match[1],

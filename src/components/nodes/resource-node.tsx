@@ -23,19 +23,22 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 	);
 
 	// Helper to remeasure node dimensions after content changes
-	const remeasureNode = useCallback(() => {
-		if (!containerRef.current) return;
+	const remeasureNode = useCallback(
+		(width: number, height: number) => {
+			if (!containerRef.current) return;
 
-		// Find the node wrapper parent (the ref is attached there)
-		const nodeWrapper = containerRef.current.closest('.react-flow__node');
-		if (!nodeWrapper) return;
+			// Find the node wrapper parent (the ref is attached there)
+			const nodeWrapper = containerRef.current.closest('.react-flow__node');
+			if (!nodeWrapper) return;
 
-		const actualHeight = (nodeWrapper as HTMLElement).scrollHeight;
-		const actualWidth = (nodeWrapper as HTMLElement).offsetWidth;
+			const actualHeight = (nodeWrapper as HTMLElement).clientHeight;
+			const actualWidth = (nodeWrapper as HTMLElement).offsetWidth;
 
-		// Update dimensions immediately
-		updateNodeDimensions(id, actualWidth, actualHeight);
-	}, [id, updateNodeDimensions]);
+			// Update dimensions immediately
+			updateNodeDimensions(id, actualWidth, actualHeight, { width, height });
+		},
+		[id, updateNodeDimensions]
+	);
 
 	const resourceUrl = data.metadata?.url as string | undefined;
 	const title = (data.metadata?.title as string) || data.content || 'Resource';
@@ -99,10 +102,25 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 							<Image
 								alt={title}
 								className='object-cover'
-								fill={true}
 								loading='lazy'
 								src={imageUrl}
 								unoptimized={true}
+								fill={
+									data.metadata?.imageSize?.width === undefined ||
+									data.metadata?.imageSize?.height === undefined
+										? true
+										: undefined
+								}
+								width={
+									data.metadata?.imageSize?.width !== undefined
+										? data.metadata?.imageSize?.width
+										: undefined
+								}
+								height={
+									data.metadata?.imageSize?.height != undefined
+										? data.metadata?.imageSize?.height
+										: undefined
+								}
 								style={{
 									opacity: imageLoading ? 0 : 1,
 									transition: 'opacity 0.3s ease-out',
@@ -111,10 +129,12 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 									setImageError(true);
 									setImageLoading(false);
 								}}
-								onLoad={() => {
+								onLoad={(e) => {
+									const height = e.currentTarget.naturalHeight;
+									const width = e.currentTarget.naturalWidth;
 									setImageLoading(false);
 									// Remeasure after image loads (affects height)
-									setTimeout(remeasureNode, 50);
+									setTimeout(() => remeasureNode(width, height), 50);
 								}}
 							/>
 						) : (
