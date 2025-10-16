@@ -1,5 +1,6 @@
 'use client';
 
+import { GRID_SIZE, ceilToGrid } from '@/constants/grid';
 import useAppStore from '@/store/mind-map-store';
 import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
@@ -74,11 +75,13 @@ const GroupNodeComponent = (props: GroupNodeProps) => {
 
 		// Use same padding as createGroupFromSelected (40px)
 		const padding = 40;
+		const rawWidth = Math.max(maxX - minX + padding * 2, 320);
+		const rawHeight = Math.max(maxY - minY + padding * 2, 100);
 		return {
 			x: minX - padding,
 			y: minY - padding,
-			width: Math.max(maxX - minX + padding * 2, 320),
-			height: Math.max(maxY - minY + padding * 2, 100),
+			width: ceilToGrid(rawWidth, GRID_SIZE),
+			height: ceilToGrid(rawHeight, GRID_SIZE),
 		};
 	}, [childNodes]);
 
@@ -313,8 +316,8 @@ const GroupNodeComponent = (props: GroupNodeProps) => {
 			<NodeResizer
 				color='#0069a8'
 				isVisible={selected}
-				minHeight={100}
-				minWidth={150}
+				minHeight={ceilToGrid(100, GRID_SIZE)}
+				minWidth={ceilToGrid(150, GRID_SIZE)}
 				handleStyle={{
 					width: 8,
 					height: 8,
@@ -322,6 +325,19 @@ const GroupNodeComponent = (props: GroupNodeProps) => {
 					backgroundColor: '#0069a8',
 					border: '1px solid #ffffff',
 					zIndex: 10,
+				}}
+				onResizeEnd={(_, params) => {
+					const snappedWidth = ceilToGrid(params.width, GRID_SIZE);
+					const snappedHeight = ceilToGrid(params.height, GRID_SIZE);
+					if (reactFlow) {
+						reactFlow.setNodes((nodes) =>
+							nodes.map((node) =>
+								node.id === id
+									? { ...node, width: snappedWidth, height: snappedHeight }
+									: node
+							)
+						);
+					}
 				}}
 			/>
 		</div>

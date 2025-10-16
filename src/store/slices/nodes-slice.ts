@@ -1,8 +1,9 @@
+import { ceilToGrid, GRID_SIZE } from '@/constants/grid';
 import { STORE_SAVE_DEBOUNCE_MS } from '@/constants/store-save-debounce-ms';
 import generateUuid from '@/helpers/generate-uuid';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
-import type { AppNode } from '@/types/app-node';
 import { AvailableNodeTypes } from '@/registry/node-registry';
+import type { AppNode } from '@/types/app-node';
 import type { NodeData } from '@/types/node-data';
 import { NodesTableType } from '@/types/nodes-table-type';
 import { debouncePerKey } from '@/utils/debounce-per-key';
@@ -250,7 +251,14 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 			}) => {
 				let { nodeType = 'defaultNode' } = props;
 				const { parentNode, position, data = {}, content = 'New node' } = props;
-				const { mapId, supabase, nodes, edges, addStateToHistory, currentSubscription } = get();
+				const {
+					mapId,
+					supabase,
+					nodes,
+					edges,
+					addStateToHistory,
+					currentSubscription,
+				} = get();
 
 				if (!mapId) {
 					toast.loading(
@@ -264,7 +272,9 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				const devBypass = process.env.NEXT_PUBLIC_DEV_BYPASS_LIMITS === 'true';
 
 				if (!devBypass) {
-					const isPro = currentSubscription?.plan?.name === 'pro' || currentSubscription?.plan?.name === 'enterprise';
+					const isPro =
+						currentSubscription?.plan?.name === 'pro' ||
+						currentSubscription?.plan?.name === 'enterprise';
 					const limit = currentSubscription?.plan?.limits?.nodesPerMap ?? 50; // Free tier default
 
 					if (!isPro && limit !== -1) {
@@ -363,9 +373,13 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					finalEdges.push(newEdge);
 				}
 
-addStateToHistory('addNode', { nodes: finalNodes, edges: finalEdges });
-// Persist precise delta (prev vs next)
-get().persistDeltaEvent('addNode', { nodes, edges }, { nodes: finalNodes, edges: finalEdges });
+				addStateToHistory('addNode', { nodes: finalNodes, edges: finalEdges });
+				// Persist precise delta (prev vs next)
+				get().persistDeltaEvent(
+					'addNode',
+					{ nodes, edges },
+					{ nodes: finalNodes, edges: finalEdges }
+				);
 
 				set({
 					nodes: finalNodes,
@@ -379,7 +393,7 @@ get().persistDeltaEvent('addNode', { nodes, edges }, { nodes: finalNodes, edges:
 				successMessage: 'Node added successfully.',
 			}
 		),
-updateNode: async (props: { nodeId: string; data: Partial<NodeData> }) => {
+		updateNode: async (props: { nodeId: string; data: Partial<NodeData> }) => {
 			const prevNodes = get().nodes;
 			const prevEdges = get().edges;
 			const { nodeId, data } = props;
@@ -420,18 +434,22 @@ updateNode: async (props: { nodeId: string; data: Partial<NodeData> }) => {
 				nodeInfo: updatedNode,
 			}));
 
-				// Trigger debounced save to persist changes
-				get().triggerNodeSave(nodeId);
+			// Trigger debounced save to persist changes
+			get().triggerNodeSave(nodeId);
 
-				// Record delta event in history (only changed fields will be saved)
-get().addStateToHistory('saveNodeProperties', {
-					nodes: get().nodes,
-					edges: get().edges,
-				});
-// Persist precise delta
-get().persistDeltaEvent('saveNodeProperties', { nodes: prevNodes, edges: prevEdges }, { nodes: get().nodes, edges: get().edges });
-			},
-updateNodeDimensions: (nodeId: string, width: number, height: number) => {
+			// Record delta event in history (only changed fields will be saved)
+			get().addStateToHistory('saveNodeProperties', {
+				nodes: get().nodes,
+				edges: get().edges,
+			});
+			// Persist precise delta
+			get().persistDeltaEvent(
+				'saveNodeProperties',
+				{ nodes: prevNodes, edges: prevEdges },
+				{ nodes: get().nodes, edges: get().edges }
+			);
+		},
+		updateNodeDimensions: (nodeId: string, width: number, height: number) => {
 			const prevNodes = get().nodes;
 			const prevEdges = get().edges;
 			const { nodes } = get();
@@ -439,11 +457,15 @@ updateNodeDimensions: (nodeId: string, width: number, height: number) => {
 
 			if (!node) return;
 
+			// Snap incoming dimensions up to GRID_SIZE before comparing
+			const snappedWidth = ceilToGrid(width, GRID_SIZE);
+			const snappedHeight = ceilToGrid(height, GRID_SIZE);
+
 			// Check if dimensions have actually changed (>5px threshold)
 			const currentWidth = node.measured?.width || node.width || 0;
 			const currentHeight = node.measured?.height || node.height || 0;
-			const widthChanged = Math.abs(width - currentWidth) > 5;
-			const heightChanged = Math.abs(height - currentHeight) > 5;
+			const widthChanged = Math.abs(snappedWidth - currentWidth) > 5;
+			const heightChanged = Math.abs(snappedHeight - currentHeight) > 5;
 
 			// If dimensions haven't changed significantly, skip update
 			if (!widthChanged && !heightChanged) {
@@ -457,16 +479,16 @@ updateNodeDimensions: (nodeId: string, width: number, height: number) => {
 						return {
 							...node,
 							// Update both the node dimensions and data dimensions
-							width,
-							height,
+							width: snappedWidth,
+							height: snappedHeight,
 							measured: {
-								width,
-								height,
+								width: snappedWidth,
+								height: snappedHeight,
 							},
 							data: {
 								...node.data,
-								width,
-								height,
+								width: snappedWidth,
+								height: snappedHeight,
 							},
 						};
 					}
@@ -479,12 +501,16 @@ updateNodeDimensions: (nodeId: string, width: number, height: number) => {
 			get().triggerNodeSave(nodeId);
 
 			// Record delta event in history for dimension change
-get().addStateToHistory('updateNodeDimensions', {
+			get().addStateToHistory('updateNodeDimensions', {
 				nodes: get().nodes,
 				edges: get().edges,
 			});
-// Persist precise delta for dimension change
-get().persistDeltaEvent('updateNodeDimensions', { nodes: prevNodes, edges: prevEdges }, { nodes: get().nodes, edges: get().edges });
+			// Persist precise delta for dimension change
+			get().persistDeltaEvent(
+				'updateNodeDimensions',
+				{ nodes: prevNodes, edges: prevEdges },
+				{ nodes: get().nodes, edges: get().edges }
+			);
 		},
 		deleteNodes: withLoadingAndToast(
 			async (nodesToDelete: AppNode[]) => {

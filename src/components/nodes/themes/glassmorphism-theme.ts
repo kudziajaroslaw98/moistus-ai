@@ -1,6 +1,6 @@
 /**
  * Glassmorphism Theme for Node Components
- * 
+ *
  * This theme system preserves the minimal glassmorphism design with Material Design
  * elevation principles. All values are extracted from the existing implementation
  * to maintain pixel-perfect visual consistency.
@@ -42,21 +42,24 @@ export const GlassmorphismTheme = {
 	// Shadow and selection effects
 	effects: {
 		// Selection glow - double border technique for proper focus states
-		selectedShadow: '0 0 0 1px rgba(96, 165, 250, 0.3), 0 0 0 2px rgba(96, 165, 250, 0.15)',
-		
+		selectedShadow:
+			'0 0 0 1px rgba(96, 165, 250, 0.3), 0 0 0 2px rgba(96, 165, 250, 0.15)',
+
 		// Focus state - double border for accessibility
-		focusShadow: '0 0 0 1px rgba(96, 165, 250, 0.4), 0 0 0 2px rgba(96, 165, 250, 0.2)',
-		
+		focusShadow:
+			'0 0 0 1px rgba(96, 165, 250, 0.4), 0 0 0 2px rgba(96, 165, 250, 0.2)',
+
 		// Ambient glow for selected state
-		ambientGlow: 'radial-gradient(circle at center, rgba(96, 165, 250, 0.03) 0%, transparent 70%)',
-		
+		ambientGlow:
+			'radial-gradient(circle at center, rgba(96, 165, 250, 0.03) 0%, transparent 70%)',
+
 		// Glassmorphism backdrop for special elements
 		glassmorphism: 'blur(8px)',
 		specialCardBackdrop: 'rgba(20, 20, 30, 0.7)',
-		
+
 		// Smooth transitions
 		transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-		
+
 		// Transform effects
 		selectedTransform: 'translateY(-1px)',
 		defaultTransform: 'translateY(0)',
@@ -69,13 +72,13 @@ export const GlassmorphismTheme = {
 			normal: '0.2s',
 			slow: '0.3s',
 		},
-		
+
 		easing: {
 			default: 'cubic-bezier(0.4, 0, 0.2, 1)',
 			spring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
 			ease: 'ease-out' as const,
 		},
-		
+
 		// Motion/react animation variants
 		motionVariants: {
 			fadeIn: {
@@ -83,13 +86,13 @@ export const GlassmorphismTheme = {
 				animate: { opacity: 1, scale: 1, y: 0 },
 				exit: { opacity: 0, scale: 0.95, y: 10 },
 			},
-			
+
 			scaleIn: {
 				initial: { opacity: 0, scale: 0.8 },
 				animate: { opacity: 1, scale: 1 },
 				exit: { opacity: 0, scale: 0.8 },
 			},
-			
+
 			slideUp: {
 				initial: { opacity: 0, y: 20 },
 				animate: { opacity: 1, y: 0 },
@@ -105,7 +108,7 @@ export const GlassmorphismTheme = {
 		gap: '1rem', // gap-4
 		borderRadius: '0.5rem', // rounded-lg
 		minWidth: '20rem', // min-w-80
-		
+
 		// Handle styling
 		handle: {
 			width: '0.5rem', // w-2
@@ -117,15 +120,15 @@ export const GlassmorphismTheme = {
 			hoverScale: '1.25',
 			bottom: '-4px',
 		},
-		
+
 		// Resizer styling
 		resizer: {
-			color: 'rgba(96, 165, 250, 0.4)',
+			color: 'rgba(96, 165, 250, 0.1)',
 			handleWidth: '0.5rem',
 			handleHeight: '0.5rem',
-			handleRadius: '9999px', // rounded-full
-			selectedBackground: 'rgba(96, 165, 250, 0.6)',
-			border: '1px solid rgba(255, 255, 255, 0.3)',
+			handleRadius: '2px !important', // rounded-full
+			selectedBackground: 'rgba(96, 165, 250, 0.1)',
+			border: '1px solid rgba(255, 255, 255, 0.2)',
 		},
 	},
 
@@ -142,7 +145,7 @@ export const GlassmorphismTheme = {
 			fontSize: '12px',
 			minGap: '4px', // 4px minimum between interactive elements
 		},
-		
+
 		// Add new node button (FAB style)
 		fab: {
 			size: '2.5rem', // w-10 h-10
@@ -151,7 +154,7 @@ export const GlassmorphismTheme = {
 			color: 'rgba(255, 255, 255, 0.87)',
 			hoverScale: '1.1',
 		},
-		
+
 		// Node type indicator
 		typeIndicator: {
 			background: '#272727', // elevation 4
@@ -168,14 +171,14 @@ export const GlassmorphismTheme = {
 		border: 'rgba(255, 255, 255, 0.08)', // Dashed border
 		borderStyle: 'dashed',
 		borderWidth: '2px',
-		
+
 		// Confidence level colors
 		confidence: {
 			high: 'rgba(34, 197, 94, 0.87)', // Green for 80%+
 			medium: 'rgba(251, 191, 36, 0.87)', // Yellow for 60-80%
 			low: 'rgba(239, 68, 68, 0.87)', // Red for <60%
 		},
-		
+
 		// Action buttons
 		actions: {
 			accept: {
@@ -189,7 +192,7 @@ export const GlassmorphismTheme = {
 				text: 'rgba(254, 226, 226, 1)', // Red-50
 			},
 		},
-		
+
 		// Animation variants
 		animation: {
 			initial: { opacity: 0, scale: 0.95, y: 40 },
@@ -205,10 +208,11 @@ export const GlassmorphismTheme = {
 		progress: {
 			background: 'rgba(255, 255, 255, 0.06)', // Semantic track color
 			fill: 'linear-gradient(90deg, rgba(96, 165, 250, 0.6) 0%, rgba(96, 165, 250, 0.8) 100%)', // Desaturated blue #60A5FA
-			completeFill: 'linear-gradient(90deg, rgba(52, 211, 153, 0.7) 0%, rgba(52, 211, 153, 0.9) 100%)', // Desaturated green #34D399
+			completeFill:
+				'linear-gradient(90deg, rgba(52, 211, 153, 0.7) 0%, rgba(52, 211, 153, 0.9) 100%)', // Desaturated green #34D399
 			height: '0.25rem', // h-1
 		},
-		
+
 		// Status dots with desaturated semantic colors
 		status: {
 			pending: 'rgba(251, 191, 36, 0.87)', // Desaturated amber #FBBF24
@@ -232,11 +236,13 @@ export const createNodeStyles = (
 	accentColor?: string
 ): React.CSSProperties => {
 	const theme = GlassmorphismTheme;
-	
+
 	const baseStyles: React.CSSProperties = {
 		backgroundColor: getElevationColor(elevation),
 		border: `1px solid ${selected ? theme.borders.selected : theme.borders.default}`,
-		transform: selected ? theme.effects.selectedTransform : theme.effects.defaultTransform,
+		transform: selected
+			? theme.effects.selectedTransform
+			: theme.effects.defaultTransform,
 		transition: theme.effects.transition,
 		borderRadius: theme.node.borderRadius,
 		padding: theme.node.padding,
@@ -259,10 +265,13 @@ export const createNodeStyles = (
 };
 
 // Type definitions for theme usage
-export type ElevationLevel = keyof typeof GlassmorphismTheme.elevation | 'sunken';
+export type ElevationLevel =
+	| keyof typeof GlassmorphismTheme.elevation
+	| 'sunken';
 export type BorderType = keyof typeof GlassmorphismTheme.borders;
 export type TextEmphasis = keyof typeof GlassmorphismTheme.text;
-export type AnimationDuration = keyof typeof GlassmorphismTheme.animations.duration;
+export type AnimationDuration =
+	keyof typeof GlassmorphismTheme.animations.duration;
 export type AnimationEasing = keyof typeof GlassmorphismTheme.animations.easing;
 
 export default GlassmorphismTheme;

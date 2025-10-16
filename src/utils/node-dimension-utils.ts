@@ -1,21 +1,22 @@
+import { GRID_SIZE, ceilToGrid } from '@/constants/grid';
 import type { AppNode } from '@/types/app-node';
 import type { NodeData } from '@/types/node-data';
 
 // Default dimension constants
 export const NODE_DIMENSION_DEFAULTS = {
-	MIN_WIDTH: 280,
-	MIN_HEIGHT: 66,
+	MIN_WIDTH: 288,
+	MIN_HEIGHT: 64,
 	MAX_WIDTH: 800,
 	DEFAULT_WIDTH: 320,
-	DEFAULT_HEIGHT: 66,
+	DEFAULT_HEIGHT: 64,
 } as const;
 
 // Node-specific dimension overrides (no maxHeight - let content determine height)
 export const NODE_TYPE_DIMENSIONS: Record<string, { minHeight?: number }> = {
-	taskNode: { minHeight: 100 }, // Tasks can grow with content
-	codeNode: { minHeight: 120 }, // Code blocks grow with lines
-	imageNode: { minHeight: 100 }, // Images need minimum height
-	groupNode: { minHeight: 200 }, // Groups grow with children
+	taskNode: { minHeight: 112 }, // Tasks can grow with content
+	codeNode: { minHeight: 112 }, // Code blocks grow with lines
+	imageNode: { minHeight: 112 }, // Images need minimum height
+	groupNode: { minHeight: 208 }, // Groups grow with children
 } as const;
 
 export interface NodeDimensions {
@@ -38,7 +39,11 @@ export function getNodeConstraints(nodeType?: string): DimensionConstraints {
 
 	return {
 		minWidth: NODE_DIMENSION_DEFAULTS.MIN_WIDTH,
-		minHeight: typeOverrides?.minHeight || NODE_DIMENSION_DEFAULTS.MIN_HEIGHT,
+		// Ceil minHeight to GRID_SIZE for consistent 16px steps
+		minHeight: ceilToGrid(
+			typeOverrides?.minHeight || NODE_DIMENSION_DEFAULTS.MIN_HEIGHT,
+			GRID_SIZE
+		),
 		maxWidth: NODE_DIMENSION_DEFAULTS.MAX_WIDTH,
 		maxHeight: undefined, // No height limit - content determines height
 	};
@@ -78,14 +83,16 @@ export function getNodeDimensions(
 	if (isAppNode) {
 		const appNode = node as AppNode;
 		// Priority: measured → width/height props → data dimensions → defaults
-		width = appNode.measured?.width
-			|| appNode.width
-			|| appNode.data?.width
-			|| NODE_DIMENSION_DEFAULTS.DEFAULT_WIDTH;
-		height = appNode.measured?.height
-			|| appNode.height
-			|| appNode.data?.height
-			|| NODE_DIMENSION_DEFAULTS.DEFAULT_HEIGHT;
+		width =
+			appNode.measured?.width ||
+			appNode.width ||
+			appNode.data?.width ||
+			NODE_DIMENSION_DEFAULTS.DEFAULT_WIDTH;
+		height =
+			appNode.measured?.height ||
+			appNode.height ||
+			appNode.data?.height ||
+			NODE_DIMENSION_DEFAULTS.DEFAULT_HEIGHT;
 	} else {
 		const nodeData = node as NodeData;
 		// For NodeData, use data dimensions or defaults
@@ -105,9 +112,15 @@ export function enforceConstraints(
 	constraints: DimensionConstraints
 ): NodeDimensions {
 	return {
-		width: Math.min(Math.max(dimensions.width, constraints.minWidth), constraints.maxWidth),
+		width: Math.min(
+			Math.max(dimensions.width, constraints.minWidth),
+			constraints.maxWidth
+		),
 		height: constraints.maxHeight
-			? Math.min(Math.max(dimensions.height, constraints.minHeight), constraints.maxHeight)
+			? Math.min(
+					Math.max(dimensions.height, constraints.minHeight),
+					constraints.maxHeight
+				)
 			: Math.max(dimensions.height, constraints.minHeight), // No max limit
 	};
 }
@@ -119,9 +132,13 @@ export function areDimensionsValid(
 	dimensions: NodeDimensions,
 	constraints: DimensionConstraints
 ): boolean {
-	const widthValid = dimensions.width >= constraints.minWidth && dimensions.width <= constraints.maxWidth;
-	const heightValid = dimensions.height >= constraints.minHeight &&
-		(constraints.maxHeight === undefined || dimensions.height <= constraints.maxHeight);
+	const widthValid =
+		dimensions.width >= constraints.minWidth &&
+		dimensions.width <= constraints.maxWidth;
+	const heightValid =
+		dimensions.height >= constraints.minHeight &&
+		(constraints.maxHeight === undefined ||
+			dimensions.height <= constraints.maxHeight);
 
 	return widthValid && heightValid;
 }

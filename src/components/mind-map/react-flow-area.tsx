@@ -1,4 +1,5 @@
 'use client';
+import { GRID_SIZE } from '@/constants/grid';
 import { NodeRegistry } from '@/registry/node-registry';
 import {
 	Background,
@@ -362,7 +363,7 @@ export function ReactFlowArea() {
 				nodeTypes={nodeTypesWithProps}
 				panOnDrag={true}
 				selectionMode={SelectionMode.Partial}
-				snapGrid={[16, 16]}
+				snapGrid={[GRID_SIZE, GRID_SIZE]}
 				snapToGrid={true}
 				className={cn([
 					isPanningMode && 'cursor-grab',
@@ -390,8 +391,8 @@ export function ReactFlowArea() {
 				onSelectionChange={handleSelectionChange}
 			>
 				<Background
-					color='rgba(255, 255, 255, 0.06)'
-					gap={16}
+					color='rgba(255, 255, 255, 0.3)'
+					gap={GRID_SIZE}
 					variant={BackgroundVariant.Dots}
 				/>
 

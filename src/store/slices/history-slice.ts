@@ -405,6 +405,8 @@ export const createHistorySlice: StateCreator<
 			isReverting,
 			mapId,
 			canRevertChange,
+			unsubscribeFromRealtimeUpdates,
+			subscribeToRealtimeUpdates,
 		} = get();
 		if (isReverting || index < 0 || index >= history.length) return;
 		if (index === historyIndex) return;
@@ -422,20 +424,32 @@ export const createHistorySlice: StateCreator<
 		set({ isReverting: true });
 		const targetState = history[index];
 		const meta: any = historyMeta?.[index];
+
 		try {
+			// Step 1: Unsubscribe from real-time (prevents self-event processing)
+			// Other users remain subscribed and will receive changes via real-time
+			await unsubscribeFromRealtimeUpdates();
+
+			// Step 2: Handle different revert scenarios
 			if (targetState.nodes?.length && targetState.edges?.length) {
+				// In-memory history entry with full state (no API call needed)
 				setNodes(targetState.nodes);
 				setEdges(targetState.edges);
+				toast.success('Reverted');
 			} else if (mapId && meta?.type === 'snapshot' && meta?.id) {
+				// Revert to database snapshot
 				const res = await fetch(`/api/history/${mapId}/revert`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ snapshotId: meta.id }),
 				});
+
 				if (res.ok) {
 					const data = await res.json();
 					setNodes(data.nodes);
 					setEdges(data.edges);
+
+					// Update in-memory history with full state (for future reverts)
 					const updated = [...history];
 					updated[index] = {
 						...targetState,
@@ -443,18 +457,26 @@ export const createHistorySlice: StateCreator<
 						edges: data.edges,
 					} as any;
 					set({ history: updated });
+
 					toast.success('Reverted to snapshot');
+				} else {
+					const error = await res.json().catch(() => ({}));
+					toast.error(error.error || 'Failed to revert to snapshot');
 				}
 			} else if (mapId && meta?.type === 'event' && meta?.id) {
+				// Revert to database event
 				const res = await fetch(`/api/history/${mapId}/revert`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ eventId: meta.id }),
 				});
+
 				if (res.ok) {
 					const data = await res.json();
 					setNodes(data.nodes);
 					setEdges(data.edges);
+
+					// Update in-memory history
 					const updated = [...history];
 					updated[index] = {
 						...targetState,
@@ -462,16 +484,28 @@ export const createHistorySlice: StateCreator<
 						edges: data.edges,
 					} as any;
 					set({ history: updated });
+
 					toast.success('Reverted to event');
 				} else {
-					toast.error('Failed to revert to event');
+					const error = await res.json().catch(() => ({}));
+					toast.error(error.error || 'Failed to revert to event');
 				}
 			} else {
+				// Fallback to local state
 				setNodes(targetState.nodes || []);
 				setEdges(targetState.edges || []);
 				toast.success('Reverted');
 			}
+		} catch (error) {
+			console.error('Revert failed:', error);
+			toast.error('Failed to revert state');
 		} finally {
+			// Step 3: Always resubscribe (even on error) to restore real-time updates
+			if (mapId) {
+				await subscribeToRealtimeUpdates(mapId);
+			}
+
+			// Step 4: Update history pointers
 			set({
 				historyIndex: index,
 				isReverting: false,

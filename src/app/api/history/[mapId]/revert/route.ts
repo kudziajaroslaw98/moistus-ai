@@ -96,11 +96,81 @@ export async function POST(
 			}
 		}
 
+		// Persist reverted state to database (bulk upsert)
+		// Single timestamp for entire batch ensures atomic coordination
+		const revertTimestamp = new Date().toISOString();
+
+		// Transform nodes to database schema
+		const nodeUpdates = finalNodes.map((node) => ({
+			id: node.id,
+			map_id: mapId,
+			user_id: user.id, // Use current user performing revert
+			content: node.data?.content || '',
+			position_x: node.position.x,
+			position_y: node.position.y,
+			width: node.width || null,
+			height: node.height || null,
+			node_type: node.type || 'defaultNode',
+			metadata: node.data?.metadata || {},
+			aiData: node.data?.aiData || {},
+			parent_id: node.data?.parent_id || null,
+			updated_at: revertTimestamp, // Same timestamp for all
+			created_at: node.data?.created_at || revertTimestamp, // Preserve original or use revert time
+		}));
+
+		// Transform edges to database schema
+		const edgeUpdates = finalEdges.map((edge) => ({
+			id: edge.id,
+			map_id: mapId,
+			user_id: user.id,
+			source: edge.source,
+			target: edge.target,
+			label: edge.label || null,
+			animated: edge.animated || false,
+			style: edge.style || { stroke: '#6c757d', strokeWidth: 2 },
+			markerEnd: edge.markerEnd || null,
+			metadata: edge.data?.metadata || {},
+			aiData: edge.data?.aiData || {},
+			updated_at: revertTimestamp,
+			created_at: edge.data?.created_at || revertTimestamp,
+		}));
+
+		// Bulk upsert (atomic operation) - handles both updates and inserts
+		try {
+			const [nodesResult, edgesResult] = await Promise.all([
+				supabase.from('nodes').upsert(nodeUpdates),
+				supabase.from('edges').upsert(edgeUpdates),
+			]);
+
+			if (nodesResult.error) {
+				console.error('Failed to persist nodes:', nodesResult.error);
+				return NextResponse.json(
+					{ error: 'Failed to persist nodes to database' },
+					{ status: 500 }
+				);
+			}
+
+			if (edgesResult.error) {
+				console.error('Failed to persist edges:', edgesResult.error);
+				return NextResponse.json(
+					{ error: 'Failed to persist edges to database' },
+					{ status: 500 }
+				);
+			}
+		} catch (persistError) {
+			console.error('Failed to persist revert:', persistError);
+			return NextResponse.json(
+				{ error: 'Failed to persist changes to database' },
+				{ status: 500 }
+			);
+		}
+
 		return NextResponse.json({
 			nodes: finalNodes,
 			edges: finalEdges,
+			revertTimestamp, // Client can use this for logging/debugging
 			snapshotIndex: snapshot.snapshot_index,
-			message: 'State reverted successfully',
+			message: 'State reverted and persisted successfully',
 		});
 	} catch (error) {
 		console.error('Revert history error:', error);

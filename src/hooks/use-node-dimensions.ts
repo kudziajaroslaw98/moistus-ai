@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { GRID_SIZE, ceilToGrid } from '@/constants/grid';
+import useAppStore from '@/store/mind-map-store';
 import type { AppNode } from '@/types/app-node';
 import type { ResizeParams } from '@xyflow/react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
-import useAppStore from '@/store/mind-map-store';
 
 interface NodeDimensionConfig {
 	minWidth?: number;
@@ -26,8 +27,8 @@ interface UseDimensionsReturn {
 	nodeRef: React.RefObject<HTMLDivElement | null>;
 }
 
-const DEFAULT_MIN_WIDTH = 280;
-const DEFAULT_MIN_HEIGHT = 66;
+const DEFAULT_MIN_WIDTH = 288;
+const DEFAULT_MIN_HEIGHT = 64;
 const DEFAULT_MAX_WIDTH = 800;
 
 export function useNodeDimensions(
@@ -42,8 +43,6 @@ export function useNodeDimensions(
 		autoHeight = true,
 		debounceMs = 500, // Increased from 100ms to reduce update frequency
 	} = config;
-
-
 
 	const { getNode, updateNodeDimensions } = useAppStore(
 		useShallow((state) => ({
@@ -70,14 +69,19 @@ export function useNodeDimensions(
 		};
 	});
 
-	// Constraint enforcement helper
+	// Constraint enforcement helper (snap up to GRID_SIZE, then clamp to max)
 	const enforceConstraints = useCallback(
 		(width: number, height: number) => {
+			// Snap input dimensions up to grid step first
+			const snappedWidth = ceilToGrid(Math.max(width, minWidth), GRID_SIZE);
+			const snappedHeight = ceilToGrid(Math.max(height, minHeight), GRID_SIZE);
+
 			return {
-				width: Math.min(Math.max(width, minWidth), maxWidth),
-				height: maxHeight !== undefined
-					? Math.min(Math.max(height, minHeight), maxHeight)
-					: Math.max(height, minHeight), // No max limit if undefined
+				width: Math.min(snappedWidth, maxWidth),
+				height:
+					maxHeight !== undefined
+						? Math.min(snappedHeight, maxHeight)
+						: snappedHeight,
 			};
 		},
 		[minWidth, minHeight, maxWidth, maxHeight]
@@ -137,7 +141,8 @@ export function useNodeDimensions(
 		(event: unknown, params: ResizeParams) => {
 			// Check if new dimensions are within constraints
 			const widthValid = params.width >= minWidth && params.width <= maxWidth;
-			const heightValid = params.height >= minHeight &&
+			const heightValid =
+				params.height >= minHeight &&
 				(maxHeight === undefined || params.height <= maxHeight);
 
 			return widthValid && heightValid;
@@ -155,7 +160,8 @@ export function useNodeDimensions(
 
 		// Compare against measured dimensions (what React Flow rendered), not stored data
 		const currentWidth = node.measured?.width || node.data?.width || minWidth;
-		const currentHeight = node.measured?.height || node.data?.height || minHeight;
+		const currentHeight =
+			node.measured?.height || node.data?.height || minHeight;
 
 		// Only update if difference is significant (>10px to avoid tiny cumulative changes)
 		const widthDiff = Math.abs(actualWidth - currentWidth);
@@ -212,7 +218,14 @@ export function useNodeDimensions(
 				clearTimeout(debounceTimerRef.current);
 			}
 		};
-	}, [autoHeight, isResizing, dimensions.width, dimensions.height, updateStoreDimensions, nodeId]);
+	}, [
+		autoHeight,
+		isResizing,
+		dimensions.width,
+		dimensions.height,
+		updateStoreDimensions,
+		nodeId,
+	]);
 
 	// Sync with node changes from store
 	useEffect(() => {
@@ -230,9 +243,16 @@ export function useNodeDimensions(
 			newDimensions.width !== dimensions.width ||
 			newDimensions.height !== dimensions.height
 		) {
-			setDimensions(enforceConstraints(newDimensions.width, newDimensions.height));
+			setDimensions(
+				enforceConstraints(newDimensions.width, newDimensions.height)
+			);
 		}
-	}, [node?.measured?.width, node?.measured?.height, node?.data?.width, node?.data?.height]);
+	}, [
+		node?.measured?.width,
+		node?.measured?.height,
+		node?.data?.width,
+		node?.data?.height,
+	]);
 
 	return {
 		dimensions,

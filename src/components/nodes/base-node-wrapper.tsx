@@ -2,27 +2,17 @@ import { useNodeDimensions } from '@/hooks/use-node-dimensions';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import { getNodeConstraints } from '@/utils/node-dimension-utils';
-import {
-	Handle,
-	NodeResizer,
-	Position,
-	useConnection,
-} from '@xyflow/react';
+import { Handle, NodeResizer, Position, useConnection } from '@xyflow/react';
 import { Plus } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import {
-	type CSSProperties,
-	memo,
-	useCallback,
-	useMemo,
-} from 'react';
+import { type CSSProperties, memo, useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { AvatarStack } from '../ui/avatar-stack';
 import { Button } from '../ui/button';
+import { type BaseNodeWrapperProps } from './core/types';
 import CollapseButton from './node-additions/collapse-button';
 import CollapsedIndicator from './node-additions/collapsed-indicator';
 import GroupButton from './node-additions/group-button';
-import { type BaseNodeWrapperProps } from './core/types';
 import { UniversalMetadataBar } from './shared/universal-metadata-bar';
 import {
 	GlassmorphismTheme,
@@ -199,6 +189,17 @@ const BaseNodeWrapperComponent = ({
 				/>
 			)}
 
+			<div
+				className='absolute inset-0 rounded-lg pointer-events-none'
+				style={{
+					backgroundImage: 'url("/images/groovepaper.png")',
+					backgroundRepeat: 'repeat',
+					opacity: 1,
+					mixBlendMode: 'color-burn',
+					zIndex: -1,
+				}}
+			/>
+
 			<>
 				<CollapsedIndicator data={data} />
 
@@ -227,15 +228,15 @@ const BaseNodeWrapperComponent = ({
 				</div>
 
 				{/* Main content with metadata bar integration */}
-				<div className={cn('flex flex-col h-full')}>
+				<div
+					className={cn('flex flex-col h-full')}
+					style={{ position: 'relative', zIndex: 1 }}
+				>
 					{/* Universal Metadata Bar - positioned at the top of content */}
 					{/* Only show when node has actual metadata to display */}
 					{data.metadata &&
 						Object.values(data.metadata).some(
-							(value) =>
-								value !== undefined &&
-								value !== null &&
-								value !== ''
+							(value) => value !== undefined && value !== null && value !== ''
 						) && (
 							<UniversalMetadataBar
 								className={cn([includePadding ? 'p-0 pb-4' : 'p-4'])}
@@ -323,14 +324,13 @@ const BaseNodeWrapperComponent = ({
 									/>
 
 									<motion.div
-										animate={{ opacity: 1, scale: 1 }}
+										animate={{ opacity: 1, scale: 1, filter: 'blur(0)' }}
 										className='absolute -bottom-[60px] left-1/2 -translate-x-1/2 z-20'
-										exit={{ opacity: 0, scale: 0.8 }}
-										initial={{ opacity: 0, scale: 0.8 }}
+										exit={{ opacity: 0, scale: 0.8, filter: 'blur(10px)' }}
+										initial={{ opacity: 0, scale: 0.8, filter: 'blur(10px)' }}
 										transition={{
-											duration: 0.2,
+											duration: 0.3,
 											type: 'spring',
-											stiffness: 300,
 										}}
 									>
 										<Button
