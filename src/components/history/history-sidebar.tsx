@@ -49,7 +49,7 @@ export function HistorySidebar() {
 			title='Mind Map History'
 			onClose={handleClose}
 		>
-			<div className='flex h-full flex-col gap-4'>
+			<div className='flex h-full flex-col gap-4 p-4 pb-12 overflow-y-auto'>
 				{historyMeta.length === 0 && !isLoading ? (
 					<HistoryEmptyState />
 				) : (

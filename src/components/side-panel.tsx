@@ -101,7 +101,7 @@ export function SidePanel({
 						</div>
 
 						{/* Panel Body - Scrollable */}
-						<div className='flex-grow max-h-screen p-4 md:p-6'>{children}</div>
+						<div className='flex-grow max-h-screen '>{children}</div>
 					</div>
 				</motion.div>
 			)}
