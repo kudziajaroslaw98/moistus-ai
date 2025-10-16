@@ -106,7 +106,7 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 			const date = parseDateString(dateStr);
 			return {
 				value: dateStr,
-				display: date ? formatDateForDisplay(date, dateStr) : dateStr,
+				display: date ? formatDateForDisplay(date) : dateStr,
 			};
 		},
 		metadataKey: 'dueDate', // Changed from 'date' to match PreviewRenderer expectations
@@ -230,17 +230,6 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 		metadataKey: 'assignee',
 	},
 
-	// Status pattern: :status (like :done, :in-progress, :blocked)
-	{
-		regex: /:([a-zA-Z][a-zA-Z0-9_-]*)/g,
-		type: 'status',
-		extract: (match) => ({
-			value: match[1],
-			display: `:${match[1]}`,
-		}),
-		metadataKey: 'status',
-	},
-
 	// Reference/Link pattern: [[reference]] (like [[node-id]] or [[http://...]])
 	{
 		regex: /\[\[([^\]]+)\]\]/g,
@@ -273,6 +262,29 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 				match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase(),
 		}),
 		metadataKey: 'textAlign',
+	},
+
+	// Font weight pattern: weight:bold or weight:400
+	{
+		regex: /weight:(normal|bold|bolder|lighter|\d{3})\b/gi,
+		type: 'fontWeight',
+		extract: (match) => ({
+			value: match[1],
+			display: match[1],
+		}),
+		metadataKey: 'fontWeight',
+	},
+
+	// Font style pattern: style:italic or style:normal
+	{
+		regex: /style:(normal|italic|oblique)\b/gi,
+		type: 'fontStyle',
+		extract: (match) => ({
+			value: match[1].toLowerCase(),
+			display:
+				match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase(),
+		}),
+		metadataKey: 'fontStyle',
 	},
 
 	// Title pattern: title:"Text"
@@ -339,6 +351,19 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 			display: `${match[1]}%`,
 		}),
 		metadataKey: 'confidence',
+	},
+
+	// Status pattern: :status (like :done, :in-progress, :blocked)
+	// IMPORTANT: Uses negative lookbehind to prevent matching when part of other patterns
+	// (e.g., won't match :green in color:green, :blue in bg:blue, etc.)
+	{
+		regex: /(?<!color|bg|border|size|align|weight|style|title|label|url|lang|file|confidence|question|multiple|options):([a-zA-Z][a-zA-Z0-9_-]*)/g,
+		type: 'status',
+		extract: (match) => ({
+			value: match[1],
+			display: `:${match[1]}`,
+		}),
+		metadataKey: 'status',
 	},
 ];
 

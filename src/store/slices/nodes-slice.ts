@@ -524,6 +524,10 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 
 				if (!mapId || !nodesToDelete) return;
 
+				// Capture previous state for history tracking
+				const prevNodes = [...allNodes];
+				const prevEdges = [...edges];
+
 				const edgesToDelete = edges.filter((edge) =>
 					nodesToDelete.some(
 						(node) => edge.source === node.id || edge.target === node.id
@@ -551,10 +555,21 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				const finalNodes = allNodes.filter((n) => !nodesToDelete.includes(n));
 				const finalEdges = edges.filter((e) => !edgesToDelete.includes(e));
 
-				addStateToHistory('deleteNode', {
+				// Determine action name based on deletion count
+				const actionName = nodesToDelete.length === 1 ? 'deleteNode' : 'deleteNodes';
+
+				// Add to in-memory history for undo/redo
+				addStateToHistory(actionName, {
 					nodes: finalNodes,
 					edges: finalEdges,
 				});
+
+				// Persist precise delta to database for permanent audit trail
+				get().persistDeltaEvent(
+					actionName,
+					{ nodes: prevNodes, edges: prevEdges },
+					{ nodes: finalNodes, edges: finalEdges }
+				);
 
 				set({
 					nodes: finalNodes,

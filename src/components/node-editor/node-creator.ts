@@ -64,21 +64,20 @@ export const createNodeFromCommand = async ({
 };
 
 // Helper to extract universal metadata that applies to all node types
+// IMPORTANT: Always explicitly set fields to clear them during updates
 const getUniversalMetadata = (data: any) => {
 	const universalMeta: any = {};
-	
-	if (data.metadata?.priority || data.priority) {
-		universalMeta.priority = data.metadata?.priority || data.priority;
-	}
-	
-	if (data.metadata?.assignee || data.assignee) {
-		universalMeta.assignee = data.metadata?.assignee || data.assignee;
-	}
-	
-	if (data.metadata?.status || data.status) {
-		universalMeta.status = data.metadata?.status || data.status;
-	}
-	
+
+	// Always set priority (undefined clears it on update)
+	universalMeta.priority = data.metadata?.priority || data.priority || undefined;
+
+	// Always set assignee (undefined clears it on update)
+	universalMeta.assignee = data.metadata?.assignee || data.assignee || undefined;
+
+	// Always set status (undefined clears it on update)
+	universalMeta.status = data.metadata?.status || data.status || undefined;
+
+	// Handle dueDate
 	if (data.metadata?.dueDate || data.dueDate) {
 		const dateValue = data.metadata?.dueDate || data.dueDate;
 		// Parse date string (supports "tomorrow", "next week", ISO dates, etc.)
@@ -90,9 +89,13 @@ const getUniversalMetadata = (data: any) => {
 
 		if (date && !isNaN(date.getTime())) {
 			universalMeta.dueDate = date.toISOString();
+		} else {
+			universalMeta.dueDate = undefined;
 		}
+	} else {
+		universalMeta.dueDate = undefined;
 	}
-	
+
 	return universalMeta;
 };
 

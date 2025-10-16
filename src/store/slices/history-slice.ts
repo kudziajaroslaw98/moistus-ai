@@ -1,7 +1,7 @@
 import {
-	calculateDelta,
 	applyDelta,
 	applyDeltaReverse,
+	calculateDelta,
 } from '@/helpers/history/delta-calculator';
 import { AppEdge } from '@/types/app-edge';
 import { AppNode } from '@/types/app-node';
@@ -21,6 +21,7 @@ export const createHistorySlice: StateCreator<
 	historyMeta: [],
 	historyIndex: -1,
 	isReverting: false,
+	historyMutedUntil: null,
 	canUndo: false,
 	canRedo: false,
 
@@ -28,6 +29,15 @@ export const createHistorySlice: StateCreator<
 	historyPageOffset: 0,
 	historyPageLimit: 50,
 	historyHasMore: false,
+
+	// helpers
+	muteHistoryFor: (ms: number) => {
+		set({ historyMutedUntil: Date.now() + Math.max(0, ms) });
+	},
+	isHistoryMuted: () => {
+		const until = get().historyMutedUntil ?? 0;
+		return Date.now() < until;
+	},
 
 	// getters
 	getCurrentHistoryState: () => {
@@ -46,8 +56,18 @@ export const createHistorySlice: StateCreator<
 		actionName?: string,
 		stateOverride?: { nodes?: AppNode[]; edges?: AppEdge[] }
 	) => {
-		const { nodes, edges, history, historyIndex, currentUser, userProfile } =
-			get();
+		const {
+			nodes,
+			edges,
+			history,
+			historyIndex,
+			currentUser,
+			userProfile,
+			isReverting,
+			isHistoryMuted,
+		} = get();
+		// Suppress history writes during revert to avoid bloat from realtime echoes
+		if (isReverting || isHistoryMuted()) return;
 		const nodesToSave = stateOverride?.nodes ?? nodes;
 		const edgesToSave = stateOverride?.edges ?? edges;
 
@@ -79,7 +99,8 @@ export const createHistorySlice: StateCreator<
 			userProfile?.display_name ||
 			currentUser?.user_metadata?.full_name ||
 			'Anonymous';
-		const userAvatar = userProfile?.avatar_url || currentUser?.user_metadata?.avatar_url;
+		const userAvatar =
+			userProfile?.avatar_url || currentUser?.user_metadata?.avatar_url;
 
 		const attributedDelta: AttributedHistoryDelta = {
 			...delta,
@@ -122,6 +143,11 @@ export const createHistorySlice: StateCreator<
 			if (!mapId) return;
 			setLoadingStates?.({ isStateLoading: true });
 			const limit = get().historyPageLimit || 50;
+
+			// Capture previous selection before fetching so we can retain it
+			const prevMeta = get().historyMeta;
+			const prevIndex = get().historyIndex;
+			const prevSelectedId = prevMeta?.[prevIndex]?.id;
 			const res = await fetch(
 				`${process.env.NEXT_PUBLIC_APP_LOCAL_HREF}/api/history/${mapId}/list`
 			);
@@ -135,10 +161,21 @@ export const createHistorySlice: StateCreator<
 				actionName: item.actionName,
 				timestamp: item.timestamp,
 			}));
+
+			// Compute desired selection from DB pointer first, fallback to previous selection, else newest
+			const desiredIdFromDB: string | undefined =
+				data.currentEventId || data.currentSnapshotId || undefined;
+			const desiredId: string | undefined = desiredIdFromDB || prevSelectedId;
+			const retainedIndex = desiredId
+				? itemsAsc.findIndex((i: any) => i.id === desiredId)
+				: -1;
+			const nextIndex =
+				retainedIndex >= 0 ? retainedIndex : Math.max(0, states.length - 1);
+
 			set({
 				history: states,
 				historyMeta: itemsAsc,
-				historyIndex: Math.max(0, states.length - 1),
+				historyIndex: nextIndex,
 				canUndo: states.length > 1,
 				canRedo: false,
 				historyPageOffset: itemsAsc.length,
@@ -166,10 +203,7 @@ export const createHistorySlice: StateCreator<
 			if (currentEntry._delta) {
 				try {
 					const currentState = { nodes, edges };
-					const newState = applyDeltaReverse(
-						currentState,
-						currentEntry._delta
-					);
+					const newState = applyDeltaReverse(currentState, currentEntry._delta);
 					setNodes(newState.nodes);
 					setEdges(newState.edges);
 				} catch (error) {
@@ -329,7 +363,10 @@ export const createHistorySlice: StateCreator<
 		next: { nodes: AppNode[]; edges: AppEdge[] }
 	) => {
 		try {
-			const { supabase, mapId, currentUser } = get();
+			const { supabase, mapId, currentUser, isReverting, isHistoryMuted } =
+				get();
+			// Suppress DB history recording during revert
+			if (isReverting || isHistoryMuted()) return;
 			if (!mapId) return;
 			let userId = currentUser?.id as string | undefined;
 			if (!userId) {
@@ -500,8 +537,22 @@ export const createHistorySlice: StateCreator<
 			console.error('Revert failed:', error);
 			toast.error('Failed to revert state');
 		} finally {
-			// Step 3: Always resubscribe (even on error) to restore real-time updates
+			// Step 3: Shield realtime echoes by marking all current ids as recently saved
+			set((state) => ({
+				lastSavedNodeTimestamps: Object.fromEntries(
+					(state.nodes || []).map((n) => [n.id, Date.now()])
+				),
+				lastSavedEdgeTimestamps: Object.fromEntries(
+					(state.edges || []).map((e) => [e.id, Date.now()])
+				),
+			}));
+
+			// Mute history briefly to suppress any incidental UI-triggered saves
+			get().muteHistoryFor(1000);
+
+			// Small delay to let server-side changes settle before resubscribing
 			if (mapId) {
+				await new Promise((r) => setTimeout(r, 150));
 				await subscribeToRealtimeUpdates(mapId);
 			}
 

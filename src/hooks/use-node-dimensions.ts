@@ -55,6 +55,7 @@ export function useNodeDimensions(
 	const nodeRef = useRef<HTMLDivElement>(null);
 	const resizeObserverRef = useRef<ResizeObserver | null>(null);
 	const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+	const hasObservedOnceRef = useRef(false);
 
 	// Track resizing state
 	const [isResizing, setIsResizing] = useState(false);
@@ -182,9 +183,18 @@ export function useNodeDimensions(
 			resizeObserverRef.current.disconnect();
 		}
 
+		// Reset first-tick skip marker whenever observer is recreated
+		hasObservedOnceRef.current = false;
+
 		// Create new observer
 		resizeObserverRef.current = new ResizeObserver((entries) => {
 			if (isResizing) return; // Don't interfere during manual resize
+
+			// Skip the very first observer tick after mount to avoid hydration-triggered writes
+			if (!hasObservedOnceRef.current) {
+				hasObservedOnceRef.current = true;
+				return;
+			}
 
 			for (const entry of entries) {
 				const element = entry.target as HTMLElement;

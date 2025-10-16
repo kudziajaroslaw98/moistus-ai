@@ -117,16 +117,8 @@ const BaseNodeWrapperComponent = ({
 	const nodeStyles: CSSProperties = {
 		backgroundColor: getElevationColor(elevation),
 		// Proper focus states with double border technique for accessibility
-		boxShadow: selected ? theme.effects.selectedShadow : 'none',
-		// Subtle border with proper hover states
 		border: `1px solid ${selected ? theme.borders.selected : theme.borders.default}`,
 		// Micro-animation for depth perception
-		transform: selected
-			? theme.effects.selectedTransform
-			: theme.effects.defaultTransform,
-		transition: theme.effects.transition,
-		// Ensure proper focus handling
-		outline: 'none',
 	};
 
 	// Accent color system - subtle and sophisticated
@@ -142,14 +134,19 @@ const BaseNodeWrapperComponent = ({
 		<div
 			ref={nodeRef}
 			className={cn(
-				'relative flex h-auto min-w-80 flex-col rounded-lg cursor-move',
+				'h-auto min-w-80 flex-col rounded-lg cursor-move',
 				includePadding ? 'p-4' : 'p-0',
 				nodeClassName
 			)}
 			style={{
 				...nodeStyles,
 				...accentStyles,
-				zIndex: belongsToGroup ? 1 : 'auto',
+				backgroundBlendMode: 'color-burn',
+
+				backgroundImage: 'url("/images/groovepaper.png")',
+				backgroundRepeat: 'repeat',
+				opacity: 1,
+				mixBlendMode: 'darken',
 				gap: '1rem',
 			}}
 		>
@@ -188,17 +185,6 @@ const BaseNodeWrapperComponent = ({
 					}}
 				/>
 			)}
-
-			<div
-				className='absolute inset-0 rounded-lg pointer-events-none'
-				style={{
-					backgroundImage: 'url("/images/groovepaper.png")',
-					backgroundRepeat: 'repeat',
-					opacity: 1,
-					mixBlendMode: 'color-burn',
-					zIndex: -1,
-				}}
-			/>
 
 			<>
 				<CollapsedIndicator data={data} />

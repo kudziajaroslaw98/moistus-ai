@@ -41,14 +41,15 @@ const theme = {
 	legend: {
 		container: 'bg-zinc-900/50 border border-zinc-800 rounded-md',
 		header:
-			'flex items-center justify-between p-3 cursor-pointer hover:bg-zinc-800/50 transition-colors',
+			'flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-zinc-800/50 transition-colors',
 		content:
-			'p-3 pt-0 space-y-3 max-h-48 overflow-y-auto sm:max-h-none sm:overflow-visible',
+			'px-3 py-2 pt-0 flex flex-col gap-2 max-h-60 overflow-y-auto sm:max-h-none sm:overflow-visible',
 		title: 'text-sm font-medium text-zinc-100',
 		toggle: {
 			button:
 				'text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-1',
-			shortcut: 'px-2 py-1 bg-zinc-900/75 rounded-sm text-zinc-400 font-medium',
+			shortcut:
+				'px-2 py-0.5 bg-zinc-900/75 rounded-sm text-zinc-400 font-medium text-xs',
 			icon: 'w-4 h-4 transition-transform duration-200',
 		},
 	},

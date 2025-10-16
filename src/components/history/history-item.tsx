@@ -10,6 +10,7 @@ import { cn } from '@/utils/cn';
 import {
 	Clock,
 	GitCommit,
+	Layout,
 	Lock,
 	Milestone,
 	Pencil,
@@ -73,6 +74,8 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 		if (meta.operationType === 'delete') return <Trash className='h-4 w-4' />;
 		if (meta.operationType === 'add') return <Plus className='h-4 w-4' />;
 		if (meta.operationType === 'update') return <Pencil className='h-4 w-4' />;
+		if (meta.actionName.includes('applyLayout'))
+			return <Layout className='h-4 w-4' />;
 		return <Clock className='h-4 w-4' />;
 	};
 
@@ -109,7 +112,7 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 
 			<div className='flex-grow'>
 				<div className='flex items-start justify-between gap-2'>
-					<div className='flex-grow'>
+					<div className='flex-grow flex flex-col gap-1'>
 						<h4
 							className={cn(
 								'text-sm font-medium',
@@ -121,9 +124,10 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 
 						{/* User attribution */}
 						{delta && (
-							<div className='mt-1 flex items-center gap-1.5'>
+							<div className='flex items-center gap-1.5'>
 								{delta.userAvatar ? (
 									<Image
+										unoptimized
 										alt={delta.userName}
 										className='rounded-full'
 										height={16}
@@ -152,23 +156,18 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 							</p>
 						)}
 
-						<div className='mt-1 flex flex-wrap gap-3 text-xs text-white/38'>
-							{typeof meta.nodeCount === 'number' && (
-								<span>Nodes: {meta.nodeCount}</span>
-							)}
+						{typeof meta.nodeCount === 'number' ||
+							(typeof meta.edgeCount === 'number' && (
+								<div className='flex flex-wrap gap-3 text-xs text-white/38'>
+									{typeof meta.nodeCount === 'number' && (
+										<span>Nodes: {meta.nodeCount}</span>
+									)}
 
-							{typeof meta.edgeCount === 'number' && (
-								<span>Edges: {meta.edgeCount}</span>
-							)}
-
-							{meta.type === 'event' && (
-								<>
-									{meta.operationType && <span>Op: {meta.operationType}</span>}
-
-									{meta.entityType && <span>On: {meta.entityType}</span>}
-								</>
-							)}
-						</div>
+									{typeof meta.edgeCount === 'number' && (
+										<span>Edges: {meta.edgeCount}</span>
+									)}
+								</div>
+							))}
 					</div>
 
 					{!isCurrent && (

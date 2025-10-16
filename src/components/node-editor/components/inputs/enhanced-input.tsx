@@ -62,6 +62,16 @@ export const EnhancedInput = ({
 	const initializedRef = useRef(false);
 	const lastKnownValueRef = useRef(value);
 
+	// Store the latest callbacks in refs to avoid stale closures
+	const onKeyDownRef = useRef(onKeyDown);
+	const onSelectionChangeRef = useRef(onSelectionChange);
+
+	// Update refs when callbacks change
+	useEffect(() => {
+		onKeyDownRef.current = onKeyDown;
+		onSelectionChangeRef.current = onSelectionChange;
+	}, [onKeyDown, onSelectionChange]);
+
 	// Get validation results with error boundary using new validator
 	const validationErrors = useMemo(() => {
 		try {
@@ -266,20 +276,22 @@ export const EnhancedInput = ({
 			initializedRef.current = true;
 
 			// Add custom keydown handler for Ctrl+Enter / Cmd+Enter
+			// Use ref to avoid stale closures
 			view.dom.addEventListener('keydown', (event: KeyboardEvent) => {
 				if (
 					(event.key === 'Enter' && event.metaKey) ||
 					(event.key === 'Enter' && event.ctrlKey)
 				) {
 					const reactEvent = event as unknown as React.KeyboardEvent;
-					onKeyDown(reactEvent);
+					onKeyDownRef.current(reactEvent);
 					event.preventDefault();
 				}
 			});
 
 			// Add selection change listener
+			// Use ref to avoid stale closures
 			view.dom.addEventListener('click', () => {
-				onSelectionChange();
+				onSelectionChangeRef.current();
 			});
 
 			view.focus();

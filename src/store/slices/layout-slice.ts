@@ -40,7 +40,11 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 				setNodes,
 				reactFlowInstance,
 				addStateToHistory,
-				triggerNodeSave,
+				persistDeltaEvent,
+				unsubscribeFromRealtimeUpdates,
+				subscribeToRealtimeUpdates,
+				supabase,
+				mapId,
 			} = get();
 
 			if (nodes.length === 0) {
@@ -56,21 +60,71 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 				const layoutNode = result.nodes.find((n) => n.id === node.id);
 				if (!layoutNode) return node;
 
-				// Apply the layout position with optional adjustments
 				return {
 					...node,
 					position: {
 						x: layoutNode.position.x,
-						y: layoutNode.position.y
-					}
+						y: layoutNode.position.y,
+					},
 				};
 			});
 
+			// Determine which nodes actually changed position
+			const changedNodes = updatedNodes.filter((n) => {
+				const prev = nodes.find((p) => p.id === n.id);
+				if (!prev) return false;
+				return (
+					prev.position.x !== n.position.x || prev.position.y !== n.position.y
+				);
+			});
+
+			// Update UI immediately
 			setNodes(updatedNodes);
 
-			// Save and fit view
-			updatedNodes.forEach((node) => triggerNodeSave(node.id));
-			addStateToHistory(`applyLayout (${direction})`);
+			// Bulk persist only if something changed and we have required context
+			try {
+				await unsubscribeFromRealtimeUpdates();
+
+				if (changedNodes.length > 0 && mapId && supabase) {
+					const session = await supabase.auth.getSession();
+					const userId = session.data.session?.user?.id;
+					if (!userId) {
+						throw new Error('Not authenticated');
+					}
+
+					const nowIso = new Date().toISOString();
+					const rows = changedNodes.map((n) => ({
+						id: n.id,
+						map_id: mapId,
+						user_id: userId,
+						position_x: n.position.x,
+						position_y: n.position.y,
+						updated_at: nowIso,
+					}));
+
+					if (rows.length > 0) {
+						const { error } = await supabase
+							.from('nodes')
+							.upsert(rows, { onConflict: 'id' });
+						if (error) throw error;
+					}
+
+					// Record a single history event for the entire layout
+					addStateToHistory(`applyLayout (${direction})`, {
+						nodes: updatedNodes,
+						edges,
+					});
+					await persistDeltaEvent(
+						`applyLayout (${direction})`,
+						{ nodes, edges },
+						{ nodes: updatedNodes, edges }
+					);
+				}
+			} finally {
+				if (mapId) {
+					await subscribeToRealtimeUpdates(mapId);
+				}
+			}
 
 			setTimeout(() => {
 				reactFlowInstance?.fitView({ padding: 0.1, duration: 300 });
@@ -79,7 +133,7 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 		'isApplyingLayout',
 		{
 			initialMessage: 'Applying layout...',
-			successMessage: 'Layout applied and node positions are being saved.',
+			successMessage: 'Layout applied.',
 			errorMessage: 'Failed to apply layout.',
 		}
 	),
@@ -91,7 +145,11 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 				setNodes,
 				reactFlowInstance,
 				addStateToHistory,
-				triggerNodeSave,
+				persistDeltaEvent,
+				unsubscribeFromRealtimeUpdates,
+				subscribeToRealtimeUpdates,
+				supabase,
+				mapId,
 			} = get();
 
 			if (nodes.length === 0) {
@@ -115,9 +173,60 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 					return layoutNode ? { ...node, position: layoutNode.position } : node;
 				});
 
+				// Determine which nodes actually changed position
+				const changedNodes = updatedNodes.filter((n) => {
+					const prev = nodes.find((p) => p.id === n.id);
+					if (!prev) return false;
+					return (
+						prev.position.x !== n.position.x || prev.position.y !== n.position.y
+					);
+				});
+
+				// Update UI immediately
 				setNodes(updatedNodes);
-				updatedNodes.forEach((node) => triggerNodeSave(node.id));
-				addStateToHistory('applyAdvancedLayout');
+
+				try {
+					await unsubscribeFromRealtimeUpdates();
+
+					if (changedNodes.length > 0 && mapId && supabase) {
+						const session = await supabase.auth.getSession();
+						const userId = session.data.session?.user?.id;
+						if (!userId) {
+							throw new Error('Not authenticated');
+						}
+
+						const nowIso = new Date().toISOString();
+						const rows = changedNodes.map((n) => ({
+							id: n.id,
+							map_id: mapId,
+							user_id: userId,
+							position_x: n.position.x,
+							position_y: n.position.y,
+							updated_at: nowIso,
+						}));
+
+						if (rows.length > 0) {
+							const { error } = await supabase
+								.from('nodes')
+								.upsert(rows, { onConflict: 'id' });
+							if (error) throw error;
+						}
+
+						addStateToHistory('applyAdvancedLayout', {
+							nodes: updatedNodes,
+							edges,
+						});
+						await persistDeltaEvent(
+							'applyAdvancedLayout',
+							{ nodes, edges },
+							{ nodes: updatedNodes, edges }
+						);
+					}
+				} finally {
+					if (mapId) {
+						await subscribeToRealtimeUpdates(mapId);
+					}
+				}
 
 				setTimeout(() => {
 					reactFlowInstance?.fitView({ padding: 0.1, duration: 300 });

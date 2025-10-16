@@ -138,6 +138,8 @@ export interface HistorySlice {
 	historyMeta: ReadonlyArray<HistoryItem>; // chronological asc (oldest -> newest)
 	historyIndex: number; // index into history/historyMeta
 	isReverting: boolean;
+	/** When set, history writes are muted until this timestamp (ms since epoch). */
+	historyMutedUntil?: number | null;
 
 	// Pagination
 	historyPageOffset: number;
@@ -160,6 +162,10 @@ export interface HistorySlice {
 		prev: { nodes: AppNode[]; edges: AppEdge[] },
 		next: { nodes: AppNode[]; edges: AppEdge[] }
 	) => Promise<void>;
+
+	// History mute helpers
+	muteHistoryFor: (ms: number) => void;
+	isHistoryMuted: () => boolean;
 
 	// History selectors
 	canUndo: boolean;

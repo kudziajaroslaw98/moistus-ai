@@ -7,18 +7,17 @@ import type { PatternItemProps } from '../types';
 
 const theme = {
 	pattern: {
-		item: 'flex flex-col gap-1 sm:flex-row sm:items-start sm:gap-3 p-2 rounded-md hover:bg-zinc-800/50 cursor-pointer transition-colors',
-		syntax: 'font-mono text-xs sm:text-sm text-teal-500',
-		description: 'text-xs sm:text-sm text-zinc-400',
-		examples: 'text-xs text-zinc-500 mt-1',
-		icon: 'w-4 h-4 text-zinc-500',
+		item: 'flex items-center gap-3 px-2 py-2 rounded-md hover:bg-zinc-800/50 cursor-pointer transition-colors',
+		syntax: 'font-mono text-xs text-teal-400 font-medium',
+		description: 'text-xs text-zinc-500',
+		examples: 'text-xs text-zinc-600',
+		icon: 'w-3.5 h-3.5 text-zinc-600 flex-shrink-0',
 		clicked: 'bg-teal-500/20 ring-1 ring-teal-500/50',
 	},
 };
 
 export const PatternItem: React.FC<PatternItemProps> = memo(
 	({ pattern, onClick, isInteractive = true }) => {
-		const [isHovered, setIsHovered] = useState(false);
 		const [isClicked, setIsClicked] = useState(false);
 
 		const handleClick = () => {
@@ -38,12 +37,14 @@ export const PatternItem: React.FC<PatternItemProps> = memo(
 			}
 		};
 
+		// Get first example for inline display
+		const firstExample = pattern.examples?.[0];
+
 		return (
 			<motion.div
 				aria-label={`${pattern.pattern}: ${pattern.description}`}
 				role={isInteractive ? 'button' : 'listitem'}
 				tabIndex={isInteractive ? 0 : -1}
-				whileHover={isInteractive ? { scale: 1.01 } : {}}
 				whileTap={isInteractive ? { scale: 0.99 } : {}}
 				className={cn(
 					theme.pattern.item,
@@ -53,38 +54,22 @@ export const PatternItem: React.FC<PatternItemProps> = memo(
 				)}
 				onClick={handleClick}
 				onKeyDown={handleKeyDown}
-				onMouseEnter={() => setIsHovered(true)}
-				onMouseLeave={() => setIsHovered(false)}
 			>
-				<div className='flex items-center gap-2 flex-shrink-0'>
+				<div className='flex items-center gap-1.5 flex-shrink-0'>
 					{pattern.icon && <pattern.icon className={theme.pattern.icon} />}
-
 					<code className={theme.pattern.syntax}>{pattern.pattern}</code>
 				</div>
 
-				<div className='flex-1 min-w-0'>
-					<p className={theme.pattern.description}>{pattern.description}</p>
+				<span className={cn(theme.pattern.description, 'flex-shrink-0')}>
+					{pattern.description}
+				</span>
 
-					{pattern.examples && pattern.examples.length > 0 && (
-						<p className={theme.pattern.examples}>
-							{isHovered
-								? pattern.examples.join(', ')
-								: pattern.examples.slice(0, 2).join(', ')}
-
-							{!isHovered && pattern.examples.length > 2 && ', ...'}
-						</p>
-					)}
-				</div>
-
-				{isInteractive && isHovered && (
-					<motion.span
-						animate={{ opacity: 1 }}
-						className='text-xs text-zinc-500 hidden sm:block'
-						exit={{ opacity: 0 }}
-						initial={{ opacity: 0 }}
+				{firstExample && (
+					<span
+						className={cn(theme.pattern.examples, 'truncate flex-1 min-w-0')}
 					>
-						Click to insert
-					</motion.span>
+						{firstExample}
+					</span>
 				)}
 			</motion.div>
 		);

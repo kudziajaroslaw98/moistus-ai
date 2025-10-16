@@ -96,15 +96,48 @@ export async function POST(
 			}
 		}
 
-		// Persist reverted state to database (bulk upsert)
-		// Single timestamp for entire batch ensures atomic coordination
+		// Persist reverted state to database using differential upserts/deletes
+		// to avoid emitting unnecessary realtime updates for unchanged rows.
 		const revertTimestamp = new Date().toISOString();
 
-		// Transform nodes to database schema
-		const nodeUpdates = finalNodes.map((node) => ({
+		// 1) Load current DB state for comparison
+		const [
+			{ data: dbNodes, error: nodesLoadError },
+			{ data: dbEdges, error: edgesLoadError },
+		] = await Promise.all([
+			supabase
+				.from('nodes')
+				.select(
+					'id, content, position_x, position_y, width, height, node_type, metadata, aiData, parent_id, created_at, updated_at'
+				)
+				.eq('map_id', mapId),
+			supabase
+				.from('edges')
+				.select(
+					'id, source, target, label, animated, style, markerEnd, metadata, aiData, created_at, updated_at'
+				)
+				.eq('map_id', mapId),
+		]);
+
+		if (nodesLoadError || edgesLoadError) {
+			console.error('Failed to load current DB state before revert', {
+				nodesLoadError,
+				edgesLoadError,
+			});
+			return NextResponse.json(
+				{ error: 'Failed to load current state for comparison' },
+				{ status: 500 }
+			);
+		}
+
+		const dbNodeMap = new Map((dbNodes || []).map((n: any) => [n.id, n]));
+		const dbEdgeMap = new Map((dbEdges || []).map((e: any) => [e.id, e]));
+
+		// Helpers to transform final state nodes/edges into DB rows
+		const toNodeRow = (node: AppNode) => ({
 			id: node.id,
 			map_id: mapId,
-			user_id: user.id, // Use current user performing revert
+			user_id: user.id,
 			content: node.data?.content || '',
 			position_x: node.position.x,
 			position_y: node.position.y,
@@ -113,56 +146,179 @@ export async function POST(
 			node_type: node.type || 'defaultNode',
 			metadata: node.data?.metadata || {},
 			aiData: node.data?.aiData || {},
-			parent_id: node.data?.parent_id || null,
-			updated_at: revertTimestamp, // Same timestamp for all
-			created_at: node.data?.created_at || revertTimestamp, // Preserve original or use revert time
-		}));
+			parent_id: (node as any).parentId ?? node.data?.parent_id ?? null,
+		});
 
-		// Transform edges to database schema
-		const edgeUpdates = finalEdges.map((edge) => ({
+		const toEdgeRow = (edge: AppEdge) => ({
 			id: edge.id,
 			map_id: mapId,
 			user_id: user.id,
 			source: edge.source,
 			target: edge.target,
 			label: edge.label || null,
-			animated: edge.animated || false,
+			animated: (edge as any).animated ?? false,
 			style: edge.style || { stroke: '#6c757d', strokeWidth: 2 },
-			markerEnd: edge.markerEnd || null,
+			markerEnd: (edge as any).markerEnd ?? null,
 			metadata: edge.data?.metadata || {},
 			aiData: edge.data?.aiData || {},
-			updated_at: revertTimestamp,
-			created_at: edge.data?.created_at || revertTimestamp,
-		}));
+		});
 
-		// Bulk upsert (atomic operation) - handles both updates and inserts
+		const isEqual = (a: any, b: any) => {
+			// Compare primitive fields and JSON-like objects deterministically
+			return JSON.stringify(a) === JSON.stringify(b);
+		};
+
+		// 2) Compute diffs for nodes
+		const finalNodeRows = finalNodes.map(toNodeRow);
+		const finalNodeIdSet = new Set(finalNodeRows.map((r) => r.id));
+
+		const nodesToDelete = (dbNodes || [])
+			.filter((n: any) => !finalNodeIdSet.has(n.id))
+			.map((n: any) => n.id);
+
+		const nodesToUpsert = finalNodeRows
+			.map((row) => {
+				const existing = dbNodeMap.get(row.id);
+				if (!existing) {
+					return {
+						...row,
+						created_at: (row as any).created_at || new Date().toISOString(),
+						updated_at: revertTimestamp,
+					};
+				}
+				const comparableExisting = {
+					content: existing.content || '',
+					position_x: existing.position_x,
+					position_y: existing.position_y,
+					width: existing.width || null,
+					height: existing.height || null,
+					node_type: existing.node_type || 'defaultNode',
+					metadata: existing.metadata || {},
+					aiData: existing.aiData || {},
+					parent_id: existing.parent_id ?? null,
+				};
+				const comparableRow = {
+					content: row.content,
+					position_x: row.position_x,
+					position_y: row.position_y,
+					width: row.width,
+					height: row.height,
+					node_type: row.node_type,
+					metadata: row.metadata,
+					aiData: row.aiData,
+					parent_id: row.parent_id,
+				};
+				if (isEqual(comparableExisting, comparableRow)) return null; // unchanged
+				return {
+					...row,
+					created_at: existing.created_at,
+					updated_at: revertTimestamp,
+				};
+			})
+			.filter(Boolean) as any[];
+
+		// 3) Compute diffs for edges
+		const finalEdgeRows = finalEdges.map(toEdgeRow);
+		const finalEdgeIdSet = new Set(finalEdgeRows.map((r) => r.id));
+
+		const edgesToDelete = (dbEdges || [])
+			.filter((e: any) => !finalEdgeIdSet.has(e.id))
+			.map((e: any) => e.id);
+
+		const edgesToUpsert = finalEdgeRows
+			.map((row) => {
+				const existing = dbEdgeMap.get(row.id);
+				if (!existing) {
+					return {
+						...row,
+						created_at: (row as any).created_at || new Date().toISOString(),
+						updated_at: revertTimestamp,
+					};
+				}
+				const comparableExisting = {
+					source: existing.source,
+					target: existing.target,
+					label: existing.label || null,
+					animated: existing.animated ?? false,
+					style: existing.style || { stroke: '#6c757d', strokeWidth: 2 },
+					markerEnd: existing.markerEnd ?? null,
+					metadata: existing.metadata || {},
+					aiData: existing.aiData || {},
+				};
+				const comparableRow = {
+					source: row.source,
+					target: row.target,
+					label: row.label,
+					animated: row.animated ?? false,
+					style: row.style || { stroke: '#6c757d', strokeWidth: 2 },
+					markerEnd: row.markerEnd ?? null,
+					metadata: row.metadata,
+					aiData: row.aiData,
+				};
+				if (isEqual(comparableExisting, comparableRow)) return null; // unchanged
+				return {
+					...row,
+					created_at: existing.created_at,
+					updated_at: revertTimestamp,
+				};
+			})
+			.filter(Boolean) as any[];
+
+		// 4) Apply deletes first (edges, then nodes), then upserts (nodes, then edges)
 		try {
-			const [nodesResult, edgesResult] = await Promise.all([
-				supabase.from('nodes').upsert(nodeUpdates),
-				supabase.from('edges').upsert(edgeUpdates),
-			]);
-
-			if (nodesResult.error) {
-				console.error('Failed to persist nodes:', nodesResult.error);
-				return NextResponse.json(
-					{ error: 'Failed to persist nodes to database' },
-					{ status: 500 }
-				);
+			if (edgesToDelete.length > 0) {
+				const { error } = await supabase
+					.from('edges')
+					.delete()
+					.in('id', edgesToDelete)
+					.eq('map_id', mapId);
+				if (error) throw error;
 			}
 
-			if (edgesResult.error) {
-				console.error('Failed to persist edges:', edgesResult.error);
-				return NextResponse.json(
-					{ error: 'Failed to persist edges to database' },
-					{ status: 500 }
-				);
+			if (nodesToDelete.length > 0) {
+				const { error } = await supabase
+					.from('nodes')
+					.delete()
+					.in('id', nodesToDelete)
+					.eq('map_id', mapId);
+				if (error) throw error;
+			}
+
+			if (nodesToUpsert.length > 0) {
+				const { error } = await supabase.from('nodes').upsert(nodesToUpsert);
+				if (error) throw error;
+			}
+
+			if (edgesToUpsert.length > 0) {
+				const { error } = await supabase.from('edges').upsert(edgesToUpsert);
+				if (error) throw error;
 			}
 		} catch (persistError) {
-			console.error('Failed to persist revert:', persistError);
+			console.error('Failed to persist revert (diff):', persistError);
 			return NextResponse.json(
 				{ error: 'Failed to persist changes to database' },
 				{ status: 500 }
 			);
+		}
+
+		// 5) Update the canonical current pointer (snapshot/event) for this map
+		try {
+			await supabase.from('map_history_current').upsert(
+				{
+					map_id: mapId,
+					snapshot_id: targetSnapshotId,
+					event_id: eventId ?? null,
+					updated_by: user.id,
+					updated_at: revertTimestamp,
+				},
+				{ onConflict: 'map_id' }
+			);
+		} catch (pointerError) {
+			console.error(
+				'Failed to upsert map_history_current pointer:',
+				pointerError
+			);
+			// Non-fatal: continue returning the reverted state
 		}
 
 		return NextResponse.json({

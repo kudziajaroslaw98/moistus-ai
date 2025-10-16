@@ -100,6 +100,13 @@ export const GET = async (
 			events = eventsData || [];
 		}
 
+		// Fetch current pointer (snapshot/event) for this map
+		const { data: currentPtr } = await supabase
+			.from('map_history_current')
+			.select('snapshot_id, event_id')
+			.eq('map_id', mapId)
+			.maybeSingle();
+
 		const items: HistoryItem[] = [
 			...(snapshots?.map((s) => ({
 				id: s.id,
@@ -129,6 +136,8 @@ export const GET = async (
 			hasMore: offset + limit < (snapshotCount || 0),
 			snapshots: snapshots?.length || 0,
 			events: events?.length || 0,
+			currentSnapshotId: currentPtr?.snapshot_id || null,
+			currentEventId: currentPtr?.event_id || null,
 		});
 	} catch (error) {
 		console.error('List history error:', error);

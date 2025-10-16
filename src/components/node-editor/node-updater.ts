@@ -299,21 +299,21 @@ const serializeNodeSpecificMetadata = (
 
 	switch (nodeType) {
 		case 'textNode':
-			// Text formatting patterns
+			// Text formatting patterns - must match pattern-extractor.ts syntax
 			if (metadata.fontSize) {
-				parts.push(`~${metadata.fontSize}`);
+				parts.push(`size:${metadata.fontSize}`);
 			}
 
-			if (metadata.fontWeight && metadata.fontWeight !== 'normal') {
-				parts.push(`*${metadata.fontWeight}`);
+			if (metadata.fontWeight && metadata.fontWeight !== 'normal' && metadata.fontWeight !== 400) {
+				parts.push(`weight:${metadata.fontWeight}`);
 			}
 
-			if (metadata.fontStyle === 'italic') {
-				parts.push(`/italic`);
+			if (metadata.fontStyle && metadata.fontStyle !== 'normal') {
+				parts.push(`style:${metadata.fontStyle}`);
 			}
 
 			if (metadata.textAlign && metadata.textAlign !== 'left') {
-				parts.push(`>${metadata.textAlign}`);
+				parts.push(`align:${metadata.textAlign}`);
 			}
 
 			if (metadata.textColor) {

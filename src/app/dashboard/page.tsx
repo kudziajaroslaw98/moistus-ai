@@ -59,10 +59,13 @@ type SortByType = 'updated' | 'created' | 'name';
 
 // SWR fetcher function
 const fetcher = async (url: string) => {
-	const response = await fetch(url, {
-		method: 'GET',
-		headers: { 'Content-Type': 'application/json' },
-	});
+	const response = await fetch(
+		`${process.env.NEXT_PUBLIC_APP_LOCAL_HREF}/api/maps`,
+		{
+			method: 'GET',
+			headers: { 'Content-Type': 'application/json' },
+		}
+	);
 
 	if (!response.ok) {
 		throw new Error('Failed to fetch data');

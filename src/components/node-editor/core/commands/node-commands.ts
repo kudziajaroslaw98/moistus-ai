@@ -13,14 +13,14 @@ import {
 	Tag,
 } from 'lucide-react';
 import { parseInput } from '../parsers/pattern-extractor';
-import { nodeTypeCommands } from './definitions/node-type-commands';
 import type { Command } from './command-types';
+import { nodeTypeCommands } from './definitions/node-type-commands';
 
 /**
  * Get base command by node type
  */
 function getBaseCommand(nodeType: string): Command | undefined {
-	return nodeTypeCommands.find(cmd => cmd.nodeType === nodeType);
+	return nodeTypeCommands.find((cmd) => cmd.nodeType === nodeType);
 }
 
 /**
@@ -38,12 +38,25 @@ export const nodeCommands: Command[] = [
 				pattern: '$note',
 				description: 'Switch to note node type',
 				category: 'metadata',
-				examples: ['$note Meeting notes #important', '$note Project update #in-progress'],
+				examples: [
+					'$note Meeting notes #important',
+					'$note Project update #in-progress',
+				],
 			},
 			{
 				pattern: '!priority',
 				description: 'Set priority level',
-				examples: ['!high', '!medium', '!low', '!', '!!', '!!!', '!1', '!2', '!3'],
+				examples: [
+					'!high',
+					'!medium',
+					'!low',
+					'!',
+					'!!',
+					'!!!',
+					'!1',
+					'!2',
+					'!3',
+				],
 				category: 'metadata',
 				icon: Flag,
 			},
@@ -98,7 +111,10 @@ export const nodeCommands: Command[] = [
 				pattern: '$task',
 				description: 'Switch to task list node type',
 				category: 'metadata',
-				examples: ['$task Review PR; Fix bugs ^friday #high', '$task Buy milk, Send email'],
+				examples: [
+					'$task Review PR; Fix bugs ^friday #high',
+					'$task Buy milk, Send email',
+				],
 			},
 			{
 				pattern: '^date',
@@ -114,18 +130,13 @@ export const nodeCommands: Command[] = [
 				category: 'metadata',
 				icon: Flag,
 			},
+
 			{
-				pattern: '; or ,',
-				description: 'Separate multiple tasks',
-				examples: ['Task 1; Task 2', 'Buy milk, Send email'],
-				category: 'formatting',
-			},
-			{
-				pattern: '- [ ]',
+				pattern: '[ ]',
 				description: 'Markdown task list',
-				examples: ['- [ ] Review PR\n- [ ] Fix bugs\n- [ ] Deploy'],
+				examples: ['[ ] Review PR\n[ ] Fix bugs\n[ ] Deploy'],
 				category: 'formatting',
-				insertText: '- [ ] ',
+				insertText: '[ ] ',
 			},
 			{
 				pattern: 'Title:',
@@ -184,7 +195,10 @@ export const nodeCommands: Command[] = [
 				pattern: '$code',
 				description: 'Switch to code block node type',
 				category: 'metadata',
-				examples: ['$code ```js const sum = (a, b) => a + b', '$code python file:utils.py'],
+				examples: [
+					'$code ```js const sum = (a, b) => a + b',
+					'$code python file:utils.py',
+				],
 			},
 			{
 				pattern: '```language',
@@ -345,15 +359,18 @@ export const nodeCommands: Command[] = [
 				],
 			},
 			{
-				pattern: '[yes/no]',
+				pattern: 'question:binary|multiple',
 				description: 'Binary yes/no question',
-				examples: ['[yes/no]', '[y/n]'],
+				examples: ['question:binary', 'question:multiple'],
 				category: 'structure',
 			},
 			{
-				pattern: '[opt1,opt2,opt3]',
+				pattern: 'options:[opt1,opt2,opt3]',
 				description: 'Multiple choice options',
-				examples: ['[Build,Buy,Partner]', '[React,Vue,Angular]'],
+				examples: [
+					'options:[Build,Buy,Partner]',
+					'options:[React,Vue,Angular]',
+				],
 				category: 'structure',
 			},
 		],
@@ -390,7 +407,10 @@ export const nodeCommands: Command[] = [
 				pattern: '$annotation',
 				description: 'Switch to annotation node type',
 				category: 'metadata',
-				examples: ['$annotation ⚠️ Breaking change in v2.0', '$annotation ✅ Deployment successful'],
+				examples: [
+					'$annotation ⚠️ Breaking change in v2.0',
+					'$annotation ✅ Deployment successful',
+				],
 			},
 			{
 				pattern: '⚠️',
@@ -444,36 +464,42 @@ export const nodeCommands: Command[] = [
 				placeholder: 'Enter your text...',
 			},
 		],
-		examples: ['**Bold text** @24px', '*Italic note* align:center', 'Important message color:red @32px'],
+		examples: [
+			'Bold text size:24px weight:bold',
+			'Italic note style:italic align:center',
+			'Important message color:red size:32px',
+		],
 		parsingPatterns: [
 			{
 				pattern: '$text',
 				description: 'Switch to text node type',
 				category: 'metadata',
 				examples: [
-					'$text **Bold text** sz:24px align:center',
-					'$text *Italic note* sz:18px align:left',
-					'$text Important message color:red sz:24px align:center',
+					'$text Bold text size:24px align:center',
+					'$text Italic note style:italic align:left',
+					'$text Important message color:red size:24px',
 				],
 			},
 			{
-				pattern: 'sz:size',
+				pattern: 'size:value',
 				description: 'Set font size',
-				examples: ['sz:16px', 'sz:24px', 'sz:32px', 'sz:2rem'],
+				examples: ['size:16px', 'size:24px', 'size:32px', 'size:2rem'],
 				category: 'formatting',
-				insertText: 'sz:24px',
+				insertText: 'size:24px',
 			},
 			{
-				pattern: '**text**',
-				description: 'Make text bold',
-				examples: ['**Important**', '**Warning**'],
+				pattern: 'weight:value',
+				description: 'Set font weight',
+				examples: ['weight:bold', 'weight:normal', 'weight:400', 'weight:700'],
 				category: 'formatting',
+				insertText: 'weight:bold',
 			},
 			{
-				pattern: '*text*',
-				description: 'Make text italic',
-				examples: ['*emphasis*', '_note_'],
+				pattern: 'style:value',
+				description: 'Set font style',
+				examples: ['style:italic', 'style:normal', 'style:oblique'],
 				category: 'formatting',
+				insertText: 'style:italic',
 			},
 			{
 				pattern: 'align:direction',

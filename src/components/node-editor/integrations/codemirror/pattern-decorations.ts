@@ -118,6 +118,42 @@ const PATTERNS: PatternConfig[] = [
 		className: PATTERN_STYLES.color,
 	},
 
+	// Background color: bg:value
+	{
+		regex: /bg:[#a-zA-Z0-9()-]+/gi,
+		className: PATTERN_STYLES.color,
+	},
+
+	// Border color: border:value
+	{
+		regex: /border:[#a-zA-Z0-9()-]+/gi,
+		className: PATTERN_STYLES.color,
+	},
+
+	// Font size: size:24px
+	{
+		regex: /size:\d+(?:\.\d+)?(px|pt|em|rem)\b/gi,
+		className: 'cm-pattern-size',
+	},
+
+	// Font weight: weight:bold or weight:400
+	{
+		regex: /weight:(normal|bold|bolder|lighter|\d{3})\b/gi,
+		className: 'cm-pattern-weight',
+	},
+
+	// Font style: style:italic
+	{
+		regex: /style:(normal|italic|oblique)\b/gi,
+		className: 'cm-pattern-style',
+	},
+
+	// Text align: align:center
+	{
+		regex: /align:(left|center|right)\b/gi,
+		className: 'cm-pattern-align',
+	},
+
 	// Node types: $type
 	{
 		regex: /\$[a-zA-Z]+/g,
@@ -301,6 +337,40 @@ export function createPatternDecorations() {
 			'.cm-pattern-color': {
 				color: '#db2777', // pink
 				borderBottom: '2px solid currentColor',
+			},
+
+			// Font size styles
+			'.cm-pattern-size': {
+				color: '#06b6d4', // cyan
+				backgroundColor: '#06b6d415',
+				padding: '0 2px',
+				borderRadius: '3px',
+			},
+
+			// Font weight styles
+			'.cm-pattern-weight': {
+				color: '#8b5cf6', // violet
+				fontWeight: 'bold',
+				backgroundColor: '#8b5cf615',
+				padding: '0 2px',
+				borderRadius: '3px',
+			},
+
+			// Font style styles
+			'.cm-pattern-style': {
+				color: '#ec4899', // pink
+				fontStyle: 'italic',
+				backgroundColor: '#ec489915',
+				padding: '0 2px',
+				borderRadius: '3px',
+			},
+
+			// Text align styles
+			'.cm-pattern-align': {
+				color: '#10b981', // emerald
+				backgroundColor: '#10b98115',
+				padding: '0 2px',
+				borderRadius: '3px',
 			},
 
 			// Node type styles
