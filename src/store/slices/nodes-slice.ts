@@ -19,18 +19,12 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 	// Handle real-time node events
 	const handleNodeRealtimeEvent = (payload: any) => {
 		const { eventType, new: newRecord, old: oldRecord } = payload;
-		const { nodes, lastSavedNodeTimestamps } = get();
+		const { nodes, markNodeAsSystemUpdate } = get();
 
-		// Skip if this change was made by current user recently (prevent loops)
+		// Mark this node as system-updated to prevent save loop
 		const nodeId = newRecord?.id || oldRecord?.id;
-
-		if (nodeId && lastSavedNodeTimestamps[nodeId]) {
-			const timeSinceLastSave = Date.now() - lastSavedNodeTimestamps[nodeId];
-
-			if (timeSinceLastSave < 1000) {
-				// Skip if saved within last second
-				return;
-			}
+		if (nodeId) {
+			markNodeAsSystemUpdate(nodeId);
 		}
 
 		switch (eventType) {
@@ -62,39 +56,14 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 
 			case 'UPDATE': {
 				if (newRecord) {
-					const existingNode = nodes.find((n) => n.id === newRecord.id);
-					const oldPosition = existingNode
-						? { x: existingNode.position.x, y: existingNode.position.y }
-						: null;
-					const newPosition = {
-						x: newRecord.position_x,
-						y: newRecord.position_y,
-					};
-
-					// Check if this node was recently moved locally (within last 2 seconds)
-					const wasRecentlyMoved =
-						lastSavedNodeTimestamps[newRecord.id] &&
-						Date.now() - lastSavedNodeTimestamps[newRecord.id] < 2000;
-
-					const positionChanged =
-						oldPosition &&
-						(oldPosition.x !== newPosition.x ||
-							oldPosition.y !== newPosition.y);
-
 					const updatedNodes = nodes.map((node) => {
 						if (node.id === newRecord.id) {
-							// Only update position if it wasn't recently moved locally
-							const shouldUpdatePosition =
-								!wasRecentlyMoved || !positionChanged;
-
 							return {
 								...node,
-								position: shouldUpdatePosition
-									? {
-											x: newRecord.position_x,
-											y: newRecord.position_y,
-										}
-									: node.position,
+								position: {
+									x: newRecord.position_x,
+									y: newRecord.position_y,
+								},
 								data: newRecord,
 								type: newRecord.node_type || node.type,
 								width: newRecord.width || node.width,
@@ -129,8 +98,33 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 	return {
 		nodes: [],
 		selectedNodes: [],
-		lastSavedNodeTimestamps: {},
+		systemUpdatedNodes: new Map(),
 		_nodesSubscription: null,
+
+		// System update tracking helpers
+		markNodeAsSystemUpdate: (nodeId: string) => {
+			set((state) => {
+				const newMap = new Map(state.systemUpdatedNodes);
+				newMap.set(nodeId, Date.now());
+				return { systemUpdatedNodes: newMap };
+			});
+		},
+
+		shouldSkipNodeSave: (nodeId: string) => {
+			const timestamp = get().systemUpdatedNodes.get(nodeId);
+			if (!timestamp) return false;
+
+			// Skip if marked within last 3 seconds
+			const age = Date.now() - timestamp;
+			if (age > 3000) {
+				// Clean up stale entry
+				const newMap = new Map(get().systemUpdatedNodes);
+				newMap.delete(nodeId);
+				set({ systemUpdatedNodes: newMap });
+				return false;
+			}
+			return true;
+		},
 
 		onNodesChange: (changes) => {
 			// Apply changes as before
@@ -184,6 +178,14 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 
 			// Trigger debounced saves for relevant node changes
 			changes.forEach((change) => {
+				// Skip if change doesn't have an id (add/remove types)
+				if (!('id' in change)) return;
+
+				// Skip saves for system-updated nodes or during revert
+				if (get().shouldSkipNodeSave(change.id) || get().isReverting) {
+					return;
+				}
+
 				// Only save when changes are complete (not during dragging/resizing)
 				if (
 					change.type === 'position' &&
@@ -208,12 +210,6 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					change.resizing === false
 				) {
 					get().triggerNodeSave(change.id);
-				} else if (change.type === 'select' || change.type === 'remove') {
-					// No need to save for these change types
-					return;
-				} else if (change.type === 'add') {
-					// New nodes are handled elsewhere
-					return;
 				} else if (change.type === 'replace') {
 					// Data changes should trigger a save
 					get().triggerNodeSave(change.id);
@@ -605,13 +601,6 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 						`Node with id ${nodeId} not found or has invalid data`
 					);
 				}
-
-				set((state) => ({
-					lastSavedNodeTimestamps: {
-						...state.lastSavedNodeTimestamps,
-						[nodeId]: Date.now(),
-					},
-				}));
 
 				if (!mapId) {
 					console.error('Cannot save node: No mapId defined');

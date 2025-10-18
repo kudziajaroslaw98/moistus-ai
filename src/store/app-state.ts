@@ -86,7 +86,7 @@ export interface CoreDataSlice {
 export interface EdgesSlice {
 	// Edge state
 	edges: AppEdge[];
-	lastSavedEdgeTimestamps: Record<string, number>;
+	systemUpdatedEdges: Map<string, number>;
 
 	// Edge handlers
 	onEdgesChange: OnEdgesChange<AppEdge>;
@@ -114,6 +114,10 @@ export interface EdgesSlice {
 	triggerEdgeSave: (edgeId: string) => void;
 	setParentConnection: (edgeId: string) => void;
 
+	// System update tracking
+	markEdgeAsSystemUpdate: (edgeId: string) => void;
+	shouldSkipEdgeSave: (edgeId: string) => boolean;
+
 	// Real-time subscription management
 	subscribeToEdges: (mapId: string) => Promise<void>;
 	unsubscribeFromEdges: () => Promise<void>;
@@ -138,8 +142,6 @@ export interface HistorySlice {
 	historyMeta: ReadonlyArray<HistoryItem>; // chronological asc (oldest -> newest)
 	historyIndex: number; // index into history/historyMeta
 	isReverting: boolean;
-	/** When set, history writes are muted until this timestamp (ms since epoch). */
-	historyMutedUntil?: number | null;
 
 	// Pagination
 	historyPageOffset: number;
@@ -162,10 +164,6 @@ export interface HistorySlice {
 		prev: { nodes: AppNode[]; edges: AppEdge[] },
 		next: { nodes: AppNode[]; edges: AppEdge[] }
 	) => Promise<void>;
-
-	// History mute helpers
-	muteHistoryFor: (ms: number) => void;
-	isHistoryMuted: () => boolean;
 
 	// History selectors
 	canUndo: boolean;
@@ -213,7 +211,7 @@ export interface NodesSlice {
 	// Node state
 	nodes: AppNode[];
 	selectedNodes: AppNode[];
-	lastSavedNodeTimestamps: Record<string, number>;
+	systemUpdatedNodes: Map<string, number>;
 
 	// Node handlers
 	onNodesChange: OnNodesChange<AppNode>;
@@ -259,6 +257,10 @@ export interface NodesSlice {
 	getDescendantNodeIds: (nodeId: string) => string[];
 	getVisibleNodes: () => AppNode[];
 	toggleNodeCollapse: (nodeId: string) => Promise<void>;
+
+	// System update tracking
+	markNodeAsSystemUpdate: (nodeId: string) => void;
+	shouldSkipNodeSave: (nodeId: string) => boolean;
 
 	// Real-time subscription management
 	subscribeToNodes: (mapId: string) => Promise<void>;

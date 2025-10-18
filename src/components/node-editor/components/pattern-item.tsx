@@ -57,6 +57,7 @@ export const PatternItem: React.FC<PatternItemProps> = memo(
 			>
 				<div className='flex items-center gap-1.5 flex-shrink-0'>
 					{pattern.icon && <pattern.icon className={theme.pattern.icon} />}
+
 					<code className={theme.pattern.syntax}>{pattern.pattern}</code>
 				</div>
 

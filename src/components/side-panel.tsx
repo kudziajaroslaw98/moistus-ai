@@ -40,10 +40,16 @@ export function SidePanel({
 		<AnimatePresence mode='popLayout'>
 			{isOpen && (
 				<motion.div
+					key={`side-panel-${title.toLowerCase().trim()}`}
+					transition={transition}
 					animate={{
 						x: 0,
 						opacity: 1,
 					}}
+					className={cn(
+						'fixed top-0 right-0 bottom-0 z-40 h-full w-full max-w-xl min-w-sm shadow-xl will-change-transform',
+						className
+					)}
 					exit={{
 						x: shouldReduceMotion ? 0 : '100%',
 						opacity: 0,
@@ -52,16 +58,10 @@ export function SidePanel({
 						x: shouldReduceMotion ? 0 : '100%',
 						opacity: 0,
 					}}
-					key={`side-panel-${title.toLowerCase().trim()}`}
 					style={{
 						backgroundColor: getElevationColor(8),
 						borderLeft: `1px solid ${theme.borders.default}`,
 					}}
-					className={cn(
-						'fixed top-0 right-0 bottom-0 z-40 h-full w-full max-w-xl min-w-sm shadow-xl will-change-transform',
-						className
-					)}
-					transition={transition}
 				>
 					{/* Panel Content */}
 					<div className='flex h-full flex-col'>
@@ -86,6 +86,7 @@ export function SidePanel({
 									color: theme.text.medium,
 									backgroundColor: 'transparent',
 								}}
+								onClick={onClose}
 								onMouseEnter={(e) => {
 									e.currentTarget.style.backgroundColor = theme.borders.hover;
 									e.currentTarget.style.color = theme.text.high;
@@ -94,7 +95,6 @@ export function SidePanel({
 									e.currentTarget.style.backgroundColor = 'transparent';
 									e.currentTarget.style.color = theme.text.medium;
 								}}
-								onClick={onClose}
 							>
 								<X className='h-5 w-5' />
 							</button>

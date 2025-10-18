@@ -182,3 +182,5 @@ Test real components with actual props/callbacks, real Zustand state, user inter
 2. Consider reorganizing root-level AI routes under `ai/` directory
 3. Write comprehensive test suite (infrastructure ready, 0% coverage currently)
 4. Restore or remove `ai/chat/route.ts` (currently all code commented out)
+- sacrifice grammar for the sake of concision
+- list any unresolved questions at the end, if any

@@ -111,11 +111,6 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 										? true
 										: undefined
 								}
-								width={
-									data.metadata?.imageSize?.width !== undefined
-										? data.metadata?.imageSize?.width
-										: undefined
-								}
 								height={
 									data.metadata?.imageSize?.height != undefined
 										? data.metadata?.imageSize?.height
@@ -125,6 +120,11 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 									opacity: imageLoading ? 0 : 1,
 									transition: 'opacity 0.3s ease-out',
 								}}
+								width={
+									data.metadata?.imageSize?.width !== undefined
+										? data.metadata?.imageSize?.width
+										: undefined
+								}
 								onError={() => {
 									setImageError(true);
 									setImageLoading(false);

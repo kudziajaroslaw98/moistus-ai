@@ -21,7 +21,6 @@ export const createHistorySlice: StateCreator<
 	historyMeta: [],
 	historyIndex: -1,
 	isReverting: false,
-	historyMutedUntil: null,
 	canUndo: false,
 	canRedo: false,
 
@@ -29,15 +28,6 @@ export const createHistorySlice: StateCreator<
 	historyPageOffset: 0,
 	historyPageLimit: 50,
 	historyHasMore: false,
-
-	// helpers
-	muteHistoryFor: (ms: number) => {
-		set({ historyMutedUntil: Date.now() + Math.max(0, ms) });
-	},
-	isHistoryMuted: () => {
-		const until = get().historyMutedUntil ?? 0;
-		return Date.now() < until;
-	},
 
 	// getters
 	getCurrentHistoryState: () => {
@@ -64,10 +54,9 @@ export const createHistorySlice: StateCreator<
 			currentUser,
 			userProfile,
 			isReverting,
-			isHistoryMuted,
 		} = get();
 		// Suppress history writes during revert to avoid bloat from realtime echoes
-		if (isReverting || isHistoryMuted()) return;
+		if (isReverting) return;
 		const nodesToSave = stateOverride?.nodes ?? nodes;
 		const edgesToSave = stateOverride?.edges ?? edges;
 
@@ -363,10 +352,9 @@ export const createHistorySlice: StateCreator<
 		next: { nodes: AppNode[]; edges: AppEdge[] }
 	) => {
 		try {
-			const { supabase, mapId, currentUser, isReverting, isHistoryMuted } =
-				get();
+			const { supabase, mapId, currentUser, isReverting } = get();
 			// Suppress DB history recording during revert
-			if (isReverting || isHistoryMuted()) return;
+			if (isReverting) return;
 			if (!mapId) return;
 			let userId = currentUser?.id as string | undefined;
 			if (!userId) {
@@ -475,6 +463,8 @@ export const createHistorySlice: StateCreator<
 			canRevertChange,
 			unsubscribeFromRealtimeUpdates,
 			subscribeToRealtimeUpdates,
+			markNodeAsSystemUpdate,
+			markEdgeAsSystemUpdate,
 		} = get();
 		if (isReverting || index < 0 || index >= history.length) return;
 		if (index === historyIndex) return;
@@ -500,6 +490,10 @@ export const createHistorySlice: StateCreator<
 
 			// Step 2: Handle different revert scenarios
 			if (targetState.nodes?.length && targetState.edges?.length) {
+				// Mark all nodes and edges as system-updated before setting
+				targetState.nodes.forEach(n => markNodeAsSystemUpdate(n.id));
+				targetState.edges.forEach(e => markEdgeAsSystemUpdate(e.id));
+
 				// In-memory history entry with full state (no API call needed)
 				setNodes(targetState.nodes);
 				setEdges(targetState.edges);
@@ -514,6 +508,11 @@ export const createHistorySlice: StateCreator<
 
 				if (res.ok) {
 					const data = await res.json();
+
+					// Mark all nodes and edges as system-updated
+					data.nodes.forEach((n: AppNode) => markNodeAsSystemUpdate(n.id));
+					data.edges.forEach((e: AppEdge) => markEdgeAsSystemUpdate(e.id));
+
 					setNodes(data.nodes);
 					setEdges(data.edges);
 
@@ -541,6 +540,11 @@ export const createHistorySlice: StateCreator<
 
 				if (res.ok) {
 					const data = await res.json();
+
+					// Mark all nodes and edges as system-updated
+					data.nodes.forEach((n: AppNode) => markNodeAsSystemUpdate(n.id));
+					data.edges.forEach((e: AppEdge) => markEdgeAsSystemUpdate(e.id));
+
 					setNodes(data.nodes);
 					setEdges(data.edges);
 
@@ -560,34 +564,28 @@ export const createHistorySlice: StateCreator<
 				}
 			} else {
 				// Fallback to local state
-				setNodes(targetState.nodes || []);
-				setEdges(targetState.edges || []);
+				const nodes = targetState.nodes || [];
+				const edges = targetState.edges || [];
+
+				// Mark all nodes and edges as system-updated
+				nodes.forEach(n => markNodeAsSystemUpdate(n.id));
+				edges.forEach(e => markEdgeAsSystemUpdate(e.id));
+
+				setNodes(nodes);
+				setEdges(edges);
 				toast.success('Reverted');
 			}
 		} catch (error) {
 			console.error('Revert failed:', error);
 			toast.error('Failed to revert state');
 		} finally {
-			// Step 3: Shield realtime echoes by marking all current ids as recently saved
-			set((state) => ({
-				lastSavedNodeTimestamps: Object.fromEntries(
-					(state.nodes || []).map((n) => [n.id, Date.now()])
-				),
-				lastSavedEdgeTimestamps: Object.fromEntries(
-					(state.edges || []).map((e) => [e.id, Date.now()])
-				),
-			}));
-
-			// Mute history briefly to suppress any incidental UI-triggered saves
-			get().muteHistoryFor(1000);
-
 			// Small delay to let server-side changes settle before resubscribing
 			if (mapId) {
 				await new Promise((r) => setTimeout(r, 150));
 				await subscribeToRealtimeUpdates(mapId);
 			}
 
-			// Step 4: Update history pointers
+			// Update history pointers
 			set({
 				historyIndex: index,
 				isReverting: false,

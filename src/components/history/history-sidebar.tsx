@@ -1,12 +1,12 @@
 'use client';
 
 import useAppStore from '@/store/mind-map-store';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { SidePanel } from '../side-panel';
 import { HistoryActions } from './history-actions';
 import { HistoryEmptyState } from './history-empty-state';
-import { HistoryList } from './history-list';
+import { HistoryList, type HistoryListHandle } from './history-list';
 
 export function HistorySidebar() {
 	const {
@@ -16,7 +16,7 @@ export function HistorySidebar() {
 		historyMeta,
 		isLoading,
 		mapId,
-		userProfile,
+		isProUser,
 	} = useAppStore(
 		useShallow((state) => ({
 			popoverOpen: state.popoverOpen,
@@ -25,12 +25,12 @@ export function HistorySidebar() {
 			historyMeta: state.historyMeta,
 			isLoading: state.loadingStates?.isStateLoading,
 			mapId: state.mapId,
-			userProfile: state.userProfile,
+			isProUser: state.isProUser(),
 		}))
 	);
 
-	const isPro =
-		!!userProfile && (userProfile as any).subscription?.plan === 'pro';
+	// Ref to control history list
+	const historyListRef = useRef<HistoryListHandle>(null);
 
 	const loadFromDB = useCallback(async () => {
 		await loadHistoryFromDB();
@@ -49,14 +49,14 @@ export function HistorySidebar() {
 			title='Mind Map History'
 			onClose={handleClose}
 		>
-			<div className='flex h-full flex-col gap-4 p-4 pb-12 overflow-y-auto'>
+			<div className='flex h-full flex-col gap-4 p-4 pb-12 overflow-y-auto scrollbar'>
 				{historyMeta.length === 0 && !isLoading ? (
 					<HistoryEmptyState />
 				) : (
 					<>
-						<HistoryList />
+						<HistoryList ref={historyListRef} />
 
-						<HistoryActions />
+						<HistoryActions historyListRef={historyListRef} isPro={isProUser} />
 					</>
 				)}
 			</div>
