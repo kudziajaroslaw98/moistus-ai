@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { AppState } from './app-state';
 import { createChatSlice } from './slices/chat-slice';
 import { createClipboardSlice } from './slices/clipboard-slice';
+import { createCommentsSlice } from './slices/comments-slice';
 import { createCoreDataSlice } from './slices/core-slice';
 import { createEdgeSlice } from './slices/edges-slice';
 import { createGroupsSlice } from './slices/groups-slice';
@@ -34,6 +35,7 @@ const useAppStore = create<AppState>((...args) => ({
 	...createQuickInputSlice(...args),
 	...createRealtimeSlice(...args),
 	...createChatSlice(...args),
+	...createCommentsSlice(...args),
 	...createStreamingToastSlice(...args),
 	...createSubscriptionSlice(...args),
 	...createOnboardingSlice(...args),

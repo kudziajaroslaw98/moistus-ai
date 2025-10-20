@@ -19,6 +19,7 @@ import { z } from 'zod';
 
 import AnnotationNode from '@/components/nodes/annotation-node';
 import CodeNode from '@/components/nodes/code-node';
+import CommentNode from '@/components/nodes/comment-node';
 import DefaultNode from '@/components/nodes/default-node';
 import { GhostNode } from '@/components/nodes/ghost-node';
 import GroupNode from '@/components/nodes/group-node';
@@ -42,6 +43,7 @@ import {
 	Lightbulb,
 	Link,
 	MessageCircle,
+	MessageSquare,
 	Sparkles,
 	SquareStack,
 	Type,
@@ -412,14 +414,14 @@ export const NODE_REGISTRY = {
 	annotationNode: {
 		component: AnnotationNode,
 		label: 'Annotation',
-		description: 'Comments, ideas, and quotes',
+		description: 'Notes, ideas, and quotes',
 		icon: Lightbulb,
 		category: 'content',
 		commandTrigger: '$annotation',
-		keywords: ['annotation', 'note', 'callout', 'comment', 'highlight'],
+		keywords: ['annotation', 'note', 'callout', 'highlight'],
 		examples: ['$annotation ⚠️ Breaking change', '$annotation Important note'],
 		defaultMetadata: {
-			annotationType: 'comment',
+			annotationType: 'note',
 			fontSize: '14px',
 			fontWeight: 400,
 		},
@@ -531,6 +533,46 @@ export const NODE_REGISTRY = {
 		availability: {
 			userCreatable: true,
 			aiSuggestable: false, // References are user-initiated
+			inlineCreatable: false,
+		},
+		status: 'active',
+	},
+
+	commentNode: {
+		component: CommentNode,
+		label: 'Comment Thread',
+		description: 'Discussion thread with mentions and reactions',
+		icon: MessageSquare,
+		category: 'structure',
+		commandTrigger: null, // Created via comment mode toggle only
+		keywords: ['comment', 'discussion', 'thread', 'conversation', 'feedback'],
+		examples: [],
+		defaultMetadata: {
+			totalMessages: 0,
+			participants: [],
+		},
+		metadataSchema: nodeValidationSchemas.commentNode,
+		dimensions: {
+			default: { width: 400, height: 500 },
+			min: { width: 300, height: 400 },
+			max: { width: 600, height: 800 },
+		},
+		behavior: {
+			resizable: true,
+			selectable: true,
+			deletable: true,
+			connectable: false, // Comments don't connect to other nodes
+			draggable: true,
+		},
+		features: {
+			markdown: false,
+			richText: false,
+			media: false,
+			requiresInput: false,
+		},
+		availability: {
+			userCreatable: true, // Can create in comment mode
+			aiSuggestable: false,
 			inlineCreatable: false,
 		},
 		status: 'active',

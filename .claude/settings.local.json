@@ -59,7 +59,8 @@
       "mcp__browsermcp__browser_press_key",
       "mcp__browsermcp__browser_type",
       "Bash(awk:*)",
-      "mcp__sequential-thinking__sequentialthinking"
+      "mcp__sequential-thinking__sequentialthinking",
+      "Bash(mkdir:*)"
     ],
     "deny": [
       "mcp__supabase__list_organizations",

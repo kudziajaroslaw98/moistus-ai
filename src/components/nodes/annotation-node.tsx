@@ -19,7 +19,7 @@ const annotationTypeInfo: Record<
 		borderOpacity: number;
 	}
 > = {
-	comment: {
+	note: {
 		icon: MessageSquare,
 		colorRgb: '147, 197, 253', // Desaturated blue
 		bgOpacity: 0.08,

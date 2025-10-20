@@ -83,7 +83,7 @@ export interface NodeData extends Record<string, unknown> {
 		// ------------------------------------------
 		// Annotation Properties (AnnotationNode)
 		// ------------------------------------------
-		annotationType?: 'comment' | 'idea' | 'quote' | 'summary';
+		annotationType?: 'note' | 'idea' | 'quote' | 'summary';
 		author?: string;
 		timestamp?: string;
 

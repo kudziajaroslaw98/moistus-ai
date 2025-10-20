@@ -9,7 +9,7 @@ import {
 } from '@/components/dashboard/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { UserAvatar } from '@/components/ui/user-avatar';
-import { createClient } from '@/helpers/supabase/client';
+import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import { NodeData } from '@/types/node-data';
 import { PublicUserProfile } from '@/types/user-profile-types';
 import { ChevronDown, LogOut, Settings, User } from 'lucide-react';
@@ -27,8 +27,8 @@ interface DashboardHeaderProps {
 	className?: string;
 }
 
-// Create Supabase client as singleton to prevent re-creation on every render
-const supabase = createClient();
+// Use shared Supabase client to ensure session consistency across the app
+const supabase = getSharedSupabaseClient();
 
 export function DashboardHeader({ className = '' }: DashboardHeaderProps) {
 	const [user, setUser] = useState<UserProfile | null>(null);

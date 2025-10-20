@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
-import { createClient } from '@/helpers/supabase/client';
+import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -20,7 +20,7 @@ export default function SignIn() {
 		setError(null);
 		setLoading(true);
 
-		const { error } = await createClient().auth.signInWithPassword({
+		const { error } = await getSharedSupabaseClient().auth.signInWithPassword({
 			email,
 			password,
 		});

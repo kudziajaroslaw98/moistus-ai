@@ -4,6 +4,7 @@ import type { Command } from '@/components/node-editor/core/commands/command-typ
 import type { RealtimeUserSelection } from '@/hooks/realtime/use-realtime-selection-presence-room';
 import { AvailableNodeTypes } from '@/registry/node-registry';
 import type { ChatSlice } from '@/store/slices/chat-slice';
+import type { CommentsSlice } from '@/store/slices/comments-slice';
 import type { OnboardingSlice } from '@/store/slices/onboarding-slice';
 import type { QuickInputSlice } from '@/store/slices/quick-input-slice';
 import type { SubscriptionSlice } from '@/store/slices/subscription-slice';
@@ -429,6 +430,7 @@ export interface UIStateSlice {
 	edgeInfo: Partial<AppEdge> | null;
 	contextMenuState: ContextMenuState;
 	isFocusMode: boolean;
+	isCommentMode: boolean;
 	isDraggingNodes: boolean;
 	// editingNodeId: string | null; // Removed - replaced by NodeEditor system
 	snapLines: SnapLine[];
@@ -440,6 +442,7 @@ export interface UIStateSlice {
 	setEdgeInfo: (edge: AppEdge | null) => void;
 	setContextMenuState: (state: ContextMenuState) => void;
 	setIsDraggingNodes: (isDragging: boolean) => void;
+	setCommentMode: (enabled: boolean) => void;
 
 	// UI actions
 	toggleFocusMode: () => void;
@@ -494,6 +497,7 @@ export interface AppState
 		RealtimeSlice,
 		SuggestionsSlice,
 		ChatSlice,
+		CommentsSlice,
 		StreamingToastSlice,
 		SubscriptionSlice,
 		OnboardingSlice,

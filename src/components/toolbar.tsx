@@ -5,6 +5,7 @@ import {
 	Fullscreen,
 	Hand,
 	LayoutGrid,
+	MessageSquare,
 	MousePointer2,
 	Plus,
 	Share2,
@@ -49,6 +50,12 @@ const tools: ToolButton[] = [
 		icon: <LayoutGrid className='size-4' />,
 		label: 'Auto-Layout',
 	},
+	{ id: 'separator-2', icon: null, label: null },
+	{
+		id: 'comments',
+		icon: <MessageSquare className='size-4' />,
+		label: 'Comments (C)',
+	},
 ];
 
 export const Toolbar = () => {
@@ -63,6 +70,8 @@ export const Toolbar = () => {
 		generateConnectionSuggestions,
 		generateMergeSuggestions,
 		reactFlowInstance,
+		isCommentMode,
+		setCommentMode,
 	} = useAppStore(
 		useShallow((state) => ({
 			activeTool: state.activeTool,
@@ -75,6 +84,8 @@ export const Toolbar = () => {
 			generateConnectionSuggestions: state.generateConnectionSuggestions,
 			generateMergeSuggestions: state.generateMergeSuggestions,
 			reactFlowInstance: state.reactFlowInstance,
+			isCommentMode: state.isCommentMode,
+			setCommentMode: state.setCommentMode,
 		}))
 	);
 
@@ -91,6 +102,9 @@ export const Toolbar = () => {
 			// Don't change the active tool for chat
 		} else if (toolId === 'zoom') {
 			reactFlowInstance?.zoomTo(1);
+		} else if (toolId === 'comments') {
+			// Toggle comment mode
+			setCommentMode(!isCommentMode);
 		} else if (toolId === 'magic-wand') {
 			switch (aiFeature) {
 				case 'suggest-connections':
@@ -133,7 +147,6 @@ export const Toolbar = () => {
 				style={{
 					backgroundColor: GlassmorphismTheme.elevation[4], // App bar elevation
 					border: `1px solid ${GlassmorphismTheme.borders.default}`,
-					backdropFilter: 'blur(8px)',
 				}}
 			>
 				{tools.map((tool, index) => {
@@ -224,6 +237,32 @@ export const Toolbar = () => {
 									</RadioGroup>
 								</TooltipContent>
 							</Tooltip>
+						);
+					}
+
+					// Comments button has special styling
+					if (tool.id === 'comments') {
+						return (
+							<Button
+								key={tool.id}
+								size={'icon'}
+								title={tool.label ?? `Tool ${index}`}
+								variant={'secondary'}
+								onClick={() => onToolChange(tool.id)}
+								style={{
+									backgroundColor: isCommentMode
+										? 'rgba(20, 184, 166, 0.87)'
+										: undefined,
+									border: isCommentMode
+										? '2px solid rgba(20, 184, 166, 0.3)'
+										: undefined,
+									color: isCommentMode
+										? GlassmorphismTheme.text.high
+										: undefined,
+								}}
+							>
+								{tool.icon}
+							</Button>
 						);
 					}
 

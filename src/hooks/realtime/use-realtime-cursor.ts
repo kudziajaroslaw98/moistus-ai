@@ -1,4 +1,4 @@
-import { createClient } from '@/helpers/supabase/client';
+import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import useAppStore from '@/store/mind-map-store';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import type { ReactFlowInstance } from '@xyflow/react';
@@ -43,7 +43,7 @@ const useThrottleCallback = <Params extends unknown[], Return>(
 	);
 };
 
-const supabase = createClient();
+const supabase = getSharedSupabaseClient();
 
 const generateRandomColor = () =>
 	`hsl(${Math.floor(Math.random() * 360)}, 100%, 70%)`;

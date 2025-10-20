@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
-import { createClient } from '@/helpers/supabase/client';
+import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -22,7 +22,7 @@ export default function SignUp() {
 		setMessage(null);
 		setLoading(true);
 
-		const { error: signUpError } = await createClient().auth.signUp({
+		const { error: signUpError } = await getSharedSupabaseClient().auth.signUp({
 			email,
 			password,
 			options: {},

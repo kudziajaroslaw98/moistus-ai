@@ -34,6 +34,7 @@ export const createUiStateSlice: StateCreator<
 		edgeId: null,
 	},
 	isFocusMode: false,
+	isCommentMode: false,
 	isDraggingNodes: false,
 	// editingNodeId: null, // Removed - replaced by NodeEditor system
 	snapLines: [],
@@ -76,6 +77,7 @@ export const createUiStateSlice: StateCreator<
 	setIsDraggingNodes: (isDraggingNodes) => {
 		set({ isDraggingNodes });
 	},
+	setCommentMode: (enabled) => set({ isCommentMode: enabled }),
 	setContextMenuState: (state) => set({ contextMenuState: state }),
 
 	// actions

@@ -12,6 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import useAppStore from '@/store/mind-map-store';
 import type { JoinRoomResult } from '@/store/slices/sharing-slice';
 import { AlertCircle, Brain, CheckCircle, RefreshCw, Users } from 'lucide-react';
@@ -24,6 +25,14 @@ interface JoinRoomPageProps {
 	params: Promise<{
 		token: string;
 	}>;
+}
+
+interface AuthenticatedUserInfo {
+	userId: string;
+	displayName: string;
+	email?: string;
+	avatarUrl?: string;
+	isAnonymous: boolean;
 }
 
 export default function JoinRoomPage({ params }: JoinRoomPageProps) {
@@ -40,9 +49,10 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 	const [displayName, setDisplayName] = useState('');
 	const [isLoading, setIsLoading] = useState(true);
 	const [step, setStep] = useState<
-		'validating' | 'display-name' | 'joining' | 'success' | 'error'
+		'validating' | 'display-name' | 'confirm-join' | 'joining' | 'success' | 'error'
 	>('validating');
 	const [joinResult, setJoinResult] = useState<JoinRoomResult | null>(null);
+	const [authenticatedUser, setAuthenticatedUser] = useState<AuthenticatedUserInfo | null>(null);
 
 	useEffect(() => {
 		const validateTokenAndPrepare = async () => {
@@ -50,7 +60,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 				// Clear any previous errors
 				clearError();
 
-				// Validate token format
+				// 1. Validate token format
 				const upperToken = token?.toUpperCase();
 
 				if (!upperToken || !/^[A-Z0-9]{3}-[A-Z0-9]{3}$/i.test(upperToken)) {
@@ -58,12 +68,50 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 					return;
 				}
 
-				// Generate a default display name
+				// 2. Check if user is already authenticated
+				const supabase = getSharedSupabaseClient();
+				const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+				if (sessionError) {
+					console.warn('Session check failed:', sessionError);
+				}
+
+				// 3. If session exists, get user profile
+				if (session?.user) {
+					const { data: profile, error: profileError } = await supabase
+						.from('user_profiles')
+						.select('user_id, display_name, email, avatar_url, is_anonymous')
+						.eq('user_id', session.user.id)
+						.single();
+
+					if (profileError) {
+						console.warn('Profile fetch failed:', profileError);
+					}
+
+					// 4. Check if this is a real (non-anonymous) user
+					if (profile && !profile.is_anonymous) {
+						console.log('Authenticated user detected:', profile.display_name);
+
+						setAuthenticatedUser({
+							userId: profile.user_id,
+							displayName: profile.display_name || profile.email || 'User',
+							email: profile.email || undefined,
+							avatarUrl: profile.avatar_url || undefined,
+							isAnonymous: false,
+						});
+
+						// Show confirmation screen for authenticated users
+						setStep('confirm-join');
+						setIsLoading(false);
+						return;
+					}
+				}
+
+				// 5. No authenticated user - show anonymous join form
 				const defaultName = `User ${Date.now().toString().slice(-4)}`;
 				setDisplayName(defaultName);
-
-				// Move to display name step
 				setStep('display-name');
+
 			} catch (error) {
 				console.error('Error validating token:', error);
 				setStep('error');
@@ -76,6 +124,33 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 	}, [token, clearError]);
 
 	const handleJoinRoom = async () => {
+		// If authenticated user, skip display name check
+		if (authenticatedUser && !authenticatedUser.isAnonymous) {
+			setStep('joining');
+
+			try {
+				// Use existing authenticated user
+				const result = await joinRoom(token.toUpperCase());
+				setJoinResult(result);
+				setStep('success');
+
+				toast.success(`Joined as ${authenticatedUser.displayName}!`);
+
+				// Redirect to the mind map
+				setTimeout(() => {
+					router.push(`/mind-map/${result.map_id}`);
+				}, 1500);
+			} catch (error) {
+				console.error('Failed to join room:', error);
+				setStep('error');
+				toast.error(
+					error instanceof Error ? error.message : 'Failed to join room'
+				);
+			}
+			return;
+		}
+
+		// Anonymous user flow (existing logic)
 		if (!displayName.trim()) {
 			toast.error('Please enter your name');
 			return;
@@ -234,7 +309,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 
 					<div className='space-y-2'>
 						<h2 className='text-2xl font-bold text-zinc-100'>
-							Welcome to {joinResult?.map_title || 'the Mind Map'}!
+							Welcome{authenticatedUser ? `, ${authenticatedUser.displayName}` : ''}!
 						</h2>
 
 						<p className='text-zinc-400'>
@@ -280,9 +355,131 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 						</h2>
 
 						<p className='text-zinc-400'>
-							Setting up your anonymous session...
+							{authenticatedUser ? 'Connecting with your account...' : 'Setting up your anonymous session...'}
 						</p>
 					</div>
+				</motion.div>
+			</div>
+		);
+	}
+
+	// Confirmation screen for authenticated users
+	if (step === 'confirm-join' && authenticatedUser) {
+		return (
+			<div className='min-h-screen bg-zinc-950 flex items-center justify-center p-4'>
+				<motion.div
+					animate={{ opacity: 1, y: 0 }}
+					className='w-full max-w-md'
+					initial={{ opacity: 0, y: 20 }}
+				>
+					<Card className='border-zinc-800 bg-zinc-900'>
+						<CardHeader className='text-center'>
+							<Brain className='h-10 w-10 text-teal-400 mx-auto mb-4' />
+
+							<CardTitle className='text-zinc-100'>
+								Join Collaboration Room
+							</CardTitle>
+
+							<CardDescription>
+								You&apos;re about to join a shared mind map with your account.
+							</CardDescription>
+						</CardHeader>
+
+						<CardContent className='space-y-6'>
+							{/* Room Info */}
+							<div className='p-4 rounded-lg border border-zinc-700 bg-zinc-800/50 space-y-3'>
+								<div className='flex items-center justify-between'>
+									<span className='text-sm text-zinc-400'>Room Code</span>
+
+									<code className='text-sm font-mono text-teal-400 bg-zinc-900 px-2 py-1 rounded'>
+										{token}
+									</code>
+								</div>
+							</div>
+
+							<Separator />
+
+							{/* User Account Info */}
+							<div className='space-y-4'>
+								<div className='text-sm font-medium text-zinc-300'>
+									Joining as:
+								</div>
+
+								<div className='flex items-center gap-4 p-4 rounded-lg border border-teal-700/50 bg-teal-950/20'>
+									{/* Avatar */}
+									<div className='relative'>
+										<div className='h-12 w-12 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center'>
+											{authenticatedUser.avatarUrl ? (
+												<img
+													alt={authenticatedUser.displayName}
+													className='h-12 w-12 rounded-full object-cover'
+													src={authenticatedUser.avatarUrl}
+												/>
+											) : (
+												<span className='text-white font-semibold text-lg'>
+													{authenticatedUser.displayName.charAt(0).toUpperCase()}
+												</span>
+											)}
+										</div>
+										<div className='absolute -bottom-1 -right-1 h-4 w-4 bg-green-500 border-2 border-zinc-900 rounded-full' />
+									</div>
+
+									{/* User Info */}
+									<div className='flex-1 min-w-0'>
+										<div className='text-sm font-semibold text-zinc-100 truncate'>
+											{authenticatedUser.displayName}
+										</div>
+										{authenticatedUser.email && (
+											<div className='text-xs text-zinc-400 truncate'>
+												{authenticatedUser.email}
+											</div>
+										)}
+										<div className='text-xs text-teal-400 mt-1'>
+											Authenticated Account
+										</div>
+									</div>
+								</div>
+
+								<p className='text-xs text-zinc-500'>
+									You&apos;ll join with full access to your account features.
+									All activity will be associated with your profile.
+								</p>
+							</div>
+
+							<Button
+								className='w-full bg-teal-600 hover:bg-teal-700'
+								disabled={isJoiningRoom}
+								onClick={handleJoinRoom}
+							>
+								{isJoiningRoom ? (
+									<>
+										<RefreshCw className='mr-2 h-4 w-4 animate-spin' />
+										Joining...
+									</>
+								) : (
+									<>
+										<Users className='mr-2 h-4 w-4' />
+										Join Room
+									</>
+								)}
+							</Button>
+
+							{/* Sign out option */}
+							<div className='text-center'>
+								<Button
+									className='text-xs'
+									size='sm'
+									variant='ghost'
+									onClick={async () => {
+										await getSharedSupabaseClient().auth.signOut();
+										window.location.reload();
+									}}
+								>
+									Not you? Sign out
+								</Button>
+							</div>
+						</CardContent>
+					</Card>
 				</motion.div>
 			</div>
 		);

@@ -1,13 +1,13 @@
 'use client';
 
-import { createClient } from '@/helpers/supabase/client';
+import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'motion/react';
 import { useState } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { z } from 'zod';
 
-const supabase = createClient();
+const supabase = getSharedSupabaseClient();
 
 const JoinRoomSchema = z.object({
 	roomCode: z

@@ -25,6 +25,7 @@ const getNodeTypeColor = (nodeType: AvailableNodeTypes) => {
 		annotationNode: 'rgba(249, 115, 22, 0.1)', // Orange
 		codeNode: 'rgba(156, 163, 175, 0.1)', // Gray
 		taskNode: 'rgba(239, 68, 68, 0.1)', // Red
+		commentNode: 'rgba(147, 197, 253, 0.1)', // Light Blue
 		defaultNode: GlassmorphismTheme.ghost.background,
 		referenceNode: GlassmorphismTheme.ghost.background,
 		groupNode: GlassmorphismTheme.ghost.background,

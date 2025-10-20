@@ -1,4 +1,4 @@
-import { createClient } from '@/helpers/supabase/client';
+import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import { useEffect, useState } from 'react';
 
 // Fun fallback name generator
@@ -79,7 +79,7 @@ export const useCurrentUserName = () => {
 
 	useEffect(() => {
 		const fetchProfileName = async () => {
-			const { data, error } = await createClient().auth.getSession();
+			const { data, error } = await getSharedSupabaseClient().auth.getSession();
 
 			if (error) {
 				console.error(error);

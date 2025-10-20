@@ -7,4 +7,5 @@ export type Tool =
   | 'layout'
   | 'magic-wand'
   | 'zoom'
-	| 'chat';
+	| 'chat'
+	| 'comments';

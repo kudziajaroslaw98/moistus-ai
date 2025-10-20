@@ -182,7 +182,7 @@ export const transformDataForNodeType = (
 				metadata: {
 					...universalMetadata,
 					tags: baseTags.length > 0 ? baseTags : undefined,
-					annotationType: data.metadata?.annotationType || data.type || 'comment',
+					annotationType: data.metadata?.annotationType || data.type || 'note',
 				},
 			};
 

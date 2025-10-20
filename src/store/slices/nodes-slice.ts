@@ -44,6 +44,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 							type: newRecord.node_type || 'defaultNode',
 							width: newRecord.width || undefined,
 							height: newRecord.height || undefined,
+							zIndex: newRecord.node_type === 'commentNode' ? 100 : undefined,
 						};
 
 						set({ nodes: [...nodes, newNode] });
@@ -68,6 +69,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 								type: newRecord.node_type || node.type,
 								width: newRecord.width || node.width,
 								height: newRecord.height || node.height,
+								zIndex: newRecord.node_type === 'commentNode' ? 100 : node.zIndex,
 							};
 						}
 
@@ -223,12 +225,6 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 		setSelectedNodes: (selectedNodes) => {
 			set({ selectedNodes });
 
-			// Update selectedNodeId for comments panel
-			if (selectedNodes.length === 1) {
-				set({ selectedNodeId: selectedNodes[0].id });
-			} else {
-				set({ selectedNodeId: null });
-			}
 		},
 
 		getNode: (id: string) => {
@@ -348,6 +344,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 
 					width: insertedNodeData.width || undefined,
 					height: insertedNodeData.height || undefined,
+					zIndex: insertedNodeData.node_type === 'commentNode' ? 100 : undefined,
 				};
 
 				const finalNodes = [...nodes, newNode];
@@ -550,7 +547,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 						'id',
 						nodesToDelete.map((node) => node.id)
 					)
-					.eq('user_id', user_id)
+					.eq('map_id', mapId)
 					.select();
 
 				if (deleteError) {
@@ -713,8 +710,17 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				}
 			}
 
-			// Return only visible nodes (excluding groups with all hidden children)
-			return nodes.filter((node) => !finalHiddenNodeIds.has(node.id));
+			// Filter by comment mode
+			const { isCommentMode } = get();
+			const baseVisibleNodes = nodes.filter((node) => !finalHiddenNodeIds.has(node.id));
+
+			if (isCommentMode) {
+				// In comment mode: show ALL nodes (comments + regular)
+				return baseVisibleNodes;
+			} else {
+				// Normal mode: show all nodes except comment nodes
+				return baseVisibleNodes.filter((node) => node.data.node_type !== 'commentNode');
+			}
 		},
 
 		toggleNodeCollapse: async (nodeId: string): Promise<void> => {

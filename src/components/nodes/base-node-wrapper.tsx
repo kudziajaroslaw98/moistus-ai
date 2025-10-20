@@ -29,6 +29,8 @@ const BaseNodeWrapperComponent = ({
 	nodeType = 'defaultNode',
 	includePadding = true,
 	hideNodeType = false,
+	hideAddButton = false,
+	hideResizeFrame = false,
 	accentColor,
 	elevation = 1,
 	metadataColorOverrides,
@@ -124,7 +126,7 @@ const BaseNodeWrapperComponent = ({
 	// Accent color system - subtle and sophisticated
 	const accentStyles: CSSProperties = finalAccentColor
 		? {
-				borderTop: `2px solid ${finalAccentColor}`,
+				border: `2px 0 0 0 solid ${finalAccentColor}`,
 				borderTopLeftRadius: '8px',
 				borderTopRightRadius: '8px',
 			}
@@ -134,7 +136,7 @@ const BaseNodeWrapperComponent = ({
 		<div
 			ref={nodeRef}
 			className={cn(
-				'h-full min-w-80 flex-col rounded-lg cursor-move',
+				'h-full min-w-80 flex-col rounded-lg cursor-move hover:-translate-y-1 transition-transform ease-out will-change-transform',
 				includePadding ? 'p-4' : 'p-0',
 				nodeClassName
 			)}
@@ -142,7 +144,6 @@ const BaseNodeWrapperComponent = ({
 				...nodeStyles,
 				...accentStyles,
 				backgroundBlendMode: 'color-burn',
-
 				backgroundImage: 'url("/images/groovepaper.png")',
 				backgroundRepeat: 'repeat',
 				opacity: 1,
@@ -296,8 +297,8 @@ const BaseNodeWrapperComponent = ({
 						/>
 
 						{/* Add New Node Button - follows Material Design FAB principles */}
-						<AnimatePresence>
-							{selected && selectedNodes.length === 1 && (
+							<AnimatePresence>
+							{!hideAddButton && selected && selectedNodes.length === 1 && (
 								<>
 									<motion.div
 										animate={{ opacity: 0.3, scaleY: 1 }}
@@ -334,10 +335,11 @@ const BaseNodeWrapperComponent = ({
 										</Button>
 									</motion.div>
 								</>
-							)}
+						)}
 						</AnimatePresence>
 
-						<NodeResizer
+						{!hideResizeFrame && (
+							<NodeResizer
 							color={theme.node.resizer.color}
 							handleClassName='!w-2 !h-2 !rounded-full'
 							isVisible={selected}
@@ -356,6 +358,7 @@ const BaseNodeWrapperComponent = ({
 							onResizeEnd={handleResizeEnd}
 							onResizeStart={handleResizeStart}
 						/>
+						)}
 					</>
 				)}
 			</>

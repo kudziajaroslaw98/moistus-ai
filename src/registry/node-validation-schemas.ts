@@ -160,10 +160,10 @@ const codeNodeSchema = baseMetadataSchema.extend({
 });
 
 /**
- * annotationNode - Comments, ideas, and quotes
+ * annotationNode - Notes, ideas, and quotes
  */
 const annotationNodeSchema = baseMetadataSchema.extend({
-	annotationType: z.enum(['comment', 'idea', 'quote', 'summary']).optional(),
+	annotationType: z.enum(['note', 'idea', 'quote', 'summary']).optional(),
 	fontSize: z.union([z.string(), z.number()]).optional(),
 	fontWeight: z.union([z.string(), z.number()]).optional(),
 	author: z.string().optional(),
@@ -193,6 +193,15 @@ const referenceNodeSchema = baseMetadataSchema.extend({
 });
 
 /**
+ * commentNode - Discussion thread nodes
+ */
+const commentNodeSchema = baseMetadataSchema.extend({
+	totalMessages: z.number().default(0),
+	participants: z.array(z.string()).default([]),
+	lastActivityAt: z.string().optional(),
+});
+
+/**
  * ghostNode - AI-generated node suggestions (system-only)
  */
 const ghostNodeSchema = z.object({
@@ -207,6 +216,7 @@ const ghostNodeSchema = z.object({
 		'codeNode',
 		'taskNode',
 		'referenceNode',
+		'commentNode',
 	]),
 	confidence: z.number().min(0).max(1),
 	context: z.object({
@@ -232,6 +242,7 @@ export const nodeValidationSchemas = {
 	annotationNode: annotationNodeSchema,
 	groupNode: groupNodeSchema,
 	referenceNode: referenceNodeSchema,
+	commentNode: commentNodeSchema,
 	ghostNode: ghostNodeSchema,
 } as const;
 

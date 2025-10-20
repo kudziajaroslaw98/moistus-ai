@@ -123,7 +123,7 @@ export interface CodeNodeMetadata extends BaseNodeMetadata {
 
 // Annotation metadata
 export interface AnnotationNodeMetadata extends BaseNodeMetadata {
-	annotationType?: 'comment' | 'idea' | 'quote' | 'summary';
+	annotationType?: 'note' | 'idea' | 'quote' | 'summary';
 	fontSize?: string;
 	fontWeight?: string | number;
 	author?: string;
@@ -144,6 +144,13 @@ export interface GroupNodeMetadata extends BaseNodeMetadata {
 	groupChildren: string[];
 	groupPadding: number;
 	label: string;
+}
+
+// Comment node metadata
+export interface CommentNodeMetadata extends BaseNodeMetadata {
+	totalMessages: number;
+	participants: string[];
+	lastActivityAt?: string;
 }
 
 // Ghost node (AI suggestion) metadata
@@ -183,6 +190,7 @@ export interface NodeMetadataMap {
 	annotationNode: AnnotationNodeMetadata & AIMetadata;
 	groupNode: GroupNodeMetadata;
 	referenceNode: ReferenceNodeMetadata & AIMetadata;
+	commentNode: CommentNodeMetadata;
 	ghostNode: GhostNodeMetadata;
 }
 
@@ -226,6 +234,8 @@ export interface BaseNodeWrapperProps<
 	nodeType?: string;
 	includePadding?: boolean;
 	hideNodeType?: boolean;
+	hideAddButton?: boolean;
+	hideResizeFrame?: boolean;
 	accentColor?: string;
 	elevation?: number;
 	metadataColorOverrides?: {

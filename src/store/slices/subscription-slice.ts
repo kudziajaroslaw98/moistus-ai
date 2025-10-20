@@ -1,4 +1,4 @@
-import { createClient } from '@/helpers/supabase/client';
+import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import { StateCreator } from 'zustand';
 import { AppState } from '../app-state';
 
@@ -93,7 +93,7 @@ export const createSubscriptionSlice: StateCreator<
 
 	// Actions
 	fetchAvailablePlans: async () => {
-		const supabase = createClient();
+		const supabase = getSharedSupabaseClient();
 
 		try {
 			const { data, error } = await supabase
@@ -126,7 +126,7 @@ export const createSubscriptionSlice: StateCreator<
 	},
 
 	fetchUserSubscription: async () => {
-		const supabase = createClient();
+		const supabase = getSharedSupabaseClient();
 		set({ isLoadingSubscription: true, subscriptionError: null });
 
 		try {

@@ -153,6 +153,9 @@ export const createCoreDataSlice: StateCreator<
 				edges: transformedData.reactFlowEdges,
 			});
 
+			// Fetch comments metadata for comment nodes
+			await get().fetchComments(mapId);
+
 			// Start real-time subscriptions after successful data load
 			await get().subscribeToRealtimeUpdates(mapId);
 		},
@@ -170,6 +173,7 @@ export const createCoreDataSlice: StateCreator<
 			await Promise.all([
 				get().subscribeToNodes(mapId),
 				get().subscribeToEdges(mapId),
+				get().subscribeToCommentUpdates(mapId),
 			]);
 			console.log('Real-time subscriptions started successfully');
 		} catch (error) {
@@ -183,6 +187,7 @@ export const createCoreDataSlice: StateCreator<
 			await Promise.all([
 				get().unsubscribeFromNodes(),
 				get().unsubscribeFromEdges(),
+				get().unsubscribeFromCommentUpdates(),
 			]);
 			console.log('Real-time subscriptions stopped successfully');
 		} catch (error) {

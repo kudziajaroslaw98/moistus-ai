@@ -22,6 +22,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import FloatingEdge from '@/components/edges/floating-edge';
 import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edge';
 import { UpgradeModal } from '@/components/modals/upgrade-modal';
+import { ModeIndicator } from '@/components/mode-indicator';
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -508,9 +509,15 @@ export function ReactFlowArea() {
 					</div>
 				</Panel>
 
-				<Panel position='bottom-center'>
+				<Panel
+					position='bottom-center'
+					className='flex flex-col gap-2 items-center'
+				>
+					<ModeIndicator />
 					<Toolbar />
 				</Panel>
+
+				<Panel position='top-right' className='m-4 pt-10'></Panel>
 
 				<Panel position='top-left'>
 					<RealtimeCursors

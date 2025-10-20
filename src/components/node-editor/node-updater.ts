@@ -159,7 +159,7 @@ export const transformNodeToFormData = (
 		case 'annotationNode':
 			return {
 				text: data.content || '',
-				type: data.metadata?.annotationType || 'comment',
+				type: data.metadata?.annotationType || 'note',
 				...universalFormData,
 			};
 
