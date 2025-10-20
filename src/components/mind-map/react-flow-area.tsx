@@ -4,8 +4,6 @@ import { NodeRegistry } from '@/registry/node-registry';
 import {
 	Background,
 	BackgroundVariant,
-	ConnectionLineType,
-	ConnectionMode,
 	Edge,
 	EdgeMouseHandler,
 	EdgeTypes,
@@ -175,8 +173,7 @@ export function ReactFlowArea() {
 
 				openNodeEditor({
 					position,
-					screenPosition: mousePosition,
-					parentNode: null,
+					screenPosition: position,
 					mode: 'create',
 				});
 			}

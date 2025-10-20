@@ -259,13 +259,6 @@ export const NodeEditor = () => {
 									initial='initial'
 									variants={animationVariants.container}
 								>
-									<ModeToggle
-										mode={nodeEditor.editorMode}
-										selectedCommand={selectedCommand}
-										onShowTypePicker={handleShowTypePicker}
-										onToggle={(mode) => setNodeEditorMode(mode)}
-									/>
-
 									{nodeEditor.editorMode === 'quick' ? (
 										<QuickInput
 											command={selectedCommand}

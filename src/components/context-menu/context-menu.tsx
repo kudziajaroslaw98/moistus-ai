@@ -1,5 +1,6 @@
 'use client';
 import useAppStore from '@/store/mind-map-store';
+import { cn } from '@/utils/cn';
 import {
 	autoUpdate,
 	flip,
@@ -329,6 +330,7 @@ export function ContextMenu({ aiActions }: ContextMenuProps) {
 						exit='exit'
 						initial='hidden'
 						ref={refs.setFloating}
+						style={{ ...floatingStyles }}
 						role='menu'
 						variants={menuVariants}
 						aria-activedescendant={

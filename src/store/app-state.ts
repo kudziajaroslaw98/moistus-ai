@@ -403,6 +403,7 @@ export interface NodeEditorOptions {
 	parentNode?: AppNode | null;
 	existingNodeId?: string | null;
 	suggestedType?: AvailableNodeTypes | null;
+	openTypePicker?: boolean;
 }
 
 // CommandPalette types

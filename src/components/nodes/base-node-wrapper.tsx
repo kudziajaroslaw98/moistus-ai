@@ -133,13 +133,15 @@ const BaseNodeWrapperComponent = ({
 		: {};
 
 	return (
-		<div
+		<motion.div
 			ref={nodeRef}
 			className={cn(
-				'h-full min-w-80 flex-col rounded-lg cursor-move hover:-translate-y-1 transition-transform ease-out will-change-transform',
+				'h-full min-w-80 flex-col rounded-lg cursor-move relative!',
+				'before:w-full before:h-full before:absolute before:left-1.5 before:top-1.5 before:content-[""] before:bg-elevation-1 before:rounded-lg before:-z-10',
 				includePadding ? 'p-4' : 'p-0',
 				nodeClassName
 			)}
+			whileHover={{ scale: 1.02 }}
 			style={{
 				...nodeStyles,
 				...accentStyles,
@@ -186,9 +188,9 @@ const BaseNodeWrapperComponent = ({
 				/>
 			)}
 
-			<>
-				<CollapsedIndicator data={data} />
+			<CollapsedIndicator data={data} />
 
+			<>
 				{/* Top header controls */}
 				<div className='top-0 left-4 absolute -translate-y-full flex items-center justify-center gap-2'>
 					<CollapseButton data={data} />
@@ -297,7 +299,7 @@ const BaseNodeWrapperComponent = ({
 						/>
 
 						{/* Add New Node Button - follows Material Design FAB principles */}
-							<AnimatePresence>
+						<AnimatePresence>
 							{!hideAddButton && selected && selectedNodes.length === 1 && (
 								<>
 									<motion.div
@@ -335,34 +337,34 @@ const BaseNodeWrapperComponent = ({
 										</Button>
 									</motion.div>
 								</>
-						)}
+							)}
 						</AnimatePresence>
 
 						{!hideResizeFrame && (
 							<NodeResizer
-							color={theme.node.resizer.color}
-							handleClassName='!w-2 !h-2 !rounded-full'
-							isVisible={selected}
-							maxHeight={constraints.maxHeight ?? Number.MAX_SAFE_INTEGER}
-							maxWidth={constraints.maxWidth}
-							minHeight={constraints.minHeight}
-							minWidth={constraints.minWidth}
-							shouldResize={shouldResize}
-							handleStyle={{
-								backgroundColor: selected
-									? theme.node.resizer.selectedBackground
-									: theme.borders.default,
-								border: theme.node.resizer.border,
-							}}
-							onResize={handleResize}
-							onResizeEnd={handleResizeEnd}
-							onResizeStart={handleResizeStart}
-						/>
+								color={theme.node.resizer.color}
+								handleClassName='!w-2 !h-2 !rounded-full'
+								isVisible={selected}
+								maxHeight={constraints.maxHeight ?? Number.MAX_SAFE_INTEGER}
+								maxWidth={constraints.maxWidth}
+								minHeight={constraints.minHeight}
+								minWidth={constraints.minWidth}
+								shouldResize={shouldResize}
+								handleStyle={{
+									backgroundColor: selected
+										? theme.node.resizer.selectedBackground
+										: theme.borders.default,
+									border: theme.node.resizer.border,
+								}}
+								onResize={handleResize}
+								onResizeEnd={handleResizeEnd}
+								onResizeStart={handleResizeStart}
+							/>
 						)}
 					</>
 				)}
 			</>
-		</div>
+		</motion.div>
 	);
 };
 
