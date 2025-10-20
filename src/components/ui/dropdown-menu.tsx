@@ -5,7 +5,6 @@ import { CheckIcon, ChevronRightIcon, CircleIcon } from 'lucide-react';
 import type { ComponentProps } from 'react';
 
 import { cn } from '@/lib/utils';
-import { GlassmorphismTheme } from '../nodes/themes/glassmorphism-theme';
 
 function DropdownMenu({
 	...props
@@ -43,15 +42,10 @@ function DropdownMenuContent({
 				data-slot='dropdown-menu-content'
 				sideOffset={sideOffset}
 				className={cn(
+					'bg-elevation-24 border border-border-default text-text-high backdrop-blur-sm',
 					'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md shadow-md p-1',
 					className
 				)}
-				style={{
-					backgroundColor: GlassmorphismTheme.elevation[24], // Menu elevation
-					border: `1px solid ${GlassmorphismTheme.borders.default}`,
-					color: GlassmorphismTheme.text.high,
-					backdropFilter: 'blur(8px)',
-				}}
 				{...props}
 			/>
 		</DropdownMenuPrimitive.Portal>
@@ -237,15 +231,10 @@ function DropdownMenuSubContent({
 		<DropdownMenuPrimitive.SubContent
 			data-slot='dropdown-menu-sub-content'
 			className={cn(
+				'bg-elevation-24 border border-border-default text-text-high backdrop-blur-sm',
 				'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-md shadow-lg p-1',
 				className
 			)}
-			style={{
-				backgroundColor: GlassmorphismTheme.elevation[24], // Submenu elevation
-				border: `1px solid ${GlassmorphismTheme.borders.default}`,
-				color: GlassmorphismTheme.text.high,
-				backdropFilter: 'blur(8px)',
-			}}
 			{...props}
 		/>
 	);

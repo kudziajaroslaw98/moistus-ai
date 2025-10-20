@@ -7,7 +7,6 @@ import ASmoothstepBIcon from '../icons/a-smoothstep-b';
 import AStepBIcon from '../icons/a-step-b';
 import AStrainghtBIcon from '../icons/a-straight-b';
 import { ToggleGroup, ToggleGroupItem } from '../ui/toggle-group';
-import { GlassmorphismTheme } from '../nodes/themes/glassmorphism-theme';
 
 interface EdgeStyleSelectorProps {
 	edge: Edge<Partial<EdgeData>>;
@@ -17,8 +16,7 @@ interface EdgeStyleSelectorProps {
 
 const getItemIcon = (type: PathType) => {
 	const iconProps = {
-		className: 'size-4',
-		style: { stroke: GlassmorphismTheme.text.high },
+		className: 'size-4 text-text-high',
 	};
 
 	switch (type) {
@@ -68,10 +66,7 @@ export function EdgeStyleSelector({
 	return (
 		<>
 			{/* Path Style Section */}
-			<span
-				className='block w-full rounded-md px-2 py-1 text-xs font-medium'
-				style={{ color: GlassmorphismTheme.text.medium }}
-			>
+			<span className='block w-full rounded-md px-2 py-1 text-xs font-medium text-text-medium'>
 				Path Style
 			</span>
 
@@ -94,10 +89,7 @@ export function EdgeStyleSelector({
 			</ToggleGroup>
 
 			{/* Color Section */}
-			<span
-				className='block w-full rounded-md px-2 py-1 text-xs font-medium'
-				style={{ color: GlassmorphismTheme.text.medium }}
-			>
+			<span className='block w-full rounded-md px-2 py-1 text-xs font-medium text-text-medium'>
 				Color
 			</span>
 
@@ -118,10 +110,9 @@ export function EdgeStyleSelector({
 						value={colorOpt.value || 'default'}
 					>
 						<span
-							className='inline-block h-3 w-3 rounded-full'
+							className='inline-block h-3 w-3 rounded-full border border-border-default'
 							style={{
 								backgroundColor: colorOpt.value || 'transparent',
-								border: `1px solid ${GlassmorphismTheme.borders.default}`,
 							}}
 						/>
 					</ToggleGroupItem>

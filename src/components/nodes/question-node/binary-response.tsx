@@ -1,9 +1,8 @@
 'use client';
 
+import { cn } from '@/utils/cn';
 import { Check, X } from 'lucide-react';
 import { motion } from 'motion/react';
-import { cn } from '@/utils/cn';
-import { GlassmorphismTheme } from '../themes/glassmorphism-theme';
 
 interface BinaryResponseProps {
 	value?: boolean;
@@ -14,7 +13,7 @@ interface BinaryResponseProps {
 export const BinaryResponse = ({
 	value,
 	onChange,
-	disabled = false
+	disabled = false,
 }: BinaryResponseProps) => {
 	return (
 		<div className='flex gap-2'>
@@ -31,13 +30,19 @@ export const BinaryResponse = ({
 				)}
 				onClick={() => onChange(true)}
 			>
-				<Check className='w-4 h-4' style={{ color: value === true ? '#10b981' : GlassmorphismTheme.text.medium }} />
+				<Check
+					className={cn(
+						'w-4 h-4',
+						value === true ? 'text-green-500' : 'text-text-medium'
+					)}
+				/>
 
 				<span
-style={{
-					color: value === true ? '#10b981' : GlassmorphismTheme.text.medium,
-					fontWeight: value === true ? 600 : 400
-				}}
+					className={cn(
+						value === true
+							? 'text-green-500 font-semibold'
+							: 'text-text-medium font-normal'
+					)}
 				>
 					Yes
 				</span>
@@ -56,13 +61,19 @@ style={{
 				)}
 				onClick={() => onChange(false)}
 			>
-				<X className='w-4 h-4' style={{ color: value === false ? '#ef4444' : GlassmorphismTheme.text.medium }} />
+				<X
+					className={cn(
+						'w-4 h-4',
+						value === false ? 'text-red-500' : 'text-text-medium'
+					)}
+				/>
 
 				<span
-style={{
-					color: value === false ? '#ef4444' : GlassmorphismTheme.text.medium,
-					fontWeight: value === false ? 600 : 400
-				}}
+					className={cn(
+						value === false
+							? 'text-red-500 font-semibold'
+							: 'text-text-medium font-normal'
+					)}
 				>
 					No
 				</span>

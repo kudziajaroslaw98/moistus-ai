@@ -5,7 +5,6 @@ import { XIcon } from 'lucide-react';
 import type { ComponentProps } from 'react';
 
 import { cn } from '@/lib/utils';
-import { GlassmorphismTheme } from '../nodes/themes/glassmorphism-theme';
 
 function Sheet({ ...props }: ComponentProps<typeof SheetPrimitive.Root>) {
 	return <SheetPrimitive.Root data-slot='sheet' {...props} />;
@@ -62,6 +61,7 @@ function SheetContent({
 			<SheetPrimitive.Content
 				data-slot='sheet-content'
 				className={cn(
+					'border border-border-default bg-elevation-16 backdrop-blur-md text-text-high',
 					'data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500',
 					side === 'right' &&
 						'data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full w-3/4 sm:max-w-sm',
@@ -73,21 +73,6 @@ function SheetContent({
 						'data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto',
 					className
 				)}
-				style={{
-					backgroundColor: GlassmorphismTheme.elevation[16], // Sheet elevation
-					border:
-						side === 'right'
-							? `1px solid ${GlassmorphismTheme.borders.default}`
-							: side === 'left'
-								? `1px solid ${GlassmorphismTheme.borders.default}`
-								: side === 'top'
-									? `1px solid ${GlassmorphismTheme.borders.default}`
-									: side === 'bottom'
-										? `1px solid ${GlassmorphismTheme.borders.default}`
-										: 'none',
-					backdropFilter: 'blur(12px)',
-					color: GlassmorphismTheme.text.high,
-				}}
 				{...props}
 			>
 				{children}

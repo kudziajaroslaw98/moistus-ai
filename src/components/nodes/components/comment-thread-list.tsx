@@ -1,9 +1,9 @@
 'use client';
 
 import type { CommentMessage } from '@/types/comment';
+import { cn } from '@/utils/cn';
 import { motion } from 'motion/react';
 import { memo } from 'react';
-import { GlassmorphismTheme } from '../themes/glassmorphism-theme';
 import { CommentReactions } from './comment-reactions';
 
 /**
@@ -58,7 +58,9 @@ const CommentThreadListComponent = ({
 			'rgba(34, 197, 94, 0.3)', // Green
 			'rgba(234, 179, 8, 0.3)', // Yellow
 		];
-		const hash = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+		const hash = userId
+			.split('')
+			.reduce((acc, char) => acc + char.charCodeAt(0), 0);
 		return colors[hash % colors.length];
 	};
 
@@ -91,10 +93,7 @@ const CommentThreadListComponent = ({
 	if (messages.length === 0) {
 		return (
 			<div className='flex-1 flex items-center justify-center p-4'>
-				<span
-					className='text-sm text-center'
-					style={{ color: GlassmorphismTheme.text.disabled }}
-				>
+				<span className='text-sm text-center text-text-disabled'>
 					No messages yet. Start the conversation!
 				</span>
 			</div>
@@ -124,10 +123,9 @@ const CommentThreadListComponent = ({
 					>
 						{/* Avatar */}
 						<div
-							className='flex-shrink-0 size-8 rounded-full flex items-center justify-center border-2'
+							className='flex-shrink-0 size-8 rounded-full flex items-center justify-center border-2 border-elevation-4 '
 							style={{
 								backgroundColor: getUserColor(message.user_id),
-								borderColor: GlassmorphismTheme.elevation[4],
 							}}
 						>
 							{message.user?.avatar_url ? (
@@ -137,10 +135,7 @@ const CommentThreadListComponent = ({
 									className='size-full rounded-full object-cover'
 								/>
 							) : (
-								<span
-									className='text-xs font-medium'
-									style={{ color: GlassmorphismTheme.text.high }}
-								>
+								<span className='text-xs font-medium text-text-high'>
 									{getInitials(displayName)}
 								</span>
 							)}
@@ -151,26 +146,22 @@ const CommentThreadListComponent = ({
 							{/* Header */}
 							<div className='flex items-baseline gap-2 mb-1'>
 								<span
-									className='text-sm font-medium'
-									style={{
-										color: isCurrentUser
-											? 'rgba(20, 184, 166, 0.87)'
-											: GlassmorphismTheme.text.high,
-									}}
+									className={cn(
+										'text-sm font-medium',
+										isCurrentUser
+											? 'text-[rgba(20,184,166,0.87)]'
+											: 'text-text-high'
+									)}
 								>
 									{displayName}
 									{isCurrentUser && (
-										<span
-											className='ml-1 text-xs font-normal'
-											style={{ color: GlassmorphismTheme.text.disabled }}
-										>
+										<span className='ml-1 text-xs font-normal text-text-disabled'>
 											(you)
 										</span>
 									)}
 								</span>
 								<span
-									className='text-xs'
-									style={{ color: GlassmorphismTheme.text.disabled }}
+									className='text-xs text-text-disabled'
 									title={new Date(message.created_at).toLocaleString()}
 								>
 									{formatRelativeTime(new Date(message.created_at))}
@@ -178,13 +169,7 @@ const CommentThreadListComponent = ({
 							</div>
 
 							{/* Message Text */}
-							<p
-								className='text-sm mb-2 whitespace-pre-wrap break-words'
-								style={{
-									color: GlassmorphismTheme.text.medium,
-									lineHeight: 1.5,
-								}}
-							>
+							<p className='text-sm mb-2 whitespace-pre-wrap break-words text-text-medium leadin-5'>
 								{renderContentWithMentions(message.content)}
 							</p>
 

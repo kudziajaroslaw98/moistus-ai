@@ -1,6 +1,7 @@
 'use client';
 
 import useAppStore from '@/store/mind-map-store';
+import { cn } from '@/utils/cn';
 import { ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
 import { motion } from 'motion/react';
 import { memo, useEffect, useMemo } from 'react';
@@ -11,7 +12,6 @@ import { CommentParticipantAvatars } from './components/comment-participant-avat
 import { CommentReplyInput } from './components/comment-reply-input';
 import { CommentThreadList } from './components/comment-thread-list';
 import { type TypedNodeProps } from './core/types';
-import { GlassmorphismTheme } from './themes/glassmorphism-theme';
 
 type CommentNodeProps = TypedNodeProps<'commentNode'>;
 
@@ -179,10 +179,7 @@ const CommentNodeComponent = (props: CommentNodeProps) => {
 							className='size-4'
 							style={{ color: commentAccentColor }}
 						/>
-						<span
-							className='text-sm font-medium'
-							style={{ color: GlassmorphismTheme.text.high }}
-						>
+						<span className='text-sm font-medium text-text-high'>
 							Comment #{commentNumber}
 						</span>
 
@@ -199,21 +196,16 @@ const CommentNodeComponent = (props: CommentNodeProps) => {
 							variant='ghost'
 							disabled={!hasPrev}
 							onClick={() => handleNavigate(prevCommentId)}
-							className='size-7 p-0'
-							style={{
-								color: hasPrev
-									? GlassmorphismTheme.text.medium
-									: GlassmorphismTheme.text.disabled,
-							}}
+							className={cn(
+								'size-7 p-0',
+								hasPrev ? 'text-text-medium' : 'text-text-disabled'
+							)}
 							aria-label='Previous comment'
 						>
 							<ChevronLeft className='size-4' />
 						</Button>
 
-						<span
-							className='text-xs px-2'
-							style={{ color: GlassmorphismTheme.text.disabled }}
-						>
+						<span className='text-xs px-2 text-text-disabled'>
 							{totalComments}
 						</span>
 
@@ -222,12 +214,10 @@ const CommentNodeComponent = (props: CommentNodeProps) => {
 							variant='ghost'
 							disabled={!hasNext}
 							onClick={() => handleNavigate(nextCommentId)}
-							className='size-7 p-0'
-							style={{
-								color: hasNext
-									? GlassmorphismTheme.text.medium
-									: GlassmorphismTheme.text.disabled,
-							}}
+							className={cn(
+								'size-7 p-0',
+								hasNext ? 'text-text-medium' : 'text-text-disabled'
+							)}
 							aria-label='Next comment'
 						>
 							<ChevronRight className='size-4' />

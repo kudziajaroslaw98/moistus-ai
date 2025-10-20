@@ -3,7 +3,6 @@
 import type { CommentParticipant } from '@/types/comment';
 import { motion } from 'motion/react';
 import { memo } from 'react';
-import { GlassmorphismTheme } from '../themes/glassmorphism-theme';
 
 interface CommentParticipantAvatarsProps {
 	participants: CommentParticipant[];
@@ -66,10 +65,9 @@ const CommentParticipantAvatarsComponent = ({
 						delay: (index + 1) * 0.05,
 						ease: [0.215, 0.61, 0.355, 1], // ease-out-cubic
 					}}
-					className='relative flex items-center justify-center size-8 rounded-full border-2 cursor-pointer '
+					className='relative flex items-center justify-center size-8 rounded-full border-2 cursor-pointer border-elevation-4'
 					style={{
 						backgroundColor: getUserColor(participant.user_id),
-						borderColor: GlassmorphismTheme.elevation[4],
 					}}
 					title={`${participant.display_name} (${participant.message_count} messages)`}
 				>
@@ -80,10 +78,7 @@ const CommentParticipantAvatarsComponent = ({
 							className='size-full rounded-full object-cover'
 						/>
 					) : (
-						<span
-							className='text-xs font-medium'
-							style={{ color: GlassmorphismTheme.text.high }}
-						>
+						<span className='text-xs font-medium text-text-high'>
 							{getInitials(participant.display_name)}
 						</span>
 					)}
@@ -99,17 +94,10 @@ const CommentParticipantAvatarsComponent = ({
 						delay: displayParticipants.length * 0.05,
 						ease: [0.215, 0.61, 0.355, 1],
 					}}
-					className='relative flex items-center justify-center size-8 rounded-full border-2'
-					style={{
-						backgroundColor: GlassmorphismTheme.elevation[2],
-						borderColor: GlassmorphismTheme.elevation[4],
-					}}
+					className='relative flex items-center justify-center size-8 rounded-full border-2 bg-elevation-2 border-elevation-4'
 					title={`+${remainingCount} more participant${remainingCount > 1 ? 's' : ''}`}
 				>
-					<span
-						className='text-xs font-medium'
-						style={{ color: GlassmorphismTheme.text.medium }}
-					>
+					<span className='text-xs font-medium text-text-medium'>
 						+{remainingCount}
 					</span>
 				</motion.div>

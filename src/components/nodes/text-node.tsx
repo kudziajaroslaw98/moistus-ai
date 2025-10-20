@@ -9,10 +9,7 @@ import { useShallow } from 'zustand/shallow';
 import { BaseNodeWrapper } from './base-node-wrapper';
 import { SharedNodeToolbar } from './components/node-toolbar';
 import { TextFormattingControls } from './components/toolbar-controls';
-import {
-	type TypedNodeProps
-} from './core/types';
-import { GlassmorphismTheme } from './themes/glassmorphism-theme';
+import { type TypedNodeProps } from './core/types';
 
 type TextNodeProps = TypedNodeProps<'textNode'>;
 
@@ -26,13 +23,13 @@ const TextNodeComponent = (props: TextNodeProps) => {
 			selectedNodes: state.selectedNodes,
 		}))
 	);
-	
+
 	// Use theme defaults with fallback to metadata
 	const {
 		fontSize = '14px',
 		fontWeight = 400,
 		textAlign = 'center',
-		textColor = GlassmorphismTheme.text.high,
+		textColor = 'var(--text-text-high)',
 		fontStyle = 'normal',
 	} = metadata ?? {};
 
@@ -47,7 +44,8 @@ const TextNodeComponent = (props: TextNodeProps) => {
 		};
 
 		if (fontSize) {
-			style.fontSize = typeof fontSize === 'number' ? `${fontSize}px` : fontSize;
+			style.fontSize =
+				typeof fontSize === 'number' ? `${fontSize}px` : fontSize;
 		}
 
 		return style;
@@ -74,9 +72,15 @@ const TextNodeComponent = (props: TextNodeProps) => {
 					alignment={textAlign}
 					isBold={fontWeight === 600}
 					isItalic={fontStyle === 'italic'}
-					onAlignmentChange={(alignment) => handleNodeChange({ textAlign: alignment })}
-					onBoldToggle={(bold) => handleNodeChange({ fontWeight: bold ? 600 : 400 })}
-					onItalicToggle={(italic) => handleNodeChange({ fontStyle: italic ? 'italic' : 'normal' })}
+					onAlignmentChange={(alignment) =>
+						handleNodeChange({ textAlign: alignment })
+					}
+					onBoldToggle={(bold) =>
+						handleNodeChange({ fontWeight: bold ? 600 : 400 })
+					}
+					onItalicToggle={(italic) =>
+						handleNodeChange({ fontStyle: italic ? 'italic' : 'normal' })
+					}
 				/>
 			</SharedNodeToolbar>
 
@@ -85,8 +89,7 @@ const TextNodeComponent = (props: TextNodeProps) => {
 				hideNodeType
 				elevation={1}
 				includePadding={true}
-			nodeClassName='text-node min-w-fit min-h-fit h-full'
-
+				nodeClassName='text-node min-w-fit min-h-fit h-full'
 				nodeIcon={<Type className='w-3 h-3' />}
 				nodeType='Text'
 			>
@@ -100,13 +103,7 @@ const TextNodeComponent = (props: TextNodeProps) => {
 					)}
 				>
 					{content || (
-						<span
-style={{ 
-							color: GlassmorphismTheme.text.disabled, 
-							fontStyle: 'italic',
-							fontSize: '14px' 
-						}}
-						>
+						<span className='italic text-sm text-text-disabled'>
 							{props.selected ? 'Double click to edit...' : 'Text...'}
 						</span>
 					)}

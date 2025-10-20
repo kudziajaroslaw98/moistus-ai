@@ -157,7 +157,7 @@ export function useNodeDimensions(
 
 		// Use clientHeight (content + padding) instead of scrollHeight to prevent growth
 		const actualWidth = nodeRef.current.offsetWidth;
-		const actualHeight = nodeRef.current.clientHeight;
+		const actualHeight = nodeRef.current.scrollHeight;
 
 		// Compare against measured dimensions (what React Flow rendered), not stored data
 		const currentWidth = node.measured?.width || node.data?.width || minWidth;

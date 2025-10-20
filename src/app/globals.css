@@ -337,3 +337,99 @@
 	background: rgba(255, 255, 255, 0.25);
 }
 
+/* Glassmorphism theme tokens (Tailwind v4 @theme) */
+@theme {
+	/* Elevation */
+	--color-elevation-0: #121212;
+	--color-elevation-1: #1e1e1e;
+	--color-elevation-2: #222222;
+	--color-elevation-4: #272727;
+	--color-elevation-6: #2c2c2c;
+	--color-elevation-8: #2f2f2f;
+	--color-elevation-12: #333333;
+	--color-elevation-16: #353535;
+	--color-elevation-24: #383838;
+	--color-elevation-sunken: #0d0d0d;
+	--color-app-primary: rgba(20, 184, 166, 0.87);
+	--color-app-primary-muted: rgba(20, 184, 166, 0.3);
+	--color-border-default: rgba(255, 255, 255, 0.06);
+	--color-border-selected: rgba(96, 165, 250, 0.3);
+	--color-border-hover: rgba(255, 255, 255, 0.1);
+	--color-border-accent: rgba(96, 165, 250, 0.4);
+
+	/* Text */
+	--color-text-high: rgba(255, 255, 255, 0.87);
+	--color-text-medium: rgba(255, 255, 255, 0.6);
+	--color-text-disabled: rgba(255, 255, 255, 0.38);
+
+	/* Effects */
+	--shadow-selected:
+		0 0 0 1px rgba(96, 165, 250, 0.3), 0 0 0 2px rgba(96, 165, 250, 0.15);
+	--shadow-focus:
+		0 0 0 1px rgba(96, 165, 250, 0.4), 0 0 0 2px rgba(96, 165, 250, 0.2);
+	--ambient-glow: radial-gradient(
+		circle at center,
+		rgba(96, 165, 250, 0.03) 0%,
+		transparent 70%
+	);
+	--special-card-backdrop: rgba(20, 20, 30, 0.7);
+
+	/* Motion */
+	--duration-fast: 0.15s;
+	--duration-normal: 0.2s;
+	--duration-slow: 0.3s;
+	--ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+	--ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+	/* Node */
+
+	/* Handle */
+	--color-handle-bg: transparent;
+	--color-handle-border: rgba(255, 255, 255, 0.2);
+	--color-handle-hover-bg: rgba(255, 255, 255, 0.1);
+	--color-handle-hover-border: rgba(255, 255, 255, 0.4);
+	--color-handle-hover-scale: 1.25;
+
+	/* Resizer */
+	--color-resizer: rgba(96, 165, 250, 0.1);
+	--color-resizer-selected: rgba(96, 165, 250, 0.1);
+	--color-resizer-border: 1px solid rgba(255, 255, 255, 0.2);
+
+	/* Buttons */
+	--color-btn-std-bg: rgba(255, 255, 255, 0.05);
+	--color-btn-std-border: rgba(255, 255, 255, 0.1);
+	--color-btn-std-color: rgba(255, 255, 255, 0.87);
+	--color-btn-fab-bg: #2c2c2c;
+	--color-btn-fab-border: rgba(255, 255, 255, 0.1);
+	--color-btn-fab-color: rgba(255, 255, 255, 0.87);
+
+	/* Ghost */
+	--color-ghost-bg: rgba(113, 113, 122, 0.1);
+	--color-ghost-border: rgba(255, 255, 255, 0.08);
+	--color-ghost-conf-high: rgba(34, 197, 94, 0.87);
+	--color-ghost-conf-medium: rgba(251, 191, 36, 0.87);
+	--color-ghost-conf-low: rgba(239, 68, 68, 0.87);
+	--color-ghost-accept-bg: rgba(34, 197, 94, 0.8);
+	--color-ghost-accept-hover: rgba(34, 197, 94, 1);
+	--color-ghost-accept-text: rgba(220, 252, 231, 1);
+	--color-ghost-reject-bg: rgba(239, 68, 68, 0.8);
+	--color-ghost-reject-hover: rgba(239, 68, 68, 1);
+	--color-ghost-reject-text: rgba(254, 226, 226, 1);
+
+	/* Indicators */
+	--color-progress-track: rgba(255, 255, 255, 0.06);
+	--color-progress-fill: linear-gradient(
+		90deg,
+		rgba(96, 165, 250, 0.6) 0%,
+		rgba(96, 165, 250, 0.8) 100%
+	);
+	--color-progress-done: linear-gradient(
+		90deg,
+		rgba(52, 211, 153, 0.7) 0%,
+		rgba(52, 211, 153, 0.9) 100%
+	);
+	--color-status-pending: rgba(251, 191, 36, 0.87);
+	--color-status-default: rgba(147, 197, 253, 0.87);
+	--color-status-complete: rgba(52, 211, 153, 0.87);
+	--color-status-error: rgba(239, 68, 68, 0.87);
+}

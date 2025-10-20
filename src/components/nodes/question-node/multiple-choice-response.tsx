@@ -1,8 +1,7 @@
 'use client';
 
-import { motion } from 'motion/react';
 import { cn } from '@/utils/cn';
-import { GlassmorphismTheme } from '../themes/glassmorphism-theme';
+import { motion } from 'motion/react';
 
 interface MultipleChoiceResponseProps {
 	value?: string | string[];
@@ -17,16 +16,16 @@ export const MultipleChoiceResponse = ({
 	onChange,
 	options = [],
 	allowMultiple = false,
-	disabled = false
+	disabled = false,
 }: MultipleChoiceResponseProps) => {
 	// Ensure options have valid structure
-	const validOptions = options.filter(opt => opt && opt.id && opt.label);
+	const validOptions = options.filter((opt) => opt && opt.id && opt.label);
 
 	const handleSelect = (optionId: string) => {
 		if (allowMultiple) {
 			const currentValue = (value as string[]) || [];
 			const newValue = currentValue.includes(optionId)
-				? currentValue.filter(id => id !== optionId)
+				? currentValue.filter((id) => id !== optionId)
 				: [...currentValue, optionId];
 			onChange(newValue);
 		} else {
@@ -45,14 +44,7 @@ export const MultipleChoiceResponse = ({
 	// Don't render if no valid options
 	if (validOptions.length === 0) {
 		return (
-			<div
-style={{
-				color: GlassmorphismTheme.text.disabled,
-				fontSize: '13px',
-				fontStyle: 'italic',
-				textAlign: 'center'
-			}}
-			>
+			<div className='text-text-disabled italic text-center text-xs'>
 				No options available
 			</div>
 		);
@@ -76,14 +68,14 @@ style={{
 					onClick={() => handleSelect(option.id)}
 				>
 					<div
-className={cn(
-						'w-4 h-4 flex items-center justify-center',
-						allowMultiple ? 'rounded' : 'rounded-full',
-						'border-2',
-						isSelected(option.id)
-							? 'border-blue-500 bg-blue-500/20'
-							: 'border-white/30'
-					)}
+						className={cn(
+							'w-4 h-4 flex items-center justify-center',
+							allowMultiple ? 'rounded' : 'rounded-full',
+							'border-2',
+							isSelected(option.id)
+								? 'border-blue-500 bg-blue-500/20'
+								: 'border-white/30'
+						)}
 					>
 						{isSelected(option.id) && (
 							<motion.div
@@ -99,11 +91,12 @@ className={cn(
 					</div>
 
 					<span
-style={{
-						color: isSelected(option.id) ? '#3b82f6' : GlassmorphismTheme.text.high,
-						fontWeight: isSelected(option.id) ? 500 : 400,
-						fontSize: '14px'
-					}}
+						className={cn(
+							'text-sm',
+							isSelected(option.id)
+								? ' text-sky-500 font-medium'
+								: 'text-text-high font-normal'
+						)}
 					>
 						{option.label}
 					</span>

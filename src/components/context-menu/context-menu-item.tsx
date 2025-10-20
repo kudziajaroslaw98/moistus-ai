@@ -3,7 +3,6 @@ import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import React from 'react';
 import { Button } from '../ui/button';
-import { GlassmorphismTheme } from '../nodes/themes/glassmorphism-theme';
 
 interface ContextMenuItemProps {
 	icon: React.ReactNode;
@@ -33,30 +32,6 @@ export const ContextMenuItem = React.forwardRef<
 		},
 		ref
 	) => {
-		const getVariantStyles = (variant: string): React.CSSProperties => {
-			const baseStyles: React.CSSProperties = {
-				transition: 'color 200ms ease, background-color 200ms ease, opacity 200ms ease',
-			};
-
-			switch (variant) {
-				case 'destructive':
-					return {
-						...baseStyles,
-						color: GlassmorphismTheme.indicators.status.error,
-					};
-				case 'primary':
-					return {
-						...baseStyles,
-						color: 'rgba(96, 165, 250, 0.87)', // Blue accent
-					};
-				default:
-					return {
-						...baseStyles,
-						color: GlassmorphismTheme.text.high,
-					};
-			}
-		};
-
 		return (
 			<Button
 				aria-describedby={shortcut ? `${label}-shortcut` : undefined}
@@ -64,11 +39,16 @@ export const ContextMenuItem = React.forwardRef<
 				disabled={disabled || loading}
 				ref={ref}
 				role='menuitem'
-				style={getVariantStyles(variant)}
 				variant='ghost'
 				className={cn(
 					'h-8 w-full justify-start gap-2 p-2 text-sm',
 					'@media (hover: hover) and (pointer: fine) { transition-property: color, background-color, opacity }',
+					variant === 'destructive' && 'text-status-error',
+					variant === 'primary' && 'text-blue-500',
+					variant !== 'destructive' &&
+						variant !== 'primary' &&
+						'text-text-high',
+					'transition-all duration-200 ease-spring',
 					className
 				)}
 				onClick={onClick}
@@ -83,9 +63,8 @@ export const ContextMenuItem = React.forwardRef<
 
 				{shortcut && (
 					<span
-						className='ml-auto text-xs'
+						className='ml-auto text-xs text-text-disabled'
 						id={`${label}-shortcut`}
-						style={{ color: GlassmorphismTheme.text.disabled }}
 					>
 						{shortcut}
 					</span>

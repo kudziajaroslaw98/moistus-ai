@@ -21,7 +21,6 @@ import {
 	useState,
 } from 'react';
 import { useShallow } from 'zustand/shallow';
-import { GlassmorphismTheme } from '../nodes/themes/glassmorphism-theme';
 import { ContextMenuItem } from './context-menu-item';
 import { useContextMenuConfig } from './use-context-menu-config';
 
@@ -288,22 +287,12 @@ export function ContextMenu({ aiActions }: ContextMenuProps) {
 				<Fragment key={section.id}>
 					{/* Divider - show before sections after the first */}
 					{section.showDivider !== false && sectionIndex > 0 && (
-						<hr
-							className='my-1'
-							style={{
-								borderColor: GlassmorphismTheme.borders.default,
-								borderWidth: '1px',
-								borderStyle: 'solid',
-							}}
-						/>
+						<hr className='my-1 border-border-default border' />
 					)}
 
 					{/* Section title */}
 					{section.title && (
-						<div
-							className='px-2 py-1 text-xs font-medium'
-							style={{ color: GlassmorphismTheme.text.medium }}
-						>
+						<div className='px-2 py-1 text-xs font-medium text-text-medium'>
 							{section.title}
 						</div>
 					)}
@@ -333,7 +322,10 @@ export function ContextMenu({ aiActions }: ContextMenuProps) {
 						animate='visible'
 						aria-label='Context menu'
 						aria-orientation='vertical'
-						className='flex min-w-[250px] flex-col gap-1 rounded-sm px-2 py-2 focus:outline-none motion-reduce:transform-none'
+						className={cn(
+							'flex min-w-[250px] flex-col gap-1 rounded-sm px-2 py-2 focus:outline-none motion-reduce:transform-none',
+							'bg-elevation-24 z-[9999] border border-border-default backdrop-blur-sm shadow-border-default'
+						)}
 						exit='exit'
 						initial='hidden'
 						ref={refs.setFloating}
@@ -342,14 +334,6 @@ export function ContextMenu({ aiActions }: ContextMenuProps) {
 						aria-activedescendant={
 							activeIndex !== null ? `menu-item-${activeIndex}` : undefined
 						}
-						style={{
-							...floatingStyles,
-							zIndex: 9999,
-							backgroundColor: GlassmorphismTheme.elevation[24],
-							border: `1px solid ${GlassmorphismTheme.borders.default}`,
-							backdropFilter: GlassmorphismTheme.effects.glassmorphism,
-							boxShadow: `0 0 0 1px ${GlassmorphismTheme.borders.default}`,
-						}}
 						{...getFloatingProps()}
 					>
 						{renderSections()}

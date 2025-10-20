@@ -2,12 +2,12 @@
 
 import useAppStore from '@/store/mind-map-store';
 import type { CommentMessage, GroupedReaction } from '@/types/comment';
+import { cn } from '@/utils/cn';
 import { Smile } from 'lucide-react';
 import { motion } from 'motion/react';
 import { memo, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { Button } from '../../ui/button';
-import { GlassmorphismTheme } from '../themes/glassmorphism-theme';
 
 interface CommentReactionsProps {
 	message: CommentMessage;
@@ -116,30 +116,19 @@ const CommentReactionsComponent = ({ message }: CommentReactionsProps) => {
 						delay: index * 0.03,
 						ease: [0.25, 0.46, 0.45, 0.94], // ease-out-quad
 					}}
-					className='flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-all hover:scale-105'
-					style={{
-						backgroundColor: reaction.has_current_user
-							? 'rgba(20, 184, 166, 0.2)'
-							: GlassmorphismTheme.elevation[1],
-						border: `1px solid ${
-							reaction.has_current_user
-								? 'rgba(20, 184, 166, 0.3)'
-								: GlassmorphismTheme.borders.default
-						}`,
-						color: GlassmorphismTheme.text.high,
-					}}
+					className={cn(
+						'flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-all hover:scale-105 text-text-high',
+						reaction.has_current_user
+							? 'bg-[rgba(20,184,166,0.2)] border-[rgba(20,184,166,0.3)]'
+							: 'bg-elevation-1 border-border-default'
+					)}
 					title={`${reaction.count} ${reaction.count > 1 ? 'people' : 'person'} reacted`}
 					onClick={() =>
 						handleReactionClick(reaction.emoji, reaction.has_current_user)
 					}
 				>
 					<span>{reaction.emoji}</span>
-					<span
-						className='font-medium'
-						style={{ color: GlassmorphismTheme.text.medium }}
-					>
-						{reaction.count}
-					</span>
+					<span className='font-medium text-text-medium'>{reaction.count}</span>
 				</motion.button>
 			))}
 
@@ -148,10 +137,7 @@ const CommentReactionsComponent = ({ message }: CommentReactionsProps) => {
 				<Button
 					size='sm'
 					variant='ghost'
-					className='size-7 p-0'
-					style={{
-						color: GlassmorphismTheme.text.disabled,
-					}}
+					className='size-7 p-0 text-text-disabled'
 					onClick={() => setShowEmojiPicker(!showEmojiPicker)}
 					aria-label='Add reaction'
 				>
@@ -168,34 +154,27 @@ const CommentReactionsComponent = ({ message }: CommentReactionsProps) => {
 							duration: 0.15,
 							ease: [0.25, 0.46, 0.45, 0.94],
 						}}
-						className='absolute bottom-full mb-2 left-0 flex gap-1 p-2 rounded-lg shadow-lg z-10'
-						style={{
-							backgroundColor: GlassmorphismTheme.elevation[2],
-							border: `1px solid ${GlassmorphismTheme.borders.default}`,
-						}}
+						className='absolute bottom-full mb-2 left-0 flex gap-1 p-2 rounded-lg shadow-lg z-10 bg-elevation-2 border border-border-default'
 					>
 						{quickEmojis.map((emoji, index) => (
 							<motion.button
 								key={emoji}
 								initial={{ opacity: 0, scale: 0.8 }}
-								animate={{ opacity: 1, scale: 1 }}
+								animate={{
+									opacity: 1,
+									scale: 1,
+									backgroundColor: 'transparent',
+								}}
 								transition={{
 									duration: 0.15,
 									delay: index * 0.03,
 									ease: [0.215, 0.61, 0.355, 1],
 								}}
-								className='size-8 flex items-center justify-center rounded hover:bg-opacity-10 transition-colors text-lg'
-								style={{
-									backgroundColor: 'transparent',
+								whileHover={{
+									backgroundColor: 'var(--color-elevation-1)',
 								}}
+								className='size-8 flex items-center justify-center rounded text-lg'
 								onClick={() => handleQuickEmojiClick(emoji)}
-								onMouseEnter={(e) => {
-									e.currentTarget.style.backgroundColor =
-										GlassmorphismTheme.elevation[1];
-								}}
-								onMouseLeave={(e) => {
-									e.currentTarget.style.backgroundColor = 'transparent';
-								}}
 							>
 								{emoji}
 							</motion.button>

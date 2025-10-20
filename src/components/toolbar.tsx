@@ -1,6 +1,7 @@
 // components/Toolbar.tsx
 import useAppStore from '@/store/mind-map-store';
 import type { Tool } from '@/types/tool';
+import { cn } from '@/utils/cn';
 import {
 	Fullscreen,
 	Hand,
@@ -13,7 +14,6 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useShallow } from 'zustand/shallow';
-import { GlassmorphismTheme } from './nodes/themes/glassmorphism-theme';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
@@ -142,23 +142,14 @@ export const Toolbar = () => {
 			initial={{ y: 100, opacity: 0 }}
 			transition={{ type: 'spring', stiffness: 100, damping: 15 }}
 		>
-			<div
-				className='flex h-full w-full items-center gap-2 p-2 rounded-xl shadow-2xl'
-				style={{
-					backgroundColor: GlassmorphismTheme.elevation[4], // App bar elevation
-					border: `1px solid ${GlassmorphismTheme.borders.default}`,
-				}}
-			>
+			<div className='flex h-full w-full items-center gap-2 p-2 rounded-xl shadow-2xl bg-elevation-4 border border-border-default'>
 				{tools.map((tool, index) => {
 					if (tool.id.startsWith('separator')) {
 						return (
 							<Separator
-								className='!h-4 flex'
+								className='!h-4 flex bg-border-default'
 								key={tool.id + '' + index}
 								orientation='vertical'
-								style={{
-									backgroundColor: GlassmorphismTheme.borders.default,
-								}}
 							/>
 						);
 					}
@@ -167,36 +158,16 @@ export const Toolbar = () => {
 						return (
 							<Tooltip key={tool.id}>
 								<TooltipTrigger
-									className='inline-flex items-center rounded-sm font-medium transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none !h-8 !w-8 p-0 justify-center'
+									className={cn(
+										activeTool !== tool.id &&
+											'bg-elevation-1 hover:bg-elevation-2',
+										activeTool === tool.id
+											? 'bg-teal-500 border-teal-500/30 text-text-high'
+											: 'bg-elevation-1 border-border-default text-text-medium',
+										'inline-flex items-center rounded-sm font-medium transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none !h-8 !w-8 p-0 justify-center'
+									)}
 									title={tool.label ?? `Tool ${index}`}
-									style={{
-										backgroundColor:
-											activeTool === tool.id
-												? 'rgba(20, 184, 166, 0.87)' // Teal accent for active
-												: GlassmorphismTheme.elevation[1],
-										border: `2px solid ${
-											activeTool === tool.id
-												? 'rgba(20, 184, 166, 0.3)'
-												: GlassmorphismTheme.borders.default
-										}`,
-										color:
-											activeTool === tool.id
-												? GlassmorphismTheme.text.high
-												: GlassmorphismTheme.text.medium,
-									}}
 									onClick={() => onToolChange(tool.id)}
-									onMouseEnter={(e) => {
-										if (activeTool !== tool.id) {
-											e.currentTarget.style.backgroundColor =
-												GlassmorphismTheme.elevation[2];
-										}
-									}}
-									onMouseLeave={(e) => {
-										if (activeTool !== tool.id) {
-											e.currentTarget.style.backgroundColor =
-												GlassmorphismTheme.elevation[1];
-										}
-									}}
 								>
 									{tool.icon}
 								</TooltipTrigger>
@@ -249,17 +220,10 @@ export const Toolbar = () => {
 								title={tool.label ?? `Tool ${index}`}
 								variant={'secondary'}
 								onClick={() => onToolChange(tool.id)}
-								style={{
-									backgroundColor: isCommentMode
-										? 'rgba(20, 184, 166, 0.87)'
-										: undefined,
-									border: isCommentMode
-										? '2px solid rgba(20, 184, 166, 0.3)'
-										: undefined,
-									color: isCommentMode
-										? GlassmorphismTheme.text.high
-										: undefined,
-								}}
+								className={cn(
+									isCommentMode &&
+										'text-text-high bg-app-primary border-2 border-app-primary-muted'
+								)}
 							>
 								{tool.icon}
 							</Button>

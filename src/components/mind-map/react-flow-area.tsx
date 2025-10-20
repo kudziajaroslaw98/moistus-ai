@@ -45,7 +45,6 @@ import { useParams } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
 import FloatingConnectionLine from '../edges/floating-connection-line';
 import { SuggestedMergeEdge } from '../edges/suggested-merge-edge';
-import { GlassmorphismTheme } from '../nodes/themes/glassmorphism-theme';
 import { RealtimeAvatarStack } from '../realtime/realtime-avatar-stack';
 import { RealtimeCursors } from '../realtime/realtime-cursor';
 import { Toolbar } from '../toolbar';
@@ -367,13 +366,11 @@ export function ReactFlowArea() {
 				snapGrid={[GRID_SIZE, GRID_SIZE]}
 				snapToGrid={true}
 				className={cn([
+					'bg-elevation-0',
 					isPanningMode && 'cursor-grab',
 					activeTool === 'node' ||
 						(activeTool === 'text' && 'cursor-crosshair'),
 				])}
-				style={{
-					backgroundColor: GlassmorphismTheme.elevation[0], // Base background
-				}}
 				onConnect={onConnect}
 				onConnectEnd={onConnectEnd}
 				onConnectStart={onConnectStart}

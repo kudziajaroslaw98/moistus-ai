@@ -1,12 +1,12 @@
 'use client';
 
 import useAppStore from '@/store/mind-map-store';
+import { cn } from '@/utils/cn';
 import { Send } from 'lucide-react';
 import { motion } from 'motion/react';
 import { memo, useRef, useState, type KeyboardEvent } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { Button } from '../../ui/button';
-import { GlassmorphismTheme } from '../themes/glassmorphism-theme';
 
 interface CommentReplyInputProps {
 	commentId: string;
@@ -96,10 +96,7 @@ const CommentReplyInputComponent = ({ commentId }: CommentReplyInputProps) => {
 				duration: 0.2,
 				ease: [0.25, 0.46, 0.45, 0.94], // ease-out-quad
 			}}
-			className='flex gap-2 p-3 border-t'
-			style={{
-				borderColor: GlassmorphismTheme.borders.default,
-			}}
+			className='flex gap-2 p-3 border-t border-border-default'
 		>
 			<textarea
 				ref={textareaRef}
@@ -107,20 +104,7 @@ const CommentReplyInputComponent = ({ commentId }: CommentReplyInputProps) => {
 				onChange={handleInput}
 				onKeyDown={handleKeyDown}
 				placeholder='Write a reply... (use @name to mention)'
-				className='flex-1 resize-none outline-none bg-transparent transition-all min-h-[36px] max-h-[120px] py-2 px-3 rounded-md'
-				style={{
-					color: GlassmorphismTheme.text.high,
-					backgroundColor: GlassmorphismTheme.elevation[0],
-					border: `1px solid ${GlassmorphismTheme.borders.default}`,
-					fontSize: '14px',
-					lineHeight: 1.5,
-				}}
-				onFocus={(e) => {
-					e.target.style.borderColor = 'rgba(20, 184, 166, 0.5)';
-				}}
-				onBlur={(e) => {
-					e.target.style.borderColor = GlassmorphismTheme.borders.default;
-				}}
+				className='flex-1 resize-none outline-none transition-all min-h-[36px] max-h-[120px] py-2 px-3 rounded-md text-text-high bg-elevation-0 border border-border-default text-sm leading-5 focus:border-cyan-500/50'
 				aria-label='Reply to comment'
 			/>
 
@@ -129,16 +113,12 @@ const CommentReplyInputComponent = ({ commentId }: CommentReplyInputProps) => {
 				variant='default'
 				disabled={!content.trim() || isSending}
 				onClick={handleSend}
-				className='shrink-0'
-				style={{
-					backgroundColor: content.trim()
-						? 'rgba(20, 184, 166, 0.87)'
-						: GlassmorphismTheme.elevation[2],
-					color: content.trim()
-						? GlassmorphismTheme.text.high
-						: GlassmorphismTheme.text.disabled,
-					opacity: isSending ? 0.6 : 1,
-				}}
+				className={cn(
+					'shrink-0',
+					content.trim() ? 'bg-[rgba(20,184,166,0.87)]' : 'bg-elevation-2',
+					content.trim() ? 'text-text-high' : 'text-text-disabled',
+					isSending ? 'opacity-60' : ''
+				)}
 				aria-label='Send message'
 			>
 				<Send className='size-4' />

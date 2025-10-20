@@ -1,17 +1,19 @@
 'use client';
 
-import { HelpCircle, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
-import { memo, useState, useCallback, useMemo, useEffect } from 'react';
-import { BaseNodeWrapper } from './base-node-wrapper';
-import { type TypedNodeProps, type QuestionNodeMetadata } from './core/types';
-import { GlassmorphismTheme } from './themes/glassmorphism-theme';
 import useAppStore from '@/store/mind-map-store';
+import { ChevronDown, ChevronUp, HelpCircle, Sparkles } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { BaseNodeWrapper } from './base-node-wrapper';
+import { type QuestionNodeMetadata, type TypedNodeProps } from './core/types';
 
 // Import response components
 import { BinaryResponse } from './question-node/binary-response';
 import { MultipleChoiceResponse } from './question-node/multiple-choice-response';
-import { detectQuestionType, parseQuestionOptions } from './question-node/question-type-detector';
+import {
+	detectQuestionType,
+	parseQuestionOptions,
+} from './question-node/question-type-detector';
 
 type QuestionNodeProps = TypedNodeProps<'questionNode'>;
 
@@ -32,14 +34,16 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 	}, [data.content]);
 
 	// Determine question type
-	const questionType = metadata?.questionType ||
+	const questionType =
+		metadata?.questionType ||
 		parsedOptions.questionType ||
 		detectQuestionType(data.content || '');
 
 	// Response system
 	const userResponse = metadata?.userResponse;
 	const responseFormat = metadata?.responseFormat || {};
-	const isAnswered = metadata?.isAnswered || Boolean(userResponse !== undefined);
+	const isAnswered =
+		metadata?.isAnswered || Boolean(userResponse !== undefined);
 
 	// Update metadata when parsed options change
 	useEffect(() => {
@@ -47,7 +51,10 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 		let needsUpdate = false;
 
 		// Update question type if it changed
-		if (parsedOptions.questionType && parsedOptions.questionType !== metadata?.questionType) {
+		if (
+			parsedOptions.questionType &&
+			parsedOptions.questionType !== metadata?.questionType
+		) {
 			updates.questionType = parsedOptions.questionType;
 			needsUpdate = true;
 		}
@@ -56,31 +63,35 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 		if (parsedOptions.options) {
 			const newOptions = parsedOptions.options.map((label, index) => ({
 				id: `opt-${index}`,
-				label: label.trim()
+				label: label.trim(),
 			}));
 
 			// Check if options actually changed
 			const existingOptions = responseFormat.options || [];
 			const optionsChanged =
 				newOptions.length !== existingOptions.length ||
-				newOptions.some((opt, idx) =>
-					!existingOptions[idx] || opt.label !== existingOptions[idx].label
+				newOptions.some(
+					(opt, idx) =>
+						!existingOptions[idx] || opt.label !== existingOptions[idx].label
 				);
 
 			if (optionsChanged) {
 				updates.responseFormat = {
 					...responseFormat,
-					options: newOptions
+					options: newOptions,
 				};
 				// Also update question type to multiple when options are provided
 				updates.questionType = 'multiple';
 				needsUpdate = true;
 			}
-		} else if (parsedOptions.questionType === 'binary' && (responseFormat.options?.length ?? 0) > 0) {
+		} else if (
+			parsedOptions.questionType === 'binary' &&
+			(responseFormat.options?.length ?? 0) > 0
+		) {
 			// Clear options if switching to binary
 			updates.responseFormat = {
 				...responseFormat,
-				options: []
+				options: [],
 			};
 			needsUpdate = true;
 		}
@@ -91,37 +102,40 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 				data: {
 					metadata: {
 						...metadata,
-						...updates
-					}
+						...updates,
+					},
 				},
 			});
 		}
 	}, [data.content]); // Only depend on content changes, not on metadata
 
-	const handleResponseChange = useCallback(async (newResponse: boolean | string | string[]) => {
-		try {
-			await updateNode({
-				nodeId: id,
-				data: {
-					metadata: {
-						...metadata,
-						userResponse: newResponse,
-						isAnswered: true,
-						// Add to responses array for tracking
-						responses: [
-							...(metadata?.responses || []),
-							{
-								answer: newResponse,
-								timestamp: new Date().toISOString()
-							}
-						].slice(-10) // Keep last 10 responses
-					}
-				},
-			});
-		} catch (error) {
-			console.error('Failed to save response:', error);
-		}
-	}, [updateNode, id, metadata]);
+	const handleResponseChange = useCallback(
+		async (newResponse: boolean | string | string[]) => {
+			try {
+				await updateNode({
+					nodeId: id,
+					data: {
+						metadata: {
+							...metadata,
+							userResponse: newResponse,
+							isAnswered: true,
+							// Add to responses array for tracking
+							responses: [
+								...(metadata?.responses || []),
+								{
+									answer: newResponse,
+									timestamp: new Date().toISOString(),
+								},
+							].slice(-10), // Keep last 10 responses
+						},
+					},
+				});
+			} catch (error) {
+				console.error('Failed to save response:', error);
+			}
+		},
+		[updateNode, id, metadata]
+	);
 
 	// Clean the question text (remove brackets)
 	const cleanQuestionText = useMemo(() => {
@@ -143,24 +157,11 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 					{/* Main question text */}
 					<div className='text-center px-2'>
 						{data.content ? (
-							<h3
-								style={{
-									fontSize: '16px',
-									fontWeight: 500,
-									color: GlassmorphismTheme.text.high,
-									lineHeight: 1.4,
-								}}
-							>
+							<h3 className='font-medium leading-5 text-text-high text-base'>
 								{cleanQuestionText}
 							</h3>
 						) : (
-							<span
-								style={{
-									color: GlassmorphismTheme.text.disabled,
-									fontSize: '14px',
-									fontStyle: 'italic',
-								}}
-							>
+							<span className='text-text-disabled text-sm italic'>
 								Click to add a question...
 							</span>
 						)}
@@ -186,16 +187,17 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 									options={
 										responseFormat.options && responseFormat.options.length > 0
 											? responseFormat.options
-											: parsedOptions.options && parsedOptions.options.length > 0
+											: parsedOptions.options &&
+												  parsedOptions.options.length > 0
 												? parsedOptions.options.map((label, index) => ({
-													id: `opt-${index}`,
-													label: label.trim()
-												}))
+														id: `opt-${index}`,
+														label: label.trim(),
+													}))
 												: [
-													{ id: '1', label: 'Option A' },
-													{ id: '2', label: 'Option B' },
-													{ id: '3', label: 'Option C' },
-												]
+														{ id: '1', label: 'Option A' },
+														{ id: '2', label: 'Option B' },
+														{ id: '3', label: 'Option C' },
+													]
 									}
 									onChange={handleResponseChange}
 								/>
@@ -249,9 +251,15 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 							</span>
 
 							{isExpanded ? (
-								<ChevronUp className='w-3 h-3' style={{ color: 'rgba(147, 197, 253, 0.7)' }} />
+								<ChevronUp
+									className='w-3 h-3'
+									style={{ color: 'rgba(147, 197, 253, 0.7)' }}
+								/>
 							) : (
-								<ChevronDown className='w-3 h-3' style={{ color: 'rgba(147, 197, 253, 0.7)' }} />
+								<ChevronDown
+									className='w-3 h-3'
+									style={{ color: 'rgba(147, 197, 253, 0.7)' }}
+								/>
 							)}
 						</motion.button>
 
@@ -271,13 +279,7 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 											border: '1px solid rgba(147, 197, 253, 0.1)',
 										}}
 									>
-										<div
-											style={{
-												fontSize: '13px',
-												color: GlassmorphismTheme.text.medium,
-												lineHeight: 1.6,
-											}}
-										>
+										<div className='text-xs bg-text-medium leading-6'>
 											{aiAnswer}
 										</div>
 									</div>
