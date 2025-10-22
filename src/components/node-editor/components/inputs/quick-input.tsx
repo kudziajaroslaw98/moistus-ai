@@ -12,19 +12,17 @@ import {
 	type KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
 import { useShallow } from 'zustand/shallow';
+import { getNodeTypeConfig } from '../../core/config/node-type-config';
+import { parseInput } from '../../core/parsers/pattern-extractor';
 import { processNodeTypeSwitch } from '../../core/commands/command-executor';
-import { commandRegistry } from '../../core/commands/command-registry';
-import type { Command } from '../../core/commands/command-types';
-import { nodeCommands } from '../../core/commands/node-commands';
 import { announceToScreenReader } from '../../core/utils/text-utils';
 import {
-	createOrUpdateNodeFromCommand,
+	createOrUpdateNode,
 	transformNodeToQuickInputString,
 } from '../../node-updater';
 import type { QuickInputProps } from '../../types';
 import { ActionBar } from '../action-bar';
 import { ArrowIndicator } from '../arrow-indicator';
-import { CommandPalette } from '../command-palette';
 import { ComponentHeader } from '../component-header';
 import { ErrorDisplay } from '../error-display';
 import { ExamplesSection } from '../examples-section';
@@ -48,17 +46,18 @@ const shouldAutoProcessSwitch = (
 };
 
 export const QuickInput: FC<QuickInputProps> = ({
-	command,
+	nodeType: initialNodeType,
 	parentNode,
 	position,
 	mode = 'create',
 	existingNode,
 }) => {
+	// Get configuration for this node type
+	const config = getNodeTypeConfig(initialNodeType);
 	// Local UI state
 	const [preview, setPreview] = useState<any>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [isCreating, setIsCreating] = useState(false);
-	const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
 	const [referenceMetadata, setReferenceMetadata] = useState<{
 		targetNodeId?: string;
@@ -110,7 +109,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 				mode,
 				hasExistingNode: !!existingNode,
 				existingNodeId: existingNode?.id,
-				commandNodeType: command.nodeType,
+				initialNodeType,
 				currentNodeType,
 			})
 		);
@@ -118,7 +117,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 		if (mode === 'edit' && existingNode) {
 			// Edit mode: initialize with existing node content (only once)
 			console.log('✅ Edit mode detected, calling initializeQuickInput');
-			const nodeType = command.nodeType || 'defaultNode';
+			const nodeType = initialNodeType || 'defaultNode';
 			const initialContent = transformNodeToQuickInputString(
 				existingNode,
 				nodeType
@@ -135,17 +134,17 @@ export const QuickInput: FC<QuickInputProps> = ({
 				'🔧 QuickInput create mode initialization:',
 				JSON.stringify({
 					currentNodeType,
-					commandNodeType: command.nodeType,
+					initialNodeType,
 					shouldSetNodeType: !currentNodeType,
 				})
 			);
 
-			if (!currentNodeType && command.nodeType) {
+			if (!currentNodeType && initialNodeType) {
 				console.log(
 					'✅ Setting node type to:',
-					JSON.stringify(command.nodeType)
+					JSON.stringify(initialNodeType)
 				);
-				setCurrentNodeType(command.nodeType);
+				setCurrentNodeType(initialNodeType);
 			} else {
 				console.log(
 					'⚠️ Node type already set, not overriding:',
@@ -157,7 +156,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 	}, [
 		mode,
 		existingNode?.id,
-		command.nodeType,
+		initialNodeType,
 		initializeQuickInput,
 		setCurrentNodeType,
 	]);
@@ -227,24 +226,20 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 	// Parse input in real-time for preview using current node type
 	useEffect(() => {
-		// Get the current command configuration based on node type
-		const effectiveNodeType = currentNodeType || command.nodeType;
-		const currentCommand =
-			nodeCommands.find((cmd) => cmd.nodeType === effectiveNodeType) || command;
-
 		// Clean the input by removing any $nodeType prefix (e.g., $task, $note)
 		const cleanValue = value.replace(/^\$\w+\s*/, '').trim();
 
-		if (!cleanValue || !currentCommand.quickParse) {
+		if (!cleanValue) {
 			setPreview(null);
 			setError(null);
 			return;
 		}
 
 		try {
-			const parsed = currentCommand.quickParse(cleanValue);
+			const parsed = parseInput(cleanValue);
 
 			// Enhance preview with reference metadata for reference nodes
+			const effectiveNodeType = currentNodeType || initialNodeType;
 			if (effectiveNodeType === 'referenceNode' && referenceMetadata) {
 				const enhancedPreview = {
 					...parsed,
@@ -263,7 +258,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 			setPreview(null);
 			setError('Invalid input format');
 		}
-	}, [value, command, currentNodeType, referenceMetadata]);
+	}, [value, currentNodeType, initialNodeType, referenceMetadata]);
 
 	// Handle node creation with current node type
 	const handleCreate = useCallback(async () => {
@@ -272,22 +267,18 @@ export const QuickInput: FC<QuickInputProps> = ({
 		try {
 			setIsCreating(true);
 
-			// Use current node type for command configuration
-			const effectiveNodeType = currentNodeType || command.nodeType;
-			const currentCommand =
-				nodeCommands.find((cmd) => cmd.nodeType === effectiveNodeType) ||
-				command;
+			// Use current node type
+			const effectiveNodeType = currentNodeType || initialNodeType;
 
 			// Clean the input by removing any $nodeType prefix
 			const cleanValue = value.replace(/^\$\w+\s*/, '').trim() || value;
 
-			const nodeData = currentCommand.quickParse
-				? currentCommand.quickParse(cleanValue)
-				: { content: cleanValue };
+			// Parse the input
+			const nodeData = parseInput(cleanValue);
 
 			// Merge reference metadata for reference nodes
 			if (effectiveNodeType === 'referenceNode' && referenceMetadata) {
-				Object.assign(nodeData, {
+				Object.assign(nodeData.metadata, {
 					targetNodeId: referenceMetadata.targetNodeId,
 					targetMapId: referenceMetadata.targetMapId,
 					targetMapTitle: referenceMetadata.targetMapTitle,
@@ -295,8 +286,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 				});
 			}
 
-			const result = await createOrUpdateNodeFromCommand({
-				command: currentCommand,
+			const result = await createOrUpdateNode({
+				nodeType: effectiveNodeType,
 				data: nodeData,
 				mode,
 				position,
@@ -324,8 +315,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 		}
 	}, [
 		value,
-		command,
 		currentNodeType,
+		initialNodeType,
 		position,
 		parentNode,
 		addNode,
@@ -334,6 +325,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 		isCreating,
 		mode,
 		existingNode,
+		referenceMetadata,
 	]);
 
 	// Handle pattern insertion from legend
@@ -358,69 +350,6 @@ export const QuickInput: FC<QuickInputProps> = ({
 		setCursorPosition(value.length);
 	}, [value, setCursorPosition]);
 
-	// Handle command palette trigger
-	const handleCommandPaletteTrigger = useCallback(
-		(position: { x: number; y: number }) => {
-			setCommandPaletteOpen(true);
-			// Note: openCommandPalette from store not available yet
-		},
-		[]
-	);
-
-	// Handle command execution from palette or enhanced input
-	const handleCommandExecute = useCallback(
-		async (command: Command) => {
-			try {
-				const context = {
-					text: value, // Fixed: was 'currentText', should be 'text'
-					cursorPosition,
-				};
-
-				// Use the registry executeCommand method - but command doesn't have id
-				// NodeCommand extends Command which should have id
-				const commandId = command.id;
-
-				if (!commandId) {
-					console.error('Command missing id:', command);
-					return;
-				}
-
-				const result = await commandRegistry.executeCommand(commandId, context);
-
-				if (result) {
-					// Apply command result
-					if (result.replacement !== undefined) {
-						setValue(result.replacement);
-						lastProcessedText.current = result.replacement;
-					}
-
-					if (result.nodeType && result.nodeType !== currentNodeType) {
-						setCurrentNodeType(result.nodeType as AvailableNodeTypes);
-					}
-
-					if (result.cursorPosition !== undefined) {
-						setCursorPosition(result.cursorPosition);
-					}
-
-					if (result.closePanel) {
-						setCommandPaletteOpen(false);
-						// Note: closeCommandPalette from store not available yet
-					}
-
-					if (result.message) {
-						announceToScreenReader(result.message);
-					}
-				}
-			} catch (error) {
-				console.error('Error executing command:', error);
-				setError(
-					`Failed to execute command: ${error instanceof Error ? error.message : 'Unknown error'}`
-				);
-			}
-		},
-		[value, cursorPosition, currentNodeType]
-	);
-
 	// Handle node type change from enhanced input (CodeMirror events)
 	const handleNodeTypeChange = useCallback(
 		(nodeType: AvailableNodeTypes) => {
@@ -442,7 +371,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 	// Handle command execution from enhanced input
 	const handleCommandExecuted = useCallback(
-		(commandData: Command) => {
+		(commandData: any) => {
 			if (commandData.id === 'reference-selected') {
 				// Handle reference selection
 				const referenceData = commandData.result;
@@ -455,18 +384,11 @@ export const QuickInput: FC<QuickInputProps> = ({
 				announceToScreenReader(
 					`Selected reference: ${referenceData.contentSnippet?.slice(0, 50) || 'Unknown content'}`
 				);
-			} else if (commandData.command) {
-				handleCommandExecute(commandData.command);
 			}
 		},
-		[handleCommandExecute]
+		[]
 	);
 
-	// Handle command palette close
-	const handlePaletteClose = useCallback(() => {
-		setCommandPaletteOpen(false);
-		// Note: closeCommandPalette from store not available yet
-	}, []);
 
 	// Handle keyboard shortcuts
 	const handleKeyDown = useCallback(
@@ -476,26 +398,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 				handleCreate();
 				return;
 			}
-
-			// Handle command palette trigger with '/'
-			if (
-				e.key === '/' &&
-				!e.ctrlKey &&
-				!e.metaKey &&
-				!e.altKey &&
-				e.currentTarget !== null
-			) {
-				// Let the input handle the character first, then trigger palette
-				setTimeout(() => {
-					const rect = e.currentTarget.getBoundingClientRect();
-					handleCommandPaletteTrigger({
-						x: rect.left + 20,
-						y: rect.bottom + 5,
-					});
-				}, 10);
-			}
 		},
-		[handleCreate, handleCommandPaletteTrigger]
+		[handleCreate]
 	);
 
 	// Handle example usage
@@ -509,10 +413,10 @@ export const QuickInput: FC<QuickInputProps> = ({
 			className={theme.container}
 			exit={{ opacity: 0, scale: 0.95, y: -10 }}
 			initial={{ opacity: 0, scale: 0.95, y: -10 }}
-			layoutId={command.label}
+			layoutId={config.label}
 			transition={{ duration: 0.2, ease: 'easeOut' as const }}
 		>
-			<ComponentHeader icon={command.icon} label={command.label} />
+			<ComponentHeader icon={config.icon} label={config.label} />
 
 			{/* Input and Preview Side by Side - Fixed 50/50 Layout */}
 			<div className='flex items-stretch gap-3'>
@@ -522,7 +426,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 					disabled={isCreating}
 					enableCommands={true}
 					initial={{ opacity: 1, x: -20 }}
-					placeholder={`Type naturally... ${command.examples?.[0] || ''}`}
+					placeholder={`Type naturally... ${config.examples?.[0] || ''}`}
 					transition={{ delay: 0.15, duration: 0.3, ease: 'easeOut' as const }}
 					value={value}
 					whileFocus={{
@@ -540,14 +444,14 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 				<PreviewSection
 					hasInput={value.trim().length > 0}
-					nodeType={currentNodeType || command.nodeType || 'defaultNode'}
+					nodeType={currentNodeType || initialNodeType || 'defaultNode'}
 					preview={preview}
 				/>
 			</div>
 
 			{/* Parsing Legend */}
 			<AnimatePresence>
-				{command.parsingPatterns && command.parsingPatterns.length > 0 && (
+				{config.parsingPatterns && config.parsingPatterns.length > 0 && (
 					<motion.div
 						animate={{ opacity: 1, height: 'auto' }}
 						className='mt-3'
@@ -558,12 +462,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 						<ParsingLegend
 							isCollapsed={legendCollapsed}
 							patterns={
-								(
-									nodeCommands.find(
-										(cmd) =>
-											cmd.nodeType === (currentNodeType || command.nodeType)
-									) || command
-								).parsingPatterns || []
+								getNodeTypeConfig(currentNodeType || initialNodeType)
+									.parsingPatterns || []
 							}
 							onPatternClick={handlePatternInsert}
 							onToggleCollapse={() => setLegendCollapsed(!legendCollapsed)}
@@ -574,7 +474,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 			{/* Show hint for nodes without patterns */}
 			<AnimatePresence>
-				{(!command.parsingPatterns || command.parsingPatterns.length === 0) && (
+				{(!config.parsingPatterns || config.parsingPatterns.length === 0) && (
 					<motion.div
 						animate={{ opacity: 1, y: 0 }}
 						className='mt-3 text-xs text-zinc-500'
@@ -590,7 +490,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 			</AnimatePresence>
 
 			<ExamplesSection
-				examples={command.examples || []}
+				examples={config.examples || []}
 				hasValue={value.length > 0}
 				onUseExample={handleUseExample}
 			/>
@@ -603,25 +503,6 @@ export const QuickInput: FC<QuickInputProps> = ({
 				mode={mode}
 				onCreate={handleCreate}
 			/>
-
-			{/* Command Palette Integration */}
-			<AnimatePresence>
-				{commandPaletteOpen && (
-					<motion.div
-						animate={{ opacity: 1, scale: 1 }}
-						className='fixed inset-0 z-50 pointer-events-none'
-						exit={{ opacity: 0, scale: 0.95 }}
-						initial={{ opacity: 0, scale: 0.95 }}
-						transition={{ duration: 0.2 }}
-					>
-						<CommandPalette
-							className='pointer-events-auto'
-							onClose={handlePaletteClose}
-							onCommandExecute={handleCommandExecute}
-						/>
-					</motion.div>
-				)}
-			</AnimatePresence>
 		</motion.div>
 	);
 };

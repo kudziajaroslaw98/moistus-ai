@@ -1,4 +1,4 @@
-import { createClient } from '@/helpers/supabase/server';
+import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
@@ -15,22 +15,27 @@ interface WebhookInvoice extends Stripe.Invoice {
 }
 
 async function handleSubscriptionChange(subscription: Stripe.Subscription) {
-	const supabase = await createClient();
+	const supabase = createServiceRoleClient();
 
 	// Find the user by Stripe customer ID
-	const { data: userSubscription } = await supabase
+	const { data: userSubscription, error: queryError } = await supabase
 		.from('user_subscriptions')
 		.select('*')
 		.eq('stripe_subscription_id', subscription.id)
 		.single();
+
+	if (queryError) {
+		console.error('Error querying subscription:', subscription.id, queryError);
+		return;
+	}
 
 	if (!userSubscription) {
 		console.error('Subscription not found in database:', subscription.id);
 		return;
 	}
 
-	const currentPeriodStart = subscription.items.data[0].current_period_start;
-	const currentPeriodEnd = subscription.items.data[0].current_period_end;
+	const currentPeriodStart = subscription.items.data[0].current_period_start * 1000;
+	const currentPeriodEnd = subscription.items.data[0].current_period_end * 1000;
 
 	// Update subscription status
 	const { error } = await supabase
@@ -41,7 +46,7 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
 			current_period_end: new Date(currentPeriodEnd).toISOString(),
 			cancel_at_period_end: subscription.cancel_at_period_end,
 			canceled_at: subscription.canceled_at
-				? new Date(subscription.canceled_at).toISOString()
+				? new Date(subscription.canceled_at * 1000).toISOString()
 				: null,
 			updated_at: new Date().toISOString(),
 		})
@@ -53,7 +58,7 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-	const supabase = await createClient();
+	const supabase = createServiceRoleClient();
 
 	// Update subscription status to canceled
 	const { error } = await supabase
@@ -71,7 +76,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 }
 
 async function handlePaymentSuccess(invoice: WebhookInvoice) {
-	const supabase = await createClient();
+	const supabase = createServiceRoleClient();
 
 	// Extract subscription ID (can be string or expanded object)
 	const subscriptionId =
@@ -79,22 +84,64 @@ async function handlePaymentSuccess(invoice: WebhookInvoice) {
 			? invoice.subscription
 			: invoice.subscription?.id;
 
-	if (!subscriptionId) {
-		console.error('No subscription found for invoice:', invoice.id);
-		return;
+	// If no subscription on invoice, try to find by customer
+	let userSubscription;
+	let queryError;
+
+	if (subscriptionId) {
+		console.log(
+			`Processing payment for invoice ${invoice.id}, subscription: ${subscriptionId}`
+		);
+
+		// Find the user subscription by subscription ID
+		const result = await supabase
+			.from('user_subscriptions')
+			.select('*')
+			.eq('stripe_subscription_id', subscriptionId)
+			.single();
+
+		userSubscription = result.data;
+		queryError = result.error;
+	} else {
+		console.log(
+			`Invoice ${invoice.id} has no subscription, looking up by customer: ${invoice.customer}`
+		);
+
+		// Fallback: find by customer ID
+		const customerId =
+			typeof invoice.customer === 'string'
+				? invoice.customer
+				: invoice.customer?.id;
+
+		if (customerId) {
+			const result = await supabase
+				.from('user_subscriptions')
+				.select('*')
+				.eq('stripe_customer_id', customerId)
+				.order('created_at', { ascending: false })
+				.limit(1)
+				.single();
+
+			userSubscription = result.data;
+			queryError = result.error;
+		}
 	}
 
-	// Find the user subscription
-	const { data: userSubscription } = await supabase
-		.from('user_subscriptions')
-		.select('*')
-		.eq('stripe_subscription_id', subscriptionId)
-		.single();
+	if (queryError) {
+		console.error('Query error looking up subscription:', queryError);
+		return;
+	}
 
 	if (!userSubscription) {
-		console.error('Subscription not found for invoice:', invoice.id);
+		console.error(
+			`No subscription found in DB for invoice ${invoice.id} (subscription: ${subscriptionId}, customer: ${invoice.customer})`
+		);
 		return;
 	}
+
+	console.log(
+		`Found subscription ${userSubscription.stripe_subscription_id} for user ${userSubscription.user_id}`
+	);
 
 	// Extract payment intent ID (can be string or expanded object)
 	const paymentIntentId =
@@ -123,7 +170,7 @@ async function handlePaymentSuccess(invoice: WebhookInvoice) {
 }
 
 async function handlePaymentFailed(invoice: WebhookInvoice) {
-	const supabase = await createClient();
+	const supabase = createServiceRoleClient();
 
 	// Extract subscription ID (can be string or expanded object)
 	const subscriptionId =
@@ -131,19 +178,41 @@ async function handlePaymentFailed(invoice: WebhookInvoice) {
 			? invoice.subscription
 			: invoice.subscription?.id;
 
-	if (!subscriptionId) {
-		console.error('No subscription found for failed invoice:', invoice.id);
-		return;
+	// If no subscription on invoice, try to find by customer
+	let userSubscription;
+	let queryError;
+
+	if (subscriptionId) {
+		const result = await supabase
+			.from('user_subscriptions')
+			.select('*')
+			.eq('stripe_subscription_id', subscriptionId)
+			.single();
+
+		userSubscription = result.data;
+		queryError = result.error;
+	} else {
+		// Fallback: find by customer ID
+		const customerId =
+			typeof invoice.customer === 'string'
+				? invoice.customer
+				: invoice.customer?.id;
+
+		if (customerId) {
+			const result = await supabase
+				.from('user_subscriptions')
+				.select('*')
+				.eq('stripe_customer_id', customerId)
+				.order('created_at', { ascending: false })
+				.limit(1)
+				.single();
+
+			userSubscription = result.data;
+			queryError = result.error;
+		}
 	}
 
-	// Find the user subscription
-	const { data: userSubscription } = await supabase
-		.from('user_subscriptions')
-		.select('*')
-		.eq('stripe_subscription_id', subscriptionId)
-		.single();
-
-	if (!userSubscription) {
+	if (queryError || !userSubscription) {
 		console.error('Subscription not found for failed invoice:', invoice.id);
 		return;
 	}
@@ -176,7 +245,7 @@ async function handlePaymentFailed(invoice: WebhookInvoice) {
 }
 
 async function handleTrialEnding(subscription: Stripe.Subscription) {
-	const supabase = await createClient();
+	const supabase = createServiceRoleClient();
 
 	const { data: userSub } = await supabase
 		.from('user_subscriptions')

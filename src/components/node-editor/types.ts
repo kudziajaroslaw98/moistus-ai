@@ -1,19 +1,22 @@
+import type { AvailableNodeTypes } from '@/registry/node-registry';
 import type { AppNode } from '../../types/app-node';
 import type { NodeData } from '../../types/node-data';
 import type {
 	Command,
 	PatternCategory,
-	ParsingPattern,
 } from './core/commands/command-types';
+import type { ParsingPattern } from './core/config/node-type-config';
 
 // Re-export types from command-types for backwards compatibility
 export type {
 	FieldType,
 	FieldConfig,
 	PatternCategory,
-	ParsingPattern,
 	QuickParser,
 } from './core/commands/command-types';
+
+// Re-export types from node-type-config
+export type { ParsingPattern } from './core/config/node-type-config';
 
 // Priority levels supported by the system
 export type PriorityLevel =
@@ -119,7 +122,7 @@ export interface CommandPaletteProps {
 }
 
 export interface QuickInputProps {
-	command: Command;
+	nodeType: AvailableNodeTypes;
 	parentNode: AppNode | null;
 	position: { x: number; y: number };
 	mode?: 'create' | 'edit';

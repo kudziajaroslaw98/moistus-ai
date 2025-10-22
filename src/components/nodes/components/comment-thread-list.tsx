@@ -3,7 +3,7 @@
 import type { CommentMessage } from '@/types/comment';
 import { cn } from '@/utils/cn';
 import { motion } from 'motion/react';
-import { memo } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { CommentReactions } from './comment-reactions';
 
 /**
@@ -34,6 +34,18 @@ const CommentThreadListComponent = ({
 	messages,
 	currentUserId,
 }: CommentThreadListProps) => {
+	const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+	/**
+	 * Auto-scroll to bottom when messages change
+	 */
+	useEffect(() => {
+		if (scrollContainerRef.current) {
+			scrollContainerRef.current.scrollTop =
+				scrollContainerRef.current.scrollHeight;
+		}
+	}, [messages]);
+
 	/**
 	 * Get initials from display name
 	 */
@@ -101,7 +113,11 @@ const CommentThreadListComponent = ({
 	}
 
 	return (
-		<div className='flex-1 overflow-y-auto p-3 space-y-3'>
+		<div
+			ref={scrollContainerRef}
+			className='flex-1 overflow-y-auto p-3 space-y-3 nowheel'
+			onWheel={(e) => e.stopPropagation()}
+		>
 			{messages.map((message, index) => {
 				const displayName =
 					message.user?.display_name ||

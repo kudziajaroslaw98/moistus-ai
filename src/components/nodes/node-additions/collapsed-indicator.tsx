@@ -34,7 +34,7 @@ const CollapsedIndicatorComponent = (props: { data: NodeData }) => {
 		collapsed && (
 			<>
 				{/* First shadow layer - furthest back */}
-				{/*<motion.div
+				<motion.div
 					animate={{ opacity: 1, scale: 1 }}
 					className='absolute w-full h-full -z-[101] left-0 top-0 rounded-lg translate-2.5'
 					exit={{ opacity: 0, scale: 0.95 }}
@@ -46,10 +46,10 @@ const CollapsedIndicatorComponent = (props: { data: NodeData }) => {
 						boxShadow: `0 4px 12px rgba(0, 0, 0, ${intensity.opacity * 2})`,
 						filter: `blur(${intensity.blur}px)`,
 					}}
-				/>*/}
+				/>
 
 				{/* Second shadow layer - middle */}
-				{/*<motion.div
+				<motion.div
 					animate={{ opacity: 1, scale: 1 }}
 					className='absolute w-full h-full -z-[100] left-0 top-0 rounded-lg translate-1.5'
 					exit={{ opacity: 0, scale: 0.97 }}
@@ -60,7 +60,7 @@ const CollapsedIndicatorComponent = (props: { data: NodeData }) => {
 						border: '1px solid rgba(255, 255, 255, 0.05)',
 						boxShadow: `0 2px 8px rgba(0, 0, 0, ${intensity.opacity})`,
 					}}
-				/>*/}
+				/>
 
 				{/* Count badge with sophisticated styling */}
 				<motion.div

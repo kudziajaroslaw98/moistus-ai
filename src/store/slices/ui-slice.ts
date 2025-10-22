@@ -1,3 +1,4 @@
+import type { Command } from '@/components/node-editor/core/commands/command-types';
 import { nodeCommands } from '@/components/node-editor/core/commands/node-commands';
 import { StateCreator } from 'zustand';
 import { AppState, UIStateSlice } from '../app-state';
@@ -40,15 +41,12 @@ export const createUiStateSlice: StateCreator<
 	snapLines: [],
 
 
-	// NodeEditor state (new universal editor)
+	// NodeEditor state (simplified)
 	nodeEditor: {
 		isOpen: false,
 		mode: 'create',
 		position: { x: 0, y: 0 },
 		screenPosition: { x: 0, y: 0 },
-		editorMode: 'quick',
-		selectedCommand: null,
-		filterQuery: '',
 		parentNode: null,
 		existingNodeId: null,
 		suggestedType: null,
@@ -86,7 +84,7 @@ export const createUiStateSlice: StateCreator<
 			isFocusMode: !get().isFocusMode,
 		});
 	},
-	// NodeEditor actions (new universal editor)
+	// NodeEditor actions (simplified)
 	openNodeEditor: (options) => {
 		set({
 			nodeEditor: {
@@ -98,8 +96,6 @@ export const createUiStateSlice: StateCreator<
 				parentNode: options.parentNode || null,
 				existingNodeId: options.existingNodeId || null,
 				suggestedType: options.suggestedType || null,
-				filterQuery: '',
-				selectedCommand: null,
 			},
 		});
 	},
@@ -108,33 +104,7 @@ export const createUiStateSlice: StateCreator<
 			nodeEditor: {
 				...get().nodeEditor,
 				isOpen: false,
-				filterQuery: '',
-				selectedCommand: null,
 				existingNodeId: null,
-			},
-		});
-	},
-	setNodeEditorCommand: (command) => {
-		set({
-			nodeEditor: {
-				...get().nodeEditor,
-				selectedCommand: command, // Now stores full NodeCommand object
-			},
-		});
-	},
-	setNodeEditorMode: (mode) => {
-		set({
-			nodeEditor: {
-				...get().nodeEditor,
-				editorMode: mode,
-			},
-		});
-	},
-	setNodeEditorFilterQuery: (query) => {
-		set({
-			nodeEditor: {
-				...get().nodeEditor,
-				filterQuery: query,
 			},
 		});
 	},
@@ -185,7 +155,7 @@ export const createUiStateSlice: StateCreator<
 
 	setCommandPaletteSearch: (query) => {
 		const { commandPalette } = get();
-		const allCommands = nodeCommands.filter((command) => {
+		const allCommands = nodeCommands.filter((command: Command) => {
 			if (commandPalette.trigger === '/') {
 				return true;
 			} else if (commandPalette.trigger === '$') {
@@ -200,7 +170,7 @@ export const createUiStateSlice: StateCreator<
 			query.trim() === ''
 				? allCommands
 				: allCommands.filter(
-						(command) =>
+						(command: Command) =>
 							command.label.toLowerCase().includes(query.toLowerCase()) ||
 							command.trigger.toLowerCase().includes(query.toLowerCase()) ||
 							command.description.toLowerCase().includes(query.toLowerCase())

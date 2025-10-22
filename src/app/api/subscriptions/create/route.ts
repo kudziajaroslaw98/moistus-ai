@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
 		const subscription = await stripe.subscriptions.create({
 			customer: customerId,
 			items: [{ price: priceId }],
-			trial_period_days: 14, // 2-week trial
+			trial_end: Math.floor(Date.now() / 1000) + 60, // DEBUG: 1-minute trial (CHANGE BACK to trial_period_days: 14 for production!)
 			trial_settings: {
 				end_behavior: {
 					missing_payment_method: 'cancel', // Cancel if no payment at trial end
@@ -97,8 +97,8 @@ export async function POST(req: NextRequest) {
 			expand: ['latest_invoice.payment_intent', 'pending_setup_intent'],
 		});
 
-		const currentPeriodStart = subscription.items.data[0].current_period_start;
-		const currentPeriodEnd = subscription.items.data[0].current_period_end;
+		const currentPeriodStart = subscription.items.data[0].current_period_start * 1000;
+		const currentPeriodEnd = subscription.items.data[0].current_period_end * 1000;
 
 		// Save subscription to database
 		const { error: dbError } = await supabase

@@ -1,3 +1,4 @@
+import type { AvailableNodeTypes } from '@/registry/node-registry';
 import { AppState } from '@/store/app-state';
 import type { AppNode } from '@/types/app-node';
 import type { NodeData } from '@/types/node-data';
@@ -94,6 +95,113 @@ export const createOrUpdateNodeFromCommand = async ({
 		};
 	}
 };
+
+// ===== NEW SIMPLIFIED API (nodeType-based) =====
+
+interface UpdateNodeDirectOptions {
+	nodeType: AvailableNodeTypes;
+	data: any;
+	existingNode: AppNode;
+	updateNode: AppState['updateNode'];
+}
+
+interface CreateOrUpdateNodeDirectOptions {
+	nodeType: AvailableNodeTypes;
+	data: any;
+	mode: 'create' | 'edit';
+	position?: { x: number; y: number };
+	parentNode?: AppNode | null;
+	existingNode?: AppNode;
+	addNode?: AppState['addNode'];
+	updateNode?: AppState['updateNode'];
+}
+
+/**
+ * Update node using nodeType directly (simplified API)
+ */
+export const updateNodeDirect = async ({
+	nodeType,
+	data,
+	existingNode,
+	updateNode,
+}: UpdateNodeDirectOptions): Promise<NodeCreationResult> => {
+	try {
+		// Transform parsed data into node-specific data structure
+		const nodeData = transformDataForNodeType(nodeType, data);
+
+		// Update the existing node with new data
+		await updateNode({
+			nodeId: existingNode.id,
+			data: {
+				...nodeData,
+				node_type: nodeType,
+				updated_at: new Date().toISOString(),
+			},
+		});
+
+		return {
+			success: true,
+			nodeId: existingNode.id,
+		};
+	} catch (error) {
+		console.error('Error updating node:', error);
+		return {
+			success: false,
+			error: error instanceof Error ? error.message : 'Failed to update node',
+		};
+	}
+};
+
+/**
+ * Create or update node using nodeType directly (simplified API)
+ */
+export const createOrUpdateNode = async ({
+	nodeType,
+	data,
+	mode,
+	position,
+	parentNode,
+	existingNode,
+	addNode,
+	updateNode,
+}: CreateOrUpdateNodeDirectOptions): Promise<NodeCreationResult> => {
+	if (mode === 'edit' && existingNode && updateNode) {
+		return updateNodeDirect({
+			nodeType,
+			data,
+			existingNode,
+			updateNode,
+		});
+	} else if (mode === 'create' && addNode) {
+		// For create mode, use the command-based API with a minimal command object
+		const minimalCommand: Command = {
+			id: `create-${nodeType}`,
+			nodeType,
+			trigger: '',
+			label: '',
+			description: '',
+			category: 'content',
+			triggerType: 'node-type',
+			action: async () => ({ success: true }),
+			icon: undefined as any, // Not used in create-only flow
+		};
+
+		return createNodeFromCommand({
+			command: minimalCommand,
+			data,
+			position,
+			parentNode: parentNode || null,
+			addNode,
+		});
+	} else {
+		return {
+			success: false,
+			error: 'Invalid mode or missing required functions',
+		};
+	}
+};
+
+// ===== END NEW API =====
 
 // Helper to get universal form data fields
 const getUniversalFormData = (data: NodeData) => ({

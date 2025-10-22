@@ -1,5 +1,5 @@
 'use client';
-import type { NodeEditorState } from '@/store/app-state';
+import type { NodeEditorOptions } from '@/store/app-state';
 import useAppStore from '@/store/mind-map-store';
 import type { AppNode } from '@/types/app-node';
 import type { EdgeData } from '@/types/edge-data';
@@ -41,7 +41,7 @@ interface UseContextMenuConfigProps {
 interface BuildNodeMenuParams {
 	clickedNode: AppNode;
 	hasChildren: boolean;
-	openNodeEditor: (params: Partial<NodeEditorState>) => void;
+	openNodeEditor: (options: NodeEditorOptions) => void;
 	toggleNodeCollapse: (nodeId: string) => void;
 	removeNodesFromGroup: (nodeIds: string[]) => void;
 	deleteNodes: (nodes: AppNode[]) => void;

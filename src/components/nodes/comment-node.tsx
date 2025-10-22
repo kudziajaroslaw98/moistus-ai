@@ -156,7 +156,8 @@ const CommentNodeComponent = (props: CommentNodeProps) => {
 					duration: 0.2,
 					ease: [0.25, 0.46, 0.45, 0.94], // ease-out-quad
 				}}
-				className='flex flex-col h-full rounded-lg overflow-hidden'
+				className='flex flex-col h-full rounded-lg overflow-hidden nowheel'
+				onWheel={(e) => e.stopPropagation()}
 				style={{
 					border: `2px solid ${commentAccentColor}`,
 					boxShadow: commentGlow,

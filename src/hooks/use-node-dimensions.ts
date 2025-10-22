@@ -201,7 +201,7 @@ export function useNodeDimensions(
 
 				// Use clientHeight (content + padding) to prevent cumulative growth
 				// scrollHeight includes margins and can cause growth loops
-				const actualHeight = element.clientHeight;
+				const actualHeight = element.scrollHeight;
 				const actualWidth = element.offsetWidth;
 
 				// Only update if dimensions changed significantly (>10px to avoid micro-changes)

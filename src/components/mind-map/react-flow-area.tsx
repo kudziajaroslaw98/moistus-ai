@@ -4,6 +4,8 @@ import { NodeRegistry } from '@/registry/node-registry';
 import {
 	Background,
 	BackgroundVariant,
+	ConnectionLineType,
+	ConnectionMode,
 	Edge,
 	EdgeMouseHandler,
 	EdgeTypes,

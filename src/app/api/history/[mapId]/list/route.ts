@@ -39,7 +39,7 @@ export const GET = async (
 		if (!map)
 			return NextResponse.json({ error: 'Map not found' }, { status: 404 });
 
-		const { data: shareRows, error: shareErr } = await supabase
+		const { data: share, error: shareErr } = await supabase
 			.from('share_access')
 			.select('id')
 			.eq('map_id', mapId)
@@ -51,8 +51,6 @@ export const GET = async (
 			// Log non-empty errors; PGRST116 often indicates 0 rows for maybe-single scenarios
 			console.warn('history/list: share fetch warning', shareErr);
 		}
-		const share =
-			Array.isArray(shareRows) && shareRows.length > 0 ? shareRows[0] : null;
 
 		const hasAccess = map.user_id === user.id || !!share;
 		if (!hasAccess)

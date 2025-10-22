@@ -382,15 +382,12 @@ export interface InlineCreatorOptions {
 	suggestedType?: AvailableNodeTypes | null;
 }
 
-// NodeEditor types (new universal editor)
+// NodeEditor types (simplified)
 export interface NodeEditorState {
 	isOpen: boolean;
 	mode: 'create' | 'edit';
 	position: XYPosition;
 	screenPosition: XYPosition;
-	editorMode: 'quick' | 'structured';
-	selectedCommand: Command | null; // Store full command object from command-registry
-	filterQuery: string;
 	parentNode: AppNode | null;
 	existingNodeId: string | null; // For edit mode
 	suggestedType: AvailableNodeTypes | null;
@@ -450,9 +447,6 @@ export interface UIStateSlice {
 
 	openNodeEditor: (options: NodeEditorOptions) => void;
 	closeNodeEditor: () => void;
-	setNodeEditorCommand: (command: Command | null) => void; // Full Command object from command-registry
-	setNodeEditorMode: (mode: 'quick' | 'structured') => void;
-	setNodeEditorFilterQuery: (query: string) => void;
 
 	// CommandPalette actions
 	openCommandPalette: (options: CommandPaletteOptions) => void;

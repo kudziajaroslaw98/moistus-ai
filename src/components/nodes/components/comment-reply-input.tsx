@@ -96,7 +96,7 @@ const CommentReplyInputComponent = ({ commentId }: CommentReplyInputProps) => {
 				duration: 0.2,
 				ease: [0.25, 0.46, 0.45, 0.94], // ease-out-quad
 			}}
-			className='flex gap-2 p-3 border-t border-border-default'
+			className='flex gap-2 p-3 border-t border-border-default nowheel'
 		>
 			<textarea
 				ref={textareaRef}
@@ -104,7 +104,7 @@ const CommentReplyInputComponent = ({ commentId }: CommentReplyInputProps) => {
 				onChange={handleInput}
 				onKeyDown={handleKeyDown}
 				placeholder='Write a reply... (use @name to mention)'
-				className='flex-1 resize-none outline-none transition-all min-h-[36px] max-h-[120px] py-2 px-3 rounded-md text-text-high bg-elevation-0 border border-border-default text-sm leading-5 focus:border-cyan-500/50'
+				className='flex-1 resize-none outline-none transition-all min-h-[36px] max-h-[120px] py-2 px-3 rounded-md text-text-high bg-elevation-0 border border-border-default text-sm leading-5 focus:border-cyan-500/50 nodrag'
 				aria-label='Reply to comment'
 			/>
 
