@@ -4,16 +4,21 @@ import { useShallow } from 'zustand/shallow';
 import { ContextMenu } from '../context-menu/context-menu';
 
 export function ContextMenuWrapper() {
-	const { popoverOpen } = useAppStore(
+	const {
+		popoverOpen,
+		generateConnectionSuggestions,
+		generateMergeSuggestions,
+		contextMenuState,
+		generateCounterpointsForNode,
+	} = useAppStore(
 		useShallow((state) => ({
 			popoverOpen: state.popoverOpen,
+			generateConnectionSuggestions: state.generateConnectionSuggestions,
+			generateMergeSuggestions: state.generateMergeSuggestions,
+			contextMenuState: state.contextMenuState,
+			generateCounterpointsForNode: state.generateCounterpointsForNode,
 		}))
 	);
-
-	const aiActions = {
-		suggestConnections: () => {},
-		suggestMerges: () => {},
-	};
 
 	if (!popoverOpen.contextMenu) {
 		return null;
@@ -22,8 +27,12 @@ export function ContextMenuWrapper() {
 	return (
 		<ContextMenu
 			aiActions={{
-				suggestConnections: aiActions.suggestConnections,
-				suggestMerges: aiActions.suggestMerges,
+				suggestConnections: () => generateConnectionSuggestions(),
+				suggestMerges: () => generateMergeSuggestions(),
+				suggestCounterpoints: () => {
+					const nodeId = contextMenuState?.nodeId;
+					if (nodeId) generateCounterpointsForNode(nodeId);
+				},
 			}}
 		/>
 	);

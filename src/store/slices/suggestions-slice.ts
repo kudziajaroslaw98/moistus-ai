@@ -1,9 +1,9 @@
 import generateUuid from '@/helpers/generate-uuid';
+import type { AvailableNodeTypes } from '@/registry/node-registry';
 import type { AiConnectionSuggestion } from '@/types/ai-connection-suggestion';
 import type { AiMergeSuggestion } from '@/types/ai-merge-suggestion';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
-import type { AvailableNodeTypes } from '@/registry/node-registry';
 import type { NodeSuggestion, SuggestionContext } from '@/types/ghost-node';
 import type { StateCreator } from 'zustand';
 import type { AppState } from '../app-state';
@@ -51,6 +51,9 @@ export interface SuggestionsSlice {
 	setMergeSuggestions: (suggestions: AiMergeSuggestion[]) => void;
 	acceptMerge: (suggestion: AiMergeSuggestion) => Promise<void>;
 	rejectMerge: (suggestion: AiMergeSuggestion) => void;
+
+	// Counterpoints
+	generateCounterpointsForNode: (nodeId: string) => void;
 
 	triggerStream: (
 		api: string,
@@ -464,6 +467,72 @@ export const createSuggestionsSlice: StateCreator<
 		set((state) => ({
 			edges: [...state.edges, suggestionEdge],
 		}));
+	},
+
+	generateCounterpointsForNode: (nodeId: string) => {
+		const {
+			nodes,
+			edges,
+			mapId,
+			triggerStream,
+			showStreamingToast,
+			updateStreamingToast,
+			setStreamingToastError,
+			setStreamSteps,
+			addGhostNode,
+		} = get();
+
+		if (!mapId) {
+			console.error('Cannot generate counterpoints without a mapId.');
+			return;
+		}
+
+		const sourceNode = nodes.find((n) => n.id === nodeId);
+
+		const handleChunk = (chunk: any) => {
+			if (!chunk || !chunk.type) return;
+
+			switch (chunk.type) {
+				case 'data-stream-info':
+					if (chunk.data?.steps) setStreamSteps(chunk.data.steps);
+					break;
+				case 'data-stream-status':
+					if (chunk.data?.error) setStreamingToastError(chunk.data.error);
+					else updateStreamingToast(chunk.data);
+					break;
+				case 'data-node-suggestion':
+					if (chunk.data) {
+						const suggestion = chunk.data;
+						addGhostNode({
+							...suggestion,
+							position: {
+								x:
+									(sourceNode?.position.x ?? 0) +
+									(suggestion.index || 0) * 300 +
+									(suggestion.index || 0) * 25,
+								y:
+									(sourceNode?.position.y ?? 0) +
+									(sourceNode?.height ?? sourceNode?.data.height ?? 0) +
+									50,
+							},
+						});
+					}
+					break;
+				default:
+					break;
+			}
+		};
+
+		showStreamingToast('Generating Counterpoints');
+
+		const body = {
+			nodes,
+			edges,
+			mapId,
+			context: { sourceNodeId: nodeId, trigger: 'magic-wand' as const },
+		};
+
+		triggerStream('/api/ai/counterpoints', body, handleChunk);
 	},
 
 	generateMergeSuggestions: () => {

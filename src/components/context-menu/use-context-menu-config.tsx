@@ -30,6 +30,7 @@ interface UseContextMenuConfigProps {
 	aiActions: {
 		suggestConnections: () => void;
 		suggestMerges: () => void;
+		suggestCounterpoints?: () => void;
 	};
 	onClose: () => void;
 }
@@ -47,6 +48,9 @@ interface BuildNodeMenuParams {
 	deleteNodes: (nodes: AppNode[]) => void;
 	reactFlowInstance: ReactFlowInstance;
 	onClose: () => void;
+	aiActions: {
+		suggestCounterpoints?: () => void;
+	};
 }
 
 function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
@@ -59,6 +63,7 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 		deleteNodes,
 		reactFlowInstance,
 		onClose,
+		aiActions,
 	} = params;
 
 	const clickedNodeData = clickedNode.data;
@@ -133,6 +138,20 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 						onClose();
 					},
 					hidden: !clickedNode.parentId,
+				},
+			],
+		},
+		{
+			id: 'node-ai',
+			items: [
+				{
+					id: 'generate-counterpoints',
+					icon: <NotepadTextDashed className='h-4 w-4' />,
+					label: 'Generate Counterpoints',
+					onClick: () => {
+						aiActions?.suggestCounterpoints?.();
+						onClose();
+					},
 				},
 			],
 		},
@@ -325,6 +344,13 @@ function buildPaneMenu(params: BuildPaneMenuParams): MenuSection[] {
 					loading: loadingStates.isSuggestingConnections,
 				},
 				{
+					id: 'suggest-counterpoints',
+					icon: <NotepadTextDashed className='h-4 w-4' />,
+					label: 'Generate Counterpoints',
+					onClick: aiActions.suggestCounterpoints,
+					loading: loadingStates.isGenerating,
+				},
+				{
 					id: 'suggest-merges',
 					icon: <NotepadTextDashed className='h-4 w-4' />,
 					label: 'Suggest Merges',
@@ -479,6 +505,7 @@ export function useContextMenuConfig({
 				deleteNodes,
 				reactFlowInstance,
 				onClose,
+				aiActions,
 			});
 		}
 

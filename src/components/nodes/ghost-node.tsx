@@ -80,8 +80,8 @@ function GhostNodeComponent(props: GhostNodeProps) {
 	const ghostStyles: React.CSSProperties = {
 		backgroundColor,
 		border: `${GlassmorphismTheme.ghost.borderWidth} ${GlassmorphismTheme.ghost.borderStyle} ${GlassmorphismTheme.ghost.border}`,
-		minWidth: '200px',
-		maxWidth: '300px',
+		minWidth: '288px',
+		maxWidth: '320px',
 		zIndex: 1000,
 	};
 
@@ -148,7 +148,6 @@ function GhostNodeComponent(props: GhostNodeProps) {
 						style={{ color: GlassmorphismTheme.text.disabled }}
 					>
 						Trigger: {context.trigger}
-
 						{context.relationshipType && (
 							<span className='ml-2'>→ {context.relationshipType}</span>
 						)}
