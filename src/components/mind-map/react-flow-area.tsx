@@ -19,6 +19,7 @@ import {
 } from '@xyflow/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import AnimatedGhostEdge from '@/components/edges/animated-ghost-edge';
 import FloatingEdge from '@/components/edges/floating-edge';
 import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edge';
 import { UpgradeModal } from '@/components/modals/upgrade-modal';
@@ -227,6 +228,7 @@ export function ReactFlowArea() {
 		() => ({
 			suggestedMerge: SuggestedMergeEdge,
 			suggestedConnection: SuggestedConnectionEdge,
+			animatedGhostEdge: AnimatedGhostEdge,
 			editableEdge: FloatingEdge,
 			defaultEdge: FloatingEdge,
 			floatingEdge: FloatingEdge,

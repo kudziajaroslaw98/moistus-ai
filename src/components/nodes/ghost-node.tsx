@@ -7,11 +7,12 @@ import { Check, Sparkles, X } from 'lucide-react';
 import { motion } from 'motion/react';
 
 import useAppStore from '@/store/mind-map-store';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useState, useEffect } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { BaseNodeWrapper } from './base-node-wrapper';
 import { validateGhostMetadata, type TypedNodeProps } from './core/types';
 import { GlassmorphismTheme } from './themes/glassmorphism-theme';
+import { MoveRight } from 'lucide-react';
 
 type GhostNodeProps = TypedNodeProps<'ghostNode'>;
 
@@ -42,10 +43,15 @@ const getNodeTypeIcon = (nodeType: AvailableNodeTypes) => {
 
 function GhostNodeComponent(props: GhostNodeProps) {
 	const { id, data } = props;
-	const { acceptSuggestion, rejectSuggestion } = useAppStore(
+	const [shouldAnimate, setShouldAnimate] = useState(false);
+
+	const { acceptSuggestion, rejectSuggestion, suggestionConfig, reactFlowInstance, getNode } = useAppStore(
 		useShallow((state) => ({
 			acceptSuggestion: state.acceptSuggestion,
 			rejectSuggestion: state.rejectSuggestion,
+			suggestionConfig: state.suggestionConfig,
+			reactFlowInstance: state.reactFlowInstance,
+			getNode: state.getNode,
 		}))
 	);
 
@@ -57,12 +63,49 @@ function GhostNodeComponent(props: GhostNodeProps) {
 		rejectSuggestion(id);
 	}, [id, rejectSuggestion]);
 
+	const handlePanToSource = useCallback(() => {
+		if (!data.metadata?.context?.sourceNodeId || !reactFlowInstance) return;
+
+		const sourceNode = getNode(data.metadata.context.sourceNodeId);
+		if (sourceNode) {
+			reactFlowInstance.setCenter(
+				sourceNode.position.x + (sourceNode.width ?? 200) / 2,
+				sourceNode.position.y + (sourceNode.height ?? 100) / 2,
+				{
+					zoom: 1.2,
+					duration: 400,
+				}
+			);
+		}
+	}, [data.metadata?.context?.sourceNodeId, reactFlowInstance, getNode]);
+
+	// Staged animation: delay node reveal until after edge animation completes
+	useEffect(() => {
+		// Check for reduced motion preference
+		const prefersReducedMotion =
+			typeof window !== 'undefined'
+				? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+				: false;
+
+		const delay =
+			prefersReducedMotion && suggestionConfig.animation.respectReducedMotion
+				? 0 // No delay if reduced motion
+				: suggestionConfig.animation.edgeDuration +
+					suggestionConfig.animation.overlap;
+
+		const timer = setTimeout(() => {
+			setShouldAnimate(true);
+		}, delay);
+
+		return () => clearTimeout(timer);
+	}, [suggestionConfig]);
+
 	// Use centralized validation
 	if (!validateGhostMetadata(data.metadata)) {
 		return null;
 	}
 
-	const { suggestedContent, suggestedType, confidence, context } =
+	const { suggestedContent, suggestedType, confidence, context, sourceNodeName } =
 		data.metadata;
 
 	const backgroundColor = getNodeTypeColor(suggestedType);
@@ -85,6 +128,39 @@ function GhostNodeComponent(props: GhostNodeProps) {
 		zIndex: 1000,
 	};
 
+	// Custom animation variants using config
+	const animationVariants = {
+		initial: {
+			opacity: 0,
+			scale: 0.8,
+			y: 20,
+		},
+		animate: {
+			opacity: 1,
+			scale: 1,
+			y: 0,
+		},
+		exit: {
+			opacity: 0,
+			scale: 0.8,
+			y: 20,
+		},
+	};
+
+	// Check for reduced motion
+	const prefersReducedMotion =
+		typeof window !== 'undefined'
+			? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+			: false;
+
+	const transition = {
+		duration:
+			prefersReducedMotion && suggestionConfig.animation.respectReducedMotion
+				? 0.01
+				: suggestionConfig.animation.nodeDuration / 1000, // Convert to seconds
+		ease: suggestionConfig.animation.easing.node,
+	};
+
 	return (
 		<BaseNodeWrapper
 			{...props}
@@ -96,13 +172,14 @@ function GhostNodeComponent(props: GhostNodeProps) {
 			nodeType='AI Suggestion'
 		>
 			<motion.div
-				animate='animate'
+				animate={shouldAnimate ? 'animate' : 'initial'}
 				className={cn('rounded-lg p-3 cursor-pointer select-none shadow-lg')}
 				exit='exit'
 				initial='initial'
 				key={id}
 				style={ghostStyles}
-				variants={GlassmorphismTheme.ghost.animation}
+				transition={transition}
+				variants={animationVariants}
 			>
 				{/* Header with AI indicator and confidence */}
 				<div className='mb-2 flex items-center justify-between'>
@@ -140,6 +217,39 @@ function GhostNodeComponent(props: GhostNodeProps) {
 				>
 					Type: {suggestedType}
 				</div>
+
+				{/* Source node information */}
+				{sourceNodeName && context?.sourceNodeId && (
+					<div className='mb-3'>
+						<motion.button
+							className='flex items-center gap-1.5 text-xs rounded px-2 py-1 transition-colors duration-200 w-full text-left'
+							style={{
+								backgroundColor: 'rgba(168, 85, 247, 0.1)',
+								color: GlassmorphismTheme.text.medium,
+								border: `1px solid rgba(168, 85, 247, 0.2)`,
+							}}
+							title={`Pan to source node: ${sourceNodeName}`}
+							whileHover={{ scale: 1.02 }}
+							whileTap={{ scale: 0.98 }}
+							onClick={(e) => {
+								e.stopPropagation();
+								handlePanToSource();
+							}}
+							onMouseEnter={(e) => {
+								(e.target as HTMLButtonElement).style.backgroundColor =
+									'rgba(168, 85, 247, 0.15)';
+							}}
+							onMouseLeave={(e) => {
+								(e.target as HTMLButtonElement).style.backgroundColor =
+									'rgba(168, 85, 247, 0.1)';
+							}}
+						>
+							<Sparkles className='h-3 w-3' style={{ color: 'rgba(168, 85, 247, 0.8)' }} />
+							<span className='flex-1 truncate'>Suggested from: {sourceNodeName}</span>
+							<MoveRight className='h-3 w-3' style={{ color: 'rgba(168, 85, 247, 0.6)' }} />
+						</motion.button>
+					</div>
+				)}
 
 				{/* Context information */}
 				{context && (

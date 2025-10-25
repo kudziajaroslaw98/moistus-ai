@@ -1,11 +1,10 @@
 'use client';
 
 import useAppStore from '@/store/mind-map-store';
-import { AnimatePresence, motion } from 'motion/react';
 import { MessageSquare } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useShallow } from 'zustand/shallow';
 import { Badge } from './ui/badge';
-import { GlassmorphismTheme } from './nodes/themes/glassmorphism-theme';
 
 /**
  * ModeIndicator Component
@@ -44,7 +43,6 @@ export const ModeIndicator = () => {
 							backgroundColor: 'rgba(20, 184, 166, 0.15)',
 							borderColor: 'rgba(20, 184, 166, 0.3)',
 							color: 'rgba(20, 184, 166, 1)',
-							backdropFilter: 'blur(8px)',
 							boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
 						}}
 						variant='outline'

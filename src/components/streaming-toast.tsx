@@ -5,7 +5,7 @@
 import { cn } from '@/lib/utils';
 import useAppStore from '@/store/mind-map-store';
 import { ToastStep } from '@/types/streaming-toast-state';
-import { AlertCircle, CheckCircle, Circle, Info, Loader } from 'lucide-react';
+import { AlertCircle, CheckCircle, Circle, Info, Loader, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -104,9 +104,18 @@ function ToastUI({
 	steps: ToastStep[];
 }) {
 	const [isHovered, setIsHovered] = useState(false);
+	const [isStopping, setIsStopping] = useState(false);
+	const stopStream = useAppStore((state) => state.stopStream);
+
 	const isError = !!error;
 	const isProcessComplete =
 		!isError && steps.every((s) => s.status === 'completed');
+	const isStreaming = !isError && !isProcessComplete;
+
+	const handleStop = () => {
+		setIsStopping(true);
+		stopStream();
+	};
 
 	return (
 		<motion.div
@@ -125,7 +134,7 @@ function ToastUI({
 				)}
 			</div>
 
-			<div className='h-auto'>
+			<div className='flex-1 h-auto'>
 				<p className='font-semibold text-white'>{header}</p>
 
 				{/* This div creates a fixed-height container for the animated messages */}
@@ -191,6 +200,30 @@ function ToastUI({
 					)}
 				</AnimatePresence>
 			</div>
+
+			<AnimatePresence>
+				{isStreaming && (
+					<motion.button
+						animate={{ opacity: 1, scale: 1 }}
+						className={cn(
+							'flex-shrink-0 p-1.5 rounded-md',
+							'text-zinc-400 hover:text-white hover:bg-zinc-800',
+							'transition-colors duration-200',
+							'focus:outline-none focus:ring-2 focus:ring-zinc-600',
+							isStopping && 'opacity-50 cursor-not-allowed'
+						)}
+						disabled={isStopping}
+						exit={{ opacity: 0, scale: 0.9 }}
+						initial={{ opacity: 0, scale: 0.9 }}
+						onClick={handleStop}
+						transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+						type='button'
+					>
+						<X className='w-4 h-4' />
+						<span className='sr-only'>Stop generation</span>
+					</motion.button>
+				)}
+			</AnimatePresence>
 		</motion.div>
 	);
 }

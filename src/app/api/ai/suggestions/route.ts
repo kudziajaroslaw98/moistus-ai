@@ -1,4 +1,15 @@
-import { extractNodesContext } from '@/helpers/extract-node-context';
+import {
+	checkUsageLimit,
+	getAIUsageCount,
+	requireSubscription,
+	SubscriptionError,
+	trackAIUsage,
+} from '@/helpers/api/with-subscription-check';
+import {
+	buildContextPrompt,
+	extractEnhancedContext,
+} from '@/helpers/extract-enhanced-node-context';
+import { createClient } from '@/helpers/supabase/server';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import type { SuggestionContext } from '@/types/ghost-node';
@@ -10,14 +21,6 @@ import {
 	UIMessage,
 } from 'ai';
 import { z } from 'zod';
-import { createClient } from '@/helpers/supabase/server';
-import {
-	requireSubscription,
-	checkUsageLimit,
-	getAIUsageCount,
-	trackAIUsage,
-	SubscriptionError,
-} from '@/helpers/api/with-subscription-check';
 
 // Zod schema for a single suggestion object from the AI
 const suggestionObjectSchema = z.object({
@@ -107,6 +110,9 @@ const suggestionObjectSchema = z.object({
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
+	// Capture abort signal for stream cancellation
+	const abortSignal = req.signal;
+
 	try {
 		// Get authenticated user
 		const supabase = await createClient();
@@ -256,6 +262,23 @@ export async function POST(req: Request) {
 							throw new Error('Invalid edges data');
 						}
 
+						// Extract source node name/content if sourceNodeId is provided
+						let sourceNodeName: string | undefined;
+						let sourceNodeContent: string | undefined;
+						if (context.sourceNodeId) {
+							const sourceNode = (nodes as AppNode[]).find(
+								(n) => n.id === context.sourceNodeId
+							);
+							if (sourceNode) {
+								// Truncate content for display (first 50 chars)
+								sourceNodeContent = sourceNode.data.content || '';
+								sourceNodeName =
+									sourceNodeContent.length > 50
+										? sourceNodeContent.substring(0, 50) + '...'
+										: sourceNodeContent;
+							}
+						}
+
 						const mapValidation = z.string().uuid().safeParse(mapId);
 
 						if (!mapValidation.success) {
@@ -318,6 +341,7 @@ export async function POST(req: Request) {
 						// Generate suggestions using AI
 						const result = streamObject({
 							model: openai('o4-mini'),
+							abortSignal,
 							output: 'array',
 							schema: suggestionObjectSchema,
 							messages: [
@@ -341,8 +365,14 @@ export async function POST(req: Request) {
 							],
 						});
 
-						// Stream individual suggestions
+						// Confidence filtering thresholds based on trigger type
+						const isManualTrigger = context.trigger === 'magic-wand';
+						const minConfidence = isManualTrigger ? 0.4 : 0.6;
+						const maxSuggestions = isManualTrigger ? 6 : 5;
+
+						// Stream individual suggestions with confidence filtering
 						let suggestionIndex = 0;
+						let filteredCount = 0;
 						let status = 'pending';
 
 						for await (const element of result.elementStream) {
@@ -360,16 +390,41 @@ export async function POST(req: Request) {
 								});
 							}
 
+							// Validate and filter by confidence
 							if (suggestionObjectSchema.safeParse(element).success) {
+								// Check confidence threshold
+								if (element.confidence < minConfidence) {
+									console.log(
+										`Filtered suggestion (confidence: ${element.confidence} < ${minConfidence}): ${element.content}`
+									);
+									filteredCount++;
+									continue;
+								}
+
+								// Check max suggestions limit
+								if (suggestionIndex >= maxSuggestions) {
+									console.log(
+										`Filtered suggestion (limit reached: ${suggestionIndex} >= ${maxSuggestions}): ${element.content}`
+									);
+									filteredCount++;
+									continue;
+								}
+
 								writer.write({
 									type: 'data-node-suggestion',
 									data: {
 										...element,
 										index: suggestionIndex++,
+										sourceNodeName,
+										sourceNodeContent,
 									},
 								});
 							}
 						}
+
+						console.log(
+							`Suggestions: ${suggestionIndex} sent, ${filteredCount} filtered (trigger: ${context.trigger}, threshold: ${minConfidence})`
+						);
 
 						writer.write({
 							type: 'data-stream-info',
@@ -415,122 +470,54 @@ export async function POST(req: Request) {
 	}
 }
 
-// Context Analysis Engine
+// Enhanced Context Analysis Engine
 function buildSuggestionContext(
 	nodes: AppNode[],
 	edges: AppEdge[],
 	context: SuggestionContext
 ): string {
-	const relevantNodes = getRelevantNodes(nodes, edges, context);
-	const relevantEdges = getRelevantEdges(edges, context);
-
-	let contextString = '';
-
-	// Add node information
-	if (relevantNodes.length > 0) {
-		contextString += 'Relevant Nodes:\n';
-		contextString += extractNodesContext(
-			relevantNodes.map((node) => node.data)
-		).join('; ');
+	// If no source node, return basic context
+	if (!context.sourceNodeId) {
+		return 'No specific source node. Please suggest nodes based on the overall mind map theme.';
 	}
 
-	// Add edge information
-	if (relevantEdges.length > 0) {
-		contextString += 'Relevant Connections:\n';
-		relevantEdges.forEach((edge, index) => {
-			const sourceNode = nodes.find((n) => n.id === edge.source);
-			const targetNode = nodes.find((n) => n.id === edge.target);
-
-			contextString += `${index + 1}. ${sourceNode?.data.content || 'Unknown'} → ${targetNode?.data.content || 'Unknown'}`;
-
-			if (edge.data?.label) {
-				contextString += ` (${edge.data.label})`;
+	try {
+		// Extract enhanced context using multi-level analysis
+		const enhancedContext = extractEnhancedContext(
+			context.sourceNodeId,
+			nodes,
+			edges,
+			{
+				includeSiblings: true,
+				includeAncestry: true,
+				includeTopology: true,
 			}
-
-			contextString += '\n';
-		});
-		contextString += '\n';
-	}
-
-	// Add context-specific information
-	if (context.sourceNodeId) {
-		const sourceNode = nodes.find((n) => n.id === context.sourceNodeId);
-
-		if (sourceNode) {
-			contextString += `Focus Node: ${sourceNode.data.content || 'Untitled'}\n`;
-			contextString += `Focus Node Type: ${sourceNode.data.node_type || 'default'}\n\n`;
-		}
-	}
-
-	return contextString;
-}
-
-/**
- * Identifies and returns the most relevant nodes for building suggestion context
- */
-function getRelevantNodes(
-	nodes: AppNode[],
-	edges: AppEdge[],
-	context: SuggestionContext
-): AppNode[] {
-	if (context.sourceNodeId) {
-		// Get the source node and its immediate neighbors
-		const sourceNode = nodes.find((n) => n.id === context.sourceNodeId);
-
-		if (sourceNode) {
-			return [
-				sourceNode,
-				...getConnectedNodes(nodes, edges, context.sourceNodeId),
-			].slice(0, 5);
-		}
-	}
-
-	// If no specific source, return recent or important nodes
-	return nodes.slice(-5); // Last 5 nodes as context
-}
-
-function getRelevantEdges(
-	edges: AppEdge[],
-	context: SuggestionContext
-): AppEdge[] {
-	if (context.sourceNodeId) {
-		// Get edges connected to the source node
-		return edges.filter(
-			(e) =>
-				e.source === context.sourceNodeId || e.target === context.sourceNodeId
 		);
+
+		// Build formatted prompt from enhanced context
+		const contextPrompt = buildContextPrompt(enhancedContext);
+
+		// Add trigger-specific context
+		let additionalContext = `\n\nTrigger Type: ${context.trigger}\n`;
+
+		if (context.trigger === 'idle') {
+			additionalContext +=
+				'User paused after creating this node - suggest natural next steps.\n';
+		} else if (context.trigger === 'isolation') {
+			additionalContext +=
+				'This node is isolated (no connections) - suggest related nodes to connect.\n';
+		} else if (context.trigger === 'dangling-edge') {
+			additionalContext +=
+				'User dropped an edge without a target - suggest immediate connection targets.\n';
+		}
+
+		return contextPrompt + additionalContext;
+	} catch (error) {
+		console.error('Error extracting enhanced context:', error);
+		// Fallback to basic context
+		const sourceNode = nodes.find((n) => n.id === context.sourceNodeId);
+		return `Focus Node: ${sourceNode?.data.content || 'Unknown'}\nTrigger: ${context.trigger}`;
 	}
-
-	return edges.slice(-5); // Last 5 edges as context
-}
-
-/**
- * Finds all nodes connected to the given nodeId via edges
- */
-function getConnectedNodes(
-	nodes: AppNode[],
-	edges: AppEdge[],
-	nodeId: string
-): AppNode[] {
-	// Validate inputs
-	if (!nodeId || !edges || !nodes) {
-		return [];
-	}
-
-	// Find all edges connected to the given nodeId (both incoming and outgoing)
-	const connectedEdges = edges.filter(
-		(edge) => edge.source === nodeId || edge.target === nodeId
-	);
-
-	// Get the connected node IDs and deduplicate using Set
-	const connectedNodeIds = new Set(
-		connectedEdges.map((edge) =>
-			edge.source === nodeId ? edge.target : edge.source
-		)
-	);
-
-	// Filter the nodes array to get the connected nodes
-	return nodes.filter((node) => connectedNodeIds.has(node.id));
 }
 
 // Prompt Engineering

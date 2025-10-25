@@ -1,4 +1,8 @@
 import generateUuid from '@/helpers/generate-uuid';
+import {
+	generateFallbackAvatar,
+	generateFunName,
+} from '@/helpers/user-profile-helpers';
 import type {
 	Comment,
 	CommentMessage,
@@ -294,10 +298,10 @@ export const createCommentsSlice: StateCreator<
 	// ============================================================================
 
 	fetchMessages: async (commentId: string) => {
-		const { supabase, currentUser, userProfile } = get();
+		const { supabase } = get();
 
 		try {
-			// Fetch messages with reactions (can't access auth.users directly)
+			// Fetch messages with reactions
 			const { data, error } = await supabase
 				.from('comment_messages')
 				.select('*, reactions:comment_reactions(*)')
@@ -306,26 +310,54 @@ export const createCommentsSlice: StateCreator<
 
 			if (error) throw error;
 
-			// Enrich messages with user data from current session
-			const messages: CommentMessage[] = (data || []).map((msg: any) => {
-				// If message is from current user, use their profile
-				const isCurrentUser = msg.user_id === currentUser?.id;
+			if (!data || data.length === 0) {
+				set((state) => ({
+					commentMessages: {
+						...state.commentMessages,
+						[commentId]: [],
+					},
+				}));
+				return;
+			}
+
+			// Extract unique user IDs from messages
+			const userIds = [
+				...new Set(
+					data.map((msg) => msg.user_id as string)
+				),
+			];
+
+			// Batch fetch all user profiles
+			const { data: profiles } = await supabase
+				.from('user_profiles')
+				.select('user_id, display_name, full_name, avatar_url')
+				.in('user_id', userIds);
+
+			// Create a map of user_id -> profile for quick lookup
+			const profileMap = new Map(
+				(profiles || []).map((p) => [p.user_id, p])
+			);
+
+			// Enrich messages with user data from fetched profiles
+			const messages: CommentMessage[] = data.map((msg) => {
+				const profile = profileMap.get(msg.user_id);
+				const userId = msg.user_id;
+
+				// Generate fallback avatar and display name using established patterns
+				const displayName =
+					profile?.display_name ||
+					profile?.full_name ||
+					generateFunName(userId);
+				const avatarUrl =
+					profile?.avatar_url || generateFallbackAvatar(userId);
+
 				return {
 					...msg,
-					user: isCurrentUser
-						? {
-								display_name:
-									userProfile?.display_name ||
-									currentUser?.email?.split('@')[0] ||
-									'Anonymous',
-								avatar_url: userProfile?.avatar_url,
-								full_name: userProfile?.full_name,
-							}
-						: {
-								display_name: 'User', // Fallback for other users
-								avatar_url: undefined,
-								full_name: undefined,
-							},
+					user: {
+						display_name: displayName,
+						avatar_url: avatarUrl,
+						full_name: profile?.full_name,
+					},
 					reactions: msg.reactions || [],
 				};
 			});
@@ -763,27 +795,33 @@ export const createCommentsSlice: StateCreator<
 
 						switch (eventType) {
 							case 'INSERT':
-								// Add message from real-time event (user data comes from optimistic updates)
-								const { currentUser, userProfile } = get();
+								// Add message from real-time event - fetch user profile for accurate display
+								const { supabase: db } = get();
 								const newMessage = newRecord as CommentMessage;
-								const isCurrentUser = newMessage.user_id === currentUser?.id;
+								const userId = newMessage.user_id;
+
+								// Fetch the user profile for this message author
+								const { data: profile } = await db
+									.from('user_profiles')
+									.select('display_name, full_name, avatar_url')
+									.eq('user_id', userId)
+									.single();
+
+								// Generate fallback avatar and display name using established patterns
+								const displayName =
+									profile?.display_name ||
+									profile?.full_name ||
+									generateFunName(userId);
+								const avatarUrl =
+									profile?.avatar_url || generateFallbackAvatar(userId);
 
 								const enrichedMessage: CommentMessage = {
 									...newMessage,
-									user: isCurrentUser
-										? {
-												display_name:
-													userProfile?.display_name ||
-													currentUser?.email?.split('@')[0] ||
-													'Anonymous',
-												avatar_url: userProfile?.avatar_url,
-												full_name: userProfile?.full_name,
-											}
-										: {
-												display_name: 'User',
-												avatar_url: undefined,
-												full_name: undefined,
-											},
+									user: {
+										display_name: displayName,
+										avatar_url: avatarUrl,
+										full_name: profile?.full_name,
+									},
 									reactions: [],
 								};
 

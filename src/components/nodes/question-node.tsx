@@ -1,13 +1,14 @@
 'use client';
 
 import useAppStore from '@/store/mind-map-store';
-import { ChevronDown, ChevronUp, HelpCircle, Sparkles } from 'lucide-react';
+import { ChevronDown, HelpCircle, Sparkles } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { BaseNodeWrapper } from './base-node-wrapper';
 import { type QuestionNodeMetadata, type TypedNodeProps } from './core/types';
 
 // Import response components
+import { cn } from '@/utils/cn';
 import { BinaryResponse } from './question-node/binary-response';
 import { MultipleChoiceResponse } from './question-node/multiple-choice-response';
 import {
@@ -224,15 +225,19 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 
 				{/* AI Answer section (backward compatibility) - Collapsible */}
 				{hasAIAnswer && (
-					<div>
+					<motion.div
+						className='rounded-md'
+						layout
+						transition={{ type: 'spring', duration: 0.3 }}
+						style={{
+							backgroundColor: 'rgba(147, 197, 253, 0.05)',
+							border: '1px solid rgba(147, 197, 253, 0.1)',
+						}}
+					>
 						<motion.button
 							className='w-full flex items-center justify-center gap-2 py-1.5 rounded-md transition-all'
 							whileHover={{ scale: 1.02 }}
 							whileTap={{ scale: 0.98 }}
-							style={{
-								backgroundColor: 'rgba(147, 197, 253, 0.05)',
-								border: '1px solid rgba(147, 197, 253, 0.1)',
-							}}
 							onClick={() => setIsExpanded(!isExpanded)}
 						>
 							<Sparkles
@@ -250,17 +255,13 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 								AI Insight
 							</span>
 
-							{isExpanded ? (
-								<ChevronUp
-									className='w-3 h-3'
-									style={{ color: 'rgba(147, 197, 253, 0.7)' }}
-								/>
-							) : (
-								<ChevronDown
-									className='w-3 h-3'
-									style={{ color: 'rgba(147, 197, 253, 0.7)' }}
-								/>
-							)}
+							<ChevronDown
+								className={cn(
+									'w-3 h-3 transition-transform will-change-transform ease-spring duration-300',
+									isExpanded ? 'rotate-180' : ''
+								)}
+								style={{ color: 'rgba(147, 197, 253, 0.7)' }}
+							/>
 						</motion.button>
 
 						<AnimatePresence>
@@ -272,21 +273,13 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 									initial={{ opacity: 0, height: 0 }}
 									transition={{ duration: 0.2 }}
 								>
-									<div
-										className='mt-2 p-3 rounded-md'
-										style={{
-											backgroundColor: 'rgba(147, 197, 253, 0.05)',
-											border: '1px solid rgba(147, 197, 253, 0.1)',
-										}}
-									>
-										<div className='text-xs bg-text-medium leading-6'>
-											{aiAnswer}
-										</div>
+									<div className='mt-2 p-3'>
+										<div className='text-xs leading-6'>{aiAnswer}</div>
 									</div>
 								</motion.div>
 							)}
 						</AnimatePresence>
-					</div>
+					</motion.div>
 				)}
 			</div>
 		</BaseNodeWrapper>

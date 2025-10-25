@@ -143,5 +143,6 @@ export interface NodeData extends Record<string, unknown> {
 		suggestedContent?: string;
 		suggestedType?: AvailableNodeTypes;
 		context?: SuggestionContext;
+		sourceNodeName?: string; // Name of the node that triggered this suggestion
 	} | null;
 }

@@ -74,6 +74,9 @@ const counterpointSuggestionSchema = z.object({
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
+	// Capture abort signal for stream cancellation
+	const abortSignal = req.signal;
+
 	try {
 		// Auth
 		const supabase = await createClient();
@@ -260,6 +263,7 @@ Context:\n${contextString}`;
 
 						const result = streamObject({
 							model: openai('o4-mini'),
+							abortSignal,
 							output: 'array',
 							schema: counterpointSuggestionSchema,
 							messages: [
@@ -358,3 +362,4 @@ function getConnectedNodes(
 	);
 	return nodes.filter((node) => connectedNodeIds.has(node.id));
 }
+

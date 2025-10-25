@@ -164,6 +164,7 @@ export interface GhostNodeMetadata extends BaseNodeMetadata {
 		relationshipType?: string;
 		trigger: 'magic-wand' | 'dangling-edge' | 'auto';
 	};
+	sourceNodeName?: string; // Name of the node that triggered this suggestion
 }
 
 // AI-related metadata (can be added to any node)

@@ -45,6 +45,9 @@ const aiResponseSchema = z.object({
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
+	// Capture abort signal for stream cancellation
+	const abortSignal = req.signal;
+
 	try {
 		// Get authenticated user
 		const supabase = await createClient();
@@ -290,6 +293,7 @@ export async function POST(req: Request) {
 						// Call the AI using the Vercel AI SDK's streamObject
 						const result = streamObject({
 							model: openai('o4-mini'),
+							abortSignal,
 							output: 'array',
 							schema: aiResponseSchema,
 							messages: [

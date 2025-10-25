@@ -3,7 +3,7 @@ import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import { getNodeConstraints } from '@/utils/node-dimension-utils';
 import { Handle, NodeResizer, Position, useConnection } from '@xyflow/react';
-import { Plus } from 'lucide-react';
+import { Plus, Sparkles } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { type CSSProperties, memo, useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
@@ -43,6 +43,9 @@ const BaseNodeWrapperComponent = ({
 		currentUser,
 		selectedNodes,
 		activeTool,
+		ghostNodes,
+		isStreaming,
+		generateSuggestions,
 	} = useAppStore(
 		useShallow((state) => ({
 			openNodeEditor: state.openNodeEditor,
@@ -52,6 +55,9 @@ const BaseNodeWrapperComponent = ({
 			currentUser: state.currentUser,
 			selectedNodes: state.selectedNodes,
 			activeTool: state.activeTool,
+			ghostNodes: state.ghostNodes,
+			isStreaming: state.isStreaming,
+			generateSuggestions: state.generateSuggestions,
 		}))
 	);
 
@@ -99,6 +105,21 @@ const BaseNodeWrapperComponent = ({
 		});
 	}, [id, getNode, openNodeEditor]);
 
+	const handleGenerateSuggestions = useCallback(() => {
+		// Call generateSuggestions directly from the store
+		generateSuggestions({
+			sourceNodeId: id,
+			trigger: 'magic-wand',
+		});
+	}, [id, generateSuggestions]);
+
+	// Check if this node already has ghost node suggestions
+	const hasGhostSuggestions = useMemo(() => {
+		return ghostNodes.some(
+			(ghost) => ghost.data.metadata?.context?.sourceNodeId === id
+		);
+	}, [ghostNodes, id]);
+
 	const avatars = useMemo(() => {
 		if (!realtimeSelectedNodes) return [];
 		return realtimeSelectedNodes.filter(
@@ -131,7 +152,10 @@ const BaseNodeWrapperComponent = ({
 		: {};
 
 	return (
-		<div className='hover:-translate-y-1 transition-transform ease-spring duration-200 will-change-transform'>
+		<motion.div
+			whileHover={{ y: -5 }}
+			transition={{ type: 'spring', duration: 0.2 }}
+		>
 			<motion.div
 				ref={nodeRef}
 				className={cn(
@@ -189,6 +213,27 @@ const BaseNodeWrapperComponent = ({
 						<CollapseButton data={data} />
 
 						<GroupButton />
+
+						{/* Generate AI Suggestions Button */}
+						<Button
+							className='h-6 w-6 p-0'
+							disabled={isStreaming || hasGhostSuggestions}
+							size='icon'
+							title={
+								hasGhostSuggestions
+									? 'Suggestions already generated for this node'
+									: isStreaming
+										? 'Generating suggestions...'
+										: 'Generate AI suggestions'
+							}
+							variant='secondary'
+							onClick={(e) => {
+								e.stopPropagation();
+								handleGenerateSuggestions();
+							}}
+						>
+							<Sparkles className='h-3.5 w-3.5' />
+						</Button>
 					</div>
 
 					{/* Avatar stack for collaboration */}
@@ -360,7 +405,7 @@ const BaseNodeWrapperComponent = ({
 					)}
 				</>
 			</motion.div>
-		</div>
+		</motion.div>
 	);
 };
 

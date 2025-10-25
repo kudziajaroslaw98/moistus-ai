@@ -65,6 +65,9 @@ const connectionSuggestionSchema = z.object({
 
 // The entire POST function is now the API route handler
 export async function POST(req: Request) {
+	// Capture abort signal for stream cancellation
+	const abortSignal = req.signal;
+
 	try {
 		// Get authenticated user
 		const supabase = await createClient();
@@ -254,6 +257,7 @@ export async function POST(req: Request) {
 						const contextPrompt = `Based on the following mind map data, suggest meaningful connections. Nodes: ${JSON.stringify(mapData.nodes)}. Edges: ${JSON.stringify(mapData.edges)}.`;
 						const response = streamObject({
 							model: openai('o4-mini'),
+							abortSignal,
 							schema: connectionSuggestionSchema,
 							output: 'array',
 							messages: convertToModelMessages([
