@@ -9,10 +9,22 @@ import { useUserColor } from '../use-user-color';
 
 const supabase = getSharedSupabaseClient();
 
+export type ActivityState =
+	| 'idle'
+	| 'editing'
+	| 'dragging'
+	| 'typing'
+	| 'viewing';
+
 export type RealtimeUser = {
 	id: string;
 	name: string;
 	image: string;
+	bio?: string;
+	location?: string;
+	company?: string;
+	jobTitle?: string;
+	activityState?: ActivityState;
 };
 
 export const useRealtimePresenceRoom = (roomName: string) => {

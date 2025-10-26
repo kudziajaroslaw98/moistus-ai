@@ -83,6 +83,7 @@ export function ReactFlowArea() {
 		getVisibleEdges,
 		getVisibleNodes,
 		mindMap,
+		currentUser,
 		activeTool,
 		setActiveTool,
 		ghostNodes,
@@ -117,6 +118,7 @@ export function ReactFlowArea() {
 			getCurrentUser: state.getCurrentUser,
 			toggleFocusMode: state.toggleFocusMode,
 			mindMap: state.mindMap,
+			currentUser: state.currentUser,
 			activeTool: state.activeTool,
 			setActiveTool: state.setActiveTool,
 			ghostNodes: state.ghostNodes,
@@ -493,17 +495,20 @@ export function ReactFlowArea() {
 
 						<RealtimeAvatarStack roomName={`mind_map:${mapId}:users`} />
 
-						<div className='flex gap-2'>
-							<Button
-								aria-label='Share Mind Map'
-								className='gap-2'
-								title='Share Mind Map'
-								variant={popoverOpen.sharePanel ? 'default' : 'secondary'}
-								onClick={handleToggleSharePanel}
-							>
-								Share <Share2 className='size-3' />
-							</Button>
-						</div>
+						{/* Only show Share button for map owners */}
+						{mindMap?.user_id === currentUser?.id && (
+							<div className='flex gap-2'>
+								<Button
+									aria-label='Share Mind Map'
+									className='gap-2'
+									title='Share Mind Map'
+									variant={popoverOpen.sharePanel ? 'default' : 'secondary'}
+									onClick={handleToggleSharePanel}
+								>
+									Share <Share2 className='size-3' />
+								</Button>
+							</div>
+						)}
 					</div>
 				</Panel>
 

@@ -80,20 +80,8 @@ export const createUserProfileSlice: StateCreator<
 						preferences: {
 							theme: 'system',
 							accentColor: 'sky',
-							language: 'en',
-							timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-							notifications: {
-								email_comments: true,
-								email_mentions: true,
-								email_reactions: false,
-								push_comments: true,
-								push_mentions: true,
-								push_reactions: false,
-							},
+							reducedMotion: false,
 							privacy: {
-								show_email: false,
-								show_location: true,
-								show_company: true,
 								profile_visibility: 'public',
 							},
 						},
@@ -258,22 +246,23 @@ export const createUserProfileSlice: StateCreator<
 
 	getLanguage: () => {
 		const { userProfile } = get();
-		return userProfile?.preferences?.language || 'en';
+		return 'en'; // Language removed from preferences, hardcoded to English
 	},
 
 	getTimezone: () => {
 		const { userProfile } = get();
-		return userProfile?.preferences?.timezone || 'UTC';
+		return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; // Use browser timezone
 	},
 
 	getNotificationPreferences: () => {
 		const { userProfile } = get();
-		return userProfile?.preferences?.notifications || {
-			email_comments: true,
-			email_mentions: true,
+		// Notifications removed - return empty object for backwards compatibility
+		return {
+			email_comments: false,
+			email_mentions: false,
 			email_reactions: false,
-			push_comments: true,
-			push_mentions: true,
+			push_comments: false,
+			push_mentions: false,
 			push_reactions: false,
 		};
 	},
@@ -281,9 +270,6 @@ export const createUserProfileSlice: StateCreator<
 	getPrivacyPreferences: () => {
 		const { userProfile } = get();
 		return userProfile?.preferences?.privacy || {
-			show_email: false,
-			show_location: true,
-			show_company: true,
 			profile_visibility: 'public',
 		};
 	},

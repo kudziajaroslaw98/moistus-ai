@@ -9,14 +9,9 @@ export const RealtimeAvatarStack = ({ roomName }: { roomName: string }) => {
 	const avatars = useMemo(() => {
 		if (!usersMap) return [];
 
-		const avatars = Object.values(usersMap).map((user) => ({
-			id: user.id,
-			name: user.name,
-			image: user.image,
-		}));
-
-		return avatars;
+		// Pass full user objects for profile cards
+		return Object.values(usersMap);
 	}, [usersMap]);
 
-	return <AvatarStack avatars={avatars} />;
+	return <AvatarStack avatars={avatars} showProfileCard={true} />;
 };
