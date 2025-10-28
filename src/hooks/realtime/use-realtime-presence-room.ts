@@ -25,9 +25,14 @@ export type RealtimeUser = {
 	company?: string;
 	jobTitle?: string;
 	activityState?: ActivityState;
+	joinedAt?: string; // ISO timestamp when user joined the session
+	lastSeenAt?: string; // ISO timestamp of last activity
 };
 
-export const useRealtimePresenceRoom = (roomName: string) => {
+export const useRealtimePresenceRoom = (
+	roomName: string,
+	activityState?: ActivityState
+) => {
 	const currentUser = useAppStore((state) => state.currentUser);
 	const { hex: color } = useUserColor(
 		currentUser?.id || currentUser?.email || 'Anonymous'
@@ -39,6 +44,7 @@ export const useRealtimePresenceRoom = (roomName: string) => {
 
 	useEffect(() => {
 		const room = supabase.channel(roomName);
+		const joinedAt = new Date().toISOString();
 
 		room
 			.on('presence', { event: 'sync' }, () => {
@@ -46,7 +52,12 @@ export const useRealtimePresenceRoom = (roomName: string) => {
 					id: string;
 					image: string;
 					name: string;
+					joinedAt?: string;
+					lastSeenAt?: string;
+					activityState?: ActivityState;
 				}>();
+
+				const now = new Date().toISOString();
 
 				const newUsers = Object.fromEntries(
 					Object.entries(newState).map(([key, values]) => [
@@ -55,6 +66,9 @@ export const useRealtimePresenceRoom = (roomName: string) => {
 							id: values[0].id,
 							name: values[0].name,
 							image: values[0].image,
+							joinedAt: values[0].joinedAt,
+							lastSeenAt: values[0].lastSeenAt || now,
+							activityState: values[0].activityState || 'idle',
 						},
 					])
 				) as Record<string, RealtimeUser>;
@@ -69,13 +83,29 @@ export const useRealtimePresenceRoom = (roomName: string) => {
 					id: currentUser?.id,
 					name: currentUserName,
 					image: currentUserImage,
+					joinedAt,
+					lastSeenAt: new Date().toISOString(),
+					activityState: activityState || 'viewing',
 				});
 			});
 
+		// Update lastSeenAt and activityState every 30 seconds to keep presence fresh
+		const heartbeatInterval = setInterval(async () => {
+			await room.track({
+				id: currentUser?.id,
+				name: currentUserName,
+				image: currentUserImage,
+				joinedAt,
+				lastSeenAt: new Date().toISOString(),
+				activityState: activityState || 'viewing',
+			});
+		}, 30000);
+
 		return () => {
+			clearInterval(heartbeatInterval);
 			room.unsubscribe();
 		};
-	}, [roomName, currentUserName, currentUserImage]);
+	}, [roomName, currentUserName, currentUserImage, currentUser?.id, activityState]);
 
 	return { users };
 };

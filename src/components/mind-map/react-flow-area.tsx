@@ -32,6 +32,7 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
+import { useActivityTracker } from '@/hooks/realtime/use-activity-tracker';
 import { useContextMenu } from '@/hooks/use-context-menu';
 import { useNodeSuggestion } from '@/hooks/use-node-suggestion';
 import useAppStore from '@/store/mind-map-store';
@@ -58,6 +59,10 @@ export function ReactFlowArea() {
 	const connectingHandleId = useRef<string | null>(null);
 	const connectingHandleType = useRef<'source' | 'target' | null>(null);
 	const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+	// Activity tracking for real-time collaboration
+	const { activityState, setDragging, setViewing, setTyping } =
+		useActivityTracker();
 
 	const {
 		supabase,
@@ -165,6 +170,18 @@ export function ReactFlowArea() {
 	// Handle "/" key to open InlineNodeCreator
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
+			// Track typing activity when user types in input fields
+			if (isInputElement(e.target)) {
+				// Ignore modifier keys, arrow keys, etc.
+				if (
+					e.key.length === 1 ||
+					e.key === 'Backspace' ||
+					e.key === 'Delete'
+				) {
+					setTyping();
+				}
+			}
+
 			// Check if "/" key is pressed and not in an input
 			if (e.key === '/' && !isInputElement(e.target)) {
 				e.preventDefault();
@@ -186,7 +203,7 @@ export function ReactFlowArea() {
 
 		window.addEventListener('keydown', handleKeyDown);
 		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, [mousePosition, openNodeEditor, reactFlowInstance]);
+	}, [mousePosition, openNodeEditor, reactFlowInstance, setTyping]);
 
 	const handleNodeDoubleClick = useCallback(
 		(event: React.MouseEvent, node: Node<NodeData>) => {
@@ -309,14 +326,16 @@ export function ReactFlowArea() {
 		if (!isDraggingNodes) {
 			setIsDraggingNodes(true);
 		}
-	}, [setIsDraggingNodes, isDraggingNodes]);
+		setDragging(); // Track dragging activity
+	}, [setIsDraggingNodes, isDraggingNodes, setDragging]);
 
 	const handleNodeDragStop = useCallback(() => {
 		// Short delay to ensure drag operation completes before allowing auto-resize
 		setTimeout(() => {
 			setIsDraggingNodes(false);
+			setViewing(); // Return to viewing state
 		}, 100);
-	}, [setIsDraggingNodes]);
+	}, [setIsDraggingNodes, setViewing]);
 
 	const handleToggleSharePanel = useCallback(() => {
 		setPopoverOpen({ sharePanel: true });
@@ -493,7 +512,11 @@ export function ReactFlowArea() {
 							</Button>
 						</div>
 
-						<RealtimeAvatarStack roomName={`mind_map:${mapId}:users`} />
+						<RealtimeAvatarStack
+							roomName={`mind_map:${mapId}:users`}
+							activityState={activityState}
+							mapOwnerId={mindMap?.user_id}
+						/>
 
 						{/* Only show Share button for map owners */}
 						{mindMap?.user_id === currentUser?.id && (

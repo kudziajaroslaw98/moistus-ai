@@ -56,32 +56,27 @@ export async function GET(
 		console.log('[public-profile] Query result:', {
 			found: !!profile,
 			error: profileError?.message,
-			profileData: profile ? {
-				user_id: profile.user_id,
-				full_name: profile.full_name,
-				has_bio: !!profile.bio,
-			} : null,
+			profileData: profile
+				? {
+						user_id: profile.user_id,
+						full_name: profile.full_name,
+						has_bio: !!profile.bio,
+					}
+				: null,
 		});
 
 		if (profileError || !profile) {
 			// If profile not found, return minimal data
-			return NextResponse.json(
-				{
-					data: {
-						id: userId,
-						user_id: userId,
-						full_name: 'Collaborator',
-						display_name: 'Collaborator',
-						isAnonymous: true,
-						created_at: new Date().toISOString(),
-					} as PublicUserProfile,
-				},
-				{
-					headers: {
-						'Cache-Control': 'public, max-age=300, stale-while-revalidate=600',
-					},
-				}
-			);
+			return NextResponse.json({
+				data: {
+					id: userId,
+					user_id: userId,
+					full_name: 'Collaborator',
+					display_name: 'Collaborator',
+					isAnonymous: true,
+					created_at: new Date().toISOString(),
+				} as PublicUserProfile,
+			});
 		}
 
 		// Build public profile from database data
@@ -104,14 +99,7 @@ export async function GET(
 		};
 
 		// Set cache headers for 5 minutes
-		return NextResponse.json(
-			{ data: publicProfile },
-			{
-				headers: {
-					'Cache-Control': 'public, max-age=300, stale-while-revalidate=600',
-				},
-			}
-		);
+		return NextResponse.json({ data: publicProfile });
 	} catch (error) {
 		console.error('Error in public-profile GET:', error);
 		return NextResponse.json(

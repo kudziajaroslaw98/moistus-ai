@@ -43,6 +43,7 @@ export interface AvatarStackProps
 	avatars: ({ image: string; name: string } | RealtimeUser)[];
 	maxAvatarsAmount?: number;
 	showProfileCard?: boolean;
+	mapOwnerId?: string; // ID of the map owner to show role badges
 }
 
 const AvatarStack = ({
@@ -52,6 +53,7 @@ const AvatarStack = ({
 	avatars,
 	maxAvatarsAmount = 3,
 	showProfileCard = false,
+	mapOwnerId,
 	...props
 }: AvatarStackProps) => {
 	if (!avatars || avatars.length === 0) return null;
@@ -98,7 +100,7 @@ const AvatarStack = ({
 								</Avatar>
 							</HoverCardTrigger>
 							<HoverCardContent align='start' side='bottom'>
-								<CollaboratorProfileCard user={avatar} />
+								<CollaboratorProfileCard user={avatar} mapOwnerId={mapOwnerId} />
 							</HoverCardContent>
 						</HoverCard>
 					);
