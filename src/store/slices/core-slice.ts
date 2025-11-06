@@ -167,6 +167,84 @@ export const createCoreDataSlice: StateCreator<
 		}
 	),
 
+	updateMindMap: withLoadingAndToast(
+		async (mapId: string, updates: Partial<MindMapData>) => {
+			if (!mapId) {
+				throw new Error('Map ID is required.');
+			}
+
+			const response = await fetch(`/api/maps/${mapId}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(updates),
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(errorData.error || 'Failed to update map.');
+			}
+
+			const result = await response.json();
+			const updatedMap = result.data?.map;
+
+			if (updatedMap) {
+				// Optimistic update: Update local state immediately
+				set({ mindMap: updatedMap });
+			}
+		},
+		'isUpdatingMapSettings',
+		{
+			initialMessage: 'Updating mind map settings...',
+			errorMessage: 'Failed to update mind map settings.',
+			successMessage: 'Mind map updated successfully.',
+		}
+	),
+
+	deleteMindMap: withLoadingAndToast(
+		async (mapId: string) => {
+			if (!mapId) {
+				throw new Error('Map ID is required.');
+			}
+
+			const response = await fetch(`/api/maps/${mapId}`, {
+				method: 'DELETE',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(errorData.error || 'Failed to delete map.');
+			}
+
+			// Clean up local state
+			set({
+				mindMap: null,
+				mapId: null,
+				nodes: [],
+				edges: [],
+			});
+
+			// Unsubscribe from real-time updates
+			await get().unsubscribeFromRealtimeUpdates();
+
+			// Navigate to dashboard
+			// Using window.location for navigation from Zustand store
+			if (typeof window !== 'undefined') {
+				window.location.href = '/dashboard';
+			}
+		},
+		'isDeletingMap',
+		{
+			initialMessage: 'Deleting mind map...',
+			errorMessage: 'Failed to delete mind map.',
+			successMessage: 'Mind map deleted successfully.',
+		}
+	),
+
 	subscribeToRealtimeUpdates: async (mapId: string) => {
 		try {
 			console.log('Starting real-time subscriptions for map:', mapId);

@@ -26,6 +26,7 @@ export const createUiStateSlice: StateCreator<
 		guestSignup: false,
 		aiChat: false,
 		referenceSearch: false,
+		mapSettings: false,
 	},
 	edgeInfo: null,
 	contextMenuState: {

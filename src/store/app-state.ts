@@ -78,6 +78,10 @@ export interface CoreDataSlice {
 
 	fetchMindMapData: (mapId: string) => Promise<void>;
 
+	// Map operations
+	updateMindMap: (mapId: string, updates: Partial<MindMapData>) => Promise<void>;
+	deleteMindMap: (mapId: string) => Promise<void>;
+
 	// Real-time subscription management
 	subscribeToRealtimeUpdates: (mapId: string) => Promise<void>;
 	unsubscribeFromRealtimeUpdates: () => Promise<void>;
@@ -361,6 +365,7 @@ export interface Popovers {
 	guestSignup: boolean;
 	aiChat: boolean;
 	referenceSearch: boolean;
+	mapSettings: boolean;
 }
 
 // InlineNodeCreator types

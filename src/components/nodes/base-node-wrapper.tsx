@@ -30,6 +30,7 @@ const BaseNodeWrapperComponent = ({
 	includePadding = true,
 	hideNodeType = false,
 	hideAddButton = false,
+	hideSuggestionsButton = false,
 	hideResizeFrame = false,
 	accentColor,
 	elevation = 1,
@@ -213,27 +214,6 @@ const BaseNodeWrapperComponent = ({
 						<CollapseButton data={data} />
 
 						<GroupButton />
-
-						{/* Generate AI Suggestions Button */}
-						<Button
-							className='h-6 w-6 p-0'
-							disabled={isStreaming || hasGhostSuggestions}
-							size='icon'
-							title={
-								hasGhostSuggestions
-									? 'Suggestions already generated for this node'
-									: isStreaming
-										? 'Generating suggestions...'
-										: 'Generate AI suggestions'
-							}
-							variant='secondary'
-							onClick={(e) => {
-								e.stopPropagation();
-								handleGenerateSuggestions();
-							}}
-						>
-							<Sparkles className='h-3.5 w-3.5' />
-						</Button>
 					</div>
 
 					{/* Avatar stack for collaboration */}
@@ -378,6 +358,51 @@ const BaseNodeWrapperComponent = ({
 										</motion.div>
 									</>
 								)}
+
+								{!hideSuggestionsButton &&
+									selected &&
+									selectedNodes.length === 1 && (
+										<>
+											<motion.div
+												animate={{ opacity: 0.3, scaleY: 1 }}
+												className='absolute -right-16 -z-10 top-1/2 -translate-y-1/2 w-20 h-[1px]'
+												exit={{ opacity: 0, scaleY: 0 }}
+												initial={{ opacity: 0, scaleY: 0 }}
+												style={{ backgroundColor: theme.borders.hover }}
+												transition={{ duration: 0.2 }}
+											/>
+
+											<motion.div
+												animate={{ opacity: 1, scale: 1, filter: 'blur(0)' }}
+												className='absolute -right-[200px] top-1/2 -translate-y-1/2 z-20'
+												exit={{ opacity: 0, scale: 0.8 }}
+												initial={{
+													opacity: 0,
+													scale: 0.8,
+												}}
+												transition={{
+													duration: 0.3,
+													type: 'spring',
+												}}
+											>
+												<Button
+													className='nodrag nopan rounded-full w-fit py-2 px-4 flex gap-2 transition-all duration-200 hover:scale-110'
+													title='Suggest Nodes'
+													style={{
+														backgroundColor: getElevationColor(6),
+														border: `1px solid ${theme.borders.hover}`,
+													}}
+													onClick={handleAddNewNode}
+												>
+													<Sparkles
+														className='size-4'
+														style={{ color: theme.text.high }}
+													/>
+													Suggest Nodes
+												</Button>
+											</motion.div>
+										</>
+									)}
 							</AnimatePresence>
 
 							{!hideResizeFrame && (

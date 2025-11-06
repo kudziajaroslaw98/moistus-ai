@@ -12,6 +12,7 @@ interface SidePanelProps {
 	onClose: () => void;
 	title: string;
 	children: React.ReactNode;
+	footer?: React.ReactNode;
 	className?: string;
 	clearData?: () => void;
 }
@@ -20,6 +21,7 @@ export function SidePanel({
 	isOpen,
 	onClose,
 	title,
+	footer,
 	children,
 	className,
 }: SidePanelProps) {
@@ -28,81 +30,102 @@ export function SidePanel({
 
 	// Spring animation config (follows Motion guideline: "Default to spring animations")
 	const springConfig = {
-		type: 'spring' as const,
-		stiffness: 300,
-		damping: 30,
+		ease: 'easeOut' as const,
+		duration: 0.2,
 	};
 
 	// Reduced motion: instant transitions
 	const transition = shouldReduceMotion ? { duration: 0 } : springConfig;
 
 	return (
-		<AnimatePresence mode='popLayout'>
+		<AnimatePresence>
 			{isOpen && (
 				<motion.div
-					key={`side-panel-${title.toLowerCase().trim()}`}
-					transition={transition}
+					key={`side-panel-backdrop-${title.toLowerCase().trim()}`}
+					className='fixed top-0 left-0 z-[39] w-full h-full bg-black/50'
 					animate={{
-						x: 0,
 						opacity: 1,
 					}}
-					className={cn(
-						'fixed top-0 right-0 bottom-0 z-40 h-full w-full max-w-xl min-w-sm shadow-xl will-change-transform',
-						className
-					)}
 					exit={{
-						x: shouldReduceMotion ? 0 : '100%',
 						opacity: 0,
 					}}
 					initial={{
-						x: shouldReduceMotion ? 0 : '100%',
 						opacity: 0,
 					}}
-					style={{
-						backgroundColor: getElevationColor(8),
-						borderLeft: `1px solid ${theme.borders.default}`,
-					}}
+					transition={transition}
 				>
-					{/* Panel Content */}
-					<div className='flex h-full flex-col'>
-						{/* Panel Header */}
-						<div
-							className='flex flex-shrink-0 items-center justify-between py-2.5 px-4'
-							style={{
-								borderBottom: `1px solid ${theme.borders.default}`,
-							}}
-						>
-							<h2
-								className='text-md font-semibold'
-								style={{ color: theme.text.high }}
-							>
-								{title}
-							</h2>
-
-							<button
-								aria-label='Close panel'
-								className='rounded-sm p-1 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:outline-none transition-colors duration-200 ease-out'
+					<motion.div
+						transition={transition}
+						animate={{
+							x: 0,
+							opacity: 1,
+						}}
+						className={cn(
+							'fixed top-0 right-0 bottom-0 z-40 h-full w-full max-w-xl min-w-sm shadow-xl',
+							className
+						)}
+						exit={{
+							x: shouldReduceMotion ? 0 : '100%',
+							opacity: 0,
+						}}
+						initial={{
+							x: shouldReduceMotion ? 0 : '100%',
+							opacity: 0,
+						}}
+						style={{
+							backgroundColor: getElevationColor(8),
+							borderLeft: `1px solid ${theme.borders.default}`,
+						}}
+					>
+						{/* Panel Content */}
+						<div className='flex h-full flex-col'>
+							{/* Panel Header */}
+							<div
+								className='flex flex-shrink-0 items-center justify-between py-2.5 px-4'
 								style={{
-									color: theme.text.medium,
-									backgroundColor: 'transparent',
-								}}
-								onClick={onClose}
-								onMouseEnter={(e) => {
-									e.currentTarget.style.backgroundColor = theme.borders.hover;
-									e.currentTarget.style.color = theme.text.high;
-								}}
-								onMouseLeave={(e) => {
-									e.currentTarget.style.backgroundColor = 'transparent';
-									e.currentTarget.style.color = theme.text.medium;
+									borderBottom: `1px solid ${theme.borders.default}`,
 								}}
 							>
-								<X className='h-5 w-5' />
-							</button>
-						</div>
+								<h2
+									className='text-md font-semibold'
+									style={{ color: theme.text.high }}
+								>
+									{title}
+								</h2>
 
-						{/* Panel Body - Scrollable */}
-						<div className='flex-grow max-h-screen '>{children}</div>
-					</div>
+								<button
+									aria-label='Close panel'
+									className='rounded-sm p-1 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:outline-none transition-colors duration-200 ease-out'
+									style={{
+										color: theme.text.medium,
+										backgroundColor: 'transparent',
+									}}
+									onClick={onClose}
+									onMouseEnter={(e) => {
+										e.currentTarget.style.backgroundColor = theme.borders.hover;
+										e.currentTarget.style.color = theme.text.high;
+									}}
+									onMouseLeave={(e) => {
+										e.currentTarget.style.backgroundColor = 'transparent';
+										e.currentTarget.style.color = theme.text.medium;
+									}}
+								>
+									<X className='h-5 w-5' />
+								</button>
+							</div>
+
+							{/* Panel Body - Scrollable */}
+							<div className='flex-grow max-h-screen flex flex-col overflow-y-auto'>
+								{children}
+							</div>
+
+							{footer && (
+								<div className='flex h-fit border-t border-zinc-800 p-4'>
+									{footer}
+								</div>
+							)}
+						</div>
+					</motion.div>
 				</motion.div>
 			)}
 		</AnimatePresence>

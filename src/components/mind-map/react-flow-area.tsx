@@ -17,7 +17,14 @@ import {
 	SelectionMode,
 	useReactFlow,
 } from '@xyflow/react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+	CSSProperties,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from 'react';
 
 import AnimatedGhostEdge from '@/components/edges/animated-ghost-edge';
 import FloatingEdge from '@/components/edges/floating-edge';
@@ -40,7 +47,15 @@ import type { AppNode } from '@/types/app-node';
 import type { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
-import { Command, History, Redo, Share2, Slash, Undo } from 'lucide-react';
+import {
+	Command,
+	History,
+	Redo,
+	Settings,
+	Share2,
+	Slash,
+	Undo,
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -173,11 +188,7 @@ export function ReactFlowArea() {
 			// Track typing activity when user types in input fields
 			if (isInputElement(e.target)) {
 				// Ignore modifier keys, arrow keys, etc.
-				if (
-					e.key.length === 1 ||
-					e.key === 'Backspace' ||
-					e.key === 'Delete'
-				) {
+				if (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete') {
 					setTyping();
 				}
 			}
@@ -341,6 +352,10 @@ export function ReactFlowArea() {
 		setPopoverOpen({ sharePanel: true });
 	}, [setPopoverOpen]);
 
+	const handleToggleMapSettings = useCallback(() => {
+		setPopoverOpen({ mapSettings: true });
+	}, [setPopoverOpen]);
+
 	const handleCommandPaletteOpen = useCallback(() => {
 		setPopoverOpen({ commandPalette: true });
 	}, [setPopoverOpen]);
@@ -388,11 +403,15 @@ export function ReactFlowArea() {
 				snapGrid={[GRID_SIZE, GRID_SIZE]}
 				snapToGrid={true}
 				className={cn([
-					'bg-elevation-0',
 					isPanningMode && 'cursor-grab',
 					activeTool === 'node' ||
 						(activeTool === 'text' && 'cursor-crosshair'),
 				])}
+				style={
+					{
+						'--xy-background-color-default': 'oklch(0.15 0 0)',
+					} as CSSProperties
+				}
 				onConnect={onConnect}
 				onConnectEnd={onConnectEnd}
 				onConnectStart={onConnectStart}
@@ -518,9 +537,18 @@ export function ReactFlowArea() {
 							mapOwnerId={mindMap?.user_id}
 						/>
 
-						{/* Only show Share button for map owners */}
+						{/* Only show Settings and Share buttons for map owners */}
 						{mindMap?.user_id === currentUser?.id && (
 							<div className='flex gap-2'>
+								<Button
+									aria-label='Map Settings'
+									size='icon'
+									title='Map Settings'
+									variant={popoverOpen.mapSettings ? 'default' : 'secondary'}
+									onClick={handleToggleMapSettings}
+								>
+									<Settings className='h-4 w-4' />
+								</Button>
 								<Button
 									aria-label='Share Mind Map'
 									className='gap-2'

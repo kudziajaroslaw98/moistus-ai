@@ -482,7 +482,7 @@ const MindMapCardComponent = ({
 									variant='ghost'
 									className={cn(
 										// Much smaller and more subtle
-										'bg-black/10 backdrop-blur-sm hover:bg-black/30 active:bg-black/50',
+										'bg-black/10  hover:bg-black/30 active:bg-black/50',
 										'text-white/50 hover:text-white border-0',
 										'touch-manipulation rounded-full',
 										isHovered ? 'opacity-80' : 'opacity-20'

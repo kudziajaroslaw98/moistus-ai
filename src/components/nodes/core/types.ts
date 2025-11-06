@@ -236,6 +236,7 @@ export interface BaseNodeWrapperProps<
 	includePadding?: boolean;
 	hideNodeType?: boolean;
 	hideAddButton?: boolean;
+	hideSuggestionsButton?: boolean;
 	hideResizeFrame?: boolean;
 	accentColor?: string;
 	elevation?: number;

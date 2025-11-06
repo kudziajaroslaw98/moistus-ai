@@ -16,4 +16,6 @@ export interface LoadingStates {
 	isLoadingComments: boolean;
 	isSavingComment: boolean;
 	isDeletingComment: boolean;
+	isUpdatingMapSettings: boolean;
+	isDeletingMap: boolean;
 }

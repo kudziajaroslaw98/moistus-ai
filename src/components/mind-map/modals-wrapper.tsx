@@ -1,6 +1,7 @@
 'use client';
 import useAppStore from '@/store/mind-map-store';
 import { HistorySidebar } from '../history/history-sidebar';
+import { MapSettingsPanel } from '../mind-map/map-settings-panel';
 import EdgeEditModal from '../modals/edge-edit-modal';
 import { ReferenceSearchModal } from '../modals/reference-search-modal';
 import { SharePanel } from '../sharing/share-panel';
@@ -31,6 +32,11 @@ export function ModalsWrapper() {
 					onClose={() => setPopoverOpen({ sharePanel: false })}
 				/>
 			)}
+
+			<MapSettingsPanel
+				isOpen={popoverOpen.mapSettings}
+				onClose={() => setPopoverOpen({ mapSettings: false })}
+			/>
 
 			{popoverOpen.referenceSearch && <ReferenceSearchModal />}
 		</>
