@@ -63,7 +63,7 @@ export function TagInput({
 			className={cn(
 				'flex min-h-[2.25rem] flex-wrap items-center gap-2 rounded-lg border border-zinc-700/50 bg-zinc-800/30 px-3 py-1.5 shadow-sm transition-all duration-200',
 				'hover:border-zinc-600/50 hover:bg-zinc-800/50',
-				'focus-within:border-app-primary/60 focus-within:bg-zinc-800/70 focus-within:ring-2 focus-within:ring-app-primary/20 focus-within:ring-offset-2 focus-within:ring-offset-app-primary-muted',
+				'focus-within:border-app-primary/60 focus-within:bg-zinc-800/70 focus-within:ring-2 focus-within:ring-primary-500/20 focus-within:ring-offset-2 focus-within:ring-offset-app-primary-muted',
 				error
 					? 'border-rose-500/60 focus-within:border-rose-500 focus-within:ring-rose-500/20'
 					: '',

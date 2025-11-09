@@ -117,10 +117,10 @@ const CommentReactionsComponent = ({ message }: CommentReactionsProps) => {
 						ease: [0.25, 0.46, 0.45, 0.94], // ease-out-quad
 					}}
 					className={cn(
-						'flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-all hover:scale-105 text-text-high',
+						'flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-all hover:scale-105 text-text-primary',
 						reaction.has_current_user
 							? 'bg-[rgba(20,184,166,0.2)] border-[rgba(20,184,166,0.3)]'
-							: 'bg-elevation-1 border-border-default'
+							: 'bg-bg-base border-border-default'
 					)}
 					title={`${reaction.count} ${reaction.count > 1 ? 'people' : 'person'} reacted`}
 					onClick={() =>
@@ -128,7 +128,9 @@ const CommentReactionsComponent = ({ message }: CommentReactionsProps) => {
 					}
 				>
 					<span>{reaction.emoji}</span>
-					<span className='font-medium text-text-medium'>{reaction.count}</span>
+					<span className='font-medium text-text-secondary'>
+						{reaction.count}
+					</span>
 				</motion.button>
 			))}
 
@@ -154,7 +156,7 @@ const CommentReactionsComponent = ({ message }: CommentReactionsProps) => {
 							duration: 0.15,
 							ease: [0.25, 0.46, 0.45, 0.94],
 						}}
-						className='absolute bottom-full mb-2 left-0 flex gap-1 p-2 rounded-lg shadow-lg z-10 bg-elevation-2 border border-border-default'
+						className='absolute bottom-full mb-2 left-0 flex gap-1 p-2 rounded-lg shadow-lg z-10 bg-bg-elevated border border-border-default'
 					>
 						{quickEmojis.map((emoji, index) => (
 							<motion.button

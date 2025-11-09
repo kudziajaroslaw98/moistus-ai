@@ -95,7 +95,7 @@ export const MultipleChoiceResponse = ({
 							'text-sm',
 							isSelected(option.id)
 								? ' text-sky-500 font-medium'
-								: 'text-text-high font-normal'
+								: 'text-text-primary font-normal'
 						)}
 					>
 						{option.label}

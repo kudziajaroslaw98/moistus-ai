@@ -109,6 +109,7 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 									initial={{ width: 0 }}
 									style={{
 										width: `${stats.percentage}%`,
+										// TODO: change to variable
 										background:
 											stats.percentage === 100
 												? GlassmorphismTheme.indicators.progress.completeFill // Green for complete

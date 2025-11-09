@@ -151,7 +151,7 @@ const CommentThreadListComponent = ({
 									className='size-full rounded-full object-cover'
 								/>
 							) : (
-								<span className='text-xs font-medium text-text-high'>
+								<span className='text-xs font-medium text-text-primary'>
 									{getInitials(displayName)}
 								</span>
 							)}
@@ -166,7 +166,7 @@ const CommentThreadListComponent = ({
 										'text-sm font-medium',
 										isCurrentUser
 											? 'text-[rgba(20,184,166,0.87)]'
-											: 'text-text-high'
+											: 'text-text-primary'
 									)}
 								>
 									{displayName}
@@ -185,7 +185,7 @@ const CommentThreadListComponent = ({
 							</div>
 
 							{/* Message Text */}
-							<p className='text-sm mb-2 whitespace-pre-wrap break-words text-text-medium leadin-5'>
+							<p className='text-sm mb-2 whitespace-pre-wrap break-words text-text-secondary leadin-5'>
 								{renderContentWithMentions(message.content)}
 							</p>
 

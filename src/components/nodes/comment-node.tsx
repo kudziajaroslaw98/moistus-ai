@@ -180,7 +180,7 @@ const CommentNodeComponent = (props: CommentNodeProps) => {
 							className='size-4'
 							style={{ color: commentAccentColor }}
 						/>
-						<span className='text-sm font-medium text-text-high'>
+						<span className='text-sm font-medium text-text-primary'>
 							Comment #{commentNumber}
 						</span>
 
@@ -199,7 +199,7 @@ const CommentNodeComponent = (props: CommentNodeProps) => {
 							onClick={() => handleNavigate(prevCommentId)}
 							className={cn(
 								'size-7 p-0',
-								hasPrev ? 'text-text-medium' : 'text-text-disabled'
+								hasPrev ? 'text-text-secondary' : 'text-text-disabled'
 							)}
 							aria-label='Previous comment'
 						>
@@ -217,7 +217,7 @@ const CommentNodeComponent = (props: CommentNodeProps) => {
 							onClick={() => handleNavigate(nextCommentId)}
 							className={cn(
 								'size-7 p-0',
-								hasNext ? 'text-text-medium' : 'text-text-disabled'
+								hasNext ? 'text-text-secondary' : 'text-text-disabled'
 							)}
 							aria-label='Next comment'
 						>

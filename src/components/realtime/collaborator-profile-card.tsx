@@ -16,7 +16,7 @@ import {
 	MoveIcon,
 	Type,
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 
 interface CollaboratorProfileCardProps {
@@ -89,13 +89,13 @@ interface MetricItemProps {
 function MetricItem({ label, value, variant = 'default' }: MetricItemProps) {
 	return (
 		<div className='flex flex-col items-start gap-1'>
-			<span className='text-[10px] uppercase tracking-wide text-text-low font-medium'>
+			<span className='text-[10px] uppercase tracking-wide text-text-tertiary font-medium'>
 				{label}
 			</span>
 			<span
 				className={cn(
 					'text-base font-semibold',
-					variant === 'accent' ? 'text-accent' : 'text-text-high'
+					variant === 'accent' ? 'text-accent' : 'text-text-primary'
 				)}
 			>
 				{value}
@@ -115,7 +115,7 @@ function ExpandableBio({ bio }: ExpandableBioProps) {
 		<div className='space-y-2'>
 			<motion.p
 				className={cn(
-					'text-sm text-text-medium leading-relaxed',
+					'text-sm text-text-secondary leading-relaxed',
 					!isExpanded && 'line-clamp-2'
 				)}
 				initial={false}
@@ -201,7 +201,7 @@ function MetricsGrid({
 		<div className='grid grid-cols-2 gap-3'>
 			{/* Activity Status */}
 			<div className='flex flex-col gap-2'>
-				<span className='text-[10px] uppercase tracking-wide text-text-low font-medium'>
+				<span className='text-[10px] uppercase tracking-wide text-text-tertiary font-medium'>
 					Activity
 				</span>
 				<div
@@ -252,7 +252,7 @@ function RoleBadge({ isOwner }: RoleBadgeProps) {
 	}
 
 	return (
-		<span className='inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-800/50 text-text-medium border border-zinc-700/50'>
+		<span className='inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-800/50 text-text-secondary border border-zinc-700/50'>
 			Collaborator
 		</span>
 	);
@@ -317,7 +317,7 @@ export function CollaboratorProfileCard({
 
 				<div className='flex-1 min-w-0 pt-1 flex flex-col gap-1.5'>
 					<div className='flex items-center gap-2'>
-						<h4 className='text-lg font-semibold text-text-high truncate leading-tight'>
+						<h4 className='text-lg font-semibold text-text-primary truncate leading-tight'>
 							{displayName}
 						</h4>
 						<RoleBadge isOwner={isOwner} />
@@ -326,7 +326,9 @@ export function CollaboratorProfileCard({
 					{/* Email */}
 					{email && (
 						<div className='flex items-center gap-1.5'>
-							<span className='text-xs text-text-medium truncate'>{email}</span>
+							<span className='text-xs text-text-secondary truncate'>
+								{email}
+							</span>
 						</div>
 					)}
 				</div>
@@ -351,7 +353,7 @@ export function CollaboratorProfileCard({
 			{/* Anonymous User Notice */}
 			{isAnonymous && (
 				<div className='px-5 pb-5'>
-					<div className='text-xs text-text-low bg-zinc-900/50 rounded px-2.5 py-1.5'>
+					<div className='text-xs text-text-tertiary bg-zinc-900/50 rounded px-2.5 py-1.5'>
 						Anonymous collaborator
 					</div>
 				</div>

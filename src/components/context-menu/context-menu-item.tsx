@@ -43,11 +43,11 @@ export const ContextMenuItem = React.forwardRef<
 				className={cn(
 					'h-8 w-full justify-start gap-2 p-2 text-sm',
 					'@media (hover: hover) and (pointer: fine) { transition-property: color, background-color, opacity }',
-					variant === 'destructive' && 'text-status-error',
+					variant === 'destructive' && 'text-error-500',
 					variant === 'primary' && 'text-blue-500',
 					variant !== 'destructive' &&
 						variant !== 'primary' &&
-						'text-text-high',
+						'text-text-primary',
 					'transition-all duration-200 ease-spring',
 					className
 				)}

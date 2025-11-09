@@ -145,16 +145,16 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 			nodeIcon={<Code className='size-4' />}
 			nodeType='Code'
 		>
-			<div className='w-full flex-grow overflow-hidden rounded-lg bg-elevation-0 border border-border-default'>
+			<div className='w-full flex-grow overflow-hidden rounded-lg bg-bg-base border border-border-default'>
 				{/* Header with file info and controls */}
-				<div className='flex items-center justify-between px-4 py-3 bg-elevation-1 border-b border-b-border-default'>
+				<div className='flex items-center justify-between px-4 py-3 bg-bg-base border-b border-b-border-default'>
 					<div className='flex items-center gap-3'>
 						{/* Language indicator */}
 						<div className='flex items-center gap-2'>
 							<span className='text-base'>{getLanguageIcon(language)}</span>
 
 							<div className='flex flex-col'>
-								<span className='text-[13px] font-medium text-text-high capitalize'>
+								<span className='text-[13px] font-medium text-text-primary capitalize'>
 									{language}
 								</span>
 
@@ -172,16 +172,16 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 						{/* Expand/Collapse for long code */}
 						{lineCount > 20 && (
 							<Button
-								className='!cursor-pointer w-8 h-8 p-0 bg-transparent border border-border-hover'
+								className='!cursor-pointer w-8 h-8 p-0 bg-transparent border border-border-strong'
 								size={'icon'}
 								title={isExpanded ? 'Collapse' : 'Expand'}
 								variant={'ghost'}
 								onClick={() => setIsExpanded(!isExpanded)}
 							>
 								{isExpanded ? (
-									<Minimize2 className='w-3.5 h-3.5 text-text-medium' />
+									<Minimize2 className='w-3.5 h-3.5 text-text-secondary' />
 								) : (
-									<Maximize2 className='w-3.5 h-3.5 text-text-medium' />
+									<Maximize2 className='w-3.5 h-3.5 text-text-secondary' />
 								)}
 							</Button>
 						)}
@@ -211,7 +211,7 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 										key='check'
 										transition={{ type: 'spring', duration: 0.3 }}
 									>
-										<Check className='w-3.5 h-3.5 text-status-complete' />
+										<Check className='w-3.5 h-3.5 text-success-500' />
 									</motion.div>
 								) : (
 									<motion.div
@@ -221,7 +221,7 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 										key='copy'
 										transition={{ type: 'spring', duration: 0.3 }}
 									>
-										<Copy className='w-3.5 h-3.5 text-status-default' />
+										<Copy className='w-3.5 h-3.5 text-text-secondary' />
 									</motion.div>
 								)}
 							</AnimatePresence>

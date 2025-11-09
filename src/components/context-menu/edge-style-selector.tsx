@@ -16,7 +16,7 @@ interface EdgeStyleSelectorProps {
 
 const getItemIcon = (type: PathType) => {
 	const iconProps = {
-		className: 'size-4 text-text-high',
+		className: 'size-4 text-text-primary',
 	};
 
 	switch (type) {
@@ -66,7 +66,7 @@ export function EdgeStyleSelector({
 	return (
 		<>
 			{/* Path Style Section */}
-			<span className='block w-full rounded-md px-2 py-1 text-xs font-medium text-text-medium'>
+			<span className='block w-full rounded-md px-2 py-1 text-xs font-medium text-text-secondary'>
 				Path Style
 			</span>
 
@@ -89,7 +89,7 @@ export function EdgeStyleSelector({
 			</ToggleGroup>
 
 			{/* Color Section */}
-			<span className='block w-full rounded-md px-2 py-1 text-xs font-medium text-text-medium'>
+			<span className='block w-full rounded-md px-2 py-1 text-xs font-medium text-text-secondary'>
 				Color
 			</span>
 

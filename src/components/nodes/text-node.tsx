@@ -29,7 +29,7 @@ const TextNodeComponent = (props: TextNodeProps) => {
 		fontSize = '14px',
 		fontWeight = 400,
 		textAlign = 'center',
-		textColor = 'var(--text-text-high)',
+		textColor = 'var(--text-text-primary)',
 		fontStyle = 'normal',
 	} = metadata ?? {};
 

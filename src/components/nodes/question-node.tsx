@@ -158,7 +158,7 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 					{/* Main question text */}
 					<div className='text-center px-2'>
 						{data.content ? (
-							<h3 className='font-medium leading-5 text-text-high text-base'>
+							<h3 className='font-medium leading-5 text-text-primary text-base'>
 								{cleanQuestionText}
 							</h3>
 						) : (

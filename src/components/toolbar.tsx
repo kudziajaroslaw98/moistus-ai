@@ -159,11 +159,10 @@ export const Toolbar = () => {
 							<Tooltip key={tool.id}>
 								<TooltipTrigger
 									className={cn(
-										activeTool !== tool.id &&
-											'bg-elevation-1 hover:bg-elevation-2',
+										activeTool !== tool.id && 'bg-bg-base hover:bg-bg-elevated',
 										activeTool === tool.id
-											? 'bg-teal-500 border-teal-500/30 text-text-high'
-											: 'bg-elevation-1 border-border-default text-text-medium',
+											? 'bg-teal-500 border-teal-500/30 text-text-primary'
+											: 'bg-bg-base border-border-default text-text-secondary',
 										'inline-flex items-center rounded-sm font-medium transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none !h-8 !w-8 p-0 justify-center'
 									)}
 									title={tool.label ?? `Tool ${index}`}
@@ -222,7 +221,7 @@ export const Toolbar = () => {
 								onClick={() => onToolChange(tool.id)}
 								className={cn(
 									isCommentMode &&
-										'text-text-high bg-app-primary border-2 border-app-primary-muted'
+										'text-text-primary bg-primary-500 border-2 border-primary-500/20'
 								)}
 							>
 								{tool.icon}

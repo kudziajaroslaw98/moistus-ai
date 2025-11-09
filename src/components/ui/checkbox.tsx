@@ -47,13 +47,13 @@ export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(
 				type='button'
 				className={cn(
 					'relative flex items-center justify-center rounded border-2 transition-all',
-					'focus:outline-none focus:ring-2 focus:ring-app-primary/20 focus:ring-offset-2 focus:ring-offset-app-primary-muted',
+					'focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:ring-offset-2 focus:ring-offset-app-primary-muted',
 					sizeClasses[size],
 					// Default variant styling
 					variant === 'default' && [
 						'border-zinc-600 bg-zinc-800',
 						checked &&
-							'border-app-primary/60 bg-app-primary! accent-app-primary',
+							'border-app-primary/60 bg-app-primary! accent-primary-500',
 						!checked && 'hover:border-zinc-500 hover:bg-zinc-700',
 						disabled && 'opacity-50 cursor-not-allowed',
 					],
@@ -61,7 +61,7 @@ export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(
 					variant === 'card' && [
 						'border-white/30 bg-black/30 backdrop-blur-sm',
 						checked &&
-							'border-app-primary/60 bg-app-primary! accent-app-primary',
+							'border-app-primary/60 bg-app-primary! accent-primary-500',
 						!checked && 'hover:border-white/50 hover:bg-black/40',
 						disabled && 'opacity-50 cursor-not-allowed',
 					],

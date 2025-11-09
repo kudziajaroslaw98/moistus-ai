@@ -409,7 +409,7 @@ export function ReactFlowArea() {
 				])}
 				style={
 					{
-						'--xy-background-color-default': 'oklch(0.15 0 0)',
+						'--xy-background-color-default': 'var(--color-bg-base)',
 					} as CSSProperties
 				}
 				onConnect={onConnect}

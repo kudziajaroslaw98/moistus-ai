@@ -12,10 +12,10 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
 			<motion.textarea
 				ref={ref}
 				className={cn(
-					'mt-1 block min-h-[80px] w-full rounded-sm border  border-zinc-700/50 bg-zinc-800/30 px-3 py-2 text-text-high placeholder-node-text-secondary transition-all duration-200 shadow-sm focus:ring-1 focus:outline-none sm:text-sm',
+					'mt-1 block min-h-[80px] w-full rounded-sm border  border-zinc-700/50 bg-zinc-800/30 px-3 py-2 text-text-primary placeholder-node-text-secondary transition-all duration-200 shadow-sm focus:ring-1 focus:outline-none sm:text-sm',
 					error
 						? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500'
-						: 'focus:border-app-primary/60 focus:bg-zinc-800/70 focus:ring-2 focus:ring-app-primary/20 focus:ring-offset-2 focus:ring-offset-app-primary-muted',
+						: 'focus:border-primary-500/60 focus:bg-zinc-800/70 focus:ring-2 focus:ring-primary-500/20 focus:ring-offset-2 focus:ring-offset-app-primary-muted',
 					className
 				)}
 				{...props}
