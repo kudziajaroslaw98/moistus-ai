@@ -12,7 +12,6 @@ export const createUiStateSlice: StateCreator<
 	// state
 	popoverOpen: {
 		contextMenu: false,
-		commandPalette: false,
 		edgeEdit: false,
 		history: false,
 		mergeSuggestions: false,
@@ -40,7 +39,6 @@ export const createUiStateSlice: StateCreator<
 	isDraggingNodes: false,
 	// editingNodeId: null, // Removed - replaced by NodeEditor system
 	snapLines: [],
-
 
 	// NodeEditor state (simplified)
 	nodeEditor: {

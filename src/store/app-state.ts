@@ -79,7 +79,10 @@ export interface CoreDataSlice {
 	fetchMindMapData: (mapId: string) => Promise<void>;
 
 	// Map operations
-	updateMindMap: (mapId: string, updates: Partial<MindMapData>) => Promise<void>;
+	updateMindMap: (
+		mapId: string,
+		updates: Partial<MindMapData>
+	) => Promise<void>;
 	deleteMindMap: (mapId: string) => Promise<void>;
 
 	// Real-time subscription management
@@ -350,7 +353,6 @@ export interface SharingSlice extends SharingState {
 
 // UI State
 export interface Popovers {
-	commandPalette: boolean;
 	edgeEdit: boolean;
 	history: boolean;
 	mergeSuggestions: boolean;

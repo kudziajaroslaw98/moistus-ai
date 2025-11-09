@@ -71,6 +71,7 @@ const BaseNodeWrapperComponent = ({
 
 	// Use controlled dimensions hook
 	const {
+		dimensions,
 		handleResizeStart,
 		handleResize,
 		handleResizeEnd,
@@ -141,6 +142,9 @@ const BaseNodeWrapperComponent = ({
 		// Proper focus states with double border technique for accessibility
 		border: `1px solid ${selected ? theme.borders.selected : theme.borders.default}`,
 		// Micro-animation for depth perception
+
+		width: dimensions.width,
+		height: dimensions.height,
 	};
 
 	// Accent color system - subtle and sophisticated
@@ -160,7 +164,7 @@ const BaseNodeWrapperComponent = ({
 			<motion.div
 				ref={nodeRef}
 				className={cn(
-					'h-full min-w-80 flex-col rounded-lg cursor-move gap-4',
+					'flex-col rounded-lg cursor-move gap-4',
 					'bg-elevation-1 bg-[url("/images/groovepaper.png")] bg-repeat bg-blend-color-burn',
 					includePadding ? 'p-4' : 'p-0',
 					nodeClassName
@@ -208,123 +212,161 @@ const BaseNodeWrapperComponent = ({
 
 				<CollapsedIndicator data={data} />
 
-				<>
-					{/* Top header controls */}
-					<div className='top-0 left-4 absolute -translate-y-full flex items-center justify-center gap-2'>
-						<CollapseButton data={data} />
+				{/* Top header controls */}
+				<div className='top-0 left-4 absolute -translate-y-full flex items-center justify-center gap-2'>
+					<CollapseButton data={data} />
 
-						<GroupButton />
-					</div>
+					<GroupButton />
+				</div>
 
-					{/* Avatar stack for collaboration */}
-					<div className='-bottom-10 left-0 flex absolute'>
-						<AnimatePresence mode='popLayout'>
-							{avatars.length > 0 && (
-								<motion.div
-									animate={{ opacity: 1, scale: 1, y: 0 }}
-									className='inline-flex h-auto w-full'
-									exit={{ opacity: 0, scale: 0.98, y: -10 }}
-									initial={{ opacity: 0, scale: 0.98, y: -10 }}
-									transition={{ duration: 0.2 }}
-								>
-									<AvatarStack avatars={avatars} size={'sm'} />
-								</motion.div>
-							)}
-						</AnimatePresence>
-					</div>
+				{/* Avatar stack for collaboration */}
+				<div className='-bottom-10 left-0 flex absolute'>
+					<AnimatePresence key={`${data.id}-avatars`} mode='popLayout'>
+						{avatars.length > 0 && (
+							<motion.div
+								animate={{ opacity: 1, scale: 1, y: 0 }}
+								className='inline-flex h-auto w-full'
+								exit={{ opacity: 0, scale: 0.98, y: -10 }}
+								initial={{ opacity: 0, scale: 0.98, y: -10 }}
+								transition={{ duration: 0.2 }}
+							>
+								<AvatarStack avatars={avatars} size={'sm'} />
+							</motion.div>
+						)}
+					</AnimatePresence>
+				</div>
 
-					{/* Main content with metadata bar integration */}
-					<div
-						className={cn('flex flex-col h-full')}
-						style={{ position: 'relative', zIndex: 1 }}
-					>
-						{/* Universal Metadata Bar - positioned at the top of content */}
-						{/* Only show when node has actual metadata to display */}
-						{data.metadata &&
-							Object.values(data.metadata).some(
-								(value) => value !== undefined && value !== null && value !== ''
-							) && (
-								<UniversalMetadataBar
-									className={cn([includePadding ? 'p-0 pb-4' : 'p-4'])}
-									colorOverrides={metadataColorOverrides}
-									metadata={data.metadata}
-									nodeType={data.node_type || 'defaultNode'}
-									selected={selected}
-									onMetadataClick={(type, value) => {
-										// Handle metadata interactions
-										console.log(`Metadata clicked: ${type} = ${value}`);
-										// You can add custom handlers here, such as:
-										// - Filter by tag
-										// - Show all nodes assigned to a user
-										// - Show all high priority items
-									}}
-								/>
-							)}
-
-						{/* Main node content */}
-						{children}
-					</div>
-
-					{!isDraggingNodes && (
-						<>
-							{/* Connection handles - minimal and functional */}
-							<Handle
-								position={Position.Bottom}
-								type='source'
-								className={cn(
-									'!w-2 !h-2 rounded-full transition-all duration-200',
-									'!bg-transparent !border',
-									'hover:scale-125'
-								)}
-								style={{
-									bottom: theme.node.handle.bottom,
-									border: `1px solid ${theme.borders.default}`,
-									backgroundColor: theme.node.handle.background,
-								}}
-								onMouseEnter={(e) => {
-									e.currentTarget.style.backgroundColor =
-										theme.node.handle.hoverBackground;
-									e.currentTarget.style.border = `1px solid ${theme.borders.hover}`;
-								}}
-								onMouseLeave={(e) => {
-									e.currentTarget.style.backgroundColor =
-										theme.node.handle.background;
-									e.currentTarget.style.border = `1px solid ${theme.borders.default}`;
+				{/* Main content with metadata bar integration */}
+				<div
+					className={cn('flex flex-col h-full')}
+					style={{ position: 'relative', zIndex: 1 }}
+				>
+					{/* Universal Metadata Bar - positioned at the top of content */}
+					{/* Only show when node has actual metadata to display */}
+					{data.metadata &&
+						Object.values(data.metadata).some(
+							(value) => value !== undefined && value !== null && value !== ''
+						) && (
+							<UniversalMetadataBar
+								className={cn([includePadding ? 'p-0 pb-4' : 'p-4'])}
+								colorOverrides={metadataColorOverrides}
+								metadata={data.metadata}
+								nodeType={data.node_type || 'defaultNode'}
+								selected={selected}
+								onMetadataClick={(type, value) => {
+									// Handle metadata interactions
+									console.log(`Metadata clicked: ${type} = ${value}`);
+									// You can add custom handlers here, such as:
+									// - Filter by tag
+									// - Show all nodes assigned to a user
+									// - Show all high priority items
 								}}
 							/>
+						)}
 
-							{activeTool === 'connector' && (
-								<Handle
-									position={Position.Top}
-									type='source'
-									className={cn([
-										'w-full h-full z-20 translate-y-1/2 transition-colors',
-										connection.inProgress
-											? '!bg-transparent'
-											: '!bg-sky-500/10',
-									])}
-								/>
+					{/* Main node content */}
+					{children}
+				</div>
+
+				{!isDraggingNodes && (
+					<div key={`${data.id}-handles`}>
+						{/* Connection handles - minimal and functional */}
+						<Handle
+							position={Position.Bottom}
+							type='source'
+							className={cn(
+								'!w-2 !h-2 rounded-full transition-all duration-200',
+								'!bg-transparent !border',
+								'hover:scale-125'
 							)}
+							style={{
+								bottom: theme.node.handle.bottom,
+								border: `1px solid ${theme.borders.default}`,
+								backgroundColor: theme.node.handle.background,
+							}}
+							onMouseEnter={(e) => {
+								e.currentTarget.style.backgroundColor =
+									theme.node.handle.hoverBackground;
+								e.currentTarget.style.border = `1px solid ${theme.borders.hover}`;
+							}}
+							onMouseLeave={(e) => {
+								e.currentTarget.style.backgroundColor =
+									theme.node.handle.background;
+								e.currentTarget.style.border = `1px solid ${theme.borders.default}`;
+							}}
+						/>
 
+						{activeTool === 'connector' && (
 							<Handle
-								isConnectableStart={false}
 								position={Position.Top}
-								type='target'
+								type='source'
 								className={cn([
-									'w-full translate-y-1/2 absolute top-0 left-0 border-none opacity-0 cursor-move',
-									isTarget && '!bg-blue-500/30',
-									connection.inProgress ? 'h-full' : 'h-0',
-									activeTool === 'connector' ? 'z-10' : 'z-[21]',
+									'w-full h-full z-20 translate-y-1/2 transition-colors',
+									connection.inProgress ? '!bg-transparent' : '!bg-sky-500/10',
 								])}
 							/>
+						)}
 
-							{/* Add New Node Button - follows Material Design FAB principles */}
-							<AnimatePresence>
-								{!hideAddButton && selected && selectedNodes.length === 1 && (
+						<Handle
+							isConnectableStart={false}
+							position={Position.Top}
+							type='target'
+							className={cn([
+								'w-full translate-y-1/2 absolute top-0 left-0 border-none opacity-0 cursor-move',
+								isTarget && '!bg-blue-500/30',
+								connection.inProgress ? 'h-full' : 'h-0',
+								activeTool === 'connector' ? 'z-10' : 'z-[21]',
+							])}
+						/>
+
+						{/* Add New Node Button - follows Material Design FAB principles */}
+						<AnimatePresence key={`${data.id}-add`}>
+							{!hideAddButton && selected && selectedNodes.length === 1 && (
+								<div key={`${data.id}-add-handles`}>
+									<motion.div
+										animate={{ opacity: 0.3, scaleY: 1 }}
+										className='absolute -bottom-12 left-1/2 -translate-x-1/2 w-[1px] h-12'
+										exit={{ opacity: 0, scaleY: 0 }}
+										initial={{ opacity: 0, scaleY: 0 }}
+										style={{ backgroundColor: theme.borders.hover }}
+										transition={{ duration: 0.2 }}
+									/>
+
+									<motion.div
+										animate={{ opacity: 1, scale: 1, filter: 'blur(0)' }}
+										className='absolute -bottom-[60px] left-1/2 -translate-x-1/2 z-20'
+										exit={{ opacity: 0, scale: 0.8, filter: 'blur(10px)' }}
+										initial={{ opacity: 0, scale: 0.8, filter: 'blur(10px)' }}
+										transition={{
+											duration: 0.3,
+											type: 'spring',
+										}}
+									>
+										<Button
+											className='nodrag nopan rounded-full w-10 h-10 p-0 transition-all duration-200 hover:scale-110'
+											title='Add new connected node'
+											style={{
+												backgroundColor: getElevationColor(6),
+												border: `1px solid ${theme.borders.hover}`,
+											}}
+											onClick={handleAddNewNode}
+										>
+											<Plus
+												className='w-5 h-5'
+												style={{ color: theme.text.high }}
+											/>
+										</Button>
+									</motion.div>
+								</div>
+							)}
+
+							{!hideSuggestionsButton &&
+								selected &&
+								selectedNodes.length === 1 && (
 									<>
 										<motion.div
 											animate={{ opacity: 0.3, scaleY: 1 }}
-											className='absolute -bottom-12 left-1/2 -translate-x-1/2 w-[1px] h-12'
+											className='absolute -right-16 -z-10 top-1/2 -translate-y-1/2 w-20 h-[1px]'
 											exit={{ opacity: 0, scaleY: 0 }}
 											initial={{ opacity: 0, scaleY: 0 }}
 											style={{ backgroundColor: theme.borders.hover }}
@@ -333,102 +375,60 @@ const BaseNodeWrapperComponent = ({
 
 										<motion.div
 											animate={{ opacity: 1, scale: 1, filter: 'blur(0)' }}
-											className='absolute -bottom-[60px] left-1/2 -translate-x-1/2 z-20'
-											exit={{ opacity: 0, scale: 0.8, filter: 'blur(10px)' }}
-											initial={{ opacity: 0, scale: 0.8, filter: 'blur(10px)' }}
+											className='absolute -right-[200px] top-1/2 -translate-y-1/2 z-20'
+											exit={{ opacity: 0, scale: 0.8 }}
+											initial={{
+												opacity: 0,
+												scale: 0.8,
+											}}
 											transition={{
 												duration: 0.3,
 												type: 'spring',
 											}}
 										>
 											<Button
-												className='nodrag nopan rounded-full w-10 h-10 p-0 transition-all duration-200 hover:scale-110'
-												title='Add new connected node'
+												className='nodrag nopan rounded-full w-fit py-2 px-4 flex gap-2 transition-all duration-200 hover:scale-110'
+												title='Suggest Nodes'
 												style={{
 													backgroundColor: getElevationColor(6),
 													border: `1px solid ${theme.borders.hover}`,
 												}}
 												onClick={handleAddNewNode}
 											>
-												<Plus
-													className='w-5 h-5'
+												<Sparkles
+													className='size-4'
 													style={{ color: theme.text.high }}
 												/>
+												Suggest Nodes
 											</Button>
 										</motion.div>
 									</>
 								)}
+						</AnimatePresence>
 
-								{!hideSuggestionsButton &&
-									selected &&
-									selectedNodes.length === 1 && (
-										<>
-											<motion.div
-												animate={{ opacity: 0.3, scaleY: 1 }}
-												className='absolute -right-16 -z-10 top-1/2 -translate-y-1/2 w-20 h-[1px]'
-												exit={{ opacity: 0, scaleY: 0 }}
-												initial={{ opacity: 0, scaleY: 0 }}
-												style={{ backgroundColor: theme.borders.hover }}
-												transition={{ duration: 0.2 }}
-											/>
-
-											<motion.div
-												animate={{ opacity: 1, scale: 1, filter: 'blur(0)' }}
-												className='absolute -right-[200px] top-1/2 -translate-y-1/2 z-20'
-												exit={{ opacity: 0, scale: 0.8 }}
-												initial={{
-													opacity: 0,
-													scale: 0.8,
-												}}
-												transition={{
-													duration: 0.3,
-													type: 'spring',
-												}}
-											>
-												<Button
-													className='nodrag nopan rounded-full w-fit py-2 px-4 flex gap-2 transition-all duration-200 hover:scale-110'
-													title='Suggest Nodes'
-													style={{
-														backgroundColor: getElevationColor(6),
-														border: `1px solid ${theme.borders.hover}`,
-													}}
-													onClick={handleAddNewNode}
-												>
-													<Sparkles
-														className='size-4'
-														style={{ color: theme.text.high }}
-													/>
-													Suggest Nodes
-												</Button>
-											</motion.div>
-										</>
-									)}
-							</AnimatePresence>
-
-							{!hideResizeFrame && (
-								<NodeResizer
-									color={theme.node.resizer.color}
-									handleClassName='!w-2 !h-2 !rounded-full'
-									isVisible={selected}
-									maxHeight={constraints.maxHeight ?? Number.MAX_SAFE_INTEGER}
-									maxWidth={constraints.maxWidth}
-									minHeight={constraints.minHeight}
-									minWidth={constraints.minWidth}
-									shouldResize={shouldResize}
-									handleStyle={{
-										backgroundColor: selected
-											? theme.node.resizer.selectedBackground
-											: theme.borders.default,
-										border: theme.node.resizer.border,
-									}}
-									onResize={handleResize}
-									onResizeEnd={handleResizeEnd}
-									onResizeStart={handleResizeStart}
-								/>
-							)}
-						</>
-					)}
-				</>
+						{!hideResizeFrame && (
+							<NodeResizer
+								color={theme.node.resizer.color}
+								handleClassName='!w-2 !h-2 !rounded-full'
+								isVisible={selected}
+								maxHeight={constraints.maxHeight ?? Number.MAX_SAFE_INTEGER}
+								maxWidth={constraints.maxWidth}
+								minHeight={constraints.minHeight}
+								minWidth={constraints.minWidth}
+								shouldResize={shouldResize}
+								handleStyle={{
+									backgroundColor: selected
+										? theme.node.resizer.selectedBackground
+										: theme.borders.default,
+									border: theme.node.resizer.border,
+								}}
+								onResize={handleResize}
+								onResizeEnd={handleResizeEnd}
+								onResizeStart={handleResizeStart}
+							/>
+						)}
+					</div>
+				)}
 			</motion.div>
 		</motion.div>
 	);

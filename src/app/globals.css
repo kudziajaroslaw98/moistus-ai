@@ -39,6 +39,7 @@
 	--color-neutral-700: oklch(0.375 0 0);
 	--color-neutral-800: oklch(0.275 0 0);
 	--color-neutral-900: oklch(0.195 0 0);
+	--color-neutral-950: oklch(0.14 0 0);
 
 	/* Primary Scale - Blue (hue 250°) */
 	--color-primary-50: oklch(0.97 0.02 250);
@@ -46,57 +47,57 @@
 	--color-primary-200: oklch(0.87 0.09 250);
 	--color-primary-300: oklch(0.78 0.13 250);
 	--color-primary-400: oklch(0.68 0.17 250);
-	--color-primary-500: oklch(0.58 0.20 250);
-	--color-primary-600: oklch(0.48 0.20 250);
-	--color-primary-700: oklch(0.40 0.18 250);
+	--color-primary-500: oklch(0.58 0.2 250);
+	--color-primary-600: oklch(0.48 0.2 250);
+	--color-primary-700: oklch(0.4 0.18 250);
 	--color-primary-800: oklch(0.33 0.14 250);
-	--color-primary-900: oklch(0.27 0.10 250);
+	--color-primary-900: oklch(0.27 0.1 250);
 
 	/* Success Scale - Green (hue 145°) */
 	--color-success-50: oklch(0.97 0.03 145);
 	--color-success-100: oklch(0.93 0.06 145);
-	--color-success-200: oklch(0.87 0.10 145);
+	--color-success-200: oklch(0.87 0.1 145);
 	--color-success-300: oklch(0.78 0.14 145);
 	--color-success-400: oklch(0.68 0.17 145);
-	--color-success-500: oklch(0.60 0.19 145);
-	--color-success-600: oklch(0.50 0.18 145);
+	--color-success-500: oklch(0.6 0.19 145);
+	--color-success-600: oklch(0.5 0.18 145);
 	--color-success-700: oklch(0.42 0.16 145);
 	--color-success-800: oklch(0.35 0.13 145);
-	--color-success-900: oklch(0.29 0.10 145);
+	--color-success-900: oklch(0.29 0.1 145);
 
 	/* Warning Scale - Amber (hue 85°) */
 	--color-warning-50: oklch(0.98 0.03 85);
 	--color-warning-100: oklch(0.95 0.07 85);
-	--color-warning-200: oklch(0.90 0.12 85);
+	--color-warning-200: oklch(0.9 0.12 85);
 	--color-warning-300: oklch(0.83 0.16 85);
 	--color-warning-400: oklch(0.75 0.18 85);
 	--color-warning-500: oklch(0.68 0.19 85);
-	--color-warning-600: oklch(0.60 0.18 85);
-	--color-warning-700: oklch(0.50 0.15 85);
+	--color-warning-600: oklch(0.6 0.18 85);
+	--color-warning-700: oklch(0.5 0.15 85);
 	--color-warning-800: oklch(0.42 0.12 85);
 	--color-warning-900: oklch(0.35 0.09 85);
 
 	/* Error Scale - Red (hue 25°) */
 	--color-error-50: oklch(0.97 0.02 25);
 	--color-error-100: oklch(0.93 0.05 25);
-	--color-error-200: oklch(0.87 0.10 25);
+	--color-error-200: oklch(0.87 0.1 25);
 	--color-error-300: oklch(0.79 0.15 25);
 	--color-error-400: oklch(0.69 0.19 25);
 	--color-error-500: oklch(0.59 0.22 25);
 	--color-error-600: oklch(0.49 0.21 25);
 	--color-error-700: oklch(0.41 0.18 25);
 	--color-error-800: oklch(0.34 0.14 25);
-	--color-error-900: oklch(0.28 0.10 25);
+	--color-error-900: oklch(0.28 0.1 25);
 
 	/* ===========================
 	   SEMANTIC TOKENS (Dark Mode)
 	   =========================== */
 
 	/* Backgrounds - Elevation system (lighter = closer) */
-	--color-bg-base: var(--color-neutral-900);
-	--color-bg-surface: var(--color-neutral-800);
-	--color-bg-elevated: oklch(0.30 0.01 250); /* Subtle blue tint */
-	--color-bg-overlay: oklch(0.33 0.015 250);
+	--color-base: var(--color-neutral-950);
+	--color-surface: var(--color-neutral-900);
+	--color-elevated: var(--color-neutral-800); /* Subtle blue tint */
+	--color-overlay: var(--color-neutral-700);
 
 	/* Borders */
 	--color-border-subtle: var(--color-neutral-800);
@@ -307,4 +308,12 @@
 	body {
 		@apply bg-background text-foreground;
 	}
+}
+
+/* ===========================
+NODE EDITOR OVERRIDES
+   =========================== */
+
+.ͼ1.cm-focused {
+	@apply rounded-[5px] outline outline-primary-500/50;
 }

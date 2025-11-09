@@ -12,9 +12,9 @@ import {
 	type KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
 import { useShallow } from 'zustand/shallow';
+import { processNodeTypeSwitch } from '../../core/commands/command-executor';
 import { getNodeTypeConfig } from '../../core/config/node-type-config';
 import { parseInput } from '../../core/parsers/pattern-extractor';
-import { processNodeTypeSwitch } from '../../core/commands/command-executor';
 import { announceToScreenReader } from '../../core/utils/text-utils';
 import {
 	createOrUpdateNode,
@@ -22,7 +22,6 @@ import {
 } from '../../node-updater';
 import type { QuickInputProps } from '../../types';
 import { ActionBar } from '../action-bar';
-import { ArrowIndicator } from '../arrow-indicator';
 import { ComponentHeader } from '../component-header';
 import { ErrorDisplay } from '../error-display';
 import { ExamplesSection } from '../examples-section';
@@ -92,14 +91,13 @@ export const QuickInput: FC<QuickInputProps> = ({
 		}))
 	);
 
-	const {  closeNodeEditor, addNode, updateNode } =
-		useAppStore(
-			useShallow((state) => ({
-				closeNodeEditor: state.closeNodeEditor,
-				addNode: state.addNode,
-				updateNode: state.updateNode,
-			}))
-		);
+	const { closeNodeEditor, addNode, updateNode } = useAppStore(
+		useShallow((state) => ({
+			closeNodeEditor: state.closeNodeEditor,
+			addNode: state.addNode,
+			updateNode: state.updateNode,
+		}))
+	);
 
 	// Initialize QuickInput state when component mounts or mode changes
 	useEffect(() => {
@@ -370,25 +368,21 @@ export const QuickInput: FC<QuickInputProps> = ({
 	);
 
 	// Handle command execution from enhanced input
-	const handleCommandExecuted = useCallback(
-		(commandData: any) => {
-			if (commandData.id === 'reference-selected') {
-				// Handle reference selection
-				const referenceData = commandData.result;
-				setReferenceMetadata({
-					targetNodeId: referenceData.targetNodeId,
-					targetMapId: referenceData.targetMapId,
-					targetMapTitle: referenceData.targetMapTitle,
-					contentSnippet: referenceData.contentSnippet,
-				});
-				announceToScreenReader(
-					`Selected reference: ${referenceData.contentSnippet?.slice(0, 50) || 'Unknown content'}`
-				);
-			}
-		},
-		[]
-	);
-
+	const handleCommandExecuted = useCallback((commandData: any) => {
+		if (commandData.id === 'reference-selected') {
+			// Handle reference selection
+			const referenceData = commandData.result;
+			setReferenceMetadata({
+				targetNodeId: referenceData.targetNodeId,
+				targetMapId: referenceData.targetMapId,
+				targetMapTitle: referenceData.targetMapTitle,
+				contentSnippet: referenceData.contentSnippet,
+			});
+			announceToScreenReader(
+				`Selected reference: ${referenceData.contentSnippet?.slice(0, 50) || 'Unknown content'}`
+			);
+		}
+	}, []);
 
 	// Handle keyboard shortcuts
 	const handleKeyDown = useCallback(
@@ -409,10 +403,10 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 	return (
 		<motion.div
-			animate={{ opacity: 1, scale: 1, y: 0 }}
+			animate={{ opacity: 1, scale: 1 }}
 			className={theme.container}
-			exit={{ opacity: 0, scale: 0.95, y: -10 }}
-			initial={{ opacity: 0, scale: 0.95, y: -10 }}
+			exit={{ opacity: 0, scale: 0.95 }}
+			initial={{ opacity: 0, scale: 0.95 }}
 			layoutId={config.label}
 			transition={{ duration: 0.2, ease: 'easeOut' as const }}
 		>
@@ -421,13 +415,13 @@ export const QuickInput: FC<QuickInputProps> = ({
 			{/* Input and Preview Side by Side - Fixed 50/50 Layout */}
 			<div className='flex items-stretch gap-3'>
 				<EnhancedInput
-					animate={{ opacity: 1, x: 0 }}
-					className='flex-1 min-w-0'
+					animate={{ opacity: 1, y: 0 }}
+					className='flex-1 min-w-0 mt-5'
 					disabled={isCreating}
 					enableCommands={true}
-					initial={{ opacity: 1, x: -20 }}
+					initial={{ opacity: 1, y: -20 }}
 					placeholder={`Type naturally... ${config.examples?.[0] || ''}`}
-					transition={{ delay: 0.15, duration: 0.3, ease: 'easeOut' as const }}
+					transition={{ duration: 0.25, ease: 'easeOut' as const }}
 					value={value}
 					whileFocus={{
 						scale: 1.01,
@@ -440,8 +434,6 @@ export const QuickInput: FC<QuickInputProps> = ({
 					onSelectionChange={handleSelectionChange}
 				/>
 
-				<ArrowIndicator isVisible={value.trim().length > 0} />
-
 				<PreviewSection
 					hasInput={value.trim().length > 0}
 					nodeType={currentNodeType || initialNodeType || 'defaultNode'}
@@ -453,11 +445,15 @@ export const QuickInput: FC<QuickInputProps> = ({
 			<AnimatePresence>
 				{config.parsingPatterns && config.parsingPatterns.length > 0 && (
 					<motion.div
-						animate={{ opacity: 1, height: 'auto' }}
+						animate={{ opacity: 1, height: 'auto', y: 0 }}
 						className='mt-3'
-						exit={{ opacity: 0, height: 0 }}
-						initial={{ opacity: 0, height: 0 }}
-						transition={{ duration: 0.3, ease: 'easeInOut' as const }}
+						exit={{ opacity: 0, height: 0, y: -20 }}
+						initial={{ opacity: 0, height: 0, y: -20 }}
+						transition={{
+							duration: 0.3,
+							delay: 0.1,
+							ease: 'easeInOut' as const,
+						}}
 					>
 						<ParsingLegend
 							isCollapsed={legendCollapsed}
@@ -480,7 +476,11 @@ export const QuickInput: FC<QuickInputProps> = ({
 						className='mt-3 text-xs text-zinc-500'
 						exit={{ opacity: 0, y: -10 }}
 						initial={{ opacity: 0, y: -10 }}
-						transition={{ delay: 0.2, duration: 0.3, ease: 'easeOut' as const }}
+						transition={{
+							delay: 0.05,
+							duration: 0.3,
+							ease: 'easeOut' as const,
+						}}
 					>
 						<p>
 							This node type accepts plain text input without special syntax.

@@ -225,20 +225,20 @@ const colorSwatches: ColorSwatch[] = [
 	{ name: 'Error 900', variable: '--color-error-900', category: 'Error' },
 
 	// Semantic Tokens
-	{ name: 'BG Base', variable: '--color-bg-base', category: 'Backgrounds' },
+	{ name: 'BG Base', variable: '--color-base', category: 'Backgrounds' },
 	{
 		name: 'BG Surface',
-		variable: '--color-bg-surface',
+		variable: '--color-surface',
 		category: 'Backgrounds',
 	},
 	{
 		name: 'BG Elevated',
-		variable: '--color-bg-elevated',
+		variable: '--color-elevated',
 		category: 'Backgrounds',
 	},
 	{
 		name: 'BG Overlay',
-		variable: '--color-bg-overlay',
+		variable: '--color-overlay',
 		category: 'Backgrounds',
 	},
 
@@ -447,7 +447,7 @@ function ColorSwatchCard({ swatch }: ColorSwatchCardProps) {
 	const colorValue = getColorValue();
 
 	return (
-		<div className='group relative flex flex-col gap-3 rounded-lg border border-border-default bg-bg-surface p-4 transition-all duration-200 hover:border-border-strong hover:shadow-lg'>
+		<div className='group relative flex flex-col gap-3 rounded-lg border border-border-default bg-surface p-4 transition-all duration-200 hover:border-border-strong hover:shadow-lg'>
 			{/* Color Preview Box */}
 			<div
 				className='h-24 w-full rounded-md border border-border-subtle shadow-inner transition-transform duration-200 group-hover:scale-105'
@@ -464,7 +464,7 @@ function ColorSwatchCard({ swatch }: ColorSwatchCardProps) {
 					{/* Variable Name */}
 					<button
 						className={cn(
-							'flex items-center justify-between rounded bg-bg-elevated px-2 py-1 font-mono text-text-secondary transition-colors duration-200 hover:bg-bg-overlay hover:text-text-primary',
+							'flex items-center justify-between rounded bg-elevated px-2 py-1 font-mono text-text-secondary transition-colors duration-200 hover:bg-overlay hover:text-text-primary',
 							copied && 'bg-success-900/20 text-success-400'
 						)}
 						type='button'
@@ -481,7 +481,7 @@ function ColorSwatchCard({ swatch }: ColorSwatchCardProps) {
 
 					{/* OKLCH Value */}
 					<button
-						className='flex items-center justify-between rounded bg-bg-elevated px-2 py-1 font-mono text-text-tertiary transition-colors duration-200 hover:bg-bg-overlay hover:text-text-secondary'
+						className='flex items-center justify-between rounded bg-elevated px-2 py-1 font-mono text-text-tertiary transition-colors duration-200 hover:bg-overlay hover:text-text-secondary'
 						type='button'
 						onClick={() => copyToClipboard(colorValue)}
 					>
@@ -537,7 +537,7 @@ export default function ColorsPage() {
 						</p>
 					</div>
 
-					<div className='rounded-lg border border-border-default bg-bg-elevated p-4'>
+					<div className='rounded-lg border border-border-default bg-elevated p-4'>
 						<p className='text-sm text-text-secondary'>
 							<span className='font-semibold text-text-primary'>
 								💡 Pro tip:

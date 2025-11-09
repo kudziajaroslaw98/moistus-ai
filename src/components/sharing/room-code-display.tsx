@@ -110,14 +110,14 @@ export function RoomCodeDisplay({
 	return (
 		<motion.div
 			animate={{ opacity: 1, y: 0 }}
-			className={`p-4 rounded-lg border border-zinc-700 bg-zinc-800/50 space-y-4 ${className}`}
+			className={`p-4 rounded-lg border border-zinc-700 bg-elevated space-y-4 ${className}`}
 			initial={{ opacity: 0, y: 10 }}
 		>
 			{/* Header */}
 			<div className='flex items-center justify-between'>
 				<div className='space-y-1'>
 					<div className='flex items-center gap-2'>
-						<code className='text-lg font-mono font-bold text-teal-400 bg-zinc-900 px-3 py-1.5 rounded tracking-wider'>
+						<code className='text-lg font-mono font-bold text-teal-400 bg-elevated px-3 py-1.5 rounded tracking-wider'>
 							{token.token}
 						</code>
 
@@ -303,7 +303,7 @@ export function RoomCodeDisplay({
 			<div className='space-y-2'>
 				<p className='text-xs text-zinc-400'>Share URL</p>
 
-				<div className='flex items-center gap-2 p-2 bg-zinc-900 rounded border border-zinc-700'>
+				<div className='flex items-center gap-2 p-2 bg-elevated rounded border border-zinc-700'>
 					<code className='flex-1 text-xs text-zinc-300 truncate'>
 						{`${window.location.origin}/join/${token.token}`}
 					</code>

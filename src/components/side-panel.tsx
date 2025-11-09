@@ -1,7 +1,4 @@
-import {
-	GlassmorphismTheme,
-	getElevationColor,
-} from '@/components/nodes/themes/glassmorphism-theme';
+import { GlassmorphismTheme } from '@/components/nodes/themes/glassmorphism-theme';
 import { cn } from '@/utils/cn';
 import { X } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
@@ -61,7 +58,7 @@ export function SidePanel({
 							opacity: 1,
 						}}
 						className={cn(
-							'fixed top-0 right-0 bottom-0 z-40 h-full w-full max-w-xl min-w-sm shadow-xl',
+							'fixed top-0 right-0 bottom-0 z-40 h-full w-full max-w-xl min-w-sm shadow-xl bg-base border-l border-border-subtle',
 							className
 						)}
 						exit={{
@@ -72,43 +69,19 @@ export function SidePanel({
 							x: shouldReduceMotion ? 0 : '100%',
 							opacity: 0,
 						}}
-						style={{
-							backgroundColor: getElevationColor(8),
-							borderLeft: `1px solid ${theme.borders.default}`,
-						}}
 					>
 						{/* Panel Content */}
 						<div className='flex h-full flex-col'>
 							{/* Panel Header */}
-							<div
-								className='flex flex-shrink-0 items-center justify-between py-2.5 px-4'
-								style={{
-									borderBottom: `1px solid ${theme.borders.default}`,
-								}}
-							>
-								<h2
-									className='text-md font-semibold'
-									style={{ color: theme.text.high }}
-								>
+							<div className='flex flex-shrink-0 items-center justify-between py-2.5 px-4 border-b border-border-subtle'>
+								<h2 className='text-md font-semibold text-text-primary'>
 									{title}
 								</h2>
 
 								<button
 									aria-label='Close panel'
-									className='rounded-sm p-1 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:outline-none transition-colors duration-200 ease-out'
-									style={{
-										color: theme.text.medium,
-										backgroundColor: 'transparent',
-									}}
+									className='rounded-sm p-1 cursor-pointer text-text-secondary hover:text-text-primary bg-transparent hover:bg-surface focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:outline-none transition-colors duration-300 ease-out'
 									onClick={onClose}
-									onMouseEnter={(e) => {
-										e.currentTarget.style.backgroundColor = theme.borders.hover;
-										e.currentTarget.style.color = theme.text.high;
-									}}
-									onMouseLeave={(e) => {
-										e.currentTarget.style.backgroundColor = 'transparent';
-										e.currentTarget.style.color = theme.text.medium;
-									}}
 								>
 									<X className='h-5 w-5' />
 								</button>

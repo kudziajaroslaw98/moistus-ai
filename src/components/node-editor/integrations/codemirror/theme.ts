@@ -45,6 +45,9 @@ export const nodeEditorTheme = EditorView.theme(
 			borderRadius: '6px',
 			backgroundColor: 'transparent',
 		},
+		'.ͼ1.cm-focused': {
+			outline: '1px solid var(--color-primary-500) !important',
+		},
 		'.cm-scroller': {
 			fontFamily: 'inherit',
 			lineHeight: '1.4',

@@ -278,6 +278,7 @@ export function ContextMenu({ aiActions }: ContextMenuProps) {
 								menuItemsRef.current[itemIndex++] = el;
 							}}
 							onClick={item.onClick}
+							className='border-border-strong'
 						/>
 					</motion.div>
 				);
@@ -288,7 +289,7 @@ export function ContextMenu({ aiActions }: ContextMenuProps) {
 				<Fragment key={section.id}>
 					{/* Divider - show before sections after the first */}
 					{section.showDivider !== false && sectionIndex > 0 && (
-						<hr className='my-1 border-border-default border' />
+						<hr className='my-2 border-border-strong/40 border' />
 					)}
 
 					{/* Section title */}
@@ -299,7 +300,7 @@ export function ContextMenu({ aiActions }: ContextMenuProps) {
 					)}
 
 					{/* Section items */}
-					<div className='flex flex-col gap-0.5'>{sectionContent}</div>
+					<div className='flex flex-col gap-0.5 px-2'>{sectionContent}</div>
 				</Fragment>
 			);
 		});
@@ -324,8 +325,8 @@ export function ContextMenu({ aiActions }: ContextMenuProps) {
 						aria-label='Context menu'
 						aria-orientation='vertical'
 						className={cn(
-							'flex min-w-[250px] flex-col gap-1 rounded-sm px-2 py-2 focus:outline-none motion-reduce:transform-none',
-							'bg-elevation-24 z-[9999] border border-border-default backdrop-blur-sm shadow-border-default'
+							'flex min-w-[250px] flex-col gap-1 py-2 rounded-sm focus:outline-none motion-reduce:transform-none',
+							'bg-overlay z-[9999] border border-border-strong shadow-border-default'
 						)}
 						exit='exit'
 						initial='hidden'

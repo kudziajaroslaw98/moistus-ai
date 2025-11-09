@@ -145,9 +145,9 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 			nodeIcon={<Code className='size-4' />}
 			nodeType='Code'
 		>
-			<div className='w-full flex-grow overflow-hidden rounded-lg bg-bg-base border border-border-default'>
+			<div className='w-full flex-grow overflow-hidden rounded-lg bg-base border border-border-default'>
 				{/* Header with file info and controls */}
-				<div className='flex items-center justify-between px-4 py-3 bg-bg-base border-b border-b-border-default'>
+				<div className='flex items-center justify-between px-4 py-3 bg-base border-b border-b-border-default'>
 					<div className='flex items-center gap-3'>
 						{/* Language indicator */}
 						<div className='flex items-center gap-2'>

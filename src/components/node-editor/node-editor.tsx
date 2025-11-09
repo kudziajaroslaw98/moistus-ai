@@ -17,29 +17,26 @@ import { QuickInput } from './components/inputs/quick-input';
 
 const animationVariants = {
 	container: {
-		initial: { opacity: 0, scale: 0.95, y: -10 },
+		initial: { opacity: 0, scale: 0.95, y: -100, filter: 'blur(10px)' },
 		animate: {
 			opacity: 1,
 			scale: 1,
 			y: 0,
+			filter: 'blur(0px)',
 			transition: { duration: 0.2, ease: 'easeOut' as const },
 		},
 		exit: {
 			opacity: 0,
 			scale: 0.95,
-			y: -10,
+			y: -100,
+			filter: 'blur(10px)',
 			transition: { duration: 0.15 },
 		},
 	},
 };
 
 export const NodeEditor = () => {
-	const {
-		nodeEditor,
-		closeNodeEditor,
-		nodes,
-		resetQuickInput,
-	} = useAppStore(
+	const { nodeEditor, closeNodeEditor, nodes, resetQuickInput } = useAppStore(
 		useShallow((state) => ({
 			nodeEditor: state.nodeEditor,
 			closeNodeEditor: state.closeNodeEditor,
@@ -98,11 +95,11 @@ export const NodeEditor = () => {
 	if (!nodeEditor.isOpen) return null;
 
 	const theme = {
-		container: 'bg-zinc-950 border border-zinc-800 w-2xl rounded-md shadow-2xl',
+		container: 'bg-base border border-border-subtle w-2xl rounded-md',
 	};
 
 	return (
-		<div className='absolute flex flex-col items-center w-full h-full bg-zinc-950/50 z-[100] backdrop-blur-sm pt-32'>
+		<div className='fixed flex flex-col items-center top-0 left-0 w-full h-full bg-zinc-950/50 z-[100] backdrop-blur-sm pt-32'>
 			<AnimatePresence>
 				{nodeEditor.isOpen && (
 					<motion.div
@@ -114,21 +111,14 @@ export const NodeEditor = () => {
 						initial='initial'
 						variants={animationVariants.container}
 					>
-						<AnimateChangeInHeight easingPreset='responsive'>
-							<motion.div
-								animate='animate'
-								exit='exit'
-								initial='initial'
-								variants={animationVariants.container}
-							>
-								<QuickInput
-									nodeType={nodeType}
-									existingNode={existingNode}
-									mode={mode}
-									parentNode={nodeEditor.parentNode}
-									position={nodeEditor.position}
-								/>
-							</motion.div>
+						<AnimateChangeInHeight>
+							<QuickInput
+								nodeType={nodeType}
+								existingNode={existingNode}
+								mode={mode}
+								parentNode={nodeEditor.parentNode}
+								position={nodeEditor.position}
+							/>
 						</AnimateChangeInHeight>
 					</motion.div>
 				)}

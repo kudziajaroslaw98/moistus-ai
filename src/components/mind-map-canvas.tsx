@@ -12,7 +12,6 @@ import useAppStore from '@/store/mind-map-store';
 import { useParams } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
 import { AIStreamMediator } from './ai/ai-stream-mediator';
-import { CommandPalette } from './command-palette';
 import { ContextMenuWrapper } from './mind-map/context-menu-wrapper';
 import { StreamingToast } from './streaming-toast';
 
@@ -31,8 +30,6 @@ export function MindMapCanvas() {
 		canUndo,
 		canRedo,
 		loadingStates,
-		setPopoverOpen,
-		popoverOpen,
 		isFocusMode,
 		createGroupFromSelected,
 		ungroupNodes,
@@ -51,8 +48,6 @@ export function MindMapCanvas() {
 			canUndo: state.canUndo,
 			canRedo: state.canRedo,
 			loadingStates: state.loadingStates,
-			setPopoverOpen: state.setPopoverOpen,
-			popoverOpen: state.popoverOpen,
 			isFocusMode: state.isFocusMode,
 			createGroupFromSelected: state.createGroupFromSelected,
 			ungroupNodes: state.ungroupNodes,
@@ -127,8 +122,6 @@ export function MindMapCanvas() {
 		<div className='relative h-full w-full overflow-hidden rounded-md flex'>
 			{/* Main content area */}
 			<div className='flex-1 relative w-full'>
-				{popoverOpen.commandPalette && <CommandPalette />}
-
 				<AIStreamMediator />
 
 				<StreamingToast />

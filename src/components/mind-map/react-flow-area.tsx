@@ -47,15 +47,7 @@ import type { AppNode } from '@/types/app-node';
 import type { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
-import {
-	Command,
-	History,
-	Redo,
-	Settings,
-	Share2,
-	Slash,
-	Undo,
-} from 'lucide-react';
+import { History, Redo, Settings, Share2, Slash, Undo } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -356,10 +348,6 @@ export function ReactFlowArea() {
 		setPopoverOpen({ mapSettings: true });
 	}, [setPopoverOpen]);
 
-	const handleCommandPaletteOpen = useCallback(() => {
-		setPopoverOpen({ commandPalette: true });
-	}, [setPopoverOpen]);
-
 	const handleToggleHistorySidebar = useCallback(() => {
 		setPopoverOpen({ history: true });
 	}, [setPopoverOpen]);
@@ -381,7 +369,7 @@ export function ReactFlowArea() {
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
 	return (
-		<>
+		<div key='mind-map-container' className='w-full h-full'>
 			<ReactFlow
 				colorMode='dark'
 				connectionLineComponent={FloatingConnectionLine}
@@ -409,7 +397,7 @@ export function ReactFlowArea() {
 				])}
 				style={
 					{
-						'--xy-background-color-default': 'var(--color-bg-base)',
+						'--xy-background-color-default': 'var(--color-base)',
 					} as CSSProperties
 				}
 				onConnect={onConnect}
@@ -436,12 +424,8 @@ export function ReactFlowArea() {
 				/>
 
 				<Panel
-					className='!m-0 p-2 px-8 right-0 flex justify-between'
+					className='!m-0 p-2 px-8 right-0 flex justify-between bg-surface/20 backdrop-blur-xs'
 					position='top-left'
-					style={{
-						background: `rgba(39, 39, 39, 0.3)`, // Subtle glassmorphism for floating app bar
-						backdropFilter: 'blur(4px)', // Reduced blur for subtlety
-					}}
 				>
 					<div className='flex items-center gap-8'>
 						<Breadcrumb>
@@ -507,30 +491,6 @@ export function ReactFlowArea() {
 					</div>
 
 					<div className='flex items-center gap-8'>
-						<div className='flex gap-2'>
-							{/* Profile Button */}
-							{/* <Link href='/dashboard/profile'>
-							<Button
-								title='Profile Settings'
-								aria-label='Profile Settings'
-								variant='secondary'
-								size='icon'
-							>
-								<User className='h-4 w-4' />
-							</Button>
-						</Link> */}
-
-							<Button
-								aria-label='Command Palette'
-								size='icon'
-								title='Command Palette'
-								variant='secondary'
-								onClick={handleCommandPaletteOpen}
-							>
-								<Command className='h-4 w-4' />
-							</Button>
-						</div>
-
 						<RealtimeAvatarStack
 							roomName={`mind_map:${mapId}:users`}
 							activityState={activityState}
@@ -585,6 +545,6 @@ export function ReactFlowArea() {
 				open={showUpgradeModal}
 				onOpenChange={setShowUpgradeModal}
 			/>
-		</>
+		</div>
 	);
 }

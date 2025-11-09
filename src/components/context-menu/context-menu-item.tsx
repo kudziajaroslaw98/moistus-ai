@@ -39,11 +39,10 @@ export const ContextMenuItem = React.forwardRef<
 				disabled={disabled || loading}
 				ref={ref}
 				role='menuitem'
-				variant='ghost'
+				variant={variant === 'destructive' ? 'destructive-outline' : 'outline'}
 				className={cn(
 					'h-8 w-full justify-start gap-2 p-2 text-sm',
 					'@media (hover: hover) and (pointer: fine) { transition-property: color, background-color, opacity }',
-					variant === 'destructive' && 'text-error-500',
 					variant === 'primary' && 'text-blue-500',
 					variant !== 'destructive' &&
 						variant !== 'primary' &&

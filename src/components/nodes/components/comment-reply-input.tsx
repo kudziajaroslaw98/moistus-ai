@@ -104,7 +104,7 @@ const CommentReplyInputComponent = ({ commentId }: CommentReplyInputProps) => {
 				onChange={handleInput}
 				onKeyDown={handleKeyDown}
 				placeholder='Write a reply... (use @name to mention)'
-				className='flex-1 resize-none outline-none transition-all min-h-[36px] max-h-[120px] py-2 px-3 rounded-md text-text-primary bg-bg-base border border-border-default text-sm leading-5 focus:border-cyan-500/50 nodrag'
+				className='flex-1 resize-none outline-none transition-all min-h-[36px] max-h-[120px] py-2 px-3 rounded-md text-text-primary bg-base border border-border-default text-sm leading-5 focus:border-cyan-500/50 nodrag'
 				aria-label='Reply to comment'
 			/>
 
@@ -115,7 +115,7 @@ const CommentReplyInputComponent = ({ commentId }: CommentReplyInputProps) => {
 				onClick={handleSend}
 				className={cn(
 					'shrink-0',
-					content.trim() ? 'bg-[rgba(20,184,166,0.87)]' : 'bg-bg-elevated',
+					content.trim() ? 'bg-[rgba(20,184,166,0.87)]' : 'bg-elevated',
 					content.trim() ? 'text-text-primary' : 'text-text-disabled',
 					isSending ? 'opacity-60' : ''
 				)}

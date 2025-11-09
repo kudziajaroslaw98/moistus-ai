@@ -142,12 +142,12 @@ export const Toolbar = () => {
 			initial={{ y: 100, opacity: 0 }}
 			transition={{ type: 'spring', stiffness: 100, damping: 15 }}
 		>
-			<div className='flex h-full w-full items-center gap-2 p-2 rounded-xl shadow-2xl bg-elevation-4 border border-border-default'>
+			<div className='flex h-full w-full items-center gap-2 p-2 rounded-xl shadow-2xl shadow-neutral-950 bg-surface border border-elevated'>
 				{tools.map((tool, index) => {
 					if (tool.id.startsWith('separator')) {
 						return (
 							<Separator
-								className='!h-4 flex bg-border-default'
+								className='!h-4 flex bg-overlay'
 								key={tool.id + '' + index}
 								orientation='vertical'
 							/>
@@ -159,10 +159,11 @@ export const Toolbar = () => {
 							<Tooltip key={tool.id}>
 								<TooltipTrigger
 									className={cn(
-										activeTool !== tool.id && 'bg-bg-base hover:bg-bg-elevated',
+										'bg-base hover:bg-elevated',
+										'active:scale-95',
 										activeTool === tool.id
 											? 'bg-teal-500 border-teal-500/30 text-text-primary'
-											: 'bg-bg-base border-border-default text-text-secondary',
+											: ' border-overlay text-text-secondary',
 										'inline-flex items-center rounded-sm font-medium transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none !h-8 !w-8 p-0 justify-center'
 									)}
 									title={tool.label ?? `Tool ${index}`}
@@ -221,7 +222,8 @@ export const Toolbar = () => {
 								onClick={() => onToolChange(tool.id)}
 								className={cn(
 									isCommentMode &&
-										'text-text-primary bg-primary-500 border-2 border-primary-500/20'
+										'text-text-primary bg-primary-500 border-2 border-primary-500/20',
+									'active:scale-95'
 								)}
 							>
 								{tool.icon}
@@ -242,6 +244,7 @@ export const Toolbar = () => {
 									: 'secondary'
 							}
 							onClick={() => onToolChange(tool.id)}
+							className='active:scale-95'
 						>
 							{tool.icon}
 						</Button>
