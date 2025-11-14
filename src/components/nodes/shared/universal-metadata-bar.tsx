@@ -119,8 +119,8 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
 							icon={config.icon}
 							key='priority'
 							label={config.label}
-							size={'xs'}
 							onClick={() => onMetadataClick?.('priority', metadata.priority)}
+							size={'xs'}
 						/>
 					),
 					order: 1,
@@ -146,8 +146,8 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
 							icon={statusIcon}
 							key='status'
 							label={metadata.status}
-							size={'xs'}
 							onClick={() => onMetadataClick?.('status', metadata.status)}
+							size={'xs'}
 						/>
 					),
 					order: 2,
@@ -167,8 +167,8 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
 							icon={User}
 							key='assignee'
 							label={assigneeString}
-							size={'xs'}
 							onClick={() => onMetadataClick?.('assignee', metadata.assignee)}
+							size={'xs'}
 						/>
 					),
 					order: 3,
@@ -210,8 +210,8 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
 							icon={Calendar}
 							key='dueDate'
 							label={dateLabel}
-							size={'xs'}
 							onClick={() => onMetadataClick?.('dueDate', metadata.dueDate)}
+							size={'xs'}
 						/>
 					),
 					order: 4,
@@ -227,8 +227,8 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
 							accentColor={colorOverrides?.accentColor}
 							key='tags'
 							maxVisible={selected ? 5 : 2}
-							tags={metadata.tags}
 							onTagClick={(tag) => onMetadataClick?.('tag', tag)}
+							tags={metadata.tags}
 						/>
 					),
 					order: 5,

@@ -58,26 +58,26 @@ const CommentParticipantAvatarsComponent = ({
 		<div className='flex items-center -space-x-2'>
 			{displayParticipants.map((participant, index) => (
 				<motion.div
-					key={participant.user_id}
-					initial={{ opacity: 0, scale: 0.8, x: -10 }}
 					animate={{ opacity: 1, scale: 1, x: 0 }}
+					className='relative flex items-center justify-center size-8 rounded-full border-2 cursor-pointer '
+					initial={{ opacity: 0, scale: 0.8, x: -10 }}
+					key={participant.user_id}
+					title={`${participant.display_name} (${participant.message_count} messages)`}
+					style={{
+						backgroundColor: getUserColor(participant.user_id),
+						borderColor: GlassmorphismTheme.elevation[4],
+					}}
 					transition={{
 						duration: 0.2,
 						delay: (index + 1) * 0.05,
 						ease: [0.215, 0.61, 0.355, 1], // ease-out-cubic
 					}}
-					className='relative flex items-center justify-center size-8 rounded-full border-2 cursor-pointer '
-					style={{
-						backgroundColor: getUserColor(participant.user_id),
-						borderColor: GlassmorphismTheme.elevation[4],
-					}}
-					title={`${participant.display_name} (${participant.message_count} messages)`}
 				>
 					{participant.avatar_url ? (
 						<img
-							src={participant.avatar_url}
 							alt={participant.display_name}
 							className='size-full rounded-full object-cover'
+							src={participant.avatar_url}
 						/>
 					) : (
 						<span
@@ -92,19 +92,19 @@ const CommentParticipantAvatarsComponent = ({
 
 			{remainingCount > 0 && (
 				<motion.div
-					initial={{ opacity: 0, scale: 0.8 }}
 					animate={{ opacity: 1, scale: 1 }}
+					className='relative flex items-center justify-center size-8 rounded-full border-2'
+					initial={{ opacity: 0, scale: 0.8 }}
+					title={`+${remainingCount} more participant${remainingCount > 1 ? 's' : ''}`}
+					style={{
+						backgroundColor: GlassmorphismTheme.elevation[2],
+						borderColor: GlassmorphismTheme.elevation[4],
+					}}
 					transition={{
 						duration: 0.2,
 						delay: displayParticipants.length * 0.05,
 						ease: [0.215, 0.61, 0.355, 1],
 					}}
-					className='relative flex items-center justify-center size-8 rounded-full border-2'
-					style={{
-						backgroundColor: GlassmorphismTheme.elevation[2],
-						borderColor: GlassmorphismTheme.elevation[4],
-					}}
-					title={`+${remainingCount} more participant${remainingCount > 1 ? 's' : ''}`}
 				>
 					<span
 						className='text-xs font-medium'

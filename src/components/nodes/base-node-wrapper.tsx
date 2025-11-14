@@ -158,8 +158,8 @@ const BaseNodeWrapperComponent = ({
 
 	return (
 		<motion.div
-			whileHover={{ y: -5 }}
 			transition={{ type: 'spring', duration: 0.2 }}
+			whileHover={{ y: -5 }}
 		>
 			<motion.div
 				ref={nodeRef}
@@ -279,11 +279,6 @@ const BaseNodeWrapperComponent = ({
 								'!bg-transparent !border',
 								'hover:scale-125'
 							)}
-							style={{
-								bottom: theme.node.handle.bottom,
-								border: `1px solid ${theme.borders.default}`,
-								backgroundColor: theme.node.handle.background,
-							}}
 							onMouseEnter={(e) => {
 								e.currentTarget.style.backgroundColor =
 									theme.node.handle.hoverBackground;
@@ -293,6 +288,11 @@ const BaseNodeWrapperComponent = ({
 								e.currentTarget.style.backgroundColor =
 									theme.node.handle.background;
 								e.currentTarget.style.border = `1px solid ${theme.borders.default}`;
+							}}
+							style={{
+								bottom: theme.node.handle.bottom,
+								border: `1px solid ${theme.borders.default}`,
+								backgroundColor: theme.node.handle.background,
 							}}
 						/>
 
@@ -344,12 +344,12 @@ const BaseNodeWrapperComponent = ({
 									>
 										<Button
 											className='nodrag nopan rounded-full w-10 h-10 p-0 transition-all duration-200 hover:scale-110'
+											onClick={handleAddNewNode}
 											title='Add new connected node'
 											style={{
 												backgroundColor: getElevationColor(6),
 												border: `1px solid ${theme.borders.hover}`,
 											}}
-											onClick={handleAddNewNode}
 										>
 											<Plus
 												className='w-5 h-5'
@@ -388,12 +388,12 @@ const BaseNodeWrapperComponent = ({
 										>
 											<Button
 												className='nodrag nopan rounded-full w-fit py-2 px-4 flex gap-2 transition-all duration-200 hover:scale-110'
+												onClick={handleAddNewNode}
 												title='Suggest Nodes'
 												style={{
 													backgroundColor: getElevationColor(6),
 													border: `1px solid ${theme.borders.hover}`,
 												}}
-												onClick={handleAddNewNode}
 											>
 												<Sparkles
 													className='size-4'
@@ -415,6 +415,9 @@ const BaseNodeWrapperComponent = ({
 								maxWidth={constraints.maxWidth}
 								minHeight={constraints.minHeight}
 								minWidth={constraints.minWidth}
+								onResize={handleResize}
+								onResizeEnd={handleResizeEnd}
+								onResizeStart={handleResizeStart}
 								shouldResize={shouldResize}
 								handleStyle={{
 									backgroundColor: selected
@@ -422,9 +425,6 @@ const BaseNodeWrapperComponent = ({
 										: theme.borders.default,
 									border: theme.node.resizer.border,
 								}}
-								onResize={handleResize}
-								onResizeEnd={handleResizeEnd}
-								onResizeStart={handleResizeStart}
 							/>
 						)}
 					</div>

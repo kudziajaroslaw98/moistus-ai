@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { memo, useCallback, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
 import { BaseNodeWrapper } from './base-node-wrapper';
 import { TypedNodeProps } from './core/types';
@@ -173,10 +174,10 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 						{lineCount > 20 && (
 							<Button
 								className='!cursor-pointer w-8 h-8 p-0 bg-transparent border border-border-strong'
+								onClick={() => setIsExpanded(!isExpanded)}
 								size={'icon'}
 								title={isExpanded ? 'Collapse' : 'Expand'}
 								variant={'ghost'}
-								onClick={() => setIsExpanded(!isExpanded)}
 							>
 								{isExpanded ? (
 									<Minimize2 className='w-3.5 h-3.5 text-text-secondary' />
@@ -190,6 +191,7 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 						<Button
 							className='!cursor-pointer w-8 h-8 p-0 relative border overflow-hidden transition-all duration-200 ease-spring'
 							disabled={copied}
+							onClick={handleCopy}
 							size={'icon'}
 							variant={'ghost'}
 							style={{
@@ -200,7 +202,6 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 									? 'rgba(52, 211, 153, 0.3)'
 									: `var(--color-border-hover)`,
 							}}
-							onClick={handleCopy}
 						>
 							<AnimatePresence mode='wait'>
 								{copied ? (

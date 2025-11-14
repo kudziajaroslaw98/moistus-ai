@@ -522,9 +522,9 @@ export default function BillingSettingsPage() {
 
 								<Button
 									disabled={isCanceling}
+									onClick={handleCancelSubscription}
 									size='sm'
 									variant='destructive'
-									onClick={handleCancelSubscription}
 								>
 									{isCanceling ? 'Canceling...' : 'Cancel Subscription'}
 								</Button>

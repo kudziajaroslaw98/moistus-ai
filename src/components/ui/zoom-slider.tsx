@@ -74,10 +74,10 @@ const ZoomSliderComponent = forwardRef<
 			{...props}
 		>
 			<Button
+				onClick={handleZoomOut}
 				size='icon'
 				title='Zoom out'
 				variant='ghost'
-				onClick={handleZoomOut}
 			>
 				<Minus className='size-4' />
 			</Button>
@@ -86,34 +86,34 @@ const ZoomSliderComponent = forwardRef<
 				className='w-[140px]'
 				max={maxZoom}
 				min={minZoom}
+				onValueChange={handleZoomChange}
 				step={0.01}
 				value={[zoom]}
-				onValueChange={handleZoomChange}
 			/>
 
 			<Button
+				onClick={handleZoomIn}
 				size='icon'
 				title='Zoom in'
 				variant='ghost'
-				onClick={handleZoomIn}
 			>
 				<Plus className='size-4' />
 			</Button>
 
 			<Button
 				className='min-w-16 tabular-nums text-xs'
+				onClick={handleResetZoom}
 				title='Reset zoom to 100%'
 				variant='ghost'
-				onClick={handleResetZoom}
 			>
 				{(100 * zoom).toFixed(0)}%
 			</Button>
 
 			<Button
+				onClick={handleFitView}
 				size='icon'
 				title='Fit view'
 				variant='ghost'
-				onClick={handleFitView}
 			>
 				<Maximize className='size-4' />
 			</Button>

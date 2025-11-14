@@ -42,6 +42,7 @@ export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(
 			<button
 				aria-checked={checked}
 				disabled={disabled}
+				onClick={handleClick}
 				ref={ref}
 				role='checkbox'
 				type='button'
@@ -67,7 +68,6 @@ export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(
 					],
 					className
 				)}
-				onClick={handleClick}
 			>
 				{/* Checkmark */}
 				<motion.div

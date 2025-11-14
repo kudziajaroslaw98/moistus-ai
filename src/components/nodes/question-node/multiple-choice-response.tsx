@@ -56,6 +56,7 @@ export const MultipleChoiceResponse = ({
 				<motion.button
 					disabled={disabled}
 					key={option.id}
+					onClick={() => handleSelect(option.id)}
 					whileHover={!disabled ? { scale: 1.02 } : {}}
 					whileTap={!disabled ? { scale: 0.98 } : {}}
 					className={cn(
@@ -65,7 +66,6 @@ export const MultipleChoiceResponse = ({
 							: 'bg-white/5 border border-white/10 hover:bg-white/10',
 						disabled && 'opacity-50 cursor-not-allowed'
 					)}
-					onClick={() => handleSelect(option.id)}
 				>
 					<div
 						className={cn(

@@ -176,14 +176,15 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 						<div>
 							{questionType === 'binary' && (
 								<BinaryResponse
-									value={userResponse as boolean}
 									onChange={handleResponseChange}
+									value={userResponse as boolean}
 								/>
 							)}
 
 							{questionType === 'multiple' && (
 								<MultipleChoiceResponse
 									allowMultiple={responseFormat.allowMultiple || false}
+									onChange={handleResponseChange}
 									value={userResponse as string | string[]}
 									options={
 										responseFormat.options && responseFormat.options.length > 0
@@ -200,7 +201,6 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 														{ id: '3', label: 'Option C' },
 													]
 									}
-									onChange={handleResponseChange}
 								/>
 							)}
 						</div>
@@ -226,8 +226,8 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 				{/* AI Answer section (backward compatibility) - Collapsible */}
 				{hasAIAnswer && (
 					<motion.div
-						className='rounded-md'
 						layout
+						className='rounded-md'
 						transition={{ type: 'spring', duration: 0.3 }}
 						style={{
 							backgroundColor: 'rgba(147, 197, 253, 0.05)',
@@ -236,9 +236,9 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 					>
 						<motion.button
 							className='w-full flex items-center justify-center gap-2 py-1.5 rounded-md transition-all'
+							onClick={() => setIsExpanded(!isExpanded)}
 							whileHover={{ scale: 1.02 }}
 							whileTap={{ scale: 0.98 }}
-							onClick={() => setIsExpanded(!isExpanded)}
 						>
 							<Sparkles
 								className='w-3 h-3'
@@ -256,11 +256,11 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 							</span>
 
 							<ChevronDown
+								style={{ color: 'rgba(147, 197, 253, 0.7)' }}
 								className={cn(
 									'w-3 h-3 transition-transform will-change-transform ease-spring duration-300',
 									isExpanded ? 'rotate-180' : ''
 								)}
-								style={{ color: 'rgba(147, 197, 253, 0.7)' }}
 							/>
 						</motion.button>
 

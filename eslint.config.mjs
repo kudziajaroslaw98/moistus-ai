@@ -43,7 +43,7 @@ const eslintConfig = [
 			'@stylistic/jsx-sort-props': [
 				'error',
 				{
-					callbacksLast: true,
+					noSortAlphabetically: true,
 					shorthandFirst: true,
 					multiline: 'last',
 					ignoreCase: true,

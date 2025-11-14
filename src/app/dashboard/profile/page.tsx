@@ -18,8 +18,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { UserAvatar } from '@/components/ui/user-avatar';
@@ -29,10 +27,8 @@ import {
 	Briefcase,
 	Building,
 	Camera,
-	Clock,
 	Github,
 	Globe,
-	Languages,
 	Linkedin,
 	MapPin,
 	MessageSquare,
@@ -70,20 +66,8 @@ export default function ProfilePage() {
 		preferences: {
 			theme: 'dark',
 			accentColor: '#06b6d4',
-			language: 'en',
-			timezone: 'UTC',
-			notifications: {
-				email_comments: true,
-				email_mentions: true,
-				email_reactions: false,
-				push_comments: true,
-				push_mentions: true,
-				push_reactions: false,
-			},
+			reducedMotion: false,
 			privacy: {
-				show_email: false,
-				show_location: true,
-				show_company: true,
 				profile_visibility: 'public',
 			},
 		},
@@ -122,20 +106,9 @@ export default function ProfilePage() {
 				},
 				preferences: {
 					theme: 'dark',
-					language: 'en',
-					timezone: 'America/Los_Angeles',
-					notifications: {
-						email_comments: true,
-						email_mentions: true,
-						email_reactions: false,
-						push_comments: true,
-						push_mentions: true,
-						push_reactions: false,
-					},
+					accentColor: '#06b6d4',
+					reducedMotion: false,
 					privacy: {
-						show_email: false,
-						show_location: true,
-						show_company: true,
 						profile_visibility: 'public',
 					},
 				},
@@ -389,10 +362,10 @@ export default function ProfilePage() {
 								<Textarea
 									className='bg-zinc-800 border-zinc-600'
 									id='bio'
+									onChange={(e) => updateFormData('bio', e.target.value)}
 									placeholder='Tell us about yourself...'
 									rows={3}
 									value={formData.bio}
-									onChange={(e) => updateFormData('bio', e.target.value)}
 								/>
 							</div>
 
@@ -406,9 +379,9 @@ export default function ProfilePage() {
 									<Input
 										className='bg-zinc-800 border-zinc-600'
 										id='location'
+										onChange={(e) => updateFormData('location', e.target.value)}
 										placeholder='City, Country'
 										value={formData.location}
-										onChange={(e) => updateFormData('location', e.target.value)}
 									/>
 								</div>
 
@@ -421,10 +394,10 @@ export default function ProfilePage() {
 									<Input
 										className='bg-zinc-800 border-zinc-600'
 										id='website'
+										onChange={(e) => updateFormData('website', e.target.value)}
 										placeholder='https://example.com'
 										type='url'
 										value={formData.website}
-										onChange={(e) => updateFormData('website', e.target.value)}
 									/>
 								</div>
 							</div>
@@ -439,8 +412,8 @@ export default function ProfilePage() {
 									<Input
 										className='bg-zinc-800 border-zinc-600'
 										id='company'
-										value={formData.company}
 										onChange={(e) => updateFormData('company', e.target.value)}
+										value={formData.company}
 									/>
 								</div>
 
@@ -475,13 +448,13 @@ export default function ProfilePage() {
 							<div className='flex gap-2'>
 								<Input
 									className='bg-zinc-800 border-zinc-600'
-									placeholder='Add a skill...'
-									value={newSkill}
 									onChange={(e) => setNewSkill(e.target.value)}
 									onKeyPress={(e) => e.key === 'Enter' && addSkill()}
+									placeholder='Add a skill...'
+									value={newSkill}
 								/>
 
-								<Button size='sm' onClick={addSkill}>
+								<Button onClick={addSkill} size='sm'>
 									<Plus className='size-4' />
 								</Button>
 							</div>
@@ -606,160 +579,6 @@ export default function ProfilePage() {
 					</Card>
 				</TabsContent>
 
-				<TabsContent className='space-y-6' value='notifications'>
-					<Card className='bg-zinc-900 border-zinc-700'>
-						<CardHeader>
-							<CardTitle className='text-white'>Email Notifications</CardTitle>
-
-							<CardDescription>
-								Configure when you receive email notifications
-							</CardDescription>
-						</CardHeader>
-
-						<CardContent className='space-y-4'>
-							<div className='flex items-center justify-between'>
-								<div>
-									<Label>Comment notifications</Label>
-
-									<p className='text-sm text-zinc-400'>
-										Get notified when someone comments on your content
-									</p>
-								</div>
-
-								<Switch
-									checked={formData.preferences.notifications.email_comments}
-									onCheckedChange={(checked) =>
-										updateNestedFormData('preferences', 'notifications', {
-											...formData.preferences.notifications,
-											email_comments: checked,
-										})
-									}
-								/>
-							</div>
-
-							<Separator className='bg-zinc-700' />
-
-							<div className='flex items-center justify-between'>
-								<div>
-									<Label>Mentions</Label>
-
-									<p className='text-sm text-zinc-400'>
-										Get notified when someone mentions you
-									</p>
-								</div>
-
-								<Switch
-									checked={formData.preferences.notifications.email_mentions}
-									onCheckedChange={(checked) =>
-										updateNestedFormData('preferences', 'notifications', {
-											...formData.preferences.notifications,
-											email_mentions: checked,
-										})
-									}
-								/>
-							</div>
-
-							<Separator className='bg-zinc-700' />
-
-							<div className='flex items-center justify-between'>
-								<div>
-									<Label>Reactions</Label>
-
-									<p className='text-sm text-zinc-400'>
-										Get notified when someone reacts to your content
-									</p>
-								</div>
-
-								<Switch
-									checked={formData.preferences.notifications.email_reactions}
-									onCheckedChange={(checked) =>
-										updateNestedFormData('preferences', 'notifications', {
-											...formData.preferences.notifications,
-											email_reactions: checked,
-										})
-									}
-								/>
-							</div>
-						</CardContent>
-					</Card>
-
-					<Card className='bg-zinc-900 border-zinc-700'>
-						<CardHeader>
-							<CardTitle className='text-white'>Push Notifications</CardTitle>
-
-							<CardDescription>
-								Configure browser push notifications
-							</CardDescription>
-						</CardHeader>
-
-						<CardContent className='space-y-4'>
-							<div className='flex items-center justify-between'>
-								<div>
-									<Label>Comment notifications</Label>
-
-									<p className='text-sm text-zinc-400'>
-										Get push notifications for comments
-									</p>
-								</div>
-
-								<Switch
-									checked={formData.preferences.notifications.push_comments}
-									onCheckedChange={(checked) =>
-										updateNestedFormData('preferences', 'notifications', {
-											...formData.preferences.notifications,
-											push_comments: checked,
-										})
-									}
-								/>
-							</div>
-
-							<Separator className='bg-zinc-700' />
-
-							<div className='flex items-center justify-between'>
-								<div>
-									<Label>Mentions</Label>
-
-									<p className='text-sm text-zinc-400'>
-										Get push notifications for mentions
-									</p>
-								</div>
-
-								<Switch
-									checked={formData.preferences.notifications.push_mentions}
-									onCheckedChange={(checked) =>
-										updateNestedFormData('preferences', 'notifications', {
-											...formData.preferences.notifications,
-											push_mentions: checked,
-										})
-									}
-								/>
-							</div>
-
-							<Separator className='bg-zinc-700' />
-
-							<div className='flex items-center justify-between'>
-								<div>
-									<Label>Reactions</Label>
-
-									<p className='text-sm text-zinc-400'>
-										Get push notifications for reactions
-									</p>
-								</div>
-
-								<Switch
-									checked={formData.preferences.notifications.push_reactions}
-									onCheckedChange={(checked) =>
-										updateNestedFormData('preferences', 'notifications', {
-											...formData.preferences.notifications,
-											push_reactions: checked,
-										})
-									}
-								/>
-							</div>
-						</CardContent>
-					</Card>
-				</TabsContent>
-
 				<TabsContent className='space-y-6' value='privacy'>
 					<Card className='bg-zinc-900 border-zinc-700'>
 						<CardHeader>
@@ -802,72 +621,6 @@ export default function ProfilePage() {
 									</SelectContent>
 								</Select>
 							</div>
-
-							<Separator className='bg-zinc-700' />
-
-							<div className='flex items-center justify-between'>
-								<div>
-									<Label>Show email address</Label>
-
-									<p className='text-sm text-zinc-400'>
-										Display your email on your public profile
-									</p>
-								</div>
-
-								<Switch
-									checked={formData.preferences.privacy.show_email}
-									onCheckedChange={(checked) =>
-										updateNestedFormData('preferences', 'privacy', {
-											...formData.preferences.privacy,
-											show_email: checked,
-										})
-									}
-								/>
-							</div>
-
-							<Separator className='bg-zinc-700' />
-
-							<div className='flex items-center justify-between'>
-								<div>
-									<Label>Show location</Label>
-
-									<p className='text-sm text-zinc-400'>
-										Display your location on your public profile
-									</p>
-								</div>
-
-								<Switch
-									checked={formData.preferences.privacy.show_location}
-									onCheckedChange={(checked) =>
-										updateNestedFormData('preferences', 'privacy', {
-											...formData.preferences.privacy,
-											show_location: checked,
-										})
-									}
-								/>
-							</div>
-
-							<Separator className='bg-zinc-700' />
-
-							<div className='flex items-center justify-between'>
-								<div>
-									<Label>Show company</Label>
-
-									<p className='text-sm text-zinc-400'>
-										Display your company information on your public profile
-									</p>
-								</div>
-
-								<Switch
-									checked={formData.preferences.privacy.show_company}
-									onCheckedChange={(checked) =>
-										updateNestedFormData('preferences', 'privacy', {
-											...formData.preferences.privacy,
-											show_company: checked,
-										})
-									}
-								/>
-							</div>
 						</CardContent>
 					</Card>
 
@@ -903,78 +656,6 @@ export default function ProfilePage() {
 										<SelectItem value='dark'>Dark</SelectItem>
 
 										<SelectItem value='system'>System</SelectItem>
-									</SelectContent>
-								</Select>
-							</div>
-
-							<div className='space-y-2'>
-								<Label>
-									<Languages className='size-4 inline mr-2' />
-									Language
-								</Label>
-
-								<Select
-									value={formData.preferences.language}
-									onValueChange={(value) =>
-										updateNestedFormData('preferences', 'language', value)
-									}
-								>
-									<SelectTrigger className='bg-zinc-800 border-zinc-600'>
-										<SelectValue />
-									</SelectTrigger>
-
-									<SelectContent>
-										<SelectItem value='en'>English</SelectItem>
-
-										<SelectItem value='es'>Spanish</SelectItem>
-
-										<SelectItem value='fr'>French</SelectItem>
-
-										<SelectItem value='de'>German</SelectItem>
-									</SelectContent>
-								</Select>
-							</div>
-
-							<div className='space-y-2'>
-								<Label>
-									<Clock className='size-4 inline mr-2' />
-									Timezone
-								</Label>
-
-								<Select
-									value={formData.preferences.timezone}
-									onValueChange={(value) =>
-										updateNestedFormData('preferences', 'timezone', value)
-									}
-								>
-									<SelectTrigger className='bg-zinc-800 border-zinc-600'>
-										<SelectValue />
-									</SelectTrigger>
-
-									<SelectContent>
-										<SelectItem value='UTC'>UTC</SelectItem>
-
-										<SelectItem value='America/New_York'>
-											Eastern Time
-										</SelectItem>
-
-										<SelectItem value='America/Chicago'>
-											Central Time
-										</SelectItem>
-
-										<SelectItem value='America/Denver'>
-											Mountain Time
-										</SelectItem>
-
-										<SelectItem value='America/Los_Angeles'>
-											Pacific Time
-										</SelectItem>
-
-										<SelectItem value='Europe/London'>London</SelectItem>
-
-										<SelectItem value='Europe/Paris'>Paris</SelectItem>
-
-										<SelectItem value='Asia/Tokyo'>Tokyo</SelectItem>
 									</SelectContent>
 								</Select>
 							</div>

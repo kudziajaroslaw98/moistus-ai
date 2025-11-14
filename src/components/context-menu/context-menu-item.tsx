@@ -37,6 +37,7 @@ export const ContextMenuItem = React.forwardRef<
 				aria-describedby={shortcut ? `${label}-shortcut` : undefined}
 				aria-disabled={disabled || loading}
 				disabled={disabled || loading}
+				onClick={onClick}
 				ref={ref}
 				role='menuitem'
 				variant={variant === 'destructive' ? 'destructive-outline' : 'outline'}
@@ -50,7 +51,6 @@ export const ContextMenuItem = React.forwardRef<
 					'transition-all duration-200 ease-spring',
 					className
 				)}
-				onClick={onClick}
 			>
 				{loading ? (
 					<Loader2 className='h-4 w-4 animate-spin' />

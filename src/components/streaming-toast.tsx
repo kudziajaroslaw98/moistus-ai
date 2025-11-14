@@ -205,6 +205,12 @@ function ToastUI({
 				{isStreaming && (
 					<motion.button
 						animate={{ opacity: 1, scale: 1 }}
+						disabled={isStopping}
+						exit={{ opacity: 0, scale: 0.9 }}
+						initial={{ opacity: 0, scale: 0.9 }}
+						onClick={handleStop}
+						transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+						type='button'
 						className={cn(
 							'flex-shrink-0 p-1.5 rounded-md',
 							'text-zinc-400 hover:text-white hover:bg-zinc-800',
@@ -212,14 +218,9 @@ function ToastUI({
 							'focus:outline-none focus:ring-2 focus:ring-zinc-600',
 							isStopping && 'opacity-50 cursor-not-allowed'
 						)}
-						disabled={isStopping}
-						exit={{ opacity: 0, scale: 0.9 }}
-						initial={{ opacity: 0, scale: 0.9 }}
-						onClick={handleStop}
-						transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
-						type='button'
 					>
 						<X className='w-4 h-4' />
+
 						<span className='sr-only'>Stop generation</span>
 					</motion.button>
 				)}

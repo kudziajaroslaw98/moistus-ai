@@ -46,7 +46,7 @@ interface BuildNodeMenuParams {
 	toggleNodeCollapse: (nodeId: string) => void;
 	removeNodesFromGroup: (nodeIds: string[]) => void;
 	deleteNodes: (nodes: AppNode[]) => void;
-	reactFlowInstance: ReactFlowInstance;
+	reactFlowInstance: ReactFlowInstance | null;
 	onClose: () => void;
 	aiActions: {
 		suggestCounterpoints?: () => void;
@@ -270,6 +270,7 @@ interface BuildPaneMenuParams {
 	aiActions: {
 		suggestConnections: () => void;
 		suggestMerges: () => void;
+		suggestCounterpoints?: () => void;
 	};
 	loadingStates: any;
 	applyLayout: any;
@@ -347,7 +348,7 @@ function buildPaneMenu(params: BuildPaneMenuParams): MenuSection[] {
 					id: 'suggest-counterpoints',
 					icon: <NotepadTextDashed className='h-4 w-4' />,
 					label: 'Generate Counterpoints',
-					onClick: aiActions.suggestCounterpoints,
+					onClick: () => aiActions.suggestCounterpoints?.(),
 					loading: loadingStates.isGenerating,
 				},
 				{

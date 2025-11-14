@@ -129,6 +129,17 @@ export function PricingStep({
 				>
 					<button
 						className='px-4 py-2 rounded-md text-sm font-medium transition-all'
+						onClick={handleToggleBilling}
+						onMouseEnter={(e) => {
+							if (billingCycle !== 'monthly') {
+								e.currentTarget.style.color = GlassmorphismTheme.text.high;
+							}
+						}}
+						onMouseLeave={(e) => {
+							if (billingCycle !== 'monthly') {
+								e.currentTarget.style.color = GlassmorphismTheme.text.medium;
+							}
+						}}
 						style={{
 							backgroundColor:
 								billingCycle === 'monthly'
@@ -140,17 +151,6 @@ export function PricingStep({
 									: GlassmorphismTheme.text.medium,
 							transitionDuration: '200ms',
 							transitionTimingFunction: 'ease',
-						}}
-						onClick={handleToggleBilling}
-						onMouseEnter={(e) => {
-							if (billingCycle !== 'monthly') {
-								e.currentTarget.style.color = GlassmorphismTheme.text.high;
-							}
-						}}
-						onMouseLeave={(e) => {
-							if (billingCycle !== 'monthly') {
-								e.currentTarget.style.color = GlassmorphismTheme.text.medium;
-							}
 						}}
 					>
 						Monthly
@@ -158,6 +158,17 @@ export function PricingStep({
 
 					<button
 						className='px-4 py-2 rounded-md text-sm font-medium transition-all'
+						onClick={handleToggleBilling}
+						onMouseEnter={(e) => {
+							if (billingCycle !== 'yearly') {
+								e.currentTarget.style.color = GlassmorphismTheme.text.high;
+							}
+						}}
+						onMouseLeave={(e) => {
+							if (billingCycle !== 'yearly') {
+								e.currentTarget.style.color = GlassmorphismTheme.text.medium;
+							}
+						}}
 						style={{
 							backgroundColor:
 								billingCycle === 'yearly'
@@ -169,17 +180,6 @@ export function PricingStep({
 									: GlassmorphismTheme.text.medium,
 							transitionDuration: '200ms',
 							transitionTimingFunction: 'ease',
-						}}
-						onClick={handleToggleBilling}
-						onMouseEnter={(e) => {
-							if (billingCycle !== 'yearly') {
-								e.currentTarget.style.color = GlassmorphismTheme.text.high;
-							}
-						}}
-						onMouseLeave={(e) => {
-							if (billingCycle !== 'yearly') {
-								e.currentTarget.style.color = GlassmorphismTheme.text.medium;
-							}
 						}}
 					>
 						Yearly
@@ -202,6 +202,19 @@ export function PricingStep({
 						className='relative rounded-xl cursor-pointer'
 						initial={{ opacity: 0, y: 20 }}
 						key={tier.id}
+						onClick={() => handleSelectPlan(tier.id)}
+						onMouseEnter={(e) => {
+							if (selectedPlan !== tier.id) {
+								e.currentTarget.style.borderColor =
+									GlassmorphismTheme.borders.hover;
+							}
+						}}
+						onMouseLeave={(e) => {
+							if (selectedPlan !== tier.id) {
+								e.currentTarget.style.borderColor =
+									GlassmorphismTheme.borders.default;
+							}
+						}}
 						style={{
 							border: `1px solid ${
 								selectedPlan === tier.id
@@ -222,19 +235,6 @@ export function PricingStep({
 							duration: 0.3,
 							ease: [0.165, 0.84, 0.44, 1],
 							delay: (index + 1) * 0.1,
-						}}
-						onClick={() => handleSelectPlan(tier.id)}
-						onMouseEnter={(e) => {
-							if (selectedPlan !== tier.id) {
-								e.currentTarget.style.borderColor =
-									GlassmorphismTheme.borders.hover;
-							}
-						}}
-						onMouseLeave={(e) => {
-							if (selectedPlan !== tier.id) {
-								e.currentTarget.style.borderColor =
-									GlassmorphismTheme.borders.default;
-							}
 						}}
 					>
 						{tier.recommended && (
@@ -333,18 +333,6 @@ export function PricingStep({
 
 							<Button
 								className='w-full mt-6 transition-all font-medium'
-								style={{
-									backgroundColor:
-										selectedPlan === tier.id
-											? 'rgba(52, 211, 153, 0.8)'
-											: GlassmorphismTheme.elevation[4],
-									color:
-										selectedPlan === tier.id
-											? GlassmorphismTheme.elevation[0]
-											: GlassmorphismTheme.text.high,
-									transitionDuration: '200ms',
-									transitionTimingFunction: 'ease',
-								}}
 								onClick={(e) => {
 									e.stopPropagation();
 									handleSelectPlan(tier.id);
@@ -367,6 +355,18 @@ export function PricingStep({
 											GlassmorphismTheme.elevation[4];
 									}
 								}}
+								style={{
+									backgroundColor:
+										selectedPlan === tier.id
+											? 'rgba(52, 211, 153, 0.8)'
+											: GlassmorphismTheme.elevation[4],
+									color:
+										selectedPlan === tier.id
+											? GlassmorphismTheme.elevation[0]
+											: GlassmorphismTheme.text.high,
+									transitionDuration: '200ms',
+									transitionTimingFunction: 'ease',
+								}}
 							>
 								{selectedPlan === tier.id ? 'Selected' : tier.ctaText}
 							</Button>
@@ -388,18 +388,18 @@ export function PricingStep({
 			>
 				<Button
 					className='transition-colors'
-					variant='ghost'
-					style={{
-						color: GlassmorphismTheme.text.medium,
-						transitionDuration: '200ms',
-						transitionTimingFunction: 'ease',
-					}}
 					onClick={onBack}
+					variant='ghost'
 					onMouseEnter={(e) => {
 						e.currentTarget.style.color = GlassmorphismTheme.text.high;
 					}}
 					onMouseLeave={(e) => {
 						e.currentTarget.style.color = GlassmorphismTheme.text.medium;
+					}}
+					style={{
+						color: GlassmorphismTheme.text.medium,
+						transitionDuration: '200ms',
+						transitionTimingFunction: 'ease',
 					}}
 				>
 					Back
@@ -408,19 +408,8 @@ export function PricingStep({
 				<Button
 					className='font-semibold px-8 transition-all'
 					disabled={!selectedPlan}
-					size='lg'
-					style={{
-						backgroundColor: selectedPlan
-							? 'rgba(52, 211, 153, 0.8)'
-							: GlassmorphismTheme.elevation[4],
-						color: selectedPlan
-							? GlassmorphismTheme.elevation[0]
-							: GlassmorphismTheme.text.disabled,
-						transitionDuration: '200ms',
-						transitionTimingFunction: 'ease',
-						opacity: selectedPlan ? 1 : 0.5,
-					}}
 					onClick={handleContinue}
+					size='lg'
 					onMouseEnter={(e) => {
 						if (selectedPlan) {
 							e.currentTarget.style.backgroundColor = 'rgba(52, 211, 153, 1)';
@@ -432,6 +421,17 @@ export function PricingStep({
 							e.currentTarget.style.backgroundColor = 'rgba(52, 211, 153, 0.8)';
 							e.currentTarget.style.transform = 'translateY(0)';
 						}
+					}}
+					style={{
+						backgroundColor: selectedPlan
+							? 'rgba(52, 211, 153, 0.8)'
+							: GlassmorphismTheme.elevation[4],
+						color: selectedPlan
+							? GlassmorphismTheme.elevation[0]
+							: GlassmorphismTheme.text.disabled,
+						transitionDuration: '200ms',
+						transitionTimingFunction: 'ease',
+						opacity: selectedPlan ? 1 : 0.5,
 					}}
 				>
 					{selectedPlan === 'free' ? 'Start Free' : 'Continue to Payment'}

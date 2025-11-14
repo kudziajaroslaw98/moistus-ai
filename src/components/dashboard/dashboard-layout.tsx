@@ -134,12 +134,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 					collapsed={sidebarCollapsed}
 					isActive={false}
 					label={item.label}
+					onClick={() => {}}
 					icon={
 						<div className={cn('flex-shrink-0 text-zinc-500')}>
 							{item.icon}
 						</div>
 					}
-					onClick={() => {}}
 				/>
 			);
 
@@ -175,6 +175,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 								collapsed={true}
 								isActive={isActive}
 								label={item.label}
+								onClick={() => {}}
 								icon={
 									<div
 										className={cn('flex-shrink-0', isActive && 'text-sky-400')}
@@ -182,7 +183,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 										{item.icon}
 									</div>
 								}
-								onClick={() => {}}
 							/>
 						</TooltipTrigger>
 
@@ -200,12 +200,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 					badge={renderBadge()}
 					isActive={isActive}
 					label={item.label}
+					onClick={() => {}}
 					icon={
 						<div className={cn('flex-shrink-0', isActive && 'text-sky-400')}>
 							{item.icon}
 						</div>
 					}
-					onClick={() => {}}
 				/>
 			</Link>
 		);

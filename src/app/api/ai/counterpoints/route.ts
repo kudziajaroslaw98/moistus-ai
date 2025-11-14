@@ -299,7 +299,7 @@ Context:\n${contextString}`;
 
 						if (!hasProAccess) {
 							await trackAIUsage(user, supabase, 'counterpoints', {
-								mapId,
+								mapId: mapId,
 								trigger: context.trigger,
 								count: index,
 							});

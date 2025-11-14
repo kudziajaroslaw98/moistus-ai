@@ -7,7 +7,6 @@ import type { NodeData } from '@/types/node-data';
 import type { PathType } from '@/types/path-types';
 import { cn } from '@/utils/cn';
 import {
-	BaseEdge,
 	type Edge,
 	type EdgeProps,
 	getBezierPath,
@@ -17,7 +16,7 @@ import {
 	Position,
 	useInternalNode,
 } from '@xyflow/react';
-import { motion, useMotionValue, useTransform, animate } from 'motion/react';
+import { animate, motion, useMotionValue, useTransform } from 'motion/react';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 
@@ -201,34 +200,38 @@ function AnimatedGhostEdgeComponent({
 			{/* Define gradient and glow effects */}
 			<defs>
 				{/* Gradient stroke */}
-				<linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-					<stop offset="0%" stopColor={ghostColor} stopOpacity="0.2" />
-					<stop offset="50%" stopColor={ghostColorBright} stopOpacity="0.8" />
-					<stop offset="100%" stopColor={ghostColor} stopOpacity="0.2" />
+				<linearGradient id={gradientId} x1='0%' x2='100%' y1='0%' y2='0%'>
+					<stop offset='0%' stopColor={ghostColor} stopOpacity='0.2' />
+
+					<stop offset='50%' stopColor={ghostColorBright} stopOpacity='0.8' />
+
+					<stop offset='100%' stopColor={ghostColor} stopOpacity='0.2' />
 				</linearGradient>
 
 				{/* Glow effect */}
 				<filter id={glowId}>
-					<feGaussianBlur stdDeviation="2" result="coloredBlur" />
+					<feGaussianBlur result='coloredBlur' stdDeviation='2' />
+
 					<feMerge>
-						<feMergeNode in="coloredBlur" />
-						<feMergeNode in="SourceGraphic" />
+						<feMergeNode in='coloredBlur' />
+
+						<feMergeNode in='SourceGraphic' />
 					</feMerge>
 				</filter>
 			</defs>
 
 			{/* Animated path */}
 			<motion.path
-				ref={pathRef}
-				id={id}
 				d={edgePath}
-				fill="none"
+				fill='none'
+				filter={`url(#${glowId})`}
+				id={id}
+				ref={pathRef}
 				stroke={`url(#${gradientId})`}
-				strokeWidth={strokeWidth}
 				strokeDasharray={pathLength}
 				strokeDashoffset={dashOffset}
-				strokeLinecap="round"
-				filter={`url(#${glowId})`}
+				strokeLinecap='round'
+				strokeWidth={strokeWidth}
 				className={cn(
 					'react-flow__edge-path',
 					'pointer-events-none',

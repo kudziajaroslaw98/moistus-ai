@@ -254,17 +254,17 @@ export function SharePanel({
 
 	return (
 		<SidePanel
+			className='w-[400px]'
 			isOpen={isOpen}
 			onClose={onClose}
 			title={`Share ${mindMap?.title || 'Untitled Map'}`}
-			className='w-[400px]'
 		>
 			<div className='flex h-full flex-col'>
 				{/* Tabs */}
 				<Tabs
 					className='flex-1 max-h-screen overflow-y-auto py-2'
-					value={activeTab}
 					onValueChange={(v) => setActiveTab(v as any)}
+					value={activeTab}
 				>
 					<TabsList className='grid w-full grid-cols-2 px-4 gap-1'>
 						<TabsTrigger value='room-code'>
@@ -400,9 +400,9 @@ export function SharePanel({
 										<RoomCodeDisplay
 											showQRCode
 											key={token.id}
-											token={token}
 											onRefresh={handleRefreshCode}
 											onRevoke={handleRevokeCode}
+											token={token}
 										/>
 									))}
 								</div>
@@ -501,9 +501,9 @@ export function SharePanel({
 													{share.share.role !== 'owner' && (
 														<Button
 															className='h-8 w-8'
+															onClick={() => handleDeleteShare(share.share.id)}
 															size='icon'
 															variant='ghost'
-															onClick={() => handleDeleteShare(share.share.id)}
 														>
 															<Trash2 className='h-4 w-4' />
 														</Button>

@@ -23,7 +23,14 @@ export interface UserProfileSlice {
 	getTheme: () => 'light' | 'dark' | 'system';
 	getLanguage: () => string;
 	getTimezone: () => string;
-	getNotificationPreferences: () => NonNullable<UserProfile['preferences']>['notifications'];
+	getNotificationPreferences: () => {
+		email_comments: boolean;
+		email_mentions: boolean;
+		email_reactions: boolean;
+		push_comments: boolean;
+		push_mentions: boolean;
+		push_reactions: boolean;
+	};
 	getPrivacyPreferences: () => NonNullable<UserProfile['preferences']>['privacy'];
 }
 

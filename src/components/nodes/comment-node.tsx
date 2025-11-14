@@ -138,25 +138,21 @@ const CommentNodeComponent = (props: CommentNodeProps) => {
 	return (
 		<BaseNodeWrapper
 			{...props}
-			hideNodeType
 			hideAddButton
+			hideNodeType
 			hideResizeFrame
+			accentColor={commentAccentColor}
 			elevation={2}
 			includePadding={false}
 			nodeClassName='comment-node'
 			nodeIcon={<MessageSquare className='size-4' />}
 			nodeType='Comment Thread'
-			accentColor={commentAccentColor}
 		>
 			<motion.div
-				initial={{ opacity: 0, scale: 0.95, y: 20 }}
 				animate={{ opacity: 1, scale: 1, y: 0 }}
-				exit={{ opacity: 0, scale: 0.95, y: 20 }}
-				transition={{
-					duration: 0.2,
-					ease: [0.25, 0.46, 0.45, 0.94], // ease-out-quad
-				}}
 				className='flex flex-col h-full rounded-lg overflow-hidden nowheel'
+				exit={{ opacity: 0, scale: 0.95, y: 20 }}
+				initial={{ opacity: 0, scale: 0.95, y: 20 }}
 				onWheel={(e) => e.stopPropagation()}
 				style={{
 					border: `2px solid ${commentAccentColor}`,
@@ -164,6 +160,10 @@ const CommentNodeComponent = (props: CommentNodeProps) => {
 					// Subtle teal background tint for extra distinction
 					backgroundImage:
 						'linear-gradient(to bottom, rgba(20, 184, 166, 0.04) 0%, transparent 100%)',
+				}}
+				transition={{
+					duration: 0.2,
+					ease: [0.25, 0.46, 0.45, 0.94], // ease-out-quad
 				}}
 			>
 				{/* Header */}
@@ -180,6 +180,7 @@ const CommentNodeComponent = (props: CommentNodeProps) => {
 							className='size-4'
 							style={{ color: commentAccentColor }}
 						/>
+
 						<span className='text-sm font-medium text-text-primary'>
 							Comment #{commentNumber}
 						</span>
@@ -193,15 +194,15 @@ const CommentNodeComponent = (props: CommentNodeProps) => {
 					{/* Navigation */}
 					<div className='flex items-center gap-1'>
 						<Button
-							size='sm'
-							variant='ghost'
+							aria-label='Previous comment'
 							disabled={!hasPrev}
 							onClick={() => handleNavigate(prevCommentId)}
+							size='sm'
+							variant='ghost'
 							className={cn(
 								'size-7 p-0',
 								hasPrev ? 'text-text-secondary' : 'text-text-disabled'
 							)}
-							aria-label='Previous comment'
 						>
 							<ChevronLeft className='size-4' />
 						</Button>
@@ -211,15 +212,15 @@ const CommentNodeComponent = (props: CommentNodeProps) => {
 						</span>
 
 						<Button
-							size='sm'
-							variant='ghost'
+							aria-label='Next comment'
 							disabled={!hasNext}
 							onClick={() => handleNavigate(nextCommentId)}
+							size='sm'
+							variant='ghost'
 							className={cn(
 								'size-7 p-0',
 								hasNext ? 'text-text-secondary' : 'text-text-disabled'
 							)}
-							aria-label='Next comment'
 						>
 							<ChevronRight className='size-4' />
 						</Button>
@@ -228,8 +229,8 @@ const CommentNodeComponent = (props: CommentNodeProps) => {
 
 				{/* Thread List */}
 				<CommentThreadList
-					messages={messages}
 					currentUserId={currentUser?.id}
+					messages={messages}
 				/>
 
 				{/* Reply Input */}

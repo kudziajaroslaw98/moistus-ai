@@ -98,6 +98,7 @@ export function ChangeItem({
 						>
 							{getOperationIcon()}
 						</div>
+
 						<span className='text-white/87 font-medium'>{label}</span>
 					</div>
 

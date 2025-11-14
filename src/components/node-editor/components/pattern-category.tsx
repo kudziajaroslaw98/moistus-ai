@@ -35,8 +35,8 @@ export const PatternCategory: React.FC<PatternCategoryProps> = memo(
 						<PatternItem
 							isInteractive
 							key={`${pattern.pattern}-${index}`}
-							pattern={pattern}
 							onClick={onPatternClick}
+							pattern={pattern}
 						/>
 					))}
 				</div>

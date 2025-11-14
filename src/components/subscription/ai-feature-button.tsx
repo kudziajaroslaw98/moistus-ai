@@ -60,6 +60,7 @@ export function AIFeatureButton({
 				whileTap={{ scale: 0.98 }}
 			>
 				<Button
+					onClick={handleClick}
 					size={size}
 					variant={variant}
 					className={cn(
@@ -67,7 +68,6 @@ export function AIFeatureButton({
 						variant === 'default' && 'bg-zinc-700 hover:bg-zinc-600',
 						className
 					)}
-					onClick={handleClick}
 				>
 					<Lock className='w-4 h-4 mr-2 group-hover:hidden' />
 
@@ -98,9 +98,9 @@ export function AIFeatureButton({
 		<Button
 			className={cn('relative', className)}
 			disabled={disabled}
+			onClick={handleClick}
 			size={size}
 			variant={variant}
-			onClick={handleClick}
 		>
 			<Sparkles className='w-4 h-4 mr-2' />
 
@@ -125,8 +125,8 @@ export function AIGenerateSuggestions() {
 
 			<AIFeatureButton
 				className='w-full'
-				variant='outline'
 				onClick={handleGenerateSuggestions}
+				variant='outline'
 			>
 				Generate AI Suggestions
 			</AIFeatureButton>

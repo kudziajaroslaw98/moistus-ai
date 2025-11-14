@@ -215,6 +215,8 @@ const MindMapCardComponent = ({
 				animate={{ opacity: 1, y: 0 }}
 				exit={{ opacity: 0, y: -10 }}
 				initial={{ opacity: 0, y: 10 }}
+				onMouseEnter={() => setIsHovered(true)}
+				onMouseLeave={() => setIsHovered(false)}
 				transition={{ duration: 0.2 }}
 				className={cn(
 					'group relative flex items-center gap-4 p-4 rounded-lg border transition-all',
@@ -222,8 +224,6 @@ const MindMapCardComponent = ({
 					selected && 'border-sky-600 bg-sky-950/20',
 					'hover:shadow-lg hover:shadow-zinc-900/50'
 				)}
-				onMouseEnter={() => setIsHovered(true)}
-				onMouseLeave={() => setIsHovered(false)}
 			>
 				{/* Selection Checkbox */}
 				{onSelect && (
@@ -231,9 +231,9 @@ const MindMapCardComponent = ({
 						<Checkbox
 							checked={selected}
 							className='touch-manipulation'
+							onChange={(checked) => onSelect?.(map.id, checked)}
 							size='sm'
 							variant='default'
-							onChange={(checked) => onSelect?.(map.id, checked)}
 						/>
 					</div>
 				)}
@@ -273,13 +273,13 @@ const MindMapCardComponent = ({
 
 				{/* Actions */}
 				<div className='flex items-center gap-2'>
-					<DropdownMenu open={isActionsOpen} onOpenChange={setIsActionsOpen}>
+					<DropdownMenu onOpenChange={setIsActionsOpen} open={isActionsOpen}>
 						<DropdownMenuTrigger asChild>
 							<Button
 								className='h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity'
+								onClick={(e) => e.stopPropagation()}
 								size='icon'
 								variant='ghost'
-								onClick={(e) => e.stopPropagation()}
 							>
 								<MoreVertical className='h-4 w-4' />
 							</Button>
@@ -337,9 +337,13 @@ const MindMapCardComponent = ({
 			aria-label={`Mind map: ${map.title}. Press Enter to open, Space to select, Delete to remove.`}
 			exit={{ opacity: 0, scale: 0.95 }}
 			initial={{ opacity: 0, scale: 0.95 }}
+			onMouseLeave={() => setIsHovered(false)}
+			onTouchStart={() => setIsHovered(true)}
+			transition={{ duration: 0.2 }}
+			onKeyDown={handleKeyDown}
+			onMouseEnter={() => setIsHovered(true)}
 			role='button'
 			tabIndex={0}
-			transition={{ duration: 0.2 }}
 			className={cn(
 				'group/mind-card relative touch-manipulation focus:outline-none',
 				'focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-zinc-900 rounded-lg',
@@ -347,12 +351,6 @@ const MindMapCardComponent = ({
 					'ring-2 ring-sky-600 ring-offset-2 ring-offset-zinc-900 rounded-lg',
 				(isFocused || isHovered) && 'z-10'
 			)}
-			// Enhanced touch interactions
-			onKeyDown={handleKeyDown}
-			// Keyboard navigation support
-			onMouseEnter={() => setIsHovered(true)}
-			onMouseLeave={() => setIsHovered(false)}
-			onTouchStart={() => setIsHovered(true)}
 			onBlur={() => {
 				setIsFocused(false);
 				setIsHovered(false);
@@ -362,7 +360,6 @@ const MindMapCardComponent = ({
 				setIsHovered(true);
 			}}
 			onTouchEnd={() => {
-				// Keep hovered state briefly for better UX
 				setTimeout(() => setIsHovered(false), 2000);
 			}}
 		>
@@ -459,9 +456,9 @@ const MindMapCardComponent = ({
 								<Checkbox
 									checked={selected}
 									className='touch-manipulation'
+									onChange={(checked) => onSelect?.(map.id, checked)}
 									size='md'
 									variant='card'
-									onChange={(checked) => onSelect?.(map.id, checked)}
 								/>
 							</div>
 						</motion.div>
@@ -478,6 +475,7 @@ const MindMapCardComponent = ({
 									animate={{ opacity: 1, scale: 1 }}
 									exit={{ opacity: 0, scale: 0.8 }}
 									initial={{ opacity: 0, scale: 0.8 }}
+									onClick={(e) => e.preventDefault()}
 									size='icon'
 									variant='ghost'
 									className={cn(
@@ -487,7 +485,6 @@ const MindMapCardComponent = ({
 										'touch-manipulation rounded-full',
 										isHovered ? 'opacity-80' : 'opacity-20'
 									)}
-									onClick={(e) => e.preventDefault()}
 								>
 									<MoreVertical className='h-3 w-3' />
 								</Button>

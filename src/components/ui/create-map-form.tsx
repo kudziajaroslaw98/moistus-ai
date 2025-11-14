@@ -51,8 +51,8 @@ const CreateMapForm = forwardRef<HTMLFormElement, CreateMapFormProps>(
 		return (
 			<form
 				className={cn('group relative max-w-md', className)}
-				ref={ref}
 				onSubmit={handleSubmit}
+				ref={ref}
 			>
 				{/* Unified Input Group Container */}
 				<div className='relative flex items-center rounded-lg border border-zinc-700/50 bg-zinc-800/30 backdrop-blur-sm shadow-lg transition-all duration-200 hover:border-zinc-600/50 hover:bg-zinc-800/50 focus-within:border-sky-500/60 focus-within:bg-zinc-800/70 focus-within:ring-2 focus-within:ring-sky-500/20 focus-within:ring-offset-2 focus-within:ring-offset-zinc-900'>
@@ -60,10 +60,10 @@ const CreateMapForm = forwardRef<HTMLFormElement, CreateMapFormProps>(
 					<Input
 						className='flex-1 !bg-transparent focus:!bg-transparent focus:border-transparent shadow-none focus:ring-offset-0 ring-transparent !border-transparent px-4 py-2.5 text-zinc-100 placeholder-zinc-400 focus:!outline-none focus:ring-0 disabled:opacity-50'
 						disabled={disabled || isSubmitting}
+						onChange={(e) => setTitle(e.target.value)}
 						placeholder={placeholder}
 						type='text'
 						value={title}
-						onChange={(e) => setTitle(e.target.value)}
 					/>
 
 					{/* Create Button */}

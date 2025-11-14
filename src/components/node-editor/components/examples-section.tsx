@@ -53,11 +53,11 @@ export const ExamplesSection: React.FC<ExamplesSectionProps> = ({
 					{hasMoreExamples && (
 						<motion.button
 							className={theme.expandButton}
+							onClick={() => setShowAll(!showAll)}
 							transition={{ duration: 0.1 }}
 							type='button'
 							whileHover={{ scale: 1.05 }}
 							whileTap={{ scale: 0.95 }}
-							onClick={() => setShowAll(!showAll)}
 						>
 							{showAll ? 'Show less' : `Show all (${examples.length})`}
 						</motion.button>
@@ -71,11 +71,11 @@ export const ExamplesSection: React.FC<ExamplesSectionProps> = ({
 							className={theme.exampleButton}
 							initial={{ opacity: 0, y: 5 }}
 							key={`${example}-${index}`}
+							onClick={() => onUseExample(example)}
 							transition={{ delay: 0.1 * index, duration: 0.2 }}
 							type='button'
 							whileHover={{ scale: 1.02 }}
 							whileTap={{ scale: 0.98 }}
-							onClick={() => onUseExample(example)}
 						>
 							{example}
 						</motion.button>

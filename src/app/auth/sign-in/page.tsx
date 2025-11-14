@@ -47,10 +47,10 @@ export default function SignIn() {
 						<Input
 							required
 							id='email'
+							onChange={(e) => setEmail(e.target.value)}
 							placeholder='you@example.com'
 							type='email'
 							value={email}
-							onChange={(e) => setEmail(e.target.value)}
 						/>
 					</FormField>
 
@@ -58,10 +58,10 @@ export default function SignIn() {
 						<Input
 							required
 							id='password'
+							onChange={(e) => setPassword(e.target.value)}
 							placeholder='••••••••'
 							type='password'
 							value={password}
-							onChange={(e) => setPassword(e.target.value)}
 						/>
 					</FormField>
 

@@ -61,7 +61,7 @@ export const AnimateChangeInHeight: React.FC<AnimateChangeInHeightProps> = ({
 			className={cn('overflow', className)}
 			transition={{
 				type: 'spring',
-				stiffness: 500,
+				stiffness: 600,
 				damping: 24,
 			}}
 		>

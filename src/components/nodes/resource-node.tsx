@@ -24,7 +24,7 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 
 	// Helper to remeasure node dimensions after content changes
 	const remeasureNode = useCallback(
-		(width: number, height: number) => {
+		(width?: number, height?: number) => {
 			if (!containerRef.current) return;
 
 			// Find the node wrapper parent (the ref is attached there)
@@ -35,7 +35,7 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 			const actualWidth = (nodeWrapper as HTMLElement).offsetWidth;
 
 			// Update dimensions immediately
-			updateNodeDimensions(id, actualWidth, actualHeight, { width, height });
+			updateNodeDimensions(id, actualWidth, actualHeight, width && height ? { width, height } : undefined);
 		},
 		[id, updateNodeDimensions]
 	);
@@ -116,15 +116,6 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 										? data.metadata?.imageSize?.height
 										: undefined
 								}
-								style={{
-									opacity: imageLoading ? 0 : 1,
-									transition: 'opacity 0.3s ease-out',
-								}}
-								width={
-									data.metadata?.imageSize?.width !== undefined
-										? data.metadata?.imageSize?.width
-										: undefined
-								}
 								onError={() => {
 									setImageError(true);
 									setImageLoading(false);
@@ -136,6 +127,15 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 									// Remeasure after image loads (affects height)
 									setTimeout(() => remeasureNode(width, height), 50);
 								}}
+								style={{
+									opacity: imageLoading ? 0 : 1,
+									transition: 'opacity 0.3s ease-out',
+								}}
+								width={
+									data.metadata?.imageSize?.width !== undefined
+										? data.metadata?.imageSize?.width
+										: undefined
+								}
 							/>
 						) : (
 							<div
@@ -210,10 +210,6 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 							<Button
 								className='p-2 rounded-md transition-all duration-200 hover:scale-110'
 								variant={'ghost'}
-								style={{
-									backgroundColor: 'transparent',
-									border: `1px solid ${GlassmorphismTheme.borders.default}`,
-								}}
 								onMouseEnter={(e) => {
 									e.currentTarget.style.backgroundColor =
 										'rgba(147, 197, 253, 0.1)';
@@ -224,6 +220,10 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 									e.currentTarget.style.backgroundColor = 'transparent';
 									e.currentTarget.style.borderColor =
 										GlassmorphismTheme.borders.default;
+								}}
+								style={{
+									backgroundColor: 'transparent',
+									border: `1px solid ${GlassmorphismTheme.borders.default}`,
 								}}
 							>
 								<ExternalLink

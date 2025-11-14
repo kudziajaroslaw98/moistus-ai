@@ -73,15 +73,16 @@ export function TagInput({
 			{/* Tags */}
 			{value.map((tag, index) => (
 				<span
-					key={index}
 					className='group inline-flex items-center gap-1 rounded-md bg-sky-500/20 px-2 py-1 text-xs font-medium text-sky-300 ring-1 ring-sky-500/30 transition-colors hover:bg-sky-500/30'
+					key={index}
 				>
 					{tag}
+
 					<button
-						type='button'
-						onClick={() => removeTag(index)}
-						className='rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-1 focus:ring-sky-400'
 						aria-label={`Remove ${tag} tag`}
+						className='rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-1 focus:ring-sky-400'
+						onClick={() => removeTag(index)}
+						type='button'
 					>
 						<X className='h-3 w-3' />
 					</button>
@@ -90,20 +91,20 @@ export function TagInput({
 
 			{/* Input */}
 			<input
-				type='text'
-				value={inputValue}
-				onChange={(e) => setInputValue(e.target.value)}
-				onKeyDown={handleKeyDown}
-				onBlur={addTag}
-				placeholder={value.length === 0 ? placeholder : ''}
 				className='min-w-[120px] flex-1 border-none bg-transparent text-sm text-zinc-100 placeholder-zinc-400 outline-none'
 				disabled={value.length >= maxTags}
+				onBlur={addTag}
+				onChange={(e) => setInputValue(e.target.value)}
+				onKeyDown={handleKeyDown}
+				placeholder={value.length === 0 ? placeholder : ''}
+				type='text'
+				value={inputValue}
 			/>
 
 			{/* Tag count indicator */}
 			{value.length > 0 && (
 				<span className='text-xs text-zinc-500'>
-					{value.length}/{maxTags}
+					{`${value.length}/${maxTags}`}
 				</span>
 			)}
 		</div>

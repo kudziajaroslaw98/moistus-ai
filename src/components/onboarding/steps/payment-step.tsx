@@ -194,6 +194,7 @@ function PaymentForm({
 					className='mt-1'
 					disabled={isProcessing || succeeded}
 					id='email'
+					onChange={(e) => setEmail(e.target.value)}
 					placeholder='you@example.com'
 					type='email'
 					value={email}
@@ -202,7 +203,6 @@ function PaymentForm({
 						borderColor: GlassmorphismTheme.borders.default,
 						color: GlassmorphismTheme.text.high,
 					}}
-					onChange={(e) => setEmail(e.target.value)}
 				/>
 			</div>
 
@@ -222,8 +222,8 @@ function PaymentForm({
 					}}
 				>
 					<CardElement
-						options={CARD_ELEMENT_OPTIONS}
 						onChange={() => setError(null)}
+						options={CARD_ELEMENT_OPTIONS}
 					/>
 				</div>
 			</div>
@@ -290,14 +290,9 @@ function PaymentForm({
 				<Button
 					className='transition-colors'
 					disabled={isProcessing || succeeded}
+					onClick={onBack}
 					type='button'
 					variant='ghost'
-					style={{
-						color: GlassmorphismTheme.text.medium,
-						transitionDuration: '200ms',
-						transitionTimingFunction: 'ease',
-					}}
-					onClick={onBack}
 					onMouseEnter={(e) => {
 						if (!isProcessing && !succeeded) {
 							e.currentTarget.style.color = GlassmorphismTheme.text.high;
@@ -308,6 +303,11 @@ function PaymentForm({
 							e.currentTarget.style.color = GlassmorphismTheme.text.medium;
 						}
 					}}
+					style={{
+						color: GlassmorphismTheme.text.medium,
+						transitionDuration: '200ms',
+						transitionTimingFunction: 'ease',
+					}}
 				>
 					Back
 				</Button>
@@ -316,13 +316,6 @@ function PaymentForm({
 					className='font-semibold px-8 transition-all'
 					disabled={!stripe || isProcessing || succeeded}
 					type='submit'
-					style={{
-						backgroundColor: 'rgba(52, 211, 153, 0.8)',
-						color: GlassmorphismTheme.elevation[0],
-						transitionDuration: '200ms',
-						transitionTimingFunction: 'ease',
-						opacity: !stripe || isProcessing || succeeded ? 0.5 : 1,
-					}}
 					onMouseEnter={(e) => {
 						if (stripe && !isProcessing && !succeeded) {
 							e.currentTarget.style.backgroundColor = 'rgba(52, 211, 153, 1)';
@@ -335,6 +328,13 @@ function PaymentForm({
 								'rgba(52, 211, 153, 0.8)';
 							e.currentTarget.style.transform = 'translateY(0)';
 						}
+					}}
+					style={{
+						backgroundColor: 'rgba(52, 211, 153, 0.8)',
+						color: GlassmorphismTheme.elevation[0],
+						transitionDuration: '200ms',
+						transitionTimingFunction: 'ease',
+						opacity: !stripe || isProcessing || succeeded ? 0.5 : 1,
 					}}
 				>
 					{isProcessing ? (

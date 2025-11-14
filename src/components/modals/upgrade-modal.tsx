@@ -19,7 +19,7 @@ interface UpgradeModalProps {
 
 export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
 	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
+		<Dialog onOpenChange={onOpenChange} open={open}>
 			<DialogContent className='sm:max-w-[500px]'>
 				<DialogHeader>
 					<DialogTitle className='flex items-center gap-2 text-2xl'>
@@ -85,7 +85,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
 				</div>
 
 				<DialogFooter className='gap-2 sm:gap-0'>
-					<Button variant='outline' onClick={() => onOpenChange(false)}>
+					<Button onClick={() => onOpenChange(false)} variant='outline'>
 						Maybe Later
 					</Button>
 

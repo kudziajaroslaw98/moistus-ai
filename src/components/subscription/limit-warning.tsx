@@ -67,8 +67,8 @@ export function LimitWarning({ limitType, className }: LimitWarningProps) {
 
 						<Button
 							className='bg-teal-500 hover:bg-teal-600 text-zinc-900 font-medium'
-							size='sm'
 							onClick={handleUpgrade}
+							size='sm'
 						>
 							<Sparkles className='w-4 h-4 mr-2' />
 
@@ -111,6 +111,7 @@ export function InlineLimitWarning({
 		<motion.button
 			animate={{ opacity: 1, scale: 1 }}
 			initial={{ opacity: 0, scale: 0.9 }}
+			onClick={handleClick}
 			whileHover={{ scale: 1.05 }}
 			whileTap={{ scale: 0.95 }}
 			className={`
@@ -122,7 +123,6 @@ export function InlineLimitWarning({
 						: 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
 				}
       `}
-			onClick={handleClick}
 		>
 			<AlertCircle className='w-3.5 h-3.5' />
 

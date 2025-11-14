@@ -463,12 +463,12 @@ function ColorSwatchCard({ swatch }: ColorSwatchCardProps) {
 				<div className='flex flex-col gap-1 text-xs'>
 					{/* Variable Name */}
 					<button
+						onClick={() => copyToClipboard(`var(${swatch.variable})`)}
+						type='button'
 						className={cn(
 							'flex items-center justify-between rounded bg-elevated px-2 py-1 font-mono text-text-secondary transition-colors duration-200 hover:bg-overlay hover:text-text-primary',
 							copied && 'bg-success-900/20 text-success-400'
 						)}
-						type='button'
-						onClick={() => copyToClipboard(`var(${swatch.variable})`)}
 					>
 						<span className='truncate'>{swatch.variable}</span>
 
@@ -482,8 +482,8 @@ function ColorSwatchCard({ swatch }: ColorSwatchCardProps) {
 					{/* OKLCH Value */}
 					<button
 						className='flex items-center justify-between rounded bg-elevated px-2 py-1 font-mono text-text-tertiary transition-colors duration-200 hover:bg-overlay hover:text-text-secondary'
-						type='button'
 						onClick={() => copyToClipboard(colorValue)}
+						type='button'
 					>
 						<span className='truncate'>{colorValue}</span>
 

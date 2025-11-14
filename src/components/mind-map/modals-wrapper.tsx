@@ -23,13 +23,13 @@ export function ModalsWrapper() {
 					isOpen={popoverOpen.sharePanel}
 					mapId={mindMap.id}
 					mapTitle={mindMap.title}
+					onClose={() => setPopoverOpen({ sharePanel: false })}
 					currentUser={{
 						id: currentUser.id,
 						name:
 							currentUser.user_metadata?.name || currentUser.email || 'User',
 						email: currentUser.email || '',
 					}}
-					onClose={() => setPopoverOpen({ sharePanel: false })}
 				/>
 			)}
 

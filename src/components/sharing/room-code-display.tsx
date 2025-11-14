@@ -147,20 +147,20 @@ export function RoomCodeDisplay({
 				<div className='flex items-center gap-1'>
 					<Button
 						className='h-8 w-8 p-0'
+						onClick={handleCopyCode}
 						size='sm'
 						title='Copy room code'
 						variant='ghost'
-						onClick={handleCopyCode}
 					>
 						<Copy className='h-4 w-4' />
 					</Button>
 
 					<Button
 						className='h-8 w-8 p-0'
+						onClick={handleCopyLink}
 						size='sm'
 						title='Copy share link'
 						variant='ghost'
-						onClick={handleCopyLink}
 					>
 						<ExternalLink className='h-4 w-4' />
 					</Button>
@@ -168,10 +168,10 @@ export function RoomCodeDisplay({
 					{showQRCode && (
 						<Button
 							className='h-8 w-8 p-0'
+							onClick={() => setShowQR(!showQR)}
 							size='sm'
 							title='Show QR code'
 							variant='ghost'
-							onClick={() => setShowQR(!showQR)}
 						>
 							<QrCode className='h-4 w-4' />
 						</Button>
@@ -181,10 +181,10 @@ export function RoomCodeDisplay({
 						<Button
 							className='h-8 w-8 p-0'
 							disabled={isRefreshing || isExpired}
+							onClick={handleRefresh}
 							size='sm'
 							title='Refresh room code'
 							variant='ghost'
-							onClick={handleRefresh}
 						>
 							<RefreshCw
 								className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
@@ -195,10 +195,10 @@ export function RoomCodeDisplay({
 					{onRevoke && (
 						<Button
 							className='h-8 w-8 p-0 text-red-400 hover:text-red-300'
+							onClick={handleRevoke}
 							size='sm'
 							title='Revoke room code'
 							variant='ghost'
-							onClick={handleRevoke}
 						>
 							<X className='h-4 w-4' />
 						</Button>
@@ -310,9 +310,9 @@ export function RoomCodeDisplay({
 
 					<Button
 						className='h-6 w-6 p-0 flex-shrink-0'
+						onClick={handleCopyLink}
 						size='sm'
 						variant='ghost'
-						onClick={handleCopyLink}
 					>
 						<Copy className='h-3 w-3' />
 					</Button>

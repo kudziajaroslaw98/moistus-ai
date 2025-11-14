@@ -29,6 +29,7 @@ interface ContextMenuProps {
 	aiActions: {
 		suggestConnections: () => void;
 		suggestMerges: () => void;
+		suggestCounterpoints?: () => void;
 	};
 }
 
@@ -268,17 +269,17 @@ export function ContextMenu({ aiActions }: ContextMenuProps) {
 						variants={itemVariants}
 					>
 						<ContextMenuItem
+							className='border-border-strong'
 							disabled={item.disabled}
 							icon={item.icon}
 							label={item.label}
 							loading={item.loading}
+							onClick={item.onClick}
 							shortcut={item.shortcut}
 							variant={item.variant}
 							ref={(el) => {
 								menuItemsRef.current[itemIndex++] = el;
 							}}
-							onClick={item.onClick}
-							className='border-border-strong'
 						/>
 					</motion.div>
 				);
@@ -324,19 +325,19 @@ export function ContextMenu({ aiActions }: ContextMenuProps) {
 						animate='visible'
 						aria-label='Context menu'
 						aria-orientation='vertical'
-						className={cn(
-							'flex min-w-[250px] flex-col gap-1 py-2 rounded-sm focus:outline-none motion-reduce:transform-none',
-							'bg-overlay z-[9999] border border-border-strong shadow-border-default'
-						)}
 						exit='exit'
 						initial='hidden'
 						ref={refs.setFloating}
-						style={{ ...floatingStyles }}
 						role='menu'
+						style={{ ...floatingStyles }}
 						variants={menuVariants}
 						aria-activedescendant={
 							activeIndex !== null ? `menu-item-${activeIndex}` : undefined
 						}
+						className={cn(
+							'flex min-w-[250px] flex-col gap-1 py-2 rounded-sm focus:outline-none motion-reduce:transform-none',
+							'bg-overlay z-[9999] border border-border-strong shadow-border-default'
+						)}
 						{...getFloatingProps()}
 					>
 						{renderSections()}

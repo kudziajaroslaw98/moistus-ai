@@ -133,6 +133,8 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 									alt={altText}
 									fill={true}
 									loading='lazy'
+									onError={() => setImageState('error')}
+									onLoad={handleImageLoad}
 									placeholder='empty'
 									priority={false}
 									sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
@@ -147,8 +149,6 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 										opacity: imageState === 'loaded' ? 1 : 0,
 										filter: imageState === 'loaded' ? 'none' : 'blur(8px)',
 									}}
-									onError={() => setImageState('error')}
-									onLoad={handleImageLoad}
 								/>
 
 								{/* Image overlay gradient for better text readability when caption is shown */}
@@ -171,12 +171,12 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 									{/* View full size button */}
 									<button
 										className='p-1.5 rounded-md backdrop-blur-md'
+										onClick={() => window.open(imageUrl, '_blank')}
 										title='View full size'
 										style={{
 											backgroundColor: 'rgba(18, 18, 18, 0.8)',
 											border: `1px solid ${GlassmorphismTheme.borders.hover}`,
 										}}
-										onClick={() => window.open(imageUrl, '_blank')}
 									>
 										<ImageIcon
 											className='w-3.5 h-3.5'

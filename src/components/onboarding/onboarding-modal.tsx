@@ -72,8 +72,8 @@ export function OnboardingModal() {
 			case 0:
 				return (
 					<WelcomeStep
-						userName={useAppStore.getState().userProfile?.display_name}
 						onContinue={nextOnboardingStep}
+						userName={useAppStore.getState().userProfile?.display_name}
 					/>
 				);
 			case 1:
@@ -87,9 +87,9 @@ export function OnboardingModal() {
 				return (
 					<PricingStep
 						billingCycle={onboardingData.billingCycle || 'monthly'}
-						selectedPlan={onboardingData.selectedPlan || null}
 						onBack={previousOnboardingStep}
 						onContinue={nextOnboardingStep}
+						selectedPlan={onboardingData.selectedPlan || null}
 					/>
 				);
 			case 3:
@@ -101,9 +101,9 @@ export function OnboardingModal() {
 					return (
 						<PaymentStep
 							billingCycle={onboardingData.billingCycle || 'monthly'}
-							selectedPlan={onboardingData.selectedPlan}
 							onBack={previousOnboardingStep}
 							onComplete={nextOnboardingStep}
+							selectedPlan={onboardingData.selectedPlan}
 						/>
 					);
 				}
@@ -118,17 +118,17 @@ export function OnboardingModal() {
 	};
 
 	return (
-		<Dialog open={showOnboarding} onOpenChange={handleClose}>
+		<Dialog onOpenChange={handleClose} open={showOnboarding}>
 			<DialogContent
 				className='flex !w-full !max-w-4xl p-0 overflow-hidden'
+				onInteractOutside={(e) => e.preventDefault()}
+				onPointerDownOutside={(e) => e.preventDefault()}
 				showCloseButton={false}
 				style={{
 					backgroundColor: GlassmorphismTheme.elevation[2],
 					borderColor: GlassmorphismTheme.borders.default,
 					borderWidth: '1px',
 				}}
-				onInteractOutside={(e) => e.preventDefault()}
-				onPointerDownOutside={(e) => e.preventDefault()}
 			>
 				<motion.div
 					className='relative h-auto w-full flex flex-col'
@@ -138,16 +138,16 @@ export function OnboardingModal() {
 					<button
 						className='absolute top-4 right-4 z-10 text-sm transition-colors'
 						disabled={isAnimating}
-						style={{
-							color: GlassmorphismTheme.text.medium,
-							transitionDuration: GlassmorphismTheme.animations.duration.normal,
-						}}
 						onClick={handleSkip}
 						onMouseEnter={(e) => {
 							e.currentTarget.style.color = GlassmorphismTheme.text.high;
 						}}
 						onMouseLeave={(e) => {
 							e.currentTarget.style.color = GlassmorphismTheme.text.medium;
+						}}
+						style={{
+							color: GlassmorphismTheme.text.medium,
+							transitionDuration: GlassmorphismTheme.animations.duration.normal,
 						}}
 					>
 						Skip for now

@@ -90,16 +90,16 @@ export const SuggestedMergeEdge = (props: SuggestedMergeEdgeProps) => {
 						<div className='flex items-center gap-1.5'>
 							<Button
 								className='h-6 w-6 bg-green-600 hover:bg-green-500'
-								size='icon'
 								onClick={handleAccept}
+								size='icon'
 							>
 								<Check className='h-4 w-4' />
 							</Button>
 
 							<Button
 								className='h-6 w-6 bg-red-600 hover:bg-red-500'
-								size='icon'
 								onClick={handleReject}
+								size='icon'
 							>
 								<X className='h-4 w-4' />
 							</Button>

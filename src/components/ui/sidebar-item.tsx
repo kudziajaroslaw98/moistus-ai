@@ -82,6 +82,8 @@ export const SidebarItem = ({
 			<motion.div
 				aria-disabled={disabled}
 				aria-pressed={isActive}
+				onClick={disabled ? undefined : onClick}
+				onKeyDown={handleKeyDown}
 				role='button'
 				tabIndex={disabled ? -1 : tabIndex}
 				whileTap={disabled ? undefined : { scale: 0.98 }}
@@ -99,8 +101,6 @@ export const SidebarItem = ({
 					paddingLeft:
 						!collapsed && level > 0 ? `${level * 16 + 12}px` : undefined,
 				}}
-				onClick={disabled ? undefined : onClick}
-				onKeyDown={handleKeyDown}
 			>
 				{/* Icon */}
 				<div className='flex-shrink-0'>{icon}</div>

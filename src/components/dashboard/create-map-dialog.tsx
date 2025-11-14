@@ -43,7 +43,7 @@ export function CreateMapDialog({
 	};
 
 	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
+		<Dialog onOpenChange={onOpenChange} open={open}>
 			<DialogContent
 				className='bg-zinc-950 border border-zinc-800 w-2xl backdrop-blur-sm rounded-md shadow-2xl h-auto overflow-hidden'
 				showCloseButton={true}
@@ -70,8 +70,8 @@ export function CreateMapDialog({
 						className='w-full'
 						disabled={disabled}
 						loadingText='Creating...'
-						placeholder='Enter mind map title...'
 						onSubmit={handleSubmit}
+						placeholder='Enter mind map title...'
 					/>
 				</motion.div>
 

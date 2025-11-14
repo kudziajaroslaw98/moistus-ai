@@ -162,10 +162,10 @@ export const FloatingCompletionPanel: React.FC<FloatingCompletionPanelProps> = (
 					className="z-50"
 					exit={{ opacity: 0, scale: 0.95, y: -10 }}
 					initial={{ opacity: 0, scale: 0.95, y: -10 }}
+					onKeyDown={handleKeyDown}
 					ref={refs.setFloating}
 					style={floatingStyles}
 					transition={{ duration: 0.15 }}
-					onKeyDown={handleKeyDown}
 				>
 					<div className="bg-zinc-950/95 border border-zinc-800/80 rounded-xl shadow-2xl backdrop-blur-md ring-1 ring-teal-500/10 py-2 min-w-[280px] sm:min-w-[320px] max-w-[340px] sm:max-w-[380px] max-h-[400px] overflow-auto">
 						{/* Header */}

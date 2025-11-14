@@ -15,7 +15,13 @@ import { Separator } from '@/components/ui/separator';
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import useAppStore from '@/store/mind-map-store';
 import type { JoinRoomResult } from '@/store/slices/sharing-slice';
-import { AlertCircle, Brain, CheckCircle, RefreshCw, Users } from 'lucide-react';
+import {
+	AlertCircle,
+	Brain,
+	CheckCircle,
+	RefreshCw,
+	Users,
+} from 'lucide-react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
@@ -49,10 +55,16 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 	const [displayName, setDisplayName] = useState('');
 	const [isLoading, setIsLoading] = useState(true);
 	const [step, setStep] = useState<
-		'validating' | 'display-name' | 'confirm-join' | 'joining' | 'success' | 'error'
+		| 'validating'
+		| 'display-name'
+		| 'confirm-join'
+		| 'joining'
+		| 'success'
+		| 'error'
 	>('validating');
 	const [joinResult, setJoinResult] = useState<JoinRoomResult | null>(null);
-	const [authenticatedUser, setAuthenticatedUser] = useState<AuthenticatedUserInfo | null>(null);
+	const [authenticatedUser, setAuthenticatedUser] =
+		useState<AuthenticatedUserInfo | null>(null);
 
 	useEffect(() => {
 		const validateTokenAndPrepare = async () => {
@@ -70,7 +82,10 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 
 				// 2. Check if user is already authenticated
 				const supabase = getSharedSupabaseClient();
-				const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+				const {
+					data: { session },
+					error: sessionError,
+				} = await supabase.auth.getSession();
 
 				if (sessionError) {
 					console.warn('Session check failed:', sessionError);
@@ -111,7 +126,6 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 				const defaultName = `User ${Date.now().toString().slice(-4)}`;
 				setDisplayName(defaultName);
 				setStep('display-name');
-
 			} catch (error) {
 				console.error('Error validating token:', error);
 				setStep('error');
@@ -263,16 +277,16 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 							<div className='space-y-2'>
 								<Button
 									className='w-full'
-									variant='outline'
 									onClick={() => router.push('/dashboard')}
+									variant='outline'
 								>
 									Go to Dashboard
 								</Button>
 
 								<Button
 									className='w-full'
-									variant='ghost'
 									onClick={() => window.location.reload()}
+									variant='ghost'
 								>
 									Try Again
 								</Button>
@@ -309,7 +323,8 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 
 					<div className='space-y-2'>
 						<h2 className='text-2xl font-bold text-zinc-100'>
-							Welcome{authenticatedUser ? `, ${authenticatedUser.displayName}` : ''}!
+							Welcome
+							{authenticatedUser ? `, ${authenticatedUser.displayName}` : ''}!
 						</h2>
 
 						<p className='text-zinc-400'>
@@ -355,7 +370,9 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 						</h2>
 
 						<p className='text-zinc-400'>
-							{authenticatedUser ? 'Connecting with your account...' : 'Setting up your anonymous session...'}
+							{authenticatedUser
+								? 'Connecting with your account...'
+								: 'Setting up your anonymous session...'}
 						</p>
 					</div>
 				</motion.div>
@@ -417,10 +434,13 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 												/>
 											) : (
 												<span className='text-white font-semibold text-lg'>
-													{authenticatedUser.displayName.charAt(0).toUpperCase()}
+													{authenticatedUser.displayName
+														.charAt(0)
+														.toUpperCase()}
 												</span>
 											)}
 										</div>
+										
 										<div className='absolute -bottom-1 -right-1 h-4 w-4 bg-green-500 border-2 border-zinc-900 rounded-full' />
 									</div>
 
@@ -429,11 +449,13 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 										<div className='text-sm font-semibold text-zinc-100 truncate'>
 											{authenticatedUser.displayName}
 										</div>
+										
 										{authenticatedUser.email && (
 											<div className='text-xs text-zinc-400 truncate'>
 												{authenticatedUser.email}
 											</div>
 										)}
+										
 										<div className='text-xs text-teal-400 mt-1'>
 											Authenticated Account
 										</div>
@@ -540,9 +562,9 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 									autoComplete='name'
 									className='bg-zinc-800 border-zinc-700'
 									id='display_name'
+									onChange={(e) => setDisplayName(e.target.value)}
 									placeholder='Enter your name'
 									value={displayName}
-									onChange={(e) => setDisplayName(e.target.value)}
 									onKeyDown={(e) => {
 										if (e.key === 'Enter' && displayName.trim()) {
 											handleJoinRoom();
@@ -583,9 +605,9 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 
 							<Button
 								className='text-xs'
+								onClick={() => router.push('/auth/signin')}
 								size='sm'
 								variant='ghost'
-								onClick={() => router.push('/auth/signin')}
 							>
 								Already have an account? Sign in
 							</Button>

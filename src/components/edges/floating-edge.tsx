@@ -154,6 +154,8 @@ const FloatingEdgeComponent = ({
 				id={id}
 				markerEnd={`url(#arrow-end-${id})`}
 				markerStart={`url(#circle-start-${id}`}
+				onMouseEnter={() => setIsHovered(true)}
+				onMouseLeave={() => setIsHovered(false)}
 				path={edgePath}
 				className={cn(
 					'react-flow__edge-path',
@@ -167,8 +169,6 @@ const FloatingEdgeComponent = ({
 					stroke: color,
 					strokeWidth,
 				}}
-				onMouseEnter={() => setIsHovered(true)}
-				onMouseLeave={() => setIsHovered(false)}
 			>
 				<EdgeLabelRenderer>
 					<div
@@ -187,6 +187,7 @@ const FloatingEdgeComponent = ({
 						<Button
 							className='!size-6'
 							initial={{ opacity: 0, y: 10, scale: 0.8 }}
+							onClick={handleDeleteEdge}
 							size={'icon'}
 							title='Delete connection'
 							variant={'destructive'}
@@ -199,7 +200,6 @@ const FloatingEdgeComponent = ({
 								duration: 0.2,
 								ease: 'easeOut' as const,
 							}}
-							onClick={handleDeleteEdge}
 						>
 							<X className='w-3 h-3' />
 						</Button>

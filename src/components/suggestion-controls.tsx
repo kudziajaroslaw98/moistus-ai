@@ -66,9 +66,9 @@ export function SuggestionControls({ className }: SuggestionControlsProps) {
 						<Button
 							aria-label='Clear all suggestions'
 							className='h-6 w-6 p-0 text-zinc-400 hover:text-zinc-200'
+							onClick={clearAllSuggestions}
 							size='sm'
 							variant='ghost'
-							onClick={clearAllSuggestions}
 						>
 							<X className='h-3 w-3' />
 						</Button>
@@ -107,9 +107,9 @@ export function SuggestionControls({ className }: SuggestionControlsProps) {
 
 						<Button
 							className='w-full mt-2'
+							onClick={retry}
 							size='sm'
 							variant='secondary'
-							onClick={retry}
 						>
 							<RefreshCw className='h-3 w-3 mr-1' />
 							Try Again
@@ -142,9 +142,9 @@ export function SuggestionControls({ className }: SuggestionControlsProps) {
 						<div className='flex gap-2'>
 							<Button
 								className='flex-1'
+								onClick={clearAllSuggestions}
 								size='sm'
 								variant='secondary'
-								onClick={clearAllSuggestions}
 							>
 								<X className='h-3 w-3 mr-1' />
 								Clear All

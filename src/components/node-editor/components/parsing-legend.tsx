@@ -43,7 +43,7 @@ const theme = {
 		header:
 			'flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-zinc-800/50 transition-colors',
 		content:
-			'px-3 py-2 pt-0 flex flex-col gap-2 max-h-60 overflow-y-auto sm:max-h-none sm:overflow-visible',
+			'px-3 py-2  flex flex-col gap-2 max-h-60 overflow-y-auto sm:max-h-none sm:overflow-visible',
 		title: 'text-sm font-medium text-zinc-100',
 		toggle: {
 			button:
@@ -60,7 +60,7 @@ const contentVariants = {
 		height: 'auto',
 		opacity: 1,
 		transition: {
-			height: { duration: 0.3, ease: 'easeOut' as const },
+			height: { duration: 0.1, ease: 'easeOut' as const },
 			opacity: { duration: 0.2, delay: 0.1 },
 		},
 	},
@@ -68,7 +68,7 @@ const contentVariants = {
 		height: 0,
 		opacity: 0,
 		transition: {
-			height: { duration: 0.3, ease: 'easeIn' as const },
+			height: { duration: 0.1, ease: 'easeIn' as const },
 			opacity: { duration: 0.2 },
 		},
 	},
@@ -117,7 +117,7 @@ export const ParsingLegend: React.FC<ParsingLegendProps> = memo(
 			<motion.div
 				animate={{ height: 'auto' }}
 				className={cn(theme.legend.container, className)}
-				initial={false}
+				initial={{ height: 0 }}
 			>
 				{/* Header */}
 				<div
@@ -125,9 +125,9 @@ export const ParsingLegend: React.FC<ParsingLegendProps> = memo(
 					aria-expanded={!isCollapsed}
 					aria-label='Toggle parsing syntax help'
 					className={theme.legend.header}
+					onClick={onToggleCollapse}
 					role='button'
 					tabIndex={0}
-					onClick={onToggleCollapse}
 					onKeyDown={(e) => {
 						if (e.key === 'Enter' || e.key === ' ') {
 							e.preventDefault();
@@ -178,8 +178,8 @@ export const ParsingLegend: React.FC<ParsingLegendProps> = memo(
 										<PatternCategoryComponent
 											category={category}
 											key={category}
-											patterns={groupedPatterns[category]}
 											onPatternClick={onPatternClick}
+											patterns={groupedPatterns[category]}
 										/>
 									))}
 							</div>

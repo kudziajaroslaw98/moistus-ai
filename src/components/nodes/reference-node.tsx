@@ -77,15 +77,15 @@ const ReferenceNodeComponent = (props: ReferenceNodeProps) => {
 						href={referenceUrl}
 						rel='noopener noreferrer'
 						target='_blank'
-						style={{
-							backgroundColor: `${GlassmorphismTheme.elevation[2]}80`,
-							color: GlassmorphismTheme.text.medium,
-						}}
 						onMouseEnter={(e) => {
 							e.currentTarget.style.backgroundColor = `${GlassmorphismTheme.elevation[4]}80`;
 						}}
 						onMouseLeave={(e) => {
 							e.currentTarget.style.backgroundColor = `${GlassmorphismTheme.elevation[2]}80`;
+						}}
+						style={{
+							backgroundColor: `${GlassmorphismTheme.elevation[2]}80`,
+							color: GlassmorphismTheme.text.medium,
 						}}
 					>
 						<div className='flex items-center justify-center gap-2'>

@@ -204,7 +204,7 @@ function Sidebar({
 
 	if (isMobile) {
 		return (
-			<Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
+			<Sheet onOpenChange={setOpenMobile} open={openMobile} {...props}>
 				<SheetContent
 					className='bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden'
 					data-mobile='true'
@@ -315,6 +315,7 @@ function SidebarRail({ className, ...props }: ComponentProps<'button'>) {
 			aria-label='Toggle Sidebar'
 			data-sidebar='rail'
 			data-slot='sidebar-rail'
+			onClick={toggleSidebar}
 			style={getSidebarTransition(['transform', 'background-color'])}
 			tabIndex={-1}
 			title='Toggle Sidebar'
@@ -327,7 +328,6 @@ function SidebarRail({ className, ...props }: ComponentProps<'button'>) {
 				'[[data-side=right][data-collapsible=offcanvas]_&]:-left-2',
 				className
 			)}
-			onClick={toggleSidebar}
 			{...props}
 		/>
 	);

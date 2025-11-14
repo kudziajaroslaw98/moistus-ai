@@ -125,6 +125,8 @@ export const NodeContent = forwardRef<HTMLDivElement, NodeContentProps>(
 
 		return (
 			<div
+				onClick={onClick}
+				onDoubleClick={onDoubleClick}
 				ref={ref}
 				style={contentStyles}
 				className={cn(
@@ -134,8 +136,6 @@ export const NodeContent = forwardRef<HTMLDivElement, NodeContentProps>(
 					scrollable && 'overflow-hidden',
 					className
 				)}
-				onClick={onClick}
-				onDoubleClick={onDoubleClick}
 			>
 				<AnimatePresence mode='wait'>
 					{isLoading ? (

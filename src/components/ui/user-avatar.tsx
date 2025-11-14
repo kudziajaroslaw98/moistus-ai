@@ -60,6 +60,7 @@ const UserAvatarComponent = ({
 
 	const avatar = (
 		<div
+			onClick={onClick}
 			title={showTooltip ? displayName || 'Unknown User' : undefined}
 			className={cn(
 				'rounded-full overflow-hidden border-2 border-zinc-600 bg-zinc-800 flex items-center justify-center transition-all cursor-pointer hover:border-zinc-500',
@@ -67,7 +68,6 @@ const UserAvatarComponent = ({
 				onClick && 'hover:scale-105',
 				className
 			)}
-			onClick={onClick}
 		>
 			{avatarContent}
 

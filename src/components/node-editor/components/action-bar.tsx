@@ -39,6 +39,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 				animate={{ opacity: 1 }}
 				disabled={!canCreate || isCreating}
 				initial={{ opacity: 0 }}
+				onClick={onCreate}
 				transition={{ delay: 0.15, duration: 0.3, ease: 'easeOut' as const }}
 				className={cn(
 					'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
@@ -53,7 +54,6 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 					scale: !canCreate || isCreating ? 1 : 0.95,
 					transition: { duration: 0.1 },
 				}}
-				onClick={onCreate}
 			>
 				<AnimatePresence mode='wait'>
 					<motion.span

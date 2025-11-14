@@ -98,8 +98,8 @@ export const ValidationTooltip: React.FC<ValidationTooltipProps> = ({
 							<button
 								aria-label='Dismiss errors'
 								className='absolute top-2 right-2 p-1 rounded-full hover:bg-white/10 transition-colors'
-								style={{ pointerEvents: 'auto' }}
 								onClick={() => onOpenChange(false)}
+								style={{ pointerEvents: 'auto' }}
 							>
 								<svg
 									className='w-3 h-3'

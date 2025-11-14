@@ -19,6 +19,7 @@ export const BinaryResponse = ({
 		<div className='flex gap-2'>
 			<motion.button
 				disabled={disabled}
+				onClick={() => onChange(true)}
 				whileHover={!disabled ? { scale: 1.05 } : {}}
 				whileTap={!disabled ? { scale: 0.95 } : {}}
 				className={cn(
@@ -28,7 +29,6 @@ export const BinaryResponse = ({
 						: 'bg-white/5 border border-white/10 hover:bg-white/10',
 					disabled && 'opacity-50 cursor-not-allowed'
 				)}
-				onClick={() => onChange(true)}
 			>
 				<Check
 					className={cn(
@@ -50,6 +50,7 @@ export const BinaryResponse = ({
 
 			<motion.button
 				disabled={disabled}
+				onClick={() => onChange(false)}
 				whileHover={!disabled ? { scale: 1.05 } : {}}
 				whileTap={!disabled ? { scale: 0.95 } : {}}
 				className={cn(
@@ -59,7 +60,6 @@ export const BinaryResponse = ({
 						: 'bg-white/5 border border-white/10 hover:bg-white/10',
 					disabled && 'opacity-50 cursor-not-allowed'
 				)}
-				onClick={() => onChange(false)}
 			>
 				<X
 					className={cn(

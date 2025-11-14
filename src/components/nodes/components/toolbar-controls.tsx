@@ -64,11 +64,11 @@ export const TextFormattingControls = ({
 			{onBoldToggle && (
 				<Toggle
 					className="h-8 w-8 p-0"
+					onPressedChange={onBoldToggle}
 					pressed={isBold}
 					size="sm"
 					style={isBold ? activeStyle : controlStyle}
 					variant="outline"
-					onPressedChange={onBoldToggle}
 				>
 					<Bold className="w-4 h-4" />
 				</Toggle>
@@ -78,11 +78,11 @@ export const TextFormattingControls = ({
 			{onItalicToggle && (
 				<Toggle
 					className="h-8 w-8 p-0"
+					onPressedChange={onItalicToggle}
 					pressed={isItalic}
 					size="sm"
 					style={isItalic ? activeStyle : controlStyle}
 					variant="outline"
-					onPressedChange={onItalicToggle}
 				>
 					<Italic className="w-4 h-4" />
 				</Toggle>
@@ -175,11 +175,11 @@ export const NodeActionControls = ({
 			{showEdit && onEdit && (
 				<Button
 					className="h-8 w-8 p-0"
+					onClick={onEdit}
 					size="sm"
 					style={buttonStyle}
 					title="Edit content"
 					variant="outline"
-					onClick={onEdit}
 				>
 					<Edit3 className="w-4 h-4" />
 				</Button>
@@ -188,11 +188,11 @@ export const NodeActionControls = ({
 			{showCopy && onCopy && (
 				<Button
 					className="h-8 w-8 p-0"
+					onClick={onCopy}
 					size="sm"
 					style={buttonStyle}
 					title="Copy node"
 					variant="outline"
-					onClick={onCopy}
 				>
 					<Copy className="w-4 h-4" />
 				</Button>
@@ -201,6 +201,7 @@ export const NodeActionControls = ({
 			{showDelete && onDelete && (
 				<Button
 					className="h-8 w-8 p-0"
+					onClick={onDelete}
 					size="sm"
 					title="Delete node"
 					variant="outline"
@@ -209,7 +210,6 @@ export const NodeActionControls = ({
 						color: 'rgba(239, 68, 68, 0.87)',
 						borderColor: 'rgba(239, 68, 68, 0.3)',
 					}}
-					onClick={onDelete}
 				>
 					<Trash2 className="w-4 h-4" />
 				</Button>
@@ -218,11 +218,11 @@ export const NodeActionControls = ({
 			{showSettings && onSettings && (
 				<Button
 					className="h-8 w-8 p-0"
+					onClick={onSettings}
 					size="sm"
 					style={buttonStyle}
 					title="Node settings"
 					variant="outline"
-					onClick={onSettings}
 				>
 					<Settings className="w-4 h-4" />
 				</Button>
@@ -250,6 +250,7 @@ export const ExpandControl = ({
 	return (
 		<Button
 			className="h-8 w-8 p-0"
+			onClick={() => onToggle(!isExpanded)}
 			size="sm"
 			title={isExpanded ? 'Collapse' : 'Expand'}
 			variant="outline"
@@ -258,7 +259,6 @@ export const ExpandControl = ({
 				border: `1px solid ${theme.borders.hover}`,
 				color: theme.text.medium,
 			}}
-			onClick={() => onToggle(!isExpanded)}
 		>
 			{isExpanded ? (
 				<Minimize2 className="w-4 h-4" />

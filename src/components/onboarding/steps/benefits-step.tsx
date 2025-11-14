@@ -112,26 +112,20 @@ export function BenefitsStep({ onContinue, onBack }: BenefitsStepProps) {
 						className='relative group'
 						initial={{ opacity: 0, y: 20, scale: 0.95 }}
 						key={benefit.id}
-						transition={{
-							duration: 0.3,
-							ease: [0.165, 0.84, 0.44, 1], // ease-out-quart
-							delay: benefit.delay,
-						}}
 						onMouseEnter={(e) => {
 							e.currentTarget.style.transform = 'translateY(-4px)';
 						}}
 						onMouseLeave={(e) => {
 							e.currentTarget.style.transform = 'translateY(0)';
 						}}
+						transition={{
+							duration: 0.3,
+							ease: [0.165, 0.84, 0.44, 1], // ease-out-quart
+							delay: benefit.delay,
+						}}
 					>
 						<div
 							className='h-full rounded-xl p-6'
-							style={{
-								backgroundColor: GlassmorphismTheme.elevation[1],
-								border: `1px solid ${GlassmorphismTheme.borders.default}`,
-								backdropFilter: GlassmorphismTheme.effects.glassmorphism,
-								transition: GlassmorphismTheme.effects.transition,
-							}}
 							onMouseEnter={(e) => {
 								e.currentTarget.style.borderColor =
 									GlassmorphismTheme.borders.hover;
@@ -139,6 +133,12 @@ export function BenefitsStep({ onContinue, onBack }: BenefitsStepProps) {
 							onMouseLeave={(e) => {
 								e.currentTarget.style.borderColor =
 									GlassmorphismTheme.borders.default;
+							}}
+							style={{
+								backgroundColor: GlassmorphismTheme.elevation[1],
+								border: `1px solid ${GlassmorphismTheme.borders.default}`,
+								backdropFilter: GlassmorphismTheme.effects.glassmorphism,
+								transition: GlassmorphismTheme.effects.transition,
 							}}
 						>
 							<div
@@ -191,18 +191,18 @@ export function BenefitsStep({ onContinue, onBack }: BenefitsStepProps) {
 			>
 				<Button
 					className='transition-colors'
-					variant='ghost'
-					style={{
-						color: GlassmorphismTheme.text.medium,
-						transitionDuration: '200ms',
-						transitionTimingFunction: 'ease',
-					}}
 					onClick={onBack}
+					variant='ghost'
 					onMouseEnter={(e) => {
 						e.currentTarget.style.color = GlassmorphismTheme.text.high;
 					}}
 					onMouseLeave={(e) => {
 						e.currentTarget.style.color = GlassmorphismTheme.text.medium;
+					}}
+					style={{
+						color: GlassmorphismTheme.text.medium,
+						transitionDuration: '200ms',
+						transitionTimingFunction: 'ease',
 					}}
 				>
 					Back
@@ -210,14 +210,8 @@ export function BenefitsStep({ onContinue, onBack }: BenefitsStepProps) {
 
 				<Button
 					className='font-semibold px-8 transition-all'
-					size='lg'
-					style={{
-						backgroundColor: 'rgba(52, 211, 153, 0.8)',
-						color: GlassmorphismTheme.elevation[0],
-						transitionDuration: '200ms',
-						transitionTimingFunction: 'ease',
-					}}
 					onClick={onContinue}
+					size='lg'
 					onMouseEnter={(e) => {
 						e.currentTarget.style.backgroundColor = 'rgba(52, 211, 153, 1)';
 						e.currentTarget.style.transform = 'translateY(-2px)';
@@ -225,6 +219,12 @@ export function BenefitsStep({ onContinue, onBack }: BenefitsStepProps) {
 					onMouseLeave={(e) => {
 						e.currentTarget.style.backgroundColor = 'rgba(52, 211, 153, 0.8)';
 						e.currentTarget.style.transform = 'translateY(0)';
+					}}
+					style={{
+						backgroundColor: 'rgba(52, 211, 153, 0.8)',
+						color: GlassmorphismTheme.elevation[0],
+						transitionDuration: '200ms',
+						transitionTimingFunction: 'ease',
 					}}
 				>
 					Continue

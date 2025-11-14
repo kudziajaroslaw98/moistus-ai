@@ -31,8 +31,8 @@ const ACTIVITY_CONFIG: Record<
 	idle: {
 		label: 'Idle',
 		icon: <Eye className='size-3' />,
-		color: 'text-zinc-400',
-		bgColor: 'bg-zinc-800/50',
+		color: 'text-text-primary',
+		bgColor: 'border border-border-default',
 	},
 	editing: {
 		label: 'Editing',
@@ -65,15 +65,21 @@ function ProfileSkeleton() {
 		<div className='space-y-4 p-5'>
 			<div className='flex items-start gap-4'>
 				<div className='size-16 rounded-full bg-zinc-800 animate-pulse' />
+
 				<div className='flex-1 space-y-2'>
 					<div className='h-5 bg-zinc-800 rounded animate-pulse w-32' />
+
 					<div className='h-3 bg-zinc-800 rounded animate-pulse w-20' />
 				</div>
 			</div>
+
 			<div className='grid grid-cols-2 gap-3'>
 				<div className='h-16 bg-zinc-800 rounded animate-pulse' />
+
 				<div className='h-16 bg-zinc-800 rounded animate-pulse' />
+
 				<div className='h-16 bg-zinc-800 rounded animate-pulse' />
+
 				<div className='h-16 bg-zinc-800 rounded animate-pulse' />
 			</div>
 		</div>
@@ -92,6 +98,7 @@ function MetricItem({ label, value, variant = 'default' }: MetricItemProps) {
 			<span className='text-[10px] uppercase tracking-wide text-text-tertiary font-medium'>
 				{label}
 			</span>
+
 			<span
 				className={cn(
 					'text-base font-semibold',
@@ -114,14 +121,14 @@ function ExpandableBio({ bio }: ExpandableBioProps) {
 	return (
 		<div className='space-y-2'>
 			<motion.p
-				className={cn(
-					'text-sm text-text-secondary leading-relaxed',
-					!isExpanded && 'line-clamp-2'
-				)}
 				initial={false}
 				animate={{
 					height: isExpanded ? 'auto' : undefined,
 				}}
+				className={cn(
+					'text-sm text-text-secondary leading-relaxed',
+					!isExpanded && 'line-clamp-2'
+				)}
 				transition={{
 					duration: 0.3,
 					ease: [0.215, 0.61, 0.355, 1], // ease-out-cubic
@@ -132,10 +139,10 @@ function ExpandableBio({ bio }: ExpandableBioProps) {
 
 			{bio.length > 100 && (
 				<button
-					onClick={() => setIsExpanded(!isExpanded)}
-					className='text-xs font-medium text-accent hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base rounded inline-flex items-center gap-1 transition-colors duration-200'
-					aria-label={isExpanded ? 'View less' : 'View more'}
 					aria-expanded={isExpanded}
+					aria-label={isExpanded ? 'View less' : 'View more'}
+					className='text-xs font-medium text-accent hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base rounded inline-flex items-center gap-1 transition-colors duration-200'
+					onClick={() => setIsExpanded(!isExpanded)}
 				>
 					{isExpanded ? (
 						<>
@@ -204,6 +211,7 @@ function MetricsGrid({
 				<span className='text-[10px] uppercase tracking-wide text-text-tertiary font-medium'>
 					Activity
 				</span>
+
 				<div
 					className={cn(
 						'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full w-fit',
@@ -217,6 +225,7 @@ function MetricsGrid({
 						)}
 					>
 						<span>{activityConfig.icon}</span>
+
 						<span className='ml-1'>{activityConfig.label}</span>
 					</span>
 				</div>
@@ -245,7 +254,7 @@ interface RoleBadgeProps {
 function RoleBadge({ isOwner }: RoleBadgeProps) {
 	if (isOwner) {
 		return (
-			<span className='inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-accent/10 text-accent border border-accent/20'>
+			<span className='inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-overlay text-text-primary border border-border-strong'>
 				Owner
 			</span>
 		);
@@ -304,7 +313,8 @@ export function CollaboratorProfileCard({
 			{/* Hero Section - Name & Avatar */}
 			<div className='flex items-center gap-4 p-5 pb-4'>
 				<Avatar className='size-16 ring-2 ring-zinc-700 shrink-0'>
-					<AvatarImage src={user.image} alt={displayName} />
+					<AvatarImage alt={displayName} src={user.image} />
+
 					<AvatarFallback className='text-base font-semibold'>
 						{displayName
 							?.split(' ')
@@ -320,6 +330,7 @@ export function CollaboratorProfileCard({
 						<h4 className='text-lg font-semibold text-text-primary truncate leading-tight'>
 							{displayName}
 						</h4>
+
 						<RoleBadge isOwner={isOwner} />
 					</div>
 

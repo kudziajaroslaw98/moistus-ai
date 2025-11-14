@@ -25,6 +25,7 @@ export function HistoryGroup({ group, onToggle }: HistoryGroupProps) {
 				animate={{ opacity: 1, y: 0 }}
 				exit={{ opacity: 0, y: 20 }}
 				initial={{ opacity: 0, y: -20 }}
+				onClick={onToggle}
 				transition={{ ease: [0.215, 0.61, 0.355, 1], duration: 0.3 }}
 				whileHover={{ scale: 1.01 }}
 				whileTap={{ scale: 0.99 }}
@@ -36,7 +37,6 @@ export function HistoryGroup({ group, onToggle }: HistoryGroupProps) {
 						? 'border-white/10 bg-[#1E1E1E]'
 						: 'border-white/[0.04] bg-[#121212]'
 				)}
-				onClick={onToggle}
 			>
 				{/* Chevron icon */}
 				<motion.div
@@ -59,11 +59,11 @@ export function HistoryGroup({ group, onToggle }: HistoryGroupProps) {
 				<div className='flex-grow text-left'>
 					<div className='flex items-baseline gap-2'>
 						<span className='text-sm font-medium text-white/87'>
-							Node: "{group.nodeName}"
+							Node: &quot;{group.nodeName}&quot;
 						</span>
 
 						<span className='text-xs text-white/38'>
-							({group.changeCount} change{group.changeCount > 1 ? 's' : ''})
+							{`(${group.changeCount} change${group.changeCount > 1 ? 's' : ''})`}
 						</span>
 					</div>
 

@@ -1,6 +1,5 @@
 'use client';
 
-import useAppStore from '@/store/mind-map-store';
 import {
 	collapseAllGroups,
 	expandAllGroups,
@@ -9,8 +8,9 @@ import {
 	type HistoryGroupOrItem,
 	type HistoryItemWithMeta,
 } from '@/helpers/history/grouping-utils';
+import useAppStore from '@/store/mind-map-store';
 import { motion } from 'motion/react';
-import { useImperativeHandle, useMemo, useState, forwardRef } from 'react';
+import { forwardRef, useImperativeHandle, useMemo, useState } from 'react';
 import { Button } from '../ui/button';
 import { HistoryGroup } from './history-group';
 import { HistoryItem } from './history-item';
@@ -91,9 +91,9 @@ export const HistoryList = forwardRef<HistoryListHandle>((props, ref) => {
 				<div className='mb-2 flex justify-center'>
 					<Button
 						disabled={!mapId}
+						onClick={() => mapId && loadMoreHistory(mapId)}
 						size='sm'
 						variant='outline'
-						onClick={() => mapId && loadMoreHistory(mapId)}
 					>
 						Load older
 					</Button>
@@ -124,3 +124,6 @@ export const HistoryList = forwardRef<HistoryListHandle>((props, ref) => {
 		</motion.div>
 	);
 });
+
+export default HistoryList;
+HistoryList.displayName = 'HistoryList';

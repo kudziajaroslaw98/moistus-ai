@@ -85,10 +85,11 @@ const AvatarStack = ({
 				// Use HoverCard for profile cards, Tooltip for simple view
 				if (showProfileCard && isRealtimeUser(avatar)) {
 					return (
-						<HoverCard key={key} openDelay={500} closeDelay={200}>
+						<HoverCard closeDelay={200} key={key} openDelay={500}>
 							<HoverCardTrigger asChild>
 								<Avatar className='hover:z-10 transition-transform hover:scale-110 cursor-pointer'>
 									<AvatarImage src={avatar.image} />
+
 									<AvatarFallback>
 										{avatar.name
 											?.split(' ')
@@ -99,8 +100,9 @@ const AvatarStack = ({
 									</AvatarFallback>
 								</Avatar>
 							</HoverCardTrigger>
+
 							<HoverCardContent align='start' side='bottom'>
-								<CollaboratorProfileCard user={avatar} mapOwnerId={mapOwnerId} />
+								<CollaboratorProfileCard mapOwnerId={mapOwnerId} user={avatar} />
 							</HoverCardContent>
 						</HoverCard>
 					);
@@ -112,6 +114,7 @@ const AvatarStack = ({
 						<TooltipTrigger>
 							<Avatar className='hover:z-10'>
 								<AvatarImage src={avatar.image} />
+
 								<AvatarFallback>
 									{avatar.name
 										?.split(' ')
@@ -122,6 +125,7 @@ const AvatarStack = ({
 								</AvatarFallback>
 							</Avatar>
 						</TooltipTrigger>
+
 						<TooltipContent>
 							<p>{avatar.name}</p>
 						</TooltipContent>

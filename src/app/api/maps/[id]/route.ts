@@ -49,7 +49,7 @@ export const PUT = withApiValidation(
 					.single();
 
 				isAuthorized =
-					membership && ['owner', 'editor'].includes(membership.role);
+					!!membership && ['owner', 'editor'].includes(membership.role);
 			}
 
 			if (!isAuthorized) {
@@ -96,7 +96,8 @@ export const PUT = withApiValidation(
 				updateData.title = validatedBody.title;
 			if (validatedBody.description !== undefined)
 				updateData.description = validatedBody.description;
-			if (validatedBody.tags !== undefined) updateData.tags = validatedBody.tags;
+			if (validatedBody.tags !== undefined)
+				updateData.tags = validatedBody.tags;
 			if (validatedBody.thumbnailUrl !== undefined)
 				updateData.thumbnailUrl = validatedBody.thumbnailUrl;
 			if (validatedBody.team_id !== undefined)
@@ -195,7 +196,7 @@ export const DELETE = withApiValidation(
 					.single();
 
 				isAuthorized =
-					membership && ['owner', 'editor'].includes(membership.role);
+					!!membership && ['owner', 'editor'].includes(membership.role);
 			}
 
 			if (!isAuthorized) {
@@ -234,7 +235,11 @@ export const DELETE = withApiValidation(
 					);
 				}
 
-				return respondError('Error deleting mind map', 500, deleteError.message);
+				return respondError(
+					'Error deleting mind map',
+					500,
+					deleteError.message
+				);
 			}
 
 			return respondSuccess(

@@ -231,9 +231,9 @@ export default function AccountSettingsPage() {
 						</div>
 
 						<Button
+							onClick={handleDeleteAccount}
 							size='sm'
 							variant='destructive'
-							onClick={handleDeleteAccount}
 						>
 							<Trash2 className='size-4 mr-2' />
 							Delete Account

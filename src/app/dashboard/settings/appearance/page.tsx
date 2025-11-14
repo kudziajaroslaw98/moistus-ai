@@ -164,12 +164,12 @@ export default function AppearanceSettingsPage() {
 
 						<div className='grid grid-cols-3 gap-3'>
 							<button
+								onClick={() => updateSetting('theme', 'light')}
 								className={`p-4 rounded-lg border-2 transition-colors ${
 									settings.theme === 'light'
 										? 'border-sky-500 bg-sky-500/10'
 										: 'border-zinc-700 hover:border-zinc-600'
 								}`}
-								onClick={() => updateSetting('theme', 'light')}
 							>
 								<div className='flex flex-col items-center gap-2'>
 									<Sun className='size-5 text-yellow-500' />
@@ -179,12 +179,12 @@ export default function AppearanceSettingsPage() {
 							</button>
 
 							<button
+								onClick={() => updateSetting('theme', 'dark')}
 								className={`p-4 rounded-lg border-2 transition-colors ${
 									settings.theme === 'dark'
 										? 'border-sky-500 bg-sky-500/10'
 										: 'border-zinc-700 hover:border-zinc-600'
 								}`}
-								onClick={() => updateSetting('theme', 'dark')}
 							>
 								<div className='flex flex-col items-center gap-2'>
 									<Moon className='size-5 text-blue-500' />
@@ -194,12 +194,12 @@ export default function AppearanceSettingsPage() {
 							</button>
 
 							<button
+								onClick={() => updateSetting('theme', 'system')}
 								className={`p-4 rounded-lg border-2 transition-colors ${
 									settings.theme === 'system'
 										? 'border-sky-500 bg-sky-500/10'
 										: 'border-zinc-700 hover:border-zinc-600'
 								}`}
-								onClick={() => updateSetting('theme', 'system')}
 							>
 								<div className='flex flex-col items-center gap-2'>
 									<Monitor className='size-5 text-zinc-400' />

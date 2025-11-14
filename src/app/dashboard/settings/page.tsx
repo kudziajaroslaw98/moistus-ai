@@ -72,20 +72,8 @@ export default function GeneralSettingsPage() {
 		preferences: {
 			theme: 'system',
 			accentColor: 'sky',
-			language: 'en',
-			timezone: 'UTC',
-			notifications: {
-				email_comments: false,
-				email_mentions: false,
-				email_reactions: false,
-				push_comments: false,
-				push_mentions: false,
-				push_reactions: false,
-			},
+			reducedMotion: false,
 			privacy: {
-				show_email: false,
-				show_location: false,
-				show_company: false,
 				profile_visibility: 'private',
 			},
 		},
@@ -117,28 +105,8 @@ export default function GeneralSettingsPage() {
 				preferences: {
 					theme: userProfile.preferences?.theme || 'system',
 					accentColor: userProfile.preferences?.accentColor || 'sky',
-					language: userProfile.preferences?.language || 'en',
-					timezone: userProfile.preferences?.timezone || 'UTC',
-					notifications: {
-						email_comments:
-							userProfile.preferences?.notifications?.email_comments ?? true,
-						email_mentions:
-							userProfile.preferences?.notifications?.email_mentions ?? true,
-						email_reactions:
-							userProfile.preferences?.notifications?.email_reactions ?? false,
-						push_comments:
-							userProfile.preferences?.notifications?.push_comments ?? true,
-						push_mentions:
-							userProfile.preferences?.notifications?.push_mentions ?? true,
-						push_reactions:
-							userProfile.preferences?.notifications?.push_reactions ?? false,
-					},
+					reducedMotion: userProfile.preferences?.reducedMotion || false,
 					privacy: {
-						show_email: userProfile.preferences?.privacy?.show_email ?? false,
-						show_location:
-							userProfile.preferences?.privacy?.show_location ?? true,
-						show_company:
-							userProfile.preferences?.privacy?.show_company ?? true,
 						profile_visibility:
 							userProfile.preferences?.privacy?.profile_visibility || 'public',
 					},
@@ -283,9 +251,9 @@ export default function GeneralSettingsPage() {
 					<div className='space-y-2'>
 						<Button className='relative' variant='outline'>
 							<Camera className='size-4 mr-2' />
-
-							Upload Photo
-
+							
+							<span>Upload Photo</span>
+							
 							<input
 								accept='image/*'
 								className='absolute inset-0 opacity-0 cursor-pointer'
@@ -320,8 +288,8 @@ export default function GeneralSettingsPage() {
 							<Input
 								className='bg-zinc-800 border-zinc-600'
 								id='full_name'
-								value={formData.full_name}
 								onChange={(e) => updateFormData('full_name', e.target.value)}
+								value={formData.full_name}
 							/>
 						</div>
 
@@ -331,8 +299,8 @@ export default function GeneralSettingsPage() {
 							<Input
 								className='bg-zinc-800 border-zinc-600'
 								id='display_name'
-								value={formData.display_name}
 								onChange={(e) => updateFormData('display_name', e.target.value)}
+								value={formData.display_name}
 							/>
 						</div>
 					</div>
@@ -343,10 +311,10 @@ export default function GeneralSettingsPage() {
 						<Textarea
 							className='bg-zinc-800 border-zinc-600'
 							id='bio'
+							onChange={(e) => updateFormData('bio', e.target.value)}
 							placeholder='Tell us about yourself...'
 							rows={3}
 							value={formData.bio}
-							onChange={(e) => updateFormData('bio', e.target.value)}
 						/>
 					</div>
 
@@ -360,9 +328,9 @@ export default function GeneralSettingsPage() {
 							<Input
 								className='bg-zinc-800 border-zinc-600'
 								id='location'
+								onChange={(e) => updateFormData('location', e.target.value)}
 								placeholder='City, Country'
 								value={formData.location}
-								onChange={(e) => updateFormData('location', e.target.value)}
 							/>
 						</div>
 
@@ -375,10 +343,10 @@ export default function GeneralSettingsPage() {
 							<Input
 								className='bg-zinc-800 border-zinc-600'
 								id='website'
+								onChange={(e) => updateFormData('website', e.target.value)}
 								placeholder='https://example.com'
 								type='url'
 								value={formData.website}
-								onChange={(e) => updateFormData('website', e.target.value)}
 							/>
 						</div>
 					</div>
@@ -393,8 +361,8 @@ export default function GeneralSettingsPage() {
 							<Input
 								className='bg-zinc-800 border-zinc-600'
 								id='company'
-								value={formData.company}
 								onChange={(e) => updateFormData('company', e.target.value)}
+								value={formData.company}
 							/>
 						</div>
 
@@ -407,8 +375,8 @@ export default function GeneralSettingsPage() {
 							<Input
 								className='bg-zinc-800 border-zinc-600'
 								id='job_title'
-								value={formData.job_title}
 								onChange={(e) => updateFormData('job_title', e.target.value)}
+								value={formData.job_title}
 							/>
 						</div>
 					</div>
@@ -427,13 +395,13 @@ export default function GeneralSettingsPage() {
 					<div className='flex gap-2'>
 						<Input
 							className='bg-zinc-800 border-zinc-600'
-							placeholder='Add a skill...'
-							value={newSkill}
 							onChange={(e) => setNewSkill(e.target.value)}
 							onKeyPress={(e) => e.key === 'Enter' && addSkill()}
+							placeholder='Add a skill...'
+							value={newSkill}
 						/>
 
-						<Button size='sm' onClick={addSkill}>
+						<Button onClick={addSkill} size='sm'>
 							<Plus className='size-4' />
 						</Button>
 					</div>

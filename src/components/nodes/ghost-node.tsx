@@ -223,11 +223,6 @@ function GhostNodeComponent(props: GhostNodeProps) {
 					<div className='mb-3'>
 						<motion.button
 							className='flex items-center gap-1.5 text-xs rounded px-2 py-1 transition-colors duration-200 w-full text-left'
-							style={{
-								backgroundColor: 'rgba(168, 85, 247, 0.1)',
-								color: GlassmorphismTheme.text.medium,
-								border: `1px solid rgba(168, 85, 247, 0.2)`,
-							}}
 							title={`Pan to source node: ${sourceNodeName}`}
 							whileHover={{ scale: 1.02 }}
 							whileTap={{ scale: 0.98 }}
@@ -243,9 +238,16 @@ function GhostNodeComponent(props: GhostNodeProps) {
 								(e.target as HTMLButtonElement).style.backgroundColor =
 									'rgba(168, 85, 247, 0.1)';
 							}}
+							style={{
+								backgroundColor: 'rgba(168, 85, 247, 0.1)',
+								color: GlassmorphismTheme.text.medium,
+								border: `1px solid rgba(168, 85, 247, 0.2)`,
+							}}
 						>
 							<Sparkles className='h-3 w-3' style={{ color: 'rgba(168, 85, 247, 0.8)' }} />
+
 							<span className='flex-1 truncate'>Suggested from: {sourceNodeName}</span>
+
 							<MoveRight className='h-3 w-3' style={{ color: 'rgba(168, 85, 247, 0.6)' }} />
 						</motion.button>
 					</div>
@@ -258,6 +260,7 @@ function GhostNodeComponent(props: GhostNodeProps) {
 						style={{ color: GlassmorphismTheme.text.disabled }}
 					>
 						Trigger: {context.trigger}
+
 						{context.relationshipType && (
 							<span className='ml-2'>→ {context.relationshipType}</span>
 						)}
@@ -271,11 +274,6 @@ function GhostNodeComponent(props: GhostNodeProps) {
 						className='flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors duration-200'
 						whileHover={{ scale: 1.05 }}
 						whileTap={{ scale: 0.95 }}
-						style={{
-							backgroundColor:
-								GlassmorphismTheme.ghost.actions.accept.background,
-							color: GlassmorphismTheme.ghost.actions.accept.text,
-						}}
 						onClick={(e) => {
 							e.stopPropagation();
 							onAccept();
@@ -288,6 +286,11 @@ function GhostNodeComponent(props: GhostNodeProps) {
 							(e.target as HTMLButtonElement).style.backgroundColor =
 								GlassmorphismTheme.ghost.actions.accept.background;
 						}}
+						style={{
+							backgroundColor:
+								GlassmorphismTheme.ghost.actions.accept.background,
+							color: GlassmorphismTheme.ghost.actions.accept.text,
+						}}
 					>
 						<Check className='h-3 w-3' />
 						Accept
@@ -298,11 +301,6 @@ function GhostNodeComponent(props: GhostNodeProps) {
 						className='flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors duration-200'
 						whileHover={{ scale: 1.05 }}
 						whileTap={{ scale: 0.95 }}
-						style={{
-							backgroundColor:
-								GlassmorphismTheme.ghost.actions.reject.background,
-							color: GlassmorphismTheme.ghost.actions.reject.text,
-						}}
 						onClick={(e) => {
 							e.stopPropagation();
 							onReject();
@@ -314,6 +312,11 @@ function GhostNodeComponent(props: GhostNodeProps) {
 						onMouseLeave={(e) => {
 							(e.target as HTMLButtonElement).style.backgroundColor =
 								GlassmorphismTheme.ghost.actions.reject.background;
+						}}
+						style={{
+							backgroundColor:
+								GlassmorphismTheme.ghost.actions.reject.background,
+							color: GlassmorphismTheme.ghost.actions.reject.text,
 						}}
 					>
 						<X className='h-3 w-3' />

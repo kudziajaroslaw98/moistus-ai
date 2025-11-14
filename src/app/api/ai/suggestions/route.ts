@@ -500,13 +500,7 @@ function buildSuggestionContext(
 		// Add trigger-specific context
 		let additionalContext = `\n\nTrigger Type: ${context.trigger}\n`;
 
-		if (context.trigger === 'idle') {
-			additionalContext +=
-				'User paused after creating this node - suggest natural next steps.\n';
-		} else if (context.trigger === 'isolation') {
-			additionalContext +=
-				'This node is isolated (no connections) - suggest related nodes to connect.\n';
-		} else if (context.trigger === 'dangling-edge') {
+		if (context.trigger === 'dangling-edge') {
 			additionalContext +=
 				'User dropped an edge without a target - suggest immediate connection targets.\n';
 		}

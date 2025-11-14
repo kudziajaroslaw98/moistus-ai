@@ -211,12 +211,12 @@ const SuggestedConnectionEdgeComponent = ({
 								aria-label='Accept AI connection suggestion'
 								className='!size-8 bg-green-600 hover:bg-green-700 text-white border-green-500/20'
 								disabled={isProcessing}
+								onClick={handleAcceptSuggestion}
 								size='icon'
 								title='Accept suggestion'
 								variant='default'
 								whileHover={{ scale: 1.1 }}
 								whileTap={{ scale: 0.95 }}
-								onClick={handleAcceptSuggestion}
 							>
 								<Check className='w-4 h-4' />
 							</Button>
@@ -225,12 +225,12 @@ const SuggestedConnectionEdgeComponent = ({
 								aria-label='Reject AI connection suggestion'
 								className='!size-8'
 								disabled={isProcessing}
+								onClick={handleRejectSuggestion}
 								size='icon'
 								title='Reject suggestion'
 								variant='destructive'
 								whileHover={{ scale: 1.1 }}
 								whileTap={{ scale: 0.95 }}
-								onClick={handleRejectSuggestion}
 							>
 								<X className='w-4 h-4' />
 							</Button>

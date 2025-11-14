@@ -420,6 +420,11 @@ export const QuickInput: FC<QuickInputProps> = ({
 					disabled={isCreating}
 					enableCommands={true}
 					initial={{ opacity: 1, y: -20 }}
+					onChange={setValue}
+					onCommandExecuted={handleCommandExecuted}
+					onKeyDown={handleKeyDown}
+					onNodeTypeChange={handleNodeTypeChange}
+					onSelectionChange={handleSelectionChange}
 					placeholder={`Type naturally... ${config.examples?.[0] || ''}`}
 					transition={{ duration: 0.25, ease: 'easeOut' as const }}
 					value={value}
@@ -427,11 +432,6 @@ export const QuickInput: FC<QuickInputProps> = ({
 						scale: 1.01,
 						transition: { duration: 0.2 },
 					}}
-					onChange={setValue}
-					onCommandExecuted={handleCommandExecuted}
-					onKeyDown={handleKeyDown}
-					onNodeTypeChange={handleNodeTypeChange}
-					onSelectionChange={handleSelectionChange}
 				/>
 
 				<PreviewSection
@@ -450,19 +450,19 @@ export const QuickInput: FC<QuickInputProps> = ({
 						exit={{ opacity: 0, height: 0, y: -20 }}
 						initial={{ opacity: 0, height: 0, y: -20 }}
 						transition={{
-							duration: 0.3,
+							duration: 0.2,
 							delay: 0.1,
 							ease: 'easeInOut' as const,
 						}}
 					>
 						<ParsingLegend
 							isCollapsed={legendCollapsed}
+							onPatternClick={handlePatternInsert}
+							onToggleCollapse={() => setLegendCollapsed(!legendCollapsed)}
 							patterns={
 								getNodeTypeConfig(currentNodeType || initialNodeType)
 									.parsingPatterns || []
 							}
-							onPatternClick={handlePatternInsert}
-							onToggleCollapse={() => setLegendCollapsed(!legendCollapsed)}
 						/>
 					</motion.div>
 				)}

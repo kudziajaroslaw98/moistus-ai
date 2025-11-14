@@ -35,6 +35,7 @@ export const PreviewSection: React.FC<PreviewSectionProps> = ({
 			>
 				Preview
 			</motion.div>
+
 			<motion.div
 				layout
 				animate={{ opacity: 1, y: 0, scale: 1 }}

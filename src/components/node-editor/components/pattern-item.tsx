@@ -43,6 +43,8 @@ export const PatternItem: React.FC<PatternItemProps> = memo(
 		return (
 			<motion.div
 				aria-label={`${pattern.pattern}: ${pattern.description}`}
+				onClick={handleClick}
+				onKeyDown={handleKeyDown}
 				role={isInteractive ? 'button' : 'listitem'}
 				tabIndex={isInteractive ? 0 : -1}
 				whileTap={isInteractive ? { scale: 0.99 } : {}}
@@ -52,8 +54,6 @@ export const PatternItem: React.FC<PatternItemProps> = memo(
 					!isInteractive && 'cursor-default hover:bg-transparent',
 					isClicked && theme.pattern.clicked
 				)}
-				onClick={handleClick}
-				onKeyDown={handleKeyDown}
 			>
 				<div className='flex items-center gap-1.5 flex-shrink-0'>
 					{pattern.icon && <pattern.icon className={theme.pattern.icon} />}

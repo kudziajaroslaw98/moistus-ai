@@ -112,8 +112,8 @@ export default function EdgeEditModal() {
 		<SidePanel
 			isOpen={isOpen}
 			key={edge?.id}
-			title={`Edit Connection`}
 			onClose={handleOnClose}
+			title={`Edit Connection`}
 		>
 			<div className='flex flex-col gap-4'>
 				<p className='text-sm text-zinc-400'>
@@ -143,17 +143,17 @@ export default function EdgeEditModal() {
 						<FormField id='edgeLabel' label='Label'>
 							<Input
 								id='edgeLabel'
+								onChange={(e) => setLabel(e.target.value)}
 								placeholder='e.g., leads to, is part of'
 								type='text'
 								value={label}
-								onChange={(e) => setLabel(e.target.value)}
 							/>
 						</FormField>
 
 						<FormField id='edgePathStyle' label='Path Style'>
 							<Select
-								value={pathStyle}
 								onValueChange={(value) => setPathStyle(value as PathType)}
+								value={pathStyle}
 							>
 								{availablePathTypes.map((pType) => (
 									<option key={pType} value={pType}>
@@ -170,8 +170,8 @@ export default function EdgeEditModal() {
 								<Input
 									checked={animated}
 									className='mr-2 rounded border-zinc-600 text-teal-600 shadow-sm focus:ring-teal-500 disabled:opacity-50'
-									type='checkbox'
 									onChange={(e) => setAnimated(e.target.checked)}
+									type='checkbox'
 								/>
 							</FormField>
 						</div>
@@ -195,16 +195,16 @@ export default function EdgeEditModal() {
 							<div className='flex items-center gap-2'>
 								<Input
 									id='edgeColor'
+									onChange={(e) => setColor(e.target.value)}
 									type='color'
 									value={color || '#000000'}
-									onChange={(e) => setColor(e.target.value)}
 								/>
 
 								{color && (
 									<Button
+										onClick={() => setColor(undefined)}
 										size='icon'
 										variant='secondary'
-										onClick={() => setColor(undefined)}
 									>
 										<SquareX className='size-4' />
 									</Button>
@@ -239,9 +239,9 @@ export default function EdgeEditModal() {
 
 								{strokeWidth !== undefined && (
 									<Button
+										onClick={() => setStrokeWidth(undefined)}
 										size='icon'
 										variant='secondary'
-										onClick={() => setStrokeWidth(undefined)}
 									>
 										<SquareX className='size-4' />
 									</Button>
@@ -277,7 +277,7 @@ export default function EdgeEditModal() {
 				{/* Keep footer outside the scrollable area if SidePanel doesn't include one */}
 				{/* If SidePanel's children area scrolls, footer needs to be positioned separately or within */}
 				<div className='mt-auto flex flex-shrink-0 justify-end gap-3 border-t border-zinc-700 pt-4'>
-					<Button disabled={isSaving} variant='outline' onClick={handleOnClose}>
+					<Button disabled={isSaving} onClick={handleOnClose} variant='outline'>
 						Cancel
 					</Button>
 

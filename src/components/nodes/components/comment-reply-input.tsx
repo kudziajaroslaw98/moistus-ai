@@ -90,36 +90,36 @@ const CommentReplyInputComponent = ({ commentId }: CommentReplyInputProps) => {
 
 	return (
 		<motion.div
-			initial={{ opacity: 0, y: 10 }}
 			animate={{ opacity: 1, y: 0 }}
+			className='flex gap-2 p-3 border-t border-border-default nowheel'
+			initial={{ opacity: 0, y: 10 }}
 			transition={{
 				duration: 0.2,
 				ease: [0.25, 0.46, 0.45, 0.94], // ease-out-quad
 			}}
-			className='flex gap-2 p-3 border-t border-border-default nowheel'
 		>
 			<textarea
-				ref={textareaRef}
-				value={content}
+				aria-label='Reply to comment'
+				className='flex-1 resize-none outline-none transition-all min-h-[36px] max-h-[120px] py-2 px-3 rounded-md text-text-primary bg-base border border-border-default text-sm leading-5 focus:border-cyan-500/50 nodrag'
 				onChange={handleInput}
 				onKeyDown={handleKeyDown}
 				placeholder='Write a reply... (use @name to mention)'
-				className='flex-1 resize-none outline-none transition-all min-h-[36px] max-h-[120px] py-2 px-3 rounded-md text-text-primary bg-base border border-border-default text-sm leading-5 focus:border-cyan-500/50 nodrag'
-				aria-label='Reply to comment'
+				ref={textareaRef}
+				value={content}
 			/>
 
 			<Button
-				size='icon'
-				variant='default'
+				aria-label='Send message'
 				disabled={!content.trim() || isSending}
 				onClick={handleSend}
+				size='icon'
+				variant='default'
 				className={cn(
 					'shrink-0',
 					content.trim() ? 'bg-[rgba(20,184,166,0.87)]' : 'bg-elevated',
 					content.trim() ? 'text-text-primary' : 'text-text-disabled',
 					isSending ? 'opacity-60' : ''
 				)}
-				aria-label='Send message'
 			>
 				<Send className='size-4' />
 			</Button>

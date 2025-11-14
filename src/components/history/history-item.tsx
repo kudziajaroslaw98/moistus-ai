@@ -122,6 +122,7 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 			animate={{ opacity: 1, y: 0 }}
 			exit={{ opacity: 0, y: 20 }}
 			initial={{ opacity: 0, y: -20 }}
+			onClick={canShowDiff ? handleToggleExpand : undefined}
 			transition={{ ease: [0.215, 0.61, 0.355, 1], duration: 0.3 }}
 			whileHover={{ scale: 1.01 }}
 			whileTap={{ scale: 0.99 }}
@@ -132,7 +133,6 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 					? 'border-teal-500/50 bg-teal-500/10 shadow-[0_0_0_1px_rgba(96,165,250,0.3)]'
 					: 'border-white/6 bg-[#1E1E1E] hover:border-white/10 hover:bg-[#222222]'
 			)}
-			onClick={canShowDiff ? handleToggleExpand : undefined}
 		>
 			{/* Header section */}
 			<div className='flex items-start gap-3'>
@@ -237,15 +237,15 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 										'hover:border-white/20 hover:bg-white/10',
 										!hasPermission && 'cursor-not-allowed opacity-50'
 									)}
+									onClick={(e) => {
+										e.stopPropagation();
+										handleRevert();
+									}}
 									title={
 										!hasPermission
 											? 'You do not have permission to revert this change'
 											: 'Revert to this state'
 									}
-									onClick={(e) => {
-										e.stopPropagation();
-										handleRevert();
-									}}
 								>
 									{!hasPermission && <Lock className='h-3 w-3' />}
 									Revert

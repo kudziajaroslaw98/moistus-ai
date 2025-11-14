@@ -158,6 +158,8 @@ export const Toolbar = () => {
 						return (
 							<Tooltip key={tool.id}>
 								<TooltipTrigger
+									onClick={() => onToolChange(tool.id)}
+									title={tool.label ?? `Tool ${index}`}
 									className={cn(
 										'bg-base hover:bg-elevated',
 										'active:scale-95',
@@ -166,16 +168,14 @@ export const Toolbar = () => {
 											: ' border-overlay text-text-secondary',
 										'inline-flex items-center rounded-sm font-medium transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none !h-8 !w-8 p-0 justify-center'
 									)}
-									title={tool.label ?? `Tool ${index}`}
-									onClick={() => onToolChange(tool.id)}
 								>
 									{tool.icon}
 								</TooltipTrigger>
 
 								<TooltipContent className='p-4'>
 									<RadioGroup
-										value={aiFeature}
 										onValueChange={handleAiFeatureSelect}
+										value={aiFeature}
 									>
 										<div className='flex items-center gap-2'>
 											<RadioGroupItem
@@ -216,10 +216,10 @@ export const Toolbar = () => {
 						return (
 							<Button
 								key={tool.id}
+								onClick={() => onToolChange(tool.id)}
 								size={'icon'}
 								title={tool.label ?? `Tool ${index}`}
 								variant={'secondary'}
-								onClick={() => onToolChange(tool.id)}
 								className={cn(
 									isCommentMode &&
 										'text-text-primary bg-primary-500 border-2 border-primary-500/20',
@@ -233,7 +233,9 @@ export const Toolbar = () => {
 
 					return (
 						<Button
+							className='active:scale-95'
 							key={tool.id}
+							onClick={() => onToolChange(tool.id)}
 							size={'icon'}
 							title={tool.label ?? `Tool ${index}`}
 							variant={
@@ -243,8 +245,6 @@ export const Toolbar = () => {
 									? 'default'
 									: 'secondary'
 							}
-							onClick={() => onToolChange(tool.id)}
-							className='active:scale-95'
 						>
 							{tool.icon}
 						</Button>

@@ -1,6 +1,26 @@
-import { TypedNodeMetadata } from '@/components/nodes/core/types';
 import { SubscriptionPlan } from '@/store/slices/subscription-slice';
 import { SupabaseClient, User } from '@supabase/supabase-js';
+
+/**
+ * Metadata structure for tracking AI feature usage in telemetry.
+ * Used to log contextual information about AI operations.
+ */
+export interface AIUsageMetadata {
+	/** Map ID where the AI feature was used */
+	mapId?: string;
+	/** Trigger source for the AI operation (e.g., 'magic-wand', 'context-menu') */
+	trigger?: string;
+	/** Generic count field for numbered operations */
+	count?: number;
+	/** Number of suggestions generated */
+	suggestionCount?: number;
+	/** Number of connections suggested */
+	connectionCount?: number;
+	/** Number of merges suggested */
+	mergeCount?: number;
+	/** Allow additional telemetry fields */
+	[key: string]: string | number | boolean | undefined;
+}
 
 export interface SubscriptionValidation {
 	subscription: SubscriptionPlan;
@@ -155,7 +175,7 @@ export async function trackAIUsage(
 	user: User,
 	supabase: SupabaseClient,
 	feature: string,
-	metadata: Record<string, TypedNodeMetadata<'defaultNode'>> = {}
+	metadata: AIUsageMetadata = {}
 ): Promise<void> {
 	await supabase.from('ai_usage_log').insert({
 		user_id: user.id,

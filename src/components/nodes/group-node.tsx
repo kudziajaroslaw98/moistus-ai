@@ -219,6 +219,10 @@ const GroupNodeComponent = (props: GroupNodeProps) => {
 
 	return (
 		<div
+			onDoubleClick={handleDoubleClick}
+			onDragLeave={handleDragLeave}
+			onDragOver={handleDragOver}
+			onDrop={handleDrop}
 			className={cn(
 				'relative rounded-lg border-2 shadow-inner w-full h-full bg-opacity-50 transition-all duration-200',
 				selected ? 'border-sky-600' : 'border-dashed',
@@ -240,10 +244,6 @@ const GroupNodeComponent = (props: GroupNodeProps) => {
 					: backgroundColor,
 				zIndex: 0, // Keep groups at base level
 			}}
-			onDoubleClick={handleDoubleClick}
-			onDragLeave={handleDragLeave}
-			onDragOver={handleDragOver}
-			onDrop={handleDrop}
 		>
 			{/* Animated selection indicator for child nodes */}
 			<AnimatePresence>

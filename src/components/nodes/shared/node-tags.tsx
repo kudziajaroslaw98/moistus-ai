@@ -27,6 +27,7 @@ export const NodeTags = memo<{
 						exit={{ opacity: 0, scale: 0.8 }}
 						initial={{ opacity: 0, scale: 0.8 }}
 						key={tag}
+						onClick={() => onTagClick?.(tag)}
 						whileHover={{ scale: 1.05 }}
 						whileTap={{ scale: 0.95 }}
 						style={{
@@ -39,7 +40,6 @@ export const NodeTags = memo<{
 							duration: 0.2,
 							delay: index * 0.03,
 						}}
-						onClick={() => onTagClick?.(tag)}
 					>
 						#{tag}
 					</motion.span>
@@ -49,6 +49,7 @@ export const NodeTags = memo<{
 			{hasMore && (
 				<motion.button
 					className='px-1.5 py-0.5 rounded-full flex items-center gap-0.5'
+					onClick={() => setIsExpanded(!isExpanded)}
 					whileHover={{ scale: 1.05 }}
 					whileTap={{ scale: 0.95 }}
 					style={{
@@ -57,7 +58,6 @@ export const NodeTags = memo<{
 						border: '1px solid rgba(255, 255, 255, 0.1)',
 						color: 'rgba(255, 255, 255, 0.6)',
 					}}
-					onClick={() => setIsExpanded(!isExpanded)}
 				>
 					<span>{isExpanded ? 'Less' : `+${tags.length - maxVisible}`}</span>
 

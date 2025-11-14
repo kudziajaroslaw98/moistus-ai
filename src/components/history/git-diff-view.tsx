@@ -31,8 +31,8 @@ export function GitDiffView({
 					if (part.removed) {
 						return (
 							<div
-								key={index}
 								className='flex items-start gap-2 py-0.5 px-2 -mx-2'
+								key={index}
 								style={{
 									backgroundColor: 'rgba(239, 68, 68, 0.08)',
 								}}
@@ -40,6 +40,7 @@ export function GitDiffView({
 								<span className='text-red-400 font-bold flex-shrink-0 select-none'>
 									-
 								</span>
+
 								<span className='text-red-300 break-all whitespace-pre-wrap flex-1'>
 									{part.value}
 								</span>
@@ -50,8 +51,8 @@ export function GitDiffView({
 					if (part.added) {
 						return (
 							<div
-								key={index}
 								className='flex items-start gap-2 py-0.5 px-2 -mx-2'
+								key={index}
 								style={{
 									backgroundColor: 'rgba(34, 197, 94, 0.08)',
 								}}
@@ -59,6 +60,7 @@ export function GitDiffView({
 								<span className='text-green-400 font-bold flex-shrink-0 select-none'>
 									+
 								</span>
+
 								<span className='text-green-300 break-all whitespace-pre-wrap flex-1'>
 									{part.value}
 								</span>
@@ -72,10 +74,11 @@ export function GitDiffView({
 
 					return (
 						<div
-							key={index}
 							className='flex items-start gap-2 py-0.5 px-2 -mx-2 opacity-60'
+							key={index}
 						>
 							<span className='text-white/38 flex-shrink-0 select-none'> </span>
+
 							<span className='text-white/60 break-all whitespace-pre-wrap flex-1'>
 								{part.value}
 							</span>

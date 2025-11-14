@@ -46,8 +46,8 @@ export function HistorySidebar() {
 		<SidePanel
 			className='w-[400px]'
 			isOpen={popoverOpen.history}
-			title='Mind Map History'
 			onClose={handleClose}
+			title='Mind Map History'
 		>
 			<div className='flex h-full flex-col gap-4 p-4 pb-12 overflow-y-auto scrollbar'>
 				{historyMeta.length === 0 && !isLoading ? (

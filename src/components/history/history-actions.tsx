@@ -28,9 +28,9 @@ export function HistoryActions({ historyListRef, isPro }: HistoryActionsProps) {
 				{isPro && (
 					<Button
 						className='border-white/10 text-white/80 hover:border-white/20 hover:bg-white/5'
+						onClick={() => createSnapshot('Manual Checkpoint', true)}
 						size='sm'
 						variant='outline'
-						onClick={() => createSnapshot('Manual Checkpoint', true)}
 					>
 						Create Checkpoint
 					</Button>
@@ -40,20 +40,20 @@ export function HistoryActions({ historyListRef, isPro }: HistoryActionsProps) {
 			<div className='flex items-center gap-1.5'>
 				<Button
 					className='border-white/10 text-white/60 hover:border-white/20 hover:bg-white/5 hover:text-white/87'
+					onClick={handleExpandAll}
 					size='sm'
 					title='Expand all groups'
 					variant='ghost'
-					onClick={handleExpandAll}
 				>
 					<ChevronsDown className='h-3.5 w-3.5' />
 				</Button>
 
 				<Button
 					className='border-white/10 text-white/60 hover:border-white/20 hover:bg-white/5 hover:text-white/87'
+					onClick={handleCollapseAll}
 					size='sm'
 					title='Collapse all groups'
 					variant='ghost'
-					onClick={handleCollapseAll}
 				>
 					<ChevronsUp className='h-3.5 w-3.5' />
 				</Button>

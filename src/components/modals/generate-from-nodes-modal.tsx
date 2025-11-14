@@ -52,8 +52,8 @@ export function GenerateFromNodesModal({
 	return (
 		<SidePanel
 			isOpen={popoverOpen.generateFromNodesModal}
-			title='Generate content from selected nodes'
 			onClose={handleClose}
+			title='Generate content from selected nodes'
 		>
 			<div className='flex flex-col gap-6'>
 				<div className='bg-zinc-800/40 p-4 rounded-md border border-zinc-700'>
@@ -89,10 +89,10 @@ export function GenerateFromNodesModal({
 						className={`min-h-[220px] bg-zinc-900 border-zinc-700 focus:border-teal-500 resize-none ${isLoading ? 'opacity-60' : ''}`}
 						disabled={isLoading}
 						id='ai-prompt'
+						onChange={(e) => setPrompt(e.target.value)}
 						placeholder="Enter your prompt for the AI (e.g., 'Summarize these nodes' or 'Extract key concepts')"
 						ref={textareaRef}
 						value={prompt}
-						onChange={(e) => setPrompt(e.target.value)}
 					/>
 				</div>
 
@@ -100,8 +100,8 @@ export function GenerateFromNodesModal({
 					<Button
 						className='text-zinc-300 hover:text-zinc-100'
 						disabled={isLoading}
-						variant='ghost'
 						onClick={handleClose}
+						variant='ghost'
 					>
 						Cancel
 					</Button>

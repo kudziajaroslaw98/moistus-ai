@@ -34,6 +34,9 @@ const CollapseButtonComponent = (props: { data: NodeData }) => {
 	return (
 		<Button
 			className='nodrag nopan z-20 rounded-md hover:scale-105 h-6 w-auto flex items-center px-1.5 transition-all'
+			onClick={handleToggleCollapse}
+			onMouseEnter={() => setHover(true)}
+			onMouseLeave={() => setHover(false)}
 			variant={'ghost'}
 			style={{
 				backgroundColor: hover ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.05)',
@@ -45,9 +48,6 @@ const CollapseButtonComponent = (props: { data: NodeData }) => {
 					? `Expand Branch (${directChildrenCount} ${directChildrenCount === 1 ? 'child' : 'children'})`
 					: `Collapse Branch (${directChildrenCount} ${directChildrenCount === 1 ? 'child' : 'children'})`
 			}
-			onClick={handleToggleCollapse}
-			onMouseEnter={() => setHover(true)}
-			onMouseLeave={() => setHover(false)}
 		>
 			<motion.div
 				animate={{ rotate: collapsed ? 0 : 180 }}

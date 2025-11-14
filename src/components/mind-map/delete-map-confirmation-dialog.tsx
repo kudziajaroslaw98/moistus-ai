@@ -69,7 +69,7 @@ export function DeleteMapConfirmationDialog({
 	};
 
 	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
+		<Dialog onOpenChange={onOpenChange} open={open}>
 			<DialogContent
 				className='border border-rose-900/50 bg-zinc-950 shadow-2xl backdrop-blur-sm sm:max-w-[500px] p-4'
 				showCloseButton={!isDeleting}
@@ -106,17 +106,23 @@ export function DeleteMapConfirmationDialog({
 					<p className='mb-3 text-sm font-medium text-zinc-300'>
 						The following will be deleted:
 					</p>
+
 					<ul className='space-y-2 text-sm text-zinc-400'>
 						<li className='flex items-center justify-between'>
 							<span>Mind map:</span>
-							<span className='font-medium text-zinc-200'>"{mapTitle}"</span>
+
+							<span className='font-medium text-zinc-200'>&quot;{mapTitle}&quot;</span>
 						</li>
+
 						<li className='flex items-center justify-between'>
 							<span>Nodes:</span>
+
 							<span className='font-medium text-rose-400'>{nodeCount}</span>
 						</li>
+
 						<li className='flex items-center justify-between'>
 							<span>Connections:</span>
+
 							<span className='font-medium text-rose-400'>{edgeCount}</span>
 						</li>
 					</ul>
@@ -133,41 +139,44 @@ export function DeleteMapConfirmationDialog({
 						className='text-sm font-medium text-zinc-300'
 						htmlFor='confirm-input'
 					>
-						Type <span className='font-bold text-white'>"{mapTitle}"</span> to
+						Type <span className='font-bold text-white'>&quot;{mapTitle}&quot;</span> to
 						confirm
 					</label>
+
 					<Input
+						autoFocus
+						autoComplete='off'
+						className='font-mono'
+						disabled={isDeleting}
 						id='confirm-input'
-						value={confirmText}
 						onChange={(e) => setConfirmText(e.target.value)}
 						onKeyDown={handleKeyDown}
 						placeholder='Type the map name...'
-						disabled={isDeleting}
-						className='font-mono'
-						autoComplete='off'
-						autoFocus
+						value={confirmText}
 					/>
+
 					{confirmText && !isConfirmValid && (
 						<p className='text-xs text-rose-400'>
-							Map name doesn't match. Please type exactly: "{mapTitle}"
+							Map name doesn&apos;t match. Please type exactly: &quot;{mapTitle}&quot;
 						</p>
 					)}
 				</motion.div>
 
 				<DialogFooter className='mt-6 gap-2'>
 					<Button
-						variant='ghost'
-						onClick={() => onOpenChange(false)}
-						disabled={isDeleting}
 						className='transition-all duration-200 hover:bg-zinc-800'
+						disabled={isDeleting}
+						onClick={() => onOpenChange(false)}
+						variant='ghost'
 					>
 						Cancel
 					</Button>
+
 					<Button
-						variant='destructive'
-						onClick={handleConfirm}
-						disabled={!isConfirmValid || isDeleting}
 						className='min-w-[120px] bg-rose-600 transition-all duration-200 hover:bg-rose-700 disabled:bg-zinc-800 disabled:text-zinc-500'
+						disabled={!isConfirmValid || isDeleting}
+						onClick={handleConfirm}
+						variant='destructive'
 					>
 						{isDeleting ? (
 							<>

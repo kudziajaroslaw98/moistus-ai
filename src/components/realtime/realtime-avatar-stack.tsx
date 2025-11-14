@@ -29,8 +29,8 @@ export const RealtimeAvatarStack = ({
 	return (
 		<AvatarStack
 			avatars={avatars}
-			showProfileCard={true}
 			mapOwnerId={mapOwnerId}
+			showProfileCard={true}
 		/>
 	);
 };

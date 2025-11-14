@@ -195,14 +195,14 @@ function LayoutConfigPanel({ config, onConfigChange }: LayoutConfigPanelProps) {
 							max='360'
 							min='0'
 							type='range'
-							value={
-								((config as { startAngle?: number }).startAngle || 0) *
-								(180 / Math.PI)
-							}
 							onChange={(e) =>
 								updateConfig({
 									startAngle: Number(e.target.value) * (Math.PI / 180),
 								} as Partial<SpecificLayoutConfig>)
+							}
+							value={
+								((config as { startAngle?: number }).startAngle || 0) *
+								(180 / Math.PI)
 							}
 						/>
 
@@ -266,8 +266,8 @@ function LayoutConfigPanel({ config, onConfigChange }: LayoutConfigPanelProps) {
 			<div className='flex gap-2'>
 				<Button
 					className='flex-1 bg-teal-600 hover:bg-teal-700 text-white'
-					size='sm'
 					onClick={() => onConfigChange(config)}
+					size='sm'
 				>
 					Apply Layout
 				</Button>
@@ -330,7 +330,7 @@ const LayoutSelectorComponent = () => {
 	// const currentPreset = presets.find(p => p.id === selectedPreset);
 
 	return (
-		<Popover open={isOpen} onOpenChange={setIsOpen}>
+		<Popover onOpenChange={setIsOpen} open={isOpen}>
 			<PopoverTrigger asChild>
 				<Button
 					size='icon-md'
@@ -358,9 +358,9 @@ const LayoutSelectorComponent = () => {
 
 						<Button
 							className={cn('size-8 p-0', showSettings && 'bg-zinc-800')}
+							onClick={() => setShowSettings(!showSettings)}
 							size='sm'
 							variant='ghost'
-							onClick={() => setShowSettings(!showSettings)}
 						>
 							<Settings className='size-4' />
 						</Button>
@@ -403,6 +403,7 @@ const LayoutSelectorComponent = () => {
 											<motion.button
 												disabled={preset.disabled}
 												key={preset.id}
+												onClick={() => handlePresetSelect(preset)}
 												whileHover={{ scale: 1.02 }}
 												whileTap={{ scale: 0.98 }}
 												className={cn(
@@ -411,7 +412,6 @@ const LayoutSelectorComponent = () => {
 													isSelected && 'bg-zinc-800 border-teal-500/50',
 													isCurrent && !isSelected && 'bg-zinc-800/50'
 												)}
-												onClick={() => handlePresetSelect(preset)}
 											>
 												<div
 													className={cn(

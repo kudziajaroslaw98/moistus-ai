@@ -127,12 +127,12 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 									animate={{ opacity: 1, x: 0 }}
 									initial={{ opacity: 0, x: -10 }}
 									key={task.id}
+									onClick={() => handleToggleTask(task.id)}
 									transition={{ delay: index * 0.05 }}
 									className={cn(
 										'flex items-start gap-3 p-2 -mx-2 rounded-md transition-all cursor-pointer group',
 										'hover:bg-white/[0.03]'
 									)}
-									onClick={() => handleToggleTask(task.id)}
 								>
 									{/* Custom checkbox following Material Design */}
 									<div className='mt-0.5 flex-shrink-0'>

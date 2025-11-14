@@ -38,8 +38,9 @@ export function SidePanel({
 		<AnimatePresence>
 			{isOpen && (
 				<motion.div
-					key={`side-panel-backdrop-${title.toLowerCase().trim()}`}
 					className='fixed top-0 left-0 z-[39] w-full h-full bg-black/50'
+					key={`side-panel-backdrop-${title.toLowerCase().trim()}`}
+					transition={transition}
 					animate={{
 						opacity: 1,
 					}}
@@ -49,7 +50,6 @@ export function SidePanel({
 					initial={{
 						opacity: 0,
 					}}
-					transition={transition}
 				>
 					<motion.div
 						transition={transition}

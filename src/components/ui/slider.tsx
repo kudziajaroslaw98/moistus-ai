@@ -93,6 +93,7 @@ const Slider = forwardRef<HTMLDivElement, SliderProps>(
 					disabled={disabled}
 					max={max}
 					min={min}
+					onChange={handleInputChange}
 					step={step}
 					type='range'
 					value={internalValue[0]}
@@ -100,7 +101,6 @@ const Slider = forwardRef<HTMLDivElement, SliderProps>(
 						'absolute w-full h-8 cursor-pointer opacity-0 z-10',
 						disabled && 'cursor-not-allowed'
 					)}
-					onChange={handleInputChange}
 				/>
 
 				<div

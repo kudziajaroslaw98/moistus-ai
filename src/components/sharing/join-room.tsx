@@ -187,10 +187,10 @@ export function JoinRoom({
 							disabled={isJoining}
 							id='roomCode'
 							maxLength={7}
+							onChange={handleRoomCodeChange}
 							placeholder='ABC-123'
 							type='text'
 							value={formatRoomCode(watchedRoomCode || '')}
-							onChange={handleRoomCodeChange}
 						/>
 
 						{errors.roomCode && (

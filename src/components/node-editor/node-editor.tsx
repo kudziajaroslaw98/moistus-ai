@@ -113,9 +113,9 @@ export const NodeEditor = () => {
 					>
 						<AnimateChangeInHeight>
 							<QuickInput
-								nodeType={nodeType}
 								existingNode={existingNode}
 								mode={mode}
+								nodeType={nodeType}
 								parentNode={nodeEditor.parentNode}
 								position={nodeEditor.position}
 							/>

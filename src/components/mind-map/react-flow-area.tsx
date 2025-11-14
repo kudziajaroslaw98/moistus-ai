@@ -369,7 +369,7 @@ export function ReactFlowArea() {
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
 	return (
-		<div key='mind-map-container' className='w-full h-full'>
+		<div className='w-full h-full' key='mind-map-container'>
 			<ReactFlow
 				colorMode='dark'
 				connectionLineComponent={FloatingConnectionLine}
@@ -386,20 +386,6 @@ export function ReactFlowArea() {
 				nodesConnectable={isSelectMode || activeTool === 'connector'}
 				nodesDraggable={isSelectMode}
 				nodeTypes={nodeTypesWithProps}
-				panOnDrag={true}
-				selectionMode={SelectionMode.Partial}
-				snapGrid={[GRID_SIZE, GRID_SIZE]}
-				snapToGrid={true}
-				className={cn([
-					isPanningMode && 'cursor-grab',
-					activeTool === 'node' ||
-						(activeTool === 'text' && 'cursor-crosshair'),
-				])}
-				style={
-					{
-						'--xy-background-color-default': 'var(--color-base)',
-					} as CSSProperties
-				}
 				onConnect={onConnect}
 				onConnectEnd={onConnectEnd}
 				onConnectStart={onConnectStart}
@@ -416,6 +402,20 @@ export function ReactFlowArea() {
 				onPaneClick={contextMenuHandlers.onPaneClick}
 				onPaneContextMenu={contextMenuHandlers.onPaneContextMenu}
 				onSelectionChange={handleSelectionChange}
+				panOnDrag={true}
+				selectionMode={SelectionMode.Partial}
+				snapGrid={[GRID_SIZE, GRID_SIZE]}
+				snapToGrid={true}
+				className={cn([
+					isPanningMode && 'cursor-grab',
+					activeTool === 'node' ||
+						(activeTool === 'text' && 'cursor-crosshair'),
+				])}
+				style={
+					{
+						'--xy-background-color-default': 'var(--color-base)',
+					} as CSSProperties
+				}
 			>
 				<Background
 					color='rgba(255, 255, 255, 0.3)'
@@ -480,10 +480,10 @@ export function ReactFlowArea() {
 
 							<Button
 								aria-label='Toggle History Sidebar'
+								onClick={handleToggleHistorySidebar}
 								size='icon'
 								title='Toggle History Sidebar'
 								variant='secondary'
-								onClick={handleToggleHistorySidebar}
 							>
 								<History className='h-4 w-4' />
 							</Button>
@@ -492,9 +492,9 @@ export function ReactFlowArea() {
 
 					<div className='flex items-center gap-8'>
 						<RealtimeAvatarStack
-							roomName={`mind_map:${mapId}:users`}
 							activityState={activityState}
 							mapOwnerId={mindMap?.user_id}
+							roomName={`mind_map:${mapId}:users`}
 						/>
 
 						{/* Only show Settings and Share buttons for map owners */}
@@ -502,19 +502,20 @@ export function ReactFlowArea() {
 							<div className='flex gap-2'>
 								<Button
 									aria-label='Map Settings'
+									onClick={handleToggleMapSettings}
 									size='icon'
 									title='Map Settings'
 									variant={popoverOpen.mapSettings ? 'default' : 'secondary'}
-									onClick={handleToggleMapSettings}
 								>
 									<Settings className='h-4 w-4' />
 								</Button>
+
 								<Button
 									aria-label='Share Mind Map'
 									className='gap-2'
+									onClick={handleToggleSharePanel}
 									title='Share Mind Map'
 									variant={popoverOpen.sharePanel ? 'default' : 'secondary'}
-									onClick={handleToggleSharePanel}
 								>
 									Share <Share2 className='size-3' />
 								</Button>
@@ -524,14 +525,15 @@ export function ReactFlowArea() {
 				</Panel>
 
 				<Panel
-					position='bottom-center'
 					className='flex flex-col gap-2 items-center'
+					position='bottom-center'
 				>
 					<ModeIndicator />
+
 					<Toolbar />
 				</Panel>
 
-				<Panel position='top-right' className='m-4 pt-10'></Panel>
+				<Panel className='m-4 pt-10' position='top-right'></Panel>
 
 				<Panel position='top-left'>
 					<RealtimeCursors
@@ -542,8 +544,8 @@ export function ReactFlowArea() {
 			</ReactFlow>
 
 			<UpgradeModal
-				open={showUpgradeModal}
 				onOpenChange={setShowUpgradeModal}
+				open={showUpgradeModal}
 			/>
 		</div>
 	);

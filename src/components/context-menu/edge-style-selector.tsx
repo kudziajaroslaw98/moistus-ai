@@ -72,9 +72,9 @@ export function EdgeStyleSelector({
 
 			<ToggleGroup
 				className='flex px-2 pb-2'
+				onValueChange={(value) => value && onPathTypeChange(value as PathType)}
 				type='single'
 				value={edge.data?.metadata?.pathType}
-				onValueChange={(value) => value && onPathTypeChange(value as PathType)}
 			>
 				{pathTypeOptions.map((pathType) => (
 					<ToggleGroupItem

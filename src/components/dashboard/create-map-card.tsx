@@ -19,6 +19,7 @@ export function CreateMapCard({
 		<motion.div
 			animate={{ opacity: 1, scale: 1 }}
 			initial={{ opacity: 0, scale: 0.9 }}
+			onClick={onClick}
 			transition={{ duration: 0.3, ease: 'easeOut' as const }}
 			whileHover={{ scale: 1.02, y: -2 }}
 			whileTap={{ scale: 0.98 }}
@@ -29,7 +30,6 @@ export function CreateMapCard({
 					: 'h-20 rounded-lg flex items-center justify-center',
 				className
 			)}
-			onClick={onClick}
 		>
 			{/* Animated Background */}
 			<div className='absolute inset-0 bg-gradient-to-tl from-zinc-900/50 to-zinc-950' />

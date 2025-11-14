@@ -47,6 +47,9 @@ export const MetadataBadge = memo<{
 
 		return (
 			<motion.button
+				onClick={onClick}
+				onHoverEnd={() => setIsHovered(false)}
+				onHoverStart={() => setIsHovered(true)}
 				whileHover={{ scale: 1.02 }}
 				whileTap={onClick ? { scale: 0.98 } : {}}
 				className={cn(
@@ -59,9 +62,6 @@ export const MetadataBadge = memo<{
 					border: `1px solid ${borderColor || 'rgba(255, 255, 255, 0.1)'}`,
 					color: color || 'rgba(255, 255, 255, 0.6)',
 				}}
-				onClick={onClick}
-				onHoverEnd={() => setIsHovered(false)}
-				onHoverStart={() => setIsHovered(true)}
 			>
 				<Icon
 					className={iconSizes[size]}

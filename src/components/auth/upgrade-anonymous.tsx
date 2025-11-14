@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Save, Shield, Users, X, Zap } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
-import { useForm, SubmitHandler } from 'react-hook-form';
+import { useForm, SubmitHandler, Resolver } from 'react-hook-form';
 import { z } from 'zod';
 
 const UpgradeSchema = z
@@ -58,7 +58,7 @@ export function UpgradeAnonymousPrompt({
 		handleSubmit,
 		formState: { errors },
 	} = useForm<UpgradeForm>({
-		resolver: zodResolver(UpgradeSchema),
+		resolver: zodResolver(UpgradeSchema) as any,
 		defaultValues: {
 			displayName: userDisplayName || '',
 		},
@@ -334,10 +334,10 @@ export function UpgradeAnonymousPrompt({
 									<motion.button
 										className='flex-1 px-4 py-3 bg-zinc-700 hover:bg-zinc-600 disabled:bg-zinc-800 disabled:cursor-not-allowed text-white font-medium rounded-md transition-colors duration-200'
 										disabled={isUpgrading}
+										onClick={handleDismiss}
 										type='button'
 										whileHover={{ scale: 1.02 }}
 										whileTap={{ scale: 0.98 }}
-										onClick={handleDismiss}
 									>
 										Maybe Later
 									</motion.button>

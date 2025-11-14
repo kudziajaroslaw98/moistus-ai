@@ -109,14 +109,8 @@ export function WelcomeStep({ onContinue, userName }: WelcomeStepProps) {
 			>
 				<Button
 					className='font-semibold px-8 py-3 text-lg transition-all'
-					size='lg'
-					style={{
-						backgroundColor: 'rgba(52, 211, 153, 0.8)',
-						color: GlassmorphismTheme.elevation[0],
-						transitionDuration: '200ms',
-						transitionTimingFunction: 'ease',
-					}}
 					onClick={onContinue}
+					size='lg'
 					onMouseEnter={(e) => {
 						e.currentTarget.style.backgroundColor = 'rgba(52, 211, 153, 1)';
 						e.currentTarget.style.transform = 'translateY(-2px)';
@@ -124,6 +118,12 @@ export function WelcomeStep({ onContinue, userName }: WelcomeStepProps) {
 					onMouseLeave={(e) => {
 						e.currentTarget.style.backgroundColor = 'rgba(52, 211, 153, 0.8)';
 						e.currentTarget.style.transform = 'translateY(0)';
+					}}
+					style={{
+						backgroundColor: 'rgba(52, 211, 153, 0.8)',
+						color: GlassmorphismTheme.elevation[0],
+						transitionDuration: '200ms',
+						transitionTimingFunction: 'ease',
 					}}
 				>
 					Get Started

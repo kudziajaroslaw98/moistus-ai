@@ -96,15 +96,15 @@ export function ReferenceSearchModal() {
 	return (
 		<Modal
 			isOpen={popoverOpen.referenceSearch}
-			title='Reference a Node'
 			onClose={onClose}
+			title='Reference a Node'
 		>
 			<div className='space-y-4'>
 				<Input
 					autoFocus
+					onChange={(e) => setQuery(e.target.value)}
 					placeholder='Search for a node...'
 					value={query}
-					onChange={(e) => setQuery(e.target.value)}
 				/>
 
 				<div className='max-h-80 overflow-y-auto space-y-2'>

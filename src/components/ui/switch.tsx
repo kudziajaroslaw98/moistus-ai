@@ -19,9 +19,9 @@ const Switch = forwardRef<HTMLInputElement, SwitchProps>(
 				<input
 					className='peer sr-only' // Hide the default checkbox
 					id={switchId}
+					onChange={(e) => onCheckedChange?.(e.target.checked)}
 					ref={ref}
 					type='checkbox'
-					onChange={(e) => onCheckedChange?.(e.target.checked)}
 					{...props}
 				/>
 

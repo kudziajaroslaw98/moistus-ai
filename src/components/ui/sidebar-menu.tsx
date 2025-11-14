@@ -56,6 +56,7 @@ export const MenuItem = ({
 	return (
 		<DropdownMenuItem
 			disabled={disabled}
+			onClick={disabled ? undefined : onClick}
 			className={cn(
 				'flex items-center gap-3 px-3 py-2 cursor-pointer',
 				variant === 'danger' &&
@@ -65,7 +66,6 @@ export const MenuItem = ({
 				disabled && 'opacity-50 cursor-not-allowed',
 				className
 			)}
-			onClick={disabled ? undefined : onClick}
 		>
 			{/* Icon */}
 			{icon && (

@@ -130,13 +130,14 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 			</p>
 
 			<div className='flex gap-2'>
-				<Button variant='ghost' onClick={onClose} disabled={isSaving}>
+				<Button disabled={isSaving} onClick={onClose} variant='ghost'>
 					Close
 				</Button>
+
 				<Button
-					onClick={handleSave}
-					disabled={!hasChanges || !formData.title.trim() || isSaving}
 					className='min-w-[100px]'
+					disabled={!hasChanges || !formData.title.trim() || isSaving}
+					onClick={handleSave}
 				>
 					{isSaving ? (
 						<>
@@ -157,11 +158,11 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 	return (
 		<>
 			<SidePanel
+				className='w-[400px]'
+				footer={footer}
 				isOpen={isOpen}
 				onClose={onClose}
 				title='Map Settings'
-				footer={footer}
-				className='w-[400px]'
 			>
 				{/* Scrollable Content */}
 				<div className='flex flex-col gap-6 p-6'>
@@ -175,38 +176,41 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 						<h3 className='text-lg font-semibold text-zinc-100'>General</h3>
 
 						<div className='space-y-2'>
-							<Label htmlFor='title' className='text-zinc-300'>
+							<Label className='text-zinc-300' htmlFor='title'>
 								Title <span className='text-rose-400'>*</span>
 							</Label>
+
 							<Input
+								disabled={isSaving}
+								error={!formData.title.trim()}
 								id='title'
+								placeholder='My Mind Map'
 								value={formData.title}
 								onChange={(e) =>
 									setFormData({ ...formData, title: e.target.value })
 								}
-								placeholder='My Mind Map'
-								disabled={isSaving}
-								error={!formData.title.trim()}
 							/>
+
 							{!formData.title.trim() && (
 								<p className='text-xs text-rose-400'>Title is required</p>
 							)}
 						</div>
 
 						<div className='space-y-2'>
-							<Label htmlFor='description' className='text-zinc-300'>
+							<Label className='text-zinc-300' htmlFor='description'>
 								Description
 							</Label>
+
 							<Textarea
+								className='resize-none'
+								disabled={isSaving}
 								id='description'
+								placeholder='Describe your mind map...'
+								rows={3}
 								value={formData.description}
 								onChange={(e) =>
 									setFormData({ ...formData, description: e.target.value })
 								}
-								placeholder='Describe your mind map...'
-								rows={3}
-								disabled={isSaving}
-								className='resize-none'
 							/>
 						</div>
 					</motion.section>
@@ -223,15 +227,17 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 						</h3>
 
 						<div className='space-y-2'>
-							<Label htmlFor='tags' className='text-zinc-300'>
+							<Label className='text-zinc-300' htmlFor='tags'>
 								Tags
 							</Label>
+
 							<TagInput
-								value={formData.tags}
+								maxTags={20}
 								onChange={(tags) => setFormData({ ...formData, tags })}
 								placeholder='Add tags...'
-								maxTags={20}
+								value={formData.tags}
 							/>
+
 							<p className='text-xs text-zinc-500'>
 								Press Enter or comma to add tags
 							</p>
@@ -248,19 +254,21 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 						<h3 className='text-lg font-semibold text-zinc-100'>Appearance</h3>
 
 						<div className='space-y-2'>
-							<Label htmlFor='thumbnail' className='text-zinc-300'>
+							<Label className='text-zinc-300' htmlFor='thumbnail'>
 								Thumbnail URL
 							</Label>
+
 							<Input
+								disabled={isSaving}
 								id='thumbnail'
+								placeholder='https://example.com/thumbnail.jpg'
 								type='url'
 								value={formData.thumbnailUrl}
 								onChange={(e) =>
 									setFormData({ ...formData, thumbnailUrl: e.target.value })
 								}
-								placeholder='https://example.com/thumbnail.jpg'
-								disabled={isSaving}
 							/>
+
 							<p className='text-xs text-zinc-500'>
 								Optional preview image for your mind map
 							</p>
@@ -279,20 +287,22 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 						<div className='space-y-4'>
 							<label className='flex items-start gap-3'>
 								<Input
-									type='checkbox'
 									checked={formData.is_template}
+									disabled={isSaving}
+									type='checkbox'
 									onChange={(e) =>
 										setFormData({
 											...formData,
 											is_template: e.target.checked,
 										})
 									}
-									disabled={isSaving}
 								/>
+
 								<div className='flex-1'>
 									<span className='text-sm font-medium text-zinc-300'>
 										Mark as template
 									</span>
+
 									<p className='text-xs text-zinc-500'>
 										Allow others to use this mind map as a starting point
 									</p>
@@ -306,11 +316,14 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 									initial={{ opacity: 0, height: 0 }}
 									transition={{ duration: 0.2 }}
 								>
-									<Label htmlFor='category' className='text-zinc-300'>
+									<Label className='text-zinc-300' htmlFor='category'>
 										Template Category
 									</Label>
+
 									<Input
+										disabled={isSaving}
 										id='category'
+										placeholder='e.g., Project Planning, Brainstorming'
 										value={formData.template_category}
 										onChange={(e) =>
 											setFormData({
@@ -318,8 +331,6 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 												template_category: e.target.value,
 											})
 										}
-										placeholder='e.g., Project Planning, Brainstorming'
-										disabled={isSaving}
 									/>
 								</motion.div>
 							)}
@@ -338,6 +349,7 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 								<div>
 									<div className='flex gap-2 items-center'>
 										<AlertTriangle className='mt-0.5 h-5 w-5 flex-shrink-0 text-rose-500' />
+
 										<h3 className='text-lg font-semibold text-rose-400'>
 											Danger Zone
 										</h3>
@@ -349,10 +361,10 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 								</div>
 
 								<Button
-									variant='destructive'
-									onClick={() => setShowDeleteDialog(true)}
-									disabled={isDeleting}
 									className='w-full bg-rose-600 hover:bg-rose-700'
+									disabled={isDeleting}
+									onClick={() => setShowDeleteDialog(true)}
+									variant='destructive'
 								>
 									{isDeleting ? (
 										<>
@@ -371,13 +383,13 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 
 			{/* Delete Confirmation Dialog */}
 			<DeleteMapConfirmationDialog
-				open={showDeleteDialog}
-				onOpenChange={setShowDeleteDialog}
-				onConfirm={handleDelete}
-				mapTitle={mindMap.title}
-				nodeCount={nodes.length}
 				edgeCount={edges.length}
 				isDeleting={isDeleting}
+				mapTitle={mindMap.title}
+				nodeCount={nodes.length}
+				onConfirm={handleDelete}
+				onOpenChange={setShowDeleteDialog}
+				open={showDeleteDialog}
 			/>
 		</>
 	);

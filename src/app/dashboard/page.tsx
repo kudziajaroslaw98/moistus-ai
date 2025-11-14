@@ -467,9 +467,9 @@ function DashboardContent() {
 									<div className='flex-grow max-w-full sm:max-w-md'>
 										<SearchInput
 											className='touch-manipulation'
+											onChange={(e) => setSearchQuery(e.target.value)}
 											placeholder='Search maps...'
 											value={searchQuery}
-											onChange={(e) => setSearchQuery(e.target.value)}
 										/>
 									</div>
 
@@ -499,8 +499,8 @@ function DashboardContent() {
 
 										{/* Sort */}
 										<Select
-											value={sortBy}
 											onValueChange={(value) => setSortBy(value as SortByType)}
+											value={sortBy}
 										>
 											<SelectTrigger className='w-44 bg-zinc-800/30 backdrop-blur-sm border-zinc-700/50 hover:border-zinc-600/50 transition-colors duration-200'>
 												<SortAsc className='h-4 w-4 mr-2' />
@@ -520,25 +520,25 @@ function DashboardContent() {
 										{/* Enhanced View Mode with Touch-Friendly Buttons */}
 										<div className='flex items-center rounded-lg bg-zinc-800/30 backdrop-blur-sm border border-zinc-700/50 p-1 shadow-sm'>
 											<Button
+												onClick={() => setViewMode('grid')}
 												size='sm'
 												variant='ghost'
 												className={cn(
 													'h-10 px-3 sm:h-7 sm:px-2 min-w-[44px] sm:min-w-0 touch-manipulation',
 													viewMode === 'grid' && 'bg-zinc-700'
 												)}
-												onClick={() => setViewMode('grid')}
 											>
 												<Grid3x3 className='h-4 w-4' />
 											</Button>
 
 											<Button
+												onClick={() => setViewMode('list')}
 												size='sm'
 												variant='ghost'
 												className={cn(
 													'h-10 px-3 sm:h-7 sm:px-2 min-w-[44px] sm:min-w-0 touch-manipulation',
 													viewMode === 'list' && 'bg-zinc-700'
 												)}
-												onClick={() => setViewMode('list')}
 											>
 												<List className='h-4 w-4' />
 											</Button>
@@ -553,9 +553,9 @@ function DashboardContent() {
 									<label className='flex items-center gap-3 text-sm text-zinc-400 cursor-pointer'>
 										<Checkbox
 											checked={selectedMaps.size === filteredMaps.length}
+											onChange={handleSelectAll}
 											size='sm'
 											variant='default'
-											onChange={handleSelectAll}
 										/>
 
 										<span>Select all ({filteredMaps.length} maps)</span>
@@ -574,17 +574,17 @@ function DashboardContent() {
 
 											<Button
 												className='text-red-400 hover:text-red-300'
+												onClick={handleBulkDelete}
 												size='icon'
 												variant='secondary'
-												onClick={handleBulkDelete}
 											>
 												<Trash2 className='size-4' />
 											</Button>
 
 											<Button
+												onClick={() => setSelectedMaps(new Set())}
 												size='sm'
 												variant='secondary'
-												onClick={() => setSelectedMaps(new Set())}
 											>
 												Clear
 											</Button>
@@ -603,8 +603,8 @@ function DashboardContent() {
 							>
 								{/* Create New Map Card - Always first */}
 								<CreateMapCard
-									viewMode={viewMode}
 									onClick={() => setShowCreateDialog(true)}
+									viewMode={viewMode}
 								/>
 
 								{/* Existing Mind Maps */}
@@ -613,11 +613,11 @@ function DashboardContent() {
 										<MindMapCard
 											key={map.id}
 											map={map}
-											selected={selectedMaps.has(map.id)}
-											viewMode={viewMode}
 											onDelete={handleDeleteMap}
 											onDuplicate={handleDuplicateMap}
 											onSelect={handleSelectMap}
+											selected={selectedMaps.has(map.id)}
+											viewMode={viewMode}
 										/>
 									))}
 								</AnimatePresence>
@@ -690,8 +690,8 @@ function DashboardContent() {
 													<Button
 														className='bg-sky-600 hover:bg-sky-700 text-lg px-8 py-3 h-auto'
 														disabled={isCreatingMap}
-														size='lg'
 														onClick={() => setShowCreateDialog(true)}
+														size='lg'
 													>
 														<Plus className='w-5 h-5 mr-2' />
 														Create your first map
@@ -730,9 +730,9 @@ function DashboardContent() {
 			{/* Create Map Dialog */}
 			<CreateMapDialog
 				disabled={isCreatingMap}
-				open={showCreateDialog}
 				onOpenChange={setShowCreateDialog}
 				onSubmit={handleCreateMap}
+				open={showCreateDialog}
 			/>
 		</DashboardLayout>
 	);

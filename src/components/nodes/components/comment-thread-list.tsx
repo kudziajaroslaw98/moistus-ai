@@ -87,8 +87,8 @@ const CommentThreadListComponent = ({
 			if (part.startsWith('@')) {
 				return (
 					<span
-						key={index}
 						className='font-medium px-1 rounded'
+						key={index}
 						style={{
 							backgroundColor: 'rgba(20, 184, 166, 0.2)',
 							color: 'rgba(20, 184, 166, 0.87)',
@@ -114,9 +114,9 @@ const CommentThreadListComponent = ({
 
 	return (
 		<div
-			ref={scrollContainerRef}
 			className='flex-1 overflow-y-auto p-3 space-y-3 nowheel'
 			onWheel={(e) => e.stopPropagation()}
+			ref={scrollContainerRef}
 		>
 			{messages.map((message, index) => {
 				const displayName =
@@ -127,15 +127,15 @@ const CommentThreadListComponent = ({
 
 				return (
 					<motion.div
-						key={message.id}
-						initial={{ opacity: 0, y: 10 }}
 						animate={{ opacity: 1, y: 0 }}
+						className='flex gap-2'
+						initial={{ opacity: 0, y: 10 }}
+						key={message.id}
 						transition={{
 							duration: 0.2,
 							delay: index * 0.05, // 50ms stagger
 							ease: [0.215, 0.61, 0.355, 1], // ease-out-cubic
 						}}
-						className='flex gap-2'
 					>
 						{/* Avatar */}
 						<div
@@ -146,9 +146,9 @@ const CommentThreadListComponent = ({
 						>
 							{message.user?.avatar_url ? (
 								<img
-									src={message.user.avatar_url}
 									alt={displayName}
 									className='size-full rounded-full object-cover'
+									src={message.user.avatar_url}
 								/>
 							) : (
 								<span className='text-xs font-medium text-text-primary'>
@@ -170,12 +170,14 @@ const CommentThreadListComponent = ({
 									)}
 								>
 									{displayName}
+
 									{isCurrentUser && (
 										<span className='ml-1 text-xs font-normal text-text-disabled'>
 											(you)
 										</span>
 									)}
 								</span>
+
 								<span
 									className='text-xs text-text-disabled'
 									title={new Date(message.created_at).toLocaleString()}

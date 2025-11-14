@@ -108,26 +108,27 @@ const CommentReactionsComponent = ({ message }: CommentReactionsProps) => {
 			{/* Existing Reactions */}
 			{groupedReactions.map((reaction, index) => (
 				<motion.button
-					key={reaction.emoji}
-					initial={{ opacity: 0, scale: 0.8 }}
 					animate={{ opacity: 1, scale: 1 }}
-					transition={{
-						duration: 0.15,
-						delay: index * 0.03,
-						ease: [0.25, 0.46, 0.45, 0.94], // ease-out-quad
-					}}
+					initial={{ opacity: 0, scale: 0.8 }}
+					key={reaction.emoji}
+					title={`${reaction.count} ${reaction.count > 1 ? 'people' : 'person'} reacted`}
 					className={cn(
 						'flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-all hover:scale-105 text-text-primary',
 						reaction.has_current_user
 							? 'bg-[rgba(20,184,166,0.2)] border-[rgba(20,184,166,0.3)]'
 							: 'bg-base border-border-default'
 					)}
-					title={`${reaction.count} ${reaction.count > 1 ? 'people' : 'person'} reacted`}
 					onClick={() =>
 						handleReactionClick(reaction.emoji, reaction.has_current_user)
 					}
+					transition={{
+						duration: 0.15,
+						delay: index * 0.03,
+						ease: [0.25, 0.46, 0.45, 0.94], // ease-out-quad
+					}}
 				>
 					<span>{reaction.emoji}</span>
+
 					<span className='font-medium text-text-secondary'>
 						{reaction.count}
 					</span>
@@ -137,11 +138,11 @@ const CommentReactionsComponent = ({ message }: CommentReactionsProps) => {
 			{/* Add Reaction Button */}
 			<div className='relative'>
 				<Button
-					size='sm'
-					variant='ghost'
+					aria-label='Add reaction'
 					className='size-7 p-0 text-text-disabled'
 					onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-					aria-label='Add reaction'
+					size='sm'
+					variant='ghost'
 				>
 					<Smile className='size-4' />
 				</Button>
@@ -149,19 +150,21 @@ const CommentReactionsComponent = ({ message }: CommentReactionsProps) => {
 				{/* Quick Emoji Picker */}
 				{showEmojiPicker && (
 					<motion.div
-						initial={{ opacity: 0, scale: 0.9, y: -10 }}
 						animate={{ opacity: 1, scale: 1, y: 0 }}
+						className='absolute bottom-full mb-2 left-0 flex gap-1 p-2 rounded-lg shadow-lg z-10 bg-elevated border border-border-default'
 						exit={{ opacity: 0, scale: 0.9, y: -10 }}
+						initial={{ opacity: 0, scale: 0.9, y: -10 }}
 						transition={{
 							duration: 0.15,
 							ease: [0.25, 0.46, 0.45, 0.94],
 						}}
-						className='absolute bottom-full mb-2 left-0 flex gap-1 p-2 rounded-lg shadow-lg z-10 bg-elevated border border-border-default'
 					>
 						{quickEmojis.map((emoji, index) => (
 							<motion.button
-								key={emoji}
+								className='size-8 flex items-center justify-center rounded text-lg'
 								initial={{ opacity: 0, scale: 0.8 }}
+								key={emoji}
+								onClick={() => handleQuickEmojiClick(emoji)}
 								animate={{
 									opacity: 1,
 									scale: 1,
@@ -175,8 +178,6 @@ const CommentReactionsComponent = ({ message }: CommentReactionsProps) => {
 								whileHover={{
 									backgroundColor: 'var(--color-elevation-1)',
 								}}
-								className='size-8 flex items-center justify-center rounded text-lg'
-								onClick={() => handleQuickEmojiClick(emoji)}
 							>
 								{emoji}
 							</motion.button>
