@@ -263,7 +263,12 @@ function applyDottedPatch<T extends object>(obj: T, patch: Record<string, any>):
 }
 
 function setByPath(target: any, path: string, value: any) {
+  const POLLUTION_KEYS = ['__proto__', 'constructor', 'prototype'];
   const parts = path.split('.');
+  // Abort if any path segment is a prototype-pollution key
+  for (const seg of parts) {
+    if (POLLUTION_KEYS.includes(seg)) return;
+  }
   let cur = target;
   for (let i = 0; i < parts.length - 1; i++) {
     const seg = parts[i];
