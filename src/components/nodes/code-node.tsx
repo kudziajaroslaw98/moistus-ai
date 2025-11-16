@@ -1,11 +1,11 @@
 'use client';
 
+import { cn } from '@/lib/utils';
 import { Check, Code, Copy, Maximize2, Minimize2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { memo, useCallback, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
 import { BaseNodeWrapper } from './base-node-wrapper';
 import { TypedNodeProps } from './core/types';
@@ -13,8 +13,8 @@ import { TypedNodeProps } from './core/types';
 // Custom dark theme optimized for readability
 const customDarkTheme = {
 	'pre[class*="language-"]': {
-		color: 'var(--color-text-high)',
-		background: 'var(--color-elevation-sunken)',
+		color: 'var(--color-text-primary)',
+		background: 'var(--color-bg-elevated)',
 		fontFamily: 'var(--font-geist-mono), monospace',
 		fontSize: '13px',
 		lineHeight: '1.6',
@@ -24,16 +24,16 @@ const customDarkTheme = {
 		padding: '1rem',
 	},
 	'code[class*="language-"]': {
-		color: 'var(--color-text-high)',
+		color: 'var(--color-text-primary)',
 		background: 'none',
 	},
 	// Syntax colors - desaturated for dark theme
-	comment: { color: 'var(--color-text-disabled)' },
-	prolog: { color: 'var(--color-text-disabled)' },
-	doctype: { color: 'var(--color-text-disabled)' },
-	cdata: { color: 'var(--color-text-disabled)' },
+	comment: { color: 'var(--color-text-tertiary)' },
+	prolog: { color: 'var(--color-text-tertiary)' },
+	doctype: { color: 'var(--color-text-tertiary)' },
+	cdata: { color: 'var(--color-text-tertiary)' },
 
-	punctuation: { color: 'var(--color-text-medium)' },
+	punctuation: { color: 'var(--color-text-secondary)' },
 	property: { color: 'rgba(147, 197, 253, 0.87)' }, // Desaturated blue
 	tag: { color: 'rgba(239, 68, 68, 0.87)' }, // Desaturated red
 	boolean: { color: 'rgba(251, 191, 36, 0.87)' }, // Desaturated amber
@@ -70,7 +70,7 @@ const customDarkTheme = {
 		borderRight: `1px solid var(--color-border-default)`,
 	},
 	'.line-numbers-rows > span:before': {
-		color: 'var(--color-text-disabled)',
+		color: 'var(--color-text-tertiary)',
 	},
 };
 
@@ -115,8 +115,8 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 			setCopied(true);
 			toast.success('Code copied to clipboard!', {
 				style: {
-					background: 'var(--color-elevation-4)',
-					color: 'var(--color-text-high)',
+					background: 'var(--color-bg-elevated)',
+					color: 'var(--color-text-primary)',
 					border: `1px solid rgba(52, 211, 153, 0.3)`,
 				},
 			});
@@ -125,8 +125,8 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 			console.error('Failed to copy code:', err);
 			toast.error('Failed to copy code', {
 				style: {
-					background: 'var(--color-elevation-4)',
-					color: 'var(--color-text-high)',
+					background: 'var(--color-bg-elevated)',
+					color: 'var(--color-text-primary)',
 					border: `1px solid rgba(239, 68, 68, 0.3)`,
 				},
 			});
@@ -253,11 +253,11 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 						customStyle={{
 							margin: 0,
 							padding: '1rem',
-							background: 'var(--color-elevation-0)',
+							background: 'var(--color-bg-base)',
 							fontSize: '13px',
 						}}
 						lineNumberStyle={{
-							color: 'var(--color-text-disabled)',
+							color: 'var(--color-text-tertiary)',
 							fontSize: '11px',
 							minWidth: '3em',
 							paddingRight: '1em',

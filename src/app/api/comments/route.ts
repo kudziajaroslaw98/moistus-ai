@@ -23,6 +23,40 @@ export const GET = withAuthValidation(
 				);
 			}
 
+			// Verify user has access to the map (owner or active share access)
+			const { data: map, error: mapError } = await supabase
+				.from('mind_maps')
+				.select('id, user_id')
+				.eq('id', mapId)
+				.single();
+
+			if (mapError || !map) {
+				return respondError(
+					'Map not found.',
+					404,
+					'Map not found.'
+				);
+			}
+
+			// Check if user has share access
+			const { data: share } = await supabase
+				.from('share_access')
+				.select('id')
+				.eq('map_id', mapId)
+				.eq('user_id', user.id)
+				.eq('status', 'active')
+				.limit(1)
+				.single();
+
+			const hasAccess = map.user_id === user.id || !!share;
+			if (!hasAccess) {
+				return respondError(
+					'Access denied.',
+					403,
+					'You do not have permission to access this map.'
+				);
+			}
+
 			// Fetch comments for the map
 			const { data: comments, error: fetchError } = await supabase
 				.from('comments')
@@ -71,7 +105,7 @@ export const POST = withAuthValidation(
 		try {
 			const { map_id, position_x, position_y, width, height } = validatedBody;
 
-			// Verify user has access to the map
+			// Verify user has access to the map (owner or active share access)
 			const { data: map, error: mapError } = await supabase
 				.from('mind_maps')
 				.select('id, user_id')
@@ -80,9 +114,28 @@ export const POST = withAuthValidation(
 
 			if (mapError || !map) {
 				return respondError(
-					'Map not found or access denied.',
+					'Map not found.',
 					404,
 					'Map not found.'
+				);
+			}
+
+			// Check if user has share access
+			const { data: share } = await supabase
+				.from('share_access')
+				.select('id')
+				.eq('map_id', map_id)
+				.eq('user_id', user.id)
+				.eq('status', 'active')
+				.limit(1)
+				.single();
+
+			const hasAccess = map.user_id === user.id || !!share;
+			if (!hasAccess) {
+				return respondError(
+					'Access denied.',
+					403,
+					'You do not have permission to access this map.'
 				);
 			}
 

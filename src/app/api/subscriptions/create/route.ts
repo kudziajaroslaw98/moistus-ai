@@ -80,11 +80,24 @@ export async function POST(req: NextRequest) {
 			},
 		});
 
+		// Determine trial configuration based on environment
+		const isProduction = process.env.NODE_ENV === 'production';
+		const trialDays = 14;
+		const trialConfig = isProduction
+			? {
+					// Production: Standard 14-day trial
+					trial_period_days: trialDays,
+			  }
+			: {
+					// Development: Short 1-minute trial for testing
+					trial_end: Math.floor(Date.now() / 1000) + 60,
+			  };
+
 		// Create subscription with trial
 		const subscription = await stripe.subscriptions.create({
 			customer: customerId,
 			items: [{ price: priceId }],
-			trial_end: Math.floor(Date.now() / 1000) + 60, // DEBUG: 1-minute trial (CHANGE BACK to trial_period_days: 14 for production!)
+			...trialConfig,
 			trial_settings: {
 				end_behavior: {
 					missing_payment_method: 'cancel', // Cancel if no payment at trial end
@@ -99,6 +112,13 @@ export async function POST(req: NextRequest) {
 
 		const currentPeriodStart = subscription.items.data[0].current_period_start * 1000;
 		const currentPeriodEnd = subscription.items.data[0].current_period_end * 1000;
+
+		// Calculate actual trial duration for metadata sync
+		const actualTrialDays = subscription.trial_end
+			? Math.ceil(
+					(subscription.trial_end * 1000 - Date.now()) / (1000 * 60 * 60 * 24)
+			  )
+			: trialDays;
 
 		// Save subscription to database
 		const { error: dbError } = await supabase
@@ -117,7 +137,7 @@ export async function POST(req: NextRequest) {
 				cancel_at_period_end: subscription.cancel_at_period_end,
 				metadata: {
 					stripe_price_id: priceId,
-					trial_days: 14,
+					trial_days: actualTrialDays,
 				},
 			});
 

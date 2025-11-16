@@ -58,6 +58,7 @@ export async function POST(
 				.from('map_history_events')
 				.select('snapshot_id')
 				.eq('id', eventId)
+				.eq('map_id', mapId)
 				.single();
 			if (!event)
 				return NextResponse.json({ error: 'Event not found' }, { status: 404 });
@@ -69,6 +70,7 @@ export async function POST(
 			.from('map_history_snapshots')
 			.select('*')
 			.eq('id', targetSnapshotId)
+			.eq('map_id', mapId)
 			.single();
 		if (!snapshot)
 			return NextResponse.json(
@@ -84,15 +86,16 @@ export async function POST(
 				.from('map_history_events')
 				.select('*')
 				.eq('snapshot_id', targetSnapshotId)
+				.eq('map_id', mapId)
 				.order('event_index', { ascending: true });
 			for (const ev of events || []) {
-				if (ev.id === eventId) break;
 				const result = applyDelta(
 					{ nodes: finalNodes, edges: finalEdges },
 					ev.changes as HistoryDelta // HistoryDelta
 				);
 				finalNodes = result.nodes;
 				finalEdges = result.edges;
+				if (ev.id === eventId) break;
 			}
 		}
 

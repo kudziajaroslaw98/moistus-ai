@@ -304,8 +304,6 @@ Context:\n${contextString}`;
 								count: index,
 							});
 						}
-
-						writer.write({ type: 'finish' });
 					} catch (e) {
 						const error = e instanceof Error ? e : new Error('Unknown error');
 						console.error('Counterpoints stream failed:', error);
@@ -362,4 +360,3 @@ function getConnectedNodes(
 	);
 	return nodes.filter((node) => connectedNodeIds.has(node.id));
 }
-

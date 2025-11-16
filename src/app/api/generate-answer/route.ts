@@ -98,11 +98,16 @@ export const POST = withApiValidation(
 				prompt: aiPrompt,
 			});
 
-			// Track usage for free tier users
-			await trackAIFeatureUsage(user, supabase, 'answer', isPro, {
-				nodeId,
-				questionLength: questionNode.content.length,
-			});
+			// Track usage for free tier users (non-blocking)
+			try {
+				await trackAIFeatureUsage(user, supabase, 'answer', isPro, {
+					nodeId,
+					questionLength: questionNode.content.length,
+				});
+			} catch (trackingError) {
+				// Log tracking failures but don't block the response
+				console.warn('Failed to track AI feature usage:', trackingError);
+			}
 
 			return result.toTextStreamResponse();
 		} catch (error) {

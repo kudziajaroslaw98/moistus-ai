@@ -221,7 +221,9 @@ function collectDiff(base: string, a: any, b: any, out: Record<string, any>) {
 
   const keys = new Set([...Object.keys(a || {}), ...Object.keys(b || {})]);
   for (const key of keys) {
-    if (SKIP_KEYS.has(key)) continue;
+    // Skip dangerous keys and configured skip keys
+    if (SKIP_KEYS.has(key) || !isSafeKey(key)) continue;
+
     const path = base ? `${base}.${key}` : key;
     if (!(key in b)) {
       // removed
@@ -242,7 +244,9 @@ function flattenDotted(obj: any, base = ''): Record<string, any> {
     return out;
   }
   for (const key of Object.keys(obj)) {
-    if (SKIP_KEYS.has(key)) continue;
+    // Skip dangerous keys and configured skip keys
+    if (SKIP_KEYS.has(key) || !isSafeKey(key)) continue;
+
     const path = base ? `${base}.${key}` : key;
     if (obj[key] != null && typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
       Object.assign(out, flattenDotted(obj[key], path));
@@ -262,17 +266,38 @@ function applyDottedPatch<T extends object>(obj: T, patch: Record<string, any>):
   return clone as T;
 }
 
+/**
+ * Check if a property name is safe to use (not a prototype pollution vector)
+ */
+function isSafeKey(key: string): boolean {
+  // Block prototype pollution vectors
+  const dangerousKeys = ['__proto__', 'constructor', 'prototype'];
+  return !dangerousKeys.includes(key);
+}
+
 function setByPath(target: any, path: string, value: any) {
   const parts = path.split('.');
+
+  // Validate all parts of the path to prevent prototype pollution
+  for (const part of parts) {
+    if (!isSafeKey(part)) {
+      console.warn(`Blocked unsafe property assignment: ${part} in path ${path}`);
+      return;
+    }
+  }
+
   let cur = target;
   for (let i = 0; i < parts.length - 1; i++) {
     const seg = parts[i];
     const nextIsIndex = isIndex(parts[i + 1]);
-    if (!(seg in cur) || cur[seg] == null) {
+
+    // Only create/modify own properties, never inherited ones
+    if (!Object.prototype.hasOwnProperty.call(cur, seg) || cur[seg] == null) {
       cur[seg] = nextIsIndex ? [] : {};
     }
     cur = cur[seg];
   }
+
   const last = parts[parts.length - 1];
   if (value === undefined) {
     if (Array.isArray(cur) && isIndex(last)) {
@@ -320,9 +345,22 @@ function createReversePatch(originalObject: any, forwardPatch: Record<string, an
 function getByPath(obj: any, path: string): any {
   if (!path) return obj;
   const parts = path.split('.');
+
+  // Validate all parts of the path to prevent prototype pollution reads
+  for (const part of parts) {
+    if (!isSafeKey(part)) {
+      console.warn(`Blocked unsafe property access: ${part} in path ${path}`);
+      return undefined;
+    }
+  }
+
   let current = obj;
   for (const part of parts) {
     if (current == null) return undefined;
+    // Only access own properties, not inherited ones
+    if (!Object.prototype.hasOwnProperty.call(current, part)) {
+      return undefined;
+    }
     current = current[part];
   }
   return current;

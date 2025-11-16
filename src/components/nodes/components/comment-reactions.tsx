@@ -176,7 +176,7 @@ const CommentReactionsComponent = ({ message }: CommentReactionsProps) => {
 									ease: [0.215, 0.61, 0.355, 1],
 								}}
 								whileHover={{
-									backgroundColor: 'var(--color-elevation-1)',
+									backgroundColor: 'var(--color-bg-elevated)',
 								}}
 							>
 								{emoji}

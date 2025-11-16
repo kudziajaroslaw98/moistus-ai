@@ -30,25 +30,27 @@ export async function DELETE(
 
 		// Delete the message (CASCADE will handle reactions)
 		// Only allow deletion if user owns the message
-		const { error: deleteError } = await supabase
+		// Request deleted rows to detect if message exists and is owned by user
+		const { data: deletedRows, error: deleteError } = await supabase
 			.from('comment_messages')
 			.delete()
 			.eq('id', messageId)
 			.eq('comment_id', commentId)
-			.eq('user_id', user.id);
+			.eq('user_id', user.id)
+			.select();
 
 		if (deleteError) {
 			console.error('Error deleting message:', deleteError);
-
-			if (deleteError.code === 'PGRST116') {
-				return respondError(
-					'Message not found or not owned by user.',
-					404,
-					'Message not found.'
-				);
-			}
-
 			return respondError('Error deleting message.', 500, deleteError.message);
+		}
+
+		// Check if any rows were actually deleted
+		if (!deletedRows || deletedRows.length === 0) {
+			return respondError(
+				'Message not found or not owned by user.',
+				404,
+				'Message not found.'
+			);
 		}
 
 		return respondSuccess(

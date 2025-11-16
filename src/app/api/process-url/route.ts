@@ -125,11 +125,16 @@ export const POST = withApiValidation(
 				}
 			}
 
-			// Track usage for free tier users
-			await trackAIFeatureUsage(user, supabase, 'url_processing', isPro, {
-				url,
-				hasSummary: !!summary,
-			});
+			// Track usage for free tier users (non-blocking)
+			try {
+				await trackAIFeatureUsage(user, supabase, 'url_processing', isPro, {
+					url,
+					hasSummary: !!summary,
+				});
+			} catch (trackingError) {
+				// Log tracking failures but don't block the response
+				console.warn('Failed to track AI feature usage:', trackingError);
+			}
 
 			return respondSuccess(
 				{

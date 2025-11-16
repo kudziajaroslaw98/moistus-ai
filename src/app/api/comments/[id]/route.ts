@@ -125,7 +125,7 @@ export async function PUT(
 
 		const updateData = validationResult.data;
 
-		// Update the comment
+		// Update the comment (only allow owner to update)
 		const { data: updatedComment, error: updateError } = await supabase
 			.from('comments')
 			.update({
@@ -133,6 +133,7 @@ export async function PUT(
 				updated_at: new Date().toISOString(),
 			})
 			.eq('id', commentId)
+			.eq('created_by', user.id)
 			.select()
 			.single();
 
@@ -140,7 +141,11 @@ export async function PUT(
 			console.error('Error updating comment:', updateError);
 
 			if (updateError.code === 'PGRST116') {
-				return respondError('Comment not found.', 404, 'Comment not found.');
+				return respondError(
+					'Comment not found or not owned by user.',
+					404,
+					'Comment not found.'
+				);
 			}
 
 			return respondError(
@@ -193,24 +198,26 @@ export async function DELETE(
 		}
 
 		// Delete the comment (CASCADE will handle messages and reactions)
-		const { error: deleteError } = await supabase
+		// Request deleted rows to detect if comment exists and is owned by user
+		const { data: deletedRows, error: deleteError } = await supabase
 			.from('comments')
 			.delete()
 			.eq('id', commentId)
-			.eq('created_by', user.id); // Ensure user owns the comment
+			.eq('created_by', user.id) // Ensure user owns the comment
+			.select();
 
 		if (deleteError) {
 			console.error('Error deleting comment:', deleteError);
-
-			if (deleteError.code === 'PGRST116') {
-				return respondError(
-					'Comment not found or not owned by user.',
-					404,
-					'Comment not found.'
-				);
-			}
-
 			return respondError('Error deleting comment.', 500, deleteError.message);
+		}
+
+		// Check if any rows were actually deleted
+		if (!deletedRows || deletedRows.length === 0) {
+			return respondError(
+				'Comment not found or not owned by user.',
+				404,
+				'Comment not found.'
+			);
 		}
 
 		return respondSuccess(

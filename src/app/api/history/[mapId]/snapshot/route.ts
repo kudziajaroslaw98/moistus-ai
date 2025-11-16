@@ -31,13 +31,22 @@ export async function POST(
 		}
 
 		// Treat users with active/trialing subscription as Pro
-		const { data: subscription } = await supabase
+		const { data: subscription, error: subscriptionError } = await supabase
 			.from('user_subscriptions')
 			.select('status')
 			.eq('user_id', user.id)
 			.in('status', ['active', 'trialing'])
 			.limit(1)
 			.single();
+
+		if (subscriptionError) {
+			console.error('Error checking subscription:', subscriptionError);
+			return NextResponse.json(
+				{ error: 'Internal server error' },
+				{ status: 500 }
+			);
+		}
+
 		if (!subscription) {
 			return NextResponse.json(
 				{ error: 'Manual checkpoints are Pro-only' },
@@ -46,13 +55,23 @@ export async function POST(
 		}
 
 		// Get current snapshot index
-		const { data: lastSnapshot } = await supabase
+		const { data: lastSnapshot, error: snapshotError } = await supabase
 			.from('map_history_snapshots')
 			.select('snapshot_index')
 			.eq('map_id', mapId)
 			.order('snapshot_index', { ascending: false })
 			.limit(1)
 			.single();
+
+		if (snapshotError && snapshotError.code !== 'PGRST116') {
+			// PGRST116 means no rows found, which is fine (first snapshot)
+			console.error('Error fetching last snapshot:', snapshotError);
+			return NextResponse.json(
+				{ error: 'Internal server error' },
+				{ status: 500 }
+			);
+		}
+
 		const nextIndex = (lastSnapshot?.snapshot_index ?? -1) + 1;
 
 		const { data: inserted, error } = await supabase

@@ -93,11 +93,7 @@ export async function POST(
 
 		if (insertError) {
 			console.error('Error creating reaction:', insertError);
-			return respondError(
-				'Error creating reaction.',
-				500,
-				insertError.message
-			);
+			return respondError('Error creating reaction.', 500, insertError.message);
 		}
 
 		return respondSuccess(
@@ -160,16 +156,18 @@ export async function DELETE(
 		const { reaction_id } = validationResult.data;
 
 		// Delete the reaction (only if user owns it)
-		const { error: deleteError } = await supabase
+		const { data: deletedReaction, error: deleteError } = await supabase
 			.from('comment_reactions')
 			.delete()
 			.eq('id', reaction_id)
-			.eq('user_id', user.id);
+			.eq('user_id', user.id)
+			.select()
+			.maybeSingle();
 
-		if (deleteError) {
+		if (deletedReaction) {
 			console.error('Error deleting reaction:', deleteError);
 
-			if (deleteError.code === 'PGRST116') {
+			if (deletedReaction.code === 'PGRST116') {
 				return respondError(
 					'Reaction not found or not owned by user.',
 					404,
@@ -177,7 +175,11 @@ export async function DELETE(
 				);
 			}
 
-			return respondError('Error deleting reaction.', 500, deleteError.message);
+			return respondError(
+				'Error deleting reaction.',
+				500,
+				deletedReaction.message
+			);
 		}
 
 		return respondSuccess(

@@ -34,8 +34,81 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
 		return;
 	}
 
-	const currentPeriodStart = subscription.items.data[0].current_period_start * 1000;
-	const currentPeriodEnd = subscription.items.data[0].current_period_end * 1000;
+	// Defensive guards: Verify subscription items structure
+	if (!subscription.items) {
+		console.error(
+			'Subscription missing items structure:',
+			subscription.id
+		);
+		return;
+	}
+
+	if (!Array.isArray(subscription.items.data) || subscription.items.data.length === 0) {
+		console.error(
+			'Subscription items.data is empty or not an array:',
+			subscription.id,
+			subscription.items
+		);
+		return;
+	}
+
+	const firstItem = subscription.items.data[0];
+	if (!firstItem) {
+		console.error(
+			'Subscription first item is undefined:',
+			subscription.id
+		);
+		return;
+	}
+
+	// Verify required period fields
+	if (
+		typeof firstItem.current_period_start !== 'number' ||
+		typeof firstItem.current_period_end !== 'number'
+	) {
+		console.error(
+			'Subscription item missing required period fields:',
+			subscription.id,
+			firstItem
+		);
+		return;
+	}
+
+	// Optional: Verify price structure if needed
+	if (firstItem.price) {
+		const price = firstItem.price;
+		if (!price.product) {
+			console.warn(
+				'Subscription price missing product:',
+				subscription.id,
+				price
+			);
+		}
+		if (price.recurring && !price.recurring.interval) {
+			console.warn(
+				'Subscription recurring price missing interval:',
+				subscription.id,
+				price
+			);
+		}
+		if (typeof price.unit_amount !== 'number') {
+			console.warn(
+				'Subscription price missing or invalid unit_amount:',
+				subscription.id,
+				price
+			);
+		}
+		if (!price.currency) {
+			console.warn(
+				'Subscription price missing currency:',
+				subscription.id,
+				price
+			);
+		}
+	}
+
+	const currentPeriodStart = firstItem.current_period_start * 1000;
+	const currentPeriodEnd = firstItem.current_period_end * 1000;
 
 	// Update subscription status
 	const { error } = await supabase

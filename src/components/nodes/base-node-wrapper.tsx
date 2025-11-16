@@ -143,8 +143,8 @@ const BaseNodeWrapperComponent = ({
 		border: `1px solid ${selected ? theme.borders.selected : theme.borders.default}`,
 		// Micro-animation for depth perception
 
-		width: dimensions.width,
-		height: dimensions.height,
+		minWidth: dimensions.width,
+		minHeight: dimensions.height,
 	};
 
 	// Accent color system - subtle and sophisticated
@@ -157,10 +157,7 @@ const BaseNodeWrapperComponent = ({
 		: {};
 
 	return (
-		<motion.div
-			transition={{ type: 'spring', duration: 0.2 }}
-			whileHover={{ y: -5 }}
-		>
+		<motion.div transition={{ type: 'spring', duration: 0.2 }}>
 			<motion.div
 				ref={nodeRef}
 				className={cn(
@@ -174,42 +171,6 @@ const BaseNodeWrapperComponent = ({
 					...accentStyles,
 				}}
 			>
-				{/* Node type indicator - semantic and minimal */}
-				{nodeIcon && !hideNodeType && (
-					<div className='absolute -top-7 left-0 z-10'>
-						<div
-							className='flex items-center gap-1.5 px-2 py-0.5 rounded-t-md'
-							style={{
-								backgroundColor: getElevationColor(4),
-								border: '1px solid rgba(255, 255, 255, 0.06)',
-								borderBottom: 'none',
-							}}
-						>
-							<span style={{ opacity: 0.6, display: 'flex' }}>{nodeIcon}</span>
-
-							{nodeType && (
-								<span
-									className='text-[10px] font-mono uppercase tracking-wider'
-									style={{ color: 'rgba(255, 255, 255, 0.38)' }}
-								>
-									{nodeType}
-								</span>
-							)}
-						</div>
-					</div>
-				)}
-
-				{/* Ambient glow for selected state - very subtle */}
-				{selected && (
-					<div
-						className='absolute inset-0 rounded-lg pointer-events-none'
-						style={{
-							background: theme.effects.ambientGlow,
-							zIndex: -1,
-						}}
-					/>
-				)}
-
 				<CollapsedIndicator data={data} />
 
 				{/* Top header controls */}
@@ -237,12 +198,7 @@ const BaseNodeWrapperComponent = ({
 				</div>
 
 				{/* Main content with metadata bar integration */}
-				<div
-					className={cn('flex flex-col h-full')}
-					style={{ position: 'relative', zIndex: 1 }}
-				>
-					{/* Universal Metadata Bar - positioned at the top of content */}
-					{/* Only show when node has actual metadata to display */}
+				<div className={cn('flex flex-col h-full relative z-[1]')}>
 					{data.metadata &&
 						Object.values(data.metadata).some(
 							(value) => value !== undefined && value !== null && value !== ''
@@ -325,10 +281,9 @@ const BaseNodeWrapperComponent = ({
 								<div key={`${data.id}-add-handles`}>
 									<motion.div
 										animate={{ opacity: 0.3, scaleY: 1 }}
-										className='absolute -bottom-12 left-1/2 -translate-x-1/2 w-[1px] h-12'
+										className='absolute -bottom-12 left-1/2 -translate-x-1/2 w-[1px] h-12 bg-overlay'
 										exit={{ opacity: 0, scaleY: 0 }}
 										initial={{ opacity: 0, scaleY: 0 }}
-										style={{ backgroundColor: theme.borders.hover }}
 										transition={{ duration: 0.2 }}
 									/>
 
@@ -343,18 +298,11 @@ const BaseNodeWrapperComponent = ({
 										}}
 									>
 										<Button
-											className='nodrag nopan rounded-full w-10 h-10 p-0 transition-all duration-200 hover:scale-110'
+											className='nodrag nopan rounded-full w-10 h-10 p-0 transition-all duration-200 hover:scale-110 bg-elevated border border-border-default'
 											onClick={handleAddNewNode}
 											title='Add new connected node'
-											style={{
-												backgroundColor: getElevationColor(6),
-												border: `1px solid ${theme.borders.hover}`,
-											}}
 										>
-											<Plus
-												className='w-5 h-5'
-												style={{ color: theme.text.high }}
-											/>
+											<Plus className='w-5 h-5 text-text-primary' />
 										</Button>
 									</motion.div>
 								</div>
@@ -365,11 +313,10 @@ const BaseNodeWrapperComponent = ({
 								selectedNodes.length === 1 && (
 									<>
 										<motion.div
-											animate={{ opacity: 0.3, scaleY: 1 }}
-											className='absolute -right-16 -z-10 top-1/2 -translate-y-1/2 w-20 h-[1px]'
-											exit={{ opacity: 0, scaleY: 0 }}
-											initial={{ opacity: 0, scaleY: 0 }}
-											style={{ backgroundColor: theme.borders.hover }}
+											animate={{ opacity: 0.3, scaleX: 1 }}
+											className='absolute -right-16 -z-10 top-1/2 -translate-y-1/2 w-20 h-[1px] bg-overlay'
+											exit={{ opacity: 0, scaleX: 0 }}
+											initial={{ opacity: 0, scaleX: 0 }}
 											transition={{ duration: 0.2 }}
 										/>
 
@@ -387,18 +334,11 @@ const BaseNodeWrapperComponent = ({
 											}}
 										>
 											<Button
-												className='nodrag nopan rounded-full w-fit py-2 px-4 flex gap-2 transition-all duration-200 hover:scale-110'
-												onClick={handleAddNewNode}
+												className='nodrag nopan rounded-full w-fit py-2 px-4 flex gap-2 transition-all duration-200 hover:scale-110 border border-border-default bg-elevated'
+												onClick={handleGenerateSuggestions}
 												title='Suggest Nodes'
-												style={{
-													backgroundColor: getElevationColor(6),
-													border: `1px solid ${theme.borders.hover}`,
-												}}
 											>
-												<Sparkles
-													className='size-4'
-													style={{ color: theme.text.high }}
-												/>
+												<Sparkles className='size-4 text-text-primary' />
 												Suggest Nodes
 											</Button>
 										</motion.div>
