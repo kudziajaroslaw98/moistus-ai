@@ -501,7 +501,7 @@ const serializeNodeSpecificMetadata = (
 		case 'questionNode':
 			// Question-specific patterns
 			if (metadata.answer) {
-				const escapedAnswer = metadata.answer.replace(/"/g, '\\"');
+				const escapedAnswer = metadata.answer.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 				parts.push(`answer:"${escapedAnswer}"`);
 			}
 
