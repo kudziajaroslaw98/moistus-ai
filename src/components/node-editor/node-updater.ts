@@ -646,7 +646,7 @@ export const transformNodeToQuickInputString = (
 
 			// Add description if present
 			if (data.content) {
-				resourceContent += ` desc:"${data.content.replace(/"/g, '\\"')}"`;
+				resourceContent += ` desc:"${data.content.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 			}
 
 			// Add metadata (includes universal and resource-specific patterns)
