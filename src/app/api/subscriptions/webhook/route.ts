@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-	apiVersion: '2025-09-30.clover',
+	apiVersion: '2025-10-29.clover',
 });
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -36,14 +36,14 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
 
 	// Defensive guards: Verify subscription items structure
 	if (!subscription.items) {
-		console.error(
-			'Subscription missing items structure:',
-			subscription.id
-		);
+		console.error('Subscription missing items structure:', subscription.id);
 		return;
 	}
 
-	if (!Array.isArray(subscription.items.data) || subscription.items.data.length === 0) {
+	if (
+		!Array.isArray(subscription.items.data) ||
+		subscription.items.data.length === 0
+	) {
 		console.error(
 			'Subscription items.data is empty or not an array:',
 			subscription.id,
@@ -54,10 +54,7 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
 
 	const firstItem = subscription.items.data[0];
 	if (!firstItem) {
-		console.error(
-			'Subscription first item is undefined:',
-			subscription.id
-		);
+		console.error('Subscription first item is undefined:', subscription.id);
 		return;
 	}
 
