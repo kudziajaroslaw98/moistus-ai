@@ -321,6 +321,18 @@ export const transformNodeToFormData = (
 };
 
 /**
+ * Properly escapes a string for safe use in quoted values.
+ * Escapes backslashes first, then quotes to prevent injection attacks.
+ * @param str - The string to escape
+ * @returns The escaped string safe for use in quoted contexts
+ */
+const escapeForQuotedValue = (str: string): string => {
+	// IMPORTANT: Escape backslashes first, then quotes
+	// This prevents: \\" from becoming \\\\" (escaped backslash + unescaped quote)
+	return str.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+};
+
+/**
  * Universal metadata serializer helper - extracts common metadata for all nodes
  * Uses patterns from pattern-extractor.ts:
  * - Tags: #tag
@@ -441,17 +453,17 @@ const serializeNodeSpecificMetadata = (
 		case 'imageNode':
 			// Image-specific patterns
 			if (metadata.altText) {
-				const escapedAlt = metadata.altText.replace(/"/g, '\\"');
+				const escapedAlt = escapeForQuotedValue(metadata.altText);
 				parts.push(`alt:"${escapedAlt}"`);
 			}
 
 			if (metadata.caption) {
-				const escapedCaption = metadata.caption.replace(/"/g, '\\"');
+				const escapedCaption = escapeForQuotedValue(metadata.caption);
 				parts.push(`cap:"${escapedCaption}"`);
 			}
 
 			if (metadata.source) {
-				const escapedSource = metadata.source.replace(/"/g, '\\"');
+				const escapedSource = escapeForQuotedValue(metadata.source);
 				parts.push(`src:"${escapedSource}"`);
 			}
 
@@ -480,7 +492,7 @@ const serializeNodeSpecificMetadata = (
 			}
 
 			if (metadata.title) {
-				const escapedTitle = metadata.title.replace(/"/g, '\\"');
+				const escapedTitle = escapeForQuotedValue(metadata.title);
 				parts.push(`title:"${escapedTitle}"`);
 			}
 

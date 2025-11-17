@@ -45,11 +45,6 @@ const useThrottleCallback = <Params extends unknown[], Return>(
 
 const supabase = getSharedSupabaseClient();
 
-const generateRandomColor = () =>
-	`hsl(${Math.floor(Math.random() * 360)}, 100%, 70%)`;
-
-const generateRandomNumber = () => Math.floor(Math.random() * 100);
-
 const EVENT_NAME = 'realtime-cursor-move';
 
 type CursorEventPayload = {
@@ -58,7 +53,7 @@ type CursorEventPayload = {
 		y: number;
 	};
 	user: {
-		id: number;
+		id: string;
 		name: string;
 	};
 	color: string;
@@ -83,7 +78,13 @@ export const useRealtimeCursors = ({
 	const { hsl: color } = useUserColor(
 		currentUser?.id || currentUser?.email || 'anonymous'
 	);
-	const userId = useMemo(() => generateRandomNumber(), []);
+
+	// Use authenticated user ID if available, otherwise generate stable session UUID
+	// SECURITY: Uses crypto.randomUUID() instead of Math.random() to prevent collisions
+	const userId = useMemo(
+		() => currentUser?.id || crypto.randomUUID(),
+		[currentUser?.id]
+	);
 	const [cursors, setCursors] = useState<Record<string, CursorEventPayload>>(
 		{}
 	);
