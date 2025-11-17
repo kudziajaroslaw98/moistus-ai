@@ -16,7 +16,6 @@ const customJestConfig = {
 	// Module name mapping for absolute imports
 	moduleNameMapper: {
 		'^@/(.*)$': '<rootDir>/src/$1',
-		'^nanoid$': '<rootDir>/src/__mocks__/nanoid.js',
 	},
 
 	// Test environment
@@ -51,8 +50,8 @@ const customJestConfig = {
 	// Restore mocks automatically between every test
 	restoreMocks: true,
 
-	// Transform ignore patterns - allow nanoid to be transformed
-	transformIgnorePatterns: ['node_modules/(?!(nanoid)/)'],
+	// Transform ignore patterns
+	transformIgnorePatterns: ['node_modules/'],
 
 	// Verbose output for debugging
 	verbose: true,
