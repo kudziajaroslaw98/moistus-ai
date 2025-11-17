@@ -17,7 +17,7 @@ export async function POST(
 		}
 
 		const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-			apiVersion: '2025-09-30.clover',
+			apiVersion: '2025-10-29.clover',
 		});
 
 		const params = await context.params;
@@ -58,10 +58,7 @@ export async function POST(
 
 			// Verify Stripe update succeeded
 			if (!stripeSubscription || !stripeSubscription.cancel_at_period_end) {
-				console.error(
-					'Stripe subscription update failed:',
-					stripeSubscription
-				);
+				console.error('Stripe subscription update failed:', stripeSubscription);
 				return NextResponse.json(
 					{ error: 'Failed to cancel subscription with payment provider' },
 					{ status: 500 }
@@ -91,7 +88,10 @@ export async function POST(
 			.select();
 
 		if (updateError) {
-			console.error('Database update failed after Stripe cancellation:', updateError);
+			console.error(
+				'Database update failed after Stripe cancellation:',
+				updateError
+			);
 			// Note: Stripe has already been updated at this point.
 			// The webhook should eventually sync this, but we still return an error
 			return NextResponse.json(
