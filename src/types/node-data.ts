@@ -1,4 +1,4 @@
-import { AvailableNodeTypes } from './available-node-types';
+import { AvailableNodeTypes } from '@/registry/node-registry';
 import { SuggestionContext } from './ghost-node';
 
 export interface NodeData extends Record<string, unknown> {
@@ -30,6 +30,7 @@ export interface NodeData extends Record<string, unknown> {
 		backgroundColor?: string;
 		borderColor?: string;
 		isCollapsed?: boolean;
+		accentColor?: string;
 
 		// ==========================================
 		// Common Fields - Used across multiple nodes
@@ -61,6 +62,7 @@ export interface NodeData extends Record<string, unknown> {
 		faviconUrl?: string;
 		thumbnailUrl?: string;
 		resourceType?: string;
+		imageSize?: { width: number; height: number };
 
 		// ------------------------------------------
 		// Image Properties (ImageNode)
@@ -81,13 +83,31 @@ export interface NodeData extends Record<string, unknown> {
 		// ------------------------------------------
 		// Annotation Properties (AnnotationNode)
 		// ------------------------------------------
-		annotationType?: 'comment' | 'idea' | 'quote' | 'summary';
+		annotationType?: 'note' | 'idea' | 'quote' | 'summary';
+		author?: string;
+		timestamp?: string;
+
+		// ------------------------------------------
+		// Question Properties (QuestionNode)
+		// ------------------------------------------
+		answer?: string; // For QuestionNode - can be AI or user answer
+		questionType?: 'binary' | 'multiple';
+		responseFormat?: {
+			options?: Array<{ id: string; label: string }>;
+			allowMultiple?: boolean;
+		};
+		userResponse?: boolean | string | string[];
+		isAnswered?: boolean;
+		responses?: Array<{
+			userId?: string;
+			answer: boolean | string | string[];
+			timestamp: string;
+		}>;
 
 		// ------------------------------------------
 		// Content Enhancement Properties
 		// ------------------------------------------
 		// These can be user-provided or AI-generated
-		answer?: string; // For QuestionNode - can be AI or user answer
 		summary?: string; // For ResourceNode or any node - can be AI or user summary
 		showSummary?: boolean;
 		showThumbnail?: boolean;
@@ -123,5 +143,6 @@ export interface NodeData extends Record<string, unknown> {
 		suggestedContent?: string;
 		suggestedType?: AvailableNodeTypes;
 		context?: SuggestionContext;
+		sourceNodeName?: string; // Name of the node that triggered this suggestion
 	} | null;
 }

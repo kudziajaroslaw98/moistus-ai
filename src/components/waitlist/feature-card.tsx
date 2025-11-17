@@ -46,13 +46,13 @@ export default function FeatureCard({
 
 	return (
 		<motion.div
-			initial={{ opacity: 0, y: 20 }}
 			animate={{ opacity: 1, y: 0 }}
+			className={`relative group ${className}`}
+			initial={{ opacity: 0, y: 20 }}
 			transition={{ duration: 0.5, delay }}
+			variants={hoverScale}
 			whileHover='hover'
 			whileTap='tap'
-			variants={hoverScale}
-			className={`relative group ${className}`}
 		>
 			<div className='relative h-full rounded-2xl border border-zinc-800 bg-zinc-900/50 backdrop-blur-sm p-6 transition-colors hover:border-zinc-700'>
 				{/* Gradient background on hover */}

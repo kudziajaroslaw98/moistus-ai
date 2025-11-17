@@ -4,13 +4,15 @@ import { type HTMLMotionProps, motion } from 'motion/react';
 import { forwardRef } from 'react';
 
 const buttonVariants = cva(
-	'inline-flex items-center font-medium transition-all duration-200 cursor-pointer focus:outline-none disabled:opacity-38 disabled:pointer-events-none',
+	'inline-flex items-center font-medium transition-all ease-out duration-300 cursor-pointer focus:outline-none disabled:opacity-38 disabled:pointer-events-none',
 	{
 		variants: {
 			variant: {
 				default: 'bg-teal-600 text-white hover:bg-teal-700',
 				secondary: 'border text-white/87 hover:text-white hover:bg-white/5',
 				destructive: 'bg-rose-600 text-white hover:bg-rose-700',
+				'destructive-outline':
+					'border border-error-500! hover:border-error-400! text-error-500 hover:text-error-400',
 				ghost:
 					'bg-transparent hover:bg-white/5 text-white/60 hover:text-white/87',
 				'ghost-destructive':

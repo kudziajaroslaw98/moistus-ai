@@ -1,6 +1,13 @@
 // src/app/api/ai/suggest-connections/route.ts
 
 import { createClient } from '@/helpers/supabase/server';
+import {
+	requireSubscription,
+	checkUsageLimit,
+	getAIUsageCount,
+	trackAIUsage,
+	SubscriptionError,
+} from '@/helpers/api/with-subscription-check';
 import { openai } from '@ai-sdk/openai';
 import {
 	convertToModelMessages,
@@ -56,22 +63,67 @@ const connectionSuggestionSchema = z.object({
 	}),
 });
 
-const streamStatusSchema = z.object({
-	type: z.string(),
-	data: z.object({
-		message: z.string().nullable(),
-		error: z.string().nullable(),
-		step: z.number().nullable(),
-		totalSteps: z.number().nullable(),
-	}),
-});
-
 // The entire POST function is now the API route handler
 export async function POST(req: Request) {
+	// Capture abort signal for stream cancellation
+	const abortSignal = req.signal;
+
 	try {
+		// Get authenticated user
+		const supabase = await createClient();
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+
+		if (!user) {
+			return new Response(
+				JSON.stringify({
+					error: 'Unauthorized. Please sign in to use AI features.',
+				}),
+				{ status: 401, headers: { 'Content-Type': 'application/json' } }
+			);
+		}
+
+		// Check subscription and usage limits
+		let hasProAccess = false;
+
+		try {
+			await requireSubscription(user, supabase, 'pro');
+			hasProAccess = true;
+		} catch (error) {
+			if (error instanceof SubscriptionError) {
+				const currentUsage = await getAIUsageCount(
+					user,
+					supabase,
+					'connections'
+				);
+				const { allowed, limit, remaining } = await checkUsageLimit(
+					user,
+					supabase,
+					'aiSuggestions',
+					currentUsage
+				);
+
+				if (!allowed) {
+					return new Response(
+						JSON.stringify({
+							error: `AI limit reached (${limit} per month). Upgrade to Pro.`,
+							code: 'LIMIT_REACHED',
+							currentUsage,
+							limit,
+							remaining,
+							upgradeUrl: '/dashboard/settings/billing',
+						}),
+						{ status: 402, headers: { 'Content-Type': 'application/json' } }
+					);
+				}
+			} else {
+				throw error;
+			}
+		}
+
 		// Extract the body sent by the useChat hook
 		const { messages }: { messages: UIMessage[] } = await req.json();
-		const supabase = await createClient();
 		const streamHeader = 'Suggesting Connections';
 		const totalSteps = [
 			{
@@ -205,6 +257,7 @@ export async function POST(req: Request) {
 						const contextPrompt = `Based on the following mind map data, suggest meaningful connections. Nodes: ${JSON.stringify(mapData.nodes)}. Edges: ${JSON.stringify(mapData.edges)}.`;
 						const response = streamObject({
 							model: openai('o4-mini'),
+							abortSignal,
 							schema: connectionSuggestionSchema,
 							output: 'array',
 							messages: convertToModelMessages([
@@ -238,6 +291,7 @@ export async function POST(req: Request) {
 
 						await wait(1000);
 						let status = 'pending';
+						let connectionIndex = 0;
 
 						for await (const element of response.elementStream) {
 							if (status === 'pending') {
@@ -259,6 +313,7 @@ export async function POST(req: Request) {
 									type: 'data-connection-suggestion',
 									data: element,
 								});
+								connectionIndex++;
 							}
 						}
 
@@ -271,6 +326,14 @@ export async function POST(req: Request) {
 								})),
 							},
 						});
+
+						// Track usage for free tier users
+						if (!hasProAccess) {
+							await trackAIUsage(user, supabase, 'connections', {
+								connectionCount: connectionIndex,
+							});
+						}
+
 						writer.write({
 							type: 'finish',
 						});

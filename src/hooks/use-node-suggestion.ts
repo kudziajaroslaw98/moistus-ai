@@ -1,28 +1,20 @@
 'use client';
 
 import useAppStore from '@/store/mind-map-store';
-import type { SuggestionContext } from '@/types/ghost-node';
+import { NodeRegistry, type AvailableNodeTypes } from '@/registry/node-registry';
+import type { SuggestionContext, NodeSuggestion } from '@/types/ghost-node';
 import { useCallback, useState } from 'react';
 import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 
 // Schema for ghost node suggestion validation
+// Uses AI-suggestable types from registry
 const ghostNodeSuggestionSchema = z.object({
 	suggestions: z.array(
 		z.object({
 			id: z.string(),
 			content: z.string(),
-			nodeType: z.enum([
-				'defaultNode',
-				'textNode',
-				'imageNode',
-				'resourceNode',
-				'questionNode',
-				'annotationNode',
-				'codeNode',
-				'taskNode',
-				'builderNode',
-			] as const),
+			nodeType: z.enum(NodeRegistry.getAISuggestableTypes() as [string, ...string[]]),
 			confidence: z.number().min(0).max(1),
 			position: z.object({
 				x: z.number(),
@@ -145,8 +137,9 @@ export function useNodeSuggestion() {
 					validatedData.suggestions.forEach((suggestion) => {
 						addGhostNode({
 							...suggestion,
+							nodeType: suggestion.nodeType as AvailableNodeTypes,
 							position, // Use the provided position
-						});
+						} as NodeSuggestion);
 					});
 				}
 			} catch (err) {

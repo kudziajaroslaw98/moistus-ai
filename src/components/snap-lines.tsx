@@ -18,8 +18,8 @@ export function SnapLines() {
 		<div className='absolute top-0 left-0 w-full h-full pointer-events-none z-50'>
 			{snapLines.map((line, index) => (
 				<div
-					key={index}
 					className='absolute bg-red-500'
+					key={index}
 					style={{
 						...(line.type === 'vertical'
 							? { left: line.x, top: 0, width: '1px', height: '100%' }

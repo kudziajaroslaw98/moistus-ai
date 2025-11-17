@@ -7,7 +7,7 @@ import { useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/shallow';
 
 export function AIStreamMediator() {
-	const { streamTrigger, abortStream, finishStream, streamingAPI } =
+	const { streamTrigger, abortStream, finishStream, streamingAPI, setStopStreamCallback } =
 		useAppStore(
 			useShallow((state) => ({
 				streamTrigger: state.streamTrigger,
@@ -15,12 +15,13 @@ export function AIStreamMediator() {
 				finishStream: state.finishStream,
 				streamingAPI: state.streamingAPI,
 				isStreaming: state.isStreaming,
+				setStopStreamCallback: state.setStopStreamCallback,
 			}))
 		);
 
 	const currentStreamIdRef = useRef<string | null>(null);
 
-	const { sendMessage, setMessages } = useChat({
+	const { sendMessage, setMessages, stop } = useChat({
 		id: `${streamTrigger?.id || 'unknown'}`,
 		transport: new DefaultChatTransport({
 			api: streamingAPI ?? '/api/chat',
@@ -60,7 +61,12 @@ export function AIStreamMediator() {
 				text: JSON.stringify(streamTrigger.body),
 			});
 		}
-	}, [streamTrigger, sendMessage, streamingAPI]);
+	}, [streamTrigger, setMessages, sendMessage, streamingAPI]);
+
+	// Expose stop function to store whenever it changes
+	useEffect(() => {
+		setStopStreamCallback(() => stop);
+	}, [stop, setStopStreamCallback]);
 
 	return null; // This component is headless
 }

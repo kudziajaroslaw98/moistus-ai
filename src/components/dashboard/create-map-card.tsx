@@ -17,12 +17,12 @@ export function CreateMapCard({
 }: CreateMapCardProps) {
 	return (
 		<motion.div
+			animate={{ opacity: 1, scale: 1 }}
+			initial={{ opacity: 0, scale: 0.9 }}
 			onClick={onClick}
+			transition={{ duration: 0.3, ease: 'easeOut' as const }}
 			whileHover={{ scale: 1.02, y: -2 }}
 			whileTap={{ scale: 0.98 }}
-			initial={{ opacity: 0, scale: 0.9 }}
-			animate={{ opacity: 1, scale: 1 }}
-			transition={{ duration: 0.3, ease: 'easeOut' }}
 			className={cn(
 				'group/new-card relative cursor-pointer overflow-hidden',
 				viewMode === 'grid'
@@ -46,9 +46,9 @@ export function CreateMapCard({
 			>
 				{/* Icon Container */}
 				<motion.div
-					whileHover={{ scale: 1.1 }}
-					transition={{ duration: 0.3, ease: 'easeOut' }}
 					className='relative mb-3 flex items-center justify-center'
+					transition={{ duration: 0.3, ease: 'easeOut' as const }}
+					whileHover={{ scale: 1.1 }}
 				>
 					{/* Icon Background */}
 					<div className='absolute inset-0 rounded-full bg-gradient-to-br from-sky-500/20 to-purple-500/20 blur-xl scale-150 group-hover/new-card:scale-175 transition-transform duration-300' />
@@ -79,8 +79,8 @@ export function CreateMapCard({
 				{viewMode === 'list' && (
 					<motion.div
 						animate={{ x: [0, 4, 0] }}
-						transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
 						className='ml-auto opacity-0 group-hover/new-card:opacity-100 transition-opacity duration-300'
+						transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' as const }}
 					>
 						<div className='w-2 h-2 border-r-2 border-t-2 border-sky-400 rotate-45' />
 					</motion.div>

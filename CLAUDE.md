@@ -1,294 +1,211 @@
 # CLAUDE.md
 
-This file provides comprehensive guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## 🚨 CRITICAL PRINCIPLES
 
-## 🚨 CRITICAL DEVELOPMENT PRINCIPLES
+- **PROACTIVELY use agents and mcp tools**
+- **NEVER run `pnpm run dev`** - Use: `pnpm type-check`, `pnpm build`, `pnpm test`
+- **Parallel operations**: Batch independent tool calls
+- **Clean code**: Remove temporary files after completion
+- **Quality**: General-purpose solutions for ALL inputs, not just test cases
+- **Iterate**: Reflect on results and adjust approach if needed
+- **Questions**: Ask before coding if requirements unclear
+- **Frontend**: Give it your all - design principles, micro-interactions, motion animations, delightful UX
 
-### Core Rules
-
-- **PROACTIVELY use agents and tools!**
-- **DO NOT run `pnpm run dev`** - Focus on TypeScript checks, builds, and tests + integration tests to verify functionality
-- **Parallel Operations**: For maximum efficiency, invoke all relevant tools simultaneously for independent operations rather than sequentially
-- **Clean Code**: Remove ALL temporary files, scripts, and helper files created during iteration at task completion
-- **Quality First**: Write general-purpose solutions that work for ALL valid inputs, not just test cases
-- **Reflect & Iterate**: After receiving tool results, carefully reflect on their quality and determine optimal next steps before proceeding
-- **Clarity**: Ensure code is easy to understand and maintain by using descriptive variable names, commenting, and adhering to coding standards
-- **Questions**: Ask clarifying questions to ensure you fully understand the problem before starting to code
-- **Refactor**: Refactor long files/functions to improve readability, maintainability, and performance.
-
-### Solution Standards
-
-- Implement robust, maintainable, and extendable solutions
-- Follow software design principles and best practices
-- Never hard-code values or create test-specific solutions
-- Focus on understanding problem requirements and implementing correct algorithms
-- If a task is unreasonable, infeasible, or tests are incorrect, communicate this clearly
-- Think about user problems thoroughly and in great detail
-- Consider multiple approaches and show complete reasoning
-- Try different methods if the first approach doesn't work
-
-### Frontend Excellence
-
-When dealing with frontend:
-
-- **Don't hold back - Give it your all**
-- Apply design principles: hierarchy, contrast, balance, and movement
-- Add thoughtful details like hover states, transitions, and micro-interactions
-- Include as many relevant features and interactions as possible
-- Use motion (motion/react) for sophisticated animations
-- Create delightful user experiences with attention to detail
-
-## Essential Commands
-
-### Development & Verification
+## Commands
 
 ```bash
-# Primary verification methods (USE THESE INSTEAD OF pnpm run dev)
-pnpm type-check    # TypeScript validation (checks types without building)
-pnpm build         # Production build (verifies compilation)
-pnpm test             # Run unit tests
-pnpm test:watch   # Run tests in watch mode
-pnpm test:coverage # Run tests with coverage report
-
-# Code quality
-pnpm lint         # ESLint checks
-pnpm lint:fix     # ESLint with auto-fix
-pnpm pretty       # Format code with Prettier
-
-# Production (only after verification)
-pnpm start        # Start production server
+pnpm type-check      # TypeScript validation
+pnpm build           # Production build
+pnpm test            # Unit tests (infrastructure ready, no tests written)
+pnpm lint / lint:fix # ESLint
+pnpm pretty          # Prettier
 ```
 
-### Environment Setup
+**Env**: `.env.local` requires `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (see `.env.example`)
 
-Create `.env.local` with required environment variables:
+## mcp tools
 
-- `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key
-- Additional variables as shown in `.env.example`
+- Always use context7 when I need code generation, setup or configuration steps, or library/API documentation. This means you should automatically use the Context7 MCP tools to resolve library id and get library docs without me having to explicitly ask.
 
-## Architecture Overview
+## Architecture
 
-### Core Technology Stack
+**Stack**: Next.js 15 (App Router) • React 19 • TypeScript • Zustand (19 slices) • React Flow (canvas) • Motion (animations) • Supabase (auth/DB/realtime) • Tailwind CSS • Gemini AI
 
-- **Next.js 15** with App Router and Turbopack for development
-- **React 19** with TypeScript for UI components
-- **Zustand** for centralized state management via slices
-- **React Flow (@xyflow/react)** for mind map canvas and node interactions
-- **Motion (motion/react)** for animating components
-- **Supabase** for authentication, database, and real-time collaboration
-- **Tailwind CSS** for styling with custom component library
-- **Google Gemini AI** for intelligent features and content generation
+## Animations
 
-### State Management Architecture
+For animations, we use the `motion` library from Framer Motion. This library provides a simple and powerful way to create smooth and responsive animations in React applications. We use it to animate the nodes and edges of the mind map, as well as the UI elements such as modals and panels.
 
-The application uses Zustand with a slice-based architecture for state management:
+Guideline @./animation-guidelines.md
 
-**Store Location**: `src/store/mind-map-store.tsx`
-**Key Slices**:
+### State Management (18 Slices)
 
-- `core-slice` - Core data and mind map state
-- `nodes-slice` - Node operations and management
-- `edges-slice` - Edge/connection management
-- `ui-slice` - UI state (modals, panels, selection)
-- `realtime-slice` - Real-time collaboration state
-- `chat-slice` - AI chat functionality
-- `suggestions-slice` - AI-powered suggestions
+**Store**: `src/store/mind-map-store.tsx`
 
-### Node System Architecture
+**Core Data & Operations:**
 
-**Node Types**: Defined in `src/constants/node-types.ts`
+- `core-slice` - Mind map data, Supabase client, user auth, ReactFlow instance
+- `nodes-slice` - Node CRUD, positioning, collapse, group-aware movement
+- `edges-slice` - Edge CRUD, parent-child relationships, visibility filtering
+- `ui-slice` - Modals, panels, context menu, focus mode, drag state
 
-- `defaultNode` (Note) - Basic text content
-- `textNode` - Rich text with formatting options
-- `taskNode` - Task management with checkboxes
-- `questionNode` - Q&A format with answer fields
-- `resourceNode` - External links with metadata
-- `imageNode` - Image display with captions
-- `codeNode` - Code snippets with syntax highlighting
-- `annotationNode` - Comments and annotations
-- `groupNode` - Container for grouping nodes
-- `referenceNode` - Cross-references to other maps/nodes
+**Collaboration & Real-time:**
 
-**Node Components**: Located in `src/components/nodes/`
+- `realtime-slice` - Form field sync, conflict detection/resolution, active users
+- `sharing-slice` - Room codes, anonymous auth, share permissions
 
-- Each node type has a dedicated component (e.g., `default-node.tsx`)
-- `base-node-wrapper.tsx` provides common functionality
-- Shared components in `src/components/nodes/shared/`
+**AI Features:**
 
-### Mind Map Canvas System
+- `chat-slice` - AI chat messages, context, preferences, response styles
+- `suggestions-slice` - Ghost nodes, AI suggestions, streaming, merge algorithms
 
-**Main Component**: `src/components/mind-map/react-flow-area.tsx`
+**User Experience:**
 
-- Built on React Flow for node/edge rendering and interactions
-- Handles node positioning, connections, and canvas operations
-- Integrates with Zustand store for state synchronization
+- `clipboard-slice` - Copy/paste, duplicate nodes, edge preservation
+- `history-slice` - Undo/redo, state stack, action history with timestamps
+- `groups-slice` - Group creation, add/remove nodes, ungroup operations
+- `layout-slice` - ELK.js layouts (horizontal, vertical, radial)
+- `quick-input-slice` - Quick node creation, cursor position tracking
 
-### Inline Node Creation System
+**User & Business:**
 
-**Location**: `src/components/inline-node-creator/`
-**Key Features**:
+- `user-profile-slice` - Profile data, preferences (theme, notifications, privacy)
+- `subscription-slice` - Stripe subscriptions, plan features, usage limits
+- `onboarding-slice` - Onboarding flow, plan selection, progress persistence
 
-- Quick text-to-node conversion with intelligent parsing
-- Command palette for structured input (`/task`, `/question`, etc.)
-- Real-time preview and validation
-- Metadata extraction and node type detection
+**UI State:**
 
-### API Routes Structure
+- `loading-state-slice` - Centralized loading flags for all operations
+- `streaming-toast-slice` - Progress toasts for streaming operations
 
-**Location**: `src/app/api/`
-**Key Endpoints**:
+### Node System
 
-- `ai/` - AI-powered features (chat, suggestions, content generation)
-- `maps/` - Mind map CRUD operations
-- `nodes/` - Node operations and search
-- `auth/` - User authentication and management
-- `share/` - Collaboration and sharing features
-- `subscriptions/` - Stripe subscription management
+**Node Types** (11 total in `src/constants/node-types.ts`):
 
-### Database Integration
+- **Content**: defaultNode (Note), textNode, annotationNode, codeNode, resourceNode
+- **Structure**: taskNode, groupNode, referenceNode
+- **Media**: imageNode
+- **AI**: questionNode, ghostNode (system-only, AI suggestions)
 
-**Client**: `src/helpers/supabase/client.ts` (browser)
-**Server**: `src/helpers/supabase/server.ts` (server-side)
-**Features**:
+**Components** (`src/components/nodes/`):
 
-- Real-time collaboration via Supabase subscriptions
-- Row Level Security (RLS) for multi-tenant data access
-- Database migrations in `supabase/migrations/`
+- Each type has dedicated component (e.g., `default-node.tsx`, `task-node.tsx`)
+- `base-node-wrapper.tsx` - Shared functionality: selection, handles, resizing, toolbar, metadata bar, collaboration
+- `core/` - NodeRegistry, NodeFactory, types, type guards
+- `components/` - NodeToolbar, NodeContent, ToolbarControls
+- `shared/` - universal-metadata-bar, metadata-badge, node-tags
+- `node-additions/` - collapse-button, comment-button, group-button
+- `themes/` - glassmorphism-theme
 
-### Real-time Collaboration
+**Node Editor** (`src/components/node-editor/`):
 
-**Components**: `src/components/realtime/`
-**Features**:
+- Replaces legacy "inline-node-creator" (60% code reduction refactor)
+- Quick input mode, structured input mode, command palette
+- Pattern parsing: `#tags`, `@people`, `^dates`, `/commands`
+- CodeMirror integration, validation framework, smart completions
+- Command system: `/task`, `/code`, `/question`, etc.
 
-- Live cursor tracking and user presence
-- Conflict resolution for concurrent edits
-- Room-based collaboration with join codes
-- Real-time form field activity indicators
+### Canvas & UI
 
-## Development Best Practices
+**Canvas**: `src/components/mind-map/react-flow-area.tsx` - React Flow integration, node/edge rendering, interactions, Zustand sync
 
-### Problem-Solving Approach
+**Major Component Directories**:
 
-1. **Understand Thoroughly**: Analyze requirements in great detail before coding
-2. **Consider Alternatives**: Explore multiple approaches and document reasoning
-3. **Test Comprehensively**: Verify with TypeScript, builds, and integration tests
-4. **Iterate Intelligently**: If first approach fails, try different methods
-5. **Clean Up**: Remove all temporary files and test artifacts
+- `realtime/` - Live cursors, avatar stack, active users, conflict resolution, connection status
+- `ui/` - 42 Radix UI-based components (button, input, dialog, dropdown, etc.)
+- `modals/` - Edge edit, AI content prompt, node type selector, reference search
+- `context-menu/` - Context menu system
+- `dashboard/` - Dashboard components
+- `sharing/` - Sharing components
+- `subscription/` - Subscription UI
+- `onboarding/` - Onboarding flow
+- `ai-chat/` - AI chat interface
+- `auth/` - Authentication UI
 
-### Node Development
+### API Routes
 
-When creating new node types:
+**Location**: `src/app/api/` (30+ routes)
 
-1. Add node component to `src/components/nodes/`
-2. Register in `src/constants/node-types.ts`
-3. Create corresponding form in `src/components/node-forms/`
-4. Define metadata structure in node type config
-5. Add comprehensive TypeScript types
-6. Include proper error handling
-7. Test with various edge cases
+**AI & Content Generation**:
 
-### State Management
+- `ai/suggestions/` - Node suggestions with streaming (GPT)
+- `ai/suggest-connections/` - Connection recommendations
+- `ai/suggest-merges/` - Merge suggestions
+- ⚠️ `ai/chat/` - **DISABLED** (implementation commented out)
+- `extract-concepts/`, `generate-answer/`, `generate-content/`, `generate-from-selected-nodes/`, `process-url/`, `summarize-branch/` (root level)
 
-- Use Zustand slices for related functionality
-- Keep slice files focused and cohesive
-- Import store selectors with `useShallow` for performance
-- Prefer derived state over duplicated state
-- Implement proper TypeScript typing for all state
+**Core Features**:
 
-### API Development
+- `maps/` - List/create maps (GET, POST, DELETE)
+- `maps/[id]/` - Individual map operations (GET, PUT, DELETE)
+- `nodes/create-reference/`, `nodes/search-across-maps/`, `search-nodes/`
 
-- Use `src/helpers/api/with-auth-validation.ts` for protected routes
-- Implement rate limiting via `src/helpers/api/rate-limiter.ts`
-- Follow consistent response patterns from `src/helpers/api/responses.ts`
-- Add proper error handling and validation
-- Write integration tests for all endpoints
+**Collaboration**:
 
-### TypeScript Patterns
+- `share/create-room-code/`, `share/join-room/`, `share/refresh-room-code/`, `share/revoke-room-code/`
 
-- Strict type definitions in `src/types/`
-- Use branded types for IDs and data validation
-- Prefer interface composition over inheritance
-- Export types alongside implementation files
-- Never use `any` - prefer `unknown` with proper type guards
+**User & Auth**:
 
-### Frontend Development Excellence
+- `auth/upgrade-anonymous/`, `auth/user/`
+- `user/profile/`, `user/profile/avatar/`, `user/appearance/`, `user/notifications/`, `user/privacy/`, `user/export/`
 
-- **Visual Hierarchy**: Use size, weight, and spacing to guide attention
-- **Micro-interactions**: Add subtle animations for user feedback
-- **Responsive Design**: Ensure all components work across devices
-- **Accessibility**: Include ARIA labels, keyboard navigation, focus states
-- **Performance**: Optimize bundle sizes, lazy load components
-- **Error States**: Design thoughtful error and loading states
-- **Dark Mode**: Ensure all components support theme switching
+**Business**:
 
-### Animation Guidelines
+- `subscriptions/create/`, `subscriptions/webhook/` (Stripe integration)
+- `waitlist/` (public, rate-limited)
 
-- Use motion (motion/react) for all animations
-- Keep animations smooth (60fps target)
-- Add spring physics for natural movement
-- Use stagger effects for lists
-- Implement exit animations for removed elements
-- Add subtle parallax for depth
-- Consider reduced motion preferences
+**API Helpers** (`src/helpers/api/`):
 
-### Styling Conventions
+- `with-auth-validation.ts` - Requires auth (anonymous or full user)
+- `with-api-validation.ts` - Requires authenticated full user
+- `with-public-api-validation.ts` - Public access, no auth
+- `rate-limiter.ts` - In-memory rate limiter (single-instance, IP-based)
+- `responses.ts` - Standardized response helpers
 
-- Use Tailwind CSS classes with custom component variants
-- Component-specific styles in `src/components/ui/`
-- Theme definitions in `src/themes/`
-- Prefer Radix UI primitives for complex interactions
-- Maintain consistent spacing scale
-- Use CSS variables for dynamic theming
-- Implement proper focus-visible states
+### Database
 
-### Testing Strategy
+**Supabase**: `src/helpers/supabase/client.ts` (browser), `server.ts` (server)
 
-**🚨 CRITICAL: NEVER mock data functions or API calls - test REAL components with actual behavior**
+- Real-time collaboration via subscriptions
+- Row Level Security (RLS) for multi-tenant access
+- Migrations in `supabase/migrations/`
+
+**Types**: `src/types/` (38 type files) - Strict TypeScript definitions for all data structures
+
+## Best Practices
+
+**Node Development**: Add component to `src/components/nodes/` → Register in `node-types.ts` → Add to NodeRegistry → Configure in node-editor command system → Add types & error handling → Test edge cases
+
+**State**: Zustand slices for related functionality • Use `useShallow` for selectors • Prefer derived state • Strict TypeScript
+
+**TypeScript**: Strict types in `src/types/` • Branded types for IDs • Interface composition • Export types with implementations • Never `any`, use `unknown` with guards
+
+**Frontend**: Visual hierarchy • Micro-interactions • Responsive • Accessibility (ARIA, keyboard, focus) • Performance (lazy load, optimize bundles) • Error/loading states • Dark mode support
+
+**Animations**: Motion (motion/react) • 60fps smooth • Spring physics • Stagger lists • Exit animations • Reduced motion support
+
+**Styling**: Tailwind + custom variants • Components in `src/components/ui/` • Themes distributed (glassmorphism-theme, metadata-theme) • Radix UI primitives • CSS variables • Focus-visible states
+
+**Testing**: 🚨 Infrastructure ready (Jest + React Testing Library) but **no tests written** (0% coverage)
 
 ```typescript
-// ❌ FORBIDDEN - Never mock data/stores/APIs
-jest.mock('@/helpers/supabase/client', () => ({ ... }))  // NO!
-jest.mock('@/store/mind-map-store', () => ({ ... }))      // NO!
-
-// ✅ REQUIRED - Test real components
-render(<NodeComponent id="real-id" onUpdate={handleUpdate} />)
-const { result } = renderHook(() => useMindMapStore())
-act(() => result.current.addNode({ label: 'Real Node' }))
+// When writing tests: NEVER mock stores/APIs - test REAL components
+// ❌ FORBIDDEN: jest.mock('@/store/mind-map-store')
+// ✅ REQUIRED: render(<NodeComponent id="real-id" />)
+//              const { result } = renderHook(() => useMindMapStore())
 ```
 
-**Testing Principles:**
-1. **Test raw components** with real props and callbacks - no fake implementations
-2. **Use actual store actions** - interact with real Zustand state, not mocked stores
-3. **Verify real user interactions** - test actual clicks, drags, typing events
-4. **Test with realistic data** - use production-like data structures, not placeholders
-5. **Check actual DOM updates** - verify real rendering, not mocked returns
-6. **Test integration points** - ensure components work together without stubs
+Test real components with actual props/callbacks, real Zustand state, user interactions, realistic data, accessibility, and performance.
 
-**What to Test:**
-- Component rendering with real data props
-- User interactions triggering actual callbacks  
-- Zustand store state changes (without mocks)
-- Real error states and loading behaviors
-- Accessibility attributes and keyboard navigation
-- Performance with realistic data volumes
+**Docs**: Generated docs → `./ai-docs/[feature]/[doc-name].md` • JSDoc for complex functions • ADRs for major changes
 
-This approach ensures tests catch real bugs that would affect users, not just pass with mocked data that hides actual problems.
+## Known Technical Debt
 
-### Documentation
+1. Remove deprecated `builderNode` references from:
+   - `src/hooks/use-node-suggestion.ts` (validation schema)
+   - `src/components/nodes/ghost-node.tsx` (icon mapping)
+2. Consider reorganizing root-level AI routes under `ai/` directory
+3. Write comprehensive test suite (infrastructure ready, 0% coverage currently)
+4. Restore or remove `ai/chat/route.ts` (currently all code commented out)
 
-- All generated documentation goes in `./ai-docs/[feature]/[doc-name].md`
-- Include code examples in documentation
-- Document edge cases and gotchas
-- Keep README files up-to-date
-- Add JSDoc comments for complex functions
-- Create architecture decision records (ADRs) for major changes
-
-## Important Notes
-
-- This is an independent project (do not mention creation by Claude Code/Anthropic)
-- Focus on delivering exceptional user experience
-- Prioritize code quality over speed
-- Think deeply about edge cases and error handling
-- Always verify changes with TypeScript and tests before confirming success
-- Clean up all temporary files and artifacts after task completion
+- sacrifice grammar for the sake of concision
+- list any unresolved questions at the end, if any

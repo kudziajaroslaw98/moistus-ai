@@ -50,10 +50,10 @@ export function LimitWarning({ limitType, className }: LimitWarningProps) {
 	return (
 		<AnimatePresence>
 			<motion.div
-				initial={{ opacity: 0, y: -10 }}
 				animate={{ opacity: 1, y: 0 }}
-				exit={{ opacity: 0, y: -10 }}
 				className={`bg-zinc-800 border border-zinc-700 rounded-lg p-4 ${className}`}
+				exit={{ opacity: 0, y: -10 }}
+				initial={{ opacity: 0, y: -10 }}
 			>
 				<div className='flex items-start gap-3'>
 					<AlertCircle className='w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0' />
@@ -66,9 +66,9 @@ export function LimitWarning({ limitType, className }: LimitWarningProps) {
 						<p className='text-sm text-zinc-400 mb-3'>{message.description}</p>
 
 						<Button
+							className='bg-teal-500 hover:bg-teal-600 text-zinc-900 font-medium'
 							onClick={handleUpgrade}
 							size='sm'
-							className='bg-teal-500 hover:bg-teal-600 text-zinc-900 font-medium'
 						>
 							<Sparkles className='w-4 h-4 mr-2' />
 
@@ -109,9 +109,9 @@ export function InlineLimitWarning({
 
 	return (
 		<motion.button
-			onClick={handleClick}
-			initial={{ opacity: 0, scale: 0.9 }}
 			animate={{ opacity: 1, scale: 1 }}
+			initial={{ opacity: 0, scale: 0.9 }}
+			onClick={handleClick}
 			whileHover={{ scale: 1.05 }}
 			whileTap={{ scale: 0.95 }}
 			className={`
@@ -163,7 +163,7 @@ export function UsageMeter({
 				</span>
 
 				<span
-					className={`font-medium ${
+					className={`font-medium flex gap-1 ${
 						isAtLimit
 							? 'text-red-400'
 							: isNearLimit
@@ -171,15 +171,19 @@ export function UsageMeter({
 								: 'text-zinc-300'
 					}`}
 				>
-					{usage[limitType]} / {limits[limitType]}
+					<span>{usage[limitType]}</span>
+
+					<span>/</span>
+
+					<span>{limits[limitType]}</span>
 				</span>
 			</div>
 
 			<div className='h-2 bg-zinc-800 rounded-full overflow-hidden'>
 				<motion.div
-					initial={{ width: 0 }}
 					animate={{ width: `${Math.min(percentageUsed, 100)}%` }}
-					transition={{ duration: 0.5, ease: 'easeOut' }}
+					initial={{ width: 0 }}
+					transition={{ duration: 0.5, ease: 'easeOut' as const }}
 					className={`h-full rounded-full ${
 						isAtLimit
 							? 'bg-red-500'

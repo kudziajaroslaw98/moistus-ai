@@ -1,4 +1,4 @@
-import { createClient } from '@/helpers/supabase/client';
+import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import { useEffect, useState } from 'react';
 
 // DiceBear avatar styles - you can easily switch between different visual styles
@@ -47,7 +47,7 @@ export const useCurrentUserImage = (backgroundColor?: string) => {
 
 	useEffect(() => {
 		const fetchUserImage = async () => {
-			const { data, error } = await createClient().auth.getSession();
+			const { data, error } = await getSharedSupabaseClient().auth.getSession();
 
 			if (error) {
 				console.error(error);

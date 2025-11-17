@@ -18,8 +18,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { UserAvatar } from '@/components/ui/user-avatar';
@@ -29,10 +27,8 @@ import {
 	Briefcase,
 	Building,
 	Camera,
-	Clock,
 	Github,
 	Globe,
-	Languages,
 	Linkedin,
 	MapPin,
 	MessageSquare,
@@ -69,31 +65,17 @@ export default function ProfilePage() {
 		},
 		preferences: {
 			theme: 'dark',
-			language: 'en',
-			timezone: 'UTC',
-			notifications: {
-				email_comments: true,
-				email_mentions: true,
-				email_reactions: false,
-				push_comments: true,
-				push_mentions: true,
-				push_reactions: false,
-			},
+			accentColor: '#06b6d4',
+			reducedMotion: false,
 			privacy: {
-				show_email: false,
-				show_location: true,
-				show_company: true,
 				profile_visibility: 'public',
 			},
 		},
 	});
 
 	// Load user profile on mount
-	useEffect(() => {
-		loadProfile();
-	}, []);
 
-	const loadProfile = async () => {
+	const loadProfile = useCallback(async () => {
 		setIsLoading(true);
 
 		try {
@@ -124,20 +106,9 @@ export default function ProfilePage() {
 				},
 				preferences: {
 					theme: 'dark',
-					language: 'en',
-					timezone: 'America/Los_Angeles',
-					notifications: {
-						email_comments: true,
-						email_mentions: true,
-						email_reactions: false,
-						push_comments: true,
-						push_mentions: true,
-						push_reactions: false,
-					},
+					accentColor: '#06b6d4',
+					reducedMotion: false,
 					privacy: {
-						show_email: false,
-						show_location: true,
-						show_company: true,
 						profile_visibility: 'public',
 					},
 				},
@@ -172,7 +143,7 @@ export default function ProfilePage() {
 		} finally {
 			setIsLoading(false);
 		}
-	};
+	}, []);
 
 	const handleSave = async () => {
 		setIsSaving(true);
@@ -197,7 +168,7 @@ export default function ProfilePage() {
 		}
 	};
 
-	const handleAvatarUpload = useCallback(async (file: File) => {
+	const handleAvatarUpload = useCallback(async (_file: File) => {
 		try {
 			// TODO: Implement avatar upload
 			// const formData = new FormData();
@@ -252,6 +223,10 @@ export default function ProfilePage() {
 		}));
 	};
 
+	useEffect(() => {
+		loadProfile();
+	}, [loadProfile]);
+
 	if (isLoading) {
 		return (
 			<div className='flex items-center justify-center min-h-screen'>
@@ -272,9 +247,9 @@ export default function ProfilePage() {
 				</div>
 
 				<Button
-					onClick={handleSave}
-					disabled={isSaving}
 					className='bg-teal-600 hover:bg-teal-700'
+					disabled={isSaving}
+					onClick={handleSave}
 				>
 					<Save className='size-4 mr-2' />
 
@@ -282,33 +257,33 @@ export default function ProfilePage() {
 				</Button>
 			</div>
 
-			<Tabs defaultValue='profile' className='space-y-6'>
+			<Tabs className='space-y-6' defaultValue='profile'>
 				<TabsList className='grid w-full grid-cols-4 bg-zinc-900'>
-					<TabsTrigger value='profile' className='flex items-center gap-2'>
+					<TabsTrigger className='flex items-center gap-2' value='profile'>
 						<User className='size-4' />
 						Profile
 					</TabsTrigger>
 
-					<TabsTrigger value='social' className='flex items-center gap-2'>
+					<TabsTrigger className='flex items-center gap-2' value='social'>
 						<Globe className='size-4' />
 						Social
 					</TabsTrigger>
 
 					<TabsTrigger
-						value='notifications'
 						className='flex items-center gap-2'
+						value='notifications'
 					>
 						<Bell className='size-4' />
 						Notifications
 					</TabsTrigger>
 
-					<TabsTrigger value='privacy' className='flex items-center gap-2'>
+					<TabsTrigger className='flex items-center gap-2' value='privacy'>
 						<Shield className='size-4' />
 						Privacy
 					</TabsTrigger>
 				</TabsList>
 
-				<TabsContent value='profile' className='space-y-6'>
+				<TabsContent className='space-y-6' value='profile'>
 					{/* Avatar Section */}
 					<Card className='bg-zinc-900 border-zinc-700'>
 						<CardHeader>
@@ -318,17 +293,18 @@ export default function ProfilePage() {
 						</CardHeader>
 
 						<CardContent className='flex items-center gap-6'>
-							<UserAvatar user={profile} size='2xl' />
+							<UserAvatar size='2xl' user={profile} />
 
 							<div className='space-y-2'>
-								<Button variant='outline' className='relative'>
+								<Button className='relative' variant='outline'>
 									<Camera className='size-4 mr-2' />
-									Upload Photo
+
+									<span>Upload Photo</span>
 
 									<input
-										type='file'
 										accept='image/*'
 										className='absolute inset-0 opacity-0 cursor-pointer'
+										type='file'
 										onChange={(e) => {
 											const file = e.target.files?.[0];
 											if (file) handleAvatarUpload(file);
@@ -357,12 +333,12 @@ export default function ProfilePage() {
 									<Label htmlFor='full_name'>Full Name</Label>
 
 									<Input
+										className='bg-zinc-800 border-zinc-600'
 										id='full_name'
 										value={formData.full_name}
 										onChange={(e) =>
 											updateFormData('full_name', e.target.value)
 										}
-										className='bg-zinc-800 border-zinc-600'
 									/>
 								</div>
 
@@ -370,12 +346,12 @@ export default function ProfilePage() {
 									<Label htmlFor='display_name'>Display Name</Label>
 
 									<Input
+										className='bg-zinc-800 border-zinc-600'
 										id='display_name'
 										value={formData.display_name}
 										onChange={(e) =>
 											updateFormData('display_name', e.target.value)
 										}
-										className='bg-zinc-800 border-zinc-600'
 									/>
 								</div>
 							</div>
@@ -384,12 +360,12 @@ export default function ProfilePage() {
 								<Label htmlFor='bio'>Bio</Label>
 
 								<Textarea
-									id='bio'
-									value={formData.bio}
-									onChange={(e) => updateFormData('bio', e.target.value)}
 									className='bg-zinc-800 border-zinc-600'
-									rows={3}
+									id='bio'
+									onChange={(e) => updateFormData('bio', e.target.value)}
 									placeholder='Tell us about yourself...'
+									rows={3}
+									value={formData.bio}
 								/>
 							</div>
 
@@ -401,11 +377,11 @@ export default function ProfilePage() {
 									</Label>
 
 									<Input
-										id='location'
-										value={formData.location}
-										onChange={(e) => updateFormData('location', e.target.value)}
 										className='bg-zinc-800 border-zinc-600'
+										id='location'
+										onChange={(e) => updateFormData('location', e.target.value)}
 										placeholder='City, Country'
+										value={formData.location}
 									/>
 								</div>
 
@@ -416,12 +392,12 @@ export default function ProfilePage() {
 									</Label>
 
 									<Input
+										className='bg-zinc-800 border-zinc-600'
 										id='website'
+										onChange={(e) => updateFormData('website', e.target.value)}
+										placeholder='https://example.com'
 										type='url'
 										value={formData.website}
-										onChange={(e) => updateFormData('website', e.target.value)}
-										className='bg-zinc-800 border-zinc-600'
-										placeholder='https://example.com'
 									/>
 								</div>
 							</div>
@@ -434,10 +410,10 @@ export default function ProfilePage() {
 									</Label>
 
 									<Input
-										id='company'
-										value={formData.company}
-										onChange={(e) => updateFormData('company', e.target.value)}
 										className='bg-zinc-800 border-zinc-600'
+										id='company'
+										onChange={(e) => updateFormData('company', e.target.value)}
+										value={formData.company}
 									/>
 								</div>
 
@@ -448,12 +424,12 @@ export default function ProfilePage() {
 									</Label>
 
 									<Input
+										className='bg-zinc-800 border-zinc-600'
 										id='job_title'
 										value={formData.job_title}
 										onChange={(e) =>
 											updateFormData('job_title', e.target.value)
 										}
-										className='bg-zinc-800 border-zinc-600'
 									/>
 								</div>
 							</div>
@@ -471,11 +447,11 @@ export default function ProfilePage() {
 						<CardContent className='space-y-4'>
 							<div className='flex gap-2'>
 								<Input
-									value={newSkill}
+									className='bg-zinc-800 border-zinc-600'
 									onChange={(e) => setNewSkill(e.target.value)}
 									onKeyPress={(e) => e.key === 'Enter' && addSkill()}
 									placeholder='Add a skill...'
-									className='bg-zinc-800 border-zinc-600'
+									value={newSkill}
 								/>
 
 								<Button onClick={addSkill} size='sm'>
@@ -486,15 +462,15 @@ export default function ProfilePage() {
 							<div className='flex flex-wrap gap-2'>
 								{formData.skills.map((skill) => (
 									<Badge
+										className='bg-teal-900 text-teal-200 hover:bg-teal-800'
 										key={skill}
 										variant='secondary'
-										className='bg-teal-900 text-teal-200 hover:bg-teal-800'
 									>
 										{skill}
 
 										<button
-											onClick={() => removeSkill(skill)}
 											className='ml-1 hover:text-red-400'
+											onClick={() => removeSkill(skill)}
 										>
 											<X className='size-3' />
 										</button>
@@ -505,7 +481,7 @@ export default function ProfilePage() {
 					</Card>
 				</TabsContent>
 
-				<TabsContent value='social' className='space-y-6'>
+				<TabsContent className='space-y-6' value='social'>
 					<Card className='bg-zinc-900 border-zinc-700'>
 						<CardHeader>
 							<CardTitle className='text-white'>Social Links</CardTitle>
@@ -523,7 +499,9 @@ export default function ProfilePage() {
 								</Label>
 
 								<Input
+									className='bg-zinc-800 border-zinc-600'
 									id='twitter'
+									placeholder='username'
 									value={formData.social_links.twitter}
 									onChange={(e) =>
 										updateNestedFormData(
@@ -532,8 +510,6 @@ export default function ProfilePage() {
 											e.target.value
 										)
 									}
-									className='bg-zinc-800 border-zinc-600'
-									placeholder='username'
 								/>
 							</div>
 
@@ -544,7 +520,9 @@ export default function ProfilePage() {
 								</Label>
 
 								<Input
+									className='bg-zinc-800 border-zinc-600'
 									id='linkedin'
+									placeholder='username'
 									value={formData.social_links.linkedin}
 									onChange={(e) =>
 										updateNestedFormData(
@@ -553,8 +531,6 @@ export default function ProfilePage() {
 											e.target.value
 										)
 									}
-									className='bg-zinc-800 border-zinc-600'
-									placeholder='username'
 								/>
 							</div>
 
@@ -565,7 +541,9 @@ export default function ProfilePage() {
 								</Label>
 
 								<Input
+									className='bg-zinc-800 border-zinc-600'
 									id='github'
+									placeholder='username'
 									value={formData.social_links.github}
 									onChange={(e) =>
 										updateNestedFormData(
@@ -574,8 +552,6 @@ export default function ProfilePage() {
 											e.target.value
 										)
 									}
-									className='bg-zinc-800 border-zinc-600'
-									placeholder='username'
 								/>
 							</div>
 
@@ -586,7 +562,9 @@ export default function ProfilePage() {
 								</Label>
 
 								<Input
+									className='bg-zinc-800 border-zinc-600'
 									id='discord'
+									placeholder='username#1234'
 									value={formData.social_links.discord}
 									onChange={(e) =>
 										updateNestedFormData(
@@ -595,169 +573,13 @@ export default function ProfilePage() {
 											e.target.value
 										)
 									}
-									className='bg-zinc-800 border-zinc-600'
-									placeholder='username#1234'
 								/>
 							</div>
 						</CardContent>
 					</Card>
 				</TabsContent>
 
-				<TabsContent value='notifications' className='space-y-6'>
-					<Card className='bg-zinc-900 border-zinc-700'>
-						<CardHeader>
-							<CardTitle className='text-white'>Email Notifications</CardTitle>
-
-							<CardDescription>
-								Configure when you receive email notifications
-							</CardDescription>
-						</CardHeader>
-
-						<CardContent className='space-y-4'>
-							<div className='flex items-center justify-between'>
-								<div>
-									<Label>Comment notifications</Label>
-
-									<p className='text-sm text-zinc-400'>
-										Get notified when someone comments on your content
-									</p>
-								</div>
-
-								<Switch
-									checked={formData.preferences.notifications.email_comments}
-									onCheckedChange={(checked) =>
-										updateNestedFormData('preferences', 'notifications', {
-											...formData.preferences.notifications,
-											email_comments: checked,
-										})
-									}
-								/>
-							</div>
-
-							<Separator className='bg-zinc-700' />
-
-							<div className='flex items-center justify-between'>
-								<div>
-									<Label>Mentions</Label>
-
-									<p className='text-sm text-zinc-400'>
-										Get notified when someone mentions you
-									</p>
-								</div>
-
-								<Switch
-									checked={formData.preferences.notifications.email_mentions}
-									onCheckedChange={(checked) =>
-										updateNestedFormData('preferences', 'notifications', {
-											...formData.preferences.notifications,
-											email_mentions: checked,
-										})
-									}
-								/>
-							</div>
-
-							<Separator className='bg-zinc-700' />
-
-							<div className='flex items-center justify-between'>
-								<div>
-									<Label>Reactions</Label>
-
-									<p className='text-sm text-zinc-400'>
-										Get notified when someone reacts to your content
-									</p>
-								</div>
-
-								<Switch
-									checked={formData.preferences.notifications.email_reactions}
-									onCheckedChange={(checked) =>
-										updateNestedFormData('preferences', 'notifications', {
-											...formData.preferences.notifications,
-											email_reactions: checked,
-										})
-									}
-								/>
-							</div>
-						</CardContent>
-					</Card>
-
-					<Card className='bg-zinc-900 border-zinc-700'>
-						<CardHeader>
-							<CardTitle className='text-white'>Push Notifications</CardTitle>
-
-							<CardDescription>
-								Configure browser push notifications
-							</CardDescription>
-						</CardHeader>
-
-						<CardContent className='space-y-4'>
-							<div className='flex items-center justify-between'>
-								<div>
-									<Label>Comment notifications</Label>
-
-									<p className='text-sm text-zinc-400'>
-										Get push notifications for comments
-									</p>
-								</div>
-
-								<Switch
-									checked={formData.preferences.notifications.push_comments}
-									onCheckedChange={(checked) =>
-										updateNestedFormData('preferences', 'notifications', {
-											...formData.preferences.notifications,
-											push_comments: checked,
-										})
-									}
-								/>
-							</div>
-
-							<Separator className='bg-zinc-700' />
-
-							<div className='flex items-center justify-between'>
-								<div>
-									<Label>Mentions</Label>
-
-									<p className='text-sm text-zinc-400'>
-										Get push notifications for mentions
-									</p>
-								</div>
-
-								<Switch
-									checked={formData.preferences.notifications.push_mentions}
-									onCheckedChange={(checked) =>
-										updateNestedFormData('preferences', 'notifications', {
-											...formData.preferences.notifications,
-											push_mentions: checked,
-										})
-									}
-								/>
-							</div>
-
-							<Separator className='bg-zinc-700' />
-
-							<div className='flex items-center justify-between'>
-								<div>
-									<Label>Reactions</Label>
-
-									<p className='text-sm text-zinc-400'>
-										Get push notifications for reactions
-									</p>
-								</div>
-
-								<Switch
-									checked={formData.preferences.notifications.push_reactions}
-									onCheckedChange={(checked) =>
-										updateNestedFormData('preferences', 'notifications', {
-											...formData.preferences.notifications,
-											push_reactions: checked,
-										})
-									}
-								/>
-							</div>
-						</CardContent>
-					</Card>
-				</TabsContent>
-
-				<TabsContent value='privacy' className='space-y-6'>
+				<TabsContent className='space-y-6' value='privacy'>
 					<Card className='bg-zinc-900 border-zinc-700'>
 						<CardHeader>
 							<CardTitle className='text-white'>Profile Visibility</CardTitle>
@@ -799,72 +621,6 @@ export default function ProfilePage() {
 									</SelectContent>
 								</Select>
 							</div>
-
-							<Separator className='bg-zinc-700' />
-
-							<div className='flex items-center justify-between'>
-								<div>
-									<Label>Show email address</Label>
-
-									<p className='text-sm text-zinc-400'>
-										Display your email on your public profile
-									</p>
-								</div>
-
-								<Switch
-									checked={formData.preferences.privacy.show_email}
-									onCheckedChange={(checked) =>
-										updateNestedFormData('preferences', 'privacy', {
-											...formData.preferences.privacy,
-											show_email: checked,
-										})
-									}
-								/>
-							</div>
-
-							<Separator className='bg-zinc-700' />
-
-							<div className='flex items-center justify-between'>
-								<div>
-									<Label>Show location</Label>
-
-									<p className='text-sm text-zinc-400'>
-										Display your location on your public profile
-									</p>
-								</div>
-
-								<Switch
-									checked={formData.preferences.privacy.show_location}
-									onCheckedChange={(checked) =>
-										updateNestedFormData('preferences', 'privacy', {
-											...formData.preferences.privacy,
-											show_location: checked,
-										})
-									}
-								/>
-							</div>
-
-							<Separator className='bg-zinc-700' />
-
-							<div className='flex items-center justify-between'>
-								<div>
-									<Label>Show company</Label>
-
-									<p className='text-sm text-zinc-400'>
-										Display your company information on your public profile
-									</p>
-								</div>
-
-								<Switch
-									checked={formData.preferences.privacy.show_company}
-									onCheckedChange={(checked) =>
-										updateNestedFormData('preferences', 'privacy', {
-											...formData.preferences.privacy,
-											show_company: checked,
-										})
-									}
-								/>
-							</div>
 						</CardContent>
 					</Card>
 
@@ -900,78 +656,6 @@ export default function ProfilePage() {
 										<SelectItem value='dark'>Dark</SelectItem>
 
 										<SelectItem value='system'>System</SelectItem>
-									</SelectContent>
-								</Select>
-							</div>
-
-							<div className='space-y-2'>
-								<Label>
-									<Languages className='size-4 inline mr-2' />
-									Language
-								</Label>
-
-								<Select
-									value={formData.preferences.language}
-									onValueChange={(value) =>
-										updateNestedFormData('preferences', 'language', value)
-									}
-								>
-									<SelectTrigger className='bg-zinc-800 border-zinc-600'>
-										<SelectValue />
-									</SelectTrigger>
-
-									<SelectContent>
-										<SelectItem value='en'>English</SelectItem>
-
-										<SelectItem value='es'>Spanish</SelectItem>
-
-										<SelectItem value='fr'>French</SelectItem>
-
-										<SelectItem value='de'>German</SelectItem>
-									</SelectContent>
-								</Select>
-							</div>
-
-							<div className='space-y-2'>
-								<Label>
-									<Clock className='size-4 inline mr-2' />
-									Timezone
-								</Label>
-
-								<Select
-									value={formData.preferences.timezone}
-									onValueChange={(value) =>
-										updateNestedFormData('preferences', 'timezone', value)
-									}
-								>
-									<SelectTrigger className='bg-zinc-800 border-zinc-600'>
-										<SelectValue />
-									</SelectTrigger>
-
-									<SelectContent>
-										<SelectItem value='UTC'>UTC</SelectItem>
-
-										<SelectItem value='America/New_York'>
-											Eastern Time
-										</SelectItem>
-
-										<SelectItem value='America/Chicago'>
-											Central Time
-										</SelectItem>
-
-										<SelectItem value='America/Denver'>
-											Mountain Time
-										</SelectItem>
-
-										<SelectItem value='America/Los_Angeles'>
-											Pacific Time
-										</SelectItem>
-
-										<SelectItem value='Europe/London'>London</SelectItem>
-
-										<SelectItem value='Europe/Paris'>Paris</SelectItem>
-
-										<SelectItem value='Asia/Tokyo'>Tokyo</SelectItem>
 									</SelectContent>
 								</Select>
 							</div>

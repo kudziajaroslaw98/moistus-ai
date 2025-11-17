@@ -4,12 +4,12 @@ import {
 	generateFallbackAvatar,
 	generateFunName,
 	generateUserColor,
-	type UserProfile,
 } from '@/helpers/user-profile-helpers';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
 import type { EdgesTableType } from '@/types/edges-table-type';
 import type { MindMapData } from '@/types/mind-map-data';
 import type { NodesTableType } from '@/types/nodes-table-type';
+import { UserProfile } from '@/types/user-profile-types';
 import type { User } from '@supabase/supabase-js';
 import type { StateCreator } from 'zustand';
 import type { AppState, CoreDataSlice } from '../app-state';
@@ -57,10 +57,21 @@ export const createCoreDataSlice: StateCreator<
 
 		return {
 			id: user.id,
-			email: user.email,
-			displayName,
-			avatarUrl:
+			user_id: user.id,
+			full_name: user.user_metadata?.full_name || '',
+			display_name: user.user_metadata?.display_name || '',
+			avatar_url:
 				user.user_metadata?.avatar_url || generateFallbackAvatar(user.id),
+			bio: '',
+			location: '',
+			website: '',
+			company: '',
+			job_title: '',
+			skills: [],
+			social_links: {},
+			preferences: {},
+			created_at: new Date().toISOString(),
+			updated_at: new Date().toISOString(),
 			color: generateUserColor(user.id),
 			isAnonymous,
 		};
@@ -112,59 +123,6 @@ export const createCoreDataSlice: StateCreator<
 				throw new Error('Map ID is required.');
 			}
 
-			// const { data: mindMapData, error: mindMapError } = await get()
-			// 	.supabase.from('mind_maps')
-			// 	.select(
-			// 		`
-			//            id,
-			//            user_id,
-			//            created_at,
-			//            updated_at,
-			//            description,
-			//            title,
-			//            tags,
-			//            visibility,
-			//            thumbnailUrl,
-			//            nodes (
-			//            id,
-			//              map_id,
-			//              parent_id,
-			//              content,
-			//              position_x,
-			//              position_y,
-			//              width,
-			//              height,
-			//              node_type,
-			//              tags,
-			//              status,
-			//              importance,
-			//              sourceUrl,
-			//              metadata,
-			//              aiData,
-			//              created_at,
-			//              updated_at
-			//            ),
-			//            edges (
-			//              id,
-			//              map_id,
-			//              source,
-			//              target,
-			//              label,
-			//              type,
-			//               animated,
-			//              markerEnd,
-			//              markerStart,
-			//              style,
-			//              metadata,
-			//              aiData,
-			//              created_at,
-			//              updated_at
-			//            )
-			//          `
-			// 	)
-			// 	.eq('id', mapId)
-			// 	.single();
-
 			const { data: mindMapData, error: mindMapError } = await get()
 				.supabase.from('map_graph_aggregated_view')
 				.select('*')
@@ -195,6 +153,9 @@ export const createCoreDataSlice: StateCreator<
 				edges: transformedData.reactFlowEdges,
 			});
 
+			// Fetch comments metadata for comment nodes
+			await get().fetchComments(mapId);
+
 			// Start real-time subscriptions after successful data load
 			await get().subscribeToRealtimeUpdates(mapId);
 		},
@@ -206,12 +167,91 @@ export const createCoreDataSlice: StateCreator<
 		}
 	),
 
+	updateMindMap: withLoadingAndToast(
+		async (mapId: string, updates: Partial<MindMapData>) => {
+			if (!mapId) {
+				throw new Error('Map ID is required.');
+			}
+
+			const response = await fetch(`/api/maps/${mapId}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(updates),
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(errorData.error || 'Failed to update map.');
+			}
+
+			const result = await response.json();
+			const updatedMap = result.data?.map;
+
+			if (updatedMap) {
+				// Optimistic update: Update local state immediately
+				set({ mindMap: updatedMap });
+			}
+		},
+		'isUpdatingMapSettings',
+		{
+			initialMessage: 'Updating mind map settings...',
+			errorMessage: 'Failed to update mind map settings.',
+			successMessage: 'Mind map updated successfully.',
+		}
+	),
+
+	deleteMindMap: withLoadingAndToast(
+		async (mapId: string) => {
+			if (!mapId) {
+				throw new Error('Map ID is required.');
+			}
+
+			const response = await fetch(`/api/maps/${mapId}`, {
+				method: 'DELETE',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(errorData.error || 'Failed to delete map.');
+			}
+
+			// Clean up local state
+			set({
+				mindMap: null,
+				mapId: null,
+				nodes: [],
+				edges: [],
+			});
+
+			// Unsubscribe from real-time updates
+			await get().unsubscribeFromRealtimeUpdates();
+
+			// Navigate to dashboard
+			// Using window.location for navigation from Zustand store
+			if (typeof window !== 'undefined') {
+				window.location.href = '/dashboard';
+			}
+		},
+		'isDeletingMap',
+		{
+			initialMessage: 'Deleting mind map...',
+			errorMessage: 'Failed to delete mind map.',
+			successMessage: 'Mind map deleted successfully.',
+		}
+	),
+
 	subscribeToRealtimeUpdates: async (mapId: string) => {
 		try {
 			console.log('Starting real-time subscriptions for map:', mapId);
 			await Promise.all([
 				get().subscribeToNodes(mapId),
 				get().subscribeToEdges(mapId),
+				get().subscribeToCommentUpdates(mapId),
 			]);
 			console.log('Real-time subscriptions started successfully');
 		} catch (error) {
@@ -225,6 +265,7 @@ export const createCoreDataSlice: StateCreator<
 			await Promise.all([
 				get().unsubscribeFromNodes(),
 				get().unsubscribeFromEdges(),
+				get().unsubscribeFromCommentUpdates(),
 			]);
 			console.log('Real-time subscriptions stopped successfully');
 		} catch (error) {

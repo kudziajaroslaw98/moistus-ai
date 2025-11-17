@@ -41,23 +41,23 @@ export const ExamplesSection: React.FC<ExamplesSectionProps> = ({
 	return (
 		<AnimatePresence>
 			<motion.div
-				className={`${theme.container} ${className || ''}`}
-				initial={{ opacity: 0, y: 10 }}
 				animate={{ opacity: 1, y: 0 }}
+				className={`${theme.container} ${className || ''}`}
 				exit={{ opacity: 0, y: 10 }}
-				transition={{ delay: 0.3, duration: 0.3, ease: 'easeOut' }}
+				initial={{ opacity: 0, y: 10 }}
+				transition={{ delay: 0.3, duration: 0.3, ease: 'easeOut' as const }}
 			>
 				<div className={theme.label}>
 					<span>Try these examples:</span>
 
 					{hasMoreExamples && (
 						<motion.button
-							onClick={() => setShowAll(!showAll)}
 							className={theme.expandButton}
+							onClick={() => setShowAll(!showAll)}
+							transition={{ duration: 0.1 }}
 							type='button'
 							whileHover={{ scale: 1.05 }}
 							whileTap={{ scale: 0.95 }}
-							transition={{ duration: 0.1 }}
 						>
 							{showAll ? 'Show less' : `Show all (${examples.length})`}
 						</motion.button>
@@ -67,15 +67,15 @@ export const ExamplesSection: React.FC<ExamplesSectionProps> = ({
 				<div className={theme.examplesGrid}>
 					{visibleExamples.map((example, index) => (
 						<motion.button
+							animate={{ opacity: 1, y: 0 }}
+							className={theme.exampleButton}
+							initial={{ opacity: 0, y: 5 }}
 							key={`${example}-${index}`}
 							onClick={() => onUseExample(example)}
-							className={theme.exampleButton}
+							transition={{ delay: 0.1 * index, duration: 0.2 }}
 							type='button'
 							whileHover={{ scale: 1.02 }}
 							whileTap={{ scale: 0.98 }}
-							initial={{ opacity: 0, y: 5 }}
-							animate={{ opacity: 1, y: 0 }}
-							transition={{ delay: 0.1 * index, duration: 0.2 }}
 						>
 							{example}
 						</motion.button>
@@ -84,9 +84,9 @@ export const ExamplesSection: React.FC<ExamplesSectionProps> = ({
 
 				{hasMoreExamples && !showAll && (
 					<motion.div
+						animate={{ opacity: 1 }}
 						className='mt-1 text-zinc-600'
 						initial={{ opacity: 0 }}
-						animate={{ opacity: 1 }}
 						transition={{ delay: 0.4, duration: 0.2 }}
 					>
 						+{examples.length - MAX_VISIBLE_EXAMPLES} more examples

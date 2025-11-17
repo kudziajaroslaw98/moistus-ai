@@ -1,237 +1,286 @@
 'use client';
 
-import { HelpCircle, Sparkles } from 'lucide-react';
+import useAppStore from '@/store/mind-map-store';
+import { ChevronDown, HelpCircle, Sparkles } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { memo } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { BaseNodeWrapper } from './base-node-wrapper';
-import { type TypedNodeProps } from './core/types';
-import { GlassmorphismTheme } from './themes/glassmorphism-theme';
+import { type QuestionNodeMetadata, type TypedNodeProps } from './core/types';
+
+// Import response components
+import { cn } from '@/utils/cn';
+import { BinaryResponse } from './question-node/binary-response';
+import { MultipleChoiceResponse } from './question-node/multiple-choice-response';
+import {
+	detectQuestionType,
+	parseQuestionOptions,
+} from './question-node/question-type-detector';
 
 type QuestionNodeProps = TypedNodeProps<'questionNode'>;
 
 const QuestionNodeComponent = (props: QuestionNodeProps) => {
-	const { data } = props;
-	const aiAnswer = data.metadata?.answer as string | undefined;
-	const isAnswered = Boolean(aiAnswer);
+	const { id, data } = props;
+	const updateNode = useAppStore((state) => state.updateNode);
+
+	const metadata = data.metadata as QuestionNodeMetadata;
+	const [isExpanded, setIsExpanded] = useState(false);
+
+	// AI answer for backward compatibility
+	const aiAnswer = metadata?.answer;
+	const hasAIAnswer = Boolean(aiAnswer);
+
+	// Parse question content for type and options
+	const parsedOptions = useMemo(() => {
+		return parseQuestionOptions(data.content || '');
+	}, [data.content]);
+
+	// Determine question type
+	const questionType =
+		metadata?.questionType ||
+		parsedOptions.questionType ||
+		detectQuestionType(data.content || '');
+
+	// Response system
+	const userResponse = metadata?.userResponse;
+	const responseFormat = metadata?.responseFormat || {};
+	const isAnswered =
+		metadata?.isAnswered || Boolean(userResponse !== undefined);
+
+	// Update metadata when parsed options change
+	useEffect(() => {
+		const updates: Partial<QuestionNodeMetadata> = {};
+		let needsUpdate = false;
+
+		// Update question type if it changed
+		if (
+			parsedOptions.questionType &&
+			parsedOptions.questionType !== metadata?.questionType
+		) {
+			updates.questionType = parsedOptions.questionType;
+			needsUpdate = true;
+		}
+
+		// Update options if they changed (compare by content, not just existence)
+		if (parsedOptions.options) {
+			const newOptions = parsedOptions.options.map((label, index) => ({
+				id: `opt-${index}`,
+				label: label.trim(),
+			}));
+
+			// Check if options actually changed
+			const existingOptions = responseFormat.options || [];
+			const optionsChanged =
+				newOptions.length !== existingOptions.length ||
+				newOptions.some(
+					(opt, idx) =>
+						!existingOptions[idx] || opt.label !== existingOptions[idx].label
+				);
+
+			if (optionsChanged) {
+				updates.responseFormat = {
+					...responseFormat,
+					options: newOptions,
+				};
+				// Also update question type to multiple when options are provided
+				updates.questionType = 'multiple';
+				needsUpdate = true;
+			}
+		} else if (
+			parsedOptions.questionType === 'binary' &&
+			(responseFormat.options?.length ?? 0) > 0
+		) {
+			// Clear options if switching to binary
+			updates.responseFormat = {
+				...responseFormat,
+				options: [],
+			};
+			needsUpdate = true;
+		}
+
+		if (needsUpdate) {
+			updateNode({
+				nodeId: id,
+				data: {
+					metadata: {
+						...metadata,
+						...updates,
+					},
+				},
+			});
+		}
+	}, [data.content]); // Only depend on content changes, not on metadata
+
+	const handleResponseChange = useCallback(
+		async (newResponse: boolean | string | string[]) => {
+			try {
+				await updateNode({
+					nodeId: id,
+					data: {
+						metadata: {
+							...metadata,
+							userResponse: newResponse,
+							isAnswered: true,
+							// Add to responses array for tracking
+							responses: [
+								...(metadata?.responses || []),
+								{
+									answer: newResponse,
+									timestamp: new Date().toISOString(),
+								},
+							].slice(-10), // Keep last 10 responses
+						},
+					},
+				});
+			} catch (error) {
+				console.error('Failed to save response:', error);
+			}
+		},
+		[updateNode, id, metadata]
+	);
+
+	// Clean the question text (remove brackets)
+	const cleanQuestionText = useMemo(() => {
+		return data.content?.replace(/\[.*?\]/g, '').trim() || '';
+	}, [data.content]);
 
 	return (
 		<BaseNodeWrapper
 			{...props}
-			nodeClassName='question-node'
-			nodeType='Question'
 			hideNodeType
+			elevation={isAnswered ? 2 : 1}
+			nodeClassName='question-node'
 			nodeIcon={<HelpCircle className='size-4' />}
-			elevation={isAnswered ? 2 : 1} // Slightly elevated when answered
+			nodeType='Question'
 		>
-			<div className='flex flex-col gap-4'>
-				{/* Question content with emphasis hierarchy */}
+			<div className='flex flex-col gap-3'>
+				{/* Question content */}
 				<div className='relative'>
-					{/* Subtle question mark watermark - positioned better */}
-					<div
-						className='absolute -top-2 -right-2 select-none pointer-events-none'
-						style={{
-							fontSize: '48px',
-							fontWeight: 300,
-							color: 'rgba(96, 165, 250, 0.03)',
-							transform: 'rotate(12deg)',
-						}}
-					>
-						?
-					</div>
-
 					{/* Main question text */}
-					<div className='relative z-10 text-center px-2'>
+					<div className='text-center px-2'>
 						{data.content ? (
-							<h3
-								style={{
-									fontSize: '18px',
-									fontWeight: 500,
-									color: GlassmorphismTheme.text.high,
-									lineHeight: 1.4,
-									letterSpacing: '0.01em',
-								}}
-							>
-								{data.content}
+							<h3 className='font-medium leading-5 text-text-primary text-base'>
+								{cleanQuestionText}
 							</h3>
 						) : (
-							<span
-								style={{
-									color: GlassmorphismTheme.text.disabled,
-									fontSize: '14px',
-									fontStyle: 'italic',
-								}}
-							>
-								Double click or click the menu to add a question...
+							<span className='text-text-disabled text-sm italic'>
+								Click to add a question...
 							</span>
 						)}
 					</div>
-
-					{/* Status indicator for unanswered questions */}
-					{data.content && !isAnswered && (
-						<motion.div
-							className='flex items-center justify-center gap-2 mt-3'
-							initial={{ opacity: 0, y: -5 }}
-							animate={{ opacity: 1, y: 0 }}
-							transition={{ duration: 0.3 }}
-						>
-							<div
-								className='flex items-center gap-1.5 px-3 py-1 rounded-full'
-								style={{
-									backgroundColor: 'rgba(251, 191, 36, 0.1)',
-									border: `1px solid ${GlassmorphismTheme.indicators.status.pending}`,
-								}}
-							>
-								<motion.div
-									animate={{
-										opacity: [0.4, 1, 0.4],
-									}}
-									transition={{
-										duration: 2,
-										repeat: Infinity,
-										ease: 'easeInOut',
-									}}
-									className='w-1.5 h-1.5 rounded-full'
-									style={{
-										backgroundColor:
-											GlassmorphismTheme.indicators.status.pending,
-									}}
-								/>
-
-								<span
-									style={{
-										fontSize: '12px',
-										color: GlassmorphismTheme.indicators.status.pending,
-										fontWeight: 500,
-									}}
-								>
-									Awaiting answer
-								</span>
-							</div>
-						</motion.div>
-					)}
 				</div>
 
-				{/* AI Answer section with sophisticated styling */}
-				<AnimatePresence>
-					{aiAnswer && (
-						<motion.div
-							initial={{ opacity: 0, height: 0 }}
-							animate={{ opacity: 1, height: 'auto' }}
-							exit={{ opacity: 0, height: 0 }}
-							transition={{ duration: 0.3 }}
-							className='overflow-hidden'
-						>
-							{/* Elegant divider with gradient */}
-							<div className='relative py-3'>
-								<div
-									className='absolute inset-x-0 top-1/2 -translate-y-1/2 h-[1px]'
-									style={{
-										background:
-											'linear-gradient(90deg, transparent, rgba(147, 197, 253, 0.2) 30%, rgba(147, 197, 253, 0.2) 70%, transparent)',
-									}}
+				{/* Interactive Response Section - Always visible when there's content */}
+				{data.content && (
+					<div className='space-y-3'>
+						{/* Response area */}
+						<div>
+							{questionType === 'binary' && (
+								<BinaryResponse
+									onChange={handleResponseChange}
+									value={userResponse as boolean}
 								/>
+							)}
 
-								<div className='relative flex justify-center'>
-									<div
-										className='flex items-center gap-2 px-3 py-1.5 rounded-full'
-										style={{
-											backgroundColor: GlassmorphismTheme.elevation[1],
-											border: '1px solid rgba(147, 197, 253, 0.2)',
-										}}
-									>
-										<Sparkles
-											className='w-3 h-3'
-											style={{ color: 'rgba(147, 197, 253, 0.87)' }}
-										/>
+							{questionType === 'multiple' && (
+								<MultipleChoiceResponse
+									allowMultiple={responseFormat.allowMultiple || false}
+									onChange={handleResponseChange}
+									value={userResponse as string | string[]}
+									options={
+										responseFormat.options && responseFormat.options.length > 0
+											? responseFormat.options
+											: parsedOptions.options &&
+												  parsedOptions.options.length > 0
+												? parsedOptions.options.map((label, index) => ({
+														id: `opt-${index}`,
+														label: label.trim(),
+													}))
+												: [
+														{ id: '1', label: 'Option A' },
+														{ id: '2', label: 'Option B' },
+														{ id: '3', label: 'Option C' },
+													]
+									}
+								/>
+							)}
+						</div>
 
-										<span
-											style={{
-												fontSize: '12px',
-												color: 'rgba(147, 197, 253, 0.87)',
-												fontWeight: 500,
-												letterSpacing: '0.05em',
-												textTransform: 'uppercase',
-											}}
-										>
-											AI Answer
-										</span>
-									</div>
-								</div>
-							</div>
-
-							{/* Answer content with glassmorphic container */}
-							<div
-								className='p-4 rounded-lg'
-								style={{
-									backgroundColor: 'rgba(96, 165, 250, 0.05)',
-									border: '1px solid rgba(96, 165, 250, 0.1)',
-									backdropFilter: 'blur(8px)',
-								}}
-							>
+						{/* Status indicator - minimal */}
+						{isAnswered && (
+							<div className='flex justify-center'>
 								<div
+									className='px-2 py-1 rounded-full text-xs'
 									style={{
-										fontSize: '14px',
-										color: GlassmorphismTheme.text.medium,
-										lineHeight: 1.7,
-										letterSpacing: '0.01em',
+										backgroundColor: 'rgba(34, 197, 94, 0.1)',
+										color: '#22c55e',
+										fontSize: '11px',
 									}}
 								>
-									{aiAnswer}
+									Answered
 								</div>
-
-								{/* Optional confidence indicator */}
-								{data.metadata?.confidence && (
-									<div className='mt-3 flex items-center gap-2'>
-										<div
-											className='flex-1 h-1 rounded-full overflow-hidden'
-											style={{
-												backgroundColor:
-													GlassmorphismTheme.indicators.progress.background,
-											}}
-										>
-											<div
-												className='h-full rounded-full transition-all duration-500'
-												style={{
-													width: `${data.metadata.confidence * 100}%`,
-													backgroundColor:
-														data.metadata.confidence > 0.8
-															? GlassmorphismTheme.indicators.status.complete
-															: data.metadata.confidence > 0.5
-																? GlassmorphismTheme.indicators.status.pending
-																: GlassmorphismTheme.indicators.status.error,
-												}}
-											/>
-										</div>
-
-										<span
-											style={{
-												fontSize: '11px',
-												color: GlassmorphismTheme.text.disabled,
-											}}
-										>
-											{Math.round(data.metadata.confidence * 100)}% confidence
-										</span>
-									</div>
-								)}
 							</div>
+						)}
+					</div>
+				)}
 
-							{/* Source attribution if available */}
-							{data.metadata?.source && (
-								<div className='mt-2 text-right'>
-									<span
-										style={{
-											fontSize: '11px',
-											color: GlassmorphismTheme.text.disabled,
-											fontStyle: 'italic',
-										}}
-									>
-										Source: {data.metadata.source}
-									</span>
-								</div>
+				{/* AI Answer section (backward compatibility) - Collapsible */}
+				{hasAIAnswer && (
+					<motion.div
+						layout
+						className='rounded-md'
+						transition={{ type: 'spring', duration: 0.3 }}
+						style={{
+							backgroundColor: 'rgba(147, 197, 253, 0.05)',
+							border: '1px solid rgba(147, 197, 253, 0.1)',
+						}}
+					>
+						<motion.button
+							className='w-full flex items-center justify-center gap-2 py-1.5 rounded-md transition-all'
+							onClick={() => setIsExpanded(!isExpanded)}
+							whileHover={{ scale: 1.02 }}
+							whileTap={{ scale: 0.98 }}
+						>
+							<Sparkles
+								className='w-3 h-3'
+								style={{ color: 'rgba(147, 197, 253, 0.7)' }}
+							/>
+
+							<span
+								style={{
+									fontSize: '12px',
+									color: 'rgba(147, 197, 253, 0.87)',
+									fontWeight: 500,
+								}}
+							>
+								AI Insight
+							</span>
+
+							<ChevronDown
+								style={{ color: 'rgba(147, 197, 253, 0.7)' }}
+								className={cn(
+									'w-3 h-3 transition-transform will-change-transform ease-spring duration-300',
+									isExpanded ? 'rotate-180' : ''
+								)}
+							/>
+						</motion.button>
+
+						<AnimatePresence>
+							{isExpanded && (
+								<motion.div
+									animate={{ opacity: 1, height: 'auto' }}
+									className='overflow-hidden'
+									exit={{ opacity: 0, height: 0 }}
+									initial={{ opacity: 0, height: 0 }}
+									transition={{ duration: 0.2 }}
+								>
+									<div className='mt-2 p-3'>
+										<div className='text-xs leading-6'>{aiAnswer}</div>
+									</div>
+								</motion.div>
 							)}
-						</motion.div>
-					)}
-				</AnimatePresence>
+						</AnimatePresence>
+					</motion.div>
+				)}
 			</div>
 		</BaseNodeWrapper>
 	);

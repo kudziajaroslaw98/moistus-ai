@@ -24,6 +24,8 @@ export const createLoadingStateSlice: StateCreator<
 		isLoadingComments: false,
 		isSavingComment: false,
 		isDeletingComment: false,
+		isUpdatingMapSettings: false,
+		isDeletingMap: false,
 	},
 
 	setLoadingStates: (loadingStates) => {

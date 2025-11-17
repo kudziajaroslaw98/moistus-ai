@@ -136,50 +136,52 @@ const SuggestedConnectionEdgeComponent = ({
 		<>
 			<defs>
 				<marker
-					markerWidth={16}
-					markerHeight={16}
 					id={`suggestion-arrow-end-${id}`}
+					markerHeight={16}
+					markerUnits='userSpaceOnUse'
+					markerWidth={16}
+					orient='auto'
 					refX='0'
 					refY='0'
 					viewBox='-10 -10 20 20'
-					orient='auto'
-					markerUnits='userSpaceOnUse'
 				>
 					<polyline
+						points='-5,-4 0,0 -5,4 -5,-4'
+						strokeLinecap='round'
+						strokeLinejoin='round'
 						style={{
 							stroke: suggestionColor,
 							fill: suggestionColor,
 							strokeWidth,
 						}}
-						strokeLinecap='round'
-						strokeLinejoin='round'
-						points='-5,-4 0,0 -5,4 -5,-4'
 					/>
 				</marker>
 
 				<marker
-					markerWidth={16}
-					markerHeight={16}
 					id={`suggestion-circle-start-${id}`}
+					markerHeight={16}
+					markerUnits='userSpaceOnUse'
+					markerWidth={16}
+					orient='auto'
 					refX='0'
 					refY='0'
 					viewBox='-10 -10 20 20'
-					orient='auto'
-					markerUnits='userSpaceOnUse'
 				>
 					<circle
+						r='5'
 						style={{
 							stroke: suggestionColor,
 							fill: suggestionColor,
 							strokeWidth,
 						}}
-						r='5'
 					/>
 				</marker>
 			</defs>
 
 			<BaseEdge
 				id={id}
+				markerEnd={`url(#suggestion-arrow-end-${id})`}
+				markerStart={`url(#suggestion-circle-start-${id})`}
 				path={edgePath}
 				style={suggestionStyle}
 				className={cn(
@@ -188,15 +190,13 @@ const SuggestedConnectionEdgeComponent = ({
 					'transition-all duration-200 ease-in-out',
 					'animate-pulse' // Always pulse for suggestions
 				)}
-				markerStart={`url(#suggestion-circle-start-${id})`}
-				markerEnd={`url(#suggestion-arrow-end-${id})`}
 			>
 				<EdgeLabelRenderer>
 					<div
+						className='nodrag absolute z-[3] pointer-events-auto nopan flex flex-col items-center gap-2 text-xs'
 						style={{
 							transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
 						}}
-						className='nodrag absolute z-[3] pointer-events-auto nopan flex flex-col items-center gap-2 text-xs'
 					>
 						{/* AI Reason Label - Always Visible */}
 						<div className='rounded-lg bg-amber-600/90 px-3 py-1.5 shadow-lg border border-amber-500/20'>
@@ -208,13 +208,13 @@ const SuggestedConnectionEdgeComponent = ({
 						{/* Accept/Reject Controls - Always Visible */}
 						<div className='flex items-center gap-2'>
 							<Button
-								variant='default'
-								size='icon'
-								onClick={handleAcceptSuggestion}
-								disabled={isProcessing}
-								title='Accept suggestion'
 								aria-label='Accept AI connection suggestion'
 								className='!size-8 bg-green-600 hover:bg-green-700 text-white border-green-500/20'
+								disabled={isProcessing}
+								onClick={handleAcceptSuggestion}
+								size='icon'
+								title='Accept suggestion'
+								variant='default'
 								whileHover={{ scale: 1.1 }}
 								whileTap={{ scale: 0.95 }}
 							>
@@ -222,13 +222,13 @@ const SuggestedConnectionEdgeComponent = ({
 							</Button>
 
 							<Button
-								variant='destructive'
-								size='icon'
-								onClick={handleRejectSuggestion}
-								disabled={isProcessing}
-								title='Reject suggestion'
 								aria-label='Reject AI connection suggestion'
 								className='!size-8'
+								disabled={isProcessing}
+								onClick={handleRejectSuggestion}
+								size='icon'
+								title='Reject suggestion'
+								variant='destructive'
 								whileHover={{ scale: 1.1 }}
 								whileTap={{ scale: 0.95 }}
 							>

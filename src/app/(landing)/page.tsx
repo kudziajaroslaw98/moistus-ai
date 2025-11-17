@@ -5,7 +5,6 @@ import { WaitlistHero } from '@/components/waitlist/waitlist-hero';
 import { Clock } from 'lucide-react';
 import { Metadata } from 'next';
 import Image from 'next/image';
-import React from 'react';
 
 export const metadata: Metadata = {
 	title: 'Moistus AI - AI-Powered Mind Mapping | Join the Waitlist',
@@ -57,29 +56,6 @@ export const metadata: Metadata = {
 	},
 };
 
-const _features = [
-	{
-		iconName: 'Brain',
-		title: 'AI-Powered Intelligence',
-		description:
-			'Our AI understands context and suggests connections you might have missed.',
-		gradient: 'from-violet-500 to-purple-600',
-	},
-	{
-		iconName: 'Users',
-		title: 'Real-time Collaboration',
-		description:
-			'Work together seamlessly with your team, see changes instantly.',
-		gradient: 'from-blue-500 to-indigo-600',
-	},
-	{
-		iconName: 'Search',
-		title: 'Semantic Search',
-		description: 'Find anything in your knowledge base using natural language.',
-		gradient: 'from-emerald-500 to-teal-600',
-	},
-];
-
 export default function Home() {
 	return (
 		<main className='relative min-h-screen flex flex-col bg-zinc-950 z-10'>
@@ -93,10 +69,10 @@ export default function Home() {
 						<div className='mb-8'>
 							<div className='w-full flex justify-center items-center mb-4'>
 								<Image
-									src='/images/moistus.svg'
 									alt='Moistus Logo'
-									width={150}
 									height={150}
+									src='/images/moistus.svg'
+									width={150}
 								/>
 							</div>
 
@@ -128,9 +104,9 @@ export default function Home() {
 								viewBox='0 0 20 20'
 							>
 								<path
-									fillRule='evenodd'
-									d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z'
 									clipRule='evenodd'
+									d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z'
+									fillRule='evenodd'
 								/>
 							</svg>
 
@@ -144,9 +120,9 @@ export default function Home() {
 								viewBox='0 0 20 20'
 							>
 								<path
-									fillRule='evenodd'
-									d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z'
 									clipRule='evenodd'
+									d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z'
+									fillRule='evenodd'
 								/>
 							</svg>
 

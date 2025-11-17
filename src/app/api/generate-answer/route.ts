@@ -1,7 +1,10 @@
 import { respondError } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
+import {
+	checkAIFeatureAccess,
+	trackAIFeatureUsage,
+} from '@/helpers/api/with-ai-feature-gate';
 import { openai } from '@ai-sdk/openai';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { streamText } from 'ai';
 import { z } from 'zod';
 
@@ -9,49 +12,21 @@ const requestBodySchema = z.object({
 	nodeId: z.string().uuid('Invalid node ID format'),
 });
 
-// Helper to recursively get ancestor content
-async function getAncestorContext(
-	nodeId: string,
-	supabase: SupabaseClient, // SupabaseClient type from @supabase/supabase-js
-	currentMapId: string,
-	depthLimit: number = 3, // Limit depth to prevent excessive fetching
-	currentDepth: number = 0
-): Promise<string> {
-	if (currentDepth >= depthLimit) {
-		return '';
-	}
-
-	const { data: node, error } = await supabase
-		.from('nodes')
-		.select('content, parent_id')
-		.eq('id', nodeId)
-		.eq('map_id', currentMapId) // Ensure we stay within the same map
-		.single();
-
-	if (error || !node) {
-		return '';
-	}
-
-	let context = '';
-
-	if (node.parent_id) {
-		context = await getAncestorContext(
-			node.parent_id,
-			supabase,
-			currentMapId,
-			depthLimit,
-			currentDepth + 1
-		);
-	}
-
-	// Add current node's content to the context (prepended by parent's context)
-	// We are building context from oldest ancestor to direct parent
-	return `${context}${node.content ? `Context: ${node.content}\n` : ''}`;
-}
 
 export const POST = withApiValidation(
 	requestBodySchema,
-	async (req, validatedBody, supabase) => {
+	async (_req, validatedBody, supabase, user) => {
+		// Check AI feature access
+		const { hasAccess, isPro, error } = await checkAIFeatureAccess(
+			user,
+			supabase,
+			'answer'
+		);
+
+		if (!hasAccess && error) {
+			return error;
+		}
+
 		try {
 			const { nodeId } = validatedBody;
 
@@ -122,6 +97,17 @@ export const POST = withApiValidation(
 				model: openai('o4-mini'),
 				prompt: aiPrompt,
 			});
+
+			// Track usage for free tier users (non-blocking)
+			try {
+				await trackAIFeatureUsage(user, supabase, 'answer', isPro, {
+					nodeId,
+					questionLength: questionNode.content.length,
+				});
+			} catch (trackingError) {
+				// Log tracking failures but don't block the response
+				console.warn('Failed to track AI feature usage:', trackingError);
+			}
 
 			return result.toTextStreamResponse();
 		} catch (error) {

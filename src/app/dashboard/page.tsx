@@ -14,9 +14,9 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
-import { SidebarProvider, useSidebar } from '@/components/ui/sidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
+import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
-import { AnimatePresence, motion } from 'motion/react';
 import {
 	Filter,
 	Grid3x3,
@@ -26,10 +26,12 @@ import {
 	SortAsc,
 	Trash2,
 } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR, { mutate } from 'swr';
+import { useShallow } from 'zustand/react/shallow';
 
 interface MindMapData {
 	id: string;
@@ -52,13 +54,18 @@ interface MindMapData {
 	};
 }
 
+type FilterType = 'all' | 'owned' | 'shared';
+type SortByType = 'updated' | 'created' | 'name';
 
 // SWR fetcher function
 const fetcher = async (url: string) => {
-	const response = await fetch(url, {
-		method: 'GET',
-		headers: { 'Content-Type': 'application/json' },
-	});
+	const response = await fetch(
+		`${process.env.NEXT_PUBLIC_APP_LOCAL_HREF}/api/maps`,
+		{
+			method: 'GET',
+			headers: { 'Content-Type': 'application/json' },
+		}
+	);
 
 	if (!response.ok) {
 		throw new Error('Failed to fetch data');
@@ -70,32 +77,34 @@ const fetcher = async (url: string) => {
 
 function DashboardContent() {
 	const router = useRouter();
-	const { open: sidebarOpen } = useSidebar();
-	const sidebarCollapsed = !sidebarOpen;
+
+	// Trial state
+	const { isTrialing, getTrialDaysRemaining } = useAppStore(
+		useShallow((state) => ({
+			isTrialing: state.isTrialing,
+			getTrialDaysRemaining: state.getTrialDaysRemaining,
+		}))
+	);
+
+	const trialDays = getTrialDaysRemaining?.() ?? null;
 
 	// State
 	const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 	const [searchQuery, setSearchQuery] = useState('');
-	const [sortBy, setSortBy] = useState<'updated' | 'created' | 'name'>(
-		'updated'
-	);
-	const [filterBy, setFilterBy] = useState<'all' | 'owned' | 'shared'>('all');
+	const [sortBy, setSortBy] = useState<SortByType>('updated');
+	const [filterBy, setFilterBy] = useState<FilterType>('all');
 	const [selectedMaps, setSelectedMaps] = useState<Set<string>>(new Set());
 	const [isCreatingMap, setIsCreatingMap] = useState(false);
-	const [newMapTitle, setNewMapTitle] = useState('');
 	const [showCreateDialog, setShowCreateDialog] = useState(false);
 
 	// Fetch mind maps
-	const {
-		data: mapsData = { maps: [] },
-		error: mapsError,
-		isLoading: mapsLoading,
-	} = useSWR<{ maps: MindMapData[] }>('/api/maps', fetcher, {
+	const { data: mapsData = { maps: [] }, isLoading: mapsLoading } = useSWR<{
+		maps: MindMapData[];
+	}>('/api/maps', fetcher, {
 		revalidateOnFocus: false,
 		revalidateOnReconnect: true,
 		dedupingInterval: 5000,
 	});
-
 
 	// Filter and sort maps
 	const filteredMaps = mapsData.maps
@@ -217,8 +226,6 @@ function DashboardContent() {
 				throw new Error('Failed to duplicate mind map.');
 			}
 
-			const data = await response.json();
-
 			// Refresh the maps list
 			mutate('/api/maps');
 
@@ -229,7 +236,7 @@ function DashboardContent() {
 		}
 	};
 
-	const handleBulkDelete = async () => {
+	const handleBulkDelete = useCallback(async () => {
 		if (selectedMaps.size === 0) return;
 
 		if (
@@ -265,8 +272,7 @@ function DashboardContent() {
 			toast.error('Failed to delete maps');
 			mutate('/api/maps');
 		}
-	};
-
+	}, [selectedMaps, mapsData.maps]);
 	const handleSelectMap = useCallback((mapId: string, isSelected: boolean) => {
 		setSelectedMaps((prev) => {
 			const newSet = new Set(prev);
@@ -300,7 +306,6 @@ function DashboardContent() {
 		},
 		[selectedMaps.size, filteredMaps]
 	);
-
 
 	// Keyboard navigation and shortcuts
 	useEffect(() => {
@@ -398,6 +403,19 @@ function DashboardContent() {
 				<div className='flex-grow w-full overflow-auto'>
 					<div className='p-6 md:p-8'>
 						<div className='mx-auto max-w-7xl'>
+							{/* Trial Badge */}
+							{isTrialing?.() && trialDays !== null && (
+								<div className='mb-4 rounded-lg bg-purple-500/10 border border-purple-500/20 p-4'>
+									<p className='text-sm font-medium text-purple-600'>
+										✨ Trial Active: {trialDays} days remaining
+									</p>
+
+									<p className='text-xs text-muted-foreground mt-1'>
+										Enjoying Pro features? Your trial ends soon.
+									</p>
+								</div>
+							)}
+
 							{/* Header */}
 							<div className='mb-10'>
 								<div className='flex items-center justify-between mb-8'>
@@ -411,7 +429,7 @@ function DashboardContent() {
 											<span>
 												<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
 													Ctrl+N
-												</kbd>{' '}
+												</kbd>
 
 												<span className='text-zinc-500'>New map</span>
 											</span>
@@ -419,7 +437,7 @@ function DashboardContent() {
 											<span>
 												<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
 													Ctrl+F
-												</kbd>{' '}
+												</kbd>
 
 												<span className='text-zinc-500'>Search</span>
 											</span>
@@ -427,7 +445,7 @@ function DashboardContent() {
 											<span>
 												<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
 													Ctrl+A
-												</kbd>{' '}
+												</kbd>
 
 												<span className='text-zinc-500'>Select all</span>
 											</span>
@@ -435,7 +453,7 @@ function DashboardContent() {
 											<span>
 												<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
 													Ctrl+1/2
-												</kbd>{' '}
+												</kbd>
 
 												<span className='text-zinc-500'>View mode</span>
 											</span>
@@ -448,17 +466,22 @@ function DashboardContent() {
 									{/* Search */}
 									<div className='flex-grow max-w-full sm:max-w-md'>
 										<SearchInput
-											value={searchQuery}
+											className='touch-manipulation'
 											onChange={(e) => setSearchQuery(e.target.value)}
 											placeholder='Search maps...'
-											className='touch-manipulation'
+											value={searchQuery}
 										/>
 									</div>
 
 									{/* Actions */}
 									<div className='flex items-center gap-2 flex-wrap sm:flex-nowrap'>
 										{/* Filter */}
-										<Select value={filterBy} onValueChange={setFilterBy as any}>
+										<Select
+											value={filterBy}
+											onValueChange={(value) =>
+												setFilterBy(value as FilterType)
+											}
+										>
 											<SelectTrigger className='w-36 bg-zinc-800/30 backdrop-blur-sm border-zinc-700/50 hover:border-zinc-600/50 transition-colors duration-200'>
 												<Filter className='h-4 w-4 mr-2' />
 
@@ -475,7 +498,10 @@ function DashboardContent() {
 										</Select>
 
 										{/* Sort */}
-										<Select value={sortBy} onValueChange={setSortBy as any}>
+										<Select
+											onValueChange={(value) => setSortBy(value as SortByType)}
+											value={sortBy}
+										>
 											<SelectTrigger className='w-44 bg-zinc-800/30 backdrop-blur-sm border-zinc-700/50 hover:border-zinc-600/50 transition-colors duration-200'>
 												<SortAsc className='h-4 w-4 mr-2' />
 
@@ -495,8 +521,8 @@ function DashboardContent() {
 										<div className='flex items-center rounded-lg bg-zinc-800/30 backdrop-blur-sm border border-zinc-700/50 p-1 shadow-sm'>
 											<Button
 												onClick={() => setViewMode('grid')}
-												variant='ghost'
 												size='sm'
+												variant='ghost'
 												className={cn(
 													'h-10 px-3 sm:h-7 sm:px-2 min-w-[44px] sm:min-w-0 touch-manipulation',
 													viewMode === 'grid' && 'bg-zinc-700'
@@ -507,8 +533,8 @@ function DashboardContent() {
 
 											<Button
 												onClick={() => setViewMode('list')}
-												variant='ghost'
 												size='sm'
+												variant='ghost'
 												className={cn(
 													'h-10 px-3 sm:h-7 sm:px-2 min-w-[44px] sm:min-w-0 touch-manipulation',
 													viewMode === 'list' && 'bg-zinc-700'
@@ -532,33 +558,33 @@ function DashboardContent() {
 											variant='default'
 										/>
 
-										Select all ({filteredMaps.length} maps)
+										<span>Select all ({filteredMaps.length} maps)</span>
 									</label>
 
 									{selectedMaps.size > 0 && (
 										<motion.div
-											initial={{ opacity: 0, scale: 0.9 }}
 											animate={{ opacity: 1, scale: 1 }}
-											exit={{ opacity: 0, scale: 0.9 }}
 											className='h-9 flex items-center gap-2 px-3 rounded-lg'
+											exit={{ opacity: 0, scale: 0.9 }}
+											initial={{ opacity: 0, scale: 0.9 }}
 										>
 											<span className='text-sm text-zinc-300'>
 												{selectedMaps.size} selected
 											</span>
 
 											<Button
-												onClick={handleBulkDelete}
-												variant='secondary'
-												size='icon'
 												className='text-red-400 hover:text-red-300'
+												onClick={handleBulkDelete}
+												size='icon'
+												variant='secondary'
 											>
 												<Trash2 className='size-4' />
 											</Button>
 
 											<Button
 												onClick={() => setSelectedMaps(new Set())}
-												variant='secondary'
 												size='sm'
+												variant='secondary'
 											>
 												Clear
 											</Button>
@@ -587,10 +613,10 @@ function DashboardContent() {
 										<MindMapCard
 											key={map.id}
 											map={map}
-											selected={selectedMaps.has(map.id)}
-											onSelect={handleSelectMap}
 											onDelete={handleDeleteMap}
 											onDuplicate={handleDuplicateMap}
+											onSelect={handleSelectMap}
+											selected={selectedMaps.has(map.id)}
 											viewMode={viewMode}
 										/>
 									))}
@@ -621,19 +647,19 @@ function DashboardContent() {
 
 												<div className='flex flex-col sm:flex-row gap-3 justify-center'>
 													<Button
+														className='border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800'
+														variant='outline'
 														onClick={() => {
 															setSearchQuery('');
 															setFilterBy('all');
 														}}
-														variant='outline'
-														className='border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800'
 													>
 														Clear all filters
 													</Button>
 
 													<Button
-														onClick={() => setShowCreateDialog(true)}
 														className='bg-sky-600 hover:bg-sky-700'
+														onClick={() => setShowCreateDialog(true)}
 													>
 														<Plus className='w-4 h-4 mr-2' />
 														Create new map
@@ -662,10 +688,10 @@ function DashboardContent() {
 
 												<div className='space-y-4'>
 													<Button
-														onClick={() => setShowCreateDialog(true)}
-														size='lg'
 														className='bg-sky-600 hover:bg-sky-700 text-lg px-8 py-3 h-auto'
 														disabled={isCreatingMap}
+														onClick={() => setShowCreateDialog(true)}
+														size='lg'
 													>
 														<Plus className='w-5 h-5 mr-2' />
 														Create your first map
@@ -703,10 +729,10 @@ function DashboardContent() {
 
 			{/* Create Map Dialog */}
 			<CreateMapDialog
-				open={showCreateDialog}
+				disabled={isCreatingMap}
 				onOpenChange={setShowCreateDialog}
 				onSubmit={handleCreateMap}
-				disabled={isCreatingMap}
+				open={showCreateDialog}
 			/>
 		</DashboardLayout>
 	);

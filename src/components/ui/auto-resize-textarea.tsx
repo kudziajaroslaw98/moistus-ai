@@ -34,9 +34,9 @@ const AutoResizeTextarea = forwardRef<
 
 	return (
 		<Textarea
+			className={cn('resize-none overflow-hidden', className)}
 			ref={combinedRef}
 			value={value}
-			className={cn('resize-none overflow-hidden', className)}
 			{...rest}
 		/>
 	);

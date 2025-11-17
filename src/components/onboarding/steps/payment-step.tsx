@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { GlassmorphismTheme } from '@/components/nodes/themes/glassmorphism-theme';
 import useAppStore from '@/store/mind-map-store';
 import {
 	CardElement,
@@ -30,17 +31,17 @@ const stripePromise = loadStripe(
 const CARD_ELEMENT_OPTIONS = {
 	style: {
 		base: {
-			color: '#fafafa',
+			color: GlassmorphismTheme.text.high,
 			fontFamily: '"Inter", sans-serif',
 			fontSmoothing: 'antialiased',
 			fontSize: '16px',
 			'::placeholder': {
-				color: '#71717a',
+				color: GlassmorphismTheme.text.disabled,
 			},
 		},
 		invalid: {
-			color: '#ef4444',
-			iconColor: '#ef4444',
+			color: GlassmorphismTheme.indicators.status.error,
+			iconColor: GlassmorphismTheme.indicators.status.error,
 		},
 	},
 };
@@ -127,14 +128,29 @@ function PaymentForm({
 				throw new Error(result.error);
 			}
 
-			// If subscription requires additional action (3D Secure)
+			// Handle additional confirmation if client secret is provided
 			if (result.clientSecret) {
-				const { error: confirmError } = await stripe.confirmCardPayment(
-					result.clientSecret
-				);
+				// Determine intent type by prefix:
+				// - 'seti_' = SetupIntent (trial subscription, verify card only)
+				// - 'pi_' = PaymentIntent (immediate payment subscription, charge card)
+				if (result.clientSecret.startsWith('seti_')) {
+					// Trial subscription: confirm setup intent (verify card, no charge)
+					const { error: confirmError } = await stripe.confirmCardSetup(
+						result.clientSecret
+					);
 
-				if (confirmError) {
-					throw new Error(confirmError.message);
+					if (confirmError) {
+						throw new Error(confirmError.message);
+					}
+				} else if (result.clientSecret.startsWith('pi_')) {
+					// Immediate payment: confirm payment intent (charge card now)
+					const { error: confirmError } = await stripe.confirmCardPayment(
+						result.clientSecret
+					);
+
+					if (confirmError) {
+						throw new Error(confirmError.message);
+					}
 				}
 			}
 
@@ -148,46 +164,80 @@ function PaymentForm({
 		}
 	};
 
-	const planPrice =
+	// Try to get price from database plans first, fallback to hardcoded constants
+	const dbPlanPrice =
 		availablePlans.find((p) => p.name === selectedPlan)?.[
 			billingCycle === 'monthly' ? 'priceMonthly' : 'priceYearly'
-		] || 0;
+		];
+
+	// Fallback to hardcoded pricing if database query failed
+	const planPrice =
+		dbPlanPrice ??
+		(selectedPlan === 'pro'
+			? billingCycle === 'monthly'
+				? 12
+				: 120
+			: 0);
 
 	return (
-		<form onSubmit={handleSubmit} className='space-y-6'>
+		<form className='space-y-6' onSubmit={handleSubmit}>
 			<div>
-				<Label htmlFor='email' className='text-zinc-300'>
+				<Label
+					htmlFor='email'
+					style={{ color: GlassmorphismTheme.text.high }}
+				>
 					Email Address
 				</Label>
 
 				<Input
+					required
+					className='mt-1'
+					disabled={isProcessing || succeeded}
 					id='email'
-					type='email'
-					value={email}
 					onChange={(e) => setEmail(e.target.value)}
 					placeholder='you@example.com'
-					required
-					disabled={isProcessing || succeeded}
-					className='mt-1 bg-zinc-800 border-zinc-700 text-zinc-50'
+					type='email'
+					value={email}
+					style={{
+						backgroundColor: GlassmorphismTheme.elevation[2],
+						borderColor: GlassmorphismTheme.borders.default,
+						color: GlassmorphismTheme.text.high,
+					}}
 				/>
 			</div>
 
 			<div>
-				<Label className='text-zinc-300 mb-2 block'>Card Information</Label>
+				<Label
+					className='mb-2 block'
+					style={{ color: GlassmorphismTheme.text.high }}
+				>
+					Card Information
+				</Label>
 
-				<div className='p-3 bg-zinc-800 border border-zinc-700 rounded-md'>
+				<div
+					className='p-3 rounded-md'
+					style={{
+						backgroundColor: GlassmorphismTheme.elevation[2],
+						border: `1px solid ${GlassmorphismTheme.borders.default}`,
+					}}
+				>
 					<CardElement
-						options={CARD_ELEMENT_OPTIONS}
 						onChange={() => setError(null)}
+						options={CARD_ELEMENT_OPTIONS}
 					/>
 				</div>
 			</div>
 
 			{error && (
 				<motion.div
-					initial={{ opacity: 0, y: -10 }}
 					animate={{ opacity: 1, y: 0 }}
-					className='flex items-center gap-2 text-red-400 text-sm'
+					className='flex items-center gap-2 text-sm'
+					initial={{ opacity: 0, y: -10 }}
+					style={{ color: GlassmorphismTheme.indicators.status.error }}
+					transition={{
+						duration: 0.2,
+						ease: [0.165, 0.84, 0.44, 1], // ease-out-quart
+					}}
 				>
 					<AlertCircle className='w-4 h-4' />
 
@@ -197,46 +247,106 @@ function PaymentForm({
 
 			{succeeded && (
 				<motion.div
-					initial={{ opacity: 0, scale: 0.8 }}
 					animate={{ opacity: 1, scale: 1 }}
 					className='text-center py-4'
+					initial={{ opacity: 0, scale: 0.8 }}
+					transition={{
+						duration: 0.3,
+						ease: [0.165, 0.84, 0.44, 1],
+					}}
 				>
-					<div className='w-16 h-16 bg-teal-500/20 rounded-full flex items-center justify-center mx-auto mb-3'>
+					<div
+						className='w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3'
+						style={{
+							backgroundColor: 'rgba(52, 211, 153, 0.2)',
+						}}
+					>
 						<motion.div
-							initial={{ scale: 0 }}
 							animate={{ scale: 1 }}
-							transition={{ delay: 0.2, type: 'spring' }}
+							initial={{ scale: 0 }}
+							transition={{
+								delay: 0.2,
+								duration: 0.3,
+								ease: [0.34, 1.56, 0.64, 1], // ease-spring from theme
+							}}
 						>
-							<CreditCard className='w-8 h-8 text-teal-500' />
+							<CreditCard
+								className='w-8 h-8'
+								style={{ color: GlassmorphismTheme.indicators.status.complete }}
+							/>
 						</motion.div>
 					</div>
 
-					<p className='text-teal-400 font-medium'>Payment successful!</p>
+					<p
+						className='font-medium'
+						style={{ color: GlassmorphismTheme.indicators.status.complete }}
+					>
+						Payment successful!
+					</p>
 				</motion.div>
 			)}
 
 			<div className='flex items-center justify-between pt-4'>
 				<Button
-					type='button'
-					onClick={onBack}
-					variant='ghost'
+					className='transition-colors'
 					disabled={isProcessing || succeeded}
-					className='text-zinc-400 hover:text-zinc-300'
+					onClick={onBack}
+					type='button'
+					variant='ghost'
+					onMouseEnter={(e) => {
+						if (!isProcessing && !succeeded) {
+							e.currentTarget.style.color = GlassmorphismTheme.text.high;
+						}
+					}}
+					onMouseLeave={(e) => {
+						if (!isProcessing && !succeeded) {
+							e.currentTarget.style.color = GlassmorphismTheme.text.medium;
+						}
+					}}
+					style={{
+						color: GlassmorphismTheme.text.medium,
+						transitionDuration: '200ms',
+						transitionTimingFunction: 'ease',
+					}}
 				>
 					Back
 				</Button>
 
 				<Button
-					type='submit'
+					className='font-semibold px-8 transition-all'
 					disabled={!stripe || isProcessing || succeeded}
-					className='bg-teal-500 hover:bg-teal-600 text-zinc-900 font-semibold px-8'
+					type='submit'
+					onMouseEnter={(e) => {
+						if (stripe && !isProcessing && !succeeded) {
+							e.currentTarget.style.backgroundColor = 'rgba(52, 211, 153, 1)';
+							e.currentTarget.style.transform = 'translateY(-2px)';
+						}
+					}}
+					onMouseLeave={(e) => {
+						if (stripe && !isProcessing && !succeeded) {
+							e.currentTarget.style.backgroundColor =
+								'rgba(52, 211, 153, 0.8)';
+							e.currentTarget.style.transform = 'translateY(0)';
+						}
+					}}
+					style={{
+						backgroundColor: 'rgba(52, 211, 153, 0.8)',
+						color: GlassmorphismTheme.elevation[0],
+						transitionDuration: '200ms',
+						transitionTimingFunction: 'ease',
+						opacity: !stripe || isProcessing || succeeded ? 0.5 : 1,
+					}}
 				>
 					{isProcessing ? (
 						<span className='flex items-center gap-2'>
 							<motion.div
 								animate={{ rotate: 360 }}
+								className='w-4 h-4 rounded-full'
 								transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-								className='w-4 h-4 border-2 border-zinc-900 border-t-transparent rounded-full'
+								style={{
+									border: `2px solid ${GlassmorphismTheme.elevation[0]}`,
+									borderTopColor: 'transparent',
+								}}
 							/>
 							Processing...
 						</span>
@@ -254,25 +364,39 @@ export function PaymentStep(props: PaymentStepProps) {
 		<div className='flex flex-col h-full p-12'>
 			{/* Header */}
 			<motion.div
-				initial={{ opacity: 0, y: -20 }}
 				animate={{ opacity: 1, y: 0 }}
 				className='text-center mb-8'
+				initial={{ opacity: 0, y: -20 }}
+				transition={{
+					duration: 0.3,
+					ease: [0.165, 0.84, 0.44, 1], // ease-out-quart
+				}}
 			>
-				<h2 className='text-3xl font-bold text-zinc-50 mb-4'>
+				<h2
+					className='text-3xl font-bold mb-4'
+					style={{ color: GlassmorphismTheme.text.high }}
+				>
 					Complete Your Subscription
 				</h2>
 
-				<p className='text-lg text-zinc-400'>
+				<p
+					className='text-lg'
+					style={{ color: GlassmorphismTheme.text.medium }}
+				>
 					Start your {props.selectedPlan} plan today
 				</p>
 			</motion.div>
 
 			{/* Payment Form */}
 			<motion.div
-				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
-				transition={{ delay: 0.1 }}
 				className='max-w-md mx-auto w-full flex-1'
+				initial={{ opacity: 0, y: 20 }}
+				transition={{
+					duration: 0.3,
+					ease: [0.165, 0.84, 0.44, 1],
+					delay: 0.1,
+				}}
 			>
 				<Elements stripe={stripePromise}>
 					<PaymentForm {...props} />
@@ -281,10 +405,11 @@ export function PaymentStep(props: PaymentStepProps) {
 
 			{/* Security badges */}
 			<motion.div
-				initial={{ opacity: 0 }}
 				animate={{ opacity: 1 }}
-				transition={{ delay: 0.3 }}
-				className='flex items-center justify-center gap-4 text-sm text-zinc-500 mt-8'
+				className='flex items-center justify-center gap-4 text-sm mt-8'
+				initial={{ opacity: 0 }}
+				style={{ color: GlassmorphismTheme.text.disabled }}
+				transition={{ duration: 0.3, delay: 0.3 }}
 			>
 				<div className='flex items-center gap-2'>
 					<Lock className='w-4 h-4' />

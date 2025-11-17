@@ -1,10 +1,15 @@
 import generateUuid from '@/helpers/generate-uuid';
+import type { AvailableNodeTypes } from '@/registry/node-registry';
 import type { AiConnectionSuggestion } from '@/types/ai-connection-suggestion';
 import type { AiMergeSuggestion } from '@/types/ai-merge-suggestion';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
-import type { AvailableNodeTypes } from '@/types/available-node-types';
 import type { NodeSuggestion, SuggestionContext } from '@/types/ghost-node';
+import {
+	DEFAULT_SUGGESTION_CONFIG,
+	type PartialSuggestionConfig,
+	type SuggestionConfig,
+} from '@/types/suggestion-config';
 import type { StateCreator } from 'zustand';
 import type { AppState } from '../app-state';
 
@@ -29,6 +34,12 @@ export interface SuggestionsSlice {
 	streamTrigger: StreamTrigger | null;
 	chunks: unknown[];
 	streamingAPI: string | null;
+	stopStreamCallback: (() => void) | null;
+
+	// Configuration and timing (new)
+	suggestionConfig: SuggestionConfig;
+	lastTriggerTime: number;
+	pendingAnimations: Map<string, boolean>;
 
 	// Actions
 	setAiFeature: (
@@ -52,6 +63,9 @@ export interface SuggestionsSlice {
 	acceptMerge: (suggestion: AiMergeSuggestion) => Promise<void>;
 	rejectMerge: (suggestion: AiMergeSuggestion) => void;
 
+	// Counterpoints
+	generateCounterpointsForNode: (nodeId: string) => void;
+
 	triggerStream: (
 		api: string,
 		body: Record<string, unknown>,
@@ -59,6 +73,15 @@ export interface SuggestionsSlice {
 	) => void;
 	finishStream: (streamId: string) => void;
 	abortStream: (reason: string) => void;
+	stopStream: () => void;
+	setStopStreamCallback: (callback: () => void) => void;
+
+	// Configuration and animation management (new)
+	updateSuggestionConfig: (config: PartialSuggestionConfig) => void;
+	canTriggerSuggestion: () => boolean;
+	startEdgeAnimation: (edgeId: string) => void;
+	completeEdgeAnimation: (edgeId: string) => void;
+	isAnimationPending: (edgeId: string) => boolean;
 
 	// Helper methods
 	getGhostNodeById: (nodeId: string) => AppNode | undefined;
@@ -84,6 +107,12 @@ export const createSuggestionsSlice: StateCreator<
 	streamTrigger: null,
 	chunks: [],
 	streamingAPI: null,
+	stopStreamCallback: null,
+
+	// Configuration and timing (new)
+	suggestionConfig: DEFAULT_SUGGESTION_CONFIG,
+	lastTriggerTime: 0,
+	pendingAnimations: new Map(),
 
 	// Actions
 	setAiFeature: (
@@ -93,7 +122,7 @@ export const createSuggestionsSlice: StateCreator<
 	},
 
 	addGhostNode: (suggestion: NodeSuggestion) => {
-		const { mapId } = get();
+		const { mapId, edges } = get();
 		const ghostId = generateUuid();
 		const ghostNode: AppNode = {
 			id: ghostId,
@@ -118,6 +147,7 @@ export const createSuggestionsSlice: StateCreator<
 					suggestedType: suggestion.nodeType,
 					confidence: suggestion.confidence,
 					context: suggestion.context,
+					sourceNodeName: suggestion.sourceNodeName,
 				},
 				aiData: null,
 				created_at: new Date().toISOString(),
@@ -129,19 +159,77 @@ export const createSuggestionsSlice: StateCreator<
 			connectable: true,
 		};
 
+		// Auto-create animated ghost edge if source node exists
+		const newEdges = [...edges];
+		if (suggestion.context.sourceNodeId) {
+			const ghostEdgeId = `ghost-edge-${suggestion.context.sourceNodeId}-${ghostId}`;
+			const ghostEdge: AppEdge = {
+				id: ghostEdgeId,
+				source: suggestion.context.sourceNodeId,
+				target: ghostId,
+				type: 'animatedGhostEdge',
+				animated: true,
+				style: {
+					stroke: 'rgba(168, 85, 247, 0.6)', // Purple color for ghost edges
+					strokeWidth: 2,
+					strokeDasharray: '5 5',
+				},
+				markerEnd: 'arrowclosed',
+				data: {
+					id: ghostEdgeId,
+					map_id: mapId || '',
+					user_id: 'system',
+					source: suggestion.context.sourceNodeId,
+					target: ghostId,
+					type: 'animatedGhostEdge',
+					label: suggestion.context.relationshipType || null,
+					created_at: new Date().toISOString(),
+					updated_at: new Date().toISOString(),
+					animated: true,
+					markerEnd: 'arrowclosed',
+					style: {
+						stroke: 'rgba(168, 85, 247, 0.6)',
+						strokeWidth: 2,
+						strokeDasharray: '5 5',
+					},
+					metadata: {
+						pathType: 'smoothstep' as const,
+						isGhostEdge: true, // Mark as ghost edge for cleanup
+					},
+					aiData: {
+						isSuggested: true,
+					},
+				},
+			};
+			newEdges.push(ghostEdge);
+		}
+
 		set((state) => ({
 			ghostNodes: [...state.ghostNodes, ghostNode],
+			edges: newEdges,
 		}));
 	},
 
 	removeGhostNode: (nodeId: string) => {
 		set((state) => ({
 			ghostNodes: state.ghostNodes.filter((node) => node.id !== nodeId),
+			// Also remove any ghost edges connected to this node
+			edges: state.edges.filter(
+				(edge) =>
+					!(
+						edge.data?.metadata?.isGhostEdge &&
+						(edge.source === nodeId || edge.target === nodeId)
+					)
+			),
 		}));
 	},
 
 	clearGhostNodes: () => {
-		set({ ghostNodes: [] });
+		set((state) => ({
+			ghostNodes: [],
+			// Also clear all ghost edges
+			edges: state.edges.filter((edge) => !edge.data?.metadata?.isGhostEdge),
+		}));
 	},
 
 	acceptSuggestion: async (nodeId: string) => {
@@ -154,6 +242,17 @@ export const createSuggestionsSlice: StateCreator<
 		}
 
 		const ghostMetadata = ghostNode.data.metadata;
+
+		// Clean up any pending animations for edges connected to this ghost node
+		const edges = state.edges.filter(
+			(edge) => edge.source === nodeId || edge.target === nodeId
+		);
+
+		edges.forEach((edge) => {
+			if (state.pendingAnimations.has(edge.id)) {
+				state.completeEdgeAnimation(edge.id);
+			}
+		});
 
 		// Add the new node to the main nodes array using the proper method signature
 		await state.addNode({
@@ -193,8 +292,21 @@ export const createSuggestionsSlice: StateCreator<
 	},
 
 	rejectSuggestion: (nodeId: string) => {
-		// Simply remove the ghost node
-		get().removeGhostNode(nodeId);
+		const state = get();
+
+		// Clean up any pending animations for edges connected to this ghost node
+		const edges = state.edges.filter(
+			(edge) => edge.source === nodeId || edge.target === nodeId
+		);
+
+		edges.forEach((edge) => {
+			if (state.pendingAnimations.has(edge.id)) {
+				state.completeEdgeAnimation(edge.id);
+			}
+		});
+
+		// Remove the ghost node
+		state.removeGhostNode(nodeId);
 	},
 
 	generateSuggestions: async (context: SuggestionContext) => {
@@ -466,6 +578,72 @@ export const createSuggestionsSlice: StateCreator<
 		}));
 	},
 
+	generateCounterpointsForNode: (nodeId: string) => {
+		const {
+			nodes,
+			edges,
+			mapId,
+			triggerStream,
+			showStreamingToast,
+			updateStreamingToast,
+			setStreamingToastError,
+			setStreamSteps,
+			addGhostNode,
+		} = get();
+
+		if (!mapId) {
+			console.error('Cannot generate counterpoints without a mapId.');
+			return;
+		}
+
+		const sourceNode = nodes.find((n) => n.id === nodeId);
+
+		const handleChunk = (chunk: any) => {
+			if (!chunk || !chunk.type) return;
+
+			switch (chunk.type) {
+				case 'data-stream-info':
+					if (chunk.data?.steps) setStreamSteps(chunk.data.steps);
+					break;
+				case 'data-stream-status':
+					if (chunk.data?.error) setStreamingToastError(chunk.data.error);
+					else updateStreamingToast(chunk.data);
+					break;
+				case 'data-node-suggestion':
+					if (chunk.data) {
+						const suggestion = chunk.data;
+						addGhostNode({
+							...suggestion,
+							position: {
+								x:
+									(sourceNode?.position.x ?? 0) +
+									(suggestion.index || 0) * 300 +
+									(suggestion.index || 0) * 25,
+								y:
+									(sourceNode?.position.y ?? 0) +
+									(sourceNode?.height ?? sourceNode?.data.height ?? 0) +
+									50,
+							},
+						});
+					}
+					break;
+				default:
+					break;
+			}
+		};
+
+		showStreamingToast('Generating Counterpoints');
+
+		const body = {
+			nodes,
+			edges,
+			mapId,
+			context: { sourceNodeId: nodeId, trigger: 'magic-wand' as const },
+		};
+
+		triggerStream('/api/ai/counterpoints', body, handleChunk);
+	},
+
 	generateMergeSuggestions: () => {
 		const {
 			mapId,
@@ -643,9 +821,16 @@ export const createSuggestionsSlice: StateCreator<
 	},
 
 	triggerStream: (api, body, onStreamChunk) => {
-		const { isStreaming } = get();
+		const { isStreaming, canTriggerSuggestion } = get();
 
 		if (isStreaming === true) {
+			return;
+		}
+
+		// Check throttling (except for manual triggers)
+		const isSuggestionAPI = api.includes('/suggestions') || api.includes('/suggest-');
+		if (isSuggestionAPI && !canTriggerSuggestion()) {
+			console.log('Suggestion trigger throttled - too soon since last trigger');
 			return;
 		}
 
@@ -661,6 +846,7 @@ export const createSuggestionsSlice: StateCreator<
 				onStreamChunk, // Store the callback
 			},
 			streamingAPI: api,
+			lastTriggerTime: Date.now(), // Update trigger time
 		});
 	},
 
@@ -672,6 +858,7 @@ export const createSuggestionsSlice: StateCreator<
 			streamTrigger: null,
 			streamingAPI: null,
 			chunks: [],
+			stopStreamCallback: null,
 		});
 	},
 
@@ -684,7 +871,88 @@ export const createSuggestionsSlice: StateCreator<
 			streamTrigger: null,
 			streamingAPI: null,
 			chunks: [],
+			stopStreamCallback: null,
 		});
+	},
+
+	stopStream: () => {
+		const { stopStreamCallback } = get();
+		if (stopStreamCallback) {
+			stopStreamCallback();
+		}
+		get().hideStreamingToast();
+		set({
+			isStreaming: false,
+			activeStreamId: null,
+			streamTrigger: null,
+			streamingAPI: null,
+			chunks: [],
+			stopStreamCallback: null,
+		});
+	},
+
+	setStopStreamCallback: (callback) => {
+		set({ stopStreamCallback: callback });
+	},
+
+	// Configuration and animation management
+	updateSuggestionConfig: (config: PartialSuggestionConfig) => {
+		set((state) => ({
+			suggestionConfig: {
+				...state.suggestionConfig,
+				...config,
+				timing: { ...state.suggestionConfig.timing, ...config.timing },
+				quality: { ...state.suggestionConfig.quality, ...config.quality },
+				context: { ...state.suggestionConfig.context, ...config.context },
+				animation: {
+					...state.suggestionConfig.animation,
+					...config.animation,
+					easing: {
+						...state.suggestionConfig.animation.easing,
+						...config.animation?.easing,
+					},
+				},
+				triggers: config.triggers || state.suggestionConfig.triggers,
+			},
+		}));
+	},
+
+	canTriggerSuggestion: () => {
+		const state = get();
+		const { lastTriggerTime, suggestionConfig, isStreaming } = state;
+
+		// Don't trigger if already streaming
+		if (isStreaming) {
+			return false;
+		}
+
+		// Check if enough time has passed since last trigger
+		const now = Date.now();
+		const timeSinceLastTrigger = now - lastTriggerTime;
+
+		return (
+			timeSinceLastTrigger >= suggestionConfig.timing.minTimeBetweenSuggestions
+		);
+	},
+
+	startEdgeAnimation: (edgeId: string) => {
+		set((state) => {
+			const newMap = new Map(state.pendingAnimations);
+			newMap.set(edgeId, true);
+			return { pendingAnimations: newMap };
+		});
+	},
+
+	completeEdgeAnimation: (edgeId: string) => {
+		set((state) => {
+			const newMap = new Map(state.pendingAnimations);
+			newMap.delete(edgeId);
+			return { pendingAnimations: newMap };
+		});
+	},
+
+	isAnimationPending: (edgeId: string) => {
+		return get().pendingAnimations.has(edgeId);
 	},
 
 	// Helper methods

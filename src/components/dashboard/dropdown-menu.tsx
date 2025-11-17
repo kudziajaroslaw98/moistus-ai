@@ -16,7 +16,7 @@ export function DropdownMenu({
 	onOpenChange,
 }: DropdownMenuProps) {
 	return (
-		<Popover open={open} onOpenChange={onOpenChange}>
+		<Popover onOpenChange={onOpenChange} open={open}>
 			{children}
 		</Popover>
 	);
@@ -76,14 +76,14 @@ export function DropdownMenuItem({
 }: DropdownMenuItemProps) {
 	return (
 		<button
+			disabled={disabled}
+			onClick={onClick}
 			className={cn(
 				'flex w-full items-center px-3 py-2 text-sm text-zinc-300 rounded-sm transition-colors',
 				'hover:bg-zinc-800 hover:text-white focus:bg-zinc-800 focus:text-white focus:outline-none',
 				'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-zinc-300',
 				className
 			)}
-			onClick={onClick}
-			disabled={disabled}
 			{...props}
 		>
 			{children}

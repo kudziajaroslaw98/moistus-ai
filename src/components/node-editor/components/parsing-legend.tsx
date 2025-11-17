@@ -41,14 +41,15 @@ const theme = {
 	legend: {
 		container: 'bg-zinc-900/50 border border-zinc-800 rounded-md',
 		header:
-			'flex items-center justify-between p-3 cursor-pointer hover:bg-zinc-800/50 transition-colors',
+			'flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-zinc-800/50 transition-colors',
 		content:
-			'p-3 pt-0 space-y-3 max-h-48 overflow-y-auto sm:max-h-none sm:overflow-visible',
+			'px-3 py-2  flex flex-col gap-2 max-h-60 overflow-y-auto sm:max-h-none sm:overflow-visible',
 		title: 'text-sm font-medium text-zinc-100',
 		toggle: {
 			button:
 				'text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-1',
-			shortcut: 'px-2 py-1 bg-zinc-900/75 rounded-sm text-zinc-400 font-medium',
+			shortcut:
+				'px-2 py-0.5 bg-zinc-900/75 rounded-sm text-zinc-400 font-medium text-xs',
 			icon: 'w-4 h-4 transition-transform duration-200',
 		},
 	},
@@ -59,7 +60,7 @@ const contentVariants = {
 		height: 'auto',
 		opacity: 1,
 		transition: {
-			height: { duration: 0.3, ease: 'easeOut' },
+			height: { duration: 0.1, ease: 'easeOut' as const },
 			opacity: { duration: 0.2, delay: 0.1 },
 		},
 	},
@@ -67,7 +68,7 @@ const contentVariants = {
 		height: 0,
 		opacity: 0,
 		transition: {
-			height: { duration: 0.3, ease: 'easeIn' },
+			height: { duration: 0.1, ease: 'easeIn' as const },
 			opacity: { duration: 0.2 },
 		},
 	},
@@ -114,19 +115,19 @@ export const ParsingLegend: React.FC<ParsingLegendProps> = memo(
 
 		return (
 			<motion.div
-				className={cn(theme.legend.container, className)}
-				initial={false}
 				animate={{ height: 'auto' }}
+				className={cn(theme.legend.container, className)}
+				initial={{ height: 0 }}
 			>
 				{/* Header */}
 				<div
+					aria-controls='parsing-legend-content'
+					aria-expanded={!isCollapsed}
+					aria-label='Toggle parsing syntax help'
 					className={theme.legend.header}
 					onClick={onToggleCollapse}
 					role='button'
 					tabIndex={0}
-					aria-expanded={!isCollapsed}
-					aria-controls='parsing-legend-content'
-					aria-label='Toggle parsing syntax help'
 					onKeyDown={(e) => {
 						if (e.key === 'Enter' || e.key === ' ') {
 							e.preventDefault();
@@ -138,16 +139,16 @@ export const ParsingLegend: React.FC<ParsingLegendProps> = memo(
 
 					<div className={theme.legend.toggle.button}>
 						<kbd
-							className={theme.legend.toggle.shortcut}
 							aria-label='Keyboard shortcut'
+							className={theme.legend.toggle.shortcut}
 						>
 							Ctrl + /
 						</kbd>
 
 						<motion.div
-							variants={chevronVariants}
 							animate={isCollapsed ? 'closed' : 'open'}
 							transition={{ duration: 0.2 }}
+							variants={chevronVariants}
 						>
 							<ChevronDown className={theme.legend.toggle.icon} />
 						</motion.div>
@@ -158,27 +159,27 @@ export const ParsingLegend: React.FC<ParsingLegendProps> = memo(
 				<AnimatePresence initial={false}>
 					{!isCollapsed && (
 						<motion.div
-							id='parsing-legend-content'
-							variants={contentVariants}
-							initial='closed'
 							animate='open'
-							exit='closed'
 							className='overflow-hidden'
+							exit='closed'
+							id='parsing-legend-content'
+							initial='closed'
+							variants={contentVariants}
 						>
 							<div
+								aria-label='Parsing syntax patterns'
 								className={theme.legend.content}
 								role='region'
-								aria-label='Parsing syntax patterns'
 							>
 								{/* Display patterns by category */}
 								{(['metadata', 'formatting', 'structure', 'content'] as const)
 									.filter((category) => groupedPatterns[category]?.length > 0)
-									.map((category, index) => (
+									.map((category) => (
 										<PatternCategoryComponent
-											key={category}
 											category={category}
-											patterns={groupedPatterns[category]}
+											key={category}
 											onPatternClick={onPatternClick}
+											patterns={groupedPatterns[category]}
 										/>
 									))}
 							</div>

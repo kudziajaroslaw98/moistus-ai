@@ -80,8 +80,8 @@ export function ConnectionStatus({
 
 					{!isConnected && !isConnecting && onRetry && (
 						<button
-							onClick={onRetry}
 							className='text-xs text-zinc-400 hover:text-zinc-300 underline transition-colors'
+							onClick={onRetry}
 						>
 							Retry
 						</button>

@@ -42,9 +42,9 @@ export function SuggestionControls({ className }: SuggestionControlsProps) {
 	return (
 		<AnimatePresence>
 			<motion.div
-				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
 				exit={{ opacity: 0, y: 20 }}
+				initial={{ opacity: 0, y: 20 }}
 				className={cn(
 					'bg-zinc-900/95 border border-zinc-700/50',
 					'rounded-lg p-4 shadow-xl',
@@ -64,11 +64,11 @@ export function SuggestionControls({ className }: SuggestionControlsProps) {
 
 					{hasSuggestions && (
 						<Button
-							onClick={clearAllSuggestions}
-							variant='ghost'
-							size='sm'
-							className='h-6 w-6 p-0 text-zinc-400 hover:text-zinc-200'
 							aria-label='Clear all suggestions'
+							className='h-6 w-6 p-0 text-zinc-400 hover:text-zinc-200'
+							onClick={clearAllSuggestions}
+							size='sm'
+							variant='ghost'
 						>
 							<X className='h-3 w-3' />
 						</Button>
@@ -78,9 +78,9 @@ export function SuggestionControls({ className }: SuggestionControlsProps) {
 				{/* Loading State */}
 				{isLoading && (
 					<motion.div
-						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
 						className='flex items-center gap-2 text-zinc-400 text-sm'
+						initial={{ opacity: 0 }}
 					>
 						<Loader2 className='h-4 w-4 animate-spin' />
 
@@ -91,9 +91,9 @@ export function SuggestionControls({ className }: SuggestionControlsProps) {
 				{/* Error State */}
 				{hasError && (
 					<motion.div
-						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
 						className='space-y-2'
+						initial={{ opacity: 0 }}
 					>
 						<div className='flex items-center gap-2 text-red-400 text-sm'>
 							<AlertCircle className='h-4 w-4' />
@@ -106,10 +106,10 @@ export function SuggestionControls({ className }: SuggestionControlsProps) {
 						</p>
 
 						<Button
-							onClick={retry}
-							variant='secondary'
-							size='sm'
 							className='w-full mt-2'
+							onClick={retry}
+							size='sm'
+							variant='secondary'
 						>
 							<RefreshCw className='h-3 w-3 mr-1' />
 							Try Again
@@ -120,9 +120,9 @@ export function SuggestionControls({ className }: SuggestionControlsProps) {
 				{/* Suggestions Count */}
 				{hasSuggestions && !isLoading && (
 					<motion.div
-						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
 						className='space-y-3'
+						initial={{ opacity: 0 }}
 					>
 						<div className='flex items-center gap-2 text-zinc-300 text-sm'>
 							<Lightbulb className='h-4 w-4 text-yellow-400' />
@@ -141,10 +141,10 @@ export function SuggestionControls({ className }: SuggestionControlsProps) {
 
 						<div className='flex gap-2'>
 							<Button
-								onClick={clearAllSuggestions}
-								variant='secondary'
-								size='sm'
 								className='flex-1'
+								onClick={clearAllSuggestions}
+								size='sm'
+								variant='secondary'
 							>
 								<X className='h-3 w-3 mr-1' />
 								Clear All
@@ -156,9 +156,9 @@ export function SuggestionControls({ className }: SuggestionControlsProps) {
 				{/* Suggestion Quality Indicator */}
 				{hasSuggestions && (
 					<motion.div
-						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
 						className='mt-3 pt-3 border-t border-zinc-700/50'
+						initial={{ opacity: 0 }}
 					>
 						<div className='text-xs text-zinc-500'>
 							Confidence:{' '}

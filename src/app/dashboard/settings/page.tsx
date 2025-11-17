@@ -14,8 +14,8 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { UserAvatar } from '@/components/ui/user-avatar';
-import { UserProfile, UserProfileFormData } from '@/types/user-profile-types';
 import useAppStore from '@/store/mind-map-store';
+import { UserProfileFormData } from '@/types/user-profile-types';
 import {
 	Briefcase,
 	Building,
@@ -72,20 +72,8 @@ export default function GeneralSettingsPage() {
 		preferences: {
 			theme: 'system',
 			accentColor: 'sky',
-			language: 'en',
-			timezone: 'UTC',
-			notifications: {
-				email_comments: false,
-				email_mentions: false,
-				email_reactions: false,
-				push_comments: false,
-				push_mentions: false,
-				push_reactions: false,
-			},
+			reducedMotion: false,
 			privacy: {
-				show_email: false,
-				show_location: false,
-				show_company: false,
 				profile_visibility: 'private',
 			},
 		},
@@ -117,21 +105,10 @@ export default function GeneralSettingsPage() {
 				preferences: {
 					theme: userProfile.preferences?.theme || 'system',
 					accentColor: userProfile.preferences?.accentColor || 'sky',
-					language: userProfile.preferences?.language || 'en',
-					timezone: userProfile.preferences?.timezone || 'UTC',
-					notifications: {
-						email_comments: userProfile.preferences?.notifications?.email_comments ?? true,
-						email_mentions: userProfile.preferences?.notifications?.email_mentions ?? true,
-						email_reactions: userProfile.preferences?.notifications?.email_reactions ?? false,
-						push_comments: userProfile.preferences?.notifications?.push_comments ?? true,
-						push_mentions: userProfile.preferences?.notifications?.push_mentions ?? true,
-						push_reactions: userProfile.preferences?.notifications?.push_reactions ?? false,
-					},
+					reducedMotion: userProfile.preferences?.reducedMotion || false,
 					privacy: {
-						show_email: userProfile.preferences?.privacy?.show_email ?? false,
-						show_location: userProfile.preferences?.privacy?.show_location ?? true,
-						show_company: userProfile.preferences?.privacy?.show_company ?? true,
-						profile_visibility: userProfile.preferences?.privacy?.profile_visibility || 'public',
+						profile_visibility:
+							userProfile.preferences?.privacy?.profile_visibility || 'public',
 					},
 				},
 			});
@@ -188,11 +165,11 @@ export default function GeneralSettingsPage() {
 		}
 	};
 
-	const handleAvatarUpload = useCallback(async (file: File) => {
+	const handleAvatarUpload = useCallback(async (_file: File) => {
 		try {
 			// TODO: Implement avatar upload
 			// const formDataUpload = new FormData();
-			// formDataUpload.append('avatar', file);
+			// formDataUpload.append('avatar', _file);
 			// const response = await fetch('/api/user/profile/avatar', {
 			//   method: 'POST',
 			//   body: formDataUpload,
@@ -250,9 +227,9 @@ export default function GeneralSettingsPage() {
 				</div>
 
 				<Button
-					onClick={handleSave}
-					disabled={isSaving}
 					className='bg-sky-600 hover:bg-sky-700'
+					disabled={isSaving}
+					onClick={handleSave}
 				>
 					<Save className='size-4 mr-2' />
 
@@ -269,18 +246,18 @@ export default function GeneralSettingsPage() {
 				</CardHeader>
 
 				<CardContent className='flex items-center gap-6'>
-					<UserAvatar user={userProfile} size='2xl' />
+					<UserAvatar size='2xl' user={userProfile} />
 
 					<div className='space-y-2'>
-						<Button variant='outline' className='relative'>
+						<Button className='relative' variant='outline'>
 							<Camera className='size-4 mr-2' />
-
-							Upload Photo
-
+							
+							<span>Upload Photo</span>
+							
 							<input
-								type='file'
 								accept='image/*'
 								className='absolute inset-0 opacity-0 cursor-pointer'
+								type='file'
 								onChange={(e) => {
 									const file = e.target.files?.[0];
 									if (file) handleAvatarUpload(file);
@@ -309,10 +286,10 @@ export default function GeneralSettingsPage() {
 							<Label htmlFor='full_name'>Full Name</Label>
 
 							<Input
-								id='full_name'
-								value={formData.full_name}
-								onChange={(e) => updateFormData('full_name', e.target.value)}
 								className='bg-zinc-800 border-zinc-600'
+								id='full_name'
+								onChange={(e) => updateFormData('full_name', e.target.value)}
+								value={formData.full_name}
 							/>
 						</div>
 
@@ -320,10 +297,10 @@ export default function GeneralSettingsPage() {
 							<Label htmlFor='display_name'>Display Name</Label>
 
 							<Input
-								id='display_name'
-								value={formData.display_name}
-								onChange={(e) => updateFormData('display_name', e.target.value)}
 								className='bg-zinc-800 border-zinc-600'
+								id='display_name'
+								onChange={(e) => updateFormData('display_name', e.target.value)}
+								value={formData.display_name}
 							/>
 						</div>
 					</div>
@@ -332,12 +309,12 @@ export default function GeneralSettingsPage() {
 						<Label htmlFor='bio'>Bio</Label>
 
 						<Textarea
-							id='bio'
-							value={formData.bio}
-							onChange={(e) => updateFormData('bio', e.target.value)}
 							className='bg-zinc-800 border-zinc-600'
-							rows={3}
+							id='bio'
+							onChange={(e) => updateFormData('bio', e.target.value)}
 							placeholder='Tell us about yourself...'
+							rows={3}
+							value={formData.bio}
 						/>
 					</div>
 
@@ -349,11 +326,11 @@ export default function GeneralSettingsPage() {
 							</Label>
 
 							<Input
-								id='location'
-								value={formData.location}
-								onChange={(e) => updateFormData('location', e.target.value)}
 								className='bg-zinc-800 border-zinc-600'
+								id='location'
+								onChange={(e) => updateFormData('location', e.target.value)}
 								placeholder='City, Country'
+								value={formData.location}
 							/>
 						</div>
 
@@ -364,12 +341,12 @@ export default function GeneralSettingsPage() {
 							</Label>
 
 							<Input
+								className='bg-zinc-800 border-zinc-600'
 								id='website'
+								onChange={(e) => updateFormData('website', e.target.value)}
+								placeholder='https://example.com'
 								type='url'
 								value={formData.website}
-								onChange={(e) => updateFormData('website', e.target.value)}
-								className='bg-zinc-800 border-zinc-600'
-								placeholder='https://example.com'
 							/>
 						</div>
 					</div>
@@ -382,10 +359,10 @@ export default function GeneralSettingsPage() {
 							</Label>
 
 							<Input
-								id='company'
-								value={formData.company}
-								onChange={(e) => updateFormData('company', e.target.value)}
 								className='bg-zinc-800 border-zinc-600'
+								id='company'
+								onChange={(e) => updateFormData('company', e.target.value)}
+								value={formData.company}
 							/>
 						</div>
 
@@ -396,10 +373,10 @@ export default function GeneralSettingsPage() {
 							</Label>
 
 							<Input
-								id='job_title'
-								value={formData.job_title}
-								onChange={(e) => updateFormData('job_title', e.target.value)}
 								className='bg-zinc-800 border-zinc-600'
+								id='job_title'
+								onChange={(e) => updateFormData('job_title', e.target.value)}
+								value={formData.job_title}
 							/>
 						</div>
 					</div>
@@ -417,11 +394,11 @@ export default function GeneralSettingsPage() {
 				<CardContent className='space-y-4'>
 					<div className='flex gap-2'>
 						<Input
-							value={newSkill}
+							className='bg-zinc-800 border-zinc-600'
 							onChange={(e) => setNewSkill(e.target.value)}
 							onKeyPress={(e) => e.key === 'Enter' && addSkill()}
 							placeholder='Add a skill...'
-							className='bg-zinc-800 border-zinc-600'
+							value={newSkill}
 						/>
 
 						<Button onClick={addSkill} size='sm'>
@@ -432,15 +409,15 @@ export default function GeneralSettingsPage() {
 					<div className='flex flex-wrap gap-2'>
 						{formData.skills.map((skill) => (
 							<Badge
+								className='bg-sky-900/50 text-sky-200 hover:bg-sky-800 border border-sky-700/50'
 								key={skill}
 								variant='secondary'
-								className='bg-sky-900/50 text-sky-200 hover:bg-sky-800 border border-sky-700/50'
 							>
 								{skill}
 
 								<button
-									onClick={() => removeSkill(skill)}
 									className='ml-1 hover:text-red-400'
+									onClick={() => removeSkill(skill)}
 								>
 									<X className='size-3' />
 								</button>
@@ -470,7 +447,7 @@ export default function GeneralSettingsPage() {
 							</p>
 						</div>
 
-						<Button variant='outline' size='sm'>
+						<Button size='sm' variant='outline'>
 							Change Password
 						</Button>
 					</div>
@@ -484,7 +461,7 @@ export default function GeneralSettingsPage() {
 							</p>
 						</div>
 
-						<Button variant='outline' size='sm'>
+						<Button size='sm' variant='outline'>
 							Enable 2FA
 						</Button>
 					</div>
@@ -500,7 +477,7 @@ export default function GeneralSettingsPage() {
 							</p>
 						</div>
 
-						<Button variant='destructive' size='sm'>
+						<Button size='sm' variant='destructive'>
 							<Trash2 className='size-4 mr-2' />
 							Delete
 						</Button>

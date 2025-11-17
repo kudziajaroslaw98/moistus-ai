@@ -10,6 +10,11 @@ export interface UserProfile {
 	company?: string;
 	job_title?: string;
 	skills?: string[];
+	isAnonymous?: boolean;
+	color?: {
+		hsl: string;
+		hex: string;
+	};
 	social_links?: {
 		twitter?: string;
 		linkedin?: string;
@@ -19,20 +24,8 @@ export interface UserProfile {
 	preferences?: {
 		theme?: 'light' | 'dark' | 'system';
 		accentColor?: string;
-		language?: string;
-		timezone?: string;
-		notifications?: {
-			email_comments?: boolean;
-			email_mentions?: boolean;
-			email_reactions?: boolean;
-			push_comments?: boolean;
-			push_mentions?: boolean;
-			push_reactions?: boolean;
-		};
+		reducedMotion?: boolean;
 		privacy?: {
-			show_email?: boolean;
-			show_location?: boolean;
-			show_company?: boolean;
 			profile_visibility?: 'public' | 'private' | 'connections';
 		};
 	};
@@ -50,6 +43,10 @@ export interface UserProfileUpdate {
 	company?: string;
 	job_title?: string;
 	skills?: string[];
+	color?: {
+		hsl: string;
+		hex: string;
+	};
 	social_links?: {
 		twitter?: string;
 		linkedin?: string;
@@ -59,20 +56,8 @@ export interface UserProfileUpdate {
 	preferences?: {
 		theme?: 'light' | 'dark' | 'system';
 		accentColor?: string;
-		language?: string;
-		timezone?: string;
-		notifications?: {
-			email_comments?: boolean;
-			email_mentions?: boolean;
-			email_reactions?: boolean;
-			push_comments?: boolean;
-			push_mentions?: boolean;
-			push_reactions?: boolean;
-		};
+		reducedMotion?: boolean;
 		privacy?: {
-			show_email?: boolean;
-			show_location?: boolean;
-			show_company?: boolean;
 			profile_visibility?: 'public' | 'private' | 'connections';
 		};
 	};
@@ -90,6 +75,11 @@ export interface PublicUserProfile {
 	company?: string;
 	job_title?: string;
 	skills?: string[];
+	isAnonymous?: boolean;
+	color?: {
+		hsl: string;
+		hex: string;
+	};
 	social_links?: {
 		twitter?: string;
 		linkedin?: string;
@@ -126,20 +116,8 @@ export interface UserProfileFormData {
 	preferences: {
 		theme: 'light' | 'dark' | 'system';
 		accentColor: string;
-		language: string;
-		timezone: string;
-		notifications: {
-			email_comments: boolean;
-			email_mentions: boolean;
-			email_reactions: boolean;
-			push_comments: boolean;
-			push_mentions: boolean;
-			push_reactions: boolean;
-		};
+		reducedMotion: boolean;
 		privacy: {
-			show_email: boolean;
-			show_location: boolean;
-			show_company: boolean;
 			profile_visibility: 'public' | 'private' | 'connections';
 		};
 	};

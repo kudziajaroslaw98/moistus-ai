@@ -1,5 +1,6 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
+import { checkUsageLimit } from '@/helpers/api/with-subscription-check';
 import generateUuid from '@/helpers/generate-uuid';
 import { z } from 'zod';
 
@@ -14,7 +15,7 @@ const requestBodySchema = z.object({
 
 export const GET = withApiValidation(
 	z.any().nullish(),
-	async (req, validatedBody, supabase, user) => {
+	async (_req, _validatedBody, supabase, _user) => {
 		try {
 			// Build the query
 			const query = supabase
@@ -82,6 +83,36 @@ export const POST = withApiValidation(
 				is_template,
 				template_category,
 			} = validatedBody;
+
+			// Check map creation limit for personal maps (not team maps)
+			if (!team_id) {
+				const { count: currentMapsCount } = await supabase
+					.from('mind_maps')
+					.select('*', { count: 'exact', head: true })
+					.eq('user_id', user.id)
+					.is('team_id', null); // Only count personal maps
+
+				const { allowed, limit, remaining } = await checkUsageLimit(
+					user,
+					supabase,
+					'mindMaps',
+					currentMapsCount || 0
+				);
+
+				if (!allowed) {
+					return respondError(
+						`Mind map limit reached. You have ${currentMapsCount} maps (limit: ${limit}). Upgrade to Pro for unlimited maps.`,
+						402,
+						'LIMIT_REACHED',
+						{
+							currentUsage: currentMapsCount,
+							limit,
+							remaining: remaining,
+							upgradeUrl: '/dashboard/settings/billing',
+						}
+					);
+				}
+			}
 
 			const newMapId = generateUuid();
 

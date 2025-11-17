@@ -1,4 +1,4 @@
-import { createClient } from '@/helpers/supabase/client';
+import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import { StateCreator } from 'zustand';
 import { AppState } from '../app-state';
 
@@ -75,6 +75,8 @@ export interface SubscriptionSlice {
 	getRemainingLimit: (
 		limitType: keyof SubscriptionPlan['limits']
 	) => number | null;
+	isTrialing: () => boolean;
+	getTrialDaysRemaining: () => number | null;
 }
 
 export const createSubscriptionSlice: StateCreator<
@@ -91,7 +93,7 @@ export const createSubscriptionSlice: StateCreator<
 
 	// Actions
 	fetchAvailablePlans: async () => {
-		const supabase = createClient();
+		const supabase = getSharedSupabaseClient();
 
 		try {
 			const { data, error } = await supabase
@@ -124,7 +126,7 @@ export const createSubscriptionSlice: StateCreator<
 	},
 
 	fetchUserSubscription: async () => {
-		const supabase = createClient();
+		const supabase = getSharedSupabaseClient();
 		set({ isLoadingSubscription: true, subscriptionError: null });
 
 		try {
@@ -360,5 +362,22 @@ export const createSubscriptionSlice: StateCreator<
 		// TODO: Calculate actual usage from nodes/maps
 		// For now, return the limit itself
 		return limit;
+	},
+
+	isTrialing: () => {
+		const { currentSubscription } = get();
+		return currentSubscription?.status === 'trialing';
+	},
+
+	getTrialDaysRemaining: () => {
+		const { currentSubscription } = get();
+		if (!currentSubscription?.trialEnd) return null;
+
+		const now = new Date();
+		const trialEnd = new Date(currentSubscription.trialEnd);
+		const diffTime = trialEnd.getTime() - now.getTime();
+		const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+		return Math.max(0, diffDays);
 	},
 });

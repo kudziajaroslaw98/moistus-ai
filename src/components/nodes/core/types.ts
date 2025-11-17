@@ -5,7 +5,7 @@
  * improving type safety and developer experience throughout the application.
  */
 
-import { AvailableNodeTypes } from '@/types/available-node-types';
+import { AvailableNodeTypes } from '@/registry/node-registry';
 import { Node, NodeProps } from '@xyflow/react';
 import { ReactNode } from 'react';
 
@@ -48,7 +48,7 @@ export interface TaskNodeMetadata extends BaseNodeMetadata {
 
 // Text formatting metadata
 export interface TextNodeMetadata extends BaseNodeMetadata {
-	fontSize?: string | number;
+	fontSize?: string;
 	fontWeight?: string | number;
 	fontStyle?: 'normal' | 'italic';
 	textAlign?: 'left' | 'center' | 'right';
@@ -82,14 +82,33 @@ export interface ResourceNodeMetadata extends BaseNodeMetadata {
 	showThumbnail?: boolean;
 	title?: string;
 	resourceType?: string;
+	imageSize?: { width: number; height: number };
 }
 
-// Question metadata
+// Question metadata - Simple decision-making questions
 export interface QuestionNodeMetadata extends BaseNodeMetadata {
-	answer?: string;
-	isAnswered?: boolean;
-	confidence?: number;
+	// Backward compatibility
+	answer?: string; // AI-generated answer
 	source?: string;
+
+	// Question features
+	questionType?: 'binary' | 'multiple';
+	isAnswered?: boolean;
+	userResponse?: boolean | string | string[]; // Binary: boolean, Multiple: string(s)
+
+	// Response format configuration
+	responseFormat?: {
+		// For multiple choice
+		options?: Array<{ id: string; label: string }>;
+		allowMultiple?: boolean;
+	};
+
+	// Response tracking (for collaborative responses)
+	responses?: Array<{
+		userId?: string;
+		answer: boolean | string | string[];
+		timestamp: string;
+	}>;
 }
 
 // Code-specific metadata
@@ -104,8 +123,8 @@ export interface CodeNodeMetadata extends BaseNodeMetadata {
 
 // Annotation metadata
 export interface AnnotationNodeMetadata extends BaseNodeMetadata {
-	annotationType?: 'comment' | 'idea' | 'quote' | 'summary';
-	fontSize?: string | number;
+	annotationType?: 'note' | 'idea' | 'quote' | 'summary';
+	fontSize?: string;
 	fontWeight?: string | number;
 	author?: string;
 	timestamp?: string;
@@ -127,15 +146,25 @@ export interface GroupNodeMetadata extends BaseNodeMetadata {
 	label: string;
 }
 
+// Comment node metadata
+export interface CommentNodeMetadata extends BaseNodeMetadata {
+	totalMessages: number;
+	participants: string[];
+	lastActivityAt?: string;
+}
+
 // Ghost node (AI suggestion) metadata
 export interface GhostNodeMetadata extends BaseNodeMetadata {
 	suggestedContent: string;
 	suggestedType: AvailableNodeTypes;
 	confidence: number;
 	context?: {
-		trigger: string;
+		sourceNodeId?: string;
+		targetNodeId?: string;
 		relationshipType?: string;
+		trigger: 'magic-wand' | 'dangling-edge' | 'auto';
 	};
+	sourceNodeName?: string; // Name of the node that triggered this suggestion
 }
 
 // AI-related metadata (can be added to any node)
@@ -162,6 +191,7 @@ export interface NodeMetadataMap {
 	annotationNode: AnnotationNodeMetadata & AIMetadata;
 	groupNode: GroupNodeMetadata;
 	referenceNode: ReferenceNodeMetadata & AIMetadata;
+	commentNode: CommentNodeMetadata;
 	ghostNode: GhostNodeMetadata;
 }
 
@@ -172,7 +202,7 @@ export type TypedNodeMetadata<T extends AvailableNodeTypes> =
 // Enhanced NodeData with strict typing
 export interface TypedNodeData<
 	T extends AvailableNodeTypes = AvailableNodeTypes,
-> {
+> extends Record<string, unknown> {
 	id: string;
 	map_id: string;
 	parent_id: string | null;
@@ -205,8 +235,16 @@ export interface BaseNodeWrapperProps<
 	nodeType?: string;
 	includePadding?: boolean;
 	hideNodeType?: boolean;
+	hideAddButton?: boolean;
+	hideSuggestionsButton?: boolean;
+	hideResizeFrame?: boolean;
 	accentColor?: string;
 	elevation?: number;
+	metadataColorOverrides?: {
+		accentColor?: string;
+		bgOpacity?: number;
+		borderOpacity?: number;
+	};
 }
 
 // Type guards for runtime type checking
@@ -368,7 +406,7 @@ export function createTypedNodeData<T extends AvailableNodeTypes>(
 	} as TypedNodeData<T>;
 }
 
-export default {
+const NodeTypeUtils = {
 	// Export all types and utilities
 	isTaskNode,
 	isImageNode,
@@ -392,3 +430,5 @@ export default {
 	hasRequiredMetadata,
 	createTypedNodeData,
 };
+
+export default NodeTypeUtils;

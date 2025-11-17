@@ -12,7 +12,7 @@ const easingPresets = {
 	// Recommended for most UI elements
 	smooth: {
 		duration: 0.4,
-		ease: 'easeOut',
+		ease: 'easeOut' as const,
 	},
 
 	// Most premium feeling - physics-based
@@ -33,7 +33,7 @@ const easingPresets = {
 		duration: 0.25,
 		ease: [0.25, 0.46, 0.45, 0.94] as const,
 	},
-};
+} as const;
 
 export const AnimateChangeInHeight: React.FC<AnimateChangeInHeightProps> = ({
 	children,
@@ -57,10 +57,13 @@ export const AnimateChangeInHeight: React.FC<AnimateChangeInHeightProps> = ({
 
 	return (
 		<motion.div
-			className={cn('overflow', className)}
-			style={{ height }}
 			animate={{ height }}
-			transition={easingPresets[easingPreset]}
+			className={cn('overflow', className)}
+			transition={{
+				type: 'spring',
+				stiffness: 600,
+				damping: 24,
+			}}
 		>
 			<div ref={containerRef}>{children}</div>
 		</motion.div>

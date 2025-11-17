@@ -1,14 +1,13 @@
 'use client';
 
-import { NodeData } from '@/types/node-data';
-import { Node, NodeProps } from '@xyflow/react';
 import { ArrowUpRight, BookMarked } from 'lucide-react';
 import Link from 'next/link';
 import { memo } from 'react';
 import { BaseNodeWrapper } from './base-node-wrapper';
+import { type TypedNodeProps } from './core/types';
 import { GlassmorphismTheme } from './themes/glassmorphism-theme';
 
-type ReferenceNodeProps = NodeProps<Node<NodeData>>;
+type ReferenceNodeProps = TypedNodeProps<'referenceNode'>;
 
 const ReferenceNodeComponent = (props: ReferenceNodeProps) => {
 	const { data } = props;
@@ -28,11 +27,11 @@ const ReferenceNodeComponent = (props: ReferenceNodeProps) => {
 	return (
 		<BaseNodeWrapper
 			{...props}
-			nodeClassName='reference-node'
-			nodeType='Reference'
 			hideNodeType
-			nodeIcon={<BookMarked className='size-4' />}
 			includePadding={false}
+			nodeClassName='reference-node'
+			nodeIcon={<BookMarked className='size-4' />}
+			nodeType='Reference'
 		>
 			<div className='flex flex-col h-full'>
 				<div className='p-4 flex-grow'>
@@ -74,19 +73,19 @@ const ReferenceNodeComponent = (props: ReferenceNodeProps) => {
 
 				{hasValidReference && (
 					<Link
-						href={referenceUrl}
-						target='_blank'
-						rel='noopener noreferrer'
 						className='nodrag block transition-colors p-2 text-xs font-medium rounded-b-sm'
-						style={{
-							backgroundColor: `${GlassmorphismTheme.elevation[2]}80`,
-							color: GlassmorphismTheme.text.medium,
-						}}
+						href={referenceUrl}
+						rel='noopener noreferrer'
+						target='_blank'
 						onMouseEnter={(e) => {
 							e.currentTarget.style.backgroundColor = `${GlassmorphismTheme.elevation[4]}80`;
 						}}
 						onMouseLeave={(e) => {
 							e.currentTarget.style.backgroundColor = `${GlassmorphismTheme.elevation[2]}80`;
+						}}
+						style={{
+							backgroundColor: `${GlassmorphismTheme.elevation[2]}80`,
+							color: GlassmorphismTheme.text.medium,
 						}}
 					>
 						<div className='flex items-center justify-center gap-2'>

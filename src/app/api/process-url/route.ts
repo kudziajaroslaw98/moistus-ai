@@ -1,5 +1,9 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
+import {
+	checkAIFeatureAccess,
+	trackAIFeatureUsage,
+} from '@/helpers/api/with-ai-feature-gate';
 import { defaultModel } from '@/lib/ai/gemini';
 import sanitizeHtml from 'sanitize-html';
 import { z } from 'zod';
@@ -11,7 +15,18 @@ const requestBodySchema = z.object({
 
 export const POST = withApiValidation(
 	requestBodySchema,
-	async (req, validatedBody) => {
+	async (req, validatedBody, supabase, user) => {
+		// Check AI feature access
+		const { hasAccess, isPro, error } = await checkAIFeatureAccess(
+			user,
+			supabase,
+			'url_processing'
+		);
+
+		if (!hasAccess && error) {
+			return error;
+		}
+
 		try {
 			const { url, generateSummary } = validatedBody;
 
@@ -108,6 +123,17 @@ export const POST = withApiValidation(
 				} else {
 					summary = 'Insufficient content found to generate a summary.';
 				}
+			}
+
+			// Track usage for free tier users (non-blocking)
+			try {
+				await trackAIFeatureUsage(user, supabase, 'url_processing', isPro, {
+					url,
+					hasSummary: !!summary,
+				});
+			} catch (trackingError) {
+				// Log tracking failures but don't block the response
+				console.warn('Failed to track AI feature usage:', trackingError);
 			}
 
 			return respondSuccess(

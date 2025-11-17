@@ -1,157 +1,95 @@
-'use client';
-
-import {
-	MetadataTheme,
-	getIconSize,
-	getMetadataColors,
-} from '@/themes/metadata-theme';
-import { cn } from '@/utils/cn';
-import { LucideIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
-import { memo } from 'react';
+import { type ComponentType, type CSSProperties, memo, useState } from 'react';
 
-export type BadgeType =
-	| 'tag'
-	| 'status'
-	| 'priority'
-	| 'date'
-	| 'assignee'
-	| 'custom';
+/**
+ * Metadata Badge Component
+ *
+ * This component creates individual badges for metadata items, following our established
+ * dark theme principles. Each badge uses subtle backgrounds with controlled opacity
+ * to maintain readability without overwhelming the interface.
+ */
 
-export type BadgeVariant = 'default' | 'success' | 'warning' | 'error' | 'info';
+export const MetadataBadge = memo<{
+	icon: ComponentType<{ className?: string; style: CSSProperties }>;
+	label: string;
+	value?: string;
+	color?: string;
+	bgColor?: string;
+	borderColor?: string;
+	onClick?: () => void;
+	size?: 'xs' | 'sm' | 'md';
+}>(
+	({
+		icon: Icon,
+		label,
+		value,
+		color,
+		bgColor,
+		borderColor,
+		onClick,
+		size = 'sm',
+	}) => {
+		const [isHovered, setIsHovered] = useState(false);
 
-export type BadgeSize = 'xs' | 'sm' | 'md' | 'lg';
+		// Size configurations for responsive display
+		const sizeClasses = {
+			xs: 'px-1.5 py-0.5 text-[10px] gap-1',
+			sm: 'px-2 py-0.5 text-[11px] gap-1.5',
+			md: 'px-2.5 py-1 text-xs gap-2',
+		};
 
-export interface MetadataBadgeProps {
-	type: BadgeType;
-	value: string;
-	icon?: LucideIcon;
-	variant?: BadgeVariant;
-	size?: BadgeSize;
-	onClick?: (value: string) => void;
-	onRemove?: (value: string) => void;
-	className?: string;
-	animated?: boolean;
-}
+		const iconSizes = {
+			xs: 'w-2.5 h-2.5',
+			sm: 'w-3 h-3',
+			md: 'w-3.5 h-3.5',
+		};
 
-const variantColorMap: Record<
-	BadgeVariant,
-	{ bg: string; text: string; border: string; hover: string }
-> = {
-	default: MetadataTheme.colors.default,
-	success: MetadataTheme.colors.status.complete,
-	warning: MetadataTheme.colors.priority.medium,
-	error: MetadataTheme.colors.annotation.error,
-	info: MetadataTheme.colors.annotation.info,
-};
-
-const MetadataBadgeComponent = ({
-	type,
-	value,
-	icon: Icon,
-	variant,
-	size = 'sm',
-	onClick,
-	onRemove,
-	className,
-	animated = true,
-}: MetadataBadgeProps) => {
-	// Determine color scheme based on type and variant
-	let colors = getMetadataColors(type as any, value.toLowerCase());
-
-	// Override with variant colors if specified
-	if (variant && variant !== 'default') {
-		colors = variantColorMap[variant];
-	}
-
-	// Special handling for priority type
-	if (type === 'priority') {
-		const priorityLevel = value.toLowerCase() as 'high' | 'medium' | 'low';
-
-		if (MetadataTheme.colors.priority[priorityLevel]) {
-			colors = MetadataTheme.colors.priority[priorityLevel];
-		}
-	}
-
-	const isClickable = !!onClick;
-	const isRemovable = !!onRemove;
-
-	const BadgeContent = (
-		<div
-			className={cn(
-				'inline-flex items-center font-medium gap-2',
-				'border',
-				MetadataTheme.borderRadius.badge,
-				MetadataTheme.backdrop.sm,
-				MetadataTheme.animation.transition.normal,
-				MetadataTheme.spacing.badge[size],
-				MetadataTheme.typography.badge[size],
-				colors.bg,
-				colors.text,
-				colors.border,
-				isClickable && [
-					'cursor-pointer',
-					colors.hover,
-					MetadataTheme.animation.hover.scale,
-					MetadataTheme.animation.click.scale,
-				],
-				className
-			)}
-			onClick={() => onClick?.(value)}
-		>
-			{/* Icon */}
-			{Icon && <Icon className={cn(getIconSize(size), 'flex-shrink-0')} />}
-
-			{/* Special prefix for tags */}
-			{type === 'tag' && <span className='opacity-60'>#</span>}
-
-			{/* Value */}
-			<span className='truncate max-w-[150px]'>{value}</span>
-
-			{/* Remove button */}
-			{isRemovable && (
-				<button
-					onClick={(e) => {
-						e.stopPropagation();
-						onRemove(value);
+		return (
+			<motion.button
+				onClick={onClick}
+				onHoverEnd={() => setIsHovered(false)}
+				onHoverStart={() => setIsHovered(true)}
+				whileHover={{ scale: 1.02 }}
+				whileTap={onClick ? { scale: 0.98 } : {}}
+				className={cn(
+					'flex items-center rounded-md transition-all duration-200',
+					sizeClasses[size],
+					onClick && 'cursor-pointer'
+				)}
+				style={{
+					backgroundColor: bgColor || 'rgba(255, 255, 255, 0.05)',
+					border: `1px solid ${borderColor || 'rgba(255, 255, 255, 0.1)'}`,
+					color: color || 'rgba(255, 255, 255, 0.6)',
+				}}
+			>
+				<Icon
+					className={iconSizes[size]}
+					style={{
+						color: color || 'rgba(255, 255, 255, 0.6)',
+						opacity: isHovered ? 1 : 0.8,
 					}}
-					className='ml-1 opacity-60 hover:opacity-100 transition-opacity flex-shrink-0'
-					aria-label={`Remove ${type} ${value}`}
+				/>
+
+				<span
+					style={{
+						fontWeight: 500,
+						letterSpacing: '0.01em',
+					}}
 				>
-					<svg
-						className={cn(getIconSize(size))}
-						fill='none'
-						strokeWidth='2'
-						stroke='currentColor'
-						viewBox='0 0 24 24'
-					>
-						<path
-							strokeLinecap='round'
-							strokeLinejoin='round'
-							d='M6 18L18 6M6 6l12 12'
-						/>
-					</svg>
-				</button>
-			)}
-		</div>
-	);
+					{label}
+				</span>
 
-	if (!animated) {
-		return BadgeContent;
+				{value && (
+					<>
+						<span style={{ opacity: 0.5 }}>·</span>
+
+						<span style={{ opacity: 0.87 }}>{value}</span>
+					</>
+				)}
+			</motion.button>
+		);
 	}
+);
 
-	return (
-		<motion.div
-			{...MetadataTheme.animation.entry.scaleIn}
-			whileHover={{ scale: 1.02 }}
-			whileTap={{ scale: 0.98 }}
-			transition={{ duration: 0.2, ease: 'easeOut' }}
-			className='inline-flex'
-		>
-			{BadgeContent}
-		</motion.div>
-	);
-};
-
-export const MetadataBadge = memo(MetadataBadgeComponent);
 MetadataBadge.displayName = 'MetadataBadge';

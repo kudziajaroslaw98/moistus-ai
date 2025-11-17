@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
-import { createClient } from '@/helpers/supabase/client';
+import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -22,7 +22,7 @@ export default function SignUp() {
 		setMessage(null);
 		setLoading(true);
 
-		const { error: signUpError } = await createClient().auth.signUp({
+		const { error: signUpError } = await getSharedSupabaseClient().auth.signUp({
 			email,
 			password,
 			options: {},
@@ -47,27 +47,27 @@ export default function SignUp() {
 					Sign Up
 				</h1>
 
-				<form onSubmit={handleSignUp} className='space-y-4'>
+				<form className='space-y-4' onSubmit={handleSignUp}>
 					<FormField id='email' label='Email'>
 						<Input
+							required
 							id='email'
+							onChange={(e) => setEmail(e.target.value)}
+							placeholder='you@example.com'
 							type='email'
 							value={email}
-							onChange={(e) => setEmail(e.target.value)}
-							required
-							placeholder='you@example.com'
 						/>
 					</FormField>
 
 					<FormField id='password' label='Password (min. 6 characters)'>
 						<Input
+							required
 							id='password'
+							minLength={6}
+							onChange={(e) => setPassword(e.target.value)}
+							placeholder='••••••••'
 							type='password'
 							value={password}
-							onChange={(e) => setPassword(e.target.value)}
-							required
-							minLength={6}
-							placeholder='••••••••'
 						/>
 					</FormField>
 
@@ -75,7 +75,7 @@ export default function SignUp() {
 
 					{message && <p className='text-sm text-emerald-400'>{message}</p>}
 
-					<Button type='submit' disabled={loading} className='w-full'>
+					<Button className='w-full' disabled={loading} type='submit'>
 						{loading ? 'Signing Up...' : 'Sign Up'}
 					</Button>
 				</form>
@@ -84,8 +84,8 @@ export default function SignUp() {
 					Already have an account?{' '}
 
 					<Link
-						href='/auth/sign-in'
 						className='font-medium text-teal-400 hover:text-teal-300'
+						href='/auth/sign-in'
 					>
 						Sign In
 					</Link>

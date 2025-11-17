@@ -27,8 +27,8 @@ function AvatarImage({
 }: ComponentProps<typeof AvatarPrimitive.Image>) {
 	return (
 		<AvatarPrimitive.Image
-			data-slot='avatar-image'
 			className={cn('aspect-square size-full', className)}
+			data-slot='avatar-image'
 			{...props}
 		/>
 	);

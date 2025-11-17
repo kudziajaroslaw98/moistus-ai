@@ -18,16 +18,15 @@ interface SearchResult {
 }
 
 export function ReferenceSearchModal() {
-	const { popoverOpen, setPopoverOpen, addNode, mapId, reactFlowInstance } =
-		useAppStore(
-			useShallow((state) => ({
-				popoverOpen: state.popoverOpen,
-				setPopoverOpen: state.setPopoverOpen,
-				addNode: state.addNode,
-				mapId: state.mapId,
-				reactFlowInstance: state.reactFlowInstance,
-			}))
-		);
+	const { popoverOpen, setPopoverOpen, mapId, reactFlowInstance } = useAppStore(
+		useShallow((state) => ({
+			popoverOpen: state.popoverOpen,
+			setPopoverOpen: state.setPopoverOpen,
+			addNode: state.addNode,
+			mapId: state.mapId,
+			reactFlowInstance: state.reactFlowInstance,
+		}))
+	);
 
 	const [query, setQuery] = useState('');
 	const [debouncedQuery] = useDebounce(query, 500);
@@ -84,11 +83,6 @@ export function ReferenceSearchModal() {
 		});
 
 		if (response.ok) {
-			const newNodeData = await response.json();
-			// The API now returns the created node. You can add it directly
-			// to the local state for an optimistic update, but since your
-			// store is already set up with realtime subscriptions, the new
-			// node will appear automatically.
 			toast.success('Reference created!');
 		} else {
 			toast.error('Failed to create reference.');
@@ -107,10 +101,10 @@ export function ReferenceSearchModal() {
 		>
 			<div className='space-y-4'>
 				<Input
+					autoFocus
+					onChange={(e) => setQuery(e.target.value)}
 					placeholder='Search for a node...'
 					value={query}
-					onChange={(e) => setQuery(e.target.value)}
-					autoFocus
 				/>
 
 				<div className='max-h-80 overflow-y-auto space-y-2'>
@@ -118,9 +112,9 @@ export function ReferenceSearchModal() {
 
 					{results.map((res) => (
 						<div
+							className='p-2 rounded hover:bg-zinc-800 cursor-pointer'
 							key={res.node_id}
 							onClick={() => handleSelect(res)}
-							className='p-2 rounded hover:bg-zinc-800 cursor-pointer'
 						>
 							<p className='text-zinc-100'>{res.node_content}</p>
 

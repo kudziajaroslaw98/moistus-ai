@@ -2,7 +2,7 @@ import { createClient } from '@/helpers/supabase/server';
 import { UserProfileFormData } from '@/types/user-profile-types';
 import { NextResponse } from 'next/server';
 
-export async function GET(request: Request) {
+export async function GET() {
 	try {
 		const supabase = await createClient();
 
@@ -103,9 +103,9 @@ export async function PUT(request: Request) {
 			updated_at: new Date().toISOString(),
 		};
 
-		return NextResponse.json({ 
+		return NextResponse.json({
 			data: updatedProfile,
-			message: 'Profile updated successfully' 
+			message: 'Profile updated successfully'
 		});
 	} catch (error) {
 		console.error('Error in user/profile PUT:', error);

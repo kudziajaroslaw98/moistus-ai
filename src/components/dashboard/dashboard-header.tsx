@@ -9,7 +9,8 @@ import {
 } from '@/components/dashboard/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { UserAvatar } from '@/components/ui/user-avatar';
-import { createClient } from '@/helpers/supabase/client';
+import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
+import { NodeData } from '@/types/node-data';
 import { PublicUserProfile } from '@/types/user-profile-types';
 import { ChevronDown, LogOut, Settings, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -19,15 +20,15 @@ interface UserProfile extends PublicUserProfile {
 	email?: string;
 	is_anonymous: boolean;
 	last_activity?: string;
-	metadata?: any;
+	metadata?: Partial<NodeData['metadata']>;
 }
 
 interface DashboardHeaderProps {
 	className?: string;
 }
 
-// Create Supabase client as singleton to prevent re-creation on every render
-const supabase = createClient();
+// Use shared Supabase client to ensure session consistency across the app
+const supabase = getSharedSupabaseClient();
 
 export function DashboardHeader({ className = '' }: DashboardHeaderProps) {
 	const [user, setUser] = useState<UserProfile | null>(null);
@@ -83,7 +84,7 @@ export function DashboardHeader({ className = '' }: DashboardHeaderProps) {
 		} finally {
 			setIsLoading(false);
 		}
-	}, [supabase]);
+	}, []);
 
 	// Handle logout
 	const handleLogout = useCallback(async () => {
@@ -111,7 +112,7 @@ export function DashboardHeader({ className = '' }: DashboardHeaderProps) {
 		} finally {
 			setIsLoggingOut(false);
 		}
-	}, [isLoggingOut, supabase, router]);
+	}, [isLoggingOut, router]);
 
 	// Load user profile on mount
 	useEffect(() => {
@@ -183,12 +184,12 @@ export function DashboardHeader({ className = '' }: DashboardHeaderProps) {
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button
-								variant='ghost'
 								className='flex items-center space-x-3 hover:bg-zinc-800 focus:bg-zinc-800'
 								disabled={isLoggingOut}
+								variant='ghost'
 							>
 								{/* User Avatar */}
-								<UserAvatar user={user} size='md' className='h-8 w-8' />
+								<UserAvatar className='h-8 w-8' size='md' user={user} />
 
 								{/* User Info */}
 								<div className='hidden sm:block text-left'>
@@ -261,8 +262,8 @@ export function DashboardHeader({ className = '' }: DashboardHeaderProps) {
 							{/* Logout */}
 							<DropdownMenuItem
 								className='cursor-pointer text-red-400 focus:bg-zinc-800 focus:text-red-300'
-								onClick={handleLogout}
 								disabled={isLoggingOut}
+								onClick={handleLogout}
 							>
 								<LogOut className='mr-2 h-4 w-4' />
 

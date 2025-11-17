@@ -1,11 +1,11 @@
-import { createClient } from '@/helpers/supabase/client';
+import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import useAppStore from '@/store/mind-map-store';
 import { useEffect, useState } from 'react';
 import { useCurrentUserImage } from '../use-current-user-image';
 import { useCurrentUserName } from '../use-current-username';
 import { useUserColor } from '../use-user-color';
 
-const supabase = createClient();
+const supabase = getSharedSupabaseClient();
 
 export type RealtimeUserSelection = {
 	id: string;

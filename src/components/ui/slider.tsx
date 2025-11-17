@@ -78,8 +78,8 @@ const Slider = forwardRef<HTMLDivElement, SliderProps>(
 				)}
 			>
 				<div
-					ref={trackRef}
 					className='relative h-1.5 w-full grow overflow-hidden rounded-full bg-zinc-700'
+					ref={trackRef}
 				>
 					<div
 						className='absolute h-full bg-teal-500'
@@ -90,17 +90,17 @@ const Slider = forwardRef<HTMLDivElement, SliderProps>(
 				</div>
 
 				<input
-					type='range'
-					min={min}
+					disabled={disabled}
 					max={max}
-					step={step}
-					value={internalValue[0]}
+					min={min}
 					onChange={handleInputChange}
+					step={step}
+					type='range'
+					value={internalValue[0]}
 					className={cn(
 						'absolute w-full h-8 cursor-pointer opacity-0 z-10',
 						disabled && 'cursor-not-allowed'
 					)}
-					disabled={disabled}
 				/>
 
 				<div

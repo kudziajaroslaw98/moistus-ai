@@ -1,9 +1,16 @@
-﻿import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+﻿import { CollaboratorProfileCard } from '@/components/realtime/collaborator-profile-card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+	HoverCard,
+	HoverCardContent,
+	HoverCardTrigger,
+} from '@/components/ui/hover-card';
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipTrigger,
 } from '@/components/ui/Tooltip';
+import type { RealtimeUser } from '@/hooks/realtime/use-realtime-presence-room';
 import { cn } from '@/lib/utils';
 import { cva, type VariantProps } from 'class-variance-authority';
 import type { HTMLAttributes } from 'react';
@@ -33,8 +40,10 @@ const avatarStackVariants = cva(
 export interface AvatarStackProps
 	extends HTMLAttributes<HTMLDivElement>,
 		VariantProps<typeof avatarStackVariants> {
-	avatars: { image: string; name: string }[];
+	avatars: ({ image: string; name: string } | RealtimeUser)[];
 	maxAvatarsAmount?: number;
+	showProfileCard?: boolean;
+	mapOwnerId?: string; // ID of the map owner to show role badges
 }
 
 const AvatarStack = ({
@@ -43,12 +52,21 @@ const AvatarStack = ({
 	size,
 	avatars,
 	maxAvatarsAmount = 3,
+	showProfileCard = false,
+	mapOwnerId,
 	...props
 }: AvatarStackProps) => {
 	if (!avatars || avatars.length === 0) return null;
 
 	const shownAvatars = avatars.slice(0, maxAvatarsAmount);
 	const hiddenAvatars = avatars.slice(maxAvatarsAmount);
+
+	// Helper to check if avatar has full user data
+	const isRealtimeUser = (
+		avatar: { image: string; name: string } | RealtimeUser
+	): avatar is RealtimeUser => {
+		return 'id' in avatar;
+	};
 
 	return (
 		<div
@@ -59,28 +77,61 @@ const AvatarStack = ({
 			)}
 			{...props}
 		>
-			{shownAvatars.map((avatar, index) => (
-				<Tooltip key={`${avatar.name}-${avatar.image}-${index}`}>
-					<TooltipTrigger>
-						<Avatar className='hover:z-10'>
-							<AvatarImage src={avatar.image} />
+			{shownAvatars.map((avatar, index) => {
+				const key = isRealtimeUser(avatar)
+					? `${avatar.id}-${index}`
+					: `${avatar.name}-${avatar.image}-${index}`;
 
-							<AvatarFallback>
-								{avatar.name
-									?.split(' ')
-									?.map((word) => word[0])
-									?.slice(0, 2)
-									?.join('')
-									?.toUpperCase()}
-							</AvatarFallback>
-						</Avatar>
-					</TooltipTrigger>
+				// Use HoverCard for profile cards, Tooltip for simple view
+				if (showProfileCard && isRealtimeUser(avatar)) {
+					return (
+						<HoverCard closeDelay={200} key={key} openDelay={500}>
+							<HoverCardTrigger asChild>
+								<Avatar className='hover:z-10 transition-transform hover:scale-110 cursor-pointer'>
+									<AvatarImage src={avatar.image} />
 
-					<TooltipContent>
-						<p>{avatar.name}</p>
-					</TooltipContent>
-				</Tooltip>
-			))}
+									<AvatarFallback>
+										{avatar.name
+											?.split(' ')
+											?.map((word) => word[0])
+											?.slice(0, 2)
+											?.join('')
+											?.toUpperCase()}
+									</AvatarFallback>
+								</Avatar>
+							</HoverCardTrigger>
+
+							<HoverCardContent align='start' side='bottom'>
+								<CollaboratorProfileCard mapOwnerId={mapOwnerId} user={avatar} />
+							</HoverCardContent>
+						</HoverCard>
+					);
+				}
+
+				// Fallback to simple tooltip
+				return (
+					<Tooltip key={key}>
+						<TooltipTrigger>
+							<Avatar className='hover:z-10'>
+								<AvatarImage src={avatar.image} />
+
+								<AvatarFallback>
+									{avatar.name
+										?.split(' ')
+										?.map((word) => word[0])
+										?.slice(0, 2)
+										?.join('')
+										?.toUpperCase()}
+								</AvatarFallback>
+							</Avatar>
+						</TooltipTrigger>
+
+						<TooltipContent>
+							<p>{avatar.name}</p>
+						</TooltipContent>
+					</Tooltip>
+				);
+			})}
 
 			{hiddenAvatars.length ? (
 				<Tooltip key='hidden-avatars'>

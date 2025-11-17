@@ -3,10 +3,11 @@ import { ComponentPropsWithRef } from 'react';
 const ASmoothstepBIcon = (props: ComponentPropsWithRef<'svg'>) => {
 	return (
 		<svg
-			width='100%'
+			className={props.className}
 			height='100%'
-			viewBox='0 0 64 64'
 			version='1.1'
+			viewBox='0 0 64 64'
+			width='100%'
 			xmlns='http://www.w3.org/2000/svg'
 			style={{
 				fillRule: 'evenodd',
@@ -14,7 +15,6 @@ const ASmoothstepBIcon = (props: ComponentPropsWithRef<'svg'>) => {
 				strokeLinecap: 'round',
 				strokeLinejoin: 'round',
 			}}
-			className={props.className}
 		>
 			<g
 				id='a-smoothstep-b.svg'

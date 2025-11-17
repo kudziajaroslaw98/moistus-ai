@@ -3,7 +3,6 @@ import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import React from 'react';
 import { Button } from '../ui/button';
-import { GlassmorphismTheme } from '../nodes/themes/glassmorphism-theme';
 
 interface ContextMenuItemProps {
 	icon: React.ReactNode;
@@ -33,31 +32,25 @@ export const ContextMenuItem = React.forwardRef<
 		},
 		ref
 	) => {
-		const getVariantStyles = (variant: string) => {
-			switch (variant) {
-				case 'destructive':
-					return { color: 'rgba(239, 68, 68, 0.87)' }; // Red
-				case 'primary':
-					return { color: 'rgba(96, 165, 250, 0.87)' }; // Blue
-				default:
-					return { color: GlassmorphismTheme.text.high };
-			}
-		};
-
 		return (
 			<Button
+				aria-describedby={shortcut ? `${label}-shortcut` : undefined}
+				aria-disabled={disabled || loading}
+				disabled={disabled || loading}
+				onClick={onClick}
 				ref={ref}
+				role='menuitem'
+				variant={variant === 'destructive' ? 'destructive-outline' : 'outline'}
 				className={cn(
 					'h-8 w-full justify-start gap-2 p-2 text-sm',
+					'@media (hover: hover) and (pointer: fine) { transition-property: color, background-color, opacity }',
+					variant === 'primary' && 'text-blue-500',
+					variant !== 'destructive' &&
+						variant !== 'primary' &&
+						'text-text-primary',
+					'transition-all duration-200 ease-spring',
 					className
 				)}
-				variant='ghost'
-				onClick={onClick}
-				disabled={disabled || loading}
-				role='menuitem'
-				aria-disabled={disabled || loading}
-				aria-describedby={shortcut ? `${label}-shortcut` : undefined}
-				style={getVariantStyles(variant)}
 			>
 				{loading ? (
 					<Loader2 className='h-4 w-4 animate-spin' />
@@ -69,9 +62,8 @@ export const ContextMenuItem = React.forwardRef<
 
 				{shortcut && (
 					<span
+						className='ml-auto text-xs text-text-disabled'
 						id={`${label}-shortcut`}
-						className='ml-auto text-xs'
-						style={{ color: GlassmorphismTheme.text.disabled }}
 					>
 						{shortcut}
 					</span>

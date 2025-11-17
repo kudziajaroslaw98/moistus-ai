@@ -228,7 +228,7 @@ export const createOnboardingSlice: StateCreator<
 			// For authenticated users, check if they have a subscription
 			if (!isAnonymous) {
 				// Check if they already have a subscription
-				const { currentSubscription } = get() as any;
+				const { currentSubscription } = get();
 
 				if (currentSubscription && currentSubscription.plan?.name !== 'free') {
 					// Already has a paid subscription, don't show onboarding

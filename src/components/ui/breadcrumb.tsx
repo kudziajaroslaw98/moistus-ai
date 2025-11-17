@@ -23,8 +23,8 @@ function BreadcrumbList({ className, ...props }: ComponentProps<'ol'>) {
 function BreadcrumbItem({ className, ...props }: ComponentProps<'li'>) {
 	return (
 		<li
-			data-slot='breadcrumb-item'
 			className={cn('inline-flex items-center gap-1.5', className)}
+			data-slot='breadcrumb-item'
 			{...props}
 		/>
 	);
@@ -41,8 +41,8 @@ function BreadcrumbLink({
 
 	return (
 		<Comp
-			data-slot='breadcrumb-link'
 			className={cn('hover:text-foreground transition-colors', className)}
+			data-slot='breadcrumb-link'
 			{...props}
 		/>
 	);
@@ -51,11 +51,11 @@ function BreadcrumbLink({
 function BreadcrumbPage({ className, ...props }: ComponentProps<'span'>) {
 	return (
 		<span
+			aria-current='page'
+			aria-disabled='true'
+			className={cn('text-foreground font-normal', className)}
 			data-slot='breadcrumb-page'
 			role='link'
-			aria-disabled='true'
-			aria-current='page'
-			className={cn('text-foreground font-normal', className)}
 			{...props}
 		/>
 	);
@@ -68,10 +68,10 @@ function BreadcrumbSeparator({
 }: ComponentProps<'li'>) {
 	return (
 		<li
-			data-slot='breadcrumb-separator'
-			role='presentation'
 			aria-hidden='true'
 			className={cn('[&>svg]:size-3.5', className)}
+			data-slot='breadcrumb-separator'
+			role='presentation'
 			{...props}
 		>
 			{children ?? <ChevronRight />}
@@ -82,10 +82,10 @@ function BreadcrumbSeparator({
 function BreadcrumbEllipsis({ className, ...props }: ComponentProps<'span'>) {
 	return (
 		<span
-			data-slot='breadcrumb-ellipsis'
-			role='presentation'
 			aria-hidden='true'
 			className={cn('flex size-9 items-center justify-center', className)}
+			data-slot='breadcrumb-ellipsis'
+			role='presentation'
 			{...props}
 		>
 			<MoreHorizontal className='size-4' />

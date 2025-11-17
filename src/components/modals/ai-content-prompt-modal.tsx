@@ -26,15 +26,15 @@ export default function AiContentPromptModal({
 				</p>
 
 				<Input
-					value={prompt}
+					disabled={isLoading}
 					onChange={(e) => setPrompt(e.target.value)}
 					placeholder='e.g., Explain in simpler terms, Add examples...'
-					disabled={isLoading}
+					value={prompt}
 				/>
 
 				<Button
-					onClick={handleGenerateClick}
 					disabled={isLoading}
+					onClick={handleGenerateClick}
 					variant='default'
 				>
 					{isLoading ? 'Generating...' : 'Generate Content'}

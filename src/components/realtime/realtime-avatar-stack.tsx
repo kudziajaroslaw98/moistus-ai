@@ -1,22 +1,36 @@
 'use client';
 
 import { AvatarStack } from '@/components/ui/avatar-stack';
-import { useRealtimePresenceRoom } from '@/hooks/realtime/use-realtime-presence-room';
+import {
+	type ActivityState,
+	useRealtimePresenceRoom,
+} from '@/hooks/realtime/use-realtime-presence-room';
 import { useMemo } from 'react';
 
-export const RealtimeAvatarStack = ({ roomName }: { roomName: string }) => {
-	const { users: usersMap } = useRealtimePresenceRoom(roomName);
+interface RealtimeAvatarStackProps {
+	roomName: string;
+	activityState?: ActivityState;
+	mapOwnerId?: string; // ID of the map owner to show role badges
+}
+
+export const RealtimeAvatarStack = ({
+	roomName,
+	activityState,
+	mapOwnerId,
+}: RealtimeAvatarStackProps) => {
+	const { users: usersMap } = useRealtimePresenceRoom(roomName, activityState);
 	const avatars = useMemo(() => {
 		if (!usersMap) return [];
 
-		const avatars = Object.values(usersMap).map((user) => ({
-			id: user.id,
-			name: user.name,
-			image: user.image,
-		}));
-
-		return avatars;
+		// Pass full user objects for profile cards
+		return Object.values(usersMap);
 	}, [usersMap]);
 
-	return <AvatarStack avatars={avatars} />;
+	return (
+		<AvatarStack
+			avatars={avatars}
+			mapOwnerId={mapOwnerId}
+			showProfileCard={true}
+		/>
+	);
 };

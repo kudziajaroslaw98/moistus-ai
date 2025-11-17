@@ -7,10 +7,10 @@ export default function MinimalFooter() {
 
 	return (
 		<motion.footer
-			initial={{ opacity: 0 }}
 			animate={{ opacity: 1 }}
-			transition={{ duration: 0.5, delay: 0.8 }}
 			className='relative z-10 mt-auto w-full'
+			initial={{ opacity: 0 }}
+			transition={{ duration: 0.5, delay: 0.8 }}
 		>
 			<div className='flex items-center w-full justify-center py-8 gap-4 text-sm text-zinc-500'>
 				{/* Copyright */}

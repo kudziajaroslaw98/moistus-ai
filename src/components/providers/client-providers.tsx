@@ -25,9 +25,9 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
 		const initializeSubscriptions = async () => {
 			try {
 				// Fetch available plans first
-				// await fetchAvailablePlans();
+				await fetchAvailablePlans();
 				// Then fetch user's current subscription
-				// await fetchUserSubscription();
+				await fetchUserSubscription();
 				setShowOnboarding(shouldShowOnboarding());
 			} catch (error) {
 				console.error('Error initializing subscriptions:', error);

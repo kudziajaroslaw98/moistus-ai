@@ -15,14 +15,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import useAppStore from '@/store/mind-map-store';
 import { SharePanelProps, ShareRole } from '@/types/sharing-types';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Link2, Loader2, QrCode, Shield, Trash2, Users, X } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { Link2, Loader2, QrCode, Shield, Trash2, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { useShallow } from 'zustand/shallow';
+import { SidePanel } from '../side-panel';
 import { RoomCodeDisplay } from './room-code-display';
 
 const createShareSchema = z.object({
@@ -34,7 +32,8 @@ const createShareSchema = z.object({
 type CreateShareFormData = z.infer<typeof createShareSchema>;
 
 export function SharePanel({
-	onShareCreated,
+	// onShareCreated,
+	onClose,
 	onShareUpdated,
 	onShareDeleted,
 }: SharePanelProps) {
@@ -42,7 +41,7 @@ export function SharePanel({
 		'room-code' | 'direct-share' | 'manage'
 	>('room-code');
 	const [isGeneratingCode, setIsGeneratingCode] = useState(false);
-	const [isSendingInvite, setIsSendingInvite] = useState(false);
+	// const [isSendingInvite, setIsSendingInvite] = useState(false);
 
 	const {
 		shareTokens,
@@ -87,18 +86,18 @@ export function SharePanel({
 	});
 
 	// Direct share form
-	const {
-		register,
-		handleSubmit,
-		formState: { errors },
-		reset,
-		setValue,
-	} = useForm<CreateShareFormData>({
-		resolver: zodResolver(createShareSchema),
-		defaultValues: {
-			role: 'viewer',
-		},
-	});
+	// const {
+	// 	register,
+	// 	handleSubmit,
+	// 	formState: { errors },
+	// 	reset,
+	// 	setValue,
+	// } = useForm<CreateShareFormData>({
+	// 	resolver: zodResolver(createShareSchema),
+	// 	defaultValues: {
+	// 		role: 'viewer',
+	// 	},
+	// });
 
 	// Load existing tokens when panel opens
 	useEffect(() => {
@@ -254,405 +253,271 @@ export function SharePanel({
 	};
 
 	return (
-		<AnimatePresence>
-			{isOpen && (
-				<motion.div
-					initial={{ opacity: 0 }}
-					animate={{ opacity: 1 }}
-					exit={{ opacity: 0 }}
-					className='fixed inset-0 z-50 bg-black/50'
-					onClick={handleOnClose}
+		<SidePanel
+			className='w-[400px]'
+			isOpen={isOpen}
+			onClose={onClose}
+			title={`Share ${mindMap?.title || 'Untitled Map'}`}
+		>
+			<div className='flex h-full flex-col'>
+				{/* Tabs */}
+				<Tabs
+					className='flex-1 max-h-screen overflow-y-auto py-2'
+					onValueChange={(v) => setActiveTab(v as any)}
+					value={activeTab}
 				>
-					<motion.div
-						initial={{ x: '100%' }}
-						animate={{ x: 0 }}
-						exit={{ x: '100%' }}
-						transition={{ type: 'spring', damping: 20 }}
-						className='absolute right-0 h-full w-full max-w-md bg-background shadow-xl'
-						onClick={(e) => e.stopPropagation()}
-					>
-						<div className='flex h-full flex-col'>
-							{/* Header */}
-							<div className='flex items-center justify-between border-b p-4'>
-								<div>
-									<h2 className='text-lg font-semibold'>
-										Share {`"${mindMap?.title}"` || 'Untitled Map'}
-									</h2>
+					<TabsList className='grid w-full grid-cols-2 px-4 gap-1'>
+						<TabsTrigger value='room-code'>
+							<Link2 className='mr-2 h-4 w-4' />
+							Room Code
+						</TabsTrigger>
 
-									<p className='text-sm text-muted-foreground'>
-										Collaborate with others on this mind map
-									</p>
+						<TabsTrigger value='manage'>
+							<Users className='mr-2 h-4 w-4' />
+							Manage
+						</TabsTrigger>
+					</TabsList>
+
+					{/* Room Code Tab */}
+					<TabsContent className='flex-1 px-4' value='room-code'>
+						<div className='space-y-6'>
+							<div className='space-y-4 bg-surface rounded-lg p-4'>
+								<h3 className='font-medium'>Room Code Settings</h3>
+
+								<div className='space-y-2'>
+									<Label>Default Permission</Label>
+
+									<Select
+										value={roomCodeSettings.role}
+										onValueChange={(v) =>
+											setRoomCodeSettings((prev) => ({
+												...prev,
+												role: v as ShareRole,
+											}))
+										}
+									>
+										<SelectTrigger>
+											<SelectValue />
+										</SelectTrigger>
+
+										<SelectContent>
+											<SelectItem value='viewer'>
+												<div className='flex items-center gap-2'>
+													<Shield className='h-4 w-4' />
+
+													<span>Viewer - Can view only</span>
+												</div>
+											</SelectItem>
+
+											<SelectItem value='commenter'>
+												<div className='flex items-center gap-2'>
+													<Shield className='h-4 w-4' />
+
+													<span>Commenter - Can view and comment</span>
+												</div>
+											</SelectItem>
+
+											<SelectItem value='editor'>
+												<div className='flex items-center gap-2'>
+													<Shield className='h-4 w-4' />
+
+													<span>Editor - Can edit content</span>
+												</div>
+											</SelectItem>
+										</SelectContent>
+									</Select>
+								</div>
+
+								<div className='space-y-2'>
+									<Label>Maximum Users</Label>
+
+									<Input
+										max={100}
+										min={1}
+										type='number'
+										value={roomCodeSettings.maxUsers}
+										onChange={(e) =>
+											setRoomCodeSettings((prev) => ({
+												...prev,
+												maxUsers: parseInt(e.target.value) || 50,
+											}))
+										}
+									/>
+								</div>
+
+								<div className='space-y-2'>
+									<Label>Expires After (hours)</Label>
+
+									<Select
+										value={roomCodeSettings.expiresInHours.toString()}
+										onValueChange={(v) =>
+											setRoomCodeSettings((prev) => ({
+												...prev,
+												expiresInHours: parseInt(v),
+											}))
+										}
+									>
+										<SelectTrigger>
+											<SelectValue />
+										</SelectTrigger>
+
+										<SelectContent>
+											<SelectItem value='1'>1 hour</SelectItem>
+
+											<SelectItem value='6'>6 hours</SelectItem>
+
+											<SelectItem value='24'>24 hours</SelectItem>
+
+											<SelectItem value='72'>3 days</SelectItem>
+
+											<SelectItem value='168'>1 week</SelectItem>
+										</SelectContent>
+									</Select>
 								</div>
 
 								<Button
-									variant='ghost'
-									size='icon'
-									onClick={handleOnClose}
-									className='shrink-0'
+									className='w-full'
+									disabled={isGeneratingCode}
+									onClick={handleGenerateRoomCode}
 								>
-									<X className='h-4 w-4' />
+									{isGeneratingCode ? (
+										<>
+											<Loader2 className='mr-2 h-4 w-4 animate-spin' />
+											Generating...
+										</>
+									) : (
+										<>
+											<Link2 className='mr-2 h-4 w-4' />
+											Generate Room Code
+										</>
+									)}
 								</Button>
 							</div>
 
-							{/* Tabs */}
-							<Tabs
-								value={activeTab}
-								onValueChange={(v) => setActiveTab(v as any)}
-								className='flex-1 max-h-screen overflow-y-auto'
-							>
-								<TabsList className='grid w-full grid-cols-2'>
-									<TabsTrigger value='room-code'>
-										<Link2 className='mr-2 h-4 w-4' />
-										Room Code
-									</TabsTrigger>
+							{mapRoomCodes.length > 0 ? (
+								<div className='space-y-4'>
+									{mapRoomCodes.map((token) => (
+										<RoomCodeDisplay
+											showQRCode
+											key={token.id}
+											onRefresh={handleRefreshCode}
+											onRevoke={handleRevokeCode}
+											token={token}
+										/>
+									))}
+								</div>
+							) : (
+								<div className='rounded-lg border-2 border-dashed p-8 text-center'>
+									<QrCode className='mx-auto h-12 w-12 text-muted-foreground' />
 
-									{/* TODO: Implement Direct Share Tab */}
-									{/* <TabsTrigger value='direct-share'>
-										<Mail className='mr-2 h-4 w-4' />
-										Direct Share
-									</TabsTrigger> */}
+									<h3 className='mt-4 text-sm font-medium'>
+										No active room codes
+									</h3>
 
-									<TabsTrigger value='manage'>
-										<Users className='mr-2 h-4 w-4' />
-										Manage
-									</TabsTrigger>
-								</TabsList>
-
-								{/* Room Code Tab */}
-								<TabsContent value='room-code' className='flex-1 p-4'>
-									<div className='space-y-6'>
-										{mapRoomCodes.length > 0 ? (
-											<div className='space-y-4'>
-												{mapRoomCodes.map((token) => (
-													<RoomCodeDisplay
-														key={token.id}
-														token={token}
-														onRefresh={handleRefreshCode}
-														onRevoke={handleRevokeCode}
-														showQRCode
-													/>
-												))}
-											</div>
-										) : (
-											<div className='rounded-lg border-2 border-dashed p-8 text-center'>
-												<QrCode className='mx-auto h-12 w-12 text-muted-foreground' />
-
-												<h3 className='mt-4 text-sm font-medium'>
-													No active room codes
-												</h3>
-
-												<p className='mt-2 text-sm text-muted-foreground'>
-													Generate a room code to allow others to join without
-													an account
-												</p>
-											</div>
-										)}
-
-										<div className='space-y-4 rounded-lg border p-4'>
-											<h3 className='font-medium'>Room Code Settings</h3>
-
-											<div className='space-y-2'>
-												<Label>Default Permission</Label>
-
-												<Select
-													value={roomCodeSettings.role}
-													onValueChange={(v) =>
-														setRoomCodeSettings((prev) => ({
-															...prev,
-															role: v as ShareRole,
-														}))
-													}
-												>
-													<SelectTrigger>
-														<SelectValue />
-													</SelectTrigger>
-
-													<SelectContent>
-														<SelectItem value='viewer'>
-															<div className='flex items-center gap-2'>
-																<Shield className='h-4 w-4' />
-
-																<span>Viewer - Can view only</span>
-															</div>
-														</SelectItem>
-
-														<SelectItem value='commenter'>
-															<div className='flex items-center gap-2'>
-																<Shield className='h-4 w-4' />
-
-																<span>Commenter - Can view and comment</span>
-															</div>
-														</SelectItem>
-
-														<SelectItem value='editor'>
-															<div className='flex items-center gap-2'>
-																<Shield className='h-4 w-4' />
-
-																<span>Editor - Can edit content</span>
-															</div>
-														</SelectItem>
-													</SelectContent>
-												</Select>
-											</div>
-
-											<div className='space-y-2'>
-												<Label>Maximum Users</Label>
-
-												<Input
-													type='number'
-													min={1}
-													max={100}
-													value={roomCodeSettings.maxUsers}
-													onChange={(e) =>
-														setRoomCodeSettings((prev) => ({
-															...prev,
-															maxUsers: parseInt(e.target.value) || 50,
-														}))
-													}
-												/>
-											</div>
-
-											<div className='space-y-2'>
-												<Label>Expires After (hours)</Label>
-
-												<Select
-													value={roomCodeSettings.expiresInHours.toString()}
-													onValueChange={(v) =>
-														setRoomCodeSettings((prev) => ({
-															...prev,
-															expiresInHours: parseInt(v),
-														}))
-													}
-												>
-													<SelectTrigger>
-														<SelectValue />
-													</SelectTrigger>
-
-													<SelectContent>
-														<SelectItem value='1'>1 hour</SelectItem>
-
-														<SelectItem value='6'>6 hours</SelectItem>
-
-														<SelectItem value='24'>24 hours</SelectItem>
-
-														<SelectItem value='72'>3 days</SelectItem>
-
-														<SelectItem value='168'>1 week</SelectItem>
-													</SelectContent>
-												</Select>
-											</div>
-
-											<Button
-												onClick={handleGenerateRoomCode}
-												disabled={isGeneratingCode}
-												className='w-full'
-											>
-												{isGeneratingCode ? (
-													<>
-														<Loader2 className='mr-2 h-4 w-4 animate-spin' />
-														Generating...
-													</>
-												) : (
-													<>
-														<Link2 className='mr-2 h-4 w-4' />
-														Generate Room Code
-													</>
-												)}
-											</Button>
-										</div>
-									</div>
-								</TabsContent>
-
-								{/* TODO: Implement Direct Share Tab */}
-								{/* Direct Share Tab */}
-								{/* <TabsContent value='direct-share' className='flex-1 p-4'>
-									<form
-										onSubmit={handleSubmit(handleDirectShare)}
-										className='space-y-4'
-									>
-										<div className='space-y-2'>
-											<Label htmlFor='email'>Email Address</Label>
-
-											<Input
-												id='email'
-												type='email'
-												placeholder='colleague@example.com'
-												{...register('email')}
-											/>
-
-											{errors.email && (
-												<p className='text-sm text-destructive'>
-													{errors.email.message}
-												</p>
-											)}
-										</div>
-
-										<div className='space-y-2'>
-											<Label htmlFor='role'>Permission Level</Label>
-
-											<Select
-												value={roomCodeSettings.role}
-												onValueChange={(v) => setValue('role', v as ShareRole)}
-											>
-												<SelectTrigger>
-													<SelectValue />
-												</SelectTrigger>
-
-												<SelectContent>
-													<SelectItem value='viewer'>
-														Viewer - Can view only
-													</SelectItem>
-
-													<SelectItem value='commenter'>
-														Commenter - Can view and comment
-													</SelectItem>
-
-													<SelectItem value='editor'>
-														Editor - Can edit content
-													</SelectItem>
-												</SelectContent>
-											</Select>
-										</div>
-
-										<div className='space-y-2'>
-											<Label htmlFor='message'>
-												Personal Message (optional)
-											</Label>
-
-											<Textarea
-												id='message'
-												placeholder="Hey! I'd love your input on this mind map..."
-												rows={3}
-												{...register('message')}
-											/>
-										</div>
-
-										<Button
-											type='submit'
-											disabled={isSendingInvite}
-											className='w-full'
-										>
-											{isSendingInvite ? (
-												<>
-													<Loader2 className='mr-2 h-4 w-4 animate-spin' />
-													Sending...
-												</>
-											) : (
-												<>
-													<Send className='mr-2 h-4 w-4' />
-													Send Invitation
-												</>
-											)}
-										</Button>
-									</form>
-								</TabsContent> */}
-
-								{/* Manage Access Tab */}
-								<TabsContent value='manage' className='flex-1'>
-									<ScrollArea className='h-full'>
-										<div className='space-y-4 p-4'>
-											{!currentShares || currentShares.length === 0 ? (
-												<div className='rounded-lg border-2 border-dashed p-8 text-center'>
-													<Users className='mx-auto h-12 w-12 text-muted-foreground' />
-
-													<h3 className='mt-4 text-sm font-medium'>
-														No one else has access
-													</h3>
-
-													<p className='mt-2 text-sm text-muted-foreground'>
-														Share this mind map to start collaborating
-													</p>
-												</div>
-											) : (
-												<div className='space-y-2'>
-													{currentShares.map((share) => (
-														<div
-															key={share.id}
-															className='flex items-center justify-between rounded-lg border p-3'
-														>
-															<div className='flex items-center gap-3'>
-																<Avatar className='h-8 w-8'>
-																	<AvatarImage src={share.avatar_url} />
-
-																	<AvatarFallback>
-																		{share.profile?.display_name
-																			?.charAt(0)
-																			.toUpperCase()}
-																	</AvatarFallback>
-																</Avatar>
-
-																<div>
-																	<p className='text-sm font-medium'>
-																		{share.name}
-																	</p>
-
-																	<p className='text-xs text-muted-foreground'>
-																		{share.email}
-																	</p>
-																</div>
-															</div>
-
-															<div className='flex items-center gap-2'>
-																<Select
-																	value={share.share.role}
-																	onValueChange={(v) =>
-																		handleUpdateShareRole(
-																			share.share.id,
-																			v as ShareRole
-																		)
-																	}
-																	disabled={share.share.role === 'owner'}
-																>
-																	<SelectTrigger className='h-8 w-[110px]'>
-																		<SelectValue />
-																	</SelectTrigger>
-
-																	<SelectContent>
-																		<SelectItem value='viewer'>
-																			Viewer
-																		</SelectItem>
-
-																		<SelectItem value='commenter'>
-																			Commenter
-																		</SelectItem>
-
-																		<SelectItem value='editor'>
-																			Editor
-																		</SelectItem>
-
-																		{share.share.role === 'owner' && (
-																			<SelectItem value='owner' disabled>
-																				Owner
-																			</SelectItem>
-																		)}
-																	</SelectContent>
-																</Select>
-
-																{share.share.role !== 'owner' && (
-																	<Button
-																		variant='ghost'
-																		size='icon'
-																		onClick={() =>
-																			handleDeleteShare(share.share.id)
-																		}
-																		className='h-8 w-8'
-																	>
-																		<Trash2 className='h-4 w-4' />
-																	</Button>
-																)}
-															</div>
-														</div>
-													))}
-												</div>
-											)}
-										</div>
-									</ScrollArea>
-								</TabsContent>
-							</Tabs>
+									<p className='mt-2 text-sm text-muted-foreground'>
+										Generate a room code to allow others to join without an
+										account
+									</p>
+								</div>
+							)}
 						</div>
-					</motion.div>
-				</motion.div>
-			)}
-		</AnimatePresence>
+					</TabsContent>
+
+					{/* Manage Access Tab */}
+					<TabsContent className='flex-1 px-4' value='manage'>
+						<ScrollArea className='h-full'>
+							<div className='space-y-4'>
+								{!currentShares || currentShares.length === 0 ? (
+									<div className='rounded-lg border-2 border-dashed p-8 text-center'>
+										<Users className='mx-auto h-12 w-12 text-muted-foreground' />
+
+										<h3 className='mt-4 text-sm font-medium'>
+											No one else has access
+										</h3>
+
+										<p className='mt-2 text-sm text-muted-foreground'>
+											Share this mind map to start collaborating
+										</p>
+									</div>
+								) : (
+									<div className='space-y-2'>
+										{currentShares.map((share) => (
+											<div
+												className='flex items-center justify-between rounded-lg border p-3 bg-surface'
+												key={share.id}
+											>
+												<div className='flex items-center gap-3'>
+													<Avatar className='h-8 w-8 ring-border-strong'>
+														<AvatarImage src={share.avatar_url} />
+
+														<AvatarFallback>
+															{share.profile?.display_name
+																?.charAt(0)
+																.toUpperCase()}
+														</AvatarFallback>
+													</Avatar>
+
+													<div>
+														<p className='text-sm font-medium'>{share.name}</p>
+
+														<p className='text-xs text-muted-foreground'>
+															{share.email}
+														</p>
+													</div>
+												</div>
+
+												<div className='flex items-center gap-2'>
+													<Select
+														disabled={share.share.role === 'owner'}
+														value={share.share.role}
+														onValueChange={(v) =>
+															handleUpdateShareRole(
+																share.share.id,
+																v as ShareRole
+															)
+														}
+													>
+														<SelectTrigger className='h-8 w-[110px]'>
+															<SelectValue />
+														</SelectTrigger>
+
+														<SelectContent>
+															<SelectItem value='viewer'>Viewer</SelectItem>
+
+															<SelectItem value='commenter'>
+																Commenter
+															</SelectItem>
+
+															<SelectItem value='editor'>Editor</SelectItem>
+
+															{share.share.role === 'owner' && (
+																<SelectItem disabled value='owner'>
+																	Owner
+																</SelectItem>
+															)}
+														</SelectContent>
+													</Select>
+
+													{share.share.role !== 'owner' && (
+														<Button
+															className='h-8 w-8'
+															onClick={() => handleDeleteShare(share.share.id)}
+															size='icon'
+															variant='ghost'
+														>
+															<Trash2 className='h-4 w-4' />
+														</Button>
+													)}
+												</div>
+											</div>
+										))}
+									</div>
+								)}
+							</div>
+						</ScrollArea>
+					</TabsContent>
+				</Tabs>
+			</div>
+		</SidePanel>
 	);
 }

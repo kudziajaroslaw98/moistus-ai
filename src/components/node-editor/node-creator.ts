@@ -1,10 +1,12 @@
 import { AppState } from '@/store/app-state';
 import type { AppNode } from '@/types/app-node';
 import type { NodeData } from '@/types/node-data';
-import type { NodeCommand, NodeCreationResult } from './types';
+import type { Command } from './core/commands/command-types';
+import type { NodeCreationResult } from './types';
+import { parseDateString } from './core/utils/date-utils';
 
 interface CreateNodeOptions {
-	command: NodeCommand;
+	command: Command;
 	data: any;
 	position?: { x: number; y: number };
 	parentNode: AppNode | null;
@@ -19,26 +21,32 @@ export const createNodeFromCommand = async ({
 	addNode,
 }: CreateNodeOptions): Promise<NodeCreationResult> => {
 	try {
+		// Get node type with fallback
+		const nodeType = command.nodeType || 'defaultNode';
+
 		// Transform parsed data into node-specific data structure
-		const nodeData = transformDataForNodeType(command.nodeType, data);
+		const nodeData = transformDataForNodeType(nodeType, data);
 
 		// Create base node structure
+		// Extract id from nodeData to avoid conflicts (it should be undefined for new nodes)
+		const { id: _omitId, ...nodeDataWithoutId } = nodeData;
 		const newNode: Omit<AppNode, 'id'> = {
-			type: command.nodeType,
+			type: nodeType,
+			position: position || { x: 0, y: 0 },
 			data: {
-				...nodeData,
-				node_type: command.nodeType,
+				...nodeDataWithoutId,
+				node_type: nodeType,
 				created_at: new Date().toISOString(),
 				updated_at: new Date().toISOString(),
 				parent_id: parentNode?.id || null,
-			},
+			} as NodeData,
 		};
 
 		// Add node to the graph
 		await addNode({
 			content: newNode.data.content || undefined,
 			data: newNode.data,
-			nodeType: newNode.type,
+			nodeType: nodeType, // Use the already-validated nodeType instead of newNode.type
 			parentNode,
 			position,
 		});
@@ -56,25 +64,38 @@ export const createNodeFromCommand = async ({
 };
 
 // Helper to extract universal metadata that applies to all node types
+// IMPORTANT: Always explicitly set fields to clear them during updates
 const getUniversalMetadata = (data: any) => {
 	const universalMeta: any = {};
-	
-	if (data.metadata?.priority || data.priority) {
-		universalMeta.priority = data.metadata?.priority || data.priority;
-	}
-	
-	if (data.metadata?.assignee || data.assignee) {
-		universalMeta.assignee = data.metadata?.assignee || data.assignee;
-	}
-	
-	if (data.metadata?.status || data.status) {
-		universalMeta.status = data.metadata?.status || data.status;
-	}
-	
+
+	// Always set priority (undefined clears it on update)
+	universalMeta.priority = data.metadata?.priority || data.priority || undefined;
+
+	// Always set assignee (undefined clears it on update)
+	universalMeta.assignee = data.metadata?.assignee || data.assignee || undefined;
+
+	// Always set status (undefined clears it on update)
+	universalMeta.status = data.metadata?.status || data.status || undefined;
+
+	// Handle dueDate
 	if (data.metadata?.dueDate || data.dueDate) {
-		universalMeta.dueDate = new Date(data.metadata?.dueDate || data.dueDate).toISOString();
+		const dateValue = data.metadata?.dueDate || data.dueDate;
+		// Parse date string (supports "tomorrow", "next week", ISO dates, etc.)
+		const date = typeof dateValue === 'string'
+			? parseDateString(dateValue)
+			: dateValue instanceof Date
+				? dateValue
+				: undefined;
+
+		if (date && !isNaN(date.getTime())) {
+			universalMeta.dueDate = date.toISOString();
+		} else {
+			universalMeta.dueDate = undefined;
+		}
+	} else {
+		universalMeta.dueDate = undefined;
 	}
-	
+
 	return universalMeta;
 };
 
@@ -90,18 +111,18 @@ export const transformDataForNodeType = (
 		case 'defaultNode':
 			return {
 				content: data.content || '',
-				tags: baseTags,
 				metadata: {
 					...universalMetadata,
+					tags: baseTags.length > 0 ? baseTags : undefined,
 				},
 			};
 
 		case 'taskNode':
 			return {
 				content: data.content || '',
-				tags: baseTags,
 				metadata: {
 					...universalMetadata,
+					tags: baseTags.length > 0 ? baseTags : undefined,
 					tasks: data.metadata?.tasks || data.tasks || [],
 				},
 			};
@@ -109,9 +130,9 @@ export const transformDataForNodeType = (
 		case 'codeNode':
 			return {
 				content: data.code || data.content || '',
-				tags: baseTags,
 				metadata: {
 					...universalMetadata,
+					tags: baseTags.length > 0 ? baseTags : undefined,
 					language: data.metadata?.language || data.language || 'plaintext',
 					fileName: data.metadata?.fileName || data.filename,
 					showLineNumbers: data.lineNumbers !== false,
@@ -131,9 +152,9 @@ export const transformDataForNodeType = (
 
 			return {
 				content: caption,
-				tags: baseTags,
 				metadata: {
 					...universalMetadata,
+					tags: baseTags.length > 0 ? baseTags : undefined,
 					imageUrl: data.metadata?.imageUrl || data.url || extractedUrl || '',
 					altText: data.metadata?.altText || data.alt || caption || 'Image',
 					caption: data.metadata?.caption || data.caption || caption || '',
@@ -146,9 +167,9 @@ export const transformDataForNodeType = (
 		case 'resourceNode':
 			return {
 				content: data.content || data.description || '',
-				tags: baseTags,
 				metadata: {
 					...universalMetadata,
+					tags: baseTags.length > 0 ? baseTags : undefined,
 					url: data.metadata?.url || data.url || '',
 					title: data.metadata?.title || data.title || '',
 					resourceType: data.metadata?.resourceType || data.type || 'link',
@@ -158,29 +179,35 @@ export const transformDataForNodeType = (
 		case 'annotationNode':
 			return {
 				content: data.content || data.text || '',
-				tags: baseTags,
 				metadata: {
 					...universalMetadata,
-					annotationType: data.metadata?.annotationType || data.type || 'comment',
+					tags: baseTags.length > 0 ? baseTags : undefined,
+					annotationType: data.metadata?.annotationType || data.type || 'note',
 				},
 			};
 
 		case 'questionNode':
 			return {
 				content: data.content || data.question || '',
-				tags: baseTags,
 				metadata: {
 					...universalMetadata,
+					tags: baseTags.length > 0 ? baseTags : undefined,
 					answer: data.metadata?.answer || data.answer || '',
+					questionType: data.metadata?.questionType || undefined,
+					responseFormat: {
+						options: data.metadata?.responseFormat?.options || [],
+						allowMultiple: data.metadata?.responseFormat?.allowMultiple
+					},
+					responses: data.metadata?.responses || [],
 				},
 			};
 
 		case 'textNode':
 			return {
 				content: data.content || '',
-				tags: baseTags,
 				metadata: {
 					...universalMetadata,
+					tags: baseTags.length > 0 ? baseTags : undefined,
 					fontSize: data.metadata?.fontSize || data.fontSize,
 					fontWeight: data.metadata?.fontWeight || data.fontWeight,
 					fontStyle: data.metadata?.fontStyle || data.fontStyle,
@@ -194,9 +221,9 @@ export const transformDataForNodeType = (
 		case 'groupNode':
 			return {
 				content: data.content || '',
-				tags: baseTags,
 				metadata: {
 					...universalMetadata,
+					tags: baseTags.length > 0 ? baseTags : undefined,
 					groupId: data.metadata?.groupId || data.groupId,
 					groupPadding: data.metadata?.groupPadding || data.groupPadding,
 					isCollapsed: data.metadata?.isCollapsed || data.isCollapsed,
@@ -206,9 +233,9 @@ export const transformDataForNodeType = (
 		case 'referenceNode':
 			return {
 				content: data.content || '',
-				tags: baseTags,
 				metadata: {
 					...universalMetadata,
+					tags: baseTags.length > 0 ? baseTags : undefined,
 					targetNodeId: data.metadata?.targetNodeId || data.targetNodeId,
 					targetMapId: data.metadata?.targetMapId || data.targetMapId,
 					confidence: data.metadata?.confidence || data.confidence,
@@ -220,9 +247,9 @@ export const transformDataForNodeType = (
 			// Fallback for any unknown node types
 			return {
 				content: data.content || '',
-				tags: baseTags,
 				metadata: {
 					...universalMetadata,
+					tags: baseTags.length > 0 ? baseTags : undefined,
 				},
 			};
 	}

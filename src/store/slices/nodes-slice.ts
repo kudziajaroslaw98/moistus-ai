@@ -1,8 +1,9 @@
+import { ceilToGrid, GRID_SIZE } from '@/constants/grid';
 import { STORE_SAVE_DEBOUNCE_MS } from '@/constants/store-save-debounce-ms';
 import generateUuid from '@/helpers/generate-uuid';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
+import { AvailableNodeTypes } from '@/registry/node-registry';
 import type { AppNode } from '@/types/app-node';
-import { AvailableNodeTypes } from '@/types/available-node-types';
 import type { NodeData } from '@/types/node-data';
 import { NodesTableType } from '@/types/nodes-table-type';
 import { debouncePerKey } from '@/utils/debounce-per-key';
@@ -18,18 +19,12 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 	// Handle real-time node events
 	const handleNodeRealtimeEvent = (payload: any) => {
 		const { eventType, new: newRecord, old: oldRecord } = payload;
-		const { nodes, lastSavedNodeTimestamps } = get();
+		const { nodes, markNodeAsSystemUpdate } = get();
 
-		// Skip if this change was made by current user recently (prevent loops)
+		// Mark this node as system-updated to prevent save loop
 		const nodeId = newRecord?.id || oldRecord?.id;
-
-		if (nodeId && lastSavedNodeTimestamps[nodeId]) {
-			const timeSinceLastSave = Date.now() - lastSavedNodeTimestamps[nodeId];
-
-			if (timeSinceLastSave < 1000) {
-				// Skip if saved within last second
-				return;
-			}
+		if (nodeId) {
+			markNodeAsSystemUpdate(nodeId);
 		}
 
 		switch (eventType) {
@@ -49,6 +44,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 							type: newRecord.node_type || 'defaultNode',
 							width: newRecord.width || undefined,
 							height: newRecord.height || undefined,
+							zIndex: newRecord.node_type === 'commentNode' ? 100 : undefined,
 						};
 
 						set({ nodes: [...nodes, newNode] });
@@ -61,43 +57,19 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 
 			case 'UPDATE': {
 				if (newRecord) {
-					const existingNode = nodes.find((n) => n.id === newRecord.id);
-					const oldPosition = existingNode
-						? { x: existingNode.position.x, y: existingNode.position.y }
-						: null;
-					const newPosition = {
-						x: newRecord.position_x,
-						y: newRecord.position_y,
-					};
-
-					// Check if this node was recently moved locally (within last 2 seconds)
-					const wasRecentlyMoved =
-						lastSavedNodeTimestamps[newRecord.id] &&
-						Date.now() - lastSavedNodeTimestamps[newRecord.id] < 2000;
-
-					const positionChanged =
-						oldPosition &&
-						(oldPosition.x !== newPosition.x ||
-							oldPosition.y !== newPosition.y);
-
 					const updatedNodes = nodes.map((node) => {
 						if (node.id === newRecord.id) {
-							// Only update position if it wasn't recently moved locally
-							const shouldUpdatePosition =
-								!wasRecentlyMoved || !positionChanged;
-
 							return {
 								...node,
-								position: shouldUpdatePosition
-									? {
-											x: newRecord.position_x,
-											y: newRecord.position_y,
-										}
-									: node.position,
+								position: {
+									x: newRecord.position_x,
+									y: newRecord.position_y,
+								},
 								data: newRecord,
 								type: newRecord.node_type || node.type,
 								width: newRecord.width || node.width,
 								height: newRecord.height || node.height,
+								zIndex: newRecord.node_type === 'commentNode' ? 100 : node.zIndex,
 							};
 						}
 
@@ -128,8 +100,33 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 	return {
 		nodes: [],
 		selectedNodes: [],
-		lastSavedNodeTimestamps: {},
+		systemUpdatedNodes: new Map(),
 		_nodesSubscription: null,
+
+		// System update tracking helpers
+		markNodeAsSystemUpdate: (nodeId: string) => {
+			set((state) => {
+				const newMap = new Map(state.systemUpdatedNodes);
+				newMap.set(nodeId, Date.now());
+				return { systemUpdatedNodes: newMap };
+			});
+		},
+
+		shouldSkipNodeSave: (nodeId: string) => {
+			const timestamp = get().systemUpdatedNodes.get(nodeId);
+			if (!timestamp) return false;
+
+			// Skip if marked within last 3 seconds
+			const age = Date.now() - timestamp;
+			if (age > 3000) {
+				// Clean up stale entry
+				const newMap = new Map(get().systemUpdatedNodes);
+				newMap.delete(nodeId);
+				set({ systemUpdatedNodes: newMap });
+				return false;
+			}
+			return true;
+		},
 
 		onNodesChange: (changes) => {
 			// Apply changes as before
@@ -183,6 +180,14 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 
 			// Trigger debounced saves for relevant node changes
 			changes.forEach((change) => {
+				// Skip if change doesn't have an id (add/remove types)
+				if (!('id' in change)) return;
+
+				// Skip saves for system-updated nodes or during revert
+				if (get().shouldSkipNodeSave(change.id) || get().isReverting) {
+					return;
+				}
+
 				// Only save when changes are complete (not during dragging/resizing)
 				if (
 					change.type === 'position' &&
@@ -207,12 +212,6 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					change.resizing === false
 				) {
 					get().triggerNodeSave(change.id);
-				} else if (change.type === 'select' || change.type === 'remove') {
-					// No need to save for these change types
-					return;
-				} else if (change.type === 'add') {
-					// New nodes are handled elsewhere
-					return;
 				} else if (change.type === 'replace') {
 					// Data changes should trigger a save
 					get().triggerNodeSave(change.id);
@@ -226,12 +225,6 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 		setSelectedNodes: (selectedNodes) => {
 			set({ selectedNodes });
 
-			// Update selectedNodeId for comments panel
-			if (selectedNodes.length === 1) {
-				set({ selectedNodeId: selectedNodes[0].id });
-			} else {
-				set({ selectedNodeId: null });
-			}
 		},
 
 		getNode: (id: string) => {
@@ -250,7 +243,14 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 			}) => {
 				let { nodeType = 'defaultNode' } = props;
 				const { parentNode, position, data = {}, content = 'New node' } = props;
-				const { mapId, supabase, nodes, edges, addStateToHistory } = get();
+				const {
+					mapId,
+					supabase,
+					nodes,
+					edges,
+					addStateToHistory,
+					currentSubscription,
+				} = get();
 
 				if (!mapId) {
 					toast.loading(
@@ -258,6 +258,27 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 						{ id: props.toastId }
 					);
 					nodeType = 'defaultNode';
+				}
+
+				// Check node creation limit for free tier users
+				const devBypass = process.env.NEXT_PUBLIC_DEV_BYPASS_LIMITS === 'true';
+
+				if (!devBypass) {
+					const isPro =
+						currentSubscription?.plan?.name === 'pro' ||
+						currentSubscription?.plan?.name === 'enterprise';
+					const limit = currentSubscription?.plan?.limits?.nodesPerMap ?? 50; // Free tier default
+
+					if (!isPro && limit !== -1) {
+						const currentNodeCount = nodes.length;
+
+						if (currentNodeCount >= limit) {
+							// Throw error which will be displayed as a toast by withLoadingAndToast
+							throw new Error(
+								`Node limit reached (${limit} nodes per map). Upgrade to Pro for unlimited nodes.`
+							);
+						}
+					}
 				}
 
 				const newNodeId = generateUuid();
@@ -323,6 +344,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 
 					width: insertedNodeData.width || undefined,
 					height: insertedNodeData.height || undefined,
+					zIndex: insertedNodeData.node_type === 'commentNode' ? 100 : undefined,
 				};
 
 				const finalNodes = [...nodes, newNode];
@@ -345,6 +367,12 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				}
 
 				addStateToHistory('addNode', { nodes: finalNodes, edges: finalEdges });
+				// Persist precise delta (prev vs next)
+				get().persistDeltaEvent(
+					'addNode',
+					{ nodes, edges },
+					{ nodes: finalNodes, edges: finalEdges }
+				);
 
 				set({
 					nodes: finalNodes,
@@ -359,6 +387,8 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 			}
 		),
 		updateNode: async (props: { nodeId: string; data: Partial<NodeData> }) => {
+			const prevNodes = get().nodes;
+			const prevEdges = get().edges;
 			const { nodeId, data } = props;
 			let updatedNode: AppNode | null = null;
 
@@ -383,8 +413,8 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 									...data.metadata,
 								},
 								aiData: {
-									...node.data.aiData,
-									...data.aiData,
+									...(node.data.aiData || {}),
+									...(data.aiData || {}),
 								},
 							},
 						};
@@ -399,6 +429,90 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 
 			// Trigger debounced save to persist changes
 			get().triggerNodeSave(nodeId);
+
+			// Record delta event in history (only changed fields will be saved)
+			get().addStateToHistory('saveNodeProperties', {
+				nodes: get().nodes,
+				edges: get().edges,
+			});
+			// Persist precise delta
+			get().persistDeltaEvent(
+				'saveNodeProperties',
+				{ nodes: prevNodes, edges: prevEdges },
+				{ nodes: get().nodes, edges: get().edges }
+			);
+		},
+		updateNodeDimensions: (
+			nodeId: string,
+			width: number,
+			height: number,
+			imageSize?: { width: number; height: number }
+		) => {
+			const prevNodes = get().nodes;
+			const prevEdges = get().edges;
+			const { nodes } = get();
+			const node = nodes.find((n) => n.id === nodeId);
+
+			if (!node) return;
+
+			// Snap incoming dimensions up to GRID_SIZE before comparing
+			const snappedWidth = ceilToGrid(width, GRID_SIZE);
+			const snappedHeight = ceilToGrid(height, GRID_SIZE);
+
+			// Check if dimensions have actually changed (>5px threshold)
+			const currentWidth = node.measured?.width || node.width || 0;
+			const currentHeight = node.measured?.height || node.height || 0;
+			const widthChanged = Math.abs(snappedWidth - currentWidth) > 15;
+			const heightChanged = Math.abs(snappedHeight - currentHeight) > 15;
+
+			// If dimensions haven't changed significantly, skip update
+			if (!widthChanged && !heightChanged) {
+				return;
+			}
+
+			// Update the node dimensions in local state
+			set((state) => ({
+				nodes: state.nodes.map((node) => {
+					if (node.id === nodeId) {
+						return {
+							...node,
+							// Update both the node dimensions and data dimensions
+							width: snappedWidth,
+							height: snappedHeight,
+							measured: {
+								width: snappedWidth,
+								height: snappedHeight,
+							},
+							data: {
+								...node.data,
+								width: snappedWidth,
+								height: snappedHeight,
+								metadata: {
+									...node.data.metadata,
+									imageSize: imageSize,
+								},
+							},
+						};
+					}
+
+					return node;
+				}),
+			}));
+
+			// Trigger debounced save to persist dimension changes
+			get().triggerNodeSave(nodeId);
+
+			// Record delta event in history for dimension change
+			get().addStateToHistory('updateNodeDimensions', {
+				nodes: get().nodes,
+				edges: get().edges,
+			});
+			// Persist precise delta for dimension change
+			get().persistDeltaEvent(
+				'updateNodeDimensions',
+				{ nodes: prevNodes, edges: prevEdges },
+				{ nodes: get().nodes, edges: get().edges }
+			);
 		},
 		deleteNodes: withLoadingAndToast(
 			async (nodesToDelete: AppNode[]) => {
@@ -411,6 +525,10 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				} = get();
 
 				if (!mapId || !nodesToDelete) return;
+
+				// Capture previous state for history tracking
+				const prevNodes = [...allNodes];
+				const prevEdges = [...edges];
 
 				const edgesToDelete = edges.filter((edge) =>
 					nodesToDelete.some(
@@ -429,7 +547,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 						'id',
 						nodesToDelete.map((node) => node.id)
 					)
-					.eq('user_id', user_id)
+					.eq('map_id', mapId)
 					.select();
 
 				if (deleteError) {
@@ -439,10 +557,22 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				const finalNodes = allNodes.filter((n) => !nodesToDelete.includes(n));
 				const finalEdges = edges.filter((e) => !edgesToDelete.includes(e));
 
-				addStateToHistory('deleteNode', {
+				// Determine action name based on deletion count
+				const actionName =
+					nodesToDelete.length === 1 ? 'deleteNode' : 'deleteNodes';
+
+				// Add to in-memory history for undo/redo
+				addStateToHistory(actionName, {
 					nodes: finalNodes,
 					edges: finalEdges,
 				});
+
+				// Persist precise delta to database for permanent audit trail
+				get().persistDeltaEvent(
+					actionName,
+					{ nodes: prevNodes, edges: prevEdges },
+					{ nodes: finalNodes, edges: finalEdges }
+				);
 
 				set({
 					nodes: finalNodes,
@@ -469,13 +599,6 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					);
 				}
 
-				set((state) => ({
-					lastSavedNodeTimestamps: {
-						...state.lastSavedNodeTimestamps,
-						[nodeId]: Date.now(),
-					},
-				}));
-
 				if (!mapId) {
 					console.error('Cannot save node: No mapId defined');
 					throw new Error('Cannot save node: No mapId defined');
@@ -500,7 +623,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					position_y: node.position.y,
 					width: node.width,
 					height: node.height,
-					node_type: node.type || 'defaultNode',
+					node_type: (node.type || 'defaultNode') as AvailableNodeTypes,
 					updated_at: new Date().toISOString(),
 					created_at: node.data.created_at,
 					parent_id: node.parentId || node.data.parent_id || null,
@@ -587,8 +710,17 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				}
 			}
 
-			// Return only visible nodes (excluding groups with all hidden children)
-			return nodes.filter((node) => !finalHiddenNodeIds.has(node.id));
+			// Filter by comment mode
+			const { isCommentMode } = get();
+			const baseVisibleNodes = nodes.filter((node) => !finalHiddenNodeIds.has(node.id));
+
+			if (isCommentMode) {
+				// In comment mode: show ALL nodes (comments + regular)
+				return baseVisibleNodes;
+			} else {
+				// Normal mode: show all nodes except comment nodes
+				return baseVisibleNodes.filter((node) => node.data.node_type !== 'commentNode');
+			}
 		},
 
 		toggleNodeCollapse: async (nodeId: string): Promise<void> => {

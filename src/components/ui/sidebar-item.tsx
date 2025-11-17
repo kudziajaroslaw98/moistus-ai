@@ -80,6 +80,13 @@ export const SidebarItem = ({
 	return (
 		<div>
 			<motion.div
+				aria-disabled={disabled}
+				aria-pressed={isActive}
+				onClick={disabled ? undefined : onClick}
+				onKeyDown={handleKeyDown}
+				role='button'
+				tabIndex={disabled ? -1 : tabIndex}
+				whileTap={disabled ? undefined : { scale: 0.98 }}
 				className={cn(
 					'group relative flex items-center rounded-lg transition-all cursor-pointer',
 					'hover:bg-zinc-800/50 focus:bg-zinc-800/50 focus:outline-none focus:ring-2 focus:ring-sky-500/50',
@@ -94,13 +101,6 @@ export const SidebarItem = ({
 					paddingLeft:
 						!collapsed && level > 0 ? `${level * 16 + 12}px` : undefined,
 				}}
-				onClick={disabled ? undefined : onClick}
-				onKeyDown={handleKeyDown}
-				tabIndex={disabled ? -1 : tabIndex}
-				role='button'
-				aria-pressed={isActive}
-				aria-disabled={disabled}
-				whileTap={disabled ? undefined : { scale: 0.98 }}
 			>
 				{/* Icon */}
 				<div className='flex-shrink-0'>{icon}</div>

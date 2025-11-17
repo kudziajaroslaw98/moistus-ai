@@ -1,7 +1,7 @@
+import type { Command } from '@/components/node-editor/core/commands/command-types';
+import { nodeCommands } from '@/components/node-editor/core/commands/node-commands';
 import { StateCreator } from 'zustand';
 import { AppState, UIStateSlice } from '../app-state';
-import { nodeCommands } from '@/components/node-editor/node-commands';
-import type { NodeCommand } from '@/components/node-editor/types';
 
 export const createUiStateSlice: StateCreator<
 	AppState,
@@ -12,16 +12,12 @@ export const createUiStateSlice: StateCreator<
 	// state
 	popoverOpen: {
 		contextMenu: false,
-		commandPalette: false,
-		nodeType: false,
 		edgeEdit: false,
 		history: false,
 		mergeSuggestions: false,
 		aiContent: false,
 		generateFromNodesModal: false,
 		layoutSelector: false,
-		commentsPanel: false,
-		nodeComments: false,
 		sharePanel: false,
 		joinRoom: false,
 		permissionManager: false,
@@ -29,8 +25,8 @@ export const createUiStateSlice: StateCreator<
 		guestSignup: false,
 		aiChat: false,
 		referenceSearch: false,
+		mapSettings: false,
 	},
-	nodeInfo: null,
 	edgeInfo: null,
 	contextMenuState: {
 		x: 0,
@@ -39,31 +35,17 @@ export const createUiStateSlice: StateCreator<
 		edgeId: null,
 	},
 	isFocusMode: false,
+	isCommentMode: false,
 	isDraggingNodes: false,
 	// editingNodeId: null, // Removed - replaced by NodeEditor system
 	snapLines: [],
 
-	// InlineNodeCreator state
-	inlineCreator: {
-		isOpen: false,
-		position: { x: 0, y: 0 },
-		screenPosition: { x: 0, y: 0 },
-		mode: 'quick',
-		selectedCommand: null,
-		filterQuery: '',
-		parentNode: null,
-		suggestedType: null,
-	},
-
-	// NodeEditor state (new universal editor)
+	// NodeEditor state (simplified)
 	nodeEditor: {
 		isOpen: false,
 		mode: 'create',
 		position: { x: 0, y: 0 },
 		screenPosition: { x: 0, y: 0 },
-		editorMode: 'quick',
-		selectedCommand: null,
-		filterQuery: '',
 		parentNode: null,
 		existingNodeId: null,
 		suggestedType: null,
@@ -85,15 +67,14 @@ export const createUiStateSlice: StateCreator<
 	setEdgeInfo: (edgeInfo) => {
 		set({ edgeInfo });
 	},
-	setNodeInfo: (nodeInfo) => {
-		set({ nodeInfo });
-	},
+
 	setPopoverOpen: (popover) => {
 		set({ popoverOpen: { ...get().popoverOpen, ...popover } });
 	},
 	setIsDraggingNodes: (isDraggingNodes) => {
 		set({ isDraggingNodes });
 	},
+	setCommentMode: (enabled) => set({ isCommentMode: enabled }),
 	setContextMenuState: (state) => set({ contextMenuState: state }),
 
 	// actions
@@ -102,58 +83,7 @@ export const createUiStateSlice: StateCreator<
 			isFocusMode: !get().isFocusMode,
 		});
 	},
-
-	// InlineNodeCreator actions
-	openInlineCreator: (options) => {
-		set({
-			inlineCreator: {
-				...get().inlineCreator,
-				isOpen: true,
-				position: options.position,
-				screenPosition: options.screenPosition || options.position,
-				parentNode: options.parentNode || null,
-				suggestedType: options.suggestedType || null,
-				filterQuery: '',
-				selectedCommand: null,
-			},
-		});
-	},
-	closeInlineCreator: () => {
-		set({
-			inlineCreator: {
-				...get().inlineCreator,
-				isOpen: false,
-				filterQuery: '',
-				selectedCommand: null,
-			},
-		});
-	},
-	setInlineCreatorCommand: (command) => {
-		set({
-			inlineCreator: {
-				...get().inlineCreator,
-				selectedCommand: command,
-			},
-		});
-	},
-	setInlineCreatorMode: (mode) => {
-		set({
-			inlineCreator: {
-				...get().inlineCreator,
-				mode,
-			},
-		});
-	},
-	setInlineCreatorFilterQuery: (query) => {
-		set({
-			inlineCreator: {
-				...get().inlineCreator,
-				filterQuery: query,
-			},
-		});
-	},
-
-	// NodeEditor actions (new universal editor)
+	// NodeEditor actions (simplified)
 	openNodeEditor: (options) => {
 		set({
 			nodeEditor: {
@@ -165,8 +95,6 @@ export const createUiStateSlice: StateCreator<
 				parentNode: options.parentNode || null,
 				existingNodeId: options.existingNodeId || null,
 				suggestedType: options.suggestedType || null,
-				filterQuery: '',
-				selectedCommand: null,
 			},
 		});
 	},
@@ -175,33 +103,7 @@ export const createUiStateSlice: StateCreator<
 			nodeEditor: {
 				...get().nodeEditor,
 				isOpen: false,
-				filterQuery: '',
-				selectedCommand: null,
 				existingNodeId: null,
-			},
-		});
-	},
-	setNodeEditorCommand: (command) => {
-		set({
-			nodeEditor: {
-				...get().nodeEditor,
-				selectedCommand: command,
-			},
-		});
-	},
-	setNodeEditorMode: (mode) => {
-		set({
-			nodeEditor: {
-				...get().nodeEditor,
-				editorMode: mode,
-			},
-		});
-	},
-	setNodeEditorFilterQuery: (query) => {
-		set({
-			nodeEditor: {
-				...get().nodeEditor,
-				filterQuery: query,
 			},
 		});
 	},
@@ -209,7 +111,7 @@ export const createUiStateSlice: StateCreator<
 	// CommandPalette actions
 	openCommandPalette: (options) => {
 		// Filter commands based on trigger type
-		const filteredCommands = nodeCommands.filter(command => {
+		const filteredCommands = nodeCommands.filter((command) => {
 			if (options.trigger === '/') {
 				// For '/' trigger, show all commands
 				return true;
@@ -252,7 +154,7 @@ export const createUiStateSlice: StateCreator<
 
 	setCommandPaletteSearch: (query) => {
 		const { commandPalette } = get();
-		const allCommands = nodeCommands.filter(command => {
+		const allCommands = nodeCommands.filter((command: Command) => {
 			if (commandPalette.trigger === '/') {
 				return true;
 			} else if (commandPalette.trigger === '$') {
@@ -263,13 +165,15 @@ export const createUiStateSlice: StateCreator<
 		});
 
 		// Filter commands based on search query
-		const filteredCommands = query.trim() === '' 
-			? allCommands
-			: allCommands.filter(command => 
-				command.label.toLowerCase().includes(query.toLowerCase()) ||
-				command.command.toLowerCase().includes(query.toLowerCase()) ||
-				command.description.toLowerCase().includes(query.toLowerCase())
-			);
+		const filteredCommands =
+			query.trim() === ''
+				? allCommands
+				: allCommands.filter(
+						(command: Command) =>
+							command.label.toLowerCase().includes(query.toLowerCase()) ||
+							command.trigger.toLowerCase().includes(query.toLowerCase()) ||
+							command.description.toLowerCase().includes(query.toLowerCase())
+					);
 
 		set({
 			commandPalette: {
@@ -285,7 +189,7 @@ export const createUiStateSlice: StateCreator<
 		const { commandPalette } = get();
 		const maxIndex = Math.max(0, commandPalette.filteredCommands.length - 1);
 		const validIndex = Math.max(0, Math.min(index, maxIndex));
-		
+
 		set({
 			commandPalette: {
 				...commandPalette,
@@ -298,13 +202,13 @@ export const createUiStateSlice: StateCreator<
 		const { commandPalette } = get();
 		const maxIndex = Math.max(0, commandPalette.filteredCommands.length - 1);
 		let newIndex = commandPalette.selectedIndex;
-		
+
 		if (direction === 'up') {
 			newIndex = newIndex > 0 ? newIndex - 1 : maxIndex;
 		} else if (direction === 'down') {
 			newIndex = newIndex < maxIndex ? newIndex + 1 : 0;
 		}
-		
+
 		set({
 			commandPalette: {
 				...commandPalette,
@@ -315,11 +219,16 @@ export const createUiStateSlice: StateCreator<
 
 	executeCommand: (command) => {
 		const { commandPalette } = get();
-		
+
 		// This will be used by the CodeMirror extension to handle the command execution
 		// The actual node creation/editing will be handled by the calling component
-		console.log('Executing command:', command, 'at position:', commandPalette.position);
-		
+		console.log(
+			'Executing command:',
+			command,
+			'at position:',
+			commandPalette.position
+		);
+
 		// Close the command palette after execution
 		get().closeCommandPalette();
 	},

@@ -212,9 +212,11 @@ const MindMapCardComponent = ({
 	if (viewMode === 'list') {
 		return (
 			<motion.div
-				initial={{ opacity: 0, y: 10 }}
 				animate={{ opacity: 1, y: 0 }}
 				exit={{ opacity: 0, y: -10 }}
+				initial={{ opacity: 0, y: 10 }}
+				onMouseEnter={() => setIsHovered(true)}
+				onMouseLeave={() => setIsHovered(false)}
 				transition={{ duration: 0.2 }}
 				className={cn(
 					'group relative flex items-center gap-4 p-4 rounded-lg border transition-all',
@@ -222,24 +224,22 @@ const MindMapCardComponent = ({
 					selected && 'border-sky-600 bg-sky-950/20',
 					'hover:shadow-lg hover:shadow-zinc-900/50'
 				)}
-				onMouseEnter={() => setIsHovered(true)}
-				onMouseLeave={() => setIsHovered(false)}
 			>
 				{/* Selection Checkbox */}
 				{onSelect && (
 					<div className='flex items-center'>
 						<Checkbox
 							checked={selected}
+							className='touch-manipulation'
 							onChange={(checked) => onSelect?.(map.id, checked)}
 							size='sm'
 							variant='default'
-							className='touch-manipulation'
 						/>
 					</div>
 				)}
 
 				{/* Thumbnail */}
-				<Link href={`/mind-map/${map.id}`} className='flex-shrink-0'>
+				<Link className='flex-shrink-0' href={`/mind-map/${map.id}`}>
 					<div
 						className='w-16 h-16 rounded-md overflow-hidden'
 						style={{ background: meshGradient.background }}
@@ -249,7 +249,7 @@ const MindMapCardComponent = ({
 				</Link>
 
 				{/* Content */}
-				<Link href={`/mind-map/${map.id}`} className='flex-grow min-w-0'>
+				<Link className='flex-grow min-w-0' href={`/mind-map/${map.id}`}>
 					<div className='flex items-start justify-between'>
 						<div className='min-w-0 flex-grow'>
 							<h3 className='text-white font-medium truncate'>{map.title}</h3>
@@ -273,13 +273,13 @@ const MindMapCardComponent = ({
 
 				{/* Actions */}
 				<div className='flex items-center gap-2'>
-					<DropdownMenu open={isActionsOpen} onOpenChange={setIsActionsOpen}>
+					<DropdownMenu onOpenChange={setIsActionsOpen} open={isActionsOpen}>
 						<DropdownMenuTrigger asChild>
 							<Button
-								variant='ghost'
-								size='icon'
 								className='h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity'
 								onClick={(e) => e.stopPropagation()}
+								size='icon'
+								variant='ghost'
 							>
 								<MoreVertical className='h-4 w-4' />
 							</Button>
@@ -315,8 +315,8 @@ const MindMapCardComponent = ({
 									<DropdownMenuSeparator className='bg-zinc-800' />
 
 									<DropdownMenuItem
-										onClick={() => onDelete(map.id)}
 										className='text-red-400 focus:text-red-300'
+										onClick={() => onDelete(map.id)}
 									>
 										<Trash2 className='mr-2 h-4 w-4' />
 										Delete
@@ -333,10 +333,17 @@ const MindMapCardComponent = ({
 	// Grid view (default) with enhanced mobile touch interactions and keyboard support
 	return (
 		<motion.div
-			initial={{ opacity: 0, scale: 0.95 }}
 			animate={{ opacity: 1, scale: 1 }}
+			aria-label={`Mind map: ${map.title}. Press Enter to open, Space to select, Delete to remove.`}
 			exit={{ opacity: 0, scale: 0.95 }}
+			initial={{ opacity: 0, scale: 0.95 }}
+			onMouseLeave={() => setIsHovered(false)}
+			onTouchStart={() => setIsHovered(true)}
 			transition={{ duration: 0.2 }}
+			onKeyDown={handleKeyDown}
+			onMouseEnter={() => setIsHovered(true)}
+			role='button'
+			tabIndex={0}
 			className={cn(
 				'group/mind-card relative touch-manipulation focus:outline-none',
 				'focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-zinc-900 rounded-lg',
@@ -344,27 +351,17 @@ const MindMapCardComponent = ({
 					'ring-2 ring-sky-600 ring-offset-2 ring-offset-zinc-900 rounded-lg',
 				(isFocused || isHovered) && 'z-10'
 			)}
-			onMouseEnter={() => setIsHovered(true)}
-			onMouseLeave={() => setIsHovered(false)}
-			onFocus={() => {
-				setIsFocused(true);
-				setIsHovered(true);
-			}}
 			onBlur={() => {
 				setIsFocused(false);
 				setIsHovered(false);
 			}}
-			// Enhanced touch interactions
-			onTouchStart={() => setIsHovered(true)}
+			onFocus={() => {
+				setIsFocused(true);
+				setIsHovered(true);
+			}}
 			onTouchEnd={() => {
-				// Keep hovered state briefly for better UX
 				setTimeout(() => setIsHovered(false), 2000);
 			}}
-			// Keyboard navigation support
-			tabIndex={0}
-			role='button'
-			aria-label={`Mind map: ${map.title}. Press Enter to open, Space to select, Delete to remove.`}
-			onKeyDown={handleKeyDown}
 		>
 			<Link href={`/mind-map/${map.id}`}>
 				<div
@@ -399,9 +396,9 @@ const MindMapCardComponent = ({
 					<div className='absolute top-3 right-3 z-30 flex items-center gap-2'>
 						{map.team && (
 							<motion.div
-								initial={{ opacity: 0, x: 10 }}
 								animate={{ opacity: isHovered ? 1 : 0, x: isHovered ? 0 : 10 }}
 								className='px-2 py-1 rounded-full bg-black/50 backdrop-blur-sm'
+								initial={{ opacity: 0, x: 10 }}
 							>
 								<Users className='h-3 w-3 text-white' />
 							</motion.div>
@@ -448,20 +445,20 @@ const MindMapCardComponent = ({
 				<AnimatePresence>
 					{(isHovered || selected) && (
 						<motion.div
-							initial={{ opacity: 0, scale: 0.8 }}
 							animate={{ opacity: 1, scale: 1 }}
-							exit={{ opacity: 0, scale: 0.8 }}
 							className='absolute top-2 left-2 z-30'
+							exit={{ opacity: 0, scale: 0.8 }}
+							initial={{ opacity: 0, scale: 0.8 }}
 							onClick={handleSelect}
 						>
 							{/* Larger touch target with padding */}
 							<div className='p-2 -m-2 min-w-[44px] min-h-[44px] flex items-center justify-center'>
 								<Checkbox
 									checked={selected}
+									className='touch-manipulation'
 									onChange={(checked) => onSelect?.(map.id, checked)}
 									size='md'
 									variant='card'
-									className='touch-manipulation'
 								/>
 							</div>
 						</motion.div>
@@ -475,15 +472,15 @@ const MindMapCardComponent = ({
 						{(isHovered || selected) && (
 							<DropdownMenuTrigger asChild>
 								<Button
-									initial={{ opacity: 0, scale: 0.8 }}
 									animate={{ opacity: 1, scale: 1 }}
 									exit={{ opacity: 0, scale: 0.8 }}
+									initial={{ opacity: 0, scale: 0.8 }}
 									onClick={(e) => e.preventDefault()}
-									variant='ghost'
 									size='icon'
+									variant='ghost'
 									className={cn(
 										// Much smaller and more subtle
-										'bg-black/10 backdrop-blur-sm hover:bg-black/30 active:bg-black/50',
+										'bg-black/10  hover:bg-black/30 active:bg-black/50',
 										'text-white/50 hover:text-white border-0',
 										'touch-manipulation rounded-full',
 										isHovered ? 'opacity-80' : 'opacity-20'
@@ -525,8 +522,8 @@ const MindMapCardComponent = ({
 								<DropdownMenuSeparator className='bg-zinc-800' />
 
 								<DropdownMenuItem
-									onClick={() => onDelete(map.id)}
 									className='text-red-400 focus:text-red-300'
+									onClick={() => onDelete(map.id)}
 								>
 									<Trash2 className='mr-2 h-4 w-4' />
 									Delete

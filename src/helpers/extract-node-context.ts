@@ -1,12 +1,12 @@
-import { AppNode } from '@/types/app-node';
-import { AvailableNodeTypes } from '@/types/available-node-types';
-import { NodeData } from '@/types/node-data';
+import type { AvailableNodeTypes } from '@/registry/node-registry';
+import type { AppNode } from '@/types/app-node';
+import type { NodeData } from '@/types/node-data';
 import { isAppNode } from './guards/is-app-node';
 
 type NodeContextExtractor = (node: AppNode | NodeData) => string;
 
 type NodeExtractionStrategy = {
-	[K in AvailableNodeTypes]?: NodeContextExtractor;
+	[key in AvailableNodeTypes]?: NodeContextExtractor;
 };
 
 export function createNodeContextExtractor(
@@ -82,7 +82,7 @@ export function createNodeContextExtractor(
 function extractDefaultNodeContext(node: NodeData): string {
 	const content = node?.content || '';
 	const title = node?.metadata?.title || '';
-	const tags = node?.tags?.join(', ') || '';
+	const tags = node?.metadata?.tags?.join(', ') || '';
 
 	const parts = [
 		`ID: ${node?.id}`,
@@ -117,7 +117,7 @@ function extractTextNodeContext(node: NodeData): string {
 }
 
 function extractImageNodeContext(node: NodeData): string {
-	const imageUrl = node?.metadata?.imageUrl || node?.metadata?.image_url || '';
+	const imageUrl = node?.metadata?.imageUrl || '';
 	const altText = node?.metadata?.altText || '';
 	const caption = node?.metadata?.caption || '';
 	const showCaption = node?.metadata?.showCaption;
@@ -151,13 +151,11 @@ function extractResourceNodeContext(node: NodeData): string {
 function extractQuestionNodeContext(node: NodeData): string {
 	const content = node?.content || '';
 	const answer = node?.metadata?.answer || '';
-	const aiAnswer = node?.aiData?.aiAnswer || '';
 
 	const parts = [
 		`ID: ${node?.id}`,
 		content && `Question: ${content}`,
 		answer && `Answer: ${answer}`,
-		aiAnswer && `AI Answer: ${aiAnswer}`,
 	].filter(Boolean);
 
 	return parts.join(' | ');

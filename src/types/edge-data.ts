@@ -16,9 +16,11 @@ export interface EdgeData extends Record<string, unknown> {
 	style?: {
 		stroke?: string;
 		strokeWidth?: string | number;
+		strokeDasharray?: string | number; // Added for ghost edges - allows both string and number to match CSSProperties
 	} | null;
 	metadata?: {
 		pathType?: PathType; // Added pathType
+		isGhostEdge?: boolean; // Mark edges as ghost edges for cleanup
 	} | null;
 	aiData?: {
 		isSuggested?: boolean | null;

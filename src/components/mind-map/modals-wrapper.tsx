@@ -1,9 +1,9 @@
 'use client';
 import useAppStore from '@/store/mind-map-store';
-import { HistorySidebar } from '../history-sidebar';
+import { HistorySidebar } from '../history/history-sidebar';
+import { MapSettingsPanel } from '../mind-map/map-settings-panel';
 import EdgeEditModal from '../modals/edge-edit-modal';
 import { ReferenceSearchModal } from '../modals/reference-search-modal';
-import SelectNodeTypeModal from '../modals/select-node-type-modal';
 import { SharePanel } from '../sharing/share-panel';
 
 export function ModalsWrapper() {
@@ -14,17 +14,15 @@ export function ModalsWrapper() {
 
 	return (
 		<>
-			{popoverOpen.nodeType && <SelectNodeTypeModal />}
-
 			{popoverOpen.edgeEdit && <EdgeEditModal />}
 
-			{popoverOpen.history && <HistorySidebar />}
+			<HistorySidebar />
 
 			{popoverOpen.sharePanel && mindMap && currentUser && (
 				<SharePanel
+					isOpen={popoverOpen.sharePanel}
 					mapId={mindMap.id}
 					mapTitle={mindMap.title}
-					isOpen={popoverOpen.sharePanel}
 					onClose={() => setPopoverOpen({ sharePanel: false })}
 					currentUser={{
 						id: currentUser.id,
@@ -34,6 +32,11 @@ export function ModalsWrapper() {
 					}}
 				/>
 			)}
+
+			<MapSettingsPanel
+				isOpen={popoverOpen.mapSettings}
+				onClose={() => setPopoverOpen({ mapSettings: false })}
+			/>
 
 			{popoverOpen.referenceSearch && <ReferenceSearchModal />}
 		</>

@@ -27,18 +27,12 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 	// Handle real-time edge events
 	const handleEdgeRealtimeEvent = (payload: any) => {
 		const { eventType, new: newRecord, old: oldRecord } = payload;
-		const { edges, lastSavedEdgeTimestamps } = get();
+		const { edges, markEdgeAsSystemUpdate } = get();
 
-		// Skip if this change was made by current user recently (prevent loops)
+		// Mark this edge as system-updated to prevent save loop
 		const edgeId = newRecord?.id || oldRecord?.id;
-
-		if (edgeId && lastSavedEdgeTimestamps[edgeId]) {
-			const timeSinceLastSave = Date.now() - lastSavedEdgeTimestamps[edgeId];
-
-			if (timeSinceLastSave < 1000) {
-				// Skip if saved within last second
-				return;
-			}
+		if (edgeId) {
+			markEdgeAsSystemUpdate(edgeId);
 		}
 
 		switch (eventType) {
@@ -121,8 +115,33 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 	return {
 		// state
 		edges: [],
-		lastSavedEdgeTimestamps: {},
+		systemUpdatedEdges: new Map(),
 		_edgesSubscription: null,
+
+		// System update tracking helpers
+		markEdgeAsSystemUpdate: (edgeId: string) => {
+			set((state) => {
+				const newMap = new Map(state.systemUpdatedEdges);
+				newMap.set(edgeId, Date.now());
+				return { systemUpdatedEdges: newMap };
+			});
+		},
+
+		shouldSkipEdgeSave: (edgeId: string) => {
+			const timestamp = get().systemUpdatedEdges.get(edgeId);
+			if (!timestamp) return false;
+
+			// Skip if marked within last 3 seconds
+			const age = Date.now() - timestamp;
+			if (age > 3000) {
+				// Clean up stale entry
+				const newMap = new Map(get().systemUpdatedEdges);
+				newMap.delete(edgeId);
+				set({ systemUpdatedEdges: newMap });
+				return false;
+			}
+			return true;
+		},
 
 		// handlers
 		onEdgesChange: (changes) => {
@@ -132,16 +151,15 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 
 			// Trigger debounced saves for relevant edge changes
 			changes.forEach((change) => {
-				if (change.type === 'remove') {
-					// Edge removal is handled elsewhere
+				// Skip if change doesn't have an id (add/remove types)
+				if (!('id' in change)) return;
+
+				// Skip saves for system-updated edges or during revert
+				if (get().shouldSkipEdgeSave(change.id) || get().isReverting) {
 					return;
-				} else if (change.type === 'select') {
-					// No need to save for selection changes
-					return;
-				} else if (change.type === 'add') {
-					// New edges are handled elsewhere
-					return;
-				} else if (change.type === 'replace') {
+				}
+
+				if (change.type === 'replace') {
 					// Data changes should trigger a save
 					get().triggerEdgeSave(change.id);
 				}
@@ -408,13 +426,6 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 						`Edge with id ${edgeId} not found or has invalid data`
 					);
 				}
-
-				set((state) => ({
-					lastSavedEdgeTimestamps: {
-						...state.lastSavedEdgeTimestamps,
-						[edgeId]: Date.now(),
-					},
-				}));
 
 				if (!mapId) {
 					console.error('Cannot save edge: No mapId defined');

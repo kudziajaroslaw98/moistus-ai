@@ -40,27 +40,29 @@ export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(
 
 		return (
 			<button
-				ref={ref}
-				type='button'
-				role='checkbox'
 				aria-checked={checked}
 				disabled={disabled}
 				onClick={handleClick}
+				ref={ref}
+				role='checkbox'
+				type='button'
 				className={cn(
 					'relative flex items-center justify-center rounded border-2 transition-all',
-					'focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-zinc-900',
+					'focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:ring-offset-2 focus:ring-offset-app-primary-muted',
 					sizeClasses[size],
 					// Default variant styling
 					variant === 'default' && [
 						'border-zinc-600 bg-zinc-800',
-						checked && 'border-sky-500 bg-sky-500',
+						checked &&
+							'border-app-primary/60 bg-app-primary! accent-primary-500',
 						!checked && 'hover:border-zinc-500 hover:bg-zinc-700',
 						disabled && 'opacity-50 cursor-not-allowed',
 					],
 					// Card variant styling (for overlay on images)
 					variant === 'card' && [
 						'border-white/30 bg-black/30 backdrop-blur-sm',
-						checked && 'border-sky-500 bg-sky-500',
+						checked &&
+							'border-app-primary/60 bg-app-primary! accent-primary-500',
 						!checked && 'hover:border-white/50 hover:bg-black/40',
 						disabled && 'opacity-50 cursor-not-allowed',
 					],
@@ -69,6 +71,7 @@ export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(
 			>
 				{/* Checkmark */}
 				<motion.div
+					className='flex items-center justify-center'
 					initial={false}
 					animate={{
 						scale: checked ? 1 : 0,
@@ -79,7 +82,6 @@ export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(
 						stiffness: 500,
 						damping: 30,
 					}}
-					className='flex items-center justify-center'
 				>
 					<Check
 						className={cn(

@@ -129,8 +129,8 @@ export class NodeEditorErrorBoundary extends Component<ErrorBoundaryProps, Error
 
 					<div className="flex gap-2">
 						<button
-							onClick={this.handleReset}
 							className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+							onClick={this.handleReset}
 						>
 							<RefreshCw className="w-4 h-4 mr-2" />
 							Reset Editor
@@ -138,8 +138,8 @@ export class NodeEditorErrorBoundary extends Component<ErrorBoundaryProps, Error
 						
 						{canRetry && (
 							<button
-								onClick={this.handleRetry}
 								className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+								onClick={this.handleRetry}
 							>
 								Try Again
 							</button>
@@ -164,12 +164,12 @@ export const withErrorBoundary = <P extends object>(
 	Component: React.ComponentType<P>,
 	errorBoundaryProps?: Omit<ErrorBoundaryProps, 'children'>
 ) => {
-	const WrappedComponent = React.forwardRef<any, P>((props, ref) => (
+	const WrappedComponent = (props: P) => (
 		<NodeEditorErrorBoundary {...errorBoundaryProps}>
-			<Component {...props} ref={ref} />
+			<Component {...props} />
 		</NodeEditorErrorBoundary>
-	));
-	
+	);
+
 	WrappedComponent.displayName = `withErrorBoundary(${Component.displayName || Component.name})`;
 	return WrappedComponent;
 };

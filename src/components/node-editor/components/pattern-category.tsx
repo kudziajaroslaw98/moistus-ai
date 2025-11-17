@@ -6,8 +6,8 @@ import { PatternItem } from './pattern-item';
 
 const theme = {
 	category: {
-		wrapper: 'space-y-2',
-		title: 'text-xs font-semibold text-zinc-500 uppercase tracking-wider',
+		wrapper: 'space-y-1.5',
+		title: 'text-xs font-semibold text-zinc-600 uppercase tracking-wide mb-1',
 	},
 };
 
@@ -30,13 +30,13 @@ export const PatternCategory: React.FC<PatternCategoryProps> = memo(
 					{categoryLabels[category] || category}
 				</h3>
 
-				<div className='space-y-1'>
+				<div className='flex flex-col gap-1'>
 					{patterns.map((pattern, index) => (
 						<PatternItem
-							key={`${pattern.pattern}-${index}`}
-							pattern={pattern}
-							onClick={onPatternClick}
 							isInteractive
+							key={`${pattern.pattern}-${index}`}
+							onClick={onPatternClick}
+							pattern={pattern}
 						/>
 					))}
 				</div>

@@ -1,7 +1,6 @@
 'use client';
 
-import { NodeData } from '@/types/node-data';
-import { Node, NodeProps } from '@xyflow/react';
+import { cn } from '@/lib/utils';
 import { Check, Code, Copy, Maximize2, Minimize2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { memo, useCallback, useState } from 'react';
@@ -9,32 +8,32 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { BaseNodeWrapper } from './base-node-wrapper';
-import { GlassmorphismTheme } from './themes/glassmorphism-theme';
+import { TypedNodeProps } from './core/types';
 
 // Custom dark theme optimized for readability
 const customDarkTheme = {
 	'pre[class*="language-"]': {
-		color: GlassmorphismTheme.text.high,
-		background: GlassmorphismTheme.elevation.sunken, // Sunken effect - darker than node background
+		color: 'var(--color-text-primary)',
+		background: 'var(--color-bg-elevated)',
 		fontFamily: 'var(--font-geist-mono), monospace',
 		fontSize: '13px',
 		lineHeight: '1.6',
 		letterSpacing: '0.02em',
-		border: `1px solid ${GlassmorphismTheme.borders.default}`,
+		border: `1px solid var(--color-border-default)`,
 		borderRadius: '6px',
 		padding: '1rem',
 	},
 	'code[class*="language-"]': {
-		color: GlassmorphismTheme.text.high,
+		color: 'var(--color-text-primary)',
 		background: 'none',
 	},
 	// Syntax colors - desaturated for dark theme
-	comment: { color: GlassmorphismTheme.text.disabled },
-	prolog: { color: GlassmorphismTheme.text.disabled },
-	doctype: { color: GlassmorphismTheme.text.disabled },
-	cdata: { color: GlassmorphismTheme.text.disabled },
+	comment: { color: 'var(--color-text-tertiary)' },
+	prolog: { color: 'var(--color-text-tertiary)' },
+	doctype: { color: 'var(--color-text-tertiary)' },
+	cdata: { color: 'var(--color-text-tertiary)' },
 
-	punctuation: { color: GlassmorphismTheme.text.medium },
+	punctuation: { color: 'var(--color-text-secondary)' },
 	property: { color: 'rgba(147, 197, 253, 0.87)' }, // Desaturated blue
 	tag: { color: 'rgba(239, 68, 68, 0.87)' }, // Desaturated red
 	boolean: { color: 'rgba(251, 191, 36, 0.87)' }, // Desaturated amber
@@ -68,14 +67,14 @@ const customDarkTheme = {
 
 	// Line numbers
 	'.line-numbers .line-numbers-rows': {
-		borderRight: `1px solid ${GlassmorphismTheme.borders.default}`,
+		borderRight: `1px solid var(--color-border-default)`,
 	},
 	'.line-numbers-rows > span:before': {
-		color: GlassmorphismTheme.text.disabled,
+		color: 'var(--color-text-tertiary)',
 	},
 };
 
-type CodeNodeProps = NodeProps<Node<NodeData>>;
+type CodeNodeProps = TypedNodeProps<'codeNode'>;
 
 const CodeNodeComponent = (props: CodeNodeProps) => {
 	const { id, data } = props;
@@ -116,8 +115,8 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 			setCopied(true);
 			toast.success('Code copied to clipboard!', {
 				style: {
-					background: GlassmorphismTheme.elevation[4],
-					color: GlassmorphismTheme.text.high,
+					background: 'var(--color-bg-elevated)',
+					color: 'var(--color-text-primary)',
 					border: `1px solid rgba(52, 211, 153, 0.3)`,
 				},
 			});
@@ -126,8 +125,8 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 			console.error('Failed to copy code:', err);
 			toast.error('Failed to copy code', {
 				style: {
-					background: GlassmorphismTheme.elevation[4],
-					color: GlassmorphismTheme.text.high,
+					background: 'var(--color-bg-elevated)',
+					color: 'var(--color-text-primary)',
 					border: `1px solid rgba(239, 68, 68, 0.3)`,
 				},
 			});
@@ -140,53 +139,28 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 	return (
 		<BaseNodeWrapper
 			{...props}
-			nodeClassName='code-node'
-			nodeType='Code'
-			nodeIcon={<Code className='size-4' />}
-			includePadding={false}
 			hideNodeType
 			elevation={1}
+			includePadding={false}
+			nodeClassName='code-node'
+			nodeIcon={<Code className='size-4' />}
+			nodeType='Code'
 		>
-			<div
-				className='w-full flex-grow overflow-hidden rounded-lg'
-				style={{
-					backgroundColor: GlassmorphismTheme.elevation[0], // Darker background for code
-					border: `1px solid ${GlassmorphismTheme.borders.default}`,
-				}}
-			>
+			<div className='w-full flex-grow overflow-hidden rounded-lg bg-base border border-border-default'>
 				{/* Header with file info and controls */}
-				<div
-					className='flex items-center justify-between px-4 py-3'
-					style={{
-						backgroundColor: GlassmorphismTheme.elevation[1], // Elevation 1
-						borderBottom: `1px solid ${GlassmorphismTheme.borders.default}`,
-					}}
-				>
+				<div className='flex items-center justify-between px-4 py-3 bg-base border-b border-b-border-default'>
 					<div className='flex items-center gap-3'>
 						{/* Language indicator */}
 						<div className='flex items-center gap-2'>
 							<span className='text-base'>{getLanguageIcon(language)}</span>
 
 							<div className='flex flex-col'>
-								<span
-									style={{
-										fontSize: '13px',
-										fontWeight: 500,
-										color: GlassmorphismTheme.text.high,
-										textTransform: 'capitalize',
-									}}
-								>
+								<span className='text-[13px] font-medium text-text-primary capitalize'>
 									{language}
 								</span>
 
 								{fileName && (
-									<span
-										style={{
-											fontSize: '11px',
-											color: GlassmorphismTheme.text.disabled,
-											fontFamily: 'var(--font-geist-mono)',
-										}}
-									>
+									<span className='text-[11px] text-text-disabled font-mono'>
 										{fileName}
 									</span>
 								)}
@@ -199,73 +173,56 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 						{/* Expand/Collapse for long code */}
 						{lineCount > 20 && (
 							<Button
+								className='!cursor-pointer w-8 h-8 p-0 bg-transparent border border-border-strong'
 								onClick={() => setIsExpanded(!isExpanded)}
 								size={'icon'}
-								variant={'ghost'}
-								className='!cursor-pointer w-8 h-8 p-0'
-								style={{
-									backgroundColor: 'transparent',
-									border: `1px solid ${GlassmorphismTheme.borders.hover}`,
-								}}
 								title={isExpanded ? 'Collapse' : 'Expand'}
+								variant={'ghost'}
 							>
 								{isExpanded ? (
-									<Minimize2
-										className='w-3.5 h-3.5'
-										style={{ color: GlassmorphismTheme.text.medium }}
-									/>
+									<Minimize2 className='w-3.5 h-3.5 text-text-secondary' />
 								) : (
-									<Maximize2
-										className='w-3.5 h-3.5'
-										style={{ color: GlassmorphismTheme.text.medium }}
-									/>
+									<Maximize2 className='w-3.5 h-3.5 text-text-secondary' />
 								)}
 							</Button>
 						)}
 
 						{/* Copy button with animation */}
 						<Button
+							className='!cursor-pointer w-8 h-8 p-0 relative border overflow-hidden transition-all duration-200 ease-spring'
+							disabled={copied}
 							onClick={handleCopy}
 							size={'icon'}
 							variant={'ghost'}
-							className='!cursor-pointer w-8 h-8 p-0 relative overflow-hidden'
 							style={{
 								backgroundColor: copied
 									? 'rgba(52, 211, 153, 0.1)'
 									: 'transparent',
-								border: copied
-									? '1px solid rgba(52, 211, 153, 0.3)'
-									: `1px solid ${GlassmorphismTheme.borders.hover}`,
-								transition: 'all 0.2s ease',
+								borderColor: copied
+									? 'rgba(52, 211, 153, 0.3)'
+									: `var(--color-border-hover)`,
 							}}
-							disabled={copied}
 						>
 							<AnimatePresence mode='wait'>
 								{copied ? (
 									<motion.div
-										key='check'
-										initial={{ scale: 0, rotate: -180 }}
 										animate={{ scale: 1, rotate: 0 }}
 										exit={{ scale: 0, rotate: 180 }}
-										transition={{ type: 'spring', stiffness: 400 }}
+										initial={{ scale: 0, rotate: -180 }}
+										key='check'
+										transition={{ type: 'spring', duration: 0.3 }}
 									>
-										<Check
-											className='w-3.5 h-3.5'
-											style={{ color: 'rgba(52, 211, 153, 0.87)' }}
-										/>
+										<Check className='w-3.5 h-3.5 text-success-500' />
 									</motion.div>
 								) : (
 									<motion.div
-										key='copy'
-										initial={{ scale: 0, rotate: 180 }}
 										animate={{ scale: 1, rotate: 0 }}
 										exit={{ scale: 0, rotate: -180 }}
-										transition={{ type: 'spring', stiffness: 400 }}
+										initial={{ scale: 0, rotate: 180 }}
+										key='copy'
+										transition={{ type: 'spring', duration: 0.3 }}
 									>
-										<Copy
-											className='w-3.5 h-3.5'
-											style={{ color: 'rgba(147, 197, 253, 0.87)' }}
-										/>
+										<Copy className='w-3.5 h-3.5 text-text-secondary' />
 									</motion.div>
 								)}
 							</AnimatePresence>
@@ -275,31 +232,17 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 
 				{/* Code content with syntax highlighting */}
 				<div
-					className='relative overflow-auto'
-					style={{
-						maxHeight: isExpanded ? 'none' : '400px',
-						transition: 'max-height 0.3s ease',
-					}}
+					className={cn(
+						'relative overflow-auto transition-all duration-300 ease-spring',
+						isExpanded ? 'max-h-none' : 'max-h-[400px]'
+					)}
 				>
 					<SyntaxHighlighter
 						language={language}
-						style={customDarkTheme}
 						showLineNumbers={showLineNumbers}
+						style={customDarkTheme}
 						wrapLines={true}
 						wrapLongLines={true}
-						customStyle={{
-							margin: 0,
-							padding: '1rem',
-							background: GlassmorphismTheme.elevation[0],
-							fontSize: '13px',
-						}}
-						lineNumberStyle={{
-							color: GlassmorphismTheme.text.disabled,
-							fontSize: '11px',
-							minWidth: '3em',
-							paddingRight: '1em',
-							userSelect: 'none',
-						}}
 						codeTagProps={{
 							style: {
 								fontFamily: 'var(--font-geist-mono)',
@@ -307,18 +250,26 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 								letterSpacing: '0.02em',
 							},
 						}}
+						customStyle={{
+							margin: 0,
+							padding: '1rem',
+							background: 'var(--color-bg-base)',
+							fontSize: '13px',
+						}}
+						lineNumberStyle={{
+							color: 'var(--color-text-tertiary)',
+							fontSize: '11px',
+							minWidth: '3em',
+							paddingRight: '1em',
+							userSelect: 'none',
+						}}
 					>
 						{codeContent || '// Add code snippet here...'}
 					</SyntaxHighlighter>
 
 					{/* Gradient overlay for collapsed state */}
 					{!isExpanded && lineCount > 20 && (
-						<div
-							className='absolute bottom-0 left-0 right-0 h-12 pointer-events-none'
-							style={{
-								background: `linear-gradient(to top, ${GlassmorphismTheme.elevation[0]} 0%, transparent 100%)`,
-							}}
-						/>
+						<div className='absolute bottom-0 left-0 right-0 h-12 pointer-events-none bg-linear-to-t  from-elevation-0 to-transparent' />
 					)}
 				</div>
 			</div>

@@ -20,6 +20,7 @@ interface RateLimitConfig {
  */
 class InMemoryRateLimiter {
 	private cache = new Map<string, RateLimitEntry>();
+
 	private cleanupInterval: NodeJS.Timeout | null = null;
 
 	constructor(private config: RateLimitConfig) {

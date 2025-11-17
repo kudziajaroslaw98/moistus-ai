@@ -3,7 +3,7 @@ import type { Transition, Variants } from 'motion/react';
 // Default transition settings
 export const defaultTransition: Transition = {
 	duration: 0.5,
-	ease: [0.25, 0.1, 0.25, 1], // Custom cubic-bezier for smooth animations
+	ease: [0.25, 0.1, 0.25, 1] as const, // Custom cubic-bezier for smooth animations
 };
 
 export const springTransition: Transition = {
@@ -34,7 +34,7 @@ export const fadeInUp: Variants = {
 		y: 0,
 		transition: {
 			duration: 0.6,
-			ease: 'easeOut',
+			ease: 'easeOut' as const,
 		},
 	},
 };
@@ -49,7 +49,7 @@ export const fadeInScale: Variants = {
 		scale: 1,
 		transition: {
 			duration: 0.5,
-			ease: 'easeOut',
+			ease: 'easeOut' as const,
 		},
 	},
 };
@@ -78,7 +78,7 @@ export const staggerItem: Variants = {
 		y: 0,
 		transition: {
 			duration: 0.4,
-			ease: 'easeOut',
+			ease: 'easeOut' as const,
 		},
 	},
 };
@@ -137,7 +137,7 @@ export const checkmarkAnimation: Variants = {
 		pathLength: 1,
 		opacity: 1,
 		transition: {
-			pathLength: { duration: 0.6, ease: 'easeInOut' },
+			pathLength: { duration: 0.6, ease: 'easeInOut' as const },
 			opacity: { duration: 0.1 },
 		},
 	},
@@ -153,7 +153,7 @@ export const successPulse: Variants = {
 		opacity: [0, 1, 1],
 		transition: {
 			duration: 0.6,
-			ease: 'easeOut',
+			ease: 'easeOut' as const,
 		},
 	},
 };
@@ -166,7 +166,7 @@ export const floatingOrb = (duration: number = 20) => ({
 		scale: [1, 1.1, 0.9, 1],
 		transition: {
 			duration,
-			ease: 'easeInOut',
+			ease: 'easeInOut' as const,
 			repeat: Infinity,
 			repeatType: 'loop' as const,
 		},
@@ -180,7 +180,7 @@ export const floatingOrbReverse = (duration: number = 25) => ({
 		scale: [1, 0.95, 1.05, 1],
 		transition: {
 			duration,
-			ease: 'easeInOut',
+			ease: 'easeInOut' as const,
 			repeat: Infinity,
 			repeatType: 'loop' as const,
 		},

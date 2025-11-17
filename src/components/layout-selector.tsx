@@ -79,14 +79,14 @@ function LayoutConfigPanel({ config, onConfigChange }: LayoutConfigPanelProps) {
 						<label className='text-xs text-zinc-400'>Node Spacing</label>
 
 						<input
-							type='range'
-							min='20'
+							className='w-full'
 							max='200'
+							min='20'
+							type='range'
 							value={config.nodeSpacing}
 							onChange={(e) =>
 								updateConfig({ nodeSpacing: Number(e.target.value) })
 							}
-							className='w-full'
 						/>
 
 						<span className='text-xs text-zinc-500'>
@@ -100,14 +100,14 @@ function LayoutConfigPanel({ config, onConfigChange }: LayoutConfigPanelProps) {
 						<label className='text-xs text-zinc-400'>Rank Spacing</label>
 
 						<input
-							type='range'
-							min='50'
+							className='w-full'
 							max='300'
+							min='50'
+							type='range'
 							value={config.rankSpacing}
 							onChange={(e) =>
 								updateConfig({ rankSpacing: Number(e.target.value) })
 							}
-							className='w-full'
 						/>
 
 						<span className='text-xs text-zinc-500'>
@@ -124,16 +124,16 @@ function LayoutConfigPanel({ config, onConfigChange }: LayoutConfigPanelProps) {
 						<label className='text-xs text-zinc-400'>Iterations</label>
 
 						<input
-							type='range'
-							min='50'
+							className='w-full'
 							max='500'
+							min='50'
+							type='range'
 							value={(config as { iterations?: number }).iterations || 300}
 							onChange={(e) =>
 								updateConfig({
 									iterations: Number(e.target.value),
 								} as Partial<SpecificLayoutConfig>)
 							}
-							className='w-full'
 						/>
 
 						<span className='text-xs text-zinc-500'>
@@ -145,16 +145,16 @@ function LayoutConfigPanel({ config, onConfigChange }: LayoutConfigPanelProps) {
 						<label className='text-xs text-zinc-400'>Strength</label>
 
 						<input
-							type='range'
-							min='-500'
+							className='w-full'
 							max='-100'
+							min='-500'
+							type='range'
 							value={(config as { strength?: number }).strength || -300}
 							onChange={(e) =>
 								updateConfig({
 									strength: Number(e.target.value),
 								} as Partial<SpecificLayoutConfig>)
 							}
-							className='w-full'
 						/>
 
 						<span className='text-xs text-zinc-500'>
@@ -170,16 +170,16 @@ function LayoutConfigPanel({ config, onConfigChange }: LayoutConfigPanelProps) {
 						<label className='text-xs text-zinc-400'>Radius</label>
 
 						<input
-							type='range'
-							min='100'
+							className='w-full'
 							max='500'
+							min='100'
+							type='range'
 							value={(config as { radius?: number }).radius || 200}
 							onChange={(e) =>
 								updateConfig({
 									radius: Number(e.target.value),
 								} as Partial<SpecificLayoutConfig>)
 							}
-							className='w-full'
 						/>
 
 						<span className='text-xs text-zinc-500'>
@@ -191,19 +191,19 @@ function LayoutConfigPanel({ config, onConfigChange }: LayoutConfigPanelProps) {
 						<label className='text-xs text-zinc-400'>Start Angle</label>
 
 						<input
-							type='range'
-							min='0'
+							className='w-full'
 							max='360'
-							value={
-								((config as { startAngle?: number }).startAngle || 0) *
-								(180 / Math.PI)
-							}
+							min='0'
+							type='range'
 							onChange={(e) =>
 								updateConfig({
 									startAngle: Number(e.target.value) * (Math.PI / 180),
 								} as Partial<SpecificLayoutConfig>)
 							}
-							className='w-full'
+							value={
+								((config as { startAngle?: number }).startAngle || 0) *
+								(180 / Math.PI)
+							}
 						/>
 
 						<span className='text-xs text-zinc-500'>
@@ -223,16 +223,16 @@ function LayoutConfigPanel({ config, onConfigChange }: LayoutConfigPanelProps) {
 						<label className='text-xs text-zinc-400'>Columns</label>
 
 						<input
-							type='range'
-							min='2'
+							className='w-full'
 							max='10'
+							min='2'
+							type='range'
 							value={(config as { columns?: number }).columns || 4}
 							onChange={(e) =>
 								updateConfig({
 									columns: Number(e.target.value),
 								} as Partial<SpecificLayoutConfig>)
 							}
-							className='w-full'
 						/>
 
 						<span className='text-xs text-zinc-500'>
@@ -244,16 +244,16 @@ function LayoutConfigPanel({ config, onConfigChange }: LayoutConfigPanelProps) {
 						<label className='text-xs text-zinc-400'>Cell Width</label>
 
 						<input
-							type='range'
-							min='200'
+							className='w-full'
 							max='500'
+							min='200'
+							type='range'
 							value={(config as { cellWidth?: number }).cellWidth || 350}
 							onChange={(e) =>
 								updateConfig({
 									cellWidth: Number(e.target.value),
 								} as Partial<SpecificLayoutConfig>)
 							}
-							className='w-full'
 						/>
 
 						<span className='text-xs text-zinc-500'>
@@ -265,8 +265,8 @@ function LayoutConfigPanel({ config, onConfigChange }: LayoutConfigPanelProps) {
 
 			<div className='flex gap-2'>
 				<Button
-					onClick={() => onConfigChange(config)}
 					className='flex-1 bg-teal-600 hover:bg-teal-700 text-white'
+					onClick={() => onConfigChange(config)}
 					size='sm'
 				>
 					Apply Layout
@@ -330,11 +330,11 @@ const LayoutSelectorComponent = () => {
 	// const currentPreset = presets.find(p => p.id === selectedPreset);
 
 	return (
-		<Popover open={isOpen} onOpenChange={setIsOpen}>
+		<Popover onOpenChange={setIsOpen} open={isOpen}>
 			<PopoverTrigger asChild>
 				<Button
-					variant='secondary'
 					size='icon-md'
+					variant='secondary'
 					className={cn(
 						'gap-2 text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800',
 						currentLayoutConfig && 'text-teal-400'
@@ -349,18 +349,18 @@ const LayoutSelectorComponent = () => {
 			</PopoverTrigger>
 
 			<PopoverContent
-				className='w-80 p-0 bg-zinc-950 border-zinc-800'
 				align='start'
+				className='w-80 p-0 bg-zinc-950 border-zinc-800'
 			>
 				<div className='p-4 border-b border-zinc-800'>
 					<div className='flex items-center justify-between'>
 						<h3 className='font-medium text-zinc-200'>Layout Algorithms</h3>
 
 						<Button
-							variant='ghost'
-							size='sm'
-							onClick={() => setShowSettings(!showSettings)}
 							className={cn('size-8 p-0', showSettings && 'bg-zinc-800')}
+							onClick={() => setShowSettings(!showSettings)}
+							size='sm'
+							variant='ghost'
 						>
 							<Settings className='size-4' />
 						</Button>
@@ -374,7 +374,7 @@ const LayoutSelectorComponent = () => {
 				<div className='max-h-80 overflow-y-auto'>
 					{Object.entries(categorizedPresets).map(
 						([category, categoryPresets]) => (
-							<div key={category} className='p-2'>
+							<div className='p-2' key={category}>
 								<div className='flex items-center gap-2 mb-2 px-2'>
 									<div
 										className={cn(
@@ -401,17 +401,17 @@ const LayoutSelectorComponent = () => {
 
 										return (
 											<motion.button
+												disabled={preset.disabled}
 												key={preset.id}
 												onClick={() => handlePresetSelect(preset)}
+												whileHover={{ scale: 1.02 }}
+												whileTap={{ scale: 0.98 }}
 												className={cn(
 													'w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all',
 													'hover:bg-zinc-800 border border-transparent disabled:opacity-50',
 													isSelected && 'bg-zinc-800 border-teal-500/50',
 													isCurrent && !isSelected && 'bg-zinc-800/50'
 												)}
-												whileHover={{ scale: 1.02 }}
-												whileTap={{ scale: 0.98 }}
-												disabled={preset.disabled}
 											>
 												<div
 													className={cn(
@@ -447,9 +447,9 @@ const LayoutSelectorComponent = () => {
 				<AnimatePresence>
 					{showSettings && currentConfig && (
 						<motion.div
-							initial={{ height: 0, opacity: 0 }}
 							animate={{ height: 'auto', opacity: 1 }}
 							exit={{ height: 0, opacity: 0 }}
+							initial={{ height: 0, opacity: 0 }}
 							transition={{ duration: 0.2 }}
 						>
 							<LayoutConfigPanel

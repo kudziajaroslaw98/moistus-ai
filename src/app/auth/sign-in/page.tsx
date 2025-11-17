@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
-import { createClient } from '@/helpers/supabase/client';
+import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -20,7 +20,7 @@ export default function SignIn() {
 		setError(null);
 		setLoading(true);
 
-		const { error } = await createClient().auth.signInWithPassword({
+		const { error } = await getSharedSupabaseClient().auth.signInWithPassword({
 			email,
 			password,
 		});
@@ -42,32 +42,32 @@ export default function SignIn() {
 					Sign In
 				</h1>
 
-				<form onSubmit={handleSignIn} className='space-y-4'>
+				<form className='space-y-4' onSubmit={handleSignIn}>
 					<FormField id='email' label='Email'>
 						<Input
+							required
 							id='email'
+							onChange={(e) => setEmail(e.target.value)}
+							placeholder='you@example.com'
 							type='email'
 							value={email}
-							onChange={(e) => setEmail(e.target.value)}
-							required
-							placeholder='you@example.com'
 						/>
 					</FormField>
 
 					<FormField id='password' label='Password'>
 						<Input
+							required
 							id='password'
+							onChange={(e) => setPassword(e.target.value)}
+							placeholder='••••••••'
 							type='password'
 							value={password}
-							onChange={(e) => setPassword(e.target.value)}
-							required
-							placeholder='••••••••'
 						/>
 					</FormField>
 
 					{error && <p className='text-sm text-red-400'>{error}</p>}
 
-					<Button type='submit' disabled={loading} className='w-full'>
+					<Button className='w-full' disabled={loading} type='submit'>
 						{loading ? 'Signing In...' : 'Sign In'}
 					</Button>
 				</form>
@@ -76,8 +76,8 @@ export default function SignIn() {
 					Don&apos;t have an account?{' '}
 
 					<Link
-						href='/auth/sign-up'
 						className='font-medium text-teal-400 hover:text-teal-300'
+						href='/auth/sign-up'
 					>
 						Sign Up
 					</Link>

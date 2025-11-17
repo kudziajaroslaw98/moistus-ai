@@ -8,78 +8,6 @@ interface PreviewRendererProps {
 	nodeType: string;
 }
 
-// Helper function to get pattern labels for better UX
-const getPatternLabel = (patternType: string, display: string): { label: string; value: string } => {
-	switch (patternType) {
-		case 'date':
-			return { label: 'Due:', value: display };
-		case 'priority':
-			return { label: 'Priority:', value: display };
-		case 'tag':
-			return { label: 'Tags:', value: display };
-		case 'assignee':
-			return { label: 'Assigned:', value: display };
-		case 'color':
-			return { label: 'Color:', value: display };
-		default:
-			return { label: '', value: display };
-	}
-};
-
-// Helper function to get consistent styling for pattern types
-const getPatternStyles = (patternType: string) => {
-	switch (patternType) {
-		case 'date':
-			return {
-				background: 'bg-blue-500/10',
-				text: 'text-blue-400',
-				border: 'border border-blue-500/20',
-				icon: 'text-blue-400',
-				emoji: '📅'
-			};
-		case 'priority':
-			return {
-				background: 'bg-red-500/10',
-				text: 'text-red-400',
-				border: 'border border-red-500/20',
-				icon: 'text-red-400',
-				emoji: '🔥'
-			};
-		case 'color':
-			return {
-				background: 'bg-purple-500/10',
-				text: 'text-purple-400',
-				border: 'border border-purple-500/20',
-				icon: 'text-purple-400',
-				emoji: '🎨'
-			};
-		case 'tag':
-			return {
-				background: 'bg-green-500/10',
-				text: 'text-green-400',
-				border: 'border border-green-500/20',
-				icon: 'text-green-400',
-				emoji: '🏷️'
-			};
-		case 'assignee':
-			return {
-				background: 'bg-orange-500/10',
-				text: 'text-orange-400',
-				border: 'border border-orange-500/20',
-				icon: 'text-orange-400',
-				emoji: '👤'
-			};
-		default:
-			return {
-				background: 'bg-zinc-700/50',
-				text: 'text-zinc-400',
-				border: 'border border-zinc-600/50',
-				icon: 'text-zinc-400',
-				emoji: '•'
-			};
-	}
-};
-
 export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 	preview,
 	nodeType,
@@ -89,52 +17,53 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 	switch (nodeType) {
 		case 'taskNode':
 			// Handle both old format (preview.tasks) and new format (preview.metadata.tasks)
-			const tasks = preview.tasks || (preview.metadata && preview.metadata.tasks) || [];
+			const tasks =
+				preview.tasks || (preview.metadata && preview.metadata.tasks) || [];
 			// Handle metadata from either location
 			const metadata = preview.metadata || preview;
-			
+
 			return (
 				<motion.div
-					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
+					initial={{ opacity: 0 }}
 					transition={{ duration: 0.2 }}
 				>
 					{tasks && tasks.length > 0 ? (
 						<div className='space-y-1.5'>
 							{tasks.slice(0, 5).map((task: any, index: number) => (
 								<motion.div
-									key={index}
+									animate={{ opacity: 1, x: 0 }}
 									className='space-y-1'
 									initial={{ opacity: 0, x: -20 }}
-									animate={{ opacity: 1, x: 0 }}
+									key={index}
 									transition={{
 										delay: index * 0.05,
 										duration: 0.2,
-										ease: 'easeOut',
+										ease: 'easeOut' as const,
 									}}
 								>
 									{/* Task checkbox and text */}
 									<div className='flex items-center gap-2'>
 										<motion.div
-											className={cn(
-												'w-3 h-3 border border-zinc-600 rounded-sm flex items-center justify-center',
-												task.isComplete && 'bg-teal-500 border-teal-500'
-											)}
-											data-iscomplete={task.isComplete}
+											animate={{ scale: 1 }}
+											data-iscomplete={task.isComplete || task.completed}
 											data-task-text={task.text}
 											initial={{ scale: 0 }}
-											animate={{ scale: 1 }}
+											className={cn(
+												'w-3 h-3 border border-zinc-600 rounded-sm flex items-center justify-center',
+												(task.isComplete || task.completed) && 'bg-teal-500 border-teal-500'
+											)}
 											transition={{
 												delay: index * 0.05 + 0.1,
 												duration: 0.15,
-												ease: 'easeOut',
+												ease: 'easeOut' as const,
 											}}
 										>
-											{task.isComplete && (
+											{(task.isComplete || task.completed) && (
 												<motion.div
+													animate={{ scale: 1 }}
 													className='text-white text-xs'
 													initial={{ scale: 0 }}
-													animate={{ scale: 1 }}
 													transition={{
 														delay: index * 0.05 + 0.2,
 														duration: 0.15,
@@ -146,17 +75,19 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 										</motion.div>
 
 										<motion.span
+											animate={{ opacity: 1 }}
+											initial={{ opacity: 0 }}
 											className={cn(
 												'text-sm',
-												task.isComplete && 'line-through text-zinc-500'
+												(task.isComplete || task.completed) && 'line-through text-zinc-500'
 											)}
-											style={{ 
-												color: task.isComplete ? 'rgb(113, 113, 122)' : 'rgb(212, 212, 216)',
+											style={{
+												color: (task.isComplete || task.completed)
+													? 'rgb(113, 113, 122)'
+													: 'rgb(212, 212, 216)',
 												fontSize: '16px',
-												lineHeight: '1.4'
+												lineHeight: '1.4',
 											}}
-											initial={{ opacity: 0 }}
-											animate={{ opacity: 1 }}
 											transition={{
 												delay: index * 0.05 + 0.15,
 												duration: 0.2,
@@ -165,15 +96,14 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 											{task.text}
 										</motion.span>
 									</div>
-
 								</motion.div>
 							))}
 
 							{tasks.length > 5 && (
 								<motion.div
+									animate={{ opacity: 1, y: 0 }}
 									className='text-xs text-zinc-500 pl-5'
 									initial={{ opacity: 0, y: 10 }}
-									animate={{ opacity: 1, y: 0 }}
 									transition={{ delay: 0.3, duration: 0.2 }}
 								>
 									+{tasks.length - 5} more tasks...
@@ -182,27 +112,27 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 						</div>
 					) : (
 						<motion.div
+							animate={{ opacity: 1, scale: 1 }}
 							className='flex items-center gap-2'
 							initial={{ opacity: 0, scale: 0.9 }}
-							animate={{ opacity: 1, scale: 1 }}
-							transition={{ duration: 0.2, ease: 'easeOut' }}
+							transition={{ duration: 0.2, ease: 'easeOut' as const }}
 						>
 							<motion.div
+								animate={{ scale: 1 }}
 								className='w-4 h-4 border border-zinc-600 rounded'
 								initial={{ scale: 0 }}
-								animate={{ scale: 1 }}
 								transition={{ delay: 0.1, duration: 0.15 }}
 							/>
 
 							<motion.span
-								style={{ 
+								animate={{ opacity: 1, x: 0 }}
+								initial={{ opacity: 0, x: -10 }}
+								transition={{ delay: 0.15, duration: 0.2 }}
+								style={{
 									color: 'rgb(212, 212, 216)',
 									fontSize: '16px',
-									lineHeight: '1.4'
+									lineHeight: '1.4',
 								}}
-								initial={{ opacity: 0, x: -10 }}
-								animate={{ opacity: 1, x: 0 }}
-								transition={{ delay: 0.15, duration: 0.2 }}
 							>
 								New task
 							</motion.span>
@@ -210,19 +140,23 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 					)}
 
 					{/* Node-level metadata display */}
-					{(metadata.dueDate || metadata.priority || (metadata.tags && metadata.tags.length > 0) || metadata.assignee) && (
+					{(metadata.dueDate ||
+						metadata.priority ||
+						metadata.status ||
+						(metadata.tags && metadata.tags.length > 0) ||
+						metadata.assignee) && (
 						<motion.div
+							animate={{ opacity: 1, y: 0 }}
 							className='mt-3 pt-2 border-t border-zinc-700/50 flex flex-wrap gap-1'
 							initial={{ opacity: 0, y: 10 }}
-							animate={{ opacity: 1, y: 0 }}
 							transition={{ delay: 0.4, duration: 0.2 }}
 						>
 							{/* Due Date */}
 							{metadata.dueDate && (
 								<motion.div
+									animate={{ opacity: 1, scale: 1 }}
 									className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20'
 									initial={{ opacity: 0, scale: 0.8 }}
-									animate={{ opacity: 1, scale: 1 }}
 									transition={{ delay: 0.45, duration: 0.15 }}
 								>
 									<span className='opacity-70'>📅</span>
@@ -230,7 +164,11 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 									<span className='flex items-center gap-0.5'>
 										<span className='opacity-70 text-xs'>Due:</span>
 
-										<span className='font-medium'>{metadata.dueDate.toLocaleDateString ? metadata.dueDate.toLocaleDateString() : metadata.dueDate}</span>
+										<span className='font-medium'>
+											{metadata.dueDate.toLocaleDateString
+												? metadata.dueDate.toLocaleDateString()
+												: metadata.dueDate}
+										</span>
 									</span>
 								</motion.div>
 							)}
@@ -238,9 +176,9 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 							{/* Priority */}
 							{metadata.priority && (
 								<motion.div
+									animate={{ opacity: 1, scale: 1 }}
 									className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20'
 									initial={{ opacity: 0, scale: 0.8 }}
-									animate={{ opacity: 1, scale: 1 }}
 									transition={{ delay: 0.5, duration: 0.15 }}
 								>
 									<span className='opacity-70'>🔥</span>
@@ -248,34 +186,61 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 									<span className='flex items-center gap-0.5'>
 										<span className='opacity-70 text-xs'>Priority:</span>
 
-										<span className='font-medium capitalize'>{metadata.priority}</span>
+										<span className='font-medium capitalize'>
+											{metadata.priority}
+										</span>
+									</span>
+								</motion.div>
+							)}
+
+							{/* Status */}
+							{metadata.status && (
+								<motion.div
+									animate={{ opacity: 1, scale: 1 }}
+									className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20'
+									initial={{ opacity: 0, scale: 0.8 }}
+									transition={{ delay: 0.52, duration: 0.15 }}
+								>
+									<span className='opacity-70'>●</span>
+
+									<span className='flex items-center gap-0.5'>
+										<span className='opacity-70 text-xs'>Status:</span>
+
+										<span className='font-medium capitalize'>
+											{metadata.status}
+										</span>
 									</span>
 								</motion.div>
 							)}
 
 							{/* Tags */}
-							{metadata.tags && metadata.tags.length > 0 && metadata.tags.map((tag, tagIndex) => (
-								<motion.div
-									key={`tag-${tagIndex}`}
-									className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20'
-									initial={{ opacity: 0, scale: 0.8 }}
-									animate={{ opacity: 1, scale: 1 }}
-									transition={{ delay: 0.55 + tagIndex * 0.05, duration: 0.15 }}
-								>
-									<span className='opacity-70'>🏷️</span>
+							{metadata.tags &&
+								metadata.tags.length > 0 &&
+								metadata.tags.map((tag: string, tagIndex: number) => (
+									<motion.div
+										animate={{ opacity: 1, scale: 1 }}
+										className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20'
+										initial={{ opacity: 0, scale: 0.8 }}
+										key={`tag-${tagIndex}`}
+										transition={{
+											delay: 0.55 + tagIndex * 0.05,
+											duration: 0.15,
+										}}
+									>
+										<span className='opacity-70'>🏷️</span>
 
-									<span className='flex items-center gap-0.5'>
-										<span className='font-medium'>{tag}</span>
-									</span>
-								</motion.div>
-							))}
+										<span className='flex items-center gap-0.5'>
+											<span className='font-medium'>{tag}</span>
+										</span>
+									</motion.div>
+								))}
 
 							{/* Assignee */}
 							{metadata.assignee && (
 								<motion.div
+									animate={{ opacity: 1, scale: 1 }}
 									className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20'
 									initial={{ opacity: 0, scale: 0.8 }}
-									animate={{ opacity: 1, scale: 1 }}
 									transition={{ delay: 0.6, duration: 0.15 }}
 								>
 									<span className='opacity-70'>👤</span>
@@ -289,31 +254,30 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 							)}
 						</motion.div>
 					)}
-
 				</motion.div>
 			);
 
 		case 'codeNode':
 			return (
 				<motion.div
-					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
+					initial={{ opacity: 0 }}
 					transition={{ duration: 0.2 }}
 				>
 					<motion.div
+						animate={{ opacity: 1, y: 0 }}
 						className='text-xs text-teal-500 mb-1'
 						initial={{ opacity: 0, y: -10 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ duration: 0.2, ease: 'easeOut' }}
+						transition={{ duration: 0.2, ease: 'easeOut' as const }}
 					>
 						{preview.language || 'plaintext'}
 					</motion.div>
 
 					<motion.pre
+						animate={{ opacity: 1, scale: 1 }}
 						className='text-xs overflow-x-auto'
 						initial={{ opacity: 0, scale: 0.95 }}
-						animate={{ opacity: 1, scale: 1 }}
-						transition={{ delay: 0.1, duration: 0.25, ease: 'easeOut' }}
+						transition={{ delay: 0.1, duration: 0.25, ease: 'easeOut' as const }}
 					>
 						<code>{preview.code || '// Your code here'}</code>
 					</motion.pre>
@@ -323,23 +287,23 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 		case 'imageNode':
 			return (
 				<motion.div
-					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
+					initial={{ opacity: 0 }}
 					transition={{ duration: 0.2 }}
 				>
 					<motion.div
+						animate={{ opacity: 1, y: 0 }}
 						className='text-xs text-zinc-500 mb-1'
 						initial={{ opacity: 0, y: -5 }}
-						animate={{ opacity: 1, y: 0 }}
 						transition={{ duration: 0.2 }}
 					>
 						Image URL:
 					</motion.div>
 
 					<motion.div
+						animate={{ opacity: 1, x: 0 }}
 						className='text-xs truncate'
 						initial={{ opacity: 0, x: -10 }}
-						animate={{ opacity: 1, x: 0 }}
 						transition={{ delay: 0.1, duration: 0.2 }}
 					>
 						{preview.url}
@@ -347,9 +311,9 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 
 					{preview.alt && (
 						<motion.div
+							animate={{ opacity: 1, y: 0 }}
 							className='text-xs text-zinc-500 mt-1'
 							initial={{ opacity: 0, y: 5 }}
-							animate={{ opacity: 1, y: 0 }}
 							transition={{ delay: 0.15, duration: 0.2 }}
 						>
 							Alt: {preview.alt}
@@ -361,6 +325,9 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 		case 'annotationNode':
 			return (
 				<motion.div
+					animate={{ opacity: 1, scale: 1, y: 0 }}
+					initial={{ opacity: 0, scale: 0.9, y: 10 }}
+					transition={{ duration: 0.25, ease: 'easeOut' as const }}
 					className={cn(
 						'px-2 py-1 rounded',
 						preview.type === 'warning' && 'bg-yellow-500/10 text-yellow-400',
@@ -370,15 +337,12 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 						(!preview.type || preview.type === 'note') &&
 							'bg-zinc-700/50 text-zinc-300'
 					)}
-					initial={{ opacity: 0, scale: 0.9, y: 10 }}
-					animate={{ opacity: 1, scale: 1, y: 0 }}
-					transition={{ duration: 0.25, ease: 'easeOut' }}
 				>
 					{preview.icon && (
 						<motion.span
+							animate={{ opacity: 1, scale: 1 }}
 							className='mr-1'
 							initial={{ opacity: 0, scale: 0 }}
-							animate={{ opacity: 1, scale: 1 }}
 							transition={{ delay: 0.1, duration: 0.2 }}
 						>
 							{preview.icon}
@@ -386,8 +350,8 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 					)}
 
 					<motion.span
-						initial={{ opacity: 0, x: -10 }}
 						animate={{ opacity: 1, x: 0 }}
+						initial={{ opacity: 0, x: -10 }}
 						transition={{ delay: 0.15, duration: 0.2 }}
 					>
 						{preview.text}
@@ -398,51 +362,192 @@ export const PreviewRenderer: React.FC<PreviewRendererProps> = ({
 		case 'referenceNode':
 			return (
 				<motion.div
-					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
+					className='space-y-2'
+					initial={{ opacity: 0 }}
 					transition={{ duration: 0.2 }}
-					className="space-y-2"
 				>
 					{preview.referencePreview ? (
-						<div className="space-y-2">
-							<div className="flex items-center gap-2">
-								<span className="text-pink-400">🔗</span>
+						<div className='space-y-2'>
+							<div className='flex items-center gap-2'>
+								<span className='text-pink-400'>🔗</span>
 
-								<span className="text-pink-400 font-medium">Reference Selected</span>
+								<span className='text-pink-400 font-medium'>
+									Reference Selected
+								</span>
 							</div>
 
-							<blockquote className="border-l-2 border-pink-500/30 pl-3 text-sm text-zinc-300 italic">
-								"{preview.referencePreview.contentSnippet?.slice(0, 100) || 'Referenced content...'}"
+							<blockquote className='border-l-2 border-pink-500/30 pl-3 text-sm text-zinc-300 italic'>
+								&quot;
+								{preview.referencePreview.contentSnippet?.slice(0, 100) ||
+									'Referenced content...'}
+								&quot;
 							</blockquote>
 
-							<div className="text-xs text-pink-300">
-								From: <span className="font-medium">{preview.referencePreview.targetMapTitle || 'Unknown Map'}</span>
+							<div className='text-xs text-pink-300'>
+								From:{' '}
+
+								<span className='font-medium'>
+									{preview.referencePreview.targetMapTitle || 'Unknown Map'}
+								</span>
 							</div>
 						</div>
 					) : (
-						<div className="flex items-center gap-2 text-zinc-500">
+						<div className='flex items-center gap-2 text-zinc-500'>
 							<span>🔗</span>
 
-							<span className="text-sm">Type to search for nodes to reference...</span>
+							<span className='text-sm'>
+								Type to search for nodes to reference...
+							</span>
 						</div>
 					)}
 				</motion.div>
 			);
 
 		default:
+			// Handle metadata from either location
+			const defaultMetadata = preview.metadata || preview;
+
 			return (
 				<motion.div
-					className='text-sm'
-					style={{
-						color: 'rgb(212, 212, 216)',
-						fontSize: '16px',
-						lineHeight: '1.4'
-					}}
-					initial={{ opacity: 0, y: 10 }}
-					animate={{ opacity: 1, y: 0 }}
-					transition={{ duration: 0.2, ease: 'easeOut' }}
+					animate={{ opacity: 1 }}
+					initial={{ opacity: 0 }}
+					transition={{ duration: 0.2 }}
 				>
-					{preview.content || preview.text || preview.question || 'Preview'}
+					<motion.div
+						animate={{ opacity: 1, y: 0 }}
+						className='text-sm'
+						initial={{ opacity: 0, y: 10 }}
+						transition={{ duration: 0.2, ease: 'easeOut' as const }}
+						style={{
+							color: 'rgb(212, 212, 216)',
+							fontSize: '16px',
+							lineHeight: '1.4',
+						}}
+					>
+						{preview.content || preview.text || preview.question || 'Preview'}
+					</motion.div>
+
+					{/* Metadata display for default/note nodes */}
+					{(defaultMetadata.dueDate ||
+						defaultMetadata.priority ||
+						defaultMetadata.status ||
+						(defaultMetadata.tags && defaultMetadata.tags.length > 0) ||
+						defaultMetadata.assignee) && (
+						<motion.div
+							animate={{ opacity: 1, y: 0 }}
+							className='mt-3 pt-2 border-t border-zinc-700/50 flex flex-wrap gap-1'
+							initial={{ opacity: 0, y: 10 }}
+							transition={{ delay: 0.3, duration: 0.2 }}
+						>
+							{/* Due Date */}
+							{defaultMetadata.dueDate && (
+								<motion.div
+									animate={{ opacity: 1, scale: 1 }}
+									className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20'
+									initial={{ opacity: 0, scale: 0.8 }}
+									transition={{ delay: 0.35, duration: 0.15 }}
+								>
+									<span className='opacity-70'>📅</span>
+
+									<span className='flex items-center gap-0.5'>
+										<span className='opacity-70 text-xs'>Due:</span>
+
+										<span className='font-medium'>
+											{typeof defaultMetadata.dueDate === 'object' &&
+											defaultMetadata.dueDate.toLocaleDateString
+												? defaultMetadata.dueDate.toLocaleDateString()
+												: defaultMetadata.dueDate}
+										</span>
+									</span>
+								</motion.div>
+							)}
+
+							{/* Priority */}
+							{defaultMetadata.priority && (
+								<motion.div
+									animate={{ opacity: 1, scale: 1 }}
+									className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20'
+									initial={{ opacity: 0, scale: 0.8 }}
+									transition={{ delay: 0.4, duration: 0.15 }}
+								>
+									<span className='opacity-70'>🔥</span>
+
+									<span className='flex items-center gap-0.5'>
+										<span className='opacity-70 text-xs'>Priority:</span>
+
+										<span className='font-medium capitalize'>
+											{defaultMetadata.priority}
+										</span>
+									</span>
+								</motion.div>
+							)}
+
+							{/* Status */}
+							{defaultMetadata.status && (
+								<motion.div
+									animate={{ opacity: 1, scale: 1 }}
+									className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20'
+									initial={{ opacity: 0, scale: 0.8 }}
+									transition={{ delay: 0.45, duration: 0.15 }}
+								>
+									<span className='opacity-70'>●</span>
+
+									<span className='flex items-center gap-0.5'>
+										<span className='opacity-70 text-xs'>Status:</span>
+
+										<span className='font-medium capitalize'>
+											{defaultMetadata.status}
+										</span>
+									</span>
+								</motion.div>
+							)}
+
+							{/* Tags */}
+							{defaultMetadata.tags &&
+								defaultMetadata.tags.length > 0 &&
+								defaultMetadata.tags.map((tag: string, tagIndex: number) => (
+									<motion.div
+										animate={{ opacity: 1, scale: 1 }}
+										className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20'
+										initial={{ opacity: 0, scale: 0.8 }}
+										key={`tag-${tagIndex}`}
+										transition={{
+											delay: 0.5 + tagIndex * 0.05,
+											duration: 0.15,
+										}}
+									>
+										<span className='opacity-70'>🏷️</span>
+
+										<span className='flex items-center gap-0.5'>
+											<span className='font-medium'>{tag}</span>
+										</span>
+									</motion.div>
+								))}
+
+							{/* Assignee */}
+							{defaultMetadata.assignee && (
+								<motion.div
+									animate={{ opacity: 1, scale: 1 }}
+									className='inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20'
+									initial={{ opacity: 0, scale: 0.8 }}
+									transition={{ delay: 0.55, duration: 0.15 }}
+								>
+									<span className='opacity-70'>👤</span>
+
+									<span className='flex items-center gap-0.5'>
+										<span className='opacity-70 text-xs'>Assigned:</span>
+
+										<span className='font-medium'>
+											{Array.isArray(defaultMetadata.assignee)
+												? defaultMetadata.assignee.join(', ')
+												: defaultMetadata.assignee}
+										</span>
+									</span>
+								</motion.div>
+							)}
+						</motion.div>
+					)}
 				</motion.div>
 			);
 	}

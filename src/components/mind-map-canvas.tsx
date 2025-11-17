@@ -3,18 +3,15 @@
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'; // Keep shortcuts here
 import { cn } from '@/utils/cn';
 import { useCallback, useEffect, useMemo } from 'react';
-import NodeEditor from './node-editor';
 import { ModalsWrapper } from './mind-map/modals-wrapper';
 import { ReactFlowArea } from './mind-map/react-flow-area';
+import NodeEditor from './node-editor/node-editor';
 
 import { useRealtimeSelectionPresenceRoom } from '@/hooks/realtime/use-realtime-selection-presence-room';
 import useAppStore from '@/store/mind-map-store';
 import { useParams } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
-import { AiChat } from './ai-chat/ai-chat';
 import { AIStreamMediator } from './ai/ai-stream-mediator';
-import { CommandPalette } from './command-palette';
-import { CommentsPanel } from './comment/comment-panel';
 import { ContextMenuWrapper } from './mind-map/context-menu-wrapper';
 import { StreamingToast } from './streaming-toast';
 
@@ -33,16 +30,13 @@ export function MindMapCanvas() {
 		canUndo,
 		canRedo,
 		loadingStates,
-		setPopoverOpen,
-		popoverOpen,
 		isFocusMode,
 		createGroupFromSelected,
 		ungroupNodes,
 		toggleNodeCollapse,
-		isCommentsPanelOpen,
 		currentUser,
 		getCurrentUser,
-		setNodeInfo,
+		openNodeEditor,
 	} = useAppStore(
 		useShallow((state) => ({
 			handleUndo: state.handleUndo,
@@ -54,16 +48,13 @@ export function MindMapCanvas() {
 			canUndo: state.canUndo,
 			canRedo: state.canRedo,
 			loadingStates: state.loadingStates,
-			setPopoverOpen: state.setPopoverOpen,
-			popoverOpen: state.popoverOpen,
 			isFocusMode: state.isFocusMode,
 			createGroupFromSelected: state.createGroupFromSelected,
 			ungroupNodes: state.ungroupNodes,
 			toggleNodeCollapse: state.toggleNodeCollapse,
-			isCommentsPanelOpen: state.isCommentsPanelOpen,
 			currentUser: state.currentUser,
 			getCurrentUser: state.getCurrentUser,
-			setNodeInfo: state.setNodeInfo,
+			openNodeEditor: state.openNodeEditor,
 		}))
 	);
 	const isLoading = loadingStates.isStateLoading;
@@ -83,19 +74,6 @@ export function MindMapCanvas() {
 		[edges]
 	);
 
-	const openNodeTypeModal = (parentId?: string | null) => {
-		// If parentId is provided, find and set the parent node
-		if (parentId) {
-			const parentNode = selectedNodes.find((node) => node.id === parentId);
-
-			if (parentNode) {
-				setNodeInfo(parentNode);
-			}
-		}
-
-		setPopoverOpen({ nodeType: true });
-	};
-
 	const handleGroup = useCallback(() => {
 		if (selectedNodes.length >= 2) {
 			createGroupFromSelected();
@@ -114,15 +92,18 @@ export function MindMapCanvas() {
 		}
 	}, [selectedNodes, toggleNodeCollapse]);
 
-	const handleToggleComments = useCallback(() => {
-		setPopoverOpen({ commentsPanel: !popoverOpen.commentsPanel });
-	}, [popoverOpen.commentsPanel]);
-
 	useKeyboardShortcuts({
 		onUndo: handleUndo,
 		onRedo: handleRedo,
-		onAddChild: (parentId) => {
-			openNodeTypeModal(parentId);
+		onAddChild: () => {
+			const selected = selectedNodes[0];
+			openNodeEditor({
+				mode: 'create',
+				position: {
+					x: selected.position.x + (selected.measured?.width ?? 0) + 100,
+					y: selected.position.y,
+				},
+			});
 		},
 		onCopy: handleCopy,
 		onPaste: handlePaste,
@@ -134,21 +115,13 @@ export function MindMapCanvas() {
 		onGroup: handleGroup,
 		onUngroup: handleUngroup,
 		onToggleCollapse: handleToggleCollapse,
-		onToggleComments: handleToggleComments,
 	});
 
 	return (
 		// Context Provider is now wrapping this component higher up
 		<div className='relative h-full w-full overflow-hidden rounded-md flex'>
 			{/* Main content area */}
-			<div
-				className={cn([
-					'flex-1 relative',
-					isCommentsPanelOpen ? 'w-[calc(100%-384px)]' : 'w-full',
-				])}
-			>
-				{popoverOpen.commandPalette && <CommandPalette />}
-
+			<div className='flex-1 relative w-full'>
 				<AIStreamMediator />
 
 				<StreamingToast />
@@ -169,12 +142,6 @@ export function MindMapCanvas() {
 					<ReactFlowArea />
 				</div>
 			</div>
-
-			{/* Comments Panel */}
-			{popoverOpen.commentsPanel && <CommentsPanel />}
-
-			{/* Chat Panel */}
-			<AiChat />
 		</div>
 	);
 }

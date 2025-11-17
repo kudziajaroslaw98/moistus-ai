@@ -5,9 +5,13 @@ export interface MindMapData {
 
 	description: string | null;
 	tags?: string[];
-	visibility?: 'private' | 'public' | 'shared';
 
 	thumbnailUrl?: string | null;
+
+	// Team & organization
+	team_id?: string | null;
+	is_template?: boolean;
+	template_category?: string | null;
 
 	created_at: string;
 	updated_at: string;

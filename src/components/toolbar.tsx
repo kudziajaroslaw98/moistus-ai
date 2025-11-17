@@ -1,7 +1,9 @@
 // components/Toolbar.tsx
 import useAppStore from '@/store/mind-map-store';
 import type { Tool } from '@/types/tool';
+import { cn } from '@/utils/cn';
 import {
+	Fullscreen,
 	Hand,
 	LayoutGrid,
 	MessageSquare,
@@ -9,7 +11,6 @@ import {
 	Plus,
 	Share2,
 	Sparkles,
-	Type,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useShallow } from 'zustand/shallow';
@@ -18,7 +19,6 @@ import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Separator } from './ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/Tooltip';
-import { GlassmorphismTheme } from './nodes/themes/glassmorphism-theme';
 
 interface ToolButton {
 	id: Tool | `separator-${number}`;
@@ -36,18 +36,25 @@ const tools: ToolButton[] = [
 	{ id: 'connector', icon: <Share2 className='size-4' />, label: 'Connect' },
 	{ id: 'separator-0', icon: null, label: null },
 	{ id: 'node', icon: <Plus className='size-4' />, label: 'Add Node' },
-	{ id: 'text', icon: <Type className='size-4' />, label: 'Text' },
+	// { id: 'text', icon: <Type className='size-4' />, label: 'Text' },
 	{
 		id: 'magic-wand',
 		icon: <Sparkles className='size-4' />,
 		label: 'AI Suggestions',
 	},
 	{ id: 'separator-1', icon: null, label: null },
-	{ id: 'chat', icon: <MessageSquare className='size-4' />, label: 'AI Chat' },
+	{ id: 'zoom', icon: <Fullscreen className='size-4' />, label: 'Zoom' },
+	// { id: 'chat', icon: <MessageSquare className='size-4' />, label: 'AI Chat' },
 	{
 		id: 'layout',
 		icon: <LayoutGrid className='size-4' />,
 		label: 'Auto-Layout',
+	},
+	{ id: 'separator-2', icon: null, label: null },
+	{
+		id: 'comments',
+		icon: <MessageSquare className='size-4' />,
+		label: 'Comments (C)',
 	},
 ];
 
@@ -62,6 +69,9 @@ export const Toolbar = () => {
 		setPopoverOpen,
 		generateConnectionSuggestions,
 		generateMergeSuggestions,
+		reactFlowInstance,
+		isCommentMode,
+		setCommentMode,
 	} = useAppStore(
 		useShallow((state) => ({
 			activeTool: state.activeTool,
@@ -73,6 +83,9 @@ export const Toolbar = () => {
 			aiFeature: state.aiFeature,
 			generateConnectionSuggestions: state.generateConnectionSuggestions,
 			generateMergeSuggestions: state.generateMergeSuggestions,
+			reactFlowInstance: state.reactFlowInstance,
+			isCommentMode: state.isCommentMode,
+			setCommentMode: state.setCommentMode,
 		}))
 	);
 
@@ -82,11 +95,16 @@ export const Toolbar = () => {
 		}
 
 		if (toolId === 'layout') {
-			applyLayout('LR');
+			applyLayout('LR'); // Always use left-to-right for now
 			setActiveTool('default');
 		} else if (toolId === 'chat') {
 			setPopoverOpen({ aiChat: true });
 			// Don't change the active tool for chat
+		} else if (toolId === 'zoom') {
+			reactFlowInstance?.zoomTo(1);
+		} else if (toolId === 'comments') {
+			// Toggle comment mode
+			setCommentMode(!isCommentMode);
 		} else if (toolId === 'magic-wand') {
 			switch (aiFeature) {
 				case 'suggest-connections':
@@ -120,27 +138,18 @@ export const Toolbar = () => {
 
 	return (
 		<motion.div
-			initial={{ y: 100, opacity: 0 }}
 			animate={{ y: 0, opacity: 1 }}
+			initial={{ y: 100, opacity: 0 }}
 			transition={{ type: 'spring', stiffness: 100, damping: 15 }}
 		>
-			<div 
-				className='flex h-full w-full items-center gap-2 p-2 rounded-xl shadow-2xl'
-				style={{
-					backgroundColor: GlassmorphismTheme.elevation[4], // App bar elevation
-					border: `1px solid ${GlassmorphismTheme.borders.default}`,
-					backdropFilter: 'blur(8px)',
-				}}>
+			<div className='flex h-full w-full items-center gap-2 p-2 rounded-xl shadow-2xl shadow-neutral-950 bg-surface border border-elevated'>
 				{tools.map((tool, index) => {
 					if (tool.id.startsWith('separator')) {
 						return (
 							<Separator
+								className='!h-4 flex bg-overlay'
 								key={tool.id + '' + index}
 								orientation='vertical'
-								className='!h-4 flex'
-								style={{
-									backgroundColor: GlassmorphismTheme.borders.default,
-								}}
 							/>
 						);
 					}
@@ -151,28 +160,14 @@ export const Toolbar = () => {
 								<TooltipTrigger
 									onClick={() => onToolChange(tool.id)}
 									title={tool.label ?? `Tool ${index}`}
-									className="inline-flex items-center rounded-sm font-medium transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none !h-8 !w-8 p-0 justify-center"
-									style={{
-										backgroundColor: activeTool === tool.id 
-											? 'rgba(20, 184, 166, 0.87)' // Teal accent for active
-											: GlassmorphismTheme.elevation[1],
-										border: `2px solid ${activeTool === tool.id 
-											? 'rgba(20, 184, 166, 0.3)'
-											: GlassmorphismTheme.borders.default}`,
-										color: activeTool === tool.id 
-											? GlassmorphismTheme.text.high
-											: GlassmorphismTheme.text.medium,
-									}}
-									onMouseEnter={(e) => {
-										if (activeTool !== tool.id) {
-											e.currentTarget.style.backgroundColor = GlassmorphismTheme.elevation[2];
-										}
-									}}
-									onMouseLeave={(e) => {
-										if (activeTool !== tool.id) {
-											e.currentTarget.style.backgroundColor = GlassmorphismTheme.elevation[1];
-										}
-									}}
+									className={cn(
+										'bg-base hover:bg-elevated',
+										'active:scale-95',
+										activeTool === tool.id
+											? 'bg-teal-500 border-teal-500/30 text-text-primary'
+											: ' border-overlay text-text-secondary',
+										'inline-flex items-center rounded-sm font-medium transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none !h-8 !w-8 p-0 justify-center'
+									)}
 								>
 									{tool.icon}
 								</TooltipTrigger>
@@ -184,8 +179,8 @@ export const Toolbar = () => {
 									>
 										<div className='flex items-center gap-2'>
 											<RadioGroupItem
-												value='suggest-nodes'
 												id='suggest-nodes'
+												value='suggest-nodes'
 											/>
 
 											<Label htmlFor='suggest-nodes'>Suggest Nodes</Label>
@@ -193,8 +188,8 @@ export const Toolbar = () => {
 
 										<div className='flex items-center gap-2'>
 											<RadioGroupItem
-												value='suggest-connections'
 												id='suggest-connections'
+												value='suggest-connections'
 											/>
 
 											<Label htmlFor='suggest-connections'>
@@ -204,8 +199,8 @@ export const Toolbar = () => {
 
 										<div className='flex items-center gap-2'>
 											<RadioGroupItem
-												value='suggest-merges'
 												id='suggest-merges'
+												value='suggest-merges'
 											/>
 
 											<Label htmlFor='suggest-merges'>Suggest Merges</Label>
@@ -216,10 +211,33 @@ export const Toolbar = () => {
 						);
 					}
 
+					// Comments button has special styling
+					if (tool.id === 'comments') {
+						return (
+							<Button
+								key={tool.id}
+								onClick={() => onToolChange(tool.id)}
+								size={'icon'}
+								title={tool.label ?? `Tool ${index}`}
+								variant={'secondary'}
+								className={cn(
+									isCommentMode &&
+										'text-text-primary bg-primary-500 border-2 border-primary-500/20',
+									'active:scale-95'
+								)}
+							>
+								{tool.icon}
+							</Button>
+						);
+					}
+
 					return (
 						<Button
+							className='active:scale-95'
 							key={tool.id}
 							onClick={() => onToolChange(tool.id)}
+							size={'icon'}
+							title={tool.label ?? `Tool ${index}`}
 							variant={
 								activeTool === tool.id &&
 								tool.id !== 'chat' &&
@@ -227,8 +245,6 @@ export const Toolbar = () => {
 									? 'default'
 									: 'secondary'
 							}
-							title={tool.label ?? `Tool ${index}`}
-							size={'icon'}
 						>
 							{tool.icon}
 						</Button>

@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, SubmitHandler } from 'react-hook-form';
 import { fadeIn, formFieldFocus, successPulse } from './animations';
 
 interface WaitlistFormProps {
@@ -40,7 +40,7 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 		reset,
 		setError,
 	} = useForm<WaitlistFormData>({
-		resolver: zodResolver(waitlistFormSchema),
+		resolver: zodResolver(waitlistFormSchema) as any,
 	});
 
 	// Check if user has already signed up
@@ -52,7 +52,7 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 		}
 	}, []);
 
-	const onSubmit = async (data: WaitlistFormData) => {
+	const onSubmit: SubmitHandler<WaitlistFormData> = async (data) => {
 		// Reset states
 		setIsSubmitting(true);
 		setSubmitError(null);
@@ -106,32 +106,32 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 
 	return (
 		<div className='w-full max-w-md mx-auto'>
-			<form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
+			<form className='space-y-4' onSubmit={handleSubmit(onSubmit)}>
 				<div className='space-y-2'>
-					<Label htmlFor='email' className='sr-only'>
+					<Label className='sr-only' htmlFor='email'>
 						Email address
 					</Label>
 
 					<motion.div
-						variants={formFieldFocus}
-						initial='rest'
-						whileFocus='focus'
 						animate='rest'
 						className='relative'
+						initial='rest'
+						variants={formFieldFocus}
+						whileFocus='focus'
 					>
 						<div className='relative'>
 							<Mail className='absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-500 pointer-events-none' />
 
 							<Input
 								{...register('email')}
-								id='email'
-								type='email'
-								placeholder='Enter your email for early access'
+								aria-describedby={errors.email ? 'email-error' : undefined}
+								aria-invalid={!!errors.email}
+								aria-label='Email address'
 								className='!h-12 !flex pl-12 pr-4 !bg-zinc-950 !border-zinc-800 !text-zinc-100 !placeholder:text-zinc-500 focus:border-violet-500/75 focus:ring-violet-500/75'
 								disabled={isSubmitting || isSuccess}
-								aria-label='Email address'
-								aria-invalid={!!errors.email}
-								aria-describedby={errors.email ? 'email-error' : undefined}
+								id='email'
+								placeholder='Enter your email for early access'
+								type='email'
 							/>
 						</div>
 					</motion.div>
@@ -140,12 +140,12 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 					<AnimatePresence mode='wait'>
 						{errors.email && (
 							<motion.p
-								id='email-error'
-								variants={fadeIn}
-								initial='hidden'
 								animate='visible'
-								exit='hidden'
 								className='text-sm text-red-400 flex items-center gap-1'
+								exit='hidden'
+								id='email-error'
+								initial='hidden'
+								variants={fadeIn}
 							>
 								<AlertCircle className='h-3 w-3' />
 
@@ -156,18 +156,18 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 				</div>
 
 				<Button
-					type='submit'
-					disabled={isSubmitting || isSuccess}
 					className='w-full h-12 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white font-medium shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed'
+					disabled={isSubmitting || isSuccess}
+					type='submit'
 				>
 					<AnimatePresence mode='wait'>
 						{isSubmitting ? (
 							<motion.div
-								key='loading'
-								initial={{ opacity: 0, scale: 0.8 }}
 								animate={{ opacity: 1, scale: 1 }}
-								exit={{ opacity: 0, scale: 0.8 }}
 								className='flex items-center gap-2 text-white'
+								exit={{ opacity: 0, scale: 0.8 }}
+								initial={{ opacity: 0, scale: 0.8 }}
+								key='loading'
 							>
 								<Loader2 className='h-5 w-5 animate-spin' />
 
@@ -175,11 +175,11 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 							</motion.div>
 						) : isSuccess ? (
 							<motion.div
-								key='success'
-								variants={successPulse}
-								initial='initial'
 								animate='animate'
 								className='flex items-center gap-2 text-white'
+								initial='initial'
+								key='success'
+								variants={successPulse}
 							>
 								<CheckCircle className='h-5 w-5' />
 
@@ -187,11 +187,11 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 							</motion.div>
 						) : (
 							<motion.div
-								key='default'
-								initial={{ opacity: 0 }}
 								animate={{ opacity: 1 }}
-								exit={{ opacity: 0 }}
 								className='flex items-center gap-2'
+								exit={{ opacity: 0 }}
+								initial={{ opacity: 0 }}
+								key='default'
 							>
 								<span>Sign up for Early Access</span>
 
@@ -206,11 +206,11 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 			<AnimatePresence>
 				{submitError && (
 					<motion.div
-						variants={fadeIn}
-						initial='hidden'
 						animate='visible'
-						exit='hidden'
 						className='mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20'
+						exit='hidden'
+						initial='hidden'
+						variants={fadeIn}
 					>
 						<p className='text-sm text-red-400 flex items-center gap-2'>
 							<AlertCircle className='h-4 w-4 flex-shrink-0' />
@@ -225,21 +225,21 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 			<AnimatePresence>
 				{previousEmail && !isSuccess && (
 					<motion.p
-						variants={fadeIn}
-						initial='hidden'
 						animate='visible'
-						exit='hidden'
 						className='mt-4 text-sm text-zinc-500 text-center'
+						exit='hidden'
+						initial='hidden'
+						variants={fadeIn}
 					>
 						Already signed up with a different email?{' '}
 
 						<button
+							className='text-violet-400 hover:text-violet-300 underline underline-offset-2 transition-colors'
 							type='button'
 							onClick={() => {
 								localStorage.removeItem(STORAGE_KEY);
 								setPreviousEmail(null);
 							}}
-							className='text-violet-400 hover:text-violet-300 underline underline-offset-2 transition-colors'
 						>
 							Use another email
 						</button>

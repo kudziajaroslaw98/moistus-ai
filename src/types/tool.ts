@@ -1,9 +1,11 @@
 export type Tool =
-	| 'default'
-	| 'pan'
-	| 'node'
-	| 'connector'
-	| 'text'
-	| 'layout'
-	| 'magic-wand'
-	| 'chat';
+  | 'default'
+  | 'pan'
+  | 'node'
+  | 'connector'
+  | 'text'
+  | 'layout'
+  | 'magic-wand'
+  | 'zoom'
+	| 'chat'
+	| 'comments';

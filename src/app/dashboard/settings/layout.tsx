@@ -2,13 +2,10 @@
 
 import { cn } from '@/utils/cn';
 import {
-	Bell,
 	CreditCard,
-	Eye,
 	Palette,
 	Settings,
 	Shield,
-	Users,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -35,39 +32,25 @@ const settingsNavItems: SettingsNavItem[] = [
 		description: 'Account and profile settings',
 	},
 	{
-		id: 'notifications',
-		label: 'Notifications',
-		icon: <Bell className='h-4 w-4' />,
-		href: '/dashboard/settings/notifications',
-		description: 'Email and push notification preferences',
-	},
-	{
-		id: 'privacy',
-		label: 'Privacy',
-		icon: <Shield className='h-4 w-4' />,
-		href: '/dashboard/settings/privacy',
-		description: 'Data visibility and privacy controls',
-	},
-	{
 		id: 'appearance',
 		label: 'Appearance',
 		icon: <Palette className='h-4 w-4' />,
 		href: '/dashboard/settings/appearance',
-		description: 'Theme, language, and display preferences',
+		description: 'Theme and accessibility',
 	},
 	{
-		id: 'collaboration',
-		label: 'Collaboration',
-		icon: <Users className='h-4 w-4' />,
-		href: '/dashboard/settings/collaboration',
-		description: 'Team and sharing preferences',
+		id: 'account',
+		label: 'Account',
+		icon: <Shield className='h-4 w-4' />,
+		href: '/dashboard/settings/account',
+		description: 'Privacy and security',
 	},
 	{
 		id: 'billing',
 		label: 'Billing',
 		icon: <CreditCard className='h-4 w-4' />,
 		href: '/dashboard/settings/billing',
-		description: 'Subscription and payment management',
+		description: 'Subscription and payments',
 	},
 ];
 
@@ -102,8 +85,8 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
 							const isActive = isItemActive(item.href);
 							return (
 								<Link
-									key={item.id}
 									href={item.href}
+									key={item.id}
 									className={cn(
 										'flex items-start gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 group',
 										isActive

@@ -31,12 +31,12 @@ export default function RootLayout({
 }>) {
 	return (
 		<html
-			lang='en'
 			className='box-border flex h-full w-full'
+			lang='en'
 			suppressHydrationWarning={true}
 		>
 			<body
-				className={`${geistSans.variable} ${geistMono.variable} ${lora.variable} dark h-full w-full bg-zinc-950 antialiased`}
+				className={`${geistSans.variable} ${geistMono.variable} ${lora.variable} dark h-full w-full bg-zinc-950`}
 				suppressHydrationWarning={true}
 			>
 				<ClientProviders>
@@ -46,10 +46,10 @@ export default function RootLayout({
 				</ClientProviders>
 
 				<Toaster
-					theme='dark'
-					position='bottom-right'
-					richColors
 					closeButton
+					richColors
+					position='bottom-right'
+					theme='dark'
 					toastOptions={{
 						classNames: {
 							toast: 'toast',

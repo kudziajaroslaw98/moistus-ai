@@ -28,17 +28,17 @@ export const Spinner: FC<SpinnerProps> = ({
 
 	return (
 		<svg
-			xmlns='http://www.w3.org/2000/svg'
-			width={typeof size === 'number' ? size : undefined}
 			height={typeof size === 'number' ? size : undefined}
+			width={typeof size === 'number' ? size : undefined}
+			xmlns='http://www.w3.org/2000/svg'
 			{...props}
+			fill='none'
+			viewBox='0 0 24 24'
 			className={cn(
 				'animate-spin text-sky-500',
 				typeof size !== 'number' && sizeClasses[size],
 				className
 			)}
-			fill='none'
-			viewBox='0 0 24 24'
 		>
 			<circle
 				className='opacity-25'
@@ -51,8 +51,8 @@ export const Spinner: FC<SpinnerProps> = ({
 
 			<path
 				className='opacity-75'
-				fill='currentColor'
 				d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
+				fill='currentColor'
 			></path>
 		</svg>
 	);
