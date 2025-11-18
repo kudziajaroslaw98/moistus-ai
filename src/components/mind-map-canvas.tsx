@@ -1,6 +1,7 @@
 'use client';
 
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'; // Keep shortcuts here
+import { useKeyboardNavigation } from '@/hooks/use-keyboard-navigation';
 import { cn } from '@/utils/cn';
 import { useCallback, useEffect, useMemo } from 'react';
 import { ModalsWrapper } from './mind-map/modals-wrapper';
@@ -115,6 +116,11 @@ export function MindMapCanvas() {
 		onGroup: handleGroup,
 		onUngroup: handleUngroup,
 		onToggleCollapse: handleToggleCollapse,
+	});
+
+	// Keyboard navigation (arrow keys, Ctrl+Arrow creation, Enter edit)
+	useKeyboardNavigation({
+		enabled: !isLoading,
 	});
 
 	return (

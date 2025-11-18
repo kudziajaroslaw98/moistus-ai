@@ -376,6 +376,7 @@ export function ReactFlowArea() {
 				connectionLineType={ConnectionLineType.Bezier}
 				connectionMode={ConnectionMode.Loose}
 				deleteKeyCode={['Delete']}
+				disableKeyboardA11y={true}
 				edges={getVisibleEdges()}
 				edgeTypes={edgeTypes}
 				elementsSelectable={isSelectMode}
