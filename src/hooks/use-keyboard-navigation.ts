@@ -34,8 +34,6 @@ export function useKeyboardNavigation({
   const nodeEditor = useAppStore((state) => state.nodeEditor);
   const popoverOpen = useAppStore((state) => state.popoverOpen);
   const openNodeEditor = useAppStore((state) => state.openNodeEditor);
-  const addNode = useAppStore((state) => state.addNode);
-  const addEdge = useAppStore((state) => state.addEdge);
 
   // Merge custom config with defaults
   const config: NavigationConfig = {
@@ -237,8 +235,6 @@ export function useKeyboardNavigation({
     nodeEditor,
     popoverOpen,
     openNodeEditor,
-    addNode,
-    addEdge,
     reactFlowInstance,
     config,
   ]);

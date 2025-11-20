@@ -22,7 +22,6 @@ import {
 const BaseNodeWrapperComponent = ({
 	id,
 	data,
-	selected,
 	children,
 	nodeClassName,
 	nodeIcon,
