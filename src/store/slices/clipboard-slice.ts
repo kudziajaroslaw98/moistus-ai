@@ -71,7 +71,6 @@ export const createClipboardSlice: StateCreator<
 				...node,
 				id: newNodeId,
 				position: newPosition,
-				selected: false, // Deselect after paste
 			};
 		});
 
@@ -142,7 +141,6 @@ export const createClipboardSlice: StateCreator<
 					x: node.position.x + 50, // Offset slightly
 					y: node.position.y + 50,
 				},
-				selected: false,
 			};
 		});
 

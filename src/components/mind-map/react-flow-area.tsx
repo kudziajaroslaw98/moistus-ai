@@ -26,6 +26,7 @@ import {
 	useState,
 } from 'react';
 
+import { UserMenu } from '@/components/common/user-menu';
 import AnimatedGhostEdge from '@/components/edges/animated-ghost-edge';
 import FloatingEdge from '@/components/edges/floating-edge';
 import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edge';
@@ -50,7 +51,7 @@ import { cn } from '@/utils/cn';
 import { History, Redo, Settings, Share2, Slash, Undo } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
 import FloatingConnectionLine from '../edges/floating-connection-line';
 import { SuggestedMergeEdge } from '../edges/suggested-merge-edge';
@@ -61,6 +62,7 @@ import { Button } from '../ui/button';
 
 export function ReactFlowArea() {
 	const mapId = useParams().id;
+	const router = useRouter();
 	const reactFlowInstance = useReactFlow();
 	const connectingNodeId = useRef<string | null>(null);
 	const connectingHandleId = useRef<string | null>(null);
@@ -103,6 +105,11 @@ export function ReactFlowArea() {
 		aiFeature,
 		canRedo,
 		canUndo,
+		resetOnboarding,
+		setOnboardingStep,
+		setShowOnboarding,
+		isProUser,
+		userProfile,
 	} = useAppStore(
 		useShallow((state) => ({
 			supabase: state.supabase,
@@ -138,6 +145,11 @@ export function ReactFlowArea() {
 			aiFeature: state.aiFeature,
 			canRedo: state.canRedo,
 			canUndo: state.canUndo,
+			resetOnboarding: state.resetOnboarding,
+			setOnboardingStep: state.setOnboardingStep,
+			setShowOnboarding: state.setShowOnboarding,
+			isProUser: state.isProUser,
+			userProfile: state.userProfile,
 		}))
 	);
 
@@ -376,6 +388,7 @@ export function ReactFlowArea() {
 				connectionLineType={ConnectionLineType.Bezier}
 				connectionMode={ConnectionMode.Loose}
 				deleteKeyCode={['Delete']}
+				disableKeyboardA11y={true}
 				edges={getVisibleEdges()}
 				edgeTypes={edgeTypes}
 				elementsSelectable={isSelectMode}
@@ -521,6 +534,9 @@ export function ReactFlowArea() {
 								</Button>
 							</div>
 						)}
+
+						{/* User Menu */}
+						<UserMenu showBackToDashboard user={userProfile} />
 					</div>
 				</Panel>
 

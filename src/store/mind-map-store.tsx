@@ -11,35 +11,54 @@ import { createLayoutSlice } from './slices/layout-slice';
 import { createLoadingStateSlice } from './slices/loading-state-slice';
 import { createNodeSlice } from './slices/nodes-slice';
 import { createOnboardingSlice } from './slices/onboarding-slice';
+import { createQuickInputSlice } from './slices/quick-input-slice';
 import { createRealtimeSlice } from './slices/realtime-slice';
 import { createSharingSlice } from './slices/sharing-slice';
 import { createStreamingToastSlice } from './slices/streaming-toast-slice';
 import { createSubscriptionSlice } from './slices/subscription-slice';
 import { createSuggestionsSlice } from './slices/suggestions-slice';
-import { createQuickInputSlice } from './slices/quick-input-slice';
 import { createUiStateSlice } from './slices/ui-slice';
 import { createUserProfileSlice } from './slices/user-profile-slice';
 
-const useAppStore = create<AppState>((...args) => ({
-	...createCoreDataSlice(...args),
-	...createNodeSlice(...args),
-	...createEdgeSlice(...args),
-	...createClipboardSlice(...args),
-	...createUiStateSlice(...args),
-	...createLoadingStateSlice(...args),
-	...createHistorySlice(...args),
-	...createLayoutSlice(...args),
-	...createGroupsSlice(...args),
-	...createSharingSlice(...args),
-	...createSuggestionsSlice(...args),
-	...createQuickInputSlice(...args),
-	...createRealtimeSlice(...args),
-	...createChatSlice(...args),
-	...createCommentsSlice(...args),
-	...createStreamingToastSlice(...args),
-	...createSubscriptionSlice(...args),
-	...createOnboardingSlice(...args),
-	...createUserProfileSlice(...args),
-}));
+const sliceCreators = [
+	createCoreDataSlice,
+	createNodeSlice,
+	createEdgeSlice,
+	createClipboardSlice,
+	createUiStateSlice,
+	createLoadingStateSlice,
+	createHistorySlice,
+	createLayoutSlice,
+	createGroupsSlice,
+	createSharingSlice,
+	createSuggestionsSlice,
+	createQuickInputSlice,
+	createRealtimeSlice,
+	createChatSlice,
+	createCommentsSlice,
+	createStreamingToastSlice,
+	createSubscriptionSlice,
+	createOnboardingSlice,
+	createUserProfileSlice,
+];
+
+const useAppStore = create<AppState>((set, get, api) => {
+	// Helper to create state from all slices
+	const createState = () => {
+		return sliceCreators.reduce((state, creator) => {
+			return { ...state, ...creator(set, get, api) };
+		}, {} as AppState);
+	};
+
+	const initialState = createState();
+
+	return {
+		...initialState,
+		reset: () => {
+			const freshState = createState();
+			set(freshState, true);
+		},
+	};
+});
 
 export default useAppStore;

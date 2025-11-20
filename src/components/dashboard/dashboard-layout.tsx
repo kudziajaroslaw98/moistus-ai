@@ -8,6 +8,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ReactNode } from 'react';
+import { DashboardHeader } from './dashboard-header';
 import {
 	Sidebar,
 	SidebarContent,
@@ -134,7 +135,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 					collapsed={sidebarCollapsed}
 					isActive={false}
 					label={item.label}
-					onClick={() => {}}
+					onClick={() => { }}
 					icon={
 						<div className={cn('flex-shrink-0 text-zinc-500')}>
 							{item.icon}
@@ -175,7 +176,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 								collapsed={true}
 								isActive={isActive}
 								label={item.label}
-								onClick={() => {}}
+								onClick={() => { }}
 								icon={
 									<div
 										className={cn('flex-shrink-0', isActive && 'text-sky-400')}
@@ -200,7 +201,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 					badge={renderBadge()}
 					isActive={isActive}
 					label={item.label}
-					onClick={() => {}}
+					onClick={() => { }}
 					icon={
 						<div className={cn('flex-shrink-0', isActive && 'text-sky-400')}>
 							{item.icon}
@@ -285,7 +286,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 			</Sidebar>
 
 			{/* Main Content */}
-			<main className='flex-grow'>{children}</main>
+			<main className='flex-grow flex flex-col h-screen overflow-hidden'>
+				<DashboardHeader />
+				
+				<div className='flex-1 overflow-y-auto'>{children}</div>
+			</main>
 		</div>
 	);
 }

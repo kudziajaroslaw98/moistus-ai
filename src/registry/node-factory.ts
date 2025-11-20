@@ -108,7 +108,6 @@ export class NodeFactory {
 			data: nodeData,
 			width: nodeData.width ?? undefined,
 			height: nodeData.height ?? undefined,
-			selected: options.selected || false,
 			dragging: options.dragging || false,
 			zIndex: options.zIndex || 1,
 		} as TypedNode<T>;

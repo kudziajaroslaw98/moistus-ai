@@ -22,7 +22,6 @@ import {
 const BaseNodeWrapperComponent = ({
 	id,
 	data,
-	selected,
 	children,
 	nodeClassName,
 	nodeIcon,
@@ -64,6 +63,11 @@ const BaseNodeWrapperComponent = ({
 
 	const connection = useConnection();
 	const isTarget = connection?.toNode?.id === id;
+
+	// Derive selection state from Zustand to avoid triggering history saves
+	const isSelected = useMemo(() => {
+		return selectedNodes.some((node) => node.id === id);
+	}, [selectedNodes, id]);
 
 	// Get node-specific constraints
 	const actualNodeType = data?.node_type || 'defaultNode';
@@ -140,7 +144,7 @@ const BaseNodeWrapperComponent = ({
 	const nodeStyles: CSSProperties = {
 		backgroundColor: getElevationColor(elevation),
 		// Proper focus states with double border technique for accessibility
-		border: `1px solid ${selected ? theme.borders.selected : theme.borders.default}`,
+		border: `1px solid ${isSelected ? theme.borders.selected : theme.borders.default}`,
 		// Micro-animation for depth perception
 
 		minWidth: dimensions.width,
@@ -208,7 +212,7 @@ const BaseNodeWrapperComponent = ({
 								colorOverrides={metadataColorOverrides}
 								metadata={data.metadata}
 								nodeType={data.node_type || 'defaultNode'}
-								selected={selected}
+								selected={isSelected}
 								onMetadataClick={(type, value) => {
 									// Handle metadata interactions
 									console.log(`Metadata clicked: ${type} = ${value}`);
@@ -277,7 +281,7 @@ const BaseNodeWrapperComponent = ({
 
 						{/* Add New Node Button - follows Material Design FAB principles */}
 						<AnimatePresence key={`${data.id}-add`}>
-							{!hideAddButton && selected && selectedNodes.length === 1 && (
+							{!hideAddButton && isSelected && selectedNodes.length === 1 && (
 								<div key={`${data.id}-add-handles`}>
 									<motion.div
 										animate={{ opacity: 0.3, scaleY: 1 }}
@@ -309,7 +313,7 @@ const BaseNodeWrapperComponent = ({
 							)}
 
 							{!hideSuggestionsButton &&
-								selected &&
+								isSelected &&
 								selectedNodes.length === 1 && (
 									<>
 										<motion.div
@@ -350,7 +354,7 @@ const BaseNodeWrapperComponent = ({
 							<NodeResizer
 								color={theme.node.resizer.color}
 								handleClassName='!w-2 !h-2 !rounded-full'
-								isVisible={selected}
+								isVisible={isSelected}
 								maxHeight={constraints.maxHeight ?? Number.MAX_SAFE_INTEGER}
 								maxWidth={constraints.maxWidth}
 								minHeight={constraints.minHeight}
@@ -360,7 +364,7 @@ const BaseNodeWrapperComponent = ({
 								onResizeStart={handleResizeStart}
 								shouldResize={shouldResize}
 								handleStyle={{
-									backgroundColor: selected
+									backgroundColor: isSelected
 										? theme.node.resizer.selectedBackground
 										: theme.borders.default,
 									border: theme.node.resizer.border,

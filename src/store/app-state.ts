@@ -88,6 +88,9 @@ export interface CoreDataSlice {
 	// Real-time subscription management
 	subscribeToRealtimeUpdates: (mapId: string) => Promise<void>;
 	unsubscribeFromRealtimeUpdates: () => Promise<void>;
+
+	// Reset state
+	reset: () => void;
 }
 
 // Edges Slice
@@ -487,21 +490,21 @@ export interface StreamingToastSlice {
 // Combined App State
 export interface AppState
 	extends CoreDataSlice,
-		NodesSlice,
-		EdgesSlice,
-		ClipboardSlice,
-		UIStateSlice,
-		LoadingStatesSlice,
-		HistorySlice,
-		LayoutSlice,
-		GroupsSlice,
-		SharingSlice,
-		RealtimeSlice,
-		SuggestionsSlice,
-		ChatSlice,
-		CommentsSlice,
-		StreamingToastSlice,
-		SubscriptionSlice,
-		OnboardingSlice,
-		UserProfileSlice,
-		QuickInputSlice {}
+	NodesSlice,
+	EdgesSlice,
+	ClipboardSlice,
+	UIStateSlice,
+	LoadingStatesSlice,
+	HistorySlice,
+	LayoutSlice,
+	GroupsSlice,
+	SharingSlice,
+	RealtimeSlice,
+	SuggestionsSlice,
+	ChatSlice,
+	CommentsSlice,
+	StreamingToastSlice,
+	SubscriptionSlice,
+	OnboardingSlice,
+	UserProfileSlice,
+	QuickInputSlice { }
