@@ -272,4 +272,8 @@ export const createCoreDataSlice: StateCreator<
 			console.error('Failed to stop real-time subscriptions:', error);
 		}
 	},
+
+	reset: () => {
+		// This will be overridden in the store creator
+	},
 });
