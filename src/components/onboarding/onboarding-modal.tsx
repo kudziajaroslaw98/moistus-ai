@@ -4,7 +4,7 @@ import { GlassmorphismTheme } from '@/components/nodes/themes/glassmorphism-them
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import useAppStore from '@/store/mind-map-store';
 import { AnimatePresence, motion } from 'motion/react';
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { BenefitsStep } from './steps/benefits-step';
 import { PaymentStep } from './steps/payment-step';
 import { PricingStep } from './steps/pricing-step';
@@ -41,19 +41,8 @@ export function OnboardingModal() {
 		nextOnboardingStep,
 		previousOnboardingStep,
 		skipOnboarding,
-		shouldShowOnboarding,
 		isAnimating,
 	} = useAppStore();
-
-	// Check if we should show onboarding on mount
-	useEffect(() => {
-		// Small delay to ensure auth state is loaded
-		const timer = setTimeout(() => {
-			shouldShowOnboarding();
-		}, 500);
-
-		return () => clearTimeout(timer);
-	}, [shouldShowOnboarding]);
 
 	const handleClose = useCallback(() => {
 		if (!isAnimating) {
@@ -117,8 +106,13 @@ export function OnboardingModal() {
 		}
 	};
 
+	// Don't render anything if onboarding shouldn't be shown
+	if (!showOnboarding) {
+		return null;
+	}
+
 	return (
-		<Dialog onOpenChange={handleClose} open={showOnboarding}>
+		<Dialog onOpenChange={handleClose} open={true}>
 			<DialogContent
 				className='flex !w-full !max-w-4xl p-0 overflow-hidden'
 				onInteractOutside={(e) => e.preventDefault()}

@@ -1,17 +1,18 @@
 'use client';
 
-import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'; // Keep shortcuts here
 import { useKeyboardNavigation } from '@/hooks/use-keyboard-navigation';
+import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'; // Keep shortcuts here
 import { cn } from '@/utils/cn';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { ModalsWrapper } from './mind-map/modals-wrapper';
 import { ReactFlowArea } from './mind-map/react-flow-area';
 import NodeEditor from './node-editor/node-editor';
 
 import { useRealtimeSelectionPresenceRoom } from '@/hooks/realtime/use-realtime-selection-presence-room';
+import { useAuthRedirect } from '@/hooks/use-auth-redirect';
 import useAppStore from '@/store/mind-map-store';
 import { useParams } from 'next/navigation';
-import { useShallow } from 'zustand/shallow';
+import { useShallow } from 'zustand/react/shallow';
 import { AIStreamMediator } from './ai/ai-stream-mediator';
 import { ContextMenuWrapper } from './mind-map/context-menu-wrapper';
 import { StreamingToast } from './streaming-toast';
@@ -19,6 +20,9 @@ import { StreamingToast } from './streaming-toast';
 export function MindMapCanvas() {
 	const params = useParams();
 	const mapId = params.id as string;
+
+	// Protect route
+	const { isChecking } = useAuthRedirect();
 
 	// Consume necessary values for keyboard shortcuts
 	const {
@@ -35,8 +39,6 @@ export function MindMapCanvas() {
 		createGroupFromSelected,
 		ungroupNodes,
 		toggleNodeCollapse,
-		currentUser,
-		getCurrentUser,
 		openNodeEditor,
 	} = useAppStore(
 		useShallow((state) => ({
@@ -61,13 +63,6 @@ export function MindMapCanvas() {
 	const isLoading = loadingStates.isStateLoading;
 
 	useRealtimeSelectionPresenceRoom(`mind-map:${mapId}:selected-nodes`);
-
-	// Initialize current user on mount
-	useEffect(() => {
-		if (!currentUser) {
-			getCurrentUser();
-		}
-	}, [currentUser, getCurrentUser]);
 
 	const selectedNodeId = selectedNodes[0]?.id;
 	const selectedEdgeId = useMemo(
@@ -122,6 +117,14 @@ export function MindMapCanvas() {
 	useKeyboardNavigation({
 		enabled: !isLoading,
 	});
+
+	if (isChecking) {
+		return (
+			<div className='flex h-full w-full items-center justify-center bg-zinc-950'>
+				<div className='h-8 w-8 animate-spin rounded-full border-4 border-zinc-800 border-t-sky-500' />
+			</div>
+		);
+	}
 
 	return (
 		// Context Provider is now wrapping this component higher up

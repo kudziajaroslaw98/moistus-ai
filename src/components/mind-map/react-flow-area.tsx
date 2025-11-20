@@ -29,6 +29,7 @@ import {
 import AnimatedGhostEdge from '@/components/edges/animated-ghost-edge';
 import FloatingEdge from '@/components/edges/floating-edge';
 import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edge';
+import { UserMenu } from '@/components/common/user-menu';
 import { UpgradeModal } from '@/components/modals/upgrade-modal';
 import { ModeIndicator } from '@/components/mode-indicator';
 import {
@@ -39,6 +40,7 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { useActivityTracker } from '@/hooks/realtime/use-activity-tracker';
 import { useContextMenu } from '@/hooks/use-context-menu';
 import { useNodeSuggestion } from '@/hooks/use-node-suggestion';
@@ -47,10 +49,21 @@ import type { AppNode } from '@/types/app-node';
 import type { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
-import { History, Redo, Settings, Share2, Slash, Undo } from 'lucide-react';
+import {
+	ChevronDown,
+	History,
+	LogOut,
+	Redo,
+	RefreshCw,
+	Settings,
+	Share2,
+	Slash,
+	Sparkles,
+	Undo,
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
 import FloatingConnectionLine from '../edges/floating-connection-line';
 import { SuggestedMergeEdge } from '../edges/suggested-merge-edge';
@@ -61,6 +74,7 @@ import { Button } from '../ui/button';
 
 export function ReactFlowArea() {
 	const mapId = useParams().id;
+	const router = useRouter();
 	const reactFlowInstance = useReactFlow();
 	const connectingNodeId = useRef<string | null>(null);
 	const connectingHandleId = useRef<string | null>(null);
@@ -103,6 +117,11 @@ export function ReactFlowArea() {
 		aiFeature,
 		canRedo,
 		canUndo,
+		resetOnboarding,
+		setOnboardingStep,
+		setShowOnboarding,
+		isProUser,
+		userProfile,
 	} = useAppStore(
 		useShallow((state) => ({
 			supabase: state.supabase,
@@ -138,6 +157,11 @@ export function ReactFlowArea() {
 			aiFeature: state.aiFeature,
 			canRedo: state.canRedo,
 			canUndo: state.canUndo,
+			resetOnboarding: state.resetOnboarding,
+			setOnboardingStep: state.setOnboardingStep,
+			setShowOnboarding: state.setShowOnboarding,
+			isProUser: state.isProUser,
+			userProfile: state.userProfile,
 		}))
 	);
 
@@ -410,7 +434,7 @@ export function ReactFlowArea() {
 				className={cn([
 					isPanningMode && 'cursor-grab',
 					activeTool === 'node' ||
-						(activeTool === 'text' && 'cursor-crosshair'),
+					(activeTool === 'text' && 'cursor-crosshair'),
 				])}
 				style={
 					{
@@ -522,6 +546,9 @@ export function ReactFlowArea() {
 								</Button>
 							</div>
 						)}
+
+						{/* User Menu */}
+						<UserMenu user={userProfile} showBackToDashboard />
 					</div>
 				</Panel>
 

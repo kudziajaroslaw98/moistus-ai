@@ -30,25 +30,62 @@ export interface OnboardingSlice {
 	completeOnboarding: () => void;
 	resetOnboarding: () => void;
 	shouldShowOnboarding: () => boolean;
+	initializeOnboarding: () => Promise<void>;
 	setIsAnimating: (animating: boolean) => void;
 }
 
 const ONBOARDING_STORAGE_KEY = 'moistus_onboarding_v1';
 const TOTAL_STEPS = 4; // Welcome, Benefits, Pricing, Payment (if pro selected)
 
+// Helper to initialize onboarding state from localStorage synchronously
+const getInitialOnboardingState = () => {
+	// SSR safety
+	if (typeof window === 'undefined') {
+		return { showOnboarding: false, hasCompleted: false, data: {}, step: 0 };
+	}
+
+	const stored = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+	if (!stored) {
+		return { showOnboarding: false, hasCompleted: false, data: {}, step: 0 };
+	}
+
+	try {
+		const data = JSON.parse(stored);
+
+		// If completed or skipped, mark as completed and don't show
+		if (data.completedAt || data.skippedAt) {
+			return { showOnboarding: false, hasCompleted: true, data, step: 0 };
+		}
+
+		// Has partial progress - restore step but don't show yet (will check auth later)
+		return {
+			showOnboarding: false,
+			hasCompleted: false,
+			data,
+			step: data.lastStep ?? 0,
+		};
+	} catch (e) {
+		console.error('Error parsing onboarding data:', e);
+		return { showOnboarding: false, hasCompleted: false, data: {}, step: 0 };
+	}
+};
+
 export const createOnboardingSlice: StateCreator<
 	AppState,
 	[],
 	[],
 	OnboardingSlice
-> = (set, get) => ({
-	// Initial state
-	showOnboarding: false,
-	onboardingStep: 0,
-	onboardingDirection: 0,
-	onboardingData: {},
-	hasCompletedOnboarding: false,
-	isAnimating: false,
+> = (set, get) => {
+	const initialState = getInitialOnboardingState();
+
+	return {
+		// Initial state from localStorage
+		showOnboarding: initialState.showOnboarding,
+		onboardingStep: initialState.step,
+		onboardingDirection: 0,
+		onboardingData: initialState.data,
+		hasCompletedOnboarding: initialState.hasCompleted,
+		isAnimating: false,
 
 	// Actions
 	setShowOnboarding: (show: boolean) => {
@@ -177,81 +214,49 @@ export const createOnboardingSlice: StateCreator<
 	},
 
 	shouldShowOnboarding: () => {
-		// Check if we should show onboarding based on various conditions
+		// Simple synchronous check - just returns whether we should show based on completion status
+		const { hasCompletedOnboarding } = get();
+		return !hasCompletedOnboarding;
+	},
 
-		const { supabase } = get();
-		if (!supabase) return false;
+	initializeOnboarding: async () => {
+		// Async initialization - checks auth and subscription to determine if onboarding should show
+		const { supabase, hasCompletedOnboarding, currentSubscription } = get();
 
-		// Check localStorage first
-		const stored = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+		// Already completed, don't show
+		if (hasCompletedOnboarding) return;
 
-		if (stored) {
-			try {
-				const data = JSON.parse(stored);
+		if (!supabase) return;
 
-				// If completed or skipped, don't show
-				if (data.completedAt || data.skippedAt) {
-					set({
-						hasCompletedOnboarding: true,
-						onboardingData: data,
-					});
-					return false;
-				}
+		// Check if user is authenticated
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
 
-				// If has partial progress, restore it
-				if (data.lastStep !== undefined) {
-					set({
-						onboardingData: data,
-						onboardingStep: data.lastStep,
-					});
-				}
-			} catch (e) {
-				console.error('Error parsing onboarding data:', e);
+		if (!user) {
+			// Not authenticated, don't show onboarding yet
+			return;
+		}
+
+		// Check if user is anonymous
+		const isAnonymous = user.is_anonymous === true;
+
+		// For authenticated users, check if they have a subscription
+		if (!isAnonymous) {
+			// Check if they already have a paid subscription
+			if (currentSubscription && currentSubscription.plan?.name !== 'free') {
+				// Already has a paid subscription, mark as completed
+				set({ hasCompletedOnboarding: true });
+				return;
 			}
 		}
 
-		// Check if user is authenticated
-		const checkAuth = async () => {
-			const {
-				data: { user },
-			} = await supabase.auth.getUser();
-
-			if (!user) {
-				// Not authenticated, don't show onboarding yet
-				return false;
-			}
-
-			// Check if user is anonymous
-			const isAnonymous = user.is_anonymous === true;
-
-			// For anonymous users, we might want to show onboarding
-			// For authenticated users, check if they have a subscription
-			if (!isAnonymous) {
-				// Check if they already have a subscription
-				const { currentSubscription } = get();
-
-				if (currentSubscription && currentSubscription.plan?.name !== 'free') {
-					// Already has a paid subscription, don't show onboarding
-					set({ hasCompletedOnboarding: true });
-					return false;
-				}
-			}
-
-			// Show onboarding for new users or users without a subscription
-			return true;
-		};
-
-		// This is async, so we'll need to handle it differently
-		checkAuth().then((shouldShow) => {
-			if (shouldShow) {
-				set({ showOnboarding: true });
-			}
-		});
-
-		return false; // Return false for now, actual showing is handled async
+		// Show onboarding for new users or users without a subscription
+		set({ showOnboarding: true });
 	},
 
 	setIsAnimating: (isAnimating: boolean) => {
 		set({ isAnimating });
 	},
-});
+	};
+};

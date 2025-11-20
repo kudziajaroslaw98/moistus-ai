@@ -1,19 +1,9 @@
 'use client';
 
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from '@/components/dashboard/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { UserAvatar } from '@/components/ui/user-avatar';
+import { UserMenu } from '@/components/common/user-menu';
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import { NodeData } from '@/types/node-data';
 import { PublicUserProfile } from '@/types/user-profile-types';
-import { ChevronDown, LogOut, Settings, User } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
 interface UserProfile extends PublicUserProfile {
@@ -33,9 +23,7 @@ const supabase = getSharedSupabaseClient();
 export function DashboardHeader({ className = '' }: DashboardHeaderProps) {
 	const [user, setUser] = useState<UserProfile | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
-	const [isLoggingOut, setIsLoggingOut] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const router = useRouter();
 
 	// Fetch current user and profile
 	const fetchUserProfile = useCallback(async () => {
@@ -86,52 +74,10 @@ export function DashboardHeader({ className = '' }: DashboardHeaderProps) {
 		}
 	}, []);
 
-	// Handle logout
-	const handleLogout = useCallback(async () => {
-		if (isLoggingOut) return;
-
-		setIsLoggingOut(true);
-		setError(null);
-
-		try {
-			// Sign out from Supabase
-			const { error: signOutError } = await supabase.auth.signOut();
-
-			if (signOutError) {
-				throw new Error(signOutError.message);
-			}
-
-			// Clear user state
-			setUser(null);
-
-			// Redirect to home page
-			router.push('/');
-		} catch (err) {
-			console.error('Logout error:', err);
-			setError(err instanceof Error ? err.message : 'Failed to log out');
-		} finally {
-			setIsLoggingOut(false);
-		}
-	}, [isLoggingOut, router]);
-
 	// Load user profile on mount
 	useEffect(() => {
 		fetchUserProfile();
 	}, [fetchUserProfile]);
-
-	// Generate user display info
-	const getUserDisplayInfo = useCallback(() => {
-		if (!user) return { name: 'Loading...', subtitle: '' };
-
-		const name = user.display_name || user.full_name || 'User';
-		const subtitle = user.is_anonymous
-			? 'Anonymous User'
-			: user.email || 'Registered User';
-
-		return { name, subtitle };
-	}, [user]);
-
-	const { name, subtitle } = getUserDisplayInfo();
 
 	// Loading state
 	if (isLoading) {
@@ -181,96 +127,7 @@ export function DashboardHeader({ className = '' }: DashboardHeaderProps) {
 
 				{/* User Menu */}
 				<div className='flex items-center space-x-4'>
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button
-								className='flex items-center space-x-3 hover:bg-zinc-800 focus:bg-zinc-800'
-								disabled={isLoggingOut}
-								variant='ghost'
-							>
-								{/* User Avatar */}
-								<UserAvatar className='h-8 w-8' size='md' user={user} />
-
-								{/* User Info */}
-								<div className='hidden sm:block text-left'>
-									<div className='text-sm font-medium text-white'>{name}</div>
-
-									<div className='text-xs text-zinc-400'>{subtitle}</div>
-								</div>
-
-								{/* Chevron */}
-								<ChevronDown className='h-4 w-4 text-zinc-400' />
-							</Button>
-						</DropdownMenuTrigger>
-
-						<DropdownMenuContent
-							align='end'
-							className='w-56 bg-zinc-900 border-zinc-700'
-						>
-							{/* User Info Header */}
-							<div className='px-3 py-2'>
-								<div className='text-sm font-medium text-white'>{name}</div>
-
-								<div className='text-xs text-zinc-400'>{subtitle}</div>
-
-								{user?.is_anonymous && (
-									<div className='mt-1 text-xs text-amber-400'>
-										⚠️ Anonymous account
-									</div>
-								)}
-							</div>
-
-							<DropdownMenuSeparator className='bg-zinc-700' />
-
-							{/* Menu Items */}
-							<DropdownMenuItem
-								className='cursor-pointer text-zinc-300 focus:bg-zinc-800 focus:text-white'
-								onClick={() => router.push('/dashboard/profile')}
-							>
-								<User className='mr-2 h-4 w-4' />
-								Profile
-							</DropdownMenuItem>
-
-							<DropdownMenuItem
-								className='cursor-pointer text-zinc-300 focus:bg-zinc-800 focus:text-white'
-								onClick={() => {
-									/* Add settings navigation */
-								}}
-							>
-								<Settings className='mr-2 h-4 w-4' />
-								Settings
-							</DropdownMenuItem>
-
-							{user?.is_anonymous && (
-								<>
-									<DropdownMenuSeparator className='bg-zinc-700' />
-
-									<DropdownMenuItem
-										className='cursor-pointer text-blue-400 focus:bg-zinc-800 focus:text-blue-300'
-										onClick={() => {
-											/* Add upgrade account functionality */
-										}}
-									>
-										<User className='mr-2 h-4 w-4' />
-										Upgrade Account
-									</DropdownMenuItem>
-								</>
-							)}
-
-							<DropdownMenuSeparator className='bg-zinc-700' />
-
-							{/* Logout */}
-							<DropdownMenuItem
-								className='cursor-pointer text-red-400 focus:bg-zinc-800 focus:text-red-300'
-								disabled={isLoggingOut}
-								onClick={handleLogout}
-							>
-								<LogOut className='mr-2 h-4 w-4' />
-
-								{isLoggingOut ? 'Signing out...' : 'Sign out'}
-							</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
+					<UserMenu user={user} />
 				</div>
 			</div>
 		</header>

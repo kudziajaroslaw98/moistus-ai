@@ -19,27 +19,48 @@ import { createSuggestionsSlice } from './slices/suggestions-slice';
 import { createQuickInputSlice } from './slices/quick-input-slice';
 import { createUiStateSlice } from './slices/ui-slice';
 import { createUserProfileSlice } from './slices/user-profile-slice';
+import { StateCreator } from 'zustand';
 
-const useAppStore = create<AppState>((...args) => ({
-	...createCoreDataSlice(...args),
-	...createNodeSlice(...args),
-	...createEdgeSlice(...args),
-	...createClipboardSlice(...args),
-	...createUiStateSlice(...args),
-	...createLoadingStateSlice(...args),
-	...createHistorySlice(...args),
-	...createLayoutSlice(...args),
-	...createGroupsSlice(...args),
-	...createSharingSlice(...args),
-	...createSuggestionsSlice(...args),
-	...createQuickInputSlice(...args),
-	...createRealtimeSlice(...args),
-	...createChatSlice(...args),
-	...createCommentsSlice(...args),
-	...createStreamingToastSlice(...args),
-	...createSubscriptionSlice(...args),
-	...createOnboardingSlice(...args),
-	...createUserProfileSlice(...args),
-}));
+const sliceCreators = [
+	createCoreDataSlice,
+	createNodeSlice,
+	createEdgeSlice,
+	createClipboardSlice,
+	createUiStateSlice,
+	createLoadingStateSlice,
+	createHistorySlice,
+	createLayoutSlice,
+	createGroupsSlice,
+	createSharingSlice,
+	createSuggestionsSlice,
+	createQuickInputSlice,
+	createRealtimeSlice,
+	createChatSlice,
+	createCommentsSlice,
+	createStreamingToastSlice,
+	createSubscriptionSlice,
+	createOnboardingSlice,
+	createUserProfileSlice,
+];
+
+const useAppStore = create<AppState>((set, get, api) => {
+	// Helper to create state from all slices
+	const createState = () => {
+		return sliceCreators.reduce((state, creator) => {
+			// @ts-ignore - Types are tricky with dynamic slice composition
+			return { ...state, ...creator(set, get, api) };
+		}, {} as AppState);
+	};
+
+	const initialState = createState();
+
+	return {
+		...initialState,
+		reset: () => {
+			const freshState = createState();
+			set(freshState);
+		},
+	};
+});
 
 export default useAppStore;
