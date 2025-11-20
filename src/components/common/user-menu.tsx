@@ -207,6 +207,7 @@ export function UserMenu({ user, showBackToDashboard = false }: UserMenuProps) {
                                 Back to Dashboard
                             </DropdownMenuItem>
                         </Link>
+                        
                         <DropdownMenuSeparator className='bg-zinc-700' />
                     </>
                 )}

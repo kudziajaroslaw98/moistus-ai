@@ -288,6 +288,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 			{/* Main Content */}
 			<main className='flex-grow flex flex-col h-screen overflow-hidden'>
 				<DashboardHeader />
+				
 				<div className='flex-1 overflow-y-auto'>{children}</div>
 			</main>
 		</div>
