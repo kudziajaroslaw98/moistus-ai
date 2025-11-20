@@ -11,15 +11,14 @@ import { createLayoutSlice } from './slices/layout-slice';
 import { createLoadingStateSlice } from './slices/loading-state-slice';
 import { createNodeSlice } from './slices/nodes-slice';
 import { createOnboardingSlice } from './slices/onboarding-slice';
+import { createQuickInputSlice } from './slices/quick-input-slice';
 import { createRealtimeSlice } from './slices/realtime-slice';
 import { createSharingSlice } from './slices/sharing-slice';
 import { createStreamingToastSlice } from './slices/streaming-toast-slice';
 import { createSubscriptionSlice } from './slices/subscription-slice';
 import { createSuggestionsSlice } from './slices/suggestions-slice';
-import { createQuickInputSlice } from './slices/quick-input-slice';
 import { createUiStateSlice } from './slices/ui-slice';
 import { createUserProfileSlice } from './slices/user-profile-slice';
-import { StateCreator } from 'zustand';
 
 const sliceCreators = [
 	createCoreDataSlice,
@@ -47,7 +46,6 @@ const useAppStore = create<AppState>((set, get, api) => {
 	// Helper to create state from all slices
 	const createState = () => {
 		return sliceCreators.reduce((state, creator) => {
-			// @ts-ignore - Types are tricky with dynamic slice composition
 			return { ...state, ...creator(set, get, api) };
 		}, {} as AppState);
 	};
@@ -58,7 +56,7 @@ const useAppStore = create<AppState>((set, get, api) => {
 		...initialState,
 		reset: () => {
 			const freshState = createState();
-			set(freshState);
+			set(freshState, true);
 		},
 	};
 });

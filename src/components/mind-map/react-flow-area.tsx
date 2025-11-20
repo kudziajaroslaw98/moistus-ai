@@ -26,10 +26,10 @@ import {
 	useState,
 } from 'react';
 
+import { UserMenu } from '@/components/common/user-menu';
 import AnimatedGhostEdge from '@/components/edges/animated-ghost-edge';
 import FloatingEdge from '@/components/edges/floating-edge';
 import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edge';
-import { UserMenu } from '@/components/common/user-menu';
 import { UpgradeModal } from '@/components/modals/upgrade-modal';
 import { ModeIndicator } from '@/components/mode-indicator';
 import {
@@ -40,7 +40,6 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
-import { UserAvatar } from '@/components/ui/user-avatar';
 import { useActivityTracker } from '@/hooks/realtime/use-activity-tracker';
 import { useContextMenu } from '@/hooks/use-context-menu';
 import { useNodeSuggestion } from '@/hooks/use-node-suggestion';
@@ -49,18 +48,7 @@ import type { AppNode } from '@/types/app-node';
 import type { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
-import {
-	ChevronDown,
-	History,
-	LogOut,
-	Redo,
-	RefreshCw,
-	Settings,
-	Share2,
-	Slash,
-	Sparkles,
-	Undo,
-} from 'lucide-react';
+import { History, Redo, Settings, Share2, Slash, Undo } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -434,7 +422,7 @@ export function ReactFlowArea() {
 				className={cn([
 					isPanningMode && 'cursor-grab',
 					activeTool === 'node' ||
-					(activeTool === 'text' && 'cursor-crosshair'),
+						(activeTool === 'text' && 'cursor-crosshair'),
 				])}
 				style={
 					{
@@ -548,7 +536,7 @@ export function ReactFlowArea() {
 						)}
 
 						{/* User Menu */}
-						<UserMenu user={userProfile} showBackToDashboard />
+						<UserMenu showBackToDashboard user={userProfile} />
 					</div>
 				</Panel>
 
