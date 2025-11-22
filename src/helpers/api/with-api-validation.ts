@@ -20,7 +20,9 @@ export function withApiValidation<
 >(schema: ZodSchema<TBody>, handler: ApiHandler<TBody, TResponseData, TParams>) {
 	return async (
 		req: Request,
-		context?: { params: Promise<TParams> | TParams }
+		context: { params: Promise<TParams> | TParams } = {
+			params: {} as TParams,
+		}
 	) => {
 		const supabase = await createClient(); // Or pass instance if needed elsewhere
 
