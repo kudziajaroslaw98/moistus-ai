@@ -1,3 +1,4 @@
+import { useMeasure } from '@/hooks/use-measure';
 import { useNodeDimensions } from '@/hooks/use-node-dimensions';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
@@ -73,6 +74,9 @@ const BaseNodeWrapperComponent = ({
 	const actualNodeType = data?.node_type || 'defaultNode';
 	const constraints = getNodeConstraints(actualNodeType);
 
+	// Measure content dimensions to prevent shrinking below content
+	const [contentRef, contentBounds] = useMeasure<HTMLDivElement>();
+
 	// Use controlled dimensions hook
 	const {
 		dimensions,
@@ -88,6 +92,8 @@ const BaseNodeWrapperComponent = ({
 		maxHeight: constraints.maxHeight, // undefined = unlimited
 		autoHeight: true,
 		debounceMs: 100,
+		contentWidth: contentBounds.width,
+		contentHeight: contentBounds.height,
 	});
 
 	// User-defined accent color takes precedence
@@ -161,9 +167,8 @@ const BaseNodeWrapperComponent = ({
 		: {};
 
 	return (
-		<motion.div transition={{ type: 'spring', duration: 0.2 }}>
+		<motion.div ref={nodeRef} transition={{ type: 'spring', duration: 0.2 }}>
 			<motion.div
-				ref={nodeRef}
 				className={cn(
 					'flex-col rounded-lg cursor-move gap-4',
 					'bg-elevation-1 bg-[url("/images/groovepaper.png")] bg-repeat bg-blend-color-burn',
@@ -202,7 +207,10 @@ const BaseNodeWrapperComponent = ({
 				</div>
 
 				{/* Main content with metadata bar integration */}
-				<div className={cn('flex flex-col h-full relative z-[1]')}>
+				<div 
+					ref={contentRef}
+					className={cn('flex flex-col h-full relative z-[1]')}
+				>
 					{data.metadata &&
 						Object.values(data.metadata).some(
 							(value) => value !== undefined && value !== null && value !== ''
