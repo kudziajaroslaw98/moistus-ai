@@ -9,17 +9,17 @@ import { z } from 'zod';
  * Updates title, description, tags, team assignment, and template settings
  * Authorization: User must own the map or be team owner/editor
  */
-export const PUT = withApiValidation(
-	updateMapSchema,
-	async (req, validatedBody, supabase, user) => {
-		try {
-			// Extract map ID from URL params
-			const url = new URL(req.url);
-			const mapId = url.pathname.split('/').pop();
+export const PUT = withApiValidation<
+	z.infer<typeof updateMapSchema>,
+	any,
+	{ id: string }
+>(updateMapSchema, async (req, validatedBody, supabase, user, params) => {
+	try {
+		const mapId = params?.id;
 
-			if (!mapId) {
-				return respondError('Map ID is required', 400, 'Missing map ID');
-			}
+		if (!mapId) {
+			return respondError('Map ID is required', 400, 'Missing map ID');
+		}
 
 			// Fetch the existing map to check ownership and get current team_id
 			const { data: existingMap, error: fetchError } = await supabase
@@ -156,13 +156,11 @@ export const PUT = withApiValidation(
  * Returns counts of deleted data for UI confirmation
  * Authorization: User must own the map or be team owner/editor
  */
-export const DELETE = withApiValidation(
+export const DELETE = withApiValidation<any, any, { id: string }>(
 	z.object({}), // No body required for DELETE
-	async (req, _validatedBody, supabase, user) => {
+	async (req, _validatedBody, supabase, user, params) => {
 		try {
-			// Extract map ID from URL params
-			const url = new URL(req.url);
-			const mapId = url.pathname.split('/').pop();
+			const mapId = params?.id;
 
 			if (!mapId) {
 				return respondError('Map ID is required', 400, 'Missing map ID');

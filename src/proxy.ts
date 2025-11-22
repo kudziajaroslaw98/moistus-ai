@@ -62,7 +62,7 @@ const checkIfAuthenticated = async (req: NextRequest) => {
 	}
 };
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
 	await updateSession(req);
 
 	const protectedRoutes = ['/dashboard', '/mind-map'];

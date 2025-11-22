@@ -5,18 +5,25 @@ import { ZodSchema } from 'zod';
 import { createClient } from '../supabase/server';
 import { respondError } from './responses';
 
-type ApiHandler<TBody, TResponseData> = (
+type ApiHandler<TBody, TResponseData, TParams = Record<string, never>> = (
 	req: Request,
 	validatedBody: TBody,
 	supabase: Awaited<ReturnType<typeof createClient>>, // Pass Supabase client
-	user: User
+	user: User,
+	params?: TParams
 ) => Promise<NextResponse<ApiResponse<TResponseData>> | Response>;
 
-export function withApiValidation<TBody, TResponseData>(
-	schema: ZodSchema<TBody>,
-	handler: ApiHandler<TBody, TResponseData>
-) {
-	return async (req: Request) => {
+export function withApiValidation<
+	TBody,
+	TResponseData,
+	TParams = Record<string, never>,
+>(schema: ZodSchema<TBody>, handler: ApiHandler<TBody, TResponseData, TParams>) {
+	return async (
+		req: Request,
+		context: { params: Promise<TParams> | TParams } = {
+			params: {} as TParams,
+		}
+	) => {
 		const supabase = await createClient(); // Or pass instance if needed elsewhere
 
 		try {
@@ -46,7 +53,20 @@ export function withApiValidation<TBody, TResponseData>(
 				);
 			}
 
-			return await handler(req, validationResult.data, supabase, user);
+			// Await params if it's a Promise (Next.js 16)
+			const resolvedParams = context?.params
+				? context.params instanceof Promise
+					? await context.params
+					: context.params
+				: undefined;
+
+			return await handler(
+				req,
+				validationResult.data,
+				supabase,
+				user,
+				resolvedParams
+			);
 		} catch (error) {
 			console.error(`Error in API route ${req.url}:`, error);
 			const message =
