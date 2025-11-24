@@ -222,7 +222,7 @@ export const Toolbar = () => {
 								variant={'secondary'}
 								className={cn(
 									isCommentMode &&
-										'text-text-primary bg-primary-500 border-2 border-primary-500/20',
+									'text-text-primary bg-primary-500 border-2 border-primary-500/20',
 									'active:scale-95'
 								)}
 							>
@@ -240,8 +240,8 @@ export const Toolbar = () => {
 							title={tool.label ?? `Tool ${index}`}
 							variant={
 								activeTool === tool.id &&
-								tool.id !== 'chat' &&
-								tool.id !== 'layout'
+									tool.id !== 'chat' &&
+									tool.id !== 'layout'
 									? 'default'
 									: 'secondary'
 							}
