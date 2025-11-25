@@ -3,13 +3,6 @@
 import { SidePanel } from '@/components/side-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -39,7 +32,9 @@ import {
 	Download,
 	ExternalLink,
 	AlertTriangle,
+	BarChart3,
 } from 'lucide-react';
+import { motion } from 'motion/react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/shallow';
@@ -369,10 +364,10 @@ export function SettingsPanel({
 			<Tabs
 				value={activeTab}
 				onValueChange={(v) => setActiveTab(v as 'settings' | 'billing')}
-				className='w-full'
+				className='w-full flex flex-col h-full'
 			>
-				<div className='sticky top-0 z-10 bg-base pt-2 pb-4 border-b border-border-subtle mb-6'>
-					<TabsList className='w-full grid grid-cols-2 bg-surface'>
+				<div className='px-6 pt-4 pb-2'>
+					<TabsList className='w-full grid grid-cols-2'>
 						<TabsTrigger value='settings' className='flex items-center gap-2'>
 							<Settings className='size-4' />
 							Settings
@@ -384,7 +379,7 @@ export function SettingsPanel({
 					</TabsList>
 				</div>
 
-				<div className='px-1 pb-6 space-y-6'>
+				<div className='flex-1 overflow-y-auto px-6 pb-6'>
 					{isLoadingProfile ? (
 						<div className='flex items-center justify-center py-12'>
 							<div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary' />
@@ -394,17 +389,18 @@ export function SettingsPanel({
 							{/* SETTINGS TAB */}
 							<TabsContent value='settings' className='space-y-6 mt-0'>
 								{/* Profile Section */}
-								<div className='space-y-4'>
-									<h3 className='text-lg font-medium text-text-primary flex items-center gap-2'>
-										<User className='size-4 text-primary' /> Profile
+								<motion.section
+									animate={{ opacity: 1, y: 0 }}
+									className='space-y-4'
+									initial={{ opacity: 0, y: 10 }}
+									transition={{ duration: 0.3 }}
+								>
+									<h3 className='text-lg font-semibold text-text-primary flex items-center gap-2'>
+										<User className='size-5 text-primary' /> Profile
 									</h3>
-
-									{/* Avatar */}
-									<Card className='bg-surface border-border-subtle'>
-										<CardHeader>
-											<CardTitle className='text-base'>Profile Picture</CardTitle>
-										</CardHeader>
-										<CardContent className='flex items-center gap-6'>
+									<div className='space-y-4 bg-surface rounded-lg p-4 border border-border-subtle'>
+										{/* Avatar */}
+										<div className='flex items-center gap-6 pb-4 border-b border-border-subtle'>
 											<UserAvatar size='2xl' user={userProfile} />
 											<div className='space-y-2'>
 												<Button className='relative' variant='outline'>
@@ -424,202 +420,201 @@ export function SettingsPanel({
 													JPG, PNG or GIF. Max 2MB.
 												</p>
 											</div>
-										</CardContent>
-									</Card>
+										</div>
 
-									{/* Basic Info */}
-									<Card className='bg-surface border-border-subtle'>
-										<CardHeader>
-											<CardTitle className='text-base'>
-												Basic Information
-											</CardTitle>
-										</CardHeader>
-										<CardContent className='space-y-4'>
-											<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-												<div className='space-y-2'>
-													<Label htmlFor='full_name'>Full Name</Label>
-													<Input
-														className='bg-base border-border-default'
-														id='full_name'
-														onChange={(e) =>
-															updateFormData('full_name', e.target.value)
-														}
-														value={formData.full_name}
-													/>
-												</div>
-												<div className='space-y-2'>
-													<Label htmlFor='display_name'>Display Name</Label>
-													<Input
-														className='bg-base border-border-default'
-														id='display_name'
-														onChange={(e) =>
-															updateFormData('display_name', e.target.value)
-														}
-														value={formData.display_name}
-													/>
-												</div>
-											</div>
-
+										{/* Form Fields */}
+										<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
 											<div className='space-y-2'>
-												<Label htmlFor='bio'>Bio</Label>
-												<Textarea
-													className='bg-base border-border-default'
-													id='bio'
-													onChange={(e) => updateFormData('bio', e.target.value)}
-													placeholder='Tell us about yourself...'
-													rows={3}
-													value={formData.bio}
+												<Label htmlFor='full_name'>Full Name</Label>
+												<Input
+													id='full_name'
+													onChange={(e) =>
+														updateFormData('full_name', e.target.value)
+													}
+													value={formData.full_name}
 												/>
 											</div>
-										</CardContent>
-									</Card>
-
-									{/* Privacy */}
-									<Card className='bg-surface border-border-subtle'>
-										<CardHeader>
-											<CardTitle className='text-base'>Privacy</CardTitle>
-										</CardHeader>
-										<CardContent className='space-y-4'>
 											<div className='space-y-2'>
-												<Label>Profile visibility</Label>
-												<Select
-													value={formData.preferences.privacy.profile_visibility}
-													onValueChange={(value) =>
-														updateNestedFormData('preferences', 'privacy', {
-															...formData.preferences.privacy,
-															profile_visibility: value,
-														})
+												<Label htmlFor='display_name'>Display Name</Label>
+												<Input
+													id='display_name'
+													onChange={(e) =>
+														updateFormData('display_name', e.target.value)
 													}
-												>
-													<SelectTrigger className='bg-base border-border-default'>
-														<SelectValue />
-													</SelectTrigger>
-													<SelectContent>
-														<SelectItem value='public'>
-															Public - Anyone can see your profile
-														</SelectItem>
-														<SelectItem value='connections'>
-															Connections only
-														</SelectItem>
-														<SelectItem value='private'>
-															Private - Only you can see your profile
-														</SelectItem>
-													</SelectContent>
-												</Select>
+													value={formData.display_name}
+												/>
 											</div>
-										</CardContent>
-									</Card>
-								</div>
+										</div>
+
+										<div className='space-y-2'>
+											<Label htmlFor='bio'>Bio</Label>
+											<Textarea
+												id='bio'
+												onChange={(e) => updateFormData('bio', e.target.value)}
+												placeholder='Tell us about yourself...'
+												rows={3}
+												value={formData.bio}
+											/>
+										</div>
+									</div>
+								</motion.section>
+
+								{/* Privacy Section */}
+								<motion.section
+									animate={{ opacity: 1, y: 0 }}
+									className='space-y-4'
+									initial={{ opacity: 0, y: 10 }}
+									transition={{ delay: 0.1, duration: 0.3 }}
+								>
+									<h3 className='text-lg font-semibold text-text-primary flex items-center gap-2'>
+										<Shield className='size-5 text-primary' /> Privacy
+									</h3>
+									<div className='space-y-4 bg-surface rounded-lg p-4 border border-border-subtle'>
+										<div className='space-y-2'>
+											<Label>Profile visibility</Label>
+											<Select
+												value={formData.preferences.privacy.profile_visibility}
+												onValueChange={(value) =>
+													updateNestedFormData('preferences', 'privacy', {
+														...formData.preferences.privacy,
+														profile_visibility: value,
+													})
+												}
+											>
+												<SelectTrigger>
+													<SelectValue />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value='public'>
+														Public - Anyone can see your profile
+													</SelectItem>
+													<SelectItem value='connections'>
+														Connections only
+													</SelectItem>
+													<SelectItem value='private'>
+														Private - Only you can see your profile
+													</SelectItem>
+												</SelectContent>
+											</Select>
+										</div>
+									</div>
+								</motion.section>
 
 								{/* Appearance Section */}
-								<div className='space-y-4'>
-									<h3 className='text-lg font-medium text-text-primary flex items-center gap-2'>
-										<Palette className='size-4 text-primary' /> Appearance
+								<motion.section
+									animate={{ opacity: 1, y: 0 }}
+									className='space-y-4'
+									initial={{ opacity: 0, y: 10 }}
+									transition={{ delay: 0.2, duration: 0.3 }}
+								>
+									<h3 className='text-lg font-semibold text-text-primary flex items-center gap-2'>
+										<Palette className='size-5 text-primary' /> Appearance
 									</h3>
-									<Card className='bg-surface border-border-subtle'>
-										<CardContent className='pt-6 space-y-4'>
-											<div className='space-y-2'>
-												<Label>Theme</Label>
-												<Select
-													value={formData.preferences.theme}
-													onValueChange={(value) =>
-														updateNestedFormData('preferences', 'theme', value)
-													}
-												>
-													<SelectTrigger className='bg-base border-border-default'>
-														<SelectValue />
-													</SelectTrigger>
-													<SelectContent>
-														<SelectItem value='light'>Light</SelectItem>
-														<SelectItem value='dark'>Dark</SelectItem>
-														<SelectItem value='system'>System</SelectItem>
-													</SelectContent>
-												</Select>
-											</div>
+									<div className='space-y-4 bg-surface rounded-lg p-4 border border-border-subtle'>
+										<div className='space-y-2'>
+											<Label>Theme</Label>
+											<Select
+												value={formData.preferences.theme}
+												onValueChange={(value) =>
+													updateNestedFormData('preferences', 'theme', value)
+												}
+											>
+												<SelectTrigger>
+													<SelectValue />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value='light'>Light</SelectItem>
+													<SelectItem value='dark'>Dark</SelectItem>
+													<SelectItem value='system'>System</SelectItem>
+												</SelectContent>
+											</Select>
+										</div>
 
-											<div className='flex items-center justify-between'>
-												<div className='space-y-0.5'>
-													<Label>Reduced Motion</Label>
-													<p className='text-xs text-text-secondary'>
-														Minimize animations
-													</p>
-												</div>
-												<Button
-													variant={
-														formData.preferences.reducedMotion
-															? 'default'
-															: 'outline'
-													}
-													size='sm'
-													onClick={() =>
-														updateNestedFormData(
-															'preferences',
-															'reducedMotion',
-															!formData.preferences.reducedMotion
-														)
-													}
-												>
-													{formData.preferences.reducedMotion ? 'On' : 'Off'}
-												</Button>
+										<div className='flex items-center justify-between'>
+											<div className='space-y-0.5'>
+												<Label>Reduced Motion</Label>
+												<p className='text-xs text-text-secondary'>
+													Minimize animations
+												</p>
 											</div>
-										</CardContent>
-									</Card>
-								</div>
+											<Button
+												variant={
+													formData.preferences.reducedMotion
+														? 'default'
+														: 'outline'
+												}
+												size='sm'
+												onClick={() =>
+													updateNestedFormData(
+														'preferences',
+														'reducedMotion',
+														!formData.preferences.reducedMotion
+													)
+												}
+											>
+												{formData.preferences.reducedMotion ? 'On' : 'Off'}
+											</Button>
+										</div>
+									</div>
+								</motion.section>
 
 								{/* Security Section */}
-								<div className='space-y-4'>
-									<h3 className='text-lg font-medium text-text-primary flex items-center gap-2'>
-										<Shield className='size-4 text-primary' /> Security
+								<motion.section
+									animate={{ opacity: 1, y: 0 }}
+									className='space-y-4'
+									initial={{ opacity: 0, y: 10 }}
+									transition={{ delay: 0.3, duration: 0.3 }}
+								>
+									<h3 className='text-lg font-semibold text-text-primary flex items-center gap-2'>
+										<Shield className='size-5 text-primary' /> Security
 									</h3>
-									<Card className='bg-surface border-border-subtle'>
-										<CardContent className='pt-6 space-y-4'>
-											<div className='flex items-center justify-between p-3 bg-base rounded-lg border border-border-subtle'>
-												<div>
-													<Label>Change Password</Label>
-													<p className='text-xs text-text-secondary'>
-														Update your password
-													</p>
-												</div>
-												<Button size='sm' variant='outline'>
-													Update
-												</Button>
+									<div className='space-y-4 bg-surface rounded-lg p-4 border border-border-subtle'>
+										<div className='flex items-center justify-between p-3 bg-base rounded-lg border border-border-subtle'>
+											<div>
+												<Label>Change Password</Label>
+												<p className='text-xs text-text-secondary'>
+													Update your password
+												</p>
 											</div>
+											<Button size='sm' variant='outline'>
+												Update
+											</Button>
+										</div>
 
-											<div className='flex items-center justify-between p-3 bg-base rounded-lg border border-border-subtle'>
-												<div>
-													<Label>Two-Factor Auth</Label>
-													<p className='text-xs text-text-secondary'>
-														Add extra security
-													</p>
-												</div>
-												<Button size='sm' variant='outline'>
-													Enable
-												</Button>
+										<div className='flex items-center justify-between p-3 bg-base rounded-lg border border-border-subtle'>
+											<div>
+												<Label>Two-Factor Auth</Label>
+												<p className='text-xs text-text-secondary'>
+													Add extra security
+												</p>
 											</div>
+											<Button size='sm' variant='outline'>
+												Enable
+											</Button>
+										</div>
 
-											<Separator className='bg-border-subtle' />
+										<Separator className='bg-border-subtle' />
 
-											<div className='flex items-center justify-between p-3 bg-error-900/10 rounded-lg border border-error-900/20'>
-												<div>
-													<Label className='text-error-500'>
-														Delete Account
-													</Label>
-													<p className='text-xs text-error-500/70'>
-														Permanently delete data
-													</p>
-												</div>
-												<Button
-													size='sm'
-													variant='destructive'
-													className='bg-error-600 hover:bg-error-700'
-												>
-													<Trash2 className='size-4 mr-2' />
-													Delete
-												</Button>
+										<div className='flex items-center justify-between p-3 bg-error-900/10 rounded-lg border border-error-900/20'>
+											<div>
+												<Label className='text-error-500'>
+													Delete Account
+												</Label>
+												<p className='text-xs text-error-500/70'>
+													Permanently delete data
+												</p>
 											</div>
-										</CardContent>
-									</Card>
-								</div>
+											<Button
+												size='sm'
+												variant='destructive'
+												className='bg-error-600 hover:bg-error-700'
+											>
+												<Trash2 className='size-4 mr-2' />
+												Delete
+											</Button>
+										</div>
+									</div>
+								</motion.section>
 							</TabsContent>
 
 							{/* BILLING TAB */}
@@ -631,24 +626,24 @@ export function SettingsPanel({
 								) : (
 									<>
 										{/* Current Plan */}
-										<Card className='bg-surface border-border-subtle'>
-											<CardHeader>
-												<CardTitle className='text-base flex items-center gap-2'>
-													<Star className='size-5 text-primary' />
-													Current Plan
-												</CardTitle>
-												<CardDescription>
-													Your current subscription and billing status
-												</CardDescription>
-											</CardHeader>
-											<CardContent className='space-y-4'>
+										<motion.section
+											animate={{ opacity: 1, y: 0 }}
+											className='space-y-4'
+											initial={{ opacity: 0, y: 10 }}
+											transition={{ duration: 0.3 }}
+										>
+											<h3 className='text-lg font-semibold text-text-primary flex items-center gap-2'>
+												<Star className='size-5 text-primary' />
+												Current Plan
+											</h3>
+											<div className='space-y-4 bg-surface rounded-lg p-4 border border-border-subtle'>
 												<div className='flex items-center justify-between'>
 													<div className='flex items-center gap-4'>
 														<div>
-															<h3 className='text-lg font-semibold text-primary'>
+															<p className='text-lg font-semibold text-primary'>
 																{!currentSubscription ? 'Free' : currentSubscription.plan?.displayName || 'Unknown'}
-															</h3>
-															<p className='text-text-secondary'>
+															</p>
+															<p className='text-sm text-text-secondary'>
 																{!currentSubscription ? (
 																	'$0/month'
 																) : currentSubscription.plan?.priceMonthly ? (
@@ -716,19 +711,22 @@ export function SettingsPanel({
 														)}
 													</>
 												)}
-											</CardContent>
-										</Card>
+											</div>
+										</motion.section>
 
 										{/* Usage */}
 										{usage && (
-											<Card className='bg-surface border-border-subtle'>
-												<CardHeader>
-													<CardTitle className='text-base'>Usage</CardTitle>
-													<CardDescription>
-														Your current usage for this billing period
-													</CardDescription>
-												</CardHeader>
-												<CardContent className='space-y-6'>
+											<motion.section
+												animate={{ opacity: 1, y: 0 }}
+												className='space-y-4'
+												initial={{ opacity: 0, y: 10 }}
+												transition={{ delay: 0.1, duration: 0.3 }}
+											>
+												<h3 className='text-lg font-semibold text-text-primary flex items-center gap-2'>
+													<BarChart3 className='size-5 text-primary' />
+													Usage
+												</h3>
+												<div className='space-y-6 bg-surface rounded-lg p-4 border border-border-subtle'>
 													<div className='space-y-4'>
 														<div>
 															<div className='flex items-center justify-between mb-2'>
@@ -796,23 +794,23 @@ export function SettingsPanel({
 															)}
 														</div>
 													</div>
-												</CardContent>
-											</Card>
+												</div>
+											</motion.section>
 										)}
 
 										{/* Billing History */}
 										{!isLoadingPayments && paymentHistory.length > 0 && (
-											<Card className='bg-surface border-border-subtle'>
-												<CardHeader>
-													<CardTitle className='text-base flex items-center gap-2'>
-														<Calendar className='size-5 text-primary' />
-														<span>Billing History</span>
-													</CardTitle>
-													<CardDescription>
-														Your recent payment transactions
-													</CardDescription>
-												</CardHeader>
-												<CardContent className='space-y-4'>
+											<motion.section
+												animate={{ opacity: 1, y: 0 }}
+												className='space-y-4'
+												initial={{ opacity: 0, y: 10 }}
+												transition={{ delay: 0.2, duration: 0.3 }}
+											>
+												<h3 className='text-lg font-semibold text-text-primary flex items-center gap-2'>
+													<Calendar className='size-5 text-primary' />
+													Billing History
+												</h3>
+												<div className='space-y-4 bg-surface rounded-lg p-4 border border-border-subtle'>
 													{paymentHistory.slice(0, 10).map((payment) => (
 														<div
 															className='flex items-center justify-between p-4 bg-base rounded-lg border border-border-subtle'
@@ -859,22 +857,24 @@ export function SettingsPanel({
 															View All Transactions
 														</Button>
 													)}
-												</CardContent>
-											</Card>
+												</div>
+											</motion.section>
 										)}
 
 										{/* Cancel Subscription */}
 										{currentSubscription &&
 											currentSubscription.status === 'active' &&
 											!currentSubscription.cancelAtPeriodEnd && (
-												<Card className='bg-surface border-border-subtle'>
-													<CardHeader>
-														<CardTitle className='text-error-500'>Cancel Subscription</CardTitle>
-														<CardDescription>
-															Cancel your subscription and downgrade to the free plan
-														</CardDescription>
-													</CardHeader>
-													<CardContent>
+												<motion.section
+													animate={{ opacity: 1, y: 0 }}
+													className='space-y-4'
+													initial={{ opacity: 0, y: 10 }}
+													transition={{ delay: 0.3, duration: 0.3 }}
+												>
+													<h3 className='text-lg font-semibold text-error-500'>
+														Cancel Subscription
+													</h3>
+													<div className='bg-surface rounded-lg p-4 border border-border-subtle'>
 														<div className='flex items-center justify-between p-4 bg-error-950/20 rounded-lg border border-error-800/30'>
 															<div>
 																<p className='text-error-200 font-medium'>
@@ -893,8 +893,8 @@ export function SettingsPanel({
 																{isCanceling ? 'Canceling...' : 'Cancel Subscription'}
 															</Button>
 														</div>
-													</CardContent>
-												</Card>
+													</div>
+												</motion.section>
 											)}
 									</>
 								)}
