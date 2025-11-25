@@ -5,6 +5,7 @@ import {
 	type ActivityState,
 	useRealtimePresenceRoom,
 } from '@/hooks/realtime/use-realtime-presence-room';
+import useAppStore from '@/store/mind-map-store';
 import { useMemo } from 'react';
 
 interface RealtimeAvatarStackProps {
@@ -18,13 +19,16 @@ export const RealtimeAvatarStack = ({
 	activityState,
 	mapOwnerId,
 }: RealtimeAvatarStackProps) => {
+	const currentUser = useAppStore((state) => state.currentUser);
 	const { users: usersMap } = useRealtimePresenceRoom(roomName, activityState);
 	const avatars = useMemo(() => {
 		if (!usersMap) return [];
 
-		// Pass full user objects for profile cards
-		return Object.values(usersMap);
-	}, [usersMap]);
+		// Filter out current user - don't show yourself in the presence bar
+		return Object.values(usersMap).filter(
+			(user) => user.id !== currentUser?.id
+		);
+	}, [usersMap, currentUser?.id]);
 
 	return (
 		<AvatarStack

@@ -430,7 +430,7 @@ export function ReactFlowArea() {
 				className={cn([
 					isPanningMode && 'cursor-grab',
 					activeTool === 'node' ||
-						(activeTool === 'text' && 'cursor-crosshair'),
+					(activeTool === 'text' && 'cursor-crosshair'),
 				])}
 				style={
 					{
