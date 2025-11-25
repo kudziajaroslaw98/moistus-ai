@@ -15,12 +15,13 @@ interface UserProfile extends PublicUserProfile {
 
 interface DashboardHeaderProps {
 	className?: string;
+	onOpenSettings?: (tab: 'settings' | 'billing') => void;
 }
 
 // Use shared Supabase client to ensure session consistency across the app
 const supabase = getSharedSupabaseClient();
 
-export function DashboardHeader({ className = '' }: DashboardHeaderProps) {
+export function DashboardHeader({ className = '', onOpenSettings }: DashboardHeaderProps) {
 	const [user, setUser] = useState<UserProfile | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -127,7 +128,7 @@ export function DashboardHeader({ className = '' }: DashboardHeaderProps) {
 
 				{/* User Menu */}
 				<div className='flex items-center space-x-4'>
-					<UserMenu user={user} />
+					<UserMenu user={user} onOpenSettings={onOpenSettings} />
 				</div>
 			</div>
 		</header>

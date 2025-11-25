@@ -25,17 +25,6 @@ export async function GET() {
 			display_name: user.user_metadata?.display_name || '',
 			avatar_url: user.user_metadata?.avatar_url,
 			bio: '',
-			location: '',
-			website: '',
-			company: '',
-			job_title: '',
-			skills: [],
-			social_links: {
-				twitter: '',
-				linkedin: '',
-				github: '',
-				discord: '',
-			},
 			preferences: {
 				theme: 'dark',
 				language: 'en',

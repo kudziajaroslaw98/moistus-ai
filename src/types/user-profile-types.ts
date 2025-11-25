@@ -5,21 +5,10 @@ export interface UserProfile {
 	display_name?: string;
 	avatar_url?: string;
 	bio?: string;
-	location?: string;
-	website?: string;
-	company?: string;
-	job_title?: string;
-	skills?: string[];
 	isAnonymous?: boolean;
 	color?: {
 		hsl: string;
 		hex: string;
-	};
-	social_links?: {
-		twitter?: string;
-		linkedin?: string;
-		github?: string;
-		discord?: string;
 	};
 	preferences?: {
 		theme?: 'light' | 'dark' | 'system';
@@ -38,20 +27,9 @@ export interface UserProfileUpdate {
 	display_name?: string;
 	avatar_url?: string;
 	bio?: string;
-	location?: string;
-	website?: string;
-	company?: string;
-	job_title?: string;
-	skills?: string[];
 	color?: {
 		hsl: string;
 		hex: string;
-	};
-	social_links?: {
-		twitter?: string;
-		linkedin?: string;
-		github?: string;
-		discord?: string;
 	};
 	preferences?: {
 		theme?: 'light' | 'dark' | 'system';
@@ -70,21 +48,10 @@ export interface PublicUserProfile {
 	display_name?: string;
 	avatar_url?: string;
 	bio?: string;
-	location?: string;
-	website?: string;
-	company?: string;
-	job_title?: string;
-	skills?: string[];
 	isAnonymous?: boolean;
 	color?: {
 		hsl: string;
 		hex: string;
-	};
-	social_links?: {
-		twitter?: string;
-		linkedin?: string;
-		github?: string;
-		discord?: string;
 	};
 	created_at: string;
 }
@@ -102,17 +69,6 @@ export interface UserProfileFormData {
 	full_name: string;
 	display_name: string;
 	bio: string;
-	location: string;
-	website: string;
-	company: string;
-	job_title: string;
-	skills: string[];
-	social_links: {
-		twitter: string;
-		linkedin: string;
-		github: string;
-		discord: string;
-	};
 	preferences: {
 		theme: 'light' | 'dark' | 'system';
 		accentColor: string;

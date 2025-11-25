@@ -20,10 +20,6 @@ export type RealtimeUser = {
 	id: string;
 	name: string;
 	image: string;
-	bio?: string;
-	location?: string;
-	company?: string;
-	jobTitle?: string;
 	activityState?: ActivityState;
 	joinedAt?: string; // ISO timestamp when user joined the session
 	lastSeenAt?: string; // ISO timestamp of last activity

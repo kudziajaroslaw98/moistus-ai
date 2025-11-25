@@ -29,12 +29,13 @@ import { useShallow } from 'zustand/react/shallow';
 interface UserMenuProps {
     user: (PublicUserProfile & { email?: string; is_anonymous?: boolean }) | null;
     showBackToDashboard?: boolean;
+    onOpenSettings?: (tab: 'settings' | 'billing') => void;
 }
 
 // Use shared Supabase client
 const supabase = getSharedSupabaseClient();
 
-export function UserMenu({ user, showBackToDashboard = false }: UserMenuProps) {
+export function UserMenu({ user, showBackToDashboard = false, onOpenSettings }: UserMenuProps) {
     const router = useRouter();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -145,7 +146,7 @@ export function UserMenu({ user, showBackToDashboard = false }: UserMenuProps) {
                 {/* Menu Items */}
                 <DropdownMenuItem
                     className='cursor-pointer text-zinc-300 focus:bg-zinc-800 focus:text-white'
-                    onClick={() => router.push('/dashboard/profile')}
+                    onClick={() => onOpenSettings?.('settings')}
                 >
                     <User className='mr-2 h-4 w-4' />
                     Profile
@@ -153,9 +154,7 @@ export function UserMenu({ user, showBackToDashboard = false }: UserMenuProps) {
 
                 <DropdownMenuItem
                     className='cursor-pointer text-zinc-300 focus:bg-zinc-800 focus:text-white'
-                    onClick={() => {
-                        /* Add settings navigation */
-                    }}
+                    onClick={() => onOpenSettings?.('settings')}
                 >
                     <Settings className='mr-2 h-4 w-4' />
                     Settings

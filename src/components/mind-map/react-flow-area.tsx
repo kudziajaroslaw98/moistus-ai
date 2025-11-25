@@ -70,9 +70,9 @@ export function ReactFlowArea() {
 	const connectingHandleType = useRef<'source' | 'target' | null>(null);
 	const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-	const [settingsTab, setSettingsTab] = useState<'general' | 'profile' | 'billing'>('general');
+	const [settingsTab, setSettingsTab] = useState<'settings' | 'billing'>('settings');
 
-	const handleOpenSettings = (tab: 'general' | 'profile' | 'billing' = 'general') => {
+	const handleOpenSettings = (tab: 'settings' | 'billing' = 'settings') => {
 		setSettingsTab(tab);
 		setIsSettingsOpen(true);
 	};

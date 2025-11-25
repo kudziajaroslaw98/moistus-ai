@@ -8,7 +8,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ReactNode } from 'react';
+import { useState } from 'react';
 import { DashboardHeader } from './dashboard-header';
+import { SettingsPanel } from './settings-panel';
 import {
 	Sidebar,
 	SidebarContent,
@@ -84,6 +86,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 	const pathname = usePathname();
 	const { open: sidebarOpen } = useSidebar();
 	const sidebarCollapsed = !sidebarOpen;
+	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+	const [settingsTab, setSettingsTab] = useState<'settings' | 'billing'>('settings');
+
+	const handleOpenSettings = (tab: 'settings' | 'billing' = 'settings') => {
+		setSettingsTab(tab);
+		setIsSettingsOpen(true);
+	};
 
 	const isItemActive = (href: string) => {
 		if (href === '/dashboard') {
@@ -196,19 +205,21 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 		}
 
 		return (
-			<Link href={item.href}>
-				<SidebarItem
-					badge={renderBadge()}
-					isActive={isActive}
-					label={item.label}
-					onClick={() => { }}
-					icon={
-						<div className={cn('flex-shrink-0', isActive && 'text-sky-400')}>
-							{item.icon}
-						</div>
-					}
-				/>
-			</Link>
+			<div onClick={item.id === 'settings' ? (e) => { e.preventDefault(); handleOpenSettings('settings'); } : undefined}>
+				<Link href={item.href}>
+					<SidebarItem
+						badge={renderBadge()}
+						isActive={isActive}
+						label={item.label}
+						onClick={() => { }}
+						icon={
+							<div className={cn('flex-shrink-0', isActive && 'text-sky-400')}>
+								{item.icon}
+							</div>
+						}
+					/>
+				</Link>
+			</div>
 		);
 	};
 
@@ -287,10 +298,16 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
 			{/* Main Content */}
 			<main className='flex-grow flex flex-col h-screen overflow-hidden'>
-				<DashboardHeader />
+				<DashboardHeader onOpenSettings={handleOpenSettings} />
 				
 				<div className='flex-1 overflow-y-auto'>{children}</div>
 			</main>
+
+			<SettingsPanel
+				isOpen={isSettingsOpen}
+				onClose={() => setIsSettingsOpen(false)}
+				defaultTab={settingsTab}
+			/>
 		</div>
 	);
 }
