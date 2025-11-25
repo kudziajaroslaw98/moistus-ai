@@ -27,6 +27,7 @@ import {
 } from 'react';
 
 import { UserMenu } from '@/components/common/user-menu';
+import { SettingsPanel } from '@/components/dashboard/settings-panel';
 import AnimatedGhostEdge from '@/components/edges/animated-ghost-edge';
 import FloatingEdge from '@/components/edges/floating-edge';
 import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edge';
@@ -68,6 +69,13 @@ export function ReactFlowArea() {
 	const connectingHandleId = useRef<string | null>(null);
 	const connectingHandleType = useRef<'source' | 'target' | null>(null);
 	const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+	const [settingsTab, setSettingsTab] = useState<'general' | 'profile' | 'billing'>('general');
+
+	const handleOpenSettings = (tab: 'general' | 'profile' | 'billing' = 'general') => {
+		setSettingsTab(tab);
+		setIsSettingsOpen(true);
+	};
 
 	// Activity tracking for real-time collaboration
 	const { activityState, setDragging, setViewing, setTyping } =
@@ -536,7 +544,7 @@ export function ReactFlowArea() {
 						)}
 
 						{/* User Menu */}
-						<UserMenu showBackToDashboard user={userProfile} />
+						<UserMenu showBackToDashboard user={userProfile} onOpenSettings={handleOpenSettings} />
 					</div>
 				</Panel>
 
@@ -562,6 +570,12 @@ export function ReactFlowArea() {
 			<UpgradeModal
 				onOpenChange={setShowUpgradeModal}
 				open={showUpgradeModal}
+			/>
+
+			<SettingsPanel
+				isOpen={isSettingsOpen}
+				onClose={() => setIsSettingsOpen(false)}
+				defaultTab={settingsTab}
 			/>
 		</div>
 	);
