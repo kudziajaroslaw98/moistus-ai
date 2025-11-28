@@ -25,6 +25,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { mutate } from 'swr';
 import { useShallow } from 'zustand/react/shallow';
+import { UpgradeAnonymousPrompt } from '@/components/auth/upgrade-anonymous';
 
 interface UserMenuProps {
 	user: (PublicUserProfile & { email?: string; is_anonymous?: boolean }) | null;
@@ -42,6 +43,7 @@ export function UserMenu({
 }: UserMenuProps) {
 	const router = useRouter();
 	const [isLoggingOut, setIsLoggingOut] = useState(false);
+	const [showUpgradeAnonymous, setShowUpgradeAnonymous] = useState(false);
 
 	// Store actions
 	const {
@@ -184,9 +186,7 @@ export function UserMenu({
 
 						<DropdownMenuItem
 							className='cursor-pointer text-blue-400 focus:bg-zinc-800 focus:text-blue-300'
-							onClick={() => {
-								/* Add upgrade account functionality */
-							}}
+							onClick={() => setShowUpgradeAnonymous(true)}
 						>
 							<User className='mr-2 h-4 w-4' />
 							Upgrade Account
@@ -220,6 +220,20 @@ export function UserMenu({
 					{isLoggingOut ? 'Signing out...' : 'Sign out'}
 				</DropdownMenuItem>
 			</DropdownMenuContent>
+
+			{/* Upgrade Anonymous Modal */}
+			{showUpgradeAnonymous && (
+				<UpgradeAnonymousPrompt
+					isAnonymous={true}
+					userDisplayName={user?.display_name || user?.full_name}
+					onDismiss={() => setShowUpgradeAnonymous(false)}
+					onUpgradeSuccess={() => {
+						// Refresh the page to update user state
+						router.refresh();
+					}}
+					autoShowDelay={0} // Show immediately when triggered from menu
+				/>
+			)}
 		</DropdownMenu>
 	);
 }

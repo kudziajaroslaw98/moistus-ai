@@ -4,6 +4,7 @@ import { CreateMapCard } from '@/components/dashboard/create-map-card';
 import { CreateMapDialog } from '@/components/dashboard/create-map-dialog';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import { MindMapCard } from '@/components/dashboard/mind-map-card';
+import { UpgradeAnonymousPrompt } from '@/components/auth/upgrade-anonymous';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { SearchInput } from '@/components/ui/search-input';
@@ -78,11 +79,12 @@ const fetcher = async (url: string) => {
 function DashboardContent() {
 	const router = useRouter();
 
-	// Trial state
-	const { isTrialing, getTrialDaysRemaining } = useAppStore(
+	// Trial state and user
+	const { isTrialing, getTrialDaysRemaining, userProfile } = useAppStore(
 		useShallow((state) => ({
 			isTrialing: state.isTrialing,
 			getTrialDaysRemaining: state.getTrialDaysRemaining,
+			userProfile: state.userProfile,
 		}))
 	);
 
@@ -96,6 +98,7 @@ function DashboardContent() {
 	const [selectedMaps, setSelectedMaps] = useState<Set<string>>(new Set());
 	const [isCreatingMap, setIsCreatingMap] = useState(false);
 	const [showCreateDialog, setShowCreateDialog] = useState(false);
+	const [showAnonymousUpgrade, setShowAnonymousUpgrade] = useState(false);
 
 	// Fetch mind maps
 	const { data: mapsData = { maps: [] }, isLoading: mapsLoading } = useSWR<{
@@ -144,6 +147,18 @@ function DashboardContent() {
 		});
 
 	// Handlers
+	const handleRequestCreateMap = () => {
+		// Check if user is anonymous
+		if (userProfile?.isAnonymous) {
+			// Show upgrade prompt for anonymous users
+			setShowAnonymousUpgrade(true);
+			return;
+		}
+
+		// Allow map creation for full users
+		setShowCreateDialog(true);
+	};
+
 	const handleCreateMap = async (title: string) => {
 		if (!title.trim() || isCreatingMap) return;
 
@@ -316,7 +331,7 @@ function DashboardContent() {
 					case 'n':
 						e.preventDefault();
 						// Open create map dialog
-						setShowCreateDialog(true);
+						handleRequestCreateMap();
 						break;
 					case 'f':
 						e.preventDefault();
@@ -603,7 +618,7 @@ function DashboardContent() {
 							>
 								{/* Create New Map Card - Always first */}
 								<CreateMapCard
-									onClick={() => setShowCreateDialog(true)}
+									onClick={handleRequestCreateMap}
 									viewMode={viewMode}
 								/>
 
@@ -659,7 +674,7 @@ function DashboardContent() {
 
 													<Button
 														className='bg-sky-600 hover:bg-sky-700'
-														onClick={() => setShowCreateDialog(true)}
+														onClick={handleRequestCreateMap}
 													>
 														<Plus className='w-4 h-4 mr-2' />
 														Create new map
@@ -690,7 +705,7 @@ function DashboardContent() {
 													<Button
 														className='bg-sky-600 hover:bg-sky-700 text-lg px-8 py-3 h-auto'
 														disabled={isCreatingMap}
-														onClick={() => setShowCreateDialog(true)}
+														onClick={handleRequestCreateMap}
 														size='lg'
 													>
 														<Plus className='w-5 h-5 mr-2' />
@@ -734,6 +749,17 @@ function DashboardContent() {
 				onSubmit={handleCreateMap}
 				open={showCreateDialog}
 			/>
+
+			{/* Upgrade prompt for anonymous users trying to create maps */}
+			{showAnonymousUpgrade && (
+				<UpgradeAnonymousPrompt
+					isAnonymous={true}
+					userDisplayName={userProfile?.display_name || userProfile?.full_name}
+					onDismiss={() => setShowAnonymousUpgrade(false)}
+					onUpgradeSuccess={() => router.refresh()}
+					autoShowDelay={0}
+				/>
+			)}
 		</DashboardLayout>
 	);
 }

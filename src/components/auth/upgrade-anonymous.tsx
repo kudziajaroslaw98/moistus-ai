@@ -124,23 +124,23 @@ export function UpgradeAnonymousPrompt({
 	const benefits = [
 		{
 			icon: Save,
-			title: 'Save Progress',
-			description: 'Your mind maps will be saved permanently',
+			title: 'Create Your Own Mind Maps',
+			description: 'Start building your own maps and organize your ideas',
 		},
 		{
 			icon: Users,
-			title: 'Enhanced Collaboration',
-			description: 'Create and manage shared workspaces',
+			title: 'Share & Collaborate',
+			description: 'Invite others and work together in real-time',
 		},
 		{
 			icon: Zap,
-			title: 'Premium Features',
-			description: 'Access AI-powered tools and advanced features',
+			title: 'AI-Powered Features',
+			description: 'Access smart suggestions and automated connections',
 		},
 		{
 			icon: Shield,
-			title: 'Secure Account',
-			description: 'Protect your data with a secure account',
+			title: 'Save Your Work',
+			description: 'Keep your maps safe with a permanent account',
 		},
 	];
 
@@ -177,11 +177,10 @@ export function UpgradeAnonymousPrompt({
 								<X className='w-5 h-5' />
 							</button>
 
-							<h2 className='text-2xl font-bold mb-2'>Unlock Full Features</h2>
+							<h2 className='text-2xl font-bold mb-2'>Create Account to Start Building</h2>
 
 							<p className='text-teal-100'>
-								Create a free account to save your progress and access premium
-								features
+								Sign up for a free account to create your own mind maps and unlock all features
 							</p>
 						</div>
 
