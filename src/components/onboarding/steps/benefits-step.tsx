@@ -1,6 +1,5 @@
 'use client';
 
-import { GlassmorphismTheme } from '@/components/nodes/themes/glassmorphism-theme';
 import { Button } from '@/components/ui/button';
 import { Brain, Download, Shield, Sparkles, Users, Zap } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -23,8 +22,9 @@ const benefits: Benefit[] = [
 	{
 		id: 'ai-powered',
 		icon: Sparkles,
-		title: 'AI-Powered Intelligence',
-		description: 'Get smart suggestions and auto-connections',
+		title: 'Break Through Creative Blocks',
+		description:
+			'Never stare at a blank canvas - AI expands your thinking instantly',
 		gradient:
 			'linear-gradient(135deg, rgba(168, 85, 247, 0.8) 0%, rgba(147, 51, 234, 0.8) 100%)',
 		delay: 0,
@@ -32,8 +32,9 @@ const benefits: Benefit[] = [
 	{
 		id: 'realtime-collab',
 		icon: Users,
-		title: 'Real-time Collaboration',
-		description: 'Work together seamlessly with your team',
+		title: 'Get Everyone Aligned',
+		description:
+			"Reduce endless meetings - see everyone's ideas in one visual space",
 		gradient:
 			'linear-gradient(135deg, rgba(96, 165, 250, 0.8) 0%, rgba(59, 130, 246, 0.8) 100%)',
 		delay: 0.1,
@@ -41,8 +42,9 @@ const benefits: Benefit[] = [
 	{
 		id: 'smart-layouts',
 		icon: Brain,
-		title: 'Smart Layouts',
-		description: 'Automatically organize your thoughts',
+		title: 'Find Hidden Connections',
+		description:
+			'Discover insights buried in complexity with auto-organized visuals',
 		gradient:
 			'linear-gradient(135deg, rgba(52, 211, 153, 0.8) 0%, rgba(16, 185, 129, 0.8) 100%)',
 		delay: 0.2,
@@ -50,8 +52,9 @@ const benefits: Benefit[] = [
 	{
 		id: 'export-anywhere',
 		icon: Download,
-		title: 'Export Anywhere',
-		description: 'PDF, PNG, Markdown, and more',
+		title: 'Share Your Brilliance',
+		description:
+			'Turn your thinking into presentations, docs, and plans instantly',
 		gradient:
 			'linear-gradient(135deg, rgba(251, 146, 60, 0.8) 0%, rgba(249, 115, 22, 0.8) 100%)',
 		delay: 0.3,
@@ -59,8 +62,8 @@ const benefits: Benefit[] = [
 	{
 		id: 'lightning-fast',
 		icon: Zap,
-		title: 'Lightning Fast',
-		description: 'Optimized performance for large maps',
+		title: 'Stay in Your Flow',
+		description: 'Never wait - handle thousand-node maps without lag',
 		gradient:
 			'linear-gradient(135deg, rgba(234, 179, 8, 0.8) 0%, rgba(202, 138, 4, 0.8) 100%)',
 		delay: 0.4,
@@ -68,8 +71,8 @@ const benefits: Benefit[] = [
 	{
 		id: 'secure-private',
 		icon: Shield,
-		title: 'Secure & Private',
-		description: 'Your data is encrypted and protected',
+		title: 'Think Freely',
+		description: 'Brainstorm confidently - your ideas stay yours',
 		gradient:
 			'linear-gradient(135deg, rgba(244, 63, 94, 0.8) 0%, rgba(225, 29, 72, 0.8) 100%)',
 		delay: 0.5,
@@ -89,18 +92,12 @@ export function BenefitsStep({ onContinue, onBack }: BenefitsStepProps) {
 					ease: [0.165, 0.84, 0.44, 1], // ease-out-quart
 				}}
 			>
-				<h2
-					className='text-3xl font-bold mb-4'
-					style={{ color: GlassmorphismTheme.text.high }}
-				>
-					Why Teams Love Moistus AI
+				<h2 className='text-3xl font-bold mb-4 text-text-primary'>
+					What You'll Achieve With Moistus AI
 				</h2>
 
-				<p
-					className='text-lg'
-					style={{ color: GlassmorphismTheme.text.medium }}
-				>
-					Everything you need to bring your ideas to life
+				<p className='text-lg text-text-secondary'>
+					Real outcomes that transform how you think and work
 				</p>
 			</motion.div>
 
@@ -112,67 +109,30 @@ export function BenefitsStep({ onContinue, onBack }: BenefitsStepProps) {
 						className='relative group'
 						initial={{ opacity: 0, y: 20, scale: 0.95 }}
 						key={benefit.id}
-						onMouseEnter={(e) => {
-							e.currentTarget.style.transform = 'translateY(-4px)';
-						}}
-						onMouseLeave={(e) => {
-							e.currentTarget.style.transform = 'translateY(0)';
-						}}
 						transition={{
 							duration: 0.3,
 							ease: [0.165, 0.84, 0.44, 1], // ease-out-quart
 							delay: benefit.delay,
 						}}
 					>
-						<div
-							className='h-full rounded-xl p-6'
-							onMouseEnter={(e) => {
-								e.currentTarget.style.borderColor =
-									GlassmorphismTheme.borders.hover;
-							}}
-							onMouseLeave={(e) => {
-								e.currentTarget.style.borderColor =
-									GlassmorphismTheme.borders.default;
-							}}
-							style={{
-								backgroundColor: GlassmorphismTheme.elevation[1],
-								border: `1px solid ${GlassmorphismTheme.borders.default}`,
-								backdropFilter: GlassmorphismTheme.effects.glassmorphism,
-								transition: GlassmorphismTheme.effects.transition,
-							}}
-						>
+						<div className='h-full rounded-xl p-6 bg-surface border border-border-subtle hover:border-border-default transition-colors duration-200'>
 							<div
-								className='w-12 h-12 rounded-lg flex items-center justify-center mb-4'
-								style={{
-									background: benefit.gradient,
-									boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-								}}
+								className='w-12 h-12 rounded-lg flex items-center justify-center mb-4 shadow-[0_4px_12px_rgba(0,0,0,0.3)]'
+								style={{ background: benefit.gradient }}
 							>
 								<benefit.icon className='w-6 h-6 text-white' />
 							</div>
 
-							<h3
-								className='text-lg font-semibold mb-2'
-								style={{ color: GlassmorphismTheme.text.high }}
-							>
+							<h3 className='text-lg font-semibold mb-2 text-text-primary'>
 								{benefit.title}
 							</h3>
 
-							<p
-								className='text-sm'
-								style={{ color: GlassmorphismTheme.text.medium }}
-							>
+							<p className='text-sm text-text-secondary'>
 								{benefit.description}
 							</p>
 
 							{/* Subtle hover glow effect */}
-							<div
-								className='absolute inset-0 rounded-xl pointer-events-none opacity-0 group-hover:opacity-100'
-								style={{
-									background: GlassmorphismTheme.effects.ambientGlow,
-									transition: `opacity ${GlassmorphismTheme.animations.duration.slow} ${GlassmorphismTheme.animations.easing.default}`,
-								}}
-							/>
+							<div className='absolute inset-0 rounded-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[radial-gradient(circle_at_center,rgba(96,165,250,0.03)_0%,transparent_70%)]' />
 						</div>
 					</motion.div>
 				))}
@@ -190,42 +150,17 @@ export function BenefitsStep({ onContinue, onBack }: BenefitsStepProps) {
 				}}
 			>
 				<Button
-					className='transition-colors'
+					className='text-text-secondary hover:text-text-primary transition-colors duration-200'
 					onClick={onBack}
 					variant='ghost'
-					onMouseEnter={(e) => {
-						e.currentTarget.style.color = GlassmorphismTheme.text.high;
-					}}
-					onMouseLeave={(e) => {
-						e.currentTarget.style.color = GlassmorphismTheme.text.medium;
-					}}
-					style={{
-						color: GlassmorphismTheme.text.medium,
-						transitionDuration: '200ms',
-						transitionTimingFunction: 'ease',
-					}}
 				>
 					Back
 				</Button>
 
 				<Button
-					className='font-semibold px-8 transition-all'
+					className='font-semibold px-8 bg-primary-600 hover:bg-primary-500 text-base hover:-translate-y-0.5 transition-all duration-200'
 					onClick={onContinue}
 					size='lg'
-					onMouseEnter={(e) => {
-						e.currentTarget.style.backgroundColor = 'rgba(52, 211, 153, 1)';
-						e.currentTarget.style.transform = 'translateY(-2px)';
-					}}
-					onMouseLeave={(e) => {
-						e.currentTarget.style.backgroundColor = 'rgba(52, 211, 153, 0.8)';
-						e.currentTarget.style.transform = 'translateY(0)';
-					}}
-					style={{
-						backgroundColor: 'rgba(52, 211, 153, 0.8)',
-						color: GlassmorphismTheme.elevation[0],
-						transitionDuration: '200ms',
-						transitionTimingFunction: 'ease',
-					}}
 				>
 					Continue
 				</Button>

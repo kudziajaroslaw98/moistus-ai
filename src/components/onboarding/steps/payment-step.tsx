@@ -3,7 +3,6 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { GlassmorphismTheme } from '@/components/nodes/themes/glassmorphism-theme';
 import useAppStore from '@/store/mind-map-store';
 import {
 	CardElement,
@@ -31,17 +30,17 @@ const stripePromise = loadStripe(
 const CARD_ELEMENT_OPTIONS = {
 	style: {
 		base: {
-			color: GlassmorphismTheme.text.high,
+			color: 'rgba(255, 255, 255, 0.87)', // text-text-primary
 			fontFamily: '"Inter", sans-serif',
 			fontSmoothing: 'antialiased',
 			fontSize: '16px',
 			'::placeholder': {
-				color: GlassmorphismTheme.text.disabled,
+				color: 'rgba(255, 255, 255, 0.38)', // text-text-disabled
 			},
 		},
 		invalid: {
-			color: GlassmorphismTheme.indicators.status.error,
-			iconColor: GlassmorphismTheme.indicators.status.error,
+			color: '#EF4444', // error-500
+			iconColor: '#EF4444',
 		},
 	},
 };
@@ -182,45 +181,26 @@ function PaymentForm({
 	return (
 		<form className='space-y-6' onSubmit={handleSubmit}>
 			<div>
-				<Label
-					htmlFor='email'
-					style={{ color: GlassmorphismTheme.text.high }}
-				>
+				<Label htmlFor='email' className='text-text-primary'>
 					Email Address
 				</Label>
 
 				<Input
 					required
-					className='mt-1'
+					className='mt-1 bg-surface border-border-subtle text-text-primary'
 					disabled={isProcessing || succeeded}
 					id='email'
 					onChange={(e) => setEmail(e.target.value)}
 					placeholder='you@example.com'
 					type='email'
 					value={email}
-					style={{
-						backgroundColor: GlassmorphismTheme.elevation[2],
-						borderColor: GlassmorphismTheme.borders.default,
-						color: GlassmorphismTheme.text.high,
-					}}
 				/>
 			</div>
 
 			<div>
-				<Label
-					className='mb-2 block'
-					style={{ color: GlassmorphismTheme.text.high }}
-				>
-					Card Information
-				</Label>
+				<Label className='mb-2 block text-text-primary'>Card Information</Label>
 
-				<div
-					className='p-3 rounded-md'
-					style={{
-						backgroundColor: GlassmorphismTheme.elevation[2],
-						border: `1px solid ${GlassmorphismTheme.borders.default}`,
-					}}
-				>
+				<div className='p-3 rounded-md bg-surface border border-border-subtle'>
 					<CardElement
 						onChange={() => setError(null)}
 						options={CARD_ELEMENT_OPTIONS}
@@ -231,9 +211,8 @@ function PaymentForm({
 			{error && (
 				<motion.div
 					animate={{ opacity: 1, y: 0 }}
-					className='flex items-center gap-2 text-sm'
+					className='flex items-center gap-2 text-sm text-error-500'
 					initial={{ opacity: 0, y: -10 }}
-					style={{ color: GlassmorphismTheme.indicators.status.error }}
 					transition={{
 						duration: 0.2,
 						ease: [0.165, 0.84, 0.44, 1], // ease-out-quart
@@ -255,12 +234,7 @@ function PaymentForm({
 						ease: [0.165, 0.84, 0.44, 1],
 					}}
 				>
-					<div
-						className='w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3'
-						style={{
-							backgroundColor: 'rgba(52, 211, 153, 0.2)',
-						}}
-					>
+					<div className='w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 bg-primary-500/20'>
 						<motion.div
 							animate={{ scale: 1 }}
 							initial={{ scale: 0 }}
@@ -270,17 +244,11 @@ function PaymentForm({
 								ease: [0.34, 1.56, 0.64, 1], // ease-spring from theme
 							}}
 						>
-							<CreditCard
-								className='w-8 h-8'
-								style={{ color: GlassmorphismTheme.indicators.status.complete }}
-							/>
+							<CreditCard className='w-8 h-8 text-success-500' />
 						</motion.div>
 					</div>
 
-					<p
-						className='font-medium'
-						style={{ color: GlassmorphismTheme.indicators.status.complete }}
-					>
+					<p className='font-medium text-success-500'>
 						Payment successful!
 					</p>
 				</motion.div>
@@ -288,65 +256,26 @@ function PaymentForm({
 
 			<div className='flex items-center justify-between pt-4'>
 				<Button
-					className='transition-colors'
+					className='text-text-secondary hover:text-text-primary transition-colors duration-200'
 					disabled={isProcessing || succeeded}
 					onClick={onBack}
 					type='button'
 					variant='ghost'
-					onMouseEnter={(e) => {
-						if (!isProcessing && !succeeded) {
-							e.currentTarget.style.color = GlassmorphismTheme.text.high;
-						}
-					}}
-					onMouseLeave={(e) => {
-						if (!isProcessing && !succeeded) {
-							e.currentTarget.style.color = GlassmorphismTheme.text.medium;
-						}
-					}}
-					style={{
-						color: GlassmorphismTheme.text.medium,
-						transitionDuration: '200ms',
-						transitionTimingFunction: 'ease',
-					}}
 				>
 					Back
 				</Button>
 
 				<Button
-					className='font-semibold px-8 transition-all'
+					className={`font-semibold px-8 bg-primary-600 hover:bg-primary-500 text-base transition-all duration-200 ${!stripe || isProcessing || succeeded ? 'opacity-50' : 'hover:-translate-y-0.5'}`}
 					disabled={!stripe || isProcessing || succeeded}
 					type='submit'
-					onMouseEnter={(e) => {
-						if (stripe && !isProcessing && !succeeded) {
-							e.currentTarget.style.backgroundColor = 'rgba(52, 211, 153, 1)';
-							e.currentTarget.style.transform = 'translateY(-2px)';
-						}
-					}}
-					onMouseLeave={(e) => {
-						if (stripe && !isProcessing && !succeeded) {
-							e.currentTarget.style.backgroundColor =
-								'rgba(52, 211, 153, 0.8)';
-							e.currentTarget.style.transform = 'translateY(0)';
-						}
-					}}
-					style={{
-						backgroundColor: 'rgba(52, 211, 153, 0.8)',
-						color: GlassmorphismTheme.elevation[0],
-						transitionDuration: '200ms',
-						transitionTimingFunction: 'ease',
-						opacity: !stripe || isProcessing || succeeded ? 0.5 : 1,
-					}}
 				>
 					{isProcessing ? (
 						<span className='flex items-center gap-2'>
 							<motion.div
 								animate={{ rotate: 360 }}
-								className='w-4 h-4 rounded-full'
+								className='w-4 h-4 rounded-full border-2 border-base border-t-transparent'
 								transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-								style={{
-									border: `2px solid ${GlassmorphismTheme.elevation[0]}`,
-									borderTopColor: 'transparent',
-								}}
 							/>
 							Processing...
 						</span>
@@ -372,17 +301,11 @@ export function PaymentStep(props: PaymentStepProps) {
 					ease: [0.165, 0.84, 0.44, 1], // ease-out-quart
 				}}
 			>
-				<h2
-					className='text-3xl font-bold mb-4'
-					style={{ color: GlassmorphismTheme.text.high }}
-				>
+				<h2 className='text-3xl font-bold mb-4 text-text-primary'>
 					Complete Your Subscription
 				</h2>
 
-				<p
-					className='text-lg'
-					style={{ color: GlassmorphismTheme.text.medium }}
-				>
+				<p className='text-lg text-text-secondary'>
 					Start your {props.selectedPlan} plan today
 				</p>
 			</motion.div>
@@ -406,9 +329,8 @@ export function PaymentStep(props: PaymentStepProps) {
 			{/* Security badges */}
 			<motion.div
 				animate={{ opacity: 1 }}
-				className='flex items-center justify-center gap-4 text-sm mt-8'
+				className='flex items-center justify-center gap-4 text-sm mt-8 text-text-disabled'
 				initial={{ opacity: 0 }}
-				style={{ color: GlassmorphismTheme.text.disabled }}
 				transition={{ duration: 0.3, delay: 0.3 }}
 			>
 				<div className='flex items-center gap-2'>
