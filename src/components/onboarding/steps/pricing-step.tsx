@@ -1,6 +1,5 @@
 'use client';
 
-import { GlassmorphismTheme } from '@/components/nodes/themes/glassmorphism-theme';
 import { Button } from '@/components/ui/button';
 import useAppStore from '@/store/mind-map-store';
 import { Check, X } from 'lucide-react';
@@ -31,32 +30,35 @@ const pricingTiers: PricingTier[] = [
 	{
 		id: 'free',
 		name: 'Free',
-		description: 'Perfect for personal use',
+		description: 'Start your clarity journey',
 		monthlyPrice: 0,
 		yearlyPrice: 0,
 		features: [
-			'3 mind maps',
-			'50 nodes per map',
-			'Basic export',
-			'Community support',
+			'3 projects to organize',
+			'Map up to 50 ideas per project',
+			'Share your thinking',
+			'Join our community',
 		],
-		limitations: ['No AI suggestions', 'No real-time collaboration'],
+		limitations: [
+			'Unlock AI thinking partner with Pro',
+			'Add team collaboration with Pro',
+		],
 		ctaText: 'Start Free',
 	},
 	{
 		id: 'pro',
 		name: 'Pro',
-		description: 'For professionals and teams',
+		description: 'For serious thinkers and teams',
 		monthlyPrice: 12,
 		yearlyPrice: 120,
 		discount: '17% off',
 		features: [
-			'Unlimited mind maps',
-			'Unlimited nodes',
-			'AI-powered suggestions',
-			'Real-time collaboration',
-			'Priority support',
-			'Advanced export options',
+			'Organize unlimited projects',
+			'No limits on your thinking',
+			'AI thinking partner',
+			'Team alignment in real-time',
+			'Get unstuck faster',
+			'Professional presentations & reports',
 		],
 		recommended: true,
 		ctaText: 'Start Pro Trial',
@@ -106,89 +108,37 @@ export function PricingStep({
 					ease: [0.165, 0.84, 0.44, 1], // ease-out-quart
 				}}
 			>
-				<h2
-					className='text-3xl font-bold mb-4'
-					style={{ color: GlassmorphismTheme.text.high }}
-				>
-					Choose Your Plan
+				<h2 className='text-3xl font-bold mb-4 text-text-primary'>
+					Choose How Fast You'll Grow
 				</h2>
 
-				<p
-					className='text-lg mb-6'
-					style={{ color: GlassmorphismTheme.text.medium }}
-				>
-					Start free, upgrade anytime
+				<p className='text-lg mb-6 text-text-secondary'>
+					Start creating clarity today, scale when you're ready
 				</p>
 
 				{/* Billing cycle toggle */}
-				<div
-					className='inline-flex items-center gap-3 p-1 rounded-lg'
-					style={{
-						backgroundColor: GlassmorphismTheme.elevation[2],
-					}}
-				>
+				<div className='inline-flex items-center gap-3 p-1 rounded-lg bg-surface'>
 					<button
-						className='px-4 py-2 rounded-md text-sm font-medium transition-all'
+						className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+							billingCycle === 'monthly'
+								? 'bg-elevated text-text-primary'
+								: 'bg-transparent text-text-secondary hover:text-text-primary'
+						}`}
 						onClick={handleToggleBilling}
-						onMouseEnter={(e) => {
-							if (billingCycle !== 'monthly') {
-								e.currentTarget.style.color = GlassmorphismTheme.text.high;
-							}
-						}}
-						onMouseLeave={(e) => {
-							if (billingCycle !== 'monthly') {
-								e.currentTarget.style.color = GlassmorphismTheme.text.medium;
-							}
-						}}
-						style={{
-							backgroundColor:
-								billingCycle === 'monthly'
-									? GlassmorphismTheme.elevation[4]
-									: 'transparent',
-							color:
-								billingCycle === 'monthly'
-									? GlassmorphismTheme.text.high
-									: GlassmorphismTheme.text.medium,
-							transitionDuration: '200ms',
-							transitionTimingFunction: 'ease',
-						}}
 					>
 						Monthly
 					</button>
 
 					<button
-						className='px-4 py-2 rounded-md text-sm font-medium transition-all'
+						className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+							billingCycle === 'yearly'
+								? 'bg-elevated text-text-primary'
+								: 'bg-transparent text-text-secondary hover:text-text-primary'
+						}`}
 						onClick={handleToggleBilling}
-						onMouseEnter={(e) => {
-							if (billingCycle !== 'yearly') {
-								e.currentTarget.style.color = GlassmorphismTheme.text.high;
-							}
-						}}
-						onMouseLeave={(e) => {
-							if (billingCycle !== 'yearly') {
-								e.currentTarget.style.color = GlassmorphismTheme.text.medium;
-							}
-						}}
-						style={{
-							backgroundColor:
-								billingCycle === 'yearly'
-									? GlassmorphismTheme.elevation[4]
-									: 'transparent',
-							color:
-								billingCycle === 'yearly'
-									? GlassmorphismTheme.text.high
-									: GlassmorphismTheme.text.medium,
-							transitionDuration: '200ms',
-							transitionTimingFunction: 'ease',
-						}}
 					>
 						Yearly
-						<span
-							className='ml-2 text-xs'
-							style={{ color: GlassmorphismTheme.indicators.status.complete }}
-						>
-							Save 17%
-						</span>
+						<span className='ml-2 text-xs text-success-500'>Save 17%</span>
 					</button>
 				</div>
 			</motion.div>
@@ -197,40 +147,15 @@ export function PricingStep({
 			<div className='grid grid-cols-2 gap-8 max-w-4xl mx-auto flex-1 mb-8'>
 				{pricingTiers.map((tier, index) => (
 					<motion.div
-						layout
 						animate={{ opacity: 1, y: 0 }}
-						className='relative rounded-xl cursor-pointer'
+						className={`relative rounded-xl cursor-pointer text-xs border ${
+							selectedPlan === tier.id
+								? 'bg-elevated border-primary-500/50 shadow-[0_0_0_1px_rgba(96,165,250,0.3),0_0_0_2px_rgba(96,165,250,0.15)]'
+								: 'bg-surface border-border-subtle hover:border-border-default'
+						}`}
 						initial={{ opacity: 0, y: 20 }}
 						key={tier.id}
 						onClick={() => handleSelectPlan(tier.id)}
-						onMouseEnter={(e) => {
-							if (selectedPlan !== tier.id) {
-								e.currentTarget.style.borderColor =
-									GlassmorphismTheme.borders.hover;
-							}
-						}}
-						onMouseLeave={(e) => {
-							if (selectedPlan !== tier.id) {
-								e.currentTarget.style.borderColor =
-									GlassmorphismTheme.borders.default;
-							}
-						}}
-						style={{
-							border: `1px solid ${
-								selectedPlan === tier.id
-									? GlassmorphismTheme.borders.selected
-									: GlassmorphismTheme.borders.default
-							}`,
-							backgroundColor:
-								selectedPlan === tier.id
-									? GlassmorphismTheme.elevation[2]
-									: GlassmorphismTheme.elevation[1],
-							backdropFilter: GlassmorphismTheme.effects.glassmorphism,
-							boxShadow:
-								tier.recommended && selectedPlan === tier.id
-									? GlassmorphismTheme.effects.selectedShadow
-									: 'none',
-						}}
 						transition={{
 							duration: 0.3,
 							ease: [0.165, 0.84, 0.44, 1],
@@ -239,13 +164,7 @@ export function PricingStep({
 					>
 						{tier.recommended && (
 							<div className='absolute -top-3 left-1/2 -translate-x-1/2'>
-								<span
-									className='text-xs font-semibold px-3 py-1 rounded-full'
-									style={{
-										backgroundColor: 'rgba(52, 211, 153, 0.8)',
-										color: GlassmorphismTheme.elevation[0],
-									}}
-								>
+								<span className='text-xs font-semibold px-3 py-1 rounded-full bg-primary-600 text-zinc-100'>
 									RECOMMENDED
 								</span>
 							</div>
@@ -253,43 +172,29 @@ export function PricingStep({
 
 						<div className='p-6 h-full flex flex-col'>
 							<div className='mb-4'>
-								<h3
-									className='text-xl font-semibold mb-2'
-									style={{ color: GlassmorphismTheme.text.high }}
-								>
+								<h3 className='text-xl font-semibold mb-2 text-text-primary'>
 									{tier.name}
 								</h3>
 
-								<p
-									className='text-sm'
-									style={{ color: GlassmorphismTheme.text.medium }}
-								>
+								<p className='text-sm text-text-secondary'>
 									{tier.description}
 								</p>
 							</div>
 
 							<div className='mb-6'>
 								<div className='flex items-baseline gap-1'>
-									<span
-										className='text-3xl font-bold'
-										style={{ color: GlassmorphismTheme.text.high }}
-									>
+									<span className='text-3xl font-bold text-text-primary'>
 										$
 										{billingCycle === 'monthly'
 											? tier.monthlyPrice
 											: Math.floor(tier.yearlyPrice / 12)}
 									</span>
 
-									<span style={{ color: GlassmorphismTheme.text.medium }}>
-										/month
-									</span>
+									<span className='text-text-secondary'>/month</span>
 								</div>
 
 								{billingCycle === 'yearly' && tier.yearlyPrice > 0 && (
-									<p
-										className='text-sm mt-1'
-										style={{ color: GlassmorphismTheme.text.disabled }}
-									>
+									<p className='text-sm mt-1 text-text-disabled'>
 										${tier.yearlyPrice} billed annually
 									</p>
 								)}
@@ -298,33 +203,17 @@ export function PricingStep({
 							<div className='space-y-3 flex-1'>
 								{tier.features.map((feature) => (
 									<div className='flex items-start gap-2' key={feature}>
-										<Check
-											className='w-4 h-4 mt-0.5 flex-shrink-0'
-											style={{
-												color: GlassmorphismTheme.indicators.status.complete,
-											}}
-										/>
+										<Check className='w-4 h-4 mt-0.5 flex-shrink-0 text-success-500' />
 
-										<span
-											className='text-sm'
-											style={{ color: GlassmorphismTheme.text.high }}
-										>
-											{feature}
-										</span>
+										<span className='text-sm text-text-primary'>{feature}</span>
 									</div>
 								))}
 
 								{tier.limitations?.map((limitation) => (
 									<div className='flex items-start gap-2' key={limitation}>
-										<X
-											className='w-4 h-4 mt-0.5 flex-shrink-0'
-											style={{ color: GlassmorphismTheme.text.disabled }}
-										/>
+										<X className='w-4 h-4 mt-0.5 flex-shrink-0 text-text-disabled' />
 
-										<span
-											className='text-sm'
-											style={{ color: GlassmorphismTheme.text.disabled }}
-										>
+										<span className='text-sm text-text-disabled'>
 											{limitation}
 										</span>
 									</div>
@@ -332,43 +221,17 @@ export function PricingStep({
 							</div>
 
 							<Button
-								className='w-full mt-6 transition-all font-medium'
+								className={`w-full mt-6 text-xs ${
+									selectedPlan === tier.id
+										? 'bg-primary-600 hover:bg-primary-500 text-base'
+										: 'bg-elevated hover:bg-overlay text-text-primary'
+								}`}
 								onClick={(e) => {
 									e.stopPropagation();
 									handleSelectPlan(tier.id);
 								}}
-								onMouseEnter={(e) => {
-									if (selectedPlan === tier.id) {
-										e.currentTarget.style.backgroundColor =
-											'rgba(52, 211, 153, 1)';
-									} else {
-										e.currentTarget.style.backgroundColor =
-											GlassmorphismTheme.elevation[6];
-									}
-								}}
-								onMouseLeave={(e) => {
-									if (selectedPlan === tier.id) {
-										e.currentTarget.style.backgroundColor =
-											'rgba(52, 211, 153, 0.8)';
-									} else {
-										e.currentTarget.style.backgroundColor =
-											GlassmorphismTheme.elevation[4];
-									}
-								}}
-								style={{
-									backgroundColor:
-										selectedPlan === tier.id
-											? 'rgba(52, 211, 153, 0.8)'
-											: GlassmorphismTheme.elevation[4],
-									color:
-										selectedPlan === tier.id
-											? GlassmorphismTheme.elevation[0]
-											: GlassmorphismTheme.text.high,
-									transitionDuration: '200ms',
-									transitionTimingFunction: 'ease',
-								}}
 							>
-								{selectedPlan === tier.id ? 'Selected' : tier.ctaText}
+								{selectedPlan === tier.id ? 'Selected' : `${tier.ctaText}`}
 							</Button>
 						</div>
 					</motion.div>
@@ -387,52 +250,22 @@ export function PricingStep({
 				}}
 			>
 				<Button
-					className='transition-colors'
+					className='text-text-secondary hover:text-text-primary transition-colors duration-200'
 					onClick={onBack}
 					variant='ghost'
-					onMouseEnter={(e) => {
-						e.currentTarget.style.color = GlassmorphismTheme.text.high;
-					}}
-					onMouseLeave={(e) => {
-						e.currentTarget.style.color = GlassmorphismTheme.text.medium;
-					}}
-					style={{
-						color: GlassmorphismTheme.text.medium,
-						transitionDuration: '200ms',
-						transitionTimingFunction: 'ease',
-					}}
 				>
 					Back
 				</Button>
 
 				<Button
-					className='font-semibold px-8 transition-all'
+					className={`font-semibold px-8 transition-all duration-200 ${
+						selectedPlan
+							? 'bg-primary-600 hover:bg-primary-500 text-base hover:-translate-y-0.5'
+							: 'bg-elevated text-text-disabled opacity-50 cursor-not-allowed'
+					}`}
 					disabled={!selectedPlan}
 					onClick={handleContinue}
 					size='lg'
-					onMouseEnter={(e) => {
-						if (selectedPlan) {
-							e.currentTarget.style.backgroundColor = 'rgba(52, 211, 153, 1)';
-							e.currentTarget.style.transform = 'translateY(-2px)';
-						}
-					}}
-					onMouseLeave={(e) => {
-						if (selectedPlan) {
-							e.currentTarget.style.backgroundColor = 'rgba(52, 211, 153, 0.8)';
-							e.currentTarget.style.transform = 'translateY(0)';
-						}
-					}}
-					style={{
-						backgroundColor: selectedPlan
-							? 'rgba(52, 211, 153, 0.8)'
-							: GlassmorphismTheme.elevation[4],
-						color: selectedPlan
-							? GlassmorphismTheme.elevation[0]
-							: GlassmorphismTheme.text.disabled,
-						transitionDuration: '200ms',
-						transitionTimingFunction: 'ease',
-						opacity: selectedPlan ? 1 : 0.5,
-					}}
 				>
 					{selectedPlan === 'free' ? 'Start Free' : 'Continue to Payment'}
 				</Button>

@@ -12,6 +12,8 @@ interface NodeDimensionConfig {
 	maxHeight?: number;
 	autoHeight?: boolean;
 	debounceMs?: number;
+	contentWidth?: number;
+	contentHeight?: number;
 }
 
 interface UseDimensionsReturn {
@@ -41,7 +43,9 @@ export function useNodeDimensions(
 		maxWidth = DEFAULT_MAX_WIDTH,
 		maxHeight, // undefined = unlimited height
 		autoHeight = true,
-		debounceMs = 500, // Increased from 100ms to reduce update frequency
+		debounceMs = 500,
+		contentWidth = 0,
+		contentHeight = 0,
 	} = config;
 
 	const { getNode, updateNodeDimensions } = useAppStore(
@@ -70,12 +74,30 @@ export function useNodeDimensions(
 		};
 	});
 
-	// Constraint enforcement helper (snap up to GRID_SIZE, then clamp to max)
-	const enforceConstraints = useCallback(
-		(width: number, height: number) => {
+	// Ref to track latest dimensions for stable closures
+	const dimensionsRef = useRef(dimensions);
+
+	// Update ref when dimensions change
+	useEffect(() => {
+		dimensionsRef.current = dimensions;
+	}, [dimensions]);
+
+	/**
+	 * Calculates dimensions that align with the grid and respect min/max constraints.
+	 * This is the "business logic" for how big a node should be.
+	 */
+	const calculateSnappedDimensions = useCallback(
+		(width: number, height: number, currentContentWidth = contentWidth, currentContentHeight = contentHeight) => {
+			// Determine the effective minimums:
+			// 1. Configured minWidth/minHeight
+			// 2. Actual content size (so we don't cut off content)
+			const effectiveMinWidth = Math.max(minWidth, currentContentWidth);
+			const effectiveMinHeight = Math.max(minHeight, currentContentHeight);
+
 			// Snap input dimensions up to grid step first
-			const snappedWidth = ceilToGrid(Math.max(width, minWidth), GRID_SIZE);
-			const snappedHeight = ceilToGrid(Math.max(height, minHeight), GRID_SIZE);
+			// This ensures we always have enough space for the content
+			const snappedWidth = ceilToGrid(Math.max(width, effectiveMinWidth), GRID_SIZE);
+			const snappedHeight = ceilToGrid(Math.max(height, effectiveMinHeight), GRID_SIZE);
 
 			return {
 				width: Math.min(snappedWidth, maxWidth),
@@ -85,13 +107,30 @@ export function useNodeDimensions(
 						: snappedHeight,
 			};
 		},
-		[minWidth, minHeight, maxWidth, maxHeight]
+		[minWidth, minHeight, maxWidth, maxHeight, contentWidth, contentHeight]
 	);
 
-	// Update dimensions in store with debouncing
+	/**
+	 * Updates dimensions in both local state and the global store.
+	 * Handles debouncing to prevent excessive database writes.
+	 */
 	const updateStoreDimensions = useCallback(
 		(width: number, height: number, immediate = false) => {
-			const constrained = enforceConstraints(width, height);
+			const constrained = calculateSnappedDimensions(
+				width,
+				height,
+				contentWidth,
+				contentHeight
+			);
+
+			// Optimization: Don't trigger updates if dimensions haven't effectively changed
+			// This is crucial for preventing loops where content size < grid size
+			if (
+				constrained.width === dimensionsRef.current.width &&
+				constrained.height === dimensionsRef.current.height
+			) {
+				return;
+			}
 
 			// Update local state immediately for responsiveness
 			setDimensions(constrained);
@@ -112,7 +151,14 @@ export function useNodeDimensions(
 				debounceTimerRef.current = setTimeout(updateFn, debounceMs);
 			}
 		},
-		[nodeId, enforceConstraints, updateNodeDimensions, debounceMs]
+		[
+			nodeId,
+			calculateSnappedDimensions,
+			updateNodeDimensions,
+			debounceMs,
+			contentWidth,
+			contentHeight,
+		]
 	);
 
 	// Resize handlers for NodeResizer
@@ -155,42 +201,49 @@ export function useNodeDimensions(
 	useEffect(() => {
 		if (!nodeRef.current || !node) return;
 
-		// Use clientHeight (content + padding) instead of scrollHeight to prevent growth
-		const actualWidth = nodeRef.current.offsetWidth;
-		const actualHeight = nodeRef.current.scrollHeight;
+		const element = nodeRef.current;
+		const actualWidth = element.offsetWidth;
+		const scrollHeight = element.scrollHeight;
+		const clientHeight = element.clientHeight;
 
-		// Compare against measured dimensions (what React Flow rendered), not stored data
 		const currentWidth = node.measured?.width || node.data?.width || minWidth;
 		const currentHeight =
 			node.measured?.height || node.data?.height || minHeight;
 
-		// Only update if difference is significant (>10px to avoid tiny cumulative changes)
+		// Check for overflow or significant width change
+		const isOverflowing = scrollHeight > clientHeight;
 		const widthDiff = Math.abs(actualWidth - currentWidth);
-		const heightDiff = Math.abs(actualHeight - currentHeight);
 
-		if (widthDiff > 10 || heightDiff > 10) {
-			// Update local state only, don't save to database yet
-			setDimensions(enforceConstraints(actualWidth, actualHeight));
+		if (isOverflowing || widthDiff > 10) {
+			// If overflowing, add a buffer for borders (4px) to ensure we snap to the next step
+			// If not overflowing, use the current height (don't shrink)
+			const targetHeight = isOverflowing ? scrollHeight + 4 : currentHeight;
+			
+			const snapped = calculateSnappedDimensions(
+				actualWidth, 
+				targetHeight,
+				element.scrollWidth,
+				element.scrollHeight
+			);
+
+			if (
+				snapped.width !== currentWidth ||
+				snapped.height !== currentHeight
+			) {
+				setDimensions(snapped);
+			}
 		}
 	}, [nodeId]); // Only run once on mount
 
-	// Setup ResizeObserver for auto-height
-	useEffect(() => {
-		if (!autoHeight || !nodeRef.current) return;
-
-		// Cleanup existing observer
-		if (resizeObserverRef.current) {
-			resizeObserverRef.current.disconnect();
-		}
-
-		// Reset first-tick skip marker whenever observer is recreated
-		hasObservedOnceRef.current = false;
-
-		// Create new observer
-		resizeObserverRef.current = new ResizeObserver((entries) => {
+	/**
+	 * Handles ResizeObserver logic.
+	 * Decides when to trigger a dimension update based on content changes.
+	 */
+	const handleResizeObservation = useCallback(
+		(entries: ResizeObserverEntry[]) => {
 			if (isResizing) return; // Don't interfere during manual resize
 
-			// Skip the very first observer tick after mount to avoid hydration-triggered writes
+			// Skip the very first observer tick after mount
 			if (!hasObservedOnceRef.current) {
 				hasObservedOnceRef.current = true;
 				return;
@@ -199,43 +252,69 @@ export function useNodeDimensions(
 			for (const entry of entries) {
 				const element = entry.target as HTMLElement;
 
-				// Use clientHeight (content + padding) to prevent cumulative growth
-				// scrollHeight includes margins and can cause growth loops
-				const actualHeight = element.scrollHeight;
 				const actualWidth = element.offsetWidth;
+				const scrollHeight = element.scrollHeight;
+				const clientHeight = element.clientHeight;
 
-				// Only update if dimensions changed significantly (>10px to avoid micro-changes)
-				const heightChanged = Math.abs(actualHeight - dimensions.height) > 10;
-				const widthChanged = Math.abs(actualWidth - dimensions.width) > 10;
+				// Check if content is overflowing the visible area
+				// We use a small threshold (1px) to handle sub-pixel rendering differences
+				const isOverflowing = scrollHeight > clientHeight + 1;
 
-				if (heightChanged || widthChanged) {
-					updateStoreDimensions(actualWidth, actualHeight, false);
+				// If overflowing, we need to expand.
+				// We add a buffer (4px) to account for borders and ensure we clear the grid step.
+				// If not overflowing, we keep the current height (stability).
+				const currentDims = dimensionsRef.current;
+				const targetHeight = isOverflowing
+					? scrollHeight + 4
+					: currentDims.height;
+
+				// Calculate what the dimensions *should* be
+				const targetDimensions = calculateSnappedDimensions(
+					actualWidth,
+					targetHeight,
+					element.scrollWidth,
+					element.scrollHeight
+				);
+
+				// Only update if the target dimensions are different from current
+				if (
+					targetDimensions.height !== currentDims.height ||
+					targetDimensions.width !== currentDims.width
+				) {
+					updateStoreDimensions(actualWidth, targetHeight, false);
 				}
 			}
-		});
+		},
+		[
+			isResizing,
+			calculateSnappedDimensions,
+			updateStoreDimensions,
+		]
+	);
 
-		// Start observing
+	// Setup ResizeObserver for auto-height
+	useEffect(() => {
+		if (!autoHeight || !nodeRef.current) return;
+
+		if (resizeObserverRef.current) {
+			resizeObserverRef.current.disconnect();
+		}
+
+		hasObservedOnceRef.current = false;
+
+		resizeObserverRef.current = new ResizeObserver(handleResizeObservation);
 		resizeObserverRef.current.observe(nodeRef.current);
 
-		// Cleanup
 		return () => {
 			if (resizeObserverRef.current) {
 				resizeObserverRef.current.disconnect();
 				resizeObserverRef.current = null;
 			}
-
 			if (debounceTimerRef.current) {
 				clearTimeout(debounceTimerRef.current);
 			}
 		};
-	}, [
-		autoHeight,
-		isResizing,
-		dimensions.width,
-		dimensions.height,
-		updateStoreDimensions,
-		nodeId,
-	]);
+	}, [autoHeight, handleResizeObservation, nodeId]);
 
 	// Sync with node changes from store
 	useEffect(() => {
@@ -254,7 +333,7 @@ export function useNodeDimensions(
 			newDimensions.height !== dimensions.height
 		) {
 			setDimensions(
-				enforceConstraints(newDimensions.width, newDimensions.height)
+				calculateSnappedDimensions(newDimensions.width, newDimensions.height)
 			);
 		}
 	}, [

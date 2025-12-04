@@ -63,12 +63,6 @@ export const createCoreDataSlice: StateCreator<
 			avatar_url:
 				user.user_metadata?.avatar_url || generateFallbackAvatar(user.id),
 			bio: '',
-			location: '',
-			website: '',
-			company: '',
-			job_title: '',
-			skills: [],
-			social_links: {},
 			preferences: {},
 			created_at: new Date().toISOString(),
 			updated_at: new Date().toISOString(),

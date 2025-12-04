@@ -1,6 +1,5 @@
 'use client';
 
-import { GlassmorphismTheme } from '@/components/nodes/themes/glassmorphism-theme';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import useAppStore from '@/store/mind-map-store';
 import { AnimatePresence, motion } from 'motion/react';
@@ -114,15 +113,10 @@ export function OnboardingModal() {
 	return (
 		<Dialog onOpenChange={handleClose} open={true}>
 			<DialogContent
-				className='flex !w-full !max-w-4xl p-0 overflow-hidden'
+				className='flex !w-full !max-w-4xl p-0 overflow-hidden bg-surface border-border-subtle'
 				onInteractOutside={(e) => e.preventDefault()}
 				onPointerDownOutside={(e) => e.preventDefault()}
 				showCloseButton={false}
-				style={{
-					backgroundColor: GlassmorphismTheme.elevation[2],
-					borderColor: GlassmorphismTheme.borders.default,
-					borderWidth: '1px',
-				}}
 			>
 				<motion.div
 					className='relative h-auto w-full flex flex-col'
@@ -130,19 +124,9 @@ export function OnboardingModal() {
 				>
 					{/* Skip button */}
 					<button
-						className='absolute top-4 right-4 z-10 text-sm transition-colors'
+						className='absolute top-4 right-4 z-10 text-sm text-text-secondary hover:text-text-primary transition-colors duration-200'
 						disabled={isAnimating}
 						onClick={handleSkip}
-						onMouseEnter={(e) => {
-							e.currentTarget.style.color = GlassmorphismTheme.text.high;
-						}}
-						onMouseLeave={(e) => {
-							e.currentTarget.style.color = GlassmorphismTheme.text.medium;
-						}}
-						style={{
-							color: GlassmorphismTheme.text.medium,
-							transitionDuration: GlassmorphismTheme.animations.duration.normal,
-						}}
 					>
 						Skip for now
 					</button>
@@ -170,49 +154,31 @@ export function OnboardingModal() {
 					</div>
 
 					{/* Step indicator */}
-					<div
-						className='p-6'
-						style={{
-							borderTop: `1px solid ${GlassmorphismTheme.borders.default}`,
-						}}
-					>
+					<div className='p-6 border-t border-border-subtle'>
 						<div className='flex items-center justify-center gap-2'>
 							{[0, 1, 2].map((step) => (
 								<div
-									className='h-2 rounded-full'
+									className={`h-2 rounded-full transition-all duration-300 ease-out ${
+										step === onboardingStep
+											? 'bg-primary-500 w-8'
+											: step < onboardingStep
+												? 'bg-primary-600/80 w-2'
+												: 'bg-elevated w-2'
+									}`}
 									key={step}
-									style={{
-										width: step === onboardingStep ? '32px' : '8px',
-										backgroundColor:
-											step === onboardingStep
-												? GlassmorphismTheme.indicators.status.complete
-												: step < onboardingStep
-													? GlassmorphismTheme.indicators.progress.fill.replace(
-															/linear-gradient.*?rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\).*?rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\).*?\)/,
-															'rgba(52, 211, 153, 0.8)'
-														)
-													: GlassmorphismTheme.elevation[4],
-										transition: `all ${GlassmorphismTheme.animations.duration.slow} ${GlassmorphismTheme.animations.easing.default}`,
-									}}
 								/>
 							))}
 
 							{onboardingData.selectedPlan &&
 								onboardingData.selectedPlan !== 'free' && (
 									<div
-										className='h-2 w-2 rounded-full'
-										style={{
-											backgroundColor:
-												onboardingStep === 3
-													? GlassmorphismTheme.indicators.status.complete
-													: onboardingStep > 3
-														? GlassmorphismTheme.indicators.progress.fill.replace(
-																/linear-gradient.*?rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\).*?rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\).*?\)/,
-																'rgba(52, 211, 153, 0.8)'
-															)
-														: GlassmorphismTheme.elevation[4],
-											transition: `all ${GlassmorphismTheme.animations.duration.slow} ${GlassmorphismTheme.animations.easing.default}`,
-										}}
+										className={`h-2 w-2 rounded-full transition-all duration-300 ease-out ${
+											onboardingStep === 3
+												? 'bg-primary-500'
+												: onboardingStep > 3
+													? 'bg-primary-600/80'
+													: 'bg-elevated'
+										}`}
 									/>
 								)}
 						</div>

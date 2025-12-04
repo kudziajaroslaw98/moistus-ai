@@ -16,10 +16,14 @@ import { useShallow } from 'zustand/react/shallow';
 import { AIStreamMediator } from './ai/ai-stream-mediator';
 import { ContextMenuWrapper } from './mind-map/context-menu-wrapper';
 import { StreamingToast } from './streaming-toast';
+import { AnonymousUserBanner } from './auth/anonymous-user-banner';
+import { UpgradeAnonymousPrompt } from './auth/upgrade-anonymous';
+import { useRouter } from 'next/navigation';
 
 export function MindMapCanvas() {
 	const params = useParams();
 	const mapId = params.id as string;
+	const router = useRouter();
 
 	// Protect route
 	const { isChecking } = useAuthRedirect();
@@ -40,6 +44,7 @@ export function MindMapCanvas() {
 		ungroupNodes,
 		toggleNodeCollapse,
 		openNodeEditor,
+		userProfile,
 	} = useAppStore(
 		useShallow((state) => ({
 			handleUndo: state.handleUndo,
@@ -58,6 +63,7 @@ export function MindMapCanvas() {
 			currentUser: state.currentUser,
 			getCurrentUser: state.getCurrentUser,
 			openNodeEditor: state.openNodeEditor,
+			userProfile: state.userProfile,
 		}))
 	);
 	const isLoading = loadingStates.isStateLoading;
@@ -131,6 +137,8 @@ export function MindMapCanvas() {
 		<div className='relative h-full w-full overflow-hidden rounded-md flex'>
 			{/* Main content area */}
 			<div className='flex-1 relative w-full'>
+				<AnonymousUserBanner />
+
 				<AIStreamMediator />
 
 				<StreamingToast />
@@ -151,6 +159,13 @@ export function MindMapCanvas() {
 					<ReactFlowArea />
 				</div>
 			</div>
+
+			{/* Auto-show upgrade prompt after 5 minutes for anonymous users */}
+			<UpgradeAnonymousPrompt
+				isAnonymous={userProfile?.isAnonymous ?? false}
+				userDisplayName={userProfile?.display_name || userProfile?.full_name}
+				onUpgradeSuccess={() => router.refresh()}
+			/>
 		</div>
 	);
 }

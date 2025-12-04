@@ -285,9 +285,6 @@ export function CollaboratorProfileCard({
 				profileFound: !!profile,
 				profileName: profile?.full_name || profile?.display_name,
 				hasBio: !!profile?.bio,
-				hasLocation: !!profile?.location,
-				hasCompany: !!profile?.company,
-				hasSkills: !!profile?.skills?.length,
 				error: error?.message,
 			});
 		}
@@ -301,11 +298,7 @@ export function CollaboratorProfileCard({
 	const displayName =
 		profile?.display_name || profile?.full_name || 'Collaborator';
 	const email = user.name || 'Unknown';
-	const bio = profile?.bio || user.bio;
-	const location = profile?.location || user.location;
-	const company = profile?.company || user.company;
-	const jobTitle = profile?.job_title || user.jobTitle;
-	const skills = profile?.skills || [];
+	const bio = profile?.bio;
 	const isAnonymous = profile?.isAnonymous ?? false;
 
 	return (

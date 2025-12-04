@@ -40,12 +40,6 @@ export async function GET(
 				display_name,
 				avatar_url,
 				bio,
-				location,
-				website,
-				company,
-				job_title,
-				skills,
-				social_links,
 				is_anonymous,
 				created_at
 			`
@@ -88,13 +82,7 @@ export async function GET(
 			display_name: profile.display_name,
 			avatar_url: profile.avatar_url,
 			bio: profile.bio,
-			location: profile.location,
-			website: profile.website,
-			company: profile.company,
-			job_title: profile.job_title,
-			skills: profile.skills || [],
 			isAnonymous: profile.is_anonymous || false,
-			social_links: profile.social_links,
 			created_at: profile.created_at,
 		};
 

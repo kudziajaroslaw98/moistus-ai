@@ -1,11 +1,13 @@
 'use client';
 
+import useAppStore from '@/store/mind-map-store';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Save, Shield, Users, X, Zap } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
-import { useForm, SubmitHandler, Resolver } from 'react-hook-form';
+import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { useShallow } from 'zustand/shallow';
 
 const UpgradeSchema = z
 	.object({
@@ -48,7 +50,12 @@ export function UpgradeAnonymousPrompt({
 	autoShowDelay = 5 * 60 * 1000, // 5 minutes
 	className = '',
 }: UpgradeAnonymousPromptProps) {
-	const [isVisible, setIsVisible] = useState(false);
+	const { popoverOpen, setPopoverOpen } = useAppStore(
+		useShallow((state) => ({
+			popoverOpen: state.popoverOpen,
+			setPopoverOpen: state.setPopoverOpen,
+		}))
+	);
 	const [isUpgrading, setIsUpgrading] = useState(false);
 	const [upgradeError, setUpgradeError] = useState<string>('');
 	const [isDismissed, setIsDismissed] = useState(false);
@@ -69,7 +76,7 @@ export function UpgradeAnonymousPrompt({
 		if (!isAnonymous || isDismissed) return;
 
 		const timer = setTimeout(() => {
-			setIsVisible(true);
+			setPopoverOpen({ upgradeUser: true });
 		}, autoShowDelay);
 
 		return () => clearTimeout(timer);
@@ -79,7 +86,7 @@ export function UpgradeAnonymousPrompt({
 	if (!isAnonymous || isDismissed) return null;
 
 	const handleDismiss = () => {
-		setIsVisible(false);
+		setPopoverOpen({ upgradeUser: false });
 		setIsDismissed(true);
 		onDismiss?.();
 	};
@@ -105,7 +112,8 @@ export function UpgradeAnonymousPrompt({
 			}
 
 			// Success - close prompt and notify parent
-			setIsVisible(false);
+			setPopoverOpen({ upgradeUser: false });
+
 			onUpgradeSuccess?.();
 
 			// Show success message briefly
@@ -124,29 +132,29 @@ export function UpgradeAnonymousPrompt({
 	const benefits = [
 		{
 			icon: Save,
-			title: 'Save Progress',
-			description: 'Your mind maps will be saved permanently',
+			title: 'Create Your Own Mind Maps',
+			description: 'Start building your own maps and organize your ideas',
 		},
 		{
 			icon: Users,
-			title: 'Enhanced Collaboration',
-			description: 'Create and manage shared workspaces',
+			title: 'Share & Collaborate',
+			description: 'Invite others and work together in real-time',
 		},
 		{
 			icon: Zap,
-			title: 'Premium Features',
-			description: 'Access AI-powered tools and advanced features',
+			title: 'AI-Powered Features',
+			description: 'Access smart suggestions and automated connections',
 		},
 		{
 			icon: Shield,
-			title: 'Secure Account',
-			description: 'Protect your data with a secure account',
+			title: 'Save Your Work',
+			description: 'Keep your maps safe with a permanent account',
 		},
 	];
 
 	return (
 		<AnimatePresence>
-			{isVisible && (
+			{popoverOpen.upgradeUser && (
 				<>
 					{/* Backdrop */}
 					<motion.div
@@ -163,12 +171,12 @@ export function UpgradeAnonymousPrompt({
 						exit={{ opacity: 0, scale: 0.9, y: 20 }}
 						initial={{ opacity: 0, scale: 0.9, y: 20 }}
 						transition={{ duration: 0.3, ease: 'easeOut' as const }}
-						className={`fixed inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 
-                       md:w-full md:max-w-2xl bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl z-50 
+						className={`fixed inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2
+                       md:w-full md:max-w-2xl bg-base border border-border-subtle rounded-xl shadow-2xl z-50
                        overflow-hidden ${className}`}
 					>
 						{/* Header */}
-						<div className='relative bg-gradient-to-r from-teal-600 to-teal-700 p-6 text-white'>
+						<div className='relative bg-gradient-to-r from-primary-600 to-primary-700 p-6 text-white'>
 							<button
 								className='absolute top-4 right-4 p-1 hover:bg-white/20 rounded-lg transition-colors'
 								disabled={isUpgrading}
@@ -177,11 +185,13 @@ export function UpgradeAnonymousPrompt({
 								<X className='w-5 h-5' />
 							</button>
 
-							<h2 className='text-2xl font-bold mb-2'>Unlock Full Features</h2>
+							<h2 className='text-2xl font-bold mb-2'>
+								Create Account to Start Building
+							</h2>
 
-							<p className='text-teal-100'>
-								Create a free account to save your progress and access premium
-								features
+							<p className='text-primary-100'>
+								Sign up for a free account to create your own mind maps and
+								unlock all features
 							</p>
 						</div>
 
@@ -193,13 +203,13 @@ export function UpgradeAnonymousPrompt({
 									return (
 										<motion.div
 											animate={{ opacity: 1, y: 0 }}
-											className='flex items-start space-x-3 p-3 bg-zinc-800/50 rounded-lg'
+											className='flex items-start space-x-3 p-3 bg-surface/50 rounded-lg'
 											initial={{ opacity: 0, y: 10 }}
 											key={benefit.title}
 											transition={{ delay: index * 0.1 }}
 										>
-											<div className='flex-shrink-0 w-8 h-8 bg-teal-600/20 rounded-lg flex items-center justify-center'>
-												<Icon className='w-4 h-4 text-teal-400' />
+											<div className='flex-shrink-0 w-8 h-8 bg-primary-600/20 rounded-lg flex items-center justify-center'>
+												<Icon className='w-4 h-4 text-primary-400' />
 											</div>
 
 											<div>
@@ -207,7 +217,7 @@ export function UpgradeAnonymousPrompt({
 													{benefit.title}
 												</h3>
 
-												<p className='text-zinc-400 text-xs mt-1'>
+												<p className='text-text-secondary text-xs mt-1'>
 													{benefit.description}
 												</p>
 											</div>
@@ -221,14 +231,14 @@ export function UpgradeAnonymousPrompt({
 								{/* Email */}
 								<div>
 									<label
-										className='block text-sm font-medium text-zinc-300 mb-2'
+										className='block text-sm font-medium text-text-secondary mb-2'
 										htmlFor='email'
 									>
 										Email Address
 									</label>
 
 									<input
-										className='w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent'
+										className='w-full px-4 py-3 bg-surface border border-border-default rounded-md text-white placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent'
 										id='email'
 										placeholder='your@email.com'
 										type='email'
@@ -246,14 +256,14 @@ export function UpgradeAnonymousPrompt({
 								{/* Password */}
 								<div>
 									<label
-										className='block text-sm font-medium text-zinc-300 mb-2'
+										className='block text-sm font-medium text-text-secondary mb-2'
 										htmlFor='password'
 									>
 										Password
 									</label>
 
 									<input
-										className='w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent'
+										className='w-full px-4 py-3 bg-surface border border-border-default rounded-md text-white placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent'
 										id='password'
 										placeholder='Create a secure password'
 										type='password'
@@ -271,14 +281,14 @@ export function UpgradeAnonymousPrompt({
 								{/* Confirm Password */}
 								<div>
 									<label
-										className='block text-sm font-medium text-zinc-300 mb-2'
+										className='block text-sm font-medium text-text-secondary mb-2'
 										htmlFor='confirmPassword'
 									>
 										Confirm Password
 									</label>
 
 									<input
-										className='w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent'
+										className='w-full px-4 py-3 bg-surface border border-border-default rounded-md text-white placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent'
 										id='confirmPassword'
 										placeholder='Confirm your password'
 										type='password'
@@ -296,14 +306,14 @@ export function UpgradeAnonymousPrompt({
 								{/* Display Name (optional) */}
 								<div>
 									<label
-										className='block text-sm font-medium text-zinc-300 mb-2'
+										className='block text-sm font-medium text-text-secondary mb-2'
 										htmlFor='displayName'
 									>
 										Display Name (optional)
 									</label>
 
 									<input
-										className='w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent'
+										className='w-full px-4 py-3 bg-surface border border-border-default rounded-md text-white placeholder-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent'
 										id='displayName'
 										placeholder={userDisplayName || 'Your display name'}
 										type='text'
@@ -332,7 +342,7 @@ export function UpgradeAnonymousPrompt({
 								{/* Buttons */}
 								<div className='flex space-x-3 pt-4'>
 									<motion.button
-										className='flex-1 px-4 py-3 bg-zinc-700 hover:bg-zinc-600 disabled:bg-zinc-800 disabled:cursor-not-allowed text-white font-medium rounded-md transition-colors duration-200'
+										className='flex-1 px-4 py-3 bg-elevated hover:bg-surface disabled:bg-base disabled:cursor-not-allowed text-white font-medium rounded-md transition-colors duration-200'
 										disabled={isUpgrading}
 										onClick={handleDismiss}
 										type='button'
@@ -343,7 +353,7 @@ export function UpgradeAnonymousPrompt({
 									</motion.button>
 
 									<motion.button
-										className='flex-1 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-800 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-md transition-colors duration-200 flex items-center justify-center'
+										className='flex-1 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-800 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-md transition-colors duration-200 flex items-center justify-center'
 										disabled={isUpgrading}
 										type='submit'
 										whileHover={{ scale: isUpgrading ? 1 : 1.02 }}
@@ -370,8 +380,8 @@ export function UpgradeAnonymousPrompt({
 							</form>
 
 							{/* Footer */}
-							<div className='mt-6 pt-4 border-t border-zinc-800'>
-								<p className='text-zinc-500 text-xs text-center'>
+							<div className='mt-6 pt-4 border-t border-border-subtle'>
+								<p className='text-text-tertiary text-xs text-center'>
 									By creating an account, you agree to our Terms of Service and
 									Privacy Policy. Your current progress will be preserved.
 								</p>

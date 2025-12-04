@@ -371,6 +371,7 @@ export interface Popovers {
 	aiChat: boolean;
 	referenceSearch: boolean;
 	mapSettings: boolean;
+	upgradeUser: boolean;
 }
 
 // InlineNodeCreator types
@@ -490,21 +491,21 @@ export interface StreamingToastSlice {
 // Combined App State
 export interface AppState
 	extends CoreDataSlice,
-	NodesSlice,
-	EdgesSlice,
-	ClipboardSlice,
-	UIStateSlice,
-	LoadingStatesSlice,
-	HistorySlice,
-	LayoutSlice,
-	GroupsSlice,
-	SharingSlice,
-	RealtimeSlice,
-	SuggestionsSlice,
-	ChatSlice,
-	CommentsSlice,
-	StreamingToastSlice,
-	SubscriptionSlice,
-	OnboardingSlice,
-	UserProfileSlice,
-	QuickInputSlice { }
+		NodesSlice,
+		EdgesSlice,
+		ClipboardSlice,
+		UIStateSlice,
+		LoadingStatesSlice,
+		HistorySlice,
+		LayoutSlice,
+		GroupsSlice,
+		SharingSlice,
+		RealtimeSlice,
+		SuggestionsSlice,
+		ChatSlice,
+		CommentsSlice,
+		StreamingToastSlice,
+		SubscriptionSlice,
+		OnboardingSlice,
+		UserProfileSlice,
+		QuickInputSlice {}

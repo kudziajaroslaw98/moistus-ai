@@ -1,14 +1,36 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { GlassmorphismTheme } from '@/components/nodes/themes/glassmorphism-theme';
-import { Sparkles } from 'lucide-react';
+import { Brain, Lightbulb, Sparkles, Users, Zap } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface WelcomeStepProps {
 	onContinue: () => void;
 	userName?: string;
 }
+
+const features = [
+	{
+		icon: Lightbulb,
+		text: 'Never face a blank page - AI sparks your next idea',
+		gradient: 'from-purple-500 to-purple-600',
+	},
+	{
+		icon: Users,
+		text: 'Align your team in minutes, not meetings',
+		gradient: 'from-blue-500 to-blue-600',
+	},
+	{
+		icon: Brain,
+		text: "See patterns and connections you'd miss in text",
+		gradient: 'from-emerald-500 to-emerald-600',
+	},
+	{
+		icon: Zap,
+		text: 'Take action faster with instant clarity',
+		gradient: 'from-amber-500 to-amber-600',
+	},
+];
 
 export function WelcomeStep({ onContinue, userName }: WelcomeStepProps) {
 	return (
@@ -24,26 +46,16 @@ export function WelcomeStep({ onContinue, userName }: WelcomeStepProps) {
 					delay: 0.1,
 				}}
 			>
-				<div
-					className='w-24 h-24 rounded-2xl flex items-center justify-center'
-					style={{
-						background: 'linear-gradient(135deg, rgba(52, 211, 153, 0.8) 0%, rgba(52, 211, 153, 0.6) 100%)',
-						boxShadow: '0 8px 32px rgba(52, 211, 153, 0.2)',
-					}}
-				>
-					<Sparkles
-						className='w-12 h-12'
-						style={{ color: GlassmorphismTheme.elevation[0] }}
-					/>
+				<div className='w-24 h-24 rounded-2xl flex items-center justify-center bg-gradient-to-br from-primary-500/80 to-primary-600/60 shadow-[0_8px_32px_var(--color-primary-500)]'>
+					<Sparkles className='w-12 h-12 text-zinc-100' />
 				</div>
 			</motion.div>
 
 			{/* Welcome text */}
 			<motion.h1
 				animate={{ opacity: 1, y: 0 }}
-				className='text-4xl font-bold mb-4'
+				className='text-4xl font-bold mb-4 text-text-primary'
 				initial={{ opacity: 0, y: 20 }}
-				style={{ color: GlassmorphismTheme.text.high }}
 				transition={{
 					duration: 0.3,
 					ease: [0.165, 0.84, 0.44, 1],
@@ -55,44 +67,57 @@ export function WelcomeStep({ onContinue, userName }: WelcomeStepProps) {
 
 			<motion.p
 				animate={{ opacity: 1, y: 0 }}
-				className='text-xl mb-8 max-w-2xl'
+				className='text-xl mb-8 max-w-2xl text-text-tertiary'
 				initial={{ opacity: 0, y: 20 }}
-				style={{ color: GlassmorphismTheme.text.medium }}
 				transition={{
 					duration: 0.3,
 					ease: [0.165, 0.84, 0.44, 1],
 					delay: 0.3,
 				}}
 			>
-				Transform your ideas into beautiful mind maps with AI-powered
-				intelligence
+				Turn overwhelming complexity into clarity and action
 			</motion.p>
 
-			{/* Feature highlights - staggered entrance */}
+			{/* Feature highlights - icon badges */}
 			<motion.div
 				animate={{ opacity: 1 }}
-				className='space-y-3 mb-12'
+				className='flex flex-wrap justify-center gap-3 mb-12 max-w-3xl'
 				initial={{ opacity: 0 }}
 				transition={{ duration: 0.2, delay: 0.4 }}
 			>
-				{[
-					'✨ AI-powered suggestions to expand your thinking',
-					'🚀 Real-time collaboration with your team',
-					'🎨 Beautiful, customizable visual layouts',
-					'💾 Export to multiple formats',
-				].map((feature, index) => (
+				{features.map((feature, index) => (
 					<motion.div
-						animate={{ opacity: 1, x: 0 }}
-						initial={{ opacity: 0, x: -20 }}
-						key={index}
-						style={{ color: GlassmorphismTheme.text.high }}
-						transition={{
-							duration: 0.2,
-							ease: [0.165, 0.84, 0.44, 1], // ease-out-quart
-							delay: 0.5 + index * 0.1,
+						animate={{
+							opacity: 1,
+							scale: 1,
+							transition: {
+								delay: 0.5 + index * 0.1,
+							},
 						}}
+						className='flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-surface/50 border border-border-subtle group'
+						initial={{
+							opacity: 0,
+							scale: 0.9,
+						}}
+						whileHover={{
+							scale: 1.02,
+							borderColor: 'var(--color-border-default)',
+							transition: {
+								duration: 0.2,
+								ease: 'easeOut',
+								delay: 0,
+							},
+						}}
+						key={index}
 					>
-						{feature}
+						<div
+							className={`flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br ${feature.gradient} flex items-center justify-center shadow-sm`}
+						>
+							<feature.icon className='w-3.5 h-3.5 text-white' />
+						</div>
+						<span className='text-sm text-text-primary text-left'>
+							{feature.text}
+						</span>
 					</motion.div>
 				))}
 			</motion.div>
@@ -108,23 +133,9 @@ export function WelcomeStep({ onContinue, userName }: WelcomeStepProps) {
 				}}
 			>
 				<Button
-					className='font-semibold px-8 py-3 text-lg transition-all'
+					className='font-semibold px-8 py-3 text-lg bg-primary-600 hover:bg-primary-500 text-base hover:-translate-y-0.5 transition-all duration-200'
 					onClick={onContinue}
 					size='lg'
-					onMouseEnter={(e) => {
-						e.currentTarget.style.backgroundColor = 'rgba(52, 211, 153, 1)';
-						e.currentTarget.style.transform = 'translateY(-2px)';
-					}}
-					onMouseLeave={(e) => {
-						e.currentTarget.style.backgroundColor = 'rgba(52, 211, 153, 0.8)';
-						e.currentTarget.style.transform = 'translateY(0)';
-					}}
-					style={{
-						backgroundColor: 'rgba(52, 211, 153, 0.8)',
-						color: GlassmorphismTheme.elevation[0],
-						transitionDuration: '200ms',
-						transitionTimingFunction: 'ease',
-					}}
 				>
 					Get Started
 				</Button>

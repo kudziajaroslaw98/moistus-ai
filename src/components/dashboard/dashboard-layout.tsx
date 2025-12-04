@@ -1,14 +1,16 @@
 'use client';
 
+import { AnonymousUserBanner } from '@/components/auth/anonymous-user-banner';
+import { UpgradeAnonymousPrompt } from '@/components/auth/upgrade-anonymous';
 import { Button } from '@/components/ui/button';
+import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import { Archive, Home, Plus, Settings, Star, Users } from 'lucide-react';
 import { motion } from 'motion/react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { ReactNode } from 'react';
-import { DashboardHeader } from './dashboard-header';
+import { usePathname, useRouter } from 'next/navigation';
+import { ReactNode, useEffect, useState } from 'react';
 import {
 	Sidebar,
 	SidebarContent,
@@ -21,6 +23,8 @@ import {
 import { SidebarItem } from '../ui/sidebar-item';
 import { SidebarSection } from '../ui/sidebar-section';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/Tooltip';
+import { DashboardHeader } from './dashboard-header';
+import { SettingsPanel } from './settings-panel';
 
 interface DashboardLayoutProps {
 	children: ReactNode;
@@ -82,8 +86,40 @@ const bottomNavItems: NavItem[] = [
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
 	const pathname = usePathname();
+	const router = useRouter();
 	const { open: sidebarOpen } = useSidebar();
 	const sidebarCollapsed = !sidebarOpen;
+	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+	const [settingsTab, setSettingsTab] = useState<'settings' | 'billing'>(
+		'settings'
+	);
+	const [showAnonymousUpgrade, setShowAnonymousUpgrade] = useState(false);
+	const userProfile = useAppStore((state) => state.userProfile);
+	const setPopoverOpen = useAppStore((state) => state.setPopoverOpen);
+
+	const handleOpenSettings = (tab: 'settings' | 'billing' = 'settings') => {
+		setSettingsTab(tab);
+		setIsSettingsOpen(true);
+	};
+
+	const handleRequestCreateMap = () => {
+		// Check if user is anonymous
+		if (userProfile?.isAnonymous) {
+			// Show upgrade prompt for anonymous users
+			setShowAnonymousUpgrade(true);
+			return;
+		}
+
+		// Navigate to dashboard for full users to create map
+		router.push('/dashboard');
+	};
+
+	// Handle manual trigger of upgrade modal
+	useEffect(() => {
+		if (showAnonymousUpgrade) {
+			setPopoverOpen({ upgradeUser: true });
+		}
+	}, [showAnonymousUpgrade, setPopoverOpen]);
 
 	const isItemActive = (href: string) => {
 		if (href === '/dashboard') {
@@ -135,11 +171,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 					collapsed={sidebarCollapsed}
 					isActive={false}
 					label={item.label}
-					onClick={() => { }}
+					onClick={() => {}}
 					icon={
-						<div className={cn('flex-shrink-0 text-zinc-500')}>
-							{item.icon}
-						</div>
+						<div className={cn('flex-shrink-0 text-zinc-500')}>{item.icon}</div>
 					}
 				/>
 			);
@@ -147,9 +181,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 			if (sidebarCollapsed) {
 				return (
 					<Tooltip>
-						<TooltipTrigger className='w-full flex'>
-							{content}
-						</TooltipTrigger>
+						<TooltipTrigger className='w-full flex'>{content}</TooltipTrigger>
 
 						<TooltipContent>
 							<div className='flex flex-col gap-1'>
@@ -176,7 +208,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 								collapsed={true}
 								isActive={isActive}
 								label={item.label}
-								onClick={() => { }}
+								onClick={() => {}}
 								icon={
 									<div
 										className={cn('flex-shrink-0', isActive && 'text-sky-400')}
@@ -196,19 +228,30 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 		}
 
 		return (
-			<Link href={item.href}>
-				<SidebarItem
-					badge={renderBadge()}
-					isActive={isActive}
-					label={item.label}
-					onClick={() => { }}
-					icon={
-						<div className={cn('flex-shrink-0', isActive && 'text-sky-400')}>
-							{item.icon}
-						</div>
-					}
-				/>
-			</Link>
+			<div
+				onClick={
+					item.id === 'settings'
+						? (e) => {
+								e.preventDefault();
+								handleOpenSettings('settings');
+							}
+						: undefined
+				}
+			>
+				<Link href={item.href}>
+					<SidebarItem
+						badge={renderBadge()}
+						isActive={isActive}
+						label={item.label}
+						onClick={() => {}}
+						icon={
+							<div className={cn('flex-shrink-0', isActive && 'text-sky-400')}>
+								{item.icon}
+							</div>
+						}
+					/>
+				</Link>
+			</div>
 		);
 	};
 
@@ -253,6 +296,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 					<SidebarSection className={cn(['w-full h-16 p-4 px-2'])}>
 						<Button
 							size={sidebarCollapsed ? 'icon' : 'default'}
+							onClick={handleRequestCreateMap}
 							className={cn(
 								'w-full bg-sky-600 hover:bg-sky-700 text-white',
 								'shadow-lg hover:shadow-sky-600/25',
@@ -287,10 +331,33 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
 			{/* Main Content */}
 			<main className='flex-grow flex flex-col h-screen overflow-hidden'>
-				<DashboardHeader />
-				
+				<DashboardHeader onOpenSettings={handleOpenSettings} />
+				<AnonymousUserBanner />
+
 				<div className='flex-1 overflow-y-auto'>{children}</div>
 			</main>
+
+			<SettingsPanel
+				isOpen={isSettingsOpen}
+				onClose={() => setIsSettingsOpen(false)}
+				defaultTab={settingsTab}
+			/>
+
+			{/* Consolidated upgrade prompt: auto-show after 5 min OR manual trigger */}
+			<UpgradeAnonymousPrompt
+				isAnonymous={userProfile?.isAnonymous ?? false}
+				userDisplayName={userProfile?.display_name || userProfile?.full_name}
+				autoShowDelay={showAnonymousUpgrade ? 0 : 5 * 60 * 1000}
+				onDismiss={() => {
+					setShowAnonymousUpgrade(false);
+					setPopoverOpen({ upgradeUser: false });
+				}}
+				onUpgradeSuccess={() => {
+					setShowAnonymousUpgrade(false);
+					setPopoverOpen({ upgradeUser: false });
+					router.refresh();
+				}}
+			/>
 		</div>
 	);
 }
