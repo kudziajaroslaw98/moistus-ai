@@ -10,13 +10,13 @@ importers:
     dependencies:
       '@ai-sdk/google':
         specifier: 2.0.14
-        version: 2.0.14(zod@4.1.13)
+        version: 2.0.14(zod@4.1.8)
       '@ai-sdk/openai':
         specifier: 2.0.30
-        version: 2.0.30(zod@4.1.13)
+        version: 2.0.30(zod@4.1.8)
       '@ai-sdk/react':
         specifier: 2.0.44
-        version: 2.0.44(react@19.2.0)(zod@4.1.13)
+        version: 2.0.44(react@19.2.0)(zod@4.1.8)
       '@base-ui-components/react':
         specifier: 1.0.0-beta.2
         version: 1.0.0-beta.2(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -115,7 +115,7 @@ importers:
         version: 12.8.6(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       ai:
         specifier: 5.0.106
-        version: 5.0.106(zod@4.1.13)
+        version: 5.0.106(zod@4.1.8)
       class-variance-authority:
         specifier: 0.7.1
         version: 0.7.1
@@ -180,8 +180,8 @@ importers:
         specifier: ^1.5.0
         version: 1.5.0
       zod:
-        specifier: 4.1.13
-        version: 4.1.13
+        specifier: 4.1.8
+        version: 4.1.8
       zustand:
         specifier: 5.0.7
         version: 5.0.7(@types/react@19.2.2)(react@19.2.0)(use-sync-external-store@1.5.0(react@19.2.0))
@@ -5376,6 +5376,9 @@ packages:
   zod@4.1.13:
     resolution: {integrity: sha512-AvvthqfqrAhNH9dnfmrfKzX5upOdjUVJYFqNSlkmGf64gRaTzlPwz99IHYnVs28qYAybvAlBV+H7pn0saFY4Ig==}
 
+  zod@4.1.8:
+    resolution: {integrity: sha512-5R1P+WwQqmmMIEACyzSvo4JXHY5WiAFHRMg+zBZKgKS+Q1viRa0C1hmUKtHltoIFKtIdki3pRxkmpP74jnNYHQ==}
+
   zustand@4.5.7:
     resolution: {integrity: sha512-CHOUy7mu3lbD6o6LJLfllpjkzhHXSBlX8B9+qPddUsIfeF5S/UZ5q0kmCsnRqT1UHFQZchNFDDzMbQsuesHWlw==}
     engines: {node: '>=12.7.0'}
@@ -5416,58 +5419,58 @@ snapshots:
 
   '@adobe/css-tools@4.4.4': {}
 
-  '@ai-sdk/gateway@1.0.23(zod@4.1.13)':
+  '@ai-sdk/gateway@1.0.23(zod@4.1.8)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.9(zod@4.1.13)
-      zod: 4.1.13
+      '@ai-sdk/provider-utils': 3.0.9(zod@4.1.8)
+      zod: 4.1.8
 
-  '@ai-sdk/gateway@2.0.18(zod@4.1.13)':
+  '@ai-sdk/gateway@2.0.18(zod@4.1.8)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.18(zod@4.1.13)
+      '@ai-sdk/provider-utils': 3.0.18(zod@4.1.8)
       '@vercel/oidc': 3.0.5
-      zod: 4.1.13
+      zod: 4.1.8
 
-  '@ai-sdk/google@2.0.14(zod@4.1.13)':
+  '@ai-sdk/google@2.0.14(zod@4.1.8)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.9(zod@4.1.13)
-      zod: 4.1.13
+      '@ai-sdk/provider-utils': 3.0.9(zod@4.1.8)
+      zod: 4.1.8
 
-  '@ai-sdk/openai@2.0.30(zod@4.1.13)':
+  '@ai-sdk/openai@2.0.30(zod@4.1.8)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.9(zod@4.1.13)
-      zod: 4.1.13
+      '@ai-sdk/provider-utils': 3.0.9(zod@4.1.8)
+      zod: 4.1.8
 
-  '@ai-sdk/provider-utils@3.0.18(zod@4.1.13)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.0
-      '@standard-schema/spec': 1.0.0
-      eventsource-parser: 3.0.6
-      zod: 4.1.13
-
-  '@ai-sdk/provider-utils@3.0.9(zod@4.1.13)':
+  '@ai-sdk/provider-utils@3.0.18(zod@4.1.8)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
       '@standard-schema/spec': 1.0.0
       eventsource-parser: 3.0.6
-      zod: 4.1.13
+      zod: 4.1.8
+
+  '@ai-sdk/provider-utils@3.0.9(zod@4.1.8)':
+    dependencies:
+      '@ai-sdk/provider': 2.0.0
+      '@standard-schema/spec': 1.0.0
+      eventsource-parser: 3.0.6
+      zod: 4.1.8
 
   '@ai-sdk/provider@2.0.0':
     dependencies:
       json-schema: 0.4.0
 
-  '@ai-sdk/react@2.0.44(react@19.2.0)(zod@4.1.13)':
+  '@ai-sdk/react@2.0.44(react@19.2.0)(zod@4.1.8)':
     dependencies:
-      '@ai-sdk/provider-utils': 3.0.9(zod@4.1.13)
-      ai: 5.0.44(zod@4.1.13)
+      '@ai-sdk/provider-utils': 3.0.9(zod@4.1.8)
+      ai: 5.0.44(zod@4.1.8)
       react: 19.2.0
       swr: 2.3.3(react@19.2.0)
       throttleit: 2.1.0
     optionalDependencies:
-      zod: 4.1.13
+      zod: 4.1.8
 
   '@alloc/quick-lru@5.2.0': {}
 
@@ -7575,21 +7578,21 @@ snapshots:
 
   agent-base@7.1.4: {}
 
-  ai@5.0.106(zod@4.1.13):
+  ai@5.0.106(zod@4.1.8):
     dependencies:
-      '@ai-sdk/gateway': 2.0.18(zod@4.1.13)
+      '@ai-sdk/gateway': 2.0.18(zod@4.1.8)
       '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.18(zod@4.1.13)
+      '@ai-sdk/provider-utils': 3.0.18(zod@4.1.8)
       '@opentelemetry/api': 1.9.0
-      zod: 4.1.13
+      zod: 4.1.8
 
-  ai@5.0.44(zod@4.1.13):
+  ai@5.0.44(zod@4.1.8):
     dependencies:
-      '@ai-sdk/gateway': 1.0.23(zod@4.1.13)
+      '@ai-sdk/gateway': 1.0.23(zod@4.1.8)
       '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.9(zod@4.1.13)
+      '@ai-sdk/provider-utils': 3.0.9(zod@4.1.8)
       '@opentelemetry/api': 1.9.0
-      zod: 4.1.13
+      zod: 4.1.8
 
   ajv@6.12.6:
     dependencies:
@@ -11356,6 +11359,8 @@ snapshots:
   zod@3.25.76: {}
 
   zod@4.1.13: {}
+
+  zod@4.1.8: {}
 
   zustand@4.5.7(@types/react@19.2.2)(react@19.2.0):
     dependencies:
