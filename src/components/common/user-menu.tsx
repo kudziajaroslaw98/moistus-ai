@@ -1,5 +1,6 @@
 'use client';
 
+import { UpgradeAnonymousPrompt } from '@/components/auth/upgrade-anonymous';
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -20,12 +21,10 @@ import {
 	Sparkles,
 	User,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { mutate } from 'swr';
 import { useShallow } from 'zustand/react/shallow';
-import { UpgradeAnonymousPrompt } from '@/components/auth/upgrade-anonymous';
 
 interface UserMenuProps {
 	user: (PublicUserProfile & { email?: string; is_anonymous?: boolean }) | null;
@@ -160,27 +159,7 @@ export function UserMenu({
 					Settings
 				</DropdownMenuItem>
 
-				<DropdownMenuSeparator className='bg-zinc-700' />
-
-				{!isProUser() && (
-					<DropdownMenuItem
-						className='cursor-pointer text-amber-400 focus:bg-zinc-800 focus:text-amber-300'
-						onClick={handleUpgradeToPro}
-					>
-						<Sparkles className='mr-2 h-4 w-4' />
-						Upgrade to Pro
-					</DropdownMenuItem>
-				)}
-
-				<DropdownMenuItem
-					className='cursor-pointer text-zinc-300 focus:bg-zinc-800 focus:text-white'
-					onClick={handleRestartOnboarding}
-				>
-					<RefreshCw className='mr-2 h-4 w-4' />
-					Restart Onboarding
-				</DropdownMenuItem>
-
-				{user?.is_anonymous && (
+				{isAnonymous && (
 					<>
 						<DropdownMenuSeparator className='bg-zinc-700' />
 
@@ -194,20 +173,27 @@ export function UserMenu({
 					</>
 				)}
 
+				{!isProUser() && !isAnonymous && (
+					<DropdownMenuItem
+						className='cursor-pointer text-amber-400 focus:bg-zinc-800 focus:text-amber-300'
+						onClick={handleUpgradeToPro}
+					>
+						<Sparkles className='mr-2 h-4 w-4' />
+						Upgrade to Pro
+					</DropdownMenuItem>
+				)}
+
 				<DropdownMenuSeparator className='bg-zinc-700' />
 
-				{showBackToDashboard && (
-					<>
-						<Link href='/dashboard'>
-							<DropdownMenuItem className='cursor-pointer text-zinc-300 focus:bg-zinc-800 focus:text-white'>
-								<LogOut className='mr-2 h-4 w-4' />
-								Back to Dashboard
-							</DropdownMenuItem>
-						</Link>
+				<DropdownMenuItem
+					className='cursor-pointer text-zinc-300 focus:bg-zinc-800 focus:text-white'
+					onClick={handleRestartOnboarding}
+				>
+					<RefreshCw className='mr-2 h-4 w-4' />
+					Restart Onboarding
+				</DropdownMenuItem>
 
-						<DropdownMenuSeparator className='bg-zinc-700' />
-					</>
-				)}
+				<DropdownMenuSeparator className='bg-zinc-700' />
 
 				{/* Logout */}
 				<DropdownMenuItem

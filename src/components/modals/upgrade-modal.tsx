@@ -23,7 +23,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
 			<DialogContent className='sm:max-w-[500px]'>
 				<DialogHeader>
 					<DialogTitle className='flex items-center gap-2 text-2xl'>
-						<Crown className='h-6 w-6 text-purple-500' />
+						<Crown className='h-6 w-6 text-primary-500' />
 						Upgrade to Pro
 					</DialogTitle>
 
@@ -35,7 +35,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
 
 				<div className='space-y-4 py-4'>
 					<div className='flex items-start gap-3'>
-						<Infinity className='h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0' />
+						<Infinity className='h-5 w-5 text-primary-500 mt-0.5 flex-shrink-0' />
 
 						<div>
 							<p className='font-medium'>Unlimited Everything</p>
@@ -47,7 +47,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
 					</div>
 
 					<div className='flex items-start gap-3'>
-						<Zap className='h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0' />
+						<Zap className='h-5 w-5 text-primary-500 mt-0.5 flex-shrink-0' />
 
 						<div>
 							<p className='font-medium'>AI-Powered Features</p>
@@ -60,7 +60,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
 					</div>
 
 					<div className='flex items-start gap-3'>
-						<Sparkles className='h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0' />
+						<Sparkles className='h-5 w-5 text-primary-500 mt-0.5 flex-shrink-0' />
 
 						<div>
 							<p className='font-medium'>Real-time Collaboration</p>
@@ -71,14 +71,14 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
 						</div>
 					</div>
 
-					<div className='rounded-lg bg-purple-500/10 border border-purple-500/20 p-4 text-center'>
-						<p className='text-3xl font-bold text-purple-600'>$12/month</p>
+					<div className='rounded-lg bg-primary-500/10 border border-primary-500/20 p-4 text-center'>
+						<p className='text-3xl font-bold text-primary-600'>$12/month</p>
 
 						<p className='text-sm text-muted-foreground'>
 							or $120/year (save 17%)
 						</p>
 
-						<p className='text-sm font-medium text-purple-600 mt-2'>
+						<p className='text-sm font-medium text-primary-600 mt-2'>
 							✨ 14-day free trial included
 						</p>
 					</div>
@@ -90,7 +90,7 @@ export function UpgradeModal({ open, onOpenChange }: UpgradeModalProps) {
 					</Button>
 
 					<Link href='/dashboard/settings/billing'>
-						<Button className='bg-purple-600 hover:bg-purple-700'>
+						<Button className='bg-primary-600 hover:bg-primary-700'>
 							Start Free Trial
 						</Button>
 					</Link>

@@ -5,13 +5,19 @@ import useAppStore from '@/store/mind-map-store';
 import { UserPlus, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
+import { useShallow } from 'zustand/shallow';
 
 const STORAGE_KEY = 'anonymous_banner_dismissed';
 
 export function AnonymousUserBanner() {
 	const [isDismissed, setIsDismissed] = useState(true);
 	const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-	const userProfile = useAppStore((state) => state.userProfile);
+	const { userProfile, setPopoverOpen } = useAppStore(
+		useShallow((state) => ({
+			userProfile: state.userProfile,
+			setPopoverOpen: state.setPopoverOpen,
+		}))
+	);
 
 	useEffect(() => {
 		// Only show for anonymous users
@@ -31,6 +37,7 @@ export function AnonymousUserBanner() {
 	};
 
 	const handleCreateAccount = () => {
+		setPopoverOpen({ upgradeUser: true });
 		setShowUpgradeModal(true);
 	};
 
@@ -49,7 +56,7 @@ export function AnonymousUserBanner() {
 						duration: 0.3,
 						ease: [0.215, 0.61, 0.355, 1], // ease-out-cubic
 					}}
-					className='fixed top-0 left-0 right-0 z-50 pointer-events-none'
+					className='fixed top-12 left-0 right-0 mx-auto z-50 pointer-events-none max-w-3xl'
 				>
 					<div className='max-w-7xl mx-auto px-4 py-3'>
 						<div className='pointer-events-auto relative overflow-hidden rounded-lg border border-amber-500/20 bg-gradient-to-r from-amber-500/10 via-yellow-500/10 to-amber-500/10 backdrop-blur-md shadow-lg'>
@@ -97,31 +104,6 @@ export function AnonymousUserBanner() {
 					</div>
 				</motion.div>
 			</AnimatePresence>
-
-			{/* Upgrade Modal */}
-			{showUpgradeModal && (
-				<div className='fixed inset-0 z-[100]'>
-					{/* Using dynamic import to avoid circular dependencies */}
-					<UpgradeAnonymousPromptLazy
-						onClose={() => setShowUpgradeModal(false)}
-					/>
-				</div>
-			)}
 		</>
 	);
-}
-
-// Lazy load to avoid circular dependency issues
-function UpgradeAnonymousPromptLazy({ onClose }: { onClose: () => void }) {
-	const [Component, setComponent] = useState<any>(null);
-
-	useEffect(() => {
-		import('@/components/auth/upgrade-anonymous').then((mod) => {
-			setComponent(() => mod.UpgradeAnonymousPrompt);
-		});
-	}, []);
-
-	if (!Component) return null;
-
-	return <Component onClose={onClose} />;
 }
