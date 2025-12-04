@@ -74,6 +74,14 @@ export function useNodeDimensions(
 		};
 	});
 
+	// Ref to track latest dimensions for stable closures
+	const dimensionsRef = useRef(dimensions);
+
+	// Update ref when dimensions change
+	useEffect(() => {
+		dimensionsRef.current = dimensions;
+	}, [dimensions]);
+
 	/**
 	 * Calculates dimensions that align with the grid and respect min/max constraints.
 	 * This is the "business logic" for how big a node should be.
@@ -109,17 +117,17 @@ export function useNodeDimensions(
 	const updateStoreDimensions = useCallback(
 		(width: number, height: number, immediate = false) => {
 			const constrained = calculateSnappedDimensions(
-				width, 
-				height, 
-				contentWidth, 
+				width,
+				height,
+				contentWidth,
 				contentHeight
 			);
 
 			// Optimization: Don't trigger updates if dimensions haven't effectively changed
 			// This is crucial for preventing loops where content size < grid size
 			if (
-				constrained.width === dimensions.width &&
-				constrained.height === dimensions.height
+				constrained.width === dimensionsRef.current.width &&
+				constrained.height === dimensionsRef.current.height
 			) {
 				return;
 			}
@@ -148,7 +156,8 @@ export function useNodeDimensions(
 			calculateSnappedDimensions,
 			updateNodeDimensions,
 			debounceMs,
-			dimensions,
+			contentWidth,
+			contentHeight,
 		]
 	);
 
@@ -254,9 +263,10 @@ export function useNodeDimensions(
 				// If overflowing, we need to expand.
 				// We add a buffer (4px) to account for borders and ensure we clear the grid step.
 				// If not overflowing, we keep the current height (stability).
+				const currentDims = dimensionsRef.current;
 				const targetHeight = isOverflowing
 					? scrollHeight + 4
-					: dimensions.height;
+					: currentDims.height;
 
 				// Calculate what the dimensions *should* be
 				const targetDimensions = calculateSnappedDimensions(
@@ -268,8 +278,8 @@ export function useNodeDimensions(
 
 				// Only update if the target dimensions are different from current
 				if (
-					targetDimensions.height !== dimensions.height ||
-					targetDimensions.width !== dimensions.width
+					targetDimensions.height !== currentDims.height ||
+					targetDimensions.width !== currentDims.width
 				) {
 					updateStoreDimensions(actualWidth, targetHeight, false);
 				}
@@ -277,7 +287,6 @@ export function useNodeDimensions(
 		},
 		[
 			isResizing,
-			dimensions,
 			calculateSnappedDimensions,
 			updateStoreDimensions,
 		]

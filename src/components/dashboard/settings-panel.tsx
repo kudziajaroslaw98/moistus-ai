@@ -106,8 +106,10 @@ export function SettingsPanel({
 	// Billing State
 	const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryItem[]>([]);
 	const [usage, setUsage] = useState<UsageStats | null>(null);
-	const [isLoadingPayments, setIsLoadingPayments] = useState(true);
-	const [isLoadingUsage, setIsLoadingUsage] = useState(true);
+	const [isLoadingPayments, setIsLoadingPayments] = useState(false);
+	const [isLoadingUsage, setIsLoadingUsage] = useState(false);
+	const [paymentsLoaded, setPaymentsLoaded] = useState(false);
+	const [usageLoaded, setUsageLoaded] = useState(false);
 	const [isCanceling, setIsCanceling] = useState(false);
 
 	const [formData, setFormData] = useState<UserProfileFormData>({
@@ -133,42 +135,109 @@ export function SettingsPanel({
 
 	// Load billing data when billing tab is active
 	useEffect(() => {
-		if (isOpen && activeTab === 'billing') {
-			fetchUserSubscription();
-			fetchAvailablePlans();
+		if (!isOpen || activeTab !== 'billing') return;
 
-			const loadPaymentHistory = async () => {
-				try {
-					const response = await fetch('/api/user/billing/payment-history');
-					if (!response.ok) throw new Error('Failed to fetch payment history');
-					const result = await response.json();
-					setPaymentHistory(result.data || []);
-				} catch (error) {
-					console.error('Error loading payment history:', error);
-					toast.error('Failed to load payment history');
-				} finally {
+		fetchUserSubscription();
+		fetchAvailablePlans();
+
+		// Use AbortController to cancel requests on unmount/re-render
+		const abortController = new AbortController();
+
+		const loadPaymentHistory = async () => {
+			// Skip if already loaded or currently loading
+			if (paymentsLoaded || isLoadingPayments) return;
+
+			setIsLoadingPayments(true);
+
+			try {
+				const response = await fetch('/api/user/billing/payment-history', {
+					signal: abortController.signal,
+				});
+
+				// Guard against aborted requests
+				if (abortController.signal.aborted) return;
+
+				if (!response.ok) throw new Error('Failed to fetch payment history');
+				const result = await response.json();
+
+				// Guard again before setState
+				if (abortController.signal.aborted) return;
+
+				setPaymentHistory(result.data || []);
+				setPaymentsLoaded(true);
+			} catch (error) {
+				// Ignore abort errors
+				if (error instanceof Error && error.name === 'AbortError') return;
+
+				// Guard before showing toast/setState
+				if (abortController.signal.aborted) return;
+
+				console.error('Error loading payment history:', error);
+				toast.error('Failed to load payment history');
+			} finally {
+				// Guard before setState
+				if (!abortController.signal.aborted) {
 					setIsLoadingPayments(false);
 				}
-			};
+			}
+		};
 
-			const loadUsage = async () => {
-				try {
-					const response = await fetch('/api/user/billing/usage');
-					if (!response.ok) throw new Error('Failed to fetch usage');
-					const result = await response.json();
-					setUsage(result.data);
-				} catch (error) {
-					console.error('Error loading usage:', error);
-					toast.error('Failed to load usage statistics');
-				} finally {
+		const loadUsage = async () => {
+			// Skip if already loaded or currently loading
+			if (usageLoaded || isLoadingUsage) return;
+
+			setIsLoadingUsage(true);
+
+			try {
+				const response = await fetch('/api/user/billing/usage', {
+					signal: abortController.signal,
+				});
+
+				// Guard against aborted requests
+				if (abortController.signal.aborted) return;
+
+				if (!response.ok) throw new Error('Failed to fetch usage');
+				const result = await response.json();
+
+				// Guard again before setState
+				if (abortController.signal.aborted) return;
+
+				setUsage(result.data);
+				setUsageLoaded(true);
+			} catch (error) {
+				// Ignore abort errors
+				if (error instanceof Error && error.name === 'AbortError') return;
+
+				// Guard before showing toast/setState
+				if (abortController.signal.aborted) return;
+
+				console.error('Error loading usage:', error);
+				toast.error('Failed to load usage statistics');
+			} finally {
+				// Guard before setState
+				if (!abortController.signal.aborted) {
 					setIsLoadingUsage(false);
 				}
-			};
+			}
+		};
 
-			loadPaymentHistory();
-			loadUsage();
-		}
-	}, [isOpen, activeTab, fetchUserSubscription, fetchAvailablePlans]);
+		loadPaymentHistory();
+		loadUsage();
+
+		// Cleanup: abort all in-flight requests
+		return () => {
+			abortController.abort();
+		};
+	}, [
+		isOpen,
+		activeTab,
+		fetchUserSubscription,
+		fetchAvailablePlans,
+		paymentsLoaded,
+		usageLoaded,
+		isLoadingPayments,
+		isLoadingUsage,
+	]);
 
 	// Update active tab when defaultTab changes
 	useEffect(() => {
@@ -244,7 +313,9 @@ export function SettingsPanel({
 	const handleAvatarUpload = useCallback(async (_file: File) => {
 		try {
 			// TODO: Implement avatar upload
-			toast.success('Avatar uploaded successfully!');
+			toast.info('Avatar upload not yet implemented', {
+				description: 'This feature is coming soon!',
+			});
 		} catch (error) {
 			console.error('Failed to upload avatar:', error);
 			toast.error('Failed to upload avatar');
@@ -302,7 +373,7 @@ export function SettingsPanel({
 	};
 
 	const getUsagePercentage = (used: number, limit: number) => {
-		if (limit === -1) return 0; // Unlimited
+		if (limit === -1 || limit === 0) return 0; // Unlimited or not set
 		return Math.min((used / limit) * 100, 100);
 	};
 
@@ -740,14 +811,16 @@ export function SettingsPanel({
 																	</span>
 																</span>
 															</div>
-															{currentSubscription?.plan?.limits?.mindMaps !== -1 && (
-																<Progress
-																	value={getUsagePercentage(
-																		usage.mindMapsCount,
-																		currentSubscription?.plan?.limits?.mindMaps ?? 0
-																	)}
-																/>
-															)}
+															{currentSubscription?.plan?.limits &&
+																currentSubscription.plan.limits.mindMaps != null &&
+																currentSubscription.plan.limits.mindMaps !== -1 && (
+																	<Progress
+																		value={getUsagePercentage(
+																			usage.mindMapsCount,
+																			currentSubscription.plan.limits.mindMaps
+																		)}
+																	/>
+																)}
 														</div>
 
 														<div>
@@ -784,14 +857,16 @@ export function SettingsPanel({
 																	</span>
 																</span>
 															</div>
-															{currentSubscription?.plan?.limits?.aiSuggestions !== -1 && (
-																<Progress
-																	value={getUsagePercentage(
-																		usage.aiSuggestionsCount,
-																		currentSubscription?.plan?.limits?.aiSuggestions ?? 0
-																	)}
-																/>
-															)}
+															{currentSubscription?.plan?.limits &&
+																currentSubscription.plan.limits.aiSuggestions != null &&
+																currentSubscription.plan.limits.aiSuggestions !== -1 && (
+																	<Progress
+																		value={getUsagePercentage(
+																			usage.aiSuggestionsCount,
+																			currentSubscription.plan.limits.aiSuggestions
+																		)}
+																	/>
+																)}
 														</div>
 													</div>
 												</div>

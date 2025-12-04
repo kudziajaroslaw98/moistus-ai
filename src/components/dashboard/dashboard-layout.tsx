@@ -10,7 +10,7 @@ import { motion } from 'motion/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ReactNode, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import {
 	Sidebar,
 	SidebarContent,
@@ -95,6 +95,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 	);
 	const [showAnonymousUpgrade, setShowAnonymousUpgrade] = useState(false);
 	const userProfile = useAppStore((state) => state.userProfile);
+	const setPopoverOpen = useAppStore((state) => state.setPopoverOpen);
 
 	const handleOpenSettings = (tab: 'settings' | 'billing' = 'settings') => {
 		setSettingsTab(tab);
@@ -112,6 +113,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 		// Navigate to dashboard for full users to create map
 		router.push('/dashboard');
 	};
+
+	// Handle manual trigger of upgrade modal
+	useEffect(() => {
+		if (showAnonymousUpgrade) {
+			setPopoverOpen({ upgradeUser: true });
+		}
+	}, [showAnonymousUpgrade, setPopoverOpen]);
 
 	const isItemActive = (href: string) => {
 		if (href === '/dashboard') {
@@ -335,23 +343,21 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 				defaultTab={settingsTab}
 			/>
 
-			{/* Auto-show upgrade prompt after 5 minutes for anonymous users */}
+			{/* Consolidated upgrade prompt: auto-show after 5 min OR manual trigger */}
 			<UpgradeAnonymousPrompt
 				isAnonymous={userProfile?.isAnonymous ?? false}
 				userDisplayName={userProfile?.display_name || userProfile?.full_name}
-				onUpgradeSuccess={() => router.refresh()}
+				autoShowDelay={showAnonymousUpgrade ? 0 : 5 * 60 * 1000}
+				onDismiss={() => {
+					setShowAnonymousUpgrade(false);
+					setPopoverOpen({ upgradeUser: false });
+				}}
+				onUpgradeSuccess={() => {
+					setShowAnonymousUpgrade(false);
+					setPopoverOpen({ upgradeUser: false });
+					router.refresh();
+				}}
 			/>
-
-			{/* Manual upgrade prompt when anonymous users try to create maps */}
-			{showAnonymousUpgrade && (
-				<UpgradeAnonymousPrompt
-					isAnonymous={true}
-					userDisplayName={userProfile?.display_name || userProfile?.full_name}
-					onDismiss={() => setShowAnonymousUpgrade(false)}
-					onUpgradeSuccess={() => router.refresh()}
-					autoShowDelay={0}
-				/>
-			)}
 		</div>
 	);
 }

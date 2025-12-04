@@ -429,8 +429,7 @@ export function ReactFlowArea() {
 				snapToGrid={true}
 				className={cn([
 					isPanningMode && 'cursor-grab',
-					activeTool === 'node' ||
-					(activeTool === 'text' && 'cursor-crosshair'),
+					(activeTool === 'node' || activeTool === 'text') && 'cursor-crosshair',
 				])}
 				style={
 					{
