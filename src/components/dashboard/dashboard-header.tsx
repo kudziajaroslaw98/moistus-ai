@@ -21,7 +21,10 @@ interface DashboardHeaderProps {
 // Use shared Supabase client to ensure session consistency across the app
 const supabase = getSharedSupabaseClient();
 
-export function DashboardHeader({ className = '', onOpenSettings }: DashboardHeaderProps) {
+export function DashboardHeader({
+	className = '',
+	onOpenSettings,
+}: DashboardHeaderProps) {
 	const [user, setUser] = useState<UserProfile | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -86,7 +89,7 @@ export function DashboardHeader({ className = '', onOpenSettings }: DashboardHea
 			<header
 				className={`border-b border-zinc-800 bg-zinc-900/50 ${className}`}
 			>
-				<div className='flex h-16 items-center justify-between px-6'>
+				<div className='flex h-14 items-center justify-between px-6'>
 					<div className='flex items-center space-x-4'>
 						<h1 className='text-xl font-semibold text-white'>Dashboard</h1>
 					</div>
@@ -107,7 +110,7 @@ export function DashboardHeader({ className = '', onOpenSettings }: DashboardHea
 			<header
 				className={`border-b border-zinc-800 bg-zinc-900/50 ${className}`}
 			>
-				<div className='flex h-16 items-center justify-between px-6'>
+				<div className='flex h-14 items-center justify-between px-6'>
 					<div className='flex items-center space-x-4'>
 						<h1 className='text-xl font-semibold text-white'>Dashboard</h1>
 					</div>
@@ -120,7 +123,7 @@ export function DashboardHeader({ className = '', onOpenSettings }: DashboardHea
 
 	return (
 		<header className={`border-b border-zinc-800 bg-zinc-900/50 ${className}`}>
-			<div className='flex h-16 items-center justify-between px-6'>
+			<div className='flex h-14 items-center justify-between px-6'>
 				{/* Logo/Title */}
 				<div className='flex items-center space-x-4'>
 					<h1 className='text-xl font-semibold text-white'>Dashboard</h1>
