@@ -19,7 +19,7 @@ import {
 } from '@xyflow/react';
 import { X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { memo, useCallback, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { Button } from '../ui/button';
 
@@ -30,7 +30,7 @@ interface WaypointHandleProps {
 	color: string;
 	onDragStart: () => void;
 	onDrag: (waypointId: string, x: number, y: number) => void;
-	onDragEnd: () => void;
+	onDragEnd: (shouldPersist: boolean) => void;
 	onDelete: (waypointId: string) => void;
 }
 
@@ -46,6 +46,7 @@ const WaypointHandle = memo(function WaypointHandle({
 	const [isDragging, setIsDragging] = useState(false);
 	const { screenToFlowPosition } = useReactFlow();
 	const lastClickTime = useRef<number>(0);
+	const hasMoved = useRef<boolean>(false);
 
 	const handlePointerDown = useCallback(
 		(e: React.PointerEvent<SVGCircleElement>) => {
@@ -53,6 +54,7 @@ const WaypointHandle = memo(function WaypointHandle({
 			e.preventDefault();
 			(e.target as SVGCircleElement).setPointerCapture(e.pointerId);
 			setIsDragging(true);
+			hasMoved.current = false; // Reset movement tracking
 			onDragStart();
 		},
 		[onDragStart]
@@ -63,6 +65,7 @@ const WaypointHandle = memo(function WaypointHandle({
 			if (!isDragging) return;
 			e.stopPropagation();
 
+			hasMoved.current = true; // Mark that user actually moved
 			const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
 			onDrag(waypoint.id, position.x, position.y);
 		},
@@ -73,7 +76,8 @@ const WaypointHandle = memo(function WaypointHandle({
 		(e: React.PointerEvent<SVGCircleElement>) => {
 			(e.target as SVGCircleElement).releasePointerCapture(e.pointerId);
 			setIsDragging(false);
-			onDragEnd();
+			// Pass whether to persist (only if user actually moved)
+			onDragEnd(hasMoved.current);
 		},
 		[onDragEnd]
 	);
@@ -107,6 +111,7 @@ const WaypointHandle = memo(function WaypointHandle({
 				stroke: '#fff',
 				strokeWidth: 2,
 				filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
+				pointerEvents: 'auto',
 			}}
 			initial={{ scale: 0, opacity: 0 }}
 			animate={{
@@ -124,6 +129,7 @@ const WaypointHandle = memo(function WaypointHandle({
 			onPointerMove={handlePointerMove}
 			onPointerUp={handlePointerUp}
 			onClick={handleClick}
+			onDoubleClick={(e) => e.stopPropagation()} // Prevent bubbling to edge
 			data-edge-id={edgeId}
 			data-waypoint-id={waypoint.id}
 		/>
@@ -141,7 +147,6 @@ const WaypointEdgeComponent = ({
 	const [isHovered, setIsHovered] = useState(false);
 	const [isDraggingWaypoint, setIsDraggingWaypoint] = useState(false);
 	const { screenToFlowPosition } = useReactFlow();
-	const lastClickTime = useRef<number>(0);
 
 	const { deleteEdges, updateEdge } = useAppStore(
 		useShallow((state) => ({
@@ -155,10 +160,23 @@ const WaypointEdgeComponent = ({
 
 	const strokeWidth = parseInt(data?.style?.strokeWidth?.toString() ?? '2') ?? 2;
 
-	const waypoints = useMemo(
+	const storeWaypoints = useMemo(
 		() => data?.metadata?.waypoints ?? [],
 		[data?.metadata?.waypoints]
 	);
+
+	// Local waypoints for smooth dragging - only update store on drag end
+	const [localWaypoints, setLocalWaypoints] = useState<Waypoint[]>(storeWaypoints);
+
+	// Sync local state when store changes (but not during drag)
+	useEffect(() => {
+		if (!isDraggingWaypoint) {
+			setLocalWaypoints(storeWaypoints);
+		}
+	}, [storeWaypoints, isDraggingWaypoint]);
+
+	// Use local waypoints for rendering
+	const waypoints = isDraggingWaypoint ? localWaypoints : storeWaypoints;
 
 	const curveType = data?.metadata?.curveType ?? 'linear';
 
@@ -184,78 +202,32 @@ const WaypointEdgeComponent = ({
 
 	const color = selected ? '#3b82f6' : (data?.style?.stroke ?? '#6c757d');
 
-	const handleDeleteEdge = useCallback(
-		(e: React.MouseEvent) => {
-			e.stopPropagation();
-			deleteEdges([{ id, source, target, data }]);
-		},
-		[deleteEdges, id, source, target, data]
-	);
+	// Listen for custom event from React Flow's onEdgeDoubleClick handler
+	useEffect(() => {
+		const handleWaypointAddEvent = (e: Event) => {
+			const { edgeId, clientX, clientY } = (e as CustomEvent).detail;
+			if (edgeId !== id) return;
 
-	const handleAddWaypoint = useCallback(
-		(e: React.MouseEvent<SVGPathElement>) => {
-			const now = Date.now();
+			const position = screenToFlowPosition({ x: clientX, y: clientY });
 
-			// Double-click detection (within 300ms)
-			if (now - lastClickTime.current < 300) {
-				e.stopPropagation();
-
-				const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
-
-				const insertIndex = findWaypointInsertIndex(
-					sourceX,
-					sourceY,
-					targetX,
-					targetY,
-					waypoints,
-					position.x,
-					position.y
-				);
-
-				const newWaypoint: Waypoint = {
-					id: generateUuid(),
-					x: position.x,
-					y: position.y,
-				};
-
-				const newWaypoints = [...waypoints];
-				newWaypoints.splice(insertIndex, 0, newWaypoint);
-
-				updateEdge({
-					edgeId: id,
-					data: {
-						metadata: {
-							...data?.metadata,
-							waypoints: newWaypoints,
-						},
-					},
-				});
-			}
-
-			lastClickTime.current = now;
-		},
-		[
-			screenToFlowPosition,
-			sourceX,
-			sourceY,
-			targetX,
-			targetY,
-			waypoints,
-			updateEdge,
-			id,
-			data?.metadata,
-		]
-	);
-
-	const handleWaypointDragStart = useCallback(() => {
-		setIsDraggingWaypoint(true);
-	}, []);
-
-	const handleWaypointDrag = useCallback(
-		(waypointId: string, x: number, y: number) => {
-			const newWaypoints = waypoints.map((wp) =>
-				wp.id === waypointId ? { ...wp, x, y } : wp
+			const insertIndex = findWaypointInsertIndex(
+				sourceX,
+				sourceY,
+				targetX,
+				targetY,
+				waypoints,
+				position.x,
+				position.y
 			);
+
+			const newWaypoint: Waypoint = {
+				id: generateUuid(),
+				x: position.x,
+				y: position.y,
+			};
+
+			const newWaypoints = [...waypoints];
+			newWaypoints.splice(insertIndex, 0, newWaypoint);
 
 			updateEdge({
 				edgeId: id,
@@ -266,13 +238,53 @@ const WaypointEdgeComponent = ({
 					},
 				},
 			});
+		};
+
+		document.addEventListener('waypoint-edge-add', handleWaypointAddEvent);
+		return () => document.removeEventListener('waypoint-edge-add', handleWaypointAddEvent);
+	}, [id, screenToFlowPosition, sourceX, sourceY, targetX, targetY, waypoints, updateEdge, data?.metadata]);
+
+	const handleDeleteEdge = useCallback(
+		(e: React.MouseEvent) => {
+			e.stopPropagation();
+			deleteEdges([{ id, source, target, data }]);
 		},
-		[waypoints, updateEdge, id, data?.metadata]
+		[deleteEdges, id, source, target, data]
 	);
 
-	const handleWaypointDragEnd = useCallback(() => {
-		setIsDraggingWaypoint(false);
+	const handleWaypointDragStart = useCallback(() => {
+		setIsDraggingWaypoint(true);
 	}, []);
+
+	// Update local state only during drag - no store updates for smooth 60fps
+	const handleWaypointDrag = useCallback(
+		(waypointId: string, x: number, y: number) => {
+			setLocalWaypoints((prev) =>
+				prev.map((wp) => (wp.id === waypointId ? { ...wp, x, y } : wp))
+			);
+		},
+		[]
+	);
+
+	// Persist to store only on drag end (if user actually moved)
+	const handleWaypointDragEnd = useCallback(
+		(shouldPersist: boolean) => {
+			setIsDraggingWaypoint(false);
+			// Only persist if user actually moved the waypoint
+			if (shouldPersist) {
+				updateEdge({
+					edgeId: id,
+					data: {
+						metadata: {
+							...data?.metadata,
+							waypoints: localWaypoints,
+						},
+					},
+				});
+			}
+		},
+		[updateEdge, id, data?.metadata, localWaypoints]
+	);
 
 	const handleWaypointDelete = useCallback(
 		(waypointId: string) => {
@@ -341,16 +353,16 @@ const WaypointEdgeComponent = ({
 				</marker>
 			</defs>
 
-			{/* Invisible wider path for easier interaction */}
+			{/* Invisible wider path for easier hover detection */}
 			<path
 				d={edgePath}
 				fill='none'
-				stroke='transparent'
+				stroke='rgba(0,0,0,0.001)'
 				strokeWidth={20}
-				className='cursor-pointer'
+				className='cursor-pointer nodrag nopan'
+				style={{ pointerEvents: 'stroke' }}
 				onMouseEnter={() => setIsHovered(true)}
 				onMouseLeave={() => setIsHovered(false)}
-				onClick={handleAddWaypoint}
 			/>
 
 			<BaseEdge
@@ -375,23 +387,22 @@ const WaypointEdgeComponent = ({
 				}}
 			/>
 
-			{/* Waypoint handles - render in SVG layer */}
-			<g className='waypoint-handles'>
+			{/* Waypoint handles - always visible when waypoints exist */}
+			<g className='waypoint-handles' style={{ pointerEvents: 'auto' }}>
 				<AnimatePresence>
-					{(isHovered || selected || isDraggingWaypoint) &&
-						waypoints.map((waypoint, index) => (
-							<WaypointHandle
-								key={waypoint.id}
-								waypoint={waypoint}
-								index={index}
-								edgeId={id}
-								color={color}
-								onDragStart={handleWaypointDragStart}
-								onDrag={handleWaypointDrag}
-								onDragEnd={handleWaypointDragEnd}
-								onDelete={handleWaypointDelete}
-							/>
-						))}
+					{waypoints.map((waypoint, index) => (
+						<WaypointHandle
+							key={waypoint.id}
+							waypoint={waypoint}
+							index={index}
+							edgeId={id}
+							color={color}
+							onDragStart={handleWaypointDragStart}
+							onDrag={handleWaypointDrag}
+							onDragEnd={handleWaypointDragEnd}
+							onDelete={handleWaypointDelete}
+						/>
+					))}
 				</AnimatePresence>
 			</g>
 

@@ -255,9 +255,17 @@ export function ReactFlowArea() {
 	);
 
 	const handleEdgeDoubleClick: EdgeMouseHandler<Edge<EdgeData>> = useCallback(
-		(_event, edge) => {
-			// Skip opening modal for waypoint edges - they handle double-click internally
+		(event, edge) => {
+			// Forward double-click to waypoint edge component via custom event
 			if (edge.type === 'waypointEdge' || edge.data?.metadata?.pathType === 'waypoint') {
+				const customEvent = new CustomEvent('waypoint-edge-add', {
+					detail: {
+						edgeId: edge.id,
+						clientX: event.clientX,
+						clientY: event.clientY,
+					},
+				});
+				document.dispatchEvent(customEvent);
 				return;
 			}
 			setEdgeInfo(edge);

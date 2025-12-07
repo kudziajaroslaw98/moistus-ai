@@ -10,6 +10,19 @@ type NodesTableType = NodeDbData;
 type EdgesTableType = EdgeDbData;
 type MindMapTableType = MindMapData;
 
+// Determine edge type based on metadata (matches logic in edges-slice.ts)
+const getEdgeType = (edge: EdgesTableType): string => {
+	if (edge.aiData?.isSuggested) {
+		return 'suggestedConnection';
+	}
+
+	if (edge.metadata?.pathType === 'waypoint') {
+		return 'waypointEdge';
+	}
+
+	return 'floatingEdge';
+};
+
 // Define the expected input structure based on the Supabase query
 interface SupabaseMapData extends MindMapTableType {
 	nodes: NodesTableType[];
@@ -71,7 +84,7 @@ export const transformSupabaseData = (
 			aiData: edge.aiData,
 			animated: JSON.parse(String(edge.animated)),
 		} as unknown as EdgeData,
-		type: 'floatingEdge', // Default to floatingEdge
+		type: getEdgeType(edge), // Determine edge type from metadata
 		label: edge.label || undefined,
 		// Handle potential JSON string or object for style
 		animated: JSON.parse(String(edge.animated)),
