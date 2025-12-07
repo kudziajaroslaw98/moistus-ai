@@ -41,6 +41,9 @@ export function getWaypointPath(
 		case 'catmull-rom':
 			path = getCatmullRomPath(points);
 			break;
+		case 'smoothstep':
+			path = getSmoothStepPath(points);
+			break;
 		default:
 			path = getLinearPath(points);
 	}
@@ -142,6 +145,248 @@ function getCatmullRomPath(points: Point[]): string {
 	}
 
 	return path;
+}
+
+/**
+ * Creates orthogonal (smoothstep) path where waypoints act as bend points.
+ * Path consists of horizontal and vertical segments only, with rounded corners.
+ * Each waypoint is a corner where the path changes direction by 90°.
+ */
+function getSmoothStepPath(points: Point[], borderRadius = 8): string {
+	if (points.length < 2) return getLinearPath(points);
+	if (points.length === 2) {
+		// No waypoints - create standard smoothstep between two points
+		return getSmoothStepBetweenTwoPoints(points[0], points[1], borderRadius);
+	}
+
+	// With waypoints, each waypoint is a corner (bend point)
+	// Route: source -> wp1 -> wp2 -> ... -> target
+	// At each waypoint, we make an orthogonal turn
+	let path = `M ${points[0].x} ${points[0].y}`;
+
+	for (let i = 0; i < points.length - 1; i++) {
+		const current = points[i];
+		const next = points[i + 1];
+		const isLastSegment = i === points.length - 2;
+
+		if (i === 0 && !isLastSegment) {
+			// First segment: go from source toward first waypoint
+			// Route orthogonally to the waypoint (which is a corner)
+			path += createOrthogonalSegmentToCorner(current, next, borderRadius, 'start');
+		} else if (isLastSegment && i > 0) {
+			// Last segment: complete the path from last waypoint to target
+			path += createOrthogonalSegmentFromCorner(current, next, borderRadius);
+		} else if (i === 0 && isLastSegment) {
+			// Only two points and this is the only segment
+			path = getSmoothStepBetweenTwoPoints(current, next, borderRadius);
+		} else {
+			// Middle segment: waypoint to waypoint (corner to corner)
+			path += createCornerToCornerSegment(current, next, borderRadius);
+		}
+	}
+
+	return path;
+}
+
+/**
+ * Creates a smoothstep path between two points with no waypoints.
+ * Uses midpoint for the orthogonal turn.
+ */
+function getSmoothStepBetweenTwoPoints(p1: Point, p2: Point, borderRadius: number): string {
+	const dx = p2.x - p1.x;
+	const dy = p2.y - p1.y;
+
+	// Determine routing direction based on which distance is greater
+	const horizontal = Math.abs(dx) >= Math.abs(dy);
+
+	if (horizontal) {
+		// Horizontal first, then vertical
+		const midX = p1.x + dx / 2;
+		const r = Math.min(borderRadius, Math.abs(dx) / 2, Math.abs(dy) / 2);
+
+		if (Math.abs(dy) < r * 2 || Math.abs(dx) < r * 2) {
+			// Too short for rounded corners, use straight line
+			return `M ${p1.x} ${p1.y} L ${midX} ${p1.y} L ${midX} ${p2.y} L ${p2.x} ${p2.y}`;
+		}
+
+		const yDir = dy > 0 ? 1 : -1;
+
+		return `M ${p1.x} ${p1.y} ` +
+			`L ${midX - r} ${p1.y} ` +
+			`Q ${midX} ${p1.y} ${midX} ${p1.y + r * yDir} ` +
+			`L ${midX} ${p2.y - r * yDir} ` +
+			`Q ${midX} ${p2.y} ${midX + r * (dx > 0 ? 1 : -1)} ${p2.y} ` +
+			`L ${p2.x} ${p2.y}`;
+	} else {
+		// Vertical first, then horizontal
+		const midY = p1.y + dy / 2;
+		const r = Math.min(borderRadius, Math.abs(dx) / 2, Math.abs(dy) / 2);
+
+		if (Math.abs(dx) < r * 2 || Math.abs(dy) < r * 2) {
+			return `M ${p1.x} ${p1.y} L ${p1.x} ${midY} L ${p2.x} ${midY} L ${p2.x} ${p2.y}`;
+		}
+
+		const xDir = dx > 0 ? 1 : -1;
+
+		return `M ${p1.x} ${p1.y} ` +
+			`L ${p1.x} ${midY - r * (dy > 0 ? 1 : -1)} ` +
+			`Q ${p1.x} ${midY} ${p1.x + r * xDir} ${midY} ` +
+			`L ${p2.x - r * xDir} ${midY} ` +
+			`Q ${p2.x} ${midY} ${p2.x} ${midY + r * (dy > 0 ? 1 : -1)} ` +
+			`L ${p2.x} ${p2.y}`;
+	}
+}
+
+/**
+ * Creates an orthogonal segment from start point to a corner (waypoint).
+ * The waypoint is the actual corner location.
+ */
+function createOrthogonalSegmentToCorner(
+	start: Point,
+	corner: Point,
+	borderRadius: number,
+	_type: 'start'
+): string {
+	const dx = corner.x - start.x;
+	const dy = corner.y - start.y;
+	const r = Math.min(borderRadius, Math.abs(dx) / 2, Math.abs(dy) / 2);
+
+	// Go to the corner with a rounded turn
+	// We go horizontal first, then vertical (or vice versa based on position)
+	const horizontal = Math.abs(dx) >= Math.abs(dy);
+
+	if (horizontal) {
+		if (Math.abs(dy) < 1) {
+			// Nearly horizontal - just go straight
+			return ` L ${corner.x} ${corner.y}`;
+		}
+		const yDir = dy > 0 ? 1 : -1;
+		const xDir = dx > 0 ? 1 : -1;
+
+		if (r < 1) {
+			return ` L ${corner.x} ${start.y} L ${corner.x} ${corner.y}`;
+		}
+
+		return ` L ${corner.x - r * xDir} ${start.y} ` +
+			`Q ${corner.x} ${start.y} ${corner.x} ${start.y + r * yDir} ` +
+			`L ${corner.x} ${corner.y}`;
+	} else {
+		if (Math.abs(dx) < 1) {
+			// Nearly vertical - just go straight
+			return ` L ${corner.x} ${corner.y}`;
+		}
+		const xDir = dx > 0 ? 1 : -1;
+		const yDir = dy > 0 ? 1 : -1;
+
+		if (r < 1) {
+			return ` L ${start.x} ${corner.y} L ${corner.x} ${corner.y}`;
+		}
+
+		return ` L ${start.x} ${corner.y - r * yDir} ` +
+			`Q ${start.x} ${corner.y} ${start.x + r * xDir} ${corner.y} ` +
+			`L ${corner.x} ${corner.y}`;
+	}
+}
+
+/**
+ * Creates an orthogonal segment from a corner (waypoint) to the end point.
+ */
+function createOrthogonalSegmentFromCorner(
+	corner: Point,
+	end: Point,
+	borderRadius: number
+): string {
+	const dx = end.x - corner.x;
+	const dy = end.y - corner.y;
+	const r = Math.min(borderRadius, Math.abs(dx) / 2, Math.abs(dy) / 2);
+
+	const horizontal = Math.abs(dx) >= Math.abs(dy);
+
+	if (horizontal) {
+		if (Math.abs(dy) < 1) {
+			return ` L ${end.x} ${end.y}`;
+		}
+		const yDir = dy > 0 ? 1 : -1;
+		const xDir = dx > 0 ? 1 : -1;
+
+		if (r < 1) {
+			return ` L ${corner.x} ${end.y} L ${end.x} ${end.y}`;
+		}
+
+		// From corner, go vertical first then horizontal
+		return ` L ${corner.x} ${end.y - r * yDir} ` +
+			`Q ${corner.x} ${end.y} ${corner.x + r * xDir} ${end.y} ` +
+			`L ${end.x} ${end.y}`;
+	} else {
+		if (Math.abs(dx) < 1) {
+			return ` L ${end.x} ${end.y}`;
+		}
+		const xDir = dx > 0 ? 1 : -1;
+		const yDir = dy > 0 ? 1 : -1;
+
+		if (r < 1) {
+			return ` L ${end.x} ${corner.y} L ${end.x} ${end.y}`;
+		}
+
+		// From corner, go horizontal first then vertical
+		return ` L ${end.x - r * xDir} ${corner.y} ` +
+			`Q ${end.x} ${corner.y} ${end.x} ${corner.y + r * yDir} ` +
+			`L ${end.x} ${end.y}`;
+	}
+}
+
+/**
+ * Creates an orthogonal segment from one corner to another.
+ * Both points are waypoints (bend points).
+ */
+function createCornerToCornerSegment(
+	corner1: Point,
+	corner2: Point,
+	borderRadius: number
+): string {
+	const dx = corner2.x - corner1.x;
+	const dy = corner2.y - corner1.y;
+
+	// For corner-to-corner, we need to route orthogonally
+	// Use the midpoint as an intermediate turn
+	const horizontal = Math.abs(dx) >= Math.abs(dy);
+	const r = Math.min(borderRadius, Math.abs(dx) / 4, Math.abs(dy) / 4);
+
+	if (horizontal) {
+		if (Math.abs(dy) < 1) {
+			return ` L ${corner2.x} ${corner2.y}`;
+		}
+		const midX = corner1.x + dx / 2;
+		const yDir = dy > 0 ? 1 : -1;
+		const xDir = dx > 0 ? 1 : -1;
+
+		if (r < 1) {
+			return ` L ${midX} ${corner1.y} L ${midX} ${corner2.y} L ${corner2.x} ${corner2.y}`;
+		}
+
+		return ` L ${midX - r * xDir} ${corner1.y} ` +
+			`Q ${midX} ${corner1.y} ${midX} ${corner1.y + r * yDir} ` +
+			`L ${midX} ${corner2.y - r * yDir} ` +
+			`Q ${midX} ${corner2.y} ${midX + r * xDir} ${corner2.y} ` +
+			`L ${corner2.x} ${corner2.y}`;
+	} else {
+		if (Math.abs(dx) < 1) {
+			return ` L ${corner2.x} ${corner2.y}`;
+		}
+		const midY = corner1.y + dy / 2;
+		const xDir = dx > 0 ? 1 : -1;
+		const yDir = dy > 0 ? 1 : -1;
+
+		if (r < 1) {
+			return ` L ${corner1.x} ${midY} L ${corner2.x} ${midY} L ${corner2.x} ${corner2.y}`;
+		}
+
+		return ` L ${corner1.x} ${midY - r * yDir} ` +
+			`Q ${corner1.x} ${midY} ${corner1.x + r * xDir} ${midY} ` +
+			`L ${corner2.x - r * xDir} ${midY} ` +
+			`Q ${corner2.x} ${midY} ${corner2.x} ${midY + r * yDir} ` +
+			`L ${corner2.x} ${corner2.y}`;
+	}
 }
 
 /**

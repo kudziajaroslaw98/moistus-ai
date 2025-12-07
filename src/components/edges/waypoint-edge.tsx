@@ -1,10 +1,11 @@
+import { getAnchorPosition, projectToNodePerimeter } from '@/helpers/get-anchor-position';
 import { getFloatingEdgePath } from '@/helpers/get-floating-edge-path';
 import { getWaypointPath } from '@/helpers/get-waypoint-path';
 import { findWaypointInsertIndex } from '@/helpers/insert-waypoint';
 import useAppStore from '@/store/mind-map-store';
 import type { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';
-import type { Waypoint } from '@/types/path-types';
+import type { EdgeAnchor, Waypoint } from '@/types/path-types';
 import { cn } from '@/utils/cn';
 import generateUuid from '@/helpers/generate-uuid';
 import {
@@ -136,6 +137,116 @@ const WaypointHandle = memo(function WaypointHandle({
 	);
 });
 
+// Type for node with position and measurements needed for anchor calculation
+interface NodeWithMeasurements {
+	internals: { positionAbsolute: { x: number; y: number } };
+	measured: { width?: number; height?: number };
+}
+
+interface EdgeEndpointHandleProps {
+	type: 'source' | 'target';
+	x: number;
+	y: number;
+	edgeId: string;
+	color: string;
+	node: NodeWithMeasurements;
+	onDragStart: () => void;
+	onDrag: (type: 'source' | 'target', anchor: EdgeAnchor) => void;
+	onDragEnd: (shouldPersist: boolean) => void;
+}
+
+const EdgeEndpointHandle = memo(function EdgeEndpointHandle({
+	type,
+	x,
+	y,
+	edgeId,
+	color,
+	node,
+	onDragStart,
+	onDrag,
+	onDragEnd,
+}: EdgeEndpointHandleProps) {
+	const [isDragging, setIsDragging] = useState(false);
+	const { screenToFlowPosition } = useReactFlow();
+	const hasMoved = useRef<boolean>(false);
+
+	const handlePointerDown = useCallback(
+		(e: React.PointerEvent<SVGRectElement>) => {
+			e.stopPropagation();
+			e.preventDefault();
+			(e.target as SVGRectElement).setPointerCapture(e.pointerId);
+			setIsDragging(true);
+			hasMoved.current = false;
+			onDragStart();
+		},
+		[onDragStart]
+	);
+
+	const handlePointerMove = useCallback(
+		(e: React.PointerEvent<SVGRectElement>) => {
+			if (!isDragging) return;
+			e.stopPropagation();
+
+			hasMoved.current = true;
+			const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+			// Project the position to the node perimeter
+			const anchor = projectToNodePerimeter(node, position);
+			onDrag(type, anchor);
+		},
+		[isDragging, screenToFlowPosition, node, type, onDrag]
+	);
+
+	const handlePointerUp = useCallback(
+		(e: React.PointerEvent<SVGRectElement>) => {
+			(e.target as SVGRectElement).releasePointerCapture(e.pointerId);
+			setIsDragging(false);
+			onDragEnd(hasMoved.current);
+		},
+		[onDragEnd]
+	);
+
+	const size = 8;
+	const halfSize = size / 2;
+
+	return (
+		<motion.rect
+			x={x - halfSize}
+			y={y - halfSize}
+			width={size}
+			height={size}
+			rx={2}
+			className={cn(
+				'edge-endpoint-handle nodrag nopan',
+				isDragging ? 'cursor-grabbing' : 'cursor-grab'
+			)}
+			style={{
+				fill: 'transparent',
+				stroke: color,
+				strokeWidth: 2,
+				filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
+				pointerEvents: 'auto',
+			}}
+			initial={{ scale: 0, opacity: 0 }}
+			animate={{
+				scale: isDragging ? 1.3 : 1,
+				opacity: 1,
+			}}
+			exit={{ scale: 0, opacity: 0 }}
+			whileHover={{ scale: 1.2, fill: color }}
+			transition={{
+				type: 'spring',
+				stiffness: 400,
+				damping: 25,
+			}}
+			onPointerDown={handlePointerDown}
+			onPointerMove={handlePointerMove}
+			onPointerUp={handlePointerUp}
+			data-edge-id={edgeId}
+			data-endpoint-type={type}
+		/>
+	);
+});
+
 const WaypointEdgeComponent = ({
 	id,
 	source,
@@ -146,6 +257,7 @@ const WaypointEdgeComponent = ({
 }: EdgeProps<Edge<EdgeData>>) => {
 	const [isHovered, setIsHovered] = useState(false);
 	const [isDraggingWaypoint, setIsDraggingWaypoint] = useState(false);
+	const [isDraggingEndpoint, setIsDraggingEndpoint] = useState(false);
 	const { screenToFlowPosition } = useReactFlow();
 
 	const { deleteEdges, updateEdge } = useAppStore(
@@ -165,8 +277,22 @@ const WaypointEdgeComponent = ({
 		[data?.metadata?.waypoints]
 	);
 
+	// Store anchors from metadata
+	const storeSourceAnchor = useMemo(
+		() => data?.metadata?.sourceAnchor,
+		[data?.metadata?.sourceAnchor]
+	);
+	const storeTargetAnchor = useMemo(
+		() => data?.metadata?.targetAnchor,
+		[data?.metadata?.targetAnchor]
+	);
+
 	// Local waypoints for smooth dragging - only update store on drag end
 	const [localWaypoints, setLocalWaypoints] = useState<Waypoint[]>(storeWaypoints);
+
+	// Local anchors for smooth dragging
+	const [localSourceAnchor, setLocalSourceAnchor] = useState<EdgeAnchor | undefined>(storeSourceAnchor);
+	const [localTargetAnchor, setLocalTargetAnchor] = useState<EdgeAnchor | undefined>(storeTargetAnchor);
 
 	// Sync local state when store changes (but not during drag)
 	useEffect(() => {
@@ -175,11 +301,23 @@ const WaypointEdgeComponent = ({
 		}
 	}, [storeWaypoints, isDraggingWaypoint]);
 
+	useEffect(() => {
+		if (!isDraggingEndpoint) {
+			setLocalSourceAnchor(storeSourceAnchor);
+			setLocalTargetAnchor(storeTargetAnchor);
+		}
+	}, [storeSourceAnchor, storeTargetAnchor, isDraggingEndpoint]);
+
 	// Use local waypoints for rendering
 	const waypoints = isDraggingWaypoint ? localWaypoints : storeWaypoints;
 
+	// Use local anchors for rendering
+	const sourceAnchor = isDraggingEndpoint ? localSourceAnchor : storeSourceAnchor;
+	const targetAnchor = isDraggingEndpoint ? localTargetAnchor : storeTargetAnchor;
+
 	const curveType = data?.metadata?.curveType ?? 'linear';
 
+	// Calculate source/target positions - use anchors if defined, otherwise floating edge
 	const { sourceX, sourceY, targetX, targetY, sourcePos, targetPos } = useMemo(() => {
 		if (!sourceNode || !targetNode) {
 			return {
@@ -192,8 +330,35 @@ const WaypointEdgeComponent = ({
 			};
 		}
 
-		return getFloatingEdgePath(sourceNode, targetNode, strokeWidth * 2);
-	}, [sourceNode, targetNode, strokeWidth]);
+		// If anchors are defined, use them; otherwise fall back to floating edge
+		const floatingPath = getFloatingEdgePath(sourceNode, targetNode, strokeWidth * 2);
+
+		let finalSourceX = floatingPath.sourceX;
+		let finalSourceY = floatingPath.sourceY;
+		let finalTargetX = floatingPath.targetX;
+		let finalTargetY = floatingPath.targetY;
+
+		if (sourceAnchor) {
+			const pos = getAnchorPosition(sourceNode as any, sourceAnchor);
+			finalSourceX = pos.x;
+			finalSourceY = pos.y;
+		}
+
+		if (targetAnchor) {
+			const pos = getAnchorPosition(targetNode as any, targetAnchor);
+			finalTargetX = pos.x;
+			finalTargetY = pos.y;
+		}
+
+		return {
+			sourceX: finalSourceX,
+			sourceY: finalSourceY,
+			targetX: finalTargetX,
+			targetY: finalTargetY,
+			sourcePos: floatingPath.sourcePos,
+			targetPos: floatingPath.targetPos,
+		};
+	}, [sourceNode, targetNode, strokeWidth, sourceAnchor, targetAnchor]);
 
 	const { path: edgePath, labelX, labelY } = useMemo(
 		() => getWaypointPath(sourceX, sourceY, targetX, targetY, waypoints, curveType),
@@ -303,6 +468,41 @@ const WaypointEdgeComponent = ({
 		[waypoints, updateEdge, id, data?.metadata]
 	);
 
+	// Endpoint drag handlers
+	const handleEndpointDragStart = useCallback(() => {
+		setIsDraggingEndpoint(true);
+	}, []);
+
+	const handleEndpointDrag = useCallback(
+		(type: 'source' | 'target', anchor: EdgeAnchor) => {
+			if (type === 'source') {
+				setLocalSourceAnchor(anchor);
+			} else {
+				setLocalTargetAnchor(anchor);
+			}
+		},
+		[]
+	);
+
+	const handleEndpointDragEnd = useCallback(
+		(shouldPersist: boolean) => {
+			setIsDraggingEndpoint(false);
+			if (shouldPersist) {
+				updateEdge({
+					edgeId: id,
+					data: {
+						metadata: {
+							...data?.metadata,
+							sourceAnchor: localSourceAnchor,
+							targetAnchor: localTargetAnchor,
+						},
+					},
+				});
+			}
+		},
+		[updateEdge, id, data?.metadata, localSourceAnchor, localTargetAnchor]
+	);
+
 	if (!sourceNode || !targetNode) {
 		return null;
 	}
@@ -403,6 +603,40 @@ const WaypointEdgeComponent = ({
 							onDelete={handleWaypointDelete}
 						/>
 					))}
+				</AnimatePresence>
+			</g>
+
+			{/* Edge endpoint handles - visible on hover/selection for repositioning */}
+			<g className='edge-endpoint-handles' style={{ pointerEvents: 'auto' }}>
+				<AnimatePresence>
+					{(isHovered || selected) && (
+						<>
+							<EdgeEndpointHandle
+								key={`${id}-source-endpoint`}
+								type='source'
+								x={sourceX}
+								y={sourceY}
+								edgeId={id}
+								color={color}
+								node={sourceNode as any}
+								onDragStart={handleEndpointDragStart}
+								onDrag={handleEndpointDrag}
+								onDragEnd={handleEndpointDragEnd}
+							/>
+							<EdgeEndpointHandle
+								key={`${id}-target-endpoint`}
+								type='target'
+								x={targetX}
+								y={targetY}
+								edgeId={id}
+								color={color}
+								node={targetNode as any}
+								onDragStart={handleEndpointDragStart}
+								onDrag={handleEndpointDrag}
+								onDragEnd={handleEndpointDragEnd}
+							/>
+						</>
+					)}
 				</AnimatePresence>
 			</g>
 

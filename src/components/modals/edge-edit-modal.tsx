@@ -23,6 +23,7 @@ const curveTypeOptions: { value: WaypointCurveType; label: string }[] = [
 	{ value: 'linear', label: 'Linear (straight segments)' },
 	{ value: 'bezier', label: 'Smooth (bezier curves)' },
 	{ value: 'catmull-rom', label: 'Natural (Catmull-Rom spline)' },
+	{ value: 'smoothstep', label: 'Orthogonal (90° bends)' },
 ];
 const markerEndOptions = [
 	{ value: 'none', label: 'None' },
