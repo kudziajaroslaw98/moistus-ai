@@ -6,6 +6,7 @@ import ABezierBIcon from '../icons/a-bezier-b';
 import ASmoothstepBIcon from '../icons/a-smoothstep-b';
 import AStepBIcon from '../icons/a-step-b';
 import AStrainghtBIcon from '../icons/a-straight-b';
+import AWaypointBIcon from '../icons/a-waypoint-b';
 import { ToggleGroup, ToggleGroupItem } from '../ui/toggle-group';
 
 interface EdgeStyleSelectorProps {
@@ -28,6 +29,8 @@ const getItemIcon = (type: PathType) => {
 			return <AStrainghtBIcon {...iconProps} />;
 		case 'bezier':
 			return <ABezierBIcon {...iconProps} />;
+		case 'waypoint':
+			return <AWaypointBIcon {...iconProps} />;
 		default:
 			return <ASmoothstepBIcon {...iconProps} />;
 	}
@@ -38,6 +41,7 @@ const pathTypeOptions: PathType[] = [
 	'step',
 	'straight',
 	'bezier',
+	'waypoint',
 ];
 
 const colorOptions = [

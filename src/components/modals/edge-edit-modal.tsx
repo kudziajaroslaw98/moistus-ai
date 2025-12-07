@@ -1,7 +1,7 @@
 import useAppStore from '@/store/mind-map-store';
 import { EdgeData } from '@/types/edge-data';
-import type { PathType } from '@/types/path-types';
-import { SquareX } from 'lucide-react';
+import type { PathType, WaypointCurveType } from '@/types/path-types';
+import { SquareX, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { SidePanel } from '../side-panel';
@@ -16,6 +16,13 @@ const availablePathTypes: PathType[] = [
 	'step',
 	'straight',
 	'bezier',
+	'waypoint',
+];
+
+const curveTypeOptions: { value: WaypointCurveType; label: string }[] = [
+	{ value: 'linear', label: 'Linear (straight segments)' },
+	{ value: 'bezier', label: 'Smooth (bezier curves)' },
+	{ value: 'catmull-rom', label: 'Natural (Catmull-Rom spline)' },
 ];
 const markerEndOptions = [
 	{ value: 'none', label: 'None' },
@@ -44,7 +51,8 @@ export default function EdgeEditModal() {
 	);
 	const isOpen = popoverOpen.edgeEdit;
 	const [label, setLabel] = useState<string>('');
-	const [pathStyle, setPathStyle] = useState<PathType>('smoothstep'); // Changed from type to pathStyle
+	const [pathStyle, setPathStyle] = useState<PathType>('smoothstep');
+	const [curveType, setCurveType] = useState<WaypointCurveType>('linear');
 	const [animated, setAnimated] = useState(false);
 	const [color, setColor] = useState<string | undefined>('#6c757d');
 	const [strokeWidth, setStrokeWidth] = useState<string | number | undefined>(
@@ -53,10 +61,13 @@ export default function EdgeEditModal() {
 	const [markerEnd, setMarkerEnd] = useState<string | undefined>(undefined);
 	const [isSaving, setIsSaving] = useState(false);
 
+	const waypointCount = edge?.data?.metadata?.waypoints?.length ?? 0;
+
 	useEffect(() => {
 		if (edge) {
 			setLabel((edge.label as string) || (edge.data?.label as string) || '');
-			setPathStyle(edge.data?.metadata?.pathType || 'smoothstep'); // Use metadata.pathType
+			setPathStyle(edge.data?.metadata?.pathType || 'smoothstep');
+			setCurveType(edge.data?.metadata?.curveType || 'linear');
 			setAnimated(String(edge.data?.animated) === 'true');
 			setColor(edge.data?.style?.stroke || '#6c757d');
 			setStrokeWidth(edge.data?.style?.strokeWidth || undefined);
@@ -66,17 +77,26 @@ export default function EdgeEditModal() {
 
 	const handleSave = async () => {
 		if (!edge || isSaving) return;
+
+		// When switching away from waypoint type, clear waypoints
+		const shouldClearWaypoints =
+			pathStyle !== 'waypoint' && edge.data?.metadata?.pathType === 'waypoint';
+
 		const changes: Partial<EdgeData> = {
 			label: label.trim() === '' ? undefined : label.trim(),
 			animated: animated,
 			markerEnd: markerEnd === 'none' ? undefined : markerEnd,
+			// Update edge type when using waypoint path
+			type: pathStyle === 'waypoint' ? 'waypointEdge' : 'floatingEdge',
 			style: {
 				stroke: color ?? '',
 				strokeWidth: strokeWidth ?? '',
 			},
 			metadata: {
-				...(edge.data?.metadata || {}), // Preserve existing metadata
+				...(edge.data?.metadata || {}),
 				pathType: pathStyle,
+				curveType: pathStyle === 'waypoint' ? curveType : undefined,
+				waypoints: shouldClearWaypoints ? undefined : edge.data?.metadata?.waypoints,
 			},
 		};
 
@@ -84,6 +104,22 @@ export default function EdgeEditModal() {
 		await updateEdge({ edgeId: edge.id!, data: changes });
 		setIsSaving(false);
 		handleOnClose();
+	};
+
+	const handleClearWaypoints = async () => {
+		if (!edge || isSaving) return;
+
+		setIsSaving(true);
+		await updateEdge({
+			edgeId: edge.id!,
+			data: {
+				metadata: {
+					...(edge.data?.metadata || {}),
+					waypoints: [],
+				},
+			},
+		});
+		setIsSaving(false);
 	};
 
 	if (!edge) return null;
@@ -164,6 +200,40 @@ export default function EdgeEditModal() {
 								))}
 							</Select>
 						</FormField>
+
+						{/* Curve type selector for waypoint edges */}
+						{pathStyle === 'waypoint' && (
+							<FormField id='edgeCurveType' label='Curve Type'>
+								<Select
+									onValueChange={(value) =>
+										setCurveType(value as WaypointCurveType)
+									}
+									value={curveType}
+								>
+									{curveTypeOptions.map((option) => (
+										<option key={option.value} value={option.value}>
+											{option.label}
+										</option>
+									))}
+								</Select>
+							</FormField>
+						)}
+
+						{/* Clear waypoints button */}
+						{pathStyle === 'waypoint' && waypointCount > 0 && (
+							<div className='col-span-full'>
+								<Button
+									className='w-full gap-2'
+									disabled={isSaving}
+									onClick={handleClearWaypoints}
+									size='sm'
+									variant='outline'
+								>
+									<Trash2 className='size-4' />
+									Clear All Waypoints ({waypointCount})
+								</Button>
+							</div>
+						)}
 
 						<div>
 							<FormField id='edgeAnimated' label='Animated'>

@@ -56,6 +56,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
 import FloatingConnectionLine from '../edges/floating-connection-line';
 import { SuggestedMergeEdge } from '../edges/suggested-merge-edge';
+import WaypointEdge from '../edges/waypoint-edge';
 import { RealtimeAvatarStack } from '../realtime/realtime-avatar-stack';
 import { RealtimeCursors } from '../realtime/realtime-cursor';
 import { Toolbar } from '../toolbar';
@@ -255,6 +256,10 @@ export function ReactFlowArea() {
 
 	const handleEdgeDoubleClick: EdgeMouseHandler<Edge<EdgeData>> = useCallback(
 		(_event, edge) => {
+			// Skip opening modal for waypoint edges - they handle double-click internally
+			if (edge.type === 'waypointEdge' || edge.data?.metadata?.pathType === 'waypoint') {
+				return;
+			}
 			setEdgeInfo(edge);
 			setPopoverOpen({ edgeEdit: true });
 		},
@@ -274,6 +279,7 @@ export function ReactFlowArea() {
 			editableEdge: FloatingEdge,
 			defaultEdge: FloatingEdge,
 			floatingEdge: FloatingEdge,
+			waypointEdge: WaypointEdge,
 			default: FloatingEdge,
 		}),
 		[]

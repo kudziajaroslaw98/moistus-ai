@@ -206,11 +206,25 @@ function buildEdgeMenu(params: BuildEdgeMenuParams): MenuSection[] {
 								});
 							}}
 							onPathTypeChange={(pathType: PathType) => {
+								// Update edge type based on path type
+								const edgeType =
+									pathType === 'waypoint' ? 'waypointEdge' : 'floatingEdge';
+
+								// When switching away from waypoint, clear waypoints
+								const shouldClearWaypoints =
+									pathType !== 'waypoint' &&
+									clickedEdge.data?.metadata?.pathType === 'waypoint';
+
 								updateEdge({
 									edgeId: clickedEdge.id,
 									data: {
+										type: edgeType,
 										metadata: {
+											...clickedEdge.data?.metadata,
 											pathType,
+											waypoints: shouldClearWaypoints
+												? undefined
+												: clickedEdge.data?.metadata?.waypoints,
 										},
 									},
 								});
