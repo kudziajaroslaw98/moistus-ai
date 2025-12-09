@@ -1,4 +1,8 @@
-import { getAnchorPosition, projectToNodePerimeter } from '@/helpers/get-anchor-position';
+import generateUuid from '@/helpers/generate-uuid';
+import {
+	getAnchorPosition,
+	projectToNodePerimeter,
+} from '@/helpers/get-anchor-position';
 import { getFloatingEdgePath } from '@/helpers/get-floating-edge-path';
 import { getWaypointPath } from '@/helpers/get-waypoint-path';
 import { findWaypointInsertIndex } from '@/helpers/insert-waypoint';
@@ -7,7 +11,6 @@ import type { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';
 import type { EdgeAnchor, Waypoint } from '@/types/path-types';
 import { cn } from '@/utils/cn';
-import generateUuid from '@/helpers/generate-uuid';
 import {
 	BaseEdge,
 	EdgeLabelRenderer,
@@ -270,7 +273,8 @@ const WaypointEdgeComponent = ({
 	const sourceNode = useInternalNode<Node<NodeData>>(source);
 	const targetNode = useInternalNode<Node<NodeData>>(target);
 
-	const strokeWidth = parseInt(data?.style?.strokeWidth?.toString() ?? '2') ?? 2;
+	const strokeWidth =
+		parseInt(data?.style?.strokeWidth?.toString() ?? '2') ?? 2;
 
 	const storeWaypoints = useMemo(
 		() => data?.metadata?.waypoints ?? [],
@@ -288,11 +292,16 @@ const WaypointEdgeComponent = ({
 	);
 
 	// Local waypoints for smooth dragging - only update store on drag end
-	const [localWaypoints, setLocalWaypoints] = useState<Waypoint[]>(storeWaypoints);
+	const [localWaypoints, setLocalWaypoints] =
+		useState<Waypoint[]>(storeWaypoints);
 
 	// Local anchors for smooth dragging
-	const [localSourceAnchor, setLocalSourceAnchor] = useState<EdgeAnchor | undefined>(storeSourceAnchor);
-	const [localTargetAnchor, setLocalTargetAnchor] = useState<EdgeAnchor | undefined>(storeTargetAnchor);
+	const [localSourceAnchor, setLocalSourceAnchor] = useState<
+		EdgeAnchor | undefined
+	>(storeSourceAnchor);
+	const [localTargetAnchor, setLocalTargetAnchor] = useState<
+		EdgeAnchor | undefined
+	>(storeTargetAnchor);
 
 	// Sync local state when store changes (but not during drag)
 	useEffect(() => {
@@ -312,56 +321,70 @@ const WaypointEdgeComponent = ({
 	const waypoints = isDraggingWaypoint ? localWaypoints : storeWaypoints;
 
 	// Use local anchors for rendering
-	const sourceAnchor = isDraggingEndpoint ? localSourceAnchor : storeSourceAnchor;
-	const targetAnchor = isDraggingEndpoint ? localTargetAnchor : storeTargetAnchor;
+	const sourceAnchor = isDraggingEndpoint
+		? localSourceAnchor
+		: storeSourceAnchor;
+	const targetAnchor = isDraggingEndpoint
+		? localTargetAnchor
+		: storeTargetAnchor;
 
 	const curveType = data?.metadata?.curveType ?? 'linear';
 
 	// Calculate source/target positions - use anchors if defined, otherwise floating edge
-	const { sourceX, sourceY, targetX, targetY, sourcePos, targetPos } = useMemo(() => {
-		if (!sourceNode || !targetNode) {
+	const { sourceX, sourceY, targetX, targetY, sourcePos, targetPos } =
+		useMemo(() => {
+			if (!sourceNode || !targetNode) {
+				return {
+					sourceX: 0,
+					sourceY: 0,
+					targetX: 0,
+					targetY: 0,
+					sourcePos: Position.Top,
+					targetPos: Position.Top,
+				};
+			}
+
+			// If anchors are defined, use them; otherwise fall back to floating edge
+			const floatingPath = getFloatingEdgePath(
+				sourceNode,
+				targetNode,
+				strokeWidth * 2
+			);
+
+			let finalSourceX = floatingPath.sourceX;
+			let finalSourceY = floatingPath.sourceY;
+			let finalTargetX = floatingPath.targetX;
+			let finalTargetY = floatingPath.targetY;
+
+			if (sourceAnchor) {
+				const pos = getAnchorPosition(sourceNode as any, sourceAnchor);
+				finalSourceX = pos.x;
+				finalSourceY = pos.y;
+			}
+
+			if (targetAnchor) {
+				const pos = getAnchorPosition(targetNode as any, targetAnchor);
+				finalTargetX = pos.x;
+				finalTargetY = pos.y;
+			}
+
 			return {
-				sourceX: 0,
-				sourceY: 0,
-				targetX: 0,
-				targetY: 0,
-				sourcePos: Position.Top,
-				targetPos: Position.Top,
+				sourceX: finalSourceX,
+				sourceY: finalSourceY,
+				targetX: finalTargetX,
+				targetY: finalTargetY,
+				sourcePos: floatingPath.sourcePos,
+				targetPos: floatingPath.targetPos,
 			};
-		}
+		}, [sourceNode, targetNode, strokeWidth, sourceAnchor, targetAnchor]);
 
-		// If anchors are defined, use them; otherwise fall back to floating edge
-		const floatingPath = getFloatingEdgePath(sourceNode, targetNode, strokeWidth * 2);
-
-		let finalSourceX = floatingPath.sourceX;
-		let finalSourceY = floatingPath.sourceY;
-		let finalTargetX = floatingPath.targetX;
-		let finalTargetY = floatingPath.targetY;
-
-		if (sourceAnchor) {
-			const pos = getAnchorPosition(sourceNode as any, sourceAnchor);
-			finalSourceX = pos.x;
-			finalSourceY = pos.y;
-		}
-
-		if (targetAnchor) {
-			const pos = getAnchorPosition(targetNode as any, targetAnchor);
-			finalTargetX = pos.x;
-			finalTargetY = pos.y;
-		}
-
-		return {
-			sourceX: finalSourceX,
-			sourceY: finalSourceY,
-			targetX: finalTargetX,
-			targetY: finalTargetY,
-			sourcePos: floatingPath.sourcePos,
-			targetPos: floatingPath.targetPos,
-		};
-	}, [sourceNode, targetNode, strokeWidth, sourceAnchor, targetAnchor]);
-
-	const { path: edgePath, labelX, labelY } = useMemo(
-		() => getWaypointPath(sourceX, sourceY, targetX, targetY, waypoints, curveType),
+	const {
+		path: edgePath,
+		labelX,
+		labelY,
+	} = useMemo(
+		() =>
+			getWaypointPath(sourceX, sourceY, targetX, targetY, waypoints, curveType),
 		[sourceX, sourceY, targetX, targetY, waypoints, curveType]
 	);
 
@@ -406,8 +429,19 @@ const WaypointEdgeComponent = ({
 		};
 
 		document.addEventListener('waypoint-edge-add', handleWaypointAddEvent);
-		return () => document.removeEventListener('waypoint-edge-add', handleWaypointAddEvent);
-	}, [id, screenToFlowPosition, sourceX, sourceY, targetX, targetY, waypoints, updateEdge, data?.metadata]);
+		return () =>
+			document.removeEventListener('waypoint-edge-add', handleWaypointAddEvent);
+	}, [
+		id,
+		screenToFlowPosition,
+		sourceX,
+		sourceY,
+		targetX,
+		targetY,
+		waypoints,
+		updateEdge,
+		data?.metadata,
+	]);
 
 	const handleDeleteEdge = useCallback(
 		(e: React.MouseEvent) => {
@@ -553,18 +587,6 @@ const WaypointEdgeComponent = ({
 				</marker>
 			</defs>
 
-			{/* Invisible wider path for easier hover detection */}
-			<path
-				d={edgePath}
-				fill='none'
-				stroke='rgba(0,0,0,0.001)'
-				strokeWidth={20}
-				className='cursor-pointer nodrag nopan'
-				style={{ pointerEvents: 'stroke' }}
-				onMouseEnter={() => setIsHovered(true)}
-				onMouseLeave={() => setIsHovered(false)}
-			/>
-
 			<BaseEdge
 				id={id}
 				markerEnd={`url(#arrow-end-${id})`}
@@ -587,22 +609,23 @@ const WaypointEdgeComponent = ({
 				}}
 			/>
 
-			{/* Waypoint handles - always visible when waypoints exist */}
+			{/* Waypoint handles - visible on hover/selection */}
 			<g className='waypoint-handles' style={{ pointerEvents: 'auto' }}>
 				<AnimatePresence>
-					{waypoints.map((waypoint, index) => (
-						<WaypointHandle
-							key={waypoint.id}
-							waypoint={waypoint}
-							index={index}
-							edgeId={id}
-							color={color}
-							onDragStart={handleWaypointDragStart}
-							onDrag={handleWaypointDrag}
-							onDragEnd={handleWaypointDragEnd}
-							onDelete={handleWaypointDelete}
-						/>
-					))}
+					{(isHovered || selected) &&
+						waypoints.map((waypoint, index) => (
+							<WaypointHandle
+								key={waypoint.id}
+								waypoint={waypoint}
+								index={index}
+								edgeId={id}
+								color={color}
+								onDragStart={handleWaypointDragStart}
+								onDrag={handleWaypointDrag}
+								onDragEnd={handleWaypointDragEnd}
+								onDelete={handleWaypointDelete}
+							/>
+						))}
 				</AnimatePresence>
 			</g>
 
@@ -654,37 +677,44 @@ const WaypointEdgeComponent = ({
 					)}
 
 					{/* Animated Delete Button */}
-					<Button
-						className='!size-6'
-						initial={{ opacity: 0, y: 10, scale: 0.8 }}
-						onClick={handleDeleteEdge}
-						size={'icon'}
-						title='Delete connection'
-						variant={'destructive'}
-						animate={
-							isHovered || selected
-								? { opacity: 1, y: 0, scale: 1 }
-								: { opacity: 0, y: 10, scale: 0.8 }
-						}
-						transition={{
-							duration: 0.2,
-							ease: 'easeOut' as const,
-						}}
-					>
-						<X className='w-3 h-3' />
-					</Button>
+					<AnimatePresence mode='popLayout' key={`delete-${id}`}>
+						{(isHovered || selected) && (
+							<Button
+								key={`delete-button-${id}`}
+								className='!size-6'
+								initial={{ opacity: 0, y: 10, scale: 0.8 }}
+								onClick={handleDeleteEdge}
+								size={'icon'}
+								title='Delete connection'
+								variant={'destructive'}
+								animate={{ opacity: 1, y: 0, scale: 1 }}
+								exit={{ opacity: 0, scale: 0.8, y: 10 }}
+								transition={{
+									duration: 0.2,
+									ease: 'easeOut' as const,
+								}}
+							>
+								<X className='w-3 h-3' />
+							</Button>
+						)}
 
-					{/* Waypoint count indicator */}
-					{waypoints.length > 0 && (isHovered || selected) && (
-						<motion.div
-							className='rounded bg-zinc-600 px-2 py-0.5 text-[10px] text-zinc-300'
-							initial={{ opacity: 0, scale: 0.8 }}
-							animate={{ opacity: 1, scale: 1 }}
-							exit={{ opacity: 0, scale: 0.8 }}
-						>
-							{waypoints.length} waypoint{waypoints.length !== 1 ? 's' : ''}
-						</motion.div>
-					)}
+						{/* Waypoint count indicator */}
+						{waypoints.length > 0 && (isHovered || selected) && (
+							<motion.div
+								key={`waypoint-${id}`}
+								className='rounded bg-zinc-600 px-2 py-0.5 text-[10px] text-zinc-300'
+								initial={{ opacity: 0, y: 10, scale: 0.8 }}
+								animate={{ opacity: 1, y: 0, scale: 1 }}
+								exit={{ opacity: 0, scale: 0.8 }}
+								transition={{
+									duration: 0.2,
+									ease: 'easeOut' as const,
+								}}
+							>
+								{waypoints.length} waypoint{waypoints.length !== 1 ? 's' : ''}
+							</motion.div>
+						)}
+					</AnimatePresence>
 				</div>
 			</EdgeLabelRenderer>
 		</>
