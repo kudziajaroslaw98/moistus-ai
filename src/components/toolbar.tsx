@@ -13,12 +13,17 @@ import {
 	Sparkles,
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { type ReactNode } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { Button } from './ui/button';
-import { Label } from './ui/label';
-import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuRadioGroup,
+	DropdownMenuRadioItem,
+	DropdownMenuTrigger,
+} from './ui/dropdown-menu';
 import { Separator } from './ui/separator';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/Tooltip';
 
 interface ToolButton {
 	id: Tool | `separator-${number}`;
@@ -26,7 +31,12 @@ interface ToolButton {
 	label: string | null;
 }
 
-const tools: ToolButton[] = [
+// Cursor modes - displayed as a single dropdown
+const cursorTools: {
+	id: 'default' | 'pan' | 'connector';
+	icon: ReactNode;
+	label: string;
+}[] = [
 	{
 		id: 'default',
 		icon: <MousePointer2 className='size-4' />,
@@ -34,7 +44,9 @@ const tools: ToolButton[] = [
 	},
 	{ id: 'pan', icon: <Hand className='size-4' />, label: 'Pan' },
 	{ id: 'connector', icon: <Share2 className='size-4' />, label: 'Connect' },
-	{ id: 'separator-0', icon: null, label: null },
+];
+
+const tools: ToolButton[] = [
 	{ id: 'node', icon: <Plus className='size-4' />, label: 'Add Node' },
 	// { id: 'text', icon: <Type className='size-4' />, label: 'Text' },
 	{
@@ -136,6 +148,27 @@ export const Toolbar = () => {
 		}
 	};
 
+	// Combined handler: select feature AND trigger action immediately
+	const handleAiFeatureSelectAndTrigger = (
+		feature: 'suggest-nodes' | 'suggest-connections' | 'suggest-merges'
+	) => {
+		handleAiFeatureSelect(feature);
+
+		// Trigger action immediately
+		if (feature === 'suggest-nodes') {
+			setActiveTool('magic-wand');
+		} else if (feature === 'suggest-connections') {
+			generateConnectionSuggestions();
+		} else if (feature === 'suggest-merges') {
+			generateMergeSuggestions();
+		}
+		// Note: DropdownMenu closes automatically on selection
+	};
+
+	// Get the current cursor tool for display
+	const currentCursorTool =
+		cursorTools.find((t) => t.id === activeTool) ?? cursorTools[0];
+
 	return (
 		<motion.div
 			animate={{ y: 0, opacity: 1 }}
@@ -143,6 +176,40 @@ export const Toolbar = () => {
 			transition={{ type: 'spring', stiffness: 100, damping: 15 }}
 		>
 			<div className='flex h-full w-full items-center gap-2 p-2 rounded-xl shadow-2xl shadow-neutral-950 bg-surface border border-elevated'>
+				{/* Cursor Mode Dropdown */}
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button
+							className='active:scale-95'
+							size='icon'
+							title={currentCursorTool.label}
+							variant='default'
+						>
+							{currentCursorTool.icon}
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align='start' side='top'>
+						<DropdownMenuRadioGroup
+							onValueChange={(val) => setActiveTool(val as Tool)}
+							value={activeTool}
+						>
+							{cursorTools.map((tool) => (
+								<DropdownMenuRadioItem key={tool.id} value={tool.id}>
+									<span className='flex items-center gap-2'>
+										{tool.icon}
+										{tool.label}
+									</span>
+								</DropdownMenuRadioItem>
+							))}
+						</DropdownMenuRadioGroup>
+					</DropdownMenuContent>
+				</DropdownMenu>
+
+				<Separator
+					className='!h-4 flex bg-overlay'
+					orientation='vertical'
+				/>
+
 				{tools.map((tool, index) => {
 					if (tool.id.startsWith('separator')) {
 						return (
@@ -156,58 +223,47 @@ export const Toolbar = () => {
 
 					if (tool.id === 'magic-wand') {
 						return (
-							<Tooltip key={tool.id}>
-								<TooltipTrigger
-									onClick={() => onToolChange(tool.id)}
-									title={tool.label ?? `Tool ${index}`}
-									className={cn(
-										'bg-base hover:bg-elevated',
-										'active:scale-95',
-										activeTool === tool.id
-											? 'bg-teal-500 border-teal-500/30 text-text-primary'
-											: ' border-overlay text-text-secondary',
-										'inline-flex items-center rounded-sm font-medium transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none !h-8 !w-8 p-0 justify-center'
-									)}
-								>
-									{tool.icon}
-								</TooltipTrigger>
-
-								<TooltipContent className='p-4'>
-									<RadioGroup
-										onValueChange={handleAiFeatureSelect}
+							<DropdownMenu key={tool.id}>
+								<DropdownMenuTrigger asChild>
+									<Button
+										className={cn(
+											'active:scale-95',
+											activeTool === tool.id &&
+												'bg-teal-500 border-teal-500/30 text-text-primary'
+										)}
+										size='icon'
+										title={tool.label ?? `Tool ${index}`}
+										variant={
+											activeTool === tool.id ? 'default' : 'secondary'
+										}
+									>
+										{tool.icon}
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align='start' side='top'>
+									<DropdownMenuRadioGroup
+										onValueChange={(val) =>
+											handleAiFeatureSelectAndTrigger(
+												val as
+													| 'suggest-nodes'
+													| 'suggest-connections'
+													| 'suggest-merges'
+											)
+										}
 										value={aiFeature}
 									>
-										<div className='flex items-center gap-2'>
-											<RadioGroupItem
-												id='suggest-nodes'
-												value='suggest-nodes'
-											/>
-
-											<Label htmlFor='suggest-nodes'>Suggest Nodes</Label>
-										</div>
-
-										<div className='flex items-center gap-2'>
-											<RadioGroupItem
-												id='suggest-connections'
-												value='suggest-connections'
-											/>
-
-											<Label htmlFor='suggest-connections'>
-												Suggest Connections
-											</Label>
-										</div>
-
-										<div className='flex items-center gap-2'>
-											<RadioGroupItem
-												id='suggest-merges'
-												value='suggest-merges'
-											/>
-
-											<Label htmlFor='suggest-merges'>Suggest Merges</Label>
-										</div>
-									</RadioGroup>
-								</TooltipContent>
-							</Tooltip>
+										<DropdownMenuRadioItem value='suggest-nodes'>
+											Suggest Nodes
+										</DropdownMenuRadioItem>
+										<DropdownMenuRadioItem value='suggest-connections'>
+											Suggest Connections
+										</DropdownMenuRadioItem>
+										<DropdownMenuRadioItem value='suggest-merges'>
+											Suggest Merges
+										</DropdownMenuRadioItem>
+									</DropdownMenuRadioGroup>
+								</DropdownMenuContent>
+							</DropdownMenu>
 						);
 					}
 
