@@ -421,7 +421,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 			<ComponentHeader icon={config.icon} label={config.label} />
 
 			{/* Input and Preview Side by Side - Fixed 50/50 Layout */}
-			<div className='flex items-stretch gap-3'>
+			<div className='flex items-stretch gap-3 max-h-[60vh]'>
 				<EnhancedInput
 					animate={{ opacity: 1, y: 0 }}
 					className='flex-1 min-w-0 mt-5'

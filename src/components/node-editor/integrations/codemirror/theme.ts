@@ -25,7 +25,6 @@ export const nodeEditorTheme = EditorView.theme(
 		},
 		'.cm-content': {
 			minHeight: '60px',
-			maxHeight: '216px',
 			padding: '12px',
 			backgroundColor: 'rgba(24, 24, 27, 0.5)',
 			color: 'rgb(212, 212, 216)',
