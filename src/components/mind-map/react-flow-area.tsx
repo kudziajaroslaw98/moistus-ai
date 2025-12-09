@@ -71,7 +71,9 @@ export function ReactFlowArea() {
 	const connectingHandleType = useRef<'source' | 'target' | null>(null);
 	const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-	const [settingsTab, setSettingsTab] = useState<'settings' | 'billing'>('settings');
+	const [settingsTab, setSettingsTab] = useState<'settings' | 'billing'>(
+		'settings'
+	);
 
 	const handleOpenSettings = (tab: 'settings' | 'billing' = 'settings') => {
 		setSettingsTab(tab);
@@ -443,7 +445,8 @@ export function ReactFlowArea() {
 				snapToGrid={true}
 				className={cn([
 					isPanningMode && 'cursor-grab',
-					(activeTool === 'node' || activeTool === 'text') && 'cursor-crosshair',
+					(activeTool === 'node' || activeTool === 'text') &&
+						'cursor-crosshair',
 				])}
 				style={
 					{
@@ -458,7 +461,7 @@ export function ReactFlowArea() {
 				/>
 
 				<Panel
-					className='!m-0 p-2 px-8 right-0 flex justify-between bg-surface/20 backdrop-blur-xs'
+					className='!m-0 p-2 px-8 right-0 flex justify-between bg-base/80 backdrop-blur-xs'
 					position='top-left'
 				>
 					<div className='flex items-center gap-8'>
@@ -557,7 +560,11 @@ export function ReactFlowArea() {
 						)}
 
 						{/* User Menu */}
-						<UserMenu showBackToDashboard user={userProfile} onOpenSettings={handleOpenSettings} />
+						<UserMenu
+							showBackToDashboard
+							user={userProfile}
+							onOpenSettings={handleOpenSettings}
+						/>
 					</div>
 				</Panel>
 
