@@ -2,6 +2,21 @@ import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withAuthValidation } from '@/helpers/api/with-auth-validation';
 import { z } from 'zod';
 
+/**
+ * @deprecated This endpoint is BROKEN and should not be used.
+ *
+ * REASON: Supabase requires email verification BEFORE password can be set.
+ * Calling updateUser({ email, password }) simultaneously fails silently -
+ * auth.users remains anonymous while user_profiles incorrectly shows upgraded.
+ *
+ * USE INSTEAD:
+ * - Email upgrade: /api/auth/upgrade-anonymous/initiate → verify-otp → set-password
+ * - OAuth upgrade: Use supabase.auth.linkIdentity() with /auth/callback
+ *
+ * This endpoint is preserved for backwards compatibility but will return
+ * a deprecation error directing users to the new flow.
+ */
+
 const UpgradeAnonymousSchema = z.object({
 	email: z.string().email('Please provide a valid email address'),
 	password: z.string().min(8, 'Password must be at least 8 characters long'),
@@ -11,6 +26,20 @@ const UpgradeAnonymousSchema = z.object({
 export const POST = withAuthValidation(
 	UpgradeAnonymousSchema,
 	async (req, data, supabase, user) => {
+		// Return deprecation error
+		console.warn(
+			'[DEPRECATED] /api/auth/upgrade-anonymous called. This endpoint is broken and should not be used.',
+			{ user_id: user.id, email: data.email }
+		);
+
+		return respondError(
+			'This upgrade method is deprecated. Please use the new multi-step email verification flow or OAuth to upgrade your account.',
+			410, // HTTP 410 Gone - resource is intentionally no longer available
+			'Deprecated Endpoint'
+		);
+
+		// Legacy code preserved for reference (DO NOT UNCOMMENT)
+		/*
 		try {
 			// 1. Verify user is anonymous
 			const { data: profile, error: profileError } = await supabase
@@ -29,6 +58,7 @@ export const POST = withAuthValidation(
 			}
 
 			// 2. Update auth.users with email and password
+			// ⚠️ BUG: This does NOT work - Supabase requires email verification first!
 			const { error: authError } = await supabase.auth.updateUser({
 				email: data.email,
 				password: data.password,
@@ -68,7 +98,6 @@ export const POST = withAuthValidation(
 
 			if (fetchError) {
 				console.error('Failed to fetch updated profile:', fetchError);
-				// Don't fail the upgrade if we can't fetch the updated profile
 			}
 
 			// 5. Return success response
@@ -92,5 +121,6 @@ export const POST = withAuthValidation(
 				500
 			);
 		}
+		*/
 	}
 );

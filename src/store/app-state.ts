@@ -303,6 +303,28 @@ interface JoinRoomResult {
 	join_method: string;
 }
 
+// Upgrade State Types
+export type UpgradeStep =
+	| 'idle'
+	| 'choose_method'
+	| 'enter_email'
+	| 'email_sent'
+	| 'verify_otp'
+	| 'set_password'
+	| 'oauth_pending'
+	| 'completed'
+	| 'error';
+
+export type OAuthProvider = 'google' | 'github';
+
+export interface UpgradeState {
+	upgradeStep: UpgradeStep;
+	upgradeEmail: string | null;
+	upgradeDisplayName: string | null;
+	upgradeError: string | null;
+	isUpgrading: boolean;
+}
+
 // Sharing State
 export interface SharingState {
 	shareTokens: ShareToken[];
@@ -314,6 +336,13 @@ export interface SharingState {
 	sharingError?: SharingError;
 	lastJoinResult?: JoinRoomResult;
 	_sharingSubscription?: any;
+
+	// Upgrade state (for anonymous -> full user conversion)
+	upgradeStep: UpgradeStep;
+	upgradeEmail: string | null;
+	upgradeDisplayName: string | null;
+	upgradeError: string | null;
+	isUpgrading: boolean;
 }
 
 // Sharing Slice
@@ -331,11 +360,38 @@ export interface SharingSlice extends SharingState {
 
 	joinRoom: (roomCode: string, displayName?: string) => Promise<JoinRoomResult>;
 
+	// Legacy method - kept for backwards compatibility but deprecated
+	/** @deprecated Use initiateEmailUpgrade + verifyUpgradeOtp + completeUpgradeWithPassword instead */
 	upgradeAnonymousUser: (
 		email: string,
 		password: string,
 		displayName?: string
 	) => Promise<boolean>;
+
+	// New multi-step upgrade methods
+	/** Step 1: Initiate email upgrade - sends verification OTP */
+	initiateEmailUpgrade: (
+		email: string,
+		displayName?: string
+	) => Promise<boolean>;
+
+	/** Step 2: Verify OTP code sent to email */
+	verifyUpgradeOtp: (otp: string) => Promise<boolean>;
+
+	/** Step 3: Set password after email verification */
+	completeUpgradeWithPassword: (password: string) => Promise<boolean>;
+
+	/** Alternative: Initiate OAuth upgrade (redirects to provider) */
+	initiateOAuthUpgrade: (provider: OAuthProvider) => Promise<void>;
+
+	/** Resend verification OTP */
+	resendUpgradeOtp: () => Promise<boolean>;
+
+	/** Reset upgrade state to initial */
+	resetUpgradeState: () => void;
+
+	/** Set upgrade step manually (for UI navigation) */
+	setUpgradeStep: (step: UpgradeStep) => void;
 
 	ensureAuthenticated: (displayName?: string) => Promise<boolean>;
 
