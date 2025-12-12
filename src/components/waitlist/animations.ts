@@ -2,8 +2,8 @@ import type { Transition, Variants } from 'motion/react';
 
 // Default transition settings
 export const defaultTransition: Transition = {
-	duration: 0.5,
-	ease: [0.25, 0.1, 0.25, 1] as const, // Custom cubic-bezier for smooth animations
+	duration: 0.25,
+	ease: [0.165, 0.84, 0.44, 1] as const, // ease-out-quart for snappy feel
 };
 
 export const springTransition: Transition = {
@@ -33,8 +33,8 @@ export const fadeInUp: Variants = {
 		opacity: 1,
 		y: 0,
 		transition: {
-			duration: 0.6,
-			ease: 'easeOut' as const,
+			duration: 0.3,
+			ease: [0.165, 0.84, 0.44, 1] as const, // ease-out-quart
 		},
 	},
 };
@@ -48,8 +48,8 @@ export const fadeInScale: Variants = {
 		opacity: 1,
 		scale: 1,
 		transition: {
-			duration: 0.5,
-			ease: 'easeOut' as const,
+			duration: 0.25,
+			ease: [0.165, 0.84, 0.44, 1] as const, // ease-out-quart
 		},
 	},
 };
@@ -102,12 +102,12 @@ export const hoverScale: Variants = {
 
 export const hoverGlow: Variants = {
 	rest: {
-		boxShadow: '0 0 0 0 rgba(139, 92, 246, 0)',
+		boxShadow: '0 0 0 0 rgba(96, 165, 250, 0)',
 	},
 	hover: {
-		boxShadow: '0 0 20px 5px rgba(139, 92, 246, 0.3)',
+		boxShadow: '0 0 20px 5px rgba(96, 165, 250, 0.3)',
 		transition: {
-			duration: 0.3,
+			duration: 0.2,
 		},
 	},
 };
@@ -116,11 +116,11 @@ export const hoverGlow: Variants = {
 export const formFieldFocus = {
 	rest: {
 		scale: 1,
-		boxShadow: '0 0 0 0 rgba(139, 92, 246, 0)',
+		boxShadow: '0 0 0 0 rgba(96, 165, 250, 0)',
 	},
 	focus: {
 		scale: 1.01,
-		boxShadow: '0 0 0 2px rgba(139, 92, 246, 0.4)',
+		boxShadow: '0 0 0 2px rgba(96, 165, 250, 0.4)',
 		transition: {
 			duration: 0.2,
 		},

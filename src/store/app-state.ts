@@ -31,6 +31,14 @@ import type {
 	SupabaseClient,
 	User,
 } from '@supabase/supabase-js';
+
+// Map Access Error Types
+export type MapAccessErrorType = 'access_denied' | 'not_found' | 'network_error';
+
+export interface MapAccessError {
+	type: MapAccessErrorType;
+	isAnonymous: boolean;
+}
 import type {
 	OnConnect,
 	OnEdgesChange,
@@ -63,6 +71,7 @@ export interface CoreDataSlice {
 	currentUser: User | null;
 	userProfile: UserProfile | null;
 	activeTool: Tool;
+	mapAccessError: MapAccessError | null;
 
 	setActiveTool: (tool: Tool) => void;
 	setMindMap: (mindMap: MindMapData | null) => void;
@@ -71,6 +80,8 @@ export interface CoreDataSlice {
 	setCurrentUser: (currentUser: User | null) => void;
 	setUserProfile: (userProfile: UserProfile | null) => void;
 	setState: (state: Partial<AppState>) => void;
+	setMapAccessError: (error: MapAccessError | null) => void;
+	clearMapAccessError: () => void;
 
 	generateUserProfile: (user: User | null) => UserProfile | null;
 	getCurrentUser: () => Promise<User | null>;
@@ -400,6 +411,8 @@ export interface SharingSlice extends SharingState {
 	refreshRoomCode: (tokenId: string) => Promise<void>;
 
 	revokeRoomCode: (tokenId: string) => Promise<void>;
+
+	deleteShare: (shareId: string) => Promise<void>;
 
 	subscribeToSharingUpdates: (mapId: string) => void;
 

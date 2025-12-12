@@ -34,6 +34,9 @@ export const nodeEditorTheme = EditorView.theme(
 			wordWrap: 'break-word',
 			overflowWrap: 'break-word',
 			whiteSpace: 'pre-wrap',
+			'overflow-y': 'auto',
+			'max-height': '350px',
+			height: '100%',
 		},
 		'.cm-focused .cm-content': {
 			outline: 'none',
@@ -43,6 +46,7 @@ export const nodeEditorTheme = EditorView.theme(
 		'.cm-editor': {
 			borderRadius: '6px',
 			backgroundColor: 'transparent',
+			height: '100%',
 		},
 		'.ͼ1.cm-focused': {
 			outline: '1px solid var(--color-primary-500) !important',
@@ -50,6 +54,7 @@ export const nodeEditorTheme = EditorView.theme(
 		'.cm-scroller': {
 			fontFamily: 'inherit',
 			lineHeight: '1.4',
+			overflow: 'none',
 		},
 
 		// ========================================

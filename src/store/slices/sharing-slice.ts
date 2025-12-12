@@ -92,7 +92,8 @@ export const createSharingSlice: StateCreator<
 				},
 				isAnonymous: shareAccessProfile.is_anonymous,
 				share: {
-					id: shareAccessProfile.share_token_id!,
+					// Use share_access.id for deletion (numeric converted to string)
+					id: String(shareAccessProfile.id),
 					map_id: shareAccessProfile.map_id,
 					user_id: shareAccessProfile.user_id,
 					can_edit: shareAccessProfile.can_edit,
@@ -785,14 +786,49 @@ export const createSharingSlice: StateCreator<
 			}
 		},
 
+		// Delete individual user access from a shared map
+		deleteShare: async (shareId: string) => {
+			try {
+				const response = await fetch(`/api/share/delete-share/${shareId}`, {
+					method: 'DELETE',
+				});
+
+				if (!response.ok) {
+					const error = await response.json();
+					throw new Error(error.error || 'Failed to delete share');
+				}
+
+				// Remove from currentShares state
+				set((state) => ({
+					currentShares: (state.currentShares ?? []).filter(
+						(share) => share.share.id !== shareId
+					),
+				}));
+			} catch (error) {
+				const sharingError: SharingError = {
+					code: 'UNKNOWN',
+					message:
+						error instanceof Error
+							? error.message
+							: 'Failed to delete share',
+				};
+
+				set({ sharingError });
+				throw sharingError;
+			}
+		},
+
 		// Subscribe to real-time sharing updates
 		subscribeToSharingUpdates: (mapId: string) => {
 			try {
 				// Unsubscribe from any existing subscription
 				get().unsubscribeFromSharing();
 
+				const { authUser } = get();
+				const currentUserId = authUser?.user_id;
+
 				// Subscribe to share_tokens changes for this map
-				const subscription = supabase
+				let channel = supabase
 					.channel(`sharing_updates_${mapId}`)
 					.on(
 						'postgres_changes',
@@ -820,8 +856,42 @@ export const createSharingSlice: StateCreator<
 							console.log('Share permissions update received:', payload);
 							// Could trigger additional updates if needed
 						}
-					)
-					.subscribe();
+					);
+
+				// Subscribe to share_access DELETE events for the current user
+				// This triggers when the map owner removes the user's access
+				if (currentUserId) {
+					channel = channel.on(
+						'postgres_changes',
+						{
+							event: 'DELETE',
+							schema: 'public',
+							table: 'share_access',
+							filter: `user_id=eq.${currentUserId}`,
+						},
+						(payload) => {
+							console.log('Share access revoked:', payload);
+							const deletedRecord = payload.old as {
+								map_id?: string;
+								user_id?: string;
+							};
+
+							// Check if this deletion is for the current map
+							if (deletedRecord?.map_id === mapId) {
+								console.log(
+									'Access revoked for current map, showing access denied page'
+								);
+								// Trigger access revoked state via core slice
+								get().setMapAccessError({
+									type: 'access_denied',
+									isAnonymous: authUser?.is_anonymous ?? true,
+								});
+							}
+						}
+					);
+				}
+
+				const subscription = channel.subscribe();
 
 				set({ _sharingSubscription: subscription });
 			} catch (error) {

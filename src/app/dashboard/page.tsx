@@ -1,11 +1,12 @@
 'use client';
 
+import { UpgradeAnonymousPrompt } from '@/components/auth/upgrade-anonymous';
 import { CreateMapCard } from '@/components/dashboard/create-map-card';
 import { CreateMapDialog } from '@/components/dashboard/create-map-dialog';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import { MindMapCard } from '@/components/dashboard/mind-map-card';
-import { UpgradeAnonymousPrompt } from '@/components/auth/upgrade-anonymous';
 import { Button } from '@/components/ui/button';
+import { useAuthRedirect } from '@/hooks/use-auth-redirect';
 import { Checkbox } from '@/components/ui/checkbox';
 import { SearchInput } from '@/components/ui/search-input';
 import {
@@ -78,6 +79,12 @@ const fetcher = async (url: string) => {
 
 function DashboardContent() {
 	const router = useRouter();
+
+	// Protect dashboard from anonymous users
+	const { isChecking } = useAuthRedirect({
+		blockAnonymous: true,
+		redirectMessage: 'Please sign in to access your dashboard',
+	});
 
 	// Trial state and user
 	const { isTrialing, getTrialDaysRemaining, userProfile } = useAppStore(
@@ -400,6 +407,17 @@ function DashboardContent() {
 		handleSelectAll,
 		handleBulkDelete,
 	]);
+
+	// Show loading while checking auth (prevents content flash for anonymous users)
+	if (isChecking) {
+		return (
+			<DashboardLayout>
+				<div className='flex min-h-screen items-center justify-center'>
+					<div className='h-8 w-8 animate-spin rounded-full border-4 border-zinc-800 border-t-sky-500' />
+				</div>
+			</DashboardLayout>
+		);
+	}
 
 	if (mapsLoading && !mapsData.maps.length) {
 		return (

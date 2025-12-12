@@ -59,6 +59,20 @@ export const POST = withAuthValidation(
 				// Continue anyway, token is already revoked
 			}
 
+			// Also deactivate share_access records for this token
+			const { error: accessError } = await supabase
+				.from('share_access')
+				.update({
+					status: 'inactive',
+					updated_at: new Date().toISOString(),
+				})
+				.eq('share_token_id', data.token_id);
+
+			if (accessError) {
+				console.error('Failed to deactivate share_access records:', accessError);
+				// Continue anyway, token is already revoked
+			}
+
 			return respondSuccess(
 				{ token_id: data.token_id },
 				200,

@@ -1,4 +1,5 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
+import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { withAuthValidation } from '@/helpers/api/with-auth-validation';
 import { z } from 'zod';
 
@@ -49,9 +50,31 @@ export const POST = withAuthValidation(
 			console.dir(shareAccess, { depth: 0 });
 			console.dir(shareAccessError, { depth: 0 });
 
+			// Extract first result (RPC returns array)
+			const accessRecord = shareAccess?.[0];
+
+			// 2. Increment current_users if this is a NEW user joining
+			// Use service role client to bypass RLS (joining user is not token creator/map owner)
+			if (accessRecord?.was_created === true) {
+				const adminClient = createServiceRoleClient();
+				const { error: incrementError } = await adminClient
+					.from('share_tokens')
+					.update({
+						current_users: validation.current_users + 1,
+						updated_at: new Date().toISOString(),
+					})
+					.eq('id', validation.token_id)
+					.eq('is_active', true);
+
+				if (incrementError) {
+					console.error('Failed to increment current_users:', incrementError);
+					// Non-blocking - don't fail the join if counter update fails
+				}
+			}
+
 			console.log('Validation result:', validation);
 
-			// 2. Get map information
+			// 3. Get map information
 			const { data: mapData, error: mapError } = await supabase
 				.from('mind_maps')
 				.select('id, title, description, user_id')

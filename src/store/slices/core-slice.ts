@@ -28,6 +28,7 @@ export const createCoreDataSlice: StateCreator<
 	currentUser: null,
 	userProfile: null,
 	activeTool: 'default',
+	mapAccessError: null,
 
 	// Actions
 	setActiveTool: (activeTool) => set({ activeTool }),
@@ -42,6 +43,8 @@ export const createCoreDataSlice: StateCreator<
 	},
 	setUserProfile: (userProfile) => set({ userProfile }),
 	setState: (state: Partial<AppState>) => set({ ...state }),
+	setMapAccessError: (error) => set({ mapAccessError: error }),
+	clearMapAccessError: () => set({ mapAccessError: null }),
 
 	generateUserProfile: (user: User | null): UserProfile | null => {
 		if (!user) return null;
@@ -111,11 +114,12 @@ export const createCoreDataSlice: StateCreator<
 
 	fetchMindMapData: withLoadingAndToast(
 		async (mapId: string) => {
-			const { reactFlowInstance } = get();
-
 			if (!mapId) {
 				throw new Error('Map ID is required.');
 			}
+
+			// Clear any previous access error
+			set({ mapAccessError: null });
 
 			const { data: mindMapData, error: mindMapError } = await get()
 				.supabase.from('map_graph_aggregated_view')
@@ -123,15 +127,67 @@ export const createCoreDataSlice: StateCreator<
 				.eq('map_id', mapId)
 				.single();
 
+			// Handle potential access denial (PGRST116 = no rows returned)
 			if (mindMapError) {
 				console.error('Error fetching from Supabase:', mindMapError);
+
+				// Check if this is an access/not-found error
+				if (
+					mindMapError.code === 'PGRST116' ||
+					mindMapError.message?.includes('no rows')
+				) {
+					try {
+						// Call check-access API to determine the reason
+						const response = await fetch(`/api/maps/${mapId}/check-access`);
+
+						if (response.ok) {
+							const result = await response.json();
+							const { status } = result.data;
+							const currentUser = get().currentUser;
+							const isAnonymous = currentUser?.is_anonymous ?? true;
+
+							if (status === 'no_access') {
+								set({
+									mapAccessError: {
+										type: 'access_denied',
+										isAnonymous,
+									},
+								});
+								// Return early without throwing - this prevents the toast
+								return;
+							} else if (status === 'not_found') {
+								set({
+									mapAccessError: {
+										type: 'not_found',
+										isAnonymous,
+									},
+								});
+								return;
+							}
+							// If status is 'owner' or 'shared', something else went wrong
+							// Fall through to throw generic error
+						}
+					} catch (checkError) {
+						console.error('Error checking map access:', checkError);
+						// If check-access fails, fall through to generic error
+					}
+				}
+
 				throw new Error(
 					mindMapError.message || 'Failed to fetch mind map data.'
 				);
 			}
 
 			if (!mindMapData) {
-				throw new Error('Mind map not found.');
+				// This shouldn't happen if error handling above is correct
+				const currentUser = get().currentUser;
+				set({
+					mapAccessError: {
+						type: 'not_found',
+						isAnonymous: currentUser?.is_anonymous ?? true,
+					},
+				});
+				return;
 			}
 
 			const transformedData = transformSupabaseData(

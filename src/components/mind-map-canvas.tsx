@@ -19,6 +19,7 @@ import { StreamingToast } from './streaming-toast';
 import { AnonymousUserBanner } from './auth/anonymous-user-banner';
 import { UpgradeAnonymousPrompt } from './auth/upgrade-anonymous';
 import { useRouter } from 'next/navigation';
+import { AccessRevokedPage } from './mind-map/access-revoked-page';
 
 export function MindMapCanvas() {
 	const params = useParams();
@@ -45,6 +46,7 @@ export function MindMapCanvas() {
 		toggleNodeCollapse,
 		openNodeEditor,
 		userProfile,
+		mapAccessError,
 	} = useAppStore(
 		useShallow((state) => ({
 			handleUndo: state.handleUndo,
@@ -64,6 +66,7 @@ export function MindMapCanvas() {
 			getCurrentUser: state.getCurrentUser,
 			openNodeEditor: state.openNodeEditor,
 			userProfile: state.userProfile,
+			mapAccessError: state.mapAccessError,
 		}))
 	);
 	const isLoading = loadingStates.isStateLoading;
@@ -129,6 +132,16 @@ export function MindMapCanvas() {
 			<div className='flex h-full w-full items-center justify-center bg-zinc-950'>
 				<div className='h-8 w-8 animate-spin rounded-full border-4 border-zinc-800 border-t-sky-500' />
 			</div>
+		);
+	}
+
+	// Show access revoked page when access is denied or map not found
+	if (mapAccessError) {
+		return (
+			<AccessRevokedPage
+				errorType={mapAccessError.type}
+				isAnonymous={mapAccessError.isAnonymous}
+			/>
 		);
 	}
 
