@@ -1,13 +1,17 @@
 'use client';
 
+import { useResourceMetadataFetch } from '@/hooks/use-resource-metadata-fetch';
 import useAppStore from '@/store/mind-map-store';
-import { ExternalLink, Globe, Link as LinkIcon } from 'lucide-react';
+import { cn } from '@/utils/cn';
+import { ExternalLink, Globe, Link as LinkIcon, Loader2, RefreshCw } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { memo, useCallback, useRef, useState } from 'react';
+import { useShallow } from 'zustand/shallow';
 import { Button } from '../ui/button';
 import { BaseNodeWrapper } from './base-node-wrapper';
+import { SharedNodeToolbar } from './components/node-toolbar';
 import { type TypedNodeProps } from './core/types';
 import { GlassmorphismTheme } from './themes/glassmorphism-theme';
 
@@ -18,9 +22,20 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 	const [imageError, setImageError] = useState(false);
 	const [imageLoading, setImageLoading] = useState(true);
 	const containerRef = useRef<HTMLDivElement>(null);
-	const updateNodeDimensions = useAppStore(
-		(state) => state.updateNodeDimensions
+
+	const { updateNodeDimensions, selectedNodes } = useAppStore(
+		useShallow((state) => ({
+			updateNodeDimensions: state.updateNodeDimensions,
+			selectedNodes: state.selectedNodes,
+		}))
 	);
+
+	// Manual refetch hook
+	const { refetchMetadata, isFetching } = useResourceMetadataFetch(id);
+
+	// Metadata fetching state
+	const isFetchingMetadata = Boolean(data.metadata?.isFetchingMetadata);
+	const isLoading = isFetching || isFetchingMetadata;
 
 	// Helper to remeasure node dimensions after content changes
 	const remeasureNode = useCallback(
@@ -58,15 +73,56 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 	};
 
 	return (
-		<BaseNodeWrapper
-			{...props}
-			hideNodeType
-			elevation={1}
-			nodeClassName='resource-node'
-			nodeIcon={<LinkIcon className='size-4' />}
-			nodeType='Resource'
-		>
-			<div className='flex flex-col gap-3' ref={containerRef}>
+		<>
+			{/* Toolbar with refetch button */}
+			<SharedNodeToolbar
+				isVisible={props.selected && selectedNodes.length === 1}
+			>
+				<Button
+					className={cn(
+						'h-8 px-3 gap-2',
+						isLoading && 'cursor-not-allowed opacity-50'
+					)}
+					disabled={isLoading}
+					onClick={refetchMetadata}
+					size="sm"
+					title="Refresh metadata"
+					variant="ghost"
+				>
+					<RefreshCw
+						className={cn('w-4 h-4', isLoading && 'animate-spin')}
+					/>
+					<span className="text-xs">Refresh</span>
+				</Button>
+			</SharedNodeToolbar>
+
+			<BaseNodeWrapper
+				{...props}
+				hideNodeType
+				elevation={1}
+				nodeClassName='resource-node'
+				nodeIcon={<LinkIcon className='size-4' />}
+				nodeType='Resource'
+			>
+				{/* Loading overlay when fetching metadata */}
+				<AnimatePresence>
+					{isLoading && (
+						<motion.div
+							animate={{ opacity: 1 }}
+							className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg backdrop-blur-sm z-10"
+							exit={{ opacity: 0 }}
+							initial={{ opacity: 0 }}
+							transition={{ duration: 0.2 }}
+						>
+							<div className="flex items-center gap-2 text-sm text-white">
+								<Loader2 className="w-4 h-4 animate-spin" />
+								<span>Fetching metadata...</span>
+							</div>
+						</motion.div>
+					)}
+				</AnimatePresence>
+
+				<div className='flex flex-col gap-3' ref={containerRef}>
 				{/* Thumbnail with sophisticated loading states */}
 				{showThumbnail && imageUrl && (
 					<div
@@ -335,7 +391,8 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 					</div>
 				)}
 			</div>
-		</BaseNodeWrapper>
+			</BaseNodeWrapper>
+		</>
 	);
 };
 

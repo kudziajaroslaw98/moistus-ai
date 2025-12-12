@@ -64,6 +64,11 @@ export interface NodeData extends Record<string, unknown> {
 		resourceType?: string;
 		imageSize?: { width: number; height: number };
 
+		// Metadata fetching state (ResourceNode)
+		isFetchingMetadata?: boolean;
+		metadataFetchError?: string | null;
+		metadataFetchedAt?: string; // ISO date for cache invalidation
+
 		// ------------------------------------------
 		// Image Properties (ImageNode)
 		// ------------------------------------------

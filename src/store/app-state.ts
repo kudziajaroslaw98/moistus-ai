@@ -288,6 +288,9 @@ export interface NodesSlice {
 	subscribeToNodes: (mapId: string) => Promise<void>;
 	unsubscribeFromNodes: () => Promise<void>;
 	_nodesSubscription: RealtimeChannel | null;
+
+	// Resource node metadata fetching
+	fetchResourceNodeMetadata: (nodeId: string, url: string) => Promise<void>;
 }
 
 // Anonymous User Interface

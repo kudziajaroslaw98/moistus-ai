@@ -83,6 +83,11 @@ export interface ResourceNodeMetadata extends BaseNodeMetadata {
 	title?: string;
 	resourceType?: string;
 	imageSize?: { width: number; height: number };
+
+	// Metadata fetching state
+	isFetchingMetadata?: boolean;
+	metadataFetchError?: string | null;
+	metadataFetchedAt?: string;
 }
 
 // Question metadata - Simple decision-making questions
