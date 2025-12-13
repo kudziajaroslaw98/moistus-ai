@@ -112,9 +112,11 @@ const CommentThreadListComponent = ({
 		);
 	}
 
+	// Fixed height for ~5 messages (each message ~56px) with scrolling
+	// Total: header(52px) + threadList(max 280px) + input(~68px) = ~400px
 	return (
 		<div
-			className='flex-1 overflow-y-auto p-3 space-y-3 nowheel'
+			className='flex flex-col overflow-y-scroll p-3 gap-3 nowheel max-h-[455px] flex-1'
 			onWheel={(e) => e.stopPropagation()}
 			ref={scrollContainerRef}
 		>

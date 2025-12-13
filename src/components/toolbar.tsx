@@ -1,4 +1,5 @@
 // components/Toolbar.tsx
+import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import useAppStore from '@/store/mind-map-store';
 import type { Tool } from '@/types/tool';
 import { cn } from '@/utils/cn';
@@ -13,7 +14,7 @@ import {
 	Sparkles,
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { type ReactNode } from 'react';
+import { type ReactNode, useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { Button } from './ui/button';
 import {
@@ -101,6 +102,68 @@ export const Toolbar = () => {
 		}))
 	);
 
+	// Get user permissions for feature gating
+	const { canEdit, canComment } = usePermissions();
+
+	// Filter cursor tools based on permissions
+	// Non-editors: only Pan (no Select for dragging, no Connect for edges)
+	const availableCursorTools = useMemo(() => {
+		if (!canEdit) {
+			// Only allow Pan mode for viewers/commenters
+			return cursorTools.filter((t) => t.id === 'pan');
+		}
+		return cursorTools;
+	}, [canEdit]);
+
+	// Filter tools based on permissions, removing hidden items and cleaning up separators
+	const visibleTools = useMemo(() => {
+		// First, determine which tools are visible
+		const toolVisibility = tools.map((tool) => {
+			if (tool.id.startsWith('separator')) {
+				return { tool, visible: true, isSeparator: true };
+			}
+			if (tool.id === 'node' && !canEdit) {
+				return { tool, visible: false, isSeparator: false };
+			}
+			if (tool.id === 'magic-wand' && !canEdit) {
+				return { tool, visible: false, isSeparator: false };
+			}
+			if (tool.id === 'layout' && !canEdit) {
+				return { tool, visible: false, isSeparator: false };
+			}
+			if (tool.id === 'comments' && !canComment) {
+				return { tool, visible: false, isSeparator: false };
+			}
+			return { tool, visible: true, isSeparator: false };
+		});
+
+		// Now filter out separators that would be adjacent to other separators or at edges
+		const result: ToolButton[] = [];
+		let lastWasSeparator = true; // Start as true to avoid leading separator
+
+		for (const item of toolVisibility) {
+			if (!item.visible) continue;
+
+			if (item.isSeparator) {
+				// Only add separator if last item wasn't a separator
+				if (!lastWasSeparator && result.length > 0) {
+					result.push(item.tool);
+					lastWasSeparator = true;
+				}
+			} else {
+				result.push(item.tool);
+				lastWasSeparator = false;
+			}
+		}
+
+		// Remove trailing separator if exists
+		if (result.length > 0 && result[result.length - 1].id.startsWith('separator')) {
+			result.pop();
+		}
+
+		return result;
+	}, [canEdit, canComment]);
+
 	const onToolChange = (toolId: Tool | `separator-${number}`) => {
 		if (toolId.startsWith('separator')) {
 			return;
@@ -165,9 +228,10 @@ export const Toolbar = () => {
 		// Note: DropdownMenu closes automatically on selection
 	};
 
-	// Get the current cursor tool for display
+	// Get the current cursor tool for display (using filtered tools)
 	const currentCursorTool =
-		cursorTools.find((t) => t.id === activeTool) ?? cursorTools[0];
+		availableCursorTools.find((t) => t.id === activeTool) ??
+		availableCursorTools[0];
 
 	return (
 		<motion.div
@@ -193,7 +257,7 @@ export const Toolbar = () => {
 							onValueChange={(val) => setActiveTool(val as Tool)}
 							value={activeTool}
 						>
-							{cursorTools.map((tool) => (
+							{availableCursorTools.map((tool) => (
 								<DropdownMenuRadioItem key={tool.id} value={tool.id}>
 									<span className='flex items-center gap-2'>
 										{tool.icon}
@@ -210,7 +274,7 @@ export const Toolbar = () => {
 					orientation='vertical'
 				/>
 
-				{tools.map((tool, index) => {
+				{visibleTools.map((tool, index) => {
 					if (tool.id.startsWith('separator')) {
 						return (
 							<Separator
@@ -221,6 +285,7 @@ export const Toolbar = () => {
 						);
 					}
 
+					// AI Suggestions dropdown
 					if (tool.id === 'magic-wand') {
 						return (
 							<DropdownMenu key={tool.id}>

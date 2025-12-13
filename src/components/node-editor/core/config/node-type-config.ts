@@ -187,19 +187,12 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 				category: 'metadata',
 				examples: [
 					'$image https://example.com/diagram.png "System Architecture"',
-					'$image https://example.com/image.jpg "Description"',
 				],
 			},
 			{
 				pattern: '"alt text"',
-				description: 'Add alt text after URL',
+				description: 'Add alt text/caption after URL',
 				examples: ['https://example.com/image.jpg "Description"'],
-				category: 'metadata',
-			},
-			{
-				pattern: 'cap:text',
-				description: 'Add caption',
-				examples: ['https://example.com/img.png cap:Figure 1'],
 				category: 'metadata',
 			},
 		],
@@ -209,27 +202,26 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 	resourceNode: {
 		icon: Link,
 		label: 'Resource Link',
-		examples: ['https://docs.example.com/api "API Documentation"'],
+		examples: ['url:https://docs.example.com title:"API Documentation"'],
 		parsingPatterns: [
 			{
 				pattern: '$link',
 				description: 'Switch to resource link node type',
 				category: 'metadata',
 				examples: [
-					'$link https://docs.example.com/api "API Documentation"',
-					'$link https://example.com "My Resource"',
+					'$link url:https://docs.example.com title:"API Docs"',
 				],
 			},
 			{
-				pattern: '"title"',
-				description: 'Add title after URL',
-				examples: ['https://example.com "My Resource"'],
+				pattern: 'url:link',
+				description: 'Set resource URL',
+				examples: ['url:https://example.com', 'url:https://docs.api.com'],
 				category: 'metadata',
 			},
 			{
-				pattern: 'desc:text',
-				description: 'Add description',
-				examples: ['https://example.com desc:Useful reference'],
+				pattern: 'title:"text"',
+				description: 'Set resource title',
+				examples: ['title:"API Documentation"', 'title:"Reference Guide"'],
 				category: 'metadata',
 			},
 		],
@@ -320,12 +312,6 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 				examples: ['💡 Consider caching'],
 				category: 'formatting',
 			},
-			{
-				pattern: 'type:',
-				description: 'Type prefix',
-				examples: ['warning: Check permissions', 'info: New feature'],
-				category: 'structure',
-			},
 		],
 	},
 
@@ -393,7 +379,6 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 		label: 'Reference',
 		examples: [
 			'meeting notes #important',
-			'API documentation !in-progress',
 			'Cross-reference to project analysis',
 		],
 		parsingPatterns: [
@@ -403,30 +388,14 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 				category: 'metadata',
 				examples: [
 					'$reference meeting notes #important',
-					'$reference API documentation !in-progress',
-					'$reference Cross-reference to project analysis',
 				],
 			},
 			{
-				pattern: 'target:nodeId',
-				description: 'Reference target node ID',
-				examples: ['target:node-123', 'target:analysis-456'],
+				pattern: 'confidence:N%',
+				description: 'Set confidence level',
+				examples: ['confidence:80%', 'confidence:95%'],
 				category: 'metadata',
-				insertText: 'target:',
-			},
-			{
-				pattern: 'map:mapId',
-				description: 'Reference target map ID',
-				examples: ['map:brainstorm-789', 'map:analysis-456'],
-				category: 'metadata',
-				insertText: 'map:',
-			},
-			{
-				pattern: 'confidence:level',
-				description: 'Set confidence level (0-1)',
-				examples: ['confidence:0.8', 'confidence:0.95'],
-				category: 'metadata',
-				insertText: 'confidence:0.8',
+				insertText: 'confidence:80%',
 			},
 		],
 	},

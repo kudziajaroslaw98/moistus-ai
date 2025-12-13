@@ -144,13 +144,13 @@ const CommentNodeComponent = (props: CommentNodeProps) => {
 			accentColor={commentAccentColor}
 			elevation={2}
 			includePadding={false}
-			nodeClassName='comment-node'
+			nodeClassName='comment-node h-[600px]'
 			nodeIcon={<MessageSquare className='size-4' />}
 			nodeType='Comment Thread'
 		>
 			<motion.div
 				animate={{ opacity: 1, scale: 1, y: 0 }}
-				className='flex flex-col h-full rounded-lg overflow-hidden nowheel'
+				className='flex flex-col rounded-lg overflow-hidden nowheel h-full'
 				exit={{ opacity: 0, scale: 0.95, y: 20 }}
 				initial={{ opacity: 0, scale: 0.95, y: 20 }}
 				onWheel={(e) => e.stopPropagation()}

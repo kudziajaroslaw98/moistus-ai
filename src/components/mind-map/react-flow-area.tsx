@@ -41,6 +41,7 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
+import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useActivityTracker } from '@/hooks/realtime/use-activity-tracker';
 import { useContextMenu } from '@/hooks/use-context-menu';
 import { useNodeSuggestion } from '@/hooks/use-node-suggestion';
@@ -166,6 +167,7 @@ export function ReactFlowArea() {
 
 	const { contextMenuHandlers } = useContextMenu();
 	const { generateSuggestionsForNode } = useNodeSuggestion();
+	const { canEdit } = usePermissions();
 
 	useEffect(() => {
 		getCurrentUser();
@@ -420,8 +422,8 @@ export function ReactFlowArea() {
 				minZoom={0.1}
 				multiSelectionKeyCode={['Meta', 'Control']}
 				nodes={[...getVisibleNodes(), ...ghostNodes]}
-				nodesConnectable={isSelectMode || activeTool === 'connector'}
-				nodesDraggable={isSelectMode}
+				nodesConnectable={(isSelectMode || activeTool === 'connector') && canEdit}
+				nodesDraggable={isSelectMode && canEdit}
 				nodeTypes={nodeTypesWithProps}
 				onConnect={onConnect}
 				onConnectEnd={onConnectEnd}
@@ -492,6 +494,7 @@ export function ReactFlowArea() {
 							</BreadcrumbList>
 						</Breadcrumb>
 
+						{canEdit && (
 						<div className='flex gap-2'>
 							{/*TODO: Uncomment redo/undo when optimized history implemented*/}
 							<Button
@@ -525,6 +528,7 @@ export function ReactFlowArea() {
 								<History className='h-4 w-4' />
 							</Button>
 						</div>
+					)}
 					</div>
 
 					<div className='flex items-center gap-8'>

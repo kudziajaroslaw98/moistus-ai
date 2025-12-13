@@ -554,11 +554,11 @@ export const NODE_REGISTRY = {
 		metadataSchema: nodeValidationSchemas.commentNode,
 		dimensions: {
 			default: { width: 400, height: 500 },
-			min: { width: 300, height: 400 },
-			max: { width: 600, height: 800 },
+			min: { width: 400, height: 500 }, // Fixed size - same as default
+			max: { width: 400, height: 500 }, // Fixed size - same as default
 		},
 		behavior: {
-			resizable: true,
+			resizable: false, // Comment nodes have static size
 			selectable: true,
 			deletable: true,
 			connectable: false, // Comments don't connect to other nodes

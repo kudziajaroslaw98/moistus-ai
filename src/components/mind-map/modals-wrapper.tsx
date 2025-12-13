@@ -1,4 +1,5 @@
 'use client';
+import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import useAppStore from '@/store/mind-map-store';
 import { HistorySidebar } from '../history/history-sidebar';
 import { MapSettingsPanel } from '../mind-map/map-settings-panel';
@@ -7,6 +8,7 @@ import { ReferenceSearchModal } from '../modals/reference-search-modal';
 import { SharePanel } from '../sharing/share-panel';
 
 export function ModalsWrapper() {
+	const { canEdit } = usePermissions();
 	const popoverOpen = useAppStore((state) => state.popoverOpen);
 	const setPopoverOpen = useAppStore((state) => state.setPopoverOpen);
 	const mindMap = useAppStore((state) => state.mindMap);
@@ -16,7 +18,7 @@ export function ModalsWrapper() {
 		<>
 			{popoverOpen.edgeEdit && <EdgeEditModal />}
 
-			<HistorySidebar />
+			{canEdit && <HistorySidebar />}
 
 			{popoverOpen.sharePanel && mindMap && currentUser && (
 				<SharePanel

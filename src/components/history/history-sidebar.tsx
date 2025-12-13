@@ -1,7 +1,7 @@
 'use client';
 
 import useAppStore from '@/store/mind-map-store';
-import { useCallback, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { SidePanel } from '../side-panel';
 import { HistoryActions } from './history-actions';
@@ -32,13 +32,15 @@ export function HistorySidebar() {
 	// Ref to control history list
 	const historyListRef = useRef<HistoryListHandle>(null);
 
-	const loadFromDB = useCallback(async () => {
-		await loadHistoryFromDB();
-	}, [loadHistoryFromDB]);
-
+	// Load history when sidebar opens
+	// Note: loadHistoryFromDB intentionally excluded from deps to prevent infinite loop
+	// (Zustand functions create new references on state updates)
 	useEffect(() => {
-		loadFromDB();
-	}, [popoverOpen.history, loadFromDB]);
+		if (popoverOpen.history && mapId) {
+			loadHistoryFromDB();
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [popoverOpen.history, mapId]);
 
 	const handleClose = () => setPopoverOpen({ history: false });
 

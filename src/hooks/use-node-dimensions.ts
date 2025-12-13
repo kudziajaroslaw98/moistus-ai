@@ -1,8 +1,9 @@
 import { GRID_SIZE, ceilToGrid } from '@/constants/grid';
 import useAppStore from '@/store/mind-map-store';
 import type { AppNode } from '@/types/app-node';
+import { computeSoftMaxHeight } from '@/utils/node-dimension-utils';
 import type { ResizeParams } from '@xyflow/react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 
 interface NodeDimensionConfig {
@@ -14,6 +15,10 @@ interface NodeDimensionConfig {
 	debounceMs?: number;
 	contentWidth?: number;
 	contentHeight?: number;
+	/** Extra space above content for soft height cap (default 200px) */
+	softHeightBuffer?: number;
+	/** Enable dynamic soft height cap based on content (default true) */
+	enableSoftHeightCap?: boolean;
 }
 
 interface UseDimensionsReturn {
@@ -41,12 +46,21 @@ export function useNodeDimensions(
 		minWidth = DEFAULT_MIN_WIDTH,
 		minHeight = DEFAULT_MIN_HEIGHT,
 		maxWidth = DEFAULT_MAX_WIDTH,
-		maxHeight, // undefined = unlimited height
+		maxHeight, // undefined = unlimited height (overridden by soft cap)
 		autoHeight = true,
-		debounceMs = 500,
+		debounceMs = 300, // Reduced from 500ms for more responsive auto-resize
 		contentWidth = 0,
 		contentHeight = 0,
+		softHeightBuffer = 200,
+		enableSoftHeightCap = true,
 	} = config;
+
+	// Compute dynamic soft max height based on content
+	// This prevents nodes from growing infinitely while allowing content expansion
+	const computedMaxHeight = useMemo(() => {
+		if (!enableSoftHeightCap) return maxHeight;
+		return computeSoftMaxHeight(contentHeight, softHeightBuffer, maxHeight);
+	}, [enableSoftHeightCap, contentHeight, softHeightBuffer, maxHeight]);
 
 	const { getNode, updateNodeDimensions } = useAppStore(
 		useShallow((state) => ({
@@ -85,6 +99,7 @@ export function useNodeDimensions(
 	/**
 	 * Calculates dimensions that align with the grid and respect min/max constraints.
 	 * This is the "business logic" for how big a node should be.
+	 * Uses computedMaxHeight which includes the soft cap based on content.
 	 */
 	const calculateSnappedDimensions = useCallback(
 		(width: number, height: number, currentContentWidth = contentWidth, currentContentHeight = contentHeight) => {
@@ -102,12 +117,12 @@ export function useNodeDimensions(
 			return {
 				width: Math.min(snappedWidth, maxWidth),
 				height:
-					maxHeight !== undefined
-						? Math.min(snappedHeight, maxHeight)
+					computedMaxHeight !== undefined
+						? Math.min(snappedHeight, computedMaxHeight)
 						: snappedHeight,
 			};
 		},
-		[minWidth, minHeight, maxWidth, maxHeight, contentWidth, contentHeight]
+		[minWidth, minHeight, maxWidth, computedMaxHeight, contentWidth, contentHeight]
 	);
 
 	/**
@@ -184,17 +199,19 @@ export function useNodeDimensions(
 	);
 
 	// Constraint check for NodeResizer
+	// Allow slight overshoot (1 grid step) to enable smooth snapping
 	const shouldResize = useCallback(
 		(event: unknown, params: ResizeParams) => {
-			// Check if new dimensions are within constraints
-			const widthValid = params.width >= minWidth && params.width <= maxWidth;
+			const buffer = GRID_SIZE; // Allow 16px buffer for snapping
+			const widthValid =
+				params.width >= minWidth - buffer && params.width <= maxWidth + buffer;
 			const heightValid =
-				params.height >= minHeight &&
-				(maxHeight === undefined || params.height <= maxHeight);
+				params.height >= minHeight - buffer &&
+				(computedMaxHeight === undefined || params.height <= computedMaxHeight + buffer);
 
 			return widthValid && heightValid;
 		},
-		[minWidth, minHeight, maxWidth, maxHeight]
+		[minWidth, minHeight, maxWidth, computedMaxHeight]
 	);
 
 	// Initial measurement on mount

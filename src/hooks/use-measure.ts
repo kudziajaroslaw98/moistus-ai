@@ -14,9 +14,12 @@ export function useMeasure<T extends HTMLElement = HTMLDivElement>() {
 
 		const observer = new ResizeObserver(([entry]) => {
 			if (entry) {
+				const element = entry.target as HTMLElement;
 				setBounds({
 					width: entry.contentRect.width,
-					height: entry.contentRect.height,
+					// Use scrollHeight to get intrinsic content height (not constrained by CSS)
+					// This breaks the feedback loop in soft height cap calculation
+					height: element.scrollHeight,
 				});
 			}
 		});

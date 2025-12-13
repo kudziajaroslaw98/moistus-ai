@@ -8,6 +8,7 @@ import { ModalsWrapper } from './mind-map/modals-wrapper';
 import { ReactFlowArea } from './mind-map/react-flow-area';
 import NodeEditor from './node-editor/node-editor';
 
+import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useRealtimeSelectionPresenceRoom } from '@/hooks/realtime/use-realtime-selection-presence-room';
 import { useAuthRedirect } from '@/hooks/use-auth-redirect';
 import useAppStore from '@/store/mind-map-store';
@@ -28,6 +29,7 @@ export function MindMapCanvas() {
 
 	// Protect route
 	const { isChecking } = useAuthRedirect();
+	const { canEdit } = usePermissions();
 
 	// Consume necessary values for keyboard shortcuts
 	const {
@@ -98,8 +100,8 @@ export function MindMapCanvas() {
 	}, [selectedNodes, toggleNodeCollapse]);
 
 	useKeyboardShortcuts({
-		onUndo: handleUndo,
-		onRedo: handleRedo,
+		onUndo: canEdit ? handleUndo : () => {},
+		onRedo: canEdit ? handleRedo : () => {},
 		onAddChild: () => {
 			const selected = selectedNodes[0];
 			openNodeEditor({
@@ -114,8 +116,8 @@ export function MindMapCanvas() {
 		onPaste: handlePaste,
 		selectedNodeId: selectedNodeId,
 		selectedEdgeId: selectedEdgeId,
-		canUndo: canUndo,
-		canRedo: canRedo,
+		canUndo: canEdit && canUndo,
+		canRedo: canEdit && canRedo,
 		isBusy: isLoading,
 		onGroup: handleGroup,
 		onUngroup: handleUngroup,

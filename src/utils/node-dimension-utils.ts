@@ -12,11 +12,15 @@ export const NODE_DIMENSION_DEFAULTS = {
 } as const;
 
 // Node-specific dimension overrides (no maxHeight - let content determine height)
-export const NODE_TYPE_DIMENSIONS: Record<string, { minHeight?: number }> = {
+export const NODE_TYPE_DIMENSIONS: Record<
+	string,
+	{ minHeight?: number; maxHeight?: number }
+> = {
 	taskNode: { minHeight: 112 }, // Tasks can grow with content
 	codeNode: { minHeight: 112 }, // Code blocks grow with lines
 	imageNode: { minHeight: 112 }, // Images need minimum height
 	groupNode: { minHeight: 208 }, // Groups grow with children
+	commentNode: { minHeight: 400, maxHeight: 400 }, // Fixed height with internal scrolling
 } as const;
 
 export interface NodeDimensions {
@@ -45,7 +49,10 @@ export function getNodeConstraints(nodeType?: string): DimensionConstraints {
 			GRID_SIZE
 		),
 		maxWidth: NODE_DIMENSION_DEFAULTS.MAX_WIDTH,
-		maxHeight: undefined, // No height limit - content determines height
+		// Use type-specific maxHeight if defined, otherwise no limit
+		maxHeight: typeOverrides?.maxHeight
+			? ceilToGrid(typeOverrides.maxHeight, GRID_SIZE)
+			: undefined,
 	};
 }
 
@@ -219,6 +226,28 @@ export function normalizeDimensions(
 		width: width ?? NODE_DIMENSION_DEFAULTS.DEFAULT_WIDTH,
 		height: height ?? NODE_DIMENSION_DEFAULTS.DEFAULT_HEIGHT,
 	};
+}
+
+/**
+ * Compute soft max height based on content height plus buffer
+ * Returns undefined if content height is 0 (not yet rendered)
+ *
+ * @param contentHeight - The measured content height
+ * @param buffer - Extra space above content (default 200px)
+ * @param explicitMax - Optional explicit max that takes precedence
+ */
+export function computeSoftMaxHeight(
+	contentHeight: number,
+	buffer: number = 200,
+	explicitMax?: number
+): number | undefined {
+	// If content hasn't rendered yet, use explicit max or undefined
+	if (contentHeight === 0) return explicitMax;
+
+	const softMax = ceilToGrid(contentHeight + buffer, GRID_SIZE);
+
+	// If explicit max is set, use the smaller of the two
+	return explicitMax !== undefined ? Math.min(softMax, explicitMax) : softMax;
 }
 
 /**

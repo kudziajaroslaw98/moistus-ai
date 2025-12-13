@@ -86,6 +86,19 @@ export const createUiStateSlice: StateCreator<
 	},
 	// NodeEditor actions (simplified)
 	openNodeEditor: (options) => {
+		// Check permissions before opening node editor
+		// Only owners and editors can create/edit nodes
+		const { lastJoinResult, mindMap, currentUser } = get();
+		const isOwner = Boolean(
+			mindMap && currentUser && mindMap.user_id === currentUser.id
+		);
+		const canEdit = isOwner || Boolean(lastJoinResult?.permissions?.can_edit);
+
+		if (!canEdit) {
+			console.warn('Cannot open node editor: insufficient permissions');
+			return;
+		}
+
 		set({
 			nodeEditor: {
 				...get().nodeEditor,
