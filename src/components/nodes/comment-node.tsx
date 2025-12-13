@@ -145,6 +145,7 @@ const CommentNodeComponent = (props: CommentNodeProps) => {
 			elevation={2}
 			includePadding={false}
 			nodeClassName='comment-node h-[600px]'
+			contentClassName='h-full'
 			nodeIcon={<MessageSquare className='size-4' />}
 			nodeType='Comment Thread'
 		>

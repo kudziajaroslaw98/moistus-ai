@@ -236,6 +236,7 @@ export interface BaseNodeWrapperProps<
 > extends NodeProps<TypedNode<T>> {
 	children: ReactNode;
 	nodeClassName?: string;
+	contentClassName?: string;
 	nodeIcon?: ReactNode;
 	nodeType?: string;
 	includePadding?: boolean;

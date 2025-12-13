@@ -3,7 +3,7 @@
 import type { CommentMessage } from '@/types/comment';
 import { cn } from '@/utils/cn';
 import { motion } from 'motion/react';
-import { memo, useEffect, useRef } from 'react';
+import { memo, ReactNode, useEffect, useRef } from 'react';
 import { CommentReactions } from './comment-reactions';
 
 /**
@@ -79,7 +79,7 @@ const CommentThreadListComponent = ({
 	/**
 	 * Highlight @mentions in message content
 	 */
-	const renderContentWithMentions = (content: string): React.ReactNode => {
+	const renderContentWithMentions = (content: string): ReactNode => {
 		const mentionPattern = /(@\w+)/g;
 		const parts = content.split(mentionPattern);
 
@@ -104,8 +104,8 @@ const CommentThreadListComponent = ({
 
 	if (messages.length === 0) {
 		return (
-			<div className='flex-1 flex items-center justify-center p-4'>
-				<span className='text-sm text-center text-text-disabled'>
+			<div className='flex-1 flex items-center justify-center p-4 h-full max-h-[455px]'>
+				<span className='text-sm text-center text-text-disabled flex-1 h-full'>
 					No messages yet. Start the conversation!
 				</span>
 			</div>

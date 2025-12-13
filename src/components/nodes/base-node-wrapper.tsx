@@ -26,6 +26,7 @@ const BaseNodeWrapperComponent = ({
 	data,
 	children,
 	nodeClassName,
+	contentClassName,
 	nodeIcon,
 	nodeType = 'defaultNode',
 	includePadding = true,
@@ -213,7 +214,7 @@ const BaseNodeWrapperComponent = ({
 				{/* Note: NO h-full here - contentRef must size to children for accurate measurement */}
 				<div
 					ref={contentRef}
-					className={cn('flex flex-col h-auto relative z-[1]')}
+					className={cn('flex flex-col h-auto relative z-[1]', contentClassName)}
 				>
 					{data.metadata &&
 						Object.values(data.metadata).some(

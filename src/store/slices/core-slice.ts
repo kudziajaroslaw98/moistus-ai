@@ -1,5 +1,8 @@
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
-import { transformSupabaseData } from '@/helpers/transform-supabase-data';
+import {
+	transformSupabaseData,
+	type SupabaseMapData,
+} from '@/helpers/transform-supabase-data';
 import {
 	generateFallbackAvatar,
 	generateFunName,
@@ -191,10 +194,7 @@ export const createCoreDataSlice: StateCreator<
 			}
 
 			const transformedData = transformSupabaseData(
-				mindMapData as unknown as MindMapData & {
-					nodes: NodesTableType[];
-					edges: EdgesTableType[];
-				}
+				mindMapData as unknown as SupabaseMapData
 			);
 
 			set({

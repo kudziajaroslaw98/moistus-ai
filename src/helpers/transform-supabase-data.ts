@@ -8,7 +8,21 @@ import { Node } from '@xyflow/react';
 
 type NodesTableType = NodeDbData;
 type EdgesTableType = EdgeDbData;
-type MindMapTableType = MindMapData;
+
+// Raw database response type (snake_case columns from Supabase view)
+interface MindMapDbData {
+	map_id: string;
+	user_id: string;
+	title: string;
+	description: string | null;
+	tags: string[] | null;
+	thumbnail_url: string | null;
+	team_id: string | null;
+	is_template: boolean | null;
+	template_category: string | null;
+	created_at: string;
+	map_updated_at: string;
+}
 
 // Determine edge type based on metadata (matches logic in edges-slice.ts)
 const getEdgeType = (edge: EdgesTableType): string => {
@@ -24,7 +38,7 @@ const getEdgeType = (edge: EdgesTableType): string => {
 };
 
 // Define the expected input structure based on the Supabase query
-interface SupabaseMapData extends MindMapTableType {
+export interface SupabaseMapData extends MindMapDbData {
 	nodes: NodesTableType[];
 	edges: EdgesTableType[];
 }
@@ -95,9 +109,23 @@ export const transformSupabaseData = (
 		map_id: edge.map_id,
 	}));
 
+	// Transform snake_case DB columns to camelCase TypeScript interface
+	const transformedMindMap: MindMapData = {
+		id: mindMap.map_id,
+		user_id: mindMap.user_id,
+		title: mindMap.title,
+		description: mindMap.description,
+		tags: mindMap.tags ?? undefined,
+		thumbnailUrl: mindMap.thumbnail_url,
+		team_id: mindMap.team_id,
+		is_template: mindMap.is_template ?? undefined,
+		template_category: mindMap.template_category,
+		created_at: mindMap.created_at,
+		updated_at: mindMap.map_updated_at,
+	};
+
 	return {
-		// @ts-expect-error map_id is available only from the initial fetch
-		mindMap: { ...mindMap, id: mindMap?.map_id ?? mindMap?.id } as MindMapData, // Cast the remaining map data
+		mindMap: transformedMindMap,
 		reactFlowNodes,
 		reactFlowEdges,
 	};
