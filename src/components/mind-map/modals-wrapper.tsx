@@ -1,5 +1,6 @@
 'use client';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
+import { generateFunName } from '@/helpers/user-profile-helpers';
 import useAppStore from '@/store/mind-map-store';
 import { HistorySidebar } from '../history/history-sidebar';
 import { MapSettingsPanel } from '../mind-map/map-settings-panel';
@@ -29,7 +30,10 @@ export function ModalsWrapper() {
 					currentUser={{
 						id: currentUser.id,
 						name:
-							currentUser.user_metadata?.name || currentUser.email || 'User',
+							currentUser.user_metadata?.name ||
+							currentUser.user_metadata?.display_name ||
+							currentUser.email?.split('@')[0] ||
+							generateFunName(currentUser.id),
 						email: currentUser.email || '',
 					}}
 				/>

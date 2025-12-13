@@ -69,7 +69,6 @@ export interface CoreDataSlice {
 	mapId: string | null;
 	reactFlowInstance: ReactFlowInstance | null;
 	currentUser: User | null;
-	userProfile: UserProfile | null;
 	activeTool: Tool;
 	mapAccessError: MapAccessError | null;
 
@@ -78,7 +77,6 @@ export interface CoreDataSlice {
 	setReactFlowInstance: (reactFlowInstance: ReactFlowInstance | null) => void;
 	setMapId: (mapId: string | null) => void;
 	setCurrentUser: (currentUser: User | null) => void;
-	setUserProfile: (userProfile: UserProfile | null) => void;
 	setState: (state: Partial<AppState>) => void;
 	setMapAccessError: (error: MapAccessError | null) => void;
 	clearMapAccessError: () => void;

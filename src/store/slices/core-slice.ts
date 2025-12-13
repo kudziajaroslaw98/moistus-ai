@@ -26,7 +26,6 @@ export const createCoreDataSlice: StateCreator<
 	reactFlowInstance: null,
 	mindMap: null,
 	currentUser: null,
-	userProfile: null,
 	activeTool: 'default',
 	mapAccessError: null,
 
@@ -37,11 +36,11 @@ export const createCoreDataSlice: StateCreator<
 	setMapId: (mapId) => set({ mapId }),
 	setCurrentUser: (currentUser) => {
 		set({ currentUser });
-		// Auto-generate user profile when current user changes
-		const userProfile = get().generateUserProfile(currentUser);
-		set({ userProfile });
+		// Load user profile from database when current user changes
+		if (currentUser) {
+			get().loadUserProfile();
+		}
 	},
-	setUserProfile: (userProfile) => set({ userProfile }),
 	setState: (state: Partial<AppState>) => set({ ...state }),
 	setMapAccessError: (error) => set({ mapAccessError: error }),
 	clearMapAccessError: () => set({ mapAccessError: null }),
@@ -61,8 +60,8 @@ export const createCoreDataSlice: StateCreator<
 		return {
 			id: user.id,
 			user_id: user.id,
-			full_name: user.user_metadata?.full_name || '',
-			display_name: user.user_metadata?.display_name || '',
+			full_name: user.user_metadata?.full_name || displayName,
+			display_name: displayName,
 			avatar_url:
 				user.user_metadata?.avatar_url || generateFallbackAvatar(user.id),
 			bio: '',
@@ -80,9 +79,10 @@ export const createCoreDataSlice: StateCreator<
 
 		set({ currentUser });
 
-		// Auto-generate user profile
-		const userProfile = get().generateUserProfile(currentUser);
-		set({ userProfile });
+		// Load user profile from database
+		if (currentUser) {
+			await get().loadUserProfile();
+		}
 
 		return currentUser;
 	},
