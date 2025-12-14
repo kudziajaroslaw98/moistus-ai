@@ -14,7 +14,7 @@ import {
 	X,
 } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/utils/cn';
 
@@ -44,6 +44,7 @@ export function RoomCodeDisplay({
 	const [showQR, setShowQR] = useState(false);
 	const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 	const shouldReduceMotion = useReducedMotion();
+	const expandableContentId = useId();
 
 	const transition = shouldReduceMotion
 		? { duration: 0 }
@@ -183,6 +184,8 @@ export function RoomCodeDisplay({
 					)}
 
 					<Button
+						aria-controls={expandableContentId}
+						aria-expanded={isExpanded}
 						className='h-7 w-7 p-0 ml-0.5'
 						onClick={() => setIsExpanded(!isExpanded)}
 						size='sm'
@@ -203,6 +206,7 @@ export function RoomCodeDisplay({
 			<AnimatePresence initial={false}>
 				{isExpanded && (
 					<motion.div
+						id={expandableContentId}
 						initial={{ height: 0, opacity: 0 }}
 						animate={{ height: 'auto', opacity: 1 }}
 						exit={{ height: 0, opacity: 0 }}

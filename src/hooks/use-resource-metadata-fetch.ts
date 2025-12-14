@@ -1,6 +1,7 @@
 import { fetchResourceMetadata } from '@/helpers/fetch-resource-metadata';
 import useAppStore from '@/store/mind-map-store';
 import { useCallback, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { toast } from 'sonner';
 
 /**
@@ -12,8 +13,9 @@ import { toast } from 'sonner';
  */
 export function useResourceMetadataFetch(nodeId: string) {
 	const [isFetching, setIsFetching] = useState(false);
-	const updateNode = useAppStore((state) => state.updateNode);
-	const getNode = useAppStore((state) => state.getNode);
+	const { updateNode, getNode } = useAppStore(
+		useShallow((state) => ({ updateNode: state.updateNode, getNode: state.getNode }))
+	);
 
 	const refetchMetadata = useCallback(async () => {
 		const node = getNode(nodeId);

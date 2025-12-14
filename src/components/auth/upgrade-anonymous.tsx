@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useCallback, useEffect, useState } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useShallow } from 'zustand/shallow';
 
@@ -30,7 +30,10 @@ import { useShallow } from 'zustand/shallow';
 
 const EmailSchema = z.object({
 	email: z.string().email('Please enter a valid email address'),
-	displayName: z.string().min(1, 'Display name is required').max(50).optional(),
+	displayName: z.preprocess(
+		(val) => (val === '' ? undefined : val),
+		z.string().min(1, 'Display name is required').max(50).optional()
+	),
 });
 
 const OtpSchema = z.object({
@@ -57,9 +60,9 @@ const PasswordSchema = z
 		path: ['confirmPassword'],
 	});
 
-type EmailForm = z.infer<typeof EmailSchema>;
-type OtpForm = z.infer<typeof OtpSchema>;
-type PasswordForm = z.infer<typeof PasswordSchema>;
+type EmailForm = z.output<typeof EmailSchema>;
+type OtpForm = z.output<typeof OtpSchema>;
+type PasswordForm = z.output<typeof PasswordSchema>;
 
 // ============================================
 // ANIMATION CONFIG
@@ -262,14 +265,15 @@ function EnterEmailStep({
 		register,
 		handleSubmit,
 		formState: { errors },
-	} = useForm<EmailForm>({
-		resolver: zodResolver(EmailSchema) as any,
+	} = useForm({
+		resolver: zodResolver(EmailSchema),
 		defaultValues: {
+			email: '',
 			displayName: defaultDisplayName || '',
 		},
 	});
 
-	const handleFormSubmit: SubmitHandler<EmailForm> = (data) => {
+	const handleFormSubmit = (data: EmailForm) => {
 		onSubmit(data.email, data.displayName);
 	};
 
@@ -387,8 +391,11 @@ function VerifyOtpStep({
 		register,
 		handleSubmit,
 		formState: { errors },
-	} = useForm<OtpForm>({
-		resolver: zodResolver(OtpSchema) as any,
+	} = useForm({
+		resolver: zodResolver(OtpSchema),
+		defaultValues: {
+			otp: '',
+		},
 	});
 
 	useEffect(() => {
@@ -398,7 +405,7 @@ function VerifyOtpStep({
 		}
 	}, [resendCooldown]);
 
-	const handleFormSubmit: SubmitHandler<OtpForm> = (data) => {
+	const handleFormSubmit = (data: OtpForm) => {
 		onSubmit(data.otp);
 	};
 
@@ -520,8 +527,12 @@ function SetPasswordStep({
 		handleSubmit,
 		formState: { errors },
 		watch,
-	} = useForm<PasswordForm>({
-		resolver: zodResolver(PasswordSchema) as any,
+	} = useForm({
+		resolver: zodResolver(PasswordSchema),
+		defaultValues: {
+			password: '',
+			confirmPassword: '',
+		},
 	});
 
 	const password = watch('password', '');
@@ -532,7 +543,7 @@ function SetPasswordStep({
 	const hasLowercase = /[a-z]/.test(password);
 	const hasNumber = /\d/.test(password);
 
-	const handleFormSubmit: SubmitHandler<PasswordForm> = (data) => {
+	const handleFormSubmit = (data: PasswordForm) => {
 		onSubmit(data.password);
 	};
 

@@ -82,7 +82,7 @@ export async function GET(
 			display_name: profile.display_name,
 			avatar_url: profile.avatar_url,
 			bio: profile.bio,
-			isAnonymous: profile.is_anonymous || false,
+			is_anonymous: profile.is_anonymous || false,
 			created_at: profile.created_at,
 		};
 

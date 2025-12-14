@@ -1,8 +1,31 @@
 'use client';
 
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 
 export default function BackgroundEffects() {
+	const shouldReduceMotion = useReducedMotion();
+
+	// Static values for reduced motion - preserve visual appearance without animation
+	const breathingAnimation = shouldReduceMotion
+		? { opacity: 0.5, scale: 1 }
+		: {
+				opacity: [0.4, 0.6, 0.4],
+				scale: [1, 1.08, 1],
+			};
+
+	const breathingTransition = shouldReduceMotion
+		? { duration: 0 }
+		: {
+				duration: 8,
+				ease: 'easeInOut' as const,
+				repeat: Infinity,
+			};
+
+	// Panel animations - use static final state when reduced motion is preferred
+	const panelTransition = shouldReduceMotion
+		? { duration: 0 }
+		: { duration: 0.8, ease: 'easeOut' as const };
+
 	return (
 		<div className='fixed inset-0 z-0 overflow-hidden pointer-events-none'>
 			{/* Grid pattern overlay */}
@@ -36,15 +59,8 @@ export default function BackgroundEffects() {
 				{/* Accent glow - center with breathing animation */}
 				<motion.div
 					className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px]'
-					animate={{
-						opacity: [0.4, 0.6, 0.4],
-						scale: [1, 1.08, 1],
-					}}
-					transition={{
-						duration: 8,
-						ease: 'easeInOut',
-						repeat: Infinity,
-					}}
+					animate={breathingAnimation}
+					transition={breathingTransition}
 					style={{
 						background:
 							'radial-gradient(circle, rgba(96, 165, 250, 0.06) 0%, rgba(56, 189, 248, 0.02) 40%, transparent 60%)',
@@ -58,9 +74,9 @@ export default function BackgroundEffects() {
 				{/* Top right tilted panel */}
 				<motion.div
 					className='absolute top-16 right-[12%] w-72 h-72 rounded-3xl'
-					initial={{ opacity: 0, rotate: 8 }}
+					initial={shouldReduceMotion ? { opacity: 1, rotate: 12 } : { opacity: 0, rotate: 8 }}
 					animate={{ opacity: 1, rotate: 12 }}
-					transition={{ duration: 0.8, delay: 0.3, ease: 'easeOut' }}
+					transition={{ ...panelTransition, delay: shouldReduceMotion ? 0 : 0.3 }}
 					style={{
 						background:
 							'linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)',
@@ -72,9 +88,9 @@ export default function BackgroundEffects() {
 				{/* Bottom left tilted panel */}
 				<motion.div
 					className='absolute bottom-24 left-[8%] w-56 h-56 rounded-2xl'
-					initial={{ opacity: 0, rotate: -2 }}
+					initial={shouldReduceMotion ? { opacity: 1, rotate: -6 } : { opacity: 0, rotate: -2 }}
 					animate={{ opacity: 1, rotate: -6 }}
-					transition={{ duration: 0.8, delay: 0.5, ease: 'easeOut' }}
+					transition={{ ...panelTransition, delay: shouldReduceMotion ? 0 : 0.5 }}
 					style={{
 						background:
 							'linear-gradient(135deg, rgba(255, 255, 255, 0.025) 0%, rgba(255, 255, 255, 0.008) 100%)',
@@ -86,9 +102,9 @@ export default function BackgroundEffects() {
 				{/* Small accent panel - mid left */}
 				<motion.div
 					className='absolute top-1/3 left-[5%] w-32 h-32 rounded-xl'
-					initial={{ opacity: 0, rotate: 15 }}
+					initial={shouldReduceMotion ? { opacity: 1, rotate: 18 } : { opacity: 0, rotate: 15 }}
 					animate={{ opacity: 1, rotate: 18 }}
-					transition={{ duration: 0.8, delay: 0.7, ease: 'easeOut' }}
+					transition={{ ...panelTransition, delay: shouldReduceMotion ? 0 : 0.7 }}
 					style={{
 						background:
 							'linear-gradient(135deg, rgba(96, 165, 250, 0.04) 0%, rgba(96, 165, 250, 0.01) 100%)',

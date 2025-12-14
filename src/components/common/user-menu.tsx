@@ -101,7 +101,7 @@ export function UserMenu({
 
 	// Display info
 	const name = user?.display_name || user?.full_name || 'User';
-	const isAnonymous = user?.isAnonymous || user?.is_anonymous;
+	const isAnonymous = user?.is_anonymous;
 	const subtitle = isAnonymous
 		? 'Anonymous User'
 		: user?.email || 'Registered User';

@@ -177,7 +177,7 @@ export function MindMapCanvas() {
 
 			{/* Auto-show upgrade prompt after 5 minutes for anonymous users */}
 			<UpgradeAnonymousPrompt
-				isAnonymous={userProfile?.isAnonymous ?? false}
+				isAnonymous={userProfile?.is_anonymous ?? false}
 				userDisplayName={userProfile?.display_name || userProfile?.full_name}
 				onUpgradeSuccess={() => router.refresh()}
 			/>

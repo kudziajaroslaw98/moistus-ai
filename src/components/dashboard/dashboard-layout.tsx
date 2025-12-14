@@ -315,7 +315,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
 			{/* Consolidated upgrade prompt: auto-show after 5 min OR manual trigger */}
 			<UpgradeAnonymousPrompt
-				isAnonymous={userProfile?.isAnonymous ?? false}
+				isAnonymous={userProfile?.is_anonymous ?? false}
 				userDisplayName={userProfile?.display_name || userProfile?.full_name}
 				autoShowDelay={showAnonymousUpgrade ? 0 : 5 * 60 * 1000}
 				onDismiss={() => {

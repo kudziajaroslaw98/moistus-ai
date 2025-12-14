@@ -146,13 +146,36 @@ interface NodeWithMeasurements {
 	measured: { width?: number; height?: number };
 }
 
+/**
+ * Type guard to check if a node has the required measurements structure.
+ * React Flow's InternalNode includes these properties but TypeScript
+ * needs explicit validation to narrow the type.
+ */
+function isNodeWithMeasurements(
+	node: Node<NodeData> | undefined | null
+): node is Node<NodeData> & NodeWithMeasurements {
+	return (
+		node !== null &&
+		node !== undefined &&
+		'internals' in node &&
+		node.internals !== null &&
+		typeof node.internals === 'object' &&
+		'positionAbsolute' in node.internals &&
+		node.internals.positionAbsolute !== null &&
+		typeof node.internals.positionAbsolute === 'object' &&
+		'measured' in node &&
+		node.measured !== null &&
+		typeof node.measured === 'object'
+	);
+}
+
 interface EdgeEndpointHandleProps {
 	type: 'source' | 'target';
 	x: number;
 	y: number;
 	edgeId: string;
 	color: string;
-	node: NodeWithMeasurements;
+	node: Node<NodeData> & NodeWithMeasurements;
 	onDragStart: () => void;
 	onDrag: (type: 'source' | 'target', anchor: EdgeAnchor) => void;
 	onDragEnd: (shouldPersist: boolean) => void;
@@ -273,8 +296,10 @@ const WaypointEdgeComponent = ({
 	const sourceNode = useInternalNode<Node<NodeData>>(source);
 	const targetNode = useInternalNode<Node<NodeData>>(target);
 
-	const strokeWidth =
-		parseInt(data?.style?.strokeWidth?.toString() ?? '2') ?? 2;
+	const parsedStrokeWidth = parseInt(
+		data?.style?.strokeWidth?.toString() ?? '2'
+	);
+	const strokeWidth = Number.isNaN(parsedStrokeWidth) ? 2 : parsedStrokeWidth;
 
 	const storeWaypoints = useMemo(
 		() => data?.metadata?.waypoints ?? [],
@@ -333,7 +358,11 @@ const WaypointEdgeComponent = ({
 	// Calculate source/target positions - use anchors if defined, otherwise floating edge
 	const { sourceX, sourceY, targetX, targetY, sourcePos, targetPos } =
 		useMemo(() => {
-			if (!sourceNode || !targetNode) {
+			// Use type guard to validate nodes have required measurements
+			if (
+				!isNodeWithMeasurements(sourceNode) ||
+				!isNodeWithMeasurements(targetNode)
+			) {
 				return {
 					sourceX: 0,
 					sourceY: 0,
@@ -357,13 +386,13 @@ const WaypointEdgeComponent = ({
 			let finalTargetY = floatingPath.targetY;
 
 			if (sourceAnchor) {
-				const pos = getAnchorPosition(sourceNode as any, sourceAnchor);
+				const pos = getAnchorPosition(sourceNode, sourceAnchor);
 				finalSourceX = pos.x;
 				finalSourceY = pos.y;
 			}
 
 			if (targetAnchor) {
-				const pos = getAnchorPosition(targetNode as any, targetAnchor);
+				const pos = getAnchorPosition(targetNode, targetAnchor);
 				finalTargetX = pos.x;
 				finalTargetY = pos.y;
 			}
@@ -587,16 +616,26 @@ const WaypointEdgeComponent = ({
 				</marker>
 			</defs>
 
+			{/* Invisible hit path - wider stroke for easier hover/click detection */}
+			<path
+				d={edgePath}
+				fill='none'
+				stroke='transparent'
+				strokeWidth={Math.max(strokeWidth + 20, 24)}
+				strokeLinecap='round'
+				style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
+				onMouseEnter={() => setIsHovered(true)}
+				onMouseLeave={() => setIsHovered(false)}
+			/>
+
+			{/* Visible edge path - no pointer events, styling only */}
 			<BaseEdge
 				id={id}
 				markerEnd={`url(#arrow-end-${id})`}
 				markerStart={`url(#circle-start-${id})`}
-				onMouseEnter={() => setIsHovered(true)}
-				onMouseLeave={() => setIsHovered(false)}
 				path={edgePath}
 				className={cn(
 					'react-flow__edge-path',
-					'cursor-pointer',
 					'transition-all duration-200 ease-in-out',
 					selected && 'animate-pulse'
 				)}
@@ -605,7 +644,7 @@ const WaypointEdgeComponent = ({
 					...data?.style,
 					stroke: color,
 					strokeWidth,
-					pointerEvents: 'none', // Let the invisible path handle clicks
+					pointerEvents: 'none',
 				}}
 			/>
 
@@ -632,34 +671,36 @@ const WaypointEdgeComponent = ({
 			{/* Edge endpoint handles - visible on hover/selection for repositioning */}
 			<g className='edge-endpoint-handles' style={{ pointerEvents: 'auto' }}>
 				<AnimatePresence>
-					{(isHovered || selected) && (
-						<>
-							<EdgeEndpointHandle
-								key={`${id}-source-endpoint`}
-								type='source'
-								x={sourceX}
-								y={sourceY}
-								edgeId={id}
-								color={color}
-								node={sourceNode as any}
-								onDragStart={handleEndpointDragStart}
-								onDrag={handleEndpointDrag}
-								onDragEnd={handleEndpointDragEnd}
-							/>
-							<EdgeEndpointHandle
-								key={`${id}-target-endpoint`}
-								type='target'
-								x={targetX}
-								y={targetY}
-								edgeId={id}
-								color={color}
-								node={targetNode as any}
-								onDragStart={handleEndpointDragStart}
-								onDrag={handleEndpointDrag}
-								onDragEnd={handleEndpointDragEnd}
-							/>
-						</>
-					)}
+					{(isHovered || selected) &&
+						isNodeWithMeasurements(sourceNode) &&
+						isNodeWithMeasurements(targetNode) && (
+							<>
+								<EdgeEndpointHandle
+									key={`${id}-source-endpoint`}
+									type='source'
+									x={sourceX}
+									y={sourceY}
+									edgeId={id}
+									color={color}
+									node={sourceNode}
+									onDragStart={handleEndpointDragStart}
+									onDrag={handleEndpointDrag}
+									onDragEnd={handleEndpointDragEnd}
+								/>
+								<EdgeEndpointHandle
+									key={`${id}-target-endpoint`}
+									type='target'
+									x={targetX}
+									y={targetY}
+									edgeId={id}
+									color={color}
+									node={targetNode}
+									onDragStart={handleEndpointDragStart}
+									onDrag={handleEndpointDrag}
+									onDragEnd={handleEndpointDragEnd}
+								/>
+							</>
+						)}
 				</AnimatePresence>
 			</g>
 

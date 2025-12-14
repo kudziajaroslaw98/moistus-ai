@@ -41,7 +41,11 @@ export const createCoreDataSlice: StateCreator<
 		set({ currentUser });
 		// Load user profile from database when current user changes
 		if (currentUser) {
-			get().loadUserProfile();
+			void get()
+				.loadUserProfile()
+				.catch((err) =>
+					console.error('[core-slice] loadUserProfile failed:', err)
+				);
 		}
 	},
 	setState: (state: Partial<AppState>) => set({ ...state }),
@@ -57,7 +61,7 @@ export const createCoreDataSlice: StateCreator<
 			user.email?.split('@')[0] ||
 			generateFunName(user.id);
 
-		const isAnonymous =
+		const is_anonymous =
 			!user.email || user.user_metadata?.is_anonymous === true;
 
 		return {
@@ -72,7 +76,7 @@ export const createCoreDataSlice: StateCreator<
 			created_at: new Date().toISOString(),
 			updated_at: new Date().toISOString(),
 			color: generateUserColor(user.id),
-			isAnonymous,
+			is_anonymous,
 		};
 	},
 
@@ -147,13 +151,14 @@ export const createCoreDataSlice: StateCreator<
 							const result = await response.json();
 							const { status } = result.data;
 							const currentUser = get().currentUser;
-							const isAnonymous = currentUser?.is_anonymous ?? true;
+							const userProfile = get().generateUserProfile(currentUser);
+							const is_anonymous = userProfile?.is_anonymous ?? true;
 
 							if (status === 'no_access') {
 								set({
 									mapAccessError: {
 										type: 'access_denied',
-										isAnonymous,
+										isAnonymous: is_anonymous,
 									},
 								});
 								// Return early without throwing - this prevents the toast
@@ -162,7 +167,7 @@ export const createCoreDataSlice: StateCreator<
 								set({
 									mapAccessError: {
 										type: 'not_found',
-										isAnonymous,
+										isAnonymous: is_anonymous,
 									},
 								});
 								return;
@@ -184,10 +189,11 @@ export const createCoreDataSlice: StateCreator<
 			if (!mindMapData) {
 				// This shouldn't happen if error handling above is correct
 				const currentUser = get().currentUser;
+				const userProfile = get().generateUserProfile(currentUser);
 				set({
 					mapAccessError: {
 						type: 'not_found',
-						isAnonymous: currentUser?.is_anonymous ?? true,
+						isAnonymous: userProfile?.is_anonymous ?? true,
 					},
 				});
 				return;

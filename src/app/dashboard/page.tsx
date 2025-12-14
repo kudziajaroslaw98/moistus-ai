@@ -156,7 +156,7 @@ function DashboardContent() {
 	// Handlers
 	const handleRequestCreateMap = () => {
 		// Check if user is anonymous
-		if (userProfile?.isAnonymous) {
+		if (userProfile?.is_anonymous) {
 			// Show upgrade prompt for anonymous users
 			setShowAnonymousUpgrade(true);
 			return;

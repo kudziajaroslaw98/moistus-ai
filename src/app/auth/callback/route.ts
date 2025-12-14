@@ -15,7 +15,12 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
 	const requestUrl = new URL(request.url);
 	const code = requestUrl.searchParams.get('code');
-	const next = requestUrl.searchParams.get('next') ?? '/dashboard';
+	const nextParam = requestUrl.searchParams.get('next') ?? '/dashboard';
+
+	// Validate redirect URL to prevent open redirect attacks
+	// Only allow relative paths (starting with /) but not protocol-relative URLs (//)
+	const isValidRedirect = nextParam.startsWith('/') && !nextParam.startsWith('//');
+	const next = isValidRedirect ? nextParam : '/dashboard';
 	const error = requestUrl.searchParams.get('error');
 	const errorDescription = requestUrl.searchParams.get('error_description');
 

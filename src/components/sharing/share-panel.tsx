@@ -27,7 +27,7 @@ import {
 	Users,
 } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { useShallow } from 'zustand/shallow';
@@ -56,6 +56,7 @@ export function SharePanel({
 	const [isGeneratingCode, setIsGeneratingCode] = useState(false);
 	const [settingsOpen, setSettingsOpen] = useState(true);
 	const shouldReduceMotion = useReducedMotion();
+	const settingsContentId = useId();
 
 	const transition = shouldReduceMotion
 		? { duration: 0 }
@@ -253,8 +254,11 @@ export function SharePanel({
 						{/* Collapsible Settings Section */}
 						<div className='flex-shrink-0'>
 							<button
+								type='button'
+								aria-controls={settingsContentId}
+								aria-expanded={settingsOpen}
 								onClick={() => setSettingsOpen(!settingsOpen)}
-								className='flex items-center justify-between w-full p-3 bg-surface rounded-lg hover:bg-surface/80 transition-colors duration-200 ease group'
+								className='flex items-center justify-between w-full p-3 bg-surface rounded-lg hover:bg-surface/80 transition-colors duration-200 ease group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60 focus-visible:ring-offset-1 focus-visible:ring-offset-zinc-900'
 							>
 								<div className='flex items-center gap-2'>
 									<Settings className='h-4 w-4 text-zinc-400' />
@@ -273,6 +277,7 @@ export function SharePanel({
 							<AnimatePresence initial={false}>
 								{settingsOpen && (
 									<motion.div
+										id={settingsContentId}
 										initial={{ height: 0, opacity: 0 }}
 										animate={{ height: 'auto', opacity: 1 }}
 										exit={{ height: 0, opacity: 0 }}

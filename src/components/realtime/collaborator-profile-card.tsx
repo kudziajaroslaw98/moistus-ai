@@ -299,7 +299,7 @@ export function CollaboratorProfileCard({
 		profile?.display_name || profile?.full_name || 'Collaborator';
 	const email = user.name || 'Unknown';
 	const bio = profile?.bio;
-	const isAnonymous = profile?.isAnonymous ?? false;
+	const isAnonymous = profile?.is_anonymous ?? false;
 
 	return (
 		<div className='overflow-hidden'>

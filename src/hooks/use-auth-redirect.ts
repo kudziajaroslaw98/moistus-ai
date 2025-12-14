@@ -55,7 +55,7 @@ export function useAuthRedirect(options: UseAuthRedirectOptions = {}) {
 				// Get fresh profile from store (generated after getCurrentUser)
 				const profile = useAppStore.getState().userProfile;
 
-				if (profile?.isAnonymous) {
+				if (profile?.is_anonymous) {
 					const params = new URLSearchParams();
 					params.set('redirectedFrom', pathname);
 					if (redirectMessage) {
@@ -84,6 +84,6 @@ export function useAuthRedirect(options: UseAuthRedirectOptions = {}) {
 	return {
 		isChecking,
 		isAuthenticated: !!currentUser,
-		isAnonymous: userProfile?.isAnonymous ?? false,
+		isAnonymous: userProfile?.is_anonymous ?? false,
 	};
 }

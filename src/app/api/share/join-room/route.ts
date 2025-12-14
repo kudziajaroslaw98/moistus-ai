@@ -54,17 +54,13 @@ export const POST = withAuthValidation(
 			const accessRecord = shareAccess?.[0];
 
 			// 2. Increment current_users if this is a NEW user joining
-			// Use service role client to bypass RLS (joining user is not token creator/map owner)
+			// Use atomic RPC to prevent race conditions
 			if (accessRecord?.was_created === true) {
 				const adminClient = createServiceRoleClient();
-				const { error: incrementError } = await adminClient
-					.from('share_tokens')
-					.update({
-						current_users: validation.current_users + 1,
-						updated_at: new Date().toISOString(),
-					})
-					.eq('id', validation.token_id)
-					.eq('is_active', true);
+				const { error: incrementError } = await adminClient.rpc(
+					'increment_share_token_users',
+					{ token_id: validation.token_id }
+				);
 
 				if (incrementError) {
 					console.error('Failed to increment current_users:', incrementError);

@@ -21,7 +21,7 @@ export function AnonymousUserBanner() {
 
 	useEffect(() => {
 		// Only show for anonymous users
-		if (!userProfile?.isAnonymous) {
+		if (!userProfile?.is_anonymous) {
 			setIsDismissed(true);
 			return;
 		}
@@ -29,7 +29,7 @@ export function AnonymousUserBanner() {
 		// Check if user has dismissed the banner
 		const dismissed = localStorage.getItem(STORAGE_KEY);
 		setIsDismissed(dismissed === 'true');
-	}, [userProfile?.isAnonymous]);
+	}, [userProfile?.is_anonymous]);
 
 	const handleDismiss = () => {
 		setIsDismissed(true);
@@ -41,7 +41,7 @@ export function AnonymousUserBanner() {
 		setShowUpgradeModal(true);
 	};
 
-	if (!userProfile?.isAnonymous || isDismissed) {
+	if (!userProfile?.is_anonymous || isDismissed) {
 		return null;
 	}
 

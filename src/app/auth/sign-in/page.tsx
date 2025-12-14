@@ -53,7 +53,7 @@ function SignInForm() {
 			// Check if user is anonymous
 			// Need to get fresh profile from store after getCurrentUser
 			const profile = useAppStore.getState().userProfile;
-			setIsAnonymousUser(profile?.isAnonymous ?? false);
+			setIsAnonymousUser(profile?.is_anonymous ?? false);
 			setCheckingAnonymous(false);
 		};
 

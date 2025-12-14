@@ -54,7 +54,7 @@ export const nodeEditorTheme = EditorView.theme(
 		'.cm-scroller': {
 			fontFamily: 'inherit',
 			lineHeight: '1.4',
-			overflow: 'none',
+			overflow: 'hidden',
 		},
 
 		// ========================================

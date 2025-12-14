@@ -25,11 +25,12 @@ export function DashboardHeader({
 		);
 
 	// Load user profile on mount if not already loaded
+	// Don't retry if there's already an error to prevent infinite loops
 	useEffect(() => {
-		if (!userProfile && !isLoadingProfile) {
+		if (!userProfile && !isLoadingProfile && !profileError) {
 			loadUserProfile();
 		}
-	}, [userProfile, isLoadingProfile, loadUserProfile]);
+	}, [userProfile, isLoadingProfile, profileError, loadUserProfile]);
 
 	// Loading state
 	if (isLoadingProfile) {
@@ -64,6 +65,25 @@ export function DashboardHeader({
 					</div>
 
 					<div className='text-sm text-red-400'>Error: {profileError}</div>
+				</div>
+			</header>
+		);
+	}
+
+	// Guard: userProfile is null but no error (edge case - show minimal fallback)
+	if (!userProfile) {
+		return (
+			<header
+				className={`border-b border-zinc-800 bg-zinc-900/50 ${className}`}
+			>
+				<div className='flex h-14 items-center justify-between px-6'>
+					<div className='flex items-center space-x-4'>
+						<h1 className='text-xl font-semibold text-white'>Dashboard</h1>
+					</div>
+
+					<div className='flex items-center space-x-3'>
+						<div className='h-8 w-8 rounded-full bg-zinc-700'></div>
+					</div>
 				</div>
 			</header>
 		);

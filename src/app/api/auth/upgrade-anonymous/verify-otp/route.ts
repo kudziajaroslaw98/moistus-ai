@@ -1,3 +1,8 @@
+import {
+	checkRateLimit,
+	getClientIP,
+	otpLimiter,
+} from '@/helpers/api/rate-limiter';
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withAuthValidation } from '@/helpers/api/with-auth-validation';
 import { z } from 'zod';
@@ -39,7 +44,25 @@ export const POST = withAuthValidation(
 				return respondError('User has already been upgraded', 400);
 			}
 
-			// 2. Verify the OTP
+			// 2. Check rate limit before OTP verification
+			const rateLimitKey = `${user.id}:${data.email}`;
+			const rateLimitFallback = getClientIP(req) || 'unknown';
+			const { allowed, resetTime } = checkRateLimit(
+				req,
+				otpLimiter,
+				rateLimitKey || rateLimitFallback
+			);
+
+			if (!allowed) {
+				const retryAfterSeconds = Math.ceil((resetTime - Date.now()) / 1000);
+				return respondError(
+					`Too many OTP verification attempts. Please try again in ${retryAfterSeconds} seconds.`,
+					429,
+					'Rate limit exceeded'
+				);
+			}
+
+			// 3. Verify the OTP
 			// For email change flow, use 'email_change' type
 			const { data: verifyData, error: verifyError } =
 				await supabase.auth.verifyOtp({
@@ -69,7 +92,7 @@ export const POST = withAuthValidation(
 				);
 			}
 
-			// 3. Check if verification was successful
+			// 4. Check if verification was successful
 			// After successful OTP verification, auth.users.email should be set
 			const {
 				data: { user: updatedUser },
@@ -80,7 +103,7 @@ export const POST = withAuthValidation(
 				console.warn('Email not immediately reflected after OTP verification');
 			}
 
-			// 4. Return success - user can now set password
+			// 5. Return success - user can now set password
 			return respondSuccess({
 				verified: true,
 				email: data.email,

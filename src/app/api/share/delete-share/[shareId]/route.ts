@@ -124,28 +124,16 @@ export const DELETE = withApiValidation<
 			}
 
 			// Decrement current_users on the associated share token
+			// Use atomic RPC to prevent race conditions
 			if (shareAccess.share_token_id) {
-				// Get current count to ensure we don't go below 0
-				const { data: token } = await adminClient
-					.from('share_tokens')
-					.select('current_users')
-					.eq('id', shareAccess.share_token_id)
-					.eq('is_active', true)
-					.single();
+				const { error: decrementError } = await adminClient.rpc(
+					'decrement_share_token_users',
+					{ token_id: shareAccess.share_token_id }
+				);
 
-				if (token && token.current_users > 0) {
-					const { error: decrementError } = await adminClient
-						.from('share_tokens')
-						.update({
-							current_users: token.current_users - 1,
-							updated_at: new Date().toISOString(),
-						})
-						.eq('id', shareAccess.share_token_id);
-
-					if (decrementError) {
-						console.error('Failed to decrement current_users:', decrementError);
-						// Non-blocking - don't fail the deletion if counter update fails
-					}
+				if (decrementError) {
+					console.error('Failed to decrement current_users:', decrementError);
+					// Non-blocking - don't fail the deletion if counter update fails
 				}
 			}
 

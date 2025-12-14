@@ -1,3 +1,7 @@
+import {
+	checkRateLimit,
+	upgradeInitiateRateLimiter,
+} from '@/helpers/api/rate-limiter';
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withAuthValidation } from '@/helpers/api/with-auth-validation';
 import { z } from 'zod';
@@ -19,6 +23,12 @@ const InitiateUpgradeSchema = z.object({
 export const POST = withAuthValidation(
 	InitiateUpgradeSchema,
 	async (req, data, supabase, user) => {
+		// Rate limit check - prevent abuse of verification email flow
+		const rateLimitResult = checkRateLimit(req, upgradeInitiateRateLimiter);
+		if (!rateLimitResult.allowed) {
+			return respondError('Too many requests. Please try again later.', 429);
+		}
+
 		try {
 			// 1. Verify user is anonymous
 			const { data: profile, error: profileError } = await supabase
