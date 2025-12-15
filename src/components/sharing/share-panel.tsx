@@ -131,22 +131,15 @@ export function SharePanel({
 			token.token_type === 'room_code' &&
 			token.is_active
 	);
+	const hasRoomCodes = mapRoomCodes.length > 0;
 
 	// Auto-collapse settings when room codes exist
 	// Must be called unconditionally before any early returns
 	useEffect(() => {
-		if (mapRoomCodes.length > 0) {
-			setSettingsOpen(false);
-		} else {
-			setSettingsOpen(true);
-		}
-	}, [mapRoomCodes.length]);
+		setSettingsOpen(!hasRoomCodes);
+	}, [hasRoomCodes]);
 
 	if (!mapId) return null;
-
-	const handleOnClose = () => {
-		setPopoverOpen({ ...popoverOpen, sharePanel: false });
-	};
 
 	const handleGenerateRoomCode = async () => {
 		setIsGeneratingCode(true);
@@ -188,7 +181,6 @@ export function SharePanel({
 		}
 	};
 
-	// TODO: Implement backend logic
 	const handleUpdateShareRole = async (shareId: string, newRole: ShareRole) => {
 		try {
 			const response = await fetch(`/api/share/update-share/${shareId}`, {
