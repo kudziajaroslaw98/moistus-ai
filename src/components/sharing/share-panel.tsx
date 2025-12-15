@@ -79,14 +79,12 @@ export function SharePanel({
 	} = useAppStore(
 		useShallow((state) => ({
 			shareTokens: state.shareTokens,
-			activeToken: state.activeToken,
 			createRoomCode: state.createRoomCode,
 			refreshRoomCode: state.refreshRoomCode,
 			revokeRoomCode: state.revokeRoomCode,
 			refreshTokens: state.refreshTokens,
 			subscribeToSharingUpdates: state.subscribeToSharingUpdates,
 			unsubscribeFromSharing: state.unsubscribeFromSharing,
-			currentUser: state.currentUser,
 			popoverOpen: state.popoverOpen,
 			setPopoverOpen: state.setPopoverOpen,
 			mindMap: state.mindMap,
@@ -121,11 +119,10 @@ export function SharePanel({
 		}
 
 		return () => {
-			if (!isOpen) {
-				unsubscribeFromSharing();
-			}
+			// Always cleanup on unmount to prevent memory leaks
+			unsubscribeFromSharing();
 		};
-	}, [isOpen, mapId, subscribeToSharingUpdates, unsubscribeFromSharing]);
+	}, [isOpen, mapId, subscribeToSharingUpdates, unsubscribeFromSharing, getCurrentShareUsers]);
 
 	// Get active room codes for this map (computed before early return for hook usage)
 	const mapRoomCodes = shareTokens.filter(
@@ -472,9 +469,7 @@ export function SharePanel({
 														<AvatarImage src={share.avatar_url} />
 
 														<AvatarFallback>
-															{share.profile?.display_name
-																?.charAt(0)
-																.toUpperCase()}
+															{share.profile?.display_name?.charAt(0)?.toUpperCase() ?? '?'}
 														</AvatarFallback>
 													</Avatar>
 
