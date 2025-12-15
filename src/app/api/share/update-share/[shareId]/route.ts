@@ -37,13 +37,22 @@ export const PATCH = withApiValidation<
 		}
 
 		// Parse shareId as number since share_access.id is numeric
-		const shareIdNum = parseInt(shareId, 10);
-
-		if (isNaN(shareIdNum)) {
+		// Use strict validation: trim, check digits only, then convert
+		const trimmedShareId = shareId.trim();
+		if (!/^\d+$/.test(trimmedShareId)) {
 			return respondError(
 				'Invalid share ID format',
 				400,
 				'Share ID must be a valid number'
+			);
+		}
+
+		const shareIdNum = Number(trimmedShareId);
+		if (!Number.isInteger(shareIdNum) || shareIdNum <= 0) {
+			return respondError(
+				'Invalid share ID format',
+				400,
+				'Share ID must be a positive integer'
 			);
 		}
 
