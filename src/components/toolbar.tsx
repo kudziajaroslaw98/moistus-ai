@@ -15,6 +15,7 @@ import {
 import { motion } from 'motion/react';
 import { type ReactNode, useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
+import { LayoutDropdown } from './toolbar/layout-dropdown';
 import { Button } from './ui/button';
 import {
 	DropdownMenu,
@@ -54,6 +55,7 @@ const tools: ToolButton[] = [
 		icon: <Sparkles className='size-4' />,
 		label: 'AI Suggestions',
 	},
+	{ id: 'layout', icon: null, label: 'Auto Layout' }, // Layout dropdown rendered separately
 	{ id: 'separator-1', icon: null, label: null },
 	{ id: 'zoom', icon: <Fullscreen className='size-4' />, label: 'Zoom' },
 	// { id: 'chat', icon: <MessageSquare className='size-4' />, label: 'AI Chat' },
@@ -118,6 +120,9 @@ export const Toolbar = () => {
 				return { tool, visible: false, isSeparator: false };
 			}
 			if (tool.id === 'magic-wand' && !canEdit) {
+				return { tool, visible: false, isSeparator: false };
+			}
+			if (tool.id === 'layout' && !canEdit) {
 				return { tool, visible: false, isSeparator: false };
 			}
 			if (tool.id === 'comments' && !canComment) {
@@ -316,6 +321,11 @@ export const Toolbar = () => {
 								</DropdownMenuContent>
 							</DropdownMenu>
 						);
+					}
+
+					// Layout dropdown
+					if (tool.id === 'layout') {
+						return <LayoutDropdown key={tool.id} />;
 					}
 
 					// Comments button has special styling
