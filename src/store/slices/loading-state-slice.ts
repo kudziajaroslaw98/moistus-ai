@@ -20,7 +20,6 @@ export const createLoadingStateSlice: StateCreator<
 		isSuggestingMerges: false,
 		isSavingNode: false,
 		isSavingEdge: false,
-		isApplyingLayout: false,
 		isLoadingComments: false,
 		isSavingComment: false,
 		isDeletingComment: false,
