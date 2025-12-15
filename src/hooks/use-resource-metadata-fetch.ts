@@ -1,8 +1,8 @@
 import { fetchResourceMetadata } from '@/helpers/fetch-resource-metadata';
 import useAppStore from '@/store/mind-map-store';
 import { useCallback, useState } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 import { toast } from 'sonner';
+import { useShallow } from 'zustand/react/shallow';
 
 /** Type guard to validate that a value is a string */
 function isString(value: unknown): value is string {
@@ -37,7 +37,7 @@ export function useResourceMetadataFetch(nodeId: string) {
 
 		try {
 			// Mark node as fetching
-			await updateNode({
+			updateNode({
 				nodeId,
 				data: {
 					metadata: {
@@ -51,7 +51,7 @@ export function useResourceMetadataFetch(nodeId: string) {
 			const metadata = await fetchResourceMetadata(url, true);
 
 			// Update node with fetched metadata
-			await updateNode({
+			updateNode({
 				nodeId,
 				data: {
 					metadata: {
@@ -70,7 +70,7 @@ export function useResourceMetadataFetch(nodeId: string) {
 			toast.success('Metadata refreshed!', { id: toastId });
 		} catch (error) {
 			// Update error state
-			await updateNode({
+			updateNode({
 				nodeId,
 				data: {
 					metadata: {
