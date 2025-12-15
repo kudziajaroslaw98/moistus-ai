@@ -7,6 +7,7 @@ import { createCoreDataSlice } from './slices/core-slice';
 import { createEdgeSlice } from './slices/edges-slice';
 import { createGroupsSlice } from './slices/groups-slice';
 import { createHistorySlice } from './slices/history-slice';
+import { createLayoutSlice } from './slices/layout-slice';
 import { createLoadingStateSlice } from './slices/loading-state-slice';
 import { createNodeSlice } from './slices/nodes-slice';
 import { createOnboardingSlice } from './slices/onboarding-slice';
@@ -38,6 +39,7 @@ const sliceCreators = [
 	createSubscriptionSlice,
 	createOnboardingSlice,
 	createUserProfileSlice,
+	createLayoutSlice,
 ];
 
 const useAppStore = create<AppState>((set, get, api) => {

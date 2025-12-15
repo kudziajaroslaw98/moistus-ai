@@ -529,6 +529,10 @@ export interface StreamingToastSlice {
 	clearToast: () => void;
 }
 
+// Layout Slice (imported from types)
+import type { LayoutSlice } from '@/types/layout-types';
+export type { LayoutSlice };
+
 // Combined App State
 export interface AppState
 	extends CoreDataSlice,
@@ -548,4 +552,5 @@ export interface AppState
 		SubscriptionSlice,
 		OnboardingSlice,
 		UserProfileSlice,
-		QuickInputSlice {}
+		QuickInputSlice,
+		LayoutSlice {}
