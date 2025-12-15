@@ -3,6 +3,15 @@
  * ELK.js-based automatic layout for mind map nodes
  */
 
+// Re-export ELK types for use in converters
+export type {
+	ElkNode,
+	ElkExtendedEdge as ElkEdge,
+	ElkEdgeSection,
+	ElkLabel,
+	LayoutOptions as ElkLayoutOptions,
+} from 'elkjs/lib/elk-api';
+
 // Layout direction options
 export type LayoutDirection =
 	| 'LEFT_RIGHT'
@@ -54,50 +63,6 @@ export interface ElkLayoutParams {
 	edges: import('@/types/app-edge').AppEdge[];
 	config: LayoutConfig;
 	selectedNodeIds?: Set<string>; // If provided, only layout these nodes
-}
-
-// ELK.js graph types (for converter)
-export interface ElkNode {
-	id: string;
-	x?: number;
-	y?: number;
-	width: number;
-	height: number;
-	layoutOptions?: Record<string, string | number | boolean>;
-	children?: ElkNode[];
-	edges?: ElkEdge[];
-	labels?: ElkLabel[];
-}
-
-export interface ElkEdge {
-	id: string;
-	sources: string[];
-	targets: string[];
-	sections?: ElkEdgeSection[];
-	layoutOptions?: Record<string, string | number | boolean>;
-}
-
-export interface ElkEdgeSection {
-	id: string;
-	startPoint: { x: number; y: number };
-	endPoint: { x: number; y: number };
-	bendPoints?: Array<{ x: number; y: number }>;
-	incomingShape?: string;
-	outgoingShape?: string;
-}
-
-export interface ElkLabel {
-	id: string;
-	text: string;
-	x?: number;
-	y?: number;
-	width?: number;
-	height?: number;
-}
-
-// ELK root graph (extends ElkNode with root-level properties)
-export interface ElkGraph extends ElkNode {
-	layoutOptions: Record<string, string | number | boolean>;
 }
 
 // Layout slice state and actions (for Zustand)
