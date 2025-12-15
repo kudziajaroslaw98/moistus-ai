@@ -31,7 +31,9 @@ export function withPublicApiValidation<TBody, TResponseData>(
 						body = await req.json();
 					} catch (jsonError) {
 						console.warn(
-							`Failed to parse JSON body for ${req.method} ${req.url}:`,
+							'Failed to parse JSON body for %s %s:',
+							req.method,
+							req.url,
 							jsonError instanceof Error ? jsonError.message : 'Unknown error'
 						);
 						// If JSON parsing fails, keep body as empty object
@@ -44,7 +46,9 @@ export function withPublicApiValidation<TBody, TResponseData>(
 						body = Object.fromEntries(formData.entries());
 					} catch (formError) {
 						console.warn(
-							`Failed to parse form data for ${req.method} ${req.url}:`,
+							'Failed to parse form data for %s %s:',
+							req.method,
+							req.url,
 							formError instanceof Error ? formError.message : 'Unknown error'
 						);
 						body = {};
@@ -68,7 +72,7 @@ export function withPublicApiValidation<TBody, TResponseData>(
 
 			return await handler(req, validationResult.data, supabase);
 		} catch (error) {
-			console.error(`Error in public API route ${req.url}:`, error);
+			console.error('Error in public API route %s:', req.url, error);
 			const message =
 				error instanceof Error ? error.message : 'Internal Server Error';
 			return respondError('Internal server error.', 500, message);

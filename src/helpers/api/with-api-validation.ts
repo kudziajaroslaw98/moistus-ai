@@ -68,7 +68,7 @@ export function withApiValidation<
 				resolvedParams
 			);
 		} catch (error) {
-			console.error(`Error in API route ${req.url}:`, error);
+			console.error('Error in API route %s:', req.url, error);
 			const message =
 				error instanceof Error ? error.message : 'Internal Server Error';
 			return respondError('Internal server error.', 500, message);

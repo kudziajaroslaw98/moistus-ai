@@ -62,7 +62,7 @@ export function withAuthValidation<TBody, TResponseData>(
 			// Call handler with validated data and authenticated user
 			return await handler(req, validationResult.data, supabase, user);
 		} catch (error) {
-			console.error(`Error in API route ${req.url}:`, error);
+			console.error('Error in API route %s:', req.url, error);
 			const message =
 				error instanceof Error ? error.message : 'Internal Server Error';
 			return respondError('An unexpected error occurred.', 500, message);
