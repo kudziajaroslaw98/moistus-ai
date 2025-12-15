@@ -6,7 +6,6 @@ import { cn } from '@/utils/cn';
 import {
 	Fullscreen,
 	Hand,
-	LayoutGrid,
 	MessageSquare,
 	MousePointer2,
 	Plus,
@@ -58,11 +57,6 @@ const tools: ToolButton[] = [
 	{ id: 'separator-1', icon: null, label: null },
 	{ id: 'zoom', icon: <Fullscreen className='size-4' />, label: 'Zoom' },
 	// { id: 'chat', icon: <MessageSquare className='size-4' />, label: 'AI Chat' },
-	{
-		id: 'layout',
-		icon: <LayoutGrid className='size-4' />,
-		label: 'Auto-Layout',
-	},
 	{ id: 'separator-2', icon: null, label: null },
 	{
 		id: 'comments',
@@ -78,7 +72,6 @@ export const Toolbar = () => {
 		activeTool,
 		setState,
 		setActiveTool,
-		applyLayout,
 		setPopoverOpen,
 		generateConnectionSuggestions,
 		generateMergeSuggestions,
@@ -90,7 +83,6 @@ export const Toolbar = () => {
 			activeTool: state.activeTool,
 			setState: state.setState,
 			setActiveTool: state.setActiveTool,
-			applyLayout: state.applyLayout,
 			setPopoverOpen: state.setPopoverOpen,
 			setAiFeature: state.setAiFeature,
 			aiFeature: state.aiFeature,
@@ -126,9 +118,6 @@ export const Toolbar = () => {
 				return { tool, visible: false, isSeparator: false };
 			}
 			if (tool.id === 'magic-wand' && !canEdit) {
-				return { tool, visible: false, isSeparator: false };
-			}
-			if (tool.id === 'layout' && !canEdit) {
 				return { tool, visible: false, isSeparator: false };
 			}
 			if (tool.id === 'comments' && !canComment) {
@@ -169,10 +158,7 @@ export const Toolbar = () => {
 			return;
 		}
 
-		if (toolId === 'layout') {
-			applyLayout('LR'); // Always use left-to-right for now
-			setActiveTool('default');
-		} else if (toolId === 'chat') {
+		if (toolId === 'chat') {
 			setPopoverOpen({ aiChat: true });
 			// Don't change the active tool for chat
 		} else if (toolId === 'zoom') {
@@ -360,9 +346,7 @@ export const Toolbar = () => {
 							size={'icon'}
 							title={tool.label ?? `Tool ${index}`}
 							variant={
-								activeTool === tool.id &&
-									tool.id !== 'chat' &&
-									tool.id !== 'layout'
+								activeTool === tool.id && tool.id !== 'chat'
 									? 'default'
 									: 'secondary'
 							}

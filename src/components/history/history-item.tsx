@@ -11,7 +11,6 @@ import {
 	ChevronDown,
 	Clock,
 	GitCommit,
-	Layout,
 	Lock,
 	Milestone,
 	Pencil,
@@ -112,8 +111,6 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 		if (meta.operationType === 'delete') return <Trash className='h-4 w-4' />;
 		if (meta.operationType === 'add') return <Plus className='h-4 w-4' />;
 		if (meta.operationType === 'update') return <Pencil className='h-4 w-4' />;
-		if (meta.actionName.includes('applyLayout'))
-			return <Layout className='h-4 w-4' />;
 		return <Clock className='h-4 w-4' />;
 	};
 

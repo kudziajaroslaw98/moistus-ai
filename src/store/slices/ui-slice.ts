@@ -17,7 +17,6 @@ export const createUiStateSlice: StateCreator<
 		mergeSuggestions: false,
 		aiContent: false,
 		generateFromNodesModal: false,
-		layoutSelector: false,
 		sharePanel: false,
 		joinRoom: false,
 		permissionManager: false,

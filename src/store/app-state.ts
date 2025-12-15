@@ -404,7 +404,6 @@ export interface Popovers {
 	aiContent: boolean;
 	generateFromNodesModal: boolean;
 	contextMenu: boolean;
-	layoutSelector: boolean;
 	sharePanel: boolean;
 	joinRoom: boolean;
 	permissionManager: boolean;
