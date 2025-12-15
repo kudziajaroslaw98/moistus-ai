@@ -14,6 +14,7 @@ import type { MindMapData } from '@/types/mind-map-data';
 import type { NodesTableType } from '@/types/nodes-table-type';
 import { UserProfile } from '@/types/user-profile-types';
 import type { User } from '@supabase/supabase-js';
+import { toast } from 'sonner';
 import type { StateCreator } from 'zustand';
 import type { AppState, CoreDataSlice } from '../app-state';
 
@@ -120,7 +121,7 @@ export const createCoreDataSlice: StateCreator<
 	},
 
 	fetchMindMapData: withLoadingAndToast(
-		async (mapId: string) => {
+		async (mapId: string, toastId?: string | number) => {
 			if (!mapId) {
 				throw new Error('Map ID is required.');
 			}
@@ -161,7 +162,8 @@ export const createCoreDataSlice: StateCreator<
 										isAnonymous: is_anonymous,
 									},
 								});
-								// Return early without throwing - this prevents the toast
+								// Dismiss loading toast silently - UI handles error state
+								if (toastId) toast.dismiss(toastId);
 								return;
 							} else if (status === 'not_found') {
 								set({
@@ -170,6 +172,8 @@ export const createCoreDataSlice: StateCreator<
 										isAnonymous: is_anonymous,
 									},
 								});
+								// Dismiss loading toast silently - UI handles error state
+								if (toastId) toast.dismiss(toastId);
 								return;
 							}
 							// If status is 'owner' or 'shared', something else went wrong
@@ -196,6 +200,8 @@ export const createCoreDataSlice: StateCreator<
 						isAnonymous: userProfile?.is_anonymous ?? true,
 					},
 				});
+				// Dismiss loading toast silently - UI handles error state
+				if (toastId) toast.dismiss(toastId);
 				return;
 			}
 
@@ -214,12 +220,17 @@ export const createCoreDataSlice: StateCreator<
 
 			// Start real-time subscriptions after successful data load
 			await get().subscribeToRealtimeUpdates(mapId);
+
+			// Show success toast only when map data was actually loaded
+			if (toastId) {
+				toast.success('Mind map data fetched successfully.', { id: toastId });
+			}
 		},
 		'isStateLoading',
 		{
 			initialMessage: 'Fetching mind map data...',
 			errorMessage: 'Failed to fetch mind map data.',
-			successMessage: 'Mind map data fetched successfully.',
+			successMessage: null, // Handled manually to avoid success toast on early returns
 		}
 	),
 

@@ -4,6 +4,11 @@ import { useCallback, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { toast } from 'sonner';
 
+/** Type guard to validate that a value is a string */
+function isString(value: unknown): value is string {
+	return typeof value === 'string';
+}
+
 /**
  * Hook for manually refetching resource node metadata.
  * Used by the refetch button in the resource node toolbar.
@@ -19,7 +24,8 @@ export function useResourceMetadataFetch(nodeId: string) {
 
 	const refetchMetadata = useCallback(async () => {
 		const node = getNode(nodeId);
-		const url = node?.data.metadata?.url as string | undefined;
+		const rawUrl = node?.data?.metadata?.url;
+		const url: string | undefined = isString(rawUrl) ? rawUrl : undefined;
 
 		if (!url) {
 			toast.error('No URL found for this resource');

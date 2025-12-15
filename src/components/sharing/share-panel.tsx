@@ -127,13 +127,7 @@ export function SharePanel({
 		};
 	}, [isOpen, mapId, subscribeToSharingUpdates, unsubscribeFromSharing]);
 
-	if (!mapId) return null;
-
-	const handleOnClose = () => {
-		setPopoverOpen({ ...popoverOpen, sharePanel: false });
-	};
-
-	// Get active room codes for this map
+	// Get active room codes for this map (computed before early return for hook usage)
 	const mapRoomCodes = shareTokens.filter(
 		(token) =>
 			token.map_id === mapId &&
@@ -142,6 +136,7 @@ export function SharePanel({
 	);
 
 	// Auto-collapse settings when room codes exist
+	// Must be called unconditionally before any early returns
 	useEffect(() => {
 		if (mapRoomCodes.length > 0) {
 			setSettingsOpen(false);
@@ -149,6 +144,12 @@ export function SharePanel({
 			setSettingsOpen(true);
 		}
 	}, [mapRoomCodes.length]);
+
+	if (!mapId) return null;
+
+	const handleOnClose = () => {
+		setPopoverOpen({ ...popoverOpen, sharePanel: false });
+	};
 
 	const handleGenerateRoomCode = async () => {
 		setIsGeneratingCode(true);
