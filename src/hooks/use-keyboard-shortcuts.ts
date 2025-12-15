@@ -15,6 +15,7 @@ interface UseKeyboardShortcutsProps {
 	onGroup?: () => void;
 	onUngroup?: () => void;
 	onToggleCollapse?: () => void;
+	onLayout?: () => void;
 }
 
 export function useKeyboardShortcuts({
@@ -31,6 +32,7 @@ export function useKeyboardShortcuts({
 	onGroup,
 	onUngroup,
 	onToggleCollapse,
+	onLayout,
 }: UseKeyboardShortcutsProps): void {
 	const reactFlowInstance = useAppStore((state) => state.reactFlowInstance);
 	const copySelectedNodes = useAppStore((state) => state.copySelectedNodes);
@@ -133,6 +135,17 @@ export function useKeyboardShortcuts({
 
 				return;
 			}
+
+			// Ctrl/Cmd + L: Apply auto layout
+			if (isCtrlCmd && event.key.toLowerCase() === 'l') {
+				event.preventDefault();
+
+				if (onLayout) {
+					onLayout();
+				}
+
+				return;
+			}
 		};
 
 		window.addEventListener('keydown', handleKeyDown);
@@ -152,5 +165,6 @@ export function useKeyboardShortcuts({
 		canRedo,
 		isBusy,
 		reactFlowInstance,
+		onLayout,
 	]);
 }
