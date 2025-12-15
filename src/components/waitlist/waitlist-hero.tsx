@@ -8,14 +8,14 @@ export function WaitlistHero() {
 				animate={{ opacity: 1, y: 0 }}
 				className='text-4xl font-bold flex flex-col tracking-tight text-white sm:text-5xl md:text-6xl'
 				initial={{ opacity: 0, y: 40 }}
-				transition={{ duration: 0.7, ease: 'easeOut' as const }}
+				transition={{ duration: 0.3, ease: [0.165, 0.84, 0.44, 1] }}
 			>
 				<span className='whitespace-nowrap'>
 					From <span className='text-teal-400'>Scattered Notes</span>
 				</span>
 
 				<span>
-					to <span className='text-purple-400'>Connected Ideas</span>.
+					to <span className='text-sky-400'>Connected Ideas</span>.
 				</span>
 			</motion.div>
 
@@ -23,7 +23,7 @@ export function WaitlistHero() {
 				animate={{ opacity: 1, y: 0 }}
 				className='mt-6 text-lg leading-relaxed text-zinc-300'
 				initial={{ opacity: 0, y: 20 }}
-				transition={{ delay: 0.2, duration: 0.6 }}
+				transition={{ delay: 0.15, duration: 0.3, ease: [0.165, 0.84, 0.44, 1] }}
 			>
 				Moistus AI is the intelligent mind-mapping platform that organizes your
 				chaos. We don’t just store ideas — we connect them, revealing insights

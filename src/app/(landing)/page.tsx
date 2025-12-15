@@ -62,7 +62,7 @@ export default function Home() {
 			<BackgroundEffects />
 
 			{/* Hero Section */}
-			<section className='flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8 py-20 relative z-20'>
+			<section className='flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8 py-16 relative z-20'>
 				<div className='w-full max-w-2xl mx-auto text-center gap-12 flex flex-col'>
 					{/* Logo */}
 					<div className='mb-8'>
@@ -79,7 +79,7 @@ export default function Home() {
 							<div className='flex flex-col gap-4'>
 								{/* Early Access Badge */}
 								<div className='mb-6 animate-fade-in delay-100'>
-									<span className='inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-500/10 to-purple-600/10 px-4 py-2 text-sm font-medium text-violet-400 ring-1 ring-inset ring-violet-500/20'>
+									<span className='inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-500/10 to-teal-500/10 px-4 py-2 text-sm font-medium text-sky-400 ring-1 ring-inset ring-sky-500/20 backdrop-blur-sm'>
 										<Clock className='h-4 w-4' />
 										Early Access Soon
 									</span>
@@ -92,11 +92,21 @@ export default function Home() {
 
 					{/* Waitlist Form */}
 					<div className='animate-fade-in-up delay-500'>
-						<WaitlistForm />
+						<div
+							className='p-8 rounded-2xl mx-auto max-w-md z-10 backdrop-blur-sm'
+							style={{
+								background:
+									'linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)',
+								border: '1px solid rgba(255, 255, 255, 0.06)',
+								backdropFilter: 'blur(8px)',
+							}}
+						>
+							<WaitlistForm />
+						</div>
 					</div>
 
 					{/* Trust Indicators */}
-					<div className='mt-8 flex items-center justify-center gap-6 text-sm text-zinc-500 animate-fade-in delay-700'>
+					<div className='mt-4 flex items-center justify-center gap-6 text-sm text-zinc-500 animate-fade-in delay-700'>
 						<div className='flex items-center gap-2'>
 							<svg
 								className='h-4 w-4 text-emerald-500'

@@ -254,6 +254,16 @@ const MindMapCardComponent = ({
 						<div className='min-w-0 flex-grow'>
 							<h3 className='text-white font-medium truncate'>{map.title}</h3>
 
+							{/* Description */}
+							{map.description && (
+								<p
+									className='text-zinc-400 text-xs leading-relaxed line-clamp-1 mt-0.5'
+									title={map.description}
+								>
+									{map.description}
+								</p>
+							)}
+
 							<div className='flex items-center gap-4 mt-1 text-xs text-zinc-400'>
 								{map.team && (
 									<span className='flex items-center gap-1'>
@@ -366,7 +376,7 @@ const MindMapCardComponent = ({
 			<Link href={`/mind-map/${map.id}`}>
 				<div
 					className={cn(
-						'relative h-48 sm:h-44 md:h-48 w-full rounded-lg overflow-hidden',
+						'relative h-56 sm:h-52 md:h-56 w-full rounded-lg overflow-hidden',
 						'group-hover/mind-card:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer',
 						'shadow-lg group-hover/mind-card:shadow-xl group-hover/mind-card:shadow-zinc-900/75',
 						// Enhanced touch feedback
@@ -414,9 +424,19 @@ const MindMapCardComponent = ({
 					{/* Enhanced Title Area with Better Hierarchy */}
 					<div className='absolute z-30 rounded-lg h-full flex flex-col justify-end items-start bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent'>
 						{/* Primary Title */}
-						<h3 className='text-white font-semibold text-base truncate mb-2 w-full drop-shadow-sm'>
+						<h3 className='text-white font-semibold text-base truncate mb-1 w-full drop-shadow-sm'>
 							{map.title}
 						</h3>
+
+						{/* Description */}
+						{map.description && (
+							<p
+								className='text-white/60 text-xs leading-relaxed line-clamp-2 mb-2 w-full'
+								title={map.description}
+							>
+								{map.description}
+							</p>
+						)}
 
 						{/* Metadata Row */}
 						<div className='flex items-center justify-between w-full'>

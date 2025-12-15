@@ -54,7 +54,7 @@ export const EnhancedInput = ({
 	onCommandExecuted,
 	enableCommands = true, // Default enabled
 	...rest
-}:EnhancedInputProps) => {
+}: EnhancedInputProps) => {
 	const editorRef = useRef<HTMLDivElement>(null);
 	const editorViewRef = useRef<EditorView | null>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
@@ -395,7 +395,7 @@ export const EnhancedInput = ({
 				ref={containerRef}
 				transition={transition}
 				className={cn(
-					'enhanced-input-container flex-1 relative',
+					'enhanced-input-container relative',
 					hasErrors && 'has-validation-errors',
 					hasWarnings && 'has-validation-warnings',
 					hasSuggestions && 'has-validation-suggestions',

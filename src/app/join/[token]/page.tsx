@@ -13,6 +13,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
+import {
+	generateFallbackAvatar,
+	generateFunName,
+} from '@/helpers/user-profile-helpers';
 import useAppStore from '@/store/mind-map-store';
 import type { JoinRoomResult } from '@/store/slices/sharing-slice';
 import {
@@ -107,11 +111,15 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 					if (profile && !profile.is_anonymous) {
 						console.log('Authenticated user detected:', profile.display_name);
 
+						const userId = profile.user_id;
 						setAuthenticatedUser({
-							userId: profile.user_id,
-							displayName: profile.display_name || profile.email || 'User',
+							userId,
+							displayName:
+								profile.display_name ||
+								profile.email?.split('@')[0] ||
+								generateFunName(userId),
 							email: profile.email || undefined,
-							avatarUrl: profile.avatar_url || undefined,
+							avatarUrl: profile.avatar_url || generateFallbackAvatar(userId),
 							isAnonymous: false,
 						});
 

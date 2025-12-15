@@ -1,14 +1,14 @@
 'use client';
 
 import { UpgradeAnonymousPrompt } from '@/components/auth/upgrade-anonymous';
+import { Button } from '@/components/ui/button';
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from '@/components/dashboard/dropdown-menu';
-import { Button } from '@/components/ui/button';
+} from '@/components/ui/dropdown-menu';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import useAppStore from '@/store/mind-map-store';
@@ -101,7 +101,7 @@ export function UserMenu({
 
 	// Display info
 	const name = user?.display_name || user?.full_name || 'User';
-	const isAnonymous = user?.isAnonymous || user?.is_anonymous;
+	const isAnonymous = user?.is_anonymous;
 	const subtitle = isAnonymous
 		? 'Anonymous User'
 		: user?.email || 'Registered User';

@@ -1,19 +1,25 @@
 'use client';
 
-import { CreateMapForm } from '@/components/ui/create-map-form';
+import { Button } from '@/components/ui/button';
 import {
 	Dialog,
 	DialogContent,
+	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 } from '@/components/ui/dialog';
+import { cn } from '@/utils/cn';
+import { Loader2, Plus } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useEffect } from 'react';
+import { FormEvent, useEffect, useId, useRef, useState } from 'react';
+
+const TITLE_MAX_LENGTH = 100;
+const DESCRIPTION_MAX_LENGTH = 500;
 
 interface CreateMapDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onSubmit: (title: string) => Promise<void> | void;
+	onSubmit: (data: { title: string; description?: string }) => Promise<void>;
 	disabled?: boolean;
 }
 
@@ -23,80 +29,268 @@ export function CreateMapDialog({
 	onSubmit,
 	disabled = false,
 }: CreateMapDialogProps) {
-	// Handle Escape key
+	const [title, setTitle] = useState('');
+	const [description, setDescription] = useState('');
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [titleError, setTitleError] = useState<string | null>(null);
+	const [touched, setTouched] = useState(false);
+
+	const titleInputRef = useRef<HTMLInputElement>(null);
+	const titleId = useId();
+	const titleErrorId = useId();
+	const descriptionId = useId();
+
+	// Auto-focus title input when dialog opens
 	useEffect(() => {
-		const handleKeyDown = (e: KeyboardEvent) => {
-			if (e.key === 'Escape' && open) {
-				onOpenChange(false);
-			}
-		};
-
 		if (open) {
-			document.addEventListener('keydown', handleKeyDown);
-			return () => document.removeEventListener('keydown', handleKeyDown);
+			// Small delay to ensure dialog is rendered
+			const timer = setTimeout(() => {
+				titleInputRef.current?.focus();
+			}, 50);
+			return () => clearTimeout(timer);
+		} else {
+			// Reset form when dialog closes
+			setTitle('');
+			setDescription('');
+			setTitleError(null);
+			setTouched(false);
 		}
-	}, [open, onOpenChange]);
+	}, [open]);
 
-	const handleSubmit = async (title: string) => {
-		await onSubmit(title);
-		onOpenChange(false);
+	// Validate title
+	const validateTitle = (value: string): string | null => {
+		const trimmed = value.trim();
+		if (!trimmed) {
+			return 'Title is required';
+		}
+		if (trimmed.length > TITLE_MAX_LENGTH) {
+			return `Title must be ${TITLE_MAX_LENGTH} characters or less`;
+		}
+		return null;
 	};
 
+	// Handle title change with validation
+	const handleTitleChange = (value: string) => {
+		setTitle(value);
+		if (touched) {
+			setTitleError(validateTitle(value));
+		}
+	};
+
+	// Handle title blur for validation
+	const handleTitleBlur = () => {
+		setTouched(true);
+		setTitleError(validateTitle(title));
+	};
+
+	// Handle form submission
+	const handleSubmit = async (e: FormEvent) => {
+		e.preventDefault();
+
+		const error = validateTitle(title);
+		if (error) {
+			setTitleError(error);
+			setTouched(true);
+			titleInputRef.current?.focus();
+			return;
+		}
+
+		setIsSubmitting(true);
+
+		try {
+			await onSubmit({
+				title: title.trim(),
+				description: description.trim() || undefined,
+			});
+			// Only close on success - parent handles this via onOpenChange
+		} catch {
+			// Error handling done in parent, keep dialog open
+		} finally {
+			setIsSubmitting(false);
+		}
+	};
+
+	const isValid = !validateTitle(title);
+	const isDisabled = disabled || isSubmitting || !isValid;
+
 	return (
-		<Dialog onOpenChange={onOpenChange} open={open}>
+		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent
-				className='bg-zinc-950 border border-zinc-800 w-2xl backdrop-blur-sm rounded-md shadow-2xl h-auto overflow-hidden'
+				className='bg-zinc-950 border border-zinc-800 sm:max-w-md backdrop-blur-sm rounded-xl shadow-2xl overflow-hidden p-0'
 				showCloseButton={true}
 			>
-				<DialogHeader className='relative z-10'>
-					<DialogTitle className='flex items-center gap-3 text-xl font-bold text-white'>
-						Create New Mind Map
-					</DialogTitle>
+				<form onSubmit={handleSubmit}>
+					<DialogHeader className='px-6 pt-6 pb-2'>
+						<DialogTitle className='text-xl font-semibold text-white tracking-tight'>
+							Create new mind map
+						</DialogTitle>
+					</DialogHeader>
 
-					<p className='text-zinc-500 text-sm '>
-						Give your mind map a descriptive title to get started
-					</p>
-				</DialogHeader>
+					{/* Form Fields */}
+					<div className='px-6 py-4 space-y-5'>
+						{/* Title Field */}
+						<motion.div
+							initial={{ opacity: 0, y: 8 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{
+								duration: 0.25,
+								ease: [0.165, 0.84, 0.44, 1],
+							}}
+							className='space-y-2'
+						>
+							<div className='flex items-center justify-between'>
+								<label
+									htmlFor={titleId}
+									className='text-sm font-medium text-zinc-300'
+								>
+									Title{' '}
+									<span className='text-red-400' aria-hidden='true'>
+										*
+									</span>
+								</label>
+								<span
+									className={cn(
+										'text-xs tabular-nums transition-colors',
+										title.length > TITLE_MAX_LENGTH
+											? 'text-red-400'
+											: 'text-zinc-500'
+									)}
+								>
+									{title.length}/{TITLE_MAX_LENGTH}
+								</span>
+							</div>
+							<input
+								ref={titleInputRef}
+								id={titleId}
+								type='text'
+								value={title}
+								onChange={(e) => handleTitleChange(e.target.value)}
+								onBlur={handleTitleBlur}
+								disabled={disabled || isSubmitting}
+								placeholder='My new mind map...'
+								aria-required='true'
+								aria-invalid={!!titleError}
+								aria-describedby={titleError ? titleErrorId : undefined}
+								className={cn(
+									'w-full px-3.5 py-2.5 rounded-lg text-sm text-zinc-100 placeholder-zinc-500',
+									'bg-zinc-900/50 border transition-all duration-200',
+									'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-950',
+									titleError
+										? 'border-red-500/50 focus:ring-red-500/30 focus:border-red-500/50'
+										: 'border-zinc-700/50 hover:border-zinc-600/50 focus:ring-sky-500/30 focus:border-sky-500/50',
+									(disabled || isSubmitting) && 'opacity-50 cursor-not-allowed'
+								)}
+							/>
+							{titleError && (
+								<motion.p
+									id={titleErrorId}
+									initial={{ opacity: 0, y: -4 }}
+									animate={{ opacity: 1, y: 0 }}
+									className='text-xs text-red-400'
+									role='alert'
+								>
+									{titleError}
+								</motion.p>
+							)}
+						</motion.div>
 
-				{/* Form Section */}
-				<motion.div
-					animate={{ opacity: 1, y: 0 }}
-					className='relative z-10 mt-6'
-					initial={{ opacity: 0, y: 10 }}
-					transition={{ delay: 0.1, duration: 0.3 }}
-				>
-					<CreateMapForm
-						buttonText='Create Map'
-						className='w-full'
-						disabled={disabled}
-						loadingText='Creating...'
-						onSubmit={handleSubmit}
-						placeholder='Enter mind map title...'
-					/>
-				</motion.div>
+						{/* Description Field */}
+						<motion.div
+							initial={{ opacity: 0, y: 8 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{
+								delay: 0.05,
+								duration: 0.25,
+								ease: [0.165, 0.84, 0.44, 1],
+							}}
+							className='space-y-2'
+						>
+							<div className='flex items-center justify-between'>
+								<label
+									htmlFor={descriptionId}
+									className='text-sm font-medium text-zinc-300'
+								>
+									Description{' '}
+									<span className='text-zinc-500 font-normal'>(optional)</span>
+								</label>
+								<span
+									className={cn(
+										'text-xs tabular-nums transition-colors',
+										description.length > DESCRIPTION_MAX_LENGTH
+											? 'text-red-400'
+											: 'text-zinc-500'
+									)}
+								>
+									{description.length}/{DESCRIPTION_MAX_LENGTH}
+								</span>
+							</div>
+							<textarea
+								id={descriptionId}
+								value={description}
+								onChange={(e) =>
+									setDescription(e.target.value.slice(0, DESCRIPTION_MAX_LENGTH + 50))
+								}
+								disabled={disabled || isSubmitting}
+								placeholder='What is this mind map about?'
+								rows={3}
+								className={cn(
+									'w-full px-3.5 py-2.5 rounded-lg text-sm text-zinc-100 placeholder-zinc-500 resize-none',
+									'bg-zinc-900/50 border border-zinc-700/50 transition-all duration-200',
+									'hover:border-zinc-600/50 focus:outline-none focus:ring-2 focus:ring-sky-500/30',
+									'focus:ring-offset-2 focus:ring-offset-zinc-950 focus:border-sky-500/50',
+									(disabled || isSubmitting) && 'opacity-50 cursor-not-allowed'
+								)}
+							/>
+						</motion.div>
+					</div>
 
-				{/* Subtle Tip */}
-				<motion.div
-					animate={{ opacity: 1 }}
-					className='relative z-10 mt-4 text-center'
-					initial={{ opacity: 0 }}
-					transition={{ delay: 0.3, duration: 0.3 }}
-				>
-					<p className='text-xs text-zinc-500'>
-						Press{' '}
-
-						<kbd className='px-1.5 py-0.5 mx-1 bg-zinc-800/50 rounded border border-zinc-700/50 text-xs'>
-							Enter
-						</kbd>{' '}
-
-						to create or{' '}
-
-						<kbd className='px-1.5 py-0.5 mx-1 bg-zinc-800/50 rounded border border-zinc-700/50 text-xs'>
-							Esc
-						</kbd>{' '}
-						to cancel
-					</p>
-				</motion.div>
+					{/* Footer with Buttons */}
+					<DialogFooter className='px-6 py-4 bg-zinc-900/30 border-t border-zinc-800/50'>
+						<motion.div
+							initial={{ opacity: 0, y: 8 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{
+								delay: 0.1,
+								duration: 0.25,
+								ease: [0.165, 0.84, 0.44, 1],
+							}}
+							className='flex items-center gap-3 w-full sm:w-auto sm:ml-auto'
+						>
+							<Button
+								type='button'
+								variant='ghost'
+								onClick={() => onOpenChange(false)}
+								disabled={isSubmitting}
+								className='flex-1 sm:flex-none text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+							>
+								Cancel
+							</Button>
+							<Button
+								type='submit'
+								disabled={isDisabled}
+								aria-busy={isSubmitting}
+								className={cn(
+									'flex-1 sm:flex-none bg-sky-600 hover:bg-sky-500 text-white',
+									'shadow-lg shadow-sky-600/25 hover:shadow-xl hover:shadow-sky-600/30',
+									'transition-all duration-200',
+									isDisabled && 'opacity-50 cursor-not-allowed'
+								)}
+							>
+								{isSubmitting ? (
+									<>
+										<Loader2 className='w-4 h-4 mr-2 animate-spin' />
+										Creating...
+									</>
+								) : (
+									<>
+										<Plus className='w-4 h-4 mr-2' />
+										Create map
+									</>
+								)}
+							</Button>
+						</motion.div>
+					</DialogFooter>
+				</form>
 			</DialogContent>
 		</Dialog>
 	);

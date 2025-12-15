@@ -19,7 +19,6 @@ import { UserAvatar } from '@/components/ui/user-avatar';
 import useAppStore from '@/store/mind-map-store';
 import { UserProfileFormData } from '@/types/user-profile-types';
 import {
-	Camera,
 	CreditCard,
 	Palette,
 	Save,
@@ -35,7 +34,7 @@ import {
 	BarChart3,
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/shallow';
 import { Progress } from '@/components/ui/progress';
@@ -310,17 +309,6 @@ export function SettingsPanel({
 		}
 	};
 
-	const handleAvatarUpload = useCallback(async (_file: File) => {
-		try {
-			// TODO: Implement avatar upload
-			toast.info('Avatar upload not yet implemented', {
-				description: 'This feature is coming soon!',
-			});
-		} catch (error) {
-			console.error('Failed to upload avatar:', error);
-			toast.error('Failed to upload avatar');
-		}
-	}, []);
 
 	const updateFormData = (field: string, value: unknown) => {
 		setFormData((prev) => ({
@@ -470,25 +458,15 @@ export function SettingsPanel({
 										<User className='size-5 text-primary' /> Profile
 									</h3>
 									<div className='space-y-4 bg-surface rounded-lg p-4 border border-border-subtle'>
-										{/* Avatar */}
+										{/* Avatar - Generated from user ID */}
 										<div className='flex items-center gap-6 pb-4 border-b border-border-subtle'>
 											<UserAvatar size='2xl' user={userProfile} />
-											<div className='space-y-2'>
-												<Button className='relative' variant='outline'>
-													<Camera className='size-4 mr-2' />
-													<span>Upload Photo</span>
-													<input
-														accept='image/*'
-														className='absolute inset-0 opacity-0 cursor-pointer'
-														type='file'
-														onChange={(e) => {
-															const file = e.target.files?.[0];
-															if (file) handleAvatarUpload(file);
-														}}
-													/>
-												</Button>
+											<div className='space-y-1'>
+												<p className='text-sm font-medium text-text-primary'>
+													Profile Avatar
+												</p>
 												<p className='text-xs text-text-secondary'>
-													JPG, PNG or GIF. Max 2MB.
+													Your avatar is automatically generated based on your account.
 												</p>
 											</div>
 										</div>

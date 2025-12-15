@@ -8,6 +8,7 @@ import { ModalsWrapper } from './mind-map/modals-wrapper';
 import { ReactFlowArea } from './mind-map/react-flow-area';
 import NodeEditor from './node-editor/node-editor';
 
+import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useRealtimeSelectionPresenceRoom } from '@/hooks/realtime/use-realtime-selection-presence-room';
 import { useAuthRedirect } from '@/hooks/use-auth-redirect';
 import useAppStore from '@/store/mind-map-store';
@@ -19,6 +20,7 @@ import { StreamingToast } from './streaming-toast';
 import { AnonymousUserBanner } from './auth/anonymous-user-banner';
 import { UpgradeAnonymousPrompt } from './auth/upgrade-anonymous';
 import { useRouter } from 'next/navigation';
+import { AccessRevokedPage } from './mind-map/access-revoked-page';
 
 export function MindMapCanvas() {
 	const params = useParams();
@@ -27,6 +29,7 @@ export function MindMapCanvas() {
 
 	// Protect route
 	const { isChecking } = useAuthRedirect();
+	const { canEdit } = usePermissions();
 
 	// Consume necessary values for keyboard shortcuts
 	const {
@@ -45,6 +48,7 @@ export function MindMapCanvas() {
 		toggleNodeCollapse,
 		openNodeEditor,
 		userProfile,
+		mapAccessError,
 	} = useAppStore(
 		useShallow((state) => ({
 			handleUndo: state.handleUndo,
@@ -64,6 +68,7 @@ export function MindMapCanvas() {
 			getCurrentUser: state.getCurrentUser,
 			openNodeEditor: state.openNodeEditor,
 			userProfile: state.userProfile,
+			mapAccessError: state.mapAccessError,
 		}))
 	);
 	const isLoading = loadingStates.isStateLoading;
@@ -95,8 +100,8 @@ export function MindMapCanvas() {
 	}, [selectedNodes, toggleNodeCollapse]);
 
 	useKeyboardShortcuts({
-		onUndo: handleUndo,
-		onRedo: handleRedo,
+		onUndo: canEdit ? handleUndo : () => {},
+		onRedo: canEdit ? handleRedo : () => {},
 		onAddChild: () => {
 			const selected = selectedNodes[0];
 			openNodeEditor({
@@ -111,8 +116,8 @@ export function MindMapCanvas() {
 		onPaste: handlePaste,
 		selectedNodeId: selectedNodeId,
 		selectedEdgeId: selectedEdgeId,
-		canUndo: canUndo,
-		canRedo: canRedo,
+		canUndo: canEdit && canUndo,
+		canRedo: canEdit && canRedo,
 		isBusy: isLoading,
 		onGroup: handleGroup,
 		onUngroup: handleUngroup,
@@ -129,6 +134,16 @@ export function MindMapCanvas() {
 			<div className='flex h-full w-full items-center justify-center bg-zinc-950'>
 				<div className='h-8 w-8 animate-spin rounded-full border-4 border-zinc-800 border-t-sky-500' />
 			</div>
+		);
+	}
+
+	// Show access revoked page when access is denied or map not found
+	if (mapAccessError) {
+		return (
+			<AccessRevokedPage
+				errorType={mapAccessError.type}
+				isAnonymous={mapAccessError.isAnonymous}
+			/>
 		);
 	}
 
@@ -162,7 +177,7 @@ export function MindMapCanvas() {
 
 			{/* Auto-show upgrade prompt after 5 minutes for anonymous users */}
 			<UpgradeAnonymousPrompt
-				isAnonymous={userProfile?.isAnonymous ?? false}
+				isAnonymous={userProfile?.is_anonymous ?? false}
 				userDisplayName={userProfile?.display_name || userProfile?.full_name}
 				onUpgradeSuccess={() => router.refresh()}
 			/>

@@ -15,8 +15,19 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import useAppStore from '@/store/mind-map-store';
 import { SharePanelProps, ShareRole } from '@/types/sharing-types';
-import { Link2, Loader2, QrCode, Shield, Trash2, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { cn } from '@/utils/cn';
+import {
+	ChevronDown,
+	Link2,
+	Loader2,
+	QrCode,
+	Settings,
+	Shield,
+	Trash2,
+	Users,
+} from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { useEffect, useId, useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { useShallow } from 'zustand/shallow';
@@ -31,8 +42,10 @@ const createShareSchema = z.object({
 
 type CreateShareFormData = z.infer<typeof createShareSchema>;
 
+// Animation easing following guidelines
+const easeOutQuad = [0.25, 0.46, 0.45, 0.94] as const;
+
 export function SharePanel({
-	// onShareCreated,
 	onClose,
 	onShareUpdated,
 	onShareDeleted,
@@ -41,7 +54,13 @@ export function SharePanel({
 		'room-code' | 'direct-share' | 'manage'
 	>('room-code');
 	const [isGeneratingCode, setIsGeneratingCode] = useState(false);
-	// const [isSendingInvite, setIsSendingInvite] = useState(false);
+	const [settingsOpen, setSettingsOpen] = useState(true);
+	const shouldReduceMotion = useReducedMotion();
+	const settingsContentId = useId();
+
+	const transition = shouldReduceMotion
+		? { duration: 0 }
+		: { duration: 0.2, ease: easeOutQuad };
 
 	const {
 		shareTokens,
@@ -56,22 +75,22 @@ export function SharePanel({
 		mindMap,
 		getCurrentShareUsers,
 		currentShares,
+		deleteShare,
 	} = useAppStore(
 		useShallow((state) => ({
 			shareTokens: state.shareTokens,
-			activeToken: state.activeToken,
 			createRoomCode: state.createRoomCode,
 			refreshRoomCode: state.refreshRoomCode,
 			revokeRoomCode: state.revokeRoomCode,
 			refreshTokens: state.refreshTokens,
 			subscribeToSharingUpdates: state.subscribeToSharingUpdates,
 			unsubscribeFromSharing: state.unsubscribeFromSharing,
-			currentUser: state.currentUser,
 			popoverOpen: state.popoverOpen,
 			setPopoverOpen: state.setPopoverOpen,
 			mindMap: state.mindMap,
 			getCurrentShareUsers: state.getCurrentShareUsers,
 			currentShares: state.currentShares,
+			deleteShare: state.deleteShare,
 		}))
 	);
 
@@ -84,20 +103,6 @@ export function SharePanel({
 		maxUsers: 50,
 		expiresInHours: 24,
 	});
-
-	// Direct share form
-	// const {
-	// 	register,
-	// 	handleSubmit,
-	// 	formState: { errors },
-	// 	reset,
-	// 	setValue,
-	// } = useForm<CreateShareFormData>({
-	// 	resolver: zodResolver(createShareSchema),
-	// 	defaultValues: {
-	// 		role: 'viewer',
-	// 	},
-	// });
 
 	// Load existing tokens when panel opens
 	useEffect(() => {
@@ -114,25 +119,27 @@ export function SharePanel({
 		}
 
 		return () => {
-			if (!isOpen) {
-				unsubscribeFromSharing();
-			}
+			// Always cleanup on unmount to prevent memory leaks
+			unsubscribeFromSharing();
 		};
-	}, [isOpen, mapId, subscribeToSharingUpdates, unsubscribeFromSharing]);
+	}, [isOpen, mapId, subscribeToSharingUpdates, unsubscribeFromSharing, getCurrentShareUsers]);
 
-	if (!mapId) return null;
-
-	const handleOnClose = () => {
-		setPopoverOpen({ ...popoverOpen, sharePanel: false });
-	};
-
-	// Get active room codes for this map
+	// Get active room codes for this map (computed before early return for hook usage)
 	const mapRoomCodes = shareTokens.filter(
 		(token) =>
 			token.map_id === mapId &&
 			token.token_type === 'room_code' &&
 			token.is_active
 	);
+	const hasRoomCodes = mapRoomCodes.length > 0;
+
+	// Auto-collapse settings when room codes exist
+	// Must be called unconditionally before any early returns
+	useEffect(() => {
+		setSettingsOpen(!hasRoomCodes);
+	}, [hasRoomCodes]);
+
+	if (!mapId) return null;
 
 	const handleGenerateRoomCode = async () => {
 		setIsGeneratingCode(true);
@@ -174,44 +181,6 @@ export function SharePanel({
 		}
 	};
 
-	// TODO: for future expansion
-	// const handleDirectShare = async (data: {
-	// 	email: string;
-	// 	role: 'owner' | 'editor' | 'commenter' | 'viewer';
-	// 	message?: string;
-	// }) => {
-	// 	setIsSendingInvite(true);
-
-	// 	try {
-	// 		const response = await fetch('/api/share/create-direct-share', {
-	// 			method: 'POST',
-	// 			headers: { 'Content-Type': 'application/json' },
-	// 			body: JSON.stringify({
-	// 				map_id: mapId,
-	// 				user_email: data.email,
-	// 				role: data.role,
-	// 				message: data.message,
-	// 				send_notification: true,
-	// 			} as CreateShareRequest),
-	// 		});
-
-	// 		if (!response.ok) {
-	// 			throw new Error('Failed to send invitation');
-	// 		}
-
-	// 		const share = await response.json();
-	// 		onShareCreated?.(share);
-	// 		toast.success(`Invitation sent to ${data.email}`);
-	// 		reset();
-	// 	} catch (error) {
-	// 		console.error('Failed to send invitation:', error);
-	// 		toast.error('Failed to send invitation. Please try again.');
-	// 	} finally {
-	// 		setIsSendingInvite(false);
-	// 	}
-	// };
-
-	// TODO: Implement backend logic
 	const handleUpdateShareRole = async (shareId: string, newRole: ShareRole) => {
 		try {
 			const response = await fetch(`/api/share/update-share/${shareId}`, {
@@ -233,22 +202,14 @@ export function SharePanel({
 		}
 	};
 
-	// TODO: Implement backend logic
 	const handleDeleteShare = async (shareId: string) => {
 		try {
-			const response = await fetch(`/api/share/delete-share/${shareId}`, {
-				method: 'DELETE',
-			});
-
-			if (!response.ok) {
-				throw new Error('Failed to delete share');
-			}
-
+			await deleteShare(shareId);
 			onShareDeleted?.(shareId);
-			toast.success('Share removed');
+			toast.success('User access removed');
 		} catch (error) {
 			console.error('Failed to delete share:', error);
-			toast.error('Failed to remove share');
+			toast.error('Failed to remove user access');
 		}
 	};
 
@@ -259,14 +220,14 @@ export function SharePanel({
 			onClose={onClose}
 			title={`Share ${mindMap?.title || 'Untitled Map'}`}
 		>
-			<div className='flex h-full flex-col'>
+			<div className='flex h-full flex-col min-h-0'>
 				{/* Tabs */}
 				<Tabs
-					className='flex-1 max-h-screen overflow-y-auto py-2'
-					onValueChange={(v) => setActiveTab(v as any)}
+					className='flex-1 flex flex-col min-h-0'
+					onValueChange={(v) => setActiveTab(v as typeof activeTab)}
 					value={activeTab}
 				>
-					<TabsList className='grid w-full grid-cols-2 px-4 gap-1'>
+					<TabsList className='grid w-full grid-cols-2 mx-4 mt-2 gap-1 flex-shrink-0' style={{ width: 'calc(100% - 2rem)' }}>
 						<TabsTrigger value='room-code'>
 							<Link2 className='mr-2 h-4 w-4' />
 							Room Code
@@ -279,163 +240,212 @@ export function SharePanel({
 					</TabsList>
 
 					{/* Room Code Tab */}
-					<TabsContent className='flex-1 px-4' value='room-code'>
-						<div className='space-y-6'>
-							<div className='space-y-4 bg-surface rounded-lg p-4'>
-								<h3 className='font-medium'>Room Code Settings</h3>
-
-								<div className='space-y-2'>
-									<Label>Default Permission</Label>
-
-									<Select
-										value={roomCodeSettings.role}
-										onValueChange={(v) =>
-											setRoomCodeSettings((prev) => ({
-												...prev,
-												role: v as ShareRole,
-											}))
-										}
-									>
-										<SelectTrigger>
-											<SelectValue />
-										</SelectTrigger>
-
-										<SelectContent>
-											<SelectItem value='viewer'>
-												<div className='flex items-center gap-2'>
-													<Shield className='h-4 w-4' />
-
-													<span>Viewer - Can view only</span>
-												</div>
-											</SelectItem>
-
-											<SelectItem value='commenter'>
-												<div className='flex items-center gap-2'>
-													<Shield className='h-4 w-4' />
-
-													<span>Commenter - Can view and comment</span>
-												</div>
-											</SelectItem>
-
-											<SelectItem value='editor'>
-												<div className='flex items-center gap-2'>
-													<Shield className='h-4 w-4' />
-
-													<span>Editor - Can edit content</span>
-												</div>
-											</SelectItem>
-										</SelectContent>
-									</Select>
+					<TabsContent className='flex-1 flex flex-col min-h-0 px-4 mt-4' value='room-code'>
+						{/* Collapsible Settings Section */}
+						<div className='flex-shrink-0'>
+							<button
+								type='button'
+								aria-controls={settingsContentId}
+								aria-expanded={settingsOpen}
+								onClick={() => setSettingsOpen(!settingsOpen)}
+								className='flex items-center justify-between w-full p-3 bg-surface rounded-lg hover:bg-surface/80 transition-colors duration-200 ease group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60 focus-visible:ring-offset-1 focus-visible:ring-offset-zinc-900'
+							>
+								<div className='flex items-center gap-2'>
+									<Settings className='h-4 w-4 text-zinc-400' />
+									<span className='text-sm font-medium text-zinc-200'>
+										Room Code Settings
+									</span>
 								</div>
-
-								<div className='space-y-2'>
-									<Label>Maximum Users</Label>
-
-									<Input
-										max={100}
-										min={1}
-										type='number'
-										value={roomCodeSettings.maxUsers}
-										onChange={(e) =>
-											setRoomCodeSettings((prev) => ({
-												...prev,
-												maxUsers: parseInt(e.target.value) || 50,
-											}))
-										}
-									/>
-								</div>
-
-								<div className='space-y-2'>
-									<Label>Expires After (hours)</Label>
-
-									<Select
-										value={roomCodeSettings.expiresInHours.toString()}
-										onValueChange={(v) =>
-											setRoomCodeSettings((prev) => ({
-												...prev,
-												expiresInHours: parseInt(v),
-											}))
-										}
-									>
-										<SelectTrigger>
-											<SelectValue />
-										</SelectTrigger>
-
-										<SelectContent>
-											<SelectItem value='1'>1 hour</SelectItem>
-
-											<SelectItem value='6'>6 hours</SelectItem>
-
-											<SelectItem value='24'>24 hours</SelectItem>
-
-											<SelectItem value='72'>3 days</SelectItem>
-
-											<SelectItem value='168'>1 week</SelectItem>
-										</SelectContent>
-									</Select>
-								</div>
-
-								<Button
-									className='w-full'
-									disabled={isGeneratingCode}
-									onClick={handleGenerateRoomCode}
-								>
-									{isGeneratingCode ? (
-										<>
-											<Loader2 className='mr-2 h-4 w-4 animate-spin' />
-											Generating...
-										</>
-									) : (
-										<>
-											<Link2 className='mr-2 h-4 w-4' />
-											Generate Room Code
-										</>
+								<ChevronDown
+									className={cn(
+										'h-4 w-4 text-zinc-400 transition-transform duration-200 ease-out',
+										settingsOpen && 'rotate-180'
 									)}
-								</Button>
-							</div>
+								/>
+							</button>
 
+							<AnimatePresence initial={false}>
+								{settingsOpen && (
+									<motion.div
+										id={settingsContentId}
+										initial={{ height: 0, opacity: 0 }}
+										animate={{ height: 'auto', opacity: 1 }}
+										exit={{ height: 0, opacity: 0 }}
+										transition={transition}
+										className='overflow-hidden'
+									>
+										<div className='space-y-4 bg-surface rounded-b-lg p-4 -mt-1 border-t border-zinc-700/30'>
+											<div className='space-y-2'>
+												<Label className='text-xs text-zinc-400'>Default Permission</Label>
+
+												<Select
+													value={roomCodeSettings.role}
+													onValueChange={(v) =>
+														setRoomCodeSettings((prev) => ({
+															...prev,
+															role: v as ShareRole,
+														}))
+													}
+												>
+													<SelectTrigger className='h-9'>
+														<SelectValue />
+													</SelectTrigger>
+
+													<SelectContent>
+														<SelectItem value='viewer'>
+															<div className='flex items-center gap-2'>
+																<Shield className='h-3.5 w-3.5' />
+																<span>Viewer - Can view only</span>
+															</div>
+														</SelectItem>
+
+														<SelectItem value='commenter'>
+															<div className='flex items-center gap-2'>
+																<Shield className='h-3.5 w-3.5' />
+																<span>Commenter - Can view and comment</span>
+															</div>
+														</SelectItem>
+
+														<SelectItem value='editor'>
+															<div className='flex items-center gap-2'>
+																<Shield className='h-3.5 w-3.5' />
+																<span>Editor - Can edit content</span>
+															</div>
+														</SelectItem>
+													</SelectContent>
+												</Select>
+											</div>
+
+											<div className='grid grid-cols-2 gap-3'>
+												<div className='space-y-2'>
+													<Label className='text-xs text-zinc-400'>Max Users</Label>
+
+													<Input
+														className='h-9'
+														max={100}
+														min={1}
+														type='number'
+														value={roomCodeSettings.maxUsers}
+														onChange={(e) =>
+															setRoomCodeSettings((prev) => ({
+																...prev,
+																maxUsers: Math.min(100, Math.max(1, parseInt(e.target.value) || 50)),
+															}))
+														}
+													/>
+												</div>
+
+												<div className='space-y-2'>
+													<Label className='text-xs text-zinc-400'>Expires After</Label>
+
+													<Select
+														value={roomCodeSettings.expiresInHours.toString()}
+														onValueChange={(v) =>
+															setRoomCodeSettings((prev) => ({
+																...prev,
+																expiresInHours: parseInt(v),
+															}))
+														}
+													>
+														<SelectTrigger className='h-9'>
+															<SelectValue />
+														</SelectTrigger>
+
+														<SelectContent>
+															<SelectItem value='1'>1 hour</SelectItem>
+															<SelectItem value='6'>6 hours</SelectItem>
+															<SelectItem value='24'>24 hours</SelectItem>
+															<SelectItem value='72'>3 days</SelectItem>
+															<SelectItem value='168'>1 week</SelectItem>
+														</SelectContent>
+													</Select>
+												</div>
+											</div>
+
+											<Button
+												className='w-full h-9'
+												disabled={isGeneratingCode}
+												onClick={handleGenerateRoomCode}
+											>
+												{isGeneratingCode ? (
+													<>
+														<Loader2 className='mr-2 h-4 w-4 animate-spin' />
+														Generating...
+													</>
+												) : (
+													<>
+														<Link2 className='mr-2 h-4 w-4' />
+														Generate Room Code
+													</>
+												)}
+											</Button>
+										</div>
+									</motion.div>
+								)}
+							</AnimatePresence>
+						</div>
+
+						{/* Room Codes List - Scrollable */}
+						<div className='flex-1 min-h-0 mt-4'>
 							{mapRoomCodes.length > 0 ? (
-								<div className='space-y-4'>
-									{mapRoomCodes.map((token) => (
-										<RoomCodeDisplay
-											showQRCode
-											key={token.id}
-											onRefresh={handleRefreshCode}
-											onRevoke={handleRevokeCode}
-											token={token}
-										/>
-									))}
-								</div>
+								<ScrollArea className='h-full -mx-4 px-4'>
+									<div className='space-y-3 pb-4'>
+										{mapRoomCodes.map((token, index) => (
+											<motion.div
+												key={token.id}
+												initial={{ opacity: 0, y: 10 }}
+												animate={{ opacity: 1, y: 0 }}
+												transition={{
+													...transition,
+													delay: shouldReduceMotion ? 0 : index * 0.05,
+												}}
+											>
+												<RoomCodeDisplay
+													showQRCode
+													token={token}
+													defaultExpanded={index === 0}
+													onRefresh={handleRefreshCode}
+													onRevoke={handleRevokeCode}
+												/>
+											</motion.div>
+										))}
+									</div>
+								</ScrollArea>
 							) : (
-								<div className='rounded-lg border-2 border-dashed p-8 text-center'>
-									<QrCode className='mx-auto h-12 w-12 text-muted-foreground' />
+								<motion.div
+									initial={{ opacity: 0 }}
+									animate={{ opacity: 1 }}
+									transition={transition}
+									className='rounded-lg border-2 border-dashed border-zinc-700/50 p-8 text-center'
+								>
+									<QrCode className='mx-auto h-10 w-10 text-zinc-600' />
 
-									<h3 className='mt-4 text-sm font-medium'>
+									<h3 className='mt-4 text-sm font-medium text-zinc-300'>
 										No active room codes
 									</h3>
 
-									<p className='mt-2 text-sm text-muted-foreground'>
+									<p className='mt-2 text-xs text-zinc-500'>
 										Generate a room code to allow others to join without an
 										account
 									</p>
-								</div>
+								</motion.div>
 							)}
 						</div>
 					</TabsContent>
 
 					{/* Manage Access Tab */}
-					<TabsContent className='flex-1 px-4' value='manage'>
-						<ScrollArea className='h-full'>
-							<div className='space-y-4'>
+					<TabsContent className='flex-1 min-h-0 px-4 mt-4' value='manage'>
+						<ScrollArea className='h-full -mx-4 px-4'>
+							<div className='space-y-4 pb-4'>
 								{!currentShares || currentShares.length === 0 ? (
-									<div className='rounded-lg border-2 border-dashed p-8 text-center'>
-										<Users className='mx-auto h-12 w-12 text-muted-foreground' />
+									<div className='rounded-lg border-2 border-dashed border-zinc-700/50 p-8 text-center'>
+										<Users className='mx-auto h-10 w-10 text-zinc-600' />
 
-										<h3 className='mt-4 text-sm font-medium'>
+										<h3 className='mt-4 text-sm font-medium text-zinc-300'>
 											No one else has access
 										</h3>
 
-										<p className='mt-2 text-sm text-muted-foreground'>
+										<p className='mt-2 text-xs text-zinc-500'>
 											Share this mind map to start collaborating
 										</p>
 									</div>
@@ -443,7 +453,7 @@ export function SharePanel({
 									<div className='space-y-2'>
 										{currentShares.map((share) => (
 											<div
-												className='flex items-center justify-between rounded-lg border p-3 bg-surface'
+												className='flex items-center justify-between rounded-lg border border-zinc-700/50 p-3 bg-surface'
 												key={share.id}
 											>
 												<div className='flex items-center gap-3'>
@@ -451,9 +461,7 @@ export function SharePanel({
 														<AvatarImage src={share.avatar_url} />
 
 														<AvatarFallback>
-															{share.profile?.display_name
-																?.charAt(0)
-																.toUpperCase()}
+															{share.profile?.display_name?.charAt(0)?.toUpperCase() ?? '?'}
 														</AvatarFallback>
 													</Avatar>
 
@@ -477,7 +485,7 @@ export function SharePanel({
 															)
 														}
 													>
-														<SelectTrigger className='h-8 w-[110px]'>
+														<SelectTrigger className='h-8 w-[100px]'>
 															<SelectValue />
 														</SelectTrigger>
 
@@ -500,6 +508,7 @@ export function SharePanel({
 
 													{share.share.role !== 'owner' && (
 														<Button
+															aria-label='Remove user access'
 															className='h-8 w-8'
 															onClick={() => handleDeleteShare(share.share.id)}
 															size='icon'

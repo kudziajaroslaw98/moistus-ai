@@ -13,6 +13,7 @@ import {
 } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { processNodeTypeSwitch } from '../../core/commands/command-executor';
+import { commandRegistry } from '../../core/commands/command-registry';
 import { getNodeTypeConfig } from '../../core/config/node-type-config';
 import { parseInput } from '../../core/parsers/pattern-extractor';
 import { announceToScreenReader } from '../../core/utils/text-utils';
@@ -39,9 +40,18 @@ const shouldAutoProcessSwitch = (
 	text: string,
 	currentNodeType?: string
 ): boolean => {
-	// Check if text starts with a node type trigger (e.g., $task, $note)
-	const nodeTypeTriggerPattern = /^\$\w+\s/;
-	return nodeTypeTriggerPattern.test(text);
+	// Check if text contains a node type trigger (e.g., $task, $note) anywhere
+	// Pattern matches $command followed by space or end of string
+	const nodeTypeTriggerPattern = /\$(\w+)(\s|$)/;
+	const match = text.match(nodeTypeTriggerPattern);
+
+	if (!match) return false;
+
+	// Validate the trigger is a complete, valid command
+	const trigger = `$${match[1]}`;
+	const command = commandRegistry.getCommandByTrigger(trigger);
+
+	return !!command?.nodeType;
 };
 
 export const QuickInput: FC<QuickInputProps> = ({
@@ -224,8 +234,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 	// Parse input in real-time for preview using current node type
 	useEffect(() => {
-		// Clean the input by removing any $nodeType prefix (e.g., $task, $note)
-		const cleanValue = value.replace(/^\$\w+\s*/, '').trim();
+		// Clean the input by removing any $nodeType command (e.g., $task, $note) from anywhere
+		const cleanValue = value.replace(/\$\w+\s*/, '').trim();
 
 		if (!cleanValue) {
 			setPreview(null);
@@ -268,8 +278,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 			// Use current node type
 			const effectiveNodeType = currentNodeType || initialNodeType;
 
-			// Clean the input by removing any $nodeType prefix
-			const cleanValue = value.replace(/^\$\w+\s*/, '').trim() || value;
+			// Clean the input by removing any $nodeType command from anywhere
+			const cleanValue = value.replace(/\$\w+\s*/, '').trim() || value;
 
 			// Parse the input
 			const nodeData = parseInput(cleanValue);
@@ -299,10 +309,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 				throw new Error(result.error || 'Failed to save node');
 			}
 
-			// Close the appropriate editor based on context
-			if (mode === 'edit') {
-				closeNodeEditor();
-			}
+			// Close the editor after successful creation/update
+			closeNodeEditor();
 		} catch (err) {
 			console.error('Error creating/updating node:', err);
 			setError(
@@ -413,10 +421,10 @@ export const QuickInput: FC<QuickInputProps> = ({
 			<ComponentHeader icon={config.icon} label={config.label} />
 
 			{/* Input and Preview Side by Side - Fixed 50/50 Layout */}
-			<div className='flex items-stretch gap-3'>
+			<div className='flex items-stretch gap-3 max-h-[400px] h-auto'>
 				<EnhancedInput
 					animate={{ opacity: 1, y: 0 }}
-					className='flex-1 min-w-0 mt-5'
+					className='min-w-0 mt-5 w-sm h-auto'
 					disabled={isCreating}
 					enableCommands={true}
 					initial={{ opacity: 1, y: -20 }}

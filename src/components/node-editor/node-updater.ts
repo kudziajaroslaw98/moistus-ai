@@ -652,18 +652,13 @@ export const transformNodeToQuickInputString = (
 			return imageContent;
 
 		case 'resourceNode':
-			// Start with primary URL
-			const resourceUrl: string = (data.url || data.metadata?.url || '') as string;
-			let resourceContent: string = resourceUrl;
+			// Description/content as plain text (will become content after pattern extraction)
+			let resourceContent = data.content || '';
 
-			// Add description if present
-			if (data.content) {
-				resourceContent += ` desc:"${data.content.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
-			}
-
-			// Add metadata (includes universal and resource-specific patterns)
+			// Add metadata first (includes url:..., title:"...", etc.)
+			// Then append description as plain text
 			if (allMetadata) {
-				resourceContent += ` ${allMetadata}`;
+				resourceContent = allMetadata + (resourceContent ? ' ' + resourceContent : '');
 			}
 
 			return resourceContent;

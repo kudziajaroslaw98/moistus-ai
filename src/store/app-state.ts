@@ -31,6 +31,14 @@ import type {
 	SupabaseClient,
 	User,
 } from '@supabase/supabase-js';
+
+// Map Access Error Types
+export type MapAccessErrorType = 'access_denied' | 'not_found' | 'network_error';
+
+export interface MapAccessError {
+	type: MapAccessErrorType;
+	isAnonymous: boolean;
+}
 import type {
 	OnConnect,
 	OnEdgesChange,
@@ -61,16 +69,17 @@ export interface CoreDataSlice {
 	mapId: string | null;
 	reactFlowInstance: ReactFlowInstance | null;
 	currentUser: User | null;
-	userProfile: UserProfile | null;
 	activeTool: Tool;
+	mapAccessError: MapAccessError | null;
 
 	setActiveTool: (tool: Tool) => void;
 	setMindMap: (mindMap: MindMapData | null) => void;
 	setReactFlowInstance: (reactFlowInstance: ReactFlowInstance | null) => void;
 	setMapId: (mapId: string | null) => void;
 	setCurrentUser: (currentUser: User | null) => void;
-	setUserProfile: (userProfile: UserProfile | null) => void;
 	setState: (state: Partial<AppState>) => void;
+	setMapAccessError: (error: MapAccessError | null) => void;
+	clearMapAccessError: () => void;
 
 	generateUserProfile: (user: User | null) => UserProfile | null;
 	getCurrentUser: () => Promise<User | null>;
@@ -277,6 +286,9 @@ export interface NodesSlice {
 	subscribeToNodes: (mapId: string) => Promise<void>;
 	unsubscribeFromNodes: () => Promise<void>;
 	_nodesSubscription: RealtimeChannel | null;
+
+	// Resource node metadata fetching
+	fetchResourceNodeMetadata: (nodeId: string, url: string) => Promise<void>;
 }
 
 // Anonymous User Interface
@@ -303,6 +315,28 @@ interface JoinRoomResult {
 	join_method: string;
 }
 
+// Upgrade State Types
+export type UpgradeStep =
+	| 'idle'
+	| 'choose_method'
+	| 'enter_email'
+	| 'email_sent'
+	| 'verify_otp'
+	| 'set_password'
+	| 'oauth_pending'
+	| 'completed'
+	| 'error';
+
+export type OAuthProvider = 'google' | 'github';
+
+export interface UpgradeState {
+	upgradeStep: UpgradeStep;
+	upgradeEmail: string | null;
+	upgradeDisplayName: string | null;
+	upgradeError: string | null;
+	isUpgrading: boolean;
+}
+
 // Sharing State
 export interface SharingState {
 	shareTokens: ShareToken[];
@@ -314,6 +348,13 @@ export interface SharingState {
 	sharingError?: SharingError;
 	lastJoinResult?: JoinRoomResult;
 	_sharingSubscription?: any;
+
+	// Upgrade state (for anonymous -> full user conversion)
+	upgradeStep: UpgradeStep;
+	upgradeEmail: string | null;
+	upgradeDisplayName: string | null;
+	upgradeError: string | null;
+	isUpgrading: boolean;
 }
 
 // Sharing Slice
@@ -331,11 +372,38 @@ export interface SharingSlice extends SharingState {
 
 	joinRoom: (roomCode: string, displayName?: string) => Promise<JoinRoomResult>;
 
+	// Legacy method - kept for backwards compatibility but deprecated
+	/** @deprecated Use initiateEmailUpgrade + verifyUpgradeOtp + completeUpgradeWithPassword instead */
 	upgradeAnonymousUser: (
 		email: string,
 		password: string,
 		displayName?: string
 	) => Promise<boolean>;
+
+	// New multi-step upgrade methods
+	/** Step 1: Initiate email upgrade - sends verification OTP */
+	initiateEmailUpgrade: (
+		email: string,
+		displayName?: string
+	) => Promise<boolean>;
+
+	/** Step 2: Verify OTP code sent to email */
+	verifyUpgradeOtp: (otp: string) => Promise<boolean>;
+
+	/** Step 3: Set password after email verification */
+	completeUpgradeWithPassword: (password: string) => Promise<boolean>;
+
+	/** Alternative: Initiate OAuth upgrade (redirects to provider) */
+	initiateOAuthUpgrade: (provider: OAuthProvider) => Promise<void>;
+
+	/** Resend verification OTP */
+	resendUpgradeOtp: () => Promise<boolean>;
+
+	/** Reset upgrade state to initial */
+	resetUpgradeState: () => void;
+
+	/** Set upgrade step manually (for UI navigation) */
+	setUpgradeStep: (step: UpgradeStep) => void;
 
 	ensureAuthenticated: (displayName?: string) => Promise<boolean>;
 
@@ -344,6 +412,8 @@ export interface SharingSlice extends SharingState {
 	refreshRoomCode: (tokenId: string) => Promise<void>;
 
 	revokeRoomCode: (tokenId: string) => Promise<void>;
+
+	deleteShare: (shareId: string) => Promise<void>;
 
 	subscribeToSharingUpdates: (mapId: string) => void;
 

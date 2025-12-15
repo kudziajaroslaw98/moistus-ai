@@ -136,6 +136,16 @@ export const waitlistRateLimiter = new InMemoryRateLimiter({
 	windowMs: 60 * 60 * 1000, // per hour
 });
 
+export const upgradeInitiateRateLimiter = new InMemoryRateLimiter({
+	maxAttempts: 3, // 3 attempts
+	windowMs: 60 * 1000, // per minute
+});
+
+export const otpLimiter = new InMemoryRateLimiter({
+	maxAttempts: 5, // 5 attempts
+	windowMs: 60 * 1000, // per minute
+});
+
 /**
  * Validates if a string is a valid IPv4 address
  */
@@ -293,8 +303,14 @@ function isPrivateIP(ip: string): boolean {
 // Helper function to check rate limit and return appropriate response
 export function checkRateLimit(
 	request: Request,
-	limiter: InMemoryRateLimiter = waitlistRateLimiter
+	limiter: InMemoryRateLimiter = waitlistRateLimiter,
+	customIdentifier?: string
 ): { allowed: boolean; remainingAttempts: number; resetTime: number } {
+	// Use custom identifier if provided, otherwise fall back to IP-based identification
+	if (customIdentifier) {
+		return limiter.check(customIdentifier);
+	}
+
 	const clientIP = getClientIP(request);
 
 	// If no valid IP found, use a fallback identifier

@@ -1,4 +1,5 @@
 'use client';
+import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import type { NodeEditorOptions } from '@/store/app-state';
 import useAppStore from '@/store/mind-map-store';
 import type { AppNode } from '@/types/app-node';
@@ -51,6 +52,7 @@ interface BuildNodeMenuParams {
 	aiActions: {
 		suggestCounterpoints?: () => void;
 	};
+	canEdit: boolean;
 }
 
 function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
@@ -64,6 +66,7 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 		reactFlowInstance,
 		onClose,
 		aiActions,
+		canEdit,
 	} = params;
 
 	const clickedNodeData = clickedNode.data;
@@ -84,6 +87,7 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 						});
 						onClose();
 					},
+					hidden: !canEdit,
 				},
 				{
 					id: 'add-child',
@@ -112,6 +116,7 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 							onClose();
 						}
 					},
+					hidden: !canEdit,
 				},
 				{
 					id: 'toggle-collapse',
@@ -128,6 +133,7 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 						onClose();
 					},
 					hidden: !hasChildren,
+					// Note: Collapse/expand is view-only, available to all roles
 				},
 				{
 					id: 'remove-from-group',
@@ -137,7 +143,7 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 						removeNodesFromGroup([clickedNode.id]);
 						onClose();
 					},
-					hidden: !clickedNode.parentId,
+					hidden: !clickedNode.parentId || !canEdit,
 				},
 			],
 		},
@@ -152,6 +158,7 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 						aiActions?.suggestCounterpoints?.();
 						onClose();
 					},
+					hidden: !canEdit,
 				},
 			],
 		},
@@ -167,6 +174,7 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 						onClose();
 					},
 					variant: 'destructive',
+					hidden: !canEdit,
 				},
 			],
 		},
@@ -178,10 +186,11 @@ interface BuildEdgeMenuParams {
 	updateEdge: any;
 	deleteEdges: any;
 	onClose: () => void;
+	canEdit: boolean;
 }
 
 function buildEdgeMenu(params: BuildEdgeMenuParams): MenuSection[] {
-	const { clickedEdge, updateEdge, deleteEdges, onClose } = params;
+	const { clickedEdge, updateEdge, deleteEdges, onClose, canEdit } = params;
 
 	return [
 		{
@@ -192,6 +201,7 @@ function buildEdgeMenu(params: BuildEdgeMenuParams): MenuSection[] {
 					icon: <></>,
 					label: '',
 					onClick: () => {},
+					hidden: !canEdit,
 					customComponent: (
 						<EdgeStyleSelector
 							edge={clickedEdge}
@@ -206,11 +216,25 @@ function buildEdgeMenu(params: BuildEdgeMenuParams): MenuSection[] {
 								});
 							}}
 							onPathTypeChange={(pathType: PathType) => {
+								// Update edge type based on path type
+								const edgeType =
+									pathType === 'waypoint' ? 'waypointEdge' : 'floatingEdge';
+
+								// When switching away from waypoint, clear waypoints
+								const shouldClearWaypoints =
+									pathType !== 'waypoint' &&
+									clickedEdge.data?.metadata?.pathType === 'waypoint';
+
 								updateEdge({
 									edgeId: clickedEdge.id,
 									data: {
+										type: edgeType,
 										metadata: {
+											...clickedEdge.data?.metadata,
 											pathType,
+											waypoints: shouldClearWaypoints
+												? undefined
+												: clickedEdge.data?.metadata?.waypoints,
 										},
 									},
 								});
@@ -241,6 +265,7 @@ function buildEdgeMenu(params: BuildEdgeMenuParams): MenuSection[] {
 							},
 						});
 					},
+					hidden: !canEdit,
 				},
 			],
 		},
@@ -256,6 +281,7 @@ function buildEdgeMenu(params: BuildEdgeMenuParams): MenuSection[] {
 						onClose();
 					},
 					variant: 'destructive',
+					hidden: !canEdit,
 				},
 			],
 		},
@@ -275,6 +301,7 @@ interface BuildPaneMenuParams {
 	loadingStates: any;
 	applyLayout: any;
 	onClose: () => void;
+	canEdit: boolean;
 }
 
 function buildPaneMenu(params: BuildPaneMenuParams): MenuSection[] {
@@ -287,6 +314,7 @@ function buildPaneMenu(params: BuildPaneMenuParams): MenuSection[] {
 		loadingStates,
 		applyLayout,
 		onClose,
+		canEdit,
 	} = params;
 
 	return [
@@ -311,6 +339,7 @@ function buildPaneMenu(params: BuildPaneMenuParams): MenuSection[] {
 							onClose();
 						}
 					},
+					hidden: !canEdit,
 				},
 				{
 					id: 'add-reference',
@@ -331,6 +360,7 @@ function buildPaneMenu(params: BuildPaneMenuParams): MenuSection[] {
 							onClose();
 						}
 					},
+					hidden: !canEdit,
 				},
 			],
 		},
@@ -343,6 +373,7 @@ function buildPaneMenu(params: BuildPaneMenuParams): MenuSection[] {
 					label: 'Suggest Connections',
 					onClick: aiActions.suggestConnections,
 					loading: loadingStates.isSuggestingConnections,
+					hidden: !canEdit,
 				},
 				{
 					id: 'suggest-counterpoints',
@@ -350,6 +381,7 @@ function buildPaneMenu(params: BuildPaneMenuParams): MenuSection[] {
 					label: 'Generate Counterpoints',
 					onClick: () => aiActions.suggestCounterpoints?.(),
 					loading: loadingStates.isGenerating,
+					hidden: !canEdit,
 				},
 				{
 					id: 'suggest-merges',
@@ -357,6 +389,7 @@ function buildPaneMenu(params: BuildPaneMenuParams): MenuSection[] {
 					label: 'Suggest Merges',
 					onClick: aiActions.suggestMerges,
 					loading: loadingStates.isSuggestingMerges,
+					hidden: !canEdit,
 				},
 			],
 		},
@@ -371,6 +404,7 @@ function buildPaneMenu(params: BuildPaneMenuParams): MenuSection[] {
 						applyLayout('TB');
 						onClose();
 					},
+					hidden: !canEdit,
 				},
 				{
 					id: 'layout-lr',
@@ -380,6 +414,7 @@ function buildPaneMenu(params: BuildPaneMenuParams): MenuSection[] {
 						applyLayout('LR');
 						onClose();
 					},
+					hidden: !canEdit,
 				},
 			],
 		},
@@ -391,13 +426,19 @@ interface BuildSelectedNodesMenuParams {
 	createGroupFromSelected: any;
 	ungroupNodes: any;
 	onClose: () => void;
+	canEdit: boolean;
 }
 
 function buildSelectedNodesMenu(
 	params: BuildSelectedNodesMenuParams
 ): MenuSection[] {
-	const { selectedNodes, createGroupFromSelected, ungroupNodes, onClose } =
-		params;
+	const {
+		selectedNodes,
+		createGroupFromSelected,
+		ungroupNodes,
+		onClose,
+		canEdit,
+	} = params;
 
 	if (!selectedNodes || selectedNodes.length === 0) return [];
 
@@ -417,7 +458,7 @@ function buildSelectedNodesMenu(
 						createGroupFromSelected();
 						onClose();
 					},
-					hidden: selectedNodes.length <= 1,
+					hidden: selectedNodes.length <= 1 || !canEdit,
 				},
 				{
 					id: 'ungroup',
@@ -427,7 +468,7 @@ function buildSelectedNodesMenu(
 						ungroupNodes(selectedNodes[0].id);
 						onClose();
 					},
-					hidden: !isSingleGroupSelected,
+					hidden: !isSingleGroupSelected || !canEdit,
 				},
 			],
 		},
@@ -480,6 +521,9 @@ export function useContextMenuConfig({
 		}))
 	);
 
+	// Get permissions for feature gating
+	const { canEdit } = usePermissions();
+
 	const { x, y, nodeId, edgeId } = contextMenuState;
 
 	const clickedNode = useMemo(
@@ -507,6 +551,7 @@ export function useContextMenuConfig({
 				reactFlowInstance,
 				onClose,
 				aiActions,
+				canEdit,
 			});
 		}
 
@@ -517,6 +562,7 @@ export function useContextMenuConfig({
 				updateEdge,
 				deleteEdges,
 				onClose,
+				canEdit,
 			});
 		}
 
@@ -527,6 +573,7 @@ export function useContextMenuConfig({
 				createGroupFromSelected,
 				ungroupNodes,
 				onClose,
+				canEdit,
 			});
 		}
 
@@ -540,6 +587,7 @@ export function useContextMenuConfig({
 			loadingStates,
 			applyLayout,
 			onClose,
+			canEdit,
 		});
 	}, [
 		nodeId,
@@ -563,6 +611,7 @@ export function useContextMenuConfig({
 		loadingStates,
 		applyLayout,
 		onClose,
+		canEdit,
 	]);
 
 	return {

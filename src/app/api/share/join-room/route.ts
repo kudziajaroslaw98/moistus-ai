@@ -1,4 +1,5 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
+import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { withAuthValidation } from '@/helpers/api/with-auth-validation';
 import { z } from 'zod';
 
@@ -49,9 +50,27 @@ export const POST = withAuthValidation(
 			console.dir(shareAccess, { depth: 0 });
 			console.dir(shareAccessError, { depth: 0 });
 
+			// Extract first result (RPC returns array)
+			const accessRecord = shareAccess?.[0];
+
+			// 2. Increment current_users if this is a NEW user joining
+			// Use atomic RPC to prevent race conditions
+			if (accessRecord?.was_created === true) {
+				const adminClient = createServiceRoleClient();
+				const { error: incrementError } = await adminClient.rpc(
+					'increment_share_token_users',
+					{ token_id: validation.token_id }
+				);
+
+				if (incrementError) {
+					console.error('Failed to increment current_users:', incrementError);
+					// Non-blocking - don't fail the join if counter update fails
+				}
+			}
+
 			console.log('Validation result:', validation);
 
-			// 2. Get map information
+			// 3. Get map information
 			const { data: mapData, error: mapError } = await supabase
 				.from('mind_maps')
 				.select('id, title, description, user_id')

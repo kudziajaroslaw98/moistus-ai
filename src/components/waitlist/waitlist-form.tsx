@@ -127,7 +127,7 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 								aria-describedby={errors.email ? 'email-error' : undefined}
 								aria-invalid={!!errors.email}
 								aria-label='Email address'
-								className='!h-12 !flex pl-12 pr-4 !bg-zinc-950 !border-zinc-800 !text-zinc-100 !placeholder:text-zinc-500 focus:border-violet-500/75 focus:ring-violet-500/75'
+								className='!h-12 !flex pl-12 pr-4 !bg-zinc-900/50 !border-zinc-700/50 !text-zinc-100 !placeholder:text-zinc-500 focus:!border-sky-500/60 focus:!ring-sky-500/20 focus:!ring-2'
 								disabled={isSubmitting || isSuccess}
 								id='email'
 								placeholder='Enter your email for early access'
@@ -156,7 +156,7 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 				</div>
 
 				<Button
-					className='w-full h-12 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white font-medium shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed'
+					className='w-full h-12 bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-400 hover:to-sky-500 text-white font-medium shadow-lg shadow-sky-500/30 hover:shadow-xl hover:shadow-sky-500/40 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
 					disabled={isSubmitting || isSuccess}
 					type='submit'
 				>
@@ -234,7 +234,7 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 						Already signed up with a different email?{' '}
 
 						<button
-							className='text-violet-400 hover:text-violet-300 underline underline-offset-2 transition-colors'
+							className='text-sky-400 hover:text-sky-300 underline underline-offset-2 transition-colors duration-200'
 							type='button'
 							onClick={() => {
 								localStorage.removeItem(STORAGE_KEY);

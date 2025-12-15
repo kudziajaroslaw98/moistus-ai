@@ -41,6 +41,7 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
+import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useActivityTracker } from '@/hooks/realtime/use-activity-tracker';
 import { useContextMenu } from '@/hooks/use-context-menu';
 import { useNodeSuggestion } from '@/hooks/use-node-suggestion';
@@ -56,6 +57,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
 import FloatingConnectionLine from '../edges/floating-connection-line';
 import { SuggestedMergeEdge } from '../edges/suggested-merge-edge';
+import WaypointEdge from '../edges/waypoint-edge';
 import { RealtimeAvatarStack } from '../realtime/realtime-avatar-stack';
 import { RealtimeCursors } from '../realtime/realtime-cursor';
 import { Toolbar } from '../toolbar';
@@ -70,7 +72,9 @@ export function ReactFlowArea() {
 	const connectingHandleType = useRef<'source' | 'target' | null>(null);
 	const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-	const [settingsTab, setSettingsTab] = useState<'settings' | 'billing'>('settings');
+	const [settingsTab, setSettingsTab] = useState<'settings' | 'billing'>(
+		'settings'
+	);
 
 	const handleOpenSettings = (tab: 'settings' | 'billing' = 'settings') => {
 		setSettingsTab(tab);
@@ -163,6 +167,7 @@ export function ReactFlowArea() {
 
 	const { contextMenuHandlers } = useContextMenu();
 	const { generateSuggestionsForNode } = useNodeSuggestion();
+	const { canEdit } = usePermissions();
 
 	useEffect(() => {
 		getCurrentUser();
@@ -254,7 +259,19 @@ export function ReactFlowArea() {
 	);
 
 	const handleEdgeDoubleClick: EdgeMouseHandler<Edge<EdgeData>> = useCallback(
-		(_event, edge) => {
+		(event, edge) => {
+			// Forward double-click to waypoint edge component via custom event
+			if (edge.type === 'waypointEdge' || edge.data?.metadata?.pathType === 'waypoint') {
+				const customEvent = new CustomEvent('waypoint-edge-add', {
+					detail: {
+						edgeId: edge.id,
+						clientX: event.clientX,
+						clientY: event.clientY,
+					},
+				});
+				document.dispatchEvent(customEvent);
+				return;
+			}
 			setEdgeInfo(edge);
 			setPopoverOpen({ edgeEdit: true });
 		},
@@ -274,6 +291,7 @@ export function ReactFlowArea() {
 			editableEdge: FloatingEdge,
 			defaultEdge: FloatingEdge,
 			floatingEdge: FloatingEdge,
+			waypointEdge: WaypointEdge,
 			default: FloatingEdge,
 		}),
 		[]
@@ -404,8 +422,8 @@ export function ReactFlowArea() {
 				minZoom={0.1}
 				multiSelectionKeyCode={['Meta', 'Control']}
 				nodes={[...getVisibleNodes(), ...ghostNodes]}
-				nodesConnectable={isSelectMode || activeTool === 'connector'}
-				nodesDraggable={isSelectMode}
+				nodesConnectable={(isSelectMode || activeTool === 'connector') && canEdit}
+				nodesDraggable={isSelectMode && canEdit}
 				nodeTypes={nodeTypesWithProps}
 				onConnect={onConnect}
 				onConnectEnd={onConnectEnd}
@@ -429,7 +447,8 @@ export function ReactFlowArea() {
 				snapToGrid={true}
 				className={cn([
 					isPanningMode && 'cursor-grab',
-					(activeTool === 'node' || activeTool === 'text') && 'cursor-crosshair',
+					(activeTool === 'node' || activeTool === 'text') &&
+						'cursor-crosshair',
 				])}
 				style={
 					{
@@ -444,7 +463,7 @@ export function ReactFlowArea() {
 				/>
 
 				<Panel
-					className='!m-0 p-2 px-8 right-0 flex justify-between bg-surface/20 backdrop-blur-xs'
+					className='!m-0 p-2 px-8 right-0 flex justify-between bg-base/80 backdrop-blur-xs'
 					position='top-left'
 				>
 					<div className='flex items-center gap-8'>
@@ -475,6 +494,7 @@ export function ReactFlowArea() {
 							</BreadcrumbList>
 						</Breadcrumb>
 
+						{canEdit && (
 						<div className='flex gap-2'>
 							{/*TODO: Uncomment redo/undo when optimized history implemented*/}
 							<Button
@@ -508,6 +528,7 @@ export function ReactFlowArea() {
 								<History className='h-4 w-4' />
 							</Button>
 						</div>
+					)}
 					</div>
 
 					<div className='flex items-center gap-8'>
@@ -543,7 +564,11 @@ export function ReactFlowArea() {
 						)}
 
 						{/* User Menu */}
-						<UserMenu showBackToDashboard user={userProfile} onOpenSettings={handleOpenSettings} />
+						<UserMenu
+							showBackToDashboard
+							user={userProfile}
+							onOpenSettings={handleOpenSettings}
+						/>
 					</div>
 				</Panel>
 

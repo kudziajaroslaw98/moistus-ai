@@ -14,6 +14,7 @@ import { createCompletions } from './completions';
 import { createPatternDecorations } from './pattern-decorations';
 import { nodeEditorTheme } from './theme';
 import { createValidationDecorations } from './validation-decorations';
+import { commandRegistry } from '../../core/commands/command-registry';
 
 /**
  * Configuration options for the node editor
@@ -97,12 +98,19 @@ export function createNodeEditor(
 		...(onNodeTypeChange
 			? [
 					EditorState.transactionExtender.of((tr) => {
-						// Check for $nodeType patterns
+						// Check for $nodeType patterns anywhere in text
 						const text = tr.newDoc.toString();
-						const nodeTypeMatch = text.match(/^\$(\w+)\s/);
+						const nodeTypeMatch = text.match(/\$(\w+)(\s|$)/);
 
 						if (nodeTypeMatch) {
-							onNodeTypeChange(nodeTypeMatch[1]);
+							// Validate the trigger is a complete, valid command
+							const trigger = `$${nodeTypeMatch[1]}`;
+							const command = commandRegistry.getCommandByTrigger(trigger);
+
+							// Only fire type change if it's a valid complete command
+							if (command?.nodeType) {
+								onNodeTypeChange(nodeTypeMatch[1]);
+							}
 						}
 
 						return null;

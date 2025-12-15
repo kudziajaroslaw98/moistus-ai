@@ -3,7 +3,12 @@ import { generateFallbackAvatar } from '@/helpers/user-profile-helpers';
 import { ShareAccessWithProfile } from '@/types/share-access-with-profiles';
 import { SharedUser, ShareToken, SharingError } from '@/types/sharing-types';
 import { StateCreator } from 'zustand';
-import { AppState, SharingSlice } from '../app-state';
+import {
+	AppState,
+	OAuthProvider,
+	SharingSlice,
+	UpgradeStep,
+} from '../app-state';
 
 const supabase = getSharedSupabaseClient();
 
@@ -49,6 +54,13 @@ export const createSharingSlice: StateCreator<
 		lastJoinResult: undefined,
 		_sharingSubscription: undefined,
 
+		// Upgrade state (for anonymous -> full user conversion)
+		upgradeStep: 'idle' as UpgradeStep,
+		upgradeEmail: null,
+		upgradeDisplayName: null,
+		upgradeError: null,
+		isUpgrading: false,
+
 		getCurrentShareUsers: async () => {
 			const { supabase, mapId, setState } = get();
 
@@ -80,7 +92,8 @@ export const createSharingSlice: StateCreator<
 				},
 				isAnonymous: shareAccessProfile.is_anonymous,
 				share: {
-					id: shareAccessProfile.share_token_id!,
+					// Use share_access.id for deletion (numeric converted to string)
+					id: String(shareAccessProfile.id),
 					map_id: shareAccessProfile.map_id,
 					user_id: shareAccessProfile.user_id,
 					can_edit: shareAccessProfile.can_edit,
@@ -364,7 +377,8 @@ export const createSharingSlice: StateCreator<
 			}
 		},
 
-		// Upgrade anonymous user to full user
+		// Legacy upgrade method - kept for backwards compatibility
+		/** @deprecated Use initiateEmailUpgrade + verifyUpgradeOtp + completeUpgradeWithPassword instead */
 		upgradeAnonymousUser: async (
 			email: string,
 			password: string,
@@ -419,6 +433,256 @@ export const createSharingSlice: StateCreator<
 				set({ sharingError });
 				return false;
 			}
+		},
+
+		// ============================================
+		// NEW MULTI-STEP UPGRADE METHODS
+		// ============================================
+
+		/**
+		 * Step 1: Initiate email upgrade - sends verification OTP to email
+		 */
+		initiateEmailUpgrade: async (email: string, displayName?: string) => {
+			set({
+				isUpgrading: true,
+				upgradeError: null,
+				upgradeStep: 'enter_email',
+			});
+
+			try {
+				const currentUser = get().authUser;
+
+				if (!currentUser?.is_anonymous) {
+					throw new Error('User is not anonymous or not found');
+				}
+
+				const response = await fetch('/api/auth/upgrade-anonymous/initiate', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						email,
+						display_name: displayName,
+					}),
+				});
+
+				const result = await response.json();
+
+				if (!response.ok) {
+					throw new Error(result.error || 'Failed to send verification email');
+				}
+
+				set({
+					upgradeStep: 'verify_otp',
+					upgradeEmail: email,
+					upgradeDisplayName: displayName || null,
+					isUpgrading: false,
+				});
+
+				return true;
+			} catch (error) {
+				set({
+					upgradeError:
+						error instanceof Error
+							? error.message
+							: 'Failed to initiate upgrade',
+					upgradeStep: 'error',
+					isUpgrading: false,
+				});
+				return false;
+			}
+		},
+
+		/**
+		 * Step 2: Verify OTP code sent to email
+		 */
+		verifyUpgradeOtp: async (otp: string) => {
+			const email = get().upgradeEmail;
+
+			if (!email) {
+				set({
+					upgradeError: 'No email found. Please start over.',
+					upgradeStep: 'error',
+				});
+				return false;
+			}
+
+			set({ isUpgrading: true, upgradeError: null });
+
+			try {
+				const response = await fetch('/api/auth/upgrade-anonymous/verify-otp', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ email, otp }),
+				});
+
+				const result = await response.json();
+
+				if (!response.ok) {
+					throw new Error(result.error || 'Invalid verification code');
+				}
+
+				set({
+					upgradeStep: 'set_password',
+					isUpgrading: false,
+				});
+
+				return true;
+			} catch (error) {
+				set({
+					upgradeError:
+						error instanceof Error ? error.message : 'Verification failed',
+					isUpgrading: false,
+				});
+				return false;
+			}
+		},
+
+		/**
+		 * Step 3: Set password after email verification - completes upgrade
+		 */
+		completeUpgradeWithPassword: async (password: string) => {
+			set({ isUpgrading: true, upgradeError: null });
+
+			try {
+				const displayName = get().upgradeDisplayName;
+
+				const response = await fetch(
+					'/api/auth/upgrade-anonymous/set-password',
+					{
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							password,
+							display_name: displayName,
+						}),
+					}
+				);
+
+				const result = await response.json();
+
+				if (!response.ok) {
+					throw new Error(result.error || 'Failed to set password');
+				}
+
+				// Update current user state
+				const currentUser = get().authUser;
+				if (currentUser) {
+					const updatedUser: AnonymousUser = {
+						...currentUser,
+						display_name:
+							result.data?.profile?.display_name || currentUser.display_name,
+						is_anonymous: false,
+					};
+
+					set({
+						authUser: updatedUser,
+						upgradeStep: 'completed',
+						isUpgrading: false,
+						sharingError: undefined,
+					});
+				} else {
+					set({
+						upgradeStep: 'completed',
+						isUpgrading: false,
+					});
+				}
+
+				return true;
+			} catch (error) {
+				set({
+					upgradeError:
+						error instanceof Error
+							? error.message
+							: 'Failed to complete upgrade',
+					upgradeStep: 'error',
+					isUpgrading: false,
+				});
+				return false;
+			}
+		},
+
+		/**
+		 * Alternative: Initiate OAuth upgrade (redirects to provider)
+		 */
+		initiateOAuthUpgrade: async (provider: OAuthProvider) => {
+			set({
+				isUpgrading: true,
+				upgradeError: null,
+				upgradeStep: 'oauth_pending',
+			});
+
+			try {
+				const currentUser = get().authUser;
+
+				if (!currentUser?.is_anonymous) {
+					throw new Error('User is not anonymous or not found');
+				}
+
+				// Use linkIdentity to link OAuth provider to anonymous user
+				const { data, error } = await supabase.auth.linkIdentity({
+					provider,
+					options: {
+						redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(window.location.pathname)}`,
+					},
+				});
+
+				if (error) {
+					throw error;
+				}
+
+				// If linkIdentity returns a URL, redirect to it
+				if (data?.url) {
+					window.location.href = data.url;
+				}
+
+				// Note: isUpgrading will remain true until callback completes
+			} catch (error) {
+				set({
+					upgradeError:
+						error instanceof Error ? error.message : 'Failed to start OAuth',
+					upgradeStep: 'error',
+					isUpgrading: false,
+				});
+			}
+		},
+
+		/**
+		 * Resend verification OTP
+		 */
+		resendUpgradeOtp: async () => {
+			const email = get().upgradeEmail;
+			const displayName = get().upgradeDisplayName;
+
+			if (!email) {
+				set({
+					upgradeError: 'No email found. Please start over.',
+					upgradeStep: 'error',
+				});
+				return false;
+			}
+
+			// Re-initiate with same email
+			return get().initiateEmailUpgrade(email, displayName || undefined);
+		},
+
+		/**
+		 * Reset upgrade state to initial
+		 */
+		resetUpgradeState: () => {
+			set({
+				upgradeStep: 'idle',
+				upgradeEmail: null,
+				upgradeDisplayName: null,
+				upgradeError: null,
+				isUpgrading: false,
+			});
+		},
+
+		/**
+		 * Set upgrade step manually (for UI navigation)
+		 */
+		setUpgradeStep: (step: UpgradeStep) => {
+			set({ upgradeStep: step, upgradeError: null });
 		},
 
 		// Refresh user's share tokens
@@ -522,14 +786,49 @@ export const createSharingSlice: StateCreator<
 			}
 		},
 
+		// Delete individual user access from a shared map
+		deleteShare: async (shareId: string) => {
+			try {
+				const response = await fetch(`/api/share/delete-share/${shareId}`, {
+					method: 'DELETE',
+				});
+
+				if (!response.ok) {
+					const error = await response.json();
+					throw new Error(error.error || 'Failed to delete share');
+				}
+
+				// Remove from currentShares state
+				set((state) => ({
+					currentShares: (state.currentShares ?? []).filter(
+						(share) => share.share.id !== shareId
+					),
+				}));
+			} catch (error) {
+				const sharingError: SharingError = {
+					code: 'UNKNOWN',
+					message:
+						error instanceof Error
+							? error.message
+							: 'Failed to delete share',
+				};
+
+				set({ sharingError });
+				throw sharingError;
+			}
+		},
+
 		// Subscribe to real-time sharing updates
 		subscribeToSharingUpdates: (mapId: string) => {
 			try {
 				// Unsubscribe from any existing subscription
 				get().unsubscribeFromSharing();
 
+				const { authUser } = get();
+				const currentUserId = authUser?.user_id;
+
 				// Subscribe to share_tokens changes for this map
-				const subscription = supabase
+				let channel = supabase
 					.channel(`sharing_updates_${mapId}`)
 					.on(
 						'postgres_changes',
@@ -557,8 +856,42 @@ export const createSharingSlice: StateCreator<
 							console.log('Share permissions update received:', payload);
 							// Could trigger additional updates if needed
 						}
-					)
-					.subscribe();
+					);
+
+				// Subscribe to share_access DELETE events for the current user
+				// This triggers when the map owner removes the user's access
+				if (currentUserId) {
+					channel = channel.on(
+						'postgres_changes',
+						{
+							event: 'DELETE',
+							schema: 'public',
+							table: 'share_access',
+							filter: `user_id=eq.${currentUserId}`,
+						},
+						(payload) => {
+							console.log('Share access revoked:', payload);
+							const deletedRecord = payload.old as {
+								map_id?: string;
+								user_id?: string;
+							};
+
+							// Check if this deletion is for the current map
+							if (deletedRecord?.map_id === mapId) {
+								console.log(
+									'Access revoked for current map, showing access denied page'
+								);
+								// Trigger access revoked state via core slice
+								get().setMapAccessError({
+									type: 'access_denied',
+									isAnonymous: authUser?.is_anonymous ?? true,
+								});
+							}
+						}
+					);
+				}
+
+				const subscription = channel.subscribe();
 
 				set({ _sharingSubscription: subscription });
 			} catch (error) {
@@ -592,6 +925,12 @@ export const createSharingSlice: StateCreator<
 				sharingError: undefined,
 				lastJoinResult: undefined,
 				_sharingSubscription: undefined,
+				// Reset upgrade state
+				upgradeStep: 'idle',
+				upgradeEmail: null,
+				upgradeDisplayName: null,
+				upgradeError: null,
+				isUpgrading: false,
 			});
 		},
 	};

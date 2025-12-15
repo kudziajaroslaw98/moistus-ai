@@ -2,10 +2,9 @@
 
 import { AnonymousUserBanner } from '@/components/auth/anonymous-user-banner';
 import { UpgradeAnonymousPrompt } from '@/components/auth/upgrade-anonymous';
-import { Button } from '@/components/ui/button';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
-import { Archive, Home, Plus, Settings, Star, Users } from 'lucide-react';
+import { Archive, Home, Settings, Star, Users } from 'lucide-react';
 import { motion } from 'motion/react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -100,18 +99,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 	const handleOpenSettings = (tab: 'settings' | 'billing' = 'settings') => {
 		setSettingsTab(tab);
 		setIsSettingsOpen(true);
-	};
-
-	const handleRequestCreateMap = () => {
-		// Check if user is anonymous
-		if (userProfile?.isAnonymous) {
-			// Show upgrade prompt for anonymous users
-			setShowAnonymousUpgrade(true);
-			return;
-		}
-
-		// Navigate to dashboard for full users to create map
-		router.push('/dashboard');
 	};
 
 	// Handle manual trigger of upgrade modal
@@ -291,25 +278,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 					</div>
 				</SidebarHeader>
 
-				{/* New Map Button */}
 				<SidebarContent className='w-full'>
-					<SidebarSection className={cn(['w-full h-16 p-4 px-2'])}>
-						<Button
-							size={sidebarCollapsed ? 'icon' : 'default'}
-							onClick={handleRequestCreateMap}
-							className={cn(
-								'w-full bg-sky-600 hover:bg-sky-700 text-white',
-								'shadow-lg hover:shadow-sky-600/25',
-								!sidebarCollapsed && 'px-0'
-							)}
-						>
-							<Plus className='h-4 w-4' />
-
-							{!sidebarCollapsed && <span className='ml-2'>New Map</span>}
-						</Button>
-					</SidebarSection>
-
-					<SidebarGroup
+				<SidebarGroup
 						className={cn(['w-full', !sidebarCollapsed ? 'p-2' : 'p-2'])}
 					>
 						<SidebarSection showDivider={false}>
@@ -345,7 +315,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
 			{/* Consolidated upgrade prompt: auto-show after 5 min OR manual trigger */}
 			<UpgradeAnonymousPrompt
-				isAnonymous={userProfile?.isAnonymous ?? false}
+				isAnonymous={userProfile?.is_anonymous ?? false}
 				userDisplayName={userProfile?.display_name || userProfile?.full_name}
 				autoShowDelay={showAnonymousUpgrade ? 0 : 5 * 60 * 1000}
 				onDismiss={() => {

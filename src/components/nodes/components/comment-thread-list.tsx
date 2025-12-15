@@ -3,7 +3,7 @@
 import type { CommentMessage } from '@/types/comment';
 import { cn } from '@/utils/cn';
 import { motion } from 'motion/react';
-import { memo, useEffect, useRef } from 'react';
+import { memo, ReactNode, useEffect, useRef } from 'react';
 import { CommentReactions } from './comment-reactions';
 
 /**
@@ -79,7 +79,7 @@ const CommentThreadListComponent = ({
 	/**
 	 * Highlight @mentions in message content
 	 */
-	const renderContentWithMentions = (content: string): React.ReactNode => {
+	const renderContentWithMentions = (content: string): ReactNode => {
 		const mentionPattern = /(@\w+)/g;
 		const parts = content.split(mentionPattern);
 
@@ -104,17 +104,19 @@ const CommentThreadListComponent = ({
 
 	if (messages.length === 0) {
 		return (
-			<div className='flex-1 flex items-center justify-center p-4'>
-				<span className='text-sm text-center text-text-disabled'>
+			<div className='flex-1 flex items-center justify-center p-4 h-full max-h-[455px]'>
+				<span className='text-sm text-center text-text-disabled flex-1 h-full'>
 					No messages yet. Start the conversation!
 				</span>
 			</div>
 		);
 	}
 
+	// Fixed height for ~5 messages (each message ~56px) with scrolling
+	// Total: header(52px) + threadList(max 280px) + input(~68px) = ~400px
 	return (
 		<div
-			className='flex-1 overflow-y-auto p-3 space-y-3 nowheel'
+			className='flex flex-col overflow-y-scroll p-3 gap-3 nowheel max-h-[455px] flex-1'
 			onWheel={(e) => e.stopPropagation()}
 			ref={scrollContainerRef}
 		>

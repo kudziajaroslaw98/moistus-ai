@@ -1,5 +1,6 @@
 import { ceilToGrid, GRID_SIZE } from '@/constants/grid';
 import { STORE_SAVE_DEBOUNCE_MS } from '@/constants/store-save-debounce-ms';
+import { fetchResourceMetadata } from '@/helpers/fetch-resource-metadata';
 import generateUuid from '@/helpers/generate-uuid';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
 import { AvailableNodeTypes } from '@/registry/node-registry';
@@ -378,6 +379,14 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					nodes: finalNodes,
 					edges: finalEdges,
 				});
+
+				// Auto-fetch metadata for resource nodes (fire-and-forget)
+				if (nodeType === 'resourceNode' && data.metadata?.url) {
+					get().fetchResourceNodeMetadata(
+						newNodeId,
+						data.metadata.url as string
+					);
+				}
 			},
 			'isAddingContent',
 			{
@@ -802,6 +811,61 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				} catch (error) {
 					console.error('Error unsubscribing from nodes updates:', error);
 				}
+			}
+		},
+
+		/**
+		 * Fetches metadata for a resource node from the URL.
+		 * Auto-populates title, image, and AI summary.
+		 * Called automatically after resource node creation.
+		 */
+		fetchResourceNodeMetadata: async (nodeId: string, url: string) => {
+			const { updateNode } = get();
+
+			try {
+				// Mark node as fetching metadata
+				await updateNode({
+					nodeId,
+					data: {
+						metadata: {
+							isFetchingMetadata: true,
+							metadataFetchError: null,
+						},
+					},
+				});
+
+				// Fetch metadata from URL (includes AI summary)
+				const metadata = await fetchResourceMetadata(url, true);
+
+				// Update node with fetched metadata
+				await updateNode({
+					nodeId,
+					data: {
+						metadata: {
+							title: metadata.title || undefined,
+							imageUrl: metadata.imageUrl || undefined,
+							summary: metadata.summary || undefined,
+							// Auto-enable display when data exists
+							showThumbnail: !!metadata.imageUrl,
+							showSummary: !!metadata.summary,
+							isFetchingMetadata: false,
+							metadataFetchedAt: new Date().toISOString(),
+						},
+					},
+				});
+			} catch (error) {
+				// Silent failure for auto-fetch - just update error state
+				console.error('Failed to fetch resource metadata:', error);
+				await updateNode({
+					nodeId,
+					data: {
+						metadata: {
+							isFetchingMetadata: false,
+							metadataFetchError:
+								error instanceof Error ? error.message : 'Failed to fetch',
+						},
+					},
+				});
 			}
 		},
 	};

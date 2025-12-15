@@ -1,4 +1,4 @@
-import type { PathType } from './path-types';
+import type { EdgeAnchor, PathType, Waypoint, WaypointCurveType } from './path-types';
 
 export interface EdgeData extends Record<string, unknown> {
 	id: string;
@@ -21,6 +21,10 @@ export interface EdgeData extends Record<string, unknown> {
 	metadata?: {
 		pathType?: PathType; // Added pathType
 		isGhostEdge?: boolean; // Mark edges as ghost edges for cleanup
+		waypoints?: Waypoint[]; // Array of draggable waypoints for custom edge routing
+		curveType?: WaypointCurveType; // Curve interpolation type for waypoint edges
+		sourceAnchor?: EdgeAnchor; // Custom anchor position on source node border
+		targetAnchor?: EdgeAnchor; // Custom anchor position on target node border
 	} | null;
 	aiData?: {
 		isSuggested?: boolean | null;

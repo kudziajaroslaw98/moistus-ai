@@ -3,50 +3,87 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
-export function useAuthRedirect() {
-    const router = useRouter();
-    const pathname = usePathname();
-    const [isChecking, setIsChecking] = useState(true);
+interface UseAuthRedirectOptions {
+	/** Block anonymous users and redirect them to sign-in. Default: false */
+	blockAnonymous?: boolean;
+	/** Optional message to display on sign-in page */
+	redirectMessage?: string;
+}
 
-    const { currentUser, getCurrentUser } = useAppStore(
-        useShallow((state) => ({
-            currentUser: state.currentUser,
-            getCurrentUser: state.getCurrentUser,
-        }))
-    );
+export function useAuthRedirect(options: UseAuthRedirectOptions = {}) {
+	const { blockAnonymous = false, redirectMessage } = options;
+	const router = useRouter();
+	const pathname = usePathname();
+	const [isChecking, setIsChecking] = useState(true);
 
-    useEffect(() => {
-        const checkAuth = async () => {
-            // If we already have a user in the store, we're authenticated
-            if (currentUser) {
-                setIsChecking(false);
-                return;
-            }
+	const { currentUser, userProfile, getCurrentUser } = useAppStore(
+		useShallow((state) => ({
+			currentUser: state.currentUser,
+			userProfile: state.userProfile,
+			getCurrentUser: state.getCurrentUser,
+		}))
+	);
 
-            // Otherwise, try to fetch the user from Supabase
-            try {
-                const user = await getCurrentUser();
+	useEffect(() => {
+		const checkAuth = async () => {
+			let user = currentUser;
 
-                if (!user) {
-                    // No user found, redirect to sign-in
-                    const params = new URLSearchParams();
-                    params.set('redirectedFrom', pathname);
-                    router.replace(`/auth/sign-in?${params.toString()}`);
-                } else {
-                    // User found, we're good
-                    setIsChecking(false);
-                }
-            } catch (error) {
-                console.error('Auth check failed:', error);
-                // On error, safer to redirect
-                const params = new URLSearchParams();
-                params.set('redirectedFrom', pathname);
-                router.replace(`/auth/sign-in?${params.toString()}`);
-            }
-        };
+			// If no user in store, try to fetch from Supabase
+			if (!user) {
+				try {
+					user = await getCurrentUser();
+				} catch (error) {
+					console.error('Auth check failed:', error);
+					// On error, redirect to sign-in
+					const params = new URLSearchParams();
+					params.set('redirectedFrom', pathname);
+					router.replace(`/auth/sign-in?${params.toString()}`);
+					return;
+				}
+			}
 
-        checkAuth();
-    }, [currentUser, getCurrentUser, router, pathname]);
+			// No user at all - redirect to sign-in
+			if (!user) {
+				const params = new URLSearchParams();
+				params.set('redirectedFrom', pathname);
+				router.replace(`/auth/sign-in?${params.toString()}`);
+				return;
+			}
 
-    return { isChecking, isAuthenticated: !!currentUser };
+			// User exists - check if anonymous blocking is needed
+			if (blockAnonymous) {
+				// Get fresh profile from store (generated after getCurrentUser)
+				const profile = useAppStore.getState().userProfile;
+
+				if (profile?.is_anonymous) {
+					const params = new URLSearchParams();
+					params.set('redirectedFrom', pathname);
+					if (redirectMessage) {
+						params.set('message', redirectMessage);
+					}
+					router.replace(`/auth/sign-in?${params.toString()}`);
+					return;
+				}
+			}
+
+			// User is authenticated and (if required) not anonymous
+			setIsChecking(false);
+		};
+
+		checkAuth();
+	}, [
+		currentUser,
+		userProfile,
+		getCurrentUser,
+		router,
+		pathname,
+		blockAnonymous,
+		redirectMessage,
+	]);
+
+	return {
+		isChecking,
+		isAuthenticated: !!currentUser,
+		isAnonymous: userProfile?.is_anonymous ?? false,
+	};
 }

@@ -2,9 +2,9 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { ShareToken } from '@/types/sharing-types';
 import {
+	ChevronDown,
 	Clock,
 	Copy,
 	ExternalLink,
@@ -13,18 +13,23 @@ import {
 	Users,
 	X,
 } from 'lucide-react';
-import { motion } from 'motion/react';
-import { useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { useId, useState } from 'react';
 import { toast } from 'sonner';
+import { cn } from '@/utils/cn';
 
 interface RoomCodeDisplayProps {
 	token: ShareToken;
 	showQRCode?: boolean;
 	className?: string;
+	defaultExpanded?: boolean;
 	onRefresh?: (tokenId: string) => Promise<void>;
 	onRevoke?: (tokenId: string) => Promise<void>;
 	onCopy?: (token: string) => void;
 }
+
+// Animation easing following guidelines: ease-out-quad for user-initiated actions
+const easeOutQuad = [0.25, 0.46, 0.45, 0.94] as const;
 
 export function RoomCodeDisplay({
 	token,
@@ -32,17 +37,25 @@ export function RoomCodeDisplay({
 	onRevoke,
 	onCopy,
 	showQRCode = true,
+	defaultExpanded = false,
 	className,
 }: RoomCodeDisplayProps) {
 	const [isRefreshing, setIsRefreshing] = useState(false);
 	const [showQR, setShowQR] = useState(false);
+	const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+	const shouldReduceMotion = useReducedMotion();
+	const expandableContentId = useId();
+
+	const transition = shouldReduceMotion
+		? { duration: 0 }
+		: { duration: 0.2, ease: easeOutQuad };
 
 	const handleCopyCode = async () => {
 		try {
 			await navigator.clipboard.writeText(token.token);
 			toast.success('Room code copied!');
 			onCopy?.(token.token);
-		} catch (error) {
+		} catch {
 			toast.error('Failed to copy room code');
 		}
 	};
@@ -52,7 +65,7 @@ export function RoomCodeDisplay({
 			const shareUrl = `${window.location.origin}/join/${token.token}`;
 			await navigator.clipboard.writeText(shareUrl);
 			toast.success('Share link copied!');
-		} catch (error) {
+		} catch {
 			toast.error('Failed to copy share link');
 		}
 	};
@@ -64,8 +77,7 @@ export function RoomCodeDisplay({
 
 		try {
 			await onRefresh(token.id);
-			toast.success('Room code refreshed!');
-		} catch (error) {
+		} catch {
 			toast.error('Failed to refresh room code');
 		} finally {
 			setIsRefreshing(false);
@@ -77,8 +89,7 @@ export function RoomCodeDisplay({
 
 		try {
 			await onRevoke(token.id);
-			toast.success('Room code revoked');
-		} catch (error) {
+		} catch {
 			toast.error('Failed to revoke room code');
 		}
 	};
@@ -95,11 +106,16 @@ export function RoomCodeDisplay({
 		const hours = Math.floor(diff / (1000 * 60 * 60));
 		const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
-		if (hours > 0) {
-			return `${hours}h ${minutes}m remaining`;
+		if (hours > 24) {
+			const days = Math.floor(hours / 24);
+			return `${days}d remaining`;
 		}
 
-		return `${minutes}m remaining`;
+		if (hours > 0) {
+			return `${hours}h ${minutes}m`;
+		}
+
+		return `${minutes}m`;
 	};
 
 	const isExpired = token.expires_at
@@ -107,217 +123,219 @@ export function RoomCodeDisplay({
 		: false;
 	const usagePercentage = (token.current_users / token.max_users) * 100;
 
+	const roleColorClass =
+		token.permissions.role === 'editor'
+			? 'border-green-500/50 text-green-400 bg-green-500/10'
+			: token.permissions.role === 'commenter'
+				? 'border-yellow-500/50 text-yellow-400 bg-yellow-500/10'
+				: 'border-blue-500/50 text-blue-400 bg-blue-500/10';
+
 	return (
 		<motion.div
-			animate={{ opacity: 1, y: 0 }}
-			className={`p-4 rounded-lg border border-zinc-700 bg-elevated space-y-4 ${className}`}
-			initial={{ opacity: 0, y: 10 }}
+			layout
+			className={cn(
+				'rounded-lg border border-zinc-700/80 bg-elevated overflow-hidden',
+				'hover:border-zinc-600 transition-colors duration-200 ease',
+				className
+			)}
+			transition={transition}
 		>
-			{/* Header */}
-			<div className='flex items-center justify-between'>
-				<div className='space-y-1'>
-					<div className='flex items-center gap-2'>
-						<code className='text-lg font-mono font-bold text-teal-400 bg-elevated px-3 py-1.5 rounded tracking-wider'>
-							{token.token}
-						</code>
+			{/* Compact Header - Always Visible */}
+			<div className='flex items-center justify-between gap-2 p-3'>
+				{/* Left: Code + Badges */}
+				<div className='flex items-center gap-2 min-w-0 flex-1'>
+					<code className='text-base font-mono font-bold text-teal-400 tracking-wider shrink-0'>
+						{token.token}
+					</code>
 
-						<Badge
-							variant='outline'
-							className={`text-xs ${
-								token.permissions.role === 'editor'
-									? 'border-green-500 text-green-400'
-									: token.permissions.role === 'commenter'
-										? 'border-yellow-500 text-yellow-400'
-										: 'border-blue-500 text-blue-400'
-							}`}
-						>
-							{token.permissions.role}
+					<Badge variant='outline' className={cn('text-[10px] px-1.5 py-0 h-5 shrink-0', roleColorClass)}>
+						{token.permissions.role}
+					</Badge>
+
+					{isExpired && (
+						<Badge variant='destructive' className='text-[10px] px-1.5 py-0 h-5 shrink-0'>
+							Expired
 						</Badge>
-
-						{isExpired && (
-							<Badge className='text-xs' variant='destructive'>
-								Expired
-							</Badge>
-						)}
-					</div>
-
-					<p className='text-xs text-zinc-400'>Room code for easy sharing</p>
+					)}
 				</div>
 
-				<div className='flex items-center gap-1'>
+				{/* Right: Primary Actions + Expand Toggle */}
+				<div className='flex items-center gap-0.5 shrink-0'>
 					<Button
-						className='h-8 w-8 p-0'
+						className='h-7 w-7 p-0'
 						onClick={handleCopyCode}
 						size='sm'
 						title='Copy room code'
 						variant='ghost'
 					>
-						<Copy className='h-4 w-4' />
+						<Copy className='h-3.5 w-3.5' />
 					</Button>
-
-					<Button
-						className='h-8 w-8 p-0'
-						onClick={handleCopyLink}
-						size='sm'
-						title='Copy share link'
-						variant='ghost'
-					>
-						<ExternalLink className='h-4 w-4' />
-					</Button>
-
-					{showQRCode && (
-						<Button
-							className='h-8 w-8 p-0'
-							onClick={() => setShowQR(!showQR)}
-							size='sm'
-							title='Show QR code'
-							variant='ghost'
-						>
-							<QrCode className='h-4 w-4' />
-						</Button>
-					)}
-
-					{onRefresh && (
-						<Button
-							className='h-8 w-8 p-0'
-							disabled={isRefreshing || isExpired}
-							onClick={handleRefresh}
-							size='sm'
-							title='Refresh room code'
-							variant='ghost'
-						>
-							<RefreshCw
-								className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
-							/>
-						</Button>
-					)}
 
 					{onRevoke && (
 						<Button
-							className='h-8 w-8 p-0 text-red-400 hover:text-red-300'
+							className='h-7 w-7 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10'
 							onClick={handleRevoke}
 							size='sm'
 							title='Revoke room code'
 							variant='ghost'
 						>
-							<X className='h-4 w-4' />
+							<X className='h-3.5 w-3.5' />
 						</Button>
 					)}
-				</div>
-			</div>
-
-			<Separator className='bg-zinc-700' />
-
-			{/* Stats */}
-			<div className='grid grid-cols-2 gap-4'>
-				<div className='space-y-1'>
-					<div className='flex items-center gap-2'>
-						<Users className='h-4 w-4 text-zinc-400' />
-
-						<span className='text-sm text-zinc-300 flex gap-1'>
-							<span>{token.current_users}</span>
-
-							<span>/</span>
-
-							<span>{token.max_users}</span>
-						</span>
-					</div>
-
-					<div className='w-full bg-zinc-700 rounded-full h-1.5'>
-						<div
-							style={{ width: `${Math.min(usagePercentage, 100)}%` }}
-							className={`h-1.5 rounded-full transition-all duration-300 ${
-								usagePercentage > 80
-									? 'bg-red-500'
-									: usagePercentage > 60
-										? 'bg-yellow-500'
-										: 'bg-green-500'
-							}`}
-						/>
-					</div>
-				</div>
-
-				<div className='space-y-1'>
-					<div className='flex items-center gap-2'>
-						<Clock className='h-4 w-4 text-zinc-400' />
-
-						<span className='text-sm text-zinc-300'>
-							{token.expires_at ? 'Expires' : 'Duration'}
-						</span>
-					</div>
-
-					<p
-						className={`text-xs ${isExpired ? 'text-red-400' : 'text-zinc-400'}`}
-					>
-						{formatTimeRemaining(token.expires_at)}
-					</p>
-				</div>
-			</div>
-
-			{/* Permissions */}
-			<div className='space-y-2'>
-				<p className='text-xs text-zinc-400'>Permissions</p>
-
-				<div className='flex flex-wrap gap-2'>
-					{token.permissions.can_view && (
-						<Badge className='text-xs' variant='secondary'>
-							View
-						</Badge>
-					)}
-
-					{token.permissions.can_comment && (
-						<Badge className='text-xs' variant='secondary'>
-							Comment
-						</Badge>
-					)}
-
-					{token.permissions.can_edit && (
-						<Badge className='text-xs' variant='secondary'>
-							Edit
-						</Badge>
-					)}
-				</div>
-			</div>
-
-			{/* QR Code placeholder */}
-			{showQR && (
-				<motion.div
-					animate={{ opacity: 1, height: 'auto' }}
-					className='space-y-2'
-					exit={{ opacity: 0, height: 0 }}
-					initial={{ opacity: 0, height: 0 }}
-				>
-					<Separator className='bg-zinc-700' />
-
-					<div className='text-center space-y-2'>
-						<div className='w-32 h-32 bg-zinc-900 border border-zinc-700 rounded-lg mx-auto flex items-center justify-center'>
-							<QrCode className='h-8 w-8 text-zinc-500' />
-						</div>
-
-						<p className='text-xs text-zinc-500'>QR code for mobile access</p>
-					</div>
-				</motion.div>
-			)}
-
-			{/* Share URL */}
-			<div className='space-y-2'>
-				<p className='text-xs text-zinc-400'>Share URL</p>
-
-				<div className='flex items-center gap-2 p-2 bg-elevated rounded border border-zinc-700'>
-					<code className='flex-1 text-xs text-zinc-300 truncate'>
-						{`${window.location.origin}/join/${token.token}`}
-					</code>
 
 					<Button
-						className='h-6 w-6 p-0 flex-shrink-0'
-						onClick={handleCopyLink}
+						aria-controls={expandableContentId}
+						aria-expanded={isExpanded}
+						className='h-7 w-7 p-0 ml-0.5'
+						onClick={() => setIsExpanded(!isExpanded)}
 						size='sm'
+						title={isExpanded ? 'Collapse' : 'Expand'}
 						variant='ghost'
 					>
-						<Copy className='h-3 w-3' />
+						<ChevronDown
+							className={cn(
+								'h-4 w-4 transition-transform duration-200 ease-out',
+								isExpanded && 'rotate-180'
+							)}
+						/>
 					</Button>
 				</div>
 			</div>
+
+			{/* Expandable Content */}
+			<AnimatePresence initial={false}>
+				{isExpanded && (
+					<motion.div
+						id={expandableContentId}
+						initial={{ height: 0, opacity: 0 }}
+						animate={{ height: 'auto', opacity: 1 }}
+						exit={{ height: 0, opacity: 0 }}
+						transition={transition}
+						className='overflow-hidden'
+					>
+						<div className='px-3 pb-3 space-y-3 border-t border-zinc-700/50 pt-3'>
+							{/* Stats Row */}
+							<div className='flex items-center gap-4 text-xs'>
+								{/* Users */}
+								<div className='flex items-center gap-2 flex-1'>
+									<Users className='h-3.5 w-3.5 text-zinc-400 shrink-0' />
+									<span className='text-zinc-300'>
+										{token.current_users}/{token.max_users}
+									</span>
+									<div className='flex-1 max-w-16 bg-zinc-700 rounded-full h-1'>
+										<div
+											style={{ width: `${Math.min(usagePercentage, 100)}%` }}
+											className={cn(
+												'h-1 rounded-full transition-all duration-300',
+												usagePercentage > 80
+													? 'bg-red-500'
+													: usagePercentage > 60
+														? 'bg-yellow-500'
+														: 'bg-green-500'
+											)}
+										/>
+									</div>
+								</div>
+
+								{/* Time */}
+								<div className='flex items-center gap-2'>
+									<Clock className='h-3.5 w-3.5 text-zinc-400 shrink-0' />
+									<span className={cn('text-zinc-300', isExpired && 'text-red-400')}>
+										{formatTimeRemaining(token.expires_at)}
+									</span>
+								</div>
+							</div>
+
+							{/* Permissions Row */}
+							<div className='flex items-center gap-1.5'>
+								{token.permissions.can_view && (
+									<Badge variant='secondary' className='text-[10px] px-1.5 py-0 h-5 bg-zinc-700/50'>
+										View
+									</Badge>
+								)}
+								{token.permissions.can_comment && (
+									<Badge variant='secondary' className='text-[10px] px-1.5 py-0 h-5 bg-zinc-700/50'>
+										Comment
+									</Badge>
+								)}
+								{token.permissions.can_edit && (
+									<Badge variant='secondary' className='text-[10px] px-1.5 py-0 h-5 bg-zinc-700/50'>
+										Edit
+									</Badge>
+								)}
+							</div>
+
+							{/* Share URL */}
+							<div className='flex items-center gap-2 p-2 bg-zinc-800/50 rounded border border-zinc-700/50'>
+								<code className='flex-1 text-[11px] text-zinc-400 truncate'>
+									{`${typeof window !== 'undefined' ? window.location.origin : ''}/join/${token.token}`}
+								</code>
+								<Button
+									className='h-6 w-6 p-0 shrink-0'
+									onClick={handleCopyLink}
+									size='sm'
+									title='Copy share link'
+									variant='ghost'
+								>
+									<ExternalLink className='h-3 w-3' />
+								</Button>
+							</div>
+
+							{/* Secondary Actions */}
+							<div className='flex items-center gap-2'>
+								{onRefresh && (
+									<Button
+										className='h-7 text-xs gap-1.5 flex-1'
+										disabled={isRefreshing || isExpired}
+										onClick={handleRefresh}
+										size='sm'
+										variant='outline'
+									>
+										<RefreshCw
+											className={cn('h-3 w-3', isRefreshing && 'animate-spin')}
+										/>
+										Refresh
+									</Button>
+								)}
+
+								{showQRCode && (
+									<Button
+										className='h-7 text-xs gap-1.5 flex-1'
+										onClick={() => setShowQR(!showQR)}
+										size='sm'
+										variant='outline'
+									>
+										<QrCode className='h-3 w-3' />
+										{showQR ? 'Hide QR' : 'QR Code'}
+									</Button>
+								)}
+							</div>
+
+							{/* QR Code (nested expandable) */}
+							<AnimatePresence>
+								{showQR && (
+									<motion.div
+										initial={{ height: 0, opacity: 0 }}
+										animate={{ height: 'auto', opacity: 1 }}
+										exit={{ height: 0, opacity: 0 }}
+										transition={transition}
+										className='overflow-hidden'
+									>
+										<div className='text-center pt-2'>
+											<div className='w-28 h-28 bg-zinc-900 border border-zinc-700 rounded-lg mx-auto flex items-center justify-center'>
+												<QrCode className='h-8 w-8 text-zinc-500' />
+											</div>
+											<p className='text-[10px] text-zinc-500 mt-2'>
+												Scan to join on mobile
+											</p>
+										</div>
+									</motion.div>
+								)}
+							</AnimatePresence>
+						</div>
+					</motion.div>
+				)}
+			</AnimatePresence>
 		</motion.div>
 	);
 }

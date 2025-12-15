@@ -17,6 +17,11 @@ const getEdgeType = (edgeData: Partial<EdgeData>): string => {
 		return 'suggestedConnection';
 	}
 
+	// Check for waypoint edge type
+	if (edgeData.type === 'waypointEdge' || edgeData.metadata?.pathType === 'waypoint') {
+		return 'waypointEdge';
+	}
+
 	return 'floatingEdge';
 };
 
@@ -73,6 +78,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 								...edge,
 								source: newRecord.source,
 								target: newRecord.target,
+								type: getEdgeType(newRecord), // Update edge type from DB data
 								animated: newRecord.animated || false,
 								label: newRecord.label,
 								style: {
@@ -377,29 +383,35 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 			// Update edge in local state first
 			const finalEdges = edges.map((edge) => {
 				if (edge.id === edgeId) {
+					const mergedData = {
+						...edge.data,
+						...data,
+						id: edgeId,
+						map_id: mapId!,
+						user_id: user.id,
+						animated: data.animated === true,
+						style: {
+							...edge.data?.style,
+							...data.style,
+						},
+						metadata: {
+							...edge.data?.metadata,
+							...data.metadata,
+						},
+						aiData: {
+							...edge.data?.aiData,
+							...data.aiData,
+						},
+					};
+
+					// Determine edge type from merged data
+					const edgeType = getEdgeType(mergedData);
+
 					return {
 						...edge,
 						id: edgeId,
-						data: {
-							...edge.data,
-							...data,
-							id: edgeId,
-							map_id: mapId!,
-							user_id: user.id,
-							animated: data.animated === true,
-							style: {
-								...edge.data?.style,
-								...data.style,
-							},
-							metadata: {
-								...edge.data?.metadata,
-								...data.metadata,
-							},
-							aiData: {
-								...edge.data?.aiData,
-								...data.aiData,
-							},
-						},
+						type: edgeType, // Update the React Flow edge type
+						data: mergedData,
 					};
 				}
 

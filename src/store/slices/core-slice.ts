@@ -1,5 +1,8 @@
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
-import { transformSupabaseData } from '@/helpers/transform-supabase-data';
+import {
+	transformSupabaseData,
+	type SupabaseMapData,
+} from '@/helpers/transform-supabase-data';
 import {
 	generateFallbackAvatar,
 	generateFunName,
@@ -11,6 +14,7 @@ import type { MindMapData } from '@/types/mind-map-data';
 import type { NodesTableType } from '@/types/nodes-table-type';
 import { UserProfile } from '@/types/user-profile-types';
 import type { User } from '@supabase/supabase-js';
+import { toast } from 'sonner';
 import type { StateCreator } from 'zustand';
 import type { AppState, CoreDataSlice } from '../app-state';
 
@@ -26,8 +30,8 @@ export const createCoreDataSlice: StateCreator<
 	reactFlowInstance: null,
 	mindMap: null,
 	currentUser: null,
-	userProfile: null,
 	activeTool: 'default',
+	mapAccessError: null,
 
 	// Actions
 	setActiveTool: (activeTool) => set({ activeTool }),
@@ -36,12 +40,18 @@ export const createCoreDataSlice: StateCreator<
 	setMapId: (mapId) => set({ mapId }),
 	setCurrentUser: (currentUser) => {
 		set({ currentUser });
-		// Auto-generate user profile when current user changes
-		const userProfile = get().generateUserProfile(currentUser);
-		set({ userProfile });
+		// Load user profile from database when current user changes
+		if (currentUser) {
+			void get()
+				.loadUserProfile()
+				.catch((err) =>
+					console.error('[core-slice] loadUserProfile failed:', err)
+				);
+		}
 	},
-	setUserProfile: (userProfile) => set({ userProfile }),
 	setState: (state: Partial<AppState>) => set({ ...state }),
+	setMapAccessError: (error) => set({ mapAccessError: error }),
+	clearMapAccessError: () => set({ mapAccessError: null }),
 
 	generateUserProfile: (user: User | null): UserProfile | null => {
 		if (!user) return null;
@@ -52,14 +62,14 @@ export const createCoreDataSlice: StateCreator<
 			user.email?.split('@')[0] ||
 			generateFunName(user.id);
 
-		const isAnonymous =
+		const is_anonymous =
 			!user.email || user.user_metadata?.is_anonymous === true;
 
 		return {
 			id: user.id,
 			user_id: user.id,
-			full_name: user.user_metadata?.full_name || '',
-			display_name: user.user_metadata?.display_name || '',
+			full_name: user.user_metadata?.full_name || displayName,
+			display_name: displayName,
 			avatar_url:
 				user.user_metadata?.avatar_url || generateFallbackAvatar(user.id),
 			bio: '',
@@ -67,7 +77,7 @@ export const createCoreDataSlice: StateCreator<
 			created_at: new Date().toISOString(),
 			updated_at: new Date().toISOString(),
 			color: generateUserColor(user.id),
-			isAnonymous,
+			is_anonymous,
 		};
 	},
 
@@ -77,9 +87,10 @@ export const createCoreDataSlice: StateCreator<
 
 		set({ currentUser });
 
-		// Auto-generate user profile
-		const userProfile = get().generateUserProfile(currentUser);
-		set({ userProfile });
+		// Load user profile from database
+		if (currentUser) {
+			await get().loadUserProfile();
+		}
 
 		return currentUser;
 	},
@@ -110,12 +121,13 @@ export const createCoreDataSlice: StateCreator<
 	},
 
 	fetchMindMapData: withLoadingAndToast(
-		async (mapId: string) => {
-			const { reactFlowInstance } = get();
-
+		async (mapId: string, toastId?: string | number) => {
 			if (!mapId) {
 				throw new Error('Map ID is required.');
 			}
+
+			// Clear any previous access error
+			set({ mapAccessError: null });
 
 			const { data: mindMapData, error: mindMapError } = await get()
 				.supabase.from('map_graph_aggregated_view')
@@ -123,22 +135,78 @@ export const createCoreDataSlice: StateCreator<
 				.eq('map_id', mapId)
 				.single();
 
+			// Handle potential access denial (PGRST116 = no rows returned)
 			if (mindMapError) {
 				console.error('Error fetching from Supabase:', mindMapError);
+
+				// Check if this is an access/not-found error
+				if (
+					mindMapError.code === 'PGRST116' ||
+					mindMapError.message?.includes('no rows')
+				) {
+					try {
+						// Call check-access API to determine the reason
+						const response = await fetch(`/api/maps/${mapId}/check-access`);
+
+						if (response.ok) {
+							const result = await response.json();
+							const { status } = result.data;
+							const currentUser = get().currentUser;
+							const userProfile = get().generateUserProfile(currentUser);
+							const is_anonymous = userProfile?.is_anonymous ?? true;
+
+							if (status === 'no_access') {
+								set({
+									mapAccessError: {
+										type: 'access_denied',
+										isAnonymous: is_anonymous,
+									},
+								});
+								// Dismiss loading toast silently - UI handles error state
+								if (toastId) toast.dismiss(toastId);
+								return;
+							} else if (status === 'not_found') {
+								set({
+									mapAccessError: {
+										type: 'not_found',
+										isAnonymous: is_anonymous,
+									},
+								});
+								// Dismiss loading toast silently - UI handles error state
+								if (toastId) toast.dismiss(toastId);
+								return;
+							}
+							// If status is 'owner' or 'shared', something else went wrong
+							// Fall through to throw generic error
+						}
+					} catch (checkError) {
+						console.error('Error checking map access:', checkError);
+						// If check-access fails, fall through to generic error
+					}
+				}
+
 				throw new Error(
 					mindMapError.message || 'Failed to fetch mind map data.'
 				);
 			}
 
 			if (!mindMapData) {
-				throw new Error('Mind map not found.');
+				// This shouldn't happen if error handling above is correct
+				const currentUser = get().currentUser;
+				const userProfile = get().generateUserProfile(currentUser);
+				set({
+					mapAccessError: {
+						type: 'not_found',
+						isAnonymous: userProfile?.is_anonymous ?? true,
+					},
+				});
+				// Dismiss loading toast silently - UI handles error state
+				if (toastId) toast.dismiss(toastId);
+				return;
 			}
 
 			const transformedData = transformSupabaseData(
-				mindMapData as unknown as MindMapData & {
-					nodes: NodesTableType[];
-					edges: EdgesTableType[];
-				}
+				mindMapData as unknown as SupabaseMapData
 			);
 
 			set({
@@ -152,12 +220,17 @@ export const createCoreDataSlice: StateCreator<
 
 			// Start real-time subscriptions after successful data load
 			await get().subscribeToRealtimeUpdates(mapId);
+
+			// Show success toast only when map data was actually loaded
+			if (toastId) {
+				toast.success('Mind map data fetched successfully.', { id: toastId });
+			}
 		},
 		'isStateLoading',
 		{
 			initialMessage: 'Fetching mind map data...',
 			errorMessage: 'Failed to fetch mind map data.',
-			successMessage: 'Mind map data fetched successfully.',
+			successMessage: null, // Handled manually to avoid success toast on early returns
 		}
 	),
 

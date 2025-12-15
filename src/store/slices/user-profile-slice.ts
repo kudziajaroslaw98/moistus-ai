@@ -2,6 +2,7 @@ import type { StateCreator } from 'zustand';
 import type { AppState } from '../app-state';
 import type { UserProfile, UserProfileUpdate } from '@/types/user-profile-types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { generateFallbackAvatar } from '@/helpers/user-profile-helpers';
 
 export interface UserProfileSlice {
 	// State
@@ -76,14 +77,20 @@ export const createUserProfileSlice: StateCreator<
 				throw fetchError;
 			}
 
+			// Determine avatar: OAuth avatar > existing avatar > DiceBear fallback
+			const oauthAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+			const fallbackAvatar = generateFallbackAvatar(user.id);
+
 			// If no profile exists, create one with defaults
 			if (!existingProfile) {
+				const avatarUrl = oauthAvatar || fallbackAvatar;
 				const { data: newProfile, error: createError } = await supabase
 					.from('user_profiles')
 					.insert({
 						user_id: user.id,
 						full_name: user.user_metadata?.full_name || '',
-						display_name: user.user_metadata?.full_name || '',
+						display_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
+						avatar_url: avatarUrl,
 						preferences: {
 							theme: 'system',
 							accentColor: 'sky',
@@ -101,7 +108,12 @@ export const createUserProfileSlice: StateCreator<
 				// Automatically subscribe to real-time changes after creating profile
 				get().subscribeToProfileChanges();
 			} else {
-				set({ userProfile: existingProfile, isLoadingProfile: false });
+				// Ensure avatar_url exists - use OAuth avatar if available, else DiceBear fallback
+				const profileWithAvatar = {
+					...existingProfile,
+					avatar_url: existingProfile.avatar_url || oauthAvatar || fallbackAvatar,
+				};
+				set({ userProfile: profileWithAvatar, isLoadingProfile: false });
 				// Automatically subscribe to real-time changes after loading profile
 				get().subscribeToProfileChanges();
 			}
@@ -123,14 +135,18 @@ export const createUserProfileSlice: StateCreator<
 			return;
 		}
 
-		// Optimistic update
-		const optimisticProfile = { ...userProfile, ...updates };
+		// Filter out avatar_url from updates - avatars are auto-generated from user ID
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		const { avatar_url: _avatarUrl, ...filteredUpdates } = updates as UserProfileUpdate & { avatar_url?: string };
+
+		// Optimistic update (keep existing avatar_url)
+		const optimisticProfile = { ...userProfile, ...filteredUpdates };
 		set({ userProfile: optimisticProfile, profileError: null });
 
 		try {
 			const { data, error } = await supabase
 				.from('user_profiles')
-				.update(updates)
+				.update(filteredUpdates)
 				.eq('user_id', userProfile.user_id)
 				.select()
 				.single();
@@ -140,7 +156,7 @@ export const createUserProfileSlice: StateCreator<
 		} catch (error) {
 			console.error('Failed to update user profile:', error);
 			// Rollback optimistic update
-			set({ 
+			set({
 				userProfile,
 				profileError: error instanceof Error ? error.message : 'Failed to update profile'
 			});

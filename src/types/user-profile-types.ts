@@ -5,7 +5,7 @@ export interface UserProfile {
 	display_name?: string;
 	avatar_url?: string;
 	bio?: string;
-	isAnonymous?: boolean;
+	is_anonymous?: boolean;
 	color?: {
 		hsl: string;
 		hex: string;
@@ -48,7 +48,7 @@ export interface PublicUserProfile {
 	display_name?: string;
 	avatar_url?: string;
 	bio?: string;
-	isAnonymous?: boolean;
+	is_anonymous?: boolean;
 	color?: {
 		hsl: string;
 		hex: string;

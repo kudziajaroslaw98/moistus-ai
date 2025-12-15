@@ -95,7 +95,7 @@ export const NodeEditor = () => {
 	if (!nodeEditor.isOpen) return null;
 
 	const theme = {
-		container: 'bg-base border border-border-subtle w-2xl rounded-md',
+		container: 'bg-base border border-border-subtle w-3xl rounded-md',
 	};
 
 	return (

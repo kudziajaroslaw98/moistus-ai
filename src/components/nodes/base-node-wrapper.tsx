@@ -1,3 +1,4 @@
+import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useMeasure } from '@/hooks/use-measure';
 import { useNodeDimensions } from '@/hooks/use-node-dimensions';
 import useAppStore from '@/store/mind-map-store';
@@ -25,6 +26,7 @@ const BaseNodeWrapperComponent = ({
 	data,
 	children,
 	nodeClassName,
+	contentClassName,
 	nodeIcon,
 	nodeType = 'defaultNode',
 	includePadding = true,
@@ -64,6 +66,7 @@ const BaseNodeWrapperComponent = ({
 
 	const connection = useConnection();
 	const isTarget = connection?.toNode?.id === id;
+	const { canEdit } = usePermissions();
 
 	// Derive selection state from Zustand to avoid triggering history saves
 	const isSelected = useMemo(() => {
@@ -147,12 +150,13 @@ const BaseNodeWrapperComponent = ({
 	const theme = GlassmorphismTheme;
 
 	// Dynamic styles using centralized theme system
+	// Use explicit width/height (not minWidth/minHeight) to enable visual grid snapping
+	// during resize - the snapped dimensions from state will be applied immediately
 	const nodeStyles: CSSProperties = {
 		backgroundColor: getElevationColor(elevation),
 		// Proper focus states with double border technique for accessibility
 		border: `1px solid ${isSelected ? theme.borders.selected : theme.borders.default}`,
-		// Micro-animation for depth perception
-
+		// Explicit dimensions for grid-snapped resizing
 		minWidth: dimensions.width,
 		minHeight: dimensions.height,
 	};
@@ -207,9 +211,10 @@ const BaseNodeWrapperComponent = ({
 				</div>
 
 				{/* Main content with metadata bar integration */}
-				<div 
+				{/* Note: NO h-full here - contentRef must size to children for accurate measurement */}
+				<div
 					ref={contentRef}
-					className={cn('flex flex-col h-full relative z-[1]')}
+					className={cn('flex flex-col h-auto relative z-[1]', contentClassName)}
 				>
 					{data.metadata &&
 						Object.values(data.metadata).some(
@@ -236,7 +241,7 @@ const BaseNodeWrapperComponent = ({
 					{children}
 				</div>
 
-				{!isDraggingNodes && (
+				{!isDraggingNodes && !hideResizeFrame && (
 					<div key={`${data.id}-handles`}>
 						{/* Connection handles - minimal and functional */}
 						<Handle
@@ -289,38 +294,42 @@ const BaseNodeWrapperComponent = ({
 
 						{/* Add New Node Button - follows Material Design FAB principles */}
 						<AnimatePresence key={`${data.id}-add`}>
-							{!hideAddButton && isSelected && selectedNodes.length === 1 && (
-								<div key={`${data.id}-add-handles`}>
-									<motion.div
-										animate={{ opacity: 0.3, scaleY: 1 }}
-										className='absolute -bottom-12 left-1/2 -translate-x-1/2 w-[1px] h-12 bg-overlay'
-										exit={{ opacity: 0, scaleY: 0 }}
-										initial={{ opacity: 0, scaleY: 0 }}
-										transition={{ duration: 0.2 }}
-									/>
+							{!hideAddButton &&
+								canEdit &&
+								isSelected &&
+								selectedNodes.length === 1 && (
+									<div key={`${data.id}-add-handles`}>
+										<motion.div
+											animate={{ opacity: 0.3, scaleY: 1 }}
+											className='absolute -bottom-12 left-1/2 -translate-x-1/2 w-[1px] h-12 bg-overlay'
+											exit={{ opacity: 0, scaleY: 0 }}
+											initial={{ opacity: 0, scaleY: 0 }}
+											transition={{ duration: 0.2 }}
+										/>
 
-									<motion.div
-										animate={{ opacity: 1, scale: 1, filter: 'blur(0)' }}
-										className='absolute -bottom-[60px] left-1/2 -translate-x-1/2 z-20'
-										exit={{ opacity: 0, scale: 0.8, filter: 'blur(10px)' }}
-										initial={{ opacity: 0, scale: 0.8, filter: 'blur(10px)' }}
-										transition={{
-											duration: 0.3,
-											type: 'spring',
-										}}
-									>
-										<Button
-											className='nodrag nopan rounded-full w-10 h-10 p-0 transition-all duration-200 hover:scale-110 bg-elevated border border-border-default'
-											onClick={handleAddNewNode}
-											title='Add new connected node'
+										<motion.div
+											animate={{ opacity: 1, scale: 1, filter: 'blur(0)' }}
+											className='absolute -bottom-[60px] left-1/2 -translate-x-1/2 z-20'
+											exit={{ opacity: 0, scale: 0.8, filter: 'blur(10px)' }}
+											initial={{ opacity: 0, scale: 0.8, filter: 'blur(10px)' }}
+											transition={{
+												duration: 0.3,
+												type: 'spring',
+											}}
 										>
-											<Plus className='w-5 h-5 text-text-primary' />
-										</Button>
-									</motion.div>
-								</div>
-							)}
+											<Button
+												className='nodrag nopan rounded-full w-10 h-10 p-0 transition-all duration-200 hover:scale-110 bg-elevated border border-border-default'
+												onClick={handleAddNewNode}
+												title='Add new connected node'
+											>
+												<Plus className='w-5 h-5 text-text-primary' />
+											</Button>
+										</motion.div>
+									</div>
+								)}
 
 							{!hideSuggestionsButton &&
+								canEdit &&
 								isSelected &&
 								selectedNodes.length === 1 && (
 									<>
@@ -362,7 +371,7 @@ const BaseNodeWrapperComponent = ({
 							<NodeResizer
 								color={theme.node.resizer.color}
 								handleClassName='!w-2 !h-2 !rounded-full'
-								isVisible={isSelected}
+								isVisible={isSelected && canEdit}
 								maxHeight={constraints.maxHeight ?? Number.MAX_SAFE_INTEGER}
 								maxWidth={constraints.maxWidth}
 								minHeight={constraints.minHeight}
@@ -371,6 +380,11 @@ const BaseNodeWrapperComponent = ({
 								onResizeEnd={handleResizeEnd}
 								onResizeStart={handleResizeStart}
 								shouldResize={shouldResize}
+								// Match node border radius for proper alignment
+								lineStyle={{
+									borderRadius: '8px', // Matches rounded-lg
+									borderWidth: '1px',
+								}}
 								handleStyle={{
 									backgroundColor: isSelected
 										? theme.node.resizer.selectedBackground

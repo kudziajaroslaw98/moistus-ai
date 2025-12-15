@@ -99,7 +99,7 @@ export const PUT = withApiValidation<
 			if (validatedBody.tags !== undefined)
 				updateData.tags = validatedBody.tags;
 			if (validatedBody.thumbnailUrl !== undefined)
-				updateData.thumbnailUrl = validatedBody.thumbnailUrl;
+				updateData.thumbnail_url = validatedBody.thumbnailUrl;
 			if (validatedBody.team_id !== undefined)
 				updateData.team_id = validatedBody.team_id;
 			if (validatedBody.is_template !== undefined)

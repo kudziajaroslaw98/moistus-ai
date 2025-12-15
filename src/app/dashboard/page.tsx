@@ -1,10 +1,10 @@
 'use client';
 
+import { UpgradeAnonymousPrompt } from '@/components/auth/upgrade-anonymous';
 import { CreateMapCard } from '@/components/dashboard/create-map-card';
 import { CreateMapDialog } from '@/components/dashboard/create-map-dialog';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import { MindMapCard } from '@/components/dashboard/mind-map-card';
-import { UpgradeAnonymousPrompt } from '@/components/auth/upgrade-anonymous';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { SearchInput } from '@/components/ui/search-input';
@@ -16,6 +16,7 @@ import {
 	SelectValue,
 } from '@/components/ui/select';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import { useAuthRedirect } from '@/hooks/use-auth-redirect';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import {
@@ -78,6 +79,12 @@ const fetcher = async (url: string) => {
 
 function DashboardContent() {
 	const router = useRouter();
+
+	// Protect dashboard from anonymous users
+	const { isChecking } = useAuthRedirect({
+		blockAnonymous: true,
+		redirectMessage: 'Please sign in to access your dashboard',
+	});
 
 	// Trial state and user
 	const { isTrialing, getTrialDaysRemaining, userProfile } = useAppStore(
@@ -149,7 +156,7 @@ function DashboardContent() {
 	// Handlers
 	const handleRequestCreateMap = () => {
 		// Check if user is anonymous
-		if (userProfile?.isAnonymous) {
+		if (userProfile?.is_anonymous) {
 			// Show upgrade prompt for anonymous users
 			setShowAnonymousUpgrade(true);
 			return;
@@ -159,8 +166,11 @@ function DashboardContent() {
 		setShowCreateDialog(true);
 	};
 
-	const handleCreateMap = async (title: string) => {
-		if (!title.trim() || isCreatingMap) return;
+	const handleCreateMap = async (data: {
+		title: string;
+		description?: string;
+	}) => {
+		if (!data.title.trim() || isCreatingMap) return;
 
 		setIsCreatingMap(true);
 
@@ -169,7 +179,8 @@ function DashboardContent() {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					title: title.trim(),
+					title: data.title.trim(),
+					description: data.description?.trim() || undefined,
 				}),
 			});
 
@@ -177,24 +188,25 @@ function DashboardContent() {
 				throw new Error('Failed to create new mind map.');
 			}
 
-			const { data } = await response.json();
+			const { data: responseData } = await response.json();
 
 			// Optimistically update the cache
 			mutate(
 				'/api/maps',
 				{
-					maps: [data.map, ...mapsData.maps],
+					maps: [responseData.map, ...mapsData.maps],
 				},
 				false
 			);
 
-			console.log(data.map.id);
-
 			toast.success('Map created successfully!');
-			router.push(`/mind-map/${data.map?.id}`);
+			setShowCreateDialog(false);
+			router.push(`/mind-map/${responseData.map?.id}`);
 		} catch (err: unknown) {
 			console.error('Error creating map:', err);
 			toast.error('Failed to create map');
+			// Re-throw to keep dialog open
+			throw err;
 		} finally {
 			setIsCreatingMap(false);
 		}
@@ -400,6 +412,17 @@ function DashboardContent() {
 		handleSelectAll,
 		handleBulkDelete,
 	]);
+
+	// Show loading while checking auth (prevents content flash for anonymous users)
+	if (isChecking) {
+		return (
+			<DashboardLayout>
+				<div className='flex min-h-screen items-center justify-center'>
+					<div className='h-8 w-8 animate-spin rounded-full border-4 border-zinc-800 border-t-sky-500' />
+				</div>
+			</DashboardLayout>
+		);
+	}
 
 	if (mapsLoading && !mapsData.maps.length) {
 		return (
@@ -616,11 +639,13 @@ function DashboardContent() {
 										: 'space-y-2'
 								)}
 							>
-								{/* Create New Map Card - Always first */}
-								<CreateMapCard
-									onClick={handleRequestCreateMap}
-									viewMode={viewMode}
-								/>
+								{/* Create New Map Card - Only shown when maps exist */}
+								{mapsData.maps.length > 0 && (
+									<CreateMapCard
+										onClick={handleRequestCreateMap}
+										viewMode={viewMode}
+									/>
+								)}
 
 								{/* Existing Mind Maps */}
 								<AnimatePresence mode='popLayout'>
@@ -640,99 +665,107 @@ function DashboardContent() {
 
 							{/* Empty State for No Maps */}
 							{filteredMaps.length === 0 && (
-								<div className='py-20'>
-									<div className='text-center max-w-lg mx-auto'>
+								<div className='py-16 sm:py-24'>
+									<div className='text-center max-w-sm mx-auto'>
 										{searchQuery || filterBy !== 'all' ? (
-											// Search/Filter Empty State
-											<div className='space-y-6'>
-												<div className='w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-zinc-700 to-zinc-800 flex items-center justify-center'>
-													<Search className='w-10 h-10 text-zinc-400' />
+											// Search/Filter Empty State - Minimalistic
+											<motion.div
+												animate={{ opacity: 1, y: 0 }}
+												className='space-y-6'
+												initial={{ opacity: 0, y: 12 }}
+												transition={{
+													duration: 0.3,
+													ease: [0.165, 0.84, 0.44, 1],
+												}}
+											>
+												<div className='w-14 h-14 mx-auto rounded-full bg-zinc-800/80 flex items-center justify-center'>
+													<Search className='w-6 h-6 text-zinc-500' />
 												</div>
 
-												<div className='space-y-3'>
-													<h2 className='text-2xl font-semibold text-white'>
+												<div className='space-y-2'>
+													<h2 className='text-xl font-medium text-white'>
 														No maps found
 													</h2>
 
-													<p className='text-zinc-400 text-lg'>
-														Try adjusting your search terms or filters to find
-														what you&apos;re looking for.
+													<p className='text-zinc-500 text-sm'>
+														Try adjusting your search or filters.
 													</p>
 												</div>
 
-												<div className='flex flex-col sm:flex-row gap-3 justify-center'>
-													<Button
-														className='border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800'
-														variant='outline'
-														onClick={() => {
-															setSearchQuery('');
-															setFilterBy('all');
-														}}
-													>
-														Clear all filters
-													</Button>
+												<Button
+													className='text-zinc-400 hover:text-white'
+													variant='ghost'
+													onClick={() => {
+														setSearchQuery('');
+														setFilterBy('all');
+													}}
+												>
+													Clear filters
+												</Button>
+											</motion.div>
+										) : (
+											// Welcome Empty State - Minimalistic Landing Vibe
+											<motion.div
+												animate={{ opacity: 1, y: 0 }}
+												className='space-y-6'
+												initial={{ opacity: 0, y: 16 }}
+												transition={{
+													duration: 0.4,
+													ease: [0.165, 0.84, 0.44, 1],
+												}}
+											>
+												<motion.div
+													animate={{ opacity: 1, scale: 1 }}
+													className='w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center shadow-lg shadow-sky-600/25'
+													initial={{ opacity: 0, scale: 0.9 }}
+													transition={{
+														delay: 0.1,
+														duration: 0.3,
+														ease: [0.165, 0.84, 0.44, 1],
+													}}
+												>
+													<Plus className='w-7 h-7 text-white' />
+												</motion.div>
 
+												<motion.div
+													animate={{ opacity: 1, y: 0 }}
+													className='space-y-2'
+													initial={{ opacity: 0, y: 8 }}
+													transition={{
+														delay: 0.15,
+														duration: 0.3,
+														ease: [0.165, 0.84, 0.44, 1],
+													}}
+												>
+													<h2 className='text-2xl font-semibold text-white tracking-tight'>
+														Create your first map
+													</h2>
+
+													<p className='text-zinc-400 text-sm'>
+														Start organizing ideas, notes, and projects
+														visually.
+													</p>
+												</motion.div>
+
+												<motion.div
+													animate={{ opacity: 1, y: 0 }}
+													initial={{ opacity: 0, y: 8 }}
+													transition={{
+														delay: 0.2,
+														duration: 0.3,
+														ease: [0.165, 0.84, 0.44, 1],
+													}}
+												>
 													<Button
-														className='bg-sky-600 hover:bg-sky-700'
+														className='bg-sky-600 hover:bg-sky-500 shadow-lg shadow-sky-600/25 hover:shadow-xl hover:shadow-sky-600/30 transition-all duration-200'
+														disabled={isCreatingMap}
 														onClick={handleRequestCreateMap}
 													>
 														<Plus className='w-4 h-4 mr-2' />
-														Create new map
+														New mind map
 													</Button>
-												</div>
-											</div>
-										) : (
-											// Welcome Empty State
-											<div className='space-y-8'>
-												<div className='w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-sky-500/20 to-purple-500/20 flex items-center justify-center border-2 border-dashed border-sky-500/30'>
-													<div className='w-16 h-16 rounded-full bg-gradient-to-br from-sky-500 to-purple-500 flex items-center justify-center'>
-														<Plus className='w-8 h-8 text-white' />
-													</div>
-												</div>
-
-												<div className='space-y-4'>
-													<h2 className='text-3xl font-bold text-white'>
-														Welcome to your dashboard
-													</h2>
-
-													<p className='text-zinc-400 text-lg max-w-md mx-auto'>
-														Create your first mind map to start organizing your
-														thoughts, ideas, and projects visually.
-													</p>
-												</div>
-
-												<div className='space-y-4'>
-													<Button
-														className='bg-sky-600 hover:bg-sky-700 text-lg px-8 py-3 h-auto'
-														disabled={isCreatingMap}
-														onClick={handleRequestCreateMap}
-														size='lg'
-													>
-														<Plus className='w-5 h-5 mr-2' />
-														Create your first map
-													</Button>
-
-													<div className='flex items-center gap-4 text-sm text-zinc-500'>
-														<div className='flex items-center gap-2'>
-															<div className='w-2 h-2 rounded-full bg-sky-500' />
-
-															<span>Organize ideas visually</span>
-														</div>
-
-														<div className='flex items-center gap-2'>
-															<div className='w-2 h-2 rounded-full bg-purple-500' />
-
-															<span>Collaborate with teams</span>
-														</div>
-
-														<div className='flex items-center gap-2'>
-															<div className='w-2 h-2 rounded-full bg-green-500' />
-
-															<span>AI-powered suggestions</span>
-														</div>
-													</div>
-												</div>
-											</div>
+												</motion.div>
+											</motion.div>
 										)}
 									</div>
 								</div>
