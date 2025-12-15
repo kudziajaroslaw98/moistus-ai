@@ -337,7 +337,7 @@ export function SharePanel({
 														onChange={(e) =>
 															setRoomCodeSettings((prev) => ({
 																...prev,
-																maxUsers: parseInt(e.target.value) || 50,
+																maxUsers: Math.min(100, Math.max(1, parseInt(e.target.value) || 50)),
 															}))
 														}
 													/>
