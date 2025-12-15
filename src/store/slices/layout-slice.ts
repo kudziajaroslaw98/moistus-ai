@@ -4,15 +4,73 @@
  */
 
 import { runElkLayout } from '@/helpers/layout';
+import type { AppEdge } from '@/types/app-edge';
+import type { AppNode } from '@/types/app-node';
 import {
 	DEFAULT_LAYOUT_CONFIG,
 	LayoutConfig,
 	LayoutDirection,
 	LayoutSlice,
 } from '@/types/layout-types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { StateCreator } from 'zustand';
 import { AppState } from '../app-state';
+
+/**
+ * Batch update node positions in database (single DB call)
+ */
+async function batchUpdateNodePositions(
+	nodes: AppNode[],
+	supabase: SupabaseClient,
+	mapId: string
+): Promise<void> {
+	if (nodes.length === 0) return;
+
+	const updates = nodes.map((node) => ({
+		id: node.id,
+		map_id: mapId,
+		position_x: node.position.x,
+		position_y: node.position.y,
+		updated_at: new Date().toISOString(),
+	}));
+
+	const { error } = await supabase
+		.from('nodes')
+		.upsert(updates, { onConflict: 'id' });
+
+	if (error) {
+		console.error('Failed to batch update node positions:', error);
+		throw error;
+	}
+}
+
+/**
+ * Batch update edge metadata in database (single DB call)
+ */
+async function batchUpdateEdgeMetadata(
+	edges: AppEdge[],
+	supabase: SupabaseClient,
+	mapId: string
+): Promise<void> {
+	if (edges.length === 0) return;
+
+	const updates = edges.map((edge) => ({
+		id: edge.id,
+		map_id: mapId,
+		metadata: edge.data?.metadata ?? null,
+		updated_at: new Date().toISOString(),
+	}));
+
+	const { error } = await supabase
+		.from('edges')
+		.upsert(updates, { onConflict: 'id' });
+
+	if (error) {
+		console.error('Failed to batch update edge metadata:', error);
+		throw error;
+	}
+}
 
 export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 	set,
@@ -43,6 +101,8 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 			isLayouting,
 			setLoadingStates,
 			selectedNodes,
+			supabase,
+			mapId,
 		} = get();
 
 		// Prevent concurrent layouts
@@ -87,6 +147,14 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 			// Batch update state (single update, not per-node)
 			setNodes(result.nodes);
 			setEdges(result.edges);
+
+			// Batch persist to database (2 parallel DB calls)
+			if (supabase && mapId) {
+				await Promise.all([
+					batchUpdateNodePositions(result.nodes, supabase, mapId),
+					batchUpdateEdgeMetadata(result.edges, supabase, mapId),
+				]);
+			}
 
 			// Record to history as single action for undo/redo
 			addStateToHistory('applyLayout', {
@@ -133,6 +201,8 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 			isLayouting,
 			setLoadingStates,
 			selectedNodes,
+			supabase,
+			mapId,
 		} = get();
 
 		// Prevent concurrent layouts
@@ -174,6 +244,20 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 			// Batch update state
 			setNodes(result.nodes);
 			setEdges(result.edges);
+
+			// Batch persist only affected nodes/edges to database
+			if (supabase && mapId) {
+				const affectedNodes = result.nodes.filter((n) =>
+					selectedNodeIds.has(n.id)
+				);
+				const affectedEdges = result.edges.filter(
+					(e) => selectedNodeIds.has(e.source) && selectedNodeIds.has(e.target)
+				);
+				await Promise.all([
+					batchUpdateNodePositions(affectedNodes, supabase, mapId),
+					batchUpdateEdgeMetadata(affectedEdges, supabase, mapId),
+				]);
+			}
 
 			// Record to history as single action
 			addStateToHistory('applyLayoutToSelected', {
