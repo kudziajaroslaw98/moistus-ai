@@ -4,9 +4,10 @@
  */
 
 import generateUuid from '@/helpers/generate-uuid';
+import { projectToNodePerimeter } from '@/helpers/get-anchor-position';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
-import type { Waypoint } from '@/types/path-types';
+import type { EdgeAnchor, Waypoint } from '@/types/path-types';
 import type {
 	ElkEdge,
 	ElkEdgeSection,
@@ -19,6 +20,45 @@ import { buildGroupLayoutOptions, buildLayoutOptions, getRecommendedCurveType } 
 // Default dimensions for nodes without explicit size
 const DEFAULT_NODE_WIDTH = 200;
 const DEFAULT_NODE_HEIGHT = 80;
+
+/**
+ * Layout data extracted from ELK edge sections
+ * Includes waypoints and anchor positions for source/target
+ */
+interface ElkEdgeLayoutData {
+	waypoints: Waypoint[];
+	sourceAnchor?: EdgeAnchor;
+	targetAnchor?: EdgeAnchor;
+}
+
+/**
+ * Convert an ELK absolute point to an EdgeAnchor relative to a node's border.
+ * Uses projectToNodePerimeter to find the side and offset.
+ */
+function elkPointToAnchor(
+	point: { x: number; y: number },
+	nodeId: string,
+	positionMap: Map<string, { x: number; y: number }>,
+	originalNodes: AppNode[]
+): EdgeAnchor | undefined {
+	const nodePosition = positionMap.get(nodeId);
+	const originalNode = originalNodes.find((n) => n.id === nodeId);
+
+	if (!nodePosition || !originalNode) {
+		return undefined;
+	}
+
+	const width = originalNode.measured?.width ?? originalNode.width ?? DEFAULT_NODE_WIDTH;
+	const height = originalNode.measured?.height ?? originalNode.height ?? DEFAULT_NODE_HEIGHT;
+
+	// Create a node-like structure compatible with projectToNodePerimeter
+	const nodeLike = {
+		internals: { positionAbsolute: nodePosition },
+		measured: { width, height },
+	};
+
+	return projectToNodePerimeter(nodeLike, point);
+}
 
 /**
  * Convert React Flow nodes and edges to ELK graph format
@@ -128,13 +168,14 @@ export function convertFromElkGraph(
 ): LayoutResult {
 	// Build position map from ELK result
 	const positionMap = new Map<string, { x: number; y: number }>();
-	const edgeWaypointsMap = new Map<string, Waypoint[]>();
+	const edgeLayoutDataMap = new Map<string, ElkEdgeLayoutData>();
 
 	// Extract positions from ELK nodes (including nested children)
+	// Must be done FIRST as edge anchor extraction depends on node positions
 	extractPositions(elkGraph, 0, 0, positionMap);
 
-	// Extract edge waypoints
-	extractEdgeWaypoints(elkGraph, edgeWaypointsMap);
+	// Extract edge layout data (waypoints AND anchors)
+	extractEdgeLayoutData(elkGraph, edgeLayoutDataMap, positionMap, originalNodes);
 
 	// Get recommended curve type for this layout direction
 	const curveType = getRecommendedCurveType(config.direction);
@@ -155,28 +196,35 @@ export function convertFromElkGraph(
 		};
 	});
 
-	// Update edges with waypoints from ELK
+	// Update edges with waypoints AND anchors from ELK
 	const updatedEdges: AppEdge[] = originalEdges.map((edge) => {
-		const waypoints = edgeWaypointsMap.get(edge.id);
+		const layoutData = edgeLayoutDataMap.get(edge.id);
 		const edgeData = edge.data!; // Edge data is guaranteed by React Flow
 
-		// If no waypoints from ELK, preserve existing or clear
-		if (!waypoints || waypoints.length === 0) {
+		// If no layout data from ELK, use floating edge
+		if (
+			!layoutData ||
+			(layoutData.waypoints.length === 0 &&
+				!layoutData.sourceAnchor &&
+				!layoutData.targetAnchor)
+		) {
 			return {
 				...edge,
-				type: 'floatingEdge' as const, // Use floating edge for edges without waypoints
+				type: 'floatingEdge' as const,
 				data: {
 					...edgeData,
 					metadata: {
 						...edgeData.metadata,
 						waypoints: undefined,
 						curveType: undefined,
+						sourceAnchor: undefined,
+						targetAnchor: undefined,
 					},
 				},
 			} as AppEdge;
 		}
 
-		// Update edge with new waypoints
+		// Update edge with waypoints AND anchors from ELK routing
 		return {
 			...edge,
 			type: 'waypointEdge' as const,
@@ -185,8 +233,10 @@ export function convertFromElkGraph(
 				metadata: {
 					...edgeData.metadata,
 					pathType: 'waypoint' as const,
-					waypoints,
+					waypoints: layoutData.waypoints,
 					curveType,
+					sourceAnchor: layoutData.sourceAnchor,
+					targetAnchor: layoutData.targetAnchor,
 				},
 			},
 		} as AppEdge;
@@ -228,18 +278,36 @@ function extractPositions(
 }
 
 /**
- * Extract edge waypoints from ELK graph sections
+ * Extract edge layout data (waypoints and anchors) from ELK graph sections
  */
-function extractEdgeWaypoints(
+function extractEdgeLayoutData(
 	elkNode: ElkNode,
-	waypointsMap: Map<string, Waypoint[]>
+	edgeDataMap: Map<string, ElkEdgeLayoutData>,
+	positionMap: Map<string, { x: number; y: number }>,
+	originalNodes: AppNode[]
 ): void {
 	// Process edges at this level
 	if (elkNode.edges) {
 		for (const elkEdge of elkNode.edges) {
-			const waypoints = extractWaypointsFromSections(elkEdge.sections);
-			if (waypoints.length > 0) {
-				waypointsMap.set(elkEdge.id, waypoints);
+			// ELK uses arrays for sources/targets, but our edges have single source/target
+			const sourceNodeId = elkEdge.sources[0];
+			const targetNodeId = elkEdge.targets[0];
+
+			const layoutData = extractWaypointsAndAnchors(
+				elkEdge.sections,
+				sourceNodeId,
+				targetNodeId,
+				positionMap,
+				originalNodes
+			);
+
+			// Store if we got meaningful data (waypoints or anchors)
+			if (
+				layoutData.waypoints.length > 0 ||
+				layoutData.sourceAnchor ||
+				layoutData.targetAnchor
+			) {
+				edgeDataMap.set(elkEdge.id, layoutData);
 			}
 		}
 	}
@@ -247,34 +315,69 @@ function extractEdgeWaypoints(
 	// Recursively process children
 	if (elkNode.children) {
 		for (const child of elkNode.children) {
-			extractEdgeWaypoints(child, waypointsMap);
+			extractEdgeLayoutData(child, edgeDataMap, positionMap, originalNodes);
 		}
 	}
 }
 
 /**
- * Convert ELK edge sections to our Waypoint format
+ * Convert ELK edge sections to waypoints and anchors.
+ * Extracts startPoint/endPoint as anchors and bendPoints as waypoints.
  */
-function extractWaypointsFromSections(sections?: ElkEdgeSection[]): Waypoint[] {
-	if (!sections || sections.length === 0) return [];
+function extractWaypointsAndAnchors(
+	sections: ElkEdgeSection[] | undefined,
+	sourceNodeId: string,
+	targetNodeId: string,
+	positionMap: Map<string, { x: number; y: number }>,
+	originalNodes: AppNode[]
+): ElkEdgeLayoutData {
+	const result: ElkEdgeLayoutData = {
+		waypoints: [],
+		sourceAnchor: undefined,
+		targetAnchor: undefined,
+	};
 
-	const waypoints: Waypoint[] = [];
+	if (!sections || sections.length === 0) {
+		return result;
+	}
 
 	for (const section of sections) {
+		// Extract startPoint as sourceAnchor (from first section with startPoint)
+		if (section.startPoint && !result.sourceAnchor) {
+			result.sourceAnchor = elkPointToAnchor(
+				section.startPoint,
+				sourceNodeId,
+				positionMap,
+				originalNodes
+			);
+		}
+
 		// Add bend points as waypoints
 		if (section.bendPoints) {
 			for (const bend of section.bendPoints) {
-				waypoints.push({
+				result.waypoints.push({
 					id: generateUuid(),
 					x: bend.x,
 					y: bend.y,
 				});
 			}
 		}
+
+		// Extract endPoint as targetAnchor (last section's endPoint wins)
+		if (section.endPoint) {
+			result.targetAnchor = elkPointToAnchor(
+				section.endPoint,
+				targetNodeId,
+				positionMap,
+				originalNodes
+			);
+		}
 	}
 
-	// Optimize: remove collinear points
-	return optimizeWaypoints(waypoints);
+	// Optimize: remove collinear waypoints
+	result.waypoints = optimizeWaypoints(result.waypoints);
+
+	return result;
 }
 
 /**
