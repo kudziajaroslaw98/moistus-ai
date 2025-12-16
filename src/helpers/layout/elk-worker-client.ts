@@ -193,11 +193,14 @@ function mergeLayoutResult(
 		const layoutedEdge = edgeDataMap.get(edge.id);
 		if (!layoutedEdge) return edge;
 
-		const edgeData = edge.data!;
-		const layoutedEdgeData = layoutedEdge.data!;
+		// Early return if edge data is missing - preserve original edge
+		const edgeData = edge.data;
+		const layoutedEdgeData = layoutedEdge.data;
+		if (!edgeData || !layoutedEdgeData) return edge;
 
-		// Offset waypoints to match node offset
-		const waypoints = layoutedEdgeData.metadata?.waypoints?.map((wp) => ({
+		// Offset waypoints to match node offset (only if waypoints exist)
+		const layoutedWaypoints = layoutedEdgeData.metadata?.waypoints;
+		const waypoints = layoutedWaypoints?.map((wp) => ({
 			...wp,
 			x: wp.x + offsetX,
 			y: wp.y + offsetY,
@@ -209,9 +212,9 @@ function mergeLayoutResult(
 			data: {
 				...edgeData,
 				metadata: {
-					...edgeData.metadata,
-					...layoutedEdgeData.metadata,
-					waypoints,
+					...(edgeData.metadata ?? {}),
+					...(layoutedEdgeData.metadata ?? {}),
+					...(waypoints && { waypoints }),
 				},
 			},
 		} as AppEdge;

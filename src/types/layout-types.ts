@@ -20,9 +20,6 @@ export type LayoutDirection =
 	| 'BOTTOM_TOP'
 	| 'RADIAL';
 
-// Layout algorithm options (ELK algorithms)
-export type LayoutAlgorithm = 'layered' | 'stress' | 'force' | 'radial';
-
 // Configuration for layout operations
 export interface LayoutConfig {
 	direction: LayoutDirection;

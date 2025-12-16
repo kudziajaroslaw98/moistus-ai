@@ -199,7 +199,9 @@ export function convertFromElkGraph(
 	// Update edges with waypoints AND anchors from ELK
 	const updatedEdges: AppEdge[] = originalEdges.map((edge) => {
 		const layoutData = edgeLayoutDataMap.get(edge.id);
-		const edgeData = edge.data!; // Edge data is guaranteed by React Flow
+		// Safely handle edges with missing data by providing defaults
+		const edgeData = edge.data ?? ({} as AppEdge['data']);
+		const edgeMetadata = edgeData?.metadata ?? {};
 
 		// If no layout data from ELK, use floating edge
 		if (
@@ -214,7 +216,7 @@ export function convertFromElkGraph(
 				data: {
 					...edgeData,
 					metadata: {
-						...edgeData.metadata,
+						...edgeMetadata,
 						waypoints: undefined,
 						curveType: undefined,
 						sourceAnchor: undefined,
@@ -231,7 +233,7 @@ export function convertFromElkGraph(
 			data: {
 				...edgeData,
 				metadata: {
-					...edgeData.metadata,
+					...edgeMetadata,
 					pathType: 'waypoint' as const,
 					waypoints: layoutData.waypoints,
 					curveType,

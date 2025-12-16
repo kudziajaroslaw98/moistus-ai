@@ -10,7 +10,7 @@
  */
 
 import type { AppNode } from '@/types/app-node';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 // ease-out-quart: Starts fast, slows down - best for elements entering/settling
 const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
@@ -58,6 +58,35 @@ export function useAnimatedLayout() {
 		progress: 0,
 	});
 
+	// Track the active requestAnimationFrame ID for cancellation
+	const rafIdRef = useRef<number | null>(null);
+	// Track whether the animation has been cancelled (or component unmounted)
+	const cancelledRef = useRef(false);
+
+	/**
+	 * Cancel any ongoing animation
+	 * Cancels the rAF loop and prevents further state updates
+	 */
+	const cancelAnimation = useCallback(() => {
+		cancelledRef.current = true;
+		if (rafIdRef.current !== null) {
+			cancelAnimationFrame(rafIdRef.current);
+			rafIdRef.current = null;
+		}
+		setAnimationState({ isAnimating: false, progress: 0 });
+	}, []);
+
+	// Cleanup on unmount: cancel any running animation
+	useEffect(() => {
+		return () => {
+			cancelledRef.current = true;
+			if (rafIdRef.current !== null) {
+				cancelAnimationFrame(rafIdRef.current);
+				rafIdRef.current = null;
+			}
+		};
+	}, []);
+
 	/**
 	 * Animate nodes from current positions to target positions
 	 * Returns animated nodes on each frame update
@@ -72,6 +101,14 @@ export function useAnimatedLayout() {
 			if (prefersReducedMotion()) {
 				return targetNodes;
 			}
+
+			// Cancel any existing animation before starting a new one
+			if (rafIdRef.current !== null) {
+				cancelAnimationFrame(rafIdRef.current);
+				rafIdRef.current = null;
+			}
+			// Reset cancelled flag for this new animation
+			cancelledRef.current = false;
 
 			// Build maps for quick lookup
 			const currentPositions = new Map(
@@ -106,6 +143,13 @@ export function useAnimatedLayout() {
 				const startTime = performance.now();
 
 				function animate(currentTime: number) {
+					// Check if animation was cancelled or component unmounted
+					if (cancelledRef.current) {
+						rafIdRef.current = null;
+						resolve(targetNodes);
+						return;
+					}
+
 					const elapsed = currentTime - startTime;
 					const progress = Math.min(elapsed / ANIMATION_DURATION_MS, 1);
 
@@ -131,6 +175,13 @@ export function useAnimatedLayout() {
 						};
 					});
 
+					// Check again before state updates (rAF callback could be delayed)
+					if (cancelledRef.current) {
+						rafIdRef.current = null;
+						resolve(targetNodes);
+						return;
+					}
+
 					// Update progress
 					setAnimationState({ isAnimating: true, progress });
 
@@ -140,25 +191,19 @@ export function useAnimatedLayout() {
 					}
 
 					if (progress < 1) {
-						requestAnimationFrame(animate);
+						rafIdRef.current = requestAnimationFrame(animate);
 					} else {
+						rafIdRef.current = null;
 						setAnimationState({ isAnimating: false, progress: 1 });
 						resolve(targetNodes);
 					}
 				}
 
-				requestAnimationFrame(animate);
+				rafIdRef.current = requestAnimationFrame(animate);
 			});
 		},
 		[]
 	);
-
-	/**
-	 * Cancel any ongoing animation
-	 */
-	const cancelAnimation = useCallback(() => {
-		setAnimationState({ isAnimating: false, progress: 0 });
-	}, []);
 
 	return {
 		animateNodesToPositions,
