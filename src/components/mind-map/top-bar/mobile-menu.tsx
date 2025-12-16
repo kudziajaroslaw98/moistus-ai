@@ -45,78 +45,73 @@ export function MobileMenu({
 	};
 
 	// Animation config matching other panels
-	const sectionAnimation = shouldReduceMotion
-		? {}
-		: {
-				initial: { opacity: 0, y: 10 },
-				animate: { opacity: 1, y: 0 },
-				transition: { duration: 0.3 },
-			};
+	const getAnimation = (delay: number = 0) =>
+		shouldReduceMotion
+			? {}
+			: {
+					initial: { opacity: 0, y: 10 },
+					animate: { opacity: 1, y: 0 },
+					transition: { duration: 0.3, delay },
+				};
 
 	return (
 		<SidePanel
 			isOpen={open}
 			onClose={() => onOpenChange(false)}
 			title='Menu'
-			className='max-w-xs'
+			className='w-full max-w-sm'
 		>
-			<div className='flex flex-col gap-6 p-4'>
+			<div className='flex flex-col gap-6 p-6'>
 				{/* Collaborators Section */}
-				<motion.section className='space-y-3' {...sectionAnimation}>
-					<h3 className='text-sm font-semibold text-text-primary flex items-center gap-2'>
-						<Users className='size-4 text-primary' />
+				<motion.section className='space-y-4' {...getAnimation(0)}>
+					<h3 className='text-lg font-semibold text-text-primary flex items-center gap-2'>
+						<Users className='size-5 text-primary' />
 						Collaborators
 					</h3>
-					<div className='bg-surface rounded-lg p-3 border border-border-subtle'>
+					<div className='bg-surface rounded-lg p-4 border border-border-subtle'>
 						<RealtimeAvatarStack
 							activityState={activityState}
 							mapOwnerId={mapOwnerId}
 							roomName={`mind_map:${mapId}:users`}
 						/>
+						<p className='text-sm text-text-secondary mt-2'>
+							People currently viewing this map
+						</p>
 					</div>
 				</motion.section>
 
 				{/* Edit Actions */}
 				{canEdit && (
-					<motion.section
-						className='space-y-3'
-						{...sectionAnimation}
-						transition={
-							shouldReduceMotion
-								? undefined
-								: { duration: 0.3, delay: 0.1 }
-						}
-					>
-						<h3 className='text-sm font-semibold text-text-primary flex items-center gap-2'>
-							<History className='size-4 text-primary' />
+					<motion.section className='space-y-4' {...getAnimation(0.1)}>
+						<h3 className='text-lg font-semibold text-text-primary flex items-center gap-2'>
+							<History className='size-5 text-primary' />
 							Edit Actions
 						</h3>
-						<div className='bg-surface rounded-lg p-3 border border-border-subtle space-y-2'>
-							{/* TODO: Uncomment redo/undo when optimized history implemented */}
+						<div className='bg-surface rounded-lg p-4 border border-border-subtle space-y-2'>
+							{/* TODO: Enable when optimized history is implemented */}
 							<Button
-								// onClick={() => handleAction(handleUndo)}
 								disabled={!canUndo}
 								variant='ghost'
-								className='w-full justify-start gap-3 h-10'
+								className='w-full justify-start gap-3 h-11 text-base'
 							>
-								<Undo className='size-4' />
+								<Undo className='size-5' />
 								Undo
 							</Button>
 							<Button
-								// onClick={() => handleAction(handleRedo)}
 								disabled={!canRedo}
 								variant='ghost'
-								className='w-full justify-start gap-3 h-10'
+								className='w-full justify-start gap-3 h-11 text-base'
 							>
-								<Redo className='size-4' />
+								<Redo className='size-5' />
 								Redo
 							</Button>
+							<div className='border-t border-border-subtle my-2' />
 							<Button
 								onClick={() => handleAction(onToggleHistory)}
 								variant='ghost'
-								className='w-full justify-start gap-3 h-10'
+								className='w-full justify-start gap-3 h-11 text-base'
 							>
-								<History className='size-4' />
+								<History className='size-5' />
 								View History
 							</Button>
 						</div>
@@ -126,27 +121,25 @@ export function MobileMenu({
 				{/* Settings (Owner only) */}
 				{isMapOwner && (
 					<motion.section
-						className='space-y-3'
-						{...sectionAnimation}
-						transition={
-							shouldReduceMotion
-								? undefined
-								: { duration: 0.3, delay: canEdit ? 0.2 : 0.1 }
-						}
+						className='space-y-4'
+						{...getAnimation(canEdit ? 0.2 : 0.1)}
 					>
-						<h3 className='text-sm font-semibold text-text-primary flex items-center gap-2'>
-							<Settings className='size-4 text-primary' />
+						<h3 className='text-lg font-semibold text-text-primary flex items-center gap-2'>
+							<Settings className='size-5 text-primary' />
 							Map Settings
 						</h3>
-						<div className='bg-surface rounded-lg p-3 border border-border-subtle'>
+						<div className='bg-surface rounded-lg p-4 border border-border-subtle'>
 							<Button
 								onClick={() => handleAction(onToggleSettings)}
 								variant={isSettingsActive ? 'default' : 'ghost'}
-								className='w-full justify-start gap-3 h-10'
+								className='w-full justify-start gap-3 h-11 text-base'
 							>
-								<Settings className='size-4' />
+								<Settings className='size-5' />
 								Open Settings
 							</Button>
+							<p className='text-sm text-text-secondary mt-3'>
+								Configure map visibility, permissions, and more
+							</p>
 						</div>
 					</motion.section>
 				)}
