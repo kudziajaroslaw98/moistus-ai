@@ -1,0 +1,156 @@
+'use client';
+
+import { RealtimeAvatarStack } from '@/components/realtime/realtime-avatar-stack';
+import { Button } from '@/components/ui/button';
+import { UserMenu } from '@/components/common/user-menu';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { type ActivityState } from '@/hooks/realtime/use-realtime-presence-room';
+import type { PublicUserProfile } from '@/types/user-profile-types';
+import { Panel } from '@xyflow/react';
+import { Menu, Settings, Share2 } from 'lucide-react';
+import { useState } from 'react';
+
+import { MobileMenu } from './mobile-menu';
+import { TopBarActions } from './top-bar-actions';
+import { TopBarBreadcrumb } from './top-bar-breadcrumb';
+
+interface MindMapTopBarProps {
+	mapId: string;
+	mindMap: { title?: string; user_id?: string } | null;
+	currentUser: { id: string } | null;
+	userProfile: (PublicUserProfile & { email?: string; is_anonymous?: boolean }) | null;
+	activityState?: ActivityState;
+	popoverOpen: { mapSettings: boolean; sharePanel: boolean };
+	canEdit: boolean;
+	canUndo: boolean;
+	canRedo: boolean;
+	handleToggleHistorySidebar: () => void;
+	handleToggleMapSettings: () => void;
+	handleToggleSharePanel: () => void;
+	handleOpenSettings: (tab: 'settings' | 'billing') => void;
+}
+
+export function MindMapTopBar({
+	mapId,
+	mindMap,
+	currentUser,
+	userProfile,
+	activityState,
+	popoverOpen,
+	canEdit,
+	canUndo,
+	canRedo,
+	handleToggleHistorySidebar,
+	handleToggleMapSettings,
+	handleToggleSharePanel,
+	handleOpenSettings,
+}: MindMapTopBarProps) {
+	const isMobile = useIsMobile();
+	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+	const isMapOwner = mindMap?.user_id === currentUser?.id;
+
+	return (
+		<Panel
+			className='!m-0 p-2 px-4 md:px-8 right-0 flex justify-between bg-base/80 backdrop-blur-xs'
+			position='top-left'
+		>
+			{/* LEFT SECTION */}
+			<div className='flex items-center gap-4 md:gap-8'>
+				<TopBarBreadcrumb title={mindMap?.title} isMobile={isMobile} />
+
+				{/* Desktop only: Undo/Redo/History */}
+				{!isMobile && canEdit && (
+					<TopBarActions
+						canUndo={canUndo}
+						canRedo={canRedo}
+						onToggleHistory={handleToggleHistorySidebar}
+					/>
+				)}
+			</div>
+
+			{/* RIGHT SECTION */}
+			<div className='flex items-center gap-4 md:gap-8'>
+				{/* Desktop only: Avatar Stack */}
+				{!isMobile && (
+					<RealtimeAvatarStack
+						activityState={activityState}
+						mapOwnerId={mindMap?.user_id}
+						roomName={`mind_map:${mapId}:users`}
+					/>
+				)}
+
+				{/* Owner controls */}
+				{isMapOwner && (
+					<div className='flex gap-2'>
+						{/* Desktop only: Settings button */}
+						{!isMobile && (
+							<Button
+								aria-label='Map Settings'
+								onClick={handleToggleMapSettings}
+								size='icon'
+								title='Map Settings'
+								variant={popoverOpen.mapSettings ? 'default' : 'secondary'}
+							>
+								<Settings className='h-4 w-4' />
+							</Button>
+						)}
+
+						{/* Always visible: Share button */}
+						<Button
+							aria-label='Share Mind Map'
+							className='gap-2'
+							onClick={handleToggleSharePanel}
+							title='Share Mind Map'
+							variant={popoverOpen.sharePanel ? 'default' : 'secondary'}
+							size={isMobile ? 'icon' : 'default'}
+						>
+							{isMobile ? (
+								<Share2 className='size-4' />
+							) : (
+								<>
+									Share <Share2 className='size-3' />
+								</>
+							)}
+						</Button>
+					</div>
+				)}
+
+				{/* Always visible: User Menu */}
+				<UserMenu
+					showBackToDashboard
+					user={userProfile}
+					onOpenSettings={handleOpenSettings}
+				/>
+
+				{/* Mobile only: Hamburger menu */}
+				{isMobile && (
+					<Button
+						aria-label='Open menu'
+						onClick={() => setMobileMenuOpen(true)}
+						size='icon'
+						variant='ghost'
+					>
+						<Menu className='size-5' />
+					</Button>
+				)}
+			</div>
+
+			{/* Mobile Menu Sheet */}
+			<MobileMenu
+				open={mobileMenuOpen}
+				onOpenChange={setMobileMenuOpen}
+				canEdit={canEdit}
+				canUndo={canUndo}
+				canRedo={canRedo}
+				isMapOwner={isMapOwner}
+				activityState={activityState}
+				mapId={mapId}
+				mapOwnerId={mindMap?.user_id}
+				isSettingsActive={popoverOpen.mapSettings}
+				onToggleHistory={handleToggleHistorySidebar}
+				onToggleSettings={handleToggleMapSettings}
+			/>
+		</Panel>
+	);
+}
