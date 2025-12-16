@@ -28,7 +28,6 @@ const sliceCreators = [
 	createUiStateSlice,
 	createLoadingStateSlice,
 	createHistorySlice,
-	createLayoutSlice,
 	createGroupsSlice,
 	createSharingSlice,
 	createSuggestionsSlice,
@@ -40,6 +39,7 @@ const sliceCreators = [
 	createSubscriptionSlice,
 	createOnboardingSlice,
 	createUserProfileSlice,
+	createLayoutSlice,
 ];
 
 const useAppStore = create<AppState>((set, get, api) => {

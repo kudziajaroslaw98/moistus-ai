@@ -11,8 +11,6 @@ import {
 	ChevronRight,
 	Edit,
 	Group,
-	LayoutPanelLeft,
-	LayoutPanelTop,
 	LocateFixed,
 	Network,
 	NotepadTextDashed,
@@ -299,7 +297,6 @@ interface BuildPaneMenuParams {
 		suggestCounterpoints?: () => void;
 	};
 	loadingStates: any;
-	applyLayout: any;
 	onClose: () => void;
 	canEdit: boolean;
 }
@@ -312,7 +309,6 @@ function buildPaneMenu(params: BuildPaneMenuParams): MenuSection[] {
 		openNodeEditor,
 		aiActions,
 		loadingStates,
-		applyLayout,
 		onClose,
 		canEdit,
 	} = params;
@@ -393,31 +389,6 @@ function buildPaneMenu(params: BuildPaneMenuParams): MenuSection[] {
 				},
 			],
 		},
-		{
-			id: 'pane-layout',
-			items: [
-				{
-					id: 'layout-tb',
-					icon: <LayoutPanelTop className='h-4 w-4' />,
-					label: 'Layout Top-Bottom',
-					onClick: () => {
-						applyLayout('TB');
-						onClose();
-					},
-					hidden: !canEdit,
-				},
-				{
-					id: 'layout-lr',
-					icon: <LayoutPanelLeft className='h-4 w-4' />,
-					label: 'Layout Left-Right',
-					onClick: () => {
-						applyLayout('LR');
-						onClose();
-					},
-					hidden: !canEdit,
-				},
-			],
-		},
 	];
 }
 
@@ -493,7 +464,6 @@ export function useContextMenuConfig({
 		selectedNodes,
 		reactFlowInstance,
 		contextMenuState,
-		applyLayout,
 		createGroupFromSelected,
 		ungroupNodes,
 		removeNodesFromGroup,
@@ -511,7 +481,6 @@ export function useContextMenuConfig({
 			loadingStates: state.loadingStates,
 			selectedNodes: state.selectedNodes,
 			contextMenuState: state.contextMenuState,
-			applyLayout: state.applyLayout,
 			createGroupFromSelected: state.createGroupFromSelected,
 			ungroupNodes: state.ungroupNodes,
 			removeNodesFromGroup: state.removeNodesFromGroup,
@@ -585,7 +554,6 @@ export function useContextMenuConfig({
 			openNodeEditor,
 			aiActions,
 			loadingStates,
-			applyLayout,
 			onClose,
 			canEdit,
 		});
@@ -609,7 +577,6 @@ export function useContextMenuConfig({
 		y,
 		aiActions,
 		loadingStates,
-		applyLayout,
 		onClose,
 		canEdit,
 	]);

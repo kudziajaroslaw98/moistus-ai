@@ -12,7 +12,6 @@ export interface LoadingStates {
 	isSuggestingMerges: boolean;
 	isSavingNode: boolean;
 	isSavingEdge: boolean;
-	isApplyingLayout: boolean;
 	isLoadingComments: boolean;
 	isSavingComment: boolean;
 	isDeletingComment: boolean;

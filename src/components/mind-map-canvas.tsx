@@ -49,6 +49,7 @@ export function MindMapCanvas() {
 		openNodeEditor,
 		userProfile,
 		mapAccessError,
+		applyLayout,
 	} = useAppStore(
 		useShallow((state) => ({
 			handleUndo: state.handleUndo,
@@ -69,6 +70,7 @@ export function MindMapCanvas() {
 			openNodeEditor: state.openNodeEditor,
 			userProfile: state.userProfile,
 			mapAccessError: state.mapAccessError,
+			applyLayout: state.applyLayout,
 		}))
 	);
 	const isLoading = loadingStates.isStateLoading;
@@ -122,6 +124,7 @@ export function MindMapCanvas() {
 		onGroup: handleGroup,
 		onUngroup: handleUngroup,
 		onToggleCollapse: handleToggleCollapse,
+		onLayout: canEdit ? applyLayout : undefined,
 	});
 
 	// Keyboard navigation (arrow keys, Ctrl+Arrow creation, Enter edit)

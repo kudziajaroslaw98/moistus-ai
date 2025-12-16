@@ -1,248 +1,309 @@
-import withLoadingAndToast from '@/helpers/with-loading-and-toast';
-import type { LayoutDirection } from '@/types/layout-direction';
-import type {
-	ELKLayoutConfig,
-	SpecificLayoutConfig,
-} from '@/types/layout-types';
+/**
+ * Layout Slice
+ * Manages ELK.js-based automatic layout state and actions
+ */
+
+import { runElkLayout } from '@/helpers/layout';
+import type { AppEdge } from '@/types/app-edge';
+import type { AppNode } from '@/types/app-node';
 import {
-	applyDirectionalLayout,
-	getELKLayoutPresets,
-	layoutWithELK,
-} from '@/utils/elk-graph-utils';
+	DEFAULT_LAYOUT_CONFIG,
+	LayoutConfig,
+	LayoutDirection,
+	LayoutSlice,
+} from '@/types/layout-types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
-import type { StateCreator } from 'zustand';
-import type { AppState, LayoutSlice } from '../app-state';
+import { StateCreator } from 'zustand';
+import { AppState } from '../app-state';
+
+/**
+ * Batch update node positions in database (single DB call)
+ */
+async function batchUpdateNodePositions(
+	nodes: AppNode[],
+	supabase: SupabaseClient,
+	mapId: string
+): Promise<void> {
+	if (nodes.length === 0) return;
+
+	const updates = nodes.map((node) => ({
+		id: node.id,
+		map_id: mapId,
+		position_x: node.position.x,
+		position_y: node.position.y,
+		updated_at: new Date().toISOString(),
+	}));
+
+	const { error } = await supabase
+		.from('nodes')
+		.upsert(updates, { onConflict: 'id' });
+
+	if (error) {
+		console.error('Failed to batch update node positions:', error);
+		throw error;
+	}
+}
+
+/**
+ * Batch update edge metadata in database (single DB call)
+ */
+async function batchUpdateEdgeMetadata(
+	edges: AppEdge[],
+	supabase: SupabaseClient,
+	mapId: string
+): Promise<void> {
+	if (edges.length === 0) return;
+
+	const updates = edges.map((edge) => ({
+		id: edge.id,
+		map_id: mapId,
+		metadata: edge.data?.metadata ?? null,
+		updated_at: new Date().toISOString(),
+	}));
+
+	const { error } = await supabase
+		.from('edges')
+		.upsert(updates, { onConflict: 'id' });
+
+	if (error) {
+		console.error('Failed to batch update edge metadata:', error);
+		throw error;
+	}
+}
 
 export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 	set,
 	get
 ) => ({
-	// state
-	currentLayoutConfig: null,
-	availableLayouts: getELKLayoutPresets(),
+	// Initial state
+	layoutConfig: DEFAULT_LAYOUT_CONFIG,
+	isLayouting: false,
+	layoutError: null,
+	lastLayoutTimestamp: 0,
 
-	// setters
-	setLayoutConfig: (config: SpecificLayoutConfig) => {
-		set({ currentLayoutConfig: config });
+	// Actions
+	setLayoutConfig: (config: Partial<LayoutConfig>) => {
+		set((state) => ({
+			layoutConfig: { ...state.layoutConfig, ...config },
+		}));
 	},
 
-	// getters
-	getLayoutPresets: () => {
-		return getELKLayoutPresets();
-	},
+	applyLayout: async (direction?: LayoutDirection) => {
+		const {
+			nodes,
+			edges,
+			setNodes,
+			setEdges,
+			addStateToHistory,
+			persistDeltaEvent,
+			layoutConfig,
+			isLayouting,
+			setLoadingStates,
+			selectedNodes,
+			supabase,
+			mapId,
+		} = get();
 
-	// actions
-	applyLayout: withLoadingAndToast(
-		async (direction: LayoutDirection) => {
-			const {
+		// Prevent concurrent layouts
+		if (isLayouting) {
+			toast.info('Layout already in progress...');
+			return;
+		}
+
+		// Skip if no nodes
+		if (nodes.length === 0) {
+			toast.info('No nodes to layout');
+			return;
+		}
+
+		// Capture previous state for history (before any modifications)
+		const prevNodes = [...nodes];
+		const prevEdges = [...edges];
+
+		// Determine layout config
+		const effectiveConfig: LayoutConfig = {
+			...layoutConfig,
+			direction: direction ?? layoutConfig.direction,
+		};
+
+		// Set loading state
+		set({ isLayouting: true, layoutError: null });
+		setLoadingStates?.({ isStateLoading: true });
+
+		// Show loading toast
+		const toastId = toast.loading(
+			`Applying ${getDirectionLabel(effectiveConfig.direction)} layout...`
+		);
+
+		try {
+			// Run layout in Web Worker
+			const result = await runElkLayout({
 				nodes,
 				edges,
-				setNodes,
-				reactFlowInstance,
-				addStateToHistory,
-				persistDeltaEvent,
-				unsubscribeFromRealtimeUpdates,
-				subscribeToRealtimeUpdates,
-				supabase,
-				mapId,
-			} = get();
-
-			if (nodes.length === 0) {
-				toast.error('Nothing to layout. Add some nodes first.');
-				return;
-			}
-
-			// Use ELK.js for layout computation with enhanced options
-			const result = await applyDirectionalLayout(nodes, edges, direction);
-
-			// Post-process positions to ensure better distribution
-			const updatedNodes = nodes.map((node) => {
-				const layoutNode = result.nodes.find((n) => n.id === node.id);
-				if (!layoutNode) return node;
-
-				return {
-					...node,
-					position: {
-						x: layoutNode.position.x,
-						y: layoutNode.position.y,
-					},
-				};
+				config: effectiveConfig,
 			});
 
-			// Determine which nodes actually changed position
-			const changedNodes = updatedNodes.filter((n) => {
-				const prev = nodes.find((p) => p.id === n.id);
-				if (!prev) return false;
-				return (
-					prev.position.x !== n.position.x || prev.position.y !== n.position.y
+			// Batch update state (single update, not per-node)
+			setNodes(result.nodes);
+			setEdges(result.edges);
+
+			// Batch persist to database (2 parallel DB calls)
+			if (supabase && mapId) {
+				await Promise.all([
+					batchUpdateNodePositions(result.nodes, supabase, mapId),
+					batchUpdateEdgeMetadata(result.edges, supabase, mapId),
+				]);
+			}
+
+			// Record to history as single action for undo/redo
+			addStateToHistory('applyLayout', {
+				nodes: result.nodes,
+				edges: result.edges,
+			});
+
+			// Persist delta to database
+			await persistDeltaEvent(
+				'applyLayout',
+				{ nodes: prevNodes, edges: prevEdges },
+				{ nodes: result.nodes, edges: result.edges }
+			);
+
+			// Update config if direction changed
+			if (direction && direction !== layoutConfig.direction) {
+				set({ layoutConfig: { ...layoutConfig, direction } });
+			}
+
+			set({ lastLayoutTimestamp: Date.now() });
+
+			toast.success('Layout applied successfully', { id: toastId });
+		} catch (error) {
+			const errorMessage =
+				error instanceof Error ? error.message : 'Layout failed';
+			set({ layoutError: errorMessage });
+			toast.error(errorMessage, { id: toastId });
+			console.error('Layout error:', error);
+		} finally {
+			set({ isLayouting: false });
+			setLoadingStates?.({ isStateLoading: false });
+		}
+	},
+
+	applyLayoutToSelected: async () => {
+		const {
+			nodes,
+			edges,
+			setNodes,
+			setEdges,
+			addStateToHistory,
+			persistDeltaEvent,
+			layoutConfig,
+			isLayouting,
+			setLoadingStates,
+			selectedNodes,
+			supabase,
+			mapId,
+		} = get();
+
+		// Prevent concurrent layouts
+		if (isLayouting) {
+			toast.info('Layout already in progress...');
+			return;
+		}
+
+		// Need at least 2 selected nodes
+		if (selectedNodes.length < 2) {
+			toast.info('Select at least 2 nodes to layout');
+			return;
+		}
+
+		// Capture previous state for history
+		const prevNodes = [...nodes];
+		const prevEdges = [...edges];
+
+		// Get selected node IDs
+		const selectedNodeIds = new Set(selectedNodes.map((n) => n.id));
+
+		// Set loading state
+		set({ isLayouting: true, layoutError: null });
+		setLoadingStates?.({ isStateLoading: true });
+
+		const toastId = toast.loading(
+			`Applying layout to ${selectedNodes.length} selected nodes...`
+		);
+
+		try {
+			// Run layout only on selected nodes
+			const result = await runElkLayout({
+				nodes,
+				edges,
+				config: layoutConfig,
+				selectedNodeIds,
+			});
+
+			// Batch update state
+			setNodes(result.nodes);
+			setEdges(result.edges);
+
+			// Batch persist only affected nodes/edges to database
+			if (supabase && mapId) {
+				const affectedNodes = result.nodes.filter((n) =>
+					selectedNodeIds.has(n.id)
 				);
+				const affectedEdges = result.edges.filter(
+					(e) => selectedNodeIds.has(e.source) && selectedNodeIds.has(e.target)
+				);
+				await Promise.all([
+					batchUpdateNodePositions(affectedNodes, supabase, mapId),
+					batchUpdateEdgeMetadata(affectedEdges, supabase, mapId),
+				]);
+			}
+
+			// Record to history as single action
+			addStateToHistory('applyLayoutToSelected', {
+				nodes: result.nodes,
+				edges: result.edges,
 			});
 
-			// Update UI immediately
-			setNodes(updatedNodes);
+			// Persist delta to database
+			await persistDeltaEvent(
+				'applyLayoutToSelected',
+				{ nodes: prevNodes, edges: prevEdges },
+				{ nodes: result.nodes, edges: result.edges }
+			);
 
-			// Bulk persist only if something changed and we have required context
-			try {
-				await unsubscribeFromRealtimeUpdates();
+			set({ lastLayoutTimestamp: Date.now() });
 
-				if (changedNodes.length > 0 && mapId && supabase) {
-					const session = await supabase.auth.getSession();
-					const userId = session.data.session?.user?.id;
-					if (!userId) {
-						throw new Error('Not authenticated');
-					}
-
-					const nowIso = new Date().toISOString();
-					const rows = changedNodes.map((n) => ({
-						id: n.id,
-						map_id: mapId,
-						user_id: userId,
-						position_x: n.position.x,
-						position_y: n.position.y,
-						updated_at: nowIso,
-					}));
-
-					if (rows.length > 0) {
-						const { error } = await supabase
-							.from('nodes')
-							.upsert(rows, { onConflict: 'id' });
-						if (error) throw error;
-					}
-
-					// Record a single history event for the entire layout
-					addStateToHistory(`applyLayout (${direction})`, {
-						nodes: updatedNodes,
-						edges,
-					});
-					await persistDeltaEvent(
-						`applyLayout (${direction})`,
-						{ nodes, edges },
-						{ nodes: updatedNodes, edges }
-					);
-				}
-			} finally {
-				if (mapId) {
-					await subscribeToRealtimeUpdates(mapId);
-				}
-			}
-
-			setTimeout(() => {
-				reactFlowInstance?.fitView({ padding: 0.1, duration: 300 });
-			}, 50);
-		},
-		'isApplyingLayout',
-		{
-			initialMessage: 'Applying layout...',
-			successMessage: 'Layout applied.',
-			errorMessage: 'Failed to apply layout.',
+			toast.success(`Layout applied to ${selectedNodes.length} nodes`, {
+				id: toastId,
+			});
+		} catch (error) {
+			const errorMessage =
+				error instanceof Error ? error.message : 'Layout failed';
+			set({ layoutError: errorMessage });
+			toast.error(errorMessage, { id: toastId });
+			console.error('Layout error:', error);
+		} finally {
+			set({ isLayouting: false });
+			setLoadingStates?.({ isStateLoading: false });
 		}
-	),
-	applyAdvancedLayout: withLoadingAndToast(
-		async (config: SpecificLayoutConfig) => {
-			const {
-				nodes,
-				edges,
-				setNodes,
-				reactFlowInstance,
-				addStateToHistory,
-				persistDeltaEvent,
-				unsubscribeFromRealtimeUpdates,
-				subscribeToRealtimeUpdates,
-				supabase,
-				mapId,
-			} = get();
+	},
 
-			if (nodes.length === 0) {
-				toast.error('Nothing to layout. Add some nodes first.');
-				return;
-			}
-
-			// Check if it's an ELK layout config
-			if ('algorithm' in config && config.algorithm.startsWith('elk.')) {
-				const elkConfig = config as ELKLayoutConfig;
-
-				const result = await layoutWithELK(nodes, edges, {
-					algorithm: elkConfig.algorithm,
-					direction: elkConfig.direction,
-					layoutOptions: elkConfig.layoutOptions,
-					useWorker: false,
-				});
-
-				const updatedNodes = nodes.map((node) => {
-					const layoutNode = result.nodes.find((ln) => ln.id === node.id);
-					return layoutNode ? { ...node, position: layoutNode.position } : node;
-				});
-
-				// Determine which nodes actually changed position
-				const changedNodes = updatedNodes.filter((n) => {
-					const prev = nodes.find((p) => p.id === n.id);
-					if (!prev) return false;
-					return (
-						prev.position.x !== n.position.x || prev.position.y !== n.position.y
-					);
-				});
-
-				// Update UI immediately
-				setNodes(updatedNodes);
-
-				try {
-					await unsubscribeFromRealtimeUpdates();
-
-					if (changedNodes.length > 0 && mapId && supabase) {
-						const session = await supabase.auth.getSession();
-						const userId = session.data.session?.user?.id;
-						if (!userId) {
-							throw new Error('Not authenticated');
-						}
-
-						const nowIso = new Date().toISOString();
-						const rows = changedNodes.map((n) => ({
-							id: n.id,
-							map_id: mapId,
-							user_id: userId,
-							position_x: n.position.x,
-							position_y: n.position.y,
-							updated_at: nowIso,
-						}));
-
-						if (rows.length > 0) {
-							const { error } = await supabase
-								.from('nodes')
-								.upsert(rows, { onConflict: 'id' });
-							if (error) throw error;
-						}
-
-						addStateToHistory('applyAdvancedLayout', {
-							nodes: updatedNodes,
-							edges,
-						});
-						await persistDeltaEvent(
-							'applyAdvancedLayout',
-							{ nodes, edges },
-							{ nodes: updatedNodes, edges }
-						);
-					}
-				} finally {
-					if (mapId) {
-						await subscribeToRealtimeUpdates(mapId);
-					}
-				}
-
-				setTimeout(() => {
-					reactFlowInstance?.fitView({ padding: 0.1, duration: 300 });
-				}, 50);
-			} else {
-				// Fallback for non-ELK configs (if any remain)
-				throw new Error('Unsupported layout configuration');
-			}
-
-			set({ currentLayoutConfig: config });
-		},
-		'isApplyingLayout',
-		{
-			initialMessage: 'Applying advanced layout...',
-			successMessage: 'Advanced layout applied successfully',
-			errorMessage: 'Failed to apply advanced layout',
-		}
-	),
+	resetLayoutConfig: () => {
+		set({ layoutConfig: DEFAULT_LAYOUT_CONFIG });
+	},
 });
+
+/**
+ * Get human-readable label for layout direction
+ */
+function getDirectionLabel(direction: LayoutDirection): string {
+	const labels: Record<LayoutDirection, string> = {
+		LEFT_RIGHT: 'Left to Right',
+		RIGHT_LEFT: 'Right to Left',
+		TOP_BOTTOM: 'Top to Bottom',
+		BOTTOM_TOP: 'Bottom to Top',
+		RADIAL: 'Radial',
+	};
+	return labels[direction];
+}

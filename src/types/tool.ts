@@ -4,8 +4,8 @@ export type Tool =
   | 'node'
   | 'connector'
   | 'text'
-  | 'layout'
   | 'magic-wand'
+  | 'layout'
   | 'zoom'
 	| 'chat'
 	| 'comments';

@@ -16,8 +16,6 @@ import { ContextMenuState } from '@/types/context-menu-state';
 import type { EdgeData } from '@/types/edge-data';
 import type { HistoryItem } from '@/types/history-state';
 import { HistoryState } from '@/types/history-state';
-import type { LayoutDirection } from '@/types/layout-direction';
-import type { SpecificLayoutConfig } from '@/types/layout-types';
 import { LoadingStates } from '@/types/loading-states';
 import type { MindMapData } from '@/types/mind-map-data';
 import type { NodeData } from '@/types/node-data';
@@ -190,32 +188,6 @@ export interface HistorySlice {
 	canRedo: boolean;
 	getCurrentHistoryState: () => HistoryState | undefined;
 	canRevertChange: (delta?: any) => boolean; // Permission check for collaborative history
-}
-
-// Layout Slice
-export interface LayoutSlice {
-	// Layout state
-	currentLayoutConfig: SpecificLayoutConfig | null;
-	availableLayouts: Array<{
-		id: string;
-		name: string;
-		description: string;
-		category: string;
-		config: SpecificLayoutConfig;
-	}>;
-
-	// Layout actions
-	applyLayout: (direction: LayoutDirection) => Promise<void>;
-	applyAdvancedLayout: (config: SpecificLayoutConfig) => Promise<void>;
-	setLayoutConfig: (config: SpecificLayoutConfig) => void;
-	getLayoutPresets: () => Array<{
-		id: string;
-		name: string;
-		description: string;
-		category: string;
-		config: SpecificLayoutConfig;
-		disabled?: boolean;
-	}>;
 }
 
 export interface LoadingStatesSlice {
@@ -432,7 +404,6 @@ export interface Popovers {
 	aiContent: boolean;
 	generateFromNodesModal: boolean;
 	contextMenu: boolean;
-	layoutSelector: boolean;
 	sharePanel: boolean;
 	joinRoom: boolean;
 	permissionManager: boolean;
@@ -558,6 +529,10 @@ export interface StreamingToastSlice {
 	clearToast: () => void;
 }
 
+// Layout Slice (imported from types)
+import type { LayoutSlice } from '@/types/layout-types';
+export type { LayoutSlice };
+
 // Combined App State
 export interface AppState
 	extends CoreDataSlice,
@@ -567,7 +542,6 @@ export interface AppState
 		UIStateSlice,
 		LoadingStatesSlice,
 		HistorySlice,
-		LayoutSlice,
 		GroupsSlice,
 		SharingSlice,
 		RealtimeSlice,
@@ -578,4 +552,5 @@ export interface AppState
 		SubscriptionSlice,
 		OnboardingSlice,
 		UserProfileSlice,
-		QuickInputSlice {}
+		QuickInputSlice,
+		LayoutSlice {}
