@@ -8,11 +8,12 @@ import { type ActivityState } from '@/hooks/realtime/use-realtime-presence-room'
 import type { PublicUserProfile } from '@/types/user-profile-types';
 import { Panel } from '@xyflow/react';
 import { Menu, Settings, Share2 } from 'lucide-react';
-import { useState } from 'react';
 
-import { MobileMenu } from './mobile-menu';
 import { TopBarActions } from './top-bar-actions';
 import { TopBarBreadcrumb } from './top-bar-breadcrumb';
+
+// Re-export MobileMenu for use in parent component
+export { MobileMenu } from './mobile-menu';
 
 interface MindMapTopBarProps {
 	mapId: string;
@@ -28,6 +29,9 @@ interface MindMapTopBarProps {
 	handleToggleMapSettings: () => void;
 	handleToggleSharePanel: () => void;
 	handleOpenSettings: (tab: 'settings' | 'billing') => void;
+	// Mobile menu state lifted to parent
+	mobileMenuOpen: boolean;
+	setMobileMenuOpen: (open: boolean) => void;
 }
 
 export function MindMapTopBar({
@@ -44,9 +48,10 @@ export function MindMapTopBar({
 	handleToggleMapSettings,
 	handleToggleSharePanel,
 	handleOpenSettings,
+	mobileMenuOpen,
+	setMobileMenuOpen,
 }: MindMapTopBarProps) {
 	const isMobile = useIsMobile();
-	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
 	const isMapOwner = mindMap?.user_id === currentUser?.id;
 
@@ -135,22 +140,6 @@ export function MindMapTopBar({
 					</Button>
 				)}
 			</div>
-
-			{/* Mobile Menu Sheet */}
-			<MobileMenu
-				open={mobileMenuOpen}
-				onOpenChange={setMobileMenuOpen}
-				canEdit={canEdit}
-				canUndo={canUndo}
-				canRedo={canRedo}
-				isMapOwner={isMapOwner}
-				activityState={activityState}
-				mapId={mapId}
-				mapOwnerId={mindMap?.user_id}
-				isSettingsActive={popoverOpen.mapSettings}
-				onToggleHistory={handleToggleHistorySidebar}
-				onToggleSettings={handleToggleMapSettings}
-			/>
 		</Panel>
 	);
 }

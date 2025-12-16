@@ -48,7 +48,7 @@ import { SuggestedMergeEdge } from '../edges/suggested-merge-edge';
 import WaypointEdge from '../edges/waypoint-edge';
 import { RealtimeCursors } from '../realtime/realtime-cursor';
 import { Toolbar } from '../toolbar';
-import { MindMapTopBar } from './top-bar';
+import { MindMapTopBar, MobileMenu } from './top-bar';
 
 export function ReactFlowArea() {
 	const mapId = useParams().id;
@@ -62,6 +62,7 @@ export function ReactFlowArea() {
 	const [settingsTab, setSettingsTab] = useState<'settings' | 'billing'>(
 		'settings'
 	);
+	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
 	const handleOpenSettings = (tab: 'settings' | 'billing' = 'settings') => {
 		setSettingsTab(tab);
@@ -463,6 +464,8 @@ export function ReactFlowArea() {
 					handleToggleMapSettings={handleToggleMapSettings}
 					handleToggleSharePanel={handleToggleSharePanel}
 					handleOpenSettings={handleOpenSettings}
+					mobileMenuOpen={mobileMenuOpen}
+					setMobileMenuOpen={setMobileMenuOpen}
 				/>
 
 				<Panel
@@ -493,6 +496,21 @@ export function ReactFlowArea() {
 				isOpen={isSettingsOpen}
 				onClose={() => setIsSettingsOpen(false)}
 				defaultTab={settingsTab}
+			/>
+
+			<MobileMenu
+				open={mobileMenuOpen}
+				onOpenChange={setMobileMenuOpen}
+				canEdit={canEdit}
+				canUndo={canUndo}
+				canRedo={canRedo}
+				isMapOwner={mindMap?.user_id === currentUser?.id}
+				activityState={activityState}
+				mapId={mapId as string}
+				mapOwnerId={mindMap?.user_id}
+				isSettingsActive={popoverOpen.mapSettings}
+				onToggleHistory={handleToggleHistorySidebar}
+				onToggleSettings={handleToggleMapSettings}
 			/>
 		</div>
 	);
