@@ -26,21 +26,12 @@ import {
 	useState,
 } from 'react';
 
-import { UserMenu } from '@/components/common/user-menu';
 import { SettingsPanel } from '@/components/dashboard/settings-panel';
 import AnimatedGhostEdge from '@/components/edges/animated-ghost-edge';
 import FloatingEdge from '@/components/edges/floating-edge';
 import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edge';
 import { UpgradeModal } from '@/components/modals/upgrade-modal';
 import { ModeIndicator } from '@/components/mode-indicator';
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-	BreadcrumbList,
-	BreadcrumbPage,
-	BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useActivityTracker } from '@/hooks/realtime/use-activity-tracker';
 import { useContextMenu } from '@/hooks/use-context-menu';
@@ -50,18 +41,14 @@ import type { AppNode } from '@/types/app-node';
 import type { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
-import { History, Redo, Settings, Share2, Slash, Undo } from 'lucide-react';
-import Image from 'next/image';
-import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
 import FloatingConnectionLine from '../edges/floating-connection-line';
 import { SuggestedMergeEdge } from '../edges/suggested-merge-edge';
 import WaypointEdge from '../edges/waypoint-edge';
-import { RealtimeAvatarStack } from '../realtime/realtime-avatar-stack';
 import { RealtimeCursors } from '../realtime/realtime-cursor';
 import { Toolbar } from '../toolbar';
-import { Button } from '../ui/button';
+import { MindMapTopBar } from './top-bar';
 
 export function ReactFlowArea() {
 	const mapId = useParams().id;
@@ -462,115 +449,21 @@ export function ReactFlowArea() {
 					variant={BackgroundVariant.Dots}
 				/>
 
-				<Panel
-					className='!m-0 p-2 px-8 right-0 flex justify-between bg-base/80 backdrop-blur-xs'
-					position='top-left'
-				>
-					<div className='flex items-center gap-8'>
-						<Breadcrumb>
-							<BreadcrumbList>
-								<BreadcrumbItem>
-									<BreadcrumbLink asChild>
-										<Link href='/dashboard'>
-											<Image
-												alt='Moistus Logo'
-												height={60}
-												src='/images/moistus.svg'
-												width={60}
-											/>
-										</Link>
-									</BreadcrumbLink>
-								</BreadcrumbItem>
-
-								<BreadcrumbSeparator>
-									<Slash />
-								</BreadcrumbSeparator>
-
-								<BreadcrumbItem>
-									<BreadcrumbPage className='capitalize'>
-										{mindMap?.title || 'Loading...'}
-									</BreadcrumbPage>
-								</BreadcrumbItem>
-							</BreadcrumbList>
-						</Breadcrumb>
-
-						{canEdit && (
-						<div className='flex gap-2'>
-							{/*TODO: Uncomment redo/undo when optimized history implemented*/}
-							<Button
-								// onClick={handleUndo}
-								disabled={!canUndo}
-								size='icon'
-								title='Undo (Ctrl+Z)'
-								variant='secondary'
-							>
-								<Undo className='size-4' />
-							</Button>
-
-							{/*TODO: Uncomment redo/undo when optimized history implemented*/}
-							<Button
-								// onClick={handleRedo}
-								disabled={!canRedo}
-								size='icon'
-								title='Redo (Ctrl+Y)'
-								variant='secondary'
-							>
-								<Redo className='size-4' />
-							</Button>
-
-							<Button
-								aria-label='Toggle History Sidebar'
-								onClick={handleToggleHistorySidebar}
-								size='icon'
-								title='Toggle History Sidebar'
-								variant='secondary'
-							>
-								<History className='h-4 w-4' />
-							</Button>
-						</div>
-					)}
-					</div>
-
-					<div className='flex items-center gap-8'>
-						<RealtimeAvatarStack
-							activityState={activityState}
-							mapOwnerId={mindMap?.user_id}
-							roomName={`mind_map:${mapId}:users`}
-						/>
-
-						{/* Only show Settings and Share buttons for map owners */}
-						{mindMap?.user_id === currentUser?.id && (
-							<div className='flex gap-2'>
-								<Button
-									aria-label='Map Settings'
-									onClick={handleToggleMapSettings}
-									size='icon'
-									title='Map Settings'
-									variant={popoverOpen.mapSettings ? 'default' : 'secondary'}
-								>
-									<Settings className='h-4 w-4' />
-								</Button>
-
-								<Button
-									aria-label='Share Mind Map'
-									className='gap-2'
-									onClick={handleToggleSharePanel}
-									title='Share Mind Map'
-									variant={popoverOpen.sharePanel ? 'default' : 'secondary'}
-								>
-									Share <Share2 className='size-3' />
-								</Button>
-							</div>
-						)}
-
-						{/* User Menu */}
-						<UserMenu
-							showBackToDashboard
-							user={userProfile}
-							onOpenSettings={handleOpenSettings}
-						/>
-					</div>
-				</Panel>
+				<MindMapTopBar
+					mapId={mapId as string}
+					mindMap={mindMap}
+					currentUser={currentUser}
+					userProfile={userProfile}
+					activityState={activityState}
+					popoverOpen={popoverOpen}
+					canEdit={canEdit}
+					canUndo={canUndo}
+					canRedo={canRedo}
+					handleToggleHistorySidebar={handleToggleHistorySidebar}
+					handleToggleMapSettings={handleToggleMapSettings}
+					handleToggleSharePanel={handleToggleSharePanel}
+					handleOpenSettings={handleOpenSettings}
+				/>
 
 				<Panel
 					className='flex flex-col gap-2 items-center'
