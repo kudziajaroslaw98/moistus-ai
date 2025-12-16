@@ -1,18 +1,10 @@
 'use client';
 
 import { RealtimeAvatarStack } from '@/components/realtime/realtime-avatar-stack';
+import { SidePanel } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import {
-	Sheet,
-	SheetContent,
-	SheetDescription,
-	SheetHeader,
-	SheetTitle,
-} from '@/components/ui/sheet';
-import { useReducedMotion } from '@/components/ui/sidebar-theme';
 import { type ActivityState } from '@/hooks/realtime/use-realtime-presence-room';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { History, Redo, Settings, Undo, Users } from 'lucide-react';
 
 interface MobileMenuProps {
@@ -30,30 +22,6 @@ interface MobileMenuProps {
 	onToggleSettings: () => void;
 }
 
-// Animation variants following animation-guidelines.md
-const containerVariants = {
-	hidden: { opacity: 0 },
-	visible: {
-		opacity: 1,
-		transition: {
-			staggerChildren: 0.05,
-			delayChildren: 0.1,
-		},
-	},
-};
-
-const itemVariants = {
-	hidden: { opacity: 0, x: 20 },
-	visible: {
-		opacity: 1,
-		x: 0,
-		transition: {
-			duration: 0.2,
-			ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number], // ease-out-quad
-		},
-	},
-};
-
 export function MobileMenu({
 	open,
 	onOpenChange,
@@ -68,107 +36,121 @@ export function MobileMenu({
 	onToggleHistory,
 	onToggleSettings,
 }: MobileMenuProps) {
-	const prefersReducedMotion = useReducedMotion();
+	const shouldReduceMotion = useReducedMotion();
 
-	// Close sheet after action
+	// Close panel after action
 	const handleAction = (action: () => void) => {
 		action();
 		onOpenChange(false);
 	};
 
-	// Conditionally apply motion or static rendering
-	const MotionDiv = prefersReducedMotion ? 'div' : motion.div;
-	const motionProps = prefersReducedMotion
+	// Animation config matching other panels
+	const sectionAnimation = shouldReduceMotion
 		? {}
-		: { variants: containerVariants, initial: 'hidden', animate: 'visible' };
-	const itemMotionProps = prefersReducedMotion ? {} : { variants: itemVariants };
+		: {
+				initial: { opacity: 0, y: 10 },
+				animate: { opacity: 1, y: 0 },
+				transition: { duration: 0.3 },
+			};
 
 	return (
-		<Sheet open={open} onOpenChange={onOpenChange}>
-			<SheetContent side='right' className='w-72'>
-				<SheetHeader>
-					<SheetTitle>Menu</SheetTitle>
-					<SheetDescription className='sr-only'>
-						Additional map controls
-					</SheetDescription>
-				</SheetHeader>
-
-				<MotionDiv className='flex flex-col gap-4 mt-6' {...motionProps}>
-					{/* Collaborators Section */}
-					<MotionDiv {...itemMotionProps}>
-						<h3 className='text-sm font-medium text-text-secondary mb-3 flex items-center gap-2'>
-							<Users className='size-4' />
-							Collaborators
-						</h3>
+		<SidePanel
+			isOpen={open}
+			onClose={() => onOpenChange(false)}
+			title='Menu'
+			className='max-w-xs'
+		>
+			<div className='flex flex-col gap-6 p-4'>
+				{/* Collaborators Section */}
+				<motion.section className='space-y-3' {...sectionAnimation}>
+					<h3 className='text-sm font-semibold text-text-primary flex items-center gap-2'>
+						<Users className='size-4 text-primary' />
+						Collaborators
+					</h3>
+					<div className='bg-surface rounded-lg p-3 border border-border-subtle'>
 						<RealtimeAvatarStack
 							activityState={activityState}
 							mapOwnerId={mapOwnerId}
 							roomName={`mind_map:${mapId}:users`}
 						/>
-					</MotionDiv>
+					</div>
+				</motion.section>
 
-					<Separator />
+				{/* Edit Actions */}
+				{canEdit && (
+					<motion.section
+						className='space-y-3'
+						{...sectionAnimation}
+						transition={
+							shouldReduceMotion
+								? undefined
+								: { duration: 0.3, delay: 0.1 }
+						}
+					>
+						<h3 className='text-sm font-semibold text-text-primary flex items-center gap-2'>
+							<History className='size-4 text-primary' />
+							Edit Actions
+						</h3>
+						<div className='bg-surface rounded-lg p-3 border border-border-subtle space-y-2'>
+							{/* TODO: Uncomment redo/undo when optimized history implemented */}
+							<Button
+								// onClick={() => handleAction(handleUndo)}
+								disabled={!canUndo}
+								variant='ghost'
+								className='w-full justify-start gap-3 h-10'
+							>
+								<Undo className='size-4' />
+								Undo
+							</Button>
+							<Button
+								// onClick={() => handleAction(handleRedo)}
+								disabled={!canRedo}
+								variant='ghost'
+								className='w-full justify-start gap-3 h-10'
+							>
+								<Redo className='size-4' />
+								Redo
+							</Button>
+							<Button
+								onClick={() => handleAction(onToggleHistory)}
+								variant='ghost'
+								className='w-full justify-start gap-3 h-10'
+							>
+								<History className='size-4' />
+								View History
+							</Button>
+						</div>
+					</motion.section>
+				)}
 
-					{/* Edit Actions */}
-					{canEdit && (
-						<>
-							<MotionDiv {...itemMotionProps}>
-								<h3 className='text-sm font-medium text-text-secondary mb-3'>
-									Edit Actions
-								</h3>
-								<div className='flex flex-col gap-2'>
-									{/* TODO: Uncomment redo/undo when optimized history implemented */}
-									<Button
-										// onClick={() => handleAction(handleUndo)}
-										disabled={!canUndo}
-										variant='secondary'
-										className='justify-start gap-3'
-									>
-										<Undo className='size-4' />
-										Undo
-									</Button>
-									<Button
-										// onClick={() => handleAction(handleRedo)}
-										disabled={!canRedo}
-										variant='secondary'
-										className='justify-start gap-3'
-									>
-										<Redo className='size-4' />
-										Redo
-									</Button>
-									<Button
-										onClick={() => handleAction(onToggleHistory)}
-										variant='secondary'
-										className='justify-start gap-3'
-									>
-										<History className='size-4' />
-										History
-									</Button>
-								</div>
-							</MotionDiv>
-
-							<Separator />
-						</>
-					)}
-
-					{/* Settings (Owner only) */}
-					{isMapOwner && (
-						<MotionDiv {...itemMotionProps}>
-							<h3 className='text-sm font-medium text-text-secondary mb-3'>
-								Map Settings
-							</h3>
+				{/* Settings (Owner only) */}
+				{isMapOwner && (
+					<motion.section
+						className='space-y-3'
+						{...sectionAnimation}
+						transition={
+							shouldReduceMotion
+								? undefined
+								: { duration: 0.3, delay: canEdit ? 0.2 : 0.1 }
+						}
+					>
+						<h3 className='text-sm font-semibold text-text-primary flex items-center gap-2'>
+							<Settings className='size-4 text-primary' />
+							Map Settings
+						</h3>
+						<div className='bg-surface rounded-lg p-3 border border-border-subtle'>
 							<Button
 								onClick={() => handleAction(onToggleSettings)}
-								variant={isSettingsActive ? 'default' : 'secondary'}
-								className='w-full justify-start gap-3'
+								variant={isSettingsActive ? 'default' : 'ghost'}
+								className='w-full justify-start gap-3 h-10'
 							>
 								<Settings className='size-4' />
-								Settings
+								Open Settings
 							</Button>
-						</MotionDiv>
-					)}
-				</MotionDiv>
-			</SheetContent>
-		</Sheet>
+						</div>
+					</motion.section>
+				)}
+			</div>
+		</SidePanel>
 	);
 }
