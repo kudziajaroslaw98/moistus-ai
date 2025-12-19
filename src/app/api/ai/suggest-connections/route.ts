@@ -256,7 +256,7 @@ export async function POST(req: Request) {
 
 						const contextPrompt = `Based on the following mind map data, suggest meaningful connections. Nodes: ${JSON.stringify(mapData.nodes)}. Edges: ${JSON.stringify(mapData.edges)}.`;
 						const response = streamObject({
-							model: openai('o4-mini'),
+							model: openai('gpt-5-mini'),
 							abortSignal,
 							schema: connectionSuggestionSchema,
 							output: 'array',

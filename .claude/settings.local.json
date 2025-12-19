@@ -66,7 +66,8 @@
       "mcp__shadcn__view_items_in_registries",
       "mcp__shadcn__get_item_examples_from_registries",
       "Bash(git checkout:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(cat:*)"
     ],
     "deny": [
       "mcp__supabase__list_organizations",
