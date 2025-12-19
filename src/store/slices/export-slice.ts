@@ -1,0 +1,167 @@
+/**
+ * Export Slice
+ * Manages export state and options for PNG, SVG, and PDF export
+ */
+
+import {
+	downloadFile,
+	exportToPng,
+	exportToSvg,
+	generateExportFilename,
+	type ExportFormat,
+	type ExportOptions,
+	type ExportScale,
+} from '@/utils/export-utils';
+import {
+	exportToPdf,
+	type PageOrientation,
+	type PageSize,
+	type PdfExportOptions,
+} from '@/utils/pdf-export-utils';
+import type { StateCreator } from 'zustand';
+import type { AppState, ExportSlice, ExportState } from '../app-state';
+
+const initialExportState: ExportState = {
+	isExporting: false,
+	exportFormat: 'png',
+	exportScale: 2,
+	exportBackground: true,
+	exportFitView: true,
+	pdfPageSize: 'a4',
+	pdfOrientation: 'landscape',
+	pdfIncludeTitle: true,
+	pdfIncludeMetadata: true,
+	exportError: null,
+};
+
+export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (
+	set,
+	get
+) => ({
+	...initialExportState,
+
+	setExportFormat: (format: ExportFormat) => {
+		set({ exportFormat: format });
+	},
+
+	setExportScale: (scale: ExportScale) => {
+		set({ exportScale: scale });
+	},
+
+	setExportBackground: (include: boolean) => {
+		set({ exportBackground: include });
+	},
+
+	setExportFitView: (fitView: boolean) => {
+		set({ exportFitView: fitView });
+	},
+
+	setPdfPageSize: (size: PageSize) => {
+		set({ pdfPageSize: size });
+	},
+
+	setPdfOrientation: (orientation: PageOrientation) => {
+		set({ pdfOrientation: orientation });
+	},
+
+	setPdfIncludeTitle: (include: boolean) => {
+		set({ pdfIncludeTitle: include });
+	},
+
+	setPdfIncludeMetadata: (include: boolean) => {
+		set({ pdfIncludeMetadata: include });
+	},
+
+	startExport: async () => {
+		const state = get();
+		const {
+			exportFormat,
+			exportScale,
+			exportBackground,
+			exportFitView,
+			pdfPageSize,
+			pdfOrientation,
+			pdfIncludeTitle,
+			pdfIncludeMetadata,
+			mindMap,
+			reactFlowInstance,
+			currentUser,
+		} = state;
+
+		set({ isExporting: true, exportError: null });
+
+		try {
+			// Fit view if requested
+			if (exportFitView && reactFlowInstance) {
+				reactFlowInstance.fitView({
+					padding: 0.1,
+					duration: 200,
+				});
+				// Wait for animation to complete
+				await new Promise((resolve) => setTimeout(resolve, 250));
+			}
+
+			const exportOptions: ExportOptions = {
+				scale:
+					(reactFlowInstance !== null && reactFlowInstance.getZoom() * 30) ||
+					exportScale,
+				includeBackground: exportBackground,
+				backgroundColor: '#0d0d0d',
+			};
+
+			const mapTitle = mindMap?.title;
+
+			if (exportFormat === 'png') {
+				const result = await exportToPng(exportOptions);
+
+				console.log(result);
+				const filename = generateExportFilename(mapTitle, 'png');
+				downloadFile(result.blob, filename);
+			} else if (exportFormat === 'svg') {
+				const result = await exportToSvg(exportOptions);
+				const filename = generateExportFilename(mapTitle, 'svg');
+				downloadFile(result.blob, filename);
+			} else if (exportFormat === 'pdf') {
+				// First export to PNG for PDF embedding
+				const pngResult = await exportToPng({
+					...exportOptions,
+					scale: 2, // Always use 2x for PDF for good quality
+				});
+
+				const pdfOptions: PdfExportOptions = {
+					pageSize: pdfPageSize,
+					orientation: pdfOrientation,
+					includeTitle: pdfIncludeTitle,
+					includeMetadata: pdfIncludeMetadata,
+					mapTitle,
+					authorName: currentUser?.email || undefined,
+				};
+
+				const pdfResult = await exportToPdf(
+					pngResult.blob,
+					pngResult.width,
+					pngResult.height,
+					pdfOptions
+				);
+				const filename = generateExportFilename(mapTitle, 'pdf');
+				downloadFile(pdfResult.blob, filename);
+			}
+
+			set({ isExporting: false });
+		} catch (error) {
+			console.error('Export failed:', error);
+			set({
+				isExporting: false,
+				exportError: error instanceof Error ? error.message : 'Export failed',
+			});
+		}
+	},
+
+	completeExport: () => {
+		set({ isExporting: false, exportError: null });
+	},
+
+	resetExportState: () => {
+		set(initialExportState);
+	},
+});
