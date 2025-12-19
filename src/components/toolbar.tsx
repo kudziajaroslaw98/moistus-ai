@@ -6,8 +6,10 @@ import { cn } from '@/utils/cn';
 import {
 	Fullscreen,
 	Hand,
+	MessageCircle,
 	MessageSquare,
 	MousePointer2,
+	Play,
 	Plus,
 	Share2,
 	Sparkles,
@@ -15,6 +17,7 @@ import {
 import { motion } from 'motion/react';
 import { type ReactNode, useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
+import { ExportDropdown } from './toolbar/export-dropdown';
 import { LayoutDropdown } from './toolbar/layout-dropdown';
 import { Button } from './ui/button';
 import {
@@ -55,10 +58,12 @@ const tools: ToolButton[] = [
 		icon: <Sparkles className='size-4' />,
 		label: 'AI Suggestions',
 	},
+	{ id: 'chat', icon: <MessageCircle className='size-4' />, label: 'AI Chat' },
 	{ id: 'layout', icon: null, label: 'Auto Layout' }, // Layout dropdown rendered separately
+	{ id: 'export', icon: null, label: 'Export' }, // Export dropdown rendered separately
+	{ id: 'present', icon: <Play className='size-4' />, label: 'Present' },
 	{ id: 'separator-1', icon: null, label: null },
 	{ id: 'zoom', icon: <Fullscreen className='size-4' />, label: 'Zoom' },
-	// { id: 'chat', icon: <MessageSquare className='size-4' />, label: 'AI Chat' },
 	{ id: 'separator-2', icon: null, label: null },
 	{
 		id: 'comments',
@@ -80,6 +85,10 @@ export const Toolbar = () => {
 		reactFlowInstance,
 		isCommentMode,
 		setCommentMode,
+		toggleChat,
+		isChatOpen,
+		startPresentation,
+		nodes,
 	} = useAppStore(
 		useShallow((state) => ({
 			activeTool: state.activeTool,
@@ -93,6 +102,10 @@ export const Toolbar = () => {
 			reactFlowInstance: state.reactFlowInstance,
 			isCommentMode: state.isCommentMode,
 			setCommentMode: state.setCommentMode,
+			toggleChat: state.toggleChat,
+			isChatOpen: state.isChatOpen,
+			startPresentation: state.startPresentation,
+			nodes: state.nodes,
 		}))
 	);
 
@@ -164,13 +177,18 @@ export const Toolbar = () => {
 		}
 
 		if (toolId === 'chat') {
-			setPopoverOpen({ aiChat: true });
+			toggleChat();
 			// Don't change the active tool for chat
 		} else if (toolId === 'zoom') {
 			reactFlowInstance?.zoomTo(1);
 		} else if (toolId === 'comments') {
 			// Toggle comment mode
 			setCommentMode(!isCommentMode);
+		} else if (toolId === 'present') {
+			// Start presentation mode
+			if (nodes.length > 0) {
+				startPresentation();
+			}
 		} else if (toolId === 'magic-wand') {
 			switch (aiFeature) {
 				case 'suggest-connections':
@@ -328,6 +346,31 @@ export const Toolbar = () => {
 						return <LayoutDropdown key={tool.id} />;
 					}
 
+					// Export dropdown
+					if (tool.id === 'export') {
+						return <ExportDropdown key={tool.id} />;
+					}
+
+					// Chat button has special styling when active
+					if (tool.id === 'chat') {
+						return (
+							<Button
+								key={tool.id}
+								onClick={() => onToolChange(tool.id)}
+								size={'icon'}
+								title={tool.label ?? `Tool ${index}`}
+								variant={'secondary'}
+								className={cn(
+									isChatOpen &&
+										'text-text-primary bg-primary-500 border-2 border-primary-500/20',
+									'active:scale-95'
+								)}
+							>
+								{tool.icon}
+							</Button>
+						);
+					}
+
 					// Comments button has special styling
 					if (tool.id === 'comments') {
 						return (
@@ -355,11 +398,7 @@ export const Toolbar = () => {
 							onClick={() => onToolChange(tool.id)}
 							size={'icon'}
 							title={tool.label ?? `Tool ${index}`}
-							variant={
-								activeTool === tool.id && tool.id !== 'chat'
-									? 'default'
-									: 'secondary'
-							}
+							variant={activeTool === tool.id ? 'default' : 'secondary'}
 						>
 							{tool.icon}
 						</Button>

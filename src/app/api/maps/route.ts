@@ -11,13 +11,14 @@ const requestBodySchema = z.object({
 	description: z.string().optional().nullable(),
 	is_template: z.boolean().optional(),
 	template_category: z.string().optional().nullable(),
+	template_id: z.string().optional().nullable(),
 });
 
 export const GET = withApiValidation(
 	z.any().nullish(),
 	async (_req, _validatedBody, supabase, _user) => {
 		try {
-			// Build the query
+			// Build the query - exclude templates from user's map list
 			const query = supabase
 				.from('mind_maps')
 				.select(
@@ -31,6 +32,7 @@ export const GET = withApiValidation(
 					_count:nodes(count)
 				`
 				)
+				.eq('is_template', false)
 				.order('updated_at', { ascending: false });
 
 			const { data: maps, error: fetchError } = await query;
@@ -82,6 +84,7 @@ export const POST = withApiValidation(
 				description,
 				is_template,
 				template_category,
+				template_id,
 			} = validatedBody;
 
 			// Check map creation limit for personal maps (not team maps)
@@ -134,7 +137,6 @@ export const POST = withApiValidation(
 				}
 			}
 
-
 			// Insert the new mind map into the database
 			const { data: newMap, error: insertError } = await supabase
 				.from('mind_maps')
@@ -170,28 +172,140 @@ export const POST = withApiValidation(
 				);
 			}
 
-			// Create a default root node for the new map
-			const defaultRootNodeId = generateUuid();
-			const { error: nodeInsertError } = await supabase.from('nodes').insert([
-				{
-					id: defaultRootNodeId,
-					map_id: newMap.id,
-					parent_id: null,
-					content: 'Main Topic',
-					position_x: 250,
-					position_y: 250,
-					data: {
-						node_type: 'defaultNode',
-						metadata: {},
-					},
-				},
-			]);
+			// Check if a template was specified
+			if (template_id) {
+				// Fetch template from database
+				const isUuid =
+					/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+						template_id
+					);
 
-			if (nodeInsertError) {
-				console.warn(
-					'Warning: Failed to create default root node for new map:',
-					nodeInsertError
-				);
+				let templateQuery = supabase
+					.from('mind_maps')
+					.select('id')
+					.eq('is_template', true);
+
+				if (isUuid) {
+					templateQuery = templateQuery.eq('id', template_id);
+				} else {
+					templateQuery = templateQuery.eq('metadata->>templateId', template_id);
+				}
+
+				const { data: templateMap } = await templateQuery.single();
+
+				if (templateMap) {
+					// Fetch template nodes
+					const { data: templateNodes } = await supabase
+						.from('nodes')
+						.select('id, content, position_x, position_y, node_type, metadata')
+						.eq('map_id', templateMap.id);
+
+					// Fetch template edges
+					const { data: templateEdges } = await supabase
+						.from('edges')
+						.select('id, source, target, type, metadata')
+						.eq('map_id', templateMap.id);
+
+					// Create ID mapping (old template ID -> new UUID)
+					const idMap = new Map<string, string>();
+
+					// Generate new IDs for all nodes
+					(templateNodes || []).forEach((node) => {
+						idMap.set(node.id, generateUuid());
+					});
+
+					// Create nodes with new IDs
+					const nodesToInsert = (templateNodes || []).map((node) => ({
+						id: idMap.get(node.id),
+						map_id: newMap.id,
+						user_id: team_id ? null : user.id,
+						parent_id: null,
+						content: node.content,
+						position_x: node.position_x,
+						position_y: node.position_y,
+						node_type: node.node_type || 'defaultNode',
+						metadata: node.metadata || {},
+					}));
+
+					if (nodesToInsert.length > 0) {
+						const { error: nodesInsertError } = await supabase
+							.from('nodes')
+							.insert(nodesToInsert);
+
+						if (nodesInsertError) {
+							console.warn(
+								'Warning: Failed to create template nodes:',
+								nodesInsertError
+							);
+						}
+					}
+
+					// Create edges with mapped source/target IDs
+					if (templateEdges && templateEdges.length > 0) {
+						const edgesToInsert = templateEdges
+							.map((edge) => {
+								const newSource = idMap.get(edge.source);
+								const newTarget = idMap.get(edge.target);
+								// Only create edge if both source and target exist
+								if (!newSource || !newTarget) return null;
+								return {
+									id: generateUuid(),
+									map_id: newMap.id,
+									user_id: team_id ? null : user.id,
+									source: newSource,
+									target: newTarget,
+									type: edge.type || 'floatingEdge',
+									metadata: edge.metadata || {},
+								};
+							})
+							.filter(Boolean);
+
+						if (edgesToInsert.length > 0) {
+							const { error: edgesInsertError } = await supabase
+								.from('edges')
+								.insert(edgesToInsert);
+
+							if (edgesInsertError) {
+								console.warn(
+									'Warning: Failed to create template edges:',
+									edgesInsertError
+								);
+							}
+						}
+					}
+
+					// Increment template usage count
+					await supabase.rpc('increment_usage_count', {
+						template_id: templateMap.id,
+					});
+				}
+			}
+
+			// If no template or template not found, create default root node
+			if (!template_id) {
+				// No template - create a default root node
+				const defaultRootNodeId = generateUuid();
+				const { error: nodeInsertError } = await supabase.from('nodes').insert([
+					{
+						id: defaultRootNodeId,
+						map_id: newMap.id,
+						parent_id: null,
+						content: 'Main Topic',
+						position_x: 250,
+						position_y: 250,
+						data: {
+							node_type: 'defaultNode',
+							metadata: {},
+						},
+					},
+				]);
+
+				if (nodeInsertError) {
+					console.warn(
+						'Warning: Failed to create default root node for new map:',
+						nodeInsertError
+					);
+				}
 			}
 
 			return respondSuccess(

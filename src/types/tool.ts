@@ -6,6 +6,8 @@ export type Tool =
   | 'text'
   | 'magic-wand'
   | 'layout'
+  | 'export'
   | 'zoom'
 	| 'chat'
-	| 'comments';
+	| 'comments'
+	| 'present';

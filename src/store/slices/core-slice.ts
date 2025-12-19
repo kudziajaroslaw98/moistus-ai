@@ -9,9 +9,9 @@ import {
 	generateUserColor,
 } from '@/helpers/user-profile-helpers';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
-import type { EdgesTableType } from '@/types/edges-table-type';
+import type { AppEdge } from '@/types/app-edge';
+import type { AppNode } from '@/types/app-node';
 import type { MindMapData } from '@/types/mind-map-data';
-import type { NodesTableType } from '@/types/nodes-table-type';
 import { UserProfile } from '@/types/user-profile-types';
 import type { User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -36,6 +36,8 @@ export const createCoreDataSlice: StateCreator<
 	// Actions
 	setActiveTool: (activeTool) => set({ activeTool }),
 	setMindMap: (mindMap) => set({ mindMap }),
+	setMindMapContent: (content: { nodes: AppNode[]; edges: AppEdge[] }) =>
+		set({ nodes: content.nodes, edges: content.edges }),
 	setReactFlowInstance: (reactFlowInstance) => set({ reactFlowInstance }),
 	setMapId: (mapId) => set({ mapId }),
 	setCurrentUser: (currentUser) => {

@@ -21,17 +21,20 @@ import {
 	CSSProperties,
 	useCallback,
 	useEffect,
+	useLayoutEffect,
 	useMemo,
 	useRef,
 	useState,
 } from 'react';
 
+import { ChatPanel } from '@/components/ai-chat';
 import { SettingsPanel } from '@/components/dashboard/settings-panel';
 import AnimatedGhostEdge from '@/components/edges/animated-ghost-edge';
 import FloatingEdge from '@/components/edges/floating-edge';
 import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edge';
 import { UpgradeModal } from '@/components/modals/upgrade-modal';
 import { ModeIndicator } from '@/components/mode-indicator';
+import { PresentationMode } from '@/components/presentation';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useActivityTracker } from '@/hooks/realtime/use-activity-tracker';
 import { useContextMenu } from '@/hooks/use-context-menu';
@@ -76,6 +79,7 @@ export function ReactFlowArea() {
 	const {
 		supabase,
 		nodes,
+		edges,
 		onNodesChange,
 		onEdgesChange,
 		onConnect,
@@ -105,15 +109,26 @@ export function ReactFlowArea() {
 		aiFeature,
 		canRedo,
 		canUndo,
-		resetOnboarding,
-		setOnboardingStep,
-		setShowOnboarding,
-		isProUser,
 		userProfile,
+		isPresenting,
+		slides,
+		currentSlideIndex,
+		isFullscreen,
+		showSpeakerNotes,
+		transitionDuration,
+		laserPointerEnabled,
+		nextSlide,
+		previousSlide,
+		goToSlide,
+		toggleFullscreen,
+		toggleSpeakerNotes,
+		toggleLaserPointer,
+		stopPresentation,
 	} = useAppStore(
 		useShallow((state) => ({
 			supabase: state.supabase,
 			nodes: state.nodes,
+			edges: state.edges,
 			getVisibleEdges: state.getVisibleEdges,
 			getVisibleNodes: state.getVisibleNodes,
 			isFocusMode: state.isFocusMode,
@@ -150,12 +165,40 @@ export function ReactFlowArea() {
 			setShowOnboarding: state.setShowOnboarding,
 			isProUser: state.isProUser,
 			userProfile: state.userProfile,
+			// Presentation state
+			isPresenting: state.isPresenting,
+			slides: state.slides,
+			currentSlideIndex: state.currentSlideIndex,
+			isFullscreen: state.isFullscreen,
+			showSpeakerNotes: state.showSpeakerNotes,
+			transitionDuration: state.transitionDuration,
+			laserPointerEnabled: state.laserPointerEnabled,
+			nextSlide: state.nextSlide,
+			previousSlide: state.previousSlide,
+			goToSlide: state.goToSlide,
+			toggleFullscreen: state.toggleFullscreen,
+			toggleSpeakerNotes: state.toggleSpeakerNotes,
+			toggleLaserPointer: state.toggleLaserPointer,
+			stopPresentation: state.stopPresentation,
 		}))
 	);
 
 	const { contextMenuHandlers } = useContextMenu();
 	const { generateSuggestionsForNode } = useNodeSuggestion();
 	const { canEdit } = usePermissions();
+
+	// Memoize visible nodes to prevent infinite re-renders
+	// getVisibleNodes() returns new array on each call via .filter()
+	// Without memoization, ReactFlow sees "new" arrays every render → triggers onNodesChange → state update → re-render loop
+	const visibleNodes = useMemo(() => {
+		return [...getVisibleNodes(), ...ghostNodes];
+	}, [nodes, ghostNodes, getVisibleNodes]);
+
+	// Memoize visible edges to prevent infinite re-renders
+	// Edge visibility depends on node visibility (collapsed nodes hide their edges)
+	const visibleEdges = useMemo(() => {
+		return getVisibleEdges();
+	}, [edges, nodes, getVisibleEdges]);
 
 	useEffect(() => {
 		getCurrentUser();
@@ -178,17 +221,17 @@ export function ReactFlowArea() {
 	}, []);
 
 	// Track mouse position for InlineNodeCreator
-	useEffect(() => {
+	useLayoutEffect(() => {
 		const handleMouseMove = (e: MouseEvent) => {
 			setMousePosition({ x: e.clientX, y: e.clientY });
 		};
 
 		window.addEventListener('mousemove', handleMouseMove);
 		return () => window.removeEventListener('mousemove', handleMouseMove);
-	}, []);
+	}, [setMousePosition]);
 
 	// Handle "/" key to open InlineNodeCreator
-	useEffect(() => {
+	useLayoutEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
 			// Track typing activity when user types in input fields
 			if (isInputElement(e.target)) {
@@ -249,7 +292,10 @@ export function ReactFlowArea() {
 	const handleEdgeDoubleClick: EdgeMouseHandler<Edge<EdgeData>> = useCallback(
 		(event, edge) => {
 			// Forward double-click to waypoint edge component via custom event
-			if (edge.type === 'waypointEdge' || edge.data?.metadata?.pathType === 'waypoint') {
+			if (
+				edge.type === 'waypointEdge' ||
+				edge.data?.metadata?.pathType === 'waypoint'
+			) {
 				const customEvent = new CustomEvent('waypoint-edge-add', {
 					detail: {
 						edgeId: edge.id,
@@ -403,14 +449,16 @@ export function ReactFlowArea() {
 				connectionMode={ConnectionMode.Loose}
 				deleteKeyCode={['Delete']}
 				disableKeyboardA11y={true}
-				edges={getVisibleEdges()}
+				edges={visibleEdges}
 				edgeTypes={edgeTypes}
 				elementsSelectable={isSelectMode}
 				fitView={true}
 				minZoom={0.1}
 				multiSelectionKeyCode={['Meta', 'Control']}
-				nodes={[...getVisibleNodes(), ...ghostNodes]}
-				nodesConnectable={(isSelectMode || activeTool === 'connector') && canEdit}
+				nodes={visibleNodes}
+				nodesConnectable={
+					(isSelectMode || activeTool === 'connector') && canEdit
+				}
 				nodesDraggable={isSelectMode && canEdit}
 				nodeTypes={nodeTypesWithProps}
 				onConnect={onConnect}
@@ -511,6 +559,25 @@ export function ReactFlowArea() {
 				isSettingsActive={popoverOpen.mapSettings}
 				onToggleHistory={handleToggleHistorySidebar}
 				onToggleSettings={handleToggleMapSettings}
+			/>
+
+			<ChatPanel />
+
+			<PresentationMode
+				isPresenting={isPresenting}
+				slides={slides}
+				currentSlideIndex={currentSlideIndex}
+				isFullscreen={isFullscreen}
+				showSpeakerNotes={showSpeakerNotes}
+				transitionDuration={transitionDuration}
+				laserPointerEnabled={laserPointerEnabled}
+				onNext={nextSlide}
+				onPrevious={previousSlide}
+				onGoToSlide={goToSlide}
+				onToggleFullscreen={toggleFullscreen}
+				onToggleSpeakerNotes={toggleSpeakerNotes}
+				onToggleLaserPointer={toggleLaserPointer}
+				onExit={stopPresentation}
 			/>
 		</div>
 	);

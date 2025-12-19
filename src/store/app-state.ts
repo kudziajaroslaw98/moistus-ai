@@ -29,14 +29,6 @@ import type {
 	SupabaseClient,
 	User,
 } from '@supabase/supabase-js';
-
-// Map Access Error Types
-export type MapAccessErrorType = 'access_denied' | 'not_found' | 'network_error';
-
-export interface MapAccessError {
-	type: MapAccessErrorType;
-	isAnonymous: boolean;
-}
 import type {
 	OnConnect,
 	OnEdgesChange,
@@ -44,6 +36,17 @@ import type {
 	ReactFlowInstance,
 	XYPosition,
 } from '@xyflow/react';
+
+// Map Access Error Types
+export type MapAccessErrorType =
+	| 'access_denied'
+	| 'not_found'
+	| 'network_error';
+
+export interface MapAccessError {
+	type: MapAccessErrorType;
+	isAnonymous: boolean;
+}
 
 // Clipboard Slice
 export interface ClipboardSlice {
@@ -69,7 +72,7 @@ export interface CoreDataSlice {
 	currentUser: User | null;
 	activeTool: Tool;
 	mapAccessError: MapAccessError | null;
-
+	setMindMapContent: (content: { nodes: AppNode[]; edges: AppEdge[] }) => void;
 	setActiveTool: (tool: Tool) => void;
 	setMindMap: (mindMap: MindMapData | null) => void;
 	setReactFlowInstance: (reactFlowInstance: ReactFlowInstance | null) => void;
@@ -78,24 +81,19 @@ export interface CoreDataSlice {
 	setState: (state: Partial<AppState>) => void;
 	setMapAccessError: (error: MapAccessError | null) => void;
 	clearMapAccessError: () => void;
-
 	generateUserProfile: (user: User | null) => UserProfile | null;
 	getCurrentUser: () => Promise<User | null>;
 	centerOnNode: (nodeId: string) => void;
-
 	fetchMindMapData: (mapId: string) => Promise<void>;
-
 	// Map operations
 	updateMindMap: (
 		mapId: string,
 		updates: Partial<MindMapData>
 	) => Promise<void>;
 	deleteMindMap: (mapId: string) => Promise<void>;
-
 	// Real-time subscription management
 	subscribeToRealtimeUpdates: (mapId: string) => Promise<void>;
 	unsubscribeFromRealtimeUpdates: () => Promise<void>;
-
 	// Reset state
 	reset: () => void;
 }
@@ -105,18 +103,14 @@ export interface EdgesSlice {
 	// Edge state
 	edges: AppEdge[];
 	systemUpdatedEdges: Map<string, number>;
-
 	// Edge handlers
 	onEdgesChange: OnEdgesChange<AppEdge>;
 	onConnect: OnConnect;
-
 	// Edge setters
 	setEdges: (edges: AppEdge[]) => void;
-
 	// Edge getters
 	getEdge: (id: string) => AppEdge | undefined;
 	getVisibleEdges: () => AppEdge[];
-
 	// Edge actions
 	addEdge: (
 		sourceId: string,
@@ -131,11 +125,9 @@ export interface EdgesSlice {
 	}) => Promise<void>;
 	triggerEdgeSave: (edgeId: string) => void;
 	setParentConnection: (edgeId: string) => void;
-
 	// System update tracking
 	markEdgeAsSystemUpdate: (edgeId: string) => void;
 	shouldSkipEdgeSave: (edgeId: string) => boolean;
-
 	// Real-time subscription management
 	subscribeToEdges: (mapId: string) => Promise<void>;
 	unsubscribeFromEdges: () => Promise<void>;
@@ -533,6 +525,41 @@ export interface StreamingToastSlice {
 import type { LayoutSlice } from '@/types/layout-types';
 export type { LayoutSlice };
 
+// Presentation Slice (imported from slice file)
+import type { PresentationSlice } from '@/store/slices/presentation-slice';
+export type { PresentationSlice };
+
+// Export Slice
+import type { ExportFormat, ExportScale } from '@/utils/export-utils';
+import type { PageOrientation, PageSize } from '@/utils/pdf-export-utils';
+
+export interface ExportState {
+	isExporting: boolean;
+	exportFormat: ExportFormat;
+	exportScale: number;
+	exportBackground: boolean;
+	exportFitView: boolean;
+	pdfPageSize: PageSize;
+	pdfOrientation: PageOrientation;
+	pdfIncludeTitle: boolean;
+	pdfIncludeMetadata: boolean;
+	exportError: string | null;
+}
+
+export interface ExportSlice extends ExportState {
+	setExportFormat: (format: ExportFormat) => void;
+	setExportScale: (scale: ExportScale) => void;
+	setExportBackground: (include: boolean) => void;
+	setExportFitView: (fitView: boolean) => void;
+	setPdfPageSize: (size: PageSize) => void;
+	setPdfOrientation: (orientation: PageOrientation) => void;
+	setPdfIncludeTitle: (include: boolean) => void;
+	setPdfIncludeMetadata: (include: boolean) => void;
+	startExport: () => Promise<void>;
+	completeExport: () => void;
+	resetExportState: () => void;
+}
+
 // Combined App State
 export interface AppState
 	extends CoreDataSlice,
@@ -553,4 +580,6 @@ export interface AppState
 		OnboardingSlice,
 		UserProfileSlice,
 		QuickInputSlice,
-		LayoutSlice {}
+		LayoutSlice,
+		ExportSlice,
+		PresentationSlice {}

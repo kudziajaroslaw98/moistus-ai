@@ -70,7 +70,8 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 								type: newRecord.node_type || node.type,
 								width: newRecord.width || node.width,
 								height: newRecord.height || node.height,
-								zIndex: newRecord.node_type === 'commentNode' ? 100 : node.zIndex,
+								zIndex:
+									newRecord.node_type === 'commentNode' ? 100 : node.zIndex,
 							};
 						}
 
@@ -126,6 +127,11 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				set({ systemUpdatedNodes: newMap });
 				return false;
 			}
+
+			if (!get().isReverting && !get().isLayouting) {
+				return false;
+			}
+
 			return true;
 		},
 
@@ -185,7 +191,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				if (!('id' in change)) return;
 
 				// Skip saves for system-updated nodes or during revert
-				if (get().shouldSkipNodeSave(change.id) || get().isReverting) {
+				if (get().shouldSkipNodeSave(change.id)) {
 					return;
 				}
 
@@ -225,7 +231,6 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 		},
 		setSelectedNodes: (selectedNodes) => {
 			set({ selectedNodes });
-
 		},
 
 		getNode: (id: string) => {
@@ -345,7 +350,8 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 
 					width: insertedNodeData.width || undefined,
 					height: insertedNodeData.height || undefined,
-					zIndex: insertedNodeData.node_type === 'commentNode' ? 100 : undefined,
+					zIndex:
+						insertedNodeData.node_type === 'commentNode' ? 100 : undefined,
 				};
 
 				const finalNodes = [...nodes, newNode];
@@ -721,14 +727,18 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 
 			// Filter by comment mode
 			const { isCommentMode } = get();
-			const baseVisibleNodes = nodes.filter((node) => !finalHiddenNodeIds.has(node.id));
+			const baseVisibleNodes = nodes.filter(
+				(node) => !finalHiddenNodeIds.has(node.id)
+			);
 
 			if (isCommentMode) {
 				// In comment mode: show ALL nodes (comments + regular)
 				return baseVisibleNodes;
 			} else {
 				// Normal mode: show all nodes except comment nodes
-				return baseVisibleNodes.filter((node) => node.data.node_type !== 'commentNode');
+				return baseVisibleNodes.filter(
+					(node) => node.data.node_type !== 'commentNode'
+				);
 			}
 		},
 

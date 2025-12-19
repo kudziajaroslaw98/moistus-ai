@@ -93,16 +93,16 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 		const {
 			nodes,
 			edges,
-			setNodes,
-			setEdges,
+			setMindMapContent,
 			addStateToHistory,
 			persistDeltaEvent,
 			layoutConfig,
 			isLayouting,
 			setLoadingStates,
-			selectedNodes,
 			supabase,
 			mapId,
+			subscribeToRealtimeUpdates,
+			unsubscribeFromRealtimeUpdates,
 		} = get();
 
 		// Prevent concurrent layouts
@@ -144,9 +144,10 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 				config: effectiveConfig,
 			});
 
+			await unsubscribeFromRealtimeUpdates();
+
 			// Batch update state (single update, not per-node)
-			setNodes(result.nodes);
-			setEdges(result.edges);
+			setMindMapContent({ nodes: result.nodes, edges: result.edges });
 
 			// Batch persist to database (2 parallel DB calls)
 			if (supabase && mapId) {
@@ -186,6 +187,10 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 		} finally {
 			set({ isLayouting: false });
 			setLoadingStates?.({ isStateLoading: false });
+			if (mapId) {
+				await new Promise((r) => setTimeout(r, 150));
+				await subscribeToRealtimeUpdates(mapId);
+			}
 		}
 	},
 
@@ -193,8 +198,7 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 		const {
 			nodes,
 			edges,
-			setNodes,
-			setEdges,
+			setMindMapContent,
 			addStateToHistory,
 			persistDeltaEvent,
 			layoutConfig,
@@ -242,8 +246,7 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 			});
 
 			// Batch update state
-			setNodes(result.nodes);
-			setEdges(result.edges);
+			setMindMapContent({ nodes: result.nodes, edges: result.edges });
 
 			// Batch persist only affected nodes/edges to database
 			if (supabase && mapId) {

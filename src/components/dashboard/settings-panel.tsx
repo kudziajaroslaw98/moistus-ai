@@ -38,6 +38,8 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/shallow';
 import { Progress } from '@/components/ui/progress';
+import { NodeTypeSelector } from '@/components/settings/node-type-selector';
+import { PenTool } from 'lucide-react';
 
 interface PaymentHistoryItem {
 	id: string;
@@ -119,6 +121,7 @@ export function SettingsPanel({
 			theme: 'system',
 			accentColor: 'sky',
 			reducedMotion: false,
+			defaultNodeType: 'defaultNode',
 			privacy: {
 				profile_visibility: 'private',
 			},
@@ -256,6 +259,7 @@ export function SettingsPanel({
 					theme: userProfile.preferences?.theme || 'system',
 					accentColor: userProfile.preferences?.accentColor || 'sky',
 					reducedMotion: userProfile.preferences?.reducedMotion || false,
+					defaultNodeType: userProfile.preferences?.defaultNodeType || 'defaultNode',
 					privacy: {
 						profile_visibility:
 							userProfile.preferences?.privacy?.profile_visibility || 'public',
@@ -607,12 +611,39 @@ export function SettingsPanel({
 									</div>
 								</motion.section>
 
+								{/* Editor Section */}
+								<motion.section
+									animate={{ opacity: 1, y: 0 }}
+									className='space-y-4'
+									initial={{ opacity: 0, y: 10 }}
+									transition={{ delay: 0.25, duration: 0.3 }}
+								>
+									<h3 className='text-lg font-semibold text-text-primary flex items-center gap-2'>
+										<PenTool className='size-5 text-primary' /> Editor
+									</h3>
+									<div className='space-y-4 bg-surface rounded-lg p-4 border border-border-subtle'>
+										<div className='space-y-2'>
+											<Label>Default Node Type</Label>
+											<p className='text-xs text-text-secondary'>
+												The default type for new nodes when using the node editor
+											</p>
+											<NodeTypeSelector
+												disabled={isSaving || isLoadingProfile}
+												value={formData.preferences.defaultNodeType}
+												onChange={(value) =>
+													updateNestedFormData('preferences', 'defaultNodeType', value)
+												}
+											/>
+										</div>
+									</div>
+								</motion.section>
+
 								{/* Security Section */}
 								<motion.section
 									animate={{ opacity: 1, y: 0 }}
 									className='space-y-4'
 									initial={{ opacity: 0, y: 10 }}
-									transition={{ delay: 0.3, duration: 0.3 }}
+									transition={{ delay: 0.35, duration: 0.3 }}
 								>
 									<h3 className='text-lg font-semibold text-text-primary flex items-center gap-2'>
 										<Shield className='size-5 text-primary' /> Security

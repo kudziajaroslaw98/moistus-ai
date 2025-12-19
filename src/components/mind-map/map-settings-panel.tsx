@@ -9,8 +9,9 @@ import { TagInput } from '@/components/ui/tag-input';
 import { Textarea } from '@/components/ui/textarea';
 import useAppStore from '@/store/mind-map-store';
 import type { MindMapData } from '@/types/mind-map-data';
-import { AlertTriangle, Loader2, Save } from 'lucide-react';
+import { AlertTriangle, Loader2, PenTool, Save } from 'lucide-react';
 import { motion } from 'motion/react';
+import { NodeTypeSelector } from '@/components/settings/node-type-selector';
 import { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -30,7 +31,7 @@ interface FormData {
 }
 
 export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
-	const { mindMap, updateMindMap, deleteMindMap, loadingStates, nodes, edges } =
+	const { mindMap, updateMindMap, deleteMindMap, loadingStates, nodes, edges, updatePreferences, getDefaultNodeType } =
 		useAppStore(
 			useShallow((state) => ({
 				mindMap: state.mindMap,
@@ -39,6 +40,8 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 				loadingStates: state.loadingStates,
 				nodes: state.nodes,
 				edges: state.edges,
+				updatePreferences: state.updatePreferences,
+				getDefaultNodeType: state.getDefaultNodeType,
 			}))
 		);
 
@@ -337,12 +340,39 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 						</div>
 					</motion.section>
 
+					{/* Editor Preferences Section */}
+					<motion.section
+						animate={{ opacity: 1, y: 0 }}
+						className='space-y-4'
+						initial={{ opacity: 0, y: 10 }}
+						transition={{ delay: 0.35, duration: 0.3 }}
+					>
+						<h3 className='text-lg font-semibold text-zinc-100 flex items-center gap-2'>
+							<PenTool className='size-5 text-primary' />
+							Editor Preferences
+						</h3>
+
+						<div className='space-y-4 bg-zinc-900/50 rounded-lg p-4 border border-zinc-800'>
+							<div className='space-y-2'>
+								<Label className='text-zinc-300'>Default Node Type</Label>
+								<p className='text-xs text-zinc-500'>
+									The default type for new nodes when using the node editor (applies to all maps)
+								</p>
+								<NodeTypeSelector
+									disabled={isSaving}
+									value={getDefaultNodeType() as 'defaultNode' | 'textNode' | 'taskNode' | 'imageNode' | 'resourceNode' | 'questionNode' | 'codeNode' | 'annotationNode' | 'referenceNode'}
+									onChange={(value) => updatePreferences({ defaultNodeType: value })}
+								/>
+							</div>
+						</div>
+					</motion.section>
+
 					{/* Danger Zone */}
 					<motion.section
 						animate={{ opacity: 1, y: 0 }}
 						className='space-y-4 rounded-lg border border-rose-900/50 bg-rose-950/10 p-4'
 						initial={{ opacity: 0, y: 10 }}
-						transition={{ delay: 0.4, duration: 0.3 }}
+						transition={{ delay: 0.45, duration: 0.3 }}
 					>
 						<div className='flex items-start gap-3'>
 							<div className='flex-1 space-y-3'>
