@@ -113,6 +113,7 @@ export function ReactFlowArea() {
 		isTourActive,
 		isPathEditMode,
 		addNodeToPath,
+		isCommentMode,
 	} = useAppStore(
 		useShallow((state) => ({
 			supabase: state.supabase,
@@ -158,6 +159,8 @@ export function ReactFlowArea() {
 			isTourActive: state.isTourActive,
 			isPathEditMode: state.isPathEditMode,
 			addNodeToPath: state.addNodeToPath,
+			// Comment mode - needed for visibility memoization
+			isCommentMode: state.isCommentMode,
 		}))
 	);
 
@@ -168,15 +171,17 @@ export function ReactFlowArea() {
 	// Memoize visible nodes to prevent infinite re-renders
 	// getVisibleNodes() returns new array on each call via .filter()
 	// Without memoization, ReactFlow sees "new" arrays every render → triggers onNodesChange → state update → re-render loop
+	// isCommentMode is needed because getVisibleNodes() filters based on it internally
 	const visibleNodes = useMemo(() => {
 		return [...getVisibleNodes(), ...ghostNodes];
-	}, [nodes, ghostNodes, getVisibleNodes]);
+	}, [nodes, ghostNodes, getVisibleNodes, isCommentMode]);
 
 	// Memoize visible edges to prevent infinite re-renders
 	// Edge visibility depends on node visibility (collapsed nodes hide their edges)
+	// isCommentMode affects which nodes are visible, which affects edge visibility
 	const visibleEdges = useMemo(() => {
 		return getVisibleEdges();
-	}, [edges, nodes, getVisibleEdges]);
+	}, [edges, nodes, getVisibleEdges, isCommentMode]);
 
 	useEffect(() => {
 		getCurrentUser();

@@ -101,10 +101,15 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (
 				await new Promise((resolve) => setTimeout(resolve, 250));
 			}
 
+			// Calculate zoom-compensated scale
+			// When zoomed out (e.g., 0.1), we need higher pixelRatio to maintain resolution
+			const currentZoom = reactFlowInstance?.getZoom() ?? 1;
+			const zoomCompensatedScale = exportScale / currentZoom;
+			// Cap at 10x to prevent memory issues with extremely large exports
+			const finalScale = Math.min(zoomCompensatedScale, 10);
+
 			const exportOptions: ExportOptions = {
-				scale:
-					(reactFlowInstance !== null && reactFlowInstance.getZoom() * 30) ||
-					exportScale,
+				scale: finalScale,
 				includeBackground: exportBackground,
 				backgroundColor: '#0d0d0d',
 			};

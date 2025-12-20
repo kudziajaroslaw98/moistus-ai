@@ -1,6 +1,10 @@
 /**
  * Export Utilities for Mind Map Canvas
  * Handles PNG and SVG export using html-to-image
+ *
+ * CORS Handling:
+ * External images can cause canvas tainting, which breaks export.
+ * We solve this by swapping external images with placeholders during export.
  */
 
 import { toBlob, toSvg } from 'html-to-image';
@@ -26,6 +30,61 @@ export interface ExportResult {
 	blob: Blob;
 	width: number;
 	height: number;
+}
+
+/**
+ * Track original styles for restoration after export
+ */
+interface OriginalStyles {
+	element: HTMLElement;
+	display: string;
+}
+
+let exportStylesBackup: OriginalStyles[] = [];
+
+/**
+ * Prepare the DOM for export by swapping external images with placeholders
+ * This prevents canvas tainting from CORS-restricted images
+ */
+function prepareForExport(): void {
+	exportStylesBackup = [];
+
+	// Find all export image containers
+	const containers = document.querySelectorAll('[data-export-image-container]');
+
+	containers.forEach((container) => {
+		// Hide the actual images
+		const images = container.querySelectorAll('[data-export-image]');
+		images.forEach((img) => {
+			const htmlImg = img as HTMLElement;
+			exportStylesBackup.push({
+				element: htmlImg,
+				display: htmlImg.style.display,
+			});
+			htmlImg.style.display = 'none';
+		});
+
+		// Show the placeholders
+		const placeholders = container.querySelectorAll('[data-export-placeholder]');
+		placeholders.forEach((placeholder) => {
+			const htmlPlaceholder = placeholder as HTMLElement;
+			exportStylesBackup.push({
+				element: htmlPlaceholder,
+				display: htmlPlaceholder.style.display,
+			});
+			htmlPlaceholder.style.display = 'flex';
+		});
+	});
+}
+
+/**
+ * Restore the DOM after export by reverting style changes
+ */
+function restoreAfterExport(): void {
+	exportStylesBackup.forEach(({ element, display }) => {
+		element.style.display = display;
+	});
+	exportStylesBackup = [];
 }
 
 /**
@@ -143,7 +202,17 @@ export async function exportToPng(
 		htmlToImageOptions.backgroundColor = backgroundColor;
 	}
 
-	const blob = await toBlob(element, htmlToImageOptions);
+	// Swap external images with placeholders to avoid CORS issues
+	prepareForExport();
+
+	let blob: Blob | null = null;
+	try {
+		blob = await toBlob(element, htmlToImageOptions);
+	} finally {
+		// Always restore DOM state, even if export fails
+		restoreAfterExport();
+	}
+
 	if (!blob) {
 		throw new Error('Failed to generate PNG blob');
 	}
@@ -180,7 +249,16 @@ export async function exportToSvg(
 		htmlToImageOptions.backgroundColor = backgroundColor;
 	}
 
-	const svgDataUrl = await toSvg(element, htmlToImageOptions);
+	// Swap external images with placeholders to avoid CORS issues
+	prepareForExport();
+
+	let svgDataUrl: string;
+	try {
+		svgDataUrl = await toSvg(element, htmlToImageOptions);
+	} finally {
+		// Always restore DOM state, even if export fails
+		restoreAfterExport();
+	}
 
 	// Convert data URL to blob
 	const response = await fetch(svgDataUrl);

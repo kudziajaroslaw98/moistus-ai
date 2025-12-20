@@ -68,6 +68,7 @@ export const SpotlightOverlay = memo(function SpotlightOverlay({
 		<AnimatePresence>
 			{nodeRect && (
 				<motion.div
+					key="spotlight-dim"
 					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
 					exit={{ opacity: 0 }}
@@ -89,6 +90,7 @@ export const SpotlightOverlay = memo(function SpotlightOverlay({
 			{/* Glow effect around spotlight node */}
 			{nodeRect && (
 				<motion.div
+					key="spotlight-glow"
 					initial={{ opacity: 0, scale: 0.9 }}
 					animate={{ opacity: 1, scale: 1 }}
 					exit={{ opacity: 0, scale: 0.9 }}

@@ -3,9 +3,9 @@
 import { useResourceMetadataFetch } from '@/hooks/use-resource-metadata-fetch';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
+import { getProxiedImageUrl, isExternalImageUrl } from '@/utils/image-proxy';
 import { ExternalLink, Globe, Link as LinkIcon, Loader2, RefreshCw } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { memo, useCallback, useRef, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
@@ -13,6 +13,7 @@ import { Button } from '../ui/button';
 import { BaseNodeWrapper } from './base-node-wrapper';
 import { SharedNodeToolbar } from './components/node-toolbar';
 import { type TypedNodeProps } from './core/types';
+import { ExportImagePlaceholder } from './shared/export-image-placeholder';
 import { GlassmorphismTheme } from './themes/glassmorphism-theme';
 
 type ResourceNodeProps = TypedNodeProps<'resourceNode'>;
@@ -59,8 +60,12 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 	const title = (data.metadata?.title as string) || data.content || 'Resource';
 	const showThumbnail = Boolean(data.metadata?.showThumbnail);
 	const showSummary = Boolean(data.metadata?.showSummary);
-	const imageUrl = data.metadata?.imageUrl as string | undefined;
+	const rawImageUrl = data.metadata?.imageUrl as string | undefined;
 	const summary = data.metadata?.summary as string | undefined;
+
+	// Use proxy for external images to bypass CORS
+	const imageUrl = getProxiedImageUrl(rawImageUrl);
+	const needsExportPlaceholder = isExternalImageUrl(rawImageUrl);
 
 	// Extract domain for display
 	const getDomain = (url: string) => {
@@ -127,11 +132,19 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 				{showThumbnail && imageUrl && (
 					<div
 						className='relative w-full aspect-video rounded-md overflow-hidden'
+						data-export-image-container
 						style={{
 							backgroundColor: GlassmorphismTheme.elevation[0],
 							border: `1px solid ${GlassmorphismTheme.borders.default}`,
 						}}
 					>
+						{/* Export placeholder - hidden normally, shown during export */}
+						{needsExportPlaceholder && rawImageUrl && (
+							<ExportImagePlaceholder
+								imageUrl={rawImageUrl}
+								variant="resource"
+							/>
+						)}
 						{/* Loading skeleton */}
 						<AnimatePresence>
 							{imageLoading && !imageError && (
@@ -155,30 +168,21 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 						</AnimatePresence>
 
 						{!imageError ? (
-							<Image
+							/* eslint-disable-next-line @next/next/no-img-element */
+							<img
 								alt={title}
-								className='object-cover'
+								className='object-cover absolute inset-0 w-full h-full'
+								data-export-image
 								loading='lazy'
 								src={imageUrl}
-								unoptimized={true}
-								fill={
-									data.metadata?.imageSize?.width === undefined ||
-									data.metadata?.imageSize?.height === undefined
-										? true
-										: undefined
-								}
-								height={
-									data.metadata?.imageSize?.height != undefined
-										? data.metadata?.imageSize?.height
-										: undefined
-								}
 								onError={() => {
 									setImageError(true);
 									setImageLoading(false);
 								}}
 								onLoad={(e) => {
-									const height = e.currentTarget.naturalHeight;
-									const width = e.currentTarget.naturalWidth;
+									const img = e.currentTarget;
+									const height = img.naturalHeight;
+									const width = img.naturalWidth;
 									setImageLoading(false);
 									// Remeasure after image loads (affects height)
 									setTimeout(() => remeasureNode(width, height), 50);
@@ -187,11 +191,6 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 									opacity: imageLoading ? 0 : 1,
 									transition: 'opacity 0.3s ease-out',
 								}}
-								width={
-									data.metadata?.imageSize?.width !== undefined
-										? data.metadata?.imageSize?.width
-										: undefined
-								}
 							/>
 						) : (
 							<div

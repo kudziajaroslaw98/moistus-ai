@@ -1,12 +1,14 @@
 'use client';
 
 import { cn } from '@/utils/cn';
+import { getProxiedImageUrl, isExternalImageUrl } from '@/utils/image-proxy';
 import { Image as ImageIcon, ImageOff, Loader2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Image from 'next/image';
 import { memo, useState } from 'react';
 import { BaseNodeWrapper } from './base-node-wrapper';
 import { type TypedNodeProps } from './core/types';
+import { ExportImagePlaceholder } from './shared/export-image-placeholder';
 import { GlassmorphismTheme } from './themes/glassmorphism-theme';
 
 type ImageNodeProps = TypedNodeProps<'imageNode'>;
@@ -18,10 +20,14 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 	);
 	const [aspectRatio, setAspectRatio] = useState<number>(16 / 9); // Default aspect ratio
 
-	const imageUrl = (data.metadata?.image_url || data.metadata?.imageUrl) as
+	const rawImageUrl = (data.metadata?.image_url || data.metadata?.imageUrl) as
 		| string
 		| undefined;
 	const showCaption = Boolean(data.metadata?.showCaption);
+
+	// Use proxy for external images to bypass CORS
+	const imageUrl = getProxiedImageUrl(rawImageUrl);
+	const needsExportPlaceholder = isExternalImageUrl(rawImageUrl);
 	const fitMode =
 		(data.metadata?.fitMode as 'cover' | 'contain' | 'fill') || 'cover';
 	const altText = (data.metadata?.altText as string) || data.content || 'Image';
@@ -50,6 +56,7 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 				{imageUrl ? (
 					<div
 						className='relative w-full h-full overflow-hidden rounded-lg'
+						data-export-image-container
 						style={{
 							// Dynamic aspect ratio based on image or fallback to 16:9
 							aspectRatio: data.metadata?.aspectRatio || aspectRatio,
@@ -58,6 +65,13 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 							maxHeight: '400px',
 						}}
 					>
+						{/* Export placeholder - hidden normally, shown during export */}
+						{needsExportPlaceholder && rawImageUrl && (
+							<ExportImagePlaceholder
+								imageUrl={rawImageUrl}
+								variant="image"
+							/>
+						)}
 						{/* Loading state with elegant skeleton */}
 						<AnimatePresence>
 							{imageState === 'loading' && (
@@ -121,35 +135,59 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 										maxWidth: '200px',
 									}}
 								>
-									{imageUrl.length > 50
-										? imageUrl.substring(0, 50) + '...'
-										: imageUrl}
+									{(rawImageUrl || '').length > 50
+										? (rawImageUrl || '').substring(0, 50) + '...'
+										: rawImageUrl}
 								</span>
 							</motion.div>
 						) : (
 							<>
 								{/* Main image with smooth loading transition */}
-								<Image
-									alt={altText}
-									fill={true}
-									loading='lazy'
-									onError={() => setImageState('error')}
-									onLoad={handleImageLoad}
-									placeholder='empty'
-									priority={false}
-									sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
-									src={imageUrl}
-									className={cn([
-										'nodrag pointer-events-none transition-all duration-500',
-										fitMode === 'contain' && 'object-contain',
-										fitMode === 'cover' && 'object-cover',
-										fitMode === 'fill' && 'object-fill',
-									])}
-									style={{
-										opacity: imageState === 'loaded' ? 1 : 0,
-										filter: imageState === 'loaded' ? 'none' : 'blur(8px)',
-									}}
-								/>
+								{needsExportPlaceholder ? (
+									/* Use native img for proxied external images to avoid Next.js Image validation */
+									/* eslint-disable-next-line @next/next/no-img-element */
+									<img
+										alt={altText}
+										data-export-image
+										loading='lazy'
+										onError={() => setImageState('error')}
+										onLoad={handleImageLoad}
+										src={imageUrl}
+										className={cn([
+											'nodrag pointer-events-none transition-all duration-500 absolute inset-0 w-full h-full',
+											fitMode === 'contain' && 'object-contain',
+											fitMode === 'cover' && 'object-cover',
+											fitMode === 'fill' && 'object-fill',
+										])}
+										style={{
+											opacity: imageState === 'loaded' ? 1 : 0,
+											filter: imageState === 'loaded' ? 'none' : 'blur(8px)',
+										}}
+									/>
+								) : (
+									<Image
+										alt={altText}
+										data-export-image
+										fill={true}
+										loading='lazy'
+										onError={() => setImageState('error')}
+										onLoad={handleImageLoad}
+										placeholder='empty'
+										priority={false}
+										sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
+										src={imageUrl || ''}
+										className={cn([
+											'nodrag pointer-events-none transition-all duration-500',
+											fitMode === 'contain' && 'object-contain',
+											fitMode === 'cover' && 'object-cover',
+											fitMode === 'fill' && 'object-fill',
+										])}
+										style={{
+											opacity: imageState === 'loaded' ? 1 : 0,
+											filter: imageState === 'loaded' ? 'none' : 'blur(8px)',
+										}}
+									/>
+								)}
 
 								{/* Image overlay gradient for better text readability when caption is shown */}
 								{showCaption && imageState === 'loaded' && (

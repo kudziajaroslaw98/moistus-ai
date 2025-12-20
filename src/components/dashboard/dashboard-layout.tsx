@@ -13,7 +13,6 @@ import { ReactNode, useEffect, useState } from 'react';
 import {
 	Sidebar,
 	SidebarContent,
-	SidebarFooter,
 	SidebarGroup,
 	SidebarHeader,
 	SidebarTrigger,
@@ -270,18 +269,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 						</SidebarSection>
 					</SidebarGroup>
 				</SidebarContent>
-
-				<SidebarFooter className='border-t border-zinc-800'>
-					<SidebarSection showDivider={false}>
-						{bottomNavItems.map((item) => (
-							<NavItemComponent item={item} key={item.id} />
-						))}
-					</SidebarSection>
-				</SidebarFooter>
 			</Sidebar>
 
 			{/* Main Content */}
-			<main className='flex-grow flex flex-col h-screen overflow-hidden'>
+			<main className='grow flex flex-col h-screen overflow-hidden'>
 				<DashboardHeader onOpenSettings={handleOpenSettings} />
 				<AnonymousUserBanner />
 
