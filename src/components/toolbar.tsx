@@ -4,6 +4,7 @@ import useAppStore from '@/store/mind-map-store';
 import type { Tool } from '@/types/tool';
 import { cn } from '@/utils/cn';
 import {
+	ChevronDown,
 	Fullscreen,
 	Hand,
 	MessageCircle,
@@ -11,6 +12,7 @@ import {
 	MousePointer2,
 	Play,
 	Plus,
+	Route,
 	Share2,
 	Sparkles,
 } from 'lucide-react';
@@ -23,8 +25,10 @@ import { Button } from './ui/button';
 import {
 	DropdownMenu,
 	DropdownMenuContent,
+	DropdownMenuItem,
 	DropdownMenuRadioGroup,
 	DropdownMenuRadioItem,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { Separator } from './ui/separator';
@@ -61,7 +65,7 @@ const tools: ToolButton[] = [
 	{ id: 'chat', icon: <MessageCircle className='size-4' />, label: 'AI Chat' },
 	{ id: 'layout', icon: null, label: 'Auto Layout' }, // Layout dropdown rendered separately
 	{ id: 'export', icon: null, label: 'Export' }, // Export dropdown rendered separately
-	{ id: 'present', icon: <Play className='size-4' />, label: 'Present' },
+	{ id: 'present', icon: <Play className='size-4' />, label: 'Guided Tour' },
 	{ id: 'separator-1', icon: null, label: null },
 	{ id: 'zoom', icon: <Fullscreen className='size-4' />, label: 'Zoom' },
 	{ id: 'separator-2', icon: null, label: null },
@@ -87,7 +91,9 @@ export const Toolbar = () => {
 		setCommentMode,
 		toggleChat,
 		isChatOpen,
-		startPresentation,
+		startTour,
+		enterPathEditMode,
+		savedPaths,
 		nodes,
 	} = useAppStore(
 		useShallow((state) => ({
@@ -104,7 +110,9 @@ export const Toolbar = () => {
 			setCommentMode: state.setCommentMode,
 			toggleChat: state.toggleChat,
 			isChatOpen: state.isChatOpen,
-			startPresentation: state.startPresentation,
+			startTour: state.startTour,
+			enterPathEditMode: state.enterPathEditMode,
+			savedPaths: state.savedPaths,
 			nodes: state.nodes,
 		}))
 	);
@@ -185,9 +193,9 @@ export const Toolbar = () => {
 			// Toggle comment mode
 			setCommentMode(!isCommentMode);
 		} else if (toolId === 'present') {
-			// Start presentation mode
+			// Start guided tour (auto path)
 			if (nodes.length > 0) {
-				startPresentation();
+				startTour();
 			}
 		} else if (toolId === 'magic-wand') {
 			switch (aiFeature) {
@@ -349,6 +357,58 @@ export const Toolbar = () => {
 					// Export dropdown
 					if (tool.id === 'export') {
 						return <ExportDropdown key={tool.id} />;
+					}
+
+					// Tour dropdown (replaces simple Present button)
+					if (tool.id === 'present') {
+						return (
+							<DropdownMenu key={tool.id}>
+								<DropdownMenuTrigger asChild>
+									<Button
+										className='active:scale-95'
+										size='icon'
+										title='Guided Tour'
+										variant='secondary'
+										disabled={nodes.length === 0}
+									>
+										<Play className='size-4' />
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align='start' side='top' className='w-48'>
+									<DropdownMenuItem
+										onClick={() => startTour()}
+										disabled={nodes.length === 0}
+									>
+										<Play className='size-4 mr-2' />
+										Start Auto Tour
+									</DropdownMenuItem>
+									<DropdownMenuSeparator />
+									<DropdownMenuItem onClick={() => enterPathEditMode()}>
+										<Route className='size-4 mr-2' />
+										Create Custom Path
+									</DropdownMenuItem>
+									{savedPaths.length > 0 && (
+										<>
+											<DropdownMenuSeparator />
+											<div className='px-2 py-1.5 text-xs text-muted-foreground'>
+												Saved Paths
+											</div>
+											{savedPaths.map((path) => (
+												<DropdownMenuItem
+													key={path.id}
+													onClick={() => startTour({ savedPathId: path.id })}
+												>
+													<span className='flex-1 truncate'>{path.name}</span>
+													<span className='text-xs text-muted-foreground ml-2'>
+														{path.nodeIds.length}
+													</span>
+												</DropdownMenuItem>
+											))}
+										</>
+									)}
+								</DropdownMenuContent>
+							</DropdownMenu>
+						);
 					}
 
 					// Chat button has special styling when active

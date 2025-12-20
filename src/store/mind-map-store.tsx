@@ -12,7 +12,7 @@ import { createLayoutSlice } from './slices/layout-slice';
 import { createLoadingStateSlice } from './slices/loading-state-slice';
 import { createNodeSlice } from './slices/nodes-slice';
 import { createOnboardingSlice } from './slices/onboarding-slice';
-import { createPresentationSlice } from './slices/presentation-slice';
+import { createGuidedTourSlice } from './slices/guided-tour-slice';
 import { createQuickInputSlice } from './slices/quick-input-slice';
 import { createRealtimeSlice } from './slices/realtime-slice';
 import { createSharingSlice } from './slices/sharing-slice';
@@ -43,7 +43,7 @@ const sliceCreators = [
 	createUserProfileSlice,
 	createLayoutSlice,
 	createExportSlice,
-	createPresentationSlice,
+	createGuidedTourSlice,
 ];
 
 const useAppStore = create<AppState>((set, get, api) => {

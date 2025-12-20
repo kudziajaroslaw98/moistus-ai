@@ -1,37 +1,37 @@
 /**
- * Keyboard Hook for Presentation Mode
+ * Keyboard Hook for Guided Tour
  *
  * Handles keyboard navigation:
- * - ArrowRight / Space / Enter: Next slide
- * - ArrowLeft / Backspace: Previous slide
- * - ArrowUp / ArrowDown: Navigate slides
+ * - ArrowRight / Space / Enter: Next stop
+ * - ArrowLeft / Backspace: Previous stop
+ * - Escape: Exit tour
  * - F: Toggle fullscreen
- * - Escape: Exit presentation
- * - P: Toggle laser pointer
- * - N: Toggle speaker notes
+ * - Home: Go to first stop
+ * - End: Go to last stop
+ * - 1-9: Jump to stop N
  */
 
 import { useEffect, useCallback } from 'react';
 
-interface UsePresentationKeyboardOptions {
+interface UseTourKeyboardOptions {
 	isActive: boolean;
+	totalStops: number;
 	onNext: () => void;
 	onPrevious: () => void;
-	onToggleFullscreen: () => void;
 	onExit: () => void;
-	onToggleLaserPointer: () => void;
-	onToggleSpeakerNotes: () => void;
+	onGoToStop: (index: number) => void;
+	onToggleFullscreen?: () => void;
 }
 
-export function usePresentationKeyboard({
+export function useTourKeyboard({
 	isActive,
+	totalStops,
 	onNext,
 	onPrevious,
-	onToggleFullscreen,
 	onExit,
-	onToggleLaserPointer,
-	onToggleSpeakerNotes,
-}: UsePresentationKeyboardOptions) {
+	onGoToStop,
+	onToggleFullscreen,
+}: UseTourKeyboardOptions) {
 	const handleKeyDown = useCallback(
 		(event: KeyboardEvent) => {
 			if (!isActive) return;
@@ -70,8 +70,10 @@ export function usePresentationKeyboard({
 
 				case 'f':
 				case 'F':
-					event.preventDefault();
-					onToggleFullscreen();
+					if (onToggleFullscreen) {
+						event.preventDefault();
+						onToggleFullscreen();
+					}
 					break;
 
 				case 'Escape':
@@ -79,28 +81,35 @@ export function usePresentationKeyboard({
 					onExit();
 					break;
 
-				case 'p':
-				case 'P':
+				case 'Home':
 					event.preventDefault();
-					onToggleLaserPointer();
+					onGoToStop(0);
 					break;
 
-				case 'n':
-				case 'N':
+				case 'End':
 					event.preventDefault();
-					onToggleSpeakerNotes();
+					onGoToStop(totalStops - 1);
+					break;
+
+				// Number keys 1-9 to jump to specific stops
+				case '1':
+				case '2':
+				case '3':
+				case '4':
+				case '5':
+				case '6':
+				case '7':
+				case '8':
+				case '9':
+					event.preventDefault();
+					const stopIndex = parseInt(event.key) - 1;
+					if (stopIndex < totalStops) {
+						onGoToStop(stopIndex);
+					}
 					break;
 			}
 		},
-		[
-			isActive,
-			onNext,
-			onPrevious,
-			onToggleFullscreen,
-			onExit,
-			onToggleLaserPointer,
-			onToggleSpeakerNotes,
-		]
+		[isActive, totalStops, onNext, onPrevious, onExit, onGoToStop, onToggleFullscreen]
 	);
 
 	useEffect(() => {

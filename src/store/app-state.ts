@@ -525,9 +525,9 @@ export interface StreamingToastSlice {
 import type { LayoutSlice } from '@/types/layout-types';
 export type { LayoutSlice };
 
-// Presentation Slice (imported from slice file)
-import type { PresentationSlice } from '@/store/slices/presentation-slice';
-export type { PresentationSlice };
+// Guided Tour Slice (replaces old presentation slice)
+import type { GuidedTourSlice } from '@/types/guided-tour';
+export type { GuidedTourSlice };
 
 // Export Slice
 import type { ExportFormat, ExportScale } from '@/utils/export-utils';
@@ -582,4 +582,4 @@ export interface AppState
 		QuickInputSlice,
 		LayoutSlice,
 		ExportSlice,
-		PresentationSlice {}
+		GuidedTourSlice {}

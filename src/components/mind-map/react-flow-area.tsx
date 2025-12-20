@@ -34,7 +34,7 @@ import FloatingEdge from '@/components/edges/floating-edge';
 import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edge';
 import { UpgradeModal } from '@/components/modals/upgrade-modal';
 import { ModeIndicator } from '@/components/mode-indicator';
-import { PresentationMode } from '@/components/presentation';
+import { GuidedTourMode, PathBuilder } from '@/components/guided-tour';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useActivityTracker } from '@/hooks/realtime/use-activity-tracker';
 import { useContextMenu } from '@/hooks/use-context-menu';
@@ -110,20 +110,9 @@ export function ReactFlowArea() {
 		canRedo,
 		canUndo,
 		userProfile,
-		isPresenting,
-		slides,
-		currentSlideIndex,
-		isFullscreen,
-		showSpeakerNotes,
-		transitionDuration,
-		laserPointerEnabled,
-		nextSlide,
-		previousSlide,
-		goToSlide,
-		toggleFullscreen,
-		toggleSpeakerNotes,
-		toggleLaserPointer,
-		stopPresentation,
+		isTourActive,
+		isPathEditMode,
+		addNodeToPath,
 	} = useAppStore(
 		useShallow((state) => ({
 			supabase: state.supabase,
@@ -165,21 +154,10 @@ export function ReactFlowArea() {
 			setShowOnboarding: state.setShowOnboarding,
 			isProUser: state.isProUser,
 			userProfile: state.userProfile,
-			// Presentation state
-			isPresenting: state.isPresenting,
-			slides: state.slides,
-			currentSlideIndex: state.currentSlideIndex,
-			isFullscreen: state.isFullscreen,
-			showSpeakerNotes: state.showSpeakerNotes,
-			transitionDuration: state.transitionDuration,
-			laserPointerEnabled: state.laserPointerEnabled,
-			nextSlide: state.nextSlide,
-			previousSlide: state.previousSlide,
-			goToSlide: state.goToSlide,
-			toggleFullscreen: state.toggleFullscreen,
-			toggleSpeakerNotes: state.toggleSpeakerNotes,
-			toggleLaserPointer: state.toggleLaserPointer,
-			stopPresentation: state.stopPresentation,
+			// Guided tour state
+			isTourActive: state.isTourActive,
+			isPathEditMode: state.isPathEditMode,
+			addNodeToPath: state.addNodeToPath,
 		}))
 	);
 
@@ -279,6 +257,14 @@ export function ReactFlowArea() {
 		(event: React.MouseEvent, node: Node<NodeData>) => {
 			console.log(node);
 
+			// Handle path edit mode - add clicked node to path
+			if (isPathEditMode) {
+				event.preventDefault();
+				event.stopPropagation();
+				addNodeToPath(node.id);
+				return;
+			}
+
 			if (activeTool === 'magic-wand' && aiFeature === 'suggest-nodes') {
 				event.preventDefault();
 				event.stopPropagation();
@@ -286,7 +272,7 @@ export function ReactFlowArea() {
 				setActiveTool('default');
 			}
 		},
-		[activeTool, isStreaming, generateSuggestionsForNode]
+		[activeTool, isStreaming, generateSuggestionsForNode, isPathEditMode, addNodeToPath]
 	);
 
 	const handleEdgeDoubleClick: EdgeMouseHandler<Edge<EdgeData>> = useCallback(
@@ -563,22 +549,11 @@ export function ReactFlowArea() {
 
 			<ChatPanel />
 
-			<PresentationMode
-				isPresenting={isPresenting}
-				slides={slides}
-				currentSlideIndex={currentSlideIndex}
-				isFullscreen={isFullscreen}
-				showSpeakerNotes={showSpeakerNotes}
-				transitionDuration={transitionDuration}
-				laserPointerEnabled={laserPointerEnabled}
-				onNext={nextSlide}
-				onPrevious={previousSlide}
-				onGoToSlide={goToSlide}
-				onToggleFullscreen={toggleFullscreen}
-				onToggleSpeakerNotes={toggleSpeakerNotes}
-				onToggleLaserPointer={toggleLaserPointer}
-				onExit={stopPresentation}
-			/>
+			{/* Guided Tour Mode - renders controls and spotlight overlay when active */}
+			<GuidedTourMode />
+
+			{/* Path Builder - shows when in path edit mode */}
+			{isPathEditMode && <PathBuilder />}
 		</div>
 	);
 }
