@@ -595,3 +595,203 @@ export function shouldTriggerSuggestion(
 		degree: context.graphTopology.degree,
 	});
 }
+
+// ============================================================================
+// MAP-LEVEL CONTEXT BUILDERS
+// These functions build context for the entire map, not just a single node.
+// ============================================================================
+
+/**
+ * Scored node for prioritization in full context mode
+ */
+interface ScoredNode {
+	node: AppNode;
+	score: number;
+	depth: number;
+	degree: number;
+}
+
+/**
+ * Estimate token count from text (rough approximation: ~4 chars per token)
+ */
+export function estimateTokens(text: string): number {
+	return Math.ceil(text.length / 4);
+}
+
+/**
+ * Score a node for prioritization (higher = more important)
+ * Factors: connectivity, root status, depth
+ */
+function scoreNode(
+	node: AppNode,
+	edges: AppEdge[],
+	allNodes: AppNode[]
+): ScoredNode {
+	const depth = calculateNodeDepth(node.id, edges, allNodes);
+	const degree = edges.filter(
+		(e) => e.source === node.id || e.target === node.id
+	).length;
+
+	// Score formula: connections matter most, then root status, then inverse depth
+	const score = degree * 2 + (depth === 0 ? 10 : 0) + 1 / (depth + 1);
+
+	return { node, score, depth, degree };
+}
+
+/**
+ * Build minimal context (just map overview, ~200 tokens)
+ * For quick questions that don't need node content
+ */
+export function buildMapOverviewContext(
+	nodes: AppNode[],
+	edges: AppEdge[],
+	mapMeta: { title: string; description: string | null }
+): string {
+	if (nodes.length === 0) {
+		return `**Mind Map:** ${mapMeta.title || 'Untitled'}\nNo nodes yet.`;
+	}
+
+	// Count node types
+	const typeDistribution: Record<string, number> = {};
+	for (const node of nodes) {
+		const nodeType = node.data.node_type || 'unknown';
+		typeDistribution[nodeType] = (typeDistribution[nodeType] || 0) + 1;
+	}
+
+	const typesList = Object.entries(typeDistribution)
+		.map(([type, count]) => `${count} ${type.replace('Node', '')}`)
+		.join(', ');
+
+	const lines = [
+		`**Mind Map:** ${mapMeta.title || 'Untitled'}`,
+		mapMeta.description && `Description: ${mapMeta.description}`,
+		`Nodes: ${nodes.length} | Edges: ${edges.length}`,
+		`Types: ${typesList}`,
+	].filter(Boolean);
+
+	return lines.join('\n');
+}
+
+/**
+ * Build summary context (~2-4k tokens)
+ * Includes: topics, key nodes, structure metrics
+ */
+export function buildMapSummaryContext(
+	nodes: AppNode[],
+	edges: AppEdge[],
+	mapMeta: { title: string; description: string | null }
+): string {
+	if (nodes.length === 0) {
+		return buildMapOverviewContext(nodes, edges, mapMeta);
+	}
+
+	const lines: string[] = [];
+
+	// Start with overview
+	lines.push(buildMapOverviewContext(nodes, edges, mapMeta));
+	lines.push('');
+
+	// Extract topics from all node content
+	const allContents = nodes
+		.map((n) => n.data.content)
+		.filter((c): c is string => !!c);
+	const topics = extractTopics(allContents, 10);
+
+	if (topics.length > 0) {
+		lines.push(`**Key Topics:** ${topics.join(', ')}`);
+		lines.push('');
+	}
+
+	// Identify key nodes (high connectivity or root nodes)
+	const scoredNodes = nodes.map((n) => scoreNode(n, edges, nodes));
+	const keyNodes = scoredNodes
+		.filter((sn) => sn.degree >= 3 || sn.depth === 0)
+		.sort((a, b) => b.score - a.score)
+		.slice(0, 10);
+
+	if (keyNodes.length > 0) {
+		lines.push('**Key Nodes:**');
+		for (const { node, depth, degree } of keyNodes) {
+			const content = node.data.content || node.data.metadata?.title || '[no content]';
+			const truncated = content.length > 60 ? content.slice(0, 60) + '...' : content;
+			const nodeType = node.data.node_type?.replace('Node', '') || 'note';
+			lines.push(`- [${nodeType}] ${truncated} (depth: ${depth}, connections: ${degree})`);
+		}
+		lines.push('');
+	}
+
+	// Structure metrics
+	const depths = scoredNodes.map((sn) => sn.depth);
+	const maxDepth = Math.max(...depths, 0);
+	const rootNodes = scoredNodes.filter((sn) => sn.depth === 0).length;
+	const isolatedNodes = scoredNodes.filter((sn) => sn.degree === 0).length;
+
+	lines.push('**Structure:**');
+	lines.push(`Max depth: ${maxDepth} | Root nodes: ${rootNodes} | Isolated: ${isolatedNodes}`);
+
+	return lines.join('\n');
+}
+
+/**
+ * Build full context (~8-16k tokens)
+ * Includes all nodes, priority-ranked with truncation
+ */
+export function buildFullMapContext(
+	nodes: AppNode[],
+	edges: AppEdge[],
+	mapMeta: { title: string; description: string | null },
+	tokenBudget: number = 16000
+): string {
+	if (nodes.length === 0) {
+		return buildMapOverviewContext(nodes, edges, mapMeta);
+	}
+
+	const lines: string[] = [];
+
+	// Start with summary (always included)
+	const summaryContext = buildMapSummaryContext(nodes, edges, mapMeta);
+	lines.push(summaryContext);
+	lines.push('');
+	lines.push('**All Nodes:**');
+
+	// Score and sort all nodes
+	const scoredNodes = nodes
+		.map((n) => scoreNode(n, edges, nodes))
+		.sort((a, b) => b.score - a.score);
+
+	// Track token budget
+	let currentTokens = estimateTokens(lines.join('\n'));
+	const nodeLines: string[] = [];
+	let includedCount = 0;
+
+	for (const { node, depth, degree } of scoredNodes) {
+		const content = node.data.content || node.data.metadata?.title || '[no content]';
+		const nodeType = node.data.node_type?.replace('Node', '') || 'note';
+		const tags = (node.data.tags as string[] | undefined)?.join(', ') || '';
+
+		// Format node line
+		let nodeLine = `- [${nodeType}] ${content}`;
+		if (tags) nodeLine += ` #${tags.replace(/, /g, ' #')}`;
+		nodeLine += ` (d:${depth}, c:${degree})`;
+
+		// Check if adding this exceeds budget
+		const lineTokens = estimateTokens(nodeLine);
+		if (currentTokens + lineTokens > tokenBudget - 100) {
+			// Reserve 100 tokens for truncation message
+			break;
+		}
+
+		nodeLines.push(nodeLine);
+		currentTokens += lineTokens;
+		includedCount++;
+	}
+
+	lines.push(...nodeLines);
+
+	// Add truncation notice if needed
+	if (includedCount < nodes.length) {
+		lines.push(`\n... and ${nodes.length - includedCount} more nodes (truncated for context limit)`);
+	}
+
+	return lines.join('\n');
+}

@@ -16,11 +16,14 @@ export interface ChatMessage {
 	};
 }
 
+// Context mode determines how much map data is sent to AI
+export type ChatContextMode = 'minimal' | 'summary' | 'full';
+
 // Chat context interface
 export interface ChatContext {
 	mapId: string | null;
 	selectedNodeIds: string[];
-	includeMapStructure: boolean;
+	contextMode: ChatContextMode;
 }
 
 // User preferences for chat
@@ -45,6 +48,7 @@ export interface ChatSlice {
 	updateChatMessage: (id: string, content: string) => void;
 	clearChatMessages: () => void;
 	setChatContext: (context: Partial<ChatContext>) => void;
+	setChatContextMode: (mode: ChatContextMode) => void;
 	toggleChat: () => void;
 	openChat: () => void;
 	closeChat: () => void;
@@ -70,7 +74,7 @@ export const createChatSlice: StateCreator<
 	chatContext: {
 		mapId: null,
 		selectedNodeIds: [],
-		includeMapStructure: false,
+		contextMode: 'summary',
 	},
 	isChatOpen: false,
 	chatPreferences: {
@@ -129,7 +133,7 @@ export const createChatSlice: StateCreator<
 							chatContext.selectedNodeIds.length > 0
 								? chatContext.selectedNodeIds
 								: selectedNodeIds,
-						includeMapStructure: chatContext.includeMapStructure,
+						contextMode: chatContext.contextMode,
 					},
 				}),
 			});
@@ -195,6 +199,13 @@ export const createChatSlice: StateCreator<
 	setChatContext: (context: Partial<ChatContext>) => {
 		set((state) => ({
 			chatContext: { ...state.chatContext, ...context },
+		}));
+	},
+
+	// Set context mode (minimal, summary, full)
+	setChatContextMode: (mode: ChatContextMode) => {
+		set((state) => ({
+			chatContext: { ...state.chatContext, contextMode: mode },
 		}));
 	},
 

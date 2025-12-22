@@ -1,10 +1,12 @@
 'use client';
 
+import { NodeTypeSelector } from '@/components/settings/node-type-selector';
 import { SidePanel } from '@/components/side-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
 import {
 	Select,
 	SelectContent,
@@ -19,27 +21,25 @@ import { UserAvatar } from '@/components/ui/user-avatar';
 import useAppStore from '@/store/mind-map-store';
 import { UserProfileFormData } from '@/types/user-profile-types';
 import {
+	AlertTriangle,
+	BarChart3,
+	Calendar,
 	CreditCard,
+	Download,
+	ExternalLink,
 	Palette,
+	PenTool,
 	Save,
 	Settings,
 	Shield,
+	Star,
 	Trash2,
 	User,
-	Star,
-	Calendar,
-	Download,
-	ExternalLink,
-	AlertTriangle,
-	BarChart3,
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/shallow';
-import { Progress } from '@/components/ui/progress';
-import { NodeTypeSelector } from '@/components/settings/node-type-selector';
-import { PenTool } from 'lucide-react';
 
 interface PaymentHistoryItem {
 	id: string;
@@ -49,6 +49,10 @@ interface PaymentHistoryItem {
 	status: string;
 	description: string | null;
 	created_at: string;
+	metadata?: {
+		stripe_invoice_id?: string;
+		stripe_subscription_id?: string;
+	};
 }
 
 interface UsageStats {
@@ -56,6 +60,10 @@ interface UsageStats {
 	collaboratorsCount: number;
 	storageUsedMB: number;
 	aiSuggestionsCount: number;
+	billingPeriod?: {
+		start: string;
+		end: string;
+	};
 }
 
 interface SettingsPanelProps {
@@ -83,6 +91,8 @@ export function SettingsPanel({
 		fetchUserSubscription,
 		fetchAvailablePlans,
 		cancelSubscription,
+		isTrialing,
+		getTrialDaysRemaining,
 	} = useAppStore(
 		useShallow((state) => ({
 			userProfile: state.userProfile,
@@ -98,6 +108,8 @@ export function SettingsPanel({
 			fetchUserSubscription: state.fetchUserSubscription,
 			fetchAvailablePlans: state.fetchAvailablePlans,
 			cancelSubscription: state.cancelSubscription,
+			isTrialing: state.isTrialing,
+			getTrialDaysRemaining: state.getTrialDaysRemaining,
 		}))
 	);
 
@@ -105,13 +117,23 @@ export function SettingsPanel({
 	const [activeTab, setActiveTab] = useState(defaultTab);
 
 	// Billing State
-	const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryItem[]>([]);
+	const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryItem[]>(
+		[]
+	);
 	const [usage, setUsage] = useState<UsageStats | null>(null);
 	const [isLoadingPayments, setIsLoadingPayments] = useState(false);
 	const [isLoadingUsage, setIsLoadingUsage] = useState(false);
 	const [paymentsLoaded, setPaymentsLoaded] = useState(false);
 	const [usageLoaded, setUsageLoaded] = useState(false);
 	const [isCanceling, setIsCanceling] = useState(false);
+	const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<
+		string | null
+	>(null);
+	const [isOpeningPortal, setIsOpeningPortal] = useState(false);
+
+	// Refs to track loading state without triggering effect re-runs
+	const isLoadingPaymentsRef = useRef(false);
+	const isLoadingUsageRef = useRef(false);
 
 	const [formData, setFormData] = useState<UserProfileFormData>({
 		full_name: '',
@@ -135,6 +157,18 @@ export function SettingsPanel({
 		}
 	}, [isOpen, loadUserProfile]);
 
+	// Reset billing state when panel closes
+	useEffect(() => {
+		if (!isOpen) {
+			setPaymentsLoaded(false);
+			setUsageLoaded(false);
+			setUsage(null);
+			setPaymentHistory([]);
+			isLoadingPaymentsRef.current = false;
+			isLoadingUsageRef.current = false;
+		}
+	}, [isOpen]);
+
 	// Load billing data when billing tab is active
 	useEffect(() => {
 		if (!isOpen || activeTab !== 'billing') return;
@@ -142,84 +176,53 @@ export function SettingsPanel({
 		fetchUserSubscription();
 		fetchAvailablePlans();
 
-		// Use AbortController to cancel requests on unmount/re-render
-		const abortController = new AbortController();
-
 		const loadPaymentHistory = async () => {
-			// Skip if already loaded or currently loading
-			if (paymentsLoaded || isLoadingPayments) return;
+			// Skip if already loaded or currently loading (use ref to avoid race condition)
+			if (paymentsLoaded || isLoadingPaymentsRef.current) return;
 
+			isLoadingPaymentsRef.current = true;
 			setIsLoadingPayments(true);
 
 			try {
-				const response = await fetch('/api/user/billing/payment-history', {
-					signal: abortController.signal,
-				});
-
-				// Guard against aborted requests
-				if (abortController.signal.aborted) return;
+				const response = await fetch('/api/user/billing/payment-history');
 
 				if (!response.ok) throw new Error('Failed to fetch payment history');
 				const result = await response.json();
 
-				// Guard again before setState
-				if (abortController.signal.aborted) return;
-
 				setPaymentHistory(result.data || []);
 				setPaymentsLoaded(true);
 			} catch (error) {
-				// Ignore abort errors
-				if (error instanceof Error && error.name === 'AbortError') return;
-
-				// Guard before showing toast/setState
-				if (abortController.signal.aborted) return;
-
 				console.error('Error loading payment history:', error);
 				toast.error('Failed to load payment history');
 			} finally {
-				// Guard before setState
-				if (!abortController.signal.aborted) {
-					setIsLoadingPayments(false);
-				}
+				// Always reset loading state so retries can happen
+				isLoadingPaymentsRef.current = false;
+				setIsLoadingPayments(false);
 			}
 		};
 
-		const loadUsage = async () => {
-			// Skip if already loaded or currently loading
-			if (usageLoaded || isLoadingUsage) return;
+		const loadUsage = async (retryCount = 0) => {
+			// Skip if already loaded or currently loading (use ref to avoid race condition)
+			if (usageLoaded || isLoadingUsageRef.current) return;
 
+			isLoadingUsageRef.current = true;
 			setIsLoadingUsage(true);
 
 			try {
-				const response = await fetch('/api/user/billing/usage', {
-					signal: abortController.signal,
-				});
-
-				// Guard against aborted requests
-				if (abortController.signal.aborted) return;
+				const response = await fetch('/api/user/billing/usage');
 
 				if (!response.ok) throw new Error('Failed to fetch usage');
 				const result = await response.json();
 
-				// Guard again before setState
-				if (abortController.signal.aborted) return;
-
 				setUsage(result.data);
 				setUsageLoaded(true);
 			} catch (error) {
-				// Ignore abort errors
-				if (error instanceof Error && error.name === 'AbortError') return;
-
-				// Guard before showing toast/setState
-				if (abortController.signal.aborted) return;
-
 				console.error('Error loading usage:', error);
 				toast.error('Failed to load usage statistics');
 			} finally {
-				// Guard before setState
-				if (!abortController.signal.aborted) {
-					setIsLoadingUsage(false);
-				}
+				// Always reset loading ref so retries can happen
+				isLoadingUsageRef.current = false;
+				setIsLoadingUsage(false);
 			}
 		};
 
@@ -227,9 +230,6 @@ export function SettingsPanel({
 		loadUsage();
 
 		// Cleanup: abort all in-flight requests
-		return () => {
-			abortController.abort();
-		};
 	}, [
 		isOpen,
 		activeTab,
@@ -237,8 +237,8 @@ export function SettingsPanel({
 		fetchAvailablePlans,
 		paymentsLoaded,
 		usageLoaded,
-		isLoadingPayments,
-		isLoadingUsage,
+		// Note: isLoadingPayments and isLoadingUsage removed from deps to avoid race condition
+		// Using refs instead to track loading state without triggering effect re-runs
 	]);
 
 	// Update active tab when defaultTab changes
@@ -259,7 +259,8 @@ export function SettingsPanel({
 					theme: userProfile.preferences?.theme || 'system',
 					accentColor: userProfile.preferences?.accentColor || 'sky',
 					reducedMotion: userProfile.preferences?.reducedMotion || false,
-					defaultNodeType: userProfile.preferences?.defaultNodeType || 'defaultNode',
+					defaultNodeType:
+						userProfile.preferences?.defaultNodeType || 'defaultNode',
 					privacy: {
 						profile_visibility:
 							userProfile.preferences?.privacy?.profile_visibility || 'public',
@@ -313,7 +314,6 @@ export function SettingsPanel({
 		}
 	};
 
-
 	const updateFormData = (field: string, value: unknown) => {
 		setFormData((prev) => ({
 			...prev,
@@ -355,6 +355,55 @@ export function SettingsPanel({
 	const handleUpgrade = () => {
 		// TODO: Implement upgrade flow with Stripe
 		toast.info('Upgrade flow coming soon!');
+	};
+
+	const handleDownloadInvoice = async (payment: PaymentHistoryItem) => {
+		const invoiceId = payment.metadata?.stripe_invoice_id;
+		if (!invoiceId) {
+			toast.error('Invoice not available for this payment');
+			return;
+		}
+
+		setDownloadingInvoiceId(payment.id);
+		try {
+			const response = await fetch(
+				`/api/user/billing/invoice?invoiceId=${invoiceId}`
+			);
+			if (!response.ok) {
+				const data = await response.json();
+				throw new Error(data.error || 'Failed to fetch invoice');
+			}
+			const { url } = await response.json();
+			window.open(url, '_blank');
+		} catch (error) {
+			console.error('Invoice download error:', error);
+			toast.error(
+				error instanceof Error ? error.message : 'Failed to download invoice'
+			);
+		} finally {
+			setDownloadingInvoiceId(null);
+		}
+	};
+
+	const handleOpenBillingPortal = async () => {
+		setIsOpeningPortal(true);
+		try {
+			const response = await fetch('/api/user/billing/portal', {
+				method: 'POST',
+			});
+			if (!response.ok) {
+				const data = await response.json();
+				throw new Error(data.error || 'Failed to open billing portal');
+			}
+			const { url } = await response.json();
+			window.location.href = url;
+		} catch (error) {
+			console.error('Portal error:', error);
+			toast.error(
+				error instanceof Error ? error.message : 'Failed to open billing portal'
+			);
+			setIsOpeningPortal(false);
+		}
 	};
 
 	const formatStorageSize = (mb: number) => {
@@ -470,7 +519,8 @@ export function SettingsPanel({
 													Profile Avatar
 												</p>
 												<p className='text-xs text-text-secondary'>
-													Your avatar is automatically generated based on your account.
+													Your avatar is automatically generated based on your
+													account.
 												</p>
 											</div>
 										</div>
@@ -625,13 +675,18 @@ export function SettingsPanel({
 										<div className='space-y-2'>
 											<Label>Default Node Type</Label>
 											<p className='text-xs text-text-secondary'>
-												The default type for new nodes when using the node editor
+												The default type for new nodes when using the node
+												editor
 											</p>
 											<NodeTypeSelector
 												disabled={isSaving || isLoadingProfile}
 												value={formData.preferences.defaultNodeType}
 												onChange={(value) =>
-													updateNestedFormData('preferences', 'defaultNodeType', value)
+													updateNestedFormData(
+														'preferences',
+														'defaultNodeType',
+														value
+													)
 												}
 											/>
 										</div>
@@ -677,9 +732,7 @@ export function SettingsPanel({
 
 										<div className='flex items-center justify-between p-3 bg-error-900/10 rounded-lg border border-error-900/20'>
 											<div>
-												<Label className='text-error-500'>
-													Delete Account
-												</Label>
+												<Label className='text-error-500'>Delete Account</Label>
 												<p className='text-xs text-error-500/70'>
 													Permanently delete data
 												</p>
@@ -721,19 +774,26 @@ export function SettingsPanel({
 													<div className='flex items-center gap-4'>
 														<div>
 															<p className='text-lg font-semibold text-primary'>
-																{!currentSubscription ? 'Free' : currentSubscription.plan?.displayName || 'Unknown'}
+																{!currentSubscription
+																	? 'Free'
+																	: currentSubscription.plan?.displayName ||
+																		'Unknown'}
 															</p>
 															<p className='text-sm text-text-secondary'>
 																{!currentSubscription ? (
 																	'$0/month'
 																) : currentSubscription.plan?.priceMonthly ? (
-																	<>${currentSubscription.plan.priceMonthly}/month</>
+																	<>
+																		${currentSubscription.plan.priceMonthly}
+																		/month
+																	</>
 																) : (
 																	'Custom pricing'
 																)}
 															</p>
 														</div>
-														{currentSubscription && getStatusBadge(currentSubscription.status)}
+														{currentSubscription &&
+															getStatusBadge(currentSubscription.status)}
 													</div>
 													{!currentSubscription && (
 														<Button
@@ -751,26 +811,36 @@ export function SettingsPanel({
 														<Separator className='bg-border-subtle' />
 														<div className='grid grid-cols-1 md:grid-cols-2 gap-4 text-sm'>
 															<div>
-																<span className='text-text-secondary'>Billing period:</span>
+																<span className='text-text-secondary'>
+																	Billing period:
+																</span>
 																<p className='text-text-primary flex gap-1'>
 																	<span>
 																		{currentSubscription.currentPeriodStart
-																			? new Date(currentSubscription.currentPeriodStart).toLocaleDateString()
+																			? new Date(
+																					currentSubscription.currentPeriodStart
+																				).toLocaleDateString()
 																			: 'N/A'}
 																	</span>
 																	<span>-</span>
 																	<span>
 																		{currentSubscription.currentPeriodEnd
-																			? new Date(currentSubscription.currentPeriodEnd).toLocaleDateString()
+																			? new Date(
+																					currentSubscription.currentPeriodEnd
+																				).toLocaleDateString()
 																			: 'N/A'}
 																	</span>
 																</p>
 															</div>
 															<div>
-																<span className='text-text-secondary'>Next billing date:</span>
+																<span className='text-text-secondary'>
+																	Next billing date:
+																</span>
 																<p className='text-text-primary'>
 																	{currentSubscription.currentPeriodEnd
-																		? new Date(currentSubscription.currentPeriodEnd).toLocaleDateString()
+																		? new Date(
+																				currentSubscription.currentPeriodEnd
+																			).toLocaleDateString()
 																		: 'N/A'}
 																</p>
 															</div>
@@ -780,10 +850,14 @@ export function SettingsPanel({
 															<div className='p-3 bg-warning-900/30 border border-warning-800/30 rounded-lg flex items-center gap-2'>
 																<AlertTriangle className='size-4 text-warning-400' />
 																<span className='text-warning-200 text-sm flex gap-1'>
-																	<span>Your subscription will be canceled on</span>
+																	<span>
+																		Your subscription will be canceled on
+																	</span>
 																	<span>
 																		{currentSubscription.currentPeriodEnd
-																			? new Date(currentSubscription.currentPeriodEnd).toLocaleDateString()
+																			? new Date(
+																					currentSubscription.currentPeriodEnd
+																				).toLocaleDateString()
 																			: 'N/A'}
 																	</span>
 																</span>
@@ -794,35 +868,86 @@ export function SettingsPanel({
 											</div>
 										</motion.section>
 
-										{/* Usage */}
-										{usage && (
-											<motion.section
+										{/* Trial Indicator */}
+										{isTrialing() && (
+											<motion.div
 												animate={{ opacity: 1, y: 0 }}
-												className='space-y-4'
+												className='p-3 bg-primary/10 border border-primary/30 rounded-lg flex items-center gap-3'
 												initial={{ opacity: 0, y: 10 }}
-												transition={{ delay: 0.1, duration: 0.3 }}
+												transition={{ delay: 0.05, duration: 0.3 }}
 											>
+												<Star className='size-5 text-primary flex-shrink-0' />
+												<div className='flex-1'>
+													<p className='text-primary font-medium text-sm'>
+														Trial Active
+													</p>
+													<p className='text-primary/70 text-xs'>
+														{(() => {
+															const days = getTrialDaysRemaining();
+															if (days === null) return 'Trial period active';
+															if (days === 0) return 'Trial ends today';
+															if (days === 1) return 'Trial ends tomorrow';
+															return `${days} days remaining`;
+														})()}
+													</p>
+												</div>
+												{getTrialDaysRemaining() !== null &&
+													getTrialDaysRemaining()! <= 3 && (
+														<Badge className='bg-warning-900/50 text-warning-200 border-warning-700/50'>
+															Ending Soon
+														</Badge>
+													)}
+											</motion.div>
+										)}
+
+										{/* Usage */}
+										<motion.section
+											animate={{ opacity: 1, y: 0 }}
+											className='space-y-4'
+											initial={{ opacity: 0, y: 10 }}
+											transition={{ delay: 0.1, duration: 0.3 }}
+										>
+											<div className='flex items-center justify-between'>
 												<h3 className='text-lg font-semibold text-text-primary flex items-center gap-2'>
 													<BarChart3 className='size-5 text-primary' />
 													Usage
 												</h3>
-												<div className='space-y-6 bg-surface rounded-lg p-4 border border-border-subtle'>
+												{usage?.billingPeriod && (
+													<span className='text-xs text-text-secondary'>
+														Resets{' '}
+														{new Date(
+															usage.billingPeriod.end
+														).toLocaleDateString()}
+													</span>
+												)}
+											</div>
+											<div className='space-y-6 bg-surface rounded-lg p-4 border border-border-subtle'>
+												{isLoadingUsage ? (
+													<div className='flex items-center justify-center py-8'>
+														<div className='animate-spin rounded-full h-6 w-6 border-b-2 border-primary' />
+													</div>
+												) : usage ? (
 													<div className='space-y-4'>
 														<div>
 															<div className='flex items-center justify-between mb-2'>
-																<span className='text-text-primary'>Mind Maps</span>
+																<span className='text-text-primary'>
+																	Mind Maps
+																</span>
 																<span className='text-text-secondary flex gap-1'>
 																	<span>{usage.mindMapsCount} </span>
 																	<span>
-																		{currentSubscription?.plan?.limits?.mindMaps === -1
+																		{currentSubscription?.plan?.limits
+																			?.mindMaps === -1
 																			? ''
 																			: `/ ${currentSubscription?.plan?.limits?.mindMaps ?? '∞'}`}
 																	</span>
 																</span>
 															</div>
 															{currentSubscription?.plan?.limits &&
-																currentSubscription.plan.limits.mindMaps != null &&
-																currentSubscription.plan.limits.mindMaps !== -1 && (
+																currentSubscription.plan.limits.mindMaps !=
+																	null &&
+																currentSubscription.plan.limits.mindMaps !==
+																	-1 && (
 																	<Progress
 																		value={getUsagePercentage(
 																			usage.mindMapsCount,
@@ -834,7 +959,9 @@ export function SettingsPanel({
 
 														<div>
 															<div className='flex items-center justify-between mb-2'>
-																<span className='text-text-primary'>Collaborators</span>
+																<span className='text-text-primary'>
+																	Collaborators
+																</span>
 																<span className='text-text-secondary flex gap-1'>
 																	<span>{usage.collaboratorsCount}</span>
 																	<span>/</span>
@@ -845,9 +972,13 @@ export function SettingsPanel({
 
 														<div>
 															<div className='flex items-center justify-between mb-2'>
-																<span className='text-text-primary'>Storage</span>
+																<span className='text-text-primary'>
+																	Storage
+																</span>
 																<span className='text-text-secondary flex gap-1'>
-																	<span>{formatStorageSize(usage.storageUsedMB)}</span>
+																	<span>
+																		{formatStorageSize(usage.storageUsedMB)}
+																	</span>
 																	<span>/</span>
 																	<span>∞</span>
 																</span>
@@ -856,34 +987,45 @@ export function SettingsPanel({
 
 														<div>
 															<div className='flex items-center justify-between mb-2'>
-																<span className='text-text-primary'>AI Suggestions Used</span>
+																<span className='text-text-primary'>
+																	AI Suggestions Used
+																</span>
 																<span className='text-text-secondary gap-1 flex'>
 																	<span>{usage.aiSuggestionsCount}</span>
 																	<span>
-																		{currentSubscription?.plan?.limits?.aiSuggestions === -1
+																		{currentSubscription?.plan?.limits
+																			?.aiSuggestions === -1
 																			? ''
 																			: `/ ${currentSubscription?.plan?.limits?.aiSuggestions ?? '∞'}`}
 																	</span>
 																</span>
 															</div>
 															{currentSubscription?.plan?.limits &&
-																currentSubscription.plan.limits.aiSuggestions != null &&
-																currentSubscription.plan.limits.aiSuggestions !== -1 && (
+																currentSubscription.plan.limits.aiSuggestions !=
+																	null &&
+																currentSubscription.plan.limits
+																	.aiSuggestions !== -1 && (
 																	<Progress
 																		value={getUsagePercentage(
 																			usage.aiSuggestionsCount,
-																			currentSubscription.plan.limits.aiSuggestions
+																			currentSubscription.plan.limits
+																				.aiSuggestions
 																		)}
 																	/>
 																)}
 														</div>
 													</div>
-												</div>
-											</motion.section>
-										)}
+												) : (
+													<div className='text-center py-6 text-text-secondary'>
+														<BarChart3 className='size-8 mx-auto mb-2 opacity-50' />
+														<p>Unable to load usage data</p>
+													</div>
+												)}
+											</div>
+										</motion.section>
 
 										{/* Billing History */}
-										{!isLoadingPayments && paymentHistory.length > 0 && (
+										{!isLoadingPayments && (
 											<motion.section
 												animate={{ opacity: 1, y: 0 }}
 												className='space-y-4'
@@ -895,52 +1037,139 @@ export function SettingsPanel({
 													Billing History
 												</h3>
 												<div className='space-y-4 bg-surface rounded-lg p-4 border border-border-subtle'>
-													{paymentHistory.slice(0, 10).map((payment) => (
-														<div
-															className='flex items-center justify-between p-4 bg-base rounded-lg border border-border-subtle'
-															key={payment.id}
-														>
-															<div className='flex items-center gap-4'>
-																<div>
-																	<p className='text-text-primary font-medium'>
-																		{payment.description || 'Payment'}
-																	</p>
-																	<p className='text-sm text-text-secondary'>
-																		{new Date(payment.created_at).toLocaleDateString()}
-																	</p>
-																</div>
-																<Badge
-																	className={
-																		payment.status === 'succeeded'
-																			? 'bg-success-900/50 text-success-200 border-success-700/50'
-																			: payment.status === 'pending'
-																				? 'bg-warning-900/50 text-warning-200 border-warning-700/50'
-																				: 'bg-error-900/50 text-error-200 border-error-700/50'
-																	}
-																>
-																	{payment.status}
-																</Badge>
-															</div>
-															<div className='flex items-center gap-4'>
-																<span className='text-text-primary font-medium'>
-																	<span className='flex gap-1'>
-																		<span>${payment.amount.toFixed(2)}</span>
-																		<span>{payment.currency.toUpperCase()}</span>
-																	</span>
-																</span>
-																<Button size='sm' variant='outline'>
-																	<Download className='size-4 mr-2' />
-																	Invoice
-																</Button>
-															</div>
+													{paymentHistory.length === 0 ? (
+														<div className='py-8 text-center'>
+															<Calendar className='size-8 mx-auto mb-3 text-text-secondary opacity-50' />
+															<p className='text-text-secondary'>
+																{currentSubscription
+																	? 'No payment history yet. Your first payment will appear here.'
+																	: 'Subscribe to a plan to see payment history.'}
+															</p>
 														</div>
-													))}
-													{paymentHistory.length > 10 && (
-														<Button className='w-full' variant='outline'>
-															<ExternalLink className='size-4 mr-2' />
-															View All Transactions
-														</Button>
+													) : (
+														<>
+															{paymentHistory.slice(0, 10).map((payment) => (
+																<div
+																	className='flex items-center justify-between p-4 bg-base rounded-lg border border-border-subtle'
+																	key={payment.id}
+																>
+																	<div className='flex items-center gap-4'>
+																		<div>
+																			<p className='text-text-primary font-medium'>
+																				{payment.description || 'Payment'}
+																			</p>
+																			<p className='text-sm text-text-secondary'>
+																				{new Date(
+																					payment.created_at
+																				).toLocaleDateString()}
+																			</p>
+																		</div>
+																		<Badge
+																			className={
+																				payment.status === 'succeeded'
+																					? 'bg-success-900/50 text-success-200 border-success-700/50'
+																					: payment.status === 'pending'
+																						? 'bg-warning-900/50 text-warning-200 border-warning-700/50'
+																						: 'bg-error-900/50 text-error-200 border-error-700/50'
+																			}
+																		>
+																			{payment.status}
+																		</Badge>
+																	</div>
+																	<div className='flex items-center gap-4'>
+																		<span className='text-text-primary font-medium'>
+																			<span className='flex gap-1'>
+																				<span>
+																					${payment.amount.toFixed(2)}
+																				</span>
+																				<span>
+																					{payment.currency.toUpperCase()}
+																				</span>
+																			</span>
+																		</span>
+																		<Button
+																			size='sm'
+																			variant='outline'
+																			onClick={() =>
+																				handleDownloadInvoice(payment)
+																			}
+																			disabled={
+																				downloadingInvoiceId === payment.id ||
+																				!payment.metadata?.stripe_invoice_id
+																			}
+																		>
+																			{downloadingInvoiceId === payment.id ? (
+																				<>
+																					<div className='size-4 mr-2 animate-spin rounded-full border-2 border-text-secondary border-t-transparent' />
+																					Loading...
+																				</>
+																			) : (
+																				<>
+																					<Download className='size-4 mr-2' />
+																					Invoice
+																				</>
+																			)}
+																		</Button>
+																	</div>
+																</div>
+															))}
+															{paymentHistory.length > 10 && (
+																<Button
+																	className='w-full'
+																	variant='outline'
+																	onClick={handleOpenBillingPortal}
+																	disabled={isOpeningPortal}
+																>
+																	{isOpeningPortal ? (
+																		<>
+																			<div className='size-4 mr-2 animate-spin rounded-full border-2 border-text-secondary border-t-transparent' />
+																			Opening...
+																		</>
+																	) : (
+																		<>
+																			<ExternalLink className='size-4 mr-2' />
+																			View All Transactions
+																		</>
+																	)}
+																</Button>
+															)}
+														</>
 													)}
+												</div>
+											</motion.section>
+										)}
+
+										{/* Manage Billing */}
+										{currentSubscription && (
+											<motion.section
+												animate={{ opacity: 1, y: 0 }}
+												className='space-y-4'
+												initial={{ opacity: 0, y: 10 }}
+												transition={{ delay: 0.25, duration: 0.3 }}
+											>
+												<div className='bg-surface rounded-lg p-4 border border-border-subtle'>
+													<Button
+														className='w-full'
+														variant='outline'
+														onClick={handleOpenBillingPortal}
+														disabled={isOpeningPortal}
+													>
+														{isOpeningPortal ? (
+															<>
+																<div className='size-4 mr-2 animate-spin rounded-full border-2 border-text-secondary border-t-transparent' />
+																Opening...
+															</>
+														) : (
+															<>
+																<CreditCard className='size-4 mr-2' />
+																Manage Billing
+															</>
+														)}
+													</Button>
+													<p className='text-xs text-text-secondary mt-2 text-center'>
+														Update payment methods, view invoices, and manage
+														subscription
+													</p>
 												</div>
 											</motion.section>
 										)}
@@ -965,7 +1194,8 @@ export function SettingsPanel({
 																	Cancel your subscription
 																</p>
 																<p className='text-sm text-error-300/70'>
-																	You&apos;ll keep access until the end of your billing period
+																	You&apos;ll keep access until the end of your
+																	billing period
 																</p>
 															</div>
 															<Button
@@ -974,7 +1204,9 @@ export function SettingsPanel({
 																size='sm'
 																variant='destructive'
 															>
-																{isCanceling ? 'Canceling...' : 'Cancel Subscription'}
+																{isCanceling
+																	? 'Canceling...'
+																	: 'Cancel Subscription'}
 															</Button>
 														</div>
 													</div>

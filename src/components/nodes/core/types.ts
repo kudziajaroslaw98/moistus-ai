@@ -128,7 +128,7 @@ export interface CodeNodeMetadata extends BaseNodeMetadata {
 
 // Annotation metadata
 export interface AnnotationNodeMetadata extends BaseNodeMetadata {
-	annotationType?: 'note' | 'idea' | 'quote' | 'summary';
+	annotationType?: 'note' | 'idea' | 'quote' | 'summary' | 'warning' | 'success' | 'info' | 'error';
 	fontSize?: string;
 	fontWeight?: string | number;
 	author?: string;

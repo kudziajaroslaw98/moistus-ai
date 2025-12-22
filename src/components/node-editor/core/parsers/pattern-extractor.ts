@@ -43,7 +43,8 @@ export type PatternType =
 	| 'confidence'
 	| 'bold'
 	| 'italic'
-	| 'alignment';
+	| 'alignment'
+	| 'annotationType';
 
 /**
  * Extracted pattern information
@@ -105,7 +106,8 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 			const dateStr = match[1];
 			const date = parseDateString(dateStr);
 			return {
-				value: dateStr,
+				// Store ISO string if date was parsed successfully, otherwise keep raw string
+				value: date ? date.toISOString() : dateStr,
 				display: date ? formatDateForDisplay(date) : dateStr,
 			};
 		},
@@ -357,13 +359,24 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 	// IMPORTANT: Uses negative lookbehind to prevent matching when part of other patterns
 	// (e.g., won't match :green in color:green, :blue in bg:blue, etc.)
 	{
-		regex: /(?<!color|bg|border|size|align|weight|style|title|label|url|lang|file|confidence|question|multiple|options):([a-zA-Z][a-zA-Z0-9_-]*)/g,
+		regex: /(?<!color|bg|border|size|align|weight|style|title|label|url|lang|file|confidence|question|multiple|options|type):([a-zA-Z][a-zA-Z0-9_-]*)/g,
 		type: 'status',
 		extract: (match) => ({
 			value: match[1],
 			display: `:${match[1]}`,
 		}),
 		metadataKey: 'status',
+	},
+
+	// Annotation type pattern: type:warning|success|info|error|note
+	{
+		regex: /type:(warning|success|info|error|note)\b/gi,
+		type: 'annotationType',
+		extract: (match) => ({
+			value: match[1].toLowerCase(),
+			display: match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase(),
+		}),
+		metadataKey: 'annotationType',
 	},
 ];
 

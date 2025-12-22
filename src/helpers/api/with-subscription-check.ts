@@ -164,6 +164,19 @@ export function getBillingPeriodStart(): string {
 }
 
 /**
+ * Gets the end date of the current billing period.
+ * For monthly billing, this is the last day of the current month at 23:59:59.
+ *
+ * @returns ISO timestamp string for billing period end
+ */
+export function getBillingPeriodEnd(): string {
+	const now = new Date();
+	// Get the first day of next month, then subtract 1ms to get end of current month
+	const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+	return endOfMonth.toISOString();
+}
+
+/**
  * Tracks AI feature usage in the database.
  *
  * @param user - The authenticated user

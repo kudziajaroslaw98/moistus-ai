@@ -1,18 +1,49 @@
 import { respondError } from '@/helpers/api/responses';
-import { withApiValidation } from '@/helpers/api/with-api-validation';
 import {
 	checkAIFeatureAccess,
 	trackAIFeatureUsage,
 } from '@/helpers/api/with-ai-feature-gate';
+import { withApiValidation } from '@/helpers/api/with-api-validation';
 import {
 	buildContextPrompt,
+	buildFullMapContext,
+	buildMapOverviewContext,
+	buildMapSummaryContext,
 	extractEnhancedContext,
 } from '@/helpers/extract-enhanced-node-context';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
+import type { EdgeData } from '@/types/edge-data';
+import type { NodeData } from '@/types/node-data';
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { z } from 'zod';
+
+/**
+ * Transform flat database node data to AppNode format (React Flow wrapper)
+ * Required because context builders expect node.data.content, not node.content
+ */
+function dbNodesToAppNodes(dbNodes: NodeData[]): AppNode[] {
+	return dbNodes.map((node) => ({
+		id: node.id,
+		type: node.node_type || 'defaultNode',
+		position: { x: node.position_x, y: node.position_y },
+		data: node,
+	}));
+}
+
+/**
+ * Transform flat database edge data to AppEdge format
+ */
+function dbEdgesToAppEdges(dbEdges: EdgeData[]): AppEdge[] {
+	return dbEdges.map((edge) => ({
+		id: edge.id,
+		source: edge.source,
+		target: edge.target,
+		type: edge.type || 'default',
+		data: edge,
+	}));
+}
 
 // Request body schema
 const chatRequestSchema = z.object({
@@ -25,7 +56,7 @@ const chatRequestSchema = z.object({
 	context: z.object({
 		mapId: z.string().uuid().nullable(),
 		selectedNodeIds: z.array(z.string()).default([]),
-		includeMapStructure: z.boolean().default(false),
+		contextMode: z.enum(['minimal', 'summary', 'full']).default('summary'),
 	}),
 });
 
@@ -35,21 +66,21 @@ export const maxDuration = 60;
 // System prompt for the AI chat
 const CHAT_SYSTEM_PROMPT = `You are an intelligent AI assistant integrated into a mind mapping application. Your role is to help users:
 
-1. **Brainstorm Ideas**: Suggest new concepts, connections, and directions for their mind maps
-2. **Clarify Thinking**: Help users refine and articulate their ideas more clearly
-3. **Answer Questions**: Provide information and insights relevant to their mind map topics
-4. **Suggest Structure**: Recommend ways to organize and connect ideas
-5. **Expand Concepts**: Offer deeper exploration of specific nodes or branches
+1. **Analyze & Identify Patterns**: Find themes, gaps, and connections across the mind map
+2. **Brainstorm Ideas**: Suggest new concepts, connections, and directions
+3. **Suggest Actions**: Recommend specific nodes to add, connections to make, or structure changes
+4. **Answer Questions**: Provide insights based on the mind map content
+5. **Expand Concepts**: Offer deeper exploration of specific topics
 
 Guidelines:
 - Keep responses concise and actionable
 - When suggesting nodes, be specific about content and placement
-- Reference the user's existing map context when relevant
+- Reference the user's map context - you have access to their nodes and structure
 - Use markdown formatting for clarity
 - Be creative but stay relevant to the user's topics
-- If asked to create or modify nodes, provide clear descriptions of what to add
+- Identify patterns and themes when analyzing the full map
 
-You have access to the user's current mind map context, which may include selected nodes and their relationships.`;
+You have access to the user's mind map context including key topics, node types, structure metrics, and optionally focused nodes.`;
 
 export const POST = withApiValidation(
 	chatRequestSchema,
@@ -71,59 +102,70 @@ export const POST = withApiValidation(
 			// Build context prompt from map data if available
 			let mapContextPrompt = '';
 
-			if (context.mapId && context.selectedNodeIds.length > 0) {
-				// Fetch selected nodes and their relationships
-				const { data: nodes, error: nodesError } = await supabase
-					.from('nodes')
-					.select('*')
-					.eq('map_id', context.mapId);
-
-				const { data: edges, error: edgesError } = await supabase
-					.from('edges')
-					.select('*')
-					.eq('map_id', context.mapId);
-
-				if (!nodesError && !edgesError && nodes && edges) {
-					// Build context for selected nodes
-					const selectedContexts: string[] = [];
-
-					for (const nodeId of context.selectedNodeIds) {
-						try {
-							const enhancedContext = extractEnhancedContext(
-								nodeId,
-								nodes as AppNode[],
-								edges as AppEdge[],
-								{
-									includeSiblings: true,
-									includeAncestry: true,
-									includeTopology: false,
-								}
-							);
-							selectedContexts.push(buildContextPrompt(enhancedContext));
-						} catch {
-							// Node not found or error, skip
-						}
-					}
-
-					if (selectedContexts.length > 0) {
-						mapContextPrompt = `\n\n**Current Mind Map Context:**\n${selectedContexts.join('\n\n---\n\n')}`;
-					}
-				}
-
-				// Include map structure if requested
-				if (context.includeMapStructure && nodes) {
-					const { data: mapData } = await supabase
+			if (context.mapId) {
+				// Fetch all nodes and edges for the map
+				const [nodesResult, edgesResult, mapResult] = await Promise.all([
+					supabase.from('nodes').select('*').eq('map_id', context.mapId),
+					supabase.from('edges').select('*').eq('map_id', context.mapId),
+					supabase
 						.from('mind_maps')
 						.select('title, description')
 						.eq('id', context.mapId)
-						.single();
+						.single(),
+				]);
 
-					if (mapData) {
-						mapContextPrompt += `\n\n**Mind Map Overview:**\nTitle: ${mapData.title || 'Untitled'}\n`;
-						if (mapData.description) {
-							mapContextPrompt += `Description: ${mapData.description}\n`;
+				// Transform flat DB data to React Flow format (AppNode/AppEdge)
+				const nodes = nodesResult.data
+					? dbNodesToAppNodes(nodesResult.data as NodeData[])
+					: null;
+				const edges = edgesResult.data
+					? dbEdgesToAppEdges(edgesResult.data as EdgeData[])
+					: null;
+				const mapMeta = mapResult.data || {
+					title: 'Untitled',
+					description: null,
+				};
+
+				if (nodes && edges) {
+					// Build context based on mode
+					switch (context.contextMode) {
+						case 'minimal':
+							mapContextPrompt = `\n\n${buildMapOverviewContext(nodes, edges, mapMeta)}`;
+							break;
+						case 'full':
+							mapContextPrompt = `\n\n${buildFullMapContext(nodes, edges, mapMeta)}`;
+							break;
+						case 'summary':
+						default:
+							mapContextPrompt = `\n\n${buildMapSummaryContext(nodes, edges, mapMeta)}`;
+							break;
+					}
+
+					// Add selected nodes context ON TOP of mode context (if any)
+					if (context.selectedNodeIds.length > 0) {
+						const selectedContexts: string[] = [];
+
+						for (const nodeId of context.selectedNodeIds) {
+							try {
+								const enhancedContext = extractEnhancedContext(
+									nodeId,
+									nodes,
+									edges,
+									{
+										includeSiblings: true,
+										includeAncestry: true,
+										includeTopology: false,
+									}
+								);
+								selectedContexts.push(buildContextPrompt(enhancedContext));
+							} catch {
+								// Node not found or error, skip
+							}
 						}
-						mapContextPrompt += `Total Nodes: ${nodes.length}\n`;
+
+						if (selectedContexts.length > 0) {
+							mapContextPrompt += `\n\n**Focused Nodes (Selected):**\n${selectedContexts.join('\n\n---\n\n')}`;
+						}
 					}
 				}
 			}
@@ -140,7 +182,7 @@ export const POST = withApiValidation(
 
 			// Stream the response
 			const result = streamText({
-				model: openai('gpt-4-turbo'),
+				model: openai('gpt-5-mini'),
 				messages: allMessages,
 			});
 
@@ -150,6 +192,7 @@ export const POST = withApiValidation(
 					mapId: context.mapId || undefined,
 					messageCount: messages.length,
 					selectedNodeCount: context.selectedNodeIds.length,
+					contextMode: context.contextMode,
 				});
 			} catch (trackingError) {
 				console.warn('Failed to track AI chat usage:', trackingError);

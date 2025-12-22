@@ -9,6 +9,7 @@ import { MessageSquarePlus, Sparkles, Trash2 } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useCallback, useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/shallow';
+import { ChatContextSelector } from './chat-context-selector';
 import { ChatInput } from './chat-input';
 import { ChatMessage } from './chat-message';
 
@@ -20,19 +21,25 @@ export function ChatPanel() {
 		chatMessages,
 		isChatOpen,
 		isChatStreaming,
+		chatContext,
 		closeChat,
 		sendChatMessage,
 		clearChatMessages,
+		setChatContextMode,
 		selectedNodes,
+		nodes,
 	} = useAppStore(
 		useShallow((state) => ({
 			chatMessages: state.chatMessages,
 			isChatOpen: state.isChatOpen,
 			isChatStreaming: state.isChatStreaming,
+			chatContext: state.chatContext,
 			closeChat: state.closeChat,
 			sendChatMessage: state.sendChatMessage,
 			clearChatMessages: state.clearChatMessages,
+			setChatContextMode: state.setChatContextMode,
 			selectedNodes: state.selectedNodes,
+			nodes: state.nodes,
 		}))
 	);
 
@@ -88,18 +95,26 @@ export function ChatPanel() {
 			}
 		>
 			<div className='flex flex-1 flex-col h-full min-h-0'>
-				{/* Context indicator */}
+				{/* Context mode selector */}
+				<ChatContextSelector
+					contextMode={chatContext.contextMode}
+					onContextModeChange={setChatContextMode}
+					nodeCount={nodes.length}
+					disabled={isChatStreaming}
+				/>
+
+				{/* Selection indicator */}
 				{hasSelection && (
 					<motion.div
 						initial={{ opacity: 0, y: -10 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={transition}
-						className='flex-shrink-0 mx-4 mt-3 px-3 py-2 rounded-lg bg-primary-500/10 border border-primary-500/20'
+						className='flex-shrink-0 mx-4 mt-2 px-3 py-2 rounded-lg bg-primary-500/10 border border-primary-500/20'
 					>
 						<div className='flex items-center gap-2 text-xs text-primary-300'>
 							<Sparkles className='h-3.5 w-3.5' />
 							<span>
-								Focused on {selectedNodes.length} selected node
+								+ {selectedNodes.length} focused node
 								{selectedNodes.length > 1 ? 's' : ''}
 							</span>
 						</div>

@@ -148,29 +148,30 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 	codeNode: {
 		icon: Code,
 		label: 'Code Block',
-		examples: ['```js const sum = (a, b) => a + b', 'python file:utils.py'],
+		examples: ['lang:python file:utils.py', 'lang:typescript file:main.ts'],
 		parsingPatterns: [
 			{
 				pattern: '$code',
 				description: 'Switch to code block node type',
 				category: 'metadata',
 				examples: [
-					'$code ```js const sum = (a, b) => a + b',
-					'$code python file:utils.py',
+					'$code lang:python file:utils.py',
+					'$code lang:javascript file:main.js',
 				],
 			},
 			{
-				pattern: '```language',
-				description: 'Code block with syntax highlighting',
-				examples: ['```javascript', '```python', '```sql'],
-				category: 'formatting',
-				insertText: '```',
+				pattern: 'lang:language',
+				description: 'Set code language',
+				examples: ['lang:javascript', 'lang:python', 'lang:typescript'],
+				category: 'metadata',
+				insertText: 'lang:',
 			},
 			{
 				pattern: 'file:filename',
 				description: 'Specify filename',
-				examples: ['javascript file:utils.js', 'python file:main.py'],
+				examples: ['lang:javascript file:utils.js', 'lang:python file:main.py'],
 				category: 'metadata',
+				insertText: 'file:',
 			},
 		],
 	},
@@ -179,20 +180,27 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 	imageNode: {
 		icon: Image,
 		label: 'Image',
-		examples: ['https://example.com/diagram.png "System Architecture"'],
+		examples: ['url:https://example.com/diagram.png "System Architecture"'],
 		parsingPatterns: [
 			{
 				pattern: '$image',
 				description: 'Switch to image node type',
 				category: 'metadata',
 				examples: [
-					'$image https://example.com/diagram.png "System Architecture"',
+					'$image url:https://example.com/diagram.png "System Architecture"',
 				],
+			},
+			{
+				pattern: 'url:link',
+				description: 'Set image URL',
+				examples: ['url:https://example.com/image.png', 'url:https://imgur.com/abc.jpg'],
+				category: 'metadata',
+				insertText: 'url:',
 			},
 			{
 				pattern: '"alt text"',
 				description: 'Add alt text/caption after URL',
-				examples: ['https://example.com/image.jpg "Description"'],
+				examples: ['url:https://example.com/image.jpg "Description"'],
 				category: 'metadata',
 			},
 		],
@@ -271,7 +279,11 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 	annotationNode: {
 		icon: MessageSquare,
 		label: 'Annotation',
-		examples: ['⚠️ Breaking change in v2.0', '✅ Deployment successful'],
+		examples: [
+			'⚠️ Breaking change in v2.0',
+			'✅ Deployment successful',
+			'type:warning Important notice',
+		],
 		parsingPatterns: [
 			{
 				pattern: '$annotation',
@@ -281,6 +293,19 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 					'$annotation ⚠️ Breaking change in v2.0',
 					'$annotation ✅ Deployment successful',
 				],
+			},
+			{
+				pattern: 'type:value',
+				description: 'Set annotation type',
+				examples: [
+					'type:warning',
+					'type:success',
+					'type:info',
+					'type:error',
+					'type:note',
+				],
+				category: 'metadata',
+				insertText: 'type:',
 			},
 			{
 				pattern: '⚠️',

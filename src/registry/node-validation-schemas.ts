@@ -163,7 +163,7 @@ const codeNodeSchema = baseMetadataSchema.extend({
  * annotationNode - Notes, ideas, and quotes
  */
 const annotationNodeSchema = baseMetadataSchema.extend({
-	annotationType: z.enum(['note', 'idea', 'quote', 'summary']).optional(),
+	annotationType: z.enum(['note', 'idea', 'quote', 'summary', 'warning', 'success', 'info', 'error']).optional(),
 	fontSize: z.union([z.string(), z.number()]).optional(),
 	fontWeight: z.union([z.string(), z.number()]).optional(),
 	author: z.string().optional(),
