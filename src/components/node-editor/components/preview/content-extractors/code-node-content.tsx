@@ -1,6 +1,6 @@
 'use client';
 
-import { CodeContent } from '@/components/nodes/content';
+import { CodeContent } from '@/components/nodes/content/code-content';
 import { NodeData } from '@/types/node-data';
 import { memo } from 'react';
 

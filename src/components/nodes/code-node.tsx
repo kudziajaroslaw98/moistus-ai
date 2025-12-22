@@ -7,7 +7,7 @@ import { memo, useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { BaseNodeWrapper } from './base-node-wrapper';
-import { CodeContent } from './content';
+import { CodeContent } from './content/code-content';
 import { TypedNodeProps } from './core/types';
 
 type CodeNodeProps = TypedNodeProps<'codeNode'>;

@@ -4,7 +4,7 @@ import { cn } from '@/utils/cn';
 import { FileText } from 'lucide-react';
 import { memo } from 'react';
 import { BaseNodeWrapper } from './base-node-wrapper';
-import { MarkdownContent } from './content';
+import { MarkdownContent } from './content/markdown-content';
 import { type TypedNodeProps } from './core/types';
 
 type DefaultNodeProps = TypedNodeProps<'defaultNode'>;

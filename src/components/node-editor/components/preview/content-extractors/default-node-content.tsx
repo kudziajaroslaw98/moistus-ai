@@ -1,6 +1,6 @@
 'use client';
 
-import { MarkdownContent } from '@/components/nodes/content';
+import { MarkdownContent } from '@/components/nodes/content/markdown-content';
 import { NodeData } from '@/types/node-data';
 import { memo } from 'react';
 
