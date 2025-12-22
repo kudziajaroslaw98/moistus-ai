@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { memo } from 'react';
+import { memo, ReactNode } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { codeSyntaxTheme, getLanguageIcon } from './code-syntax-theme';
 
@@ -18,8 +18,14 @@ export interface CodeContentProps {
 	maxHeight?: string;
 	/** Additional class name for the container */
 	className?: string;
+	/** Additional class name for the code scroll container */
+	codeClassName?: string;
 	/** Whether to show the header with language info */
 	showHeader?: boolean;
+	/** Optional action buttons to render in header (copy, expand, etc.) */
+	headerActions?: ReactNode;
+	/** Optional content to render after the code (e.g., gradient overlay) */
+	codeOverlay?: ReactNode;
 }
 
 /**
@@ -34,6 +40,8 @@ export interface CodeContentProps {
  * - Optional file name
  * - Line numbers
  * - Scrollable container with max height
+ * - Customizable header actions (for copy/expand buttons)
+ * - Code overlay support (for gradient fade)
  */
 const CodeContentComponent = ({
 	code,
@@ -42,7 +50,10 @@ const CodeContentComponent = ({
 	fileName,
 	maxHeight = '300px',
 	className,
+	codeClassName,
 	showHeader = true,
+	headerActions,
+	codeOverlay,
 }: CodeContentProps) => {
 	const displayCode = code || '// Add code snippet here...';
 
@@ -53,7 +64,7 @@ const CodeContentComponent = ({
 				className
 			)}
 		>
-			{/* Header with file info */}
+			{/* Header with file info and optional actions */}
 			{showHeader && (
 				<div className='flex items-center justify-between px-4 py-3 bg-base border-b border-b-border-default'>
 					<div className='flex items-center gap-3'>
@@ -71,11 +82,18 @@ const CodeContentComponent = ({
 							</div>
 						</div>
 					</div>
+					{/* Action buttons slot */}
+					{headerActions && (
+						<div className='flex items-center gap-2'>{headerActions}</div>
+					)}
 				</div>
 			)}
 
 			{/* Code content */}
-			<div className='relative overflow-auto' style={{ maxHeight }}>
+			<div
+				className={cn('relative overflow-auto', codeClassName)}
+				style={{ maxHeight }}
+			>
 				<SyntaxHighlighter
 					language={language}
 					showLineNumbers={showLineNumbers}
@@ -105,6 +123,9 @@ const CodeContentComponent = ({
 				>
 					{displayCode}
 				</SyntaxHighlighter>
+
+				{/* Optional overlay (e.g., gradient for collapsed state) */}
+				{codeOverlay}
 			</div>
 		</div>
 	);
