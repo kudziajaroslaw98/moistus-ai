@@ -10,6 +10,50 @@
 - **Iterate**: Reflect on results and adjust approach if needed
 - **Questions**: Ask before coding if requirements unclear
 - **Frontend**: Give it your all - design principles, micro-interactions, motion animations, delightful UX
+- **Auto-document**: Commit major milestones autonomously; keep CLAUDE.md & CHANGELOG.md current
+
+## 🤖 Autonomous Operations
+
+### Auto-Commit Protocol
+- **Commit after major milestones**: new features, bug fixes, refactors, significant progress
+- **Commit format**: Conventional commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`)
+- **Commit message**: Concise "what" + brief "why" when non-obvious
+- **Batch related changes**: Don't commit every tiny edit; group logical units
+- **Verify before commit**: Run `pnpm type-check` before committing
+- **Never commit broken code**: If build fails, fix first
+
+### Self-Maintain CLAUDE.md
+AI must update CLAUDE.md when:
+- Adding new Zustand slices → update slice list & count
+- Adding new node types → update Node Types section
+- Adding new API routes → update API Routes section
+- Adding new component directories → update component list
+- Discovering new patterns/conventions → document them
+- Resolving technical debt items → remove from debt list
+- Making architectural changes → update Architecture section
+
+**After updating**: Add brief inline comment `<!-- Updated: YYYY-MM-DD - reason -->`
+
+### Maintain CHANGELOG.md
+- **Location**: Project root `CHANGELOG.md`
+- **Format**:
+  ```
+  ## [YYYY-MM-DD HH:MM]
+
+  ### Category
+  - **scope**: Description of change
+    - Why: rationale (if non-obvious)
+  ```
+- **Categories**: Added, Changed, Fixed, Removed, Refactored, Docs
+- **Update frequency**: After each commit or logical work unit
+- **Be concise**: What changed, not implementation details
+
+### Documentation Sync Checklist
+Before ending session or switching tasks:
+- [ ] CHANGELOG.md reflects all changes made
+- [ ] CLAUDE.md architecture docs are current
+- [ ] Technical debt list is accurate
+- [ ] No orphaned documentation
 
 ## Commands
 
