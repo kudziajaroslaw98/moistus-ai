@@ -5,6 +5,25 @@ Format: `[YYYY-MM-DD HH:MM]` followed by categorized changes.
 
 ---
 
+## [2025-12-23 11:59]
+
+### Added
+- **test infrastructure**: Unit testing setup with Jest + React Testing Library
+  - Install @testing-library/react, @testing-library/user-event
+  - Create `__tests__/utils/` with render-with-providers, store-test-utils, mock-supabase
+  - Update jest.setup.js with ResizeObserver, motion/react, next/navigation mocks
+  - Add jest-dom types to tsconfig.json
+
+- **component tests**: 56 tests for 3 Tier 1 components
+  - `default-node.test.tsx` - 7 tests (rendering, placeholder, props)
+  - `task-node.test.tsx` - 15 tests (rendering, toggling, store integration)
+  - `chat-input.test.tsx` - 34 tests (input, quick prompts, disabled states)
+
+### Fixed
+- **suggest-connections/route.ts**: Await async convertToModelMessages call
+
+---
+
 ## [2024-12-23 ~14:00]
 
 ### Refactored
