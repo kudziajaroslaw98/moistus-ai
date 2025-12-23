@@ -293,7 +293,7 @@ Guideline @./animation-guidelines.md
 
 **State**: Zustand slices for related functionality • Use `useShallow` for selectors • Prefer derived state • Strict TypeScript
 
-**TypeScript**: Strict types in `src/types/` • Interface composition • Export types with implementations • Never `any`, use `unknown` with guards
+**TypeScript**: Strict types in `src/types/` • Interface composition • Export types with implementations • Never `any`, use `unknown` with guards • **React imports**: Use `import type { ComponentType } from 'react'` NOT `import React from 'react'; React.ComponentType`
 
 **Frontend**: Visual hierarchy • Micro-interactions • Responsive • Accessibility (ARIA, keyboard, focus) • Performance (lazy load, optimize bundles) • Error/loading states • Dark mode support
 
@@ -301,16 +301,16 @@ Guideline @./animation-guidelines.md
 
 **Styling**: Tailwind + custom variants • Components in `src/components/ui/` • Themes distributed (glassmorphism-theme, metadata-theme) • Radix UI primitives • CSS variables • Focus-visible states
 
-**Testing**: 🚨 Infrastructure ready (Jest + React Testing Library) but **no tests written** (0% coverage)
+**Testing**: Jest + React Testing Library • **149 tests across 7 components** • Co-located tests (`*.test.tsx` next to components) • Mock Zustand stores in tests • 70% coverage target on critical paths
 
 ```typescript
-// When writing tests: NEVER mock stores/APIs - test REAL components
-// ❌ FORBIDDEN: jest.mock('@/store/mind-map-store')
-// ✅ REQUIRED: render(<NodeComponent id="real-id" />)
-//              const { result } = renderHook(() => useMindMapStore())
+// Testing pattern: Mock stores, test component behavior
+// ✅ jest.mock('@/store/mind-map-store', () => ({...}))
+// ✅ render(<Component {...props} />) + userEvent interactions
+// ✅ Verify callbacks, state changes, DOM output
 ```
 
-Test real components with actual props/callbacks, real Zustand state, user interactions, realistic data, accessibility, and performance.
+Test with realistic props/callbacks, user interactions, proper mocks for external deps (stores, hooks, APIs).
 
 **Docs**: Generated docs → `./ai-docs/[feature]/[doc-name].md` • JSDoc for complex functions • ADRs for major changes
 
@@ -318,7 +318,7 @@ Test real components with actual props/callbacks, real Zustand state, user inter
 
 1. ~~Remove deprecated `builderNode` references~~ - **RESOLVED** (0 references found in codebase)
 2. Consider reorganizing root-level AI routes under `ai/` directory
-3. Write comprehensive test suite (infrastructure ready, 0% coverage currently)
+3. ~~Write comprehensive test suite~~ - **IN PROGRESS** (149 tests written, expand to remaining components)
 4. Create `supabase/migrations/` with proper migration files (currently none exist)
 5. Set up `supabase gen types` for automated TypeScript type generation
 6. Implement actual conflict resolution for real-time collaboration (currently last-write-wins)

@@ -14,10 +14,14 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Update jest.setup.js with ResizeObserver, motion/react, next/navigation mocks
   - Add jest-dom types to tsconfig.json
 
-- **component tests**: 56 tests for 3 Tier 1 components
+- **component tests**: 149 tests for 7 components (Tier 1 + Tier 2)
   - `default-node.test.tsx` - 7 tests (rendering, placeholder, props)
   - `task-node.test.tsx` - 15 tests (rendering, toggling, store integration)
   - `chat-input.test.tsx` - 34 tests (input, quick prompts, disabled states)
+  - `quick-input.test.tsx` - 28 tests (input, keyboard shortcuts, examples, legend)
+  - `base-node-wrapper.test.tsx` - 31 tests (selection, add/suggest buttons, metadata)
+  - `markdown-content.test.tsx` - 16 tests (placeholder, markdown elements, links)
+  - `task-content.test.tsx` - 18 tests (tasks, progress, interactivity, celebration)
 
 ### Refactored
 - **nodes/content**: Extract shared content components from canvas nodes
@@ -51,6 +55,12 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **content-extractors/**: Entire directory deleted (-10 files, -800 lines)
   - Was: NodeData → Adapter → SharedContent
   - Now: NodeData → PreviewContent switch → SharedContent
+
+### Docs
+- **CLAUDE.md**: Updated testing section and TypeScript conventions
+  - React imports: Use `import type { ComponentType } from 'react'` not `React.ComponentType`
+  - Testing section: Reflects 149 tests, correct mocking patterns
+  - Technical debt: Test suite now IN PROGRESS (was 0% coverage)
 
 ---
 
