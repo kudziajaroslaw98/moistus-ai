@@ -72,8 +72,9 @@ pnpm pretty          # Prettier
 - Always use context7 when I need code generation, setup or configuration steps, or library/API documentation. This means you should automatically use the Context7 MCP tools to resolve library id and get library docs without me having to explicitly ask.
 
 ## Architecture
+<!-- Updated: 2025-12-22 - Deep audit: fixed version, slice count, AI provider -->
 
-**Stack**: Next.js 15 (App Router) • React 19 • TypeScript • Zustand (19 slices) • React Flow (canvas) • Motion (animations) • Supabase (auth/DB/realtime) • Tailwind CSS • Gemini AI
+**Stack**: Next.js 16 (App Router) • React 19 • TypeScript • Zustand (21 slices) • React Flow (canvas) • Motion (animations) • Supabase (auth/DB/realtime) • Tailwind CSS • OpenAI GPT
 
 ## Animations
 
@@ -81,127 +82,196 @@ For animations, we use the `motion` library from Framer Motion. This library pro
 
 Guideline @./animation-guidelines.md
 
-### State Management (18 Slices)
+### State Management (21 Slices)
+<!-- Updated: 2025-12-22 - Added comments, guided-tour, export slices -->
 
 **Store**: `src/store/mind-map-store.tsx`
 
-**Core Data & Operations:**
+**Core Data & Operations (4):**
 
 - `core-slice` - Mind map data, Supabase client, user auth, ReactFlow instance
 - `nodes-slice` - Node CRUD, positioning, collapse, group-aware movement
 - `edges-slice` - Edge CRUD, parent-child relationships, visibility filtering
 - `ui-slice` - Modals, panels, context menu, focus mode, drag state
 
-**Collaboration & Real-time:**
+**Collaboration & Real-time (3):**
 
-- `realtime-slice` - Form field sync, conflict detection/resolution, active users
-- `sharing-slice` - Room codes, anonymous auth, share permissions
+- `realtime-slice` - Selected nodes sync across users (minimal, 17 lines)
+- `sharing-slice` - Room codes, anonymous auth, share permissions, real-time subscriptions
+- `comments-slice` - Comment threads, messages, reactions, @mentions, real-time sync (973 lines)
 
-**AI Features:**
+**AI Features (2):**
 
 - `chat-slice` - AI chat messages, context, preferences, response styles
 - `suggestions-slice` - Ghost nodes, AI suggestions, streaming, merge algorithms
 
-**User Experience:**
+**User Experience (6):**
 
 - `clipboard-slice` - Copy/paste, duplicate nodes, edge preservation
 - `history-slice` - Undo/redo, state stack, action history with timestamps
 - `groups-slice` - Group creation, add/remove nodes, ungroup operations
 - `layout-slice` - ELK.js layouts (horizontal, vertical, radial)
 - `quick-input-slice` - Quick node creation, cursor position tracking
+- `guided-tour-slice` - Prezi-style presentations, auto path building, spotlight states (416 lines)
+- `export-slice` - PNG/SVG/PDF export, scale settings, background options (172 lines)
 
-**User & Business:**
+**User & Business (3):**
 
 - `user-profile-slice` - Profile data, preferences (theme, notifications, privacy)
 - `subscription-slice` - Stripe subscriptions, plan features, usage limits
 - `onboarding-slice` - Onboarding flow, plan selection, progress persistence
 
-**UI State:**
+**UI State (2):**
 
 - `loading-state-slice` - Centralized loading flags for all operations
 - `streaming-toast-slice` - Progress toasts for streaming operations
 
 ### Node System
+<!-- Updated: 2025-12-22 - Fixed location, count, added commentNode -->
 
-**Node Types** (11 total in `src/constants/node-types.ts`):
+**Node Types** (12 total in `src/registry/node-registry.ts`):
 
 - **Content**: defaultNode (Note), textNode, annotationNode, codeNode, resourceNode
-- **Structure**: taskNode, groupNode, referenceNode
+- **Structure**: taskNode, groupNode, referenceNode, commentNode (canvas threads)
 - **Media**: imageNode
 - **AI**: questionNode, ghostNode (system-only, AI suggestions)
 
+**Registry** (`src/registry/`):
+
+- `node-registry.ts` - Master node type configuration, 40+ utility methods
+- `node-factory.ts` - Factory for creating node instances
+- `node-validation-schemas.ts` - Zod validation per type
+- `type-guards.ts` - Runtime type checking
+
 **Components** (`src/components/nodes/`):
 
-- Each type has dedicated component (e.g., `default-node.tsx`, `task-node.tsx`)
-- `base-node-wrapper.tsx` - Shared functionality: selection, handles, resizing, toolbar, metadata bar, collaboration
-- `core/` - NodeRegistry, NodeFactory, types, type guards
-- `components/` - NodeToolbar, NodeContent, ToolbarControls
-- `shared/` - universal-metadata-bar, metadata-badge, node-tags
-- `node-additions/` - collapse-button, comment-button, group-button
+- Each type has dedicated component (e.g., `default-node.tsx`, `task-node.tsx`, `comment-node.tsx`)
+- `base-node-wrapper.tsx` - Shared functionality: selection, handles, resizing, toolbar, metadata bar
+- `core/` - Types only (registry moved to `src/registry/`)
+- `components/` - NodeToolbar, NodeContent, ToolbarControls, comment components
+- `content/` - Shared renderers (markdown-content, code-content)
+- `shared/` - universal-metadata-bar, metadata-badge, node-tags, export-image-placeholder
+- `node-additions/` - collapse-button, collapsed-indicator, group-button
 - `themes/` - glassmorphism-theme
+- `question-node/` - Question node sub-components (binary, multiple-choice)
 
 **Node Editor** (`src/components/node-editor/`):
 
-- Replaces legacy "inline-node-creator" (60% code reduction refactor)
 - Quick input mode, structured input mode, command palette
-- Pattern parsing: `#tags`, `@people`, `^dates`, `/commands`
+- Pattern parsing: `#tags`, `@people`, `^dates`, `$commands`
 - CodeMirror integration, validation framework, smart completions
-- Command system: `/task`, `/code`, `/question`, etc.
+- Commands: `$note`, `$task`, `$code`, `$text`, `$image`, `$link`, `$question`, `$annotation`, `$reference`
+- groupNode/commentNode/ghostNode created via UI only (no command trigger)
 
 ### Canvas & UI
+<!-- Updated: 2025-12-22 - Added 14 missing component directories -->
 
 **Canvas**: `src/components/mind-map/react-flow-area.tsx` - React Flow integration, node/edge rendering, interactions, Zustand sync
 
-**Major Component Directories**:
+**Component Directories** (`src/components/` - 24 directories):
 
-- `realtime/` - Live cursors, avatar stack, active users, conflict resolution, connection status
-- `ui/` - 42 Radix UI-based components (button, input, dialog, dropdown, etc.)
-- `modals/` - Edge edit, AI content prompt, node type selector, reference search
+- `ai/` - AI stream mediator (headless streaming coordinator)
+- `ai-chat/` - Chat panel, input, messages, context selector
+- `auth/` - Anonymous user banner, upgrade flow
+- `common/` - Shared utility components
 - `context-menu/` - Context menu system
-- `dashboard/` - Dashboard components
-- `sharing/` - Sharing components
-- `subscription/` - Subscription UI
-- `onboarding/` - Onboarding flow
-- `ai-chat/` - AI chat interface
-- `auth/` - Authentication UI
+- `dashboard/` - Map cards, create dialog, template picker, settings panel
+- `edges/` - Custom edge components (floating, waypoint, ghost, suggested)
+- `guided-tour/` - Spotlight overlay, tour controls, path builder
+- `history/` - History sidebar, diff views, change items
+- `icons/` - Icon components
+- `mind-map/` - React Flow area, modals wrapper, map settings
+- `modals/` - Edge edit, AI prompt, reference search, upgrade, generate-from-nodes
+- `node-editor/` - Quick input, enhanced input, completions, previews
+- `nodes/` - All 12 node type components
+- `onboarding/` - Multi-step onboarding flow (welcome, benefits, pricing, payment)
+- `providers/` - Context providers
+- `realtime/` - Live cursors, avatar stack, connection status, profile cards
+- `settings/` - Node type selector, settings panels
+- `sharing/` - Share panel, room codes, join room, permissions
+- `subscription/` - Subscription UI components
+- `toolbar/` - Main canvas toolbar
+- `ui/` - 42 UI primitives (15 Radix-based, 1 Base UI, 26 custom)
+- `waitlist/` - Landing page components (hero, form, features)
 
 ### API Routes
 
-**Location**: `src/app/api/` (30+ routes)
+**Location**: `src/app/api/` (51 routes)
 
 **AI & Content Generation**:
 
 - `ai/suggestions/` - Node suggestions with streaming (GPT)
 - `ai/suggest-connections/` - Connection recommendations
 - `ai/suggest-merges/` - Merge suggestions
-- ⚠️ `ai/chat/` - **DISABLED** (implementation commented out)
-- `extract-concepts/`, `generate-answer/`, `generate-content/`, `generate-from-selected-nodes/`, `process-url/`, `summarize-branch/` (root level)
+- `ai/chat/` - AI chat with context modes (minimal/summary/full)
+- `ai/counterpoints/` - Generate opposing viewpoints
+- `generate-answer/`, `process-url/` (root level)
+
+**Comments System**:
+
+- `comments/` - Create/list comments
+- `comments/[id]/` - Comment CRUD
+- `comments/[id]/messages/` - Thread messages
+- `comments/[id]/messages/[messageId]/` - Message CRUD
+- `comments/[id]/reactions/` - Emoji reactions
+
+**History/Versioning**:
+
+- `history/[mapId]/list/` - Version list
+- `history/[mapId]/snapshot/` - Create snapshot
+- `history/[mapId]/revert/` - Restore version
+- `history/[mapId]/delta/[id]/` - Delta details
+- `history/[mapId]/cleanup/` - Manual cleanup
+- `history/storage-usage/` - Storage stats
+
+**Templates**:
+
+- `templates/` - List/create templates
+- `templates/[id]/` - Template CRUD
 
 **Core Features**:
 
 - `maps/` - List/create maps (GET, POST, DELETE)
 - `maps/[id]/` - Individual map operations (GET, PUT, DELETE)
+- `maps/[id]/check-access/` - Permission check
 - `nodes/create-reference/`, `nodes/search-across-maps/`, `search-nodes/`
 
 **Collaboration**:
 
 - `share/create-room-code/`, `share/join-room/`, `share/refresh-room-code/`, `share/revoke-room-code/`
+- `share/delete-share/[shareId]/`, `share/update-share/[shareId]/`
 
 **User & Auth**:
 
-- `auth/upgrade-anonymous/`, `auth/user/`
-- `user/profile/`, `user/profile/avatar/`, `user/appearance/`, `user/notifications/`, `user/privacy/`, `user/export/`
+- `auth/upgrade-anonymous/initiate/`, `auth/upgrade-anonymous/verify-otp/`, `auth/upgrade-anonymous/set-password/`
+- `auth/user/`
+- `user/profile/`, `user/export/`, `user/[userId]/public-profile/`
+
+**Billing** (expanded):
+
+- `user/billing/portal/` - Stripe portal
+- `user/billing/invoice/` - Invoice download
+- `user/billing/payment-history/` - Payment records
+- `user/billing/usage/` - Usage statistics
 
 **Business**:
 
-- `subscriptions/create/`, `subscriptions/webhook/` (Stripe integration)
+- `subscriptions/create/`, `subscriptions/webhook/`
+- `subscriptions/[id]/cancel/`, `subscriptions/[id]/reactivate/`
 - `waitlist/` (public, rate-limited)
+
+**Background Jobs**:
+
+- `cron/cleanup-history/` - Automated cleanup
+- `proxy-image/` - Image proxy service
 
 **API Helpers** (`src/helpers/api/`):
 
 - `with-auth-validation.ts` - Requires auth (anonymous or full user)
 - `with-api-validation.ts` - Requires authenticated full user
 - `with-public-api-validation.ts` - Public access, no auth
+- `with-ai-feature-gate.ts` - AI tier enforcement (Pro vs Free)
+- `with-subscription-check.ts` - Usage limits, billing periods
 - `rate-limiter.ts` - In-memory rate limiter (single-instance, IP-based)
 - `responses.ts` - Standardized response helpers
 
@@ -211,17 +281,18 @@ Guideline @./animation-guidelines.md
 
 - Real-time collaboration via subscriptions
 - Row Level Security (RLS) for multi-tenant access
-- Migrations in `supabase/migrations/`
+- Schema managed via Supabase dashboard (no local migrations)
+- SQL reference files in `ai-docs/` (not applied migrations)
 
-**Types**: `src/types/` (38 type files) - Strict TypeScript definitions for all data structures
+**Types**: `src/types/` (37 type files) - Strict TypeScript definitions for all data structures
 
 ## Best Practices
 
-**Node Development**: Add component to `src/components/nodes/` → Register in `node-types.ts` → Add to NodeRegistry → Configure in node-editor command system → Add types & error handling → Test edge cases
+**Node Development**: Add component to `src/components/nodes/` → Register in `src/registry/node-registry.ts` → Configure in node-editor command system → Add types & error handling → Test edge cases
 
 **State**: Zustand slices for related functionality • Use `useShallow` for selectors • Prefer derived state • Strict TypeScript
 
-**TypeScript**: Strict types in `src/types/` • Branded types for IDs • Interface composition • Export types with implementations • Never `any`, use `unknown` with guards
+**TypeScript**: Strict types in `src/types/` • Interface composition • Export types with implementations • Never `any`, use `unknown` with guards
 
 **Frontend**: Visual hierarchy • Micro-interactions • Responsive • Accessibility (ARIA, keyboard, focus) • Performance (lazy load, optimize bundles) • Error/loading states • Dark mode support
 
@@ -244,12 +315,14 @@ Test real components with actual props/callbacks, real Zustand state, user inter
 
 ## Known Technical Debt
 
-1. Remove deprecated `builderNode` references from:
-   - `src/hooks/use-node-suggestion.ts` (validation schema)
-   - `src/components/nodes/ghost-node.tsx` (icon mapping)
+1. ~~Remove deprecated `builderNode` references~~ - **RESOLVED** (0 references found in codebase)
 2. Consider reorganizing root-level AI routes under `ai/` directory
 3. Write comprehensive test suite (infrastructure ready, 0% coverage currently)
-4. Restore or remove `ai/chat/route.ts` (currently all code commented out)
+4. Create `supabase/migrations/` with proper migration files (currently none exist)
+5. Set up `supabase gen types` for automated TypeScript type generation
+6. Implement actual conflict resolution for real-time collaboration (currently last-write-wins)
+7. ~~Remove unused Gemini dependency~~ - **RESOLVED** (migrated to OpenAI, packages removed)
+8. Add `@media (hover: hover)` wrapper for touch device hover states in animations
 
 - sacrifice grammar for the sake of concision
 - list any unresolved questions at the end, if any

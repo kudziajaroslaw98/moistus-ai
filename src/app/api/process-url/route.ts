@@ -4,7 +4,8 @@ import {
 	checkAIFeatureAccess,
 	trackAIFeatureUsage,
 } from '@/helpers/api/with-ai-feature-gate';
-import { defaultModel } from '@/lib/ai/gemini';
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
 import sanitizeHtml from 'sanitize-html';
 import { z } from 'zod';
 
@@ -113,9 +114,11 @@ export const POST = withApiValidation(
         Provide only the summary paragraph, no additional commentary.`;
 
 					try {
-						const result = await defaultModel.generateContent(aiPrompt);
-						const response = result.response;
-						summary = response.text().trim();
+						const result = await generateText({
+							model: openai('gpt-4o-mini'),
+							prompt: aiPrompt,
+						});
+						summary = result.text.trim();
 					} catch (aiError) {
 						console.error('Error generating summary:', aiError);
 						summary = 'Failed to generate summary.';

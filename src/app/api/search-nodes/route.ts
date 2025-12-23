@@ -1,7 +1,26 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
-import { defaultModel, parseAiJsonResponse } from '@/lib/ai/gemini';
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
 import { z } from 'zod';
+
+/** Parse AI JSON response, handling markdown code blocks */
+function parseAiJsonResponse<T>(text: string): T | null {
+	try {
+		return JSON.parse(text) as T;
+	} catch {
+		try {
+			const jsonString = text
+				.replace(/^```json\n?/, '')
+				.replace(/\n?```$/, '')
+				.trim();
+			return JSON.parse(jsonString) as T;
+		} catch (e2) {
+			console.error('Failed to parse AI response as JSON:', e2);
+			return null;
+		}
+	}
+}
 
 const requestBodySchema = z.object({
 	mapId: z.string().uuid('Invalid map ID format'),
@@ -50,9 +69,11 @@ export const POST = withApiValidation(
     Nodes:
     ${nodeContentList}`;
 
-			const result = await defaultModel.generateContent(aiPrompt);
-			const response = result.response;
-			const text = response.text();
+			const result = await generateText({
+				model: openai('gpt-4o-mini'),
+				prompt: aiPrompt,
+			});
+			const text = result.text;
 
 			let relevantNodeIds: string[] = [];
 
