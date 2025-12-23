@@ -1,37 +1,65 @@
 'use client';
 
-import { GlassmorphismTheme } from '@/components/nodes/themes/glassmorphism-theme';
-import { NodeData } from '@/types/node-data';
+import { cn } from '@/lib/utils';
 import { getProxiedImageUrl } from '@/utils/image-proxy';
 import { ExternalLink, Globe } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { memo, useState } from 'react';
+import { GlassmorphismTheme } from '../themes/glassmorphism-theme';
 
-interface ResourceNodeContentProps {
-	data: NodeData;
+export interface ResourceContentProps {
+	/** Resource URL */
+	url?: string;
+	/** Display title */
+	title?: string;
+	/** Description text */
+	description?: string;
+	/** Thumbnail image URL */
+	imageUrl?: string;
+	/** AI-generated summary */
+	summary?: string;
+	/** Whether to show thumbnail */
+	showThumbnail?: boolean;
+	/** Whether to show AI summary */
+	showSummary?: boolean;
+	/** Callback when external link clicked */
+	onLinkClick?: () => void;
+	/** Additional class name */
+	className?: string;
 }
 
 /**
- * Resource Node Content - URL preview card
- * Extracted from: src/components/nodes/resource-node.tsx
+ * Resource Content Component
+ *
+ * Pure rendering component for URL preview cards.
+ * Used by both canvas nodes and preview system.
+ *
+ * Features:
+ * - Thumbnail with loading states
+ * - Domain extraction from URL
+ * - AI summary section
+ * - External link indicator
  */
-const ResourceNodeContentComponent = ({ data }: ResourceNodeContentProps) => {
+const ResourceContentComponent = ({
+	url,
+	title = 'Resource',
+	description,
+	imageUrl,
+	summary,
+	showThumbnail = false,
+	showSummary = false,
+	onLinkClick,
+	className,
+}: ResourceContentProps) => {
 	const [imageError, setImageError] = useState(false);
 	const [imageLoading, setImageLoading] = useState(true);
 
-	const resourceUrl = data.metadata?.url as string | undefined;
-	const title = (data.metadata?.title as string) || data.content || 'Resource';
-	const showThumbnail = Boolean(data.metadata?.showThumbnail);
-	const showSummary = Boolean(data.metadata?.showSummary);
-	const rawImageUrl = data.metadata?.imageUrl as string | undefined;
-	const summary = data.metadata?.summary as string | undefined;
-
-	const imageUrl = getProxiedImageUrl(rawImageUrl);
+	const proxiedImageUrl = getProxiedImageUrl(imageUrl);
 
 	// Extract domain for display
-	const getDomain = (url: string) => {
+	const getDomain = (urlString: string) => {
 		try {
-			const domain = new URL(url).hostname;
+			const domain = new URL(urlString).hostname;
 			return domain.replace('www.', '');
 		} catch {
 			return 'link';
@@ -39,9 +67,9 @@ const ResourceNodeContentComponent = ({ data }: ResourceNodeContentProps) => {
 	};
 
 	return (
-		<div className='flex flex-col gap-3'>
+		<div className={cn('flex flex-col gap-3', className)}>
 			{/* Thumbnail */}
-			{showThumbnail && imageUrl && (
+			{showThumbnail && proxiedImageUrl && (
 				<div
 					className='relative w-full aspect-video rounded-md overflow-hidden'
 					style={{
@@ -76,7 +104,7 @@ const ResourceNodeContentComponent = ({ data }: ResourceNodeContentProps) => {
 							alt={title}
 							className='object-cover absolute inset-0 w-full h-full'
 							loading='lazy'
-							src={imageUrl}
+							src={proxiedImageUrl}
 							onError={() => {
 								setImageError(true);
 								setImageLoading(false);
@@ -128,7 +156,7 @@ const ResourceNodeContentComponent = ({ data }: ResourceNodeContentProps) => {
 					</h3>
 
 					{/* Domain display */}
-					{resourceUrl && (
+					{url && (
 						<div className='flex items-center gap-1.5'>
 							<Globe
 								className='w-3 h-3 flex-shrink-0'
@@ -141,16 +169,20 @@ const ResourceNodeContentComponent = ({ data }: ResourceNodeContentProps) => {
 									letterSpacing: '0.01em',
 								}}
 							>
-								{getDomain(resourceUrl)}
+								{getDomain(url)}
 							</span>
 						</div>
 					)}
 				</div>
 
 				{/* External link indicator */}
-				{resourceUrl && (
+				{url && (
 					<div
-						className='p-2 rounded-md'
+						onClick={onLinkClick}
+						className={cn(
+							'p-2 rounded-md',
+							onLinkClick && 'cursor-pointer hover:bg-white/5'
+						)}
 						style={{
 							backgroundColor: 'transparent',
 							border: `1px solid ${GlassmorphismTheme.borders.default}`,
@@ -165,7 +197,7 @@ const ResourceNodeContentComponent = ({ data }: ResourceNodeContentProps) => {
 			</div>
 
 			{/* Description */}
-			{data.content && data.content !== title && (
+			{description && description !== title && (
 				<p
 					style={{
 						fontSize: '14px',
@@ -174,7 +206,7 @@ const ResourceNodeContentComponent = ({ data }: ResourceNodeContentProps) => {
 						letterSpacing: '0.01em',
 					}}
 				>
-					{data.content}
+					{description}
 				</p>
 			)}
 
@@ -232,5 +264,5 @@ const ResourceNodeContentComponent = ({ data }: ResourceNodeContentProps) => {
 	);
 };
 
-export const ResourceNodeContent = memo(ResourceNodeContentComponent);
-ResourceNodeContent.displayName = 'ResourceNodeContent';
+export const ResourceContent = memo(ResourceContentComponent);
+ResourceContent.displayName = 'ResourceContent';
