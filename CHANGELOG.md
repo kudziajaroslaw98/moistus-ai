@@ -1,11 +1,11 @@
 # Changelog
 
 All notable changes to this project are documented here.
-Format: `[YYYY-MM-DD HH:MM]` followed by categorized changes.
+Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-## [2025-12-23 11:59]
+## [2025-12-23]
 
 ### Added
 - **test infrastructure**: Unit testing setup with Jest + React Testing Library
@@ -18,13 +18,6 @@ Format: `[YYYY-MM-DD HH:MM]` followed by categorized changes.
   - `default-node.test.tsx` - 7 tests (rendering, placeholder, props)
   - `task-node.test.tsx` - 15 tests (rendering, toggling, store integration)
   - `chat-input.test.tsx` - 34 tests (input, quick prompts, disabled states)
-
-### Fixed
-- **suggest-connections/route.ts**: Await async convertToModelMessages call
-
----
-
-## [2024-12-23 ~14:00]
 
 ### Refactored
 - **nodes/content**: Extract shared content components from canvas nodes
@@ -51,6 +44,9 @@ Format: `[YYYY-MM-DD HH:MM]` followed by categorized changes.
 - **code-node.tsx**: Uses CodeContent with headerActions slot
 - **default-node.tsx**: Uses MarkdownContent (269→41 lines)
 
+### Fixed
+- **suggest-connections/route.ts**: Await async convertToModelMessages call
+
 ### Removed
 - **content-extractors/**: Entire directory deleted (-10 files, -800 lines)
   - Was: NodeData → Adapter → SharedContent
@@ -58,7 +54,7 @@ Format: `[YYYY-MM-DD HH:MM]` followed by categorized changes.
 
 ---
 
-## [2024-12-22 16:30]
+## [2025-12-22]
 
 ### Docs
 - **CLAUDE.md**: Added autonomous operations section
