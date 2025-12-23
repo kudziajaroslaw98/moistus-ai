@@ -149,7 +149,7 @@ Guideline @./animation-guidelines.md
 - `base-node-wrapper.tsx` - Shared functionality: selection, handles, resizing, toolbar, metadata bar
 - `core/` - Types only (registry moved to `src/registry/`)
 - `components/` - NodeToolbar, NodeContent, ToolbarControls, comment components
-- `content/` - Shared renderers (markdown-content, code-content)
+- `content/` - Shared content components (9 total: code, markdown, task, image, annotation, question, text, resource, reference)
 - `shared/` - universal-metadata-bar, metadata-badge, node-tags, export-image-placeholder
 - `node-additions/` - collapse-button, collapsed-indicator, group-button
 - `themes/` - glassmorphism-theme
