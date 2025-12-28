@@ -5,6 +5,39 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2025-12-28]
+
+### Added
+- **e2e testing**: Comprehensive sharing permission E2E tests (35 tests)
+  - Test viewer role restrictions (15 tests): toolbar hidden, no drag/edit/delete
+  - Test editor role functionality (8 tests): full edit access verification
+  - Test commenter role restrictions (6 tests): view + comment only
+  - Test real-time sync (3 tests): changes visible without refresh
+  - Test access revocation (3 tests): kicked when owner revokes access
+  - Create ToolbarPage, ContextMenuPage page objects
+  - Extend SharePanelPage with role selection
+  - Extend MindMapPage with permission testing methods
+  - Extend multi-user fixture with guest page objects
+  - Why: Core feature - sharing restrictions must be thoroughly tested
+
+- **data-testid attributes**: Added to enable E2E testing
+  - context-menu.tsx: `data-testid="context-menu"` + item-specific IDs
+  - context-menu-item.tsx: Support for `data-testid` prop
+  - base-node-wrapper.tsx: `node-add-button`, `node-suggest-button`
+  - share-panel.tsx: `role-selector`, `role-selector-trigger`
+  - room-code-display.tsx: `revoke-room-code-btn` with aria-label
+  - toolbar.tsx: `toolbar` container
+
+### Fixed
+- **E2E test reliability**: Multiple fixes for sharing permission tests
+  - Fix onboarding modal blocking join button (add dismissOnboardingIfPresent)
+  - Fix generateRoomCode returning old code (use last in list, not first)
+  - Fix revokeAllCodes not clicking (use data-testid, remove force:true)
+  - Add 500ms wait for API in revokeAllCodes before checking count
+  - Why: Tests were flaky due to race conditions and state issues
+
+---
+
 ## [2025-12-24]
 
 ### Added
