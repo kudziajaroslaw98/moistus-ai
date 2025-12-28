@@ -176,7 +176,9 @@ export function RoomCodeDisplay({
 
 					{onRevoke && (
 						<Button
+							aria-label='Revoke room code'
 							className='h-7 w-7 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10'
+							data-testid='revoke-room-code-btn'
 							onClick={handleRevoke}
 							size='sm'
 							title='Revoke room code'

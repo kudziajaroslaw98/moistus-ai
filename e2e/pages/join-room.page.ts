@@ -62,10 +62,22 @@ export class JoinRoomPage {
 
 	/**
 	 * Navigates to the deep link join page (/join/[token]).
+	 * First dismisses any blocking modals and ensures clean navigation.
 	 */
 	async gotoDeepLink(token: string) {
+		// Dismiss onboarding modal if present on current page
+		// This can block navigation if we're on the mind-map page
+		await this.dismissOnboardingIfPresent();
+
 		await this.page.goto(`/join/${token}`);
 		await this.page.waitForLoadState('networkidle');
+
+		// Verify we landed on the join page
+		const currentUrl = this.page.url();
+		if (!currentUrl.includes('/join/')) {
+			console.log(`Unexpected URL after navigation: ${currentUrl}, forcing reload`);
+			await this.page.goto(`/join/${token}`, { waitUntil: 'networkidle' });
+		}
 	}
 
 	/**
@@ -90,11 +102,39 @@ export class JoinRoomPage {
 
 	/**
 	 * Waits for successful join (redirect to mind map).
+	 * Also dismisses the onboarding modal if it appears.
 	 */
 	async waitForSuccess(timeout = 30000) {
 		// Wait for URL change to mind-map (most reliable indicator)
 		// Increased timeout for slower browsers (webkit/firefox)
 		await this.page.waitForURL(/\/mind-map\//, { timeout });
+
+		// Dismiss onboarding modal if it appears
+		// The modal shows for new anonymous users and blocks all interactions
+		await this.dismissOnboardingIfPresent();
+	}
+
+	/**
+	 * Dismisses the onboarding modal if present.
+	 * The modal has a "Skip for now" button that closes it.
+	 */
+	async dismissOnboardingIfPresent() {
+		try {
+			// Check if the onboarding skip button is visible
+			const skipButton = this.page.getByRole('button', { name: 'Skip for now' });
+
+			// Wait briefly for the modal to potentially appear
+			await skipButton.waitFor({ state: 'visible', timeout: 2000 });
+
+			// Click skip to dismiss
+			await skipButton.click();
+			console.log('Dismissed onboarding modal');
+
+			// Wait for modal to close
+			await this.page.waitForTimeout(500);
+		} catch {
+			// Modal not present, which is fine
+		}
 	}
 
 	/**

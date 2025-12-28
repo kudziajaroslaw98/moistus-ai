@@ -40,6 +40,7 @@ import { useActivityTracker } from '@/hooks/realtime/use-activity-tracker';
 import { useContextMenu } from '@/hooks/use-context-menu';
 import { useNodeSuggestion } from '@/hooks/use-node-suggestion';
 import useAppStore from '@/store/mind-map-store';
+import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import type { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';
@@ -167,6 +168,26 @@ export function ReactFlowArea() {
 	const { contextMenuHandlers } = useContextMenu();
 	const { generateSuggestionsForNode } = useNodeSuggestion();
 	const { canEdit } = usePermissions();
+
+	// Permission-gated delete handlers
+	// Viewers should not be able to delete nodes/edges via Delete key
+	const handleNodesDelete = useCallback(
+		(nodesToDelete: Node[]) => {
+			if (!canEdit) return;
+			// Cast is safe: React Flow returns same objects we passed in
+			deleteNodes(nodesToDelete as AppNode[]);
+		},
+		[canEdit, deleteNodes]
+	);
+
+	const handleEdgesDelete = useCallback(
+		(edgesToDelete: Edge[]) => {
+			if (!canEdit) return;
+			// Cast is safe: React Flow returns same objects we passed in
+			deleteEdges(edgesToDelete as AppEdge[]);
+		},
+		[canEdit, deleteEdges]
+	);
 
 	// Memoize visible nodes to prevent infinite re-renders
 	// getVisibleNodes() returns new array on each call via .filter()
@@ -438,7 +459,7 @@ export function ReactFlowArea() {
 				connectionLineComponent={FloatingConnectionLine}
 				connectionLineType={ConnectionLineType.Bezier}
 				connectionMode={ConnectionMode.Loose}
-				deleteKeyCode={['Delete']}
+				deleteKeyCode={canEdit ? ['Delete'] : null}
 				disableKeyboardA11y={true}
 				edges={visibleEdges}
 				edgeTypes={edgeTypes}
@@ -458,14 +479,14 @@ export function ReactFlowArea() {
 				onEdgeContextMenu={contextMenuHandlers.onEdgeContextMenu}
 				onEdgeDoubleClick={handleEdgeDoubleClick}
 				onEdgesChange={onEdgesChange}
-				onEdgesDelete={deleteEdges}
+				onEdgesDelete={handleEdgesDelete}
 				onNodeClick={handleNodeClick}
 				onNodeDoubleClick={handleNodeDoubleClick}
 				onNodeContextMenu={contextMenuHandlers.onNodeContextMenu}
 				onNodeDragStart={handleNodeDragStart}
 				onNodeDragStop={handleNodeDragStop}
 				onNodesChange={onNodesChange}
-				onNodesDelete={deleteNodes}
+				onNodesDelete={handleNodesDelete}
 				onPaneClick={contextMenuHandlers.onPaneClick}
 				onPaneContextMenu={contextMenuHandlers.onPaneContextMenu}
 				onSelectionChange={handleSelectionChange}

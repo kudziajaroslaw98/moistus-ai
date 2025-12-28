@@ -1,7 +1,9 @@
 import { test as base, expect, BrowserContext, Page } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
+import { ContextMenuPage } from '../pages/context-menu.page';
 import { MindMapPage } from '../pages/mind-map.page';
+import { ToolbarPage } from '../pages/toolbar.page';
 
 /**
  * Test data created during global setup.
@@ -17,18 +19,34 @@ interface TestData {
  * Provides separate browser contexts for:
  * - Owner: authenticated user who owns the map and creates share tokens
  * - Guest: fresh anonymous context for join attempts
+ *
+ * Worker-scoped fixtures persist across all tests in a serial group.
+ * Test-scoped fixtures are created fresh for each test.
  */
-type MultiUserFixtures = {
-	/** Authenticated browser context (map owner) */
+type WorkerFixtures = {
+	/** Authenticated browser context (map owner) - persists across tests */
 	ownerContext: BrowserContext;
-	/** Page for the authenticated owner */
+	/** Page for the authenticated owner - persists across tests */
 	ownerPage: Page;
+	/** Fresh browser context for anonymous guest - persists across tests */
+	guestContext: BrowserContext;
+	/** Page for the guest user - persists across tests */
+	guestPage: Page;
+};
+
+type TestFixtures = {
 	/** MindMapPage helper for the owner */
 	ownerMindMapPage: MindMapPage;
-	/** Fresh browser context for anonymous guest */
-	guestContext: BrowserContext;
-	/** Page for the guest user */
-	guestPage: Page;
+	/** ToolbarPage helper for the owner */
+	ownerToolbarPage: ToolbarPage;
+	/** ContextMenuPage helper for the owner */
+	ownerContextMenuPage: ContextMenuPage;
+	/** MindMapPage helper for the guest */
+	guestMindMapPage: MindMapPage;
+	/** ToolbarPage helper for the guest */
+	guestToolbarPage: ToolbarPage;
+	/** ContextMenuPage helper for the guest */
+	guestContextMenuPage: ContextMenuPage;
 	/** Test map ID from global setup */
 	testMapId: string;
 };
@@ -66,35 +84,71 @@ function loadTestData(): TestData {
  * });
  * ```
  */
-export const test = base.extend<MultiUserFixtures>({
+export const test = base.extend<TestFixtures, WorkerFixtures>({
+	// ============================================================================
+	// WORKER-SCOPED FIXTURES (persist across all tests in serial groups)
+	// ============================================================================
+
+	// Owner uses the pre-authenticated storage state
+	ownerContext: [
+		async ({ browser }, use) => {
+			const authFile = path.join(__dirname, '../.auth/user.json');
+
+			if (!fs.existsSync(authFile)) {
+				throw new Error(
+					'Auth state not found. Make sure global setup ran successfully.'
+				);
+			}
+
+			const context = await browser.newContext({
+				storageState: authFile,
+			});
+
+			await use(context);
+			await context.close();
+		},
+		{ scope: 'worker' },
+	],
+
+	ownerPage: [
+		async ({ ownerContext }, use) => {
+			const page = await ownerContext.newPage();
+			await use(page);
+			// Don't close - worker cleanup handles it
+		},
+		{ scope: 'worker' },
+	],
+
+	// Guest uses a fresh context with explicitly empty storage state
+	// This ensures no auth cookies are inherited from the browser
+	guestContext: [
+		async ({ browser }, use) => {
+			const context = await browser.newContext({
+				storageState: { cookies: [], origins: [] },
+			});
+			await use(context);
+			await context.close();
+		},
+		{ scope: 'worker' },
+	],
+
+	guestPage: [
+		async ({ guestContext }, use) => {
+			const page = await guestContext.newPage();
+			await use(page);
+			// Don't close - worker cleanup handles it
+		},
+		{ scope: 'worker' },
+	],
+
+	// ============================================================================
+	// TEST-SCOPED FIXTURES (created fresh for each test)
+	// ============================================================================
+
 	// Test map ID from global setup
 	testMapId: async ({}, use) => {
 		const testData = loadTestData();
 		await use(testData.testMapId);
-	},
-
-	// Owner uses the pre-authenticated storage state
-	ownerContext: async ({ browser }, use) => {
-		const authFile = path.join(__dirname, '../.auth/user.json');
-
-		if (!fs.existsSync(authFile)) {
-			throw new Error(
-				'Auth state not found. Make sure global setup ran successfully.'
-			);
-		}
-
-		const context = await browser.newContext({
-			storageState: authFile,
-		});
-
-		await use(context);
-		await context.close();
-	},
-
-	ownerPage: async ({ ownerContext }, use) => {
-		const page = await ownerContext.newPage();
-		await use(page);
-		await page.close();
 	},
 
 	ownerMindMapPage: async ({ ownerPage }, use) => {
@@ -102,20 +156,29 @@ export const test = base.extend<MultiUserFixtures>({
 		await use(mindMapPage);
 	},
 
-	// Guest uses a fresh context with explicitly empty storage state
-	// This ensures no auth cookies are inherited from the browser
-	guestContext: async ({ browser }, use) => {
-		const context = await browser.newContext({
-			storageState: { cookies: [], origins: [] },
-		});
-		await use(context);
-		await context.close();
+	ownerToolbarPage: async ({ ownerPage }, use) => {
+		const toolbarPage = new ToolbarPage(ownerPage);
+		await use(toolbarPage);
 	},
 
-	guestPage: async ({ guestContext }, use) => {
-		const page = await guestContext.newPage();
-		await use(page);
-		await page.close();
+	ownerContextMenuPage: async ({ ownerPage }, use) => {
+		const contextMenuPage = new ContextMenuPage(ownerPage);
+		await use(contextMenuPage);
+	},
+
+	guestMindMapPage: async ({ guestPage }, use) => {
+		const mindMapPage = new MindMapPage(guestPage);
+		await use(mindMapPage);
+	},
+
+	guestToolbarPage: async ({ guestPage }, use) => {
+		const toolbarPage = new ToolbarPage(guestPage);
+		await use(toolbarPage);
+	},
+
+	guestContextMenuPage: async ({ guestPage }, use) => {
+		const contextMenuPage = new ContextMenuPage(guestPage);
+		await use(contextMenuPage);
 	},
 });
 

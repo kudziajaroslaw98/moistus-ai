@@ -256,7 +256,7 @@ export const Toolbar = () => {
 			initial={{ y: 100, opacity: 0 }}
 			transition={{ type: 'spring', stiffness: 100, damping: 15 }}
 		>
-			<div className='flex h-full w-full items-center gap-2 p-2 rounded-xl shadow-2xl shadow-neutral-950 bg-surface border border-elevated'>
+			<div className='flex h-full w-full items-center gap-2 p-2 rounded-xl shadow-2xl shadow-neutral-950 bg-surface border border-elevated' data-testid='toolbar'>
 				{/* Cursor Mode Dropdown */}
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>

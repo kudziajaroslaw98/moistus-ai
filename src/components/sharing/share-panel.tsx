@@ -288,6 +288,7 @@ export function SharePanel({
 												<Label className='text-xs text-zinc-400'>Default Permission</Label>
 
 												<Select
+													data-testid='role-selector'
 													value={roomCodeSettings.role}
 													onValueChange={(v) =>
 														setRoomCodeSettings((prev) => ({
@@ -296,7 +297,7 @@ export function SharePanel({
 														}))
 													}
 												>
-													<SelectTrigger className='h-9'>
+													<SelectTrigger className='h-9' data-testid='role-selector-trigger'>
 														<SelectValue />
 													</SelectTrigger>
 

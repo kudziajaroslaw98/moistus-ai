@@ -319,6 +319,7 @@ const BaseNodeWrapperComponent = ({
 										>
 											<Button
 												className='nodrag nopan rounded-full w-10 h-10 p-0 transition-all duration-200 hover:scale-110 bg-elevated border border-border-default'
+												data-testid='node-add-button'
 												onClick={handleAddNewNode}
 												title='Add new connected node'
 											>
@@ -356,6 +357,7 @@ const BaseNodeWrapperComponent = ({
 										>
 											<Button
 												className='nodrag nopan rounded-full w-fit py-2 px-4 flex gap-2 transition-all duration-200 hover:scale-110 border border-border-default bg-elevated'
+												data-testid='node-suggest-button'
 												onClick={handleGenerateSuggestions}
 												title='Suggest Nodes'
 											>

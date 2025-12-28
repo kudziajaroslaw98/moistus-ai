@@ -115,6 +115,13 @@ export class MindMapPage {
 	}
 
 	/**
+	 * Click on a node by its content to select it.
+	 */
+	async selectNodeByContent(content: string) {
+		await this.getNodeByContent(content).click({ force: true });
+	}
+
+	/**
 	 * Double-click a node to open the editor.
 	 */
 	async doubleClickNode(nodeId: string) {
@@ -132,6 +139,47 @@ export class MindMapPage {
 	}
 
 	/**
+	 * Double-click a node by content WITHOUT waiting for editor.
+	 * Useful for testing that editor doesn't open for viewers.
+	 */
+	async doubleClickNodeByContentNoWait(content: string) {
+		await this.getNodeByContent(content).dblclick({ force: true });
+	}
+
+	/**
+	 * Right-click a node to open context menu.
+	 */
+	async rightClickNode(nodeId: string) {
+		await this.getNode(nodeId).click({ button: 'right' });
+	}
+
+	/**
+	 * Right-click a node by its content to open context menu.
+	 */
+	async rightClickNodeByContent(content: string) {
+		await this.getNodeByContent(content).click({ button: 'right', force: true });
+	}
+
+	/**
+	 * Right-click an edge to open context menu.
+	 */
+	async rightClickEdge(edgeIndex: number = 0) {
+		const edge = this.getAllEdges().nth(edgeIndex);
+		await edge.click({ button: 'right' });
+	}
+
+	/**
+	 * Right-click on the canvas pane (not on a node).
+	 */
+	async rightClickCanvas(x?: number, y?: number) {
+		const box = await this.canvas.boundingBox();
+		if (!box) throw new Error('Canvas not visible');
+		const clickX = x ?? box.x + box.width / 2;
+		const clickY = y ?? box.y + box.height / 2;
+		await this.page.mouse.click(clickX, clickY, { button: 'right' });
+	}
+
+	/**
 	 * Open the node editor for creating a new node.
 	 * Shortcut is '/' key (forward slash).
 	 */
@@ -142,12 +190,143 @@ export class MindMapPage {
 	}
 
 	/**
+	 * Press the slash key without waiting for editor.
+	 * Useful for testing that editor doesn't open for viewers.
+	 */
+	async pressSlashKey() {
+		await this.canvas.click(); // Focus canvas first
+		await this.page.keyboard.press('/');
+	}
+
+	/**
+	 * Verify that the node editor did NOT open.
+	 * Waits briefly then checks visibility.
+	 */
+	async expectNodeEditorNotOpened(timeout: number = 1000) {
+		await this.page.waitForTimeout(timeout);
+		await expect(this.nodeEditorPage.container).not.toBeVisible();
+	}
+
+	/**
 	 * Create a node with the given content using the node editor.
 	 */
 	async createNodeWithContent(content: string) {
 		await this.openNodeEditor();
 		await this.nodeEditorPage.typeContent(content);
 		await this.nodeEditorPage.create();
+	}
+
+	/**
+	 * Attempt to drag a node and return whether position changed.
+	 */
+	async tryDragNode(
+		nodeId: string,
+		deltaX: number,
+		deltaY: number
+	): Promise<{ startPos: { x: number; y: number }; endPos: { x: number; y: number } }> {
+		const node = this.getNode(nodeId);
+		const box = await node.boundingBox();
+		if (!box) throw new Error('Node not visible');
+
+		const startPos = { x: box.x, y: box.y };
+
+		const startX = box.x + box.width / 2;
+		const startY = box.y + box.height / 2;
+
+		await this.page.mouse.move(startX, startY);
+		await this.page.mouse.down();
+		await this.page.mouse.move(startX + deltaX, startY + deltaY, { steps: 10 });
+		await this.page.mouse.up();
+
+		// Get new position
+		const newBox = await node.boundingBox();
+		const endPos = newBox ? { x: newBox.x, y: newBox.y } : startPos;
+
+		return { startPos, endPos };
+	}
+
+	/**
+	 * Attempt to drag a node by content.
+	 */
+	async tryDragNodeByContent(
+		content: string,
+		deltaX: number,
+		deltaY: number
+	): Promise<{ startPos: { x: number; y: number }; endPos: { x: number; y: number } }> {
+		const node = this.getNodeByContent(content);
+		const box = await node.boundingBox();
+		if (!box) throw new Error('Node not visible');
+
+		const startPos = { x: box.x, y: box.y };
+
+		const startX = box.x + box.width / 2;
+		const startY = box.y + box.height / 2;
+
+		await this.page.mouse.move(startX, startY);
+		await this.page.mouse.down();
+		await this.page.mouse.move(startX + deltaX, startY + deltaY, { steps: 10 });
+		await this.page.mouse.up();
+
+		// Get new position
+		const newBox = await node.boundingBox();
+		const endPos = newBox ? { x: newBox.x, y: newBox.y } : startPos;
+
+		return { startPos, endPos };
+	}
+
+	/**
+	 * Press Delete key to delete selected nodes.
+	 */
+	async pressDeleteKey() {
+		await this.page.keyboard.press('Delete');
+	}
+
+	/**
+	 * Check if add button is visible on a selected node.
+	 */
+	async isNodeAddButtonVisible(): Promise<boolean> {
+		const addButton = this.page.locator('[data-testid="node-add-button"]');
+		return await addButton.isVisible();
+	}
+
+	/**
+	 * Check if suggest button is visible on a selected node.
+	 */
+	async isNodeSuggestButtonVisible(): Promise<boolean> {
+		const suggestButton = this.page.locator('[data-testid="node-suggest-button"]');
+		return await suggestButton.isVisible();
+	}
+
+	/**
+	 * Check if node resize handles are visible.
+	 */
+	async isNodeResizerVisible(): Promise<boolean> {
+		const resizer = this.page.locator('.react-flow__resize-control');
+		return await resizer.isVisible();
+	}
+
+	/**
+	 * Assert that node floating buttons are NOT visible (for viewers).
+	 */
+	async expectNodeFloatingButtonsHidden() {
+		await expect(
+			this.page.locator('[data-testid="node-add-button"]')
+		).not.toBeVisible();
+		await expect(
+			this.page.locator('[data-testid="node-suggest-button"]')
+		).not.toBeVisible();
+	}
+
+	/**
+	 * Assert that node floating buttons ARE visible (for editors).
+	 */
+	async expectNodeFloatingButtonsVisible() {
+		await expect(
+			this.page.locator('[data-testid="node-add-button"]')
+		).toBeVisible();
+		await expect(
+			this.page.locator('[data-testid="node-suggest-button"]')
+		).toBeVisible();
 	}
 
 	// ============================================================================
