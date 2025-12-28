@@ -66,35 +66,53 @@ async function globalSetup(config: FullConfig) {
 		await context.storageState({ path: authFile });
 		console.log('✅ Authentication state saved to', authFile);
 
-		// Get test map ID - use existing or create new
+		// Look for existing E2E test map by title to avoid database bloat
+		const E2E_MAP_TITLE = 'E2E Test Map';
 		let testMapId = process.env.TEST_MAP_ID;
 
 		if (testMapId) {
-			console.log('📝 Using existing test map:', testMapId);
+			console.log('📝 Using test map from env:', testMapId);
 		} else {
-			// Create a test map for E2E tests
-			console.log('📝 Creating test map for E2E tests...');
+			// Check for existing E2E test map first
+			console.log('🔍 Looking for existing E2E test map...');
+			const mapsResponse = await page.request.get(`${baseURL}/api/maps`);
 
-			const response = await page.request.post(`${baseURL}/api/maps`, {
-				data: {
-					title: `E2E Test Map - ${new Date().toISOString()}`,
-					description: 'Automated test map for E2E testing',
-				},
-			});
+			if (mapsResponse.ok()) {
+				const { data } = await mapsResponse.json();
+				const existingMap = data.maps?.find(
+					(m: { title: string }) => m.title === E2E_MAP_TITLE
+				);
 
-			if (!response.ok()) {
-				console.error('❌ Failed to create test map:', await response.text());
-				throw new Error('Failed to create test map');
+				if (existingMap) {
+					testMapId = existingMap.id;
+					console.log('♻️ Reusing existing test map:', testMapId);
+				}
 			}
 
-			const { data } = await response.json();
-			testMapId = data.map?.id;
-
+			// Create new map only if not found
 			if (!testMapId) {
-				throw new Error('Test map created but no ID returned');
-			}
+				console.log('📝 Creating new E2E test map...');
+				const response = await page.request.post(`${baseURL}/api/maps`, {
+					data: {
+						title: E2E_MAP_TITLE,
+						description: 'Shared test map for E2E testing - DO NOT DELETE',
+					},
+				});
 
-			console.log('✅ Test map created:', testMapId);
+				if (!response.ok()) {
+					console.error('❌ Failed to create test map:', await response.text());
+					throw new Error('Failed to create test map');
+				}
+
+				const { data } = await response.json();
+				testMapId = data.map?.id;
+
+				if (!testMapId) {
+					throw new Error('Test map created but no ID returned');
+				}
+
+				console.log('✅ Test map created:', testMapId);
+			}
 		}
 
 		// Save test data for use in tests

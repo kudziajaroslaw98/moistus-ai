@@ -62,21 +62,23 @@ export class JoinRoomPage {
 
 	/**
 	 * Navigates to the deep link join page (/join/[token]).
-	 * First dismisses any blocking modals and ensures clean navigation.
+	 * Dismisses any blocking modals after navigation.
 	 */
 	async gotoDeepLink(token: string) {
-		// Dismiss onboarding modal if present on current page
-		// This can block navigation if we're on the mind-map page
-		await this.dismissOnboardingIfPresent();
-
 		await this.page.goto(`/join/${token}`);
-		await this.page.waitForLoadState('networkidle');
+		// Use domcontentloaded instead of networkidle to avoid timeout
+		// from persistent WebSocket connections
+		await this.page.waitForLoadState('domcontentloaded');
+
+		// Dismiss any modals that may have appeared after page load
+		await this.dismissOnboardingIfPresent();
 
 		// Verify we landed on the join page
 		const currentUrl = this.page.url();
 		if (!currentUrl.includes('/join/')) {
 			console.log(`Unexpected URL after navigation: ${currentUrl}, forcing reload`);
-			await this.page.goto(`/join/${token}`, { waitUntil: 'networkidle' });
+			await this.page.goto(`/join/${token}`, { waitUntil: 'domcontentloaded' });
+			await this.dismissOnboardingIfPresent();
 		}
 	}
 
@@ -115,23 +117,41 @@ export class JoinRoomPage {
 	}
 
 	/**
-	 * Dismisses the onboarding modal if present.
-	 * The modal has a "Skip for now" button that closes it.
+	 * Dismisses any blocking modals if present.
+	 * Handles both "Skip for now" and "Get Started" buttons.
 	 */
 	async dismissOnboardingIfPresent() {
 		try {
-			// Check if the onboarding skip button is visible
+			// Check for various modal dismiss buttons
+			// The onboarding can show "Skip for now" or "Get Started" depending on state
 			const skipButton = this.page.getByRole('button', { name: 'Skip for now' });
+			const getStartedButton = this.page.getByRole('button', { name: 'Get Started' });
 
-			// Wait briefly for the modal to potentially appear
-			await skipButton.waitFor({ state: 'visible', timeout: 2000 });
+			// Try skip button first
+			const skipVisible = await skipButton
+				.waitFor({ state: 'visible', timeout: 1000 })
+				.then(() => true)
+				.catch(() => false);
 
-			// Click skip to dismiss
-			await skipButton.click();
-			console.log('Dismissed onboarding modal');
+			if (skipVisible) {
+				await skipButton.click();
+				console.log('Dismissed onboarding modal via Skip for now');
+				await this.page.waitForTimeout(500);
+				return;
+			}
 
-			// Wait for modal to close
-			await this.page.waitForTimeout(500);
+			// Try Get Started button
+			const getStartedVisible = await getStartedButton
+				.waitFor({ state: 'visible', timeout: 1000 })
+				.then(() => true)
+				.catch(() => false);
+
+			if (getStartedVisible) {
+				await getStartedButton.click();
+				console.log('Dismissed onboarding modal via Get Started');
+				await this.page.waitForTimeout(500);
+				return;
+			}
 		} catch {
 			// Modal not present, which is fine
 		}

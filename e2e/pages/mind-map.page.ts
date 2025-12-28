@@ -155,9 +155,10 @@ export class MindMapPage {
 
 	/**
 	 * Right-click a node by its content to open context menu.
+	 * Uses .first() to handle potential duplicate nodes from previous test runs.
 	 */
 	async rightClickNodeByContent(content: string) {
-		await this.getNodeByContent(content).click({ button: 'right', force: true });
+		await this.getNodeByContent(content).first().click({ button: 'right', force: true });
 	}
 
 	/**

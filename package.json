@@ -19,6 +19,8 @@
     "e2e:headed": "playwright test --headed",
     "e2e:debug": "playwright test --debug",
     "e2e:chromium": "playwright test --project=chromium",
+    "e2e:firefox": "playwright test --project=firefox",
+    "e2e:webkit": "playwright test --project=webkit",
     "e2e:update-snapshots": "playwright test --update-snapshots",
     "e2e:report": "playwright show-report",
     "e2e:screenshots:pull": "npx tsx e2e/utils/screenshot-sync.ts pull",

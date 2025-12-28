@@ -21,8 +21,10 @@ export default defineConfig({
 	// Retry failed tests
 	retries: isCI ? 2 : 0,
 
-	// Limit parallel workers
-	workers: isCI ? 1 : undefined,
+	// Force single worker to prevent cross-test race conditions on shared testMapId
+	// All sharing/permissions tests share the same database state, so parallel execution
+	// causes revokeAllCodes() in one test to delete room codes created by other tests
+	workers: 1,
 
 	// Reporter configuration
 	reporter: isCI

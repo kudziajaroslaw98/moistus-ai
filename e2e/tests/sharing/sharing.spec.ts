@@ -30,6 +30,10 @@ test.describe.serial('Sharing - User Limit Enforcement', () => {
 		sharePanelPage = new SharePanelPage(ownerPage);
 		await sharePanelPage.openPanel();
 
+		// Clean up any existing room codes from previous test runs
+		await sharePanelPage.revokeAllCodes();
+		await ownerPage.waitForTimeout(500);
+
 		// Generate room code with max_users=1
 		roomCode = await sharePanelPage.generateRoomCode({ maxUsers: 1 });
 

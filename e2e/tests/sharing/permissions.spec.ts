@@ -123,11 +123,12 @@ test.describe.serial('Viewer Role Restrictions', () => {
 		// Wait for real-time sync
 		await guestMindMapPage.page.waitForTimeout(2000);
 
-		// Verify node exists for viewer
-		await guestMindMapPage.expectNodeExists('Test Node for Viewer');
+		// Use first node to avoid strict mode violation from duplicate names
+		const node = guestMindMapPage.getAllNodes().first();
+		await node.waitFor({ state: 'visible', timeout: 5000 });
 
 		// Viewer double-clicks node
-		await guestMindMapPage.doubleClickNodeByContentNoWait('Test Node for Viewer');
+		await node.dblclick({ force: true });
 
 		// Verify editor did NOT open
 		await guestMindMapPage.expectNodeEditorNotOpened();
@@ -150,8 +151,9 @@ test.describe.serial('Viewer Role Restrictions', () => {
 		const initialCount = await guestMindMapPage.getNodeCount();
 		expect(initialCount).toBeGreaterThan(0);
 
-		// Select a node
-		await guestMindMapPage.selectNodeByContent('Test Node for Viewer');
+		// Select first node (use .first() to avoid strict mode violation from duplicates)
+		const node = guestMindMapPage.getAllNodes().first();
+		await node.click({ force: true });
 		await guestMindMapPage.page.waitForTimeout(300);
 
 		// Press Delete
@@ -168,10 +170,13 @@ test.describe.serial('Viewer Role Restrictions', () => {
 		ownerMindMapPage,
 		testMapId,
 	}) => {
-		// CRITICAL: Reload guest page to clear corrupted state from real-time sync.
-		// Worker-scoped pages persist JavaScript state across tests, and the sync
-		// handler can corrupt auth/permission state. Reload clears in-memory state
-		// while Supabase session persists in cookies.
+		// IMPORTANT: Reload guest page to reset permission state.
+		// Real-time sync events from owner's node creation (in previous tests) can
+		// corrupt the guest's Zustand permission state. After reload, the page
+		// re-initializes with clean state and falls back to view-only permissions
+		// since lastJoinResult is no longer in memory. The join session persists
+		// in cookies, but the in-memory permission flags get reset correctly.
+		// TODO: Investigate why real-time sync corrupts permission state
 		await guestMindMapPage.page.reload();
 		await guestMindMapPage.page.waitForLoadState('networkidle');
 		await guestMindMapPage.page.waitForTimeout(500);
@@ -184,12 +189,24 @@ test.describe.serial('Viewer Role Restrictions', () => {
 			await guestMindMapPage.page.waitForTimeout(2000);
 		}
 
+		// Use first node to avoid strict mode violation from duplicates
+		const node = guestMindMapPage.getAllNodes().first();
+		const box = await node.boundingBox();
+		if (!box) throw new Error('Node not visible');
+
+		const startPos = { x: box.x, y: box.y };
+		const startX = box.x + box.width / 2;
+		const startY = box.y + box.height / 2;
+
 		// Try to drag the node
-		const { startPos, endPos } = await guestMindMapPage.tryDragNodeByContent(
-			'Test Node for Viewer',
-			100,
-			100
-		);
+		await guestMindMapPage.page.mouse.move(startX, startY);
+		await guestMindMapPage.page.mouse.down();
+		await guestMindMapPage.page.mouse.move(startX + 100, startY + 100, { steps: 10 });
+		await guestMindMapPage.page.mouse.up();
+
+		// Get new position
+		const newBox = await node.boundingBox();
+		const endPos = newBox ? { x: newBox.x, y: newBox.y } : startPos;
 
 		// Position should NOT have changed (or minimal change due to snap-back)
 		const xDiff = Math.abs(endPos.x - startPos.x);
@@ -213,8 +230,9 @@ test.describe.serial('Viewer Role Restrictions', () => {
 			await guestMindMapPage.page.waitForTimeout(2000);
 		}
 
-		// Select the node
-		await guestMindMapPage.selectNodeByContent('Test Node for Viewer');
+		// Select first node (use .first() to avoid strict mode violation from duplicates)
+		const node = guestMindMapPage.getAllNodes().first();
+		await node.click({ force: true });
 		await guestMindMapPage.page.waitForTimeout(500);
 
 		// Check resize handles are NOT visible
@@ -235,41 +253,43 @@ test.describe.serial('Viewer Role Restrictions', () => {
 			await guestMindMapPage.page.waitForTimeout(2000);
 		}
 
-		// Select the node
-		await guestMindMapPage.selectNodeByContent('Test Node for Viewer');
+		// Select first node (use .first() to avoid strict mode violation from duplicates)
+		const node = guestMindMapPage.getAllNodes().first();
+		await node.click({ force: true });
 		await guestMindMapPage.page.waitForTimeout(500);
 
 		// Check floating buttons are NOT visible
 		await guestMindMapPage.expectNodeFloatingButtonsHidden();
 	});
 
-	// TODO: Context menu test is flaky due to state leakage not being fully
-	// resolved by page reload. The Supabase session might not be restoring
-	// correctly from cookies for anonymous users after reload.
-	test.skip('viewer context menu hides edit options', async ({
+	test('viewer context menu hides edit options', async ({
 		guestMindMapPage,
 		guestContextMenuPage,
-		ownerMindMapPage,
-		testMapId,
 	}) => {
-		// Reload to clear corrupted state from real-time sync
-		await guestMindMapPage.page.reload();
-		await guestMindMapPage.page.waitForLoadState('networkidle');
+		// Dismiss any open dialogs that might be blocking interaction
+		// Press Escape to close any open modals/dialogs
+		await guestMindMapPage.page.keyboard.press('Escape');
+		await guestMindMapPage.page.waitForTimeout(300);
+
+		// Wait for nodes to be loaded
+		await guestMindMapPage.page.waitForSelector('.react-flow__node', {
+			state: 'visible',
+			timeout: 10000,
+		});
+
+		// Wait for canvas to be fully interactive
 		await guestMindMapPage.page.waitForTimeout(500);
 
-		// Ensure a test node exists
-		const nodeCount = await guestMindMapPage.getNodeCount();
-		if (nodeCount === 0) {
-			await ownerMindMapPage.goto(testMapId);
-			await ownerMindMapPage.createNodeWithContent('Test Node for Viewer');
-			await guestMindMapPage.page.waitForTimeout(2000);
-		}
+		// Get the first node
+		const node = guestMindMapPage.getAllNodes().first();
 
-		// Right-click on node
-		await guestMindMapPage.rightClickNodeByContent('Test Node for Viewer');
+		// Right-click to open context menu (use force to bypass any remaining overlays)
+		await node.click({ button: 'right', force: true });
+
+		// Wait for context menu to appear
 		await guestContextMenuPage.waitForOpen();
 
-		// Edit options should be hidden
+		// Edit options should be hidden for viewer role
 		await guestContextMenuPage.expectEditOptionsHidden();
 
 		// Close menu
