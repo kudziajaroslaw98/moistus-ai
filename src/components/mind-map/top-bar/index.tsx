@@ -105,6 +105,7 @@ export function MindMapTopBar({
 						<Button
 							aria-label='Share Mind Map'
 							className='gap-2'
+							data-testid='share-button'
 							onClick={handleToggleSharePanel}
 							title='Share Mind Map'
 							variant={popoverOpen.sharePanel ? 'default' : 'secondary'}

@@ -12,6 +12,7 @@ interface SidePanelProps {
 	footer?: React.ReactNode;
 	className?: string;
 	clearData?: () => void;
+	'data-testid'?: string;
 }
 
 export function SidePanel({
@@ -21,6 +22,7 @@ export function SidePanel({
 	footer,
 	children,
 	className,
+	'data-testid': testId,
 }: SidePanelProps) {
 	const shouldReduceMotion = useReducedMotion();
 	const theme = GlassmorphismTheme;
@@ -52,6 +54,7 @@ export function SidePanel({
 					}}
 				>
 					<motion.div
+						data-testid={testId}
 						transition={transition}
 						animate={{
 							x: 0,

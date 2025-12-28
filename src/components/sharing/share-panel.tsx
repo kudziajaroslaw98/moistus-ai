@@ -221,6 +221,7 @@ export function SharePanel({
 	return (
 		<SidePanel
 			className='w-[400px]'
+			data-testid='share-panel'
 			isOpen={isOpen}
 			onClose={onClose}
 			title={`Share ${mindMap?.title || 'Untitled Map'}`}
@@ -330,6 +331,7 @@ export function SharePanel({
 
 													<Input
 														className='h-9'
+														data-testid='max-users-input'
 														max={100}
 														min={1}
 														type='number'
@@ -372,6 +374,7 @@ export function SharePanel({
 
 											<Button
 												className='w-full h-9'
+												data-testid='generate-room-code-btn'
 												disabled={isGeneratingCode}
 												onClick={handleGenerateRoomCode}
 											>
