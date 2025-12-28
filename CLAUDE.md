@@ -2,6 +2,7 @@
 
 ## 🚨 CRITICAL PRINCIPLES
 
+- **🔴 UPDATE CLAUDE.md**: Before ending work, ask: "Did I change anything CLAUDE.md describes?" If yes → update it. No exceptions.
 - **PROACTIVELY use agents and mcp tools**
 - **NEVER run `pnpm run dev`** - Use: `pnpm type-check`, `pnpm build`, `pnpm test`
 - **Parallel operations**: Batch independent tool calls
@@ -23,16 +24,16 @@
 - **Never commit broken code**: If build fails, fix first
 
 ### Self-Maintain CLAUDE.md
-AI must update CLAUDE.md when:
-- Adding new Zustand slices → update slice list & count
-- Adding new node types → update Node Types section
-- Adding new API routes → update API Routes section
-- Adding new component directories → update component list
-- Discovering new patterns/conventions → document them
-- Resolving technical debt items → remove from debt list
-- Making architectural changes → update Architecture section
 
-**After updating**: Add brief inline comment `<!-- Updated: YYYY-MM-DD - reason -->`
+**The Rule**: If you modified anything that CLAUDE.md documents, update CLAUDE.md. Period.
+
+CLAUDE.md describes: test counts, page objects, component directories, slices, node types, API routes, fixtures, architectural patterns, technical debt status.
+
+If your work touched ANY of these → update the relevant section.
+
+**How to check**: Before committing, review your changed files. Do any relate to what's documented here? If uncertain, update anyway - it's better to over-document than under-document.
+
+**After updating**: Add `<!-- Updated: YYYY-MM-DD - reason -->`
 
 ### Maintain CHANGELOG.md
 - **Location**: Project root `CHANGELOG.md`
@@ -50,11 +51,12 @@ AI must update CLAUDE.md when:
 - **Be concise**: What changed, not implementation details
 
 ### Documentation Sync Checklist
-Before ending session or switching tasks:
+**BLOCKING** - Do not end session without completing:
 - [ ] CHANGELOG.md reflects all changes made
-- [ ] CLAUDE.md architecture docs are current
+- [ ] CLAUDE.md is current (re-read sections related to your work)
 - [ ] Technical debt list is accurate
-- [ ] No orphaned documentation
+
+Skipping this = incomplete work.
 
 ## Commands
 
@@ -304,8 +306,8 @@ Guideline @./animation-guidelines.md
 
 **Styling**: Tailwind + custom variants • Components in `src/components/ui/` • Themes distributed (glassmorphism-theme, metadata-theme) • Radix UI primitives • CSS variables • Focus-visible states
 
-**Testing**: Jest + React Testing Library (unit) • Playwright (E2E) • **149+ unit tests, 30+ E2E tests** • Co-located tests (`*.test.tsx` next to components) • Mock Zustand stores in tests • 70% coverage target on critical paths
-<!-- Updated: 2025-12-24 - Added E2E testing with Playwright -->
+**Testing**: Jest + React Testing Library (unit) • Playwright (E2E) • **149+ unit tests, 60+ E2E tests** • Co-located tests (`*.test.tsx` next to components) • Mock Zustand stores in tests • 70% coverage target on critical paths
+<!-- Updated: 2025-12-28 - Updated E2E test count after sharing permission tests -->
 
 ```typescript
 // Unit testing pattern: Mock stores, test component behavior
@@ -315,8 +317,13 @@ Guideline @./animation-guidelines.md
 ```
 
 **E2E Testing** (`e2e/`):
-- Page Object Model: `e2e/pages/` (node-editor.page.ts, mind-map.page.ts)
-- Test fixtures: `e2e/fixtures/` (base.fixture.ts with page objects)
+- Page Objects (`e2e/pages/` - 6 total):
+  - node-editor.page.ts, mind-map.page.ts, toolbar.page.ts
+  - context-menu.page.ts, share-panel.page.ts, join-room.page.ts
+- Fixtures (`e2e/fixtures/`):
+  - base.fixture.ts - Standard page objects
+  - multi-user.fixture.ts - Owner + guest pages for collaboration testing
+- Test suites: node-editor, sharing (basic + permissions with 35 tests)
 - Screenshot comparison for visual regression
 - Local Supabase for database isolation (`pnpm supabase:start`)
 
@@ -336,7 +343,7 @@ Test with realistic props/callbacks, user interactions, proper mocks for externa
 
 1. ~~Remove deprecated `builderNode` references~~ - **RESOLVED** (0 references found in codebase)
 2. Consider reorganizing root-level AI routes under `ai/` directory
-3. ~~Write comprehensive test suite~~ - **IN PROGRESS** (149 tests written, expand to remaining components)
+3. ~~Write comprehensive test suite~~ - **IN PROGRESS** (149 unit + 60+ E2E tests, sharing permissions covered)
 4. Create `supabase/migrations/` with proper migration files (currently none exist)
 5. Set up `supabase gen types` for automated TypeScript type generation
 6. Implement actual conflict resolution for real-time collaboration (currently last-write-wins)
