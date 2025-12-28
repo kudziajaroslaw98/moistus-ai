@@ -277,7 +277,7 @@ function DashboardContent() {
 		}
 
 		try {
-			const response = await fetch('/api/maps/bulk', {
+			const response = await fetch('/api/maps', {
 				method: 'DELETE',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ mapIds: Array.from(selectedMaps) }),

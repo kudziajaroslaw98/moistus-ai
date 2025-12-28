@@ -1,0 +1,36 @@
+/* Mask dynamic content for consistent screenshots */
+
+/* Mask dynamic timestamps */
+[data-testid="timestamp"],
+.timestamp,
+time {
+	visibility: hidden;
+}
+
+/* Mask random avatars/images */
+[data-testid="avatar"] {
+	background: #888 !important;
+}
+
+/* Disable animations for consistent screenshots */
+*,
+*::before,
+*::after {
+	animation-duration: 0s !important;
+	animation-delay: 0s !important;
+	transition-duration: 0s !important;
+	transition-delay: 0s !important;
+}
+
+/* Hide cursor blinking in CodeMirror editor */
+.cm-cursor,
+.cm-cursor-primary {
+	visibility: hidden !important;
+}
+
+/* Stabilize motion animations */
+[data-framer-appear-id],
+[data-motion-pop-id] {
+	transform: none !important;
+	opacity: 1 !important;
+}

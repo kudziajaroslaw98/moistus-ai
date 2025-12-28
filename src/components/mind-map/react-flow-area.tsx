@@ -460,6 +460,7 @@ export function ReactFlowArea() {
 				onEdgesChange={onEdgesChange}
 				onEdgesDelete={deleteEdges}
 				onNodeClick={handleNodeClick}
+				onNodeDoubleClick={handleNodeDoubleClick}
 				onNodeContextMenu={contextMenuHandlers.onNodeContextMenu}
 				onNodeDragStart={handleNodeDragStart}
 				onNodeDragStop={handleNodeDragStop}

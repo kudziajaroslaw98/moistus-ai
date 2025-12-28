@@ -117,6 +117,8 @@ export const ParsingLegend: React.FC<ParsingLegendProps> = memo(
 			<motion.div
 				animate={{ height: 'auto' }}
 				className={cn(theme.legend.container, className)}
+				data-collapsed={isCollapsed}
+				data-testid='parsing-legend'
 				initial={{ height: 0 }}
 			>
 				{/* Header */}

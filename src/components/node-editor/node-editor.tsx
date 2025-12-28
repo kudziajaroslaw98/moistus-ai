@@ -109,6 +109,7 @@ export const NodeEditor = () => {
 						{...getReferenceProps()}
 						animate='animate'
 						className={cn(theme.container)}
+						data-testid='node-editor'
 						exit='exit'
 						initial='initial'
 						variants={animationVariants.container}

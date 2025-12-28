@@ -26,7 +26,7 @@ export const PreviewSection: React.FC<PreviewSectionProps> = ({
 	className,
 }) => {
 	return (
-		<div className={cn('flex-1 min-w-0', className)}>
+		<div className={cn('flex-1 min-w-0', className)} data-testid='preview-section'>
 			<motion.div
 				animate={{ opacity: 1 }}
 				className={theme.previewLabel}

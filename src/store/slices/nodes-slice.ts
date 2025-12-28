@@ -1,12 +1,15 @@
+import { defaultEdgeData } from '@/constants/default-edge-data';
 import { ceilToGrid, GRID_SIZE } from '@/constants/grid';
 import { STORE_SAVE_DEBOUNCE_MS } from '@/constants/store-save-debounce-ms';
 import { fetchResourceMetadata } from '@/helpers/fetch-resource-metadata';
 import generateUuid from '@/helpers/generate-uuid';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
 import { AvailableNodeTypes } from '@/registry/node-registry';
+import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import type { NodeData } from '@/types/node-data';
 import { NodesTableType } from '@/types/nodes-table-type';
+import type { CreateNodeWithEdgeResponse } from '@/types/rpc-responses';
 import { debouncePerKey } from '@/utils/debounce-per-key';
 import { applyNodeChanges, XYPosition } from '@xyflow/react';
 import { toast } from 'sonner';
@@ -310,33 +313,45 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				const user = await supabase?.auth.getSession();
 				if (!user?.data.session) throw new Error('User not authenticated.');
 
-				const newNodeDbData: Omit<NodeData, 'created_at' | 'updated_at'> & {
-					created_at?: string;
-					updated_at?: string;
-				} = {
-					id: newNodeId,
-					user_id: user.data.session.user.id,
-					map_id: mapId,
-					parent_id: parentNode?.id,
-					content: content,
-					position_x: newNodePosition.x,
-					position_y: newNodePosition.y,
-					node_type: nodeType,
-					...data,
-				};
+				// Prepare edge defaults for RPC
+				const edgeDefaults = defaultEdgeData();
+				const edgeId = parentNode?.id ? generateUuid() : null;
 
-				const { data: insertedNodeData, error: nodeInsertError } =
-					await supabase
-						.from('nodes')
-						.insert([newNodeDbData])
-						.select('*')
-						.single();
+				// Single atomic RPC call to create node + edge
+				const { data: rpcResult, error: rpcError } = await supabase.rpc(
+					'create_node_with_parent_edge',
+					{
+						p_node_id: newNodeId,
+						p_user_id: user.data.session.user.id,
+						p_map_id: mapId,
+						p_parent_id: parentNode?.id ?? null,
+						p_content: content,
+						p_position_x: newNodePosition.x,
+						p_position_y: newNodePosition.y,
+						p_node_type: nodeType,
+						p_width: data.width ?? null,
+						p_height: data.height ?? null,
+						p_metadata: data.metadata ?? null,
+						p_tags: data.tags ?? null,
+						p_status: data.status ?? null,
+						p_importance: data.importance ?? null,
+						p_source_url: data.sourceUrl ?? null,
+						p_ai_data: data.aiData ?? null,
+						p_edge_id: edgeId,
+						p_edge_style: edgeDefaults.style,
+						p_edge_metadata: edgeDefaults.metadata,
+					}
+				);
 
-				if (nodeInsertError || !insertedNodeData) {
+				if (rpcError || !rpcResult) {
 					throw new Error(
-						nodeInsertError?.message || 'Failed to save new node to database.'
+						rpcError?.message || 'Failed to save new node to database.'
 					);
 				}
+
+				const result = rpcResult as CreateNodeWithEdgeResponse;
+				const insertedNodeData = result.node;
+				const insertedEdgeData = result.edge;
 
 				newNode = {
 					id: insertedNodeData.id,
@@ -357,20 +372,23 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				const finalNodes = [...nodes, newNode];
 				const finalEdges = [...edges];
 
-				const addEdge = get().addEdge;
-
-				if (parentNode && parentNode.id) {
-					const newEdge = await addEdge(
-						parentNode.id,
-						newNode.id,
-						{
-							source: parentNode.id,
-							target: newNode.id,
+				// Add edge to state if RPC created one (when parent was provided)
+				if (insertedEdgeData) {
+					const newFlowEdge: AppEdge = {
+						id: insertedEdgeData.id,
+						source: insertedEdgeData.source,
+						target: insertedEdgeData.target,
+						type: 'floatingEdge',
+						animated: false,
+						label: insertedEdgeData.label,
+						style: {
+							stroke: insertedEdgeData.style?.stroke || '#6c757d',
+							strokeWidth: insertedEdgeData.style?.strokeWidth || 2,
 						},
-						props.toastId
-					);
-
-					finalEdges.push(newEdge);
+						markerEnd: insertedEdgeData.markerEnd,
+						data: insertedEdgeData,
+					};
+					finalEdges.push(newFlowEdge);
 				}
 
 				addStateToHistory('addNode', { nodes: finalNodes, edges: finalEdges });

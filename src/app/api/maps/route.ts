@@ -335,16 +335,28 @@ export const DELETE = withApiValidation(
 		try {
 			const { mapIds } = validatedBody;
 
-			// Delete maps that belong to the user or their teams
-			const { error: deleteError } = await supabase
-				.from('mind_maps')
-				.delete()
-				.in('id', mapIds).or(`user_id.eq.${user.id},team_id.in.(
-					SELECT team_id FROM team_members
-					WHERE user_id = '
-${user.id}'
-					AND role IN ('owner', 'editor')
-				)`);
+			// Get teams where user has owner/editor permissions
+			const { data: teamMemberships } = await supabase
+				.from('team_members')
+				.select('team_id')
+				.eq('user_id', user.id)
+				.in('role', ['owner', 'editor']);
+
+			const authorizedTeamIds = teamMemberships?.map((m) => m.team_id) || [];
+
+			// Build the authorization filter
+			// User can delete maps they own OR maps in teams they have edit access to
+			let query = supabase.from('mind_maps').delete().in('id', mapIds);
+
+			if (authorizedTeamIds.length > 0) {
+				query = query.or(
+					`user_id.eq.${user.id},team_id.in.(${authorizedTeamIds.join(',')})`
+				);
+			} else {
+				query = query.eq('user_id', user.id);
+			}
+
+			const { error: deleteError } = await query;
 
 			if (deleteError) {
 				console.error('Error deleting maps:', deleteError);

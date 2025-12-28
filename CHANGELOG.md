@@ -5,6 +5,38 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2025-12-24]
+
+### Added
+- **database**: Atomic node + edge creation via Supabase RPC
+  - Create `create_node_with_parent_edge` RPC function (ai-docs/database/)
+  - Add `CreateNodeWithEdgeResponse` TypeScript type
+  - Modify `nodes-slice.ts` addNode() to use single RPC call
+  - Why: Reduces 3 DB calls to 1, eliminates race conditions, ~3x faster
+
+- **e2e testing**: Playwright E2E test infrastructure for node editor
+  - Install @playwright/test with multi-browser support (chromium, firefox, webkit)
+  - Create playwright.config.ts with screenshot comparison settings
+  - Create Page Object Models: node-editor.page.ts, mind-map.page.ts
+  - Create test fixtures: base.fixture.ts with page object injection
+  - Add 5 E2E test files (30+ tests):
+    - pattern-highlighting.spec.ts - Visual verification of syntax highlighting
+    - completions.spec.ts - Autocomplete dropdown behavior
+    - validation.spec.ts - Error/warning display and quick fixes
+    - keyboard-shortcuts.spec.ts - Ctrl+Enter, Ctrl+/, Escape handling
+    - node-creation.spec.ts - Full create/edit node flow
+  - Add data-testid attributes to node editor components
+  - Add GitHub Actions workflow for E2E tests with local Supabase
+  - Add package.json scripts: e2e, e2e:ui, e2e:headed, e2e:debug, e2e:update-snapshots
+
+### Changed
+- **node-editor components**: Add data-testid attributes for E2E testing
+  - node-editor.tsx, action-bar.tsx, preview-section.tsx
+  - parsing-legend.tsx (with data-collapsed attribute)
+  - examples-section.tsx
+
+---
+
 ## [2025-12-23]
 
 ### Added

@@ -67,7 +67,9 @@
       "mcp__shadcn__get_item_examples_from_registries",
       "Bash(git checkout:*)",
       "Bash(git commit:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(pnpm e2e:chromium:*)",
+      "mcp__plugin_supabase_supabase__search_docs"
     ],
     "deny": [
       "mcp__supabase__list_organizations",

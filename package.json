@@ -13,7 +13,19 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
+    "e2e:headed": "playwright test --headed",
+    "e2e:debug": "playwright test --debug",
+    "e2e:chromium": "playwright test --project=chromium",
+    "e2e:update-snapshots": "playwright test --update-snapshots",
+    "e2e:report": "playwright show-report",
+    "e2e:screenshots:pull": "npx tsx e2e/utils/screenshot-sync.ts pull",
+    "e2e:screenshots:push": "npx tsx e2e/utils/screenshot-sync.ts push",
+    "e2e:screenshots:clear": "npx tsx e2e/utils/screenshot-sync.ts clear",
+    "e2e:visual": "pnpm e2e:screenshots:pull && playwright test",
+    "e2e:visual:update": "playwright test --update-snapshots && pnpm e2e:screenshots:push"
   },
   "dependencies": {
     "@ai-sdk/openai": "3.0.0",
@@ -77,6 +89,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",
+    "@playwright/test": "^1.57.0",
     "@stylistic/eslint-plugin": "^5.4.0",
     "@tailwindcss/postcss": "^4.1.11",
     "@tailwindcss/typography": "0.5.16",
@@ -91,6 +104,7 @@
     "@types/sanitize-html": "2.16.0",
     "@typescript-eslint/parser": "^8.42.0",
     "babel-plugin-react-compiler": "^1.0.0",
+    "dotenv": "^17.2.3",
     "eslint": "^9.35.0",
     "eslint-config-next": "16.0.3",
     "eslint-plugin-import": "2.32.0",

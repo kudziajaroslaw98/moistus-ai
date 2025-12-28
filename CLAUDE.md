@@ -61,7 +61,10 @@ Before ending session or switching tasks:
 ```bash
 pnpm type-check      # TypeScript validation
 pnpm build           # Production build
-pnpm test            # Unit tests (infrastructure ready, no tests written)
+pnpm test            # Unit tests (Jest + RTL, 149 tests)
+pnpm e2e             # E2E tests (Playwright)
+pnpm e2e:ui          # E2E with interactive UI
+pnpm e2e:headed      # E2E with browser visible
 pnpm lint / lint:fix # ESLint
 pnpm pretty          # Prettier
 ```
@@ -301,13 +304,28 @@ Guideline @./animation-guidelines.md
 
 **Styling**: Tailwind + custom variants • Components in `src/components/ui/` • Themes distributed (glassmorphism-theme, metadata-theme) • Radix UI primitives • CSS variables • Focus-visible states
 
-**Testing**: Jest + React Testing Library • **149 tests across 7 components** • Co-located tests (`*.test.tsx` next to components) • Mock Zustand stores in tests • 70% coverage target on critical paths
+**Testing**: Jest + React Testing Library (unit) • Playwright (E2E) • **149+ unit tests, 30+ E2E tests** • Co-located tests (`*.test.tsx` next to components) • Mock Zustand stores in tests • 70% coverage target on critical paths
+<!-- Updated: 2025-12-24 - Added E2E testing with Playwright -->
 
 ```typescript
-// Testing pattern: Mock stores, test component behavior
+// Unit testing pattern: Mock stores, test component behavior
 // ✅ jest.mock('@/store/mind-map-store', () => ({...}))
 // ✅ render(<Component {...props} />) + userEvent interactions
 // ✅ Verify callbacks, state changes, DOM output
+```
+
+**E2E Testing** (`e2e/`):
+- Page Object Model: `e2e/pages/` (node-editor.page.ts, mind-map.page.ts)
+- Test fixtures: `e2e/fixtures/` (base.fixture.ts with page objects)
+- Screenshot comparison for visual regression
+- Local Supabase for database isolation (`pnpm supabase:start`)
+
+```bash
+# E2E workflow
+pnpm supabase:start        # Start local DB
+pnpm e2e                   # Run all E2E tests
+pnpm e2e:update-snapshots  # Update screenshot baselines
+pnpm supabase:stop         # Stop local DB
 ```
 
 Test with realistic props/callbacks, user interactions, proper mocks for external deps (stores, hooks, APIs).
