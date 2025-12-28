@@ -306,8 +306,8 @@ Guideline @./animation-guidelines.md
 
 **Styling**: Tailwind + custom variants • Components in `src/components/ui/` • Themes distributed (glassmorphism-theme, metadata-theme) • Radix UI primitives • CSS variables • Focus-visible states
 
-**Testing**: Jest + React Testing Library (unit) • Playwright (E2E) • **149+ unit tests, 60+ E2E tests** • Co-located tests (`*.test.tsx` next to components) • Mock Zustand stores in tests • 70% coverage target on critical paths
-<!-- Updated: 2025-12-28 - Updated E2E test count after sharing permission tests -->
+**Testing**: Jest + React Testing Library (unit) • Playwright (E2E) • **149+ unit tests, 47 E2E tests (×3 browsers = 141 total)** • Co-located tests (`*.test.tsx` next to components) • Mock Zustand stores in tests • 70% coverage target on critical paths
+<!-- Updated: 2025-12-28 - Fixed E2E race conditions, 47 tests pass on Chromium/Firefox/WebKit -->
 
 ```typescript
 // Unit testing pattern: Mock stores, test component behavior
@@ -323,7 +323,7 @@ Guideline @./animation-guidelines.md
 - Fixtures (`e2e/fixtures/`):
   - base.fixture.ts - Standard page objects
   - multi-user.fixture.ts - Owner + guest pages for collaboration testing
-- Test suites: node-editor, sharing (basic + permissions with 35 tests)
+- Test suites: node-editor, sharing (basic + permissions with 47 tests total)
 - Screenshot comparison for visual regression
 - Local Supabase for database isolation (`pnpm supabase:start`)
 
@@ -343,7 +343,7 @@ Test with realistic props/callbacks, user interactions, proper mocks for externa
 
 1. ~~Remove deprecated `builderNode` references~~ - **RESOLVED** (0 references found in codebase)
 2. Consider reorganizing root-level AI routes under `ai/` directory
-3. ~~Write comprehensive test suite~~ - **IN PROGRESS** (149 unit + 60+ E2E tests, sharing permissions covered)
+3. ~~Write comprehensive test suite~~ - **IN PROGRESS** (149 unit + 47 E2E tests, sharing permissions covered)
 4. Create `supabase/migrations/` with proper migration files (currently none exist)
 5. Set up `supabase gen types` for automated TypeScript type generation
 6. Implement actual conflict resolution for real-time collaboration (currently last-write-wins)

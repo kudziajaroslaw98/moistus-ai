@@ -36,6 +36,19 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Add 500ms wait for API in revokeAllCodes before checking count
   - Why: Tests were flaky due to race conditions and state issues
 
+- **E2E race conditions**: Resolved cross-worker and strict mode violations
+  - Set `workers: 1` in playwright.config.ts to prevent shared testMapId race
+  - Add `.first()` to content-based locators for duplicate node handling
+  - Fix modal dialog blocking context menu (Escape key dismissal)
+  - Update dismissOnboardingIfPresent to handle "Get Started" button variant
+  - Change gotoDeepLink to use domcontentloaded (avoid WebSocket timeout)
+  - Add room code cleanup before generating new codes
+  - Reuse existing E2E test map to avoid database bloat
+  - Why: Tests were failing due to parallel workers revoking each other's codes
+
+### Changed
+- **E2E scripts**: Added `e2e:firefox` and `e2e:webkit` npm scripts for browser-specific runs
+
 ---
 
 ## [2025-12-24]
