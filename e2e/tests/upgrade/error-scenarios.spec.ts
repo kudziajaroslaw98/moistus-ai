@@ -78,14 +78,28 @@ async function navigateToOtpStep(
 	await guestPage.goto('/dashboard');
 	await guestPage.waitForTimeout(2000);
 
-	const createAccountBtn = guestPage.getByRole('button', {
-		name: /create account/i,
-	});
+	// Dismiss onboarding modal if it appears
+	const skipButton = guestPage.locator('text=Skip for now');
+	const isOnboardingVisible = await skipButton.isVisible().catch(() => false);
+	if (isOnboardingVisible) {
+		await skipButton.click();
+		await guestPage.waitForTimeout(500);
+	}
 
-	const isVisible = await createAccountBtn.isVisible().catch(() => false);
-	if (!isVisible) return false;
+	// Check if upgrade modal is already open (auto-opens for anonymous users)
+	const upgradeModalHeader = guestPage.locator('text=Create Account to Start Building');
+	const isModalAlreadyOpen = await upgradeModalHeader.isVisible().catch(() => false);
 
-	await createAccountBtn.click();
+	if (!isModalAlreadyOpen) {
+		const createAccountBtn = guestPage.getByRole('button', {
+			name: /create account/i,
+		});
+
+		const isVisible = await createAccountBtn.isVisible().catch(() => false);
+		if (!isVisible) return false;
+
+		await createAccountBtn.click();
+	}
 
 	const emailButton = guestPage.getByRole('button', {
 		name: /sign up with email/i,

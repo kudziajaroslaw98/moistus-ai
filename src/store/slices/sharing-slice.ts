@@ -323,8 +323,9 @@ export const createSharingSlice: StateCreator<
 				const result = await response.json();
 				const token: ShareToken = result.data;
 
+				// Prepend to match server order (newest first via created_at DESC)
 				set((state) => ({
-					shareTokens: [...state.shareTokens, token],
+					shareTokens: [token, ...state.shareTokens],
 					activeToken: token,
 					isCreatingToken: false,
 				}));
@@ -617,6 +618,15 @@ export const createSharingSlice: StateCreator<
 						isUpgrading: false,
 					});
 				}
+
+				// Refresh global auth state so currentUser and userProfile are synced
+				// This is critical - without it, dashboard redirect sees stale is_anonymous
+				// Fire-and-forget so the success UI shows immediately
+				get()
+					.getCurrentUser()
+					.catch((err) =>
+						console.error('[sharing-slice] Post-upgrade getCurrentUser failed:', err)
+					);
 
 				return true;
 			} catch (error) {

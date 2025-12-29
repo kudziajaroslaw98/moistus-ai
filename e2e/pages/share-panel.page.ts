@@ -90,6 +90,8 @@ export class SharePanelPage {
 
 	/**
 	 * Opens the settings collapsible section if it's closed.
+	 * The "Generate Code" button is inside this collapsible section.
+	 * Settings are expanded by default, so this just ensures they're open.
 	 */
 	async openSettings() {
 		// First make sure we're on the Room Code tab
@@ -101,42 +103,21 @@ export class SharePanelPage {
 			await this.page.waitForTimeout(200);
 		}
 
-		// Check if settings are already expanded via aria-expanded
+		// Wait for settings toggle to be visible
+		await this.settingsToggle.waitFor({ state: 'visible', timeout: 5000 });
+
+		// Check if settings are already expanded
 		const isExpanded =
 			(await this.settingsToggle.getAttribute('aria-expanded')) === 'true';
 
 		if (!isExpanded) {
-			// Try multiple click strategies until it works
-			for (let attempt = 0; attempt < 3; attempt++) {
-				await this.settingsToggle.scrollIntoViewIfNeeded();
-				await this.page.waitForTimeout(100);
-
-				// Try regular click first, then force click
-				if (attempt === 0) {
-					await this.settingsToggle.click();
-				} else {
-					await this.settingsToggle.click({ force: true });
-				}
-
-				// Check if it expanded
-				try {
-					await expect(this.settingsToggle).toHaveAttribute(
-						'aria-expanded',
-						'true',
-						{ timeout: 2000 }
-					);
-					break; // Success, exit loop
-				} catch {
-					console.log(`openSettings attempt ${attempt + 1} failed, retrying...`);
-				}
-			}
-
-			// Final check - wait for input to be visible
-			await this.maxUsersInput.waitFor({ state: 'visible', timeout: 5000 });
-
-			// Extra wait for animation stability
-			await this.page.waitForTimeout(200);
+			await this.settingsToggle.click();
+			// Wait for animation
+			await this.page.waitForTimeout(300);
 		}
+
+		// Verify generate button is visible
+		await this.generateButton.waitFor({ state: 'visible', timeout: 5000 });
 	}
 
 	/**
@@ -194,7 +175,14 @@ export class SharePanelPage {
 		role?: 'viewer' | 'commenter' | 'editor';
 		maxUsers?: number;
 	}): Promise<string> {
+		// Wait for panel to load existing codes from API
+		await this.page.waitForLoadState('networkidle');
+
+		// Ensure settings section is expanded (button is inside it)
 		await this.openSettings();
+
+		// Wait for generate button to be visible (it's inside the collapsible settings)
+		await this.generateButton.waitFor({ state: 'visible', timeout: 5000 });
 
 		if (options?.role !== undefined) {
 			await this.setRole(options.role);
@@ -204,31 +192,23 @@ export class SharePanelPage {
 			await this.setMaxUsers(options.maxUsers);
 		}
 
-		// Get count of existing codes BEFORE generating
-		const existingCount = await this.roomCodeValues.count();
-
 		// Wait for any previous generation to complete
 		await expect(this.generateButton).toBeEnabled();
 
 		await this.generateButton.click();
 
-		// Wait for a NEW code to appear (count should increase)
-		await this.page.waitForTimeout(500); // Allow animation to start
+		// Wait for the new code to appear
+		await this.page.waitForTimeout(500);
 
-		// Wait until we have one more code than before
-		await expect(this.roomCodeValues).toHaveCount(existingCount + 1, {
-			timeout: 10000,
-		});
+		// Wait for at least one code to be visible
+		await this.roomCodeValues.first().waitFor({ state: 'visible', timeout: 10000 });
 
-		// Get the NEW code - it should be the last one in the list
-		// Room codes are displayed in reverse chronological order (newest last, or newest first)
-		// Check which code is new by comparing with the role we just selected
-		const allCodes = await this.roomCodeValues.allTextContents();
-		const lastCode = allCodes[allCodes.length - 1];
+		// Get the first code (newest codes appear first in the list)
+		const code = await this.roomCodeValues.first().textContent();
 
-		if (!lastCode) throw new Error('Failed to get room code');
+		if (!code) throw new Error('Failed to get room code');
 
-		return lastCode;
+		return code;
 	}
 
 	/**

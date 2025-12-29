@@ -55,8 +55,6 @@ export function SharePanel({
 	>('room-code');
 	const [isGeneratingCode, setIsGeneratingCode] = useState(false);
 	const [settingsOpen, setSettingsOpen] = useState(true);
-	// Track whether user has manually toggled settings to prevent useEffect override
-	const [userToggledSettings, setUserToggledSettings] = useState(false);
 	const shouldReduceMotion = useReducedMotion();
 	const settingsContentId = useId();
 
@@ -134,15 +132,6 @@ export function SharePanel({
 			token.is_active
 	);
 	const hasRoomCodes = mapRoomCodes.length > 0;
-
-	// Auto-collapse settings when room codes exist (only on initial load)
-	// Must be called unconditionally before any early returns
-	// Respects user manual toggles by checking userToggledSettings flag
-	useEffect(() => {
-		if (!userToggledSettings) {
-			setSettingsOpen(!hasRoomCodes);
-		}
-	}, [hasRoomCodes, userToggledSettings]);
 
 	if (!mapId) return null;
 
@@ -253,10 +242,7 @@ export function SharePanel({
 								type='button'
 								aria-controls={settingsContentId}
 								aria-expanded={settingsOpen}
-								onClick={() => {
-									setUserToggledSettings(true);
-									setSettingsOpen(!settingsOpen);
-								}}
+								onClick={() => setSettingsOpen(!settingsOpen)}
 								className='flex items-center justify-between w-full p-3 bg-surface rounded-lg hover:bg-surface/80 transition-colors duration-200 ease group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60 focus-visible:ring-offset-1 focus-visible:ring-offset-zinc-900'
 							>
 								<div className='flex items-center gap-2'>
