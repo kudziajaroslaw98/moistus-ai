@@ -176,25 +176,17 @@ test.describe('Invalid OTP Errors', () => {
 			const otpInput = guestPage.locator('input#otp');
 			await otpInput.fill('abcdef');
 
-			// Check for validation error
+			// Click verify to trigger validation (react-hook-form validates onSubmit)
+			const verifyButton = guestPage.getByRole('button', {
+				name: /verify code/i,
+			});
+			await verifyButton.click();
+
+			// Wait for validation error - "Code must contain only numbers"
 			const validationError = guestPage.locator(
-				'.text-rose-400:has-text("numbers")'
+				'text=must contain only numbers'
 			);
-			const hasError = await validationError.isVisible().catch(() => false);
-
-			if (!hasError) {
-				// If no client-side validation, try to submit
-				const verifyButton = guestPage.getByRole('button', {
-					name: /verify code/i,
-				});
-				await verifyButton.click();
-
-				// Should get error from server
-				const errorMessage = guestPage.locator('.bg-rose-900\\/30');
-				await errorMessage.waitFor({ state: 'visible', timeout: 10000 });
-			}
-
-			expect(true).toBeTruthy(); // Test passed if we got here
+			await expect(validationError).toBeVisible({ timeout: 5000 });
 		} finally {
 			await cleanup();
 		}
@@ -216,13 +208,15 @@ test.describe('Invalid OTP Errors', () => {
 			const otpInput = guestPage.locator('input#otp');
 			await otpInput.fill('123');
 
-			// Check for validation error
-			const validationError = guestPage.locator(
-				'.text-rose-400:has-text("6 digits")'
-			);
-			const hasError = await validationError.isVisible().catch(() => false);
+			// Click verify to trigger validation (react-hook-form validates onSubmit)
+			const verifyButton = guestPage.getByRole('button', {
+				name: /verify code/i,
+			});
+			await verifyButton.click();
 
-			expect(hasError).toBeTruthy();
+			// Wait for validation error - "Code must be 6 digits"
+			const validationError = guestPage.locator('text=must be 6 digits');
+			await expect(validationError).toBeVisible({ timeout: 5000 });
 		} finally {
 			await cleanup();
 		}
