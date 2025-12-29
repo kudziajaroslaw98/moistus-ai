@@ -19,6 +19,7 @@ import { MindMapPage } from '../../pages/mind-map.page';
 
 /**
  * Helper to create an anonymous session by joining a shared map.
+ * Clears localStorage to ensure anonymous banner is visible.
  */
 async function createAnonymousSessionViaJoin(
 	browser: import('@playwright/test').Browser,
@@ -58,6 +59,12 @@ async function createAnonymousSessionViaJoin(
 	await guestPage.waitForTimeout(1000);
 	await joinPage.joinAsGuest('E2E Upgrade Test');
 	await joinPage.waitForSuccess();
+
+	// Clear localStorage to ensure anonymous banner is visible
+	// (removes any 'anonymous_banner_dismissed' state)
+	await guestPage.evaluate(() => {
+		localStorage.removeItem('anonymous_banner_dismissed');
+	});
 
 	return {
 		guestPage,
@@ -250,18 +257,26 @@ test.describe('Resend OTP Functionality', () => {
 			await guestPage.goto('/dashboard');
 			await guestPage.waitForTimeout(2000);
 
-			// Open upgrade modal
-			const createAccountBtn = guestPage.getByRole('button', {
-				name: /create account/i,
-			});
-
-			const isVisible = await createAccountBtn.isVisible().catch(() => false);
-			if (!isVisible) {
-				test.skip();
-				return;
+			// Dismiss onboarding modal if it appears
+			const skipButton = guestPage.locator('text=Skip for now');
+			const isOnboardingVisible = await skipButton.isVisible().catch(() => false);
+			if (isOnboardingVisible) {
+				await skipButton.click();
+				await guestPage.waitForTimeout(500);
 			}
 
-			await createAccountBtn.click();
+			// Check if upgrade modal is already open (auto-opens for anonymous users)
+			const upgradeModalHeader = guestPage.locator('text=Create Account to Start Building');
+			const isModalAlreadyOpen = await upgradeModalHeader.isVisible().catch(() => false);
+
+			if (!isModalAlreadyOpen) {
+				// Click Create Account from banner
+				const createAccountBtn = guestPage.getByRole('button', {
+					name: /create account/i,
+				});
+				await createAccountBtn.waitFor({ state: 'visible', timeout: 5000 });
+				await createAccountBtn.click();
+			}
 
 			// Select email
 			const emailButton = guestPage.getByRole('button', {
@@ -316,17 +331,25 @@ test.describe('Password Requirements Validation', () => {
 			await guestPage.goto('/dashboard');
 			await guestPage.waitForTimeout(2000);
 
-			const createAccountBtn = guestPage.getByRole('button', {
-				name: /create account/i,
-			});
-
-			const isVisible = await createAccountBtn.isVisible().catch(() => false);
-			if (!isVisible) {
-				test.skip();
-				return;
+			// Dismiss onboarding modal if it appears
+			const skipButton = guestPage.locator('text=Skip for now');
+			const isOnboardingVisible = await skipButton.isVisible().catch(() => false);
+			if (isOnboardingVisible) {
+				await skipButton.click();
+				await guestPage.waitForTimeout(500);
 			}
 
-			await createAccountBtn.click();
+			// Check if upgrade modal is already open (auto-opens for anonymous users)
+			const upgradeModalHeader = guestPage.locator('text=Create Account to Start Building');
+			const isModalAlreadyOpen = await upgradeModalHeader.isVisible().catch(() => false);
+
+			if (!isModalAlreadyOpen) {
+				const createAccountBtn = guestPage.getByRole('button', {
+					name: /create account/i,
+				});
+				await createAccountBtn.waitFor({ state: 'visible', timeout: 5000 });
+				await createAccountBtn.click();
+			}
 
 			// Select email
 			const emailButton = guestPage.getByRole('button', {
@@ -359,34 +382,39 @@ test.describe('Password Requirements Validation', () => {
 			const passwordInput = guestPage.locator('input#password');
 			await passwordInput.waitFor({ state: 'visible', timeout: 15000 });
 
-			// Password requirements should be visible
-			const requirementsList = guestPage.locator('.text-emerald-400, .text-text-tertiary');
-			await expect(requirementsList.first()).toBeVisible();
+			// Password requirements should be visible (based on actual component text)
+			const lengthReq = guestPage.locator('text=At least 8 characters');
+			const uppercaseReq = guestPage.locator('text=One uppercase letter');
+			const lowercaseReq = guestPage.locator('text=One lowercase letter');
 
-			// Type password incrementally and verify requirements
+			await expect(lengthReq).toBeVisible({ timeout: 5000 });
+			await expect(uppercaseReq).toBeVisible();
+			await expect(lowercaseReq).toBeVisible();
+
+			// Type password incrementally
 			// Initially empty - no requirements met
 			await passwordInput.fill('');
 
-			// Add lowercase only
+			// Add lowercase only - lowercase requirement should turn green
 			await passwordInput.fill('test');
-			const lowercaseReq = guestPage.locator('.text-emerald-400:has-text("lowercase")');
-			// May or may not be emerald depending on implementation
+			await guestPage.waitForTimeout(200); // Allow UI to update
 
 			// Add uppercase
 			await passwordInput.fill('Test');
+			await guestPage.waitForTimeout(200);
 
 			// Add number
 			await passwordInput.fill('Test1');
+			await guestPage.waitForTimeout(200);
 
-			// Add length
+			// Add length (8+ chars)
 			await passwordInput.fill('Test1234');
+			await guestPage.waitForTimeout(200);
 
-			// All requirements should now be met (green checkmarks)
-			// Verify at least some requirement indicators exist
-			const requirements = guestPage.locator(
-				'text=8 characters, text=uppercase, text=lowercase, text=number'
-			);
-			await expect(requirements.first()).toBeVisible();
+			// All requirements met - verify requirements are still visible
+			await expect(lengthReq).toBeVisible();
+			await expect(uppercaseReq).toBeVisible();
+			await expect(lowercaseReq).toBeVisible();
 		} finally {
 			await cleanup();
 		}
@@ -406,17 +434,25 @@ test.describe('Navigation Within Upgrade Flow', () => {
 			await guestPage.goto('/dashboard');
 			await guestPage.waitForTimeout(2000);
 
-			const createAccountBtn = guestPage.getByRole('button', {
-				name: /create account/i,
-			});
-
-			const isVisible = await createAccountBtn.isVisible().catch(() => false);
-			if (!isVisible) {
-				test.skip();
-				return;
+			// Dismiss onboarding modal if it appears
+			const skipButton = guestPage.locator('text=Skip for now');
+			const isOnboardingVisible = await skipButton.isVisible().catch(() => false);
+			if (isOnboardingVisible) {
+				await skipButton.click();
+				await guestPage.waitForTimeout(500);
 			}
 
-			await createAccountBtn.click();
+			// Check if upgrade modal is already open (auto-opens for anonymous users)
+			const upgradeModalHeader = guestPage.locator('text=Create Account to Start Building');
+			const isModalAlreadyOpen = await upgradeModalHeader.isVisible().catch(() => false);
+
+			if (!isModalAlreadyOpen) {
+				const createAccountBtn = guestPage.getByRole('button', {
+					name: /create account/i,
+				});
+				await createAccountBtn.waitFor({ state: 'visible', timeout: 5000 });
+				await createAccountBtn.click();
+			}
 
 			// Step 1: Choose method
 			const emailButton = guestPage.getByRole('button', {
