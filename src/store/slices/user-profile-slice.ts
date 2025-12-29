@@ -91,8 +91,13 @@ export const createUserProfileSlice: StateCreator<
 					.insert({
 						user_id: user.id,
 						full_name: user.user_metadata?.full_name || '',
-						display_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
+						display_name:
+							user.user_metadata?.display_name ||
+							user.user_metadata?.full_name ||
+							user.user_metadata?.name ||
+							'',
 						avatar_url: avatarUrl,
+						is_anonymous: user.is_anonymous ?? false,
 						preferences: {
 							theme: 'system',
 							accentColor: 'sky',

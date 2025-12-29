@@ -217,7 +217,7 @@ export const createSharingSlice: StateCreator<
 				await new Promise((resolve) => setTimeout(resolve, 100));
 
 				// Get the newly created profile (created by database trigger)
-				const { data: newProfile } = await supabase
+				const { data: newProfile, error: profileError } = await supabase
 					.from('user_profiles')
 					.select('display_name, avatar_url, is_anonymous')
 					.eq('user_id', authData.user.id)
@@ -230,6 +230,28 @@ export const createSharingSlice: StateCreator<
 				const avatarUrl =
 					newProfile?.avatar_url ||
 					`https://api.dicebear.com/7.x/avataaars/svg?seed=${authData.user.id}`;
+
+				// If trigger didn't create profile, create it now with is_anonymous=true
+				if (profileError || !newProfile) {
+					console.log(
+						'ensureAuthenticated: Profile not created by trigger, inserting manually'
+					);
+					await supabase.from('user_profiles').insert({
+						user_id: authData.user.id,
+						display_name: defaultDisplayName,
+						avatar_url: avatarUrl,
+						is_anonymous: true,
+					});
+				} else if (newProfile && !newProfile.is_anonymous) {
+					// Profile was created by trigger but is_anonymous not set - update it
+					console.log(
+						'ensureAuthenticated: Profile exists but is_anonymous not set, updating'
+					);
+					await supabase
+						.from('user_profiles')
+						.update({ is_anonymous: true })
+						.eq('user_id', authData.user.id);
+				}
 
 				const anonymousUser: AnonymousUser = {
 					user_id: authData.user.id,
@@ -385,9 +407,12 @@ export const createSharingSlice: StateCreator<
 			displayName?: string
 		) => {
 			try {
-				const currentUser = get().authUser;
+				// Get user from Supabase auth directly - source of truth for is_anonymous
+				const {
+					data: { user },
+				} = await supabase.auth.getUser();
 
-				if (!currentUser?.is_anonymous) {
+				if (!user?.is_anonymous) {
 					throw new Error('User is not anonymous or not found');
 				}
 
@@ -408,17 +433,20 @@ export const createSharingSlice: StateCreator<
 
 				const result = await response.json();
 
-				// Update current user state
-				const updatedUser: AnonymousUser = {
-					...currentUser,
-					display_name: result.data.profile.display_name,
-					is_anonymous: false,
-				};
+				// Update current user state (get fresh local state)
+				const currentAuthUser = get().authUser;
+				if (currentAuthUser) {
+					const updatedUser: AnonymousUser = {
+						...currentAuthUser,
+						display_name: result.data.profile.display_name,
+						is_anonymous: false,
+					};
 
-				set({
-					authUser: updatedUser,
-					sharingError: undefined,
-				});
+					set({
+						authUser: updatedUser,
+						sharingError: undefined,
+					});
+				}
 
 				return true;
 			} catch (error) {
@@ -450,9 +478,12 @@ export const createSharingSlice: StateCreator<
 			});
 
 			try {
-				const currentUser = get().authUser;
+				// Get user from Supabase auth directly - source of truth for is_anonymous
+				const {
+					data: { user },
+				} = await supabase.auth.getUser();
 
-				if (!currentUser?.is_anonymous) {
+				if (!user?.is_anonymous) {
 					throw new Error('User is not anonymous or not found');
 				}
 
@@ -612,9 +643,12 @@ export const createSharingSlice: StateCreator<
 			});
 
 			try {
-				const currentUser = get().authUser;
+				// Get user from Supabase auth directly - source of truth for is_anonymous
+				const {
+					data: { user },
+				} = await supabase.auth.getUser();
 
-				if (!currentUser?.is_anonymous) {
+				if (!user?.is_anonymous) {
 					throw new Error('User is not anonymous or not found');
 				}
 
