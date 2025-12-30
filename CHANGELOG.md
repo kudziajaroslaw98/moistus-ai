@@ -5,6 +5,18 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2025-12-30]
+
+### Fixed
+- **E2E drag test**: Fixed "editor can drag nodes" test that was failing
+  - Use unique node names with timestamp suffix to prevent collisions from previous runs
+  - Switch to "Select" cursor mode before dragging (required by React Flow)
+  - Clean up drag test node after completion
+  - Apply unique naming to Editor, Commenter, Real-time groups
+  - Why: Nodes accumulating across test runs caused "strict mode violation" errors
+
+---
+
 ## [2025-12-28]
 
 ### Added
