@@ -62,8 +62,17 @@ async function createAnonymousSessionViaJoin(
 		guestPage,
 		guestContext,
 		cleanup: async () => {
-			await ownerContext.close();
-			await guestContext.close();
+			// Use try-catch to handle already-closed contexts (e.g., after test timeout)
+			try {
+				await ownerContext.close();
+			} catch {
+				// Context already closed
+			}
+			try {
+				await guestContext.close();
+			} catch {
+				// Context already closed
+			}
 		},
 	};
 }

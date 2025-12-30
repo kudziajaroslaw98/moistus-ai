@@ -14,7 +14,17 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Fix node-editor "edit existing node" test - was finding nodes from other tests
   - Skip flaky editor drag test - React Flow drag detection not working in E2E
   - Improve drag methods with click-to-select and proper waits
+  - Remove `afterEach` cleanup from node-editor tests - use unique names instead
+  - Add try-catch guards to upgrade test context cleanup (handle already-closed contexts)
+  - Fix "multiple nodes" test - use initial/final count delta instead of absolute count
   - Why: Tests were interfering with each other when running in parallel
+
+### Changed
+- **E2E parallel/serial split**: Split chromium project into two configurations
+  - `chromium` project - runs node-editor tests in parallel (4 workers)
+  - `chromium-serial` project - runs sharing/upgrade tests serially (fullyParallel: false)
+  - Updated `e2e:chromium` script to run both projects
+  - Why: Real-time sensitive tests (sharing, upgrade) cannot run in parallel due to shared testMapId
 
 ---
 

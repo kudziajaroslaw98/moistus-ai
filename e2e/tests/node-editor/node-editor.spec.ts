@@ -21,10 +21,9 @@ test.describe.serial('Node Editor', () => {
 		await mindMapPage.goto(testMapId);
 	});
 
-	test.afterEach(async ({ mindMapPage }) => {
-		// Clean up all nodes created during the test
-		await mindMapPage.deleteAllNodes();
-	});
+	// NOTE: No afterEach cleanup - tests use unique node names to avoid collisions
+	// The shared test map accumulates nodes but that's fine since each test
+	// identifies its own nodes by unique content
 
 	// ============================================================================
 	// TEST 1: Pattern Highlighting (no node creation)
@@ -203,34 +202,37 @@ test.describe.serial('Node Editor', () => {
 		mindMapPage,
 		page,
 	}) => {
+		// Use unique names to avoid collision with nodes from other tests
+		const testId = Date.now().toString().slice(-6);
+
 		// Create a default note node with tags and assignee
 		await mindMapPage.openNodeEditor();
 		await mindMapPage.nodeEditorPage.typeContent(
-			'E2E Test Note #e2e-marker @tester'
+			`E2E Test Note ${testId} #e2e-marker @tester`
 		);
 		await mindMapPage.nodeEditorPage.create();
-		await mindMapPage.expectNodeExists('E2E Test Note');
+		await mindMapPage.expectNodeExists(`E2E Test Note ${testId}`);
 
 		// Create another node with different content
 		await mindMapPage.openNodeEditor();
 		await mindMapPage.nodeEditorPage.typeContent(
-			'Second E2E Node #testing !high'
+			`Second Node ${testId} #testing !high`
 		);
 		await mindMapPage.nodeEditorPage.create();
-		await mindMapPage.expectNodeExists('Second E2E Node');
+		await mindMapPage.expectNodeExists(`Second Node ${testId}`);
 
 		// Create a third node with date pattern
 		await mindMapPage.openNodeEditor();
 		await mindMapPage.nodeEditorPage.typeContent(
-			'Third E2E Node ^tomorrow :pending'
+			`Third Node ${testId} ^tomorrow :pending`
 		);
 		await mindMapPage.nodeEditorPage.create();
-		await mindMapPage.expectNodeExists('Third E2E Node');
+		await mindMapPage.expectNodeExists(`Third Node ${testId}`);
 
 		// Verify all 3 nodes exist by their unique content
-		const noteNode1 = mindMapPage.getNodeByContent('E2E Test Note');
-		const noteNode2 = mindMapPage.getNodeByContent('Second E2E Node');
-		const noteNode3 = mindMapPage.getNodeByContent('Third E2E Node');
+		const noteNode1 = mindMapPage.getNodeByContent(`E2E Test Note ${testId}`);
+		const noteNode2 = mindMapPage.getNodeByContent(`Second Node ${testId}`);
+		const noteNode3 = mindMapPage.getNodeByContent(`Third Node ${testId}`);
 
 		await expect(noteNode1).toBeVisible();
 		await expect(noteNode2).toBeVisible();
@@ -331,23 +333,31 @@ test.describe.serial('Node Editor', () => {
 		mindMapPage,
 		page,
 	}) => {
+		// Use unique names to avoid collision with nodes from other tests
+		const testId = Date.now().toString().slice(-6);
+		const firstContent = `First E2E Node ${testId}`;
+		const secondContent = `Second E2E Node ${testId}`;
+
+		// Get initial node count
+		const initialCount = await mindMapPage.getNodeCount();
+
 		// Create first node
-		await mindMapPage.createNodeWithContent('First E2E Node');
-		await mindMapPage.expectNodeExists('First E2E Node');
+		await mindMapPage.createNodeWithContent(firstContent);
+		await mindMapPage.expectNodeExists(firstContent);
 
 		// Create second node
-		await mindMapPage.createNodeWithContent('Second E2E Node');
-		await mindMapPage.expectNodeExists('Second E2E Node');
+		await mindMapPage.createNodeWithContent(secondContent);
+		await mindMapPage.expectNodeExists(secondContent);
 
 		// Verify both nodes exist simultaneously
-		const firstNode = mindMapPage.getNodeByContent('First E2E Node');
-		const secondNode = mindMapPage.getNodeByContent('Second E2E Node');
+		const firstNode = mindMapPage.getNodeByContent(firstContent);
+		const secondNode = mindMapPage.getNodeByContent(secondContent);
 
 		await expect(firstNode).toBeVisible();
 		await expect(secondNode).toBeVisible();
 
-		// Verify total node count
-		const nodeCount = await mindMapPage.getNodeCount();
-		expect(nodeCount).toBe(2);
+		// Verify we created exactly 2 new nodes
+		const finalCount = await mindMapPage.getNodeCount();
+		expect(finalCount).toBe(initialCount + 2);
 	});
 });

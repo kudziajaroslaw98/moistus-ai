@@ -86,7 +86,7 @@ export default defineConfig({
 			testMatch: /global\.setup\.ts/,
 		},
 
-		// Chromium - primary browser
+		// Chromium - primary browser (parallel tests)
 		{
 			name: 'chromium',
 			use: {
@@ -94,6 +94,21 @@ export default defineConfig({
 				storageState: 'e2e/.auth/user.json',
 			},
 			dependencies: ['setup'],
+			// Exclude real-time tests - they run in chromium-serial
+			testIgnore: ['**/sharing/**', '**/upgrade/**'],
+		},
+
+		// Chromium - serial for real-time sensitive tests
+		// These tests share testMapId and are affected by Supabase real-time sync
+		{
+			name: 'chromium-serial',
+			use: {
+				...devices['Desktop Chrome'],
+				storageState: 'e2e/.auth/user.json',
+			},
+			dependencies: ['setup'],
+			testMatch: ['**/sharing/**', '**/upgrade/**'],
+			fullyParallel: false,
 		},
 
 		// Firefox - secondary
