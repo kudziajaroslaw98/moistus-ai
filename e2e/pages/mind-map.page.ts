@@ -234,10 +234,22 @@ export class MindMapPage {
 		const startX = box.x + box.width / 2;
 		const startY = box.y + box.height / 2;
 
-		await this.page.mouse.move(startX, startY);
+		// Click to select the node first (required for React Flow dragging)
+		await node.click({ force: true });
+		await this.page.waitForTimeout(300);
+
+		// Re-get bounding box after selection (position may have changed)
+		const selectedBox = await node.boundingBox();
+		const dragStartX = selectedBox ? selectedBox.x + selectedBox.width / 2 : startX;
+		const dragStartY = selectedBox ? selectedBox.y + selectedBox.height / 2 : startY;
+
+		await this.page.mouse.move(dragStartX, dragStartY);
 		await this.page.mouse.down();
-		await this.page.mouse.move(startX + deltaX, startY + deltaY, { steps: 10 });
+		await this.page.mouse.move(dragStartX + deltaX, dragStartY + deltaY, { steps: 10 });
 		await this.page.mouse.up();
+
+		// Wait for React Flow to update DOM positions
+		await this.page.waitForTimeout(500);
 
 		// Get new position
 		const newBox = await node.boundingBox();
@@ -254,22 +266,40 @@ export class MindMapPage {
 		deltaX: number,
 		deltaY: number
 	): Promise<{ startPos: { x: number; y: number }; endPos: { x: number; y: number } }> {
-		const node = this.getNodeByContent(content);
-		const box = await node.boundingBox();
+		// Find the React Flow node wrapper (has the draggable class)
+		const nodeWrapper = this.page.locator(
+			`.react-flow__node:has-text("${content}")`
+		);
+		const box = await nodeWrapper.boundingBox();
 		if (!box) throw new Error('Node not visible');
 
 		const startPos = { x: box.x, y: box.y };
+		const centerX = box.x + box.width / 2;
+		const centerY = box.y + box.height / 2;
 
-		const startX = box.x + box.width / 2;
-		const startY = box.y + box.height / 2;
-
-		await this.page.mouse.move(startX, startY);
+		// Perform drag with mouse events on the React Flow node wrapper
+		await this.page.mouse.move(centerX, centerY);
+		await this.page.waitForTimeout(100);
 		await this.page.mouse.down();
-		await this.page.mouse.move(startX + deltaX, startY + deltaY, { steps: 10 });
+		await this.page.waitForTimeout(100);
+
+		// Move in small steps to trigger React Flow's drag detection
+		const steps = 20;
+		for (let i = 1; i <= steps; i++) {
+			await this.page.mouse.move(
+				centerX + (deltaX * i) / steps,
+				centerY + (deltaY * i) / steps
+			);
+			await this.page.waitForTimeout(10);
+		}
+
 		await this.page.mouse.up();
 
+		// Wait for React Flow to update DOM positions
+		await this.page.waitForTimeout(500);
+
 		// Get new position
-		const newBox = await node.boundingBox();
+		const newBox = await nodeWrapper.boundingBox();
 		const endPos = newBox ? { x: newBox.x, y: newBox.y } : startPos;
 
 		return { startPos, endPos };

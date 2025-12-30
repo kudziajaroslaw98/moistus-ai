@@ -24,7 +24,7 @@ export default defineConfig({
 	// Force single worker to prevent cross-test race conditions on shared testMapId
 	// All sharing/permissions tests share the same database state, so parallel execution
 	// causes revokeAllCodes() in one test to delete room codes created by other tests
-	workers: 1,
+	workers: 4,
 
 	// Reporter configuration
 	reporter: isCI

@@ -346,7 +346,7 @@ test.describe('Anonymous User via Shared Map Join', () => {
 		await ownerMindMap.waitForCanvasLoaded();
 
 		await ownerSharePanel.openPanel();
-		await ownerSharePanel.revokeAllCodes();
+		// Note: Don't use revokeAllCodes() - causes race conditions with other parallel tests
 		const roomCode = await ownerSharePanel.generateRoomCode({
 			role: 'viewer',
 			maxUsers: 10,

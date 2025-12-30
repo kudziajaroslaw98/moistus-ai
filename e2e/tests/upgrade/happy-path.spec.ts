@@ -42,9 +42,8 @@ async function createAnonymousSessionViaJoin(
 	await ownerMindMap.waitForCanvasLoaded();
 
 	await ownerSharePanel.openPanel();
-	// Revoke existing codes first to ensure clean state
-	await ownerSharePanel.revokeAllCodes();
 	// Generate room code with default settings (don't specify role to avoid selector issues)
+	// Note: Don't use revokeAllCodes() - causes race conditions with other parallel tests
 	const roomCode = await ownerSharePanel.generateRoomCode();
 
 	// Create fresh guest context (no auth)
