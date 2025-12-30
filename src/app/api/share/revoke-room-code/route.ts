@@ -45,21 +45,7 @@ export const POST = withAuthValidation(
 				);
 			}
 
-			// Also deactivate any existing share permissions for this token
-			const { error: shareError } = await supabase
-				.from('mind_map_shares')
-				.update({
-					is_active: false,
-					updated_at: new Date().toISOString(),
-				})
-				.eq('share_token_id', data.token_id);
-
-			if (shareError) {
-				console.error('Failed to revoke share permissions:', shareError);
-				// Continue anyway, token is already revoked
-			}
-
-			// Also deactivate share_access records for this token
+			// Deactivate share_access records for this token
 			const { error: accessError } = await supabase
 				.from('share_access')
 				.update({
