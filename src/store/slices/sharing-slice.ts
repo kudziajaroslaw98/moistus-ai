@@ -548,10 +548,27 @@ export const createSharingSlice: StateCreator<
 				});
 
 				const result = await response.json();
+				console.log('[verifyUpgradeOtp] Response:', {
+					ok: response.ok,
+					result,
+				});
 
 				if (!response.ok) {
 					throw new Error(result.error || 'Invalid verification code');
 				}
+
+				// CRITICAL: After OTP verification, the server creates a new session.
+				// We must refresh the client-side Supabase session to pick up the new cookies.
+				// Without this, subsequent API calls will fail with "Auth session missing"
+				console.log(
+					'[verifyUpgradeOtp] Refreshing client session after OTP verification...'
+				);
+				const { data: sessionData, error: sessionError } =
+					await supabase.auth.getUser();
+				console.log('[verifyUpgradeOtp] Session refresh result:', {
+					hasSession: !!sessionData?.user,
+					error: sessionError?.message,
+				});
 
 				set({
 					upgradeStep: 'set_password',
@@ -577,6 +594,10 @@ export const createSharingSlice: StateCreator<
 
 			try {
 				const displayName = get().upgradeDisplayName;
+				console.log(
+					'[completeUpgradeWithPassword] Starting with displayName:',
+					displayName
+				);
 
 				const response = await fetch(
 					'/api/auth/upgrade-anonymous/set-password',
@@ -591,6 +612,11 @@ export const createSharingSlice: StateCreator<
 				);
 
 				const result = await response.json();
+				console.log('[completeUpgradeWithPassword] Response:', {
+					ok: response.ok,
+					status: response.status,
+					result,
+				});
 
 				if (!response.ok) {
 					throw new Error(result.error || 'Failed to set password');
@@ -618,15 +644,6 @@ export const createSharingSlice: StateCreator<
 						isUpgrading: false,
 					});
 				}
-
-				// Refresh global auth state so currentUser and userProfile are synced
-				// This is critical - without it, dashboard redirect sees stale is_anonymous
-				// Fire-and-forget so the success UI shows immediately
-				get()
-					.getCurrentUser()
-					.catch((err) =>
-						console.error('[sharing-slice] Post-upgrade getCurrentUser failed:', err)
-					);
 
 				return true;
 			} catch (error) {
@@ -852,9 +869,7 @@ export const createSharingSlice: StateCreator<
 				const sharingError: SharingError = {
 					code: 'UNKNOWN',
 					message:
-						error instanceof Error
-							? error.message
-							: 'Failed to delete share',
+						error instanceof Error ? error.message : 'Failed to delete share',
 				};
 
 				set({ sharingError });
@@ -886,19 +901,6 @@ export const createSharingSlice: StateCreator<
 							console.log('Sharing update received:', payload);
 							// Refresh tokens when changes occur
 							get().refreshTokens();
-						}
-					)
-					.on(
-						'postgres_changes',
-						{
-							event: '*',
-							schema: 'public',
-							table: 'mind_map_shares',
-							filter: `map_id=eq.${mapId}`,
-						},
-						(payload) => {
-							console.log('Share permissions update received:', payload);
-							// Could trigger additional updates if needed
 						}
 					);
 
@@ -982,4 +984,3 @@ export const createSharingSlice: StateCreator<
 
 // Export the type for use in other parts of the app
 export type { AnonymousUser, SharingSlice };
-
