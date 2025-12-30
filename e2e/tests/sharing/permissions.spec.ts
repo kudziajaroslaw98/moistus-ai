@@ -18,8 +18,10 @@
 
 import { test, expect } from '../../fixtures/multi-user.fixture';
 
-// Force single worker for this file to prevent race conditions
-test.describe.configure({ mode: 'serial' });
+// Run all groups sequentially (single worker) but continue if one group fails
+// This prevents race conditions while allowing all groups to run
+test.describe.configure({ mode: 'default' });
+
 import { ContextMenuPage } from '../../pages/context-menu.page';
 import { JoinRoomPage } from '../../pages/join-room.page';
 import { MindMapPage } from '../../pages/mind-map.page';
