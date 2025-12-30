@@ -30,10 +30,6 @@ test.describe.serial('Sharing - User Limit Enforcement', () => {
 		sharePanelPage = new SharePanelPage(ownerPage);
 		await sharePanelPage.openPanel();
 
-		// Clean up any existing room codes from previous test runs
-		await sharePanelPage.revokeAllCodes();
-		await ownerPage.waitForTimeout(500);
-
 		// Generate room code with max_users=1
 		roomCode = await sharePanelPage.generateRoomCode({ maxUsers: 1 });
 
@@ -103,15 +99,17 @@ test.describe.serial('Sharing - User Limit Enforcement', () => {
 	});
 
 	test.afterAll(async ({ ownerPage, testMapId }) => {
-		// Cleanup: revoke all room codes
+		// Cleanup: revoke only OUR room code (not all codes - prevents race conditions)
+		if (!roomCode) return; // Skip if test failed before creating code
+
 		await ownerPage.goto(`/mind-map/${testMapId}`);
 		await ownerPage.waitForLoadState('networkidle');
 
 		const sharePanelPage = new SharePanelPage(ownerPage);
 		await sharePanelPage.openPanel();
-		await sharePanelPage.revokeAllCodes();
+		await sharePanelPage.revokeCode(roomCode);
 
-		console.log('Cleanup: revoked all room codes');
+		console.log(`Cleanup: revoked room code ${roomCode}`);
 	});
 });
 

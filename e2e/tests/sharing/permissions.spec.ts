@@ -11,9 +11,9 @@
  * 4. Real-time Sync - Changes visible without refresh
  * 5. Access Revocation - Kicked when access revoked
  *
- * NOTE: This entire test file runs with a single worker to prevent race conditions
- * where different workers revoke each other's room codes. All tests share the
- * same test map, and revokeAllCodes() affects all workers.
+ * ISOLATION: Each test group creates its own room code and cleans up only
+ * that specific code in afterAll. This prevents race conditions when running
+ * with multiple workers - no group affects another group's room codes.
  */
 
 import { test, expect } from '../../fixtures/multi-user.fixture';
@@ -43,11 +43,6 @@ test.describe.serial('Viewer Role Restrictions', () => {
 		// Open share panel
 		ownerSharePanel = new SharePanelPage(ownerPage);
 		await ownerSharePanel.openPanel();
-
-		// Clean up any existing room codes from previous runs first
-		// This ensures settings accordion stays open (auto-collapses when codes exist)
-		await ownerSharePanel.revokeAllCodes();
-		await ownerPage.waitForTimeout(500);
 
 		// Generate room code with viewer role
 		viewerRoomCode = await ownerSharePanel.generateRoomCode({
@@ -318,8 +313,15 @@ test.describe.serial('Viewer Role Restrictions', () => {
 		await guestToolbarPage.expectExportButtonVisible();
 	});
 
-	// Note: Cleanup moved to beforeAll of next describe block
-	// afterAll with worker-scoped fixtures causes premature execution
+	test.afterAll(async ({ ownerPage, testMapId }) => {
+		if (!viewerRoomCode) return;
+		await ownerPage.goto(`/mind-map/${testMapId}`);
+		await ownerPage.waitForLoadState('networkidle');
+		const sharePanelPage = new SharePanelPage(ownerPage);
+		await sharePanelPage.openPanel();
+		await sharePanelPage.revokeCode(viewerRoomCode);
+		console.log(`Viewer tests cleanup: revoked ${viewerRoomCode}`);
+	});
 });
 
 // ============================================================================
@@ -329,19 +331,6 @@ test.describe.serial('Viewer Role Restrictions', () => {
 test.describe.serial('Editor Role Functionality', () => {
 	let editorRoomCode: string;
 
-	// Cleanup from previous test group
-	test.beforeAll(async ({ ownerPage, testMapId }) => {
-		const mindMapPage = new MindMapPage(ownerPage);
-		await mindMapPage.goto(testMapId);
-		await mindMapPage.deleteAllNodes();
-
-		const sharePanelPage = new SharePanelPage(ownerPage);
-		await sharePanelPage.openPanel();
-		await sharePanelPage.revokeAllCodes();
-
-		console.log('Editor tests cleanup complete');
-	});
-
 	test('owner creates editor room code', async ({ ownerPage, testMapId }) => {
 		await ownerPage.goto(`/mind-map/${testMapId}`);
 		await ownerPage.waitForLoadState('networkidle');
@@ -349,10 +338,6 @@ test.describe.serial('Editor Role Functionality', () => {
 
 		const sharePanelPage = new SharePanelPage(ownerPage);
 		await sharePanelPage.openPanel();
-
-		// Clean up any existing room codes from previous runs first
-		await sharePanelPage.revokeAllCodes();
-		await ownerPage.waitForTimeout(500);
 
 		editorRoomCode = await sharePanelPage.generateRoomCode({
 			role: 'editor',
@@ -442,7 +427,15 @@ test.describe.serial('Editor Role Functionality', () => {
 		expect(xDiff + yDiff).toBeGreaterThan(50);
 	});
 
-	// Note: Cleanup moved to beforeAll of next describe block
+	test.afterAll(async ({ ownerPage, testMapId }) => {
+		if (!editorRoomCode) return;
+		await ownerPage.goto(`/mind-map/${testMapId}`);
+		await ownerPage.waitForLoadState('networkidle');
+		const sharePanelPage = new SharePanelPage(ownerPage);
+		await sharePanelPage.openPanel();
+		await sharePanelPage.revokeCode(editorRoomCode);
+		console.log(`Editor tests cleanup: revoked ${editorRoomCode}`);
+	});
 });
 
 // ============================================================================
@@ -452,19 +445,6 @@ test.describe.serial('Editor Role Functionality', () => {
 test.describe.serial('Commenter Role Restrictions', () => {
 	let commenterRoomCode: string;
 
-	// Cleanup from previous test group
-	test.beforeAll(async ({ ownerPage, testMapId }) => {
-		const mindMapPage = new MindMapPage(ownerPage);
-		await mindMapPage.goto(testMapId);
-		await mindMapPage.deleteAllNodes();
-
-		const sharePanelPage = new SharePanelPage(ownerPage);
-		await sharePanelPage.openPanel();
-		await sharePanelPage.revokeAllCodes();
-
-		console.log('Commenter tests cleanup complete');
-	});
-
 	test('owner creates commenter room code', async ({ ownerPage, testMapId }) => {
 		await ownerPage.goto(`/mind-map/${testMapId}`);
 		await ownerPage.waitForLoadState('networkidle');
@@ -472,10 +452,6 @@ test.describe.serial('Commenter Role Restrictions', () => {
 
 		const sharePanelPage = new SharePanelPage(ownerPage);
 		await sharePanelPage.openPanel();
-
-		// Clean up any existing room codes from previous runs first
-		await sharePanelPage.revokeAllCodes();
-		await ownerPage.waitForTimeout(500);
 
 		commenterRoomCode = await sharePanelPage.generateRoomCode({
 			role: 'commenter',
@@ -528,7 +504,15 @@ test.describe.serial('Commenter Role Restrictions', () => {
 		await guestToolbarPage.expectOnlyPanModeAvailable();
 	});
 
-	// Note: Cleanup moved to beforeAll of next describe block
+	test.afterAll(async ({ ownerPage, testMapId }) => {
+		if (!commenterRoomCode) return;
+		await ownerPage.goto(`/mind-map/${testMapId}`);
+		await ownerPage.waitForLoadState('networkidle');
+		const sharePanelPage = new SharePanelPage(ownerPage);
+		await sharePanelPage.openPanel();
+		await sharePanelPage.revokeCode(commenterRoomCode);
+		console.log(`Commenter tests cleanup: revoked ${commenterRoomCode}`);
+	});
 });
 
 // ============================================================================
@@ -538,26 +522,18 @@ test.describe.serial('Commenter Role Restrictions', () => {
 test.describe.serial('Real-time Sync', () => {
 	let viewerRoomCode: string;
 
-	// Cleanup from previous test group + setup for this group
+	// Setup: generate room code for this test group
 	test.beforeAll(async ({ ownerPage, testMapId }) => {
-		// Cleanup
-		const mindMapPage = new MindMapPage(ownerPage);
-		await mindMapPage.goto(testMapId);
-		await mindMapPage.deleteAllNodes();
+		await ownerPage.goto(`/mind-map/${testMapId}`);
+		await ownerPage.waitForLoadState('networkidle');
 
 		const sharePanelPage = new SharePanelPage(ownerPage);
 		await sharePanelPage.openPanel();
-		await sharePanelPage.revokeAllCodes();
-		await ownerPage.waitForTimeout(500); // Wait for settings to auto-expand
-
-		console.log('Real-time sync tests cleanup complete');
-
-		// Setup: generate room code for this test group
-		await ownerPage.waitForLoadState('networkidle');
 		viewerRoomCode = await sharePanelPage.generateRoomCode({
 			role: 'viewer',
 			maxUsers: 10,
 		});
+		console.log(`Real-time sync: generated ${viewerRoomCode}`);
 	});
 
 	test('viewer sees owner create node in real-time', async ({
@@ -618,7 +594,15 @@ test.describe.serial('Real-time Sync', () => {
 		expect(ownerCount).toBe(guestCount);
 	});
 
-	// Note: Cleanup moved to beforeAll of next describe block
+	test.afterAll(async ({ ownerPage, testMapId }) => {
+		if (!viewerRoomCode) return;
+		await ownerPage.goto(`/mind-map/${testMapId}`);
+		await ownerPage.waitForLoadState('networkidle');
+		const sharePanelPage = new SharePanelPage(ownerPage);
+		await sharePanelPage.openPanel();
+		await sharePanelPage.revokeCode(viewerRoomCode);
+		console.log(`Real-time sync cleanup: revoked ${viewerRoomCode}`);
+	});
 });
 
 // ============================================================================
@@ -627,19 +611,6 @@ test.describe.serial('Real-time Sync', () => {
 
 test.describe.serial('Access Revocation', () => {
 	let viewerRoomCode: string;
-
-	// Cleanup from previous test group
-	test.beforeAll(async ({ ownerPage, testMapId }) => {
-		const mindMapPage = new MindMapPage(ownerPage);
-		await mindMapPage.goto(testMapId);
-		await mindMapPage.deleteAllNodes();
-
-		const sharePanelPage = new SharePanelPage(ownerPage);
-		await sharePanelPage.openPanel();
-		await sharePanelPage.revokeAllCodes();
-
-		console.log('Access revocation tests cleanup complete');
-	});
 
 	test('setup: owner creates room and viewer joins', async ({
 		ownerPage,
@@ -652,10 +623,6 @@ test.describe.serial('Access Revocation', () => {
 
 		const sharePanelPage = new SharePanelPage(ownerPage);
 		await sharePanelPage.openPanel();
-
-		// Clean up any existing room codes from previous runs first
-		await sharePanelPage.revokeAllCodes();
-		await ownerPage.waitForTimeout(500);
 
 		viewerRoomCode = await sharePanelPage.generateRoomCode({
 			role: 'viewer',
@@ -679,15 +646,15 @@ test.describe.serial('Access Revocation', () => {
 		const sharePanelPage = new SharePanelPage(ownerPage);
 		await sharePanelPage.openPanel();
 
-		// Revoke all codes
-		await sharePanelPage.revokeAllCodes();
+		// Revoke only OUR specific room code (not all codes - prevents race conditions)
+		await sharePanelPage.revokeCode(viewerRoomCode);
 		await ownerPage.waitForTimeout(1000);
 
-		// Verify no active codes
+		// Verify our code is no longer in the list
 		const codes = await sharePanelPage.getRoomCodes();
-		expect(codes.length).toBe(0);
+		expect(codes).not.toContain(viewerRoomCode);
 
-		console.log('Room code revoked');
+		console.log(`Room code ${viewerRoomCode} revoked`);
 	});
 
 	test('new guest cannot join revoked code', async ({ browser }) => {
