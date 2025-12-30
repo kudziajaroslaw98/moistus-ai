@@ -540,7 +540,13 @@ test.describe.serial('Commenter Role Restrictions', () => {
 		await guestToolbarPage.expectCommentsButtonVisible();
 	});
 
-	test('commenter only has Pan mode', async ({ guestToolbarPage }) => {
+	test('commenter only has Pan mode', async ({ guestToolbarPage, guestPage }) => {
+		// IMPORTANT: Reload to reset permission state that may be corrupted
+		// by real-time sync events from parallel tests modifying the shared test map
+		await guestPage.reload();
+		await guestPage.waitForLoadState('networkidle');
+		await guestPage.waitForTimeout(500);
+
 		// Like viewers, commenters can't select/connect
 		await guestToolbarPage.expectOnlyPanModeAvailable();
 	});
