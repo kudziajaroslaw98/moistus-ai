@@ -3,8 +3,8 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
-import useAppStore from '@/store/mind-map-store';
 import { OAuthProvider, UpgradeStep } from '@/store/app-state';
+import useAppStore from '@/store/mind-map-store';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
 	ArrowLeft,
@@ -19,6 +19,7 @@ import {
 	Zap,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -278,7 +279,7 @@ function EnterEmailStep({
 	};
 
 	return (
-		<form onSubmit={handleSubmit(handleFormSubmit)} className='space-y-5'>
+		<form onSubmit={handleSubmit(handleFormSubmit)} className='space-y-5' noValidate>
 			<div className='space-y-4'>
 				<div>
 					<label
@@ -296,7 +297,9 @@ function EnterEmailStep({
 						{...register('email')}
 					/>
 					{errors.email && (
-						<p className='mt-1.5 text-xs text-rose-400'>{errors.email.message}</p>
+						<p className='mt-1.5 text-xs text-rose-400'>
+							{errors.email.message}
+						</p>
 					)}
 				</div>
 
@@ -417,12 +420,14 @@ function VerifyOtpStep({
 	};
 
 	return (
-		<form onSubmit={handleSubmit(handleFormSubmit)} className='space-y-5'>
+		<form onSubmit={handleSubmit(handleFormSubmit)} className='space-y-5' noValidate>
 			<div className='text-center mb-6'>
 				<div className='w-16 h-16 bg-primary-600/20 rounded-full flex items-center justify-center mx-auto mb-4'>
 					<Mail className='w-8 h-8 text-primary-400' />
 				</div>
-				<h3 className='text-lg font-semibold text-white mb-2'>Check your email</h3>
+				<h3 className='text-lg font-semibold text-white mb-2'>
+					Check your email
+				</h3>
 				<p className='text-text-secondary text-sm'>
 					We sent a verification code to{' '}
 					<span className='text-white font-medium'>{email}</span>
@@ -548,7 +553,7 @@ function SetPasswordStep({
 	};
 
 	return (
-		<form onSubmit={handleSubmit(handleFormSubmit)} className='space-y-5'>
+		<form onSubmit={handleSubmit(handleFormSubmit)} className='space-y-5' noValidate>
 			<div className='text-center mb-6'>
 				<div className='w-16 h-16 bg-emerald-600/20 rounded-full flex items-center justify-center mx-auto mb-4'>
 					<KeyRound className='w-8 h-8 text-emerald-400' />
@@ -673,6 +678,17 @@ function SetPasswordStep({
 
 // Step 5: Success
 function SuccessStep({ onClose }: { onClose: () => void }) {
+	const router = useRouter();
+	const { getCurrentUser } = useAppStore(
+		useShallow((state) => ({ getCurrentUser: state.getCurrentUser }))
+	);
+
+	const handleClose = useCallback(() => {
+		getCurrentUser();
+		onClose();
+		router.push('/dashboard');
+	}, [onClose]);
+
 	return (
 		<motion.div
 			initial={{ opacity: 0, scale: 0.9 }}
@@ -702,7 +718,7 @@ function SuccessStep({ onClose }: { onClose: () => void }) {
 				variant='default'
 				size='lg'
 				className='w-full max-w-xs mx-auto'
-				onClick={onClose}
+				onClick={handleClose}
 			>
 				Continue to Dashboard
 			</Button>
@@ -1010,9 +1026,11 @@ export function UpgradeAnonymousPrompt({
 													key={step}
 													className={`h-1 flex-1 rounded-full transition-colors ${
 														index <=
-														['enter_email', 'verify_otp', 'set_password'].indexOf(
-															displayStep
-														)
+														[
+															'enter_email',
+															'verify_otp',
+															'set_password',
+														].indexOf(displayStep)
 															? 'bg-white'
 															: 'bg-white/30'
 													}`}
