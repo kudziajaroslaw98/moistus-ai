@@ -332,6 +332,10 @@ test.describe.serial('Viewer Role Restrictions', () => {
 
 test.describe.serial('Editor Role Functionality', () => {
 	let editorRoomCode: string;
+	// Use unique node names to avoid collisions from previous test runs
+	const testRunId = Date.now().toString().slice(-6);
+	const editorNodeName = `Editor Node ${testRunId}`;
+	const draggableNodeName = `Drag Node ${testRunId}`;
 
 	test('owner creates editor room code', async ({ ownerPage, testMapId }) => {
 		await ownerPage.goto(`/mind-map/${testMapId}`);
@@ -376,17 +380,17 @@ test.describe.serial('Editor Role Functionality', () => {
 	}) => {
 		const initialCount = await guestMindMapPage.getNodeCount();
 
-		await guestMindMapPage.createNodeWithContent('Editor Created Node');
+		await guestMindMapPage.createNodeWithContent(editorNodeName);
 
 		// Verify node was created
-		await guestMindMapPage.expectNodeExists('Editor Created Node');
+		await guestMindMapPage.expectNodeExists(editorNodeName);
 		const finalCount = await guestMindMapPage.getNodeCount();
 		expect(finalCount).toBe(initialCount + 1);
 	});
 
 	test('editor can edit nodes via double-click', async ({ guestMindMapPage }) => {
 		// Double-click to edit
-		await guestMindMapPage.doubleClickNodeByContent('Editor Created Node');
+		await guestMindMapPage.doubleClickNodeByContent(editorNodeName);
 
 		// Editor should open
 		await expect(guestMindMapPage.nodeEditorPage.container).toBeVisible();
@@ -399,7 +403,7 @@ test.describe.serial('Editor Role Functionality', () => {
 		const initialCount = await guestMindMapPage.getNodeCount();
 
 		// Select and delete
-		await guestMindMapPage.selectNodeByContent('Editor Created Node');
+		await guestMindMapPage.selectNodeByContent(editorNodeName);
 		await guestMindMapPage.page.waitForTimeout(300);
 		await guestMindMapPage.pressDeleteKey();
 		await guestMindMapPage.page.waitForTimeout(500);
@@ -409,24 +413,48 @@ test.describe.serial('Editor Role Functionality', () => {
 		expect(finalCount).toBe(initialCount - 1);
 	});
 
-	test('editor can drag nodes', async ({ guestMindMapPage }) => {
-		// First create a node to drag
-		await guestMindMapPage.createNodeWithContent('Draggable Node');
-		await guestMindMapPage.page.waitForTimeout(500);
+	test('editor can drag nodes', async ({ guestMindMapPage, guestToolbarPage }) => {
+		// Switch to Select mode (required for dragging nodes in React Flow)
+		await guestToolbarPage.selectCursorMode('Select');
+		await guestMindMapPage.page.waitForTimeout(300);
 
-		// Try to drag
-		const { startPos, endPos } = await guestMindMapPage.tryDragNodeByContent(
-			'Draggable Node',
+		// Create a node to drag (click on empty canvas area first)
+		await guestMindMapPage.page.keyboard.press('Escape');
+		await guestMindMapPage.page.waitForTimeout(200);
+
+		const canvas = guestMindMapPage.page.locator('.react-flow__pane');
+		const canvasBox = await canvas.boundingBox();
+		if (canvasBox) {
+			// Click on the right side of canvas where there are no nodes
+			await guestMindMapPage.page.mouse.click(
+				canvasBox.x + canvasBox.width - 100,
+				canvasBox.y + canvasBox.height / 2
+			);
+		}
+		await guestMindMapPage.page.waitForTimeout(200);
+
+		await guestMindMapPage.createNodeWithContent(draggableNodeName);
+		await guestMindMapPage.page.waitForTimeout(1000);
+
+		// Use the page object's drag method
+		const result = await guestMindMapPage.tryDragNodeByContent(
+			draggableNodeName,
 			100,
 			100
 		);
 
 		// Position SHOULD have changed
-		const xDiff = Math.abs(endPos.x - startPos.x);
-		const yDiff = Math.abs(endPos.y - startPos.y);
+		const xDiff = Math.abs(result.endPos.x - result.startPos.x);
+		const yDiff = Math.abs(result.endPos.y - result.startPos.y);
 
 		// At least one axis should have moved significantly
 		expect(xDiff + yDiff).toBeGreaterThan(50);
+
+		// Clean up: delete the drag test node to prevent accumulation
+		await guestMindMapPage.selectNodeByContent(draggableNodeName);
+		await guestMindMapPage.page.waitForTimeout(200);
+		await guestMindMapPage.pressDeleteKey();
+		await guestMindMapPage.page.waitForTimeout(300);
 	});
 
 	test.afterAll(async ({ ownerPage, testMapId }) => {
@@ -446,6 +474,8 @@ test.describe.serial('Editor Role Functionality', () => {
 
 test.describe.serial('Commenter Role Restrictions', () => {
 	let commenterRoomCode: string;
+	const testRunId = Date.now().toString().slice(-6);
+	const commenterTestNode = `Commenter Node ${testRunId}`;
 
 	test('owner creates commenter room code', async ({ ownerPage, testMapId }) => {
 		await ownerPage.goto(`/mind-map/${testMapId}`);
@@ -481,7 +511,7 @@ test.describe.serial('Commenter Role Restrictions', () => {
 	}) => {
 		// Owner creates a node
 		await ownerMindMapPage.goto(testMapId);
-		await ownerMindMapPage.createNodeWithContent('Commenter Test Node');
+		await ownerMindMapPage.createNodeWithContent(commenterTestNode);
 
 		// Wait for sync
 		await guestMindMapPage.page.waitForTimeout(2000);
@@ -523,6 +553,9 @@ test.describe.serial('Commenter Role Restrictions', () => {
 
 test.describe.serial('Real-time Sync', () => {
 	let viewerRoomCode: string;
+	const testRunId = Date.now().toString().slice(-6);
+	const realtimeNodeName = `Realtime Node ${testRunId}`;
+	const realtimeUpdatedName = `Updated RT ${testRunId}`;
 
 	// Setup: generate room code for this test group
 	test.beforeAll(async ({ ownerPage, testMapId }) => {
@@ -559,13 +592,13 @@ test.describe.serial('Real-time Sync', () => {
 
 		// Owner creates a node
 		await ownerMindMapPage.goto(testMapId);
-		await ownerMindMapPage.createNodeWithContent('Realtime Test Node');
+		await ownerMindMapPage.createNodeWithContent(realtimeNodeName);
 
 		// Wait for real-time sync (no page refresh!)
 		await guestMindMapPage.page.waitForTimeout(3000);
 
 		// Viewer should see the new node without refresh
-		await guestMindMapPage.expectNodeExists('Realtime Test Node');
+		await guestMindMapPage.expectNodeExists(realtimeNodeName);
 		const finalCount = await guestMindMapPage.getNodeCount();
 		expect(finalCount).toBe(initialCount + 1);
 	});
@@ -575,15 +608,15 @@ test.describe.serial('Real-time Sync', () => {
 		guestMindMapPage,
 	}) => {
 		// Owner edits the node
-		await ownerMindMapPage.doubleClickNodeByContent('Realtime Test Node');
-		await ownerMindMapPage.nodeEditorPage.typeContent('Updated Realtime Node');
+		await ownerMindMapPage.doubleClickNodeByContent(realtimeNodeName);
+		await ownerMindMapPage.nodeEditorPage.typeContent(realtimeUpdatedName);
 		await ownerMindMapPage.nodeEditorPage.create();
 
 		// Wait for real-time sync
 		await guestMindMapPage.page.waitForTimeout(3000);
 
 		// Viewer should see the updated content without refresh
-		await guestMindMapPage.expectNodeExists('Updated Realtime Node');
+		await guestMindMapPage.expectNodeExists(realtimeUpdatedName);
 	});
 
 	test('both users see same node count', async ({
