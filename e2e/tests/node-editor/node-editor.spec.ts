@@ -244,28 +244,33 @@ test.describe.serial('Node Editor', () => {
 		mindMapPage,
 		page,
 	}) => {
+		// Use unique names to avoid collision with nodes from other tests
+		const testId = Date.now().toString().slice(-6);
+		const originalContent = `Original Content ${testId}`;
+		const updatedContent = `Updated Content ${testId}`;
+
 		// Create a node to edit
-		await mindMapPage.createNodeWithContent('Original E2E Content');
+		await mindMapPage.createNodeWithContent(originalContent);
 		await page.waitForTimeout(500);
 
 		// Double-click to edit
-		await mindMapPage.doubleClickNodeByContent('Original E2E Content');
+		await mindMapPage.doubleClickNodeByContent(originalContent);
 
 		// Verify editor has content
 		const content = await mindMapPage.nodeEditorPage.getContent();
-		expect(content).toContain('Original E2E Content');
+		expect(content).toContain(originalContent);
 
 		// Clear and update
 		await mindMapPage.nodeEditorPage.clear();
-		await mindMapPage.nodeEditorPage.typeContent('Updated E2E Content');
+		await mindMapPage.nodeEditorPage.typeContent(updatedContent);
 		await mindMapPage.nodeEditorPage.create();
 		await page.waitForTimeout(500);
 
 		// Verify update
-		await mindMapPage.expectNodeExists('Updated E2E Content');
+		await mindMapPage.expectNodeExists(updatedContent);
 
 		// Now test cancel: edit again but escape
-		await mindMapPage.doubleClickNodeByContent('Updated E2E Content');
+		await mindMapPage.doubleClickNodeByContent(updatedContent);
 
 		await mindMapPage.nodeEditorPage.clear();
 		await mindMapPage.nodeEditorPage.typeContent('This should NOT save');
@@ -275,7 +280,7 @@ test.describe.serial('Node Editor', () => {
 		await page.waitForTimeout(300);
 
 		// Original updated content should still exist
-		await mindMapPage.expectNodeExists('Updated E2E Content');
+		await mindMapPage.expectNodeExists(updatedContent);
 	});
 
 	// ============================================================================
