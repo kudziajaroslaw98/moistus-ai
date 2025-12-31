@@ -306,8 +306,8 @@ Guideline @./animation-guidelines.md
 
 **Styling**: Tailwind + custom variants • Components in `src/components/ui/` • Themes distributed (glassmorphism-theme, metadata-theme) • Radix UI primitives • CSS variables • Focus-visible states
 
-**Testing**: Jest + React Testing Library (unit) • Playwright (E2E) • **149+ unit tests, 47 E2E tests (×3 browsers = 141 total)** • Co-located tests (`*.test.tsx` next to components) • Mock Zustand stores in tests • 70% coverage target on critical paths
-<!-- Updated: 2025-12-28 - Fixed E2E race conditions, 47 tests pass on Chromium/Firefox/WebKit -->
+**Testing**: Jest + React Testing Library (unit) • Playwright (E2E) • **149+ unit tests, 44 E2E tests (×3 browsers = 132 total) + 10 skipped placeholders** • Co-located tests (`*.test.tsx` next to components) • Mock Zustand stores in tests • 70% coverage target on critical paths
+<!-- Updated: 2025-12-31 - Added 10 skipped placeholder tests for permission gaps (see e2e/E2E_TEST_GAPS.md) -->
 
 ```typescript
 // Unit testing pattern: Mock stores, test component behavior
@@ -317,13 +317,16 @@ Guideline @./animation-guidelines.md
 ```
 
 **E2E Testing** (`e2e/`):
-- Page Objects (`e2e/pages/` - 6 total):
+- Page Objects (`e2e/pages/` - 8 total):
   - node-editor.page.ts, mind-map.page.ts, toolbar.page.ts
   - context-menu.page.ts, share-panel.page.ts, join-room.page.ts
+  - dashboard.page.ts, upgrade-modal.page.ts
 - Fixtures (`e2e/fixtures/`):
   - base.fixture.ts - Standard page objects
   - multi-user.fixture.ts - Owner + guest pages for collaboration testing
-- Test suites: node-editor, sharing (basic + permissions with 47 tests total)
+  - upgrade.fixture.ts - Anonymous user fixture for upgrade flow
+- Test suites: node-editor (7), sharing (4), permissions (34 active + 10 skipped), upgrade (34)
+- **Test gaps**: See `e2e/E2E_TEST_GAPS.md` for missing comment/AI permission tests
 - Screenshot comparison for visual regression
 - Local Supabase for database isolation (`pnpm supabase:start`)
 

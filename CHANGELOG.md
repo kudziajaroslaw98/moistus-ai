@@ -5,6 +5,24 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2025-12-31]
+
+### Added
+- **E2E test gap documentation**: Created `e2e/E2E_TEST_GAPS.md` tracking missing permission tests
+  - Documents 10 missing tests for viewer/commenter AI Chat and comment restrictions
+  - Includes implementation prerequisites (page objects needed)
+  - Why: Ensure we don't forget to implement remaining permission boundary tests
+
+- **E2E placeholder tests**: Added 9 skipped `.skip` placeholder tests to `permissions.spec.ts`
+  - Viewer: 3 skipped (Comments hidden, AI Chat hidden, view comment threads)
+  - Commenter: 6 skipped (open panel, add comment, reply, reactions, delete restriction, AI Chat)
+  - Why: Document expected test coverage inline with actual tests
+
+### Docs
+- **CLAUDE.md**: Updated E2E section with accurate page object count (8), fixture list, test counts per suite, and link to test gaps doc
+
+---
+
 ## [2025-12-30]
 
 ### Fixed

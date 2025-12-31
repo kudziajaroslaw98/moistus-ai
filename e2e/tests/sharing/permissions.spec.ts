@@ -5,11 +5,14 @@
  * restrictions and capabilities when collaborating on a mind map.
  *
  * Test Categories:
- * 1. Viewer Role Restrictions - Read-only mode, no editing capabilities
- * 2. Editor Role Functionality - Full edit access verification
- * 3. Commenter Role Restrictions - View + comment only
- * 4. Real-time Sync - Changes visible without refresh
- * 5. Access Revocation - Kicked when access revoked
+ * 1. Viewer Role Restrictions - Read-only mode, no editing capabilities (15 active + 3 skipped)
+ * 2. Editor Role Functionality - Full edit access verification (7 active + 1 skipped)
+ * 3. Commenter Role Restrictions - View + comment only (6 active + 6 skipped)
+ * 4. Real-time Sync - Changes visible without refresh (3 active)
+ * 5. Access Revocation - Kicked when access revoked (3 active)
+ *
+ * SKIPPED TESTS: See e2e/E2E_TEST_GAPS.md for implementation notes.
+ * Total: 34 active tests, 10 skipped placeholder tests
  *
  * ISOLATION: Each test group creates its own room code and cleans up only
  * that specific code in afterAll. This prevents race conditions when running
@@ -315,6 +318,29 @@ test.describe.serial('Viewer Role Restrictions', () => {
 		await guestToolbarPage.expectExportButtonVisible();
 	});
 
+	// -------------------------------------------------------------------------
+	// PLACEHOLDER TESTS - To be implemented (see e2e/E2E_TEST_GAPS.md)
+	// -------------------------------------------------------------------------
+
+	test.skip('viewer cannot see Comments button', async ({ guestToolbarPage }) => {
+		// TODO: Implement - Comments should be hidden for viewers
+		// await guestToolbarPage.expectCommentsButtonHidden();
+	});
+
+	test.skip('viewer cannot open AI Chat panel', async ({ guestToolbarPage }) => {
+		// TODO: Implement - AI Chat should be hidden/disabled for viewers
+		// await guestToolbarPage.expectAiChatButtonHidden();
+		// OR if button visible but disabled:
+		// await guestToolbarPage.expectAiChatButtonDisabled();
+	});
+
+	test.skip('viewer cannot view comment threads on nodes', async ({
+		guestMindMapPage,
+	}) => {
+		// TODO: Implement - Verify comment indicators/threads are hidden for viewers
+		// This may require owner to add a comment first, then verify viewer can't see it
+	});
+
 	test.afterAll(async ({ ownerPage, testMapId }) => {
 		if (!viewerRoomCode) return;
 		await ownerPage.goto(`/mind-map/${testMapId}`);
@@ -549,6 +575,60 @@ test.describe.serial('Commenter Role Restrictions', () => {
 
 		// Like viewers, commenters can't select/connect
 		await guestToolbarPage.expectOnlyPanModeAvailable();
+	});
+
+	// -------------------------------------------------------------------------
+	// PLACEHOLDER TESTS - To be implemented (see e2e/E2E_TEST_GAPS.md)
+	// -------------------------------------------------------------------------
+
+	test.skip('commenter can open Comments panel', async ({ guestToolbarPage }) => {
+		// TODO: Implement - Click Comments button and verify panel opens
+		// Requires: CommentsPanel page object
+		// await guestToolbarPage.clickCommentsButton();
+		// await guestCommentsPanel.expectPanelOpen();
+	});
+
+	test.skip('commenter can add new comment thread on node', async ({
+		guestMindMapPage,
+	}) => {
+		// TODO: Implement - Select node, add comment, verify it appears
+		// Requires: CommentsPanel page object with addComment() method
+		// await guestMindMapPage.selectNodeByContent('some node');
+		// await guestCommentsPanel.addComment('Test comment from commenter');
+		// await guestCommentsPanel.expectCommentExists('Test comment from commenter');
+	});
+
+	test.skip('commenter can reply to existing comment', async ({
+		ownerMindMapPage,
+		guestMindMapPage,
+	}) => {
+		// TODO: Implement
+		// 1. Owner creates a comment
+		// 2. Commenter replies to it
+		// 3. Verify reply appears
+		// Requires: API setup or owner creates comment in beforeAll
+	});
+
+	test.skip('commenter can add emoji reactions to comments', async ({
+		guestMindMapPage,
+	}) => {
+		// TODO: Implement - Add reaction, verify it appears
+		// Requires: CommentsPanel page object with addReaction() method
+	});
+
+	test.skip('commenter cannot delete other users comments', async ({
+		ownerMindMapPage,
+		guestMindMapPage,
+	}) => {
+		// TODO: Implement
+		// 1. Owner creates a comment
+		// 2. Commenter tries to delete it
+		// 3. Verify delete button hidden or action blocked
+	});
+
+	test.skip('commenter cannot use AI Chat', async ({ guestToolbarPage }) => {
+		// TODO: Implement - AI Chat should be hidden/disabled for commenters
+		// await guestToolbarPage.expectAiChatButtonHidden();
 	});
 
 	test.afterAll(async ({ ownerPage, testMapId }) => {
