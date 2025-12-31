@@ -35,8 +35,9 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **Immediate guest kick-out**: Guests now get kicked immediately when owner revokes access
   - Added `subscribeToAccessRevocation()` method to listen for DELETE events on `share_access`
   - Subscribe on map load (not just SharePanel open) so guests receive revocation events
-  - Set `REPLICA IDENTITY FULL` on `share_access` table for DELETE payload data
-  - Why: Previously guests only got kicked after page refresh
+  - Added `share_access` and `share_tokens` to Supabase Realtime publication (was missing!)
+  - Set `REPLICA IDENTITY FULL` on both tables for DELETE/UPDATE payload data
+  - Why: Previously guests only got kicked after page refresh; events weren't being broadcast
 
 - **Onboarding popup after kick**: Fixed confusing onboarding appearing after access revocation
   - Added `mapAccessError` check in `initializeOnboarding()` to skip for kicked users
