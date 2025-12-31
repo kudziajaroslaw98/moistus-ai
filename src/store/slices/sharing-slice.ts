@@ -963,18 +963,28 @@ export const createSharingSlice: StateCreator<
 				// Unsubscribe from any existing subscription
 				get().unsubscribeFromAccessRevocation();
 
-				const { authUser, currentUser, mindMap } = get();
+				const { authUser, currentUser, mindMap, lastJoinResult } = get();
 
-				// Get user ID from either authUser (guests) or currentUser (authenticated)
-				const userId = authUser?.user_id || currentUser?.id;
+				// Get user ID from multiple sources (fallback chain for timing issues)
+				// 1. authUser - set after ensureAuthenticated()
+				// 2. lastJoinResult - set after joinRoom() completes
+				// 3. currentUser - authenticated user from core slice
+				const userId =
+					authUser?.user_id || lastJoinResult?.user_id || currentUser?.id;
+				const isAnonymous =
+					authUser?.is_anonymous ?? lastJoinResult?.is_anonymous ?? false;
 
 				// Skip if no user ID available
 				if (!userId) {
-					console.log(
-						'subscribeToAccessRevocation: No user ID, skipping subscription'
+					console.warn(
+						'subscribeToAccessRevocation: No user ID available from authUser, lastJoinResult, or currentUser. Subscription not started.'
 					);
 					return;
 				}
+
+				console.log(
+					`subscribeToAccessRevocation: Found userId=${userId} from ${authUser ? 'authUser' : lastJoinResult ? 'lastJoinResult' : 'currentUser'}`
+				);
 
 				// Skip if user is the owner (owners can't be kicked from their own maps)
 				if (mindMap?.user_id === userId) {
@@ -995,7 +1005,7 @@ export const createSharingSlice: StateCreator<
 					);
 					get().setMapAccessError({
 						type: 'access_denied',
-						isAnonymous: authUser?.is_anonymous ?? !currentUser,
+						isAnonymous,
 					});
 				};
 
