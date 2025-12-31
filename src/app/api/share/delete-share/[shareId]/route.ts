@@ -1,6 +1,6 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
-import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
+import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { z } from 'zod';
 
 /**
@@ -123,6 +123,36 @@ export const DELETE = withApiValidation<
 				);
 			}
 
+			// Broadcast access revocation via Supabase Realtime REST API
+			try {
+				await fetch(
+					`${process.env.NEXT_PUBLIC_SUPABASE_URL}/realtime/v1/api/broadcast`,
+					{
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							apikey: process.env.SUPABASE_SERVICE_ROLE!,
+							Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE!}`,
+						},
+						body: JSON.stringify({
+							messages: [
+								{
+									topic: `access_revocation_${shareAccess.map_id}_${shareAccess.user_id}`,
+									event: 'access_revoked',
+									payload: {
+										id: shareIdNum,
+										map_id: shareAccess.map_id,
+										user_id: shareAccess.user_id,
+									},
+								},
+							],
+						}),
+					}
+				);
+			} catch {
+				// Non-blocking - deletion succeeded, broadcast is best-effort
+			}
+
 			// Decrement current_users on the associated share token
 			// Use atomic RPC to prevent race conditions
 			if (shareAccess.share_token_id) {
@@ -147,7 +177,10 @@ export const DELETE = withApiValidation<
 				'User access removed successfully'
 			);
 		} catch (error) {
-			console.error('Error in DELETE /api/share/delete-share/[shareId]:', error);
+			console.error(
+				'Error in DELETE /api/share/delete-share/[shareId]:',
+				error
+			);
 			const message =
 				error instanceof Error ? error.message : 'Internal server error';
 			return respondError('Failed to remove user access', 500, message);

@@ -1028,28 +1028,16 @@ export const createSharingSlice: StateCreator<
 					});
 				};
 
-				// Subscribe to both DELETE and UPDATE events on share_access for this user
-				// DELETE = owner removes individual user
-				// UPDATE with status='inactive' = owner revokes room code
+				// Subscribe to broadcast (individual user removal) and UPDATE (room code revocation)
 				const channel = supabase
 					.channel(`access_revocation_${mapId}_${userId}`)
 					.on(
-						'postgres_changes',
-						{
-							event: 'DELETE',
-							schema: 'public',
-							table: 'share_access',
-							filter: `user_id=eq.${userId}`,
-						},
-						(payload) => {
-							console.log('Access DELETE event received:', payload);
-							const deletedRecord = payload.old as {
-								map_id?: string;
-								user_id?: string;
-							};
-
-							// Check if this deletion is for the current map
-							if (deletedRecord?.map_id === mapId) {
+						'broadcast',
+						{ event: 'access_revoked' },
+						(payload: {
+							payload?: { id?: number; map_id?: string; user_id?: string };
+						}) => {
+							if (payload.payload?.map_id === mapId) {
 								triggerAccessDenied();
 							}
 						}
