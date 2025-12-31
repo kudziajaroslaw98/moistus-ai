@@ -21,6 +21,16 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ### Docs
 - **CLAUDE.md**: Updated E2E section with accurate page object count (8), fixture list, test counts per suite, and link to test gaps doc
 
+### Refactored
+- **Collaborator profile card**: Redesigned for cleaner, more modern look
+  - Replaced 4-cell metrics grid with single consolidated status row
+  - Removed redundant info (Online/Now/Viewing all meant the same thing)
+  - Added activity-tinted avatar ring (subtle color based on editing/typing/etc)
+  - Integrated anonymous user badge on avatar corner (instead of footer notice)
+  - Updated RoleBadge styling (Owner gets subtle amber, Collaborator gets lighter zinc)
+  - Added glassmorphism polish to hover-card container (backdrop-blur, softer border)
+  - Why: Original design was boxy and data-table-like, new design is breathable and modern
+
 ---
 
 ## [2025-12-30]
