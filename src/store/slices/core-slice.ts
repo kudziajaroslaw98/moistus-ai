@@ -224,7 +224,7 @@ export const createCoreDataSlice: StateCreator<
 			await get().subscribeToRealtimeUpdates(mapId);
 
 			// Subscribe to access revocation events (for guests/collaborators)
-			get().subscribeToAccessRevocation(mapId);
+			await get().subscribeToAccessRevocation(mapId);
 
 			// Show success toast only when map data was actually loaded
 			if (toastId) {

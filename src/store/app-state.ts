@@ -384,7 +384,7 @@ export interface SharingSlice extends SharingState {
 
 	unsubscribeFromSharing: () => void;
 
-	subscribeToAccessRevocation: (mapId: string) => void;
+	subscribeToAccessRevocation: (mapId: string) => Promise<void>;
 
 	unsubscribeFromAccessRevocation: () => void;
 

@@ -958,7 +958,7 @@ export const createSharingSlice: StateCreator<
 
 		// Subscribe to access revocation events for the current user
 		// This is called on map load to enable immediate kick-out when access is revoked
-		subscribeToAccessRevocation: (mapId: string) => {
+		subscribeToAccessRevocation: async (mapId: string) => {
 			try {
 				// Unsubscribe from any existing subscription
 				get().unsubscribeFromAccessRevocation();
@@ -969,21 +969,40 @@ export const createSharingSlice: StateCreator<
 				// 1. authUser - set after ensureAuthenticated()
 				// 2. lastJoinResult - set after joinRoom() completes
 				// 3. currentUser - authenticated user from core slice
-				const userId =
+				// 4. Supabase auth session (most reliable)
+				let userId =
 					authUser?.user_id || lastJoinResult?.user_id || currentUser?.id;
-				const isAnonymous =
+				let isAnonymous =
 					authUser?.is_anonymous ?? lastJoinResult?.is_anonymous ?? false;
+
+				// If no user ID from store, try getting from Supabase auth directly
+				if (!userId) {
+					console.log(
+						'subscribeToAccessRevocation: No user ID in store, checking Supabase auth...'
+					);
+					const {
+						data: { user },
+					} = await supabase.auth.getUser();
+					if (user) {
+						userId = user.id;
+						isAnonymous = user.is_anonymous ?? false;
+						console.log(
+							`subscribeToAccessRevocation: Got userId=${userId} from Supabase auth`
+						);
+					}
+				}
 
 				// Skip if no user ID available
 				if (!userId) {
 					console.warn(
-						'subscribeToAccessRevocation: No user ID available from authUser, lastJoinResult, or currentUser. Subscription not started.'
+						'subscribeToAccessRevocation: No user ID available. Subscription not started.',
+						{ authUser, lastJoinResult, currentUser }
 					);
 					return;
 				}
 
 				console.log(
-					`subscribeToAccessRevocation: Found userId=${userId} from ${authUser ? 'authUser' : lastJoinResult ? 'lastJoinResult' : 'currentUser'}`
+					`subscribeToAccessRevocation: Using userId=${userId}, isAnonymous=${isAnonymous}`
 				);
 
 				// Skip if user is the owner (owners can't be kicked from their own maps)
@@ -1061,11 +1080,26 @@ export const createSharingSlice: StateCreator<
 							}
 						}
 					)
-					.subscribe((status) => {
-						console.log(
-							`Access revocation subscription status for map ${mapId}:`,
-							status
-						);
+					.subscribe((status, err) => {
+						if (status === 'SUBSCRIBED') {
+							console.log(
+								`✅ Access revocation subscription ACTIVE for map ${mapId}, user ${userId}`
+							);
+						} else if (status === 'CHANNEL_ERROR') {
+							console.error(
+								`❌ Access revocation subscription FAILED for map ${mapId}:`,
+								err
+							);
+						} else if (status === 'TIMED_OUT') {
+							console.error(
+								`⏱️ Access revocation subscription TIMED OUT for map ${mapId}`
+							);
+						} else {
+							console.log(
+								`Access revocation subscription status: ${status}`,
+								err || ''
+							);
+						}
 					});
 
 				set({ _accessRevocationChannel: channel });
