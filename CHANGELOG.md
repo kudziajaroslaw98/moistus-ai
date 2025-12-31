@@ -31,6 +31,17 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Added glassmorphism polish to hover-card container (backdrop-blur, softer border)
   - Why: Original design was boxy and data-table-like, new design is breathable and modern
 
+### Fixed
+- **Immediate guest kick-out**: Guests now get kicked immediately when owner revokes access
+  - Added `subscribeToAccessRevocation()` method to listen for DELETE events on `share_access`
+  - Subscribe on map load (not just SharePanel open) so guests receive revocation events
+  - Set `REPLICA IDENTITY FULL` on `share_access` table for DELETE payload data
+  - Why: Previously guests only got kicked after page refresh
+
+- **Onboarding popup after kick**: Fixed confusing onboarding appearing after access revocation
+  - Added `mapAccessError` check in `initializeOnboarding()` to skip for kicked users
+  - Why: Anonymous users saw onboarding modal after being kicked, now they go straight to access revoked page
+
 ---
 
 ## [2025-12-30]

@@ -53,6 +53,7 @@ export const createSharingSlice: StateCreator<
 		sharingError: undefined,
 		lastJoinResult: undefined,
 		_sharingSubscription: undefined,
+		_accessRevocationChannel: undefined,
 
 		// Upgrade state (for anonymous -> full user conversion)
 		upgradeStep: 'idle' as UpgradeStep,
@@ -955,6 +956,93 @@ export const createSharingSlice: StateCreator<
 			}
 		},
 
+		// Subscribe to access revocation events for the current user
+		// This is called on map load to enable immediate kick-out when access is revoked
+		subscribeToAccessRevocation: (mapId: string) => {
+			try {
+				// Unsubscribe from any existing subscription
+				get().unsubscribeFromAccessRevocation();
+
+				const { authUser, currentUser, mindMap } = get();
+
+				// Get user ID from either authUser (guests) or currentUser (authenticated)
+				const userId = authUser?.user_id || currentUser?.id;
+
+				// Skip if no user ID available
+				if (!userId) {
+					console.log(
+						'subscribeToAccessRevocation: No user ID, skipping subscription'
+					);
+					return;
+				}
+
+				// Skip if user is the owner (owners can't be kicked from their own maps)
+				if (mindMap?.user_id === userId) {
+					console.log(
+						'subscribeToAccessRevocation: User is owner, skipping subscription'
+					);
+					return;
+				}
+
+				console.log(
+					`subscribeToAccessRevocation: Setting up listener for user ${userId} on map ${mapId}`
+				);
+
+				// Subscribe to DELETE events on share_access for this user
+				const channel = supabase
+					.channel(`access_revocation_${mapId}_${userId}`)
+					.on(
+						'postgres_changes',
+						{
+							event: 'DELETE',
+							schema: 'public',
+							table: 'share_access',
+							filter: `user_id=eq.${userId}`,
+						},
+						(payload) => {
+							console.log('Access revocation event received:', payload);
+							const deletedRecord = payload.old as {
+								map_id?: string;
+								user_id?: string;
+							};
+
+							// Check if this deletion is for the current map
+							if (deletedRecord?.map_id === mapId) {
+								console.log(
+									'Access revoked for current map, showing access denied page'
+								);
+								// Trigger access revoked state
+								get().setMapAccessError({
+									type: 'access_denied',
+									isAnonymous: authUser?.is_anonymous ?? !currentUser,
+								});
+							}
+						}
+					)
+					.subscribe((status) => {
+						console.log(
+							`Access revocation subscription status for map ${mapId}:`,
+							status
+						);
+					});
+
+				set({ _accessRevocationChannel: channel });
+			} catch (error) {
+				console.error('Failed to subscribe to access revocation:', error);
+			}
+		},
+
+		// Unsubscribe from access revocation events
+		unsubscribeFromAccessRevocation: () => {
+			const state = get();
+
+			if (state._accessRevocationChannel) {
+				console.log('Unsubscribing from access revocation channel');
+				supabase.removeChannel(state._accessRevocationChannel);
+				set({ _accessRevocationChannel: undefined });
+			}
+		},
+
 		// Clear current error
 		clearError: () => {
 			set({ sharingError: undefined });
@@ -962,6 +1050,10 @@ export const createSharingSlice: StateCreator<
 
 		// Reset sharing state
 		reset: () => {
+			// Clean up subscriptions before resetting state
+			get().unsubscribeFromSharing();
+			get().unsubscribeFromAccessRevocation();
+
 			set({
 				shareTokens: [],
 				activeToken: undefined,
@@ -971,6 +1063,7 @@ export const createSharingSlice: StateCreator<
 				sharingError: undefined,
 				lastJoinResult: undefined,
 				_sharingSubscription: undefined,
+				_accessRevocationChannel: undefined,
 				// Reset upgrade state
 				upgradeStep: 'idle',
 				upgradeEmail: null,

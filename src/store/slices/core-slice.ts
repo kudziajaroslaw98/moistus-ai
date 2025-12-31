@@ -223,6 +223,9 @@ export const createCoreDataSlice: StateCreator<
 			// Start real-time subscriptions after successful data load
 			await get().subscribeToRealtimeUpdates(mapId);
 
+			// Subscribe to access revocation events (for guests/collaborators)
+			get().subscribeToAccessRevocation(mapId);
+
 			// Show success toast only when map data was actually loaded
 			if (toastId) {
 				toast.success('Mind map data fetched successfully.', { id: toastId });
@@ -336,6 +339,8 @@ export const createCoreDataSlice: StateCreator<
 				get().unsubscribeFromEdges(),
 				get().unsubscribeFromCommentUpdates(),
 			]);
+			// Also unsubscribe from access revocation
+			get().unsubscribeFromAccessRevocation();
 			console.log('Real-time subscriptions stopped successfully');
 		} catch (error) {
 			console.error('Failed to stop real-time subscriptions:', error);

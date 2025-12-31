@@ -312,6 +312,7 @@ export interface SharingState {
 	sharingError?: SharingError;
 	lastJoinResult?: JoinRoomResult;
 	_sharingSubscription?: any;
+	_accessRevocationChannel?: any;
 
 	// Upgrade state (for anonymous -> full user conversion)
 	upgradeStep: UpgradeStep;
@@ -382,6 +383,10 @@ export interface SharingSlice extends SharingState {
 	subscribeToSharingUpdates: (mapId: string) => void;
 
 	unsubscribeFromSharing: () => void;
+
+	subscribeToAccessRevocation: (mapId: string) => void;
+
+	unsubscribeFromAccessRevocation: () => void;
 
 	clearError: () => void;
 
