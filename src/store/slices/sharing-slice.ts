@@ -988,7 +988,20 @@ export const createSharingSlice: StateCreator<
 					`subscribeToAccessRevocation: Setting up listener for user ${userId} on map ${mapId}`
 				);
 
-				// Subscribe to DELETE events on share_access for this user
+				// Helper to trigger access denied
+				const triggerAccessDenied = () => {
+					console.log(
+						'Access revoked for current map, showing access denied page'
+					);
+					get().setMapAccessError({
+						type: 'access_denied',
+						isAnonymous: authUser?.is_anonymous ?? !currentUser,
+					});
+				};
+
+				// Subscribe to both DELETE and UPDATE events on share_access for this user
+				// DELETE = owner removes individual user
+				// UPDATE with status='inactive' = owner revokes room code
 				const channel = supabase
 					.channel(`access_revocation_${mapId}_${userId}`)
 					.on(
@@ -1000,7 +1013,7 @@ export const createSharingSlice: StateCreator<
 							filter: `user_id=eq.${userId}`,
 						},
 						(payload) => {
-							console.log('Access revocation event received:', payload);
+							console.log('Access DELETE event received:', payload);
 							const deletedRecord = payload.old as {
 								map_id?: string;
 								user_id?: string;
@@ -1008,14 +1021,33 @@ export const createSharingSlice: StateCreator<
 
 							// Check if this deletion is for the current map
 							if (deletedRecord?.map_id === mapId) {
-								console.log(
-									'Access revoked for current map, showing access denied page'
-								);
-								// Trigger access revoked state
-								get().setMapAccessError({
-									type: 'access_denied',
-									isAnonymous: authUser?.is_anonymous ?? !currentUser,
-								});
+								triggerAccessDenied();
+							}
+						}
+					)
+					.on(
+						'postgres_changes',
+						{
+							event: 'UPDATE',
+							schema: 'public',
+							table: 'share_access',
+							filter: `user_id=eq.${userId}`,
+						},
+						(payload) => {
+							console.log('Access UPDATE event received:', payload);
+							const updatedRecord = payload.new as {
+								map_id?: string;
+								user_id?: string;
+								status?: string;
+							};
+
+							// Check if status changed to 'inactive' for the current map
+							// This happens when owner revokes the room code
+							if (
+								updatedRecord?.map_id === mapId &&
+								updatedRecord?.status === 'inactive'
+							) {
+								triggerAccessDenied();
 							}
 						}
 					)

@@ -33,7 +33,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Fixed
 - **Immediate guest kick-out**: Guests now get kicked immediately when owner revokes access
-  - Added `subscribeToAccessRevocation()` method to listen for DELETE events on `share_access`
+  - Added `subscribeToAccessRevocation()` to listen for DELETE and UPDATE events on `share_access`
+  - DELETE = owner removes individual user; UPDATE status='inactive' = owner revokes room code
   - Subscribe on map load (not just SharePanel open) so guests receive revocation events
   - Added `share_access` and `share_tokens` to Supabase Realtime publication (was missing!)
   - Set `REPLICA IDENTITY FULL` on both tables for DELETE/UPDATE payload data
