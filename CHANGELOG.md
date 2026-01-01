@@ -5,6 +5,18 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-01-01]
+
+### Fixed
+- **Room code revocation instant kick**: Users now get kicked immediately when owner revokes room code
+  - Created `revoke_room_code_and_broadcast` RPC function using `realtime.send()` for in-database broadcast
+  - RPC atomically: deactivates token → broadcasts to each user → DELETEs share_access records
+  - Changed from UPDATE status='inactive' to DELETE records (simpler binary state: access exists or doesn't)
+  - Eliminates multiple HTTP requests from API layer - single database round-trip
+  - Why: Previous implementation relied on unreliable `postgres_changes` UPDATE events
+
+---
+
 ## [2025-12-31]
 
 ### Added

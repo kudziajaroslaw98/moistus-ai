@@ -6,61 +6,50 @@ const RevokeRoomCodeSchema = z.object({
 	token_id: z.string().uuid('Invalid token ID format'),
 });
 
+/**
+ * Revokes a room code and kicks all users who joined via that code.
+ *
+ * Uses the `revoke_room_code_and_broadcast` RPC function which:
+ * 1. Deactivates the token (prevents new joins)
+ * 2. Broadcasts access_revoked to each affected user via realtime.send()
+ * 3. Deletes all share_access records for that token
+ *
+ * This is atomic and efficient - single database round-trip.
+ */
 export const POST = withAuthValidation(
 	RevokeRoomCodeSchema,
 	async (req, data, supabase, user) => {
 		try {
-			// Verify the token exists and belongs to the user
-			const { data: existingToken, error: fetchError } = await supabase
-				.from('share_tokens')
-				.select('*')
-				.eq('id', data.token_id)
-				.eq('created_by', user.id)
-				.eq('is_active', true)
-				.single();
+			const { data: result, error } = await supabase.rpc(
+				'revoke_room_code_and_broadcast',
+				{
+					p_token_id: data.token_id,
+					p_user_id: user.id,
+				}
+			);
 
-			if (fetchError || !existingToken) {
+			if (error) {
+				console.error('Failed to revoke room code:', error);
 				return respondError(
-					'Share token not found or access denied',
+					'Failed to revoke room code',
+					500,
+					error.message
+				);
+			}
+
+			if (!result?.success) {
+				return respondError(
+					result?.error || 'Share token not found or access denied',
 					404,
 					'Token does not exist or user does not have permission'
 				);
 			}
 
-			// Deactivate the token (don't delete for audit purposes)
-			const { error: updateError } = await supabase
-				.from('share_tokens')
-				.update({
-					is_active: false,
-					updated_at: new Date().toISOString(),
-				})
-				.eq('id', data.token_id);
-
-			if (updateError) {
-				console.error('Failed to revoke room code:', updateError);
-				return respondError(
-					'Failed to revoke room code',
-					500,
-					updateError.message
-				);
-			}
-
-			// Deactivate share_access records for this token
-			const { error: accessError } = await supabase
-				.from('share_access')
-				.update({
-					status: 'inactive',
-					updated_at: new Date().toISOString(),
-				})
-				.eq('share_token_id', data.token_id);
-
-			if (accessError) {
-				console.error('Failed to deactivate share_access records:', accessError);
-				// Continue anyway, token is already revoked
-			}
-
 			return respondSuccess(
-				{ token_id: data.token_id },
+				{
+					token_id: data.token_id,
+					users_kicked: result.users_kicked,
+				},
 				200,
 				'Room code revoked successfully'
 			);
