@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/utils/cn';
-import { getProxiedImageUrl, isExternalImageUrl } from '@/utils/image-proxy';
+import { getSafeImageUrl, isExternalImageUrl } from '@/utils/secure-image-url';
 import { Image as ImageIcon, Loader2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Image from 'next/image';
@@ -38,8 +38,8 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 		| undefined;
 	const showCaption = Boolean(data.metadata?.showCaption);
 
-	// Use proxy for external images to bypass CORS
-	const imageUrl = getProxiedImageUrl(rawImageUrl);
+	// Validate and sanitize the image URL for security
+	const imageUrl = getSafeImageUrl(rawImageUrl) ?? undefined;
 	const needsExportPlaceholder = isExternalImageUrl(rawImageUrl);
 	const fitMode =
 		(data.metadata?.fitMode as 'cover' | 'contain' | 'fill') || 'cover';

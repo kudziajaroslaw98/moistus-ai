@@ -11,7 +11,7 @@ import { TaskContent, type Task } from '@/components/nodes/content/task-content'
 import { TextContent } from '@/components/nodes/content/text-content';
 import { QuestionNodeMetadata, TaskNodeMetadata } from '@/components/nodes/core/types';
 import { NodeData } from '@/types/node-data';
-import { getProxiedImageUrl } from '@/utils/image-proxy';
+import { getSafeImageUrl } from '@/utils/secure-image-url';
 import { memo, useMemo } from 'react';
 import { PreviewModeProvider } from './preview-mode-context';
 import { PreviewNodeFrame } from './preview-node-frame';
@@ -116,7 +116,7 @@ const PreviewContent = memo(({ nodeType, data }: { nodeType: string; data: NodeD
 		case 'imageNode': {
 			const rawImageUrl = (data.metadata?.imageUrl ||
 				(data.metadata as Record<string, unknown>)?.image_url) as string | undefined;
-			const imageUrl = getProxiedImageUrl(rawImageUrl);
+			const imageUrl = getSafeImageUrl(rawImageUrl) ?? undefined;
 			const showCaption = Boolean(data.metadata?.showCaption);
 			const altText = (data.metadata?.altText as string) || data.content || 'Image';
 

@@ -3,7 +3,7 @@
 import { useResourceMetadataFetch } from '@/hooks/use-resource-metadata-fetch';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
-import { getProxiedImageUrl, isExternalImageUrl } from '@/utils/image-proxy';
+import { getSafeImageUrl, isExternalImageUrl } from '@/utils/secure-image-url';
 import { ExternalLink, Globe, Link as LinkIcon, Loader2, RefreshCw } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
@@ -63,8 +63,8 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 	const rawImageUrl = data.metadata?.imageUrl as string | undefined;
 	const summary = data.metadata?.summary as string | undefined;
 
-	// Use proxy for external images to bypass CORS
-	const imageUrl = getProxiedImageUrl(rawImageUrl);
+	// Validate and sanitize the image URL for security
+	const imageUrl = getSafeImageUrl(rawImageUrl) ?? undefined;
 	const needsExportPlaceholder = isExternalImageUrl(rawImageUrl);
 
 	// Extract domain for display

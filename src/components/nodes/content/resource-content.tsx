@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { getProxiedImageUrl } from '@/utils/image-proxy';
+import { getSafeImageUrl } from '@/utils/secure-image-url';
 import { ExternalLink, Globe } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { memo, useState } from 'react';
@@ -54,7 +54,7 @@ const ResourceContentComponent = ({
 	const [imageError, setImageError] = useState(false);
 	const [imageLoading, setImageLoading] = useState(true);
 
-	const proxiedImageUrl = getProxiedImageUrl(imageUrl);
+	const safeImageUrl = getSafeImageUrl(imageUrl);
 
 	// Extract domain for display
 	const getDomain = (urlString: string) => {
@@ -69,7 +69,7 @@ const ResourceContentComponent = ({
 	return (
 		<div className={cn('flex flex-col gap-3', className)}>
 			{/* Thumbnail */}
-			{showThumbnail && proxiedImageUrl && (
+			{showThumbnail && safeImageUrl && (
 				<div
 					className='relative w-full aspect-video rounded-md overflow-hidden'
 					style={{
@@ -104,7 +104,7 @@ const ResourceContentComponent = ({
 							alt={title}
 							className='object-cover absolute inset-0 w-full h-full'
 							loading='lazy'
-							src={proxiedImageUrl}
+							src={safeImageUrl}
 							onError={() => {
 								setImageError(true);
 								setImageLoading(false);
