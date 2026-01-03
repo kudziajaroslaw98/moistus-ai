@@ -9,9 +9,9 @@ import {
 	generateUserColor,
 } from '@/helpers/user-profile-helpers';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
-import type { EdgesTableType } from '@/types/edges-table-type';
+import type { AppEdge } from '@/types/app-edge';
+import type { AppNode } from '@/types/app-node';
 import type { MindMapData } from '@/types/mind-map-data';
-import type { NodesTableType } from '@/types/nodes-table-type';
 import { UserProfile } from '@/types/user-profile-types';
 import type { User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -36,6 +36,8 @@ export const createCoreDataSlice: StateCreator<
 	// Actions
 	setActiveTool: (activeTool) => set({ activeTool }),
 	setMindMap: (mindMap) => set({ mindMap }),
+	setMindMapContent: (content: { nodes: AppNode[]; edges: AppEdge[] }) =>
+		set({ nodes: content.nodes, edges: content.edges }),
 	setReactFlowInstance: (reactFlowInstance) => set({ reactFlowInstance }),
 	setMapId: (mapId) => set({ mapId }),
 	setCurrentUser: (currentUser) => {
@@ -221,6 +223,9 @@ export const createCoreDataSlice: StateCreator<
 			// Start real-time subscriptions after successful data load
 			await get().subscribeToRealtimeUpdates(mapId);
 
+			// Subscribe to access revocation events (for guests/collaborators)
+			await get().subscribeToAccessRevocation(mapId);
+
 			// Show success toast only when map data was actually loaded
 			if (toastId) {
 				toast.success('Mind map data fetched successfully.', { id: toastId });
@@ -334,6 +339,8 @@ export const createCoreDataSlice: StateCreator<
 				get().unsubscribeFromEdges(),
 				get().unsubscribeFromCommentUpdates(),
 			]);
+			// Also unsubscribe from access revocation
+			get().unsubscribeFromAccessRevocation();
 			console.log('Real-time subscriptions stopped successfully');
 		} catch (error) {
 			console.error('Failed to stop real-time subscriptions:', error);

@@ -13,6 +13,7 @@ interface ContextMenuItemProps {
 	shortcut?: string;
 	loading?: boolean;
 	className?: string;
+	'data-testid'?: string;
 }
 
 export const ContextMenuItem = React.forwardRef<
@@ -29,6 +30,7 @@ export const ContextMenuItem = React.forwardRef<
 			shortcut,
 			loading = false,
 			className,
+			'data-testid': dataTestId,
 		},
 		ref
 	) => {
@@ -36,6 +38,7 @@ export const ContextMenuItem = React.forwardRef<
 			<Button
 				aria-describedby={shortcut ? `${label}-shortcut` : undefined}
 				aria-disabled={disabled || loading}
+				data-testid={dataTestId}
 				disabled={disabled || loading}
 				onClick={onClick}
 				ref={ref}

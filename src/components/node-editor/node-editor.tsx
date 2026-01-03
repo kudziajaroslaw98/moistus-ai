@@ -36,12 +36,13 @@ const animationVariants = {
 };
 
 export const NodeEditor = () => {
-	const { nodeEditor, closeNodeEditor, nodes, resetQuickInput } = useAppStore(
+	const { nodeEditor, closeNodeEditor, nodes, resetQuickInput, getDefaultNodeType } = useAppStore(
 		useShallow((state) => ({
 			nodeEditor: state.nodeEditor,
 			closeNodeEditor: state.closeNodeEditor,
 			nodes: state.nodes,
 			resetQuickInput: state.resetQuickInput,
+			getDefaultNodeType: state.getDefaultNodeType,
 		}))
 	);
 
@@ -54,10 +55,11 @@ export const NodeEditor = () => {
 		: undefined;
 
 	// Determine node type from context
+	// Priority: edit mode uses existing type > command-suggested type > user's default preference
 	const nodeType: AvailableNodeTypes =
 		mode === 'edit'
 			? (existingNode?.data?.node_type as AvailableNodeTypes) || 'defaultNode'
-			: nodeEditor.suggestedType || 'defaultNode';
+			: nodeEditor.suggestedType || getDefaultNodeType();
 
 	// Reset state when editor closes
 	useEffect(() => {
@@ -107,6 +109,7 @@ export const NodeEditor = () => {
 						{...getReferenceProps()}
 						animate='animate'
 						className={cn(theme.container)}
+						data-testid='node-editor'
 						exit='exit'
 						initial='initial'
 						variants={animationVariants.container}

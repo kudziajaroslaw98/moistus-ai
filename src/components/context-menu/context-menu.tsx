@@ -270,6 +270,7 @@ export function ContextMenu({ aiActions }: ContextMenuProps) {
 					>
 						<ContextMenuItem
 							className='border-border-strong'
+							data-testid={`context-menu-${item.id}`}
 							disabled={item.disabled}
 							icon={item.icon}
 							label={item.label}
@@ -325,6 +326,7 @@ export function ContextMenu({ aiActions }: ContextMenuProps) {
 						animate='visible'
 						aria-label='Context menu'
 						aria-orientation='vertical'
+						data-testid='context-menu'
 						exit='exit'
 						initial='hidden'
 						ref={refs.setFloating}

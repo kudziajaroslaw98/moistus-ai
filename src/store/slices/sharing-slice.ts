@@ -53,6 +53,7 @@ export const createSharingSlice: StateCreator<
 		sharingError: undefined,
 		lastJoinResult: undefined,
 		_sharingSubscription: undefined,
+		_accessRevocationChannel: undefined,
 
 		// Upgrade state (for anonymous -> full user conversion)
 		upgradeStep: 'idle' as UpgradeStep,
@@ -217,7 +218,7 @@ export const createSharingSlice: StateCreator<
 				await new Promise((resolve) => setTimeout(resolve, 100));
 
 				// Get the newly created profile (created by database trigger)
-				const { data: newProfile } = await supabase
+				const { data: newProfile, error: profileError } = await supabase
 					.from('user_profiles')
 					.select('display_name, avatar_url, is_anonymous')
 					.eq('user_id', authData.user.id)
@@ -230,6 +231,28 @@ export const createSharingSlice: StateCreator<
 				const avatarUrl =
 					newProfile?.avatar_url ||
 					`https://api.dicebear.com/7.x/avataaars/svg?seed=${authData.user.id}`;
+
+				// If trigger didn't create profile, create it now with is_anonymous=true
+				if (profileError || !newProfile) {
+					console.log(
+						'ensureAuthenticated: Profile not created by trigger, inserting manually'
+					);
+					await supabase.from('user_profiles').insert({
+						user_id: authData.user.id,
+						display_name: defaultDisplayName,
+						avatar_url: avatarUrl,
+						is_anonymous: true,
+					});
+				} else if (newProfile && !newProfile.is_anonymous) {
+					// Profile was created by trigger but is_anonymous not set - update it
+					console.log(
+						'ensureAuthenticated: Profile exists but is_anonymous not set, updating'
+					);
+					await supabase
+						.from('user_profiles')
+						.update({ is_anonymous: true })
+						.eq('user_id', authData.user.id);
+				}
 
 				const anonymousUser: AnonymousUser = {
 					user_id: authData.user.id,
@@ -301,8 +324,9 @@ export const createSharingSlice: StateCreator<
 				const result = await response.json();
 				const token: ShareToken = result.data;
 
+				// Prepend to match server order (newest first via created_at DESC)
 				set((state) => ({
-					shareTokens: [...state.shareTokens, token],
+					shareTokens: [token, ...state.shareTokens],
 					activeToken: token,
 					isCreatingToken: false,
 				}));
@@ -385,9 +409,12 @@ export const createSharingSlice: StateCreator<
 			displayName?: string
 		) => {
 			try {
-				const currentUser = get().authUser;
+				// Get user from Supabase auth directly - source of truth for is_anonymous
+				const {
+					data: { user },
+				} = await supabase.auth.getUser();
 
-				if (!currentUser?.is_anonymous) {
+				if (!user?.is_anonymous) {
 					throw new Error('User is not anonymous or not found');
 				}
 
@@ -408,17 +435,20 @@ export const createSharingSlice: StateCreator<
 
 				const result = await response.json();
 
-				// Update current user state
-				const updatedUser: AnonymousUser = {
-					...currentUser,
-					display_name: result.data.profile.display_name,
-					is_anonymous: false,
-				};
+				// Update current user state (get fresh local state)
+				const currentAuthUser = get().authUser;
+				if (currentAuthUser) {
+					const updatedUser: AnonymousUser = {
+						...currentAuthUser,
+						display_name: result.data.profile.display_name,
+						is_anonymous: false,
+					};
 
-				set({
-					authUser: updatedUser,
-					sharingError: undefined,
-				});
+					set({
+						authUser: updatedUser,
+						sharingError: undefined,
+					});
+				}
 
 				return true;
 			} catch (error) {
@@ -450,9 +480,12 @@ export const createSharingSlice: StateCreator<
 			});
 
 			try {
-				const currentUser = get().authUser;
+				// Get user from Supabase auth directly - source of truth for is_anonymous
+				const {
+					data: { user },
+				} = await supabase.auth.getUser();
 
-				if (!currentUser?.is_anonymous) {
+				if (!user?.is_anonymous) {
 					throw new Error('User is not anonymous or not found');
 				}
 
@@ -516,10 +549,27 @@ export const createSharingSlice: StateCreator<
 				});
 
 				const result = await response.json();
+				console.log('[verifyUpgradeOtp] Response:', {
+					ok: response.ok,
+					result,
+				});
 
 				if (!response.ok) {
 					throw new Error(result.error || 'Invalid verification code');
 				}
+
+				// CRITICAL: After OTP verification, the server creates a new session.
+				// We must refresh the client-side Supabase session to pick up the new cookies.
+				// Without this, subsequent API calls will fail with "Auth session missing"
+				console.log(
+					'[verifyUpgradeOtp] Refreshing client session after OTP verification...'
+				);
+				const { data: sessionData, error: sessionError } =
+					await supabase.auth.getUser();
+				console.log('[verifyUpgradeOtp] Session refresh result:', {
+					hasSession: !!sessionData?.user,
+					error: sessionError?.message,
+				});
 
 				set({
 					upgradeStep: 'set_password',
@@ -545,6 +595,10 @@ export const createSharingSlice: StateCreator<
 
 			try {
 				const displayName = get().upgradeDisplayName;
+				console.log(
+					'[completeUpgradeWithPassword] Starting with displayName:',
+					displayName
+				);
 
 				const response = await fetch(
 					'/api/auth/upgrade-anonymous/set-password',
@@ -559,6 +613,11 @@ export const createSharingSlice: StateCreator<
 				);
 
 				const result = await response.json();
+				console.log('[completeUpgradeWithPassword] Response:', {
+					ok: response.ok,
+					status: response.status,
+					result,
+				});
 
 				if (!response.ok) {
 					throw new Error(result.error || 'Failed to set password');
@@ -612,9 +671,12 @@ export const createSharingSlice: StateCreator<
 			});
 
 			try {
-				const currentUser = get().authUser;
+				// Get user from Supabase auth directly - source of truth for is_anonymous
+				const {
+					data: { user },
+				} = await supabase.auth.getUser();
 
-				if (!currentUser?.is_anonymous) {
+				if (!user?.is_anonymous) {
 					throw new Error('User is not anonymous or not found');
 				}
 
@@ -808,9 +870,7 @@ export const createSharingSlice: StateCreator<
 				const sharingError: SharingError = {
 					code: 'UNKNOWN',
 					message:
-						error instanceof Error
-							? error.message
-							: 'Failed to delete share',
+						error instanceof Error ? error.message : 'Failed to delete share',
 				};
 
 				set({ sharingError });
@@ -842,19 +902,6 @@ export const createSharingSlice: StateCreator<
 							console.log('Sharing update received:', payload);
 							// Refresh tokens when changes occur
 							get().refreshTokens();
-						}
-					)
-					.on(
-						'postgres_changes',
-						{
-							event: '*',
-							schema: 'public',
-							table: 'mind_map_shares',
-							filter: `map_id=eq.${mapId}`,
-						},
-						(payload) => {
-							console.log('Share permissions update received:', payload);
-							// Could trigger additional updates if needed
 						}
 					);
 
@@ -909,6 +956,157 @@ export const createSharingSlice: StateCreator<
 			}
 		},
 
+		// Subscribe to access revocation events for the current user
+		// This is called on map load to enable immediate kick-out when access is revoked
+		subscribeToAccessRevocation: async (mapId: string) => {
+			try {
+				// Unsubscribe from any existing subscription
+				get().unsubscribeFromAccessRevocation();
+
+				const { authUser, currentUser, mindMap, lastJoinResult } = get();
+
+				// Get user ID from multiple sources (fallback chain for timing issues)
+				// 1. authUser - set after ensureAuthenticated()
+				// 2. lastJoinResult - set after joinRoom() completes
+				// 3. currentUser - authenticated user from core slice
+				// 4. Supabase auth session (most reliable)
+				let userId =
+					authUser?.user_id || lastJoinResult?.user_id || currentUser?.id;
+				let isAnonymous =
+					authUser?.is_anonymous ?? lastJoinResult?.is_anonymous ?? false;
+
+				// If no user ID from store, try getting from Supabase auth directly
+				if (!userId) {
+					console.log(
+						'subscribeToAccessRevocation: No user ID in store, checking Supabase auth...'
+					);
+					const {
+						data: { user },
+					} = await supabase.auth.getUser();
+					if (user) {
+						userId = user.id;
+						isAnonymous = user.is_anonymous ?? false;
+						console.log(
+							`subscribeToAccessRevocation: Got userId=${userId} from Supabase auth`
+						);
+					}
+				}
+
+				// Skip if no user ID available
+				if (!userId) {
+					console.warn(
+						'subscribeToAccessRevocation: No user ID available. Subscription not started.',
+						{ authUser, lastJoinResult, currentUser }
+					);
+					return;
+				}
+
+				console.log(
+					`subscribeToAccessRevocation: Using userId=${userId}, isAnonymous=${isAnonymous}`
+				);
+
+				// Skip if user is the owner (owners can't be kicked from their own maps)
+				if (mindMap?.user_id === userId) {
+					console.log(
+						'subscribeToAccessRevocation: User is owner, skipping subscription'
+					);
+					return;
+				}
+
+				console.log(
+					`subscribeToAccessRevocation: Setting up listener for user ${userId} on map ${mapId}`
+				);
+
+				// Helper to trigger access denied
+				const triggerAccessDenied = () => {
+					console.log(
+						'Access revoked for current map, showing access denied page'
+					);
+					get().setMapAccessError({
+						type: 'access_denied',
+						isAnonymous,
+					});
+				};
+
+				// Subscribe to broadcast (individual user removal) and UPDATE (room code revocation)
+				const channel = supabase
+					.channel(`access_revocation_${mapId}_${userId}`)
+					.on(
+						'broadcast',
+						{ event: 'access_revoked' },
+						(payload: {
+							payload?: { id?: number; map_id?: string; user_id?: string };
+						}) => {
+							if (payload.payload?.map_id === mapId) {
+								triggerAccessDenied();
+							}
+						}
+					)
+					.on(
+						'postgres_changes',
+						{
+							event: 'UPDATE',
+							schema: 'public',
+							table: 'share_access',
+							filter: `user_id=eq.${userId}`,
+						},
+						(payload) => {
+							console.log('Access UPDATE event received:', payload);
+							const updatedRecord = payload.new as {
+								map_id?: string;
+								user_id?: string;
+								status?: string;
+							};
+
+							// Check if status changed to 'inactive' for the current map
+							// This happens when owner revokes the room code
+							if (
+								updatedRecord?.map_id === mapId &&
+								updatedRecord?.status === 'inactive'
+							) {
+								triggerAccessDenied();
+							}
+						}
+					)
+					.subscribe((status, err) => {
+						if (status === 'SUBSCRIBED') {
+							console.log(
+								`✅ Access revocation subscription ACTIVE for map ${mapId}, user ${userId}`
+							);
+						} else if (status === 'CHANNEL_ERROR') {
+							console.error(
+								`❌ Access revocation subscription FAILED for map ${mapId}:`,
+								err
+							);
+						} else if (status === 'TIMED_OUT') {
+							console.error(
+								`⏱️ Access revocation subscription TIMED OUT for map ${mapId}`
+							);
+						} else {
+							console.log(
+								`Access revocation subscription status: ${status}`,
+								err || ''
+							);
+						}
+					});
+
+				set({ _accessRevocationChannel: channel });
+			} catch (error) {
+				console.error('Failed to subscribe to access revocation:', error);
+			}
+		},
+
+		// Unsubscribe from access revocation events
+		unsubscribeFromAccessRevocation: () => {
+			const state = get();
+
+			if (state._accessRevocationChannel) {
+				console.log('Unsubscribing from access revocation channel');
+				supabase.removeChannel(state._accessRevocationChannel);
+				set({ _accessRevocationChannel: undefined });
+			}
+		},
+
 		// Clear current error
 		clearError: () => {
 			set({ sharingError: undefined });
@@ -916,6 +1114,10 @@ export const createSharingSlice: StateCreator<
 
 		// Reset sharing state
 		reset: () => {
+			// Clean up subscriptions before resetting state
+			get().unsubscribeFromSharing();
+			get().unsubscribeFromAccessRevocation();
+
 			set({
 				shareTokens: [],
 				activeToken: undefined,
@@ -925,6 +1127,7 @@ export const createSharingSlice: StateCreator<
 				sharingError: undefined,
 				lastJoinResult: undefined,
 				_sharingSubscription: undefined,
+				_accessRevocationChannel: undefined,
 				// Reset upgrade state
 				upgradeStep: 'idle',
 				upgradeEmail: null,
@@ -938,4 +1141,3 @@ export const createSharingSlice: StateCreator<
 
 // Export the type for use in other parts of the app
 export type { AnonymousUser, SharingSlice };
-

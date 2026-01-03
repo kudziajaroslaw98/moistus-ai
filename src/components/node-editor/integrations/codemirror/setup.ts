@@ -76,6 +76,32 @@ export function createNodeEditor(
 						override: [createCompletions()],
 						activateOnTyping: true,
 						defaultKeymap: true,
+						// Custom render for color swatches inline
+						addToOptions: [
+							{
+								render: (completion) => {
+									// Only render swatches for color completions
+									const label = completion.label;
+									if (
+										label.startsWith('color:') ||
+										label.startsWith('bg:') ||
+										label.startsWith('border:')
+									) {
+										const hex = completion.detail as string;
+										if (hex && hex.startsWith('#')) {
+											const swatch = document.createElement('span');
+											swatch.className = 'color-swatch';
+											swatch.style.backgroundColor = hex;
+											// Add minimal margin to position closer to label
+											swatch.style.marginRight = '8px';
+											return swatch;
+										}
+									}
+									return null;
+								},
+								position: 20, // Render before the label
+							},
+						],
 					}),
 				]
 			: []),

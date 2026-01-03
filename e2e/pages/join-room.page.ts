@@ -1,0 +1,208 @@
+import { expect, Locator, Page } from '@playwright/test';
+
+/**
+ * Page Object for the Join Room flow.
+ *
+ * Handles interactions with:
+ * - Manual room code entry (/join)
+ * - Deep link join flow (/join/[token])
+ * - Display name entry for anonymous users
+ * - Success and error states
+ */
+export class JoinRoomPage {
+	readonly page: Page;
+
+	// Manual join form (/join page)
+	readonly roomCodeInput: Locator;
+
+	// Common elements (both /join and /join/[token])
+	readonly displayNameInput: Locator;
+	readonly joinButton: Locator;
+
+	// Error state
+	readonly errorState: Locator;
+	readonly errorMessage: Locator;
+
+	// Success indicators
+	readonly successIndicator: Locator;
+
+	constructor(page: Page) {
+		this.page = page;
+
+		// Manual join form input
+		this.roomCodeInput = page
+			.locator('input#roomCode')
+			.or(page.locator('input[placeholder*="ABC-123"]'));
+
+		// Display name input (uses data-testid)
+		this.displayNameInput = page.locator('[data-testid="display-name-input"]');
+
+		// Join button (uses data-testid)
+		this.joinButton = page.locator('[data-testid="join-room-btn"]');
+
+		// Error state container (uses data-testid)
+		this.errorState = page.locator('[data-testid="join-error-state"]');
+
+		// Error message text
+		this.errorMessage = page.locator('.text-red-400').or(this.errorState);
+
+		// Success indicators
+		this.successIndicator = page
+			.locator('text=Welcome')
+			.or(page.locator('text=Redirecting'));
+	}
+
+	/**
+	 * Navigates to the manual join page (/join).
+	 */
+	async gotoManualJoin() {
+		await this.page.goto('/join');
+		await this.page.waitForLoadState('networkidle');
+	}
+
+	/**
+	 * Navigates to the deep link join page (/join/[token]).
+	 * Dismisses any blocking modals after navigation.
+	 */
+	async gotoDeepLink(token: string) {
+		await this.page.goto(`/join/${token}`);
+		// Use domcontentloaded instead of networkidle to avoid timeout
+		// from persistent WebSocket connections
+		await this.page.waitForLoadState('domcontentloaded');
+
+		// Dismiss any modals that may have appeared after page load
+		await this.dismissOnboardingIfPresent();
+
+		// Verify we landed on the join page
+		const currentUrl = this.page.url();
+		if (!currentUrl.includes('/join/')) {
+			console.log(`Unexpected URL after navigation: ${currentUrl}, forcing reload`);
+			await this.page.goto(`/join/${token}`, { waitUntil: 'domcontentloaded' });
+			await this.dismissOnboardingIfPresent();
+		}
+	}
+
+	/**
+	 * Joins a room using the manual entry form.
+	 */
+	async joinWithToken(token: string, displayName: string) {
+		await this.roomCodeInput.fill(token);
+		await this.displayNameInput.fill(displayName);
+		await this.joinButton.click();
+	}
+
+	/**
+	 * Joins as a guest (for deep link flow).
+	 * Waits for the display name input to be visible first.
+	 */
+	async joinAsGuest(displayName: string) {
+		// Wait for the form to be ready (validation completes, form shows)
+		await this.displayNameInput.waitFor({ state: 'visible', timeout: 10000 });
+		await this.displayNameInput.fill(displayName);
+		await this.joinButton.click();
+	}
+
+	/**
+	 * Waits for successful join (redirect to mind map).
+	 * Also dismisses the onboarding modal if it appears.
+	 */
+	async waitForSuccess(timeout = 30000) {
+		// Wait for URL change to mind-map (most reliable indicator)
+		// Increased timeout for slower browsers (webkit/firefox)
+		await this.page.waitForURL(/\/mind-map\//, { timeout });
+
+		// Dismiss onboarding modal if it appears
+		// The modal shows for new anonymous users and blocks all interactions
+		await this.dismissOnboardingIfPresent();
+	}
+
+	/**
+	 * Dismisses any blocking modals if present.
+	 * Handles both "Skip for now" and "Get Started" buttons.
+	 */
+	async dismissOnboardingIfPresent() {
+		try {
+			// Check for various modal dismiss buttons
+			// The onboarding can show "Skip for now" or "Get Started" depending on state
+			const skipButton = this.page.getByRole('button', { name: 'Skip for now' });
+			const getStartedButton = this.page.getByRole('button', { name: 'Get Started' });
+
+			// Try skip button first
+			const skipVisible = await skipButton
+				.waitFor({ state: 'visible', timeout: 1000 })
+				.then(() => true)
+				.catch(() => false);
+
+			if (skipVisible) {
+				await skipButton.click();
+				console.log('Dismissed onboarding modal via Skip for now');
+				await this.page.waitForTimeout(500);
+				return;
+			}
+
+			// Try Get Started button
+			const getStartedVisible = await getStartedButton
+				.waitFor({ state: 'visible', timeout: 1000 })
+				.then(() => true)
+				.catch(() => false);
+
+			if (getStartedVisible) {
+				await getStartedButton.click();
+				console.log('Dismissed onboarding modal via Get Started');
+				await this.page.waitForTimeout(500);
+				return;
+			}
+		} catch {
+			// Modal not present, which is fine
+		}
+	}
+
+	/**
+	 * Waits for error state to appear.
+	 */
+	async waitForError(timeout = 10000) {
+		await this.errorState.waitFor({ state: 'visible', timeout });
+	}
+
+	/**
+	 * Asserts that a specific error message is displayed.
+	 */
+	async expectErrorMessage(expectedText: string | RegExp) {
+		await this.waitForError();
+
+		// Get the text from the error section
+		const errorText = await this.errorState.textContent();
+
+		if (typeof expectedText === 'string') {
+			expect(errorText?.toLowerCase()).toContain(expectedText.toLowerCase());
+		} else {
+			expect(errorText).toMatch(expectedText);
+		}
+	}
+
+	/**
+	 * Gets the current error message text.
+	 */
+	async getErrorMessage(): Promise<string | null> {
+		if (await this.errorState.isVisible()) {
+			return await this.errorState.textContent();
+		}
+		return null;
+	}
+
+	/**
+	 * Checks if currently on the join page (not redirected).
+	 */
+	async isOnJoinPage(): Promise<boolean> {
+		const url = this.page.url();
+		return url.includes('/join');
+	}
+
+	/**
+	 * Checks if currently on the mind map page (successful join).
+	 */
+	async isOnMindMap(): Promise<boolean> {
+		const url = this.page.url();
+		return url.includes('/mind-map/');
+	}
+}

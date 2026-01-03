@@ -1,4 +1,5 @@
 import { createClient } from '@/helpers/supabase/server';
+import { getBillingPeriodStart, getBillingPeriodEnd } from '@/helpers/api/with-subscription-check';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
@@ -57,11 +58,15 @@ export async function GET() {
 			}
 		}
 
-		// Fetch AI usage count (from ai_usage_log table)
+		// Fetch AI usage count for current billing period (from ai_usage_log table)
+		const billingPeriodStart = getBillingPeriodStart();
+		const billingPeriodEnd = getBillingPeriodEnd();
+
 		const { count: aiUsageCount, error: aiError } = await supabase
 			.from('ai_usage_log')
 			.select('*', { count: 'exact', head: true })
-			.eq('user_id', user.id);
+			.eq('user_id', user.id)
+			.gte('timestamp', billingPeriodStart);
 
 		if (aiError) {
 			console.error('Error fetching AI usage:', aiError);
@@ -96,6 +101,10 @@ export async function GET() {
 				collaboratorsCount: uniqueCollaborators,
 				storageUsedMB: estimatedStorageMB,
 				aiSuggestionsCount: aiUsageCount || 0,
+				billingPeriod: {
+					start: billingPeriodStart,
+					end: billingPeriodEnd,
+				},
 			},
 		});
 	} catch (error) {

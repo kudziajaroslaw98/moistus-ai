@@ -255,26 +255,27 @@ export async function POST(req: Request) {
 						await wait(1000);
 
 						const contextPrompt = `Based on the following mind map data, suggest meaningful connections. Nodes: ${JSON.stringify(mapData.nodes)}. Edges: ${JSON.stringify(mapData.edges)}.`;
+						const modelMessages = await convertToModelMessages([
+							{
+								role: 'system',
+								parts: [{ type: 'text', text: contextPrompt }],
+							},
+							{
+								role: 'user',
+								parts: [
+									{
+										type: 'text',
+										text: 'Please provide a list of (1) suggested connections.',
+									},
+								],
+							},
+						]);
 						const response = streamObject({
-							model: openai('o4-mini'),
+							model: openai('gpt-5-mini'),
 							abortSignal,
 							schema: connectionSuggestionSchema,
 							output: 'array',
-							messages: convertToModelMessages([
-								{
-									role: 'system',
-									parts: [{ type: 'text', text: contextPrompt }],
-								},
-								{
-									role: 'user',
-									parts: [
-										{
-											type: 'text',
-											text: 'Please provide a list of (1) suggested connections.',
-										},
-									],
-								},
-							]),
+							messages: modelMessages,
 						});
 
 						// --- Step 4: Stream Results ---

@@ -4,7 +4,7 @@ import { AnonymousUserBanner } from '@/components/auth/anonymous-user-banner';
 import { UpgradeAnonymousPrompt } from '@/components/auth/upgrade-anonymous';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
-import { Archive, Home, Settings, Star, Users } from 'lucide-react';
+import { Archive, Home, Star, Users } from 'lucide-react';
 import { motion } from 'motion/react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -13,7 +13,6 @@ import { ReactNode, useEffect, useState } from 'react';
 import {
 	Sidebar,
 	SidebarContent,
-	SidebarFooter,
 	SidebarGroup,
 	SidebarHeader,
 	SidebarTrigger,
@@ -61,8 +60,6 @@ const mainNavItems: NavItem[] = [
 		label: 'Templates',
 		icon: <Star className='h-4 w-4' />,
 		href: '/dashboard/templates',
-		disabled: true,
-		comingSoon: true,
 	},
 	{
 		id: 'archive',
@@ -74,14 +71,7 @@ const mainNavItems: NavItem[] = [
 	},
 ];
 
-const bottomNavItems: NavItem[] = [
-	{
-		id: 'settings',
-		label: 'Settings',
-		icon: <Settings className='h-4 w-4' />,
-		href: '/dashboard/settings',
-	},
-];
+const bottomNavItems: NavItem[] = [];
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
 	const pathname = usePathname();
@@ -214,31 +204,21 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 			);
 		}
 
+		// Regular nav items use Link for navigation
 		return (
-			<div
-				onClick={
-					item.id === 'settings'
-						? (e) => {
-								e.preventDefault();
-								handleOpenSettings('settings');
-							}
-						: undefined
-				}
-			>
-				<Link href={item.href}>
-					<SidebarItem
-						badge={renderBadge()}
-						isActive={isActive}
-						label={item.label}
-						onClick={() => {}}
-						icon={
-							<div className={cn('flex-shrink-0', isActive && 'text-sky-400')}>
-								{item.icon}
-							</div>
-						}
-					/>
-				</Link>
-			</div>
+			<Link href={item.href}>
+				<SidebarItem
+					badge={renderBadge()}
+					isActive={isActive}
+					label={item.label}
+					onClick={() => {}}
+					icon={
+						<div className={cn('flex-shrink-0', isActive && 'text-sky-400')}>
+							{item.icon}
+						</div>
+					}
+				/>
+			</Link>
 		);
 	};
 
@@ -279,7 +259,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 				</SidebarHeader>
 
 				<SidebarContent className='w-full'>
-				<SidebarGroup
+					<SidebarGroup
 						className={cn(['w-full', !sidebarCollapsed ? 'p-2' : 'p-2'])}
 					>
 						<SidebarSection showDivider={false}>
@@ -289,18 +269,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 						</SidebarSection>
 					</SidebarGroup>
 				</SidebarContent>
-
-				<SidebarFooter className='border-t border-zinc-800'>
-					<SidebarSection showDivider={false}>
-						{bottomNavItems.map((item) => (
-							<NavItemComponent item={item} key={item.id} />
-						))}
-					</SidebarSection>
-				</SidebarFooter>
 			</Sidebar>
 
 			{/* Main Content */}
-			<main className='flex-grow flex flex-col h-screen overflow-hidden'>
+			<main className='grow flex flex-col h-screen overflow-hidden'>
 				<DashboardHeader onOpenSettings={handleOpenSettings} />
 				<AnonymousUserBanner />
 

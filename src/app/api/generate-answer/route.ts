@@ -1,9 +1,9 @@
 import { respondError } from '@/helpers/api/responses';
-import { withApiValidation } from '@/helpers/api/with-api-validation';
 import {
 	checkAIFeatureAccess,
 	trackAIFeatureUsage,
 } from '@/helpers/api/with-ai-feature-gate';
+import { withApiValidation } from '@/helpers/api/with-api-validation';
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { z } from 'zod';
@@ -11,7 +11,6 @@ import { z } from 'zod';
 const requestBodySchema = z.object({
 	nodeId: z.string().uuid('Invalid node ID format'),
 });
-
 
 export const POST = withApiValidation(
 	requestBodySchema,
@@ -94,7 +93,7 @@ export const POST = withApiValidation(
 			const aiPrompt = `${contextPrompt}Please answer the following question based on your knowledge and the provided context (if any), make sure to summarize the answer in a very short paragraph. Do not include thinking in the response.:\n\nQuestion: "${questionNode.content}"\n\nAnswer:`;
 
 			const result = streamText({
-				model: openai('o4-mini'),
+				model: openai('gpt-5-mini'),
 				prompt: aiPrompt,
 			});
 

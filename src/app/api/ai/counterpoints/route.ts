@@ -262,7 +262,7 @@ Only include citations if they are real (never fabricate). Avoid redundancy.
 Context:\n${contextString}`;
 
 						const result = streamObject({
-							model: openai('o4-mini'),
+							model: openai('gpt-5-mini'),
 							abortSignal,
 							output: 'array',
 							schema: counterpointSuggestionSchema,

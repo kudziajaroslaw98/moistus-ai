@@ -11,7 +11,7 @@ export function parseDateString(dateStr: string): Date | undefined {
 	const today = new Date();
 	today.setHours(0, 0, 0, 0);
 
-	// Relative dates
+	// Relative dates - support both space and hyphen separators
 	const relativeMap: Record<string, () => Date> = {
 		today: () => today,
 		tomorrow: () => {
@@ -29,9 +29,38 @@ export function parseDateString(dateStr: string): Date | undefined {
 			date.setDate(date.getDate() + 7);
 			return date;
 		},
+		'next-week': () => {
+			const date = new Date(today);
+			date.setDate(date.getDate() + 7);
+			return date;
+		},
 		'next month': () => {
 			const date = new Date(today);
 			date.setMonth(date.getMonth() + 1);
+			return date;
+		},
+		'next-month': () => {
+			const date = new Date(today);
+			date.setMonth(date.getMonth() + 1);
+			return date;
+		},
+		// End of day - set to 23:59:59 today
+		eod: () => {
+			const date = new Date(today);
+			date.setHours(23, 59, 59, 999);
+			return date;
+		},
+		// End of week - next Sunday
+		eow: () => {
+			const date = new Date(today);
+			const daysUntilSunday = 7 - date.getDay();
+			date.setDate(date.getDate() + (daysUntilSunday === 0 ? 7 : daysUntilSunday));
+			return date;
+		},
+		// End of month - last day of current month
+		eom: () => {
+			const date = new Date(today);
+			date.setMonth(date.getMonth() + 1, 0); // Day 0 of next month = last day of current month
 			return date;
 		},
 	};
@@ -161,8 +190,11 @@ export function getRelativeDateOptions(): string[] {
 		'today',
 		'tomorrow',
 		'yesterday',
-		'next week',
-		'next month',
+		'next-week',
+		'next-month',
+		'eod', // End of day
+		'eow', // End of week
+		'eom', // End of month
 		...getWeekdays().map((day) => day.toLowerCase()),
 	];
 }

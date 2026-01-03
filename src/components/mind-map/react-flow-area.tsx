@@ -21,47 +21,38 @@ import {
 	CSSProperties,
 	useCallback,
 	useEffect,
+	useLayoutEffect,
 	useMemo,
 	useRef,
 	useState,
 } from 'react';
 
-import { UserMenu } from '@/components/common/user-menu';
+import { ChatPanel } from '@/components/ai-chat';
 import { SettingsPanel } from '@/components/dashboard/settings-panel';
 import AnimatedGhostEdge from '@/components/edges/animated-ghost-edge';
 import FloatingEdge from '@/components/edges/floating-edge';
 import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edge';
 import { UpgradeModal } from '@/components/modals/upgrade-modal';
 import { ModeIndicator } from '@/components/mode-indicator';
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-	BreadcrumbList,
-	BreadcrumbPage,
-	BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
+import { GuidedTourMode, PathBuilder } from '@/components/guided-tour';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useActivityTracker } from '@/hooks/realtime/use-activity-tracker';
 import { useContextMenu } from '@/hooks/use-context-menu';
 import { useNodeSuggestion } from '@/hooks/use-node-suggestion';
 import useAppStore from '@/store/mind-map-store';
+import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import type { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
-import { History, Redo, Settings, Share2, Slash, Undo } from 'lucide-react';
-import Image from 'next/image';
-import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
 import FloatingConnectionLine from '../edges/floating-connection-line';
 import { SuggestedMergeEdge } from '../edges/suggested-merge-edge';
 import WaypointEdge from '../edges/waypoint-edge';
-import { RealtimeAvatarStack } from '../realtime/realtime-avatar-stack';
 import { RealtimeCursors } from '../realtime/realtime-cursor';
 import { Toolbar } from '../toolbar';
-import { Button } from '../ui/button';
+import { MindMapTopBar, MobileMenu } from './top-bar';
 
 export function ReactFlowArea() {
 	const mapId = useParams().id;
@@ -75,6 +66,7 @@ export function ReactFlowArea() {
 	const [settingsTab, setSettingsTab] = useState<'settings' | 'billing'>(
 		'settings'
 	);
+	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
 	const handleOpenSettings = (tab: 'settings' | 'billing' = 'settings') => {
 		setSettingsTab(tab);
@@ -88,6 +80,7 @@ export function ReactFlowArea() {
 	const {
 		supabase,
 		nodes,
+		edges,
 		onNodesChange,
 		onEdgesChange,
 		onConnect,
@@ -117,15 +110,16 @@ export function ReactFlowArea() {
 		aiFeature,
 		canRedo,
 		canUndo,
-		resetOnboarding,
-		setOnboardingStep,
-		setShowOnboarding,
-		isProUser,
 		userProfile,
+		isTourActive,
+		isPathEditMode,
+		addNodeToPath,
+		isCommentMode,
 	} = useAppStore(
 		useShallow((state) => ({
 			supabase: state.supabase,
 			nodes: state.nodes,
+			edges: state.edges,
 			getVisibleEdges: state.getVisibleEdges,
 			getVisibleNodes: state.getVisibleNodes,
 			isFocusMode: state.isFocusMode,
@@ -162,12 +156,53 @@ export function ReactFlowArea() {
 			setShowOnboarding: state.setShowOnboarding,
 			isProUser: state.isProUser,
 			userProfile: state.userProfile,
+			// Guided tour state
+			isTourActive: state.isTourActive,
+			isPathEditMode: state.isPathEditMode,
+			addNodeToPath: state.addNodeToPath,
+			// Comment mode - needed for visibility memoization
+			isCommentMode: state.isCommentMode,
 		}))
 	);
 
 	const { contextMenuHandlers } = useContextMenu();
 	const { generateSuggestionsForNode } = useNodeSuggestion();
 	const { canEdit } = usePermissions();
+
+	// Permission-gated delete handlers
+	// Viewers should not be able to delete nodes/edges via Delete key
+	const handleNodesDelete = useCallback(
+		(nodesToDelete: Node[]) => {
+			if (!canEdit) return;
+			// Cast is safe: React Flow returns same objects we passed in
+			deleteNodes(nodesToDelete as AppNode[]);
+		},
+		[canEdit, deleteNodes]
+	);
+
+	const handleEdgesDelete = useCallback(
+		(edgesToDelete: Edge[]) => {
+			if (!canEdit) return;
+			// Cast is safe: React Flow returns same objects we passed in
+			deleteEdges(edgesToDelete as AppEdge[]);
+		},
+		[canEdit, deleteEdges]
+	);
+
+	// Memoize visible nodes to prevent infinite re-renders
+	// getVisibleNodes() returns new array on each call via .filter()
+	// Without memoization, ReactFlow sees "new" arrays every render → triggers onNodesChange → state update → re-render loop
+	// isCommentMode is needed because getVisibleNodes() filters based on it internally
+	const visibleNodes = useMemo(() => {
+		return [...getVisibleNodes(), ...ghostNodes];
+	}, [nodes, ghostNodes, getVisibleNodes, isCommentMode]);
+
+	// Memoize visible edges to prevent infinite re-renders
+	// Edge visibility depends on node visibility (collapsed nodes hide their edges)
+	// isCommentMode affects which nodes are visible, which affects edge visibility
+	const visibleEdges = useMemo(() => {
+		return getVisibleEdges();
+	}, [edges, nodes, getVisibleEdges, isCommentMode]);
 
 	useEffect(() => {
 		getCurrentUser();
@@ -190,17 +225,17 @@ export function ReactFlowArea() {
 	}, []);
 
 	// Track mouse position for InlineNodeCreator
-	useEffect(() => {
+	useLayoutEffect(() => {
 		const handleMouseMove = (e: MouseEvent) => {
 			setMousePosition({ x: e.clientX, y: e.clientY });
 		};
 
 		window.addEventListener('mousemove', handleMouseMove);
 		return () => window.removeEventListener('mousemove', handleMouseMove);
-	}, []);
+	}, [setMousePosition]);
 
 	// Handle "/" key to open InlineNodeCreator
-	useEffect(() => {
+	useLayoutEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
 			// Track typing activity when user types in input fields
 			if (isInputElement(e.target)) {
@@ -248,6 +283,14 @@ export function ReactFlowArea() {
 		(event: React.MouseEvent, node: Node<NodeData>) => {
 			console.log(node);
 
+			// Handle path edit mode - add clicked node to path
+			if (isPathEditMode) {
+				event.preventDefault();
+				event.stopPropagation();
+				addNodeToPath(node.id);
+				return;
+			}
+
 			if (activeTool === 'magic-wand' && aiFeature === 'suggest-nodes') {
 				event.preventDefault();
 				event.stopPropagation();
@@ -255,13 +298,16 @@ export function ReactFlowArea() {
 				setActiveTool('default');
 			}
 		},
-		[activeTool, isStreaming, generateSuggestionsForNode]
+		[activeTool, isStreaming, generateSuggestionsForNode, isPathEditMode, addNodeToPath]
 	);
 
 	const handleEdgeDoubleClick: EdgeMouseHandler<Edge<EdgeData>> = useCallback(
 		(event, edge) => {
 			// Forward double-click to waypoint edge component via custom event
-			if (edge.type === 'waypointEdge' || edge.data?.metadata?.pathType === 'waypoint') {
+			if (
+				edge.type === 'waypointEdge' ||
+				edge.data?.metadata?.pathType === 'waypoint'
+			) {
 				const customEvent = new CustomEvent('waypoint-edge-add', {
 					detail: {
 						edgeId: edge.id,
@@ -413,16 +459,18 @@ export function ReactFlowArea() {
 				connectionLineComponent={FloatingConnectionLine}
 				connectionLineType={ConnectionLineType.Bezier}
 				connectionMode={ConnectionMode.Loose}
-				deleteKeyCode={['Delete']}
+				deleteKeyCode={canEdit ? ['Delete'] : null}
 				disableKeyboardA11y={true}
-				edges={getVisibleEdges()}
+				edges={visibleEdges}
 				edgeTypes={edgeTypes}
 				elementsSelectable={isSelectMode}
 				fitView={true}
 				minZoom={0.1}
 				multiSelectionKeyCode={['Meta', 'Control']}
-				nodes={[...getVisibleNodes(), ...ghostNodes]}
-				nodesConnectable={(isSelectMode || activeTool === 'connector') && canEdit}
+				nodes={visibleNodes}
+				nodesConnectable={
+					(isSelectMode || activeTool === 'connector') && canEdit
+				}
 				nodesDraggable={isSelectMode && canEdit}
 				nodeTypes={nodeTypesWithProps}
 				onConnect={onConnect}
@@ -431,13 +479,14 @@ export function ReactFlowArea() {
 				onEdgeContextMenu={contextMenuHandlers.onEdgeContextMenu}
 				onEdgeDoubleClick={handleEdgeDoubleClick}
 				onEdgesChange={onEdgesChange}
-				onEdgesDelete={deleteEdges}
+				onEdgesDelete={handleEdgesDelete}
 				onNodeClick={handleNodeClick}
+				onNodeDoubleClick={handleNodeDoubleClick}
 				onNodeContextMenu={contextMenuHandlers.onNodeContextMenu}
 				onNodeDragStart={handleNodeDragStart}
 				onNodeDragStop={handleNodeDragStop}
 				onNodesChange={onNodesChange}
-				onNodesDelete={deleteNodes}
+				onNodesDelete={handleNodesDelete}
 				onPaneClick={contextMenuHandlers.onPaneClick}
 				onPaneContextMenu={contextMenuHandlers.onPaneContextMenu}
 				onSelectionChange={handleSelectionChange}
@@ -462,115 +511,23 @@ export function ReactFlowArea() {
 					variant={BackgroundVariant.Dots}
 				/>
 
-				<Panel
-					className='!m-0 p-2 px-8 right-0 flex justify-between bg-base/80 backdrop-blur-xs'
-					position='top-left'
-				>
-					<div className='flex items-center gap-8'>
-						<Breadcrumb>
-							<BreadcrumbList>
-								<BreadcrumbItem>
-									<BreadcrumbLink asChild>
-										<Link href='/dashboard'>
-											<Image
-												alt='Moistus Logo'
-												height={60}
-												src='/images/moistus.svg'
-												width={60}
-											/>
-										</Link>
-									</BreadcrumbLink>
-								</BreadcrumbItem>
-
-								<BreadcrumbSeparator>
-									<Slash />
-								</BreadcrumbSeparator>
-
-								<BreadcrumbItem>
-									<BreadcrumbPage className='capitalize'>
-										{mindMap?.title || 'Loading...'}
-									</BreadcrumbPage>
-								</BreadcrumbItem>
-							</BreadcrumbList>
-						</Breadcrumb>
-
-						{canEdit && (
-						<div className='flex gap-2'>
-							{/*TODO: Uncomment redo/undo when optimized history implemented*/}
-							<Button
-								// onClick={handleUndo}
-								disabled={!canUndo}
-								size='icon'
-								title='Undo (Ctrl+Z)'
-								variant='secondary'
-							>
-								<Undo className='size-4' />
-							</Button>
-
-							{/*TODO: Uncomment redo/undo when optimized history implemented*/}
-							<Button
-								// onClick={handleRedo}
-								disabled={!canRedo}
-								size='icon'
-								title='Redo (Ctrl+Y)'
-								variant='secondary'
-							>
-								<Redo className='size-4' />
-							</Button>
-
-							<Button
-								aria-label='Toggle History Sidebar'
-								onClick={handleToggleHistorySidebar}
-								size='icon'
-								title='Toggle History Sidebar'
-								variant='secondary'
-							>
-								<History className='h-4 w-4' />
-							</Button>
-						</div>
-					)}
-					</div>
-
-					<div className='flex items-center gap-8'>
-						<RealtimeAvatarStack
-							activityState={activityState}
-							mapOwnerId={mindMap?.user_id}
-							roomName={`mind_map:${mapId}:users`}
-						/>
-
-						{/* Only show Settings and Share buttons for map owners */}
-						{mindMap?.user_id === currentUser?.id && (
-							<div className='flex gap-2'>
-								<Button
-									aria-label='Map Settings'
-									onClick={handleToggleMapSettings}
-									size='icon'
-									title='Map Settings'
-									variant={popoverOpen.mapSettings ? 'default' : 'secondary'}
-								>
-									<Settings className='h-4 w-4' />
-								</Button>
-
-								<Button
-									aria-label='Share Mind Map'
-									className='gap-2'
-									onClick={handleToggleSharePanel}
-									title='Share Mind Map'
-									variant={popoverOpen.sharePanel ? 'default' : 'secondary'}
-								>
-									Share <Share2 className='size-3' />
-								</Button>
-							</div>
-						)}
-
-						{/* User Menu */}
-						<UserMenu
-							showBackToDashboard
-							user={userProfile}
-							onOpenSettings={handleOpenSettings}
-						/>
-					</div>
-				</Panel>
+				<MindMapTopBar
+					mapId={mapId as string}
+					mindMap={mindMap}
+					currentUser={currentUser}
+					userProfile={userProfile}
+					activityState={activityState}
+					popoverOpen={popoverOpen}
+					canEdit={canEdit}
+					canUndo={canUndo}
+					canRedo={canRedo}
+					handleToggleHistorySidebar={handleToggleHistorySidebar}
+					handleToggleMapSettings={handleToggleMapSettings}
+					handleToggleSharePanel={handleToggleSharePanel}
+					handleOpenSettings={handleOpenSettings}
+					mobileMenuOpen={mobileMenuOpen}
+					setMobileMenuOpen={setMobileMenuOpen}
+				/>
 
 				<Panel
 					className='flex flex-col gap-2 items-center'
@@ -601,6 +558,29 @@ export function ReactFlowArea() {
 				onClose={() => setIsSettingsOpen(false)}
 				defaultTab={settingsTab}
 			/>
+
+			<MobileMenu
+				open={mobileMenuOpen}
+				onOpenChange={setMobileMenuOpen}
+				canEdit={canEdit}
+				canUndo={canUndo}
+				canRedo={canRedo}
+				isMapOwner={mindMap?.user_id === currentUser?.id}
+				activityState={activityState}
+				mapId={mapId as string}
+				mapOwnerId={mindMap?.user_id}
+				isSettingsActive={popoverOpen.mapSettings}
+				onToggleHistory={handleToggleHistorySidebar}
+				onToggleSettings={handleToggleMapSettings}
+			/>
+
+			<ChatPanel />
+
+			{/* Guided Tour Mode - renders controls and spotlight overlay when active */}
+			<GuidedTourMode />
+
+			{/* Path Builder - shows when in path edit mode */}
+			{isPathEditMode && <PathBuilder />}
 		</div>
 	);
 }

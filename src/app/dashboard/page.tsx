@@ -169,6 +169,7 @@ function DashboardContent() {
 	const handleCreateMap = async (data: {
 		title: string;
 		description?: string;
+		templateId?: string;
 	}) => {
 		if (!data.title.trim() || isCreatingMap) return;
 
@@ -181,6 +182,7 @@ function DashboardContent() {
 				body: JSON.stringify({
 					title: data.title.trim(),
 					description: data.description?.trim() || undefined,
+					template_id: data.templateId || undefined,
 				}),
 			});
 
@@ -275,7 +277,7 @@ function DashboardContent() {
 		}
 
 		try {
-			const response = await fetch('/api/maps/bulk', {
+			const response = await fetch('/api/maps', {
 				method: 'DELETE',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ mapIds: Array.from(selectedMaps) }),
@@ -461,41 +463,35 @@ function DashboardContent() {
 										Mind Maps
 									</h1>
 
-									{/* Keyboard Shortcuts Help */}
-									<div className='text-xs text-zinc-400 space-y-1 hidden lg:block'>
-										<div className='flex gap-6'>
-											<span>
-												<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
-													Ctrl+N
-												</kbd>
+								</div>
 
-												<span className='text-zinc-500'>New map</span>
-											</span>
-
-											<span>
-												<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
-													Ctrl+F
-												</kbd>
-
-												<span className='text-zinc-500'>Search</span>
-											</span>
-
-											<span>
-												<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
-													Ctrl+A
-												</kbd>
-
-												<span className='text-zinc-500'>Select all</span>
-											</span>
-
-											<span>
-												<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
-													Ctrl+1/2
-												</kbd>
-
-												<span className='text-zinc-500'>View mode</span>
-											</span>
-										</div>
+								{/* Keyboard Shortcuts Help */}
+								<div className='text-xs text-zinc-400 space-y-1 hidden lg:block mb-6'>
+									<div className='flex gap-6'>
+										<span>
+											<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
+												Ctrl+N
+											</kbd>
+											<span className='text-zinc-500'>New map</span>
+										</span>
+										<span>
+											<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
+												Ctrl+F
+											</kbd>
+											<span className='text-zinc-500'>Search</span>
+										</span>
+										<span>
+											<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
+												Ctrl+A
+											</kbd>
+											<span className='text-zinc-500'>Select all</span>
+										</span>
+										<span>
+											<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
+												Ctrl+1/2
+											</kbd>
+											<span className='text-zinc-500'>View mode</span>
+										</span>
 									</div>
 								</div>
 

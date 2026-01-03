@@ -26,6 +26,7 @@ import { ActionBar } from '../action-bar';
 import { ComponentHeader } from '../component-header';
 import { ErrorDisplay } from '../error-display';
 import { ExamplesSection } from '../examples-section';
+import { ParentNodeReference } from '../parent-node-reference';
 import { ParsingLegend } from '../parsing-legend';
 import { PreviewSection } from '../preview-section';
 import { EnhancedInput } from './enhanced-input';
@@ -419,6 +420,9 @@ export const QuickInput: FC<QuickInputProps> = ({
 			transition={{ duration: 0.2, ease: 'easeOut' as const }}
 		>
 			<ComponentHeader icon={config.icon} label={config.label} />
+
+			{/* Parent reference when creating a child node */}
+			{parentNode && <ParentNodeReference parentNode={parentNode} />}
 
 			{/* Input and Preview Side by Side - Fixed 50/50 Layout */}
 			<div className='flex items-stretch gap-3 max-h-[400px] h-auto'>

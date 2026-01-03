@@ -221,7 +221,14 @@ export const createOnboardingSlice: StateCreator<
 
 	initializeOnboarding: async () => {
 		// Async initialization - checks auth and subscription to determine if onboarding should show
-		const { supabase, hasCompletedOnboarding, currentSubscription } = get();
+		const { supabase, hasCompletedOnboarding, currentSubscription, mapAccessError } = get();
+
+		// Don't show onboarding if user was just kicked from a shared map
+		// This prevents the confusing UX of showing onboarding after access revocation
+		if (mapAccessError?.type === 'access_denied') {
+			console.log('initializeOnboarding: Skipping due to access revocation');
+			return;
+		}
 
 		// Already completed, don't show
 		if (hasCompletedOnboarding) return;

@@ -20,21 +20,27 @@ export const POST = withAuthValidation(
 	SetPasswordSchema,
 	async (req, data, supabase, user) => {
 		try {
-			// 1. Verify user is still in anonymous state (profile-wise)
-			const { data: profile, error: profileError } = await supabase
+			// DEBUG: Log incoming user from withAuthValidation
+			console.log('[set-password] User from auth validation:', {
+				id: user.id,
+				email: user.email,
+				is_anonymous: user.is_anonymous,
+				email_confirmed_at: user.email_confirmed_at,
+			});
+
+			// NOTE: We don't check is_anonymous here because after OTP verification,
+			// Supabase automatically sets is_anonymous = false. The user flow is:
+			// 1. Anonymous user (is_anonymous = true)
+			// 2. Verify OTP → Supabase sets is_anonymous = false
+			// 3. Set password (this step) → completes upgrade
+			// We instead check if email is verified and password is not set.
+
+			// Fetch profile for display_name (optional - profile may not exist yet)
+			const { data: profile } = await supabase
 				.from('user_profiles')
-				.select('is_anonymous, display_name')
+				.select('display_name')
 				.eq('user_id', user.id)
 				.single();
-
-			if (profileError) {
-				console.error('Failed to fetch user profile:', profileError);
-				return respondError('User profile not found', 404);
-			}
-
-			if (!profile?.is_anonymous) {
-				return respondError('User has already been upgraded', 400);
-			}
 
 			// 2. Check that email is verified in auth.users
 			// Get fresh user data to check email status
@@ -42,6 +48,14 @@ export const POST = withAuthValidation(
 				data: { user: currentUser },
 				error: userError,
 			} = await supabase.auth.getUser();
+
+			// DEBUG: Log fresh user state
+			console.log('[set-password] Fresh user from getUser:', {
+				id: currentUser?.id,
+				email: currentUser?.email,
+				is_anonymous: currentUser?.is_anonymous,
+				email_confirmed_at: currentUser?.email_confirmed_at,
+			});
 
 			if (userError || !currentUser) {
 				console.error('Failed to get current user:', userError);
@@ -51,6 +65,11 @@ export const POST = withAuthValidation(
 			// Check if user has a verified email
 			// After OTP verification, email should be set and email_confirmed_at should exist
 			if (!currentUser.email) {
+				console.error('[set-password] Email not set! User state:', {
+					id: currentUser.id,
+					is_anonymous: currentUser.is_anonymous,
+					email: currentUser.email,
+				});
 				return respondError(
 					'Email not verified. Please complete email verification first.',
 					400,
@@ -75,7 +94,7 @@ export const POST = withAuthValidation(
 			const displayName =
 				data.display_name ||
 				currentUser.user_metadata?.pending_upgrade_display_name ||
-				profile.display_name;
+				profile?.display_name;
 
 			// 5. Update user profile using database function
 			// This marks is_anonymous = false and updates email

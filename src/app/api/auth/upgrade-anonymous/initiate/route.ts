@@ -30,19 +30,9 @@ export const POST = withAuthValidation(
 		}
 
 		try {
-			// 1. Verify user is anonymous
-			const { data: profile, error: profileError } = await supabase
-				.from('user_profiles')
-				.select('is_anonymous, display_name')
-				.eq('user_id', user.id)
-				.single();
-
-			if (profileError) {
-				console.error('Failed to fetch user profile:', profileError);
-				return respondError('User profile not found', 404);
-			}
-
-			if (!profile?.is_anonymous) {
+			// 1. Verify user is anonymous using auth source (not user_profiles table)
+			// user.is_anonymous comes directly from Supabase auth - the source of truth
+			if (!user.is_anonymous) {
 				return respondError(
 					'User is not anonymous. Already has a full account.',
 					400

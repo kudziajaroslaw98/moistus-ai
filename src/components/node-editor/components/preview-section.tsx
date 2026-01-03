@@ -2,7 +2,7 @@
 
 import { cn } from '@/utils/cn';
 import { motion } from 'motion/react';
-import { PreviewRenderer } from './preview-renderer';
+import { PreviewNodeRenderer } from './preview';
 
 interface PreviewSectionProps {
 	preview: any;
@@ -26,7 +26,7 @@ export const PreviewSection: React.FC<PreviewSectionProps> = ({
 	className,
 }) => {
 	return (
-		<div className={cn('flex-1 min-w-0', className)}>
+		<div className={cn('flex-1 min-w-0', className)} data-testid='preview-section'>
 			<motion.div
 				animate={{ opacity: 1 }}
 				className={theme.previewLabel}
@@ -44,7 +44,7 @@ export const PreviewSection: React.FC<PreviewSectionProps> = ({
 				initial={{ opacity: 0, y: -20, scale: 0.95 }}
 				transition={{ duration: 0.25, ease: 'easeOut' as const }}
 			>
-				<PreviewRenderer nodeType={nodeType} preview={preview} />
+				<PreviewNodeRenderer nodeType={nodeType} preview={preview} />
 			</motion.div>
 
 			{/* Placeholder when no preview */}

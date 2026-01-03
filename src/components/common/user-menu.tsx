@@ -15,6 +15,7 @@ import useAppStore from '@/store/mind-map-store';
 import { PublicUserProfile } from '@/types/user-profile-types';
 import {
 	ChevronDown,
+	CreditCard,
 	LogOut,
 	RefreshCw,
 	Settings,
@@ -157,6 +158,14 @@ export function UserMenu({
 				>
 					<Settings className='mr-2 h-4 w-4' />
 					Settings
+				</DropdownMenuItem>
+
+				<DropdownMenuItem
+					className='cursor-pointer text-zinc-300 focus:bg-zinc-800 focus:text-white'
+					onClick={() => onOpenSettings?.('billing')}
+				>
+					<CreditCard className='mr-2 h-4 w-4' />
+					Billing
 				</DropdownMenuItem>
 
 				{isAnonymous && (

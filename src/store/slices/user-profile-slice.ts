@@ -3,6 +3,7 @@ import type { AppState } from '../app-state';
 import type { UserProfile, UserProfileUpdate } from '@/types/user-profile-types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { generateFallbackAvatar } from '@/helpers/user-profile-helpers';
+import { NodeRegistry, type AvailableNodeTypes } from '@/registry/node-registry';
 
 export interface UserProfileSlice {
 	// State
@@ -33,6 +34,7 @@ export interface UserProfileSlice {
 		push_reactions: boolean;
 	};
 	getPrivacyPreferences: () => NonNullable<UserProfile['preferences']>['privacy'];
+	getDefaultNodeType: () => AvailableNodeTypes;
 }
 
 export const createUserProfileSlice: StateCreator<
@@ -89,12 +91,18 @@ export const createUserProfileSlice: StateCreator<
 					.insert({
 						user_id: user.id,
 						full_name: user.user_metadata?.full_name || '',
-						display_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
+						display_name:
+							user.user_metadata?.display_name ||
+							user.user_metadata?.full_name ||
+							user.user_metadata?.name ||
+							'',
 						avatar_url: avatarUrl,
+						is_anonymous: user.is_anonymous ?? false,
 						preferences: {
 							theme: 'system',
 							accentColor: 'sky',
 							reducedMotion: false,
+							defaultNodeType: 'defaultNode',
 							privacy: {
 								profile_visibility: 'public',
 							},
@@ -295,5 +303,16 @@ export const createUserProfileSlice: StateCreator<
 		return userProfile?.preferences?.privacy || {
 			profile_visibility: 'public',
 		};
+	},
+
+	getDefaultNodeType: () => {
+		const { userProfile } = get();
+		const savedType = userProfile?.preferences?.defaultNodeType;
+
+		// Validate saved type is still creatable
+		if (savedType && NodeRegistry.isCreatableType(savedType)) {
+			return savedType as AvailableNodeTypes;
+		}
+		return 'defaultNode';
 	},
 });

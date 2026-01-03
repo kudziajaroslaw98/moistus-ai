@@ -37,6 +37,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 
 			<motion.button
 				animate={{ opacity: 1 }}
+				data-testid='create-button'
 				disabled={!canCreate || isCreating}
 				initial={{ opacity: 0 }}
 				onClick={onCreate}

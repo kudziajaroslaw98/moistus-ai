@@ -18,7 +18,10 @@ const getEdgeType = (edgeData: Partial<EdgeData>): string => {
 	}
 
 	// Check for waypoint edge type
-	if (edgeData.type === 'waypointEdge' || edgeData.metadata?.pathType === 'waypoint') {
+	if (
+		edgeData.type === 'waypointEdge' ||
+		edgeData.metadata?.pathType === 'waypoint'
+	) {
 		return 'waypointEdge';
 	}
 
@@ -146,6 +149,11 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 				set({ systemUpdatedEdges: newMap });
 				return false;
 			}
+
+			if (!get().isReverting && !get().isLayouting) {
+				return false;
+			}
+
 			return true;
 		},
 
@@ -161,7 +169,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 				if (!('id' in change)) return;
 
 				// Skip saves for system-updated edges or during revert
-				if (get().shouldSkipEdgeSave(change.id) || get().isReverting) {
+				if (get().shouldSkipEdgeSave(change.id)) {
 					return;
 				}
 

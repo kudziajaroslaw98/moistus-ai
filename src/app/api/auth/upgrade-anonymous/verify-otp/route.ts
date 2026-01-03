@@ -28,19 +28,8 @@ export const POST = withAuthValidation(
 	VerifyOtpSchema,
 	async (req, data, supabase, user) => {
 		try {
-			// 1. Verify user is still in anonymous state (profile-wise)
-			const { data: profile, error: profileError } = await supabase
-				.from('user_profiles')
-				.select('is_anonymous')
-				.eq('user_id', user.id)
-				.single();
-
-			if (profileError) {
-				console.error('Failed to fetch user profile:', profileError);
-				return respondError('User profile not found', 404);
-			}
-
-			if (!profile?.is_anonymous) {
+			// 1. Verify user is still anonymous using auth source (not user_profiles table)
+			if (!user.is_anonymous) {
 				return respondError('User has already been upgraded', 400);
 			}
 

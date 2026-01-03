@@ -43,6 +43,7 @@ export const ExamplesSection: React.FC<ExamplesSectionProps> = ({
 			<motion.div
 				animate={{ opacity: 1, y: 0 }}
 				className={`${theme.container} ${className || ''}`}
+				data-testid='examples-section'
 				exit={{ opacity: 0, y: 10 }}
 				initial={{ opacity: 0, y: 10 }}
 				transition={{ delay: 0.3, duration: 0.3, ease: 'easeOut' as const }}

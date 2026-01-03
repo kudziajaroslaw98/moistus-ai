@@ -144,7 +144,10 @@ export function RoomCodeDisplay({
 			<div className='flex items-center justify-between gap-2 p-3'>
 				{/* Left: Code + Badges */}
 				<div className='flex items-center gap-2 min-w-0 flex-1'>
-					<code className='text-base font-mono font-bold text-teal-400 tracking-wider shrink-0'>
+					<code
+						className='text-base font-mono font-bold text-teal-400 tracking-wider shrink-0'
+						data-testid='room-code-value'
+					>
 						{token.token}
 					</code>
 
@@ -173,7 +176,9 @@ export function RoomCodeDisplay({
 
 					{onRevoke && (
 						<Button
+							aria-label='Revoke room code'
 							className='h-7 w-7 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10'
+							data-testid='revoke-room-code-btn'
 							onClick={handleRevoke}
 							size='sm'
 							title='Revoke room code'
