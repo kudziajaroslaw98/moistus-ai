@@ -3,6 +3,7 @@
 import type { AppNode } from '@/types/app-node';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import { motion } from 'motion/react';
+import sanitizeHtml from 'sanitize-html';
 import { getNodeTypeIcon } from '../core/config/node-type-config';
 
 interface ParentNodeReferenceProps {
@@ -10,13 +11,25 @@ interface ParentNodeReferenceProps {
 }
 
 /**
+ * Safely strips all HTML tags from content, returning plain text.
+ * Uses sanitize-html library to handle edge cases like incomplete tags
+ * that could bypass simple regex patterns (e.g., "<<script>").
+ */
+const stripHtmlToText = (content: string): string => {
+	return sanitizeHtml(content, {
+		allowedTags: [],
+		allowedAttributes: {},
+	});
+};
+
+/**
  * Extracts a truncated plain-text snippet from node content
  * Strips HTML tags and limits to 25 characters
  */
 const getContentSnippet = (content: string | null | undefined): string => {
 	if (!content) return 'Untitled node';
-	// Strip HTML tags for plain text display
-	const text = content.replace(/<[^>]*>/g, '').trim();
+	// Strip HTML tags for plain text display using sanitize-html
+	const text = stripHtmlToText(content).trim();
 	return text.length > 25 ? text.slice(0, 25) + '...' : text || 'Untitled node';
 };
 
@@ -33,7 +46,9 @@ export const ParentNodeReference: React.FC<ParentNodeReferenceProps> = ({
 	const ParentIcon = getNodeTypeIcon(nodeType);
 
 	const parentContent = getContentSnippet(parentNode.data?.content);
-	const fullContent = parentNode.data?.content?.replace(/<[^>]*>/g, '').trim();
+	const fullContent = parentNode.data?.content
+		? stripHtmlToText(parentNode.data.content).trim()
+		: undefined;
 
 	return (
 		<motion.div
