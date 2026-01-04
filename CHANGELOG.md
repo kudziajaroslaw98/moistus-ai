@@ -7,6 +7,10 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ## [2026-01-04]
 
+### Changed
+- **deps**: Updated Stripe from 19.3.1 to 20.1.0
+  - Updated API version: `2025-10-29.clover` → `2025-12-15.clover` in 6 billing routes
+
 ### Docs
 - **CLAUDE.md**: Added critical security rule banning .env file reads
   - Why: Prevent accidental exposure of secrets in AI outputs
