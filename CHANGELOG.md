@@ -5,6 +5,14 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-01-04]
+
+### Docs
+- **CLAUDE.md**: Added critical security rule banning .env file reads
+  - Why: Prevent accidental exposure of secrets in AI outputs
+
+---
+
 ## [2026-01-01]
 
 ### Fixed

@@ -3,6 +3,7 @@
 ## 🚨 CRITICAL PRINCIPLES
 
 - **🔴 UPDATE CLAUDE.md**: Before ending work, ask: "Did I change anything CLAUDE.md describes?" If yes → update it. No exceptions.
+- **🔴 NEVER READ .env FILES**: `.env`, `.env.local`, `.env.e2e` are BANNED. No `Read`, `cat`, `grep`, or any tool. These contain secrets.
 - **PROACTIVELY use agents and mcp tools**
 - **NEVER run `pnpm run dev`** - Use: `pnpm type-check`, `pnpm build`, `pnpm test`
 - **Parallel operations**: Batch independent tool calls
