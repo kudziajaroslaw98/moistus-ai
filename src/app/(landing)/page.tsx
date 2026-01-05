@@ -58,7 +58,7 @@ export const metadata: Metadata = {
 
 export default function Home() {
 	return (
-		<main className='relative min-h-screen flex flex-col bg-zinc-950 z-10'>
+		<main className='relative min-h-screen flex flex-col bg-background z-10'>
 			<BackgroundEffects />
 
 			{/* Hero Section */}
@@ -79,7 +79,7 @@ export default function Home() {
 							<div className='flex flex-col gap-4'>
 								{/* Early Access Badge */}
 								<div className='mb-6 animate-fade-in delay-100'>
-									<span className='inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-500/10 to-teal-500/10 px-4 py-2 text-sm font-medium text-sky-400 ring-1 ring-inset ring-sky-500/20 backdrop-blur-sm'>
+									<span className='inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary-500/10 to-primary-500/10 px-4 py-2 text-sm font-medium text-primary-400 ring-1 ring-inset ring-primary-500/20 backdrop-blur-sm'>
 										<Clock className='h-4 w-4' />
 										Early Access Soon
 									</span>
@@ -106,10 +106,10 @@ export default function Home() {
 					</div>
 
 					{/* Trust Indicators */}
-					<div className='mt-4 flex items-center justify-center gap-6 text-sm text-zinc-500 animate-fade-in delay-700'>
+					<div className='mt-4 flex items-center justify-center gap-6 text-sm text-text-tertiary animate-fade-in delay-700'>
 						<div className='flex items-center gap-2'>
 							<svg
-								className='h-4 w-4 text-emerald-500'
+								className='h-4 w-4 text-success-500'
 								fill='currentColor'
 								viewBox='0 0 20 20'
 							>
@@ -125,7 +125,7 @@ export default function Home() {
 
 						<div className='flex items-center gap-2'>
 							<svg
-								className='h-4 w-4 text-emerald-500'
+								className='h-4 w-4 text-success-500'
 								fill='currentColor'
 								viewBox='0 0 20 20'
 							>

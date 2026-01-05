@@ -14,15 +14,19 @@ const VerifyOtpSchema = z.object({
 		.min(6, 'OTP must be 6 digits')
 		.max(6, 'OTP must be 6 digits')
 		.regex(/^\d+$/, 'OTP must contain only numbers'),
+	// New flow: password is collected before OTP verification and sent together
+	password: z.string().min(8, 'Password must be at least 8 characters').optional(),
+	displayName: z.string().min(1).max(50).optional(),
 });
 
 /**
  * POST /api/auth/upgrade-anonymous/verify-otp
  *
- * Step 2 of email-based anonymous user upgrade.
- * Verifies the OTP code sent to user's email.
+ * Step 3 (final) of email-based anonymous user upgrade.
+ * Verifies the OTP code and optionally sets password to complete upgrade.
  *
- * After successful verification, the user can proceed to set their password.
+ * New flow: email → password → OTP verification (password collected before OTP)
+ * When password is provided, this becomes the final step that completes the upgrade.
  */
 export const POST = withAuthValidation(
 	VerifyOtpSchema,
@@ -81,25 +85,109 @@ export const POST = withAuthValidation(
 				);
 			}
 
-			// 4. Check if verification was successful
-			// After successful OTP verification, auth.users.email should be set
+			// 4. Get fresh user data after OTP verification
 			const {
 				data: { user: updatedUser },
+				error: userError,
 			} = await supabase.auth.getUser();
 
-			if (!updatedUser?.email) {
-				// Email might not be set yet in some cases, but verification succeeded
-				console.warn('Email not immediately reflected after OTP verification');
+			if (userError || !updatedUser) {
+				console.error('Failed to get user after OTP verification:', userError);
+				return respondError('Failed to verify user state', 500);
 			}
 
-			// 5. Return success - user can now set password
+			// 5. If password provided, set it and complete the upgrade
+			if (data.password) {
+				// Set the password
+				const { error: passwordError } = await supabase.auth.updateUser({
+					password: data.password,
+				});
+
+				if (passwordError) {
+					console.error('Failed to set password:', passwordError);
+					return respondError(
+						passwordError.message || 'Failed to set password',
+						400
+					);
+				}
+
+				// Get display name (from param or user metadata)
+				const displayName =
+					data.displayName ||
+					updatedUser.user_metadata?.pending_upgrade_display_name;
+
+				// Update user profile using database function
+				const { error: upgradeError } = await supabase.rpc(
+					'upgrade_anonymous_to_full_user',
+					{
+						user_id_param: user.id,
+						email_param: data.email,
+						full_name_param: displayName,
+					}
+				);
+
+				if (upgradeError) {
+					console.error('Failed to upgrade user profile:', upgradeError);
+					// Don't fail completely - auth.users is already updated
+					console.warn(
+						'Profile update failed but auth upgrade succeeded - profile will sync later'
+					);
+				}
+
+				// Clear pending metadata
+				await supabase.auth.updateUser({
+					data: {
+						pending_upgrade_display_name: null,
+					},
+				});
+
+				// Get updated profile information
+				const { data: updatedProfile, error: fetchError } = await supabase
+					.from('user_profiles')
+					.select(
+						'user_id, full_name, display_name, email, is_anonymous, avatar_url'
+					)
+					.eq('user_id', user.id)
+					.single();
+
+				if (fetchError) {
+					console.error('Failed to fetch updated profile:', fetchError);
+				}
+
+				// Return complete upgrade success
+				return respondSuccess({
+					verified: true,
+					upgraded: true,
+					user_id: user.id,
+					email: data.email,
+					profile: updatedProfile || {
+						user_id: user.id,
+						email: data.email,
+						full_name: displayName,
+						display_name: displayName,
+						is_anonymous: false,
+					},
+					message:
+						'Account successfully upgraded! You can now sign in with your email and password.',
+				});
+			}
+
+			// 6. If no password provided (legacy flow), just verify OTP
 			return respondSuccess({
 				verified: true,
+				upgraded: false,
+				user_id: user.id,
 				email: data.email,
-				can_set_password: true,
+				profile: {
+					user_id: user.id,
+					email: data.email,
+					full_name: null,
+					display_name: null,
+					is_anonymous: true, // Still anonymous until password is set
+					avatar_url: null,
+				},
 				message:
 					'Email verified successfully! You can now set your password.',
-				next_step: 'set-password',
 			});
 		} catch (error) {
 			console.error('Verify OTP error:', error);

@@ -179,7 +179,7 @@ Guideline @./animation-guidelines.md
 
 - `ai/` - AI stream mediator (headless streaming coordinator)
 - `ai-chat/` - Chat panel, input, messages, context selector
-- `auth/` - Anonymous user banner, upgrade flow
+- `auth/` - Anonymous user banner, upgrade flow, shared/ (reusable auth UI), sign-up/ (wizard flow)
 - `common/` - Shared utility components
 - `context-menu/` - Context menu system
 - `dashboard/` - Map cards, create dialog, template picker, settings panel
@@ -203,7 +203,8 @@ Guideline @./animation-guidelines.md
 
 ### API Routes
 
-**Location**: `src/app/api/` (51 routes)
+**Location**: `src/app/api/` (53 routes)
+<!-- Updated: 2026-01-05 - Added 2 sign-up routes -->
 
 **AI & Content Generation**:
 
@@ -250,6 +251,7 @@ Guideline @./animation-guidelines.md
 
 **User & Auth**:
 
+- `auth/sign-up/initiate/`, `auth/sign-up/verify-otp/` - Email-verified sign-up with OTP
 - `auth/upgrade-anonymous/initiate/`, `auth/upgrade-anonymous/verify-otp/`, `auth/upgrade-anonymous/set-password/`
 - `auth/user/`
 - `user/profile/`, `user/export/`, `user/[userId]/public-profile/`

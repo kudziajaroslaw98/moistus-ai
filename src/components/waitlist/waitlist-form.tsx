@@ -120,14 +120,14 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 						whileFocus='focus'
 					>
 						<div className='relative'>
-							<Mail className='absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-500 pointer-events-none' />
+							<Mail className='absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-text-tertiary pointer-events-none' />
 
 							<Input
 								{...register('email')}
 								aria-describedby={errors.email ? 'email-error' : undefined}
 								aria-invalid={!!errors.email}
 								aria-label='Email address'
-								className='!h-12 !flex pl-12 pr-4 !bg-zinc-900/50 !border-zinc-700/50 !text-zinc-100 !placeholder:text-zinc-500 focus:!border-sky-500/60 focus:!ring-sky-500/20 focus:!ring-2'
+								className='!h-12 !flex pl-12 pr-4 !bg-surface-primary/50 !border-border-secondary/50 !text-text-primary !placeholder:text-text-tertiary focus:!border-primary-500/60 focus:!ring-primary-500/20 focus:!ring-2'
 								disabled={isSubmitting || isSuccess}
 								id='email'
 								placeholder='Enter your email for early access'
@@ -156,7 +156,7 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 				</div>
 
 				<Button
-					className='w-full h-12 bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-400 hover:to-sky-500 text-white font-medium shadow-lg shadow-sky-500/30 hover:shadow-xl hover:shadow-sky-500/40 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
+					className='w-full h-12 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white font-medium shadow-lg shadow-primary-500/30 hover:shadow-xl hover:shadow-primary-500/40 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
 					disabled={isSubmitting || isSuccess}
 					type='submit'
 				>
@@ -226,7 +226,7 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 				{previousEmail && !isSuccess && (
 					<motion.p
 						animate='visible'
-						className='mt-4 text-sm text-zinc-500 text-center'
+						className='mt-4 text-sm text-text-tertiary text-center'
 						exit='hidden'
 						initial='hidden'
 						variants={fadeIn}
@@ -234,7 +234,7 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 						Already signed up with a different email?{' '}
 
 						<button
-							className='text-sky-400 hover:text-sky-300 underline underline-offset-2 transition-colors duration-200'
+							className='text-primary-400 hover:text-primary-300 underline underline-offset-2 transition-colors duration-200'
 							type='button'
 							onClick={() => {
 								localStorage.removeItem(STORAGE_KEY);

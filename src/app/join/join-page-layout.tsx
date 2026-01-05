@@ -12,7 +12,7 @@ interface JoinPageLayoutProps {
 
 export function JoinPageLayout({ children }: JoinPageLayoutProps) {
 	return (
-		<main className='relative min-h-screen flex flex-col bg-zinc-950'>
+		<main className='relative min-h-screen flex flex-col bg-background'>
 			<BackgroundEffects />
 
 			{/* Header with logo */}
@@ -44,20 +44,20 @@ export function JoinPageLayout({ children }: JoinPageLayoutProps) {
 			<footer className='relative z-20 pb-8 px-4'>
 				<motion.p
 					animate={{ opacity: 1 }}
-					className='text-center text-xs text-zinc-500'
+					className='text-center text-xs text-text-tertiary'
 					initial={{ opacity: 0 }}
 					transition={{ delay: 0.5, duration: 0.3 }}
 				>
 					By joining, you agree to our{' '}
 					<Link
-						className='text-zinc-400 hover:text-zinc-300 underline underline-offset-2 transition-colors'
+						className='text-text-secondary hover:text-text-primary underline underline-offset-2 transition-colors'
 						href='/terms'
 					>
 						Terms
 					</Link>{' '}
 					and{' '}
 					<Link
-						className='text-zinc-400 hover:text-zinc-300 underline underline-offset-2 transition-colors'
+						className='text-text-secondary hover:text-text-primary underline underline-offset-2 transition-colors'
 						href='/privacy'
 					>
 						Privacy Policy

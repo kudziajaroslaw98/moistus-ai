@@ -1,5 +1,6 @@
 'use client';
 
+import { PasswordRequirementsInfo } from '@/components/auth/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
@@ -361,10 +362,7 @@ function EnterEmailStep({
 							Sending...
 						</>
 					) : (
-						<>
-							<Mail className='w-4 h-4 mr-2' />
-							Send Code
-						</>
+						'Continue'
 					)}
 				</Button>
 			</div>
@@ -372,7 +370,7 @@ function EnterEmailStep({
 	);
 }
 
-// Step 3: Enter OTP
+// Step 3: Verify OTP (final step - completes upgrade)
 function VerifyOtpStep({
 	email,
 	onSubmit,
@@ -515,7 +513,7 @@ function VerifyOtpStep({
 	);
 }
 
-// Step 4: Set password
+// Step 2: Set password
 function SetPasswordStep({
 	onSubmit,
 	onBack,
@@ -542,12 +540,6 @@ function SetPasswordStep({
 
 	const password = watch('password', '');
 
-	// Password strength indicators
-	const hasMinLength = password.length >= 8;
-	const hasUppercase = /[A-Z]/.test(password);
-	const hasLowercase = /[a-z]/.test(password);
-	const hasNumber = /\d/.test(password);
-
 	const handleFormSubmit = (data: PasswordForm) => {
 		onSubmit(data.password);
 	};
@@ -570,9 +562,10 @@ function SetPasswordStep({
 				<div>
 					<label
 						htmlFor='password'
-						className='block text-sm font-medium text-text-secondary mb-2'
+						className='flex items-center gap-1.5 text-sm font-medium text-text-secondary mb-2'
 					>
 						Password
+						<PasswordRequirementsInfo password={password} />
 					</label>
 					<Input
 						id='password'
@@ -582,27 +575,6 @@ function SetPasswordStep({
 						error={!!errors.password}
 						{...register('password')}
 					/>
-
-					{/* Password requirements */}
-					<div className='mt-2 space-y-1'>
-						{[
-							{ check: hasMinLength, text: 'At least 8 characters' },
-							{ check: hasUppercase, text: 'One uppercase letter' },
-							{ check: hasLowercase, text: 'One lowercase letter' },
-							{ check: hasNumber, text: 'One number' },
-						].map(({ check, text }) => (
-							<div
-								key={text}
-								className={`flex items-center gap-2 text-xs ${check ? 'text-emerald-400' : 'text-text-tertiary'}`}
-							>
-								<CheckCircle2
-									className={`w-3 h-3 ${check ? 'opacity-100' : 'opacity-30'}`}
-								/>
-								{text}
-							</div>
-						))}
-					</div>
-
 					{errors.password && (
 						<p className='mt-1.5 text-xs text-rose-400'>
 							{errors.password.message}
@@ -662,21 +634,14 @@ function SetPasswordStep({
 					className='flex-1'
 					disabled={isLoading}
 				>
-					{isLoading ? (
-						<>
-							<Spinner size='sm' className='mr-2' />
-							Creating...
-						</>
-					) : (
-						'Create Account'
-					)}
+						Continue
 				</Button>
 			</div>
 		</form>
 	);
 }
 
-// Step 5: Success
+// Step 4: Success
 function SuccessStep({ onClose }: { onClose: () => void }) {
 	const router = useRouter();
 	const { getCurrentUser } = useAppStore(
@@ -747,11 +712,11 @@ export function UpgradeAnonymousPrompt({
 		isUpgrading,
 		initiateEmailUpgrade,
 		verifyUpgradeOtp,
-		completeUpgradeWithPassword,
 		initiateOAuthUpgrade,
 		resendUpgradeOtp,
 		resetUpgradeState,
 		setUpgradeStep,
+		setUpgradePendingPassword,
 	} = useAppStore(
 		useShallow((state) => ({
 			popoverOpen: state.popoverOpen,
@@ -762,11 +727,11 @@ export function UpgradeAnonymousPrompt({
 			isUpgrading: state.isUpgrading,
 			initiateEmailUpgrade: state.initiateEmailUpgrade,
 			verifyUpgradeOtp: state.verifyUpgradeOtp,
-			completeUpgradeWithPassword: state.completeUpgradeWithPassword,
 			initiateOAuthUpgrade: state.initiateOAuthUpgrade,
 			resendUpgradeOtp: state.resendUpgradeOtp,
 			resetUpgradeState: state.resetUpgradeState,
 			setUpgradeStep: state.setUpgradeStep,
+			setUpgradePendingPassword: state.setUpgradePendingPassword,
 		}))
 	);
 
@@ -831,15 +796,15 @@ export function UpgradeAnonymousPrompt({
 		}
 	};
 
-	const handleOtpSubmit = async (otp: string) => {
-		const success = await verifyUpgradeOtp(otp);
-		if (success) {
-			setDirection(1);
-		}
+	// New flow: password is stored first, then OTP verification sets it
+	const handlePasswordSubmit = (password: string) => {
+		setUpgradePendingPassword(password);
+		setDirection(1);
+		setUpgradeStep('verify_otp');
 	};
 
-	const handlePasswordSubmit = async (password: string) => {
-		const success = await completeUpgradeWithPassword(password);
+	const handleOtpSubmit = async (otp: string) => {
+		const success = await verifyUpgradeOtp(otp);
 		if (success) {
 			setDirection(1);
 		}
@@ -859,15 +824,15 @@ export function UpgradeAnonymousPrompt({
 					title: 'Sign up with Email',
 					subtitle: "We'll send you a verification code",
 				};
-			case 'verify_otp':
-				return {
-					title: 'Verify Your Email',
-					subtitle: 'Enter the code we sent you',
-				};
 			case 'set_password':
 				return {
-					title: 'Secure Your Account',
-					subtitle: 'Create a password to complete setup',
+					title: 'Create Your Password',
+					subtitle: 'Set a secure password for your account',
+				};
+			case 'verify_otp':
+				return {
+					title: 'Confirm Your Email',
+					subtitle: 'Enter the code to complete signup',
 				};
 			case 'completed':
 				return {
@@ -910,22 +875,22 @@ export function UpgradeAnonymousPrompt({
 						defaultDisplayName={userDisplayName}
 					/>
 				);
+			case 'set_password':
+				return (
+					<SetPasswordStep
+						onSubmit={handlePasswordSubmit}
+						onBack={() => goToStep('enter_email', -1)}
+						isLoading={isUpgrading}
+						error={upgradeError}
+					/>
+				);
 			case 'verify_otp':
 				return (
 					<VerifyOtpStep
 						email={upgradeEmail || ''}
 						onSubmit={handleOtpSubmit}
-						onBack={() => goToStep('enter_email', -1)}
+						onBack={() => goToStep('set_password', -1)}
 						onResend={resendUpgradeOtp}
-						isLoading={isUpgrading}
-						error={upgradeError}
-					/>
-				);
-			case 'set_password':
-				return (
-					<SetPasswordStep
-						onSubmit={handlePasswordSubmit}
-						onBack={() => goToStep('verify_otp', -1)}
 						isLoading={isUpgrading}
 						error={upgradeError}
 					/>
@@ -1014,13 +979,13 @@ export function UpgradeAnonymousPrompt({
 								</motion.div>
 							</AnimatePresence>
 
-							{/* Progress indicator */}
+							{/* Progress indicator - New flow: email → password → OTP */}
 							{displayStep !== 'choose_method' &&
 								displayStep !== 'completed' &&
 								displayStep !== 'error' &&
 								displayStep !== 'oauth_pending' && (
 									<div className='flex gap-1.5 mt-4'>
-										{['enter_email', 'verify_otp', 'set_password'].map(
+										{['enter_email', 'set_password', 'verify_otp'].map(
 											(step, index) => (
 												<div
 													key={step}
@@ -1028,8 +993,8 @@ export function UpgradeAnonymousPrompt({
 														index <=
 														[
 															'enter_email',
-															'verify_otp',
 															'set_password',
+															'verify_otp',
 														].indexOf(displayStep)
 															? 'bg-white'
 															: 'bg-white/30'

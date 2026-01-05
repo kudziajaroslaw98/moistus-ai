@@ -5,6 +5,31 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-01-05]
+
+### Added
+- **auth/sign-up**: New email-verified sign-up flow with 2-step wizard
+  - Step 1: Collect email, password, optional display name
+  - Step 2: OTP verification before account creation
+  - API routes: `sign-up/initiate/` (send OTP), `sign-up/verify-otp/` (create account)
+  - Rate limiters: 3 initiate attempts/min, 5 OTP attempts/min
+  - Why: Prevent spam accounts via email verification
+
+- **auth/shared**: Reusable auth UI components
+  - AuthCard, AuthLayout, OAuthButtons, PasswordRequirementsInfo
+  - Consistent styling across sign-in, sign-up, upgrade flows
+
+- **lib/validations/auth.ts**: Zod schemas for auth forms
+  - signInSchema, signUpFormSchema, otpSchema
+  - Password strength checker with requirement list
+
+### Changed
+- **sign-in page**: Refactored to use shared components, added OAuth buttons, improved animations
+- **upgrade-anonymous**: Uses shared PasswordRequirementsInfo component
+- **join pages**: Minor styling updates for consistency
+
+---
+
 ## [2026-01-04]
 
 ### Changed

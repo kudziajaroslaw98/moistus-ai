@@ -297,6 +297,7 @@ export interface UpgradeState {
 	upgradeStep: UpgradeStep;
 	upgradeEmail: string | null;
 	upgradeDisplayName: string | null;
+	upgradePendingPassword: string | null;
 	upgradeError: string | null;
 	isUpgrading: boolean;
 }
@@ -318,6 +319,7 @@ export interface SharingState {
 	upgradeStep: UpgradeStep;
 	upgradeEmail: string | null;
 	upgradeDisplayName: string | null;
+	upgradePendingPassword: string | null;
 	upgradeError: string | null;
 	isUpgrading: boolean;
 }
@@ -369,6 +371,9 @@ export interface SharingSlice extends SharingState {
 
 	/** Set upgrade step manually (for UI navigation) */
 	setUpgradeStep: (step: UpgradeStep) => void;
+
+	/** Store pending password (used between set_password and verify_otp steps) */
+	setUpgradePendingPassword: (password: string | null) => void;
 
 	ensureAuthenticated: (displayName?: string) => Promise<boolean>;
 

@@ -59,6 +59,7 @@ export const createSharingSlice: StateCreator<
 		upgradeStep: 'idle' as UpgradeStep,
 		upgradeEmail: null,
 		upgradeDisplayName: null,
+		upgradePendingPassword: null,
 		upgradeError: null,
 		isUpgrading: false,
 
@@ -505,7 +506,7 @@ export const createSharingSlice: StateCreator<
 				}
 
 				set({
-					upgradeStep: 'verify_otp',
+					upgradeStep: 'set_password', // New flow: email → password → OTP
 					upgradeEmail: email,
 					upgradeDisplayName: displayName || null,
 					isUpgrading: false,
@@ -526,14 +527,23 @@ export const createSharingSlice: StateCreator<
 		},
 
 		/**
-		 * Step 2: Verify OTP code sent to email
+		 * Step 3: Verify OTP code and set password (completes upgrade)
+		 * Password and displayName are collected before this step and stored in state
 		 */
 		verifyUpgradeOtp: async (otp: string) => {
-			const email = get().upgradeEmail;
+			const { upgradeEmail: email, upgradePendingPassword: password, upgradeDisplayName: displayName } = get();
 
 			if (!email) {
 				set({
 					upgradeError: 'No email found. Please start over.',
+					upgradeStep: 'error',
+				});
+				return false;
+			}
+
+			if (!password) {
+				set({
+					upgradeError: 'No password found. Please go back and set a password.',
 					upgradeStep: 'error',
 				});
 				return false;
@@ -545,7 +555,7 @@ export const createSharingSlice: StateCreator<
 				const response = await fetch('/api/auth/upgrade-anonymous/verify-otp', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ email, otp }),
+					body: JSON.stringify({ email, otp, password, displayName }),
 				});
 
 				const result = await response.json();
@@ -571,8 +581,14 @@ export const createSharingSlice: StateCreator<
 					error: sessionError?.message,
 				});
 
+				// Update auth user if profile returned
+				if (result.profile) {
+					set({ authUser: result.profile });
+				}
+
 				set({
-					upgradeStep: 'set_password',
+					upgradeStep: 'completed',
+					upgradePendingPassword: null, // Clear password from memory
 					isUpgrading: false,
 				});
 
@@ -735,6 +751,7 @@ export const createSharingSlice: StateCreator<
 				upgradeStep: 'idle',
 				upgradeEmail: null,
 				upgradeDisplayName: null,
+				upgradePendingPassword: null,
 				upgradeError: null,
 				isUpgrading: false,
 			});
@@ -745,6 +762,13 @@ export const createSharingSlice: StateCreator<
 		 */
 		setUpgradeStep: (step: UpgradeStep) => {
 			set({ upgradeStep: step, upgradeError: null });
+		},
+
+		/**
+		 * Store pending password (used between set_password and verify_otp steps)
+		 */
+		setUpgradePendingPassword: (password: string | null) => {
+			set({ upgradePendingPassword: password });
 		},
 
 		// Refresh user's share tokens
@@ -1132,6 +1156,7 @@ export const createSharingSlice: StateCreator<
 				upgradeStep: 'idle',
 				upgradeEmail: null,
 				upgradeDisplayName: null,
+				upgradePendingPassword: null,
 				upgradeError: null,
 				isUpgrading: false,
 			});

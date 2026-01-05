@@ -65,8 +65,8 @@ function GlassCard({
 }
 
 // Loading dots animation
-function LoadingDots({ color = 'teal' }: { color?: 'teal' | 'green' }) {
-	const colorClass = color === 'teal' ? 'bg-teal-400' : 'bg-green-400';
+function LoadingDots({ color = 'primary' }: { color?: 'primary' | 'green' }) {
+	const colorClass = color === 'primary' ? 'bg-primary-400' : 'bg-green-400';
 	return (
 		<div className='flex items-center justify-center gap-1'>
 			{[0, 1, 2].map((i) => (
@@ -247,17 +247,17 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 					<div className='relative inline-block'>
 						<motion.div
 							animate={{ rotate: 360 }}
-							className='w-16 h-16 rounded-full border-2 border-teal-400/30 border-t-teal-400'
+							className='w-16 h-16 rounded-full border-2 border-primary-400/30 border-t-primary-400'
 							transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
 						/>
-						<Sparkles className='absolute inset-0 m-auto h-6 w-6 text-teal-400' />
+						<Sparkles className='absolute inset-0 m-auto h-6 w-6 text-primary-400' />
 					</div>
 
 					<div className='space-y-2'>
-						<h2 className='text-xl font-semibold text-zinc-100'>
+						<h2 className='text-xl font-semibold text-text-primary'>
 							Preparing Your Access
 						</h2>
-						<p className='text-zinc-400'>Validating room code...</p>
+						<p className='text-text-secondary'>Validating room code...</p>
 					</div>
 
 					<LoadingDots />
@@ -285,7 +285,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 						Unable to Join Room
 					</h1>
 
-					<p className='text-zinc-400 text-base'>
+					<p className='text-text-secondary text-base'>
 						{sharingError?.message || 'Invalid or expired room code'}
 					</p>
 				</motion.div>
@@ -293,7 +293,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 				<GlassCard>
 					<div className='space-y-4'>
 						<div className='p-4 rounded-lg bg-red-500/5 border border-red-500/10'>
-							<p className='text-sm text-zinc-400'>
+							<p className='text-sm text-text-secondary'>
 								Room code:{' '}
 								<code className='font-mono text-red-400 bg-red-500/10 px-2 py-1 rounded'>
 									{token}
@@ -302,7 +302,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 						</div>
 
 						<Button
-							className='w-full h-12 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 text-white font-medium shadow-lg shadow-teal-500/25'
+							className='w-full h-12 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white font-medium shadow-lg shadow-primary-500/25'
 							onClick={() => router.push('/dashboard')}
 						>
 							Go to Dashboard
@@ -347,11 +347,11 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 					</motion.div>
 
 					<div className='space-y-2'>
-						<h2 className='text-2xl font-bold text-zinc-100'>
+						<h2 className='text-2xl font-bold text-text-primary'>
 							Welcome
 							{authenticatedUser ? `, ${authenticatedUser.displayName}` : ''}!
 						</h2>
-						<p className='text-zinc-400'>
+						<p className='text-text-secondary'>
 							Redirecting you to the collaboration...
 						</p>
 					</div>
@@ -374,17 +374,17 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 					<div className='relative inline-block'>
 						<motion.div
 							animate={{ rotate: 360 }}
-							className='w-16 h-16 rounded-full border-2 border-teal-400/30 border-t-teal-400'
+							className='w-16 h-16 rounded-full border-2 border-primary-400/30 border-t-primary-400'
 							transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
 						/>
-						<Users className='absolute inset-0 m-auto h-6 w-6 text-teal-400' />
+						<Users className='absolute inset-0 m-auto h-6 w-6 text-primary-400' />
 					</div>
 
 					<div className='space-y-2'>
-						<h2 className='text-xl font-semibold text-zinc-100'>
+						<h2 className='text-xl font-semibold text-text-primary'>
 							Joining Room
 						</h2>
-						<p className='text-zinc-400'>
+						<p className='text-text-secondary'>
 							{authenticatedUser
 								? 'Connecting with your account...'
 								: 'Setting up your session...'}
@@ -408,16 +408,16 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 					initial={{ opacity: 0, y: 20 }}
 					transition={{ duration: 0.3, ease: [0.165, 0.84, 0.44, 1] }}
 				>
-					<div className='inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-teal-500/10 to-sky-500/10 px-4 py-2 text-sm font-medium text-teal-400 ring-1 ring-inset ring-teal-500/20 backdrop-blur-sm mb-6'>
+					<div className='inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary-500/10 to-primary-500/10 px-4 py-2 text-sm font-medium text-primary-400 ring-1 ring-inset ring-primary-500/20 backdrop-blur-sm mb-6'>
 						<Users className='h-4 w-4' />
 						Collaboration Invite
 					</div>
 
 					<h1 className='text-3xl sm:text-4xl font-bold tracking-tight text-white mb-3'>
-						Join <span className='text-teal-400'>Mind Map</span>
+						Join <span className='text-primary-400'>Mind Map</span>
 					</h1>
 
-					<p className='text-zinc-400 text-base'>
+					<p className='text-text-secondary text-base'>
 						You&apos;re about to join a shared workspace
 					</p>
 				</motion.div>
@@ -425,21 +425,21 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 				<GlassCard>
 					<div className='space-y-6'>
 						{/* Room Code */}
-						<div className='flex items-center justify-between p-4 rounded-lg bg-zinc-900/50 border border-zinc-700/50'>
-							<span className='text-sm text-zinc-400'>Room Code</span>
-							<code className='text-lg font-mono tracking-wider text-teal-400'>
+						<div className='flex items-center justify-between p-4 rounded-lg bg-surface-primary/50 border border-border-secondary/50'>
+							<span className='text-sm text-text-secondary'>Room Code</span>
+							<code className='text-lg font-mono tracking-wider text-primary-400'>
 								{token}
 							</code>
 						</div>
 
 						{/* User Profile */}
 						<div className='space-y-3'>
-							<p className='text-sm font-medium text-zinc-300'>Joining as:</p>
+							<p className='text-sm font-medium text-text-secondary'>Joining as:</p>
 
-							<div className='flex items-center gap-4 p-4 rounded-lg bg-gradient-to-r from-teal-500/5 to-sky-500/5 border border-teal-500/10'>
+							<div className='flex items-center gap-4 p-4 rounded-lg bg-gradient-to-r from-primary-500/5 to-primary-500/5 border border-primary-500/10'>
 								{/* Avatar */}
 								<div className='relative'>
-									<div className='h-14 w-14 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center overflow-hidden'>
+									<div className='h-14 w-14 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center overflow-hidden'>
 										{authenticatedUser.avatarUrl ? (
 											<img
 												alt={authenticatedUser.displayName}
@@ -452,20 +452,20 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 											</span>
 										)}
 									</div>
-									<div className='absolute -bottom-1 -right-1 h-4 w-4 bg-green-500 border-2 border-zinc-900 rounded-full' />
+									<div className='absolute -bottom-1 -right-1 h-4 w-4 bg-green-500 border-2 border-background rounded-full' />
 								</div>
 
 								{/* User Info */}
 								<div className='flex-1 min-w-0'>
-									<p className='font-semibold text-zinc-100 truncate'>
+									<p className='font-semibold text-text-primary truncate'>
 										{authenticatedUser.displayName}
 									</p>
 									{authenticatedUser.email && (
-										<p className='text-sm text-zinc-400 truncate'>
+										<p className='text-sm text-text-secondary truncate'>
 											{authenticatedUser.email}
 										</p>
 									)}
-									<p className='text-xs text-teal-400 mt-1'>
+									<p className='text-xs text-primary-400 mt-1'>
 										Authenticated Account
 									</p>
 								</div>
@@ -474,7 +474,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 
 						{/* Join Button */}
 						<Button
-							className='w-full h-12 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 text-white font-medium shadow-lg shadow-teal-500/25 hover:shadow-xl hover:shadow-teal-500/30 transition-all duration-200'
+							className='w-full h-12 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white font-medium shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 transition-all duration-200'
 							disabled={isJoiningRoom}
 							onClick={handleJoinRoom}
 						>
@@ -516,7 +516,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 						{/* Sign out option */}
 						<div className='text-center'>
 							<button
-								className='inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors'
+								className='inline-flex items-center gap-1.5 text-xs text-text-tertiary hover:text-text-secondary transition-colors'
 								onClick={async () => {
 									await getSharedSupabaseClient().auth.signOut();
 									window.location.reload();
@@ -532,7 +532,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 				{/* Info */}
 				<motion.p
 					animate={{ opacity: 1 }}
-					className='mt-6 text-center text-xs text-zinc-500'
+					className='mt-6 text-center text-xs text-text-tertiary'
 					initial={{ opacity: 0 }}
 					transition={{ delay: 0.3 }}
 				>
@@ -552,16 +552,16 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 				initial={{ opacity: 0, y: 20 }}
 				transition={{ duration: 0.3, ease: [0.165, 0.84, 0.44, 1] }}
 			>
-				<div className='inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-teal-500/10 to-sky-500/10 px-4 py-2 text-sm font-medium text-teal-400 ring-1 ring-inset ring-teal-500/20 backdrop-blur-sm mb-6'>
+				<div className='inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary-500/10 to-primary-500/10 px-4 py-2 text-sm font-medium text-primary-400 ring-1 ring-inset ring-primary-500/20 backdrop-blur-sm mb-6'>
 					<Users className='h-4 w-4' />
 					Join as Guest
 				</div>
 
 				<h1 className='text-3xl sm:text-4xl font-bold tracking-tight text-white mb-3'>
-					Join <span className='text-teal-400'>Mind Map</span>
+					Join <span className='text-primary-400'>Mind Map</span>
 				</h1>
 
-				<p className='text-zinc-400 text-base'>
+				<p className='text-text-secondary text-base'>
 					Enter your name to start collaborating
 				</p>
 			</motion.div>
@@ -569,9 +569,9 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 			<GlassCard>
 				<div className='space-y-6'>
 					{/* Room Code Display */}
-					<div className='flex items-center justify-between p-4 rounded-lg bg-zinc-900/50 border border-zinc-700/50'>
-						<span className='text-sm text-zinc-400'>Room Code</span>
-						<code className='text-lg font-mono tracking-wider text-teal-400'>
+					<div className='flex items-center justify-between p-4 rounded-lg bg-surface-primary/50 border border-border-secondary/50'>
+						<span className='text-sm text-text-secondary'>Room Code</span>
+						<code className='text-lg font-mono tracking-wider text-primary-400'>
 							{token}
 						</code>
 					</div>
@@ -579,7 +579,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 					{/* Display Name Input */}
 					<div className='space-y-2'>
 						<Label
-							className='text-sm font-medium text-zinc-300'
+							className='text-sm font-medium text-text-secondary'
 							htmlFor='display_name'
 						>
 							Your Name
@@ -587,7 +587,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 
 						<Input
 							autoComplete='name'
-							className='!h-12 !bg-zinc-900/50 !border-zinc-700/50 !text-zinc-100 !placeholder:text-zinc-500 focus:!border-teal-500/60 focus:!ring-teal-500/20 focus:!ring-2'
+							className='!h-12 !bg-surface-primary/50 !border-border-secondary/50 !text-text-primary !placeholder:text-text-tertiary focus:!border-primary-500/60 focus:!ring-primary-500/20 focus:!ring-2'
 							data-testid='display-name-input'
 							id='display_name'
 							onChange={(e) => setDisplayName(e.target.value)}
@@ -600,14 +600,14 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 							}}
 						/>
 
-						<p className='text-xs text-zinc-500'>
+						<p className='text-xs text-text-tertiary'>
 							This is how other collaborators will see you
 						</p>
 					</div>
 
 					{/* Join Button */}
 					<Button
-						className='w-full h-12 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 text-white font-medium shadow-lg shadow-teal-500/25 hover:shadow-xl hover:shadow-teal-500/30 transition-all duration-200 disabled:opacity-50'
+						className='w-full h-12 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white font-medium shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 transition-all duration-200 disabled:opacity-50'
 						data-testid='join-room-btn'
 						disabled={isJoiningRoom || !displayName.trim()}
 						onClick={handleJoinRoom}
@@ -650,11 +650,11 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 					{/* Sign in link */}
 					<div className='text-center'>
 						<button
-							className='text-xs text-zinc-500 hover:text-zinc-300 transition-colors'
+							className='text-xs text-text-tertiary hover:text-text-secondary transition-colors'
 							onClick={() => router.push('/auth/sign-in')}
 						>
 							Already have an account?{' '}
-							<span className='text-teal-400 hover:text-teal-300 underline underline-offset-2'>
+							<span className='text-primary-400 hover:text-primary-300 underline underline-offset-2'>
 								Sign in
 							</span>
 						</button>
@@ -665,7 +665,7 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 			{/* Trust indicators */}
 			<motion.div
 				animate={{ opacity: 1 }}
-				className='mt-6 flex items-center justify-center gap-6 text-sm text-zinc-500'
+				className='mt-6 flex items-center justify-center gap-6 text-sm text-text-tertiary'
 				initial={{ opacity: 0 }}
 				transition={{ delay: 0.4 }}
 			>
