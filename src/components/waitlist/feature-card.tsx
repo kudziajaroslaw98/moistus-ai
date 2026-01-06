@@ -54,7 +54,7 @@ export default function FeatureCard({
 			whileHover='hover'
 			whileTap='tap'
 		>
-			<div className='relative h-full rounded-2xl border border-zinc-800 bg-zinc-900/50 backdrop-blur-sm p-6 transition-colors hover:border-zinc-700'>
+			<div className='relative h-full rounded-2xl border border-border-subtle bg-surface/50 backdrop-blur-sm p-6 transition-colors hover:border-border-default'>
 				{/* Gradient background on hover */}
 				<div
 					className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500 rounded-2xl`}
@@ -75,11 +75,11 @@ export default function FeatureCard({
 				</div>
 
 				{/* Content */}
-				<h3 className='relative mb-2 text-lg font-semibold text-zinc-50'>
+				<h3 className='relative mb-2 text-lg font-semibold text-text-primary'>
 					{title}
 				</h3>
 
-				<p className='relative text-sm text-zinc-400 leading-relaxed'>
+				<p className='relative text-sm text-text-secondary leading-relaxed'>
 					{description}
 				</p>
 			</div>

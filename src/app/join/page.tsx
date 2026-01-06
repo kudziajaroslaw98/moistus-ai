@@ -134,16 +134,16 @@ function JoinPageContent() {
 				initial={{ opacity: 0, y: 20 }}
 				transition={{ duration: 0.3, ease: [0.165, 0.84, 0.44, 1] }}
 			>
-				<div className='inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-teal-500/10 to-sky-500/10 px-4 py-2 text-sm font-medium text-teal-400 ring-1 ring-inset ring-teal-500/20 backdrop-blur-sm mb-6'>
+				<div className='inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary-500/10 to-primary-500/10 px-4 py-2 text-sm font-medium text-primary-400 ring-1 ring-inset ring-primary-500/20 backdrop-blur-sm mb-6'>
 					<Users className='h-4 w-4' />
 					Real-time Collaboration
 				</div>
 
 				<h1 className='text-3xl sm:text-4xl font-bold tracking-tight text-white mb-3'>
-					Join a <span className='text-teal-400'>Mind Map</span>
+					Join a <span className='text-primary-400'>Mind Map</span>
 				</h1>
 
-				<p className='text-zinc-400 text-base'>
+				<p className='text-text-secondary text-base'>
 					Enter your room code to start collaborating
 				</p>
 			</motion.div>
@@ -169,14 +169,14 @@ function JoinPageContent() {
 					{/* Room Code Input */}
 					<div className='space-y-2'>
 						<Label
-							className='text-sm font-medium text-zinc-300'
+							className='text-sm font-medium text-text-secondary'
 							htmlFor='roomCode'
 						>
 							Room Code
 						</Label>
 
 						<Input
-							className='!h-14 text-center text-xl font-mono tracking-[0.3em] !bg-zinc-900/50 !border-zinc-700/50 !text-zinc-100 !placeholder:text-zinc-600 focus:!border-teal-500/60 focus:!ring-teal-500/20 focus:!ring-2 uppercase'
+							className='!h-14 text-center text-xl font-mono tracking-[0.3em] !bg-surface-primary/50 !border-border-secondary/50 !text-text-primary !placeholder:text-text-quaternary focus:!border-primary-500/60 focus:!ring-primary-500/20 focus:!ring-2 uppercase'
 							disabled={isJoining}
 							id='roomCode'
 							maxLength={7}
@@ -204,7 +204,7 @@ function JoinPageContent() {
 					{/* Display Name Input */}
 					<div className='space-y-2'>
 						<Label
-							className='text-sm font-medium text-zinc-300'
+							className='text-sm font-medium text-text-secondary'
 							htmlFor='displayName'
 						>
 							Your Name
@@ -212,7 +212,7 @@ function JoinPageContent() {
 
 						<Input
 							{...register('displayName')}
-							className='!h-12 !bg-zinc-900/50 !border-zinc-700/50 !text-zinc-100 !placeholder:text-zinc-500 focus:!border-teal-500/60 focus:!ring-teal-500/20 focus:!ring-2'
+							className='!h-12 !bg-surface-primary/50 !border-border-secondary/50 !text-text-primary !placeholder:text-text-tertiary focus:!border-primary-500/60 focus:!ring-primary-500/20 focus:!ring-2'
 							disabled={isJoining}
 							id='displayName'
 							placeholder='How should we call you?'
@@ -253,7 +253,7 @@ function JoinPageContent() {
 
 					{/* Submit Button */}
 					<Button
-						className='w-full h-12 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 text-white font-medium shadow-lg shadow-teal-500/25 hover:shadow-xl hover:shadow-teal-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
+						className='w-full h-12 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white font-medium shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
 						disabled={isJoining}
 						type='submit'
 					>
@@ -288,7 +288,7 @@ function JoinPageContent() {
 				{/* Info text */}
 				<motion.p
 					animate={{ opacity: 1 }}
-					className='mt-6 text-center text-xs text-zinc-500'
+					className='mt-6 text-center text-xs text-text-tertiary'
 					initial={{ opacity: 0 }}
 					transition={{ delay: 0.3 }}
 				>
@@ -300,7 +300,7 @@ function JoinPageContent() {
 			{/* Trust indicators */}
 			<motion.div
 				animate={{ opacity: 1 }}
-				className='mt-6 flex items-center justify-center gap-6 text-sm text-zinc-500'
+				className='mt-6 flex items-center justify-center gap-6 text-sm text-text-tertiary'
 				initial={{ opacity: 0 }}
 				transition={{ delay: 0.4 }}
 			>
@@ -349,8 +349,8 @@ export default function JoinPage() {
 							className='text-center space-y-4'
 							initial={{ opacity: 0, scale: 0.9 }}
 						>
-							<Loader2 className='h-8 w-8 text-teal-400 mx-auto animate-spin' />
-							<p className='text-zinc-400'>Loading...</p>
+							<Loader2 className='h-8 w-8 text-primary-400 mx-auto animate-spin' />
+							<p className='text-text-secondary'>Loading...</p>
 						</motion.div>
 					</div>
 				</JoinPageLayout>

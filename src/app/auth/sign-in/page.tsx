@@ -1,16 +1,25 @@
 'use client';
 
 import { UpgradeAnonymousPrompt } from '@/components/auth/upgrade-anonymous';
+import {
+	AuthCard,
+	AuthLayout,
+	OAuthButtons,
+	OAuthDivider,
+	type OAuthProvider,
+} from '@/components/auth/shared';
 import { Button } from '@/components/ui/button';
-import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import useAppStore from '@/store/mind-map-store';
-import { Info } from 'lucide-react';
+import { AlertCircle, Info, Loader2, Mail } from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
+
+const easeOutQuart = [0.165, 0.84, 0.44, 1] as const;
 
 function SignInForm() {
 	const [email, setEmail] = useState('');
@@ -20,6 +29,7 @@ function SignInForm() {
 	const [checkingAnonymous, setCheckingAnonymous] = useState(true);
 	const router = useRouter();
 	const searchParams = useSearchParams();
+	const shouldReduceMotion = useReducedMotion();
 
 	const redirectedFrom = searchParams.get('redirectedFrom');
 	const message = searchParams.get('message');
@@ -51,7 +61,6 @@ function SignInForm() {
 			}
 
 			// Check if user is anonymous
-			// Need to get fresh profile from store after getCurrentUser
 			const profile = useAppStore.getState().userProfile;
 			setIsAnonymousUser(profile?.is_anonymous ?? false);
 			setCheckingAnonymous(false);
@@ -81,6 +90,24 @@ function SignInForm() {
 		}
 	};
 
+	const handleOAuthSignIn = async (provider: OAuthProvider) => {
+		setError(null);
+		setLoading(true);
+
+		const { error } = await getSharedSupabaseClient().auth.signInWithOAuth({
+			provider,
+			options: {
+				redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectedFrom || '/dashboard')}`,
+			},
+		});
+
+		if (error) {
+			setError(error.message);
+			setLoading(false);
+		}
+		// Note: OAuth redirects away, so no need to setLoading(false) on success
+	};
+
 	const handleUpgradeSuccess = () => {
 		// After successful upgrade, redirect to original page
 		router.push(redirectedFrom || '/dashboard');
@@ -90,30 +117,35 @@ function SignInForm() {
 	// Show loading while checking anonymous status
 	if (checkingAnonymous) {
 		return (
-			<div className='w-full max-w-md space-y-6 rounded-sm bg-zinc-800 p-8 shadow-md'>
-				<div className='flex items-center justify-center'>
-					<div className='h-8 w-8 animate-spin rounded-full border-4 border-zinc-700 border-t-sky-500' />
+			<AuthCard>
+				<div className='flex items-center justify-center py-8'>
+					<div className='h-8 w-8 animate-spin rounded-full border-4 border-border-secondary border-t-primary-500' />
 				</div>
-			</div>
+			</AuthCard>
 		);
 	}
 
 	// If user is anonymous, show upgrade prompt instead of sign-in form
 	if (isAnonymousUser) {
 		return (
-			<div className='w-full max-w-md space-y-6 rounded-sm bg-zinc-800 p-8 shadow-md'>
-				<h1 className='text-center text-2xl font-bold text-zinc-100'>
-					Upgrade Your Account
-				</h1>
-
+			<AuthCard title='Upgrade Your Account'>
 				{/* Info message explaining the situation */}
-				<div className='flex items-center gap-3 rounded-lg bg-sky-500/10 border border-sky-500/20 p-3'>
-					<Info className='h-5 w-5 text-sky-400 flex-shrink-0' />
-					<p className='text-sm text-sky-300'>
+				<motion.div
+					className='flex items-center gap-3 rounded-lg bg-primary-500/10 border border-primary-500/20 p-3 mb-6'
+					initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={
+						shouldReduceMotion
+							? { duration: 0 }
+							: { delay: 0.2, duration: 0.25, ease: easeOutQuart }
+					}
+				>
+					<Info className='h-5 w-5 text-primary-400 flex-shrink-0' />
+					<p className='text-sm text-primary-300'>
 						{message ||
 							"You're currently using a guest account. Upgrade to keep your work and access all features."}
 					</p>
-				</div>
+				</motion.div>
 
 				{/* The upgrade prompt modal will show immediately */}
 				<UpgradeAnonymousPrompt
@@ -125,89 +157,200 @@ function SignInForm() {
 					autoShowDelay={0}
 				/>
 
-				<p className='text-center text-sm text-zinc-400'>
+				<motion.p
+					className='text-center text-sm text-text-secondary mt-6'
+					initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }}
+					animate={{ opacity: 1 }}
+					transition={
+						shouldReduceMotion
+							? { duration: 0 }
+							: { delay: 0.3, duration: 0.25, ease: easeOutQuart }
+					}
+				>
 					Already have an account?{' '}
 					<button
 						onClick={() => setIsAnonymousUser(false)}
-						className='font-medium text-teal-400 hover:text-teal-300'
+						className='font-medium text-primary-400 hover:text-primary-300 transition-colors'
 					>
 						Sign in instead
 					</button>
-				</p>
-			</div>
+				</motion.p>
+			</AuthCard>
 		);
 	}
 
 	// Normal sign-in form for non-anonymous users
 	return (
-		<div className='w-full max-w-md space-y-6 rounded-sm bg-zinc-800 p-8 shadow-md'>
-			<h1 className='text-center text-2xl font-bold text-zinc-100'>Sign In</h1>
-
+		<AuthCard title='Welcome back' subtitle='Sign in to your account'>
 			{/* Info message when redirected from protected page */}
-			{message && (
-				<div className='flex items-center gap-3 rounded-lg bg-sky-500/10 border border-sky-500/20 p-3'>
-					<Info className='h-5 w-5 text-sky-400 flex-shrink-0' />
-					<p className='text-sm text-sky-300'>{message}</p>
+			<AnimatePresence>
+				{message && (
+					<motion.div
+						className='flex items-center gap-3 rounded-lg bg-primary-500/10 border border-primary-500/20 p-3 mb-6'
+						initial={{ opacity: 0, y: -10 }}
+						animate={{ opacity: 1, y: 0 }}
+						exit={{ opacity: 0, y: -10 }}
+						transition={{ duration: 0.25, ease: easeOutQuart }}
+					>
+						<Info className='h-5 w-5 text-primary-400 flex-shrink-0' />
+						<p className='text-sm text-primary-300'>{message}</p>
+					</motion.div>
+				)}
+			</AnimatePresence>
+
+			{/* OAuth Buttons */}
+			<motion.div
+				initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={
+					shouldReduceMotion
+						? { duration: 0 }
+						: { delay: 0.15, duration: 0.25, ease: easeOutQuart }
+				}
+			>
+				<OAuthButtons
+					onSelectProvider={handleOAuthSignIn}
+					disabled={loading}
+					label='sign-in'
+				/>
+			</motion.div>
+
+			{/* Divider */}
+			<motion.div
+				className='my-6'
+				initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }}
+				animate={{ opacity: 1 }}
+				transition={
+					shouldReduceMotion
+						? { duration: 0 }
+						: { delay: 0.2, duration: 0.25, ease: easeOutQuart }
+				}
+			>
+				<OAuthDivider text='or sign in with email' />
+			</motion.div>
+
+			{/* Email Form */}
+			<motion.form
+				className='space-y-4'
+				onSubmit={handleSignIn}
+				initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={
+					shouldReduceMotion
+						? { duration: 0 }
+						: { delay: 0.25, duration: 0.25, ease: easeOutQuart }
+				}
+			>
+				<div>
+					<label
+						htmlFor='email'
+						className='block text-sm font-medium text-text-secondary mb-2'
+					>
+						Email
+					</label>
+					<div className='relative'>
+						<Mail className='absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-text-tertiary pointer-events-none' />
+						<Input
+							required
+							id='email'
+							onChange={(e) => setEmail(e.target.value)}
+							placeholder='you@example.com'
+							type='email'
+							value={email}
+							disabled={loading}
+							className='pl-10 h-12 bg-white/5 border-white/10 text-white placeholder:text-text-tertiary focus:border-primary-500/50 focus:ring-primary-500/20'
+						/>
+					</div>
 				</div>
-			)}
 
-			<form className='space-y-4' onSubmit={handleSignIn}>
-				<FormField id='email' label='Email'>
-					<Input
-						required
-						id='email'
-						onChange={(e) => setEmail(e.target.value)}
-						placeholder='you@example.com'
-						type='email'
-						value={email}
-					/>
-				</FormField>
-
-				<FormField id='password' label='Password'>
+				<div>
+					<label
+						htmlFor='password'
+						className='block text-sm font-medium text-text-secondary mb-2'
+					>
+						Password
+					</label>
 					<Input
 						required
 						id='password'
 						onChange={(e) => setPassword(e.target.value)}
-						placeholder='••••••••'
+						placeholder='Enter your password'
 						type='password'
 						value={password}
+						disabled={loading}
+						className='h-12 bg-white/5 border-white/10 text-white placeholder:text-text-tertiary focus:border-primary-500/50 focus:ring-primary-500/20'
 					/>
-				</FormField>
+				</div>
 
-				{error && <p className='text-sm text-red-400'>{error}</p>}
+				{/* Error message */}
+				<AnimatePresence>
+					{error && (
+						<motion.div
+							className='flex items-center gap-2 p-3 rounded-lg bg-error-500/10 border border-error-500/20'
+							initial={{ opacity: 0, y: -10 }}
+							animate={{ opacity: 1, y: 0 }}
+							exit={{ opacity: 0, y: -10 }}
+							transition={{ duration: 0.2 }}
+						>
+							<AlertCircle className='h-4 w-4 text-error-400 flex-shrink-0' />
+							<p className='text-sm text-error-300'>{error}</p>
+						</motion.div>
+					)}
+				</AnimatePresence>
 
-				<Button className='w-full' disabled={loading} type='submit'>
-					{loading ? 'Signing In...' : 'Sign In'}
+				{/* Submit button - extra top margin to prevent accidental clicks */}
+				<Button
+					className='w-full h-12 mt-6 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white font-medium shadow-lg shadow-primary-500/30 hover:shadow-xl hover:shadow-primary-500/40 transition-all duration-200'
+					disabled={loading}
+					type='submit'
+				>
+					{loading ? (
+						<>
+							<Loader2 className='h-5 w-5 animate-spin mr-2' />
+							Signing in...
+						</>
+					) : (
+						'Sign In'
+					)}
 				</Button>
-			</form>
+			</motion.form>
 
-			<p className='mt-4 text-center text-sm text-zinc-400'>
+			<motion.p
+				className='mt-6 text-center text-sm text-text-secondary'
+				initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }}
+				animate={{ opacity: 1 }}
+				transition={
+					shouldReduceMotion
+						? { duration: 0 }
+						: { delay: 0.35, duration: 0.25, ease: easeOutQuart }
+				}
+			>
 				Don&apos;t have an account?{' '}
 				<Link
-					className='font-medium text-teal-400 hover:text-teal-300'
+					className='font-medium text-primary-400 hover:text-primary-300 transition-colors'
 					href='/auth/sign-up'
 				>
 					Sign Up
 				</Link>
-			</p>
-		</div>
+			</motion.p>
+		</AuthCard>
 	);
 }
 
 export default function SignIn() {
 	return (
-		<div className='flex min-h-screen flex-col items-center justify-center bg-zinc-900 p-4'>
+		<AuthLayout>
 			<Suspense
 				fallback={
-					<div className='w-full max-w-md space-y-6 rounded-sm bg-zinc-800 p-8 shadow-md'>
-						<div className='flex items-center justify-center'>
-							<div className='h-8 w-8 animate-spin rounded-full border-4 border-zinc-700 border-t-sky-500' />
+					<AuthCard>
+						<div className='flex items-center justify-center py-8'>
+							<div className='h-8 w-8 animate-spin rounded-full border-4 border-border-secondary border-t-primary-500' />
 						</div>
-					</div>
+					</AuthCard>
 				}
 			>
 				<SignInForm />
 			</Suspense>
-		</div>
+		</AuthLayout>
 	);
 }

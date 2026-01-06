@@ -12,12 +12,12 @@ export default function MinimalFooter() {
 			initial={{ opacity: 0 }}
 			transition={{ duration: 0.5, delay: 0.8 }}
 		>
-			<div className='flex items-center w-full justify-center py-8 gap-4 text-sm text-zinc-500'>
+			<div className='flex items-center w-full justify-center py-8 gap-4 text-sm text-text-tertiary'>
 				{/* Copyright */}
 				<div className='flex items-center gap-1'>
 					<span>© {currentYear}</span>
 
-					<span className='text-zinc-600'>•</span>
+					<span className='text-text-quaternary'>•</span>
 
 					<span>Moistus</span>
 				</div>

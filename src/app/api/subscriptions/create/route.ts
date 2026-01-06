@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-	apiVersion: '2025-10-29.clover',
+	apiVersion: '2025-12-15.clover',
 });
 
 export async function POST(req: NextRequest) {
@@ -80,18 +80,22 @@ export async function POST(req: NextRequest) {
 			},
 		});
 
-		// Determine trial configuration based on environment
+		// Trial duration from env (default: 2 weeks for prod, 5 min for dev)
 		const isProduction = process.env.NODE_ENV === 'production';
-		const trialDays = 14;
-		const trialConfig = isProduction
-			? {
-					// Production: Standard 14-day trial
-					trial_period_days: trialDays,
-			  }
-			: {
-					// Development: Short 1-minute trial for testing
-					trial_end: Math.floor(Date.now() / 1000) + 60,
-			  };
+		const defaultTrialMs = isProduction ? 1209600000 : 300000;
+		let trialDurationMs = parseInt(
+			process.env.TRIAL_DURATION_MS || String(defaultTrialMs),
+			10
+		);
+
+		// Validate parsed value
+		if (isNaN(trialDurationMs) || trialDurationMs <= 0) {
+			trialDurationMs = defaultTrialMs;
+		}
+
+		// Convert ms to Unix timestamp for Stripe
+		const trialEndTimestamp = Math.floor((Date.now() + trialDurationMs) / 1000);
+		const trialConfig = { trial_end: trialEndTimestamp };
 
 		// Create subscription with trial
 		const subscription = await stripe.subscriptions.create({
@@ -118,7 +122,7 @@ export async function POST(req: NextRequest) {
 			? Math.ceil(
 					(subscription.trial_end * 1000 - Date.now()) / (1000 * 60 * 60 * 24)
 			  )
-			: trialDays;
+			: Math.ceil(trialDurationMs / (1000 * 60 * 60 * 24));
 
 		// Save subscription to database
 		const { error: dbError } = await supabase

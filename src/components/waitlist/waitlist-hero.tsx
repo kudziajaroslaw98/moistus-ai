@@ -11,17 +11,17 @@ export function WaitlistHero() {
 				transition={{ duration: 0.3, ease: [0.165, 0.84, 0.44, 1] }}
 			>
 				<span className='whitespace-nowrap'>
-					From <span className='text-teal-400'>Scattered Notes</span>
+					From <span className='text-brand-coral'>Scattered Notes</span>
 				</span>
 
 				<span>
-					to <span className='text-sky-400'>Connected Ideas</span>.
+					to <span className='text-primary-400'>Connected Ideas</span>.
 				</span>
 			</motion.div>
 
 			<motion.p
 				animate={{ opacity: 1, y: 0 }}
-				className='mt-6 text-lg leading-relaxed text-zinc-300'
+				className='mt-6 text-lg leading-relaxed text-text-secondary'
 				initial={{ opacity: 0, y: 20 }}
 				transition={{ delay: 0.15, duration: 0.3, ease: [0.165, 0.84, 0.44, 1] }}
 			>

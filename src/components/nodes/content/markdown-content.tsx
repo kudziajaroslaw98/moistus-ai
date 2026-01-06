@@ -167,18 +167,81 @@ const MarkdownContentComponent = ({
 							{children}
 						</pre>
 					),
-					// Links
-					a: ({ children, href }) => (
-						<a
-							className='underline underline-offset-2 transition-colors hover:no-underline'
-							href={href}
-							rel='noopener noreferrer'
-							target='_blank'
-							style={{ color: 'rgba(147, 197, 253, 0.87)' }}
-						>
-							{children}
-						</a>
-					),
+					// Links - validate href to prevent XSS via dangerous schemes
+					a: ({ children, href }) => {
+						// Validate and sanitize href to block dangerous schemes
+						const validateHref = (url: string | undefined): string => {
+							if (!url) return '#';
+
+							try {
+								// Trim and normalize
+								const trimmed = url.trim();
+								if (!trimmed) return '#';
+
+								// Allow safe relative URLs and fragments
+								if (trimmed.startsWith('/') || trimmed.startsWith('#')) {
+									return trimmed;
+								}
+
+								// Parse URL to extract scheme
+								// Handle URLs without protocol by checking for dangerous patterns first
+								const lowerUrl = trimmed.toLowerCase();
+
+								// Block dangerous schemes (including encoded variations)
+								const dangerousSchemes = [
+									'javascript:',
+									'data:',
+									'vbscript:',
+									'file:',
+									'blob:',
+								];
+								const decodedUrl = decodeURIComponent(lowerUrl);
+								for (const scheme of dangerousSchemes) {
+									if (
+										lowerUrl.startsWith(scheme) ||
+										decodedUrl.startsWith(scheme)
+									) {
+										return '#';
+									}
+								}
+
+								// Allow safe schemes
+								const safeSchemes = ['http:', 'https:', 'mailto:', 'tel:'];
+								for (const scheme of safeSchemes) {
+									if (lowerUrl.startsWith(scheme)) {
+										return trimmed;
+									}
+								}
+
+								// If no scheme detected but looks like a URL, assume https
+								if (
+									trimmed.includes('.') &&
+									!trimmed.includes(':')
+								) {
+									return `https://${trimmed}`;
+								}
+
+								// Fallback: reject unknown schemes
+								return '#';
+							} catch {
+								// On any parse error, return safe fallback
+								return '#';
+							}
+						};
+
+						const safeHref = validateHref(href);
+						return (
+							<a
+								className='underline underline-offset-2 transition-colors hover:no-underline'
+								href={safeHref}
+								rel='noopener noreferrer'
+								target='_blank'
+								style={{ color: 'rgba(147, 197, 253, 0.87)' }}
+							>
+								{children}
+							</a>
+						);
+					},
 					// Blockquotes
 					blockquote: ({ children }) => (
 						<blockquote

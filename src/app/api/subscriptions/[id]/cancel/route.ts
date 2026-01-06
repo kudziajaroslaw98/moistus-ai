@@ -1,49 +1,43 @@
-import { createClient } from '@/helpers/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { respondError, respondSuccess } from '@/helpers/api/responses';
+import { withAuthValidation } from '@/helpers/api/with-auth-validation';
 import Stripe from 'stripe';
+import { z } from 'zod';
 
-export async function POST(
-	req: NextRequest,
-	context: { params: Promise<{ id: string }> }
-) {
-	try {
+// No body expected for this route
+const cancelSubscriptionSchema = z.object({});
+
+export const POST = withAuthValidation(
+	cancelSubscriptionSchema,
+	async (req, _data, supabase, user) => {
+		// Extract subscription ID from URL path
+		const url = new URL(req.url);
+		const pathParts = url.pathname.split('/');
+		const subscriptionId = pathParts[pathParts.indexOf('subscriptions') + 1];
+
+		if (!subscriptionId) {
+			return respondError('Subscription ID is required', 400);
+		}
+
 		// Validate Stripe secret key
 		if (!process.env.STRIPE_SECRET_KEY) {
 			console.error('STRIPE_SECRET_KEY is not configured');
-			return NextResponse.json(
-				{ error: 'Payment system configuration error' },
-				{ status: 500 }
-			);
+			return respondError('Payment system configuration error', 500);
 		}
 
 		const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-			apiVersion: '2025-10-29.clover',
+			apiVersion: '2025-12-15.clover',
 		});
-
-		const params = await context.params;
-		const supabase = await createClient();
-
-		const {
-			data: { user },
-		} = await supabase.auth.getUser();
-
-		if (!user) {
-			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-		}
 
 		// IDOR Protection
 		const { data: subscription, error } = await supabase
 			.from('user_subscriptions')
 			.select('*')
-			.eq('id', params.id)
+			.eq('id', subscriptionId)
 			.eq('user_id', user.id) // CRITICAL: Prevent accessing other users' subscriptions
 			.single();
 
 		if (error || !subscription) {
-			return NextResponse.json(
-				{ error: 'Subscription not found' },
-				{ status: 404 }
-			);
+			return respondError('Subscription not found', 404);
 		}
 
 		// Cancel at period end in Stripe (don't cancel immediately)
@@ -59,21 +53,18 @@ export async function POST(
 			// Verify Stripe update succeeded
 			if (!stripeSubscription || !stripeSubscription.cancel_at_period_end) {
 				console.error('Stripe subscription update failed:', stripeSubscription);
-				return NextResponse.json(
-					{ error: 'Failed to cancel subscription with payment provider' },
-					{ status: 500 }
+				return respondError(
+					'Failed to cancel subscription with payment provider',
+					500
 				);
 			}
 		} catch (stripeError) {
 			console.error('Stripe API error during cancellation:', stripeError);
-			return NextResponse.json(
-				{
-					error:
-						stripeError instanceof Error
-							? stripeError.message
-							: 'Failed to cancel subscription with payment provider',
-				},
-				{ status: 500 }
+			return respondError(
+				stripeError instanceof Error
+					? stripeError.message
+					: 'Failed to cancel subscription with payment provider',
+				500
 			);
 		}
 
@@ -84,7 +75,7 @@ export async function POST(
 				cancel_at_period_end: true,
 				updated_at: new Date().toISOString(),
 			})
-			.eq('id', params.id)
+			.eq('id', subscriptionId)
 			.select();
 
 		if (updateError) {
@@ -94,30 +85,23 @@ export async function POST(
 			);
 			// Note: Stripe has already been updated at this point.
 			// The webhook should eventually sync this, but we still return an error
-			return NextResponse.json(
-				{ error: 'Failed to update subscription status in database' },
-				{ status: 500 }
+			return respondError(
+				'Failed to update subscription status in database',
+				500
 			);
 		}
 
 		// Verify rows were actually updated
 		if (!updatedSubscription || updatedSubscription.length === 0) {
 			console.error('No rows updated in database after Stripe cancellation');
-			return NextResponse.json(
-				{ error: 'Failed to update subscription status in database' },
-				{ status: 500 }
+			return respondError(
+				'Failed to update subscription status in database',
+				500
 			);
 		}
 
-		return NextResponse.json({
-			success: true,
+		return respondSuccess({
 			cancelAtPeriodEnd: true,
 		});
-	} catch (error) {
-		console.error('Unexpected error during subscription cancellation:', error);
-		return NextResponse.json(
-			{ error: 'Internal server error' },
-			{ status: 500 }
-		);
 	}
-}
+);

@@ -3,6 +3,7 @@
 ## 🚨 CRITICAL PRINCIPLES
 
 - **🔴 UPDATE CLAUDE.md**: Before ending work, ask: "Did I change anything CLAUDE.md describes?" If yes → update it. No exceptions.
+- **🔴 NEVER READ .env FILES**: `.env`, `.env.local`, `.env.e2e` are BANNED. No `Read`, `cat`, `grep`, or any tool. These contain secrets.
 - **PROACTIVELY use agents and mcp tools**
 - **NEVER run `pnpm run dev`** - Use: `pnpm type-check`, `pnpm build`, `pnpm test`
 - **Parallel operations**: Batch independent tool calls
@@ -178,7 +179,7 @@ Guideline @./animation-guidelines.md
 
 - `ai/` - AI stream mediator (headless streaming coordinator)
 - `ai-chat/` - Chat panel, input, messages, context selector
-- `auth/` - Anonymous user banner, upgrade flow
+- `auth/` - Anonymous user banner, upgrade flow, shared/ (reusable auth UI), sign-up/ (wizard flow)
 - `common/` - Shared utility components
 - `context-menu/` - Context menu system
 - `dashboard/` - Map cards, create dialog, template picker, settings panel
@@ -202,7 +203,8 @@ Guideline @./animation-guidelines.md
 
 ### API Routes
 
-**Location**: `src/app/api/` (51 routes)
+**Location**: `src/app/api/` (53 routes)
+<!-- Updated: 2026-01-05 - Added 2 sign-up routes -->
 
 **AI & Content Generation**:
 
@@ -249,6 +251,7 @@ Guideline @./animation-guidelines.md
 
 **User & Auth**:
 
+- `auth/sign-up/initiate/`, `auth/sign-up/verify-otp/` - Email-verified sign-up with OTP
 - `auth/upgrade-anonymous/initiate/`, `auth/upgrade-anonymous/verify-otp/`, `auth/upgrade-anonymous/set-password/`
 - `auth/user/`
 - `user/profile/`, `user/export/`, `user/[userId]/public-profile/`
@@ -291,6 +294,9 @@ Guideline @./animation-guidelines.md
 - SQL reference files in `ai-docs/` (not applied migrations)
 
 **Types**: `src/types/` (37 type files) - Strict TypeScript definitions for all data structures
+
+**Design Decision - NodeData.metadata**: The `metadata` field in `NodeData` is intentionally a single unified type rather than discriminated union per node type. This enables seamless node type switching in the UI without data loss - users can change a Note to a Task without losing existing metadata fields. Do NOT split into per-type unions.
+<!-- Updated: 2026-01-06 - Added NodeData.metadata design rationale -->
 
 ## Best Practices
 

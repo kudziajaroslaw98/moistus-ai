@@ -146,6 +146,17 @@ export const otpLimiter = new InMemoryRateLimiter({
 	windowMs: 60 * 1000, // per minute
 });
 
+// Sign-up flow rate limiters
+export const signUpInitiateRateLimiter = new InMemoryRateLimiter({
+	maxAttempts: 3, // 3 attempts
+	windowMs: 60 * 1000, // per minute
+});
+
+export const signUpOtpRateLimiter = new InMemoryRateLimiter({
+	maxAttempts: 5, // 5 attempts
+	windowMs: 60 * 1000, // per minute
+});
+
 /**
  * Validates if a string is a valid IPv4 address
  */

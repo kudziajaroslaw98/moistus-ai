@@ -5,6 +5,86 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-01-06]
+
+### Fixed
+- **deps/security**: Upgraded jspdf 3.0.4 → 4.0.0 (CVE-2025-68428)
+  - Why: Critical path traversal vulnerability in Node.js build
+  - No breaking changes - data URL usage unaffected
+- **security/xss**: Sanitize HTML in chat-message.tsx using sanitize-html
+  - Why: Prevent XSS via AI-generated content rendered as HTML
+- **security/xss**: Replace innerHTML with regex in edge-edit-modal.tsx
+  - Why: Prevent XSS when extracting text from node content
+- **security/xss**: Add URL validation to markdown-content.tsx links
+  - Why: Block javascript: URLs in markdown anchor hrefs
+- **security/pii**: Remove debug logs exposing user PII in set-password route
+  - Why: Production logs should not contain user IDs, emails, auth states
+- **errors**: Add error logging to empty catch blocks in room-code-display.tsx
+  - Why: Silent failures with no logs make debugging impossible
+- **auth/verify-otp**: Use shared PASSWORD_MIN_LENGTH + PASSWORD_REGEX from auth validations
+  - Why: DRY - password rules were hardcoded in verify-otp route
+- **subscriptions/cancel**: Refactor to use withAuthValidation + respondSuccess/respondError helpers
+  - Why: Consistency with other API routes, standardized auth/response handling
+- **subscriptions/create**: Validate TRIAL_DURATION_MS after parsing
+  - Why: parseInt can return NaN or negative values from malformed env vars
+- **auth/oauth-buttons**: Design tokens, hover media query, aria-labels, loading state, type dedup
+  - Why: Accessibility, touch device support, shared OAuthProvider type from store
+- **auth/sign-up-wizard**: Check result.status === 'success' instead of result.success
+  - Why: API returns {status: 'success', data: ...} not {success: true}
+- **auth/success-step**: Use ref for onComplete callback in auto-redirect timer
+  - Why: Prevent timer reset when parent passes non-memoized callback
+- **waitlist/css-tokens**: Replace invalid surface-primary/border-secondary with correct tokens
+  - Why: Classes didn't map to existing CSS variables (surface, border-subtle)
+- **waitlist-hero**: Replace text-error-300 with text-brand-coral
+  - Why: Error semantic misused for branding; added --color-brand-coral token
+- **auth/validations**: Add email/displayName normalization transforms to schemas
+  - Why: Client-side values should match server-side expectations (lowercase, trimmed)
+- **auth/profile-fallbacks**: Add avatar_url + created_at to profile fallback objects
+  - Why: Response shape must match DB query columns; prevents type mismatches in consumers
+
+### Docs
+- **CLAUDE.md**: Add NodeData.metadata design rationale
+  - Why: Document intentional unified type for node type switching
+
+---
+
+## [2026-01-05]
+
+### Added
+- **auth/sign-up**: New email-verified sign-up flow with 2-step wizard
+  - Step 1: Collect email, password, optional display name
+  - Step 2: OTP verification before account creation
+  - API routes: `sign-up/initiate/` (send OTP), `sign-up/verify-otp/` (create account)
+  - Rate limiters: 3 initiate attempts/min, 5 OTP attempts/min
+  - Why: Prevent spam accounts via email verification
+
+- **auth/shared**: Reusable auth UI components
+  - AuthCard, AuthLayout, OAuthButtons, PasswordRequirementsInfo
+  - Consistent styling across sign-in, sign-up, upgrade flows
+
+- **lib/validations/auth.ts**: Zod schemas for auth forms
+  - signInSchema, signUpFormSchema, otpSchema
+  - Password strength checker with requirement list
+
+### Changed
+- **sign-in page**: Refactored to use shared components, added OAuth buttons, improved animations
+- **upgrade-anonymous**: Uses shared PasswordRequirementsInfo component
+- **join pages**: Minor styling updates for consistency
+
+---
+
+## [2026-01-04]
+
+### Changed
+- **deps**: Updated Stripe from 19.3.1 to 20.1.0
+  - Updated API version: `2025-10-29.clover` → `2025-12-15.clover` in 6 billing routes
+
+### Docs
+- **CLAUDE.md**: Added critical security rule banning .env file reads
+  - Why: Prevent accidental exposure of secrets in AI outputs
+
+---
+
 ## [2026-01-01]
 
 ### Fixed
