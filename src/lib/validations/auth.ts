@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 // Password requirements - match existing upgrade-anonymous patterns
-const PASSWORD_MIN_LENGTH = 8;
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
+export const PASSWORD_MIN_LENGTH = 8;
+export const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
 
 // Sign-in schema
 export const signInSchema = z.object({
@@ -19,8 +19,15 @@ export type SignInFormData = z.infer<typeof signInSchema>;
 // Sign-up form schema (Step 1: Form with all fields)
 // Use z.input for form default values compatibility
 const signUpFormSchemaBase = z.object({
-	email: z.string().min(1, 'Email is required').email('Please enter a valid email address'),
-	displayName: z.string().max(50, 'Display name must be 50 characters or less'),
+	email: z
+		.string()
+		.min(1, 'Email is required')
+		.email('Please enter a valid email address')
+		.transform((s) => s.toLowerCase().trim()),
+	displayName: z
+		.string()
+		.max(50, 'Display name must be 50 characters or less')
+		.transform((s) => s.trim()),
 	password: z
 		.string()
 		.min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`)
@@ -43,7 +50,10 @@ export type SignUpFormData = z.infer<typeof signUpFormSchema>;
 
 // OTP verification schema (Step 2)
 export const otpSchema = z.object({
-	email: z.string().email(),
+	email: z
+		.string()
+		.email()
+		.transform((s) => s.trim().toLowerCase()),
 	otp: z
 		.string()
 		.length(6, 'Verification code must be 6 digits')

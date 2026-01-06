@@ -21,6 +21,24 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Production logs should not contain user IDs, emails, auth states
 - **errors**: Add error logging to empty catch blocks in room-code-display.tsx
   - Why: Silent failures with no logs make debugging impossible
+- **auth/verify-otp**: Use shared PASSWORD_MIN_LENGTH + PASSWORD_REGEX from auth validations
+  - Why: DRY - password rules were hardcoded in verify-otp route
+- **subscriptions/cancel**: Refactor to use withAuthValidation + respondSuccess/respondError helpers
+  - Why: Consistency with other API routes, standardized auth/response handling
+- **subscriptions/create**: Validate TRIAL_DURATION_MS after parsing
+  - Why: parseInt can return NaN or negative values from malformed env vars
+- **auth/oauth-buttons**: Design tokens, hover media query, aria-labels, loading state, type dedup
+  - Why: Accessibility, touch device support, shared OAuthProvider type from store
+- **auth/sign-up-wizard**: Check result.status === 'success' instead of result.success
+  - Why: API returns {status: 'success', data: ...} not {success: true}
+- **auth/success-step**: Use ref for onComplete callback in auto-redirect timer
+  - Why: Prevent timer reset when parent passes non-memoized callback
+- **waitlist/css-tokens**: Replace invalid surface-primary/border-secondary with correct tokens
+  - Why: Classes didn't map to existing CSS variables (surface, border-subtle)
+- **waitlist-hero**: Replace text-error-300 with text-brand-coral
+  - Why: Error semantic misused for branding; added --color-brand-coral token
+- **auth/validations**: Add email/displayName normalization transforms to schemas
+  - Why: Client-side values should match server-side expectations (lowercase, trimmed)
 
 ### Docs
 - **CLAUDE.md**: Add NodeData.metadata design rationale

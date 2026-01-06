@@ -84,10 +84,10 @@ export function SignUpWizard() {
 
 			const result = await response.json();
 
-			if (!response.ok || !result.success) {
+			if (!response.ok || result.status !== 'success') {
 				updateState({
 					isLoading: false,
-					error: result.error || 'Failed to create account',
+					error: result.error || result.statusText || 'Failed to create account',
 				});
 				return;
 			}
@@ -127,10 +127,10 @@ export function SignUpWizard() {
 
 			const result = await response.json();
 
-			if (!response.ok || !result.success) {
+			if (!response.ok || result.status !== 'success') {
 				updateState({
 					isLoading: false,
-					error: result.error || 'Invalid verification code',
+					error: result.error || result.statusText || 'Invalid verification code',
 				});
 				return;
 			}
@@ -171,10 +171,10 @@ export function SignUpWizard() {
 
 			const result = await response.json();
 
-			if (!response.ok || !result.success) {
+			if (!response.ok || result.status !== 'success') {
 				updateState({
 					isLoading: false,
-					error: result.error || 'Failed to resend code',
+					error: result.error || result.statusText || 'Failed to resend code',
 				});
 				return;
 			}

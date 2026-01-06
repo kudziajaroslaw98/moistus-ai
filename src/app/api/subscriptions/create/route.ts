@@ -83,10 +83,15 @@ export async function POST(req: NextRequest) {
 		// Trial duration from env (default: 2 weeks for prod, 5 min for dev)
 		const isProduction = process.env.NODE_ENV === 'production';
 		const defaultTrialMs = isProduction ? 1209600000 : 300000;
-		const trialDurationMs = parseInt(
+		let trialDurationMs = parseInt(
 			process.env.TRIAL_DURATION_MS || String(defaultTrialMs),
 			10
 		);
+
+		// Validate parsed value
+		if (isNaN(trialDurationMs) || trialDurationMs <= 0) {
+			trialDurationMs = defaultTrialMs;
+		}
 
 		// Convert ms to Unix timestamp for Stripe
 		const trialEndTimestamp = Math.floor((Date.now() + trialDurationMs) / 1000);

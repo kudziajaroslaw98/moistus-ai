@@ -46,7 +46,7 @@ export function PasswordStrengthBar({ password }: PasswordStrengthBarProps) {
 	const percentage = (metCount / requirements.length) * 100;
 
 	const getColor = () => {
-		if (metCount === 0) return 'bg-surface-tertiary';
+		if (metCount === 0) return 'bg-overlay';
 		if (metCount === 1) return 'bg-error-500';
 		if (metCount === 2) return 'bg-amber-500';
 		if (metCount === 3) return 'bg-primary-500';
@@ -75,7 +75,7 @@ export function PasswordStrengthBar({ password }: PasswordStrengthBarProps) {
 					{getLabel()}
 				</span>
 			</div>
-			<div className='h-1 bg-surface-secondary rounded-full overflow-hidden'>
+			<div className='h-1 bg-elevated rounded-full overflow-hidden'>
 				<div
 					className={`h-full ${getColor()} transition-all duration-300 ease-out`}
 					style={{ width: `${percentage}%` }}
@@ -115,7 +115,7 @@ export function PasswordRequirementsInfo({
 					)}
 				</button>
 			</PopoverTrigger>
-			<PopoverContent align='start' className='w-56 p-3 bg-surface-primary border-border-secondary'>
+			<PopoverContent align='start' className='w-56 p-3 bg-surface border-border-subtle'>
 				<div className='space-y-2'>
 					<p className='text-xs font-medium text-text-primary'>
 						Password requirements

@@ -1,13 +1,16 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
+import type { OAuthProvider } from '@/store/app-state';
 import { Github } from 'lucide-react';
 
-export type OAuthProvider = 'google' | 'github';
+export type { OAuthProvider };
 
 interface OAuthButtonsProps {
 	onSelectProvider: (provider: OAuthProvider) => void;
 	disabled?: boolean;
+	isLoading?: boolean;
 	label?: 'continue' | 'sign-in' | 'sign-up';
 }
 
@@ -35,6 +38,7 @@ const GoogleIcon = () => (
 export function OAuthButtons({
 	onSelectProvider,
 	disabled = false,
+	isLoading = false,
 	label = 'continue',
 }: OAuthButtonsProps) {
 	const labelText = {
@@ -43,17 +47,20 @@ export function OAuthButtons({
 		'sign-up': 'Sign up with',
 	}[label];
 
+	const isDisabled = disabled || isLoading;
+
 	return (
 		<div className='space-y-3'>
 			<Button
 				type='button'
 				variant='outline'
 				size='lg'
-				className='w-full justify-center gap-2 h-12 bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 text-white'
+				className='w-full justify-center gap-2 h-12 bg-surface-primary border-border-secondary text-text-primary [@media(hover:hover)]:hover:bg-surface-secondary [@media(hover:hover)]:hover:border-border-primary'
 				onClick={() => onSelectProvider('google')}
-				disabled={disabled}
+				disabled={isDisabled}
+				aria-label='Sign in with Google'
 			>
-				<GoogleIcon />
+				{isLoading ? <Spinner size='sm' /> : <GoogleIcon />}
 				{labelText} Google
 			</Button>
 
@@ -61,11 +68,12 @@ export function OAuthButtons({
 				type='button'
 				variant='outline'
 				size='lg'
-				className='w-full justify-center gap-2 h-12 bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 text-white'
+				className='w-full justify-center gap-2 h-12 bg-surface-primary border-border-secondary text-text-primary [@media(hover:hover)]:hover:bg-surface-secondary [@media(hover:hover)]:hover:border-border-primary'
 				onClick={() => onSelectProvider('github')}
-				disabled={disabled}
+				disabled={isDisabled}
+				aria-label='Sign in with GitHub'
 			>
-				<Github className='w-5 h-5' />
+				{isLoading ? <Spinner size='sm' /> : <Github className='w-5 h-5' />}
 				{labelText} GitHub
 			</Button>
 		</div>
@@ -82,7 +90,7 @@ export function OAuthDivider({
 	return (
 		<div className='relative'>
 			<div className='absolute inset-0 flex items-center'>
-				<div className='w-full border-t border-white/10' />
+				<div className='w-full border-t border-border-secondary' />
 			</div>
 			<div className='relative flex justify-center text-xs'>
 				<span className='px-3 bg-surface-primary text-text-tertiary rounded-sm'>

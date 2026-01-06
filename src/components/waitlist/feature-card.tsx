@@ -54,7 +54,7 @@ export default function FeatureCard({
 			whileHover='hover'
 			whileTap='tap'
 		>
-			<div className='relative h-full rounded-2xl border border-border-secondary bg-surface-primary/50 backdrop-blur-sm p-6 transition-colors hover:border-border-primary'>
+			<div className='relative h-full rounded-2xl border border-border-subtle bg-surface/50 backdrop-blur-sm p-6 transition-colors hover:border-border-default'>
 				{/* Gradient background on hover */}
 				<div
 					className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500 rounded-2xl`}

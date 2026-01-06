@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, ArrowRight, Sparkles } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface SuccessStepProps {
 	displayName?: string;
@@ -14,12 +14,18 @@ const AUTO_REDIRECT_DELAY = 3000; // 3 seconds
 
 export function SuccessStep({ displayName, onComplete }: SuccessStepProps) {
 	const shouldReduceMotion = useReducedMotion();
+	const onCompleteRef = useRef(onComplete);
+
+	// Keep ref in sync with latest callback
+	useEffect(() => {
+		onCompleteRef.current = onComplete;
+	});
 
 	// Auto-redirect after delay
 	useEffect(() => {
-		const timer = setTimeout(onComplete, AUTO_REDIRECT_DELAY);
+		const timer = setTimeout(() => onCompleteRef.current?.(), AUTO_REDIRECT_DELAY);
 		return () => clearTimeout(timer);
-	}, [onComplete]);
+	}, []);
 
 	const greeting = displayName ? `Welcome, ${displayName}!` : 'Welcome!';
 

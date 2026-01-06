@@ -11,7 +11,7 @@ export function WaitlistHero() {
 				transition={{ duration: 0.3, ease: [0.165, 0.84, 0.44, 1] }}
 			>
 				<span className='whitespace-nowrap'>
-					From <span className='text-error-300'>Scattered Notes</span>
+					From <span className='text-brand-coral'>Scattered Notes</span>
 				</span>
 
 				<span>

@@ -5,6 +5,7 @@ import {
 } from '@/helpers/api/rate-limiter';
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withAuthValidation } from '@/helpers/api/with-auth-validation';
+import { PASSWORD_MIN_LENGTH, PASSWORD_REGEX } from '@/lib/validations/auth';
 import { z } from 'zod';
 
 const VerifyOtpSchema = z.object({
@@ -15,7 +16,14 @@ const VerifyOtpSchema = z.object({
 		.max(6, 'OTP must be 6 digits')
 		.regex(/^\d+$/, 'OTP must contain only numbers'),
 	// New flow: password is collected before OTP verification and sent together
-	password: z.string().min(8, 'Password must be at least 8 characters').optional(),
+	password: z
+		.string()
+		.min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`)
+		.regex(
+			PASSWORD_REGEX,
+			'Password must contain at least one uppercase letter, one lowercase letter, and one number'
+		)
+		.optional(),
 	displayName: z.string().min(1).max(50).optional(),
 });
 

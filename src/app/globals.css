@@ -89,6 +89,9 @@
 	--color-error-800: oklch(0.34 0.14 25);
 	--color-error-900: oklch(0.28 0.1 25);
 
+	/* Brand Scale - Coral (hue 25°) for brand emphasis, not errors */
+	--color-brand-coral: oklch(0.79 0.15 25);
+
 	/* ===========================
 	   SEMANTIC TOKENS (Dark Mode)
 	   =========================== */
