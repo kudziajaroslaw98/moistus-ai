@@ -5,6 +5,15 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-01-06]
+
+### Fixed
+- **deps/security**: Upgraded jspdf 3.0.4 → 4.0.0 (CVE-2025-68428)
+  - Why: Critical path traversal vulnerability in Node.js build
+  - No breaking changes - data URL usage unaffected
+
+---
+
 ## [2026-01-05]
 
 ### Added
