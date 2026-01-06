@@ -11,6 +11,20 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **deps/security**: Upgraded jspdf 3.0.4 → 4.0.0 (CVE-2025-68428)
   - Why: Critical path traversal vulnerability in Node.js build
   - No breaking changes - data URL usage unaffected
+- **security/xss**: Sanitize HTML in chat-message.tsx using sanitize-html
+  - Why: Prevent XSS via AI-generated content rendered as HTML
+- **security/xss**: Replace innerHTML with regex in edge-edit-modal.tsx
+  - Why: Prevent XSS when extracting text from node content
+- **security/xss**: Add URL validation to markdown-content.tsx links
+  - Why: Block javascript: URLs in markdown anchor hrefs
+- **security/pii**: Remove debug logs exposing user PII in set-password route
+  - Why: Production logs should not contain user IDs, emails, auth states
+- **errors**: Add error logging to empty catch blocks in room-code-display.tsx
+  - Why: Silent failures with no logs make debugging impossible
+
+### Docs
+- **CLAUDE.md**: Add NodeData.metadata design rationale
+  - Why: Document intentional unified type for node type switching
 
 ---
 

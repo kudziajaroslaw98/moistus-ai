@@ -167,18 +167,29 @@ const MarkdownContentComponent = ({
 							{children}
 						</pre>
 					),
-					// Links
-					a: ({ children, href }) => (
-						<a
-							className='underline underline-offset-2 transition-colors hover:no-underline'
-							href={href}
-							rel='noopener noreferrer'
-							target='_blank'
-							style={{ color: 'rgba(147, 197, 253, 0.87)' }}
-						>
-							{children}
-						</a>
-					),
+					// Links - validate href to prevent javascript: URLs (XSS)
+					a: ({ children, href }) => {
+						const safeHref =
+							href &&
+							(href.startsWith('http://') ||
+								href.startsWith('https://') ||
+								href.startsWith('/') ||
+								href.startsWith('#') ||
+								href.startsWith('mailto:'))
+								? href
+								: '#';
+						return (
+							<a
+								className='underline underline-offset-2 transition-colors hover:no-underline'
+								href={safeHref}
+								rel='noopener noreferrer'
+								target='_blank'
+								style={{ color: 'rgba(147, 197, 253, 0.87)' }}
+							>
+								{children}
+							</a>
+						);
+					},
 					// Blockquotes
 					blockquote: ({ children }) => (
 						<blockquote

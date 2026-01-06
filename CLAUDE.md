@@ -295,6 +295,9 @@ Guideline @./animation-guidelines.md
 
 **Types**: `src/types/` (37 type files) - Strict TypeScript definitions for all data structures
 
+**Design Decision - NodeData.metadata**: The `metadata` field in `NodeData` is intentionally a single unified type rather than discriminated union per node type. This enables seamless node type switching in the UI without data loss - users can change a Note to a Task without losing existing metadata fields. Do NOT split into per-type unions.
+<!-- Updated: 2026-01-06 - Added NodeData.metadata design rationale -->
+
 ## Best Practices
 
 **Node Development**: Add component to `src/components/nodes/` → Register in `src/registry/node-registry.ts` → Configure in node-editor command system → Add types & error handling → Test edge cases

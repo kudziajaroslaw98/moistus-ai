@@ -5,6 +5,7 @@ import { cn } from '@/utils/cn';
 import { Sparkles, User } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useMemo, useState } from 'react';
+import sanitizeHtml from 'sanitize-html';
 
 interface ChatMessageProps {
 	message: ChatMessageType;
@@ -82,7 +83,14 @@ export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) 
 		// Line breaks
 		content = content.replace(/\n/g, '<br />');
 
-		return content;
+		// Sanitize HTML to prevent XSS attacks
+		return sanitizeHtml(content, {
+			allowedTags: ['strong', 'em', 'pre', 'code', 'br'],
+			allowedAttributes: {
+				code: ['class'],
+				pre: ['class'],
+			},
+		});
 	}, [message.content, isEmpty]);
 
 	return (

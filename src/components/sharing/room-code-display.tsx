@@ -55,7 +55,8 @@ export function RoomCodeDisplay({
 			await navigator.clipboard.writeText(token.token);
 			toast.success('Room code copied!');
 			onCopy?.(token.token);
-		} catch {
+		} catch (error) {
+			console.error('[RoomCodeDisplay] Failed to copy room code:', error);
 			toast.error('Failed to copy room code');
 		}
 	};
@@ -65,7 +66,8 @@ export function RoomCodeDisplay({
 			const shareUrl = `${window.location.origin}/join/${token.token}`;
 			await navigator.clipboard.writeText(shareUrl);
 			toast.success('Share link copied!');
-		} catch {
+		} catch (error) {
+			console.error('[RoomCodeDisplay] Failed to copy share link:', error);
 			toast.error('Failed to copy share link');
 		}
 	};
@@ -77,7 +79,8 @@ export function RoomCodeDisplay({
 
 		try {
 			await onRefresh(token.id);
-		} catch {
+		} catch (error) {
+			console.error('[RoomCodeDisplay] Failed to refresh room code:', error);
 			toast.error('Failed to refresh room code');
 		} finally {
 			setIsRefreshing(false);
@@ -89,7 +92,8 @@ export function RoomCodeDisplay({
 
 		try {
 			await onRevoke(token.id);
-		} catch {
+		} catch (error) {
+			console.error('[RoomCodeDisplay] Failed to revoke room code:', error);
 			toast.error('Failed to revoke room code');
 		}
 	};

@@ -75,10 +75,8 @@ export const createSharingSlice: StateCreator<
 					.select(`*`)
 					.eq('map_id', mapId);
 
-			console.log(data);
-
 			if (error || !data) {
-				console.error('Error fetching current shares:', error);
+				console.error('[SharingSlice] Error fetching current shares:', error);
 				return;
 			}
 
@@ -112,8 +110,6 @@ export const createSharingSlice: StateCreator<
 			setState({
 				currentShares: currentShares,
 			});
-
-			console.log(currentShares);
 		},
 
 		// Ensure user is authenticated (anonymous or full)

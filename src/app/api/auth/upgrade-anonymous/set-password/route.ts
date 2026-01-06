@@ -20,14 +20,6 @@ export const POST = withAuthValidation(
 	SetPasswordSchema,
 	async (req, data, supabase, user) => {
 		try {
-			// DEBUG: Log incoming user from withAuthValidation
-			console.log('[set-password] User from auth validation:', {
-				id: user.id,
-				email: user.email,
-				is_anonymous: user.is_anonymous,
-				email_confirmed_at: user.email_confirmed_at,
-			});
-
 			// NOTE: We don't check is_anonymous here because after OTP verification,
 			// Supabase automatically sets is_anonymous = false. The user flow is:
 			// 1. Anonymous user (is_anonymous = true)
@@ -48,14 +40,6 @@ export const POST = withAuthValidation(
 				data: { user: currentUser },
 				error: userError,
 			} = await supabase.auth.getUser();
-
-			// DEBUG: Log fresh user state
-			console.log('[set-password] Fresh user from getUser:', {
-				id: currentUser?.id,
-				email: currentUser?.email,
-				is_anonymous: currentUser?.is_anonymous,
-				email_confirmed_at: currentUser?.email_confirmed_at,
-			});
 
 			if (userError || !currentUser) {
 				console.error('Failed to get current user:', userError);

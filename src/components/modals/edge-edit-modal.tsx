@@ -130,11 +130,11 @@ export default function EdgeEditModal() {
 	const targetNodeContent =
 		nodes.find((n) => n.id === edge.target)?.data?.content || edge.target;
 
+	// Extract text content safely without using innerHTML (prevents XSS)
 	const getContentSnippet = (content: string | undefined): string => {
 		if (!content) return '<Empty>';
-		const tempDiv = document.createElement('div');
-		tempDiv.innerHTML = content;
-		const textContent = (tempDiv.textContent || tempDiv.innerText || '').trim();
+		// Strip HTML tags using regex instead of innerHTML to prevent XSS
+		const textContent = content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 		return textContent.length > 30
 			? textContent.substring(0, 30) + '...'
 			: textContent || '<Empty>';
