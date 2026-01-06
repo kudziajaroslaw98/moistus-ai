@@ -167,17 +167,69 @@ const MarkdownContentComponent = ({
 							{children}
 						</pre>
 					),
-					// Links - validate href to prevent javascript: URLs (XSS)
+					// Links - validate href to prevent XSS via dangerous schemes
 					a: ({ children, href }) => {
-						const safeHref =
-							href &&
-							(href.startsWith('http://') ||
-								href.startsWith('https://') ||
-								href.startsWith('/') ||
-								href.startsWith('#') ||
-								href.startsWith('mailto:'))
-								? href
-								: '#';
+						// Validate and sanitize href to block dangerous schemes
+						const validateHref = (url: string | undefined): string => {
+							if (!url) return '#';
+
+							try {
+								// Trim and normalize
+								const trimmed = url.trim();
+								if (!trimmed) return '#';
+
+								// Allow safe relative URLs and fragments
+								if (trimmed.startsWith('/') || trimmed.startsWith('#')) {
+									return trimmed;
+								}
+
+								// Parse URL to extract scheme
+								// Handle URLs without protocol by checking for dangerous patterns first
+								const lowerUrl = trimmed.toLowerCase();
+
+								// Block dangerous schemes (including encoded variations)
+								const dangerousSchemes = [
+									'javascript:',
+									'data:',
+									'vbscript:',
+									'file:',
+									'blob:',
+								];
+								const decodedUrl = decodeURIComponent(lowerUrl);
+								for (const scheme of dangerousSchemes) {
+									if (
+										lowerUrl.startsWith(scheme) ||
+										decodedUrl.startsWith(scheme)
+									) {
+										return '#';
+									}
+								}
+
+								// Allow safe schemes
+								const safeSchemes = ['http:', 'https:', 'mailto:', 'tel:'];
+								for (const scheme of safeSchemes) {
+									if (lowerUrl.startsWith(scheme)) {
+										return trimmed;
+									}
+								}
+
+								// If no scheme detected but looks like a URL, assume https
+								if (
+									trimmed.includes('.') &&
+									!trimmed.includes(':')
+								) {
+									return `https://${trimmed}`;
+								}
+
+								// Fallback: reject unknown schemes
+								return '#';
+							} catch {
+								// On any parse error, return safe fallback
+								return '#';
+							}
+						};
+
+						const safeHref = validateHref(href);
 						return (
 							<a
 								className='underline underline-offset-2 transition-colors hover:no-underline'

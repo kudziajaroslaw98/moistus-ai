@@ -39,6 +39,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Error semantic misused for branding; added --color-brand-coral token
 - **auth/validations**: Add email/displayName normalization transforms to schemas
   - Why: Client-side values should match server-side expectations (lowercase, trimmed)
+- **auth/profile-fallbacks**: Add avatar_url + created_at to profile fallback objects
+  - Why: Response shape must match DB query columns; prevents type mismatches in consumers
 
 ### Docs
 - **CLAUDE.md**: Add NodeData.metadata design rationale

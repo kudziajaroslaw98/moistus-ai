@@ -31,6 +31,25 @@ interface RoomCodeDisplayProps {
 // Animation easing following guidelines: ease-out-quad for user-initiated actions
 const easeOutQuad = [0.25, 0.46, 0.45, 0.94] as const;
 
+/**
+ * Safe error logging helper - only logs in development and redacts sensitive data
+ * Prevents PII leakage in production logs
+ */
+const logSafeError = (context: string, error: unknown): void => {
+	if (process.env.NODE_ENV !== 'development') return;
+
+	const safeMessage =
+		error instanceof Error ? error.message : 'Unknown error';
+
+	// Redact potential tokens/codes from message
+	const redactedMessage = safeMessage.replace(
+		/[A-Z0-9]{6,}/gi,
+		'[REDACTED]'
+	);
+
+	console.error(`[RoomCodeDisplay] ${context}:`, redactedMessage);
+};
+
 export function RoomCodeDisplay({
 	token,
 	onRefresh,
@@ -56,7 +75,7 @@ export function RoomCodeDisplay({
 			toast.success('Room code copied!');
 			onCopy?.(token.token);
 		} catch (error) {
-			console.error('[RoomCodeDisplay] Failed to copy room code:', error);
+			logSafeError('Failed to copy room code', error);
 			toast.error('Failed to copy room code');
 		}
 	};
@@ -67,7 +86,7 @@ export function RoomCodeDisplay({
 			await navigator.clipboard.writeText(shareUrl);
 			toast.success('Share link copied!');
 		} catch (error) {
-			console.error('[RoomCodeDisplay] Failed to copy share link:', error);
+			logSafeError('Failed to copy share link', error);
 			toast.error('Failed to copy share link');
 		}
 	};
@@ -80,7 +99,7 @@ export function RoomCodeDisplay({
 		try {
 			await onRefresh(token.id);
 		} catch (error) {
-			console.error('[RoomCodeDisplay] Failed to refresh room code:', error);
+			logSafeError('Failed to refresh room code', error);
 			toast.error('Failed to refresh room code');
 		} finally {
 			setIsRefreshing(false);
@@ -93,7 +112,7 @@ export function RoomCodeDisplay({
 		try {
 			await onRevoke(token.id);
 		} catch (error) {
-			console.error('[RoomCodeDisplay] Failed to revoke room code:', error);
+			logSafeError('Failed to revoke room code', error);
 			toast.error('Failed to revoke room code');
 		}
 	};

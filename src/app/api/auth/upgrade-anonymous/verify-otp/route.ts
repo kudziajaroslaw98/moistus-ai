@@ -153,7 +153,7 @@ export const POST = withAuthValidation(
 				const { data: updatedProfile, error: fetchError } = await supabase
 					.from('user_profiles')
 					.select(
-						'user_id, full_name, display_name, email, is_anonymous, avatar_url'
+						'user_id, full_name, display_name, email, is_anonymous, avatar_url, created_at'
 					)
 					.eq('user_id', user.id)
 					.single();
@@ -174,6 +174,8 @@ export const POST = withAuthValidation(
 						full_name: displayName,
 						display_name: displayName,
 						is_anonymous: false,
+						avatar_url: null,
+						created_at: null,
 					},
 					message:
 						'Account successfully upgraded! You can now sign in with your email and password.',
@@ -193,6 +195,7 @@ export const POST = withAuthValidation(
 					display_name: null,
 					is_anonymous: true, // Still anonymous until password is set
 					avatar_url: null,
+					created_at: null,
 				},
 				message:
 					'Email verified successfully! You can now set your password.',
