@@ -18,18 +18,7 @@ export async function GET(
 
 		const supabase = await createClient();
 
-		// Get current authenticated user for debugging
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
-
-		console.log('[public-profile] Request:', {
-			requestedUserId: userId,
-			currentAuthUserId: authUser?.id,
-			isAuthenticated: !!authUser,
-		});
-
-		// Fetch user profile from database
+		// Fetch user profile from database (including preferences for privacy check)
 		const { data: profile, error: profileError } = await supabase
 			.from('user_profiles')
 			.select(
@@ -41,23 +30,12 @@ export async function GET(
 				avatar_url,
 				bio,
 				is_anonymous,
+				preferences,
 				created_at
 			`
 			)
 			.eq('user_id', userId)
 			.single();
-
-		console.log('[public-profile] Query result:', {
-			found: !!profile,
-			error: profileError?.message,
-			profileData: profile
-				? {
-						user_id: profile.user_id,
-						full_name: profile.full_name,
-						has_bio: !!profile.bio,
-					}
-				: null,
-		});
 
 		if (profileError || !profile) {
 			// If profile not found, return minimal data
@@ -73,8 +51,25 @@ export async function GET(
 			});
 		}
 
-		// Build public profile from database data
-		// TODO: Respect privacy settings from preferences field
+		// Check privacy settings
+		const preferences = profile.preferences as {
+			privacy?: { profile_visibility?: 'public' | 'private' | 'connections' };
+		} | null;
+		const visibility = preferences?.privacy?.profile_visibility ?? 'public';
+
+		// If profile is private, return minimal data
+		if (visibility === 'private') {
+			const minimalProfile: PublicUserProfile = {
+				id: profile.id,
+				user_id: profile.user_id,
+				full_name: profile.display_name || profile.full_name || 'Collaborator',
+				is_anonymous: profile.is_anonymous || false,
+				created_at: profile.created_at,
+			};
+			return NextResponse.json({ data: minimalProfile });
+		}
+
+		// Build full public profile (for 'public' or 'connections' visibility)
 		const publicProfile: PublicUserProfile = {
 			id: profile.id,
 			user_id: profile.user_id,

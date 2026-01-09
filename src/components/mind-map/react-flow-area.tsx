@@ -54,6 +54,9 @@ import { RealtimeCursors } from '../realtime/realtime-cursor';
 import { Toolbar } from '../toolbar';
 import { MindMapTopBar, MobileMenu } from './top-bar';
 
+// Feature flag: Set NEXT_PUBLIC_ENABLE_AI_CHAT=true to enable AI Chat
+const ENABLE_AI_CHAT = process.env.NEXT_PUBLIC_ENABLE_AI_CHAT === 'true';
+
 export function ReactFlowArea() {
 	const mapId = useParams().id;
 	const router = useRouter();
@@ -108,8 +111,6 @@ export function ReactFlowArea() {
 		ghostNodes,
 		isStreaming,
 		aiFeature,
-		canRedo,
-		canUndo,
 		userProfile,
 		isTourActive,
 		isPathEditMode,
@@ -149,8 +150,6 @@ export function ReactFlowArea() {
 			ghostNodes: state.ghostNodes,
 			isStreaming: state.isStreaming,
 			aiFeature: state.aiFeature,
-			canRedo: state.canRedo,
-			canUndo: state.canUndo,
 			resetOnboarding: state.resetOnboarding,
 			setOnboardingStep: state.setOnboardingStep,
 			setShowOnboarding: state.setShowOnboarding,
@@ -519,8 +518,6 @@ export function ReactFlowArea() {
 					activityState={activityState}
 					popoverOpen={popoverOpen}
 					canEdit={canEdit}
-					canUndo={canUndo}
-					canRedo={canRedo}
 					handleToggleHistorySidebar={handleToggleHistorySidebar}
 					handleToggleMapSettings={handleToggleMapSettings}
 					handleToggleSharePanel={handleToggleSharePanel}
@@ -563,8 +560,6 @@ export function ReactFlowArea() {
 				open={mobileMenuOpen}
 				onOpenChange={setMobileMenuOpen}
 				canEdit={canEdit}
-				canUndo={canUndo}
-				canRedo={canRedo}
 				isMapOwner={mindMap?.user_id === currentUser?.id}
 				activityState={activityState}
 				mapId={mapId as string}
@@ -574,7 +569,7 @@ export function ReactFlowArea() {
 				onToggleSettings={handleToggleMapSettings}
 			/>
 
-			<ChatPanel />
+			{ENABLE_AI_CHAT && <ChatPanel />}
 
 			{/* Guided Tour Mode - renders controls and spotlight overlay when active */}
 			<GuidedTourMode />

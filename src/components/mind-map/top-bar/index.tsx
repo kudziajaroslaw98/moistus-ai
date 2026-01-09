@@ -23,8 +23,6 @@ interface MindMapTopBarProps {
 	activityState?: ActivityState;
 	popoverOpen: { mapSettings: boolean; sharePanel: boolean };
 	canEdit: boolean;
-	canUndo: boolean;
-	canRedo: boolean;
 	handleToggleHistorySidebar: () => void;
 	handleToggleMapSettings: () => void;
 	handleToggleSharePanel: () => void;
@@ -42,8 +40,6 @@ export function MindMapTopBar({
 	activityState,
 	popoverOpen,
 	canEdit,
-	canUndo,
-	canRedo,
 	handleToggleHistorySidebar,
 	handleToggleMapSettings,
 	handleToggleSharePanel,
@@ -64,13 +60,9 @@ export function MindMapTopBar({
 			<div className='flex items-center gap-4 md:gap-8'>
 				<TopBarBreadcrumb title={mindMap?.title} isMobile={isMobile} />
 
-				{/* Desktop only: Undo/Redo/History */}
+				{/* Desktop only: History */}
 				{!isMobile && canEdit && (
-					<TopBarActions
-						canUndo={canUndo}
-						canRedo={canRedo}
-						onToggleHistory={handleToggleHistorySidebar}
-					/>
+					<TopBarActions onToggleHistory={handleToggleHistorySidebar} />
 				)}
 			</div>
 
