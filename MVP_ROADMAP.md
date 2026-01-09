@@ -1,6 +1,6 @@
 # Moistus AI - MVP Launch Roadmap
 
-> Last updated: 2026-01-09 (3 quick wins completed)
+> Last updated: 2026-01-09 (4 tasks completed)
 > Estimated effort: 45-60 hours
 
 ## Summary
@@ -22,12 +22,15 @@ MVP launch readiness checklist:
 > Trust-breaking issues that must be fixed before launch
 
 ### 1.1 User Profile Persistence
-- [ ] Replace mock response with Supabase upsert in `src/app/api/user/profile/route.ts`
-- [ ] Add proper error handling for DB failures
-- [ ] Test profile updates persist across refresh
+- [x] GET: Fetch from `user_profiles` table (create if not found)
+- [x] PUT: Update `user_profiles` table with provided fields
+- [x] Add proper error handling for DB failures
+- [x] Follow existing pattern from `user-profile-slice.ts`
 
-**Files:** `src/app/api/user/profile/route.ts` (lines 19, 86)
-**Effort:** 1-2 hours | **Risk:** Low
+**Files modified:**
+- `src/app/api/user/profile/route.ts`
+
+**Status:** ✅ COMPLETED
 
 ---
 

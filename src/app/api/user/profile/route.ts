@@ -1,6 +1,18 @@
 import { createClient } from '@/helpers/supabase/server';
-import { UserProfileFormData } from '@/types/user-profile-types';
+import { generateFallbackAvatar } from '@/helpers/user-profile-helpers';
+import type { UserProfileFormData } from '@/types/user-profile-types';
 import { NextResponse } from 'next/server';
+
+// Default preferences for new profiles
+const DEFAULT_PREFERENCES = {
+	theme: 'system' as const,
+	accentColor: 'sky',
+	reducedMotion: false,
+	defaultNodeType: 'defaultNode' as const,
+	privacy: {
+		profile_visibility: 'public' as const,
+	},
+};
 
 export async function GET() {
 	try {
@@ -16,39 +28,57 @@ export async function GET() {
 			return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 		}
 
-		// TODO: Get user profile from database
-		// For now, return mock data based on user metadata
-		const profile = {
-			id: user.id,
-			user_id: user.id,
-			full_name: user.user_metadata?.display_name || user.email?.split('@')[0] || '',
-			display_name: user.user_metadata?.display_name || '',
-			avatar_url: user.user_metadata?.avatar_url,
-			bio: '',
-			preferences: {
-				theme: 'dark',
-				language: 'en',
-				timezone: 'UTC',
-				notifications: {
-					email_comments: true,
-					email_mentions: true,
-					email_reactions: false,
-					push_comments: true,
-					push_mentions: true,
-					push_reactions: false,
-				},
-				privacy: {
-					show_email: false,
-					show_location: true,
-					show_company: true,
-					profile_visibility: 'public',
-				},
-			},
-			created_at: user.created_at,
-			updated_at: user.updated_at,
-		};
+		// Fetch profile from database
+		const { data: existingProfile, error: fetchError } = await supabase
+			.from('user_profiles')
+			.select('*')
+			.eq('user_id', user.id)
+			.single();
 
-		return NextResponse.json({ data: profile });
+		// If profile not found (PGRST116), create one
+		if (fetchError?.code === 'PGRST116' || !existingProfile) {
+			const oauthAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+			const avatarUrl = oauthAvatar || generateFallbackAvatar(user.id);
+
+			const { data: newProfile, error: createError } = await supabase
+				.from('user_profiles')
+				.insert({
+					user_id: user.id,
+					full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || '',
+					display_name:
+						user.user_metadata?.display_name ||
+						user.user_metadata?.full_name ||
+						user.user_metadata?.name ||
+						'',
+					avatar_url: avatarUrl,
+					bio: '',
+					is_anonymous: user.is_anonymous ?? false,
+					preferences: DEFAULT_PREFERENCES,
+				})
+				.select()
+				.single();
+
+			if (createError) {
+				console.error('Error creating profile:', createError);
+				return NextResponse.json(
+					{ error: 'Failed to create profile' },
+					{ status: 500 }
+				);
+			}
+
+			return NextResponse.json({ data: newProfile });
+		}
+
+		// Other fetch errors
+		if (fetchError) {
+			console.error('Error fetching profile:', fetchError);
+			return NextResponse.json(
+				{ error: 'Failed to fetch profile' },
+				{ status: 500 }
+			);
+		}
+
+		return NextResponse.json({ data: existingProfile });
 	} catch (error) {
 		console.error('Error in user/profile GET:', error);
 		return NextResponse.json(
@@ -73,24 +103,55 @@ export async function PUT(request: Request) {
 		}
 
 		const body = await request.json();
-		const profileData: UserProfileFormData = body;
+		const profileData: Partial<UserProfileFormData> = body;
 
 		// Validate required fields
-		if (!profileData.full_name) {
+		if (profileData.full_name !== undefined && !profileData.full_name.trim()) {
 			return NextResponse.json(
-				{ error: 'Full name is required' },
+				{ error: 'Full name cannot be empty' },
 				{ status: 400 }
 			);
 		}
 
-		// TODO: Save to database
-		// For now, just return success
-		const updatedProfile = {
-			id: user.id,
-			user_id: user.id,
-			...profileData,
-			updated_at: new Date().toISOString(),
-		};
+		// Build update object with only provided fields
+		const updateData: Record<string, unknown> = {};
+
+		if (profileData.full_name !== undefined) {
+			updateData.full_name = profileData.full_name.trim();
+		}
+		if (profileData.display_name !== undefined) {
+			updateData.display_name = profileData.display_name.trim();
+		}
+		if (profileData.bio !== undefined) {
+			updateData.bio = profileData.bio;
+		}
+		if (profileData.preferences !== undefined) {
+			updateData.preferences = profileData.preferences;
+		}
+
+		// Nothing to update
+		if (Object.keys(updateData).length === 0) {
+			return NextResponse.json(
+				{ error: 'No valid fields to update' },
+				{ status: 400 }
+			);
+		}
+
+		// Update profile in database
+		const { data: updatedProfile, error: updateError } = await supabase
+			.from('user_profiles')
+			.update(updateData)
+			.eq('user_id', user.id)
+			.select()
+			.single();
+
+		if (updateError) {
+			console.error('Error updating profile:', updateError);
+			return NextResponse.json(
+				{ error: 'Failed to update profile' },
+				{ status: 500 }
+			);
+		}
 
 		return NextResponse.json({
 			data: updatedProfile,
