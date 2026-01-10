@@ -1,6 +1,6 @@
 # Moistus AI - MVP Launch Roadmap
 
-> Last updated: 2026-01-10 (5 tasks completed, upgrade modal triggers + payment integrated)
+> Last updated: 2026-01-10 (Landing page rebuild complete, collaboration limits task added)
 > Estimated effort: 45-60 hours
 
 ## Summary
@@ -189,31 +189,43 @@ MVP launch readiness checklist:
 ## Phase 4: Landing Page & Anonymous Mode
 
 ### 4.1 Full Landing Page Rebuild
-- [ ] Create new landing page structure
-- [ ] Hero section with "Try Free" CTA
-- [ ] Logo strip (social proof)
-- [ ] Problem → Solution section
-- [ ] Features/Benefits (3-4 max with screenshots)
-- [ ] Testimonials / Social proof
-- [ ] How it works (3 steps)
-- [ ] Pricing (Free vs Pro comparison)
-- [ ] FAQ section
-- [ ] Final CTA section
-- [ ] Minimal footer
-- [ ] Mobile-first responsive design
-- [ ] <3s load time optimization
-- [ ] WCAG 2.1 AA accessibility
+- [x] Create new landing page structure
+- [x] Hero section with "Try Free" CTA
+- [x] Problem → Solution section
+- [x] Features/Benefits (3 blocks with screenshot placeholders)
+- [x] How it works (3 steps)
+- [x] Pricing (Free vs Pro comparison with billing toggle)
+- [x] FAQ section (5 questions with accordion)
+- [x] Final CTA section
+- [x] Minimal footer (reused existing)
+- [x] Mobile-first responsive design
+- [ ] Logo strip / Testimonials (deferred - no assets yet)
+- [ ] <3s load time optimization (needs production testing)
+- [ ] WCAG 2.1 AA accessibility (basic support done, full audit pending)
+- [ ] Replace screenshot placeholders with actual images
 
-**Files:**
-- `src/app/(landing)/page.tsx` (rebuild)
-- New: `src/components/landing/hero-section.tsx`
-- New: `src/components/landing/features-section.tsx`
-- New: `src/components/landing/pricing-section.tsx`
-- New: `src/components/landing/faq-section.tsx`
-- New: `src/components/landing/social-proof.tsx`
-- New: `src/components/landing/how-it-works.tsx`
+**Files created:**
+- `src/components/landing/hero-section.tsx`
+- `src/components/landing/problem-solution.tsx`
+- `src/components/landing/features-section.tsx`
+- `src/components/landing/how-it-works.tsx`
+- `src/components/landing/pricing-section.tsx`
+- `src/components/landing/faq-section.tsx`
+- `src/components/landing/final-cta.tsx`
+- `src/components/landing/index.ts` (barrel export)
+- `src/app/(landing)/page.tsx` (rebuilt)
+- `src/constants/pricing-tiers.ts` (updated: Free 0 AI/3 collabs, Pro 100 AI/month)
 
-**Effort:** 12-16 hours | **Risk:** Medium
+**Status:** ✅ MOSTLY COMPLETE (screenshots + social proof deferred)
+
+---
+
+### 4.1.1 Collaboration Limits (NEW)
+- [ ] Enforce `collaboratorsPerMap` limit in share/join-room API
+- [ ] Show limit warning in share panel UI when approaching limit
+- [ ] Test with 3 collaborators (Free) vs unlimited (Pro)
+
+**Effort:** 2-3 hours | **Risk:** Low
 
 ---
 

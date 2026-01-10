@@ -37,6 +37,18 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **settings-panel**: Upgrade button now opens modal (was TODO toast)
 - **use-feature-gate**: showUpgradePrompt() now triggers modal via store
 - **zustand selectors**: Added useShallow to subscription hooks for performance
+- **pricing-tiers**: Updated Free tier (0 AI suggestions, 3 collaborators/map) and Pro tier (100 AI/month)
+- **landing/page**: Rebuilt from waitlist capture to full marketing page with 7 sections
+
+### Added (Landing Page Rebuild)
+- **landing/hero-section**: Full-viewport hero with CTAs and scroll indicator
+- **landing/problem-solution**: Two-column problem/solution contrast section
+- **landing/features-section**: 3 feature blocks with alternating text/image layout
+- **landing/how-it-works**: 3-step process with connecting line and staggered animations
+- **landing/pricing-section**: Free/Pro comparison cards with billing toggle
+- **landing/faq-section**: 5-question accordion with expand/collapse animations
+- **landing/final-cta**: Gradient background CTA with hover effects
+- All sections use scroll-triggered animations with ease-out-quart easing
 
 ---
 
