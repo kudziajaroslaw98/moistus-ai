@@ -17,7 +17,7 @@ export interface PricingTier {
 	limits: {
 		mindMaps: number; // -1 = unlimited
 		nodesPerMap: number; // -1 = unlimited
-		aiSuggestions: number; // -1 = unlimited, per week
+		aiSuggestions: number; // -1 = unlimited, per month
 	};
 }
 
@@ -31,16 +31,16 @@ export const PRICING_TIERS: PricingTier[] = [
 		features: [
 			'3 mind maps',
 			'50 nodes per map',
-			'10 AI suggestions per week',
+			'Up to 3 collaborators per map',
 			'Basic export',
 			'Community support',
 		],
-		limitations: ['No real-time collaboration'],
+		limitations: ['No AI features'],
 		ctaText: 'Start Free',
 		limits: {
 			mindMaps: 3,
 			nodesPerMap: 50,
-			aiSuggestions: 10,
+			aiSuggestions: 0,
 		},
 	},
 	{
@@ -53,7 +53,8 @@ export const PRICING_TIERS: PricingTier[] = [
 		features: [
 			'Unlimited mind maps',
 			'Unlimited nodes',
-			'100 AI suggestions per week',
+			'Unlimited collaborators',
+			'100 AI suggestions per month',
 			'Real-time collaboration',
 			'Priority support',
 			'Advanced export options',
@@ -93,7 +94,7 @@ export function getPrice(
  */
 export function getFreeTierLimits() {
 	const freeTier = getPricingTier('free');
-	return freeTier?.limits ?? { mindMaps: 3, nodesPerMap: 50, aiSuggestions: 10 };
+	return freeTier?.limits ?? { mindMaps: 3, nodesPerMap: 50, aiSuggestions: 0 };
 }
 
 /**

@@ -1,15 +1,18 @@
+import { FaqSection } from '@/components/landing/faq-section';
+import { FeaturesSection } from '@/components/landing/features-section';
+import { FinalCta } from '@/components/landing/final-cta';
+import { HeroSection } from '@/components/landing/hero-section';
+import { HowItWorks } from '@/components/landing/how-it-works';
+import { PricingSection } from '@/components/landing/pricing-section';
+import { ProblemSolution } from '@/components/landing/problem-solution';
 import BackgroundEffects from '@/components/waitlist/background-effects';
 import MinimalFooter from '@/components/waitlist/minimal-footer';
-import WaitlistForm from '@/components/waitlist/waitlist-form';
-import { WaitlistHero } from '@/components/waitlist/waitlist-hero';
-import { Clock } from 'lucide-react';
 import { Metadata } from 'next';
-import Image from 'next/image';
 
 export const metadata: Metadata = {
-	title: 'Moistus AI - AI-Powered Mind Mapping | Join the Waitlist',
+	title: 'Moistus AI - AI-Powered Mind Mapping for Power Users',
 	description:
-		'Transform your thoughts into connected knowledge with AI-powered mind mapping. Join our waitlist for early access to the future of knowledge management.',
+		'Transform your thoughts into connected knowledge with AI-powered mind mapping. Real-time collaboration, keyboard-first editor, and AI that thinks with you.',
 	keywords: [
 		'mind mapping',
 		'AI',
@@ -17,14 +20,13 @@ export const metadata: Metadata = {
 		'collaboration',
 		'productivity',
 		'brainstorming',
-		'semantic search',
-		'waitlist',
-		'early access',
+		'PKM',
+		'second brain',
 	],
 	openGraph: {
-		title: 'Moistus AI - Transform Your Thoughts Into Connected Knowledge',
+		title: 'Moistus AI - From Scattered Notes to Connected Ideas',
 		description:
-			'Join the waitlist for early access to AI-powered mind mapping that understands context and grows with your ideas.',
+			'The mind mapping tool for power users. AI-native suggestions, real-time collaboration, and a keyboard-first editor.',
 		type: 'website',
 		url: 'https://moistus.ai',
 		images: [
@@ -38,9 +40,9 @@ export const metadata: Metadata = {
 	},
 	twitter: {
 		card: 'summary_large_image',
-		title: 'Moistus AI - Transform Your Thoughts Into Connected Knowledge',
+		title: 'Moistus AI - From Scattered Notes to Connected Ideas',
 		description:
-			'Join the waitlist for early access to AI-powered mind mapping.',
+			'The mind mapping tool for power users. AI-native suggestions, real-time collaboration.',
 		images: ['/og-image.png'],
 	},
 	robots: {
@@ -58,92 +60,19 @@ export const metadata: Metadata = {
 
 export default function Home() {
 	return (
-		<main className='relative min-h-screen flex flex-col bg-background z-10'>
+		<main className="relative min-h-screen flex flex-col bg-background">
 			<BackgroundEffects />
 
-			{/* Hero Section */}
-			<section className='flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8 py-16 relative z-20'>
-				<div className='w-full max-w-2xl mx-auto text-center gap-12 flex flex-col'>
-					{/* Logo */}
-					<div className='mb-8'>
-						<div className='mb-8'>
-							<div className='w-full flex justify-center items-center mb-4'>
-								<Image
-									alt='Moistus Logo'
-									height={150}
-									src='/images/moistus.svg'
-									width={150}
-								/>
-							</div>
-
-							<div className='flex flex-col gap-4'>
-								{/* Early Access Badge */}
-								<div className='mb-6 animate-fade-in delay-100'>
-									<span className='inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary-500/10 to-primary-500/10 px-4 py-2 text-sm font-medium text-primary-400 ring-1 ring-inset ring-primary-500/20 backdrop-blur-sm'>
-										<Clock className='h-4 w-4' />
-										Early Access Soon
-									</span>
-								</div>
-							</div>
-						</div>
-
-						<WaitlistHero />
-					</div>
-
-					{/* Waitlist Form */}
-					<div className='animate-fade-in-up delay-500'>
-						<div
-							className='p-8 rounded-2xl mx-auto max-w-md z-10 backdrop-blur-sm'
-							style={{
-								background:
-									'linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)',
-								border: '1px solid rgba(255, 255, 255, 0.06)',
-								backdropFilter: 'blur(8px)',
-							}}
-						>
-							<WaitlistForm />
-						</div>
-					</div>
-
-					{/* Trust Indicators */}
-					<div className='mt-4 flex items-center justify-center gap-6 text-sm text-text-tertiary animate-fade-in delay-700'>
-						<div className='flex items-center gap-2'>
-							<svg
-								className='h-4 w-4 text-success-500'
-								fill='currentColor'
-								viewBox='0 0 20 20'
-							>
-								<path
-									clipRule='evenodd'
-									d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z'
-									fillRule='evenodd'
-								/>
-							</svg>
-
-							<span>No spam, ever</span>
-						</div>
-
-						<div className='flex items-center gap-2'>
-							<svg
-								className='h-4 w-4 text-success-500'
-								fill='currentColor'
-								viewBox='0 0 20 20'
-							>
-								<path
-									clipRule='evenodd'
-									d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z'
-									fillRule='evenodd'
-								/>
-							</svg>
-
-							<span>Be the first to know</span>
-						</div>
-					</div>
-				</div>
-			</section>
-
-			{/* Footer */}
-			<MinimalFooter />
+			<div className="relative z-10">
+				<HeroSection />
+				<ProblemSolution />
+				<FeaturesSection />
+				<HowItWorks />
+				<PricingSection />
+				<FaqSection />
+				<FinalCta />
+				<MinimalFooter />
+			</div>
 		</main>
 	);
 }
