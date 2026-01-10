@@ -41,7 +41,7 @@ export function HistoryGroup({ group, onToggle }: HistoryGroupProps) {
 				{/* Chevron icon */}
 				<motion.div
 					animate={{ rotate: group.isExpanded ? 180 : 0 }}
-					className='flex-shrink-0 text-white/60'
+					className='shrink-0 text-white/60'
 					transition={{
 						ease: [0.215, 0.61, 0.355, 1],
 						duration: 0.2,
@@ -51,7 +51,7 @@ export function HistoryGroup({ group, onToggle }: HistoryGroupProps) {
 				</motion.div>
 
 				{/* Node icon */}
-				<div className='flex-shrink-0 text-white/60'>
+				<div className='shrink-0 text-white/60'>
 					<Circle className='h-4 w-4' />
 				</div>
 

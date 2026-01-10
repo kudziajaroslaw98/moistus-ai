@@ -33,6 +33,9 @@ import {
 } from './ui/dropdown-menu';
 import { Separator } from './ui/separator';
 
+// Feature flag: Set NEXT_PUBLIC_ENABLE_AI_CHAT=true to enable AI Chat
+const ENABLE_AI_CHAT = process.env.NEXT_PUBLIC_ENABLE_AI_CHAT === 'true';
+
 interface ToolButton {
 	id: Tool | `separator-${number}`;
 	icon: React.ReactNode;
@@ -62,7 +65,10 @@ const tools: ToolButton[] = [
 		icon: <Sparkles className='size-4' />,
 		label: 'AI Suggestions',
 	},
-	{ id: 'chat', icon: <MessageCircle className='size-4' />, label: 'AI Chat' },
+	// Conditionally included via getVisibleTools()
+	...(ENABLE_AI_CHAT
+		? [{ id: 'chat' as const, icon: <MessageCircle className='size-4' />, label: 'AI Chat' }]
+		: []),
 	{ id: 'layout', icon: null, label: 'Auto Layout' }, // Layout dropdown rendered separately
 	{ id: 'export', icon: null, label: 'Export' }, // Export dropdown rendered separately
 	{ id: 'present', icon: <Play className='size-4' />, label: 'Guided Tour' },
@@ -269,7 +275,7 @@ export const Toolbar = () => {
 							{currentCursorTool.icon}
 						</Button>
 					</DropdownMenuTrigger>
-					<DropdownMenuContent align='start' side='top'>
+					<DropdownMenuContent align='start'>
 						<DropdownMenuRadioGroup
 							onValueChange={(val) => setActiveTool(val as Tool)}
 							value={activeTool}
@@ -322,7 +328,7 @@ export const Toolbar = () => {
 										{tool.icon}
 									</Button>
 								</DropdownMenuTrigger>
-								<DropdownMenuContent align='start' side='top'>
+								<DropdownMenuContent align='start'>
 									<DropdownMenuRadioGroup
 										onValueChange={(val) =>
 											handleAiFeatureSelectAndTrigger(
@@ -374,7 +380,7 @@ export const Toolbar = () => {
 										<Play className='size-4' />
 									</Button>
 								</DropdownMenuTrigger>
-								<DropdownMenuContent align='start' side='top' className='w-48'>
+								<DropdownMenuContent align='start' className='w-48'>
 									<DropdownMenuItem
 										onClick={() => startTour()}
 										disabled={nodes.length === 0}

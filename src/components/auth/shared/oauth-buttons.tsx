@@ -88,15 +88,12 @@ export function OAuthDivider({
 	text = 'or continue with email',
 }: OAuthDividerProps) {
 	return (
-		<div className='relative'>
-			<div className='absolute inset-0 flex items-center'>
-				<div className='w-full border-t border-border-secondary' />
-			</div>
-			<div className='relative flex justify-center text-xs'>
-				<span className='px-3 bg-surface-primary text-text-tertiary rounded-sm'>
-					{text}
-				</span>
-			</div>
+		<div className='flex items-center gap-3'>
+			<div className='flex-1 h-px bg-white/10' />
+			<span className='text-xs text-text-tertiary whitespace-nowrap'>
+				{text}
+			</span>
+			<div className='flex-1 h-px bg-white/10' />
 		</div>
 	);
 }

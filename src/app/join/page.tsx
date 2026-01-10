@@ -244,7 +244,7 @@ function JoinPageContent() {
 								initial={{ opacity: 0, scale: 0.95 }}
 							>
 								<p className='text-sm text-red-400 flex items-center gap-2'>
-									<AlertCircle className='h-4 w-4 flex-shrink-0' />
+									<AlertCircle className='h-4 w-4 shrink-0' />
 									{joinError}
 								</p>
 							</motion.div>

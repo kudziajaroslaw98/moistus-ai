@@ -114,7 +114,7 @@ export function LayoutDropdown() {
 					)}
 				</Button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="start" side="top" className="w-48">
+			<DropdownMenuContent align="start" className="w-48">
 				<DropdownMenuRadioGroup
 					value={currentDirection}
 					onValueChange={handleLayoutSelect}

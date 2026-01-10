@@ -5,6 +5,41 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-01-10]
+
+### Refactored
+- **ui/components**: Complete migration from Radix UI to Base UI 1.0.0 stable
+  - Why: Unified headless library with smaller bundle, consistent API patterns
+  - Migrated 16 components: Tooltip, Separator, Progress, Avatar, Popover, Toggle, HoverCard→PreviewCard, ScrollArea, Tabs, ToggleGroup, Dialog, Sheet, Breadcrumb, Select, DropdownMenu→Menu, Badge
+  - Custom Slot implementations replace @radix-ui/react-slot
+  - Backwards-compatible: asChild→render prop, data-[state=*]→data-[*]
+
+### Removed
+- **deps**: All 14 @radix-ui/* packages (53 transitive deps total)
+  - Why: Replaced by @base-ui/react single package
+- **ui/radio-group**: Deleted unused component (0 consuming files)
+  - Why: No usages found in codebase
+
+### Added
+- **subscription/upgrade-modal**: Multi-step upgrade modal with embedded Stripe payment
+  - Why: Users can now upgrade to Pro directly from modal without navigation
+  - Transitions from pitch → payment step with AnimatePresence animations
+- **hooks/use-session-time**: Session time tracking via localStorage
+  - Why: Track total session duration for time-based upgrade prompts
+- **hooks/use-upgrade-prompt**: Centralized upgrade trigger logic
+  - Why: Consolidates time/limit checks, cooldown, user eligibility in one hook
+- **subscription/triggers**: Time-based upgrade modal trigger (30 min threshold)
+  - Why: Prompt free users to upgrade after meaningful usage
+  - 24-hour cooldown after dismissal, registered users only
+
+### Changed
+- **payment-step**: Export PaymentForm, stripePromise for reuse in upgrade modal
+- **settings-panel**: Upgrade button now opens modal (was TODO toast)
+- **use-feature-gate**: showUpgradePrompt() now triggers modal via store
+- **zustand selectors**: Added useShallow to subscription hooks for performance
+
+---
+
 ## [2026-01-06]
 
 ### Fixed

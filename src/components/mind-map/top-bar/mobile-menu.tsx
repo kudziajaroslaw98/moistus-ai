@@ -5,14 +5,12 @@ import { SidePanel } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
 import { type ActivityState } from '@/hooks/realtime/use-realtime-presence-room';
 import { motion, useReducedMotion } from 'motion/react';
-import { History, Redo, Settings, Undo, Users } from 'lucide-react';
+import { History, Settings, Users } from 'lucide-react';
 
 interface MobileMenuProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	canEdit: boolean;
-	canUndo: boolean;
-	canRedo: boolean;
 	isMapOwner: boolean;
 	activityState?: ActivityState;
 	mapId: string;
@@ -26,8 +24,6 @@ export function MobileMenu({
 	open,
 	onOpenChange,
 	canEdit,
-	canUndo,
-	canRedo,
 	isMapOwner,
 	activityState,
 	mapId,
@@ -76,7 +72,7 @@ export function MobileMenu({
 					</div>
 				</motion.section>
 
-				{/* Edit Actions */}
+				{/* History (for editors) */}
 				{canEdit && (
 					<motion.section
 						className='space-y-3'
@@ -89,28 +85,9 @@ export function MobileMenu({
 					>
 						<h3 className='text-sm font-semibold text-text-primary flex items-center gap-2'>
 							<History className='size-4 text-primary' />
-							Edit Actions
+							History
 						</h3>
-						<div className='bg-surface rounded-lg p-3 border border-border-subtle space-y-2'>
-							{/* TODO: Uncomment redo/undo when optimized history implemented */}
-							<Button
-								// onClick={() => handleAction(handleUndo)}
-								disabled={!canUndo}
-								variant='ghost'
-								className='w-full justify-start gap-3 h-10'
-							>
-								<Undo className='size-4' />
-								Undo
-							</Button>
-							<Button
-								// onClick={() => handleAction(handleRedo)}
-								disabled={!canRedo}
-								variant='ghost'
-								className='w-full justify-start gap-3 h-10'
-							>
-								<Redo className='size-4' />
-								Redo
-							</Button>
+						<div className='bg-surface rounded-lg p-3 border border-border-subtle'>
 							<Button
 								onClick={() => handleAction(onToggleHistory)}
 								variant='ghost'

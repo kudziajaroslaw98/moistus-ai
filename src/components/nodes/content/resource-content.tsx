@@ -159,7 +159,7 @@ const ResourceContentComponent = ({
 					{url && (
 						<div className='flex items-center gap-1.5'>
 							<Globe
-								className='w-3 h-3 flex-shrink-0'
+								className='w-3 h-3 shrink-0'
 								style={{ color: 'rgba(147, 197, 253, 0.6)' }}
 							/>
 							<span

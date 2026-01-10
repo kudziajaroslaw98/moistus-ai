@@ -1,8 +1,54 @@
 'use client';
 
-import { Slot } from '@radix-ui/react-slot';
 import { cva, VariantProps } from 'class-variance-authority';
 import { PanelLeftIcon } from 'lucide-react';
+
+import {
+	cloneElement,
+	createContext,
+	forwardRef,
+	isValidElement,
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useState,
+	type ComponentProps,
+	type CSSProperties,
+	type ReactElement,
+	type ReactNode,
+} from 'react';
+
+/**
+ * Custom Slot implementation that replaces @radix-ui/react-slot.
+ * Merges props and children from the Slot onto a single child element.
+ * Uses generic Record type to accept any element's props.
+ */
+interface SlotProps {
+	children?: ReactNode;
+	className?: string;
+	[key: string]: unknown;
+}
+
+const Slot = forwardRef<HTMLElement, SlotProps>(
+	({ children, className, ...slotProps }, forwardedRef) => {
+		if (isValidElement(children)) {
+			const childProps = children.props as Record<string, unknown>;
+			return cloneElement(children as ReactElement<Record<string, unknown>>, {
+				...slotProps,
+				...childProps,
+				ref: forwardedRef,
+				className:
+					className || childProps.className
+						? `${className ?? ''} ${(childProps.className as string) ?? ''}`.trim()
+						: undefined,
+			});
+		}
+		// If children is not a valid element, just render it
+		return <>{children}</>;
+	}
+);
+Slot.displayName = 'Slot';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,16 +69,6 @@ import {
 } from '@/components/ui/Tooltip';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import {
-	type ComponentProps,
-	createContext,
-	type CSSProperties,
-	useCallback,
-	useContext,
-	useEffect,
-	useMemo,
-	useState,
-} from 'react';
 
 // Theme integration for animations and accessibility
 import { GlassmorphismTheme } from '@/components/nodes/themes/glassmorphism-theme';

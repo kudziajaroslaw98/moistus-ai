@@ -132,7 +132,7 @@ const TaskContentComponent = ({
 						)}
 					>
 						{/* Checkbox */}
-						<div className='mt-0.5 flex-shrink-0'>
+						<div className='mt-0.5 shrink-0'>
 							<div
 								className='relative w-5 h-5 rounded transition-all duration-200'
 								style={{

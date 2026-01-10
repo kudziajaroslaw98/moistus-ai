@@ -70,3 +70,9 @@ ai-docs
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+# Git worktrees
+.worktrees/
+
+# Plans (local development notes)
+docs/plans/

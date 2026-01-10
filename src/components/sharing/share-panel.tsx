@@ -122,7 +122,13 @@ export function SharePanel({
 			// Always cleanup on unmount to prevent memory leaks
 			unsubscribeFromSharing();
 		};
-	}, [isOpen, mapId, subscribeToSharingUpdates, unsubscribeFromSharing, getCurrentShareUsers]);
+	}, [
+		isOpen,
+		mapId,
+		subscribeToSharingUpdates,
+		unsubscribeFromSharing,
+		getCurrentShareUsers,
+	]);
 
 	// Get active room codes for this map (computed before early return for hook usage)
 	const mapRoomCodes = shareTokens.filter(
@@ -222,7 +228,10 @@ export function SharePanel({
 					onValueChange={(v) => setActiveTab(v as typeof activeTab)}
 					value={activeTab}
 				>
-					<TabsList className='grid w-full grid-cols-2 mx-4 mt-2 gap-1 flex-shrink-0' style={{ width: 'calc(100% - 2rem)' }}>
+					<TabsList
+						className='grid w-full grid-cols-2 mx-4 mt-2 gap-1 shrink-0'
+						style={{ width: 'calc(100% - 2rem)' }}
+					>
 						<TabsTrigger value='room-code'>
 							<Link2 className='mr-2 h-4 w-4' />
 							Room Code
@@ -235,15 +244,21 @@ export function SharePanel({
 					</TabsList>
 
 					{/* Room Code Tab */}
-					<TabsContent className='flex-1 flex flex-col min-h-0 px-4 mt-4' value='room-code'>
+					<TabsContent
+						className='flex-1 flex flex-col min-h-0 px-4 mt-4'
+						value='room-code'
+					>
 						{/* Collapsible Settings Section */}
-						<div className='flex-shrink-0'>
+						<div className='shrink-0'>
 							<button
 								type='button'
 								aria-controls={settingsContentId}
 								aria-expanded={settingsOpen}
 								onClick={() => setSettingsOpen(!settingsOpen)}
-								className='flex items-center justify-between w-full p-3 bg-surface rounded-lg hover:bg-surface/80 transition-colors duration-200 ease group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60 focus-visible:ring-offset-1 focus-visible:ring-offset-zinc-900'
+								className={cn([
+									'flex items-center justify-between w-full p-3 bg-surface rounded-lg hover:bg-surface/80 transition-colors duration-200 ease group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60 focus-visible:ring-offset-1 focus-visible:ring-offset-zinc-900',
+									settingsOpen ? 'rounded-b-none' : 'rounded-b-lg',
+								])}
 							>
 								<div className='flex items-center gap-2'>
 									<Settings className='h-4 w-4 text-zinc-400' />
@@ -271,7 +286,9 @@ export function SharePanel({
 									>
 										<div className='space-y-4 bg-surface rounded-b-lg p-4 -mt-1 border-t border-zinc-700/30'>
 											<div className='space-y-2'>
-												<Label className='text-xs text-zinc-400'>Default Permission</Label>
+												<Label className='text-xs text-zinc-400'>
+													Default Permission
+												</Label>
 
 												<Select
 													data-testid='role-selector'
@@ -283,7 +300,10 @@ export function SharePanel({
 														}))
 													}
 												>
-													<SelectTrigger className='h-9' data-testid='role-selector-trigger'>
+													<SelectTrigger
+														className='h-9'
+														data-testid='role-selector-trigger'
+													>
 														<SelectValue />
 													</SelectTrigger>
 
@@ -314,7 +334,9 @@ export function SharePanel({
 
 											<div className='grid grid-cols-2 gap-3'>
 												<div className='space-y-2'>
-													<Label className='text-xs text-zinc-400'>Max Users</Label>
+													<Label className='text-xs text-zinc-400'>
+														Max Users
+													</Label>
 
 													<Input
 														className='h-9'
@@ -326,14 +348,19 @@ export function SharePanel({
 														onChange={(e) =>
 															setRoomCodeSettings((prev) => ({
 																...prev,
-																maxUsers: Math.min(100, Math.max(1, parseInt(e.target.value) || 50)),
+																maxUsers: Math.min(
+																	100,
+																	Math.max(1, parseInt(e.target.value) || 50)
+																),
 															}))
 														}
 													/>
 												</div>
 
 												<div className='space-y-2'>
-													<Label className='text-xs text-zinc-400'>Expires After</Label>
+													<Label className='text-xs text-zinc-400'>
+														Expires After
+													</Label>
 
 													<Select
 														value={roomCodeSettings.expiresInHours.toString()}
@@ -459,7 +486,9 @@ export function SharePanel({
 														<AvatarImage src={share.avatar_url} />
 
 														<AvatarFallback>
-															{share.profile?.display_name?.charAt(0)?.toUpperCase() ?? '?'}
+															{share.profile?.display_name
+																?.charAt(0)
+																?.toUpperCase() ?? '?'}
 														</AvatarFallback>
 													</Avatar>
 

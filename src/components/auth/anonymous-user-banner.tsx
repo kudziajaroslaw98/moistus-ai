@@ -66,7 +66,7 @@ export function AnonymousUserBanner() {
 							<div className='relative flex items-center justify-between gap-4 px-4 py-3'>
 								{/* Left: Icon + Message */}
 								<div className='flex items-center gap-3'>
-									<div className='flex-shrink-0 rounded-full bg-amber-500/20 p-2'>
+									<div className='shrink-0 rounded-full bg-amber-500/20 p-2'>
 										<UserPlus className='h-5 w-5 text-amber-400' />
 									</div>
 									<div className='flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2'>
@@ -93,7 +93,7 @@ export function AnonymousUserBanner() {
 									</Button>
 									<button
 										onClick={handleDismiss}
-										className='flex-shrink-0 rounded-md p-1.5 text-amber-300/60 hover:text-amber-200 hover:bg-amber-500/10 transition-colors duration-200 ease-out'
+										className='shrink-0 rounded-md p-1.5 text-amber-300/60 hover:text-amber-200 hover:bg-amber-500/10 transition-colors duration-200 ease-out'
 										aria-label='Dismiss banner'
 									>
 										<X className='h-4 w-4' />

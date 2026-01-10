@@ -150,7 +150,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 					label={item.label}
 					onClick={() => {}}
 					icon={
-						<div className={cn('flex-shrink-0 text-zinc-500')}>{item.icon}</div>
+						<div className={cn('shrink-0 text-zinc-500')}>{item.icon}</div>
 					}
 				/>
 			);
@@ -188,7 +188,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 								onClick={() => {}}
 								icon={
 									<div
-										className={cn('flex-shrink-0', isActive && 'text-sky-400')}
+										className={cn('shrink-0', isActive && 'text-sky-400')}
 									>
 										{item.icon}
 									</div>
@@ -213,7 +213,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 					label={item.label}
 					onClick={() => {}}
 					icon={
-						<div className={cn('flex-shrink-0', isActive && 'text-sky-400')}>
+						<div className={cn('shrink-0', isActive && 'text-sky-400')}>
 							{item.icon}
 						</div>
 					}

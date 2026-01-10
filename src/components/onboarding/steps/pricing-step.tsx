@@ -203,7 +203,7 @@ export function PricingStep({
 							<div className='space-y-3 flex-1'>
 								{tier.features.map((feature) => (
 									<div className='flex items-start gap-2' key={feature}>
-										<Check className='w-4 h-4 mt-0.5 flex-shrink-0 text-success-500' />
+										<Check className='w-4 h-4 mt-0.5 shrink-0 text-success-500' />
 
 										<span className='text-sm text-text-primary'>{feature}</span>
 									</div>
@@ -211,7 +211,7 @@ export function PricingStep({
 
 								{tier.limitations?.map((limitation) => (
 									<div className='flex items-start gap-2' key={limitation}>
-										<X className='w-4 h-4 mt-0.5 flex-shrink-0 text-text-disabled' />
+										<X className='w-4 h-4 mt-0.5 shrink-0 text-text-disabled' />
 
 										<span className='text-sm text-text-disabled'>
 											{limitation}

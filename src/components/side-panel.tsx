@@ -76,7 +76,7 @@ export function SidePanel({
 						{/* Panel Content */}
 						<div className='flex h-full flex-col'>
 							{/* Panel Header */}
-							<div className='flex flex-shrink-0 items-center justify-between py-2.5 px-4 border-b border-border-subtle'>
+							<div className='flex shrink-0 items-center justify-between py-2.5 px-4 border-b border-border-subtle'>
 								<h2 className='text-md font-semibold text-text-primary'>
 									{title}
 								</h2>

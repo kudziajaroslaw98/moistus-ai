@@ -150,7 +150,7 @@ const TemplateCard = memo(function TemplateCard({
 			>
 				{/* Icon */}
 				<div
-					className='w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0'
+					className='w-12 h-12 rounded-lg flex items-center justify-center shrink-0'
 					style={gradientStyle}
 				>
 					<Icon className='w-6 h-6 text-white' />

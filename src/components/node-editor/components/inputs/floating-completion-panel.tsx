@@ -213,7 +213,7 @@ export const FloatingCompletionPanel: React.FC<FloatingCompletionPanelProps> = (
 									{/* Preview for color items */}
 									{type === 'color' && (
 										<div 
-											className="w-4 h-4 rounded border border-zinc-600 flex-shrink-0"
+											className="w-4 h-4 rounded border border-zinc-600 shrink-0"
 											style={{ backgroundColor: item.value }}
 										/>
 									)}
@@ -263,7 +263,7 @@ function getTypeLabel(type: PatternType): string {
 }
 
 function getTypeIcon(type: PatternType): React.ReactNode {
-	const iconClass = "w-3 h-3 flex-shrink-0";
+	const iconClass = "w-3 h-3 shrink-0";
 	
 	switch (type) {
 		case 'color':

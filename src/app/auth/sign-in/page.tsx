@@ -140,7 +140,7 @@ function SignInForm() {
 							: { delay: 0.2, duration: 0.25, ease: easeOutQuart }
 					}
 				>
-					<Info className='h-5 w-5 text-primary-400 flex-shrink-0' />
+					<Info className='h-5 w-5 text-primary-400 shrink-0' />
 					<p className='text-sm text-primary-300'>
 						{message ||
 							"You're currently using a guest account. Upgrade to keep your work and access all features."}
@@ -192,7 +192,7 @@ function SignInForm() {
 						exit={{ opacity: 0, y: -10 }}
 						transition={{ duration: 0.25, ease: easeOutQuart }}
 					>
-						<Info className='h-5 w-5 text-primary-400 flex-shrink-0' />
+						<Info className='h-5 w-5 text-primary-400 shrink-0' />
 						<p className='text-sm text-primary-300'>{message}</p>
 					</motion.div>
 				)}
@@ -292,7 +292,7 @@ function SignInForm() {
 							exit={{ opacity: 0, y: -10 }}
 							transition={{ duration: 0.2 }}
 						>
-							<AlertCircle className='h-4 w-4 text-error-400 flex-shrink-0' />
+							<AlertCircle className='h-4 w-4 text-error-400 shrink-0' />
 							<p className='text-sm text-error-300'>{error}</p>
 						</motion.div>
 					)}

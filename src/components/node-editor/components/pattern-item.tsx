@@ -11,7 +11,7 @@ const theme = {
 		syntax: 'font-mono text-xs text-teal-400 font-medium',
 		description: 'text-xs text-zinc-500',
 		examples: 'text-xs text-zinc-600',
-		icon: 'w-3.5 h-3.5 text-zinc-600 flex-shrink-0',
+		icon: 'w-3.5 h-3.5 text-zinc-600 shrink-0',
 		clicked: 'bg-teal-500/20 ring-1 ring-teal-500/50',
 	},
 };
@@ -55,13 +55,13 @@ export const PatternItem: React.FC<PatternItemProps> = memo(
 					isClicked && theme.pattern.clicked
 				)}
 			>
-				<div className='flex items-center gap-1.5 flex-shrink-0'>
+				<div className='flex items-center gap-1.5 shrink-0'>
 					{pattern.icon && <pattern.icon className={theme.pattern.icon} />}
 
 					<code className={theme.pattern.syntax}>{pattern.pattern}</code>
 				</div>
 
-				<span className={cn(theme.pattern.description, 'flex-shrink-0')}>
+				<span className={cn(theme.pattern.description, 'shrink-0')}>
 					{pattern.description}
 				</span>
 

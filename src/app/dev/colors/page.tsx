@@ -473,9 +473,9 @@ function ColorSwatchCard({ swatch }: ColorSwatchCardProps) {
 						<span className='truncate'>{swatch.variable}</span>
 
 						{copied ? (
-							<Check className='ml-2 h-3 w-3 flex-shrink-0' />
+							<Check className='ml-2 h-3 w-3 shrink-0' />
 						) : (
-							<Copy className='ml-2 h-3 w-3 flex-shrink-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100' />
+							<Copy className='ml-2 h-3 w-3 shrink-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100' />
 						)}
 					</button>
 
@@ -487,7 +487,7 @@ function ColorSwatchCard({ swatch }: ColorSwatchCardProps) {
 					>
 						<span className='truncate'>{colorValue}</span>
 
-						<Copy className='ml-2 h-3 w-3 flex-shrink-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100' />
+						<Copy className='ml-2 h-3 w-3 shrink-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100' />
 					</button>
 				</div>
 			</div>

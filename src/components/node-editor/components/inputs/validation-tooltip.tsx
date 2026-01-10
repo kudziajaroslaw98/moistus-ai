@@ -121,7 +121,7 @@ export const ValidationTooltip: React.FC<ValidationTooltipProps> = ({
 									<div className='flex flex-col gap-2' key={index}>
 										<div className='flex items-start gap-2'>
 											{/* Enhanced error icons with better contrast */}
-											<div className='flex-shrink-0 mt-0.5'>
+											<div className='shrink-0 mt-0.5'>
 												{error.type === 'error' ? (
 													<span className='text-red-400 text-base'>🚫</span>
 												) : error.type === 'warning' ? (

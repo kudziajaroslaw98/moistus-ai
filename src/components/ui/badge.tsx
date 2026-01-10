@@ -1,7 +1,11 @@
-﻿import { cn } from '@/lib/utils';
-import { Slot } from '@radix-ui/react-slot';
+import { cn } from '@/lib/utils';
 import { cva, type VariantProps } from 'class-variance-authority';
-import type { ComponentProps } from 'react';
+import {
+	cloneElement,
+	isValidElement,
+	type ComponentProps,
+	type ReactElement,
+} from 'react';
 
 const badgeVariants = cva(
 	'inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden',
@@ -24,21 +28,59 @@ const badgeVariants = cva(
 	}
 );
 
+interface BadgeProps
+	extends ComponentProps<'span'>,
+		VariantProps<typeof badgeVariants> {
+	/**
+	 * @deprecated Use `render` prop instead for custom element rendering.
+	 * When true, renders the child as the badge element.
+	 */
+	asChild?: boolean;
+	/**
+	 * Render prop for custom element rendering (Base UI pattern).
+	 * Takes precedence over asChild.
+	 */
+	render?: ReactElement;
+}
+
 function Badge({
 	className,
 	variant,
 	asChild = false,
+	render,
+	children,
 	...props
-}: ComponentProps<'span'> &
-	VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
-	const Comp = asChild ? Slot : 'span';
+}: BadgeProps) {
+	const badgeClass = cn(badgeVariants({ variant }), className);
+	const badgeProps = { className: badgeClass, 'data-slot': 'badge', ...props };
 
+	// Base UI pattern: render prop
+	if (render && isValidElement(render)) {
+		const renderProps = render.props as Record<string, unknown>;
+		return cloneElement(render as ReactElement<Record<string, unknown>>, {
+			...badgeProps,
+			...renderProps,
+			className: cn(badgeClass, renderProps.className as string | undefined),
+			children: children ?? renderProps.children,
+		});
+	}
+
+	// Legacy Radix pattern: asChild
+	if (asChild && isValidElement(children)) {
+		const childProps = (children as ReactElement<Record<string, unknown>>)
+			.props as Record<string, unknown>;
+		return cloneElement(children as ReactElement<Record<string, unknown>>, {
+			...badgeProps,
+			...childProps,
+			className: cn(badgeClass, childProps.className as string | undefined),
+		});
+	}
+
+	// Default: render as span
 	return (
-		<Comp
-			className={cn(badgeVariants({ variant }), className)}
-			data-slot='badge'
-			{...props}
-		/>
+		<span {...badgeProps}>
+			{children}
+		</span>
 	);
 }
 

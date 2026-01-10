@@ -40,7 +40,7 @@ export function DiffView({ delta, isLoading, error }: DiffViewProps) {
 				initial={{ opacity: 0 }}
 				transition={{ ease: [0.215, 0.61, 0.355, 1], duration: 0.2 }}
 			>
-				<AlertCircle className='h-4 w-4 text-red-400 flex-shrink-0 mt-0.5' />
+				<AlertCircle className='h-4 w-4 text-red-400 shrink-0 mt-0.5' />
 
 				<div className='flex flex-col gap-1'>
 					<span className='text-sm text-red-400 font-medium'>

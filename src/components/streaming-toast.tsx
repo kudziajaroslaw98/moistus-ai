@@ -60,7 +60,7 @@ function StepItem({ step }: { step: ToastStep }) {
 			initial={{ opacity: 0, y: 5 }}
 			transition={{ duration: 0.3, ease: 'easeOut' as const }}
 		>
-			<div className='flex-shrink-0 w-4 h-4 flex items-center justify-center'>
+			<div className='shrink-0 w-4 h-4 flex items-center justify-center'>
 				{stepIcons[status]}
 			</div>
 
@@ -124,7 +124,7 @@ function ToastUI({
 			onMouseEnter={() => setIsHovered(true)}
 			onMouseLeave={() => setIsHovered(false)}
 		>
-			<div className='flex-shrink-0 pt-1'>
+			<div className='shrink-0 pt-1'>
 				{isError ? (
 					<AlertCircle className='w-5 h-5 text-red-500' />
 				) : isProcessComplete ? (
@@ -212,7 +212,7 @@ function ToastUI({
 						transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
 						type='button'
 						className={cn(
-							'flex-shrink-0 p-1.5 rounded-md',
+							'shrink-0 p-1.5 rounded-md',
 							'text-zinc-400 hover:text-white hover:bg-zinc-800',
 							'transition-colors duration-200',
 							'focus:outline-none focus:ring-2 focus:ring-zinc-600',

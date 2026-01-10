@@ -111,7 +111,7 @@ export function WelcomeStep({ onContinue, userName }: WelcomeStepProps) {
 						key={index}
 					>
 						<div
-							className={`flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br ${feature.gradient} flex items-center justify-center shadow-sm`}
+							className={`shrink-0 w-6 h-6 rounded-full bg-gradient-to-br ${feature.gradient} flex items-center justify-center shadow-sm`}
 						>
 							<feature.icon className='w-3.5 h-3.5 text-white' />
 						</div>

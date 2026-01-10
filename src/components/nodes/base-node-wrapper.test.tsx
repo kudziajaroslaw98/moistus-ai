@@ -307,14 +307,14 @@ describe('BaseNodeWrapper', () => {
 			mockSelectedNodes = [{ id: 'node-1' }]
 			render(<BaseNodeWrapper {...createDefaultProps()} />)
 
-			expect(screen.getByTestId('Add new connected node')).toBeInTheDocument()
+			expect(screen.getByTestId('node-add-button')).toBeInTheDocument()
 		})
 
 		it('hides add button when hideAddButton is true', () => {
 			mockSelectedNodes = [{ id: 'node-1' }]
 			render(<BaseNodeWrapper {...createDefaultProps()} hideAddButton={true} />)
 
-			expect(screen.queryByTestId('Add new connected node')).not.toBeInTheDocument()
+			expect(screen.queryByTestId('node-add-button')).not.toBeInTheDocument()
 		})
 
 		it('hides add button when canEdit is false', () => {
@@ -322,21 +322,21 @@ describe('BaseNodeWrapper', () => {
 			mockCanEdit = false
 			render(<BaseNodeWrapper {...createDefaultProps()} />)
 
-			expect(screen.queryByTestId('Add new connected node')).not.toBeInTheDocument()
+			expect(screen.queryByTestId('node-add-button')).not.toBeInTheDocument()
 		})
 
 		it('hides add button when multiple nodes selected', () => {
 			mockSelectedNodes = [{ id: 'node-1' }, { id: 'node-2' }]
 			render(<BaseNodeWrapper {...createDefaultProps()} />)
 
-			expect(screen.queryByTestId('Add new connected node')).not.toBeInTheDocument()
+			expect(screen.queryByTestId('node-add-button')).not.toBeInTheDocument()
 		})
 
 		it('hides add button when node is not selected', () => {
 			mockSelectedNodes = []
 			render(<BaseNodeWrapper {...createDefaultProps()} />)
 
-			expect(screen.queryByTestId('Add new connected node')).not.toBeInTheDocument()
+			expect(screen.queryByTestId('node-add-button')).not.toBeInTheDocument()
 		})
 
 		it('calls openNodeEditor when add button clicked', async () => {
@@ -344,7 +344,7 @@ describe('BaseNodeWrapper', () => {
 			mockSelectedNodes = [{ id: 'node-1' }]
 			render(<BaseNodeWrapper {...createDefaultProps()} />)
 
-			await user.click(screen.getByTestId('Add new connected node'))
+			await user.click(screen.getByTestId('node-add-button'))
 
 			expect(mockOpenNodeEditor).toHaveBeenCalledWith({
 				mode: 'create',
@@ -359,14 +359,14 @@ describe('BaseNodeWrapper', () => {
 			mockSelectedNodes = [{ id: 'node-1' }]
 			render(<BaseNodeWrapper {...createDefaultProps()} />)
 
-			expect(screen.getByTestId('Suggest Nodes')).toBeInTheDocument()
+			expect(screen.getByTestId('node-suggest-button')).toBeInTheDocument()
 		})
 
 		it('hides suggestions button when hideSuggestionsButton is true', () => {
 			mockSelectedNodes = [{ id: 'node-1' }]
 			render(<BaseNodeWrapper {...createDefaultProps()} hideSuggestionsButton={true} />)
 
-			expect(screen.queryByTestId('Suggest Nodes')).not.toBeInTheDocument()
+			expect(screen.queryByTestId('node-suggest-button')).not.toBeInTheDocument()
 		})
 
 		it('hides suggestions button when canEdit is false', () => {
@@ -374,7 +374,7 @@ describe('BaseNodeWrapper', () => {
 			mockCanEdit = false
 			render(<BaseNodeWrapper {...createDefaultProps()} />)
 
-			expect(screen.queryByTestId('Suggest Nodes')).not.toBeInTheDocument()
+			expect(screen.queryByTestId('node-suggest-button')).not.toBeInTheDocument()
 		})
 
 		it('calls generateSuggestions when suggestions button clicked', async () => {
@@ -382,7 +382,7 @@ describe('BaseNodeWrapper', () => {
 			mockSelectedNodes = [{ id: 'node-1' }]
 			render(<BaseNodeWrapper {...createDefaultProps()} />)
 
-			await user.click(screen.getByTestId('Suggest Nodes'))
+			await user.click(screen.getByTestId('node-suggest-button'))
 
 			expect(mockGenerateSuggestions).toHaveBeenCalledWith({
 				sourceNodeId: 'node-1',

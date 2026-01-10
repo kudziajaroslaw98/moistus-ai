@@ -141,7 +141,7 @@ const CommentThreadListComponent = ({
 					>
 						{/* Avatar */}
 						<div
-							className='flex-shrink-0 size-8 rounded-full flex items-center justify-center border-2 border-elevation-4 '
+							className='shrink-0 size-8 rounded-full flex items-center justify-center border-2 border-elevation-4 '
 							style={{
 								backgroundColor: getUserColor(message.user_id),
 							}}

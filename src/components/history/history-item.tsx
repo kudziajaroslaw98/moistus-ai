@@ -135,7 +135,7 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 			<div className='flex items-start gap-3'>
 				<div
 					className={cn(
-						'mt-0.5 flex-shrink-0',
+						'mt-0.5 shrink-0',
 						isCurrent ? 'text-teal-400' : 'text-zinc-400'
 					)}
 				>

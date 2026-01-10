@@ -56,7 +56,7 @@ export function LimitWarning({ limitType, className }: LimitWarningProps) {
 				initial={{ opacity: 0, y: -10 }}
 			>
 				<div className='flex items-start gap-3'>
-					<AlertCircle className='w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0' />
+					<AlertCircle className='w-5 h-5 text-amber-500 mt-0.5 shrink-0' />
 
 					<div className='flex-1'>
 						<h4 className='text-sm font-semibold text-zinc-50 mb-1'>

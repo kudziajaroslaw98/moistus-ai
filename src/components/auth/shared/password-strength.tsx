@@ -129,7 +129,7 @@ export function PasswordRequirementsInfo({
 								}`}
 							>
 								<CheckCircle2
-									className={`w-3 h-3 flex-shrink-0 transition-opacity duration-200 ${
+									className={`w-3 h-3 shrink-0 transition-opacity duration-200 ${
 										met ? 'opacity-100' : 'opacity-50'
 									}`}
 								/>

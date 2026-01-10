@@ -109,7 +109,7 @@ export function ChatPanel() {
 						initial={{ opacity: 0, y: -10 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={transition}
-						className='flex-shrink-0 mx-4 mt-2 px-3 py-2 rounded-lg bg-primary-500/10 border border-primary-500/20'
+						className='shrink-0 mx-4 mt-2 px-3 py-2 rounded-lg bg-primary-500/10 border border-primary-500/20'
 					>
 						<div className='flex items-center gap-2 text-xs text-primary-300'>
 							<Sparkles className='h-3.5 w-3.5' />
@@ -125,7 +125,7 @@ export function ChatPanel() {
 				{hasMessages ? (
 					<div className='flex-1 min-h-0 flex flex-col'>
 						{/* Header with clear button */}
-						<div className='flex-shrink-0 flex items-center justify-between px-4 py-2 border-b border-zinc-800/50'>
+						<div className='shrink-0 flex items-center justify-between px-4 py-2 border-b border-zinc-800/50'>
 							<span className='text-xs text-zinc-500'>
 								{chatMessages.length} message{chatMessages.length !== 1 ? 's' : ''}
 							</span>

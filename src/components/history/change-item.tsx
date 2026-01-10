@@ -91,7 +91,7 @@ export function ChangeItem({
 						{/* Label */}
 						<div
 							className={cn(
-								'mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded',
+								'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded',
 								getOperationBg(),
 								getOperationColor()
 							)}
@@ -167,7 +167,7 @@ function PatchItem({ patch }: { patch: PatchDetail }) {
 						duration: 0.2,
 					}}
 				>
-					<ChevronDown className='h-3 w-3 text-white/38 flex-shrink-0' />
+					<ChevronDown className='h-3 w-3 text-white/38 shrink-0' />
 				</motion.div>
 
 				<div className='text-white/60 font-medium'>{patch.field}</div>
@@ -234,7 +234,7 @@ function PatchItem({ patch }: { patch: PatchDetail }) {
 								<div className='flex items-center gap-2 -my-0.5'>
 									<div className='flex-1 h-px bg-white/10' />
 
-									<ChevronDown className='h-3 w-3 text-white/38 flex-shrink-0' />
+									<ChevronDown className='h-3 w-3 text-white/38 shrink-0' />
 
 									<div className='flex-1 h-px bg-white/10' />
 								</div>

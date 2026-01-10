@@ -2,6 +2,7 @@
 
 import useAppStore from '@/store/mind-map-store';
 import { useCallback, useMemo } from 'react';
+import { useShallow } from 'zustand/shallow';
 
 export type FeatureKey =
 	| 'unlimited-maps'
@@ -29,7 +30,12 @@ const FEATURE_PLAN_MAP: Record<FeatureKey, 'pro'> = {
 };
 
 export function useFeatureGate(feature: FeatureKey): FeatureGateResult {
-	const { currentSubscription, isLoadingSubscription } = useAppStore();
+	const { currentSubscription, isLoadingSubscription } = useAppStore(
+		useShallow((state) => ({
+			currentSubscription: state.currentSubscription,
+			isLoadingSubscription: state.isLoadingSubscription,
+		}))
+	);
 
 	const currentPlan = useMemo(() => {
 		if (!currentSubscription) return 'free';
@@ -56,9 +62,7 @@ export function useFeatureGate(feature: FeatureKey): FeatureGateResult {
 	}, [feature, hasAccess]);
 
 	const showUpgradePrompt = useCallback(() => {
-		// Show pricing modal or upgrade prompt
-		// TODO: Implement pricing modal in setPopoverOpen
-		console.log('Show upgrade prompt');
+		useAppStore.getState().setPopoverOpen({ upgradeUser: true });
 	}, []);
 
 	return {
@@ -72,7 +76,13 @@ export function useFeatureGate(feature: FeatureKey): FeatureGateResult {
 
 // Usage limits hook
 export function useSubscriptionLimits() {
-	const { currentSubscription, availablePlans, nodes } = useAppStore();
+	const { currentSubscription, availablePlans, nodes } = useAppStore(
+		useShallow((state) => ({
+			currentSubscription: state.currentSubscription,
+			availablePlans: state.availablePlans,
+			nodes: state.nodes,
+		}))
+	);
 
 	const limits = useMemo(() => {
 		const plan =

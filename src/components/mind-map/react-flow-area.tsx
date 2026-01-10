@@ -37,6 +37,7 @@ import { ModeIndicator } from '@/components/mode-indicator';
 import { GuidedTourMode, PathBuilder } from '@/components/guided-tour';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useActivityTracker } from '@/hooks/realtime/use-activity-tracker';
+import { useUpgradePrompt } from '@/hooks/subscription/use-upgrade-prompt';
 import { useContextMenu } from '@/hooks/use-context-menu';
 import { useNodeSuggestion } from '@/hooks/use-node-suggestion';
 import useAppStore from '@/store/mind-map-store';
@@ -53,6 +54,9 @@ import WaypointEdge from '../edges/waypoint-edge';
 import { RealtimeCursors } from '../realtime/realtime-cursor';
 import { Toolbar } from '../toolbar';
 import { MindMapTopBar, MobileMenu } from './top-bar';
+
+// Feature flag: Set NEXT_PUBLIC_ENABLE_AI_CHAT=true to enable AI Chat
+const ENABLE_AI_CHAT = process.env.NEXT_PUBLIC_ENABLE_AI_CHAT === 'true';
 
 export function ReactFlowArea() {
 	const mapId = useParams().id;
@@ -108,8 +112,6 @@ export function ReactFlowArea() {
 		ghostNodes,
 		isStreaming,
 		aiFeature,
-		canRedo,
-		canUndo,
 		userProfile,
 		isTourActive,
 		isPathEditMode,
@@ -149,8 +151,6 @@ export function ReactFlowArea() {
 			ghostNodes: state.ghostNodes,
 			isStreaming: state.isStreaming,
 			aiFeature: state.aiFeature,
-			canRedo: state.canRedo,
-			canUndo: state.canUndo,
 			resetOnboarding: state.resetOnboarding,
 			setOnboardingStep: state.setOnboardingStep,
 			setShowOnboarding: state.setShowOnboarding,
@@ -450,7 +450,37 @@ export function ReactFlowArea() {
 
 	const isSelectMode = activeTool === 'default';
 	const isPanningMode = activeTool === 'pan';
-	const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+	// Upgrade prompt hook for modal triggers
+	const {
+		shouldShowTimePrompt,
+		showUpgradeModal,
+		dismissWithCooldown,
+		clearCooldown,
+	} = useUpgradePrompt();
+
+	// Ref to hold latest check function - prevents timer reset on dep changes
+	const upgradeCheckRef = useRef(shouldShowTimePrompt);
+	upgradeCheckRef.current = shouldShowTimePrompt;
+
+	// Time-based upgrade prompt trigger (check every 5 minutes)
+	useEffect(() => {
+		// Initial check on mount
+		if (upgradeCheckRef.current()) {
+			showUpgradeModal();
+			return;
+		}
+
+		// Set up interval to check every 5 minutes
+		const interval = setInterval(() => {
+			if (upgradeCheckRef.current()) {
+				showUpgradeModal();
+				clearInterval(interval);
+			}
+		}, 5 * 60 * 1000);
+
+		return () => clearInterval(interval);
+	}, [showUpgradeModal]);
 
 	return (
 		<div className='w-full h-full' key='mind-map-container'>
@@ -519,8 +549,6 @@ export function ReactFlowArea() {
 					activityState={activityState}
 					popoverOpen={popoverOpen}
 					canEdit={canEdit}
-					canUndo={canUndo}
-					canRedo={canRedo}
 					handleToggleHistorySidebar={handleToggleHistorySidebar}
 					handleToggleMapSettings={handleToggleMapSettings}
 					handleToggleSharePanel={handleToggleSharePanel}
@@ -549,8 +577,13 @@ export function ReactFlowArea() {
 			</ReactFlow>
 
 			<UpgradeModal
-				onOpenChange={setShowUpgradeModal}
-				open={showUpgradeModal}
+				onOpenChange={(open) => setPopoverOpen({ upgradeUser: open })}
+				open={popoverOpen.upgradeUser}
+				onDismiss={dismissWithCooldown}
+				onSuccess={() => {
+					clearCooldown();
+					// Optionally refresh subscription data here
+				}}
 			/>
 
 			<SettingsPanel
@@ -563,8 +596,6 @@ export function ReactFlowArea() {
 				open={mobileMenuOpen}
 				onOpenChange={setMobileMenuOpen}
 				canEdit={canEdit}
-				canUndo={canUndo}
-				canRedo={canRedo}
 				isMapOwner={mindMap?.user_id === currentUser?.id}
 				activityState={activityState}
 				mapId={mapId as string}
@@ -574,7 +605,7 @@ export function ReactFlowArea() {
 				onToggleSettings={handleToggleMapSettings}
 			/>
 
-			<ChatPanel />
+			{ENABLE_AI_CHAT && <ChatPanel />}
 
 			{/* Guided Tour Mode - renders controls and spotlight overlay when active */}
 			<GuidedTourMode />
