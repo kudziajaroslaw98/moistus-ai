@@ -73,3 +73,6 @@ ai-docs
 
 # Git worktrees
 .worktrees/
+
+# Plans (local development notes)
+docs/plans/

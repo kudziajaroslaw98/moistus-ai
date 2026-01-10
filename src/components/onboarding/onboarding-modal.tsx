@@ -111,10 +111,9 @@ export function OnboardingModal() {
 	}
 
 	return (
-		<Dialog onOpenChange={handleClose} open={true}>
+		<Dialog dismissible={false} onOpenChange={handleClose} open={true}>
 			<DialogContent
 				className='flex !w-full !max-w-4xl p-0 overflow-hidden bg-surface border-border-subtle'
-				dismissible={false}
 				showCloseButton={false}
 			>
 				<motion.div

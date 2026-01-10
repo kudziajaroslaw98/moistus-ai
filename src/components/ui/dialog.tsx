@@ -2,15 +2,9 @@
 
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
 import { XIcon } from 'lucide-react';
-import { createContext, useCallback, useContext, type ComponentProps } from 'react';
+import { useCallback, type ComponentProps } from 'react';
 
 import { cn } from '@/lib/utils';
-
-// Context to pass dismissible state from Dialog to DialogContent for backdrop rendering
-interface DialogContextValue {
-	dismissible: boolean;
-}
-const DialogContext = createContext<DialogContextValue>({ dismissible: true });
 
 interface DialogProps extends ComponentProps<typeof BaseDialog.Root> {
 	/**
@@ -42,9 +36,7 @@ function Dialog({ dismissible = true, onOpenChange, ...props }: DialogProps) {
 	);
 
 	return (
-		<DialogContext.Provider value={{ dismissible }}>
-			<BaseDialog.Root data-slot='dialog' onOpenChange={handleOpenChange} {...props} />
-		</DialogContext.Provider>
+		<BaseDialog.Root data-slot='dialog' onOpenChange={handleOpenChange} {...props} />
 	);
 }
 
@@ -88,28 +80,17 @@ function DialogOverlay({
 
 interface DialogContentProps extends ComponentProps<typeof BaseDialog.Popup> {
 	showCloseButton?: boolean;
-	/**
-	 * Whether clicking outside the dialog dismisses it.
-	 * @default true
-	 * @deprecated Pass `dismissible` to the Dialog component instead for proper dismissal handling.
-	 */
-	dismissible?: boolean;
 }
 
 function DialogContent({
 	className,
 	children,
 	showCloseButton = true,
-	dismissible: dismissibleProp,
 	...props
 }: DialogContentProps) {
-	// Use context value from Dialog, fall back to prop for backwards compatibility
-	const { dismissible: contextDismissible } = useContext(DialogContext);
-	const dismissible = dismissibleProp ?? contextDismissible;
-
 	return (
 		<DialogPortal data-slot='dialog-portal'>
-			{/* Always render DialogOverlay - dismissal is controlled by BaseDialog.Root's dismissible prop */}
+			{/* Dismissal is controlled by Dialog's handleOpenChange intercepting outside-press/escape-key */}
 			<DialogOverlay />
 
 			<DialogTitle data-slot='dialog-title'></DialogTitle>
