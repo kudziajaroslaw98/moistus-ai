@@ -459,24 +459,28 @@ export function ReactFlowArea() {
 		clearCooldown,
 	} = useUpgradePrompt();
 
+	// Ref to hold latest check function - prevents timer reset on dep changes
+	const upgradeCheckRef = useRef(shouldShowTimePrompt);
+	upgradeCheckRef.current = shouldShowTimePrompt;
+
 	// Time-based upgrade prompt trigger (check every 5 minutes)
 	useEffect(() => {
-		// Initial check
-		if (shouldShowTimePrompt()) {
+		// Initial check on mount
+		if (upgradeCheckRef.current()) {
 			showUpgradeModal();
 			return;
 		}
 
 		// Set up interval to check every 5 minutes
 		const interval = setInterval(() => {
-			if (shouldShowTimePrompt()) {
+			if (upgradeCheckRef.current()) {
 				showUpgradeModal();
 				clearInterval(interval);
 			}
 		}, 5 * 60 * 1000);
 
 		return () => clearInterval(interval);
-	}, [shouldShowTimePrompt, showUpgradeModal]);
+	}, [showUpgradeModal]);
 
 	return (
 		<div className='w-full h-full' key='mind-map-container'>

@@ -87,3 +87,21 @@ export function getPrice(
 
 	return billingCycle === 'monthly' ? tier.monthlyPrice : tier.yearlyPrice;
 }
+
+/**
+ * Get limits for the free tier
+ */
+export function getFreeTierLimits() {
+	const freeTier = getPricingTier('free');
+	return freeTier?.limits ?? { mindMaps: 3, nodesPerMap: 50, aiSuggestions: 10 };
+}
+
+/**
+ * Upgrade prompt configuration
+ */
+export const UPGRADE_PROMPT_CONFIG = {
+	/** Hours before showing upgrade modal again after dismissal */
+	cooldownHours: 24,
+	/** Minutes of session time before showing time-based upgrade prompt */
+	sessionThresholdMinutes: 30,
+} as const;

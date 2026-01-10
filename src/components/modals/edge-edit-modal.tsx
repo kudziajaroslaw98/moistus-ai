@@ -347,7 +347,7 @@ export default function EdgeEditModal() {
 
 				{/* Keep footer outside the scrollable area if SidePanel doesn't include one */}
 				{/* If SidePanel's children area scrolls, footer needs to be positioned separately or within */}
-				<div className='mt-auto flex flex-shrink-0 justify-end gap-3 border-t border-zinc-700 pt-4'>
+				<div className='mt-auto flex shrink-0 justify-end gap-3 border-t border-zinc-700 pt-4'>
 					<Button disabled={isSaving} onClick={handleOnClose} variant='outline'>
 						Cancel
 					</Button>

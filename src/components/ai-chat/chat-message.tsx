@@ -108,7 +108,7 @@ export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) 
 			{/* Avatar */}
 			<div
 				className={cn(
-					'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full',
+					'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
 					isUser
 						? 'bg-primary-500/20 text-primary-400'
 						: 'bg-zinc-700/50 text-zinc-300'

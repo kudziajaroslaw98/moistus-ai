@@ -55,16 +55,6 @@ interface DialogContentProps extends ComponentProps<typeof BaseDialog.Popup> {
 	 * @default true
 	 */
 	dismissible?: boolean;
-	/**
-	 * @deprecated Use `dismissible={false}` instead.
-	 * Legacy Radix UI prop - call e.preventDefault() to prevent dismissal.
-	 */
-	onInteractOutside?: (e: Event) => void;
-	/**
-	 * @deprecated Use `dismissible={false}` instead.
-	 * Legacy Radix UI prop - call e.preventDefault() to prevent dismissal.
-	 */
-	onPointerDownOutside?: (e: Event) => void;
 }
 
 function DialogContent({
@@ -72,21 +62,13 @@ function DialogContent({
 	children,
 	showCloseButton = true,
 	dismissible = true,
-	onInteractOutside,
-	onPointerDownOutside,
 	...props
 }: DialogContentProps) {
-	// Determine if dismissal should be prevented based on legacy props
-	const shouldPreventDismiss =
-		!dismissible ||
-		onInteractOutside !== undefined ||
-		onPointerDownOutside !== undefined;
-
 	return (
 		<DialogPortal data-slot='dialog-portal'>
 			<DialogOverlay
 				onPointerDown={
-					shouldPreventDismiss
+					!dismissible
 						? (e) => {
 								// Prevent backdrop click from closing dialog
 								e.stopPropagation();

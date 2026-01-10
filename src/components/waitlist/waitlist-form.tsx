@@ -213,7 +213,7 @@ export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 						variants={fadeIn}
 					>
 						<p className='text-sm text-red-400 flex items-center gap-2'>
-							<AlertCircle className='h-4 w-4 flex-shrink-0' />
+							<AlertCircle className='h-4 w-4 shrink-0' />
 
 							{submitError}
 						</p>

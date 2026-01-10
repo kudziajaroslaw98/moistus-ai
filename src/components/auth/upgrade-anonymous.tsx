@@ -154,7 +154,7 @@ function ChooseMethodStep({
 							key={benefit.title}
 							transition={{ delay: index * 0.05, ease: [0.23, 1, 0.32, 1] }}
 						>
-							<div className='flex-shrink-0 w-8 h-8 bg-primary-600/20 rounded-lg flex items-center justify-center'>
+							<div className='shrink-0 w-8 h-8 bg-primary-600/20 rounded-lg flex items-center justify-center'>
 								<Icon className='w-4 h-4 text-primary-400' />
 							</div>
 							<div>

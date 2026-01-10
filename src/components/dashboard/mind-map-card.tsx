@@ -239,7 +239,7 @@ const MindMapCardComponent = ({
 				)}
 
 				{/* Thumbnail */}
-				<Link className='flex-shrink-0' href={`/mind-map/${map.id}`}>
+				<Link className='shrink-0' href={`/mind-map/${map.id}`}>
 					<div
 						className='w-16 h-16 rounded-md overflow-hidden'
 						style={{ background: meshGradient.background }}

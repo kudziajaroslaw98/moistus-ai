@@ -10,7 +10,11 @@ import { cn } from '@/lib/utils';
  * Backwards-compatible Select props that wrap Base UI's generic Select.
  * For Radix UI compatibility, value is always string.
  */
-interface SelectProps extends Omit<ComponentProps<typeof BaseSelect.Root>, 'onValueChange'> {
+interface SelectProps
+	extends Omit<
+		ComponentProps<typeof BaseSelect.Root<string>>,
+		'onValueChange'
+	> {
 	/**
 	 * The controlled value of the select.
 	 */
@@ -27,12 +31,13 @@ interface SelectProps extends Omit<ComponentProps<typeof BaseSelect.Root>, 'onVa
 
 function Select({ onValueChange, ...props }: SelectProps) {
 	return (
-		<BaseSelect.Root
+		<BaseSelect.Root<string>
 			data-slot='select'
 			onValueChange={
 				onValueChange
-					? (value: unknown) => {
-							if (value !== null && typeof value === 'string') {
+					? (value) => {
+							// Only call handler for non-null values (Radix compatibility)
+							if (value !== null) {
 								onValueChange(value);
 							}
 						}

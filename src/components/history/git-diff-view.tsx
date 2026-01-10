@@ -37,7 +37,7 @@ export function GitDiffView({
 									backgroundColor: 'rgba(239, 68, 68, 0.08)',
 								}}
 							>
-								<span className='text-red-400 font-bold flex-shrink-0 select-none'>
+								<span className='text-red-400 font-bold shrink-0 select-none'>
 									-
 								</span>
 
@@ -57,7 +57,7 @@ export function GitDiffView({
 									backgroundColor: 'rgba(34, 197, 94, 0.08)',
 								}}
 							>
-								<span className='text-green-400 font-bold flex-shrink-0 select-none'>
+								<span className='text-green-400 font-bold shrink-0 select-none'>
 									+
 								</span>
 
@@ -77,7 +77,7 @@ export function GitDiffView({
 							className='flex items-start gap-2 py-0.5 px-2 -mx-2 opacity-60'
 							key={index}
 						>
-							<span className='text-white/38 flex-shrink-0 select-none'> </span>
+							<span className='text-white/38 shrink-0 select-none'> </span>
 
 							<span className='text-white/60 break-all whitespace-pre-wrap flex-1'>
 								{part.value}

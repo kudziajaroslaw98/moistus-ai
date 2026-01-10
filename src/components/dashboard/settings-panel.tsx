@@ -879,7 +879,7 @@ export function SettingsPanel({
 												initial={{ opacity: 0, y: 10 }}
 												transition={{ delay: 0.05, duration: 0.3 }}
 											>
-												<Star className='size-5 text-primary flex-shrink-0' />
+												<Star className='size-5 text-primary shrink-0' />
 												<div className='flex-1'>
 													<p className='text-primary font-medium text-sm'>
 														Trial Active

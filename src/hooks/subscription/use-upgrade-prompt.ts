@@ -1,21 +1,22 @@
 'use client';
 
+import {
+	getFreeTierLimits,
+	UPGRADE_PROMPT_CONFIG,
+} from '@/constants/pricing-tiers';
 import useAppStore from '@/store/mind-map-store';
 import { useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { useSessionTime } from './use-session-time';
 
 const COOLDOWN_KEY = 'upgrade_modal_dismissed_at';
-const COOLDOWN_HOURS = 24;
-const SESSION_THRESHOLD_MINUTES = 30;
-const FREE_MAP_LIMIT = 3;
-const FREE_NODE_LIMIT = 50;
+const FREE_TIER_LIMITS = getFreeTierLimits();
 
 /**
  * Consolidates all upgrade prompt trigger logic:
- * - Time-based: 30 min session threshold
- * - Limit-based: 3 maps or 50 nodes
- * - 24h cooldown after dismissal
+ * - Time-based: session threshold from UPGRADE_PROMPT_CONFIG
+ * - Limit-based: maps/nodes from pricing-tiers.ts
+ * - Cooldown after dismissal from UPGRADE_PROMPT_CONFIG
  * - Only for registered free users (not anonymous, not pro)
  */
 export function useUpgradePrompt() {
@@ -61,7 +62,7 @@ export function useUpgradePrompt() {
 		if (isNaN(dismissedTime)) return false;
 
 		const hoursSince = (Date.now() - dismissedTime) / 1000 / 60 / 60;
-		return hoursSince < COOLDOWN_HOURS;
+		return hoursSince < UPGRADE_PROMPT_CONFIG.cooldownHours;
 	}, []);
 
 	// Check if time-based trigger should fire
@@ -69,7 +70,7 @@ export function useUpgradePrompt() {
 		if (!isRegisteredFreeUser) return false;
 		if (isInCooldown()) return false;
 
-		return getSessionMinutes() >= SESSION_THRESHOLD_MINUTES;
+		return getSessionMinutes() >= UPGRADE_PROMPT_CONFIG.sessionThresholdMinutes;
 	}, [isRegisteredFreeUser, isInCooldown, getSessionMinutes]);
 
 	// Check if limit-based trigger should fire
@@ -78,11 +79,11 @@ export function useUpgradePrompt() {
 			if (!isRegisteredFreeUser) return false;
 			if (isInCooldown()) return false;
 
-			// Check map limit (3 maps for free tier)
-			if (mapCount >= FREE_MAP_LIMIT) return true;
+			// Check map limit
+			if (mapCount >= FREE_TIER_LIMITS.mindMaps) return true;
 
-			// Check node limit (50 nodes per map for free tier)
-			if (nodes.length >= FREE_NODE_LIMIT) return true;
+			// Check node limit per map
+			if (nodes.length >= FREE_TIER_LIMITS.nodesPerMap) return true;
 
 			return false;
 		},

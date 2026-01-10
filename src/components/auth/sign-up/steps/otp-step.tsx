@@ -124,7 +124,7 @@ export function OtpStep({
 						exit={{ opacity: 0, y: -10 }}
 						transition={{ duration: 0.2 }}
 					>
-						<AlertCircle className='h-4 w-4 text-error-400 flex-shrink-0' />
+						<AlertCircle className='h-4 w-4 text-error-400 shrink-0' />
 						<p className='text-sm text-error-300'>{error}</p>
 					</motion.div>
 				)}

@@ -378,7 +378,7 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 							<div className='flex-1 space-y-3'>
 								<div>
 									<div className='flex gap-2 items-center'>
-										<AlertTriangle className='mt-0.5 h-5 w-5 flex-shrink-0 text-rose-500' />
+										<AlertTriangle className='mt-0.5 h-5 w-5 shrink-0 text-rose-500' />
 
 										<h3 className='text-lg font-semibold text-rose-400'>
 											Danger Zone

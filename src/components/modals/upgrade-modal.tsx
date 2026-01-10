@@ -13,6 +13,7 @@ import {
 	PaymentForm,
 	stripePromise,
 } from '@/components/onboarding/steps/payment-step';
+import { cn } from '@/lib/utils';
 import { Elements } from '@stripe/react-stripe-js';
 import { ArrowLeft, Crown, Infinity, Sparkles, Zap } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -48,6 +49,15 @@ const transition = {
 	duration: 0.25,
 	ease: [0.215, 0.61, 0.355, 1] as const, // ease-out-cubic
 };
+
+// Billing cycle toggle button styles
+const cycleButtonClass = (isActive: boolean) =>
+	cn(
+		'px-4 py-2 text-sm transition-all duration-200',
+		isActive
+			? 'bg-primary-600 text-white'
+			: 'bg-surface-elevated text-text-secondary hover:text-text-primary'
+	);
 
 export function UpgradeModal({
 	open,
@@ -120,7 +130,7 @@ export function UpgradeModal({
 
 							<div className='space-y-4 py-4'>
 								<div className='flex items-start gap-3'>
-									<Infinity className='h-5 w-5 text-primary-500 mt-0.5 flex-shrink-0' />
+									<Infinity className='h-5 w-5 text-primary-500 mt-0.5 shrink-0' />
 
 									<div>
 										<p className='font-medium'>Unlimited Everything</p>
@@ -132,7 +142,7 @@ export function UpgradeModal({
 								</div>
 
 								<div className='flex items-start gap-3'>
-									<Zap className='h-5 w-5 text-primary-500 mt-0.5 flex-shrink-0' />
+									<Zap className='h-5 w-5 text-primary-500 mt-0.5 shrink-0' />
 
 									<div>
 										<p className='font-medium'>AI-Powered Features</p>
@@ -145,7 +155,7 @@ export function UpgradeModal({
 								</div>
 
 								<div className='flex items-start gap-3'>
-									<Sparkles className='h-5 w-5 text-primary-500 mt-0.5 flex-shrink-0' />
+									<Sparkles className='h-5 w-5 text-primary-500 mt-0.5 shrink-0' />
 
 									<div>
 										<p className='font-medium'>Real-time Collaboration</p>
@@ -159,11 +169,7 @@ export function UpgradeModal({
 								{/* Billing Cycle Toggle */}
 								<div className='flex justify-center gap-2 pt-2'>
 									<Button
-										className={`px-4 py-2 text-sm transition-all duration-200 ${
-											billingCycle === 'monthly'
-												? 'bg-primary-600 text-white'
-												: 'bg-surface-elevated text-text-secondary hover:text-text-primary'
-										}`}
+										className={cycleButtonClass(billingCycle === 'monthly')}
 										onClick={() => setBillingCycle('monthly')}
 										size='sm'
 										variant={billingCycle === 'monthly' ? 'default' : 'outline'}
@@ -172,11 +178,7 @@ export function UpgradeModal({
 									</Button>
 
 									<Button
-										className={`px-4 py-2 text-sm transition-all duration-200 ${
-											billingCycle === 'yearly'
-												? 'bg-primary-600 text-white'
-												: 'bg-surface-elevated text-text-secondary hover:text-text-primary'
-										}`}
+										className={cycleButtonClass(billingCycle === 'yearly')}
 										onClick={() => setBillingCycle('yearly')}
 										size='sm'
 										variant={billingCycle === 'yearly' ? 'default' : 'outline'}

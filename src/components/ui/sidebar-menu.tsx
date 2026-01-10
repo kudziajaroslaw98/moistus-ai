@@ -71,7 +71,7 @@ export const MenuItem = ({
 			{icon && (
 				<div
 					className={cn(
-						'h-4 w-4 flex-shrink-0',
+						'h-4 w-4 shrink-0',
 						variant === 'default' && 'text-zinc-400',
 						variant === 'danger' && 'text-red-400',
 						variant === 'info' && 'text-zinc-500'

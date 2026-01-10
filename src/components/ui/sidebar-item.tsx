@@ -103,7 +103,7 @@ export const SidebarItem = ({
 				}}
 			>
 				{/* Icon */}
-				<div className='flex-shrink-0'>{icon}</div>
+				<div className='shrink-0'>{icon}</div>
 
 				{/* Label - hidden when collapsed */}
 				{!collapsed && (
@@ -111,7 +111,7 @@ export const SidebarItem = ({
 				)}
 
 				{/* Badge - hidden when collapsed */}
-				{!collapsed && badge && <div className='flex-shrink-0'>{badge}</div>}
+				{!collapsed && badge && <div className='shrink-0'>{badge}</div>}
 
 				{/* Actions - hidden when collapsed */}
 				{!collapsed && actions && (

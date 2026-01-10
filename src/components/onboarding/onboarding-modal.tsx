@@ -114,8 +114,7 @@ export function OnboardingModal() {
 		<Dialog onOpenChange={handleClose} open={true}>
 			<DialogContent
 				className='flex !w-full !max-w-4xl p-0 overflow-hidden bg-surface border-border-subtle'
-				onInteractOutside={(e) => e.preventDefault()}
-				onPointerDownOutside={(e) => e.preventDefault()}
+				dismissible={false}
 				showCloseButton={false}
 			>
 				<motion.div
