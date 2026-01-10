@@ -1,7 +1,12 @@
 import { cn } from '@/lib/utils';
-import { Slot } from '@radix-ui/react-slot';
 import { ChevronRight, MoreHorizontal } from 'lucide-react';
-import type { ComponentProps } from 'react';
+import {
+	cloneElement,
+	isValidElement,
+	type ComponentProps,
+	type ReactElement,
+	type ReactNode,
+} from 'react';
 
 function Breadcrumb({ ...props }: ComponentProps<'nav'>) {
 	return <nav aria-label='breadcrumb' data-slot='breadcrumb' {...props} />;
@@ -28,6 +33,28 @@ function BreadcrumbItem({ className, ...props }: ComponentProps<'li'>) {
 			{...props}
 		/>
 	);
+}
+
+interface SlotProps {
+	children?: ReactNode;
+	className?: string;
+	[key: string]: unknown;
+}
+
+/**
+ * Custom Slot implementation to replace @radix-ui/react-slot.
+ * Merges props and className onto the child element.
+ */
+function Slot({ children, className, ...props }: SlotProps) {
+	if (isValidElement(children)) {
+		const childProps = children.props as Record<string, unknown>;
+		return cloneElement(children as ReactElement<Record<string, unknown>>, {
+			...props,
+			...childProps,
+			className: cn(className, childProps.className as string | undefined),
+		});
+	}
+	return <>{children}</>;
 }
 
 function BreadcrumbLink({

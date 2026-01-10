@@ -32,25 +32,27 @@ const initialState: SignUpState = {
 	isLoading: false,
 };
 
-// Animation variants for step transitions
+// Animation variants for step transitions (vertical slide, consistent with sign-in)
+const easeOutQuart = [0.165, 0.84, 0.44, 1] as const;
+
 const slideVariants = {
 	enter: (direction: number) => ({
-		x: direction > 0 ? 300 : -300,
+		y: direction > 0 ? 20 : -20,
 		opacity: 0,
 	}),
 	center: {
-		x: 0,
+		y: 0,
 		opacity: 1,
 	},
 	exit: (direction: number) => ({
-		x: direction < 0 ? 300 : -300,
+		y: direction < 0 ? 20 : -20,
 		opacity: 0,
 	}),
 };
 
 const slideTransition = {
-	x: { type: 'spring', stiffness: 300, damping: 30 },
-	opacity: { duration: 0.2 },
+	duration: 0.25,
+	ease: easeOutQuart,
 } as const;
 
 export function SignUpWizard() {
