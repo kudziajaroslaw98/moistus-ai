@@ -1,6 +1,6 @@
 # Moistus AI - MVP Launch Roadmap
 
-> Last updated: 2026-01-09 (4 tasks completed)
+> Last updated: 2026-01-09 (4 tasks completed, upgrade flow scope clarified)
 > Estimated effort: 45-60 hours
 
 ## Summary
@@ -35,14 +35,35 @@ MVP launch readiness checklist:
 ---
 
 ### 1.2 Upgrade Flow (Stripe Integration)
-- [ ] Create upgrade modal with plan selection
-- [ ] Connect to existing Stripe subscription creation (`/api/subscriptions/create`)
-- [ ] Handle success/cancel redirects
-- [ ] Show current plan status in settings
-- [ ] Replace TODO toast in settings panel
 
-**Files:** `src/components/dashboard/settings-panel.tsx` (line 356)
-**Effort:** 4-6 hours | **Risk:** Medium
+**Current state:** `UpgradeModal` exists but is never triggered (dead code). Settings panel shows toast.
+
+**Modal triggers (new):**
+- [ ] Time-based: Show after 30 mins of session time
+- [ ] Limit-based: Show when user hits usage limits (maps/nodes/AI)
+- [ ] Wire `showUpgradePrompt()` in `use-feature-gate.ts` to open modal
+
+**Modal fixes:**
+- [ ] Fix "Start Free Trial" button (currently links to non-existent `/dashboard/settings/billing`)
+- [ ] Either: redirect to Stripe portal OR create billing page OR embed Stripe Elements
+
+**Other wiring:**
+- [ ] Settings panel button → open modal (replace TODO toast)
+- [ ] Connect modal to existing `/api/subscriptions/create` endpoint
+
+**Decisions:**
+- ✅ 30 mins total session time
+- ✅ Registered free users only (not anonymous)
+- ✅ 24-hour dismissal cooldown
+- ✅ Soft limit (dismissable, not blocking)
+
+**Files:**
+- `src/components/modals/upgrade-modal.tsx` (fix link)
+- `src/components/mind-map/react-flow-area.tsx` (add triggers)
+- `src/components/dashboard/settings-panel.tsx` (line 356)
+- `src/hooks/use-feature-gate.ts` (wire showUpgradePrompt)
+
+**Effort:** 3-4 hours | **Risk:** Low (modal exists, just needs wiring)
 
 ---
 
@@ -251,6 +272,10 @@ MVP launch readiness checklist:
 | Billing emails | Resend integration |
 | Landing content | Collaborate together during implementation |
 | Data export | Required (GDPR) |
+| Upgrade modal time trigger | 30 mins total session time |
+| Upgrade modal audience | Registered free users only |
+| Upgrade modal cooldown | 24 hours |
+| Limit enforcement | Soft (dismissable) |
 
 ---
 
