@@ -192,15 +192,19 @@ export function UserMenu({
 					</DropdownMenuItem>
 				)}
 
-				<DropdownMenuSeparator className='bg-zinc-700' />
+				{!isProUser() && (
+					<>
+						<DropdownMenuSeparator className='bg-zinc-700' />
 
-				<DropdownMenuItem
-					className='cursor-pointer text-zinc-300 focus:bg-zinc-800 focus:text-white'
-					onClick={handleRestartOnboarding}
-				>
-					<RefreshCw className='mr-2 h-4 w-4' />
-					Restart Onboarding
-				</DropdownMenuItem>
+						<DropdownMenuItem
+							className='cursor-pointer text-zinc-300 focus:bg-zinc-800 focus:text-white'
+							onClick={handleRestartOnboarding}
+						>
+							<RefreshCw className='mr-2 h-4 w-4' />
+							Restart Onboarding
+						</DropdownMenuItem>
+					</>
+				)}
 
 				<DropdownMenuSeparator className='bg-zinc-700' />
 

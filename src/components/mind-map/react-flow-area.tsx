@@ -37,6 +37,7 @@ import { ModeIndicator } from '@/components/mode-indicator';
 import { GuidedTourMode, PathBuilder } from '@/components/guided-tour';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useActivityTracker } from '@/hooks/realtime/use-activity-tracker';
+import { useUpgradePrompt } from '@/hooks/subscription/use-upgrade-prompt';
 import { useContextMenu } from '@/hooks/use-context-menu';
 import { useNodeSuggestion } from '@/hooks/use-node-suggestion';
 import useAppStore from '@/store/mind-map-store';
@@ -449,7 +450,33 @@ export function ReactFlowArea() {
 
 	const isSelectMode = activeTool === 'default';
 	const isPanningMode = activeTool === 'pan';
-	const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+	// Upgrade prompt hook for modal triggers
+	const {
+		shouldShowTimePrompt,
+		showUpgradeModal,
+		dismissWithCooldown,
+		clearCooldown,
+	} = useUpgradePrompt();
+
+	// Time-based upgrade prompt trigger (check every 5 minutes)
+	useEffect(() => {
+		// Initial check
+		if (shouldShowTimePrompt()) {
+			showUpgradeModal();
+			return;
+		}
+
+		// Set up interval to check every 5 minutes
+		const interval = setInterval(() => {
+			if (shouldShowTimePrompt()) {
+				showUpgradeModal();
+				clearInterval(interval);
+			}
+		}, 5 * 60 * 1000);
+
+		return () => clearInterval(interval);
+	}, [shouldShowTimePrompt, showUpgradeModal]);
 
 	return (
 		<div className='w-full h-full' key='mind-map-container'>
@@ -546,8 +573,13 @@ export function ReactFlowArea() {
 			</ReactFlow>
 
 			<UpgradeModal
-				onOpenChange={setShowUpgradeModal}
-				open={showUpgradeModal}
+				onOpenChange={(open) => setPopoverOpen({ upgradeUser: open })}
+				open={popoverOpen.upgradeUser}
+				onDismiss={dismissWithCooldown}
+				onSuccess={() => {
+					clearCooldown();
+					// Optionally refresh subscription data here
+				}}
 			/>
 
 			<SettingsPanel

@@ -1,6 +1,6 @@
 # Moistus AI - MVP Launch Roadmap
 
-> Last updated: 2026-01-09 (4 tasks completed, upgrade flow scope clarified)
+> Last updated: 2026-01-10 (5 tasks completed, upgrade modal triggers + payment integrated)
 > Estimated effort: 45-60 hours
 
 ## Summary
@@ -36,20 +36,18 @@ MVP launch readiness checklist:
 
 ### 1.2 Upgrade Flow (Stripe Integration)
 
-**Current state:** `UpgradeModal` exists but is never triggered (dead code). Settings panel shows toast.
-
-**Modal triggers (new):**
-- [ ] Time-based: Show after 30 mins of session time
-- [ ] Limit-based: Show when user hits usage limits (maps/nodes/AI)
-- [ ] Wire `showUpgradePrompt()` in `use-feature-gate.ts` to open modal
+**Modal triggers:**
+- [x] Time-based: Show after 30 mins of session time
+- [ ] Limit-based: Show when user hits usage limits (maps/nodes/AI) - needs integration point
+- [x] Wire `showUpgradePrompt()` in `use-feature-gate.ts` to open modal
 
 **Modal fixes:**
-- [ ] Fix "Start Free Trial" button (currently links to non-existent `/dashboard/settings/billing`)
-- [ ] Either: redirect to Stripe portal OR create billing page OR embed Stripe Elements
+- [x] Fix "Start Free Trial" button → now transitions to embedded payment form
+- [x] Embed Stripe Elements (reused PaymentForm from onboarding)
 
 **Other wiring:**
-- [ ] Settings panel button → open modal (replace TODO toast)
-- [ ] Connect modal to existing `/api/subscriptions/create` endpoint
+- [x] Settings panel button → open modal (replaced TODO toast)
+- [x] Connect modal to existing `/api/subscriptions/create` endpoint
 
 **Decisions:**
 - ✅ 30 mins total session time
@@ -57,13 +55,18 @@ MVP launch readiness checklist:
 - ✅ 24-hour dismissal cooldown
 - ✅ Soft limit (dismissable, not blocking)
 
-**Files:**
-- `src/components/modals/upgrade-modal.tsx` (fix link)
-- `src/components/mind-map/react-flow-area.tsx` (add triggers)
-- `src/components/dashboard/settings-panel.tsx` (line 356)
-- `src/hooks/use-feature-gate.ts` (wire showUpgradePrompt)
+**Files created:**
+- `src/hooks/subscription/use-session-time.ts` (session tracking)
+- `src/hooks/subscription/use-upgrade-prompt.ts` (trigger logic)
 
-**Effort:** 3-4 hours | **Risk:** Low (modal exists, just needs wiring)
+**Files modified:**
+- `src/components/modals/upgrade-modal.tsx` (multi-step with payment)
+- `src/components/mind-map/react-flow-area.tsx` (time trigger)
+- `src/components/dashboard/settings-panel.tsx` (upgrade button)
+- `src/hooks/subscription/use-feature-gate.ts` (showUpgradePrompt + useShallow)
+- `src/components/onboarding/steps/payment-step.tsx` (export PaymentForm)
+
+**Status:** ✅ MOSTLY COMPLETE (limit-based trigger needs integration point)
 
 ---
 

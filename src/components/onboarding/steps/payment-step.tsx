@@ -15,19 +15,24 @@ import { AlertCircle, CreditCard, Lock } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 
-interface PaymentStepProps {
+interface PaymentFormProps {
 	onComplete: () => void;
-	onBack: () => void;
+	onBack?: () => void;
 	selectedPlan: 'pro';
 	billingCycle: 'monthly' | 'yearly';
+	showBackButton?: boolean;
 }
 
-// Stripe configuration
-const stripePromise = loadStripe(
+interface PaymentStepProps extends PaymentFormProps {
+	onBack: () => void; // Required for PaymentStep (onboarding flow)
+}
+
+// Stripe configuration - exported for reuse in UpgradeModal
+export const stripePromise = loadStripe(
 	process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 );
 
-const CARD_ELEMENT_OPTIONS = {
+export const CARD_ELEMENT_OPTIONS = {
 	style: {
 		base: {
 			color: 'rgba(255, 255, 255, 0.87)', // text-text-primary
@@ -45,12 +50,13 @@ const CARD_ELEMENT_OPTIONS = {
 	},
 };
 
-function PaymentForm({
+export function PaymentForm({
 	onComplete,
 	onBack,
 	selectedPlan,
 	billingCycle,
-}: PaymentStepProps) {
+	showBackButton = true,
+}: PaymentFormProps) {
 	const stripe = useStripe();
 	const elements = useElements();
 	const [email, setEmail] = useState('');
@@ -254,16 +260,18 @@ function PaymentForm({
 				</motion.div>
 			)}
 
-			<div className='flex items-center justify-between pt-4'>
-				<Button
-					className='text-text-secondary hover:text-text-primary transition-colors duration-200'
-					disabled={isProcessing || succeeded}
-					onClick={onBack}
-					type='button'
-					variant='ghost'
-				>
-					Back
-				</Button>
+			<div className={`flex items-center pt-4 ${showBackButton ? 'justify-between' : 'justify-end'}`}>
+				{showBackButton && onBack && (
+					<Button
+						className='text-text-secondary hover:text-text-primary transition-colors duration-200'
+						disabled={isProcessing || succeeded}
+						onClick={onBack}
+						type='button'
+						variant='ghost'
+					>
+						Back
+					</Button>
+				)}
 
 				<Button
 					className={`font-semibold px-8 bg-primary-600 hover:bg-primary-500 text-base transition-all duration-200 ${!stripe || isProcessing || succeeded ? 'opacity-50' : 'hover:-translate-y-0.5'}`}

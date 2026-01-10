@@ -93,6 +93,7 @@ export function SettingsPanel({
 		cancelSubscription,
 		isTrialing,
 		getTrialDaysRemaining,
+		setPopoverOpen,
 	} = useAppStore(
 		useShallow((state) => ({
 			userProfile: state.userProfile,
@@ -110,6 +111,7 @@ export function SettingsPanel({
 			cancelSubscription: state.cancelSubscription,
 			isTrialing: state.isTrialing,
 			getTrialDaysRemaining: state.getTrialDaysRemaining,
+			setPopoverOpen: state.setPopoverOpen,
 		}))
 	);
 
@@ -353,8 +355,7 @@ export function SettingsPanel({
 	};
 
 	const handleUpgrade = () => {
-		// TODO: Implement upgrade flow with Stripe
-		toast.info('Upgrade flow coming soon!');
+		setPopoverOpen({ upgradeUser: true });
 	};
 
 	const handleDownloadInvoice = async (payment: PaymentHistoryItem) => {
