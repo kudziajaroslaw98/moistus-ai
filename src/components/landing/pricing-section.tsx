@@ -67,7 +67,7 @@ export function PricingSection() {
 								ease: EASE_OUT_QUART,
 								delay: index * 0.15,
 							}}
-							className={`relative rounded-xl p-6 border ${
+							className={`relative rounded-xl p-6 border flex flex-col ${
 								tier.recommended
 									? 'bg-elevated border-primary-500/50 shadow-[0_0_20px_rgba(96,165,250,0.15)]'
 									: 'bg-surface border-border-subtle'
@@ -98,11 +98,16 @@ export function PricingSection() {
 									</span>
 									<span className="text-text-secondary">/month</span>
 								</div>
-								{billingCycle === 'yearly' && tier.yearlyPrice > 0 && (
-									<p className="text-sm mt-1 text-text-tertiary">
-										${tier.yearlyPrice} billed annually
-									</p>
-								)}
+								{/* Reserve space to prevent layout shift on toggle */}
+								<p
+									className={`text-sm mt-1 h-5 ${
+										billingCycle === 'yearly' && tier.yearlyPrice > 0
+											? 'text-text-tertiary'
+											: 'invisible'
+									}`}
+								>
+									${tier.yearlyPrice} billed annually
+								</p>
 							</div>
 
 							<div className="space-y-3 mb-6">
@@ -122,7 +127,7 @@ export function PricingSection() {
 
 							<a
 								href={tier.id === 'free' ? '/try' : '/signup?plan=pro'}
-								className={`w-full inline-flex items-center justify-center h-10 px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+								className={`mt-auto w-full inline-flex items-center justify-center h-10 px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
 									tier.recommended
 										? 'bg-primary-600 hover:bg-primary-500 text-white'
 										: 'bg-elevated hover:bg-overlay text-text-primary'
