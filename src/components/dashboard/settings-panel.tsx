@@ -500,7 +500,7 @@ export function SettingsPanel({
 					) : (
 						<>
 							{/* SETTINGS TAB */}
-							<TabsContent value='settings' className='space-y-6 mt-0'>
+							<TabsContent value='settings' className='space-y-8 mt-0'>
 								{/* Profile Section */}
 								<motion.section
 									animate={{ opacity: 1, y: 0 }}
@@ -511,9 +511,9 @@ export function SettingsPanel({
 									<h3 className='text-lg font-semibold text-text-primary flex items-center gap-2'>
 										<User className='size-5 text-primary' /> Profile
 									</h3>
-									<div className='space-y-4 bg-surface rounded-lg p-4 border border-border-subtle'>
+									<div className='space-y-4'>
 										{/* Avatar - Generated from user ID */}
-										<div className='flex items-center gap-6 pb-4 border-b border-border-subtle'>
+										<div className='flex items-center gap-6'>
 											<UserAvatar size='2xl' user={userProfile} />
 											<div className='space-y-1'>
 												<p className='text-sm font-medium text-text-primary'>
@@ -563,6 +563,8 @@ export function SettingsPanel({
 									</div>
 								</motion.section>
 
+								<Separator className='bg-border-subtle/50' />
+
 								{/* Privacy Section */}
 								<motion.section
 									animate={{ opacity: 1, y: 0 }}
@@ -573,36 +575,36 @@ export function SettingsPanel({
 									<h3 className='text-lg font-semibold text-text-primary flex items-center gap-2'>
 										<Shield className='size-5 text-primary' /> Privacy
 									</h3>
-									<div className='space-y-4 bg-surface rounded-lg p-4 border border-border-subtle'>
-										<div className='space-y-2'>
-											<Label>Profile visibility</Label>
-											<Select
-												value={formData.preferences.privacy.profile_visibility}
-												onValueChange={(value) =>
-													updateNestedFormData('preferences', 'privacy', {
-														...formData.preferences.privacy,
-														profile_visibility: value,
-													})
-												}
-											>
-												<SelectTrigger>
-													<SelectValue />
-												</SelectTrigger>
-												<SelectContent>
-													<SelectItem value='public'>
-														Public - Anyone can see your profile
-													</SelectItem>
-													<SelectItem value='connections'>
-														Connections only
-													</SelectItem>
-													<SelectItem value='private'>
-														Private - Only you can see your profile
-													</SelectItem>
-												</SelectContent>
-											</Select>
-										</div>
+									<div className='space-y-2'>
+										<Label>Profile visibility</Label>
+										<Select
+											value={formData.preferences.privacy.profile_visibility}
+											onValueChange={(value) =>
+												updateNestedFormData('preferences', 'privacy', {
+													...formData.preferences.privacy,
+													profile_visibility: value,
+												})
+											}
+										>
+											<SelectTrigger>
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value='public'>
+													Public - Anyone can see your profile
+												</SelectItem>
+												<SelectItem value='connections'>
+													Connections only
+												</SelectItem>
+												<SelectItem value='private'>
+													Private - Only you can see your profile
+												</SelectItem>
+											</SelectContent>
+										</Select>
 									</div>
 								</motion.section>
+
+								<Separator className='bg-border-subtle/50' />
 
 								{/* Appearance Section */}
 								<motion.section
@@ -614,7 +616,7 @@ export function SettingsPanel({
 									<h3 className='text-lg font-semibold text-text-primary flex items-center gap-2'>
 										<Palette className='size-5 text-primary' /> Appearance
 									</h3>
-									<div className='space-y-4 bg-surface rounded-lg p-4 border border-border-subtle'>
+									<div className='space-y-4'>
 										<div className='space-y-2'>
 											<Label>Theme</Label>
 											<Select
@@ -662,6 +664,8 @@ export function SettingsPanel({
 									</div>
 								</motion.section>
 
+								<Separator className='bg-border-subtle/50' />
+
 								{/* Editor Section */}
 								<motion.section
 									animate={{ opacity: 1, y: 0 }}
@@ -672,27 +676,26 @@ export function SettingsPanel({
 									<h3 className='text-lg font-semibold text-text-primary flex items-center gap-2'>
 										<PenTool className='size-5 text-primary' /> Editor
 									</h3>
-									<div className='space-y-4 bg-surface rounded-lg p-4 border border-border-subtle'>
-										<div className='space-y-2'>
-											<Label>Default Node Type</Label>
-											<p className='text-xs text-text-secondary'>
-												The default type for new nodes when using the node
-												editor
-											</p>
-											<NodeTypeSelector
-												disabled={isSaving || isLoadingProfile}
-												value={formData.preferences.defaultNodeType}
-												onChange={(value) =>
-													updateNestedFormData(
-														'preferences',
-														'defaultNodeType',
-														value
-													)
-												}
-											/>
-										</div>
+									<div className='space-y-2'>
+										<Label>Default Node Type</Label>
+										<p className='text-xs text-text-secondary'>
+											The default type for new nodes when using the node editor
+										</p>
+										<NodeTypeSelector
+											disabled={isSaving || isLoadingProfile}
+											value={formData.preferences.defaultNodeType}
+											onChange={(value) =>
+												updateNestedFormData(
+													'preferences',
+													'defaultNodeType',
+													value
+												)
+											}
+										/>
 									</div>
 								</motion.section>
+
+								<Separator className='bg-border-subtle/50' />
 
 								{/* Security Section */}
 								<motion.section
@@ -704,7 +707,7 @@ export function SettingsPanel({
 									<h3 className='text-lg font-semibold text-text-primary flex items-center gap-2'>
 										<Shield className='size-5 text-primary' /> Security
 									</h3>
-									<div className='space-y-4 bg-surface rounded-lg p-4 border border-border-subtle'>
+									<div className='space-y-4'>
 										<div className='flex items-center justify-between p-3 bg-base rounded-lg border border-border-subtle'>
 											<div>
 												<Label>Change Password</Label>
@@ -729,8 +732,6 @@ export function SettingsPanel({
 											</Button>
 										</div>
 
-										<Separator className='bg-border-subtle' />
-
 										<div className='flex items-center justify-between p-3 bg-error-900/10 rounded-lg border border-error-900/20'>
 											<div>
 												<Label className='text-error-500'>Delete Account</Label>
@@ -752,7 +753,7 @@ export function SettingsPanel({
 							</TabsContent>
 
 							{/* BILLING TAB */}
-							<TabsContent value='billing' className='space-y-6 mt-0'>
+							<TabsContent value='billing' className='space-y-8 mt-0'>
 								{isLoadingSubscription ? (
 									<div className='flex items-center justify-center py-12'>
 										<div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary' />
@@ -770,7 +771,7 @@ export function SettingsPanel({
 												<Star className='size-5 text-primary' />
 												Current Plan
 											</h3>
-											<div className='space-y-4 bg-surface rounded-lg p-4 border border-border-subtle'>
+											<div className='space-y-4'>
 												<div className='flex items-center justify-between'>
 													<div className='flex items-center gap-4'>
 														<div>
@@ -809,7 +810,6 @@ export function SettingsPanel({
 
 												{currentSubscription && (
 													<>
-														<Separator className='bg-border-subtle' />
 														<div className='grid grid-cols-1 md:grid-cols-2 gap-4 text-sm'>
 															<div>
 																<span className='text-text-secondary'>
@@ -869,6 +869,8 @@ export function SettingsPanel({
 											</div>
 										</motion.section>
 
+										<Separator className='bg-border-subtle/50' />
+
 										{/* Trial Indicator */}
 										{isTrialing() && (
 											<motion.div
@@ -922,13 +924,13 @@ export function SettingsPanel({
 													</span>
 												)}
 											</div>
-											<div className='space-y-6 bg-surface rounded-lg p-4 border border-border-subtle'>
+											<div className='space-y-4'>
 												{isLoadingUsage ? (
 													<div className='flex items-center justify-center py-8'>
 														<div className='animate-spin rounded-full h-6 w-6 border-b-2 border-primary' />
 													</div>
 												) : usage ? (
-													<div className='space-y-4'>
+													<>
 														<div>
 															<div className='flex items-center justify-between mb-2'>
 																<span className='text-text-primary'>
@@ -1015,7 +1017,7 @@ export function SettingsPanel({
 																	/>
 																)}
 														</div>
-													</div>
+													</>
 												) : (
 													<div className='text-center py-6 text-text-secondary'>
 														<BarChart3 className='size-8 mx-auto mb-2 opacity-50' />
@@ -1024,6 +1026,8 @@ export function SettingsPanel({
 												)}
 											</div>
 										</motion.section>
+
+										<Separator className='bg-border-subtle/50' />
 
 										{/* Billing History */}
 										{!isLoadingPayments && (
@@ -1037,7 +1041,7 @@ export function SettingsPanel({
 													<Calendar className='size-5 text-primary' />
 													Billing History
 												</h3>
-												<div className='space-y-4 bg-surface rounded-lg p-4 border border-border-subtle'>
+												<div className='space-y-4'>
 													{paymentHistory.length === 0 ? (
 														<div className='py-8 text-center'>
 															<Calendar className='size-8 mx-auto mb-3 text-text-secondary opacity-50' />
@@ -1140,6 +1144,8 @@ export function SettingsPanel({
 											</motion.section>
 										)}
 
+										<Separator className='bg-border-subtle/50' />
+
 										{/* Manage Billing */}
 										{currentSubscription && (
 											<motion.section
@@ -1148,7 +1154,7 @@ export function SettingsPanel({
 												initial={{ opacity: 0, y: 10 }}
 												transition={{ delay: 0.25, duration: 0.3 }}
 											>
-												<div className='bg-surface rounded-lg p-4 border border-border-subtle'>
+												<div>
 													<Button
 														className='w-full'
 														variant='outline'
@@ -1179,16 +1185,17 @@ export function SettingsPanel({
 										{currentSubscription &&
 											currentSubscription.status === 'active' &&
 											!currentSubscription.cancelAtPeriodEnd && (
-												<motion.section
-													animate={{ opacity: 1, y: 0 }}
-													className='space-y-4'
-													initial={{ opacity: 0, y: 10 }}
-													transition={{ delay: 0.3, duration: 0.3 }}
-												>
-													<h3 className='text-lg font-semibold text-error-500'>
-														Cancel Subscription
-													</h3>
-													<div className='bg-surface rounded-lg p-4 border border-border-subtle'>
+												<>
+													<Separator className='bg-border-subtle/50' />
+													<motion.section
+														animate={{ opacity: 1, y: 0 }}
+														className='space-y-4'
+														initial={{ opacity: 0, y: 10 }}
+														transition={{ delay: 0.3, duration: 0.3 }}
+													>
+														<h3 className='text-lg font-semibold text-error-500'>
+															Cancel Subscription
+														</h3>
 														<div className='flex items-center justify-between p-4 bg-error-950/20 rounded-lg border border-error-800/30'>
 															<div>
 																<p className='text-error-200 font-medium'>
@@ -1210,8 +1217,8 @@ export function SettingsPanel({
 																	: 'Cancel Subscription'}
 															</Button>
 														</div>
-													</div>
-												</motion.section>
+													</motion.section>
+												</>
 											)}
 									</>
 								)}
