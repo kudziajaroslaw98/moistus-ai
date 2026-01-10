@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useInView } from 'motion/react';
+import { motion, useInView, useReducedMotion } from 'motion/react';
 import { useRef } from 'react';
 import { Brain, Users, Zap } from 'lucide-react';
 
@@ -50,6 +50,7 @@ function FeatureBlock({
 }) {
 	const ref = useRef<HTMLDivElement>(null);
 	const isInView = useInView(ref, { once: true, margin: '-20% 0px' });
+	const shouldReduceMotion = useReducedMotion() ?? false;
 	const isEven = index % 2 === 0;
 	const Icon = feature.icon;
 
@@ -62,9 +63,9 @@ function FeatureBlock({
 		>
 			{/* Text */}
 			<motion.div
-				initial={{ opacity: 0, x: isEven ? -20 : 20 }}
+				initial={shouldReduceMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: isEven ? -20 : 20 }}
 				animate={isInView ? { opacity: 1, x: 0 } : {}}
-				transition={{ duration: 0.3, ease: EASE_OUT_QUART }}
+				transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.3, ease: EASE_OUT_QUART }}
 				className={`${isEven ? '' : 'md:order-2'} md:direction-ltr`}
 			>
 				<div className="flex items-center gap-3 mb-4">
@@ -85,9 +86,13 @@ function FeatureBlock({
 
 			{/* Image placeholder */}
 			<motion.div
-				initial={{ opacity: 0, x: isEven ? 20 : -20 }}
+				initial={shouldReduceMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: isEven ? 20 : -20 }}
 				animate={isInView ? { opacity: 1, x: 0 } : {}}
-				transition={{ duration: 0.3, ease: EASE_OUT_QUART, delay: 0.1 }}
+				transition={
+					shouldReduceMotion
+						? { duration: 0 }
+						: { duration: 0.3, ease: EASE_OUT_QUART, delay: 0.1 }
+				}
 				className={`${isEven ? '' : 'md:order-1'} md:direction-ltr`}
 			>
 				<div

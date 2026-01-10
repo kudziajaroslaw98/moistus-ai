@@ -2,12 +2,14 @@
 
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/utils/cn';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { ChevronDown, Sparkles } from 'lucide-react';
 
 const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
 
 export function HeroSection() {
+	const shouldReduceMotion = useReducedMotion() ?? false;
+
 	const scrollToFeatures = () => {
 		document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
 	};
@@ -17,9 +19,9 @@ export function HeroSection() {
 			<div className="max-w-4xl mx-auto text-center">
 				{/* Badge */}
 				<motion.div
-					initial={{ opacity: 0, y: 20 }}
+					initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
-					transition={{ duration: 0.25, ease: EASE_OUT_QUART }}
+					transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.25, ease: EASE_OUT_QUART }}
 					className="mb-6"
 				>
 					<span className="inline-flex items-center gap-2 rounded-full bg-primary-500/10 px-4 py-2 text-sm font-medium text-primary-400 ring-1 ring-inset ring-primary-500/20 backdrop-blur-sm">
@@ -30,9 +32,9 @@ export function HeroSection() {
 
 				{/* Headline */}
 				<motion.h1
-					initial={{ opacity: 0, y: 20 }}
+					initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
-					transition={{ duration: 0.25, ease: EASE_OUT_QUART, delay: 0.1 }}
+					transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.25, ease: EASE_OUT_QUART, delay: 0.1 }}
 					className="text-4xl font-bold tracking-tight text-text-primary sm:text-5xl md:text-6xl"
 				>
 					<span className="block">
@@ -45,9 +47,9 @@ export function HeroSection() {
 
 				{/* Subheadline */}
 				<motion.p
-					initial={{ opacity: 0, y: 20 }}
+					initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
-					transition={{ duration: 0.25, ease: EASE_OUT_QUART, delay: 0.2 }}
+					transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.25, ease: EASE_OUT_QUART, delay: 0.2 }}
 					className="mt-6 text-lg leading-relaxed text-text-secondary max-w-2xl mx-auto"
 				>
 					The mind mapping tool for power users. AI-native suggestions,
@@ -57,9 +59,9 @@ export function HeroSection() {
 
 				{/* CTAs */}
 				<motion.div
-					initial={{ opacity: 0, y: 20 }}
+					initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
-					transition={{ duration: 0.25, ease: EASE_OUT_QUART, delay: 0.3 }}
+					transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.25, ease: EASE_OUT_QUART, delay: 0.3 }}
 					className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
 				>
 					<a
@@ -85,17 +87,21 @@ export function HeroSection() {
 
 			{/* Scroll indicator */}
 			<motion.div
-				initial={{ opacity: 0 }}
+				initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }}
 				animate={{ opacity: 1 }}
-				transition={{ duration: 0.25, ease: EASE_OUT_QUART, delay: 0.5 }}
+				transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.25, ease: EASE_OUT_QUART, delay: 0.5 }}
 				className="absolute bottom-8 left-1/2 -translate-x-1/2"
 			>
-				<motion.div
-					animate={{ y: [0, 8, 0] }}
-					transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-				>
+				{shouldReduceMotion ? (
 					<ChevronDown className="h-6 w-6 text-text-tertiary" />
-				</motion.div>
+				) : (
+					<motion.div
+						animate={{ y: [0, 8, 0] }}
+						transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+					>
+						<ChevronDown className="h-6 w-6 text-text-tertiary" />
+					</motion.div>
+				)}
 			</motion.div>
 		</section>
 	);

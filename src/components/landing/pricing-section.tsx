@@ -1,7 +1,7 @@
 'use client';
 
 import { PRICING_TIERS } from '@/constants/pricing-tiers';
-import { motion, useInView } from 'motion/react';
+import { motion, useInView, useReducedMotion } from 'motion/react';
 import { useRef, useState } from 'react';
 import { Check, X } from 'lucide-react';
 
@@ -10,6 +10,7 @@ const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
 export function PricingSection() {
 	const ref = useRef<HTMLElement>(null);
 	const isInView = useInView(ref, { once: true, margin: '-20% 0px' });
+	const shouldReduceMotion = useReducedMotion() ?? false;
 	const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
 
 	return (
@@ -17,9 +18,9 @@ export function PricingSection() {
 			<div className="max-w-4xl mx-auto">
 				{/* Header */}
 				<motion.div
-					initial={{ opacity: 0, y: 20 }}
+					initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
 					animate={isInView ? { opacity: 1, y: 0 } : {}}
-					transition={{ duration: 0.3, ease: EASE_OUT_QUART }}
+					transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.3, ease: EASE_OUT_QUART }}
 					className="text-center mb-12"
 				>
 					<h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">
@@ -60,13 +61,13 @@ export function PricingSection() {
 					{PRICING_TIERS.map((tier, index) => (
 						<motion.div
 							key={tier.id}
-							initial={{ opacity: 0, y: 20 }}
+							initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
 							animate={isInView ? { opacity: 1, y: 0 } : {}}
-							transition={{
-								duration: 0.3,
-								ease: EASE_OUT_QUART,
-								delay: index * 0.15,
-							}}
+							transition={
+								shouldReduceMotion
+									? { duration: 0 }
+									: { duration: 0.3, ease: EASE_OUT_QUART, delay: index * 0.15 }
+							}
 							className={`relative rounded-xl p-6 border flex flex-col ${
 								tier.recommended
 									? 'bg-elevated border-primary-500/50 shadow-[0_0_20px_rgba(96,165,250,0.15)]'

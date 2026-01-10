@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useInView } from 'motion/react';
+import { motion, useInView, useReducedMotion } from 'motion/react';
 import { useRef } from 'react';
 import { PlusCircle, Keyboard, Sparkles } from 'lucide-react';
 
@@ -30,15 +30,16 @@ const steps = [
 export function HowItWorks() {
 	const ref = useRef<HTMLElement>(null);
 	const isInView = useInView(ref, { once: true, margin: '-20% 0px' });
+	const shouldReduceMotion = useReducedMotion() ?? false;
 
 	return (
 		<section ref={ref} className="py-24 px-4 sm:px-6 lg:px-8 bg-surface/30">
 			<div className="max-w-5xl mx-auto">
 				{/* Header */}
 				<motion.div
-					initial={{ opacity: 0, y: 20 }}
+					initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
 					animate={isInView ? { opacity: 1, y: 0 } : {}}
-					transition={{ duration: 0.3, ease: EASE_OUT_QUART }}
+					transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.3, ease: EASE_OUT_QUART }}
 					className="text-center mb-16"
 				>
 					<h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">
@@ -60,13 +61,13 @@ export function HowItWorks() {
 							return (
 								<motion.div
 									key={step.title}
-									initial={{ opacity: 0, y: 20 }}
+									initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
 									animate={isInView ? { opacity: 1, y: 0 } : {}}
-									transition={{
-										duration: 0.3,
-										ease: EASE_OUT_QUART,
-										delay: index * 0.15,
-									}}
+									transition={
+										shouldReduceMotion
+											? { duration: 0 }
+											: { duration: 0.3, ease: EASE_OUT_QUART, delay: index * 0.15 }
+									}
 									className="relative text-center"
 								>
 									{/* Step number + icon */}

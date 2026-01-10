@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useInView, AnimatePresence } from 'motion/react';
+import { motion, useInView, AnimatePresence, useReducedMotion } from 'motion/react';
 import { useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 
@@ -38,22 +38,24 @@ function FaqItem({
 	faq,
 	index,
 	isInView,
+	shouldReduceMotion,
 }: {
 	faq: (typeof faqs)[0];
 	index: number;
 	isInView: boolean;
+	shouldReduceMotion: boolean;
 }) {
 	const [isOpen, setIsOpen] = useState(false);
 
 	return (
 		<motion.div
-			initial={{ opacity: 0, y: 10 }}
+			initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
 			animate={isInView ? { opacity: 1, y: 0 } : {}}
-			transition={{
-				duration: 0.3,
-				ease: EASE_OUT_QUART,
-				delay: index * 0.1,
-			}}
+			transition={
+				shouldReduceMotion
+					? { duration: 0 }
+					: { duration: 0.3, ease: EASE_OUT_QUART, delay: index * 0.1 }
+			}
 			className="border-b border-border-subtle last:border-b-0"
 		>
 			<button
@@ -65,8 +67,8 @@ function FaqItem({
 					{faq.question}
 				</span>
 				<motion.div
-					animate={{ rotate: isOpen ? 180 : 0 }}
-					transition={{ duration: 0.2 }}
+					animate={{ rotate: shouldReduceMotion ? 0 : isOpen ? 180 : 0 }}
+					transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
 				>
 					<ChevronDown className="h-5 w-5 text-text-tertiary" />
 				</motion.div>
@@ -74,10 +76,10 @@ function FaqItem({
 			<AnimatePresence>
 				{isOpen && (
 					<motion.div
-						initial={{ height: 0, opacity: 0 }}
-						animate={{ height: 'auto', opacity: 1 }}
-						exit={{ height: 0, opacity: 0 }}
-						transition={{ duration: 0.2, ease: EASE_OUT_QUART }}
+						initial={shouldReduceMotion ? { opacity: 1 } : { height: 0, opacity: 0 }}
+						animate={shouldReduceMotion ? { opacity: 1 } : { height: 'auto', opacity: 1 }}
+						exit={shouldReduceMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+						transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.2, ease: EASE_OUT_QUART }}
 						className="overflow-hidden"
 					>
 						<p className="pb-5 text-text-secondary leading-relaxed">
@@ -93,15 +95,16 @@ function FaqItem({
 export function FaqSection() {
 	const ref = useRef<HTMLElement>(null);
 	const isInView = useInView(ref, { once: true, margin: '-20% 0px' });
+	const shouldReduceMotion = useReducedMotion() ?? false;
 
 	return (
 		<section ref={ref} className="py-24 px-4 sm:px-6 lg:px-8 bg-surface/30">
 			<div className="max-w-2xl mx-auto">
 				{/* Header */}
 				<motion.div
-					initial={{ opacity: 0, y: 20 }}
+					initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
 					animate={isInView ? { opacity: 1, y: 0 } : {}}
-					transition={{ duration: 0.3, ease: EASE_OUT_QUART }}
+					transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.3, ease: EASE_OUT_QUART }}
 					className="text-center mb-12"
 				>
 					<h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">
@@ -118,7 +121,13 @@ export function FaqSection() {
 					}}
 				>
 					{faqs.map((faq, index) => (
-						<FaqItem key={faq.question} faq={faq} index={index} isInView={isInView} />
+						<FaqItem
+							key={faq.question}
+							faq={faq}
+							index={index}
+							isInView={isInView}
+							shouldReduceMotion={shouldReduceMotion}
+						/>
 					))}
 				</div>
 			</div>
