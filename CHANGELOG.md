@@ -5,6 +5,23 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-01-10]
+
+### Refactored
+- **ui/components**: Complete migration from Radix UI to Base UI 1.0.0 stable
+  - Why: Unified headless library with smaller bundle, consistent API patterns
+  - Migrated 16 components: Tooltip, Separator, Progress, Avatar, Popover, Toggle, HoverCard→PreviewCard, ScrollArea, Tabs, ToggleGroup, Dialog, Sheet, Breadcrumb, Select, DropdownMenu→Menu, Badge
+  - Custom Slot implementations replace @radix-ui/react-slot
+  - Backwards-compatible: asChild→render prop, data-[state=*]→data-[*]
+
+### Removed
+- **deps**: All 14 @radix-ui/* packages (53 transitive deps total)
+  - Why: Replaced by @base-ui/react single package
+- **ui/radio-group**: Deleted unused component (0 consuming files)
+  - Why: No usages found in codebase
+
+---
+
 ## [2026-01-06]
 
 ### Fixed

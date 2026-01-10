@@ -198,7 +198,8 @@ Guideline @./animation-guidelines.md
 - `sharing/` - Share panel, room codes, join room, permissions
 - `subscription/` - Subscription UI components
 - `toolbar/` - Main canvas toolbar
-- `ui/` - 42 UI primitives (15 Radix-based, 1 Base UI, 26 custom)
+- `ui/` - 42 UI primitives (16 Base UI components, 26 custom)
+<!-- Updated: 2026-01-10 - Migrated all Radix UI to Base UI -->
 - `waitlist/` - Landing page components (hero, form, features)
 
 ### API Routes
@@ -310,7 +311,7 @@ Guideline @./animation-guidelines.md
 
 **Animations**: Motion (motion/react) • 60fps smooth • Spring physics • Stagger lists • Exit animations • Reduced motion support
 
-**Styling**: Tailwind + custom variants • Components in `src/components/ui/` • Themes distributed (glassmorphism-theme, metadata-theme) • Radix UI primitives • CSS variables • Focus-visible states
+**Styling**: Tailwind + custom variants • Components in `src/components/ui/` • Themes distributed (glassmorphism-theme, metadata-theme) • Base UI headless primitives • CSS variables • Focus-visible states
 
 **Testing**: Jest + React Testing Library (unit) • Playwright (E2E) • **149+ unit tests, 44 E2E tests (×3 browsers = 132 total) + 10 skipped placeholders** • Co-located tests (`*.test.tsx` next to components) • Mock Zustand stores in tests • 70% coverage target on critical paths
 <!-- Updated: 2025-12-31 - Added 10 skipped placeholder tests for permission gaps (see e2e/E2E_TEST_GAPS.md) -->
