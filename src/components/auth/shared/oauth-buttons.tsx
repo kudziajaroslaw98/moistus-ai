@@ -89,11 +89,11 @@ export function OAuthDivider({
 }: OAuthDividerProps) {
 	return (
 		<div className='flex items-center gap-3'>
-			<div className='flex-1 h-px bg-border-secondary' />
+			<div className='flex-1 h-px bg-white/10' />
 			<span className='text-xs text-text-tertiary whitespace-nowrap'>
 				{text}
 			</span>
-			<div className='flex-1 h-px bg-border-secondary' />
+			<div className='flex-1 h-px bg-white/10' />
 		</div>
 	);
 }
