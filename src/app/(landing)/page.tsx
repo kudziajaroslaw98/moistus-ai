@@ -1,14 +1,12 @@
+import { FaqSection } from '@/components/landing/faq-section';
+import { FeaturesSection } from '@/components/landing/features-section';
+import { FinalCta } from '@/components/landing/final-cta';
+import { HeroSection } from '@/components/landing/hero-section';
+import { HowItWorks } from '@/components/landing/how-it-works';
+import { PricingSection } from '@/components/landing/pricing-section';
+import { ProblemSolution } from '@/components/landing/problem-solution';
 import BackgroundEffects from '@/components/waitlist/background-effects';
 import MinimalFooter from '@/components/waitlist/minimal-footer';
-import {
-	HeroSection,
-	ProblemSolution,
-	FeaturesSection,
-	HowItWorks,
-	PricingSection,
-	FaqSection,
-	FinalCta,
-} from '@/components/landing';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
