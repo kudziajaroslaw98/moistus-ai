@@ -2,12 +2,50 @@
 
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
 import { XIcon } from 'lucide-react';
-import type { ComponentProps } from 'react';
+import { createContext, useCallback, useContext, type ComponentProps } from 'react';
 
 import { cn } from '@/lib/utils';
 
-function Dialog({ ...props }: ComponentProps<typeof BaseDialog.Root>) {
-	return <BaseDialog.Root data-slot='dialog' {...props} />;
+// Context to pass dismissible state from Dialog to DialogContent for backdrop rendering
+interface DialogContextValue {
+	dismissible: boolean;
+}
+const DialogContext = createContext<DialogContextValue>({ dismissible: true });
+
+interface DialogProps extends ComponentProps<typeof BaseDialog.Root> {
+	/**
+	 * Whether clicking outside the dialog or pressing Escape dismisses it.
+	 * When false, only programmatic close (via onOpenChange) will work.
+	 * @default true
+	 */
+	dismissible?: boolean;
+}
+
+function Dialog({ dismissible = true, onOpenChange, ...props }: DialogProps) {
+	// Intercept onOpenChange to prevent closing when not dismissible
+	const handleOpenChange = useCallback(
+		(
+			open: boolean,
+			eventDetails: Parameters<NonNullable<ComponentProps<typeof BaseDialog.Root>['onOpenChange']>>[1]
+		) => {
+			// If trying to close and not dismissible, check the reason
+			if (!open && !dismissible) {
+				// Block backdrop clicks and escape key when not dismissible
+				const reason = eventDetails.reason;
+				if (reason === 'outside-press' || reason === 'escape-key') {
+					return; // Don't call onOpenChange, preventing close
+				}
+			}
+			onOpenChange?.(open, eventDetails);
+		},
+		[dismissible, onOpenChange]
+	);
+
+	return (
+		<DialogContext.Provider value={{ dismissible }}>
+			<BaseDialog.Root data-slot='dialog' onOpenChange={handleOpenChange} {...props} />
+		</DialogContext.Provider>
+	);
 }
 
 function DialogTrigger({
@@ -53,6 +91,7 @@ interface DialogContentProps extends ComponentProps<typeof BaseDialog.Popup> {
 	/**
 	 * Whether clicking outside the dialog dismisses it.
 	 * @default true
+	 * @deprecated Pass `dismissible` to the Dialog component instead for proper dismissal handling.
 	 */
 	dismissible?: boolean;
 }
@@ -61,24 +100,17 @@ function DialogContent({
 	className,
 	children,
 	showCloseButton = true,
-	dismissible = true,
+	dismissible: dismissibleProp,
 	...props
 }: DialogContentProps) {
+	// Use context value from Dialog, fall back to prop for backwards compatibility
+	const { dismissible: contextDismissible } = useContext(DialogContext);
+	const dismissible = dismissibleProp ?? contextDismissible;
+
 	return (
 		<DialogPortal data-slot='dialog-portal'>
-			{dismissible ? (
-				<DialogOverlay />
-			) : (
-				// Non-interactive backdrop that doesn't trigger dialog close
-				<div
-					data-slot='dialog-overlay'
-					className='data-[open]:animate-in data-[closed]:animate-out data-[closed]:fade-out-0 data-[open]:fade-in-0 fixed inset-0 z-50 backdrop-blur-sm'
-					style={{
-						backgroundColor: 'rgba(0, 0, 0, 0.5)',
-						backdropFilter: 'blur(12px)',
-					}}
-				/>
-			)}
+			{/* Always render DialogOverlay - dismissal is controlled by BaseDialog.Root's dismissible prop */}
+			<DialogOverlay />
 
 			<DialogTitle data-slot='dialog-title'></DialogTitle>
 

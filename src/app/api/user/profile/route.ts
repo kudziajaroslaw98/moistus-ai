@@ -143,8 +143,21 @@ export async function PUT(request: Request) {
 		if (profileData.bio !== undefined) {
 			updateData.bio = profileData.bio;
 		}
+
+		// Merge preferences with existing ones to preserve keys not sent
 		if (profileData.preferences !== undefined) {
-			updateData.preferences = profileData.preferences;
+			// Fetch existing profile to get current preferences
+			const { data: existingProfile } = await supabase
+				.from('user_profiles')
+				.select('preferences')
+				.eq('user_id', user.id)
+				.single();
+
+			const existingPreferences = (existingProfile?.preferences as Record<string, unknown>) ?? {};
+			updateData.preferences = {
+				...existingPreferences,
+				...profileData.preferences,
+			};
 		}
 
 		// Nothing to update

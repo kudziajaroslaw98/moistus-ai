@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 import { Elements } from '@stripe/react-stripe-js';
 import { ArrowLeft, Crown, Infinity as InfinityIcon, Sparkles, Zap } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface UpgradeModalProps {
 	open: boolean;
@@ -50,13 +50,13 @@ const transition = {
 	ease: [0.215, 0.61, 0.355, 1] as const, // ease-out-cubic
 };
 
-// Billing cycle toggle button styles
+// Billing cycle toggle button styles (standalone, no variant prop needed)
 const cycleButtonClass = (isActive: boolean) =>
 	cn(
-		'px-4 py-2 text-sm transition-all duration-200',
+		'px-4 py-2 text-sm font-medium rounded-md border transition-all duration-200',
 		isActive
-			? 'bg-primary-600 text-white'
-			: 'bg-surface-elevated text-text-secondary hover:text-text-primary'
+			? 'bg-primary-600 text-white border-primary-600 hover:bg-primary-700'
+			: 'bg-transparent text-text-secondary border-border-default hover:text-text-primary hover:border-text-secondary'
 	);
 
 export function UpgradeModal({
@@ -68,12 +68,26 @@ export function UpgradeModal({
 	const [step, setStep] = useState<Step>('pitch');
 	const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
 	const [direction, setDirection] = useState(0);
+	const resetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	// Cleanup timeout on unmount to prevent memory leaks
+	useEffect(() => {
+		return () => {
+			if (resetTimeoutRef.current) {
+				clearTimeout(resetTimeoutRef.current);
+			}
+		};
+	}, []);
 
 	const handleMaybeLater = () => {
 		onOpenChange(false);
 		onDismiss?.();
+		// Clear any existing timeout before setting a new one
+		if (resetTimeoutRef.current) {
+			clearTimeout(resetTimeoutRef.current);
+		}
 		// Reset state for next open
-		setTimeout(() => {
+		resetTimeoutRef.current = setTimeout(() => {
 			setStep('pitch');
 			setDirection(0);
 		}, 200);
@@ -92,8 +106,12 @@ export function UpgradeModal({
 	const handlePaymentComplete = () => {
 		onOpenChange(false);
 		onSuccess?.();
+		// Clear any existing timeout before setting a new one
+		if (resetTimeoutRef.current) {
+			clearTimeout(resetTimeoutRef.current);
+		}
 		// Reset state for next open
-		setTimeout(() => {
+		resetTimeoutRef.current = setTimeout(() => {
 			setStep('pitch');
 			setDirection(0);
 		}, 200);
@@ -168,20 +186,18 @@ export function UpgradeModal({
 
 								{/* Billing Cycle Toggle */}
 								<div className='flex justify-center gap-2 pt-2'>
-									<Button
+									<button
+										type='button'
 										className={cycleButtonClass(billingCycle === 'monthly')}
 										onClick={() => setBillingCycle('monthly')}
-										size='sm'
-										variant={billingCycle === 'monthly' ? 'default' : 'outline'}
 									>
 										Monthly
-									</Button>
+									</button>
 
-									<Button
+									<button
+										type='button'
 										className={cycleButtonClass(billingCycle === 'yearly')}
 										onClick={() => setBillingCycle('yearly')}
-										size='sm'
-										variant={billingCycle === 'yearly' ? 'default' : 'outline'}
 									>
 										Yearly
 										{savings && (
@@ -189,7 +205,7 @@ export function UpgradeModal({
 												-{savings}
 											</span>
 										)}
-									</Button>
+									</button>
 								</div>
 
 								<div className='rounded-lg bg-primary-500/10 border border-primary-500/20 p-4 text-center'>

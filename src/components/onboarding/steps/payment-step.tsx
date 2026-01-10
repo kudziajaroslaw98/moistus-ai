@@ -29,9 +29,18 @@ interface PaymentStepProps extends PaymentFormProps {
 }
 
 // Stripe configuration - exported for reuse in UpgradeModal
-export const stripePromise = loadStripe(
-	process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
-);
+// Handle missing key gracefully to prevent initialization errors
+const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+
+if (!stripePublishableKey && typeof window !== 'undefined') {
+	console.warn(
+		'[Stripe] NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is not configured. Payment features will be unavailable.'
+	);
+}
+
+export const stripePromise = stripePublishableKey
+	? loadStripe(stripePublishableKey)
+	: null;
 
 export const CARD_ELEMENT_OPTIONS = {
 	style: {
