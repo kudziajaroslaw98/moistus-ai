@@ -13,6 +13,7 @@ import {
 import { loadStripe } from '@stripe/stripe-js';
 import { AlertCircle, CreditCard, Lock } from 'lucide-react';
 import { motion } from 'motion/react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 
 interface PaymentFormProps {
@@ -73,7 +74,7 @@ export function PaymentForm({
 		}
 	}, [currentUser]);
 
-	const handleSubmit = async (e: React.FormEvent) => {
+	const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 
 		if (!stripe || !elements) {

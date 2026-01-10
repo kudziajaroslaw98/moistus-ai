@@ -12,21 +12,21 @@ interface SidebarDropdownMenuProps {
 	children: ReactNode;
 	className?: string;
 	align?: 'start' | 'center' | 'end';
-	sideOffset?: number;
+	alignOffset?: number;
 }
 
 export const SidebarDropdownMenu = ({
 	children,
 	className,
 	align = 'end',
-	sideOffset = 4,
+	alignOffset = 4,
 	...props
 }: SidebarDropdownMenuProps) => {
 	return (
 		<DropdownMenuContent
 			align={align}
 			className={cn('w-48 bg-zinc-900 border-zinc-700 shadow-xl', className)}
-			sideOffset={sideOffset}
+			alignOffset={alignOffset}
 			{...props}
 		>
 			{children}

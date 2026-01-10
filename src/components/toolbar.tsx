@@ -275,7 +275,7 @@ export const Toolbar = () => {
 							{currentCursorTool.icon}
 						</Button>
 					</DropdownMenuTrigger>
-					<DropdownMenuContent align='start' side='top'>
+					<DropdownMenuContent align='start'>
 						<DropdownMenuRadioGroup
 							onValueChange={(val) => setActiveTool(val as Tool)}
 							value={activeTool}
@@ -328,7 +328,7 @@ export const Toolbar = () => {
 										{tool.icon}
 									</Button>
 								</DropdownMenuTrigger>
-								<DropdownMenuContent align='start' side='top'>
+								<DropdownMenuContent align='start'>
 									<DropdownMenuRadioGroup
 										onValueChange={(val) =>
 											handleAiFeatureSelectAndTrigger(
@@ -380,7 +380,7 @@ export const Toolbar = () => {
 										<Play className='size-4' />
 									</Button>
 								</DropdownMenuTrigger>
-								<DropdownMenuContent align='start' side='top' className='w-48'>
+								<DropdownMenuContent align='start' className='w-48'>
 									<DropdownMenuItem
 										onClick={() => startTour()}
 										disabled={nodes.length === 0}

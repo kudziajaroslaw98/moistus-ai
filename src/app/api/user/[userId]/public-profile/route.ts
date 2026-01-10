@@ -51,11 +51,11 @@ export async function GET(
 			});
 		}
 
-		// Check privacy settings
+		// Check privacy settings - default to private for security
 		const preferences = profile.preferences as {
 			privacy?: { profile_visibility?: 'public' | 'private' | 'connections' };
 		} | null;
-		const visibility = preferences?.privacy?.profile_visibility ?? 'public';
+		const visibility = preferences?.privacy?.profile_visibility ?? 'private';
 
 		// If profile is private, return minimal data
 		if (visibility === 'private') {

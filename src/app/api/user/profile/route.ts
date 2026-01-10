@@ -35,8 +35,19 @@ export async function GET() {
 			.eq('user_id', user.id)
 			.single();
 
-		// If profile not found (PGRST116), create one
-		if (fetchError?.code === 'PGRST116' || !existingProfile) {
+		// Handle fetch errors first - only PGRST116 (not found) is acceptable
+		if (fetchError) {
+			if (fetchError.code !== 'PGRST116') {
+				console.error('Error fetching profile:', fetchError);
+				return NextResponse.json(
+					{ error: 'Failed to fetch profile' },
+					{ status: 500 }
+				);
+			}
+		}
+
+		// Create profile if not found (PGRST116 error or no existing profile)
+		if (!existingProfile) {
 			const oauthAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture;
 			const avatarUrl = oauthAvatar || generateFallbackAvatar(user.id);
 
@@ -69,15 +80,6 @@ export async function GET() {
 			return NextResponse.json({ data: newProfile });
 		}
 
-		// Other fetch errors
-		if (fetchError) {
-			console.error('Error fetching profile:', fetchError);
-			return NextResponse.json(
-				{ error: 'Failed to fetch profile' },
-				{ status: 500 }
-			);
-		}
-
 		return NextResponse.json({ data: existingProfile });
 	} catch (error) {
 		console.error('Error in user/profile GET:', error);
@@ -105,21 +107,37 @@ export async function PUT(request: Request) {
 		const body = await request.json();
 		const profileData: Partial<UserProfileFormData> = body;
 
-		// Validate required fields
-		if (profileData.full_name !== undefined && !profileData.full_name.trim()) {
-			return NextResponse.json(
-				{ error: 'Full name cannot be empty' },
-				{ status: 400 }
-			);
+		// Validate full_name - must be a non-empty string if provided
+		if (profileData.full_name !== undefined) {
+			if (typeof profileData.full_name !== 'string' || !profileData.full_name.trim()) {
+				return NextResponse.json(
+					{ error: 'Full name cannot be empty' },
+					{ status: 400 }
+				);
+			}
+		}
+
+		// Validate preferences structure if provided
+		if (profileData.preferences !== undefined) {
+			if (
+				typeof profileData.preferences !== 'object' ||
+				profileData.preferences === null ||
+				Array.isArray(profileData.preferences)
+			) {
+				return NextResponse.json(
+					{ error: 'Invalid preferences format' },
+					{ status: 400 }
+				);
+			}
 		}
 
 		// Build update object with only provided fields
 		const updateData: Record<string, unknown> = {};
 
-		if (profileData.full_name !== undefined) {
+		if (typeof profileData.full_name === 'string') {
 			updateData.full_name = profileData.full_name.trim();
 		}
-		if (profileData.display_name !== undefined) {
+		if (typeof profileData.display_name === 'string') {
 			updateData.display_name = profileData.display_name.trim();
 		}
 		if (profileData.bio !== undefined) {

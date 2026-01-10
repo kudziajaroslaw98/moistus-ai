@@ -147,7 +147,7 @@ export function ExportDropdown() {
 					)}
 				</Button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="start" side="top" className="w-64">
+			<DropdownMenuContent align="start" className="w-64">
 				<DropdownMenuLabel className="flex items-center gap-2">
 					<Download className="size-4 text-text-secondary" />
 					Export

@@ -13,26 +13,41 @@ export function useSessionTime() {
 	useEffect(() => {
 		if (typeof window === 'undefined') return;
 
-		if (!localStorage.getItem(SESSION_START_KEY)) {
-			localStorage.setItem(SESSION_START_KEY, Date.now().toString());
+		try {
+			if (!localStorage.getItem(SESSION_START_KEY)) {
+				localStorage.setItem(SESSION_START_KEY, Date.now().toString());
+			}
+		} catch {
+			// localStorage may be unavailable in restricted environments (private browsing, etc.)
 		}
 	}, []);
 
 	const getSessionMinutes = useCallback(() => {
 		if (typeof window === 'undefined') return 0;
 
-		const start = localStorage.getItem(SESSION_START_KEY);
-		if (!start) return 0;
+		try {
+			const start = localStorage.getItem(SESSION_START_KEY);
+			if (!start) return 0;
 
-		const startTime = parseInt(start, 10);
-		if (isNaN(startTime)) return 0;
+			const startTime = Number(start);
+			if (!Number.isFinite(startTime) || startTime <= 0) return 0;
 
-		return Math.floor((Date.now() - startTime) / 1000 / 60);
+			const elapsed = Math.floor((Date.now() - startTime) / 1000 / 60);
+			return Number.isFinite(elapsed) && elapsed >= 0 ? elapsed : 0;
+		} catch {
+			// localStorage may be unavailable
+			return 0;
+		}
 	}, []);
 
 	const resetSession = useCallback(() => {
 		if (typeof window === 'undefined') return;
-		localStorage.removeItem(SESSION_START_KEY);
+
+		try {
+			localStorage.removeItem(SESSION_START_KEY);
+		} catch {
+			// localStorage may be unavailable
+		}
 	}, []);
 
 	return { getSessionMinutes, resetSession };

@@ -66,16 +66,19 @@ function DialogContent({
 }: DialogContentProps) {
 	return (
 		<DialogPortal data-slot='dialog-portal'>
-			<DialogOverlay
-				onPointerDown={
-					!dismissible
-						? (e) => {
-								// Prevent backdrop click from closing dialog
-								e.stopPropagation();
-							}
-						: undefined
-				}
-			/>
+			{dismissible ? (
+				<DialogOverlay />
+			) : (
+				// Non-interactive backdrop that doesn't trigger dialog close
+				<div
+					data-slot='dialog-overlay'
+					className='data-[open]:animate-in data-[closed]:animate-out data-[closed]:fade-out-0 data-[open]:fade-in-0 fixed inset-0 z-50 backdrop-blur-sm'
+					style={{
+						backgroundColor: 'rgba(0, 0, 0, 0.5)',
+						backdropFilter: 'blur(12px)',
+					}}
+				/>
+			)}
 
 			<DialogTitle data-slot='dialog-title'></DialogTitle>
 

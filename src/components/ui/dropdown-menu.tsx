@@ -2,7 +2,7 @@
 
 import { Menu as BaseMenu } from '@base-ui/react/menu';
 import { CheckIcon, ChevronRightIcon, CircleIcon } from 'lucide-react';
-import type { ComponentProps, ReactElement } from 'react';
+import { isValidElement, type ComponentProps, type ReactElement } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -30,7 +30,8 @@ function DropdownMenuTrigger({
 	children,
 	...props
 }: DropdownMenuTriggerProps) {
-	if (asChild) {
+	// Only use render prop when asChild is true AND children is a valid React element
+	if (asChild && isValidElement(children)) {
 		return (
 			<BaseMenu.Trigger
 				data-slot='dropdown-menu-trigger'
@@ -39,6 +40,7 @@ function DropdownMenuTrigger({
 			/>
 		);
 	}
+	// Fallback: render children normally (handles strings, arrays, fragments, etc.)
 	return (
 		<BaseMenu.Trigger data-slot='dropdown-menu-trigger' {...props}>
 			{children}
@@ -48,18 +50,16 @@ function DropdownMenuTrigger({
 
 function DropdownMenuContent({
 	className,
-	sideOffset = 4,
+	alignOffset = 4,
 	align = 'start',
-	side = 'bottom',
 	...props
 }: ComponentProps<typeof BaseMenu.Popup> & {
-	sideOffset?: number;
+	alignOffset?: number;
 	align?: 'start' | 'center' | 'end';
-	side?: 'top' | 'right' | 'bottom' | 'left';
 }) {
 	return (
 		<BaseMenu.Portal>
-			<BaseMenu.Positioner sideOffset={sideOffset} align={align} side={side}>
+			<BaseMenu.Positioner alignOffset={alignOffset} align={align}>
 				<BaseMenu.Popup
 					data-slot='dropdown-menu-content'
 					className={cn(
@@ -242,18 +242,16 @@ function DropdownMenuSubTrigger({
 
 function DropdownMenuSubContent({
 	className,
-	sideOffset = 2,
+	alignOffset = 2,
 	align = 'start',
-	side = 'right',
 	...props
 }: ComponentProps<typeof BaseMenu.Popup> & {
-	sideOffset?: number;
+	alignOffset?: number;
 	align?: 'start' | 'center' | 'end';
-	side?: 'top' | 'right' | 'bottom' | 'left';
 }) {
 	return (
 		<BaseMenu.Portal>
-			<BaseMenu.Positioner sideOffset={sideOffset} align={align} side={side}>
+			<BaseMenu.Positioner alignOffset={alignOffset} align={align}>
 				<BaseMenu.Popup
 					data-slot='dropdown-menu-sub-content'
 					className={cn(

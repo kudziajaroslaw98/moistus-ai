@@ -1,7 +1,14 @@
 'use client';
 
 import { PreviewCard } from '@base-ui/react/preview-card';
-import { createContext, type ComponentProps, type ReactNode, useContext } from 'react';
+import {
+	createContext,
+	isValidElement,
+	useContext,
+	type ComponentProps,
+	type ReactElement,
+	type ReactNode,
+} from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -51,14 +58,14 @@ function HoverCardTrigger({
 	const delay = delayProp ?? contextDelay;
 	const closeDelay = closeDelayProp ?? contextCloseDelay;
 
-	if (asChild) {
-		// When asChild is true, pass children through render prop
+	// Only use render prop when asChild is true AND children is a valid React element
+	if (asChild && isValidElement(children)) {
 		return (
 			<PreviewCard.Trigger
 				data-slot='hover-card-trigger'
 				delay={delay}
 				closeDelay={closeDelay}
-				render={children as React.ReactElement}
+				render={children as ReactElement}
 				{...props}
 			/>
 		);

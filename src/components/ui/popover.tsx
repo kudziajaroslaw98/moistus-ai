@@ -1,7 +1,7 @@
 'use client';
 
 import { Popover as BasePopover } from '@base-ui/react/popover';
-import type { ComponentProps, ReactNode } from 'react';
+import { isValidElement, type ComponentProps, type ReactElement, type ReactNode } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -17,16 +17,17 @@ interface PopoverTriggerProps
 }
 
 function PopoverTrigger({ asChild, children, ...props }: PopoverTriggerProps) {
-	if (asChild) {
-		// When asChild is true, pass children through render prop
+	// Only use render prop when asChild is true AND children is a valid React element
+	if (asChild && isValidElement(children)) {
 		return (
 			<BasePopover.Trigger
 				data-slot='popover-trigger'
-				render={children as React.ReactElement}
+				render={children as ReactElement}
 				{...props}
 			/>
 		);
 	}
+	// Fallback: render children normally (handles strings, arrays, fragments, etc.)
 	return (
 		<BasePopover.Trigger data-slot='popover-trigger' {...props}>
 			{children}

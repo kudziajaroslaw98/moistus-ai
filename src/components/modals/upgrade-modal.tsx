@@ -15,7 +15,7 @@ import {
 } from '@/components/onboarding/steps/payment-step';
 import { cn } from '@/lib/utils';
 import { Elements } from '@stripe/react-stripe-js';
-import { ArrowLeft, Crown, Infinity, Sparkles, Zap } from 'lucide-react';
+import { ArrowLeft, Crown, Infinity as InfinityIcon, Sparkles, Zap } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
 
@@ -130,7 +130,7 @@ export function UpgradeModal({
 
 							<div className='space-y-4 py-4'>
 								<div className='flex items-start gap-3'>
-									<Infinity className='h-5 w-5 text-primary-500 mt-0.5 shrink-0' />
+									<InfinityIcon className='h-5 w-5 text-primary-500 mt-0.5 shrink-0' />
 
 									<div>
 										<p className='font-medium'>Unlimited Everything</p>
