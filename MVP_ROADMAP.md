@@ -1,17 +1,18 @@
 # Moistus AI - MVP Launch Roadmap
 
-> Last updated: 2026-01-10 (Landing page rebuild complete, collaboration limits task added)
-> Estimated effort: 45-60 hours
+> Last updated: 2026-01-11 (Added legal compliance section - EU/US launch blockers)
+> Estimated effort: 50-70 hours
 
 ## Summary
 
 MVP launch readiness checklist:
 1. **Critical fixes:** Profile persistence, upgrade flow, feature limits, undo/redo
-2. **GDPR compliance:** Data export (required), privacy settings
-3. **Billing:** Resend email notifications for trial/payment events
-4. **New features:** Video node (YouTube embeds), AI Chat feature-flagged OFF
-5. **Landing page:** Full marketing page with "Try Free" anonymous mode (localStorage)
-6. **Polish:** Mobile responsiveness, UX improvements
+2. **🚨 Legal compliance:** Privacy Policy, Terms of Service, Cookie Consent, Account Deletion
+3. **GDPR compliance:** Data export (required), privacy settings
+4. **Billing:** Resend email notifications for trial/payment events
+5. **New features:** Video node (YouTube embeds), AI Chat feature-flagged OFF
+6. **Landing page:** Full marketing page with "Try Free" anonymous mode (localStorage)
+7. **Polish:** Mobile responsiveness, UX improvements
 
 **Free tier limits:** 3 maps, 50 nodes/map (tracked in Supabase)
 
@@ -99,6 +100,118 @@ MVP launch readiness checklist:
 - `src/components/mind-map/react-flow-area.tsx`
 
 **Status:** ✅ COMPLETED
+
+---
+
+## Phase 1.5: Legal Compliance (Launch Blockers)
+
+> 🚨 **Cannot launch without these** - EU (GDPR) and US (CCPA/state laws) requirements
+
+### 1.5.1 Privacy Policy Page
+- [ ] Create `/privacy` route with Privacy Policy content
+- [ ] Include: data collected, legal basis, third-party sharing, retention, user rights
+- [ ] List subprocessors: Supabase (DB/auth), Stripe (payments), OpenAI (AI), Vercel (hosting)
+- [ ] Link from footer, sign-up flow, settings
+
+**Files to create:**
+- `src/app/(legal)/privacy/page.tsx`
+
+**Effort:** 2-3 hours | **Risk:** Low (content can use template + customize)
+
+---
+
+### 1.5.2 Terms of Service Page
+- [ ] Create `/terms` route with Terms of Service content
+- [ ] Include: acceptable use, liability limits, subscription terms, termination
+- [ ] Link from footer, sign-up flow
+
+**Files to create:**
+- `src/app/(legal)/terms/page.tsx`
+
+**Effort:** 2-3 hours | **Risk:** Low
+
+---
+
+### 1.5.3 Cookie Consent Banner
+- [ ] Add cookie consent banner component (GDPR requires opt-in)
+- [ ] Implement pre-consent blocking (no analytics until consent)
+- [ ] Equal prominence for "Accept All" and "Reject All" buttons
+- [ ] Granular category toggles (essential, analytics, marketing)
+- [ ] Persist consent in localStorage, respect on subsequent visits
+- [ ] Consider: Termly, CookieYes, or custom implementation
+
+**Files to create:**
+- `src/components/common/cookie-consent-banner.tsx`
+- `src/hooks/use-cookie-consent.ts`
+
+**Effort:** 3-4 hours | **Risk:** Medium (EU specific, must block scripts pre-consent)
+
+---
+
+### 1.5.4 Account Deletion Flow (GDPR Art. 17)
+- [ ] Add "Delete Account" button in settings panel
+- [ ] Confirmation modal with warning about data loss
+- [ ] API route to delete: user profile, maps, nodes, edges, comments, subscriptions
+- [ ] Cancel active Stripe subscription before deletion
+- [ ] Send confirmation email after deletion
+- [ ] 30-day grace period option (soft delete) vs immediate (hard delete)
+
+**Files to create:**
+- `src/app/api/user/delete/route.ts`
+- `src/components/settings/delete-account-modal.tsx`
+
+**Files to modify:**
+- `src/components/dashboard/settings-panel.tsx`
+
+**Effort:** 4-5 hours | **Risk:** Medium (must handle Stripe, cascade deletes)
+
+---
+
+### 1.5.5 Subprocessor List (Transparency)
+- [ ] Create `/subprocessors` or section in Privacy Policy
+- [ ] List all third parties processing user data:
+  - Supabase (PostgreSQL, Auth, Realtime) - US
+  - Stripe (Payments) - US
+  - OpenAI (AI features) - US
+  - Vercel (Hosting, Edge) - US
+  - Resend (Email) - US (if added)
+- [ ] Include: company name, purpose, location, DPA status
+
+**Files to create:**
+- `src/app/(legal)/subprocessors/page.tsx` (or add to privacy policy)
+
+**Effort:** 1 hour | **Risk:** Low
+
+---
+
+### 1.5.6 DPA Template (B2B Requirement)
+- [ ] Create downloadable DPA document for business customers
+- [ ] Include GDPR Article 28 required clauses
+- [ ] Add Standard Contractual Clauses (SCCs) for international transfers
+- [ ] Host as PDF or dedicated page
+
+**Files to create:**
+- `public/legal/dpa.pdf` or `src/app/(legal)/dpa/page.tsx`
+
+**Effort:** 2-3 hours | **Risk:** Low (template-based, legal review recommended)
+
+**Status:** ❌ NOT STARTED
+
+---
+
+### Legal Compliance Summary
+
+| Requirement | EU Law | US Law | Priority |
+|-------------|--------|--------|----------|
+| Privacy Policy | GDPR Art. 13-14 | CCPA, state laws | 🔴 BLOCKER |
+| Terms of Service | Contract law | Contract law | 🔴 BLOCKER |
+| Cookie Consent | GDPR/ePrivacy | Varies | 🔴 BLOCKER (EU) |
+| Account Deletion | GDPR Art. 17 | CCPA | 🔴 BLOCKER |
+| Data Export | GDPR Art. 20 | CCPA | 🔴 BLOCKER (see 2.1) |
+| Subprocessor List | GDPR Art. 28 | Best practice | 🟡 HIGH |
+| DPA Template | GDPR Art. 28 | B2B contracts | 🟡 HIGH (B2B) |
+
+**Total Legal Effort:** 14-19 hours
 
 ---
 
@@ -291,21 +404,36 @@ MVP launch readiness checklist:
 | Upgrade modal audience | Registered free users only |
 | Upgrade modal cooldown | 24 hours |
 | Limit enforcement | Soft (dismissable) |
+| Cookie consent | GDPR opt-in required; equal Accept/Reject prominence |
+| Account deletion | Hard delete with Stripe cancellation |
+| Legal pages | `/privacy`, `/terms` routes in `(legal)` group |
+| DPA | PDF template for B2B customers |
 
 ---
 
 ## Recommended Work Order
 
-1. **Quick wins first** (Undo/Redo, AI flag, privacy) - builds momentum
-2. **Critical fixes** (profile, upgrade, limits) - trust-critical
-3. **GDPR** (export, emails) - legal requirement
-4. **Landing page + anon mode** - conversion funnel
-5. **Video node** - new feature
-6. **Polish** - nice-to-haves
+1. **Quick wins first** (Undo/Redo, AI flag, privacy) - builds momentum ✅ DONE
+2. **🚨 Legal compliance** (Privacy Policy, Terms, Cookie Consent, Account Deletion) - **LAUNCH BLOCKER**
+3. **Critical fixes** (profile, upgrade, limits) - trust-critical
+4. **GDPR** (export, emails) - legal requirement
+5. **Landing page + anon mode** - conversion funnel
+6. **Video node** - new feature
+7. **Polish** - nice-to-haves
 
 ---
 
 ## Files Quick Reference
+
+**Legal Compliance (NEW):**
+- New: `src/app/(legal)/privacy/page.tsx`
+- New: `src/app/(legal)/terms/page.tsx`
+- New: `src/app/(legal)/subprocessors/page.tsx`
+- New: `src/components/common/cookie-consent-banner.tsx`
+- New: `src/hooks/use-cookie-consent.ts`
+- New: `src/app/api/user/delete/route.ts`
+- New: `src/components/settings/delete-account-modal.tsx`
+- New: `public/legal/dpa.pdf`
 
 **Critical fixes:**
 - `src/app/api/user/profile/route.ts`
