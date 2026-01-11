@@ -37,7 +37,7 @@ export function FinalCta() {
 					</p>
 					<a
 						href='/try'
-						className='inline-flex items-center justify-center px-8 py-3 text-base font-semibold rounded-md bg-primary-600 hover:bg-primary-500 text-white transition-all duration-200 hover:shadow-[0_0_20px_rgba(96,165,250,0.3)]'
+						className='inline-flex items-center justify-center px-8 py-3 text-base font-semibold rounded-md bg-primary-600 hover:bg-primary-500 text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(96,165,250,0.35)]'
 					>
 						Try Free
 					</a>

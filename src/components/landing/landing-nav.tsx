@@ -76,7 +76,7 @@ export function LandingNav() {
 					{/* CTA */}
 					<a
 						href='/try'
-						className='inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md bg-primary-600 hover:bg-primary-500 text-white transition-all duration-200'
+						className='inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md bg-primary-600 hover:bg-primary-500 text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(96,165,250,0.3)]'
 					>
 						Try Free
 					</a>

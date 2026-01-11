@@ -72,7 +72,7 @@ export function HeroSection() {
 						href="/try"
 						className={cn(
 							buttonVariants({ size: 'lg' }),
-							'px-8 py-3 text-base font-semibold bg-primary-600 hover:bg-primary-500 transition-all duration-200 hover:-translate-y-0.5'
+							'px-8 py-3 text-base font-semibold bg-primary-600 hover:bg-primary-500 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(96,165,250,0.35)]'
 						)}
 					>
 						Try Free

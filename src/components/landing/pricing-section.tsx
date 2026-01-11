@@ -86,10 +86,10 @@ export function PricingSection() {
 									? { duration: 0 }
 									: { duration: 0.3, ease: EASE_OUT_QUART, delay: index * 0.15 }
 							}
-							className={`relative rounded-xl p-6 border flex flex-col ${
+							className={`relative rounded-xl p-6 border flex flex-col transition-all duration-200 ${
 								tier.recommended
-									? 'bg-elevated border-primary-500/50 shadow-[0_0_20px_rgba(96,165,250,0.15)]'
-									: 'bg-surface border-border-subtle'
+									? 'bg-elevated border-primary-500/50 shadow-[0_0_20px_rgba(96,165,250,0.15)] hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(96,165,250,0.25)]'
+									: 'bg-surface border-border-subtle hover:-translate-y-1 hover:border-primary-500/30 hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)]'
 							}`}
 						>
 							{tier.recommended && (

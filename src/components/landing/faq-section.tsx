@@ -76,9 +76,13 @@ function FaqItem({
 				</span>
 				<motion.div
 					animate={{ rotate: shouldReduceMotion ? 0 : isOpen ? 180 : 0 }}
-					transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
+					transition={
+						shouldReduceMotion
+							? { duration: 0 }
+							: { type: 'spring', stiffness: 300, damping: 20 }
+					}
 				>
-					<ChevronDown className='h-5 w-5 text-text-tertiary' />
+					<ChevronDown className='h-5 w-5 text-text-tertiary transition-colors duration-200 group-hover:text-primary-400' />
 				</motion.div>
 			</button>
 			<AnimatePresence>

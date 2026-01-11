@@ -71,11 +71,11 @@ function FeatureBlock({ feature, index }: { feature: Feature; index: number }) {
 				}
 				className={`${isEven ? '' : 'md:order-2'} md:direction-ltr`}
 			>
-				<div className='flex items-center gap-3 mb-4'>
-					<div className='p-2 rounded-lg bg-primary-500/10'>
-						<Icon className='h-5 w-5 text-primary-400' />
+				<div className='group flex items-center gap-3 mb-4'>
+					<div className='p-2 rounded-lg bg-primary-500/10 transition-all duration-200 group-hover:bg-primary-500/20 group-hover:scale-110'>
+						<Icon className='h-5 w-5 text-primary-400 transition-colors duration-200 group-hover:text-primary-300' />
 					</div>
-					<span className='text-sm font-medium text-primary-400'>
+					<span className='text-sm font-medium text-primary-400 transition-colors duration-200 group-hover:text-primary-300'>
 						{feature.title}
 					</span>
 				</div>

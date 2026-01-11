@@ -65,7 +65,7 @@ export function HowItWorks() {
 				{/* Steps */}
 				<div className='relative'>
 					{/* Connecting line (desktop only) */}
-					<div className='hidden md:block absolute top-12 left-[16.67%] right-[16.67%] h-px bg-border-subtle' />
+					<div className='hidden md:block absolute top-12 left-[16.67%] right-[16.67%] h-px bg-border-subtle/30' />
 
 					<div className='grid md:grid-cols-3 gap-8 md:gap-12'>
 						{steps.map((step, index) => {
