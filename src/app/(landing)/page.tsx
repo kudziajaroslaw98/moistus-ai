@@ -3,10 +3,11 @@ import { FeaturesSection } from '@/components/landing/features-section';
 import { FinalCta } from '@/components/landing/final-cta';
 import { HeroSection } from '@/components/landing/hero-section';
 import { HowItWorks } from '@/components/landing/how-it-works';
+import { LandingNav } from '@/components/landing/landing-nav';
 import { PricingSection } from '@/components/landing/pricing-section';
 import { ProblemSolution } from '@/components/landing/problem-solution';
-import BackgroundEffects from '@/components/waitlist/background-effects';
-import MinimalFooter from '@/components/waitlist/minimal-footer';
+import { ScrollProgress } from '@/components/landing/scroll-progress';
+import { SectionDots } from '@/components/landing/section-dots';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -60,10 +61,11 @@ export const metadata: Metadata = {
 
 export default function Home() {
 	return (
-		<main className="relative min-h-screen flex flex-col bg-background">
-			<BackgroundEffects />
-
-			<div className="relative z-10">
+		<>
+			<ScrollProgress />
+			<LandingNav />
+			<SectionDots />
+			<main className='min-h-screen h-auto flex flex-col bg-background'>
 				<HeroSection />
 				<ProblemSolution />
 				<FeaturesSection />
@@ -71,8 +73,7 @@ export default function Home() {
 				<PricingSection />
 				<FaqSection />
 				<FinalCta />
-				<MinimalFooter />
-			</div>
-		</main>
+			</main>
+		</>
 	);
 }

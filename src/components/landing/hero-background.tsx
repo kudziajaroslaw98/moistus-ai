@@ -1,62 +1,13 @@
 'use client';
 
-import { useIsMobile } from '@/hooks/use-mobile';
-import {
-	motion,
-	useReducedMotion,
-	useScroll,
-	useTransform,
-} from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 
 /**
- * BackgroundEffects creates the landing page's ambient background with:
- * - Grid overlay (static anchor layer)
- * - Glassmorphism gradient blobs with parallax
- * - Decorative tilted glass panels with parallax
- * - Vignette overlay for depth
- * - Color temperature shift on scroll (cool→warm)
- *
- * Performance: Uses only transform/opacity animations (GPU composited)
- * Accessibility: All effects disabled when prefers-reduced-motion is set
- * Mobile: Parallax disabled for performance
+ * Hero-specific background effects with glassmorphism panels.
+ * Only visible in the hero section - other sections cover it with solid backgrounds.
  */
-export default function BackgroundEffects() {
+export function HeroBackground() {
 	const shouldReduceMotion = useReducedMotion();
-	const isMobile = useIsMobile();
-	const { scrollY } = useScroll();
-
-	// Disable parallax on mobile or reduced motion
-	const parallaxEnabled = !isMobile && !shouldReduceMotion;
-
-	// Parallax transforms - different speeds create depth perception
-	// Slow = far away, Fast = close to viewer
-	const slowY = useTransform(
-		scrollY,
-		[0, 3000],
-		parallaxEnabled ? [0, 100] : [0, 0]
-	);
-	const mediumY = useTransform(
-		scrollY,
-		[0, 3000],
-		parallaxEnabled ? [0, 200] : [0, 0]
-	);
-	const fastY = useTransform(
-		scrollY,
-		[0, 3000],
-		parallaxEnabled ? [0, 300] : [0, 0]
-	);
-
-	// Color temperature shift: cool (blue) → warm (teal) as user scrolls
-	const blueOpacity = useTransform(
-		scrollY,
-		[0, 2000, 4000],
-		parallaxEnabled ? [0.12, 0.08, 0.05] : [0.12, 0.12, 0.12]
-	);
-	const tealOpacity = useTransform(
-		scrollY,
-		[0, 2000, 4000],
-		parallaxEnabled ? [0.08, 0.1, 0.14] : [0.1, 0.1, 0.1]
-	);
 
 	// Breathing animation for center blob
 	const breathingAnimation = shouldReduceMotion
@@ -74,22 +25,37 @@ export default function BackgroundEffects() {
 				repeat: Infinity,
 			};
 
-	// Panel animations - use static final state when reduced motion is preferred
+	// Panel animations
 	const panelTransition = shouldReduceMotion
 		? { duration: 0 }
 		: { duration: 0.8, ease: 'easeOut' as const };
 
 	return (
-		<div className='fixed inset-0 z-0 overflow-hidden pointer-events-none'>
-			{/* Grid pattern overlay - anchor layer (no parallax) */}
+		<div className='absolute inset-0 overflow-hidden pointer-events-none'>
+			{/* Grid pattern overlay */}
 			<div
 				className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-80"
 				style={{ backgroundSize: '50px 50px' }}
 			/>
 
-			{/* Decorative glass panels for bold visual interest */}
+			{/* Glassmorphism gradient backdrop */}
 			<div className='absolute inset-0'>
-				{/* Top right tilted panel (medium parallax) */}
+				{/* Accent glow - center with breathing animation */}
+				{/*<motion.div
+					className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px]'
+					animate={breathingAnimation}
+					transition={breathingTransition}
+					style={{
+						background:
+							'radial-gradient(circle, rgba(96, 165, 250, 0.06) 0%, rgba(56, 189, 248, 0.02) 40%, transparent 60%)',
+						filter: 'blur(40px)',
+					}}
+				/>*/}
+			</div>
+
+			{/* Decorative glass panels */}
+			<div className='absolute inset-0'>
+				{/* Top right tilted panel */}
 				<motion.div
 					className='absolute top-16 right-[12%] w-72 h-72 rounded-3xl'
 					initial={
@@ -103,7 +69,6 @@ export default function BackgroundEffects() {
 						delay: shouldReduceMotion ? 0 : 0.3,
 					}}
 					style={{
-						y: mediumY,
 						background:
 							'linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)',
 						border: '1px solid rgba(255, 255, 255, 0.06)',
@@ -111,7 +76,7 @@ export default function BackgroundEffects() {
 					}}
 				/>
 
-				{/* Bottom left tilted panel (slow parallax) */}
+				{/* Bottom left tilted panel */}
 				<motion.div
 					className='absolute bottom-24 left-[8%] w-56 h-56 rounded-2xl'
 					initial={
@@ -125,7 +90,6 @@ export default function BackgroundEffects() {
 						delay: shouldReduceMotion ? 0 : 0.5,
 					}}
 					style={{
-						y: slowY,
 						background:
 							'linear-gradient(135deg, rgba(255, 255, 255, 0.025) 0%, rgba(255, 255, 255, 0.008) 100%)',
 						border: '1px solid rgba(255, 255, 255, 0.04)',
@@ -133,7 +97,7 @@ export default function BackgroundEffects() {
 					}}
 				/>
 
-				{/* Small accent panel - mid left (fast parallax - appears closest) */}
+				{/* Small accent panel - mid left */}
 				<motion.div
 					className='absolute top-1/3 left-[5%] w-32 h-32 rounded-xl'
 					initial={
@@ -147,7 +111,6 @@ export default function BackgroundEffects() {
 						delay: shouldReduceMotion ? 0 : 0.7,
 					}}
 					style={{
-						y: fastY,
 						background:
 							'linear-gradient(135deg, rgba(96, 165, 250, 0.04) 0%, rgba(96, 165, 250, 0.01) 100%)',
 						border: '1px solid rgba(96, 165, 250, 0.08)',
@@ -161,7 +124,7 @@ export default function BackgroundEffects() {
 				className='absolute inset-0'
 				style={{
 					background:
-						'radial-gradient(ellipse at center, transparent 0%, transparent 40%, rgba(9, 9, 11, 0.6) 80%, rgba(9, 9, 11, 0.9) 100%)',
+						'radial-gradient(ellipse at center, transparent 0%, transparent 40%, rgba(9, 9, 11, 0.6) 80%, rgba(9, 9, 11, 0.7) 100%)',
 				}}
 			/>
 		</div>

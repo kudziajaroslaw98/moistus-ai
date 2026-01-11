@@ -4,6 +4,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/utils/cn';
 import { motion, useReducedMotion } from 'motion/react';
 import { ChevronDown, Sparkles } from 'lucide-react';
+import { HeroBackground } from './hero-background';
 
 const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
 
@@ -15,8 +16,11 @@ export function HeroSection() {
 	};
 
 	return (
-		<section className="relative min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-16">
-			<div className="max-w-4xl mx-auto text-center">
+		<section id="hero" className="relative min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-16 bg-background">
+			{/* Hero-specific background with glass panels */}
+			<HeroBackground />
+
+			<div className="relative z-10 max-w-4xl mx-auto text-center">
 				{/* Badge */}
 				<motion.div
 					initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
@@ -90,7 +94,7 @@ export function HeroSection() {
 				initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }}
 				animate={{ opacity: 1 }}
 				transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.25, ease: EASE_OUT_QUART, delay: 0.5 }}
-				className="absolute bottom-8 left-1/2 -translate-x-1/2"
+				className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10"
 			>
 				{shouldReduceMotion ? (
 					<ChevronDown className="h-6 w-6 text-text-tertiary" />
