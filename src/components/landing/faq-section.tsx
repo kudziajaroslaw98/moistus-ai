@@ -75,7 +75,7 @@ function FaqItem({
 					{faq.question}
 				</span>
 				<motion.div
-					animate={{ rotate: shouldReduceMotion ? 0 : isOpen ? 180 : 0 }}
+					animate={{ rotate: isOpen ? 180 : 0 }}
 					transition={
 						shouldReduceMotion
 							? { duration: 0 }

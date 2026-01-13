@@ -164,7 +164,7 @@ export const createChatSlice: StateCreator<
 			}
 
 			// Refresh usage data after successful AI response
-			get().fetchUsageData?.();
+			get().fetchUsageData();
 		} catch (error) {
 			console.error('Chat error:', error);
 			// Update the assistant message with error

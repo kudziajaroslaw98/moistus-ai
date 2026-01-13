@@ -76,16 +76,23 @@ export function useFeatureGate(feature: FeatureKey): FeatureGateResult {
 
 // Usage limits hook
 export function useSubscriptionLimits() {
-	const { currentSubscription, availablePlans, nodes, usageData, isLoadingUsage } =
-		useAppStore(
-			useShallow((state) => ({
-				currentSubscription: state.currentSubscription,
-				availablePlans: state.availablePlans,
-				nodes: state.nodes,
-				usageData: state.usageData,
-				isLoadingUsage: state.isLoadingUsage,
-			}))
-		);
+	const {
+		currentSubscription,
+		availablePlans,
+		nodes,
+		usageData,
+		isLoadingUsage,
+		usageError,
+	} = useAppStore(
+		useShallow((state) => ({
+			currentSubscription: state.currentSubscription,
+			availablePlans: state.availablePlans,
+			nodes: state.nodes,
+			usageData: state.usageData,
+			isLoadingUsage: state.isLoadingUsage,
+			usageError: state.usageError,
+		}))
+	);
 
 	const limits = useMemo(() => {
 		const plan =
@@ -142,6 +149,7 @@ export function useSubscriptionLimits() {
 		remaining,
 		isAtLimit,
 		isLoadingUsage,
+		usageError,
 	};
 }
 

@@ -1,6 +1,15 @@
-import { createClient } from '@/helpers/supabase/server';
+import { withAuthValidation } from '@/helpers/api/with-auth-validation';
 import { checkUsageLimit } from '@/helpers/api/with-subscription-check';
-import { NextRequest, NextResponse } from 'next/server';
+import { respondError, respondSuccess } from '@/helpers/api/responses';
+import { z } from 'zod';
+
+// UUID v4 regex pattern for validation
+const UUID_REGEX =
+	/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const requestSchema = z.object({
+	mapId: z.string().regex(UUID_REGEX, 'Invalid mapId format'),
+});
 
 /**
  * POST /api/nodes/check-limit
@@ -10,28 +19,38 @@ import { NextRequest, NextResponse } from 'next/server';
  *
  * Body: { mapId: string }
  */
-export async function POST(request: NextRequest) {
-	try {
-		const supabase = await createClient();
+export const POST = withAuthValidation(
+	requestSchema,
+	async (_req, { mapId }, supabase, user) => {
+		// Verify user has access to this map (RLS handles ownership, but we also check explicitly)
+		const { data: map, error: mapError } = await supabase
+			.from('mind_maps')
+			.select('id, owner_id')
+			.eq('id', mapId)
+			.single();
 
-		// Get the current user
-		const {
-			data: { user },
-			error: authError,
-		} = await supabase.auth.getUser();
-
-		if (authError || !user) {
-			return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+		if (mapError || !map) {
+			return respondError('Map not found', 404, 'Map does not exist');
 		}
 
-		const body = await request.json();
-		const { mapId } = body;
+		// Check if user owns the map or has shared access
+		// RLS policies should handle this, but explicit check for clarity
+		if (map.owner_id !== user.id) {
+			// Check if user has shared access
+			const { data: share } = await supabase
+				.from('map_shares')
+				.select('id')
+				.eq('map_id', mapId)
+				.eq('shared_with', user.id)
+				.single();
 
-		if (!mapId) {
-			return NextResponse.json(
-				{ error: 'mapId is required' },
-				{ status: 400 }
-			);
+			if (!share) {
+				return respondError(
+					'Access denied',
+					403,
+					'You do not have access to this map'
+				);
+			}
 		}
 
 		// Count current nodes in this map
@@ -42,9 +61,10 @@ export async function POST(request: NextRequest) {
 
 		if (countError) {
 			console.error('Error counting nodes:', countError);
-			return NextResponse.json(
-				{ error: 'Failed to check node count' },
-				{ status: 500 }
+			return respondError(
+				'Failed to check node count',
+				500,
+				countError.message
 			);
 		}
 
@@ -57,29 +77,18 @@ export async function POST(request: NextRequest) {
 		);
 
 		if (!allowed) {
-			return NextResponse.json(
-				{
-					error: 'Node limit reached',
-					code: 'LIMIT_REACHED',
-					limit,
-					remaining: 0,
-					currentCount: currentNodesCount,
-				},
-				{ status: 402 }
+			return respondError(
+				'Node limit reached',
+				402,
+				`Limit: ${limit}, Current: ${currentNodesCount}`
 			);
 		}
 
-		return NextResponse.json({
+		return respondSuccess({
 			allowed: true,
 			limit,
 			remaining,
 			currentCount: currentNodesCount,
 		});
-	} catch (error) {
-		console.error('Error in node limit check:', error);
-		return NextResponse.json(
-			{ error: 'Internal server error' },
-			{ status: 500 }
-		);
 	}
-}
+);

@@ -3,7 +3,7 @@
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
-import { Sparkles, TrendingUp } from 'lucide-react';
+import { AlertCircle, Sparkles, TrendingUp } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useCallback, useMemo } from 'react';
 
@@ -22,7 +22,7 @@ type UsageState = 'normal' | 'warning' | 'critical';
  * Clicking opens the upgrade modal.
  */
 export function AIUsageIndicator() {
-	const { limits, usage, isLoadingUsage } = useSubscriptionLimits();
+	const { limits, usage, isLoadingUsage, usageError } = useSubscriptionLimits();
 	const shouldReduceMotion = useReducedMotion();
 
 	const showUpgradePrompt = useCallback(() => {
@@ -66,6 +66,19 @@ export function AIUsageIndicator() {
 			<div className='flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-zinc-800/30 animate-pulse'>
 				<div className='h-3 w-3 rounded-full bg-zinc-700' />
 				<div className='h-3 w-16 rounded bg-zinc-700' />
+			</div>
+		);
+	}
+
+	// Error state: show warning icon with retry hint
+	if (usageError && !usage.aiSuggestions) {
+		return (
+			<div
+				className='flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-zinc-800/30 border border-zinc-700/50'
+				title='Failed to load usage data'
+			>
+				<AlertCircle className='h-3.5 w-3.5 text-zinc-500' />
+				<span className='text-xs text-zinc-500'>--/--</span>
 			</div>
 		);
 	}

@@ -11,10 +11,8 @@ import {
 /**
  * BackgroundEffects creates the landing page's ambient background with:
  * - Grid overlay (static anchor layer)
- * - Glassmorphism gradient blobs with parallax
  * - Decorative tilted glass panels with parallax
  * - Vignette overlay for depth
- * - Color temperature shift on scroll (cool→warm)
  *
  * Performance: Uses only transform/opacity animations (GPU composited)
  * Accessibility: All effects disabled when prefers-reduced-motion is set
@@ -44,18 +42,6 @@ export default function BackgroundEffects() {
 		scrollY,
 		[0, 3000],
 		parallaxEnabled ? [0, 300] : [0, 0]
-	);
-
-	// Color temperature shift: cool (blue) → warm (teal) as user scrolls
-	const blueOpacity = useTransform(
-		scrollY,
-		[0, 2000, 4000],
-		parallaxEnabled ? [0.12, 0.08, 0.05] : [0.12, 0.12, 0.12]
-	);
-	const tealOpacity = useTransform(
-		scrollY,
-		[0, 2000, 4000],
-		parallaxEnabled ? [0.08, 0.1, 0.14] : [0.1, 0.1, 0.1]
 	);
 
 	// Breathing animation for center blob

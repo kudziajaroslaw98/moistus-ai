@@ -269,7 +269,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					nodeType = 'defaultNode';
 				}
 
-				// Check node creation limit - both client-side (fast) and server-side (authoritative)
+				// Check node creation limit - server-side authoritative, client-side fallback
 				const devBypass = process.env.NEXT_PUBLIC_DEV_BYPASS_LIMITS === 'true';
 
 				if (!devBypass) {
@@ -278,40 +278,59 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 						currentSubscription?.plan?.name === 'enterprise';
 					const limit = currentSubscription?.plan?.limits?.nodesPerMap ?? 50; // Free tier default
 
-					// Client-side check (optimistic, fast)
 					if (!isPro && limit !== -1) {
-						const currentNodeCount = nodes.length;
+						// Server-side check first (authoritative, prevents race conditions)
+						if (mapId) {
+							try {
+								const response = await fetch('/api/nodes/check-limit', {
+									method: 'POST',
+									headers: { 'Content-Type': 'application/json' },
+									body: JSON.stringify({ mapId }),
+								});
 
-						if (currentNodeCount >= limit) {
-							// Trigger upgrade modal
-							get().setPopoverOpen?.({ upgradeUser: true });
-							throw new Error(
-								`Node limit reached (${limit} nodes per map). Upgrade to Pro for unlimited nodes.`
-							);
-						}
-					}
+								if (response.status === 402) {
+									// Trigger upgrade modal
+									get().setPopoverOpen?.({ upgradeUser: true });
+									const data = await response.json();
+									throw new Error(
+										data.error ||
+											`Node limit reached. Upgrade to Pro for unlimited nodes.`
+									);
+								}
 
-					// Server-side check (authoritative, prevents tampering)
-					if (!isPro && mapId) {
-						const response = await fetch('/api/nodes/check-limit', {
-							method: 'POST',
-							headers: { 'Content-Type': 'application/json' },
-							body: JSON.stringify({ mapId }),
-						});
+								if (!response.ok) {
+									// API error - fall back to client-side check
+									throw new Error('API unavailable');
+								}
 
-						if (response.status === 402) {
-							// Trigger upgrade modal
-							get().setPopoverOpen?.({ upgradeUser: true });
-							const data = await response.json();
-							throw new Error(
-								data.error ||
-									`Node limit reached. Upgrade to Pro for unlimited nodes.`
-							);
-						}
+								// Server confirmed we're under limit, proceed
+							} catch (error) {
+								// Network/API error - fall back to client-side check
+								if (
+									error instanceof Error &&
+									error.message.includes('limit reached')
+								) {
+									throw error; // Re-throw limit errors
+								}
 
-						if (!response.ok) {
-							console.error('Failed to check node limit');
-							// Don't block on API failure, continue with client-side check
+								// Client-side fallback when server unavailable
+								const currentNodeCount = nodes.length;
+								if (currentNodeCount >= limit) {
+									get().setPopoverOpen?.({ upgradeUser: true });
+									throw new Error(
+										`Node limit reached (${limit} nodes per map). Upgrade to Pro for unlimited nodes.`
+									);
+								}
+							}
+						} else {
+							// No mapId - use client-side check only
+							const currentNodeCount = nodes.length;
+							if (currentNodeCount >= limit) {
+								get().setPopoverOpen?.({ upgradeUser: true });
+								throw new Error(
+									`Node limit reached (${limit} nodes per map). Upgrade to Pro for unlimited nodes.`
+								);
+							}
 						}
 					}
 				}

@@ -99,7 +99,7 @@
 **Issue:** No way to get help if question isn't answered.
 
 **Fix:** Add below FAQ accordion:
-```
+```text
 Still have questions? Email us at support@moistus.ai
 ```
 Or add live chat widget.
