@@ -162,6 +162,9 @@ export const createChatSlice: StateCreator<
 				// Update the assistant message with accumulated content
 				updateChatMessage(assistantMessageId, accumulatedContent);
 			}
+
+			// Refresh usage data after successful AI response
+			get().fetchUsageData();
 		} catch (error) {
 			console.error('Chat error:', error);
 			// Update the assistant message with error

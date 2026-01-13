@@ -42,16 +42,31 @@ export interface UserSubscription {
 	plan?: SubscriptionPlan;
 }
 
+export interface UsageData {
+	mindMapsCount: number;
+	aiSuggestionsCount: number;
+	collaboratorsCount: number;
+	storageUsedMB: number;
+	billingPeriod: {
+		start: string;
+		end: string;
+	};
+}
+
 export interface SubscriptionSlice {
 	// State
 	availablePlans: SubscriptionPlan[];
 	currentSubscription: UserSubscription | null;
 	isLoadingSubscription: boolean;
 	subscriptionError: string | null;
+	usageData: UsageData | null;
+	isLoadingUsage: boolean;
+	usageError: string | null;
 
 	// Actions
 	fetchAvailablePlans: () => Promise<void>;
 	fetchUserSubscription: () => Promise<void>;
+	fetchUsageData: () => Promise<void>;
 	createSubscription: (
 		planId: string,
 		priceId: string,
@@ -90,6 +105,9 @@ export const createSubscriptionSlice: StateCreator<
 	currentSubscription: null,
 	isLoadingSubscription: false,
 	subscriptionError: null,
+	usageData: null,
+	isLoadingUsage: false,
+	usageError: null,
 
 	// Actions
 	fetchAvailablePlans: async () => {
@@ -206,6 +224,33 @@ export const createSubscriptionSlice: StateCreator<
 			set({
 				subscriptionError: 'Failed to fetch subscription',
 				isLoadingSubscription: false,
+			});
+		}
+	},
+
+	fetchUsageData: async () => {
+		set({ isLoadingUsage: true, usageError: null });
+
+		try {
+			const response = await fetch('/api/user/billing/usage');
+
+			if (!response.ok) {
+				throw new Error('Failed to fetch usage data');
+			}
+
+			const { data } = await response.json();
+
+			set({
+				usageData: data,
+				isLoadingUsage: false,
+			});
+		} catch (error) {
+			console.error('Error fetching usage data:', error);
+			// Keep stale data on error, just log it
+			set({
+				usageError:
+					error instanceof Error ? error.message : 'Failed to fetch usage',
+				isLoadingUsage: false,
 			});
 		}
 	},
@@ -348,7 +393,7 @@ export const createSubscriptionSlice: StateCreator<
 	},
 
 	getRemainingLimit: (limitType: keyof SubscriptionPlan['limits']) => {
-		const { currentSubscription, availablePlans } = get();
+		const { currentSubscription, availablePlans, usageData } = get();
 
 		// Get the plan (either current subscription or free plan)
 		const plan =
@@ -359,9 +404,15 @@ export const createSubscriptionSlice: StateCreator<
 		const limit = plan.limits[limitType];
 		if (limit === -1) return null; // Unlimited
 
-		// TODO: Calculate actual usage from nodes/maps
-		// For now, return the limit itself
-		return limit;
+		// Map limit type to usage data field
+		const usageMap: Record<keyof SubscriptionPlan['limits'], number> = {
+			mindMaps: usageData?.mindMapsCount ?? 0,
+			aiSuggestions: usageData?.aiSuggestionsCount ?? 0,
+			nodesPerMap: 0, // Handled per-map in client state
+		};
+
+		const currentUsage = usageMap[limitType];
+		return Math.max(0, limit - currentUsage);
 	},
 
 	isTrialing: () => {

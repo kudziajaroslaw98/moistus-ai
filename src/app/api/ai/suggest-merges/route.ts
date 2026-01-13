@@ -1,12 +1,12 @@
-import { extractNodesContext } from '@/helpers/extract-node-context';
-import { createClient } from '@/helpers/supabase/server';
 import {
-	requireSubscription,
 	checkUsageLimit,
 	getAIUsageCount,
-	trackAIUsage,
+	requireSubscription,
 	SubscriptionError,
+	trackAIUsage,
 } from '@/helpers/api/with-subscription-check';
+import { extractNodesContext } from '@/helpers/extract-node-context';
+import { createClient } from '@/helpers/supabase/server';
 import { openai } from '@ai-sdk/openai';
 import {
 	createUIMessageStream,
@@ -292,7 +292,7 @@ export async function POST(req: Request) {
 
 						// Call the AI using the Vercel AI SDK's streamObject
 						const result = streamObject({
-							model: openai('gpt-5-mini'),
+							model: openai('gpt-5-nano'),
 							abortSignal,
 							output: 'array',
 							schema: aiResponseSchema,

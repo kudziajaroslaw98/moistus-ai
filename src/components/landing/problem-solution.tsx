@@ -2,6 +2,7 @@
 
 import { motion, useInView, useReducedMotion } from 'motion/react';
 import { useRef } from 'react';
+import { SectionDecoration } from './section-decorations';
 
 const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
 
@@ -11,48 +12,62 @@ export function ProblemSolution() {
 	const shouldReduceMotion = useReducedMotion() ?? false;
 
 	return (
-		<section ref={ref} className="py-24 px-4 sm:px-6 lg:px-8">
-			<div className="max-w-5xl mx-auto">
-				<div className="relative grid md:grid-cols-2 gap-12 md:gap-16 items-center">
-					{/* Problem */}
-					<motion.div
-						initial={shouldReduceMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }}
-						animate={isInView ? { opacity: 1, x: 0 } : {}}
-						transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.3, ease: EASE_OUT_QUART }}
-						className="text-center md:text-left"
-					>
-						<p className="text-xl md:text-2xl leading-relaxed text-text-secondary">
-							"Mind mapping tools are either{' '}
-							<span className="text-text-primary font-medium">too simple</span>{' '}
-							or{' '}
-							<span className="text-text-primary font-medium">too bloated</span>.
-							You end up fighting the tool instead of thinking."
-						</p>
-					</motion.div>
+		<section
+			id='problem'
+			ref={ref}
+			className='relative py-32 px-4 sm:px-6 lg:px-8 bg-background'
+		>
+			<SectionDecoration variant='problem' />
+			<div className='relative z-10 max-w-3xl mx-auto text-center'>
+				{/* Main statement */}
+				<motion.div
+					initial={
+						shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }
+					}
+					animate={isInView ? { opacity: 1, y: 0 } : {}}
+					transition={
+						shouldReduceMotion
+							? { duration: 0 }
+							: { duration: 0.5, ease: EASE_OUT_QUART }
+					}
+				>
+					<p className='text-xl sm:text-2xl md:text-3xl font-light text-text-secondary leading-snug tracking-tight'>
+						Mind mapping tools are either{' '}
+						<span className='font-semibold text-text-primary'>too simple</span>{' '}
+						or{' '}
+						<span className='font-semibold text-text-primary'>too bloated</span>
+					</p>
 
-					{/* Divider (desktop only) */}
-					<div className="hidden md:flex items-center justify-center absolute left-1/2 -translate-x-1/2">
-						<div className="w-px h-16 bg-border-subtle" />
-					</div>
-
-					{/* Solution */}
+					{/* Subtle accent line */}
 					<motion.div
-						initial={shouldReduceMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: 20 }}
-						animate={isInView ? { opacity: 1, x: 0 } : {}}
+						className='mt-6 mx-auto w-12 h-px bg-gradient-to-r from-transparent via-primary-500/40 to-transparent'
+						initial={
+							shouldReduceMotion
+								? { opacity: 1, scaleX: 1 }
+								: { opacity: 0, scaleX: 0 }
+						}
+						animate={isInView ? { opacity: 1, scaleX: 1 } : {}}
 						transition={
 							shouldReduceMotion
 								? { duration: 0 }
-								: { duration: 0.3, ease: EASE_OUT_QUART, delay: 0.1 }
+								: { duration: 0.4, ease: EASE_OUT_QUART, delay: 0.2 }
 						}
-						className="text-center md:text-left"
+					/>
+
+					{/* Supporting text */}
+					<motion.p
+						className='mt-4 text-base sm:text-lg text-text-tertiary'
+						initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }}
+						animate={isInView ? { opacity: 1 } : {}}
+						transition={
+							shouldReduceMotion
+								? { duration: 0 }
+								: { duration: 0.4, ease: EASE_OUT_QUART, delay: 0.3 }
+						}
 					>
-						<p className="text-xl md:text-2xl leading-relaxed text-text-secondary">
-							"Moistus gives you{' '}
-							<span className="text-primary-400 font-medium">power without complexity</span>.
-							AI surfaces connections. The editor stays out of your way."
-						</p>
-					</motion.div>
-				</div>
+						You end up fighting the tool instead of thinking.
+					</motion.p>
+				</motion.div>
 			</div>
 		</section>
 	);

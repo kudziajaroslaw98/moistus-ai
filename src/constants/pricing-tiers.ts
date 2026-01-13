@@ -36,7 +36,7 @@ export const PRICING_TIERS: PricingTier[] = [
 			'Community support',
 		],
 		limitations: ['No AI features'],
-		ctaText: 'Start Free',
+		ctaText: 'Get Started',
 		limits: {
 			mindMaps: 3,
 			nodesPerMap: 50,
@@ -60,7 +60,7 @@ export const PRICING_TIERS: PricingTier[] = [
 			'Advanced export options',
 		],
 		recommended: true,
-		ctaText: 'Start Pro Trial',
+		ctaText: 'Go Pro',
 		limits: {
 			mindMaps: -1,
 			nodesPerMap: -1,

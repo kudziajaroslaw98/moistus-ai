@@ -9,6 +9,7 @@ import { MessageSquarePlus, Sparkles, Trash2 } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useCallback, useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/shallow';
+import { AIUsageIndicator } from './ai-usage-indicator';
 import { ChatContextSelector } from './chat-context-selector';
 import { ChatInput } from './chat-input';
 import { ChatMessage } from './chat-message';
@@ -95,13 +96,18 @@ export function ChatPanel() {
 			}
 		>
 			<div className='flex flex-1 flex-col h-full min-h-0'>
-				{/* Context mode selector */}
-				<ChatContextSelector
-					contextMode={chatContext.contextMode}
-					onContextModeChange={setChatContextMode}
-					nodeCount={nodes.length}
-					disabled={isChatStreaming}
-				/>
+				{/* Header row: Context selector + AI usage */}
+				<div className='flex items-start gap-2 mx-4 mt-3'>
+					<div className='flex-1 min-w-0'>
+						<ChatContextSelector
+							contextMode={chatContext.contextMode}
+							onContextModeChange={setChatContextMode}
+							nodeCount={nodes.length}
+							disabled={isChatStreaming}
+						/>
+					</div>
+					<AIUsageIndicator />
+				</div>
 
 				{/* Selection indicator */}
 				{hasSelection && (

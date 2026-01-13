@@ -269,7 +269,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					nodeType = 'defaultNode';
 				}
 
-				// Check node creation limit for free tier users
+				// Check node creation limit - server-side authoritative, client-side fallback
 				const devBypass = process.env.NEXT_PUBLIC_DEV_BYPASS_LIMITS === 'true';
 
 				if (!devBypass) {
@@ -279,13 +279,58 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					const limit = currentSubscription?.plan?.limits?.nodesPerMap ?? 50; // Free tier default
 
 					if (!isPro && limit !== -1) {
-						const currentNodeCount = nodes.length;
+						// Server-side check first (authoritative, prevents race conditions)
+						if (mapId) {
+							try {
+								const response = await fetch('/api/nodes/check-limit', {
+									method: 'POST',
+									headers: { 'Content-Type': 'application/json' },
+									body: JSON.stringify({ mapId }),
+								});
 
-						if (currentNodeCount >= limit) {
-							// Throw error which will be displayed as a toast by withLoadingAndToast
-							throw new Error(
-								`Node limit reached (${limit} nodes per map). Upgrade to Pro for unlimited nodes.`
-							);
+								if (response.status === 402) {
+									// Trigger upgrade modal
+									get().setPopoverOpen?.({ upgradeUser: true });
+									const data = await response.json();
+									throw new Error(
+										data.error ||
+											`Node limit reached. Upgrade to Pro for unlimited nodes.`
+									);
+								}
+
+								if (!response.ok) {
+									// API error - fall back to client-side check
+									throw new Error('API unavailable');
+								}
+
+								// Server confirmed we're under limit, proceed
+							} catch (error) {
+								// Network/API error - fall back to client-side check
+								if (
+									error instanceof Error &&
+									error.message.includes('limit reached')
+								) {
+									throw error; // Re-throw limit errors
+								}
+
+								// Client-side fallback when server unavailable
+								const currentNodeCount = nodes.length;
+								if (currentNodeCount >= limit) {
+									get().setPopoverOpen?.({ upgradeUser: true });
+									throw new Error(
+										`Node limit reached (${limit} nodes per map). Upgrade to Pro for unlimited nodes.`
+									);
+								}
+							}
+						} else {
+							// No mapId - use client-side check only
+							const currentNodeCount = nodes.length;
+							if (currentNodeCount >= limit) {
+								get().setPopoverOpen?.({ upgradeUser: true });
+								throw new Error(
+									`Node limit reached (${limit} nodes per map). Upgrade to Pro for unlimited nodes.`
+								);
+							}
 						}
 					}
 				}

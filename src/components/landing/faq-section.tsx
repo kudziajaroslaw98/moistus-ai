@@ -1,8 +1,14 @@
 'use client';
 
-import { motion, useInView, AnimatePresence, useReducedMotion } from 'motion/react';
-import { useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import {
+	AnimatePresence,
+	motion,
+	useInView,
+	useReducedMotion,
+} from 'motion/react';
+import { useRef, useState } from 'react';
+import { SectionDecoration } from './section-decorations';
 
 const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
 
@@ -49,40 +55,58 @@ function FaqItem({
 
 	return (
 		<motion.div
-			initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+			initial={
+				shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }
+			}
 			animate={isInView ? { opacity: 1, y: 0 } : {}}
 			transition={
 				shouldReduceMotion
 					? { duration: 0 }
 					: { duration: 0.3, ease: EASE_OUT_QUART, delay: index * 0.1 }
 			}
-			className="border-b border-border-subtle last:border-b-0"
+			className='border-b border-border-subtle last:border-b-0'
 		>
 			<button
-				type="button"
+				type='button'
 				onClick={() => setIsOpen(!isOpen)}
-				className="w-full py-5 flex items-center justify-between text-left group"
+				className='w-full py-5 flex items-center justify-between text-left group'
 			>
-				<span className="text-lg font-medium text-text-primary group-hover:text-primary-400 transition-colors duration-200">
+				<span className='text-lg font-medium text-text-primary group-hover:text-primary-400 transition-colors duration-200'>
 					{faq.question}
 				</span>
 				<motion.div
-					animate={{ rotate: shouldReduceMotion ? 0 : isOpen ? 180 : 0 }}
-					transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
+					animate={{ rotate: isOpen ? 180 : 0 }}
+					transition={
+						shouldReduceMotion
+							? { duration: 0 }
+							: { type: 'spring', stiffness: 300, damping: 20 }
+					}
 				>
-					<ChevronDown className="h-5 w-5 text-text-tertiary" />
+					<ChevronDown className='h-5 w-5 text-text-tertiary transition-colors duration-200 group-hover:text-primary-400' />
 				</motion.div>
 			</button>
 			<AnimatePresence>
 				{isOpen && (
 					<motion.div
-						initial={shouldReduceMotion ? { opacity: 1 } : { height: 0, opacity: 0 }}
-						animate={shouldReduceMotion ? { opacity: 1 } : { height: 'auto', opacity: 1 }}
-						exit={shouldReduceMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
-						transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.2, ease: EASE_OUT_QUART }}
-						className="overflow-hidden"
+						initial={
+							shouldReduceMotion ? { opacity: 1 } : { height: 0, opacity: 0 }
+						}
+						animate={
+							shouldReduceMotion
+								? { opacity: 1 }
+								: { height: 'auto', opacity: 1 }
+						}
+						exit={
+							shouldReduceMotion ? { opacity: 0 } : { height: 0, opacity: 0 }
+						}
+						transition={
+							shouldReduceMotion
+								? { duration: 0 }
+								: { duration: 0.2, ease: EASE_OUT_QUART }
+						}
+						className='overflow-hidden'
 					>
-						<p className="pb-5 text-text-secondary leading-relaxed">
+						<p className='pb-5 text-text-secondary leading-relaxed'>
 							{faq.answer}
 						</p>
 					</motion.div>
@@ -98,23 +122,34 @@ export function FaqSection() {
 	const shouldReduceMotion = useReducedMotion() ?? false;
 
 	return (
-		<section ref={ref} className="py-24 px-4 sm:px-6 lg:px-8 bg-surface/30">
-			<div className="max-w-2xl mx-auto">
+		<section
+			id='faq'
+			ref={ref}
+			className='relative py-32 px-4 sm:px-6 lg:px-8 bg-surface/50'
+		>
+			<SectionDecoration variant='faq' />
+			<div className='relative z-10 max-w-2xl mx-auto'>
 				{/* Header */}
 				<motion.div
-					initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+					initial={
+						shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
+					}
 					animate={isInView ? { opacity: 1, y: 0 } : {}}
-					transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.3, ease: EASE_OUT_QUART }}
-					className="text-center mb-12"
+					transition={
+						shouldReduceMotion
+							? { duration: 0 }
+							: { duration: 0.3, ease: EASE_OUT_QUART }
+					}
+					className='text-center mb-12'
 				>
-					<h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">
+					<h2 className='text-3xl md:text-4xl font-bold text-text-primary mb-4'>
 						Frequently Asked Questions
 					</h2>
 				</motion.div>
 
 				{/* FAQ items */}
 				<div
-					className="rounded-xl border border-border-subtle bg-surface/50 backdrop-blur-sm px-6"
+					className='rounded-xl border border-border-subtle bg-surface/50 backdrop-blur-sm px-6'
 					style={{
 						background:
 							'linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)',

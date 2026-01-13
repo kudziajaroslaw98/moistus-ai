@@ -1,8 +1,9 @@
 'use client';
 
+import { Keyboard, PlusCircle, Sparkles } from 'lucide-react';
 import { motion, useInView, useReducedMotion } from 'motion/react';
 import { useRef } from 'react';
-import { PlusCircle, Keyboard, Sparkles } from 'lucide-react';
+import { SectionDecoration } from './section-decorations';
 
 const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
 
@@ -33,57 +34,76 @@ export function HowItWorks() {
 	const shouldReduceMotion = useReducedMotion() ?? false;
 
 	return (
-		<section ref={ref} className="py-24 px-4 sm:px-6 lg:px-8 bg-surface/30">
-			<div className="max-w-5xl mx-auto">
+		<section
+			id='how-it-works'
+			ref={ref}
+			className='relative py-32 px-4 sm:px-6 lg:px-8 bg-surface/50'
+		>
+			<SectionDecoration variant='howItWorks' />
+			<div className='relative z-10 max-w-5xl mx-auto'>
 				{/* Header */}
 				<motion.div
-					initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+					initial={
+						shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
+					}
 					animate={isInView ? { opacity: 1, y: 0 } : {}}
-					transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.3, ease: EASE_OUT_QUART }}
-					className="text-center mb-16"
+					transition={
+						shouldReduceMotion
+							? { duration: 0 }
+							: { duration: 0.3, ease: EASE_OUT_QUART }
+					}
+					className='text-center mb-16'
 				>
-					<h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">
+					<h2 className='text-3xl md:text-4xl font-bold text-text-primary mb-4'>
 						How It Works
 					</h2>
-					<p className="text-lg text-text-secondary">
+					<p className='text-lg text-text-secondary'>
 						From first thought to connected knowledge in three steps
 					</p>
 				</motion.div>
 
 				{/* Steps */}
-				<div className="relative">
+				<div className='relative'>
 					{/* Connecting line (desktop only) */}
-					<div className="hidden md:block absolute top-12 left-[16.67%] right-[16.67%] h-px bg-border-subtle" />
+					<div className='hidden md:block absolute top-12 left-[16.67%] right-[16.67%] h-px bg-border-subtle/30' />
 
-					<div className="grid md:grid-cols-3 gap-8 md:gap-12">
+					<div className='grid md:grid-cols-3 gap-8 md:gap-12'>
 						{steps.map((step, index) => {
 							const Icon = step.icon;
 							return (
 								<motion.div
 									key={step.title}
-									initial={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+									initial={
+										shouldReduceMotion
+											? { opacity: 1, y: 0 }
+											: { opacity: 0, y: 20 }
+									}
 									animate={isInView ? { opacity: 1, y: 0 } : {}}
 									transition={
 										shouldReduceMotion
 											? { duration: 0 }
-											: { duration: 0.3, ease: EASE_OUT_QUART, delay: index * 0.15 }
+											: {
+													duration: 0.3,
+													ease: EASE_OUT_QUART,
+													delay: index * 0.15,
+												}
 									}
-									className="relative text-center"
+									className='relative text-center'
 								>
 									{/* Step number + icon */}
-									<div className="relative inline-flex items-center justify-center mb-6">
-										<div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary-500/20 to-primary-600/10 flex items-center justify-center">
-											<Icon className="h-10 w-10 text-primary-400" />
+									<div className='relative inline-flex items-center justify-center mb-6'>
+										<div className='w-24 h-24 rounded-full bg-gradient-to-br from-primary-500/20 to-primary-600/10 flex items-center justify-center'>
+											<Icon className='h-10 w-10 text-primary-400' />
 										</div>
-										<span className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-primary-600 text-text-primary text-sm font-bold flex items-center justify-center">
+										<span className='absolute -top-2 -right-2 w-8 h-8 rounded-full bg-primary-600 text-text-primary text-sm font-bold flex items-center justify-center'>
 											{index + 1}
 										</span>
 									</div>
 
-									<h3 className="text-xl font-semibold text-text-primary mb-3">
+									<h3 className='text-xl font-semibold text-text-primary mb-3'>
 										{step.title}
 									</h3>
-									<p className="text-text-secondary leading-relaxed">
+									<p className='text-text-secondary leading-relaxed'>
 										{step.description}
 									</p>
 								</motion.div>
