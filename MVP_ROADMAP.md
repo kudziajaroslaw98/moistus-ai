@@ -72,16 +72,24 @@ MVP launch readiness checklist:
 ---
 
 ### 1.3 Feature Limit Enforcement
-- [ ] Create Supabase table for usage tracking (maps count, nodes count, AI calls)
-- [ ] Implement `getRemainingLimit()` with actual DB query
-- [ ] Make `showUpgradePrompt()` open the upgrade modal
-- [ ] Add usage display in AI Chat before hitting wall
+- [x] Wire client to `/api/user/billing/usage` for server-authoritative usage data
+- [x] Implement `getRemainingLimit()` with actual usage calculation
+- [x] Make `showUpgradePrompt()` open the upgrade modal
+- [x] Add usage display in AI Chat (AIUsageIndicator component)
+- [x] Add server-side node limit check (`/api/nodes/check-limit`)
+- [x] Refresh usage on init, window focus, and after operations
 
-**Files:**
-- `src/hooks/use-feature-gate.ts` (lines 60, 94, 99)
-- `src/store/slices/subscription-slice.ts` (line 362)
+**Files modified:**
+- `src/store/slices/subscription-slice.ts` (UsageData, fetchUsageData, getRemainingLimit)
+- `src/hooks/subscription/use-feature-gate.ts` (real usage data, useUsageRefresh)
+- `src/components/providers/client-providers.tsx` (init + focus refetch)
+- `src/store/slices/nodes-slice.ts` (server-side limit check)
+- `src/store/slices/chat-slice.ts` (post-AI refresh)
 
-**Effort:** 6-8 hours | **Risk:** Medium
+**Files created:**
+- `src/app/api/nodes/check-limit/route.ts`
+
+**Status:** ✅ COMPLETED
 
 ---
 
@@ -315,7 +323,7 @@ MVP launch readiness checklist:
 - [ ] Logo strip / Testimonials (deferred - no assets yet)
 - [ ] <3s load time optimization (needs production testing)
 - [ ] WCAG 2.1 AA accessibility (basic support done, full audit pending)
-- [ ] Replace screenshot placeholders with actual images
+- [x] Replace screenshot placeholders with actual images
 
 **Files created:**
 - `src/components/landing/hero-section.tsx`
@@ -329,7 +337,7 @@ MVP launch readiness checklist:
 - `src/app/(landing)/page.tsx` (rebuilt)
 - `src/constants/pricing-tiers.ts` (updated: Free 0 AI/3 collabs, Pro 100 AI/month)
 
-**Status:** ✅ MOSTLY COMPLETE (screenshots + social proof deferred)
+**Status:** ✅ MOSTLY COMPLETE (social proof deferred)
 
 ---
 
@@ -414,12 +422,13 @@ MVP launch readiness checklist:
 ## Recommended Work Order
 
 1. **Quick wins first** (Undo/Redo, AI flag, privacy) - builds momentum ✅ DONE
-2. **🚨 Legal compliance** (Privacy Policy, Terms, Cookie Consent, Account Deletion) - **LAUNCH BLOCKER**
-3. **Critical fixes** (profile, upgrade, limits) - trust-critical
-4. **GDPR** (export, emails) - legal requirement
-5. **Landing page + anon mode** - conversion funnel
-6. **Video node** - new feature
-7. **Polish** - nice-to-haves
+2. **Feature limits** (usage tracking, limit enforcement) ✅ DONE
+3. **🚨 Legal compliance** (Privacy Policy, Terms, Cookie Consent, Account Deletion) - **LAUNCH BLOCKER**
+4. **Critical fixes** (profile ✅, upgrade ✅, remaining limit triggers)
+5. **GDPR** (export, emails) - legal requirement
+6. **Landing page + anon mode** - conversion funnel
+7. **Video node** - new feature
+8. **Polish** - nice-to-haves
 
 ---
 

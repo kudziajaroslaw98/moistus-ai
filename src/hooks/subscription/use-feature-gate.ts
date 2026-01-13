@@ -1,7 +1,7 @@
 'use client';
 
 import useAppStore from '@/store/mind-map-store';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
 
 export type FeatureKey =
@@ -76,13 +76,16 @@ export function useFeatureGate(feature: FeatureKey): FeatureGateResult {
 
 // Usage limits hook
 export function useSubscriptionLimits() {
-	const { currentSubscription, availablePlans, nodes } = useAppStore(
-		useShallow((state) => ({
-			currentSubscription: state.currentSubscription,
-			availablePlans: state.availablePlans,
-			nodes: state.nodes,
-		}))
-	);
+	const { currentSubscription, availablePlans, nodes, usageData, isLoadingUsage } =
+		useAppStore(
+			useShallow((state) => ({
+				currentSubscription: state.currentSubscription,
+				availablePlans: state.availablePlans,
+				nodes: state.nodes,
+				usageData: state.usageData,
+				isLoadingUsage: state.isLoadingUsage,
+			}))
+		);
 
 	const limits = useMemo(() => {
 		const plan =
@@ -93,7 +96,7 @@ export function useSubscriptionLimits() {
 			return {
 				mindMaps: 3,
 				nodesPerMap: 50,
-				aiSuggestions: 10,
+				aiSuggestions: 0,
 			};
 		}
 
@@ -101,14 +104,12 @@ export function useSubscriptionLimits() {
 	}, [currentSubscription, availablePlans]);
 
 	const usage = useMemo(() => {
-		// TODO: Implement actual usage calculation
-		// For now, return mock data
 		return {
-			mindMaps: 1, // Current map
-			nodesPerMap: nodes.length,
-			aiSuggestions: 0, // TODO: Track AI usage
+			mindMaps: usageData?.mindMapsCount ?? 0,
+			nodesPerMap: nodes.length, // Client-side per current map
+			aiSuggestions: usageData?.aiSuggestionsCount ?? 0,
 		};
-	}, [nodes]);
+	}, [usageData, nodes.length]);
 
 	const remaining = useMemo(() => {
 		return {
@@ -140,5 +141,20 @@ export function useSubscriptionLimits() {
 		usage,
 		remaining,
 		isAtLimit,
+		isLoadingUsage,
 	};
+}
+
+/**
+ * Hook to refetch usage data when window regains focus.
+ * Uses getState() to avoid stale closures - fire and forget pattern.
+ */
+export function useUsageRefresh() {
+	useEffect(() => {
+		const handleFocus = () => {
+			useAppStore.getState().fetchUsageData();
+		};
+		window.addEventListener('focus', handleFocus);
+		return () => window.removeEventListener('focus', handleFocus);
+	}, []);
 }

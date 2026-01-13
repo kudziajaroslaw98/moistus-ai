@@ -6,14 +6,19 @@ import { useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
-	const { fetchUserSubscription, fetchAvailablePlans, initializeOnboarding } =
-		useAppStore(
-			useShallow((state) => ({
-				fetchUserSubscription: state.fetchUserSubscription,
-				fetchAvailablePlans: state.fetchAvailablePlans,
-				initializeOnboarding: state.initializeOnboarding,
-			}))
-		);
+	const {
+		fetchUserSubscription,
+		fetchAvailablePlans,
+		fetchUsageData,
+		initializeOnboarding,
+	} = useAppStore(
+		useShallow((state) => ({
+			fetchUserSubscription: state.fetchUserSubscription,
+			fetchAvailablePlans: state.fetchAvailablePlans,
+			fetchUsageData: state.fetchUsageData,
+			initializeOnboarding: state.initializeOnboarding,
+		}))
+	);
 
 	// Initialize subscription data and onboarding on mount
 	useEffect(() => {
@@ -23,6 +28,8 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
 				await fetchAvailablePlans();
 				// Then fetch user's current subscription
 				await fetchUserSubscription();
+				// Then fetch usage data for limit enforcement
+				await fetchUsageData();
 				// Finally, check if we should show onboarding
 				await initializeOnboarding();
 			} catch (error) {
@@ -31,7 +38,21 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
 		};
 
 		initialize();
-	}, [fetchAvailablePlans, fetchUserSubscription, initializeOnboarding]);
+	}, [
+		fetchAvailablePlans,
+		fetchUserSubscription,
+		fetchUsageData,
+		initializeOnboarding,
+	]);
+
+	// Refetch usage data when window regains focus
+	useEffect(() => {
+		const handleFocus = () => {
+			useAppStore.getState().fetchUsageData();
+		};
+		window.addEventListener('focus', handleFocus);
+		return () => window.removeEventListener('focus', handleFocus);
+	}, []);
 
 	return (
 		<>

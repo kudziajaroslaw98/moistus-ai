@@ -35,6 +35,11 @@ import { toast } from 'sonner';
 import useSWR, { mutate } from 'swr';
 import { useShallow } from 'zustand/react/shallow';
 
+// Helper to refresh usage data from store
+const refreshUsageData = () => {
+	useAppStore.getState().fetchUsageData?.();
+};
+
 interface MindMapData {
 	id: string;
 	user_id: string;
@@ -201,6 +206,9 @@ function DashboardContent() {
 				false
 			);
 
+			// Refresh usage data after successful map creation (background, non-blocking)
+			refreshUsageData();
+
 			toast.success('Map created successfully!');
 			setShowCreateDialog(false);
 			router.push(`/mind-map/${responseData.map?.id}`);
@@ -257,6 +265,9 @@ function DashboardContent() {
 
 			// Refresh the maps list
 			mutate('/api/maps');
+
+			// Refresh usage data after successful duplication
+			refreshUsageData();
 
 			toast.success('Map duplicated successfully');
 		} catch (err: unknown) {

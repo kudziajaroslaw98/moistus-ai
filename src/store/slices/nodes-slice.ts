@@ -269,7 +269,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					nodeType = 'defaultNode';
 				}
 
-				// Check node creation limit for free tier users
+				// Check node creation limit - both client-side (fast) and server-side (authoritative)
 				const devBypass = process.env.NEXT_PUBLIC_DEV_BYPASS_LIMITS === 'true';
 
 				if (!devBypass) {
@@ -278,14 +278,40 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 						currentSubscription?.plan?.name === 'enterprise';
 					const limit = currentSubscription?.plan?.limits?.nodesPerMap ?? 50; // Free tier default
 
+					// Client-side check (optimistic, fast)
 					if (!isPro && limit !== -1) {
 						const currentNodeCount = nodes.length;
 
 						if (currentNodeCount >= limit) {
-							// Throw error which will be displayed as a toast by withLoadingAndToast
+							// Trigger upgrade modal
+							get().setPopoverOpen?.({ upgradeUser: true });
 							throw new Error(
 								`Node limit reached (${limit} nodes per map). Upgrade to Pro for unlimited nodes.`
 							);
+						}
+					}
+
+					// Server-side check (authoritative, prevents tampering)
+					if (!isPro && mapId) {
+						const response = await fetch('/api/nodes/check-limit', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ mapId }),
+						});
+
+						if (response.status === 402) {
+							// Trigger upgrade modal
+							get().setPopoverOpen?.({ upgradeUser: true });
+							const data = await response.json();
+							throw new Error(
+								data.error ||
+									`Node limit reached. Upgrade to Pro for unlimited nodes.`
+							);
+						}
+
+						if (!response.ok) {
+							console.error('Failed to check node limit');
+							// Don't block on API failure, continue with client-side check
 						}
 					}
 				}

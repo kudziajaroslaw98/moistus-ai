@@ -5,6 +5,35 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-01-14]
+
+### Added
+- **subscription/usage-data**: Server-authoritative usage tracking via `/api/user/billing/usage`
+  - Why: Free tier limits (3 maps, 50 nodes/map) require real usage data, not hardcoded stubs
+  - UsageData interface + fetchUsageData action in subscription-slice
+- **nodes/check-limit**: New `/api/nodes/check-limit` route for server-side node limit enforcement
+  - Why: Prevents client-side bypass of node limits
+- **hooks/use-usage-refresh**: Window focus refetch for real-time usage accuracy
+  - Why: Usage updates when user returns to tab after creating maps elsewhere
+
+### Fixed
+- **subscription/getRemainingLimit**: Now returns `limit - usage` instead of just `limit`
+  - Why: Was returning limit itself, not remaining quota
+- **hooks/useSubscriptionLimits**: Wired to real usageData from store
+  - Why: Was hardcoded to `mindMaps: 1`, `aiSuggestions: 0`
+
+### Changed
+- **nodes-slice/addNode**: Added dual enforcement (client-side fast + server-side authoritative)
+  - Why: Client check is fast, server check prevents tampering
+  - Triggers upgrade modal on 402 limit errors
+- **chat-slice/sendChatMessage**: Refreshes usage data after successful AI response
+- **dashboard**: Refreshes usage data after map creation and duplication
+
+### Docs
+- **MVP_ROADMAP.md**: Updated Phase 1.3 Feature Limit Enforcement to COMPLETED
+
+---
+
 ## [2026-01-13]
 
 ### Added

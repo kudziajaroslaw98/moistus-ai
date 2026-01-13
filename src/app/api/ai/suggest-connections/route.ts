@@ -1,13 +1,13 @@
 // src/app/api/ai/suggest-connections/route.ts
 
-import { createClient } from '@/helpers/supabase/server';
 import {
-	requireSubscription,
 	checkUsageLimit,
 	getAIUsageCount,
-	trackAIUsage,
+	requireSubscription,
 	SubscriptionError,
+	trackAIUsage,
 } from '@/helpers/api/with-subscription-check';
+import { createClient } from '@/helpers/supabase/server';
 import { openai } from '@ai-sdk/openai';
 import {
 	convertToModelMessages,
@@ -271,7 +271,7 @@ export async function POST(req: Request) {
 							},
 						]);
 						const response = streamObject({
-							model: openai('gpt-5-mini'),
+							model: openai('gpt-5-nano'),
 							abortSignal,
 							schema: connectionSuggestionSchema,
 							output: 'array',

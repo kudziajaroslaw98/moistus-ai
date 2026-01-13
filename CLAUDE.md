@@ -209,7 +209,8 @@ Guideline @./animation-guidelines.md
 
 ### API Routes
 
-**Location**: `src/app/api/` (53 routes)
+**Location**: `src/app/api/` (54 routes)
+<!-- Updated: 2026-01-14 - Added nodes/check-limit route -->
 <!-- Updated: 2026-01-05 - Added 2 sign-up routes -->
 
 **AI & Content Generation**:
@@ -248,7 +249,7 @@ Guideline @./animation-guidelines.md
 - `maps/` - List/create maps (GET, POST, DELETE)
 - `maps/[id]/` - Individual map operations (GET, PUT, DELETE)
 - `maps/[id]/check-access/` - Permission check
-- `nodes/create-reference/`, `nodes/search-across-maps/`, `search-nodes/`
+- `nodes/create-reference/`, `nodes/search-across-maps/`, `nodes/check-limit/`, `search-nodes/`
 
 **Collaboration**:
 
