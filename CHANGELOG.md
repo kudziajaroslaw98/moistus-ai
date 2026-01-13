@@ -5,6 +5,31 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-01-13]
+
+### Added
+- **landing/mobile-nav**: Responsive hamburger menu using Sheet component
+  - Why: Landing page was desktop-only, now works on mobile
+- **landing/images**: Real feature screenshots replacing placeholders
+  - connection-suggestions.png, realtime.png, node-editor.png
+
+### Fixed
+- **landing/pricing**: Equal card heights via `h-full` on flex container
+  - Why: Free card was shorter than Pro due to fewer features
+- **landing/focus-states**: Added focus-visible rings for keyboard navigation
+  - Why: Accessibility compliance for keyboard users
+
+### Changed
+- **landing/ctas**: "Try Free" → "Start Mapping", links to /dashboard
+- **landing/icons**: Added aria-hidden to decorative icons
+- **landing/animations**: Updated easing to use ease-in-out-cubic per guidelines
+- **pricing-tiers**: Updated CTA text ("Get Started", "Go Pro")
+
+### Docs
+- **CLAUDE.md**: Added skills section + plan mode documentation
+
+---
+
 ## [2026-01-10]
 
 ### Refactored

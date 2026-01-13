@@ -10,9 +10,7 @@ function Sheet({ ...props }: ComponentProps<typeof BaseDialog.Root>) {
 	return <BaseDialog.Root data-slot='sheet' {...props} />;
 }
 
-function SheetTrigger({
-	...props
-}: ComponentProps<typeof BaseDialog.Trigger>) {
+function SheetTrigger({ ...props }: ComponentProps<typeof BaseDialog.Trigger>) {
 	return <BaseDialog.Trigger data-slot='sheet-trigger' {...props} />;
 }
 
@@ -20,9 +18,7 @@ function SheetClose({ ...props }: ComponentProps<typeof BaseDialog.Close>) {
 	return <BaseDialog.Close data-slot='sheet-close' {...props} />;
 }
 
-function SheetPortal({
-	...props
-}: ComponentProps<typeof BaseDialog.Portal>) {
+function SheetPortal({ ...props }: ComponentProps<typeof BaseDialog.Portal>) {
 	return <BaseDialog.Portal data-slot='sheet-portal' {...props} />;
 }
 
@@ -34,12 +30,17 @@ function SheetOverlay({
 		<BaseDialog.Backdrop
 			data-slot='sheet-overlay'
 			className={cn(
-				'data-[open]:animate-in data-[closed]:animate-out data-[closed]:fade-out-0 data-[open]:fade-in-0 fixed inset-0 z-50',
+				'fixed inset-0 z-50',
+				// Use transition instead of keyframe animation for smoother close
+				'transition-opacity duration-300',
+				'data-[open]:opacity-100',
+				'data-[closed]:opacity-0',
 				className
 			)}
 			style={{
 				backgroundColor: 'rgba(0, 0, 0, 0.5)',
 				backdropFilter: 'blur(12px)',
+				transitionTimingFunction: 'cubic-bezier(.215, .61, .355, 1)', // ease-out-cubic
 			}}
 			{...props}
 		/>
@@ -61,8 +62,8 @@ function SheetContent({
 			<BaseDialog.Popup
 				data-slot='sheet-content'
 				className={cn(
-					'border border-border-default bg-base6 backdrop-blur-md text-text-primary',
-					'data-[open]:animate-in data-[closed]:animate-out fixed z-50 flex flex-col gap-4 shadow-lg transition ease-in-out data-[closed]:duration-300 data-[open]:duration-500',
+					'border border-border-default bg-base text-text-primary',
+					'data-[open]:animate-in data-[closed]:animate-out fixed z-50 flex flex-col gap-4 shadow-lg transition-transform data-[closed]:duration-300 data-[open]:duration-500',
 					side === 'right' &&
 						'data-[closed]:slide-out-to-right data-[open]:slide-in-from-right inset-y-0 right-0 h-full w-3/4 sm:max-w-sm',
 					side === 'left' &&
@@ -73,11 +74,14 @@ function SheetContent({
 						'data-[closed]:slide-out-to-bottom data-[open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto',
 					className
 				)}
+				style={{
+					transitionTimingFunction: 'cubic-bezier(.645, .045, .355, 1)', // ease-in-out-cubic
+				}}
 				{...props}
 			>
 				{children}
 
-				<BaseDialog.Close className='ring-offset-background focus:ring-ring data-[open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none'>
+				<BaseDialog.Close className='ring-offset-background data-[open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity duration-200 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:pointer-events-none'>
 					<XIcon className='size-4' />
 
 					<span className='sr-only'>Close</span>

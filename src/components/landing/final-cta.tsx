@@ -35,12 +35,14 @@ export function FinalCta() {
 					<p className='text-base text-text-secondary mb-6'>
 						Start free. No credit card required.
 					</p>
-					<a
-						href='/try'
-						className='inline-flex items-center justify-center px-8 py-3 text-base font-semibold rounded-md bg-primary-600 hover:bg-primary-500 text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(96,165,250,0.35)]'
-					>
-						Try Free
-					</a>
+					<div className='group inline-block'>
+						<a
+							href='/dashboard'
+							className='inline-flex items-center justify-center px-8 py-3 text-base font-semibold rounded-md bg-primary-600 group-hover:bg-primary-500 text-white shadow-[0_4px_14px_rgba(96,165,250,0.25)] translate-y-0 transition-all duration-200 group-hover:shadow-[0_8px_30px_rgba(96,165,250,0.4)] group-hover:-translate-y-0.5'
+						>
+							Start Mapping
+						</a>
+					</div>
 				</div>
 
 				{/* Footer bar */}
@@ -63,7 +65,7 @@ export function FinalCta() {
 					</nav>
 
 					{/* Right: Copyright */}
-					<span className='text-sm text-text-tertiary'>
+					<span className='text-sm text-text-tertiary' suppressHydrationWarning>
 						© {currentYear} Moistus
 					</span>
 				</div>

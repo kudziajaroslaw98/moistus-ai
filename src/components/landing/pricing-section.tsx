@@ -47,7 +47,7 @@ export function PricingSection() {
 					{/* Billing toggle */}
 					<div className='inline-flex items-center gap-3 p-1 rounded-lg bg-surface'>
 						<button
-							className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+							className={`px-4 py-2 rounded-md text-sm font-medium transition-[background-color,color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
 								billingCycle === 'monthly'
 									? 'bg-elevated text-text-primary'
 									: 'bg-transparent text-text-secondary hover:text-text-primary'
@@ -57,7 +57,7 @@ export function PricingSection() {
 							Monthly
 						</button>
 						<button
-							className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+							className={`px-4 py-2 rounded-md text-sm font-medium transition-[background-color,color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
 								billingCycle === 'yearly'
 									? 'bg-elevated text-text-primary'
 									: 'bg-transparent text-text-secondary hover:text-text-primary'
@@ -73,25 +73,25 @@ export function PricingSection() {
 				{/* Pricing cards */}
 				<div className='grid md:grid-cols-2 gap-8'>
 					{PRICING_TIERS.map((tier, index) => (
-						<motion.div
-							key={tier.id}
-							initial={
-								shouldReduceMotion
-									? { opacity: 1, y: 0 }
-									: { opacity: 0, y: 20 }
-							}
-							animate={isInView ? { opacity: 1, y: 0 } : {}}
-							transition={
-								shouldReduceMotion
-									? { duration: 0 }
-									: { duration: 0.3, ease: EASE_OUT_QUART, delay: index * 0.15 }
-							}
-							className={`relative rounded-xl p-6 border flex flex-col transition-all duration-200 ${
-								tier.recommended
-									? 'bg-elevated border-primary-500/50 shadow-[0_0_20px_rgba(96,165,250,0.15)] hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(96,165,250,0.25)]'
-									: 'bg-surface border-border-subtle hover:-translate-y-1 hover:border-primary-500/30 hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)]'
-							}`}
-						>
+						<div key={tier.id} className='group'>
+							<motion.div
+								initial={
+									shouldReduceMotion
+										? { opacity: 1, y: 0 }
+										: { opacity: 0, y: 20 }
+								}
+								animate={isInView ? { opacity: 1, y: 0 } : {}}
+								transition={
+									shouldReduceMotion
+										? { duration: 0 }
+										: { duration: 0.3, ease: EASE_OUT_QUART, delay: index * 0.15 }
+								}
+								className={`relative rounded-xl p-6 border flex flex-col h-full translate-y-0 transition-all duration-200 ${
+									tier.recommended
+										? 'bg-elevated border-primary-500/50 shadow-[0_0_20px_rgba(96,165,250,0.15)] group-hover:shadow-[0_0_30px_rgba(96,165,250,0.25)] group-hover:-translate-y-1'
+										: 'bg-surface border-border-subtle group-hover:border-primary-500/30 group-hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] group-hover:-translate-y-1'
+								}`}
+							>
 							{tier.recommended && (
 								<div className='absolute -top-3 left-1/2 -translate-x-1/2'>
 									<span className='text-xs font-semibold px-3 py-1 rounded-full bg-primary-600 text-zinc-100'>
@@ -134,13 +134,13 @@ export function PricingSection() {
 							<div className='space-y-3 mb-6'>
 								{tier.features.map((feature) => (
 									<div className='flex items-start gap-2' key={feature}>
-										<Check className='w-4 h-4 mt-0.5 shrink-0 text-success-500' />
+										<Check aria-hidden="true" className='w-4 h-4 mt-0.5 shrink-0 text-success-500' />
 										<span className='text-sm text-text-primary'>{feature}</span>
 									</div>
 								))}
 								{tier.limitations?.map((limitation) => (
 									<div className='flex items-start gap-2' key={limitation}>
-										<X className='w-4 h-4 mt-0.5 shrink-0 text-text-disabled' />
+										<X aria-hidden="true" className='w-4 h-4 mt-0.5 shrink-0 text-text-disabled' />
 										<span className='text-sm text-text-disabled'>
 											{limitation}
 										</span>
@@ -149,8 +149,8 @@ export function PricingSection() {
 							</div>
 
 							<a
-								href={tier.id === 'free' ? '/try' : '/signup?plan=pro'}
-								className={`mt-auto w-full inline-flex items-center justify-center h-10 px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+								href={tier.id === 'free' ? '/dashboard' : '/auth/sign-up?plan=pro'}
+								className={`mt-auto w-full inline-flex items-center justify-center h-10 px-4 py-2 text-sm font-medium rounded-md transition-[background-color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
 									tier.recommended
 										? 'bg-primary-600 hover:bg-primary-500 text-white'
 										: 'bg-elevated hover:bg-overlay text-text-primary'
@@ -158,7 +158,8 @@ export function PricingSection() {
 							>
 								{tier.ctaText}
 							</a>
-						</motion.div>
+							</motion.div>
+						</div>
 					))}
 				</div>
 			</div>

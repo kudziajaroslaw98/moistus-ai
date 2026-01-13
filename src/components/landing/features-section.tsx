@@ -12,7 +12,8 @@ interface Feature {
 	title: string;
 	headline: string;
 	description: string;
-	imagePlaceholder: string;
+	imageSrc: string;
+	imageAlt: string;
 }
 
 const features: Feature[] = [
@@ -22,7 +23,8 @@ const features: Feature[] = [
 		headline: 'AI that thinks with you, not after you',
 		description:
 			'Ghost nodes suggest connections as you work. No separate "AI button" — insights emerge naturally from your thinking flow.',
-		imagePlaceholder: 'Ghost node suggestions appearing on canvas',
+		imageSrc: '/images/landing/connection-suggestions.png',
+		imageAlt: 'AI ghost nodes suggesting connections on the mind map canvas',
 	},
 	{
 		icon: Users,
@@ -30,7 +32,8 @@ const features: Feature[] = [
 		headline: 'Think together, in real-time',
 		description:
 			"See teammates' cursors, edits, and ideas instantly. Brainstorm sessions that feel like being in the same room.",
-		imagePlaceholder: 'Multiple cursors + avatar stack on canvas',
+		imageSrc: '/images/landing/realtime.png',
+		imageAlt: 'Multiple user cursors collaborating on a mind map in real-time',
 	},
 	{
 		icon: Zap,
@@ -38,7 +41,8 @@ const features: Feature[] = [
 		headline: 'Type once, structure automatically',
 		description:
 			'Commands like $task, #tags, @mentions parsed instantly. A learning curve that pays off in minutes saved daily.',
-		imagePlaceholder: 'Node editor with command preview',
+		imageSrc: '/images/landing/node-editor.png',
+		imageAlt: 'Node editor with task list and command preview',
 	},
 ];
 
@@ -72,8 +76,8 @@ function FeatureBlock({ feature, index }: { feature: Feature; index: number }) {
 				className={`${isEven ? '' : 'md:order-2'} md:direction-ltr`}
 			>
 				<div className='group flex items-center gap-3 mb-4'>
-					<div className='p-2 rounded-lg bg-primary-500/10 transition-all duration-200 group-hover:bg-primary-500/20 group-hover:scale-110'>
-						<Icon className='h-5 w-5 text-primary-400 transition-colors duration-200 group-hover:text-primary-300' />
+					<div className='p-2 rounded-lg bg-primary-500/10 scale-100 transition-all duration-200 group-hover:bg-primary-500/20 group-hover:scale-110'>
+						<Icon aria-hidden="true" className='h-5 w-5 text-primary-400 transition-colors duration-200 group-hover:text-primary-300' />
 					</div>
 					<span className='text-sm font-medium text-primary-400 transition-colors duration-200 group-hover:text-primary-300'>
 						{feature.title}
@@ -87,7 +91,7 @@ function FeatureBlock({ feature, index }: { feature: Feature; index: number }) {
 				</p>
 			</motion.div>
 
-			{/* Image placeholder */}
+			{/* Feature image */}
 			<motion.div
 				initial={
 					shouldReduceMotion
@@ -103,16 +107,20 @@ function FeatureBlock({ feature, index }: { feature: Feature; index: number }) {
 				className={`${isEven ? '' : 'md:order-1'} md:direction-ltr`}
 			>
 				<div
-					className='aspect-video rounded-xl border border-border-subtle bg-surface/50 backdrop-blur-sm flex items-center justify-center p-8'
+					className='rounded-xl border border-border-subtle bg-surface/50 backdrop-blur-sm overflow-hidden'
 					style={{
 						background:
 							'linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)',
 					}}
 				>
-					{/* TODO: Replace with actual screenshot */}
-					<p className='text-text-tertiary text-sm text-center'>
-						{feature.imagePlaceholder}
-					</p>
+					<img
+						src={feature.imageSrc}
+						alt={feature.imageAlt}
+						width={800}
+						height={450}
+						className='w-full h-auto'
+						loading='lazy'
+					/>
 				</div>
 			</motion.div>
 		</div>

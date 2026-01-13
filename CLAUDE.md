@@ -79,6 +79,10 @@ pnpm pretty          # Prettier
 
 - Always use context7 when I need code generation, setup or configuration steps, or library/API documentation. This means you should automatically use the Context7 MCP tools to resolve library id and get library docs without me having to explicitly ask.
 
+## Skills
+
+- **critical** YOU MUST USE SKILLS PROACTIVELY.
+
 ## Architecture
 <!-- Updated: 2025-12-22 - Deep audit: fixed version, slice count, AI provider -->
 
@@ -299,6 +303,11 @@ Guideline @./animation-guidelines.md
 
 **Design Decision - NodeData.metadata**: The `metadata` field in `NodeData` is intentionally a single unified type rather than discriminated union per node type. This enables seamless node type switching in the UI without data loss - users can change a Note to a Task without losing existing metadata fields. Do NOT split into per-type unions.
 <!-- Updated: 2026-01-06 - Added NodeData.metadata design rationale -->
+
+## Plan Mode
+
+- Make the plan extremely concise. Sacrifice grammar for the sake of concision.
+- At the end of each plan, give me a list of unresolved questions to answer, if any.
 
 ## Best Practices
 
