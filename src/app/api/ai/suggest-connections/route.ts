@@ -7,6 +7,11 @@ import {
 	SubscriptionError,
 	trackAIUsage,
 } from '@/helpers/api/with-subscription-check';
+import {
+	extractEdgesForConnections,
+	extractNodesForConnections,
+	formatConnectionContext,
+} from '@/helpers/extract-connection-context';
 import { createClient } from '@/helpers/supabase/server';
 import { openai } from '@ai-sdk/openai';
 import {
@@ -185,15 +190,9 @@ export async function POST(req: Request) {
 						await wait(1000);
 
 						// Safely extract mapId from the last message's text part
-						//
-						console.dir(messages, { depth: null });
-
 						const lastUserMessage = messages
 							.filter((m) => m.role === 'user')
 							.pop();
-
-						console.dir(lastUserMessage, { depth: null });
-						console.dir(lastUserMessage?.parts, { depth: null });
 
 						if (
 							!lastUserMessage ||
@@ -245,7 +244,7 @@ export async function POST(req: Request) {
 							type: 'data-stream-status',
 							data: {
 								header: streamHeader,
-								message: 'Querying AI model...',
+								message: 'Analyzing node content...',
 								step: 3,
 								stepName: totalSteps[2].name,
 								totalSteps: totalSteps.length,
@@ -254,18 +253,42 @@ export async function POST(req: Request) {
 
 						await wait(1000);
 
-						const contextPrompt = `Based on the following mind map data, suggest meaningful connections. Nodes: ${JSON.stringify(mapData.nodes)}. Edges: ${JSON.stringify(mapData.edges)}.`;
+						// Extract only semantic content (filters ghost/comment nodes, excludes URLs/styling)
+						const minimalNodes = extractNodesForConnections(mapData.nodes);
+						const minimalEdges = extractEdgesForConnections(mapData.edges);
+						const formattedContext = formatConnectionContext(
+							minimalNodes,
+							minimalEdges
+						);
+
+						const systemPrompt = `You are an expert at analyzing mind maps and discovering meaningful connections between concepts.
+
+Given the following mind map content, suggest new connections that would add value.
+
+Guidelines:
+- Focus on semantic relationships, not structural ones
+- Look for conceptual links: causes, dependencies, similarities, contradictions
+- Avoid suggesting connections that already exist
+- Each suggestion needs valid node IDs from the provided list
+
+Restrictions:
+- Only suggest connections with confidence > 0.8
+- Return at most 6 suggestions, prioritized by confidence
+- Quality over quantity: fewer strong suggestions beat many weak ones
+
+${formattedContext}`;
+
 						const modelMessages = await convertToModelMessages([
 							{
 								role: 'system',
-								parts: [{ type: 'text', text: contextPrompt }],
+								parts: [{ type: 'text', text: systemPrompt }],
 							},
 							{
 								role: 'user',
 								parts: [
 									{
 										type: 'text',
-										text: 'Please provide a list of (1) suggested connections.',
+										text: 'Please suggest meaningful connections between these nodes.',
 									},
 								],
 							},
