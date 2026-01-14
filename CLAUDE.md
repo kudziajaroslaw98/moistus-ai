@@ -147,10 +147,10 @@ pnpm supabase:stop         # Stop local DB
 **Docs**: Generated docs → `./ai-docs/[feature]/[doc-name].md` • JSDoc for complex functions • ADRs for major changes
 
 ## Known Technical Debt
-<!-- Updated: 2026-01-14 - Cleared resolved items -->
+<!-- Updated: 2026-01-14 - Added Stripe cleanup, removed resolved migrations item -->
 
 1. Consider reorganizing root-level AI routes under `ai/` directory
-2. Create `supabase/migrations/` with proper migration files (currently none exist)
-3. Set up `supabase gen types` for automated TypeScript type generation
-4. Implement actual conflict resolution for real-time collaboration (currently last-write-wins)
-5. Add `@media (hover: hover)` wrapper for touch device hover states in animations
+2. Set up `supabase gen types` for automated TypeScript type generation
+3. Implement actual conflict resolution for real-time collaboration (currently last-write-wins)
+4. Add `@media (hover: hover)` wrapper for touch device hover states in animations
+5. **Stripe → Dodo cleanup**: Drop old Stripe columns from DB after confirming no data loss (stripe_subscription_id, stripe_customer_id, stripe_price_id_*, stripe_invoice_id)

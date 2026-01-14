@@ -32,6 +32,16 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ### Docs
 - **MVP_ROADMAP.md**: Updated Phase 1.3 Feature Limit Enforcement to COMPLETED
 
+### Refactored
+- **billing**: Migrated from Stripe to Dodo Payments (Merchant of Record)
+  - Why: MOR handles tax, compliance, chargebacks automatically
+  - New routes: `/api/checkout/create`, `/api/webhooks/dodo`
+  - Removed: `/api/subscriptions/create`, `/api/subscriptions/webhook`
+  - Deleted: `payment-step.tsx` (checkout now external)
+  - Simplified onboarding: 4 steps → 3 steps (no in-app payment form)
+  - Removed packages: `@stripe/stripe-js`, `@stripe/react-stripe-js`, `stripe`
+  - Added package: `dodopayments`
+
 ---
 
 ## [2026-01-13]
