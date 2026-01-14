@@ -1,19 +1,20 @@
 import { createClient } from '@/helpers/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-	apiVersion: '2025-12-15.clover',
-});
-
+/**
+ * Invoice route for Dodo Payments.
+ *
+ * With Dodo as MOR, invoices are managed through their customer portal.
+ * This route provides invoice URLs from payment_history metadata where available.
+ */
 export async function GET(req: NextRequest) {
 	try {
 		const { searchParams } = new URL(req.url);
-		const invoiceId = searchParams.get('invoiceId');
+		const paymentId = searchParams.get('paymentId');
 
-		if (!invoiceId) {
+		if (!paymentId) {
 			return NextResponse.json(
-				{ error: 'Invoice ID required' },
+				{ error: 'Payment ID required' },
 				{ status: 400 }
 			);
 		}
@@ -27,30 +28,34 @@ export async function GET(req: NextRequest) {
 			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 		}
 
-		// IDOR Protection: Verify user owns this invoice
-		// The metadata column contains { stripe_invoice_id: "inv_xxx" }
+		// IDOR Protection: Verify user owns this payment record
 		const { data: payment, error } = await supabase
 			.from('payment_history')
-			.select('id')
+			.select('id, dodo_payment_id, metadata')
 			.eq('user_id', user.id)
-			.filter('metadata->>stripe_invoice_id', 'eq', invoiceId)
+			.eq('dodo_payment_id', paymentId)
 			.single();
 
 		if (error || !payment) {
-			return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+			return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
 		}
 
-		// Retrieve invoice from Stripe
-		const invoice = await stripe.invoices.retrieve(invoiceId);
+		// Dodo invoices are accessed through customer portal
+		// Direct invoice URLs may be available in payment metadata if configured
+		const invoiceUrl = (payment.metadata as Record<string, unknown>)?.invoice_url;
 
-		if (!invoice.invoice_pdf) {
-			return NextResponse.json(
-				{ error: 'Invoice PDF not available' },
-				{ status: 404 }
-			);
+		if (invoiceUrl && typeof invoiceUrl === 'string') {
+			return NextResponse.json({ url: invoiceUrl });
 		}
 
-		return NextResponse.json({ url: invoice.invoice_pdf });
+		// If no direct invoice URL, redirect to customer portal
+		return NextResponse.json(
+			{
+				error: 'Invoice available through billing portal',
+				redirectToPortal: true
+			},
+			{ status: 404 }
+		);
 	} catch (error) {
 		console.error('Invoice fetch error:', error);
 		return NextResponse.json(

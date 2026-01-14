@@ -9,8 +9,8 @@ export interface SubscriptionPlan {
 	description: string;
 	priceMonthly: number;
 	priceYearly: number;
-	stripePriceIdMonthly?: string;
-	stripePriceIdYearly?: string;
+	dodoProductIdMonthly?: string;
+	dodoProductIdYearly?: string;
 	features: string[];
 	limits: {
 		mindMaps: number;
@@ -24,8 +24,8 @@ export interface UserSubscription {
 	id: string;
 	userId: string;
 	planId: string;
-	stripeSubscriptionId?: string;
-	stripeCustomerId?: string;
+	dodoSubscriptionId?: string;
+	dodoCustomerId?: string;
 	status:
 		| 'active'
 		| 'trialing'
@@ -67,13 +67,11 @@ export interface SubscriptionSlice {
 	fetchAvailablePlans: () => Promise<void>;
 	fetchUserSubscription: () => Promise<void>;
 	fetchUsageData: () => Promise<void>;
-	createSubscription: (
+	createCheckoutSession: (
 		planId: string,
-		priceId: string,
-		paymentMethodId: string
+		billingInterval: 'monthly' | 'yearly'
 	) => Promise<{
-		subscriptionId?: string;
-		clientSecret?: string;
+		checkoutUrl?: string;
 		error?: string;
 	}>;
 	updateSubscription: (
@@ -129,8 +127,8 @@ export const createSubscriptionSlice: StateCreator<
 				description: plan.description,
 				priceMonthly: plan.price_monthly,
 				priceYearly: plan.price_yearly,
-				stripePriceIdMonthly: plan.stripe_price_id_monthly,
-				stripePriceIdYearly: plan.stripe_price_id_yearly,
+				dodoProductIdMonthly: plan.dodo_product_id,
+				dodoProductIdYearly: plan.dodo_product_id,
 				features: plan.features,
 				limits: plan.limits,
 				isActive: plan.is_active,
@@ -182,8 +180,8 @@ export const createSubscriptionSlice: StateCreator<
 					id: data.id,
 					userId: data.user_id,
 					planId: data.plan_id,
-					stripeSubscriptionId: data.stripe_subscription_id,
-					stripeCustomerId: data.stripe_customer_id,
+					dodoSubscriptionId: data.dodo_subscription_id,
+					dodoCustomerId: data.dodo_customer_id,
 					status: data.status,
 					currentPeriodStart: data.current_period_start
 						? new Date(data.current_period_start)
@@ -202,8 +200,8 @@ export const createSubscriptionSlice: StateCreator<
 								description: data.plan.description,
 								priceMonthly: data.plan.price_monthly,
 								priceYearly: data.plan.price_yearly,
-								stripePriceIdMonthly: data.plan.stripe_price_id_monthly,
-								stripePriceIdYearly: data.plan.stripe_price_id_yearly,
+								dodoProductIdMonthly: data.plan.dodo_product_id,
+								dodoProductIdYearly: data.plan.dodo_product_id,
 								features: data.plan.features,
 								limits: data.plan.limits,
 								isActive: data.plan.is_active,
@@ -255,38 +253,33 @@ export const createSubscriptionSlice: StateCreator<
 		}
 	},
 
-	createSubscription: async (
+	createCheckoutSession: async (
 		planId: string,
-		priceId: string,
-		paymentMethodId: string
+		billingInterval: 'monthly' | 'yearly'
 	) => {
 		try {
-			const response = await fetch('/api/subscriptions/create', {
+			const response = await fetch('/api/checkout/create', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ planId, priceId, paymentMethodId }),
+				body: JSON.stringify({ planId, billingInterval }),
 			});
 
 			const data = await response.json();
 
 			if (!response.ok) {
-				throw new Error(data.error || 'Failed to create subscription');
+				throw new Error(data.error || 'Failed to create checkout session');
 			}
 
-			// Refresh subscription data after creation
-			await get().fetchUserSubscription();
-
 			return {
-				subscriptionId: data.subscriptionId,
-				clientSecret: data.clientSecret,
+				checkoutUrl: data.checkoutUrl,
 			};
 		} catch (error) {
-			console.error('Error creating subscription:', error);
+			console.error('Error creating checkout session:', error);
 			return {
 				error:
 					error instanceof Error
 						? error.message
-						: 'Failed to create subscription',
+						: 'Failed to create checkout session',
 			};
 		}
 	},

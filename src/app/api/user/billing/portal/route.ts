@@ -1,10 +1,6 @@
 import { createClient } from '@/helpers/supabase/server';
+import { createDodoClient } from '@/helpers/dodo/client';
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-	apiVersion: '2025-12-15.clover',
-});
 
 export async function POST() {
 	try {
@@ -17,36 +13,32 @@ export async function POST() {
 			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 		}
 
-		// Get user's Stripe customer ID from their subscription
+		// Get user's Dodo customer ID from their subscription
 		const { data: subscription, error } = await supabase
 			.from('user_subscriptions')
-			.select('stripe_customer_id')
+			.select('dodo_customer_id')
 			.eq('user_id', user.id)
-			.not('stripe_customer_id', 'is', null)
+			.not('dodo_customer_id', 'is', null)
 			.order('created_at', { ascending: false })
 			.limit(1)
 			.single();
 
-		if (error || !subscription?.stripe_customer_id) {
+		if (error || !subscription?.dodo_customer_id) {
 			return NextResponse.json(
 				{ error: 'No billing account found. Subscribe to a plan first.' },
 				{ status: 404 }
 			);
 		}
 
-		// Determine return URL
-		const returnUrl =
-			process.env.NEXT_PUBLIC_APP_URL ||
-			process.env.VERCEL_URL ||
-			'http://localhost:3000';
+		const dodo = createDodoClient();
 
-		// Create billing portal session
-		const session = await stripe.billingPortal.sessions.create({
-			customer: subscription.stripe_customer_id,
-			return_url: `${returnUrl}/dashboard?settings=billing`,
-		});
+		// Create customer portal session
+		// Note: Return URL is configured in Dodo dashboard, not via API
+		const portal = await dodo.customers.customerPortal.create(
+			subscription.dodo_customer_id
+		);
 
-		return NextResponse.json({ url: session.url });
+		return NextResponse.json({ url: portal.link });
 	} catch (error) {
 		console.error('Portal session error:', error);
 		return NextResponse.json(

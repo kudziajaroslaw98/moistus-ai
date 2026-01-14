@@ -1,6 +1,6 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withAuthValidation } from '@/helpers/api/with-auth-validation';
-import Stripe from 'stripe';
+import { createDodoClient } from '@/helpers/dodo/client';
 import { z } from 'zod';
 
 // No body expected for this route
@@ -18,57 +18,41 @@ export const POST = withAuthValidation(
 			return respondError('Subscription ID is required', 400);
 		}
 
-		// Validate Stripe secret key
-		if (!process.env.STRIPE_SECRET_KEY) {
-			console.error('STRIPE_SECRET_KEY is not configured');
-			return respondError('Payment system configuration error', 500);
-		}
-
-		const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-			apiVersion: '2025-12-15.clover',
-		});
-
-		// IDOR Protection
+		// IDOR Protection: Verify user owns this subscription
 		const { data: subscription, error } = await supabase
 			.from('user_subscriptions')
 			.select('*')
 			.eq('id', subscriptionId)
-			.eq('user_id', user.id) // CRITICAL: Prevent accessing other users' subscriptions
+			.eq('user_id', user.id)
 			.single();
 
 		if (error || !subscription) {
 			return respondError('Subscription not found', 404);
 		}
 
-		// Cancel at period end in Stripe (don't cancel immediately)
-		let stripeSubscription: Stripe.Subscription;
-		try {
-			stripeSubscription = await stripe.subscriptions.update(
-				subscription.stripe_subscription_id,
-				{
-					cancel_at_period_end: true,
-				}
-			);
+		// Check if we have a Dodo subscription ID
+		if (!subscription.dodo_subscription_id) {
+			return respondError('No Dodo subscription found', 400);
+		}
 
-			// Verify Stripe update succeeded
-			if (!stripeSubscription || !stripeSubscription.cancel_at_period_end) {
-				console.error('Stripe subscription update failed:', stripeSubscription);
-				return respondError(
-					'Failed to cancel subscription with payment provider',
-					500
-				);
-			}
-		} catch (stripeError) {
-			console.error('Stripe API error during cancellation:', stripeError);
+		// Cancel at period end in Dodo
+		try {
+			const dodo = createDodoClient();
+
+			await dodo.subscriptions.update(subscription.dodo_subscription_id, {
+				status: 'cancelled',
+			});
+		} catch (dodoError) {
+			console.error('Dodo API error during cancellation:', dodoError);
 			return respondError(
-				stripeError instanceof Error
-					? stripeError.message
+				dodoError instanceof Error
+					? dodoError.message
 					: 'Failed to cancel subscription with payment provider',
 				500
 			);
 		}
 
-		// Update database to match Stripe state
+		// Update database to reflect cancellation
 		const { data: updatedSubscription, error: updateError } = await supabase
 			.from('user_subscriptions')
 			.update({
@@ -80,10 +64,10 @@ export const POST = withAuthValidation(
 
 		if (updateError) {
 			console.error(
-				'Database update failed after Stripe cancellation:',
+				'Database update failed after Dodo cancellation:',
 				updateError
 			);
-			// Note: Stripe has already been updated at this point.
+			// Note: Dodo has already been updated at this point.
 			// The webhook should eventually sync this, but we still return an error
 			return respondError(
 				'Failed to update subscription status in database',
@@ -93,7 +77,7 @@ export const POST = withAuthValidation(
 
 		// Verify rows were actually updated
 		if (!updatedSubscription || updatedSubscription.length === 0) {
-			console.error('No rows updated in database after Stripe cancellation');
+			console.error('No rows updated in database after Dodo cancellation');
 			return respondError(
 				'Failed to update subscription status in database',
 				500
