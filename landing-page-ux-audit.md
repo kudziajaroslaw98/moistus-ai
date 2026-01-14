@@ -100,7 +100,7 @@
 
 **Fix:** Add below FAQ accordion:
 ```text
-Still have questions? Email us at support@moistus.ai
+Still have questions? Email us at support@shiko.app
 ```
 Or add live chat widget.
 

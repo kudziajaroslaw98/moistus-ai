@@ -1,4 +1,4 @@
-# Moistus AI - MVP Launch Roadmap
+# Shiko - MVP Launch Roadmap
 
 > Last updated: 2026-01-11 (Added legal compliance section - EU/US launch blockers)
 > Estimated effort: 50-70 hours

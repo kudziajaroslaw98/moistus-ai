@@ -25,9 +25,9 @@ export function TopBarBreadcrumb({ title, isMobile }: TopBarBreadcrumbProps) {
 					<BreadcrumbLink asChild>
 						<Link href='/dashboard'>
 							<Image
-								alt='Moistus Logo'
+								alt='Shiko Logo'
 								height={isMobile ? 40 : 60}
-								src='/images/moistus.svg'
+								src='/images/shiko.svg'
 								width={isMobile ? 40 : 60}
 							/>
 						</Link>

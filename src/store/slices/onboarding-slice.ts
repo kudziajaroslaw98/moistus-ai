@@ -34,7 +34,7 @@ export interface OnboardingSlice {
 	setIsAnimating: (animating: boolean) => void;
 }
 
-const ONBOARDING_STORAGE_KEY = 'moistus_onboarding_v1';
+const ONBOARDING_STORAGE_KEY = 'shiko_onboarding_v1';
 const TOTAL_STEPS = 4; // Welcome, Benefits, Pricing, Payment (if pro selected)
 
 // Helper to initialize onboarding state from localStorage synchronously

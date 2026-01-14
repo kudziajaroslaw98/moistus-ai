@@ -20,7 +20,7 @@ const lora = Lora({
 });
 
 export const metadata: Metadata = {
-	title: 'Mind Map AI App',
+	title: 'Shiko',
 	description: 'AI-powered mind mapping and information organization',
 };
 

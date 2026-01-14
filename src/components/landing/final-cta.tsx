@@ -48,7 +48,7 @@ export function FinalCta() {
 				{/* Footer bar */}
 				<div className='py-6 flex flex-col sm:flex-row items-center justify-between gap-4'>
 					{/* Left: Brand */}
-					<span className='text-sm font-medium text-text-primary'>Moistus</span>
+					<span className='text-sm font-medium text-text-primary'>Shiko</span>
 
 					{/* Center: Links */}
 					<nav className='flex items-center gap-6'>
@@ -66,7 +66,7 @@ export function FinalCta() {
 
 					{/* Right: Copyright */}
 					<span className='text-sm text-text-tertiary' suppressHydrationWarning>
-						© {currentYear} Moistus
+						© {currentYear} Shiko
 					</span>
 				</div>
 			</div>

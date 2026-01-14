@@ -72,7 +72,7 @@ export function LandingNav() {
 						href='/'
 						className='text-lg font-semibold text-text-primary hover:text-primary-400 transition-colors duration-200'
 					>
-						Moistus
+						Shiko
 					</a>
 
 					{/* Center links - hidden on mobile */}
@@ -116,7 +116,7 @@ export function LandingNav() {
 							<SheetContent side='right' className='w-[280px] p-0'>
 								<SheetHeader className='px-6 pt-6 pb-4 border-b border-border-subtle'>
 									<span className='text-lg font-semibold text-text-primary'>
-										Moistus
+										Shiko
 									</span>
 								</SheetHeader>
 

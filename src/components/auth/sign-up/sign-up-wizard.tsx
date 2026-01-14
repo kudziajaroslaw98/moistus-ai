@@ -238,7 +238,7 @@ export function SignUpWizard() {
 	const getStepContent = () => {
 		switch (state.step) {
 			case 'form':
-				return { title: 'Create account', subtitle: 'Start your journey with Moistus' };
+				return { title: 'Create account', subtitle: 'Start your journey with Shiko' };
 			case 'otp':
 				return { title: 'Verify email', subtitle: 'Check your inbox for a verification code' };
 			case 'success':
