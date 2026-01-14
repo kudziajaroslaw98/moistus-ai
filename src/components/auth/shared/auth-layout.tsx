@@ -35,9 +35,9 @@ export function AuthLayout({ children }: AuthLayoutProps) {
 					>
 						<Link href='/' className='block'>
 							<Image
-								alt='Moistus Logo'
+								alt='Shiko Logo'
 								height={80}
-								src='/images/moistus.svg'
+								src='/images/shiko.svg'
 								width={80}
 								priority
 							/>
@@ -60,7 +60,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
 						: { delay: 0.5, duration: 0.3, ease: easeOutQuart }
 				}
 			>
-				<p>&copy; {new Date().getFullYear()} Moistus</p>
+				<p>&copy; {new Date().getFullYear()} Shiko</p>
 			</motion.footer>
 		</main>
 	);

@@ -1,16 +1,16 @@
-![Moistus AI](public/images/moistus-ai.jpg)
+![Shiko](public/images/shiko.jpg)
 
-# Moistus AI - Intelligent Mind Mapping
+# Shiko - Intelligent Mind Mapping
 
-Moistus AI is an open-source intelligent mind mapping platform designed to help you organize your thoughts, cultivate ideas, and discover new connections within your knowledge.
+Shiko (思考 - thinking) is an open-source intelligent mind mapping platform designed to help you organize your thoughts, cultivate ideas, and discover new connections within your knowledge.
 
 ## Overview
 
-In a world of information overload, Moistus AI stands as your digital thinking canvas. It empowers you to organize chaos into clarity, transform scattered thoughts into structured knowledge, and unlock insights you never knew existed within your own ideas.
+In a world of information overload, Shiko stands as your digital thinking canvas. It empowers you to organize chaos into clarity, transform scattered thoughts into structured knowledge, and unlock insights you never knew existed within your own ideas.
 
 ## Purpose
 
-Moistus AI was created with a clear mission: to boost productivity and spark creativity by providing a flexible system where knowledge can grow organically. Unlike rigid organizational tools, Moistus AI adapts to your unique thinking patterns, allowing you to:
+Shiko was created with a clear mission: to boost productivity and spark creativity by providing a flexible system where knowledge can grow organically. Unlike rigid organizational tools, Shiko adapts to your unique thinking patterns, allowing you to:
 
 - Capture and connect ideas in your own unique way
 - Discover unexpected relationships between concepts
@@ -28,24 +28,24 @@ Moistus AI was created with a clear mission: to boost productivity and spark cre
 
 ## Technology Stack
 
-Moistus AI is built using modern technologies:
+Shiko is built using modern technologies:
 - **Next.js & React**: For a fast, responsive frontend
 - **TypeScript**: For type-safe code
 - **Tailwind CSS**: For elegant, consistent styling
 - **Supabase**: For authentication and database
-- **Google Gemini AI**: For intelligent features
+- **OpenAI GPT**: For intelligent features
 
 ## Getting Started
 
 1. Clone the repository
-2. Install dependencies with `npm install`
+2. Install dependencies with `pnpm install`
 3. Set up environment variables (see `.env.example`)
-4. Run the development server with `npm run dev`
+4. Run the development server with `pnpm dev`
 5. Visit `http://localhost:3000` to start mapping
 
 ## Contributing
 
-Moistus AI is an open-source project and we welcome contributions from the community. Whether you're fixing bugs, improving documentation, or proposing new features, your help is appreciated.
+Shiko is an open-source project and we welcome contributions from the community. Whether you're fixing bugs, improving documentation, or proposing new features, your help is appreciated.
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
@@ -59,6 +59,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Vision
 
-We believe that the best tools don't just organize what you already know—they help you discover what you don't. Moistus AI aims to be your thinking partner, helping you connect dots, spark new ideas, and make your knowledge more than the sum of its parts.
+We believe that the best tools don't just organize what you already know—they help you discover what you don't. Shiko aims to be your thinking partner, helping you connect dots, spark new ideas, and make your knowledge more than the sum of its parts.
 
 Join us in building a tool that makes thinking more productive, creative, and enjoyable.

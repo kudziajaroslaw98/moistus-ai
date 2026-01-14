@@ -25,7 +25,7 @@ interface WaitlistFormProps {
 	onSuccess?: () => void;
 }
 
-const STORAGE_KEY = 'moistus_waitlist_email';
+const STORAGE_KEY = 'shiko_waitlist_email';
 
 export default function WaitlistForm({ onSuccess }: WaitlistFormProps) {
 	const [isSubmitting, setIsSubmitting] = useState(false);

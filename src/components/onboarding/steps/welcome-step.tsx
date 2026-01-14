@@ -62,7 +62,7 @@ export function WelcomeStep({ onContinue, userName }: WelcomeStepProps) {
 					delay: 0.2,
 				}}
 			>
-				Welcome to Moistus AI{userName ? `, ${userName}` : ''}!
+				Welcome to Shiko{userName ? `, ${userName}` : ''}!
 			</motion.h1>
 
 			<motion.p

@@ -11,7 +11,7 @@ import { SectionDots } from '@/components/landing/section-dots';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-	title: 'Moistus AI - AI-Powered Mind Mapping for Power Users',
+	title: 'Shiko - AI-Powered Mind Mapping for Power Users',
 	description:
 		'Transform your thoughts into connected knowledge with AI-powered mind mapping. Real-time collaboration, keyboard-first editor, and AI that thinks with you.',
 	keywords: [
@@ -25,23 +25,23 @@ export const metadata: Metadata = {
 		'second brain',
 	],
 	openGraph: {
-		title: 'Moistus AI - From Scattered Notes to Connected Ideas',
+		title: 'Shiko - From Scattered Notes to Connected Ideas',
 		description:
 			'The mind mapping tool for power users. AI-native suggestions, real-time collaboration, and a keyboard-first editor.',
 		type: 'website',
-		url: 'https://moistus.ai',
+		url: 'https://shiko.app',
 		images: [
 			{
 				url: '/og-image.png',
 				width: 1200,
 				height: 630,
-				alt: 'Moistus AI - AI-Powered Mind Mapping',
+				alt: 'Shiko - AI-Powered Mind Mapping',
 			},
 		],
 	},
 	twitter: {
 		card: 'summary_large_image',
-		title: 'Moistus AI - From Scattered Notes to Connected Ideas',
+		title: 'Shiko - From Scattered Notes to Connected Ideas',
 		description:
 			'The mind mapping tool for power users. AI-native suggestions, real-time collaboration.',
 		images: ['/og-image.png'],

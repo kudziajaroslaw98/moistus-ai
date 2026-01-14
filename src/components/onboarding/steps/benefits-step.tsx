@@ -93,7 +93,7 @@ export function BenefitsStep({ onContinue, onBack }: BenefitsStepProps) {
 				}}
 			>
 				<h2 className='text-3xl font-bold mb-4 text-text-primary'>
-					What You'll Achieve With Moistus AI
+					What You'll Achieve With Shiko
 				</h2>
 
 				<p className='text-lg text-text-secondary'>

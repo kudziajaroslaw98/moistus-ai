@@ -1,4 +1,4 @@
-// Mind map sharing types for Moistus AI
+// Mind map sharing types for Shiko
 // Defines interfaces for sharing mind maps between users with room codes and guest access
 
 // Core sharing types

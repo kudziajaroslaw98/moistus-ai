@@ -25,10 +25,10 @@ export function JoinPageLayout({ children }: JoinPageLayoutProps) {
 				>
 					<Link className='group' href='/'>
 						<Image
-							alt='Moistus Logo'
+							alt='Shiko Logo'
 							className='transition-transform duration-200 group-hover:scale-105'
 							height={60}
-							src='/images/moistus.svg'
+							src='/images/shiko.svg'
 							width={60}
 						/>
 					</Link>

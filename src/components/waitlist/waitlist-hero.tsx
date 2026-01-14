@@ -25,8 +25,8 @@ export function WaitlistHero() {
 				initial={{ opacity: 0, y: 20 }}
 				transition={{ delay: 0.15, duration: 0.3, ease: [0.165, 0.84, 0.44, 1] }}
 			>
-				Moistus AI is the intelligent mind-mapping platform that organizes your
-				chaos. We don’t just store ideas — we connect them, revealing insights
+				Shiko is the intelligent mind-mapping platform that organizes your
+				chaos. We don't just store ideas — we connect them, revealing insights
 				you never knew you had.
 			</motion.p>
 		</div>

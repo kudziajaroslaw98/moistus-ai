@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect } from 'react';
 
-const SESSION_START_KEY = 'moistus_session_start';
+const SESSION_START_KEY = 'shiko_session_start';
 
 /**
  * Tracks session time using localStorage.

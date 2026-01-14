@@ -244,9 +244,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 							<div className='flex items-center'>
 								<Link className='flex items-center gap-2' href='/dashboard'>
 									<Image
-										alt='Moistus Logo'
+										alt='Shiko Logo'
 										height={80}
-										src='/images/moistus.svg'
+										src='/images/shiko.svg'
 										width={120}
 									/>
 								</Link>
