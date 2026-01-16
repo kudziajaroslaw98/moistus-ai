@@ -28,12 +28,6 @@ export const updateMapSchema = z.object({
 		.nullable()
 		.optional(),
 
-	team_id: z
-		.string()
-		.uuid('Invalid team ID')
-		.nullable()
-		.optional(),
-
 	is_template: z.boolean().optional(),
 
 	template_category: z
@@ -76,7 +70,6 @@ export const mapUpdateSuccessSchema = z.object({
 			description: z.string().nullable(),
 			tags: z.array(z.string()).optional(),
 			thumbnailUrl: z.string().url().nullable().optional(),
-			team_id: z.string().uuid().nullable().optional(),
 			is_template: z.boolean().optional(),
 			template_category: z.string().nullable().optional(),
 			created_at: z.string(),

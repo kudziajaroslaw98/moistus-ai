@@ -1,5 +1,6 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withAuthValidation } from '@/helpers/api/with-auth-validation';
+import { checkCollaboratorLimit } from '@/helpers/api/with-subscription-check';
 import { z } from 'zod';
 
 const CreateRoomCodeSchema = z.object({
@@ -27,7 +28,31 @@ export const POST = withAuthValidation(
 			return respondError('Map not found or unauthorized', 403);
 		}
 
-		// 2. Generate unique room code directly
+		// 2. Check collaborator limit
+		const { allowed, limit, remaining, currentCount } =
+			await checkCollaboratorLimit(supabase, data.map_id, user.id);
+
+		if (!allowed) {
+			return respondError(
+				`Collaborator limit reached. You have ${currentCount} collaborators (limit: ${limit}). Upgrade to Pro for unlimited collaborators.`,
+				402,
+				'COLLABORATOR_LIMIT_REACHED',
+				{
+					currentCount,
+					limit,
+					remaining,
+					upgradeUrl: '/dashboard/settings/billing',
+				}
+			);
+		}
+
+		// For free users, cap max_users to remaining limit
+		const effectiveMaxUsers =
+			limit === -1
+				? data.max_users
+				: Math.min(data.max_users, remaining > 0 ? remaining : 1);
+
+		// 3. Generate unique room code directly
 		const generateRoomCode = () => {
 			const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 			let result = '';
@@ -76,7 +101,7 @@ export const POST = withAuthValidation(
 			can_view: data.can_view ?? true,
 		};
 
-		// 5. Create share token
+		// 6. Create share token (with capped max_users for free tier)
 		const { data: token, error: createError } = await supabase
 			.from('share_tokens')
 			.insert({
@@ -84,7 +109,7 @@ export const POST = withAuthValidation(
 				token: tokenData,
 				token_type: 'room_code',
 				permissions,
-				max_users: data.max_users,
+				max_users: effectiveMaxUsers,
 				expires_at,
 				created_by: user.id,
 			})

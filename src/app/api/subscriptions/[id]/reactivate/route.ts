@@ -1,25 +1,12 @@
 import { createClient } from '@/helpers/supabase/server';
+import { createPolarClient } from '@/lib/polar';
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
 
 export async function POST(
 	req: NextRequest,
 	context: { params: Promise<{ id: string }> }
 ) {
 	try {
-		// Validate Stripe secret key
-		if (!process.env.STRIPE_SECRET_KEY) {
-			console.error('STRIPE_SECRET_KEY is not configured');
-			return NextResponse.json(
-				{ error: 'Payment system configuration error' },
-				{ status: 500 }
-			);
-		}
-
-		const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-			apiVersion: '2025-12-15.clover',
-		});
-
 		const params = await context.params;
 		const supabase = await createClient();
 
@@ -31,7 +18,7 @@ export async function POST(
 			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 		}
 
-		// IDOR Protection
+		// IDOR Protection: Verify user owns this subscription
 		const { data: subscription, error } = await supabase
 			.from('user_subscriptions')
 			.select('*')
@@ -46,55 +33,54 @@ export async function POST(
 			);
 		}
 
-		// Remove cancel flag in Stripe
-		let stripeSubscription: Stripe.Subscription;
-		try {
-			stripeSubscription = await stripe.subscriptions.update(
-				subscription.stripe_subscription_id,
-				{
-					cancel_at_period_end: false,
-				}
+		// Check if we have a Polar subscription ID
+		if (!subscription.polar_subscription_id) {
+			return NextResponse.json(
+				{ error: 'No Polar subscription found' },
+				{ status: 400 }
 			);
+		}
 
-			// Verify Stripe update succeeded
-			if (!stripeSubscription || stripeSubscription.cancel_at_period_end !== false) {
-				console.error(
-					'Stripe subscription reactivation failed:',
-					stripeSubscription
-				);
-				return NextResponse.json(
-					{ error: 'Failed to reactivate subscription with payment provider' },
-					{ status: 500 }
-				);
-			}
-		} catch (stripeError) {
-			console.error('Stripe API error during reactivation:', stripeError);
+		// Reactivate subscription in Polar (uncancel)
+		try {
+			const polar = createPolarClient();
+
+			await polar.subscriptions.update({
+				id: subscription.polar_subscription_id,
+				subscriptionUpdate: {
+					cancelAtPeriodEnd: false,
+				},
+			});
+		} catch (polarError) {
+			console.error('Polar API error during reactivation:', polarError);
 			return NextResponse.json(
 				{
 					error:
-						stripeError instanceof Error
-							? stripeError.message
+						polarError instanceof Error
+							? polarError.message
 							: 'Failed to reactivate subscription with payment provider',
 				},
 				{ status: 500 }
 			);
 		}
 
-		// Update database to match Stripe state
+		// Update database to match Polar state
 		const { data: updatedSubscription, error: updateError } = await supabase
 			.from('user_subscriptions')
 			.update({
 				cancel_at_period_end: false,
 				canceled_at: null,
+				status: 'active',
 				updated_at: new Date().toISOString(),
 			})
 			.eq('id', params.id)
 			.select();
 
 		if (updateError) {
-			console.error('Database update failed after Stripe reactivation:', updateError);
-			// Note: Stripe has already been updated at this point.
-			// The webhook should eventually sync this, but we still return an error
+			console.error(
+				'Database update failed after Polar reactivation:',
+				updateError
+			);
 			return NextResponse.json(
 				{ error: 'Failed to update subscription status in database' },
 				{ status: 500 }
@@ -103,7 +89,7 @@ export async function POST(
 
 		// Verify rows were actually updated
 		if (!updatedSubscription || updatedSubscription.length === 0) {
-			console.error('No rows updated in database after Stripe reactivation');
+			console.error('No rows updated in database after Polar reactivation');
 			return NextResponse.json(
 				{ error: 'Failed to update subscription status in database' },
 				{ status: 500 }

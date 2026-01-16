@@ -29,8 +29,8 @@ import {
 	Trash2,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR, { mutate } from 'swr';
 import { useShallow } from 'zustand/react/shallow';
@@ -47,14 +47,9 @@ interface MindMapData {
 	description: string | null;
 	created_at: string;
 	updated_at: string;
-	team_id?: string | null;
 	is_template?: boolean;
 	template_category?: string;
-	team?: {
-		id: string;
-		name: string;
-		slug: string;
-	};
+	is_shared?: boolean; // True if user has access via share code but is not the owner
 	_count?: {
 		nodes: number;
 		edges: number;
@@ -84,6 +79,20 @@ const fetcher = async (url: string) => {
 
 function DashboardContent() {
 	const router = useRouter();
+	const searchParams = useSearchParams();
+
+	// Handle checkout success redirect
+	useEffect(() => {
+		if (searchParams.get('checkout') === 'success') {
+			toast.success('Subscription activated!', {
+				description: 'Welcome to Shiko Pro. Your account has been upgraded.',
+			});
+			// Clean up URL without triggering navigation
+			window.history.replaceState({}, '', '/dashboard');
+			// Refresh subscription/usage data
+			refreshUsageData();
+		}
+	}, [searchParams]);
 
 	// Protect dashboard from anonymous users
 	const { isChecking } = useAuthRedirect({
@@ -124,6 +133,13 @@ function DashboardContent() {
 	// Filter and sort maps
 	const filteredMaps = mapsData.maps
 		.filter((map) => {
+			// Ownership filter (applied before search to allow searching within filtered results)
+			if (filterBy === 'shared' && !map.is_shared) {
+				return false;
+			} else if (filterBy === 'owned' && map.is_shared) {
+				return false;
+			}
+
 			// Search filter
 			if (searchQuery) {
 				const query = searchQuery.toLowerCase();
@@ -131,13 +147,6 @@ function DashboardContent() {
 					map.title.toLowerCase().includes(query) ||
 					map.description?.toLowerCase().includes(query)
 				);
-			}
-
-			// Ownership filter
-			if (filterBy === 'shared' && !map.team_id) {
-				return false;
-			} else if (filterBy === 'owned' && map.team_id) {
-				return false;
 			}
 
 			return true;
@@ -451,7 +460,7 @@ function DashboardContent() {
 		<DashboardLayout>
 			<div className='flex h-full'>
 				{/* Main Content */}
-				<div className='flex-grow w-full overflow-auto'>
+				<div className='grow w-full overflow-auto'>
 					<div className='p-6 md:p-8'>
 						<div className='mx-auto max-w-7xl'>
 							{/* Trial Badge */}
@@ -473,7 +482,6 @@ function DashboardContent() {
 									<h1 className='text-3xl font-bold text-white tracking-tight'>
 										Mind Maps
 									</h1>
-
 								</div>
 
 								{/* Keyboard Shortcuts Help */}
@@ -509,7 +517,7 @@ function DashboardContent() {
 								{/* Enhanced Toolbar with Better Mobile Layout */}
 								<div className='flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-6 p-2 rounded-xl bg-zinc-950 border border-zinc-800/50 shadow-lg'>
 									{/* Search */}
-									<div className='flex-grow max-w-full sm:max-w-md'>
+									<div className='grow max-w-full sm:max-w-md'>
 										<SearchInput
 											className='touch-manipulation'
 											onChange={(e) => setSearchQuery(e.target.value)}
@@ -538,7 +546,7 @@ function DashboardContent() {
 
 												<SelectItem value='owned'>My Maps</SelectItem>
 
-												<SelectItem value='shared'>Shared</SelectItem>
+												<SelectItem value='shared'>Shared with me</SelectItem>
 											</SelectContent>
 										</Select>
 
@@ -569,7 +577,7 @@ function DashboardContent() {
 												size='sm'
 												variant='ghost'
 												className={cn(
-													'h-10 px-3 sm:h-7 sm:px-2 min-w-[44px] sm:min-w-0 touch-manipulation',
+													'h-10 px-3 sm:h-7 sm:px-2 min-w-11 sm:min-w-0 touch-manipulation',
 													viewMode === 'grid' && 'bg-zinc-700'
 												)}
 											>
@@ -581,7 +589,7 @@ function DashboardContent() {
 												size='sm'
 												variant='ghost'
 												className={cn(
-													'h-10 px-3 sm:h-7 sm:px-2 min-w-[44px] sm:min-w-0 touch-manipulation',
+													'h-10 px-3 sm:h-7 sm:px-2 min-w-11 sm:min-w-0 touch-manipulation',
 													viewMode === 'list' && 'bg-zinc-700'
 												)}
 											>
@@ -723,7 +731,7 @@ function DashboardContent() {
 											>
 												<motion.div
 													animate={{ opacity: 1, scale: 1 }}
-													className='w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center shadow-lg shadow-sky-600/25'
+													className='w-16 h-16 mx-auto rounded-full bg-linear-to-br from-sky-500 to-sky-600 flex items-center justify-center shadow-lg shadow-sky-600/25'
 													initial={{ opacity: 0, scale: 0.9 }}
 													transition={{
 														delay: 0.1,
@@ -806,8 +814,10 @@ function DashboardContent() {
 
 export default function DashboardPage() {
 	return (
-		<SidebarProvider>
-			<DashboardContent />
-		</SidebarProvider>
+		<Suspense fallback={null}>
+			<SidebarProvider>
+				<DashboardContent />
+			</SidebarProvider>
+		</Suspense>
 	);
 }

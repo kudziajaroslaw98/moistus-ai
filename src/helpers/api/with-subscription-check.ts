@@ -114,7 +114,7 @@ export async function requireSubscription(
 export async function checkUsageLimit(
 	user: User,
 	supabase: SupabaseClient,
-	limitType: 'aiSuggestions' | 'mindMaps' | 'nodesPerMap',
+	limitType: 'aiSuggestions' | 'mindMaps' | 'nodesPerMap' | 'collaboratorsPerMap',
 	currentUsage: number
 ): Promise<{ allowed: boolean; limit: number; remaining: number }> {
 	// Get subscription with plan limits
@@ -130,11 +130,12 @@ export async function checkUsageLimit(
 		.in('status', ['active', 'trialing'])
 		.single();
 
-	// Default to free plan limits
+	// Default to free plan limits (matches pricing-tiers.ts)
 	const freePlanLimits = {
 		mindMaps: 3,
 		nodesPerMap: 50,
-		aiSuggestions: 10,
+		aiSuggestions: 0,
+		collaboratorsPerMap: 3,
 	};
 
 	const limit =
@@ -196,6 +197,91 @@ export async function trackAIUsage(
 		timestamp: new Date().toISOString(),
 		metadata,
 	});
+}
+
+/**
+ * Gets the count of distinct collaborators for a map across all share tokens.
+ * This handles the edge case of multiple share tokens per map by counting
+ * unique user_ids in share_access, excluding the map owner.
+ *
+ * @param supabase - Supabase client instance
+ * @param mapId - The map ID to count collaborators for
+ * @param excludeUserId - User ID to exclude from count (typically the map owner)
+ * @returns Count of distinct collaborators
+ */
+export async function getMapCollaboratorCount(
+	supabase: SupabaseClient,
+	mapId: string,
+	excludeUserId?: string
+): Promise<number> {
+	// Count distinct users who have access to this map (across all share tokens)
+	// We use share_access table which tracks actual users with access
+	let query = supabase
+		.from('share_access')
+		.select('user_id', { count: 'exact', head: true })
+		.eq('map_id', mapId)
+		.eq('status', 'active');
+
+	// Exclude the map owner from the count
+	if (excludeUserId) {
+		query = query.neq('user_id', excludeUserId);
+	}
+
+	const { count } = await query;
+	return count || 0;
+}
+
+/**
+ * Checks collaborator limit for a map based on the owner's subscription.
+ * Returns whether adding a new collaborator is allowed.
+ *
+ * @param supabase - Supabase client instance
+ * @param mapId - The map ID to check
+ * @param mapOwnerId - The user ID of the map owner
+ * @returns Object with allowed status, limit, remaining, and current count
+ */
+export async function checkCollaboratorLimit(
+	supabase: SupabaseClient,
+	mapId: string,
+	mapOwnerId: string
+): Promise<{
+	allowed: boolean;
+	limit: number;
+	remaining: number;
+	currentCount: number;
+}> {
+	// Get map owner's subscription
+	const { data: subscription } = await supabase
+		.from('user_subscriptions')
+		.select(
+			`
+			*,
+			plan:subscription_plans(*)
+		`
+		)
+		.eq('user_id', mapOwnerId)
+		.in('status', ['active', 'trialing'])
+		.single();
+
+	// Default to free plan limits
+	const limit = subscription?.plan?.limits?.collaboratorsPerMap ?? 3;
+
+	// -1 means unlimited (Pro/Enterprise)
+	if (limit === -1) {
+		return { allowed: true, limit: -1, remaining: -1, currentCount: 0 };
+	}
+
+	// Count current collaborators (excluding the owner)
+	const currentCount = await getMapCollaboratorCount(
+		supabase,
+		mapId,
+		mapOwnerId
+	);
+
+	const remaining = Math.max(0, limit - currentCount);
+	const allowed = currentCount < limit;
+
+	return { allowed, limit, remaining, currentCount };
 }
 
 /**

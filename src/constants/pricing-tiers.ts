@@ -18,6 +18,7 @@ export interface PricingTier {
 		mindMaps: number; // -1 = unlimited
 		nodesPerMap: number; // -1 = unlimited
 		aiSuggestions: number; // -1 = unlimited, per month
+		collaboratorsPerMap: number; // -1 = unlimited
 	};
 }
 
@@ -41,6 +42,7 @@ export const PRICING_TIERS: PricingTier[] = [
 			mindMaps: 3,
 			nodesPerMap: 50,
 			aiSuggestions: 0,
+			collaboratorsPerMap: 3,
 		},
 	},
 	{
@@ -65,6 +67,7 @@ export const PRICING_TIERS: PricingTier[] = [
 			mindMaps: -1,
 			nodesPerMap: -1,
 			aiSuggestions: 100,
+			collaboratorsPerMap: -1,
 		},
 	},
 ];
@@ -94,7 +97,14 @@ export function getPrice(
  */
 export function getFreeTierLimits() {
 	const freeTier = getPricingTier('free');
-	return freeTier?.limits ?? { mindMaps: 3, nodesPerMap: 50, aiSuggestions: 0 };
+	return (
+		freeTier?.limits ?? {
+			mindMaps: 3,
+			nodesPerMap: 50,
+			aiSuggestions: 0,
+			collaboratorsPerMap: 3,
+		}
+	);
 }
 
 /**

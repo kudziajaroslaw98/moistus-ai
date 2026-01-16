@@ -1,6 +1,7 @@
 'use client';
 
 import { DeleteMapConfirmationDialog } from '@/components/mind-map/delete-map-confirmation-dialog';
+import { NodeTypeSelector } from '@/components/settings/node-type-selector';
 import { SidePanel } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +12,6 @@ import useAppStore from '@/store/mind-map-store';
 import type { MindMapData } from '@/types/mind-map-data';
 import { AlertTriangle, Loader2, PenTool, Save } from 'lucide-react';
 import { motion } from 'motion/react';
-import { NodeTypeSelector } from '@/components/settings/node-type-selector';
 import { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -25,32 +25,38 @@ interface FormData {
 	description: string;
 	tags: string[];
 	thumbnailUrl: string;
-	team_id: string | null;
 	is_template: boolean;
 	template_category: string;
 }
 
 export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
-	const { mindMap, updateMindMap, deleteMindMap, loadingStates, nodes, edges, updatePreferences, getDefaultNodeType } =
-		useAppStore(
-			useShallow((state) => ({
-				mindMap: state.mindMap,
-				updateMindMap: state.updateMindMap,
-				deleteMindMap: state.deleteMindMap,
-				loadingStates: state.loadingStates,
-				nodes: state.nodes,
-				edges: state.edges,
-				updatePreferences: state.updatePreferences,
-				getDefaultNodeType: state.getDefaultNodeType,
-			}))
-		);
+	const {
+		mindMap,
+		updateMindMap,
+		deleteMindMap,
+		loadingStates,
+		nodes,
+		edges,
+		updatePreferences,
+		getDefaultNodeType,
+	} = useAppStore(
+		useShallow((state) => ({
+			mindMap: state.mindMap,
+			updateMindMap: state.updateMindMap,
+			deleteMindMap: state.deleteMindMap,
+			loadingStates: state.loadingStates,
+			nodes: state.nodes,
+			edges: state.edges,
+			updatePreferences: state.updatePreferences,
+			getDefaultNodeType: state.getDefaultNodeType,
+		}))
+	);
 
 	const [formData, setFormData] = useState<FormData>({
 		title: '',
 		description: '',
 		tags: [],
 		thumbnailUrl: '',
-		team_id: null,
 		is_template: false,
 		template_category: '',
 	});
@@ -66,7 +72,6 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 				description: mindMap.description || '',
 				tags: mindMap.tags || [],
 				thumbnailUrl: mindMap.thumbnailUrl || '',
-				team_id: mindMap.team_id || null,
 				is_template: mindMap.is_template || false,
 				template_category: mindMap.template_category || '',
 			});
@@ -83,7 +88,6 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 			formData.description !== (mindMap.description || '') ||
 			JSON.stringify(formData.tags) !== JSON.stringify(mindMap.tags || []) ||
 			formData.thumbnailUrl !== (mindMap.thumbnailUrl || '') ||
-			formData.team_id !== (mindMap.team_id || null) ||
 			formData.is_template !== (mindMap.is_template || false) ||
 			formData.template_category !== (mindMap.template_category || '');
 
@@ -103,8 +107,6 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 			updates.tags = formData.tags;
 		if (formData.thumbnailUrl !== (mindMap.thumbnailUrl || ''))
 			updates.thumbnailUrl = formData.thumbnailUrl || null;
-		if (formData.team_id !== (mindMap.team_id || null))
-			updates.team_id = formData.team_id;
 		if (formData.is_template !== (mindMap.is_template || false))
 			updates.is_template = formData.is_template;
 		if (formData.template_category !== (mindMap.template_category || ''))
@@ -138,7 +140,7 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 				</Button>
 
 				<Button
-					className='min-w-[100px]'
+					className='min-w-25'
 					disabled={!hasChanges || !formData.title.trim() || isSaving}
 					onClick={handleSave}
 				>
@@ -161,7 +163,7 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 	return (
 		<>
 			<SidePanel
-				className='w-[400px]'
+				className='w-100'
 				footer={footer}
 				isOpen={isOpen}
 				onClose={onClose}
@@ -356,12 +358,26 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 							<div className='space-y-2'>
 								<Label className='text-zinc-300'>Default Node Type</Label>
 								<p className='text-xs text-zinc-500'>
-									The default type for new nodes when using the node editor (applies to all maps)
+									The default type for new nodes when using the node editor
+									(applies to all maps)
 								</p>
 								<NodeTypeSelector
 									disabled={isSaving}
-									value={getDefaultNodeType() as 'defaultNode' | 'textNode' | 'taskNode' | 'imageNode' | 'resourceNode' | 'questionNode' | 'codeNode' | 'annotationNode' | 'referenceNode'}
-									onChange={(value) => updatePreferences({ defaultNodeType: value })}
+									value={
+										getDefaultNodeType() as
+											| 'defaultNode'
+											| 'textNode'
+											| 'taskNode'
+											| 'imageNode'
+											| 'resourceNode'
+											| 'questionNode'
+											| 'codeNode'
+											| 'annotationNode'
+											| 'referenceNode'
+									}
+									onChange={(value) =>
+										updatePreferences({ defaultNodeType: value })
+									}
 								/>
 							</div>
 						</div>
