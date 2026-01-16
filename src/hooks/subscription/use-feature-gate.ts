@@ -43,8 +43,9 @@ export function useFeatureGate(feature: FeatureKey): FeatureGateResult {
 	}, [currentSubscription]);
 
 	const hasAccess = useMemo(() => {
-		// While loading, optimistically allow access to prevent UI flashing
-		if (isLoadingSubscription) return true;
+		// While loading, deny access to prevent free users from accessing Pro features
+		// This is more secure than optimistic access - UI should show loading state
+		if (isLoadingSubscription) return false;
 
 		// Check if current plan includes this feature
 		const requiredPlan = FEATURE_PLAN_MAP[feature];
@@ -104,10 +105,15 @@ export function useSubscriptionLimits() {
 				mindMaps: 3,
 				nodesPerMap: 50,
 				aiSuggestions: 0,
+				collaboratorsPerMap: 3,
 			};
 		}
 
-		return plan.limits;
+		return {
+			...plan.limits,
+			// Ensure collaboratorsPerMap has a fallback
+			collaboratorsPerMap: plan.limits.collaboratorsPerMap ?? 3,
+		};
 	}, [currentSubscription, availablePlans]);
 
 	const usage = useMemo(() => {
@@ -115,6 +121,8 @@ export function useSubscriptionLimits() {
 			mindMaps: usageData?.mindMapsCount ?? 0,
 			nodesPerMap: nodes.length, // Client-side per current map
 			aiSuggestions: usageData?.aiSuggestionsCount ?? 0,
+			// Note: This is global collaborators count - per-map count requires server query
+			collaboratorsPerMap: usageData?.collaboratorsCount ?? 0,
 		};
 	}, [usageData, nodes.length]);
 
@@ -132,6 +140,10 @@ export function useSubscriptionLimits() {
 				limits.aiSuggestions === -1
 					? null
 					: Math.max(0, limits.aiSuggestions - usage.aiSuggestions),
+			collaboratorsPerMap:
+				limits.collaboratorsPerMap === -1
+					? null
+					: Math.max(0, limits.collaboratorsPerMap - usage.collaboratorsPerMap),
 		};
 	}, [limits, usage]);
 
