@@ -41,14 +41,14 @@ const pricingTiers: PricingTier[] = [
 		],
 		limitations: [
 			'Unlock AI thinking partner with Pro',
-			'Add team collaboration with Pro',
+			'Add collaborator access with Pro',
 		],
 		ctaText: 'Start Free',
 	},
 	{
 		id: 'pro',
 		name: 'Pro',
-		description: 'For serious thinkers and teams',
+		description: 'For serious thinkers and collaborators',
 		monthlyPrice: 12,
 		yearlyPrice: 120,
 		discount: '17% off',

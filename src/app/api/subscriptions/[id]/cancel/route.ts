@@ -1,6 +1,6 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withAuthValidation } from '@/helpers/api/with-auth-validation';
-import { createDodoClient } from '@/helpers/dodo/client';
+import { createPolarClient } from '@/lib/polar';
 import { z } from 'zod';
 
 // No body expected for this route
@@ -30,23 +30,26 @@ export const POST = withAuthValidation(
 			return respondError('Subscription not found', 404);
 		}
 
-		// Check if we have a Dodo subscription ID
-		if (!subscription.dodo_subscription_id) {
-			return respondError('No Dodo subscription found', 400);
+		// Check if we have a Polar subscription ID
+		if (!subscription.polar_subscription_id) {
+			return respondError('No Polar subscription found', 400);
 		}
 
-		// Cancel at period end in Dodo
+		// Cancel at period end in Polar
 		try {
-			const dodo = createDodoClient();
+			const polar = createPolarClient();
 
-			await dodo.subscriptions.update(subscription.dodo_subscription_id, {
-				status: 'cancelled',
+			await polar.subscriptions.update({
+				id: subscription.polar_subscription_id,
+				subscriptionUpdate: {
+					cancelAtPeriodEnd: true,
+				},
 			});
-		} catch (dodoError) {
-			console.error('Dodo API error during cancellation:', dodoError);
+		} catch (polarError) {
+			console.error('Polar API error during cancellation:', polarError);
 			return respondError(
-				dodoError instanceof Error
-					? dodoError.message
+				polarError instanceof Error
+					? polarError.message
 					: 'Failed to cancel subscription with payment provider',
 				500
 			);
@@ -64,10 +67,10 @@ export const POST = withAuthValidation(
 
 		if (updateError) {
 			console.error(
-				'Database update failed after Dodo cancellation:',
+				'Database update failed after Polar cancellation:',
 				updateError
 			);
-			// Note: Dodo has already been updated at this point.
+			// Note: Polar has already been updated at this point.
 			// The webhook should eventually sync this, but we still return an error
 			return respondError(
 				'Failed to update subscription status in database',
@@ -77,7 +80,7 @@ export const POST = withAuthValidation(
 
 		// Verify rows were actually updated
 		if (!updatedSubscription || updatedSubscription.length === 0) {
-			console.error('No rows updated in database after Dodo cancellation');
+			console.error('No rows updated in database after Polar cancellation');
 			return respondError(
 				'Failed to update subscription status in database',
 				500

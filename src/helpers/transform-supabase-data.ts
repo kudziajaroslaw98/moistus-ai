@@ -17,7 +17,6 @@ interface MindMapDbData {
 	description: string | null;
 	tags: string[] | null;
 	thumbnail_url: string | null;
-	team_id: string | null;
 	is_template: boolean | null;
 	template_category: string | null;
 	created_at: string;
@@ -117,7 +116,6 @@ export const transformSupabaseData = (
 		description: mindMap.description,
 		tags: mindMap.tags ?? undefined,
 		thumbnailUrl: mindMap.thumbnail_url,
-		team_id: mindMap.team_id,
 		is_template: mindMap.is_template ?? undefined,
 		template_category: mindMap.template_category,
 		created_at: mindMap.created_at,

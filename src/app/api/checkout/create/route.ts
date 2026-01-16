@@ -1,15 +1,19 @@
+import { createPolarClient, getAppUrl, getProductId } from '@/lib/polar';
 import { createClient } from '@/helpers/supabase/server';
-import { createDodoClient, getProductId, getAppUrl } from '@/helpers/dodo/client';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
 	try {
-		const { planId, billingInterval } = (await req.json()) as {
+		const body = await req.json();
+		console.log('[Checkout] Request body:', body);
+
+		const { planId, billingInterval } = body as {
 			planId: string;
 			billingInterval: 'monthly' | 'yearly';
 		};
 
 		if (!planId || !billingInterval) {
+			console.log('[Checkout] Missing fields:', { planId, billingInterval });
 			return NextResponse.json(
 				{ error: 'Missing required fields: planId, billingInterval' },
 				{ status: 400 }
@@ -32,7 +36,7 @@ export async function POST(req: NextRequest) {
 			.from('user_subscriptions')
 			.select('*')
 			.eq('user_id', user.id)
-			.in('status', ['active', 'trialing', 'on_hold'])
+			.in('status', ['active', 'trialing'])
 			.single();
 
 		if (existingSubscription) {
@@ -42,35 +46,39 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		const dodo = createDodoClient();
+		const polar = createPolarClient();
 		const productId = getProductId(billingInterval);
 		const appUrl = getAppUrl();
 
-		// Create checkout session
-		// Dodo handles customer creation, tax calculation, and payment
-		const session = await dodo.checkoutSessions.create({
-			product_cart: [
-				{
-					product_id: productId,
-					quantity: 1,
-				},
-			],
-			customer: {
-				email: user.email || '',
-				name: user.user_metadata?.full_name || user.email?.split('@')[0] || '',
-			},
-			// Metadata to link checkout to our user
+		// Create Polar checkout session
+		// Polar handles customer creation, tax calculation, and payment as MoR
+		console.log('[Checkout] Creating Polar session with:', {
+			productId,
+			appUrl,
+			userEmail: user.email,
+		});
+
+		const checkout = await polar.checkouts.create({
+			products: [productId],
+			successUrl: `${appUrl}/dashboard?checkout=success`,
+			customerEmail: user.email || undefined,
+			customerName:
+				user.user_metadata?.full_name || user.email?.split('@')[0] || undefined,
 			metadata: {
 				user_id: user.id,
 				plan_id: planId,
 				billing_interval: billingInterval,
 			},
-			return_url: `${appUrl}/dashboard?checkout=success`,
+		});
+
+		console.log('[Checkout] Session created:', {
+			sessionId: checkout.id,
+			checkoutUrl: checkout.url,
 		});
 
 		return NextResponse.json({
-			checkoutUrl: session.checkout_url,
-			sessionId: session.session_id,
+			checkoutUrl: checkout.url,
+			sessionId: checkout.id,
 		});
 	} catch (error) {
 		console.error('Checkout creation error:', error);

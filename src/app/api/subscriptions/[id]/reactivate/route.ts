@@ -1,5 +1,5 @@
 import { createClient } from '@/helpers/supabase/server';
-import { createDodoClient } from '@/helpers/dodo/client';
+import { createPolarClient } from '@/lib/polar';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(
@@ -33,35 +33,38 @@ export async function POST(
 			);
 		}
 
-		// Check if we have a Dodo subscription ID
-		if (!subscription.dodo_subscription_id) {
+		// Check if we have a Polar subscription ID
+		if (!subscription.polar_subscription_id) {
 			return NextResponse.json(
-				{ error: 'No Dodo subscription found' },
+				{ error: 'No Polar subscription found' },
 				{ status: 400 }
 			);
 		}
 
-		// Reactivate subscription in Dodo
+		// Reactivate subscription in Polar (uncancel)
 		try {
-			const dodo = createDodoClient();
+			const polar = createPolarClient();
 
-			await dodo.subscriptions.update(subscription.dodo_subscription_id, {
-				status: 'active',
+			await polar.subscriptions.update({
+				id: subscription.polar_subscription_id,
+				subscriptionUpdate: {
+					cancelAtPeriodEnd: false,
+				},
 			});
-		} catch (dodoError) {
-			console.error('Dodo API error during reactivation:', dodoError);
+		} catch (polarError) {
+			console.error('Polar API error during reactivation:', polarError);
 			return NextResponse.json(
 				{
 					error:
-						dodoError instanceof Error
-							? dodoError.message
+						polarError instanceof Error
+							? polarError.message
 							: 'Failed to reactivate subscription with payment provider',
 				},
 				{ status: 500 }
 			);
 		}
 
-		// Update database to match Dodo state
+		// Update database to match Polar state
 		const { data: updatedSubscription, error: updateError } = await supabase
 			.from('user_subscriptions')
 			.update({
@@ -75,7 +78,7 @@ export async function POST(
 
 		if (updateError) {
 			console.error(
-				'Database update failed after Dodo reactivation:',
+				'Database update failed after Polar reactivation:',
 				updateError
 			);
 			return NextResponse.json(
@@ -86,7 +89,7 @@ export async function POST(
 
 		// Verify rows were actually updated
 		if (!updatedSubscription || updatedSubscription.length === 0) {
-			console.error('No rows updated in database after Dodo reactivation');
+			console.error('No rows updated in database after Polar reactivation');
 			return NextResponse.json(
 				{ error: 'Failed to update subscription status in database' },
 				{ status: 500 }

@@ -31,7 +31,7 @@ const features = [
 	{
 		icon: Users,
 		title: 'Real-time Collaboration',
-		description: 'Work together with your team in real-time',
+		description: 'Work together in real-time',
 	},
 ];
 

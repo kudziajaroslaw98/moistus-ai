@@ -8,8 +8,6 @@ export interface MindMapData {
 
 	thumbnailUrl?: string | null;
 
-	// Team & organization
-	team_id?: string | null;
 	is_template?: boolean;
 	template_category?: string | null;
 

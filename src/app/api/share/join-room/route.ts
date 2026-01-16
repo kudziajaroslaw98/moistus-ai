@@ -1,6 +1,7 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { withAuthValidation } from '@/helpers/api/with-auth-validation';
+import { checkCollaboratorLimit } from '@/helpers/api/with-subscription-check';
 import { z } from 'zod';
 
 const JoinRoomSchema = z.object({
@@ -35,7 +36,52 @@ export const POST = withAuthValidation(
 				);
 			}
 
-			// get share_access or add if not available
+			// 2. Get map information (need owner_id for limit check)
+			const { data: mapData, error: mapError } = await supabase
+				.from('mind_maps')
+				.select('id, title, description, user_id')
+				.eq('id', validation.map_id)
+				.single();
+
+			if (mapError || !mapData) {
+				return respondError('Mind map not found', 404);
+			}
+
+			// 3. Check if user already has access (existing collaborator = skip limit check)
+			const { data: existingAccess } = await supabase
+				.from('share_access')
+				.select('id')
+				.eq('map_id', validation.map_id)
+				.eq('user_id', user.id)
+				.eq('status', 'active')
+				.single();
+
+			const isNewCollaborator = !existingAccess;
+
+			// 4. For NEW collaborators, check map owner's subscription limit
+			// Skip if user is the map owner (they don't count as a collaborator)
+			if (isNewCollaborator && mapData.user_id && mapData.user_id !== user.id) {
+				const { allowed, limit, currentCount } = await checkCollaboratorLimit(
+					supabase,
+					validation.map_id,
+					mapData.user_id
+				);
+
+				if (!allowed) {
+					return respondError(
+						`This map has reached its collaborator limit (${currentCount}/${limit}). The map owner needs to upgrade to Pro for unlimited collaborators.`,
+						402,
+						'COLLABORATOR_LIMIT_REACHED',
+						{
+							currentCount,
+							limit,
+							upgradeUrl: '/dashboard/settings/billing',
+						}
+					);
+				}
+			}
+
+			// 5. Get or create share_access record
 			const { data: shareAccess, error: shareAccessError } = await supabase.rpc(
 				'get_or_create_share_access_record',
 				{
@@ -53,7 +99,7 @@ export const POST = withAuthValidation(
 			// Extract first result (RPC returns array)
 			const accessRecord = shareAccess?.[0];
 
-			// 2. Increment current_users if this is a NEW user joining
+			// 6. Increment current_users if this is a NEW user joining
 			// Use atomic RPC to prevent race conditions
 			if (accessRecord?.was_created === true) {
 				const adminClient = createServiceRoleClient();
@@ -70,21 +116,7 @@ export const POST = withAuthValidation(
 
 			console.log('Validation result:', validation);
 
-			// 3. Get map information
-			const { data: mapData, error: mapError } = await supabase
-				.from('mind_maps')
-				.select('id, title, description, user_id')
-				.eq('id', validation.map_id)
-				.single();
-
-			console.dir(mapData, { depth: 0 });
-			console.dir(mapError, { depth: 0 });
-
-			if (mapError || !mapData || mapData === null) {
-				return respondError('Mind map not found', 404);
-			}
-
-			// 6. Return success response
+			// 7. Return success response
 			return respondSuccess({
 				map_id: validation.map_id,
 				map_title: mapData.title,

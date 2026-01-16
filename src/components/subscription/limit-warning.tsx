@@ -7,7 +7,7 @@ import { AlertCircle, Sparkles } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 
 interface LimitWarningProps {
-	limitType: 'mindMaps' | 'nodesPerMap' | 'aiSuggestions';
+	limitType: 'mindMaps' | 'nodesPerMap' | 'aiSuggestions' | 'collaboratorsPerMap';
 	className?: string;
 }
 
@@ -42,6 +42,11 @@ export function LimitWarning({ limitType, className }: LimitWarningProps) {
 			title: 'AI Suggestion Limit Reached',
 			description: `You've used ${usage.aiSuggestions} of ${limits.aiSuggestions} AI suggestions.`,
 			action: 'Upgrade for unlimited AI suggestions',
+		},
+		collaboratorsPerMap: {
+			title: 'Collaborator Limit Reached',
+			description: `This map has ${usage.collaboratorsPerMap} of ${limits.collaboratorsPerMap} collaborators.`,
+			action: 'Upgrade for unlimited collaborators',
 		},
 	};
 
@@ -160,6 +165,8 @@ export function UsageMeter({
 					{limitType === 'nodesPerMap' && 'Nodes'}
 
 					{limitType === 'aiSuggestions' && 'AI Suggestions'}
+
+					{limitType === 'collaboratorsPerMap' && 'Collaborators'}
 				</span>
 
 				<span

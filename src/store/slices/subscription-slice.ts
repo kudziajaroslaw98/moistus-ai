@@ -16,6 +16,7 @@ export interface SubscriptionPlan {
 		mindMaps: number;
 		nodesPerMap: number;
 		aiSuggestions: number;
+		collaboratorsPerMap?: number;
 	};
 	isActive: boolean;
 }
@@ -395,13 +396,14 @@ export const createSubscriptionSlice: StateCreator<
 		if (!plan) return null;
 
 		const limit = plan.limits[limitType];
-		if (limit === -1) return null; // Unlimited
+		if (limit === undefined || limit === -1) return null; // Unlimited or not defined
 
 		// Map limit type to usage data field
-		const usageMap: Record<keyof SubscriptionPlan['limits'], number> = {
+		const usageMap: Record<keyof Required<SubscriptionPlan['limits']>, number> = {
 			mindMaps: usageData?.mindMapsCount ?? 0,
 			aiSuggestions: usageData?.aiSuggestionsCount ?? 0,
 			nodesPerMap: 0, // Handled per-map in client state
+			collaboratorsPerMap: usageData?.collaboratorsCount ?? 0,
 		};
 
 		const currentUsage = usageMap[limitType];

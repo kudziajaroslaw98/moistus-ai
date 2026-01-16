@@ -62,6 +62,7 @@ next-env.d.ts
 
 #supabase
 ./supabase
+supabase
 ai-docs
 
 #context-files

@@ -23,9 +23,7 @@ import { UserProfileFormData } from '@/types/user-profile-types';
 import {
 	AlertTriangle,
 	BarChart3,
-	Calendar,
 	CreditCard,
-	Download,
 	ExternalLink,
 	Palette,
 	PenTool,
@@ -40,20 +38,6 @@ import { motion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/shallow';
-
-interface PaymentHistoryItem {
-	id: string;
-	stripe_payment_intent_id: string | null;
-	amount: number;
-	currency: string;
-	status: string;
-	description: string | null;
-	created_at: string;
-	metadata?: {
-		stripe_invoice_id?: string;
-		stripe_subscription_id?: string;
-	};
-}
 
 interface UsageStats {
 	mindMapsCount: number;
@@ -119,22 +103,13 @@ export function SettingsPanel({
 	const [activeTab, setActiveTab] = useState(defaultTab);
 
 	// Billing State
-	const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryItem[]>(
-		[]
-	);
 	const [usage, setUsage] = useState<UsageStats | null>(null);
-	const [isLoadingPayments, setIsLoadingPayments] = useState(false);
 	const [isLoadingUsage, setIsLoadingUsage] = useState(false);
-	const [paymentsLoaded, setPaymentsLoaded] = useState(false);
 	const [usageLoaded, setUsageLoaded] = useState(false);
 	const [isCanceling, setIsCanceling] = useState(false);
-	const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<
-		string | null
-	>(null);
 	const [isOpeningPortal, setIsOpeningPortal] = useState(false);
 
 	// Refs to track loading state without triggering effect re-runs
-	const isLoadingPaymentsRef = useRef(false);
 	const isLoadingUsageRef = useRef(false);
 
 	const [formData, setFormData] = useState<UserProfileFormData>({
@@ -162,11 +137,8 @@ export function SettingsPanel({
 	// Reset billing state when panel closes
 	useEffect(() => {
 		if (!isOpen) {
-			setPaymentsLoaded(false);
 			setUsageLoaded(false);
 			setUsage(null);
-			setPaymentHistory([]);
-			isLoadingPaymentsRef.current = false;
 			isLoadingUsageRef.current = false;
 		}
 	}, [isOpen]);
@@ -178,32 +150,7 @@ export function SettingsPanel({
 		fetchUserSubscription();
 		fetchAvailablePlans();
 
-		const loadPaymentHistory = async () => {
-			// Skip if already loaded or currently loading (use ref to avoid race condition)
-			if (paymentsLoaded || isLoadingPaymentsRef.current) return;
-
-			isLoadingPaymentsRef.current = true;
-			setIsLoadingPayments(true);
-
-			try {
-				const response = await fetch('/api/user/billing/payment-history');
-
-				if (!response.ok) throw new Error('Failed to fetch payment history');
-				const result = await response.json();
-
-				setPaymentHistory(result.data || []);
-				setPaymentsLoaded(true);
-			} catch (error) {
-				console.error('Error loading payment history:', error);
-				toast.error('Failed to load payment history');
-			} finally {
-				// Always reset loading state so retries can happen
-				isLoadingPaymentsRef.current = false;
-				setIsLoadingPayments(false);
-			}
-		};
-
-		const loadUsage = async (retryCount = 0) => {
+		const loadUsage = async () => {
 			// Skip if already loaded or currently loading (use ref to avoid race condition)
 			if (usageLoaded || isLoadingUsageRef.current) return;
 
@@ -228,18 +175,14 @@ export function SettingsPanel({
 			}
 		};
 
-		loadPaymentHistory();
 		loadUsage();
-
-		// Cleanup: abort all in-flight requests
 	}, [
 		isOpen,
 		activeTab,
 		fetchUserSubscription,
 		fetchAvailablePlans,
-		paymentsLoaded,
 		usageLoaded,
-		// Note: isLoadingPayments and isLoadingUsage removed from deps to avoid race condition
+		// Note: isLoadingUsage removed from deps to avoid race condition
 		// Using refs instead to track loading state without triggering effect re-runs
 	]);
 
@@ -358,53 +301,10 @@ export function SettingsPanel({
 		setPopoverOpen({ upgradeUser: true });
 	};
 
-	const handleDownloadInvoice = async (payment: PaymentHistoryItem) => {
-		const invoiceId = payment.metadata?.stripe_invoice_id;
-		if (!invoiceId) {
-			toast.error('Invoice not available for this payment');
-			return;
-		}
-
-		setDownloadingInvoiceId(payment.id);
-		try {
-			const response = await fetch(
-				`/api/user/billing/invoice?invoiceId=${invoiceId}`
-			);
-			if (!response.ok) {
-				const data = await response.json();
-				throw new Error(data.error || 'Failed to fetch invoice');
-			}
-			const { url } = await response.json();
-			window.open(url, '_blank');
-		} catch (error) {
-			console.error('Invoice download error:', error);
-			toast.error(
-				error instanceof Error ? error.message : 'Failed to download invoice'
-			);
-		} finally {
-			setDownloadingInvoiceId(null);
-		}
-	};
-
-	const handleOpenBillingPortal = async () => {
+	const handleOpenBillingPortal = () => {
 		setIsOpeningPortal(true);
-		try {
-			const response = await fetch('/api/user/billing/portal', {
-				method: 'POST',
-			});
-			if (!response.ok) {
-				const data = await response.json();
-				throw new Error(data.error || 'Failed to open billing portal');
-			}
-			const { url } = await response.json();
-			window.location.href = url;
-		} catch (error) {
-			console.error('Portal error:', error);
-			toast.error(
-				error instanceof Error ? error.message : 'Failed to open billing portal'
-			);
-			setIsOpeningPortal(false);
-		}
+		// SDK's CustomerPortal handles redirect automatically
+		window.location.href = '/api/user/billing/portal';
 	};
 
 	const formatStorageSize = (mb: number) => {
@@ -1026,123 +926,6 @@ export function SettingsPanel({
 												)}
 											</div>
 										</motion.section>
-
-										<Separator className='bg-border-subtle/50' />
-
-										{/* Billing History */}
-										{!isLoadingPayments && (
-											<motion.section
-												animate={{ opacity: 1, y: 0 }}
-												className='space-y-4'
-												initial={{ opacity: 0, y: 10 }}
-												transition={{ delay: 0.2, duration: 0.3 }}
-											>
-												<h3 className='text-lg font-semibold text-text-primary flex items-center gap-2'>
-													<Calendar className='size-5 text-primary' />
-													Billing History
-												</h3>
-												<div className='space-y-4'>
-													{paymentHistory.length === 0 ? (
-														<div className='py-8 text-center'>
-															<Calendar className='size-8 mx-auto mb-3 text-text-secondary opacity-50' />
-															<p className='text-text-secondary'>
-																{currentSubscription
-																	? 'No payment history yet. Your first payment will appear here.'
-																	: 'Subscribe to a plan to see payment history.'}
-															</p>
-														</div>
-													) : (
-														<>
-															{paymentHistory.slice(0, 10).map((payment) => (
-																<div
-																	className='flex items-center justify-between p-4 bg-base rounded-lg border border-border-subtle'
-																	key={payment.id}
-																>
-																	<div className='flex items-center gap-4'>
-																		<div>
-																			<p className='text-text-primary font-medium'>
-																				{payment.description || 'Payment'}
-																			</p>
-																			<p className='text-sm text-text-secondary'>
-																				{new Date(
-																					payment.created_at
-																				).toLocaleDateString()}
-																			</p>
-																		</div>
-																		<Badge
-																			className={
-																				payment.status === 'succeeded'
-																					? 'bg-success-900/50 text-success-200 border-success-700/50'
-																					: payment.status === 'pending'
-																						? 'bg-warning-900/50 text-warning-200 border-warning-700/50'
-																						: 'bg-error-900/50 text-error-200 border-error-700/50'
-																			}
-																		>
-																			{payment.status}
-																		</Badge>
-																	</div>
-																	<div className='flex items-center gap-4'>
-																		<span className='text-text-primary font-medium'>
-																			<span className='flex gap-1'>
-																				<span>
-																					${payment.amount.toFixed(2)}
-																				</span>
-																				<span>
-																					{payment.currency.toUpperCase()}
-																				</span>
-																			</span>
-																		</span>
-																		<Button
-																			size='sm'
-																			variant='outline'
-																			onClick={() =>
-																				handleDownloadInvoice(payment)
-																			}
-																			disabled={
-																				downloadingInvoiceId === payment.id ||
-																				!payment.metadata?.stripe_invoice_id
-																			}
-																		>
-																			{downloadingInvoiceId === payment.id ? (
-																				<>
-																					<div className='size-4 mr-2 animate-spin rounded-full border-2 border-text-secondary border-t-transparent' />
-																					Loading...
-																				</>
-																			) : (
-																				<>
-																					<Download className='size-4 mr-2' />
-																					Invoice
-																				</>
-																			)}
-																		</Button>
-																	</div>
-																</div>
-															))}
-															{paymentHistory.length > 10 && (
-																<Button
-																	className='w-full'
-																	variant='outline'
-																	onClick={handleOpenBillingPortal}
-																	disabled={isOpeningPortal}
-																>
-																	{isOpeningPortal ? (
-																		<>
-																			<div className='size-4 mr-2 animate-spin rounded-full border-2 border-text-secondary border-t-transparent' />
-																			Opening...
-																		</>
-																	) : (
-																		<>
-																			<ExternalLink className='size-4 mr-2' />
-																			View All Transactions
-																		</>
-																	)}
-																</Button>
-															)}
-														</>
-													)}
-												</div>
-											</motion.section>
-										)}
 
 										<Separator className='bg-border-subtle/50' />
 

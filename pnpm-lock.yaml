@@ -40,9 +40,6 @@ importers:
       '@codemirror/view':
         specifier: ^6.39.5
         version: 6.39.5
-      '@dodopayments/nextjs':
-        specifier: ^0.3.3
-        version: 0.3.3(next@16.1.1(@babel/core@7.28.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(zod@4.1.8)
       '@floating-ui/react':
         specifier: ^0.27.16
         version: 0.27.16(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -55,6 +52,12 @@ importers:
       '@lezer/lr':
         specifier: ^1.4.5
         version: 1.4.5
+      '@polar-sh/nextjs':
+        specifier: ^0.9.3
+        version: 0.9.3(next@16.1.1(@babel/core@7.28.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))
+      '@polar-sh/sdk':
+        specifier: ^0.42.2
+        version: 0.42.2
       '@supabase/ssr':
         specifier: 0.8.0
         version: 0.8.0(@supabase/supabase-js@2.87.1)
@@ -82,9 +85,6 @@ importers:
       diff:
         specifier: ^8.0.2
         version: 8.0.2
-      dodopayments:
-        specifier: ^2.14.2
-        version: 2.14.2
       elkjs:
         specifier: ^0.11.0
         version: 0.11.0
@@ -569,17 +569,6 @@ packages:
   '@csstools/css-tokenizer@3.0.4':
     resolution: {integrity: sha512-Vd/9EVDiu6PPJt9yAh6roZP6El1xHrdvIVGjyBsHR0RYwNHgL7FJPyIIW4fANJNG6FtyZfvlRPpFI4ZM/lubvw==}
     engines: {node: '>=18'}
-
-  '@dodopayments/core@0.3.8':
-    resolution: {integrity: sha512-Klynu56uAwDNv8vSMxtSnDby+pBjK9W6860d0pWY8kkYdq9SyBJiW64vf/3kVRmd5RZoaHe8x0dS5QEyFMgdLw==}
-    peerDependencies:
-      zod: ^3.25.0 || ^4.0.0
-
-  '@dodopayments/nextjs@0.3.3':
-    resolution: {integrity: sha512-zXq5GDCLcwEOecGSLkI9ZA74WxeucqbLkosqESaknxQNyMo2FuHaUgniiC4Qx2Og1iEujV70J1lOWNLHyopZVw==}
-    peerDependencies:
-      next: ^15.3.4 || ^16.0.0
-      zod: ^3.25.0 || ^4.0.0
 
   '@dotenvx/dotenvx@1.51.0':
     resolution: {integrity: sha512-CbMGzyOYSyFF7d4uaeYwO9gpSBzLTnMmSmTVpCZjvpJFV69qYbjYPpzNnCz1mb2wIvEhjWjRwQWuBzTO0jITww==}
@@ -1143,6 +1132,18 @@ packages:
     resolution: {integrity: sha512-6TyEnHgd6SArQO8UO2OMTxshln3QMWBtPGrOCgs3wVEmQmwyuNtB10IZMfmYDE0riwNR1cu4q+pPcxMVtaG3TA==}
     engines: {node: '>=18'}
     hasBin: true
+
+  '@polar-sh/adapter-utils@0.4.3':
+    resolution: {integrity: sha512-9xjOyaAVWRFaFZKkSdZr8J6i5LToUoFKeoczXCEu6+uxAhKmkjA3Qlc8otI4be1DSouWgrYB/VUGHOW7dIgCuQ==}
+
+  '@polar-sh/nextjs@0.9.3':
+    resolution: {integrity: sha512-3laah76J2qqt/dln/GFL5XaVFdwVaY5xsrMqIX2nNf/5/6frrodth88eGie0UOIhA6OUvmZMuKnW2tGaroMi5g==}
+    engines: {node: '>=16'}
+    peerDependencies:
+      next: ^15.0.0 || ^16.0.0
+
+  '@polar-sh/sdk@0.42.2':
+    resolution: {integrity: sha512-dmm/ySQZQfFbeO8x/1sgcFdkgYOXAc/Sgu0nHj4hhHxrEVbI2axvm4jV/SCpCbm0MvoY+bsbHFP8n8MUaQaCgQ==}
 
   '@rtsao/scc@1.1.0':
     resolution: {integrity: sha512-zt6OdqaDoOnJ1ZYsCYGt9YmWzDXl4vQdKTyJev62gFhRGKdx7mcT54V9KIjg+d2wi9EXsPvAPKe7i7WjfVWB8g==}
@@ -2243,10 +2244,6 @@ packages:
   doctrine@2.1.0:
     resolution: {integrity: sha512-35mSku4ZXK0vfCuHEDAwt55dg2jNajHZ1odvF+8SSr82EsZY4QmXfuWso8oEd8zRhVObSN18aM0CjSdoBX7zIw==}
     engines: {node: '>=0.10.0'}
-
-  dodopayments@2.14.2:
-    resolution: {integrity: sha512-aeuDb82rHOcWVI2J6ollWISuTvluOuKVIk6w9u6X+04f3imnR3yYX8gMno974cL/QZDWrt1EvxuNjDrymZq4CQ==}
-    hasBin: true
 
   dom-accessibility-api@0.5.16:
     resolution: {integrity: sha512-X7BJ2yElsnOJ30pZF4uIIDfBEVgF4XEBxL9Bxhy6dnrm5hkzqmsWHGTiHqRiITNhMyFLyAiWndIJP7Z1NTteDg==}
@@ -5393,18 +5390,6 @@ snapshots:
 
   '@csstools/css-tokenizer@3.0.4': {}
 
-  '@dodopayments/core@0.3.8(zod@4.1.8)':
-    dependencies:
-      dodopayments: 2.14.2
-      standardwebhooks: 1.0.0
-      zod: 4.1.8
-
-  '@dodopayments/nextjs@0.3.3(next@16.1.1(@babel/core@7.28.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(zod@4.1.8)':
-    dependencies:
-      '@dodopayments/core': 0.3.8(zod@4.1.8)
-      next: 16.1.1(@babel/core@7.28.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      zod: 4.1.8
-
   '@dotenvx/dotenvx@1.51.0':
     dependencies:
       commander: 11.1.0
@@ -6035,6 +6020,21 @@ snapshots:
   '@playwright/test@1.57.0':
     dependencies:
       playwright: 1.57.0
+
+  '@polar-sh/adapter-utils@0.4.3':
+    dependencies:
+      '@polar-sh/sdk': 0.42.2
+
+  '@polar-sh/nextjs@0.9.3(next@16.1.1(@babel/core@7.28.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))':
+    dependencies:
+      '@polar-sh/adapter-utils': 0.4.3
+      '@polar-sh/sdk': 0.42.2
+      next: 16.1.1(@babel/core@7.28.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+
+  '@polar-sh/sdk@0.42.2':
+    dependencies:
+      standardwebhooks: 1.0.0
+      zod: 4.1.8
 
   '@rtsao/scc@1.1.0': {}
 
@@ -7173,10 +7173,6 @@ snapshots:
   doctrine@2.1.0:
     dependencies:
       esutils: 2.0.3
-
-  dodopayments@2.14.2:
-    dependencies:
-      standardwebhooks: 1.0.0
 
   dom-accessibility-api@0.5.16: {}
 
