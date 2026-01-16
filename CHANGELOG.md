@@ -5,6 +5,43 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-01-16]
+
+### Fixed
+- **billing/webhooks**: Webhook handlers now throw on DB errors (enables Polar retry)
+  - Why: Silent failures caused data loss when DB writes failed but Polar saw 200 OK
+- **billing/status-mapping**: Unknown Polar statuses now map to `'unpaid'` instead of `'active'`
+  - Why: Security - undocumented statuses should not grant paid access
+- **billing/period-dates**: Calculate billing period end from interval when not provided
+  - Why: Prevented period_start === period_end breaking billing cycle logic
+- **subscription/feature-gate**: Deny access during subscription loading (was optimistic)
+  - Why: Free users briefly got Pro features during page load (~500ms-2s window)
+
+### Removed
+- **billing/payment_history**: Dropped `payment_history` table and related code
+  - Why: Billing history now delegated to Polar customer portal (simplifies codebase)
+  - Removed: `/api/user/billing/payment-history` endpoint
+  - Removed: `order.paid` and `order.refunded` webhook handlers
+  - Simplified: `/api/user/billing/invoice` now redirects to portal
+  - Removed: Billing History section from Settings panel (~120 lines)
+- **teams**: Removed all team infrastructure (tables, columns, RLS policies, API logic)
+  - Why: Half-implemented feature not needed for MVP; was security risk (no RLS)
+  - Dropped: `teams`, `team_members` tables
+  - Dropped: `team_id` columns from `mind_maps`, `map_folders`
+  - Simplified: API routes now user_id-only auth (no team membership checks)
+  - Updated: RLS policies on `map_folders` to user-only
+  - Recreated: `map_graph_aggregated_view` without team_id
+
+### Changed
+- **dashboard/shared-filter**: Repurposed "Shared" filter to show maps accessed via share codes
+  - Why: Removed team-based sharing, keep share-code-based access visible
+  - Now queries `share_access` table for maps user can access but doesn't own
+- **components**: Updated marketing text to remove "team" references
+  - upgrade-modal: "Work together with your team" → "Work together in real-time"
+  - pricing-step: "teams" → "collaborators"
+
+---
+
 ## [2026-01-14]
 
 ### Added
@@ -33,14 +70,15 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **MVP_ROADMAP.md**: Updated Phase 1.3 Feature Limit Enforcement to COMPLETED
 
 ### Refactored
-- **billing**: Migrated from Stripe to Dodo Payments (Merchant of Record)
-  - Why: MOR handles tax, compliance, chargebacks automatically
-  - New routes: `/api/checkout/create`, `/api/webhooks/dodo`
-  - Removed: `/api/subscriptions/create`, `/api/subscriptions/webhook`
-  - Deleted: `payment-step.tsx` (checkout now external)
-  - Simplified onboarding: 4 steps → 3 steps (no in-app payment form)
-  - Removed packages: `@stripe/stripe-js`, `@stripe/react-stripe-js`, `stripe`
-  - Added package: `dodopayments`
+- **billing**: Migrated from Dodo Payments to Polar.sh (Merchant of Record)
+  - Why: Polar has fully isolated sandbox environment for testing (sandbox.polar.sh)
+  - New routes: `/api/webhooks/polar` (replaced `/api/webhooks/dodo`)
+  - New helper: `/src/lib/polar.ts` (replaced `/src/helpers/dodo/client.ts`)
+  - Updated: checkout, cancel, reactivate, portal, invoice routes
+  - Database migration: Replaced dodo_*/stripe_* columns with polar_* columns
+  - Added packages: `@polar-sh/sdk`, `standardwebhooks`
+  - Removed packages: `dodopayments`, `@dodopayments/nextjs`
+  - Cleans up Stripe columns (technical debt item resolved)
 
 ---
 
