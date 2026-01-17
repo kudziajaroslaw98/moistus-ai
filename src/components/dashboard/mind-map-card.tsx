@@ -393,7 +393,7 @@ const MindMapCardComponent = ({
 					{/* Enhanced Title Area with Better Hierarchy */}
 					<div className='absolute z-30 rounded-lg h-full flex flex-col justify-end items-start bottom-0 left-0 right-0 p-4 bg-linear-to-t from-black/90 via-black/60 to-transparent'>
 						{/* Primary Title */}
-						<h3 className='font-semibold text-base truncate mb-1 w-full drop-shadow-sm'>
+						<h3 className='font-semibold text-base text-white truncate mb-1 w-full drop-shadow-sm'>
 							{map.title}
 						</h3>
 
