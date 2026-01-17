@@ -8,6 +8,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ## [2026-01-17]
 
 ### Fixed
+- **dashboard/mind-map-card**: Title text now visible on card gradient backgrounds
+  - Why: Missing `text-white` class caused title to inherit unclear default color
 - **billing/usage-period**: Usage limits now aligned with subscription billing cycle instead of calendar month
   - Why: Users subscribing mid-month had incorrect usage counts (calendar month ≠ billing period)
   - `getAIUsageCount()` now uses `subscription.current_period_start` from Polar webhooks
