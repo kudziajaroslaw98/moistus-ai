@@ -228,14 +228,14 @@ export function UpgradeModal({
 						{error && (
 							<motion.div
 								animate={{ opacity: 1, y: 0 }}
-								className='flex items-center justify-center gap-2 text-sm text-error-500 mb-4'
+								className='flex items-center justify-center gap-2 text-sm text-error-500 mb-4 text-center max-w-md mx-auto'
 								initial={{ opacity: 0, y: -10 }}
 								transition={{
 									duration: 0.2,
 									ease: [0.165, 0.84, 0.44, 1],
 								}}
 							>
-								<AlertCircle className='w-4 h-4' />
+								<AlertCircle className='w-4 h-4 shrink-0' />
 								<span>{error}</span>
 							</motion.div>
 						)}

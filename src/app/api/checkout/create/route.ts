@@ -82,13 +82,10 @@ export async function POST(req: NextRequest) {
 		});
 	} catch (error) {
 		console.error('Checkout creation error:', error);
+
+		// Never expose raw API details - use generic message with clear next steps
 		return NextResponse.json(
-			{
-				error:
-					error instanceof Error
-						? error.message
-						: 'Failed to create checkout session',
-			},
+			{ error: 'Something went wrong. Please try again or contact support.' },
 			{ status: 500 }
 		);
 	}
