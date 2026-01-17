@@ -17,6 +17,7 @@ import useAppStore from '@/store/mind-map-store';
 import { SharePanelProps, ShareRole } from '@/types/sharing-types';
 import { cn } from '@/utils/cn';
 import {
+	AlertCircle,
 	ChevronDown,
 	Link2,
 	Loader2,
@@ -26,6 +27,7 @@ import {
 	Trash2,
 	Users,
 } from 'lucide-react';
+import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useEffect, useId, useState } from 'react';
 import { toast } from 'sonner';
@@ -96,6 +98,17 @@ export function SharePanel({
 
 	const isOpen = popoverOpen.sharePanel;
 	const mapId = mindMap?.id;
+
+	// Check collaborator limits
+	const { isAtLimit, usage, limits } = useSubscriptionLimits();
+	const collaboratorCount = currentShares?.length || 0;
+	const isAtCollaboratorLimit =
+		limits.collaboratorsPerMap !== -1 &&
+		collaboratorCount >= limits.collaboratorsPerMap;
+	const collaboratorLimitInfo =
+		limits.collaboratorsPerMap !== -1
+			? { current: collaboratorCount, max: limits.collaboratorsPerMap }
+			: undefined;
 
 	// Room code generation settings
 	const [roomCodeSettings, setRoomCodeSettings] = useState({
@@ -386,10 +399,23 @@ export function SharePanel({
 												</div>
 											</div>
 
+											{/* Collaborator limit warning */}
+											{isAtCollaboratorLimit && collaboratorLimitInfo && (
+												<div className='flex items-center gap-2 p-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400'>
+													<AlertCircle className='w-4 h-4 shrink-0' />
+													<span className='text-xs'>
+														Collaborator limit reached (
+														{collaboratorLimitInfo.current}/
+														{collaboratorLimitInfo.max}). Upgrade to Pro for
+														more.
+													</span>
+												</div>
+											)}
+
 											<Button
 												className='w-full h-9'
 												data-testid='generate-room-code-btn'
-												disabled={isGeneratingCode}
+												disabled={isGeneratingCode || isAtCollaboratorLimit}
 												onClick={handleGenerateRoomCode}
 											>
 												{isGeneratingCode ? (

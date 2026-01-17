@@ -374,9 +374,71 @@ MVP launch readiness checklist:
 
 ---
 
-## Phase 5: Polish
+## Phase 5: Database Security (Defense-in-Depth)
 
-### 5.1 Mobile Responsiveness
+> Future implementation - API enforcement is primary, DB triggers are backup protection
+
+### 5.1 PostgreSQL Limit Triggers
+
+**Purpose:** Prevent bypassed API requests from violating limits at DB layer.
+
+**Mind Maps Trigger:**
+```sql
+CREATE FUNCTION check_mind_map_limit() RETURNS TRIGGER AS $$
+DECLARE cnt INT; lim INT;
+BEGIN
+  SELECT COUNT(*) INTO cnt FROM mind_maps WHERE user_id = NEW.user_id;
+  SELECT COALESCE(
+    (SELECT (p.limits->>'mindMaps')::int FROM user_subscriptions s
+     JOIN subscription_plans p ON s.plan_id = p.id
+     WHERE s.user_id = NEW.user_id AND s.status IN ('active','trialing')),
+    3 -- free tier default
+  ) INTO lim;
+  IF lim != -1 AND cnt >= lim THEN
+    RAISE EXCEPTION 'Mind map limit reached';
+  END IF;
+  RETURN NEW;
+END; $$ LANGUAGE plpgsql;
+
+CREATE TRIGGER enforce_mind_map_limit BEFORE INSERT ON mind_maps
+FOR EACH ROW EXECUTE FUNCTION check_mind_map_limit();
+```
+
+**Nodes Trigger:**
+```sql
+CREATE FUNCTION check_node_limit() RETURNS TRIGGER AS $$
+DECLARE cnt INT; lim INT; owner_id UUID;
+BEGIN
+  SELECT user_id INTO owner_id FROM mind_maps WHERE id = NEW.map_id;
+  SELECT COUNT(*) INTO cnt FROM nodes WHERE map_id = NEW.map_id;
+  SELECT COALESCE(
+    (SELECT (p.limits->>'nodesPerMap')::int FROM user_subscriptions s
+     JOIN subscription_plans p ON s.plan_id = p.id
+     WHERE s.user_id = owner_id AND s.status IN ('active','trialing')),
+    50 -- free tier default
+  ) INTO lim;
+  IF lim != -1 AND cnt >= lim THEN
+    RAISE EXCEPTION 'Node limit reached';
+  END IF;
+  RETURN NEW;
+END; $$ LANGUAGE plpgsql;
+
+CREATE TRIGGER enforce_node_limit BEFORE INSERT ON nodes
+FOR EACH ROW EXECUTE FUNCTION check_node_limit();
+```
+
+**Files to create:**
+- `supabase/migrations/YYYYMMDD_limit_enforcement_triggers.sql`
+
+**Effort:** 2-3 hours | **Risk:** Low (API already enforces, this is backup)
+
+**Status:** 📋 PLANNED (Phase 2 - after MVP launch)
+
+---
+
+## Phase 6: Polish
+
+### 6.1 Mobile Responsiveness
 - [ ] Audit hover states on touch devices
 - [ ] Add `@media (hover: hover)` wrapper to hover transitions
 - [ ] Test canvas interaction on mobile (pinch zoom, pan)
@@ -387,7 +449,7 @@ MVP launch readiness checklist:
 
 ---
 
-### 5.2 UX Polish (If Time)
+### 6.2 UX Polish (If Time)
 - [ ] Payment error retry UI
 - [ ] Confirm dialog for room code revoke
 - [ ] Empty dashboard state (0 maps guidance)

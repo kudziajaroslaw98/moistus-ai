@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { useAuthRedirect } from '@/hooks/use-auth-redirect';
+import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import {
@@ -111,6 +112,14 @@ function DashboardContent() {
 
 	const trialDays = getTrialDaysRemaining?.() ?? null;
 
+	// Subscription limits for map creation
+	const { isAtLimit, usage, limits } = useSubscriptionLimits();
+	const isAtMapLimit = isAtLimit('mindMaps');
+	const mapLimitInfo =
+		limits.mindMaps !== -1
+			? { current: usage.mindMaps, max: limits.mindMaps }
+			: undefined;
+
 	// State
 	const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 	const [searchQuery, setSearchQuery] = useState('');
@@ -173,6 +182,21 @@ function DashboardContent() {
 		if (userProfile?.is_anonymous) {
 			// Show upgrade prompt for anonymous users
 			setShowAnonymousUpgrade(true);
+			return;
+		}
+
+		// Check if at map limit
+		if (isAtMapLimit) {
+			toast.error(
+				`Mind map limit reached (${mapLimitInfo?.max || 3} maps). Upgrade to Pro for unlimited maps.`,
+				{
+					action: {
+						label: 'Upgrade',
+						onClick: () => router.push('/dashboard?settings=billing'),
+					},
+					duration: 8000,
+				}
+			);
 			return;
 		}
 
@@ -675,6 +699,8 @@ function DashboardContent() {
 									<CreateMapCard
 										onClick={handleRequestCreateMap}
 										viewMode={viewMode}
+										disabled={isAtMapLimit}
+										limitInfo={mapLimitInfo}
 									/>
 								)}
 

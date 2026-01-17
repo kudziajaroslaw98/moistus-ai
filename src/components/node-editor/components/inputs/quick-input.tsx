@@ -1,8 +1,10 @@
 'use client';
 
 import type { AvailableNodeTypes } from '@/registry/node-registry';
+import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import useAppStore from '@/store/mind-map-store';
 import { AnimatePresence, motion } from 'motion/react';
+import { AlertCircle } from 'lucide-react';
 import {
 	useCallback,
 	useEffect,
@@ -109,6 +111,14 @@ export const QuickInput: FC<QuickInputProps> = ({
 			updateNode: state.updateNode,
 		}))
 	);
+
+	// Check node limit (only affects create mode)
+	const { isAtLimit, usage, limits } = useSubscriptionLimits();
+	const isAtNodeLimit = mode === 'create' && isAtLimit('nodesPerMap');
+	const nodeLimitInfo =
+		limits.nodesPerMap !== -1
+			? { current: usage.nodesPerMap, max: limits.nodesPerMap }
+			: undefined;
 
 	// Initialize QuickInput state when component mounts or mode changes
 	useEffect(() => {
@@ -509,8 +519,23 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 			<ErrorDisplay error={error} />
 
+			{/* Node limit warning */}
+			{isAtNodeLimit && nodeLimitInfo && (
+				<motion.div
+					initial={{ opacity: 0, y: -10 }}
+					animate={{ opacity: 1, y: 0 }}
+					className='flex items-center gap-2 mt-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400'
+				>
+					<AlertCircle className='w-4 h-4 shrink-0' />
+					<span className='text-sm'>
+						Node limit reached ({nodeLimitInfo.current}/{nodeLimitInfo.max}).
+						Upgrade to Pro for unlimited nodes.
+					</span>
+				</motion.div>
+			)}
+
 			<ActionBar
-				canCreate={value.trim().length > 0}
+				canCreate={value.trim().length > 0 && !isAtNodeLimit}
 				isCreating={isCreating}
 				mode={mode}
 				onCreate={handleCreate}
