@@ -18,6 +18,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { UserAvatar } from '@/components/ui/user-avatar';
+import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import useAppStore from '@/store/mind-map-store';
 import { UserProfileFormData } from '@/types/user-profile-types';
 import {
@@ -101,6 +102,9 @@ export function SettingsPanel({
 
 	const [isSaving, setIsSaving] = useState(false);
 	const [activeTab, setActiveTab] = useState(defaultTab);
+
+	// Get limits with proper free tier fallback
+	const { limits: planLimits } = useSubscriptionLimits();
 
 	// Billing State
 	const [usage, setUsage] = useState<UsageStats | null>(null);
@@ -839,25 +843,20 @@ export function SettingsPanel({
 																<span className='text-text-secondary flex gap-1'>
 																	<span>{usage.mindMapsCount} </span>
 																	<span>
-																		{currentSubscription?.plan?.limits
-																			?.mindMaps === -1
-																			? ''
-																			: `/ ${currentSubscription?.plan?.limits?.mindMaps ?? '∞'}`}
+																		{planLimits.mindMaps === -1
+																			? '/ ∞'
+																			: `/ ${planLimits.mindMaps}`}
 																	</span>
 																</span>
 															</div>
-															{currentSubscription?.plan?.limits &&
-																currentSubscription.plan.limits.mindMaps !=
-																	null &&
-																currentSubscription.plan.limits.mindMaps !==
-																	-1 && (
-																	<Progress
-																		value={getUsagePercentage(
-																			usage.mindMapsCount,
-																			currentSubscription.plan.limits.mindMaps
-																		)}
-																	/>
-																)}
+															{planLimits.mindMaps !== -1 && (
+																<Progress
+																	value={getUsagePercentage(
+																		usage.mindMapsCount,
+																		planLimits.mindMaps
+																	)}
+																/>
+															)}
 														</div>
 
 														<div>
@@ -867,10 +866,21 @@ export function SettingsPanel({
 																</span>
 																<span className='text-text-secondary flex gap-1'>
 																	<span>{usage.collaboratorsCount}</span>
-																	<span>/</span>
-																	<span>∞</span>
+																	<span>
+																		{planLimits.collaboratorsPerMap === -1
+																			? '/ ∞'
+																			: `/ ${planLimits.collaboratorsPerMap}`}
+																	</span>
 																</span>
 															</div>
+															{planLimits.collaboratorsPerMap !== -1 && (
+																<Progress
+																	value={getUsagePercentage(
+																		usage.collaboratorsCount,
+																		planLimits.collaboratorsPerMap
+																	)}
+																/>
+															)}
 														</div>
 
 														<div>
@@ -896,23 +906,18 @@ export function SettingsPanel({
 																<span className='text-text-secondary gap-1 flex'>
 																	<span>{usage.aiSuggestionsCount}</span>
 																	<span>
-																		{currentSubscription?.plan?.limits
-																			?.aiSuggestions === -1
-																			? ''
-																			: `/ ${currentSubscription?.plan?.limits?.aiSuggestions ?? '∞'}`}
+																		{planLimits.aiSuggestions === -1
+																			? '/ ∞'
+																			: `/ ${planLimits.aiSuggestions}`}
 																	</span>
 																</span>
 															</div>
-															{currentSubscription?.plan?.limits &&
-																currentSubscription.plan.limits.aiSuggestions !=
-																	null &&
-																currentSubscription.plan.limits
-																	.aiSuggestions !== -1 && (
+															{planLimits.aiSuggestions !== -1 &&
+																planLimits.aiSuggestions > 0 && (
 																	<Progress
 																		value={getUsagePercentage(
 																			usage.aiSuggestionsCount,
-																			currentSubscription.plan.limits
-																				.aiSuggestions
+																			planLimits.aiSuggestions
 																		)}
 																	/>
 																)}
