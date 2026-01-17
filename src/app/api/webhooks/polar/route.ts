@@ -1,4 +1,5 @@
 import { createServiceRoleClient } from '@/helpers/supabase/server';
+import { calculateUsageAdjustment } from '@/helpers/api/with-subscription-check';
 import { mapBillingInterval, mapPolarStatus } from '@/lib/polar';
 import { Webhooks } from '@polar-sh/nextjs';
 
@@ -151,12 +152,26 @@ async function handleSubscriptionActive(data: SubscriptionData) {
 
 /**
  * Handles subscription updates.
+ * Detects plan changes and calculates usage adjustment for mid-cycle upgrades/downgrades.
  */
 async function handleSubscriptionUpdated(data: SubscriptionData) {
 	const supabase = createServiceRoleClient();
 
 	console.log('[Polar] Processing subscription.updated:', data.id);
 
+	// Fetch current subscription with plan details
+	const { data: existingSubscription } = await supabase
+		.from('user_subscriptions')
+		.select(`
+			*,
+			plan:subscription_plans(id, name, limits)
+		`)
+		.eq('polar_subscription_id', data.id)
+		.single();
+
+	const currentPeriodStart = data.currentPeriodStart
+		? new Date(data.currentPeriodStart)
+		: undefined;
 	const currentPeriodEnd = data.currentPeriodEnd
 		? new Date(data.currentPeriodEnd)
 		: undefined;
@@ -167,8 +182,83 @@ async function handleSubscriptionUpdated(data: SubscriptionData) {
 		updated_at: new Date().toISOString(),
 	};
 
+	if (currentPeriodStart) {
+		updateData.current_period_start = currentPeriodStart.toISOString();
+	}
+
 	if (currentPeriodEnd) {
 		updateData.current_period_end = currentPeriodEnd.toISOString();
+	}
+
+	// Track metadata updates (will be applied at end)
+	let metadataUpdates: Record<string, unknown> = {
+		...(existingSubscription?.metadata as Record<string, unknown> | null),
+	};
+
+	// Check if this is a new billing period (period start changed) - reset usage adjustment
+	const oldPeriodStart = existingSubscription?.current_period_start;
+	if (currentPeriodStart && oldPeriodStart) {
+		const oldStart = new Date(oldPeriodStart).getTime();
+		const newStart = currentPeriodStart.getTime();
+		if (newStart > oldStart) {
+			console.log('[Polar] New billing period detected, clearing usage adjustment');
+			// Clear usage adjustment for new billing period
+			metadataUpdates = {
+				...metadataUpdates,
+				usage_adjustment: 0,
+				previous_period_start: oldPeriodStart,
+			};
+		}
+	}
+
+	// Check if this is a plan change (productId changed)
+	const newProductId = data.productId;
+	const oldProductId = metadataUpdates?.polar_product_id;
+
+	if (newProductId && oldProductId && newProductId !== oldProductId) {
+		console.log('[Polar] Plan change detected:', oldProductId, '->', newProductId);
+
+		// Look up the new plan by product ID
+		const { data: newPlan } = await supabase
+			.from('subscription_plans')
+			.select('id, name, limits')
+			.eq('polar_product_id', newProductId)
+			.single();
+
+		if (newPlan && existingSubscription?.plan) {
+			// Calculate usage adjustment for AI suggestions (the main metered resource)
+			type PlanLimits = { aiSuggestions?: number };
+			const oldLimit = (existingSubscription.plan.limits as PlanLimits)?.aiSuggestions ?? 0;
+			const newLimit = (newPlan.limits as PlanLimits)?.aiSuggestions ?? 0;
+			const adjustment = calculateUsageAdjustment(oldLimit, newLimit);
+
+			// Get existing adjustment (may have been reset to 0 if new period)
+			const existingAdjustment = (metadataUpdates?.usage_adjustment as number) || 0;
+			const totalAdjustment = existingAdjustment + adjustment;
+
+			console.log('[Polar] Usage adjustment:', {
+				oldLimit,
+				newLimit,
+				adjustment,
+				existingAdjustment,
+				totalAdjustment,
+			});
+
+			// Update plan_id and store adjustment in metadata
+			updateData.plan_id = newPlan.id;
+			metadataUpdates = {
+				...metadataUpdates,
+				polar_product_id: newProductId,
+				usage_adjustment: totalAdjustment,
+				last_plan_change: new Date().toISOString(),
+				previous_plan: existingSubscription.plan.name,
+			};
+		}
+	}
+
+	// Apply metadata updates if any changes were made
+	if (Object.keys(metadataUpdates).length > 0) {
+		updateData.metadata = metadataUpdates;
 	}
 
 	const { error } = await supabase

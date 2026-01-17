@@ -154,7 +154,7 @@ export async function checkUsageLimit(
 
 /**
  * Gets the start date of the current billing period for usage tracking.
- * For monthly billing, this is the start of the current month.
+ * For free users (no subscription), uses the start of the current calendar month.
  *
  * @returns ISO timestamp string for billing period start
  */
@@ -166,7 +166,7 @@ export function getBillingPeriodStart(): string {
 
 /**
  * Gets the end date of the current billing period.
- * For monthly billing, this is the last day of the current month at 23:59:59.
+ * For free users (no subscription), uses the last day of the current calendar month.
  *
  * @returns ISO timestamp string for billing period end
  */
@@ -175,6 +175,55 @@ export function getBillingPeriodEnd(): string {
 	// Get the first day of next month, then subtract 1ms to get end of current month
 	const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 	return endOfMonth.toISOString();
+}
+
+/**
+ * Subscription billing period info from database.
+ */
+export interface SubscriptionBillingPeriod {
+	periodStart: string;
+	periodEnd: string;
+	usageAdjustment?: number;
+}
+
+/**
+ * Gets the billing period dates from the user's active subscription.
+ * Falls back to calendar month boundaries for free users without a subscription.
+ *
+ * @param user - The authenticated user
+ * @param supabase - Supabase client instance
+ * @returns Billing period start and end dates, plus any usage adjustment
+ */
+export async function getSubscriptionBillingPeriod(
+	user: User,
+	supabase: SupabaseClient
+): Promise<SubscriptionBillingPeriod> {
+	// Fetch active subscription's billing period
+	const { data: subscription } = await supabase
+		.from('user_subscriptions')
+		.select('current_period_start, current_period_end, metadata')
+		.eq('user_id', user.id)
+		.in('status', ['active', 'trialing'])
+		.order('created_at', { ascending: false })
+		.limit(1)
+		.single();
+
+	if (subscription?.current_period_start) {
+		// Use subscription's billing period (aligned with payment cycle)
+		const metadata = subscription.metadata as Record<string, unknown> | null;
+		return {
+			periodStart: subscription.current_period_start,
+			periodEnd: subscription.current_period_end || getBillingPeriodEnd(),
+			usageAdjustment: (metadata?.usage_adjustment as number) || 0,
+		};
+	}
+
+	// Free user: fall back to calendar month
+	return {
+		periodStart: getBillingPeriodStart(),
+		periodEnd: getBillingPeriodEnd(),
+		usageAdjustment: 0,
+	};
 }
 
 /**
@@ -286,27 +335,77 @@ export async function checkCollaboratorLimit(
 
 /**
  * Gets AI usage count for the current billing period.
+ * Uses subscription billing period if available, otherwise falls back to calendar month.
+ * Also accounts for any usage adjustment from mid-cycle plan changes.
  *
  * @param user - The authenticated user
  * @param supabase - Supabase client instance
  * @param feature - Optional feature filter (e.g., 'suggestions')
- * @returns Count of AI usage in current billing period
+ * @param billingPeriod - Optional pre-fetched billing period (avoids duplicate query)
+ * @returns Count of AI usage in current billing period (adjusted for plan changes)
  */
 export async function getAIUsageCount(
 	user: User,
 	supabase: SupabaseClient,
-	feature?: string
+	feature?: string,
+	billingPeriod?: SubscriptionBillingPeriod
 ): Promise<number> {
+	// Get billing period if not provided
+	const period = billingPeriod || await getSubscriptionBillingPeriod(user, supabase);
+
 	let query = supabase
 		.from('ai_usage_log')
 		.select('*', { count: 'exact', head: true })
 		.eq('user_id', user.id)
-		.gte('timestamp', getBillingPeriodStart());
+		.gte('timestamp', period.periodStart);
 
 	if (feature) {
 		query = query.eq('feature', feature);
 	}
 
 	const { count } = await query;
-	return count || 0;
+	const baseCount = count || 0;
+
+	// Apply usage adjustment from mid-cycle upgrades
+	// Adjustment is negative when upgrading (giving back unused quota from old plan)
+	// Example: user had 2/3 used on free, upgrades to pro (100) = adjustment of -1
+	// Effective usage = 2 - 1 = 1 (effectively counting only 1 toward new 100 limit)
+	const adjustment = period.usageAdjustment || 0;
+
+	return Math.max(0, baseCount + adjustment);
+}
+
+/**
+ * Calculates usage adjustment when a user changes plans mid-cycle.
+ * Uses the "add difference to remaining" approach:
+ * - If user had 2/3 free suggestions used, upgrade to Pro (100)
+ * - Old remaining = 3 - 2 = 1
+ * - New remaining should be = 100 - (100 - 3) + 1 = 100 - 97 + 1 = 4... wait
+ *
+ * Actually simpler: new_remaining = new_limit - old_limit + old_remaining
+ * old_remaining = old_limit - current_usage
+ * new_remaining = new_limit - current_usage (adjusted)
+ * adjustment = old_limit - new_limit (negative = gave user more credits)
+ *
+ * The adjustment is added to usage count, so:
+ * - Negative adjustment = reduces effective usage = more remaining
+ * - Positive adjustment = increases effective usage = less remaining (downgrade)
+ *
+ * @param oldLimit - Previous plan's limit for this resource
+ * @param newLimit - New plan's limit for this resource
+ * @returns Adjustment value to add to usage count
+ */
+export function calculateUsageAdjustment(oldLimit: number, newLimit: number): number {
+	// Handle unlimited plans (-1 means unlimited)
+	if (oldLimit === -1 || newLimit === -1) {
+		// From unlimited to limited: no adjustment (fresh start)
+		// From limited to unlimited: no adjustment (doesn't matter)
+		return 0;
+	}
+
+	// Adjustment = difference between limits (negative = upgrade, positive = downgrade)
+	// This is added to usage, so:
+	// - Upgrading (3 → 100): adjustment = 3 - 100 = -97 → usage effectively reduced
+	// - Downgrading (100 → 3): adjustment = 100 - 3 = +97 → usage effectively increased
+	return oldLimit - newLimit;
 }

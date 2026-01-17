@@ -5,6 +5,30 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-01-17]
+
+### Fixed
+- **billing/usage-period**: Usage limits now aligned with subscription billing cycle instead of calendar month
+  - Why: Users subscribing mid-month had incorrect usage counts (calendar month ≠ billing period)
+  - `getAIUsageCount()` now uses `subscription.current_period_start` from Polar webhooks
+  - Free users still fall back to calendar month boundaries
+- **billing/mid-cycle-upgrade**: Plan changes now preserve proportional remaining usage
+  - Why: Upgrading from free (0 AI) to pro (100 AI) should give ~100 remaining, not 0
+  - Calculates adjustment: `old_limit - new_limit` stored in `metadata.usage_adjustment`
+  - Adjustment applied when counting usage; resets on new billing period
+
+### Added
+- **billing/helpers**: `getSubscriptionBillingPeriod(user, supabase)` returns period dates + adjustment
+- **billing/helpers**: `calculateUsageAdjustment(oldLimit, newLimit)` for mid-cycle plan changes
+- **billing/webhooks**: Period transition detection clears usage_adjustment on renewal
+- **billing/webhooks**: Plan change detection calculates and stores usage adjustment
+
+### Changed
+- **billing/usage-api**: `/api/user/billing/usage` now returns subscription-aligned billing period
+- **billing/webhooks**: `handleSubscriptionUpdated()` tracks both period changes and plan changes
+
+---
+
 ## [2026-01-16]
 
 ### Fixed
