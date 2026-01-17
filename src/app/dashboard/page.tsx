@@ -201,6 +201,22 @@ function DashboardContent() {
 			});
 
 			if (!response.ok) {
+				// Check for limit reached error
+				if (response.status === 402) {
+					const errorData = await response.json();
+					toast.error(
+						`Mind map limit reached (${errorData.details?.limit || 3} maps). Upgrade to Pro for unlimited maps.`,
+						{
+							action: {
+								label: 'Upgrade',
+								onClick: () => router.push('/dashboard?settings=billing'),
+							},
+							duration: 8000,
+						}
+					);
+					setShowCreateDialog(false);
+					return;
+				}
 				throw new Error('Failed to create new mind map.');
 			}
 

@@ -8,7 +8,7 @@ import { Archive, Home, Star, Users } from 'lucide-react';
 import { motion } from 'motion/react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ReactNode, useEffect, useState } from 'react';
 import {
 	Sidebar,
@@ -76,6 +76,7 @@ const bottomNavItems: NavItem[] = [];
 export function DashboardLayout({ children }: DashboardLayoutProps) {
 	const pathname = usePathname();
 	const router = useRouter();
+	const searchParams = useSearchParams();
 	const { open: sidebarOpen } = useSidebar();
 	const sidebarCollapsed = !sidebarOpen;
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -90,6 +91,16 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 		setSettingsTab(tab);
 		setIsSettingsOpen(true);
 	};
+
+	// Handle URL param to open settings panel (e.g., /dashboard?settings=billing)
+	useEffect(() => {
+		const settingsParam = searchParams.get('settings');
+		if (settingsParam === 'billing' || settingsParam === 'settings') {
+			handleOpenSettings(settingsParam);
+			// Clean up URL without triggering navigation
+			window.history.replaceState({}, '', pathname);
+		}
+	}, [searchParams, pathname]);
 
 	// Handle manual trigger of upgrade modal
 	useEffect(() => {
