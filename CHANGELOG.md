@@ -35,6 +35,18 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Usage count accuracy
   - Requires: `SUPABASE_SERVICE_ROLE_KEY` in `.env.e2e.local`
 
+### Security
+- **api/search-nodes**: Add AI limit check + usage tracking (was unprotected)
+
+### Added
+- **dashboard/create-map-card**: Disabled state with tooltip at map limit
+- **quick-input**: Warning banner + disabled create at node limit
+- **share-panel**: Disabled room code generation at collaborator limit
+- **MVP_ROADMAP.md**: Phase 5 database security plan (PostgreSQL triggers)
+
+### Fixed
+- **dashboard/create-map-card**: Card height now matches MindMapCard (h-56)
+
 ---
 
 ## [2026-01-16]
