@@ -77,3 +77,4 @@ ai-docs
 
 # Plans (local development notes)
 docs/plans/
+e2e/auth-failure.png

@@ -27,6 +27,14 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **billing/usage-api**: `/api/user/billing/usage` now returns subscription-aligned billing period
 - **billing/webhooks**: `handleSubscriptionUpdated()` tracks both period changes and plan changes
 
+### Tests
+- **e2e/billing**: Added comprehensive usage limit E2E tests (10 tests)
+  - Free user 402 enforcement, Pro/trialing access
+  - Billing period boundary verification
+  - Mid-cycle upgrade/downgrade adjustment
+  - Usage count accuracy
+  - Requires: `SUPABASE_SERVICE_ROLE_KEY` in `.env.e2e.local`
+
 ---
 
 ## [2026-01-16]
