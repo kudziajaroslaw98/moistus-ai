@@ -311,13 +311,6 @@ export function SettingsPanel({
 		window.location.href = '/api/user/billing/portal';
 	};
 
-	const formatStorageSize = (mb: number) => {
-		if (mb >= 1024) {
-			return `${(mb / 1024).toFixed(1)}GB`;
-		}
-		return `${mb}MB`;
-	};
-
 	const getUsagePercentage = (used: number, limit: number) => {
 		if (limit === -1 || limit === 0) return 0; // Unlimited or not set
 		return Math.min((used / limit) * 100, 100);
@@ -883,20 +876,6 @@ export function SettingsPanel({
 															)}
 														</div>
 
-														<div>
-															<div className='flex items-center justify-between mb-2'>
-																<span className='text-text-primary'>
-																	Storage
-																</span>
-																<span className='text-text-secondary flex gap-1'>
-																	<span>
-																		{formatStorageSize(usage.storageUsedMB)}
-																	</span>
-																	<span>/</span>
-																	<span>∞</span>
-																</span>
-															</div>
-														</div>
 
 														<div>
 															<div className='flex items-center justify-between mb-2'>
