@@ -253,10 +253,14 @@ export async function trackAIUsage(
  * This handles the edge case of multiple share tokens per map by counting
  * unique user_ids in share_access, excluding the map owner.
  *
+ * NOTE: This assumes (map_id, user_id) pairs are unique in share_access table.
+ * For truly distinct counting, a Postgres RPC with COUNT(DISTINCT user_id) would be needed.
+ *
  * @param supabase - Supabase client instance
  * @param mapId - The map ID to count collaborators for
  * @param excludeUserId - User ID to exclude from count (typically the map owner)
  * @returns Count of distinct collaborators
+ * @throws Error if database query fails
  */
 export async function getMapCollaboratorCount(
 	supabase: SupabaseClient,
@@ -276,7 +280,13 @@ export async function getMapCollaboratorCount(
 		query = query.neq('user_id', excludeUserId);
 	}
 
-	const { count } = await query;
+	const { count, error } = await query;
+
+	if (error) {
+		console.error('[Subscription] Failed to count collaborators:', error);
+		throw new Error(`Failed to count collaborators: ${error.message}`);
+	}
+
 	return count || 0;
 }
 

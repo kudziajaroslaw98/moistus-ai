@@ -48,7 +48,7 @@ export const POST = withAuthValidation(
 			}
 
 			// 3. Check if user already has access (existing collaborator = skip limit check)
-			const { data: existingAccess } = await supabase
+			const { data: existingAccess, error: accessError } = await supabase
 				.from('share_access')
 				.select('id')
 				.eq('map_id', validation.map_id)
@@ -56,10 +56,19 @@ export const POST = withAuthValidation(
 				.eq('status', 'active')
 				.single();
 
+			// Handle query errors (PGRST116 = no rows found, which is expected for new collaborators)
+			if (accessError && accessError.code !== 'PGRST116') {
+				console.error('Error checking existing access:', accessError);
+				return respondError('Failed to verify access permissions', 500);
+			}
+
 			const isNewCollaborator = !existingAccess;
 
 			// 4. For NEW collaborators, check map owner's subscription limit
 			// Skip if user is the map owner (they don't count as a collaborator)
+			// NOTE: This check is racy - limit check and insert are not atomic.
+			// For strict enforcement, this should use a Postgres RPC that performs
+			// COUNT + INSERT in a single transaction with row locking.
 			if (isNewCollaborator && mapData.user_id && mapData.user_id !== user.id) {
 				const { allowed, limit, currentCount } = await checkCollaboratorLimit(
 					supabase,

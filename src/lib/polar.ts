@@ -97,6 +97,7 @@ export function mapBillingInterval(
 		case 'day':
 			return 'daily';
 		default:
+			console.warn(`[Polar] Unknown billing interval: ${interval}`);
 			return 'monthly';
 	}
 }

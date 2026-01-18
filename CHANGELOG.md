@@ -5,6 +5,33 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-01-18]
+
+### Security
+- **api/maps**: Add missing user_id filter to ownedMaps query (critical fix)
+- **api/checkout**: Remove PII (email) from server logs, replaced with user.id
+- **api/checkout**: Add Zod validation to prevent invalid billing intervals
+
+### Fixed
+- **api/billing/invoice**: Add auth check for consistency with other billing routes
+- **api/billing/portal**: Surface specific errors from auth and subscription queries
+- **api/webhooks/polar**: Validate POLAR_WEBHOOK_SECRET at module load
+- **api/webhooks/polar**: Fix subscription.canceled to keep status 'active' until period end
+- **api/join-room**: Handle PGRST116 (no rows) vs actual DB errors for existing access check
+- **api/join-room**: Add documentation about race condition in collaborator limit check
+- **api/create-room-code**: Fix step comment numbering (3,3,4,6,6 → 1-7)
+- **subscription-check**: Add error handling and throw on DB failure in getMapCollaboratorCount
+- **use-feature-gate**: Fix collaboratorsPerMap to 0 (requires server query)
+- **subscription-slice**: Fix usageMap collaboratorsPerMap to 0 (enforced server-side)
+- **polar.ts**: Add console.warn for unknown billing intervals
+
+### Changed
+- **components**: Update stale "Dodo" comments to "Polar" in upgrade-modal and pricing-step
+
+### Added
+- **migration**: Add unique partial index on user_subscriptions.polar_subscription_id
+  - Required for upsert with onConflict in webhook handler
+
 ## [2026-01-17]
 
 ### Fixed

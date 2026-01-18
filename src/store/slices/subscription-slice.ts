@@ -399,11 +399,12 @@ export const createSubscriptionSlice: StateCreator<
 		if (limit === undefined || limit === -1) return null; // Unlimited or not defined
 
 		// Map limit type to usage data field
+		// Note: collaboratorsPerMap is set to 0 as enforcement is per-map and handled server-side
 		const usageMap: Record<keyof Required<SubscriptionPlan['limits']>, number> = {
 			mindMaps: usageData?.mindMapsCount ?? 0,
 			aiSuggestions: usageData?.aiSuggestionsCount ?? 0,
 			nodesPerMap: 0, // Handled per-map in client state
-			collaboratorsPerMap: usageData?.collaboratorsCount ?? 0,
+			collaboratorsPerMap: 0, // Per-map limit enforced server-side
 		};
 
 		const currentUsage = usageMap[limitType];

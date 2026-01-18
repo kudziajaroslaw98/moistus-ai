@@ -86,14 +86,14 @@ export const POST = withAuthValidation(
 			return respondError('Failed to generate unique room code', 500);
 		}
 
-		// 3. Calculate expiration
+		// 4. Calculate expiration
 		const expires_at = data.expires_in_hours
 			? new Date(
 					Date.now() + data.expires_in_hours * 60 * 60 * 1000
 				).toISOString()
 			: null;
 
-		// 4. Create permissions object
+		// 5. Create permissions object
 		const permissions = {
 			role: data.role,
 			can_edit: data.can_edit ?? data.role === 'editor',
@@ -121,7 +121,7 @@ export const POST = withAuthValidation(
 			return respondError('Failed to create room code', 500);
 		}
 
-		// 6. Return the complete token object
+		// 7. Return the complete token object
 		return respondSuccess(token);
 	}
 );

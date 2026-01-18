@@ -105,7 +105,7 @@ export function PricingStep({
 			return;
 		}
 
-		// Pro plan: create checkout session and redirect to Dodo
+		// Pro plan: create checkout session and redirect to Polar
 		setIsRedirecting(true);
 		setError(null);
 
@@ -118,7 +118,7 @@ export function PricingStep({
 		}
 
 		if (result.checkoutUrl) {
-			// Redirect to Dodo checkout
+			// Redirect to Polar checkout
 			window.location.href = result.checkoutUrl;
 		} else {
 			setError('Failed to create checkout session');

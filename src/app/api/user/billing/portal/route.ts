@@ -15,14 +15,19 @@ export const GET = CustomerPortal({
 
 		const {
 			data: { user },
+			error: authError,
 		} = await supabase.auth.getUser();
 
+		if (authError) {
+			throw new Error(`Authentication failed: ${authError.message}`);
+		}
+
 		if (!user) {
-			throw new Error('Unauthorized');
+			throw new Error('Unauthorized: No authenticated user found');
 		}
 
 		// Get user's Polar customer ID from their subscription
-		const { data: subscription } = await supabase
+		const { data: subscription, error: subscriptionError } = await supabase
 			.from('user_subscriptions')
 			.select('polar_customer_id')
 			.eq('user_id', user.id)
@@ -30,6 +35,10 @@ export const GET = CustomerPortal({
 			.order('created_at', { ascending: false })
 			.limit(1)
 			.single();
+
+		if (subscriptionError && subscriptionError.code !== 'PGRST116') {
+			throw new Error(`Failed to fetch subscription: ${subscriptionError.message}`);
+		}
 
 		if (!subscription?.polar_customer_id) {
 			throw new Error('No billing account found. Subscribe to a plan first.');

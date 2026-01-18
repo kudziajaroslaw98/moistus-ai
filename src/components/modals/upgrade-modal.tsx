@@ -65,10 +65,10 @@ export function UpgradeModal({
 		}
 
 		if (result.checkoutUrl) {
-			// Redirect to Dodo checkout
+			// Redirect to Polar checkout
 			window.location.href = result.checkoutUrl;
 			// Note: onSuccess won't be called here since we're redirecting
-			// The success callback would be handled on return from Dodo
+			// The success callback would be handled on return from Polar
 		} else {
 			setError('Failed to create checkout session');
 			setIsRedirecting(false);

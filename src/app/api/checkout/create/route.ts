@@ -1,24 +1,33 @@
 import { createPolarClient, getAppUrl, getProductId } from '@/lib/polar';
 import { createClient } from '@/helpers/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+
+const CheckoutSchema = z.object({
+	planId: z.string().min(1, 'Plan ID is required'),
+	billingInterval: z.enum(['monthly', 'yearly'], {
+		error: 'Billing interval must be "monthly" or "yearly"',
+	}),
+});
 
 export async function POST(req: NextRequest) {
 	try {
 		const body = await req.json();
 		console.log('[Checkout] Request body:', body);
 
-		const { planId, billingInterval } = body as {
-			planId: string;
-			billingInterval: 'monthly' | 'yearly';
-		};
-
-		if (!planId || !billingInterval) {
-			console.log('[Checkout] Missing fields:', { planId, billingInterval });
+		const parseResult = CheckoutSchema.safeParse(body);
+		if (!parseResult.success) {
+			const errorMessage = parseResult.error.issues
+				.map((issue) => issue.message)
+				.join(', ');
+			console.log('[Checkout] Validation failed:', errorMessage);
 			return NextResponse.json(
-				{ error: 'Missing required fields: planId, billingInterval' },
+				{ error: errorMessage },
 				{ status: 400 }
 			);
 		}
+
+		const { planId, billingInterval } = parseResult.data;
 
 		const supabase = await createClient();
 
@@ -55,7 +64,7 @@ export async function POST(req: NextRequest) {
 		console.log('[Checkout] Creating Polar session with:', {
 			productId,
 			appUrl,
-			userEmail: user.email,
+			userId: user.id,
 		});
 
 		const checkout = await polar.checkouts.create({

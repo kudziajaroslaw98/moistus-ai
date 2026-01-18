@@ -26,6 +26,7 @@ export const GET = withApiValidation(
 					_count:nodes(count)
 				`
 				)
+				.eq('user_id', user.id)
 				.eq('is_template', false)
 				.order('updated_at', { ascending: false });
 

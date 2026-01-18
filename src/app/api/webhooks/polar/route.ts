@@ -3,13 +3,19 @@ import { calculateUsageAdjustment } from '@/helpers/api/with-subscription-check'
 import { mapBillingInterval, mapPolarStatus } from '@/lib/polar';
 import { Webhooks } from '@polar-sh/nextjs';
 
+// Validate webhook secret at module load time
+const webhookSecret = process.env.POLAR_WEBHOOK_SECRET;
+if (!webhookSecret) {
+	console.error('[Polar] POLAR_WEBHOOK_SECRET is not configured - webhook verification will fail');
+}
+
 /**
  * Polar webhook handler using @polar-sh/nextjs adapter.
  * Automatically handles signature verification and response.
  * @see https://polar.sh/docs/integrate/sdk/adapters/nextjs
  */
 export const POST = Webhooks({
-	webhookSecret: process.env.POLAR_WEBHOOK_SECRET!,
+	webhookSecret: webhookSecret ?? '',
 
 	onSubscriptionCreated: async (payload) => {
 		await handleSubscriptionActive(payload.data);
@@ -273,16 +279,19 @@ async function handleSubscriptionUpdated(data: SubscriptionData) {
 
 /**
  * Handles subscription cancellation.
+ * User initiated cancellation - subscription remains active until period end.
+ * Sets cancel_at_period_end: true but keeps status as 'active'.
  */
 async function handleSubscriptionCanceled(data: SubscriptionData) {
 	const supabase = createServiceRoleClient();
 
 	console.log('[Polar] Processing subscription.canceled:', data.id);
 
+	// Keep status as 'active' - user still has access until period ends
+	// Only set cancel_at_period_end: true to indicate upcoming cancellation
 	const { error } = await supabase
 		.from('user_subscriptions')
 		.update({
-			status: 'canceled',
 			cancel_at_period_end: true,
 			canceled_at: data.canceledAt
 				? new Date(data.canceledAt).toISOString()

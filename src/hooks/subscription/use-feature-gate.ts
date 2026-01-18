@@ -121,8 +121,9 @@ export function useSubscriptionLimits() {
 			mindMaps: usageData?.mindMapsCount ?? 0,
 			nodesPerMap: nodes.length, // Client-side per current map
 			aiSuggestions: usageData?.aiSuggestionsCount ?? 0,
-			// Note: This is global collaborators count - per-map count requires server query
-			collaboratorsPerMap: usageData?.collaboratorsCount ?? 0,
+			// Global collaborators count across all maps - accurate per-map count requires server query
+			// Using 0 as placeholder since we can't compute per-map remaining from global count
+			collaboratorsPerMap: 0,
 		};
 	}, [usageData, nodes.length]);
 
@@ -140,10 +141,8 @@ export function useSubscriptionLimits() {
 				limits.aiSuggestions === -1
 					? null
 					: Math.max(0, limits.aiSuggestions - usage.aiSuggestions),
-			collaboratorsPerMap:
-				limits.collaboratorsPerMap === -1
-					? null
-					: Math.max(0, limits.collaboratorsPerMap - usage.collaboratorsPerMap),
+			// Per-map collaborator remaining requires server query - undefined since we can't compute client-side
+			collaboratorsPerMap: undefined,
 		};
 	}, [limits, usage]);
 
