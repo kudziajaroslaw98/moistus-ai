@@ -13,6 +13,7 @@ import {
 	SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import useAppStore from '@/store/mind-map-store';
 import { SharePanelProps, ShareRole } from '@/types/sharing-types';
 import { cn } from '@/utils/cn';
@@ -27,7 +28,6 @@ import {
 	Trash2,
 	Users,
 } from 'lucide-react';
-import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useEffect, useId, useState } from 'react';
 import { toast } from 'sonner';
@@ -404,12 +404,12 @@ export function SharePanel({
 												</div>
 											</div>
 
-											{/* Free tier limit indicator - full width */}
-											{isFreeWithLimit && (
+											{/* Free tier limit indicator - only show if NOT at limit */}
+											{isFreeWithLimit && !isAtCollaboratorLimit && (
 												<button
 													type='button'
 													onClick={() => setPopoverOpen({ upgradeUser: true })}
-													className='flex items-center gap-4 w-full p-4 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/15 transition-colors duration-200 ease text-left group'
+													className='flex items-center gap-4 w-full p-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/15 transition-colors duration-200 ease text-left group'
 												>
 													<Users className='w-4 h-4 shrink-0' />
 													<div className='flex-1 min-w-0'>
