@@ -55,8 +55,8 @@ export function AIUsageIndicator() {
 		return null;
 	}
 
-	// Don't render if unlimited (Pro tier check - though Pro has limit 100, not -1)
-	if (limits.aiSuggestions === -1) {
+	// Don't render if unlimited or if free tier (no AI features)
+	if (limits.aiSuggestions === -1 || limits.aiSuggestions === 0) {
 		return null;
 	}
 

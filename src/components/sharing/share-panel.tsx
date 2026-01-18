@@ -110,10 +110,15 @@ export function SharePanel({
 			? { current: collaboratorCount, max: limits.collaboratorsPerMap }
 			: undefined;
 
-	// Room code generation settings
+	// Calculate max users limit for room code based on subscription tier
+	const maxUsersLimit =
+		limits.collaboratorsPerMap === -1 ? 100 : limits.collaboratorsPerMap;
+	const isFreeWithLimit = limits.collaboratorsPerMap !== -1;
+
+	// Room code generation settings (default maxUsers to 3 - safe for both free and pro tiers)
 	const [roomCodeSettings, setRoomCodeSettings] = useState({
 		role: 'viewer' as ShareRole,
-		maxUsers: 50,
+		maxUsers: 3,
 		expiresInHours: 24,
 	});
 
@@ -354,7 +359,7 @@ export function SharePanel({
 													<Input
 														className='h-9'
 														data-testid='max-users-input'
-														max={100}
+														max={maxUsersLimit}
 														min={1}
 														type='number'
 														value={roomCodeSettings.maxUsers}
@@ -362,8 +367,8 @@ export function SharePanel({
 															setRoomCodeSettings((prev) => ({
 																...prev,
 																maxUsers: Math.min(
-																	100,
-																	Math.max(1, parseInt(e.target.value) || 50)
+																	maxUsersLimit,
+																	Math.max(1, parseInt(e.target.value) || 3)
 																),
 															}))
 														}
@@ -398,6 +403,25 @@ export function SharePanel({
 													</Select>
 												</div>
 											</div>
+
+											{/* Free tier limit indicator - full width */}
+											{isFreeWithLimit && (
+												<button
+													type='button'
+													onClick={() => setPopoverOpen({ upgradeUser: true })}
+													className='flex items-center gap-4 w-full p-4 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/15 transition-colors duration-200 ease text-left group'
+												>
+													<Users className='w-4 h-4 shrink-0' />
+													<div className='flex-1 min-w-0'>
+														<span className='text-xs font-medium block'>
+															Max {maxUsersLimit} users on Free plan
+														</span>
+														<span className='text-xs opacity-80 group-hover:underline'>
+															Upgrade to Pro for unlimited →
+														</span>
+													</div>
+												</button>
+											)}
 
 											{/* Collaborator limit warning */}
 											{isAtCollaboratorLimit && collaboratorLimitInfo && (

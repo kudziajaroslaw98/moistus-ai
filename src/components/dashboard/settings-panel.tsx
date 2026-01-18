@@ -855,7 +855,7 @@ export function SettingsPanel({
 														<div>
 															<div className='flex items-center justify-between mb-2'>
 																<span className='text-text-primary'>
-																	Collaborators
+																	Collaborators per Map
 																</span>
 																<span className='text-text-secondary flex gap-1'>
 																	<span>{usage.collaboratorsCount}</span>
@@ -880,16 +880,22 @@ export function SettingsPanel({
 														<div>
 															<div className='flex items-center justify-between mb-2'>
 																<span className='text-text-primary'>
-																	AI Suggestions Used
+																	AI Suggestions
 																</span>
-																<span className='text-text-secondary gap-1 flex'>
-																	<span>{usage.aiSuggestionsCount}</span>
-																	<span>
-																		{planLimits.aiSuggestions === -1
-																			? '/ ∞'
-																			: `/ ${planLimits.aiSuggestions}`}
+																{planLimits.aiSuggestions === 0 ? (
+																	<span className='text-text-tertiary text-sm'>
+																		Not available on Free
 																	</span>
-																</span>
+																) : (
+																	<span className='text-text-secondary gap-1 flex'>
+																		<span>{usage.aiSuggestionsCount}</span>
+																		<span>
+																			{planLimits.aiSuggestions === -1
+																				? '/ ∞'
+																				: `/ ${planLimits.aiSuggestions}`}
+																		</span>
+																	</span>
+																)}
 															</div>
 															{planLimits.aiSuggestions !== -1 &&
 																planLimits.aiSuggestions > 0 && (

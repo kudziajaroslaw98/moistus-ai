@@ -21,7 +21,7 @@ const features = [
 		icon: Zap,
 		title: 'AI Thinking Partner',
 		description:
-			'Unlimited AI suggestions, content generation, and smart connections',
+			'100 AI suggestions per month, content generation, and smart connections',
 	},
 	{
 		icon: Sparkles,

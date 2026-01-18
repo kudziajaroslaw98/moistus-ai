@@ -1,7 +1,5 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
-import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { withAuthValidation } from '@/helpers/api/with-auth-validation';
-import { checkCollaboratorLimit } from '@/helpers/api/with-subscription-check';
 import { z } from 'zod';
 
 const JoinRoomSchema = z.object({
@@ -14,138 +12,62 @@ const JoinRoomSchema = z.object({
 export const POST = withAuthValidation(
 	JoinRoomSchema,
 	async (req, data, supabase, user) => {
-		try {
-			console.log(data, user.id);
+		// Single RPC call handles: validation, limit check, access creation
+		const { data: result, error: rpcError } = await supabase.rpc('join_room', {
+			p_room_code: data.token.toUpperCase(),
+			p_user_id: user.id,
+		});
 
-			// 1. Validate room code using database function
-			const { data: validationResult, error: validationError } =
-				await supabase.rpc('validate_room_code', {
-					room_code: data.token.toUpperCase(),
-				});
+		if (rpcError) {
+			console.error('Join room RPC error:', rpcError);
+			return respondError('Failed to join room', 500);
+		}
 
-			console.log('Validation result:', validationResult);
-			console.log('User:', user.id);
+		// Extract first result (RPC returns TABLE)
+		const joinResult = result?.[0];
 
-			// Extract first result from array since function returns TABLE
-			const validation = validationResult?.[0];
+		if (!joinResult?.success) {
+			// Map error codes to HTTP status codes
+			const statusMap: Record<string, number> = {
+				INVALID_CODE: 404,
+				EXPIRED: 410,
+				ROOM_FULL: 403,
+				LIMIT_REACHED: 402,
+				MAP_NOT_FOUND: 404,
+				INVALID_USER: 401,
+				INTERNAL_ERROR: 500,
+			};
 
-			if (validationError || !validation?.is_valid) {
-				return respondError(
-					validation?.message || 'Invalid room code',
-					validation?.message === 'Room is full' ? 403 : 404
-				);
-			}
+			const status = statusMap[joinResult?.error_code] || 500;
 
-			// 2. Get map information (need owner_id for limit check)
-			const { data: mapData, error: mapError } = await supabase
-				.from('mind_maps')
-				.select('id, title, description, user_id')
-				.eq('id', validation.map_id)
-				.single();
-
-			if (mapError || !mapData) {
-				return respondError('Mind map not found', 404);
-			}
-
-			// 3. Check if user already has access (existing collaborator = skip limit check)
-			const { data: existingAccess, error: accessError } = await supabase
-				.from('share_access')
-				.select('id')
-				.eq('map_id', validation.map_id)
-				.eq('user_id', user.id)
-				.eq('status', 'active')
-				.single();
-
-			// Handle query errors (PGRST116 = no rows found, which is expected for new collaborators)
-			if (accessError && accessError.code !== 'PGRST116') {
-				console.error('Error checking existing access:', accessError);
-				return respondError('Failed to verify access permissions', 500);
-			}
-
-			const isNewCollaborator = !existingAccess;
-
-			// 4. For NEW collaborators, check map owner's subscription limit
-			// Skip if user is the map owner (they don't count as a collaborator)
-			// NOTE: This check is racy - limit check and insert are not atomic.
-			// For strict enforcement, this should use a Postgres RPC that performs
-			// COUNT + INSERT in a single transaction with row locking.
-			if (isNewCollaborator && mapData.user_id && mapData.user_id !== user.id) {
-				const { allowed, limit, currentCount } = await checkCollaboratorLimit(
-					supabase,
-					validation.map_id,
-					mapData.user_id
-				);
-
-				if (!allowed) {
-					return respondError(
-						`This map has reached its collaborator limit (${currentCount}/${limit}). The map owner needs to upgrade to Pro for unlimited collaborators.`,
-						402,
-						'COLLABORATOR_LIMIT_REACHED',
-						{
-							currentCount,
-							limit,
+			return respondError(
+				joinResult?.error_message || 'Failed to join room',
+				status,
+				joinResult?.error_code,
+				joinResult?.error_code === 'LIMIT_REACHED'
+					? {
+							currentCount: joinResult.collaborator_count,
+							limit: joinResult.collaborator_limit,
 							upgradeUrl: '/dashboard/settings/billing',
 						}
-					);
-				}
-			}
-
-			// 5. Get or create share_access record
-			const { data: shareAccess, error: shareAccessError } = await supabase.rpc(
-				'get_or_create_share_access_record',
-				{
-					p_map_id: validation.map_id,
-					p_token_id: validation.token_id,
-					p_user_id: user.id,
-					p_max_sessions: 3,
-					p_status: 'active',
-				}
-			);
-
-			console.dir(shareAccess, { depth: 0 });
-			console.dir(shareAccessError, { depth: 0 });
-
-			// Extract first result (RPC returns array)
-			const accessRecord = shareAccess?.[0];
-
-			// 6. Increment current_users if this is a NEW user joining
-			// Use atomic RPC to prevent race conditions
-			if (accessRecord?.was_created === true) {
-				const adminClient = createServiceRoleClient();
-				const { error: incrementError } = await adminClient.rpc(
-					'increment_share_token_users',
-					{ token_id: validation.token_id }
-				);
-
-				if (incrementError) {
-					console.error('Failed to increment current_users:', incrementError);
-					// Non-blocking - don't fail the join if counter update fails
-				}
-			}
-
-			console.log('Validation result:', validation);
-
-			// 7. Return success response
-			return respondSuccess({
-				map_id: validation.map_id,
-				map_title: mapData.title,
-				map_description: mapData.description,
-				permissions: validation.permissions,
-				user_id: user.id,
-				is_anonymous: user.is_anonymous,
-				user_display_name: user.user_metadata.display_name,
-				user_avatar: user.user_metadata.avatar_url,
-				websocket_channel: `presence:map:${validation.map_id}`,
-				share_token_id: validation.token_id,
-				join_method: 'anonymous_auth',
-				joined_at: new Date().toISOString(),
-			});
-		} catch (error) {
-			console.error('Join room error:', error);
-			return respondError(
-				'An unexpected error occurred while joining the room',
-				500
+					: undefined
 			);
 		}
+
+		// Return success response
+		return respondSuccess({
+			map_id: joinResult.map_id,
+			map_title: joinResult.map_title,
+			map_description: joinResult.map_description,
+			permissions: joinResult.permissions,
+			user_id: user.id,
+			is_anonymous: user.is_anonymous,
+			user_display_name: user.user_metadata?.display_name,
+			user_avatar: user.user_metadata?.avatar_url,
+			websocket_channel: `presence:map:${joinResult.map_id}`,
+			share_token_id: joinResult.token_id,
+			join_method: 'anonymous_auth',
+			joined_at: new Date().toISOString(),
+		});
 	}
 );

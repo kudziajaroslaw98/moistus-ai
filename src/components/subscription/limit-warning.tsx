@@ -41,7 +41,7 @@ export function LimitWarning({ limitType, className }: LimitWarningProps) {
 		aiSuggestions: {
 			title: 'AI Suggestion Limit Reached',
 			description: `You've used ${usage.aiSuggestions} of ${limits.aiSuggestions} AI suggestions.`,
-			action: 'Upgrade for unlimited AI suggestions',
+			action: 'Upgrade for 100 AI suggestions per month',
 		},
 		collaboratorsPerMap: {
 			title: 'Collaborator Limit Reached',

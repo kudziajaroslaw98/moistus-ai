@@ -7,12 +7,21 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ## [2026-01-18]
 
+### Fixed
+- **api/join-room**: Guest users can now join rooms (was returning "Mind map not found")
+  - Why: RLS blocked anonymous users from reading mind_maps before share_access was created
+  - Consolidated 6 DB round trips into single atomic `join_room` RPC (SECURITY DEFINER)
+
+### Refactored
+- **database**: Consolidate join room logic into single `join_room` RPC
+  - Absorbs: `validate_room_code`, `get_or_create_share_access_record`, `increment_share_token_users`
+  - Keeps: `decrement_share_token_users` (still used by delete-share)
+  - Benefits: 1 round trip vs 6+, atomic transaction, simpler route code
+
 ### Security
 - **api/maps**: Add missing user_id filter to ownedMaps query (critical fix)
 - **api/checkout**: Remove PII (email) from server logs, replaced with user.id
 - **api/checkout**: Add Zod validation to prevent invalid billing intervals
-
-### Fixed
 - **api/billing/invoice**: Add auth check for consistency with other billing routes
 - **api/billing/portal**: Surface specific errors from auth and subscription queries
 - **api/webhooks/polar**: Validate POLAR_WEBHOOK_SECRET at module load
@@ -31,6 +40,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ### Added
 - **migration**: Add unique partial index on user_subscriptions.polar_subscription_id
   - Required for upsert with onConflict in webhook handler
+- **share-panel**: Free tier Max Users capped to 3 with orange upgrade indicator
+  - Why: Users couldn't see their limit until hitting it; now proactive visibility
 
 ## [2026-01-17]
 

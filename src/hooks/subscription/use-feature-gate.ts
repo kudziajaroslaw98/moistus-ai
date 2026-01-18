@@ -100,13 +100,21 @@ export function useSubscriptionLimits() {
 			currentSubscription?.plan ||
 			availablePlans.find((p) => p.name === 'free');
 
+		// Canonical free tier limits (override any stale DB values)
+		const FREE_TIER_LIMITS = {
+			mindMaps: 3,
+			nodesPerMap: 50,
+			aiSuggestions: 0,
+			collaboratorsPerMap: 3,
+		};
+
 		if (!plan) {
-			return {
-				mindMaps: 3,
-				nodesPerMap: 50,
-				aiSuggestions: 0,
-				collaboratorsPerMap: 3,
-			};
+			return FREE_TIER_LIMITS;
+		}
+
+		// For free tier, always use canonical limits to prevent stale DB values
+		if (plan.name === 'free') {
+			return FREE_TIER_LIMITS;
 		}
 
 		return {
