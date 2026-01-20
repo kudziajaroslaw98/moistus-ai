@@ -5,6 +5,28 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-01-20]
+
+### Security
+- **mind-map/[id]**: Add server-side access validation before page renders
+  - Why: Previously access was only checked client-side after fetch failed (DDoS vector)
+  - Server component now validates session + ownership/share_access before any JS loads
+- **mind-map/[id]**: Add rate limiting (60 req/min per IP) to prevent abuse
+- **api/check-access**: Fix missing `status='active'` filter on share_access queries
+  - Why: Revoked access records could incorrectly show as "shared"
+
+### Fixed
+- **access-check**: Template mind maps now accessible to authenticated users
+  - Why: Access check only verified owner/share_access, missing `is_template` check
+
+### Added
+- **access-denied**: New `/access-denied` page with room code entry support
+  - Handles: `no_access`, `not_found`, `rate_limited` reasons
+  - Animated illustrations matching existing error page patterns
+- **dashboard**: Server-side auth validation for `/dashboard` and `/dashboard/templates`
+  - Why: Previously auth was only checked client-side (similar DDoS vector)
+  - Blocks anonymous users before any client JS loads
+
 ## [2026-01-18]
 
 ### Fixed
