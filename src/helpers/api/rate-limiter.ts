@@ -157,6 +157,12 @@ export const signUpOtpRateLimiter = new InMemoryRateLimiter({
 	windowMs: 60 * 1000, // per minute
 });
 
+// Map access rate limiter (generous but prevents DDoS-like abuse)
+export const mapAccessRateLimiter = new InMemoryRateLimiter({
+	maxAttempts: 60, // 60 attempts per minute (1/sec average)
+	windowMs: 60 * 1000,
+});
+
 /**
  * Validates if a string is a valid IPv4 address
  */
