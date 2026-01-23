@@ -19,12 +19,21 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Limitation of liability and dispute resolution (Poland jurisdiction)
 - **legal**: Shared layout for legal pages with consistent header/footer
 - **landing**: Added Privacy and Terms links to footer
+- **legal**: Cookie notice banner (GDPR-compliant)
+  - Simple informational notice (essential cookies only, no consent needed)
+  - localStorage persistence after acknowledgement
+  - Hidden on `/privacy` and `/terms` pages
+  - Reduced motion support, responsive design
 
 **Files created:**
 - `src/app/(legal)/layout.tsx`
 - `src/app/(legal)/privacy/page.tsx`
 - `src/app/(legal)/terms/page.tsx`
 - `src/components/legal/back-to-top-link.tsx`
+- `src/components/legal/cookie-notice-banner.tsx`
+
+**Files modified:**
+- `src/components/providers/client-providers.tsx` (added CookieNoticeBanner)
 
 ### Removed
 - **landing**: Skip-to-content button (was appearing on back navigation)

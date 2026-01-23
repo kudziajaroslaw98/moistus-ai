@@ -1,6 +1,6 @@
 # Shiko - MVP Launch Roadmap
 
-> Last updated: 2026-01-23 (Added Privacy Policy & Terms of Service pages)
+> Last updated: 2026-01-23 (Added Cookie Notice Banner)
 > Estimated effort: 50-70 hours
 
 ## Summary
@@ -142,19 +142,23 @@ MVP launch readiness checklist:
 
 ---
 
-### 1.5.3 Cookie Consent Banner
-- [ ] Add cookie consent banner component (GDPR requires opt-in)
-- [ ] Implement pre-consent blocking (no analytics until consent)
-- [ ] Equal prominence for "Accept All" and "Reject All" buttons
-- [ ] Granular category toggles (essential, analytics, marketing)
-- [ ] Persist consent in localStorage, respect on subsequent visits
-- [ ] Consider: Termly, CookieYes, or custom implementation
+### 1.5.3 Cookie Notice Banner
+- [x] Add cookie notice banner component (informational, not consent)
+- [x] N/A - No analytics to block (only essential cookies used)
+- [x] N/A - No Accept/Reject needed (essential-only doesn't require consent under GDPR Art. 6(1)(b))
+- [x] N/A - No category toggles needed (all cookies are essential)
+- [x] Persist acknowledgement in localStorage
+- [x] Custom implementation following existing anonymous-user-banner pattern
 
-**Files to create:**
-- `src/components/common/cookie-consent-banner.tsx`
-- `src/hooks/use-cookie-consent.ts`
+**Decision:** Implemented as **informational notice** (not consent banner) because Shiko uses essential cookies only (Supabase auth, Polar payments, OAuth). GDPR doesn't require opt-in for essential cookies.
 
-**Effort:** 3-4 hours | **Risk:** Medium (EU specific, must block scripts pre-consent)
+**Files created:**
+- `src/components/legal/cookie-notice-banner.tsx`
+
+**Files modified:**
+- `src/components/providers/client-providers.tsx`
+
+**Status:** ✅ COMPLETED
 
 ---
 
@@ -215,7 +219,7 @@ MVP launch readiness checklist:
 |-------------|--------|--------|----------|
 | Privacy Policy | GDPR Art. 13-14 | CCPA, state laws | 🔴 BLOCKER |
 | Terms of Service | Contract law | Contract law | 🔴 BLOCKER |
-| Cookie Consent | GDPR/ePrivacy | Varies | 🔴 BLOCKER (EU) |
+| Cookie Notice | GDPR/ePrivacy | Varies | ✅ DONE (essential-only) |
 | Account Deletion | GDPR Art. 17 | CCPA | 🔴 BLOCKER |
 | Data Export | GDPR Art. 20 | CCPA | 🔴 BLOCKER (see 2.1) |
 | Subprocessor List | GDPR Art. 28 | Best practice | 🟡 HIGH |

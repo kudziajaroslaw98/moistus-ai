@@ -1,5 +1,6 @@
 'use client';
 
+import { CookieNoticeBanner } from '@/components/legal/cookie-notice-banner';
 import { OnboardingModal } from '@/components/onboarding/onboarding-modal';
 import useAppStore from '@/store/mind-map-store';
 import { useEffect } from 'react';
@@ -59,6 +60,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
 			{children}
 
 			<OnboardingModal />
+			<CookieNoticeBanner />
 		</>
 	);
 }
