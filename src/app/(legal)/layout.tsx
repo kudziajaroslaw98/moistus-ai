@@ -1,9 +1,13 @@
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
-export default function LegalLayout({ children }: { children: React.ReactNode }) {
+export default function LegalLayout({
+	children,
+}: {
+	children: React.ReactNode;
+}) {
 	return (
-		<div className='min-h-screen bg-background'>
+		<div className='min-h-screen  flex flex-col bg-background'>
 			{/* Header */}
 			<header className='sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border-subtle'>
 				<div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8'>
@@ -15,13 +19,15 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
 							<ArrowLeft className='w-4 h-4' />
 							<span>Back to Shiko</span>
 						</Link>
-						<span className='text-lg font-semibold text-text-primary'>Shiko</span>
+						<span className='text-lg font-semibold text-text-primary'>
+							Shiko
+						</span>
 					</div>
 				</div>
 			</header>
 
 			{/* Main content */}
-			<main className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16'>
+			<main className='max-w-4xl flex h-auto mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16'>
 				{children}
 			</main>
 
