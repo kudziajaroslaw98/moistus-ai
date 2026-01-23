@@ -26,6 +26,9 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - `src/app/(legal)/terms/page.tsx`
 - `src/components/legal/back-to-top-link.tsx`
 
+### Removed
+- **landing**: Skip-to-content button (was appearing on back navigation)
+
 ---
 
 ## [2026-01-20]
