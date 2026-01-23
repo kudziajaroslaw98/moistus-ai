@@ -237,6 +237,9 @@ export function AccessDeniedContent() {
 		: { duration: 0.3, ease: easeOutCubic };
 
 	const handleJoinWithCode = async () => {
+		// Prevent duplicate requests while joining
+		if (isJoining) return;
+
 		const trimmedCode = roomCode.trim().toUpperCase();
 		if (!trimmedCode) {
 			toast.error('Please enter a room code');

@@ -166,7 +166,7 @@ export function DashboardContent() {
 		});
 
 	// Handlers
-	const handleRequestCreateMap = () => {
+	const handleRequestCreateMap = useCallback(() => {
 		if (userProfile?.is_anonymous) {
 			setShowAnonymousUpgrade(true);
 			return;
@@ -187,7 +187,7 @@ export function DashboardContent() {
 		}
 
 		setShowCreateDialog(true);
-	};
+	}, [userProfile?.is_anonymous, isAtMapLimit, mapLimitInfo?.max, router]);
 
 	const handleCreateMap = async (data: {
 		title: string;
@@ -433,6 +433,7 @@ export function DashboardContent() {
 		filteredMaps.length,
 		handleSelectAll,
 		handleBulkDelete,
+		handleRequestCreateMap,
 	]);
 
 	if (mapsLoading && !mapsData.maps.length) {

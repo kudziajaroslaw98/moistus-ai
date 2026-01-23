@@ -56,21 +56,27 @@ export function UpgradeModal({
 		setIsRedirecting(true);
 		setError(null);
 
-		const result = await createCheckoutSession('pro', billingCycle);
+		try {
+			const result = await createCheckoutSession('pro', billingCycle);
 
-		if (result.error) {
-			setError(result.error);
-			setIsRedirecting(false);
-			return;
-		}
+			if (result.error) {
+				setError(result.error);
+				setIsRedirecting(false);
+				return;
+			}
 
-		if (result.checkoutUrl) {
-			// Redirect to Polar checkout
-			window.location.href = result.checkoutUrl;
-			// Note: onSuccess won't be called here since we're redirecting
-			// The success callback would be handled on return from Polar
-		} else {
-			setError('Failed to create checkout session');
+			if (result.checkoutUrl) {
+				// Redirect to Polar checkout
+				window.location.href = result.checkoutUrl;
+				// Note: onSuccess won't be called here since we're redirecting
+				// The success callback would be handled on return from Polar
+			} else {
+				setError('Failed to create checkout session');
+				setIsRedirecting(false);
+			}
+		} catch (err) {
+			console.error('Error creating checkout session:', err);
+			setError(err instanceof Error ? err.message : 'An unexpected error occurred');
 			setIsRedirecting(false);
 		}
 	};

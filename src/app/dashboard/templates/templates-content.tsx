@@ -381,16 +381,29 @@ export function TemplatesContent() {
 					}),
 				});
 
+				const responseData = await response.json();
+
+				// Handle HTTP errors
 				if (!response.ok) {
-					throw new Error('Failed to create map');
+					const errorMessage =
+						responseData?.error || responseData?.message || 'Failed to create map';
+					toast.error(errorMessage);
+					return;
 				}
 
-				const { data: responseData } = await response.json();
+				// Validate response has required data
+				const mapId = responseData?.data?.map?.id;
+				if (!mapId) {
+					toast.error('Invalid response from server');
+					return;
+				}
+
 				toast.success(`Created "${template.name}" map!`);
-				router.push(`/mind-map/${responseData.map?.id}`);
+				router.push(`/mind-map/${mapId}`);
 			} catch (err) {
+				// Handle network/parsing errors
 				console.error('Error creating map from template:', err);
-				toast.error('Failed to create map from template');
+				toast.error('Network error. Please try again.');
 			} finally {
 				setIsCreating(false);
 			}
