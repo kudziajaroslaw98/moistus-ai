@@ -5,6 +5,29 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-01-23]
+
+### Added
+- **legal**: Privacy Policy page at `/privacy`
+  - GDPR & CCPA compliant with 12 sections
+  - Data collection disclosure, legal basis, subprocessor list
+  - User rights (access, rectification, erasure, portability)
+  - Contact information and complaint procedures
+- **legal**: Terms of Service page at `/terms`
+  - 16 comprehensive sections covering acceptable use, billing, AI features
+  - Subscription plans and cancellation terms
+  - Limitation of liability and dispute resolution (Poland jurisdiction)
+- **legal**: Shared layout for legal pages with consistent header/footer
+- **landing**: Added Privacy and Terms links to footer
+
+**Files created:**
+- `src/app/(legal)/layout.tsx`
+- `src/app/(legal)/privacy/page.tsx`
+- `src/app/(legal)/terms/page.tsx`
+- `src/components/legal/back-to-top-link.tsx`
+
+---
+
 ## [2026-01-20]
 
 ### Security

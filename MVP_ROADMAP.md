@@ -1,6 +1,6 @@
 # Shiko - MVP Launch Roadmap
 
-> Last updated: 2026-01-11 (Added legal compliance section - EU/US launch blockers)
+> Last updated: 2026-01-23 (Added Privacy Policy & Terms of Service pages)
 > Estimated effort: 50-70 hours
 
 ## Summary
@@ -9,7 +9,7 @@ MVP launch readiness checklist:
 1. **Critical fixes:** Profile persistence, upgrade flow, feature limits, undo/redo
 2. **🚨 Legal compliance:** Privacy Policy, Terms of Service, Cookie Consent, Account Deletion
 3. **GDPR compliance:** Data export (required), privacy settings
-4. **Billing:** Resend email notifications for trial/payment events
+4. **Billing:** ~~Resend email notifications~~ → Polar.sh handles this ✅
 5. **New features:** Video node (YouTube embeds), AI Chat feature-flagged OFF
 6. **Landing page:** Full marketing page with "Try Free" anonymous mode (localStorage)
 7. **Polish:** Mobile responsiveness, UX improvements
@@ -116,27 +116,29 @@ MVP launch readiness checklist:
 > 🚨 **Cannot launch without these** - EU (GDPR) and US (CCPA/state laws) requirements
 
 ### 1.5.1 Privacy Policy Page
-- [ ] Create `/privacy` route with Privacy Policy content
-- [ ] Include: data collected, legal basis, third-party sharing, retention, user rights
-- [ ] List subprocessors: Supabase (DB/auth), Stripe (payments), OpenAI (AI), Vercel (hosting)
-- [ ] Link from footer, sign-up flow, settings
+- [x] Create `/privacy` route with Privacy Policy content
+- [x] Include: data collected, legal basis, third-party sharing, retention, user rights
+- [x] List subprocessors: Supabase (DB/auth), Polar (payments), OpenAI (AI), Vercel (hosting)
+- [x] Link from footer, sign-up flow, settings
 
-**Files to create:**
+**Files created:**
+- `src/app/(legal)/layout.tsx`
 - `src/app/(legal)/privacy/page.tsx`
+- `src/components/legal/back-to-top-link.tsx`
 
-**Effort:** 2-3 hours | **Risk:** Low (content can use template + customize)
+**Status:** ✅ COMPLETED
 
 ---
 
 ### 1.5.2 Terms of Service Page
-- [ ] Create `/terms` route with Terms of Service content
-- [ ] Include: acceptable use, liability limits, subscription terms, termination
-- [ ] Link from footer, sign-up flow
+- [x] Create `/terms` route with Terms of Service content
+- [x] Include: acceptable use, liability limits, subscription terms, termination
+- [x] Link from footer, sign-up flow
 
-**Files to create:**
+**Files created:**
 - `src/app/(legal)/terms/page.tsx`
 
-**Effort:** 2-3 hours | **Risk:** Low
+**Status:** ✅ COMPLETED
 
 ---
 
@@ -236,21 +238,15 @@ MVP launch readiness checklist:
 
 ---
 
-### 2.2 Billing Emails via Resend
-- [ ] Set up Resend SDK
-- [ ] Create email templates:
-  - [ ] Trial ending (3 days before)
-  - [ ] Payment failed
-  - [ ] Subscription canceled
-  - [ ] Welcome email
-- [ ] Hook into Stripe webhook events
-- [ ] Add env var `RESEND_API_KEY`
+### 2.2 ~~Billing Emails via Resend~~ → Handled by Polar.sh
+- [x] Trial ending notifications
+- [x] Payment failed notifications
+- [x] Subscription canceled notifications
+- [x] Welcome email
 
-**Files:**
-- `src/app/api/subscriptions/webhook/route.ts` (lines 327, 328)
-- New: `src/lib/email.ts`
+**Decision:** Polar.sh handles all billing-related email notifications automatically.
 
-**Effort:** 3-4 hours | **Risk:** Low
+**Status:** ✅ COMPLETED (via Polar.sh)
 
 ---
 
@@ -341,12 +337,12 @@ MVP launch readiness checklist:
 
 ---
 
-### 4.1.1 Collaboration Limits (NEW)
-- [ ] Enforce `collaboratorsPerMap` limit in share/join-room API
-- [ ] Show limit warning in share panel UI when approaching limit
-- [ ] Test with 3 collaborators (Free) vs unlimited (Pro)
+### 4.1.1 Collaboration Limits
+- [x] Enforce `collaboratorsPerMap` limit in share/join-room API
+- [x] Show limit warning in share panel UI when approaching limit
+- [x] Test with 3 collaborators (Free) vs unlimited (Pro)
 
-**Effort:** 2-3 hours | **Risk:** Low
+**Status:** ✅ COMPLETED
 
 ---
 
@@ -467,7 +463,7 @@ FOR EACH ROW EXECUTE FUNCTION check_node_limit();
 | Anonymous mode | LocalStorage only, no AI |
 | AI Chat | Feature flag OFF for MVP |
 | Video metadata | oEmbed API (free, standard) |
-| Billing emails | Resend integration |
+| Billing emails | Polar.sh (automatic) |
 | Landing content | Collaborate together during implementation |
 | Data export | Required (GDPR) |
 | Upgrade modal time trigger | 30 mins total session time |
@@ -514,11 +510,9 @@ FOR EACH ROW EXECUTE FUNCTION check_node_limit();
 - `src/components/mind-map/top-bar/top-bar-actions.tsx`
 - `src/components/mind-map/top-bar/mobile-menu.tsx`
 
-**GDPR & Billing:**
+**GDPR:**
 - `src/app/api/user/export/route.ts`
-- `src/app/api/subscriptions/webhook/route.ts`
 - `src/app/api/user/[userId]/public-profile/route.ts`
-- New: `src/lib/email.ts`
 
 **New features:**
 - New: `src/components/nodes/video-node.tsx`

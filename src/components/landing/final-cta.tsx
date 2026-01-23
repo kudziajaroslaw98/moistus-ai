@@ -6,6 +6,8 @@ const footerLinks = [
 	{ label: 'Features', href: '#features' },
 	{ label: 'Pricing', href: '#pricing' },
 	{ label: 'FAQ', href: '#faq' },
+	{ label: 'Privacy', href: '/privacy' },
+	{ label: 'Terms', href: '/terms' },
 ];
 
 export function FinalCta() {
@@ -13,6 +15,9 @@ export function FinalCta() {
 	const shouldReduceMotion = useReducedMotion() ?? false;
 
 	const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+		// Only handle anchor links, let regular links navigate normally
+		if (!href.startsWith('#')) return;
+
 		e.preventDefault();
 		const targetId = href.replace('#', '');
 		const element = document.getElementById(targetId);
