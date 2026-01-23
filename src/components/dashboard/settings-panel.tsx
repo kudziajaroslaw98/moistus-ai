@@ -377,7 +377,19 @@ export function SettingsPanel({
 				body: JSON.stringify({ confirmEmail: userProfile.email }),
 			});
 
-			const result = await response.json();
+			// Safely parse response: handle 204 No Content and non-JSON responses
+			let result: { error?: string } = {};
+			const contentType = response.headers.get('content-type');
+			const hasJsonContent = contentType?.includes('application/json');
+
+			if (response.status !== 204 && hasJsonContent) {
+				try {
+					result = await response.json();
+				} catch {
+					// JSON parsing failed, use empty result
+					result = {};
+				}
+			}
 
 			if (!response.ok) {
 				throw new Error(result.error || 'Failed to delete account');

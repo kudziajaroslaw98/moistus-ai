@@ -21,7 +21,7 @@ import {
 	Zap,
 	type LucideIcon,
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -89,8 +89,15 @@ const ICON_MAP: Record<string, LucideIcon> = {
 	BookOpen,
 };
 
-// SWR fetcher
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+// SWR fetcher with proper error handling
+const fetcher = async (url: string) => {
+	const res = await fetch(url);
+	if (!res.ok) {
+		const errorBody = await res.text().catch(() => 'Unknown error');
+		throw new Error(`HTTP ${res.status}: ${res.statusText || errorBody}`);
+	}
+	return res.json();
+};
 
 // Template Card Component
 interface TemplateCardProps {
@@ -111,6 +118,7 @@ const TemplateCard = memo(function TemplateCard({
 	index,
 }: TemplateCardProps) {
 	const [isHovered, setIsHovered] = useState(false);
+	const prefersReducedMotion = useReducedMotion();
 	const Icon = ICON_MAP[template.icon] || FileText;
 	const CategoryIcon = TEMPLATE_CATEGORIES[template.category]?.icon || FileText;
 
@@ -136,9 +144,13 @@ const TemplateCard = memo(function TemplateCard({
 	if (viewMode === 'list') {
 		return (
 			<motion.div
-				initial={{ opacity: 0, x: -12 }}
+				initial={{ opacity: 0, x: prefersReducedMotion ? 0 : -12 }}
 				animate={{ opacity: 1, x: 0 }}
-				transition={{ delay: index * 0.02, duration: 0.2 }}
+				transition={
+					prefersReducedMotion
+						? { duration: 0 }
+						: { delay: index * 0.02, duration: 0.2 }
+				}
 				onClick={handleCardClick}
 				className={cn(
 					'group flex items-center gap-4 p-4 rounded-xl cursor-pointer',
@@ -186,9 +198,13 @@ const TemplateCard = memo(function TemplateCard({
 
 	return (
 		<motion.div
-			initial={{ opacity: 0, y: 12 }}
+			initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 12 }}
 			animate={{ opacity: 1, y: 0 }}
-			transition={{ delay: index * 0.03, duration: 0.2 }}
+			transition={
+				prefersReducedMotion
+					? { duration: 0 }
+					: { delay: index * 0.03, duration: 0.2 }
+			}
 			onClick={handleCardClick}
 			onMouseEnter={() => setIsHovered(true)}
 			onMouseLeave={() => setIsHovered(false)}
@@ -320,6 +336,7 @@ const CategoryFilter = memo(function CategoryFilter({
 // Main Content Component
 export function TemplatesContent() {
 	const router = useRouter();
+	const prefersReducedMotion = useReducedMotion();
 	const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 	const [selectedCategory, setSelectedCategory] = useState<TemplateCategory | 'all'>('all');
 	const [isCreating, setIsCreating] = useState(false);
@@ -457,7 +474,11 @@ export function TemplatesContent() {
 						{/* Loading State */}
 						{isLoading && (
 							<div className='flex items-center justify-center h-64'>
-								<Loader2 className='w-8 h-8 text-zinc-500 animate-spin' />
+								{prefersReducedMotion ? (
+									<span className='text-zinc-500 text-sm'>Loading templates...</span>
+								) : (
+									<Loader2 className='w-8 h-8 text-zinc-500 animate-spin' />
+								)}
 							</div>
 						)}
 

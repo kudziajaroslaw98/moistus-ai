@@ -30,8 +30,10 @@ function AccessIllustration() {
 							y: [0, -8, 0],
 						}
 			}
+			aria-hidden='true'
 			className='w-48 h-48 text-zinc-600'
 			fill='none'
+			focusable='false'
 			transition={
 				shouldReduceMotion
 					? {}
@@ -95,8 +97,10 @@ function NotFoundIllustration() {
 							rotate: [0, 5, -5, 0],
 						}
 			}
+			aria-hidden='true'
 			className='w-48 h-48 text-zinc-600'
 			fill='none'
+			focusable='false'
 			transition={
 				shouldReduceMotion
 					? {}
@@ -151,8 +155,10 @@ function RateLimitIllustration() {
 							scale: [1, 1.05, 1],
 						}
 			}
+			aria-hidden='true'
 			className='w-48 h-48 text-zinc-600'
 			fill='none'
+			focusable='false'
 			transition={
 				shouldReduceMotion
 					? {}

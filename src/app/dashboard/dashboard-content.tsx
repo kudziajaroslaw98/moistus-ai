@@ -28,7 +28,7 @@ import {
 	SortAsc,
 	Trash2,
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -60,14 +60,24 @@ type FilterType = 'all' | 'owned' | 'shared';
 type SortByType = 'updated' | 'created' | 'name';
 
 // SWR fetcher function
-const fetcher = async () => {
-	const response = await fetch(
-		`${process.env.NEXT_PUBLIC_APP_LOCAL_HREF}/api/maps`,
-		{
-			method: 'GET',
-			headers: { 'Content-Type': 'application/json' },
-		}
-	);
+const fetcher = async (url: string) => {
+	// Build full URL: prepend base href if available, otherwise use relative URL
+	const baseHref = process.env.NEXT_PUBLIC_APP_LOCAL_HREF;
+	let fullUrl: string;
+
+	if (baseHref) {
+		// Normalize: remove trailing slash from base, ensure url starts with /
+		const normalizedBase = baseHref.replace(/\/$/, '');
+		const normalizedPath = url.startsWith('/') ? url : `/${url}`;
+		fullUrl = `${normalizedBase}${normalizedPath}`;
+	} else {
+		fullUrl = url;
+	}
+
+	const response = await fetch(fullUrl, {
+		method: 'GET',
+		headers: { 'Content-Type': 'application/json' },
+	});
 
 	if (!response.ok) {
 		throw new Error('Failed to fetch data');
@@ -120,6 +130,9 @@ export function DashboardContent() {
 	const [isCreatingMap, setIsCreatingMap] = useState(false);
 	const [showCreateDialog, setShowCreateDialog] = useState(false);
 	const [showAnonymousUpgrade, setShowAnonymousUpgrade] = useState(false);
+
+	// Accessibility: respect reduced motion preference
+	const prefersReducedMotion = useReducedMotion();
 
 	// Fetch mind maps
 	const { data: mapsData = { maps: [] }, isLoading: mapsLoading } = useSWR<{
@@ -272,6 +285,7 @@ export function DashboardContent() {
 				false
 			);
 
+			refreshUsageData();
 			toast.success('Map deleted successfully');
 		} catch (err: unknown) {
 			console.error('Error deleting map:', err);
@@ -327,6 +341,7 @@ export function DashboardContent() {
 				false
 			);
 
+			refreshUsageData();
 			setSelectedMaps(new Set());
 			toast.success(`${selectedMaps.size} maps deleted successfully`);
 		} catch (err: unknown) {
@@ -350,21 +365,45 @@ export function DashboardContent() {
 
 	const handleSelectAll = useCallback(
 		(checked?: boolean) => {
+			const filteredIds = new Set(filteredMaps.map((map) => map.id));
+			const allFilteredSelected = filteredMaps.every((map) =>
+				selectedMaps.has(map.id)
+			);
+
 			if (typeof checked === 'boolean') {
 				if (checked) {
-					setSelectedMaps(new Set(filteredMaps.map((map) => map.id)));
+					// Add all filtered map IDs to selection (keep existing selections from other filters)
+					setSelectedMaps((prev) => {
+						const newSet = new Set(prev);
+						filteredIds.forEach((id) => newSet.add(id));
+						return newSet;
+					});
 				} else {
-					setSelectedMaps(new Set());
+					// Remove only filtered map IDs (keep selections from other filters)
+					setSelectedMaps((prev) => {
+						const newSet = new Set(prev);
+						filteredIds.forEach((id) => newSet.delete(id));
+						return newSet;
+					});
 				}
 			} else {
-				if (selectedMaps.size === filteredMaps.length) {
-					setSelectedMaps(new Set());
+				// Toggle: if all filtered are selected, remove them; otherwise add them
+				if (allFilteredSelected) {
+					setSelectedMaps((prev) => {
+						const newSet = new Set(prev);
+						filteredIds.forEach((id) => newSet.delete(id));
+						return newSet;
+					});
 				} else {
-					setSelectedMaps(new Set(filteredMaps.map((map) => map.id)));
+					setSelectedMaps((prev) => {
+						const newSet = new Set(prev);
+						filteredIds.forEach((id) => newSet.add(id));
+						return newSet;
+					});
 				}
 			}
 		},
-		[selectedMaps.size, filteredMaps]
+		[selectedMaps, filteredMaps]
 	);
 
 	// Keyboard navigation and shortcuts
@@ -587,7 +626,10 @@ export function DashboardContent() {
 									<div className='mb-4 flex gap-2 h-9'>
 										<label className='flex items-center gap-3 text-sm text-zinc-400 cursor-pointer'>
 											<Checkbox
-												checked={selectedMaps.size === filteredMaps.length}
+												checked={
+													filteredMaps.length > 0 &&
+													filteredMaps.every((map) => selectedMaps.has(map.id))
+												}
 												onChange={handleSelectAll}
 												size='sm'
 												variant='default'
@@ -597,10 +639,13 @@ export function DashboardContent() {
 
 										{selectedMaps.size > 0 && (
 											<motion.div
-												animate={{ opacity: 1, scale: 1 }}
+												animate={{ opacity: 1, scale: prefersReducedMotion ? 1 : 1 }}
 												className='h-9 flex items-center gap-2 px-3 rounded-lg'
-												exit={{ opacity: 0, scale: 0.9 }}
-												initial={{ opacity: 0, scale: 0.9 }}
+												exit={{ opacity: 0, scale: prefersReducedMotion ? 1 : 0.9 }}
+												initial={{ opacity: 0, scale: prefersReducedMotion ? 1 : 0.9 }}
+												transition={
+													prefersReducedMotion ? { duration: 0 } : undefined
+												}
 											>
 												<span className='text-sm text-zinc-300'>
 													{selectedMaps.size} selected
@@ -667,11 +712,18 @@ export function DashboardContent() {
 												<motion.div
 													animate={{ opacity: 1, y: 0 }}
 													className='space-y-6'
-													initial={{ opacity: 0, y: 12 }}
-													transition={{
-														duration: 0.3,
-														ease: [0.165, 0.84, 0.44, 1],
+													initial={{
+														opacity: 0,
+														y: prefersReducedMotion ? 0 : 12,
 													}}
+													transition={
+														prefersReducedMotion
+															? { duration: 0 }
+															: {
+																	duration: 0.3,
+																	ease: [0.165, 0.84, 0.44, 1],
+																}
+													}
 												>
 													<div className='w-14 h-14 mx-auto rounded-full bg-zinc-800/80 flex items-center justify-center'>
 														<Search className='w-6 h-6 text-zinc-500' />
@@ -699,33 +751,57 @@ export function DashboardContent() {
 												<motion.div
 													animate={{ opacity: 1, y: 0 }}
 													className='space-y-6'
-													initial={{ opacity: 0, y: 16 }}
-													transition={{
-														duration: 0.4,
-														ease: [0.165, 0.84, 0.44, 1],
+													initial={{
+														opacity: 0,
+														y: prefersReducedMotion ? 0 : 16,
 													}}
+													transition={
+														prefersReducedMotion
+															? { duration: 0 }
+															: {
+																	duration: 0.4,
+																	ease: [0.165, 0.84, 0.44, 1],
+																}
+													}
 												>
 													<motion.div
-														animate={{ opacity: 1, scale: 1 }}
-														className='w-16 h-16 mx-auto rounded-full bg-linear-to-br from-sky-500 to-sky-600 flex items-center justify-center shadow-lg shadow-sky-600/25'
-														initial={{ opacity: 0, scale: 0.9 }}
-														transition={{
-															delay: 0.1,
-															duration: 0.3,
-															ease: [0.165, 0.84, 0.44, 1],
+														animate={{
+															opacity: 1,
+															scale: prefersReducedMotion ? 1 : 1,
 														}}
+														className='w-16 h-16 mx-auto rounded-full bg-linear-to-br from-sky-500 to-sky-600 flex items-center justify-center shadow-lg shadow-sky-600/25'
+														initial={{
+															opacity: 0,
+															scale: prefersReducedMotion ? 1 : 0.9,
+														}}
+														transition={
+															prefersReducedMotion
+																? { duration: 0 }
+																: {
+																		delay: 0.1,
+																		duration: 0.3,
+																		ease: [0.165, 0.84, 0.44, 1],
+																	}
+														}
 													>
 														<Plus className='w-7 h-7 text-white' />
 													</motion.div>
 													<motion.div
 														animate={{ opacity: 1, y: 0 }}
 														className='space-y-2'
-														initial={{ opacity: 0, y: 8 }}
-														transition={{
-															delay: 0.15,
-															duration: 0.3,
-															ease: [0.165, 0.84, 0.44, 1],
+														initial={{
+															opacity: 0,
+															y: prefersReducedMotion ? 0 : 8,
 														}}
+														transition={
+															prefersReducedMotion
+																? { duration: 0 }
+																: {
+																		delay: 0.15,
+																		duration: 0.3,
+																		ease: [0.165, 0.84, 0.44, 1],
+																	}
+														}
 													>
 														<h2 className='text-2xl font-semibold text-white tracking-tight'>
 															Create your first map
@@ -737,12 +813,19 @@ export function DashboardContent() {
 													</motion.div>
 													<motion.div
 														animate={{ opacity: 1, y: 0 }}
-														initial={{ opacity: 0, y: 8 }}
-														transition={{
-															delay: 0.2,
-															duration: 0.3,
-															ease: [0.165, 0.84, 0.44, 1],
+														initial={{
+															opacity: 0,
+															y: prefersReducedMotion ? 0 : 8,
 														}}
+														transition={
+															prefersReducedMotion
+																? { duration: 0 }
+																: {
+																		delay: 0.2,
+																		duration: 0.3,
+																		ease: [0.165, 0.84, 0.44, 1],
+																	}
+														}
 													>
 														<Button
 															className='bg-sky-600 hover:bg-sky-500 shadow-lg shadow-sky-600/25 hover:shadow-xl hover:shadow-sky-600/30 transition-all duration-200'
