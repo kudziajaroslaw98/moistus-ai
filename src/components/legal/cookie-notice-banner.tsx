@@ -41,28 +41,27 @@ export function CookieNoticeBanner() {
 
 	// Hide on legal pages - user is already reading privacy details
 	const isLegalPage = pathname === '/privacy' || pathname === '/terms';
-
-	if (isDismissed || isLegalPage) {
-		return null;
-	}
+	const shouldShow = !isDismissed && !isLegalPage;
 
 	const reducedMotion = prefersReducedMotion();
 
 	return (
 		<AnimatePresence>
-			<motion.div
-				role="region"
-				aria-label="Cookie notice"
-				aria-live="polite"
-				initial={{ y: 100, opacity: 0 }}
-				animate={{ y: 0, opacity: 1 }}
-				exit={{ y: 100, opacity: 0 }}
-				transition={{
-					duration: reducedMotion ? 0 : 0.3,
-					ease: reducedMotion ? 'linear' : [0.215, 0.61, 0.355, 1], // ease-out-cubic
-				}}
-				className="fixed bottom-4 left-4 right-4 mx-auto z-50 pointer-events-none max-w-2xl"
-			>
+			{shouldShow && (
+				<motion.div
+					key="cookie-notice"
+					role="region"
+					aria-label="Cookie notice"
+					aria-live="polite"
+					initial={reducedMotion ? { opacity: 0 } : { y: 100, opacity: 0 }}
+					animate={reducedMotion ? { opacity: 1 } : { y: 0, opacity: 1 }}
+					exit={reducedMotion ? { opacity: 0 } : { y: 100, opacity: 0 }}
+					transition={{
+						duration: reducedMotion ? 0.1 : 0.3,
+						ease: reducedMotion ? 'linear' : [0.215, 0.61, 0.355, 1], // ease-out-cubic
+					}}
+					className="fixed bottom-4 left-4 right-4 mx-auto z-50 pointer-events-none max-w-2xl"
+				>
 				<div className="pointer-events-auto relative overflow-hidden rounded-lg border border-teal-500/20 bg-zinc-900/95 backdrop-blur-md shadow-lg">
 					{/* Glassmorphic overlay */}
 					<div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent" />
@@ -108,7 +107,8 @@ export function CookieNoticeBanner() {
 						</div>
 					</div>
 				</div>
-			</motion.div>
+				</motion.div>
+			)}
 		</AnimatePresence>
 	);
 }

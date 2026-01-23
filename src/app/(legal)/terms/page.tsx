@@ -51,7 +51,7 @@ export default function TermsOfServicePage() {
 						<li key={title}>
 							<a
 								href={`#section-${index + 1}`}
-								className='text-text-secondary hover:text-primary-400 transition-colors duration-200'
+								className='text-text-secondary hover:text-primary-400 transition-colors duration-200 motion-reduce:transition-none'
 							>
 								{index + 1}. {title}
 							</a>
@@ -610,7 +610,7 @@ export default function TermsOfServicePage() {
 				<div className='flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4'>
 					<Link
 						href='/privacy'
-						className='text-primary-400 hover:text-primary-300 transition-colors duration-200'
+						className='text-primary-400 hover:text-primary-300 transition-colors duration-200 motion-reduce:transition-none'
 					>
 						Read our Privacy Policy →
 					</Link>

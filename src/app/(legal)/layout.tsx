@@ -7,7 +7,7 @@ export default function LegalLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<div className='min-h-screen  flex flex-col bg-background'>
+		<div className='min-h-screen flex flex-col bg-background'>
 			{/* Header */}
 			<header className='sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border-subtle'>
 				<div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8'>

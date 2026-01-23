@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { AlertTriangle, Loader2 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { useEffect, useState } from 'react';
 
 export interface DeleteAccountImpactStats {
@@ -37,8 +37,15 @@ export function DeleteAccountDialog({
 	impactStats,
 }: DeleteAccountDialogProps) {
 	const [confirmText, setConfirmText] = useState('');
+	const prefersReducedMotion = useReducedMotion();
+
+	// Validate confirmation: require non-empty, trimmed, case-insensitive match
+	const trimmedConfirm = confirmText.trim();
+	const trimmedEmail = (userEmail || '').trim();
 	const isConfirmValid =
-		confirmText.toLowerCase() === userEmail.toLowerCase();
+		trimmedConfirm.length > 0 &&
+		trimmedEmail.length > 0 &&
+		trimmedConfirm.toLowerCase() === trimmedEmail.toLowerCase();
 
 	// Reset confirmation text when dialog opens/closes
 	useEffect(() => {
@@ -80,10 +87,10 @@ export function DeleteAccountDialog({
 			>
 				<DialogHeader>
 					<motion.div
-						animate={{ scale: 1, opacity: 1 }}
+						animate={prefersReducedMotion ? undefined : { scale: 1, opacity: 1 }}
 						className='mb-2 flex items-center justify-center'
-						initial={{ scale: 0.8, opacity: 0 }}
-						transition={{ duration: 0.2, ease: 'easeOut' }}
+						initial={prefersReducedMotion ? undefined : { scale: 0.8, opacity: 0 }}
+						transition={prefersReducedMotion ? undefined : { duration: 0.2, ease: 'easeOut' }}
 					>
 						<div className='rounded-full bg-rose-500/10 p-3'>
 							<AlertTriangle className='h-6 w-6 text-rose-500' />
@@ -102,10 +109,10 @@ export function DeleteAccountDialog({
 
 				{/* Impact Display */}
 				<motion.div
-					animate={{ opacity: 1, y: 0 }}
+					animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
 					className='my-4 rounded-lg border border-zinc-800 bg-zinc-900/50 p-4'
-					initial={{ opacity: 0, y: 10 }}
-					transition={{ delay: 0.1, duration: 0.3 }}
+					initial={prefersReducedMotion ? undefined : { opacity: 0, y: 10 }}
+					transition={prefersReducedMotion ? undefined : { delay: 0.1, duration: 0.3 }}
 				>
 					<p className='mb-3 text-sm font-medium text-zinc-300'>
 						The following will be permanently deleted:
@@ -151,10 +158,10 @@ export function DeleteAccountDialog({
 				{/* Warning for active subscription */}
 				{impactStats?.hasActiveSubscription && (
 					<motion.div
-						animate={{ opacity: 1, y: 0 }}
+						animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
 						className='mb-4 rounded-lg border border-warning-800/30 bg-warning-900/20 p-3'
-						initial={{ opacity: 0, y: 10 }}
-						transition={{ delay: 0.15, duration: 0.3 }}
+						initial={prefersReducedMotion ? undefined : { opacity: 0, y: 10 }}
+						transition={prefersReducedMotion ? undefined : { delay: 0.15, duration: 0.3 }}
 					>
 						<p className='text-sm text-warning-200'>
 							<strong>Note:</strong> Your subscription will be cancelled
@@ -166,10 +173,10 @@ export function DeleteAccountDialog({
 
 				{/* Confirmation Input */}
 				<motion.div
-					animate={{ opacity: 1, y: 0 }}
+					animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
 					className='space-y-2 flex flex-col gap-1'
-					initial={{ opacity: 0, y: 10 }}
-					transition={{ delay: 0.2, duration: 0.3 }}
+					initial={prefersReducedMotion ? undefined : { opacity: 0, y: 10 }}
+					transition={prefersReducedMotion ? undefined : { delay: 0.2, duration: 0.3 }}
 				>
 					<label
 						className='text-sm font-medium text-zinc-300'
@@ -201,7 +208,7 @@ export function DeleteAccountDialog({
 
 				<DialogFooter className='mt-6 gap-2'>
 					<Button
-						className='transition-all duration-200 hover:bg-zinc-800'
+						className='transition-all duration-200 hover:bg-zinc-800 motion-reduce:transition-none'
 						disabled={isDeleting}
 						onClick={() => onOpenChange(false)}
 						variant='ghost'
@@ -210,7 +217,7 @@ export function DeleteAccountDialog({
 					</Button>
 
 					<Button
-						className='min-w-[140px] bg-rose-600 transition-all duration-200 hover:bg-rose-700 disabled:bg-zinc-800 disabled:text-zinc-500'
+						className='min-w-[140px] bg-rose-600 transition-all duration-200 hover:bg-rose-700 disabled:bg-zinc-800 disabled:text-zinc-500 motion-reduce:transition-none'
 						disabled={!isConfirmValid || isDeleting}
 						onClick={handleConfirm}
 						variant='destructive'

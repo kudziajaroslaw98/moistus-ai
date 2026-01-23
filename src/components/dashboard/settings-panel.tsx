@@ -951,23 +951,15 @@ export function SettingsPanel({
 																<span className='text-text-primary'>
 																	Collaborators per Map
 																</span>
-																<span className='text-text-secondary flex gap-1'>
-																	<span>{usage.collaboratorsCount}</span>
-																	<span>
-																		{planLimits.collaboratorsPerMap === -1
-																			? '/ ∞'
-																			: `/ ${planLimits.collaboratorsPerMap}`}
-																	</span>
+																<span className='text-text-secondary'>
+																	{planLimits.collaboratorsPerMap === -1
+																		? 'Unlimited'
+																		: `Up to ${planLimits.collaboratorsPerMap} per map`}
 																</span>
 															</div>
-															{planLimits.collaboratorsPerMap !== -1 && (
-																<Progress
-																	value={getUsagePercentage(
-																		usage.collaboratorsCount,
-																		planLimits.collaboratorsPerMap
-																	)}
-																/>
-															)}
+															<p className='text-xs text-text-tertiary'>
+																Limit enforced per individual map
+															</p>
 														</div>
 
 
