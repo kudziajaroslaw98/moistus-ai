@@ -1,57 +1,49 @@
 import { createClient } from '@/helpers/supabase/server';
-import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
+import { CustomerPortal } from '@polar-sh/nextjs';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-	apiVersion: '2025-12-15.clover',
-});
+/**
+ * Customer billing portal using @polar-sh/nextjs adapter.
+ * Automatically redirects to Polar's customer portal.
+ * @see https://polar.sh/docs/integrate/sdk/adapters/nextjs
+ */
+export const GET = CustomerPortal({
+	accessToken: process.env.POLAR_ACCESS_TOKEN!,
+	server: process.env.NODE_ENV === 'production' ? 'production' : 'sandbox',
 
-export async function POST() {
-	try {
+	getCustomerId: async () => {
 		const supabase = await createClient();
+
 		const {
 			data: { user },
+			error: authError,
 		} = await supabase.auth.getUser();
 
-		if (!user) {
-			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+		if (authError) {
+			throw new Error(`Authentication failed: ${authError.message}`);
 		}
 
-		// Get user's Stripe customer ID from their subscription
-		const { data: subscription, error } = await supabase
+		if (!user) {
+			throw new Error('Unauthorized: No authenticated user found');
+		}
+
+		// Get user's Polar customer ID from their subscription
+		const { data: subscription, error: subscriptionError } = await supabase
 			.from('user_subscriptions')
-			.select('stripe_customer_id')
+			.select('polar_customer_id')
 			.eq('user_id', user.id)
-			.not('stripe_customer_id', 'is', null)
+			.not('polar_customer_id', 'is', null)
 			.order('created_at', { ascending: false })
 			.limit(1)
 			.single();
 
-		if (error || !subscription?.stripe_customer_id) {
-			return NextResponse.json(
-				{ error: 'No billing account found. Subscribe to a plan first.' },
-				{ status: 404 }
-			);
+		if (subscriptionError && subscriptionError.code !== 'PGRST116') {
+			throw new Error(`Failed to fetch subscription: ${subscriptionError.message}`);
 		}
 
-		// Determine return URL
-		const returnUrl =
-			process.env.NEXT_PUBLIC_APP_URL ||
-			process.env.VERCEL_URL ||
-			'http://localhost:3000';
+		if (!subscription?.polar_customer_id) {
+			throw new Error('No billing account found. Subscribe to a plan first.');
+		}
 
-		// Create billing portal session
-		const session = await stripe.billingPortal.sessions.create({
-			customer: subscription.stripe_customer_id,
-			return_url: `${returnUrl}/dashboard?settings=billing`,
-		});
-
-		return NextResponse.json({ url: session.url });
-	} catch (error) {
-		console.error('Portal session error:', error);
-		return NextResponse.json(
-			{ error: 'Failed to create portal session' },
-			{ status: 500 }
-		);
-	}
-}
+		return subscription.polar_customer_id;
+	},
+});

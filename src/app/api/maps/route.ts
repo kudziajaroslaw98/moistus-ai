@@ -7,7 +7,6 @@ import { z } from 'zod';
 // Define schema for creating a new map
 const requestBodySchema = z.object({
 	title: z.string().min(1, 'Map title cannot be empty'),
-	team_id: z.string().uuid().optional().nullable(),
 	description: z.string().optional().nullable(),
 	is_template: z.boolean().optional(),
 	template_category: z.string().optional().nullable(),
@@ -16,49 +15,101 @@ const requestBodySchema = z.object({
 
 export const GET = withApiValidation(
 	z.any().nullish(),
-	async (_req, _validatedBody, supabase, _user) => {
+	async (_req, _validatedBody, supabase, user) => {
 		try {
-			// Build the query - exclude templates from user's map list
-			const query = supabase
+			// 1. Fetch maps owned by the user (exclude templates)
+			const { data: ownedMaps, error: ownedError } = await supabase
 				.from('mind_maps')
 				.select(
 					`
 					*,
-					team:teams!team_id(
-						id,
-						name,
-						slug
-					),
 					_count:nodes(count)
 				`
 				)
+				.eq('user_id', user.id)
 				.eq('is_template', false)
 				.order('updated_at', { ascending: false });
 
-			const { data: maps, error: fetchError } = await query;
-
-			if (fetchError) {
-				console.error('Error fetching mind maps:', fetchError);
+			if (ownedError) {
+				console.error('Error fetching owned mind maps:', ownedError);
 				return respondError(
 					'Error fetching mind maps.',
 					500,
-					fetchError.message
+					ownedError.message
 				);
 			}
 
-			// Process the maps to format the count properly
-			const formattedMaps =
-				maps?.map((map) => ({
-					...map,
-					_count: {
-						nodes: map._count?.[0]?.count || 0,
-						edges: 0, // You can add edge counting if needed
-					},
-				})) || [];
+			// 2. Fetch maps the user has share access to (but doesn't own)
+			// First get map IDs from share_access
+			const { data: sharedAccess, error: shareError } = await supabase
+				.from('share_access')
+				.select('map_id')
+				.eq('user_id', user.id)
+				.eq('status', 'active');
+
+			if (shareError) {
+				console.error('Error fetching share access:', shareError);
+				// Non-fatal: continue with owned maps only
+			}
+
+			// Get unique map IDs that user has access to but doesn't own
+			const ownedMapIds = new Set((ownedMaps || []).map((m) => m.id));
+			const sharedMapIds = (sharedAccess || [])
+				.map((sa) => sa.map_id)
+				.filter((id) => !ownedMapIds.has(id));
+
+			let sharedMaps: typeof ownedMaps = [];
+
+			if (sharedMapIds.length > 0) {
+				// Fetch the actual map data for shared maps
+				// RLS should allow access since user has share_access record
+				const { data: sharedMapsData, error: sharedMapsError } = await supabase
+					.from('mind_maps')
+					.select(
+						`
+						*,
+						_count:nodes(count)
+					`
+					)
+					.in('id', sharedMapIds)
+					.eq('is_template', false);
+
+				if (sharedMapsError) {
+					console.error('Error fetching shared maps:', sharedMapsError);
+					// Non-fatal: continue with owned maps only
+				} else {
+					sharedMaps = sharedMapsData || [];
+				}
+			}
+
+			// 3. Process and merge maps
+			const formattedOwnedMaps = (ownedMaps || []).map((map) => ({
+				...map,
+				is_shared: false,
+				_count: {
+					nodes: map._count?.[0]?.count || 0,
+					edges: 0,
+				},
+			}));
+
+			const formattedSharedMaps = (sharedMaps || []).map((map) => ({
+				...map,
+				is_shared: true,
+				_count: {
+					nodes: map._count?.[0]?.count || 0,
+					edges: 0,
+				},
+			}));
+
+			// Combine and sort by updated_at
+			const allMaps = [...formattedOwnedMaps, ...formattedSharedMaps].sort(
+				(a, b) =>
+					new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+			);
 
 			return respondSuccess(
 				{
-					maps: formattedMaps,
+					maps: allMaps,
 				},
 				200,
 				'Mind maps fetched successfully.'
@@ -78,64 +129,37 @@ export const POST = withApiValidation(
 	requestBodySchema,
 	async (req, validatedBody, supabase, user) => {
 		try {
-			const {
-				title,
-				team_id,
-				description,
-				is_template,
-				template_category,
-				template_id,
-			} = validatedBody;
+			const { title, description, is_template, template_category, template_id } =
+				validatedBody;
 
-			// Check map creation limit for personal maps (not team maps)
-			if (!team_id) {
-				const { count: currentMapsCount } = await supabase
-					.from('mind_maps')
-					.select('*', { count: 'exact', head: true })
-					.eq('user_id', user.id)
-					.is('team_id', null); // Only count personal maps
+			// Check map creation limit
+			const { count: currentMapsCount } = await supabase
+				.from('mind_maps')
+				.select('*', { count: 'exact', head: true })
+				.eq('user_id', user.id);
 
-				const { allowed, limit, remaining } = await checkUsageLimit(
-					user,
-					supabase,
-					'mindMaps',
-					currentMapsCount || 0
+			const { allowed, limit, remaining } = await checkUsageLimit(
+				user,
+				supabase,
+				'mindMaps',
+				currentMapsCount || 0
+			);
+
+			if (!allowed) {
+				return respondError(
+					`Mind map limit reached. You have ${currentMapsCount} maps (limit: ${limit}). Upgrade to Pro for unlimited maps.`,
+					402,
+					'LIMIT_REACHED',
+					{
+						currentUsage: currentMapsCount,
+						limit,
+						remaining: remaining,
+						upgradeUrl: '/dashboard/settings/billing',
+					}
 				);
-
-				if (!allowed) {
-					return respondError(
-						`Mind map limit reached. You have ${currentMapsCount} maps (limit: ${limit}). Upgrade to Pro for unlimited maps.`,
-						402,
-						'LIMIT_REACHED',
-						{
-							currentUsage: currentMapsCount,
-							limit,
-							remaining: remaining,
-							upgradeUrl: '/dashboard/settings/billing',
-						}
-					);
-				}
 			}
 
 			const newMapId = generateUuid();
-
-			// If team_id is provided, verify user is a member
-			if (team_id) {
-				const { data: membership } = await supabase
-					.from('team_members')
-					.select('role')
-					.eq('team_id', team_id)
-					.eq('user_id', user.id)
-					.single();
-
-				if (!membership || !['owner', 'editor'].includes(membership.role)) {
-					return respondError(
-						'Insufficient permissions to create map in this team.',
-						403,
-						'You must be an owner or editor of the team.'
-					);
-				}
-			}
 
 			// Insert the new mind map into the database
 			const { data: newMap, error: insertError } = await supabase
@@ -143,24 +167,14 @@ export const POST = withApiValidation(
 				.insert([
 					{
 						id: newMapId,
-						user_id: team_id ? null : user.id,
-						team_id: team_id || null,
+						user_id: user.id,
 						title: title,
 						description: description || null,
 						is_template: is_template || false,
 						template_category: template_category || null,
 					},
 				])
-				.select(
-					`
-					*,
-					team:teams!team_id(
-						id,
-						name,
-						slug
-					)
-				`
-				)
+				.select('*')
 				.single();
 
 			if (insertError) {
@@ -218,7 +232,7 @@ export const POST = withApiValidation(
 					const nodesToInsert = (templateNodes || []).map((node) => ({
 						id: idMap.get(node.id),
 						map_id: newMap.id,
-						user_id: team_id ? null : user.id,
+						user_id: user.id,
 						parent_id: null,
 						content: node.content,
 						position_x: node.position_x,
@@ -251,7 +265,7 @@ export const POST = withApiValidation(
 								return {
 									id: generateUuid(),
 									map_id: newMap.id,
-									user_id: team_id ? null : user.id,
+									user_id: user.id,
 									source: newSource,
 									target: newTarget,
 									type: edge.type || 'floatingEdge',
@@ -335,28 +349,12 @@ export const DELETE = withApiValidation(
 		try {
 			const { mapIds } = validatedBody;
 
-			// Get teams where user has owner/editor permissions
-			const { data: teamMemberships } = await supabase
-				.from('team_members')
-				.select('team_id')
-				.eq('user_id', user.id)
-				.in('role', ['owner', 'editor']);
-
-			const authorizedTeamIds = teamMemberships?.map((m) => m.team_id) || [];
-
-			// Build the authorization filter
-			// User can delete maps they own OR maps in teams they have edit access to
-			let query = supabase.from('mind_maps').delete().in('id', mapIds);
-
-			if (authorizedTeamIds.length > 0) {
-				query = query.or(
-					`user_id.eq.${user.id},team_id.in.(${authorizedTeamIds.join(',')})`
-				);
-			} else {
-				query = query.eq('user_id', user.id);
-			}
-
-			const { error: deleteError } = await query;
+			// Delete maps owned by user
+			const { error: deleteError } = await supabase
+				.from('mind_maps')
+				.delete()
+				.in('id', mapIds)
+				.eq('user_id', user.id);
 
 			if (deleteError) {
 				console.error('Error deleting maps:', deleteError);

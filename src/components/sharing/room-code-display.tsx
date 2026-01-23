@@ -3,6 +3,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ShareToken } from '@/types/sharing-types';
+import { cn } from '@/utils/cn';
 import {
 	ChevronDown,
 	Clock,
@@ -16,7 +17,6 @@ import {
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useId, useState } from 'react';
 import { toast } from 'sonner';
-import { cn } from '@/utils/cn';
 
 interface RoomCodeDisplayProps {
 	token: ShareToken;
@@ -38,14 +38,10 @@ const easeOutQuad = [0.25, 0.46, 0.45, 0.94] as const;
 const logSafeError = (context: string, error: unknown): void => {
 	if (process.env.NODE_ENV !== 'development') return;
 
-	const safeMessage =
-		error instanceof Error ? error.message : 'Unknown error';
+	const safeMessage = error instanceof Error ? error.message : 'Unknown error';
 
 	// Redact potential tokens/codes from message
-	const redactedMessage = safeMessage.replace(
-		/[A-Z0-9]{6,}/gi,
-		'[REDACTED]'
-	);
+	const redactedMessage = safeMessage.replace(/[A-Z0-9]{6,}/gi, '[REDACTED]');
 
 	console.error(`[RoomCodeDisplay] ${context}:`, redactedMessage);
 };
@@ -168,18 +164,27 @@ export function RoomCodeDisplay({
 				{/* Left: Code + Badges */}
 				<div className='flex items-center gap-2 min-w-0 flex-1'>
 					<code
-						className='text-base font-mono font-bold text-teal-400 tracking-wider shrink-0'
+						className='font-mono font-bold text-teal-400 tracking-wider shrink-0'
 						data-testid='room-code-value'
 					>
 						{token.token}
 					</code>
 
-					<Badge variant='outline' className={cn('text-[10px] px-1.5 py-0 h-5 shrink-0', roleColorClass)}>
+					<Badge
+						variant='outline'
+						className={cn(
+							'text-[10px] px-1.5 py-0 h-5 shrink-0',
+							roleColorClass
+						)}
+					>
 						{token.permissions.role}
 					</Badge>
 
 					{isExpired && (
-						<Badge variant='destructive' className='text-[10px] px-1.5 py-0 h-5 shrink-0'>
+						<Badge
+							variant='destructive'
+							className='text-[10px] px-1.5 py-0 h-5 shrink-0'
+						>
 							Expired
 						</Badge>
 					)}
@@ -268,7 +273,9 @@ export function RoomCodeDisplay({
 								{/* Time */}
 								<div className='flex items-center gap-2'>
 									<Clock className='h-3.5 w-3.5 text-zinc-400 shrink-0' />
-									<span className={cn('text-zinc-300', isExpired && 'text-red-400')}>
+									<span
+										className={cn('text-zinc-300', isExpired && 'text-red-400')}
+									>
 										{formatTimeRemaining(token.expires_at)}
 									</span>
 								</div>
@@ -277,17 +284,26 @@ export function RoomCodeDisplay({
 							{/* Permissions Row */}
 							<div className='flex items-center gap-1.5'>
 								{token.permissions.can_view && (
-									<Badge variant='secondary' className='text-[10px] px-1.5 py-0 h-5 bg-zinc-700/50'>
+									<Badge
+										variant='secondary'
+										className='text-[10px] px-1.5 py-0 h-5 bg-zinc-700/50'
+									>
 										View
 									</Badge>
 								)}
 								{token.permissions.can_comment && (
-									<Badge variant='secondary' className='text-[10px] px-1.5 py-0 h-5 bg-zinc-700/50'>
+									<Badge
+										variant='secondary'
+										className='text-[10px] px-1.5 py-0 h-5 bg-zinc-700/50'
+									>
 										Comment
 									</Badge>
 								)}
 								{token.permissions.can_edit && (
-									<Badge variant='secondary' className='text-[10px] px-1.5 py-0 h-5 bg-zinc-700/50'>
+									<Badge
+										variant='secondary'
+										className='text-[10px] px-1.5 py-0 h-5 bg-zinc-700/50'
+									>
 										Edit
 									</Badge>
 								)}

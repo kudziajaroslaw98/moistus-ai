@@ -1,7 +1,31 @@
 # E2E Test Gaps - Permission Testing
 
-> Last updated: 2025-12-31
+> Last updated: 2026-01-17
 > Location: `e2e/tests/sharing/permissions.spec.ts`
+
+---
+
+## Billing & Usage Limit Tests (NEW)
+
+> Location: `e2e/tests/billing/usage-limits.spec.ts`
+> Added: 2026-01-17
+
+**Prerequisites**: Requires `SUPABASE_SERVICE_ROLE` in `.env.e2e.local`
+
+| Test | Status | Description |
+|------|--------|-------------|
+| Free user 402 on AI request | ✅ Implemented | Verifies free tier users get 402 LIMIT_REACHED |
+| Pro user AI access | ✅ Implemented | Verifies Pro users don't hit limits |
+| Trialing user has Pro access | ✅ Implemented | Verifies trial status grants Pro features |
+| Subscription period dates | ✅ Implemented | Verifies billing period uses subscription dates |
+| Calendar month for free users | ✅ Implemented | Verifies free users use calendar month |
+| Usage before period not counted | ✅ Implemented | Verifies period boundary enforcement |
+| Upgrade adjustment reduces usage | ✅ Implemented | Verifies mid-cycle upgrade gives remaining quota |
+| Downgrade adjustment increases usage | ✅ Implemented | Verifies downgrade handling |
+| Usage count accuracy | ✅ Implemented | Verifies count matches actual entries |
+| Mind maps count | ✅ Implemented | Verifies map count accuracy |
+
+---
 
 ## Overview
 

@@ -94,12 +94,13 @@ export default defineConfig({
 				storageState: 'e2e/.auth/user.json',
 			},
 			dependencies: ['setup'],
-			// Exclude real-time tests - they run in chromium-serial
-			testIgnore: ['**/sharing/**', '**/upgrade/**'],
+			// Exclude tests that need serial execution (shared state manipulation)
+			testIgnore: ['**/sharing/**', '**/upgrade/**', '**/billing/**'],
 		},
 
 		// Chromium - serial for real-time sensitive tests
 		// These tests share testMapId and are affected by Supabase real-time sync
+		// Billing tests also run serial as they manipulate subscription state
 		{
 			name: 'chromium-serial',
 			use: {
@@ -107,7 +108,7 @@ export default defineConfig({
 				storageState: 'e2e/.auth/user.json',
 			},
 			dependencies: ['setup'],
-			testMatch: ['**/sharing/**', '**/upgrade/**'],
+			testMatch: ['**/sharing/**', '**/upgrade/**', '**/billing/**'],
 			fullyParallel: false,
 		},
 

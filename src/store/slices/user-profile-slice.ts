@@ -97,6 +97,7 @@ export const createUserProfileSlice: StateCreator<
 							user.user_metadata?.name ||
 							'',
 						avatar_url: avatarUrl,
+						email: user.email || null,
 						is_anonymous: user.is_anonymous ?? false,
 						preferences: {
 							theme: 'system',
@@ -116,12 +117,27 @@ export const createUserProfileSlice: StateCreator<
 				// Automatically subscribe to real-time changes after creating profile
 				get().subscribeToProfileChanges();
 			} else {
-				// Ensure avatar_url exists - use OAuth avatar if available, else DiceBear fallback
-				const profileWithAvatar = {
+				// Ensure avatar_url and email exist
+				const profileWithDefaults = {
 					...existingProfile,
 					avatar_url: existingProfile.avatar_url || oauthAvatar || fallbackAvatar,
+					email: existingProfile.email || user.email || null,
 				};
-				set({ userProfile: profileWithAvatar, isLoadingProfile: false });
+
+				// If email was missing, update it in the database
+				if (!existingProfile.email && user.email) {
+					supabase
+						.from('user_profiles')
+						.update({ email: user.email })
+						.eq('user_id', user.id)
+						.then(({ error }) => {
+							if (error) {
+								console.error('Failed to sync email to profile:', error);
+							}
+						});
+				}
+
+				set({ userProfile: profileWithDefaults, isLoadingProfile: false });
 				// Automatically subscribe to real-time changes after loading profile
 				get().subscribeToProfileChanges();
 			}

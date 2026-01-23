@@ -8,7 +8,7 @@ import { Archive, Home, Star, Users } from 'lucide-react';
 import { motion } from 'motion/react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ReactNode, useEffect, useState } from 'react';
 import {
 	Sidebar,
@@ -21,6 +21,7 @@ import {
 import { SidebarItem } from '../ui/sidebar-item';
 import { SidebarSection } from '../ui/sidebar-section';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/Tooltip';
+import { UpgradeModal } from '../modals/upgrade-modal';
 import { DashboardHeader } from './dashboard-header';
 import { SettingsPanel } from './settings-panel';
 
@@ -76,6 +77,7 @@ const bottomNavItems: NavItem[] = [];
 export function DashboardLayout({ children }: DashboardLayoutProps) {
 	const pathname = usePathname();
 	const router = useRouter();
+	const searchParams = useSearchParams();
 	const { open: sidebarOpen } = useSidebar();
 	const sidebarCollapsed = !sidebarOpen;
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -85,11 +87,22 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 	const [showAnonymousUpgrade, setShowAnonymousUpgrade] = useState(false);
 	const userProfile = useAppStore((state) => state.userProfile);
 	const setPopoverOpen = useAppStore((state) => state.setPopoverOpen);
+	const popoverOpen = useAppStore((state) => state.popoverOpen);
 
 	const handleOpenSettings = (tab: 'settings' | 'billing' = 'settings') => {
 		setSettingsTab(tab);
 		setIsSettingsOpen(true);
 	};
+
+	// Handle URL param to open settings panel (e.g., /dashboard?settings=billing)
+	useEffect(() => {
+		const settingsParam = searchParams.get('settings');
+		if (settingsParam === 'billing' || settingsParam === 'settings') {
+			handleOpenSettings(settingsParam);
+			// Clean up URL without triggering navigation
+			window.history.replaceState({}, '', pathname);
+		}
+	}, [searchParams, pathname]);
 
 	// Handle manual trigger of upgrade modal
 	useEffect(() => {
@@ -300,6 +313,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 					router.refresh();
 				}}
 			/>
+
+			{/* Upgrade modal for non-anonymous users (Pro subscription) */}
+			{!userProfile?.is_anonymous && (
+				<UpgradeModal
+					open={popoverOpen.upgradeUser}
+					onOpenChange={(open) => setPopoverOpen({ upgradeUser: open })}
+					onDismiss={() => setPopoverOpen({ upgradeUser: false })}
+					onSuccess={() => {
+						setPopoverOpen({ upgradeUser: false });
+						router.refresh();
+					}}
+				/>
+			)}
 		</div>
 	);
 }

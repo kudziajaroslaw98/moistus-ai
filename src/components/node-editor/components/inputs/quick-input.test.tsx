@@ -89,6 +89,18 @@ jest.mock('../../core/utils/text-utils', () => ({
 	announceToScreenReader: jest.fn(),
 }))
 
+// Mock useSubscriptionLimits hook to avoid store dependency on availablePlans
+jest.mock('@/hooks/subscription/use-feature-gate', () => ({
+	useSubscriptionLimits: jest.fn(() => ({
+		isAtLimit: jest.fn().mockReturnValue(false),
+		usage: { mindMaps: 0, nodesPerMap: 0, aiSuggestions: 0, collaboratorsPerMap: 0 },
+		limits: { mindMaps: 3, nodesPerMap: 50, aiSuggestions: 0, collaboratorsPerMap: 3 },
+		remaining: { mindMaps: 3, nodesPerMap: 50, aiSuggestions: 0, collaboratorsPerMap: 3 },
+		isLoading: false,
+		error: null,
+	})),
+}))
+
 // Mock sub-components to isolate QuickInput logic
 jest.mock('../component-header', () => ({
 	ComponentHeader: ({ label }: { label: string }) => (

@@ -5,7 +5,6 @@ import useAppStore from '@/store/mind-map-store';
 import { AnimatePresence, motion } from 'motion/react';
 import { useCallback } from 'react';
 import { BenefitsStep } from './steps/benefits-step';
-import { PaymentStep } from './steps/payment-step';
 import { PricingStep } from './steps/pricing-step';
 import { WelcomeStep } from './steps/welcome-step';
 
@@ -80,26 +79,6 @@ export function OnboardingModal() {
 						selectedPlan={onboardingData.selectedPlan || null}
 					/>
 				);
-			case 3:
-				// Only show payment step if a paid plan was selected
-				if (
-					onboardingData.selectedPlan &&
-					onboardingData.selectedPlan !== 'free'
-				) {
-					return (
-						<PaymentStep
-							billingCycle={onboardingData.billingCycle || 'monthly'}
-							onBack={previousOnboardingStep}
-							onComplete={nextOnboardingStep}
-							selectedPlan={onboardingData.selectedPlan}
-						/>
-					);
-				}
-
-				// If free plan or no plan selected, complete onboarding
-				// This should complete automatically
-				nextOnboardingStep();
-				return null;
 			default:
 				return null;
 		}
@@ -151,7 +130,7 @@ export function OnboardingModal() {
 						</AnimatePresence>
 					</div>
 
-					{/* Step indicator */}
+					{/* Step indicator - simplified to 3 steps */}
 					<div className='p-6 border-t border-border-subtle'>
 						<div className='flex items-center justify-center gap-2'>
 							{[0, 1, 2].map((step) => (
@@ -166,19 +145,6 @@ export function OnboardingModal() {
 									key={step}
 								/>
 							))}
-
-							{onboardingData.selectedPlan &&
-								onboardingData.selectedPlan !== 'free' && (
-									<div
-										className={`h-2 w-2 rounded-full transition-all duration-300 ease-out ${
-											onboardingStep === 3
-												? 'bg-primary-500'
-												: onboardingStep > 3
-													? 'bg-primary-600/80'
-													: 'bg-elevated'
-										}`}
-									/>
-								)}
 						</div>
 					</div>
 				</motion.div>

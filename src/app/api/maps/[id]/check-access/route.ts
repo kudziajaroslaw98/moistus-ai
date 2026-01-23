@@ -3,7 +3,7 @@ import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { withAuthValidation } from '@/helpers/api/with-auth-validation';
 import { z } from 'zod';
 
-type AccessStatus = 'owner' | 'shared' | 'no_access' | 'not_found';
+type AccessStatus = 'owner' | 'shared' | 'template' | 'no_access' | 'not_found';
 
 interface CheckAccessResponse {
 	status: AccessStatus;
@@ -43,7 +43,7 @@ export const GET = withAuthValidation<
 		// Check if map exists and get owner info
 		const { data: map, error: mapError } = await adminClient
 			.from('mind_maps')
-			.select('id, user_id, title')
+			.select('id, user_id, title, is_template')
 			.eq('id', mapId)
 			.maybeSingle();
 
@@ -68,6 +68,19 @@ export const GET = withAuthValidation<
 			);
 		}
 
+		// Template check - templates are viewable by any authenticated user
+		if (map.is_template) {
+			return respondSuccess<CheckAccessResponse>(
+				{
+					status: 'template',
+					mapExists: true,
+					mapTitle: map.title,
+				},
+				200,
+				'Map is a template'
+			);
+		}
+
 		// User is the owner
 		if (map.user_id === user.id) {
 			return respondSuccess<CheckAccessResponse>(
@@ -81,12 +94,13 @@ export const GET = withAuthValidation<
 			);
 		}
 
-		// Check if user has share_access
+		// Check if user has active share_access
 		const { data: shareAccess, error: shareError } = await adminClient
 			.from('share_access')
 			.select('id, role')
 			.eq('map_id', mapId)
 			.eq('user_id', user.id)
+			.eq('status', 'active')
 			.maybeSingle();
 
 		if (shareError) {

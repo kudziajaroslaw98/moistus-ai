@@ -2,9 +2,9 @@
 
 import { Button } from '@/components/ui/button';
 import useAppStore from '@/store/mind-map-store';
-import { Check, X } from 'lucide-react';
+import { AlertCircle, Check, Loader2, X } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 interface PricingStepProps {
 	onContinue: () => void;
@@ -41,14 +41,14 @@ const pricingTiers: PricingTier[] = [
 		],
 		limitations: [
 			'Unlock AI thinking partner with Pro',
-			'Add team collaboration with Pro',
+			'Add collaborator access with Pro',
 		],
 		ctaText: 'Start Free',
 	},
 	{
 		id: 'pro',
 		name: 'Pro',
-		description: 'For serious thinkers and teams',
+		description: 'For serious thinkers and collaborators',
 		monthlyPrice: 12,
 		yearlyPrice: 120,
 		discount: '17% off',
@@ -71,7 +71,10 @@ export function PricingStep({
 	selectedPlan,
 	billingCycle,
 }: PricingStepProps) {
-	const { updateOnboardingData, fetchAvailablePlans } = useAppStore();
+	const { updateOnboardingData, fetchAvailablePlans, createCheckoutSession } =
+		useAppStore();
+	const [isRedirecting, setIsRedirecting] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
 	// Fetch available plans on mount
 	useEffect(() => {
@@ -80,6 +83,7 @@ export function PricingStep({
 
 	const handleSelectPlan = (planId: 'free' | 'pro') => {
 		updateOnboardingData({ selectedPlan: planId });
+		setError(null);
 	};
 
 	const handleToggleBilling = () => {
@@ -87,13 +91,39 @@ export function PricingStep({
 		updateOnboardingData({ billingCycle: newCycle });
 	};
 
-	const handleContinue = () => {
+	const handleContinue = async () => {
 		if (!selectedPlan) {
 			// Default to free if no plan selected
 			updateOnboardingData({ selectedPlan: 'free' });
+			onContinue();
+			return;
 		}
 
-		onContinue();
+		if (selectedPlan === 'free') {
+			// Free plan: just complete onboarding
+			onContinue();
+			return;
+		}
+
+		// Pro plan: create checkout session and redirect to Polar
+		setIsRedirecting(true);
+		setError(null);
+
+		const result = await createCheckoutSession('pro', billingCycle);
+
+		if (result.error) {
+			setError(result.error);
+			setIsRedirecting(false);
+			return;
+		}
+
+		if (result.checkoutUrl) {
+			// Redirect to Polar checkout
+			window.location.href = result.checkoutUrl;
+		} else {
+			setError('Failed to create checkout session');
+			setIsRedirecting(false);
+		}
 	};
 
 	return (
@@ -238,6 +268,22 @@ export function PricingStep({
 				))}
 			</div>
 
+			{/* Error message */}
+			{error && (
+				<motion.div
+					animate={{ opacity: 1, y: 0 }}
+					className='flex items-center justify-center gap-2 text-sm text-error-500 mb-4'
+					initial={{ opacity: 0, y: -10 }}
+					transition={{
+						duration: 0.2,
+						ease: [0.165, 0.84, 0.44, 1],
+					}}
+				>
+					<AlertCircle className='w-4 h-4' />
+					<span>{error}</span>
+				</motion.div>
+			)}
+
 			{/* Navigation */}
 			<motion.div
 				animate={{ opacity: 1, y: 0 }}
@@ -251,6 +297,7 @@ export function PricingStep({
 			>
 				<Button
 					className='text-text-secondary hover:text-text-primary transition-colors duration-200'
+					disabled={isRedirecting}
 					onClick={onBack}
 					variant='ghost'
 				>
@@ -259,15 +306,24 @@ export function PricingStep({
 
 				<Button
 					className={`font-semibold px-8 transition-all duration-200 ${
-						selectedPlan
+						selectedPlan && !isRedirecting
 							? 'bg-primary-600 hover:bg-primary-500 text-base hover:-translate-y-0.5'
 							: 'bg-elevated text-text-disabled opacity-50 cursor-not-allowed'
 					}`}
-					disabled={!selectedPlan}
+					disabled={!selectedPlan || isRedirecting}
 					onClick={handleContinue}
 					size='lg'
 				>
-					{selectedPlan === 'free' ? 'Start Free' : 'Continue to Payment'}
+					{isRedirecting ? (
+						<span className='flex items-center gap-2'>
+							<Loader2 className='w-4 h-4 animate-spin' />
+							Redirecting...
+						</span>
+					) : selectedPlan === 'free' ? (
+						'Start Free'
+					) : (
+						'Continue to Checkout'
+					)}
 				</Button>
 			</motion.div>
 		</div>

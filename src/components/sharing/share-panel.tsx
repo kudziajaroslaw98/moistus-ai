@@ -13,10 +13,12 @@ import {
 	SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import useAppStore from '@/store/mind-map-store';
 import { SharePanelProps, ShareRole } from '@/types/sharing-types';
 import { cn } from '@/utils/cn';
 import {
+	AlertCircle,
 	ChevronDown,
 	Link2,
 	Loader2,
@@ -97,10 +99,26 @@ export function SharePanel({
 	const isOpen = popoverOpen.sharePanel;
 	const mapId = mindMap?.id;
 
-	// Room code generation settings
+	// Check collaborator limits
+	const { isAtLimit, usage, limits } = useSubscriptionLimits();
+	const collaboratorCount = currentShares?.length || 0;
+	const isAtCollaboratorLimit =
+		limits.collaboratorsPerMap !== -1 &&
+		collaboratorCount >= limits.collaboratorsPerMap;
+	const collaboratorLimitInfo =
+		limits.collaboratorsPerMap !== -1
+			? { current: collaboratorCount, max: limits.collaboratorsPerMap }
+			: undefined;
+
+	// Calculate max users limit for room code based on subscription tier
+	const maxUsersLimit =
+		limits.collaboratorsPerMap === -1 ? 100 : limits.collaboratorsPerMap;
+	const isFreeWithLimit = limits.collaboratorsPerMap !== -1;
+
+	// Room code generation settings (default maxUsers to 3 - safe for both free and pro tiers)
 	const [roomCodeSettings, setRoomCodeSettings] = useState({
 		role: 'viewer' as ShareRole,
-		maxUsers: 50,
+		maxUsers: 3,
 		expiresInHours: 24,
 	});
 
@@ -341,7 +359,7 @@ export function SharePanel({
 													<Input
 														className='h-9'
 														data-testid='max-users-input'
-														max={100}
+														max={maxUsersLimit}
 														min={1}
 														type='number'
 														value={roomCodeSettings.maxUsers}
@@ -349,8 +367,8 @@ export function SharePanel({
 															setRoomCodeSettings((prev) => ({
 																...prev,
 																maxUsers: Math.min(
-																	100,
-																	Math.max(1, parseInt(e.target.value) || 50)
+																	maxUsersLimit,
+																	Math.max(1, parseInt(e.target.value) || 3)
 																),
 															}))
 														}
@@ -386,10 +404,42 @@ export function SharePanel({
 												</div>
 											</div>
 
+											{/* Free tier limit indicator - only show if NOT at limit */}
+											{isFreeWithLimit && !isAtCollaboratorLimit && (
+												<button
+													type='button'
+													onClick={() => setPopoverOpen({ upgradeUser: true })}
+													className='flex items-center gap-4 w-full p-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/15 transition-colors duration-200 ease text-left group'
+												>
+													<Users className='w-4 h-4 shrink-0' />
+													<div className='flex-1 min-w-0'>
+														<span className='text-xs font-medium block'>
+															Max {maxUsersLimit} users on Free plan
+														</span>
+														<span className='text-xs opacity-80 group-hover:underline'>
+															Upgrade to Pro for unlimited →
+														</span>
+													</div>
+												</button>
+											)}
+
+											{/* Collaborator limit warning */}
+											{isAtCollaboratorLimit && collaboratorLimitInfo && (
+												<div className='flex items-center gap-2 p-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400'>
+													<AlertCircle className='w-4 h-4 shrink-0' />
+													<span className='text-xs'>
+														Collaborator limit reached (
+														{collaboratorLimitInfo.current}/
+														{collaboratorLimitInfo.max}). Upgrade to Pro for
+														more.
+													</span>
+												</div>
+											)}
+
 											<Button
 												className='w-full h-9'
 												data-testid='generate-room-code-btn'
-												disabled={isGeneratingCode}
+												disabled={isGeneratingCode || isAtCollaboratorLimit}
 												onClick={handleGenerateRoomCode}
 											>
 												{isGeneratingCode ? (

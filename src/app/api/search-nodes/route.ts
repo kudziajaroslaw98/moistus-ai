@@ -1,4 +1,8 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
+import {
+	checkAIFeatureAccess,
+	trackAIFeatureUsage,
+} from '@/helpers/api/with-ai-feature-gate';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
@@ -29,9 +33,17 @@ const requestBodySchema = z.object({
 
 export const POST = withApiValidation(
 	requestBodySchema,
-	async (req, validatedBody, supabase) => {
+	async (req, validatedBody, supabase, user) => {
 		try {
 			const { mapId, query } = validatedBody;
+
+			// Check AI feature access (free tier has 0 AI calls)
+			const { hasAccess, isPro, error } = await checkAIFeatureAccess(
+				user,
+				supabase,
+				'search'
+			);
+			if (!hasAccess && error) return error;
 
 			const { data: nodesData, error: fetchError } = await supabase
 				.from('nodes')
@@ -105,6 +117,13 @@ export const POST = withApiValidation(
 			const validRelevantNodeIds = relevantNodeIds.filter((id) =>
 				validNodeIdsSet.has(id)
 			);
+
+			// Track AI usage for billing (only counts for free tier users)
+			await trackAIFeatureUsage(user, supabase, 'search', isPro, {
+				mapId,
+				query,
+				resultsCount: validRelevantNodeIds.length,
+			});
 
 			return respondSuccess(
 				{ relevantNodeIds: validRelevantNodeIds },

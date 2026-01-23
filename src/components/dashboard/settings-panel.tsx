@@ -1,5 +1,9 @@
 'use client';
 
+import {
+	DeleteAccountDialog,
+	DeleteAccountImpactStats,
+} from '@/components/account/delete-account-dialog';
 import { NodeTypeSelector } from '@/components/settings/node-type-selector';
 import { SidePanel } from '@/components/side-panel';
 import { Badge } from '@/components/ui/badge';
@@ -18,14 +22,13 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { UserAvatar } from '@/components/ui/user-avatar';
+import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import useAppStore from '@/store/mind-map-store';
 import { UserProfileFormData } from '@/types/user-profile-types';
 import {
 	AlertTriangle,
 	BarChart3,
-	Calendar,
 	CreditCard,
-	Download,
 	ExternalLink,
 	Palette,
 	PenTool,
@@ -37,23 +40,11 @@ import {
 	User,
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { mutate } from 'swr';
 import { useShallow } from 'zustand/shallow';
-
-interface PaymentHistoryItem {
-	id: string;
-	stripe_payment_intent_id: string | null;
-	amount: number;
-	currency: string;
-	status: string;
-	description: string | null;
-	created_at: string;
-	metadata?: {
-		stripe_invoice_id?: string;
-		stripe_subscription_id?: string;
-	};
-}
 
 interface UsageStats {
 	mindMapsCount: number;
@@ -77,6 +68,8 @@ export function SettingsPanel({
 	onClose,
 	defaultTab = 'settings',
 }: SettingsPanelProps) {
+	const router = useRouter();
+
 	const {
 		userProfile,
 		isLoadingProfile,
@@ -94,6 +87,7 @@ export function SettingsPanel({
 		isTrialing,
 		getTrialDaysRemaining,
 		setPopoverOpen,
+		resetStore,
 	} = useAppStore(
 		useShallow((state) => ({
 			userProfile: state.userProfile,
@@ -112,29 +106,30 @@ export function SettingsPanel({
 			isTrialing: state.isTrialing,
 			getTrialDaysRemaining: state.getTrialDaysRemaining,
 			setPopoverOpen: state.setPopoverOpen,
+			resetStore: state.reset,
 		}))
 	);
 
 	const [isSaving, setIsSaving] = useState(false);
 	const [activeTab, setActiveTab] = useState(defaultTab);
 
+	// Delete account state
+	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+	const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+	const [deleteImpactStats, setDeleteImpactStats] =
+		useState<DeleteAccountImpactStats | null>(null);
+
+	// Get limits with proper free tier fallback
+	const { limits: planLimits } = useSubscriptionLimits();
+
 	// Billing State
-	const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryItem[]>(
-		[]
-	);
 	const [usage, setUsage] = useState<UsageStats | null>(null);
-	const [isLoadingPayments, setIsLoadingPayments] = useState(false);
 	const [isLoadingUsage, setIsLoadingUsage] = useState(false);
-	const [paymentsLoaded, setPaymentsLoaded] = useState(false);
 	const [usageLoaded, setUsageLoaded] = useState(false);
 	const [isCanceling, setIsCanceling] = useState(false);
-	const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<
-		string | null
-	>(null);
 	const [isOpeningPortal, setIsOpeningPortal] = useState(false);
 
 	// Refs to track loading state without triggering effect re-runs
-	const isLoadingPaymentsRef = useRef(false);
 	const isLoadingUsageRef = useRef(false);
 
 	const [formData, setFormData] = useState<UserProfileFormData>({
@@ -162,11 +157,8 @@ export function SettingsPanel({
 	// Reset billing state when panel closes
 	useEffect(() => {
 		if (!isOpen) {
-			setPaymentsLoaded(false);
 			setUsageLoaded(false);
 			setUsage(null);
-			setPaymentHistory([]);
-			isLoadingPaymentsRef.current = false;
 			isLoadingUsageRef.current = false;
 		}
 	}, [isOpen]);
@@ -178,32 +170,7 @@ export function SettingsPanel({
 		fetchUserSubscription();
 		fetchAvailablePlans();
 
-		const loadPaymentHistory = async () => {
-			// Skip if already loaded or currently loading (use ref to avoid race condition)
-			if (paymentsLoaded || isLoadingPaymentsRef.current) return;
-
-			isLoadingPaymentsRef.current = true;
-			setIsLoadingPayments(true);
-
-			try {
-				const response = await fetch('/api/user/billing/payment-history');
-
-				if (!response.ok) throw new Error('Failed to fetch payment history');
-				const result = await response.json();
-
-				setPaymentHistory(result.data || []);
-				setPaymentsLoaded(true);
-			} catch (error) {
-				console.error('Error loading payment history:', error);
-				toast.error('Failed to load payment history');
-			} finally {
-				// Always reset loading state so retries can happen
-				isLoadingPaymentsRef.current = false;
-				setIsLoadingPayments(false);
-			}
-		};
-
-		const loadUsage = async (retryCount = 0) => {
+		const loadUsage = async () => {
 			// Skip if already loaded or currently loading (use ref to avoid race condition)
 			if (usageLoaded || isLoadingUsageRef.current) return;
 
@@ -228,18 +195,14 @@ export function SettingsPanel({
 			}
 		};
 
-		loadPaymentHistory();
 		loadUsage();
-
-		// Cleanup: abort all in-flight requests
 	}, [
 		isOpen,
 		activeTab,
 		fetchUserSubscription,
 		fetchAvailablePlans,
-		paymentsLoaded,
 		usageLoaded,
-		// Note: isLoadingPayments and isLoadingUsage removed from deps to avoid race condition
+		// Note: isLoadingUsage removed from deps to avoid race condition
 		// Using refs instead to track loading state without triggering effect re-runs
 	]);
 
@@ -358,60 +321,99 @@ export function SettingsPanel({
 		setPopoverOpen({ upgradeUser: true });
 	};
 
-	const handleDownloadInvoice = async (payment: PaymentHistoryItem) => {
-		const invoiceId = payment.metadata?.stripe_invoice_id;
-		if (!invoiceId) {
-			toast.error('Invoice not available for this payment');
+	const handleOpenBillingPortal = () => {
+		setIsOpeningPortal(true);
+		// SDK's CustomerPortal handles redirect automatically
+		window.location.href = '/api/user/billing/portal';
+	};
+
+	const handleOpenDeleteDialog = async () => {
+		// Fetch impact stats for the dialog
+		try {
+			const response = await fetch('/api/user/billing/usage');
+			if (response.ok) {
+				const result = await response.json();
+				setDeleteImpactStats({
+					mindMapsCount: result.data?.mindMapsCount ?? 0,
+					hasActiveSubscription:
+						currentSubscription?.status === 'active' ||
+						currentSubscription?.status === 'trialing',
+				});
+			} else {
+				// Use defaults if fetch fails
+				setDeleteImpactStats({
+					mindMapsCount: 0,
+					hasActiveSubscription:
+						currentSubscription?.status === 'active' ||
+						currentSubscription?.status === 'trialing',
+				});
+			}
+		} catch {
+			// Use defaults on error
+			setDeleteImpactStats({
+				mindMapsCount: 0,
+				hasActiveSubscription:
+					currentSubscription?.status === 'active' ||
+					currentSubscription?.status === 'trialing',
+			});
+		}
+		setIsDeleteDialogOpen(true);
+	};
+
+	const handleDeleteAccount = async () => {
+		if (!userProfile?.email) {
+			toast.error('Unable to delete account', {
+				description: 'No email address found for your account.',
+			});
 			return;
 		}
 
-		setDownloadingInvoiceId(payment.id);
-		try {
-			const response = await fetch(
-				`/api/user/billing/invoice?invoiceId=${invoiceId}`
-			);
-			if (!response.ok) {
-				const data = await response.json();
-				throw new Error(data.error || 'Failed to fetch invoice');
-			}
-			const { url } = await response.json();
-			window.open(url, '_blank');
-		} catch (error) {
-			console.error('Invoice download error:', error);
-			toast.error(
-				error instanceof Error ? error.message : 'Failed to download invoice'
-			);
-		} finally {
-			setDownloadingInvoiceId(null);
-		}
-	};
+		setIsDeletingAccount(true);
 
-	const handleOpenBillingPortal = async () => {
-		setIsOpeningPortal(true);
 		try {
-			const response = await fetch('/api/user/billing/portal', {
-				method: 'POST',
+			const response = await fetch('/api/user/delete', {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ confirmEmail: userProfile.email }),
 			});
-			if (!response.ok) {
-				const data = await response.json();
-				throw new Error(data.error || 'Failed to open billing portal');
-			}
-			const { url } = await response.json();
-			window.location.href = url;
-		} catch (error) {
-			console.error('Portal error:', error);
-			toast.error(
-				error instanceof Error ? error.message : 'Failed to open billing portal'
-			);
-			setIsOpeningPortal(false);
-		}
-	};
 
-	const formatStorageSize = (mb: number) => {
-		if (mb >= 1024) {
-			return `${(mb / 1024).toFixed(1)}GB`;
+			// Safely parse response: handle 204 No Content and non-JSON responses
+			let result: { error?: string } = {};
+			const contentType = response.headers.get('content-type');
+			const hasJsonContent = contentType?.includes('application/json');
+
+			if (response.status !== 204 && hasJsonContent) {
+				try {
+					result = await response.json();
+				} catch {
+					// JSON parsing failed, use empty result
+					result = {};
+				}
+			}
+
+			if (!response.ok) {
+				throw new Error(result.error || 'Failed to delete account');
+			}
+
+			// Successfully deleted - clean up and redirect
+			resetStore();
+			await mutate(() => true, undefined, { revalidate: false });
+			router.push('/');
+			toast.success('Account deleted', {
+				description: 'Your account has been permanently deleted.',
+			});
+		} catch (error) {
+			console.error('Account deletion failed:', error);
+			toast.error('Failed to delete account', {
+				description:
+					error instanceof Error
+						? error.message
+						: 'Please try again or contact support.',
+			});
+		} finally {
+			setIsDeletingAccount(false);
+			setIsDeleteDialogOpen(false);
 		}
-		return `${mb}MB`;
 	};
 
 	const getUsagePercentage = (used: number, limit: number) => {
@@ -743,6 +745,7 @@ export function SettingsPanel({
 												size='sm'
 												variant='destructive'
 												className='bg-error-600 hover:bg-error-700'
+												onClick={handleOpenDeleteDialog}
 											>
 												<Trash2 className='size-4 mr-2' />
 												Delete
@@ -939,80 +942,65 @@ export function SettingsPanel({
 																<span className='text-text-secondary flex gap-1'>
 																	<span>{usage.mindMapsCount} </span>
 																	<span>
-																		{currentSubscription?.plan?.limits
-																			?.mindMaps === -1
-																			? ''
-																			: `/ ${currentSubscription?.plan?.limits?.mindMaps ?? '∞'}`}
+																		{planLimits.mindMaps === -1
+																			? '/ ∞'
+																			: `/ ${planLimits.mindMaps}`}
 																	</span>
 																</span>
 															</div>
-															{currentSubscription?.plan?.limits &&
-																currentSubscription.plan.limits.mindMaps !=
-																	null &&
-																currentSubscription.plan.limits.mindMaps !==
-																	-1 && (
-																	<Progress
-																		value={getUsagePercentage(
-																			usage.mindMapsCount,
-																			currentSubscription.plan.limits.mindMaps
-																		)}
-																	/>
+															{planLimits.mindMaps !== -1 && (
+																<Progress
+																	value={getUsagePercentage(
+																		usage.mindMapsCount,
+																		planLimits.mindMaps
+																	)}
+																/>
+															)}
+														</div>
+
+														<div>
+															<div className='flex items-center justify-between mb-2'>
+																<span className='text-text-primary'>
+																	Collaborators per Map
+																</span>
+																<span className='text-text-secondary'>
+																	{planLimits.collaboratorsPerMap === -1
+																		? 'Unlimited'
+																		: `Up to ${planLimits.collaboratorsPerMap} per map`}
+																</span>
+															</div>
+															<p className='text-xs text-text-tertiary'>
+																Limit enforced per individual map
+															</p>
+														</div>
+
+
+														<div>
+															<div className='flex items-center justify-between mb-2'>
+																<span className='text-text-primary'>
+																	AI Suggestions
+																</span>
+																{planLimits.aiSuggestions === 0 ? (
+																	<span className='text-text-tertiary text-sm'>
+																		Not available on Free
+																	</span>
+																) : (
+																	<span className='text-text-secondary gap-1 flex'>
+																		<span>{usage.aiSuggestionsCount}</span>
+																		<span>
+																			{planLimits.aiSuggestions === -1
+																				? '/ ∞'
+																				: `/ ${planLimits.aiSuggestions}`}
+																		</span>
+																	</span>
 																)}
-														</div>
-
-														<div>
-															<div className='flex items-center justify-between mb-2'>
-																<span className='text-text-primary'>
-																	Collaborators
-																</span>
-																<span className='text-text-secondary flex gap-1'>
-																	<span>{usage.collaboratorsCount}</span>
-																	<span>/</span>
-																	<span>∞</span>
-																</span>
 															</div>
-														</div>
-
-														<div>
-															<div className='flex items-center justify-between mb-2'>
-																<span className='text-text-primary'>
-																	Storage
-																</span>
-																<span className='text-text-secondary flex gap-1'>
-																	<span>
-																		{formatStorageSize(usage.storageUsedMB)}
-																	</span>
-																	<span>/</span>
-																	<span>∞</span>
-																</span>
-															</div>
-														</div>
-
-														<div>
-															<div className='flex items-center justify-between mb-2'>
-																<span className='text-text-primary'>
-																	AI Suggestions Used
-																</span>
-																<span className='text-text-secondary gap-1 flex'>
-																	<span>{usage.aiSuggestionsCount}</span>
-																	<span>
-																		{currentSubscription?.plan?.limits
-																			?.aiSuggestions === -1
-																			? ''
-																			: `/ ${currentSubscription?.plan?.limits?.aiSuggestions ?? '∞'}`}
-																	</span>
-																</span>
-															</div>
-															{currentSubscription?.plan?.limits &&
-																currentSubscription.plan.limits.aiSuggestions !=
-																	null &&
-																currentSubscription.plan.limits
-																	.aiSuggestions !== -1 && (
+															{planLimits.aiSuggestions !== -1 &&
+																planLimits.aiSuggestions > 0 && (
 																	<Progress
 																		value={getUsagePercentage(
 																			usage.aiSuggestionsCount,
-																			currentSubscription.plan.limits
-																				.aiSuggestions
+																			planLimits.aiSuggestions
 																		)}
 																	/>
 																)}
@@ -1026,123 +1014,6 @@ export function SettingsPanel({
 												)}
 											</div>
 										</motion.section>
-
-										<Separator className='bg-border-subtle/50' />
-
-										{/* Billing History */}
-										{!isLoadingPayments && (
-											<motion.section
-												animate={{ opacity: 1, y: 0 }}
-												className='space-y-4'
-												initial={{ opacity: 0, y: 10 }}
-												transition={{ delay: 0.2, duration: 0.3 }}
-											>
-												<h3 className='text-lg font-semibold text-text-primary flex items-center gap-2'>
-													<Calendar className='size-5 text-primary' />
-													Billing History
-												</h3>
-												<div className='space-y-4'>
-													{paymentHistory.length === 0 ? (
-														<div className='py-8 text-center'>
-															<Calendar className='size-8 mx-auto mb-3 text-text-secondary opacity-50' />
-															<p className='text-text-secondary'>
-																{currentSubscription
-																	? 'No payment history yet. Your first payment will appear here.'
-																	: 'Subscribe to a plan to see payment history.'}
-															</p>
-														</div>
-													) : (
-														<>
-															{paymentHistory.slice(0, 10).map((payment) => (
-																<div
-																	className='flex items-center justify-between p-4 bg-base rounded-lg border border-border-subtle'
-																	key={payment.id}
-																>
-																	<div className='flex items-center gap-4'>
-																		<div>
-																			<p className='text-text-primary font-medium'>
-																				{payment.description || 'Payment'}
-																			</p>
-																			<p className='text-sm text-text-secondary'>
-																				{new Date(
-																					payment.created_at
-																				).toLocaleDateString()}
-																			</p>
-																		</div>
-																		<Badge
-																			className={
-																				payment.status === 'succeeded'
-																					? 'bg-success-900/50 text-success-200 border-success-700/50'
-																					: payment.status === 'pending'
-																						? 'bg-warning-900/50 text-warning-200 border-warning-700/50'
-																						: 'bg-error-900/50 text-error-200 border-error-700/50'
-																			}
-																		>
-																			{payment.status}
-																		</Badge>
-																	</div>
-																	<div className='flex items-center gap-4'>
-																		<span className='text-text-primary font-medium'>
-																			<span className='flex gap-1'>
-																				<span>
-																					${payment.amount.toFixed(2)}
-																				</span>
-																				<span>
-																					{payment.currency.toUpperCase()}
-																				</span>
-																			</span>
-																		</span>
-																		<Button
-																			size='sm'
-																			variant='outline'
-																			onClick={() =>
-																				handleDownloadInvoice(payment)
-																			}
-																			disabled={
-																				downloadingInvoiceId === payment.id ||
-																				!payment.metadata?.stripe_invoice_id
-																			}
-																		>
-																			{downloadingInvoiceId === payment.id ? (
-																				<>
-																					<div className='size-4 mr-2 animate-spin rounded-full border-2 border-text-secondary border-t-transparent' />
-																					Loading...
-																				</>
-																			) : (
-																				<>
-																					<Download className='size-4 mr-2' />
-																					Invoice
-																				</>
-																			)}
-																		</Button>
-																	</div>
-																</div>
-															))}
-															{paymentHistory.length > 10 && (
-																<Button
-																	className='w-full'
-																	variant='outline'
-																	onClick={handleOpenBillingPortal}
-																	disabled={isOpeningPortal}
-																>
-																	{isOpeningPortal ? (
-																		<>
-																			<div className='size-4 mr-2 animate-spin rounded-full border-2 border-text-secondary border-t-transparent' />
-																			Opening...
-																		</>
-																	) : (
-																		<>
-																			<ExternalLink className='size-4 mr-2' />
-																			View All Transactions
-																		</>
-																	)}
-																</Button>
-															)}
-														</>
-													)}
-												</div>
-											</motion.section>
-										)}
 
 										<Separator className='bg-border-subtle/50' />
 
@@ -1227,6 +1098,16 @@ export function SettingsPanel({
 					)}
 				</div>
 			</Tabs>
+
+			{/* Delete Account Dialog */}
+			<DeleteAccountDialog
+				open={isDeleteDialogOpen}
+				onOpenChange={setIsDeleteDialogOpen}
+				onConfirm={handleDeleteAccount}
+				userEmail={userProfile?.email || ''}
+				isDeleting={isDeletingAccount}
+				impactStats={deleteImpactStats}
+			/>
 		</SidePanel>
 	);
 }

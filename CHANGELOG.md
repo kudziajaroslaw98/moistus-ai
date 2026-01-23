@@ -5,6 +5,197 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-01-23]
+
+### Added
+- **legal**: Privacy Policy page at `/privacy`
+  - GDPR & CCPA compliant with 12 sections
+  - Data collection disclosure, legal basis, subprocessor list
+  - User rights (access, rectification, erasure, portability)
+  - Contact information and complaint procedures
+- **legal**: Terms of Service page at `/terms`
+  - 16 comprehensive sections covering acceptable use, billing, AI features
+  - Subscription plans and cancellation terms
+  - Limitation of liability and dispute resolution (Poland jurisdiction)
+- **legal**: Shared layout for legal pages with consistent header/footer
+- **landing**: Added Privacy and Terms links to footer
+- **legal**: Cookie notice banner (GDPR-compliant)
+  - Simple informational notice (essential cookies only, no consent needed)
+  - localStorage persistence after acknowledgement
+  - Hidden on `/privacy` and `/terms` pages
+  - Reduced motion support, responsive design
+- **account**: GDPR Art. 17 compliant account deletion flow
+  - DELETE `/api/user/delete` endpoint with FK-safe cascade deletion
+  - Immediate Polar subscription revocation before data deletion
+  - Confirmation email via Resend after successful deletion
+  - DeleteAccountDialog component with email confirmation input
+  - Deletes 20 tables of user data in FK-safe order
+  - Best-effort deletion with logging for manual cleanup
+
+**Files created:**
+- `src/app/(legal)/layout.tsx`
+- `src/app/(legal)/privacy/page.tsx`
+- `src/app/(legal)/terms/page.tsx`
+- `src/components/legal/back-to-top-link.tsx`
+- `src/components/legal/cookie-notice-banner.tsx`
+- `src/app/api/user/delete/route.ts`
+- `src/components/account/delete-account-dialog.tsx`
+- `src/lib/email.ts`
+
+**Files modified:**
+- `src/components/providers/client-providers.tsx` (added CookieNoticeBanner)
+- `src/components/dashboard/settings-panel.tsx` (wired delete account button)
+- `src/store/slices/user-profile-slice.ts` (sync email from auth to profile)
+- `src/types/user-profile-types.ts` (added email field to UserProfile)
+
+### Removed
+- **landing**: Skip-to-content button (was appearing on back navigation)
+
+---
+
+## [2026-01-20]
+
+### Security
+- **mind-map/[id]**: Add server-side access validation before page renders
+  - Why: Previously access was only checked client-side after fetch failed (DDoS vector)
+  - Server component now validates session + ownership/share_access before any JS loads
+- **mind-map/[id]**: Add rate limiting (60 req/min per IP) to prevent abuse
+- **api/check-access**: Fix missing `status='active'` filter on share_access queries
+  - Why: Revoked access records could incorrectly show as "shared"
+
+### Fixed
+- **access-check**: Template mind maps now accessible to authenticated users
+  - Why: Access check only verified owner/share_access, missing `is_template` check
+
+### Added
+- **access-denied**: New `/access-denied` page with room code entry support
+  - Handles: `no_access`, `not_found`, `rate_limited` reasons
+  - Animated illustrations matching existing error page patterns
+- **dashboard**: Server-side auth validation for `/dashboard` and `/dashboard/templates`
+  - Why: Previously auth was only checked client-side (similar DDoS vector)
+  - Blocks anonymous users before any client JS loads
+
+## [2026-01-18]
+
+### Fixed
+- **api/join-room**: Guest users can now join rooms (was returning "Mind map not found")
+  - Why: RLS blocked anonymous users from reading mind_maps before share_access was created
+  - Consolidated 6 DB round trips into single atomic `join_room` RPC (SECURITY DEFINER)
+
+### Refactored
+- **database**: Consolidate join room logic into single `join_room` RPC
+  - Absorbs: `validate_room_code`, `get_or_create_share_access_record`, `increment_share_token_users`
+  - Keeps: `decrement_share_token_users` (still used by delete-share)
+  - Benefits: 1 round trip vs 6+, atomic transaction, simpler route code
+
+### Security
+- **api/maps**: Add missing user_id filter to ownedMaps query (critical fix)
+- **api/checkout**: Remove PII (email) from server logs, replaced with user.id
+- **api/checkout**: Add Zod validation to prevent invalid billing intervals
+- **api/billing/invoice**: Add auth check for consistency with other billing routes
+- **api/billing/portal**: Surface specific errors from auth and subscription queries
+- **api/webhooks/polar**: Validate POLAR_WEBHOOK_SECRET at module load
+- **api/webhooks/polar**: Fix subscription.canceled to keep status 'active' until period end
+- **api/join-room**: Handle PGRST116 (no rows) vs actual DB errors for existing access check
+- **api/join-room**: Add documentation about race condition in collaborator limit check
+- **api/create-room-code**: Fix step comment numbering (3,3,4,6,6 → 1-7)
+- **subscription-check**: Add error handling and throw on DB failure in getMapCollaboratorCount
+- **use-feature-gate**: Fix collaboratorsPerMap to 0 (requires server query)
+- **subscription-slice**: Fix usageMap collaboratorsPerMap to 0 (enforced server-side)
+- **polar.ts**: Add console.warn for unknown billing intervals
+
+### Changed
+- **components**: Update stale "Dodo" comments to "Polar" in upgrade-modal and pricing-step
+
+### Added
+- **migration**: Add unique partial index on user_subscriptions.polar_subscription_id
+  - Required for upsert with onConflict in webhook handler
+- **share-panel**: Free tier Max Users capped to 3 with orange upgrade indicator
+  - Why: Users couldn't see their limit until hitting it; now proactive visibility
+
+## [2026-01-17]
+
+### Fixed
+- **dashboard/mind-map-card**: Title text now visible on card gradient backgrounds
+  - Why: Missing `text-white` class caused title to inherit unclear default color
+- **billing/usage-period**: Usage limits now aligned with subscription billing cycle instead of calendar month
+  - Why: Users subscribing mid-month had incorrect usage counts (calendar month ≠ billing period)
+  - `getAIUsageCount()` now uses `subscription.current_period_start` from Polar webhooks
+  - Free users still fall back to calendar month boundaries
+- **billing/mid-cycle-upgrade**: Plan changes now preserve proportional remaining usage
+  - Why: Upgrading from free (0 AI) to pro (100 AI) should give ~100 remaining, not 0
+  - Calculates adjustment: `old_limit - new_limit` stored in `metadata.usage_adjustment`
+  - Adjustment applied when counting usage; resets on new billing period
+
+### Added
+- **billing/helpers**: `getSubscriptionBillingPeriod(user, supabase)` returns period dates + adjustment
+- **billing/helpers**: `calculateUsageAdjustment(oldLimit, newLimit)` for mid-cycle plan changes
+- **billing/webhooks**: Period transition detection clears usage_adjustment on renewal
+- **billing/webhooks**: Plan change detection calculates and stores usage adjustment
+
+### Changed
+- **billing/usage-api**: `/api/user/billing/usage` now returns subscription-aligned billing period
+- **billing/webhooks**: `handleSubscriptionUpdated()` tracks both period changes and plan changes
+
+### Tests
+- **e2e/billing**: Added comprehensive usage limit E2E tests (10 tests)
+  - Free user 402 enforcement, Pro/trialing access
+  - Billing period boundary verification
+  - Mid-cycle upgrade/downgrade adjustment
+  - Usage count accuracy
+  - Requires: `SUPABASE_SERVICE_ROLE_KEY` in `.env.e2e.local`
+
+### Security
+- **api/search-nodes**: Add AI limit check + usage tracking (was unprotected)
+
+### Added
+- **dashboard/create-map-card**: Disabled state with tooltip at map limit
+- **quick-input**: Warning banner + disabled create at node limit
+- **share-panel**: Disabled room code generation at collaborator limit
+- **MVP_ROADMAP.md**: Phase 5 database security plan (PostgreSQL triggers)
+
+### Fixed
+- **dashboard/create-map-card**: Card height now matches MindMapCard (h-56)
+
+---
+
+## [2026-01-16]
+
+### Fixed
+- **billing/webhooks**: Webhook handlers now throw on DB errors (enables Polar retry)
+  - Why: Silent failures caused data loss when DB writes failed but Polar saw 200 OK
+- **billing/status-mapping**: Unknown Polar statuses now map to `'unpaid'` instead of `'active'`
+  - Why: Security - undocumented statuses should not grant paid access
+- **billing/period-dates**: Calculate billing period end from interval when not provided
+  - Why: Prevented period_start === period_end breaking billing cycle logic
+- **subscription/feature-gate**: Deny access during subscription loading (was optimistic)
+  - Why: Free users briefly got Pro features during page load (~500ms-2s window)
+
+### Removed
+- **billing/payment_history**: Dropped `payment_history` table and related code
+  - Why: Billing history now delegated to Polar customer portal (simplifies codebase)
+  - Removed: `/api/user/billing/payment-history` endpoint
+  - Removed: `order.paid` and `order.refunded` webhook handlers
+  - Simplified: `/api/user/billing/invoice` now redirects to portal
+  - Removed: Billing History section from Settings panel (~120 lines)
+- **teams**: Removed all team infrastructure (tables, columns, RLS policies, API logic)
+  - Why: Half-implemented feature not needed for MVP; was security risk (no RLS)
+  - Dropped: `teams`, `team_members` tables
+  - Dropped: `team_id` columns from `mind_maps`, `map_folders`
+  - Simplified: API routes now user_id-only auth (no team membership checks)
+  - Updated: RLS policies on `map_folders` to user-only
+  - Recreated: `map_graph_aggregated_view` without team_id
+
+### Changed
+- **dashboard/shared-filter**: Repurposed "Shared" filter to show maps accessed via share codes
+  - Why: Removed team-based sharing, keep share-code-based access visible
+  - Now queries `share_access` table for maps user can access but doesn't own
+- **components**: Updated marketing text to remove "team" references
+  - upgrade-modal: "Work together with your team" → "Work together in real-time"
+  - pricing-step: "teams" → "collaborators"
+
+---
+
 ## [2026-01-14]
 
 ### Added
@@ -31,6 +222,17 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Docs
 - **MVP_ROADMAP.md**: Updated Phase 1.3 Feature Limit Enforcement to COMPLETED
+
+### Refactored
+- **billing**: Migrated from Dodo Payments to Polar.sh (Merchant of Record)
+  - Why: Polar has fully isolated sandbox environment for testing (sandbox.polar.sh)
+  - New routes: `/api/webhooks/polar` (replaced `/api/webhooks/dodo`)
+  - New helper: `/src/lib/polar.ts` (replaced `/src/helpers/dodo/client.ts`)
+  - Updated: checkout, cancel, reactivate, portal, invoice routes
+  - Database migration: Replaced dodo_*/stripe_* columns with polar_* columns
+  - Added packages: `@polar-sh/sdk`, `standardwebhooks`
+  - Removed packages: `dodopayments`, `@dodopayments/nextjs`
+  - Cleans up Stripe columns (technical debt item resolved)
 
 ---
 

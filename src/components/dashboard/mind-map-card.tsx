@@ -10,14 +10,7 @@ import {
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/utils/cn';
-import {
-	Archive,
-	Copy,
-	MoreVertical,
-	Share2,
-	Trash2,
-	Users,
-} from 'lucide-react';
+import { Archive, Copy, MoreVertical, Share2, Trash2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { memo, useCallback, useMemo, useState } from 'react';
@@ -29,15 +22,9 @@ interface MindMapData {
 	description: string | null;
 	created_at: string;
 	updated_at: string;
-	team_id?: string | null;
 	is_template?: boolean;
 	template_category?: string;
 	// Additional metadata
-	team?: {
-		id: string;
-		name: string;
-		slug: string;
-	};
 	_count?: {
 		nodes: number;
 		edges: number;
@@ -249,9 +236,9 @@ const MindMapCardComponent = ({
 				</Link>
 
 				{/* Content */}
-				<Link className='flex-grow min-w-0' href={`/mind-map/${map.id}`}>
+				<Link className='grow min-w-0' href={`/mind-map/${map.id}`}>
 					<div className='flex items-start justify-between'>
-						<div className='min-w-0 flex-grow'>
+						<div className='min-w-0 grow'>
 							<h3 className='text-white font-medium truncate'>{map.title}</h3>
 
 							{/* Description */}
@@ -265,14 +252,6 @@ const MindMapCardComponent = ({
 							)}
 
 							<div className='flex items-center gap-4 mt-1 text-xs text-zinc-400'>
-								{map.team && (
-									<span className='flex items-center gap-1'>
-										<Users className='h-3 w-3' />
-
-										{map.team.name}
-									</span>
-								)}
-
 								<span>{formatDate(map.updated_at)}</span>
 
 								{map._count && <span>{map._count.nodes} nodes</span>}
@@ -390,7 +369,7 @@ const MindMapCardComponent = ({
 					/>
 
 					{/* Enhanced Background Overlay for Better Text Contrast */}
-					<div className='absolute z-20 inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/10' />
+					<div className='absolute z-20 inset-0 bg-linear-to-t from-black/60 via-black/20 to-black/10' />
 
 					{/* Subtle Noise Overlay */}
 					<div
@@ -404,16 +383,6 @@ const MindMapCardComponent = ({
 
 					{/* Metadata Badges */}
 					<div className='absolute top-3 right-3 z-30 flex items-center gap-2'>
-						{map.team && (
-							<motion.div
-								animate={{ opacity: isHovered ? 1 : 0, x: isHovered ? 0 : 10 }}
-								className='px-2 py-1 rounded-full bg-black/50 backdrop-blur-sm'
-								initial={{ opacity: 0, x: 10 }}
-							>
-								<Users className='h-3 w-3 text-white' />
-							</motion.div>
-						)}
-
 						{map.is_template && (
 							<div className='px-2 py-1 rounded-full bg-purple-600/80 backdrop-blur-sm text-white text-xs font-medium'>
 								Template
@@ -422,9 +391,9 @@ const MindMapCardComponent = ({
 					</div>
 
 					{/* Enhanced Title Area with Better Hierarchy */}
-					<div className='absolute z-30 rounded-lg h-full flex flex-col justify-end items-start bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent'>
+					<div className='absolute z-30 rounded-lg h-full flex flex-col justify-end items-start bottom-0 left-0 right-0 p-4 bg-linear-to-t from-black/90 via-black/60 to-transparent'>
 						{/* Primary Title */}
-						<h3 className='text-white font-semibold text-base truncate mb-1 w-full drop-shadow-sm'>
+						<h3 className='font-semibold text-base text-white truncate mb-1 w-full drop-shadow-sm'>
 							{map.title}
 						</h3>
 
@@ -472,7 +441,7 @@ const MindMapCardComponent = ({
 							onClick={handleSelect}
 						>
 							{/* Larger touch target with padding */}
-							<div className='p-2 -m-2 min-w-[44px] min-h-[44px] flex items-center justify-center'>
+							<div className='p-2 -m-2 min-size-11 min-h-11 flex items-center justify-center'>
 								<Checkbox
 									checked={selected}
 									className='touch-manipulation'

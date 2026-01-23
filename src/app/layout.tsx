@@ -1,6 +1,7 @@
 import { ClientProviders } from '@/components/providers/client-providers';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Lora } from 'next/font/google';
+import { ReactNode } from 'react';
 import { Toaster } from 'sonner';
 import './globals.css';
 
@@ -27,16 +28,16 @@ export const metadata: Metadata = {
 export default function RootLayout({
 	children,
 }: Readonly<{
-	children: React.ReactNode;
+	children: ReactNode;
 }>) {
 	return (
 		<html
-			className='box-border flex h-full w-full'
+			className='box-border flex h-auto min-h-full w-full'
 			lang='en'
 			suppressHydrationWarning={true}
 		>
 			<body
-				className={`${geistSans.variable} ${geistMono.variable} ${lora.variable} dark h-full w-full bg-zinc-950`}
+				className={`${geistSans.variable} ${geistMono.variable} ${lora.variable} dark h-auto min-h-full w-full bg-zinc-950`}
 				suppressHydrationWarning={true}
 			>
 				<ClientProviders>

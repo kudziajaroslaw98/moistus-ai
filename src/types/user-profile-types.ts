@@ -5,6 +5,7 @@ export interface UserProfile {
 	display_name?: string;
 	avatar_url?: string;
 	bio?: string;
+	email?: string;
 	is_anonymous?: boolean;
 	color?: {
 		hsl: string;

@@ -43,8 +43,9 @@ export function useFeatureGate(feature: FeatureKey): FeatureGateResult {
 	}, [currentSubscription]);
 
 	const hasAccess = useMemo(() => {
-		// While loading, optimistically allow access to prevent UI flashing
-		if (isLoadingSubscription) return true;
+		// While loading, deny access to prevent free users from accessing Pro features
+		// This is more secure than optimistic access - UI should show loading state
+		if (isLoadingSubscription) return false;
 
 		// Check if current plan includes this feature
 		const requiredPlan = FEATURE_PLAN_MAP[feature];
@@ -99,15 +100,28 @@ export function useSubscriptionLimits() {
 			currentSubscription?.plan ||
 			availablePlans.find((p) => p.name === 'free');
 
+		// Canonical free tier limits (override any stale DB values)
+		const FREE_TIER_LIMITS = {
+			mindMaps: 3,
+			nodesPerMap: 50,
+			aiSuggestions: 0,
+			collaboratorsPerMap: 3,
+		};
+
 		if (!plan) {
-			return {
-				mindMaps: 3,
-				nodesPerMap: 50,
-				aiSuggestions: 0,
-			};
+			return FREE_TIER_LIMITS;
 		}
 
-		return plan.limits;
+		// For free tier, always use canonical limits to prevent stale DB values
+		if (plan.name === 'free') {
+			return FREE_TIER_LIMITS;
+		}
+
+		return {
+			...plan.limits,
+			// Ensure collaboratorsPerMap has a fallback
+			collaboratorsPerMap: plan.limits.collaboratorsPerMap ?? 3,
+		};
 	}, [currentSubscription, availablePlans]);
 
 	const usage = useMemo(() => {
@@ -115,6 +129,9 @@ export function useSubscriptionLimits() {
 			mindMaps: usageData?.mindMapsCount ?? 0,
 			nodesPerMap: nodes.length, // Client-side per current map
 			aiSuggestions: usageData?.aiSuggestionsCount ?? 0,
+			// Global collaborators count across all maps - accurate per-map count requires server query
+			// Using 0 as placeholder since we can't compute per-map remaining from global count
+			collaboratorsPerMap: 0,
 		};
 	}, [usageData, nodes.length]);
 
@@ -132,6 +149,8 @@ export function useSubscriptionLimits() {
 				limits.aiSuggestions === -1
 					? null
 					: Math.max(0, limits.aiSuggestions - usage.aiSuggestions),
+			// Per-map collaborator remaining requires server query - undefined since we can't compute client-side
+			collaboratorsPerMap: undefined,
 		};
 	}, [limits, usage]);
 
