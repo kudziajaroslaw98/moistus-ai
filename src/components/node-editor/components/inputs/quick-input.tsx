@@ -281,7 +281,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 	// Handle node creation with current node type
 	const handleCreate = useCallback(async () => {
-		if (!value.trim() || isCreating) return;
+		// Guard: same checks as ActionBar canCreate prop
+		if (value.trim().length === 0 || isAtNodeLimit || isCreating) return;
 
 		try {
 			setIsCreating(true);
@@ -340,6 +341,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 		updateNode,
 		closeNodeEditor,
 		isCreating,
+		isAtNodeLimit,
 		mode,
 		existingNode,
 		referenceMetadata,

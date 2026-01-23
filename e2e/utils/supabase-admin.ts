@@ -82,7 +82,14 @@ export async function setupTestSubscription(
 	}
 
 	// Delete existing subscription first, then insert
-	await supabaseAdmin.from('user_subscriptions').delete().eq('user_id', userId);
+	const { error: deleteError } = await supabaseAdmin
+		.from('user_subscriptions')
+		.delete()
+		.eq('user_id', userId);
+
+	if (deleteError) {
+		throw new Error(`Failed to delete existing subscription: ${deleteError.message}`);
+	}
 
 	const { error } = await supabaseAdmin.from('user_subscriptions').insert({
 		user_id: userId,

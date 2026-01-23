@@ -271,9 +271,13 @@ export const createSubscriptionSlice: StateCreator<
 				throw new Error(data.error || 'Failed to create checkout session');
 			}
 
-			return {
-				checkoutUrl: data.checkoutUrl,
-			};
+			// Defensively read checkoutUrl from both possible shapes
+			const checkoutUrl = data.checkoutUrl || data.data?.checkoutUrl;
+			if (!checkoutUrl) {
+				throw new Error('No checkout URL returned from server');
+			}
+
+			return { checkoutUrl };
 		} catch (error) {
 			console.error('Error creating checkout session:', error);
 			return {

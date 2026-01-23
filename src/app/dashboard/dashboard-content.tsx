@@ -213,7 +213,7 @@ export function DashboardContent() {
 				if (response.status === 402) {
 					const errorData = await response.json();
 					toast.error(
-						`Mind map limit reached (${errorData.details?.limit || 3} maps). Upgrade to Pro for unlimited maps.`,
+						`Mind map limit reached (${errorData.data?.limit || 3} maps). Upgrade to Pro for unlimited maps.`,
 						{
 							action: {
 								label: 'Upgrade',
