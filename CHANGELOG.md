@@ -24,6 +24,13 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - localStorage persistence after acknowledgement
   - Hidden on `/privacy` and `/terms` pages
   - Reduced motion support, responsive design
+- **account**: GDPR Art. 17 compliant account deletion flow
+  - DELETE `/api/user/delete` endpoint with FK-safe cascade deletion
+  - Immediate Polar subscription revocation before data deletion
+  - Confirmation email via Resend after successful deletion
+  - DeleteAccountDialog component with email confirmation input
+  - Deletes 20 tables of user data in FK-safe order
+  - Best-effort deletion with logging for manual cleanup
 
 **Files created:**
 - `src/app/(legal)/layout.tsx`
@@ -31,9 +38,15 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - `src/app/(legal)/terms/page.tsx`
 - `src/components/legal/back-to-top-link.tsx`
 - `src/components/legal/cookie-notice-banner.tsx`
+- `src/app/api/user/delete/route.ts`
+- `src/components/account/delete-account-dialog.tsx`
+- `src/lib/email.ts`
 
 **Files modified:**
 - `src/components/providers/client-providers.tsx` (added CookieNoticeBanner)
+- `src/components/dashboard/settings-panel.tsx` (wired delete account button)
+- `src/store/slices/user-profile-slice.ts` (sync email from auth to profile)
+- `src/types/user-profile-types.ts` (added email field to UserProfile)
 
 ### Removed
 - **landing**: Skip-to-content button (was appearing on back navigation)

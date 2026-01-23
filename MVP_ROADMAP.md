@@ -163,21 +163,26 @@ MVP launch readiness checklist:
 ---
 
 ### 1.5.4 Account Deletion Flow (GDPR Art. 17)
-- [ ] Add "Delete Account" button in settings panel
-- [ ] Confirmation modal with warning about data loss
-- [ ] API route to delete: user profile, maps, nodes, edges, comments, subscriptions
-- [ ] Cancel active Stripe subscription before deletion
-- [ ] Send confirmation email after deletion
-- [ ] 30-day grace period option (soft delete) vs immediate (hard delete)
+- [x] Add "Delete Account" button in settings panel
+- [x] Confirmation modal with warning about data loss
+- [x] API route to delete: user profile, maps, nodes, edges, comments, subscriptions
+- [x] Cancel active Polar subscription before deletion (immediate revoke)
+- [x] Send confirmation email after deletion (via Resend)
+- [x] Hard delete (immediate) - no grace period for MVP simplicity
 
-**Files to create:**
+**Decision:** Implemented hard delete (immediate) for MVP. Soft delete can be added later if needed.
+
+**Files created:**
 - `src/app/api/user/delete/route.ts`
-- `src/components/settings/delete-account-modal.tsx`
+- `src/components/account/delete-account-dialog.tsx`
+- `src/lib/email.ts`
 
-**Files to modify:**
+**Files modified:**
 - `src/components/dashboard/settings-panel.tsx`
+- `src/store/slices/user-profile-slice.ts` (sync email to profile)
+- `src/types/user-profile-types.ts` (added email field)
 
-**Effort:** 4-5 hours | **Risk:** Medium (must handle Stripe, cascade deletes)
+**Status:** ✅ COMPLETED
 
 ---
 
@@ -217,10 +222,10 @@ MVP launch readiness checklist:
 
 | Requirement | EU Law | US Law | Priority |
 |-------------|--------|--------|----------|
-| Privacy Policy | GDPR Art. 13-14 | CCPA, state laws | 🔴 BLOCKER |
-| Terms of Service | Contract law | Contract law | 🔴 BLOCKER |
+| Privacy Policy | GDPR Art. 13-14 | CCPA, state laws | ✅ DONE |
+| Terms of Service | Contract law | Contract law | ✅ DONE |
 | Cookie Notice | GDPR/ePrivacy | Varies | ✅ DONE (essential-only) |
-| Account Deletion | GDPR Art. 17 | CCPA | 🔴 BLOCKER |
+| Account Deletion | GDPR Art. 17 | CCPA | ✅ DONE |
 | Data Export | GDPR Art. 20 | CCPA | 🔴 BLOCKER (see 2.1) |
 | Subprocessor List | GDPR Art. 28 | Best practice | 🟡 HIGH |
 | DPA Template | GDPR Art. 28 | B2B contracts | 🟡 HIGH (B2B) |

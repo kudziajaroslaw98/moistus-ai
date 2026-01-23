@@ -1,5 +1,9 @@
 'use client';
 
+import {
+	DeleteAccountDialog,
+	DeleteAccountImpactStats,
+} from '@/components/account/delete-account-dialog';
 import { NodeTypeSelector } from '@/components/settings/node-type-selector';
 import { SidePanel } from '@/components/side-panel';
 import { Badge } from '@/components/ui/badge';
@@ -36,8 +40,10 @@ import {
 	User,
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { mutate } from 'swr';
 import { useShallow } from 'zustand/shallow';
 
 interface UsageStats {
@@ -62,6 +68,8 @@ export function SettingsPanel({
 	onClose,
 	defaultTab = 'settings',
 }: SettingsPanelProps) {
+	const router = useRouter();
+
 	const {
 		userProfile,
 		isLoadingProfile,
@@ -79,6 +87,7 @@ export function SettingsPanel({
 		isTrialing,
 		getTrialDaysRemaining,
 		setPopoverOpen,
+		resetStore,
 	} = useAppStore(
 		useShallow((state) => ({
 			userProfile: state.userProfile,
@@ -97,11 +106,18 @@ export function SettingsPanel({
 			isTrialing: state.isTrialing,
 			getTrialDaysRemaining: state.getTrialDaysRemaining,
 			setPopoverOpen: state.setPopoverOpen,
+			resetStore: state.reset,
 		}))
 	);
 
 	const [isSaving, setIsSaving] = useState(false);
 	const [activeTab, setActiveTab] = useState(defaultTab);
+
+	// Delete account state
+	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+	const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+	const [deleteImpactStats, setDeleteImpactStats] =
+		useState<DeleteAccountImpactStats | null>(null);
 
 	// Get limits with proper free tier fallback
 	const { limits: planLimits } = useSubscriptionLimits();
@@ -309,6 +325,83 @@ export function SettingsPanel({
 		setIsOpeningPortal(true);
 		// SDK's CustomerPortal handles redirect automatically
 		window.location.href = '/api/user/billing/portal';
+	};
+
+	const handleOpenDeleteDialog = async () => {
+		// Fetch impact stats for the dialog
+		try {
+			const response = await fetch('/api/user/billing/usage');
+			if (response.ok) {
+				const result = await response.json();
+				setDeleteImpactStats({
+					mindMapsCount: result.data?.mindMapsCount ?? 0,
+					hasActiveSubscription:
+						currentSubscription?.status === 'active' ||
+						currentSubscription?.status === 'trialing',
+				});
+			} else {
+				// Use defaults if fetch fails
+				setDeleteImpactStats({
+					mindMapsCount: 0,
+					hasActiveSubscription:
+						currentSubscription?.status === 'active' ||
+						currentSubscription?.status === 'trialing',
+				});
+			}
+		} catch {
+			// Use defaults on error
+			setDeleteImpactStats({
+				mindMapsCount: 0,
+				hasActiveSubscription:
+					currentSubscription?.status === 'active' ||
+					currentSubscription?.status === 'trialing',
+			});
+		}
+		setIsDeleteDialogOpen(true);
+	};
+
+	const handleDeleteAccount = async () => {
+		if (!userProfile?.email) {
+			toast.error('Unable to delete account', {
+				description: 'No email address found for your account.',
+			});
+			return;
+		}
+
+		setIsDeletingAccount(true);
+
+		try {
+			const response = await fetch('/api/user/delete', {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ confirmEmail: userProfile.email }),
+			});
+
+			const result = await response.json();
+
+			if (!response.ok) {
+				throw new Error(result.error || 'Failed to delete account');
+			}
+
+			// Successfully deleted - clean up and redirect
+			resetStore();
+			await mutate(() => true, undefined, { revalidate: false });
+			router.push('/');
+			toast.success('Account deleted', {
+				description: 'Your account has been permanently deleted.',
+			});
+		} catch (error) {
+			console.error('Account deletion failed:', error);
+			toast.error('Failed to delete account', {
+				description:
+					error instanceof Error
+						? error.message
+						: 'Please try again or contact support.',
+			});
+		} finally {
+			setIsDeletingAccount(false);
+			setIsDeleteDialogOpen(false);
+		}
 	};
 
 	const getUsagePercentage = (used: number, limit: number) => {
@@ -640,6 +733,7 @@ export function SettingsPanel({
 												size='sm'
 												variant='destructive'
 												className='bg-error-600 hover:bg-error-700'
+												onClick={handleOpenDeleteDialog}
 											>
 												<Trash2 className='size-4 mr-2' />
 												Delete
@@ -1000,6 +1094,16 @@ export function SettingsPanel({
 					)}
 				</div>
 			</Tabs>
+
+			{/* Delete Account Dialog */}
+			<DeleteAccountDialog
+				open={isDeleteDialogOpen}
+				onOpenChange={setIsDeleteDialogOpen}
+				onConfirm={handleDeleteAccount}
+				userEmail={userProfile?.email || ''}
+				isDeleting={isDeletingAccount}
+				impactStats={deleteImpactStats}
+			/>
 		</SidePanel>
 	);
 }
