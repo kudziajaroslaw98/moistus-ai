@@ -139,10 +139,18 @@ function ForgotPasswordWizard() {
 
 		try {
 			const supabase = getSharedSupabaseClient();
+			// Always use localhost for local dev to match localStorage origin
+			// (127.0.0.1 and localhost are different origins for localStorage)
+			const origin =
+				typeof window !== 'undefined' &&
+				window.location.hostname === '127.0.0.1'
+					? `http://localhost:${window.location.port}`
+					: window.location.origin;
+
 			const { error: resetError } = await supabase.auth.resetPasswordForEmail(
 				data.email,
 				{
-					redirectTo: `${window.location.origin}/auth/forgot-password`,
+					redirectTo: `${origin}/auth/forgot-password`,
 				}
 			);
 
