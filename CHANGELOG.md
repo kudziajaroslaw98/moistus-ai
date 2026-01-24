@@ -5,6 +5,23 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-01-24]
+
+### Fixed
+- **auth**: Password reset PKCE flow - normalized origin to `localhost` for localStorage consistency
+  - `127.0.0.1` and `localhost` are different origins, causing code verifier mismatch
+- **ui/select**: Dropdown positioning - added `z-[100]`, `alignItemWithTrigger={false}`, `side="bottom"`
+  - Was appearing above trigger or not visible in modals/sidepanels
+- **ui/popover**: Z-index and side positioning for modals/sidepanels
+  - Password requirements tooltip now appears correctly above the card
+- **user-menu**: Nested button hydration error - switched from `asChild` to `render` prop
+- **subscription-slice**: Silent failure for `fetchUsageData` on logout (non-critical data)
+
+### Docs
+- **CLAUDE.md**: Added Base UI Gotchas section (render prop, alignItemWithTrigger, portal z-index)
+
+---
+
 ## [2026-01-23]
 
 ### Added
