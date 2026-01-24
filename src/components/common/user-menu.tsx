@@ -112,24 +112,26 @@ export function UserMenu({
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
-				<Button
-					className='flex items-center space-x-3 hover:bg-zinc-800 focus:bg-zinc-800'
-					disabled={isLoggingOut}
-					variant='ghost'
-				>
-					{/* User Avatar */}
-					<UserAvatar className='size-6' size='md' user={user} />
+			<DropdownMenuTrigger
+				render={
+					<Button
+						className='flex items-center space-x-3 hover:bg-zinc-800 focus:bg-zinc-800'
+						disabled={isLoggingOut}
+						variant='ghost'
+					>
+						{/* User Avatar */}
+						<UserAvatar className='size-6' size='md' user={user} />
 
-					{/* User Info - Hidden on mobile, visible on larger screens if not in compact mode */}
-					<div className='hidden sm:block text-left'>
-						<div className='text-sm font-medium text-white'>{name}</div>
-					</div>
+						{/* User Info - Hidden on mobile, visible on larger screens if not in compact mode */}
+						<div className='hidden sm:block text-left'>
+							<div className='text-sm font-medium text-white'>{name}</div>
+						</div>
 
-					{/* Chevron */}
-					<ChevronDown className='h-4 w-4 text-zinc-400' />
-				</Button>
-			</DropdownMenuTrigger>
+						{/* Chevron */}
+						<ChevronDown className='h-4 w-4 text-zinc-400' />
+					</Button>
+				}
+			/>
 
 			<DropdownMenuContent
 				align='end'
