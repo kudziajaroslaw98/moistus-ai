@@ -1,74 +1,23 @@
-import { createServerClient } from '@supabase/ssr';
-import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
-import { createClient } from './helpers/supabase/server';
+import { NextResponse, type NextRequest } from 'next/server';
 
-export async function updateSession(request: NextRequest) {
-	let supabaseResponse = NextResponse.next({
-		request,
-	});
+/**
+ * Proxy middleware for Next.js 16.
+ *
+ * Handles password recovery redirects. Supabase strips the path from redirectTo,
+ * so we intercept `/?code=xxx` at the root and redirect to `/auth/forgot-password?code=xxx`.
+ * The PKCE code verifier in localStorage is preserved across same-origin redirects.
+ */
+export function proxy(request: NextRequest) {
+	const { pathname, searchParams } = request.nextUrl;
 
-	const supabase = createServerClient(
-		process.env.NEXT_PUBLIC_SUPABASE_URL!,
-		process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-		{
-			cookies: {
-				getAll() {
-					return request.cookies.getAll();
-				},
-				setAll(cookiesToSet) {
-					cookiesToSet.forEach(({ name, value }) =>
-						request.cookies.set(name, value)
-					);
-					supabaseResponse = NextResponse.next({ request });
-					cookiesToSet.forEach(({ name, value, options }) =>
-						supabaseResponse.cookies.set(name, value, options)
-					);
-				},
-			},
-		}
-	);
-
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-
-	if (
-		!user &&
-		!request.nextUrl.pathname.startsWith('/login') &&
-		!request.nextUrl.pathname.startsWith('/auth')
-	) {
+	// Redirect password recovery codes from root to forgot-password page
+	// Supabase sends users to /?code=xxx even when redirectTo specifies a path
+	if (pathname === '/' && searchParams.has('code')) {
+		const code = searchParams.get('code');
 		const url = request.nextUrl.clone();
-		url.pathname = '/login';
+		url.pathname = '/auth/forgot-password';
+		url.searchParams.set('code', code!);
 		return NextResponse.redirect(url);
-	}
-
-	return supabaseResponse;
-}
-
-const checkIfAuthenticated = async (req: NextRequest) => {
-	const supabase = await createClient();
-	const {
-		data: { user },
-		error,
-	} = await supabase.auth.getUser();
-
-	if (user === null || error !== null) {
-		const redirectUrl = req.nextUrl.clone();
-		redirectUrl.pathname = '/auth/sign-in';
-		redirectUrl.searchParams.set(`redirectedFrom`, req.nextUrl.pathname);
-
-		return NextResponse.redirect(new URL(redirectUrl));
-	}
-};
-
-export async function proxy(req: NextRequest) {
-	await updateSession(req);
-
-	const protectedRoutes = ['/dashboard', '/mind-map'];
-
-	if (protectedRoutes.some((route) => req.nextUrl.pathname.startsWith(route))) {
-		return checkIfAuthenticated(req);
 	}
 
 	return NextResponse.next();
@@ -76,6 +25,6 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
 	matcher: [
-		'/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+		'/((?!api|_next/static|_next/image|favicon.ico|images|.*\\..*$).*)',
 	],
 };
