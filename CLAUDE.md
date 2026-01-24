@@ -109,6 +109,24 @@ pnpm pretty          # Prettier
 
 **Ghost Nodes**: System-only (`userCreatable: false`), filtered from exports.
 
+## Base UI Gotchas
+<!-- Updated: 2026-01-24 - Added Base UI patterns -->
+
+**`render` prop (not `asChild`)**: Base UI deprecated `asChild`. Use `render` prop to pass trigger behavior to custom elements:
+```tsx
+// ❌ Deprecated
+<DropdownMenuTrigger asChild>
+  <Button>Click me</Button>
+</DropdownMenuTrigger>
+
+// ✅ Correct
+<DropdownMenuTrigger render={<Button>Click me</Button>} />
+```
+
+**Select positioning**: By default `alignItemWithTrigger={true}` makes dropdown **overlap** trigger (like native OS selects). Set `alignItemWithTrigger={false}` for standard dropdown-below-trigger behavior.
+
+**Portal z-index in modals**: Select/Dropdown portals render to `<body>`. When inside SidePanel/Modal (z-40), set `z-[100]` on Positioner to ensure dropdown appears above modal layers.
+
 ## Animations
 
 Guideline @./animation-guidelines.md
