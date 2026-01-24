@@ -189,7 +189,7 @@ MVP launch readiness checklist:
 ### 1.5.5 Subprocessor List (Transparency)
 - [x] Create `/subprocessors` dedicated page
 - [x] List all third parties processing user data:
-  - Supabase (PostgreSQL, Auth, Realtime) - EU
+  - Supabase (PostgreSQL, Auth, Realtime) - US
   - Polar.sh (Payments) - US
   - OpenAI (AI features) - US
   - Vercel (Hosting, Edge) - US

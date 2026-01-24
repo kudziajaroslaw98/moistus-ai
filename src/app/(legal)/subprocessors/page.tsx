@@ -26,9 +26,9 @@ const SUBPROCESSORS: Subprocessor[] = [
 		purpose: 'Database, Authentication, Real-time collaboration',
 		dataProcessed:
 			'User accounts, mind maps, nodes, edges, comments, sessions',
-		location: 'EU (Frankfurt)',
+		location: 'US (Ohio)',
 		privacyUrl: 'https://supabase.com/privacy',
-		dpaStatus: 'GDPR DPA included',
+		dpaStatus: 'GDPR DPA included, SCCs for EU transfers',
 	},
 	{
 		name: 'Polar.sh',
