@@ -3,6 +3,13 @@ import { STORE_SAVE_DEBOUNCE_MS } from '@/constants/store-save-debounce-ms';
 import generateUuid from '@/helpers/generate-uuid';
 import mergeEdgeData from '@/helpers/merge-edge-data';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
+import {
+	broadcast,
+	BROADCAST_EVENTS,
+	subscribeToSyncEvents,
+	unsubscribeFromSyncChannel,
+	type EdgeBroadcastPayload,
+} from '@/lib/realtime/broadcast-channel';
 import type { AppEdge } from '@/types/app-edge';
 import type { EdgeData } from '@/types/edge-data';
 import { debouncePerKey } from '@/utils/debounce-per-key';
@@ -32,93 +39,93 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 	set,
 	get
 ) => {
-	// Handle real-time edge events
-	const handleEdgeRealtimeEvent = (payload: any) => {
-		const { eventType, new: newRecord, old: oldRecord } = payload;
-		const { edges, markEdgeAsSystemUpdate } = get();
+	// Handle broadcast edge create events
+	const handleEdgeCreate = (payload: EdgeBroadcastPayload) => {
+		const { currentUser, edges, markEdgeAsSystemUpdate } = get();
 
-		// Mark this edge as system-updated to prevent save loop
-		const edgeId = newRecord?.id || oldRecord?.id;
-		if (edgeId) {
-			markEdgeAsSystemUpdate(edgeId);
-		}
+		// Ignore our own broadcasts
+		if (payload.userId === currentUser?.id) return;
 
-		switch (eventType) {
-			case 'INSERT': {
-				if (newRecord) {
-					// Check if edge already exists (prevent duplicates)
-					const existingEdge = edges.find((e) => e.id === newRecord.id);
+		// Mark as system update to prevent save loop
+		markEdgeAsSystemUpdate(payload.id);
 
-					if (!existingEdge) {
-						const newEdge: AppEdge = {
-							id: newRecord.id,
-							source: newRecord.source,
-							target: newRecord.target,
-							type: getEdgeType(newRecord),
-							animated: newRecord.animated || false,
-							label: newRecord.label,
-							style: {
-								stroke: newRecord.style?.stroke || '#6c757d',
-								strokeWidth: newRecord.style?.strokeWidth || 2,
-							},
-							markerEnd: newRecord.markerEnd,
-							data: newRecord,
-						};
+		const newRecord = payload.data as EdgeData;
+		if (!newRecord) return;
 
-						set({ edges: [...edges, newEdge] });
-						console.log('Real-time: Edge added', newRecord.id);
-					}
-				}
+		// Check if edge already exists (prevent duplicates)
+		const existingEdge = edges.find((e) => e.id === payload.id);
+		if (existingEdge) return;
 
-				break;
+		const newEdge: AppEdge = {
+			id: newRecord.id,
+			source: newRecord.source,
+			target: newRecord.target,
+			type: getEdgeType(newRecord),
+			animated: newRecord.animated || false,
+			label: newRecord.label,
+			style: {
+				stroke: newRecord.style?.stroke || '#6c757d',
+				strokeWidth: newRecord.style?.strokeWidth || 2,
+			},
+			markerEnd: newRecord.markerEnd,
+			data: newRecord,
+		};
+
+		set({ edges: [...edges, newEdge] });
+		console.log('[broadcast] Edge created:', payload.id);
+	};
+
+	// Handle broadcast edge update events
+	const handleEdgeUpdate = (payload: EdgeBroadcastPayload) => {
+		const { currentUser, edges, markEdgeAsSystemUpdate } = get();
+
+		// Ignore our own broadcasts
+		if (payload.userId === currentUser?.id) return;
+
+		// Mark as system update to prevent save loop
+		markEdgeAsSystemUpdate(payload.id);
+
+		const newRecord = payload.data as EdgeData;
+		if (!newRecord) return;
+
+		const updatedEdges = edges.map((edge) => {
+			if (edge.id === payload.id) {
+				return {
+					...edge,
+					source: newRecord.source,
+					target: newRecord.target,
+					type: getEdgeType(newRecord),
+					animated: newRecord.animated || false,
+					label: newRecord.label,
+					style: {
+						stroke: newRecord.style?.stroke || edge.style?.stroke || '#6c757d',
+						strokeWidth:
+							newRecord.style?.strokeWidth || edge.style?.strokeWidth || 2,
+					},
+					markerEnd: newRecord.markerEnd,
+					data: newRecord,
+				};
 			}
+			return edge;
+		});
 
-			case 'UPDATE': {
-				if (newRecord) {
-					const updatedEdges = edges.map((edge) => {
-						if (edge.id === newRecord.id) {
-							return {
-								...edge,
-								source: newRecord.source,
-								target: newRecord.target,
-								type: getEdgeType(newRecord), // Update edge type from DB data
-								animated: newRecord.animated || false,
-								label: newRecord.label,
-								style: {
-									stroke:
-										newRecord.style?.stroke || edge.style?.stroke || '#6c757d',
-									strokeWidth:
-										newRecord.style?.strokeWidth ||
-										edge.style?.strokeWidth ||
-										2,
-								},
-								markerEnd: newRecord.markerEnd,
-								data: newRecord,
-							};
-						}
+		set({ edges: updatedEdges });
+		console.log('[broadcast] Edge updated:', payload.id);
+	};
 
-						return edge;
-					});
+	// Handle broadcast edge delete events
+	const handleEdgeDelete = (payload: EdgeBroadcastPayload) => {
+		const { currentUser, edges, markEdgeAsSystemUpdate } = get();
 
-					set({ edges: updatedEdges });
-					console.log('Real-time: Edge updated', newRecord.id);
-				}
+		// Ignore our own broadcasts
+		if (payload.userId === currentUser?.id) return;
 
-				break;
-			}
+		// Mark as system update to prevent save loop
+		markEdgeAsSystemUpdate(payload.id);
 
-			case 'DELETE': {
-				if (oldRecord) {
-					const filteredEdges = edges.filter(
-						(edge) => edge.id !== oldRecord.id
-					);
-					set({ edges: filteredEdges });
-					console.log('Real-time: Edge deleted', oldRecord.id);
-				}
-
-				break;
-			}
-		}
+		const filteredEdges = edges.filter((edge) => edge.id !== payload.id);
+		set({ edges: filteredEdges });
+		console.log('[broadcast] Edge deleted:', payload.id);
 	};
 
 	return {
@@ -235,7 +242,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 				data: Partial<EdgeData>,
 				toastId?: string
 			) => {
-				const { supabase, mapId, edges, nodes, addStateToHistory } = get();
+				const { supabase, mapId, edges, nodes } = get();
 
 				if (!mapId) {
 					throw new Error('Cannot add connection: Map ID missing.');
@@ -318,7 +325,23 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					nodes: finalNodes,
 				});
 
-				addStateToHistory('addEdge', { edges: finalEdges, nodes: nodes });
+				// Persist delta to DB for history tracking
+				get().persistDeltaEvent(
+					'addEdge',
+					{ nodes, edges },
+					{ nodes: finalNodes, edges: finalEdges }
+				);
+
+				// Broadcast edge creation to other clients
+				if (mapId) {
+					await broadcast(mapId, BROADCAST_EVENTS.EDGE_CREATE, {
+						id: newFlowEdge.id,
+						data: insertedEdgeData as unknown as Record<string, unknown>,
+						userId: user.data.user.id,
+						timestamp: Date.now(),
+					});
+				}
+
 				return newFlowEdge;
 			},
 			'isAddingContent',
@@ -330,7 +353,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 		),
 		deleteEdges: withLoadingAndToast(
 			async (edgesToDelete: AppEdge[]) => {
-				const { supabase, mapId, edges, nodes, addStateToHistory } = get();
+				const { supabase, mapId, edges, nodes } = get();
 				const deleteIds = edgesToDelete.map((edge) => edge.id);
 
 				if (!mapId) {
@@ -368,7 +391,23 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					nodes: updatedNodes,
 				});
 
-				addStateToHistory('deleteEdge', { edges: finalEdges, nodes: nodes });
+				// Persist delta to DB for history tracking
+				get().persistDeltaEvent(
+					'deleteEdge',
+					{ nodes, edges },
+					{ nodes: updatedNodes, edges: finalEdges }
+				);
+
+				// Broadcast edge deletions to other clients
+				if (mapId) {
+					for (const edge of edgesToDelete) {
+						await broadcast(mapId, BROADCAST_EVENTS.EDGE_DELETE, {
+							id: edge.id,
+							userId: user.data.user.id,
+							timestamp: Date.now(),
+						});
+					}
+				}
 			},
 			'isAddingContent',
 			{
@@ -378,7 +417,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 			}
 		),
 		updateEdge: async (props: { edgeId: string; data: Partial<EdgeData> }) => {
-			const { edges, nodes, addStateToHistory, mapId, supabase } = get();
+			const { edges, nodes, mapId, supabase } = get();
 			const { edgeId, data } = props;
 
 			const user = (await supabase?.auth.getUser())?.data.user;
@@ -433,11 +472,16 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 			// Trigger debounced save to persist changes
 			get().triggerEdgeSave(edgeId);
 
-			addStateToHistory('updateEdge', { edges: finalEdges, nodes: nodes });
+			// Persist delta to DB for history tracking
+			get().persistDeltaEvent(
+				'updateEdge',
+				{ nodes, edges },
+				{ nodes, edges: finalEdges }
+			);
 		},
 		triggerEdgeSave: debouncePerKey(
 			async (edgeId: string) => {
-				const { edges, supabase, mapId, addStateToHistory, nodes } = get();
+				const { edges, supabase, mapId } = get();
 				const edge = edges.find((e) => e.id === edgeId);
 
 				if (!edge || !edge.data) {
@@ -515,7 +559,18 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					edges: finalEdges,
 				});
 
-				addStateToHistory('updateEdge', { edges: finalEdges, nodes: nodes });
+				// Broadcast update to other clients after successful save
+				const { currentUser } = get();
+				if (mapId) {
+					await broadcast(mapId, BROADCAST_EVENTS.EDGE_UPDATE, {
+						id: edgeId,
+						data: dbEdge as unknown as Record<string, unknown>,
+						userId: currentUser?.id || user_id,
+						timestamp: Date.now(),
+					});
+				}
+
+				// Note: History delta already persisted in updateEdge before debounced save
 			},
 			STORE_SAVE_DEBOUNCE_MS,
 			(edgeId: string) => edgeId // getKey function for triggerEdgeSave
@@ -526,7 +581,6 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 				nodes,
 				triggerEdgeSave,
 				triggerNodeSave,
-				addStateToHistory,
 			} = get();
 
 			const edge = edges.find((e) => e.id === edgeId);
@@ -571,63 +625,60 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 
 			set({ edges: updatedEdges as AppEdge[], nodes: updatedNodes });
 
-			// Debounced save and history
+			// Debounced save
 			triggerEdgeSave(edgeId);
 			triggerNodeSave(edge.target);
-			addStateToHistory('setParentConnection', {
-				nodes: updatedNodes,
-				edges: updatedEdges as AppEdge[],
-			});
+
+			// Persist delta to DB for history tracking
+			get().persistDeltaEvent(
+				'setParentConnection',
+				{ nodes, edges },
+				{ nodes: updatedNodes, edges: updatedEdges as AppEdge[] }
+			);
 		},
 
 		subscribeToEdges: async (mapId: string) => {
-			const { supabase, _edgesSubscription } = get();
-
-			// Unsubscribe from existing subscription first
-			if (_edgesSubscription) {
-				await _edgesSubscription.unsubscribe();
-			}
-
+			// Use secure broadcast channel instead of postgres_changes
+			// This provides RLS-protected real-time sync via private channels
 			try {
-				const channel = supabase
-					.channel(`mind-map-edges-${mapId}`)
-					.on(
-						'postgres_changes',
-						{
-							event: '*',
-							schema: 'public',
-							table: 'edges',
-							filter: `map_id=eq.${mapId}`,
-						},
-						handleEdgeRealtimeEvent
-					)
-					.subscribe((status: string) => {
-						if (status === 'SUBSCRIBED') {
-							console.log(
-								'Subscribed to edges real-time updates for map:',
-								mapId
-							);
-						} else if (status === 'CHANNEL_ERROR') {
-							console.error('Error subscribing to edges real-time updates');
-						}
-					});
+				const cleanup = await subscribeToSyncEvents(mapId, {
+					onEdgeCreate: handleEdgeCreate,
+					onEdgeUpdate: handleEdgeUpdate,
+					onEdgeDelete: handleEdgeDelete,
+				});
 
-				set({ _edgesSubscription: channel });
+				// Store cleanup function for later unsubscription
+				set({
+					_edgesSubscription: { unsubscribe: cleanup } as unknown as ReturnType<
+						typeof get
+					>['_edgesSubscription'],
+				});
+
+				console.log('[broadcast] Subscribed to edge events for map:', mapId);
 			} catch (error) {
-				console.error('Failed to subscribe to edges updates:', error);
+				console.error('[broadcast] Failed to subscribe to edge events:', error);
 			}
 		},
 
 		unsubscribeFromEdges: async () => {
-			const { _edgesSubscription } = get();
+			const { _edgesSubscription, mapId } = get();
 
 			if (_edgesSubscription) {
 				try {
-					await _edgesSubscription.unsubscribe();
+					// Handle both old RealtimeChannel and new cleanup function
+					if (typeof (_edgesSubscription as any).unsubscribe === 'function') {
+						await (_edgesSubscription as any).unsubscribe();
+					}
 					set({ _edgesSubscription: null });
-					console.log('Unsubscribed from edges real-time updates');
+
+					// Also cleanup from broadcast channel manager if mapId is available
+					if (mapId) {
+						await unsubscribeFromSyncChannel(mapId);
+					}
+
+					console.log('[broadcast] Unsubscribed from edge events');
 				} catch (error) {
-					console.error('Error unsubscribing from edges updates:', error);
+					console.error('[broadcast] Error unsubscribing from edge events:', error);
 				}
 			}
 		},

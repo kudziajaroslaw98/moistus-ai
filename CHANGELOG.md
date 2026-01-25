@@ -5,6 +5,47 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-01-25]
+
+### Added
+- **realtime**: Secure broadcast channel system (`src/lib/realtime/broadcast-channel.ts`)
+  - Private channels with RLS authorization via `realtime.messages` policies
+  - Singleton channel manager with reference counting for shared subscriptions
+  - Event types: node:create/update/delete, edge:create/update/delete, history:revert
+- **supabase**: RLS migration for broadcast authorization (`20260125131822_realtime_broadcast_authorization.sql`)
+  - `map_users_can_receive_broadcasts` policy (owner, public, share_access)
+  - `editors_can_send_broadcasts` policy (owner, share_access with can_edit)
+
+### Changed
+- **realtime/cursor**: Migrated from public to private channel with `setAuth()`
+- **realtime/presence**: Migrated both presence-room and selection-presence-room to private channels
+- **nodes-slice**: Migrated from postgres_changes to secure broadcast
+  - Broadcasts node create/update/delete after DB operations
+- **edges-slice**: Migrated from postgres_changes to secure broadcast
+  - Broadcasts edge create/update/delete after DB operations
+- **history-slice**: Migrated from postgres_changes to secure broadcast
+  - Broadcasts history:revert event after successful revert
+
+### Removed
+- **history**: In-memory history system (history[], canUndo, canRedo, handleUndo, handleRedo)
+  - Why: Dual-system (in-memory + DB) caused real-time sync bugs during revert
+  - Ctrl+Z/Ctrl+Shift+Z now show toast directing users to History panel
+  - History panel still works via DB-only backend
+
+### Refactored
+- **slices**: Removed all `addStateToHistory()` calls from nodes-slice, edges-slice, layout-slice, suggestions-slice
+  - `persistDeltaEvent()` remains as the sole history persistence mechanism
+- **history-slice**: Simplified to DB-only approach, removed in-memory caching after revert
+- **use-keyboard-shortcuts**: Removed onUndo/onRedo props, shows toast instead
+- **history components**: Fetch delta on-demand instead of from in-memory cache
+
+### Security
+- **realtime**: All broadcast channels now use `config: { private: true }` with RLS policies
+  - Random users guessing map IDs cannot subscribe to broadcasts
+  - Unauthenticated users cannot join any map channels
+
+---
+
 ## [2026-01-24]
 
 ### Fixed
