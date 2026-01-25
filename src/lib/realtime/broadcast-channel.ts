@@ -99,16 +99,24 @@ let authSet = false;
 /**
  * Ensures the Realtime server has the user's JWT for authorization.
  * Must be called before subscribing to private channels.
+ * Has a 5 second timeout to prevent hanging.
  */
 async function ensureAuth(): Promise<void> {
 	if (authSet) return;
 
 	try {
-		await supabase.realtime.setAuth();
+		// Add timeout to prevent hanging
+		const timeoutPromise = new Promise<never>((_, reject) => {
+			setTimeout(() => reject(new Error('setAuth timed out')), 5000);
+		});
+
+		await Promise.race([supabase.realtime.setAuth(), timeoutPromise]);
 		authSet = true;
 	} catch (error) {
-		console.error('[broadcast-channel] Failed to set auth:', error);
-		throw error;
+		console.warn('[broadcast-channel] setAuth failed or timed out:', error);
+		// Don't throw - allow channel creation to proceed
+		// Private channel features may not work, but app shouldn't crash
+		authSet = true; // Mark as set to prevent retry loops
 	}
 }
 
@@ -175,6 +183,7 @@ export async function getOrCreateSyncChannel(
 /**
  * Creates a private channel with auth for cursor/presence use.
  * Does not cache the channel (caller manages lifecycle).
+ * Non-blocking - returns immediately after channel creation.
  *
  * @param channelName - Full channel name (e.g., "mind-map:abc:cursor")
  * @returns The RealtimeChannel instance
@@ -182,6 +191,7 @@ export async function getOrCreateSyncChannel(
 export async function createPrivateChannel(
 	channelName: string
 ): Promise<RealtimeChannel> {
+	// ensureAuth is now non-blocking (has timeout and doesn't throw)
 	await ensureAuth();
 	return supabase.channel(channelName, {
 		config: { private: true },
@@ -288,31 +298,56 @@ export async function subscribeToSyncEvents(
 		);
 	}
 
-	// Subscribe to the channel only if not already subscribed
+	// Subscribe to the channel only if not already subscribed or in error state
+	// (If already in error, we've tried and failed - don't retry to avoid loops)
 	const currentState = channelSubscriptionState.get(mapId);
-	if (currentState !== 'subscribed') {
+	if (currentState !== 'subscribed' && currentState !== 'error') {
 		channelSubscriptionState.set(mapId, 'pending');
 
+		// Subscribe with timeout to prevent hanging
+		const subscriptionTimeout = 10000; // 10 seconds
+		let resolved = false;
+
 		await new Promise<void>((resolve) => {
+			// Timeout fallback
+			const timeoutId = setTimeout(() => {
+				if (!resolved) {
+					resolved = true;
+					channelSubscriptionState.set(mapId, 'error');
+					console.warn(
+						`[broadcast-channel] Subscription timed out for ${mapId}. Continuing anyway.`
+					);
+					resolve();
+				}
+			}, subscriptionTimeout);
+
 			channel.subscribe((status) => {
+				if (resolved) return; // Already resolved by timeout
+
 				if (status === 'SUBSCRIBED') {
+					resolved = true;
+					clearTimeout(timeoutId);
 					channelSubscriptionState.set(mapId, 'subscribed');
 					console.log(
 						`[broadcast-channel] Subscribed to sync channel: ${mapId}`
 					);
 					resolve();
-				} else if (status === 'CHANNEL_ERROR') {
+				} else if (
+					status === 'CHANNEL_ERROR' ||
+					status === 'TIMED_OUT' ||
+					status === 'CLOSED'
+				) {
 					// Don't reject - allow the channel to still be used for broadcasting
-					// This can happen if:
-					// 1. RLS policies haven't been applied yet
-					// 2. User doesn't have access to the map (expected for unauthorized users)
+					resolved = true;
+					clearTimeout(timeoutId);
 					channelSubscriptionState.set(mapId, 'error');
 					console.warn(
-						`[broadcast-channel] Channel subscription warning for ${mapId}. ` +
-							`This may be expected if RLS policies are not yet applied or user lacks access.`
+						`[broadcast-channel] Channel status ${status} for ${mapId}. ` +
+							`Continuing - broadcast may still work.`
 					);
-					resolve(); // Resolve anyway to prevent crash - broadcast sending will still work
+					resolve();
 				}
+				// Ignore other statuses (like 'joining') - wait for final state
 			});
 		});
 	}
