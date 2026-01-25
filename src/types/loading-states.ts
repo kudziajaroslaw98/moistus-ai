@@ -2,6 +2,7 @@
 export interface LoadingStates {
 	isAddingContent: boolean;
 	isStateLoading: boolean;
+	isHistoryLoading: boolean;
 	isGenerating: boolean;
 	isSummarizing: boolean;
 	isExtracting: boolean;

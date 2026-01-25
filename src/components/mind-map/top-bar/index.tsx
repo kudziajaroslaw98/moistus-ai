@@ -73,7 +73,7 @@ export function MindMapTopBar({
 					<RealtimeAvatarStack
 						activityState={activityState}
 						mapOwnerId={mindMap?.user_id}
-						roomName={`mind_map:${mapId}:users`}
+						roomName={`mind-map:${mapId}:presence`}
 					/>
 				)}
 

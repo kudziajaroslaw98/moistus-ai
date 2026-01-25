@@ -4,10 +4,11 @@ import useAppStore from '@/store/mind-map-store';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import { useShallow } from 'zustand/shallow';
 
 export function AIStreamMediator() {
-	const { streamTrigger, abortStream, finishStream, streamingAPI, setStopStreamCallback } =
+	const { streamTrigger, abortStream, finishStream, streamingAPI, setStopStreamCallback, setPopoverOpen } =
 		useAppStore(
 			useShallow((state) => ({
 				streamTrigger: state.streamTrigger,
@@ -16,6 +17,7 @@ export function AIStreamMediator() {
 				streamingAPI: state.streamingAPI,
 				isStreaming: state.isStreaming,
 				setStopStreamCallback: state.setStopStreamCallback,
+				setPopoverOpen: state.setPopoverOpen,
 			}))
 		);
 
@@ -32,8 +34,30 @@ export function AIStreamMediator() {
 		onError: (error) => {
 			console.error('Chat error:', error);
 
+			// Try to parse error for LIMIT_REACHED response
+			let userMessage = error.message;
+			try {
+				const parsed = JSON.parse(error.message);
+				if (parsed.code === 'LIMIT_REACHED') {
+					toast.error('AI feature limit reached', {
+						description: 'Upgrade to Pro for unlimited AI features.',
+						action: {
+							label: 'Upgrade',
+							onClick: () => setPopoverOpen({ upgradeUser: true }),
+						},
+						duration: 8000,
+					});
+					userMessage = parsed.error;
+				}
+			} catch {
+				// Not JSON, show generic error toast
+				toast.error('AI request failed', {
+					description: userMessage,
+				});
+			}
+
 			if (currentStreamIdRef.current) {
-				abortStream(error.message);
+				abortStream(userMessage);
 				currentStreamIdRef.current = null;
 			}
 		},

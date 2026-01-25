@@ -1,6 +1,5 @@
 'use client';
 
-import { ChangePasswordModal } from '@/components/auth/change-password-modal';
 import { UpgradeAnonymousPrompt } from '@/components/auth/upgrade-anonymous';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,7 +16,6 @@ import { PublicUserProfile } from '@/types/user-profile-types';
 import {
 	ChevronDown,
 	CreditCard,
-	KeyRound,
 	LogOut,
 	RefreshCw,
 	Settings,
@@ -46,7 +44,6 @@ export function UserMenu({
 	const router = useRouter();
 	const [isLoggingOut, setIsLoggingOut] = useState(false);
 	const [showUpgradeAnonymous, setShowUpgradeAnonymous] = useState(false);
-	const [showChangePassword, setShowChangePassword] = useState(false);
 
 	// Store actions
 	const {
@@ -173,16 +170,6 @@ export function UserMenu({
 					Billing
 				</DropdownMenuItem>
 
-				{!isAnonymous && (
-					<DropdownMenuItem
-						className='cursor-pointer text-zinc-300 focus:bg-zinc-800 focus:text-white'
-						onClick={() => setShowChangePassword(true)}
-					>
-						<KeyRound className='mr-2 h-4 w-4' />
-						Change Password
-					</DropdownMenuItem>
-				)}
-
 				{isAnonymous && (
 					<>
 						<DropdownMenuSeparator className='bg-zinc-700' />
@@ -248,12 +235,6 @@ export function UserMenu({
 					autoShowDelay={0} // Show immediately when triggered from menu
 				/>
 			)}
-
-			{/* Change Password Modal */}
-			<ChangePasswordModal
-				open={showChangePassword}
-				onOpenChange={setShowChangePassword}
-			/>
 		</DropdownMenu>
 	);
 }

@@ -58,7 +58,7 @@ const SUBPROCESSORS: Subprocessor[] = [
 		name: 'Resend',
 		purpose: 'Transactional email delivery',
 		dataProcessed: 'Email addresses, email content for delivery',
-		location: 'US',
+		location: 'US (N. Virginia)',
 		privacyUrl: 'https://resend.com/legal/privacy-policy',
 		dpaStatus: 'GDPR compliant',
 	},

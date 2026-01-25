@@ -97,24 +97,26 @@ export function PasswordRequirementsInfo({
 
 	return (
 		<Popover>
-			<PopoverTrigger asChild>
-				<button
-					type='button'
-					className='inline-flex items-center justify-center text-text-tertiary hover:text-text-secondary transition-colors'
-					aria-label='Password requirements'
-				>
-					<Info className='w-4 h-4' />
-					{password && (
-						<span
-							className={`ml-1 text-xs font-medium ${
-								isValid ? 'text-emerald-400' : 'text-text-tertiary'
-							}`}
-						>
-							{metCount}/{requirements.length}
-						</span>
-					)}
-				</button>
-			</PopoverTrigger>
+			<PopoverTrigger
+				render={
+					<button
+						type='button'
+						className='inline-flex items-center justify-center text-text-tertiary hover:text-text-secondary transition-colors'
+						aria-label='Password requirements'
+					>
+						<Info className='w-4 h-4' />
+						{password && (
+							<span
+								className={`ml-1 text-xs font-medium ${
+									isValid ? 'text-emerald-400' : 'text-text-tertiary'
+								}`}
+							>
+								{metCount}/{requirements.length}
+							</span>
+						)}
+					</button>
+				}
+			/>
 			<PopoverContent align='start' className='w-56 p-3 bg-surface border-border-subtle'>
 				<div className='space-y-2'>
 					<p className='text-xs font-medium text-text-primary'>

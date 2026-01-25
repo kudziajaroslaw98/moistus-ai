@@ -15,6 +15,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **supabase**: RLS migration for broadcast authorization (`20260125131822_realtime_broadcast_authorization.sql`)
   - `map_users_can_receive_broadcasts` policy (owner, public, share_access)
   - `editors_can_send_broadcasts` policy (owner, share_access with can_edit)
+- **api**: `GET /api/maps/[id]/permissions` - fetch current user's permissions from share_access
+- **sharing-slice**: `updateShareRole()` with optimistic updates, `fetchCurrentPermissions()` for returning collaborators
+- **history-slice**: `revertingIndex` state to show spinner on specific item being reverted
+- **auth**: `change-password-modal.tsx` and `password-reset-modal.tsx` components
+- **validations**: Password validation schema in `src/lib/validations/auth.ts`
 
 ### Changed
 - **realtime/cursor**: Migrated from public to private channel with `setAuth()`
@@ -38,6 +43,9 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **history-slice**: Simplified to DB-only approach, removed in-memory caching after revert
 - **use-keyboard-shortcuts**: Removed onUndo/onRedo props, shows toast instead
 - **history components**: Fetch delta on-demand instead of from in-memory cache
+- **broadcast cleanup**: Removed redundant `unsubscribeFromSyncChannel()` calls in nodes-slice, edges-slice, history-slice
+  - Cleanup function from `subscribeToSyncEvents` already handles this via ref counting
+- **Base UI migration**: Converted `asChild` to `render` prop in password-strength, sign-in, forgot-password, user-menu, share-panel, mobile-menu, top-bar
 
 ### Security
 - **realtime**: All broadcast channels now use `config: { private: true }` with RLS policies

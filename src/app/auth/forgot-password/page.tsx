@@ -1,7 +1,10 @@
 'use client';
 
 import { AuthCard, AuthLayout } from '@/components/auth/shared';
-import { PasswordStrengthBar } from '@/components/auth/shared/password-strength';
+import {
+	PasswordRequirementsInfo,
+	PasswordStrengthBar,
+} from '@/components/auth/shared/password-strength';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
@@ -475,9 +478,10 @@ function ForgotPasswordWizard() {
 						<div>
 							<label
 								htmlFor='password'
-								className='block text-sm font-medium text-text-secondary mb-2'
+								className='flex items-center gap-1.5 text-sm font-medium text-text-secondary mb-2'
 							>
 								New Password
+								<PasswordRequirementsInfo password={password || ''} />
 							</label>
 							<Input
 								id='password'

@@ -94,7 +94,6 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 			nodes,
 			edges,
 			setMindMapContent,
-			addStateToHistory,
 			persistDeltaEvent,
 			layoutConfig,
 			isLayouting,
@@ -157,13 +156,7 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 				]);
 			}
 
-			// Record to history as single action for undo/redo
-			addStateToHistory('applyLayout', {
-				nodes: result.nodes,
-				edges: result.edges,
-			});
-
-			// Persist delta to database
+			// Persist delta to DB for history tracking
 			await persistDeltaEvent(
 				'applyLayout',
 				{ nodes: prevNodes, edges: prevEdges },
@@ -199,7 +192,6 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 			nodes,
 			edges,
 			setMindMapContent,
-			addStateToHistory,
 			persistDeltaEvent,
 			layoutConfig,
 			isLayouting,
@@ -262,13 +254,7 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 				]);
 			}
 
-			// Record to history as single action
-			addStateToHistory('applyLayoutToSelected', {
-				nodes: result.nodes,
-				edges: result.edges,
-			});
-
-			// Persist delta to database
+			// Persist delta to DB for history tracking
 			await persistDeltaEvent(
 				'applyLayoutToSelected',
 				{ nodes: prevNodes, edges: prevEdges },

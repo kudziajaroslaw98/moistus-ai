@@ -4,6 +4,7 @@ import {
 	DeleteAccountDialog,
 	DeleteAccountImpactStats,
 } from '@/components/account/delete-account-dialog';
+import { ChangePasswordModal } from '@/components/auth/change-password-modal';
 import { NodeTypeSelector } from '@/components/settings/node-type-selector';
 import { SidePanel } from '@/components/side-panel';
 import { Badge } from '@/components/ui/badge';
@@ -118,6 +119,9 @@ export function SettingsPanel({
 	const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 	const [deleteImpactStats, setDeleteImpactStats] =
 		useState<DeleteAccountImpactStats | null>(null);
+
+	// Change password modal state
+	const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
 	// Get limits with proper free tier fallback
 	const { limits: planLimits } = useSubscriptionLimits();
@@ -717,7 +721,11 @@ export function SettingsPanel({
 													Update your password
 												</p>
 											</div>
-											<Button size='sm' variant='outline'>
+											<Button
+												size='sm'
+												variant='outline'
+												onClick={() => setIsChangePasswordOpen(true)}
+											>
 												Update
 											</Button>
 										</div>
@@ -1107,6 +1115,12 @@ export function SettingsPanel({
 				userEmail={userProfile?.email || ''}
 				isDeleting={isDeletingAccount}
 				impactStats={deleteImpactStats}
+			/>
+
+			{/* Change Password Modal */}
+			<ChangePasswordModal
+				open={isChangePasswordOpen}
+				onOpenChange={setIsChangePasswordOpen}
 			/>
 		</SidePanel>
 	);

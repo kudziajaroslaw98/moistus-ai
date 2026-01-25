@@ -65,6 +65,8 @@ export function ReactFlowArea() {
 	const connectingNodeId = useRef<string | null>(null);
 	const connectingHandleId = useRef<string | null>(null);
 	const connectingHandleType = useRef<'source' | 'target' | null>(null);
+	// Prevent duplicate fetch in React Strict Mode (dev runs effects twice)
+	const fetchStartedRef = useRef(false);
 	const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 	const [settingsTab, setSettingsTab] = useState<'settings' | 'billing'>(
@@ -214,6 +216,10 @@ export function ReactFlowArea() {
 
 	useEffect(() => {
 		if (!mapId || !supabase) return;
+		// Prevent duplicate fetch in React Strict Mode (dev runs effects twice)
+		if (fetchStartedRef.current) return;
+		fetchStartedRef.current = true;
+
 		setMapId(mapId as string);
 		fetchMindMapData(mapId as string);
 	}, [fetchMindMapData, mapId, supabase]);
@@ -571,7 +577,7 @@ export function ReactFlowArea() {
 				<Panel position='top-left'>
 					<RealtimeCursors
 						reactFlowInstance={reactFlowInstance}
-						roomName={`mind_map:${mapId}:cursor`}
+						roomName={`mind-map:${mapId}:cursor`}
 					/>
 				</Panel>
 			</ReactFlow>

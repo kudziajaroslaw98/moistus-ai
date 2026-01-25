@@ -23,7 +23,7 @@ export function HistorySidebar() {
 			setPopoverOpen: state.setPopoverOpen,
 			loadHistoryFromDB: state.loadHistoryFromDB,
 			historyMeta: state.historyMeta,
-			isLoading: state.loadingStates?.isStateLoading,
+			isLoading: state.loadingStates?.isHistoryLoading,
 			mapId: state.mapId,
 			isProUser: state.isProUser(),
 		}))

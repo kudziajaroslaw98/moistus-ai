@@ -898,6 +898,135 @@ export const createSharingSlice: StateCreator<
 			}
 		},
 
+		// Update share role with optimistic update
+		updateShareRole: async (shareId: string, newRole: string) => {
+			// Store previous state for rollback
+			const previousShares = get().currentShares ?? [];
+			const shareToUpdate = previousShares.find((s) => s.share.id === shareId);
+			const previousRole = shareToUpdate?.share.role;
+
+			// Derive permission flags from role
+			const getPermissions = (role: string) => {
+				switch (role) {
+					case 'editor':
+						return { can_edit: true, can_comment: true, can_view: true };
+					case 'commenter':
+						return { can_edit: false, can_comment: true, can_view: true };
+					case 'viewer':
+					default:
+						return { can_edit: false, can_comment: false, can_view: true };
+				}
+			};
+
+			const newPermissions = getPermissions(newRole);
+
+			// Optimistic update
+			set((state) => ({
+				currentShares: (state.currentShares ?? []).map((share) =>
+					share.share.id === shareId
+						? {
+								...share,
+								share: {
+									...share.share,
+									role: newRole as 'owner' | 'editor' | 'commenter' | 'viewer',
+									...newPermissions,
+								},
+							}
+						: share
+				),
+			}));
+
+			try {
+				const response = await fetch(`/api/share/update-share/${shareId}`, {
+					method: 'PATCH',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ role: newRole }),
+				});
+
+				if (!response.ok) {
+					const error = await response.json();
+					throw new Error(error.error || 'Failed to update share');
+				}
+			} catch (error) {
+				// Rollback on error
+				if (previousRole) {
+					const prevPermissions = getPermissions(previousRole);
+					set((state) => ({
+						currentShares: (state.currentShares ?? []).map((share) =>
+							share.share.id === shareId
+								? {
+										...share,
+										share: {
+											...share.share,
+											role: previousRole as
+												| 'owner'
+												| 'editor'
+												| 'commenter'
+												| 'viewer',
+											...prevPermissions,
+										},
+									}
+								: share
+						),
+					}));
+				}
+
+				const sharingError: SharingError = {
+					code: 'UNKNOWN',
+					message:
+						error instanceof Error
+							? error.message
+							: 'Failed to update share role',
+				};
+
+				set({ sharingError });
+				throw sharingError;
+			}
+		},
+
+		// Fetch current user permissions from share_access (for returning collaborators)
+		fetchCurrentPermissions: async (mapId: string) => {
+			try {
+				const response = await fetch(`/api/maps/${mapId}/permissions`);
+
+				if (!response.ok) {
+					console.error('Failed to fetch permissions:', response.status);
+					return;
+				}
+
+				const result = await response.json();
+				const permissions = result.data;
+
+				if (permissions) {
+					// Update lastJoinResult with fresh permissions from share_access
+					// This allows usePermissions hook to read current permissions
+					set((state) => ({
+						lastJoinResult: {
+							...(state.lastJoinResult || {
+								map_id: mapId,
+								map_title: '',
+								user_id: '',
+								is_anonymous: false,
+								user_display_name: '',
+								websocket_channel: '',
+								share_token_id: '',
+								join_method: 'permission_fetch',
+							}),
+							map_id: mapId,
+							permissions: {
+								role: permissions.role,
+								can_view: permissions.can_view,
+								can_edit: permissions.can_edit,
+								can_comment: permissions.can_comment,
+							},
+						},
+					}));
+				}
+			} catch (error) {
+				console.error('Error fetching current permissions:', error);
+			}
+		},
+
 		// Subscribe to real-time sharing updates
 		subscribeToSharingUpdates: (mapId: string) => {
 			try {

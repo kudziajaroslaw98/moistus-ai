@@ -1,3 +1,4 @@
+import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import { createPrivateChannel } from '@/lib/realtime/broadcast-channel';
 import useAppStore from '@/store/mind-map-store';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -6,6 +7,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { useCurrentUserName } from '../use-current-username';
 import { useUserColor } from '../use-user-color';
+
+const supabase = getSharedSupabaseClient();
 
 /**
  * Throttle a callback to a certain delay, It will only call the callback if the delay has passed, with the arguments

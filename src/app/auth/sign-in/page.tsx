@@ -264,12 +264,20 @@ function SignInForm() {
 				</div>
 
 				<div>
-					<label
-						htmlFor='password'
-						className='block text-sm font-medium text-text-secondary mb-2'
-					>
-						Password
-					</label>
+					<div className='flex items-center justify-between mb-2'>
+						<label
+							htmlFor='password'
+							className='block text-sm font-medium text-text-secondary'
+						>
+							Password
+						</label>
+						<Link
+							href='/auth/forgot-password'
+							className='text-sm text-primary-400 hover:text-primary-300 transition-colors'
+						>
+							Forgot password?
+						</Link>
+					</div>
 					<Input
 						required
 						id='password'

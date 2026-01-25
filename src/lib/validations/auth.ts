@@ -120,3 +120,46 @@ export function checkPasswordStrength(password: string): {
 		requirements: results,
 	};
 }
+
+// Forgot password schema (email only)
+export const forgotPasswordSchema = z.object({
+	email: z
+		.string()
+		.min(1, 'Email is required')
+		.email('Please enter a valid email address')
+		.transform((email) => email.toLowerCase().trim()),
+});
+
+export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
+
+// Reset password schema (new password + confirm)
+const resetPasswordSchemaBase = z.object({
+	password: z
+		.string()
+		.min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`)
+		.regex(
+			PASSWORD_REGEX,
+			'Password must contain at least one uppercase letter, one lowercase letter, and one number'
+		),
+	confirmPassword: z.string().min(1, 'Please confirm your password'),
+});
+
+export const resetPasswordSchema = resetPasswordSchemaBase.refine(
+	(data) => data.password === data.confirmPassword,
+	{
+		message: 'Passwords do not match',
+		path: ['confirmPassword'],
+	}
+);
+
+export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
+
+// Recovery OTP schema (just the 6-digit code)
+export const recoveryOtpSchema = z.object({
+	otp: z
+		.string()
+		.length(6, 'Verification code must be 6 digits')
+		.regex(/^\d+$/, 'Verification code must contain only numbers'),
+});
+
+export type RecoveryOtpFormData = z.infer<typeof recoveryOtpSchema>;

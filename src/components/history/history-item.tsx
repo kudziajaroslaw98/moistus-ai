@@ -11,6 +11,7 @@ import {
 	ChevronDown,
 	Clock,
 	GitCommit,
+	Loader2,
 	Lock,
 	Milestone,
 	Pencil,
@@ -31,27 +32,28 @@ interface Props {
 }
 
 export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
-	const isLoading = useAppStore((s) => s.loadingStates?.isStateLoading);
+	const isLoading = useAppStore((s) => s.loadingStates?.isHistoryLoading);
+	const isReverting = useAppStore((s) => s.isReverting);
+	const revertingIndex = useAppStore((s) => s.revertingIndex);
 	const revertToHistoryState = useAppStore((s) => s.revertToHistoryState);
-	const history = useAppStore((s) => s.history);
 	const canRevertChange = useAppStore((s) => s.canRevertChange);
 	const currentUser = useAppStore((s) => s.currentUser);
 	const mapId = useAppStore((s) => s.mapId);
 
-	// Get delta for attribution
-	const historyEntry = history[originalIndex] as any;
-	const delta = historyEntry?._delta as AttributedHistoryDelta | undefined;
+	// Check if this specific item is being reverted
+	const isThisReverting = revertingIndex === originalIndex;
 
-	// Expand/collapse state
+	// Expand/collapse state - delta is fetched on-demand from DB
 	const [isExpanded, setIsExpanded] = useState(false);
-	const [cachedDelta, setCachedDelta] = useState<AttributedHistoryDelta | null>(
-		delta || null
-	);
+	const [cachedDelta, setCachedDelta] = useState<AttributedHistoryDelta | null>(null);
 	const [isFetchingDelta, setIsFetchingDelta] = useState(false);
 	const [fetchError, setFetchError] = useState<string | null>(null);
 
+	// For permission check, we'll use fetched delta when available
+	const delta = cachedDelta;
+
 	const handleRevert = () => {
-		if (!isLoading) revertToHistoryState(originalIndex);
+		if (!isLoading && !isReverting) revertToHistoryState(originalIndex);
 	};
 
 	const handleToggleExpand = async () => {
@@ -225,14 +227,15 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 
 							{!isCurrent && (
 								<Button
-									disabled={isLoading || !hasPermission}
+									disabled={isLoading || isReverting || !hasPermission}
 									size='sm'
 									variant='outline'
 									className={cn(
 										'h-6 px-2 text-xs gap-1',
 										'bg-white/5 border-white/10 text-white/87',
 										'hover:border-white/20 hover:bg-white/10',
-										!hasPermission && 'cursor-not-allowed opacity-50'
+										(!hasPermission || isReverting) &&
+											'cursor-not-allowed opacity-50'
 									)}
 									onClick={(e) => {
 										e.stopPropagation();
@@ -241,11 +244,17 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 									title={
 										!hasPermission
 											? 'You do not have permission to revert this change'
-											: 'Revert to this state'
+											: isReverting
+												? 'Revert in progress...'
+												: 'Revert to this state'
 									}
 								>
-									{!hasPermission && <Lock className='h-3 w-3' />}
-									Revert
+									{isThisReverting ? (
+										<Loader2 className='h-3 w-3 animate-spin' />
+									) : (
+										!hasPermission && <Lock className='h-3 w-3' />
+									)}
+									{isThisReverting ? 'Reverting...' : 'Revert'}
 								</Button>
 							)}
 

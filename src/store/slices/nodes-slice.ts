@@ -8,7 +8,6 @@ import {
 	broadcast,
 	BROADCAST_EVENTS,
 	subscribeToSyncEvents,
-	unsubscribeFromSyncChannel,
 	type NodeBroadcastPayload,
 } from '@/lib/realtime/broadcast-channel';
 import { AvailableNodeTypes } from '@/registry/node-registry';
@@ -891,21 +890,15 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 		},
 
 		unsubscribeFromNodes: async () => {
-			const { _nodesSubscription, mapId } = get();
+			const { _nodesSubscription } = get();
 
 			if (_nodesSubscription) {
 				try {
-					// Handle both old RealtimeChannel and new cleanup function
+					// Call cleanup function (decrements ref count, unsubscribes when count reaches 0)
 					if (typeof (_nodesSubscription as any).unsubscribe === 'function') {
 						await (_nodesSubscription as any).unsubscribe();
 					}
 					set({ _nodesSubscription: null });
-
-					// Also cleanup from broadcast channel manager if mapId is available
-					if (mapId) {
-						await unsubscribeFromSyncChannel(mapId);
-					}
-
 					console.log('[broadcast] Unsubscribed from node events');
 				} catch (error) {
 					console.error('[broadcast] Error unsubscribing from node events:', error);

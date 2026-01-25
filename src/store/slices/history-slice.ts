@@ -7,7 +7,6 @@ import {
 	broadcast,
 	BROADCAST_EVENTS,
 	subscribeToSyncEvents,
-	unsubscribeFromSyncChannel,
 	type HistoryRevertPayload,
 } from '@/lib/realtime/broadcast-channel';
 import { AppEdge } from '@/types/app-edge';
@@ -27,6 +26,7 @@ export const createHistorySlice: StateCreator<
 	historyMeta: [],
 	historyIndex: -1, // Index into historyMeta for current position
 	isReverting: false,
+	revertingIndex: null, // Which history item is currently reverting
 	_historyCurrentSubscription: null,
 
 	// pagination
@@ -155,20 +155,14 @@ export const createHistorySlice: StateCreator<
 	},
 
 	unsubscribeFromHistoryCurrent: async () => {
-		const { _historyCurrentSubscription, mapId } = get();
+		const { _historyCurrentSubscription } = get();
 		if (_historyCurrentSubscription) {
 			try {
-				// Handle both old RealtimeChannel and new cleanup function
+				// Call cleanup function (decrements ref count, unsubscribes when count reaches 0)
 				if (typeof (_historyCurrentSubscription as any).unsubscribe === 'function') {
 					await (_historyCurrentSubscription as any).unsubscribe();
 				}
 				set({ _historyCurrentSubscription: null });
-
-				// Also cleanup from broadcast channel manager if mapId is available
-				if (mapId) {
-					await unsubscribeFromSyncChannel(mapId);
-				}
-
 				console.log('[broadcast] Unsubscribed from history events');
 			} catch (e) {
 				console.error('[broadcast] Failed to unsubscribe from history events:', e);
@@ -378,8 +372,6 @@ export const createHistorySlice: StateCreator<
 			isReverting,
 			mapId,
 			canRevertChange,
-			unsubscribeFromRealtimeUpdates,
-			subscribeToRealtimeUpdates,
 			markNodeAsSystemUpdate,
 			markEdgeAsSystemUpdate,
 		} = get();
@@ -392,12 +384,11 @@ export const createHistorySlice: StateCreator<
 		// Permission check - fetch delta from API if needed for permission check
 		// For now, allow revert (permission will be checked via delta fetched below)
 
-		set({ isReverting: true });
+		set({ isReverting: true, revertingIndex: index });
 
 		try {
-			// Step 1: Unsubscribe from real-time (prevents self-event processing)
-			// Other users remain subscribed and will receive changes via real-time
-			await unsubscribeFromRealtimeUpdates();
+			// NOTE: No need to unsubscribe from real-time anymore.
+			// All broadcast handlers filter self-events via userId check.
 
 			// Step 2: Revert via API (snapshot or event)
 			const { currentUser } = get();
@@ -427,6 +418,9 @@ export const createHistorySlice: StateCreator<
 						timestamp: Date.now(),
 					});
 
+					// Update historyIndex and clear reverting state immediately
+					// Canvas already shows reverted state, so buttons should re-enable now
+					set({ historyIndex: index, isReverting: false, revertingIndex: null });
 					toast.success('Reverted to snapshot');
 				} else {
 					const error = await res.json().catch(() => ({}));
@@ -457,6 +451,9 @@ export const createHistorySlice: StateCreator<
 						timestamp: Date.now(),
 					});
 
+					// Update historyIndex and clear reverting state immediately
+					// Canvas already shows reverted state, so buttons should re-enable now
+					set({ historyIndex: index, isReverting: false, revertingIndex: null });
 					toast.success('Reverted to event');
 				} else {
 					const error = await res.json().catch(() => ({}));
@@ -469,17 +466,11 @@ export const createHistorySlice: StateCreator<
 			console.error('Revert failed:', error);
 			toast.error('Failed to revert state');
 		} finally {
-			// Small delay to let server-side changes settle before resubscribing
-			if (mapId) {
-				await new Promise((r) => setTimeout(r, 150));
-				await subscribeToRealtimeUpdates(mapId);
+			// Only clear if still reverting (error case cleanup)
+			// Success paths already cleared isReverting immediately after canvas update
+			if (get().isReverting) {
+				set({ isReverting: false, revertingIndex: null });
 			}
-
-			// Update history pointer
-			set({
-				historyIndex: index,
-				isReverting: false,
-			});
 		}
 	},
 });

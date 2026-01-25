@@ -7,7 +7,6 @@ import {
 	broadcast,
 	BROADCAST_EVENTS,
 	subscribeToSyncEvents,
-	unsubscribeFromSyncChannel,
 	type EdgeBroadcastPayload,
 } from '@/lib/realtime/broadcast-channel';
 import type { AppEdge } from '@/types/app-edge';
@@ -661,21 +660,15 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 		},
 
 		unsubscribeFromEdges: async () => {
-			const { _edgesSubscription, mapId } = get();
+			const { _edgesSubscription } = get();
 
 			if (_edgesSubscription) {
 				try {
-					// Handle both old RealtimeChannel and new cleanup function
+					// Call cleanup function (decrements ref count, unsubscribes when count reaches 0)
 					if (typeof (_edgesSubscription as any).unsubscribe === 'function') {
 						await (_edgesSubscription as any).unsubscribe();
 					}
 					set({ _edgesSubscription: null });
-
-					// Also cleanup from broadcast channel manager if mapId is available
-					if (mapId) {
-						await unsubscribeFromSyncChannel(mapId);
-					}
-
 					console.log('[broadcast] Unsubscribed from edge events');
 				} catch (error) {
 					console.error('[broadcast] Error unsubscribing from edge events:', error);
