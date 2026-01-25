@@ -1,5 +1,9 @@
 import { calculateDelta } from '@/helpers/history/delta-calculator';
 import {
+	transformSupabaseData,
+	type SupabaseMapData,
+} from '@/helpers/transform-supabase-data';
+import {
 	broadcast,
 	BROADCAST_EVENTS,
 	subscribeToSyncEvents,
@@ -81,18 +85,56 @@ export const createHistorySlice: StateCreator<
 		// Use secure broadcast channel instead of postgres_changes
 		// This provides RLS-protected real-time sync via private channels
 		try {
-			const handleHistoryRevert = (payload: HistoryRevertPayload) => {
-				const { currentUser, popoverOpen, loadHistoryFromDB } = get();
+			const handleHistoryRevert = async (payload: HistoryRevertPayload) => {
+				const {
+					currentUser,
+					popoverOpen,
+					loadHistoryFromDB,
+					mapId,
+					supabase,
+					setNodes,
+					setEdges,
+					markNodeAsSystemUpdate,
+					markEdgeAsSystemUpdate,
+				} = get();
 
 				// Ignore our own broadcasts
 				if (payload.userId === currentUser?.id) return;
 
-				// Reload history if popover is open
+				console.log('[broadcast] History reverted by another user:', payload.historyEntryId);
+
+				// Fetch current map state via aggregated view and apply it
+				// This ensures the canvas reflects the new state after another user reverts
+				if (mapId) {
+					try {
+						const { data, error } = await supabase
+							.from('map_graph_aggregated_view')
+							.select('*')
+							.eq('map_id', mapId)
+							.single();
+
+						if (!error && data) {
+							const transformed = transformSupabaseData(data as SupabaseMapData);
+
+							// Mark all nodes/edges as system updates to prevent broadcast loops
+							// (we're receiving state, not initiating changes)
+							transformed.reactFlowNodes.forEach((n) => markNodeAsSystemUpdate(n.id));
+							transformed.reactFlowEdges.forEach((e) => markEdgeAsSystemUpdate(e.id));
+
+							setNodes(transformed.reactFlowNodes);
+							setEdges(transformed.reactFlowEdges);
+
+							console.log('[broadcast] Applied reverted state from another user');
+						}
+					} catch (e) {
+						console.error('[broadcast] Failed to sync after history revert:', e);
+					}
+				}
+
+				// Reload history metadata if panel is open
 				if (popoverOpen?.history) {
 					loadHistoryFromDB();
 				}
-
-				console.log('[broadcast] History reverted by another user:', payload.historyEntryId);
 			};
 
 			const cleanup = await subscribeToSyncEvents(mapId, {
