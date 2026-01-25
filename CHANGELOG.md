@@ -44,6 +44,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Random users guessing map IDs cannot subscribe to broadcasts
   - Unauthenticated users cannot join any map channels
 
+### Fixed
+- **permissions**: Collaborator editor toolbar now appears immediately on page refresh
+  - Why: Subscriptions (10s timeout) were blocking `isStateLoading`, delaying permission resolution
+  - Fix: Fire subscriptions in background, only await comments + permissions fetch
+
 ---
 
 ## [2026-01-24]
