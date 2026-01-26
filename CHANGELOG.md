@@ -27,6 +27,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Fixed
 - **tests**: Updated base-node-wrapper tests for new popover behavior
+- **realtime**: Guard against concurrent history subscription attempts causing infinite loop on map load
 
 ---
 
