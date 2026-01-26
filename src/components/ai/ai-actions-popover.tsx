@@ -3,7 +3,7 @@
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
-import { Link2, Loader2, Merge, Sparkles } from 'lucide-react';
+import { Link2, Loader2, Merge, NotepadTextDashed, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useCallback } from 'react';
 import { toast } from 'sonner';
@@ -34,7 +34,7 @@ interface ActionItem {
  * AIActionsPopover - Shared popover menu for AI actions
  *
  * Used on:
- * - Node selection (scope='node'): Shows all 3 actions scoped to that node
+ * - Node selection (scope='node'): Shows all 4 actions scoped to that node
  * - Toolbar (scope='map'): Shows only Find connections and Find similar for entire map
  */
 export function AIActionsPopover({
@@ -47,6 +47,7 @@ export function AIActionsPopover({
 		generateSuggestions,
 		generateConnectionSuggestions,
 		generateMergeSuggestions,
+		generateCounterpointsForNode,
 		isStreaming,
 		setPopoverOpen,
 	} = useAppStore(
@@ -54,6 +55,7 @@ export function AIActionsPopover({
 			generateSuggestions: state.generateSuggestions,
 			generateConnectionSuggestions: state.generateConnectionSuggestions,
 			generateMergeSuggestions: state.generateMergeSuggestions,
+			generateCounterpointsForNode: state.generateCounterpointsForNode,
 			isStreaming: state.isStreaming,
 			setPopoverOpen: state.setPopoverOpen,
 		}))
@@ -100,6 +102,13 @@ export function AIActionsPopover({
 		onClose();
 	}, [checkAILimit, sourceNodeId, generateMergeSuggestions, onClose]);
 
+	const handleGenerateCounterpoints = useCallback(() => {
+		if (!sourceNodeId) return;
+		if (checkAILimit()) return;
+		generateCounterpointsForNode(sourceNodeId);
+		onClose();
+	}, [sourceNodeId, checkAILimit, generateCounterpointsForNode, onClose]);
+
 	const actions: ActionItem[] = [
 		{
 			id: 'expand-ideas',
@@ -108,6 +117,14 @@ export function AIActionsPopover({
 			description: 'Generate child nodes from this idea',
 			scopes: ['node'],
 			action: handleExpandIdeas,
+		},
+		{
+			id: 'generate-counterpoints',
+			label: 'Generate counterpoints',
+			icon: <NotepadTextDashed className="size-4" />,
+			description: 'Challenge this idea with opposing views',
+			scopes: ['node'],
+			action: handleGenerateCounterpoints,
 		},
 		{
 			id: 'find-connections',
