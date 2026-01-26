@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useShallow } from 'zustand/shallow';
 import { AIActionsPopover } from './ai/ai-actions-popover';
 import { ExportDropdown } from './toolbar/export-dropdown';
@@ -301,12 +302,15 @@ export const Toolbar = () => {
 								<AnimatePresence>
 									{isAIPopoverOpen && (
 										<>
-											{/* Backdrop for click-outside */}
-											<div
-												className='fixed inset-0 z-40'
-												onClick={handleCloseAIPopover}
-												aria-hidden='true'
-											/>
+											{/* Backdrop for click-outside - portaled to escape transform context */}
+											{createPortal(
+												<div
+													className='fixed inset-0 z-40'
+													onClick={handleCloseAIPopover}
+													aria-hidden='true'
+												/>,
+												document.body
+											)}
 											<div className='absolute bottom-full left-0 mb-2 z-50'>
 												<AIActionsPopover
 													scope='map'
