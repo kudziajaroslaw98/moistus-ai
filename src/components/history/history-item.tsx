@@ -129,7 +129,7 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 				'flex flex-col gap-3 rounded-lg border p-3',
 				canShowDiff && 'cursor-pointer',
 				isCurrent
-					? 'border-teal-500/50 bg-teal-500/10 shadow-[0_0_0_1px_rgba(96,165,250,0.3)]'
+					? 'border-primary-500/50 bg-primary-500/10 shadow-[0_0_0_1px_rgba(96,165,250,0.3)]'
 					: 'border-white/6 bg-[#1E1E1E] hover:border-white/10 hover:bg-[#222222]'
 			)}
 		>
@@ -138,7 +138,7 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 				<div
 					className={cn(
 						'mt-0.5 shrink-0',
-						isCurrent ? 'text-teal-400' : 'text-zinc-400'
+						isCurrent ? 'text-primary-400' : 'text-zinc-400'
 					)}
 				>
 					{getActionIcon()}
@@ -150,7 +150,7 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 							<h4
 								className={cn(
 									'text-sm font-medium',
-									isCurrent ? 'text-teal-300' : 'text-white/87'
+									isCurrent ? 'text-primary-300' : 'text-white/87'
 								)}
 							>
 								{meta.actionName}
@@ -259,7 +259,7 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 							)}
 
 							{isCurrent && (
-								<span className='text-xs font-semibold text-teal-400'>
+								<span className='text-xs font-semibold text-primary-400'>
 									Current
 								</span>
 							)}

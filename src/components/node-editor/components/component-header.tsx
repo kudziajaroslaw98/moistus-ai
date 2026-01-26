@@ -37,7 +37,7 @@ export const ComponentHeader: React.FC<ComponentHeaderProps> = ({
 				initial={{ scale: 0, rotate: -180 }}
 				transition={{ delay: 0.25, duration: 0.3, ease: 'easeOut' as const }}
 			>
-				<Sparkles className='w-3 h-3 text-teal-500' />
+				<Sparkles className='w-3 h-3 text-primary-500' />
 			</motion.div>
 		</motion.div>
 	);

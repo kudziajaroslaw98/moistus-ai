@@ -93,7 +93,7 @@ function AccessIllustration() {
 
 			{/* Decorative elements */}
 			<circle
-				className='fill-teal-500/20'
+				className='fill-primary-500/20'
 				cx='45'
 				cy='45'
 				r='8'

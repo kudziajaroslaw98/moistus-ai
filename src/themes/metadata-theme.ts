@@ -110,11 +110,11 @@ export const MetadataTheme = {
 
 		// Assignee colors
 		assignee: {
-			bg: 'bg-teal-500/20',
-			text: 'text-teal-400',
-			border: 'border-teal-500/20',
-			hover: 'hover:bg-teal-500/30',
-			icon: 'text-teal-400',
+			bg: 'bg-primary-500/20',
+			text: 'text-primary-400',
+			border: 'border-primary-500/20',
+			hover: 'hover:bg-primary-500/30',
+			icon: 'text-primary-400',
 		},
 
 		// Annotation type colors

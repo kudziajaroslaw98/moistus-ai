@@ -122,13 +122,17 @@ export function AIActionsPopover({
 						onClick={action.action}
 						disabled={isStreaming}
 						className={cn(
-							'w-full px-3 py-2 flex items-center gap-3 text-left',
-							'hover:bg-surface-hover transition-colors duration-150',
+							'group w-full px-3 py-2.5 flex items-center gap-3 text-left',
+							'bg-transparent hover:bg-white/10 active:bg-white/15',
+							'transition-all duration-200 ease',
 							'disabled:opacity-50 disabled:cursor-not-allowed',
-							'focus:outline-none focus:bg-surface-hover'
+							'focus:outline-none focus:bg-white/10'
 						)}
 					>
-						<span className="text-text-secondary">
+						<span className={cn(
+							'text-text-secondary transition-colors duration-200',
+							'group-hover:text-primary-400'
+						)}>
 							{isStreaming ? (
 								<Loader2 className="size-4 animate-spin" />
 							) : (
@@ -136,7 +140,10 @@ export function AIActionsPopover({
 							)}
 						</span>
 						<div className="flex flex-col">
-							<span className="text-sm font-medium text-text-primary">
+							<span className={cn(
+								'text-sm font-medium text-text-primary transition-colors duration-200',
+								'group-hover:text-white'
+							)}>
 								{action.label}
 							</span>
 							<span className="text-xs text-text-tertiary">

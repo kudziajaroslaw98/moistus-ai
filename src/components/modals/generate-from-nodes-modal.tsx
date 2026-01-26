@@ -60,7 +60,7 @@ export function GenerateFromNodesModal({
 					<p className='text-sm text-zinc-300'>
 						Using AI to generate content based on{' '}
 
-						<span className='font-semibold text-teal-400'>
+						<span className='font-semibold text-primary-400'>
 							{selectedNodeCount}
 						</span>{' '}
 
@@ -68,7 +68,7 @@ export function GenerateFromNodesModal({
 					</p>
 
 					{isLoading && (
-						<div className='mt-2 flex items-center gap-2 text-teal-400 text-sm animate-pulse'>
+						<div className='mt-2 flex items-center gap-2 text-primary-400 text-sm animate-pulse'>
 							<Loader2 className='size-3 animate-spin' />
 
 							<span>AI is processing selected nodes...</span>
@@ -86,7 +86,7 @@ export function GenerateFromNodesModal({
 
 					<Textarea
 						autoFocus
-						className={`min-h-[220px] bg-zinc-900 border-zinc-700 focus:border-teal-500 resize-none ${isLoading ? 'opacity-60' : ''}`}
+						className={`min-h-[220px] bg-zinc-900 border-zinc-700 focus:border-primary-500 resize-none ${isLoading ? 'opacity-60' : ''}`}
 						disabled={isLoading}
 						id='ai-prompt'
 						onChange={(e) => setPrompt(e.target.value)}
@@ -107,7 +107,7 @@ export function GenerateFromNodesModal({
 					</Button>
 
 					<Button
-						className='bg-teal-600 hover:bg-teal-500 text-white'
+						className='bg-primary-600 hover:bg-primary-500 text-white'
 						disabled={isLoading || !prompt.trim()}
 						onClick={handleSubmit}
 					>

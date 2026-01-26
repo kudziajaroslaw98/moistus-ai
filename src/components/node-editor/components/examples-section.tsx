@@ -15,7 +15,7 @@ const theme = {
 	label: 'mb-2',
 	examplesGrid: 'flex flex-wrap gap-2',
 	exampleButton:
-		'text-teal-500 hover:text-teal-400 cursor-pointer transition-colors px-2 py-1 rounded bg-zinc-800/30 hover:bg-zinc-700/40 border border-zinc-700/50 hover:border-teal-500/30',
+		'text-primary-500 hover:text-primary-400 cursor-pointer transition-colors px-2 py-1 rounded bg-zinc-800/30 hover:bg-zinc-700/40 border border-zinc-700/50 hover:border-primary-500/30',
 	expandButton: 'text-zinc-400 hover:text-zinc-300 cursor-pointer ml-2',
 };
 

@@ -285,7 +285,7 @@ export const Toolbar = () => {
 									className={cn(
 										'active:scale-95',
 										isAIPopoverOpen &&
-											'bg-teal-500 border-teal-500/30 text-text-primary'
+											'bg-primary-500 border-primary-500/30 text-text-primary'
 									)}
 									size='icon'
 									title={tool.label ?? `Tool ${index}`}

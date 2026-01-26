@@ -240,7 +240,7 @@ export default function EdgeEditModal() {
 							<FormField id='edgeAnimated' label='Animated'>
 								<Input
 									checked={animated}
-									className='mr-2 rounded border-zinc-600 text-teal-600 shadow-sm focus:ring-teal-500 disabled:opacity-50'
+									className='mr-2 rounded border-zinc-600 text-primary-600 shadow-sm focus:ring-primary-500 disabled:opacity-50'
 									onChange={(e) => setAnimated(e.target.checked)}
 									type='checkbox'
 								/>
