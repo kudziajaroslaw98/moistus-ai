@@ -82,6 +82,17 @@ export const createHistorySlice: StateCreator<
 
 	// Real-time subscription to history revert events via broadcast
 	subscribeToHistoryCurrent: async (mapId: string) => {
+		// Clean up any existing subscription before creating a new one
+		const existingSub = get()._historyCurrentSubscription;
+		if (existingSub && typeof (existingSub as any).unsubscribe === 'function') {
+			try {
+				await (existingSub as any).unsubscribe();
+			} catch (e) {
+				console.warn('[broadcast] Failed to unsubscribe previous history subscription:', e);
+			}
+			set({ _historyCurrentSubscription: null });
+		}
+
 		// Use secure broadcast channel instead of postgres_changes
 		// This provides RLS-protected real-time sync via private channels
 		try {

@@ -91,6 +91,7 @@ function ForgotPasswordWizard() {
 		if (initialCheckDone.current) return;
 		initialCheckDone.current = true;
 
+		let mounted = true;
 		const supabase = getSharedSupabaseClient();
 		const arrivedWithRecoveryParams =
 			urlStateRef.current?.hadCode || urlStateRef.current?.hadRecovery;
@@ -99,6 +100,7 @@ function ForgotPasswordWizard() {
 		const {
 			data: { subscription },
 		} = supabase.auth.onAuthStateChange((event) => {
+			if (!mounted) return;
 			if (event === 'PASSWORD_RECOVERY') {
 				// Clean up URL if needed
 				window.history.replaceState(null, '', window.location.pathname);
@@ -109,9 +111,13 @@ function ForgotPasswordWizard() {
 
 		// Check if user already has a session (event might have already fired)
 		const checkSession = async () => {
+			if (!mounted) return;
+
 			const {
 				data: { session },
 			} = await supabase.auth.getSession();
+
+			if (!mounted) return;
 
 			// If we arrived with recovery params and have a session, show reset form
 			// The code exchange already happened via detectSessionInUrl
@@ -128,9 +134,11 @@ function ForgotPasswordWizard() {
 
 		// Give Supabase time to exchange the code, then check session
 		// The PASSWORD_RECOVERY event should fire, but this is a fallback
-		setTimeout(checkSession, 500);
+		const timeoutId = window.setTimeout(checkSession, 500);
 
 		return () => {
+			mounted = false;
+			clearTimeout(timeoutId);
 			subscription.unsubscribe();
 		};
 	}, []);
@@ -226,18 +234,26 @@ function ForgotPasswordWizard() {
 			}
 
 			setStep('success');
-
-			// Redirect to dashboard after brief delay
-			setTimeout(() => {
-				router.push('/dashboard');
-				router.refresh();
-			}, 2000);
 		} catch {
 			setError('An unexpected error occurred. Please try again.');
 		} finally {
 			setIsSubmitting(false);
 		}
 	};
+
+	// Handle redirect after success via effect (prevents memory leak from setTimeout in handler)
+	useEffect(() => {
+		if (step !== 'success') return;
+
+		const timeoutId = window.setTimeout(() => {
+			router.push('/dashboard');
+			router.refresh();
+		}, 2000);
+
+		return () => {
+			clearTimeout(timeoutId);
+		};
+	}, [step, router]);
 
 	// Get title and subtitle based on step
 	const getStepContent = () => {

@@ -59,7 +59,7 @@ function DropdownMenuContent({
 }) {
 	return (
 		<BaseMenu.Portal>
-			<BaseMenu.Positioner alignOffset={alignOffset} align={align}>
+			<BaseMenu.Positioner alignOffset={alignOffset} align={align} className='z-[100]'>
 				<BaseMenu.Popup
 					data-slot='dropdown-menu-content'
 					className={cn(
@@ -251,7 +251,7 @@ function DropdownMenuSubContent({
 }) {
 	return (
 		<BaseMenu.Portal>
-			<BaseMenu.Positioner alignOffset={alignOffset} align={align}>
+			<BaseMenu.Positioner alignOffset={alignOffset} align={align} className='z-[100]'>
 				<BaseMenu.Popup
 					data-slot='dropdown-menu-sub-content'
 					className={cn(

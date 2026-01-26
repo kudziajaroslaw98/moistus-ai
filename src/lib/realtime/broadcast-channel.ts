@@ -104,10 +104,12 @@ let authSet = false;
 async function ensureAuth(): Promise<void> {
 	if (authSet) return;
 
+	let timerId: ReturnType<typeof setTimeout> | undefined;
+
 	try {
 		// Add timeout to prevent hanging
 		const timeoutPromise = new Promise<never>((_, reject) => {
-			setTimeout(() => reject(new Error('setAuth timed out')), 5000);
+			timerId = setTimeout(() => reject(new Error('setAuth timed out')), 5000);
 		});
 
 		await Promise.race([supabase.realtime.setAuth(), timeoutPromise]);
@@ -117,6 +119,10 @@ async function ensureAuth(): Promise<void> {
 		// Don't throw - allow channel creation to proceed
 		// Private channel features may not work, but app shouldn't crash
 		authSet = true; // Mark as set to prevent retry loops
+	} finally {
+		if (timerId !== undefined) {
+			clearTimeout(timerId);
+		}
 	}
 }
 

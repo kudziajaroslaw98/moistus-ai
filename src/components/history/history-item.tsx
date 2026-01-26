@@ -95,7 +95,7 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 	};
 
 	// Check if user has permission to revert this change
-	const hasPermission = canRevertChange(delta);
+	const hasPermission = canRevertChange(delta ?? undefined);
 
 	// Determine if this item can show a diff
 	const canShowDiff = meta.type === 'event' || !!delta;

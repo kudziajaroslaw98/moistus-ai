@@ -730,18 +730,6 @@ export function SettingsPanel({
 											</Button>
 										</div>
 
-										<div className='flex items-center justify-between p-3 bg-base rounded-lg border border-border-subtle'>
-											<div>
-												<Label>Two-Factor Auth</Label>
-												<p className='text-xs text-text-secondary'>
-													Add extra security
-												</p>
-											</div>
-											<Button size='sm' variant='outline'>
-												Enable
-											</Button>
-										</div>
-
 										<div className='flex items-center justify-between p-3 bg-error-900/10 rounded-lg border border-error-900/20'>
 											<div>
 												<Label className='text-error-500'>Delete Account</Label>

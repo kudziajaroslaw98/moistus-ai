@@ -97,15 +97,17 @@ export const useRealtimePresenceRoom = (
 					});
 
 				// Update lastSeenAt and activityState every 30 seconds to keep presence fresh
-				heartbeatInterval = setInterval(async () => {
+				heartbeatInterval = setInterval(() => {
 					if (room) {
-						await room.track({
+						room.track({
 							id: currentUser?.id,
 							name: currentUserName,
 							image: currentUserImage,
 							joinedAt,
 							lastSeenAt: new Date().toISOString(),
 							activityState: activityState || 'viewing',
+						}).catch((err) => {
+							console.warn('[use-realtime-presence-room] Heartbeat track failed:', err);
 						});
 					}
 				}, 30000);

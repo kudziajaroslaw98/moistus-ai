@@ -41,8 +41,12 @@ export const GET = withAuthValidation<
 			.eq('id', mapId)
 			.maybeSingle();
 
-		if (mapError || !map) {
-			return respondError('Map not found', 404, mapError?.message);
+		if (mapError) {
+			return respondError('Error fetching map', 500, mapError.message);
+		}
+
+		if (!map) {
+			return respondError('Map not found', 404);
 		}
 
 		// Owner always has full permissions
@@ -79,18 +83,8 @@ export const GET = withAuthValidation<
 		}
 
 		if (!shareAccess) {
-			// No access record - return view-only as fallback
-			return respondSuccess<PermissionsResponse>(
-				{
-					role: 'viewer',
-					can_view: true,
-					can_edit: false,
-					can_comment: false,
-					isOwner: false,
-				},
-				200,
-				'No share access found, defaulting to viewer'
-			);
+			// No access record - deny access
+			return respondError('Access denied', 403, 'No share access found for this map');
 		}
 
 		return respondSuccess<PermissionsResponse>(

@@ -38,6 +38,8 @@ export function AIStreamMediator() {
 			let userMessage = error.message;
 			try {
 				const parsed = JSON.parse(error.message);
+				userMessage = parsed.error ?? error.message;
+
 				if (parsed.code === 'LIMIT_REACHED') {
 					toast.error('AI feature limit reached', {
 						description: 'Upgrade to Pro for unlimited AI features.',
@@ -47,7 +49,11 @@ export function AIStreamMediator() {
 						},
 						duration: 8000,
 					});
-					userMessage = parsed.error;
+				} else {
+					// Parsed JSON but not LIMIT_REACHED - show generic error toast
+					toast.error('AI request failed', {
+						description: userMessage,
+					});
 				}
 			} catch {
 				// Not JSON, show generic error toast

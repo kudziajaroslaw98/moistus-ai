@@ -14,7 +14,7 @@ import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import { ContextMenuState } from '@/types/context-menu-state';
 import type { EdgeData } from '@/types/edge-data';
-import type { HistoryItem } from '@/types/history-state';
+import type { AttributedHistoryDelta, HistoryItem } from '@/types/history-state';
 import { LoadingStates } from '@/types/loading-states';
 import type { MindMapData } from '@/types/mind-map-data';
 import type { NodeData } from '@/types/node-data';
@@ -173,7 +173,7 @@ export interface HistorySlice {
 	unsubscribeFromHistoryCurrent: () => Promise<void>;
 
 	// Permission check for collaborative history
-	canRevertChange: (delta?: any) => boolean;
+	canRevertChange: (delta?: AttributedHistoryDelta) => boolean;
 }
 
 export interface LoadingStatesSlice {

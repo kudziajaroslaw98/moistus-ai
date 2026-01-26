@@ -19,7 +19,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, CheckCircle2, KeyRound, Loader2 } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { PasswordStrengthBar } from './shared/password-strength';
 
@@ -85,19 +85,27 @@ export function PasswordResetModal({
 			}
 
 			setSuccess(true);
-
-			// Brief delay to show success state before redirecting
-			setTimeout(() => {
-				onSuccess();
-				router.push('/dashboard');
-				router.refresh();
-			}, 1500);
 		} catch {
 			setError('An unexpected error occurred. Please try again.');
 		} finally {
 			setIsSubmitting(false);
 		}
 	};
+
+	// Handle redirect after success via effect (prevents memory leak from setTimeout in handler)
+	useEffect(() => {
+		if (!success) return;
+
+		const timeoutId = window.setTimeout(() => {
+			onSuccess();
+			router.push('/dashboard');
+			router.refresh();
+		}, 1500);
+
+		return () => {
+			clearTimeout(timeoutId);
+		};
+	}, [success, onSuccess, router]);
 
 	return (
 		<Dialog
