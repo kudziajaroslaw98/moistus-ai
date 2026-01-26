@@ -1,10 +1,12 @@
 'use client';
 
+import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import { Link2, Loader2, Merge, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useCallback } from 'react';
+import { toast } from 'sonner';
 import { useShallow } from 'zustand/shallow';
 
 export interface AIActionsPopoverProps {
@@ -46,33 +48,57 @@ export function AIActionsPopover({
 		generateConnectionSuggestions,
 		generateMergeSuggestions,
 		isStreaming,
+		setPopoverOpen,
 	} = useAppStore(
 		useShallow((state) => ({
 			generateSuggestions: state.generateSuggestions,
 			generateConnectionSuggestions: state.generateConnectionSuggestions,
 			generateMergeSuggestions: state.generateMergeSuggestions,
 			isStreaming: state.isStreaming,
+			setPopoverOpen: state.setPopoverOpen,
 		}))
 	);
 
+	const { isAtLimit } = useSubscriptionLimits();
+
+	/** Check AI limit and show toast if at limit. Returns true if blocked. */
+	const checkAILimit = useCallback(() => {
+		if (isAtLimit('aiSuggestions')) {
+			toast.error('AI feature limit reached', {
+				description: 'Upgrade to Pro for unlimited AI features.',
+				action: {
+					label: 'Upgrade',
+					onClick: () => setPopoverOpen({ upgradeUser: true }),
+				},
+				duration: 8000,
+			});
+			onClose();
+			return true;
+		}
+		return false;
+	}, [isAtLimit, setPopoverOpen, onClose]);
+
 	const handleExpandIdeas = useCallback(() => {
 		if (!sourceNodeId) return;
+		if (checkAILimit()) return;
 		generateSuggestions({
 			sourceNodeId,
 			trigger: 'magic-wand',
 		});
 		onClose();
-	}, [sourceNodeId, generateSuggestions, onClose]);
+	}, [sourceNodeId, checkAILimit, generateSuggestions, onClose]);
 
 	const handleFindConnections = useCallback(() => {
+		if (checkAILimit()) return;
 		generateConnectionSuggestions(sourceNodeId);
 		onClose();
-	}, [sourceNodeId, generateConnectionSuggestions, onClose]);
+	}, [checkAILimit, sourceNodeId, generateConnectionSuggestions, onClose]);
 
 	const handleFindSimilar = useCallback(() => {
+		if (checkAILimit()) return;
 		generateMergeSuggestions(sourceNodeId);
 		onClose();
-	}, [sourceNodeId, generateMergeSuggestions, onClose]);
+	}, [checkAILimit, sourceNodeId, generateMergeSuggestions, onClose]);
 
 	const actions: ActionItem[] = [
 		{
