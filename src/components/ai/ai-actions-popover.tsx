@@ -161,6 +161,7 @@ export function AIActionsPopover({
 			<div className="py-1">
 				{visibleActions.map((action, index) => (
 					<button
+						type="button"
 						key={action.id}
 						onClick={action.action}
 						disabled={isStreaming}

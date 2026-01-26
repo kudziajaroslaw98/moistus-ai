@@ -5,6 +5,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+<!-- Updated: 2026-01-26 - AI popover click-outside fix -->
 ## [2026-01-26]
 
 ### Added
