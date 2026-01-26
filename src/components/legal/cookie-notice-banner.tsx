@@ -62,15 +62,15 @@ export function CookieNoticeBanner() {
 					}}
 					className="fixed bottom-4 left-4 right-4 mx-auto z-50 pointer-events-none max-w-2xl"
 				>
-				<div className="pointer-events-auto relative overflow-hidden rounded-lg border border-teal-500/20 bg-zinc-900/95 backdrop-blur-md shadow-lg">
+				<div className="pointer-events-auto relative overflow-hidden rounded-lg border border-primary-500/20 bg-zinc-900/95 backdrop-blur-md shadow-lg">
 					{/* Glassmorphic overlay */}
 					<div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent" />
 
 					<div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 px-4 py-3">
 						{/* Left: Icon + Message */}
 						<div className="flex items-start sm:items-center gap-3">
-							<div className="shrink-0 rounded-full bg-teal-500/20 p-2">
-								<Cookie className="h-4 w-4 text-teal-400" />
+							<div className="shrink-0 rounded-full bg-primary-500/20 p-2">
+								<Cookie className="h-4 w-4 text-primary-400" />
 							</div>
 							<p className="text-sm text-zinc-300">
 								<span className="sm:hidden">
@@ -82,7 +82,7 @@ export function CookieNoticeBanner() {
 								</span>
 								<Link
 									href="/privacy"
-									className="text-teal-400 hover:text-teal-300 underline underline-offset-2 transition-colors duration-200"
+									className="text-primary-400 hover:text-primary-300 underline underline-offset-2 transition-colors duration-200"
 								>
 									Learn more
 								</Link>
@@ -93,7 +93,7 @@ export function CookieNoticeBanner() {
 						<div className="flex items-center gap-2 self-end sm:self-auto">
 							<button
 								onClick={handleAcknowledge}
-								className="shrink-0 rounded-md bg-teal-600 hover:bg-teal-700 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-colors duration-200 ease-out"
+								className="shrink-0 rounded-md bg-primary-600 hover:bg-primary-700 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-colors duration-200 ease-out"
 							>
 								Got it
 							</button>

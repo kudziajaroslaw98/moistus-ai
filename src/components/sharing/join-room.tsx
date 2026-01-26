@@ -183,7 +183,7 @@ export function JoinRoom({
 						</label>
 
 						<input
-							className='w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-center text-lg font-mono tracking-wider'
+							className='w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-center text-lg font-mono tracking-wider'
 							disabled={isJoining}
 							id='roomCode'
 							maxLength={7}
@@ -210,7 +210,7 @@ export function JoinRoom({
 						</label>
 
 						<input
-							className='w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent'
+							className='w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent'
 							id='displayName'
 							placeholder='Enter your name'
 							type='text'
@@ -238,7 +238,7 @@ export function JoinRoom({
 
 					{/* Submit Button */}
 					<motion.button
-						className='w-full bg-teal-600 hover:bg-teal-700 disabled:bg-zinc-700 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-md transition-colors duration-200 flex items-center justify-center'
+						className='w-full bg-primary-600 hover:bg-primary-700 disabled:bg-zinc-700 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-md transition-colors duration-200 flex items-center justify-center'
 						disabled={isJoining}
 						type='submit'
 						whileHover={{ scale: isJoining ? 1 : 1.02 }}

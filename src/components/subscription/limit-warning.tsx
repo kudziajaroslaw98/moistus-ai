@@ -71,7 +71,7 @@ export function LimitWarning({ limitType, className }: LimitWarningProps) {
 						<p className='text-sm text-zinc-400 mb-3'>{message.description}</p>
 
 						<Button
-							className='bg-teal-500 hover:bg-teal-600 text-zinc-900 font-medium'
+							className='bg-primary-500 hover:bg-primary-600 text-zinc-900 font-medium'
 							onClick={handleUpgrade}
 							size='sm'
 						>
@@ -196,7 +196,7 @@ export function UsageMeter({
 							? 'bg-red-500'
 							: isNearLimit
 								? 'bg-amber-500'
-								: 'bg-teal-500'
+								: 'bg-primary-500'
 					}`}
 				/>
 			</div>

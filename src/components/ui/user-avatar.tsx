@@ -53,7 +53,7 @@ const UserAvatarComponent = ({
 			}}
 		/>
 	) : (
-		<div className='size-full flex items-center justify-center bg-gradient-to-br from-teal-400 to-blue-500 text-white font-bold'>
+		<div className='size-full flex items-center justify-center bg-gradient-to-br from-primary-400 to-primary-600 text-white font-bold'>
 			{initials}
 		</div>
 	);

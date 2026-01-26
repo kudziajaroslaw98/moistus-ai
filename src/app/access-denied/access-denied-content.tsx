@@ -76,7 +76,7 @@ function AccessIllustration() {
 				x='97'
 				y='118'
 			/>
-			<circle className='fill-teal-500/20' cx='45' cy='45' r='8' />
+			<circle className='fill-primary-500/20' cx='45' cy='45' r='8' />
 			<circle className='fill-sky-500/20' cx='155' cy='45' r='6' />
 			<circle className='fill-violet-500/20' cx='165' cy='155' r='10' />
 			<circle className='fill-amber-500/20' cx='35' cy='145' r='7' />

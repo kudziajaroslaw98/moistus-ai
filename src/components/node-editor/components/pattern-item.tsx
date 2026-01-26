@@ -8,11 +8,11 @@ import type { PatternItemProps } from '../types';
 const theme = {
 	pattern: {
 		item: 'flex items-center gap-3 px-2 py-2 rounded-md hover:bg-zinc-800/50 cursor-pointer transition-colors',
-		syntax: 'font-mono text-xs text-teal-400 font-medium',
+		syntax: 'font-mono text-xs text-primary-400 font-medium',
 		description: 'text-xs text-zinc-500',
 		examples: 'text-xs text-zinc-600',
 		icon: 'w-3.5 h-3.5 text-zinc-600 shrink-0',
-		clicked: 'bg-teal-500/20 ring-1 ring-teal-500/50',
+		clicked: 'bg-primary-500/20 ring-1 ring-primary-500/50',
 	},
 };
 

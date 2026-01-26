@@ -5,6 +5,37 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+<!-- Updated: 2026-01-26 - AI popover click-outside fix -->
+## [2026-01-26]
+
+### Added
+- **ai**: `AIActionsPopover` component for contextual AI actions (`src/components/ai/ai-actions-popover.tsx`)
+  - Shared between node button and toolbar
+  - Three actions: Expand ideas (node-only), Find connections, Find similar
+  - Scope-aware: shows different options for node vs map context
+
+### Changed
+- **nodes**: AI sparkle button now opens popover instead of direct action
+  - Smaller button footprint (icon only, no text)
+  - Position moved closer to node (-right-[60px] from -right-[200px])
+  - Shows spinner during streaming
+- **toolbar**: AI dropdown replaced with popover
+  - "Suggest Nodes" option removed from toolbar (only available on nodes)
+  - Direct action selection without mode switching
+- **suggestions-slice**: `generateConnectionSuggestions` and `generateMergeSuggestions` now accept optional `sourceNodeId`
+  - When provided, filters results to suggestions involving that node
+  - Client-side post-filtering preserves full AI map analysis
+
+### Fixed
+- **tests**: Updated base-node-wrapper tests for new popover behavior
+- **realtime**: Guard against concurrent subscription attempts causing infinite loop on map load
+  - Applied to `subscribeToNodes`, `subscribeToEdges`, and `subscribeToHistoryCurrent`
+  - Cleanup existing subscription before creating new one to prevent duplicate handlers
+- **toolbar**: AI actions popover click-outside not closing
+  - Portaled backdrop to `document.body` to escape toolbar's transform containing block
+
+---
+
 ## [2026-01-25]
 
 ### Added

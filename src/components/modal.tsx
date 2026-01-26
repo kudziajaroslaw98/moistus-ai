@@ -24,7 +24,7 @@ export default function Modal({
 
 					<button
 						aria-label='Close modal'
-						className='rounded-sm p-1 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-100 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none'
+						className='rounded-sm p-1 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-100 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none'
 						onClick={onClose}
 					>
 						<svg

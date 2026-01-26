@@ -173,7 +173,7 @@ export function ChatPanel() {
 							transition={transition}
 							className='flex flex-col items-center gap-4'
 						>
-							<div className='flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary-500/20 to-teal-500/20 border border-primary-500/20'>
+							<div className='flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary-500/20 to-violet-500/20 border border-primary-500/20'>
 								<MessageSquarePlus className='h-8 w-8 text-primary-400' />
 							</div>
 

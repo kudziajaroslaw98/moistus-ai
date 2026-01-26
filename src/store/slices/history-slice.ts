@@ -28,6 +28,7 @@ export const createHistorySlice: StateCreator<
 	isReverting: false,
 	revertingIndex: null, // Which history item is currently reverting
 	_historyCurrentSubscription: null,
+	_historySubscriptionPending: false, // Guard against concurrent subscription attempts
 
 	// pagination
 	historyPageOffset: 0,
@@ -82,20 +83,27 @@ export const createHistorySlice: StateCreator<
 
 	// Real-time subscription to history revert events via broadcast
 	subscribeToHistoryCurrent: async (mapId: string) => {
-		// Clean up any existing subscription before creating a new one
-		const existingSub = get()._historyCurrentSubscription;
-		if (existingSub && typeof (existingSub as any).unsubscribe === 'function') {
-			try {
-				await (existingSub as any).unsubscribe();
-			} catch (e) {
-				console.warn('[broadcast] Failed to unsubscribe previous history subscription:', e);
-			}
-			set({ _historyCurrentSubscription: null });
+		// Guard against concurrent subscription attempts (prevents infinite loop)
+		if (get()._historySubscriptionPending) {
+			console.log('[broadcast] History subscription already pending, skipping');
+			return;
 		}
+		set({ _historySubscriptionPending: true });
 
-		// Use secure broadcast channel instead of postgres_changes
-		// This provides RLS-protected real-time sync via private channels
 		try {
+			// Clean up any existing subscription before creating a new one
+			const existingSub = get()._historyCurrentSubscription;
+			if (existingSub && typeof (existingSub as any).unsubscribe === 'function') {
+				try {
+					await (existingSub as any).unsubscribe();
+				} catch (e) {
+					console.warn('[broadcast] Failed to unsubscribe previous history subscription:', e);
+				}
+				set({ _historyCurrentSubscription: null });
+			}
+
+			// Use secure broadcast channel instead of postgres_changes
+			// This provides RLS-protected real-time sync via private channels
 			const handleHistoryRevert = async (payload: HistoryRevertPayload) => {
 				const {
 					currentUser,
@@ -162,6 +170,8 @@ export const createHistorySlice: StateCreator<
 			console.log('[broadcast] Subscribed to history events for map:', mapId);
 		} catch (e) {
 			console.error('[broadcast] Failed to subscribe to history events:', e);
+		} finally {
+			set({ _historySubscriptionPending: false });
 		}
 	},
 

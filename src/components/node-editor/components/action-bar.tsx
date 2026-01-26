@@ -44,7 +44,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 				transition={{ delay: 0.15, duration: 0.3, ease: 'easeOut' as const }}
 				className={cn(
 					'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
-					'bg-teal-600 hover:bg-teal-700 text-white',
+					'bg-primary-600 hover:bg-primary-700 text-white',
 					'disabled:opacity-50 disabled:cursor-not-allowed'
 				)}
 				whileHover={{

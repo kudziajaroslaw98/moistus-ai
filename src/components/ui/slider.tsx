@@ -82,7 +82,7 @@ const Slider = forwardRef<HTMLDivElement, SliderProps>(
 					ref={trackRef}
 				>
 					<div
-						className='absolute h-full bg-teal-500'
+						className='absolute h-full bg-primary-500'
 						style={{
 							width: `${getPercentage(internalValue[0])}%`,
 						}}
