@@ -159,6 +159,7 @@ export interface HistorySlice {
 	isReverting: boolean;
 	revertingIndex: number | null; // which history item is currently reverting
 	_historyCurrentSubscription: HistorySubscriptionCleanup | null;
+	_historySubscriptionPending: boolean; // Guard against concurrent subscription attempts
 
 	// Pagination
 	historyPageOffset: number;
