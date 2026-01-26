@@ -441,6 +441,7 @@ export async function unsubscribeFromSyncChannel(mapId: string): Promise<void> {
 		activeChannels.delete(mapId);
 		channelSubscriptionState.delete(mapId);
 		channelSubscriptionCount.delete(mapId);
+		activeSubscriptionIds.delete(mapId);
 		console.log(
 			`[broadcast-channel] Force unsubscribed from sync channel: ${mapId}`
 		);
