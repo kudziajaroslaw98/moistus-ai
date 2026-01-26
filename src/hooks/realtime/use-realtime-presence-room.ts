@@ -5,7 +5,7 @@ import { useCurrentUserName } from '@/hooks/use-current-username';
 import { createPrivateChannel } from '@/lib/realtime/broadcast-channel';
 import useAppStore from '@/store/mind-map-store';
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useUserColor } from '../use-user-color';
 
 export type ActivityState =
@@ -36,6 +36,18 @@ export const useRealtimePresenceRoom = (
 	const currentUserName = useCurrentUserName();
 
 	const [users, setUsers] = useState<Record<string, RealtimeUser>>({});
+
+	// Use refs to avoid stale closures in interval callback
+	const currentUserNameRef = useRef(currentUserName);
+	const currentUserImageRef = useRef(currentUserImage);
+	const activityStateRef = useRef(activityState);
+	const currentUserIdRef = useRef(currentUser?.id);
+
+	// Keep refs in sync with latest values
+	currentUserNameRef.current = currentUserName;
+	currentUserImageRef.current = currentUserImage;
+	activityStateRef.current = activityState;
+	currentUserIdRef.current = currentUser?.id;
 
 	useEffect(() => {
 		let room: RealtimeChannel | null = null;
@@ -81,31 +93,35 @@ export const useRealtimePresenceRoom = (
 						) as Record<string, RealtimeUser>;
 						setUsers(newUsers);
 					})
-					.subscribe(async (status) => {
+					.subscribe((status) => {
 						if (status !== 'SUBSCRIBED') {
 							return;
 						}
 
-						await room!.track({
-							id: currentUser?.id,
-							name: currentUserName,
-							image: currentUserImage,
+						// Initial track with error handling
+						room!.track({
+							id: currentUserIdRef.current,
+							name: currentUserNameRef.current,
+							image: currentUserImageRef.current,
 							joinedAt,
 							lastSeenAt: new Date().toISOString(),
-							activityState: activityState || 'viewing',
+							activityState: activityStateRef.current || 'viewing',
+						}).catch((err) => {
+							console.warn('[use-realtime-presence-room] Initial track failed:', err);
 						});
 					});
 
 				// Update lastSeenAt and activityState every 30 seconds to keep presence fresh
+				// Uses refs to always get the latest values without recreating the interval
 				heartbeatInterval = setInterval(() => {
 					if (room) {
 						room.track({
-							id: currentUser?.id,
-							name: currentUserName,
-							image: currentUserImage,
+							id: currentUserIdRef.current,
+							name: currentUserNameRef.current,
+							image: currentUserImageRef.current,
 							joinedAt,
 							lastSeenAt: new Date().toISOString(),
-							activityState: activityState || 'viewing',
+							activityState: activityStateRef.current || 'viewing',
 						}).catch((err) => {
 							console.warn('[use-realtime-presence-room] Heartbeat track failed:', err);
 						});
@@ -125,7 +141,7 @@ export const useRealtimePresenceRoom = (
 			}
 			room?.unsubscribe();
 		};
-	}, [roomName, currentUserName, currentUserImage, currentUser?.id, activityState]);
+	}, [roomName]); // Only depend on roomName - refs handle the rest
 
 	return { users };
 };

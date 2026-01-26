@@ -93,6 +93,12 @@ const channelSubscriptionState = new Map<string, 'pending' | 'subscribed' | 'err
 /** Track number of active subscriptions per channel for proper cleanup */
 const channelSubscriptionCount = new Map<string, number>();
 
+/** Track active subscription IDs per mapId to support handler deactivation */
+const activeSubscriptionIds = new Map<string, Set<string>>();
+
+/** Counter for generating unique subscription IDs */
+let subscriptionIdCounter = 0;
+
 /** Track if setAuth has been called this session */
 let authSet = false;
 
@@ -234,9 +240,12 @@ export async function broadcast(
  * Supports multiple callers - tracks subscription count and only unsubscribes
  * when all callers have cleaned up.
  *
+ * Handlers are wrapped with a subscription ID check to prevent stale handlers
+ * from firing after cleanup (since Supabase doesn't support removeListener).
+ *
  * @param mapId - The map ID to subscribe to
  * @param handlers - Event handlers for each event type
- * @returns Cleanup function (decrements subscription count, unsubscribes when 0)
+ * @returns Cleanup function (deactivates handlers, unsubscribes when last)
  */
 export async function subscribeToSyncEvents(
 	mapId: string,
@@ -252,55 +261,88 @@ export async function subscribeToSyncEvents(
 ): Promise<() => void> {
 	const channel = await getOrCreateSyncChannel(mapId);
 
-	// Register handlers for each event type
+	// Generate unique subscription ID for this caller
+	const subscriptionId = `sub_${++subscriptionIdCounter}`;
+
+	// Track this subscription as active
+	if (!activeSubscriptionIds.has(mapId)) {
+		activeSubscriptionIds.set(mapId, new Set());
+	}
+	activeSubscriptionIds.get(mapId)!.add(subscriptionId);
+
+	// Helper to check if this subscription is still active
+	const isActive = () => activeSubscriptionIds.get(mapId)?.has(subscriptionId) ?? false;
+
+	// Register handlers wrapped with active check to prevent stale handler calls
+	// Note: Supabase doesn't support removeListener, so we wrap handlers instead
 	if (handlers.onNodeCreate) {
+		const handler = handlers.onNodeCreate;
 		channel.on(
 			'broadcast',
 			{ event: BROADCAST_EVENTS.NODE_CREATE },
-			({ payload }) => handlers.onNodeCreate!(payload as NodeBroadcastPayload)
+			({ payload }) => {
+				if (isActive()) handler(payload as NodeBroadcastPayload);
+			}
 		);
 	}
 	if (handlers.onNodeUpdate) {
+		const handler = handlers.onNodeUpdate;
 		channel.on(
 			'broadcast',
 			{ event: BROADCAST_EVENTS.NODE_UPDATE },
-			({ payload }) => handlers.onNodeUpdate!(payload as NodeBroadcastPayload)
+			({ payload }) => {
+				if (isActive()) handler(payload as NodeBroadcastPayload);
+			}
 		);
 	}
 	if (handlers.onNodeDelete) {
+		const handler = handlers.onNodeDelete;
 		channel.on(
 			'broadcast',
 			{ event: BROADCAST_EVENTS.NODE_DELETE },
-			({ payload }) => handlers.onNodeDelete!(payload as NodeBroadcastPayload)
+			({ payload }) => {
+				if (isActive()) handler(payload as NodeBroadcastPayload);
+			}
 		);
 	}
 	if (handlers.onEdgeCreate) {
+		const handler = handlers.onEdgeCreate;
 		channel.on(
 			'broadcast',
 			{ event: BROADCAST_EVENTS.EDGE_CREATE },
-			({ payload }) => handlers.onEdgeCreate!(payload as EdgeBroadcastPayload)
+			({ payload }) => {
+				if (isActive()) handler(payload as EdgeBroadcastPayload);
+			}
 		);
 	}
 	if (handlers.onEdgeUpdate) {
+		const handler = handlers.onEdgeUpdate;
 		channel.on(
 			'broadcast',
 			{ event: BROADCAST_EVENTS.EDGE_UPDATE },
-			({ payload }) => handlers.onEdgeUpdate!(payload as EdgeBroadcastPayload)
+			({ payload }) => {
+				if (isActive()) handler(payload as EdgeBroadcastPayload);
+			}
 		);
 	}
 	if (handlers.onEdgeDelete) {
+		const handler = handlers.onEdgeDelete;
 		channel.on(
 			'broadcast',
 			{ event: BROADCAST_EVENTS.EDGE_DELETE },
-			({ payload }) => handlers.onEdgeDelete!(payload as EdgeBroadcastPayload)
+			({ payload }) => {
+				if (isActive()) handler(payload as EdgeBroadcastPayload);
+			}
 		);
 	}
 	if (handlers.onHistoryRevert) {
+		const handler = handlers.onHistoryRevert;
 		channel.on(
 			'broadcast',
 			{ event: BROADCAST_EVENTS.HISTORY_REVERT },
-			({ payload }) =>
-				handlers.onHistoryRevert!(payload as HistoryRevertPayload)
+			({ payload }) => {
+				if (isActive()) handler(payload as HistoryRevertPayload);
+			}
 		);
 	}
 
@@ -362,20 +404,25 @@ export async function subscribeToSyncEvents(
 	const currentCount = channelSubscriptionCount.get(mapId) || 0;
 	channelSubscriptionCount.set(mapId, currentCount + 1);
 
-	// Return cleanup function that decrements count and only unsubscribes when count reaches 0
+	// Return cleanup function that deactivates this subscription's handlers
+	// and only fully unsubscribes when the last subscriber leaves
 	return () => {
+		// Deactivate this subscription's handlers (they'll no-op on future calls)
+		activeSubscriptionIds.get(mapId)?.delete(subscriptionId);
+
 		const count = channelSubscriptionCount.get(mapId) || 0;
 		if (count <= 1) {
-			// Last subscriber - actually unsubscribe
+			// Last subscriber - actually unsubscribe and clean up
 			channel.unsubscribe();
 			activeChannels.delete(mapId);
 			channelSubscriptionState.delete(mapId);
 			channelSubscriptionCount.delete(mapId);
+			activeSubscriptionIds.delete(mapId);
 			console.log(
 				`[broadcast-channel] Fully unsubscribed from sync channel: ${mapId}`
 			);
 		} else {
-			// Still have other subscribers
+			// Still have other subscribers - just decrement count
 			channelSubscriptionCount.set(mapId, count - 1);
 		}
 	};
@@ -418,5 +465,6 @@ export async function cleanupAllChannels(): Promise<void> {
 	activeChannels.clear();
 	channelSubscriptionState.clear();
 	channelSubscriptionCount.clear();
+	activeSubscriptionIds.clear();
 	authSet = false;
 }

@@ -11,7 +11,7 @@ import {
 } from '@/lib/realtime/broadcast-channel';
 import { AppEdge } from '@/types/app-edge';
 import { AppNode } from '@/types/app-node';
-import { AttributedHistoryDelta } from '@/types/history-state';
+import { AttributedHistoryDelta, HistoryItem } from '@/types/history-state';
 import { toast } from 'sonner';
 import { StateCreator } from 'zustand';
 import { AppState, HistorySlice } from '../app-state';
@@ -156,7 +156,7 @@ export const createHistorySlice: StateCreator<
 			set({
 				_historyCurrentSubscription: {
 					unsubscribe: cleanup,
-				} as unknown as ReturnType<typeof get>['_historyCurrentSubscription'],
+				},
 			});
 
 			console.log('[broadcast] Subscribed to history events for map:', mapId);
@@ -389,11 +389,11 @@ export const createHistorySlice: StateCreator<
 		if (isReverting || index < 0 || index >= historyMeta.length) return;
 		if (index === historyIndex) return;
 
-		const meta: any = historyMeta?.[index];
+		const meta: HistoryItem | undefined = historyMeta?.[index];
 		if (!meta || !mapId) return;
 
-		// Permission check - fetch delta from API if needed for permission check
-		// For now, allow revert (permission will be checked via delta fetched below)
+		// Permission check: client-side permission is handled in history-item.tsx
+		// (canRevertChange), server-side permission is enforced by the API
 
 		set({ isReverting: true, revertingIndex: index });
 

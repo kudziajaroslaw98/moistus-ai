@@ -146,13 +146,19 @@ export interface GroupsSlice {
 // History Slice
 // NOTE: In-memory history (history[], canUndo, canRedo, handleUndo, handleRedo) removed.
 // History is now DB-only. Use History panel to revert, not Ctrl+Z.
+
+/** Wrapper for broadcast channel cleanup function */
+export interface HistorySubscriptionCleanup {
+	unsubscribe: () => void;
+}
+
 export interface HistorySlice {
 	// History state - DB metadata only (no in-memory snapshots)
 	historyMeta: ReadonlyArray<HistoryItem>; // chronological asc (oldest -> newest)
 	historyIndex: number; // index into historyMeta for current position
 	isReverting: boolean;
 	revertingIndex: number | null; // which history item is currently reverting
-	_historyCurrentSubscription: RealtimeChannel | null;
+	_historyCurrentSubscription: HistorySubscriptionCleanup | null;
 
 	// Pagination
 	historyPageOffset: number;
