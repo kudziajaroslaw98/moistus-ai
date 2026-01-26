@@ -30,6 +30,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **realtime**: Guard against concurrent subscription attempts causing infinite loop on map load
   - Applied to `subscribeToNodes`, `subscribeToEdges`, and `subscribeToHistoryCurrent`
   - Cleanup existing subscription before creating new one to prevent duplicate handlers
+- **toolbar**: AI actions popover click-outside not closing
+  - Portaled backdrop to `document.body` to escape toolbar's transform containing block
 
 ---
 
