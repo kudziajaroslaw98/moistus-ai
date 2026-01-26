@@ -132,6 +132,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 		edges: [],
 		systemUpdatedEdges: new Map(),
 		_edgesSubscription: null,
+		_edgesSubscriptionPending: false,
 
 		// System update tracking helpers
 		markEdgeAsSystemUpdate: (edgeId: string) => {
@@ -637,9 +638,27 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 		},
 
 		subscribeToEdges: async (mapId: string) => {
-			// Use secure broadcast channel instead of postgres_changes
-			// This provides RLS-protected real-time sync via private channels
+			// Guard against concurrent subscription attempts
+			if (get()._edgesSubscriptionPending) {
+				console.log('[broadcast] Edge subscription already pending, skipping');
+				return;
+			}
+			set({ _edgesSubscriptionPending: true });
+
 			try {
+				// Clean up existing subscription before creating new one
+				const existingSub = get()._edgesSubscription;
+				if (existingSub && typeof (existingSub as any).unsubscribe === 'function') {
+					try {
+						await (existingSub as any).unsubscribe();
+					} catch (e) {
+						console.warn('[broadcast] Failed to unsubscribe previous edges subscription:', e);
+					}
+					set({ _edgesSubscription: null });
+				}
+
+				// Use secure broadcast channel instead of postgres_changes
+				// This provides RLS-protected real-time sync via private channels
 				const cleanup = await subscribeToSyncEvents(mapId, {
 					onEdgeCreate: handleEdgeCreate,
 					onEdgeUpdate: handleEdgeUpdate,
@@ -656,6 +675,8 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 				console.log('[broadcast] Subscribed to edge events for map:', mapId);
 			} catch (error) {
 				console.error('[broadcast] Failed to subscribe to edge events:', error);
+			} finally {
+				set({ _edgesSubscriptionPending: false });
 			}
 		},
 

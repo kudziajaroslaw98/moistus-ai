@@ -131,6 +131,7 @@ export interface EdgesSlice {
 	subscribeToEdges: (mapId: string) => Promise<void>;
 	unsubscribeFromEdges: () => Promise<void>;
 	_edgesSubscription: RealtimeChannel | null;
+	_edgesSubscriptionPending: boolean; // Guard against concurrent subscription attempts
 }
 
 // Groups Slice
@@ -251,6 +252,7 @@ export interface NodesSlice {
 	subscribeToNodes: (mapId: string) => Promise<void>;
 	unsubscribeFromNodes: () => Promise<void>;
 	_nodesSubscription: RealtimeChannel | null;
+	_nodesSubscriptionPending: boolean; // Guard against concurrent subscription attempts
 
 	// Resource node metadata fetching
 	fetchResourceNodeMetadata: (nodeId: string, url: string) => Promise<void>;

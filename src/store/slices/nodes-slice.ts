@@ -115,6 +115,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 		selectedNodes: [],
 		systemUpdatedNodes: new Map(),
 		_nodesSubscription: null,
+		_nodesSubscriptionPending: false,
 
 		// System update tracking helpers
 		markNodeAsSystemUpdate: (nodeId: string) => {
@@ -865,9 +866,27 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 		},
 
 		subscribeToNodes: async (mapId: string) => {
-			// Use secure broadcast channel instead of postgres_changes
-			// This provides RLS-protected real-time sync via private channels
+			// Guard against concurrent subscription attempts
+			if (get()._nodesSubscriptionPending) {
+				console.log('[broadcast] Node subscription already pending, skipping');
+				return;
+			}
+			set({ _nodesSubscriptionPending: true });
+
 			try {
+				// Clean up existing subscription before creating new one
+				const existingSub = get()._nodesSubscription;
+				if (existingSub && typeof (existingSub as any).unsubscribe === 'function') {
+					try {
+						await (existingSub as any).unsubscribe();
+					} catch (e) {
+						console.warn('[broadcast] Failed to unsubscribe previous nodes subscription:', e);
+					}
+					set({ _nodesSubscription: null });
+				}
+
+				// Use secure broadcast channel instead of postgres_changes
+				// This provides RLS-protected real-time sync via private channels
 				const cleanup = await subscribeToSyncEvents(mapId, {
 					onNodeCreate: handleNodeCreate,
 					onNodeUpdate: handleNodeUpdate,
@@ -886,6 +905,8 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				console.log('[broadcast] Subscribed to node events for map:', mapId);
 			} catch (error) {
 				console.error('[broadcast] Failed to subscribe to node events:', error);
+			} finally {
+				set({ _nodesSubscriptionPending: false });
 			}
 		},
 
