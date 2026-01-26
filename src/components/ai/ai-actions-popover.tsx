@@ -154,7 +154,7 @@ export function AIActionsPopover({
 			exit={{ opacity: 0, scale: 0.95 }}
 			transition={{ duration: 0.15, type: 'spring', stiffness: 500, damping: 30 }}
 			className={cn(
-				'bg-overlay border border-border-default rounded-lg shadow-lg overflow-hidden min-w-[200px]',
+				'bg-elevated border border-border-default rounded-lg shadow-lg overflow-hidden min-w-[200px]',
 				className
 			)}
 		>
