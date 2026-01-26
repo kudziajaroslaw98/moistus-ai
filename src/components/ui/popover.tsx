@@ -38,20 +38,27 @@ function PopoverTrigger({ asChild, children, ...props }: PopoverTriggerProps) {
 function PopoverContent({
 	className,
 	align = 'center',
+	side = 'top',
 	sideOffset = 4,
 	...props
 }: ComponentProps<typeof BasePopover.Popup> & {
 	align?: 'start' | 'center' | 'end';
+	side?: 'top' | 'bottom' | 'left' | 'right';
 	sideOffset?: number;
 }) {
 	return (
 		<BasePopover.Portal>
-			<BasePopover.Positioner align={align} sideOffset={sideOffset}>
+			<BasePopover.Positioner
+				align={align}
+				side={side}
+				sideOffset={sideOffset}
+				className='z-[100]'
+			>
 				<BasePopover.Popup
 					data-slot='popover-content'
 					className={cn(
 						'bg-overlay border border-border-default text-text-primary backdrop-blur-sm',
-						'data-[open]:animate-in data-[closed]:animate-out data-[closed]:fade-out-0 data-[open]:fade-in-0 data-[closed]:zoom-out-95 data-[open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-72 rounded-md shadow-md outline-hidden p-4',
+						'data-[open]:animate-in data-[closed]:animate-out data-[closed]:fade-out-0 data-[open]:fade-in-0 data-[closed]:zoom-out-95 data-[open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 w-72 rounded-md shadow-md outline-hidden p-4',
 						className
 					)}
 					{...props}

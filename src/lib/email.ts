@@ -25,9 +25,15 @@ export async function sendAccountDeletionEmail(
 	try {
 		const resend = createResendClient();
 
+		// Dev override: redirect emails to test address (only in non-production)
+		const recipientEmail =
+			process.env.NODE_ENV !== 'production' && process.env.DEV_EMAIL_OVERRIDE
+				? process.env.DEV_EMAIL_OVERRIDE
+				: email;
+
 		const { error } = await resend.emails.send({
 			from: 'Shiko <noreply@shiko.app>',
-			to: email,
+			to: recipientEmail,
 			subject: 'Your Shiko account has been deleted',
 			text: `Hi ${displayName || 'there'},
 

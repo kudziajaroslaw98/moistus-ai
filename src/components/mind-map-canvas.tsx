@@ -33,14 +33,10 @@ export function MindMapCanvas() {
 
 	// Consume necessary values for keyboard shortcuts
 	const {
-		handleUndo,
-		handleRedo,
 		handleCopy,
 		handlePaste,
 		edges,
 		selectedNodes,
-		canUndo,
-		canRedo,
 		loadingStates,
 		isFocusMode,
 		createGroupFromSelected,
@@ -52,14 +48,10 @@ export function MindMapCanvas() {
 		applyLayout,
 	} = useAppStore(
 		useShallow((state) => ({
-			handleUndo: state.handleUndo,
-			handleRedo: state.handleRedo,
 			handleCopy: state.copySelectedNodes,
 			handlePaste: state.pasteNodes,
 			edges: state.edges,
 			selectedNodes: state.selectedNodes,
-			canUndo: state.canUndo,
-			canRedo: state.canRedo,
 			loadingStates: state.loadingStates,
 			isFocusMode: state.isFocusMode,
 			createGroupFromSelected: state.createGroupFromSelected,
@@ -102,8 +94,6 @@ export function MindMapCanvas() {
 	}, [selectedNodes, toggleNodeCollapse]);
 
 	useKeyboardShortcuts({
-		onUndo: canEdit ? handleUndo : () => {},
-		onRedo: canEdit ? handleRedo : () => {},
 		onAddChild: () => {
 			const selected = selectedNodes[0];
 			openNodeEditor({
@@ -118,8 +108,6 @@ export function MindMapCanvas() {
 		onPaste: handlePaste,
 		selectedNodeId: selectedNodeId,
 		selectedEdgeId: selectedEdgeId,
-		canUndo: canEdit && canUndo,
-		canRedo: canEdit && canRedo,
 		isBusy: isLoading,
 		onGroup: handleGroup,
 		onUngroup: handleUngroup,

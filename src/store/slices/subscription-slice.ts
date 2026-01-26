@@ -233,6 +233,12 @@ export const createSubscriptionSlice: StateCreator<
 		try {
 			const response = await fetch('/api/user/billing/usage');
 
+			// Handle unauthenticated state gracefully (e.g., after logout)
+			if (response.status === 401) {
+				set({ usageData: null, isLoadingUsage: false });
+				return;
+			}
+
 			if (!response.ok) {
 				throw new Error('Failed to fetch usage data');
 			}
@@ -243,12 +249,12 @@ export const createSubscriptionSlice: StateCreator<
 				usageData: data,
 				isLoadingUsage: false,
 			});
-		} catch (error) {
-			console.error('Error fetching usage data:', error);
-			// Keep stale data on error, just log it
+		} catch {
+			// Silently fail - usage data is non-critical
+			// Common case: user just logged out, API returns 401/network error
 			set({
-				usageError:
-					error instanceof Error ? error.message : 'Failed to fetch usage',
+				usageData: null,
+				usageError: null,
 				isLoadingUsage: false,
 			});
 		}

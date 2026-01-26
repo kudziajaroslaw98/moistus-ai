@@ -4,6 +4,12 @@ import { STORE_SAVE_DEBOUNCE_MS } from '@/constants/store-save-debounce-ms';
 import { fetchResourceMetadata } from '@/helpers/fetch-resource-metadata';
 import generateUuid from '@/helpers/generate-uuid';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
+import {
+	broadcast,
+	BROADCAST_EVENTS,
+	subscribeToSyncEvents,
+	type NodeBroadcastPayload,
+} from '@/lib/realtime/broadcast-channel';
 import { AvailableNodeTypes } from '@/registry/node-registry';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
@@ -20,86 +26,88 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 	set,
 	get
 ) => {
-	// Handle real-time node events
-	const handleNodeRealtimeEvent = (payload: any) => {
-		const { eventType, new: newRecord, old: oldRecord } = payload;
-		const { nodes, markNodeAsSystemUpdate } = get();
+	// Handle broadcast node create events
+	const handleNodeCreate = (payload: NodeBroadcastPayload) => {
+		const { currentUser, nodes, markNodeAsSystemUpdate } = get();
 
-		// Mark this node as system-updated to prevent save loop
-		const nodeId = newRecord?.id || oldRecord?.id;
-		if (nodeId) {
-			markNodeAsSystemUpdate(nodeId);
-		}
+		// Ignore our own broadcasts
+		if (payload.userId === currentUser?.id) return;
 
-		switch (eventType) {
-			case 'INSERT': {
-				if (newRecord) {
-					// Check if node already exists (prevent duplicates)
-					const existingNode = nodes.find((n) => n.id === newRecord.id);
+		// Mark as system update to prevent save loop
+		markNodeAsSystemUpdate(payload.id);
 
-					if (!existingNode) {
-						const newNode: AppNode = {
-							id: newRecord.id,
-							position: {
-								x: newRecord.position_x,
-								y: newRecord.position_y,
-							},
-							data: newRecord,
-							type: newRecord.node_type || 'defaultNode',
-							width: newRecord.width || undefined,
-							height: newRecord.height || undefined,
-							zIndex: newRecord.node_type === 'commentNode' ? 100 : undefined,
-						};
+		const newRecord = payload.data as NodesTableType;
+		if (!newRecord) return;
 
-						set({ nodes: [...nodes, newNode] });
-						console.log('Real-time: Node added', newRecord.id);
-					}
-				}
+		// Check if node already exists (prevent duplicates)
+		const existingNode = nodes.find((n) => n.id === payload.id);
+		if (existingNode) return;
 
-				break;
+		const newNode: AppNode = {
+			id: newRecord.id,
+			position: {
+				x: newRecord.position_x,
+				y: newRecord.position_y,
+			},
+			data: newRecord,
+			type: newRecord.node_type || 'defaultNode',
+			width: newRecord.width || undefined,
+			height: newRecord.height || undefined,
+			zIndex: newRecord.node_type === 'commentNode' ? 100 : undefined,
+		};
+
+		set({ nodes: [...nodes, newNode] });
+		console.log('[broadcast] Node created:', payload.id);
+	};
+
+	// Handle broadcast node update events
+	const handleNodeUpdate = (payload: NodeBroadcastPayload) => {
+		const { currentUser, nodes, markNodeAsSystemUpdate } = get();
+
+		// Ignore our own broadcasts
+		if (payload.userId === currentUser?.id) return;
+
+		// Mark as system update to prevent save loop
+		markNodeAsSystemUpdate(payload.id);
+
+		const newRecord = payload.data as NodesTableType;
+		if (!newRecord) return;
+
+		const updatedNodes = nodes.map((node) => {
+			if (node.id === payload.id) {
+				return {
+					...node,
+					position: {
+						x: newRecord.position_x,
+						y: newRecord.position_y,
+					},
+					data: newRecord,
+					type: newRecord.node_type || node.type,
+					width: newRecord.width || node.width,
+					height: newRecord.height || node.height,
+					zIndex: newRecord.node_type === 'commentNode' ? 100 : node.zIndex,
+				};
 			}
+			return node;
+		});
 
-			case 'UPDATE': {
-				if (newRecord) {
-					const updatedNodes = nodes.map((node) => {
-						if (node.id === newRecord.id) {
-							return {
-								...node,
-								position: {
-									x: newRecord.position_x,
-									y: newRecord.position_y,
-								},
-								data: newRecord,
-								type: newRecord.node_type || node.type,
-								width: newRecord.width || node.width,
-								height: newRecord.height || node.height,
-								zIndex:
-									newRecord.node_type === 'commentNode' ? 100 : node.zIndex,
-							};
-						}
+		set({ nodes: updatedNodes });
+		console.log('[broadcast] Node updated:', payload.id);
+	};
 
-						return node;
-					});
+	// Handle broadcast node delete events
+	const handleNodeDelete = (payload: NodeBroadcastPayload) => {
+		const { currentUser, nodes, markNodeAsSystemUpdate } = get();
 
-					set({ nodes: updatedNodes });
-					console.log('Real-time: Node updated', newRecord.id);
-				}
+		// Ignore our own broadcasts
+		if (payload.userId === currentUser?.id) return;
 
-				break;
-			}
+		// Mark as system update to prevent save loop
+		markNodeAsSystemUpdate(payload.id);
 
-			case 'DELETE': {
-				if (oldRecord) {
-					const filteredNodes = nodes.filter(
-						(node) => node.id !== oldRecord.id
-					);
-					set({ nodes: filteredNodes });
-					console.log('Real-time: Node deleted', oldRecord.id);
-				}
-
-				break;
-			}
-		}
+		const filteredNodes = nodes.filter((node) => node.id !== payload.id);
+		set({ nodes: filteredNodes });
+		console.log('[broadcast] Node deleted:', payload.id);
 	};
 
 	return {
@@ -257,7 +265,6 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					supabase,
 					nodes,
 					edges,
-					addStateToHistory,
 					currentSubscription,
 				} = get();
 
@@ -436,8 +443,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					finalEdges.push(newFlowEdge);
 				}
 
-				addStateToHistory('addNode', { nodes: finalNodes, edges: finalEdges });
-				// Persist precise delta (prev vs next)
+				// Persist delta to DB for history tracking
 				get().persistDeltaEvent(
 					'addNode',
 					{ nodes, edges },
@@ -448,6 +454,27 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					nodes: finalNodes,
 					edges: finalEdges,
 				});
+
+				// Broadcast node creation to other clients
+				// mapId is guaranteed non-null here (checked at function start)
+				if (mapId) {
+					await broadcast(mapId, BROADCAST_EVENTS.NODE_CREATE, {
+						id: newNodeId,
+						data: insertedNodeData as unknown as Record<string, unknown>,
+						userId: user.data.session.user.id,
+						timestamp: Date.now(),
+					});
+
+					// Also broadcast edge creation if one was created
+					if (insertedEdgeData) {
+						await broadcast(mapId, BROADCAST_EVENTS.EDGE_CREATE, {
+							id: insertedEdgeData.id,
+							data: insertedEdgeData as unknown as Record<string, unknown>,
+							userId: user.data.session.user.id,
+							timestamp: Date.now(),
+						});
+					}
+				}
 
 				// Auto-fetch metadata for resource nodes (fire-and-forget)
 				if (nodeType === 'resourceNode' && data.metadata?.url) {
@@ -508,12 +535,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 			// Trigger debounced save to persist changes
 			get().triggerNodeSave(nodeId);
 
-			// Record delta event in history (only changed fields will be saved)
-			get().addStateToHistory('saveNodeProperties', {
-				nodes: get().nodes,
-				edges: get().edges,
-			});
-			// Persist precise delta
+			// Persist delta to DB for history tracking
 			get().persistDeltaEvent(
 				'saveNodeProperties',
 				{ nodes: prevNodes, edges: prevEdges },
@@ -580,12 +602,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 			// Trigger debounced save to persist dimension changes
 			get().triggerNodeSave(nodeId);
 
-			// Record delta event in history for dimension change
-			get().addStateToHistory('updateNodeDimensions', {
-				nodes: get().nodes,
-				edges: get().edges,
-			});
-			// Persist precise delta for dimension change
+			// Persist delta to DB for history tracking
 			get().persistDeltaEvent(
 				'updateNodeDimensions',
 				{ nodes: prevNodes, edges: prevEdges },
@@ -599,7 +616,6 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					supabase,
 					edges,
 					nodes: allNodes,
-					addStateToHistory,
 				} = get();
 
 				if (!mapId || !nodesToDelete) return;
@@ -639,13 +655,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				const actionName =
 					nodesToDelete.length === 1 ? 'deleteNode' : 'deleteNodes';
 
-				// Add to in-memory history for undo/redo
-				addStateToHistory(actionName, {
-					nodes: finalNodes,
-					edges: finalEdges,
-				});
-
-				// Persist precise delta to database for permanent audit trail
+				// Persist delta to DB for history tracking
 				get().persistDeltaEvent(
 					actionName,
 					{ nodes: prevNodes, edges: prevEdges },
@@ -656,6 +666,24 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					nodes: finalNodes,
 					edges: finalEdges,
 				});
+
+				// Broadcast node deletions to other clients
+				for (const node of nodesToDelete) {
+					await broadcast(mapId, BROADCAST_EVENTS.NODE_DELETE, {
+						id: node.id,
+						userId: user_id,
+						timestamp: Date.now(),
+					});
+				}
+
+				// Broadcast edge deletions that were cascaded
+				for (const edge of edgesToDelete) {
+					await broadcast(mapId, BROADCAST_EVENTS.EDGE_DELETE, {
+						id: edge.id,
+						userId: user_id,
+						timestamp: Date.now(),
+					});
+				}
 			},
 			'isAddingContent',
 			{
@@ -667,7 +695,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 
 		triggerNodeSave: debouncePerKey(
 			async (nodeId: string) => {
-				const { nodes, supabase, mapId } = get();
+				const { nodes, supabase, mapId, currentUser } = get();
 				const node = nodes.find((n) => n.id === nodeId);
 
 				if (!node || !node.data) {
@@ -708,17 +736,24 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				};
 
 				// Save node data to Supabase
-				supabase
+				const { error } = await supabase
 					.from('nodes')
 					.update(nodeData)
 					.eq('id', nodeId)
-					.eq('map_id', mapId)
-					.then(({ error }) => {
-						if (error) {
-							console.error('Error saving node:', error);
-							throw new Error('Failed to save node changes');
-						}
-					});
+					.eq('map_id', mapId);
+
+				if (error) {
+					console.error('Error saving node:', error);
+					throw new Error('Failed to save node changes');
+				}
+
+				// Broadcast update to other clients after successful save
+				await broadcast(mapId, BROADCAST_EVENTS.NODE_UPDATE, {
+					id: nodeId,
+					data: nodeData as unknown as Record<string, unknown>,
+					userId: currentUser?.id || user_id,
+					timestamp: Date.now(),
+				});
 			},
 			STORE_SAVE_DEBOUNCE_MS,
 			(nodeId: string) => nodeId // getKey function for triggerNodeSave
@@ -806,7 +841,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 		},
 
 		toggleNodeCollapse: async (nodeId: string): Promise<void> => {
-			const { nodes, updateNode, addStateToHistory } = get();
+			const { nodes, updateNode } = get();
 			const node = nodes.find((n) => n.id === nodeId);
 
 			if (!node) {
@@ -817,7 +852,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 			const currentCollapsedState = node.data.metadata?.isCollapsed ?? false;
 			const newCollapsedState = !currentCollapsedState;
 
-			// Update the node's collapse state
+			// Update the node's collapse state (history tracked via updateNode -> persistDeltaEvent)
 			await updateNode({
 				nodeId,
 				data: {
@@ -827,49 +862,30 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					},
 				},
 			});
-
-			// Add to history for undo/redo
-			addStateToHistory(newCollapsedState ? 'collapseNode' : 'expandNode', {
-				nodes: get().nodes,
-				edges: get().edges,
-			});
 		},
 
 		subscribeToNodes: async (mapId: string) => {
-			const { supabase, _nodesSubscription } = get();
-
-			// Unsubscribe from existing subscription first
-			if (_nodesSubscription) {
-				await _nodesSubscription.unsubscribe();
-			}
-
+			// Use secure broadcast channel instead of postgres_changes
+			// This provides RLS-protected real-time sync via private channels
 			try {
-				const channel = supabase
-					.channel(`mind-map-nodes-${mapId}`)
-					.on(
-						'postgres_changes',
-						{
-							event: '*',
-							schema: 'public',
-							table: 'nodes',
-							filter: `map_id=eq.${mapId}`,
-						},
-						handleNodeRealtimeEvent
-					)
-					.subscribe((status: string) => {
-						if (status === 'SUBSCRIBED') {
-							console.log(
-								'Subscribed to nodes real-time updates for map:',
-								mapId
-							);
-						} else if (status === 'CHANNEL_ERROR') {
-							console.error('Error subscribing to nodes real-time updates');
-						}
-					});
+				const cleanup = await subscribeToSyncEvents(mapId, {
+					onNodeCreate: handleNodeCreate,
+					onNodeUpdate: handleNodeUpdate,
+					onNodeDelete: handleNodeDelete,
+				});
 
-				set({ _nodesSubscription: channel });
+				// Store cleanup function for later unsubscription
+				// Note: _nodesSubscription is typed as RealtimeChannel | null but we now store
+				// the cleanup function as an object with unsubscribe method for compatibility
+				set({
+					_nodesSubscription: { unsubscribe: cleanup } as unknown as ReturnType<
+						typeof get
+					>['_nodesSubscription'],
+				});
+
+				console.log('[broadcast] Subscribed to node events for map:', mapId);
 			} catch (error) {
-				console.error('Failed to subscribe to nodes updates:', error);
+				console.error('[broadcast] Failed to subscribe to node events:', error);
 			}
 		},
 
@@ -878,11 +894,14 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 
 			if (_nodesSubscription) {
 				try {
-					await _nodesSubscription.unsubscribe();
+					// Call cleanup function (decrements ref count, unsubscribes when count reaches 0)
+					if (typeof (_nodesSubscription as any).unsubscribe === 'function') {
+						await (_nodesSubscription as any).unsubscribe();
+					}
 					set({ _nodesSubscription: null });
-					console.log('Unsubscribed from nodes real-time updates');
+					console.log('[broadcast] Unsubscribed from node events');
 				} catch (error) {
-					console.error('Error unsubscribing from nodes updates:', error);
+					console.error('[broadcast] Error unsubscribing from node events:', error);
 				}
 			}
 		},

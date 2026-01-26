@@ -187,19 +187,24 @@ MVP launch readiness checklist:
 ---
 
 ### 1.5.5 Subprocessor List (Transparency)
-- [ ] Create `/subprocessors` or section in Privacy Policy
-- [ ] List all third parties processing user data:
+- [x] Create `/subprocessors` dedicated page
+- [x] List all third parties processing user data:
   - Supabase (PostgreSQL, Auth, Realtime) - US
-  - Stripe (Payments) - US
+  - Polar.sh (Payments) - US
   - OpenAI (AI features) - US
   - Vercel (Hosting, Edge) - US
-  - Resend (Email) - US (if added)
-- [ ] Include: company name, purpose, location, DPA status
+  - Resend (Email) - US
+  - Google OAuth - US
+  - GitHub OAuth - US
+- [x] Include: company name, purpose, location, DPA status, privacy policy links
 
-**Files to create:**
-- `src/app/(legal)/subprocessors/page.tsx` (or add to privacy policy)
+**Files created:**
+- `src/app/(legal)/subprocessors/page.tsx`
 
-**Effort:** 1 hour | **Risk:** Low
+**Files modified:**
+- `src/app/(legal)/layout.tsx` (added footer link)
+
+**Status:** ✅ COMPLETED
 
 ---
 
@@ -227,7 +232,7 @@ MVP launch readiness checklist:
 | Cookie Notice | GDPR/ePrivacy | Varies | ✅ DONE (essential-only) |
 | Account Deletion | GDPR Art. 17 | CCPA | ✅ DONE |
 | Data Export | GDPR Art. 20 | CCPA | 🔴 BLOCKER (see 2.1) |
-| Subprocessor List | GDPR Art. 28 | Best practice | 🟡 HIGH |
+| Subprocessor List | GDPR Art. 28 | Best practice | ✅ DONE |
 | DPA Template | GDPR Art. 28 | B2B contracts | 🟡 HIGH (B2B) |
 
 **Total Legal Effort:** 14-19 hours

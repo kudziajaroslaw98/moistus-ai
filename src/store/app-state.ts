@@ -14,8 +14,7 @@ import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import { ContextMenuState } from '@/types/context-menu-state';
 import type { EdgeData } from '@/types/edge-data';
-import type { HistoryItem } from '@/types/history-state';
-import { HistoryState } from '@/types/history-state';
+import type { AttributedHistoryDelta, HistoryItem } from '@/types/history-state';
 import { LoadingStates } from '@/types/loading-states';
 import type { MindMapData } from '@/types/mind-map-data';
 import type { NodeData } from '@/types/node-data';
@@ -145,13 +144,21 @@ export interface GroupsSlice {
 }
 
 // History Slice
+// NOTE: In-memory history (history[], canUndo, canRedo, handleUndo, handleRedo) removed.
+// History is now DB-only. Use History panel to revert, not Ctrl+Z.
+
+/** Wrapper for broadcast channel cleanup function */
+export interface HistorySubscriptionCleanup {
+	unsubscribe: () => void;
+}
+
 export interface HistorySlice {
-	// History state
-	history: ReadonlyArray<HistoryState>; // chronological asc (oldest -> newest)
-	/** Parallel metadata for history entries loaded from DB (e.g., snapshotId, counts) */
+	// History state - DB metadata only (no in-memory snapshots)
 	historyMeta: ReadonlyArray<HistoryItem>; // chronological asc (oldest -> newest)
-	historyIndex: number; // index into history/historyMeta
+	historyIndex: number; // index into historyMeta for current position
 	isReverting: boolean;
+	revertingIndex: number | null; // which history item is currently reverting
+	_historyCurrentSubscription: HistorySubscriptionCleanup | null;
 
 	// Pagination
 	historyPageOffset: number;
@@ -159,27 +166,20 @@ export interface HistorySlice {
 	historyHasMore: boolean;
 
 	// History actions
-	addStateToHistory: (
-		actionName?: string,
-		stateOverride?: { nodes?: AppNode[]; edges?: AppEdge[] }
-	) => void;
-	handleUndo: () => Promise<void>;
-	handleRedo: () => Promise<void>;
 	revertToHistoryState: (index: number) => Promise<void>;
-	loadHistoryFromDB: () => Promise<void>; // New: load recent history metadata from API
-	loadMoreHistory: (mapId: string) => Promise<void>; // Pagination: load older history
-	createSnapshot: (actionName?: string, isMajor?: boolean) => Promise<void>; // Pro-only manual checkpoint
+	loadHistoryFromDB: () => Promise<void>;
+	loadMoreHistory: (mapId: string) => Promise<void>;
+	createSnapshot: (actionName?: string, isMajor?: boolean) => Promise<void>;
 	persistDeltaEvent: (
 		actionName: string,
 		prev: { nodes: AppNode[]; edges: AppEdge[] },
 		next: { nodes: AppNode[]; edges: AppEdge[] }
 	) => Promise<void>;
+	subscribeToHistoryCurrent: (mapId: string) => Promise<void>;
+	unsubscribeFromHistoryCurrent: () => Promise<void>;
 
-	// History selectors
-	canUndo: boolean;
-	canRedo: boolean;
-	getCurrentHistoryState: () => HistoryState | undefined;
-	canRevertChange: (delta?: any) => boolean; // Permission check for collaborative history
+	// Permission check for collaborative history
+	canRevertChange: (delta?: AttributedHistoryDelta) => boolean;
 }
 
 export interface LoadingStatesSlice {
@@ -384,6 +384,12 @@ export interface SharingSlice extends SharingState {
 	revokeRoomCode: (tokenId: string) => Promise<void>;
 
 	deleteShare: (shareId: string) => Promise<void>;
+
+	/** Update share role with optimistic update (reverts on error) */
+	updateShareRole: (shareId: string, newRole: string) => Promise<void>;
+
+	/** Fetch current user permissions from share_access (for returning collaborators) */
+	fetchCurrentPermissions: (mapId: string) => Promise<void>;
 
 	subscribeToSharingUpdates: (mapId: string) => void;
 

@@ -217,19 +217,28 @@ export const createCoreDataSlice: StateCreator<
 				edges: transformedData.reactFlowEdges,
 			});
 
-			// Fetch comments metadata for comment nodes
-			await get().fetchComments(mapId);
-
-			// Start real-time subscriptions after successful data load
-			await get().subscribeToRealtimeUpdates(mapId);
-
-			// Subscribe to access revocation events (for guests/collaborators)
-			await get().subscribeToAccessRevocation(mapId);
-
-			// Show success toast only when map data was actually loaded
+			// Show success immediately - data is loaded and visible to user
+			// Don't wait for background subscriptions which may hang
 			if (toastId) {
-				toast.success('Mind map data fetched successfully.', { id: toastId });
+				toast.success('Mind map loaded', { id: toastId });
 			}
+
+			// Only await what's needed for UI rendering (comments + permissions)
+			// Subscriptions have 10s timeouts and shouldn't block isStateLoading
+			const currentUser = get().currentUser;
+			const isCollaborator =
+				currentUser && transformedData.mindMap.user_id !== currentUser.id;
+
+			await Promise.all([
+				get().fetchComments(mapId),
+				// Fetch permissions immediately for collaborators - critical for toolbar display
+				isCollaborator ? get().fetchCurrentPermissions(mapId) : Promise.resolve(),
+			]);
+
+			// Fire subscriptions in background - don't await
+			// These have 10s timeouts and shouldn't gate UI/permissions
+			get().subscribeToRealtimeUpdates(mapId);
+			get().subscribeToAccessRevocation(mapId);
 		},
 		'isStateLoading',
 		{
@@ -324,6 +333,7 @@ export const createCoreDataSlice: StateCreator<
 				get().subscribeToNodes(mapId),
 				get().subscribeToEdges(mapId),
 				get().subscribeToCommentUpdates(mapId),
+				get().subscribeToHistoryCurrent(mapId),
 			]);
 			console.log('Real-time subscriptions started successfully');
 		} catch (error) {
@@ -338,6 +348,7 @@ export const createCoreDataSlice: StateCreator<
 				get().unsubscribeFromNodes(),
 				get().unsubscribeFromEdges(),
 				get().unsubscribeFromCommentUpdates(),
+				get().unsubscribeFromHistoryCurrent(),
 			]);
 			// Also unsubscribe from access revocation
 			get().unsubscribeFromAccessRevocation();

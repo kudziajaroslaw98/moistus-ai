@@ -769,7 +769,6 @@ export const createSuggestionsSlice: StateCreator<
 			updateNode,
 			deleteNodes,
 			deleteEdges,
-			addStateToHistory,
 		} = get();
 
 		const nodeToKeep = nodes.find((n) => n.id === suggestion.node1Id);
@@ -803,8 +802,8 @@ export const createSuggestionsSlice: StateCreator<
 		await deleteNodes([nodeToRemove]);
 
 		// 4. Clean up the suggestion from the UI
+		// (History is tracked via underlying operations: updateNode, deleteEdges, deleteNodes)
 		get().rejectMerge(suggestion);
-		addStateToHistory('acceptMerge');
 	},
 
 	rejectMerge: (suggestion) => {

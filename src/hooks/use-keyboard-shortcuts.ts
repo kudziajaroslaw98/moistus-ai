@@ -1,16 +1,13 @@
 import useAppStore from '@/store/mind-map-store';
 import { useEffect } from 'react';
+import { toast } from 'sonner';
 
 interface UseKeyboardShortcutsProps {
-	onUndo: () => void;
-	onRedo: () => void;
 	onAddChild: (parentId: string | null) => void;
 	onCopy: () => void;
 	onPaste: () => void;
 	selectedNodeId: string | null | undefined;
 	selectedEdgeId: string | null | undefined;
-	canUndo: boolean;
-	canRedo: boolean;
 	isBusy: boolean;
 	onGroup?: () => void;
 	onUngroup?: () => void;
@@ -19,15 +16,11 @@ interface UseKeyboardShortcutsProps {
 }
 
 export function useKeyboardShortcuts({
-	onUndo,
-	onRedo,
 	onAddChild,
 	onCopy,
 	onPaste,
 	selectedNodeId,
 	selectedEdgeId,
-	canUndo,
-	canRedo,
 	isBusy,
 	onGroup,
 	onUngroup,
@@ -61,26 +54,26 @@ export function useKeyboardShortcuts({
 
 			const isCtrlCmd = event.ctrlKey || event.metaKey;
 
+			// Undo shortcut (Ctrl/Cmd+Z) - disabled, show toast
 			if (isCtrlCmd && event.key.toLowerCase() === 'z' && !event.shiftKey) {
 				event.preventDefault();
-
-				if (canUndo) {
-					onUndo();
-				}
-
+				toast.info('Use the History panel to undo changes', {
+					description: 'Open the History panel from the toolbar to revert to a previous state.',
+					duration: 4000,
+				});
 				return;
 			}
 
+			// Redo shortcut (Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y) - disabled, show toast
 			if (
 				(isCtrlCmd && event.shiftKey && event.key.toLowerCase() === 'z') ||
 				(isCtrlCmd && event.key.toLowerCase() === 'y')
 			) {
 				event.preventDefault();
-
-				if (canRedo) {
-					onRedo();
-				}
-
+				toast.info('Use the History panel to redo changes', {
+					description: 'Open the History panel from the toolbar to revert to a later state.',
+					duration: 4000,
+				});
 				return;
 			}
 
@@ -154,15 +147,11 @@ export function useKeyboardShortcuts({
 			window.removeEventListener('keydown', handleKeyDown);
 		};
 	}, [
-		onUndo,
-		onRedo,
 		onAddChild,
 		onCopy,
 		onPaste,
 		selectedNodeId,
 		selectedEdgeId,
-		canUndo,
-		canRedo,
 		isBusy,
 		reactFlowInstance,
 		onLayout,

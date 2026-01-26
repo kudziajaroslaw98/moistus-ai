@@ -22,9 +22,8 @@ export interface HistoryListHandle {
 }
 
 export const HistoryList = forwardRef<HistoryListHandle>((props, ref) => {
-	const isLoading = useAppStore((s) => s.loadingStates?.isStateLoading);
+	const isLoading = useAppStore((s) => s.loadingStates?.isHistoryLoading);
 	const historyMeta = useAppStore((s) => s.historyMeta);
-	const history = useAppStore((s) => s.history);
 	const historyIndex = useAppStore((s) => s.historyIndex);
 	const mapId = useAppStore((s) => s.mapId);
 	const loadMoreHistory = useAppStore((s) => s.loadMoreHistory);
@@ -33,22 +32,20 @@ export const HistoryList = forwardRef<HistoryListHandle>((props, ref) => {
 	// Local state for group expansion
 	const [groupedItems, setGroupedItems] = useState<HistoryGroupOrItem[]>([]);
 
-	// Compute grouped items from history metadata
+	// Compute grouped items from history metadata (DB-only, no in-memory history)
 	const items: HistoryItemWithMeta[] = useMemo(() => {
 		const reversed = [...historyMeta].reverse();
 		return reversed.map((meta, idx) => {
 			const originalIndex = historyMeta.length - 1 - idx;
-			const historyEntry = history[originalIndex] as any;
-			const delta = historyEntry?._delta;
-
+			// Delta will be fetched on-demand when expanding history item
 			return {
 				meta,
 				originalIndex,
 				isCurrent: originalIndex === historyIndex,
-				delta,
+				delta: undefined, // No longer cached in-memory
 			};
 		});
-	}, [historyMeta, history, historyIndex]);
+	}, [historyMeta, historyIndex]);
 
 	// Group items whenever the source data changes
 	useMemo(() => {

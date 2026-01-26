@@ -10,6 +10,7 @@ export const createLoadingStateSlice: StateCreator<
 	loadingStates: {
 		isAddingContent: false,
 		isStateLoading: false,
+		isHistoryLoading: false,
 		isGenerating: false,
 		isSummarizing: false,
 		isExtracting: false,

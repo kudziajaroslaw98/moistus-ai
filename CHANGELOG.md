@@ -5,6 +5,77 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-01-25]
+
+### Added
+- **realtime**: Secure broadcast channel system (`src/lib/realtime/broadcast-channel.ts`)
+  - Private channels with RLS authorization via `realtime.messages` policies
+  - Singleton channel manager with reference counting for shared subscriptions
+  - Event types: node:create/update/delete, edge:create/update/delete, history:revert
+- **supabase**: RLS migration for broadcast authorization (`20260125131822_realtime_broadcast_authorization.sql`)
+  - `map_users_can_receive_broadcasts` policy (owner, public, share_access)
+  - `editors_can_send_broadcasts` policy (owner, share_access with can_edit)
+- **api**: `GET /api/maps/[id]/permissions` - fetch current user's permissions from share_access
+- **sharing-slice**: `updateShareRole()` with optimistic updates, `fetchCurrentPermissions()` for returning collaborators
+- **history-slice**: `revertingIndex` state to show spinner on specific item being reverted
+- **auth**: `change-password-modal.tsx` and `password-reset-modal.tsx` components
+- **validations**: Password validation schema in `src/lib/validations/auth.ts`
+
+### Changed
+- **realtime/cursor**: Migrated from public to private channel with `setAuth()`
+- **realtime/presence**: Migrated both presence-room and selection-presence-room to private channels
+- **nodes-slice**: Migrated from postgres_changes to secure broadcast
+  - Broadcasts node create/update/delete after DB operations
+- **edges-slice**: Migrated from postgres_changes to secure broadcast
+  - Broadcasts edge create/update/delete after DB operations
+- **history-slice**: Migrated from postgres_changes to secure broadcast
+  - Broadcasts history:revert event after successful revert
+
+### Removed
+- **history**: In-memory history system (history[], canUndo, canRedo, handleUndo, handleRedo)
+  - Why: Dual-system (in-memory + DB) caused real-time sync bugs during revert
+  - Ctrl+Z/Ctrl+Shift+Z now show toast directing users to History panel
+  - History panel still works via DB-only backend
+
+### Refactored
+- **slices**: Removed all `addStateToHistory()` calls from nodes-slice, edges-slice, layout-slice, suggestions-slice
+  - `persistDeltaEvent()` remains as the sole history persistence mechanism
+- **history-slice**: Simplified to DB-only approach, removed in-memory caching after revert
+- **use-keyboard-shortcuts**: Removed onUndo/onRedo props, shows toast instead
+- **history components**: Fetch delta on-demand instead of from in-memory cache
+- **broadcast cleanup**: Removed redundant `unsubscribeFromSyncChannel()` calls in nodes-slice, edges-slice, history-slice
+  - Cleanup function from `subscribeToSyncEvents` already handles this via ref counting
+- **Base UI migration**: Converted `asChild` to `render` prop in password-strength, sign-in, forgot-password, user-menu, share-panel, mobile-menu, top-bar
+
+### Security
+- **realtime**: All broadcast channels now use `config: { private: true }` with RLS policies
+  - Random users guessing map IDs cannot subscribe to broadcasts
+  - Unauthenticated users cannot join any map channels
+
+### Fixed
+- **permissions**: Collaborator editor toolbar now appears immediately on page refresh
+  - Why: Subscriptions (10s timeout) were blocking `isStateLoading`, delaying permission resolution
+  - Fix: Fire subscriptions in background, only await comments + permissions fetch
+
+---
+
+## [2026-01-24]
+
+### Fixed
+- **auth**: Password reset PKCE flow - normalized origin to `localhost` for localStorage consistency
+  - `127.0.0.1` and `localhost` are different origins, causing code verifier mismatch
+- **ui/select**: Dropdown positioning - added `z-[100]`, `alignItemWithTrigger={false}`, `side="bottom"`
+  - Was appearing above trigger or not visible in modals/sidepanels
+- **ui/popover**: Z-index and side positioning for modals/sidepanels
+  - Password requirements tooltip now appears correctly above the card
+- **user-menu**: Nested button hydration error - switched from `asChild` to `render` prop
+- **subscription-slice**: Silent failure for `fetchUsageData` on logout (non-critical data)
+
+### Docs
+- **CLAUDE.md**: Added Base UI Gotchas section (render prop, alignItemWithTrigger, portal z-index)
+
+---
+
 ## [2026-01-23]
 
 ### Added

@@ -5,7 +5,7 @@ import { useRealtimeCursors } from '@/hooks/realtime/use-realtime-cursor';
 import type { ReactFlowInstance } from '@xyflow/react';
 import { useViewport } from '@xyflow/react';
 
-const THROTTLE_MS = 50;
+const THROTTLE_MS = 150;
 
 export const RealtimeCursors = ({
 	roomName,

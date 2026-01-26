@@ -43,13 +43,19 @@ export default function LegalLayout({
 								href='/privacy'
 								className='text-sm text-text-tertiary hover:text-text-primary transition-colors duration-200'
 							>
-								Privacy Policy
+								Privacy
 							</Link>
 							<Link
 								href='/terms'
 								className='text-sm text-text-tertiary hover:text-text-primary transition-colors duration-200'
 							>
-								Terms of Service
+								Terms
+							</Link>
+							<Link
+								href='/subprocessors'
+								className='text-sm text-text-tertiary hover:text-text-primary transition-colors duration-200'
+							>
+								Subprocessors
 							</Link>
 						</nav>
 					</div>

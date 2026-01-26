@@ -1,11 +1,14 @@
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
+import { createPrivateChannel } from '@/lib/realtime/broadcast-channel';
 import useAppStore from '@/store/mind-map-store';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { ReactFlowInstance } from '@xyflow/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { useCurrentUserName } from '../use-current-username';
 import { useUserColor } from '../use-user-color';
+
+const supabase = getSharedSupabaseClient();
 
 /**
  * Throttle a callback to a certain delay, It will only call the callback if the delay has passed, with the arguments
@@ -42,8 +45,6 @@ const useThrottleCallback = <Params extends unknown[], Return>(
 		[callback, delay]
 	);
 };
-
-const supabase = getSharedSupabaseClient();
 
 const EVENT_NAME = 'realtime-cursor-move';
 
@@ -148,87 +149,98 @@ export const useRealtimeCursors = ({
 	const handleMouseMove = useThrottleCallback(callback, throttleMs);
 
 	useEffect(() => {
-		const channel = supabase.channel(roomName);
-		channelRef.current = channel;
+		let channel: RealtimeChannel | null = null;
+		let isCleanedUp = false;
 
-		if (debug) {
-			console.log('Setting up cursor channel:', roomName);
-		}
-
-		channel
-			.on(
-				'broadcast',
-				{ event: EVENT_NAME },
-				(data: { payload: CursorEventPayload }) => {
-					if (debug) {
-						console.log('Raw cursor data received:', data);
-					}
-
-					// Validate received payload
-					if (!data?.payload?.user?.id || !data?.payload?.position) {
-						console.warn('Invalid cursor payload received:', data);
-						return;
-					}
-
-					const { user } = data.payload;
-
-					// Don't render your own cursor
-					if (user.id === userId) {
-						if (debug) {
-							console.log('Ignoring own cursor');
-						}
-
-						return;
-					}
-
-					if (debug) {
-						console.log('Processing cursor from user:', user.name, user.id);
-					}
-
-					setCursors((prev) => {
-						const newCursors = {
-							...prev,
-							[user.id]: data.payload,
-						};
-
-						if (debug) {
-							console.log('Updated cursors state:', Object.keys(newCursors));
-						}
-
-						return newCursors;
-					});
+		// SECURITY: Use private channel with RLS authorization
+		// This ensures only users with map access can receive/send cursor updates
+		const setupChannel = async () => {
+			try {
+				channel = await createPrivateChannel(roomName);
+				if (isCleanedUp) {
+					channel.unsubscribe();
+					return;
 				}
-			)
-			.subscribe();
+				channelRef.current = channel;
+
+				if (debug) {
+					console.log('Setting up private cursor channel:', roomName);
+				}
+
+				channel
+					.on(
+						'broadcast',
+						{ event: EVENT_NAME },
+						(data: { payload: CursorEventPayload }) => {
+							if (debug) {
+								console.log('Raw cursor data received:', data);
+							}
+
+							// Validate received payload
+							if (!data?.payload?.user?.id || !data?.payload?.position) {
+								console.warn('Invalid cursor payload received:', data);
+								return;
+							}
+
+							const { user } = data.payload;
+
+							// Don't render your own cursor
+							if (user.id === userId) {
+								if (debug) {
+									console.log('Ignoring own cursor');
+								}
+
+								return;
+							}
+
+							if (debug) {
+								console.log('Processing cursor from user:', user.name, user.id);
+							}
+
+							setCursors((prev) => {
+								const newCursors = {
+									...prev,
+									[user.id]: data.payload,
+								};
+
+								if (debug) {
+									console.log('Updated cursors state:', Object.keys(newCursors));
+								}
+
+								return newCursors;
+							});
+						}
+					)
+					.subscribe();
+			} catch (error) {
+				console.error('[use-realtime-cursor] Failed to setup channel:', error);
+			}
+		};
+
+		void setupChannel();
 
 		return () => {
+			isCleanedUp = true;
 			if (debug) {
 				console.log('Unsubscribing from cursor channel');
 			}
-
-			channel.unsubscribe();
+			channel?.unsubscribe();
+			channelRef.current = null;
 		};
-	}, [userId, debug]);
+	}, [roomName, userId, debug]);
 
 	useEffect(() => {
 		// Add event listener for mousemove on document but filter to ReactFlow area
 		const handleMouseMoveFiltered = (event: MouseEvent) => {
-			// Check if mouse is over ReactFlow area
 			const reactFlowElement = document.querySelector('.react-flow');
 			if (!reactFlowElement) return;
 
-			const rect = reactFlowElement.getBoundingClientRect();
-			const { clientX, clientY } = event;
+			// Check if event target is inside React Flow DOM tree (not just coords in bounds)
+			// This correctly excludes overlays like share panel/modals even when they're
+			// positioned over the canvas area
+			if (!reactFlowElement.contains(event.target as Node)) return;
 
-			// Only process if mouse is within ReactFlow bounds
-			if (
-				clientX >= rect.left &&
-				clientX <= rect.right &&
-				clientY >= rect.top &&
-				clientY <= rect.bottom
-			) {
-				handleMouseMove(event);
-			}
+			handleMouseMove(event);
 		};
 
 		document.addEventListener('mousemove', handleMouseMoveFiltered);

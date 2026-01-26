@@ -67,7 +67,7 @@ export function MobileMenu({
 						<RealtimeAvatarStack
 							activityState={activityState}
 							mapOwnerId={mapOwnerId}
-							roomName={`mind_map:${mapId}:users`}
+							roomName={`mind-map:${mapId}:presence`}
 						/>
 					</div>
 				</motion.section>

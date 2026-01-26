@@ -78,6 +78,7 @@ export function SharePanel({
 		getCurrentShareUsers,
 		currentShares,
 		deleteShare,
+		updateShareRole,
 	} = useAppStore(
 		useShallow((state) => ({
 			shareTokens: state.shareTokens,
@@ -93,6 +94,7 @@ export function SharePanel({
 			getCurrentShareUsers: state.getCurrentShareUsers,
 			currentShares: state.currentShares,
 			deleteShare: state.deleteShare,
+			updateShareRole: state.updateShareRole,
 		}))
 	);
 
@@ -201,18 +203,7 @@ export function SharePanel({
 
 	const handleUpdateShareRole = async (shareId: string, newRole: ShareRole) => {
 		try {
-			const response = await fetch(`/api/share/update-share/${shareId}`, {
-				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ role: newRole }),
-			});
-
-			if (!response.ok) {
-				throw new Error('Failed to update share');
-			}
-
-			const updatedShare = await response.json();
-			onShareUpdated?.(updatedShare);
+			await updateShareRole(shareId, newRole);
 			toast.success('Share permissions updated');
 		} catch (error) {
 			console.error('Failed to update share:', error);

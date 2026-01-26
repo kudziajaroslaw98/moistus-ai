@@ -1,11 +1,17 @@
+import { calculateDelta } from '@/helpers/history/delta-calculator';
 import {
-	applyDelta,
-	applyDeltaReverse,
-	calculateDelta,
-} from '@/helpers/history/delta-calculator';
+	transformSupabaseData,
+	type SupabaseMapData,
+} from '@/helpers/transform-supabase-data';
+import {
+	broadcast,
+	BROADCAST_EVENTS,
+	subscribeToSyncEvents,
+	type HistoryRevertPayload,
+} from '@/lib/realtime/broadcast-channel';
 import { AppEdge } from '@/types/app-edge';
 import { AppNode } from '@/types/app-node';
-import { AttributedHistoryDelta } from '@/types/history-state';
+import { AttributedHistoryDelta, HistoryItem } from '@/types/history-state';
 import { toast } from 'sonner';
 import { StateCreator } from 'zustand';
 import { AppState, HistorySlice } from '../app-state';
@@ -16,121 +22,27 @@ export const createHistorySlice: StateCreator<
 	[],
 	HistorySlice
 > = (set, get) => ({
-	// state
-	history: [],
+	// state - DB-only history (no in-memory snapshots)
 	historyMeta: [],
-	historyIndex: -1,
+	historyIndex: -1, // Index into historyMeta for current position
 	isReverting: false,
-	canUndo: false,
-	canRedo: false,
+	revertingIndex: null, // Which history item is currently reverting
+	_historyCurrentSubscription: null,
 
 	// pagination
 	historyPageOffset: 0,
 	historyPageLimit: 50,
 	historyHasMore: false,
 
-	// getters
-	getCurrentHistoryState: () => {
-		const { history, historyIndex } = get();
-		return history[historyIndex];
-	},
-
-	// actions
 	/**
-	 * Adds a new state to the undo/redo history stack using delta-based caching.
-	 * Reduces memory usage by ~87% compared to storing full states.
-	 * @param actionName Optional name for the action
-	 * @param stateOverride Optionally override nodes/edges to save
-	 */
-	addStateToHistory: (
-		actionName?: string,
-		stateOverride?: { nodes?: AppNode[]; edges?: AppEdge[] }
-	) => {
-		const {
-			nodes,
-			edges,
-			history,
-			historyIndex,
-			currentUser,
-			userProfile,
-			isReverting,
-		} = get();
-		// Suppress history writes during revert to avoid bloat from realtime echoes
-		if (isReverting) return;
-		const nodesToSave = stateOverride?.nodes ?? nodes;
-		const edgesToSave = stateOverride?.edges ?? edges;
-
-		// Get current state
-		const currentState = { nodes: nodesToSave, edges: edgesToSave };
-		const lastHistoryState = history[historyIndex];
-
-		// Skip if no changes
-		if (lastHistoryState) {
-			const nodesChanged =
-				JSON.stringify(currentState.nodes) !==
-				JSON.stringify(lastHistoryState.nodes);
-			const edgesChanged =
-				JSON.stringify(currentState.edges) !==
-				JSON.stringify(lastHistoryState.edges);
-			if (!nodesChanged && !edgesChanged) return;
-		}
-
-		// Calculate delta from previous state
-		const previousState = lastHistoryState || { nodes: [], edges: [] };
-		const delta = calculateDelta(previousState, currentState);
-
-		// Skip if no delta (shouldn't happen with above check, but safety)
-		if (!delta) return;
-
-		// Add attribution for collaboration
-		const userId = currentUser?.id || userProfile?.user_id || 'anonymous';
-		const userName =
-			userProfile?.display_name ||
-			currentUser?.user_metadata?.full_name ||
-			'Anonymous';
-		const userAvatar =
-			userProfile?.avatar_url || currentUser?.user_metadata?.avatar_url;
-
-		const attributedDelta: AttributedHistoryDelta = {
-			...delta,
-			userId,
-			userName,
-			userAvatar,
-			actionName: actionName || 'unknown',
-			timestamp: Date.now(),
-		};
-
-		// Create lightweight history entry (for UI compatibility)
-		const historyEntry = {
-			nodes: currentState.nodes,
-			edges: currentState.edges,
-			timestamp: attributedDelta.timestamp,
-			actionName: attributedDelta.actionName,
-			// Store delta reference for memory efficiency
-			_delta: attributedDelta,
-		};
-
-		// Update history with new entry
-		const newHistory = [...history.slice(0, historyIndex + 1), historyEntry];
-
-		set({
-			history: newHistory,
-			historyIndex: newHistory.length - 1,
-			canUndo: newHistory.length > 1,
-			canRedo: false,
-		});
-	},
-
-	/**
-	 * Load recent history metadata from the API and seed in-memory history.
-	 * Note: Uses placeholder nodes/edges (empty arrays) for compatibility with existing UI.
-	 * Future components can render counts from metadata endpoints.
+	 * Load recent history metadata from the API.
+	 * Only stores metadata (no full node/edge snapshots in memory).
 	 */
 	loadHistoryFromDB: async () => {
 		const { setLoadingStates, mapId } = get();
 		try {
 			if (!mapId) return;
-			setLoadingStates?.({ isStateLoading: true });
+			setLoadingStates?.({ isHistoryLoading: true });
 			const limit = get().historyPageLimit || 50;
 
 			// Capture previous selection before fetching so we can retain it
@@ -144,12 +56,6 @@ export const createHistorySlice: StateCreator<
 			const data = await res.json();
 			const itemsDesc = (data.items || []) as any[];
 			const itemsAsc = [...itemsDesc].reverse();
-			const states = itemsAsc.map((item: any) => ({
-				nodes: [],
-				edges: [],
-				actionName: item.actionName,
-				timestamp: item.timestamp,
-			}));
 
 			// Compute desired selection from DB pointer first, fallback to previous selection, else newest
 			const desiredIdFromDB: string | undefined =
@@ -159,59 +65,119 @@ export const createHistorySlice: StateCreator<
 				? itemsAsc.findIndex((i: any) => i.id === desiredId)
 				: -1;
 			const nextIndex =
-				retainedIndex >= 0 ? retainedIndex : Math.max(0, states.length - 1);
+				retainedIndex >= 0 ? retainedIndex : Math.max(0, itemsAsc.length - 1);
 
 			set({
-				history: states,
 				historyMeta: itemsAsc,
 				historyIndex: nextIndex,
-				canUndo: states.length > 1,
-				canRedo: false,
 				historyPageOffset: itemsAsc.length,
 				historyHasMore: !!data.hasMore,
 			});
 		} catch (e) {
 			console.error('Failed to load history from DB:', e);
 		} finally {
-			setLoadingStates?.({ isStateLoading: false });
+			setLoadingStates?.({ isHistoryLoading: false });
 		}
 	},
 
-	/**
-	 * Undo the last state change using bidirectional deltas when available.
-	 * Falls back to full state restoration for backward compatibility.
-	 */
-	handleUndo: async () => {
-		const { history, historyIndex, setNodes, setEdges, nodes, edges } = get();
-
-		if (historyIndex > 0) {
-			const currentEntry = history[historyIndex] as any;
-			const prevState = history[historyIndex - 1];
-
-			// Use delta-based undo if delta is available (new entries)
-			if (currentEntry._delta) {
-				try {
-					const currentState = { nodes, edges };
-					const newState = applyDeltaReverse(currentState, currentEntry._delta);
-					setNodes(newState.nodes);
-					setEdges(newState.edges);
-				} catch (error) {
-					console.error('Failed to apply reverse delta, falling back:', error);
-					// Fallback to full state if delta application fails
-					setNodes(prevState.nodes);
-					setEdges(prevState.edges);
-				}
-			} else {
-				// Fallback for old entries without deltas
-				setNodes(prevState.nodes);
-				setEdges(prevState.edges);
+	// Real-time subscription to history revert events via broadcast
+	subscribeToHistoryCurrent: async (mapId: string) => {
+		// Clean up any existing subscription before creating a new one
+		const existingSub = get()._historyCurrentSubscription;
+		if (existingSub && typeof (existingSub as any).unsubscribe === 'function') {
+			try {
+				await (existingSub as any).unsubscribe();
+			} catch (e) {
+				console.warn('[broadcast] Failed to unsubscribe previous history subscription:', e);
 			}
+			set({ _historyCurrentSubscription: null });
+		}
 
-			set({
-				historyIndex: historyIndex - 1,
-				canUndo: historyIndex - 1 > 0,
-				canRedo: true,
+		// Use secure broadcast channel instead of postgres_changes
+		// This provides RLS-protected real-time sync via private channels
+		try {
+			const handleHistoryRevert = async (payload: HistoryRevertPayload) => {
+				const {
+					currentUser,
+					popoverOpen,
+					loadHistoryFromDB,
+					mapId,
+					supabase,
+					setNodes,
+					setEdges,
+					markNodeAsSystemUpdate,
+					markEdgeAsSystemUpdate,
+				} = get();
+
+				// Ignore our own broadcasts
+				if (payload.userId === currentUser?.id) return;
+
+				console.log('[broadcast] History reverted by another user:', payload.historyEntryId);
+
+				// Fetch current map state via aggregated view and apply it
+				// This ensures the canvas reflects the new state after another user reverts
+				if (mapId) {
+					try {
+						const { data, error } = await supabase
+							.from('map_graph_aggregated_view')
+							.select('*')
+							.eq('map_id', mapId)
+							.single();
+
+						if (!error && data) {
+							const transformed = transformSupabaseData(data as SupabaseMapData);
+
+							// Mark all nodes/edges as system updates to prevent broadcast loops
+							// (we're receiving state, not initiating changes)
+							transformed.reactFlowNodes.forEach((n) => markNodeAsSystemUpdate(n.id));
+							transformed.reactFlowEdges.forEach((e) => markEdgeAsSystemUpdate(e.id));
+
+							setNodes(transformed.reactFlowNodes);
+							setEdges(transformed.reactFlowEdges);
+
+							console.log('[broadcast] Applied reverted state from another user');
+						}
+					} catch (e) {
+						console.error('[broadcast] Failed to sync after history revert:', e);
+					}
+				}
+
+				// Reload history metadata if panel is open
+				if (popoverOpen?.history) {
+					loadHistoryFromDB();
+				}
+			};
+
+			const cleanup = await subscribeToSyncEvents(mapId, {
+				onHistoryRevert: handleHistoryRevert,
 			});
+
+			// Store cleanup function for later unsubscription
+			set({
+				_historyCurrentSubscription: {
+					unsubscribe: cleanup,
+				},
+			});
+
+			console.log('[broadcast] Subscribed to history events for map:', mapId);
+		} catch (e) {
+			console.error('[broadcast] Failed to subscribe to history events:', e);
+		}
+	},
+
+	unsubscribeFromHistoryCurrent: async () => {
+		const { _historyCurrentSubscription } = get();
+		if (_historyCurrentSubscription) {
+			try {
+				// Call cleanup function (decrements ref count, unsubscribes when count reaches 0)
+				if (typeof (_historyCurrentSubscription as any).unsubscribe === 'function') {
+					await (_historyCurrentSubscription as any).unsubscribe();
+				}
+				set({ _historyCurrentSubscription: null });
+				console.log('[broadcast] Unsubscribed from history events');
+			} catch (e) {
+				console.error('[broadcast] Failed to unsubscribe from history events:', e);
+			}
 		}
 	},
 
@@ -220,9 +186,8 @@ export const createHistorySlice: StateCreator<
 		const { setLoadingStates } = get();
 		try {
 			if (!mapId) return;
-			setLoadingStates?.({ isStateLoading: true });
-			const { historyPageOffset, historyPageLimit, history, historyMeta } =
-				get();
+			setLoadingStates?.({ isHistoryLoading: true });
+			const { historyPageOffset, historyPageLimit, historyMeta } = get();
 			const res = await fetch(
 				`/api/history/${mapId}/list?limit=${historyPageLimit}&offset=${historyPageOffset}`,
 				{ cache: 'no-store' }
@@ -231,63 +196,18 @@ export const createHistorySlice: StateCreator<
 			const data = await res.json();
 			const itemsDesc = (data.items || []) as any[];
 			const itemsAsc = [...itemsDesc].reverse();
-			const states = itemsAsc.map((item: any) => ({
-				nodes: [],
-				edges: [],
-				actionName: item.actionName,
-				timestamp: item.timestamp,
-			}));
-			const newHistory = [...states, ...history];
 			const newMeta = [...itemsAsc, ...historyMeta];
 			set({
-				history: newHistory,
 				historyMeta: newMeta,
 				historyPageOffset: historyPageOffset + itemsAsc.length,
 				historyHasMore: !!data.hasMore,
 				historyIndex:
-					(get().historyIndex ?? newHistory.length - 1) + itemsAsc.length,
+					(get().historyIndex ?? newMeta.length - 1) + itemsAsc.length,
 			});
 		} catch (e) {
 			console.error('Failed to load more history:', e);
 		} finally {
-			setLoadingStates?.({ isStateLoading: false });
-		}
-	},
-
-	/**
-	 * Redo the next state change using bidirectional deltas when available.
-	 * Falls back to full state restoration for backward compatibility.
-	 */
-	handleRedo: async () => {
-		const { history, historyIndex, setNodes, setEdges, nodes, edges } = get();
-
-		if (historyIndex < history.length - 1) {
-			const nextEntry = history[historyIndex + 1] as any;
-
-			// Use delta-based redo if delta is available (new entries)
-			if (nextEntry._delta) {
-				try {
-					const currentState = { nodes, edges };
-					const newState = applyDelta(currentState, nextEntry._delta);
-					setNodes(newState.nodes);
-					setEdges(newState.edges);
-				} catch (error) {
-					console.error('Failed to apply forward delta, falling back:', error);
-					// Fallback to full state if delta application fails
-					setNodes(nextEntry.nodes);
-					setEdges(nextEntry.edges);
-				}
-			} else {
-				// Fallback for old entries without deltas
-				setNodes(nextEntry.nodes);
-				setEdges(nextEntry.edges);
-			}
-
-			set({
-				historyIndex: historyIndex + 1,
-				canUndo: true,
-				canRedo: historyIndex + 1 < history.length - 1,
-			});
+			setLoadingStates?.({ isHistoryLoading: false });
 		}
 	},
 
@@ -341,11 +261,9 @@ export const createHistorySlice: StateCreator<
 	},
 
 	/**
-	 * Revert to a specific history state by index.
-	 * Checks permissions for collaborative maps.
-	 * @param index The history index to revert to
+	 * Compute and persist a delta event without mutating in-memory history.
+	 * This is the primary way to record history changes to the database.
 	 */
-	// Compute and persist a delta event without mutating in-memory history
 	persistDeltaEvent: async (
 		actionName: string,
 		prev: { nodes: AppNode[]; edges: AppEdge[] },
@@ -451,9 +369,13 @@ export const createHistorySlice: StateCreator<
 		}
 	},
 
+	/**
+	 * Revert to a specific history state by index.
+	 * Fetches full state from DB API and applies it.
+	 * @param index The history index to revert to
+	 */
 	revertToHistoryState: async (index: number) => {
 		const {
-			history,
 			historyMeta,
 			historyIndex,
 			setNodes,
@@ -461,44 +383,28 @@ export const createHistorySlice: StateCreator<
 			isReverting,
 			mapId,
 			canRevertChange,
-			unsubscribeFromRealtimeUpdates,
-			subscribeToRealtimeUpdates,
 			markNodeAsSystemUpdate,
 			markEdgeAsSystemUpdate,
 		} = get();
-		if (isReverting || index < 0 || index >= history.length) return;
+		if (isReverting || index < 0 || index >= historyMeta.length) return;
 		if (index === historyIndex) return;
 
-		// Check permissions for collaborative maps
-		const targetEntry = history[index] as any;
-		const delta = targetEntry?._delta as AttributedHistoryDelta | undefined;
-		if (!canRevertChange(delta)) {
-			toast.error(
-				'You do not have permission to revert this change. Only the map owner or the author of the change can revert it.'
-			);
-			return;
-		}
+		const meta: HistoryItem | undefined = historyMeta?.[index];
+		if (!meta || !mapId) return;
 
-		set({ isReverting: true });
-		const targetState = history[index];
-		const meta: any = historyMeta?.[index];
+		// Permission check: client-side permission is handled in history-item.tsx
+		// (canRevertChange), server-side permission is enforced by the API
+
+		set({ isReverting: true, revertingIndex: index });
 
 		try {
-			// Step 1: Unsubscribe from real-time (prevents self-event processing)
-			// Other users remain subscribed and will receive changes via real-time
-			await unsubscribeFromRealtimeUpdates();
+			// NOTE: No need to unsubscribe from real-time anymore.
+			// All broadcast handlers filter self-events via userId check.
 
-			// Step 2: Handle different revert scenarios
-			if (targetState.nodes?.length && targetState.edges?.length) {
-				// Mark all nodes and edges as system-updated before setting
-				targetState.nodes.forEach(n => markNodeAsSystemUpdate(n.id));
-				targetState.edges.forEach(e => markEdgeAsSystemUpdate(e.id));
+			// Step 2: Revert via API (snapshot or event)
+			const { currentUser } = get();
 
-				// In-memory history entry with full state (no API call needed)
-				setNodes(targetState.nodes);
-				setEdges(targetState.edges);
-				toast.success('Reverted');
-			} else if (mapId && meta?.type === 'snapshot' && meta?.id) {
+			if (meta.type === 'snapshot' && meta.id) {
 				// Revert to database snapshot
 				const res = await fetch(`/api/history/${mapId}/revert`, {
 					method: 'POST',
@@ -516,21 +422,22 @@ export const createHistorySlice: StateCreator<
 					setNodes(data.nodes);
 					setEdges(data.edges);
 
-					// Update in-memory history with full state (for future reverts)
-					const updated = [...history];
-					updated[index] = {
-						...targetState,
-						nodes: data.nodes,
-						edges: data.edges,
-					} as any;
-					set({ history: updated });
+					// Broadcast history revert to other clients
+					await broadcast(mapId, BROADCAST_EVENTS.HISTORY_REVERT, {
+						historyEntryId: meta.id,
+						userId: currentUser?.id || 'unknown',
+						timestamp: Date.now(),
+					});
 
+					// Update historyIndex and clear reverting state immediately
+					// Canvas already shows reverted state, so buttons should re-enable now
+					set({ historyIndex: index, isReverting: false, revertingIndex: null });
 					toast.success('Reverted to snapshot');
 				} else {
 					const error = await res.json().catch(() => ({}));
 					toast.error(error.error || 'Failed to revert to snapshot');
 				}
-			} else if (mapId && meta?.type === 'event' && meta?.id) {
+			} else if (meta.type === 'event' && meta.id) {
 				// Revert to database event
 				const res = await fetch(`/api/history/${mapId}/revert`, {
 					method: 'POST',
@@ -548,50 +455,33 @@ export const createHistorySlice: StateCreator<
 					setNodes(data.nodes);
 					setEdges(data.edges);
 
-					// Update in-memory history
-					const updated = [...history];
-					updated[index] = {
-						...targetState,
-						nodes: data.nodes,
-						edges: data.edges,
-					} as any;
-					set({ history: updated });
+					// Broadcast history revert to other clients
+					await broadcast(mapId, BROADCAST_EVENTS.HISTORY_REVERT, {
+						historyEntryId: meta.id,
+						userId: currentUser?.id || 'unknown',
+						timestamp: Date.now(),
+					});
 
+					// Update historyIndex and clear reverting state immediately
+					// Canvas already shows reverted state, so buttons should re-enable now
+					set({ historyIndex: index, isReverting: false, revertingIndex: null });
 					toast.success('Reverted to event');
 				} else {
 					const error = await res.json().catch(() => ({}));
 					toast.error(error.error || 'Failed to revert to event');
 				}
 			} else {
-				// Fallback to local state
-				const nodes = targetState.nodes || [];
-				const edges = targetState.edges || [];
-
-				// Mark all nodes and edges as system-updated
-				nodes.forEach(n => markNodeAsSystemUpdate(n.id));
-				edges.forEach(e => markEdgeAsSystemUpdate(e.id));
-
-				setNodes(nodes);
-				setEdges(edges);
-				toast.success('Reverted');
+				toast.error('Invalid history entry - cannot revert');
 			}
 		} catch (error) {
 			console.error('Revert failed:', error);
 			toast.error('Failed to revert state');
 		} finally {
-			// Small delay to let server-side changes settle before resubscribing
-			if (mapId) {
-				await new Promise((r) => setTimeout(r, 150));
-				await subscribeToRealtimeUpdates(mapId);
+			// Only clear if still reverting (error case cleanup)
+			// Success paths already cleared isReverting immediately after canvas update
+			if (get().isReverting) {
+				set({ isReverting: false, revertingIndex: null });
 			}
-
-			// Update history pointers
-			set({
-				historyIndex: index,
-				isReverting: false,
-				canUndo: index > 0,
-				canRedo: index < history.length - 1,
-			});
 		}
 	},
 });
