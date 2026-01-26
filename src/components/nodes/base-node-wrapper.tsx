@@ -5,10 +5,11 @@ import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import { getNodeConstraints } from '@/utils/node-dimension-utils';
 import { Handle, NodeResizer, Position, useConnection } from '@xyflow/react';
-import { Plus, Sparkles } from 'lucide-react';
+import { Loader2, Plus, Sparkles } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { type CSSProperties, memo, useCallback, useMemo } from 'react';
+import { type CSSProperties, memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
+import { AIActionsPopover } from '../ai/ai-actions-popover';
 import { AvatarStack } from '../ui/avatar-stack';
 import { Button } from '../ui/button';
 import { type BaseNodeWrapperProps } from './core/types';
@@ -48,7 +49,6 @@ const BaseNodeWrapperComponent = ({
 		activeTool,
 		ghostNodes,
 		isStreaming,
-		generateSuggestions,
 	} = useAppStore(
 		useShallow((state) => ({
 			openNodeEditor: state.openNodeEditor,
@@ -60,9 +60,11 @@ const BaseNodeWrapperComponent = ({
 			activeTool: state.activeTool,
 			ghostNodes: state.ghostNodes,
 			isStreaming: state.isStreaming,
-			generateSuggestions: state.generateSuggestions,
 		}))
 	);
+
+	// State for AI actions popover
+	const [isAIPopoverOpen, setIsAIPopoverOpen] = useState(false);
 
 	const connection = useConnection();
 	const isTarget = connection?.toNode?.id === id;
@@ -120,13 +122,20 @@ const BaseNodeWrapperComponent = ({
 		});
 	}, [id, getNode, openNodeEditor]);
 
-	const handleGenerateSuggestions = useCallback(() => {
-		// Call generateSuggestions directly from the store
-		generateSuggestions({
-			sourceNodeId: id,
-			trigger: 'magic-wand',
-		});
-	}, [id, generateSuggestions]);
+	const handleToggleAIPopover = useCallback(() => {
+		setIsAIPopoverOpen((prev) => !prev);
+	}, []);
+
+	const handleCloseAIPopover = useCallback(() => {
+		setIsAIPopoverOpen(false);
+	}, []);
+
+	// Close popover when node is deselected or streaming starts
+	useEffect(() => {
+		if (!isSelected || isStreaming) {
+			setIsAIPopoverOpen(false);
+		}
+	}, [isSelected, isStreaming]);
 
 	// Check if this node already has ghost node suggestions
 	const hasGhostSuggestions = useMemo(() => {
@@ -336,7 +345,7 @@ const BaseNodeWrapperComponent = ({
 									<>
 										<motion.div
 											animate={{ opacity: 0.3, scaleX: 1 }}
-											className='absolute -right-16 -z-10 top-1/2 -translate-y-1/2 w-20 h-[1px] bg-overlay'
+											className='absolute -right-8 -z-10 top-1/2 -translate-y-1/2 w-12 h-[1px] bg-overlay'
 											exit={{ opacity: 0, scaleX: 0 }}
 											initial={{ opacity: 0, scaleX: 0 }}
 											transition={{ duration: 0.2 }}
@@ -344,7 +353,7 @@ const BaseNodeWrapperComponent = ({
 
 										<motion.div
 											animate={{ opacity: 1, scale: 1, filter: 'blur(0)' }}
-											className='absolute -right-[200px] top-1/2 -translate-y-1/2 z-20'
+											className='absolute -right-[60px] top-1/2 -translate-y-1/2 z-20'
 											exit={{ opacity: 0, scale: 0.8 }}
 											initial={{
 												opacity: 0,
@@ -355,15 +364,41 @@ const BaseNodeWrapperComponent = ({
 												type: 'spring',
 											}}
 										>
-											<Button
-												className='nodrag nopan rounded-full w-fit py-2 px-4 flex gap-2 transition-all duration-200 hover:scale-110 border border-border-default bg-elevated'
-												data-testid='node-suggest-button'
-												onClick={handleGenerateSuggestions}
-												title='Suggest Nodes'
-											>
-												<Sparkles className='size-4 text-text-primary' />
-												Suggest Nodes
-											</Button>
+											<div className='relative'>
+												<Button
+													className='nodrag nopan rounded-full w-10 h-10 p-0 transition-all duration-200 hover:scale-110 border border-border-default bg-elevated'
+													data-testid='node-suggest-button'
+													onClick={handleToggleAIPopover}
+													title='AI Actions'
+												>
+													{isStreaming ? (
+														<Loader2 className='size-4 text-text-primary animate-spin' />
+													) : (
+														<Sparkles className='size-4 text-text-primary' />
+													)}
+												</Button>
+
+												{/* AI Actions Popover */}
+												<AnimatePresence>
+													{isAIPopoverOpen && (
+														<>
+															{/* Backdrop for click-outside */}
+															<div
+																className='fixed inset-0 z-40'
+																onClick={handleCloseAIPopover}
+																aria-hidden='true'
+															/>
+															<div className='absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50'>
+																<AIActionsPopover
+																	scope='node'
+																	sourceNodeId={id}
+																	onClose={handleCloseAIPopover}
+																/>
+															</div>
+														</>
+													)}
+												</AnimatePresence>
+											</div>
 										</motion.div>
 									</>
 								)}

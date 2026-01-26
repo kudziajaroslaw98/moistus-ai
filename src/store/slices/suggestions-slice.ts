@@ -53,12 +53,12 @@ export interface SuggestionsSlice {
 	acceptSuggestion: (nodeId: string) => Promise<void>;
 	rejectSuggestion: (nodeId: string) => void;
 
-	generateConnectionSuggestions: () => void;
+	generateConnectionSuggestions: (sourceNodeId?: string) => void;
 	acceptConnectionSuggestion: (edgeId: string) => Promise<void>;
 	rejectConnectionSuggestion: (edgeId: string) => void;
 	addConnectionSuggestion: (suggestion: AiConnectionSuggestion) => void;
 
-	generateMergeSuggestions: () => void;
+	generateMergeSuggestions: (sourceNodeId?: string) => void;
 	setMergeSuggestions: (suggestions: AiMergeSuggestion[]) => void;
 	acceptMerge: (suggestion: AiMergeSuggestion) => Promise<void>;
 	rejectMerge: (suggestion: AiMergeSuggestion) => void;
@@ -410,7 +410,7 @@ export const createSuggestionsSlice: StateCreator<
 		}
 	},
 
-	generateConnectionSuggestions: () => {
+	generateConnectionSuggestions: (sourceNodeId?: string) => {
 		const {
 			mapId,
 			triggerStream,
@@ -430,6 +430,8 @@ export const createSuggestionsSlice: StateCreator<
 
 		// 1. Define the specific chunk handler for THIS process.
 		// This function knows how to interpret the data from the stream.
+		// If sourceNodeId is provided, filter suggestions to only include
+		// connections where the source or target matches that node.
 		const handleChunk = (chunk: any) => {
 			if (!chunk || !chunk.type) return;
 
@@ -452,7 +454,18 @@ export const createSuggestionsSlice: StateCreator<
 
 				// This is a streamed AI-generated object.
 				case 'data-connection-suggestion':
-					addConnectionSuggestion(chunk.data);
+					// If sourceNodeId provided, filter to only connections involving that node
+					if (sourceNodeId) {
+						const suggestion = chunk.data;
+						if (
+							suggestion.sourceNodeId === sourceNodeId ||
+							suggestion.targetNodeId === sourceNodeId
+						) {
+							addConnectionSuggestion(suggestion);
+						}
+					} else {
+						addConnectionSuggestion(chunk.data);
+					}
 					break;
 
 				default:
@@ -463,12 +476,15 @@ export const createSuggestionsSlice: StateCreator<
 
 		// 2. Clear previous suggestions and show the initial toast
 		clearGhostNodes();
-		showStreamingToast('Suggesting Connections');
+		showStreamingToast(
+			sourceNodeId ? 'Finding Node Connections' : 'Suggesting Connections'
+		);
 
 		// 3. Trigger the generic stream mediator.
+		// Pass sourceNodeId in the body for potential API-side filtering
 		triggerStream(
 			'/api/ai/suggest-connections', // The API endpoint to call
-			{ mapId }, // The body for the request
+			{ mapId, sourceNodeId }, // The body for the request
 			handleChunk // The specific callback to process the stream data
 		);
 	},
@@ -644,7 +660,7 @@ export const createSuggestionsSlice: StateCreator<
 		triggerStream('/api/ai/counterpoints', body, handleChunk);
 	},
 
-	generateMergeSuggestions: () => {
+	generateMergeSuggestions: (sourceNodeId?: string) => {
 		const {
 			mapId,
 			triggerStream,
@@ -664,6 +680,8 @@ export const createSuggestionsSlice: StateCreator<
 
 		try {
 			// Define the specific chunk handler for merge suggestions
+			// If sourceNodeId is provided, filter suggestions to only include
+			// merges where node1 or node2 matches that node.
 			const handleChunk = (chunk: any) => {
 				if (!chunk || !chunk.type) return;
 
@@ -684,6 +702,18 @@ export const createSuggestionsSlice: StateCreator<
 
 					case 'data-merge-suggestion':
 						const suggestion = chunk.data;
+
+						// If sourceNodeId provided, filter to only merges involving that node
+						if (sourceNodeId) {
+							if (
+								suggestion.node1Id !== sourceNodeId &&
+								suggestion.node2Id !== sourceNodeId
+							) {
+								// Skip suggestions that don't involve the source node
+								break;
+							}
+						}
+
 						const edgeId = `merge-suggestion-${suggestion.node1Id}-${suggestion.node2Id}`;
 						const newEdge = {
 							id: edgeId,
@@ -739,11 +769,14 @@ export const createSuggestionsSlice: StateCreator<
 			};
 
 			// Show the initial toast
-			showStreamingToast('Suggesting Node Merges');
+			showStreamingToast(
+				sourceNodeId ? 'Finding Similar Nodes' : 'Suggesting Node Merges'
+			);
 
+			// Pass sourceNodeId in the body for potential API-side filtering
 			triggerStream(
 				'/api/ai/suggest-merges', // Ensure you create this endpoint
-				{ mapId },
+				{ mapId, sourceNodeId },
 				handleChunk
 			);
 		} catch (error) {

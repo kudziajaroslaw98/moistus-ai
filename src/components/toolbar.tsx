@@ -4,9 +4,9 @@ import useAppStore from '@/store/mind-map-store';
 import type { Tool } from '@/types/tool';
 import { cn } from '@/utils/cn';
 import {
-	ChevronDown,
 	Fullscreen,
 	Hand,
+	Loader2,
 	MessageCircle,
 	MessageSquare,
 	MousePointer2,
@@ -16,9 +16,10 @@ import {
 	Share2,
 	Sparkles,
 } from 'lucide-react';
-import { motion } from 'motion/react';
-import { type ReactNode, useMemo } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
+import { AIActionsPopover } from './ai/ai-actions-popover';
 import { ExportDropdown } from './toolbar/export-dropdown';
 import { LayoutDropdown } from './toolbar/layout-dropdown';
 import { Button } from './ui/button';
@@ -84,14 +85,8 @@ const tools: ToolButton[] = [
 
 export const Toolbar = () => {
 	const {
-		aiFeature,
-		setAiFeature,
 		activeTool,
-		setState,
 		setActiveTool,
-		setPopoverOpen,
-		generateConnectionSuggestions,
-		generateMergeSuggestions,
 		reactFlowInstance,
 		isCommentMode,
 		setCommentMode,
@@ -101,16 +96,11 @@ export const Toolbar = () => {
 		enterPathEditMode,
 		savedPaths,
 		nodes,
+		isStreaming,
 	} = useAppStore(
 		useShallow((state) => ({
 			activeTool: state.activeTool,
-			setState: state.setState,
 			setActiveTool: state.setActiveTool,
-			setPopoverOpen: state.setPopoverOpen,
-			setAiFeature: state.setAiFeature,
-			aiFeature: state.aiFeature,
-			generateConnectionSuggestions: state.generateConnectionSuggestions,
-			generateMergeSuggestions: state.generateMergeSuggestions,
 			reactFlowInstance: state.reactFlowInstance,
 			isCommentMode: state.isCommentMode,
 			setCommentMode: state.setCommentMode,
@@ -120,8 +110,27 @@ export const Toolbar = () => {
 			enterPathEditMode: state.enterPathEditMode,
 			savedPaths: state.savedPaths,
 			nodes: state.nodes,
+			isStreaming: state.isStreaming,
 		}))
 	);
+
+	// State for AI actions popover
+	const [isAIPopoverOpen, setIsAIPopoverOpen] = useState(false);
+
+	const handleToggleAIPopover = useCallback(() => {
+		setIsAIPopoverOpen((prev) => !prev);
+	}, []);
+
+	const handleCloseAIPopover = useCallback(() => {
+		setIsAIPopoverOpen(false);
+	}, []);
+
+	// Close popover when streaming starts
+	useEffect(() => {
+		if (isStreaming) {
+			setIsAIPopoverOpen(false);
+		}
+	}, [isStreaming]);
 
 	// Get user permissions for feature gating
 	const { canEdit, canComment } = usePermissions();
@@ -204,51 +213,11 @@ export const Toolbar = () => {
 				startTour();
 			}
 		} else if (toolId === 'magic-wand') {
-			switch (aiFeature) {
-				case 'suggest-connections':
-					generateConnectionSuggestions();
-					break;
-				case 'suggest-merges':
-					generateMergeSuggestions();
-					break;
-				default:
-					setActiveTool(toolId as Tool);
-					break;
-			}
+			// AI actions are now handled via popover
+			handleToggleAIPopover();
 		} else {
 			setActiveTool(toolId as Tool);
 		}
-	};
-
-	const handleAiFeatureSelect = (
-		feature: 'suggest-nodes' | 'suggest-connections' | 'suggest-merges'
-	) => {
-		if (feature === 'suggest-nodes') {
-			setAiFeature('suggest-nodes');
-		} else if (feature === 'suggest-connections') {
-			setState({ streamingAPI: '/api/ai/suggest-connections' });
-			setAiFeature('suggest-connections');
-		} else if (feature === 'suggest-merges') {
-			setState({ streamingAPI: '/api/ai/suggest-merges' });
-			setAiFeature('suggest-merges');
-		}
-	};
-
-	// Combined handler: select feature AND trigger action immediately
-	const handleAiFeatureSelectAndTrigger = (
-		feature: 'suggest-nodes' | 'suggest-connections' | 'suggest-merges'
-	) => {
-		handleAiFeatureSelect(feature);
-
-		// Trigger action immediately
-		if (feature === 'suggest-nodes') {
-			setActiveTool('magic-wand');
-		} else if (feature === 'suggest-connections') {
-			generateConnectionSuggestions();
-		} else if (feature === 'suggest-merges') {
-			generateMergeSuggestions();
-		}
-		// Note: DropdownMenu closes automatically on selection
 	};
 
 	// Get the current cursor tool for display (using filtered tools)
@@ -308,50 +277,46 @@ export const Toolbar = () => {
 						);
 					}
 
-					// AI Suggestions dropdown
+					// AI Suggestions popover
 					if (tool.id === 'magic-wand') {
 						return (
-							<DropdownMenu key={tool.id}>
-								<DropdownMenuTrigger asChild>
-									<Button
-										className={cn(
-											'active:scale-95',
-											activeTool === tool.id &&
-												'bg-teal-500 border-teal-500/30 text-text-primary'
-										)}
-										size='icon'
-										title={tool.label ?? `Tool ${index}`}
-										variant={
-											activeTool === tool.id ? 'default' : 'secondary'
-										}
-									>
-										{tool.icon}
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent align='start'>
-									<DropdownMenuRadioGroup
-										onValueChange={(val) =>
-											handleAiFeatureSelectAndTrigger(
-												val as
-													| 'suggest-nodes'
-													| 'suggest-connections'
-													| 'suggest-merges'
-											)
-										}
-										value={aiFeature}
-									>
-										<DropdownMenuRadioItem value='suggest-nodes'>
-											Suggest Nodes
-										</DropdownMenuRadioItem>
-										<DropdownMenuRadioItem value='suggest-connections'>
-											Suggest Connections
-										</DropdownMenuRadioItem>
-										<DropdownMenuRadioItem value='suggest-merges'>
-											Suggest Merges
-										</DropdownMenuRadioItem>
-									</DropdownMenuRadioGroup>
-								</DropdownMenuContent>
-							</DropdownMenu>
+							<div key={tool.id} className='relative'>
+								<Button
+									className={cn(
+										'active:scale-95',
+										isAIPopoverOpen &&
+											'bg-teal-500 border-teal-500/30 text-text-primary'
+									)}
+									size='icon'
+									title={tool.label ?? `Tool ${index}`}
+									variant={isAIPopoverOpen ? 'default' : 'secondary'}
+									onClick={handleToggleAIPopover}
+								>
+									{isStreaming ? (
+										<Loader2 className='size-4 animate-spin' />
+									) : (
+										tool.icon
+									)}
+								</Button>
+								<AnimatePresence>
+									{isAIPopoverOpen && (
+										<>
+											{/* Backdrop for click-outside */}
+											<div
+												className='fixed inset-0 z-40'
+												onClick={handleCloseAIPopover}
+												aria-hidden='true'
+											/>
+											<div className='absolute bottom-full left-0 mb-2 z-50'>
+												<AIActionsPopover
+													scope='map'
+													onClose={handleCloseAIPopover}
+												/>
+											</div>
+										</>
+									)}
+								</AnimatePresence>
+							</div>
 						);
 					}
 

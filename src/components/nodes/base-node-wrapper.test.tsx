@@ -377,17 +377,17 @@ describe('BaseNodeWrapper', () => {
 			expect(screen.queryByTestId('node-suggest-button')).not.toBeInTheDocument()
 		})
 
-		it('calls generateSuggestions when suggestions button clicked', async () => {
+		it('opens AI actions popover when suggestions button clicked', async () => {
 			const user = userEvent.setup()
 			mockSelectedNodes = [{ id: 'node-1' }]
 			render(<BaseNodeWrapper {...createDefaultProps()} />)
 
 			await user.click(screen.getByTestId('node-suggest-button'))
 
-			expect(mockGenerateSuggestions).toHaveBeenCalledWith({
-				sourceNodeId: 'node-1',
-				trigger: 'magic-wand',
-			})
+			// Verify the popover is visible (contains "Expand ideas" action)
+			expect(screen.getByText('Expand ideas')).toBeInTheDocument()
+			expect(screen.getByText('Find connections')).toBeInTheDocument()
+			expect(screen.getByText('Find similar')).toBeInTheDocument()
 		})
 	})
 
