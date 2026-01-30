@@ -46,9 +46,6 @@ function AuthVerifyHandler() {
 		urlStateRef.current = getInitialUrlState();
 	}
 
-	// Guard to ensure only ONE redirect happens (prevents race between onAuthStateChange and fallback)
-	const hasRedirected = useRef(false);
-
 	const [state, setState] = useState<CallbackState>('processing');
 	const [message, setMessage] = useState('Processing authentication...');
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -68,17 +65,12 @@ function AuthVerifyHandler() {
 			window.history.replaceState(null, '', window.location.pathname);
 
 			if (event === 'PASSWORD_RECOVERY') {
-				if (hasRedirected.current) return;
-				hasRedirected.current = true;
-				// Defer redirect to next tick for reliable navigation
-				setTimeout(() => router.replace('/auth/forgot-password'), 0);
+				// Redirect to forgot-password page for password reset
+				router.replace('/auth/forgot-password');
 				return;
 			}
 
 			if (event === 'SIGNED_IN') {
-				if (hasRedirected.current) return;
-				hasRedirected.current = true;
-
 				// Handle different sign-in types
 				if (urlType === 'signup') {
 					setMessage('Email confirmed! Redirecting to dashboard...');
@@ -89,9 +81,13 @@ function AuthVerifyHandler() {
 				}
 				setState('success');
 
-				// Defer redirect to next tick - router.replace() doesn't work reliably
-				// when called synchronously inside onAuthStateChange callback
-				setTimeout(() => router.replace('/dashboard'), 0);
+				// Redirect to dashboard after brief delay
+				setTimeout(() => {
+					if (mounted) {
+						router.replace('/dashboard');
+						router.refresh();
+					}
+				}, 1500);
 				return;
 			}
 		});
@@ -99,21 +95,19 @@ function AuthVerifyHandler() {
 		// Fallback: Check session after timeout
 		// (in case event already fired before listener attached)
 		const timeoutId = window.setTimeout(async () => {
-			if (!mounted || hasRedirected.current) return;
+			if (!mounted) return;
 
 			const {
 				data: { session },
 			} = await supabase.auth.getSession();
 
-			if (!mounted || hasRedirected.current) return;
+			if (!mounted) return;
 
 			if (session) {
-				hasRedirected.current = true;
-
 				// User is signed in - check the URL type for appropriate message
 				if (urlType === 'recovery') {
 					// User arrived via recovery link but has session - redirect to reset
-					setTimeout(() => router.replace('/auth/forgot-password'), 0);
+					router.replace('/auth/forgot-password');
 					return;
 				}
 
@@ -127,8 +121,12 @@ function AuthVerifyHandler() {
 				}
 				setState('success');
 
-				// Defer redirect to next tick for reliable navigation
-				setTimeout(() => router.replace('/dashboard'), 0);
+				setTimeout(() => {
+					if (mounted) {
+						router.replace('/dashboard');
+						router.refresh();
+					}
+				}, 1500);
 			} else {
 				// No session - something went wrong
 				setState('error');
