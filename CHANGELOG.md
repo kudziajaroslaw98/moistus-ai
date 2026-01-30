@@ -43,6 +43,16 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **shortcuts**: Removed redundant Tab shortcut
   - Tab "Add child node" was duplicate of ⌘+→
   - Removed from config and handler
+- **a11y**: FAB respects `prefers-reduced-motion` for hover/tap transforms
+  - `whileHover`/`whileTap` scale animations now disabled when reduced motion enabled
+- **auth**: Use URLSearchParams for robust URL hash parsing in verify page
+  - Replaced fragile regex with proper URLSearchParams parsing
+
+### Removed
+- **auth**: Removed `initialCheckDone` ref from forgot-password page
+  - Was only needed for React Strict Mode (dev-only) running effects twice
+  - Caused bug: refs persist across Next.js client-side navigation, breaking sign-in → forgot-password flow
+  - The `mounted` flag already handles cleanup sufficiently
 
 ---
 
