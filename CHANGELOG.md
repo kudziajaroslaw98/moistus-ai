@@ -28,6 +28,9 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **auth**: Sign-up magic link now routes correctly to dashboard
   - Created `/auth/verify` page that handles magic link auth types (signup, recovery, email_change)
   - Proxy routes `/?code=xxx` to verify page (OAuth goes directly to `/auth/callback`)
+- **auth**: Eliminate perceived double redirect in magic link flow
+  - Removed `history.replaceState` URL cleanup that caused visible URL flicker
+  - Reduced redirect delay from 1500ms to 100ms
   - Verify page reads URL hash client-side, routes: PASSWORD_RECOVERY → forgot-password, SIGNED_IN → dashboard
 - **shortcuts**: Removed non-working shortcuts from config
   - Removed undo/redo (⌘Z/⌘⇧Z) - only showed toast, not actual undo
