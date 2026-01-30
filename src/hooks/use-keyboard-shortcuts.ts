@@ -1,6 +1,5 @@
 import useAppStore from '@/store/mind-map-store';
 import { useEffect } from 'react';
-import { toast } from 'sonner';
 
 interface UseKeyboardShortcutsProps {
 	onAddChild: (parentId: string | null) => void;
@@ -53,29 +52,6 @@ export function useKeyboardShortcuts({
 			}
 
 			const isCtrlCmd = event.ctrlKey || event.metaKey;
-
-			// Undo shortcut (Ctrl/Cmd+Z) - disabled, show toast
-			if (isCtrlCmd && event.key.toLowerCase() === 'z' && !event.shiftKey) {
-				event.preventDefault();
-				toast.info('Use the History panel to undo changes', {
-					description: 'Open the History panel from the toolbar to revert to a previous state.',
-					duration: 4000,
-				});
-				return;
-			}
-
-			// Redo shortcut (Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y) - disabled, show toast
-			if (
-				(isCtrlCmd && event.shiftKey && event.key.toLowerCase() === 'z') ||
-				(isCtrlCmd && event.key.toLowerCase() === 'y')
-			) {
-				event.preventDefault();
-				toast.info('Use the History panel to redo changes', {
-					description: 'Open the History panel from the toolbar to revert to a later state.',
-					duration: 4000,
-				});
-				return;
-			}
 
 			if (isCtrlCmd && event.key.toLowerCase() === 'c') {
 				event.preventDefault();

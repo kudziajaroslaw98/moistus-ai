@@ -5,7 +5,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-01-30 - Keyboard shortcuts help FAB -->
+<!-- Updated: 2026-01-30 - Fixed keyboard shortcuts config -->
 ## [2026-01-30]
 
 ### Added
@@ -19,6 +19,13 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **constants**: Keyboard shortcuts config (`src/constants/keyboard-shortcuts.ts`)
   - Centralized shortcut definitions with categories
   - Single source of truth for navigation, general, nodes, view shortcuts
+
+### Fixed
+- **shortcuts**: Removed non-working shortcuts from config
+  - Removed undo/redo (⌘Z/⌘⇧Z) - only showed toast, not actual undo
+  - Removed toggle comments (C) - no handler existed
+  - Combined collapse/expand into single "Toggle collapse" (⌘-) - browser captures ⌘+ for zoom
+  - Removed toast handlers from `use-keyboard-shortcuts.ts`
 
 ---
 

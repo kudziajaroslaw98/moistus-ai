@@ -23,8 +23,6 @@ export const KEYBOARD_SHORTCUTS: KeyboardShortcut[] = [
 	// General
 	{ keys: ['⌘', 'C'], label: 'Copy selected nodes', category: 'general' },
 	{ keys: ['⌘', 'V'], label: 'Paste nodes', category: 'general' },
-	{ keys: ['⌘', 'Z'], label: 'Undo (via History)', category: 'general' },
-	{ keys: ['⌘', '⇧', 'Z'], label: 'Redo (via History)', category: 'general' },
 
 	// Nodes
 	{
@@ -37,13 +35,7 @@ export const KEYBOARD_SHORTCUTS: KeyboardShortcut[] = [
 	{ keys: ['⌘', '⇧', 'G'], label: 'Ungroup', category: 'nodes' },
 	{
 		keys: ['⌘', '-'],
-		label: 'Collapse node',
-		category: 'nodes',
-		requiresSelection: true,
-	},
-	{
-		keys: ['⌘', '+'],
-		label: 'Expand node',
+		label: 'Toggle collapse',
 		category: 'nodes',
 		requiresSelection: true,
 	},
@@ -51,7 +43,6 @@ export const KEYBOARD_SHORTCUTS: KeyboardShortcut[] = [
 	// View
 	{ keys: ['⌘', 'L'], label: 'Auto-layout', category: 'view' },
 	{ keys: ['/'], label: 'Quick create node', category: 'view' },
-	{ keys: ['C'], label: 'Toggle comments', category: 'view' },
 ];
 
 export const CATEGORY_LABELS: Record<ShortcutCategory, string> = {
