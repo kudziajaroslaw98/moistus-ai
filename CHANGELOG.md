@@ -5,6 +5,23 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+<!-- Updated: 2026-01-30 - Keyboard shortcuts help FAB -->
+## [2026-01-30]
+
+### Added
+- **shortcuts-help**: Keyboard Shortcuts Help FAB (`src/components/shortcuts-help/shortcuts-help-fab.tsx`)
+  - Floating action button (bottom-right) that expands into help card
+  - Glass effect styling with backdrop blur
+  - Spring animation morph from FAB position (respects prefers-reduced-motion)
+  - Platform detection: ⌘ on Mac, Ctrl on Windows
+  - Content stagger animation for categories
+  - Close via: FAB toggle, Escape key, click outside
+- **constants**: Keyboard shortcuts config (`src/constants/keyboard-shortcuts.ts`)
+  - Centralized shortcut definitions with categories
+  - Single source of truth for navigation, general, nodes, view shortcuts
+
+---
+
 <!-- Updated: 2026-01-26 - AI popover click-outside fix -->
 ## [2026-01-26]
 
