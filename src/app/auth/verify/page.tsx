@@ -61,8 +61,8 @@ function AuthVerifyHandler() {
 		} = supabase.auth.onAuthStateChange((event) => {
 			if (!mounted) return;
 
-			// Clean up URL
-			window.history.replaceState(null, '', window.location.pathname);
+			// Note: Don't clean up URL here - it causes a visible URL change
+			// that looks like a second redirect. Let the target page handle it.
 
 			if (event === 'PASSWORD_RECOVERY') {
 				// Redirect to forgot-password page for password reset
@@ -81,13 +81,13 @@ function AuthVerifyHandler() {
 				}
 				setState('success');
 
-				// Redirect to dashboard after brief delay
+				// Short delay to let auth state settle, then redirect
 				setTimeout(() => {
 					if (mounted) {
 						router.replace('/dashboard');
 						router.refresh();
 					}
-				}, 1500);
+				}, 100);
 				return;
 			}
 		});
@@ -121,12 +121,13 @@ function AuthVerifyHandler() {
 				}
 				setState('success');
 
+				// Short delay to let auth state settle, then redirect
 				setTimeout(() => {
 					if (mounted) {
 						router.replace('/dashboard');
 						router.refresh();
 					}
-				}, 1500);
+				}, 100);
 			} else {
 				// No session - something went wrong
 				setState('error');
