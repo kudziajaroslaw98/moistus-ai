@@ -61,7 +61,6 @@ function ForgotPasswordWizard() {
 	const [error, setError] = useState<string | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isCheckingSession, setIsCheckingSession] = useState(true);
-	const initialCheckDone = useRef(false);
 
 	// Step 1: Request form
 	const requestForm = useForm<ForgotPasswordFormData>({
@@ -88,9 +87,6 @@ function ForgotPasswordWizard() {
 	// Supabase's detectSessionInUrl handles the code exchange automatically
 	// We just need to check if user is now authenticated with a recovery session
 	useEffect(() => {
-		if (initialCheckDone.current) return;
-		initialCheckDone.current = true;
-
 		let mounted = true;
 		const supabase = getSharedSupabaseClient();
 		const arrivedWithRecoveryParams =

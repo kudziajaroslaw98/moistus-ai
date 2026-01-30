@@ -25,6 +25,10 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Added ⌘→/←/↓/↑ to shortcuts help (already functional in `use-keyboard-navigation.ts`)
 
 ### Fixed
+- **auth**: Sign-up magic link now routes correctly to dashboard
+  - Created `/auth/verify` page that handles magic link auth types (signup, recovery, email_change)
+  - Proxy routes `/?code=xxx` to verify page (OAuth goes directly to `/auth/callback`)
+  - Verify page reads URL hash client-side, routes: PASSWORD_RECOVERY → forgot-password, SIGNED_IN → dashboard
 - **shortcuts**: Removed non-working shortcuts from config
   - Removed undo/redo (⌘Z/⌘⇧Z) - only showed toast, not actual undo
   - Removed toggle comments (C) - no handler existed
