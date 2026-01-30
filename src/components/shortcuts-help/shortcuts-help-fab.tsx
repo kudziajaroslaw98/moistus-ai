@@ -314,14 +314,16 @@ export function ShortcutsHelpFab() {
 					'shadow-lg shadow-black/30',
 					'cursor-pointer',
 					'transition-colors duration-200',
+					// Note: hover styles work on touch but are acceptable for this small interactive element
 					'hover:bg-white/15 hover:border-white/20',
 					'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent',
 					isOpen && 'bg-white/15 border-white/20'
 				)}
 				variants={fabVariants}
 				animate={isOpen ? 'open' : 'closed'}
-				whileHover={{ scale: 1.05 }}
-				whileTap={{ scale: 0.95 }}
+				// Respect reduced motion preference for hover/tap transforms
+				whileHover={shouldReduceMotion ? undefined : { scale: 1.05 }}
+				whileTap={shouldReduceMotion ? undefined : { scale: 0.95 }}
 				aria-label='Keyboard shortcuts help'
 				aria-expanded={isOpen}
 				tabIndex={0}

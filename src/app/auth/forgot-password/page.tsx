@@ -62,6 +62,9 @@ function ForgotPasswordWizard() {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isCheckingSession, setIsCheckingSession] = useState(true);
 
+	// Prevent React Strict Mode from running the session check effect twice
+	const initialCheckDone = useRef(false);
+
 	// Step 1: Request form
 	const requestForm = useForm<ForgotPasswordFormData>({
 		resolver: zodResolver(forgotPasswordSchema),
@@ -87,6 +90,10 @@ function ForgotPasswordWizard() {
 	// Supabase's detectSessionInUrl handles the code exchange automatically
 	// We just need to check if user is now authenticated with a recovery session
 	useEffect(() => {
+		// Prevent React Strict Mode from running this effect twice
+		if (initialCheckDone.current) return;
+		initialCheckDone.current = true;
+
 		let mounted = true;
 		const supabase = getSharedSupabaseClient();
 		const arrivedWithRecoveryParams =

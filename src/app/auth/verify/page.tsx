@@ -16,13 +16,18 @@ type CallbackState = 'processing' | 'success' | 'error';
 const getInitialUrlState = () => {
 	if (typeof window === 'undefined')
 		return { type: null as string | null, hasCode: false };
-	const hash = window.location.hash;
-	const typeMatch = hash.match(/type=([^&]+)/);
-	const hasCode = window.location.search.includes('code=');
-	return {
-		type: typeMatch ? typeMatch[1] : null,
-		hasCode,
-	};
+
+	// Parse hash fragment using URLSearchParams for robustness
+	// Hash format from Supabase: #access_token=xxx&type=signup&...
+	const hash = window.location.hash.slice(1); // Remove leading #
+	const hashParams = new URLSearchParams(hash);
+	const type = hashParams.get('type');
+
+	// Check for code in query params
+	const searchParams = new URLSearchParams(window.location.search);
+	const hasCode = searchParams.has('code');
+
+	return { type, hasCode };
 };
 
 /**
