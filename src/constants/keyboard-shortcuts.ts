@@ -26,8 +26,8 @@ export const KEYBOARD_SHORTCUTS: KeyboardShortcut[] = [
 
 	// Nodes
 	{
-		keys: ['Tab'],
-		label: 'Add child node',
+		keys: ['⌘', '↑ / ↓ / ← / →'],
+		label: 'Add node in direction',
 		category: 'nodes',
 		requiresSelection: true,
 	},

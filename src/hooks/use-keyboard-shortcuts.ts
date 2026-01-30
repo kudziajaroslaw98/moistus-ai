@@ -2,7 +2,6 @@ import useAppStore from '@/store/mind-map-store';
 import { useEffect } from 'react';
 
 interface UseKeyboardShortcutsProps {
-	onAddChild: (parentId: string | null) => void;
 	onCopy: () => void;
 	onPaste: () => void;
 	selectedNodeId: string | null | undefined;
@@ -15,7 +14,6 @@ interface UseKeyboardShortcutsProps {
 }
 
 export function useKeyboardShortcuts({
-	onAddChild,
 	onCopy,
 	onPaste,
 	selectedNodeId,
@@ -62,12 +60,6 @@ export function useKeyboardShortcuts({
 			if (isCtrlCmd && event.key.toLowerCase() === 'v') {
 				event.preventDefault();
 				pasteNodes();
-				return;
-			}
-
-			if (event.key === 'Tab' && selectedNodeId) {
-				event.preventDefault();
-				onAddChild(selectedNodeId);
 				return;
 			}
 
@@ -123,7 +115,6 @@ export function useKeyboardShortcuts({
 			window.removeEventListener('keydown', handleKeyDown);
 		};
 	}, [
-		onAddChild,
 		onCopy,
 		onPaste,
 		selectedNodeId,
@@ -131,5 +122,10 @@ export function useKeyboardShortcuts({
 		isBusy,
 		reactFlowInstance,
 		onLayout,
+		copySelectedNodes,
+		pasteNodes,
+		onGroup,
+		onUngroup,
+		onToggleCollapse,
 	]);
 }

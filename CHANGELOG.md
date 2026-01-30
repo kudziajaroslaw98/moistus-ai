@@ -20,12 +20,22 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Centralized shortcut definitions with categories
   - Single source of truth for navigation, general, nodes, view shortcuts
 
+### Changed
+- **shortcuts**: Document ⌘+Arrow node creation shortcuts
+  - Added ⌘→/←/↓/↑ to shortcuts help (already functional in `use-keyboard-navigation.ts`)
+
 ### Fixed
 - **shortcuts**: Removed non-working shortcuts from config
   - Removed undo/redo (⌘Z/⌘⇧Z) - only showed toast, not actual undo
   - Removed toggle comments (C) - no handler existed
   - Combined collapse/expand into single "Toggle collapse" (⌘-) - browser captures ⌘+ for zoom
   - Removed toast handlers from `use-keyboard-shortcuts.ts`
+- **navigation**: Arrow key navigation now selects center-most node when none selected
+  - Previously silently failed with no node selected
+  - Now finds node closest to viewport center
+- **shortcuts**: Removed redundant Tab shortcut
+  - Tab "Add child node" was duplicate of ⌘+→
+  - Removed from config and handler
 
 ---
 
