@@ -70,8 +70,8 @@ function AuthVerifyHandler() {
 			if (event === 'PASSWORD_RECOVERY') {
 				if (hasRedirected.current) return;
 				hasRedirected.current = true;
-				// Redirect to forgot-password page for password reset
-				router.replace('/auth/forgot-password');
+				// Defer redirect to next tick for reliable navigation
+				setTimeout(() => router.replace('/auth/forgot-password'), 0);
 				return;
 			}
 
@@ -89,8 +89,9 @@ function AuthVerifyHandler() {
 				}
 				setState('success');
 
-				// Redirect immediately - no delay needed, dashboard will fetch fresh data
-				router.replace('/dashboard');
+				// Defer redirect to next tick - router.replace() doesn't work reliably
+				// when called synchronously inside onAuthStateChange callback
+				setTimeout(() => router.replace('/dashboard'), 0);
 				return;
 			}
 		});
@@ -112,7 +113,7 @@ function AuthVerifyHandler() {
 				// User is signed in - check the URL type for appropriate message
 				if (urlType === 'recovery') {
 					// User arrived via recovery link but has session - redirect to reset
-					router.replace('/auth/forgot-password');
+					setTimeout(() => router.replace('/auth/forgot-password'), 0);
 					return;
 				}
 
@@ -126,8 +127,8 @@ function AuthVerifyHandler() {
 				}
 				setState('success');
 
-				// Redirect immediately - no delay needed
-				router.replace('/dashboard');
+				// Defer redirect to next tick for reliable navigation
+				setTimeout(() => router.replace('/dashboard'), 0);
 			} else {
 				// No session - something went wrong
 				setState('error');
