@@ -5,7 +5,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-01-30 - Fixed keyboard shortcuts config -->
+<!-- Updated: 2026-01-30 - Auth verify flow, shortcuts help FAB, code review fixes -->
 ## [2026-01-30]
 
 ### Added
