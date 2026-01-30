@@ -46,6 +46,9 @@ function AuthVerifyHandler() {
 		urlStateRef.current = getInitialUrlState();
 	}
 
+	// Guard to ensure only ONE redirect happens (prevents race between onAuthStateChange and fallback)
+	const hasRedirected = useRef(false);
+
 	const [state, setState] = useState<CallbackState>('processing');
 	const [message, setMessage] = useState('Processing authentication...');
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -65,12 +68,17 @@ function AuthVerifyHandler() {
 			window.history.replaceState(null, '', window.location.pathname);
 
 			if (event === 'PASSWORD_RECOVERY') {
+				if (hasRedirected.current) return;
+				hasRedirected.current = true;
 				// Redirect to forgot-password page for password reset
 				router.replace('/auth/forgot-password');
 				return;
 			}
 
 			if (event === 'SIGNED_IN') {
+				if (hasRedirected.current) return;
+				hasRedirected.current = true;
+
 				// Handle different sign-in types
 				if (urlType === 'signup') {
 					setMessage('Email confirmed! Redirecting to dashboard...');
@@ -81,13 +89,8 @@ function AuthVerifyHandler() {
 				}
 				setState('success');
 
-				// Redirect to dashboard after brief delay
-				setTimeout(() => {
-					if (mounted) {
-						router.replace('/dashboard');
-						router.refresh();
-					}
-				}, 1500);
+				// Redirect immediately - no delay needed, dashboard will fetch fresh data
+				router.replace('/dashboard');
 				return;
 			}
 		});
@@ -95,15 +98,17 @@ function AuthVerifyHandler() {
 		// Fallback: Check session after timeout
 		// (in case event already fired before listener attached)
 		const timeoutId = window.setTimeout(async () => {
-			if (!mounted) return;
+			if (!mounted || hasRedirected.current) return;
 
 			const {
 				data: { session },
 			} = await supabase.auth.getSession();
 
-			if (!mounted) return;
+			if (!mounted || hasRedirected.current) return;
 
 			if (session) {
+				hasRedirected.current = true;
+
 				// User is signed in - check the URL type for appropriate message
 				if (urlType === 'recovery') {
 					// User arrived via recovery link but has session - redirect to reset
@@ -121,12 +126,8 @@ function AuthVerifyHandler() {
 				}
 				setState('success');
 
-				setTimeout(() => {
-					if (mounted) {
-						router.replace('/dashboard');
-						router.refresh();
-					}
-				}, 1500);
+				// Redirect immediately - no delay needed
+				router.replace('/dashboard');
 			} else {
 				// No session - something went wrong
 				setState('error');
