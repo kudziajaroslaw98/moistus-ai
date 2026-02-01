@@ -24,10 +24,14 @@ function useIsMac() {
 	const [isMac, setIsMac] = useState(true); // Default to Mac for SSR
 
 	useEffect(() => {
-		setIsMac(
-			typeof navigator !== 'undefined' &&
-				navigator.platform.toLowerCase().includes('mac')
-		);
+		if (typeof navigator === 'undefined') return;
+
+		// Prefer modern User-Agent Client Hints, fall back to deprecated navigator.platform
+		const platform =
+			(navigator as Navigator & { userAgentData?: { platform: string } })
+				.userAgentData?.platform ?? navigator.platform;
+
+		setIsMac(Boolean(platform) && platform.toLowerCase().includes('mac'));
 	}, []);
 
 	return isMac;
@@ -232,7 +236,7 @@ export function ShortcutsHelpFab() {
 				{isOpen && (
 					<motion.div
 						className={cn(
-							'absolute bottom-14 right-0 z-35',
+							'absolute bottom-14 right-0 z-40',
 							'w-80 max-h-[70vh] overflow-y-auto',
 							'bg-neutral-900/95 backdrop-blur-md',
 							'border border-white/10',
