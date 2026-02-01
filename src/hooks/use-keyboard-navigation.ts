@@ -120,9 +120,31 @@ export function useKeyboardNavigation({
         currentNode = selectedNodes[0];
       }
 
-      // If no node selected, do nothing
+      // If no node selected, select node closest to viewport center
       if (!currentNode) {
-        return;
+        const viewport = reactFlowInstance.getViewport();
+        const visibleNodes = getVisibleNodes();
+        if (visibleNodes.length === 0) return;
+
+        const viewportCenter = {
+          x: (-viewport.x + window.innerWidth / 2) / viewport.zoom,
+          y: (-viewport.y + window.innerHeight / 2) / viewport.zoom,
+        };
+
+        const closestNode = visibleNodes.reduce((closest, node) => {
+          const nodeCenterX = node.position.x + (node.measured?.width ?? 200) / 2;
+          const nodeCenterY = node.position.y + (node.measured?.height ?? 100) / 2;
+          const dist = Math.hypot(nodeCenterX - viewportCenter.x, nodeCenterY - viewportCenter.y);
+
+          const closestCenterX = closest.position.x + (closest.measured?.width ?? 200) / 2;
+          const closestCenterY = closest.position.y + (closest.measured?.height ?? 100) / 2;
+          const closestDist = Math.hypot(closestCenterX - viewportCenter.x, closestCenterY - viewportCenter.y);
+
+          return dist < closestDist ? node : closest;
+        });
+
+        setSelectedNodes([closestNode]);
+        return; // Select first, navigate on next press
       }
 
       // Get all visible nodes

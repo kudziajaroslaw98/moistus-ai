@@ -94,16 +94,6 @@ export function MindMapCanvas() {
 	}, [selectedNodes, toggleNodeCollapse]);
 
 	useKeyboardShortcuts({
-		onAddChild: () => {
-			const selected = selectedNodes[0];
-			openNodeEditor({
-				mode: 'create',
-				position: {
-					x: selected.position.x + (selected.measured?.width ?? 0) + 100,
-					y: selected.position.y,
-				},
-			});
-		},
 		onCopy: handleCopy,
 		onPaste: handlePaste,
 		selectedNodeId: selectedNodeId,

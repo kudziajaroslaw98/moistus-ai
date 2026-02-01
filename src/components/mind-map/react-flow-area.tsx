@@ -35,6 +35,7 @@ import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edg
 import { UpgradeModal } from '@/components/modals/upgrade-modal';
 import { ModeIndicator } from '@/components/mode-indicator';
 import { GuidedTourMode, PathBuilder } from '@/components/guided-tour';
+import { ShortcutsHelpFab } from '@/components/shortcuts-help/shortcuts-help-fab';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useActivityTracker } from '@/hooks/realtime/use-activity-tracker';
 import { useUpgradePrompt } from '@/hooks/subscription/use-upgrade-prompt';
@@ -618,6 +619,9 @@ export function ReactFlowArea() {
 
 			{/* Path Builder - shows when in path edit mode */}
 			{isPathEditMode && <PathBuilder />}
+
+			{/* Keyboard shortcuts help FAB */}
+			<ShortcutsHelpFab />
 		</div>
 	);
 }

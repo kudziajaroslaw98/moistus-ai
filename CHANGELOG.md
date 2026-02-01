@@ -5,6 +5,57 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+<!-- Updated: 2026-01-30 - Auth verify flow, shortcuts help FAB, code review fixes -->
+## [2026-01-30]
+
+### Added
+- **shortcuts-help**: Keyboard Shortcuts Help FAB (`src/components/shortcuts-help/shortcuts-help-fab.tsx`)
+  - Floating action button (bottom-right) that expands into help card
+  - Glass effect styling with backdrop blur
+  - Spring animation morph from FAB position (respects prefers-reduced-motion)
+  - Platform detection: ⌘ on Mac, Ctrl on Windows
+  - Content stagger animation for categories
+  - Close via: FAB toggle, Escape key, click outside
+- **constants**: Keyboard shortcuts config (`src/constants/keyboard-shortcuts.ts`)
+  - Centralized shortcut definitions with categories
+  - Single source of truth for navigation, general, nodes, view shortcuts
+
+### Changed
+- **shortcuts**: Document ⌘+Arrow node creation shortcuts
+  - Added ⌘→/←/↓/↑ to shortcuts help (already functional in `use-keyboard-navigation.ts`)
+
+### Fixed
+- **auth**: Sign-up magic link now routes correctly to dashboard
+  - Created `/auth/verify` page that handles magic link auth types (signup, recovery, email_change)
+  - Proxy routes `/?code=xxx` to verify page (OAuth goes directly to `/auth/callback`)
+- **auth**: Eliminate perceived double redirect in magic link flow
+  - Removed `history.replaceState` URL cleanup that caused visible URL flicker
+  - Reduced redirect delay from 1500ms to 100ms
+  - Verify page reads URL hash client-side, routes: PASSWORD_RECOVERY → forgot-password, SIGNED_IN → dashboard
+- **shortcuts**: Removed non-working shortcuts from config
+  - Removed undo/redo (⌘Z/⌘⇧Z) - only showed toast, not actual undo
+  - Removed toggle comments (C) - no handler existed
+  - Combined collapse/expand into single "Toggle collapse" (⌘-) - browser captures ⌘+ for zoom
+  - Removed toast handlers from `use-keyboard-shortcuts.ts`
+- **navigation**: Arrow key navigation now selects center-most node when none selected
+  - Previously silently failed with no node selected
+  - Now finds node closest to viewport center
+- **shortcuts**: Removed redundant Tab shortcut
+  - Tab "Add child node" was duplicate of ⌘+→
+  - Removed from config and handler
+- **a11y**: FAB respects `prefers-reduced-motion` for hover/tap transforms
+  - `whileHover`/`whileTap` scale animations now disabled when reduced motion enabled
+- **auth**: Use URLSearchParams for robust URL hash parsing in verify page
+  - Replaced fragile regex with proper URLSearchParams parsing
+
+### Removed
+- **auth**: Removed `initialCheckDone` ref from forgot-password page
+  - Was only needed for React Strict Mode (dev-only) running effects twice
+  - Caused bug: refs persist across Next.js client-side navigation, breaking sign-in → forgot-password flow
+  - The `mounted` flag already handles cleanup sufficiently
+
+---
+
 <!-- Updated: 2026-01-26 - AI popover click-outside fix -->
 ## [2026-01-26]
 
