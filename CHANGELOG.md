@@ -12,14 +12,19 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **landing/hero**: Replace badge + glass panels with GrainGradient shader background, simplified single-color headline
 - **landing/hero**: Nav and hero CTA buttons now white bg with dark text; "See How It Works" is plain text
 - **landing/problem-solution**: Rewrite with Lora serif headline and two-column before/after grid (coral/blue dots)
-- **landing/how-it-works**: Vertical timeline with typographic step numbers (01/02/03) replacing horizontal 3-column cards
+- **landing/how-it-works**: Card-based layout with typographic step numbers (01/02/03) replacing horizontal 3-column cards
 - **landing/features**: Wider container (max-w-7xl), blue glow on images, negative margin overlap for visual tension
 - **landing/decorations**: Warm-to-cool color journey (coral problem → mixed features → blue how-it-works)
 - **landing/faq**: Wider container (max-w-3xl)
 - **landing/pricing+cta**: Subtle blue radial gradient undertones
+- **landing/pricing**: White CTA button and RECOMMENDED badge (matching page-wide white style)
+- **landing/final-cta**: White CTA button with arrow icon, footer border separator
+- **landing/problem-solution**: Added card containers around before/after columns
+
+### Removed
+- **landing/trust-strip**: Removed (too generic/template-like)
 
 ### Added
-- **landing/trust-strip**: 4 pill badges between hero and problem-solution (AI-native, Keyboard-first, Real-time sync, Built for power users)
 - **landing/typography**: Lora serif on all section headlines
 - **landing/css**: Hero shimmer animation keyframes, node-float/node-pulse keyframes
 
