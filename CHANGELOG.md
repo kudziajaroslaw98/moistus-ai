@@ -5,7 +5,24 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-01-30 - Auth verify flow, shortcuts help FAB, code review fixes -->
+<!-- Updated: 2026-02-06 - Landing page redesign -->
+## [2026-02-06]
+
+### Changed
+- **landing/hero**: Replace badge + glass panels with GrainGradient shader background, simplified single-color headline
+- **landing/hero**: Nav and hero CTA buttons now white bg with dark text; "See How It Works" is plain text
+- **landing/problem-solution**: Rewrite with Lora serif headline and two-column before/after grid (coral/blue dots)
+- **landing/how-it-works**: Vertical timeline with typographic step numbers (01/02/03) replacing horizontal 3-column cards
+- **landing/features**: Wider container (max-w-7xl), blue glow on images, negative margin overlap for visual tension
+- **landing/decorations**: Warm-to-cool color journey (coral problem → mixed features → blue how-it-works)
+- **landing/faq**: Wider container (max-w-3xl)
+- **landing/pricing+cta**: Subtle blue radial gradient undertones
+
+### Added
+- **landing/trust-strip**: 4 pill badges between hero and problem-solution (AI-native, Keyboard-first, Real-time sync, Built for power users)
+- **landing/typography**: Lora serif on all section headlines
+- **landing/css**: Hero shimmer animation keyframes, node-float/node-pulse keyframes
+
 ## [2026-01-30]
 
 ### Added
