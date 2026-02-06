@@ -55,7 +55,7 @@ export function HowItWorks() {
 							? { duration: 0 }
 							: { duration: 0.3, ease: EASE_OUT_QUART }
 					}
-					className='text-center mb-16'
+					className='text-center mb-14'
 				>
 					<h2 className='font-lora text-3xl md:text-4xl font-bold text-text-primary mb-4'>
 						How It Works
@@ -65,67 +65,56 @@ export function HowItWorks() {
 					</p>
 				</motion.div>
 
-				{/* Vertical timeline */}
-				<div className='relative'>
-					{/* Connecting line (desktop) */}
-					<div
-						className='hidden md:block absolute left-8 top-0 bottom-0 w-px'
-						style={{
-							background:
-								'linear-gradient(180deg, transparent, rgba(96, 165, 250, 0.2) 10%, rgba(96, 165, 250, 0.2) 90%, transparent)',
-						}}
-					/>
-
-					<div className='space-y-12 md:space-y-16'>
-						{steps.map((step, index) => {
-							const Icon = step.icon;
-							return (
-								<motion.div
-									key={step.title}
-									initial={
-										shouldReduceMotion
-											? { opacity: 1, y: 0 }
-											: { opacity: 0, y: 20 }
-									}
-									animate={isInView ? { opacity: 1, y: 0 } : {}}
-									transition={
-										shouldReduceMotion
-											? { duration: 0 }
-											: {
-													duration: 0.3,
-													ease: EASE_OUT_QUART,
-													delay: index * 0.15,
-												}
-									}
-									className='relative md:pl-24'
+				{/* Steps */}
+				<div className='space-y-6'>
+					{steps.map((step, index) => {
+						const Icon = step.icon;
+						return (
+							<motion.div
+								key={step.title}
+								initial={
+									shouldReduceMotion
+										? { opacity: 1, y: 0 }
+										: { opacity: 0, y: 16 }
+								}
+								animate={isInView ? { opacity: 1, y: 0 } : {}}
+								transition={
+									shouldReduceMotion
+										? { duration: 0 }
+										: {
+												duration: 0.3,
+												ease: EASE_OUT_QUART,
+												delay: index * 0.12,
+											}
+								}
+								className='relative flex gap-6 md:gap-8 items-start rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 md:p-8'
+							>
+								{/* Number */}
+								<span
+									className='shrink-0 font-lora text-4xl md:text-5xl font-bold leading-none select-none text-white/10'
+									aria-hidden='true'
 								>
-									{/* Large typographic number */}
-									<span
-										className='hidden md:block absolute left-0 top-0 font-lora text-5xl lg:text-6xl font-bold leading-none select-none text-brand-coral/15'
-										aria-hidden='true'
-									>
-										{step.number}
-									</span>
+									{step.number}
+								</span>
 
-									{/* Content */}
-									<div>
-										<div className='flex items-center gap-3 mb-2'>
-											<Icon
-												aria-hidden='true'
-												className='h-5 w-5 text-primary-400'
-											/>
-											<h3 className='text-xl font-semibold text-text-primary'>
-												{step.title}
-											</h3>
-										</div>
-										<p className='text-text-secondary leading-relaxed max-w-xl'>
-											{step.description}
-										</p>
+								{/* Content */}
+								<div className='pt-1'>
+									<div className='flex items-center gap-2.5 mb-2'>
+										<Icon
+											aria-hidden='true'
+											className='h-4.5 w-4.5 text-primary-400'
+										/>
+										<h3 className='text-lg font-semibold text-text-primary'>
+											{step.title}
+										</h3>
 									</div>
-								</motion.div>
-							);
-						})}
-					</div>
+									<p className='text-text-secondary leading-relaxed'>
+										{step.description}
+									</p>
+								</div>
+							</motion.div>
+						);
+					})}
 				</div>
 			</div>
 		</section>

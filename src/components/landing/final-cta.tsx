@@ -1,5 +1,6 @@
 'use client';
 
+import { ArrowRight } from 'lucide-react';
 import { useReducedMotion } from 'motion/react';
 
 const footerLinks = [
@@ -33,28 +34,29 @@ export function FinalCta() {
 
 			<div className='max-w-5xl mx-auto px-4 sm:px-6 lg:px-8'>
 				{/* CTA Section */}
-				<div
-					className='py-32 text-center'
-					style={{ background: 'radial-gradient(ellipse at center, rgba(96, 165, 250, 0.03) 0%, transparent 60%)' }}
-				>
+				<div className='py-28 text-center'>
 					<h2 className='font-lora text-2xl sm:text-3xl font-bold text-text-primary mb-3'>
 						Ready to connect your ideas?
 					</h2>
-					<p className='text-base text-text-secondary mb-6'>
+					<p className='text-base text-text-secondary mb-8'>
 						Start free. No credit card required.
 					</p>
 					<div className='group inline-block'>
 						<a
 							href='/dashboard'
-							className='inline-flex items-center justify-center px-8 py-3 text-base font-semibold rounded-md bg-primary-600 group-hover:bg-primary-500 text-white shadow-[0_4px_14px_rgba(96,165,250,0.25)] translate-y-0 transition-all duration-200 group-hover:shadow-[0_8px_30px_rgba(96,165,250,0.4)] group-hover:-translate-y-0.5'
+							className='inline-flex items-center gap-2 justify-center px-8 py-3.5 text-base font-semibold rounded-lg bg-white text-neutral-900 shadow-[0_0_30px_rgba(255,255,255,0.1)] translate-y-0 transition-all duration-200 group-hover:shadow-[0_0_50px_rgba(255,255,255,0.2)] group-hover:-translate-y-0.5'
 						>
 							Start Mapping
+							<ArrowRight
+								aria-hidden='true'
+								className='h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5'
+							/>
 						</a>
 					</div>
 				</div>
 
 				{/* Footer bar */}
-				<div className='py-6 flex flex-col sm:flex-row items-center justify-between gap-4'>
+				<div className='py-6 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4'>
 					{/* Left: Brand */}
 					<span className='text-sm font-medium text-text-primary'>Shiko</span>
 

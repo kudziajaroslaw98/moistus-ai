@@ -7,7 +7,6 @@ import { LandingNav } from '@/components/landing/landing-nav';
 import { PricingSection } from '@/components/landing/pricing-section';
 import { ProblemSolution } from '@/components/landing/problem-solution';
 import { ScrollProgress } from '@/components/landing/scroll-progress';
-import { TrustStrip } from '@/components/landing/trust-strip';
 import { SectionDots } from '@/components/landing/section-dots';
 import { Metadata } from 'next';
 
@@ -68,7 +67,6 @@ export default function Home() {
 			<SectionDots />
 			<main id='main-content' className='min-h-screen h-auto flex flex-col bg-background'>
 				<HeroSection />
-				<TrustStrip />
 				<ProblemSolution />
 				<FeaturesSection />
 				<HowItWorks />

@@ -52,7 +52,7 @@ export function ProblemSolution() {
 				</motion.h2>
 
 				{/* Before / After grid */}
-				<div className='grid md:grid-cols-2 gap-8 md:gap-12'>
+				<div className='grid md:grid-cols-2 gap-6'>
 					{/* Before column */}
 					<motion.div
 						initial={
@@ -66,17 +66,18 @@ export function ProblemSolution() {
 								? { duration: 0 }
 								: { duration: 0.4, ease: EASE_OUT_QUART, delay: 0.1 }
 						}
+						className='rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 md:p-8'
 					>
-						<p className='text-sm font-medium text-neutral-500 uppercase tracking-wider mb-4'>
+						<p className='text-xs font-semibold text-brand-coral/70 uppercase tracking-widest mb-5'>
 							Before
 						</p>
-						<ul className='space-y-3'>
+						<ul className='space-y-3.5'>
 							{beforeItems.map((item) => (
 								<li
 									key={item}
-									className='flex items-start gap-3 text-text-secondary'
+									className='flex items-start gap-3 text-sm text-text-secondary'
 								>
-									<span className='mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-coral/60' />
+									<span className='mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-coral/50' />
 									{item}
 								</li>
 							))}
@@ -96,17 +97,18 @@ export function ProblemSolution() {
 								? { duration: 0 }
 								: { duration: 0.4, ease: EASE_OUT_QUART, delay: 0.2 }
 						}
+						className='rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 md:p-8'
 					>
-						<p className='text-sm font-medium text-neutral-500 uppercase tracking-wider mb-4'>
+						<p className='text-xs font-semibold text-primary-400/70 uppercase tracking-widest mb-5'>
 							After
 						</p>
-						<ul className='space-y-3'>
+						<ul className='space-y-3.5'>
 							{afterItems.map((item) => (
 								<li
 									key={item}
-									className='flex items-start gap-3 text-text-secondary'
+									className='flex items-start gap-3 text-sm text-text-secondary'
 								>
-									<span className='mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary-400/60' />
+									<span className='mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary-400/50' />
 									{item}
 								</li>
 							))}
