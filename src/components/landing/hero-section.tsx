@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown, Sparkles } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { HeroBackground } from './hero-background';
 
@@ -20,29 +20,10 @@ export function HeroSection() {
 			id='hero'
 			className='relative min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-16 bg-background'
 		>
-			{/* Hero-specific background with glass panels */}
+			{/* Hero-specific background with animated node network */}
 			<HeroBackground />
 
 			<div className='relative z-10 max-w-4xl mx-auto text-center'>
-				{/* Badge */}
-				<motion.div
-					initial={
-						shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
-					}
-					animate={{ opacity: 1, y: 0 }}
-					transition={
-						shouldReduceMotion
-							? { duration: 0 }
-							: { duration: 0.25, ease: EASE_OUT_QUART }
-					}
-					className='mb-6'
-				>
-					<span className='inline-flex items-center gap-2 rounded-full bg-primary-500/10 px-4 py-2 text-sm font-medium text-primary-400 ring-1 ring-inset ring-primary-500/20 backdrop-blur-sm'>
-						<Sparkles aria-hidden='true' className='h-4 w-4' />
-						AI-Powered Mind Mapping
-					</span>
-				</motion.div>
-
 				{/* Headline */}
 				<motion.h1
 					initial={
@@ -52,7 +33,7 @@ export function HeroSection() {
 					transition={
 						shouldReduceMotion
 							? { duration: 0 }
-							: { duration: 0.25, ease: EASE_OUT_QUART, delay: 0.1 }
+							: { duration: 0.25, ease: EASE_OUT_QUART }
 					}
 					className='font-lora text-4xl font-bold tracking-tighter text-text-primary sm:text-5xl md:text-7xl'
 				>
@@ -73,7 +54,7 @@ export function HeroSection() {
 					transition={
 						shouldReduceMotion
 							? { duration: 0 }
-							: { duration: 0.25, ease: EASE_OUT_QUART, delay: 0.2 }
+							: { duration: 0.25, ease: EASE_OUT_QUART, delay: 0.1 }
 					}
 					className='mt-6 text-lg leading-relaxed text-text-secondary max-w-2xl mx-auto'
 				>
@@ -91,7 +72,7 @@ export function HeroSection() {
 					transition={
 						shouldReduceMotion
 							? { duration: 0 }
-							: { duration: 0.25, ease: EASE_OUT_QUART, delay: 0.3 }
+							: { duration: 0.25, ease: EASE_OUT_QUART, delay: 0.2 }
 					}
 					className='mt-10 flex flex-col sm:flex-row items-center justify-center gap-4'
 				>
@@ -119,7 +100,7 @@ export function HeroSection() {
 				transition={
 					shouldReduceMotion
 						? { duration: 0 }
-						: { duration: 0.25, ease: EASE_OUT_QUART, delay: 0.5 }
+						: { duration: 0.25, ease: EASE_OUT_QUART, delay: 0.4 }
 				}
 				className='absolute bottom-8 left-1/2 -translate-x-1/2 z-10'
 			>

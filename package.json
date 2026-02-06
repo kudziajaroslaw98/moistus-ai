@@ -42,6 +42,7 @@
     "@hookform/resolvers": "5.2.2",
     "@lezer/highlight": "^1.2.3",
     "@lezer/lr": "^1.4.5",
+    "@paper-design/shaders-react": "^0.0.71",
     "@polar-sh/nextjs": "^0.9.3",
     "@polar-sh/sdk": "^0.42.2",
     "@supabase/ssr": "0.8.0",
