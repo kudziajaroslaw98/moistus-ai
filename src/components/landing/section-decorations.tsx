@@ -72,7 +72,7 @@ interface DecorationProps {
 function ProblemDecoration({ isInView, shouldReduceMotion }: DecorationProps) {
 	return (
 		<>
-			{/* Soft center glow */}
+			{/* Soft center glow — warm coral */}
 			<motion.div
 				className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[200px]'
 				initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }}
@@ -84,11 +84,11 @@ function ProblemDecoration({ isInView, shouldReduceMotion }: DecorationProps) {
 				}
 				style={{
 					background:
-						'radial-gradient(ellipse, rgba(96, 165, 250, 0.04), transparent 70%)',
+						'radial-gradient(ellipse, rgba(224, 133, 106, 0.04), transparent 70%)',
 				}}
 			/>
 
-			{/* Bottom edge line */}
+			{/* Bottom edge line — coral tint */}
 			<motion.div
 				className='absolute bottom-0 left-0 right-0 h-px'
 				initial={
@@ -104,7 +104,7 @@ function ProblemDecoration({ isInView, shouldReduceMotion }: DecorationProps) {
 				}
 				style={{
 					background:
-						'linear-gradient(90deg, transparent, rgba(96, 165, 250, 0.15), transparent)',
+						'linear-gradient(90deg, transparent, rgba(224, 133, 106, 0.15), transparent)',
 					transformOrigin: 'center',
 				}}
 			/>
@@ -126,11 +126,11 @@ function FeaturesDecoration({ isInView, shouldReduceMotion }: DecorationProps) {
 
 	return (
 		<>
-			{/* Floating dots */}
+			{/* Floating dots — coral for first 2, blue for rest */}
 			{dots.map((dot, i) => (
 				<motion.div
 					key={i}
-					className='absolute rounded-full bg-primary-500/20'
+					className={`absolute rounded-full ${i < 2 ? 'bg-brand-coral/20' : 'bg-primary-500/20'}`}
 					style={{
 						top: dot.top,
 						left: dot.left,
@@ -200,7 +200,7 @@ function HowItWorksDecoration({
 				}
 				style={{
 					background:
-						'linear-gradient(90deg, transparent, rgba(20, 184, 166, 0.3), transparent)',
+						'linear-gradient(90deg, transparent, rgba(96, 165, 250, 0.2), transparent)',
 					transformOrigin: 'center',
 				}}
 			/>
@@ -221,7 +221,7 @@ function HowItWorksDecoration({
 				}
 				style={{
 					background:
-						'linear-gradient(90deg, transparent, rgba(20, 184, 166, 0.3), transparent)',
+						'linear-gradient(90deg, transparent, rgba(96, 165, 250, 0.2), transparent)',
 					transformOrigin: 'center',
 				}}
 			/>
