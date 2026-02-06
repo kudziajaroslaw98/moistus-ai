@@ -9,18 +9,21 @@ const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
 
 const steps = [
 	{
+		number: '01',
 		icon: PlusCircle,
 		title: 'Start a map',
 		description:
 			'Create a new mind map or try free without signing up. Your canvas is ready in seconds.',
 	},
 	{
+		number: '02',
 		icon: Keyboard,
 		title: 'Capture your thoughts',
 		description:
 			'Type naturally. Use commands to structure. The editor parses #tags, $types, and @mentions as you go.',
 	},
 	{
+		number: '03',
 		icon: Sparkles,
 		title: 'Let AI connect the dots',
 		description:
@@ -37,10 +40,10 @@ export function HowItWorks() {
 		<section
 			id='how-it-works'
 			ref={ref}
-			className='relative py-32 px-4 sm:px-6 lg:px-8 bg-surface/50'
+			className='relative py-24 px-4 sm:px-6 lg:px-8 bg-surface/50'
 		>
 			<SectionDecoration variant='howItWorks' />
-			<div className='relative z-10 max-w-5xl mx-auto'>
+			<div className='relative z-10 max-w-4xl mx-auto'>
 				{/* Header */}
 				<motion.div
 					initial={
@@ -62,12 +65,18 @@ export function HowItWorks() {
 					</p>
 				</motion.div>
 
-				{/* Steps */}
+				{/* Vertical timeline */}
 				<div className='relative'>
-					{/* Connecting line (desktop only) */}
-					<div className='hidden md:block absolute top-12 left-[16.67%] right-[16.67%] h-px bg-border-subtle/30' />
+					{/* Connecting line (desktop) */}
+					<div
+						className='hidden md:block absolute left-8 top-0 bottom-0 w-px'
+						style={{
+							background:
+								'linear-gradient(180deg, transparent, rgba(96, 165, 250, 0.2) 10%, rgba(96, 165, 250, 0.2) 90%, transparent)',
+						}}
+					/>
 
-					<div className='grid md:grid-cols-3 gap-8 md:gap-12'>
+					<div className='space-y-12 md:space-y-16'>
 						{steps.map((step, index) => {
 							const Icon = step.icon;
 							return (
@@ -88,24 +97,31 @@ export function HowItWorks() {
 													delay: index * 0.15,
 												}
 									}
-									className='relative text-center'
+									className='relative md:pl-24'
 								>
-									{/* Step number + icon */}
-									<div className='relative inline-flex items-center justify-center mb-6'>
-										<div className='w-24 h-24 rounded-full bg-gradient-to-br from-primary-500/20 to-primary-600/10 flex items-center justify-center'>
-											<Icon className='h-10 w-10 text-primary-400' />
-										</div>
-										<span className='absolute -top-2 -right-2 w-8 h-8 rounded-full bg-primary-600 text-text-primary text-sm font-bold flex items-center justify-center'>
-											{index + 1}
-										</span>
-									</div>
+									{/* Large typographic number */}
+									<span
+										className='hidden md:block absolute left-0 top-0 font-lora text-5xl lg:text-6xl font-bold leading-none select-none text-brand-coral/15'
+										aria-hidden='true'
+									>
+										{step.number}
+									</span>
 
-									<h3 className='text-xl font-semibold text-text-primary mb-3'>
-										{step.title}
-									</h3>
-									<p className='text-text-secondary leading-relaxed'>
-										{step.description}
-									</p>
+									{/* Content */}
+									<div>
+										<div className='flex items-center gap-3 mb-2'>
+											<Icon
+												aria-hidden='true'
+												className='h-5 w-5 text-primary-400'
+											/>
+											<h3 className='text-xl font-semibold text-text-primary'>
+												{step.title}
+											</h3>
+										</div>
+										<p className='text-text-secondary leading-relaxed max-w-xl'>
+											{step.description}
+										</p>
+									</div>
 								</motion.div>
 							);
 						})}
