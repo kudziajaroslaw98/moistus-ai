@@ -8,6 +8,7 @@ import {
 	useReducedMotion,
 } from 'motion/react';
 import { useRef, useState } from 'react';
+import { GrainOverlay } from './grain-overlay';
 import { SectionDecoration } from './section-decorations';
 
 const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
@@ -127,6 +128,7 @@ export function FaqSection() {
 			ref={ref}
 			className='relative py-32 px-4 sm:px-6 lg:px-8'
 		>
+			<GrainOverlay />
 			<SectionDecoration variant='faq' />
 			<div className='relative z-10 max-w-3xl mx-auto'>
 				{/* Header */}

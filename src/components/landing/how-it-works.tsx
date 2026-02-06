@@ -3,6 +3,7 @@
 import { Keyboard, PlusCircle, Sparkles } from 'lucide-react';
 import { motion, useInView, useReducedMotion } from 'motion/react';
 import { useRef } from 'react';
+import { GrainOverlay } from './grain-overlay';
 import { SectionDecoration } from './section-decorations';
 
 const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
@@ -42,6 +43,7 @@ export function HowItWorks() {
 			ref={ref}
 			className='relative py-24 px-4 sm:px-6 lg:px-8'
 		>
+			<GrainOverlay />
 			<SectionDecoration variant='howItWorks' />
 			<div className='relative z-10 max-w-4xl mx-auto'>
 				{/* Header */}
