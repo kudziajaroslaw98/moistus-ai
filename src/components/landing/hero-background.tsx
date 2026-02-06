@@ -1,11 +1,11 @@
 'use client';
 
-import { NeuroNoise } from '@paper-design/shaders-react';
+import { GrainGradient } from '@paper-design/shaders-react';
 import { useReducedMotion } from 'motion/react';
 
 /**
- * Hero background with NeuroNoise shader for neural-connection visuals.
- * Subtle grayscale neural web with warm coral mid-tone, overlaid on
+ * Hero background with GrainGradient shader.
+ * Warm coral-to-blue gradient with grain texture, overlaid on
  * grid pattern with vignette. Stops animation for reduced-motion.
  */
 export function HeroBackground() {
@@ -19,16 +19,17 @@ export function HeroBackground() {
 				style={{ backgroundSize: '50px 50px' }}
 			/>
 
-			{/* NeuroNoise shader */}
-			<div className='absolute inset-0 opacity-40'>
-				<NeuroNoise
-					colorFront='#2a2a2a'
-					colorMid='#1a1a1a'
+			{/* GrainGradient shader */}
+			<div className='absolute inset-0'>
+				<GrainGradient
+					colors={['#7300ff', '#eba8ff', '#00bfff', '#2a00ff']}
 					colorBack='#0a0a0b'
-					brightness={0.4}
-					contrast={0.3}
-					speed={shouldReduceMotion ? 0 : 0.4}
-					scale={1.2}
+					softness={0.5}
+					intensity={0.4}
+					noise={0.3}
+					shape='corners'
+					speed={shouldReduceMotion ? 0 : 0.3}
+					scale={1}
 					style={{ width: '100%', height: '100%' }}
 				/>
 			</div>

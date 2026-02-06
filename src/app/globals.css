@@ -198,6 +198,53 @@
 	animation: dash-flow 2s linear infinite;
 }
 
+/* Hero shimmer text — animated gradient that feels alive */
+@keyframes hero-shimmer-shift {
+	0% { background-position: 0% 50%; }
+	50% { background-position: 100% 50%; }
+	100% { background-position: 0% 50%; }
+}
+
+.hero-shimmer {
+	background: linear-gradient(
+		90deg,
+		#e0856a 0%,
+		#f4a88a 25%,
+		#ffffff 50%,
+		#f4a88a 75%,
+		#e0856a 100%
+	);
+	background-size: 200% 100%;
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+	animation: hero-shimmer-shift 6s ease-in-out infinite;
+}
+
+.hero-shimmer-blue {
+	background: linear-gradient(
+		90deg,
+		#5b80e8 0%,
+		#8aadff 25%,
+		#ffffff 50%,
+		#8aadff 75%,
+		#5b80e8 100%
+	);
+	background-size: 200% 100%;
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+	animation: hero-shimmer-shift 6s ease-in-out infinite;
+	animation-delay: -3s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.hero-shimmer,
+	.hero-shimmer-blue {
+		animation: none !important;
+	}
+}
+
 /* Node network animations (hero background) */
 @keyframes node-float {
 	0%, 100% { transform: translateY(0); }
