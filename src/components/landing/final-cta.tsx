@@ -33,7 +33,10 @@ export function FinalCta() {
 
 			<div className='max-w-5xl mx-auto px-4 sm:px-6 lg:px-8'>
 				{/* CTA Section */}
-				<div className='py-32 text-center'>
+				<div
+					className='py-32 text-center'
+					style={{ background: 'radial-gradient(ellipse at center, rgba(96, 165, 250, 0.03) 0%, transparent 60%)' }}
+				>
 					<h2 className='font-lora text-2xl sm:text-3xl font-bold text-text-primary mb-3'>
 						Ready to connect your ideas?
 					</h2>

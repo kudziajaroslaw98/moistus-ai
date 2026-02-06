@@ -128,7 +128,7 @@ export function FaqSection() {
 			className='relative py-32 px-4 sm:px-6 lg:px-8 bg-surface/50'
 		>
 			<SectionDecoration variant='faq' />
-			<div className='relative z-10 max-w-2xl mx-auto'>
+			<div className='relative z-10 max-w-3xl mx-auto'>
 				{/* Header */}
 				<motion.div
 					initial={

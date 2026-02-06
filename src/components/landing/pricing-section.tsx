@@ -21,6 +21,7 @@ export function PricingSection() {
 			id='pricing'
 			ref={ref}
 			className='relative py-32 px-4 sm:px-6 lg:px-8 bg-elevated/20'
+			style={{ background: 'radial-gradient(ellipse at center, rgba(96, 165, 250, 0.02) 0%, transparent 70%)' }}
 		>
 			<SectionDecoration variant='pricing' />
 			<div className='relative z-10 max-w-4xl mx-auto'>
