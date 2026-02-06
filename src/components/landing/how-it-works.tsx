@@ -40,7 +40,7 @@ export function HowItWorks() {
 		<section
 			id='how-it-works'
 			ref={ref}
-			className='relative py-24 px-4 sm:px-6 lg:px-8 bg-surface/50'
+			className='relative py-24 px-4 sm:px-6 lg:px-8'
 		>
 			<SectionDecoration variant='howItWorks' />
 			<div className='relative z-10 max-w-4xl mx-auto'>
@@ -65,10 +65,11 @@ export function HowItWorks() {
 					</p>
 				</motion.div>
 
-				{/* Steps */}
-				<div className='space-y-6'>
+				{/* Steps with timeline */}
+				<div className='space-y-0'>
 					{steps.map((step, index) => {
 						const Icon = step.icon;
+						const isLast = index === steps.length - 1;
 						return (
 							<motion.div
 								key={step.title}
@@ -87,30 +88,50 @@ export function HowItWorks() {
 												delay: index * 0.12,
 											}
 								}
-								className='relative flex gap-6 md:gap-8 items-start rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 md:p-8'
+								className='flex items-stretch gap-5 md:gap-7'
 							>
-								{/* Number */}
-								<span
-									className='shrink-0 font-lora text-4xl md:text-5xl font-bold leading-none select-none text-white/10'
-									aria-hidden='true'
-								>
-									{step.number}
-								</span>
-
-								{/* Content */}
-								<div className='pt-1'>
-									<div className='flex items-center gap-2.5 mb-2'>
-										<Icon
-											aria-hidden='true'
-											className='h-4.5 w-4.5 text-primary-400'
-										/>
-										<h3 className='text-lg font-semibold text-text-primary'>
-											{step.title}
-										</h3>
+								{/* Timeline column */}
+								<div className='flex flex-col items-center shrink-0 pt-7 md:pt-9'>
+									{/* Dot */}
+									<div className='relative shrink-0'>
+										<div className='w-3 h-3 rounded-full bg-primary-500/40' />
+										<div className='absolute inset-0 w-3 h-3 rounded-full bg-primary-500/20 animate-[node-pulse_3s_ease-in-out_infinite]' style={{ animationDelay: `${index * 0.5}s` }} />
 									</div>
-									<p className='text-text-secondary leading-relaxed'>
-										{step.description}
-									</p>
+									{/* Connector line */}
+									{!isLast && (
+										<div className='w-px flex-1 mt-1 bg-gradient-to-b from-primary-500/20 to-primary-500/5' />
+									)}
+								</div>
+
+								{/* Card */}
+								<div className={`flex-1 ${isLast ? '' : 'pb-6'}`}>
+									<div className='rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 md:p-8 transition-[border-color,transform] duration-200 hover:border-primary-500/15 hover:-translate-y-0.5'>
+										<div className='flex gap-6 md:gap-8 items-start'>
+											{/* Number */}
+											<span
+												className='shrink-0 font-lora text-4xl md:text-5xl font-bold leading-none select-none text-primary-500/15'
+												aria-hidden='true'
+											>
+												{step.number}
+											</span>
+
+											{/* Content */}
+											<div className='pt-1'>
+												<div className='flex items-center gap-2.5 mb-2'>
+													<Icon
+														aria-hidden='true'
+														className='h-4.5 w-4.5 text-primary-400'
+													/>
+													<h3 className='text-lg font-semibold text-text-primary'>
+														{step.title}
+													</h3>
+												</div>
+												<p className='text-text-secondary leading-relaxed'>
+													{step.description}
+												</p>
+											</div>
+										</div>
+									</div>
 								</div>
 							</motion.div>
 						);

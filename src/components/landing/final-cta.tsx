@@ -15,7 +15,10 @@ export function FinalCta() {
 	const currentYear = new Date().getFullYear();
 	const shouldReduceMotion = useReducedMotion() ?? false;
 
-	const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+	const handleLinkClick = (
+		e: React.MouseEvent<HTMLAnchorElement>,
+		href: string
+	) => {
 		// Only handle anchor links, let regular links navigate normally
 		if (!href.startsWith('#')) return;
 
@@ -23,12 +26,14 @@ export function FinalCta() {
 		const targetId = href.replace('#', '');
 		const element = document.getElementById(targetId);
 		if (element) {
-			element.scrollIntoView({ behavior: shouldReduceMotion ? 'auto' : 'smooth' });
+			element.scrollIntoView({
+				behavior: shouldReduceMotion ? 'auto' : 'smooth',
+			});
 		}
 	};
 
 	return (
-		<footer className='relative bg-background'>
+		<footer className='relative bg-surface'>
 			{/* Subtle gradient accent at top */}
 			<div className='absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary-500/30 to-transparent' />
 

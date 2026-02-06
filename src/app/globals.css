@@ -97,21 +97,21 @@
 	   =========================== */
 
 	/* Backgrounds - Elevation system (lighter = closer) */
-	--color-base: var(--color-neutral-950);
-	--color-surface: var(--color-neutral-900);
-	--color-elevated: var(--color-neutral-800); /* Subtle blue tint */
-	--color-overlay: var(--color-neutral-700);
+	--color-base: oklch(0.11 0 0);
+	--color-surface: oklch(0.14 0 0);
+	--color-elevated: oklch(0.18 0 0);
+	--color-overlay: oklch(0.25 0 0);
 
 	/* Borders */
-	--color-border-subtle: var(--color-neutral-800);
-	--color-border-default: var(--color-neutral-700);
-	--color-border-strong: var(--color-neutral-600);
+	--color-border-subtle: oklch(0.20 0 0);
+	--color-border-default: oklch(0.28 0 0);
+	--color-border-strong: oklch(0.38 0 0);
 
 	/* Text Hierarchy */
 	--color-text-primary: var(--color-neutral-50);
 	--color-text-secondary: var(--color-neutral-400);
 	--color-text-tertiary: var(--color-neutral-500);
-	--color-text-disabled: var(--color-neutral-600);
+	--color-text-disabled: oklch(0.40 0 0);
 
 	/* Interactive States */
 	--color-interactive-primary: var(--color-primary-500);

@@ -125,7 +125,7 @@ export function FaqSection() {
 		<section
 			id='faq'
 			ref={ref}
-			className='relative py-32 px-4 sm:px-6 lg:px-8 bg-surface/50'
+			className='relative py-32 px-4 sm:px-6 lg:px-8'
 		>
 			<SectionDecoration variant='faq' />
 			<div className='relative z-10 max-w-3xl mx-auto'>

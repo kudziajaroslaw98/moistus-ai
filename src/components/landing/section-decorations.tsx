@@ -339,7 +339,7 @@ function FaqDecoration({ isInView, shouldReduceMotion }: DecorationProps) {
 				}
 				style={{
 					background:
-						'linear-gradient(180deg, rgba(9, 9, 11, 0.5), transparent)',
+						'linear-gradient(180deg, rgba(5, 5, 6, 0.5), transparent)',
 				}}
 			/>
 

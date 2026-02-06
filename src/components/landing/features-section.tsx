@@ -134,7 +134,7 @@ export function FeaturesSection() {
 	return (
 		<section
 			id='features'
-			className='relative py-32 px-4 sm:px-6 lg:px-8 bg-elevated/30'
+			className='relative py-32 px-4 sm:px-6 lg:px-8 bg-surface'
 		>
 			<SectionDecoration variant='features' />
 			<div className='relative z-10 max-w-7xl mx-auto space-y-24'>
