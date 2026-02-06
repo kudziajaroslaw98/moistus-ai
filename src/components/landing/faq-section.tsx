@@ -142,7 +142,7 @@ export function FaqSection() {
 					}
 					className='text-center mb-12'
 				>
-					<h2 className='text-3xl md:text-4xl font-bold text-text-primary mb-4'>
+					<h2 className='font-lora text-3xl md:text-4xl font-bold text-text-primary mb-4'>
 						Frequently Asked Questions
 					</h2>
 				</motion.div>

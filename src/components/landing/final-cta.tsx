@@ -34,7 +34,7 @@ export function FinalCta() {
 			<div className='max-w-5xl mx-auto px-4 sm:px-6 lg:px-8'>
 				{/* CTA Section */}
 				<div className='py-32 text-center'>
-					<h2 className='text-2xl sm:text-3xl font-bold text-text-primary mb-3'>
+					<h2 className='font-lora text-2xl sm:text-3xl font-bold text-text-primary mb-3'>
 						Ready to connect your ideas?
 					</h2>
 					<p className='text-base text-text-secondary mb-6'>

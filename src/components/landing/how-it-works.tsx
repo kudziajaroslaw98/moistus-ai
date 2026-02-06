@@ -54,7 +54,7 @@ export function HowItWorks() {
 					}
 					className='text-center mb-16'
 				>
-					<h2 className='text-3xl md:text-4xl font-bold text-text-primary mb-4'>
+					<h2 className='font-lora text-3xl md:text-4xl font-bold text-text-primary mb-4'>
 						How It Works
 					</h2>
 					<p className='text-lg text-text-secondary'>

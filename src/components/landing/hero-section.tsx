@@ -54,7 +54,7 @@ export function HeroSection() {
 							? { duration: 0 }
 							: { duration: 0.25, ease: EASE_OUT_QUART, delay: 0.1 }
 					}
-					className='text-4xl font-bold tracking-tight text-text-primary sm:text-5xl md:text-6xl'
+					className='font-lora text-4xl font-bold tracking-tighter text-text-primary sm:text-5xl md:text-7xl'
 				>
 					<span className='block'>
 						From <span className='text-brand-coral'>Scattered Notes</span>

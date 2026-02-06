@@ -83,7 +83,7 @@ function FeatureBlock({ feature, index }: { feature: Feature; index: number }) {
 						{feature.title}
 					</span>
 				</div>
-				<h3 className='text-2xl md:text-3xl font-bold text-text-primary mb-4'>
+				<h3 className='font-lora text-2xl md:text-3xl font-bold text-text-primary mb-4'>
 					{feature.headline}
 				</h3>
 				<p className='text-lg text-text-secondary leading-relaxed'>
