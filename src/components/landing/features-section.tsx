@@ -104,13 +104,16 @@ function FeatureBlock({ feature, index }: { feature: Feature; index: number }) {
 						? { duration: 0 }
 						: { duration: 0.3, ease: EASE_OUT_QUART, delay: 0.1 }
 				}
-				className={`${isEven ? '' : 'md:order-1'} md:direction-ltr`}
+				className={`${isEven ? 'md:-mr-8' : 'md:order-1 md:-ml-8'} md:direction-ltr`}
 			>
 				<div
-					className='rounded-xl border border-border-subtle bg-surface/50 backdrop-blur-sm overflow-hidden'
+					className='rounded-xl border border-border-subtle bg-surface/50 backdrop-blur-sm overflow-hidden transition-shadow duration-500'
 					style={{
 						background:
 							'linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)',
+						boxShadow: isInView
+							? '0 0 40px rgba(96, 165, 250, 0.08), 0 0 80px rgba(96, 165, 250, 0.04)'
+							: 'none',
 					}}
 				>
 					<img
@@ -134,7 +137,7 @@ export function FeaturesSection() {
 			className='relative py-32 px-4 sm:px-6 lg:px-8 bg-elevated/30'
 		>
 			<SectionDecoration variant='features' />
-			<div className='relative z-10 max-w-6xl mx-auto space-y-24'>
+			<div className='relative z-10 max-w-7xl mx-auto space-y-24'>
 				{features.map((feature, index) => (
 					<FeatureBlock key={feature.title} feature={feature} index={index} />
 				))}
