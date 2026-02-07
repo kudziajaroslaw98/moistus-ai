@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown, Sparkles } from 'lucide-react';
+import { ArrowRight, ChevronDown } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { HeroBackground } from './hero-background';
 
@@ -20,49 +20,27 @@ export function HeroSection() {
 			id='hero'
 			className='relative min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-16 bg-background'
 		>
-			{/* Hero-specific background with glass panels */}
 			<HeroBackground />
 
-			<div className='relative z-10 max-w-4xl mx-auto text-center'>
-				{/* Badge */}
+			<div className='relative w-full max-w-6xl mx-auto text-center'>
+				{/* Headline — screen blend composites text with shader beneath */}
 				<motion.div
 					initial={
-						shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
+						shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }
 					}
 					animate={{ opacity: 1, y: 0 }}
 					transition={
 						shouldReduceMotion
 							? { duration: 0 }
-							: { duration: 0.25, ease: EASE_OUT_QUART }
+							: { duration: 0.6, ease: EASE_OUT_QUART }
 					}
-					className='mb-6'
 				>
-					<span className='inline-flex items-center gap-2 rounded-full bg-primary-500/10 px-4 py-2 text-sm font-medium text-primary-400 ring-1 ring-inset ring-primary-500/20 backdrop-blur-sm'>
-						<Sparkles aria-hidden='true' className='h-4 w-4' />
-						AI-Powered Mind Mapping
-					</span>
+					<h1 className='font-lora text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-[1.1] tracking-tight text-white'>
+						From Scattered Notes
+						<br />
+						to Connected Ideas
+					</h1>
 				</motion.div>
-
-				{/* Headline */}
-				<motion.h1
-					initial={
-						shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
-					}
-					animate={{ opacity: 1, y: 0 }}
-					transition={
-						shouldReduceMotion
-							? { duration: 0 }
-							: { duration: 0.25, ease: EASE_OUT_QUART, delay: 0.1 }
-					}
-					className='text-4xl font-bold tracking-tight text-text-primary sm:text-5xl md:text-6xl'
-				>
-					<span className='block'>
-						From <span className='text-brand-coral'>Scattered Notes</span>
-					</span>
-					<span className='block'>
-						to <span className='text-primary-400'>Connected Ideas</span>
-					</span>
-				</motion.h1>
 
 				{/* Subheadline */}
 				<motion.p
@@ -73,13 +51,12 @@ export function HeroSection() {
 					transition={
 						shouldReduceMotion
 							? { duration: 0 }
-							: { duration: 0.25, ease: EASE_OUT_QUART, delay: 0.2 }
+							: { duration: 0.4, ease: EASE_OUT_QUART, delay: 0.2 }
 					}
-					className='mt-6 text-lg leading-relaxed text-text-secondary max-w-2xl mx-auto'
+					className='relative z-10 mt-8 text-base sm:text-lg leading-relaxed text-neutral-300 max-w-lg mx-auto'
 				>
-					The mind mapping tool for power users. AI-native suggestions,
-					real-time collaboration, and a keyboard-first editor that makes you
-					dangerously fast.
+					AI-native mind mapping for power users. Keyboard-first,
+					real-time, and dangerously fast.
 				</motion.p>
 
 				{/* CTAs */}
@@ -91,21 +68,25 @@ export function HeroSection() {
 					transition={
 						shouldReduceMotion
 							? { duration: 0 }
-							: { duration: 0.25, ease: EASE_OUT_QUART, delay: 0.3 }
+							: { duration: 0.4, ease: EASE_OUT_QUART, delay: 0.3 }
 					}
-					className='mt-10 flex flex-col sm:flex-row items-center justify-center gap-4'
+					className='relative z-10 mt-10 flex flex-col sm:flex-row items-center justify-center gap-4'
 				>
 					<div className='group'>
 						<a
 							href='/dashboard'
-							className='inline-flex items-center justify-center px-8 py-3 text-base font-semibold rounded-md bg-primary-600 group-hover:bg-primary-500 text-white shadow-[0_4px_14px_rgba(96,165,250,0.25)] translate-y-0 transition-all duration-200 group-hover:shadow-[0_8px_30px_rgba(96,165,250,0.4)] group-hover:-translate-y-0.5'
+							className='inline-flex items-center gap-2 justify-center px-8 py-3.5 text-base font-semibold rounded-lg bg-white text-neutral-900 shadow-[0_0_30px_rgba(255,255,255,0.1)] translate-y-0 transition-all duration-200 group-hover:shadow-[0_0_50px_rgba(255,255,255,0.2)] group-hover:-translate-y-0.5'
 						>
 							Start Mapping
+							<ArrowRight
+								aria-hidden='true'
+								className='h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5'
+							/>
 						</a>
 					</div>
 					<button
 						onClick={scrollToFeatures}
-						className='inline-flex items-center justify-center px-8 py-3 text-base font-medium rounded-md bg-transparent text-text-secondary hover:text-text-primary hover:bg-white/5 transition-colors duration-200'
+						className='inline-flex items-center justify-center px-4 py-3.5 text-base font-medium text-neutral-300 hover:text-white transition-colors duration-200'
 					>
 						See How It Works
 					</button>
@@ -119,7 +100,7 @@ export function HeroSection() {
 				transition={
 					shouldReduceMotion
 						? { duration: 0 }
-						: { duration: 0.25, ease: EASE_OUT_QUART, delay: 0.5 }
+						: { duration: 0.25, ease: EASE_OUT_QUART, delay: 0.6 }
 				}
 				className='absolute bottom-8 left-1/2 -translate-x-1/2 z-10'
 			>

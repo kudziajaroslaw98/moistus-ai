@@ -8,6 +8,7 @@ import {
 	useReducedMotion,
 } from 'motion/react';
 import { useRef, useState } from 'react';
+import { GrainOverlay } from './grain-overlay';
 import { SectionDecoration } from './section-decorations';
 
 const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
@@ -122,13 +123,10 @@ export function FaqSection() {
 	const shouldReduceMotion = useReducedMotion() ?? false;
 
 	return (
-		<section
-			id='faq'
-			ref={ref}
-			className='relative py-32 px-4 sm:px-6 lg:px-8 bg-surface/50'
-		>
+		<section id='faq' ref={ref} className='relative py-32 px-4 sm:px-6 lg:px-8'>
+			<GrainOverlay />
 			<SectionDecoration variant='faq' />
-			<div className='relative z-10 max-w-2xl mx-auto'>
+			<div className='relative z-10 max-w-3xl mx-auto'>
 				{/* Header */}
 				<motion.div
 					initial={
@@ -142,19 +140,13 @@ export function FaqSection() {
 					}
 					className='text-center mb-12'
 				>
-					<h2 className='text-3xl md:text-4xl font-bold text-text-primary mb-4'>
+					<h2 className='font-lora text-3xl md:text-4xl font-bold text-text-primary mb-4'>
 						Frequently Asked Questions
 					</h2>
 				</motion.div>
 
 				{/* FAQ items */}
-				<div
-					className='rounded-xl border border-border-subtle bg-surface/50 backdrop-blur-sm px-6'
-					style={{
-						background:
-							'linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)',
-					}}
-				>
+				<div className='rounded-xl border border-border-subtle bg-surface backdrop-blur-sm px-6'>
 					{faqs.map((faq, index) => (
 						<FaqItem
 							key={faq.question}

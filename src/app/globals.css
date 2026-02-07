@@ -97,21 +97,21 @@
 	   =========================== */
 
 	/* Backgrounds - Elevation system (lighter = closer) */
-	--color-base: var(--color-neutral-950);
-	--color-surface: var(--color-neutral-900);
-	--color-elevated: var(--color-neutral-800); /* Subtle blue tint */
-	--color-overlay: var(--color-neutral-700);
+	--color-base: oklch(0.11 0 0);
+	--color-surface: oklch(0.14 0 0);
+	--color-elevated: oklch(0.18 0 0);
+	--color-overlay: oklch(0.25 0 0);
 
 	/* Borders */
-	--color-border-subtle: var(--color-neutral-800);
-	--color-border-default: var(--color-neutral-700);
-	--color-border-strong: var(--color-neutral-600);
+	--color-border-subtle: oklch(0.20 0 0);
+	--color-border-default: oklch(0.28 0 0);
+	--color-border-strong: oklch(0.38 0 0);
 
 	/* Text Hierarchy */
 	--color-text-primary: var(--color-neutral-50);
 	--color-text-secondary: var(--color-neutral-400);
 	--color-text-tertiary: var(--color-neutral-500);
-	--color-text-disabled: var(--color-neutral-600);
+	--color-text-disabled: oklch(0.40 0 0);
 
 	/* Interactive States */
 	--color-interactive-primary: var(--color-primary-500);
@@ -196,6 +196,71 @@
 
 .animate-dash-flow {
 	animation: dash-flow 2s linear infinite;
+}
+
+/* Hero shimmer text — animated gradient that feels alive */
+@keyframes hero-shimmer-shift {
+	0% { background-position: 0% 50%; }
+	50% { background-position: 100% 50%; }
+	100% { background-position: 0% 50%; }
+}
+
+.hero-shimmer {
+	background: linear-gradient(
+		90deg,
+		#e0856a 0%,
+		#f4a88a 25%,
+		#ffffff 50%,
+		#f4a88a 75%,
+		#e0856a 100%
+	);
+	background-size: 200% 100%;
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+	animation: hero-shimmer-shift 6s ease-in-out infinite;
+}
+
+.hero-shimmer-blue {
+	background: linear-gradient(
+		90deg,
+		#5b80e8 0%,
+		#8aadff 25%,
+		#ffffff 50%,
+		#8aadff 75%,
+		#5b80e8 100%
+	);
+	background-size: 200% 100%;
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+	animation: hero-shimmer-shift 6s ease-in-out infinite;
+	animation-delay: -3s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.hero-shimmer,
+	.hero-shimmer-blue {
+		animation: none !important;
+	}
+}
+
+/* Node network animations (hero background) */
+@keyframes node-float {
+	0%, 100% { transform: translateY(0); }
+	50% { transform: translateY(-8px); }
+}
+
+@keyframes node-pulse {
+	0%, 100% { opacity: 0.08; }
+	50% { opacity: 0.15; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.animate-node-float,
+	.animate-node-pulse {
+		animation: none !important;
+	}
 }
 
 /* Fade in animation */

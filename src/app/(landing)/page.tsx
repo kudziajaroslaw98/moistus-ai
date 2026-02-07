@@ -65,7 +65,10 @@ export default function Home() {
 			<ScrollProgress />
 			<LandingNav />
 			<SectionDots />
-			<main id='main-content' className='min-h-screen h-auto flex flex-col bg-background'>
+			<main
+				id='main-content'
+				className='min-h-screen h-auto flex flex-col bg-background'
+			>
 				<HeroSection />
 				<ProblemSolution />
 				<FeaturesSection />
