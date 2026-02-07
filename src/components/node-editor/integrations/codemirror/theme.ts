@@ -34,9 +34,6 @@ export const nodeEditorTheme = EditorView.theme(
 			wordWrap: 'break-word',
 			overflowWrap: 'break-word',
 			whiteSpace: 'pre-wrap',
-			'overflow-y': 'auto',
-			'max-height': '350px',
-			height: '100%',
 		},
 		'.cm-focused .cm-content': {
 			outline: 'none',
@@ -54,7 +51,8 @@ export const nodeEditorTheme = EditorView.theme(
 		'.cm-scroller': {
 			fontFamily: 'inherit',
 			lineHeight: '1.4',
-			overflow: 'hidden',
+			'overflow-y': 'auto',
+			'max-height': '350px',
 		},
 
 		// ========================================
