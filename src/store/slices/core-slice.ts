@@ -41,7 +41,7 @@ export const createCoreDataSlice: StateCreator<
 	setReactFlowInstance: (reactFlowInstance) => set({ reactFlowInstance }),
 	setMapId: (mapId) => set({ mapId }),
 	setCurrentUser: (currentUser) => {
-		set({ currentUser });
+		set({ currentUser, ...(currentUser ? { isLoggingOut: false } : {}) });
 		// Load user profile from database when current user changes
 		if (currentUser) {
 			void get()
@@ -87,7 +87,7 @@ export const createCoreDataSlice: StateCreator<
 		const { data } = await get().supabase.auth.getUser();
 		const currentUser = data?.user;
 
-		set({ currentUser });
+		set({ currentUser, ...(currentUser ? { isLoggingOut: false } : {}) });
 
 		// Load user profile from database
 		if (currentUser) {

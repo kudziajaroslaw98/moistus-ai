@@ -5,12 +5,14 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-02-07 - Node editor cursor fix -->
+<!-- Updated: 2026-02-07 - Logout toast spam fix v2 -->
 ## [2026-02-07]
 
 ### Fixed
 - **node-editor**: Fix cursor positioning when clicking on scrolled content in CodeMirror editor
   - Why: Scroll container was on `.cm-content` instead of `.cm-scroller`, causing `posAtCoords()` to ignore scroll offset
+- **auth**: Fix toast spam "Profile Error: User not authenticated" on logout (v2)
+  - Why: `resetStore()` wiped `isLoggingOut` flag before async navigation completed; re-assert flag after reset and clear on next login
 
 ---
 

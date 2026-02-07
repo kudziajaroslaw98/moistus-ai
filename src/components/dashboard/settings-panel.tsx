@@ -79,6 +79,7 @@ export function SettingsPanel({
 		updateUserProfile,
 		clearProfileError,
 		unsubscribeFromProfileChanges,
+		isLoggingOut,
 		currentSubscription,
 		availablePlans,
 		isLoadingSubscription,
@@ -98,6 +99,7 @@ export function SettingsPanel({
 			updateUserProfile: state.updateUserProfile,
 			clearProfileError: state.clearProfileError,
 			unsubscribeFromProfileChanges: state.unsubscribeFromProfileChanges,
+			isLoggingOut: state.isLoggingOut,
 			currentSubscription: state.currentSubscription,
 			availablePlans: state.availablePlans,
 			isLoadingSubscription: state.isLoadingSubscription,
@@ -239,15 +241,15 @@ export function SettingsPanel({
 		}
 	}, [userProfile]);
 
-	// Show profile errors as toasts
+	// Show profile errors as toasts (suppress during logout to prevent spam)
 	useEffect(() => {
-		if (profileError) {
+		if (profileError && !isLoggingOut) {
 			toast.error('Profile Error', {
 				description: profileError,
 			});
 			clearProfileError();
 		}
-	}, [profileError, clearProfileError]);
+	}, [profileError, clearProfileError, isLoggingOut]);
 
 	// Cleanup subscription on unmount
 	useEffect(() => {

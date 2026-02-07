@@ -14,23 +14,25 @@ export function DashboardHeader({
 	className = '',
 	onOpenSettings,
 }: DashboardHeaderProps) {
-	const { userProfile, isLoadingProfile, profileError, loadUserProfile } =
+	const { userProfile, isLoadingProfile, profileError, loadUserProfile, isLoggingOut } =
 		useAppStore(
 			useShallow((state) => ({
 				userProfile: state.userProfile,
 				isLoadingProfile: state.isLoadingProfile,
 				profileError: state.profileError,
 				loadUserProfile: state.loadUserProfile,
+				isLoggingOut: state.isLoggingOut,
 			}))
 		);
 
 	// Load user profile on mount if not already loaded
 	// Don't retry if there's already an error to prevent infinite loops
+	// Don't load during logout to prevent race condition causing toast spam
 	useEffect(() => {
-		if (!userProfile && !isLoadingProfile && !profileError) {
+		if (!userProfile && !isLoadingProfile && !profileError && !isLoggingOut) {
 			loadUserProfile();
 		}
-	}, [userProfile, isLoadingProfile, profileError, loadUserProfile]);
+	}, [userProfile, isLoadingProfile, profileError, loadUserProfile, isLoggingOut]);
 
 	// Loading state
 	if (isLoadingProfile) {
