@@ -123,11 +123,7 @@ export function FaqSection() {
 	const shouldReduceMotion = useReducedMotion() ?? false;
 
 	return (
-		<section
-			id='faq'
-			ref={ref}
-			className='relative py-32 px-4 sm:px-6 lg:px-8'
-		>
+		<section id='faq' ref={ref} className='relative py-32 px-4 sm:px-6 lg:px-8'>
 			<GrainOverlay />
 			<SectionDecoration variant='faq' />
 			<div className='relative z-10 max-w-3xl mx-auto'>
@@ -150,13 +146,7 @@ export function FaqSection() {
 				</motion.div>
 
 				{/* FAQ items */}
-				<div
-					className='rounded-xl border border-border-subtle bg-surface/50 backdrop-blur-sm px-6'
-					style={{
-						background:
-							'linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)',
-					}}
-				>
+				<div className='rounded-xl border border-border-subtle bg-surface backdrop-blur-sm px-6'>
 					{faqs.map((faq, index) => (
 						<FaqItem
 							key={faq.question}

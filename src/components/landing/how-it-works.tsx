@@ -97,7 +97,7 @@ export function HowItWorks() {
 									{/* Dot */}
 									<div className='relative shrink-0'>
 										<div className='w-3 h-3 rounded-full bg-primary-500/40' />
-										<div className='absolute inset-0 w-3 h-3 rounded-full bg-primary-500/20 animate-[node-pulse_3s_ease-in-out_infinite]' style={{ animationDelay: `${index * 0.5}s` }} />
+										<div className={`absolute inset-0 w-3 h-3 rounded-full bg-primary-500/20${shouldReduceMotion ? '' : ' animate-[node-pulse_3s_ease-in-out_infinite]'}`} style={shouldReduceMotion ? undefined : { animationDelay: `${index * 0.5}s` }} />
 									</div>
 									{/* Connector line */}
 									{!isLast && (

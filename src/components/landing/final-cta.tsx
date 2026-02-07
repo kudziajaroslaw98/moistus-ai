@@ -49,7 +49,7 @@ export function FinalCta() {
 					<div className='group inline-block'>
 						<a
 							href='/dashboard'
-							className='inline-flex items-center gap-2 justify-center px-8 py-3.5 text-base font-semibold rounded-lg bg-white text-neutral-900 shadow-[0_0_30px_rgba(255,255,255,0.1)] translate-y-0 transition-all duration-200 group-hover:shadow-[0_0_50px_rgba(255,255,255,0.2)] group-hover:-translate-y-0.5'
+							className='inline-flex items-center gap-2 justify-center px-8 py-3.5 text-base font-semibold rounded-lg bg-white text-neutral-900 shadow-[0_0_30px_rgba(255,255,255,0.1)] translate-y-0 transition-all duration-200 group-hover:shadow-[0_0_50px_rgba(255,255,255,0.2)] group-hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background'
 						>
 							Start Mapping
 							<ArrowRight
@@ -72,7 +72,7 @@ export function FinalCta() {
 								key={link.label}
 								href={link.href}
 								onClick={(e) => handleLinkClick(e, link.href)}
-								className='text-sm text-text-tertiary hover:text-text-primary transition-colors duration-200'
+								className='text-sm text-text-tertiary hover:text-text-primary transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm'
 							>
 								{link.label}
 							</a>

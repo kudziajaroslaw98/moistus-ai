@@ -95,7 +95,7 @@ export function LandingNav() {
 						<div className='hidden sm:block group'>
 							<a
 								href='/dashboard'
-								className='inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-lg bg-white text-neutral-900 shadow-[0_0_20px_rgba(255,255,255,0.1)] translate-y-0 transition-all duration-200 group-hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] group-hover:-translate-y-0.5'
+								className='inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-lg bg-white text-neutral-900 shadow-[0_0_20px_rgba(255,255,255,0.1)] translate-y-0 transition-all duration-200 group-hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] group-hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background'
 							>
 								Start Mapping
 							</a>
@@ -138,7 +138,7 @@ export function LandingNav() {
 									<a
 										href='/dashboard'
 										onClick={() => setMobileMenuOpen(false)}
-										className='w-full inline-flex items-center justify-center px-4 py-3 text-sm font-semibold rounded-lg bg-white text-neutral-900 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] transition-all duration-200'
+										className='w-full inline-flex items-center justify-center px-4 py-3 text-sm font-semibold rounded-lg bg-white text-neutral-900 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background'
 									>
 										Start Mapping
 									</a>
