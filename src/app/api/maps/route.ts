@@ -129,20 +129,29 @@ export const POST = withApiValidation(
 	requestBodySchema,
 	async (req, validatedBody, supabase, user) => {
 		try {
-			const { title, description, is_template, template_category, template_id } =
-				validatedBody;
+			const { title, description, template_id } = validatedBody;
 
-			// Check map creation limit
-			const { count: currentMapsCount } = await supabase
+			// Check map creation limit (exclude templates from count, matching GET handler)
+			const { count: currentMapsCount, error: countError } = await supabase
 				.from('mind_maps')
 				.select('*', { count: 'exact', head: true })
-				.eq('user_id', user.id);
+				.eq('user_id', user.id)
+				.eq('is_template', false);
+
+			if (countError) {
+				console.error('Error counting user maps:', countError);
+				return respondError(
+					'Error checking map limit.',
+					500,
+					countError.message
+				);
+			}
 
 			const { allowed, limit, remaining } = await checkUsageLimit(
 				user,
 				supabase,
 				'mindMaps',
-				currentMapsCount || 0
+				currentMapsCount ?? 0
 			);
 
 			if (!allowed) {
@@ -162,6 +171,7 @@ export const POST = withApiValidation(
 			const newMapId = generateUuid();
 
 			// Insert the new mind map into the database
+			// is_template is always false — templates are system-managed, not user-created
 			const { data: newMap, error: insertError } = await supabase
 				.from('mind_maps')
 				.insert([
@@ -170,8 +180,8 @@ export const POST = withApiValidation(
 						user_id: user.id,
 						title: title,
 						description: description || null,
-						is_template: is_template || false,
-						template_category: template_category || null,
+						is_template: false,
+						template_category: null,
 					},
 				])
 				.select('*')
