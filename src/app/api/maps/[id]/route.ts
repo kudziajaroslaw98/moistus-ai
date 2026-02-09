@@ -49,10 +49,8 @@ export const PUT = withApiValidation<
 		if (validatedBody.tags !== undefined) updateData.tags = validatedBody.tags;
 		if (validatedBody.thumbnailUrl !== undefined)
 			updateData.thumbnail_url = validatedBody.thumbnailUrl;
-		if (validatedBody.is_template !== undefined)
-			updateData.is_template = validatedBody.is_template;
-		if (validatedBody.template_category !== undefined)
-			updateData.template_category = validatedBody.template_category;
+		// is_template and template_category are system-managed — ignore user input
+		// Templates are created/managed through admin flows, not user API calls
 
 		// Update the map
 		const { data: updatedMap, error: updateError } = await supabase
