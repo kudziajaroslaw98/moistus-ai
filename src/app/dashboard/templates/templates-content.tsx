@@ -21,6 +21,7 @@ import {
 	Zap,
 	type LucideIcon,
 } from 'lucide-react';
+import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { memo, useCallback, useMemo, useState } from 'react';
@@ -105,6 +106,7 @@ interface TemplateCardProps {
 	onUse: (templateId: string) => void;
 	onView: (templateDbId: string) => void;
 	isCreating: boolean;
+	isAtMapLimit: boolean;
 	viewMode: 'grid' | 'list';
 	index: number;
 }
@@ -114,6 +116,7 @@ const TemplateCard = memo(function TemplateCard({
 	onUse,
 	onView,
 	isCreating,
+	isAtMapLimit,
 	viewMode,
 	index,
 }: TemplateCardProps) {
@@ -186,11 +189,11 @@ const TemplateCard = memo(function TemplateCard({
 				<Button
 					size='sm'
 					onClick={handleUseClick}
-					disabled={isCreating}
+					disabled={isCreating || isAtMapLimit}
 					className='opacity-0 group-hover:opacity-100 transition-opacity'
 				>
 					<Plus className='w-4 h-4 mr-1' />
-					Use
+					{isAtMapLimit ? 'Limit reached' : 'Use'}
 				</Button>
 			</motion.div>
 		);
@@ -255,7 +258,7 @@ const TemplateCard = memo(function TemplateCard({
 						size='sm'
 						variant='ghost'
 						onClick={handleUseClick}
-						disabled={isCreating}
+						disabled={isCreating || isAtMapLimit}
 						className={cn(
 							'h-7 px-2 text-xs',
 							'opacity-0 group-hover:opacity-100',
@@ -263,7 +266,7 @@ const TemplateCard = memo(function TemplateCard({
 						)}
 					>
 						<Plus className='w-3.5 h-3.5 mr-1' />
-						Use
+						{isAtMapLimit ? 'Limit reached' : 'Use'}
 					</Button>
 				</div>
 			</div>
@@ -341,6 +344,10 @@ export function TemplatesContent() {
 	const [selectedCategory, setSelectedCategory] = useState<TemplateCategory | 'all'>('all');
 	const [isCreating, setIsCreating] = useState(false);
 
+	// Subscription limits for map creation
+	const { isAtLimit, limits } = useSubscriptionLimits();
+	const isAtMapLimit = isAtLimit('mindMaps');
+
 	// Fetch templates
 	const { data, error, isLoading } = useSWR<{ data: { templates: TemplateFromAPI[] } }>(
 		'/api/templates',
@@ -387,6 +394,20 @@ export function TemplatesContent() {
 			const template = templates.find((t) => t.templateId === templateId);
 			if (!template) return;
 
+			if (isAtMapLimit) {
+				toast.error(
+					`Mind map limit reached (${limits.mindMaps} maps). Upgrade to Pro for unlimited maps.`,
+					{
+						action: {
+							label: 'Upgrade',
+							onClick: () => router.push('/dashboard?settings=billing'),
+						},
+						duration: 8000,
+					}
+				);
+				return;
+			}
+
 			setIsCreating(true);
 			try {
 				const response = await fetch('/api/maps', {
@@ -402,6 +423,19 @@ export function TemplatesContent() {
 
 				// Handle HTTP errors
 				if (!response.ok) {
+					if (response.status === 402) {
+						toast.error(
+							responseData?.error || 'Mind map limit reached. Upgrade to Pro for unlimited maps.',
+							{
+								action: {
+									label: 'Upgrade',
+									onClick: () => router.push('/dashboard?settings=billing'),
+								},
+								duration: 8000,
+							}
+						);
+						return;
+					}
 					const errorMessage =
 						responseData?.error || responseData?.message || 'Failed to create map';
 					toast.error(errorMessage);
@@ -425,7 +459,7 @@ export function TemplatesContent() {
 				setIsCreating(false);
 			}
 		},
-		[templates, router]
+		[templates, router, isAtMapLimit, limits.mindMaps]
 	);
 
 	return (
@@ -506,6 +540,7 @@ export function TemplatesContent() {
 											onUse={handleUseTemplate}
 											onView={handleViewTemplate}
 											isCreating={isCreating}
+											isAtMapLimit={isAtMapLimit}
 											viewMode={viewMode}
 											index={index}
 										/>

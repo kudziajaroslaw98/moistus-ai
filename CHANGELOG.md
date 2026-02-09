@@ -5,6 +5,16 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+<!-- Updated: 2026-02-09 - Fix templates bypassing mind map limit -->
+## [2026-02-09]
+
+### Fixed
+- **templates/limit**: Templates page now enforces mind map limit — "Use" button disabled at limit with upgrade toast
+  - Why: Free users could bypass the 3-map limit by creating maps from templates
+- **api/maps**: Server-side map count query now excludes `is_template` rows for accurate limit enforcement
+
+---
+
 <!-- Updated: 2026-02-07 - Logout toast spam fix v2 -->
 ## [2026-02-07]
 
@@ -16,6 +26,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+<!-- Updated: 2026-02-06 - Landing page redesign -->
 ## [2026-02-06]
 
 ### Changed
