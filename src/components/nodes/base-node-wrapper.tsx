@@ -237,7 +237,6 @@ const BaseNodeWrapperComponent = ({
 								selected={isSelected}
 								onMetadataClick={(type, value) => {
 									// Handle metadata interactions
-									console.log(`Metadata clicked: ${type} = ${value}`);
 									// You can add custom handlers here, such as:
 									// - Filter by tag
 									// - Show all nodes assigned to a user

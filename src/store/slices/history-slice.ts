@@ -85,7 +85,6 @@ export const createHistorySlice: StateCreator<
 	subscribeToHistoryCurrent: async (mapId: string) => {
 		// Guard against concurrent subscription attempts (prevents infinite loop)
 		if (get()._historySubscriptionPending) {
-			console.log('[broadcast] History subscription already pending, skipping');
 			return;
 		}
 		set({ _historySubscriptionPending: true });
@@ -120,8 +119,6 @@ export const createHistorySlice: StateCreator<
 				// Ignore our own broadcasts
 				if (payload.userId === currentUser?.id) return;
 
-				console.log('[broadcast] History reverted by another user:', payload.historyEntryId);
-
 				// Fetch current map state via aggregated view and apply it
 				// This ensures the canvas reflects the new state after another user reverts
 				if (mapId) {
@@ -142,8 +139,6 @@ export const createHistorySlice: StateCreator<
 
 							setNodes(transformed.reactFlowNodes);
 							setEdges(transformed.reactFlowEdges);
-
-							console.log('[broadcast] Applied reverted state from another user');
 						}
 					} catch (e) {
 						console.error('[broadcast] Failed to sync after history revert:', e);
@@ -167,7 +162,6 @@ export const createHistorySlice: StateCreator<
 				},
 			});
 
-			console.log('[broadcast] Subscribed to history events for map:', mapId);
 		} catch (e) {
 			console.error('[broadcast] Failed to subscribe to history events:', e);
 		} finally {
@@ -184,7 +178,6 @@ export const createHistorySlice: StateCreator<
 					await (_historyCurrentSubscription as any).unsubscribe();
 				}
 				set({ _historyCurrentSubscription: null });
-				console.log('[broadcast] Unsubscribed from history events');
 			} catch (e) {
 				console.error('[broadcast] Failed to unsubscribe from history events:', e);
 			}

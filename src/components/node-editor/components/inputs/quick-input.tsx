@@ -122,53 +122,19 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 	// Initialize QuickInput state when component mounts or mode changes
 	useEffect(() => {
-		console.log(
-			'🔧 QuickInput useEffect initialization:',
-			JSON.stringify({
-				mode,
-				hasExistingNode: !!existingNode,
-				existingNodeId: existingNode?.id,
-				initialNodeType,
-				currentNodeType,
-			})
-		);
-
 		if (mode === 'edit' && existingNode) {
 			// Edit mode: initialize with existing node content (only once)
-			console.log('✅ Edit mode detected, calling initializeQuickInput');
 			const nodeType = initialNodeType || 'defaultNode';
 			const initialContent = transformNodeToQuickInputString(
 				existingNode,
 				nodeType
 			);
-			console.log(
-				'📝 Initial content for edit mode:',
-				JSON.stringify(initialContent)
-			);
 			initializeQuickInput(initialContent, nodeType);
 		} else if (mode === 'create') {
 			// Create mode: only set initial node type if none exists
 			// Don't override user-selected node types from $nodeType switching
-			console.log(
-				'🔧 QuickInput create mode initialization:',
-				JSON.stringify({
-					currentNodeType,
-					initialNodeType,
-					shouldSetNodeType: !currentNodeType,
-				})
-			);
-
 			if (!currentNodeType && initialNodeType) {
-				console.log(
-					'✅ Setting node type to:',
-					JSON.stringify(initialNodeType)
-				);
 				setCurrentNodeType(initialNodeType);
-			} else {
-				console.log(
-					'⚠️ Node type already set, not overriding:',
-					JSON.stringify(currentNodeType)
-				);
 			}
 			// Don't reset value in create mode to preserve user input across remounts
 		}
@@ -214,8 +180,6 @@ export const QuickInput: FC<QuickInputProps> = ({
 				processed.nodeType &&
 				processed.nodeType !== currentNodeType
 			) {
-				console.log('Legacy node type switch detected:', processed.nodeType);
-
 				// Update node type and clean text
 				setCurrentNodeType(processed.nodeType as AvailableNodeTypes);
 				setValue(processed.processedText);
@@ -373,8 +337,6 @@ export const QuickInput: FC<QuickInputProps> = ({
 	const handleNodeTypeChange = useCallback(
 		(nodeType: AvailableNodeTypes) => {
 			if (nodeType !== currentNodeType) {
-				console.log('CodeMirror node type change:', nodeType);
-
 				setCurrentNodeType(nodeType);
 
 				// Update lastProcessedText to prevent legacy processing from interfering

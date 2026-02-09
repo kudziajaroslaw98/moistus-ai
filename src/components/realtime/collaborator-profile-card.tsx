@@ -19,7 +19,7 @@ import {
 	User2,
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 interface CollaboratorProfileCardProps {
 	user: RealtimeUser;
@@ -265,20 +265,6 @@ export function CollaboratorProfileCard({
 
 	const activityState = user.activityState || 'idle';
 	const isOwner = mapOwnerId ? user.id === mapOwnerId : false;
-
-	// Debug logging (only when data changes)
-	useEffect(() => {
-		if (!isLoading && (profile || error)) {
-			console.log('[ProfileCard] Data loaded:', {
-				userId: user.id,
-				userName: user.name,
-				profileFound: !!profile,
-				profileName: profile?.full_name || profile?.display_name,
-				hasBio: !!profile?.bio,
-				error: error?.message,
-			});
-		}
-	}, [isLoading, profile, error, user.id, user.name]);
 
 	if (isLoading) {
 		return <ProfileSkeleton />;

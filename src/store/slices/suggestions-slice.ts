@@ -862,7 +862,6 @@ export const createSuggestionsSlice: StateCreator<
 		// Check throttling (except for manual triggers)
 		const isSuggestionAPI = api.includes('/suggestions') || api.includes('/suggest-');
 		if (isSuggestionAPI && !canTriggerSuggestion()) {
-			console.log('Suggestion trigger throttled - too soon since last trigger');
 			return;
 		}
 

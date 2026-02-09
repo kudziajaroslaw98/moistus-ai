@@ -125,7 +125,6 @@ const CommentNodeComponent = (props: CommentNodeProps) => {
 			// This will be handled by React Flow's built-in navigation
 			// For now, we'll just log it - the actual implementation
 			// would use reactFlowInstance.fitView with the target node
-			console.log('Navigate to comment:', targetId);
 		}
 	};
 

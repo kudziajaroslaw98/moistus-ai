@@ -118,8 +118,6 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (
 
 			if (exportFormat === 'png') {
 				const result = await exportToPng(exportOptions);
-
-				console.log(result);
 				const filename = generateExportFilename(mapTitle, 'png');
 				downloadFile(result.blob, filename);
 			} else if (exportFormat === 'svg') {

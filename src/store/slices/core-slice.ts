@@ -328,14 +328,12 @@ export const createCoreDataSlice: StateCreator<
 
 	subscribeToRealtimeUpdates: async (mapId: string) => {
 		try {
-			console.log('Starting real-time subscriptions for map:', mapId);
 			await Promise.all([
 				get().subscribeToNodes(mapId),
 				get().subscribeToEdges(mapId),
 				get().subscribeToCommentUpdates(mapId),
 				get().subscribeToHistoryCurrent(mapId),
 			]);
-			console.log('Real-time subscriptions started successfully');
 		} catch (error) {
 			console.error('Failed to start real-time subscriptions:', error);
 		}
@@ -343,7 +341,6 @@ export const createCoreDataSlice: StateCreator<
 
 	unsubscribeFromRealtimeUpdates: async () => {
 		try {
-			console.log('Stopping real-time subscriptions');
 			await Promise.all([
 				get().unsubscribeFromNodes(),
 				get().unsubscribeFromEdges(),
@@ -352,7 +349,6 @@ export const createCoreDataSlice: StateCreator<
 			]);
 			// Also unsubscribe from access revocation
 			get().unsubscribeFromAccessRevocation();
-			console.log('Real-time subscriptions stopped successfully');
 		} catch (error) {
 			console.error('Failed to stop real-time subscriptions:', error);
 		}

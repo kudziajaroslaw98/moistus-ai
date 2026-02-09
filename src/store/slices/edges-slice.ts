@@ -71,7 +71,6 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 		};
 
 		set({ edges: [...edges, newEdge] });
-		console.log('[broadcast] Edge created:', payload.id);
 	};
 
 	// Handle broadcast edge update events
@@ -109,7 +108,6 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 		});
 
 		set({ edges: updatedEdges });
-		console.log('[broadcast] Edge updated:', payload.id);
 	};
 
 	// Handle broadcast edge delete events
@@ -124,7 +122,6 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 
 		const filteredEdges = edges.filter((edge) => edge.id !== payload.id);
 		set({ edges: filteredEdges });
-		console.log('[broadcast] Edge deleted:', payload.id);
 	};
 
 	return {
@@ -640,7 +637,6 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 		subscribeToEdges: async (mapId: string) => {
 			// Guard against concurrent subscription attempts
 			if (get()._edgesSubscriptionPending) {
-				console.log('[broadcast] Edge subscription already pending, skipping');
 				return;
 			}
 			set({ _edgesSubscriptionPending: true });
@@ -671,8 +667,6 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 						typeof get
 					>['_edgesSubscription'],
 				});
-
-				console.log('[broadcast] Subscribed to edge events for map:', mapId);
 			} catch (error) {
 				console.error('[broadcast] Failed to subscribe to edge events:', error);
 			} finally {
@@ -690,7 +684,6 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 						await (_edgesSubscription as any).unsubscribe();
 					}
 					set({ _edgesSubscription: null });
-					console.log('[broadcast] Unsubscribed from edge events');
 				} catch (error) {
 					console.error('[broadcast] Error unsubscribing from edge events:', error);
 				}

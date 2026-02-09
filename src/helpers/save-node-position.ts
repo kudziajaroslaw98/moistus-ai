@@ -33,5 +33,4 @@ export async function saveNodePosition(
 		throw error;
 	}
 
-	console.log(`Node position saved successfully for node ${nodeId}`);
 }

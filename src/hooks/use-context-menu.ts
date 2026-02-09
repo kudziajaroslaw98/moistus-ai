@@ -208,7 +208,6 @@ export function useContextMenu(): UseContextMenuResult {
 						}
 
 						// Note: Real-time events will handle adding to state arrays automatically
-						console.log('Comment node created successfully:', commentId);
 					} catch (error) {
 						console.error('Failed to create comment:', error);
 					}

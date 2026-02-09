@@ -105,14 +105,6 @@ export const useRealtimeCursors = ({
 						x: clientX,
 						y: clientY,
 					});
-
-					if (debug) {
-						console.log('Cursor transform:', {
-							viewport: { x: clientX, y: clientY },
-							pane: position,
-							zoom: reactFlowInstance.getViewport().zoom,
-						});
-					}
 				} catch (error) {
 					// Fallback to viewport coordinates if transformation fails
 					console.warn('Failed to transform cursor coordinates:', error);
@@ -129,10 +121,6 @@ export const useRealtimeCursors = ({
 				color: color,
 				timestamp: new Date().getTime(),
 			};
-
-			if (debug) {
-				console.log('Sending cursor:', payload);
-			}
 
 			// Send cursor position
 			if (channelRef.current && payload.user.name && payload.user.id) {
@@ -163,19 +151,11 @@ export const useRealtimeCursors = ({
 				}
 				channelRef.current = channel;
 
-				if (debug) {
-					console.log('Setting up private cursor channel:', roomName);
-				}
-
 				channel
 					.on(
 						'broadcast',
 						{ event: EVENT_NAME },
 						(data: { payload: CursorEventPayload }) => {
-							if (debug) {
-								console.log('Raw cursor data received:', data);
-							}
-
 							// Validate received payload
 							if (!data?.payload?.user?.id || !data?.payload?.position) {
 								console.warn('Invalid cursor payload received:', data);
@@ -186,15 +166,7 @@ export const useRealtimeCursors = ({
 
 							// Don't render your own cursor
 							if (user.id === userId) {
-								if (debug) {
-									console.log('Ignoring own cursor');
-								}
-
 								return;
-							}
-
-							if (debug) {
-								console.log('Processing cursor from user:', user.name, user.id);
 							}
 
 							setCursors((prev) => {
@@ -202,10 +174,6 @@ export const useRealtimeCursors = ({
 									...prev,
 									[user.id]: data.payload,
 								};
-
-								if (debug) {
-									console.log('Updated cursors state:', Object.keys(newCursors));
-								}
 
 								return newCursors;
 							});
@@ -221,9 +189,6 @@ export const useRealtimeCursors = ({
 
 		return () => {
 			isCleanedUp = true;
-			if (debug) {
-				console.log('Unsubscribing from cursor channel');
-			}
 			channel?.unsubscribe();
 			channelRef.current = null;
 		};

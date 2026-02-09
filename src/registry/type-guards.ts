@@ -139,9 +139,7 @@ export function assertAvailableNodeTypeWithLog(
 ): value is AvailableNodeTypes {
 	const isValid = isAvailableNodeType(value);
 
-	if (isValid) {
-		console.log(`${String(value)} is AvailableNodeTypes`);
-	} else {
+	if (!isValid) {
 		const contextMsg = context ? ` (${context})` : '';
 		console.warn(
 			`${String(value)} is NOT AvailableNodeTypes${contextMsg}. Valid types: ${Object.keys(NODE_REGISTRY).join(', ')}`

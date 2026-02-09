@@ -69,8 +69,6 @@ export function AIStreamMediator() {
 		},
 
 		onFinish: () => {
-			console.log('stream finish');
-
 			if (currentStreamIdRef.current) {
 				finishStream(currentStreamIdRef.current);
 				currentStreamIdRef.current = null;
