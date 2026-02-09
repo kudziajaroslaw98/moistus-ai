@@ -132,11 +132,12 @@ export const POST = withApiValidation(
 			const { title, description, is_template, template_category, template_id } =
 				validatedBody;
 
-			// Check map creation limit
+			// Check map creation limit (exclude templates from count, matching GET handler)
 			const { count: currentMapsCount } = await supabase
 				.from('mind_maps')
 				.select('*', { count: 'exact', head: true })
-				.eq('user_id', user.id);
+				.eq('user_id', user.id)
+				.eq('is_template', false);
 
 			const { allowed, limit, remaining } = await checkUsageLimit(
 				user,
