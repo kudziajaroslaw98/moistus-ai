@@ -12,6 +12,9 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **templates/limit**: Templates page now enforces mind map limit — "Use" button disabled at limit with upgrade toast
   - Why: Free users could bypass the 3-map limit by creating maps from templates
 - **api/maps**: Server-side map count query now excludes `is_template` rows for accurate limit enforcement
+- **sharing/collaborators**: Trial Pro users incorrectly hit free-tier 3-collaborator limit
+  - Why: DB `subscription_plans.limits` was missing `collaboratorsPerMap` field; all fallbacks defaulted to 3
+  - Fix: Added field to DB, hardened fallbacks in server (`with-subscription-check.ts`), client (`use-feature-gate.ts`), and `join_room` RPC to be plan-aware
 
 ---
 

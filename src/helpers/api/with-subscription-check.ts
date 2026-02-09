@@ -322,8 +322,10 @@ export async function checkCollaboratorLimit(
 		.in('status', ['active', 'trialing'])
 		.single();
 
-	// Default to free plan limits
-	const limit = subscription?.plan?.limits?.collaboratorsPerMap ?? 3;
+	// If subscription exists (active/trialing) but field is missing, assume unlimited (pro)
+	// If no subscription at all, fall back to free tier (3)
+	const limit = subscription?.plan?.limits?.collaboratorsPerMap
+		?? (subscription ? -1 : 3);
 
 	// -1 means unlimited (Pro/Enterprise)
 	if (limit === -1) {
