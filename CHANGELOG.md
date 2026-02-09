@@ -15,6 +15,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **sharing/collaborators**: Trial Pro users incorrectly hit free-tier 3-collaborator limit
   - Why: DB `subscription_plans.limits` was missing `collaboratorsPerMap` field; all fallbacks defaulted to 3
   - Fix: Added field to DB, hardened fallbacks in server (`with-subscription-check.ts`), client (`use-feature-gate.ts`), and `join_room` RPC to be plan-aware
+- **sharing/collaborators**: Server-side `checkCollaboratorLimit` fallback now uses `plan.name` instead of subscription existence
+  - Why: Aligns with client-side `use-feature-gate.ts` logic for consistent plan-aware limit resolution
 
 ---
 
