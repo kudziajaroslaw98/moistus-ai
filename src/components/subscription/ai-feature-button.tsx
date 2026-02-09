@@ -115,7 +115,6 @@ export function AIGenerateSuggestions() {
 
 	const handleGenerateSuggestions = async () => {
 		// This will only be called if user has access
-		console.log('Generating AI suggestions...');
 		// Your AI logic here
 	};
 

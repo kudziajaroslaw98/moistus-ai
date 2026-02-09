@@ -166,7 +166,6 @@ const GroupNodeComponent = (props: GroupNodeProps) => {
 	}, []);
 
 	const handleDoubleClick = useCallback(() => {
-		console.log('Group node double-clicked, potential edit action');
 	}, []);
 
 	// Handle drag and drop for adding nodes to group

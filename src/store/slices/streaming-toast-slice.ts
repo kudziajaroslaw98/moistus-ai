@@ -106,7 +106,6 @@ export const createStreamingToastSlice: StateCreator<
 				message: 'Streaming complete',
 			},
 		});
-		console.log('Hiding streaming toast');
 
 		setTimeout(() => {
 			toast.dismiss(streamingToast.toastId!);

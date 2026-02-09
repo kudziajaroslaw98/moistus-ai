@@ -261,7 +261,6 @@ export function ReactFlowArea() {
 					y: mousePosition.y,
 				}) || { x: 0, y: 0 };
 
-				console.log('Mouse position:', mousePosition);
 
 				openNodeEditor({
 					position,
@@ -288,8 +287,6 @@ export function ReactFlowArea() {
 
 	const handleNodeClick = useCallback(
 		(event: React.MouseEvent, node: Node<NodeData>) => {
-			console.log(node);
-
 			// Handle path edit mode - add clicked node to path
 			if (isPathEditMode) {
 				event.preventDefault();

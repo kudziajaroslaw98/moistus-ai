@@ -376,9 +376,6 @@ export async function subscribeToSyncEvents(
 					resolved = true;
 					clearTimeout(timeoutId);
 					channelSubscriptionState.set(mapId, 'subscribed');
-					console.log(
-						`[broadcast-channel] Subscribed to sync channel: ${mapId}`
-					);
 					resolve();
 				} else if (
 					status === 'CHANNEL_ERROR' ||
@@ -418,9 +415,6 @@ export async function subscribeToSyncEvents(
 			channelSubscriptionState.delete(mapId);
 			channelSubscriptionCount.delete(mapId);
 			activeSubscriptionIds.delete(mapId);
-			console.log(
-				`[broadcast-channel] Fully unsubscribed from sync channel: ${mapId}`
-			);
 		} else {
 			// Still have other subscribers - just decrement count
 			channelSubscriptionCount.set(mapId, count - 1);
@@ -442,9 +436,6 @@ export async function unsubscribeFromSyncChannel(mapId: string): Promise<void> {
 		channelSubscriptionState.delete(mapId);
 		channelSubscriptionCount.delete(mapId);
 		activeSubscriptionIds.delete(mapId);
-		console.log(
-			`[broadcast-channel] Force unsubscribed from sync channel: ${mapId}`
-		);
 	}
 }
 
@@ -461,7 +452,6 @@ export function resetAuth(): void {
 export async function cleanupAllChannels(): Promise<void> {
 	for (const [mapId, channel] of activeChannels) {
 		await channel.unsubscribe();
-		console.log(`[broadcast-channel] Cleaned up channel: ${mapId}`);
 	}
 	activeChannels.clear();
 	channelSubscriptionState.clear();

@@ -119,8 +119,9 @@ export function useSubscriptionLimits() {
 
 		return {
 			...plan.limits,
-			// Ensure collaboratorsPerMap has a fallback
-			collaboratorsPerMap: plan.limits.collaboratorsPerMap ?? 3,
+			// If field is missing, infer from plan: free=3, pro/enterprise=unlimited
+			collaboratorsPerMap: plan.limits.collaboratorsPerMap
+				?? (plan.name === 'free' ? 3 : -1),
 		};
 	}, [currentSubscription, availablePlans]);
 

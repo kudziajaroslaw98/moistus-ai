@@ -52,6 +52,7 @@ export function UserMenu({
 		setShowOnboarding,
 		isProUser,
 		resetStore,
+		setLoggingOut,
 	} = useAppStore(
 		useShallow((state) => ({
 			resetOnboarding: state.resetOnboarding,
@@ -59,6 +60,7 @@ export function UserMenu({
 			setShowOnboarding: state.setShowOnboarding,
 			isProUser: state.isProUser,
 			resetStore: state.reset,
+			setLoggingOut: state.setLoggingOut,
 		}))
 	);
 
@@ -78,6 +80,7 @@ export function UserMenu({
 		if (isLoggingOut) return;
 
 		setIsLoggingOut(true);
+		setLoggingOut(true); // Set store-level flag to prevent profile loading race condition
 
 		try {
 			// Sign out from Supabase
@@ -91,6 +94,7 @@ export function UserMenu({
 		} finally {
 			// Always clear state and redirect
 			resetStore();
+			setLoggingOut(true); // Re-assert after reset — resetStore() wipes entire state including isLoggingOut
 
 			// Clear SWR cache
 			await mutate(() => true, undefined, { revalidate: false });
@@ -98,7 +102,7 @@ export function UserMenu({
 			router.push('/');
 			setIsLoggingOut(false);
 		}
-	}, [isLoggingOut, router, resetStore]);
+	}, [isLoggingOut, router, resetStore, setLoggingOut]);
 
 	// Display info
 	const name = user?.display_name || user?.full_name || 'User';

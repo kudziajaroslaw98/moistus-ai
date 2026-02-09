@@ -235,12 +235,6 @@ export const createUiStateSlice: StateCreator<
 
 		// This will be used by the CodeMirror extension to handle the command execution
 		// The actual node creation/editing will be handled by the calling component
-		console.log(
-			'Executing command:',
-			command,
-			'at position:',
-			commandPalette.position
-		);
 
 		// Close the command palette after execution
 		get().closeCommandPalette();

@@ -142,7 +142,6 @@ export const EnhancedInput = ({
 	const handleNodeTypeChange = useCallback(
 		(event: CustomEvent) => {
 			try {
-				console.log('Node type change event:', event.detail);
 
 				// Call parent callback if provided
 				if (onNodeTypeChange && event.detail?.nodeType) {
@@ -165,7 +164,6 @@ export const EnhancedInput = ({
 	const handleCommandExecuted = useCallback(
 		(event: CustomEvent) => {
 			try {
-				console.log('Command executed event:', event.detail);
 
 				// Call parent callback if provided
 				if (onCommandExecuted && event.detail) {
@@ -191,7 +189,6 @@ export const EnhancedInput = ({
 	const handleReferenceSelected = useCallback(
 		(event: CustomEvent) => {
 			try {
-				console.log('Reference selected event:', event.detail);
 
 				// Call parent callback if provided (for future extensibility)
 				if (onCommandExecuted && event.detail) {
@@ -233,7 +230,6 @@ export const EnhancedInput = ({
 			return;
 		}
 
-		console.log('Initializing CodeMirror editor with unified setup...');
 
 		try {
 			// Use the new unified createNodeEditor function

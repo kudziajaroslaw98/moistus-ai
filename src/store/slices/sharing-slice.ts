@@ -115,8 +115,6 @@ export const createSharingSlice: StateCreator<
 		// Ensure user is authenticated (anonymous or full)
 		ensureAuthenticated: async (displayName?: string) => {
 			try {
-				console.log('ensureAuthenticated: Starting authentication check...');
-
 				// First, check if we already have a session
 				const {
 					data: { session },
@@ -141,10 +139,6 @@ export const createSharingSlice: StateCreator<
 				}
 
 				if (user && session) {
-					console.log(
-						'ensureAuthenticated: Existing user found, checking profile...'
-					);
-
 					// User already authenticated, get their profile
 					const { data: profile, error: profileError } = await supabase
 						.from('user_profiles')
@@ -173,20 +167,11 @@ export const createSharingSlice: StateCreator<
 						created_at: user.created_at,
 					};
 
-					console.log('ensureAuthenticated: Using existing user:', {
-						user_id: authUser.user_id,
-						is_anonymous: authUser.is_anonymous,
-					});
-
 					set({ authUser, sharingError: undefined });
 					return true;
 				}
 
 				// No valid session, create anonymous user
-				console.log(
-					'ensureAuthenticated: No existing session, creating anonymous user...'
-				);
-
 				const { data: authData, error: signInError } =
 					await supabase.auth.signInAnonymously({
 						options: {
@@ -205,11 +190,6 @@ export const createSharingSlice: StateCreator<
 						signInError?.message || 'Failed to authenticate anonymously'
 					);
 				}
-
-				console.log(
-					'ensureAuthenticated: Anonymous user created:',
-					authData.user.id
-				);
 
 				// Wait a moment for the profile to be created by the trigger
 				await new Promise((resolve) => setTimeout(resolve, 100));
@@ -231,9 +211,6 @@ export const createSharingSlice: StateCreator<
 
 				// If trigger didn't create profile, create it now with is_anonymous=true
 				if (profileError || !newProfile) {
-					console.log(
-						'ensureAuthenticated: Profile not created by trigger, inserting manually'
-					);
 					await supabase.from('user_profiles').insert({
 						user_id: authData.user.id,
 						display_name: defaultDisplayName,
@@ -242,9 +219,6 @@ export const createSharingSlice: StateCreator<
 					});
 				} else if (newProfile && !newProfile.is_anonymous) {
 					// Profile was created by trigger but is_anonymous not set - update it
-					console.log(
-						'ensureAuthenticated: Profile exists but is_anonymous not set, updating'
-					);
 					await supabase
 						.from('user_profiles')
 						.update({ is_anonymous: true })
@@ -258,11 +232,6 @@ export const createSharingSlice: StateCreator<
 					is_anonymous: true,
 					created_at: new Date().toISOString(),
 				};
-
-				console.log('ensureAuthenticated: Anonymous user setup complete:', {
-					user_id: anonymousUser.user_id,
-					display_name: anonymousUser.display_name,
-				});
 
 				set({ authUser: anonymousUser, sharingError: undefined });
 				return true;
@@ -555,10 +524,6 @@ export const createSharingSlice: StateCreator<
 				});
 
 				const result = await response.json();
-				console.log('[verifyUpgradeOtp] Response:', {
-					ok: response.ok,
-					result,
-				});
 
 				if (!response.ok) {
 					throw new Error(result.error || 'Invalid verification code');
@@ -567,15 +532,7 @@ export const createSharingSlice: StateCreator<
 				// CRITICAL: After OTP verification, the server creates a new session.
 				// We must refresh the client-side Supabase session to pick up the new cookies.
 				// Without this, subsequent API calls will fail with "Auth session missing"
-				console.log(
-					'[verifyUpgradeOtp] Refreshing client session after OTP verification...'
-				);
-				const { data: sessionData, error: sessionError } =
-					await supabase.auth.getUser();
-				console.log('[verifyUpgradeOtp] Session refresh result:', {
-					hasSession: !!sessionData?.user,
-					error: sessionError?.message,
-				});
+				await supabase.auth.getUser();
 
 				// Update auth user if profile returned
 				if (result.profile) {
@@ -607,10 +564,6 @@ export const createSharingSlice: StateCreator<
 
 			try {
 				const displayName = get().upgradeDisplayName;
-				console.log(
-					'[completeUpgradeWithPassword] Starting with displayName:',
-					displayName
-				);
 
 				const response = await fetch(
 					'/api/auth/upgrade-anonymous/set-password',
@@ -625,11 +578,6 @@ export const createSharingSlice: StateCreator<
 				);
 
 				const result = await response.json();
-				console.log('[completeUpgradeWithPassword] Response:', {
-					ok: response.ok,
-					status: response.status,
-					result,
-				});
 
 				if (!response.ok) {
 					throw new Error(result.error || 'Failed to set password');
@@ -1048,7 +996,6 @@ export const createSharingSlice: StateCreator<
 							filter: `map_id=eq.${mapId}`,
 						},
 						(payload) => {
-							console.log('Sharing update received:', payload);
 							// Refresh tokens when changes occur
 							get().refreshTokens();
 						}
@@ -1066,7 +1013,6 @@ export const createSharingSlice: StateCreator<
 							filter: `user_id=eq.${currentUserId}`,
 						},
 						(payload) => {
-							console.log('Share access revoked:', payload);
 							const deletedRecord = payload.old as {
 								map_id?: string;
 								user_id?: string;
@@ -1074,9 +1020,6 @@ export const createSharingSlice: StateCreator<
 
 							// Check if this deletion is for the current map
 							if (deletedRecord?.map_id === mapId) {
-								console.log(
-									'Access revoked for current map, showing access denied page'
-								);
 								// Trigger access revoked state via core slice
 								get().setMapAccessError({
 									type: 'access_denied',
@@ -1126,18 +1069,12 @@ export const createSharingSlice: StateCreator<
 
 				// If no user ID from store, try getting from Supabase auth directly
 				if (!userId) {
-					console.log(
-						'subscribeToAccessRevocation: No user ID in store, checking Supabase auth...'
-					);
 					const {
 						data: { user },
 					} = await supabase.auth.getUser();
 					if (user) {
 						userId = user.id;
 						isAnonymous = user.is_anonymous ?? false;
-						console.log(
-							`subscribeToAccessRevocation: Got userId=${userId} from Supabase auth`
-						);
 					}
 				}
 
@@ -1150,27 +1087,13 @@ export const createSharingSlice: StateCreator<
 					return;
 				}
 
-				console.log(
-					`subscribeToAccessRevocation: Using userId=${userId}, isAnonymous=${isAnonymous}`
-				);
-
 				// Skip if user is the owner (owners can't be kicked from their own maps)
 				if (mindMap?.user_id === userId) {
-					console.log(
-						'subscribeToAccessRevocation: User is owner, skipping subscription'
-					);
 					return;
 				}
 
-				console.log(
-					`subscribeToAccessRevocation: Setting up listener for user ${userId} on map ${mapId}`
-				);
-
 				// Helper to trigger access denied
 				const triggerAccessDenied = () => {
-					console.log(
-						'Access revoked for current map, showing access denied page'
-					);
 					get().setMapAccessError({
 						type: 'access_denied',
 						isAnonymous,
@@ -1200,7 +1123,6 @@ export const createSharingSlice: StateCreator<
 							filter: `user_id=eq.${userId}`,
 						},
 						(payload) => {
-							console.log('Access UPDATE event received:', payload);
 							const updatedRecord = payload.new as {
 								map_id?: string;
 								user_id?: string;
@@ -1218,23 +1140,14 @@ export const createSharingSlice: StateCreator<
 						}
 					)
 					.subscribe((status, err) => {
-						if (status === 'SUBSCRIBED') {
-							console.log(
-								`✅ Access revocation subscription ACTIVE for map ${mapId}, user ${userId}`
-							);
-						} else if (status === 'CHANNEL_ERROR') {
+						if (status === 'CHANNEL_ERROR') {
 							console.error(
-								`❌ Access revocation subscription FAILED for map ${mapId}:`,
+								`Access revocation subscription FAILED for map ${mapId}:`,
 								err
 							);
 						} else if (status === 'TIMED_OUT') {
 							console.error(
-								`⏱️ Access revocation subscription TIMED OUT for map ${mapId}`
-							);
-						} else {
-							console.log(
-								`Access revocation subscription status: ${status}`,
-								err || ''
+								`Access revocation subscription TIMED OUT for map ${mapId}`
 							);
 						}
 					});
@@ -1250,7 +1163,6 @@ export const createSharingSlice: StateCreator<
 			const state = get();
 
 			if (state._accessRevocationChannel) {
-				console.log('Unsubscribing from access revocation channel');
 				supabase.removeChannel(state._accessRevocationChannel);
 				set({ _accessRevocationChannel: undefined });
 			}

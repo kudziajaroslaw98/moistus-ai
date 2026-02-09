@@ -12,6 +12,24 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **templates/limit**: Templates page now enforces mind map limit — "Use" button disabled at limit with upgrade toast
   - Why: Free users could bypass the 3-map limit by creating maps from templates
 - **api/maps**: Server-side map count query now excludes `is_template` rows for accurate limit enforcement
+- **sharing/collaborators**: Trial Pro users incorrectly hit free-tier 3-collaborator limit
+  - Why: DB `subscription_plans.limits` was missing `collaboratorsPerMap` field; all fallbacks defaulted to 3
+  - Fix: Added field to DB, hardened fallbacks in server (`with-subscription-check.ts`), client (`use-feature-gate.ts`), and `join_room` RPC to be plan-aware
+- **sharing/collaborators**: Server-side `checkCollaboratorLimit` fallback now uses `plan.name` instead of subscription existence
+  - Why: Aligns with client-side `use-feature-gate.ts` logic for consistent plan-aware limit resolution
+
+---
+
+<!-- Updated: 2026-02-07 - Logout toast spam fix v2 -->
+## [2026-02-07]
+
+### Fixed
+- **node-editor**: Fix cursor positioning when clicking on scrolled content in CodeMirror editor
+  - Why: Scroll container was on `.cm-content` instead of `.cm-scroller`, causing `posAtCoords()` to ignore scroll offset
+- **auth**: Fix toast spam "Profile Error: User not authenticated" on logout (v2)
+  - Why: `resetStore()` wiped `isLoggingOut` flag before async navigation completed; re-assert flag after reset and clear on next login
+
+---
 
 <!-- Updated: 2026-02-06 - Landing page redesign -->
 ## [2026-02-06]

@@ -11,8 +11,10 @@ export interface UserProfileSlice {
 	isLoadingProfile: boolean;
 	profileError: string | null;
 	profileSubscription: RealtimeChannel | null;
+	isLoggingOut: boolean;
 
 	// Actions
+	setLoggingOut: (value: boolean) => void;
 	loadUserProfile: () => Promise<void>;
 	updateUserProfile: (updates: UserProfileUpdate) => Promise<void>;
 	updatePreferences: (preferences: Partial<UserProfile['preferences']>) => Promise<void>;
@@ -48,10 +50,18 @@ export const createUserProfileSlice: StateCreator<
 	isLoadingProfile: false,
 	profileError: null,
 	profileSubscription: null,
+	isLoggingOut: false,
+
+	setLoggingOut: (value: boolean) => {
+		set({ isLoggingOut: value });
+	},
 
 	// Load user profile from database
 	loadUserProfile: async () => {
-		const { supabase } = get();
+		const { supabase, isLoggingOut } = get();
+
+		// Don't attempt to load profile during logout
+		if (isLoggingOut) return;
 
 		if (!supabase) {
 			set({ profileError: 'Supabase client not initialized' });
@@ -282,6 +292,7 @@ export const createUserProfileSlice: StateCreator<
 			isLoadingProfile: false,
 			profileError: null,
 			profileSubscription: null,
+			isLoggingOut: false,
 		});
 	},
 

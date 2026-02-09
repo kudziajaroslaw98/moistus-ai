@@ -23,12 +23,10 @@ export const createQuickInputSlice: StateCreator<QuickInputSlice> = (set) => ({
 
 	// Actions
 	setQuickInputValue: (value) => {
-		console.log('🔵 Zustand setQuickInputValue called:', { value });
 		set({ quickInputValue: value });
 	},
 
 	setQuickInputNodeType: (nodeType) => {
-		console.log('🔵 Zustand setQuickInputNodeType called:', { nodeType });
 		set({ quickInputNodeType: nodeType });
 	},
 
@@ -37,7 +35,6 @@ export const createQuickInputSlice: StateCreator<QuickInputSlice> = (set) => ({
 	},
 
 	resetQuickInput: () => {
-		console.log('🔵 Zustand resetQuickInput called');
 		set({
 			quickInputValue: '',
 			quickInputNodeType: null,
@@ -46,7 +43,6 @@ export const createQuickInputSlice: StateCreator<QuickInputSlice> = (set) => ({
 	},
 
 	initializeQuickInput: (value, nodeType) => {
-		console.log('🔵 Zustand initializeQuickInput called:', { value, nodeType, valueLength: value?.length });
 		set({
 			quickInputValue: value,
 			quickInputNodeType: nodeType,

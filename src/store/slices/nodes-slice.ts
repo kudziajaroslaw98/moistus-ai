@@ -57,7 +57,6 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 		};
 
 		set({ nodes: [...nodes, newNode] });
-		console.log('[broadcast] Node created:', payload.id);
 	};
 
 	// Handle broadcast node update events
@@ -92,7 +91,6 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 		});
 
 		set({ nodes: updatedNodes });
-		console.log('[broadcast] Node updated:', payload.id);
 	};
 
 	// Handle broadcast node delete events
@@ -107,7 +105,6 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 
 		const filteredNodes = nodes.filter((node) => node.id !== payload.id);
 		set({ nodes: filteredNodes });
-		console.log('[broadcast] Node deleted:', payload.id);
 	};
 
 	return {
@@ -868,7 +865,6 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 		subscribeToNodes: async (mapId: string) => {
 			// Guard against concurrent subscription attempts
 			if (get()._nodesSubscriptionPending) {
-				console.log('[broadcast] Node subscription already pending, skipping');
 				return;
 			}
 			set({ _nodesSubscriptionPending: true });
@@ -901,8 +897,6 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 						typeof get
 					>['_nodesSubscription'],
 				});
-
-				console.log('[broadcast] Subscribed to node events for map:', mapId);
 			} catch (error) {
 				console.error('[broadcast] Failed to subscribe to node events:', error);
 			} finally {
@@ -920,7 +914,6 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 						await (_nodesSubscription as any).unsubscribe();
 					}
 					set({ _nodesSubscription: null });
-					console.log('[broadcast] Unsubscribed from node events');
 				} catch (error) {
 					console.error('[broadcast] Error unsubscribing from node events:', error);
 				}
