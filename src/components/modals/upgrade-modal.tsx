@@ -87,7 +87,7 @@ export function UpgradeModal({
 	return (
 		<Dialog onOpenChange={onOpenChange} open={open}>
 			<DialogContent
-				className='flex !w-full !max-w-3xl p-0 overflow-hidden bg-surface border-border-subtle'
+				className='flex !w-full !max-w-3xl p-0 bg-surface border-border-subtle'
 				showCloseButton={false}
 			>
 				<motion.div className='relative w-full flex flex-col' layout='size'>
@@ -100,34 +100,34 @@ export function UpgradeModal({
 						Maybe later
 					</button>
 
-					<div className='flex flex-col h-full p-12'>
+					<div className='flex flex-col max-h-[85vh] overflow-y-auto p-6 sm:p-12'>
 						{/* Header */}
 						<motion.div
 							animate={{ opacity: 1, y: 0 }}
-							className='text-center mb-8'
+							className='text-center mb-6 sm:mb-8'
 							initial={{ opacity: 0, y: -20 }}
 							transition={{
 								duration: 0.3,
 								ease: [0.165, 0.84, 0.44, 1],
 							}}
 						>
-							<div className='inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary-500/10 mb-4'>
-								<Crown className='w-7 h-7 text-primary-500' />
+							<div className='inline-flex items-center justify-center w-10 h-10 sm:w-14 sm:h-14 rounded-2xl bg-primary-500/10 mb-3 sm:mb-4'>
+								<Crown className='w-5 h-5 sm:w-7 sm:h-7 text-primary-500' />
 							</div>
 
-							<h2 className='text-3xl font-bold mb-3 text-text-primary'>
+							<h2 className='text-2xl sm:text-3xl font-bold mb-2 sm:mb-3 text-text-primary'>
 								Upgrade to Pro
 							</h2>
 
-							<p className='text-lg text-text-secondary'>
+							<p className='text-base sm:text-lg text-text-secondary'>
 								Unlock your full potential with unlimited access
 							</p>
 						</motion.div>
 
-						{/* Features */}
+						{/* Pricing section */}
 						<motion.div
 							animate={{ opacity: 1, y: 0 }}
-							className='space-y-4 mb-8'
+							className='mb-6 sm:mb-8'
 							initial={{ opacity: 0, y: 20 }}
 							transition={{
 								duration: 0.3,
@@ -135,47 +135,8 @@ export function UpgradeModal({
 								delay: 0.1,
 							}}
 						>
-							{features.map((feature, index) => (
-								<motion.div
-									key={feature.title}
-									className='flex items-start gap-4 p-4 rounded-xl bg-elevated/50 border border-border-subtle'
-									initial={{ opacity: 0, x: -20 }}
-									animate={{ opacity: 1, x: 0 }}
-									transition={{
-										duration: 0.25,
-										ease: [0.165, 0.84, 0.44, 1],
-										delay: 0.15 + index * 0.05,
-									}}
-								>
-									<div className='flex items-center justify-center w-10 h-10 rounded-lg bg-primary-500/10 shrink-0'>
-										<feature.icon className='w-5 h-5 text-primary-500' />
-									</div>
-
-									<div>
-										<p className='font-medium text-text-primary'>
-											{feature.title}
-										</p>
-										<p className='text-sm text-text-secondary'>
-											{feature.description}
-										</p>
-									</div>
-								</motion.div>
-							))}
-						</motion.div>
-
-						{/* Pricing section */}
-						<motion.div
-							animate={{ opacity: 1, y: 0 }}
-							className='mb-8'
-							initial={{ opacity: 0, y: 20 }}
-							transition={{
-								duration: 0.3,
-								ease: [0.165, 0.84, 0.44, 1],
-								delay: 0.25,
-							}}
-						>
 							{/* Billing toggle */}
-							<div className='flex justify-center mb-6'>
+							<div className='flex justify-center mb-3 sm:mb-6'>
 								<div className='inline-flex items-center gap-1 p-1 rounded-lg bg-elevated'>
 									<button
 										className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
@@ -209,7 +170,7 @@ export function UpgradeModal({
 							{/* Price display */}
 							<div className='text-center'>
 								<div className='flex items-baseline justify-center gap-1'>
-									<span className='text-4xl font-bold text-text-primary'>
+									<span className='text-3xl sm:text-4xl font-bold text-text-primary'>
 										${monthlyEquivalent}
 									</span>
 									<span className='text-text-secondary'>/month</span>
@@ -254,7 +215,7 @@ export function UpgradeModal({
 							transition={{
 								duration: 0.3,
 								ease: [0.165, 0.84, 0.44, 1],
-								delay: 0.35,
+								delay: 0.2,
 							}}
 						>
 							<Button
@@ -272,6 +233,76 @@ export function UpgradeModal({
 									'Start Free Trial'
 								)}
 							</Button>
+						</motion.div>
+
+						{/* Features — rich cards on desktop, shown below CTA */}
+						<motion.div
+							animate={{ opacity: 1, y: 0 }}
+							className='hidden sm:block space-y-4 mt-8'
+							initial={{ opacity: 0, y: 20 }}
+							transition={{
+								duration: 0.3,
+								ease: [0.165, 0.84, 0.44, 1],
+								delay: 0.3,
+							}}
+						>
+							{features.map((feature, index) => (
+								<motion.div
+									key={feature.title}
+									className='flex items-start gap-4 p-4 rounded-xl bg-elevated/50 border border-border-subtle'
+									initial={{ opacity: 0, x: -20 }}
+									animate={{ opacity: 1, x: 0 }}
+									transition={{
+										duration: 0.25,
+										ease: [0.165, 0.84, 0.44, 1],
+										delay: 0.35 + index * 0.05,
+									}}
+								>
+									<div className='flex items-center justify-center w-10 h-10 rounded-lg bg-primary-500/10 shrink-0'>
+										<feature.icon className='w-5 h-5 text-primary-500' />
+									</div>
+
+									<div>
+										<p className='font-medium text-text-primary'>
+											{feature.title}
+										</p>
+										<p className='text-sm text-text-secondary'>
+											{feature.description}
+										</p>
+									</div>
+								</motion.div>
+							))}
+						</motion.div>
+
+						{/* Features — compact checklist on mobile, shown below CTA */}
+						<motion.div
+							animate={{ opacity: 1, y: 0 }}
+							className='space-y-2 mt-6 sm:hidden'
+							initial={{ opacity: 0, y: 20 }}
+							transition={{
+								duration: 0.3,
+								ease: [0.165, 0.84, 0.44, 1],
+								delay: 0.4,
+							}}
+						>
+							{features.map((feature, index) => (
+								<motion.div
+									key={feature.title}
+									className='flex items-center justify-center gap-2.5'
+									initial={{ opacity: 0, x: -10 }}
+									animate={{ opacity: 1, x: 0 }}
+									transition={{
+										duration: 0.2,
+										ease: [0.165, 0.84, 0.44, 1],
+										delay: 0.42 + index * 0.04,
+									}}
+								>
+									<Check className='w-4 h-4 text-primary-500 shrink-0' />
+									<p className='text-sm font-medium text-text-primary text-center'>
+										{feature.title}
+									</p>
+								</motion.div>
+							))}
 						</motion.div>
 					</div>
 				</motion.div>
