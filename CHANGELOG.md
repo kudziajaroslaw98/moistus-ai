@@ -5,6 +5,25 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+<!-- Updated: 2026-02-10 - SEO infrastructure -->
+## [2026-02-10]
+
+### Added
+- **seo/og-image**: Dynamic OG image generation via `opengraph-image.tsx` (1200x630, Shiko brand)
+- **seo/sitemap**: Dynamic sitemap at `/sitemap.xml` with all public routes
+- **seo/robots**: Robots.txt at `/robots.txt` blocking private routes (dashboard, mind-map, api, etc.)
+- **seo/json-ld**: WebSite + Organization structured data in root layout
+- **seo/json-ld**: FAQPage structured data in FAQ section for rich snippets
+- **seo/manifest**: Web app manifest at `/manifest.webmanifest` with dark theme
+- **seo/404**: Custom not-found page with Shiko branding and home link
+- **seo/metadata**: Added `metadataBase` to root layout (fixes social image build warnings)
+
+### Removed
+- **seo**: Deleted `public/og-image-placeholder.svg` (replaced by dynamic generation)
+- **seo**: Removed hardcoded `/og-image.png` references from landing page metadata
+
+---
+
 <!-- Updated: 2026-02-09 - Fix templates bypassing mind map limit -->
 ## [2026-02-09]
 
