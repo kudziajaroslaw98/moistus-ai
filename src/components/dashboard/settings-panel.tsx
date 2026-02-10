@@ -30,7 +30,9 @@ import {
 	AlertTriangle,
 	BarChart3,
 	CreditCard,
+	Download,
 	ExternalLink,
+	Loader2,
 	Palette,
 	PenTool,
 	Save,
@@ -124,6 +126,9 @@ export function SettingsPanel({
 
 	// Change password modal state
 	const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+
+	// Data export state
+	const [isExporting, setIsExporting] = useState(false);
 
 	// Get limits with proper free tier fallback
 	const { limits: planLimits } = useSubscriptionLimits();
@@ -419,6 +424,38 @@ export function SettingsPanel({
 		} finally {
 			setIsDeletingAccount(false);
 			setIsDeleteDialogOpen(false);
+		}
+	};
+
+	const handleExportData = async () => {
+		setIsExporting(true);
+		try {
+			const response = await fetch('/api/user/export');
+			if (!response.ok) {
+				const result = await response.json().catch(() => ({}));
+				throw new Error(
+					(result as { error?: string }).error || 'Export failed'
+				);
+			}
+			const blob = await response.blob();
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download =
+				response.headers
+					.get('Content-Disposition')
+					?.match(/filename="(.+)"/)?.[1] || 'shiko-data-export.json';
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			URL.revokeObjectURL(url);
+			toast.success('Data exported successfully');
+		} catch (error) {
+			toast.error(
+				error instanceof Error ? error.message : 'Failed to export data'
+			);
+		} finally {
+			setIsExporting(false);
 		}
 	};
 
@@ -732,7 +769,34 @@ export function SettingsPanel({
 											</Button>
 										</div>
 
-										<div className='flex items-center justify-between p-3 bg-error-900/10 rounded-lg border border-error-900/20'>
+										<div className='flex items-center justify-between p-3 bg-base rounded-lg border border-border-subtle'>
+											<div>
+												<Label>Export Your Data</Label>
+												<p className='text-xs text-text-secondary'>
+													Download all your data as JSON
+												</p>
+											</div>
+											<Button
+												size='sm'
+												variant='outline'
+												onClick={handleExportData}
+												disabled={isExporting}
+											>
+												{isExporting ? (
+													<>
+														<Loader2 className='size-4 mr-2 animate-spin' />
+														Exporting...
+													</>
+												) : (
+													<>
+														<Download className='size-4 mr-2' />
+														Export
+													</>
+												)}
+											</Button>
+										</div>
+
+									<div className='flex items-center justify-between p-3 bg-error-900/10 rounded-lg border border-error-900/20'>
 											<div>
 												<Label className='text-error-500'>Delete Account</Label>
 												<p className='text-xs text-error-500/70'>
