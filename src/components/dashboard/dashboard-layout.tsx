@@ -10,6 +10,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ReactNode, useEffect, useState } from 'react';
+import { UpgradeModal } from '../modals/upgrade-modal';
 import {
 	Sidebar,
 	SidebarContent,
@@ -21,7 +22,6 @@ import {
 import { SidebarItem } from '../ui/sidebar-item';
 import { SidebarSection } from '../ui/sidebar-section';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/Tooltip';
-import { UpgradeModal } from '../modals/upgrade-modal';
 import { DashboardHeader } from './dashboard-header';
 import { SettingsPanel } from './settings-panel';
 
@@ -49,18 +49,18 @@ const mainNavItems: NavItem[] = [
 		href: '/dashboard',
 	},
 	{
+		id: 'templates',
+		label: 'Templates',
+		icon: <Star className='h-4 w-4' />,
+		href: '/dashboard/templates',
+	},
+	{
 		id: 'teams',
 		label: 'Teams',
 		icon: <Users className='h-4 w-4' />,
 		href: '/dashboard/teams',
 		disabled: true,
 		comingSoon: true,
-	},
-	{
-		id: 'templates',
-		label: 'Templates',
-		icon: <Star className='h-4 w-4' />,
-		href: '/dashboard/templates',
 	},
 	{
 		id: 'archive',
@@ -162,16 +162,16 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 					isActive={false}
 					label={item.label}
 					onClick={() => {}}
-					icon={
-						<div className={cn('shrink-0 text-zinc-500')}>{item.icon}</div>
-					}
+					icon={<div className={cn('shrink-0 text-zinc-500')}>{item.icon}</div>}
 				/>
 			);
 
 			if (sidebarCollapsed) {
 				return (
 					<Tooltip>
-						<TooltipTrigger className='w-full flex'>{content}</TooltipTrigger>
+						<TooltipTrigger className='w-full flex justify-center'>
+							{content}
+						</TooltipTrigger>
 
 						<TooltipContent>
 							<div className='flex flex-col gap-1'>
@@ -200,9 +200,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 								label={item.label}
 								onClick={() => {}}
 								icon={
-									<div
-										className={cn('shrink-0', isActive && 'text-sky-400')}
-									>
+									<div className={cn('shrink-0', isActive && 'text-sky-400')}>
 										{item.icon}
 									</div>
 								}
@@ -242,7 +240,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 		>
 			{/* Sidebar */}
 			<Sidebar collapsible='icon'>
-				<SidebarHeader className='border-b border-zinc-800'>
+				<SidebarHeader className='border-b border-zinc-800 h-14'>
 					{/* Header with Logo and Trigger */}
 					<div
 						className={cn([
@@ -271,7 +269,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 					</div>
 				</SidebarHeader>
 
-				<SidebarContent className='w-full'>
+				<SidebarContent className='flex w-full'>
 					<SidebarGroup
 						className={cn(['w-full', !sidebarCollapsed ? 'p-2' : 'p-2'])}
 					>
