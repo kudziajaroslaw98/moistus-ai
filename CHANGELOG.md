@@ -5,7 +5,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-02-10 - SEO infrastructure -->
+<!-- Updated: 2026-02-10 - SEO infrastructure + GDPR data export -->
 ## [2026-02-10]
 
 ### Added
@@ -17,6 +17,13 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **seo/manifest**: Web app manifest at `/manifest.webmanifest` with dark theme
 - **seo/404**: Custom not-found page with Shiko branding and home link
 - **seo/metadata**: Added `metadataBase` to root layout (fixes social image build warnings)
+- **gdpr/export**: Full data export API (`GET /api/user/export`) — profile, maps, nodes, edges, comments, subscriptions, activity
+  - Why: GDPR Art. 20 compliance (data portability), was previously stubbed
+- **gdpr/export**: Export button in settings panel with download-as-JSON flow
+- **rate-limiter**: Data export rate limiter (1 request per hour per user)
+
+### Fixed
+- **export-dropdown**: Wrapped `DropdownMenuLabel` instances in `DropdownMenuGroup` (required by Base UI)
 
 ### Removed
 - **seo**: Deleted `public/og-image-placeholder.svg` (replaced by dynamic generation)
