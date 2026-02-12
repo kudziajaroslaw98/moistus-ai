@@ -117,18 +117,15 @@ export async function GET(request: Request) {
 				shareAccessResult,
 				mapHistoryResult,
 			] = await Promise.all([
-				supabase.from('nodes').select('*').in('map_id', mapIds),
-				supabase.from('edges').select('*').in('map_id', mapIds),
-				supabase.from('comments').select('*').in('map_id', mapIds),
+				batchedIn(supabase, 'nodes', 'map_id', mapIds),
+				batchedIn(supabase, 'edges', 'map_id', mapIds),
+				batchedIn(supabase, 'comments', 'map_id', mapIds),
 				supabase
 					.from('share_tokens')
 					.select('*')
 					.eq('created_by', user.id),
 				supabase.from('share_access').select('*').eq('user_id', user.id),
-				supabase
-					.from('map_history_events')
-					.select('*')
-					.eq('user_id', user.id),
+				batchedIn(supabase, 'map_history_events', 'map_id', mapIds),
 			]);
 
 			if (nodesResult.error) warnings.push('Failed to export nodes');
@@ -141,7 +138,10 @@ export async function GET(request: Request) {
 			if (mapHistoryResult.error)
 				warnings.push('Failed to export map history');
 
-			nodes = nodesResult.data ?? [];
+			// Filter out system-only ghost nodes
+			nodes = (nodesResult.data ?? []).filter(
+				(n) => n.node_type !== 'ghostNode'
+			);
 			edges = edgesResult.data ?? [];
 			comments = commentsResult.data ?? [];
 			shareTokens = shareTokensResult.data ?? [];
@@ -149,31 +149,28 @@ export async function GET(request: Request) {
 			mapHistoryEvents = mapHistoryResult.data ?? [];
 		}
 
-		// --- Batch 3: Comment-dependent queries (skip if no comments) ---
-		const commentIds = comments.map((c) => c.id as string);
+		// --- Batch 3: User's comment messages & reactions ---
 		let commentMessages: Record<string, unknown>[] = [];
 		let commentReactions: Record<string, unknown>[] = [];
 
-		if (commentIds.length > 0) {
-			const [messagesResult, reactionsResult] = await Promise.all([
-				supabase
-					.from('comment_messages')
-					.select('*')
-					.eq('user_id', user.id),
-				supabase
-					.from('comment_reactions')
-					.select('*')
-					.eq('user_id', user.id),
-			]);
+		const [messagesResult, reactionsResult] = await Promise.all([
+			supabase
+				.from('comment_messages')
+				.select('*')
+				.eq('user_id', user.id),
+			supabase
+				.from('comment_reactions')
+				.select('*')
+				.eq('user_id', user.id),
+		]);
 
-			if (messagesResult.error)
-				warnings.push('Failed to export comment messages');
-			if (reactionsResult.error)
-				warnings.push('Failed to export comment reactions');
+		if (messagesResult.error)
+			warnings.push('Failed to export comment messages');
+		if (reactionsResult.error)
+			warnings.push('Failed to export comment reactions');
 
-			commentMessages = messagesResult.data ?? [];
-			commentReactions = reactionsResult.data ?? [];
-		}
+		commentMessages = messagesResult.data ?? [];
+		commentReactions = reactionsResult.data ?? [];
 
 		// --- Strip sensitive fields ---
 		const sanitizedTokens = shareTokens.map(
@@ -266,4 +263,35 @@ function groupBy(
 		result[groupKey].push(item);
 	}
 	return result;
+}
+
+const BATCH_SIZE = 50;
+
+/**
+ * Query a table using .in() in batches to avoid URL length limits.
+ */
+async function batchedIn(
+	supabase: Awaited<ReturnType<typeof createClient>>,
+	table: string,
+	column: string,
+	ids: string[]
+): Promise<{ data: Record<string, unknown>[] | null; error: unknown }> {
+	const chunks: string[][] = [];
+	for (let i = 0; i < ids.length; i += BATCH_SIZE) {
+		chunks.push(ids.slice(i, i + BATCH_SIZE));
+	}
+
+	const results = await Promise.all(
+		chunks.map((chunk) =>
+			supabase.from(table).select('*').in(column, chunk)
+		)
+	);
+
+	const allRows: Record<string, unknown>[] = [];
+	for (const result of results) {
+		if (result.error) return { data: null, error: result.error };
+		if (result.data) allRows.push(...result.data);
+	}
+
+	return { data: allRows, error: null };
 }
