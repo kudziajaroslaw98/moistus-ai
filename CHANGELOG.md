@@ -5,8 +5,15 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-02-12 - Remove node resize, fixed 320px width -->
+<!-- Updated: 2026-02-12 - Remove node resize, export fixes, a11y -->
 ## [2026-02-12]
+
+### Fixed
+- **gdpr/export**: Batch `.in()` queries into chunks of 50 IDs to avoid URL length limits on large accounts
+- **gdpr/export**: Filter out system-only ghost nodes from data export
+- **gdpr/export**: Always fetch user's comment messages/reactions regardless of comment thread ownership
+- **a11y/404**: Add `focus-visible` ring to back-to-home link for keyboard users
+- **settings**: Fix Delete Account block indentation in settings panel
 
 ### Refactored
 - **nodes/resize**: Removed entire node dimension management layer (~1000 lines deleted)
