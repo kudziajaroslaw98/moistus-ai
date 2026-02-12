@@ -148,7 +148,7 @@ shiko/
 | **sharing-slice** | 1,164 | Room codes, anonymous users, upgrade flows |
 | **comments-slice** | 973 | Comment threads, @mentions, reactions |
 | **suggestions-slice** | 966 | AI ghost nodes, streaming, merges |
-| **nodes-slice** | 945 | Node CRUD, positioning, real-time sync |
+| **nodes-slice** | 900 | Node CRUD, positioning, real-time sync |
 | **history-slice** | 597 | Undo/redo, snapshots, DB persistence |
 | **edges-slice** | 635 | Edge CRUD, parent-child relationships |
 | **subscription-slice** | 434 | Stripe, plan limits, usage tracking |
@@ -224,9 +224,8 @@ shiko/
 **Base Node Wrapper Pattern:**
 ```
 [NodeType]Node.tsx
-  └── BaseNodeWrapper
+  └── BaseNodeWrapper (fixed 320px width, CSS auto-height)
         ├── Selection state
-        ├── Resize handles
         ├── Node toolbar
         ├── Metadata bar
         ├── Collapse button
