@@ -23,7 +23,7 @@ const DefaultNodeComponent = (props: DefaultNodeProps) => {
 			{...props}
 			hideNodeType
 			elevation={1}
-			nodeClassName={cn(['basic-node h-full'])}
+			nodeClassName={cn(['basic-node'])}
 			nodeIcon={<FileText className='size-4' />}
 			nodeType='Note'
 		>

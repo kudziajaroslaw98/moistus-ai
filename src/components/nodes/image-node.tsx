@@ -105,7 +105,7 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 			hideNodeType
 			elevation={1}
 			includePadding={false}
-			nodeClassName={cn(['image-node h-full'])}
+			nodeClassName={cn(['image-node'])}
 			nodeIcon={<ImageIcon className='size-4' />}
 			nodeType='Image'
 		>

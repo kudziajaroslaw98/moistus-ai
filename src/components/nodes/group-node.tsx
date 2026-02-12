@@ -4,7 +4,7 @@ import { GRID_SIZE, ceilToGrid } from '@/constants/grid';
 import useAppStore from '@/store/mind-map-store';
 import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
-import { Node, NodeProps, NodeResizer } from '@xyflow/react';
+import { Node, NodeProps } from '@xyflow/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
@@ -64,8 +64,8 @@ const GroupNodeComponent = (props: GroupNodeProps) => {
 		let maxY = -Infinity;
 
 		childNodes.forEach((node) => {
-			const nodeWidth = node.width || 320;
-			const nodeHeight = node.height || 100;
+			const nodeWidth = node.measured?.width ?? node.width ?? 320;
+			const nodeHeight = node.measured?.height ?? node.height ?? 100;
 
 			minX = Math.min(minX, node.position.x);
 			minY = Math.min(minY, node.position.y);
@@ -102,8 +102,8 @@ const GroupNodeComponent = (props: GroupNodeProps) => {
 					Math.abs(currentNode.position.x - childBounds.x) +
 					Math.abs(currentNode.position.y - childBounds.y);
 				const sizeDiff =
-					Math.abs((currentNode.width || 320) - childBounds.width) +
-					Math.abs((currentNode.height || 100) - childBounds.height);
+					Math.abs((currentNode.measured?.width ?? currentNode.width ?? 320) - childBounds.width) +
+					Math.abs((currentNode.measured?.height ?? currentNode.height ?? 100) - childBounds.height);
 
 				// Only update if difference is significant (more than 10px)
 				if (positionDiff > 10 || sizeDiff > 10) {
@@ -122,8 +122,8 @@ const GroupNodeComponent = (props: GroupNodeProps) => {
 									Math.abs(latestNode.position.x - childBounds.x) +
 									Math.abs(latestNode.position.y - childBounds.y);
 								const latestSizeDiff =
-									Math.abs((latestNode.width || 320) - childBounds.width) +
-									Math.abs((latestNode.height || 100) - childBounds.height);
+									Math.abs((latestNode.measured?.width ?? latestNode.width ?? 320) - childBounds.width) +
+									Math.abs((latestNode.measured?.height ?? latestNode.height ?? 100) - childBounds.height);
 
 								if (latestPositionDiff > 10 || latestSizeDiff > 10) {
 									reactFlow.setNodes((nodes) =>
@@ -311,34 +311,6 @@ const GroupNodeComponent = (props: GroupNodeProps) => {
 				)}
 			</AnimatePresence>
 
-			{/* Resizer should still work */}
-			<NodeResizer
-				color='#0069a8'
-				isVisible={selected}
-				minHeight={ceilToGrid(100, GRID_SIZE)}
-				minWidth={ceilToGrid(150, GRID_SIZE)}
-				handleStyle={{
-					width: 8,
-					height: 8,
-					borderRadius: 2,
-					backgroundColor: '#0069a8',
-					border: '1px solid #ffffff',
-					zIndex: 10,
-				}}
-				onResizeEnd={(_, params) => {
-					const snappedWidth = ceilToGrid(params.width, GRID_SIZE);
-					const snappedHeight = ceilToGrid(params.height, GRID_SIZE);
-					if (reactFlow) {
-						reactFlow.setNodes((nodes) =>
-							nodes.map((node) =>
-								node.id === id
-									? { ...node, width: snappedWidth, height: snappedHeight }
-									: node
-							)
-						);
-					}
-				}}
-			/>
 		</div>
 	);
 };
