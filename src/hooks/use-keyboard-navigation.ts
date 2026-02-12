@@ -132,11 +132,11 @@ export function useKeyboardNavigation({
         };
 
         const closestNode = visibleNodes.reduce((closest, node) => {
-          const nodeCenterX = node.position.x + (node.measured?.width ?? 200) / 2;
+          const nodeCenterX = node.position.x + (node.measured?.width ?? 320) / 2;
           const nodeCenterY = node.position.y + (node.measured?.height ?? 100) / 2;
           const dist = Math.hypot(nodeCenterX - viewportCenter.x, nodeCenterY - viewportCenter.y);
 
-          const closestCenterX = closest.position.x + (closest.measured?.width ?? 200) / 2;
+          const closestCenterX = closest.position.x + (closest.measured?.width ?? 320) / 2;
           const closestCenterY = closest.position.y + (closest.measured?.height ?? 100) / 2;
           const closestDist = Math.hypot(closestCenterX - viewportCenter.x, closestCenterY - viewportCenter.y);
 

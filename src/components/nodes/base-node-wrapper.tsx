@@ -1,13 +1,10 @@
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
-import { useMeasure } from '@/hooks/use-measure';
-import { useNodeDimensions } from '@/hooks/use-node-dimensions';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
-import { getNodeConstraints } from '@/utils/node-dimension-utils';
-import { Handle, NodeResizer, Position, useConnection } from '@xyflow/react';
+import { Handle, Position, useConnection } from '@xyflow/react';
 import { Loader2, Plus, Sparkles } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { type CSSProperties, memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { type CSSProperties, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { AIActionsPopover } from '../ai/ai-actions-popover';
 import { AvatarStack } from '../ui/avatar-stack';
@@ -70,36 +67,12 @@ const BaseNodeWrapperComponent = ({
 	const isTarget = connection?.toNode?.id === id;
 	const { canEdit } = usePermissions();
 
+	const nodeRef = useRef<HTMLDivElement>(null);
+
 	// Derive selection state from Zustand to avoid triggering history saves
 	const isSelected = useMemo(() => {
 		return selectedNodes.some((node) => node.id === id);
 	}, [selectedNodes, id]);
-
-	// Get node-specific constraints
-	const actualNodeType = data?.node_type || 'defaultNode';
-	const constraints = getNodeConstraints(actualNodeType);
-
-	// Measure content dimensions to prevent shrinking below content
-	const [contentRef, contentBounds] = useMeasure<HTMLDivElement>();
-
-	// Use controlled dimensions hook
-	const {
-		dimensions,
-		handleResizeStart,
-		handleResize,
-		handleResizeEnd,
-		shouldResize,
-		nodeRef,
-	} = useNodeDimensions(id, {
-		minWidth: constraints.minWidth,
-		minHeight: constraints.minHeight,
-		maxWidth: constraints.maxWidth,
-		maxHeight: constraints.maxHeight, // undefined = unlimited
-		autoHeight: true,
-		debounceMs: 100,
-		contentWidth: contentBounds.width,
-		contentHeight: contentBounds.height,
-	});
 
 	// User-defined accent color takes precedence
 	const userAccentColor = data.metadata?.accentColor as string | undefined;
@@ -113,7 +86,7 @@ const BaseNodeWrapperComponent = ({
 		if (!currentNode) return;
 		const position = {
 			x: currentNode.position.x,
-			y: currentNode.position.y + (currentNode?.height ?? 0) + 50,
+			y: currentNode.position.y + (currentNode.measured?.height ?? 200) + 50,
 		};
 		openNodeEditor({
 			mode: 'create',
@@ -159,15 +132,10 @@ const BaseNodeWrapperComponent = ({
 	const theme = GlassmorphismTheme;
 
 	// Dynamic styles using centralized theme system
-	// Use explicit width/height (not minWidth/minHeight) to enable visual grid snapping
-	// during resize - the snapped dimensions from state will be applied immediately
 	const nodeStyles: CSSProperties = {
 		backgroundColor: getElevationColor(elevation),
-		// Proper focus states with double border technique for accessibility
 		border: `1px solid ${isSelected ? theme.borders.selected : theme.borders.default}`,
-		// Explicit dimensions for grid-snapped resizing
-		minWidth: dimensions.width,
-		minHeight: dimensions.height,
+		width: 320,
 	};
 
 	// Accent color system - subtle and sophisticated
@@ -220,9 +188,7 @@ const BaseNodeWrapperComponent = ({
 				</div>
 
 				{/* Main content with metadata bar integration */}
-				{/* Note: NO h-full here - contentRef must size to children for accurate measurement */}
 				<div
-					ref={contentRef}
 					className={cn('flex flex-col h-auto relative z-[1]', contentClassName)}
 				>
 					{data.metadata &&
@@ -402,33 +368,6 @@ const BaseNodeWrapperComponent = ({
 									</>
 								)}
 						</AnimatePresence>
-
-						{!hideResizeFrame && (
-							<NodeResizer
-								color={theme.node.resizer.color}
-								handleClassName='!w-2 !h-2 !rounded-full'
-								isVisible={isSelected && canEdit}
-								maxHeight={constraints.maxHeight ?? Number.MAX_SAFE_INTEGER}
-								maxWidth={constraints.maxWidth}
-								minHeight={constraints.minHeight}
-								minWidth={constraints.minWidth}
-								onResize={handleResize}
-								onResizeEnd={handleResizeEnd}
-								onResizeStart={handleResizeStart}
-								shouldResize={shouldResize}
-								// Match node border radius for proper alignment
-								lineStyle={{
-									borderRadius: '8px', // Matches rounded-lg
-									borderWidth: '1px',
-								}}
-								handleStyle={{
-									backgroundColor: isSelected
-										? theme.node.resizer.selectedBackground
-										: theme.borders.default,
-									border: theme.node.resizer.border,
-								}}
-							/>
-						)}
 					</div>
 				)}
 			</motion.div>

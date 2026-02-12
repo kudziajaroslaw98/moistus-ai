@@ -60,8 +60,8 @@ export const GuidedTourMode = memo(function GuidedTourMode() {
 			if (!node) return;
 
 			// Get node dimensions (use defaults if not available)
-			const nodeWidth = node.measured?.width || node.width || 200;
-			const nodeHeight = node.measured?.height || node.height || 100;
+			const nodeWidth = node.measured?.width ?? node.width ?? 320;
+			const nodeHeight = node.measured?.height ?? node.height ?? 100;
 
 			// Calculate center of node
 			const centerX = node.position.x + nodeWidth / 2;

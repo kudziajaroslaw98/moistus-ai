@@ -10,6 +10,7 @@ import {
 	DropdownMenu,
 	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
+	DropdownMenuGroup,
 	DropdownMenuLabel,
 	DropdownMenuRadioGroup,
 	DropdownMenuRadioItem,
@@ -148,34 +149,36 @@ export function ExportDropdown() {
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="w-64">
-				<DropdownMenuLabel className="flex items-center gap-2">
-					<Download className="size-4 text-text-secondary" />
-					Export
-				</DropdownMenuLabel>
-				<DropdownMenuSeparator />
+				<DropdownMenuGroup>
+					<DropdownMenuLabel className="flex items-center gap-2">
+						<Download className="size-4 text-text-secondary" />
+						Export
+					</DropdownMenuLabel>
+					<DropdownMenuSeparator />
 
-				{/* Format Selection */}
-				<DropdownMenuRadioGroup
-					value={exportFormat}
-					onValueChange={(val) => setExportFormat(val as ExportFormat)}
-				>
-					{formatOptions.map((format) => (
-						<DropdownMenuRadioItem
-							key={format.id}
-							value={format.id}
-							disabled={isExporting}
-							className="flex flex-col items-start gap-0.5 py-2"
-						>
-							<span className="flex items-center gap-2 font-medium">
-								{format.icon}
-								{format.label}
-							</span>
-							<span className="text-xs text-text-secondary pl-6">
-								{format.description}
-							</span>
-						</DropdownMenuRadioItem>
-					))}
-				</DropdownMenuRadioGroup>
+					{/* Format Selection */}
+					<DropdownMenuRadioGroup
+						value={exportFormat}
+						onValueChange={(val) => setExportFormat(val as ExportFormat)}
+					>
+						{formatOptions.map((format) => (
+							<DropdownMenuRadioItem
+								key={format.id}
+								value={format.id}
+								disabled={isExporting}
+								className="flex flex-col items-start gap-0.5 py-2"
+							>
+								<span className="flex items-center gap-2 font-medium">
+									{format.icon}
+									{format.label}
+								</span>
+								<span className="text-xs text-text-secondary pl-6">
+									{format.description}
+								</span>
+							</DropdownMenuRadioItem>
+						))}
+					</DropdownMenuRadioGroup>
+				</DropdownMenuGroup>
 
 				<DropdownMenuSeparator />
 
@@ -187,50 +190,54 @@ export function ExportDropdown() {
 					</DropdownMenuSubTrigger>
 					<DropdownMenuSubContent className="w-56">
 						{/* Common Settings */}
-						<DropdownMenuLabel className="text-xs text-text-secondary">
-							General
-						</DropdownMenuLabel>
-						<DropdownMenuCheckboxItem
-							checked={exportFitView}
-							onCheckedChange={setExportFitView}
-							disabled={isExporting}
-						>
-							<span className="flex items-center gap-2">
-								<ZoomIn className="size-4" />
-								Fit all nodes in view
-							</span>
-						</DropdownMenuCheckboxItem>
-						<DropdownMenuCheckboxItem
-							checked={exportBackground}
-							onCheckedChange={setExportBackground}
-							disabled={isExporting}
-						>
-							Include background
-						</DropdownMenuCheckboxItem>
+						<DropdownMenuGroup>
+							<DropdownMenuLabel className="text-xs text-text-secondary">
+								General
+							</DropdownMenuLabel>
+							<DropdownMenuCheckboxItem
+								checked={exportFitView}
+								onCheckedChange={setExportFitView}
+								disabled={isExporting}
+							>
+								<span className="flex items-center gap-2">
+									<ZoomIn className="size-4" />
+									Fit all nodes in view
+								</span>
+							</DropdownMenuCheckboxItem>
+							<DropdownMenuCheckboxItem
+								checked={exportBackground}
+								onCheckedChange={setExportBackground}
+								disabled={isExporting}
+							>
+								Include background
+							</DropdownMenuCheckboxItem>
+						</DropdownMenuGroup>
 
 						{/* PNG-specific: Scale */}
 						{exportFormat === 'png' && (
 							<>
 								<DropdownMenuSeparator />
-								<DropdownMenuLabel className="text-xs text-text-secondary">
-									Resolution
-								</DropdownMenuLabel>
-								<DropdownMenuRadioGroup
-									value={String(exportScale)}
-									onValueChange={(val) =>
-										setExportScale(Number(val) as ExportScale)
-									}
-								>
-									{scaleOptions.map((scale) => (
-										<DropdownMenuRadioItem
-											key={scale.id}
-											value={String(scale.id)}
-											disabled={isExporting}
-										>
-											{scale.label}
-										</DropdownMenuRadioItem>
-									))}
-								</DropdownMenuRadioGroup>
+								<DropdownMenuGroup>
+									<DropdownMenuLabel className="text-xs text-text-secondary">
+										Resolution
+									</DropdownMenuLabel>
+									<DropdownMenuRadioGroup
+										value={String(exportScale)}
+										onValueChange={(val) =>
+											setExportScale(Number(val) as ExportScale)
+										}
+									>
+										{scaleOptions.map((scale) => (
+											<DropdownMenuRadioItem
+												key={scale.id}
+												value={String(scale.id)}
+												disabled={isExporting}
+											>
+												{scale.label}
+											</DropdownMenuRadioItem>
+										))}
+									</DropdownMenuRadioGroup>
+								</DropdownMenuGroup>
 							</>
 						)}
 
@@ -238,63 +245,69 @@ export function ExportDropdown() {
 						{exportFormat === 'pdf' && (
 							<>
 								<DropdownMenuSeparator />
-								<DropdownMenuLabel className="text-xs text-text-secondary">
-									Page Size
-								</DropdownMenuLabel>
-								<DropdownMenuRadioGroup
-									value={pdfPageSize}
-									onValueChange={(val) => setPdfPageSize(val as PageSize)}
-								>
-									{pageSizeOptions.map((size) => (
-										<DropdownMenuRadioItem
-											key={size.id}
-											value={size.id}
-											disabled={isExporting}
-										>
-											{size.label}
-										</DropdownMenuRadioItem>
-									))}
-								</DropdownMenuRadioGroup>
+								<DropdownMenuGroup>
+									<DropdownMenuLabel className="text-xs text-text-secondary">
+										Page Size
+									</DropdownMenuLabel>
+									<DropdownMenuRadioGroup
+										value={pdfPageSize}
+										onValueChange={(val) => setPdfPageSize(val as PageSize)}
+									>
+										{pageSizeOptions.map((size) => (
+											<DropdownMenuRadioItem
+												key={size.id}
+												value={size.id}
+												disabled={isExporting}
+											>
+												{size.label}
+											</DropdownMenuRadioItem>
+										))}
+									</DropdownMenuRadioGroup>
+								</DropdownMenuGroup>
 
 								<DropdownMenuSeparator />
-								<DropdownMenuLabel className="text-xs text-text-secondary">
-									Orientation
-								</DropdownMenuLabel>
-								<DropdownMenuRadioGroup
-									value={pdfOrientation}
-									onValueChange={(val) =>
-										setPdfOrientation(val as PageOrientation)
-									}
-								>
-									{orientationOptions.map((orientation) => (
-										<DropdownMenuRadioItem
-											key={orientation.id}
-											value={orientation.id}
-											disabled={isExporting}
-										>
-											{orientation.label}
-										</DropdownMenuRadioItem>
-									))}
-								</DropdownMenuRadioGroup>
+								<DropdownMenuGroup>
+									<DropdownMenuLabel className="text-xs text-text-secondary">
+										Orientation
+									</DropdownMenuLabel>
+									<DropdownMenuRadioGroup
+										value={pdfOrientation}
+										onValueChange={(val) =>
+											setPdfOrientation(val as PageOrientation)
+										}
+									>
+										{orientationOptions.map((orientation) => (
+											<DropdownMenuRadioItem
+												key={orientation.id}
+												value={orientation.id}
+												disabled={isExporting}
+											>
+												{orientation.label}
+											</DropdownMenuRadioItem>
+										))}
+									</DropdownMenuRadioGroup>
+								</DropdownMenuGroup>
 
 								<DropdownMenuSeparator />
-								<DropdownMenuLabel className="text-xs text-text-secondary">
-									Content
-								</DropdownMenuLabel>
-								<DropdownMenuCheckboxItem
-									checked={pdfIncludeTitle}
-									onCheckedChange={setPdfIncludeTitle}
-									disabled={isExporting}
-								>
-									Include title
-								</DropdownMenuCheckboxItem>
-								<DropdownMenuCheckboxItem
-									checked={pdfIncludeMetadata}
-									onCheckedChange={setPdfIncludeMetadata}
-									disabled={isExporting}
-								>
-									Include date/author
-								</DropdownMenuCheckboxItem>
+								<DropdownMenuGroup>
+									<DropdownMenuLabel className="text-xs text-text-secondary">
+										Content
+									</DropdownMenuLabel>
+									<DropdownMenuCheckboxItem
+										checked={pdfIncludeTitle}
+										onCheckedChange={setPdfIncludeTitle}
+										disabled={isExporting}
+									>
+										Include title
+									</DropdownMenuCheckboxItem>
+									<DropdownMenuCheckboxItem
+										checked={pdfIncludeMetadata}
+										onCheckedChange={setPdfIncludeMetadata}
+										disabled={isExporting}
+									>
+										Include date/author
+									</DropdownMenuCheckboxItem>
+								</DropdownMenuGroup>
 							</>
 						)}
 					</DropdownMenuSubContent>

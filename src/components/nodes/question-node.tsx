@@ -1,11 +1,16 @@
 'use client';
 
 import useAppStore from '@/store/mind-map-store';
-import { ChevronDown, HelpCircle, Sparkles } from 'lucide-react';
+import { ChevronDown, HelpCircle, RotateCcw, Sparkles } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { useShallow } from 'zustand/shallow';
+import { Button } from '../ui/button';
 import { BaseNodeWrapper } from './base-node-wrapper';
+import { SharedNodeToolbar } from './components/node-toolbar';
+import { ToolbarSeparator } from './components/toolbar-controls';
 import { type QuestionNodeMetadata, type TypedNodeProps } from './core/types';
+import { GlassmorphismTheme } from './themes/glassmorphism-theme';
 
 // Import response components
 import { cn } from '@/utils/cn';
@@ -20,7 +25,14 @@ type QuestionNodeProps = TypedNodeProps<'questionNode'>;
 
 const QuestionNodeComponent = (props: QuestionNodeProps) => {
 	const { id, data } = props;
-	const updateNode = useAppStore((state) => state.updateNode);
+	const { updateNode, selectedNodes } = useAppStore(
+		useShallow((state) => ({
+			updateNode: state.updateNode,
+			selectedNodes: state.selectedNodes,
+		}))
+	);
+
+	const theme = GlassmorphismTheme;
 
 	const metadata = data.metadata as QuestionNodeMetadata;
 	const [isExpanded, setIsExpanded] = useState(false);
@@ -138,151 +150,213 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 		[updateNode, id, metadata]
 	);
 
+	const handleResetAnswer = useCallback(async () => {
+		try {
+			await updateNode({
+				nodeId: id,
+				data: {
+					metadata: {
+						...metadata,
+						userResponse: undefined,
+						isAnswered: false,
+					},
+				},
+			});
+		} catch (error) {
+			console.error('Failed to reset answer:', error);
+		}
+	}, [updateNode, id, metadata]);
+
 	// Clean the question text (remove brackets)
 	const cleanQuestionText = useMemo(() => {
 		return data.content?.replace(/\[.*?\]/g, '').trim() || '';
 	}, [data.content]);
 
+	const buttonStyle = {
+		backgroundColor: 'transparent',
+		border: `1px solid ${theme.borders.hover}`,
+		color: theme.text.medium,
+	};
+
+	const activeStyle = {
+		backgroundColor: 'rgba(96, 165, 250, 0.2)',
+		border: `1px solid ${theme.borders.accent}`,
+		color: theme.text.high,
+	};
+
 	return (
-		<BaseNodeWrapper
-			{...props}
-			hideNodeType
-			elevation={isAnswered ? 2 : 1}
-			nodeClassName='question-node'
-			nodeIcon={<HelpCircle className='size-4' />}
-			nodeType='Question'
-		>
-			<div className='flex flex-col gap-3'>
-				{/* Question content */}
-				<div className='relative'>
-					{/* Main question text */}
-					<div className='text-center px-2'>
-						{data.content ? (
-							<h3 className='font-medium leading-5 text-text-primary text-base'>
-								{cleanQuestionText}
-							</h3>
-						) : (
-							<span className='text-text-disabled text-sm italic'>
-								Click to add a question...
-							</span>
-						)}
-					</div>
-				</div>
+		<>
+			<SharedNodeToolbar
+				isVisible={props.selected && selectedNodes.length === 1}
+			>
+				<Button
+					className="h-8 w-8 p-0"
+					disabled={!isAnswered}
+					onClick={handleResetAnswer}
+					size="sm"
+					style={buttonStyle}
+					title="Reset answer"
+					variant="outline"
+				>
+					<RotateCcw className="w-4 h-4" />
+				</Button>
+				{hasAIAnswer && (
+					<>
+						<ToolbarSeparator />
+						<Button
+							className="h-8 w-8 p-0"
+							onClick={() => setIsExpanded(!isExpanded)}
+							size="sm"
+							style={isExpanded ? activeStyle : buttonStyle}
+							title={isExpanded ? 'Hide AI insight' : 'Show AI insight'}
+							variant="outline"
+						>
+							<Sparkles className="w-4 h-4" />
+						</Button>
+					</>
+				)}
+			</SharedNodeToolbar>
 
-				{/* Interactive Response Section - Always visible when there's content */}
-				{data.content && (
-					<div className='space-y-3'>
-						{/* Response area */}
-						<div>
-							{questionType === 'binary' && (
-								<BinaryResponse
-									onChange={handleResponseChange}
-									value={userResponse as boolean}
-								/>
-							)}
-
-							{questionType === 'multiple' && (
-								<MultipleChoiceResponse
-									allowMultiple={responseFormat.allowMultiple || false}
-									onChange={handleResponseChange}
-									value={userResponse as string | string[]}
-									options={
-										responseFormat.options && responseFormat.options.length > 0
-											? responseFormat.options
-											: parsedOptions.options &&
-												  parsedOptions.options.length > 0
-												? parsedOptions.options.map((label, index) => ({
-														id: `opt-${index}`,
-														label: label.trim(),
-													}))
-												: [
-														{ id: '1', label: 'Option A' },
-														{ id: '2', label: 'Option B' },
-														{ id: '3', label: 'Option C' },
-													]
-									}
-								/>
+			<BaseNodeWrapper
+				{...props}
+				hideNodeType
+				elevation={isAnswered ? 2 : 1}
+				nodeClassName='question-node'
+				nodeIcon={<HelpCircle className='size-4' />}
+				nodeType='Question'
+			>
+				<div className='flex flex-col gap-3'>
+					{/* Question content */}
+					<div className='relative'>
+						{/* Main question text */}
+						<div className='text-center px-2'>
+							{data.content ? (
+								<h3 className='font-medium leading-5 text-text-primary text-base'>
+									{cleanQuestionText}
+								</h3>
+							) : (
+								<span className='text-text-disabled text-sm italic'>
+									Click to add a question...
+								</span>
 							)}
 						</div>
+					</div>
 
-						{/* Status indicator - minimal */}
-						{isAnswered && (
-							<div className='flex justify-center'>
-								<div
-									className='px-2 py-1 rounded-full text-xs'
+					{/* Interactive Response Section - Always visible when there's content */}
+					{data.content && (
+						<div className='space-y-3'>
+							{/* Response area */}
+							<div>
+								{questionType === 'binary' && (
+									<BinaryResponse
+										onChange={handleResponseChange}
+										value={userResponse as boolean}
+									/>
+								)}
+
+								{questionType === 'multiple' && (
+									<MultipleChoiceResponse
+										allowMultiple={responseFormat.allowMultiple || false}
+										onChange={handleResponseChange}
+										value={userResponse as string | string[]}
+										options={
+											responseFormat.options && responseFormat.options.length > 0
+												? responseFormat.options
+												: parsedOptions.options &&
+													  parsedOptions.options.length > 0
+													? parsedOptions.options.map((label, index) => ({
+															id: `opt-${index}`,
+															label: label.trim(),
+														}))
+													: [
+															{ id: '1', label: 'Option A' },
+															{ id: '2', label: 'Option B' },
+															{ id: '3', label: 'Option C' },
+														]
+										}
+									/>
+								)}
+							</div>
+
+							{/* Status indicator - minimal */}
+							{isAnswered && (
+								<div className='flex justify-center'>
+									<div
+										className='px-2 py-1 rounded-full text-xs'
+										style={{
+											backgroundColor: 'rgba(34, 197, 94, 0.1)',
+											color: '#22c55e',
+											fontSize: '11px',
+										}}
+									>
+										Answered
+									</div>
+								</div>
+							)}
+						</div>
+					)}
+
+					{/* AI Answer section (backward compatibility) - Collapsible */}
+					{hasAIAnswer && (
+						<motion.div
+							layout
+							className='rounded-md'
+							transition={{ type: 'spring', duration: 0.3 }}
+							style={{
+								backgroundColor: 'rgba(147, 197, 253, 0.05)',
+								border: '1px solid rgba(147, 197, 253, 0.1)',
+							}}
+						>
+							<motion.button
+								className='w-full flex items-center justify-center gap-2 py-1.5 rounded-md transition-all'
+								onClick={() => setIsExpanded(!isExpanded)}
+								whileHover={{ scale: 1.02 }}
+								whileTap={{ scale: 0.98 }}
+							>
+								<Sparkles
+									className='w-3 h-3'
+									style={{ color: 'rgba(147, 197, 253, 0.7)' }}
+								/>
+
+								<span
 									style={{
-										backgroundColor: 'rgba(34, 197, 94, 0.1)',
-										color: '#22c55e',
-										fontSize: '11px',
+										fontSize: '12px',
+										color: 'rgba(147, 197, 253, 0.87)',
+										fontWeight: 500,
 									}}
 								>
-									Answered
-								</div>
-							</div>
-						)}
-					</div>
-				)}
+									AI Insight
+								</span>
 
-				{/* AI Answer section (backward compatibility) - Collapsible */}
-				{hasAIAnswer && (
-					<motion.div
-						layout
-						className='rounded-md'
-						transition={{ type: 'spring', duration: 0.3 }}
-						style={{
-							backgroundColor: 'rgba(147, 197, 253, 0.05)',
-							border: '1px solid rgba(147, 197, 253, 0.1)',
-						}}
-					>
-						<motion.button
-							className='w-full flex items-center justify-center gap-2 py-1.5 rounded-md transition-all'
-							onClick={() => setIsExpanded(!isExpanded)}
-							whileHover={{ scale: 1.02 }}
-							whileTap={{ scale: 0.98 }}
-						>
-							<Sparkles
-								className='w-3 h-3'
-								style={{ color: 'rgba(147, 197, 253, 0.7)' }}
-							/>
+								<ChevronDown
+									style={{ color: 'rgba(147, 197, 253, 0.7)' }}
+									className={cn(
+										'w-3 h-3 transition-transform will-change-transform ease-spring duration-300',
+										isExpanded ? 'rotate-180' : ''
+									)}
+								/>
+							</motion.button>
 
-							<span
-								style={{
-									fontSize: '12px',
-									color: 'rgba(147, 197, 253, 0.87)',
-									fontWeight: 500,
-								}}
-							>
-								AI Insight
-							</span>
-
-							<ChevronDown
-								style={{ color: 'rgba(147, 197, 253, 0.7)' }}
-								className={cn(
-									'w-3 h-3 transition-transform will-change-transform ease-spring duration-300',
-									isExpanded ? 'rotate-180' : ''
+							<AnimatePresence>
+								{isExpanded && (
+									<motion.div
+										animate={{ opacity: 1, height: 'auto' }}
+										className='overflow-hidden'
+										exit={{ opacity: 0, height: 0 }}
+										initial={{ opacity: 0, height: 0 }}
+										transition={{ duration: 0.2 }}
+									>
+										<div className='mt-2 p-3'>
+											<div className='text-xs leading-6'>{aiAnswer}</div>
+										</div>
+									</motion.div>
 								)}
-							/>
-						</motion.button>
-
-						<AnimatePresence>
-							{isExpanded && (
-								<motion.div
-									animate={{ opacity: 1, height: 'auto' }}
-									className='overflow-hidden'
-									exit={{ opacity: 0, height: 0 }}
-									initial={{ opacity: 0, height: 0 }}
-									transition={{ duration: 0.2 }}
-								>
-									<div className='mt-2 p-3'>
-										<div className='text-xs leading-6'>{aiAnswer}</div>
-									</div>
-								</motion.div>
-							)}
-						</AnimatePresence>
-					</motion.div>
-				)}
-			</div>
-		</BaseNodeWrapper>
+							</AnimatePresence>
+						</motion.div>
+					)}
+				</div>
+			</BaseNodeWrapper>
+		</>
 	);
 };
 

@@ -246,7 +246,7 @@ function calculateBoundingBox(nodes: AppNode[]): {
 	for (const node of nodes) {
 		const x = node.position.x;
 		const y = node.position.y;
-		const width = node.measured?.width ?? node.width ?? 200;
+		const width = node.measured?.width ?? node.width ?? 320;
 		const height = node.measured?.height ?? node.height ?? 80;
 
 		minX = Math.min(minX, x);

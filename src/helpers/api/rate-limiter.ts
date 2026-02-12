@@ -163,6 +163,12 @@ export const mapAccessRateLimiter = new InMemoryRateLimiter({
 	windowMs: 60 * 1000,
 });
 
+// Data export rate limiter (GDPR export is expensive, limit to 1 per hour)
+export const dataExportRateLimiter = new InMemoryRateLimiter({
+	maxAttempts: 1,
+	windowMs: 60 * 60 * 1000, // 1 per hour
+});
+
 /**
  * Validates if a string is a valid IPv4 address
  */

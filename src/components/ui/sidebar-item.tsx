@@ -88,13 +88,13 @@ export const SidebarItem = ({
 				tabIndex={disabled ? -1 : tabIndex}
 				whileTap={disabled ? undefined : { scale: 0.98 }}
 				className={cn(
-					'group relative flex items-center rounded-lg transition-all cursor-pointer',
+					'px-2.5 py-2.5',
+					'group relative flex items-center rounded-lg transition-all cursor-pointer w-full',
 					'hover:bg-zinc-800/50 focus:bg-zinc-800/50 focus:outline-none focus:ring-2 focus:ring-sky-500/50',
 					isActive && 'bg-zinc-800 text-white',
 					!isActive && 'text-zinc-400 hover:text-white',
 					disabled && 'opacity-50 cursor-not-allowed',
-					collapsed ? 'justify-center px-2 py-3' : 'gap-3',
-					!collapsed && 'px-3 py-2',
+					collapsed ? 'justify-center' : 'gap-3',
 					className
 				)}
 				style={{

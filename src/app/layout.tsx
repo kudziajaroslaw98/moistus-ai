@@ -21,6 +21,7 @@ const lora = Lora({
 });
 
 export const metadata: Metadata = {
+	metadataBase: new URL('https://shiko.app'),
 	title: 'Shiko',
 	description: 'AI-powered mind mapping and information organization',
 };
@@ -40,6 +41,26 @@ export default function RootLayout({
 				className={`${geistSans.variable} ${geistMono.variable} ${lora.variable} dark h-auto min-h-full w-full bg-zinc-950`}
 				suppressHydrationWarning={true}
 			>
+				<script type='application/ld+json'>
+					{JSON.stringify({
+						'@context': 'https://schema.org',
+						'@graph': [
+							{
+								'@type': 'WebSite',
+								name: 'Shiko',
+								url: 'https://shiko.app',
+								description:
+									'AI-powered mind mapping and information organization',
+							},
+							{
+								'@type': 'Organization',
+								name: 'Shiko',
+								url: 'https://shiko.app',
+								logo: 'https://shiko.app/favicon.ico',
+							},
+						],
+					})}
+				</script>
 				<ClientProviders>
 					<div className='flex h-full w-full flex-col rounded-xl bg-zinc-900 text-zinc-100'>
 						{children}

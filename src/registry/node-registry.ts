@@ -77,16 +77,8 @@ export interface NodeRegistryConfig<T extends string = string> {
 	defaultMetadata: Record<string, any>;
 	metadataSchema: z.ZodType;
 
-	// ─── Dimensions ───
-	dimensions: {
-		default: { width: number; height: number };
-		min: { width: number; height: number };
-		max?: { width: number; height: number };
-	};
-
 	// ─── Behavior Flags ───
 	behavior: {
-		resizable: boolean;
 		selectable: boolean;
 		deletable: boolean;
 		connectable: boolean;
@@ -134,13 +126,7 @@ export const NODE_REGISTRY = {
 		examples: ['$note Meeting notes', '$note Project update'],
 		defaultMetadata: {},
 		metadataSchema: nodeValidationSchemas.defaultNode,
-		dimensions: {
-			default: { width: 320, height: 100 },
-			min: { width: 200, height: 60 },
-			max: { width: 800, height: 600 },
-		},
 		behavior: {
-			resizable: true,
 			selectable: true,
 			deletable: true,
 			connectable: true,
@@ -177,13 +163,7 @@ export const NODE_REGISTRY = {
 			textColor: 'rgba(255, 255, 255, 0.87)',
 		},
 		metadataSchema: nodeValidationSchemas.textNode,
-		dimensions: {
-			default: { width: 280, height: 80 },
-			min: { width: 150, height: 40 },
-			max: { width: 800, height: 400 },
-		},
 		behavior: {
-			resizable: true,
 			selectable: true,
 			deletable: true,
 			connectable: true,
@@ -218,13 +198,7 @@ export const NODE_REGISTRY = {
 			status: 'pending',
 		},
 		metadataSchema: nodeValidationSchemas.taskNode,
-		dimensions: {
-			default: { width: 320, height: 150 },
-			min: { width: 250, height: 100 },
-			max: { width: 600, height: 800 },
-		},
 		behavior: {
-			resizable: true,
 			selectable: true,
 			deletable: true,
 			connectable: true,
@@ -259,13 +233,7 @@ export const NODE_REGISTRY = {
 			altText: '',
 		},
 		metadataSchema: nodeValidationSchemas.imageNode,
-		dimensions: {
-			default: { width: 320, height: 240 },
-			min: { width: 150, height: 100 },
-			max: { width: 800, height: 600 },
-		},
 		behavior: {
-			resizable: true,
 			selectable: true,
 			deletable: true,
 			connectable: true,
@@ -301,13 +269,7 @@ export const NODE_REGISTRY = {
 			url: '',
 		},
 		metadataSchema: nodeValidationSchemas.resourceNode,
-		dimensions: {
-			default: { width: 350, height: 200 },
-			min: { width: 280, height: 120 },
-			max: { width: 600, height: 400 },
-		},
 		behavior: {
-			resizable: true,
 			selectable: true,
 			deletable: true,
 			connectable: true,
@@ -342,13 +304,7 @@ export const NODE_REGISTRY = {
 			questionType: 'binary',
 		},
 		metadataSchema: nodeValidationSchemas.questionNode,
-		dimensions: {
-			default: { width: 320, height: 120 },
-			min: { width: 250, height: 80 },
-			max: { width: 600, height: 400 },
-		},
 		behavior: {
-			resizable: true,
 			selectable: true,
 			deletable: true,
 			connectable: true,
@@ -384,13 +340,7 @@ export const NODE_REGISTRY = {
 			fileName: '',
 		},
 		metadataSchema: nodeValidationSchemas.codeNode,
-		dimensions: {
-			default: { width: 400, height: 300 },
-			min: { width: 300, height: 150 },
-			max: { width: 800, height: 600 },
-		},
 		behavior: {
-			resizable: true,
 			selectable: true,
 			deletable: true,
 			connectable: true,
@@ -426,13 +376,7 @@ export const NODE_REGISTRY = {
 			fontWeight: 400,
 		},
 		metadataSchema: nodeValidationSchemas.annotationNode,
-		dimensions: {
-			default: { width: 300, height: 100 },
-			min: { width: 200, height: 60 },
-			max: { width: 600, height: 400 },
-		},
 		behavior: {
-			resizable: true,
 			selectable: true,
 			deletable: true,
 			connectable: true,
@@ -471,13 +415,7 @@ export const NODE_REGISTRY = {
 			borderColor: '#52525b',
 		},
 		metadataSchema: nodeValidationSchemas.groupNode,
-		dimensions: {
-			default: { width: 400, height: 300 },
-			min: { width: 200, height: 150 },
-			max: { width: 1200, height: 1000 },
-		},
 		behavior: {
-			resizable: true,
 			selectable: true,
 			deletable: true,
 			connectable: false, // Groups don't connect
@@ -511,13 +449,7 @@ export const NODE_REGISTRY = {
 			contentSnippet: 'No content',
 		},
 		metadataSchema: nodeValidationSchemas.referenceNode,
-		dimensions: {
-			default: { width: 320, height: 140 },
-			min: { width: 250, height: 100 },
-			max: { width: 600, height: 300 },
-		},
 		behavior: {
-			resizable: true,
 			selectable: true,
 			deletable: true,
 			connectable: true,
@@ -552,13 +484,7 @@ export const NODE_REGISTRY = {
 			participants: [],
 		},
 		metadataSchema: nodeValidationSchemas.commentNode,
-		dimensions: {
-			default: { width: 400, height: 500 },
-			min: { width: 400, height: 500 }, // Fixed size - same as default
-			max: { width: 400, height: 500 }, // Fixed size - same as default
-		},
 		behavior: {
-			resizable: false, // Comment nodes have static size
 			selectable: true,
 			deletable: true,
 			connectable: false, // Comments don't connect to other nodes
@@ -593,12 +519,7 @@ export const NODE_REGISTRY = {
 			confidence: 0,
 		},
 		metadataSchema: nodeValidationSchemas.ghostNode,
-		dimensions: {
-			default: { width: 280, height: 150 },
-			min: { width: 200, height: 100 },
-		},
 		behavior: {
-			resizable: false,
 			selectable: true,
 			deletable: true,
 			connectable: false,
@@ -868,13 +789,6 @@ export class NodeRegistry {
 					...this.getDisplayInfo(type),
 				})),
 		}));
-	}
-
-	/**
-	 * Get dimensions for a node type
-	 */
-	static getDimensions(type: AvailableNodeTypes) {
-		return NODE_REGISTRY[type].dimensions;
 	}
 
 	/**

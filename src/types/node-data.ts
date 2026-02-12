@@ -76,6 +76,7 @@ export interface NodeData extends Record<string, unknown> {
 		altText?: string;
 		caption?: string;
 		showCaption?: boolean;
+		fitMode?: 'cover' | 'contain' | 'fill';
 		source?: string;
 
 		// ------------------------------------------

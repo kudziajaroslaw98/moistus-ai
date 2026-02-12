@@ -5,6 +5,58 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+<!-- Updated: 2026-02-12 - Remove node resize, export fixes, a11y -->
+## [2026-02-12]
+
+### Fixed
+- **gdpr/export**: Batch `.in()` queries into chunks of 50 IDs to avoid URL length limits on large accounts
+- **gdpr/export**: Filter out system-only ghost nodes from data export
+- **gdpr/export**: Always fetch user's comment messages/reactions regardless of comment thread ownership
+- **a11y/404**: Add `focus-visible` ring to back-to-home link for keyboard users
+- **settings**: Fix Delete Account block indentation in settings panel
+
+### Refactored
+- **nodes/resize**: Removed entire node dimension management layer (~1000 lines deleted)
+  - Deleted `use-node-dimensions` hook (372L), `node-dimension-utils` (287L), `use-measure` hook (36L)
+  - Removed `NodeResizer` from base-node-wrapper and group-node
+  - Removed `updateNodeDimensions` store action
+  - Why: Fixed 320px width + CSS auto-height replaces manual dimension tracking
+- **nodes/width**: Standardized all node width fallbacks to 320px (was 200px), prioritized `node.measured` over static fields
+- **nodes/factory**: Removed width/height from node creation pipeline and broadcast sync
+
+### Removed
+- **nodes/resize**: `NodeResizer` UI component instances (2 removed)
+- **nodes/dead-code**: `NodeFactory.getDefaults()` method, `NodeRegistry.getDimensions()` method
+- **nodes/registry**: Removed `dimensions` config and `resizable` flag from all 13 node type entries
+
+---
+
+<!-- Updated: 2026-02-10 - SEO infrastructure + GDPR data export -->
+## [2026-02-10]
+
+### Added
+- **seo/og-image**: Dynamic OG image generation via `opengraph-image.tsx` (1200x630, Shiko brand)
+- **seo/sitemap**: Dynamic sitemap at `/sitemap.xml` with all public routes
+- **seo/robots**: Robots.txt at `/robots.txt` blocking private routes (dashboard, mind-map, api, etc.)
+- **seo/json-ld**: WebSite + Organization structured data in root layout
+- **seo/json-ld**: FAQPage structured data in FAQ section for rich snippets
+- **seo/manifest**: Web app manifest at `/manifest.webmanifest` with dark theme
+- **seo/404**: Custom not-found page with Shiko branding and home link
+- **seo/metadata**: Added `metadataBase` to root layout (fixes social image build warnings)
+- **gdpr/export**: Full data export API (`GET /api/user/export`) — profile, maps, nodes, edges, comments, subscriptions, activity
+  - Why: GDPR Art. 20 compliance (data portability), was previously stubbed
+- **gdpr/export**: Export button in settings panel with download-as-JSON flow
+- **rate-limiter**: Data export rate limiter (1 request per hour per user)
+
+### Fixed
+- **export-dropdown**: Wrapped `DropdownMenuLabel` instances in `DropdownMenuGroup` (required by Base UI)
+
+### Removed
+- **seo**: Deleted `public/og-image-placeholder.svg` (replaced by dynamic generation)
+- **seo**: Removed hardcoded `/og-image.png` references from landing page metadata
+
+---
+
 <!-- Updated: 2026-02-09 - Fix templates bypassing mind map limit -->
 ## [2026-02-09]
 

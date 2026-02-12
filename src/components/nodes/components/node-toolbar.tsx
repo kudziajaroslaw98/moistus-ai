@@ -39,9 +39,10 @@ export const SharedNodeToolbar = ({
 				{isVisible && (
 					<motion.div
 						animate={{ opacity: 1, scale: 1, y: 0 }}
-						className={`flex gap-1 p-2 rounded-lg ${className}`}
+						className={`flex gap-1 p-2 rounded-lg nodrag nopan ${className}`}
 						exit={{ opacity: 0, scale: 0.95, y: 10 }}
 						initial={{ opacity: 0, scale: 0.95, y: 10 }}
+						onPointerDown={(e) => e.stopPropagation()}
 						style={{
 							backgroundColor: theme.elevation[4], // App bar elevation
 							border: `1px solid ${theme.borders.default}`,

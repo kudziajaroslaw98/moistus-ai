@@ -446,6 +446,34 @@ FOR EACH ROW EXECUTE FUNCTION check_node_limit();
 
 ---
 
+## Phase 5.5: SEO Infrastructure
+
+### 5.5.1 OG Image & Social Sharing
+- [x] Dynamic OG image via `src/app/opengraph-image.tsx` (1200x630, Shiko brand)
+- [x] Remove broken `/og-image.png` reference from landing metadata
+- [x] Delete `public/og-image-placeholder.svg` (replaced by dynamic generation)
+
+### 5.5.2 Search Engine Discoverability
+- [x] Sitemap (`src/app/sitemap.ts`) — all public routes
+- [x] Robots.txt (`src/app/robots.ts`) — block private routes
+- [x] JSON-LD structured data (WebSite, Organization) in root layout
+- [x] FAQPage JSON-LD in FAQ section for rich snippets
+
+### 5.5.3 App Infrastructure
+- [x] Custom 404 page (`src/app/not-found.tsx`)
+- [x] Web manifest (`src/app/manifest.ts`)
+- [x] `metadataBase` set in root layout (fixes social image build warnings)
+
+### 5.5.4 Remaining SEO Tasks
+- [ ] Auth page metadata (noindex) — requires server/client component split
+- [ ] Landing `<img>` → `<Image>` conversion — separate testing task
+- [ ] apple-icon — needs design asset
+- [ ] Security headers (CSP, X-Frame-Options) — separate security concern
+
+**Status:** ✅ MOSTLY COMPLETE
+
+---
+
 ## Phase 6: Polish
 
 ### 6.1 Mobile Responsiveness

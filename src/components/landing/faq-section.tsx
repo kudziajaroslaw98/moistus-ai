@@ -122,8 +122,24 @@ export function FaqSection() {
 	const isInView = useInView(ref, { once: true, margin: '-20% 0px' });
 	const shouldReduceMotion = useReducedMotion() ?? false;
 
+	const faqJsonLd = {
+		'@context': 'https://schema.org',
+		'@type': 'FAQPage',
+		mainEntity: faqs.map((faq) => ({
+			'@type': 'Question',
+			name: faq.question,
+			acceptedAnswer: {
+				'@type': 'Answer',
+				text: faq.answer,
+			},
+		})),
+	};
+
 	return (
 		<section id='faq' ref={ref} className='relative py-32 px-4 sm:px-6 lg:px-8'>
+			<script type='application/ld+json'>
+				{JSON.stringify(faqJsonLd)}
+			</script>
 			<GrainOverlay />
 			<SectionDecoration variant='faq' />
 			<div className='relative z-10 max-w-3xl mx-auto'>

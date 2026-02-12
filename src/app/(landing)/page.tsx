@@ -30,21 +30,12 @@ export const metadata: Metadata = {
 			'The mind mapping tool for power users. AI-native suggestions, real-time collaboration, and a keyboard-first editor.',
 		type: 'website',
 		url: 'https://shiko.app',
-		images: [
-			{
-				url: '/og-image.png',
-				width: 1200,
-				height: 630,
-				alt: 'Shiko - AI-Powered Mind Mapping',
-			},
-		],
 	},
 	twitter: {
 		card: 'summary_large_image',
 		title: 'Shiko - From Scattered Notes to Connected Ideas',
 		description:
 			'The mind mapping tool for power users. AI-native suggestions, real-time collaboration.',
-		images: ['/og-image.png'],
 	},
 	robots: {
 		index: true,

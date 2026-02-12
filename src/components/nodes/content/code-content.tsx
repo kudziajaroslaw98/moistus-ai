@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { memo, ReactNode } from 'react';
+import { memo, type ReactNode } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { codeSyntaxTheme, getLanguageIcon } from './code-syntax-theme';
 
@@ -22,8 +22,6 @@ export interface CodeContentProps {
 	codeClassName?: string;
 	/** Whether to show the header with language info */
 	showHeader?: boolean;
-	/** Optional action buttons to render in header (copy, expand, etc.) */
-	headerActions?: ReactNode;
 	/** Optional content to render after the code (e.g., gradient overlay) */
 	codeOverlay?: ReactNode;
 }
@@ -40,7 +38,6 @@ export interface CodeContentProps {
  * - Optional file name
  * - Line numbers
  * - Scrollable container with max height
- * - Customizable header actions (for copy/expand buttons)
  * - Code overlay support (for gradient fade)
  */
 const CodeContentComponent = ({
@@ -52,7 +49,6 @@ const CodeContentComponent = ({
 	className,
 	codeClassName,
 	showHeader = true,
-	headerActions,
 	codeOverlay,
 }: CodeContentProps) => {
 	const displayCode = code || '// Add code snippet here...';
@@ -64,7 +60,7 @@ const CodeContentComponent = ({
 				className
 			)}
 		>
-			{/* Header with file info and optional actions */}
+			{/* Header with file info */}
 			{showHeader && (
 				<div className='flex items-center justify-between px-4 py-3 bg-base border-b border-b-border-default'>
 					<div className='flex items-center gap-3'>
@@ -82,10 +78,6 @@ const CodeContentComponent = ({
 							</div>
 						</div>
 					</div>
-					{/* Action buttons slot */}
-					{headerActions && (
-						<div className='flex items-center gap-2'>{headerActions}</div>
-					)}
 				</div>
 			)}
 

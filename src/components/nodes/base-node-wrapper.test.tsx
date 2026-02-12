@@ -35,40 +35,11 @@ jest.mock('@/hooks/collaboration/use-permissions', () => ({
 	usePermissions: () => ({ canEdit: mockCanEdit }),
 }))
 
-// Mock useMeasure
-jest.mock('@/hooks/use-measure', () => ({
-	useMeasure: () => [jest.fn(), { width: 200, height: 100 }],
-}))
-
-// Mock useNodeDimensions
-jest.mock('@/hooks/use-node-dimensions', () => ({
-	useNodeDimensions: () => ({
-		dimensions: { width: 280, height: 150 },
-		handleResizeStart: jest.fn(),
-		handleResize: jest.fn(),
-		handleResizeEnd: jest.fn(),
-		shouldResize: () => true,
-		nodeRef: { current: null },
-	}),
-}))
-
-// Mock node dimension utils
-jest.mock('@/utils/node-dimension-utils', () => ({
-	getNodeConstraints: () => ({
-		minWidth: 200,
-		minHeight: 100,
-		maxWidth: 800,
-		maxHeight: undefined,
-	}),
-}))
-
 // Mock React Flow
 jest.mock('@xyflow/react', () => ({
 	Handle: ({ position, type }: { position: string; type: string }) => (
 		<div data-testid={`handle-${type}-${position}`} />
 	),
-	NodeResizer: ({ isVisible }: { isVisible: boolean }) =>
-		isVisible ? <div data-testid="node-resizer" /> : null,
 	Position: { Top: 'top', Bottom: 'bottom', Left: 'left', Right: 'right' },
 	useConnection: () => ({ inProgress: false, toNode: null }),
 }))
@@ -148,7 +119,7 @@ describe('BaseNodeWrapper', () => {
 		mockGetNode.mockReturnValue({
 			id: 'node-1',
 			position: { x: 100, y: 100 },
-			height: 150,
+			measured: { width: 320, height: 150 },
 		})
 	})
 
@@ -271,34 +242,13 @@ describe('BaseNodeWrapper', () => {
 	})
 
 	describe('selection state', () => {
-		it('shows resizer when node is selected and canEdit', () => {
-			mockSelectedNodes = [{ id: 'node-1' }]
-			render(<BaseNodeWrapper {...createDefaultProps()} />)
-
-			expect(screen.getByTestId('node-resizer')).toBeInTheDocument()
-		})
-
-		it('hides resizer when node is not selected', () => {
-			mockSelectedNodes = []
-			render(<BaseNodeWrapper {...createDefaultProps()} />)
-
-			expect(screen.queryByTestId('node-resizer')).not.toBeInTheDocument()
-		})
-
-		it('hides resizer when canEdit is false', () => {
-			mockSelectedNodes = [{ id: 'node-1' }]
-			mockCanEdit = false
-			render(<BaseNodeWrapper {...createDefaultProps()} />)
-
-			expect(screen.queryByTestId('node-resizer')).not.toBeInTheDocument()
-		})
-
-		it('hides resizer when hideResizeFrame is true', () => {
+		it('hides handles when hideResizeFrame is true', () => {
 			mockSelectedNodes = [{ id: 'node-1' }]
 			render(<BaseNodeWrapper {...createDefaultProps()} hideResizeFrame={true} />)
 
-			// No handles or resizer should be rendered
-			expect(screen.queryByTestId('node-resizer')).not.toBeInTheDocument()
+			// No handles should be rendered when hideResizeFrame is true
+			expect(screen.queryByTestId('handle-source-bottom')).not.toBeInTheDocument()
+			expect(screen.queryByTestId('handle-target-top')).not.toBeInTheDocument()
 		})
 	})
 

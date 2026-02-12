@@ -14,16 +14,21 @@ export function DashboardHeader({
 	className = '',
 	onOpenSettings,
 }: DashboardHeaderProps) {
-	const { userProfile, isLoadingProfile, profileError, loadUserProfile, isLoggingOut } =
-		useAppStore(
-			useShallow((state) => ({
-				userProfile: state.userProfile,
-				isLoadingProfile: state.isLoadingProfile,
-				profileError: state.profileError,
-				loadUserProfile: state.loadUserProfile,
-				isLoggingOut: state.isLoggingOut,
-			}))
-		);
+	const {
+		userProfile,
+		isLoadingProfile,
+		profileError,
+		loadUserProfile,
+		isLoggingOut,
+	} = useAppStore(
+		useShallow((state) => ({
+			userProfile: state.userProfile,
+			isLoadingProfile: state.isLoadingProfile,
+			profileError: state.profileError,
+			loadUserProfile: state.loadUserProfile,
+			isLoggingOut: state.isLoggingOut,
+		}))
+	);
 
 	// Load user profile on mount if not already loaded
 	// Don't retry if there's already an error to prevent infinite loops
@@ -32,13 +37,19 @@ export function DashboardHeader({
 		if (!userProfile && !isLoadingProfile && !profileError && !isLoggingOut) {
 			loadUserProfile();
 		}
-	}, [userProfile, isLoadingProfile, profileError, loadUserProfile, isLoggingOut]);
+	}, [
+		userProfile,
+		isLoadingProfile,
+		profileError,
+		loadUserProfile,
+		isLoggingOut,
+	]);
 
 	// Loading state
 	if (isLoadingProfile) {
 		return (
 			<header
-				className={`border-b border-zinc-800 bg-zinc-900/50 ${className}`}
+				className={`border-b h-14 border-zinc-800 bg-zinc-900/50 ${className}`}
 			>
 				<div className='flex h-14 items-center justify-between px-6'>
 					<div className='flex items-center space-x-4'>
@@ -59,7 +70,7 @@ export function DashboardHeader({
 	if (profileError) {
 		return (
 			<header
-				className={`border-b border-zinc-800 bg-zinc-900/50 ${className}`}
+				className={`border-b h-14 border-zinc-800 bg-zinc-900/50 ${className}`}
 			>
 				<div className='flex h-14 items-center justify-between px-6'>
 					<div className='flex items-center space-x-4'>
@@ -76,7 +87,7 @@ export function DashboardHeader({
 	if (!userProfile) {
 		return (
 			<header
-				className={`border-b border-zinc-800 bg-zinc-900/50 ${className}`}
+				className={`border-b h-14 border-zinc-800 bg-zinc-900/50 ${className}`}
 			>
 				<div className='flex h-14 items-center justify-between px-6'>
 					<div className='flex items-center space-x-4'>
@@ -92,7 +103,9 @@ export function DashboardHeader({
 	}
 
 	return (
-		<header className={`border-b border-zinc-800 bg-zinc-900/50 ${className}`}>
+		<header
+			className={`border-b h-14 border-zinc-800 bg-zinc-900/50 ${className}`}
+		>
 			<div className='flex h-14 items-center justify-between px-6'>
 				{/* Logo/Title */}
 				<div className='flex items-center space-x-4'>

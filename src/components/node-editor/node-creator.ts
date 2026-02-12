@@ -155,7 +155,7 @@ export const transformDataForNodeType = (
 				metadata: {
 					...universalMetadata,
 					tags: baseTags.length > 0 ? baseTags : undefined,
-					imageUrl: data.metadata?.imageUrl || data.url || extractedUrl || '',
+					imageUrl: data.metadata?.imageUrl || data.metadata?.url || data.url || extractedUrl || '',
 					altText: data.metadata?.altText || data.alt || caption || 'Image',
 					caption: data.metadata?.caption || data.caption || caption || '',
 					showCaption: Boolean(caption),
@@ -268,7 +268,7 @@ export const getChildPosition = (
 			parentNode.position.x +
 			(siblingCount % 3) * HORIZONTAL_SPACING -
 			HORIZONTAL_SPACING,
-		y: parentNode.position.y + (parentNode.height || 100) + VERTICAL_SPACING,
+		y: parentNode.position.y + (parentNode.measured?.height ?? 100) + VERTICAL_SPACING,
 	};
 };
 
