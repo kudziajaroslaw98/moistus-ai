@@ -5,6 +5,25 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+<!-- Updated: 2026-02-12 - Remove node resize, fixed 320px width -->
+## [2026-02-12]
+
+### Refactored
+- **nodes/resize**: Removed entire node dimension management layer (~1000 lines deleted)
+  - Deleted `use-node-dimensions` hook (372L), `node-dimension-utils` (287L), `use-measure` hook (36L)
+  - Removed `NodeResizer` from base-node-wrapper and group-node
+  - Removed `updateNodeDimensions` store action
+  - Why: Fixed 320px width + CSS auto-height replaces manual dimension tracking
+- **nodes/width**: Standardized all node width fallbacks to 320px (was 200px), prioritized `node.measured` over static fields
+- **nodes/factory**: Removed width/height from node creation pipeline and broadcast sync
+
+### Removed
+- **nodes/resize**: `NodeResizer` UI component instances (2 removed)
+- **nodes/dead-code**: `NodeFactory.getDefaults()` method, `NodeRegistry.getDimensions()` method
+- **nodes/registry**: Removed `dimensions` config and `resizable` flag from all 13 node type entries
+
+---
+
 <!-- Updated: 2026-02-10 - SEO infrastructure + GDPR data export -->
 ## [2026-02-10]
 
