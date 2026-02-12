@@ -245,17 +245,6 @@ export class NodeFactory {
 		return nodes.map((options) => this.createReactFlowNode(options));
 	}
 
-	/**
-	 * Get default node data for a type (useful for testing)
-	 */
-	static getDefaults<T extends AvailableNodeTypes>(nodeType: T) {
-		return {
-			metadata: NodeRegistry.getDefaultMetadata(nodeType),
-			dimensions: NodeRegistry.getDimensions(nodeType),
-			behavior: NodeRegistry.getBehavior(nodeType),
-			features: NodeRegistry.getFeatures(nodeType),
-		};
-	}
 }
 
 // ═══════════════════════════════════════════════
