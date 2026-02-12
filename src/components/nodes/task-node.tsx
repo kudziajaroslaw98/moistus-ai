@@ -1,11 +1,16 @@
 'use client';
 
 import useAppStore from '@/store/mind-map-store';
-import { CheckSquare } from 'lucide-react';
+import { CheckCheck, CheckSquare, Plus, Square } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
+import { useShallow } from 'zustand/shallow';
+import { Button } from '../ui/button';
 import { BaseNodeWrapper } from './base-node-wrapper';
+import { SharedNodeToolbar } from './components/node-toolbar';
+import { ToolbarSeparator } from './components/toolbar-controls';
 import { TaskContent } from './content/task-content';
 import { type TaskNodeMetadata, type TypedNodeProps } from './core/types';
+import { GlassmorphismTheme } from './themes/glassmorphism-theme';
 
 type TaskNodeProps = TypedNodeProps<'taskNode'>;
 
@@ -20,10 +25,18 @@ type TaskNodeProps = TypedNodeProps<'taskNode'>;
  * - Progress bar with completion percentage
  * - Celebration message when all complete
  * - Persists changes to store/database
+ * - Toolbar with check all / uncheck all / add task
  */
 const TaskNodeComponent = (props: TaskNodeProps) => {
 	const { id, data } = props;
-	const updateNode = useAppStore((state) => state.updateNode);
+	const { updateNode, selectedNodes } = useAppStore(
+		useShallow((state) => ({
+			updateNode: state.updateNode,
+			selectedNodes: state.selectedNodes,
+		}))
+	);
+
+	const theme = GlassmorphismTheme;
 
 	const tasks = useMemo(
 		() => (data.metadata as TaskNodeMetadata)?.tasks || [],
@@ -48,22 +61,107 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 		[tasks, updateNode, id, data.metadata]
 	);
 
+	const handleCheckAll = useCallback(async () => {
+		const updatedTasks = tasks.map((task) => ({ ...task, isComplete: true }));
+		try {
+			await updateNode({
+				nodeId: id,
+				data: { metadata: { ...data.metadata, tasks: updatedTasks } },
+			});
+		} catch (error) {
+			console.error('Failed to check all tasks:', error);
+		}
+	}, [tasks, updateNode, id, data.metadata]);
+
+	const handleUncheckAll = useCallback(async () => {
+		const updatedTasks = tasks.map((task) => ({ ...task, isComplete: false }));
+		try {
+			await updateNode({
+				nodeId: id,
+				data: { metadata: { ...data.metadata, tasks: updatedTasks } },
+			});
+		} catch (error) {
+			console.error('Failed to uncheck all tasks:', error);
+		}
+	}, [tasks, updateNode, id, data.metadata]);
+
+	const handleAddTask = useCallback(async () => {
+		const newTask = {
+			id: crypto.randomUUID(),
+			text: '',
+			isComplete: false,
+		};
+		const updatedTasks = [...tasks, newTask];
+		try {
+			await updateNode({
+				nodeId: id,
+				data: { metadata: { ...data.metadata, tasks: updatedTasks } },
+			});
+		} catch (error) {
+			console.error('Failed to add task:', error);
+		}
+	}, [tasks, updateNode, id, data.metadata]);
+
+	const buttonStyle = {
+		backgroundColor: 'transparent',
+		border: `1px solid ${theme.borders.hover}`,
+		color: theme.text.medium,
+	};
+
 	return (
-		<BaseNodeWrapper
-			{...props}
-			hideNodeType
-			elevation={1}
-			nodeClassName='task-node'
-			nodeIcon={<CheckSquare className='size-4' />}
-			nodeType='Tasks'
-		>
-			<TaskContent
-				tasks={tasks}
-				onTaskToggle={handleToggleTask}
-				placeholder='Double click or click the menu to add tasks...'
-				showCelebrationEmoji={true}
-			/>
-		</BaseNodeWrapper>
+		<>
+			<SharedNodeToolbar
+				isVisible={props.selected && selectedNodes.length === 1}
+			>
+				<Button
+					className="h-8 w-8 p-0"
+					onClick={handleCheckAll}
+					size="sm"
+					style={buttonStyle}
+					title="Check all"
+					variant="outline"
+				>
+					<CheckCheck className="w-4 h-4" />
+				</Button>
+				<Button
+					className="h-8 w-8 p-0"
+					onClick={handleUncheckAll}
+					size="sm"
+					style={buttonStyle}
+					title="Uncheck all"
+					variant="outline"
+				>
+					<Square className="w-4 h-4" />
+				</Button>
+				<ToolbarSeparator />
+				<Button
+					className="h-8 w-8 p-0"
+					onClick={handleAddTask}
+					size="sm"
+					style={buttonStyle}
+					title="Add task"
+					variant="outline"
+				>
+					<Plus className="w-4 h-4" />
+				</Button>
+			</SharedNodeToolbar>
+
+			<BaseNodeWrapper
+				{...props}
+				hideNodeType
+				elevation={1}
+				nodeClassName='task-node'
+				nodeIcon={<CheckSquare className='size-4' />}
+				nodeType='Tasks'
+			>
+				<TaskContent
+					tasks={tasks}
+					onTaskToggle={handleToggleTask}
+					placeholder='Double click or click the menu to add tasks...'
+					showCelebrationEmoji={true}
+				/>
+			</BaseNodeWrapper>
+		</>
 	);
 };
 

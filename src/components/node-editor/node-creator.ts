@@ -155,7 +155,7 @@ export const transformDataForNodeType = (
 				metadata: {
 					...universalMetadata,
 					tags: baseTags.length > 0 ? baseTags : undefined,
-					imageUrl: data.metadata?.imageUrl || data.url || extractedUrl || '',
+					imageUrl: data.metadata?.imageUrl || data.metadata?.url || data.url || extractedUrl || '',
 					altText: data.metadata?.altText || data.alt || caption || 'Image',
 					caption: data.metadata?.caption || data.caption || caption || '',
 					showCaption: Boolean(caption),

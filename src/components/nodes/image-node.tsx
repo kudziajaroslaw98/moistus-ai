@@ -1,18 +1,39 @@
 'use client';
 
+import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import { getSafeImageUrl, isExternalImageUrl } from '@/utils/secure-image-url';
-import { Image as ImageIcon, Loader2 } from 'lucide-react';
+import {
+	Expand,
+	Image as ImageIcon,
+	Loader2,
+	Maximize,
+	Minimize,
+	RectangleHorizontal,
+	Type,
+} from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Image from 'next/image';
 import { memo, useCallback, useState } from 'react';
+import { useShallow } from 'zustand/shallow';
+import { Button } from '../ui/button';
 import { BaseNodeWrapper } from './base-node-wrapper';
+import { SharedNodeToolbar } from './components/node-toolbar';
+import { ToolbarSeparator } from './components/toolbar-controls';
 import { ImageContent, type ImageLoadState } from './content/image-content';
 import { type TypedNodeProps } from './core/types';
 import { ExportImagePlaceholder } from './shared/export-image-placeholder';
 import { GlassmorphismTheme } from './themes/glassmorphism-theme';
 
 type ImageNodeProps = TypedNodeProps<'imageNode'>;
+
+const FIT_MODES = ['cover', 'contain', 'fill'] as const;
+
+const FIT_MODE_ICONS: Record<string, React.ElementType> = {
+	cover: Maximize,
+	contain: Minimize,
+	fill: RectangleHorizontal,
+};
 
 /**
  * Image Node Component
@@ -27,11 +48,21 @@ type ImageNodeProps = TypedNodeProps<'imageNode'>;
  * - View full size control on hover
  * - Caption with photographer credit
  * - Image info bar (dimensions, file size, format)
+ * - Toolbar with fit mode, caption toggle, view full size
  */
 const ImageNodeComponent = (props: ImageNodeProps) => {
 	const { data } = props;
 	const [imageState, setImageState] = useState<ImageLoadState>('loading');
 	const [aspectRatio, setAspectRatio] = useState<number>(16 / 9);
+
+	const { updateNode, selectedNodes } = useAppStore(
+		useShallow((state) => ({
+			updateNode: state.updateNode,
+			selectedNodes: state.selectedNodes,
+		}))
+	);
+
+	const theme = GlassmorphismTheme;
 
 	const rawImageUrl = (data.metadata?.image_url || data.metadata?.imageUrl) as
 		| string
@@ -54,6 +85,28 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 		},
 		[]
 	);
+
+	const handleCycleFitMode = useCallback(() => {
+		const currentIndex = FIT_MODES.indexOf(fitMode);
+		const nextMode = FIT_MODES[(currentIndex + 1) % FIT_MODES.length];
+		updateNode({
+			nodeId: data.id,
+			data: { metadata: { ...data.metadata, fitMode: nextMode } },
+		});
+	}, [fitMode, updateNode, data.id, data.metadata]);
+
+	const handleToggleCaption = useCallback(() => {
+		updateNode({
+			nodeId: data.id,
+			data: { metadata: { ...data.metadata, showCaption: !showCaption } },
+		});
+	}, [showCaption, updateNode, data.id, data.metadata]);
+
+	const handleViewFullSize = useCallback(() => {
+		if (imageUrl) {
+			window.open(imageUrl, '_blank');
+		}
+	}, [imageUrl]);
 
 	// Build caption props
 	const captionProps = showCaption
@@ -83,12 +136,12 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 				title='View full size'
 				style={{
 					backgroundColor: 'rgba(18, 18, 18, 0.8)',
-					border: `1px solid ${GlassmorphismTheme.borders.hover}`,
+					border: `1px solid ${theme.borders.hover}`,
 				}}
 			>
 				<ImageIcon
 					className='w-3.5 h-3.5'
-					style={{ color: GlassmorphismTheme.text.high }}
+					style={{ color: theme.text.high }}
 				/>
 			</button>
 		</motion.div>
@@ -99,51 +152,104 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 		<ExportImagePlaceholder imageUrl={rawImageUrl} variant='image' />
 	);
 
+	const FitIcon = FIT_MODE_ICONS[fitMode] || Maximize;
+
+	const buttonStyle = {
+		backgroundColor: 'transparent',
+		border: `1px solid ${theme.borders.hover}`,
+		color: theme.text.medium,
+	};
+
+	const activeStyle = {
+		backgroundColor: 'rgba(96, 165, 250, 0.2)',
+		border: `1px solid ${theme.borders.accent}`,
+		color: theme.text.high,
+	};
+
 	return (
-		<BaseNodeWrapper
-			{...props}
-			hideNodeType
-			elevation={1}
-			includePadding={false}
-			nodeClassName={cn(['image-node'])}
-			nodeIcon={<ImageIcon className='size-4' />}
-			nodeType='Image'
-		>
-			{needsExportPlaceholder ? (
-				// External images: Use shared ImageContent with native img
-				<div data-export-image-container>
-					{exportPlaceholder}
-					<ImageContent
+		<>
+			<SharedNodeToolbar
+				isVisible={props.selected && selectedNodes.length === 1}
+			>
+				<Button
+					className="h-8 w-8 p-0"
+					onClick={handleCycleFitMode}
+					size="sm"
+					style={buttonStyle}
+					title={`Fit: ${fitMode}`}
+					variant="outline"
+				>
+					<FitIcon className="w-4 h-4" />
+				</Button>
+				<Button
+					className="h-8 w-8 p-0"
+					onClick={handleToggleCaption}
+					size="sm"
+					style={showCaption ? activeStyle : buttonStyle}
+					title={showCaption ? 'Hide caption' : 'Show caption'}
+					variant="outline"
+				>
+					<Type className="w-4 h-4" />
+				</Button>
+				<ToolbarSeparator />
+				<Button
+					className="h-8 w-8 p-0"
+					disabled={!imageUrl}
+					onClick={handleViewFullSize}
+					size="sm"
+					style={buttonStyle}
+					title="View full size"
+					variant="outline"
+				>
+					<Expand className="w-4 h-4" />
+				</Button>
+			</SharedNodeToolbar>
+
+			<BaseNodeWrapper
+				{...props}
+				hideNodeType
+				elevation={1}
+				includePadding={false}
+				nodeClassName={cn(['image-node'])}
+				nodeIcon={<ImageIcon className='size-4' />}
+				nodeType='Image'
+			>
+				{needsExportPlaceholder ? (
+					// External images: Use shared ImageContent with native img
+					<div data-export-image-container>
+						{exportPlaceholder}
+						<ImageContent
+							imageUrl={imageUrl}
+							altText={altText}
+							fitMode={fitMode}
+							aspectRatio={data.metadata?.aspectRatio || aspectRatio}
+							maxHeight='400px'
+							minHeight='120px'
+							rawUrlForError={rawImageUrl}
+							onLoad={handleImageLoad}
+							imageOverlay={controlsOverlay}
+							showLoadingBar={true}
+							caption={captionProps}
+							showCaptionGradient={showCaption}
+						/>
+					</div>
+				) : (
+					// Internal images: Use Next.js Image for optimization
+					<InternalImageRenderer
 						imageUrl={imageUrl}
 						altText={altText}
 						fitMode={fitMode}
 						aspectRatio={data.metadata?.aspectRatio || aspectRatio}
-						maxHeight='400px'
-						minHeight='120px'
-						rawUrlForError={rawImageUrl}
-						onLoad={handleImageLoad}
-						imageOverlay={controlsOverlay}
-						showLoadingBar={true}
-						caption={captionProps}
-						showCaptionGradient={showCaption}
+						showCaption={showCaption}
+						captionProps={captionProps}
+						imageState={imageState}
+						onStateChange={setImageState}
+						onAspectRatioChange={setAspectRatio}
+						controlsOverlay={controlsOverlay}
 					/>
-				</div>
-			) : (
-				// Internal images: Use Next.js Image for optimization
-				<InternalImageRenderer
-					imageUrl={imageUrl}
-					altText={altText}
-					fitMode={fitMode}
-					aspectRatio={data.metadata?.aspectRatio || aspectRatio}
-					showCaption={showCaption}
-					captionProps={captionProps}
-					imageState={imageState}
-					onStateChange={setImageState}
-					onAspectRatioChange={setAspectRatio}
-					controlsOverlay={controlsOverlay}
-				/>
-			)}
-		</BaseNodeWrapper>
+				)}
+			</BaseNodeWrapper>
+		</>
 	);
 };
 

@@ -8,7 +8,24 @@ const mockUpdateNode = jest.fn().mockResolvedValue(undefined)
 
 jest.mock('@/store/mind-map-store', () => ({
 	__esModule: true,
-	default: jest.fn((selector) => selector({ updateNode: mockUpdateNode })),
+	default: jest.fn((selector) =>
+		selector({ updateNode: mockUpdateNode, selectedNodes: ['task-node-1'] })
+	),
+}))
+
+// Mock SharedNodeToolbar to avoid React Flow provider requirement
+jest.mock('./components/node-toolbar', () => ({
+	SharedNodeToolbar: ({
+		children,
+		isVisible,
+	}: {
+		children: React.ReactNode
+		isVisible: boolean
+	}) => (
+		<div data-testid='shared-node-toolbar' data-visible={isVisible}>
+			{children}
+		</div>
+	),
 }))
 
 // Mock BaseNodeWrapper
