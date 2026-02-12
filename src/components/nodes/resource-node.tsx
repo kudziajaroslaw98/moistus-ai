@@ -7,7 +7,7 @@ import { getSafeImageUrl, isExternalImageUrl } from '@/utils/secure-image-url';
 import { ExternalLink, Globe, Link as LinkIcon, Loader2, RefreshCw } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
-import { memo, useCallback, useRef, useState } from 'react';
+import { memo, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { Button } from '../ui/button';
 import { BaseNodeWrapper } from './base-node-wrapper';
@@ -22,11 +22,9 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 	const { id, data } = props;
 	const [imageError, setImageError] = useState(false);
 	const [imageLoading, setImageLoading] = useState(true);
-	const containerRef = useRef<HTMLDivElement>(null);
 
-	const { updateNodeDimensions, selectedNodes } = useAppStore(
+	const { selectedNodes } = useAppStore(
 		useShallow((state) => ({
-			updateNodeDimensions: state.updateNodeDimensions,
 			selectedNodes: state.selectedNodes,
 		}))
 	);
@@ -37,24 +35,6 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 	// Metadata fetching state
 	const isFetchingMetadata = Boolean(data.metadata?.isFetchingMetadata);
 	const isLoading = isFetching || isFetchingMetadata;
-
-	// Helper to remeasure node dimensions after content changes
-	const remeasureNode = useCallback(
-		(width?: number, height?: number) => {
-			if (!containerRef.current) return;
-
-			// Find the node wrapper parent (the ref is attached there)
-			const nodeWrapper = containerRef.current.closest('.react-flow__node');
-			if (!nodeWrapper) return;
-
-			const actualHeight = (nodeWrapper as HTMLElement).clientHeight;
-			const actualWidth = (nodeWrapper as HTMLElement).offsetWidth;
-
-			// Update dimensions immediately
-			updateNodeDimensions(id, actualWidth, actualHeight, width && height ? { width, height } : undefined);
-		},
-		[id, updateNodeDimensions]
-	);
 
 	const resourceUrl = data.metadata?.url as string | undefined;
 	const title = (data.metadata?.title as string) || data.content || 'Resource';
@@ -127,7 +107,7 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 					)}
 				</AnimatePresence>
 
-				<div className='flex flex-col gap-3' ref={containerRef}>
+				<div className='flex flex-col gap-3'>
 				{/* Thumbnail with sophisticated loading states */}
 				{showThumbnail && imageUrl && (
 					<div
@@ -179,13 +159,8 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 									setImageError(true);
 									setImageLoading(false);
 								}}
-								onLoad={(e) => {
-									const img = e.currentTarget;
-									const height = img.naturalHeight;
-									const width = img.naturalWidth;
+								onLoad={() => {
 									setImageLoading(false);
-									// Remeasure after image loads (affects height)
-									setTimeout(() => remeasureNode(width, height), 50);
 								}}
 								style={{
 									opacity: imageLoading ? 0 : 1,
@@ -313,10 +288,6 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 							exit={{ opacity: 0, height: 0 }}
 							initial={{ opacity: 0, height: 0 }}
 							transition={{ duration: 0.3 }}
-							onAnimationComplete={() => {
-								// Remeasure after animation completes
-								remeasureNode();
-							}}
 						>
 							{/* Divider with gradient */}
 							<div className='relative py-2'>

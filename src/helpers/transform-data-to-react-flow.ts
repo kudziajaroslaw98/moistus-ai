@@ -12,8 +12,6 @@ export const transformDataToReactFlow = (
 		position: { x: node.position_x || 0, y: node.position_y || 0 },
 		data: node,
 		type: node.node_type || 'defaultNode',
-		width: node.width || undefined,
-		height: node.height || undefined,
 	}));
 
 	const reactFlowEdges: AppEdge[] = edges.map((edge) => ({

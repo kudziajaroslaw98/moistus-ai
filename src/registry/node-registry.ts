@@ -140,7 +140,7 @@ export const NODE_REGISTRY = {
 			max: { width: 800, height: 600 },
 		},
 		behavior: {
-			resizable: true,
+			resizable: false,
 			selectable: true,
 			deletable: true,
 			connectable: true,
@@ -183,7 +183,7 @@ export const NODE_REGISTRY = {
 			max: { width: 800, height: 400 },
 		},
 		behavior: {
-			resizable: true,
+			resizable: false,
 			selectable: true,
 			deletable: true,
 			connectable: true,
@@ -224,7 +224,7 @@ export const NODE_REGISTRY = {
 			max: { width: 600, height: 800 },
 		},
 		behavior: {
-			resizable: true,
+			resizable: false,
 			selectable: true,
 			deletable: true,
 			connectable: true,
@@ -265,7 +265,7 @@ export const NODE_REGISTRY = {
 			max: { width: 800, height: 600 },
 		},
 		behavior: {
-			resizable: true,
+			resizable: false,
 			selectable: true,
 			deletable: true,
 			connectable: true,
@@ -307,7 +307,7 @@ export const NODE_REGISTRY = {
 			max: { width: 600, height: 400 },
 		},
 		behavior: {
-			resizable: true,
+			resizable: false,
 			selectable: true,
 			deletable: true,
 			connectable: true,
@@ -348,7 +348,7 @@ export const NODE_REGISTRY = {
 			max: { width: 600, height: 400 },
 		},
 		behavior: {
-			resizable: true,
+			resizable: false,
 			selectable: true,
 			deletable: true,
 			connectable: true,
@@ -390,7 +390,7 @@ export const NODE_REGISTRY = {
 			max: { width: 800, height: 600 },
 		},
 		behavior: {
-			resizable: true,
+			resizable: false,
 			selectable: true,
 			deletable: true,
 			connectable: true,
@@ -432,7 +432,7 @@ export const NODE_REGISTRY = {
 			max: { width: 600, height: 400 },
 		},
 		behavior: {
-			resizable: true,
+			resizable: false,
 			selectable: true,
 			deletable: true,
 			connectable: true,
@@ -477,7 +477,7 @@ export const NODE_REGISTRY = {
 			max: { width: 1200, height: 1000 },
 		},
 		behavior: {
-			resizable: true,
+			resizable: false,
 			selectable: true,
 			deletable: true,
 			connectable: false, // Groups don't connect
@@ -517,7 +517,7 @@ export const NODE_REGISTRY = {
 			max: { width: 600, height: 300 },
 		},
 		behavior: {
-			resizable: true,
+			resizable: false,
 			selectable: true,
 			deletable: true,
 			connectable: true,

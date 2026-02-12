@@ -1,5 +1,4 @@
 import { defaultEdgeData } from '@/constants/default-edge-data';
-import { ceilToGrid, GRID_SIZE } from '@/constants/grid';
 import { STORE_SAVE_DEBOUNCE_MS } from '@/constants/store-save-debounce-ms';
 import { fetchResourceMetadata } from '@/helpers/fetch-resource-metadata';
 import generateUuid from '@/helpers/generate-uuid';
@@ -351,7 +350,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					newNodePosition = position;
 				} else if (parentNode && parentNode.position) {
 					// Use improved parent-relative positioning with better spacing
-					const parentHeight = parentNode.height || 60;
+					const parentHeight = parentNode.measured?.height ?? 200;
 
 					// Calculate position based on number of existing children
 					newNodePosition = {
@@ -409,12 +408,8 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 						x: insertedNodeData.position_x,
 						y: insertedNodeData.position_y,
 					},
-
 					data: insertedNodeData,
 					type: insertedNodeData.node_type || 'defaultNode',
-
-					width: insertedNodeData.width || undefined,
-					height: insertedNodeData.height || undefined,
 					zIndex:
 						insertedNodeData.node_type === 'commentNode' ? 100 : undefined,
 				};
@@ -502,8 +497,6 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 						updatedNode = {
 							...node,
 							type: data.node_type || node.type,
-							width: data.width || node.width,
-							height: data.height || node.height,
 							position: {
 								x: data.position_x || node.position.x,
 								y: data.position_y || node.position.y,
@@ -536,73 +529,6 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 			// Persist delta to DB for history tracking
 			get().persistDeltaEvent(
 				'saveNodeProperties',
-				{ nodes: prevNodes, edges: prevEdges },
-				{ nodes: get().nodes, edges: get().edges }
-			);
-		},
-		updateNodeDimensions: (
-			nodeId: string,
-			width: number,
-			height: number,
-			imageSize?: { width: number; height: number }
-		) => {
-			const prevNodes = get().nodes;
-			const prevEdges = get().edges;
-			const { nodes } = get();
-			const node = nodes.find((n) => n.id === nodeId);
-
-			if (!node) return;
-
-			// Snap incoming dimensions up to GRID_SIZE before comparing
-			const snappedWidth = ceilToGrid(width, GRID_SIZE);
-			const snappedHeight = ceilToGrid(height, GRID_SIZE);
-
-			// Check if dimensions have actually changed (>5px threshold)
-			const currentWidth = node.measured?.width || node.width || 0;
-			const currentHeight = node.measured?.height || node.height || 0;
-			const widthChanged = Math.abs(snappedWidth - currentWidth) > 15;
-			const heightChanged = Math.abs(snappedHeight - currentHeight) > 15;
-
-			// If dimensions haven't changed significantly, skip update
-			if (!widthChanged && !heightChanged) {
-				return;
-			}
-
-			// Update the node dimensions in local state
-			set((state) => ({
-				nodes: state.nodes.map((node) => {
-					if (node.id === nodeId) {
-						return {
-							...node,
-							// Update both the node dimensions and data dimensions
-							width: snappedWidth,
-							height: snappedHeight,
-							measured: {
-								width: snappedWidth,
-								height: snappedHeight,
-							},
-							data: {
-								...node.data,
-								width: snappedWidth,
-								height: snappedHeight,
-								metadata: {
-									...node.data.metadata,
-									imageSize: imageSize,
-								},
-							},
-						};
-					}
-
-					return node;
-				}),
-			}));
-
-			// Trigger debounced save to persist dimension changes
-			get().triggerNodeSave(nodeId);
-
-			// Persist delta to DB for history tracking
-			get().persistDeltaEvent(
-				'updateNodeDimensions',
 				{ nodes: prevNodes, edges: prevEdges },
 				{ nodes: get().nodes, edges: get().edges }
 			);

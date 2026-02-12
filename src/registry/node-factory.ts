@@ -25,8 +25,6 @@ export interface CreateNodeOptions<T extends AvailableNodeTypes> {
 	nodeType: T;
 	metadata?: Partial<NodeMetadataMap[T]>;
 	parentId?: string;
-	width?: number;
-	height?: number;
 }
 
 // React Flow node creation options
@@ -56,13 +54,10 @@ export class NodeFactory {
 			nodeType,
 			metadata = {},
 			parentId = null,
-			width,
-			height,
 		} = options;
 
 		// Get defaults from registry
 		const defaultMeta = NodeRegistry.getDefaultMetadata(nodeType);
-		const defaultDimensions = NodeRegistry.getDimensions(nodeType);
 
 		// Merge with defaults
 		const mergedMetadata = {
@@ -82,8 +77,8 @@ export class NodeFactory {
 			content,
 			position_x: position.x,
 			position_y: position.y,
-			width: width || defaultDimensions.default.width,
-			height: height || defaultDimensions.default.height,
+			width: null,
+			height: null,
 			created_at: now,
 			updated_at: now,
 			metadata: mergedMetadata,
@@ -106,8 +101,6 @@ export class NodeFactory {
 				y: nodeData.position_y,
 			},
 			data: nodeData,
-			width: nodeData.width ?? undefined,
-			height: nodeData.height ?? undefined,
 			dragging: options.dragging || false,
 			zIndex: options.zIndex || 1,
 		} as TypedNode<T>;
@@ -169,8 +162,6 @@ export class NodeFactory {
 			position: newPosition,
 			nodeType: sourceNode.data.node_type,
 			metadata: metadata as Partial<NodeMetadataMap[T]>,
-			width: sourceNode.width,
-			height: sourceNode.height,
 		});
 	}
 
