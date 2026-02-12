@@ -69,8 +69,8 @@ function GhostNodeComponent(props: GhostNodeProps) {
 		const sourceNode = getNode(data.metadata.context.sourceNodeId);
 		if (sourceNode) {
 			reactFlowInstance.setCenter(
-				sourceNode.position.x + (sourceNode.width ?? 200) / 2,
-				sourceNode.position.y + (sourceNode.height ?? 100) / 2,
+				sourceNode.position.x + (sourceNode.measured?.width ?? 320) / 2,
+				sourceNode.position.y + (sourceNode.measured?.height ?? 100) / 2,
 				{
 					zoom: 1.2,
 					duration: 400,

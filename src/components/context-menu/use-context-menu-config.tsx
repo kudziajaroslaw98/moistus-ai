@@ -96,7 +96,7 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 							const parentNodeBounds = {
 								x: clickedNode.position.x,
 								y: clickedNode.position.y,
-								width: clickedNode.measured?.width || 200,
+								width: 320,
 								height: clickedNode.measured?.height || 100,
 							};
 

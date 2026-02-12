@@ -50,8 +50,6 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 			},
 			data: newRecord,
 			type: newRecord.node_type || 'defaultNode',
-			width: newRecord.width || undefined,
-			height: newRecord.height || undefined,
 			zIndex: newRecord.node_type === 'commentNode' ? 100 : undefined,
 		};
 
@@ -81,8 +79,6 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					},
 					data: newRecord,
 					type: newRecord.node_type || node.type,
-					width: newRecord.width || node.width,
-					height: newRecord.height || node.height,
 					zIndex: newRecord.node_type === 'commentNode' ? 100 : node.zIndex,
 				};
 			}

@@ -16,7 +16,7 @@ import { DEFAULT_NAVIGATION_CONFIG } from '@/types/navigation-types';
  * Get the center point of a node
  */
 export function getNodeCenter(node: AppNode): Point {
-  const width = node.measured?.width ?? node.width ?? 200;
+  const width = node.measured?.width ?? node.width ?? 320;
   const height = node.measured?.height ?? node.height ?? 100;
 
   return {
@@ -159,11 +159,11 @@ export function calculateNewNodePosition(
   offset: number = DEFAULT_NAVIGATION_CONFIG.createNodeOffset
 ): Point {
   const sourceCenter = getNodeCenter(sourceNode);
-  const sourceWidth = sourceNode.measured?.width ?? sourceNode.width ?? 200;
+  const sourceWidth = sourceNode.measured?.width ?? sourceNode.width ?? 320;
   const sourceHeight = sourceNode.measured?.height ?? sourceNode.height ?? 100;
 
   // Default new node dimensions (will be adjusted by NodeEditor)
-  const newNodeWidth = 200;
+  const newNodeWidth = 320;
   const newNodeHeight = 100;
 
   switch (direction) {

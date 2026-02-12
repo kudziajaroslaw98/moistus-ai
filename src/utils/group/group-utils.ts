@@ -24,8 +24,8 @@ export function calculateGroupBounds(
 	let maxY = -Infinity;
 
 	nodes.forEach((node) => {
-		const nodeWidth = node.width || 320;
-		const nodeHeight = node.height || 100;
+		const nodeWidth = node.measured?.width ?? node.width ?? 320;
+		const nodeHeight = node.measured?.height ?? node.height ?? 100;
 
 		minX = Math.min(minX, node.position.x);
 		minY = Math.min(minY, node.position.y);
@@ -52,8 +52,8 @@ export function isNodeInGroupBounds(
 	node: AppNode,
 	groupBounds: GroupBounds
 ): boolean {
-	const nodeWidth = node.width || 320;
-	const nodeHeight = node.height || 100;
+	const nodeWidth = node.measured?.width ?? node.width ?? 320;
+	const nodeHeight = node.measured?.height ?? node.height ?? 100;
 	const nodeRight = node.position.x + nodeWidth;
 	const nodeBottom = node.position.y + nodeHeight;
 	const groupRight = groupBounds.x + groupBounds.width;
@@ -82,8 +82,8 @@ export function findNodesInGroup(
 	const groupBounds = {
 		x: groupNode.position.x,
 		y: groupNode.position.y,
-		width: groupNode.width || 320,
-		height: groupNode.height || 100,
+		width: groupNode.measured?.width ?? groupNode.width ?? 320,
+		height: groupNode.measured?.height ?? groupNode.height ?? 100,
 	};
 
 	return allNodes.filter(

@@ -18,7 +18,7 @@ import type {
 import { buildGroupLayoutOptions, buildLayoutOptions, getRecommendedCurveType } from './elk-config';
 
 // Default dimensions for nodes without explicit size
-const DEFAULT_NODE_WIDTH = 200;
+const DEFAULT_NODE_WIDTH = 320;
 const DEFAULT_NODE_HEIGHT = 80;
 
 /**

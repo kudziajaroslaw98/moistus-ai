@@ -268,7 +268,7 @@ export const getChildPosition = (
 			parentNode.position.x +
 			(siblingCount % 3) * HORIZONTAL_SPACING -
 			HORIZONTAL_SPACING,
-		y: parentNode.position.y + (parentNode.height || 100) + VERTICAL_SPACING,
+		y: parentNode.position.y + (parentNode.measured?.height ?? 100) + VERTICAL_SPACING,
 	};
 };
 
