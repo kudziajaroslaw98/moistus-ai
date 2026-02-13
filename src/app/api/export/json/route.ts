@@ -138,12 +138,16 @@ export const POST = withApiValidation(
 				data: stripNodeData(node.data ?? {}),
 			}));
 
-		const strippedEdges = (edgesResult.data ?? []).map((edge) => ({
-			id: edge.id,
-			source: edge.source,
-			target: edge.target,
-			type: edge.edge_type,
-		}));
+		const validNodeIds = new Set(strippedNodes.map((n) => n.id));
+
+		const strippedEdges = (edgesResult.data ?? [])
+			.filter((e) => validNodeIds.has(e.source) && validNodeIds.has(e.target))
+			.map((edge) => ({
+				id: edge.id,
+				source: edge.source,
+				target: edge.target,
+				type: edge.edge_type,
+			}));
 
 		const json = JSON.stringify(
 			{ nodes: strippedNodes, edges: strippedEdges },
