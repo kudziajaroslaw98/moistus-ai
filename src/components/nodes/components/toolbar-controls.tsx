@@ -34,6 +34,7 @@ export interface TextFormattingProps {
 	onItalicToggle?: (italic: boolean) => void;
 	alignment?: 'left' | 'center' | 'right';
 	onAlignmentChange?: (alignment: 'left' | 'center' | 'right') => void;
+	disabled?: boolean;
 }
 
 export const TextFormattingControls = ({
@@ -43,6 +44,7 @@ export const TextFormattingControls = ({
 	onItalicToggle,
 	alignment = 'center',
 	onAlignmentChange,
+	disabled = false,
 }: TextFormattingProps) => {
 	const theme = GlassmorphismTheme;
 
@@ -64,6 +66,7 @@ export const TextFormattingControls = ({
 			{onBoldToggle && (
 				<Toggle
 					className="h-8 w-8 p-0"
+					disabled={disabled}
 					onPressedChange={onBoldToggle}
 					pressed={isBold}
 					size="sm"
@@ -78,6 +81,7 @@ export const TextFormattingControls = ({
 			{onItalicToggle && (
 				<Toggle
 					className="h-8 w-8 p-0"
+					disabled={disabled}
 					onPressedChange={onItalicToggle}
 					pressed={isItalic}
 					size="sm"
@@ -98,6 +102,7 @@ export const TextFormattingControls = ({
 					
 					<ToggleGroup
 						className="gap-0"
+						disabled={disabled}
 						size="sm"
 						type="single"
 						value={alignment}

@@ -15,6 +15,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **export/json-server**: Server-side JSON export generation (`/api/export/json`) — fetches from DB, validates subscription + map ownership, strips internal fields server-side
 
 ### Fixed
+- **nodes/permissions**: Viewers can no longer interact with node toolbar edit buttons or task checkboxes — all 8 node types with `SharedNodeToolbar` now enforce `canEdit` permission, with lock icon indicator for read-only users
 - **node-editor/mobile**: Responsive layout — container fits mobile viewport, input stacks vertically, preview hidden on mobile, action bar text shortened to prevent truncation
 - **export/dropdown**: Locked format radio items no longer fully disabled — clicks now trigger upgrade prompt instead of being silently blocked
 

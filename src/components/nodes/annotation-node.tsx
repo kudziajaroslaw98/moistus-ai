@@ -1,5 +1,6 @@
 'use client';
 
+import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import useAppStore from '@/store/mind-map-store';
 import { memo, useCallback } from 'react';
 import { useShallow } from 'zustand/shallow';
@@ -30,6 +31,7 @@ type AnnotationNodeProps = TypedNodeProps<'annotationNode'>;
  */
 const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 	const { data, selected } = props;
+	const { canEdit } = usePermissions();
 
 	const { updateNode, selectedNodes } = useAppStore(
 		useShallow((state) => ({
@@ -61,9 +63,11 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 		<>
 			<SharedNodeToolbar
 				isVisible={props.selected && selectedNodes.length === 1}
+				readOnly={!canEdit}
 			>
 				<AnnotationTypePicker
 					annotationType={annotationType}
+					disabled={!canEdit}
 					onTypeChange={handleTypeChange}
 				/>
 			</SharedNodeToolbar>

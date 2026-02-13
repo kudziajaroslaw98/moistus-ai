@@ -17,6 +17,7 @@ import { GlassmorphismTheme } from '../themes/glassmorphism-theme';
 export interface AnnotationTypePickerProps {
 	annotationType: string;
 	onTypeChange: (type: string) => void;
+	disabled?: boolean;
 }
 
 // Exclude 'default' — it's a fallback, not a user-selectable type
@@ -27,6 +28,7 @@ const VISIBLE_TYPES = Object.entries(ANNOTATION_TYPES).filter(
 export const AnnotationTypePicker = ({
 	annotationType,
 	onTypeChange,
+	disabled = false,
 }: AnnotationTypePickerProps) => {
 	const theme = GlassmorphismTheme;
 	const currentType = ANNOTATION_TYPES[annotationType] || ANNOTATION_TYPES.default;
@@ -35,9 +37,11 @@ export const AnnotationTypePicker = ({
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger
+				disabled={disabled}
 				render={
 					<Button
 						className="h-8 px-2 gap-1.5"
+						disabled={disabled}
 						size="sm"
 						variant="outline"
 						style={{

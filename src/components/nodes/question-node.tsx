@@ -1,5 +1,6 @@
 'use client';
 
+import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import useAppStore from '@/store/mind-map-store';
 import { ChevronDown, HelpCircle, RotateCcw, Sparkles } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -25,6 +26,7 @@ type QuestionNodeProps = TypedNodeProps<'questionNode'>;
 
 const QuestionNodeComponent = (props: QuestionNodeProps) => {
 	const { id, data } = props;
+	const { canEdit } = usePermissions();
 	const { updateNode, selectedNodes } = useAppStore(
 		useShallow((state) => ({
 			updateNode: state.updateNode,
@@ -188,10 +190,11 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 		<>
 			<SharedNodeToolbar
 				isVisible={props.selected && selectedNodes.length === 1}
+				readOnly={!canEdit}
 			>
 				<Button
 					className="h-8 w-8 p-0"
-					disabled={!isAnswered}
+					disabled={!canEdit || !isAnswered}
 					onClick={handleResetAnswer}
 					size="sm"
 					style={buttonStyle}

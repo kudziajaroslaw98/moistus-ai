@@ -1,5 +1,6 @@
 'use client';
 
+import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import useAppStore from '@/store/mind-map-store';
 import { CheckCheck, CheckSquare, Plus, Square } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
@@ -29,6 +30,7 @@ type TaskNodeProps = TypedNodeProps<'taskNode'>;
  */
 const TaskNodeComponent = (props: TaskNodeProps) => {
 	const { id, data } = props;
+	const { canEdit } = usePermissions();
 	const { updateNode, selectedNodes } = useAppStore(
 		useShallow((state) => ({
 			updateNode: state.updateNode,
@@ -112,9 +114,11 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 		<>
 			<SharedNodeToolbar
 				isVisible={props.selected && selectedNodes.length === 1}
+				readOnly={!canEdit}
 			>
 				<Button
 					className="h-8 w-8 p-0"
+					disabled={!canEdit}
 					onClick={handleCheckAll}
 					size="sm"
 					style={buttonStyle}
@@ -125,6 +129,7 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 				</Button>
 				<Button
 					className="h-8 w-8 p-0"
+					disabled={!canEdit}
 					onClick={handleUncheckAll}
 					size="sm"
 					style={buttonStyle}
@@ -136,6 +141,7 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 				<ToolbarSeparator />
 				<Button
 					className="h-8 w-8 p-0"
+					disabled={!canEdit}
 					onClick={handleAddTask}
 					size="sm"
 					style={buttonStyle}
@@ -156,7 +162,7 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 			>
 				<TaskContent
 					tasks={tasks}
-					onTaskToggle={handleToggleTask}
+					onTaskToggle={canEdit ? handleToggleTask : undefined}
 					placeholder='Double click or click the menu to add tasks...'
 					showCelebrationEmoji={true}
 				/>

@@ -11,7 +11,6 @@ const STORAGE_KEY = 'anonymous_banner_dismissed';
 
 export function AnonymousUserBanner() {
 	const [isDismissed, setIsDismissed] = useState(true);
-	const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 	const { userProfile, setPopoverOpen } = useAppStore(
 		useShallow((state) => ({
 			userProfile: state.userProfile,
@@ -37,8 +36,7 @@ export function AnonymousUserBanner() {
 	};
 
 	const handleCreateAccount = () => {
-		setPopoverOpen({ upgradeUser: true });
-		setShowUpgradeModal(true);
+		setPopoverOpen({ guestSignup: true });
 	};
 
 	if (!userProfile?.is_anonymous || isDismissed) {
