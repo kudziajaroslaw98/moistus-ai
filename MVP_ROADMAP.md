@@ -446,6 +446,24 @@ FOR EACH ROW EXECUTE FUNCTION check_node_limit();
 
 ---
 
+### 5.2 Server-Side Export Generation (JSON)
+
+**Problem:** JSON/PDF export validation is now server-side (`/api/export/validate`), but the actual JSON data is still generated client-side from Zustand store state. A determined user could bypass the validation call and serialize `nodes`/`edges` directly from the store via browser console.
+
+**Fix:** Move JSON export generation to a server endpoint that fetches nodes/edges from the database, strips internal fields server-side, and returns the file. This makes the paywall tamper-proof for JSON exports. PDF export inherently requires client-side canvas rendering, so server-side validation is the best we can do there.
+
+**Files to create:**
+- `src/app/api/export/json/route.ts` (fetches from DB, strips fields, returns JSON blob)
+
+**Files to modify:**
+- `src/store/slices/export-slice.ts` (call server endpoint instead of local `exportToJson`)
+
+**Effort:** 2-3 hours | **Risk:** Low
+
+**Status:** 📋 PLANNED
+
+---
+
 ## Phase 5.5: SEO Infrastructure
 
 ### 5.5.1 OG Image & Social Sharing
