@@ -10,7 +10,7 @@
 import { toBlob, toSvg } from 'html-to-image';
 import type { Options } from 'html-to-image/lib/types';
 
-export type ExportFormat = 'png' | 'svg' | 'pdf';
+export type ExportFormat = 'png' | 'svg' | 'pdf' | 'json';
 export type ExportScale = 1 | 2 | 3 | 4;
 
 export interface ExportOptions {
@@ -299,4 +299,59 @@ export function generateExportFilename(
 	const sanitizedTitle = title.replace(/[^a-z0-9]/gi, '-').toLowerCase();
 	const timestamp = new Date().toISOString().slice(0, 10);
 	return `${sanitizedTitle}-${timestamp}.${format}`;
+}
+
+/** Internal data keys to strip from JSON export */
+const INTERNAL_DATA_KEYS = new Set([
+	'id', 'map_id', 'user_id', 'node_type',
+	'position_x', 'position_y',
+	'aiData',
+]);
+
+/** Internal metadata keys to strip from JSON export */
+const INTERNAL_METADATA_KEYS = new Set([
+	'isFetchingMetadata', 'metadataFetchError', 'metadataFetchedAt',
+	'embedding', 'isSearchResult', 'confidence',
+	'suggestedContent', 'suggestedType', 'context', 'sourceNodeName',
+]);
+
+/**
+ * Export current map nodes and edges as a clean JSON blob.
+ * Strips internal DB fields, React Flow internals, and AI/fetch state.
+ */
+export function exportToJson(
+	nodes: { id: string; type?: string; position: { x: number; y: number }; data: Record<string, unknown> }[],
+	edges: { id: string; source: string; target: string; type?: string; data?: Record<string, unknown> }[]
+): Blob {
+	const strippedNodes = nodes
+		.filter((n) => n.type !== 'ghostNode')
+		.map(({ id, type, position, data }) => {
+			// Strip internal keys from data
+			const cleanData: Record<string, unknown> = {};
+			for (const [key, value] of Object.entries(data)) {
+				if (INTERNAL_DATA_KEYS.has(key)) continue;
+				if (key === 'metadata' && value && typeof value === 'object') {
+					// Strip internal metadata keys
+					const cleanMeta: Record<string, unknown> = {};
+					for (const [mk, mv] of Object.entries(value as Record<string, unknown>)) {
+						if (!INTERNAL_METADATA_KEYS.has(mk)) {
+							cleanMeta[mk] = mv;
+						}
+					}
+					if (Object.keys(cleanMeta).length > 0) {
+						cleanData.metadata = cleanMeta;
+					}
+				} else {
+					cleanData[key] = value;
+				}
+			}
+			return { id, type, position, data: cleanData };
+		});
+
+	const strippedEdges = edges.map(({ id, source, target, type }) => ({
+		id, source, target, type,
+	}));
+
+	const json = JSON.stringify({ nodes: strippedNodes, edges: strippedEdges }, null, 2);
+	return new Blob([json], { type: 'application/json' });
 }

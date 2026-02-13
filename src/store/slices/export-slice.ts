@@ -5,6 +5,7 @@
 
 import {
 	downloadFile,
+	exportToJson,
 	exportToPng,
 	exportToSvg,
 	generateExportFilename,
@@ -91,6 +92,25 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (
 		set({ isExporting: true, exportError: null });
 
 		try {
+			// PDF and JSON require Pro subscription
+			if (exportFormat === 'pdf' || exportFormat === 'json') {
+				const plan = state.currentSubscription?.plan?.name || 'free';
+				if (plan !== 'pro') {
+					set({ isExporting: false, exportError: 'Pro subscription required for this export format' });
+					return;
+				}
+			}
+
+			// JSON export doesn't need canvas operations
+			if (exportFormat === 'json') {
+				const { nodes, edges } = state;
+				const blob = exportToJson(nodes, edges);
+				const filename = generateExportFilename(mindMap?.title, 'json');
+				downloadFile(blob, filename);
+				set({ isExporting: false });
+				return;
+			}
+
 			// Fit view if requested
 			if (exportFitView && reactFlowInstance) {
 				reactFlowInstance.fitView({
