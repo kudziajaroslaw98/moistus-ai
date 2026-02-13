@@ -231,7 +231,7 @@ MVP launch readiness checklist:
 | Terms of Service | Contract law | Contract law | ✅ DONE |
 | Cookie Notice | GDPR/ePrivacy | Varies | ✅ DONE (essential-only) |
 | Account Deletion | GDPR Art. 17 | CCPA | ✅ DONE |
-| Data Export | GDPR Art. 20 | CCPA | 🔴 BLOCKER (see 2.1) |
+| Data Export | GDPR Art. 20 | CCPA | ✅ DONE |
 | Subprocessor List | GDPR Art. 28 | Best practice | ✅ DONE |
 | DPA Template | GDPR Art. 28 | B2B contracts | 🟡 HIGH (B2B) |
 
@@ -242,13 +242,14 @@ MVP launch readiness checklist:
 ## Phase 2: GDPR & Billing
 
 ### 2.1 Data Export (GDPR Required)
-- [ ] Implement actual data gathering (maps, nodes, edges, comments, profile)
-- [ ] Generate JSON or ZIP export
-- [ ] Add download UI in settings panel
-- [ ] Consider async job for large exports (queue + email when ready)
+- [x] Implement actual data gathering (maps, nodes, edges, comments, profile)
+- [x] Generate JSON export with full user data (profile, maps, nodes, edges, comments, subscriptions, activity)
+- [x] Add download UI in settings panel
+- [x] Batched queries for large datasets, ghost node filtering, sensitive field sanitization
 
-**Files:** `src/app/api/user/export/route.ts` (line 18)
-**Effort:** 4-6 hours | **Risk:** Medium
+**Files:** `src/app/api/user/export/route.ts`, `src/components/dashboard/settings-panel.tsx`
+
+**Status:** ✅ COMPLETED
 
 ---
 
