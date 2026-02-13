@@ -17,6 +17,7 @@ import { GlassmorphismTheme } from '../themes/glassmorphism-theme';
 export interface LanguagePickerProps {
 	language: string;
 	onLanguageChange: (lang: string) => void;
+	disabled?: boolean;
 }
 
 const LANGUAGES = Object.keys(LANGUAGE_ICONS);
@@ -24,15 +25,18 @@ const LANGUAGES = Object.keys(LANGUAGE_ICONS);
 export const LanguagePicker = ({
 	language,
 	onLanguageChange,
+	disabled = false,
 }: LanguagePickerProps) => {
 	const theme = GlassmorphismTheme;
 
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger
+				disabled={disabled}
 				render={
 					<Button
 						className="h-8 px-2 gap-1.5"
+						disabled={disabled}
 						size="sm"
 						variant="outline"
 						style={{

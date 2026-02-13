@@ -31,8 +31,8 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 				initial={{ opacity: 0 }}
 				transition={{ delay: 0.15, duration: 0.3 }}
 			>
-				Press Ctrl+Enter to {mode === 'edit' ? 'update' : 'create'} • Enter for
-				new line
+				<span className='hidden sm:inline'>Press </span>Ctrl+Enter to {mode === 'edit' ? 'update' : 'create'}
+				<span className='hidden sm:inline'> • Enter for new line</span>
 			</motion.span>
 
 			<motion.button

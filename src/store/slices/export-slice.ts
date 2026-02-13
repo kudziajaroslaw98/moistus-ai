@@ -91,6 +91,48 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (
 		set({ isExporting: true, exportError: null });
 
 		try {
+			// JSON export — fully server-side (subscription + data generation)
+			if (exportFormat === 'json') {
+				const res = await fetch('/api/export/json', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ mapId: mindMap?.id }),
+				});
+
+				if (!res.ok) {
+					const body = await res.json().catch(() => null);
+					const message = body?.error || 'JSON export failed';
+					console.warn('[Export] JSON export blocked:', { status: res.status });
+					set({ isExporting: false, exportError: message });
+					return;
+				}
+
+				const blob = await res.blob();
+				const disposition = res.headers.get('Content-Disposition');
+				const filename = disposition?.match(/filename="(.+)"/)?.[1]
+					|| generateExportFilename(mindMap?.title, 'json');
+				downloadFile(blob, filename);
+				set({ isExporting: false });
+				return;
+			}
+
+			// PDF requires Pro subscription — validated server-side
+			if (exportFormat === 'pdf') {
+				const res = await fetch('/api/export/validate', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ format: 'pdf' }),
+				});
+
+				if (!res.ok) {
+					const body = await res.json().catch(() => null);
+					const message = body?.error || 'Pro subscription required for this export format';
+					console.warn('[Export] Unauthorized export attempt blocked:', { format: exportFormat, status: res.status });
+					set({ isExporting: false, exportError: message });
+					return;
+				}
+			}
+
 			// Fit view if requested
 			if (exportFitView && reactFlowInstance) {
 				reactFlowInstance.fitView({

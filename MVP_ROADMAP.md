@@ -231,7 +231,7 @@ MVP launch readiness checklist:
 | Terms of Service | Contract law | Contract law | ✅ DONE |
 | Cookie Notice | GDPR/ePrivacy | Varies | ✅ DONE (essential-only) |
 | Account Deletion | GDPR Art. 17 | CCPA | ✅ DONE |
-| Data Export | GDPR Art. 20 | CCPA | 🔴 BLOCKER (see 2.1) |
+| Data Export | GDPR Art. 20 | CCPA | ✅ DONE |
 | Subprocessor List | GDPR Art. 28 | Best practice | ✅ DONE |
 | DPA Template | GDPR Art. 28 | B2B contracts | 🟡 HIGH (B2B) |
 
@@ -242,13 +242,14 @@ MVP launch readiness checklist:
 ## Phase 2: GDPR & Billing
 
 ### 2.1 Data Export (GDPR Required)
-- [ ] Implement actual data gathering (maps, nodes, edges, comments, profile)
-- [ ] Generate JSON or ZIP export
-- [ ] Add download UI in settings panel
-- [ ] Consider async job for large exports (queue + email when ready)
+- [x] Implement actual data gathering (maps, nodes, edges, comments, profile)
+- [x] Generate JSON export with full user data (profile, maps, nodes, edges, comments, subscriptions, activity)
+- [x] Add download UI in settings panel
+- [x] Batched queries for large datasets, ghost node filtering, sensitive field sanitization
 
-**Files:** `src/app/api/user/export/route.ts` (line 18)
-**Effort:** 4-6 hours | **Risk:** Medium
+**Files:** `src/app/api/user/export/route.ts`, `src/components/dashboard/settings-panel.tsx`
+
+**Status:** ✅ COMPLETED
 
 ---
 
@@ -443,6 +444,22 @@ FOR EACH ROW EXECUTE FUNCTION check_node_limit();
 **Effort:** 2-3 hours | **Risk:** Low (API already enforces, this is backup)
 
 **Status:** 📋 PLANNED (Phase 2 - after MVP launch)
+
+---
+
+### 5.2 Server-Side Export Generation (JSON)
+
+**Problem:** JSON/PDF export validation is now server-side (`/api/export/validate`), but the actual JSON data is still generated client-side from Zustand store state. A determined user could bypass the validation call and serialize `nodes`/`edges` directly from the store via browser console.
+
+**Fix:** Move JSON export generation to a server endpoint that fetches nodes/edges from the database, strips internal fields server-side, and returns the file. This makes the paywall tamper-proof for JSON exports. PDF export inherently requires client-side canvas rendering, so server-side validation is the best we can do there.
+
+**Files created:**
+- `src/app/api/export/json/route.ts` (fetches from DB, strips fields, returns JSON blob)
+
+**Files modified:**
+- `src/store/slices/export-slice.ts` (calls server endpoint instead of local `exportToJson`)
+
+**Status:** ✅ COMPLETED
 
 ---
 

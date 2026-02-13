@@ -73,6 +73,16 @@ jest.mock('../ui/avatar-stack', () => ({
 	),
 }))
 
+jest.mock('../ai/ai-actions-popover', () => ({
+	AIActionsPopover: () => (
+		<div data-testid="ai-actions-popover">
+			<button>Expand ideas</button>
+			<button>Find connections</button>
+			<button>Find similar</button>
+		</div>
+	),
+}))
+
 jest.mock('../ui/button', () => ({
 	Button: ({ children, onClick, title, ...props }: React.ComponentProps<'button'>) => (
 		<button onClick={onClick} title={title} data-testid={title} {...props}>

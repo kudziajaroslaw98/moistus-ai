@@ -3,6 +3,11 @@ import userEvent from '@testing-library/user-event'
 import TaskNode from './task-node'
 import useAppStore from '@/store/mind-map-store'
 
+// Mock permissions hook
+jest.mock('@/hooks/collaboration/use-permissions', () => ({
+	usePermissions: () => ({ canEdit: true, canComment: true, canView: true, isOwner: true, isCollaborator: false, role: 'owner', isLoading: false }),
+}))
+
 // Mock the store
 const mockUpdateNode = jest.fn().mockResolvedValue(undefined)
 

@@ -27,7 +27,7 @@ const faqs = [
 	{
 		question: 'Can I export my data?',
 		answer:
-			'Yes. Free users get PNG/SVG export. Pro users get PDF and JSON export. You can download all your data anytime.',
+			'Yes. Export your maps as PNG or SVG — free for everyone. Pro users also get PDF and JSON data export. Plus, you can download a full copy of all your account data anytime (GDPR-ready).',
 	},
 	{
 		question: 'How does real-time collaboration work?',

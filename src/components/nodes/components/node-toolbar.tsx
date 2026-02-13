@@ -8,6 +8,7 @@
 'use client';
 
 import { NodeToolbar, Position } from '@xyflow/react';
+import { Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ReactNode } from 'react';
 import { GlassmorphismTheme } from '../themes/glassmorphism-theme';
@@ -18,6 +19,8 @@ export interface NodeToolbarProps {
 	offset?: number;
 	children: ReactNode;
 	className?: string;
+	/** When true, shows a lock icon indicating read-only mode */
+	readOnly?: boolean;
 }
 
 export const SharedNodeToolbar = ({
@@ -26,6 +29,7 @@ export const SharedNodeToolbar = ({
 	offset = 10,
 	children,
 	className = '',
+	readOnly = false,
 }: NodeToolbarProps) => {
 	const theme = GlassmorphismTheme;
 
@@ -57,6 +61,23 @@ export const SharedNodeToolbar = ({
 						}}
 					>
 						{children}
+						{readOnly && (
+							<>
+								<div
+									className="w-[1px] h-8 mx-1"
+									style={{ backgroundColor: theme.borders.default }}
+								/>
+								<div
+									className="flex items-center justify-center h-8 w-8"
+									title="View only"
+								>
+									<Lock
+										className="w-3.5 h-3.5"
+										style={{ color: theme.text.disabled }}
+									/>
+								</div>
+							</>
+						)}
 					</motion.div>
 				)}
 			</AnimatePresence>

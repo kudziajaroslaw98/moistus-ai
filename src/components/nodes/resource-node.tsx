@@ -1,5 +1,6 @@
 'use client';
 
+import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useResourceMetadataFetch } from '@/hooks/use-resource-metadata-fetch';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
@@ -20,6 +21,7 @@ type ResourceNodeProps = TypedNodeProps<'resourceNode'>;
 
 const ResourceNodeComponent = (props: ResourceNodeProps) => {
 	const { id, data } = props;
+	const { canEdit } = usePermissions();
 	const [imageError, setImageError] = useState(false);
 	const [imageLoading, setImageLoading] = useState(true);
 
@@ -62,13 +64,14 @@ const ResourceNodeComponent = (props: ResourceNodeProps) => {
 			{/* Toolbar with refetch button */}
 			<SharedNodeToolbar
 				isVisible={props.selected && selectedNodes.length === 1}
+				readOnly={!canEdit}
 			>
 				<Button
 					className={cn(
 						'h-8 px-3 gap-2',
 						isLoading && 'cursor-not-allowed opacity-50'
 					)}
-					disabled={isLoading}
+					disabled={!canEdit || isLoading}
 					onClick={refetchMetadata}
 					size="sm"
 					title="Refresh metadata"

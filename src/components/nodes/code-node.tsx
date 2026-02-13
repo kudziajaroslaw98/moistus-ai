@@ -1,5 +1,6 @@
 'use client';
 
+import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { cn } from '@/lib/utils';
 import useAppStore from '@/store/mind-map-store';
 import { Code, Hash } from 'lucide-react';
@@ -34,6 +35,7 @@ type CodeNodeProps = TypedNodeProps<'codeNode'>;
  */
 const CodeNodeComponent = (props: CodeNodeProps) => {
 	const { data } = props;
+	const { canEdit } = usePermissions();
 	const [copied, setCopied] = useState(false);
 	const [isExpanded, setIsExpanded] = useState(false);
 
@@ -119,6 +121,7 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 		<>
 			<SharedNodeToolbar
 				isVisible={props.selected && selectedNodes.length === 1}
+				readOnly={!canEdit}
 			>
 				<Button
 					className="h-8 w-8 p-0"
@@ -133,11 +136,13 @@ const CodeNodeComponent = (props: CodeNodeProps) => {
 				</Button>
 				<ToolbarSeparator />
 				<LanguagePicker
+					disabled={!canEdit}
 					language={language}
 					onLanguageChange={handleLanguageChange}
 				/>
 				<Button
 					className="h-8 w-8 p-0"
+					disabled={!canEdit}
 					onClick={handleToggleLineNumbers}
 					size="sm"
 					style={showLineNumbers ? activeStyle : buttonStyle}

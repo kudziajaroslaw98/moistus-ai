@@ -5,6 +5,31 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+<!-- Updated: 2026-02-13 - JSON export, PDF/JSON paywall, mobile node editor, server-side export, node permission fix -->
+## [2026-02-13]
+
+### Added
+- **export/json**: JSON map export — nodes & edges with internal fields stripped (DB IDs, AI state, React Flow internals)
+- **export/paywall**: PDF and JSON export gated behind Pro subscription (UI badge + client-side guard in `startExport`)
+- **export/validate**: Server-side subscription validation endpoint (`/api/export/validate`) with telemetry logging for unauthorized attempts
+- **export/json-server**: Server-side JSON export generation (`/api/export/json`) — fetches from DB, validates subscription + map ownership, strips internal fields server-side
+
+### Fixed
+- **nodes/permissions**: Viewers can no longer interact with node toolbar edit buttons or task checkboxes — all 8 node types with `SharedNodeToolbar` now enforce `canEdit` permission, with lock icon indicator for read-only users
+- **auth/guest-banner**: Guest signup banner now uses `guestSignup` popover state instead of `upgradeUser`
+- **tests/base-node-wrapper**: Fix `AIActionsPopover` test crash by mocking component to avoid deep store dependency chain
+- **export/json**: Exclude orphaned edges referencing filtered ghost nodes from JSON export
+- **node-editor/mobile**: Responsive layout — container fits mobile viewport, input stacks vertically, preview hidden on mobile, action bar text shortened to prevent truncation
+- **export/dropdown**: Locked format radio items no longer fully disabled — clicks now trigger upgrade prompt instead of being silently blocked
+
+### Changed
+- **export/dropdown**: Hide export settings submenu when JSON format is selected
+- **export/dropdown**: Increase dropdown max-height for additional format option
+- **export/slice**: Pro export check moved from client-side plan name comparison to server-side API validation with 403 handling
+- **landing/faq**: Update export FAQ to accurately reflect free (PNG/SVG) vs Pro (PDF/JSON) tiers
+
+---
+
 <!-- Updated: 2026-02-12 - Remove node resize, export fixes, a11y -->
 ## [2026-02-12]
 

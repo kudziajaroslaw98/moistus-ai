@@ -1,5 +1,6 @@
 'use client';
 
+import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import { getSafeImageUrl, isExternalImageUrl } from '@/utils/secure-image-url';
@@ -52,6 +53,7 @@ const FIT_MODE_ICONS: Record<string, React.ElementType> = {
  */
 const ImageNodeComponent = (props: ImageNodeProps) => {
 	const { data } = props;
+	const { canEdit } = usePermissions();
 	const [imageState, setImageState] = useState<ImageLoadState>('loading');
 	const [aspectRatio, setAspectRatio] = useState<number>(16 / 9);
 
@@ -170,9 +172,11 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 		<>
 			<SharedNodeToolbar
 				isVisible={props.selected && selectedNodes.length === 1}
+				readOnly={!canEdit}
 			>
 				<Button
 					className="h-8 w-8 p-0"
+					disabled={!canEdit}
 					onClick={handleCycleFitMode}
 					size="sm"
 					style={buttonStyle}
@@ -183,6 +187,7 @@ const ImageNodeComponent = (props: ImageNodeProps) => {
 				</Button>
 				<Button
 					className="h-8 w-8 p-0"
+					disabled={!canEdit}
 					onClick={handleToggleCaption}
 					size="sm"
 					style={showCaption ? activeStyle : buttonStyle}

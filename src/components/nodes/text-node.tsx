@@ -1,5 +1,6 @@
 'use client';
 
+import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import useAppStore from '@/store/mind-map-store';
 import { type NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
@@ -15,6 +16,7 @@ type TextNodeProps = TypedNodeProps<'textNode'>;
 
 const TextNodeComponent = (props: TextNodeProps) => {
 	const { data } = props;
+	const { canEdit } = usePermissions();
 
 	const { content, metadata } = data;
 	const { updateNode, selectedNodes } = useAppStore(
@@ -67,9 +69,11 @@ const TextNodeComponent = (props: TextNodeProps) => {
 		<>
 			<SharedNodeToolbar
 				isVisible={props.selected && selectedNodes.length === 1}
+				readOnly={!canEdit}
 			>
 				<TextFormattingControls
 					alignment={textAlign}
+					disabled={!canEdit}
 					isBold={fontWeight === 600}
 					isItalic={fontStyle === 'italic'}
 					onAlignmentChange={(alignment) =>

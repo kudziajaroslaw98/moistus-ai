@@ -1,10 +1,10 @@
 'use client';
 
-import type { AvailableNodeTypes } from '@/registry/node-registry';
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
+import type { AvailableNodeTypes } from '@/registry/node-registry';
 import useAppStore from '@/store/mind-map-store';
-import { AnimatePresence, motion } from 'motion/react';
 import { AlertCircle } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import {
 	useCallback,
 	useEffect,
@@ -399,10 +399,10 @@ export const QuickInput: FC<QuickInputProps> = ({
 			{parentNode && <ParentNodeReference parentNode={parentNode} />}
 
 			{/* Input and Preview Side by Side - Fixed 50/50 Layout */}
-			<div className='flex items-stretch gap-3 max-h-[400px] h-auto'>
+			<div className='flex flex-col sm:flex-row items-stretch gap-3 sm:max-h-[400px] h-auto'>
 				<EnhancedInput
 					animate={{ opacity: 1, y: 0 }}
-					className='min-w-0 mt-5 w-sm h-auto'
+					className='min-w-0 mt-5 w-full sm:w-sm h-auto'
 					disabled={isCreating}
 					enableCommands={true}
 					initial={{ opacity: 1, y: -20 }}
@@ -421,6 +421,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 				/>
 
 				<PreviewSection
+					className='hidden sm:block'
 					hasInput={value.trim().length > 0}
 					nodeType={currentNodeType || initialNodeType || 'defaultNode'}
 					preview={preview}

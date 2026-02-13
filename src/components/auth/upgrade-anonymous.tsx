@@ -753,7 +753,7 @@ export function UpgradeAnonymousPrompt({
 		if (!isAnonymous || isDismissed) return;
 
 		const timer = setTimeout(() => {
-			setPopoverOpen({ upgradeUser: true });
+			setPopoverOpen({ guestSignup: true });
 		}, autoShowDelay);
 
 		return () => clearTimeout(timer);
@@ -763,14 +763,14 @@ export function UpgradeAnonymousPrompt({
 	if (!isAnonymous || isDismissed) return null;
 
 	const handleDismiss = () => {
-		setPopoverOpen({ upgradeUser: false });
+		setPopoverOpen({ guestSignup: false });
 		setIsDismissed(true);
 		resetUpgradeState();
 		onDismiss?.();
 	};
 
 	const handleClose = () => {
-		setPopoverOpen({ upgradeUser: false });
+		setPopoverOpen({ guestSignup: false });
 		resetUpgradeState();
 		if (displayStep === 'completed') {
 			onUpgradeSuccess?.();
@@ -934,7 +934,7 @@ export function UpgradeAnonymousPrompt({
 
 	return (
 		<AnimatePresence>
-			{popoverOpen.upgradeUser && (
+			{popoverOpen.guestSignup && (
 				<>
 					{/* Backdrop */}
 					<motion.div
