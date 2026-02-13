@@ -18,6 +18,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **nodes/permissions**: Viewers can no longer interact with node toolbar edit buttons or task checkboxes — all 8 node types with `SharedNodeToolbar` now enforce `canEdit` permission, with lock icon indicator for read-only users
 - **auth/guest-banner**: Guest signup banner now uses `guestSignup` popover state instead of `upgradeUser`
 - **tests/base-node-wrapper**: Fix `AIActionsPopover` test crash by mocking component to avoid deep store dependency chain
+- **export/json**: Exclude orphaned edges referencing filtered ghost nodes from JSON export
 - **node-editor/mobile**: Responsive layout — container fits mobile viewport, input stacks vertically, preview hidden on mobile, action bar text shortened to prevent truncation
 - **export/dropdown**: Locked format radio items no longer fully disabled — clicks now trigger upgrade prompt instead of being silently blocked
 
