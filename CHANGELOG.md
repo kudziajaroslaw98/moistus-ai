@@ -5,12 +5,15 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-02-13 - JSON export, PDF/JSON paywall -->
+<!-- Updated: 2026-02-13 - JSON export, PDF/JSON paywall, mobile node editor -->
 ## [2026-02-13]
 
 ### Added
 - **export/json**: JSON map export — nodes & edges with internal fields stripped (DB IDs, AI state, React Flow internals)
 - **export/paywall**: PDF and JSON export gated behind Pro subscription (UI badge + client-side guard in `startExport`)
+
+### Fixed
+- **node-editor/mobile**: Responsive layout — container fits mobile viewport, input stacks vertically, preview hidden on mobile, action bar text shortened to prevent truncation
 
 ### Changed
 - **export/dropdown**: Hide export settings submenu when JSON format is selected
