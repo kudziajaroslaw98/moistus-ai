@@ -452,15 +452,13 @@ FOR EACH ROW EXECUTE FUNCTION check_node_limit();
 
 **Fix:** Move JSON export generation to a server endpoint that fetches nodes/edges from the database, strips internal fields server-side, and returns the file. This makes the paywall tamper-proof for JSON exports. PDF export inherently requires client-side canvas rendering, so server-side validation is the best we can do there.
 
-**Files to create:**
+**Files created:**
 - `src/app/api/export/json/route.ts` (fetches from DB, strips fields, returns JSON blob)
 
-**Files to modify:**
-- `src/store/slices/export-slice.ts` (call server endpoint instead of local `exportToJson`)
+**Files modified:**
+- `src/store/slices/export-slice.ts` (calls server endpoint instead of local `exportToJson`)
 
-**Effort:** 2-3 hours | **Risk:** Low
-
-**Status:** 📋 PLANNED
+**Status:** ✅ COMPLETED
 
 ---
 

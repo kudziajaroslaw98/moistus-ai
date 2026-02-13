@@ -5,13 +5,14 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-02-13 - JSON export, PDF/JSON paywall, mobile node editor, server-side export validation -->
+<!-- Updated: 2026-02-13 - JSON export, PDF/JSON paywall, mobile node editor, server-side export -->
 ## [2026-02-13]
 
 ### Added
 - **export/json**: JSON map export — nodes & edges with internal fields stripped (DB IDs, AI state, React Flow internals)
 - **export/paywall**: PDF and JSON export gated behind Pro subscription (UI badge + client-side guard in `startExport`)
 - **export/validate**: Server-side subscription validation endpoint (`/api/export/validate`) with telemetry logging for unauthorized attempts
+- **export/json-server**: Server-side JSON export generation (`/api/export/json`) — fetches from DB, validates subscription + map ownership, strips internal fields server-side
 
 ### Fixed
 - **node-editor/mobile**: Responsive layout — container fits mobile viewport, input stacks vertically, preview hidden on mobile, action bar text shortened to prevent truncation
