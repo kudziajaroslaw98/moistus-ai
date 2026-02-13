@@ -5,6 +5,20 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+<!-- Updated: 2026-02-13 - JSON export, PDF/JSON paywall -->
+## [2026-02-13]
+
+### Added
+- **export/json**: JSON map export — nodes & edges with internal fields stripped (DB IDs, AI state, React Flow internals)
+- **export/paywall**: PDF and JSON export gated behind Pro subscription (UI badge + client-side guard in `startExport`)
+
+### Changed
+- **export/dropdown**: Hide export settings submenu when JSON format is selected
+- **export/dropdown**: Increase dropdown max-height for additional format option
+- **landing/faq**: Update export FAQ to accurately reflect free (PNG/SVG) vs Pro (PDF/JSON) tiers
+
+---
+
 <!-- Updated: 2026-02-12 - Remove node resize, export fixes, a11y -->
 ## [2026-02-12]
 
