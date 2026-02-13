@@ -36,7 +36,13 @@ const animationVariants = {
 };
 
 export const NodeEditor = () => {
-	const { nodeEditor, closeNodeEditor, nodes, resetQuickInput, getDefaultNodeType } = useAppStore(
+	const {
+		nodeEditor,
+		closeNodeEditor,
+		nodes,
+		resetQuickInput,
+		getDefaultNodeType,
+	} = useAppStore(
 		useShallow((state) => ({
 			nodeEditor: state.nodeEditor,
 			closeNodeEditor: state.closeNodeEditor,
@@ -97,11 +103,12 @@ export const NodeEditor = () => {
 	if (!nodeEditor.isOpen) return null;
 
 	const theme = {
-		container: 'bg-base border border-border-subtle w-3xl rounded-md',
+		container:
+			'bg-base border border-border-subtle w-[calc(100%-2rem)] sm:w-3xl rounded-md max-h-[calc(100dvh-2rem)] sm:max-h-none overflow-y-auto sm:overflow-visible',
 	};
 
 	return (
-		<div className='fixed flex flex-col items-center top-0 left-0 w-full h-full bg-zinc-950/50 z-[100] backdrop-blur-sm pt-32'>
+		<div className='fixed flex flex-col items-center top-0 left-0 w-full h-full bg-zinc-950/50 z-[100] backdrop-blur-sm pt-4 sm:pt-32 px-4 sm:px-0'>
 			<AnimatePresence>
 				{nodeEditor.isOpen && (
 					<motion.div
