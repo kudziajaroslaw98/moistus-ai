@@ -22,6 +22,9 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **node-editor/mobile**: Responsive layout — container fits mobile viewport, input stacks vertically, preview hidden on mobile, action bar text shortened to prevent truncation
 - **export/dropdown**: Locked format radio items no longer fully disabled — clicks now trigger upgrade prompt instead of being silently blocked
 
+### Refactored
+- **code-node/copy**: Replace spring animation on copy button with smooth ease-out rotate + blur + opacity CSS transition
+
 ### Changed
 - **export/dropdown**: Hide export settings submenu when JSON format is selected
 - **export/dropdown**: Increase dropdown max-height for additional format option

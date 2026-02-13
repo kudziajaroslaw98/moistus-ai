@@ -20,7 +20,6 @@ import {
 	Settings,
 	Trash2,
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
 import { Button } from '../../ui/button';
 import { Toggle } from '../../ui/toggle';
 import { ToggleGroup, ToggleGroupItem } from '../../ui/toggle-group';
@@ -274,7 +273,7 @@ export const ExpandControl = ({
 	);
 };
 
-// Animated copy feedback
+// Copy feedback with ease-out rotate + blur + opacity transition
 export interface CopyFeedbackProps {
 	copied: boolean;
 }
@@ -283,47 +282,41 @@ export const CopyFeedback = ({ copied }: CopyFeedbackProps) => {
 	const theme = GlassmorphismTheme;
 
 	return (
-		<AnimatePresence mode="wait">
-			{copied ? (
-				<motion.div
-					animate={{ scale: 1, rotate: 0 }}
-					exit={{ scale: 0, rotate: 180 }}
-					initial={{ scale: 0, rotate: -180 }}
-					key="check"
-					transition={{ type: 'spring', stiffness: 400 }}
+		<div className="relative w-4 h-4">
+			{/* Copy icon */}
+			<div
+				className="absolute inset-0 flex items-center justify-center will-change-[transform,opacity,filter]"
+				style={{
+					opacity: copied ? 0 : 1,
+					transform: copied ? 'rotate(90deg)' : 'rotate(0deg)',
+					filter: copied ? 'blur(4px)' : 'blur(0px)',
+					transition: 'opacity 0.2s cubic-bezier(.25,.46,.45,.94), transform 0.2s cubic-bezier(.25,.46,.45,.94), filter 0.2s cubic-bezier(.25,.46,.45,.94)',
+				}}
+			>
+				<Copy className="w-4 h-4" style={{ color: theme.text.medium }} />
+			</div>
+			{/* Check icon */}
+			<div
+				className="absolute inset-0 flex items-center justify-center will-change-[transform,opacity,filter]"
+				style={{
+					opacity: copied ? 1 : 0,
+					transform: copied ? 'rotate(0deg)' : 'rotate(-90deg)',
+					filter: copied ? 'blur(0px)' : 'blur(4px)',
+					transition: 'opacity 0.2s cubic-bezier(.25,.46,.45,.94), transform 0.2s cubic-bezier(.25,.46,.45,.94), filter 0.2s cubic-bezier(.25,.46,.45,.94)',
+				}}
+			>
+				<div
 					style={{
-						width: '16px',
-						height: '16px',
-						borderRadius: '50%',
-						backgroundColor: 'rgba(52, 211, 153, 0.2)',
-						display: 'flex',
-						alignItems: 'center',
-						justifyContent: 'center',
+						width: '10px',
+						height: '6px',
+						border: '2px solid rgba(52, 211, 153, 0.87)',
+						borderTop: 'none',
+						borderRight: 'none',
+						transform: 'rotate(-45deg)',
 					}}
-				>
-					<div
-						style={{
-							width: '8px',
-							height: '5px',
-							border: `2px solid rgba(52, 211, 153, 0.87)`,
-							borderTop: 'none',
-							borderRight: 'none',
-							transform: 'rotate(-45deg)',
-						}}
-					/>
-				</motion.div>
-			) : (
-				<motion.div
-					animate={{ scale: 1, rotate: 0 }}
-					exit={{ scale: 0, rotate: -180 }}
-					initial={{ scale: 0, rotate: 180 }}
-					key="copy"
-					transition={{ type: 'spring', stiffness: 400 }}
-				>
-					<Copy className="w-4 h-4" style={{ color: theme.text.medium }} />
-				</motion.div>
-			)}
-		</AnimatePresence>
+				/>
+			</div>
+		</div>
 	);
 };
 
