@@ -178,7 +178,7 @@ export function ExportDropdown() {
 								<DropdownMenuRadioItem
 									key={format.id}
 									value={format.id}
-									disabled={isExporting || isLocked}
+									disabled={isExporting}
 									className='flex flex-col items-start gap-0.5 py-2'
 									onSelect={
 										isLocked

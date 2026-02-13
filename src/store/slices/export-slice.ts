@@ -92,11 +92,19 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (
 		set({ isExporting: true, exportError: null });
 
 		try {
-			// PDF and JSON require Pro subscription
+			// PDF and JSON require Pro subscription — validated server-side
 			if (exportFormat === 'pdf' || exportFormat === 'json') {
-				const plan = state.currentSubscription?.plan?.name || 'free';
-				if (plan !== 'pro') {
-					set({ isExporting: false, exportError: 'Pro subscription required for this export format' });
+				const res = await fetch('/api/export/validate', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ format: exportFormat }),
+				});
+
+				if (!res.ok) {
+					const body = await res.json().catch(() => null);
+					const message = body?.error || 'Pro subscription required for this export format';
+					console.warn('[Export] Unauthorized export attempt blocked:', { format: exportFormat, status: res.status });
+					set({ isExporting: false, exportError: message });
 					return;
 				}
 			}
