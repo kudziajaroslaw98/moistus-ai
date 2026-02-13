@@ -273,7 +273,10 @@ export const ExpandControl = ({
 	);
 };
 
-// Copy feedback with ease-out rotate + blur + opacity transition
+// Copy feedback with ease-out rotate + blur + opacity transition.
+// Uses inline CSS transitions instead of motion library to avoid AnimatePresence
+// overhead for a simple two-state crossfade. Reduced-motion is handled by the
+// global prefers-reduced-motion rule in globals.css (transition-duration: 0.01ms).
 export interface CopyFeedbackProps {
 	copied: boolean;
 }

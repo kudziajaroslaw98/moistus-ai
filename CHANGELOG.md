@@ -23,7 +23,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **export/dropdown**: Locked format radio items no longer fully disabled — clicks now trigger upgrade prompt instead of being silently blocked
 
 ### Refactored
-- **code-node/copy**: Replace spring animation on copy button with smooth ease-out rotate + blur + opacity CSS transition
+- **code-node/copy**: Replace spring animation on copy button with smooth ease-out rotate + blur + opacity CSS transition; reduced-motion covered by global `prefers-reduced-motion` rule
 
 ### Changed
 - **export/dropdown**: Hide export settings submenu when JSON format is selected
