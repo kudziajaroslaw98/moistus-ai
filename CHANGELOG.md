@@ -5,6 +5,18 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+<!-- Updated: 2026-02-18 - Content-aware export bounds -->
+## [2026-02-18]
+
+### Fixed
+- **export/bounds**: Export now captures content-aware bounds using `getNodesBounds` + `getViewportForBounds` instead of browser viewport dimensions — tall/wide mind maps no longer get cut off or shrunk with whitespace
+
+### Removed
+- **export/fitView**: Removed "Fit all nodes in view" toggle (no longer needed — export always captures all content)
+- **export/deadcode**: Removed `calculateNodesBoundingBox` (unused), `exportFitView` state/setter, zoom compensation logic
+
+---
+
 <!-- Updated: 2026-02-13 - JSON export, PDF/JSON paywall, mobile node editor, server-side export, node permission fix -->
 ## [2026-02-13]
 

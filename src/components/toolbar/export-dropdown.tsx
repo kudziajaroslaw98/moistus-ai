@@ -33,7 +33,6 @@ import {
 	FileType,
 	Loader2,
 	Settings2,
-	ZoomIn,
 } from 'lucide-react';
 import { useShallow } from 'zustand/shallow';
 
@@ -96,7 +95,6 @@ export function ExportDropdown() {
 		exportFormat,
 		exportScale,
 		exportBackground,
-		exportFitView,
 		pdfPageSize,
 		pdfOrientation,
 		pdfIncludeTitle,
@@ -104,7 +102,6 @@ export function ExportDropdown() {
 		setExportFormat,
 		setExportScale,
 		setExportBackground,
-		setExportFitView,
 		setPdfPageSize,
 		setPdfOrientation,
 		setPdfIncludeTitle,
@@ -116,7 +113,6 @@ export function ExportDropdown() {
 			exportFormat: state.exportFormat,
 			exportScale: state.exportScale,
 			exportBackground: state.exportBackground,
-			exportFitView: state.exportFitView,
 			pdfPageSize: state.pdfPageSize,
 			pdfOrientation: state.pdfOrientation,
 			pdfIncludeTitle: state.pdfIncludeTitle,
@@ -124,7 +120,6 @@ export function ExportDropdown() {
 			setExportFormat: state.setExportFormat,
 			setExportScale: state.setExportScale,
 			setExportBackground: state.setExportBackground,
-			setExportFitView: state.setExportFitView,
 			setPdfPageSize: state.setPdfPageSize,
 			setPdfOrientation: state.setPdfOrientation,
 			setPdfIncludeTitle: state.setPdfIncludeTitle,
@@ -224,16 +219,6 @@ export function ExportDropdown() {
 									<DropdownMenuLabel className='text-xs text-text-secondary'>
 										General
 									</DropdownMenuLabel>
-									<DropdownMenuCheckboxItem
-										checked={exportFitView}
-										onCheckedChange={setExportFitView}
-										disabled={isExporting}
-									>
-										<span className='flex items-center gap-2'>
-											<ZoomIn className='size-4' />
-											Fit all nodes in view
-										</span>
-									</DropdownMenuCheckboxItem>
 									<DropdownMenuCheckboxItem
 										checked={exportBackground}
 										onCheckedChange={setExportBackground}
