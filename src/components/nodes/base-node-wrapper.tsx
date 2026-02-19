@@ -221,6 +221,7 @@ const BaseNodeWrapperComponent = ({
 						<Handle
 							position={Position.Bottom}
 							type='source'
+							isConnectable={activeTool === 'default' || activeTool === 'connector'}
 							className={cn(
 								'!w-2 !h-2 rounded-full transition-all duration-200',
 								'!bg-transparent !border',

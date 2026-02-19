@@ -7,14 +7,20 @@ import { autocompletion, completionKeymap } from '@codemirror/autocomplete';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { bracketMatching, indentOnInput } from '@codemirror/language';
 import { EditorState, Extension } from '@codemirror/state';
-import { EditorView, keymap, placeholder } from '@codemirror/view';
+import {
+	EditorView,
+	highlightActiveLine,
+	keymap,
+	placeholder,
+	scrollPastEnd,
+} from '@codemirror/view';
 
 // Import our custom extensions
+import { commandRegistry } from '../../core/commands/command-registry';
 import { createCompletions } from './completions';
 import { createPatternDecorations } from './pattern-decorations';
 import { nodeEditorTheme } from './theme';
 import { createValidationDecorations } from './validation-decorations';
-import { commandRegistry } from '../../core/commands/command-registry';
 
 /**
  * Configuration options for the node editor
@@ -54,6 +60,8 @@ export function createNodeEditor(
 		history(),
 		bracketMatching(),
 		indentOnInput(),
+		scrollPastEnd(),
+		highlightActiveLine(),
 		EditorView.lineWrapping,
 
 		// Placeholder
