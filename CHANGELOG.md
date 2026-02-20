@@ -5,6 +5,29 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+<!-- Updated: 2026-02-20 - Parser/serializer consistency fixes -->
+## [2026-02-20]
+
+### Fixed
+- **editor/codeNode**: Quick-input serialization no longer wraps content in triple-backtick fences — raw content is output directly so re-editing round-trips correctly
+- **editor/resourceNode**: Quick-input serialization no longer emits `restype:` (no corresponding parser existed)
+- **editor/imageNode**: Quick-input serialization no longer emits `cap:` (no corresponding parser existed)
+- **editor/codeNode**: `lines:on/off` pattern now parsed correctly — `showLineNumbers` round-trips through edit/save cycle
+- **editor/imageNode**: Syntax help now shows correct `alt:"text"` format instead of outdated `"alt text"` format
+
+---
+
+<!-- Updated: 2026-02-19 - Pan mode edge fix, CodeMirror UX -->
+## [2026-02-19]
+
+### Fixed
+- **nodes/handle**: Edge creation via bottom handle now disabled in pan mode — `isConnectable` gated on `activeTool`
+
+### Added
+- **editor/codemirror**: Added `scrollPastEnd` and `highlightActiveLine` extensions for better editing UX
+
+---
+
 <!-- Updated: 2026-02-18 - Content-aware export bounds -->
 ## [2026-02-18]
 

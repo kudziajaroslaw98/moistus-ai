@@ -198,9 +198,9 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 				insertText: 'url:',
 			},
 			{
-				pattern: '"alt text"',
-				description: 'Add alt text/caption after URL',
-				examples: ['url:https://example.com/image.jpg "Description"'],
+				pattern: 'alt:"text"',
+				description: 'Add alt text for the image',
+				examples: ['alt:"System Architecture diagram"'],
 				category: 'metadata',
 			},
 		],

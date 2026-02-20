@@ -457,11 +457,6 @@ const serializeNodeSpecificMetadata = (
 				parts.push(`alt:"${escapedAlt}"`);
 			}
 
-			if (metadata.caption) {
-				const escapedCaption = escapeForQuotedValue(metadata.caption);
-				parts.push(`cap:"${escapedCaption}"`);
-			}
-
 			if (metadata.source) {
 				const escapedSource = escapeForQuotedValue(metadata.source);
 				parts.push(`src:"${escapedSource}"`);
@@ -494,10 +489,6 @@ const serializeNodeSpecificMetadata = (
 			if (metadata.title) {
 				const escapedTitle = escapeForQuotedValue(metadata.title);
 				parts.push(`title:"${escapedTitle}"`);
-			}
-
-			if (metadata.resourceType) {
-				parts.push(`restype:${metadata.resourceType}`);
 			}
 
 			break;
@@ -624,8 +615,8 @@ export const transformNodeToQuickInputString = (
 			return taskContent.trim();
 
 		case 'codeNode':
-			// Start with code block
-			let codeContent = `\`\`\`${data.metadata?.language || 'javascript'}\n${data.content || ''}\n\`\`\``;
+			// Output raw content + metadata only (no fence wrapping - lang: pattern handles language)
+			let codeContent = data.content || '';
 
 			// Add metadata (includes universal and code-specific patterns)
 			if (allMetadata) {

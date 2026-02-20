@@ -44,7 +44,8 @@ export type PatternType =
 	| 'bold'
 	| 'italic'
 	| 'alignment'
-	| 'annotationType';
+	| 'annotationType'
+	| 'showLineNumbers';
 
 /**
  * Extracted pattern information
@@ -355,11 +356,19 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 		metadataKey: 'confidence',
 	},
 
+	// Show line numbers pattern: lines:on|off — codeNode showLineNumbers
+	{
+		regex: /lines:(on|off)\b/gi,
+		type: 'showLineNumbers',
+		extract: (match) => ({ value: match[1], display: match[1] }),
+		metadataKey: 'showLineNumbers',
+	},
+
 	// Status pattern: :status (like :done, :in-progress, :blocked)
 	// IMPORTANT: Uses negative lookbehind to prevent matching when part of other patterns
 	// (e.g., won't match :green in color:green, :blue in bg:blue, etc.)
 	{
-		regex: /(?<!color|bg|border|size|align|weight|style|title|label|url|lang|file|confidence|question|multiple|options|type):([a-zA-Z][a-zA-Z0-9_-]*)/g,
+		regex: /(?<!color|bg|border|size|align|weight|style|title|label|url|lang|file|confidence|question|multiple|options|type|lines):([a-zA-Z][a-zA-Z0-9_-]*)/g,
 		type: 'status',
 		extract: (match) => ({
 			value: match[1],
