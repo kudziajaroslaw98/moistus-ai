@@ -14,6 +14,9 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **editor/imageNode**: Quick-input serialization no longer emits `cap:` (no corresponding parser existed)
 - **editor/codeNode**: `lines:on/off` pattern now parsed correctly — `showLineNumbers` round-trips through edit/save cycle
 - **editor/imageNode**: Syntax help now shows correct `alt:"text"` format instead of outdated `"alt text"` format
+- **editor/codeNode**: `lines:on|off` now highlighted in quick-input editor (cyan); no longer misidentified as a status token
+- **editor/annotationNode**: `type:value` now highlighted for any identifier (known values get semantic colors; unknown values get gray); parser also updated to accept any identifier
+- **editor/annotationNode**: Removed emoji shortcut entries from syntax help (no insertText — not useful to click); fixed `$annotation` examples to use generic text
 
 ---
 

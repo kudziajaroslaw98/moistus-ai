@@ -377,9 +377,9 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 		metadataKey: 'status',
 	},
 
-	// Annotation type pattern: type:warning|success|info|error|note
+	// Annotation type pattern: type:value (any identifier; renderer validates known values)
 	{
-		regex: /type:(warning|success|info|error|note)\b/gi,
+		regex: /type:([a-zA-Z][a-zA-Z0-9_-]*)\b/gi,
 		type: 'annotationType',
 		extract: (match) => ({
 			value: match[1].toLowerCase(),

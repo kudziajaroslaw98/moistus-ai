@@ -160,13 +160,25 @@ const TWO_PART_PATTERNS: TwoPartPatternConfig[] = [
 		valueClassName: 'cm-pattern-confidence-value',
 		prefixLength: 11,
 	},
-	// Annotation type: type:warning|success|info|error|note
+	// Annotation type: type:value (any identifier; known values get semantic color)
 	{
-		regex: /type:(warning|success|info|error|note)\b/gi,
+		regex: /type:([a-zA-Z][a-zA-Z0-9_-]*)\b/gi,
 		bgClassName: 'cm-pattern-type-bg',
-		valueClassName: (match: RegExpMatchArray) =>
-			`cm-pattern-type-${match[1].toLowerCase()}-value`,
+		valueClassName: (match: RegExpMatchArray) => {
+			const val = match[1].toLowerCase();
+			const known = ['warning', 'success', 'info', 'error', 'note'];
+			return known.includes(val)
+				? `cm-pattern-type-${val}-value`
+				: 'cm-pattern-type-default-value';
+		},
 		prefixLength: 5,
+	},
+	// Line numbers: lines:on|off — codeNode
+	{
+		regex: /lines:(on|off)\b/gi,
+		bgClassName: 'cm-pattern-lines-bg',
+		valueClassName: 'cm-pattern-lines-value',
+		prefixLength: 6,
 	},
 ];
 
@@ -223,7 +235,7 @@ const SINGLE_PART_PATTERNS: SinglePartPatternConfig[] = [
 	// Status: :status (negative lookbehind to avoid matching prefix:value patterns)
 	{
 		regex:
-			/(?<!color|bg|border|size|align|weight|style|title|label|url|lang|file|confidence|question|multiple|options|type):[a-zA-Z][a-zA-Z0-9_-]*/g,
+			/(?<!color|bg|border|size|align|weight|style|title|label|url|lang|file|confidence|question|multiple|options|type|lines):[a-zA-Z][a-zA-Z0-9_-]*/g,
 		className: PATTERN_STYLES.status,
 	},
 	// References: [[reference]]
@@ -704,6 +716,17 @@ export function createPatternDecorations() {
 				fontWeight: '500',
 			},
 
+			// Line numbers: lines:on|off
+			'.cm-pattern-lines-bg': {
+				backgroundColor: '#06b6d415',
+				padding: '0 2px',
+				borderRadius: '3px',
+			},
+			'.cm-pattern-lines-value': {
+				color: '#06b6d4',
+				fontWeight: '500',
+			},
+
 			// Annotation type: type:value (color-coded by type)
 			'.cm-pattern-type-bg': {
 				backgroundColor: '#64748b15',
@@ -729,6 +752,10 @@ export function createPatternDecorations() {
 			'.cm-pattern-type-note-value': {
 				color: '#8b5cf6',
 				fontWeight: '600',
+			},
+			'.cm-pattern-type-default-value': {
+				color: '#94a3b8',
+				fontWeight: '500',
 			},
 		}),
 	];
