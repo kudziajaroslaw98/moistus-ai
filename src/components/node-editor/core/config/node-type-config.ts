@@ -173,6 +173,13 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 				category: 'metadata',
 				insertText: 'file:',
 			},
+			{
+				pattern: 'lines:on|off',
+				description: 'Toggle line numbers',
+				examples: ['lines:on', 'lines:off'],
+				category: 'metadata',
+				insertText: 'lines:on',
+			},
 		],
 	},
 
