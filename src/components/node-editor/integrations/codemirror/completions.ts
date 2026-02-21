@@ -73,7 +73,7 @@ const BUILT_IN_MENTIONS: CollaboratorMention[] = [
 	'legal',
 ].map((slug) => ({
 	slug,
-	displayName: slug[0].toUpperCase() + slug.slice(1),
+	displayName: slug.length <= 2 ? slug.toUpperCase() : slug[0].toUpperCase() + slug.slice(1),
 	avatarUrl: '',
 	role: 'built-in' as const,
 }));
@@ -317,7 +317,7 @@ const PATTERN_PREFIXES = [
 export function createCompletions(
 	collaborators: CollaboratorMention[] = []
 ): { source: CompletionSource; mentionMap: Map<string, CollaboratorMention> } {
-	const allMentions = [...collaborators, ...BUILT_IN_MENTIONS];
+	const allMentions = [...BUILT_IN_MENTIONS, ...collaborators];
 
 	// Build label → mention map for the avatar renderer in setup.ts
 	const mentionMap = new Map<string, CollaboratorMention>();

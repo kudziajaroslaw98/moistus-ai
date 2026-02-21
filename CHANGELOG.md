@@ -5,7 +5,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-02-21 - Nitpick code review fixes -->
+<!-- Updated: 2026-02-21 - Collaborator mentions + editor/export fixes -->
 ## [2026-02-21]
 
 ### Refactored
@@ -26,10 +26,10 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **editor/codemirror**: `hasEmbeddedPatterns` resets `lastIndex` on global regexes before each `.test()` call — eliminates false negatives on repeated calls
 - **editor/codemirror**: `alt:` and `src:` tokens now highlighted in quick-input editor and excluded from status pattern matching
 - **export/pdf**: Author name now uses profile `display_name` → `full_name` → email fallback instead of always using email
-- **export/pdf**: Added TODO comment on hardcoded `scale: 2` — should respect user's exportScale setting
 
 ### Changed
 - **editor/codemirror**: `KNOWN_ANNOTATION_TYPES` extracted to module-level constant (was re-allocated per match in `valueClassName`)
+- **export/pdf**: Added TODO comment on hardcoded `scale: 2` — should respect user's exportScale setting
 
 ---
 
@@ -40,7 +40,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **editor/codeNode**: Quick-input serialization no longer wraps content in triple-backtick fences — raw content is output directly so re-editing round-trips correctly
 - **editor/resourceNode**: Quick-input serialization no longer emits `restype:` (no corresponding parser existed)
 - **editor/imageNode**: Quick-input serialization no longer emits `cap:` (no corresponding parser existed)
-- **editor/codeNode**: `lines:on/off` pattern now parsed correctly — `showLineNumbers` round-trips through edit/save cycle
+- **editor/codeNode**: `lines:on|off` pattern now parsed correctly — `showLineNumbers` round-trips through edit/save cycle
 - **editor/imageNode**: Syntax help now shows correct `alt:"text"` format instead of outdated `"alt text"` format
 - **editor/codeNode**: `lines:on|off` now highlighted in quick-input editor (cyan); no longer misidentified as a status token
 - **editor/annotationNode**: `type:value` now highlighted for any identifier (known values get semantic colors; unknown values get gray); parser also updated to accept any identifier

@@ -18,6 +18,7 @@ import {
 	type PageSize,
 	type PdfExportOptions,
 } from '@/utils/pdf-export-utils';
+import { toast } from 'sonner';
 import type { StateCreator } from 'zustand';
 import type { AppState, ExportSlice, ExportState } from '../app-state';
 
@@ -71,7 +72,6 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (
 		const state = get();
 		const {
 			exportFormat,
-			exportScale,
 			exportBackground,
 			pdfPageSize,
 			pdfOrientation,
@@ -131,7 +131,8 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (
 			// Content-aware export: pass nodes so export-utils computes
 			// bounds-based viewport instead of capturing the browser window
 			const exportOptions: ExportOptions = {
-				scale: exportScale,
+				// Keep export scale fixed at 2x for predictable image quality.
+				scale: 2,
 				includeBackground: exportBackground,
 				backgroundColor: '#0d0d0d',
 				nodes,
@@ -171,10 +172,12 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (
 
 			set({ isExporting: false });
 		} catch (error) {
+			const message = error instanceof Error ? error.message : 'Export failed';
 			console.error('Export failed:', error);
+			toast.error(message);
 			set({
 				isExporting: false,
-				exportError: error instanceof Error ? error.message : 'Export failed',
+				exportError: message,
 			});
 		}
 	},

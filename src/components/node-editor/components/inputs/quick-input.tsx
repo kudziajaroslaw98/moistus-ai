@@ -3,6 +3,7 @@
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import useAppStore from '@/store/mind-map-store';
+import { slugifyCollaborator } from '@/utils/collaborator-utils';
 import { AlertCircle } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
@@ -94,6 +95,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 		setQuickInputNodeType: setCurrentNodeType,
 		setQuickInputCursorPosition: setCursorPosition,
 		initializeQuickInput,
+		currentShares,
 	} = useAppStore(
 		useShallow((state) => ({
 			quickInputValue: state.quickInputValue,
@@ -103,6 +105,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 			setQuickInputNodeType: state.setQuickInputNodeType,
 			setQuickInputCursorPosition: state.setQuickInputCursorPosition,
 			initializeQuickInput: state.initializeQuickInput,
+			currentShares: state.currentShares,
 		}))
 	);
 
@@ -114,19 +117,10 @@ export const QuickInput: FC<QuickInputProps> = ({
 		}))
 	);
 
-	const { currentShares } = useAppStore(
-		useShallow((s) => ({ currentShares: s.currentShares }))
-	);
-
 	const collaborators = useMemo<CollaboratorMention[]>(
 		() =>
 			(currentShares ?? []).map((u) => {
-				const raw =
-					u.profile?.display_name || u.name || u.email?.split('@')[0] || u.id;
-				const slug = raw
-					.toLowerCase()
-					.replace(/\s+/g, '-')
-					.replace(/[^a-z0-9-]/g, '');
+				const slug = slugifyCollaborator(u);
 				const role: CollaboratorMention['role'] =
 					u.share.role === 'owner' || u.share.role === 'editor'
 						? 'editor'

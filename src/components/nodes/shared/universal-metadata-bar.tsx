@@ -3,6 +3,7 @@
 import { NodeData } from '@/types/node-data';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
+import { getInitials, slugifyCollaborator } from '@/utils/collaborator-utils';
 import {
 	AlertCircle,
 	Calendar,
@@ -94,11 +95,7 @@ const AssigneeMetadataBadge = memo<{
 	avatarUrl: string;
 	onClick?: () => void;
 }>(({ displayName, avatarUrl, onClick }) => {
-	const initials = displayName
-		.split(/\s+/)
-		.slice(0, 2)
-		.map((w) => w[0]?.toUpperCase() ?? '')
-		.join('');
+	const initials = getInitials(displayName);
 
 	return (
 		<motion.button
@@ -163,12 +160,7 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
 		const collaboratorMap = useMemo(() => {
 			const map = new Map<string, { displayName: string; avatarUrl: string }>();
 			for (const u of currentShares ?? []) {
-				const raw =
-					u.profile?.display_name || u.name || u.email?.split('@')[0] || u.id;
-				const slug = raw
-					.toLowerCase()
-					.replace(/\s+/g, '-')
-					.replace(/[^a-z0-9-]/g, '');
+				const slug = slugifyCollaborator(u);
 				map.set(slug, {
 					displayName: u.profile?.display_name || u.name || slug,
 					avatarUrl: u.avatar_url ?? '',
@@ -239,20 +231,36 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
 				const assigneeString = Array.isArray(metadata.assignee)
 					? metadata.assignee[0]
 					: metadata.assignee;
-				const collaborator = collaboratorMap.get(assigneeString);
+				if (assigneeString) {
+					const assigneeSlug = slugifyCollaborator(assigneeString);
+					const collaborator = collaboratorMap.get(assigneeSlug);
+					if (!collaborator) {
+						console.warn(
+							'[UniversalMetadataBar] Unresolved assignee collaborator metadata',
+							{
+								assignee: assigneeString,
+								normalizedSlug: assigneeSlug,
+							}
+						);
+					}
 
-				items.push({
-					type: 'assignee',
-					component: (
-						<AssigneeMetadataBadge
-							key='assignee'
-							displayName={collaborator?.displayName ?? assigneeString}
-							avatarUrl={collaborator?.avatarUrl ?? ''}
-							onClick={() => onMetadataClick?.('assignee', metadata.assignee)}
-						/>
-					),
-					order: 3,
-				});
+					items.push({
+						type: 'assignee',
+						component: (
+							<AssigneeMetadataBadge
+								key='assignee'
+								displayName={collaborator?.displayName ?? assigneeString}
+								avatarUrl={collaborator?.avatarUrl ?? ''}
+								onClick={() => onMetadataClick?.('assignee', metadata.assignee)}
+							/>
+						),
+						order: 3,
+					});
+				} else {
+					console.warn(
+						'[UniversalMetadataBar] Assignee metadata exists but value is empty'
+					);
+				}
 			}
 
 			// Due date with smart formatting

@@ -14,6 +14,7 @@ import {
 	placeholder,
 	scrollPastEnd,
 } from '@codemirror/view';
+import { getInitials } from '@/utils/collaborator-utils';
 
 // Import our custom extensions
 import { commandRegistry } from '../../core/commands/command-registry';
@@ -34,15 +35,6 @@ export interface NodeEditorConfig {
 	onContentChange?: (content: string) => void;
 	onNodeTypeChange?: (nodeType: string) => void;
 	collaborators?: CollaboratorMention[];
-}
-
-/** Get up to 2 uppercase initials from a display name */
-function getInitials(name: string): string {
-	return name
-		.split(/\s+/)
-		.slice(0, 2)
-		.map((w) => w[0]?.toUpperCase() ?? '')
-		.join('');
 }
 
 /**
@@ -109,7 +101,7 @@ export function createNodeEditor(
 
 									const wrapper = document.createElement('span');
 									wrapper.style.cssText =
-										'display:inline-flex;align-items:center;gap:4px;marginRight:6px';
+										'display:inline-flex;align-items:center;gap:4px;margin-right:6px;';
 
 									// Avatar circle (18×18)
 									const avatar = document.createElement('span');
