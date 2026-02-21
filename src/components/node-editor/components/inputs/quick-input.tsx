@@ -8,6 +8,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import {
 	useCallback,
 	useEffect,
+	useMemo,
 	useRef,
 	useState,
 	type FC,
@@ -23,6 +24,7 @@ import {
 	createOrUpdateNode,
 	transformNodeToQuickInputString,
 } from '../../node-updater';
+import type { CollaboratorMention } from '../../integrations/codemirror/completions';
 import type { QuickInputProps } from '../../types';
 import { ActionBar } from '../action-bar';
 import { ComponentHeader } from '../component-header';
@@ -110,6 +112,33 @@ export const QuickInput: FC<QuickInputProps> = ({
 			addNode: state.addNode,
 			updateNode: state.updateNode,
 		}))
+	);
+
+	const { currentShares } = useAppStore(
+		useShallow((s) => ({ currentShares: s.currentShares }))
+	);
+
+	const collaborators = useMemo<CollaboratorMention[]>(
+		() =>
+			(currentShares ?? []).map((u) => {
+				const raw =
+					u.profile?.display_name || u.name || u.email?.split('@')[0] || u.id;
+				const slug = raw
+					.toLowerCase()
+					.replace(/\s+/g, '-')
+					.replace(/[^a-z0-9-]/g, '');
+				const role: CollaboratorMention['role'] =
+					u.share.role === 'owner' || u.share.role === 'editor'
+						? 'editor'
+						: 'viewer';
+				return {
+					slug,
+					displayName: u.profile?.display_name || u.name || slug,
+					avatarUrl: u.avatar_url ?? '',
+					role,
+				};
+			}),
+		[currentShares]
 	);
 
 	// Check node limit (only affects create mode)
@@ -403,6 +432,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 				<EnhancedInput
 					animate={{ opacity: 1, y: 0 }}
 					className='min-w-0 mt-5 w-full sm:w-sm h-auto'
+					collaborators={collaborators}
 					disabled={isCreating}
 					enableCommands={true}
 					initial={{ opacity: 1, y: -20 }}

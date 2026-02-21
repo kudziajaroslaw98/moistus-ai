@@ -5,8 +5,14 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-02-21 - Code review fixes -->
+<!-- Updated: 2026-02-21 - Collaborator mention feature -->
 ## [2026-02-21]
+
+### Added
+- **editor/mentions**: `@` autocomplete in node editor now shows real collaborators — loaded eagerly on map open (no longer requires opening the share panel first)
+- **editor/mentions**: Real collaborators ranked above built-in team roles in `@` dropdown (boost:1 vs boost:0)
+- **editor/mentions**: Assignee metadata badges now show collaborator avatar with initials fallback instead of generic user icon
+- **editor/mentions**: Added `CollaboratorMention` type and built-in preset mentions (`@dev`, `@design`, `@pm`, etc.)
 
 ### Fixed
 - **editor/imageNode**: `alt:` and `src:` patterns now parsed by PATTERN_CONFIGS — `altText` and `source` round-trip correctly through edit/save cycles (previously treated as plain text)

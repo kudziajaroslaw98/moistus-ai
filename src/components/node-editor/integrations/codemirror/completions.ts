@@ -372,6 +372,7 @@ export function createCompletions(
 					type: 'variable',
 					apply: `@${m.slug}`,
 					info: `${m.role === 'built-in' ? 'Team role' : m.role}: ${m.displayName}`,
+					boost: m.role === 'built-in' ? 0 : 1,
 				}));
 
 			if (options.length === 0) return null;

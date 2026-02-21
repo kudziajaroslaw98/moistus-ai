@@ -120,6 +120,7 @@ export function ReactFlowArea() {
 		isPathEditMode,
 		addNodeToPath,
 		isCommentMode,
+		getCurrentShareUsers,
 	} = useAppStore(
 		useShallow((state) => ({
 			supabase: state.supabase,
@@ -165,6 +166,7 @@ export function ReactFlowArea() {
 			addNodeToPath: state.addNodeToPath,
 			// Comment mode - needed for visibility memoization
 			isCommentMode: state.isCommentMode,
+			getCurrentShareUsers: state.getCurrentShareUsers,
 		}))
 	);
 
@@ -223,7 +225,8 @@ export function ReactFlowArea() {
 
 		setMapId(mapId as string);
 		fetchMindMapData(mapId as string);
-	}, [fetchMindMapData, mapId, supabase]);
+		getCurrentShareUsers();
+	}, [fetchMindMapData, mapId, supabase, getCurrentShareUsers]);
 
 	useEffect(() => {
 		return () => {

@@ -15,6 +15,7 @@ import React, {
 } from 'react';
 import { Command } from '../../core/commands/command-types';
 import { validateInput } from '../../core/validators/input-validator';
+import type { CollaboratorMention } from '../../integrations/codemirror/completions';
 import { createNodeEditor } from '../../integrations/codemirror/setup';
 import { ValidationTooltip } from './validation-tooltip';
 
@@ -37,6 +38,7 @@ interface EnhancedInputProps {
 	onNodeTypeChange?: (nodeType: AvailableNodeTypes) => void;
 	onCommandExecuted?: (command: Command) => void;
 	enableCommands?: boolean; // Feature flag
+	collaborators?: CollaboratorMention[];
 }
 
 export const EnhancedInput = ({
@@ -53,6 +55,7 @@ export const EnhancedInput = ({
 	onNodeTypeChange,
 	onCommandExecuted,
 	enableCommands = true, // Default enabled
+	collaborators,
 	...rest
 }: EnhancedInputProps) => {
 	const editorRef = useRef<HTMLDivElement>(null);
@@ -241,6 +244,7 @@ export const EnhancedInput = ({
 				enableCompletions: true,
 				enablePatternHighlighting: true,
 				enableValidation: true,
+				collaborators: collaborators ?? [],
 				onContentChange: (newValue) => {
 					// Prevent infinite loops with external changes
 					if (!isInternalChange && newValue !== lastKnownValueRef.current) {
@@ -307,7 +311,7 @@ export const EnhancedInput = ({
 				console.error('Error cleaning up CodeMirror:', error);
 			}
 		};
-	}, [enableCommands, disabled]); // Only stable dependencies - no callbacks!
+	}, [enableCommands, disabled, collaborators]); // Recreate editor when collaborator list changes
 
 	// Separate event listener management (can change without recreating editor)
 	useEffect(() => {
