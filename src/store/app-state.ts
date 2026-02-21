@@ -551,7 +551,6 @@ export interface ExportState {
 	exportFormat: ExportFormat;
 	exportScale: number;
 	exportBackground: boolean;
-	exportFitView: boolean;
 	pdfPageSize: PageSize;
 	pdfOrientation: PageOrientation;
 	pdfIncludeTitle: boolean;
@@ -563,7 +562,6 @@ export interface ExportSlice extends ExportState {
 	setExportFormat: (format: ExportFormat) => void;
 	setExportScale: (scale: ExportScale) => void;
 	setExportBackground: (include: boolean) => void;
-	setExportFitView: (fitView: boolean) => void;
 	setPdfPageSize: (size: PageSize) => void;
 	setPdfOrientation: (orientation: PageOrientation) => void;
 	setPdfIncludeTitle: (include: boolean) => void;

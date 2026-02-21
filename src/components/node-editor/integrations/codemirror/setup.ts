@@ -7,14 +7,21 @@ import { autocompletion, completionKeymap } from '@codemirror/autocomplete';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { bracketMatching, indentOnInput } from '@codemirror/language';
 import { EditorState, Extension } from '@codemirror/state';
-import { EditorView, keymap, placeholder } from '@codemirror/view';
+import {
+	EditorView,
+	highlightActiveLine,
+	keymap,
+	placeholder,
+	scrollPastEnd,
+} from '@codemirror/view';
+import { getInitials } from '@/utils/collaborator-utils';
 
 // Import our custom extensions
-import { createCompletions } from './completions';
+import { commandRegistry } from '../../core/commands/command-registry';
+import { type CollaboratorMention, createCompletions } from './completions';
 import { createPatternDecorations } from './pattern-decorations';
 import { nodeEditorTheme } from './theme';
 import { createValidationDecorations } from './validation-decorations';
-import { commandRegistry } from '../../core/commands/command-registry';
 
 /**
  * Configuration options for the node editor
@@ -27,6 +34,7 @@ export interface NodeEditorConfig {
 	enableValidation?: boolean;
 	onContentChange?: (content: string) => void;
 	onNodeTypeChange?: (nodeType: string) => void;
+	collaborators?: CollaboratorMention[];
 }
 
 /**
@@ -37,6 +45,8 @@ export function createNodeEditor(
 	container: HTMLElement,
 	config: NodeEditorConfig = {}
 ): EditorView {
+	let lastEmittedNodeType: string | null = null;
+
 	const {
 		initialContent = '',
 		placeholder:
@@ -46,7 +56,12 @@ export function createNodeEditor(
 		enableValidation = true,
 		onContentChange,
 		onNodeTypeChange,
+		collaborators,
 	} = config;
+
+	const { source: completionSource, mentionMap } = createCompletions(
+		collaborators ?? []
+	);
 
 	// Build extensions array
 	const extensions: Extension[] = [
@@ -54,6 +69,8 @@ export function createNodeEditor(
 		history(),
 		bracketMatching(),
 		indentOnInput(),
+		scrollPastEnd(),
+		highlightActiveLine(),
 		EditorView.lineWrapping,
 
 		// Placeholder
@@ -73,14 +90,54 @@ export function createNodeEditor(
 		...(enableCompletions
 			? [
 					autocompletion({
-						override: [createCompletions()],
+						override: [completionSource],
 						activateOnTyping: true,
 						defaultKeymap: true,
-						// Custom render for color swatches inline
 						addToOptions: [
+							// Position 19: avatar + role badge for @ mention completions
+							{
+								position: 19,
+								render(completion) {
+									const meta = mentionMap.get(completion.label);
+									if (!meta) return null;
+
+									const wrapper = document.createElement('span');
+									wrapper.style.cssText =
+										'display:inline-flex;align-items:center;gap:4px;margin-right:6px;';
+
+									// Avatar circle (18×18)
+									const avatar = document.createElement('span');
+									avatar.style.cssText =
+										'display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;font-size:9px;font-weight:600;flex-shrink:0;overflow:hidden;background:rgba(139,92,246,0.2);color:#a78bfa';
+
+									if (meta.avatarUrl) {
+										const img = document.createElement('img');
+										img.src = meta.avatarUrl;
+										img.style.cssText =
+											'width:100%;height:100%;object-fit:cover;border-radius:50%';
+										img.onerror = () => {
+											img.remove();
+											avatar.textContent = getInitials(meta.displayName);
+										};
+										avatar.appendChild(img);
+									} else {
+										avatar.textContent = getInitials(meta.displayName);
+									}
+
+									// Role badge
+									const badge = document.createElement('span');
+									badge.textContent = `[${meta.role}]`;
+									badge.style.cssText =
+										'font-size:9px;opacity:0.5;letter-spacing:0.02em';
+
+									wrapper.appendChild(avatar);
+									wrapper.appendChild(badge);
+									return wrapper;
+								},
+							},
+							// Position 20: color swatch for color: bg: border: completions
 							{
 								render: (completion) => {
-									// Only render swatches for color completions
 									const label = completion.label;
 									if (
 										label.startsWith('color:') ||
@@ -92,14 +149,13 @@ export function createNodeEditor(
 											const swatch = document.createElement('span');
 											swatch.className = 'color-swatch';
 											swatch.style.backgroundColor = hex;
-											// Add minimal margin to position closer to label
 											swatch.style.marginRight = '8px';
 											return swatch;
 										}
 									}
 									return null;
 								},
-								position: 20, // Render before the label
+								position: 20,
 							},
 						],
 					}),
@@ -109,40 +165,41 @@ export function createNodeEditor(
 		...(enablePatternHighlighting ? [createPatternDecorations()] : []),
 		...(enableValidation ? [createValidationDecorations()] : []),
 
-		// Change listener
-		...(onContentChange
+		// Change listeners
+		...(onContentChange || onNodeTypeChange
 			? [
-					EditorView.updateListener.of((update) => {
-						if (update.docChanged) {
-							onContentChange(update.state.doc.toString());
-						}
-					}),
-				]
-			: []),
+						EditorView.updateListener.of((update) => {
+							if (!update.docChanged) return;
+							const text = update.state.doc.toString();
+							onContentChange?.(text);
 
-		// Node type change listener
-		...(onNodeTypeChange
-			? [
-					EditorState.transactionExtender.of((tr) => {
-						// Check for $nodeType patterns anywhere in text
-						const text = tr.newDoc.toString();
-						const nodeTypeMatch = text.match(/\$(\w+)(\s|$)/);
+							if (!onNodeTypeChange) return;
 
-						if (nodeTypeMatch) {
+							// Check for $nodeType patterns anywhere in text
+							const nodeTypeMatch = text.match(/\$(\w+)(\s|$)/);
+							if (!nodeTypeMatch) {
+								lastEmittedNodeType = null;
+								return;
+							}
+
 							// Validate the trigger is a complete, valid command
-							const trigger = `$${nodeTypeMatch[1]}`;
+							const extractedNodeType = nodeTypeMatch[1];
+							const trigger = `$${extractedNodeType}`;
 							const command = commandRegistry.getCommandByTrigger(trigger);
 
 							// Only fire type change if it's a valid complete command
-							if (command?.nodeType) {
-								onNodeTypeChange(nodeTypeMatch[1]);
+							// and changed since last emission to avoid duplicate calls.
+							if (!command?.nodeType) {
+								lastEmittedNodeType = null;
+								return;
 							}
-						}
 
-						return null;
-					}),
-				]
-			: []),
+							if (lastEmittedNodeType === extractedNodeType) return;
+							lastEmittedNodeType = extractedNodeType;
+							onNodeTypeChange(extractedNodeType);
+						}),
+					]
+				: []),
 	];
 
 	// Create state

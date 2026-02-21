@@ -135,7 +135,7 @@ export const transformDataForNodeType = (
 					tags: baseTags.length > 0 ? baseTags : undefined,
 					language: data.metadata?.language || data.language || 'plaintext',
 					fileName: data.metadata?.fileName || data.filename,
-					showLineNumbers: data.lineNumbers !== false,
+					showLineNumbers: data.metadata?.showLineNumbers !== 'off' && data.metadata?.showLineNumbers !== false && data.lineNumbers !== false,
 				},
 			};
 

@@ -49,6 +49,7 @@ import type { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
 import { useParams, useRouter } from 'next/navigation';
 import { useShallow } from 'zustand/shallow';
+import { toast } from 'sonner';
 import FloatingConnectionLine from '../edges/floating-connection-line';
 import { SuggestedMergeEdge } from '../edges/suggested-merge-edge';
 import WaypointEdge from '../edges/waypoint-edge';
@@ -120,6 +121,7 @@ export function ReactFlowArea() {
 		isPathEditMode,
 		addNodeToPath,
 		isCommentMode,
+		getCurrentShareUsers,
 	} = useAppStore(
 		useShallow((state) => ({
 			supabase: state.supabase,
@@ -165,6 +167,7 @@ export function ReactFlowArea() {
 			addNodeToPath: state.addNodeToPath,
 			// Comment mode - needed for visibility memoization
 			isCommentMode: state.isCommentMode,
+			getCurrentShareUsers: state.getCurrentShareUsers,
 		}))
 	);
 
@@ -223,7 +226,11 @@ export function ReactFlowArea() {
 
 		setMapId(mapId as string);
 		fetchMindMapData(mapId as string);
-	}, [fetchMindMapData, mapId, supabase]);
+		getCurrentShareUsers().catch((error) => {
+			console.error('[ReactFlowArea] Failed to fetch current share users:', error);
+			toast.error('Failed to load collaborators for this map');
+		});
+	}, [fetchMindMapData, mapId, supabase, getCurrentShareUsers]);
 
 	useEffect(() => {
 		return () => {

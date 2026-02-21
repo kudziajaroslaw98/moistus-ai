@@ -72,6 +72,9 @@ interface TwoPartPatternConfig {
 	prefixLength: number; // Length of prefix (e.g., "color:" = 6)
 }
 
+/** Annotation type values that get semantic color coding */
+const KNOWN_ANNOTATION_TYPES = ['warning', 'success', 'info', 'error', 'note'];
+
 /**
  * Two-part patterns - these get background on full match, color on value
  */
@@ -160,19 +163,45 @@ const TWO_PART_PATTERNS: TwoPartPatternConfig[] = [
 		valueClassName: 'cm-pattern-confidence-value',
 		prefixLength: 11,
 	},
-	// Annotation type: type:warning|success|info|error|note
+	// Annotation type: type:value (any identifier; known values get semantic color)
 	{
-		regex: /type:(warning|success|info|error|note)\b/gi,
+		regex: /type:([a-zA-Z][a-zA-Z0-9_-]*)\b/gi,
 		bgClassName: 'cm-pattern-type-bg',
-		valueClassName: (match: RegExpMatchArray) =>
-			`cm-pattern-type-${match[1].toLowerCase()}-value`,
+		valueClassName: (match: RegExpMatchArray) => {
+			const val = match[1].toLowerCase();
+			return KNOWN_ANNOTATION_TYPES.includes(val)
+				? `cm-pattern-type-${val}-value`
+				: 'cm-pattern-type-default-value';
+		},
 		prefixLength: 5,
+	},
+	// Line numbers: lines:on|off — codeNode
+	{
+		regex: /lines:(on|off)\b/gi,
+		bgClassName: 'cm-pattern-lines-bg',
+		valueClassName: 'cm-pattern-lines-value',
+		prefixLength: 6,
 	},
 ];
 
 // ============================================================================
 // SINGLE-PART PATTERN CONFIG
 // ============================================================================
+
+/**
+ * Prefixes excluded from the status pattern's negative lookbehind.
+ * Add new prefix:value patterns here so the status regex stays in sync.
+ */
+const STATUS_EXCLUDE_PREFIXES = [
+	'color', 'bg', 'border', 'size', 'align', 'weight', 'style',
+	'title', 'label', 'alt', 'src', 'url', 'lang', 'file',
+	'confidence', 'question', 'multiple', 'options', 'type', 'lines',
+] as const;
+
+const STATUS_REGEX = new RegExp(
+	`(?<!${STATUS_EXCLUDE_PREFIXES.join('|')}):[a-zA-Z][a-zA-Z0-9_-]*`,
+	'g'
+);
 
 /**
  * Pattern configuration for single-part detection
@@ -220,10 +249,9 @@ const SINGLE_PART_PATTERNS: SinglePartPatternConfig[] = [
 			return PATTERN_STYLES.priorityLow;
 		},
 	},
-	// Status: :status (negative lookbehind to avoid matching prefix:value patterns)
+	// Status: :status (negative lookbehind excludes all known prefix:value patterns)
 	{
-		regex:
-			/(?<!color|bg|border|size|align|weight|style|title|label|url|lang|file|confidence|question|multiple|options|type):[a-zA-Z][a-zA-Z0-9_-]*/g,
+		regex: STATUS_REGEX,
 		className: PATTERN_STYLES.status,
 	},
 	// References: [[reference]]
@@ -261,10 +289,19 @@ const SINGLE_PART_PATTERNS: SinglePartPatternConfig[] = [
 		regex: /label:"([^"]+)"/gi,
 		className: 'cm-pattern-label',
 	},
-	// Alt text pattern: "text" (for images, but not titles)
-	// Only match standalone quoted text not preceded by title: or label:
+	// Alt text pattern: alt:"text" — imageNode alt text
 	{
-		regex: /(?<!title:|label:)"([^"]+)"/g,
+		regex: /alt:"([^"]+)"/gi,
+		className: 'cm-pattern-alt',
+	},
+	// Source pattern: src:"text" — imageNode source attribution
+	{
+		regex: /src:"([^"]+)"/gi,
+		className: 'cm-pattern-src',
+	},
+	// Standalone quoted text (for image captions etc.) — not preceded by known prefixes
+	{
+		regex: /(?<!title:|label:|alt:|src:)"([^"]+)"/g,
 		className: PATTERN_STYLES.altText,
 	},
 	// Options pattern: options:[a,b,c]
@@ -550,10 +587,19 @@ export function createPatternDecorations() {
 				borderRadius: '3px',
 			},
 
-			// Alt text styles
-			'.cm-pattern-alttext': {
+			// Alt text prefix styles: alt:"text" and standalone quoted text share the same look
+			'.cm-pattern-alt, .cm-pattern-alttext': {
 				color: '#a855f7',
 				backgroundColor: '#a855f715',
+				fontStyle: 'italic',
+				padding: '0 2px',
+				borderRadius: '3px',
+			},
+
+			// Source prefix styles: src:"text"
+			'.cm-pattern-src': {
+				color: '#3b82f6',
+				backgroundColor: '#3b82f615',
 				fontStyle: 'italic',
 				padding: '0 2px',
 				borderRadius: '3px',
@@ -704,6 +750,17 @@ export function createPatternDecorations() {
 				fontWeight: '500',
 			},
 
+			// Line numbers: lines:on|off
+			'.cm-pattern-lines-bg': {
+				backgroundColor: '#06b6d415',
+				padding: '0 2px',
+				borderRadius: '3px',
+			},
+			'.cm-pattern-lines-value': {
+				color: '#06b6d4',
+				fontWeight: '500',
+			},
+
 			// Annotation type: type:value (color-coded by type)
 			'.cm-pattern-type-bg': {
 				backgroundColor: '#64748b15',
@@ -729,6 +786,10 @@ export function createPatternDecorations() {
 			'.cm-pattern-type-note-value': {
 				color: '#8b5cf6',
 				fontWeight: '600',
+			},
+			'.cm-pattern-type-default-value': {
+				color: '#94a3b8',
+				fontWeight: '500',
 			},
 		}),
 	];

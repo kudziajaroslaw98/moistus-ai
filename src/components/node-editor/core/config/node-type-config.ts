@@ -173,6 +173,13 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 				category: 'metadata',
 				insertText: 'file:',
 			},
+			{
+				pattern: 'lines:on|off',
+				description: 'Toggle line numbers',
+				examples: ['lines:on', 'lines:off'],
+				category: 'metadata',
+				insertText: 'lines:on',
+			},
 		],
 	},
 
@@ -198,10 +205,11 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 				insertText: 'url:',
 			},
 			{
-				pattern: '"alt text"',
-				description: 'Add alt text/caption after URL',
-				examples: ['url:https://example.com/image.jpg "Description"'],
+				pattern: 'alt:"text"',
+				description: 'Add alt text for the image',
+				examples: ['alt:"System Architecture diagram"'],
 				category: 'metadata',
+				insertText: 'alt:"',
 			},
 		],
 	},
@@ -280,8 +288,8 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 		icon: MessageSquare,
 		label: 'Annotation',
 		examples: [
-			'⚠️ Breaking change in v2.0',
-			'✅ Deployment successful',
+			'⚠️ Potential bottleneck here',
+			'✅ Reviewed and approved',
 			'type:warning Important notice',
 		],
 		parsingPatterns: [
@@ -290,8 +298,8 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 				description: 'Switch to annotation node type',
 				category: 'metadata',
 				examples: [
-					'$annotation ⚠️ Breaking change in v2.0',
-					'$annotation ✅ Deployment successful',
+					'$annotation ⚠️ Review this section',
+					'$annotation ✅ Looks good',
 				],
 			},
 			{
@@ -306,36 +314,6 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 				],
 				category: 'metadata',
 				insertText: 'type:',
-			},
-			{
-				pattern: '⚠️',
-				description: 'Warning annotation',
-				examples: ['⚠️ Breaking change'],
-				category: 'formatting',
-			},
-			{
-				pattern: '✅',
-				description: 'Success annotation',
-				examples: ['✅ Tests passed'],
-				category: 'formatting',
-			},
-			{
-				pattern: 'ℹ️',
-				description: 'Info annotation',
-				examples: ['ℹ️ API endpoint updated'],
-				category: 'formatting',
-			},
-			{
-				pattern: '❌',
-				description: 'Error annotation',
-				examples: ['❌ Build failed'],
-				category: 'formatting',
-			},
-			{
-				pattern: '💡',
-				description: 'Note/idea annotation',
-				examples: ['💡 Consider caching'],
-				category: 'formatting',
 			},
 		],
 	},

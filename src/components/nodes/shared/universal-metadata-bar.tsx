@@ -1,7 +1,9 @@
 'use client';
 
 import { NodeData } from '@/types/node-data';
+import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
+import { getInitials, slugifyCollaborator } from '@/utils/collaborator-utils';
 import {
 	AlertCircle,
 	Calendar,
@@ -9,10 +11,10 @@ import {
 	Circle,
 	Clock,
 	Flag,
-	User,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { CSSProperties, memo, useMemo } from 'react';
+import { useShallow } from 'zustand/shallow';
 import { MetadataBadge } from './metadata-badge';
 import { NodeTags } from './node-tags';
 
@@ -88,6 +90,60 @@ const statusConfig = {
 	},
 };
 
+const AssigneeMetadataBadge = memo<{
+	displayName: string;
+	avatarUrl: string;
+	onClick?: () => void;
+}>(({ displayName, avatarUrl, onClick }) => {
+	const initials = getInitials(displayName);
+
+	return (
+		<motion.button
+			className='flex items-center px-1.5 py-0.5 text-[10px] gap-1 rounded-md transition-all duration-200 cursor-pointer'
+			style={{
+				backgroundColor: 'rgba(255,255,255,0.05)',
+				border: '1px solid rgba(255,255,255,0.1)',
+				color: 'rgba(255,255,255,0.6)',
+			}}
+			whileHover={{ scale: 1.02 }}
+			whileTap={onClick ? { scale: 0.98 } : {}}
+			onClick={onClick}
+		>
+			<span
+				className='relative flex items-center justify-center rounded-full overflow-hidden flex-shrink-0'
+				style={{
+					width: 14,
+					height: 14,
+					background: 'rgba(139,92,246,0.2)',
+					color: '#a78bfa',
+					fontSize: 8,
+					fontWeight: 600,
+				}}
+			>
+				{initials}
+				{avatarUrl && (
+					<img
+						alt={displayName}
+						src={avatarUrl}
+						style={{
+							position: 'absolute',
+							inset: 0,
+							width: '100%',
+							height: '100%',
+							objectFit: 'cover',
+						}}
+						onError={(e) => {
+							(e.target as HTMLImageElement).style.display = 'none';
+						}}
+					/>
+				)}
+			</span>
+			<span style={{ fontWeight: 500, letterSpacing: '0.01em' }}>{displayName}</span>
+		</motion.button>
+	);
+});
+AssigneeMetadataBadge.displayName = 'AssigneeMetadataBadge';
+
 /**
  * Universal Metadata Bar Component
  *
@@ -97,6 +153,22 @@ const statusConfig = {
  */
 export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
 	({ metadata, nodeType, selected = false, className, onMetadataClick, colorOverrides }) => {
+		const { currentShares } = useAppStore(
+			useShallow((s) => ({ currentShares: s.currentShares }))
+		);
+
+		const collaboratorMap = useMemo(() => {
+			const map = new Map<string, { displayName: string; avatarUrl: string }>();
+			for (const u of currentShares ?? []) {
+				const slug = slugifyCollaborator(u);
+				map.set(slug, {
+					displayName: u.profile?.display_name || u.name || slug,
+					avatarUrl: u.avatar_url ?? '',
+				});
+			}
+			return map;
+		}, [currentShares]);
+
 		// Determine what metadata to show based on availability and relevance
 		const metadataItems = useMemo(() => {
 			if (!metadata) return [];
@@ -154,25 +226,41 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
 				});
 			}
 
-			// Assignee - show avatar or initials
+			// Assignee - show avatar circle + resolved display name
 			if (metadata.assignee) {
 				const assigneeString = Array.isArray(metadata.assignee)
 					? metadata.assignee[0]
 					: metadata.assignee;
+				if (assigneeString) {
+					const assigneeSlug = slugifyCollaborator(assigneeString);
+					const collaborator = collaboratorMap.get(assigneeSlug);
+					if (!collaborator) {
+						console.warn(
+							'[UniversalMetadataBar] Unresolved assignee collaborator metadata',
+							{
+								assignee: assigneeString,
+								normalizedSlug: assigneeSlug,
+							}
+						);
+					}
 
-				items.push({
-					type: 'assignee',
-					component: (
-						<MetadataBadge
-							icon={User}
-							key='assignee'
-							label={assigneeString}
-							onClick={() => onMetadataClick?.('assignee', metadata.assignee)}
-							size={'xs'}
-						/>
-					),
-					order: 3,
-				});
+					items.push({
+						type: 'assignee',
+						component: (
+							<AssigneeMetadataBadge
+								key='assignee'
+								displayName={collaborator?.displayName ?? assigneeString}
+								avatarUrl={collaborator?.avatarUrl ?? ''}
+								onClick={() => onMetadataClick?.('assignee', metadata.assignee)}
+							/>
+						),
+						order: 3,
+					});
+				} else {
+					console.warn(
+						'[UniversalMetadataBar] Assignee metadata exists but value is empty'
+					);
+				}
 			}
 
 			// Due date with smart formatting
@@ -236,7 +324,7 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
 			}
 
 			return items.sort((a, b) => a.order - b.order);
-		}, [metadata, selected, onMetadataClick, colorOverrides]);
+		}, [metadata, selected, onMetadataClick, colorOverrides, collaboratorMap]);
 
 		// Don't render if no metadata
 		if (metadataItems.length === 0) return null;

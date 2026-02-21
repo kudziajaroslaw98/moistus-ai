@@ -23,7 +23,7 @@ import {
 import { useFeatureGate } from '@/hooks/subscription/use-feature-gate';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
-import type { ExportFormat, ExportScale } from '@/utils/export-utils';
+import type { ExportFormat } from '@/utils/export-utils';
 import type { PageOrientation, PageSize } from '@/utils/pdf-export-utils';
 import {
 	Download,
@@ -33,7 +33,6 @@ import {
 	FileType,
 	Loader2,
 	Settings2,
-	ZoomIn,
 } from 'lucide-react';
 import { useShallow } from 'zustand/shallow';
 
@@ -70,14 +69,6 @@ const formatOptions: {
 	},
 ];
 
-// Scale options for PNG
-const scaleOptions: { id: ExportScale; label: string }[] = [
-	{ id: 1, label: '1x (Standard)' },
-	{ id: 2, label: '2x (High DPI)' },
-	{ id: 3, label: '3x (Ultra)' },
-	{ id: 4, label: '4x (Maximum)' },
-];
-
 // Page size options for PDF
 const pageSizeOptions: { id: PageSize; label: string }[] = [
 	{ id: 'a4', label: 'A4' },
@@ -94,17 +85,13 @@ export function ExportDropdown() {
 	const {
 		isExporting,
 		exportFormat,
-		exportScale,
 		exportBackground,
-		exportFitView,
 		pdfPageSize,
 		pdfOrientation,
 		pdfIncludeTitle,
 		pdfIncludeMetadata,
 		setExportFormat,
-		setExportScale,
 		setExportBackground,
-		setExportFitView,
 		setPdfPageSize,
 		setPdfOrientation,
 		setPdfIncludeTitle,
@@ -114,17 +101,13 @@ export function ExportDropdown() {
 		useShallow((state) => ({
 			isExporting: state.isExporting,
 			exportFormat: state.exportFormat,
-			exportScale: state.exportScale,
 			exportBackground: state.exportBackground,
-			exportFitView: state.exportFitView,
 			pdfPageSize: state.pdfPageSize,
 			pdfOrientation: state.pdfOrientation,
 			pdfIncludeTitle: state.pdfIncludeTitle,
 			pdfIncludeMetadata: state.pdfIncludeMetadata,
 			setExportFormat: state.setExportFormat,
-			setExportScale: state.setExportScale,
 			setExportBackground: state.setExportBackground,
-			setExportFitView: state.setExportFitView,
 			setPdfPageSize: state.setPdfPageSize,
 			setPdfOrientation: state.setPdfOrientation,
 			setPdfIncludeTitle: state.setPdfIncludeTitle,
@@ -225,16 +208,6 @@ export function ExportDropdown() {
 										General
 									</DropdownMenuLabel>
 									<DropdownMenuCheckboxItem
-										checked={exportFitView}
-										onCheckedChange={setExportFitView}
-										disabled={isExporting}
-									>
-										<span className='flex items-center gap-2'>
-											<ZoomIn className='size-4' />
-											Fit all nodes in view
-										</span>
-									</DropdownMenuCheckboxItem>
-									<DropdownMenuCheckboxItem
 										checked={exportBackground}
 										onCheckedChange={setExportBackground}
 										disabled={isExporting}
@@ -242,34 +215,6 @@ export function ExportDropdown() {
 										Include background
 									</DropdownMenuCheckboxItem>
 								</DropdownMenuGroup>
-
-								{/* PNG-specific: Scale */}
-								{exportFormat === 'png' && (
-									<>
-										<DropdownMenuSeparator />
-										<DropdownMenuGroup>
-											<DropdownMenuLabel className='text-xs text-text-secondary'>
-												Resolution
-											</DropdownMenuLabel>
-											<DropdownMenuRadioGroup
-												value={String(exportScale)}
-												onValueChange={(val) =>
-													setExportScale(Number(val) as ExportScale)
-												}
-											>
-												{scaleOptions.map((scale) => (
-													<DropdownMenuRadioItem
-														key={scale.id}
-														value={String(scale.id)}
-														disabled={isExporting}
-													>
-														{scale.label}
-													</DropdownMenuRadioItem>
-												))}
-											</DropdownMenuRadioGroup>
-										</DropdownMenuGroup>
-									</>
-								)}
 
 								{/* PDF-specific settings */}
 								{exportFormat === 'pdf' && (

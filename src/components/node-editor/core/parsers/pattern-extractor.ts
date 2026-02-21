@@ -44,7 +44,8 @@ export type PatternType =
 	| 'bold'
 	| 'italic'
 	| 'alignment'
-	| 'annotationType';
+	| 'annotationType'
+	| 'showLineNumbers';
 
 /**
  * Extracted pattern information
@@ -311,6 +312,28 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 		metadataKey: 'label',
 	},
 
+	// Alt text pattern: alt:"Text" — imageNode altText
+	{
+		regex: /alt:"([^"]+)"/gi,
+		type: 'altText',
+		extract: (match) => ({
+			value: match[1],
+			display: match[1],
+		}),
+		metadataKey: 'altText',
+	},
+
+	// Source pattern: src:"Text" — imageNode source/attribution
+	{
+		regex: /src:"([^"]+)"/gi,
+		type: 'source',
+		extract: (match) => ({
+			value: match[1],
+			display: match[1],
+		}),
+		metadataKey: 'source',
+	},
+
 	// URL pattern: url:value
 	{
 		regex: /url:(\S+)/gi,
@@ -355,11 +378,19 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 		metadataKey: 'confidence',
 	},
 
+	// Show line numbers pattern: lines:on|off — codeNode showLineNumbers
+	{
+		regex: /lines:(on|off)\b/gi,
+		type: 'showLineNumbers',
+		extract: (match) => ({ value: match[1], display: match[1] }),
+		metadataKey: 'showLineNumbers',
+	},
+
 	// Status pattern: :status (like :done, :in-progress, :blocked)
 	// IMPORTANT: Uses negative lookbehind to prevent matching when part of other patterns
 	// (e.g., won't match :green in color:green, :blue in bg:blue, etc.)
 	{
-		regex: /(?<!color|bg|border|size|align|weight|style|title|label|url|lang|file|confidence|question|multiple|options|type):([a-zA-Z][a-zA-Z0-9_-]*)/g,
+		regex: /(?<!color|bg|border|size|align|weight|style|title|label|alt|src|url|lang|file|confidence|question|multiple|options|type|lines):([a-zA-Z][a-zA-Z0-9_-]*)/g,
 		type: 'status',
 		extract: (match) => ({
 			value: match[1],
@@ -368,9 +399,9 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 		metadataKey: 'status',
 	},
 
-	// Annotation type pattern: type:warning|success|info|error|note
+	// Annotation type pattern: type:value (any identifier; renderer validates known values)
 	{
-		regex: /type:(warning|success|info|error|note)\b/gi,
+		regex: /type:([a-zA-Z][a-zA-Z0-9_-]*)\b/gi,
 		type: 'annotationType',
 		extract: (match) => ({
 			value: match[1].toLowerCase(),
@@ -666,6 +697,7 @@ export function parseTaskList(
  */
 export function hasEmbeddedPatterns(text: string): boolean {
 	for (const config of PATTERN_CONFIGS) {
+		config.regex.lastIndex = 0; // reset before test — global regexes retain lastIndex
 		if (config.regex.test(text)) {
 			return true;
 		}

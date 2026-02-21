@@ -7,8 +7,10 @@
  * We solve this by swapping external images with placeholders during export.
  */
 
+import { getNodesBounds, getViewportForBounds } from '@xyflow/react';
 import { toBlob, toSvg } from 'html-to-image';
 import type { Options } from 'html-to-image/lib/types';
+import type { AppNode } from '@/types/app-node';
 
 export type ExportFormat = 'png' | 'svg' | 'pdf' | 'json';
 export type ExportScale = 1 | 2 | 3 | 4;
@@ -20,10 +22,10 @@ export interface ExportOptions {
 	includeBackground?: boolean;
 	/** Background color when includeBackground is true */
 	backgroundColor?: string;
-	/** Fit all nodes in view before export */
-	fitView?: boolean;
 	/** Quality for PNG export (0-1) */
 	quality?: number;
+	/** React Flow nodes for content-aware bounds calculation */
+	nodes?: AppNode[];
 }
 
 export interface ExportResult {
@@ -116,66 +118,22 @@ function createExportFilter(): (node: HTMLElement) => boolean {
  * Get the ReactFlow viewport element for export
  */
 export function getExportElement(): HTMLElement | null {
-	// Try to get the viewport first for better export
 	const viewport = document.querySelector(
 		'.react-flow__viewport'
 	) as HTMLElement | null;
 	if (viewport) return viewport;
 
-	// Fallback to the main ReactFlow container
 	const container = document.querySelector('.react-flow') as HTMLElement | null;
 	return container;
 }
 
-/**
- * Calculate the bounding box of all visible nodes
- */
-export function calculateNodesBoundingBox(): {
-	x: number;
-	y: number;
-	width: number;
-	height: number;
-} | null {
-	const nodes = document.querySelectorAll('.react-flow__node');
-	if (nodes.length === 0) return null;
-
-	let minX = Infinity;
-	let minY = Infinity;
-	let maxX = -Infinity;
-	let maxY = -Infinity;
-
-	nodes.forEach((node) => {
-		// Skip ghost nodes
-		if (node.getAttribute('data-node-type') === 'ghostNode') return;
-
-		const rect = node.getBoundingClientRect();
-		const transform = (node as HTMLElement).style.transform;
-		const match = transform.match(/translate\(([^,]+),\s*([^)]+)\)/);
-
-		if (match) {
-			const x = parseFloat(match[1]);
-			const y = parseFloat(match[2]);
-			minX = Math.min(minX, x);
-			minY = Math.min(minY, y);
-			maxX = Math.max(maxX, x + rect.width);
-			maxY = Math.max(maxY, y + rect.height);
-		}
-	});
-
-	if (minX === Infinity) return null;
-
-	// Add padding
-	const padding = 50;
-	return {
-		x: minX - padding,
-		y: minY - padding,
-		width: maxX - minX + padding * 2,
-		height: maxY - minY + padding * 2,
-	};
-}
+/** Padding (in flow coordinates) around content bounds for export */
+const EXPORT_PADDING = 50;
 
 /**
- * Export the mind map canvas to PNG
+ * Export the mind map canvas to PNG.
+ * When `nodes` is provided, computes content-aware bounds so the exported
+ * image matches the content aspect ratio instead of the browser window.
  */
 export async function exportToPng(
 	options: ExportOptions = {}
@@ -184,14 +142,59 @@ export async function exportToPng(
 		scale = 2,
 		includeBackground = true,
 		backgroundColor = '#0d0d0d',
+		nodes,
 	} = options;
 
-	const element = getExportElement();
-	if (!element) {
+	const viewportEl = getExportElement();
+	if (!viewportEl) {
 		throw new Error('Could not find ReactFlow element for export');
 	}
 
+	// Filter out ghost nodes for bounds calculation
+	const visibleNodes = nodes?.filter((n) => n.type !== 'ghostNode');
+	const useContentBounds = visibleNodes && visibleNodes.length > 0;
+
+	// Compute content-aware dimensions
+	let imageWidth: number;
+	let imageHeight: number;
+	let savedTransform: string | undefined;
+
+	if (useContentBounds) {
+		const bounds = getNodesBounds(visibleNodes);
+		// Add padding around content
+		const paddedBounds = {
+			x: bounds.x - EXPORT_PADDING,
+			y: bounds.y - EXPORT_PADDING,
+			width: bounds.width + EXPORT_PADDING * 2,
+			height: bounds.height + EXPORT_PADDING * 2,
+		};
+
+		imageWidth = paddedBounds.width;
+		imageHeight = paddedBounds.height;
+
+		// Compute the viewport transform that fits content into the image dimensions
+		const viewport = getViewportForBounds(
+			paddedBounds,
+			imageWidth,
+			imageHeight,
+			0.5,
+			2,
+			0
+		);
+
+		// Temporarily override viewport transform so html-to-image captures
+		// exactly the content area at the right position
+		savedTransform = viewportEl.style.transform;
+		viewportEl.style.transform = `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`;
+	} else {
+		const rect = viewportEl.getBoundingClientRect();
+		imageWidth = rect.width;
+		imageHeight = rect.height;
+	}
+
 	const htmlToImageOptions: Partial<Options> = {
+		width: imageWidth,
+		height: imageHeight,
 		pixelRatio: scale,
 		filter: createExportFilter(),
 		cacheBust: true,
@@ -202,45 +205,87 @@ export async function exportToPng(
 		htmlToImageOptions.backgroundColor = backgroundColor;
 	}
 
-	// Swap external images with placeholders to avoid CORS issues
 	prepareForExport();
 
 	let blob: Blob | null = null;
 	try {
-		blob = await toBlob(element, htmlToImageOptions);
+		blob = await toBlob(viewportEl, htmlToImageOptions);
 	} finally {
-		// Always restore DOM state, even if export fails
 		restoreAfterExport();
+		// Restore original transform
+		if (savedTransform !== undefined) {
+			viewportEl.style.transform = savedTransform;
+		}
 	}
 
 	if (!blob) {
 		throw new Error('Failed to generate PNG blob');
 	}
 
-	// Get dimensions from the element
-	const rect = element.getBoundingClientRect();
-
 	return {
 		blob,
-		width: rect.width * scale,
-		height: rect.height * scale,
+		width: imageWidth * scale,
+		height: imageHeight * scale,
 	};
 }
 
 /**
- * Export the mind map canvas to SVG
+ * Export the mind map canvas to SVG.
+ * When `nodes` is provided, computes content-aware bounds.
  */
 export async function exportToSvg(
 	options: ExportOptions = {}
 ): Promise<ExportResult> {
-	const { includeBackground = true, backgroundColor = '#0d0d0d' } = options;
+	const {
+		includeBackground = true,
+		backgroundColor = '#0d0d0d',
+		nodes,
+	} = options;
 
-	const element = getExportElement();
-	if (!element) {
+	const viewportEl = getExportElement();
+	if (!viewportEl) {
 		throw new Error('Could not find ReactFlow element for export');
 	}
 
+	const visibleNodes = nodes?.filter((n) => n.type !== 'ghostNode');
+	const useContentBounds = visibleNodes && visibleNodes.length > 0;
+
+	let imageWidth: number;
+	let imageHeight: number;
+	let savedTransform: string | undefined;
+
+	if (useContentBounds) {
+		const bounds = getNodesBounds(visibleNodes);
+		const paddedBounds = {
+			x: bounds.x - EXPORT_PADDING,
+			y: bounds.y - EXPORT_PADDING,
+			width: bounds.width + EXPORT_PADDING * 2,
+			height: bounds.height + EXPORT_PADDING * 2,
+		};
+
+		imageWidth = paddedBounds.width;
+		imageHeight = paddedBounds.height;
+
+		const viewport = getViewportForBounds(
+			paddedBounds,
+			imageWidth,
+			imageHeight,
+			0.5,
+			2,
+			0
+		);
+
+		savedTransform = viewportEl.style.transform;
+		viewportEl.style.transform = `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`;
+	} else {
+		const rect = viewportEl.getBoundingClientRect();
+		imageWidth = rect.width;
+		imageHeight = rect.height;
+	}
+
 	const htmlToImageOptions: Partial<Options> = {
+		width: imageWidth,
+		height: imageHeight,
 		filter: createExportFilter(),
 		cacheBust: true,
 	};
@@ -249,28 +294,25 @@ export async function exportToSvg(
 		htmlToImageOptions.backgroundColor = backgroundColor;
 	}
 
-	// Swap external images with placeholders to avoid CORS issues
 	prepareForExport();
 
 	let svgDataUrl: string;
 	try {
-		svgDataUrl = await toSvg(element, htmlToImageOptions);
+		svgDataUrl = await toSvg(viewportEl, htmlToImageOptions);
 	} finally {
-		// Always restore DOM state, even if export fails
 		restoreAfterExport();
+		if (savedTransform !== undefined) {
+			viewportEl.style.transform = savedTransform;
+		}
 	}
 
-	// Convert data URL to blob
 	const response = await fetch(svgDataUrl);
 	const blob = await response.blob();
 
-	// Get dimensions from the element
-	const rect = element.getBoundingClientRect();
-
 	return {
 		blob,
-		width: rect.width,
-		height: rect.height,
+		width: imageWidth,
+		height: imageHeight,
 	};
 }
 

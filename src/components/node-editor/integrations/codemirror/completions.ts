@@ -18,6 +18,17 @@ import type { EditorView } from '@codemirror/view';
 import { commandRegistry } from '../../core/commands/command-registry';
 
 // ============================================================================
+// COLLABORATOR MENTION TYPE
+// ============================================================================
+
+export interface CollaboratorMention {
+	slug: string; // inserted text slug, e.g. "sarah-chen"
+	displayName: string; // shown in dropdown, e.g. "Sarah Chen"
+	avatarUrl: string; // empty string for built-ins
+	role: 'editor' | 'viewer' | 'built-in';
+}
+
+// ============================================================================
 // SUGGESTION DATA
 // ============================================================================
 
@@ -44,20 +55,28 @@ const TAG_SUGGESTIONS = [
 ];
 
 /**
- * Common assignee suggestions
+ * Built-in team role mentions (shown when no real collaborators match)
  */
-const ASSIGNEE_SUGGESTIONS = [
-	'me',
-	'team',
-	'john',
-	'sarah',
-	'admin',
+const BUILT_IN_MENTIONS: CollaboratorMention[] = [
 	'dev',
+	'qa',
+	'ops',
 	'design',
-	'product',
+	'ux',
+	'pm',
+	'management',
 	'marketing',
+	'sales',
 	'support',
-];
+	'security',
+	'data',
+	'legal',
+].map((slug) => ({
+	slug,
+	displayName: slug.length <= 2 ? slug.toUpperCase() : slug[0].toUpperCase() + slug.slice(1),
+	avatarUrl: '',
+	role: 'built-in' as const,
+}));
 
 /**
  * Date suggestions with shorthands
@@ -292,9 +311,21 @@ const PATTERN_PREFIXES = [
 
 /**
  * Main completion source
+ * @returns source - CompletionSource for CodeMirror autocompletion
+ * @returns mentionMap - Map of label → CollaboratorMention for avatar rendering
  */
-export function createCompletions(): CompletionSource {
-	return (context: CompletionContext): CompletionResult | null => {
+export function createCompletions(
+	collaborators: CollaboratorMention[] = []
+): { source: CompletionSource; mentionMap: Map<string, CollaboratorMention> } {
+	const allMentions = [...BUILT_IN_MENTIONS, ...collaborators];
+
+	// Build label → mention map for the avatar renderer in setup.ts
+	const mentionMap = new Map<string, CollaboratorMention>();
+	for (const m of allMentions) {
+		mentionMap.set(`@${m.slug}`, m);
+	}
+
+	const source: CompletionSource = (context: CompletionContext): CompletionResult | null => {
 		const { pos } = context;
 		const word = context.matchBefore(/\S*/);
 
@@ -330,21 +361,27 @@ export function createCompletions(): CompletionSource {
 		// ================================================================
 		if (prefix.startsWith('@')) {
 			const search = prefix.slice(1).toLowerCase();
-			const options = ASSIGNEE_SUGGESTIONS.filter((person) =>
-				person.toLowerCase().includes(search)
-			).map((person) => ({
-				label: `@${person}`,
-				type: 'variable',
-				apply: `@${person}`,
-				info: `Assign to: ${person}`,
-			}));
+			const options = allMentions
+				.filter(
+					(m) =>
+						m.slug.includes(search) ||
+						m.displayName.toLowerCase().includes(search)
+				)
+				.map((m) => ({
+					label: `@${m.slug}`,
+					type: 'variable',
+					apply: `@${m.slug}`,
+					info: `${m.role === 'built-in' ? 'Team role' : m.role}: ${m.displayName}`,
+					boost: m.role === 'built-in' ? 0 : 1,
+				}));
 
 			if (options.length === 0) return null;
 
 			return {
 				from: word.from,
 				options,
-				validFor: /^@\w*/,
+				// Fix: hyphens must be included so incremental filtering works for "sarah-chen"
+				validFor: /^@[\w-]*/,
 			};
 		}
 
@@ -840,4 +877,6 @@ export function createCompletions(): CompletionSource {
 
 		return null;
 	};
+
+	return { source, mentionMap };
 }

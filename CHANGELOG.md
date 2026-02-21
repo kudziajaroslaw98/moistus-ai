@@ -5,6 +5,74 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+<!-- Updated: 2026-02-21 - Collaborator mentions, export scale simplification, dependency patch updates -->
+## [2026-02-21]
+
+### Refactored
+- **editor/codemirror**: Extracted `STATUS_EXCLUDE_PREFIXES` array — status regex now built from the constant instead of a brittle inline lookbehind; update the array when adding new `prefix:value` patterns
+- **editor/codemirror**: Merged duplicate `.cm-pattern-alt` and `.cm-pattern-alttext` style blocks into a single combined selector
+- **export/png**: Removed PNG export resolution selector (1x/2x/3x/4x) — PNG export scale is now fixed to 2x
+
+### Added
+- **editor/mentions**: `@` autocomplete in node editor now shows real collaborators — loaded eagerly on map open (no longer requires opening the share panel first)
+- **editor/mentions**: Real collaborators ranked above built-in team roles in `@` dropdown (boost:1 vs boost:0)
+- **editor/mentions**: Assignee metadata badges now show collaborator avatar with initials fallback instead of generic user icon
+- **editor/mentions**: Added `CollaboratorMention` type and built-in preset mentions (`@dev`, `@design`, `@pm`, etc.)
+
+### Fixed
+- **editor/imageNode**: `alt:` and `src:` patterns now parsed by PATTERN_CONFIGS — `altText` and `source` round-trip correctly through edit/save cycles (previously treated as plain text)
+- **editor/imageNode**: `alt:"text"` syntax help entry now has `insertText` — clicking it inserts the prefix instead of nothing
+- **editor/codeNode**: `showLineNumbers` in node-creator no longer re-enables line numbers when metadata holds boolean `false` (preserves default-on behavior)
+- **editor/codemirror**: `hasEmbeddedPatterns` resets `lastIndex` on global regexes before each `.test()` call — eliminates false negatives on repeated calls
+- **editor/codemirror**: `alt:` and `src:` tokens now highlighted in quick-input editor and excluded from status pattern matching
+- **export/pdf**: Author name now uses profile `display_name` → `full_name` → email fallback instead of always using email
+
+### Changed
+- **editor/codemirror**: `KNOWN_ANNOTATION_TYPES` extracted to module-level constant (was re-allocated per match in `valueClassName`)
+- **export/pdf**: PDF export now uses the same fixed `2x` image capture pipeline as PNG
+- **export/png**: PNG export rendering scale remains hardcoded to `2x` for consistent output quality
+- **deps**: Applied patch-version dependency updates (runtime + dev tooling) and refreshed lockfile
+
+---
+
+<!-- Updated: 2026-02-20 - Parser/serializer consistency fixes -->
+## [2026-02-20]
+
+### Fixed
+- **editor/codeNode**: Quick-input serialization no longer wraps content in triple-backtick fences — raw content is output directly so re-editing round-trips correctly
+- **editor/resourceNode**: Quick-input serialization no longer emits `restype:` (no corresponding parser existed)
+- **editor/imageNode**: Quick-input serialization no longer emits `cap:` (no corresponding parser existed)
+- **editor/codeNode**: `lines:on|off` pattern now parsed correctly — `showLineNumbers` round-trips through edit/save cycle
+- **editor/imageNode**: Syntax help now shows correct `alt:"text"` format instead of outdated `"alt text"` format
+- **editor/codeNode**: `lines:on|off` now highlighted in quick-input editor (cyan); no longer misidentified as a status token
+- **editor/annotationNode**: `type:value` now highlighted for any identifier (known values get semantic colors; unknown values get gray); parser also updated to accept any identifier
+- **editor/annotationNode**: Removed emoji shortcut entries from syntax help (no insertText — not useful to click); fixed `$annotation` examples to use generic text
+
+---
+
+<!-- Updated: 2026-02-19 - Pan mode edge fix, CodeMirror UX -->
+## [2026-02-19]
+
+### Fixed
+- **nodes/handle**: Edge creation via bottom handle now disabled in pan mode — `isConnectable` gated on `activeTool`
+
+### Added
+- **editor/codemirror**: Added `scrollPastEnd` and `highlightActiveLine` extensions for better editing UX
+
+---
+
+<!-- Updated: 2026-02-18 - Content-aware export bounds -->
+## [2026-02-18]
+
+### Fixed
+- **export/bounds**: Export now captures content-aware bounds using `getNodesBounds` + `getViewportForBounds` instead of browser viewport dimensions — tall/wide mind maps no longer get cut off or shrunk with whitespace
+
+### Removed
+- **export/fitView**: Removed "Fit all nodes in view" toggle (no longer needed — export always captures all content)
+- **export/deadcode**: Removed `calculateNodesBoundingBox` (unused), `exportFitView` state/setter, zoom compensation logic
+
+---
+
 <!-- Updated: 2026-02-13 - JSON export, PDF/JSON paywall, mobile node editor, server-side export, node permission fix -->
 ## [2026-02-13]
 

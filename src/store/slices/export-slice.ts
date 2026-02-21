@@ -18,6 +18,7 @@ import {
 	type PageSize,
 	type PdfExportOptions,
 } from '@/utils/pdf-export-utils';
+import { toast } from 'sonner';
 import type { StateCreator } from 'zustand';
 import type { AppState, ExportSlice, ExportState } from '../app-state';
 
@@ -26,7 +27,6 @@ const initialExportState: ExportState = {
 	exportFormat: 'png',
 	exportScale: 2,
 	exportBackground: true,
-	exportFitView: true,
 	pdfPageSize: 'a4',
 	pdfOrientation: 'landscape',
 	pdfIncludeTitle: true,
@@ -52,10 +52,6 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (
 		set({ exportBackground: include });
 	},
 
-	setExportFitView: (fitView: boolean) => {
-		set({ exportFitView: fitView });
-	},
-
 	setPdfPageSize: (size: PageSize) => {
 		set({ pdfPageSize: size });
 	},
@@ -76,16 +72,15 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (
 		const state = get();
 		const {
 			exportFormat,
-			exportScale,
 			exportBackground,
-			exportFitView,
 			pdfPageSize,
 			pdfOrientation,
 			pdfIncludeTitle,
 			pdfIncludeMetadata,
 			mindMap,
-			reactFlowInstance,
 			currentUser,
+			userProfile,
+			nodes,
 		} = state;
 
 		set({ isExporting: true, exportError: null });
@@ -133,27 +128,14 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (
 				}
 			}
 
-			// Fit view if requested
-			if (exportFitView && reactFlowInstance) {
-				reactFlowInstance.fitView({
-					padding: 0.1,
-					duration: 200,
-				});
-				// Wait for animation to complete
-				await new Promise((resolve) => setTimeout(resolve, 250));
-			}
-
-			// Calculate zoom-compensated scale
-			// When zoomed out (e.g., 0.1), we need higher pixelRatio to maintain resolution
-			const currentZoom = reactFlowInstance?.getZoom() ?? 1;
-			const zoomCompensatedScale = exportScale / currentZoom;
-			// Cap at 10x to prevent memory issues with extremely large exports
-			const finalScale = Math.min(zoomCompensatedScale, 10);
-
+			// Content-aware export: pass nodes so export-utils computes
+			// bounds-based viewport instead of capturing the browser window
 			const exportOptions: ExportOptions = {
-				scale: finalScale,
+				// Keep export scale fixed at 2x for predictable image quality.
+				scale: 2,
 				includeBackground: exportBackground,
 				backgroundColor: '#0d0d0d',
+				nodes,
 			};
 
 			const mapTitle = mindMap?.title;
@@ -167,11 +149,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (
 				const filename = generateExportFilename(mapTitle, 'svg');
 				downloadFile(result.blob, filename);
 			} else if (exportFormat === 'pdf') {
-				// First export to PNG for PDF embedding
-				const pngResult = await exportToPng({
-					...exportOptions,
-					scale: 2, // Always use 2x for PDF for good quality
-				});
+				const pngResult = await exportToPng(exportOptions);
 
 				const pdfOptions: PdfExportOptions = {
 					pageSize: pdfPageSize,
@@ -179,7 +157,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (
 					includeTitle: pdfIncludeTitle,
 					includeMetadata: pdfIncludeMetadata,
 					mapTitle,
-					authorName: currentUser?.email || undefined,
+					authorName: userProfile?.display_name || userProfile?.full_name || currentUser?.email || undefined,
 				};
 
 				const pdfResult = await exportToPdf(
@@ -194,10 +172,12 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (
 
 			set({ isExporting: false });
 		} catch (error) {
+			const message = error instanceof Error ? error.message : 'Export failed';
 			console.error('Export failed:', error);
+			toast.error(message);
 			set({
 				isExporting: false,
-				exportError: error instanceof Error ? error.message : 'Export failed',
+				exportError: message,
 			});
 		}
 	},
