@@ -189,6 +189,21 @@ const TWO_PART_PATTERNS: TwoPartPatternConfig[] = [
 // ============================================================================
 
 /**
+ * Prefixes excluded from the status pattern's negative lookbehind.
+ * Add new prefix:value patterns here so the status regex stays in sync.
+ */
+const STATUS_EXCLUDE_PREFIXES = [
+	'color', 'bg', 'border', 'size', 'align', 'weight', 'style',
+	'title', 'label', 'alt', 'src', 'url', 'lang', 'file',
+	'confidence', 'question', 'multiple', 'options', 'type', 'lines',
+] as const;
+
+const STATUS_REGEX = new RegExp(
+	`(?<!${STATUS_EXCLUDE_PREFIXES.join('|')}):[a-zA-Z][a-zA-Z0-9_-]*`,
+	'g'
+);
+
+/**
  * Pattern configuration for single-part detection
  */
 interface SinglePartPatternConfig {
@@ -234,10 +249,9 @@ const SINGLE_PART_PATTERNS: SinglePartPatternConfig[] = [
 			return PATTERN_STYLES.priorityLow;
 		},
 	},
-	// Status: :status (negative lookbehind to avoid matching prefix:value patterns)
+	// Status: :status (negative lookbehind excludes all known prefix:value patterns)
 	{
-		regex:
-			/(?<!color|bg|border|size|align|weight|style|title|label|alt|src|url|lang|file|confidence|question|multiple|options|type|lines):[a-zA-Z][a-zA-Z0-9_-]*/g,
+		regex: STATUS_REGEX,
 		className: PATTERN_STYLES.status,
 	},
 	// References: [[reference]]
@@ -573,8 +587,8 @@ export function createPatternDecorations() {
 				borderRadius: '3px',
 			},
 
-			// Alt text prefix styles: alt:"text"
-			'.cm-pattern-alt': {
+			// Alt text prefix styles: alt:"text" and standalone quoted text share the same look
+			'.cm-pattern-alt, .cm-pattern-alttext': {
 				color: '#a855f7',
 				backgroundColor: '#a855f715',
 				fontStyle: 'italic',
@@ -586,15 +600,6 @@ export function createPatternDecorations() {
 			'.cm-pattern-src': {
 				color: '#3b82f6',
 				backgroundColor: '#3b82f615',
-				fontStyle: 'italic',
-				padding: '0 2px',
-				borderRadius: '3px',
-			},
-
-			// Standalone quoted text styles (image captions etc.)
-			'.cm-pattern-alttext': {
-				color: '#a855f7',
-				backgroundColor: '#a855f715',
 				fontStyle: 'italic',
 				padding: '0 2px',
 				borderRadius: '3px',

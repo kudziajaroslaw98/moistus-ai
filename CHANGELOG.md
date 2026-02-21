@@ -5,8 +5,13 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-02-21 - Collaborator mention feature -->
+<!-- Updated: 2026-02-21 - Nitpick code review fixes -->
 ## [2026-02-21]
+
+### Refactored
+- **editor/codemirror**: Extracted `STATUS_EXCLUDE_PREFIXES` array — status regex now built from the constant instead of a brittle inline lookbehind; update the array when adding new `prefix:value` patterns
+- **editor/codemirror**: Merged duplicate `.cm-pattern-alt` and `.cm-pattern-alttext` style blocks into a single combined selector
+- **export/pdf**: Removed hardcoded `scale: 2` override — PDF export now respects the user's configured export scale (same as PNG/SVG)
 
 ### Added
 - **editor/mentions**: `@` autocomplete in node editor now shows real collaborators — loaded eagerly on map open (no longer requires opening the share panel first)

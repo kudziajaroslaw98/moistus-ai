@@ -148,11 +148,7 @@ export const createExportSlice: StateCreator<AppState, [], [], ExportSlice> = (
 				const filename = generateExportFilename(mapTitle, 'svg');
 				downloadFile(result.blob, filename);
 			} else if (exportFormat === 'pdf') {
-				// TODO: respect exportScale here instead of hardcoding 2, or remove the override entirely
-				const pngResult = await exportToPng({
-					...exportOptions,
-					scale: 2,
-				});
+				const pngResult = await exportToPng(exportOptions);
 
 				const pdfOptions: PdfExportOptions = {
 					pageSize: pdfPageSize,
