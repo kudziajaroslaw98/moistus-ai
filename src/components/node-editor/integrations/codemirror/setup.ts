@@ -45,6 +45,8 @@ export function createNodeEditor(
 	container: HTMLElement,
 	config: NodeEditorConfig = {}
 ): EditorView {
+	let lastEmittedNodeType: string | null = null;
+
 	const {
 		initialContent = '',
 		placeholder:
@@ -163,40 +165,41 @@ export function createNodeEditor(
 		...(enablePatternHighlighting ? [createPatternDecorations()] : []),
 		...(enableValidation ? [createValidationDecorations()] : []),
 
-		// Change listener
-		...(onContentChange
+		// Change listeners
+		...(onContentChange || onNodeTypeChange
 			? [
-					EditorView.updateListener.of((update) => {
-						if (update.docChanged) {
-							onContentChange(update.state.doc.toString());
-						}
-					}),
-				]
-			: []),
+						EditorView.updateListener.of((update) => {
+							if (!update.docChanged) return;
+							const text = update.state.doc.toString();
+							onContentChange?.(text);
 
-		// Node type change listener
-		...(onNodeTypeChange
-			? [
-					EditorState.transactionExtender.of((tr) => {
-						// Check for $nodeType patterns anywhere in text
-						const text = tr.newDoc.toString();
-						const nodeTypeMatch = text.match(/\$(\w+)(\s|$)/);
+							if (!onNodeTypeChange) return;
 
-						if (nodeTypeMatch) {
+							// Check for $nodeType patterns anywhere in text
+							const nodeTypeMatch = text.match(/\$(\w+)(\s|$)/);
+							if (!nodeTypeMatch) {
+								lastEmittedNodeType = null;
+								return;
+							}
+
 							// Validate the trigger is a complete, valid command
-							const trigger = `$${nodeTypeMatch[1]}`;
+							const extractedNodeType = nodeTypeMatch[1];
+							const trigger = `$${extractedNodeType}`;
 							const command = commandRegistry.getCommandByTrigger(trigger);
 
 							// Only fire type change if it's a valid complete command
-							if (command?.nodeType) {
-								onNodeTypeChange(nodeTypeMatch[1]);
+							// and changed since last emission to avoid duplicate calls.
+							if (!command?.nodeType) {
+								lastEmittedNodeType = null;
+								return;
 							}
-						}
 
-						return null;
-					}),
-				]
-			: []),
+							if (lastEmittedNodeType === extractedNodeType) return;
+							lastEmittedNodeType = extractedNodeType;
+							onNodeTypeChange(extractedNodeType);
+						}),
+					]
+				: []),
 	];
 
 	// Create state

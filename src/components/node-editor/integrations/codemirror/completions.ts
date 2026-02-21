@@ -63,7 +63,7 @@ const BUILT_IN_MENTIONS: CollaboratorMention[] = [
 	'ops',
 	'design',
 	'ux',
-	'product',
+	'pm',
 	'management',
 	'marketing',
 	'sales',

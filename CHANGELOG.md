@@ -11,7 +11,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ### Refactored
 - **editor/codemirror**: Extracted `STATUS_EXCLUDE_PREFIXES` array — status regex now built from the constant instead of a brittle inline lookbehind; update the array when adding new `prefix:value` patterns
 - **editor/codemirror**: Merged duplicate `.cm-pattern-alt` and `.cm-pattern-alttext` style blocks into a single combined selector
-- **export/ui**: Removed PNG export resolution selector (1x/2x/3x/4x) — export scale is now fixed to 2x
+- **export/png**: Removed PNG export resolution selector (1x/2x/3x/4x) — PNG export scale is now fixed to 2x
 
 ### Added
 - **editor/mentions**: `@` autocomplete in node editor now shows real collaborators — loaded eagerly on map open (no longer requires opening the share panel first)
@@ -29,7 +29,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Changed
 - **editor/codemirror**: `KNOWN_ANNOTATION_TYPES` extracted to module-level constant (was re-allocated per match in `valueClassName`)
-- **export/png+pdf**: Export rendering scale is now hardcoded to `2x` for consistent quality across image and PDF flows
+- **export/pdf**: PDF export now uses the same fixed `2x` image capture pipeline as PNG
+- **export/png**: PNG export rendering scale remains hardcoded to `2x` for consistent output quality
 - **deps**: Applied patch-version dependency updates (runtime + dev tooling) and refreshed lockfile
 
 ---
