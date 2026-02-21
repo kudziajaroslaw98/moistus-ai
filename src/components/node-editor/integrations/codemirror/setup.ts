@@ -17,7 +17,7 @@ import {
 
 // Import our custom extensions
 import { commandRegistry } from '../../core/commands/command-registry';
-import { createCompletions } from './completions';
+import { type CollaboratorMention, createCompletions } from './completions';
 import { createPatternDecorations } from './pattern-decorations';
 import { nodeEditorTheme } from './theme';
 import { createValidationDecorations } from './validation-decorations';
@@ -33,6 +33,16 @@ export interface NodeEditorConfig {
 	enableValidation?: boolean;
 	onContentChange?: (content: string) => void;
 	onNodeTypeChange?: (nodeType: string) => void;
+	collaborators?: CollaboratorMention[];
+}
+
+/** Get up to 2 uppercase initials from a display name */
+function getInitials(name: string): string {
+	return name
+		.split(/\s+/)
+		.slice(0, 2)
+		.map((w) => w[0]?.toUpperCase() ?? '')
+		.join('');
 }
 
 /**
@@ -52,7 +62,12 @@ export function createNodeEditor(
 		enableValidation = true,
 		onContentChange,
 		onNodeTypeChange,
+		collaborators,
 	} = config;
+
+	const { source: completionSource, mentionMap } = createCompletions(
+		collaborators ?? []
+	);
 
 	// Build extensions array
 	const extensions: Extension[] = [
@@ -81,14 +96,54 @@ export function createNodeEditor(
 		...(enableCompletions
 			? [
 					autocompletion({
-						override: [createCompletions()],
+						override: [completionSource],
 						activateOnTyping: true,
 						defaultKeymap: true,
-						// Custom render for color swatches inline
 						addToOptions: [
+							// Position 19: avatar + role badge for @ mention completions
+							{
+								position: 19,
+								render(completion) {
+									const meta = mentionMap.get(completion.label);
+									if (!meta) return null;
+
+									const wrapper = document.createElement('span');
+									wrapper.style.cssText =
+										'display:inline-flex;align-items:center;gap:4px;marginRight:6px';
+
+									// Avatar circle (18×18)
+									const avatar = document.createElement('span');
+									avatar.style.cssText =
+										'display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;font-size:9px;font-weight:600;flex-shrink:0;overflow:hidden;background:rgba(139,92,246,0.2);color:#a78bfa';
+
+									if (meta.avatarUrl) {
+										const img = document.createElement('img');
+										img.src = meta.avatarUrl;
+										img.style.cssText =
+											'width:100%;height:100%;object-fit:cover;border-radius:50%';
+										img.onerror = () => {
+											img.remove();
+											avatar.textContent = getInitials(meta.displayName);
+										};
+										avatar.appendChild(img);
+									} else {
+										avatar.textContent = getInitials(meta.displayName);
+									}
+
+									// Role badge
+									const badge = document.createElement('span');
+									badge.textContent = `[${meta.role}]`;
+									badge.style.cssText =
+										'font-size:9px;opacity:0.5;letter-spacing:0.02em';
+
+									wrapper.appendChild(avatar);
+									wrapper.appendChild(badge);
+									return wrapper;
+								},
+							},
+							// Position 20: color swatch for color: bg: border: completions
 							{
 								render: (completion) => {
-									// Only render swatches for color completions
 									const label = completion.label;
 									if (
 										label.startsWith('color:') ||
@@ -100,14 +155,13 @@ export function createNodeEditor(
 											const swatch = document.createElement('span');
 											swatch.className = 'color-swatch';
 											swatch.style.backgroundColor = hex;
-											// Add minimal margin to position closer to label
 											swatch.style.marginRight = '8px';
 											return swatch;
 										}
 									}
 									return null;
 								},
-								position: 20, // Render before the label
+								position: 20,
 							},
 						],
 					}),
