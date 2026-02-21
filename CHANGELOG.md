@@ -5,6 +5,23 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+<!-- Updated: 2026-02-21 - Code review fixes -->
+## [2026-02-21]
+
+### Fixed
+- **editor/imageNode**: `alt:` and `src:` patterns now parsed by PATTERN_CONFIGS — `altText` and `source` round-trip correctly through edit/save cycles (previously treated as plain text)
+- **editor/imageNode**: `alt:"text"` syntax help entry now has `insertText` — clicking it inserts the prefix instead of nothing
+- **editor/codeNode**: `showLineNumbers` in node-creator no longer re-enables line numbers when metadata holds boolean `false` (preserves default-on behavior)
+- **editor/codemirror**: `hasEmbeddedPatterns` resets `lastIndex` on global regexes before each `.test()` call — eliminates false negatives on repeated calls
+- **editor/codemirror**: `alt:` and `src:` tokens now highlighted in quick-input editor and excluded from status pattern matching
+- **export/pdf**: Author name now uses profile `display_name` → `full_name` → email fallback instead of always using email
+- **export/pdf**: Added TODO comment on hardcoded `scale: 2` — should respect user's exportScale setting
+
+### Changed
+- **editor/codemirror**: `KNOWN_ANNOTATION_TYPES` extracted to module-level constant (was re-allocated per match in `valueClassName`)
+
+---
+
 <!-- Updated: 2026-02-20 - Parser/serializer consistency fixes -->
 ## [2026-02-20]
 

@@ -209,6 +209,7 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 				description: 'Add alt text for the image',
 				examples: ['alt:"System Architecture diagram"'],
 				category: 'metadata',
+				insertText: 'alt:"',
 			},
 		],
 	},

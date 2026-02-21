@@ -312,6 +312,28 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 		metadataKey: 'label',
 	},
 
+	// Alt text pattern: alt:"Text" — imageNode altText
+	{
+		regex: /alt:"([^"]+)"/gi,
+		type: 'altText',
+		extract: (match) => ({
+			value: match[1],
+			display: match[1],
+		}),
+		metadataKey: 'altText',
+	},
+
+	// Source pattern: src:"Text" — imageNode source/attribution
+	{
+		regex: /src:"([^"]+)"/gi,
+		type: 'source',
+		extract: (match) => ({
+			value: match[1],
+			display: match[1],
+		}),
+		metadataKey: 'source',
+	},
+
 	// URL pattern: url:value
 	{
 		regex: /url:(\S+)/gi,
@@ -368,7 +390,7 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 	// IMPORTANT: Uses negative lookbehind to prevent matching when part of other patterns
 	// (e.g., won't match :green in color:green, :blue in bg:blue, etc.)
 	{
-		regex: /(?<!color|bg|border|size|align|weight|style|title|label|url|lang|file|confidence|question|multiple|options|type|lines):([a-zA-Z][a-zA-Z0-9_-]*)/g,
+		regex: /(?<!color|bg|border|size|align|weight|style|title|label|alt|src|url|lang|file|confidence|question|multiple|options|type|lines):([a-zA-Z][a-zA-Z0-9_-]*)/g,
 		type: 'status',
 		extract: (match) => ({
 			value: match[1],
@@ -675,6 +697,7 @@ export function parseTaskList(
  */
 export function hasEmbeddedPatterns(text: string): boolean {
 	for (const config of PATTERN_CONFIGS) {
+		config.regex.lastIndex = 0; // reset before test — global regexes retain lastIndex
 		if (config.regex.test(text)) {
 			return true;
 		}
