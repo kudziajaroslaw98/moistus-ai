@@ -21,6 +21,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **toolbar/mobile**: Bottom toolbar now uses a compact mobile layout (`<768px`) with core actions visible (`Cursor`, `Add`, `AI`, `Comments`) and secondary actions moved under a `More` dropdown
 - **toolbar/mobile**: `More` overflow submenu triggers (`Auto Layout`, `Export`, `Guided Tour`) now use click-toggle behavior (`openOnHover={false}`) for reliable touch interaction
 - **toasts/layout**: Global app toaster now uses `.app-toaster` class targeting and compact baseline width (`min(18rem, calc(100vw - 1.5rem))`) for consistent tablet/mobile sizing
+- **docs/readme**: Added an E2E testing section with Playwright browser setup and `.next/lock` troubleshooting guidance; removed the detailed local webServer behavior subsection for brevity
 
 ### Fixed
 - **node-editor/mobile**: CodeMirror autocomplete dropdown no longer gets clipped by node editor modal bounds on mobile
