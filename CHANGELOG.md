@@ -5,6 +5,21 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+<!-- Updated: 2026-02-22 - Rename user settings to Account, mobile autocomplete overflow fix -->
+## [2026-02-22]
+
+### Changed
+- **ux/navigation**: Renamed user "Settings" to "Account" throughout — user menu item, panel title, and tab label now read "Account" to distinguish from "Map Settings"
+  - Why: "Settings" was ambiguous — used for both account preferences and per-map configuration
+- **ux/navigation**: Mobile map menu button label updated from "Open Settings" to "Map Settings" for consistency
+
+### Fixed
+- **node-editor/mobile**: CodeMirror autocomplete dropdown no longer gets clipped by node editor modal bounds on mobile
+  - Render tooltips to `document.body` via CodeMirror `tooltips({ parent, position: 'fixed' })` so suggestions escape scroll/overflow containers
+  - Updated autocomplete width constraints (`minWidth: 240px`, viewport-capped width/maxWidth) and elevated z-index to keep the menu visible on small screens
+
+---
+
 <!-- Updated: 2026-02-21 - Collaborator mentions, export scale simplification, dependency patch updates -->
 ## [2026-02-21]
 

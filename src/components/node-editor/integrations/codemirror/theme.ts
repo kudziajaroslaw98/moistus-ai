@@ -66,13 +66,15 @@ export const nodeEditorTheme = EditorView.theme(
 			borderRadius: '12px !important',
 			color: 'rgb(244, 244, 245) !important',
 			fontSize: '14px !important',
+			zIndex: '140 !important',
 			boxShadow:
 				'0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2) !important',
 			backdropFilter: 'blur(16px) !important',
 			maxHeight: '400px !important',
 			height: 'auto !important',
-			minWidth: '320px !important',
-			width: '320px !important',
+			minWidth: '240px !important',
+			width: 'min(320px, calc(100vw - 2rem)) !important',
+			maxWidth: 'calc(100vw - 2rem) !important',
 			padding: '8px !important',
 		},
 		'.cm-tooltip-autocomplete': {
