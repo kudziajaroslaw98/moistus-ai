@@ -26,7 +26,7 @@ interface MindMapTopBarProps {
 	handleToggleHistorySidebar: () => void;
 	handleToggleMapSettings: () => void;
 	handleToggleSharePanel: () => void;
-	handleOpenSettings: (tab: 'settings' | 'billing') => void;
+	handleOpenSettings: (tab: 'account' | 'billing') => void;
 	// Mobile menu state lifted to parent
 	mobileMenuOpen: boolean;
 	setMobileMenuOpen: (open: boolean) => void;

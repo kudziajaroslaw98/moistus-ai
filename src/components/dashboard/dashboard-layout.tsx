@@ -81,15 +81,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 	const { open: sidebarOpen } = useSidebar();
 	const sidebarCollapsed = !sidebarOpen;
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-	const [settingsTab, setSettingsTab] = useState<'settings' | 'billing'>(
-		'settings'
+	const [settingsTab, setSettingsTab] = useState<'account' | 'billing'>(
+		'account'
 	);
 	const [showAnonymousUpgrade, setShowAnonymousUpgrade] = useState(false);
 	const userProfile = useAppStore((state) => state.userProfile);
 	const setPopoverOpen = useAppStore((state) => state.setPopoverOpen);
 	const popoverOpen = useAppStore((state) => state.popoverOpen);
 
-	const handleOpenSettings = (tab: 'settings' | 'billing' = 'settings') => {
+	const handleOpenSettings = (tab: 'account' | 'billing' = 'account') => {
 		setSettingsTab(tab);
 		setIsSettingsOpen(true);
 	};
@@ -97,8 +97,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 	// Handle URL param to open settings panel (e.g., /dashboard?settings=billing)
 	useEffect(() => {
 		const settingsParam = searchParams.get('settings');
-		if (settingsParam === 'billing' || settingsParam === 'settings') {
-			handleOpenSettings(settingsParam);
+		if (settingsParam === 'billing' || settingsParam === 'settings' || settingsParam === 'account') {
+			handleOpenSettings(settingsParam === 'settings' ? 'account' : settingsParam as 'account' | 'billing');
 			// Clean up URL without triggering navigation
 			window.history.replaceState({}, '', pathname);
 		}

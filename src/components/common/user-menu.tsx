@@ -30,7 +30,7 @@ import { useShallow } from 'zustand/react/shallow';
 interface UserMenuProps {
 	user: (PublicUserProfile & { email?: string; is_anonymous?: boolean }) | null;
 	showBackToDashboard?: boolean;
-	onOpenSettings?: (tab: 'settings' | 'billing') => void;
+	onOpenSettings?: (tab: 'account' | 'billing') => void;
 }
 
 // Use shared Supabase client
@@ -160,10 +160,10 @@ export function UserMenu({
 				{/* Menu Items */}
 				<DropdownMenuItem
 					className='cursor-pointer text-zinc-300 focus:bg-zinc-800 focus:text-white'
-					onClick={() => onOpenSettings?.('settings')}
+					onClick={() => onOpenSettings?.('account')}
 				>
 					<Settings className='mr-2 h-4 w-4' />
-					Settings
+					Account
 				</DropdownMenuItem>
 
 				<DropdownMenuItem

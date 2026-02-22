@@ -71,12 +71,12 @@ export function ReactFlowArea() {
 	const fetchStartedRef = useRef(false);
 	const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-	const [settingsTab, setSettingsTab] = useState<'settings' | 'billing'>(
-		'settings'
+	const [settingsTab, setSettingsTab] = useState<'account' | 'billing'>(
+		'account'
 	);
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-	const handleOpenSettings = (tab: 'settings' | 'billing' = 'settings') => {
+	const handleOpenSettings = (tab: 'account' | 'billing' = 'account') => {
 		setSettingsTab(tab);
 		setIsSettingsOpen(true);
 	};

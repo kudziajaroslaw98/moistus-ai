@@ -122,7 +122,7 @@ export function MobileMenu({
 								className='w-full justify-start gap-3 h-10'
 							>
 								<Settings className='size-4' />
-								Open Settings
+								Map Settings
 							</Button>
 						</div>
 					</motion.section>
