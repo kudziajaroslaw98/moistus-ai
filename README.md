@@ -43,6 +43,20 @@ Shiko is built using modern technologies:
 4. Run the development server with `pnpm dev`
 5. Visit `http://localhost:3000` to start mapping
 
+## E2E Testing
+
+Playwright tests run against a production Next.js server started by the Playwright `webServer` config.
+
+### First-time setup
+
+1. Install browsers: `pnpm exec playwright install chromium`
+2. Run tests: `pnpm e2e:chromium`
+
+### If you hit startup/lock issues
+
+- A stale `next build` can leave `.next/lock` and block new runs.
+- Stop stale build processes, then re-run Playwright.
+
 ## Contributing
 
 Shiko is an open-source project and we welcome contributions from the community. Whether you're fixing bugs, improving documentation, or proposing new features, your help is appreciated.
