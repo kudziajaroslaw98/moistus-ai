@@ -3,6 +3,8 @@ import { nodeCommands } from '@/components/node-editor/core/commands/node-comman
 import { StateCreator } from 'zustand';
 import { AppState, UIStateSlice } from '../app-state';
 
+const BLOCKED_NODE_TYPES = ['commentNode', 'groupNode', 'ghostNode'] as const;
+
 export const createUiStateSlice: StateCreator<
 	AppState,
 	[],
@@ -96,6 +98,13 @@ export const createUiStateSlice: StateCreator<
 		if (!canEdit) {
 			console.warn('Cannot open node editor: insufficient permissions');
 			return;
+		}
+
+		if (options.mode === 'edit' && options.existingNodeId) {
+			const node = get().nodes.find((n) => n.id === options.existingNodeId);
+			if (node && BLOCKED_NODE_TYPES.includes(node.data.node_type as (typeof BLOCKED_NODE_TYPES)[number])) {
+				return;
+			}
 		}
 
 		set({
