@@ -20,6 +20,7 @@ export class ToolbarPage {
 	// Cursor mode dropdown
 	readonly cursorModeButton: Locator;
 	readonly cursorModeDropdown: Locator;
+	readonly tapMultiSelectToggle: Locator;
 
 	// Main toolbar buttons (by title attribute)
 	readonly addNodeButton: Locator;
@@ -43,6 +44,9 @@ export class ToolbarPage {
 		// Cursor mode button (first button in toolbar)
 		this.cursorModeButton = this.toolbar.locator('button').first();
 		this.cursorModeDropdown = page.locator('[role="menu"]');
+		this.tapMultiSelectToggle = page.locator(
+			'[data-testid="cursor-toggle-tap-multi-select"]'
+		);
 
 		// Toolbar buttons by title
 		this.addNodeButton = this.toolbar.locator('button[title="Add Node"]');
@@ -89,6 +93,24 @@ export class ToolbarPage {
 		await this.cursorModeDropdown
 			.locator(`[role="menuitemradio"]:has-text("${mode}")`)
 			.click();
+	}
+
+	/**
+	 * Enables/disables mobile Tap Multi-select mode from the cursor menu.
+	 */
+	async setTapMultiSelectMode(enabled: boolean) {
+		await this.openCursorModeDropdown();
+		const toggle = this.tapMultiSelectToggle.first();
+		await expect(toggle).toBeVisible();
+
+		const isEnabled = (await toggle.getAttribute('aria-checked')) === 'true';
+		if (isEnabled !== enabled) {
+			await toggle.click();
+		}
+
+		if (await this.cursorModeDropdown.isVisible()) {
+			await this.page.keyboard.press('Escape');
+		}
 	}
 
 	// ============================================================================

@@ -14,7 +14,10 @@ import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import { ContextMenuState } from '@/types/context-menu-state';
 import type { EdgeData } from '@/types/edge-data';
-import type { AttributedHistoryDelta, HistoryItem } from '@/types/history-state';
+import type {
+	AttributedHistoryDelta,
+	HistoryItem,
+} from '@/types/history-state';
 import { LoadingStates } from '@/types/loading-states';
 import type { MindMapData } from '@/types/mind-map-data';
 import type { NodeData } from '@/types/node-data';
@@ -70,9 +73,11 @@ export interface CoreDataSlice {
 	reactFlowInstance: ReactFlowInstance | null;
 	currentUser: User | null;
 	activeTool: Tool;
+	mobileTapMultiSelectEnabled: boolean;
 	mapAccessError: MapAccessError | null;
 	setMindMapContent: (content: { nodes: AppNode[]; edges: AppEdge[] }) => void;
 	setActiveTool: (tool: Tool) => void;
+	setMobileTapMultiSelectEnabled: (enabled: boolean) => void;
 	setMindMap: (mindMap: MindMapData | null) => void;
 	setReactFlowInstance: (reactFlowInstance: ReactFlowInstance | null) => void;
 	setMapId: (mapId: string | null) => void;
@@ -573,7 +578,8 @@ export interface ExportSlice extends ExportState {
 
 // Combined App State
 export interface AppState
-	extends CoreDataSlice,
+	extends
+		CoreDataSlice,
 		NodesSlice,
 		EdgesSlice,
 		ClipboardSlice,

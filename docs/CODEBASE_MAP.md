@@ -131,7 +131,7 @@ shiko/
 ├── e2e/                        # Playwright E2E tests
 │   ├── fixtures/               # Test fixtures (3)
 │   ├── pages/                  # Page objects (8)
-│   ├── tests/                  # Test specs (48 active, incl. mobile toolbar + toast geometry)
+│   ├── tests/                  # Test specs (48 active, incl. mobile toolbar multi-select + toast geometry)
 │   └── utils/                  # Email client, screenshots
 │
 ├── __tests__/utils/            # Jest test utilities
@@ -143,48 +143,49 @@ shiko/
 
 ### State Management (21 Slices)
 
-| Slice | Lines | Purpose |
-|-------|-------|---------|
-| **sharing-slice** | 1,164 | Room codes, anonymous users, upgrade flows |
-| **comments-slice** | 973 | Comment threads, @mentions, reactions |
-| **suggestions-slice** | 966 | AI ghost nodes, streaming, merges |
-| **nodes-slice** | 900 | Node CRUD, positioning, real-time sync |
-| **history-slice** | 597 | Undo/redo, snapshots, DB persistence |
-| **edges-slice** | 635 | Edge CRUD, parent-child relationships |
-| **subscription-slice** | 434 | Stripe, plan limits, usage tracking |
-| **guided-tour-slice** | 416 | Prezi-style presentations |
-| **core-slice** | 353 | Supabase client, user, map loading |
-| **user-profile-slice** | 317 | Profile, preferences |
-| **layout-slice** | 312 | ELK.js auto-layouts |
-| **onboarding-slice** | 269 | Multi-step onboarding |
-| **ui-slice** | 248 | Modals, panels, focus mode |
-| **groups-slice** | 246 | Node grouping |
-| **chat-slice** | 241 | AI chat messages |
-| **streaming-toast-slice** | 168 | Progress toasts |
-| **clipboard-slice** | 156 | Copy/paste |
-| **export-slice** | 172 | PNG/SVG/PDF export |
-| **quick-input-slice** | 55 | Quick node creation |
-| **loading-state-slice** | 33 | Loading flags |
-| **realtime-slice** | 17 | Selection sync |
+| Slice                     | Lines | Purpose                                    |
+| ------------------------- | ----- | ------------------------------------------ |
+| **sharing-slice**         | 1,164 | Room codes, anonymous users, upgrade flows |
+| **comments-slice**        | 973   | Comment threads, @mentions, reactions      |
+| **suggestions-slice**     | 966   | AI ghost nodes, streaming, merges          |
+| **nodes-slice**           | 900   | Node CRUD, positioning, real-time sync     |
+| **history-slice**         | 597   | Undo/redo, snapshots, DB persistence       |
+| **edges-slice**           | 635   | Edge CRUD, parent-child relationships      |
+| **subscription-slice**    | 434   | Stripe, plan limits, usage tracking        |
+| **guided-tour-slice**     | 416   | Prezi-style presentations                  |
+| **core-slice**            | 353   | Supabase client, user, map loading         |
+| **user-profile-slice**    | 317   | Profile, preferences                       |
+| **layout-slice**          | 312   | ELK.js auto-layouts                        |
+| **onboarding-slice**      | 269   | Multi-step onboarding                      |
+| **ui-slice**              | 248   | Modals, panels, focus mode                 |
+| **groups-slice**          | 246   | Node grouping                              |
+| **chat-slice**            | 241   | AI chat messages                           |
+| **streaming-toast-slice** | 168   | Progress toasts                            |
+| **clipboard-slice**       | 156   | Copy/paste                                 |
+| **export-slice**          | 172   | PNG/SVG/PDF export                         |
+| **quick-input-slice**     | 55    | Quick node creation                        |
+| **loading-state-slice**   | 33    | Loading flags                              |
+| **realtime-slice**        | 17    | Selection sync                             |
 
 ### Node System (12 Types)
 
-| Type | Category | Command | Purpose |
-|------|----------|---------|---------|
-| defaultNode | content | `$note` | Standard note |
-| textNode | content | `$text` | Plain text |
-| taskNode | content | `$task` | Checklist |
-| codeNode | content | `$code` | Syntax highlighted |
-| annotationNode | content | `$annotation` | Comments/notes |
-| resourceNode | content | `$link` | URL preview |
-| imageNode | media | `$image` | Image display |
-| questionNode | ai | `$question` | Q&A format |
-| referenceNode | structure | `$reference` | Cross-map link |
-| groupNode | structure | — | Container (UI only) |
-| commentNode | structure | — | Thread anchor (UI only) |
-| ghostNode | ai | — | AI suggestions (system only) |
+| Type           | Category  | Command       | Purpose                      |
+| -------------- | --------- | ------------- | ---------------------------- |
+| defaultNode    | content   | `$note`       | Standard note                |
+| textNode       | content   | `$text`       | Plain text                   |
+| taskNode       | content   | `$task`       | Checklist                    |
+| codeNode       | content   | `$code`       | Syntax highlighted           |
+| annotationNode | content   | `$annotation` | Comments/notes               |
+| resourceNode   | content   | `$link`       | URL preview                  |
+| imageNode      | media     | `$image`      | Image display                |
+| questionNode   | ai        | `$question`   | Q&A format                   |
+| referenceNode  | structure | `$reference`  | Cross-map link               |
+| groupNode      | structure | —             | Container (UI only)          |
+| commentNode    | structure | —             | Thread anchor (UI only)      |
+| ghostNode      | ai        | —             | AI suggestions (system only) |
 
 **Key Files:**
+
 - `src/registry/node-registry.ts` - Master configuration
 - `src/components/nodes/base-node-wrapper.tsx` - Shared wrapper
 - `src/components/nodes/[type]-node.tsx` - Individual components
@@ -192,6 +193,7 @@ shiko/
 ### API Routes (54 total)
 
 **AI & Content (7):**
+
 - `POST /api/ai/suggestions` - Streaming node suggestions
 - `POST /api/ai/chat` - AI chat with context modes
 - `POST /api/ai/suggest-connections` - Connection recommendations
@@ -199,21 +201,25 @@ shiko/
 - `POST /api/ai/counterpoints` - Opposing viewpoints
 
 **Maps (3):**
+
 - `GET/POST /api/maps` - List/create maps
 - `GET/PUT/DELETE /api/maps/[id]` - Individual map
 - `GET /api/maps/[id]/check-access` - Permission check
 
 **Sharing (7):**
+
 - `POST /api/share/create-room-code`
 - `POST /api/share/join-room`
 - `POST /api/share/revoke-room-code`
 - `PUT /api/share/update-share/[shareId]`
 
 **Auth (6):**
+
 - `POST /api/auth/sign-up/initiate` → `verify-otp`
 - `POST /api/auth/upgrade-anonymous/initiate` → `verify-otp` → `set-password`
 
 **Subscriptions (4):**
+
 - `POST /api/subscriptions/create`
 - `POST /api/subscriptions/webhook` (Stripe)
 - `POST /api/subscriptions/[id]/cancel`
@@ -222,6 +228,7 @@ shiko/
 ### Component Architecture
 
 **Base Node Wrapper Pattern:**
+
 ```
 [NodeType]Node.tsx
   └── BaseNodeWrapper (fixed 320px width, CSS auto-height)
@@ -233,12 +240,14 @@ shiko/
 ```
 
 **UI Primitives (42 components):**
+
 - 16 Base UI components (migrated from Radix)
 - 26 custom components (button, card, avatar, sidebar, etc.)
 
 ## Data Flow
 
 ### Node Creation
+
 ```mermaid
 sequenceDiagram
     participant User
@@ -259,6 +268,7 @@ sequenceDiagram
 ```
 
 ### Collaboration Flow
+
 ```mermaid
 sequenceDiagram
     participant Owner
@@ -277,6 +287,7 @@ sequenceDiagram
 ```
 
 ### AI Suggestion Flow
+
 ```mermaid
 sequenceDiagram
     participant User
@@ -298,10 +309,12 @@ sequenceDiagram
 ## Testing Infrastructure
 
 **Unit Tests (Jest + RTL):** 149+ tests
+
 - Co-located: `*.test.tsx` next to components
 - Utilities: `__tests__/utils/` (mock Supabase, store helpers)
 
 **E2E Tests (Playwright):** 48 active (×3 browsers)
+
 - Page Objects: 8 files in `e2e/pages/`
 - Fixtures: base, multi-user, upgrade
 - Baselines: Stored in Supabase Storage
@@ -311,18 +324,21 @@ sequenceDiagram
 ## Conventions
 
 **Naming:**
+
 - Components: PascalCase (`NodeEditor.tsx`)
 - Hooks: camelCase with `use` prefix (`usePermissions.ts`)
 - Slices: kebab-case (`sharing-slice.ts`)
 - Types: PascalCase interfaces (`NodeData`, `AppState`)
 
 **Patterns:**
+
 - Early return over nested conditions
 - Arrow functions over function declarations
 - `useShallow` for Zustand selectors
 - Zod for all validation
 
 **State Updates:**
+
 - `markNodeAsSystemUpdate()` before real-time updates (prevents save loops)
 - 2s debounce on node/edge saves
 - Optimistic UI with rollback on error
@@ -349,9 +365,16 @@ sequenceDiagram
 
 10. **Toaster Targeting** - App-wide Sonner overrides are scoped via `.app-toaster` (set in `src/app/layout.tsx`) so mobile width/position adjustments do not unintentionally affect non-app toaster instances
 
+11. **Mobile Tap Multi-Select** - Stored in Zustand (`mobileTapMultiSelectEnabled`), exposed via the cursor tool dropdown, and only active when `isMobile && canEdit && activeTool === 'default'`; node dragging is disabled while active and pane taps clear selection without turning the mode off
+
+12. **Selection Bounds Context Menu** - Right-clicking the React Flow multi-selection rectangle requires `onSelectionContextMenu` wiring; without it, the browser native context menu appears instead of app actions
+
+13. **Group Node Detection** - Ungroup menu visibility must handle mixed group markers (`type`, `data.node_type`, `data.nodeType`, `metadata.isGroup`, and `metadata.groupChildren`) to support legacy and current nodes
+
 ## Navigation Guide
 
 **Add a new node type:**
+
 1. Add config to `src/registry/node-registry.ts`
 2. Create `src/components/nodes/[type]-node.tsx`
 3. Create `src/components/nodes/content/[type]-content.tsx`
@@ -359,22 +382,26 @@ sequenceDiagram
 5. Add Zod schema to `src/registry/node-validation-schemas.ts`
 
 **Add a new API route:**
+
 1. Create `src/app/api/[path]/route.ts`
 2. Use appropriate middleware (`withApiValidation`, `withAuthValidation`, etc.)
 3. Add Zod schema if needed
 4. Add to `src/lib/api.ts` client
 
 **Add a new Zustand slice:**
+
 1. Create `src/store/slices/[name]-slice.ts`
 2. Add to `src/store/app-state.ts` interface
 3. Compose in `src/store/mind-map-store.tsx`
 
 **Add a new UI component:**
+
 1. Create in `src/components/ui/[name].tsx`
 2. Follow Base UI patterns for headless components
 3. Use `cn()` for class merging
 
 **Add an E2E test:**
+
 1. Add page object methods to `e2e/pages/[page].page.ts`
 2. Create test in `e2e/tests/[feature]/[name].spec.ts`
 3. Use appropriate fixture (base, multi-user, upgrade)

@@ -36,6 +36,7 @@ import { LayoutDropdown, LayoutMenuContent } from './toolbar/layout-dropdown';
 import { Button } from './ui/button';
 import {
 	DropdownMenu,
+	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuRadioGroup,
@@ -55,6 +56,11 @@ interface ToolButton {
 	id: Tool | `separator-${number}`;
 	icon: React.ReactNode;
 	label: string | null;
+}
+
+interface ToolbarProps {
+	mobileTapMultiSelectEnabled: boolean;
+	onMobileTapMultiSelectChange: (enabled: boolean) => void;
 }
 
 const mobileCoreToolOrder: Tool[] = ['node', 'magic-wand', 'comments'];
@@ -118,7 +124,10 @@ const tools: ToolButton[] = [
 	},
 ];
 
-export const Toolbar = () => {
+export const Toolbar = ({
+	mobileTapMultiSelectEnabled,
+	onMobileTapMultiSelectChange,
+}: ToolbarProps) => {
 	const {
 		activeTool,
 		setActiveTool,
@@ -599,6 +608,20 @@ export const Toolbar = () => {
 								</DropdownMenuRadioItem>
 							))}
 						</DropdownMenuRadioGroup>
+						{isMobile && canEdit && (
+							<>
+								<DropdownMenuSeparator />
+								<DropdownMenuCheckboxItem
+									checked={mobileTapMultiSelectEnabled}
+									data-testid='cursor-toggle-tap-multi-select'
+									onCheckedChange={(checked) =>
+										onMobileTapMultiSelectChange(checked === true)
+									}
+								>
+									Tap Multi-select
+								</DropdownMenuCheckboxItem>
+							</>
+						)}
 					</DropdownMenuContent>
 				</DropdownMenu>
 

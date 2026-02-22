@@ -31,10 +31,13 @@ export const createCoreDataSlice: StateCreator<
 	mindMap: null,
 	currentUser: null,
 	activeTool: 'default',
+	mobileTapMultiSelectEnabled: false,
 	mapAccessError: null,
 
 	// Actions
 	setActiveTool: (activeTool) => set({ activeTool }),
+	setMobileTapMultiSelectEnabled: (mobileTapMultiSelectEnabled) =>
+		set({ mobileTapMultiSelectEnabled }),
 	setMindMap: (mindMap) => set({ mindMap }),
 	setMindMapContent: (content: { nodes: AppNode[]; edges: AppEdge[] }) =>
 		set({ nodes: content.nodes, edges: content.edges }),
@@ -232,7 +235,9 @@ export const createCoreDataSlice: StateCreator<
 			await Promise.all([
 				get().fetchComments(mapId),
 				// Fetch permissions immediately for collaborators - critical for toolbar display
-				isCollaborator ? get().fetchCurrentPermissions(mapId) : Promise.resolve(),
+				isCollaborator
+					? get().fetchCurrentPermissions(mapId)
+					: Promise.resolve(),
 			]);
 
 			// Fire subscriptions in background - don't await

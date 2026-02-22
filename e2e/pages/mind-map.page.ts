@@ -105,6 +105,13 @@ export class MindMapPage {
 	}
 
 	/**
+	 * Get currently selected nodes.
+	 */
+	getSelectedNodes(): Locator {
+		return this.page.locator('.react-flow__node.selected');
+	}
+
+	/**
 	 * Get all edges on the canvas.
 	 */
 	getAllEdges(): Locator {
@@ -471,6 +478,13 @@ export class MindMapPage {
 	 */
 	async getNodeCount(): Promise<number> {
 		return await this.getAllNodes().count();
+	}
+
+	/**
+	 * Get the current selected node count.
+	 */
+	async getSelectedNodeCount(): Promise<number> {
+		return await this.getSelectedNodes().count();
 	}
 
 	/**

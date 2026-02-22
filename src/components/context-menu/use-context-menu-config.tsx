@@ -34,6 +34,35 @@ interface UseContextMenuConfigProps {
 	onClose: () => void;
 }
 
+type GroupDetectionNode = {
+	type?: string;
+	data?: {
+		node_type?: string;
+		nodeType?: string;
+		metadata?:
+			| {
+					isGroup?: boolean | string;
+					groupChildren?: unknown;
+			  }
+			| null;
+	};
+};
+
+function isGroupLikeNode(node?: GroupDetectionNode | null): boolean {
+	if (!node) return false;
+
+	const groupChildren = node.data?.metadata?.groupChildren;
+
+	return (
+		node.type === 'groupNode' ||
+		node.data?.node_type === 'groupNode' ||
+		node.data?.nodeType === 'groupNode' ||
+		node.data?.metadata?.isGroup === true ||
+		node.data?.metadata?.isGroup === 'true' ||
+		Array.isArray(groupChildren)
+	);
+}
+
 // ============================================================================
 // Builder Functions - Extract menu section logic into focused helpers
 // ============================================================================
@@ -43,6 +72,7 @@ interface BuildNodeMenuParams {
 	hasChildren: boolean;
 	openNodeEditor: (options: NodeEditorOptions) => void;
 	toggleNodeCollapse: (nodeId: string) => void;
+	ungroupNodes: (groupId: string) => void;
 	removeNodesFromGroup: (nodeIds: string[]) => void;
 	deleteNodes: (nodes: AppNode[]) => void;
 	reactFlowInstance: ReactFlowInstance | null;
@@ -59,6 +89,7 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 		hasChildren,
 		openNodeEditor,
 		toggleNodeCollapse,
+		ungroupNodes,
 		removeNodesFromGroup,
 		deleteNodes,
 		reactFlowInstance,
@@ -68,6 +99,7 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 	} = params;
 
 	const clickedNodeData = clickedNode.data;
+	const isGroupNode = isGroupLikeNode(clickedNode);
 
 	return [
 		{
@@ -142,6 +174,16 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 						onClose();
 					},
 					hidden: !clickedNode.parentId || !canEdit,
+				},
+				{
+					id: 'ungroup',
+					icon: <Ungroup className='h-4 w-4' />,
+					label: 'Ungroup',
+					onClick: () => {
+						ungroupNodes(clickedNode.id);
+						onClose();
+					},
+					hidden: !isGroupNode || !canEdit,
 				},
 			],
 		},
@@ -414,8 +456,7 @@ function buildSelectedNodesMenu(
 	if (!selectedNodes || selectedNodes.length === 0) return [];
 
 	const isSingleGroupSelected =
-		selectedNodes.length === 1 &&
-		selectedNodes[0].data.nodeType === 'groupNode';
+		selectedNodes.length === 1 && isGroupLikeNode(selectedNodes[0]);
 
 	return [
 		{
@@ -510,11 +551,20 @@ export function useContextMenuConfig({
 		// Node menu
 		if (nodeId && clickedNode) {
 			const hasChildren = getDirectChildrenCount(clickedNode.id) > 0;
-			return buildNodeMenu({
+			const selectedActionsMenu = buildSelectedNodesMenu({
+				selectedNodes,
+				createGroupFromSelected,
+				ungroupNodes,
+				onClose,
+				canEdit,
+			});
+
+			const nodeMenu = buildNodeMenu({
 				clickedNode,
 				hasChildren,
 				openNodeEditor,
 				toggleNodeCollapse,
+				ungroupNodes,
 				removeNodesFromGroup,
 				deleteNodes,
 				reactFlowInstance,
@@ -522,6 +572,8 @@ export function useContextMenuConfig({
 				aiActions,
 				canEdit,
 			});
+
+			return [...selectedActionsMenu, ...nodeMenu];
 		}
 
 		// Edge menu
