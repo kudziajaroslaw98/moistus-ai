@@ -181,6 +181,43 @@
 /* Base radius value */
 :root {
 	--radius: 0.625rem;
+	--toast-offset-inline: 1rem;
+	--mind-map-toolbar-clearance: 0px;
+	--toast-offset-bottom: calc(
+		env(safe-area-inset-bottom, 0px) + 1rem + var(--mind-map-toolbar-clearance)
+	);
+	--toast-offset-bottom-mobile: calc(
+		env(safe-area-inset-bottom, 0px) + 1rem + var(--mind-map-toolbar-clearance)
+	);
+}
+
+body[data-has-bottom-toolbar='true'] {
+	--toast-offset-bottom: calc(
+		env(safe-area-inset-bottom, 0px) + 1rem + var(--mind-map-toolbar-clearance)
+	);
+	--toast-offset-bottom-mobile: calc(
+		env(safe-area-inset-bottom, 0px) + 1rem + var(--mind-map-toolbar-clearance)
+	);
+}
+
+@media (max-width: 600px) {
+	.app-toaster[data-sonner-toaster][data-x-position='right'] {
+		left: auto !important;
+		right: var(--mobile-offset-right) !important;
+		width: min(
+			18rem,
+			calc(100vw - (2 * var(--toast-offset-inline)))
+		) !important;
+	}
+
+	.app-toaster[data-sonner-toaster][data-x-position='right'] [data-sonner-toast] {
+		left: auto !important;
+		right: 0 !important;
+		width: min(
+			18rem,
+			calc(100vw - (2 * var(--toast-offset-inline)))
+		) !important;
+	}
 }
 
 /* ===========================

@@ -20,6 +20,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **ux/navigation**: Mobile map menu button label updated from "Open Settings" to "Map Settings" for consistency
 - **toolbar/mobile**: Bottom toolbar now uses a compact mobile layout (`<768px`) with core actions visible (`Cursor`, `Add`, `AI`, `Comments`) and secondary actions moved under a `More` dropdown
 - **toolbar/mobile**: `More` overflow submenu triggers (`Auto Layout`, `Export`, `Guided Tour`) now use click-toggle behavior (`openOnHover={false}`) for reliable touch interaction
+- **toasts/layout**: Global app toaster now uses `.app-toaster` class targeting and compact baseline width (`min(18rem, calc(100vw - 1.5rem))`) for consistent tablet/mobile sizing
 
 ### Fixed
 - **node-editor/mobile**: CodeMirror autocomplete dropdown no longer gets clipped by node editor modal bounds on mobile

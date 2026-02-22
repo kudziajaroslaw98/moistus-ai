@@ -347,6 +347,8 @@ sequenceDiagram
 
 9. **Mind-Map Toast Positioning** - Bottom-right toasts use runtime dock clearance (`--mind-map-toolbar-clearance`) computed from the bottom toolbar container in `react-flow-area.tsx`; Sonner mobile full-width behavior is overridden at `<=600px` to keep toasts compact and right-aligned
 
+10. **Toaster Targeting** - App-wide Sonner overrides are scoped via `.app-toaster` (set in `src/app/layout.tsx`) so mobile width/position adjustments do not unintentionally affect non-app toaster instances
+
 ## Navigation Guide
 
 **Add a new node type:**

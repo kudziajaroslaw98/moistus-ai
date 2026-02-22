@@ -64,6 +64,7 @@ export function ReactFlowArea() {
 	const mapId = useParams().id;
 	const router = useRouter();
 	const reactFlowInstance = useReactFlow();
+	const bottomDockRef = useRef<HTMLDivElement | null>(null);
 	const connectingNodeId = useRef<string | null>(null);
 	const connectingHandleId = useRef<string | null>(null);
 	const connectingHandleType = useRef<'source' | 'target' | null>(null);
@@ -174,6 +175,25 @@ export function ReactFlowArea() {
 	const { contextMenuHandlers } = useContextMenu();
 	const { generateSuggestionsForNode } = useNodeSuggestion();
 	const { canEdit } = usePermissions();
+	const updateBottomToolbarClearance = useCallback(() => {
+		if (typeof window === 'undefined') return;
+
+		document.body.setAttribute('data-has-bottom-toolbar', 'true');
+
+		const dockRect = bottomDockRef.current?.getBoundingClientRect();
+		if (!dockRect) {
+			document.body.style.setProperty('--mind-map-toolbar-clearance', '0px');
+			return;
+		}
+
+		const clearancePx = Math.ceil(
+			Math.max(0, window.innerHeight - dockRect.top + 8)
+		);
+		document.body.style.setProperty(
+			'--mind-map-toolbar-clearance',
+			`${clearancePx}px`
+		);
+	}, []);
 
 	// Permission-gated delete handlers
 	// Viewers should not be able to delete nodes/edges via Delete key
@@ -247,6 +267,35 @@ export function ReactFlowArea() {
 		window.addEventListener('mousemove', handleMouseMove);
 		return () => window.removeEventListener('mousemove', handleMouseMove);
 	}, [setMousePosition]);
+
+	useEffect(() => {
+		updateBottomToolbarClearance();
+		window.addEventListener('resize', updateBottomToolbarClearance);
+		window.addEventListener(
+			'orientationchange',
+			updateBottomToolbarClearance
+		);
+
+		let resizeObserver: ResizeObserver | undefined;
+		const dockEl = bottomDockRef.current;
+		if (dockEl && typeof ResizeObserver !== 'undefined') {
+			resizeObserver = new ResizeObserver(() => {
+				updateBottomToolbarClearance();
+			});
+			resizeObserver.observe(dockEl);
+		}
+
+		return () => {
+			window.removeEventListener('resize', updateBottomToolbarClearance);
+			window.removeEventListener(
+				'orientationchange',
+				updateBottomToolbarClearance
+			);
+			resizeObserver?.disconnect();
+			document.body.removeAttribute('data-has-bottom-toolbar');
+			document.body.style.removeProperty('--mind-map-toolbar-clearance');
+		};
+	}, [updateBottomToolbarClearance]);
 
 	// Handle "/" key to open InlineNodeCreator
 	useLayoutEffect(() => {
@@ -569,12 +618,17 @@ export function ReactFlowArea() {
 				/>
 
 				<Panel
-					className='flex flex-col gap-2 items-center'
 					position='bottom-center'
 				>
-					<ModeIndicator />
+					<div
+						ref={bottomDockRef}
+						className='flex flex-col gap-2 items-center'
+						data-testid='bottom-dock'
+					>
+						<ModeIndicator />
 
-					<Toolbar />
+						<Toolbar />
+					</div>
 				</Panel>
 
 				<Panel className='m-4 pt-10' position='top-right'></Panel>

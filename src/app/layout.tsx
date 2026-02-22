@@ -1,7 +1,7 @@
 import { ClientProviders } from '@/components/providers/client-providers';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Lora } from 'next/font/google';
-import { ReactNode } from 'react';
+import { CSSProperties, ReactNode } from 'react';
 import { Toaster } from 'sonner';
 import './globals.css';
 
@@ -19,6 +19,10 @@ const lora = Lora({
 	variable: '--font-lora',
 	subsets: ['latin'],
 });
+
+const toasterStyle = {
+	'--width': 'min(18rem, calc(100vw - 1.5rem))',
+} as CSSProperties;
 
 export const metadata: Metadata = {
 	metadataBase: new URL('https://shiko.app'),
@@ -72,14 +76,26 @@ export default function RootLayout({
 					richColors
 					position='bottom-right'
 					theme='dark'
+					className='app-toaster'
+					style={toasterStyle}
+					offset={{
+						bottom: 'var(--toast-offset-bottom)',
+						right: 'var(--toast-offset-inline)',
+					}}
+					mobileOffset={{
+						bottom: 'var(--toast-offset-bottom-mobile)',
+						left: 'var(--toast-offset-inline)',
+						right: 'var(--toast-offset-inline)',
+					}}
 					toastOptions={{
 						classNames: {
-							toast: 'toast',
-							title: 'title',
-							description: 'description',
-							actionButton: 'action-button',
-							cancelButton: 'cancel-button',
-							closeButton: 'close-button',
+							toast:
+								'!rounded-lg !px-3 !py-2.5 !gap-2 !text-xs',
+							title: '!text-xs !leading-4 !font-medium',
+							description: '!text-[11px] !leading-4',
+							actionButton: '!h-6 !px-2 !text-[11px]',
+							cancelButton: '!h-6 !px-2 !text-[11px]',
+							closeButton: '!size-4',
 						},
 					}}
 				/>
