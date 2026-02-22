@@ -1,11 +1,15 @@
 // components/Toolbar.tsx
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
+import { useIsMobile } from '@/hooks/use-mobile';
 import useAppStore from '@/store/mind-map-store';
 import type { Tool } from '@/types/tool';
 import { cn } from '@/utils/cn';
 import {
+	Download,
+	Ellipsis,
 	Fullscreen,
 	Hand,
+	LayoutGrid,
 	Loader2,
 	MessageCircle,
 	MessageSquare,
@@ -17,12 +21,18 @@ import {
 	Sparkles,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+	type ReactNode,
+	useCallback,
+	useEffect,
+	useMemo,
+	useState,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { useShallow } from 'zustand/shallow';
 import { AIActionsPopover } from './ai/ai-actions-popover';
-import { ExportDropdown } from './toolbar/export-dropdown';
-import { LayoutDropdown } from './toolbar/layout-dropdown';
+import { ExportDropdown, ExportMenuContent } from './toolbar/export-dropdown';
+import { LayoutDropdown, LayoutMenuContent } from './toolbar/layout-dropdown';
 import { Button } from './ui/button';
 import {
 	DropdownMenu,
@@ -31,6 +41,9 @@ import {
 	DropdownMenuRadioGroup,
 	DropdownMenuRadioItem,
 	DropdownMenuSeparator,
+	DropdownMenuSub,
+	DropdownMenuSubContent,
+	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { Separator } from './ui/separator';
@@ -43,6 +56,21 @@ interface ToolButton {
 	icon: React.ReactNode;
 	label: string | null;
 }
+
+const mobileCoreToolOrder: Tool[] = ['node', 'magic-wand', 'comments'];
+const mobileOverflowToolOrder: Tool[] = [
+	'layout',
+	'export',
+	'present',
+	'zoom',
+	'chat',
+];
+const mobileOverflowContentClass =
+	'w-56 p-1 data-[side=top]:mb-2 data-[side=bottom]:mt-2';
+const mobileOverflowSubContentClass =
+	'w-60 p-1 data-[side=left]:mr-1 data-[side=right]:ml-1';
+const mobileOverflowItemClass =
+	'h-10 rounded-lg px-2.5 text-sm font-medium text-text-primary gap-2.5';
 
 // Cursor modes - displayed as a single dropdown
 const cursorTools: {
@@ -69,7 +97,13 @@ const tools: ToolButton[] = [
 	},
 	// Conditionally included via getVisibleTools()
 	...(ENABLE_AI_CHAT
-		? [{ id: 'chat' as const, icon: <MessageCircle className='size-4' />, label: 'AI Chat' }]
+		? [
+				{
+					id: 'chat' as const,
+					icon: <MessageCircle className='size-4' />,
+					label: 'AI Chat',
+				},
+			]
 		: []),
 	{ id: 'layout', icon: null, label: 'Auto Layout' }, // Layout dropdown rendered separately
 	{ id: 'export', icon: null, label: 'Export' }, // Export dropdown rendered separately
@@ -114,6 +148,7 @@ export const Toolbar = () => {
 			isStreaming: state.isStreaming,
 		}))
 	);
+	const isMobile = useIsMobile();
 
 	// State for AI actions popover
 	const [isAIPopoverOpen, setIsAIPopoverOpen] = useState(false);
@@ -188,12 +223,45 @@ export const Toolbar = () => {
 		}
 
 		// Remove trailing separator if exists
-		if (result.length > 0 && result[result.length - 1].id.startsWith('separator')) {
+		if (
+			result.length > 0 &&
+			result[result.length - 1].id.startsWith('separator')
+		) {
 			result.pop();
 		}
 
 		return result;
 	}, [canEdit, canComment]);
+
+	const visibleActionTools = useMemo(
+		() =>
+			visibleTools.filter(
+				(tool): tool is ToolButton & { id: Tool } =>
+					!tool.id.startsWith('separator')
+			),
+		[visibleTools]
+	);
+
+	const getVisibleActionTool = useCallback(
+		(toolId: Tool) => visibleActionTools.find((tool) => tool.id === toolId),
+		[visibleActionTools]
+	);
+
+	const mobileCoreTools = useMemo(
+		() =>
+			mobileCoreToolOrder
+				.map((toolId) => getVisibleActionTool(toolId))
+				.filter((tool): tool is ToolButton & { id: Tool } => Boolean(tool)),
+		[getVisibleActionTool]
+	);
+
+	const mobileOverflowTools = useMemo(
+		() =>
+			mobileOverflowToolOrder
+				.map((toolId) => getVisibleActionTool(toolId))
+				.filter((tool): tool is ToolButton & { id: Tool } => Boolean(tool)),
+		[getVisibleActionTool]
+	);
 
 	const onToolChange = (toolId: Tool | `separator-${number}`) => {
 		if (toolId.startsWith('separator')) {
@@ -221,6 +289,272 @@ export const Toolbar = () => {
 		}
 	};
 
+	const renderAIPopoverButton = (key: string, title: string) => {
+		return (
+			<div key={key} className='relative'>
+				<Button
+					className={cn(
+						'active:scale-95',
+						isAIPopoverOpen &&
+							'bg-primary-500 border-primary-500/30 text-text-primary'
+					)}
+					size='icon'
+					title={title}
+					variant={isAIPopoverOpen ? 'default' : 'secondary'}
+					onClick={handleToggleAIPopover}
+				>
+					{isStreaming ? (
+						<Loader2 className='size-4 animate-spin' />
+					) : (
+						<Sparkles className='size-4' />
+					)}
+				</Button>
+				<AnimatePresence>
+					{isAIPopoverOpen && (
+						<>
+							{/* Backdrop for click-outside - portaled to escape transform context */}
+							{createPortal(
+								<div
+									className='fixed inset-0 z-40'
+									onClick={handleCloseAIPopover}
+									aria-hidden='true'
+								/>,
+								document.body
+							)}
+							<div className='absolute bottom-full left-0 mb-2 z-50'>
+								<AIActionsPopover scope='map' onClose={handleCloseAIPopover} />
+							</div>
+						</>
+					)}
+				</AnimatePresence>
+			</div>
+		);
+	};
+
+	const renderTourMenuContent = () => {
+		return (
+			<>
+				<DropdownMenuItem
+					onClick={() => startTour()}
+					disabled={nodes.length === 0}
+				>
+					<Play className='size-4 mr-2' />
+					Start Auto Tour
+				</DropdownMenuItem>
+				<DropdownMenuSeparator />
+				<DropdownMenuItem onClick={() => enterPathEditMode()}>
+					<Route className='size-4 mr-2' />
+					Create Custom Path
+				</DropdownMenuItem>
+				{savedPaths.length > 0 && (
+					<>
+						<DropdownMenuSeparator />
+						<div className='px-2 py-1.5 text-xs text-muted-foreground'>
+							Saved Paths
+						</div>
+						{savedPaths.map((path) => (
+							<DropdownMenuItem
+								key={path.id}
+								onClick={() => startTour({ savedPathId: path.id })}
+							>
+								<span className='flex-1 truncate'>{path.name}</span>
+								<span className='text-xs text-muted-foreground ml-2'>
+									{path.nodeIds.length}
+								</span>
+							</DropdownMenuItem>
+						))}
+					</>
+				)}
+			</>
+		);
+	};
+
+	const renderStandardToolButton = (tool: ToolButton, index: number) => {
+		if (tool.id.startsWith('separator')) {
+			return null;
+		}
+
+		if (tool.id === 'magic-wand') {
+			return renderAIPopoverButton(tool.id, tool.label ?? `Tool ${index}`);
+		}
+
+		if (tool.id === 'chat') {
+			return (
+				<Button
+					key={tool.id}
+					onClick={() => onToolChange(tool.id)}
+					size='icon'
+					title={tool.label ?? `Tool ${index}`}
+					variant='secondary'
+					className={cn(
+						isChatOpen &&
+							'text-text-primary bg-primary-500 border-2 border-primary-500/20',
+						'active:scale-95'
+					)}
+				>
+					{tool.icon}
+				</Button>
+			);
+		}
+
+		if (tool.id === 'comments') {
+			return (
+				<Button
+					key={tool.id}
+					onClick={() => onToolChange(tool.id)}
+					size='icon'
+					title={tool.label ?? `Tool ${index}`}
+					variant='secondary'
+					className={cn(
+						isCommentMode &&
+							'text-text-primary bg-primary-500 border-2 border-primary-500/20',
+						'active:scale-95'
+					)}
+				>
+					{tool.icon}
+				</Button>
+			);
+		}
+
+		return (
+			<Button
+				className='active:scale-95'
+				key={tool.id}
+				onClick={() => onToolChange(tool.id)}
+				size='icon'
+				title={tool.label ?? `Tool ${index}`}
+				variant={activeTool === tool.id ? 'default' : 'secondary'}
+			>
+				{tool.icon}
+			</Button>
+		);
+	};
+
+	const renderDesktopTool = (tool: ToolButton, index: number) => {
+		if (tool.id.startsWith('separator')) {
+			return (
+				<Separator
+					className='!h-4 flex bg-overlay'
+					key={`${tool.id}${index}`}
+					orientation='vertical'
+				/>
+			);
+		}
+
+		if (tool.id === 'layout') {
+			return <LayoutDropdown key={tool.id} />;
+		}
+
+		if (tool.id === 'export') {
+			return <ExportDropdown key={tool.id} />;
+		}
+
+		if (tool.id === 'present') {
+			return (
+				<DropdownMenu key={tool.id}>
+					<DropdownMenuTrigger asChild>
+						<Button
+							className='active:scale-95'
+							size='icon'
+							title='Guided Tour'
+							variant='secondary'
+							disabled={nodes.length === 0}
+						>
+							<Play className='size-4' />
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align='start' className='w-48'>
+						{renderTourMenuContent()}
+					</DropdownMenuContent>
+				</DropdownMenu>
+			);
+		}
+
+		return renderStandardToolButton(tool, index);
+	};
+
+	const renderMobileOverflowTool = (tool: ToolButton & { id: Tool }) => {
+		if (tool.id === 'layout') {
+			return (
+				<DropdownMenuSub key='mobile-overflow-layout'>
+					<DropdownMenuSubTrigger
+						className={mobileOverflowItemClass}
+						openOnHover={false}
+					>
+						<LayoutGrid className='size-4' />
+						Auto Layout
+					</DropdownMenuSubTrigger>
+					<DropdownMenuSubContent className={mobileOverflowSubContentClass}>
+						<LayoutMenuContent />
+					</DropdownMenuSubContent>
+				</DropdownMenuSub>
+			);
+		}
+
+		if (tool.id === 'export') {
+			return (
+				<DropdownMenuSub key='mobile-overflow-export'>
+					<DropdownMenuSubTrigger
+						className={mobileOverflowItemClass}
+						openOnHover={false}
+					>
+						<Download className='size-4' />
+						Export
+					</DropdownMenuSubTrigger>
+					<DropdownMenuSubContent className={mobileOverflowSubContentClass}>
+						<ExportMenuContent showHeader={false} />
+					</DropdownMenuSubContent>
+				</DropdownMenuSub>
+			);
+		}
+
+		if (tool.id === 'present') {
+			return (
+				<DropdownMenuSub key='mobile-overflow-present'>
+					<DropdownMenuSubTrigger
+						className={mobileOverflowItemClass}
+						disabled={nodes.length === 0}
+						openOnHover={false}
+					>
+						<Play className='size-4' />
+						Guided Tour
+					</DropdownMenuSubTrigger>
+					<DropdownMenuSubContent className={mobileOverflowSubContentClass}>
+						{renderTourMenuContent()}
+					</DropdownMenuSubContent>
+				</DropdownMenuSub>
+			);
+		}
+
+		if (tool.id === 'zoom') {
+			return (
+				<DropdownMenuItem
+					key='mobile-overflow-zoom'
+					className={mobileOverflowItemClass}
+					onClick={() => onToolChange('zoom')}
+				>
+					<Fullscreen className='size-4' />
+					Reset Zoom
+				</DropdownMenuItem>
+			);
+		}
+
+		if (tool.id === 'chat') {
+			return (
+				<DropdownMenuItem
+					key='mobile-overflow-chat'
+					className={mobileOverflowItemClass}
+					onClick={() => onToolChange('chat')}
+				>
+					<MessageCircle className='size-4' />
+					{isChatOpen ? 'Close AI Chat' : 'Open AI Chat'}
+				</DropdownMenuItem>
+			);
+		}
+
+		return null;
+	};
+
 	// Get the current cursor tool for display (using filtered tools)
 	const currentCursorTool =
 		availableCursorTools.find((t) => t.id === activeTool) ??
@@ -232,7 +566,13 @@ export const Toolbar = () => {
 			initial={{ y: 100, opacity: 0 }}
 			transition={{ type: 'spring', stiffness: 100, damping: 15 }}
 		>
-			<div className='flex h-full w-full items-center gap-2 p-2 rounded-xl shadow-2xl shadow-neutral-950 bg-surface border border-elevated' data-testid='toolbar'>
+			<div
+				className={cn(
+					'flex h-full w-full items-center rounded-xl shadow-2xl shadow-neutral-950 bg-surface border border-elevated p-2',
+					isMobile ? 'gap-1.5' : 'gap-2'
+				)}
+				data-testid='toolbar'
+			>
 				{/* Cursor Mode Dropdown */}
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
@@ -262,183 +602,42 @@ export const Toolbar = () => {
 					</DropdownMenuContent>
 				</DropdownMenu>
 
-				<Separator
-					className='!h-4 flex bg-overlay'
-					orientation='vertical'
-				/>
+				{!isMobile && (
+					<Separator className='!h-4 flex bg-overlay' orientation='vertical' />
+				)}
 
-				{visibleTools.map((tool, index) => {
-					if (tool.id.startsWith('separator')) {
-						return (
-							<Separator
-								className='!h-4 flex bg-overlay'
-								key={tool.id + '' + index}
-								orientation='vertical'
-							/>
-						);
-					}
+				{!isMobile && visibleTools.map(renderDesktopTool)}
 
-					// AI Suggestions popover
-					if (tool.id === 'magic-wand') {
-						return (
-							<div key={tool.id} className='relative'>
-								<Button
-									className={cn(
-										'active:scale-95',
-										isAIPopoverOpen &&
-											'bg-primary-500 border-primary-500/30 text-text-primary'
-									)}
-									size='icon'
-									title={tool.label ?? `Tool ${index}`}
-									variant={isAIPopoverOpen ? 'default' : 'secondary'}
-									onClick={handleToggleAIPopover}
-								>
-									{isStreaming ? (
-										<Loader2 className='size-4 animate-spin' />
-									) : (
-										tool.icon
-									)}
-								</Button>
-								<AnimatePresence>
-									{isAIPopoverOpen && (
-										<>
-											{/* Backdrop for click-outside - portaled to escape transform context */}
-											{createPortal(
-												<div
-													className='fixed inset-0 z-40'
-													onClick={handleCloseAIPopover}
-													aria-hidden='true'
-												/>,
-												document.body
-											)}
-											<div className='absolute bottom-full left-0 mb-2 z-50'>
-												<AIActionsPopover
-													scope='map'
-													onClose={handleCloseAIPopover}
-												/>
-											</div>
-										</>
-									)}
-								</AnimatePresence>
-							</div>
-						);
-					}
+				{isMobile &&
+					mobileCoreTools.map((tool, index) =>
+						renderStandardToolButton(tool, index)
+					)}
 
-					// Layout dropdown
-					if (tool.id === 'layout') {
-						return <LayoutDropdown key={tool.id} />;
-					}
-
-					// Export dropdown
-					if (tool.id === 'export') {
-						return <ExportDropdown key={tool.id} />;
-					}
-
-					// Tour dropdown (replaces simple Present button)
-					if (tool.id === 'present') {
-						return (
-							<DropdownMenu key={tool.id}>
-								<DropdownMenuTrigger asChild>
-									<Button
-										className='active:scale-95'
-										size='icon'
-										title='Guided Tour'
-										variant='secondary'
-										disabled={nodes.length === 0}
-									>
-										<Play className='size-4' />
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent align='start' className='w-48'>
-									<DropdownMenuItem
-										onClick={() => startTour()}
-										disabled={nodes.length === 0}
-									>
-										<Play className='size-4 mr-2' />
-										Start Auto Tour
-									</DropdownMenuItem>
-									<DropdownMenuSeparator />
-									<DropdownMenuItem onClick={() => enterPathEditMode()}>
-										<Route className='size-4 mr-2' />
-										Create Custom Path
-									</DropdownMenuItem>
-									{savedPaths.length > 0 && (
-										<>
-											<DropdownMenuSeparator />
-											<div className='px-2 py-1.5 text-xs text-muted-foreground'>
-												Saved Paths
-											</div>
-											{savedPaths.map((path) => (
-												<DropdownMenuItem
-													key={path.id}
-													onClick={() => startTour({ savedPathId: path.id })}
-												>
-													<span className='flex-1 truncate'>{path.name}</span>
-													<span className='text-xs text-muted-foreground ml-2'>
-														{path.nodeIds.length}
-													</span>
-												</DropdownMenuItem>
-											))}
-										</>
-									)}
-								</DropdownMenuContent>
-							</DropdownMenu>
-						);
-					}
-
-					// Chat button has special styling when active
-					if (tool.id === 'chat') {
-						return (
+				{isMobile && mobileOverflowTools.length > 0 && (
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
 							<Button
-								key={tool.id}
-								onClick={() => onToolChange(tool.id)}
-								size={'icon'}
-								title={tool.label ?? `Tool ${index}`}
-								variant={'secondary'}
-								className={cn(
-									isChatOpen &&
-										'text-text-primary bg-primary-500 border-2 border-primary-500/20',
-									'active:scale-95'
-								)}
+								className='active:scale-95'
+								size='icon'
+								title='More Tools'
+								variant='secondary'
+								data-testid='toolbar-more-button'
 							>
-								{tool.icon}
+								<Ellipsis className='size-4' />
 							</Button>
-						);
-					}
-
-					// Comments button has special styling
-					if (tool.id === 'comments') {
-						return (
-							<Button
-								key={tool.id}
-								onClick={() => onToolChange(tool.id)}
-								size={'icon'}
-								title={tool.label ?? `Tool ${index}`}
-								variant={'secondary'}
-								className={cn(
-									isCommentMode &&
-									'text-text-primary bg-primary-500 border-2 border-primary-500/20',
-									'active:scale-95'
-								)}
-							>
-								{tool.icon}
-							</Button>
-						);
-					}
-
-					return (
-						<Button
-							className='active:scale-95'
-							key={tool.id}
-							onClick={() => onToolChange(tool.id)}
-							size={'icon'}
-							title={tool.label ?? `Tool ${index}`}
-							variant={activeTool === tool.id ? 'default' : 'secondary'}
+						</DropdownMenuTrigger>
+						<DropdownMenuContent
+							align='end'
+							alignOffset={0}
+							className={mobileOverflowContentClass}
+							data-testid='toolbar-more-menu'
 						>
-							{tool.icon}
-						</Button>
-					);
-				})}
+							{mobileOverflowTools.map((tool) =>
+								renderMobileOverflowTool(tool)
+							)}
+						</DropdownMenuContent>
+					</DropdownMenu>
+				)}
 			</div>
 		</motion.div>
 	);

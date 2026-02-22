@@ -93,7 +93,7 @@ shiko/
 │   │   ├── realtime/           # Live cursors, presence
 │   │   ├── sharing/            # Share panel, room codes
 │   │   ├── subscription/       # Feature gates, limits
-│   │   ├── toolbar/            # Canvas toolbar
+│   │   ├── toolbar/            # Canvas toolbar (desktop full + mobile overflow)
 │   │   ├── ui/                 # 42 UI primitives (Base UI + custom)
 │   │   └── waitlist/           # Landing page forms
 │   │
@@ -131,7 +131,7 @@ shiko/
 ├── e2e/                        # Playwright E2E tests
 │   ├── fixtures/               # Test fixtures (3)
 │   ├── pages/                  # Page objects (8)
-│   ├── tests/                  # Test specs (44 active)
+│   ├── tests/                  # Test specs (48 active, incl. mobile toolbar + toast geometry)
 │   └── utils/                  # Email client, screenshots
 │
 ├── __tests__/utils/            # Jest test utilities
@@ -301,7 +301,7 @@ sequenceDiagram
 - Co-located: `*.test.tsx` next to components
 - Utilities: `__tests__/utils/` (mock Supabase, store helpers)
 
-**E2E Tests (Playwright):** 44 active (×3 browsers)
+**E2E Tests (Playwright):** 48 active (×3 browsers)
 - Page Objects: 8 files in `e2e/pages/`
 - Fixtures: base, multi-user, upgrade
 - Baselines: Stored in Supabase Storage
@@ -341,9 +341,11 @@ sequenceDiagram
 
 6. **ELK Layout** - Heavy computation offloaded to Web Worker (`public/elk-worker.js`)
 
-7. **Keyboard Shortcuts** - Detect input focus to prevent hijacking typing
+7. **Keyboard Shortcuts** - Detect input focus to prevent hijacking typing; shortcuts FAB is hidden on mobile (`<768px`)
 
 8. **Multi-User Tests** - Run serially (`chromium-serial` project) to avoid `revokeAllCodes()` race conditions
+
+9. **Mind-Map Toast Positioning** - Bottom-right toasts use runtime dock clearance (`--mind-map-toolbar-clearance`) computed from the bottom toolbar container in `react-flow-area.tsx`; Sonner mobile full-width behavior is overridden at `<=600px` to keep toasts compact and right-aligned
 
 ## Navigation Guide
 

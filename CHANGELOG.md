@@ -5,18 +5,29 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-02-22 - Rename user settings to Account, mobile autocomplete overflow fix -->
+<!-- Updated: 2026-02-22 - Mobile toolbar overflow + shortcuts FAB mobile behavior -->
 ## [2026-02-22]
+
+### Added
+- **e2e/mobile-toolbar**: Added Playwright coverage for mobile toolbar overflow behavior (`e2e/tests/mind-map/toolbar-mobile.spec.ts`)
+  - Verifies core-tool visibility, `More` overflow items, keyboard-help FAB hidden on mobile, and Guided Tour disabled state on zero-node maps
+- **e2e/mobile-toast**: Added viewport geometry assertions for toast placement and width in `e2e/tests/mind-map/toolbar-mobile.spec.ts`
+  - Verifies `Mind map loaded` toast stays above toolbar (`390x844`, `560x780`) and remains compact (`<=18rem`)
 
 ### Changed
 - **ux/navigation**: Renamed user "Settings" to "Account" throughout — user menu item, panel title, and tab label now read "Account" to distinguish from "Map Settings"
   - Why: "Settings" was ambiguous — used for both account preferences and per-map configuration
 - **ux/navigation**: Mobile map menu button label updated from "Open Settings" to "Map Settings" for consistency
+- **toolbar/mobile**: Bottom toolbar now uses a compact mobile layout (`<768px`) with core actions visible (`Cursor`, `Add`, `AI`, `Comments`) and secondary actions moved under a `More` dropdown
+- **toolbar/mobile**: `More` overflow submenu triggers (`Auto Layout`, `Export`, `Guided Tour`) now use click-toggle behavior (`openOnHover={false}`) for reliable touch interaction
 
 ### Fixed
 - **node-editor/mobile**: CodeMirror autocomplete dropdown no longer gets clipped by node editor modal bounds on mobile
   - Render tooltips to `document.body` via CodeMirror `tooltips({ parent, position: 'fixed' })` so suggestions escape scroll/overflow containers
   - Updated autocomplete width constraints (`minWidth: 240px`, viewport-capped width/maxWidth) and elevated z-index to keep the menu visible on small screens
+- **shortcuts-help/mobile**: Keyboard shortcuts FAB is now hidden on mobile to prevent overlap with the bottom toolbar
+- **toasts/mobile-tablet**: Mind-map toasts now use runtime bottom-dock measurement (`ResizeObserver` + resize/orientation listeners) to set `--mind-map-toolbar-clearance`, preventing overlap with the bottom toolbar on small/tablet windows
+- **toasts/mobile-width**: Overrode Sonner `<=600px` full-width behavior for app toasts; toasts stay right-aligned and compact (~`18rem`) instead of stretching edge-to-edge
 
 ---
 

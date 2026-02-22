@@ -39,32 +39,32 @@ const layoutDirections: {
 }[] = [
 	{
 		id: 'LEFT_RIGHT',
-		icon: <ArrowRight className="size-4" />,
+		icon: <ArrowRight className='size-4' />,
 		label: 'Left to Right',
 	},
 	{
 		id: 'RIGHT_LEFT',
-		icon: <ArrowLeft className="size-4" />,
+		icon: <ArrowLeft className='size-4' />,
 		label: 'Right to Left',
 	},
 	{
 		id: 'TOP_BOTTOM',
-		icon: <ArrowDown className="size-4" />,
+		icon: <ArrowDown className='size-4' />,
 		label: 'Top to Bottom',
 	},
 	{
 		id: 'BOTTOM_TOP',
-		icon: <ArrowUp className="size-4" />,
+		icon: <ArrowUp className='size-4' />,
 		label: 'Bottom to Top',
 	},
 	{
 		id: 'RADIAL',
-		icon: <Sun className="size-4" />,
+		icon: <Sun className='size-4' />,
 		label: 'Radial',
 	},
 ];
 
-export function LayoutDropdown() {
+export function LayoutMenuContent() {
 	const {
 		layoutConfig,
 		applyLayout,
@@ -98,55 +98,69 @@ export function LayoutDropdown() {
 	const canLayoutSelected = selectedNodes.length >= 2;
 
 	return (
+		<>
+			<DropdownMenuRadioGroup
+				value={currentDirection}
+				onValueChange={handleLayoutSelect}
+			>
+				{layoutDirections.map((direction) => (
+					<DropdownMenuRadioItem
+						key={direction.id}
+						value={direction.id}
+						disabled={isLayouting}
+					>
+						<span className='flex items-center gap-2'>
+							{direction.icon}
+							{direction.label}
+						</span>
+					</DropdownMenuRadioItem>
+				))}
+			</DropdownMenuRadioGroup>
+
+			{canLayoutSelected && (
+				<>
+					<DropdownMenuSeparator />
+					<DropdownMenuItem
+						onClick={handleLayoutSelected}
+						disabled={isLayouting}
+					>
+						<span className='flex items-center gap-2'>
+							<CheckSquare className='size-4' />
+							Layout Selected ({selectedNodes.length})
+						</span>
+					</DropdownMenuItem>
+				</>
+			)}
+		</>
+	);
+}
+
+export function LayoutDropdown() {
+	const { isLayouting } = useAppStore(
+		useShallow((state) => ({
+			isLayouting: state.isLayouting,
+		}))
+	);
+
+	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
 				<Button
 					className={cn('active:scale-95', isLayouting && 'animate-pulse')}
-					size="icon"
-					title="Auto Layout"
-					variant="secondary"
+					size='icon'
+					title='Auto Layout'
+					variant='secondary'
 					disabled={isLayouting}
 				>
 					{isLayouting ? (
-						<Loader2 className="size-4 animate-spin" />
+						<Loader2 className='size-4 animate-spin' />
 					) : (
-						<LayoutGrid className="size-4" />
+						<LayoutGrid className='size-4' />
 					)}
 				</Button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="start" className="w-48">
-				<DropdownMenuRadioGroup
-					value={currentDirection}
-					onValueChange={handleLayoutSelect}
-				>
-					{layoutDirections.map((direction) => (
-						<DropdownMenuRadioItem
-							key={direction.id}
-							value={direction.id}
-							disabled={isLayouting}
-						>
-							<span className="flex items-center gap-2">
-								{direction.icon}
-								{direction.label}
-							</span>
-						</DropdownMenuRadioItem>
-					))}
-				</DropdownMenuRadioGroup>
-
-				{canLayoutSelected && (
-					<>
-						<DropdownMenuSeparator />
-						<DropdownMenuItem
-							onClick={handleLayoutSelected}
-							disabled={isLayouting}
-						>
-							<span className="flex items-center gap-2">
-								<CheckSquare className="size-4" />
-								Layout Selected ({selectedNodes.length})
-							</span>
-						</DropdownMenuItem>
-					</>
-				)}
+			<DropdownMenuContent align='start' className='w-48'>
+				<LayoutMenuContent />
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);
