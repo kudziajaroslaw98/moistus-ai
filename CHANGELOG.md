@@ -29,6 +29,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **shortcuts-help/mobile**: Keyboard shortcuts FAB is now hidden on mobile to prevent overlap with the bottom toolbar
 - **toasts/mobile-tablet**: Mind-map toasts now use runtime bottom-dock measurement (`ResizeObserver` + resize/orientation listeners) to set `--mind-map-toolbar-clearance`, preventing overlap with the bottom toolbar on small/tablet windows
 - **toasts/mobile-width**: Overrode Sonner `<=600px` full-width behavior for app toasts; toasts stay right-aligned and compact (~`18rem`) instead of stretching edge-to-edge
+- **e2e/webserver**: Playwright `webServer` now starts Next.js with explicit loopback binding (`--hostname 127.0.0.1 --port 3000`) and increased startup timeout (`300000ms`) to avoid local startup timeouts during `pnpm build && pnpm start`
 
 ---
 
