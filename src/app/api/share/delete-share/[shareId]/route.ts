@@ -1,5 +1,6 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
+import { disconnectPartyKitUsers } from '@/helpers/partykit/admin';
 import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { z } from 'zod';
 
@@ -48,10 +49,18 @@ export const DELETE = withApiValidation<
 				.single();
 
 			if (fetchError || !shareAccess) {
+				if (fetchError) console.error('Failed to fetch share access:', fetchError);
 				return respondError(
 					'Share access record not found',
-					404,
-					fetchError?.message || 'Record not found'
+					404
+				);
+			}
+
+			if (!shareAccess.map_id || !shareAccess.user_id) {
+				return respondError(
+					'Invalid share access record',
+					400,
+					'Share access is missing required identifiers'
 				);
 			}
 
@@ -102,8 +111,7 @@ export const DELETE = withApiValidation<
 				console.error('Failed to delete share access:', deleteError);
 				return respondError(
 					'Failed to remove user access',
-					500,
-					deleteError.message
+					500
 				);
 			}
 
@@ -123,34 +131,19 @@ export const DELETE = withApiValidation<
 				);
 			}
 
-			// Broadcast access revocation via Supabase Realtime REST API
+			// Request immediate PartyKit disconnect for all collaboration rooms.
 			try {
-				await fetch(
-					`${process.env.NEXT_PUBLIC_SUPABASE_URL}/realtime/v1/api/broadcast`,
-					{
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-							apikey: process.env.SUPABASE_SERVICE_ROLE!,
-							Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE!}`,
-						},
-						body: JSON.stringify({
-							messages: [
-								{
-									topic: `access_revocation_${shareAccess.map_id}_${shareAccess.user_id}`,
-									event: 'access_revoked',
-									payload: {
-										id: shareIdNum,
-										map_id: shareAccess.map_id,
-										user_id: shareAccess.user_id,
-									},
-								},
-							],
-						}),
-					}
+				await disconnectPartyKitUsers({
+					mapId: shareAccess.map_id,
+					userIds: [shareAccess.user_id],
+					reason: 'access_revoked',
+				});
+			} catch (disconnectError) {
+				// Non-blocking: access is already revoked in DB.
+				console.error(
+					'Failed to request PartyKit disconnect after share deletion:',
+					disconnectError
 				);
-			} catch {
-				// Non-blocking - deletion succeeded, broadcast is best-effort
 			}
 
 			// Decrement current_users on the associated share token
@@ -181,9 +174,7 @@ export const DELETE = withApiValidation<
 				'Error in DELETE /api/share/delete-share/[shareId]:',
 				error
 			);
-			const message =
-				error instanceof Error ? error.message : 'Internal server error';
-			return respondError('Failed to remove user access', 500, message);
+			return respondError('Failed to remove user access', 500);
 		}
 	}
 );

@@ -1,6 +1,7 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
-import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
+import { disconnectPartyKitUsers } from '@/helpers/partykit/admin';
+import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { ShareRole } from '@/types/sharing-types';
 import { z } from 'zod';
 
@@ -64,10 +65,10 @@ export const PATCH = withApiValidation<
 			.single();
 
 		if (fetchError || !shareAccess) {
+			if (fetchError) console.error('Failed to fetch share access:', fetchError);
 			return respondError(
 				'Share access record not found',
-				404,
-				fetchError?.message || 'Record not found'
+				404
 			);
 		}
 
@@ -128,8 +129,29 @@ export const PATCH = withApiValidation<
 			console.error('Failed to update share access:', updateError);
 			return respondError(
 				'Failed to update user permissions',
+				500
+			);
+		}
+
+		if (!updatedShare.map_id || !updatedShare.user_id) {
+			return respondError(
+				'Updated share record is invalid',
 				500,
-				updateError.message
+				'Missing map_id or user_id after update'
+			);
+		}
+
+		// Force reconnect so PartyKit applies updated permissions immediately.
+		try {
+			await disconnectPartyKitUsers({
+				mapId: updatedShare.map_id,
+				userIds: [updatedShare.user_id],
+				reason: 'access_revoked',
+			});
+		} catch (disconnectError) {
+			console.error(
+				'Failed to request PartyKit disconnect after role update:',
+				disconnectError
 			);
 		}
 
@@ -148,13 +170,8 @@ export const PATCH = withApiValidation<
 			'User permissions updated successfully'
 		);
 	} catch (error) {
-		console.error(
-			'Error in PATCH /api/share/update-share/[shareId]:',
-			error
-		);
-		const message =
-			error instanceof Error ? error.message : 'Internal server error';
-		return respondError('Failed to update user permissions', 500, message);
+		console.error('Error in PATCH /api/share/update-share/[shareId]:', error);
+		return respondError('Failed to update user permissions', 500);
 	}
 });
 

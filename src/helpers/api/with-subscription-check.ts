@@ -114,7 +114,11 @@ export async function requireSubscription(
 export async function checkUsageLimit(
 	user: User,
 	supabase: SupabaseClient,
-	limitType: 'aiSuggestions' | 'mindMaps' | 'nodesPerMap' | 'collaboratorsPerMap',
+	limitType:
+		| 'aiSuggestions'
+		| 'mindMaps'
+		| 'nodesPerMap'
+		| 'collaboratorsPerMap',
 	currentUsage: number
 ): Promise<{ allowed: boolean; limit: number; remaining: number }> {
 	// Get subscription with plan limits
@@ -173,7 +177,15 @@ export function getBillingPeriodStart(): string {
 export function getBillingPeriodEnd(): string {
 	const now = new Date();
 	// Get the first day of next month, then subtract 1ms to get end of current month
-	const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+	const endOfMonth = new Date(
+		now.getFullYear(),
+		now.getMonth() + 1,
+		0,
+		23,
+		59,
+		59,
+		999
+	);
 	return endOfMonth.toISOString();
 }
 
@@ -253,8 +265,8 @@ export async function trackAIUsage(
  * This handles the edge case of multiple share tokens per map by counting
  * unique user_ids in share_access, excluding the map owner.
  *
- * NOTE: This assumes (map_id, user_id) pairs are unique in share_access table.
- * For truly distinct counting, a Postgres RPC with COUNT(DISTINCT user_id) would be needed.
+ * NOTE: DB migration enforces uniqueness for active collaborator rows
+ * on (map_id, user_id), so count accuracy is stable for status='active'.
  *
  * @param supabase - Supabase client instance
  * @param mapId - The map ID to count collaborators for
@@ -324,8 +336,9 @@ export async function checkCollaboratorLimit(
 
 	// If field is missing, infer from plan name: free=3, pro/enterprise=unlimited
 	// Matches client-side logic in use-feature-gate.ts
-	const limit = subscription?.plan?.limits?.collaboratorsPerMap
-		?? (subscription?.plan?.name === 'free' ? 3 : subscription ? -1 : 3);
+	const limit =
+		subscription?.plan?.limits?.collaboratorsPerMap ??
+		(subscription?.plan?.name === 'free' ? 3 : subscription ? -1 : 3);
 
 	// -1 means unlimited (Pro/Enterprise)
 	if (limit === -1) {
@@ -363,7 +376,8 @@ export async function getAIUsageCount(
 	billingPeriod?: SubscriptionBillingPeriod
 ): Promise<number> {
 	// Get billing period if not provided
-	const period = billingPeriod || await getSubscriptionBillingPeriod(user, supabase);
+	const period =
+		billingPeriod || (await getSubscriptionBillingPeriod(user, supabase));
 
 	let query = supabase
 		.from('ai_usage_log')
@@ -407,7 +421,10 @@ export async function getAIUsageCount(
  * @param newLimit - New plan's limit for this resource
  * @returns Adjustment value to add to usage count
  */
-export function calculateUsageAdjustment(oldLimit: number, newLimit: number): number {
+export function calculateUsageAdjustment(
+	oldLimit: number,
+	newLimit: number
+): number {
 	// Handle unlimited plans (-1 means unlimited)
 	if (oldLimit === -1 || newLimit === -1) {
 		// From unlimited to limited: no adjustment (fresh start)

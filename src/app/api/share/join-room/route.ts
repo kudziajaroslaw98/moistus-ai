@@ -1,5 +1,6 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withAuthValidation } from '@/helpers/api/with-auth-validation';
+import { getMindMapRoomName } from '@/lib/realtime/room-names';
 import { z } from 'zod';
 
 const JoinRoomSchema = z.object({
@@ -55,6 +56,7 @@ export const POST = withAuthValidation(
 		}
 
 		// Return success response
+		const realtimeRoom = getMindMapRoomName(joinResult.map_id, 'sync');
 		return respondSuccess({
 			map_id: joinResult.map_id,
 			map_title: joinResult.map_title,
@@ -64,7 +66,7 @@ export const POST = withAuthValidation(
 			is_anonymous: user.is_anonymous,
 			user_display_name: user.user_metadata?.display_name,
 			user_avatar: user.user_metadata?.avatar_url,
-			websocket_channel: `presence:map:${joinResult.map_id}`,
+			realtime_room: realtimeRoom,
 			share_token_id: joinResult.token_id,
 			join_method: 'anonymous_auth',
 			joined_at: new Date().toISOString(),
