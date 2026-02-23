@@ -1,8 +1,5 @@
 import {
-	checkUsageLimit,
-	getAIUsageCount,
-	requireSubscription,
-	SubscriptionError,
+	checkAIQuota,
 	trackAIUsage,
 } from '@/helpers/api/with-subscription-check';
 import {
@@ -129,44 +126,10 @@ export async function POST(req: Request) {
 			);
 		}
 
-		// Check subscription and usage limits
-		let hasProAccess = false;
-
-		try {
-			// Try to validate Pro subscription
-			await requireSubscription(user, supabase, 'pro');
-			hasProAccess = true;
-		} catch (error) {
-			if (error instanceof SubscriptionError) {
-				// User doesn't have Pro - check if they're within free tier limits
-				const currentUsage = await getAIUsageCount(
-					user,
-					supabase,
-					'suggestions'
-				);
-				const { allowed, limit, remaining } = await checkUsageLimit(
-					user,
-					supabase,
-					'aiSuggestions',
-					currentUsage
-				);
-
-				if (!allowed) {
-					return new Response(
-						JSON.stringify({
-							error: `AI suggestion limit reached (${limit} per month). Upgrade to Pro for unlimited AI suggestions.`,
-							code: 'LIMIT_REACHED',
-							currentUsage,
-							limit,
-							remaining: remaining,
-							upgradeUrl: '/dashboard/settings/billing',
-						}),
-						{ status: 402, headers: { 'Content-Type': 'application/json' } }
-					);
-				}
-			} else {
-				throw error;
-			}
+		// Check AI quota
+		const { allowed, isPro: hasProAccess, error: quotaError } = await checkAIQuota(user, supabase);
+		if (!allowed && quotaError) {
+			return quotaError;
 		}
 
 		// Extract the body sent by the useChat hook
@@ -436,14 +399,8 @@ export async function POST(req: Request) {
 							},
 						});
 
-						// Track usage for free tier users
-						if (!hasProAccess) {
-							await trackAIUsage(user, supabase, 'suggestions', {
-								mapId,
-								trigger: context.trigger,
-								suggestionCount: suggestionIndex,
-							});
-						}
+						// Track usage (no-ops for Pro)
+						await trackAIUsage(user, supabase, hasProAccess);
 
 						writer.write({
 							type: 'finish',

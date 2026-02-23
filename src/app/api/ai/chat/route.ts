@@ -1,8 +1,8 @@
 import { respondError } from '@/helpers/api/responses';
 import {
-	checkAIFeatureAccess,
-	trackAIFeatureUsage,
-} from '@/helpers/api/with-ai-feature-gate';
+	checkAIQuota,
+	trackAIUsage,
+} from '@/helpers/api/with-subscription-check';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
 import {
 	buildContextPrompt,
@@ -85,14 +85,9 @@ You have access to the user's mind map context including key topics, node types,
 export const POST = withApiValidation(
 	chatRequestSchema,
 	async (_req, validatedBody, supabase, user) => {
-		// Check AI feature access
-		const { hasAccess, isPro, error } = await checkAIFeatureAccess(
-			user,
-			supabase,
-			'chat'
-		);
-
-		if (!hasAccess && error) {
+		// Check AI quota
+		const { allowed, isPro, error } = await checkAIQuota(user, supabase);
+		if (!allowed && error) {
 			return error;
 		}
 
@@ -186,14 +181,9 @@ export const POST = withApiValidation(
 				messages: allMessages,
 			});
 
-			// Track usage for free tier users (non-blocking)
+			// Track usage (no-ops for Pro)
 			try {
-				await trackAIFeatureUsage(user, supabase, 'chat', isPro, {
-					mapId: context.mapId || undefined,
-					messageCount: messages.length,
-					selectedNodeCount: context.selectedNodeIds.length,
-					contextMode: context.contextMode,
-				});
+				await trackAIUsage(user, supabase, isPro);
 			} catch (trackingError) {
 				console.warn('Failed to track AI chat usage:', trackingError);
 			}

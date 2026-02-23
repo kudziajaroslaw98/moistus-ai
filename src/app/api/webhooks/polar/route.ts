@@ -1,5 +1,4 @@
 import { createServiceRoleClient } from '@/helpers/supabase/server';
-import { calculateUsageAdjustment } from '@/helpers/api/with-subscription-check';
 import { mapBillingInterval, mapPolarStatus } from '@/lib/polar';
 import { Webhooks } from '@polar-sh/nextjs';
 
@@ -201,17 +200,23 @@ async function handleSubscriptionUpdated(data: SubscriptionData) {
 		...(existingSubscription?.metadata as Record<string, unknown> | null),
 	};
 
-	// Check if this is a new billing period (period start changed) - reset usage adjustment
+	// Check if this is a new billing period (period start changed) - reset counter
 	const oldPeriodStart = existingSubscription?.current_period_start;
-	if (currentPeriodStart && oldPeriodStart) {
+	const userId = existingSubscription?.user_id;
+	if (currentPeriodStart && oldPeriodStart && userId) {
 		const oldStart = new Date(oldPeriodStart).getTime();
 		const newStart = currentPeriodStart.getTime();
 		if (newStart > oldStart) {
-			console.log('[Polar] New billing period detected, clearing usage adjustment');
-			// Clear usage adjustment for new billing period
+			console.log('[Polar] New billing period detected, resetting AI usage counter');
+			await supabase
+				.from('user_usage_quotas')
+				.update({
+					ai_suggestions_count: 0,
+					billing_period_start: currentPeriodStart.toISOString(),
+				})
+				.eq('user_id', userId);
 			metadataUpdates = {
 				...metadataUpdates,
-				usage_adjustment: 0,
 				previous_period_start: oldPeriodStart,
 			};
 		}
@@ -232,30 +237,26 @@ async function handleSubscriptionUpdated(data: SubscriptionData) {
 			.single();
 
 		if (newPlan && existingSubscription?.plan) {
-			// Calculate usage adjustment for AI suggestions (the main metered resource)
+			// Adjust AI usage counter directly for mid-cycle plan changes
 			type PlanLimits = { aiSuggestions?: number };
 			const oldLimit = (existingSubscription.plan.limits as PlanLimits)?.aiSuggestions ?? 0;
 			const newLimit = (newPlan.limits as PlanLimits)?.aiSuggestions ?? 0;
-			const adjustment = calculateUsageAdjustment(oldLimit, newLimit);
 
-			// Get existing adjustment (may have been reset to 0 if new period)
-			const existingAdjustment = (metadataUpdates?.usage_adjustment as number) || 0;
-			const totalAdjustment = existingAdjustment + adjustment;
+			// Only adjust if both limits are finite
+			if (oldLimit !== -1 && newLimit !== -1) {
+				const adjustment = oldLimit - newLimit; // e.g., free(3) → pro(100) = -97
+				console.log('[Polar] Adjusting AI usage counter:', { oldLimit, newLimit, adjustment });
+				await supabase.rpc('adjust_ai_usage', {
+					p_user_id: userId || existingSubscription.user_id,
+					p_adjustment: adjustment,
+				});
+			}
 
-			console.log('[Polar] Usage adjustment:', {
-				oldLimit,
-				newLimit,
-				adjustment,
-				existingAdjustment,
-				totalAdjustment,
-			});
-
-			// Update plan_id and store adjustment in metadata
+			// Update plan_id and metadata
 			updateData.plan_id = newPlan.id;
 			metadataUpdates = {
 				...metadataUpdates,
 				polar_product_id: newProductId,
-				usage_adjustment: totalAdjustment,
 				last_plan_change: new Date().toISOString(),
 				previous_plan: existingSubscription.plan.name,
 			};

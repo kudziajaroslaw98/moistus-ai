@@ -1,7 +1,7 @@
 import { createClient } from '@/helpers/supabase/server';
 import {
+	getAIUsageCount,
 	getSubscriptionBillingPeriod,
-	type SubscriptionBillingPeriod,
 } from '@/helpers/api/with-subscription-check';
 import { NextResponse } from 'next/server';
 
@@ -62,25 +62,10 @@ export async function GET() {
 		}
 
 		// Get billing period from subscription (uses payment cycle, not calendar month)
-		const billingPeriod: SubscriptionBillingPeriod = await getSubscriptionBillingPeriod(
-			user,
-			supabase
-		);
+		const billingPeriod = await getSubscriptionBillingPeriod(user, supabase);
 
-		// Fetch AI usage count for current billing period (from ai_usage_log table)
-		const { count: rawAiUsageCount, error: aiError } = await supabase
-			.from('ai_usage_log')
-			.select('*', { count: 'exact', head: true })
-			.eq('user_id', user.id)
-			.gte('timestamp', billingPeriod.periodStart);
-
-		if (aiError) {
-			console.error('Error fetching AI usage:', aiError);
-		}
-
-		// Apply usage adjustment from mid-cycle plan changes
-		const adjustment = billingPeriod.usageAdjustment || 0;
-		const aiUsageCount = Math.max(0, (rawAiUsageCount || 0) + adjustment);
+		// Get AI usage count from atomic counter
+		const aiUsageCount = await getAIUsageCount(user, supabase);
 
 		// Calculate storage (rough estimate: count total nodes + edges)
 		const { count: nodesCount, error: nodesError } = await supabase

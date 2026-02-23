@@ -119,7 +119,6 @@ export const DELETE = withAuthValidation(
 		await deleteFromTable('node_references');
 
 		// Phase 3: Activity logs
-		await deleteFromTable('ai_usage_log');
 		await deleteFromTable('profile_activity_log');
 		await deleteFromTable('map_history_events');
 		await deleteFromTable('map_history_snapshots');

@@ -1,8 +1,5 @@
 import {
-	checkUsageLimit,
-	getAIUsageCount,
-	requireSubscription,
-	SubscriptionError,
+	checkAIQuota,
 	trackAIUsage,
 } from '@/helpers/api/with-subscription-check';
 import { extractNodesContext } from '@/helpers/extract-node-context';
@@ -93,42 +90,10 @@ export async function POST(req: Request) {
 			);
 		}
 
-		// Subscription / limits
-		let hasProAccess = false;
-
-		try {
-			await requireSubscription(user, supabase, 'pro');
-			hasProAccess = true;
-		} catch (error) {
-			if (error instanceof SubscriptionError) {
-				const currentUsage = await getAIUsageCount(
-					user,
-					supabase,
-					'counterpoints'
-				);
-				const { allowed, limit, remaining } = await checkUsageLimit(
-					user,
-					supabase,
-					'aiSuggestions',
-					currentUsage
-				);
-
-				if (!allowed) {
-					return new Response(
-						JSON.stringify({
-							error: `AI limit reached (${limit} per month). Upgrade to Pro for unlimited AI counterpoints.`,
-							code: 'LIMIT_REACHED',
-							currentUsage,
-							limit,
-							remaining,
-							upgradeUrl: '/dashboard/settings/billing',
-						}),
-						{ status: 402, headers: { 'Content-Type': 'application/json' } }
-					);
-				}
-			} else {
-				throw error;
-			}
+		// Check AI quota
+		const { allowed, isPro: hasProAccess, error: quotaError } = await checkAIQuota(user, supabase);
+		if (!allowed && quotaError) {
+			return quotaError;
 		}
 
 		// Extract messages from useChat
@@ -297,13 +262,7 @@ Context:\n${contextString}`;
 							}
 						}
 
-						if (!hasProAccess) {
-							await trackAIUsage(user, supabase, 'counterpoints', {
-								mapId: mapId,
-								trigger: context.trigger,
-								count: index,
-							});
-						}
+						await trackAIUsage(user, supabase, hasProAccess);
 					} catch (e) {
 						const error = e instanceof Error ? e : new Error('Unknown error');
 						console.error('Counterpoints stream failed:', error);

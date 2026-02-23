@@ -1,8 +1,8 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import {
-	checkAIFeatureAccess,
-	trackAIFeatureUsage,
-} from '@/helpers/api/with-ai-feature-gate';
+	checkAIQuota,
+	trackAIUsage,
+} from '@/helpers/api/with-subscription-check';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
@@ -37,13 +37,9 @@ export const POST = withApiValidation(
 		try {
 			const { mapId, query } = validatedBody;
 
-			// Check AI feature access (free tier has 0 AI calls)
-			const { hasAccess, isPro, error } = await checkAIFeatureAccess(
-				user,
-				supabase,
-				'search'
-			);
-			if (!hasAccess && error) return error;
+			// Check AI quota
+			const { allowed, isPro, error } = await checkAIQuota(user, supabase);
+			if (!allowed && error) return error;
 
 			const { data: nodesData, error: fetchError } = await supabase
 				.from('nodes')
@@ -118,12 +114,8 @@ export const POST = withApiValidation(
 				validNodeIdsSet.has(id)
 			);
 
-			// Track AI usage for billing (only counts for free tier users)
-			await trackAIFeatureUsage(user, supabase, 'search', isPro, {
-				mapId,
-				query,
-				resultsCount: validRelevantNodeIds.length,
-			});
+			// Track usage (no-ops for Pro)
+			await trackAIUsage(user, supabase, isPro);
 
 			return respondSuccess(
 				{ relevantNodeIds: validRelevantNodeIds },
