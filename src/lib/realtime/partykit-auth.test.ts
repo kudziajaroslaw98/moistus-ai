@@ -1,4 +1,6 @@
 import {
+	isAdminAccessRevokedPath,
+	isAdminPermissionsUpdatePath,
 	isAdminRevokePath,
 	parseMindMapRoom,
 	parseRoomNameFromRequest,
@@ -45,6 +47,14 @@ describe('partykit auth helpers', () => {
 
 		it('accepts room names with path prefixes', () => {
 			expect(parseMindMapRoom(`main/${roomName}`)).toEqual({
+				roomName,
+				mapId,
+				channel: 'sync',
+			});
+		});
+
+		it('accepts encoded room names', () => {
+			expect(parseMindMapRoom(encodeURIComponent(roomName))).toEqual({
 				roomName,
 				mapId,
 				channel: 'sync',
@@ -116,6 +126,34 @@ describe('partykit auth helpers', () => {
 			expect(isAdminRevokePath('/party/main/admin/revoke')).toBe(true);
 			expect(isAdminRevokePath('/parties/main/room/admin/revoke')).toBe(true);
 			expect(isAdminRevokePath('/party/main')).toBe(false);
+		});
+
+		it('matches only /admin/permissions-update paths', () => {
+			expect(
+				isAdminPermissionsUpdatePath('/party/main/admin/permissions-update')
+			).toBe(true);
+			expect(
+				isAdminPermissionsUpdatePath(
+					'/parties/main/mind-map%3Aabc%3Apermissions/admin/permissions-update'
+				)
+			).toBe(true);
+			expect(isAdminPermissionsUpdatePath('/party/main/admin/revoke')).toBe(
+				false
+			);
+		});
+
+		it('matches only /admin/access-revoked paths', () => {
+			expect(isAdminAccessRevokedPath('/party/main/admin/access-revoked')).toBe(
+				true
+			);
+			expect(
+				isAdminAccessRevokedPath(
+					'/parties/main/mind-map%3Aabc%3Apermissions/admin/access-revoked'
+				)
+			).toBe(true);
+			expect(
+				isAdminAccessRevokedPath('/party/main/admin/permissions-update')
+			).toBe(false);
 		});
 	});
 });

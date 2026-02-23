@@ -127,22 +127,53 @@ export function parseRoomNameFromRequest(
 }
 
 export function parseMindMapRoom(roomName: string): ParsedMindMapRoom | null {
-	const normalizedRoomName =
-		roomName.split('/').filter(Boolean).pop() ?? roomName;
-	const match = /^mind-map:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?::([a-z0-9-]+))?$/i.exec(
-		normalizedRoomName
-	);
-	if (!match) return null;
+	const rawRoomName = roomName.split('/').filter(Boolean).pop() ?? roomName;
+	const candidates: string[] = [rawRoomName];
 
-	return {
-		roomName: normalizedRoomName,
-		mapId: match[1],
-		channel: match[2] ?? 'sync',
-	};
+	try {
+		const decodedOnce = decodeURIComponent(rawRoomName);
+		if (decodedOnce !== rawRoomName) {
+			candidates.push(decodedOnce);
+		}
+	} catch {
+		// Ignore invalid encoding and fall back to raw room name.
+	}
+
+	const roomPattern =
+		/^mind-map:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?::([a-z0-9-]+))?$/i;
+
+	for (const candidate of candidates) {
+		const match = roomPattern.exec(candidate);
+		if (!match) continue;
+
+		return {
+			roomName: candidate,
+			mapId: match[1],
+			channel: match[2] ?? 'sync',
+		};
+	}
+
+	return null;
 }
 
 export function isAdminRevokePath(pathname: string): boolean {
 	return pathname.endsWith('/admin/revoke');
+}
+
+export function isAdminPermissionsUpdatePath(pathname: string): boolean {
+	return pathname.endsWith('/admin/permissions-update');
+}
+
+export function isAdminAccessRevokedPath(pathname: string): boolean {
+	return pathname.endsWith('/admin/access-revoked');
+}
+
+export function isAdminPath(pathname: string): boolean {
+	return (
+		isAdminRevokePath(pathname) ||
+		isAdminPermissionsUpdatePath(pathname) ||
+		isAdminAccessRevokedPath(pathname)
+	);
 }
 
 export function readAdminToken(request: Request): string | null {

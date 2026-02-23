@@ -2,6 +2,9 @@ import type * as Party from 'partykit/server';
 import { onConnect as onYjsConnect } from 'y-partykit';
 import * as Y from 'yjs';
 import {
+	isAdminAccessRevokedPath,
+	isAdminPath,
+	isAdminPermissionsUpdatePath,
 	isAdminRevokePath,
 	parseMindMapRoom,
 	parseRoomNameFromRequest,
@@ -15,6 +18,7 @@ type MapAccess = {
 	canView: boolean;
 	canComment: boolean;
 	canEdit: boolean;
+	updatedAt: string | null;
 };
 
 type PartyKitEnv = Record<string, unknown>;
@@ -120,6 +124,36 @@ const SKIP_PATCH_KEYS = new Set([
 	'measured',
 	'updated_at',
 ]);
+const PERMISSION_ROLES = new Set(['owner', 'editor', 'commentator', 'viewer']);
+
+type PermissionRole = 'owner' | 'editor' | 'commentator' | 'viewer';
+
+type PermissionSnapshotEvent = {
+	type: 'permissions:snapshot' | 'permissions:update';
+	mapId: string;
+	targetUserId: string;
+	role: PermissionRole;
+	can_view: boolean;
+	can_comment: boolean;
+	can_edit: boolean;
+	updatedAt: string;
+};
+
+type PermissionRevokedEvent = {
+	type: 'permissions:revoked';
+	mapId: string;
+	targetUserId: string;
+	reason: 'access_revoked';
+	revokedAt: string;
+};
+
+type PermissionEvent = PermissionSnapshotEvent | PermissionRevokedEvent;
+
+type RealtimeConnectionState = {
+	userId: string | null;
+	mapId: string | null;
+	channel: string | null;
+};
 
 /** Timing-safe string comparison via HMAC (works on CF Workers where timingSafeEqual is unavailable). */
 async function hmacEqual(a: string, b: string): Promise<boolean> {
@@ -155,6 +189,44 @@ function forbidden(message = 'Forbidden'): Response {
 
 function badRequest(message = 'Bad request'): Response {
 	return new Response(message, { status: 400 });
+}
+
+type AdminRoomResolution = {
+	parsedRoom: ReturnType<typeof parseMindMapRoom>;
+	source: 'request' | 'room' | 'none';
+	requestRoomName: string | null;
+};
+
+function resolveAdminRoom(
+	requestUrl: string,
+	roomId: string
+): AdminRoomResolution {
+	const requestRoomName = parseRoomNameFromRequest(requestUrl);
+	if (requestRoomName) {
+		const parsedFromRequest = parseMindMapRoom(requestRoomName);
+		if (parsedFromRequest) {
+			return {
+				parsedRoom: parsedFromRequest,
+				source: 'request',
+				requestRoomName,
+			};
+		}
+	}
+
+	const parsedFromRoom = parseMindMapRoom(roomId);
+	if (parsedFromRoom) {
+		return {
+			parsedRoom: parsedFromRoom,
+			source: 'room',
+			requestRoomName,
+		};
+	}
+
+	return {
+		parsedRoom: null,
+		source: 'none',
+		requestRoomName,
+	};
 }
 
 function getEnvString(
@@ -357,13 +429,108 @@ function isUuid(value: unknown): value is string {
 	return typeof value === 'string' && UUID_PATTERN.test(value);
 }
 
+function isPermissionRole(value: unknown): value is PermissionRole {
+	return typeof value === 'string' && PERMISSION_ROLES.has(value);
+}
+
+function setConnectionState(
+	connection: Party.Connection,
+	state: RealtimeConnectionState
+): void {
+	const statefulConnection = connection as Party.Connection & {
+		setState?: (state: unknown) => void;
+	};
+	if (typeof statefulConnection.setState === 'function') {
+		statefulConnection.setState(state);
+	}
+}
+
+function readConnectionState(
+	connection: Party.Connection
+): RealtimeConnectionState | null {
+	const statefulConnection = connection as Party.Connection & {
+		state?: unknown;
+		getState?: () => unknown;
+	};
+	const rawState =
+		typeof statefulConnection.getState === 'function'
+			? statefulConnection.getState()
+			: statefulConnection.state;
+	if (!rawState || typeof rawState !== 'object') return null;
+
+	const record = rawState as Record<string, unknown>;
+	return {
+		userId: typeof record.userId === 'string' ? record.userId : null,
+		mapId: typeof record.mapId === 'string' ? record.mapId : null,
+		channel: typeof record.channel === 'string' ? record.channel : null,
+	};
+}
+
+function listConnectionsForUser(
+	room: Party.Room,
+	userId: string
+): Party.Connection[] {
+	const taggedConnections = Array.from(room.getConnections(`user:${userId}`));
+	if (taggedConnections.length > 0) {
+		return taggedConnections;
+	}
+
+	return Array.from(room.getConnections()).filter(
+		(connection) => readConnectionState(connection)?.userId === userId
+	);
+}
+
+function closeConnectionsForUsers(
+	room: Party.Room,
+	userIds: string[],
+	code: number,
+	reason: string
+): { closedConnections: number; fallbackClosedConnections: number } {
+	const closed = new Set<Party.Connection>();
+	let fallbackClosedConnections = 0;
+
+	for (const userId of userIds) {
+		const taggedConnections = room.getConnections(`user:${userId}`);
+		let closedForUser = 0;
+
+		for (const connection of taggedConnections) {
+			if (closed.has(connection)) continue;
+			connection.close(code, reason);
+			closed.add(connection);
+			closedForUser += 1;
+		}
+
+		if (closedForUser > 0) {
+			continue;
+		}
+
+		for (const connection of room.getConnections()) {
+			const state = readConnectionState(connection);
+			if (!state || state.userId !== userId || closed.has(connection)) {
+				continue;
+			}
+			connection.close(code, reason);
+			closed.add(connection);
+			fallbackClosedConnections += 1;
+		}
+	}
+
+	return {
+		closedConnections: closed.size,
+		fallbackClosedConnections,
+	};
+}
+
 async function getMapAccess(
 	env: PartyKitEnv,
 	userId: string,
 	mapId: string
 ): Promise<MapAccess | null> {
-	const ownedMaps = await querySupabaseRows<{ id: string }>(env, 'mind_maps', {
-		select: 'id',
+	const ownedMaps = await querySupabaseRows<{
+		id: string;
+		updated_at: string | null;
+	}>(env, 'mind_maps', {
+		select: 'id,updated_at',
 		id: `eq.${mapId}`,
 		user_id: `eq.${userId}`,
 		limit: '1',
@@ -375,6 +542,7 @@ async function getMapAccess(
 			canView: true,
 			canComment: true,
 			canEdit: true,
+			updatedAt: ownedMaps[0]?.updated_at ?? new Date().toISOString(),
 		};
 	}
 
@@ -383,8 +551,9 @@ async function getMapAccess(
 		can_view: boolean | null;
 		can_comment: boolean | null;
 		can_edit: boolean | null;
+		updated_at: string | null;
 	}>(env, 'share_access', {
-		select: 'role,can_view,can_comment,can_edit',
+		select: 'role,can_view,can_comment,can_edit,updated_at',
 		map_id: `eq.${mapId}`,
 		user_id: `eq.${userId}`,
 		status: 'eq.active',
@@ -400,6 +569,7 @@ async function getMapAccess(
 		canView: Boolean(access.can_view),
 		canComment: Boolean(access.can_comment),
 		canEdit: Boolean(access.can_edit),
+		updatedAt: access.updated_at ?? null,
 	};
 }
 
@@ -454,6 +624,10 @@ async function authorizeRoomRequest(
 	headers.set('x-auth-can-view', String(access.canView));
 	headers.set('x-auth-can-comment', String(access.canComment));
 	headers.set('x-auth-can-edit', String(access.canEdit));
+	headers.set(
+		'x-auth-permissions-updated-at',
+		access.updatedAt ?? new Date().toISOString()
+	);
 
 	return new Request(request, { headers });
 }
@@ -1218,7 +1392,7 @@ export default class MindMapRealtimeServer implements Party.Server {
 		_ctx: Party.ExecutionContext
 	): Promise<Response | Request> {
 		const url = new URL(request.url);
-		if (isAdminRevokePath(url.pathname)) {
+		if (isAdminPath(url.pathname)) {
 			const expectedToken = getEnvString(lobby.env, 'PARTYKIT_ADMIN_TOKEN')?.trim();
 			const providedToken = readAdminToken(request)?.trim();
 
@@ -1264,6 +1438,26 @@ export default class MindMapRealtimeServer implements Party.Server {
 			return;
 		}
 
+		const headerUserId = context.request.headers.get('x-auth-user-id');
+		setConnectionState(connection, {
+			userId: isUuid(headerUserId) ? headerUserId : null,
+			mapId: parsedRoom.mapId,
+			channel: parsedRoom.channel,
+		});
+
+		if (parsedRoom.channel === 'permissions') {
+			const snapshot = this.buildPermissionSnapshot(
+				parsedRoom.mapId,
+				context.request.headers
+			);
+			if (!snapshot) {
+				connection.close(1008, 'Invalid permission context');
+				return;
+			}
+			connection.send(JSON.stringify(snapshot));
+			return;
+		}
+
 		const canEdit = context.request.headers.get('x-auth-can-edit') === 'true';
 		const allowDocWrites = parsedRoom.channel === 'sync' ? canEdit : true;
 
@@ -1284,7 +1478,14 @@ export default class MindMapRealtimeServer implements Party.Server {
 
 	async onRequest(request: Party.Request): Promise<Response> {
 		const url = new URL(request.url);
-		if (!isAdminRevokePath(url.pathname)) {
+		const isRevokeRequest = isAdminRevokePath(url.pathname);
+		const isPermissionUpdateRequest = isAdminPermissionsUpdatePath(url.pathname);
+		const isAccessRevokedRequest = isAdminAccessRevokedPath(url.pathname);
+		if (
+			!isRevokeRequest &&
+			!isPermissionUpdateRequest &&
+			!isAccessRevokedRequest
+		) {
 			return new Response('Not found', { status: 404 });
 		}
 
@@ -1292,60 +1493,243 @@ export default class MindMapRealtimeServer implements Party.Server {
 			return new Response('Method not allowed', { status: 405 });
 		}
 
-		const parsedRoom = parseMindMapRoom(this.room.id);
+		const roomResolution = resolveAdminRoom(request.url, this.room.id);
+		const parsedRoom = roomResolution.parsedRoom;
 		if (!parsedRoom) {
+			console.warn('[partykit] Invalid admin room resolution', {
+				pathname: url.pathname,
+				roomSource: roomResolution.source,
+				requestRoomName: roomResolution.requestRoomName,
+				roomId: this.room.id,
+			});
 			return badRequest('Invalid room');
 		}
 
-		let body: {
-			mapId?: string;
-			userIds?: string[];
-			reason?: string;
-		};
+		if (
+			(isPermissionUpdateRequest || isAccessRevokedRequest) &&
+			parsedRoom.channel !== 'permissions'
+		) {
+			console.warn(
+				'[partykit] Permissions admin request rejected for non-permissions room',
+				{
+					pathname: url.pathname,
+					mapId: parsedRoom.mapId,
+					channel: parsedRoom.channel,
+					roomName: parsedRoom.roomName,
+				}
+			);
+			return badRequest('Invalid room');
+		}
+
+		let body: Record<string, unknown>;
 		try {
-			body = (await request.json()) as {
-				mapId?: string;
-				userIds?: string[];
-				reason?: string;
-			};
+			body = (await request.json()) as Record<string, unknown>;
 		} catch {
 			return badRequest('Invalid JSON body');
 		}
 
-		if (body.mapId && body.mapId !== parsedRoom.mapId) {
+		const mapId = typeof body.mapId === 'string' ? body.mapId : undefined;
+		if (mapId && mapId !== parsedRoom.mapId) {
 			return badRequest('Map ID does not match room');
 		}
 
-		const userIds = Array.from(new Set((body.userIds ?? []).filter(Boolean)));
-		if (userIds.length === 0) {
-			return badRequest('userIds is required');
+		if (isRevokeRequest) {
+			const bodyUserIds = Array.isArray(body.userIds) ? body.userIds : [];
+			const userIds = Array.from(
+				new Set(
+					bodyUserIds
+						.filter((value): value is string => typeof value === 'string')
+						.map((value) => value.trim())
+						.filter(Boolean)
+				)
+			);
+
+			if (userIds.length === 0) {
+				return badRequest('userIds is required');
+			}
+
+			// Validate all userIds are valid UUIDs
+			for (const userId of userIds) {
+				if (!UUID_PATTERN.test(userId)) {
+					return badRequest('Invalid userId format');
+				}
+			}
+
+			const rawReason =
+				typeof body.reason === 'string' ? body.reason : 'access_revoked';
+			const reason = rawReason.slice(0, 120);
+
+			const closeResult = closeConnectionsForUsers(
+				this.room,
+				userIds,
+				4403,
+				reason
+			);
+
+			console.info('[partykit] Admin revoke disconnect applied', {
+				mapId: parsedRoom.mapId,
+				roomName: parsedRoom.roomName,
+				requestedUsers: userIds.length,
+				closedConnections: closeResult.closedConnections,
+				fallbackClosedConnections: closeResult.fallbackClosedConnections,
+			});
+
+			return Response.json({
+				success: true,
+				mapId: parsedRoom.mapId,
+				room: parsedRoom.roomName,
+				requestedUsers: userIds.length,
+				closedConnections: closeResult.closedConnections,
+				fallbackClosedConnections: closeResult.fallbackClosedConnections,
+			});
 		}
 
-		// Validate all userIds are valid UUIDs
-		for (const userId of userIds) {
-			if (!UUID_PATTERN.test(userId)) {
-				return badRequest('Invalid userId format');
-			}
+		const targetUserId =
+			typeof body.targetUserId === 'string' ? body.targetUserId : null;
+		const role = body.role;
+		const canView = body.can_view;
+		const canComment = body.can_comment;
+		const canEdit = body.can_edit;
+		const updatedAt = typeof body.updatedAt === 'string' ? body.updatedAt : null;
+
+		if (!mapId) {
+			return badRequest('mapId is required');
+		}
+		if (!targetUserId || !UUID_PATTERN.test(targetUserId)) {
+			return badRequest('Invalid targetUserId format');
 		}
 
-		const reason = (body.reason || 'access_revoked').slice(0, 120);
-
-		let closedConnections = 0;
-		for (const userId of userIds) {
-			const userConnections = this.room.getConnections(`user:${userId}`);
-			for (const connection of userConnections) {
-				connection.close(4403, reason);
-				closedConnections += 1;
+		if (isAccessRevokedRequest) {
+			const reason = body.reason;
+			const revokedAt =
+				typeof body.revokedAt === 'string' ? body.revokedAt : null;
+			if (reason !== 'access_revoked') {
+				return badRequest('Invalid reason');
 			}
+			if (!revokedAt || Number.isNaN(Date.parse(revokedAt))) {
+				return badRequest('Invalid revokedAt');
+			}
+
+			const event: PermissionRevokedEvent = {
+				type: 'permissions:revoked',
+				mapId,
+				targetUserId,
+				reason: 'access_revoked',
+				revokedAt,
+			};
+
+			const targetConnections = listConnectionsForUser(this.room, targetUserId);
+			let deliveredConnections = 0;
+			for (const connection of targetConnections) {
+				connection.send(JSON.stringify(event));
+				deliveredConnections += 1;
+			}
+
+			if (deliveredConnections === 0) {
+				console.warn('[partykit] Access revoked delivered to zero connections', {
+					mapId,
+					targetUserId,
+					roomName: parsedRoom.roomName,
+				});
+			} else {
+				console.info('[partykit] Access revoked unicast delivered', {
+					mapId,
+					targetUserId,
+					deliveredConnections,
+					roomName: parsedRoom.roomName,
+				});
+			}
+
+			return Response.json({
+				success: true,
+				mapId: parsedRoom.mapId,
+				room: parsedRoom.roomName,
+				targetUserId,
+				deliveredConnections,
+			});
+		}
+
+		if (!isPermissionRole(role)) {
+			return badRequest('Invalid role');
+		}
+		if (
+			typeof canView !== 'boolean' ||
+			typeof canComment !== 'boolean' ||
+			typeof canEdit !== 'boolean'
+		) {
+			return badRequest('Permission flags must be boolean');
+		}
+		if (!updatedAt || Number.isNaN(Date.parse(updatedAt))) {
+			return badRequest('Invalid updatedAt');
+		}
+
+		const event: PermissionEvent = {
+			type: 'permissions:update',
+			mapId,
+			targetUserId,
+			role,
+			can_view: canView,
+			can_comment: canComment,
+			can_edit: canEdit,
+			updatedAt,
+		};
+
+		const targetConnections = listConnectionsForUser(this.room, targetUserId);
+		let deliveredConnections = 0;
+		for (const connection of targetConnections) {
+			connection.send(JSON.stringify(event));
+			deliveredConnections += 1;
+		}
+
+		if (deliveredConnections === 0) {
+			console.warn('[partykit] Permission update delivered to zero connections', {
+				mapId,
+				targetUserId,
+				roomName: parsedRoom.roomName,
+			});
+		} else {
+			console.info('[partykit] Permission update unicast delivered', {
+				mapId,
+				targetUserId,
+				deliveredConnections,
+				roomName: parsedRoom.roomName,
+			});
 		}
 
 		return Response.json({
 			success: true,
 			mapId: parsedRoom.mapId,
-			room: this.room.id,
-			requestedUsers: userIds.length,
-			closedConnections,
+			room: parsedRoom.roomName,
+			targetUserId,
+			deliveredConnections,
 		});
+	}
+
+	private buildPermissionSnapshot(
+		mapId: string,
+		headers: { get(name: string): string | null }
+	): PermissionSnapshotEvent | null {
+		const targetUserId = headers.get('x-auth-user-id');
+		const role = headers.get('x-auth-role');
+		if (!targetUserId || !UUID_PATTERN.test(targetUserId)) return null;
+		if (!isPermissionRole(role)) return null;
+
+		const canView = headers.get('x-auth-can-view') === 'true';
+		const canComment = headers.get('x-auth-can-comment') === 'true';
+		const canEdit = headers.get('x-auth-can-edit') === 'true';
+		const updatedAt =
+			headers.get('x-auth-permissions-updated-at') ?? new Date().toISOString();
+
+		return {
+			type: 'permissions:snapshot',
+			mapId,
+			targetUserId,
+			role,
+			can_view: canView,
+			can_comment: canComment,
+			can_edit: canEdit,
+			updatedAt,
+		};
 	}
 
 	private async loadSyncDocFromDatabase(mapId: string): Promise<Y.Doc> {

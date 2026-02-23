@@ -1,6 +1,9 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withAuthValidation } from '@/helpers/api/with-auth-validation';
-import { disconnectPartyKitUsers } from '@/helpers/partykit/admin';
+import {
+	disconnectPartyKitUsers,
+	pushPartyKitAccessRevoked,
+} from '@/helpers/partykit/admin';
 import { z } from 'zod';
 
 const RevokeRoomCodeSchema = z.object({
@@ -95,6 +98,41 @@ export const POST = withAuthValidation(
 				);
 			}
 
+			const revokedAt = new Date().toISOString();
+			let kickSignalAttemptedUsers = 0;
+			let kickSignalDeliveredUsers = 0;
+			const kickSignalFailedUserIds: string[] = [];
+
+			for (const targetUserId of affectedUserIds) {
+				kickSignalAttemptedUsers += 1;
+				try {
+					const kickResult = await pushPartyKitAccessRevoked({
+						mapId: tokenRecord.map_id,
+						targetUserId,
+						reason: 'access_revoked',
+						revokedAt,
+					});
+					if (kickResult.delivered) {
+						kickSignalDeliveredUsers += 1;
+					} else {
+						kickSignalFailedUserIds.push(targetUserId);
+					}
+				} catch (error) {
+					kickSignalFailedUserIds.push(targetUserId);
+					console.warn(
+						'[share/revoke-room-code] Failed to push access-revoked event',
+						{
+							mapId: tokenRecord.map_id,
+							targetUserId,
+							error:
+								error instanceof Error
+									? error.message
+									: 'Unknown kick signal error',
+						}
+					);
+				}
+			}
+
 			let disconnectResult = {
 				attempted: false,
 				succeededRooms: [] as string[],
@@ -118,6 +156,23 @@ export const POST = withAuthValidation(
 				{
 					token_id: data.token_id,
 					users_kicked: result.users_kicked,
+					realtime: {
+						kick_signal: {
+							attempted: kickSignalAttemptedUsers > 0,
+							delivered:
+								kickSignalAttemptedUsers > 0 &&
+								kickSignalDeliveredUsers === kickSignalAttemptedUsers,
+							targetUserIds: affectedUserIds,
+							attemptedUsers: kickSignalAttemptedUsers,
+							deliveredUsers: kickSignalDeliveredUsers,
+							failedUserIds: kickSignalFailedUserIds,
+						},
+						disconnect: {
+							attempted: disconnectResult.attempted,
+							succeededRooms: disconnectResult.succeededRooms,
+							failedRooms: disconnectResult.failedRooms,
+						},
+					},
 					realtime_disconnect: disconnectResult,
 				},
 				200,

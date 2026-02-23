@@ -145,7 +145,7 @@ export function RoomCodeDisplay({
 	const roleColorClass =
 		token.permissions.role === 'editor'
 			? 'border-green-500/50 text-green-400 bg-green-500/10'
-			: token.permissions.role === 'commenter'
+			: token.permissions.role === 'commentator'
 				? 'border-yellow-500/50 text-yellow-400 bg-yellow-500/10'
 				: 'border-blue-500/50 text-blue-400 bg-blue-500/10';
 

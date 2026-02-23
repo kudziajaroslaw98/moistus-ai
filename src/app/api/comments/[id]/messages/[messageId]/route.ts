@@ -1,4 +1,5 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
+import { canUserWriteComments } from '@/helpers/api/comment-permissions';
 import { createClient } from '@/helpers/supabase/server';
 
 /**
@@ -25,6 +26,36 @@ export async function DELETE(
 				'Authentication required',
 				401,
 				'User not authenticated'
+			);
+		}
+
+		const { data: message, error: messageError } = await supabase
+			.from('comment_messages')
+			.select('id, comment_id')
+			.eq('id', messageId)
+			.eq('comment_id', commentId)
+			.maybeSingle();
+
+		if (messageError || !message) {
+			return respondError('Message not found.', 404, 'Message not found.');
+		}
+
+		const { data: comment, error: commentError } = await supabase
+			.from('comments')
+			.select('id, map_id')
+			.eq('id', commentId)
+			.maybeSingle();
+
+		if (commentError || !comment) {
+			return respondError('Comment not found.', 404, 'Comment not found.');
+		}
+
+		const permission = await canUserWriteComments(supabase, comment.map_id, user.id);
+		if (!permission.allowed) {
+			return respondError(
+				'Access denied.',
+				403,
+				'You do not have permission to comment on this map.'
 			);
 		}
 

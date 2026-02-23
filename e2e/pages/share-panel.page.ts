@@ -63,7 +63,9 @@ export class SharePanelPage {
 		// Room code display elements
 		this.roomCodeValues = this.panel.locator('[data-testid="room-code-value"]');
 		this.copyButton = this.panel.locator('button[title="Copy room code"]');
-		this.revokeButton = this.panel.locator('[data-testid="revoke-room-code-btn"]');
+		this.revokeButton = this.panel.locator(
+			'[data-testid="revoke-room-code-btn"]'
+		);
 	}
 
 	/**
@@ -95,9 +97,8 @@ export class SharePanelPage {
 	 */
 	async openSettings() {
 		// First make sure we're on the Room Code tab
-		const isRoomCodeTabSelected = await this.roomCodeTab.getAttribute(
-			'data-state'
-		);
+		const isRoomCodeTabSelected =
+			await this.roomCodeTab.getAttribute('data-state');
 		if (isRoomCodeTabSelected !== 'active') {
 			await this.roomCodeTab.click();
 			await this.page.waitForTimeout(200);
@@ -131,7 +132,7 @@ export class SharePanelPage {
 	/**
 	 * Sets the default permission role for the room code.
 	 */
-	async setRole(role: 'viewer' | 'commenter' | 'editor') {
+	async setRole(role: 'viewer' | 'commentator' | 'editor') {
 		await this.openSettings();
 
 		// Give animation time to complete
@@ -152,7 +153,7 @@ export class SharePanelPage {
 		// Map role to the start of the option text
 		const roleTextMap: Record<string, string> = {
 			viewer: 'Viewer',
-			commenter: 'Commenter',
+			commentator: 'Commentator',
 			editor: 'Editor',
 		};
 
@@ -172,7 +173,7 @@ export class SharePanelPage {
 	 * Returns the generated room code string.
 	 */
 	async generateRoomCode(options?: {
-		role?: 'viewer' | 'commenter' | 'editor';
+		role?: 'viewer' | 'commentator' | 'editor';
 		maxUsers?: number;
 	}): Promise<string> {
 		// Wait for panel to load existing codes from API
@@ -201,7 +202,9 @@ export class SharePanelPage {
 		await this.page.waitForTimeout(500);
 
 		// Wait for at least one code to be visible
-		await this.roomCodeValues.first().waitFor({ state: 'visible', timeout: 10000 });
+		await this.roomCodeValues
+			.first()
+			.waitFor({ state: 'visible', timeout: 10000 });
 
 		// Get the first code (newest codes appear first in the list)
 		const code = await this.roomCodeValues.first().textContent();
@@ -238,10 +241,14 @@ export class SharePanelPage {
 				break; // No more codes to revoke
 			}
 
-			console.log(`revokeAllCodes: ${initialCount} codes remaining, attempt ${attempts + 1}`);
+			console.log(
+				`revokeAllCodes: ${initialCount} codes remaining, attempt ${attempts + 1}`
+			);
 
 			// Use data-testid selector (most reliable)
-			const revokeButtons = this.panel.locator('[data-testid="revoke-room-code-btn"]');
+			const revokeButtons = this.panel.locator(
+				'[data-testid="revoke-room-code-btn"]'
+			);
 			const buttonCount = await revokeButtons.count();
 
 			console.log(`revokeAllCodes: Found ${buttonCount} revoke buttons`);
@@ -260,11 +267,15 @@ export class SharePanelPage {
 					await expect(this.roomCodeValues).toHaveCount(initialCount - 1, {
 						timeout: 5000,
 					});
-					console.log(`revokeAllCodes: Successfully revoked, now ${initialCount - 1} codes`);
+					console.log(
+						`revokeAllCodes: Successfully revoked, now ${initialCount - 1} codes`
+					);
 				} catch {
 					// If count didn't decrease, log and retry
 					const newCount = await this.roomCodeValues.count();
-					console.log(`revokeAllCodes: Count didn't decrease as expected. Expected ${initialCount - 1}, got ${newCount}`);
+					console.log(
+						`revokeAllCodes: Count didn't decrease as expected. Expected ${initialCount - 1}, got ${newCount}`
+					);
 					await this.page.waitForTimeout(1000);
 				}
 			} else {

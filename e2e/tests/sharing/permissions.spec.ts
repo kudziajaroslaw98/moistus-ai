@@ -1,13 +1,13 @@
 /**
  * E2E Tests for Sharing Permission Restrictions
  *
- * Tests that different roles (viewer, commenter, editor) have appropriate
+ * Tests that different roles (viewer, commentator, editor) have appropriate
  * restrictions and capabilities when collaborating on a mind map.
  *
  * Test Categories:
  * 1. Viewer Role Restrictions - Read-only mode, no editing capabilities (15 active + 3 skipped)
  * 2. Editor Role Functionality - Full edit access verification (7 active + 1 skipped)
- * 3. Commenter Role Restrictions - View + comment only (6 active + 6 skipped)
+ * 3. Commentator Role Restrictions - View + comment only (6 active + 6 skipped)
  * 4. Real-time Sync - Changes visible without refresh (3 active)
  * 5. Access Revocation - Kicked when access revoked (3 active)
  *
@@ -19,17 +19,14 @@
  * with multiple workers - no group affects another group's room codes.
  */
 
-import { test, expect } from '../../fixtures/multi-user.fixture';
+import { expect, test } from '../../fixtures/multi-user.fixture';
 
 // Run all groups sequentially (single worker) but continue if one group fails
 // This prevents race conditions while allowing all groups to run
 test.describe.configure({ mode: 'default' });
 
-import { ContextMenuPage } from '../../pages/context-menu.page';
 import { JoinRoomPage } from '../../pages/join-room.page';
-import { MindMapPage } from '../../pages/mind-map.page';
 import { SharePanelPage } from '../../pages/share-panel.page';
-import { ToolbarPage } from '../../pages/toolbar.page';
 
 // ============================================================================
 // 1. VIEWER ROLE RESTRICTIONS (15 tests)
@@ -201,7 +198,9 @@ test.describe.serial('Viewer Role Restrictions', () => {
 		// Try to drag the node
 		await guestMindMapPage.page.mouse.move(startX, startY);
 		await guestMindMapPage.page.mouse.down();
-		await guestMindMapPage.page.mouse.move(startX + 100, startY + 100, { steps: 10 });
+		await guestMindMapPage.page.mouse.move(startX + 100, startY + 100, {
+			steps: 10,
+		});
 		await guestMindMapPage.page.mouse.up();
 
 		// Get new position
@@ -322,12 +321,16 @@ test.describe.serial('Viewer Role Restrictions', () => {
 	// PLACEHOLDER TESTS - To be implemented (see e2e/E2E_TEST_GAPS.md)
 	// -------------------------------------------------------------------------
 
-	test.skip('viewer cannot see Comments button', async ({ guestToolbarPage }) => {
+	test.skip('viewer cannot see Comments button', async ({
+		guestToolbarPage,
+	}) => {
 		// TODO: Implement - Comments should be hidden for viewers
 		// await guestToolbarPage.expectCommentsButtonHidden();
 	});
 
-	test.skip('viewer cannot open AI Chat panel', async ({ guestToolbarPage }) => {
+	test.skip('viewer cannot open AI Chat panel', async ({
+		guestToolbarPage,
+	}) => {
 		// TODO: Implement - AI Chat should be hidden/disabled for viewers
 		// await guestToolbarPage.expectAiChatButtonHidden();
 		// OR if button visible but disabled:
@@ -414,7 +417,9 @@ test.describe.serial('Editor Role Functionality', () => {
 		expect(finalCount).toBe(initialCount + 1);
 	});
 
-	test('editor can edit nodes via double-click', async ({ guestMindMapPage }) => {
+	test('editor can edit nodes via double-click', async ({
+		guestMindMapPage,
+	}) => {
 		// Double-click to edit
 		await guestMindMapPage.doubleClickNodeByContent(editorNodeName);
 
@@ -441,7 +446,10 @@ test.describe.serial('Editor Role Functionality', () => {
 
 	// TODO: Fix flaky drag test - React Flow drag detection not working in E2E
 	// The node doesn't move despite correct mouse events. Works manually.
-	test.skip('editor can drag nodes', async ({ guestMindMapPage, guestToolbarPage }) => {
+	test.skip('editor can drag nodes', async ({
+		guestMindMapPage,
+		guestToolbarPage,
+	}) => {
 		// Switch to Select mode (required for dragging nodes in React Flow)
 		await guestToolbarPage.selectCursorMode('Select');
 		await guestMindMapPage.page.waitForTimeout(300);
@@ -470,7 +478,9 @@ test.describe.serial('Editor Role Functionality', () => {
 		// Drag using the same approach as viewer test (which works)
 		await guestMindMapPage.page.mouse.move(startX, startY);
 		await guestMindMapPage.page.mouse.down();
-		await guestMindMapPage.page.mouse.move(startX + 100, startY + 100, { steps: 10 });
+		await guestMindMapPage.page.mouse.move(startX + 100, startY + 100, {
+			steps: 10,
+		});
 		await guestMindMapPage.page.mouse.up();
 		await guestMindMapPage.page.waitForTimeout(500);
 
@@ -504,15 +514,18 @@ test.describe.serial('Editor Role Functionality', () => {
 });
 
 // ============================================================================
-// 3. COMMENTER ROLE RESTRICTIONS (6 tests)
+// 3. COMMENTATOR ROLE RESTRICTIONS (6 tests)
 // ============================================================================
 
-test.describe.serial('Commenter Role Restrictions', () => {
-	let commenterRoomCode: string;
+test.describe.serial('Commentator Role Restrictions', () => {
+	let commentatorRoomCode: string;
 	const testRunId = Date.now().toString().slice(-6);
-	const commenterTestNode = `Commenter Node ${testRunId}`;
+	const commentatorTestNode = `Commentator Node ${testRunId}`;
 
-	test('owner creates commenter room code', async ({ ownerPage, testMapId }) => {
+	test('owner creates commentator room code', async ({
+		ownerPage,
+		testMapId,
+	}) => {
 		await ownerPage.goto(`/mind-map/${testMapId}`);
 		await ownerPage.waitForLoadState('networkidle');
 		await ownerPage.waitForTimeout(1000);
@@ -520,60 +533,63 @@ test.describe.serial('Commenter Role Restrictions', () => {
 		const sharePanelPage = new SharePanelPage(ownerPage);
 		await sharePanelPage.openPanel();
 
-		commenterRoomCode = await sharePanelPage.generateRoomCode({
-			role: 'commenter',
+		commentatorRoomCode = await sharePanelPage.generateRoomCode({
+			role: 'commentator',
 			maxUsers: 10,
 		});
 
-		expect(commenterRoomCode).toMatch(/^[A-Z0-9]{3}-[A-Z0-9]{3}$/);
-		console.log(`Generated commenter room code: ${commenterRoomCode}`);
+		expect(commentatorRoomCode).toMatch(/^[A-Z0-9]{3}-[A-Z0-9]{3}$/);
+		console.log(`Generated commentator room code: ${commentatorRoomCode}`);
 	});
 
-	test('commenter joins successfully', async ({ guestPage }) => {
+	test('commentator joins successfully', async ({ guestPage }) => {
 		const joinPage = new JoinRoomPage(guestPage);
-		await joinPage.gotoDeepLink(commenterRoomCode);
+		await joinPage.gotoDeepLink(commentatorRoomCode);
 		await guestPage.waitForTimeout(1000);
-		await joinPage.joinAsGuest('E2E Commenter User');
+		await joinPage.joinAsGuest('E2E Commentator User');
 		await joinPage.waitForSuccess();
 		expect(await joinPage.isOnMindMap()).toBe(true);
-		// NOTE: Don't reload here - it would clear lastJoinResult which holds commenter permissions
+		// NOTE: Don't reload here - it would clear lastJoinResult which holds commentator permissions
 	});
 
-	test('commenter cannot edit nodes', async ({
+	test('commentator cannot edit nodes', async ({
 		guestMindMapPage,
 		ownerMindMapPage,
 		testMapId,
 	}) => {
 		// Owner creates a node
 		await ownerMindMapPage.goto(testMapId);
-		await ownerMindMapPage.createNodeWithContent(commenterTestNode);
+		await ownerMindMapPage.createNodeWithContent(commentatorTestNode);
 
 		// Wait for sync
 		await guestMindMapPage.page.waitForTimeout(2000);
 
-		// Commenter tries slash shortcut - should not work
+		// Commentator tries slash shortcut - should not work
 		await guestMindMapPage.pressSlashKey();
 		await guestMindMapPage.expectNodeEditorNotOpened();
 	});
 
-	test('commenter cannot create nodes', async ({ guestToolbarPage }) => {
+	test('commentator cannot create nodes', async ({ guestToolbarPage }) => {
 		// Add Node button should be hidden
 		await guestToolbarPage.expectAddNodeButtonHidden();
 	});
 
-	test('commenter can see Comments button', async ({ guestToolbarPage }) => {
-		// Comments button should be visible for commenters
+	test('commentator can see Comments button', async ({ guestToolbarPage }) => {
+		// Comments button should be visible for commentators
 		await guestToolbarPage.expectCommentsButtonVisible();
 	});
 
-	test('commenter only has Pan mode', async ({ guestToolbarPage, guestPage }) => {
+	test('commentator only has Pan mode', async ({
+		guestToolbarPage,
+		guestPage,
+	}) => {
 		// IMPORTANT: Reload to reset permission state that may be corrupted
 		// by real-time sync events from parallel tests modifying the shared test map
 		await guestPage.reload();
 		await guestPage.waitForLoadState('networkidle');
 		await guestPage.waitForTimeout(500);
 
-		// Like viewers, commenters can't select/connect
+		// Like viewers, commentators can't select/connect
 		await guestToolbarPage.expectOnlyPanModeAvailable();
 	});
 
@@ -581,64 +597,66 @@ test.describe.serial('Commenter Role Restrictions', () => {
 	// PLACEHOLDER TESTS - To be implemented (see e2e/E2E_TEST_GAPS.md)
 	// -------------------------------------------------------------------------
 
-	test.skip('commenter can open Comments panel', async ({ guestToolbarPage }) => {
+	test.skip('commentator can open Comments panel', async ({
+		guestToolbarPage,
+	}) => {
 		// TODO: Implement - Click Comments button and verify panel opens
 		// Requires: CommentsPanel page object
 		// await guestToolbarPage.clickCommentsButton();
 		// await guestCommentsPanel.expectPanelOpen();
 	});
 
-	test.skip('commenter can add new comment thread on node', async ({
+	test.skip('commentator can add new comment thread on node', async ({
 		guestMindMapPage,
 	}) => {
 		// TODO: Implement - Select node, add comment, verify it appears
 		// Requires: CommentsPanel page object with addComment() method
 		// await guestMindMapPage.selectNodeByContent('some node');
-		// await guestCommentsPanel.addComment('Test comment from commenter');
-		// await guestCommentsPanel.expectCommentExists('Test comment from commenter');
+		// await guestCommentsPanel.addComment('Test comment from commentator');
+		// await guestCommentsPanel.expectCommentExists('Test comment from commentator');
 	});
 
-	test.skip('commenter can reply to existing comment', async ({
+	test.skip('commentator can reply to existing comment', async ({
 		ownerMindMapPage,
 		guestMindMapPage,
 	}) => {
 		// TODO: Implement
 		// 1. Owner creates a comment
-		// 2. Commenter replies to it
+		// 2. Commentator replies to it
 		// 3. Verify reply appears
 		// Requires: API setup or owner creates comment in beforeAll
 	});
 
-	test.skip('commenter can add emoji reactions to comments', async ({
+	test.skip('commentator can add emoji reactions to comments', async ({
 		guestMindMapPage,
 	}) => {
 		// TODO: Implement - Add reaction, verify it appears
 		// Requires: CommentsPanel page object with addReaction() method
 	});
 
-	test.skip('commenter cannot delete other users comments', async ({
+	test.skip('commentator cannot delete other users comments', async ({
 		ownerMindMapPage,
 		guestMindMapPage,
 	}) => {
 		// TODO: Implement
 		// 1. Owner creates a comment
-		// 2. Commenter tries to delete it
+		// 2. Commentator tries to delete it
 		// 3. Verify delete button hidden or action blocked
 	});
 
-	test.skip('commenter cannot use AI Chat', async ({ guestToolbarPage }) => {
-		// TODO: Implement - AI Chat should be hidden/disabled for commenters
+	test.skip('commentator cannot use AI Chat', async ({ guestToolbarPage }) => {
+		// TODO: Implement - AI Chat should be hidden/disabled for commentators
 		// await guestToolbarPage.expectAiChatButtonHidden();
 	});
 
 	test.afterAll(async ({ ownerPage, testMapId }) => {
-		if (!commenterRoomCode) return;
+		if (!commentatorRoomCode) return;
 		await ownerPage.goto(`/mind-map/${testMapId}`);
 		await ownerPage.waitForLoadState('networkidle');
 		const sharePanelPage = new SharePanelPage(ownerPage);
 		await sharePanelPage.openPanel();
-		await sharePanelPage.revokeCode(commenterRoomCode);
-		console.log(`Commenter tests cleanup: revoked ${commenterRoomCode}`);
+		await sharePanelPage.revokeCode(commentatorRoomCode);
+		console.log(`Commentator tests cleanup: revoked ${commentatorRoomCode}`);
 	});
 });
 
@@ -804,7 +822,9 @@ test.describe.serial('Access Revocation', () => {
 			await joinPage.waitForError();
 
 			const errorText = await joinPage.getErrorMessage();
-			expect(errorText?.toLowerCase()).toMatch(/invalid|expired|revoked|not found|unable/i);
+			expect(errorText?.toLowerCase()).toMatch(
+				/invalid|expired|revoked|not found|unable/i
+			);
 
 			// Should still be on join page (not redirected to map)
 			expect(await joinPage.isOnJoinPage()).toBe(true);

@@ -15,6 +15,7 @@ import { createOnboardingSlice } from './slices/onboarding-slice';
 import { createGuidedTourSlice } from './slices/guided-tour-slice';
 import { createQuickInputSlice } from './slices/quick-input-slice';
 import { createRealtimeSlice } from './slices/realtime-slice';
+import { createPermissionsSlice } from './slices/permissions-slice';
 import { createSharingSlice } from './slices/sharing-slice';
 import { createStreamingToastSlice } from './slices/streaming-toast-slice';
 import { createSubscriptionSlice } from './slices/subscription-slice';
@@ -32,6 +33,7 @@ const sliceCreators = [
 	createHistorySlice,
 	createGroupsSlice,
 	createSharingSlice,
+	createPermissionsSlice,
 	createSuggestionsSlice,
 	createQuickInputSlice,
 	createRealtimeSlice,
@@ -59,6 +61,7 @@ const useAppStore = create<AppState>((set, get, api) => {
 	return {
 		...initialState,
 		reset: () => {
+			get().unsubscribeFromPermissionUpdates?.();
 			const freshState = createState();
 			set(freshState, true);
 		},

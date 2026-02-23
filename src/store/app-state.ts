@@ -21,7 +21,12 @@ import type {
 import { LoadingStates } from '@/types/loading-states';
 import type { MindMapData } from '@/types/mind-map-data';
 import type { NodeData } from '@/types/node-data';
-import { SharedUser, ShareToken, SharingError } from '@/types/sharing-types';
+import {
+	SharedUser,
+	ShareRole,
+	ShareToken,
+	SharingError,
+} from '@/types/sharing-types';
 import { SnapLine } from '@/types/snap-line';
 import { StreamingToastState, ToastStep } from '@/types/streaming-toast-state';
 import { Tool } from '@/types/tool';
@@ -319,7 +324,6 @@ export interface SharingState {
 	sharingError?: SharingError;
 	lastJoinResult?: JoinRoomResult;
 	_sharingSubscription?: any;
-	_accessRevocationChannel?: any;
 
 	// Upgrade state (for anonymous -> full user conversion)
 	upgradeStep: UpgradeStep;
@@ -394,20 +398,59 @@ export interface SharingSlice extends SharingState {
 	/** Update share role with optimistic update (reverts on error) */
 	updateShareRole: (shareId: string, newRole: string) => Promise<void>;
 
-	/** Fetch current user permissions from share_access (for returning collaborators) */
-	fetchCurrentPermissions: (mapId: string) => Promise<void>;
-
 	subscribeToSharingUpdates: (mapId: string) => void;
 
 	unsubscribeFromSharing: () => void;
 
-	subscribeToAccessRevocation: (mapId: string) => Promise<void>;
-
-	unsubscribeFromAccessRevocation: () => void;
-
 	clearError: () => void;
 
 	reset: () => void;
+}
+
+export interface PermissionSnapshotOrUpdateEvent {
+	type: 'permissions:snapshot' | 'permissions:update';
+	mapId: string;
+	targetUserId: string;
+	role: ShareRole;
+	can_view: boolean;
+	can_comment: boolean;
+	can_edit: boolean;
+	updatedAt: string;
+}
+
+export interface PermissionRevokedEvent {
+	type: 'permissions:revoked';
+	mapId: string;
+	targetUserId: string;
+	reason: 'access_revoked';
+	revokedAt: string;
+}
+
+export type PermissionEvent =
+	| PermissionSnapshotOrUpdateEvent
+	| PermissionRevokedEvent;
+
+export interface PermissionsState {
+	permissions: {
+		role: ShareRole | null;
+		can_view: boolean;
+		can_comment: boolean;
+		can_edit: boolean;
+		updated_at: string | null;
+	};
+	permissionsMapId: string | null;
+	permissionsUserId: string | null;
+	isPermissionsLoading: boolean;
+	permissionsError: string | null;
+	_permissionsUnsubscribe: (() => void) | null;
+}
+
+export interface PermissionsSlice extends PermissionsState {
+	fetchInitialPermissions: (mapId: string) => Promise<void>;
+	subscribeToPermissionUpdates: (mapId: string) => Promise<void>;
+	unsubscribeFromPermissionUpdates: () => void;
+	applyPermissionEvent: (event: PermissionEvent) => void;
+	clearPermissionsState: () => void;
 }
 
 // UI State
@@ -592,6 +635,7 @@ export interface AppState
 		HistorySlice,
 		GroupsSlice,
 		SharingSlice,
+		PermissionsSlice,
 		RealtimeSlice,
 		SuggestionsSlice,
 		ChatSlice,

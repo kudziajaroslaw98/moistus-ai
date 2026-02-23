@@ -184,7 +184,7 @@ export const Toolbar = ({
 	// Non-editors: only Pan (no Select for dragging, no Connect for edges)
 	const availableCursorTools = useMemo(() => {
 		if (!canEdit) {
-			// Only allow Pan mode for viewers/commenters
+			// Only allow Pan mode for viewers/commentators
 			return cursorTools.filter((t) => t.id === 'pan');
 		}
 		return cursorTools;

@@ -4,10 +4,11 @@ import { withAuthValidation } from '@/helpers/api/with-auth-validation';
 import { z } from 'zod';
 
 interface PermissionsResponse {
-	role: string;
+	role: 'owner' | 'editor' | 'commentator' | 'viewer';
 	can_view: boolean;
 	can_edit: boolean;
 	can_comment: boolean;
+	updated_at: string;
 	isOwner: boolean;
 }
 
@@ -37,7 +38,7 @@ export const GET = withAuthValidation<
 		// Check if user is the owner
 		const { data: map, error: mapError } = await adminClient
 			.from('mind_maps')
-			.select('user_id')
+			.select('user_id, updated_at')
 			.eq('id', mapId)
 			.maybeSingle();
 
@@ -57,6 +58,7 @@ export const GET = withAuthValidation<
 					can_view: true,
 					can_edit: true,
 					can_comment: true,
+					updated_at: map.updated_at ?? new Date().toISOString(),
 					isOwner: true,
 				},
 				200,
@@ -67,7 +69,7 @@ export const GET = withAuthValidation<
 		// Get collaborator permissions from share_access
 		const { data: shareAccess, error: shareError } = await adminClient
 			.from('share_access')
-			.select('role, can_view, can_edit, can_comment')
+			.select('role, can_view, can_edit, can_comment, updated_at')
 			.eq('map_id', mapId)
 			.eq('user_id', user.id)
 			.eq('status', 'active')
@@ -89,10 +91,11 @@ export const GET = withAuthValidation<
 
 		return respondSuccess<PermissionsResponse>(
 			{
-				role: shareAccess.role || 'viewer',
+				role: (shareAccess.role || 'viewer') as PermissionsResponse['role'],
 				can_view: shareAccess.can_view ?? true,
 				can_edit: shareAccess.can_edit ?? false,
 				can_comment: shareAccess.can_comment ?? false,
+				updated_at: shareAccess.updated_at ?? new Date().toISOString(),
 				isOwner: false,
 			},
 			200,

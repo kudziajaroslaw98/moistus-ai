@@ -1,6 +1,9 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
-import { disconnectPartyKitUsers } from '@/helpers/partykit/admin';
+import {
+	disconnectPartyKitUsers,
+	pushPartyKitAccessRevoked,
+} from '@/helpers/partykit/admin';
 import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { z } from 'zod';
 
@@ -131,9 +134,38 @@ export const DELETE = withApiValidation<
 				);
 			}
 
-			// Request immediate PartyKit disconnect for all collaboration rooms.
+			const revokedAt = new Date().toISOString();
+			let kickSignalResult = {
+				attempted: false,
+				delivered: false,
+			};
+			let kickSignalError: string | undefined;
+
 			try {
-				await disconnectPartyKitUsers({
+				kickSignalResult = await pushPartyKitAccessRevoked({
+					mapId: shareAccess.map_id,
+					targetUserId: shareAccess.user_id,
+					reason: 'access_revoked',
+					revokedAt,
+				});
+			} catch (error) {
+				kickSignalError =
+					error instanceof Error ? error.message : 'Unknown kick signal error';
+				console.warn('[share/delete-share] Failed to push access-revoked event', {
+					mapId: shareAccess.map_id,
+					targetUserId: shareAccess.user_id,
+					error: kickSignalError,
+				});
+			}
+
+			let disconnectResult = {
+				attempted: false,
+				succeededRooms: [] as string[],
+				failedRooms: [] as string[],
+			};
+
+			try {
+				disconnectResult = await disconnectPartyKitUsers({
 					mapId: shareAccess.map_id,
 					userIds: [shareAccess.user_id],
 					reason: 'access_revoked',
@@ -165,6 +197,19 @@ export const DELETE = withApiValidation<
 					shareId: shareId,
 					userId: shareAccess.user_id,
 					mapId: shareAccess.map_id,
+					realtime: {
+						kick_signal: {
+							attempted: kickSignalResult.attempted,
+							delivered: kickSignalResult.delivered,
+							targetUserId: shareAccess.user_id,
+							...(kickSignalError ? { error: kickSignalError } : {}),
+						},
+						disconnect: {
+							attempted: disconnectResult.attempted,
+							succeededRooms: disconnectResult.succeededRooms,
+							failedRooms: disconnectResult.failedRooms,
+						},
+					},
 				},
 				200,
 				'User access removed successfully'

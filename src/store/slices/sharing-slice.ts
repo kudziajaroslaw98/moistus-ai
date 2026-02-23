@@ -1,5 +1,4 @@
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
-import { getMindMapRoomName } from '@/lib/realtime/room-names';
 import { generateFallbackAvatar } from '@/helpers/user-profile-helpers';
 import { ShareAccessWithProfile } from '@/types/share-access-with-profiles';
 import { SharedUser, ShareToken, SharingError } from '@/types/sharing-types';
@@ -54,7 +53,6 @@ export const createSharingSlice: StateCreator<
 		sharingError: undefined,
 		lastJoinResult: undefined,
 		_sharingSubscription: undefined,
-		_accessRevocationChannel: undefined,
 
 		// Upgrade state (for anonymous -> full user conversion)
 		upgradeStep: 'idle' as UpgradeStep,
@@ -863,7 +861,7 @@ export const createSharingSlice: StateCreator<
 				switch (role) {
 					case 'editor':
 						return { can_edit: true, can_comment: true, can_view: true };
-					case 'commenter':
+					case 'commentator':
 						return { can_edit: false, can_comment: true, can_view: true };
 					case 'viewer':
 					default:
@@ -881,7 +879,7 @@ export const createSharingSlice: StateCreator<
 								...share,
 								share: {
 									...share.share,
-									role: newRole as 'owner' | 'editor' | 'commenter' | 'viewer',
+									role: newRole as 'owner' | 'editor' | 'commentator' | 'viewer',
 									...newPermissions,
 								},
 							}
@@ -914,7 +912,7 @@ export const createSharingSlice: StateCreator<
 											role: previousRole as
 												| 'owner'
 												| 'editor'
-												| 'commenter'
+												| 'commentator'
 												| 'viewer',
 											...prevPermissions,
 										},
@@ -937,60 +935,14 @@ export const createSharingSlice: StateCreator<
 			}
 		},
 
-		// Fetch current user permissions from share_access (for returning collaborators)
-		fetchCurrentPermissions: async (mapId: string) => {
-			try {
-				const response = await fetch(`/api/maps/${mapId}/permissions`);
-
-				if (!response.ok) {
-					console.error('Failed to fetch permissions:', response.status);
-					return;
-				}
-
-				const result = await response.json();
-				const permissions = result.data;
-
-				if (permissions) {
-					// Update lastJoinResult with fresh permissions from share_access
-					// This allows usePermissions hook to read current permissions
-					set((state) => ({
-						lastJoinResult: {
-							...(state.lastJoinResult || {
-								map_id: mapId,
-							map_title: '',
-							user_id: '',
-							is_anonymous: false,
-							user_display_name: '',
-							realtime_room: getMindMapRoomName(mapId, 'sync'),
-							share_token_id: '',
-							join_method: 'permission_fetch',
-						}),
-							map_id: mapId,
-							permissions: {
-								role: permissions.role,
-								can_view: permissions.can_view,
-								can_edit: permissions.can_edit,
-								can_comment: permissions.can_comment,
-							},
-						},
-					}));
-				}
-			} catch (error) {
-				console.error('Error fetching current permissions:', error);
-			}
-		},
-
 		// Subscribe to real-time sharing updates
 		subscribeToSharingUpdates: (mapId: string) => {
 			try {
 				// Unsubscribe from any existing subscription
 				get().unsubscribeFromSharing();
 
-				const { authUser } = get();
-				const currentUserId = authUser?.user_id;
-
 				// Subscribe to share_tokens changes for this map
-				let channel = supabase.channel(`sharing_updates_${mapId}`).on(
+				const channel = supabase.channel(`sharing_updates_${mapId}`).on(
 					'postgres_changes',
 					{
 						event: '*',
@@ -998,40 +950,11 @@ export const createSharingSlice: StateCreator<
 						table: 'share_tokens',
 						filter: `map_id=eq.${mapId}`,
 					},
-					(payload) => {
+					() => {
 						// Refresh tokens when changes occur
 						get().refreshTokens();
 					}
 				);
-
-				// Subscribe to share_access DELETE events for the current user
-				// This triggers when the map owner removes the user's access
-				if (currentUserId) {
-					channel = channel.on(
-						'postgres_changes',
-						{
-							event: 'DELETE',
-							schema: 'public',
-							table: 'share_access',
-							filter: `user_id=eq.${currentUserId}`,
-						},
-						(payload) => {
-							const deletedRecord = payload.old as {
-								map_id?: string;
-								user_id?: string;
-							};
-
-							// Check if this deletion is for the current map
-							if (deletedRecord?.map_id === mapId) {
-								// Trigger access revoked state via core slice
-								get().setMapAccessError({
-									type: 'access_denied',
-									isAnonymous: authUser?.is_anonymous ?? true,
-								});
-							}
-						}
-					);
-				}
 
 				const subscription = channel.subscribe();
 
@@ -1051,121 +974,6 @@ export const createSharingSlice: StateCreator<
 			}
 		},
 
-		// Subscribe to access revocation events for the current user
-		// This is called on map load to enable immediate kick-out when access is revoked
-		subscribeToAccessRevocation: async (mapId: string) => {
-			try {
-				// Unsubscribe from any existing subscription
-				get().unsubscribeFromAccessRevocation();
-
-				const { authUser, currentUser, mindMap, lastJoinResult } = get();
-
-				// Get user ID from multiple sources (fallback chain for timing issues)
-				// 1. authUser - set after ensureAuthenticated()
-				// 2. lastJoinResult - set after joinRoom() completes
-				// 3. currentUser - authenticated user from core slice
-				// 4. Supabase auth session (most reliable)
-				let userId =
-					authUser?.user_id || lastJoinResult?.user_id || currentUser?.id;
-				let isAnonymous =
-					authUser?.is_anonymous ?? lastJoinResult?.is_anonymous ?? false;
-
-				// If no user ID from store, try getting from Supabase auth directly
-				if (!userId) {
-					const {
-						data: { user },
-					} = await supabase.auth.getUser();
-					if (user) {
-						userId = user.id;
-						isAnonymous = user.is_anonymous ?? false;
-					}
-				}
-
-				// Skip if no user ID available
-				if (!userId) {
-					console.warn(
-						'subscribeToAccessRevocation: No user ID available. Subscription not started.',
-						{ authUser, lastJoinResult, currentUser }
-					);
-					return;
-				}
-
-				// Skip if user is the owner (owners can't be kicked from their own maps)
-				if (mindMap?.user_id === userId) {
-					return;
-				}
-
-				// Helper to trigger access denied
-				const triggerAccessDenied = () => {
-					get().setMapAccessError({
-						type: 'access_denied',
-						isAnonymous,
-					});
-				};
-
-				// Subscribe to direct revoke broadcasts (legacy path) and share_access deletion.
-				// Room-code revoke and explicit user removal now both delete share_access rows.
-				const channel = supabase
-					.channel(`access_revocation_${mapId}_${userId}`)
-					.on(
-						'broadcast',
-						{ event: 'access_revoked' },
-						(payload: {
-							payload?: { id?: number; map_id?: string; user_id?: string };
-						}) => {
-							if (payload.payload?.map_id === mapId) {
-								triggerAccessDenied();
-							}
-						}
-					)
-					.on(
-						'postgres_changes',
-						{
-							event: 'DELETE',
-							schema: 'public',
-							table: 'share_access',
-							filter: `user_id=eq.${userId}`,
-						},
-						(payload) => {
-							const deletedRecord = payload.old as {
-								map_id?: string;
-								user_id?: string;
-							};
-
-							if (deletedRecord?.map_id === mapId) {
-								triggerAccessDenied();
-							}
-						}
-					)
-					.subscribe((status, err) => {
-						if (status === 'CHANNEL_ERROR') {
-							console.error(
-								`Access revocation subscription FAILED for map ${mapId}:`,
-								err
-							);
-						} else if (status === 'TIMED_OUT') {
-							console.error(
-								`Access revocation subscription TIMED OUT for map ${mapId}`
-							);
-						}
-					});
-
-				set({ _accessRevocationChannel: channel });
-			} catch (error) {
-				console.error('Failed to subscribe to access revocation:', error);
-			}
-		},
-
-		// Unsubscribe from access revocation events
-		unsubscribeFromAccessRevocation: () => {
-			const state = get();
-
-			if (state._accessRevocationChannel) {
-				supabase.removeChannel(state._accessRevocationChannel);
-				set({ _accessRevocationChannel: undefined });
-			}
-		},
-
 		// Clear current error
 		clearError: () => {
 			set({ sharingError: undefined });
@@ -1175,7 +983,6 @@ export const createSharingSlice: StateCreator<
 		reset: () => {
 			// Clean up subscriptions before resetting state
 			get().unsubscribeFromSharing();
-			get().unsubscribeFromAccessRevocation();
 
 			set({
 				shareTokens: [],
@@ -1186,7 +993,6 @@ export const createSharingSlice: StateCreator<
 				sharingError: undefined,
 				lastJoinResult: undefined,
 				_sharingSubscription: undefined,
-				_accessRevocationChannel: undefined,
 				// Reset upgrade state
 				upgradeStep: 'idle',
 				upgradeEmail: null,

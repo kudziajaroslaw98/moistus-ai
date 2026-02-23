@@ -18,5 +18,8 @@ describe('getMindMapRoomName', () => {
 		expect(getMindMapRoomName(mapId, 'selected-nodes')).toBe(
 			`mind-map:${mapId}:selected-nodes`
 		);
+		expect(getMindMapRoomName(mapId, 'permissions')).toBe(
+			`mind-map:${mapId}:permissions`
+		);
 	});
 });

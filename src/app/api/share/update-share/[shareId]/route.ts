@@ -1,12 +1,15 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
-import { disconnectPartyKitUsers } from '@/helpers/partykit/admin';
+import {
+	disconnectPartyKitUsers,
+	pushPartyKitPermissionUpdate,
+} from '@/helpers/partykit/admin';
 import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { ShareRole } from '@/types/sharing-types';
 import { z } from 'zod';
 
 const updateShareBodySchema = z.object({
-	role: z.enum(['viewer', 'commenter', 'editor']),
+	role: z.enum(['viewer', 'commentator', 'editor']),
 });
 
 type UpdateShareBody = z.infer<typeof updateShareBodySchema>;
@@ -18,7 +21,7 @@ type UpdateShareBody = z.infer<typeof updateShareBodySchema>;
  * Authorization: Only the map owner can update share access records.
  *
  * @param shareId - The share_access record ID (numeric, passed as string in URL)
- * @body role - New role: 'viewer' | 'commenter' | 'editor'
+ * @body role - New role: 'viewer' | 'commentator' | 'editor'
  */
 export const PATCH = withApiValidation<
 	UpdateShareBody,
@@ -141,17 +144,81 @@ export const PATCH = withApiValidation<
 			);
 		}
 
-		// Force reconnect so PartyKit applies updated permissions immediately.
+		let permissionPushResult = {
+			attempted: false,
+			delivered: false,
+		};
+		let permissionPushErrorMessage: string | undefined;
+
+		// Push user-targeted permission event before reconnecting transport rooms.
 		try {
-			await disconnectPartyKitUsers({
+			permissionPushResult = await pushPartyKitPermissionUpdate({
+				mapId: updatedShare.map_id,
+				targetUserId: updatedShare.user_id,
+				role: updatedShare.role as ShareRole,
+				can_view: Boolean(updatedShare.can_view),
+				can_comment: Boolean(updatedShare.can_comment),
+				can_edit: Boolean(updatedShare.can_edit),
+				updatedAt: updatedShare.updated_at ?? new Date().toISOString(),
+			});
+
+			if (permissionPushResult.attempted && !permissionPushResult.delivered) {
+				console.warn(
+					'[share/update-share] Permission push attempted but not delivered',
+					{
+						mapId: updatedShare.map_id,
+						targetUserId: updatedShare.user_id,
+					}
+				);
+			}
+		} catch (permissionPushError) {
+			permissionPushErrorMessage = toErrorMessage(permissionPushError);
+			console.warn(
+				'[share/update-share] Permission push failed after DB update',
+				{
+					mapId: updatedShare.map_id,
+					targetUserId: updatedShare.user_id,
+					error: permissionPushErrorMessage,
+				}
+			);
+		}
+
+		let disconnectResult = {
+			attempted: false,
+			succeededRooms: [] as string[],
+			failedRooms: [] as string[],
+		};
+
+		// Force reconnect so PartyKit applies updated room-mode permissions immediately.
+		try {
+			disconnectResult = await disconnectPartyKitUsers({
 				mapId: updatedShare.map_id,
 				userIds: [updatedShare.user_id],
-				reason: 'access_revoked',
+				reason: 'permissions_updated',
 			});
+
+			if (
+				disconnectResult.attempted &&
+				disconnectResult.failedRooms.length > 0
+			) {
+				console.warn(
+					'[share/update-share] PartyKit disconnect degraded after role update',
+					{
+						mapId: updatedShare.map_id,
+						targetUserId: updatedShare.user_id,
+						failedRooms: disconnectResult.failedRooms,
+						succeededRooms: disconnectResult.succeededRooms,
+					}
+				);
+			}
 		} catch (disconnectError) {
-			console.error(
-				'Failed to request PartyKit disconnect after role update:',
-				disconnectError
+			console.warn(
+				'[share/update-share] PartyKit disconnect request failed after role update',
+				{
+					mapId: updatedShare.map_id,
+					targetUserId: updatedShare.user_id,
+					error: toErrorMessage(disconnectError),
+				}
 			);
 		}
 
@@ -165,6 +232,20 @@ export const PATCH = withApiValidation<
 				can_comment: updatedShare.can_comment,
 				can_view: updatedShare.can_view,
 				updated_at: updatedShare.updated_at,
+				realtime: {
+					permission_push: {
+						attempted: permissionPushResult.attempted,
+						delivered: permissionPushResult.delivered,
+						...(permissionPushErrorMessage
+							? { error: permissionPushErrorMessage }
+							: {}),
+					},
+					disconnect: {
+						attempted: disconnectResult.attempted,
+						succeededRooms: disconnectResult.succeededRooms,
+						failedRooms: disconnectResult.failedRooms,
+					},
+				},
 			},
 			200,
 			'User permissions updated successfully'
@@ -186,10 +267,14 @@ function getRolePermissions(role: ShareRole): {
 	switch (role) {
 		case 'editor':
 			return { can_edit: true, can_comment: true, can_view: true };
-		case 'commenter':
+		case 'commentator':
 			return { can_edit: false, can_comment: true, can_view: true };
 		case 'viewer':
 		default:
 			return { can_edit: false, can_comment: false, can_view: true };
 	}
+}
+
+function toErrorMessage(error: unknown): string {
+	return error instanceof Error ? error.message : 'Unknown error';
 }

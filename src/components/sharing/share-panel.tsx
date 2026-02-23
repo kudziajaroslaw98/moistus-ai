@@ -38,7 +38,7 @@ import { RoomCodeDisplay } from './room-code-display';
 
 const createShareSchema = z.object({
 	email: z.string().email('Please enter a valid email address'),
-	role: z.enum(['editor', 'commenter', 'viewer', 'owner']),
+	role: z.enum(['editor', 'commentator', 'viewer', 'owner']),
 	message: z.string().optional(),
 });
 
@@ -324,10 +324,10 @@ export function SharePanel({
 															</div>
 														</SelectItem>
 
-														<SelectItem value='commenter'>
+														<SelectItem value='commentator'>
 															<div className='flex items-center gap-2'>
 																<Shield className='h-3.5 w-3.5' />
-																<span>Commenter - Can view and comment</span>
+																<span>Commentator - Can view and comment</span>
 															</div>
 														</SelectItem>
 
@@ -560,8 +560,8 @@ export function SharePanel({
 														<SelectContent>
 															<SelectItem value='viewer'>Viewer</SelectItem>
 
-															<SelectItem value='commenter'>
-																Commenter
+															<SelectItem value='commentator'>
+																Commentator
 															</SelectItem>
 
 															<SelectItem value='editor'>Editor</SelectItem>

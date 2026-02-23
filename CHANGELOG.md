@@ -5,11 +5,26 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-02-23 - PartyKit/Yjs realtime migration -->
+<!-- Updated: 2026-02-24 - Permission race fix and commentator terminology cleanup -->
+
+## [2026-02-24]
+
+### Fixed
+
+- **store/permissions-slice**: Guarded async permission fetch writes against stale `mapId` responses
+  - Why: Prevents fast map switching from overwriting active-map permissions with late responses
+- **helpers/partykit/admin**: Continued endpoint fallback after thrown fetch errors
+  - Why: A transient failure on one endpoint variant should not block other working admin routes
+
+### Changed
+
+- **terminology/roles**: Renamed remaining `commenter` references to `commentator` in E2E tests, page objects, and docs
+  - Why: Keep role naming consistent across API, UI, tests, and documentation
 
 ## [2026-02-23]
 
 ### Added
+
 - **realtime/partykit**: PartyKit server with JWT authentication, Yjs CRDT document management, and database projection
 - **realtime/yjs-provider**: Client-side Yjs provider with ref-counted room contexts, awareness support, and PartyKit WebSocket transport
 - **realtime/graph-sync**: Serialization utilities for nodes/edges between React Flow, Yjs, and database representations
@@ -21,6 +36,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **tests**: Unit tests for broadcast-channel, graph-sync, partykit-auth, room-names, debounce-per-key, system-update-one-shot
 
 ### Changed
+
 - **realtime/broadcast-channel**: Rewritten as Yjs adapter maintaining Supabase RealtimeChannel API compatibility
 - **store/nodes-slice**: Integrated Yjs graph sync — optimistic updates, broadcasts, and debounced DB saves flow through Yjs provider
 - **store/edges-slice**: Integrated Yjs graph sync with coordinated edge + parent node updates
@@ -35,6 +51,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **components/top-bar**: Yjs connection status indicator
 
 ### Fixed
+
 - **security/partykit**: Timing-safe admin token comparison via HMAC (Web Crypto pattern for CF Workers)
 - **security/room-names**: Tightened UUID regex validation, added `isSafeRoomSegment()` rejecting null bytes and path traversal
 - **security/error-responses**: Sanitized error responses across share routes — internal error messages no longer leak to clients
@@ -46,6 +63,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **store/edges-slice**: Replaced unsafe `JSON.parse(dbEdge.animated)` with `safeParseBooleanish()` helper
 
 ### Refactored
+
 - **realtime/graph-sync**: Exported `toPgReal`, removed local copies from nodes-slice and layout-slice
 - **realtime/dead-code**: Removed always-true `isYjsGraphSyncEnabled()` function and all conditional branches across 5 files
 - **realtime/broadcast-channel**: Replaced 90-line `toBroadcastEnvelopeFromGraphMutation` with lookup map (~20 lines)
@@ -746,7 +764,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - New routes: `/api/webhooks/polar` (replaced `/api/webhooks/dodo`)
   - New helper: `/src/lib/polar.ts` (replaced `/src/helpers/dodo/client.ts`)
   - Updated: checkout, cancel, reactivate, portal, invoice routes
-  - Database migration: Replaced dodo*\*/stripe*_ columns with polar\__ columns
+  - Database migration: Replaced dodo*\*/stripe*\_ columns with polar\_\_ columns
   - Added packages: `@polar-sh/sdk`, `standardwebhooks`
   - Removed packages: `dodopayments`, `@dodopayments/nextjs`
   - Cleans up Stripe columns (technical debt item resolved)
@@ -938,13 +956,13 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ### Added
 
 - **E2E test gap documentation**: Created `e2e/E2E_TEST_GAPS.md` tracking missing permission tests
-  - Documents 10 missing tests for viewer/commenter AI Chat and comment restrictions
+  - Documents 10 missing tests for viewer/commentator AI Chat and comment restrictions
   - Includes implementation prerequisites (page objects needed)
   - Why: Ensure we don't forget to implement remaining permission boundary tests
 
 - **E2E placeholder tests**: Added 9 skipped `.skip` placeholder tests to `permissions.spec.ts`
   - Viewer: 3 skipped (Comments hidden, AI Chat hidden, view comment threads)
-  - Commenter: 6 skipped (open panel, add comment, reply, reactions, delete restriction, AI Chat)
+  - Commentator: 6 skipped (open panel, add comment, reply, reactions, delete restriction, AI Chat)
   - Why: Document expected test coverage inline with actual tests
 
 ### Docs
@@ -1010,7 +1028,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **e2e testing**: Comprehensive sharing permission E2E tests (35 tests)
   - Test viewer role restrictions (15 tests): toolbar hidden, no drag/edit/delete
   - Test editor role functionality (8 tests): full edit access verification
-  - Test commenter role restrictions (6 tests): view + comment only
+  - Test commentator role restrictions (6 tests): view + comment only
   - Test real-time sync (3 tests): changes visible without refresh
   - Test access revocation (3 tests): kicked when owner revokes access
   - Create ToolbarPage, ContextMenuPage page objects

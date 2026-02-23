@@ -52,6 +52,8 @@ type AwarenessLike = {
 type ProviderLike = {
 	destroy: () => void;
 	awareness: AwarenessLike;
+	connect?: () => void;
+	disconnect?: () => void;
 };
 
 type RoomContext = {
@@ -66,6 +68,12 @@ type RoomContext = {
 };
 
 const roomContexts = new Map<string, RoomContext>();
+const RECONNECTABLE_MAP_CHANNELS = [
+	'sync',
+	'cursor',
+	'presence',
+	'selected-nodes',
+] as const;
 
 const GRAPH_EVENT_MAP: Record<string, GraphEventMapping> = {
 	'node:create': { entity: 'node', action: 'add' },
@@ -629,4 +637,49 @@ export function cleanupAllYjsRooms(): void {
 		context.provider.destroy();
 		context.doc.destroy();
 	}
+}
+
+export function reconnectYjsRoom(roomName: string): boolean {
+	const context = roomContexts.get(roomName);
+	if (!context) return false;
+
+	const disconnect = context.provider.disconnect;
+	const connect = context.provider.connect;
+	if (typeof disconnect !== 'function' || typeof connect !== 'function') {
+		console.warn('[yjs-provider] Provider does not support reconnect', {
+			roomName,
+		});
+		return false;
+	}
+
+	try {
+		disconnect.call(context.provider);
+		connect.call(context.provider);
+		return true;
+	} catch (error) {
+		console.warn('[yjs-provider] Failed to reconnect room', {
+			roomName,
+			error: error instanceof Error ? error.message : 'Unknown reconnect error',
+		});
+		return false;
+	}
+}
+
+export function reconnectYjsRoomsForMap(mapId: string): string[] {
+	const reconnectedRooms: string[] = [];
+	for (const channel of RECONNECTABLE_MAP_CHANNELS) {
+		const roomName = getMindMapRoomName(mapId, channel);
+		if (reconnectYjsRoom(roomName)) {
+			reconnectedRooms.push(roomName);
+		}
+	}
+
+	if (reconnectedRooms.length > 0) {
+		console.info('[yjs-provider] Reconnected map rooms after permission change', {
+			mapId,
+			reconnectedRooms,
+		});
+	}
+
+	return reconnectedRooms;
 }
