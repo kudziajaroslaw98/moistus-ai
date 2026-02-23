@@ -5,6 +5,55 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+<!-- Updated: 2026-02-23 - PartyKit/Yjs realtime migration -->
+
+## [2026-02-23]
+
+### Added
+- **realtime/partykit**: PartyKit server with JWT authentication, Yjs CRDT document management, and database projection
+- **realtime/yjs-provider**: Client-side Yjs provider with ref-counted room contexts, awareness support, and PartyKit WebSocket transport
+- **realtime/graph-sync**: Serialization utilities for nodes/edges between React Flow, Yjs, and database representations
+- **realtime/room-names**: Room naming convention supporting four channels per mind map (graph, comments, selected-nodes, presence)
+- **realtime/util**: Shared `asNonEmptyString()` and `stableStringify()` helpers extracted from duplicated implementations
+- **helpers/partykit/admin**: Server-side admin helper for forcibly disconnecting users from realtime rooms on access revocation
+- **utils/debounce-per-key**: Per-key debounce utility for batching node/edge save operations
+- **store/ui-slice**: Block node editor from opening on comment, group, and ghost node types
+- **tests**: Unit tests for broadcast-channel, graph-sync, partykit-auth, room-names, debounce-per-key, system-update-one-shot
+
+### Changed
+- **realtime/broadcast-channel**: Rewritten as Yjs adapter maintaining Supabase RealtimeChannel API compatibility
+- **store/nodes-slice**: Integrated Yjs graph sync — optimistic updates, broadcasts, and debounced DB saves flow through Yjs provider
+- **store/edges-slice**: Integrated Yjs graph sync with coordinated edge + parent node updates
+- **store/history-slice**: Database-backed undo/redo with Yjs state replacement via `replaceGraphState`
+- **store/comments-slice**: Yjs-aware comment sync with system update tracking
+- **store/sharing-slice**: Yjs lifecycle management on share state changes
+- **store/layout-slice**: Batch layout updates propagated through Yjs in single transaction
+- **api/history/revert**: Added Zod schema validation for body parameters with UUID format enforcement
+- **api/share routes**: Integrated PartyKit admin disconnect on access revocation (delete-share, update-share, revoke-room-code)
+- **components/mind-map-canvas**: Yjs lifecycle hooks for room setup/teardown
+- **components/react-flow-area**: Yjs-aware drag end and node change handlers
+- **components/top-bar**: Yjs connection status indicator
+
+### Fixed
+- **security/partykit**: Timing-safe admin token comparison via HMAC (Web Crypto pattern for CF Workers)
+- **security/room-names**: Tightened UUID regex validation, added `isSafeRoomSegment()` rejecting null bytes and path traversal
+- **security/error-responses**: Sanitized error responses across share routes — internal error messages no longer leak to clients
+- **realtime/broadcast-send**: Fixed race condition where `send()` could execute before channel setup completed
+- **realtime/yjs-provider**: Fixed mutation-during-iteration bug in `cleanupAllYjsRooms`
+- **realtime/yjs-provider**: Added sync_events pruning (max 200 entries) preventing unbounded Y.Array growth
+- **realtime/comparison**: Replaced `JSON.stringify` with key-order-stable `stableStringify` for deterministic object comparison
+- **store/edges-slice**: Fixed typo `"Cannot save dge"` → `"Cannot save edge"`
+- **store/edges-slice**: Replaced unsafe `JSON.parse(dbEdge.animated)` with `safeParseBooleanish()` helper
+
+### Refactored
+- **realtime/graph-sync**: Exported `toPgReal`, removed local copies from nodes-slice and layout-slice
+- **realtime/dead-code**: Removed always-true `isYjsGraphSyncEnabled()` function and all conditional branches across 5 files
+- **realtime/broadcast-channel**: Replaced 90-line `toBroadcastEnvelopeFromGraphMutation` with lookup map (~20 lines)
+- **store/history-slice**: Extracted `syncRevertedState()` helper deduplicating snapshot and event revert paths
+- **store/slices**: Renamed `toComparableRecord` → `toComparableNodeRecord`/`toComparableEdgeRecord` for clarity
+
+---
+
 <!-- Updated: 2026-02-22 - Mobile toolbar + tap multi-select + grouping context menu fixes -->
 
 ## [2026-02-22]
