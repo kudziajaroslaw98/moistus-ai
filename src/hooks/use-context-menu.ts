@@ -34,14 +34,11 @@ export function useContextMenu(): UseContextMenuResult {
 		activeTool,
 		setActiveTool,
 		addNode,
-		addEdge,
+		deleteNodes,
 		isCommentMode,
 		createComment,
 		mapId,
-		supabase,
 		currentUser,
-		nodes,
-		setNodes,
 	} = useAppStore(
 		useShallow((state) => ({
 			reactFlowInstance: state.reactFlowInstance,
@@ -52,14 +49,11 @@ export function useContextMenu(): UseContextMenuResult {
 			activeTool: state.activeTool,
 			setActiveTool: state.setActiveTool,
 			addNode: state.addNode,
-			addEdge: state.addEdge,
+			deleteNodes: state.deleteNodes,
 			isCommentMode: state.isCommentMode,
 			createComment: state.createComment,
 			mapId: state.mapId,
-			supabase: state.supabase,
 			currentUser: state.currentUser,
-			nodes: state.nodes,
-			setNodes: state.setNodes,
 		}))
 	);
 
@@ -156,61 +150,58 @@ export function useContextMenu(): UseContextMenuResult {
 			const isDoubleClick = currentTime - lastClickTime.current < DOUBLE_CLICK_DELAY;
 			lastClickTime.current = currentTime;
 
-			// Comment Mode: Only create comment on double-click
-			if (isCommentMode) {
-				if (isDoubleClick && position && mapId && currentUser) {
-					try {
-						// Generate shared ID for both node and comment
-						const commentId = generateUuid();
+				// Comment Mode: Only create comment on double-click
+				if (isCommentMode) {
+					if (isDoubleClick && position && mapId && currentUser) {
+						try {
+							// Generate shared ID for both node and comment
+							const commentId = generateUuid();
 
-						// 1. Create node in nodes table
-						const nodeData = {
-							id: commentId,
-							user_id: currentUser.id,
-							map_id: mapId,
-							content: '', // Comments don't use node content
-							position_x: position.x,
-							position_y: position.y,
-							width: 400,
-							height: 500,
-							node_type: 'commentNode' as const,
-							metadata: {},
-							aiData: {},
-						};
+							// Create comment node through graph-aware store action
+							await addNode({
+								parentNode: null,
+								content: '',
+								nodeType: 'commentNode',
+								position,
+								nodeId: commentId,
+								data: {
+									width: 400,
+									height: 500,
+									metadata: {},
+									aiData: {},
+								},
+							});
 
-						const { error: nodeError } = await supabase
-							.from('nodes')
-							.insert([nodeData]);
+							const createdNode = useAppStore
+								.getState()
+								.nodes.some((node) => node.id === commentId);
 
-						if (nodeError) {
-							console.error('Failed to create comment node:', nodeError);
-							return;
-						}
+							if (!createdNode) {
+								return;
+							}
 
-						// 2. Create comment in comments table
-						const { error: commentError } = await supabase
-							.from('comments')
-							.insert([{
+							// Create aligned comment record using same ID
+							const savedComment = await createComment({
 								id: commentId,
 								map_id: mapId,
 								position_x: position.x,
 								position_y: position.y,
 								width: 400,
 								height: 500,
-								created_by: currentUser.id,
-							}]);
+							});
 
-						if (commentError) {
-							console.error('Failed to create comment:', commentError);
-							// Clean up the node if comment creation failed
-							await supabase.from('nodes').delete().eq('id', commentId);
-							return;
+							// Roll back node if comment record creation fails
+							if (!savedComment) {
+								const rollbackNode = useAppStore
+									.getState()
+									.nodes.find((node) => node.id === commentId);
+								if (rollbackNode) {
+									await deleteNodes([rollbackNode]);
+								}
+							}
+						} catch (error) {
+							console.error('Failed to create comment:', error);
 						}
-
-						// Note: Real-time events will handle adding to state arrays automatically
-					} catch (error) {
-						console.error('Failed to create comment:', error);
-					}
 				}
 				// In comment mode, don't close context menu or handle other tools
 				return;
@@ -240,9 +231,20 @@ export function useContextMenu(): UseContextMenuResult {
 			}
 
 			closeContextMenu();
-		},
-		[closeContextMenu, activeTool, isCommentMode, mapId, currentUser, reactFlowInstance, supabase, setActiveTool, addNode]
-	);
+			},
+			[
+				closeContextMenu,
+				activeTool,
+				isCommentMode,
+				mapId,
+				currentUser,
+				reactFlowInstance,
+				setActiveTool,
+				addNode,
+				createComment,
+				deleteNodes,
+			]
+		);
 
 	return {
 		contextMenuState,

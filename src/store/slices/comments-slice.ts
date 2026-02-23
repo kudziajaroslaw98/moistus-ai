@@ -115,7 +115,7 @@ export const createCommentsSlice: StateCreator<
 		}
 
 		try {
-			const commentId = generateUuid();
+			const commentId = data.id ?? generateUuid();
 			const now = new Date().toISOString();
 
 			// Optimistic update
@@ -265,7 +265,8 @@ export const createCommentsSlice: StateCreator<
 	},
 
 	deleteComment: async (commentId: string) => {
-		const { supabase } = get();
+		const { supabase, nodes, deleteNodes } = get();
+		const pairedNode = nodes.find((node) => node.id === commentId);
 
 		try {
 			// Optimistic update
@@ -284,6 +285,10 @@ export const createCommentsSlice: StateCreator<
 				.eq('id', commentId);
 
 			if (error) throw error;
+
+			if (pairedNode) {
+				await deleteNodes([pairedNode]);
+			}
 		} catch (error) {
 			console.error('Error deleting comment:', error);
 			set({

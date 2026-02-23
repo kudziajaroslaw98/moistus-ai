@@ -1,4 +1,5 @@
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
+import { getMindMapRoomName } from '@/lib/realtime/room-names';
 import { generateFallbackAvatar } from '@/helpers/user-profile-helpers';
 import { ShareAccessWithProfile } from '@/types/share-access-with-profiles';
 import { SharedUser, ShareToken, SharingError } from '@/types/sharing-types';
@@ -23,7 +24,7 @@ export interface JoinRoomResult {
 	is_anonymous: boolean;
 	user_display_name: string;
 	user_avatar?: string;
-	websocket_channel: string;
+	realtime_room: string;
 	share_token_id: string;
 	join_method: string;
 }
@@ -496,7 +497,11 @@ export const createSharingSlice: StateCreator<
 		 * Password and displayName are collected before this step and stored in state
 		 */
 		verifyUpgradeOtp: async (otp: string) => {
-			const { upgradeEmail: email, upgradePendingPassword: password, upgradeDisplayName: displayName } = get();
+			const {
+				upgradeEmail: email,
+				upgradePendingPassword: password,
+				upgradeDisplayName: displayName,
+			} = get();
 
 			if (!email) {
 				set({
@@ -952,14 +957,14 @@ export const createSharingSlice: StateCreator<
 						lastJoinResult: {
 							...(state.lastJoinResult || {
 								map_id: mapId,
-								map_title: '',
-								user_id: '',
-								is_anonymous: false,
-								user_display_name: '',
-								websocket_channel: '',
-								share_token_id: '',
-								join_method: 'permission_fetch',
-							}),
+							map_title: '',
+							user_id: '',
+							is_anonymous: false,
+							user_display_name: '',
+							realtime_room: getMindMapRoomName(mapId, 'sync'),
+							share_token_id: '',
+							join_method: 'permission_fetch',
+						}),
 							map_id: mapId,
 							permissions: {
 								role: permissions.role,
@@ -985,21 +990,19 @@ export const createSharingSlice: StateCreator<
 				const currentUserId = authUser?.user_id;
 
 				// Subscribe to share_tokens changes for this map
-				let channel = supabase
-					.channel(`sharing_updates_${mapId}`)
-					.on(
-						'postgres_changes',
-						{
-							event: '*',
-							schema: 'public',
-							table: 'share_tokens',
-							filter: `map_id=eq.${mapId}`,
-						},
-						(payload) => {
-							// Refresh tokens when changes occur
-							get().refreshTokens();
-						}
-					);
+				let channel = supabase.channel(`sharing_updates_${mapId}`).on(
+					'postgres_changes',
+					{
+						event: '*',
+						schema: 'public',
+						table: 'share_tokens',
+						filter: `map_id=eq.${mapId}`,
+					},
+					(payload) => {
+						// Refresh tokens when changes occur
+						get().refreshTokens();
+					}
+				);
 
 				// Subscribe to share_access DELETE events for the current user
 				// This triggers when the map owner removes the user's access
@@ -1100,7 +1103,8 @@ export const createSharingSlice: StateCreator<
 					});
 				};
 
-				// Subscribe to broadcast (individual user removal) and UPDATE (room code revocation)
+				// Subscribe to direct revoke broadcasts (legacy path) and share_access deletion.
+				// Room-code revoke and explicit user removal now both delete share_access rows.
 				const channel = supabase
 					.channel(`access_revocation_${mapId}_${userId}`)
 					.on(
@@ -1117,24 +1121,18 @@ export const createSharingSlice: StateCreator<
 					.on(
 						'postgres_changes',
 						{
-							event: 'UPDATE',
+							event: 'DELETE',
 							schema: 'public',
 							table: 'share_access',
 							filter: `user_id=eq.${userId}`,
 						},
 						(payload) => {
-							const updatedRecord = payload.new as {
+							const deletedRecord = payload.old as {
 								map_id?: string;
 								user_id?: string;
-								status?: string;
 							};
 
-							// Check if status changed to 'inactive' for the current map
-							// This happens when owner revokes the room code
-							if (
-								updatedRecord?.map_id === mapId &&
-								updatedRecord?.status === 'inactive'
-							) {
+							if (deletedRecord?.map_id === mapId) {
 								triggerAccessDenied();
 							}
 						}

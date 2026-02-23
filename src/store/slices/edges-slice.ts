@@ -9,13 +9,32 @@ import {
 	subscribeToSyncEvents,
 	type EdgeBroadcastPayload,
 } from '@/lib/realtime/broadcast-channel';
+import {
+	getEdgeActorId,
+	getNodeActorId,
+	serializeEdgeForRealtime,
+	serializeNodeForRealtime,
+} from '@/lib/realtime/graph-sync';
+import { stableStringify } from '@/lib/realtime/util';
 import type { AppEdge } from '@/types/app-edge';
+import type { AppNode } from '@/types/app-node';
 import type { EdgeData } from '@/types/edge-data';
 import { debouncePerKey } from '@/utils/debounce-per-key';
 import { applyEdgeChanges } from '@xyflow/react';
 import { toast } from 'sonner';
 import type { StateCreator } from 'zustand';
 import type { AppState, EdgesSlice } from '../app-state';
+
+/** Safely parses a value that may be boolean, string "true"/"false", or undefined. */
+function safeParseBooleanish(value: unknown): boolean {
+	if (typeof value === 'boolean') return value;
+	if (typeof value === 'string') {
+		const trimmed = value.trim().toLowerCase();
+		if (trimmed === 'true') return true;
+		if (trimmed === 'false') return false;
+	}
+	return false;
+}
 
 // Utility function to determine edge type based on data
 const getEdgeType = (edgeData: Partial<EdgeData>): string => {
@@ -33,6 +52,93 @@ const getEdgeType = (edgeData: Partial<EdgeData>): string => {
 
 	return 'floatingEdge';
 };
+
+function toComparableEdgeRecord(
+	record: Record<string, unknown>
+): Record<string, unknown> {
+	const comparable = { ...record };
+	delete comparable.updated_at;
+	delete comparable.created_at;
+	return comparable;
+}
+
+function normalizeEdgeForComparison(edge: AppEdge): Record<string, unknown> {
+	const data = (edge.data ?? {}) as Record<string, unknown>;
+
+	return {
+		source: edge.source,
+		target: edge.target,
+		type: edge.type ?? data.type ?? null,
+		label: edge.label ?? data.label ?? null,
+		animated: edge.animated ?? data.animated ?? false,
+		markerEnd: edge.markerEnd ?? data.markerEnd ?? null,
+		markerStart: edge.markerStart ?? data.markerStart ?? null,
+		style:
+			(edge.style as unknown as Record<string, unknown> | undefined) ??
+			(data.style as Record<string, unknown> | undefined) ??
+			null,
+		metadata: data.metadata ?? null,
+		aiData: data.aiData ?? null,
+		data: toComparableEdgeRecord(data),
+	};
+}
+
+function hasMeaningfulEdgeDifference(previous: AppEdge, next: AppEdge): boolean {
+	return (
+		stableStringify(normalizeEdgeForComparison(previous)) !==
+		stableStringify(normalizeEdgeForComparison(next))
+	);
+}
+
+function withNodeParent(node: AppNode, parentId: string | null): AppNode {
+	return {
+		...node,
+		parentId: parentId ?? undefined,
+		data: {
+			...node.data,
+			parent_id: parentId,
+		},
+	};
+}
+
+function recalculateParentsAfterEdgeDelete(
+	nodes: AppNode[],
+	edges: AppEdge[],
+	deleteIds: Set<string>
+): { updatedNodes: AppNode[]; changedNodes: AppNode[] } {
+	const nodesWithDeletedIncoming = new Set<string>();
+	const remainingIncomingParentByTarget = new Map<string, string>();
+
+	for (const edge of edges) {
+		if (deleteIds.has(edge.id)) {
+			nodesWithDeletedIncoming.add(edge.target);
+			continue;
+		}
+
+		if (!remainingIncomingParentByTarget.has(edge.target)) {
+			remainingIncomingParentByTarget.set(edge.target, edge.source);
+		}
+	}
+
+	const changedNodes: AppNode[] = [];
+	const updatedNodes = nodes.map((node) => {
+		if (!nodesWithDeletedIncoming.has(node.id)) {
+			return node;
+		}
+
+		const nextParentId = remainingIncomingParentByTarget.get(node.id) ?? null;
+		const prevParentId = node.parentId ?? node.data.parent_id ?? null;
+		if (prevParentId === nextParentId) {
+			return node;
+		}
+
+		const updatedNode = withNodeParent(node, nextParentId);
+		changedNodes.push(updatedNode);
+		return updatedNode;
+	});
+
+	return { updatedNodes, changedNodes };
+}
 
 export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 	set,
@@ -124,6 +230,95 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 		set({ edges: filteredEdges });
 	};
 
+	const triggerEdgeSaveDebounced = debouncePerKey(
+		async (edgeId: string) => {
+			const { edges, supabase, mapId } = get();
+			const edge = edges.find((e) => e.id === edgeId);
+
+			if (!edge || !edge.data) {
+				console.error(`Edge with id ${edgeId} not found or has invalid data`);
+				throw new Error(`Edge with id ${edgeId} not found or has invalid data`);
+			}
+
+			if (!mapId) {
+				console.error('Cannot save edge: No mapId defined');
+				throw new Error('Cannot save edge: No mapId defined');
+			}
+
+			const user_id = (await supabase.auth.getUser()).data.user?.id;
+
+			if (!user_id) {
+				throw new Error('Not authenticated');
+			}
+
+			const defaultEdge: Partial<EdgeData> = defaultEdgeData();
+
+			// Keep stable creator identity on updates.
+			const stableUserId =
+				typeof edge.data?.user_id === 'string' &&
+				edge.data.user_id.trim().length > 0
+					? edge.data.user_id
+					: user_id;
+			const edgeData: EdgeData = {
+				...defaultEdge,
+				...edge.data,
+				user_id: stableUserId,
+				id: edgeId,
+				map_id: mapId,
+				source: edge.source || '',
+				target: edge.target || '',
+				updated_at: new Date().toISOString(),
+				animated: edge.data?.animated || defaultEdge.animated,
+				metadata: {
+					...defaultEdge.metadata!,
+					...edge.data?.metadata,
+				},
+				aiData: {
+					...defaultEdge.aiData,
+					...edge.data?.aiData,
+				},
+				style: {
+					...defaultEdge.style!,
+					...edge.data?.style,
+				},
+			};
+
+			// Save edge data to Supabase
+			const { data: dbEdge, error } = await supabase
+				.from('edges')
+				.update(edgeData)
+				.eq('id', edgeId)
+				.select()
+				.single();
+
+			if (error) {
+				console.error('Error saving edge:', error);
+				throw new Error('Failed to save edge changes');
+			}
+
+			const finalEdges = edges.map((edge) => {
+				if (edge.id === edgeId) {
+					return {
+						...edge,
+						data: mergeEdgeData(edge.data ?? {}, dbEdge),
+						animated: safeParseBooleanish(dbEdge.animated),
+						style: dbEdge.style,
+					};
+				}
+
+				return edge;
+			}) as AppEdge[];
+
+			set({
+				edges: finalEdges,
+			});
+
+			// Note: History delta already persisted by callers before debounced save.
+		},
+		STORE_SAVE_DEBOUNCE_MS,
+		(edgeId: string) => edgeId
+	);
+
 	return {
 		// state
 		edges: [],
@@ -144,28 +339,28 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 			const timestamp = get().systemUpdatedEdges.get(edgeId);
 			if (!timestamp) return false;
 
-			// Skip if marked within last 3 seconds
+			// Pure check: remote/system markers are valid only for a short window.
 			const age = Date.now() - timestamp;
-			if (age > 3000) {
-				// Clean up stale entry
-				const newMap = new Map(get().systemUpdatedEdges);
-				newMap.delete(edgeId);
-				set({ systemUpdatedEdges: newMap });
-				return false;
-			}
-
-			if (!get().isReverting && !get().isLayouting) {
-				return false;
-			}
-
-			return true;
+			return age <= 3000;
 		},
 
 		// handlers
 		onEdgesChange: (changes) => {
+			const { mapId, currentUser } = get();
+			const previousNodes = get().nodes;
+			const previousEdges = get().edges;
+			const previousEdgeById = new Map(
+				previousEdges.map((edge) => [edge.id, edge])
+			);
 			// Apply changes as before
-			const updatedEdges = applyEdgeChanges(changes, get().edges);
+			const updatedEdges = applyEdgeChanges(changes, previousEdges);
 			set({ edges: updatedEdges });
+			const updatedEdgeById = new Map(
+				updatedEdges.map((edge) => [edge.id, edge])
+			);
+			const edgesToPersist = new Set<string>();
+			const consumedSystemEdgeIds = new Set<string>();
+			const updatedEdgeIds = new Set<string>();
 
 			// Trigger debounced saves for relevant edge changes
 			changes.forEach((change) => {
@@ -174,14 +369,72 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 
 				// Skip saves for system-updated edges or during revert
 				if (get().shouldSkipEdgeSave(change.id)) {
+					consumedSystemEdgeIds.add(change.id);
 					return;
 				}
 
 				if (change.type === 'replace') {
 					// Data changes should trigger a save
-					get().triggerEdgeSave(change.id);
+					const previousEdge = previousEdgeById.get(change.id);
+					const nextEdge = updatedEdgeById.get(change.id);
+					if (!previousEdge || !nextEdge) return;
+					if (!hasMeaningfulEdgeDifference(previousEdge, nextEdge)) return;
+
+					edgesToPersist.add(change.id);
+					updatedEdgeIds.add(change.id);
 				}
 			});
+
+			if (get().systemUpdatedEdges.size > 0) {
+				const now = Date.now();
+				set((state) => {
+					const nextMarkers = new Map(state.systemUpdatedEdges);
+					let changed = false;
+
+					for (const id of consumedSystemEdgeIds) {
+						if (nextMarkers.delete(id)) {
+							changed = true;
+						}
+					}
+
+					for (const [id, timestamp] of nextMarkers.entries()) {
+						if (now - timestamp > 3000) {
+							nextMarkers.delete(id);
+							changed = true;
+						}
+					}
+
+					return changed ? { systemUpdatedEdges: nextMarkers } : {};
+				});
+			}
+
+			for (const edgeId of edgesToPersist) {
+				if (mapId) {
+					const edge = updatedEdges.find((item) => item.id === edgeId);
+					if (edge) {
+						const userId = getEdgeActorId(edge, currentUser?.id);
+						const edgeData = serializeEdgeForRealtime(edge, mapId, userId);
+						void broadcast(mapId, BROADCAST_EVENTS.EDGE_UPDATE, {
+							id: edgeId,
+							data: edgeData,
+							userId,
+							timestamp: Date.now(),
+						}).catch((error) => {
+							console.warn('[edges] Failed to sync Yjs edge update:', error);
+						});
+					}
+				}
+
+				get().triggerEdgeSave(edgeId);
+			}
+
+			if (edgesToPersist.size > 0) {
+				void get().persistDeltaEvent(
+					updatedEdgeIds.size > 1 ? 'updateEdges' : 'updateEdge',
+					{ nodes: previousNodes, edges: previousEdges },
+					{ nodes: get().nodes, edges: get().edges }
+				);
+			}
 		},
 		onConnect: (connection) => {
 			if (!connection.source || !connection.target) return;
@@ -247,6 +500,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 
 				const user = await supabase?.auth.getUser();
 				if (!user?.data.user) throw new Error('User not authenticated.');
+				const actorId = user.data.user.id;
 
 				const existingEdge = edges.find(
 					(e) =>
@@ -260,24 +514,149 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 
 				const newEdge = mergeEdgeData(defaultEdgeData(), {
 					...data,
-					map_id: mapId!,
-					user_id: user.data.user.id,
+					source: sourceId,
+					target: targetId,
+					map_id: mapId,
+					user_id: actorId,
 				});
+				const normalizedEdgeData: EdgeData = {
+					...(newEdge as EdgeData),
+					id: typeof newEdge.id === 'string' ? newEdge.id : generateUuid(),
+					source: sourceId,
+					target: targetId,
+					map_id: mapId,
+					user_id: actorId,
+				};
 
 				// Determine edge type after merging data
-				const edgeType = getEdgeType(newEdge);
+				const edgeType = getEdgeType(normalizedEdgeData);
+				const optimisticFlowEdge: AppEdge = {
+					id: normalizedEdgeData.id,
+					source: normalizedEdgeData.source,
+					target: normalizedEdgeData.target,
+					type: edgeType,
+					animated: normalizedEdgeData.animated || false,
+					label: normalizedEdgeData.label,
+					style: {
+						stroke: normalizedEdgeData.style?.stroke || '#6c757d',
+						strokeWidth: normalizedEdgeData.style?.strokeWidth || 2,
+					},
+					markerEnd: normalizedEdgeData.markerEnd,
+					data: normalizedEdgeData,
+				};
+				const previousTargetNode = nodes.find((node) => node.id === targetId);
+				const optimisticTargetNode = previousTargetNode
+					? withNodeParent(previousTargetNode, sourceId)
+					: null;
+
+				set((state) => ({
+					edges: state.edges.some((edge) => edge.id === optimisticFlowEdge.id)
+						? state.edges
+						: [...state.edges, optimisticFlowEdge],
+					nodes: optimisticTargetNode
+						? state.nodes.map((node) =>
+								node.id === targetId ? optimisticTargetNode : node
+							)
+						: state.nodes,
+				}));
+
+				const edgeEventUserId = getEdgeActorId(optimisticFlowEdge, actorId);
+				const edgeRealtimeData = serializeEdgeForRealtime(
+					optimisticFlowEdge,
+					mapId,
+					edgeEventUserId
+				);
+
+				try {
+					await broadcast(mapId, BROADCAST_EVENTS.EDGE_CREATE, {
+						id: optimisticFlowEdge.id,
+						data: edgeRealtimeData,
+						userId: edgeEventUserId,
+						timestamp: Date.now(),
+					});
+				} catch (error) {
+					console.warn('[edges] Failed to sync Yjs edge create:', error);
+				}
+
+				if (optimisticTargetNode) {
+					const nodeEventUserId = getNodeActorId(optimisticTargetNode, actorId);
+					const nodeRealtimeData = serializeNodeForRealtime(
+						optimisticTargetNode,
+						mapId,
+						nodeEventUserId
+					);
+
+					try {
+						await broadcast(mapId, BROADCAST_EVENTS.NODE_UPDATE, {
+							id: optimisticTargetNode.id,
+							data: nodeRealtimeData,
+							userId: nodeEventUserId,
+							timestamp: Date.now(),
+						});
+					} catch (error) {
+						console.warn(
+							'[edges] Failed to sync Yjs node parent update on edge create:',
+							error
+						);
+					}
+				}
 
 				const { data: insertedEdgeData, error: insertError } = await supabase
 					.from('edges')
-					.insert(newEdge)
+					.insert(normalizedEdgeData)
 					.select()
 					.single();
 
 				if (insertError) {
+					set((state) => ({
+						edges: state.edges.filter((edge) => edge.id !== optimisticFlowEdge.id),
+						nodes: previousTargetNode
+							? state.nodes.map((node) =>
+									node.id === previousTargetNode.id ? previousTargetNode : node
+								)
+							: state.nodes,
+					}));
+
+					try {
+						await broadcast(mapId, BROADCAST_EVENTS.EDGE_DELETE, {
+							id: optimisticFlowEdge.id,
+							userId: actorId,
+							timestamp: Date.now(),
+						});
+					} catch (error) {
+						console.warn(
+							'[edges] Failed to rollback Yjs edge create after DB error:',
+							error
+						);
+					}
+
+					if (previousTargetNode) {
+						const nodeEventUserId = getNodeActorId(previousTargetNode, actorId);
+						const nodeRealtimeData = serializeNodeForRealtime(
+							previousTargetNode,
+							mapId,
+							nodeEventUserId
+						);
+
+						try {
+							await broadcast(mapId, BROADCAST_EVENTS.NODE_UPDATE, {
+								id: previousTargetNode.id,
+								data: nodeRealtimeData,
+								userId: nodeEventUserId,
+								timestamp: Date.now(),
+							});
+						} catch (error) {
+							console.warn(
+								'[edges] Failed to rollback Yjs node parent update after DB error:',
+								error
+							);
+						}
+					}
+
 					throw new Error(insertError.message || 'Failed to insert edge.');
 				}
 
-				const newFlowEdge: AppEdge = {
+				const persistedFlowEdge: AppEdge = {
 					id: insertedEdgeData.id,
 					source: insertedEdgeData.source,
 					target: insertedEdgeData.target,
@@ -292,8 +671,6 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					data: insertedEdgeData,
 				};
 
-				const finalEdges = [...edges, newFlowEdge];
-
 				const { error: parentUpdateError } = await supabase
 					.from('nodes')
 					.update({ parent_id: sourceId, updated_at: new Date().toISOString() })
@@ -306,21 +683,19 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					);
 				}
 
-				const finalNodes = nodes.map((node) => {
-					if (node.id === targetId) {
-						return {
-							...node,
-							parent_id: sourceId,
-						};
-					}
+				set((state) => ({
+					edges: state.edges.some((edge) => edge.id === optimisticFlowEdge.id)
+						? state.edges.map((edge) =>
+								edge.id === optimisticFlowEdge.id ? persistedFlowEdge : edge
+							)
+						: [...state.edges, persistedFlowEdge],
+					nodes: state.nodes.map((node) =>
+						node.id === targetId ? withNodeParent(node, sourceId) : node
+					),
+				}));
 
-					return node;
-				});
-
-				set({
-					edges: finalEdges,
-					nodes: finalNodes,
-				});
+				const finalNodes = get().nodes;
+				const finalEdges = get().edges;
 
 				// Persist delta to DB for history tracking
 				get().persistDeltaEvent(
@@ -329,17 +704,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					{ nodes: finalNodes, edges: finalEdges }
 				);
 
-				// Broadcast edge creation to other clients
-				if (mapId) {
-					await broadcast(mapId, BROADCAST_EVENTS.EDGE_CREATE, {
-						id: newFlowEdge.id,
-						data: insertedEdgeData as unknown as Record<string, unknown>,
-						userId: user.data.user.id,
-						timestamp: Date.now(),
-					});
-				}
-
-				return newFlowEdge;
+				return persistedFlowEdge;
 			},
 			'isAddingContent',
 			{
@@ -352,6 +717,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 			async (edgesToDelete: AppEdge[]) => {
 				const { supabase, mapId, edges, nodes } = get();
 				const deleteIds = edgesToDelete.map((edge) => edge.id);
+				const deleteIdSet = new Set(deleteIds);
 
 				if (!mapId) {
 					throw new Error('Cannot delete edge: Map ID missing.');
@@ -359,6 +725,50 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 
 				const user = await supabase?.auth.getUser();
 				if (!user?.data.user) throw new Error('User not authenticated.');
+				const actorId = user.data.user.id;
+
+				const finalEdges = edges.filter((edge) => !deleteIdSet.has(edge.id));
+				const { updatedNodes, changedNodes } = recalculateParentsAfterEdgeDelete(
+					nodes,
+					edges,
+					deleteIdSet
+				);
+
+				set({
+					edges: finalEdges,
+					nodes: updatedNodes,
+				});
+
+				for (const edge of edgesToDelete) {
+					try {
+						await broadcast(mapId, BROADCAST_EVENTS.EDGE_DELETE, {
+							id: edge.id,
+							userId: actorId,
+							timestamp: Date.now(),
+						});
+					} catch (error) {
+						console.warn('[edges] Failed to sync Yjs edge delete:', error);
+					}
+				}
+
+				for (const node of changedNodes) {
+					const eventUserId = getNodeActorId(node, actorId);
+					const nodeData = serializeNodeForRealtime(node, mapId, eventUserId);
+
+					try {
+						await broadcast(mapId, BROADCAST_EVENTS.NODE_UPDATE, {
+							id: node.id,
+							data: nodeData,
+							userId: eventUserId,
+							timestamp: Date.now(),
+						});
+					} catch (error) {
+						console.warn(
+							'[edges] Failed to sync Yjs node parent update on edge delete:',
+							error
+						);
+					}
+				}
 
 				const { error: deleteError } = await supabase
 					.from('edges')
@@ -367,44 +777,71 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					.eq('map_id', mapId);
 
 				if (deleteError) {
+					set((state) => {
+						const existingEdgeIds = new Set(state.edges.map((edge) => edge.id));
+						return {
+							edges: [
+								...state.edges,
+								...edgesToDelete.filter((edge) => !existingEdgeIds.has(edge.id)),
+							],
+							nodes: state.nodes.map((node) => {
+								const previousNode = nodes.find(
+									(candidate) => candidate.id === node.id
+								);
+								return previousNode ?? node;
+							}),
+						};
+					});
+
+					for (const edge of edgesToDelete) {
+						const eventUserId = getEdgeActorId(edge, actorId);
+						const edgeData = serializeEdgeForRealtime(edge, mapId, eventUserId);
+						try {
+							await broadcast(mapId, BROADCAST_EVENTS.EDGE_CREATE, {
+								id: edge.id,
+								data: edgeData,
+								userId: eventUserId,
+								timestamp: Date.now(),
+							});
+						} catch (error) {
+							console.warn(
+								'[edges] Failed to rollback Yjs edge delete after DB error:',
+								error
+							);
+						}
+					}
+
+					for (const node of nodes) {
+						if (!changedNodes.some((candidate) => candidate.id === node.id)) {
+							continue;
+						}
+
+						const eventUserId = getNodeActorId(node, actorId);
+						const nodeData = serializeNodeForRealtime(node, mapId, eventUserId);
+						try {
+							await broadcast(mapId, BROADCAST_EVENTS.NODE_UPDATE, {
+								id: node.id,
+								data: nodeData,
+								userId: eventUserId,
+								timestamp: Date.now(),
+							});
+						} catch (error) {
+							console.warn(
+								'[edges] Failed to rollback Yjs node update after DB error:',
+								error
+							);
+						}
+					}
+
 					throw new Error(deleteError.message || 'Failed to delete edge.');
 				}
-
-				const finalEdges = edges.filter((e) => !deleteIds.includes(e.id));
-
-				const updatedNodes = nodes.map((node) => {
-					const newParents = node.parentId
-						? edgesToDelete.filter((edge) => edge.source !== node.id)
-						: [];
-
-					return {
-						...node,
-						parentId: newParents.length > 0 ? newParents[0].target : undefined,
-					};
-				});
-
-				set({
-					edges: finalEdges,
-					nodes: updatedNodes,
-				});
 
 				// Persist delta to DB for history tracking
 				get().persistDeltaEvent(
 					'deleteEdge',
 					{ nodes, edges },
-					{ nodes: updatedNodes, edges: finalEdges }
+					{ nodes: get().nodes, edges: get().edges }
 				);
-
-				// Broadcast edge deletions to other clients
-				if (mapId) {
-					for (const edge of edgesToDelete) {
-						await broadcast(mapId, BROADCAST_EVENTS.EDGE_DELETE, {
-							id: edge.id,
-							userId: user.data.user.id,
-							timestamp: Date.now(),
-						});
-					}
-				}
 			},
 			'isAddingContent',
 			{
@@ -414,25 +851,31 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 			}
 		),
 		updateEdge: async (props: { edgeId: string; data: Partial<EdgeData> }) => {
-			const { edges, nodes, mapId, supabase } = get();
-			const { edgeId, data } = props;
+				const { edges, nodes, mapId, supabase } = get();
+				const { edgeId, data } = props;
 
-			const user = (await supabase?.auth.getUser())?.data.user;
+				const user = (await supabase?.auth.getUser())?.data.user;
+				if (!user) {
+					toast.error('User not authenticated.');
+					return;
+				}
 
-			if (!user) {
-				toast.error('User not authenticated.');
-				return;
-			}
+				// Update edge in local state first
+				const finalEdges = edges.map((edge) => {
+					if (edge.id !== edgeId) return edge;
 
-			// Update edge in local state first
-			const finalEdges = edges.map((edge) => {
-				if (edge.id === edgeId) {
+					const stableUserId =
+						typeof edge.data?.user_id === 'string' &&
+						edge.data.user_id.trim().length > 0
+							? edge.data.user_id
+							: user.id;
+
 					const mergedData = {
 						...edge.data,
 						...data,
 						id: edgeId,
 						map_id: mapId!,
-						user_id: user.id,
+						user_id: stableUserId,
 						animated: data.animated === true,
 						style: {
 							...edge.data?.style,
@@ -457,138 +900,59 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 						type: edgeType, // Update the React Flow edge type
 						data: mergedData,
 					};
-				}
-
-				return edge;
-			}) as AppEdge[];
-
-			set({
-				edges: [...finalEdges],
-			});
-
-			// Trigger debounced save to persist changes
-			get().triggerEdgeSave(edgeId);
-
-			// Persist delta to DB for history tracking
-			get().persistDeltaEvent(
-				'updateEdge',
-				{ nodes, edges },
-				{ nodes, edges: finalEdges }
-			);
-		},
-		triggerEdgeSave: debouncePerKey(
-			async (edgeId: string) => {
-				const { edges, supabase, mapId } = get();
-				const edge = edges.find((e) => e.id === edgeId);
-
-				if (!edge || !edge.data) {
-					console.error(`Edge with id ${edgeId} not found or has invalid data`);
-					throw new Error(
-						`Edge with id ${edgeId} not found or has invalid data`
-					);
-				}
-
-				if (!mapId) {
-					console.error('Cannot save edge: No mapId defined');
-					throw new Error('Cannot save dge: No mapId defined');
-				}
-
-				const user_id = (await supabase.auth.getUser()).data.user?.id;
-
-				if (!user_id) {
-					throw new Error('Not authenticated');
-				}
-
-				const defaultEdge: Partial<EdgeData> = defaultEdgeData();
-
-				// Prepare edge data for saving, ensuring type safety
-				const edgeData: EdgeData = {
-					...defaultEdge,
-					...edge.data,
-					user_id: user_id,
-					id: edgeId,
-					map_id: mapId,
-					source: edge.source || '',
-					target: edge.target || '',
-					updated_at: new Date().toISOString(),
-					animated: edge.data?.animated || defaultEdge.animated,
-					metadata: {
-						...defaultEdge.metadata!,
-						...edge.data?.metadata,
-					},
-					aiData: {
-						...defaultEdge.aiData,
-						...edge.data?.aiData,
-					},
-					style: {
-						...defaultEdge.style!,
-						...edge.data?.style,
-					},
-				};
-
-				// Save edge data to Supabase
-				const { data: dbEdge, error } = await supabase
-					.from('edges')
-					.update(edgeData)
-					.eq('id', edgeId)
-					.select()
-					.single();
-
-				if (error) {
-					console.error('Error saving edge:', error);
-					throw new Error('Failed to save edge changes');
-				}
-
-				const finalEdges = edges.map((edge) => {
-					if (edge.id === edgeId) {
-						return {
-							...edge,
-							data: mergeEdgeData(edge.data ?? {}, dbEdge),
-							animated: JSON.parse(dbEdge.animated),
-							style: dbEdge.style,
-						};
-					}
-
-					return edge;
 				}) as AppEdge[];
 
 				set({
-					edges: finalEdges,
+					edges: [...finalEdges],
 				});
 
-				// Broadcast update to other clients after successful save
-				const { currentUser } = get();
 				if (mapId) {
-					await broadcast(mapId, BROADCAST_EVENTS.EDGE_UPDATE, {
-						id: edgeId,
-						data: dbEdge as unknown as Record<string, unknown>,
-						userId: currentUser?.id || user_id,
-						timestamp: Date.now(),
-					});
+					const updatedEdge = finalEdges.find((edge) => edge.id === edgeId);
+					if (updatedEdge) {
+						const userId = getEdgeActorId(updatedEdge, user.id);
+						const edgeData = serializeEdgeForRealtime(updatedEdge, mapId, userId);
+						void broadcast(mapId, BROADCAST_EVENTS.EDGE_UPDATE, {
+							id: edgeId,
+							data: edgeData,
+							userId,
+							timestamp: Date.now(),
+						}).catch((error) => {
+							console.warn('[edges] Failed to sync Yjs edge update:', error);
+						});
+					}
 				}
 
-				// Note: History delta already persisted in updateEdge before debounced save
+				// Trigger debounced save to persist changes
+				get().triggerEdgeSave(edgeId);
+
+				// Persist delta to DB for history tracking
+				get().persistDeltaEvent(
+					'updateEdge',
+					{ nodes, edges },
+					{ nodes, edges: finalEdges }
+				);
 			},
-			STORE_SAVE_DEBOUNCE_MS,
-			(edgeId: string) => edgeId // getKey function for triggerEdgeSave
-		),
+		triggerEdgeSave: triggerEdgeSaveDebounced,
+		flushPendingEdgeSaves: async () => {
+			await triggerEdgeSaveDebounced.flushAll();
+		},
 		setParentConnection: (edgeId: string) => {
 			const {
 				edges,
 				nodes,
+				mapId,
+				currentUser,
 				triggerEdgeSave,
 				triggerNodeSave,
 			} = get();
 
 			const edge = edges.find((e) => e.id === edgeId);
-
 			if (!edge) {
 				toast.error('Edge not found');
 				return;
 			}
 
 			const targetNodeIdx = nodes.findIndex((n) => n.id === edge.target);
-
 			if (targetNodeIdx === -1) {
 				toast.error('Target node not found');
 				return;
@@ -607,7 +971,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 							},
 						}
 					: e
-			);
+			) as AppEdge[];
 			const updatedNodes = nodes.map((n, idx) =>
 				idx === targetNodeIdx
 					? {
@@ -618,9 +982,47 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 							},
 						}
 					: n
-			);
+			) as AppNode[];
 
-			set({ edges: updatedEdges as AppEdge[], nodes: updatedNodes });
+			set({ edges: updatedEdges, nodes: updatedNodes });
+
+			if (mapId) {
+				const currentEdge = updatedEdges.find(
+					(candidate) => candidate.id === edgeId
+				);
+				if (currentEdge) {
+					const userId = getEdgeActorId(currentEdge, currentUser?.id);
+					const edgeData = serializeEdgeForRealtime(currentEdge, mapId, userId);
+					void broadcast(mapId, BROADCAST_EVENTS.EDGE_UPDATE, {
+						id: edgeId,
+						data: edgeData,
+						userId,
+						timestamp: Date.now(),
+					}).catch((error) => {
+						console.warn(
+							'[edges] Failed to sync Yjs edge parent update:',
+							error
+						);
+					});
+				}
+
+				const currentNode = updatedNodes[targetNodeIdx];
+				if (currentNode) {
+					const userId = getNodeActorId(currentNode, currentUser?.id);
+					const nodeData = serializeNodeForRealtime(currentNode, mapId, userId);
+					void broadcast(mapId, BROADCAST_EVENTS.NODE_UPDATE, {
+						id: currentNode.id,
+						data: nodeData,
+						userId,
+						timestamp: Date.now(),
+					}).catch((error) => {
+						console.warn(
+							'[edges] Failed to sync Yjs node parent update:',
+							error
+						);
+					});
+				}
+			}
 
 			// Debounced save
 			triggerEdgeSave(edgeId);
@@ -644,11 +1046,17 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 			try {
 				// Clean up existing subscription before creating new one
 				const existingSub = get()._edgesSubscription;
-				if (existingSub && typeof (existingSub as any).unsubscribe === 'function') {
+				if (
+					existingSub &&
+					typeof (existingSub as any).unsubscribe === 'function'
+				) {
 					try {
 						await (existingSub as any).unsubscribe();
 					} catch (e) {
-						console.warn('[broadcast] Failed to unsubscribe previous edges subscription:', e);
+						console.warn(
+							'[broadcast] Failed to unsubscribe previous edges subscription:',
+							e
+						);
 					}
 					set({ _edgesSubscription: null });
 				}
@@ -685,7 +1093,10 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					}
 					set({ _edgesSubscription: null });
 				} catch (error) {
-					console.error('[broadcast] Error unsubscribing from edge events:', error);
+					console.error(
+						'[broadcast] Error unsubscribing from edge events:',
+						error
+					);
 				}
 			}
 		},

@@ -86,6 +86,7 @@ export interface MessagesListResponse {
 }
 
 export interface CreateCommentRequest {
+	id?: string;
 	map_id: string;
 	position_x: number;
 	position_y: number;

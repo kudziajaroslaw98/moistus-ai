@@ -1,14 +1,17 @@
 import { calculateDelta } from '@/helpers/history/delta-calculator';
 import {
-	transformSupabaseData,
-	type SupabaseMapData,
-} from '@/helpers/transform-supabase-data';
-import {
 	broadcast,
 	BROADCAST_EVENTS,
+	replaceGraphState,
 	subscribeToSyncEvents,
 	type HistoryRevertPayload,
 } from '@/lib/realtime/broadcast-channel';
+import {
+	getEdgeActorId,
+	getNodeActorId,
+	serializeEdgeForRealtime,
+	serializeNodeForRealtime,
+} from '@/lib/realtime/graph-sync';
 import { AppEdge } from '@/types/app-edge';
 import { AppNode } from '@/types/app-node';
 import { AttributedHistoryDelta, HistoryItem } from '@/types/history-state';
@@ -108,44 +111,13 @@ export const createHistorySlice: StateCreator<
 					currentUser,
 					popoverOpen,
 					loadHistoryFromDB,
-					mapId,
-					supabase,
-					setNodes,
-					setEdges,
-					markNodeAsSystemUpdate,
-					markEdgeAsSystemUpdate,
 				} = get();
 
 				// Ignore our own broadcasts
 				if (payload.userId === currentUser?.id) return;
 
-				// Fetch current map state via aggregated view and apply it
-				// This ensures the canvas reflects the new state after another user reverts
-				if (mapId) {
-					try {
-						const { data, error } = await supabase
-							.from('map_graph_aggregated_view')
-							.select('*')
-							.eq('map_id', mapId)
-							.single();
-
-						if (!error && data) {
-							const transformed = transformSupabaseData(data as SupabaseMapData);
-
-							// Mark all nodes/edges as system updates to prevent broadcast loops
-							// (we're receiving state, not initiating changes)
-							transformed.reactFlowNodes.forEach((n) => markNodeAsSystemUpdate(n.id));
-							transformed.reactFlowEdges.forEach((e) => markEdgeAsSystemUpdate(e.id));
-
-							setNodes(transformed.reactFlowNodes);
-							setEdges(transformed.reactFlowEdges);
-						}
-					} catch (e) {
-						console.error('[broadcast] Failed to sync after history revert:', e);
-					}
-				}
-
-				// Reload history metadata if panel is open
+				// In Yjs mode, graph state arrives via CRDT sync — no need to fetch from DB.
+				// Reload history metadata if panel is open.
 				if (popoverOpen?.history) {
 					loadHistoryFromDB();
 				}
@@ -407,8 +379,43 @@ export const createHistorySlice: StateCreator<
 			// Step 2: Revert via API (snapshot or event)
 			const { currentUser } = get();
 
+			/** Applies reverted state to local store, Yjs CRDT, and broadcasts. */
+			const syncRevertedState = async (
+				revertedNodes: AppNode[],
+				revertedEdges: AppEdge[],
+				historyEntryId: string
+			) => {
+				revertedNodes.forEach((n) => markNodeAsSystemUpdate(n.id));
+				revertedEdges.forEach((e) => markEdgeAsSystemUpdate(e.id));
+
+				setNodes(revertedNodes);
+				setEdges(revertedEdges);
+
+				const actorId = currentUser?.id ?? null;
+				await replaceGraphState(mapId, {
+					event: 'history:revert',
+					actorId,
+					skipHistoryOnce: true,
+					nodes: revertedNodes.map((node) => {
+						const nodeActorId = getNodeActorId(node, actorId);
+						return serializeNodeForRealtime(node, mapId, nodeActorId);
+					}),
+					edges: revertedEdges.map((edge) => {
+						const edgeActorId = getEdgeActorId(edge, actorId);
+						return serializeEdgeForRealtime(edge, mapId, edgeActorId);
+					}),
+				});
+
+				await broadcast(mapId, BROADCAST_EVENTS.HISTORY_REVERT, {
+					historyEntryId,
+					userId: currentUser?.id || 'unknown',
+					timestamp: Date.now(),
+				});
+
+				set({ historyIndex: index, isReverting: false, revertingIndex: null });
+			};
+
 			if (meta.type === 'snapshot' && meta.id) {
-				// Revert to database snapshot
 				const res = await fetch(`/api/history/${mapId}/revert`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
@@ -417,31 +424,17 @@ export const createHistorySlice: StateCreator<
 
 				if (res.ok) {
 					const data = await res.json();
-
-					// Mark all nodes and edges as system-updated
-					data.nodes.forEach((n: AppNode) => markNodeAsSystemUpdate(n.id));
-					data.edges.forEach((e: AppEdge) => markEdgeAsSystemUpdate(e.id));
-
-					setNodes(data.nodes);
-					setEdges(data.edges);
-
-					// Broadcast history revert to other clients
-					await broadcast(mapId, BROADCAST_EVENTS.HISTORY_REVERT, {
-						historyEntryId: meta.id,
-						userId: currentUser?.id || 'unknown',
-						timestamp: Date.now(),
-					});
-
-					// Update historyIndex and clear reverting state immediately
-					// Canvas already shows reverted state, so buttons should re-enable now
-					set({ historyIndex: index, isReverting: false, revertingIndex: null });
+					await syncRevertedState(
+						data.nodes as AppNode[],
+						data.edges as AppEdge[],
+						meta.id
+					);
 					toast.success('Reverted to snapshot');
 				} else {
 					const error = await res.json().catch(() => ({}));
 					toast.error(error.error || 'Failed to revert to snapshot');
 				}
 			} else if (meta.type === 'event' && meta.id) {
-				// Revert to database event
 				const res = await fetch(`/api/history/${mapId}/revert`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
@@ -450,24 +443,11 @@ export const createHistorySlice: StateCreator<
 
 				if (res.ok) {
 					const data = await res.json();
-
-					// Mark all nodes and edges as system-updated
-					data.nodes.forEach((n: AppNode) => markNodeAsSystemUpdate(n.id));
-					data.edges.forEach((e: AppEdge) => markEdgeAsSystemUpdate(e.id));
-
-					setNodes(data.nodes);
-					setEdges(data.edges);
-
-					// Broadcast history revert to other clients
-					await broadcast(mapId, BROADCAST_EVENTS.HISTORY_REVERT, {
-						historyEntryId: meta.id,
-						userId: currentUser?.id || 'unknown',
-						timestamp: Date.now(),
-					});
-
-					// Update historyIndex and clear reverting state immediately
-					// Canvas already shows reverted state, so buttons should re-enable now
-					set({ historyIndex: index, isReverting: false, revertingIndex: null });
+					await syncRevertedState(
+						data.nodes as AppNode[],
+						data.edges as AppEdge[],
+						meta.id
+					);
 					toast.success('Reverted to event');
 				} else {
 					const error = await res.json().catch(() => ({}));

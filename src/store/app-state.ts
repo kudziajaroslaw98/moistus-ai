@@ -128,6 +128,7 @@ export interface EdgesSlice {
 		data: Partial<EdgeData>;
 	}) => Promise<void>;
 	triggerEdgeSave: (edgeId: string) => void;
+	flushPendingEdgeSaves: () => Promise<void>;
 	setParentConnection: (edgeId: string) => void;
 	// System update tracking
 	markEdgeAsSystemUpdate: (edgeId: string) => void;
@@ -221,6 +222,7 @@ export interface NodesSlice {
 		nodeType,
 		data,
 		position,
+		nodeId,
 		toastId,
 	}: {
 		parentNode: Partial<AppNode> | null;
@@ -228,6 +230,7 @@ export interface NodesSlice {
 		nodeType?: AvailableNodeTypes;
 		data?: Partial<NodeData>;
 		position?: { x: number; y: number };
+		nodeId?: string;
 		toastId?: string;
 	}) => Promise<void>;
 	updateNode: (props: {
@@ -236,6 +239,7 @@ export interface NodesSlice {
 	}) => Promise<void>;
 	deleteNodes: (nodesToDelete: AppNode[]) => Promise<void>;
 	triggerNodeSave: (nodeId: string) => void;
+	flushPendingNodeSaves: () => Promise<void>;
 
 	// Node hierarchy actions
 	getDirectChildrenCount: (nodeId: string) => number;
@@ -276,7 +280,7 @@ interface JoinRoomResult {
 	is_anonymous: boolean;
 	user_display_name: string;
 	user_avatar?: string;
-	websocket_channel: string;
+	realtime_room: string;
 	share_token_id: string;
 	join_method: string;
 }
