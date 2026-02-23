@@ -42,6 +42,7 @@ import { useUpgradePrompt } from '@/hooks/subscription/use-upgrade-prompt';
 import { useContextMenu } from '@/hooks/use-context-menu';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNodeSuggestion } from '@/hooks/use-node-suggestion';
+import { getMindMapRoomName } from '@/lib/realtime/room-names';
 import useAppStore from '@/store/mind-map-store';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
@@ -683,7 +684,7 @@ export function ReactFlowArea() {
 				<Panel position='top-left'>
 					<RealtimeCursors
 						reactFlowInstance={reactFlowInstance}
-						roomName={`mind-map:${mapId}:cursor`}
+						roomName={getMindMapRoomName(mapId as string, 'cursor')}
 					/>
 				</Panel>
 			</ReactFlow>

@@ -4,6 +4,7 @@ import { RealtimeAvatarStack } from '@/components/realtime/realtime-avatar-stack
 import { SidePanel } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
 import { type ActivityState } from '@/hooks/realtime/use-realtime-presence-room';
+import { getMindMapRoomName } from '@/lib/realtime/room-names';
 import { motion, useReducedMotion } from 'motion/react';
 import { History, Settings, Users } from 'lucide-react';
 
@@ -67,7 +68,7 @@ export function MobileMenu({
 						<RealtimeAvatarStack
 							activityState={activityState}
 							mapOwnerId={mapOwnerId}
-							roomName={`mind-map:${mapId}:presence`}
+							roomName={getMindMapRoomName(mapId, 'presence')}
 						/>
 					</div>
 				</motion.section>
