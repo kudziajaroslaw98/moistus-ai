@@ -1,6 +1,7 @@
 'use client';
-import { isGroupNode, type TypedNode } from '@/components/nodes/core/types';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
+import type { AvailableNodeTypes } from '@/registry/node-registry';
+import { isAvailableNodeType } from '@/registry/type-guards';
 import type { NodeEditorOptions } from '@/store/app-state';
 import useAppStore from '@/store/mind-map-store';
 import type { AppNode } from '@/types/app-node';
@@ -47,18 +48,41 @@ type GroupDetectionNode = {
 	};
 };
 
+type CanonicalNodeForGroupCheck = {
+	data: {
+		node_type: AvailableNodeTypes;
+	};
+};
+
+function toCanonicalNodeForGroupCheck(
+	node: GroupDetectionNode
+): CanonicalNodeForGroupCheck | null {
+	const canonicalNodeType = node.data?.node_type ?? node.data?.nodeType;
+
+	if (!isAvailableNodeType(canonicalNodeType)) {
+		return null;
+	}
+
+	return {
+		data: {
+			node_type: canonicalNodeType,
+		},
+	};
+}
+
+function isCanonicalGroupNode(
+	node: CanonicalNodeForGroupCheck
+): node is CanonicalNodeForGroupCheck & { data: { node_type: 'groupNode' } } {
+	return node.data.node_type === 'groupNode';
+}
+
 function isGroupLikeNode(node?: GroupDetectionNode | null): boolean {
 	if (!node?.data) return false;
 
 	const groupChildren = node.data?.metadata?.groupChildren;
-	const canonicalNode = {
-		...(node as Record<string, unknown>),
-		data: {
-			...node.data,
-			node_type: node.data.node_type ?? node.data.nodeType,
-		},
-	} as TypedNode<any>;
-	const matchesCanonicalGroupNode = isGroupNode(canonicalNode);
+	const canonicalNode = toCanonicalNodeForGroupCheck(node);
+	const matchesCanonicalGroupNode =
+		canonicalNode !== null && isCanonicalGroupNode(canonicalNode);
 
 	return (
 		matchesCanonicalGroupNode ||

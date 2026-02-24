@@ -1,5 +1,6 @@
 import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { mapBillingInterval, mapPolarStatus } from '@/lib/polar';
+import type { SupabaseLikeError } from '@/types/supabase-like-error';
 import { Webhooks } from '@polar-sh/nextjs';
 
 // Validate webhook secret at module load time
@@ -64,13 +65,6 @@ type SubscriptionData = {
 	cancelAtPeriodEnd?: boolean;
 	canceledAt?: string | null;
 	productId?: string;
-};
-
-type SupabaseLikeError = {
-	message: string;
-	details?: string | null;
-	hint?: string | null;
-	code?: string | null;
 };
 
 function formatSupabaseError(error: SupabaseLikeError): string {
@@ -201,16 +195,27 @@ async function handleSubscriptionUpdated(data: SubscriptionData) {
 	console.log('[Polar] Processing subscription.updated:', data.id);
 
 	// Fetch current subscription with plan details
-	const { data: existingSubscription } = await supabase
-		.from('user_subscriptions')
-		.select(
-			`
+	const { data: existingSubscription, error: subscriptionError } =
+		await supabase
+			.from('user_subscriptions')
+			.select(
+				`
 			*,
 			plan:subscription_plans(id, name, limits)
 		`
-		)
-		.eq('polar_subscription_id', data.id)
-		.single();
+			)
+			.eq('polar_subscription_id', data.id)
+			.maybeSingle();
+
+	if (subscriptionError) {
+		throw new Error(
+			`[Polar] Failed to fetch current subscription before update: ${formatSupabaseError(subscriptionError)}`
+		);
+	}
+
+	if (!existingSubscription) {
+		throw new Error(`[Polar] Subscription not found for update: ${data.id}`);
+	}
 
 	const currentPeriodStart = data.currentPeriodStart
 		? new Date(data.currentPeriodStart)
@@ -235,12 +240,12 @@ async function handleSubscriptionUpdated(data: SubscriptionData) {
 
 	// Track metadata updates (will be applied at end)
 	let metadataUpdates: Record<string, unknown> = {
-		...(existingSubscription?.metadata as Record<string, unknown> | null),
+		...(existingSubscription.metadata as Record<string, unknown> | null),
 	};
 
 	// Check if this is a new billing period (period start changed) - reset counter
-	const oldPeriodStart = existingSubscription?.current_period_start;
-	const userId = existingSubscription?.user_id;
+	const oldPeriodStart = existingSubscription.current_period_start;
+	const userId = existingSubscription.user_id;
 	if (currentPeriodStart && oldPeriodStart && userId) {
 		const oldStart = new Date(oldPeriodStart).getTime();
 		const newStart = currentPeriodStart.getTime();
@@ -297,7 +302,7 @@ async function handleSubscriptionUpdated(data: SubscriptionData) {
 			.eq('polar_product_id', newProductId)
 			.single();
 
-		if (newPlan && existingSubscription?.plan && userId) {
+		if (newPlan && existingSubscription.plan && userId) {
 			// Adjust AI usage counter directly for mid-cycle plan changes
 			type PlanLimits = { aiSuggestions?: number };
 			const oldLimit =
@@ -371,7 +376,7 @@ async function handleSubscriptionUpdated(data: SubscriptionData) {
 				previous_plan: existingSubscription.plan.name,
 			};
 		}
-	} else if (existingSubscription?.plan && !userId) {
+	} else if (existingSubscription.plan && !userId) {
 		console.warn(
 			'[Polar] Skipping AI usage adjustment because user_id is missing on subscription',
 			{

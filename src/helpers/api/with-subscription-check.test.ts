@@ -160,6 +160,46 @@ describe('with-subscription-check', () => {
 		});
 	});
 
+	it('short-circuits with limit reached when AI quota is hard zero', async () => {
+		const supabase = createSupabaseMock({
+			userSubscriptionResult: {
+				data: {
+					plan: {
+						name: 'free',
+						limits: { aiSuggestions: 0 },
+					},
+				},
+				error: null,
+			},
+			rpcResponses: {
+				get_ai_usage: {
+					data: null,
+					error: { message: 'should not be called' },
+				},
+			},
+		});
+
+		const result = await checkAIQuota(createUser(), supabase);
+
+		expect(result.allowed).toBe(false);
+		expect(result.isPro).toBe(false);
+		expect(result.limit).toBe(0);
+		expect(result.remaining).toBe(0);
+		expect(result.error?.status).toBe(402);
+
+		const payload = await (result.error as Response).json();
+		expect(payload).toMatchObject({
+			code: 'LIMIT_REACHED',
+			limit: 0,
+			remaining: 0,
+			upgradeUrl: '/dashboard/settings/billing',
+		});
+
+		expect(
+			(supabase as unknown as { rpc: jest.Mock }).rpc
+		).not.toHaveBeenCalled();
+	});
+
 	it('uses explicit safe cap for paid plans missing collaboratorsPerMap', async () => {
 		const supabase = createSupabaseMock({
 			userSubscriptionResult: {

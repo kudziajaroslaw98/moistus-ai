@@ -276,6 +276,26 @@ export async function checkAIQuota(
 		return { allowed: true, isPro, remaining: -1, limit: -1 };
 	}
 
+	if (limit === 0) {
+		return {
+			allowed: false,
+			isPro,
+			remaining: 0,
+			limit: 0,
+			error: NextResponse.json(
+				{
+					error: `AI feature limit reached (${limit} per month). Upgrade to Pro for unlimited AI features.`,
+					code: 'LIMIT_REACHED',
+					currentUsage: 0,
+					limit: 0,
+					remaining: 0,
+					upgradeUrl: '/dashboard/settings/billing',
+				},
+				{ status: 402 }
+			),
+		};
+	}
+
 	let currentUsage: number;
 	try {
 		currentUsage = await getAIUsageCount(user, supabase);

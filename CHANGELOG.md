@@ -59,6 +59,12 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Prevents `user_profiles.full_name NOT NULL` insert failures that could silently drop join-time display-name edits
 - **api/share/join-room**: `user_profiles` upsert now omits `full_name` when existing-profile prefetch returns an error
   - Why: Avoids overwriting a real `full_name` during transient profile read failures while still persisting `display_name`
+- **api/webhooks/polar**: `subscription.updated` subscription prefetch now uses `.maybeSingle()` with explicit fetch/missing-row errors
+  - Why: Prevents silent no-op updates when `user_subscriptions` is missing and preserves webhook retry visibility for real failures
+- **context-menu/group-detection**: Replaced `TypedNode<any>` group-node cast with canonical node-type guards via `isAvailableNodeType`
+  - Why: Removes unsafe `any` usage while keeping legacy group detection fallbacks intact
+- **subscription/ai-quota**: `checkAIQuota` now short-circuits hard `limit === 0` before calling `getAIUsageCount`
+  - Why: Ensures hard free-tier limits cannot be masked by usage-counter outages and avoids unnecessary RPC calls
 - **partykit/auth**: Replaced control-character regex with char-code scan and wrapped request-path URI decoding in safe decode helper
   - Why: Removes lint suppression and prevents malformed percent-encoding from throwing request-time exceptions
 - **realtime/graph-sync**: Edge serialization now skips and logs edges missing `source`/`target`; callers filter/guard null payloads before Yjs broadcasts/upserts
@@ -86,6 +92,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **terminology/roles**: Renamed remaining `commenter` references to `commentator` in E2E tests, page objects, and docs
   - Why: Keep role naming consistent across API, UI, tests, and documentation
+- **types/error-contracts**: Moved shared Supabase error shape to `src/types/supabase-like-error.ts` and imported it in Polar webhook handling
+  - Why: Keeps strict shared error contracts in `src/types` instead of local aliases
 - **e2e/sharing-permissions**: Expanded Access Revocation coverage with display-name persistence assertions (revisit prefill, rename persistence, prefill after revoke)
   - Why: Locks in the regression fix path that previously surfaced stale/random join name behavior
 - **identity/tests**: Added focused unit tests for identity resolver, sharing-slice identity mapping, and current-user name/image hooks
