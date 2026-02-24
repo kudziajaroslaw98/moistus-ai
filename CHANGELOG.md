@@ -91,6 +91,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Tightens state contracts, removes `any` in tests, and closes a setup race where sync events could be missed
 - **deps/security**: Resolved all `pnpm audit` findings by updating vulnerable direct dependencies and pinning patched transitive versions via `pnpm.overrides` (including `jspdf`, `@eslint/eslintrc`, `ajv`, and `minimatch`)
   - Why: Eliminates known high/moderate dependency vulnerabilities while keeping the existing app/runtime surface unchanged
+- **partykit/env-hardening**: PartyKit now trims/unquotes env values and emits one-time warnings when `SUPABASE_URL` vs `NEXT_PUBLIC_SUPABASE_URL` or `SUPABASE_SERVICE_ROLE` vs `SUPABASE_SERVICE_ROLE_KEY` conflict
+  - Why: Prevents hard-to-diagnose 401 "Invalid API key" failures caused by quoted secrets or stale shadowed env vars in deployment
 
 ### Changed
 

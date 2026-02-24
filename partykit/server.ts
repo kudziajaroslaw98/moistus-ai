@@ -126,6 +126,7 @@ const SKIP_PATCH_KEYS = new Set([
 	'updated_at',
 ]);
 const PERMISSION_ROLES = new Set(['owner', 'editor', 'commentator', 'viewer']);
+const loggedEnvConflictWarnings = new Set<string>();
 
 type PermissionRole = 'owner' | 'editor' | 'commentator' | 'viewer';
 
@@ -277,13 +278,36 @@ function getEnvString(
 	key: string
 ): string | undefined {
 	const value = env[key];
-	return typeof value === 'string' ? value : undefined;
+	if (typeof value !== 'string') return undefined;
+	const trimmed = value.trim();
+	if (!trimmed) return undefined;
+
+	const hasWrappedDoubleQuotes =
+		trimmed.startsWith('"') && trimmed.endsWith('"') && trimmed.length >= 2;
+	const hasWrappedSingleQuotes =
+		trimmed.startsWith("'") && trimmed.endsWith("'") && trimmed.length >= 2;
+	if (hasWrappedDoubleQuotes || hasWrappedSingleQuotes) {
+		const unwrapped = trimmed.slice(1, -1).trim();
+		return unwrapped || undefined;
+	}
+
+	return trimmed;
 }
 
 function getConfiguredSupabaseBaseUrl(env: PartyKitEnv): string | null {
-	const baseUrl =
-		getEnvString(env, 'SUPABASE_URL') ||
-		getEnvString(env, 'NEXT_PUBLIC_SUPABASE_URL');
+	const primary = getEnvString(env, 'SUPABASE_URL');
+	const fallback = getEnvString(env, 'NEXT_PUBLIC_SUPABASE_URL');
+	if (primary && fallback && primary !== fallback) {
+		const warningKey = 'SUPABASE_URL|NEXT_PUBLIC_SUPABASE_URL';
+		if (!loggedEnvConflictWarnings.has(warningKey)) {
+			loggedEnvConflictWarnings.add(warningKey);
+			console.warn(
+				'[partykit] Both SUPABASE_URL and NEXT_PUBLIC_SUPABASE_URL are set with different values; using SUPABASE_URL'
+			);
+		}
+	}
+
+	const baseUrl = primary || fallback;
 	if (!baseUrl) return null;
 	return baseUrl.replace(/\/+$/, '');
 }
@@ -297,9 +321,19 @@ function getSupabaseBaseUrl(env: PartyKitEnv): string {
 }
 
 function getSupabaseServiceRole(env: PartyKitEnv): string {
-	const key =
-		getEnvString(env, 'SUPABASE_SERVICE_ROLE') ||
-		getEnvString(env, 'SUPABASE_SERVICE_ROLE_KEY');
+	const primary = getEnvString(env, 'SUPABASE_SERVICE_ROLE');
+	const fallback = getEnvString(env, 'SUPABASE_SERVICE_ROLE_KEY');
+	if (primary && fallback && primary !== fallback) {
+		const warningKey = 'SUPABASE_SERVICE_ROLE|SUPABASE_SERVICE_ROLE_KEY';
+		if (!loggedEnvConflictWarnings.has(warningKey)) {
+			loggedEnvConflictWarnings.add(warningKey);
+			console.warn(
+				'[partykit] Both SUPABASE_SERVICE_ROLE and SUPABASE_SERVICE_ROLE_KEY are set with different values; using SUPABASE_SERVICE_ROLE'
+			);
+		}
+	}
+
+	const key = primary || fallback;
 	if (!key) {
 		throw new Error('SUPABASE_SERVICE_ROLE (or _KEY) is required');
 	}
