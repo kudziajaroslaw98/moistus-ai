@@ -5,7 +5,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-02-24 - Permissions/quota hardening, realtime cursor safety, and typing/accessibility fixes -->
+<!-- Updated: 2026-02-24 - Permissions/quota hardening, realtime cursor safety, typing/accessibility fixes, and dependency vulnerability remediation -->
 
 ## [2026-02-24]
 
@@ -89,6 +89,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Reduces chat stream startup latency while surfacing usage-counter write failures to callers
 - **typing/tests/realtime**: Sharing unsubscribe field is now strict nullable, permissions details are exported as a named interface, collaborator-channel test listeners use `unknown`, and Yjs sync subscriptions process events immediately after observer registration
   - Why: Tightens state contracts, removes `any` in tests, and closes a setup race where sync events could be missed
+- **deps/security**: Resolved all `pnpm audit` findings by updating vulnerable direct dependencies and pinning patched transitive versions via `pnpm.overrides` (including `jspdf`, `@eslint/eslintrc`, `ajv`, and `minimatch`)
+  - Why: Eliminates known high/moderate dependency vulnerabilities while keeping the existing app/runtime surface unchanged
 
 ### Changed
 
