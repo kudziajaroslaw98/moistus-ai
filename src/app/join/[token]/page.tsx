@@ -3,11 +3,12 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import {
-	generateFallbackAvatar,
-	generateFunName,
-} from '@/helpers/user-profile-helpers';
+	loadExistingJoinIdentity,
+	normalizeDisplayName,
+} from '@/helpers/sharing/join-identity';
+import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
+import { generateFallbackAvatar } from '@/helpers/user-profile-helpers';
 import useAppStore from '@/store/mind-map-store';
 import type { JoinRoomResult } from '@/store/slices/sharing-slice';
 import {
@@ -126,47 +127,25 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 				}
 
 				const supabase = getSharedSupabaseClient();
-				const {
-					data: { session },
-					error: sessionError,
-				} = await supabase.auth.getSession();
+				const identity = await loadExistingJoinIdentity(supabase);
 
-				if (sessionError) {
-					console.warn('Session check failed:', sessionError);
+				if (identity.sessionUser && !identity.isAnonymous) {
+					const userId = identity.profile?.user_id ?? identity.sessionUser.id;
+					setAuthenticatedUser({
+						userId,
+						displayName:
+							identity.existingDisplayName || `User ${userId.slice(0, 8)}`,
+						email: identity.email,
+						avatarUrl: identity.avatarUrl || generateFallbackAvatar(userId),
+						isAnonymous: false,
+					});
+
+					setStep('confirm-join');
+					setIsLoading(false);
+					return;
 				}
 
-				if (session?.user) {
-					const { data: profile, error: profileError } = await supabase
-						.from('user_profiles')
-						.select('user_id, display_name, email, avatar_url, is_anonymous')
-						.eq('user_id', session.user.id)
-						.single();
-
-					if (profileError) {
-						console.warn('Profile fetch failed:', profileError);
-					}
-
-					if (profile && !profile.is_anonymous) {
-						const userId = profile.user_id;
-						setAuthenticatedUser({
-							userId,
-							displayName:
-								profile.display_name ||
-								profile.email?.split('@')[0] ||
-								generateFunName(userId),
-							email: profile.email || undefined,
-							avatarUrl: profile.avatar_url || generateFallbackAvatar(userId),
-							isAnonymous: false,
-						});
-
-						setStep('confirm-join');
-						setIsLoading(false);
-						return;
-					}
-				}
-
-				const defaultName = `User ${Date.now().toString().slice(-4)}`;
-				setDisplayName(defaultName);
+				setDisplayName(identity.existingDisplayName || 'Anonymous User');
 				setStep('display-name');
 			} catch (error) {
 				console.error('Error validating token:', error);
@@ -203,7 +182,8 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 			return;
 		}
 
-		if (!displayName.trim()) {
+		const normalizedDisplayName = normalizeDisplayName(displayName);
+		if (!normalizedDisplayName) {
 			toast.error('Please enter your name');
 			return;
 		}
@@ -211,13 +191,13 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 		setStep('joining');
 
 		try {
-			const isAuthenticated = await ensureAuthenticated(displayName.trim());
+			const isAuthenticated = await ensureAuthenticated(normalizedDisplayName);
 
 			if (!isAuthenticated) {
 				throw new Error('Failed to authenticate');
 			}
 
-			const result = await joinRoom(token.toUpperCase(), displayName.trim());
+			const result = await joinRoom(token.toUpperCase(), normalizedDisplayName);
 			setJoinResult(result);
 			setStep('success');
 

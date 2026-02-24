@@ -759,6 +759,8 @@ test.describe.serial('Real-time Sync', () => {
 
 test.describe.serial('Access Revocation', () => {
 	let viewerRoomCode: string;
+	const initialDisplayName = 'Revocation Test User';
+	const updatedDisplayName = 'Revocation Renamed User';
 
 	test('setup: owner creates room and viewer joins', async ({
 		ownerPage,
@@ -781,10 +783,33 @@ test.describe.serial('Access Revocation', () => {
 		const joinPage = new JoinRoomPage(guestPage);
 		await joinPage.gotoDeepLink(viewerRoomCode);
 		await guestPage.waitForTimeout(1000);
-		await joinPage.joinAsGuest('Revocation Test User');
+		await joinPage.joinAsGuest(initialDisplayName);
 		await joinPage.waitForSuccess();
 		expect(await joinPage.isOnMindMap()).toBe(true);
 		// NOTE: Don't reload here - it would clear lastJoinResult
+	});
+
+	test('existing guest sees previous name prefilled when revisiting join page', async ({
+		guestPage,
+	}) => {
+		const joinPage = new JoinRoomPage(guestPage);
+		await joinPage.gotoDeepLink(viewerRoomCode);
+		await expect(joinPage.displayNameInput).toBeVisible();
+		await expect(joinPage.displayNameInput).toHaveValue(initialDisplayName);
+	});
+
+	test('guest can edit name and persisted name appears on next revisit', async ({
+		guestPage,
+	}) => {
+		const joinPage = new JoinRoomPage(guestPage);
+		await joinPage.gotoDeepLink(viewerRoomCode);
+		await joinPage.joinAsGuest(updatedDisplayName);
+		await joinPage.waitForSuccess();
+		expect(await joinPage.isOnMindMap()).toBe(true);
+
+		await joinPage.gotoDeepLink(viewerRoomCode);
+		await expect(joinPage.displayNameInput).toBeVisible();
+		await expect(joinPage.displayNameInput).toHaveValue(updatedDisplayName);
 	});
 
 	test('owner revokes room code', async ({ ownerPage, testMapId }) => {
@@ -803,6 +828,15 @@ test.describe.serial('Access Revocation', () => {
 		expect(codes).not.toContain(viewerRoomCode);
 
 		console.log(`Room code ${viewerRoomCode} revoked`);
+	});
+
+	test('revoked guest still sees persisted name prefilled on join page', async ({
+		guestPage,
+	}) => {
+		const joinPage = new JoinRoomPage(guestPage);
+		await joinPage.gotoDeepLink(viewerRoomCode);
+		await expect(joinPage.displayNameInput).toBeVisible();
+		await expect(joinPage.displayNameInput).toHaveValue(updatedDisplayName);
 	});
 
 	test('new guest cannot join revoked code', async ({ browser }) => {

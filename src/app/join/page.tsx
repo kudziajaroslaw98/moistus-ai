@@ -3,6 +3,10 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+	loadExistingJoinIdentity,
+	normalizeDisplayName,
+} from '@/helpers/sharing/join-identity';
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, ArrowRight, Loader2, Users } from 'lucide-react';
@@ -43,6 +47,7 @@ function JoinPageContent() {
 		handleSubmit,
 		formState: { errors },
 		setValue,
+		getValues,
 		watch,
 	} = useForm<JoinRoomForm>({
 		resolver: zodResolver(JoinRoomSchema) as any,
@@ -60,6 +65,33 @@ function JoinPageContent() {
 			router.replace(`/join/${initialRoomCode.toUpperCase()}`);
 		}
 	}, [initialRoomCode, router]);
+
+	useEffect(() => {
+		let isMounted = true;
+
+		const prefillDisplayName = async () => {
+			try {
+				const identity = await loadExistingJoinIdentity(supabase);
+				if (!isMounted || !identity.existingDisplayName) {
+					return;
+				}
+
+				if (getValues('displayName')) {
+					return;
+				}
+
+				setValue('displayName', identity.existingDisplayName);
+			} catch (error) {
+				console.warn('[join-page] failed to prefill display name:', error);
+			}
+		};
+
+		void prefillDisplayName();
+
+		return () => {
+			isMounted = false;
+		};
+	}, [getValues, setValue]);
 
 	// Format room code with dash as user types
 	const formatRoomCode = (value: string) => {
@@ -80,8 +112,18 @@ function JoinPageContent() {
 		} = await supabase.auth.getUser();
 
 		if (error || !user) {
+			const normalizedDisplayName = normalizeDisplayName(displayName);
+			const signInOptions = normalizedDisplayName
+				? {
+						options: {
+							data: {
+								display_name: normalizedDisplayName,
+							},
+						},
+					}
+				: undefined;
 			const { data: authData, error: signInError } =
-				await supabase.auth.signInAnonymously();
+				await supabase.auth.signInAnonymously(signInOptions);
 
 			if (signInError || !authData.user) {
 				throw new Error('Failed to authenticate anonymously');
@@ -98,14 +140,19 @@ function JoinPageContent() {
 		setJoinError('');
 
 		try {
-			await ensureAuthenticated(data.displayName);
+			const normalizedDisplayName = normalizeDisplayName(data.displayName);
+			if (!normalizedDisplayName) {
+				throw new Error('Display name is required');
+			}
+
+			await ensureAuthenticated(normalizedDisplayName);
 
 			const response = await fetch('/api/share/join-room', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					token: data.roomCode,
-					display_name: data.displayName,
+					display_name: normalizedDisplayName,
 				}),
 			});
 

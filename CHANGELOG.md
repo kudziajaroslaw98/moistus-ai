@@ -15,11 +15,17 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Prevents fast map switching from overwriting active-map permissions with late responses
 - **helpers/partykit/admin**: Continued endpoint fallback after thrown fetch errors
   - Why: A transient failure on one endpoint variant should not block other working admin routes
+- **join-flow/display-name**: Existing anonymous collaborators now see their persisted name prefilled on all join entry points (`/join/[token]`, `/join`, embedded join component)
+  - Why: Prevents revoked/rejoining users from being incorrectly treated as first-time guests with random names
+- **api/share/join-room**: `display_name` from join requests now persists to `user_profiles` and auth metadata (best effort, non-blocking)
+  - Why: Ensures name edits made during join are reflected in DB/auth instead of being session-only
 
 ### Changed
 
 - **terminology/roles**: Renamed remaining `commenter` references to `commentator` in E2E tests, page objects, and docs
   - Why: Keep role naming consistent across API, UI, tests, and documentation
+- **e2e/sharing-permissions**: Expanded Access Revocation coverage with display-name persistence assertions (revisit prefill, rename persistence, prefill after revoke)
+  - Why: Locks in the regression fix path that previously surfaced stale/random join name behavior
 
 ## [2026-02-23]
 
