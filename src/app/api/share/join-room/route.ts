@@ -17,6 +17,13 @@ const JoinRoomSchema = z.object({
 	display_name: z.string().trim().min(1).max(50).optional(),
 });
 
+function toTrimmedText(value: unknown, maxLength = 255): string | null {
+	if (typeof value !== 'string') return null;
+	const trimmed = value.trim();
+	if (!trimmed) return null;
+	return trimmed.slice(0, maxLength);
+}
+
 export const POST = withAuthValidation(
 	JoinRoomSchema,
 	async (req, data, supabase, user) => {
@@ -65,12 +72,39 @@ export const POST = withAuthValidation(
 		const normalizedDisplayName = normalizeDisplayName(data.display_name);
 		if (normalizedDisplayName) {
 			try {
+				const { data: existingProfile, error: existingProfileError } =
+					await supabase
+						.from('user_profiles')
+						.select('user_id, full_name')
+						.eq('user_id', user.id)
+						.maybeSingle();
+
+				if (existingProfileError) {
+					console.warn(
+						'[share/join-room] failed to fetch existing user_profiles row before display_name upsert',
+						{
+							mapId: joinResult.map_id,
+							userId: user.id,
+							error: existingProfileError.message,
+						}
+					);
+				}
+
+				const existingFullName = toTrimmedText(existingProfile?.full_name);
+				const metadataFullName = toTrimmedText(user.user_metadata?.full_name);
+				const resolvedFullName =
+					existingFullName ||
+					metadataFullName ||
+					normalizedDisplayName ||
+					`User ${user.id.slice(0, 8)}`;
+
 				const { error: profileUpdateError } = await supabase
 					.from('user_profiles')
 					.upsert(
 						{
 							user_id: user.id,
 							display_name: normalizedDisplayName,
+							full_name: resolvedFullName,
 						},
 						{
 							onConflict: 'user_id',

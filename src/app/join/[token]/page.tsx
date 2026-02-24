@@ -167,7 +167,9 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 				setJoinResult(result);
 				setStep('success');
 
-				toast.success(`Joined as ${authenticatedUser.displayName}!`);
+				toast.success(
+					`Joined as ${result.user_display_name || authenticatedUser.displayName}!`
+				);
 
 				setTimeout(() => {
 					router.push(`/mind-map/${result.map_id}`);
@@ -414,7 +416,9 @@ export default function JoinRoomPage({ params }: JoinRoomPageProps) {
 
 						{/* User Profile */}
 						<div className='space-y-3'>
-							<p className='text-sm font-medium text-text-secondary'>Joining as:</p>
+							<p className='text-sm font-medium text-text-secondary'>
+								Joining as:
+							</p>
 
 							<div className='flex items-center gap-4 p-4 rounded-lg bg-gradient-to-r from-primary-500/5 to-primary-500/5 border border-primary-500/10'>
 								{/* Avatar */}

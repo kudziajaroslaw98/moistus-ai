@@ -55,6 +55,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Distinguishes backend/data failures from true not-found cases
 - **api/share/join-room**: `user_profiles` display-name persistence now uses `upsert(..., { onConflict: 'user_id' })`
   - Why: Ensures first-time profiles are created instead of silently no-op updates
+- **api/share/join-room**: `display_name` upsert now always resolves and includes `full_name` (existing profile -> auth metadata -> display name fallback)
+  - Why: Prevents `user_profiles.full_name NOT NULL` insert failures that could silently drop join-time display-name edits
 - **partykit/auth**: Replaced control-character regex with char-code scan and wrapped request-path URI decoding in safe decode helper
   - Why: Removes lint suppression and prevents malformed percent-encoding from throwing request-time exceptions
 - **realtime/graph-sync**: Edge serialization now skips and logs edges missing `source`/`target`; callers filter/guard null payloads before Yjs broadcasts/upserts
