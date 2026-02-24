@@ -1,9 +1,9 @@
 import { respondError } from '@/helpers/api/responses';
+import { withApiValidation } from '@/helpers/api/with-api-validation';
 import {
 	checkAIQuota,
 	trackAIUsage,
 } from '@/helpers/api/with-subscription-check';
-import { withApiValidation } from '@/helpers/api/with-api-validation';
 import {
 	buildContextPrompt,
 	buildFullMapContext,
@@ -85,13 +85,13 @@ You have access to the user's mind map context including key topics, node types,
 export const POST = withApiValidation(
 	chatRequestSchema,
 	async (_req, validatedBody, supabase, user) => {
-		// Check AI quota
-		const { allowed, isPro, error } = await checkAIQuota(user, supabase);
-		if (!allowed && error) {
-			return error;
-		}
-
 		try {
+			// Check AI quota
+			const { allowed, isPro, error } = await checkAIQuota(user, supabase);
+			if (!allowed && error) {
+				return error;
+			}
+
 			const { messages, context } = validatedBody;
 
 			// Build context prompt from map data if available

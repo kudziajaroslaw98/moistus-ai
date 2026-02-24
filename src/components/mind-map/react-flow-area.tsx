@@ -370,6 +370,8 @@ export function ReactFlowArea() {
 			}
 
 			if (isMobileTapMultiSelectActive) {
+				event.preventDefault();
+				event.stopPropagation();
 				const state = useAppStore.getState();
 				const selectedNodeIds = new Set(
 					state.selectedNodes.map((selectedNode) => selectedNode.id)

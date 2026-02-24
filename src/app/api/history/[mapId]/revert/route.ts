@@ -1,8 +1,11 @@
 import { applyDelta } from '@/helpers/history/delta-calculator';
-import { createServiceRoleClient } from '@/helpers/supabase/server';
-import { createClient } from '@/helpers/supabase/server';
+import {
+	createClient,
+	createServiceRoleClient,
+} from '@/helpers/supabase/server';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
+import type { EdgeData } from '@/types/edge-data';
 import { HistoryDelta } from '@/types/history-state';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -153,7 +156,8 @@ function canonicalizeEdge(edge: AppEdge): AppEdge | null {
 		toTextOrNull(edgeRecord.markerEnd) ?? toTextOrNull(edgeData.markerEnd);
 	const markerStart =
 		toTextOrNull(edgeRecord.markerStart) ?? toTextOrNull(edgeData.markerStart);
-	const label = toStringOrNull(edgeRecord.label) ?? toStringOrNull(edgeData.label);
+	const label =
+		toStringOrNull(edgeRecord.label) ?? toStringOrNull(edgeData.label);
 	const metadata = toRecord(edgeData.metadata) ?? {};
 	const aiData = toRecord(edgeData.aiData) ?? {};
 	const edgeType =
@@ -186,7 +190,7 @@ function canonicalizeEdge(edge: AppEdge): AppEdge | null {
 		style,
 		markerEnd: markerEnd ?? null,
 		markerStart: markerStart ?? null,
-		data: normalizedData as any,
+		data: normalizedData as EdgeData,
 	} as AppEdge;
 }
 
@@ -310,14 +314,17 @@ export async function POST(
 				!finalNodeIdSetFromState.has(edge.target)
 		);
 		if (invalidStateEdges.length > 0) {
-			console.warn('[history/revert] Dropping invalid edges from reverted state', {
-				mapId,
-				snapshotId: targetSnapshotId,
-				eventId: eventId ?? null,
-				droppedEdgeIds: invalidStateEdges
-					.map((edge) => edge?.id)
-					.filter((id): id is string => typeof id === 'string'),
-			});
+			console.warn(
+				'[history/revert] Dropping invalid edges from reverted state',
+				{
+					mapId,
+					snapshotId: targetSnapshotId,
+					eventId: eventId ?? null,
+					droppedEdgeIds: invalidStateEdges
+						.map((edge) => edge?.id)
+						.filter((id): id is string => typeof id === 'string'),
+				}
+			);
 			finalEdges = finalEdges.filter(
 				(edge) =>
 					finalNodeIdSetFromState.has(edge.source) &&
@@ -333,20 +340,20 @@ export async function POST(
 		const [
 			{ data: dbNodes, error: nodesLoadError },
 			{ data: dbEdges, error: edgesLoadError },
-			] = await Promise.all([
-				adminClient
-					.from('nodes')
-					.select(
-						'id, user_id, content, position_x, position_y, width, height, node_type, metadata, aiData, parent_id, created_at, updated_at'
-					)
-					.eq('map_id', mapId),
-				adminClient
-					.from('edges')
-					.select(
-						'id, user_id, source, target, label, type, animated, style, markerEnd, markerStart, metadata, aiData, created_at, updated_at'
-					)
-					.eq('map_id', mapId),
-			]);
+		] = await Promise.all([
+			adminClient
+				.from('nodes')
+				.select(
+					'id, user_id, content, position_x, position_y, width, height, node_type, metadata, aiData, parent_id, created_at, updated_at'
+				)
+				.eq('map_id', mapId),
+			adminClient
+				.from('edges')
+				.select(
+					'id, user_id, source, target, label, type, animated, style, markerEnd, markerStart, metadata, aiData, created_at, updated_at'
+				)
+				.eq('map_id', mapId),
+		]);
 
 		if (nodesLoadError || edgesLoadError) {
 			console.error('Failed to load current DB state before revert', {
@@ -362,92 +369,92 @@ export async function POST(
 		const dbNodeMap = new Map((dbNodes || []).map((n: any) => [n.id, n]));
 		const dbEdgeMap = new Map((dbEdges || []).map((e: any) => [e.id, e]));
 
-			// Helpers to transform final state nodes/edges into DB rows
-			const toNodeRow = (node: AppNode) => {
-				const nodeRecord = node as unknown as Record<string, unknown>;
-				const nodeData = toRecord(nodeRecord.data) ?? {};
-				const position = toRecord(nodeRecord.position) ?? {};
-				const measured = toRecord(nodeRecord.measured) ?? {};
-				const parentNode = toRecord(nodeRecord.parentNode);
+		// Helpers to transform final state nodes/edges into DB rows
+		const toNodeRow = (node: AppNode) => {
+			const nodeRecord = node as unknown as Record<string, unknown>;
+			const nodeData = toRecord(nodeRecord.data) ?? {};
+			const position = toRecord(nodeRecord.position) ?? {};
+			const measured = toRecord(nodeRecord.measured) ?? {};
+			const parentNode = toRecord(nodeRecord.parentNode);
 
-				const positionX =
-					toNumberOrNull(position.x) ?? toNumberOrNull(nodeData.position_x) ?? 0;
-				const positionY =
-					toNumberOrNull(position.y) ?? toNumberOrNull(nodeData.position_y) ?? 0;
-				const width =
-					toNumberOrNull(nodeRecord.width) ??
-					toNumberOrNull(measured.width) ??
-					toNumberOrNull(nodeData.width);
-				const height =
-					toNumberOrNull(nodeRecord.height) ??
-					toNumberOrNull(measured.height) ??
-					toNumberOrNull(nodeData.height);
-				const parentId =
-					toStringOrNull(nodeRecord.parentId) ??
-					toStringOrNull(nodeRecord.parentNode) ??
-					toStringOrNull(parentNode?.id) ??
-					toStringOrNull(nodeData.parent_id);
-				const nodeType =
-					toStringOrNull(nodeRecord.type) ??
-					toStringOrNull(nodeData.node_type) ??
-					'defaultNode';
+			const positionX =
+				toNumberOrNull(position.x) ?? toNumberOrNull(nodeData.position_x) ?? 0;
+			const positionY =
+				toNumberOrNull(position.y) ?? toNumberOrNull(nodeData.position_y) ?? 0;
+			const width =
+				toNumberOrNull(nodeRecord.width) ??
+				toNumberOrNull(measured.width) ??
+				toNumberOrNull(nodeData.width);
+			const height =
+				toNumberOrNull(nodeRecord.height) ??
+				toNumberOrNull(measured.height) ??
+				toNumberOrNull(nodeData.height);
+			const parentId =
+				toStringOrNull(nodeRecord.parentId) ??
+				toStringOrNull(nodeRecord.parentNode) ??
+				toStringOrNull(parentNode?.id) ??
+				toStringOrNull(nodeData.parent_id);
+			const nodeType =
+				toStringOrNull(nodeRecord.type) ??
+				toStringOrNull(nodeData.node_type) ??
+				'defaultNode';
 
-				return {
-					id: node.id,
-					map_id: mapId,
-					user_id: toStringOrNull(nodeData.user_id),
-					content: toStringOrNull(nodeData.content) ?? '',
-					position_x: positionX,
-					position_y: positionY,
-					width: width ?? null,
-					height: height ?? null,
-					node_type: nodeType,
-					metadata: toRecord(nodeData.metadata) ?? {},
-					aiData: toRecord(nodeData.aiData) ?? {},
-					parent_id: parentId ?? null,
-					created_at: toStringOrNull(nodeData.created_at),
-				};
+			return {
+				id: node.id,
+				map_id: mapId,
+				user_id: toStringOrNull(nodeData.user_id),
+				content: toStringOrNull(nodeData.content) ?? '',
+				position_x: positionX,
+				position_y: positionY,
+				width: width ?? null,
+				height: height ?? null,
+				node_type: nodeType,
+				metadata: toRecord(nodeData.metadata) ?? {},
+				aiData: toRecord(nodeData.aiData) ?? {},
+				parent_id: parentId ?? null,
+				created_at: toStringOrNull(nodeData.created_at),
 			};
+		};
 
-			const toEdgeRow = (edge: AppEdge) => {
-				const edgeRecord = edge as unknown as Record<string, unknown>;
-				const edgeData = toRecord(edgeRecord.data) ?? {};
-				const source =
-					toStringOrNull(edgeRecord.source) ?? toStringOrNull(edgeData.source);
-				const target =
-					toStringOrNull(edgeRecord.target) ?? toStringOrNull(edgeData.target);
-				const edgeType =
-					toStringOrNull(edgeRecord.type) ??
-					toStringOrNull(edgeData.type) ??
-					inferEdgeTypeFromData(edgeData);
+		const toEdgeRow = (edge: AppEdge) => {
+			const edgeRecord = edge as unknown as Record<string, unknown>;
+			const edgeData = toRecord(edgeRecord.data) ?? {};
+			const source =
+				toStringOrNull(edgeRecord.source) ?? toStringOrNull(edgeData.source);
+			const target =
+				toStringOrNull(edgeRecord.target) ?? toStringOrNull(edgeData.target);
+			const edgeType =
+				toStringOrNull(edgeRecord.type) ??
+				toStringOrNull(edgeData.type) ??
+				inferEdgeTypeFromData(edgeData);
 
-				return {
-					id: edge.id,
-					map_id: mapId,
-					user_id: toStringOrNull(edgeData.user_id),
-					source,
-					target,
-					label:
-						toStringOrNull(edgeRecord.label) ??
-						toStringOrNull(edgeData.label) ??
-						null,
-					type: edgeType,
-					animated:
-						toBooleanOrNull(edgeRecord.animated) ??
-						toBooleanOrNull(edgeData.animated) ??
-						false,
-					style: toRecord(edgeRecord.style) ?? toRecord(edgeData.style) ?? null,
-					markerEnd:
-						toTextOrNull(edgeRecord.markerEnd) ??
-						toTextOrNull(edgeData.markerEnd),
-					markerStart:
-						toTextOrNull(edgeRecord.markerStart) ??
-						toTextOrNull(edgeData.markerStart),
-					metadata: toRecord(edgeData.metadata) ?? {},
-					aiData: toRecord(edgeData.aiData) ?? {},
-					created_at: toStringOrNull(edgeData.created_at),
-				};
+			return {
+				id: edge.id,
+				map_id: mapId,
+				user_id: toStringOrNull(edgeData.user_id),
+				source,
+				target,
+				label:
+					toStringOrNull(edgeRecord.label) ??
+					toStringOrNull(edgeData.label) ??
+					null,
+				type: edgeType,
+				animated:
+					toBooleanOrNull(edgeRecord.animated) ??
+					toBooleanOrNull(edgeData.animated) ??
+					false,
+				style: toRecord(edgeRecord.style) ?? toRecord(edgeData.style) ?? null,
+				markerEnd:
+					toTextOrNull(edgeRecord.markerEnd) ??
+					toTextOrNull(edgeData.markerEnd),
+				markerStart:
+					toTextOrNull(edgeRecord.markerStart) ??
+					toTextOrNull(edgeData.markerStart),
+				metadata: toRecord(edgeData.metadata) ?? {},
+				aiData: toRecord(edgeData.aiData) ?? {},
+				created_at: toStringOrNull(edgeData.created_at),
 			};
+		};
 
 		const isEqual = (a: any, b: any) => {
 			// Compare primitive fields and JSON-like objects deterministically
@@ -505,76 +512,78 @@ export async function POST(
 			})
 			.filter(Boolean) as any[];
 
-			// 3) Compute diffs for edges
-			const finalEdgeRows = finalEdges.map(toEdgeRow);
-			const invalidFinalEdgeRows = finalEdgeRows.filter(
-				(row) =>
-					typeof row.source !== 'string' ||
-					row.source.length === 0 ||
-					typeof row.target !== 'string' ||
-					row.target.length === 0
+		// 3) Compute diffs for edges
+		const finalEdgeRows = finalEdges.map(toEdgeRow);
+		const invalidFinalEdgeRows = finalEdgeRows.filter(
+			(row) =>
+				typeof row.source !== 'string' ||
+				row.source.length === 0 ||
+				typeof row.target !== 'string' ||
+				row.target.length === 0
+		);
+		if (invalidFinalEdgeRows.length > 0) {
+			console.warn(
+				'[history/revert] Dropping reverted edges with invalid source/target',
+				{
+					mapId,
+					snapshotId: targetSnapshotId,
+					eventId: eventId ?? null,
+					droppedEdgeIds: invalidFinalEdgeRows.map((row) => row.id),
+				}
 			);
-			if (invalidFinalEdgeRows.length > 0) {
-				console.warn(
-					'[history/revert] Dropping reverted edges with invalid source/target',
-					{
-						mapId,
-						snapshotId: targetSnapshotId,
-						eventId: eventId ?? null,
-						droppedEdgeIds: invalidFinalEdgeRows.map((row) => row.id),
-					}
-				);
-			}
-			const validFinalEdgeRows = finalEdgeRows.filter(
-				(row): row is typeof row & { source: string; target: string } =>
-					typeof row.source === 'string' &&
-					row.source.length > 0 &&
-					typeof row.target === 'string' &&
-					row.target.length > 0
-			);
-			const validFinalEdgeIdSet = new Set(validFinalEdgeRows.map((row) => row.id));
-			finalEdges = finalEdges.filter((edge) => validFinalEdgeIdSet.has(edge.id));
-			const finalEdgeIdSet = new Set(validFinalEdgeRows.map((r) => r.id));
+		}
+		const validFinalEdgeRows = finalEdgeRows.filter(
+			(row): row is typeof row & { source: string; target: string } =>
+				typeof row.source === 'string' &&
+				row.source.length > 0 &&
+				typeof row.target === 'string' &&
+				row.target.length > 0
+		);
+		const validFinalEdgeIdSet = new Set(
+			validFinalEdgeRows.map((row) => row.id)
+		);
+		finalEdges = finalEdges.filter((edge) => validFinalEdgeIdSet.has(edge.id));
+		const finalEdgeIdSet = new Set(validFinalEdgeRows.map((r) => r.id));
 
 		const edgesToDelete = (dbEdges || [])
 			.filter((e: any) => !finalEdgeIdSet.has(e.id))
 			.map((e: any) => e.id);
 
-			let edgesToUpsert = validFinalEdgeRows
-				.map((row) => {
-					const existing = dbEdgeMap.get(row.id);
-					if (!existing) {
-						return {
-							...row,
+		let edgesToUpsert = validFinalEdgeRows
+			.map((row) => {
+				const existing = dbEdgeMap.get(row.id);
+				if (!existing) {
+					return {
+						...row,
 						user_id: row.user_id || user.id,
 						created_at: row.created_at || new Date().toISOString(),
 						updated_at: revertTimestamp,
 					};
 				}
-					const comparableExisting = {
-						source: existing.source,
-						target: existing.target,
-						label: existing.label || null,
-						type: existing.type || inferEdgeTypeFromData(existing),
-						animated: toBooleanOrNull(existing.animated) ?? false,
-						style: toRecord(existing.style) ?? null,
-						markerEnd: existing.markerEnd ?? null,
-						markerStart: existing.markerStart ?? null,
-						metadata: existing.metadata || {},
-						aiData: existing.aiData || {},
-					};
-					const comparableRow = {
-						source: row.source,
-						target: row.target,
-						label: row.label,
-						type: row.type,
-						animated: row.animated ?? false,
-						style: row.style ?? null,
-						markerEnd: row.markerEnd ?? null,
-						markerStart: row.markerStart ?? null,
-						metadata: row.metadata,
-						aiData: row.aiData,
-					};
+				const comparableExisting = {
+					source: existing.source,
+					target: existing.target,
+					label: existing.label || null,
+					type: existing.type || inferEdgeTypeFromData(existing),
+					animated: toBooleanOrNull(existing.animated) ?? false,
+					style: toRecord(existing.style) ?? null,
+					markerEnd: existing.markerEnd ?? null,
+					markerStart: existing.markerStart ?? null,
+					metadata: existing.metadata || {},
+					aiData: existing.aiData || {},
+				};
+				const comparableRow = {
+					source: row.source,
+					target: row.target,
+					label: row.label,
+					type: row.type,
+					animated: row.animated ?? false,
+					style: row.style ?? null,
+					markerEnd: row.markerEnd ?? null,
+					markerStart: row.markerStart ?? null,
+					metadata: row.metadata,
+					aiData: row.aiData,
+				};
 				if (isEqual(comparableExisting, comparableRow)) return null; // unchanged
 				return {
 					...row,
@@ -619,11 +628,12 @@ export async function POST(
 					)
 				);
 				if (referencedNodeIds.length > 0) {
-					const { data: presentNodes, error: presentNodesError } = await adminClient
-						.from('nodes')
-						.select('id')
-						.eq('map_id', mapId)
-						.in('id', referencedNodeIds);
+					const { data: presentNodes, error: presentNodesError } =
+						await adminClient
+							.from('nodes')
+							.select('id')
+							.eq('map_id', mapId)
+							.in('id', referencedNodeIds);
 					if (presentNodesError) throw presentNodesError;
 
 					const presentNodeIdSet = new Set(

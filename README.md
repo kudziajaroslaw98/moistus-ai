@@ -23,7 +23,7 @@ Shiko was created with a clear mission: to boost productivity and spark creativi
 - **AI-Powered Insights**: Generate map structures, summarize content, and extract key concepts
 - **Semantic Search**: Find relevant information across your knowledge base using natural language
 - **Custom Node Types**: Use specialized nodes for different types of information (tasks, questions, resources, annotations)
-- **Collaboration Tools**: Share and work together on mind maps (coming soon)
+- **Collaboration Tools**: Real-time sharing and presence powered by PartyKit + Yjs
 - **Responsive Design**: Access your mind maps from any device
 
 ## Technology Stack
@@ -49,6 +49,7 @@ Local development runs PartyKit locally while Supabase can stay cloud-hosted. Ke
 `pnpm party:dev` automatically sources `.env.local` before starting PartyKit.
 
 Minimum realtime env values:
+
 - `NEXT_PUBLIC_SUPABASE_URL=<your-supabase-url>`
 - `SUPABASE_SERVICE_ROLE=<service-role-key>`
 - `NEXT_PUBLIC_PARTYKIT_URL=127.0.0.1:1999`

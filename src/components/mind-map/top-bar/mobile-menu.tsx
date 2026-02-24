@@ -5,8 +5,8 @@ import { SidePanel } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
 import { type ActivityState } from '@/hooks/realtime/use-realtime-presence-room';
 import { getMindMapRoomName } from '@/lib/realtime/room-names';
-import { motion, useReducedMotion } from 'motion/react';
 import { History, Settings, Users } from 'lucide-react';
+import { motion, useReducedMotion } from 'motion/react';
 
 interface MobileMenuProps {
 	open: boolean;
@@ -79,9 +79,7 @@ export function MobileMenu({
 						className='space-y-3'
 						{...sectionAnimation}
 						transition={
-							shouldReduceMotion
-								? undefined
-								: { duration: 0.3, delay: 0.1 }
+							shouldReduceMotion ? undefined : { duration: 0.3, delay: 0.1 }
 						}
 					>
 						<h3 className='text-sm font-semibold text-text-primary flex items-center gap-2'>
@@ -123,7 +121,7 @@ export function MobileMenu({
 								className='w-full justify-start gap-3 h-10'
 							>
 								<Settings className='size-4' />
-								Map Settings
+								Open Settings
 							</Button>
 						</div>
 					</motion.section>

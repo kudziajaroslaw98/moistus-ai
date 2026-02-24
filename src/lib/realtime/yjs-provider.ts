@@ -176,7 +176,10 @@ function toPresenceMap(awareness: AwarenessLike): YjsPresenceMap {
 
 		const presence = rawPresence as Record<string, unknown>;
 		const key = String(presence.id ?? clientId);
-		presenceMap[key] = [presence];
+		if (!presenceMap[key]) {
+			presenceMap[key] = [];
+		}
+		presenceMap[key].push(presence);
 	}
 
 	return presenceMap;
@@ -257,11 +260,17 @@ function writeGraphMutationMeta(
 	context.meta.set('lastMutationEvent', options.event);
 	context.meta.set('lastMutationAt', new Date().toISOString());
 
-	if (typeof options.actorId === 'string' && options.actorId.trim().length > 0) {
+	if (
+		typeof options.actorId === 'string' &&
+		options.actorId.trim().length > 0
+	) {
 		context.meta.set('lastMutationBy', options.actorId.trim());
 	}
 
-	if (typeof options.timestampMs === 'number' && Number.isFinite(options.timestampMs)) {
+	if (
+		typeof options.timestampMs === 'number' &&
+		Number.isFinite(options.timestampMs)
+	) {
 		context.meta.set('lastMutationTimestamp', options.timestampMs);
 	}
 
@@ -577,7 +586,8 @@ export async function subscribeToYjsSyncEvents(
 	const MAX_RETAINED_EVENTS = 200;
 
 	const processNewEvents = () => {
-		let cursor = context.subscriberCursors.get(subscriberId) ?? context.events.length;
+		let cursor =
+			context.subscriberCursors.get(subscriberId) ?? context.events.length;
 		const length = context.events.length;
 		while (cursor < length) {
 			const envelope = context.events.get(cursor);
@@ -737,10 +747,13 @@ export function reconnectYjsRoomsForMap(mapId: string): string[] {
 	}
 
 	if (reconnectedRooms.length > 0) {
-		console.info('[yjs-provider] Reconnected map rooms after permission change', {
-			mapId,
-			reconnectedRooms,
-		});
+		console.info(
+			'[yjs-provider] Reconnected map rooms after permission change',
+			{
+				mapId,
+				reconnectedRooms,
+			}
+		);
 	}
 
 	return reconnectedRooms;

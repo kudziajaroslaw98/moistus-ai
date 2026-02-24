@@ -1,12 +1,12 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
+import { withAuthValidation } from '@/helpers/api/with-auth-validation';
+import { pushPartyKitCollaboratorEvent } from '@/helpers/partykit/admin';
 import {
 	fetchCollaboratorEntryByMapAndUser,
 	toErrorMessage,
 } from '@/helpers/partykit/collaborator-sync';
-import { pushPartyKitCollaboratorEvent } from '@/helpers/partykit/admin';
 import { normalizeDisplayName } from '@/helpers/sharing/join-identity';
 import { createServiceRoleClient } from '@/helpers/supabase/server';
-import { withAuthValidation } from '@/helpers/api/with-auth-validation';
 import { getMindMapRoomName } from '@/lib/realtime/room-names';
 import { z } from 'zod';
 
@@ -67,10 +67,15 @@ export const POST = withAuthValidation(
 			try {
 				const { error: profileUpdateError } = await supabase
 					.from('user_profiles')
-					.update({
-						display_name: normalizedDisplayName,
-					})
-					.eq('user_id', user.id);
+					.upsert(
+						{
+							user_id: user.id,
+							display_name: normalizedDisplayName,
+						},
+						{
+							onConflict: 'user_id',
+						}
+					);
 
 				if (profileUpdateError) {
 					console.warn(

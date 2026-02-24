@@ -11,6 +11,7 @@ const targetUserId = 'aaaaaaaa-1111-4111-8111-111111111111';
 
 describe('partykit admin helper', () => {
 	const originalEnv = process.env;
+	const originalFetch = globalThis.fetch;
 
 	beforeEach(() => {
 		jest.resetAllMocks();
@@ -24,6 +25,7 @@ describe('partykit admin helper', () => {
 
 	afterAll(() => {
 		process.env = originalEnv;
+		(globalThis as { fetch: typeof fetch }).fetch = originalFetch;
 	});
 
 	function mockResponse(status: number, body: string) {

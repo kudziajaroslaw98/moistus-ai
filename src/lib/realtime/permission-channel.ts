@@ -2,9 +2,9 @@
 
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import type {
-	PermissionEvent as SharedPermissionEvent,
 	PermissionRevokedEvent,
 	PermissionSnapshotOrUpdateEvent,
+	PermissionEvent as SharedPermissionEvent,
 } from '@/types/permission-events';
 import type { ShareRole } from '@/types/sharing-types';
 import { getMindMapRoomName } from './room-names';
@@ -24,7 +24,7 @@ export type PermissionChannelCallbacks = {
 };
 
 export type PermissionChannelSubscription = {
-	socket: WebSocket;
+	readonly socket: WebSocket | null;
 	disconnect: () => void;
 };
 
@@ -135,7 +135,10 @@ function isPermissionEvent(value: unknown): value is PermissionChannelEvent {
 	);
 }
 
-function buildPermissionChannelUrl(mapId: string, token: string | null): string {
+function buildPermissionChannelUrl(
+	mapId: string,
+	token: string | null
+): string {
 	const baseUrl = toPartyKitWsBaseUrl(process.env.NEXT_PUBLIC_PARTYKIT_URL);
 	const partyName = encodeURIComponent(getPartyKitPartyName());
 	const roomName = encodeURIComponent(getMindMapRoomName(mapId, 'permissions'));
@@ -183,9 +186,7 @@ export async function subscribeToPermissionChannel(
 					mapId,
 					attempt: reconnectAttempt,
 					error:
-						error instanceof Error
-							? error.message
-							: 'Unknown reconnect error',
+						error instanceof Error ? error.message : 'Unknown reconnect error',
 				});
 				scheduleReconnect();
 			});
@@ -264,19 +265,20 @@ export async function subscribeToPermissionChannel(
 	}
 
 	return {
-		socket: initialSocket,
+		get socket() {
+			return socket;
+		},
 		disconnect: () => {
 			isStopped = true;
 			clearReconnectTimer();
-			const currentSocket = socket;
-			socket = null;
 			if (
-				currentSocket &&
-				(currentSocket.readyState === WebSocket.OPEN ||
-					currentSocket.readyState === WebSocket.CONNECTING)
+				socket &&
+				(socket.readyState === WebSocket.OPEN ||
+					socket.readyState === WebSocket.CONNECTING)
 			) {
-				currentSocket.close(1000, 'client_unsubscribe');
+				socket.close(1000, 'client_unsubscribe');
 			}
+			socket = null;
 		},
 	};
 }

@@ -18,7 +18,10 @@ export type ParsedMindMapRoom = {
 };
 
 type JoseModule = typeof import('jose');
-const jwksByUrl = new Map<string, ReturnType<JoseModule['createRemoteJWKSet']>>();
+const jwksByUrl = new Map<
+	string,
+	ReturnType<JoseModule['createRemoteJWKSet']>
+>();
 let joseModulePromise: Promise<JoseModule> | null = null;
 
 async function getJoseModule(): Promise<JoseModule> {
@@ -28,7 +31,9 @@ async function getJoseModule(): Promise<JoseModule> {
 	return joseModulePromise;
 }
 
-async function getJwks(jwksUrl: string): Promise<ReturnType<JoseModule['createRemoteJWKSet']>> {
+async function getJwks(
+	jwksUrl: string
+): Promise<ReturnType<JoseModule['createRemoteJWKSet']>> {
 	let existing = jwksByUrl.get(jwksUrl);
 	if (existing) return existing;
 
@@ -93,9 +98,18 @@ export async function verifySupabaseJwt(
 function isSafeRoomSegment(segment: string): boolean {
 	if (segment.includes('\0')) return false;
 	if (segment.includes('..')) return false;
-	// eslint-disable-next-line no-control-regex
-	if (/[\x00-\x1f]/.test(segment)) return false;
+	for (let i = 0; i < segment.length; i += 1) {
+		if (segment.charCodeAt(i) <= 0x1f) return false;
+	}
 	return true;
+}
+
+function safeDecodeURIComponent(value: string): string | null {
+	try {
+		return decodeURIComponent(value);
+	} catch {
+		return null;
+	}
 }
 
 export function parseRoomNameFromRequest(
@@ -112,13 +126,13 @@ export function parseRoomNameFromRequest(
 
 	if (segments[0] === 'party') {
 		if (segments[2] && segments[2] !== 'admin') {
-			decoded = decodeURIComponent(segments[2]);
+			decoded = safeDecodeURIComponent(segments[2]);
 		} else if (segments[1]) {
-			decoded = decodeURIComponent(segments[1]);
+			decoded = safeDecodeURIComponent(segments[1]);
 		}
 	} else if (segments[0] === 'parties') {
 		if (segments[2]) {
-			decoded = decodeURIComponent(segments[2]);
+			decoded = safeDecodeURIComponent(segments[2]);
 		}
 	}
 

@@ -161,10 +161,12 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 						const actorId = getNodeActorId(node, currentUser?.id);
 						return serializeNodeForRealtime(node, mapId, actorId);
 					}),
-					edges: result.edges.map((edge) => {
-						const actorId = getEdgeActorId(edge, currentUser?.id);
-						return serializeEdgeForRealtime(edge, mapId, actorId);
-					}),
+					edges: result.edges
+						.map((edge) => {
+							const actorId = getEdgeActorId(edge, currentUser?.id);
+							return serializeEdgeForRealtime(edge, mapId, actorId);
+						})
+						.filter((edge): edge is Record<string, unknown> => edge !== null),
 				});
 				if (supabase) {
 					await Promise.all([
@@ -263,10 +265,12 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 						const actorId = getNodeActorId(node, currentUser?.id);
 						return serializeNodeForRealtime(node, mapId, actorId);
 					}),
-					edges: result.edges.map((edge) => {
-						const actorId = getEdgeActorId(edge, currentUser?.id);
-						return serializeEdgeForRealtime(edge, mapId, actorId);
-					}),
+					edges: result.edges
+						.map((edge) => {
+							const actorId = getEdgeActorId(edge, currentUser?.id);
+							return serializeEdgeForRealtime(edge, mapId, actorId);
+						})
+						.filter((edge): edge is Record<string, unknown> => edge !== null),
 				});
 				if (supabase) {
 					const affectedNodes = result.nodes.filter((n) =>
@@ -274,8 +278,7 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 					);
 					const affectedEdges = result.edges.filter(
 						(e) =>
-							selectedNodeIds.has(e.source) &&
-							selectedNodeIds.has(e.target)
+							selectedNodeIds.has(e.source) && selectedNodeIds.has(e.target)
 					);
 					await Promise.all([
 						batchUpdateNodePositions(affectedNodes, supabase, mapId),

@@ -75,6 +75,10 @@ describe('graph-sync helpers', () => {
 			'11111111-2222-3333-4444-555555555555',
 			'user-2'
 		);
+		expect(payload).not.toBeNull();
+		if (!payload) {
+			throw new Error('Expected edge payload to serialize');
+		}
 
 		expect(payload.id).toBe('edge-1');
 		expect(payload.map_id).toBe('11111111-2222-3333-4444-555555555555');

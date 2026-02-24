@@ -1,5 +1,5 @@
-import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { canUserWriteComments } from '@/helpers/api/comment-permissions';
+import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { createClient } from '@/helpers/supabase/server';
 import { z } from 'zod';
 
@@ -57,18 +57,10 @@ export async function GET(
 				return respondError('Comment not found.', 404, 'Comment not found.');
 			}
 
-			return respondError(
-				'Error fetching comment.',
-				500,
-				fetchError.message
-			);
+			return respondError('Error fetching comment.', 500, fetchError.message);
 		}
 
-		return respondSuccess(
-			{ comment },
-			200,
-			'Comment fetched successfully.'
-		);
+		return respondSuccess({ comment }, 200, 'Comment fetched successfully.');
 	} catch (error) {
 		console.error('Error in GET /api/comments/[id]:', error);
 		return respondError(
@@ -132,11 +124,20 @@ export async function PUT(
 			.eq('id', commentId)
 			.maybeSingle();
 
-		if (commentError || !comment) {
+		if (commentError) {
+			console.error('Error fetching comment for update:', commentError);
+			return respondError('Error fetching comment.', 500, commentError.message);
+		}
+
+		if (!comment) {
 			return respondError('Comment not found.', 404, 'Comment not found.');
 		}
 
-		const permission = await canUserWriteComments(supabase, comment.map_id, user.id);
+		const permission = await canUserWriteComments(
+			supabase,
+			comment.map_id,
+			user.id
+		);
 		if (!permission.allowed) {
 			return respondError(
 				'Access denied.',
@@ -168,11 +169,7 @@ export async function PUT(
 				);
 			}
 
-			return respondError(
-				'Error updating comment.',
-				500,
-				updateError.message
-			);
+			return respondError('Error updating comment.', 500, updateError.message);
 		}
 
 		return respondSuccess(
@@ -223,11 +220,20 @@ export async function DELETE(
 			.eq('id', commentId)
 			.maybeSingle();
 
-		if (commentError || !comment) {
+		if (commentError) {
+			console.error('Error fetching comment for delete:', commentError);
+			return respondError('Error fetching comment.', 500, commentError.message);
+		}
+
+		if (!comment) {
 			return respondError('Comment not found.', 404, 'Comment not found.');
 		}
 
-		const permission = await canUserWriteComments(supabase, comment.map_id, user.id);
+		const permission = await canUserWriteComments(
+			supabase,
+			comment.map_id,
+			user.id
+		);
 		if (!permission.allowed) {
 			return respondError(
 				'Access denied.',

@@ -127,7 +127,11 @@ export async function POST(req: Request) {
 		}
 
 		// Check AI quota
-		const { allowed, isPro: hasProAccess, error: quotaError } = await checkAIQuota(user, supabase);
+		const {
+			allowed,
+			isPro: hasProAccess,
+			error: quotaError,
+		} = await checkAIQuota(user, supabase);
 		if (!allowed && quotaError) {
 			return quotaError;
 		}
@@ -400,7 +404,14 @@ export async function POST(req: Request) {
 						});
 
 						// Track usage (no-ops for Pro)
-						await trackAIUsage(user, supabase, hasProAccess);
+						void trackAIUsage(user, supabase, hasProAccess).catch(
+							(trackingError) => {
+								console.warn(
+									'Failed to track AI suggestions usage:',
+									trackingError
+								);
+							}
+						);
 
 						writer.write({
 							type: 'finish',

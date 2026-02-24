@@ -1,9 +1,9 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
+import { withApiValidation } from '@/helpers/api/with-api-validation';
 import {
 	checkAIQuota,
 	trackAIUsage,
 } from '@/helpers/api/with-subscription-check';
-import { withApiValidation } from '@/helpers/api/with-api-validation';
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { z } from 'zod';
@@ -115,7 +115,11 @@ export const POST = withApiValidation(
 			);
 
 			// Track usage (no-ops for Pro)
-			await trackAIUsage(user, supabase, isPro);
+			try {
+				await trackAIUsage(user, supabase, isPro);
+			} catch (trackingError) {
+				console.warn('Failed to track AI search usage:', trackingError);
+			}
 
 			return respondSuccess(
 				{ relevantNodeIds: validRelevantNodeIds },

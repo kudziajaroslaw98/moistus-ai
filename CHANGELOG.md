@@ -43,6 +43,30 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Prevents callers from reading closed socket references after reconnect
 - **realtime/yjs-provider**: Sync-event pruning now tracks per-subscriber cursors and only prunes events all subscribers consumed
   - Why: Prevents slow subscribers from missing events due to shared-array index shifts
+- **toasts/mobile-width**: Added fallback for mobile right offset (`--mobile-offset-right` -> `--toast-offset-inline`) in Sonner right-positioned toaster rule
+  - Why: Prevents unresolved CSS vars from collapsing right positioning to `auto` on small screens
+- **context-menu/groups**: Group detection now reuses canonical `isGroupNode` plus legacy heuristics; duplicate Ungroup menu entries are suppressed when selected-node menu already exposes Ungroup
+  - Why: Keeps group detection centralized and avoids duplicate actions on right-clicked selected group nodes
+- **mind-map/mobile-selection**: Mobile tap multi-select node click now stops event propagation/default handling before local selection updates
+  - Why: Prevents React Flow internal click selection from racing store-driven selection state
+- **api/ai-streams**: `trackAIUsage` calls in suggest-connections/suggestions streams now run fire-and-forget with error swallowing; `search-nodes` tracking failures no longer fail successful responses
+  - Why: Usage telemetry failures should not break streamed or successful AI outputs
+- **api/comments**: Comment lookup errors in update/delete flows now return 500 with DB error details; only missing rows return 404
+  - Why: Distinguishes backend/data failures from true not-found cases
+- **api/share/join-room**: `user_profiles` display-name persistence now uses `upsert(..., { onConflict: 'user_id' })`
+  - Why: Ensures first-time profiles are created instead of silently no-op updates
+- **partykit/auth**: Replaced control-character regex with char-code scan and wrapped request-path URI decoding in safe decode helper
+  - Why: Removes lint suppression and prevents malformed percent-encoding from throwing request-time exceptions
+- **realtime/graph-sync**: Edge serialization now skips and logs edges missing `source`/`target`; callers filter/guard null payloads before Yjs broadcasts/upserts
+  - Why: Prevents invalid edge payloads from being emitted with empty endpoints
+- **realtime/permission-channel**: Subscription now exposes live `socket` getter and disconnect closes the current socket reference
+  - Why: Keeps caller-visible socket aligned with reconnect lifecycle
+- **realtime/yjs-presence**: Presence map conversion now accumulates multiple presences per user key instead of overwriting with the last client
+  - Why: Preserves multi-client presence for same logical user id
+- **tests/realtime-fetch-mocks**: PartyKit sharing/admin tests now restore `globalThis.fetch` after suites/tests
+  - Why: Prevents fetch mock leakage into unrelated test files
+- **history/revert typing**: Replaced `normalizedData as any` with `normalizedData as EdgeData` in edge canonicalization
+  - Why: Removes unsafe `any` cast in revert payload construction
 
 ### Changed
 
@@ -54,6 +78,10 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Locks in precedence and fallback behavior for collaborator naming/avatar consistency
 - **types/permissions**: Moved permission channel event interfaces from app-state to `src/types/permission-events.ts` and consumed shared types in realtime/store modules
   - Why: Centralizes permission event contracts for reuse and consistent typing
+- **docs/readme**: Updated collaboration feature text to reflect shipped PartyKit/Yjs sharing and presence support
+  - Why: Removes stale “coming soon” wording for implemented realtime collaboration
+- **top-bar/mobile-menu**: Restored action-oriented settings CTA label (`Open Settings`)
+  - Why: Clarifies that the button opens settings instead of duplicating the section heading
 
 ## [2026-02-23]
 

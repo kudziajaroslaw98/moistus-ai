@@ -109,7 +109,6 @@ test.describe('Mobile Toolbar', () => {
 		await expect.poll(() => mindMapPage.getSelectedNodeCount()).toBe(0);
 
 		// If mode remains enabled, two taps should again produce two selected nodes.
-		await toolbarPage.setTapMultiSelectMode(true);
 		await mindMapPage.getAllNodes().nth(0).click({ force: true });
 		await mindMapPage.getAllNodes().nth(1).click({ force: true });
 		await expect.poll(() => mindMapPage.getSelectedNodeCount()).toBe(2);

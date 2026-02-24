@@ -87,7 +87,11 @@ export async function POST(req: Request) {
 		}
 
 		// Check AI quota
-		const { allowed, isPro: hasProAccess, error: quotaError } = await checkAIQuota(user, supabase);
+		const {
+			allowed,
+			isPro: hasProAccess,
+			error: quotaError,
+		} = await checkAIQuota(user, supabase);
 		if (!allowed && quotaError) {
 			return quotaError;
 		}
@@ -317,7 +321,14 @@ ${formattedContext}`;
 						});
 
 						// Track usage (no-ops for Pro)
-						await trackAIUsage(user, supabase, hasProAccess);
+						void trackAIUsage(user, supabase, hasProAccess).catch(
+							(trackingError) => {
+								console.warn(
+									'Failed to track AI suggest-connections usage:',
+									trackingError
+								);
+							}
+						);
 
 						writer.write({
 							type: 'finish',

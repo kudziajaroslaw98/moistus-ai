@@ -155,9 +155,12 @@ function mockJsonResponse(body: unknown, status = 200): Response {
 }
 
 describe('PartyKit sharing realtime channel', () => {
+	const originalFetch = (globalThis as { fetch?: typeof fetch }).fetch;
+
 	beforeAll(() => {
 		if (
-			typeof (globalThis as { TextEncoder?: unknown }).TextEncoder === 'undefined'
+			typeof (globalThis as { TextEncoder?: unknown }).TextEncoder ===
+			'undefined'
 		) {
 			Object.defineProperty(globalThis, 'TextEncoder', {
 				value: require('util').TextEncoder,
@@ -183,6 +186,14 @@ describe('PartyKit sharing realtime channel', () => {
 		jest.resetAllMocks();
 	});
 
+	afterEach(() => {
+		if (originalFetch) {
+			(globalThis as { fetch: typeof fetch }).fetch = originalFetch;
+		} else {
+			delete (globalThis as { fetch?: typeof fetch }).fetch;
+		}
+	});
+
 	it('closes non-owner sharing connections with owner_only', async () => {
 		const harness = createSharingHarness();
 
@@ -201,34 +212,35 @@ describe('PartyKit sharing realtime channel', () => {
 			{ request } as never
 		);
 
-		expect(harness.otherConnection.close).toHaveBeenCalledWith(4403, 'owner_only');
+		expect(harness.otherConnection.close).toHaveBeenCalledWith(
+			4403,
+			'owner_only'
+		);
 		expect(harness.otherConnection.send).not.toHaveBeenCalled();
 	});
 
 	it('sends sharing snapshot to owner on connect', async () => {
-		(globalThis as { fetch: typeof fetch }).fetch = jest
-			.fn()
-			.mockResolvedValue(
-				mockJsonResponse([
-					{
-						id: 42,
-						map_id: mapId,
-						user_id: otherUserId,
-						role: 'viewer',
-						can_view: true,
-						can_comment: false,
-						can_edit: false,
-						display_name: 'Other User',
-						full_name: 'Other User',
-						email: 'other@example.com',
-						avatar_url: null,
-						is_anonymous: false,
-						created_at: '2026-02-24T00:00:00.000Z',
-						updated_at: '2026-02-24T00:00:00.000Z',
-						status: 'active',
-					},
-				])
-			) as never;
+		(globalThis as { fetch: typeof fetch }).fetch = jest.fn().mockResolvedValue(
+			mockJsonResponse([
+				{
+					id: 42,
+					map_id: mapId,
+					user_id: otherUserId,
+					role: 'viewer',
+					can_view: true,
+					can_comment: false,
+					can_edit: false,
+					display_name: 'Other User',
+					full_name: 'Other User',
+					email: 'other@example.com',
+					avatar_url: null,
+					is_anonymous: false,
+					created_at: '2026-02-24T00:00:00.000Z',
+					updated_at: '2026-02-24T00:00:00.000Z',
+					status: 'active',
+				},
+			])
+		) as never;
 
 		const harness = createSharingHarness();
 		const request = createMockRequest(

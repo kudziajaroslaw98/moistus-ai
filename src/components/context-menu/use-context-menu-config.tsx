@@ -1,4 +1,5 @@
 'use client';
+import { isGroupNode } from '@/components/nodes/core/types';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import type { NodeEditorOptions } from '@/store/app-state';
 import useAppStore from '@/store/mind-map-store';
@@ -39,12 +40,10 @@ type GroupDetectionNode = {
 	data?: {
 		node_type?: string;
 		nodeType?: string;
-		metadata?:
-			| {
-					isGroup?: boolean | string;
-					groupChildren?: unknown;
-			  }
-			| null;
+		metadata?: {
+			isGroup?: boolean | string;
+			groupChildren?: unknown;
+		} | null;
 	};
 };
 
@@ -52,12 +51,15 @@ function isGroupLikeNode(node?: GroupDetectionNode | null): boolean {
 	if (!node) return false;
 
 	const groupChildren = node.data?.metadata?.groupChildren;
+	const matchesCanonicalGroupNode = isGroupNode(
+		node as Parameters<typeof isGroupNode>[0]
+	);
 
 	return (
-		node.type === 'groupNode' ||
-		node.data?.node_type === 'groupNode' ||
+		matchesCanonicalGroupNode ||
 		node.data?.nodeType === 'groupNode' ||
 		node.data?.metadata?.isGroup === true ||
+		// Legacy metadata can persist boolean flags as strings.
 		node.data?.metadata?.isGroup === 'true' ||
 		Array.isArray(groupChildren)
 	);
@@ -81,6 +83,7 @@ interface BuildNodeMenuParams {
 		suggestCounterpoints?: () => void;
 	};
 	canEdit: boolean;
+	suppressUngroupAction?: boolean;
 }
 
 function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
@@ -96,10 +99,11 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 		onClose,
 		aiActions,
 		canEdit,
+		suppressUngroupAction = false,
 	} = params;
 
 	const clickedNodeData = clickedNode.data;
-	const isGroupNode = isGroupLikeNode(clickedNode);
+	const isGroup = isGroupLikeNode(clickedNode);
 
 	return [
 		{
@@ -183,7 +187,7 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 						ungroupNodes(clickedNode.id);
 						onClose();
 					},
-					hidden: !isGroupNode || !canEdit,
+					hidden: suppressUngroupAction || !isGroup || !canEdit,
 				},
 			],
 		},
@@ -558,6 +562,9 @@ export function useContextMenuConfig({
 				onClose,
 				canEdit,
 			});
+			const selectedMenuIncludesUngroup = selectedActionsMenu.some((section) =>
+				section.items.some((item) => item.id === 'ungroup' && !item.hidden)
+			);
 
 			const nodeMenu = buildNodeMenu({
 				clickedNode,
@@ -571,6 +578,12 @@ export function useContextMenuConfig({
 				onClose,
 				aiActions,
 				canEdit,
+				suppressUngroupAction:
+					canEdit &&
+					selectedMenuIncludesUngroup &&
+					selectedNodes.some(
+						(selectedNode) => selectedNode.id === clickedNode.id
+					),
 			});
 
 			return [...selectedActionsMenu, ...nodeMenu];

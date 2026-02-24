@@ -26,7 +26,6 @@ import { NodesTableType } from '@/types/nodes-table-type';
 import type { CreateNodeWithEdgeResponse } from '@/types/rpc-responses';
 import { debouncePerKey } from '@/utils/debounce-per-key';
 import { applyNodeChanges, XYPosition } from '@xyflow/react';
-import { toast } from 'sonner';
 import type { StateCreator } from 'zustand';
 import type { AppState, NodesSlice } from '../app-state';
 
@@ -57,7 +56,10 @@ function getNodeHeight(node: AppNode): number | null {
 	return null;
 }
 
-function hasMeaningfulNodeDifference(previous: AppNode, next: AppNode): boolean {
+function hasMeaningfulNodeDifference(
+	previous: AppNode,
+	next: AppNode
+): boolean {
 	if ((previous.type || 'defaultNode') !== (next.type || 'defaultNode')) {
 		return true;
 	}
@@ -86,7 +88,10 @@ function hasMeaningfulNodeDifference(previous: AppNode, next: AppNode): boolean 
 	return stableStringify(previousData) !== stableStringify(nextData);
 }
 
-function hasMeaningfulPositionChange(previous: AppNode, next: AppNode): boolean {
+function hasMeaningfulPositionChange(
+	previous: AppNode,
+	next: AppNode
+): boolean {
 	return (
 		toPgReal(previous.position.x) !== toPgReal(next.position.x) ||
 		toPgReal(previous.position.y) !== toPgReal(next.position.y)
@@ -191,9 +196,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 
 			if (!node || !node.data) {
 				console.error(`Node with id ${nodeId} not found or has invalid data`);
-				throw new Error(
-					`Node with id ${nodeId} not found or has invalid data`
-				);
+				throw new Error(`Node with id ${nodeId} not found or has invalid data`);
 			}
 
 			if (!mapId) {
@@ -707,15 +710,17 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 						edgeEventUserId
 					);
 
-					try {
-						await broadcast(mapId, BROADCAST_EVENTS.EDGE_CREATE, {
-							id: optimisticFlowEdge.id,
-							data: edgeRealtimeData,
-							userId: edgeEventUserId,
-							timestamp: Date.now(),
-						});
-					} catch (error) {
-						console.warn('[nodes] Failed to sync Yjs edge create:', error);
+					if (edgeRealtimeData) {
+						try {
+							await broadcast(mapId, BROADCAST_EVENTS.EDGE_CREATE, {
+								id: optimisticFlowEdge.id,
+								data: edgeRealtimeData,
+								userId: edgeEventUserId,
+								timestamp: Date.now(),
+							});
+						} catch (error) {
+							console.warn('[nodes] Failed to sync Yjs edge create:', error);
+						}
 					}
 				}
 
@@ -951,8 +956,12 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				const nodeIdsToDelete = new Set(nodesToDelete.map((node) => node.id));
 				const edgeIdsToDelete = new Set(edgesToDelete.map((edge) => edge.id));
 
-				const finalNodes = allNodes.filter((node) => !nodeIdsToDelete.has(node.id));
-				const finalEdges = edges.filter((edge) => !edgeIdsToDelete.has(edge.id));
+				const finalNodes = allNodes.filter(
+					(node) => !nodeIdsToDelete.has(node.id)
+				);
+				const finalEdges = edges.filter(
+					(edge) => !edgeIdsToDelete.has(edge.id)
+				);
 
 				set({
 					nodes: finalNodes,
@@ -1015,11 +1024,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 
 					for (const node of nodesToDelete) {
 						const eventUserId = getNodeActorId(node, user_id);
-						const nodeData = serializeNodeForRealtime(
-							node,
-							mapId,
-							eventUserId
-						);
+						const nodeData = serializeNodeForRealtime(node, mapId, eventUserId);
 						try {
 							await broadcast(mapId, BROADCAST_EVENTS.NODE_CREATE, {
 								id: node.id,
@@ -1037,23 +1042,21 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 
 					for (const edge of edgesToDelete) {
 						const eventUserId = getEdgeActorId(edge, user_id);
-						const edgeData = serializeEdgeForRealtime(
-							edge,
-							mapId,
-							eventUserId
-						);
-						try {
-							await broadcast(mapId, BROADCAST_EVENTS.EDGE_CREATE, {
-								id: edge.id,
-								data: edgeData,
-								userId: eventUserId,
-								timestamp: Date.now(),
-							});
-						} catch (error) {
-							console.warn(
-								'[nodes] Failed to rollback Yjs edge delete after DB error:',
-								error
-							);
+						const edgeData = serializeEdgeForRealtime(edge, mapId, eventUserId);
+						if (edgeData) {
+							try {
+								await broadcast(mapId, BROADCAST_EVENTS.EDGE_CREATE, {
+									id: edge.id,
+									data: edgeData,
+									userId: eventUserId,
+									timestamp: Date.now(),
+								});
+							} catch (error) {
+								console.warn(
+									'[nodes] Failed to rollback Yjs edge delete after DB error:',
+									error
+								);
+							}
 						}
 					}
 

@@ -461,17 +461,19 @@ export const Toolbar = ({
 		if (tool.id === 'present') {
 			return (
 				<DropdownMenu key={tool.id}>
-					<DropdownMenuTrigger asChild>
-						<Button
-							className='active:scale-95'
-							size='icon'
-							title='Guided Tour'
-							variant='secondary'
-							disabled={nodes.length === 0}
-						>
-							<Play className='size-4' />
-						</Button>
-					</DropdownMenuTrigger>
+					<DropdownMenuTrigger
+						render={
+							<Button
+								className='active:scale-95'
+								size='icon'
+								title='Guided Tour'
+								variant='secondary'
+								disabled={nodes.length === 0}
+							>
+								<Play className='size-4' />
+							</Button>
+						}
+					/>
 					<DropdownMenuContent align='start' className='w-48'>
 						{renderTourMenuContent()}
 					</DropdownMenuContent>

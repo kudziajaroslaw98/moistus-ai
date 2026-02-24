@@ -1,9 +1,9 @@
+import { asNonEmptyString } from '@/lib/realtime/util';
 import { AvailableNodeTypes } from '@/registry/node-registry';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import type { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';
-import { asNonEmptyString } from '@/lib/realtime/util';
 
 export function toPgReal(value: number): number {
 	if (!Number.isFinite(value)) return 0;
@@ -76,17 +76,30 @@ export function serializeEdgeForRealtime(
 	edge: AppEdge,
 	mapId: string,
 	userId: string
-): Record<string, unknown> {
+): Record<string, unknown> | null {
 	const edgeData = (edge.data ?? {}) as Partial<EdgeData>;
 	const stableEdgeUserId = asNonEmptyString(edgeData.user_id) ?? userId;
+	const source = asNonEmptyString(edge.source);
+	const target = asNonEmptyString(edge.target);
+
+	if (!source || !target) {
+		console.warn('[graph-sync] Skipping edge realtime serialization', {
+			mapId,
+			edgeId: edge.id,
+			label: edgeData.label ?? edge.label ?? null,
+			source: edge.source ?? null,
+			target: edge.target ?? null,
+		});
+		return null;
+	}
 
 	return {
 		...edgeData,
 		id: edge.id,
 		map_id: mapId,
 		user_id: stableEdgeUserId,
-		source: edge.source || '',
-		target: edge.target || '',
+		source,
+		target,
 		label: edgeData.label ?? edge.label ?? null,
 		markerEnd: edgeData.markerEnd ?? edge.markerEnd ?? null,
 		markerStart: edgeData.markerStart ?? null,

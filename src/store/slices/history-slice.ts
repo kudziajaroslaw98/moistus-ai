@@ -95,11 +95,17 @@ export const createHistorySlice: StateCreator<
 		try {
 			// Clean up any existing subscription before creating a new one
 			const existingSub = get()._historyCurrentSubscription;
-			if (existingSub && typeof (existingSub as any).unsubscribe === 'function') {
+			if (
+				existingSub &&
+				typeof (existingSub as any).unsubscribe === 'function'
+			) {
 				try {
 					await (existingSub as any).unsubscribe();
 				} catch (e) {
-					console.warn('[broadcast] Failed to unsubscribe previous history subscription:', e);
+					console.warn(
+						'[broadcast] Failed to unsubscribe previous history subscription:',
+						e
+					);
 				}
 				set({ _historyCurrentSubscription: null });
 			}
@@ -107,11 +113,7 @@ export const createHistorySlice: StateCreator<
 			// Use secure broadcast channel instead of postgres_changes
 			// This provides RLS-protected real-time sync via private channels
 			const handleHistoryRevert = async (payload: HistoryRevertPayload) => {
-				const {
-					currentUser,
-					popoverOpen,
-					loadHistoryFromDB,
-				} = get();
+				const { currentUser, popoverOpen, loadHistoryFromDB } = get();
 
 				// Ignore our own broadcasts
 				if (payload.userId === currentUser?.id) return;
@@ -133,7 +135,6 @@ export const createHistorySlice: StateCreator<
 					unsubscribe: cleanup,
 				},
 			});
-
 		} catch (e) {
 			console.error('[broadcast] Failed to subscribe to history events:', e);
 		} finally {
@@ -146,12 +147,17 @@ export const createHistorySlice: StateCreator<
 		if (_historyCurrentSubscription) {
 			try {
 				// Call cleanup function (decrements ref count, unsubscribes when count reaches 0)
-				if (typeof (_historyCurrentSubscription as any).unsubscribe === 'function') {
+				if (
+					typeof (_historyCurrentSubscription as any).unsubscribe === 'function'
+				) {
 					await (_historyCurrentSubscription as any).unsubscribe();
 				}
 				set({ _historyCurrentSubscription: null });
 			} catch (e) {
-				console.error('[broadcast] Failed to unsubscribe from history events:', e);
+				console.error(
+					'[broadcast] Failed to unsubscribe from history events:',
+					e
+				);
 			}
 		}
 	},
@@ -400,10 +406,12 @@ export const createHistorySlice: StateCreator<
 						const nodeActorId = getNodeActorId(node, actorId);
 						return serializeNodeForRealtime(node, mapId, nodeActorId);
 					}),
-					edges: revertedEdges.map((edge) => {
-						const edgeActorId = getEdgeActorId(edge, actorId);
-						return serializeEdgeForRealtime(edge, mapId, edgeActorId);
-					}),
+					edges: revertedEdges
+						.map((edge) => {
+							const edgeActorId = getEdgeActorId(edge, actorId);
+							return serializeEdgeForRealtime(edge, mapId, edgeActorId);
+						})
+						.filter((edge): edge is Record<string, unknown> => edge !== null),
 				});
 
 				await broadcast(mapId, BROADCAST_EVENTS.HISTORY_REVERT, {
