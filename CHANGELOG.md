@@ -93,6 +93,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Eliminates known high/moderate dependency vulnerabilities while keeping the existing app/runtime surface unchanged
 - **partykit/env-hardening**: PartyKit now trims/unquotes env values and emits one-time warnings when `SUPABASE_URL` vs `NEXT_PUBLIC_SUPABASE_URL` or `SUPABASE_SERVICE_ROLE` vs `SUPABASE_SERVICE_ROLE_KEY` conflict
   - Why: Prevents hard-to-diagnose 401 "Invalid API key" failures caused by quoted secrets or stale shadowed env vars in deployment
+- **partykit/ws-auth**: Realtime websocket auth now falls back to Supabase `/auth/v1/user` validation when JWKS-based JWT verification fails; connect denials now log explicit rejection/access-denied context
+  - Why: Recovers from issuer/JWKS configuration drift in production and makes websocket handshake failures diagnosable from PartyKit tail logs
 
 ### Changed
 
