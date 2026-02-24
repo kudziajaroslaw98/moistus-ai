@@ -33,7 +33,7 @@ import { useShallow } from 'zustand/shallow';
 import { AIActionsPopover } from './ai/ai-actions-popover';
 import { ExportDropdown, ExportMenuContent } from './toolbar/export-dropdown';
 import { LayoutDropdown, LayoutMenuContent } from './toolbar/layout-dropdown';
-import { Button } from './ui/button';
+import { Button, type ButtonProps } from './ui/button';
 import {
 	DropdownMenu,
 	DropdownMenuCheckboxItem,
@@ -54,7 +54,7 @@ const ENABLE_AI_CHAT = process.env.NEXT_PUBLIC_ENABLE_AI_CHAT === 'true';
 
 interface ToolButton {
 	id: Tool | `separator-${number}`;
-	icon: React.ReactNode;
+	icon: ReactNode;
 	label: string | null;
 }
 
@@ -586,16 +586,30 @@ export const Toolbar = ({
 			>
 				{/* Cursor Mode Dropdown */}
 				<DropdownMenu>
-					<DropdownMenuTrigger asChild>
-						<Button
-							className='active:scale-95'
-							size='icon'
-							title={currentCursorTool.label}
-							variant='default'
-						>
-							{currentCursorTool.icon}
-						</Button>
-					</DropdownMenuTrigger>
+					<DropdownMenuTrigger
+						render={(triggerProps) => {
+							const buttonTriggerProps = triggerProps as unknown as Omit<
+								ButtonProps,
+								| 'children'
+								| 'className'
+								| 'size'
+								| 'title'
+								| 'variant'
+								| 'data-testid'
+							>;
+							return (
+								<Button
+									{...buttonTriggerProps}
+									className={cn('active:scale-95', triggerProps.className)}
+									size='icon'
+									title={currentCursorTool.label}
+									variant='default'
+								>
+									{currentCursorTool.icon}
+								</Button>
+							);
+						}}
+					/>
 					<DropdownMenuContent align='start'>
 						<DropdownMenuRadioGroup
 							onValueChange={(val) => setActiveTool(val as Tool)}
@@ -640,17 +654,26 @@ export const Toolbar = ({
 
 				{isMobile && mobileOverflowTools.length > 0 && (
 					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button
-								className='active:scale-95'
-								size='icon'
-								title='More Tools'
-								variant='secondary'
-								data-testid='toolbar-more-button'
-							>
-								<Ellipsis className='size-4' />
-							</Button>
-						</DropdownMenuTrigger>
+						<DropdownMenuTrigger
+							render={(triggerProps) => {
+								const buttonTriggerProps = triggerProps as unknown as Omit<
+									ButtonProps,
+									'children' | 'className' | 'size' | 'title' | 'variant'
+								>;
+								return (
+									<Button
+										{...buttonTriggerProps}
+										className={cn('active:scale-95', triggerProps.className)}
+										size='icon'
+										title='More Tools'
+										variant='secondary'
+										data-testid='toolbar-more-button'
+									>
+										<Ellipsis className='size-4' />
+									</Button>
+								);
+							}}
+						/>
 						<DropdownMenuContent
 							align='end'
 							alignOffset={0}

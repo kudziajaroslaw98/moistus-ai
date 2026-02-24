@@ -181,12 +181,10 @@ export const POST = withApiValidation(
 				messages: allMessages,
 			});
 
-			// Track usage (no-ops for Pro)
-			try {
-				await trackAIUsage(user, supabase, isPro);
-			} catch (trackingError) {
+			// Track usage (no-ops for Pro) without delaying stream start.
+			void trackAIUsage(user, supabase, isPro).catch((trackingError) => {
 				console.warn('Failed to track AI chat usage:', trackingError);
-			}
+			});
 
 			return result.toTextStreamResponse();
 		} catch (error) {

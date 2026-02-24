@@ -54,6 +54,56 @@ function toBooleanOrNull(value: unknown): boolean | null {
 	return null;
 }
 
+function isNonNull<T>(value: T | null | undefined): value is T {
+	return value !== null && value !== undefined;
+}
+
+type NodeRow = {
+	id: string;
+	user_id: unknown;
+	content: unknown;
+	position_x: unknown;
+	position_y: unknown;
+	width: unknown;
+	height: unknown;
+	node_type: unknown;
+	metadata: unknown;
+	aiData: unknown;
+	parent_id: unknown;
+	created_at: unknown;
+	updated_at: unknown;
+};
+
+type EdgeRow = {
+	id: string;
+	user_id: unknown;
+	source: unknown;
+	target: unknown;
+	label: unknown;
+	type: unknown;
+	animated: unknown;
+	style: unknown;
+	markerEnd: unknown;
+	markerStart: unknown;
+	metadata: unknown;
+	aiData: unknown;
+	created_at: unknown;
+	updated_at: unknown;
+};
+
+function hasStringId(value: unknown): value is { id: string } {
+	const record = toRecord(value);
+	return typeof record?.id === 'string';
+}
+
+function isNodeRow(value: unknown): value is NodeRow {
+	return hasStringId(value);
+}
+
+function isEdgeRow(value: unknown): value is EdgeRow {
+	return hasStringId(value);
+}
+
 function canonicalizeNode(node: AppNode): AppNode | null {
 	if (!node || typeof node !== 'object' || typeof node.id !== 'string') {
 		return null;
@@ -279,20 +329,46 @@ export async function POST(
 			: [];
 
 		if (eventId) {
-			const { data: events } = await adminClient
+			const { data: events, error: eventsError } = await adminClient
 				.from('map_history_events')
 				.select('*')
 				.eq('snapshot_id', targetSnapshotId)
 				.eq('map_id', mapId)
 				.order('event_index', { ascending: true });
-			for (const ev of events || []) {
+
+			if (eventsError) {
+				console.error(
+					'Failed to load snapshot events for revert:',
+					eventsError
+				);
+				return NextResponse.json(
+					{ error: 'Failed to load snapshot events' },
+					{ status: 500 }
+				);
+			}
+
+			let matchedRequestedEvent = false;
+			for (const rawEvent of events || []) {
+				const eventRecord = toRecord(rawEvent);
+				if (!eventRecord) continue;
+
 				const result = applyDelta(
 					{ nodes: finalNodes, edges: finalEdges },
-					ev.changes as HistoryDelta // HistoryDelta
+					eventRecord.changes as HistoryDelta
 				);
 				finalNodes = result.nodes;
 				finalEdges = result.edges;
-				if (ev.id === eventId) break;
+				if (toStringOrNull(eventRecord.id) === eventId) {
+					matchedRequestedEvent = true;
+					break;
+				}
+			}
+
+			if (!matchedRequestedEvent) {
+				return NextResponse.json(
+					{ error: 'Event not found in snapshot' },
+					{ status: 404 }
+				);
 			}
 		}
 
@@ -366,8 +442,10 @@ export async function POST(
 			);
 		}
 
-		const dbNodeMap = new Map((dbNodes || []).map((n: any) => [n.id, n]));
-		const dbEdgeMap = new Map((dbEdges || []).map((e: any) => [e.id, e]));
+		const dbNodeRows = (dbNodes || []).filter(isNodeRow);
+		const dbEdgeRows = (dbEdges || []).filter(isEdgeRow);
+		const dbNodeMap = new Map(dbNodeRows.map((node) => [node.id, node]));
+		const dbEdgeMap = new Map(dbEdgeRows.map((edge) => [edge.id, edge]));
 
 		// Helpers to transform final state nodes/edges into DB rows
 		const toNodeRow = (node: AppNode) => {
@@ -465,9 +543,9 @@ export async function POST(
 		const finalNodeRows = finalNodes.map(toNodeRow);
 		const finalNodeIdSet = new Set(finalNodeRows.map((r) => r.id));
 
-		const nodesToDelete = (dbNodes || [])
-			.filter((n: any) => !finalNodeIdSet.has(n.id))
-			.map((n: any) => n.id);
+		const nodesToDelete = dbNodeRows
+			.filter((node) => !finalNodeIdSet.has(node.id))
+			.map((node) => node.id);
 
 		const nodesToUpsert = finalNodeRows
 			.map((row) => {
@@ -481,15 +559,15 @@ export async function POST(
 					};
 				}
 				const comparableExisting = {
-					content: existing.content || '',
-					position_x: existing.position_x,
-					position_y: existing.position_y,
-					width: existing.width ?? null,
-					height: existing.height ?? null,
-					node_type: existing.node_type || 'defaultNode',
-					metadata: existing.metadata ?? {},
-					aiData: existing.aiData ?? {},
-					parent_id: existing.parent_id ?? null,
+					content: toStringOrNull(existing.content) ?? '',
+					position_x: toNumberOrNull(existing.position_x) ?? 0,
+					position_y: toNumberOrNull(existing.position_y) ?? 0,
+					width: toNumberOrNull(existing.width),
+					height: toNumberOrNull(existing.height),
+					node_type: toStringOrNull(existing.node_type) ?? 'defaultNode',
+					metadata: toRecord(existing.metadata) ?? {},
+					aiData: toRecord(existing.aiData) ?? {},
+					parent_id: toStringOrNull(existing.parent_id),
 				};
 				const comparableRow = {
 					content: row.content,
@@ -505,12 +583,15 @@ export async function POST(
 				if (isEqual(comparableExisting, comparableRow)) return null; // unchanged
 				return {
 					...row,
-					user_id: existing.user_id ?? row.user_id ?? user.id,
-					created_at: existing.created_at,
+					user_id: toStringOrNull(existing.user_id) ?? row.user_id ?? user.id,
+					created_at:
+						toStringOrNull(existing.created_at) ??
+						row.created_at ??
+						new Date().toISOString(),
 					updated_at: revertTimestamp,
 				};
 			})
-			.filter(Boolean) as any[];
+			.filter(isNonNull);
 
 		// 3) Compute diffs for edges
 		const finalEdgeRows = finalEdges.map(toEdgeRow);
@@ -545,9 +626,9 @@ export async function POST(
 		finalEdges = finalEdges.filter((edge) => validFinalEdgeIdSet.has(edge.id));
 		const finalEdgeIdSet = new Set(validFinalEdgeRows.map((r) => r.id));
 
-		const edgesToDelete = (dbEdges || [])
-			.filter((e: any) => !finalEdgeIdSet.has(e.id))
-			.map((e: any) => e.id);
+		const edgesToDelete = dbEdgeRows
+			.filter((edge) => !finalEdgeIdSet.has(edge.id))
+			.map((edge) => edge.id);
 
 		let edgesToUpsert = validFinalEdgeRows
 			.map((row) => {
@@ -561,16 +642,21 @@ export async function POST(
 					};
 				}
 				const comparableExisting = {
-					source: existing.source,
-					target: existing.target,
-					label: existing.label || null,
-					type: existing.type || inferEdgeTypeFromData(existing),
+					source: toStringOrNull(existing.source) ?? '',
+					target: toStringOrNull(existing.target) ?? '',
+					label: toStringOrNull(existing.label),
+					type:
+						toStringOrNull(existing.type) ??
+						inferEdgeTypeFromData({
+							metadata: toRecord(existing.metadata) ?? {},
+							aiData: toRecord(existing.aiData) ?? {},
+						}),
 					animated: toBooleanOrNull(existing.animated) ?? false,
 					style: toRecord(existing.style) ?? null,
-					markerEnd: existing.markerEnd ?? null,
-					markerStart: existing.markerStart ?? null,
-					metadata: existing.metadata || {},
-					aiData: existing.aiData || {},
+					markerEnd: toTextOrNull(existing.markerEnd),
+					markerStart: toTextOrNull(existing.markerStart),
+					metadata: toRecord(existing.metadata) ?? {},
+					aiData: toRecord(existing.aiData) ?? {},
 				};
 				const comparableRow = {
 					source: row.source,
@@ -587,12 +673,15 @@ export async function POST(
 				if (isEqual(comparableExisting, comparableRow)) return null; // unchanged
 				return {
 					...row,
-					user_id: existing.user_id ?? row.user_id ?? user.id,
-					created_at: existing.created_at,
+					user_id: toStringOrNull(existing.user_id) ?? row.user_id ?? user.id,
+					created_at:
+						toStringOrNull(existing.created_at) ??
+						row.created_at ??
+						new Date().toISOString(),
 					updated_at: revertTimestamp,
 				};
 			})
-			.filter(Boolean) as any[];
+			.filter(isNonNull);
 
 		// 4) Apply deletes first (edges, then nodes), then upserts (nodes, then edges)
 		try {
@@ -637,9 +726,7 @@ export async function POST(
 					if (presentNodesError) throw presentNodesError;
 
 					const presentNodeIdSet = new Set(
-						(presentNodes || [])
-							.map((node: any) => node?.id)
-							.filter((id: unknown): id is string => typeof id === 'string')
+						(presentNodes || []).filter(hasStringId).map((node) => node.id)
 					);
 					const invalidEdgeRows = edgesToUpsert.filter(
 						(edge) =>
@@ -670,8 +757,12 @@ export async function POST(
 					);
 				}
 
-				const { error } = await adminClient.from('edges').upsert(edgesToUpsert);
-				if (error) throw error;
+				if (edgesToUpsert.length > 0) {
+					const { error } = await adminClient
+						.from('edges')
+						.upsert(edgesToUpsert);
+					if (error) throw error;
+				}
 			}
 		} catch (persistError) {
 			console.error('Failed to persist revert (diff):', persistError);

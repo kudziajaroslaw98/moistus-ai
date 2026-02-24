@@ -55,14 +55,16 @@ function createSupabaseMock(options: SupabaseMockOptions = {}): SupabaseClient {
 		.fn()
 		.mockResolvedValue(userSubscriptionResult);
 
-	const shareAccessBuilder: Record<string, unknown> = {};
+	const shareAccessBuilder = Promise.resolve(shareAccessResult) as Promise<
+		typeof shareAccessResult
+	> & {
+		select: jest.Mock;
+		eq: jest.Mock;
+		neq: jest.Mock;
+	};
 	shareAccessBuilder.select = jest.fn(() => shareAccessBuilder);
 	shareAccessBuilder.eq = jest.fn(() => shareAccessBuilder);
 	shareAccessBuilder.neq = jest.fn(() => shareAccessBuilder);
-	shareAccessBuilder.then = (
-		onFulfilled?: (value: unknown) => unknown,
-		onRejected?: (reason: unknown) => unknown
-	) => Promise.resolve(shareAccessResult).then(onFulfilled, onRejected);
 
 	const from = jest.fn((table: string) => {
 		if (table === 'user_subscriptions') {

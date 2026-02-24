@@ -57,6 +57,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Ensures first-time profiles are created instead of silently no-op updates
 - **api/share/join-room**: `display_name` upsert now always resolves and includes `full_name` (existing profile -> auth metadata -> display name fallback)
   - Why: Prevents `user_profiles.full_name NOT NULL` insert failures that could silently drop join-time display-name edits
+- **api/share/join-room**: `user_profiles` upsert now omits `full_name` when existing-profile prefetch returns an error
+  - Why: Avoids overwriting a real `full_name` during transient profile read failures while still persisting `display_name`
 - **partykit/auth**: Replaced control-character regex with char-code scan and wrapped request-path URI decoding in safe decode helper
   - Why: Removes lint suppression and prevents malformed percent-encoding from throwing request-time exceptions
 - **realtime/graph-sync**: Edge serialization now skips and logs edges missing `source`/`target`; callers filter/guard null payloads before Yjs broadcasts/upserts
@@ -69,6 +71,16 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Prevents fetch mock leakage into unrelated test files
 - **history/revert typing**: Replaced `normalizedData as any` with `normalizedData as EdgeData` in edge canonicalization
   - Why: Removes unsafe `any` cast in revert payload construction
+- **api/history/revert**: Revert-by-event now validates the event belongs to the target snapshot; DB diff mapping now uses typed row guards; empty edge upserts are skipped after filtering
+  - Why: Prevents silent snapshot fallback on mismatched event IDs, removes unsafe `any` diff plumbing, and avoids no-op edge upsert round-trips
+- **api/webhooks/polar**: Billing reset treats zero updated quota rows as non-fatal no-op logs, and plan-change adjustments now clamp usage via app-side target usage calculations
+  - Why: Avoids infinite webhook retries for missing quota rows while keeping usage counters bounded for upgrades/downgrades
+- **context-menu/toolbar**: Context-menu group heuristics now require non-empty `groupChildren` and memoize menu config; toolbar triggers now use Base UI render-prop pattern without `asChild`
+  - Why: Prevents false-positive group detection, reduces unnecessary menu recomputation, and aligns trigger behavior with current Base UI guidance
+- **api/ai/chat + subscription tracking**: Chat usage tracking is now fire-and-forget, and `trackAIUsage()` now throws on `increment_ai_usage` RPC errors
+  - Why: Reduces chat stream startup latency while surfacing usage-counter write failures to callers
+- **typing/tests/realtime**: Sharing unsubscribe field is now strict nullable, permissions details are exported as a named interface, collaborator-channel test listeners use `unknown`, and Yjs sync subscriptions process events immediately after observer registration
+  - Why: Tightens state contracts, removes `any` in tests, and closes a setup race where sync events could be missed
 
 ### Changed
 
@@ -711,6 +723,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Upgrading from free (0 AI) to pro (100 AI) should give ~100 remaining, not 0
   - Calculates adjustment: `old_limit - new_limit` stored in `metadata.usage_adjustment`
   - Adjustment applied when counting usage; resets on new billing period
+- **dashboard/create-map-card**: Card height now matches MindMapCard (h-56)
 
 ### Added
 
@@ -718,6 +731,10 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **billing/helpers**: `calculateUsageAdjustment(oldLimit, newLimit)` for mid-cycle plan changes
 - **billing/webhooks**: Period transition detection clears usage_adjustment on renewal
 - **billing/webhooks**: Plan change detection calculates and stores usage adjustment
+- **dashboard/create-map-card**: Disabled state with tooltip at map limit
+- **quick-input**: Warning banner + disabled create at node limit
+- **share-panel**: Disabled room code generation at collaborator limit
+- **MVP_ROADMAP.md**: Phase 5 database security plan (PostgreSQL triggers)
 
 ### Changed
 
@@ -736,17 +753,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ### Security
 
 - **api/search-nodes**: Add AI limit check + usage tracking (was unprotected)
-
-### Added
-
-- **dashboard/create-map-card**: Disabled state with tooltip at map limit
-- **quick-input**: Warning banner + disabled create at node limit
-- **share-panel**: Disabled room code generation at collaborator limit
-- **MVP_ROADMAP.md**: Phase 5 database security plan (PostgreSQL triggers)
-
-### Fixed
-
-- **dashboard/create-map-card**: Card height now matches MindMapCard (h-56)
 
 ---
 

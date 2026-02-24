@@ -14,7 +14,7 @@ jest.mock('@/helpers/supabase/shared-client', () => ({
 	}),
 }));
 
-type Listener = (event: any) => void;
+type Listener = (event: unknown) => void;
 
 class MockWebSocket {
 	static CONNECTING = 0;
@@ -82,7 +82,8 @@ describe('collaborator-channel reconnect behavior', () => {
 
 	afterEach(() => {
 		jest.useRealTimers();
-		(globalThis as { WebSocket: typeof WebSocket }).WebSocket = originalWebSocket;
+		(globalThis as { WebSocket: typeof WebSocket }).WebSocket =
+			originalWebSocket;
 	});
 
 	function createCallbacks(

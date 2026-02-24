@@ -599,6 +599,7 @@ export async function subscribeToYjsSyncEvents(
 	};
 
 	context.events.observe(processNewEvents);
+	processNewEvents();
 
 	return () => {
 		context.events.unobserve(processNewEvents);

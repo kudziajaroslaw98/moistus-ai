@@ -2,6 +2,7 @@
 
 import type { Command } from '@/components/node-editor/core/commands/command-types';
 import type { RealtimeUserSelection } from '@/hooks/realtime/use-realtime-selection-presence-room';
+import type { CollaboratorRealtimeEvent } from '@/lib/realtime/collaborator-events';
 import { AvailableNodeTypes } from '@/registry/node-registry';
 import type { ChatSlice } from '@/store/slices/chat-slice';
 import type { CommentsSlice } from '@/store/slices/comments-slice';
@@ -28,7 +29,6 @@ import {
 	ShareToken,
 	SharingError,
 } from '@/types/sharing-types';
-import type { CollaboratorRealtimeEvent } from '@/lib/realtime/collaborator-events';
 import { SnapLine } from '@/types/snap-line';
 import { StreamingToastState, ToastStep } from '@/types/streaming-toast-state';
 import { Tool } from '@/types/tool';
@@ -326,7 +326,7 @@ export interface SharingState {
 	sharingError?: SharingError;
 	lastJoinResult?: JoinRoomResult;
 	_sharingSubscription?: any;
-	_collaboratorRealtimeUnsubscribe?: (() => void) | null;
+	_collaboratorRealtimeUnsubscribe: (() => void) | null;
 
 	// Upgrade state (for anonymous -> full user conversion)
 	upgradeStep: UpgradeStep;
@@ -409,23 +409,23 @@ export interface SharingSlice extends SharingState {
 
 	unsubscribeFromCollaboratorUpdates: () => void;
 
-	applyCollaboratorRealtimeEvent: (
-		event: CollaboratorRealtimeEvent
-	) => void;
+	applyCollaboratorRealtimeEvent: (event: CollaboratorRealtimeEvent) => void;
 
 	clearError: () => void;
 
 	reset: () => void;
 }
 
+export interface PermissionsDetails {
+	role: ShareRole | null;
+	can_view: boolean;
+	can_comment: boolean;
+	can_edit: boolean;
+	updated_at: string | null;
+}
+
 export interface PermissionsState {
-	permissions: {
-		role: ShareRole | null;
-		can_view: boolean;
-		can_comment: boolean;
-		can_edit: boolean;
-		updated_at: string | null;
-	};
+	permissions: PermissionsDetails;
 	permissionsMapId: string | null;
 	permissionsUserId: string | null;
 	isPermissionsLoading: boolean;

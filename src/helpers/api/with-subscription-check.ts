@@ -204,10 +204,13 @@ export async function trackAIUsage(
 	if (isPro) return;
 
 	const billingPeriod = await getSubscriptionBillingPeriod(user, supabase);
-	await supabase.rpc('increment_ai_usage', {
+	const { error } = await supabase.rpc('increment_ai_usage', {
 		p_user_id: user.id,
 		p_period_start: billingPeriod.periodStart,
 	});
+	if (error) {
+		throw new Error(`Failed to increment AI usage: ${error.message}`);
+	}
 }
 
 /**
@@ -264,7 +267,8 @@ export async function checkAIQuota(
 		.in('status', ['active', 'trialing'])
 		.single();
 
-	const isPro = !!subscription && ['pro', 'enterprise'].includes(subscription.plan?.name);
+	const isPro =
+		!!subscription && ['pro', 'enterprise'].includes(subscription.plan?.name);
 	const limit = subscription?.plan?.limits?.aiSuggestions ?? 0;
 
 	// -1 means unlimited (Pro/Enterprise)

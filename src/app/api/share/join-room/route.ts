@@ -98,18 +98,22 @@ export const POST = withAuthValidation(
 					normalizedDisplayName ||
 					`User ${user.id.slice(0, 8)}`;
 
-				const { error: profileUpdateError } = await supabase
-					.from('user_profiles')
-					.upsert(
-						{
+				const profileUpsertPayload = existingProfileError
+					? {
+							user_id: user.id,
+							display_name: normalizedDisplayName,
+						}
+					: {
 							user_id: user.id,
 							display_name: normalizedDisplayName,
 							full_name: resolvedFullName,
-						},
-						{
-							onConflict: 'user_id',
-						}
-					);
+						};
+
+				const { error: profileUpdateError } = await supabase
+					.from('user_profiles')
+					.upsert(profileUpsertPayload, {
+						onConflict: 'user_id',
+					});
 
 				if (profileUpdateError) {
 					console.warn(

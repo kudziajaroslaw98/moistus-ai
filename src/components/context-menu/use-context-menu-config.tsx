@@ -1,5 +1,5 @@
 'use client';
-import { isGroupNode } from '@/components/nodes/core/types';
+import { isGroupNode, type TypedNode } from '@/components/nodes/core/types';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import type { NodeEditorOptions } from '@/store/app-state';
 import useAppStore from '@/store/mind-map-store';
@@ -21,7 +21,7 @@ import {
 	Trash,
 	Ungroup,
 } from 'lucide-react';
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { EdgeStyleSelector } from './edge-style-selector';
 import type { MenuSection } from './types';
@@ -48,20 +48,26 @@ type GroupDetectionNode = {
 };
 
 function isGroupLikeNode(node?: GroupDetectionNode | null): boolean {
-	if (!node) return false;
+	if (!node?.data) return false;
 
 	const groupChildren = node.data?.metadata?.groupChildren;
-	const matchesCanonicalGroupNode = isGroupNode(
-		node as Parameters<typeof isGroupNode>[0]
-	);
+	const canonicalNode = {
+		...(node as Record<string, unknown>),
+		data: {
+			...node.data,
+			node_type: node.data.node_type ?? node.data.nodeType,
+		},
+	} as TypedNode<any>;
+	const matchesCanonicalGroupNode = isGroupNode(canonicalNode);
 
 	return (
 		matchesCanonicalGroupNode ||
 		node.data?.nodeType === 'groupNode' ||
+		node.data?.node_type === 'groupNode' ||
 		node.data?.metadata?.isGroup === true ||
 		// Legacy metadata can persist boolean flags as strings.
 		node.data?.metadata?.isGroup === 'true' ||
-		Array.isArray(groupChildren)
+		(Array.isArray(groupChildren) && groupChildren.length > 0)
 	);
 }
 
@@ -550,18 +556,32 @@ export function useContextMenuConfig({
 		[edgeId, edges]
 	);
 
-	// Get the appropriate menu configuration based on context
-	const getMenuConfig = useCallback((): MenuSection[] => {
+	// Build menu configuration from current context.
+	const menuConfig = useMemo((): MenuSection[] => {
 		// Node menu
 		if (nodeId && clickedNode) {
 			const hasChildren = getDirectChildrenCount(clickedNode.id) > 0;
-			const selectedActionsMenu = buildSelectedNodesMenu({
+			const selectedActionsMenuBase = buildSelectedNodesMenu({
 				selectedNodes,
 				createGroupFromSelected,
 				ungroupNodes,
 				onClose,
 				canEdit,
 			});
+			const isClickedNodeSelected = selectedNodes.some(
+				(selectedNode) => selectedNode.id === clickedNode.id
+			);
+			const hasSelectionOutsideClickedNode = selectedNodes.some(
+				(selectedNode) => selectedNode.id !== clickedNode.id
+			);
+			const selectedActionsMenu = isClickedNodeSelected
+				? selectedActionsMenuBase
+				: selectedActionsMenuBase
+						.map((section) => ({
+							...section,
+							items: section.items.filter((item) => item.id !== 'ungroup'),
+						}))
+						.filter((section) => section.items.length > 0);
 			const selectedMenuIncludesUngroup = selectedActionsMenu.some((section) =>
 				section.items.some((item) => item.id === 'ungroup' && !item.hidden)
 			);
@@ -580,10 +600,8 @@ export function useContextMenuConfig({
 				canEdit,
 				suppressUngroupAction:
 					canEdit &&
-					selectedMenuIncludesUngroup &&
-					selectedNodes.some(
-						(selectedNode) => selectedNode.id === clickedNode.id
-					),
+					(hasSelectionOutsideClickedNode ||
+						(isClickedNodeSelected && selectedMenuIncludesUngroup)),
 			});
 
 			return [...selectedActionsMenu, ...nodeMenu];
@@ -647,7 +665,7 @@ export function useContextMenuConfig({
 	]);
 
 	return {
-		menuConfig: getMenuConfig(),
+		menuConfig,
 		clickedNode,
 		clickedEdge,
 	};
