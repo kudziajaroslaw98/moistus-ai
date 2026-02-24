@@ -65,6 +65,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Removes unsafe `any` usage while keeping legacy group detection fallbacks intact
 - **subscription/ai-quota**: `checkAIQuota` now short-circuits hard `limit === 0` before calling `getAIUsageCount`
   - Why: Ensures hard free-tier limits cannot be masked by usage-counter outages and avoids unnecessary RPC calls
+- **ui/toggle-group**: Toggle group value/defaultValue adapters now stay typed as `readonly string[]` end-to-end
+  - Why: Prevents Vercel build-time type mismatch when Base UI expects string array values instead of unknown arrays
 - **partykit/auth**: Replaced control-character regex with char-code scan and wrapped request-path URI decoding in safe decode helper
   - Why: Removes lint suppression and prevents malformed percent-encoding from throwing request-time exceptions
 - **realtime/graph-sync**: Edge serialization now skips and logs edges missing `source`/`target`; callers filter/guard null payloads before Yjs broadcasts/upserts
