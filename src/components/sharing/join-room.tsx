@@ -1,9 +1,13 @@
 'use client';
 
+import {
+	loadExistingJoinIdentity,
+	normalizeDisplayName,
+} from '@/helpers/sharing/join-identity';
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'motion/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -22,7 +26,8 @@ const JoinRoomSchema = z.object({
 		.transform((val) => val.trim()),
 });
 
-type JoinRoomForm = z.infer<typeof JoinRoomSchema>;
+type JoinRoomFormInput = z.input<typeof JoinRoomSchema>;
+type JoinRoomFormOutput = z.output<typeof JoinRoomSchema>;
 
 interface JoinRoomProps {
 	roomCode?: string;
@@ -51,9 +56,10 @@ export function JoinRoom({
 		handleSubmit,
 		formState: { errors },
 		setValue,
+		getValues,
 		watch,
-	} = useForm<JoinRoomForm>({
-		resolver: zodResolver(JoinRoomSchema) as any,
+	} = useForm<JoinRoomFormInput, unknown, JoinRoomFormOutput>({
+		resolver: zodResolver(JoinRoomSchema),
 		defaultValues: {
 			roomCode: roomCode.toUpperCase(),
 			displayName: '',
@@ -61,6 +67,33 @@ export function JoinRoom({
 	});
 
 	const watchedRoomCode = watch('roomCode');
+
+	useEffect(() => {
+		let isMounted = true;
+
+		const prefillDisplayName = async () => {
+			try {
+				const identity = await loadExistingJoinIdentity(supabase);
+				if (!isMounted || !identity.existingDisplayName) {
+					return;
+				}
+
+				if (getValues('displayName')) {
+					return;
+				}
+
+				setValue('displayName', identity.existingDisplayName);
+			} catch (error) {
+				console.warn('[join-room] failed to prefill display name:', error);
+			}
+		};
+
+		void prefillDisplayName();
+
+		return () => {
+			isMounted = false;
+		};
+	}, [getValues, setValue]);
 
 	// Format room code with dash as user types
 	const formatRoomCode = (value: string) => {
@@ -82,9 +115,19 @@ export function JoinRoom({
 			} = await supabase.auth.getUser();
 
 			if (error || !user) {
+				const normalizedDisplayName = normalizeDisplayName(displayName);
+				const signInOptions = normalizedDisplayName
+					? {
+							options: {
+								data: {
+									display_name: normalizedDisplayName,
+								},
+							},
+						}
+					: undefined;
 				// Sign in anonymously
 				const { data: authData, error: signInError } =
-					await supabase.auth.signInAnonymously();
+					await supabase.auth.signInAnonymously(signInOptions);
 
 				if (signInError || !authData.user) {
 					throw new Error('Failed to authenticate anonymously');
@@ -113,13 +156,18 @@ export function JoinRoom({
 		}
 	};
 
-	const onSubmit: SubmitHandler<JoinRoomForm> = async (data) => {
+	const onSubmit: SubmitHandler<JoinRoomFormOutput> = async (data) => {
 		setIsJoining(true);
 		setJoinError('');
 
 		try {
+			const normalizedDisplayName = normalizeDisplayName(data.displayName);
+			if (!normalizedDisplayName) {
+				throw new Error('Display name is required');
+			}
+
 			// 1. Ensure user is authenticated
-			await ensureAuthenticated(data.displayName);
+			await ensureAuthenticated(normalizedDisplayName);
 
 			// 2. Join the room
 			const response = await fetch('/api/share/join-room', {
@@ -127,7 +175,7 @@ export function JoinRoom({
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					token: data.roomCode,
-					display_name: data.displayName,
+					display_name: normalizedDisplayName,
 				}),
 			});
 

@@ -1,8 +1,8 @@
 import { respondError } from '@/helpers/api/responses';
 import {
-	checkAIFeatureAccess,
-	trackAIFeatureUsage,
-} from '@/helpers/api/with-ai-feature-gate';
+	checkAIQuota,
+	trackAIUsage,
+} from '@/helpers/api/with-subscription-check';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
@@ -15,14 +15,9 @@ const requestBodySchema = z.object({
 export const POST = withApiValidation(
 	requestBodySchema,
 	async (_req, validatedBody, supabase, user) => {
-		// Check AI feature access
-		const { hasAccess, isPro, error } = await checkAIFeatureAccess(
-			user,
-			supabase,
-			'answer'
-		);
-
-		if (!hasAccess && error) {
+		// Check AI quota
+		const { allowed, isPro, error } = await checkAIQuota(user, supabase);
+		if (!allowed && error) {
 			return error;
 		}
 
@@ -97,14 +92,10 @@ export const POST = withApiValidation(
 				prompt: aiPrompt,
 			});
 
-			// Track usage for free tier users (non-blocking)
+			// Track usage (no-ops for Pro)
 			try {
-				await trackAIFeatureUsage(user, supabase, 'answer', isPro, {
-					nodeId,
-					questionLength: questionNode.content.length,
-				});
+				await trackAIUsage(user, supabase, isPro);
 			} catch (trackingError) {
-				// Log tracking failures but don't block the response
 				console.warn('Failed to track AI feature usage:', trackingError);
 			}
 

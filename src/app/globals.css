@@ -103,7 +103,7 @@
 	--color-overlay: oklch(0.25 0 0);
 
 	/* Borders */
-	--color-border-subtle: oklch(0.20 0 0);
+	--color-border-subtle: oklch(0.2 0 0);
 	--color-border-default: oklch(0.28 0 0);
 	--color-border-strong: oklch(0.38 0 0);
 
@@ -111,7 +111,7 @@
 	--color-text-primary: var(--color-neutral-50);
 	--color-text-secondary: var(--color-neutral-400);
 	--color-text-tertiary: var(--color-neutral-500);
-	--color-text-disabled: oklch(0.40 0 0);
+	--color-text-disabled: oklch(0.4 0 0);
 
 	/* Interactive States */
 	--color-interactive-primary: var(--color-primary-500);
@@ -181,6 +181,44 @@
 /* Base radius value */
 :root {
 	--radius: 0.625rem;
+	--toast-offset-inline: 1rem;
+	--mind-map-toolbar-clearance: 0px;
+	--toast-offset-bottom: calc(
+		env(safe-area-inset-bottom, 0px) + 1rem + var(--mind-map-toolbar-clearance)
+	);
+	--toast-offset-bottom-mobile: calc(
+		env(safe-area-inset-bottom, 0px) + 1rem + var(--mind-map-toolbar-clearance)
+	);
+}
+
+body[data-has-bottom-toolbar='true'] {
+	--toast-offset-bottom: calc(
+		env(safe-area-inset-bottom, 0px) + 1rem + var(--mind-map-toolbar-clearance)
+	);
+	--toast-offset-bottom-mobile: calc(
+		env(safe-area-inset-bottom, 0px) + 1rem + var(--mind-map-toolbar-clearance)
+	);
+}
+
+@media (max-width: 600px) {
+	.app-toaster[data-sonner-toaster][data-x-position='right'] {
+		left: auto !important;
+		right: var(--mobile-offset-right, var(--toast-offset-inline)) !important;
+		width: min(
+			18rem,
+			calc(100vw - (2 * var(--toast-offset-inline)))
+		) !important;
+	}
+
+	.app-toaster[data-sonner-toaster][data-x-position='right']
+		[data-sonner-toast] {
+		left: auto !important;
+		right: 0 !important;
+		width: min(
+			18rem,
+			calc(100vw - (2 * var(--toast-offset-inline)))
+		) !important;
+	}
 }
 
 /* ===========================
@@ -200,9 +238,15 @@
 
 /* Hero shimmer text — animated gradient that feels alive */
 @keyframes hero-shimmer-shift {
-	0% { background-position: 0% 50%; }
-	50% { background-position: 100% 50%; }
-	100% { background-position: 0% 50%; }
+	0% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 100% 50%;
+	}
+	100% {
+		background-position: 0% 50%;
+	}
 }
 
 .hero-shimmer {
@@ -247,13 +291,23 @@
 
 /* Node network animations (hero background) */
 @keyframes node-float {
-	0%, 100% { transform: translateY(0); }
-	50% { transform: translateY(-8px); }
+	0%,
+	100% {
+		transform: translateY(0);
+	}
+	50% {
+		transform: translateY(-8px);
+	}
 }
 
 @keyframes node-pulse {
-	0%, 100% { opacity: 0.08; }
-	50% { opacity: 0.15; }
+	0%,
+	100% {
+		opacity: 0.08;
+	}
+	50% {
+		opacity: 0.15;
+	}
 }
 
 @media (prefers-reduced-motion: reduce) {

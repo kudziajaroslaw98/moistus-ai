@@ -1,9 +1,9 @@
 import { respondError } from '@/helpers/api/responses';
-import {
-	checkAIFeatureAccess,
-	trackAIFeatureUsage,
-} from '@/helpers/api/with-ai-feature-gate';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
+import {
+	checkAIQuota,
+	trackAIUsage,
+} from '@/helpers/api/with-subscription-check';
 import {
 	buildContextPrompt,
 	buildFullMapContext,
@@ -85,18 +85,13 @@ You have access to the user's mind map context including key topics, node types,
 export const POST = withApiValidation(
 	chatRequestSchema,
 	async (_req, validatedBody, supabase, user) => {
-		// Check AI feature access
-		const { hasAccess, isPro, error } = await checkAIFeatureAccess(
-			user,
-			supabase,
-			'chat'
-		);
-
-		if (!hasAccess && error) {
-			return error;
-		}
-
 		try {
+			// Check AI quota
+			const { allowed, isPro, error } = await checkAIQuota(user, supabase);
+			if (!allowed && error) {
+				return error;
+			}
+
 			const { messages, context } = validatedBody;
 
 			// Build context prompt from map data if available
@@ -186,17 +181,10 @@ export const POST = withApiValidation(
 				messages: allMessages,
 			});
 
-			// Track usage for free tier users (non-blocking)
-			try {
-				await trackAIFeatureUsage(user, supabase, 'chat', isPro, {
-					mapId: context.mapId || undefined,
-					messageCount: messages.length,
-					selectedNodeCount: context.selectedNodeIds.length,
-					contextMode: context.contextMode,
-				});
-			} catch (trackingError) {
+			// Track usage (no-ops for Pro) without delaying stream start.
+			void trackAIUsage(user, supabase, isPro).catch((trackingError) => {
 				console.warn('Failed to track AI chat usage:', trackingError);
-			}
+			});
 
 			return result.toTextStreamResponse();
 		} catch (error) {

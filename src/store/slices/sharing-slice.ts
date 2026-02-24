@@ -1,5 +1,13 @@
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
-import { generateFallbackAvatar } from '@/helpers/user-profile-helpers';
+import {
+	resolveAvatarUrl,
+	resolveDisplayName,
+} from '@/helpers/identity/resolve-user-identity';
+import { subscribeToCollaboratorChannel } from '@/lib/realtime/collaborator-channel';
+import type {
+	CollaboratorEntry,
+	CollaboratorRealtimeEvent,
+} from '@/lib/realtime/collaborator-events';
 import { ShareAccessWithProfile } from '@/types/share-access-with-profiles';
 import { SharedUser, ShareToken, SharingError } from '@/types/sharing-types';
 import { StateCreator } from 'zustand';
@@ -23,7 +31,7 @@ export interface JoinRoomResult {
 	is_anonymous: boolean;
 	user_display_name: string;
 	user_avatar?: string;
-	websocket_channel: string;
+	realtime_room: string;
 	share_token_id: string;
 	join_method: string;
 }
@@ -34,6 +42,98 @@ interface AnonymousUser {
 	avatar_url?: string;
 	is_anonymous: boolean;
 	created_at: string;
+}
+
+function toEpochMs(value: string | null | undefined): number {
+	if (!value) return 0;
+	const parsed = Date.parse(value);
+	return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function sortCurrentShares(shares: SharedUser[]): SharedUser[] {
+	return [...shares].sort(
+		(a, b) => toEpochMs(b.share.created_at) - toEpochMs(a.share.created_at)
+	);
+}
+
+function mapShareAccessWithProfileToSharedUser(
+	shareAccessProfile: ShareAccessWithProfile
+): SharedUser {
+	const sharedUserName = resolveDisplayName({
+		displayName: shareAccessProfile.display_name,
+		fullName: shareAccessProfile.full_name,
+		email: shareAccessProfile.email,
+		userId: shareAccessProfile.user_id,
+	});
+
+	return {
+		id: String(shareAccessProfile.id),
+		user_id: shareAccessProfile.user_id,
+		name: sharedUserName,
+		email: shareAccessProfile.email,
+		avatar_url: resolveAvatarUrl({
+			profileAvatarUrl: shareAccessProfile.avatar_url,
+			userId: shareAccessProfile.user_id,
+		}),
+		profile: {
+			display_name: shareAccessProfile.display_name,
+			role: shareAccessProfile.role,
+		},
+		isAnonymous: shareAccessProfile.is_anonymous,
+		share: {
+			id: String(shareAccessProfile.id),
+			map_id: shareAccessProfile.map_id,
+			user_id: shareAccessProfile.user_id,
+			can_edit: shareAccessProfile.can_edit,
+			can_comment: shareAccessProfile.can_comment,
+			can_view: shareAccessProfile.can_view,
+			role: shareAccessProfile.role,
+			shared_by: shareAccessProfile.token_created_by,
+			shared_at: shareAccessProfile.created_at,
+			created_at: shareAccessProfile.created_at,
+			updated_at: shareAccessProfile.updated_at,
+		},
+	};
+}
+
+function mapCollaboratorEntryToSharedUser(
+	entry: CollaboratorEntry
+): SharedUser {
+	const sharedUserName = resolveDisplayName({
+		displayName: entry.display_name,
+		fullName: entry.full_name,
+		email: entry.email,
+		userId: entry.userId,
+	});
+
+	return {
+		id: entry.shareId,
+		user_id: entry.userId,
+		name: sharedUserName,
+		email: entry.email,
+		avatar_url: resolveAvatarUrl({
+			profileAvatarUrl: entry.avatar_url,
+			userId: entry.userId,
+		}),
+		profile: {
+			display_name: entry.display_name ?? undefined,
+			role: entry.role,
+		},
+		isAnonymous: entry.is_anonymous,
+		share: {
+			id: entry.shareId,
+			map_id: entry.mapId,
+			user_id: entry.userId,
+			can_edit: entry.can_edit,
+			can_comment: entry.can_comment,
+			can_view: entry.can_view,
+			role: entry.role,
+			shared_by: undefined,
+			shared_at: entry.created_at,
+			created_at: entry.created_at,
+			updated_at: entry.updated_at,
+		},
+	};
 }
 
 export const createSharingSlice: StateCreator<
@@ -53,7 +153,7 @@ export const createSharingSlice: StateCreator<
 		sharingError: undefined,
 		lastJoinResult: undefined,
 		_sharingSubscription: undefined,
-		_accessRevocationChannel: undefined,
+		_collaboratorRealtimeUnsubscribe: null,
 
 		// Upgrade state (for anonymous -> full user conversion)
 		upgradeStep: 'idle' as UpgradeStep,
@@ -65,6 +165,10 @@ export const createSharingSlice: StateCreator<
 
 		getCurrentShareUsers: async () => {
 			const { supabase, mapId, setState } = get();
+			if (!mapId) {
+				setState({ currentShares: [] });
+				return;
+			}
 
 			const {
 				data,
@@ -73,39 +177,20 @@ export const createSharingSlice: StateCreator<
 				await supabase
 					.from('share_access_with_profiles')
 					.select(`*`)
-					.eq('map_id', mapId);
+					.eq('map_id', mapId)
+					.eq('status', 'active')
+					.order('created_at', { ascending: false });
 
 			if (error || !data) {
 				console.error('[SharingSlice] Error fetching current shares:', error);
 				return;
 			}
 
-			const currentShares: SharedUser[] = data.map((shareAccessProfile) => ({
-				id: shareAccessProfile.profile_user_id,
-				user_id: shareAccessProfile.user_id,
-				name: shareAccessProfile.full_name,
-				email: shareAccessProfile.email,
-				avatar_url: generateFallbackAvatar(shareAccessProfile.user_id),
-				profile: {
-					display_name: shareAccessProfile.display_name,
-					role: shareAccessProfile.role,
-				},
-				isAnonymous: shareAccessProfile.is_anonymous,
-				share: {
-					// Use share_access.id for deletion (numeric converted to string)
-					id: String(shareAccessProfile.id),
-					map_id: shareAccessProfile.map_id,
-					user_id: shareAccessProfile.user_id,
-					can_edit: shareAccessProfile.can_edit,
-					can_comment: shareAccessProfile.can_comment,
-					can_view: shareAccessProfile.can_view,
-					role: shareAccessProfile.role,
-					shared_by: shareAccessProfile.token_created_by,
-					shared_at: shareAccessProfile.created_at,
-					created_at: shareAccessProfile.created_at,
-					updated_at: shareAccessProfile.updated_at,
-				},
-			}));
+			const currentShares: SharedUser[] = sortCurrentShares(
+				data.map((shareAccessProfile) =>
+					mapShareAccessWithProfileToSharedUser(shareAccessProfile)
+				)
+			);
 
 			setState({
 				currentShares: currentShares,
@@ -496,7 +581,11 @@ export const createSharingSlice: StateCreator<
 		 * Password and displayName are collected before this step and stored in state
 		 */
 		verifyUpgradeOtp: async (otp: string) => {
-			const { upgradeEmail: email, upgradePendingPassword: password, upgradeDisplayName: displayName } = get();
+			const {
+				upgradeEmail: email,
+				upgradePendingPassword: password,
+				upgradeDisplayName: displayName,
+			} = get();
 
 			if (!email) {
 				set({
@@ -858,7 +947,7 @@ export const createSharingSlice: StateCreator<
 				switch (role) {
 					case 'editor':
 						return { can_edit: true, can_comment: true, can_view: true };
-					case 'commenter':
+					case 'commentator':
 						return { can_edit: false, can_comment: true, can_view: true };
 					case 'viewer':
 					default:
@@ -876,7 +965,7 @@ export const createSharingSlice: StateCreator<
 								...share,
 								share: {
 									...share.share,
-									role: newRole as 'owner' | 'editor' | 'commenter' | 'viewer',
+									role: newRole as 'owner' | 'editor' | 'commentator' | 'viewer',
 									...newPermissions,
 								},
 							}
@@ -909,7 +998,7 @@ export const createSharingSlice: StateCreator<
 											role: previousRole as
 												| 'owner'
 												| 'editor'
-												| 'commenter'
+												| 'commentator'
 												| 'viewer',
 											...prevPermissions,
 										},
@@ -932,103 +1021,26 @@ export const createSharingSlice: StateCreator<
 			}
 		},
 
-		// Fetch current user permissions from share_access (for returning collaborators)
-		fetchCurrentPermissions: async (mapId: string) => {
-			try {
-				const response = await fetch(`/api/maps/${mapId}/permissions`);
-
-				if (!response.ok) {
-					console.error('Failed to fetch permissions:', response.status);
-					return;
-				}
-
-				const result = await response.json();
-				const permissions = result.data;
-
-				if (permissions) {
-					// Update lastJoinResult with fresh permissions from share_access
-					// This allows usePermissions hook to read current permissions
-					set((state) => ({
-						lastJoinResult: {
-							...(state.lastJoinResult || {
-								map_id: mapId,
-								map_title: '',
-								user_id: '',
-								is_anonymous: false,
-								user_display_name: '',
-								websocket_channel: '',
-								share_token_id: '',
-								join_method: 'permission_fetch',
-							}),
-							map_id: mapId,
-							permissions: {
-								role: permissions.role,
-								can_view: permissions.can_view,
-								can_edit: permissions.can_edit,
-								can_comment: permissions.can_comment,
-							},
-						},
-					}));
-				}
-			} catch (error) {
-				console.error('Error fetching current permissions:', error);
-			}
-		},
-
 		// Subscribe to real-time sharing updates
 		subscribeToSharingUpdates: (mapId: string) => {
 			try {
 				// Unsubscribe from any existing subscription
 				get().unsubscribeFromSharing();
 
-				const { authUser } = get();
-				const currentUserId = authUser?.user_id;
-
 				// Subscribe to share_tokens changes for this map
-				let channel = supabase
-					.channel(`sharing_updates_${mapId}`)
-					.on(
-						'postgres_changes',
-						{
-							event: '*',
-							schema: 'public',
-							table: 'share_tokens',
-							filter: `map_id=eq.${mapId}`,
-						},
-						(payload) => {
-							// Refresh tokens when changes occur
-							get().refreshTokens();
-						}
-					);
-
-				// Subscribe to share_access DELETE events for the current user
-				// This triggers when the map owner removes the user's access
-				if (currentUserId) {
-					channel = channel.on(
-						'postgres_changes',
-						{
-							event: 'DELETE',
-							schema: 'public',
-							table: 'share_access',
-							filter: `user_id=eq.${currentUserId}`,
-						},
-						(payload) => {
-							const deletedRecord = payload.old as {
-								map_id?: string;
-								user_id?: string;
-							};
-
-							// Check if this deletion is for the current map
-							if (deletedRecord?.map_id === mapId) {
-								// Trigger access revoked state via core slice
-								get().setMapAccessError({
-									type: 'access_denied',
-									isAnonymous: authUser?.is_anonymous ?? true,
-								});
-							}
-						}
-					);
-				}
+				const channel = supabase.channel(`sharing_updates_${mapId}`).on(
+					'postgres_changes',
+					{
+						event: '*',
+						schema: 'public',
+						table: 'share_tokens',
+						filter: `map_id=eq.${mapId}`,
+					},
+					() => {
+						// Refresh tokens when changes occur
+						get().refreshTokens();
+					}
+				);
 
 				const subscription = channel.subscribe();
 
@@ -1048,123 +1060,111 @@ export const createSharingSlice: StateCreator<
 			}
 		},
 
-		// Subscribe to access revocation events for the current user
-		// This is called on map load to enable immediate kick-out when access is revoked
-		subscribeToAccessRevocation: async (mapId: string) => {
+		subscribeToCollaboratorUpdates: async (mapId: string) => {
+			get().unsubscribeFromCollaboratorUpdates();
+
 			try {
-				// Unsubscribe from any existing subscription
-				get().unsubscribeFromAccessRevocation();
+				const subscription = await subscribeToCollaboratorChannel(mapId, {
+					onEvent: (event) => get().applyCollaboratorRealtimeEvent(event),
+					onOpen: () => {
+						console.info('[sharing-slice] collaborator channel connected', {
+							mapId,
+						});
+					},
+					onClose: (event) => {
+						if (event.code === 1000 && event.reason === 'client_unsubscribe') {
+							return;
+						}
+						console.warn('[sharing-slice] collaborator channel closed', {
+							mapId,
+							code: event.code,
+							reason: event.reason,
+						});
+					},
+					onError: () => {
+						console.warn('[sharing-slice] collaborator channel error', {
+							mapId,
+						});
+					},
+				});
 
-				const { authUser, currentUser, mindMap, lastJoinResult } = get();
-
-				// Get user ID from multiple sources (fallback chain for timing issues)
-				// 1. authUser - set after ensureAuthenticated()
-				// 2. lastJoinResult - set after joinRoom() completes
-				// 3. currentUser - authenticated user from core slice
-				// 4. Supabase auth session (most reliable)
-				let userId =
-					authUser?.user_id || lastJoinResult?.user_id || currentUser?.id;
-				let isAnonymous =
-					authUser?.is_anonymous ?? lastJoinResult?.is_anonymous ?? false;
-
-				// If no user ID from store, try getting from Supabase auth directly
-				if (!userId) {
-					const {
-						data: { user },
-					} = await supabase.auth.getUser();
-					if (user) {
-						userId = user.id;
-						isAnonymous = user.is_anonymous ?? false;
-					}
-				}
-
-				// Skip if no user ID available
-				if (!userId) {
-					console.warn(
-						'subscribeToAccessRevocation: No user ID available. Subscription not started.',
-						{ authUser, lastJoinResult, currentUser }
-					);
+				if (get().mapId !== mapId) {
+					subscription.disconnect();
 					return;
 				}
 
-				// Skip if user is the owner (owners can't be kicked from their own maps)
-				if (mindMap?.user_id === userId) {
-					return;
-				}
-
-				// Helper to trigger access denied
-				const triggerAccessDenied = () => {
-					get().setMapAccessError({
-						type: 'access_denied',
-						isAnonymous,
-					});
-				};
-
-				// Subscribe to broadcast (individual user removal) and UPDATE (room code revocation)
-				const channel = supabase
-					.channel(`access_revocation_${mapId}_${userId}`)
-					.on(
-						'broadcast',
-						{ event: 'access_revoked' },
-						(payload: {
-							payload?: { id?: number; map_id?: string; user_id?: string };
-						}) => {
-							if (payload.payload?.map_id === mapId) {
-								triggerAccessDenied();
-							}
-						}
-					)
-					.on(
-						'postgres_changes',
-						{
-							event: 'UPDATE',
-							schema: 'public',
-							table: 'share_access',
-							filter: `user_id=eq.${userId}`,
-						},
-						(payload) => {
-							const updatedRecord = payload.new as {
-								map_id?: string;
-								user_id?: string;
-								status?: string;
-							};
-
-							// Check if status changed to 'inactive' for the current map
-							// This happens when owner revokes the room code
-							if (
-								updatedRecord?.map_id === mapId &&
-								updatedRecord?.status === 'inactive'
-							) {
-								triggerAccessDenied();
-							}
-						}
-					)
-					.subscribe((status, err) => {
-						if (status === 'CHANNEL_ERROR') {
-							console.error(
-								`Access revocation subscription FAILED for map ${mapId}:`,
-								err
-							);
-						} else if (status === 'TIMED_OUT') {
-							console.error(
-								`Access revocation subscription TIMED OUT for map ${mapId}`
-							);
-						}
-					});
-
-				set({ _accessRevocationChannel: channel });
+				set({
+					_collaboratorRealtimeUnsubscribe: subscription.disconnect,
+				});
 			} catch (error) {
-				console.error('Failed to subscribe to access revocation:', error);
+				console.error(
+					'[sharing-slice] failed to subscribe to collaborator updates',
+					error
+				);
 			}
 		},
 
-		// Unsubscribe from access revocation events
-		unsubscribeFromAccessRevocation: () => {
-			const state = get();
+		unsubscribeFromCollaboratorUpdates: () => {
+			const unsubscribe = get()._collaboratorRealtimeUnsubscribe;
+			if (unsubscribe) {
+				unsubscribe();
+			}
+			set({ _collaboratorRealtimeUnsubscribe: null });
+		},
 
-			if (state._accessRevocationChannel) {
-				supabase.removeChannel(state._accessRevocationChannel);
-				set({ _accessRevocationChannel: undefined });
+		applyCollaboratorRealtimeEvent: (event: CollaboratorRealtimeEvent) => {
+			const state = get();
+			if (!state.mapId || event.mapId !== state.mapId) {
+				return;
+			}
+
+			if (event.type === 'sharing:collaborators:snapshot') {
+				set({
+					currentShares: sortCurrentShares(
+						event.collaborators.map((entry) =>
+							mapCollaboratorEntryToSharedUser(entry)
+						)
+					),
+				});
+				return;
+			}
+
+			if (event.type === 'sharing:collaborator:upsert') {
+				const incomingShare = mapCollaboratorEntryToSharedUser(
+					event.collaborator
+				);
+				set((previous) => {
+					const currentShares = previous.currentShares ?? [];
+					const existingIndex = currentShares.findIndex(
+						(share) => share.share.id === incomingShare.share.id
+					);
+					if (existingIndex === -1) {
+						return {
+							currentShares: sortCurrentShares([
+								...currentShares,
+								incomingShare,
+							]),
+						};
+					}
+
+					const nextShares = [...currentShares];
+					nextShares[existingIndex] = incomingShare;
+					return {
+						currentShares: sortCurrentShares(nextShares),
+					};
+				});
+				return;
+			}
+
+			if (event.type === 'sharing:collaborator:remove') {
+				const removedIds = new Set(event.removedShareIds);
+				set((previous) => ({
+					currentShares: sortCurrentShares(
+						(previous.currentShares ?? []).filter(
+							(share) => !removedIds.has(share.share.id)
+						)
+					),
+				}));
 			}
 		},
 
@@ -1177,10 +1177,11 @@ export const createSharingSlice: StateCreator<
 		reset: () => {
 			// Clean up subscriptions before resetting state
 			get().unsubscribeFromSharing();
-			get().unsubscribeFromAccessRevocation();
+			get().unsubscribeFromCollaboratorUpdates();
 
 			set({
 				shareTokens: [],
+				currentShares: [],
 				activeToken: undefined,
 				isCreatingToken: false,
 				isJoiningRoom: false,
@@ -1188,7 +1189,7 @@ export const createSharingSlice: StateCreator<
 				sharingError: undefined,
 				lastJoinResult: undefined,
 				_sharingSubscription: undefined,
-				_accessRevocationChannel: undefined,
+				_collaboratorRealtimeUnsubscribe: null,
 				// Reset upgrade state
 				upgradeStep: 'idle',
 				upgradeEmail: null,

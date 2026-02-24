@@ -57,7 +57,7 @@ export default defineConfig({
 	// Shared settings for all projects
 	use: {
 		// Base URL for navigation
-		baseURL: 'http://localhost:3000',
+		baseURL: 'http://127.0.0.1:3000',
 
 		// Collect trace on failure
 		trace: 'on-first-retry',
@@ -135,10 +135,10 @@ export default defineConfig({
 
 	// Local dev server
 	webServer: {
-		command: 'pnpm build && pnpm start',
-		url: 'http://localhost:3000',
+		command: 'pnpm build && pnpm start --hostname 127.0.0.1 --port 3000',
+		url: 'http://127.0.0.1:3000',
 		reuseExistingServer: !isCI,
-		timeout: 120000,
+		timeout: 300000,
 		// Pass E2E env vars to the Next.js server
 		env: {
 			NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL!,

@@ -1,11 +1,17 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
-import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
+import { fetchCollaboratorEntryByShareId } from '@/helpers/partykit/collaborator-sync';
+import {
+	pushPartyKitCollaboratorEvent,
+	disconnectPartyKitUsers,
+	pushPartyKitPermissionUpdate,
+} from '@/helpers/partykit/admin';
+import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { ShareRole } from '@/types/sharing-types';
 import { z } from 'zod';
 
 const updateShareBodySchema = z.object({
-	role: z.enum(['viewer', 'commenter', 'editor']),
+	role: z.enum(['viewer', 'commentator', 'editor']),
 });
 
 type UpdateShareBody = z.infer<typeof updateShareBodySchema>;
@@ -17,7 +23,7 @@ type UpdateShareBody = z.infer<typeof updateShareBodySchema>;
  * Authorization: Only the map owner can update share access records.
  *
  * @param shareId - The share_access record ID (numeric, passed as string in URL)
- * @body role - New role: 'viewer' | 'commenter' | 'editor'
+ * @body role - New role: 'viewer' | 'commentator' | 'editor'
  */
 export const PATCH = withApiValidation<
 	UpdateShareBody,
@@ -64,10 +70,10 @@ export const PATCH = withApiValidation<
 			.single();
 
 		if (fetchError || !shareAccess) {
+			if (fetchError) console.error('Failed to fetch share access:', fetchError);
 			return respondError(
 				'Share access record not found',
-				404,
-				fetchError?.message || 'Record not found'
+				404
 			);
 		}
 
@@ -128,8 +134,143 @@ export const PATCH = withApiValidation<
 			console.error('Failed to update share access:', updateError);
 			return respondError(
 				'Failed to update user permissions',
+				500
+			);
+		}
+
+		if (!updatedShare.map_id || !updatedShare.user_id) {
+			return respondError(
+				'Updated share record is invalid',
 				500,
-				updateError.message
+				'Missing map_id or user_id after update'
+			);
+		}
+
+		let permissionPushResult = {
+			attempted: false,
+			delivered: false,
+		};
+		let permissionPushErrorMessage: string | undefined;
+		let collaboratorSyncResult: {
+			attempted: boolean;
+			delivered: boolean;
+			error?: string;
+		} = {
+			attempted: false,
+			delivered: false,
+		};
+
+		// Push user-targeted permission event before reconnecting transport rooms.
+		try {
+			permissionPushResult = await pushPartyKitPermissionUpdate({
+				mapId: updatedShare.map_id,
+				targetUserId: updatedShare.user_id,
+				role: updatedShare.role as ShareRole,
+				can_view: Boolean(updatedShare.can_view),
+				can_comment: Boolean(updatedShare.can_comment),
+				can_edit: Boolean(updatedShare.can_edit),
+				updatedAt: updatedShare.updated_at ?? new Date().toISOString(),
+			});
+
+			if (permissionPushResult.attempted && !permissionPushResult.delivered) {
+				console.warn(
+					'[share/update-share] Permission push attempted but not delivered',
+					{
+						mapId: updatedShare.map_id,
+						targetUserId: updatedShare.user_id,
+					}
+				);
+			}
+		} catch (permissionPushError) {
+			permissionPushErrorMessage = toErrorMessage(permissionPushError);
+			console.warn(
+				'[share/update-share] Permission push failed after DB update',
+				{
+					mapId: updatedShare.map_id,
+					targetUserId: updatedShare.user_id,
+					error: permissionPushErrorMessage,
+				}
+			);
+		}
+
+		try {
+			const collaborator = await fetchCollaboratorEntryByShareId(
+				adminClient,
+				shareIdNum
+			);
+
+			if (!collaborator) {
+				collaboratorSyncResult = {
+					attempted: false,
+					delivered: false,
+					error: 'Collaborator row not found after update',
+				};
+			} else {
+				const occurredAt = updatedShare.updated_at ?? new Date().toISOString();
+				const collaboratorPushResult = await pushPartyKitCollaboratorEvent({
+					type: 'sharing:collaborator:upsert',
+					mapId: collaborator.mapId,
+					occurredAt,
+					collaborator,
+				});
+
+				collaboratorSyncResult = {
+					attempted: collaboratorPushResult.attempted,
+					delivered: collaboratorPushResult.delivered,
+				};
+			}
+		} catch (collaboratorSyncError) {
+			collaboratorSyncResult = {
+				attempted: true,
+				delivered: false,
+				error: toErrorMessage(collaboratorSyncError),
+			};
+			console.warn(
+				'[share/update-share] Collaborator sync push failed after DB update',
+				{
+					mapId: updatedShare.map_id,
+					targetUserId: updatedShare.user_id,
+					error: collaboratorSyncResult.error,
+				}
+			);
+		}
+
+		let disconnectResult = {
+			attempted: false,
+			succeededRooms: [] as string[],
+			failedRooms: [] as string[],
+		};
+
+		// Force reconnect so PartyKit applies updated room-mode permissions immediately.
+		try {
+			disconnectResult = await disconnectPartyKitUsers({
+				mapId: updatedShare.map_id,
+				userIds: [updatedShare.user_id],
+				reason: 'permissions_updated',
+			});
+
+			if (
+				disconnectResult.attempted &&
+				disconnectResult.failedRooms.length > 0
+			) {
+				console.warn(
+					'[share/update-share] PartyKit disconnect degraded after role update',
+					{
+						mapId: updatedShare.map_id,
+						targetUserId: updatedShare.user_id,
+						failedRooms: disconnectResult.failedRooms,
+						succeededRooms: disconnectResult.succeededRooms,
+					}
+				);
+			}
+		} catch (disconnectError) {
+			console.warn(
+				'[share/update-share] PartyKit disconnect request failed after role update',
+				{
+					mapId: updatedShare.map_id,
+					targetUserId: updatedShare.user_id,
+					error: toErrorMessage(disconnectError),
+				}
 			);
 		}
 
@@ -143,18 +284,28 @@ export const PATCH = withApiValidation<
 				can_comment: updatedShare.can_comment,
 				can_view: updatedShare.can_view,
 				updated_at: updatedShare.updated_at,
+				realtime: {
+					permission_push: {
+						attempted: permissionPushResult.attempted,
+						delivered: permissionPushResult.delivered,
+						...(permissionPushErrorMessage
+							? { error: permissionPushErrorMessage }
+							: {}),
+					},
+					disconnect: {
+						attempted: disconnectResult.attempted,
+						succeededRooms: disconnectResult.succeededRooms,
+						failedRooms: disconnectResult.failedRooms,
+					},
+					collaborator_sync: collaboratorSyncResult,
+				},
 			},
 			200,
 			'User permissions updated successfully'
 		);
 	} catch (error) {
-		console.error(
-			'Error in PATCH /api/share/update-share/[shareId]:',
-			error
-		);
-		const message =
-			error instanceof Error ? error.message : 'Internal server error';
-		return respondError('Failed to update user permissions', 500, message);
+		console.error('Error in PATCH /api/share/update-share/[shareId]:', error);
+		return respondError('Failed to update user permissions', 500);
 	}
 });
 
@@ -169,10 +320,14 @@ function getRolePermissions(role: ShareRole): {
 	switch (role) {
 		case 'editor':
 			return { can_edit: true, can_comment: true, can_view: true };
-		case 'commenter':
+		case 'commentator':
 			return { can_edit: false, can_comment: true, can_view: true };
 		case 'viewer':
 		default:
 			return { can_edit: false, can_comment: false, can_view: true };
 	}
+}
+
+function toErrorMessage(error: unknown): string {
+	return error instanceof Error ? error.message : 'Unknown error';
 }

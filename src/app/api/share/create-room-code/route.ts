@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 const CreateRoomCodeSchema = z.object({
 	map_id: z.string().uuid(),
-	role: z.enum(['editor', 'commenter', 'viewer']).default('viewer'),
+	role: z.enum(['editor', 'commentator', 'viewer']).default('viewer'),
 	can_edit: z.boolean().optional(),
 	can_comment: z.boolean().optional(),
 	can_view: z.boolean().optional(),

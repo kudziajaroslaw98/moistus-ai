@@ -1,0 +1,5 @@
+{
+	"name": "shiko-realtime",
+	"main": "partykit/server.ts",
+	"compatibilityDate": "2025-02-01"
+}

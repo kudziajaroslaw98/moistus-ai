@@ -3,6 +3,7 @@
 # dependencies
 /node_modules
 /.pnp
+.pnpm-store
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -76,5 +77,8 @@ ai-docs
 .worktrees/
 
 # Plans (local development notes)
-docs/plans/
+docs/plans
 e2e/auth-failure.png
+
+# partykit
+.partykit

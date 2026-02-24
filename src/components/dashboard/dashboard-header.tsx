@@ -7,7 +7,7 @@ import { useShallow } from 'zustand/shallow';
 
 interface DashboardHeaderProps {
 	className?: string;
-	onOpenSettings?: (tab: 'settings' | 'billing') => void;
+	onOpenSettings?: (tab: 'account' | 'billing') => void;
 }
 
 export function DashboardHeader({

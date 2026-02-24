@@ -3,6 +3,8 @@ import { nodeCommands } from '@/components/node-editor/core/commands/node-comman
 import { StateCreator } from 'zustand';
 import { AppState, UIStateSlice } from '../app-state';
 
+const BLOCKED_NODE_TYPES = ['commentNode', 'groupNode', 'ghostNode'] as const;
+
 export const createUiStateSlice: StateCreator<
 	AppState,
 	[],
@@ -87,15 +89,22 @@ export const createUiStateSlice: StateCreator<
 	openNodeEditor: (options) => {
 		// Check permissions before opening node editor
 		// Only owners and editors can create/edit nodes
-		const { lastJoinResult, mindMap, currentUser } = get();
+		const { permissions, mindMap, currentUser } = get();
 		const isOwner = Boolean(
 			mindMap && currentUser && mindMap.user_id === currentUser.id
 		);
-		const canEdit = isOwner || Boolean(lastJoinResult?.permissions?.can_edit);
+		const canEdit = isOwner || Boolean(permissions.can_edit);
 
 		if (!canEdit) {
 			console.warn('Cannot open node editor: insufficient permissions');
 			return;
+		}
+
+		if (options.mode === 'edit' && options.existingNodeId) {
+			const node = get().nodes.find((n) => n.id === options.existingNodeId);
+			if (node && BLOCKED_NODE_TYPES.includes(node.data.node_type as (typeof BLOCKED_NODE_TYPES)[number])) {
+				return;
+			}
 		}
 
 		set({

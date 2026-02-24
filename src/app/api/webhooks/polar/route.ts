@@ -1,12 +1,14 @@
 import { createServiceRoleClient } from '@/helpers/supabase/server';
-import { calculateUsageAdjustment } from '@/helpers/api/with-subscription-check';
 import { mapBillingInterval, mapPolarStatus } from '@/lib/polar';
+import type { SupabaseLikeError } from '@/types/supabase-like-error';
 import { Webhooks } from '@polar-sh/nextjs';
 
 // Validate webhook secret at module load time
 const webhookSecret = process.env.POLAR_WEBHOOK_SECRET;
 if (!webhookSecret) {
-	console.error('[Polar] POLAR_WEBHOOK_SECRET is not configured - webhook verification will fail');
+	console.error(
+		'[Polar] POLAR_WEBHOOK_SECRET is not configured - webhook verification will fail'
+	);
 }
 
 /**
@@ -64,6 +66,33 @@ type SubscriptionData = {
 	canceledAt?: string | null;
 	productId?: string;
 };
+
+function formatSupabaseError(error: SupabaseLikeError): string {
+	const metadata = [error.details, error.hint, error.code]
+		.filter((value): value is string => Boolean(value))
+		.join(' | ');
+
+	if (!metadata) {
+		return error.message;
+	}
+
+	return `${error.message} (${metadata})`;
+}
+
+function toFiniteNonNegativeNumber(value: unknown): number {
+	if (typeof value === 'number' && Number.isFinite(value)) {
+		return Math.max(0, value);
+	}
+
+	if (typeof value === 'string' && value.trim().length > 0) {
+		const parsed = Number(value);
+		if (Number.isFinite(parsed)) {
+			return Math.max(0, parsed);
+		}
+	}
+
+	return 0;
+}
 
 /**
  * Handles subscription creation/activation.
@@ -166,14 +195,27 @@ async function handleSubscriptionUpdated(data: SubscriptionData) {
 	console.log('[Polar] Processing subscription.updated:', data.id);
 
 	// Fetch current subscription with plan details
-	const { data: existingSubscription } = await supabase
-		.from('user_subscriptions')
-		.select(`
+	const { data: existingSubscription, error: subscriptionError } =
+		await supabase
+			.from('user_subscriptions')
+			.select(
+				`
 			*,
 			plan:subscription_plans(id, name, limits)
-		`)
-		.eq('polar_subscription_id', data.id)
-		.single();
+		`
+			)
+			.eq('polar_subscription_id', data.id)
+			.maybeSingle();
+
+	if (subscriptionError) {
+		throw new Error(
+			`[Polar] Failed to fetch current subscription before update: ${formatSupabaseError(subscriptionError)}`
+		);
+	}
+
+	if (!existingSubscription) {
+		throw new Error(`[Polar] Subscription not found for update: ${data.id}`);
+	}
 
 	const currentPeriodStart = data.currentPeriodStart
 		? new Date(data.currentPeriodStart)
@@ -198,20 +240,44 @@ async function handleSubscriptionUpdated(data: SubscriptionData) {
 
 	// Track metadata updates (will be applied at end)
 	let metadataUpdates: Record<string, unknown> = {
-		...(existingSubscription?.metadata as Record<string, unknown> | null),
+		...(existingSubscription.metadata as Record<string, unknown> | null),
 	};
 
-	// Check if this is a new billing period (period start changed) - reset usage adjustment
-	const oldPeriodStart = existingSubscription?.current_period_start;
-	if (currentPeriodStart && oldPeriodStart) {
+	// Check if this is a new billing period (period start changed) - reset counter
+	const oldPeriodStart = existingSubscription.current_period_start;
+	const userId = existingSubscription.user_id;
+	if (currentPeriodStart && oldPeriodStart && userId) {
 		const oldStart = new Date(oldPeriodStart).getTime();
 		const newStart = currentPeriodStart.getTime();
 		if (newStart > oldStart) {
-			console.log('[Polar] New billing period detected, clearing usage adjustment');
-			// Clear usage adjustment for new billing period
+			console.log(
+				'[Polar] New billing period detected, resetting AI usage counter'
+			);
+			const { data: resetRows, error: resetError } = await supabase
+				.from('user_usage_quotas')
+				.update({
+					ai_suggestions_count: 0,
+					billing_period_start: currentPeriodStart.toISOString(),
+				})
+				.eq('user_id', userId)
+				.select('user_id');
+			if (resetError) {
+				throw new Error(
+					`[Polar] Failed to reset AI usage counter: ${formatSupabaseError(resetError)}`
+				);
+			}
+			if (!resetRows || resetRows.length === 0) {
+				console.warn(
+					'[Polar] AI usage reset no-op: no user_usage_quotas row to update',
+					{
+						userId,
+						subscriptionId: data.id,
+						currentPeriodStart: currentPeriodStart.toISOString(),
+					}
+				);
+			}
 			metadataUpdates = {
 				...metadataUpdates,
-				usage_adjustment: 0,
 				previous_period_start: oldPeriodStart,
 			};
 		}
@@ -222,7 +288,12 @@ async function handleSubscriptionUpdated(data: SubscriptionData) {
 	const oldProductId = metadataUpdates?.polar_product_id;
 
 	if (newProductId && oldProductId && newProductId !== oldProductId) {
-		console.log('[Polar] Plan change detected:', oldProductId, '->', newProductId);
+		console.log(
+			'[Polar] Plan change detected:',
+			oldProductId,
+			'->',
+			newProductId
+		);
 
 		// Look up the new plan by product ID
 		const { data: newPlan } = await supabase
@@ -231,35 +302,89 @@ async function handleSubscriptionUpdated(data: SubscriptionData) {
 			.eq('polar_product_id', newProductId)
 			.single();
 
-		if (newPlan && existingSubscription?.plan) {
-			// Calculate usage adjustment for AI suggestions (the main metered resource)
+		if (newPlan && existingSubscription.plan && userId) {
+			// Adjust AI usage counter directly for mid-cycle plan changes
 			type PlanLimits = { aiSuggestions?: number };
-			const oldLimit = (existingSubscription.plan.limits as PlanLimits)?.aiSuggestions ?? 0;
+			const oldLimit =
+				(existingSubscription.plan.limits as PlanLimits)?.aiSuggestions ?? 0;
 			const newLimit = (newPlan.limits as PlanLimits)?.aiSuggestions ?? 0;
-			const adjustment = calculateUsageAdjustment(oldLimit, newLimit);
 
-			// Get existing adjustment (may have been reset to 0 if new period)
-			const existingAdjustment = (metadataUpdates?.usage_adjustment as number) || 0;
-			const totalAdjustment = existingAdjustment + adjustment;
+			// Only adjust if both limits are finite
+			if (oldLimit !== -1 && newLimit !== -1) {
+				const { data: usageQuotaRow, error: usageQuotaError } = await supabase
+					.from('user_usage_quotas')
+					.select('ai_suggestions_count')
+					.eq('user_id', userId)
+					.maybeSingle();
+				if (usageQuotaError) {
+					throw new Error(
+						`[Polar] Failed to load AI usage counter before adjustment: ${formatSupabaseError(usageQuotaError)}`
+					);
+				}
 
-			console.log('[Polar] Usage adjustment:', {
-				oldLimit,
-				newLimit,
-				adjustment,
-				existingAdjustment,
-				totalAdjustment,
-			});
+				const currentUsage = toFiniteNonNegativeNumber(
+					usageQuotaRow?.ai_suggestions_count
+				);
+				// Upgrades grant fresh quota; downgrades clamp used count to the new limit.
+				const targetUsage =
+					newLimit > oldLimit ? 0 : Math.min(newLimit, currentUsage);
+				const adjustment = targetUsage - currentUsage;
 
-			// Update plan_id and store adjustment in metadata
+				console.log('[Polar] Adjusting AI usage counter:', {
+					oldLimit,
+					newLimit,
+					currentUsage,
+					targetUsage,
+					adjustment,
+				});
+
+				if (adjustment !== 0) {
+					const { error: adjustError } = await supabase.rpc('adjust_ai_usage', {
+						p_user_id: userId,
+						p_adjustment: adjustment,
+					});
+					if (adjustError) {
+						console.error('[Polar] Failed to adjust AI usage counter:', {
+							oldLimit,
+							newLimit,
+							currentUsage,
+							targetUsage,
+							adjustment,
+							error: adjustError,
+						});
+						throw new Error(
+							`[Polar] Failed to adjust AI usage counter: ${formatSupabaseError(adjustError)}`
+						);
+					}
+				}
+
+				console.log('[Polar] AI usage counter adjusted successfully:', {
+					oldLimit,
+					newLimit,
+					currentUsage,
+					targetUsage,
+					adjustmentApplied: adjustment,
+				});
+			}
+
+			// Update plan_id and metadata
 			updateData.plan_id = newPlan.id;
 			metadataUpdates = {
 				...metadataUpdates,
 				polar_product_id: newProductId,
-				usage_adjustment: totalAdjustment,
 				last_plan_change: new Date().toISOString(),
 				previous_plan: existingSubscription.plan.name,
 			};
 		}
+	} else if (existingSubscription.plan && !userId) {
+		console.warn(
+			'[Polar] Skipping AI usage adjustment because user_id is missing on subscription',
+			{
+				subscriptionId: data.id,
+				newProductId,
+				oldProductId,
+			}
+		);
 	}
 
 	// Apply metadata updates if any changes were made

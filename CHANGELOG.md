@@ -5,21 +5,218 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+<!-- Updated: 2026-02-24 - Permissions/quota hardening, realtime cursor safety, and typing/accessibility fixes -->
+
+## [2026-02-24]
+
+### Fixed
+
+- **store/permissions-slice**: Guarded async permission fetch writes against stale `mapId` responses
+  - Why: Prevents fast map switching from overwriting active-map permissions with late responses
+- **helpers/partykit/admin**: Continued endpoint fallback after thrown fetch errors
+  - Why: A transient failure on one endpoint variant should not block other working admin routes
+- **join-flow/display-name**: Existing anonymous collaborators now see their persisted name prefilled on all join entry points (`/join/[token]`, `/join`, embedded join component)
+  - Why: Prevents revoked/rejoining users from being incorrectly treated as first-time guests with random names
+- **api/share/join-room**: `display_name` from join requests now persists to `user_profiles` and auth metadata (best effort, non-blocking)
+  - Why: Ensures name edits made during join are reflected in DB/auth instead of being session-only
+- **sharing/manage-tab**: Collaborator labels now resolve as `display_name` first (then full name/email fallback) instead of preferring `full_name`
+  - Why: Manage UI should show the collaborator-chosen display label consistently
+- **realtime/identity**: Presence/selection/cursor identity now resolves from `user_profiles` first, then auth metadata, then deterministic fallback
+  - Why: Prevents mismatched names/avatars between user menu and realtime presence surfaces
+- **realtime/presence-room**: Presence tracking now pushes an immediate `track()` update on identity/activity changes (in addition to heartbeat)
+  - Why: Avoids stale collaborator name/avatar states lingering for up to the heartbeat interval
+- **api/maps/permissions**: Normalized permission role mapping now whitelists contract roles and falls back unknown/legacy DB values to `viewer`
+  - Why: Prevents runtime contract drift from force-cast role values
+- **api/webhooks/polar**: Billing-period usage reset now validates update success (error + rows updated) and throws enriched DB errors
+  - Why: Prevents silent webhook success when `user_usage_quotas` updates fail
+- **api/webhooks/polar**: `adjust_ai_usage` RPC now has explicit error handling/logging and throws on failures
+  - Why: Keeps webhook retries consistent on DB failures and surfaces final applied adjustment value
+- **subscription/ai-quota**: `getAIUsageCount` now throws on RPC error/null/invalid data and `checkAIQuota` fails closed with HTTP 503
+  - Why: Prevents quota bypass when AI usage counter is unavailable
+- **subscription/collaborators**: Missing paid-plan `collaboratorsPerMap` no longer implies unlimited access; now uses explicit safe fallback cap (`10`)
+  - Why: Avoids accidental unlimited collaborator access from partial plan data
+- **join/forms**: Removed unsafe `as any` resolver casts by using typed `useForm<input, context, output>` generics for `JoinRoomSchema`
+  - Why: Enforces resolver output typing without runtime-unsafe casts
+- **layout/toasts**: Restored visible `focus-visible` rings for toast action/cancel/close controls
+  - Why: Improves keyboard accessibility regression in global toaster styles
+- **realtime/collaborator-channel**: Subscription `socket` now exposes a live getter (`WebSocket | null`) instead of a stale initial snapshot
+  - Why: Prevents callers from reading closed socket references after reconnect
+- **realtime/yjs-provider**: Sync-event pruning now tracks per-subscriber cursors and only prunes events all subscribers consumed
+  - Why: Prevents slow subscribers from missing events due to shared-array index shifts
+- **toasts/mobile-width**: Added fallback for mobile right offset (`--mobile-offset-right` -> `--toast-offset-inline`) in Sonner right-positioned toaster rule
+  - Why: Prevents unresolved CSS vars from collapsing right positioning to `auto` on small screens
+- **context-menu/groups**: Group detection now reuses canonical `isGroupNode` plus legacy heuristics; duplicate Ungroup menu entries are suppressed when selected-node menu already exposes Ungroup
+  - Why: Keeps group detection centralized and avoids duplicate actions on right-clicked selected group nodes
+- **mind-map/mobile-selection**: Mobile tap multi-select node click now stops event propagation/default handling before local selection updates
+  - Why: Prevents React Flow internal click selection from racing store-driven selection state
+- **api/ai-streams**: `trackAIUsage` calls in suggest-connections/suggestions streams now run fire-and-forget with error swallowing; `search-nodes` tracking failures no longer fail successful responses
+  - Why: Usage telemetry failures should not break streamed or successful AI outputs
+- **api/comments**: Comment lookup errors in update/delete flows now return 500 with DB error details; only missing rows return 404
+  - Why: Distinguishes backend/data failures from true not-found cases
+- **api/share/join-room**: `user_profiles` display-name persistence now uses `upsert(..., { onConflict: 'user_id' })`
+  - Why: Ensures first-time profiles are created instead of silently no-op updates
+- **api/share/join-room**: `display_name` upsert now always resolves and includes `full_name` (existing profile -> auth metadata -> display name fallback)
+  - Why: Prevents `user_profiles.full_name NOT NULL` insert failures that could silently drop join-time display-name edits
+- **api/share/join-room**: `user_profiles` upsert now omits `full_name` when existing-profile prefetch returns an error
+  - Why: Avoids overwriting a real `full_name` during transient profile read failures while still persisting `display_name`
+- **api/webhooks/polar**: `subscription.updated` subscription prefetch now uses `.maybeSingle()` with explicit fetch/missing-row errors
+  - Why: Prevents silent no-op updates when `user_subscriptions` is missing and preserves webhook retry visibility for real failures
+- **context-menu/group-detection**: Replaced `TypedNode<any>` group-node cast with canonical node-type guards via `isAvailableNodeType`
+  - Why: Removes unsafe `any` usage while keeping legacy group detection fallbacks intact
+- **subscription/ai-quota**: `checkAIQuota` now short-circuits hard `limit === 0` before calling `getAIUsageCount`
+  - Why: Ensures hard free-tier limits cannot be masked by usage-counter outages and avoids unnecessary RPC calls
+- **partykit/auth**: Replaced control-character regex with char-code scan and wrapped request-path URI decoding in safe decode helper
+  - Why: Removes lint suppression and prevents malformed percent-encoding from throwing request-time exceptions
+- **realtime/graph-sync**: Edge serialization now skips and logs edges missing `source`/`target`; callers filter/guard null payloads before Yjs broadcasts/upserts
+  - Why: Prevents invalid edge payloads from being emitted with empty endpoints
+- **realtime/permission-channel**: Subscription now exposes live `socket` getter and disconnect closes the current socket reference
+  - Why: Keeps caller-visible socket aligned with reconnect lifecycle
+- **realtime/yjs-presence**: Presence map conversion now accumulates multiple presences per user key instead of overwriting with the last client
+  - Why: Preserves multi-client presence for same logical user id
+- **tests/realtime-fetch-mocks**: PartyKit sharing/admin tests now restore `globalThis.fetch` after suites/tests
+  - Why: Prevents fetch mock leakage into unrelated test files
+- **history/revert typing**: Replaced `normalizedData as any` with `normalizedData as EdgeData` in edge canonicalization
+  - Why: Removes unsafe `any` cast in revert payload construction
+- **api/history/revert**: Revert-by-event now validates the event belongs to the target snapshot; DB diff mapping now uses typed row guards; empty edge upserts are skipped after filtering
+  - Why: Prevents silent snapshot fallback on mismatched event IDs, removes unsafe `any` diff plumbing, and avoids no-op edge upsert round-trips
+- **api/webhooks/polar**: Billing reset treats zero updated quota rows as non-fatal no-op logs, and plan-change adjustments now clamp usage via app-side target usage calculations
+  - Why: Avoids infinite webhook retries for missing quota rows while keeping usage counters bounded for upgrades/downgrades
+- **context-menu/toolbar**: Context-menu group heuristics now require non-empty `groupChildren` and memoize menu config; toolbar triggers now use Base UI render-prop pattern without `asChild`
+  - Why: Prevents false-positive group detection, reduces unnecessary menu recomputation, and aligns trigger behavior with current Base UI guidance
+- **api/ai/chat + subscription tracking**: Chat usage tracking is now fire-and-forget, and `trackAIUsage()` now throws on `increment_ai_usage` RPC errors
+  - Why: Reduces chat stream startup latency while surfacing usage-counter write failures to callers
+- **typing/tests/realtime**: Sharing unsubscribe field is now strict nullable, permissions details are exported as a named interface, collaborator-channel test listeners use `unknown`, and Yjs sync subscriptions process events immediately after observer registration
+  - Why: Tightens state contracts, removes `any` in tests, and closes a setup race where sync events could be missed
+
+### Changed
+
+- **terminology/roles**: Renamed remaining `commenter` references to `commentator` in E2E tests, page objects, and docs
+  - Why: Keep role naming consistent across API, UI, tests, and documentation
+- **types/error-contracts**: Moved shared Supabase error shape to `src/types/supabase-like-error.ts` and imported it in Polar webhook handling
+  - Why: Keeps strict shared error contracts in `src/types` instead of local aliases
+- **e2e/sharing-permissions**: Expanded Access Revocation coverage with display-name persistence assertions (revisit prefill, rename persistence, prefill after revoke)
+  - Why: Locks in the regression fix path that previously surfaced stale/random join name behavior
+- **identity/tests**: Added focused unit tests for identity resolver, sharing-slice identity mapping, and current-user name/image hooks
+  - Why: Locks in precedence and fallback behavior for collaborator naming/avatar consistency
+- **types/permissions**: Moved permission channel event interfaces from app-state to `src/types/permission-events.ts` and consumed shared types in realtime/store modules
+  - Why: Centralizes permission event contracts for reuse and consistent typing
+- **docs/readme**: Updated collaboration feature text to reflect shipped PartyKit/Yjs sharing and presence support
+  - Why: Removes stale “coming soon” wording for implemented realtime collaboration
+- **top-bar/mobile-menu**: Restored action-oriented settings CTA label (`Open Settings`)
+  - Why: Clarifies that the button opens settings instead of duplicating the section heading
+
+## [2026-02-23]
+
+### Added
+
+- **realtime/partykit**: PartyKit server with JWT authentication, Yjs CRDT document management, and database projection
+- **realtime/yjs-provider**: Client-side Yjs provider with ref-counted room contexts, awareness support, and PartyKit WebSocket transport
+- **realtime/graph-sync**: Serialization utilities for nodes/edges between React Flow, Yjs, and database representations
+- **realtime/room-names**: Room naming convention supporting four channels per mind map (graph, comments, selected-nodes, presence)
+- **realtime/util**: Shared `asNonEmptyString()` and `stableStringify()` helpers extracted from duplicated implementations
+- **helpers/partykit/admin**: Server-side admin helper for forcibly disconnecting users from realtime rooms on access revocation
+- **utils/debounce-per-key**: Per-key debounce utility for batching node/edge save operations
+- **store/ui-slice**: Block node editor from opening on comment, group, and ghost node types
+- **tests**: Unit tests for broadcast-channel, graph-sync, partykit-auth, room-names, debounce-per-key, system-update-one-shot
+
+### Changed
+
+- **realtime/broadcast-channel**: Rewritten as Yjs adapter maintaining Supabase RealtimeChannel API compatibility
+- **store/nodes-slice**: Integrated Yjs graph sync — optimistic updates, broadcasts, and debounced DB saves flow through Yjs provider
+- **store/edges-slice**: Integrated Yjs graph sync with coordinated edge + parent node updates
+- **store/history-slice**: Database-backed undo/redo with Yjs state replacement via `replaceGraphState`
+- **store/comments-slice**: Yjs-aware comment sync with system update tracking
+- **store/sharing-slice**: Yjs lifecycle management on share state changes
+- **store/layout-slice**: Batch layout updates propagated through Yjs in single transaction
+- **api/history/revert**: Added Zod schema validation for body parameters with UUID format enforcement
+- **api/share routes**: Integrated PartyKit admin disconnect on access revocation (delete-share, update-share, revoke-room-code)
+- **components/mind-map-canvas**: Yjs lifecycle hooks for room setup/teardown
+- **components/react-flow-area**: Yjs-aware drag end and node change handlers
+- **components/top-bar**: Yjs connection status indicator
+
+### Fixed
+
+- **security/partykit**: Timing-safe admin token comparison via HMAC (Web Crypto pattern for CF Workers)
+- **security/room-names**: Tightened UUID regex validation, added `isSafeRoomSegment()` rejecting null bytes and path traversal
+- **security/error-responses**: Sanitized error responses across share routes — internal error messages no longer leak to clients
+- **realtime/broadcast-send**: Fixed race condition where `send()` could execute before channel setup completed
+- **realtime/yjs-provider**: Fixed mutation-during-iteration bug in `cleanupAllYjsRooms`
+- **realtime/yjs-provider**: Added sync_events pruning (max 200 entries) preventing unbounded Y.Array growth
+- **realtime/comparison**: Replaced `JSON.stringify` with key-order-stable `stableStringify` for deterministic object comparison
+- **store/edges-slice**: Fixed typo `"Cannot save dge"` → `"Cannot save edge"`
+- **store/edges-slice**: Replaced unsafe `JSON.parse(dbEdge.animated)` with `safeParseBooleanish()` helper
+
+### Refactored
+
+- **realtime/graph-sync**: Exported `toPgReal`, removed local copies from nodes-slice and layout-slice
+- **realtime/dead-code**: Removed always-true `isYjsGraphSyncEnabled()` function and all conditional branches across 5 files
+- **realtime/broadcast-channel**: Replaced 90-line `toBroadcastEnvelopeFromGraphMutation` with lookup map (~20 lines)
+- **store/history-slice**: Extracted `syncRevertedState()` helper deduplicating snapshot and event revert paths
+- **store/slices**: Renamed `toComparableRecord` → `toComparableNodeRecord`/`toComparableEdgeRecord` for clarity
+
+---
+
+<!-- Updated: 2026-02-22 - Mobile toolbar + tap multi-select + grouping context menu fixes -->
+
+## [2026-02-22]
+
+### Added
+
+- **e2e/mobile-toolbar**: Added Playwright coverage for mobile toolbar overflow behavior (`e2e/tests/mind-map/toolbar-mobile.spec.ts`)
+  - Verifies core-tool visibility, `More` overflow items, keyboard-help FAB hidden on mobile, and Guided Tour disabled state on zero-node maps
+- **e2e/mobile-toast**: Added viewport geometry assertions for toast placement and width in `e2e/tests/mind-map/toolbar-mobile.spec.ts`
+  - Verifies `Mind map loaded` toast stays above toolbar (`390x844`, `560x780`) and remains compact (`<=18rem`)
+- **toolbar/mobile-selection**: Added `Tap Multi-select` toggle to the cursor dropdown for mobile editors (`<768px`) with Zustand-backed state
+- **e2e/mobile-selection**: Added mobile Playwright coverage for tap multi-select flows in `e2e/tests/mind-map/toolbar-mobile.spec.ts`
+  - Verifies multi-tap additive selection, pane-tap clear while mode stays enabled, dragging disabled in mode, and single-select behavior restored after toggle off
+
+### Changed
+
+- **ux/navigation**: Renamed user "Settings" to "Account" throughout — user menu item, panel title, and tab label now read "Account" to distinguish from "Map Settings"
+  - Why: "Settings" was ambiguous — used for both account preferences and per-map configuration
+- **ux/navigation**: Mobile map menu button label updated from "Open Settings" to "Map Settings" for consistency
+- **toolbar/mobile**: Bottom toolbar now uses a compact mobile layout (`<768px`) with core actions visible (`Cursor`, `Add`, `AI`, `Comments`) and secondary actions moved under a `More` dropdown
+- **toolbar/mobile**: `More` overflow submenu triggers (`Auto Layout`, `Export`, `Guided Tour`) now use click-toggle behavior (`openOnHover={false}`) for reliable touch interaction
+- **selection/reactflow**: React Flow internal `multiSelectionActive` now follows mobile tap mode (`isMobile && canEdit && activeTool === 'default' && mobileTapMultiSelectEnabled`) and is reset to `false` on cleanup
+- **selection/mobile-drag**: Node dragging is disabled while tap multi-select mode is active to prevent accidental repositioning during multi-select tap workflows
+- **toasts/layout**: Global app toaster now uses `.app-toaster` class targeting and compact baseline width (`min(18rem, calc(100vw - 1.5rem))`) for consistent tablet/mobile sizing
+- **docs/readme**: Added an E2E testing section with Playwright browser setup and `.next/lock` troubleshooting guidance; removed the detailed local webServer behavior subsection for brevity
+
+### Fixed
+
+- **node-editor/mobile**: CodeMirror autocomplete dropdown no longer gets clipped by node editor modal bounds on mobile
+  - Render tooltips to `document.body` via CodeMirror `tooltips({ parent, position: 'fixed' })` so suggestions escape scroll/overflow containers
+  - Updated autocomplete width constraints (`minWidth: 240px`, viewport-capped width/maxWidth) and elevated z-index to keep the menu visible on small screens
+- **shortcuts-help/mobile**: Keyboard shortcuts FAB is now hidden on mobile to prevent overlap with the bottom toolbar
+- **toasts/mobile-tablet**: Mind-map toasts now use runtime bottom-dock measurement (`ResizeObserver` + resize/orientation listeners) to set `--mind-map-toolbar-clearance`, preventing overlap with the bottom toolbar on small/tablet windows
+- **toasts/mobile-width**: Overrode Sonner `<=600px` full-width behavior for app toasts; toasts stay right-aligned and compact (~`18rem`) instead of stretching edge-to-edge
+- **e2e/webserver**: Playwright `webServer` now starts Next.js with explicit loopback binding (`--hostname 127.0.0.1 --port 3000`) and increased startup timeout (`300000ms`) to avoid local startup timeouts during `pnpm build && pnpm start`
+- **selection/mobile-runtime**: Fixed `ReferenceError: Cannot access 'isMobileTapMultiSelectActive' before initialization` in `react-flow-area.tsx` by ordering derived-mode declarations before dependent callbacks
+- **context-menu/group**: `Ungroup` now appears for group nodes via robust group detection (`type`, `data.node_type`, `data.nodeType`, `metadata.isGroup`, `metadata.groupChildren`) and is available directly in node context menus
+- **context-menu/selection-bounds**: Right-click on the React Flow multi-selection rectangle now opens app context menu (wired `onSelectionContextMenu`) instead of browser native menu
+- **context-menu/layout**: Removed empty top-section spacing when grouping actions are hidden by rendering only non-empty menu sections
+
+---
+
 <!-- Updated: 2026-02-21 - Collaborator mentions, export scale simplification, dependency patch updates -->
+
 ## [2026-02-21]
 
 ### Refactored
+
 - **editor/codemirror**: Extracted `STATUS_EXCLUDE_PREFIXES` array — status regex now built from the constant instead of a brittle inline lookbehind; update the array when adding new `prefix:value` patterns
 - **editor/codemirror**: Merged duplicate `.cm-pattern-alt` and `.cm-pattern-alttext` style blocks into a single combined selector
 - **export/png**: Removed PNG export resolution selector (1x/2x/3x/4x) — PNG export scale is now fixed to 2x
 
 ### Added
+
 - **editor/mentions**: `@` autocomplete in node editor now shows real collaborators — loaded eagerly on map open (no longer requires opening the share panel first)
 - **editor/mentions**: Real collaborators ranked above built-in team roles in `@` dropdown (boost:1 vs boost:0)
 - **editor/mentions**: Assignee metadata badges now show collaborator avatar with initials fallback instead of generic user icon
 - **editor/mentions**: Added `CollaboratorMention` type and built-in preset mentions (`@dev`, `@design`, `@pm`, etc.)
 
 ### Fixed
+
 - **editor/imageNode**: `alt:` and `src:` patterns now parsed by PATTERN_CONFIGS — `altText` and `source` round-trip correctly through edit/save cycles (previously treated as plain text)
 - **editor/imageNode**: `alt:"text"` syntax help entry now has `insertText` — clicking it inserts the prefix instead of nothing
 - **editor/codeNode**: `showLineNumbers` in node-creator no longer re-enables line numbers when metadata holds boolean `false` (preserves default-on behavior)
@@ -28,6 +225,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **export/pdf**: Author name now uses profile `display_name` → `full_name` → email fallback instead of always using email
 
 ### Changed
+
 - **editor/codemirror**: `KNOWN_ANNOTATION_TYPES` extracted to module-level constant (was re-allocated per match in `valueClassName`)
 - **export/pdf**: PDF export now uses the same fixed `2x` image capture pipeline as PNG
 - **export/png**: PNG export rendering scale remains hardcoded to `2x` for consistent output quality
@@ -36,9 +234,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ---
 
 <!-- Updated: 2026-02-20 - Parser/serializer consistency fixes -->
+
 ## [2026-02-20]
 
 ### Fixed
+
 - **editor/codeNode**: Quick-input serialization no longer wraps content in triple-backtick fences — raw content is output directly so re-editing round-trips correctly
 - **editor/resourceNode**: Quick-input serialization no longer emits `restype:` (no corresponding parser existed)
 - **editor/imageNode**: Quick-input serialization no longer emits `cap:` (no corresponding parser existed)
@@ -51,38 +251,47 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ---
 
 <!-- Updated: 2026-02-19 - Pan mode edge fix, CodeMirror UX -->
+
 ## [2026-02-19]
 
 ### Fixed
+
 - **nodes/handle**: Edge creation via bottom handle now disabled in pan mode — `isConnectable` gated on `activeTool`
 
 ### Added
+
 - **editor/codemirror**: Added `scrollPastEnd` and `highlightActiveLine` extensions for better editing UX
 
 ---
 
 <!-- Updated: 2026-02-18 - Content-aware export bounds -->
+
 ## [2026-02-18]
 
 ### Fixed
+
 - **export/bounds**: Export now captures content-aware bounds using `getNodesBounds` + `getViewportForBounds` instead of browser viewport dimensions — tall/wide mind maps no longer get cut off or shrunk with whitespace
 
 ### Removed
+
 - **export/fitView**: Removed "Fit all nodes in view" toggle (no longer needed — export always captures all content)
 - **export/deadcode**: Removed `calculateNodesBoundingBox` (unused), `exportFitView` state/setter, zoom compensation logic
 
 ---
 
 <!-- Updated: 2026-02-13 - JSON export, PDF/JSON paywall, mobile node editor, server-side export, node permission fix -->
+
 ## [2026-02-13]
 
 ### Added
+
 - **export/json**: JSON map export — nodes & edges with internal fields stripped (DB IDs, AI state, React Flow internals)
 - **export/paywall**: PDF and JSON export gated behind Pro subscription (UI badge + client-side guard in `startExport`)
 - **export/validate**: Server-side subscription validation endpoint (`/api/export/validate`) with telemetry logging for unauthorized attempts
 - **export/json-server**: Server-side JSON export generation (`/api/export/json`) — fetches from DB, validates subscription + map ownership, strips internal fields server-side
 
 ### Fixed
+
 - **nodes/permissions**: Viewers can no longer interact with node toolbar edit buttons or task checkboxes — all 8 node types with `SharedNodeToolbar` now enforce `canEdit` permission, with lock icon indicator for read-only users
 - **auth/guest-banner**: Guest signup banner now uses `guestSignup` popover state instead of `upgradeUser`
 - **tests/base-node-wrapper**: Fix `AIActionsPopover` test crash by mocking component to avoid deep store dependency chain
@@ -91,9 +300,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **export/dropdown**: Locked format radio items no longer fully disabled — clicks now trigger upgrade prompt instead of being silently blocked
 
 ### Refactored
+
 - **code-node/copy**: Replace spring animation on copy button with smooth ease-out rotate + blur + opacity CSS transition; reduced-motion covered by global `prefers-reduced-motion` rule
 
 ### Changed
+
 - **export/dropdown**: Hide export settings submenu when JSON format is selected
 - **export/dropdown**: Increase dropdown max-height for additional format option
 - **export/slice**: Pro export check moved from client-side plan name comparison to server-side API validation with 403 handling
@@ -102,9 +313,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ---
 
 <!-- Updated: 2026-02-12 - Remove node resize, export fixes, a11y -->
+
 ## [2026-02-12]
 
 ### Fixed
+
 - **gdpr/export**: Batch `.in()` queries into chunks of 50 IDs to avoid URL length limits on large accounts
 - **gdpr/export**: Filter out system-only ghost nodes from data export
 - **gdpr/export**: Always fetch user's comment messages/reactions regardless of comment thread ownership
@@ -112,6 +325,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **settings**: Fix Delete Account block indentation in settings panel
 
 ### Refactored
+
 - **nodes/resize**: Removed entire node dimension management layer (~1000 lines deleted)
   - Deleted `use-node-dimensions` hook (372L), `node-dimension-utils` (287L), `use-measure` hook (36L)
   - Removed `NodeResizer` from base-node-wrapper and group-node
@@ -121,6 +335,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **nodes/factory**: Removed width/height from node creation pipeline and broadcast sync
 
 ### Removed
+
 - **nodes/resize**: `NodeResizer` UI component instances (2 removed)
 - **nodes/dead-code**: `NodeFactory.getDefaults()` method, `NodeRegistry.getDimensions()` method
 - **nodes/registry**: Removed `dimensions` config and `resizable` flag from all 13 node type entries
@@ -128,9 +343,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ---
 
 <!-- Updated: 2026-02-10 - SEO infrastructure + GDPR data export -->
+
 ## [2026-02-10]
 
 ### Added
+
 - **seo/og-image**: Dynamic OG image generation via `opengraph-image.tsx` (1200x630, Shiko brand)
 - **seo/sitemap**: Dynamic sitemap at `/sitemap.xml` with all public routes
 - **seo/robots**: Robots.txt at `/robots.txt` blocking private routes (dashboard, mind-map, api, etc.)
@@ -145,18 +362,22 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **rate-limiter**: Data export rate limiter (1 request per hour per user)
 
 ### Fixed
+
 - **export-dropdown**: Wrapped `DropdownMenuLabel` instances in `DropdownMenuGroup` (required by Base UI)
 
 ### Removed
+
 - **seo**: Deleted `public/og-image-placeholder.svg` (replaced by dynamic generation)
 - **seo**: Removed hardcoded `/og-image.png` references from landing page metadata
 
 ---
 
 <!-- Updated: 2026-02-09 - Fix templates bypassing mind map limit -->
+
 ## [2026-02-09]
 
 ### Fixed
+
 - **templates/limit**: Templates page now enforces mind map limit — "Use" button disabled at limit with upgrade toast
   - Why: Free users could bypass the 3-map limit by creating maps from templates
 - **api/maps**: Server-side map count query now excludes `is_template` rows for accurate limit enforcement
@@ -169,9 +390,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ---
 
 <!-- Updated: 2026-02-07 - Logout toast spam fix v2 -->
+
 ## [2026-02-07]
 
 ### Fixed
+
 - **node-editor**: Fix cursor positioning when clicking on scrolled content in CodeMirror editor
   - Why: Scroll container was on `.cm-content` instead of `.cm-scroller`, causing `posAtCoords()` to ignore scroll offset
 - **auth**: Fix toast spam "Profile Error: User not authenticated" on logout (v2)
@@ -180,9 +403,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ---
 
 <!-- Updated: 2026-02-06 - Landing page redesign -->
+
 ## [2026-02-06]
 
 ### Changed
+
 - **landing/hero**: Replace badge + glass panels with GrainGradient shader background, simplified single-color headline
 - **landing/hero**: Nav and hero CTA buttons now white bg with dark text; "See How It Works" is plain text
 - **landing/problem-solution**: Rewrite with Lora serif headline and two-column before/after grid (coral/blue dots)
@@ -196,15 +421,18 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **landing/problem-solution**: Added card containers around before/after columns
 
 ### Removed
+
 - **landing/trust-strip**: Removed (too generic/template-like)
 
 ### Added
+
 - **landing/typography**: Lora serif on all section headlines
 - **landing/css**: Hero shimmer animation keyframes, node-float/node-pulse keyframes
 
 ## [2026-01-30]
 
 ### Added
+
 - **shortcuts-help**: Keyboard Shortcuts Help FAB (`src/components/shortcuts-help/shortcuts-help-fab.tsx`)
   - Floating action button (bottom-right) that expands into help card
   - Glass effect styling with backdrop blur
@@ -217,10 +445,12 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Single source of truth for navigation, general, nodes, view shortcuts
 
 ### Changed
+
 - **shortcuts**: Document ⌘+Arrow node creation shortcuts
   - Added ⌘→/←/↓/↑ to shortcuts help (already functional in `use-keyboard-navigation.ts`)
 
 ### Fixed
+
 - **auth**: Sign-up magic link now routes correctly to dashboard
   - Created `/auth/verify` page that handles magic link auth types (signup, recovery, email_change)
   - Proxy routes `/?code=xxx` to verify page (OAuth goes directly to `/auth/callback`)
@@ -245,6 +475,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Replaced fragile regex with proper URLSearchParams parsing
 
 ### Removed
+
 - **auth**: Removed `initialCheckDone` ref from forgot-password page
   - Was only needed for React Strict Mode (dev-only) running effects twice
   - Caused bug: refs persist across Next.js client-side navigation, breaking sign-in → forgot-password flow
@@ -253,15 +484,18 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ---
 
 <!-- Updated: 2026-01-26 - AI popover click-outside fix -->
+
 ## [2026-01-26]
 
 ### Added
+
 - **ai**: `AIActionsPopover` component for contextual AI actions (`src/components/ai/ai-actions-popover.tsx`)
   - Shared between node button and toolbar
   - Three actions: Expand ideas (node-only), Find connections, Find similar
   - Scope-aware: shows different options for node vs map context
 
 ### Changed
+
 - **nodes**: AI sparkle button now opens popover instead of direct action
   - Smaller button footprint (icon only, no text)
   - Position moved closer to node (-right-[60px] from -right-[200px])
@@ -274,6 +508,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Client-side post-filtering preserves full AI map analysis
 
 ### Fixed
+
 - **tests**: Updated base-node-wrapper tests for new popover behavior
 - **realtime**: Guard against concurrent subscription attempts causing infinite loop on map load
   - Applied to `subscribeToNodes`, `subscribeToEdges`, and `subscribeToHistoryCurrent`
@@ -286,6 +521,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ## [2026-01-25]
 
 ### Added
+
 - **realtime**: Secure broadcast channel system (`src/lib/realtime/broadcast-channel.ts`)
   - Private channels with RLS authorization via `realtime.messages` policies
   - Singleton channel manager with reference counting for shared subscriptions
@@ -300,6 +536,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **validations**: Password validation schema in `src/lib/validations/auth.ts`
 
 ### Changed
+
 - **realtime/cursor**: Migrated from public to private channel with `setAuth()`
 - **realtime/presence**: Migrated both presence-room and selection-presence-room to private channels
 - **nodes-slice**: Migrated from postgres_changes to secure broadcast
@@ -310,12 +547,14 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Broadcasts history:revert event after successful revert
 
 ### Removed
+
 - **history**: In-memory history system (history[], canUndo, canRedo, handleUndo, handleRedo)
   - Why: Dual-system (in-memory + DB) caused real-time sync bugs during revert
   - Ctrl+Z/Ctrl+Shift+Z now show toast directing users to History panel
   - History panel still works via DB-only backend
 
 ### Refactored
+
 - **slices**: Removed all `addStateToHistory()` calls from nodes-slice, edges-slice, layout-slice, suggestions-slice
   - `persistDeltaEvent()` remains as the sole history persistence mechanism
 - **history-slice**: Simplified to DB-only approach, removed in-memory caching after revert
@@ -326,11 +565,13 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **Base UI migration**: Converted `asChild` to `render` prop in password-strength, sign-in, forgot-password, user-menu, share-panel, mobile-menu, top-bar
 
 ### Security
+
 - **realtime**: All broadcast channels now use `config: { private: true }` with RLS policies
   - Random users guessing map IDs cannot subscribe to broadcasts
   - Unauthenticated users cannot join any map channels
 
 ### Fixed
+
 - **permissions**: Collaborator editor toolbar now appears immediately on page refresh
   - Why: Subscriptions (10s timeout) were blocking `isStateLoading`, delaying permission resolution
   - Fix: Fire subscriptions in background, only await comments + permissions fetch
@@ -340,6 +581,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ## [2026-01-24]
 
 ### Fixed
+
 - **auth**: Password reset PKCE flow - normalized origin to `localhost` for localStorage consistency
   - `127.0.0.1` and `localhost` are different origins, causing code verifier mismatch
 - **ui/select**: Dropdown positioning - added `z-[100]`, `alignItemWithTrigger={false}`, `side="bottom"`
@@ -350,6 +592,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **subscription-slice**: Silent failure for `fetchUsageData` on logout (non-critical data)
 
 ### Docs
+
 - **CLAUDE.md**: Added Base UI Gotchas section (render prop, alignItemWithTrigger, portal z-index)
 
 ---
@@ -357,6 +600,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ## [2026-01-23]
 
 ### Added
+
 - **legal**: Privacy Policy page at `/privacy`
   - GDPR & CCPA compliant with 12 sections
   - Data collection disclosure, legal basis, subprocessor list
@@ -382,6 +626,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Best-effort deletion with logging for manual cleanup
 
 **Files created:**
+
 - `src/app/(legal)/layout.tsx`
 - `src/app/(legal)/privacy/page.tsx`
 - `src/app/(legal)/terms/page.tsx`
@@ -392,12 +637,14 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - `src/lib/email.ts`
 
 **Files modified:**
+
 - `src/components/providers/client-providers.tsx` (added CookieNoticeBanner)
 - `src/components/dashboard/settings-panel.tsx` (wired delete account button)
 - `src/store/slices/user-profile-slice.ts` (sync email from auth to profile)
 - `src/types/user-profile-types.ts` (added email field to UserProfile)
 
 ### Removed
+
 - **landing**: Skip-to-content button (was appearing on back navigation)
 
 ---
@@ -405,6 +652,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ## [2026-01-20]
 
 ### Security
+
 - **mind-map/[id]**: Add server-side access validation before page renders
   - Why: Previously access was only checked client-side after fetch failed (DDoS vector)
   - Server component now validates session + ownership/share_access before any JS loads
@@ -413,10 +661,12 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Revoked access records could incorrectly show as "shared"
 
 ### Fixed
+
 - **access-check**: Template mind maps now accessible to authenticated users
   - Why: Access check only verified owner/share_access, missing `is_template` check
 
 ### Added
+
 - **access-denied**: New `/access-denied` page with room code entry support
   - Handles: `no_access`, `not_found`, `rate_limited` reasons
   - Animated illustrations matching existing error page patterns
@@ -427,17 +677,20 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ## [2026-01-18]
 
 ### Fixed
+
 - **api/join-room**: Guest users can now join rooms (was returning "Mind map not found")
   - Why: RLS blocked anonymous users from reading mind_maps before share_access was created
   - Consolidated 6 DB round trips into single atomic `join_room` RPC (SECURITY DEFINER)
 
 ### Refactored
+
 - **database**: Consolidate join room logic into single `join_room` RPC
   - Absorbs: `validate_room_code`, `get_or_create_share_access_record`, `increment_share_token_users`
   - Keeps: `decrement_share_token_users` (still used by delete-share)
   - Benefits: 1 round trip vs 6+, atomic transaction, simpler route code
 
 ### Security
+
 - **api/maps**: Add missing user_id filter to ownedMaps query (critical fix)
 - **api/checkout**: Remove PII (email) from server logs, replaced with user.id
 - **api/checkout**: Add Zod validation to prevent invalid billing intervals
@@ -454,9 +707,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **polar.ts**: Add console.warn for unknown billing intervals
 
 ### Changed
+
 - **components**: Update stale "Dodo" comments to "Polar" in upgrade-modal and pricing-step
 
 ### Added
+
 - **migration**: Add unique partial index on user_subscriptions.polar_subscription_id
   - Required for upsert with onConflict in webhook handler
 - **share-panel**: Free tier Max Users capped to 3 with orange upgrade indicator
@@ -465,6 +720,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ## [2026-01-17]
 
 ### Fixed
+
 - **dashboard/mind-map-card**: Title text now visible on card gradient backgrounds
   - Why: Missing `text-white` class caused title to inherit unclear default color
 - **billing/usage-period**: Usage limits now aligned with subscription billing cycle instead of calendar month
@@ -475,18 +731,26 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Upgrading from free (0 AI) to pro (100 AI) should give ~100 remaining, not 0
   - Calculates adjustment: `old_limit - new_limit` stored in `metadata.usage_adjustment`
   - Adjustment applied when counting usage; resets on new billing period
+- **dashboard/create-map-card**: Card height now matches MindMapCard (h-56)
 
 ### Added
+
 - **billing/helpers**: `getSubscriptionBillingPeriod(user, supabase)` returns period dates + adjustment
 - **billing/helpers**: `calculateUsageAdjustment(oldLimit, newLimit)` for mid-cycle plan changes
 - **billing/webhooks**: Period transition detection clears usage_adjustment on renewal
 - **billing/webhooks**: Plan change detection calculates and stores usage adjustment
+- **dashboard/create-map-card**: Disabled state with tooltip at map limit
+- **quick-input**: Warning banner + disabled create at node limit
+- **share-panel**: Disabled room code generation at collaborator limit
+- **MVP_ROADMAP.md**: Phase 5 database security plan (PostgreSQL triggers)
 
 ### Changed
+
 - **billing/usage-api**: `/api/user/billing/usage` now returns subscription-aligned billing period
 - **billing/webhooks**: `handleSubscriptionUpdated()` tracks both period changes and plan changes
 
 ### Tests
+
 - **e2e/billing**: Added comprehensive usage limit E2E tests (10 tests)
   - Free user 402 enforcement, Pro/trialing access
   - Billing period boundary verification
@@ -495,22 +759,15 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Requires: `SUPABASE_SERVICE_ROLE_KEY` in `.env.e2e.local`
 
 ### Security
+
 - **api/search-nodes**: Add AI limit check + usage tracking (was unprotected)
-
-### Added
-- **dashboard/create-map-card**: Disabled state with tooltip at map limit
-- **quick-input**: Warning banner + disabled create at node limit
-- **share-panel**: Disabled room code generation at collaborator limit
-- **MVP_ROADMAP.md**: Phase 5 database security plan (PostgreSQL triggers)
-
-### Fixed
-- **dashboard/create-map-card**: Card height now matches MindMapCard (h-56)
 
 ---
 
 ## [2026-01-16]
 
 ### Fixed
+
 - **billing/webhooks**: Webhook handlers now throw on DB errors (enables Polar retry)
   - Why: Silent failures caused data loss when DB writes failed but Polar saw 200 OK
 - **billing/status-mapping**: Unknown Polar statuses now map to `'unpaid'` instead of `'active'`
@@ -521,6 +778,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Free users briefly got Pro features during page load (~500ms-2s window)
 
 ### Removed
+
 - **billing/payment_history**: Dropped `payment_history` table and related code
   - Why: Billing history now delegated to Polar customer portal (simplifies codebase)
   - Removed: `/api/user/billing/payment-history` endpoint
@@ -536,6 +794,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Recreated: `map_graph_aggregated_view` without team_id
 
 ### Changed
+
 - **dashboard/shared-filter**: Repurposed "Shared" filter to show maps accessed via share codes
   - Why: Removed team-based sharing, keep share-code-based access visible
   - Now queries `share_access` table for maps user can access but doesn't own
@@ -548,6 +807,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ## [2026-01-14]
 
 ### Added
+
 - **subscription/usage-data**: Server-authoritative usage tracking via `/api/user/billing/usage`
   - Why: Free tier limits (3 maps, 50 nodes/map) require real usage data, not hardcoded stubs
   - UsageData interface + fetchUsageData action in subscription-slice
@@ -557,12 +817,14 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Usage updates when user returns to tab after creating maps elsewhere
 
 ### Fixed
+
 - **subscription/getRemainingLimit**: Now returns `limit - usage` instead of just `limit`
   - Why: Was returning limit itself, not remaining quota
 - **hooks/useSubscriptionLimits**: Wired to real usageData from store
   - Why: Was hardcoded to `mindMaps: 1`, `aiSuggestions: 0`
 
 ### Changed
+
 - **nodes-slice/addNode**: Added dual enforcement (client-side fast + server-side authoritative)
   - Why: Client check is fast, server check prevents tampering
   - Triggers upgrade modal on 402 limit errors
@@ -570,15 +832,17 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **dashboard**: Refreshes usage data after map creation and duplication
 
 ### Docs
+
 - **MVP_ROADMAP.md**: Updated Phase 1.3 Feature Limit Enforcement to COMPLETED
 
 ### Refactored
+
 - **billing**: Migrated from Dodo Payments to Polar.sh (Merchant of Record)
   - Why: Polar has fully isolated sandbox environment for testing (sandbox.polar.sh)
   - New routes: `/api/webhooks/polar` (replaced `/api/webhooks/dodo`)
   - New helper: `/src/lib/polar.ts` (replaced `/src/helpers/dodo/client.ts`)
   - Updated: checkout, cancel, reactivate, portal, invoice routes
-  - Database migration: Replaced dodo_*/stripe_* columns with polar_* columns
+  - Database migration: Replaced dodo*\*/stripe*\_ columns with polar\_\_ columns
   - Added packages: `@polar-sh/sdk`, `standardwebhooks`
   - Removed packages: `dodopayments`, `@dodopayments/nextjs`
   - Cleans up Stripe columns (technical debt item resolved)
@@ -588,24 +852,28 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ## [2026-01-13]
 
 ### Added
+
 - **landing/mobile-nav**: Responsive hamburger menu using Sheet component
   - Why: Landing page was desktop-only, now works on mobile
 - **landing/images**: Real feature screenshots replacing placeholders
   - connection-suggestions.png, realtime.png, node-editor.png
 
 ### Fixed
+
 - **landing/pricing**: Equal card heights via `h-full` on flex container
   - Why: Free card was shorter than Pro due to fewer features
 - **landing/focus-states**: Added focus-visible rings for keyboard navigation
   - Why: Accessibility compliance for keyboard users
 
 ### Changed
+
 - **landing/ctas**: "Try Free" → "Start Mapping", links to /dashboard
 - **landing/icons**: Added aria-hidden to decorative icons
 - **landing/animations**: Updated easing to use ease-in-out-cubic per guidelines
 - **pricing-tiers**: Updated CTA text ("Get Started", "Go Pro")
 
 ### Docs
+
 - **CLAUDE.md**: Added skills section + plan mode documentation
 
 ---
@@ -613,6 +881,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ## [2026-01-10]
 
 ### Refactored
+
 - **ui/components**: Complete migration from Radix UI to Base UI 1.0.0 stable
   - Why: Unified headless library with smaller bundle, consistent API patterns
   - Migrated 16 components: Tooltip, Separator, Progress, Avatar, Popover, Toggle, HoverCard→PreviewCard, ScrollArea, Tabs, ToggleGroup, Dialog, Sheet, Breadcrumb, Select, DropdownMenu→Menu, Badge
@@ -620,12 +889,14 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Backwards-compatible: asChild→render prop, data-[state=*]→data-[*]
 
 ### Removed
-- **deps**: All 14 @radix-ui/* packages (53 transitive deps total)
+
+- **deps**: All 14 @radix-ui/\* packages (53 transitive deps total)
   - Why: Replaced by @base-ui/react single package
 - **ui/radio-group**: Deleted unused component (0 consuming files)
   - Why: No usages found in codebase
 
 ### Added
+
 - **subscription/upgrade-modal**: Multi-step upgrade modal with embedded Stripe payment
   - Why: Users can now upgrade to Pro directly from modal without navigation
   - Transitions from pitch → payment step with AnimatePresence animations
@@ -638,6 +909,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - 24-hour cooldown after dismissal, registered users only
 
 ### Changed
+
 - **payment-step**: Export PaymentForm, stripePromise for reuse in upgrade modal
 - **settings-panel**: Upgrade button now opens modal (was TODO toast)
 - **use-feature-gate**: showUpgradePrompt() now triggers modal via store
@@ -646,6 +918,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **landing/page**: Rebuilt from waitlist capture to full marketing page with 7 sections
 
 ### Added (Landing Page Rebuild)
+
 - **landing/hero-section**: Full-viewport hero with CTAs and scroll indicator
 - **landing/problem-solution**: Two-column problem/solution contrast section
 - **landing/features-section**: 3 feature blocks with alternating text/image layout
@@ -660,6 +933,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ## [2026-01-06]
 
 ### Fixed
+
 - **deps/security**: Upgraded jspdf 3.0.4 → 4.0.0 (CVE-2025-68428)
   - Why: Critical path traversal vulnerability in Node.js build
   - No breaking changes - data URL usage unaffected
@@ -695,6 +969,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Response shape must match DB query columns; prevents type mismatches in consumers
 
 ### Docs
+
 - **CLAUDE.md**: Add NodeData.metadata design rationale
   - Why: Document intentional unified type for node type switching
 
@@ -703,6 +978,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ## [2026-01-05]
 
 ### Added
+
 - **auth/sign-up**: New email-verified sign-up flow with 2-step wizard
   - Step 1: Collect email, password, optional display name
   - Step 2: OTP verification before account creation
@@ -719,6 +995,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Password strength checker with requirement list
 
 ### Changed
+
 - **sign-in page**: Refactored to use shared components, added OAuth buttons, improved animations
 - **upgrade-anonymous**: Uses shared PasswordRequirementsInfo component
 - **join pages**: Minor styling updates for consistency
@@ -728,10 +1005,12 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ## [2026-01-04]
 
 ### Changed
+
 - **deps**: Updated Stripe from 19.3.1 to 20.1.0
   - Updated API version: `2025-10-29.clover` → `2025-12-15.clover` in 6 billing routes
 
 ### Docs
+
 - **CLAUDE.md**: Added critical security rule banning .env file reads
   - Why: Prevent accidental exposure of secrets in AI outputs
 
@@ -740,6 +1019,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ## [2026-01-01]
 
 ### Fixed
+
 - **Room code revocation instant kick**: Users now get kicked immediately when owner revokes room code
   - Created `revoke_room_code_and_broadcast` RPC function using `realtime.send()` for in-database broadcast
   - RPC atomically: deactivates token → broadcasts to each user → DELETEs share_access records
@@ -752,20 +1032,23 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ## [2025-12-31]
 
 ### Added
+
 - **E2E test gap documentation**: Created `e2e/E2E_TEST_GAPS.md` tracking missing permission tests
-  - Documents 10 missing tests for viewer/commenter AI Chat and comment restrictions
+  - Documents 10 missing tests for viewer/commentator AI Chat and comment restrictions
   - Includes implementation prerequisites (page objects needed)
   - Why: Ensure we don't forget to implement remaining permission boundary tests
 
 - **E2E placeholder tests**: Added 9 skipped `.skip` placeholder tests to `permissions.spec.ts`
   - Viewer: 3 skipped (Comments hidden, AI Chat hidden, view comment threads)
-  - Commenter: 6 skipped (open panel, add comment, reply, reactions, delete restriction, AI Chat)
+  - Commentator: 6 skipped (open panel, add comment, reply, reactions, delete restriction, AI Chat)
   - Why: Document expected test coverage inline with actual tests
 
 ### Docs
+
 - **CLAUDE.md**: Updated E2E section with accurate page object count (8), fixture list, test counts per suite, and link to test gaps doc
 
 ### Refactored
+
 - **Collaborator profile card**: Redesigned for cleaner, more modern look
   - Replaced 4-cell metrics grid with single consolidated status row
   - Removed redundant info (Online/Now/Viewing all meant the same thing)
@@ -776,6 +1059,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Original design was boxy and data-table-like, new design is breathable and modern
 
 ### Fixed
+
 - **Immediate guest kick-out**: Guests now get kicked immediately when owner revokes access
   - Added `subscribeToAccessRevocation()` to listen for DELETE and UPDATE events on `share_access`
   - DELETE = owner removes individual user; UPDATE status='inactive' = owner revokes room code
@@ -793,6 +1077,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ## [2025-12-30]
 
 ### Fixed
+
 - **E2E test isolation**: Multiple fixes for test flakiness caused by shared test map
   - Use unique node names with timestamp suffix to prevent collisions across test runs
   - Remove `revokeAllCodes()` from upgrade tests (caused race conditions with parallel workers)
@@ -805,6 +1090,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Tests were interfering with each other when running in parallel
 
 ### Changed
+
 - **E2E parallel/serial split**: Split chromium project into two configurations
   - `chromium` project - runs node-editor tests in parallel (4 workers)
   - `chromium-serial` project - runs sharing/upgrade tests serially (fullyParallel: false)
@@ -816,10 +1102,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ## [2025-12-28]
 
 ### Added
+
 - **e2e testing**: Comprehensive sharing permission E2E tests (35 tests)
   - Test viewer role restrictions (15 tests): toolbar hidden, no drag/edit/delete
   - Test editor role functionality (8 tests): full edit access verification
-  - Test commenter role restrictions (6 tests): view + comment only
+  - Test commentator role restrictions (6 tests): view + comment only
   - Test real-time sync (3 tests): changes visible without refresh
   - Test access revocation (3 tests): kicked when owner revokes access
   - Create ToolbarPage, ContextMenuPage page objects
@@ -837,6 +1124,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - toolbar.tsx: `toolbar` container
 
 ### Fixed
+
 - **E2E test reliability**: Multiple fixes for sharing permission tests
   - Fix onboarding modal blocking join button (add dismissOnboardingIfPresent)
   - Fix generateRoomCode returning old code (use last in list, not first)
@@ -855,6 +1143,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Tests were failing due to parallel workers revoking each other's codes
 
 ### Changed
+
 - **E2E scripts**: Added `e2e:firefox` and `e2e:webkit` npm scripts for browser-specific runs
 
 ---
@@ -862,6 +1151,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ## [2025-12-24]
 
 ### Added
+
 - **database**: Atomic node + edge creation via Supabase RPC
   - Create `create_node_with_parent_edge` RPC function (ai-docs/database/)
   - Add `CreateNodeWithEdgeResponse` TypeScript type
@@ -884,6 +1174,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Add package.json scripts: e2e, e2e:ui, e2e:headed, e2e:debug, e2e:update-snapshots
 
 ### Changed
+
 - **node-editor components**: Add data-testid attributes for E2E testing
   - node-editor.tsx, action-bar.tsx, preview-section.tsx
   - parsing-legend.tsx (with data-collapsed attribute)
@@ -894,6 +1185,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ## [2025-12-23]
 
 ### Added
+
 - **test infrastructure**: Unit testing setup with Jest + React Testing Library
   - Install @testing-library/react, @testing-library/user-event
   - Create `__tests__/utils/` with render-with-providers, store-test-utils, mock-supabase
@@ -910,6 +1202,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - `task-content.test.tsx` - 18 tests (tasks, progress, interactivity, celebration)
 
 ### Refactored
+
 - **nodes/content**: Extract shared content components from canvas nodes
   - `code-content.tsx` - SyntaxHighlighter with headerActions/codeOverlay slots
   - `markdown-content.tsx` - ReactMarkdown with custom component styling
@@ -928,6 +1221,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Adapters were unnecessary indirection; centralize mapping in one place
 
 ### Changed
+
 - **annotation-node.tsx**: Now uses shared AnnotationContent (283→63 lines)
 - **task-node.tsx**: Now uses shared TaskContent (229→72 lines)
 - **image-node.tsx**: Uses ImageContent for external images
@@ -935,14 +1229,17 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **default-node.tsx**: Uses MarkdownContent (269→41 lines)
 
 ### Fixed
+
 - **suggest-connections/route.ts**: Await async convertToModelMessages call
 
 ### Removed
+
 - **content-extractors/**: Entire directory deleted (-10 files, -800 lines)
   - Was: NodeData → Adapter → SharedContent
   - Now: NodeData → PreviewContent switch → SharedContent
 
 ### Docs
+
 - **CLAUDE.md**: Updated testing section and TypeScript conventions
   - React imports: Use `import type { ComponentType } from 'react'` not `React.ComponentType`
   - Testing section: Reflects 149 tests, correct mocking patterns
@@ -953,6 +1250,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ## [2025-12-22]
 
 ### Docs
+
 - **CLAUDE.md**: Added autonomous operations section
   - Auto-commit protocol: conventional commits after major milestones
   - Self-maintenance rules: triggers for when to update architecture docs

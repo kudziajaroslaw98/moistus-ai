@@ -4,6 +4,14 @@
  */
 
 import { runElkLayout } from '@/helpers/layout';
+import { replaceGraphState } from '@/lib/realtime/broadcast-channel';
+import {
+	getEdgeActorId,
+	getNodeActorId,
+	serializeEdgeForRealtime,
+	serializeNodeForRealtime,
+	toPgReal,
+} from '@/lib/realtime/graph-sync';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import {
@@ -30,8 +38,8 @@ async function batchUpdateNodePositions(
 	const updates = nodes.map((node) => ({
 		id: node.id,
 		map_id: mapId,
-		position_x: node.position.x,
-		position_y: node.position.y,
+		position_x: toPgReal(node.position.x),
+		position_y: toPgReal(node.position.y),
 		updated_at: new Date().toISOString(),
 	}));
 
@@ -100,8 +108,7 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 			setLoadingStates,
 			supabase,
 			mapId,
-			subscribeToRealtimeUpdates,
-			unsubscribeFromRealtimeUpdates,
+			currentUser,
 		} = get();
 
 		// Prevent concurrent layouts
@@ -143,17 +150,30 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 				config: effectiveConfig,
 			});
 
-			await unsubscribeFromRealtimeUpdates();
-
 			// Batch update state (single update, not per-node)
 			setMindMapContent({ nodes: result.nodes, edges: result.edges });
 
-			// Batch persist to database (2 parallel DB calls)
-			if (supabase && mapId) {
-				await Promise.all([
-					batchUpdateNodePositions(result.nodes, supabase, mapId),
-					batchUpdateEdgeMetadata(result.edges, supabase, mapId),
-				]);
+			if (mapId) {
+				await replaceGraphState(mapId, {
+					event: 'layout:apply',
+					actorId: currentUser?.id ?? null,
+					nodes: result.nodes.map((node) => {
+						const actorId = getNodeActorId(node, currentUser?.id);
+						return serializeNodeForRealtime(node, mapId, actorId);
+					}),
+					edges: result.edges
+						.map((edge) => {
+							const actorId = getEdgeActorId(edge, currentUser?.id);
+							return serializeEdgeForRealtime(edge, mapId, actorId);
+						})
+						.filter((edge): edge is Record<string, unknown> => edge !== null),
+				});
+				if (supabase) {
+					await Promise.all([
+						batchUpdateNodePositions(result.nodes, supabase, mapId),
+						batchUpdateEdgeMetadata(result.edges, supabase, mapId),
+					]);
+				}
 			}
 
 			// Persist delta to DB for history tracking
@@ -180,10 +200,6 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 		} finally {
 			set({ isLayouting: false });
 			setLoadingStates?.({ isStateLoading: false });
-			if (mapId) {
-				await new Promise((r) => setTimeout(r, 150));
-				await subscribeToRealtimeUpdates(mapId);
-			}
 		}
 	},
 
@@ -199,6 +215,7 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 			selectedNodes,
 			supabase,
 			mapId,
+			currentUser,
 		} = get();
 
 		// Prevent concurrent layouts
@@ -240,18 +257,34 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 			// Batch update state
 			setMindMapContent({ nodes: result.nodes, edges: result.edges });
 
-			// Batch persist only affected nodes/edges to database
-			if (supabase && mapId) {
-				const affectedNodes = result.nodes.filter((n) =>
-					selectedNodeIds.has(n.id)
-				);
-				const affectedEdges = result.edges.filter(
-					(e) => selectedNodeIds.has(e.source) && selectedNodeIds.has(e.target)
-				);
-				await Promise.all([
-					batchUpdateNodePositions(affectedNodes, supabase, mapId),
-					batchUpdateEdgeMetadata(affectedEdges, supabase, mapId),
-				]);
+			if (mapId) {
+				await replaceGraphState(mapId, {
+					event: 'layout:apply-selected',
+					actorId: currentUser?.id ?? null,
+					nodes: result.nodes.map((node) => {
+						const actorId = getNodeActorId(node, currentUser?.id);
+						return serializeNodeForRealtime(node, mapId, actorId);
+					}),
+					edges: result.edges
+						.map((edge) => {
+							const actorId = getEdgeActorId(edge, currentUser?.id);
+							return serializeEdgeForRealtime(edge, mapId, actorId);
+						})
+						.filter((edge): edge is Record<string, unknown> => edge !== null),
+				});
+				if (supabase) {
+					const affectedNodes = result.nodes.filter((n) =>
+						selectedNodeIds.has(n.id)
+					);
+					const affectedEdges = result.edges.filter(
+						(e) =>
+							selectedNodeIds.has(e.source) && selectedNodeIds.has(e.target)
+					);
+					await Promise.all([
+						batchUpdateNodePositions(affectedNodes, supabase, mapId),
+						batchUpdateEdgeMetadata(affectedEdges, supabase, mapId),
+					]);
+				}
 			}
 
 			// Persist delta to DB for history tracking

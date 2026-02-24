@@ -4,8 +4,9 @@ import { RealtimeAvatarStack } from '@/components/realtime/realtime-avatar-stack
 import { SidePanel } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
 import { type ActivityState } from '@/hooks/realtime/use-realtime-presence-room';
-import { motion, useReducedMotion } from 'motion/react';
+import { getMindMapRoomName } from '@/lib/realtime/room-names';
 import { History, Settings, Users } from 'lucide-react';
+import { motion, useReducedMotion } from 'motion/react';
 
 interface MobileMenuProps {
 	open: boolean;
@@ -67,7 +68,7 @@ export function MobileMenu({
 						<RealtimeAvatarStack
 							activityState={activityState}
 							mapOwnerId={mapOwnerId}
-							roomName={`mind-map:${mapId}:presence`}
+							roomName={getMindMapRoomName(mapId, 'presence')}
 						/>
 					</div>
 				</motion.section>
@@ -78,9 +79,7 @@ export function MobileMenu({
 						className='space-y-3'
 						{...sectionAnimation}
 						transition={
-							shouldReduceMotion
-								? undefined
-								: { duration: 0.3, delay: 0.1 }
+							shouldReduceMotion ? undefined : { duration: 0.3, delay: 0.1 }
 						}
 					>
 						<h3 className='text-sm font-semibold text-text-primary flex items-center gap-2'>

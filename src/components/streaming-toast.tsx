@@ -55,7 +55,7 @@ function StepItem({ step }: { step: ToastStep }) {
 	return (
 		<motion.div
 			animate={{ opacity: 1, y: 0 }}
-			className='flex items-center gap-3 text-sm'
+			className='flex items-center gap-2.5 text-xs'
 			exit={{ opacity: 0 }}
 			initial={{ opacity: 0, y: 5 }}
 			transition={{ duration: 0.3, ease: 'easeOut' as const }}
@@ -120,29 +120,29 @@ function ToastUI({
 	return (
 		<motion.div
 			layout
-			className='flex items-start gap-4 h-auto p-4'
+			className='flex items-start gap-3 h-auto p-3'
 			onMouseEnter={() => setIsHovered(true)}
 			onMouseLeave={() => setIsHovered(false)}
 		>
 			<div className='shrink-0 pt-1'>
 				{isError ? (
-					<AlertCircle className='w-5 h-5 text-red-500' />
+					<AlertCircle className='w-4 h-4 text-red-500' />
 				) : isProcessComplete ? (
-					<CheckCircle className='w-5 h-5 text-green-500' />
+					<CheckCircle className='w-4 h-4 text-green-500' />
 				) : (
-					<Loader className='w-5 h-5 text-zinc-300 animate-spin' />
+					<Loader className='w-4 h-4 text-zinc-300 animate-spin' />
 				)}
 			</div>
 
 			<div className='flex-1 h-auto'>
-				<p className='font-semibold text-white'>{header}</p>
+				<p className='text-sm font-semibold text-white'>{header}</p>
 
 				{/* This div creates a fixed-height container for the animated messages */}
 				<div className='relative h-5 mt-1'>
 					<AnimatePresence mode='popLayout'>
 						<motion.p
 							animate={{ opacity: 1, y: 0 }}
-							className='text-sm text-zinc-400'
+							className='text-xs text-zinc-400'
 							exit={{ opacity: 0, y: -10 }}
 							initial={{ opacity: 0, y: 10 }}
 							key={message || error} // Change key to trigger animation
@@ -188,12 +188,12 @@ function ToastUI({
 					{!isError && !isProcessComplete && steps?.length > 0 && (
 						<motion.div
 							animate={{ opacity: 1 }}
-							className='flex items-center gap-1.5 text-xs text-zinc-500 mt-2'
+							className='mt-2 flex items-center gap-1.5 text-[11px] text-zinc-500'
 							exit={{ opacity: 0, height: 0, overflowY: 'clip', y: -10 }}
 							initial={{ opacity: 0 }}
 							key='hover-hint'
 						>
-							<Info className='w-3 h-3' />
+							<Info className='h-3 w-3' />
 
 							<span>Hover for details</span>
 						</motion.div>

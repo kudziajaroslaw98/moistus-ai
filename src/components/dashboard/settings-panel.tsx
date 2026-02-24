@@ -63,13 +63,13 @@ interface UsageStats {
 interface SettingsPanelProps {
 	isOpen: boolean;
 	onClose: () => void;
-	defaultTab?: 'settings' | 'billing';
+	defaultTab?: 'account' | 'billing';
 }
 
 export function SettingsPanel({
 	isOpen,
 	onClose,
-	defaultTab = 'settings',
+	defaultTab = 'account',
 }: SettingsPanelProps) {
 	const router = useRouter();
 
@@ -515,20 +515,20 @@ export function SettingsPanel({
 		<SidePanel
 			isOpen={isOpen}
 			onClose={onClose}
-			title='Settings'
+			title='Account'
 			footer={footer}
 			className='w-full sm:max-w-2xl'
 		>
 			<Tabs
 				value={activeTab}
-				onValueChange={(v) => setActiveTab(v as 'settings' | 'billing')}
+				onValueChange={(v) => setActiveTab(v as 'account' | 'billing')}
 				className='w-full flex flex-col h-full'
 			>
 				<div className='px-6 pt-4 pb-2'>
 					<TabsList className='w-full grid grid-cols-2'>
-						<TabsTrigger value='settings' className='flex items-center gap-2'>
+						<TabsTrigger value='account' className='flex items-center gap-2'>
 							<Settings className='size-4' />
-							Settings
+							Account
 						</TabsTrigger>
 						<TabsTrigger value='billing' className='flex items-center gap-2'>
 							<CreditCard className='size-4' />
@@ -545,7 +545,7 @@ export function SettingsPanel({
 					) : (
 						<>
 							{/* SETTINGS TAB */}
-							<TabsContent value='settings' className='space-y-8 mt-0'>
+							<TabsContent value='account' className='space-y-8 mt-0'>
 								{/* Profile Section */}
 								<motion.section
 									animate={{ opacity: 1, y: 0 }}

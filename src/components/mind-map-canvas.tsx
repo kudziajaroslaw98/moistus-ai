@@ -11,8 +11,10 @@ import NodeEditor from './node-editor/node-editor';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useRealtimeSelectionPresenceRoom } from '@/hooks/realtime/use-realtime-selection-presence-room';
 import { useAuthRedirect } from '@/hooks/use-auth-redirect';
+import { getMindMapRoomName } from '@/lib/realtime/room-names';
 import useAppStore from '@/store/mind-map-store';
 import { useParams } from 'next/navigation';
+import { useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { AIStreamMediator } from './ai/ai-stream-mediator';
 import { ContextMenuWrapper } from './mind-map/context-menu-wrapper';
@@ -46,6 +48,8 @@ export function MindMapCanvas() {
 		userProfile,
 		mapAccessError,
 		applyLayout,
+		flushPendingNodeSaves,
+		flushPendingEdgeSaves,
 	} = useAppStore(
 		useShallow((state) => ({
 			handleCopy: state.copySelectedNodes,
@@ -63,11 +67,50 @@ export function MindMapCanvas() {
 			userProfile: state.userProfile,
 			mapAccessError: state.mapAccessError,
 			applyLayout: state.applyLayout,
+			flushPendingNodeSaves: state.flushPendingNodeSaves,
+			flushPendingEdgeSaves: state.flushPendingEdgeSaves,
 		}))
 	);
 	const isLoading = loadingStates.isStateLoading;
 
-	useRealtimeSelectionPresenceRoom(`mind-map:${mapId}:selected-nodes`);
+	useRealtimeSelectionPresenceRoom(getMindMapRoomName(mapId, 'selected-nodes'));
+
+	/**
+	 * Flush pending debounced saves on page lifecycle events.
+	 * These are fire-and-forget: beforeunload/pagehide cannot reliably
+	 * await async work, so saves may be lost if the browser kills the
+	 * page before the requests complete.
+	 */
+	useEffect(() => {
+		const flushPendingSaves = () => {
+			void flushPendingNodeSaves();
+			void flushPendingEdgeSaves();
+		};
+
+		const handleVisibilityChange = () => {
+			if (document.visibilityState === 'hidden') {
+				flushPendingSaves();
+			}
+		};
+
+		const handlePageHide = () => {
+			flushPendingSaves();
+		};
+
+		const handleBeforeUnload = () => {
+			flushPendingSaves();
+		};
+
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+		window.addEventListener('pagehide', handlePageHide);
+		window.addEventListener('beforeunload', handleBeforeUnload);
+
+		return () => {
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
+			window.removeEventListener('pagehide', handlePageHide);
+			window.removeEventListener('beforeunload', handleBeforeUnload);
+		};
+	}, [flushPendingNodeSaves, flushPendingEdgeSaves]);
 
 	const selectedNodeId = selectedNodes[0]?.id;
 	const selectedEdgeId = useMemo(

@@ -2,6 +2,7 @@
 
 import type { Command } from '@/components/node-editor/core/commands/command-types';
 import type { RealtimeUserSelection } from '@/hooks/realtime/use-realtime-selection-presence-room';
+import type { CollaboratorRealtimeEvent } from '@/lib/realtime/collaborator-events';
 import { AvailableNodeTypes } from '@/registry/node-registry';
 import type { ChatSlice } from '@/store/slices/chat-slice';
 import type { CommentsSlice } from '@/store/slices/comments-slice';
@@ -14,11 +15,20 @@ import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import { ContextMenuState } from '@/types/context-menu-state';
 import type { EdgeData } from '@/types/edge-data';
-import type { AttributedHistoryDelta, HistoryItem } from '@/types/history-state';
+import type {
+	AttributedHistoryDelta,
+	HistoryItem,
+} from '@/types/history-state';
 import { LoadingStates } from '@/types/loading-states';
 import type { MindMapData } from '@/types/mind-map-data';
 import type { NodeData } from '@/types/node-data';
-import { SharedUser, ShareToken, SharingError } from '@/types/sharing-types';
+import type { PermissionEvent } from '@/types/permission-events';
+import {
+	SharedUser,
+	ShareRole,
+	ShareToken,
+	SharingError,
+} from '@/types/sharing-types';
 import { SnapLine } from '@/types/snap-line';
 import { StreamingToastState, ToastStep } from '@/types/streaming-toast-state';
 import { Tool } from '@/types/tool';
@@ -70,9 +80,11 @@ export interface CoreDataSlice {
 	reactFlowInstance: ReactFlowInstance | null;
 	currentUser: User | null;
 	activeTool: Tool;
+	mobileTapMultiSelectEnabled: boolean;
 	mapAccessError: MapAccessError | null;
 	setMindMapContent: (content: { nodes: AppNode[]; edges: AppEdge[] }) => void;
 	setActiveTool: (tool: Tool) => void;
+	setMobileTapMultiSelectEnabled: (enabled: boolean) => void;
 	setMindMap: (mindMap: MindMapData | null) => void;
 	setReactFlowInstance: (reactFlowInstance: ReactFlowInstance | null) => void;
 	setMapId: (mapId: string | null) => void;
@@ -123,6 +135,7 @@ export interface EdgesSlice {
 		data: Partial<EdgeData>;
 	}) => Promise<void>;
 	triggerEdgeSave: (edgeId: string) => void;
+	flushPendingEdgeSaves: () => Promise<void>;
 	setParentConnection: (edgeId: string) => void;
 	// System update tracking
 	markEdgeAsSystemUpdate: (edgeId: string) => void;
@@ -216,6 +229,7 @@ export interface NodesSlice {
 		nodeType,
 		data,
 		position,
+		nodeId,
 		toastId,
 	}: {
 		parentNode: Partial<AppNode> | null;
@@ -223,6 +237,7 @@ export interface NodesSlice {
 		nodeType?: AvailableNodeTypes;
 		data?: Partial<NodeData>;
 		position?: { x: number; y: number };
+		nodeId?: string;
 		toastId?: string;
 	}) => Promise<void>;
 	updateNode: (props: {
@@ -231,6 +246,7 @@ export interface NodesSlice {
 	}) => Promise<void>;
 	deleteNodes: (nodesToDelete: AppNode[]) => Promise<void>;
 	triggerNodeSave: (nodeId: string) => void;
+	flushPendingNodeSaves: () => Promise<void>;
 
 	// Node hierarchy actions
 	getDirectChildrenCount: (nodeId: string) => number;
@@ -271,7 +287,7 @@ interface JoinRoomResult {
 	is_anonymous: boolean;
 	user_display_name: string;
 	user_avatar?: string;
-	websocket_channel: string;
+	realtime_room: string;
 	share_token_id: string;
 	join_method: string;
 }
@@ -310,7 +326,7 @@ export interface SharingState {
 	sharingError?: SharingError;
 	lastJoinResult?: JoinRoomResult;
 	_sharingSubscription?: any;
-	_accessRevocationChannel?: any;
+	_collaboratorRealtimeUnsubscribe: (() => void) | null;
 
 	// Upgrade state (for anonymous -> full user conversion)
 	upgradeStep: UpgradeStep;
@@ -385,20 +401,44 @@ export interface SharingSlice extends SharingState {
 	/** Update share role with optimistic update (reverts on error) */
 	updateShareRole: (shareId: string, newRole: string) => Promise<void>;
 
-	/** Fetch current user permissions from share_access (for returning collaborators) */
-	fetchCurrentPermissions: (mapId: string) => Promise<void>;
-
 	subscribeToSharingUpdates: (mapId: string) => void;
 
 	unsubscribeFromSharing: () => void;
 
-	subscribeToAccessRevocation: (mapId: string) => Promise<void>;
+	subscribeToCollaboratorUpdates: (mapId: string) => Promise<void>;
 
-	unsubscribeFromAccessRevocation: () => void;
+	unsubscribeFromCollaboratorUpdates: () => void;
+
+	applyCollaboratorRealtimeEvent: (event: CollaboratorRealtimeEvent) => void;
 
 	clearError: () => void;
 
 	reset: () => void;
+}
+
+export interface PermissionsDetails {
+	role: ShareRole | null;
+	can_view: boolean;
+	can_comment: boolean;
+	can_edit: boolean;
+	updated_at: string | null;
+}
+
+export interface PermissionsState {
+	permissions: PermissionsDetails;
+	permissionsMapId: string | null;
+	permissionsUserId: string | null;
+	isPermissionsLoading: boolean;
+	permissionsError: string | null;
+	_permissionsUnsubscribe: (() => void) | null;
+}
+
+export interface PermissionsSlice extends PermissionsState {
+	fetchInitialPermissions: (mapId: string) => Promise<void>;
+	subscribeToPermissionUpdates: (mapId: string) => Promise<void>;
+	unsubscribeFromPermissionUpdates: () => void;
+	applyPermissionEvent: (event: PermissionEvent) => void;
+	clearPermissionsState: () => void;
 }
 
 // UI State
@@ -573,7 +613,8 @@ export interface ExportSlice extends ExportState {
 
 // Combined App State
 export interface AppState
-	extends CoreDataSlice,
+	extends
+		CoreDataSlice,
 		NodesSlice,
 		EdgesSlice,
 		ClipboardSlice,
@@ -582,6 +623,7 @@ export interface AppState
 		HistorySlice,
 		GroupsSlice,
 		SharingSlice,
+		PermissionsSlice,
 		RealtimeSlice,
 		SuggestionsSlice,
 		ChatSlice,

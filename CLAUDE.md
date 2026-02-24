@@ -281,6 +281,9 @@ pnpm pretty          # Prettier
 **NodeData.metadata**: Single unified type (not discriminated union per node type). Enables seamless node type switching without data loss. Do NOT split into per-type unions.
 <!-- Updated: 2026-01-06 -->
 
+**Identity precedence**: Use `user_profiles` as canonical identity source across sharing + realtime UI (`display_name`, `avatar_url`) with fallback order: auth metadata, then deterministic fallback helpers. Keep resolver logic centralized in `src/helpers/identity/resolve-user-identity.ts`.
+<!-- Updated: 2026-02-24 - Unified collaborator label/avatar precedence across manage + presence -->
+
 **Rate Limiting**: In-memory only (`src/helpers/api/rate-limiter.ts`), won't scale horizontally without Redis.
 
 **System Updates**: Call `markNodeAsSystemUpdate()` before real-time updates to prevent save loops.

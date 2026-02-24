@@ -1,4 +1,5 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
+import { canUserWriteComments } from '@/helpers/api/comment-permissions';
 import { withAuthValidation } from '@/helpers/api/with-auth-validation';
 import { z } from 'zod';
 
@@ -105,37 +106,19 @@ export const POST = withAuthValidation(
 		try {
 			const { map_id, position_x, position_y, width, height } = validatedBody;
 
-			// Verify user has access to the map (owner or active share access)
-			const { data: map, error: mapError } = await supabase
-				.from('mind_maps')
-				.select('id, user_id')
-				.eq('id', map_id)
-				.single();
-
-			if (mapError || !map) {
+			const permission = await canUserWriteComments(supabase, map_id, user.id);
+			if (!permission.mapExists) {
 				return respondError(
 					'Map not found.',
 					404,
 					'Map not found.'
 				);
 			}
-
-			// Check if user has share access
-			const { data: share } = await supabase
-				.from('share_access')
-				.select('id')
-				.eq('map_id', map_id)
-				.eq('user_id', user.id)
-				.eq('status', 'active')
-				.limit(1)
-				.single();
-
-			const hasAccess = map.user_id === user.id || !!share;
-			if (!hasAccess) {
+			if (!permission.allowed) {
 				return respondError(
 					'Access denied.',
 					403,
-					'You do not have permission to access this map.'
+					'You do not have permission to comment on this map.'
 				);
 			}
 

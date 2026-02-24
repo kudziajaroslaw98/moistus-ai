@@ -31,10 +31,13 @@ export const createCoreDataSlice: StateCreator<
 	mindMap: null,
 	currentUser: null,
 	activeTool: 'default',
+	mobileTapMultiSelectEnabled: false,
 	mapAccessError: null,
 
 	// Actions
 	setActiveTool: (activeTool) => set({ activeTool }),
+	setMobileTapMultiSelectEnabled: (mobileTapMultiSelectEnabled) =>
+		set({ mobileTapMultiSelectEnabled }),
 	setMindMap: (mindMap) => set({ mindMap }),
 	setMindMapContent: (content: { nodes: AppNode[]; edges: AppEdge[] }) =>
 		set({ nodes: content.nodes, edges: content.edges }),
@@ -127,6 +130,10 @@ export const createCoreDataSlice: StateCreator<
 			if (!mapId) {
 				throw new Error('Map ID is required.');
 			}
+
+			// Avoid stale permission state while switching maps.
+			get().unsubscribeFromPermissionUpdates();
+			get().clearPermissionsState();
 
 			// Clear any previous access error
 			set({ mapAccessError: null });
@@ -225,20 +232,16 @@ export const createCoreDataSlice: StateCreator<
 
 			// Only await what's needed for UI rendering (comments + permissions)
 			// Subscriptions have 10s timeouts and shouldn't block isStateLoading
-			const currentUser = get().currentUser;
-			const isCollaborator =
-				currentUser && transformedData.mindMap.user_id !== currentUser.id;
-
 			await Promise.all([
 				get().fetchComments(mapId),
-				// Fetch permissions immediately for collaborators - critical for toolbar display
-				isCollaborator ? get().fetchCurrentPermissions(mapId) : Promise.resolve(),
+				// Fetch permissions first; realtime updates apply deltas afterwards.
+				get().fetchInitialPermissions(mapId),
 			]);
 
 			// Fire subscriptions in background - don't await
 			// These have 10s timeouts and shouldn't gate UI/permissions
 			get().subscribeToRealtimeUpdates(mapId);
-			get().subscribeToAccessRevocation(mapId);
+			get().subscribeToPermissionUpdates(mapId);
 		},
 		'isStateLoading',
 		{
@@ -347,8 +350,8 @@ export const createCoreDataSlice: StateCreator<
 				get().unsubscribeFromCommentUpdates(),
 				get().unsubscribeFromHistoryCurrent(),
 			]);
-			// Also unsubscribe from access revocation
-			get().unsubscribeFromAccessRevocation();
+			get().unsubscribeFromPermissionUpdates();
+			get().clearPermissionsState();
 		} catch (error) {
 			console.error('Failed to stop real-time subscriptions:', error);
 		}

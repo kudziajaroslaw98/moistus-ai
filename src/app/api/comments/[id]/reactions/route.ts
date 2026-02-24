@@ -1,4 +1,5 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
+import { canUserWriteComments } from '@/helpers/api/comment-permissions';
 import { createClient } from '@/helpers/supabase/server';
 import { z } from 'zod';
 
@@ -26,6 +27,25 @@ export async function POST(
 				'Authentication required',
 				401,
 				'User not authenticated'
+			);
+		}
+
+		const { data: comment, error: commentError } = await supabase
+			.from('comments')
+			.select('id, map_id')
+			.eq('id', commentId)
+			.maybeSingle();
+
+		if (commentError || !comment) {
+			return respondError('Comment not found.', 404, 'Comment not found.');
+		}
+
+		const permission = await canUserWriteComments(supabase, comment.map_id, user.id);
+		if (!permission.allowed) {
+			return respondError(
+				'Access denied.',
+				403,
+				'You do not have permission to comment on this map.'
 			);
 		}
 
@@ -138,6 +158,25 @@ export async function DELETE(
 			);
 		}
 
+		const { data: comment, error: commentError } = await supabase
+			.from('comments')
+			.select('id, map_id')
+			.eq('id', commentId)
+			.maybeSingle();
+
+		if (commentError || !comment) {
+			return respondError('Comment not found.', 404, 'Comment not found.');
+		}
+
+		const permission = await canUserWriteComments(supabase, comment.map_id, user.id);
+		if (!permission.allowed) {
+			return respondError(
+				'Access denied.',
+				403,
+				'You do not have permission to comment on this map.'
+			);
+		}
+
 		// Parse and validate request body
 		const body = await req.json().catch(() => ({}));
 		const reactionSchema = z.object({
@@ -155,6 +194,34 @@ export async function DELETE(
 
 		const { reaction_id } = validationResult.data;
 
+		const { data: reaction, error: reactionError } = await supabase
+			.from('comment_reactions')
+			.select('id, user_id, message_id')
+			.eq('id', reaction_id)
+			.maybeSingle();
+
+		if (reactionError || !reaction) {
+			return respondError(
+				'Reaction not found or not owned by user.',
+				404,
+				'Reaction not found.'
+			);
+		}
+
+		const { data: message, error: messageError } = await supabase
+			.from('comment_messages')
+			.select('id, comment_id')
+			.eq('id', reaction.message_id)
+			.maybeSingle();
+
+		if (messageError || !message || message.comment_id !== commentId) {
+			return respondError(
+				'Reaction not found or not owned by user.',
+				404,
+				'Reaction not found.'
+			);
+		}
+
 		// Delete the reaction (only if user owns it)
 		const { data: deletedReaction, error: deleteError } = await supabase
 			.from('comment_reactions')
@@ -164,21 +231,16 @@ export async function DELETE(
 			.select()
 			.maybeSingle();
 
-		if (deletedReaction) {
+		if (deleteError) {
 			console.error('Error deleting reaction:', deleteError);
+			return respondError('Error deleting reaction.', 500, deleteError.message);
+		}
 
-			if (deletedReaction.code === 'PGRST116') {
-				return respondError(
-					'Reaction not found or not owned by user.',
-					404,
-					'Reaction not found.'
-				);
-			}
-
+		if (!deletedReaction) {
 			return respondError(
-				'Error deleting reaction.',
-				500,
-				deletedReaction.message
+				'Reaction not found or not owned by user.',
+				404,
+				'Reaction not found.'
 			);
 		}
 

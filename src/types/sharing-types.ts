@@ -2,7 +2,7 @@
 // Defines interfaces for sharing mind maps between users with room codes and guest access
 
 // Core sharing types
-export type ShareRole = 'owner' | 'editor' | 'commenter' | 'viewer';
+export type ShareRole = 'owner' | 'editor' | 'commentator' | 'viewer';
 
 // Room code and token types
 export type ShareTokenType = 'room_code' | 'direct_link';

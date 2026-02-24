@@ -237,13 +237,15 @@ export function ContextMenu({ aiActions }: ContextMenuProps) {
 	const renderSections = () => {
 		let itemIndex = 0;
 
-		return menuConfig.map((section, sectionIndex) => {
-			// Filter out hidden items
-			const visibleItems = section.items.filter((item) => !item.hidden);
+		const visibleSections = menuConfig
+			.map((section) => ({
+				...section,
+				visibleItems: section.items.filter((item) => !item.hidden),
+			}))
+			.filter((section) => section.visibleItems.length > 0);
 
-			if (visibleItems.length === 0) return null;
-
-			const sectionContent = visibleItems.map((item) => {
+		return visibleSections.map((section, sectionIndex) => {
+			const sectionContent = section.visibleItems.map((item) => {
 				// If the item has a custom component, render it directly
 				if (item.customComponent) {
 					return (

@@ -38,7 +38,7 @@ import { RoomCodeDisplay } from './room-code-display';
 
 const createShareSchema = z.object({
 	email: z.string().email('Please enter a valid email address'),
-	role: z.enum(['editor', 'commenter', 'viewer', 'owner']),
+	role: z.enum(['editor', 'commentator', 'viewer', 'owner']),
 	message: z.string().optional(),
 });
 
@@ -72,6 +72,8 @@ export function SharePanel({
 		refreshTokens,
 		subscribeToSharingUpdates,
 		unsubscribeFromSharing,
+		subscribeToCollaboratorUpdates,
+		unsubscribeFromCollaboratorUpdates,
 		setPopoverOpen,
 		popoverOpen,
 		mindMap,
@@ -88,6 +90,9 @@ export function SharePanel({
 			refreshTokens: state.refreshTokens,
 			subscribeToSharingUpdates: state.subscribeToSharingUpdates,
 			unsubscribeFromSharing: state.unsubscribeFromSharing,
+			subscribeToCollaboratorUpdates: state.subscribeToCollaboratorUpdates,
+			unsubscribeFromCollaboratorUpdates:
+				state.unsubscribeFromCollaboratorUpdates,
 			popoverOpen: state.popoverOpen,
 			setPopoverOpen: state.setPopoverOpen,
 			mindMap: state.mindMap,
@@ -135,18 +140,22 @@ export function SharePanel({
 	useEffect(() => {
 		if (isOpen && mapId) {
 			subscribeToSharingUpdates(mapId);
+			void subscribeToCollaboratorUpdates(mapId);
 			getCurrentShareUsers();
 		}
 
 		return () => {
 			// Always cleanup on unmount to prevent memory leaks
 			unsubscribeFromSharing();
+			unsubscribeFromCollaboratorUpdates();
 		};
 	}, [
 		isOpen,
 		mapId,
 		subscribeToSharingUpdates,
 		unsubscribeFromSharing,
+		subscribeToCollaboratorUpdates,
+		unsubscribeFromCollaboratorUpdates,
 		getCurrentShareUsers,
 	]);
 
@@ -324,10 +333,10 @@ export function SharePanel({
 															</div>
 														</SelectItem>
 
-														<SelectItem value='commenter'>
+														<SelectItem value='commentator'>
 															<div className='flex items-center gap-2'>
 																<Shield className='h-3.5 w-3.5' />
-																<span>Commenter - Can view and comment</span>
+																<span>Commentator - Can view and comment</span>
 															</div>
 														</SelectItem>
 
@@ -527,9 +536,7 @@ export function SharePanel({
 														<AvatarImage src={share.avatar_url} />
 
 														<AvatarFallback>
-															{share.profile?.display_name
-																?.charAt(0)
-																?.toUpperCase() ?? '?'}
+															{share.name?.charAt(0)?.toUpperCase() ?? '?'}
 														</AvatarFallback>
 													</Avatar>
 
@@ -560,8 +567,8 @@ export function SharePanel({
 														<SelectContent>
 															<SelectItem value='viewer'>Viewer</SelectItem>
 
-															<SelectItem value='commenter'>
-																Commenter
+															<SelectItem value='commentator'>
+																Commentator
 															</SelectItem>
 
 															<SelectItem value='editor'>Editor</SelectItem>

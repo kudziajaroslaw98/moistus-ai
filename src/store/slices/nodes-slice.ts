@@ -9,17 +9,104 @@ import {
 	subscribeToSyncEvents,
 	type NodeBroadcastPayload,
 } from '@/lib/realtime/broadcast-channel';
+import {
+	getEdgeActorId,
+	getNodeActorId,
+	serializeEdgeForRealtime,
+	serializeNodeForRealtime,
+	toPgReal,
+} from '@/lib/realtime/graph-sync';
+import { stableStringify } from '@/lib/realtime/util';
 import { AvailableNodeTypes } from '@/registry/node-registry';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
+import type { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';
 import { NodesTableType } from '@/types/nodes-table-type';
 import type { CreateNodeWithEdgeResponse } from '@/types/rpc-responses';
 import { debouncePerKey } from '@/utils/debounce-per-key';
 import { applyNodeChanges, XYPosition } from '@xyflow/react';
-import { toast } from 'sonner';
 import type { StateCreator } from 'zustand';
 import type { AppState, NodesSlice } from '../app-state';
+
+function toComparableNodeRecord(
+	record: Record<string, unknown>
+): Record<string, unknown> {
+	const comparable = { ...record };
+	delete comparable.updated_at;
+	delete comparable.position_x;
+	delete comparable.position_y;
+	delete comparable.width;
+	delete comparable.height;
+	delete comparable.node_type;
+	delete comparable.parent_id;
+	delete comparable.created_at;
+	return comparable;
+}
+
+function getNodeWidth(node: AppNode): number | null {
+	if (typeof node.width === 'number') return node.width;
+	if (typeof node.data?.width === 'number') return node.data.width;
+	return null;
+}
+
+function getNodeHeight(node: AppNode): number | null {
+	if (typeof node.height === 'number') return node.height;
+	if (typeof node.data?.height === 'number') return node.data.height;
+	return null;
+}
+
+function hasMeaningfulNodeDifference(
+	previous: AppNode,
+	next: AppNode
+): boolean {
+	if ((previous.type || 'defaultNode') !== (next.type || 'defaultNode')) {
+		return true;
+	}
+
+	if (
+		toPgReal(previous.position.x) !== toPgReal(next.position.x) ||
+		toPgReal(previous.position.y) !== toPgReal(next.position.y)
+	) {
+		return true;
+	}
+
+	if (getNodeWidth(previous) !== getNodeWidth(next)) return true;
+	if (getNodeHeight(previous) !== getNodeHeight(next)) return true;
+
+	const previousParent = previous.parentId ?? previous.data?.parent_id ?? null;
+	const nextParent = next.parentId ?? next.data?.parent_id ?? null;
+	if (previousParent !== nextParent) return true;
+
+	const previousData = toComparableNodeRecord(
+		(previous.data ?? {}) as Record<string, unknown>
+	);
+	const nextData = toComparableNodeRecord(
+		(next.data ?? {}) as Record<string, unknown>
+	);
+
+	return stableStringify(previousData) !== stableStringify(nextData);
+}
+
+function hasMeaningfulPositionChange(
+	previous: AppNode,
+	next: AppNode
+): boolean {
+	return (
+		toPgReal(previous.position.x) !== toPgReal(next.position.x) ||
+		toPgReal(previous.position.y) !== toPgReal(next.position.y)
+	);
+}
+
+function hasMeaningfulDimensionChange(
+	previous: AppNode,
+	next: AppNode
+): boolean {
+	return (
+		getNodeWidth(previous) !== getNodeWidth(next) ||
+		getNodeHeight(previous) !== getNodeHeight(next)
+	);
+}
 
 export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 	set,
@@ -102,6 +189,68 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 		set({ nodes: filteredNodes });
 	};
 
+	const triggerNodeSaveDebounced = debouncePerKey(
+		async (nodeId: string) => {
+			const { nodes, supabase, mapId, currentUser } = get();
+			const node = nodes.find((n) => n.id === nodeId);
+
+			if (!node || !node.data) {
+				console.error(`Node with id ${nodeId} not found or has invalid data`);
+				throw new Error(`Node with id ${nodeId} not found or has invalid data`);
+			}
+
+			if (!mapId) {
+				console.error('Cannot save node: No mapId defined');
+				throw new Error('Cannot save node: No mapId defined');
+			}
+
+			const user_id = (await supabase.auth.getUser()).data.user?.id;
+
+			if (!user_id) {
+				throw new Error('Not authenticated');
+			}
+
+			// Keep stable creator identity on updates.
+			const stableUserId =
+				typeof node.data.user_id === 'string' &&
+				node.data.user_id.trim().length > 0
+					? node.data.user_id
+					: user_id;
+			const nodeData: NodesTableType = {
+				id: nodeId,
+				map_id: mapId,
+				user_id: stableUserId,
+				content: node.data.content || '',
+				metadata: node.data.metadata || {},
+				aiData: node.data.aiData || {},
+				position_x: toPgReal(node.position.x),
+				position_y: toPgReal(node.position.y),
+				width: node.width,
+				height: node.height,
+				node_type: (node.type || 'defaultNode') as AvailableNodeTypes,
+				updated_at: new Date().toISOString(),
+				created_at: node.data.created_at,
+				parent_id: node.parentId || node.data.parent_id || null,
+			};
+
+			// Save node data to Supabase
+			const { error } = await supabase
+				.from('nodes')
+				.update(nodeData)
+				.eq('id', nodeId)
+				.eq('map_id', mapId);
+
+			if (error) {
+				console.error('Error saving node:', error);
+				throw new Error('Failed to save node changes');
+			}
+		},
+		STORE_SAVE_DEBOUNCE_MS,
+		(nodeId: string) => nodeId
+	);
+	/** Module-level set tracking nodes mid-drag. Cleared on drag commit. */
+	const pendingDraggedNodeIds = new Set<string>();
+
 	return {
 		nodes: [],
 		selectedNodes: [],
@@ -122,26 +271,20 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 			const timestamp = get().systemUpdatedNodes.get(nodeId);
 			if (!timestamp) return false;
 
-			// Skip if marked within last 3 seconds
+			// Pure check: remote/system markers are valid only for a short window.
 			const age = Date.now() - timestamp;
-			if (age > 3000) {
-				// Clean up stale entry
-				const newMap = new Map(get().systemUpdatedNodes);
-				newMap.delete(nodeId);
-				set({ systemUpdatedNodes: newMap });
-				return false;
-			}
-
-			if (!get().isReverting && !get().isLayouting) {
-				return false;
-			}
-
-			return true;
+			return age <= 3000;
 		},
 
 		onNodesChange: (changes) => {
+			const { mapId, currentUser } = get();
+			const previousNodes = get().nodes;
+			const previousEdges = get().edges;
+			const previousNodeById = new Map(
+				previousNodes.map((node) => [node.id, node])
+			);
 			// Apply changes as before
-			const updatedNodes = applyNodeChanges(changes, get().nodes);
+			const updatedNodes = applyNodeChanges(changes, previousNodes);
 
 			// Handle group movement synchronization
 			const finalNodes = [...updatedNodes];
@@ -188,6 +331,13 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 			});
 
 			set({ nodes: finalNodes });
+			const finalNodeById = new Map(finalNodes.map((node) => [node.id, node]));
+			const nodesToPersist = new Set<string>();
+			const nodesToBroadcast = new Set<string>();
+			const consumedSystemNodeIds = new Set<string>();
+			const movedNodeIds = new Set<string>();
+			const resizedNodeIds = new Set<string>();
+			const replacedNodeIds = new Set<string>();
 
 			// Trigger debounced saves for relevant node changes
 			changes.forEach((change) => {
@@ -196,38 +346,147 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 
 				// Skip saves for system-updated nodes or during revert
 				if (get().shouldSkipNodeSave(change.id)) {
+					consumedSystemNodeIds.add(change.id);
 					return;
 				}
 
-				// Only save when changes are complete (not during dragging/resizing)
-				if (
-					change.type === 'position' &&
-					change.position &&
-					change.dragging === false
-				) {
-					get().triggerNodeSave(change.id);
+				if (change.type === 'position' && change.position) {
+					const previousNode = previousNodeById.get(change.id);
+					const nextNode = finalNodeById.get(change.id);
+					if (!previousNode || !nextNode) return;
 
-					// Also save moved children when group is moved
-					const movedNode = finalNodes.find((n) => n.id === change.id);
-
-					if (movedNode?.data.metadata?.isGroup) {
-						const groupChildren =
-							(movedNode.data.metadata.groupChildren as string[]) || [];
-						groupChildren.forEach((childId) => {
-							get().triggerNodeSave(childId);
-						});
+					const hasPositionChanged = hasMeaningfulPositionChange(
+						previousNode,
+						nextNode
+					);
+					if (change.dragging === true) {
+						pendingDraggedNodeIds.add(change.id);
+						return;
 					}
+
+					const isDragCommit = change.dragging === false;
+					const wasDragged = isDragCommit
+						? pendingDraggedNodeIds.delete(change.id)
+						: false;
+					if (!hasPositionChanged && !wasDragged) return;
+
+					nodesToPersist.add(change.id);
+					nodesToBroadcast.add(change.id);
+					movedNodeIds.add(change.id);
+
+					// Also persist moved children when group is moved.
+					const movedNode = finalNodeById.get(change.id);
+					if (!movedNode?.data.metadata?.isGroup) return;
+
+					const groupChildren =
+						(movedNode.data.metadata.groupChildren as string[]) || [];
+					groupChildren.forEach((childId) => {
+						const nextChildNode = finalNodeById.get(childId);
+						if (!nextChildNode) return;
+
+						const previousChildNode = previousNodeById.get(childId);
+						const childPositionChanged =
+							previousChildNode &&
+							hasMeaningfulPositionChange(previousChildNode, nextChildNode);
+						if (!childPositionChanged && !wasDragged) return;
+
+						nodesToPersist.add(childId);
+						nodesToBroadcast.add(childId);
+						movedNodeIds.add(childId);
+					});
 				} else if (
 					change.type === 'dimensions' &&
 					change.dimensions &&
 					change.resizing === false
 				) {
-					get().triggerNodeSave(change.id);
+					const previousNode = previousNodeById.get(change.id);
+					const nextNode = finalNodeById.get(change.id);
+					if (!previousNode || !nextNode) return;
+					if (!hasMeaningfulDimensionChange(previousNode, nextNode)) return;
+
+					nodesToPersist.add(change.id);
+					nodesToBroadcast.add(change.id);
+					resizedNodeIds.add(change.id);
 				} else if (change.type === 'replace') {
 					// Data changes should trigger a save
-					get().triggerNodeSave(change.id);
+					const previousNode = previousNodeById.get(change.id);
+					const nextNode = finalNodeById.get(change.id);
+					if (!previousNode || !nextNode) return;
+					if (!hasMeaningfulNodeDifference(previousNode, nextNode)) return;
+
+					nodesToPersist.add(change.id);
+					nodesToBroadcast.add(change.id);
+					replacedNodeIds.add(change.id);
 				}
 			});
+
+			if (get().systemUpdatedNodes.size > 0) {
+				const now = Date.now();
+				set((state) => {
+					const nextMarkers = new Map(state.systemUpdatedNodes);
+					let changed = false;
+
+					for (const id of consumedSystemNodeIds) {
+						if (nextMarkers.delete(id)) {
+							changed = true;
+						}
+					}
+
+					for (const [id, timestamp] of nextMarkers.entries()) {
+						if (now - timestamp > 3000) {
+							nextMarkers.delete(id);
+							changed = true;
+						}
+					}
+
+					return changed ? { systemUpdatedNodes: nextMarkers } : {};
+				});
+			}
+
+			for (const nodeId of nodesToBroadcast) {
+				if (mapId) {
+					const node = finalNodeById.get(nodeId);
+					if (node) {
+						const userId = getNodeActorId(node, currentUser?.id);
+						const nodeData = serializeNodeForRealtime(node, mapId, userId);
+						void broadcast(mapId, BROADCAST_EVENTS.NODE_UPDATE, {
+							id: nodeId,
+							data: nodeData,
+							userId,
+							timestamp: Date.now(),
+						}).catch((error) => {
+							console.warn('[nodes] Failed to sync Yjs node update:', error);
+						});
+					}
+				}
+			}
+
+			for (const nodeId of nodesToPersist) {
+				get().triggerNodeSave(nodeId);
+			}
+
+			if (nodesToPersist.size > 0) {
+				let actionName = 'saveNodeProperties';
+				if (
+					replacedNodeIds.size === 0 &&
+					resizedNodeIds.size === 0 &&
+					movedNodeIds.size > 0
+				) {
+					actionName = movedNodeIds.size > 1 ? 'moveNodes' : 'moveNode';
+				} else if (
+					replacedNodeIds.size === 0 &&
+					movedNodeIds.size === 0 &&
+					resizedNodeIds.size > 0
+				) {
+					actionName = resizedNodeIds.size > 1 ? 'resizeNodes' : 'resizeNode';
+				}
+
+				void get().persistDeltaEvent(
+					actionName,
+					{ nodes: previousNodes, edges: previousEdges },
+					{ nodes: get().nodes, edges: get().edges }
+				);
+			}
 		},
 
 		setNodes: (nodes) => {
@@ -249,24 +508,15 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				nodeType?: AvailableNodeTypes;
 				data?: Partial<NodeData>;
 				position?: { x: number; y: number };
+				nodeId?: string;
 				toastId?: string;
 			}) => {
-				let { nodeType = 'defaultNode' } = props;
+				const { nodeType = 'defaultNode' } = props;
 				const { parentNode, position, data = {}, content = 'New node' } = props;
-				const {
-					mapId,
-					supabase,
-					nodes,
-					edges,
-					currentSubscription,
-				} = get();
+				const { mapId, supabase, nodes, edges, currentSubscription } = get();
 
 				if (!mapId) {
-					toast.loading(
-						"Attempted to add node with unknown type: ${nodeType}. Falling back to 'defaultNode'.",
-						{ id: props.toastId }
-					);
-					nodeType = 'defaultNode';
+					throw new Error('Cannot add node: Map ID missing.');
 				}
 
 				// Check node creation limit - server-side authoritative, client-side fallback
@@ -335,8 +585,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					}
 				}
 
-				const newNodeId = generateUuid();
-				let newNode: AppNode | null = null;
+				const newNodeId = props.nodeId ?? generateUuid();
 				let newNodePosition: XYPosition = {
 					x: 0,
 					y: 0,
@@ -357,10 +606,123 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 
 				const user = await supabase?.auth.getSession();
 				if (!user?.data.session) throw new Error('User not authenticated.');
+				const actorId = user.data.session.user.id;
 
 				// Prepare edge defaults for RPC
 				const edgeDefaults = defaultEdgeData();
 				const edgeId = parentNode?.id ? generateUuid() : null;
+				const nowIso = new Date().toISOString();
+
+				const optimisticNodeData = {
+					...data,
+					id: newNodeId,
+					map_id: mapId,
+					user_id: actorId,
+					content,
+					metadata: data.metadata ?? {},
+					aiData: data.aiData ?? {},
+					position_x: newNodePosition.x,
+					position_y: newNodePosition.y,
+					width: data.width ?? null,
+					height: data.height ?? null,
+					node_type: nodeType,
+					updated_at: nowIso,
+					created_at: nowIso,
+					parent_id: parentNode?.id ?? null,
+				} as unknown as NodesTableType;
+
+				const optimisticNode: AppNode = {
+					id: newNodeId,
+					position: {
+						x: newNodePosition.x,
+						y: newNodePosition.y,
+					},
+					data: optimisticNodeData,
+					type: nodeType,
+					zIndex: nodeType === 'commentNode' ? 100 : undefined,
+				};
+
+				const optimisticEdgeData =
+					edgeId && parentNode?.id
+						? ({
+								...edgeDefaults,
+								id: edgeId,
+								map_id: mapId,
+								user_id: actorId,
+								source: parentNode.id,
+								target: newNodeId,
+								updated_at: nowIso,
+								created_at: nowIso,
+							} as EdgeData)
+						: null;
+
+				const optimisticFlowEdge: AppEdge | null = optimisticEdgeData
+					? {
+							id: optimisticEdgeData.id,
+							source: optimisticEdgeData.source,
+							target: optimisticEdgeData.target,
+							type: 'floatingEdge',
+							animated: optimisticEdgeData.animated || false,
+							label: optimisticEdgeData.label,
+							style: {
+								stroke: optimisticEdgeData.style?.stroke || '#6c757d',
+								strokeWidth: optimisticEdgeData.style?.strokeWidth || 2,
+							},
+							markerEnd: optimisticEdgeData.markerEnd,
+							data: optimisticEdgeData,
+						}
+					: null;
+
+				set((state) => ({
+					nodes: state.nodes.some((node) => node.id === newNodeId)
+						? state.nodes
+						: [...state.nodes, optimisticNode],
+					edges:
+						optimisticFlowEdge &&
+						!state.edges.some((edge) => edge.id === optimisticFlowEdge.id)
+							? [...state.edges, optimisticFlowEdge]
+							: state.edges,
+				}));
+
+				const nodeEventUserId = getNodeActorId(optimisticNode, actorId);
+				const nodeRealtimeData = serializeNodeForRealtime(
+					optimisticNode,
+					mapId,
+					nodeEventUserId
+				);
+
+				try {
+					await broadcast(mapId, BROADCAST_EVENTS.NODE_CREATE, {
+						id: newNodeId,
+						data: nodeRealtimeData,
+						userId: nodeEventUserId,
+						timestamp: Date.now(),
+					});
+				} catch (error) {
+					console.warn('[nodes] Failed to sync Yjs node create:', error);
+				}
+
+				if (optimisticFlowEdge) {
+					const edgeEventUserId = getEdgeActorId(optimisticFlowEdge, actorId);
+					const edgeRealtimeData = serializeEdgeForRealtime(
+						optimisticFlowEdge,
+						mapId,
+						edgeEventUserId
+					);
+
+					if (edgeRealtimeData) {
+						try {
+							await broadcast(mapId, BROADCAST_EVENTS.EDGE_CREATE, {
+								id: optimisticFlowEdge.id,
+								data: edgeRealtimeData,
+								userId: edgeEventUserId,
+								timestamp: Date.now(),
+							});
+						} catch (error) {
+							console.warn('[nodes] Failed to sync Yjs edge create:', error);
+						}
+					}
+				}
 
 				// Single atomic RPC call to create node + edge
 				const { data: rpcResult, error: rpcError } = await supabase.rpc(
@@ -389,16 +751,51 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				);
 
 				if (rpcError || !rpcResult) {
+					set((state) => ({
+						nodes: state.nodes.filter((node) => node.id !== newNodeId),
+						edges: edgeId
+							? state.edges.filter((edge) => edge.id !== edgeId)
+							: state.edges,
+					}));
+
+					try {
+						await broadcast(mapId, BROADCAST_EVENTS.NODE_DELETE, {
+							id: newNodeId,
+							userId: actorId,
+							timestamp: Date.now(),
+						});
+					} catch (error) {
+						console.warn(
+							'[nodes] Failed to rollback Yjs node create after DB error:',
+							error
+						);
+					}
+
+					if (edgeId) {
+						try {
+							await broadcast(mapId, BROADCAST_EVENTS.EDGE_DELETE, {
+								id: edgeId,
+								userId: actorId,
+								timestamp: Date.now(),
+							});
+						} catch (error) {
+							console.warn(
+								'[nodes] Failed to rollback Yjs edge create after DB error:',
+								error
+							);
+						}
+					}
+
 					throw new Error(
 						rpcError?.message || 'Failed to save new node to database.'
 					);
 				}
 
 				const result = rpcResult as CreateNodeWithEdgeResponse;
-				const insertedNodeData = result.node;
+				const insertedNodeData = result.node as NodesTableType;
 				const insertedEdgeData = result.edge;
 
-				newNode = {
+				const persistedNode: AppNode = {
 					id: insertedNodeData.id,
 					position: {
 						x: insertedNodeData.position_x,
@@ -410,60 +807,53 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 						insertedNodeData.node_type === 'commentNode' ? 100 : undefined,
 				};
 
-				const finalNodes = [...nodes, newNode];
-				const finalEdges = [...edges];
+				const persistedEdge = insertedEdgeData
+					? ({
+							id: insertedEdgeData.id,
+							source: insertedEdgeData.source,
+							target: insertedEdgeData.target,
+							type: 'floatingEdge',
+							animated: insertedEdgeData.animated === true,
+							label: insertedEdgeData.label,
+							style: {
+								stroke: insertedEdgeData.style?.stroke || '#6c757d',
+								strokeWidth: insertedEdgeData.style?.strokeWidth || 2,
+							},
+							markerEnd: insertedEdgeData.markerEnd,
+							data: insertedEdgeData,
+						} satisfies AppEdge)
+					: null;
 
-				// Add edge to state if RPC created one (when parent was provided)
-				if (insertedEdgeData) {
-					const newFlowEdge: AppEdge = {
-						id: insertedEdgeData.id,
-						source: insertedEdgeData.source,
-						target: insertedEdgeData.target,
-						type: 'floatingEdge',
-						animated: false,
-						label: insertedEdgeData.label,
-						style: {
-							stroke: insertedEdgeData.style?.stroke || '#6c757d',
-							strokeWidth: insertedEdgeData.style?.strokeWidth || 2,
-						},
-						markerEnd: insertedEdgeData.markerEnd,
-						data: insertedEdgeData,
+				set((state) => {
+					const nextNodes = state.nodes.some((node) => node.id === newNodeId)
+						? state.nodes.map((node) =>
+								node.id === newNodeId ? persistedNode : node
+							)
+						: [...state.nodes, persistedNode];
+
+					let nextEdges = state.edges;
+					if (persistedEdge) {
+						nextEdges = state.edges.some((edge) => edge.id === persistedEdge.id)
+							? state.edges.map((edge) =>
+									edge.id === persistedEdge.id ? persistedEdge : edge
+								)
+							: [...state.edges, persistedEdge];
+					} else if (edgeId) {
+						nextEdges = state.edges.filter((edge) => edge.id !== edgeId);
+					}
+
+					return {
+						nodes: nextNodes,
+						edges: nextEdges,
 					};
-					finalEdges.push(newFlowEdge);
-				}
+				});
 
 				// Persist delta to DB for history tracking
 				get().persistDeltaEvent(
 					'addNode',
 					{ nodes, edges },
-					{ nodes: finalNodes, edges: finalEdges }
+					{ nodes: get().nodes, edges: get().edges }
 				);
-
-				set({
-					nodes: finalNodes,
-					edges: finalEdges,
-				});
-
-				// Broadcast node creation to other clients
-				// mapId is guaranteed non-null here (checked at function start)
-				if (mapId) {
-					await broadcast(mapId, BROADCAST_EVENTS.NODE_CREATE, {
-						id: newNodeId,
-						data: insertedNodeData as unknown as Record<string, unknown>,
-						userId: user.data.session.user.id,
-						timestamp: Date.now(),
-					});
-
-					// Also broadcast edge creation if one was created
-					if (insertedEdgeData) {
-						await broadcast(mapId, BROADCAST_EVENTS.EDGE_CREATE, {
-							id: insertedEdgeData.id,
-							data: insertedEdgeData as unknown as Record<string, unknown>,
-							userId: user.data.session.user.id,
-							timestamp: Date.now(),
-						});
-					}
-				}
 
 				// Auto-fetch metadata for resource nodes (fire-and-forget)
 				if (nodeType === 'resourceNode' && data.metadata?.url) {
@@ -494,8 +884,8 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 							...node,
 							type: data.node_type || node.type,
 							position: {
-								x: data.position_x || node.position.x,
-								y: data.position_y || node.position.y,
+								x: data.position_x ?? node.position.x,
+								y: data.position_y ?? node.position.y,
 							},
 							data: {
 								...node.data,
@@ -519,6 +909,20 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				nodeInfo: updatedNode,
 			}));
 
+			const { mapId, currentUser } = get();
+			if (mapId && updatedNode) {
+				const userId = getNodeActorId(updatedNode, currentUser?.id);
+				const nodeData = serializeNodeForRealtime(updatedNode, mapId, userId);
+				void broadcast(mapId, BROADCAST_EVENTS.NODE_UPDATE, {
+					id: nodeId,
+					data: nodeData,
+					userId,
+					timestamp: Date.now(),
+				}).catch((error) => {
+					console.warn('[nodes] Failed to sync Yjs node update:', error);
+				});
+			}
+
 			// Trigger debounced save to persist changes
 			get().triggerNodeSave(nodeId);
 
@@ -531,12 +935,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 		},
 		deleteNodes: withLoadingAndToast(
 			async (nodesToDelete: AppNode[]) => {
-				const {
-					mapId,
-					supabase,
-					edges,
-					nodes: allNodes,
-				} = get();
+				const { mapId, supabase, edges, nodes: allNodes } = get();
 
 				if (!mapId || !nodesToDelete) return;
 
@@ -554,22 +953,115 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					?.id;
 				if (!user_id) throw new Error('User not authenticated.');
 
-				const { data: newNodes, error: deleteError } = await supabase
+				const nodeIdsToDelete = new Set(nodesToDelete.map((node) => node.id));
+				const edgeIdsToDelete = new Set(edgesToDelete.map((edge) => edge.id));
+
+				const finalNodes = allNodes.filter(
+					(node) => !nodeIdsToDelete.has(node.id)
+				);
+				const finalEdges = edges.filter(
+					(edge) => !edgeIdsToDelete.has(edge.id)
+				);
+
+				set({
+					nodes: finalNodes,
+					edges: finalEdges,
+				});
+
+				for (const node of nodesToDelete) {
+					try {
+						await broadcast(mapId, BROADCAST_EVENTS.NODE_DELETE, {
+							id: node.id,
+							userId: user_id,
+							timestamp: Date.now(),
+						});
+					} catch (error) {
+						console.warn('[nodes] Failed to sync Yjs node delete:', error);
+					}
+				}
+
+				for (const edge of edgesToDelete) {
+					try {
+						await broadcast(mapId, BROADCAST_EVENTS.EDGE_DELETE, {
+							id: edge.id,
+							userId: user_id,
+							timestamp: Date.now(),
+						});
+					} catch (error) {
+						console.warn('[nodes] Failed to sync Yjs edge delete:', error);
+					}
+				}
+
+				const { error: deleteError } = await supabase
 					.from('nodes')
 					.delete()
 					.in(
 						'id',
 						nodesToDelete.map((node) => node.id)
 					)
-					.eq('map_id', mapId)
-					.select();
+					.eq('map_id', mapId);
 
 				if (deleteError) {
+					set((state) => {
+						const restoredNodeIds = new Set(state.nodes.map((node) => node.id));
+						const restoredEdgeIds = new Set(state.edges.map((edge) => edge.id));
+
+						return {
+							nodes: [
+								...state.nodes,
+								...nodesToDelete.filter(
+									(node) => !restoredNodeIds.has(node.id)
+								),
+							],
+							edges: [
+								...state.edges,
+								...edgesToDelete.filter(
+									(edge) => !restoredEdgeIds.has(edge.id)
+								),
+							],
+						};
+					});
+
+					for (const node of nodesToDelete) {
+						const eventUserId = getNodeActorId(node, user_id);
+						const nodeData = serializeNodeForRealtime(node, mapId, eventUserId);
+						try {
+							await broadcast(mapId, BROADCAST_EVENTS.NODE_CREATE, {
+								id: node.id,
+								data: nodeData,
+								userId: eventUserId,
+								timestamp: Date.now(),
+							});
+						} catch (error) {
+							console.warn(
+								'[nodes] Failed to rollback Yjs node delete after DB error:',
+								error
+							);
+						}
+					}
+
+					for (const edge of edgesToDelete) {
+						const eventUserId = getEdgeActorId(edge, user_id);
+						const edgeData = serializeEdgeForRealtime(edge, mapId, eventUserId);
+						if (edgeData) {
+							try {
+								await broadcast(mapId, BROADCAST_EVENTS.EDGE_CREATE, {
+									id: edge.id,
+									data: edgeData,
+									userId: eventUserId,
+									timestamp: Date.now(),
+								});
+							} catch (error) {
+								console.warn(
+									'[nodes] Failed to rollback Yjs edge delete after DB error:',
+									error
+								);
+							}
+						}
+					}
+
 					throw new Error(deleteError.message || 'Failed to delete nodes.');
 				}
-
-				const finalNodes = allNodes.filter((n) => !nodesToDelete.includes(n));
-				const finalEdges = edges.filter((e) => !edgesToDelete.includes(e));
 
 				// Determine action name based on deletion count
 				const actionName =
@@ -579,31 +1071,8 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				get().persistDeltaEvent(
 					actionName,
 					{ nodes: prevNodes, edges: prevEdges },
-					{ nodes: finalNodes, edges: finalEdges }
+					{ nodes: get().nodes, edges: get().edges }
 				);
-
-				set({
-					nodes: finalNodes,
-					edges: finalEdges,
-				});
-
-				// Broadcast node deletions to other clients
-				for (const node of nodesToDelete) {
-					await broadcast(mapId, BROADCAST_EVENTS.NODE_DELETE, {
-						id: node.id,
-						userId: user_id,
-						timestamp: Date.now(),
-					});
-				}
-
-				// Broadcast edge deletions that were cascaded
-				for (const edge of edgesToDelete) {
-					await broadcast(mapId, BROADCAST_EVENTS.EDGE_DELETE, {
-						id: edge.id,
-						userId: user_id,
-						timestamp: Date.now(),
-					});
-				}
 			},
 			'isAddingContent',
 			{
@@ -613,71 +1082,10 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 			}
 		),
 
-		triggerNodeSave: debouncePerKey(
-			async (nodeId: string) => {
-				const { nodes, supabase, mapId, currentUser } = get();
-				const node = nodes.find((n) => n.id === nodeId);
-
-				if (!node || !node.data) {
-					console.error(`Node with id ${nodeId} not found or has invalid data`);
-					throw new Error(
-						`Node with id ${nodeId} not found or has invalid data`
-					);
-				}
-
-				if (!mapId) {
-					console.error('Cannot save node: No mapId defined');
-					throw new Error('Cannot save node: No mapId defined');
-				}
-
-				const user_id = (await supabase.auth.getSession()).data.session?.user
-					?.id;
-
-				if (!user_id) {
-					throw new Error('Not authenticated');
-				}
-
-				// Prepare node data for saving, ensuring type safety
-				const nodeData: NodesTableType = {
-					id: nodeId,
-					map_id: mapId,
-					user_id: user_id,
-					content: node.data.content || '',
-					metadata: node.data.metadata || {},
-					aiData: node.data.aiData || {},
-					position_x: node.position.x,
-					position_y: node.position.y,
-					width: node.width,
-					height: node.height,
-					node_type: (node.type || 'defaultNode') as AvailableNodeTypes,
-					updated_at: new Date().toISOString(),
-					created_at: node.data.created_at,
-					parent_id: node.parentId || node.data.parent_id || null,
-				};
-
-				// Save node data to Supabase
-				const { error } = await supabase
-					.from('nodes')
-					.update(nodeData)
-					.eq('id', nodeId)
-					.eq('map_id', mapId);
-
-				if (error) {
-					console.error('Error saving node:', error);
-					throw new Error('Failed to save node changes');
-				}
-
-				// Broadcast update to other clients after successful save
-				await broadcast(mapId, BROADCAST_EVENTS.NODE_UPDATE, {
-					id: nodeId,
-					data: nodeData as unknown as Record<string, unknown>,
-					userId: currentUser?.id || user_id,
-					timestamp: Date.now(),
-				});
-			},
-			STORE_SAVE_DEBOUNCE_MS,
-			(nodeId: string) => nodeId // getKey function for triggerNodeSave
-		),
+		triggerNodeSave: triggerNodeSaveDebounced,
+		flushPendingNodeSaves: async () => {
+			await triggerNodeSaveDebounced.flushAll();
+		},
 		getDirectChildrenCount: (nodeId: string): number => {
 			const { edges } = get();
 			return edges.filter((edge) => edge.source === nodeId).length;
@@ -794,11 +1202,17 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 			try {
 				// Clean up existing subscription before creating new one
 				const existingSub = get()._nodesSubscription;
-				if (existingSub && typeof (existingSub as any).unsubscribe === 'function') {
+				if (
+					existingSub &&
+					typeof (existingSub as any).unsubscribe === 'function'
+				) {
 					try {
 						await (existingSub as any).unsubscribe();
 					} catch (e) {
-						console.warn('[broadcast] Failed to unsubscribe previous nodes subscription:', e);
+						console.warn(
+							'[broadcast] Failed to unsubscribe previous nodes subscription:',
+							e
+						);
 					}
 					set({ _nodesSubscription: null });
 				}
@@ -837,7 +1251,10 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					}
 					set({ _nodesSubscription: null });
 				} catch (error) {
-					console.error('[broadcast] Error unsubscribing from node events:', error);
+					console.error(
+						'[broadcast] Error unsubscribing from node events:',
+						error
+					);
 				}
 			}
 		},

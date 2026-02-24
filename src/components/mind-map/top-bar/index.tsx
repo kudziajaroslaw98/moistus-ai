@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { UserMenu } from '@/components/common/user-menu';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { type ActivityState } from '@/hooks/realtime/use-realtime-presence-room';
+import { getMindMapRoomName } from '@/lib/realtime/room-names';
 import type { PublicUserProfile } from '@/types/user-profile-types';
 import { Panel } from '@xyflow/react';
 import { Menu, Settings, Share2 } from 'lucide-react';
@@ -26,7 +27,7 @@ interface MindMapTopBarProps {
 	handleToggleHistorySidebar: () => void;
 	handleToggleMapSettings: () => void;
 	handleToggleSharePanel: () => void;
-	handleOpenSettings: (tab: 'settings' | 'billing') => void;
+	handleOpenSettings: (tab: 'account' | 'billing') => void;
 	// Mobile menu state lifted to parent
 	mobileMenuOpen: boolean;
 	setMobileMenuOpen: (open: boolean) => void;
@@ -73,7 +74,7 @@ export function MindMapTopBar({
 					<RealtimeAvatarStack
 						activityState={activityState}
 						mapOwnerId={mindMap?.user_id}
-						roomName={`mind-map:${mapId}:presence`}
+						roomName={getMindMapRoomName(mapId, 'presence')}
 					/>
 				)}
 

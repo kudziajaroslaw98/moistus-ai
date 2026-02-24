@@ -32,24 +32,26 @@ import { SettingsPanel } from '@/components/dashboard/settings-panel';
 import AnimatedGhostEdge from '@/components/edges/animated-ghost-edge';
 import FloatingEdge from '@/components/edges/floating-edge';
 import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edge';
+import { GuidedTourMode, PathBuilder } from '@/components/guided-tour';
 import { UpgradeModal } from '@/components/modals/upgrade-modal';
 import { ModeIndicator } from '@/components/mode-indicator';
-import { GuidedTourMode, PathBuilder } from '@/components/guided-tour';
 import { ShortcutsHelpFab } from '@/components/shortcuts-help/shortcuts-help-fab';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useActivityTracker } from '@/hooks/realtime/use-activity-tracker';
 import { useUpgradePrompt } from '@/hooks/subscription/use-upgrade-prompt';
 import { useContextMenu } from '@/hooks/use-context-menu';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useNodeSuggestion } from '@/hooks/use-node-suggestion';
+import { getMindMapRoomName } from '@/lib/realtime/room-names';
 import useAppStore from '@/store/mind-map-store';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import type { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
-import { useParams, useRouter } from 'next/navigation';
-import { useShallow } from 'zustand/shallow';
+import { useParams } from 'next/navigation';
 import { toast } from 'sonner';
+import { useShallow } from 'zustand/shallow';
 import FloatingConnectionLine from '../edges/floating-connection-line';
 import { SuggestedMergeEdge } from '../edges/suggested-merge-edge';
 import WaypointEdge from '../edges/waypoint-edge';
@@ -62,8 +64,8 @@ const ENABLE_AI_CHAT = process.env.NEXT_PUBLIC_ENABLE_AI_CHAT === 'true';
 
 export function ReactFlowArea() {
 	const mapId = useParams().id;
-	const router = useRouter();
 	const reactFlowInstance = useReactFlow();
+	const bottomDockRef = useRef<HTMLDivElement | null>(null);
 	const connectingNodeId = useRef<string | null>(null);
 	const connectingHandleId = useRef<string | null>(null);
 	const connectingHandleType = useRef<'source' | 'target' | null>(null);
@@ -71,12 +73,12 @@ export function ReactFlowArea() {
 	const fetchStartedRef = useRef(false);
 	const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-	const [settingsTab, setSettingsTab] = useState<'settings' | 'billing'>(
-		'settings'
+	const [settingsTab, setSettingsTab] = useState<'account' | 'billing'>(
+		'account'
 	);
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-	const handleOpenSettings = (tab: 'settings' | 'billing' = 'settings') => {
+	const handleOpenSettings = (tab: 'account' | 'billing' = 'account') => {
 		setSettingsTab(tab);
 		setIsSettingsOpen(true);
 	};
@@ -113,6 +115,8 @@ export function ReactFlowArea() {
 		currentUser,
 		activeTool,
 		setActiveTool,
+		mobileTapMultiSelectEnabled,
+		setMobileTapMultiSelectEnabled,
 		ghostNodes,
 		isStreaming,
 		aiFeature,
@@ -153,6 +157,8 @@ export function ReactFlowArea() {
 			currentUser: state.currentUser,
 			activeTool: state.activeTool,
 			setActiveTool: state.setActiveTool,
+			mobileTapMultiSelectEnabled: state.mobileTapMultiSelectEnabled,
+			setMobileTapMultiSelectEnabled: state.setMobileTapMultiSelectEnabled,
 			ghostNodes: state.ghostNodes,
 			isStreaming: state.isStreaming,
 			aiFeature: state.aiFeature,
@@ -174,6 +180,26 @@ export function ReactFlowArea() {
 	const { contextMenuHandlers } = useContextMenu();
 	const { generateSuggestionsForNode } = useNodeSuggestion();
 	const { canEdit } = usePermissions();
+	const isMobile = useIsMobile();
+	const updateBottomToolbarClearance = useCallback(() => {
+		if (typeof window === 'undefined') return;
+
+		document.body.setAttribute('data-has-bottom-toolbar', 'true');
+
+		const dockRect = bottomDockRef.current?.getBoundingClientRect();
+		if (!dockRect) {
+			document.body.style.setProperty('--mind-map-toolbar-clearance', '0px');
+			return;
+		}
+
+		const clearancePx = Math.ceil(
+			Math.max(0, window.innerHeight - dockRect.top + 8)
+		);
+		document.body.style.setProperty(
+			'--mind-map-toolbar-clearance',
+			`${clearancePx}px`
+		);
+	}, []);
 
 	// Permission-gated delete handlers
 	// Viewers should not be able to delete nodes/edges via Delete key
@@ -227,7 +253,10 @@ export function ReactFlowArea() {
 		setMapId(mapId as string);
 		fetchMindMapData(mapId as string);
 		getCurrentShareUsers().catch((error) => {
-			console.error('[ReactFlowArea] Failed to fetch current share users:', error);
+			console.error(
+				'[ReactFlowArea] Failed to fetch current share users:',
+				error
+			);
 			toast.error('Failed to load collaborators for this map');
 		});
 	}, [fetchMindMapData, mapId, supabase, getCurrentShareUsers]);
@@ -247,6 +276,32 @@ export function ReactFlowArea() {
 		window.addEventListener('mousemove', handleMouseMove);
 		return () => window.removeEventListener('mousemove', handleMouseMove);
 	}, [setMousePosition]);
+
+	useEffect(() => {
+		updateBottomToolbarClearance();
+		window.addEventListener('resize', updateBottomToolbarClearance);
+		window.addEventListener('orientationchange', updateBottomToolbarClearance);
+
+		let resizeObserver: ResizeObserver | undefined;
+		const dockEl = bottomDockRef.current;
+		if (dockEl && typeof ResizeObserver !== 'undefined') {
+			resizeObserver = new ResizeObserver(() => {
+				updateBottomToolbarClearance();
+			});
+			resizeObserver.observe(dockEl);
+		}
+
+		return () => {
+			window.removeEventListener('resize', updateBottomToolbarClearance);
+			window.removeEventListener(
+				'orientationchange',
+				updateBottomToolbarClearance
+			);
+			resizeObserver?.disconnect();
+			document.body.removeAttribute('data-has-bottom-toolbar');
+			document.body.style.removeProperty('--mind-map-toolbar-clearance');
+		};
+	}, [updateBottomToolbarClearance]);
 
 	// Handle "/" key to open InlineNodeCreator
 	useLayoutEffect(() => {
@@ -268,7 +323,6 @@ export function ReactFlowArea() {
 					y: mousePosition.y,
 				}) || { x: 0, y: 0 };
 
-
 				openNodeEditor({
 					position,
 					screenPosition: position,
@@ -280,6 +334,11 @@ export function ReactFlowArea() {
 		window.addEventListener('keydown', handleKeyDown);
 		return () => window.removeEventListener('keydown', handleKeyDown);
 	}, [mousePosition, openNodeEditor, reactFlowInstance, setTyping]);
+
+	const isSelectMode = activeTool === 'default';
+	const isPanningMode = activeTool === 'pan';
+	const isMobileTapMultiSelectActive =
+		isMobile && canEdit && isSelectMode && mobileTapMultiSelectEnabled;
 
 	const handleNodeDoubleClick = useCallback(
 		(event: React.MouseEvent, node: Node<NodeData>) => {
@@ -307,9 +366,43 @@ export function ReactFlowArea() {
 				event.stopPropagation();
 				generateSuggestionsForNode(node.id, 'magic-wand');
 				setActiveTool('default');
+				return;
+			}
+
+			if (isMobileTapMultiSelectActive) {
+				event.preventDefault();
+				event.stopPropagation();
+				const state = useAppStore.getState();
+				const selectedNodeIds = new Set(
+					state.selectedNodes.map((selectedNode) => selectedNode.id)
+				);
+
+				if (selectedNodeIds.has(node.id)) {
+					selectedNodeIds.delete(node.id);
+				} else {
+					selectedNodeIds.add(node.id);
+				}
+
+				const nextNodes = state.nodes.map((currentNode) => ({
+					...currentNode,
+					selected: selectedNodeIds.has(currentNode.id),
+				}));
+
+				state.setNodes(nextNodes);
+				state.setSelectedNodes(
+					nextNodes.filter((currentNode) => selectedNodeIds.has(currentNode.id))
+				);
 			}
 		},
-		[activeTool, isStreaming, generateSuggestionsForNode, isPathEditMode, addNodeToPath]
+		[
+			activeTool,
+			aiFeature,
+			addNodeToPath,
+			generateSuggestionsForNode,
+			isMobileTapMultiSelectActive,
+			isPathEditMode,
+			setActiveTool,
+		]
 	);
 
 	const handleEdgeDoubleClick: EdgeMouseHandler<Edge<EdgeData>> = useCallback(
@@ -459,9 +552,6 @@ export function ReactFlowArea() {
 		);
 	};
 
-	const isSelectMode = activeTool === 'default';
-	const isPanningMode = activeTool === 'pan';
-
 	// Upgrade prompt hook for modal triggers
 	const {
 		shouldShowTimePrompt,
@@ -483,12 +573,15 @@ export function ReactFlowArea() {
 		}
 
 		// Set up interval to check every 5 minutes
-		const interval = setInterval(() => {
-			if (upgradeCheckRef.current()) {
-				showUpgradeModal();
-				clearInterval(interval);
-			}
-		}, 5 * 60 * 1000);
+		const interval = setInterval(
+			() => {
+				if (upgradeCheckRef.current()) {
+					showUpgradeModal();
+					clearInterval(interval);
+				}
+			},
+			5 * 60 * 1000
+		);
 
 		return () => clearInterval(interval);
 	}, [showUpgradeModal]);
@@ -512,7 +605,9 @@ export function ReactFlowArea() {
 				nodesConnectable={
 					(isSelectMode || activeTool === 'connector') && canEdit
 				}
-				nodesDraggable={isSelectMode && canEdit}
+				nodesDraggable={
+					isSelectMode && canEdit && !isMobileTapMultiSelectActive
+				}
 				nodeTypes={nodeTypesWithProps}
 				onConnect={onConnect}
 				onConnectEnd={onConnectEnd}
@@ -530,6 +625,9 @@ export function ReactFlowArea() {
 				onNodesDelete={handleNodesDelete}
 				onPaneClick={contextMenuHandlers.onPaneClick}
 				onPaneContextMenu={contextMenuHandlers.onPaneContextMenu}
+				onSelectionContextMenu={(event) =>
+					contextMenuHandlers.onPaneContextMenu(event)
+				}
 				onSelectionChange={handleSelectionChange}
 				panOnDrag={true}
 				selectionMode={SelectionMode.Partial}
@@ -568,13 +666,19 @@ export function ReactFlowArea() {
 					setMobileMenuOpen={setMobileMenuOpen}
 				/>
 
-				<Panel
-					className='flex flex-col gap-2 items-center'
-					position='bottom-center'
-				>
-					<ModeIndicator />
+				<Panel position='bottom-center'>
+					<div
+						ref={bottomDockRef}
+						className='flex flex-col gap-2 items-center'
+						data-testid='bottom-dock'
+					>
+						<ModeIndicator />
 
-					<Toolbar />
+						<Toolbar
+							mobileTapMultiSelectEnabled={mobileTapMultiSelectEnabled}
+							onMobileTapMultiSelectChange={setMobileTapMultiSelectEnabled}
+						/>
+					</div>
 				</Panel>
 
 				<Panel className='m-4 pt-10' position='top-right'></Panel>
@@ -582,7 +686,7 @@ export function ReactFlowArea() {
 				<Panel position='top-left'>
 					<RealtimeCursors
 						reactFlowInstance={reactFlowInstance}
-						roomName={`mind-map:${mapId}:cursor`}
+						roomName={getMindMapRoomName(mapId as string, 'cursor')}
 					/>
 				</Panel>
 			</ReactFlow>

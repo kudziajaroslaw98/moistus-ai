@@ -13,10 +13,14 @@ export class ToolbarPage {
 
 	// Toolbar container
 	readonly toolbar: Locator;
+	readonly moreButton: Locator;
+	readonly moreMenu: Locator;
+	readonly shortcutsHelpFab: Locator;
 
 	// Cursor mode dropdown
 	readonly cursorModeButton: Locator;
 	readonly cursorModeDropdown: Locator;
+	readonly tapMultiSelectToggle: Locator;
 
 	// Main toolbar buttons (by title attribute)
 	readonly addNodeButton: Locator;
@@ -33,10 +37,16 @@ export class ToolbarPage {
 
 		// Main toolbar container
 		this.toolbar = page.locator('[data-testid="toolbar"]');
+		this.moreButton = page.locator('[data-testid="toolbar-more-button"]');
+		this.moreMenu = page.locator('[data-testid="toolbar-more-menu"]');
+		this.shortcutsHelpFab = page.locator('[data-testid="shortcuts-help-fab"]');
 
 		// Cursor mode button (first button in toolbar)
 		this.cursorModeButton = this.toolbar.locator('button').first();
 		this.cursorModeDropdown = page.locator('[role="menu"]');
+		this.tapMultiSelectToggle = page.locator(
+			'[data-testid="cursor-toggle-tap-multi-select"]'
+		);
 
 		// Toolbar buttons by title
 		this.addNodeButton = this.toolbar.locator('button[title="Add Node"]');
@@ -83,6 +93,24 @@ export class ToolbarPage {
 		await this.cursorModeDropdown
 			.locator(`[role="menuitemradio"]:has-text("${mode}")`)
 			.click();
+	}
+
+	/**
+	 * Enables/disables mobile Tap Multi-select mode from the cursor menu.
+	 */
+	async setTapMultiSelectMode(enabled: boolean) {
+		await this.openCursorModeDropdown();
+		const toggle = this.tapMultiSelectToggle.first();
+		await expect(toggle).toBeVisible();
+
+		const isEnabled = (await toggle.getAttribute('aria-checked')) === 'true';
+		if (isEnabled !== enabled) {
+			await toggle.click();
+		}
+
+		if (await this.cursorModeDropdown.isVisible()) {
+			await this.page.keyboard.press('Escape');
+		}
 	}
 
 	// ============================================================================
@@ -169,10 +197,97 @@ export class ToolbarPage {
 	}
 
 	/**
+	 * Asserts that Export button is hidden.
+	 */
+	async expectExportButtonHidden() {
+		await expect(this.exportButton).not.toBeVisible();
+	}
+
+	/**
 	 * Asserts that Zoom button is always visible (available to all roles).
 	 */
 	async expectZoomButtonVisible() {
 		await expect(this.zoomButton).toBeVisible();
+	}
+
+	/**
+	 * Asserts that Zoom button is hidden.
+	 */
+	async expectZoomButtonHidden() {
+		await expect(this.zoomButton).not.toBeVisible();
+	}
+
+	/**
+	 * Asserts that Guided Tour button is hidden.
+	 */
+	async expectGuidedTourButtonHidden() {
+		await expect(this.presentButton).not.toBeVisible();
+	}
+
+	/**
+	 * Asserts that AI Chat button is hidden.
+	 */
+	async expectAiChatButtonHidden() {
+		await expect(this.chatButton).not.toBeVisible();
+	}
+
+	/**
+	 * Asserts that More button is visible.
+	 */
+	async expectMoreButtonVisible() {
+		await expect(this.moreButton).toBeVisible();
+	}
+
+	/**
+	 * Asserts that More button is hidden.
+	 */
+	async expectMoreButtonHidden() {
+		await expect(this.moreButton).not.toBeVisible();
+	}
+
+	/**
+	 * Asserts that shortcuts help FAB is hidden.
+	 */
+	async expectShortcutsHelpFabHidden() {
+		await expect(this.shortcutsHelpFab).not.toBeVisible();
+	}
+
+	/**
+	 * Opens the mobile More menu.
+	 */
+	async openMoreMenu() {
+		await this.moreButton.click();
+		await this.moreMenu.waitFor({ state: 'visible', timeout: 3000 });
+	}
+
+	/**
+	 * Asserts a menu item is visible in the More menu.
+	 */
+	async expectMoreMenuItemVisible(label: string) {
+		await expect(
+			this.moreMenu.locator(`[role="menuitem"]:has-text("${label}")`).first()
+		).toBeVisible();
+	}
+
+	/**
+	 * Asserts a submenu trigger is visible in the More menu.
+	 */
+	async expectMoreSubmenuVisible(label: string) {
+		await expect(
+			this.moreMenu
+				.locator(`[data-slot="dropdown-menu-sub-trigger"]:has-text("${label}")`)
+				.first()
+		).toBeVisible();
+	}
+
+	/**
+	 * Opens a submenu by label from the More menu.
+	 */
+	async openMoreSubmenu(label: string) {
+		const trigger = this.moreMenu
+			.locator(`[data-slot="dropdown-menu-sub-trigger"]:has-text("${label}")`)
+			.first();
+		await trigger.hover();
 	}
 
 	/**

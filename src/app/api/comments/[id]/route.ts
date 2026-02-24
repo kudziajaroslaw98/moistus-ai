@@ -1,3 +1,4 @@
+import { canUserWriteComments } from '@/helpers/api/comment-permissions';
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { createClient } from '@/helpers/supabase/server';
 import { z } from 'zod';
@@ -56,18 +57,10 @@ export async function GET(
 				return respondError('Comment not found.', 404, 'Comment not found.');
 			}
 
-			return respondError(
-				'Error fetching comment.',
-				500,
-				fetchError.message
-			);
+			return respondError('Error fetching comment.', 500, fetchError.message);
 		}
 
-		return respondSuccess(
-			{ comment },
-			200,
-			'Comment fetched successfully.'
-		);
+		return respondSuccess({ comment }, 200, 'Comment fetched successfully.');
 	} catch (error) {
 		console.error('Error in GET /api/comments/[id]:', error);
 		return respondError(
@@ -125,6 +118,34 @@ export async function PUT(
 
 		const updateData = validationResult.data;
 
+		const { data: comment, error: commentError } = await supabase
+			.from('comments')
+			.select('id, map_id')
+			.eq('id', commentId)
+			.maybeSingle();
+
+		if (commentError) {
+			console.error('Error fetching comment for update:', commentError);
+			return respondError('Error fetching comment.', 500, commentError.message);
+		}
+
+		if (!comment) {
+			return respondError('Comment not found.', 404, 'Comment not found.');
+		}
+
+		const permission = await canUserWriteComments(
+			supabase,
+			comment.map_id,
+			user.id
+		);
+		if (!permission.allowed) {
+			return respondError(
+				'Access denied.',
+				403,
+				'You do not have permission to comment on this map.'
+			);
+		}
+
 		// Update the comment (only allow owner to update)
 		const { data: updatedComment, error: updateError } = await supabase
 			.from('comments')
@@ -148,11 +169,7 @@ export async function PUT(
 				);
 			}
 
-			return respondError(
-				'Error updating comment.',
-				500,
-				updateError.message
-			);
+			return respondError('Error updating comment.', 500, updateError.message);
 		}
 
 		return respondSuccess(
@@ -194,6 +211,34 @@ export async function DELETE(
 				'Authentication required',
 				401,
 				'User not authenticated'
+			);
+		}
+
+		const { data: comment, error: commentError } = await supabase
+			.from('comments')
+			.select('id, map_id')
+			.eq('id', commentId)
+			.maybeSingle();
+
+		if (commentError) {
+			console.error('Error fetching comment for delete:', commentError);
+			return respondError('Error fetching comment.', 500, commentError.message);
+		}
+
+		if (!comment) {
+			return respondError('Comment not found.', 404, 'Comment not found.');
+		}
+
+		const permission = await canUserWriteComments(
+			supabase,
+			comment.map_id,
+			user.id
+		);
+		if (!permission.allowed) {
+			return respondError(
+				'Access denied.',
+				403,
+				'You do not have permission to comment on this map.'
 			);
 		}
 

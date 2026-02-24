@@ -1,6 +1,7 @@
 'use client';
 
 import type { AvailableNodeTypes } from '@/registry/node-registry';
+import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import {
@@ -53,6 +54,7 @@ export const NodeEditor = () => {
 	);
 
 	const initializedRef = useRef<string | null>(null);
+	const { canEdit, isLoading: isPermissionLoading } = usePermissions();
 
 	// Get mode and existing node data from store
 	const mode = nodeEditor.mode;
@@ -83,6 +85,12 @@ export const NodeEditor = () => {
 			resetQuickInput();
 		}
 	}, [nodeEditor.isOpen, mode, nodeEditor.existingNodeId, resetQuickInput]);
+
+	useEffect(() => {
+		if (!nodeEditor.isOpen || isPermissionLoading) return;
+		if (canEdit) return;
+		closeNodeEditor();
+	}, [nodeEditor.isOpen, isPermissionLoading, canEdit, closeNodeEditor]);
 
 	const { refs, context } = useFloating({
 		open: nodeEditor.isOpen,

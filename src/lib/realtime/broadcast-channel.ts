@@ -1,21 +1,27 @@
+'use client';
+
 /**
- * Broadcast Channel Manager
+ * Broadcast Channel Manager (Yjs/PartyKit adapter)
  *
- * Centralized manager for secure real-time broadcast channels.
- * Handles private channel creation with RLS authorization.
- *
- * Architecture:
- * - One sync channel per map: "mind-map:{mapId}:sync"
- * - Channels are private (RLS-protected via realtime.messages policies)
- * - setAuth() called automatically to send JWT to Realtime server
- *
- * Event Types:
- * - node:* - Node create/update/delete events
- * - edge:* - Edge create/update/delete events
- * - history:revert - History revert notifications
+ * Keeps the existing API surface while routing sync/presence/cursor
+ * traffic through Yjs + PartyKit instead of Supabase broadcasts.
  */
 
-import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
+import {
+	applyYjsGraphMutation,
+	cleanupAllYjsRooms,
+	clearYjsAwarenessPresence,
+	replaceYjsGraphState,
+	sendYjsSyncEvent,
+	setYjsAwarenessPresence,
+	subscribeToYjsAwareness,
+	subscribeToYjsGraphMutations,
+	subscribeToYjsSyncEvents,
+	type ReplaceYjsGraphStateInput,
+	type YjsGraphMutation,
+	type YjsPresenceMap,
+} from '@/lib/realtime/yjs-provider';
+import { getMindMapRoomName } from '@/lib/realtime/room-names';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 // =====================================================
@@ -78,66 +84,375 @@ export type BroadcastPayload =
 	| EdgeBroadcastPayload
 	| HistoryRevertPayload;
 
-// =====================================================
-// CHANNEL MANAGER
-// =====================================================
+type ChannelStatus = 'SUBSCRIBED' | 'CHANNEL_ERROR' | 'TIMED_OUT' | 'CLOSED';
 
-const supabase = getSharedSupabaseClient();
+type BroadcastListener = (payload: { payload: unknown }) => void;
+type PresenceSyncListener = () => void;
+type StatusListener = (status: ChannelStatus, err?: Error) => void;
+type SyncEventHandlers = {
+	onNodeCreate?: (payload: NodeBroadcastPayload) => void;
+	onNodeUpdate?: (payload: NodeBroadcastPayload) => void;
+	onNodeDelete?: (payload: NodeBroadcastPayload) => void;
+	onEdgeCreate?: (payload: EdgeBroadcastPayload) => void;
+	onEdgeUpdate?: (payload: EdgeBroadcastPayload) => void;
+	onEdgeDelete?: (payload: EdgeBroadcastPayload) => void;
+	onHistoryRevert?: (payload: HistoryRevertPayload) => void;
+};
 
-/** Active channels indexed by mapId */
-const activeChannels = new Map<string, RealtimeChannel>();
+function isSyncRoom(roomName: string): boolean {
+	return roomName.endsWith(':sync');
+}
 
-/** Track subscription state per channel (waiting, subscribed, error) */
-const channelSubscriptionState = new Map<string, 'pending' | 'subscribed' | 'error'>();
+function getActorIdFromRecord(
+	record: Record<string, unknown> | null | undefined
+): string {
+	const actorId = record?.user_id;
+	return typeof actorId === 'string' ? actorId : '';
+}
 
-/** Track number of active subscriptions per channel for proper cleanup */
-const channelSubscriptionCount = new Map<string, number>();
+function getTimestampFromRecord(
+	record: Record<string, unknown> | null | undefined
+): number | null {
+	const updatedAt = record?.updated_at;
+	if (typeof updatedAt === 'string') {
+		const parsed = Date.parse(updatedAt);
+		if (!Number.isNaN(parsed)) return parsed;
+	}
+	return null;
+}
 
-/** Track active subscription IDs per mapId to support handler deactivation */
-const activeSubscriptionIds = new Map<string, Set<string>>();
+const MUTATION_EVENT_MAP: Record<string, BroadcastEventType> = {
+	'node:add': BROADCAST_EVENTS.NODE_CREATE,
+	'node:update': BROADCAST_EVENTS.NODE_UPDATE,
+	'node:delete': BROADCAST_EVENTS.NODE_DELETE,
+	'edge:add': BROADCAST_EVENTS.EDGE_CREATE,
+	'edge:update': BROADCAST_EVENTS.EDGE_UPDATE,
+	'edge:delete': BROADCAST_EVENTS.EDGE_DELETE,
+};
 
-/** Counter for generating unique subscription IDs */
-let subscriptionIdCounter = 0;
+function toBroadcastEnvelopeFromGraphMutation(
+	mutation: YjsGraphMutation
+): { event: BroadcastEventType; payload: BroadcastPayload } | null {
+	const event = MUTATION_EVENT_MAP[`${mutation.entity}:${mutation.action}`];
+	if (!event) return null;
 
-/** Track if setAuth has been called this session */
-let authSet = false;
+	const actorId =
+		(typeof mutation.actorId === 'string' ? mutation.actorId : null) ||
+		getActorIdFromRecord(mutation.value) ||
+		getActorIdFromRecord(mutation.oldValue) ||
+		'';
+	const timestamp =
+		(typeof mutation.timestampMs === 'number' &&
+		Number.isFinite(mutation.timestampMs)
+			? mutation.timestampMs
+			: null) ??
+		getTimestampFromRecord(mutation.value) ??
+		getTimestampFromRecord(mutation.oldValue) ??
+		Date.now();
 
-/**
- * Ensures the Realtime server has the user's JWT for authorization.
- * Must be called before subscribing to private channels.
- * Has a 5 second timeout to prevent hanging.
- */
-async function ensureAuth(): Promise<void> {
-	if (authSet) return;
+	return {
+		event,
+		payload: {
+			id: mutation.id,
+			data: mutation.action !== 'delete' ? (mutation.value ?? undefined) : undefined,
+			userId: actorId,
+			timestamp,
+		},
+	};
+}
 
-	let timerId: ReturnType<typeof setTimeout> | undefined;
-
-	try {
-		// Add timeout to prevent hanging
-		const timeoutPromise = new Promise<never>((_, reject) => {
-			timerId = setTimeout(() => reject(new Error('setAuth timed out')), 5000);
-		});
-
-		await Promise.race([supabase.realtime.setAuth(), timeoutPromise]);
-		authSet = true;
-	} catch (error) {
-		console.warn('[broadcast-channel] setAuth failed or timed out:', error);
-		// Don't throw - allow channel creation to proceed
-		// Private channel features may not work, but app shouldn't crash
-		authSet = true; // Mark as set to prevent retry loops
-	} finally {
-		if (timerId !== undefined) {
-			clearTimeout(timerId);
-		}
+function dispatchSyncEnvelopeToHandlers(
+	event: string,
+	payload: unknown,
+	handlers: SyncEventHandlers
+): void {
+	switch (event) {
+		case BROADCAST_EVENTS.NODE_CREATE:
+			handlers.onNodeCreate?.(payload as NodeBroadcastPayload);
+			break;
+		case BROADCAST_EVENTS.NODE_UPDATE:
+			handlers.onNodeUpdate?.(payload as NodeBroadcastPayload);
+			break;
+		case BROADCAST_EVENTS.NODE_DELETE:
+			handlers.onNodeDelete?.(payload as NodeBroadcastPayload);
+			break;
+		case BROADCAST_EVENTS.EDGE_CREATE:
+			handlers.onEdgeCreate?.(payload as EdgeBroadcastPayload);
+			break;
+		case BROADCAST_EVENTS.EDGE_UPDATE:
+			handlers.onEdgeUpdate?.(payload as EdgeBroadcastPayload);
+			break;
+		case BROADCAST_EVENTS.EDGE_DELETE:
+			handlers.onEdgeDelete?.(payload as EdgeBroadcastPayload);
+			break;
+		case BROADCAST_EVENTS.HISTORY_REVERT:
+			handlers.onHistoryRevert?.(payload as HistoryRevertPayload);
+			break;
+		default:
+			break;
 	}
 }
+
+function hasGraphEventHandlers(handlers: SyncEventHandlers): boolean {
+	return Boolean(
+		handlers.onNodeCreate ||
+			handlers.onNodeUpdate ||
+			handlers.onNodeDelete ||
+			handlers.onEdgeCreate ||
+			handlers.onEdgeUpdate ||
+			handlers.onEdgeDelete
+	);
+}
+
+function hasHistoryEventHandler(handlers: SyncEventHandlers): boolean {
+	return Boolean(handlers.onHistoryRevert);
+}
+
+class YjsRealtimeChannelAdapter {
+	private readonly roomName: string;
+	private readonly broadcastListeners = new Map<
+		string,
+		Set<BroadcastListener>
+	>();
+	private readonly presenceSyncListeners = new Set<PresenceSyncListener>();
+	private readonly statusListeners = new Set<StatusListener>();
+
+	private cleanupSync: (() => void) | null = null;
+	private cleanupGraph: (() => void) | null = null;
+	private cleanupAwareness: (() => void) | null = null;
+	private awarenessState: YjsPresenceMap = {};
+	private subscribed = false;
+	private closed = false;
+	private setupPromise: Promise<void> | null = null;
+
+	constructor(roomName: string) {
+		this.roomName = roomName;
+	}
+
+	on(
+		type: 'broadcast' | 'presence',
+		filter: { event: string },
+		callback: BroadcastListener | PresenceSyncListener
+	): RealtimeChannel {
+		if (type === 'broadcast' && filter?.event) {
+			const listeners = this.broadcastListeners.get(filter.event) ?? new Set();
+			listeners.add(callback as BroadcastListener);
+			this.broadcastListeners.set(filter.event, listeners);
+		}
+
+		if (type === 'presence' && filter?.event === 'sync') {
+			this.presenceSyncListeners.add(callback as PresenceSyncListener);
+		}
+
+		return this.asRealtimeChannel();
+	}
+
+	subscribe(statusCallback?: StatusListener): RealtimeChannel {
+		if (statusCallback) {
+			this.statusListeners.add(statusCallback);
+		}
+
+		if (this.closed) {
+			this.emitStatus('CLOSED');
+			return this.asRealtimeChannel();
+		}
+
+		if (this.subscribed) {
+			this.emitStatus('SUBSCRIBED');
+			return this.asRealtimeChannel();
+		}
+
+		if (!this.setupPromise) {
+			this.setupPromise = this.setup();
+		}
+
+		return this.asRealtimeChannel();
+	}
+
+	async send(payload: {
+		type: 'broadcast';
+		event: string;
+		payload?: unknown;
+	}): Promise<void> {
+		if (this.closed) return;
+		if (payload.type !== 'broadcast' || !payload.event) return;
+
+		// Wait for setup to complete before sending (prevents race with subscribe)
+		if (this.setupPromise) {
+			await this.setupPromise;
+		}
+
+		if (isSyncRoom(this.roomName)) {
+			const applied = await applyYjsGraphMutation(
+				this.roomName,
+				payload.event,
+				payload.payload ?? null
+			);
+			if (applied) return;
+		}
+
+		await sendYjsSyncEvent(
+			this.roomName,
+			payload.event,
+			payload.payload ?? null
+		);
+	}
+
+	async track(payload: Record<string, unknown>): Promise<void> {
+		if (this.closed) return;
+		await setYjsAwarenessPresence(this.roomName, payload);
+	}
+
+	presenceState<T>(): Record<string, T[]> {
+		return this.awarenessState as unknown as Record<string, T[]>;
+	}
+
+	async unsubscribe(): Promise<void> {
+		if (this.closed) return;
+
+		this.closed = true;
+		this.subscribed = false;
+		this.setupPromise = null;
+
+		if (this.cleanupSync) {
+			this.cleanupSync();
+			this.cleanupSync = null;
+		}
+
+		if (this.cleanupGraph) {
+			this.cleanupGraph();
+			this.cleanupGraph = null;
+		}
+
+		if (this.cleanupAwareness) {
+			this.cleanupAwareness();
+			this.cleanupAwareness = null;
+		}
+
+		await clearYjsAwarenessPresence(this.roomName);
+		this.emitStatus('CLOSED');
+
+		this.broadcastListeners.clear();
+		this.presenceSyncListeners.clear();
+		this.statusListeners.clear();
+	}
+
+	private async setup(): Promise<void> {
+		try {
+			const graphListenersEnabled = this.hasGraphBroadcastListeners();
+			const syncRoom = isSyncRoom(this.roomName);
+			const subscribeGraph = syncRoom && graphListenersEnabled;
+
+			if (subscribeGraph) {
+				this.cleanupGraph = await subscribeToYjsGraphMutations(
+					this.roomName,
+					(mutation) => {
+						const graphEnvelope = toBroadcastEnvelopeFromGraphMutation(mutation);
+						if (!graphEnvelope) return;
+						this.dispatchBroadcastEvent(
+							graphEnvelope.event,
+							graphEnvelope.payload
+						);
+					}
+				);
+			}
+
+			const subscribeSync =
+				!syncRoom ||
+				this.hasHistoryBroadcastListener() ||
+				!graphListenersEnabled;
+
+			if (subscribeSync) {
+				this.cleanupSync = await subscribeToYjsSyncEvents(
+					this.roomName,
+					(envelope) => {
+						this.dispatchBroadcastEvent(envelope.event, envelope.payload);
+					}
+				);
+			}
+
+			this.cleanupAwareness = await subscribeToYjsAwareness(
+				this.roomName,
+				(presenceMap) => {
+					this.awarenessState = presenceMap;
+					for (const listener of this.presenceSyncListeners) {
+						listener();
+					}
+				}
+			);
+
+			this.subscribed = true;
+			this.emitStatus('SUBSCRIBED');
+		} catch (error) {
+			this.subscribed = false;
+			this.setupPromise = null;
+			this.emitStatus(
+				'CHANNEL_ERROR',
+				error instanceof Error
+					? error
+					: new Error('Failed to subscribe to Yjs room')
+			);
+		}
+	}
+
+	private dispatchBroadcastEvent(event: string, payload: unknown): void {
+		const listeners = this.broadcastListeners.get(event);
+		if (!listeners || listeners.size === 0) return;
+
+		for (const listener of listeners) {
+			listener({ payload });
+		}
+	}
+
+	private emitStatus(status: ChannelStatus, err?: Error): void {
+		for (const listener of this.statusListeners) {
+			listener(status, err);
+		}
+
+		if (
+			status === 'SUBSCRIBED' ||
+			status === 'CHANNEL_ERROR' ||
+			status === 'CLOSED'
+		) {
+			this.statusListeners.clear();
+		}
+	}
+
+	private hasGraphBroadcastListeners(): boolean {
+		return Boolean(
+			this.broadcastListeners.get(BROADCAST_EVENTS.NODE_CREATE)?.size ||
+				this.broadcastListeners.get(BROADCAST_EVENTS.NODE_UPDATE)?.size ||
+				this.broadcastListeners.get(BROADCAST_EVENTS.NODE_DELETE)?.size ||
+				this.broadcastListeners.get(BROADCAST_EVENTS.EDGE_CREATE)?.size ||
+				this.broadcastListeners.get(BROADCAST_EVENTS.EDGE_UPDATE)?.size ||
+				this.broadcastListeners.get(BROADCAST_EVENTS.EDGE_DELETE)?.size
+		);
+	}
+
+	private hasHistoryBroadcastListener(): boolean {
+		return Boolean(
+			this.broadcastListeners.get(BROADCAST_EVENTS.HISTORY_REVERT)?.size
+		);
+	}
+
+	private asRealtimeChannel(): RealtimeChannel {
+		return this as unknown as RealtimeChannel;
+	}
+}
+
+// =====================================================
+// CHANNEL HELPERS
+// =====================================================
+
+const activeSyncChannels = new Map<string, YjsRealtimeChannelAdapter>();
+const syncSubscriptionCleanups = new Map<string, Set<() => void>>();
 
 /**
  * Generates the channel name for a map's sync channel.
  * Format: "mind-map:{mapId}:sync"
  */
 function getSyncChannelName(mapId: string): string {
-	return `mind-map:${mapId}:sync`;
+	return getMindMapRoomName(mapId, 'sync');
 }
 
 /**
@@ -145,7 +460,7 @@ function getSyncChannelName(mapId: string): string {
  * Format: "mind-map:{mapId}:cursor"
  */
 export function getCursorChannelName(mapId: string): string {
-	return `mind-map:${mapId}:cursor`;
+	return getMindMapRoomName(mapId, 'cursor');
 }
 
 /**
@@ -153,309 +468,159 @@ export function getCursorChannelName(mapId: string): string {
  * Format: "mind-map:{mapId}:presence"
  */
 export function getPresenceChannelName(mapId: string): string {
-	return `mind-map:${mapId}:presence`;
+	return getMindMapRoomName(mapId, 'presence');
 }
 
 /**
- * Gets or creates a private broadcast channel for a map.
- * Automatically handles authentication with the Realtime server.
- *
- * Note: Private channels require:
- * 1. Supabase Realtime v2.25.0+
- * 2. RLS policies on realtime.messages (see migration)
- * 3. setAuth() to be called before subscribing
- *
- * @param mapId - The map ID to create/get channel for
- * @returns The RealtimeChannel instance
+ * Gets or creates a sync channel adapter for a map.
  */
 export async function getOrCreateSyncChannel(
 	mapId: string
 ): Promise<RealtimeChannel> {
-	// Check if channel already exists
-	const existing = activeChannels.get(mapId);
-	if (existing) {
-		return existing;
-	}
+	const existing = activeSyncChannels.get(mapId);
+	if (existing) return existing as unknown as RealtimeChannel;
 
-	// Ensure auth is set before creating private channel
-	await ensureAuth();
-
-	// Create new private channel
-	// Note: If private channels fail (e.g., RLS not configured), the channel
-	// will still work for broadcasting but won't have RLS protection
-	const channelName = getSyncChannelName(mapId);
-	const channel = supabase.channel(channelName, {
-		config: { private: true },
-	});
-
-	activeChannels.set(mapId, channel);
-	return channel;
+	const channel = new YjsRealtimeChannelAdapter(getSyncChannelName(mapId));
+	activeSyncChannels.set(mapId, channel);
+	return channel as unknown as RealtimeChannel;
 }
 
 /**
- * Creates a private channel with auth for cursor/presence use.
- * Does not cache the channel (caller manages lifecycle).
- * Non-blocking - returns immediately after channel creation.
- *
- * @param channelName - Full channel name (e.g., "mind-map:abc:cursor")
- * @returns The RealtimeChannel instance
+ * Creates a private channel adapter for cursor/presence use.
  */
 export async function createPrivateChannel(
 	channelName: string
 ): Promise<RealtimeChannel> {
-	// ensureAuth is now non-blocking (has timeout and doesn't throw)
-	await ensureAuth();
-	return supabase.channel(channelName, {
-		config: { private: true },
-	});
+	return new YjsRealtimeChannelAdapter(
+		channelName
+	) as unknown as RealtimeChannel;
 }
 
 /**
  * Broadcasts an event to all subscribers of a map's sync channel.
- *
- * @param mapId - The map ID to broadcast to
- * @param event - The event type
- * @param payload - The event payload
  */
 export async function broadcast(
 	mapId: string,
 	event: BroadcastEventType,
 	payload: BroadcastPayload
 ): Promise<void> {
-	const channel = await getOrCreateSyncChannel(mapId);
+	const roomName = getSyncChannelName(mapId);
 
-	try {
-		await channel.send({
-			type: 'broadcast',
-			event,
-			payload,
-		});
-	} catch (error) {
-		console.error(`[broadcast-channel] Failed to send ${event}:`, error);
-	}
+	const applied = await applyYjsGraphMutation(roomName, event, payload);
+	if (applied) return;
+
+	await sendYjsSyncEvent(roomName, event, payload);
+}
+
+export async function replaceGraphState(
+	mapId: string,
+	input: ReplaceYjsGraphStateInput
+): Promise<void> {
+	const roomName = getSyncChannelName(mapId);
+	await replaceYjsGraphState(roomName, input);
 }
 
 /**
  * Subscribes to all sync events for a map.
- * Supports multiple callers - tracks subscription count and only unsubscribes
- * when all callers have cleaned up.
- *
- * Handlers are wrapped with a subscription ID check to prevent stale handlers
- * from firing after cleanup (since Supabase doesn't support removeListener).
- *
- * @param mapId - The map ID to subscribe to
- * @param handlers - Event handlers for each event type
- * @returns Cleanup function (deactivates handlers, unsubscribes when last)
  */
 export async function subscribeToSyncEvents(
 	mapId: string,
-	handlers: {
-		onNodeCreate?: (payload: NodeBroadcastPayload) => void;
-		onNodeUpdate?: (payload: NodeBroadcastPayload) => void;
-		onNodeDelete?: (payload: NodeBroadcastPayload) => void;
-		onEdgeCreate?: (payload: EdgeBroadcastPayload) => void;
-		onEdgeUpdate?: (payload: EdgeBroadcastPayload) => void;
-		onEdgeDelete?: (payload: EdgeBroadcastPayload) => void;
-		onHistoryRevert?: (payload: HistoryRevertPayload) => void;
-	}
+	handlers: SyncEventHandlers
 ): Promise<() => void> {
-	const channel = await getOrCreateSyncChannel(mapId);
+	const roomName = getSyncChannelName(mapId);
+	const cleanups: Array<() => void> = [];
 
-	// Generate unique subscription ID for this caller
-	const subscriptionId = `sub_${++subscriptionIdCounter}`;
-
-	// Track this subscription as active
-	if (!activeSubscriptionIds.has(mapId)) {
-		activeSubscriptionIds.set(mapId, new Set());
-	}
-	activeSubscriptionIds.get(mapId)!.add(subscriptionId);
-
-	// Helper to check if this subscription is still active
-	const isActive = () => activeSubscriptionIds.get(mapId)?.has(subscriptionId) ?? false;
-
-	// Register handlers wrapped with active check to prevent stale handler calls
-	// Note: Supabase doesn't support removeListener, so we wrap handlers instead
-	if (handlers.onNodeCreate) {
-		const handler = handlers.onNodeCreate;
-		channel.on(
-			'broadcast',
-			{ event: BROADCAST_EVENTS.NODE_CREATE },
-			({ payload }) => {
-				if (isActive()) handler(payload as NodeBroadcastPayload);
+	const subscribeGraph = hasGraphEventHandlers(handlers);
+	if (subscribeGraph) {
+		const cleanupGraph = await subscribeToYjsGraphMutations(
+			roomName,
+			(mutation) => {
+				const graphEnvelope = toBroadcastEnvelopeFromGraphMutation(mutation);
+				if (!graphEnvelope) return;
+				dispatchSyncEnvelopeToHandlers(
+					graphEnvelope.event,
+					graphEnvelope.payload,
+					handlers
+				);
 			}
 		);
-	}
-	if (handlers.onNodeUpdate) {
-		const handler = handlers.onNodeUpdate;
-		channel.on(
-			'broadcast',
-			{ event: BROADCAST_EVENTS.NODE_UPDATE },
-			({ payload }) => {
-				if (isActive()) handler(payload as NodeBroadcastPayload);
-			}
-		);
-	}
-	if (handlers.onNodeDelete) {
-		const handler = handlers.onNodeDelete;
-		channel.on(
-			'broadcast',
-			{ event: BROADCAST_EVENTS.NODE_DELETE },
-			({ payload }) => {
-				if (isActive()) handler(payload as NodeBroadcastPayload);
-			}
-		);
-	}
-	if (handlers.onEdgeCreate) {
-		const handler = handlers.onEdgeCreate;
-		channel.on(
-			'broadcast',
-			{ event: BROADCAST_EVENTS.EDGE_CREATE },
-			({ payload }) => {
-				if (isActive()) handler(payload as EdgeBroadcastPayload);
-			}
-		);
-	}
-	if (handlers.onEdgeUpdate) {
-		const handler = handlers.onEdgeUpdate;
-		channel.on(
-			'broadcast',
-			{ event: BROADCAST_EVENTS.EDGE_UPDATE },
-			({ payload }) => {
-				if (isActive()) handler(payload as EdgeBroadcastPayload);
-			}
-		);
-	}
-	if (handlers.onEdgeDelete) {
-		const handler = handlers.onEdgeDelete;
-		channel.on(
-			'broadcast',
-			{ event: BROADCAST_EVENTS.EDGE_DELETE },
-			({ payload }) => {
-				if (isActive()) handler(payload as EdgeBroadcastPayload);
-			}
-		);
-	}
-	if (handlers.onHistoryRevert) {
-		const handler = handlers.onHistoryRevert;
-		channel.on(
-			'broadcast',
-			{ event: BROADCAST_EVENTS.HISTORY_REVERT },
-			({ payload }) => {
-				if (isActive()) handler(payload as HistoryRevertPayload);
-			}
-		);
+		cleanups.push(cleanupGraph);
 	}
 
-	// Subscribe to the channel only if not already subscribed or in error state
-	// (If already in error, we've tried and failed - don't retry to avoid loops)
-	const currentState = channelSubscriptionState.get(mapId);
-	if (currentState !== 'subscribed' && currentState !== 'error') {
-		channelSubscriptionState.set(mapId, 'pending');
+	const subscribeSync =
+		hasHistoryEventHandler(handlers) || !hasGraphEventHandlers(handlers);
 
-		// Subscribe with timeout to prevent hanging
-		const subscriptionTimeout = 10000; // 10 seconds
-		let resolved = false;
-
-		await new Promise<void>((resolve) => {
-			// Timeout fallback
-			const timeoutId = setTimeout(() => {
-				if (!resolved) {
-					resolved = true;
-					channelSubscriptionState.set(mapId, 'error');
-					console.warn(
-						`[broadcast-channel] Subscription timed out for ${mapId}. Continuing anyway.`
-					);
-					resolve();
-				}
-			}, subscriptionTimeout);
-
-			channel.subscribe((status) => {
-				if (resolved) return; // Already resolved by timeout
-
-				if (status === 'SUBSCRIBED') {
-					resolved = true;
-					clearTimeout(timeoutId);
-					channelSubscriptionState.set(mapId, 'subscribed');
-					resolve();
-				} else if (
-					status === 'CHANNEL_ERROR' ||
-					status === 'TIMED_OUT' ||
-					status === 'CLOSED'
-				) {
-					// Don't reject - allow the channel to still be used for broadcasting
-					resolved = true;
-					clearTimeout(timeoutId);
-					channelSubscriptionState.set(mapId, 'error');
-					console.warn(
-						`[broadcast-channel] Channel status ${status} for ${mapId}. ` +
-							`Continuing - broadcast may still work.`
-					);
-					resolve();
-				}
-				// Ignore other statuses (like 'joining') - wait for final state
-			});
+	if (subscribeSync) {
+		const cleanupSync = await subscribeToYjsSyncEvents(roomName, (envelope) => {
+			dispatchSyncEnvelopeToHandlers(envelope.event, envelope.payload, handlers);
 		});
+		cleanups.push(cleanupSync);
 	}
 
-	// Increment subscription count
-	const currentCount = channelSubscriptionCount.get(mapId) || 0;
-	channelSubscriptionCount.set(mapId, currentCount + 1);
+	const cleanup = () => {
+		for (const fn of cleanups) {
+			fn();
+		}
+	};
 
-	// Return cleanup function that deactivates this subscription's handlers
-	// and only fully unsubscribes when the last subscriber leaves
+	if (!syncSubscriptionCleanups.has(mapId)) {
+		syncSubscriptionCleanups.set(mapId, new Set());
+	}
+	const mapCleanups = syncSubscriptionCleanups.get(mapId)!;
+	mapCleanups.add(cleanup);
+
 	return () => {
-		// Deactivate this subscription's handlers (they'll no-op on future calls)
-		activeSubscriptionIds.get(mapId)?.delete(subscriptionId);
-
-		const count = channelSubscriptionCount.get(mapId) || 0;
-		if (count <= 1) {
-			// Last subscriber - actually unsubscribe and clean up
-			channel.unsubscribe();
-			activeChannels.delete(mapId);
-			channelSubscriptionState.delete(mapId);
-			channelSubscriptionCount.delete(mapId);
-			activeSubscriptionIds.delete(mapId);
-		} else {
-			// Still have other subscribers - just decrement count
-			channelSubscriptionCount.set(mapId, count - 1);
+		cleanup();
+		const cleanups = syncSubscriptionCleanups.get(mapId);
+		if (!cleanups) return;
+		cleanups.delete(cleanup);
+		if (cleanups.size === 0) {
+			syncSubscriptionCleanups.delete(mapId);
 		}
 	};
 }
 
 /**
- * Force unsubscribes from a map's sync channel, ignoring subscription count.
- * Use this when you need to immediately disconnect (e.g., on page unload).
- *
- * @param mapId - The map ID to unsubscribe from
+ * Force unsubscribes from a map's sync subscriptions and channel.
  */
 export async function unsubscribeFromSyncChannel(mapId: string): Promise<void> {
-	const channel = activeChannels.get(mapId);
+	const cleanups = syncSubscriptionCleanups.get(mapId);
+	if (cleanups) {
+		for (const cleanup of cleanups) {
+			cleanup();
+		}
+		syncSubscriptionCleanups.delete(mapId);
+	}
+
+	const channel = activeSyncChannels.get(mapId);
 	if (channel) {
 		await channel.unsubscribe();
-		activeChannels.delete(mapId);
-		channelSubscriptionState.delete(mapId);
-		channelSubscriptionCount.delete(mapId);
-		activeSubscriptionIds.delete(mapId);
+		activeSyncChannels.delete(mapId);
 	}
 }
 
 /**
- * Resets the auth state (call on logout).
+ * Legacy no-op for compatibility.
  */
 export function resetAuth(): void {
-	authSet = false;
+	// No-op: auth is attached per PartyKit request via JWT params.
 }
 
 /**
- * Cleans up all active channels (call on app unmount).
+ * Cleans up all active channels/rooms.
  */
 export async function cleanupAllChannels(): Promise<void> {
-	for (const [mapId, channel] of activeChannels) {
-		await channel.unsubscribe();
+	for (const [mapId, cleanups] of syncSubscriptionCleanups) {
+		for (const cleanup of cleanups) {
+			cleanup();
+		}
+		syncSubscriptionCleanups.delete(mapId);
 	}
-	activeChannels.clear();
-	channelSubscriptionState.clear();
-	channelSubscriptionCount.clear();
-	activeSubscriptionIds.clear();
-	authSet = false;
+
+	for (const [mapId, channel] of activeSyncChannels) {
+		await channel.unsubscribe();
+		activeSyncChannels.delete(mapId);
+	}
+
+	cleanupAllYjsRooms();
 }

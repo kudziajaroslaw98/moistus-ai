@@ -1,76 +1,38 @@
-import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
-import { useEffect, useState } from 'react';
+import {
+	normalizeIdentityString,
+	resolveAvatarUrl,
+} from '@/helpers/identity/resolve-user-identity';
+import useAppStore from '@/store/mind-map-store';
+import { useMemo } from 'react';
 
-// DiceBear avatar styles - you can easily switch between different visual styles
-const AVATAR_STYLES = [
-	'avataaars', // Pixar-style characters
-	'avataaars-neutral', // Neutral Pixar-style characters
-	'personas', // Professional illustrations
-	'fun-emoji', // Fun emoji faces
-	'bottts', // Robot avatars
-	'bottts-neutral',
-	'lorelei', // Illustrated portraits
-	'adventurer', // Adventure-themed
-] as const;
+function toMetadataAvatar(metadata: Record<string, unknown> | undefined) {
+	const avatarUrl =
+		typeof metadata?.avatar_url === 'string' ? metadata.avatar_url : null;
+	const picture = typeof metadata?.picture === 'string' ? metadata.picture : null;
 
-type AvatarStyle = (typeof AVATAR_STYLES)[number];
-
-interface AvatarOptions {
-	style?: AvatarStyle;
-	backgroundColor?: string;
+	return normalizeIdentityString(avatarUrl) || normalizeIdentityString(picture);
 }
 
-export const generateFallbackAvatar = (
-	seed: string,
-	options: AvatarOptions = {}
-) => {
-	const { style = 'bottts-neutral', backgroundColor = '09090b' } = options;
+export const useCurrentUserImage = (_backgroundColor?: string) => {
+	const currentUser = useAppStore((state) => state.currentUser);
+	const userProfile = useAppStore((state) => state.userProfile);
 
-	const baseUrl = `https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(seed)}`;
-	const params = new URLSearchParams();
+	return useMemo(() => {
+		const metadata = currentUser?.user_metadata as
+			| Record<string, unknown>
+			| undefined;
+		const avatarSeed =
+			currentUser?.id ||
+			userProfile?.user_id ||
+			currentUser?.email ||
+			userProfile?.email ||
+			'anonymous';
 
-	// Set background color (use predefined or custom hex)
-	if (backgroundColor) {
-		params.set('backgroundColor', backgroundColor.replace('#', ''));
-	}
-
-	return `${baseUrl}&${params.toString()}`;
+		return resolveAvatarUrl({
+			profileAvatarUrl: userProfile?.avatar_url,
+			metadataAvatarUrl: toMetadataAvatar(metadata),
+			userId: avatarSeed,
+		});
+	}, [currentUser, userProfile]);
 };
 
-export const useCurrentUserImage = (backgroundColor?: string) => {
-	const [image, setImage] = useState<string>(
-		generateFallbackAvatar('User', {
-			style: 'lorelei',
-			backgroundColor,
-		})
-	);
-
-	useEffect(() => {
-		const fetchUserImage = async () => {
-			const { data, error } = await getSharedSupabaseClient().auth.getSession();
-
-			if (error) {
-				console.error(error);
-			}
-
-			const user = data.session?.user;
-			const avatarUrl = user?.user_metadata.avatar_url;
-
-			if (avatarUrl) {
-				setImage(avatarUrl);
-			} else {
-				// Generate fallback avatar based on user email or ID
-				const seed = user?.id || 'Anonymous';
-				const fallbackUrl = generateFallbackAvatar(seed, {
-					style: 'lorelei',
-					backgroundColor,
-				});
-				setImage(fallbackUrl);
-			}
-		};
-
-		fetchUserImage();
-	}, [backgroundColor]);
-
-	return image;
-};

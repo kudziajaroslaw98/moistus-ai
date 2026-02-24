@@ -16,6 +16,9 @@ export class MindMapPage {
 
 	// Toolbar
 	readonly toolbar: Locator;
+	readonly toolbarMoreButton: Locator;
+	readonly toolbarMoreMenu: Locator;
+	readonly shortcutsHelpFab: Locator;
 
 	constructor(page: Page) {
 		this.page = page;
@@ -27,6 +30,11 @@ export class MindMapPage {
 
 		// Main toolbar
 		this.toolbar = page.locator('[data-testid="toolbar"]');
+		this.toolbarMoreButton = page.locator(
+			'[data-testid="toolbar-more-button"]'
+		);
+		this.toolbarMoreMenu = page.locator('[data-testid="toolbar-more-menu"]');
+		this.shortcutsHelpFab = page.locator('[data-testid="shortcuts-help-fab"]');
 	}
 
 	// ============================================================================
@@ -97,6 +105,13 @@ export class MindMapPage {
 	}
 
 	/**
+	 * Get currently selected nodes.
+	 */
+	getSelectedNodes(): Locator {
+		return this.page.locator('.react-flow__node.selected');
+	}
+
+	/**
 	 * Get all edges on the canvas.
 	 */
 	getAllEdges(): Locator {
@@ -158,7 +173,9 @@ export class MindMapPage {
 	 * Uses .first() to handle potential duplicate nodes from previous test runs.
 	 */
 	async rightClickNodeByContent(content: string) {
-		await this.getNodeByContent(content).first().click({ button: 'right', force: true });
+		await this.getNodeByContent(content)
+			.first()
+			.click({ button: 'right', force: true });
 	}
 
 	/**
@@ -224,7 +241,10 @@ export class MindMapPage {
 		nodeId: string,
 		deltaX: number,
 		deltaY: number
-	): Promise<{ startPos: { x: number; y: number }; endPos: { x: number; y: number } }> {
+	): Promise<{
+		startPos: { x: number; y: number };
+		endPos: { x: number; y: number };
+	}> {
 		const node = this.getNode(nodeId);
 		const box = await node.boundingBox();
 		if (!box) throw new Error('Node not visible');
@@ -240,12 +260,18 @@ export class MindMapPage {
 
 		// Re-get bounding box after selection (position may have changed)
 		const selectedBox = await node.boundingBox();
-		const dragStartX = selectedBox ? selectedBox.x + selectedBox.width / 2 : startX;
-		const dragStartY = selectedBox ? selectedBox.y + selectedBox.height / 2 : startY;
+		const dragStartX = selectedBox
+			? selectedBox.x + selectedBox.width / 2
+			: startX;
+		const dragStartY = selectedBox
+			? selectedBox.y + selectedBox.height / 2
+			: startY;
 
 		await this.page.mouse.move(dragStartX, dragStartY);
 		await this.page.mouse.down();
-		await this.page.mouse.move(dragStartX + deltaX, dragStartY + deltaY, { steps: 10 });
+		await this.page.mouse.move(dragStartX + deltaX, dragStartY + deltaY, {
+			steps: 10,
+		});
 		await this.page.mouse.up();
 
 		// Wait for React Flow to update DOM positions
@@ -265,7 +291,10 @@ export class MindMapPage {
 		content: string,
 		deltaX: number,
 		deltaY: number
-	): Promise<{ startPos: { x: number; y: number }; endPos: { x: number; y: number } }> {
+	): Promise<{
+		startPos: { x: number; y: number };
+		endPos: { x: number; y: number };
+	}> {
 		// Find the React Flow node wrapper (has the draggable class)
 		const nodeWrapper = this.page.locator(
 			`.react-flow__node:has-text("${content}")`
@@ -324,7 +353,9 @@ export class MindMapPage {
 	 * Check if suggest button is visible on a selected node.
 	 */
 	async isNodeSuggestButtonVisible(): Promise<boolean> {
-		const suggestButton = this.page.locator('[data-testid="node-suggest-button"]');
+		const suggestButton = this.page.locator(
+			'[data-testid="node-suggest-button"]'
+		);
 		return await suggestButton.isVisible();
 	}
 
@@ -398,6 +429,14 @@ export class MindMapPage {
 		await this.page.mouse.wheel(0, deltaY);
 	}
 
+	/**
+	 * Open the mobile toolbar overflow menu.
+	 */
+	async openToolbarMoreMenu() {
+		await this.toolbarMoreButton.click();
+		await this.toolbarMoreMenu.waitFor({ state: 'visible', timeout: 3000 });
+	}
+
 	// ============================================================================
 	// ASSERTIONS
 	// ============================================================================
@@ -410,6 +449,13 @@ export class MindMapPage {
 		const node = this.getNodeByContent(content);
 		await node.waitFor({ state: 'visible', timeout: 5000 });
 		await expect(node).toBeVisible();
+	}
+
+	/**
+	 * Assert keyboard shortcuts FAB is hidden.
+	 */
+	async expectShortcutsHelpFabHidden() {
+		await expect(this.shortcutsHelpFab).not.toBeVisible();
 	}
 
 	/**
@@ -432,6 +478,13 @@ export class MindMapPage {
 	 */
 	async getNodeCount(): Promise<number> {
 		return await this.getAllNodes().count();
+	}
+
+	/**
+	 * Get the current selected node count.
+	 */
+	async getSelectedNodeCount(): Promise<number> {
+		return await this.getSelectedNodes().count();
 	}
 
 	/**

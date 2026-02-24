@@ -54,7 +54,6 @@ export async function GET(request: Request) {
 			paymentHistoryResult,
 			preferencesResult,
 			usageQuotasResult,
-			aiUsageResult,
 			activityLogResult,
 		] = await Promise.all([
 			supabase
@@ -68,7 +67,6 @@ export async function GET(request: Request) {
 			supabase.from('payment_history').select('*').eq('user_id', user.id),
 			supabase.from('user_preferences').select('*').eq('user_id', user.id),
 			supabase.from('user_usage_quotas').select('*').eq('user_id', user.id),
-			supabase.from('ai_usage_log').select('*').eq('user_id', user.id),
 			supabase
 				.from('profile_activity_log')
 				.select('*')
@@ -93,7 +91,6 @@ export async function GET(request: Request) {
 		if (preferencesResult.error) warnings.push('Failed to export preferences');
 		if (usageQuotasResult.error)
 			warnings.push('Failed to export usage quotas');
-		if (aiUsageResult.error) warnings.push('Failed to export AI usage');
 		if (activityLogResult.error)
 			warnings.push('Failed to export activity log');
 
@@ -229,7 +226,6 @@ export async function GET(request: Request) {
 				usage_quotas: usageQuotasResult.data ?? [],
 			},
 			activity: {
-				ai_usage: aiUsageResult.data ?? [],
 				profile_activity: activityLogResult.data ?? [],
 				map_history: mapHistoryEvents,
 			},

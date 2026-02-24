@@ -7,13 +7,10 @@ import {
 	type KeyboardShortcut,
 	type ShortcutCategory,
 } from '@/constants/keyboard-shortcuts';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/utils/cn';
 import { Keyboard, X } from 'lucide-react';
-import {
-	AnimatePresence,
-	motion,
-	useReducedMotion,
-} from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -107,9 +104,7 @@ function groupShortcutsByCategory(
 	const grouped = new Map<ShortcutCategory, KeyboardShortcut[]>();
 
 	for (const category of CATEGORY_ORDER) {
-		const categoryShortcuts = shortcuts.filter(
-			(s) => s.category === category
-		);
+		const categoryShortcuts = shortcuts.filter((s) => s.category === category);
 		if (categoryShortcuts.length > 0) {
 			grouped.set(category, categoryShortcuts);
 		}
@@ -124,6 +119,7 @@ function groupShortcutsByCategory(
 export function ShortcutsHelpFab() {
 	const [isOpen, setIsOpen] = useState(false);
 	const [isMounted, setIsMounted] = useState(false);
+	const isMobile = useIsMobile();
 	const isMac = useIsMac();
 	const shouldReduceMotion = useReducedMotion();
 
@@ -152,6 +148,13 @@ export function ShortcutsHelpFab() {
 		document.addEventListener('keydown', handleKeyDown);
 		return () => document.removeEventListener('keydown', handleKeyDown);
 	}, [isOpen]);
+
+	// Defensive close when viewport transitions to mobile.
+	useEffect(() => {
+		if (isMobile) {
+			setIsOpen(false);
+		}
+	}, [isMobile]);
 
 	const handleToggle = useCallback(() => {
 		setIsOpen((prev) => !prev);
@@ -213,7 +216,7 @@ export function ShortcutsHelpFab() {
 				visible: { opacity: 1, y: 0 },
 			};
 
-	if (!isMounted) return null;
+	if (!isMounted || isMobile) return null;
 
 	return createPortal(
 		<div className='fixed bottom-6 right-6 z-30'>
@@ -276,10 +279,7 @@ export function ShortcutsHelpFab() {
 						>
 							{Array.from(groupedShortcuts.entries()).map(
 								([category, shortcuts]) => (
-									<motion.div
-										key={category}
-										variants={itemVariants}
-									>
+									<motion.div key={category} variants={itemVariants}>
 										<h4 className='text-xs font-medium text-white/40 uppercase tracking-wider mb-2'>
 											{CATEGORY_LABELS[category]}
 										</h4>
@@ -310,6 +310,7 @@ export function ShortcutsHelpFab() {
 			{/* FAB Button */}
 			<motion.button
 				onClick={handleToggle}
+				data-testid='shortcuts-help-fab'
 				className={cn(
 					'relative w-10 h-10 rounded-xl',
 					'flex items-center justify-center',

@@ -13,6 +13,7 @@ import {
 	keymap,
 	placeholder,
 	scrollPastEnd,
+	tooltips,
 } from '@codemirror/view';
 import { getInitials } from '@/utils/collaborator-utils';
 
@@ -85,6 +86,12 @@ export function createNodeEditor(
 
 		// Theme
 		nodeEditorTheme,
+
+		// Render tooltips at document level so autocomplete isn't clipped by modal bounds.
+		tooltips({
+			parent: container.ownerDocument.body,
+			position: 'fixed',
+		}),
 
 		// Our custom features
 		...(enableCompletions

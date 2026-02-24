@@ -1,5 +1,7 @@
 'use client';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
+import type { AvailableNodeTypes } from '@/registry/node-registry';
+import { isAvailableNodeType } from '@/registry/type-guards';
 import type { NodeEditorOptions } from '@/store/app-state';
 import useAppStore from '@/store/mind-map-store';
 import type { AppNode } from '@/types/app-node';
@@ -20,7 +22,7 @@ import {
 	Trash,
 	Ungroup,
 } from 'lucide-react';
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { EdgeStyleSelector } from './edge-style-selector';
 import type { MenuSection } from './types';
@@ -34,6 +36,65 @@ interface UseContextMenuConfigProps {
 	onClose: () => void;
 }
 
+type GroupDetectionNode = {
+	type?: string;
+	data?: {
+		node_type?: string;
+		nodeType?: string;
+		metadata?: {
+			isGroup?: boolean | string;
+			groupChildren?: unknown;
+		} | null;
+	};
+};
+
+type CanonicalNodeForGroupCheck = {
+	data: {
+		node_type: AvailableNodeTypes;
+	};
+};
+
+function toCanonicalNodeForGroupCheck(
+	node: GroupDetectionNode
+): CanonicalNodeForGroupCheck | null {
+	const canonicalNodeType = node.data?.node_type ?? node.data?.nodeType;
+
+	if (!isAvailableNodeType(canonicalNodeType)) {
+		return null;
+	}
+
+	return {
+		data: {
+			node_type: canonicalNodeType,
+		},
+	};
+}
+
+function isCanonicalGroupNode(
+	node: CanonicalNodeForGroupCheck
+): node is CanonicalNodeForGroupCheck & { data: { node_type: 'groupNode' } } {
+	return node.data.node_type === 'groupNode';
+}
+
+function isGroupLikeNode(node?: GroupDetectionNode | null): boolean {
+	if (!node?.data) return false;
+
+	const groupChildren = node.data?.metadata?.groupChildren;
+	const canonicalNode = toCanonicalNodeForGroupCheck(node);
+	const matchesCanonicalGroupNode =
+		canonicalNode !== null && isCanonicalGroupNode(canonicalNode);
+
+	return (
+		matchesCanonicalGroupNode ||
+		node.data?.nodeType === 'groupNode' ||
+		node.data?.node_type === 'groupNode' ||
+		node.data?.metadata?.isGroup === true ||
+		// Legacy metadata can persist boolean flags as strings.
+		node.data?.metadata?.isGroup === 'true' ||
+		(Array.isArray(groupChildren) && groupChildren.length > 0)
+	);
+}
+
 // ============================================================================
 // Builder Functions - Extract menu section logic into focused helpers
 // ============================================================================
@@ -43,6 +104,7 @@ interface BuildNodeMenuParams {
 	hasChildren: boolean;
 	openNodeEditor: (options: NodeEditorOptions) => void;
 	toggleNodeCollapse: (nodeId: string) => void;
+	ungroupNodes: (groupId: string) => void;
 	removeNodesFromGroup: (nodeIds: string[]) => void;
 	deleteNodes: (nodes: AppNode[]) => void;
 	reactFlowInstance: ReactFlowInstance | null;
@@ -51,6 +113,7 @@ interface BuildNodeMenuParams {
 		suggestCounterpoints?: () => void;
 	};
 	canEdit: boolean;
+	suppressUngroupAction?: boolean;
 }
 
 function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
@@ -59,15 +122,18 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 		hasChildren,
 		openNodeEditor,
 		toggleNodeCollapse,
+		ungroupNodes,
 		removeNodesFromGroup,
 		deleteNodes,
 		reactFlowInstance,
 		onClose,
 		aiActions,
 		canEdit,
+		suppressUngroupAction = false,
 	} = params;
 
 	const clickedNodeData = clickedNode.data;
+	const isGroup = isGroupLikeNode(clickedNode);
 
 	return [
 		{
@@ -142,6 +208,16 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 						onClose();
 					},
 					hidden: !clickedNode.parentId || !canEdit,
+				},
+				{
+					id: 'ungroup',
+					icon: <Ungroup className='h-4 w-4' />,
+					label: 'Ungroup',
+					onClick: () => {
+						ungroupNodes(clickedNode.id);
+						onClose();
+					},
+					hidden: suppressUngroupAction || !isGroup || !canEdit,
 				},
 			],
 		},
@@ -414,8 +490,7 @@ function buildSelectedNodesMenu(
 	if (!selectedNodes || selectedNodes.length === 0) return [];
 
 	const isSingleGroupSelected =
-		selectedNodes.length === 1 &&
-		selectedNodes[0].data.nodeType === 'groupNode';
+		selectedNodes.length === 1 && isGroupLikeNode(selectedNodes[0]);
 
 	return [
 		{
@@ -505,23 +580,55 @@ export function useContextMenuConfig({
 		[edgeId, edges]
 	);
 
-	// Get the appropriate menu configuration based on context
-	const getMenuConfig = useCallback((): MenuSection[] => {
+	// Build menu configuration from current context.
+	const menuConfig = useMemo((): MenuSection[] => {
 		// Node menu
 		if (nodeId && clickedNode) {
 			const hasChildren = getDirectChildrenCount(clickedNode.id) > 0;
-			return buildNodeMenu({
+			const selectedActionsMenuBase = buildSelectedNodesMenu({
+				selectedNodes,
+				createGroupFromSelected,
+				ungroupNodes,
+				onClose,
+				canEdit,
+			});
+			const isClickedNodeSelected = selectedNodes.some(
+				(selectedNode) => selectedNode.id === clickedNode.id
+			);
+			const hasSelectionOutsideClickedNode = selectedNodes.some(
+				(selectedNode) => selectedNode.id !== clickedNode.id
+			);
+			const selectedActionsMenu = isClickedNodeSelected
+				? selectedActionsMenuBase
+				: selectedActionsMenuBase
+						.map((section) => ({
+							...section,
+							items: section.items.filter((item) => item.id !== 'ungroup'),
+						}))
+						.filter((section) => section.items.length > 0);
+			const selectedMenuIncludesUngroup = selectedActionsMenu.some((section) =>
+				section.items.some((item) => item.id === 'ungroup' && !item.hidden)
+			);
+
+			const nodeMenu = buildNodeMenu({
 				clickedNode,
 				hasChildren,
 				openNodeEditor,
 				toggleNodeCollapse,
+				ungroupNodes,
 				removeNodesFromGroup,
 				deleteNodes,
 				reactFlowInstance,
 				onClose,
 				aiActions,
 				canEdit,
+				suppressUngroupAction:
+					canEdit &&
+					(hasSelectionOutsideClickedNode ||
+						(isClickedNodeSelected && selectedMenuIncludesUngroup)),
 			});
+
+			return [...selectedActionsMenu, ...nodeMenu];
 		}
 
 		// Edge menu
@@ -582,7 +689,7 @@ export function useContextMenuConfig({
 	]);
 
 	return {
-		menuConfig: getMenuConfig(),
+		menuConfig,
 		clickedNode,
 		clickedEdge,
 	};
