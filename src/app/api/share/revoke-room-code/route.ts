@@ -3,6 +3,7 @@ import { withAuthValidation } from '@/helpers/api/with-auth-validation';
 import {
 	disconnectPartyKitUsers,
 	pushPartyKitAccessRevoked,
+	pushPartyKitCollaboratorEvent,
 } from '@/helpers/partykit/admin';
 import { z } from 'zod';
 
@@ -60,7 +61,7 @@ export const POST = withAuthValidation(
 			const { data: affectedAccessRows, error: accessLookupError } =
 				await supabase
 					.from('share_access')
-					.select('user_id')
+					.select('id, user_id')
 					.eq('share_token_id', data.token_id)
 					.eq('status', 'active');
 
@@ -76,6 +77,17 @@ export const POST = withAuthValidation(
 					(affectedAccessRows ?? []).map((row) => row.user_id).filter(Boolean)
 				)
 			) as string[];
+			const removedShareIds = Array.from(
+				new Set(
+					(affectedAccessRows ?? [])
+						.map((row) => row.id)
+						.filter(
+							(shareId): shareId is number =>
+								typeof shareId === 'number' && Number.isFinite(shareId)
+						)
+						.map((shareId) => String(shareId))
+				)
+			);
 
 			const { data: result, error } = await supabase.rpc(
 				'revoke_room_code_and_broadcast',
@@ -99,6 +111,56 @@ export const POST = withAuthValidation(
 			}
 
 			const revokedAt = new Date().toISOString();
+			let collaboratorSyncResult: {
+				attempted: boolean;
+				delivered: boolean;
+				attemptedCount: number;
+				deliveredCount: number;
+				failedCount: number;
+				error?: string;
+			} = {
+				attempted: false,
+				delivered: false,
+				attemptedCount: 0,
+				deliveredCount: 0,
+				failedCount: 0,
+			};
+
+			if (removedShareIds.length > 0) {
+				collaboratorSyncResult.attempted = true;
+				collaboratorSyncResult.attemptedCount = 1;
+				try {
+					const collaboratorEventResult = await pushPartyKitCollaboratorEvent({
+						type: 'sharing:collaborator:remove',
+						mapId: tokenRecord.map_id,
+						occurredAt: revokedAt,
+						removedShareIds,
+					});
+					collaboratorSyncResult.delivered = collaboratorEventResult.delivered;
+					collaboratorSyncResult.deliveredCount =
+						collaboratorEventResult.delivered ? 1 : 0;
+					collaboratorSyncResult.failedCount =
+						collaboratorEventResult.delivered ? 0 : 1;
+				} catch (error) {
+					collaboratorSyncResult.delivered = false;
+					collaboratorSyncResult.deliveredCount = 0;
+					collaboratorSyncResult.failedCount = 1;
+					collaboratorSyncResult.error =
+						error instanceof Error
+							? error.message
+							: 'Unknown collaborator sync error';
+					console.warn(
+						'[share/revoke-room-code] Failed to push collaborator remove batch',
+						{
+							mapId: tokenRecord.map_id,
+							tokenId: data.token_id,
+							removedShareIds: removedShareIds.length,
+							error: collaboratorSyncResult.error,
+						}
+					);
+				}
+			}
+
 			let kickSignalAttemptedUsers = 0;
 			let kickSignalDeliveredUsers = 0;
 			const kickSignalFailedUserIds: string[] = [];
@@ -172,6 +234,7 @@ export const POST = withAuthValidation(
 							succeededRooms: disconnectResult.succeededRooms,
 							failedRooms: disconnectResult.failedRooms,
 						},
+						collaborator_sync: collaboratorSyncResult,
 					},
 					realtime_disconnect: disconnectResult,
 				},

@@ -1,6 +1,8 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
+import { fetchCollaboratorEntryByShareId } from '@/helpers/partykit/collaborator-sync';
 import {
+	pushPartyKitCollaboratorEvent,
 	disconnectPartyKitUsers,
 	pushPartyKitPermissionUpdate,
 } from '@/helpers/partykit/admin';
@@ -149,6 +151,14 @@ export const PATCH = withApiValidation<
 			delivered: false,
 		};
 		let permissionPushErrorMessage: string | undefined;
+		let collaboratorSyncResult: {
+			attempted: boolean;
+			delivered: boolean;
+			error?: string;
+		} = {
+			attempted: false,
+			delivered: false,
+		};
 
 		// Push user-targeted permission event before reconnecting transport rooms.
 		try {
@@ -179,6 +189,48 @@ export const PATCH = withApiValidation<
 					mapId: updatedShare.map_id,
 					targetUserId: updatedShare.user_id,
 					error: permissionPushErrorMessage,
+				}
+			);
+		}
+
+		try {
+			const collaborator = await fetchCollaboratorEntryByShareId(
+				adminClient,
+				shareIdNum
+			);
+
+			if (!collaborator) {
+				collaboratorSyncResult = {
+					attempted: false,
+					delivered: false,
+					error: 'Collaborator row not found after update',
+				};
+			} else {
+				const occurredAt = updatedShare.updated_at ?? new Date().toISOString();
+				const collaboratorPushResult = await pushPartyKitCollaboratorEvent({
+					type: 'sharing:collaborator:upsert',
+					mapId: collaborator.mapId,
+					occurredAt,
+					collaborator,
+				});
+
+				collaboratorSyncResult = {
+					attempted: collaboratorPushResult.attempted,
+					delivered: collaboratorPushResult.delivered,
+				};
+			}
+		} catch (collaboratorSyncError) {
+			collaboratorSyncResult = {
+				attempted: true,
+				delivered: false,
+				error: toErrorMessage(collaboratorSyncError),
+			};
+			console.warn(
+				'[share/update-share] Collaborator sync push failed after DB update',
+				{
+					mapId: updatedShare.map_id,
+					targetUserId: updatedShare.user_id,
+					error: collaboratorSyncResult.error,
 				}
 			);
 		}
@@ -245,6 +297,7 @@ export const PATCH = withApiValidation<
 						succeededRooms: disconnectResult.succeededRooms,
 						failedRooms: disconnectResult.failedRooms,
 					},
+					collaborator_sync: collaboratorSyncResult,
 				},
 			},
 			200,

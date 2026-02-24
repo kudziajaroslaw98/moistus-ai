@@ -3,7 +3,8 @@ export type MindMapRealtimeChannel =
 	| 'cursor'
 	| 'presence'
 	| 'selected-nodes'
-	| 'permissions';
+	| 'permissions'
+	| 'sharing';
 
 export function getMindMapRoomName(
 	mapId: string,

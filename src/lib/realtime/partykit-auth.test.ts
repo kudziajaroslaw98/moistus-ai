@@ -1,5 +1,6 @@
 import {
 	isAdminAccessRevokedPath,
+	isAdminCollaboratorEventPath,
 	isAdminPermissionsUpdatePath,
 	isAdminRevokePath,
 	parseMindMapRoom,
@@ -153,6 +154,20 @@ describe('partykit auth helpers', () => {
 			).toBe(true);
 			expect(
 				isAdminAccessRevokedPath('/party/main/admin/permissions-update')
+			).toBe(false);
+		});
+
+		it('matches only /admin/collaborator-event paths', () => {
+			expect(
+				isAdminCollaboratorEventPath('/party/main/admin/collaborator-event')
+			).toBe(true);
+			expect(
+				isAdminCollaboratorEventPath(
+					'/parties/main/mind-map%3Aabc%3Asharing/admin/collaborator-event'
+				)
+			).toBe(true);
+			expect(
+				isAdminCollaboratorEventPath('/party/main/admin/access-revoked')
 			).toBe(false);
 		});
 	});

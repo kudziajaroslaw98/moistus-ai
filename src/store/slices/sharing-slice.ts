@@ -1,5 +1,10 @@
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import { generateFallbackAvatar } from '@/helpers/user-profile-helpers';
+import { subscribeToCollaboratorChannel } from '@/lib/realtime/collaborator-channel';
+import type {
+	CollaboratorEntry,
+	CollaboratorRealtimeEvent,
+} from '@/lib/realtime/collaborator-events';
 import { ShareAccessWithProfile } from '@/types/share-access-with-profiles';
 import { SharedUser, ShareToken, SharingError } from '@/types/sharing-types';
 import { StateCreator } from 'zustand';
@@ -36,6 +41,92 @@ interface AnonymousUser {
 	created_at: string;
 }
 
+function toEpochMs(value: string | null | undefined): number {
+	if (!value) return 0;
+	const parsed = Date.parse(value);
+	return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function sortCurrentShares(shares: SharedUser[]): SharedUser[] {
+	return [...shares].sort(
+		(a, b) => toEpochMs(b.share.created_at) - toEpochMs(a.share.created_at)
+	);
+}
+
+function mapShareAccessWithProfileToSharedUser(
+	shareAccessProfile: ShareAccessWithProfile
+): SharedUser {
+	const sharedUserName =
+		shareAccessProfile.full_name ||
+		shareAccessProfile.display_name ||
+		shareAccessProfile.email ||
+		`User ${shareAccessProfile.user_id.slice(0, 8)}`;
+
+	return {
+		id: String(shareAccessProfile.id),
+		user_id: shareAccessProfile.user_id,
+		name: sharedUserName,
+		email: shareAccessProfile.email,
+		avatar_url:
+			shareAccessProfile.avatar_url ||
+			generateFallbackAvatar(shareAccessProfile.user_id),
+		profile: {
+			display_name: shareAccessProfile.display_name,
+			role: shareAccessProfile.role,
+		},
+		isAnonymous: shareAccessProfile.is_anonymous,
+		share: {
+			id: String(shareAccessProfile.id),
+			map_id: shareAccessProfile.map_id,
+			user_id: shareAccessProfile.user_id,
+			can_edit: shareAccessProfile.can_edit,
+			can_comment: shareAccessProfile.can_comment,
+			can_view: shareAccessProfile.can_view,
+			role: shareAccessProfile.role,
+			shared_by: shareAccessProfile.token_created_by,
+			shared_at: shareAccessProfile.created_at,
+			created_at: shareAccessProfile.created_at,
+			updated_at: shareAccessProfile.updated_at,
+		},
+	};
+}
+
+function mapCollaboratorEntryToSharedUser(
+	entry: CollaboratorEntry
+): SharedUser {
+	const sharedUserName =
+		entry.full_name ||
+		entry.display_name ||
+		entry.email ||
+		`User ${entry.userId.slice(0, 8)}`;
+
+	return {
+		id: entry.shareId,
+		user_id: entry.userId,
+		name: sharedUserName,
+		email: entry.email,
+		avatar_url: entry.avatar_url || generateFallbackAvatar(entry.userId),
+		profile: {
+			display_name: entry.display_name ?? undefined,
+			role: entry.role,
+		},
+		isAnonymous: entry.is_anonymous,
+		share: {
+			id: entry.shareId,
+			map_id: entry.mapId,
+			user_id: entry.userId,
+			can_edit: entry.can_edit,
+			can_comment: entry.can_comment,
+			can_view: entry.can_view,
+			role: entry.role,
+			shared_by: undefined,
+			shared_at: entry.created_at,
+			created_at: entry.created_at,
+			updated_at: entry.updated_at,
+		},
+	};
+}
+
 export const createSharingSlice: StateCreator<
 	AppState,
 	[],
@@ -53,6 +144,7 @@ export const createSharingSlice: StateCreator<
 		sharingError: undefined,
 		lastJoinResult: undefined,
 		_sharingSubscription: undefined,
+		_collaboratorRealtimeUnsubscribe: null,
 
 		// Upgrade state (for anonymous -> full user conversion)
 		upgradeStep: 'idle' as UpgradeStep,
@@ -64,6 +156,10 @@ export const createSharingSlice: StateCreator<
 
 		getCurrentShareUsers: async () => {
 			const { supabase, mapId, setState } = get();
+			if (!mapId) {
+				setState({ currentShares: [] });
+				return;
+			}
 
 			const {
 				data,
@@ -72,39 +168,20 @@ export const createSharingSlice: StateCreator<
 				await supabase
 					.from('share_access_with_profiles')
 					.select(`*`)
-					.eq('map_id', mapId);
+					.eq('map_id', mapId)
+					.eq('status', 'active')
+					.order('created_at', { ascending: false });
 
 			if (error || !data) {
 				console.error('[SharingSlice] Error fetching current shares:', error);
 				return;
 			}
 
-			const currentShares: SharedUser[] = data.map((shareAccessProfile) => ({
-				id: shareAccessProfile.profile_user_id,
-				user_id: shareAccessProfile.user_id,
-				name: shareAccessProfile.full_name,
-				email: shareAccessProfile.email,
-				avatar_url: generateFallbackAvatar(shareAccessProfile.user_id),
-				profile: {
-					display_name: shareAccessProfile.display_name,
-					role: shareAccessProfile.role,
-				},
-				isAnonymous: shareAccessProfile.is_anonymous,
-				share: {
-					// Use share_access.id for deletion (numeric converted to string)
-					id: String(shareAccessProfile.id),
-					map_id: shareAccessProfile.map_id,
-					user_id: shareAccessProfile.user_id,
-					can_edit: shareAccessProfile.can_edit,
-					can_comment: shareAccessProfile.can_comment,
-					can_view: shareAccessProfile.can_view,
-					role: shareAccessProfile.role,
-					shared_by: shareAccessProfile.token_created_by,
-					shared_at: shareAccessProfile.created_at,
-					created_at: shareAccessProfile.created_at,
-					updated_at: shareAccessProfile.updated_at,
-				},
-			}));
+			const currentShares: SharedUser[] = sortCurrentShares(
+				data.map((shareAccessProfile) =>
+					mapShareAccessWithProfileToSharedUser(shareAccessProfile)
+				)
+			);
 
 			setState({
 				currentShares: currentShares,
@@ -974,6 +1051,114 @@ export const createSharingSlice: StateCreator<
 			}
 		},
 
+		subscribeToCollaboratorUpdates: async (mapId: string) => {
+			get().unsubscribeFromCollaboratorUpdates();
+
+			try {
+				const subscription = await subscribeToCollaboratorChannel(mapId, {
+					onEvent: (event) => get().applyCollaboratorRealtimeEvent(event),
+					onOpen: () => {
+						console.info('[sharing-slice] collaborator channel connected', {
+							mapId,
+						});
+					},
+					onClose: (event) => {
+						if (event.code === 1000 && event.reason === 'client_unsubscribe') {
+							return;
+						}
+						console.warn('[sharing-slice] collaborator channel closed', {
+							mapId,
+							code: event.code,
+							reason: event.reason,
+						});
+					},
+					onError: () => {
+						console.warn('[sharing-slice] collaborator channel error', {
+							mapId,
+						});
+					},
+				});
+
+				if (get().mapId !== mapId) {
+					subscription.disconnect();
+					return;
+				}
+
+				set({
+					_collaboratorRealtimeUnsubscribe: subscription.disconnect,
+				});
+			} catch (error) {
+				console.error(
+					'[sharing-slice] failed to subscribe to collaborator updates',
+					error
+				);
+			}
+		},
+
+		unsubscribeFromCollaboratorUpdates: () => {
+			const unsubscribe = get()._collaboratorRealtimeUnsubscribe;
+			if (unsubscribe) {
+				unsubscribe();
+			}
+			set({ _collaboratorRealtimeUnsubscribe: null });
+		},
+
+		applyCollaboratorRealtimeEvent: (event: CollaboratorRealtimeEvent) => {
+			const state = get();
+			if (!state.mapId || event.mapId !== state.mapId) {
+				return;
+			}
+
+			if (event.type === 'sharing:collaborators:snapshot') {
+				set({
+					currentShares: sortCurrentShares(
+						event.collaborators.map((entry) =>
+							mapCollaboratorEntryToSharedUser(entry)
+						)
+					),
+				});
+				return;
+			}
+
+			if (event.type === 'sharing:collaborator:upsert') {
+				const incomingShare = mapCollaboratorEntryToSharedUser(
+					event.collaborator
+				);
+				set((previous) => {
+					const currentShares = previous.currentShares ?? [];
+					const existingIndex = currentShares.findIndex(
+						(share) => share.share.id === incomingShare.share.id
+					);
+					if (existingIndex === -1) {
+						return {
+							currentShares: sortCurrentShares([
+								...currentShares,
+								incomingShare,
+							]),
+						};
+					}
+
+					const nextShares = [...currentShares];
+					nextShares[existingIndex] = incomingShare;
+					return {
+						currentShares: sortCurrentShares(nextShares),
+					};
+				});
+				return;
+			}
+
+			if (event.type === 'sharing:collaborator:remove') {
+				const removedIds = new Set(event.removedShareIds);
+				set((previous) => ({
+					currentShares: sortCurrentShares(
+						(previous.currentShares ?? []).filter(
+							(share) => !removedIds.has(share.share.id)
+						)
+					),
+				}));
+			}
+		},
+
 		// Clear current error
 		clearError: () => {
 			set({ sharingError: undefined });
@@ -983,9 +1168,11 @@ export const createSharingSlice: StateCreator<
 		reset: () => {
 			// Clean up subscriptions before resetting state
 			get().unsubscribeFromSharing();
+			get().unsubscribeFromCollaboratorUpdates();
 
 			set({
 				shareTokens: [],
+				currentShares: [],
 				activeToken: undefined,
 				isCreatingToken: false,
 				isJoiningRoom: false,
@@ -993,6 +1180,7 @@ export const createSharingSlice: StateCreator<
 				sharingError: undefined,
 				lastJoinResult: undefined,
 				_sharingSubscription: undefined,
+				_collaboratorRealtimeUnsubscribe: null,
 				// Reset upgrade state
 				upgradeStep: 'idle',
 				upgradeEmail: null,

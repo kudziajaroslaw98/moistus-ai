@@ -168,11 +168,16 @@ export function isAdminAccessRevokedPath(pathname: string): boolean {
 	return pathname.endsWith('/admin/access-revoked');
 }
 
+export function isAdminCollaboratorEventPath(pathname: string): boolean {
+	return pathname.endsWith('/admin/collaborator-event');
+}
+
 export function isAdminPath(pathname: string): boolean {
 	return (
 		isAdminRevokePath(pathname) ||
 		isAdminPermissionsUpdatePath(pathname) ||
-		isAdminAccessRevokedPath(pathname)
+		isAdminAccessRevokedPath(pathname) ||
+		isAdminCollaboratorEventPath(pathname)
 	);
 }
 

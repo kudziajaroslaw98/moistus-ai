@@ -3,6 +3,7 @@ import { onConnect as onYjsConnect } from 'y-partykit';
 import * as Y from 'yjs';
 import {
 	isAdminAccessRevokedPath,
+	isAdminCollaboratorEventPath,
 	isAdminPath,
 	isAdminPermissionsUpdatePath,
 	isAdminRevokePath,
@@ -148,6 +149,48 @@ type PermissionRevokedEvent = {
 };
 
 type PermissionEvent = PermissionSnapshotEvent | PermissionRevokedEvent;
+
+type CollaboratorEntry = {
+	shareId: string;
+	mapId: string;
+	userId: string;
+	role: PermissionRole;
+	can_view: boolean;
+	can_comment: boolean;
+	can_edit: boolean;
+	display_name: string | null;
+	full_name: string | null;
+	email: string | null;
+	avatar_url: string | null;
+	is_anonymous: boolean;
+	created_at: string;
+	updated_at: string;
+};
+
+type SharingCollaboratorsSnapshotEvent = {
+	type: 'sharing:collaborators:snapshot';
+	mapId: string;
+	occurredAt: string;
+	collaborators: CollaboratorEntry[];
+};
+
+type SharingCollaboratorUpsertEvent = {
+	type: 'sharing:collaborator:upsert';
+	mapId: string;
+	occurredAt: string;
+	collaborator: CollaboratorEntry;
+};
+
+type SharingCollaboratorRemoveEvent = {
+	type: 'sharing:collaborator:remove';
+	mapId: string;
+	occurredAt: string;
+	removedShareIds: string[];
+};
+
+type SharingAdminEventPayload =
+	| SharingCollaboratorUpsertEvent
+	| SharingCollaboratorRemoveEvent;
 
 type RealtimeConnectionState = {
 	userId: string | null;
@@ -1373,6 +1416,118 @@ async function getMapOwnerId(
 	return isUuid(ownerId) ? ownerId : null;
 }
 
+type ShareAccessWithProfileRow = {
+	id: number;
+	map_id: string;
+	user_id: string;
+	role: string | null;
+	can_view: boolean | null;
+	can_comment: boolean | null;
+	can_edit: boolean | null;
+	display_name: string | null;
+	full_name: string | null;
+	email: string | null;
+	avatar_url: string | null;
+	is_anonymous: boolean | null;
+	created_at: string | null;
+	updated_at: string | null;
+	status: string | null;
+};
+
+function toCollaboratorEntry(
+	row: ShareAccessWithProfileRow
+): CollaboratorEntry | null {
+	if (!row?.map_id || !row?.user_id) return null;
+	const role = isPermissionRole(row.role) ? row.role : 'viewer';
+	const createdAt = row.created_at ?? new Date().toISOString();
+	const updatedAt = row.updated_at ?? createdAt;
+
+	return {
+		shareId: String(row.id),
+		mapId: row.map_id,
+		userId: row.user_id,
+		role,
+		can_view: Boolean(row.can_view),
+		can_comment: Boolean(row.can_comment),
+		can_edit: Boolean(row.can_edit),
+		display_name: row.display_name,
+		full_name: row.full_name,
+		email: row.email,
+		avatar_url: row.avatar_url,
+		is_anonymous: Boolean(row.is_anonymous),
+		created_at: createdAt,
+		updated_at: updatedAt,
+	};
+}
+
+async function loadCollaboratorsSnapshotForMap(
+	env: PartyKitEnv,
+	mapId: string
+): Promise<CollaboratorEntry[]> {
+	const rows = await querySupabaseRows<ShareAccessWithProfileRow>(
+		env,
+		'share_access_with_profiles',
+		{
+			select:
+				'id,map_id,user_id,role,can_view,can_comment,can_edit,display_name,full_name,email,avatar_url,is_anonymous,created_at,updated_at,status',
+			map_id: `eq.${mapId}`,
+			status: 'eq.active',
+			order: 'created_at.desc',
+			limit: '100000',
+		}
+	);
+
+	return rows
+		.map(toCollaboratorEntry)
+		.filter((entry): entry is CollaboratorEntry => Boolean(entry));
+}
+
+function isSharingAdminEventPayload(
+	value: Record<string, unknown>
+): value is SharingAdminEventPayload {
+	if (
+		typeof value.type !== 'string' ||
+		typeof value.mapId !== 'string' ||
+		typeof value.occurredAt !== 'string'
+	) {
+		return false;
+	}
+
+	if (value.type === 'sharing:collaborator:upsert') {
+		const collaborator = value.collaborator as Record<string, unknown> | undefined;
+		if (!collaborator || typeof collaborator !== 'object') return false;
+		return (
+			typeof collaborator.shareId === 'string' &&
+			typeof collaborator.mapId === 'string' &&
+			typeof collaborator.userId === 'string' &&
+			isPermissionRole(collaborator.role) &&
+			typeof collaborator.can_view === 'boolean' &&
+			typeof collaborator.can_comment === 'boolean' &&
+			typeof collaborator.can_edit === 'boolean' &&
+			(collaborator.display_name == null ||
+				typeof collaborator.display_name === 'string') &&
+			(collaborator.full_name == null ||
+				typeof collaborator.full_name === 'string') &&
+			(collaborator.email == null || typeof collaborator.email === 'string') &&
+			(collaborator.avatar_url == null ||
+				typeof collaborator.avatar_url === 'string') &&
+			typeof collaborator.is_anonymous === 'boolean' &&
+			typeof collaborator.created_at === 'string' &&
+			typeof collaborator.updated_at === 'string'
+		);
+	}
+
+	if (value.type === 'sharing:collaborator:remove') {
+		return (
+			Array.isArray(value.removedShareIds) &&
+			value.removedShareIds.length > 0 &&
+			value.removedShareIds.every((shareId) => typeof shareId === 'string')
+		);
+	}
+
+	return false;
+}
+
 export default class MindMapRealtimeServer implements Party.Server {
 	private static projectionQueueByMap = new Map<string, Promise<void>>();
 
@@ -1445,6 +1600,41 @@ export default class MindMapRealtimeServer implements Party.Server {
 			channel: parsedRoom.channel,
 		});
 
+		if (parsedRoom.channel === 'sharing') {
+			const role = context.request.headers.get('x-auth-role');
+			if (role !== 'owner') {
+				connection.close(4403, 'owner_only');
+				return;
+			}
+
+			try {
+				const collaborators = await loadCollaboratorsSnapshotForMap(
+					this.room.env,
+					parsedRoom.mapId
+				);
+				const snapshotEvent: SharingCollaboratorsSnapshotEvent = {
+					type: 'sharing:collaborators:snapshot',
+					mapId: parsedRoom.mapId,
+					occurredAt: new Date().toISOString(),
+					collaborators,
+				};
+				connection.send(JSON.stringify(snapshotEvent));
+				console.info('[partykit] Sharing snapshot sent', {
+					mapId: parsedRoom.mapId,
+					collaboratorCount: collaborators.length,
+					roomName: parsedRoom.roomName,
+				});
+			} catch (error) {
+				console.error('[partykit] Failed to build sharing snapshot', {
+					mapId: parsedRoom.mapId,
+					roomName: parsedRoom.roomName,
+					error: error instanceof Error ? error.message : 'Unknown error',
+				});
+				connection.close(1011, 'snapshot_failed');
+			}
+			return;
+		}
+
 		if (parsedRoom.channel === 'permissions') {
 			const snapshot = this.buildPermissionSnapshot(
 				parsedRoom.mapId,
@@ -1481,10 +1671,12 @@ export default class MindMapRealtimeServer implements Party.Server {
 		const isRevokeRequest = isAdminRevokePath(url.pathname);
 		const isPermissionUpdateRequest = isAdminPermissionsUpdatePath(url.pathname);
 		const isAccessRevokedRequest = isAdminAccessRevokedPath(url.pathname);
+		const isCollaboratorEventRequest = isAdminCollaboratorEventPath(url.pathname);
 		if (
 			!isRevokeRequest &&
 			!isPermissionUpdateRequest &&
-			!isAccessRevokedRequest
+			!isAccessRevokedRequest &&
+			!isCollaboratorEventRequest
 		) {
 			return new Response('Not found', { status: 404 });
 		}
@@ -1521,6 +1713,19 @@ export default class MindMapRealtimeServer implements Party.Server {
 			return badRequest('Invalid room');
 		}
 
+		if (isCollaboratorEventRequest && parsedRoom.channel !== 'sharing') {
+			console.warn(
+				'[partykit] Collaborator admin request rejected for non-sharing room',
+				{
+					pathname: url.pathname,
+					mapId: parsedRoom.mapId,
+					channel: parsedRoom.channel,
+					roomName: parsedRoom.roomName,
+				}
+			);
+			return badRequest('Invalid room');
+		}
+
 		let body: Record<string, unknown>;
 		try {
 			body = (await request.json()) as Record<string, unknown>;
@@ -1531,6 +1736,51 @@ export default class MindMapRealtimeServer implements Party.Server {
 		const mapId = typeof body.mapId === 'string' ? body.mapId : undefined;
 		if (mapId && mapId !== parsedRoom.mapId) {
 			return badRequest('Map ID does not match room');
+		}
+
+		if (isCollaboratorEventRequest) {
+			if (!mapId) {
+				return badRequest('mapId is required');
+			}
+			if (!isSharingAdminEventPayload(body)) {
+				return badRequest('Invalid collaborator event payload');
+			}
+
+			const ownerId = await getMapOwnerId(this.room.env, mapId);
+			if (!ownerId) {
+				return badRequest('Map owner not found');
+			}
+
+			const targetConnections = listConnectionsForUser(this.room, ownerId);
+			let deliveredConnections = 0;
+			for (const connection of targetConnections) {
+				connection.send(JSON.stringify(body));
+				deliveredConnections += 1;
+			}
+
+			if (deliveredConnections === 0) {
+				console.warn('[partykit] Collaborator admin event delivered to zero owner connections', {
+					mapId,
+					roomName: parsedRoom.roomName,
+					eventType: body.type,
+				});
+			} else {
+				console.info('[partykit] Collaborator admin event unicast delivered', {
+					mapId,
+					roomName: parsedRoom.roomName,
+					eventType: body.type,
+					ownerId,
+					deliveredConnections,
+				});
+			}
+
+			return Response.json({
+				success: true,
+				mapId,
+				room: parsedRoom.roomName,
+				ownerId,
+				deliveredConnections,
+			});
 		}
 
 		if (isRevokeRequest) {

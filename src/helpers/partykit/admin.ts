@@ -2,6 +2,9 @@ import {
 	getMindMapRoomName,
 	type MindMapRealtimeChannel,
 } from '@/lib/realtime/room-names';
+import type {
+	CollaboratorAdminEventPayload,
+} from '@/lib/realtime/collaborator-events';
 import type { ShareRole } from '@/types/sharing-types';
 
 export type PartyKitDisconnectPayload = {
@@ -43,6 +46,11 @@ export type PartyKitAccessRevokedResult = {
 	delivered: boolean;
 };
 
+export type PartyKitCollaboratorEventResult = {
+	attempted: boolean;
+	delivered: boolean;
+};
+
 const DEFAULT_ROOM_SUFFIXES: ReadonlyArray<MindMapRealtimeChannel> = [
 	'sync',
 	'cursor',
@@ -58,7 +66,11 @@ function buildAdminEndpoints(
 	baseUrl: string,
 	partyName: string,
 	roomName: string,
-	adminPath: 'revoke' | 'permissions-update' | 'access-revoked'
+	adminPath:
+		| 'revoke'
+		| 'permissions-update'
+		| 'access-revoked'
+		| 'collaborator-event'
 ): string[] {
 	const roomVariants = Array.from(
 		new Set([encodeURIComponent(roomName), roomName])
@@ -250,6 +262,37 @@ export async function pushPartyKitAccessRevoked(
 		config.partyName,
 		roomName,
 		'access-revoked'
+	);
+
+	const delivered = await postToFirstWorkingEndpoint(
+		endpoints,
+		config.adminToken,
+		payload
+	);
+
+	return {
+		attempted: true,
+		delivered,
+	};
+}
+
+export async function pushPartyKitCollaboratorEvent(
+	payload: CollaboratorAdminEventPayload
+): Promise<PartyKitCollaboratorEventResult> {
+	const config = getAdminConfig();
+	if (!config || !payload.mapId) {
+		return {
+			attempted: false,
+			delivered: false,
+		};
+	}
+
+	const roomName = getMindMapRoomName(payload.mapId, 'sharing');
+	const endpoints = buildAdminEndpoints(
+		config.baseUrl,
+		config.partyName,
+		roomName,
+		'collaborator-event'
 	);
 
 	const delivered = await postToFirstWorkingEndpoint(

@@ -72,6 +72,8 @@ export function SharePanel({
 		refreshTokens,
 		subscribeToSharingUpdates,
 		unsubscribeFromSharing,
+		subscribeToCollaboratorUpdates,
+		unsubscribeFromCollaboratorUpdates,
 		setPopoverOpen,
 		popoverOpen,
 		mindMap,
@@ -88,6 +90,9 @@ export function SharePanel({
 			refreshTokens: state.refreshTokens,
 			subscribeToSharingUpdates: state.subscribeToSharingUpdates,
 			unsubscribeFromSharing: state.unsubscribeFromSharing,
+			subscribeToCollaboratorUpdates: state.subscribeToCollaboratorUpdates,
+			unsubscribeFromCollaboratorUpdates:
+				state.unsubscribeFromCollaboratorUpdates,
 			popoverOpen: state.popoverOpen,
 			setPopoverOpen: state.setPopoverOpen,
 			mindMap: state.mindMap,
@@ -135,18 +140,22 @@ export function SharePanel({
 	useEffect(() => {
 		if (isOpen && mapId) {
 			subscribeToSharingUpdates(mapId);
+			void subscribeToCollaboratorUpdates(mapId);
 			getCurrentShareUsers();
 		}
 
 		return () => {
 			// Always cleanup on unmount to prevent memory leaks
 			unsubscribeFromSharing();
+			unsubscribeFromCollaboratorUpdates();
 		};
 	}, [
 		isOpen,
 		mapId,
 		subscribeToSharingUpdates,
 		unsubscribeFromSharing,
+		subscribeToCollaboratorUpdates,
+		unsubscribeFromCollaboratorUpdates,
 		getCurrentShareUsers,
 	]);
 

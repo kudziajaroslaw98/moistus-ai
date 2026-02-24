@@ -3,6 +3,7 @@ import { withApiValidation } from '@/helpers/api/with-api-validation';
 import {
 	disconnectPartyKitUsers,
 	pushPartyKitAccessRevoked,
+	pushPartyKitCollaboratorEvent,
 } from '@/helpers/partykit/admin';
 import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { z } from 'zod';
@@ -140,6 +141,44 @@ export const DELETE = withApiValidation<
 				delivered: false,
 			};
 			let kickSignalError: string | undefined;
+			let collaboratorSyncResult: {
+				attempted: boolean;
+				delivered: boolean;
+				error?: string;
+			} = {
+				attempted: false,
+				delivered: false,
+			};
+
+			try {
+				const collaboratorEventResult = await pushPartyKitCollaboratorEvent({
+					type: 'sharing:collaborator:remove',
+					mapId: shareAccess.map_id,
+					occurredAt: revokedAt,
+					removedShareIds: [String(shareAccess.id)],
+				});
+				collaboratorSyncResult = {
+					attempted: collaboratorEventResult.attempted,
+					delivered: collaboratorEventResult.delivered,
+				};
+			} catch (error) {
+				collaboratorSyncResult = {
+					attempted: true,
+					delivered: false,
+					error:
+						error instanceof Error
+							? error.message
+							: 'Unknown collaborator sync error',
+				};
+				console.warn(
+					'[share/delete-share] Failed to push collaborator remove event',
+					{
+						mapId: shareAccess.map_id,
+						shareId: String(shareAccess.id),
+						error: collaboratorSyncResult.error,
+					}
+				);
+			}
 
 			try {
 				kickSignalResult = await pushPartyKitAccessRevoked({
@@ -209,6 +248,7 @@ export const DELETE = withApiValidation<
 							succeededRooms: disconnectResult.succeededRooms,
 							failedRooms: disconnectResult.failedRooms,
 						},
+						collaborator_sync: collaboratorSyncResult,
 					},
 				},
 				200,

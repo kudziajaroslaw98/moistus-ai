@@ -62,6 +62,7 @@ const useAppStore = create<AppState>((set, get, api) => {
 		...initialState,
 		reset: () => {
 			get().unsubscribeFromPermissionUpdates?.();
+			get().unsubscribeFromCollaboratorUpdates?.();
 			const freshState = createState();
 			set(freshState, true);
 		},

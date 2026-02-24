@@ -21,5 +21,8 @@ describe('getMindMapRoomName', () => {
 		expect(getMindMapRoomName(mapId, 'permissions')).toBe(
 			`mind-map:${mapId}:permissions`
 		);
+		expect(getMindMapRoomName(mapId, 'sharing')).toBe(
+			`mind-map:${mapId}:sharing`
+		);
 	});
 });

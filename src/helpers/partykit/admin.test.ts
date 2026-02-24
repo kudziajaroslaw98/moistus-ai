@@ -2,6 +2,7 @@ import { getMindMapRoomName } from '@/lib/realtime/room-names';
 import {
 	disconnectPartyKitUsers,
 	pushPartyKitAccessRevoked,
+	pushPartyKitCollaboratorEvent,
 	pushPartyKitPermissionUpdate,
 } from './admin';
 
@@ -142,6 +143,40 @@ describe('partykit admin helper', () => {
 		});
 
 		expect(result).toEqual({ attempted: true, delivered: false });
+	});
+
+	it('pushes collaborator event to encoded or raw sharing room endpoint', async () => {
+		const roomName = getMindMapRoomName(mapId, 'sharing');
+		const encodedRoomName = encodeURIComponent(roomName);
+		const rawRoomFragment = `/parties/main/${roomName}/admin/collaborator-event`;
+
+		const fetchMock = jest.fn(async (input: RequestInfo | URL) => {
+			const url = String(input);
+			if (url.includes(rawRoomFragment)) {
+				return mockResponse(200, '');
+			}
+			return mockResponse(400, 'Invalid room');
+		});
+		(globalThis as { fetch: typeof fetch }).fetch = fetchMock as never;
+
+		const result = await pushPartyKitCollaboratorEvent({
+			type: 'sharing:collaborator:remove',
+			mapId,
+			occurredAt: '2026-02-24T08:00:00.000Z',
+			removedShareIds: ['123'],
+		});
+
+		expect(result).toEqual({ attempted: true, delivered: true });
+		expect(
+			fetchMock.mock.calls.some(([request]) =>
+				String(request).includes(`/${encodedRoomName}/admin/collaborator-event`)
+			)
+		).toBe(true);
+		expect(
+			fetchMock.mock.calls.some(([request]) =>
+				String(request).includes(`/${roomName}/admin/collaborator-event`)
+			)
+		).toBe(true);
 	});
 
 	it('continues fallback when an endpoint throws network error', async () => {

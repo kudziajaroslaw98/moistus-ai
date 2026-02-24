@@ -27,6 +27,7 @@ import {
 	ShareToken,
 	SharingError,
 } from '@/types/sharing-types';
+import type { CollaboratorRealtimeEvent } from '@/lib/realtime/collaborator-events';
 import { SnapLine } from '@/types/snap-line';
 import { StreamingToastState, ToastStep } from '@/types/streaming-toast-state';
 import { Tool } from '@/types/tool';
@@ -324,6 +325,7 @@ export interface SharingState {
 	sharingError?: SharingError;
 	lastJoinResult?: JoinRoomResult;
 	_sharingSubscription?: any;
+	_collaboratorRealtimeUnsubscribe?: (() => void) | null;
 
 	// Upgrade state (for anonymous -> full user conversion)
 	upgradeStep: UpgradeStep;
@@ -401,6 +403,14 @@ export interface SharingSlice extends SharingState {
 	subscribeToSharingUpdates: (mapId: string) => void;
 
 	unsubscribeFromSharing: () => void;
+
+	subscribeToCollaboratorUpdates: (mapId: string) => Promise<void>;
+
+	unsubscribeFromCollaboratorUpdates: () => void;
+
+	applyCollaboratorRealtimeEvent: (
+		event: CollaboratorRealtimeEvent
+	) => void;
 
 	clearError: () => void;
 
