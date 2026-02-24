@@ -89,16 +89,19 @@ export default function RootLayout({
 					}}
 					toastOptions={{
 						classNames: {
-							toast:
-								'!rounded-lg !px-3 !py-2.5 !gap-2 !text-xs',
-							title: '!text-xs !leading-4 !font-medium',
-							description: '!text-[11px] !leading-4',
-							actionButton: '!h-6 !px-2 !text-[11px]',
-							cancelButton: '!h-6 !px-2 !text-[11px]',
-							closeButton: '!size-4',
-						},
-					}}
-				/>
+								toast:
+									'!rounded-lg !px-3 !py-2.5 !gap-2 !text-xs',
+								title: '!text-xs !leading-4 !font-medium',
+								description: '!text-[11px] !leading-4',
+								actionButton:
+									'!h-6 !px-2 !text-[11px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900',
+								cancelButton:
+									'!h-6 !px-2 !text-[11px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900',
+								closeButton:
+									'!size-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900',
+							},
+						}}
+					/>
 			</body>
 		</html>
 	);

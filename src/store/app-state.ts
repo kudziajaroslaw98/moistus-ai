@@ -21,6 +21,7 @@ import type {
 import { LoadingStates } from '@/types/loading-states';
 import type { MindMapData } from '@/types/mind-map-data';
 import type { NodeData } from '@/types/node-data';
+import type { PermissionEvent } from '@/types/permission-events';
 import {
 	SharedUser,
 	ShareRole,
@@ -416,29 +417,6 @@ export interface SharingSlice extends SharingState {
 
 	reset: () => void;
 }
-
-export interface PermissionSnapshotOrUpdateEvent {
-	type: 'permissions:snapshot' | 'permissions:update';
-	mapId: string;
-	targetUserId: string;
-	role: ShareRole;
-	can_view: boolean;
-	can_comment: boolean;
-	can_edit: boolean;
-	updatedAt: string;
-}
-
-export interface PermissionRevokedEvent {
-	type: 'permissions:revoked';
-	mapId: string;
-	targetUserId: string;
-	reason: 'access_revoked';
-	revokedAt: string;
-}
-
-export type PermissionEvent =
-	| PermissionSnapshotOrUpdateEvent
-	| PermissionRevokedEvent;
 
 export interface PermissionsState {
 	permissions: {

@@ -26,7 +26,8 @@ const JoinRoomSchema = z.object({
 		.transform((val) => val.trim()),
 });
 
-type JoinRoomForm = z.infer<typeof JoinRoomSchema>;
+type JoinRoomFormInput = z.input<typeof JoinRoomSchema>;
+type JoinRoomFormOutput = z.output<typeof JoinRoomSchema>;
 
 interface JoinRoomProps {
 	roomCode?: string;
@@ -57,8 +58,8 @@ export function JoinRoom({
 		setValue,
 		getValues,
 		watch,
-	} = useForm<JoinRoomForm>({
-		resolver: zodResolver(JoinRoomSchema) as any,
+	} = useForm<JoinRoomFormInput, unknown, JoinRoomFormOutput>({
+		resolver: zodResolver(JoinRoomSchema),
 		defaultValues: {
 			roomCode: roomCode.toUpperCase(),
 			displayName: '',
@@ -155,7 +156,7 @@ export function JoinRoom({
 		}
 	};
 
-	const onSubmit: SubmitHandler<JoinRoomForm> = async (data) => {
+	const onSubmit: SubmitHandler<JoinRoomFormOutput> = async (data) => {
 		setIsJoining(true);
 		setJoinError('');
 

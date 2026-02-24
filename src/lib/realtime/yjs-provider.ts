@@ -65,6 +65,7 @@ type RoomContext = {
 	edgesById: Y.Map<Record<string, unknown>>;
 	meta: Y.Map<unknown>;
 	refCount: number;
+	subscriberCursors: Map<string, number>;
 };
 
 const roomContexts = new Map<string, RoomContext>();
@@ -93,6 +94,17 @@ function generateEventId(): string {
 	}
 
 	return `evt_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function generateSubscriberCursorId(): string {
+	if (
+		typeof crypto !== 'undefined' &&
+		typeof crypto.randomUUID === 'function'
+	) {
+		return crypto.randomUUID();
+	}
+
+	return `sub_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function normalizeHost(hostOrUrl: string): string {
@@ -377,6 +389,58 @@ function yjsPrimaryWritesEnabled(): boolean {
 	return true;
 }
 
+function shiftSubscriberCursors(
+	subscriberCursors: Map<string, number>,
+	deletedCount: number
+): void {
+	if (deletedCount <= 0) {
+		return;
+	}
+
+	for (const [subscriberId, cursor] of subscriberCursors.entries()) {
+		subscriberCursors.set(subscriberId, Math.max(0, cursor - deletedCount));
+	}
+}
+
+export function computeSyncEventPruneCount(
+	totalEvents: number,
+	maxRetainedEvents: number,
+	subscriberCursors: ReadonlyMap<string, number>
+): number {
+	if (totalEvents <= maxRetainedEvents) {
+		return 0;
+	}
+
+	const excess = totalEvents - maxRetainedEvents;
+	const cursorValues = Array.from(subscriberCursors.values());
+	const minCursor =
+		cursorValues.length > 0 ? Math.min(...cursorValues) : totalEvents;
+
+	return Math.min(excess, Math.max(0, minCursor));
+}
+
+function pruneRetainedSyncEvents(
+	context: RoomContext,
+	maxRetainedEvents: number
+): number {
+	const deleteCount = computeSyncEventPruneCount(
+		context.events.length,
+		maxRetainedEvents,
+		context.subscriberCursors
+	);
+
+	if (deleteCount <= 0) {
+		return 0;
+	}
+
+	shiftSubscriberCursors(context.subscriberCursors, deleteCount);
+	context.doc.transact(() => {
+		context.events.delete(0, deleteCount);
+	});
+
+	return deleteCount;
+}
+
 /**
  * Returns existing or creates new room context. Does NOT increment refCount —
  * callers that own a lifecycle (subscriptions) must use acquireYjsRoom instead.
@@ -403,6 +467,7 @@ async function ensureRoomContext(roomName: string): Promise<RoomContext> {
 		edgesById: doc.getMap<Record<string, unknown>>('edgesById'),
 		meta: doc.getMap<unknown>('meta'),
 		refCount: 0,
+		subscriberCursors: new Map<string, number>(),
 	};
 
 	roomContexts.set(roomName, context);
@@ -506,32 +571,29 @@ export async function subscribeToYjsSyncEvents(
 	handler: (envelope: YjsSyncEnvelope) => void
 ): Promise<() => void> {
 	const context = await acquireYjsRoom(roomName);
-	let cursor = context.events.length;
+	const subscriberId = generateSubscriberCursorId();
+	context.subscriberCursors.set(subscriberId, context.events.length);
 
 	const MAX_RETAINED_EVENTS = 200;
 
 	const processNewEvents = () => {
+		let cursor = context.subscriberCursors.get(subscriberId) ?? context.events.length;
 		const length = context.events.length;
 		while (cursor < length) {
 			const envelope = context.events.get(cursor);
 			cursor += 1;
 			if (envelope) handler(envelope);
 		}
-
-		// Prune old events to prevent unbounded growth
-		if (context.events.length > MAX_RETAINED_EVENTS) {
-			const excess = context.events.length - MAX_RETAINED_EVENTS;
-			context.doc.transact(() => {
-				context.events.delete(0, excess);
-			});
-			cursor = Math.max(0, cursor - excess);
-		}
+		context.subscriberCursors.set(subscriberId, cursor);
+		pruneRetainedSyncEvents(context, MAX_RETAINED_EVENTS);
 	};
 
 	context.events.observe(processNewEvents);
 
 	return () => {
 		context.events.unobserve(processNewEvents);
+		context.subscriberCursors.delete(subscriberId);
+		pruneRetainedSyncEvents(context, MAX_RETAINED_EVENTS);
 		releaseYjsRoom(roomName);
 	};
 }

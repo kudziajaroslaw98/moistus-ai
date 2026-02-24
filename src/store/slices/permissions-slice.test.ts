@@ -1,4 +1,4 @@
-import type { PermissionSnapshotOrUpdateEvent } from '@/store/app-state';
+import type { PermissionSnapshotOrUpdateEvent } from '@/types/permission-events';
 
 jest.mock('@/helpers/supabase/shared-client', () => ({
 	getSharedSupabaseClient: () => ({

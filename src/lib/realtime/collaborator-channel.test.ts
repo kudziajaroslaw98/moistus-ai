@@ -103,6 +103,7 @@ describe('collaborator-channel reconnect behavior', () => {
 		});
 
 		const firstSocket = MockWebSocket.instances[0];
+		expect(subscription.socket).toBe(firstSocket as unknown as WebSocket);
 		firstSocket.emitOpen();
 		firstSocket.emitClose(1011, 'server_restart');
 
@@ -126,8 +127,10 @@ describe('collaborator-channel reconnect behavior', () => {
 			type: 'sharing:collaborators:snapshot',
 			mapId,
 		});
+		expect(subscription.socket).toBe(secondSocket as unknown as WebSocket);
 
 		subscription.disconnect();
+		expect(subscription.socket).toBeNull();
 	});
 
 	it('does not reconnect after owner_only close', async () => {
@@ -199,4 +202,3 @@ describe('collaborator-channel reconnect behavior', () => {
 		subscription.disconnect();
 	});
 });
-

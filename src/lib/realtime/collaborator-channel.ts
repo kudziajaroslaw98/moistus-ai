@@ -17,7 +17,7 @@ export type CollaboratorChannelCallbacks = {
 };
 
 export type CollaboratorChannelSubscription = {
-	socket: WebSocket;
+	socket: WebSocket | null;
 	disconnect: () => void;
 };
 
@@ -217,7 +217,9 @@ export async function subscribeToCollaboratorChannel(
 	}
 
 	return {
-		socket: initialSocket,
+		get socket() {
+			return socket;
+		},
 		disconnect: () => {
 			isStopped = true;
 			clearReconnectTimer();
@@ -233,4 +235,3 @@ export async function subscribeToCollaboratorChannel(
 		},
 	};
 }
-

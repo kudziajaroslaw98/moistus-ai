@@ -64,6 +64,25 @@ type SubscriptionData = {
 	productId?: string;
 };
 
+type SupabaseLikeError = {
+	message: string;
+	details?: string | null;
+	hint?: string | null;
+	code?: string | null;
+};
+
+function formatSupabaseError(error: SupabaseLikeError): string {
+	const metadata = [error.details, error.hint, error.code]
+		.filter((value): value is string => Boolean(value))
+		.join(' | ');
+
+	if (!metadata) {
+		return error.message;
+	}
+
+	return `${error.message} (${metadata})`;
+}
+
 /**
  * Handles subscription creation/activation.
  */
@@ -208,13 +227,24 @@ async function handleSubscriptionUpdated(data: SubscriptionData) {
 		const newStart = currentPeriodStart.getTime();
 		if (newStart > oldStart) {
 			console.log('[Polar] New billing period detected, resetting AI usage counter');
-			await supabase
+			const { data: resetRows, error: resetError } = await supabase
 				.from('user_usage_quotas')
 				.update({
 					ai_suggestions_count: 0,
 					billing_period_start: currentPeriodStart.toISOString(),
 				})
-				.eq('user_id', userId);
+				.eq('user_id', userId)
+				.select('user_id');
+			if (resetError) {
+				throw new Error(
+					`[Polar] Failed to reset AI usage counter: ${formatSupabaseError(resetError)}`
+				);
+			}
+			if (!resetRows || resetRows.length === 0) {
+				throw new Error(
+					`[Polar] Failed to reset AI usage counter: no row updated for user ${userId}`
+				);
+			}
 			metadataUpdates = {
 				...metadataUpdates,
 				previous_period_start: oldPeriodStart,
@@ -244,11 +274,33 @@ async function handleSubscriptionUpdated(data: SubscriptionData) {
 
 			// Only adjust if both limits are finite
 			if (oldLimit !== -1 && newLimit !== -1) {
-				const adjustment = oldLimit - newLimit; // e.g., free(3) → pro(100) = -97
-				console.log('[Polar] Adjusting AI usage counter:', { oldLimit, newLimit, adjustment });
-				await supabase.rpc('adjust_ai_usage', {
+				// adjust_ai_usage applies ai_suggestions_count + p_adjustment.
+				// Keeping oldLimit - newLimit preserves remaining quota when upgrading/downgrading.
+				const adjustment = oldLimit - newLimit;
+				console.log('[Polar] Adjusting AI usage counter:', {
+					oldLimit,
+					newLimit,
+					adjustment,
+				});
+				const { error: adjustError } = await supabase.rpc('adjust_ai_usage', {
 					p_user_id: userId || existingSubscription.user_id,
 					p_adjustment: adjustment,
+				});
+				if (adjustError) {
+					console.error('[Polar] Failed to adjust AI usage counter:', {
+						oldLimit,
+						newLimit,
+						adjustment,
+						error: adjustError,
+					});
+					throw new Error(
+						`[Polar] Failed to adjust AI usage counter: ${formatSupabaseError(adjustError)}`
+					);
+				}
+				console.log('[Polar] AI usage counter adjusted successfully:', {
+					oldLimit,
+					newLimit,
+					adjustmentApplied: adjustment,
 				});
 			}
 

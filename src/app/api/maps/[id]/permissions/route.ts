@@ -12,6 +12,21 @@ interface PermissionsResponse {
 	isOwner: boolean;
 }
 
+export function normalizePermissionsRole(
+	value: unknown
+): PermissionsResponse['role'] {
+	if (
+		value === 'owner' ||
+		value === 'editor' ||
+		value === 'commentator' ||
+		value === 'viewer'
+	) {
+		return value;
+	}
+
+	return 'viewer';
+}
+
 /**
  * GET /api/maps/[id]/permissions - Get current user's permissions for a map
  *
@@ -89,18 +104,18 @@ export const GET = withAuthValidation<
 			return respondError('Access denied', 403, 'No share access found for this map');
 		}
 
-		return respondSuccess<PermissionsResponse>(
-			{
-				role: (shareAccess.role || 'viewer') as PermissionsResponse['role'],
-				can_view: shareAccess.can_view ?? true,
-				can_edit: shareAccess.can_edit ?? false,
-				can_comment: shareAccess.can_comment ?? false,
-				updated_at: shareAccess.updated_at ?? new Date().toISOString(),
-				isOwner: false,
-			},
-			200,
-			'Permissions retrieved'
-		);
+			return respondSuccess<PermissionsResponse>(
+				{
+					role: normalizePermissionsRole(shareAccess.role),
+					can_view: shareAccess.can_view ?? true,
+					can_edit: shareAccess.can_edit ?? false,
+					can_comment: shareAccess.can_comment ?? false,
+					updated_at: shareAccess.updated_at ?? new Date().toISOString(),
+					isOwner: false,
+				},
+				200,
+				'Permissions retrieved'
+			);
 	} catch (error) {
 		console.error('Error in GET /api/maps/[id]/permissions:', error);
 		const message =

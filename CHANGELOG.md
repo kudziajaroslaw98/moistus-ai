@@ -5,7 +5,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-02-24 - Permission race fix and commentator terminology cleanup -->
+<!-- Updated: 2026-02-24 - Permissions/quota hardening, realtime cursor safety, and typing/accessibility fixes -->
 
 ## [2026-02-24]
 
@@ -25,6 +25,24 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Prevents mismatched names/avatars between user menu and realtime presence surfaces
 - **realtime/presence-room**: Presence tracking now pushes an immediate `track()` update on identity/activity changes (in addition to heartbeat)
   - Why: Avoids stale collaborator name/avatar states lingering for up to the heartbeat interval
+- **api/maps/permissions**: Normalized permission role mapping now whitelists contract roles and falls back unknown/legacy DB values to `viewer`
+  - Why: Prevents runtime contract drift from force-cast role values
+- **api/webhooks/polar**: Billing-period usage reset now validates update success (error + rows updated) and throws enriched DB errors
+  - Why: Prevents silent webhook success when `user_usage_quotas` updates fail
+- **api/webhooks/polar**: `adjust_ai_usage` RPC now has explicit error handling/logging and throws on failures
+  - Why: Keeps webhook retries consistent on DB failures and surfaces final applied adjustment value
+- **subscription/ai-quota**: `getAIUsageCount` now throws on RPC error/null/invalid data and `checkAIQuota` fails closed with HTTP 503
+  - Why: Prevents quota bypass when AI usage counter is unavailable
+- **subscription/collaborators**: Missing paid-plan `collaboratorsPerMap` no longer implies unlimited access; now uses explicit safe fallback cap (`10`)
+  - Why: Avoids accidental unlimited collaborator access from partial plan data
+- **join/forms**: Removed unsafe `as any` resolver casts by using typed `useForm<input, context, output>` generics for `JoinRoomSchema`
+  - Why: Enforces resolver output typing without runtime-unsafe casts
+- **layout/toasts**: Restored visible `focus-visible` rings for toast action/cancel/close controls
+  - Why: Improves keyboard accessibility regression in global toaster styles
+- **realtime/collaborator-channel**: Subscription `socket` now exposes a live getter (`WebSocket | null`) instead of a stale initial snapshot
+  - Why: Prevents callers from reading closed socket references after reconnect
+- **realtime/yjs-provider**: Sync-event pruning now tracks per-subscriber cursors and only prunes events all subscribers consumed
+  - Why: Prevents slow subscribers from missing events due to shared-array index shifts
 
 ### Changed
 
@@ -34,6 +52,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Locks in the regression fix path that previously surfaced stale/random join name behavior
 - **identity/tests**: Added focused unit tests for identity resolver, sharing-slice identity mapping, and current-user name/image hooks
   - Why: Locks in precedence and fallback behavior for collaborator naming/avatar consistency
+- **types/permissions**: Moved permission channel event interfaces from app-state to `src/types/permission-events.ts` and consumed shared types in realtime/store modules
+  - Why: Centralizes permission event contracts for reuse and consistent typing
 
 ## [2026-02-23]
 

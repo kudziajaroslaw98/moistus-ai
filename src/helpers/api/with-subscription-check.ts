@@ -2,6 +2,8 @@ import { SubscriptionPlan } from '@/store/slices/subscription-slice';
 import { SupabaseClient, User } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
+const SAFE_PAID_COLLABORATOR_CAP = 10;
+
 export interface SubscriptionValidation {
 	subscription: SubscriptionPlan;
 	plan: {
@@ -216,11 +218,23 @@ export async function getAIUsageCount(
 	supabase: SupabaseClient
 ): Promise<number> {
 	const billingPeriod = await getSubscriptionBillingPeriod(user, supabase);
-	const { data } = await supabase.rpc('get_ai_usage', {
+	const { data, error } = await supabase.rpc('get_ai_usage', {
 		p_user_id: user.id,
 		p_period_start: billingPeriod.periodStart,
 	});
-	return data ?? 0;
+	if (error) {
+		throw new Error(`AI usage counter unavailable: ${error.message}`);
+	}
+
+	if (data === null || data === undefined) {
+		throw new Error('AI usage counter unavailable: RPC returned null');
+	}
+
+	if (typeof data !== 'number' || Number.isNaN(data)) {
+		throw new Error('AI usage counter unavailable: RPC returned invalid value');
+	}
+
+	return data;
 }
 
 /**
@@ -258,7 +272,27 @@ export async function checkAIQuota(
 		return { allowed: true, isPro, remaining: -1, limit: -1 };
 	}
 
-	const currentUsage = await getAIUsageCount(user, supabase);
+	let currentUsage: number;
+	try {
+		currentUsage = await getAIUsageCount(user, supabase);
+	} catch (error) {
+		console.error('[Subscription] AI usage counter unavailable:', error);
+		return {
+			allowed: false,
+			isPro,
+			remaining: 0,
+			limit,
+			error: NextResponse.json(
+				{
+					error: 'AI usage counter unavailable',
+					code: 'USAGE_COUNTER_UNAVAILABLE',
+					upgradeUrl: '/dashboard/settings/billing',
+				},
+				{ status: 503 }
+			),
+		};
+	}
+
 	const allowed = currentUsage < limit;
 	const remaining = Math.max(0, limit - currentUsage);
 
@@ -338,9 +372,15 @@ export async function checkCollaboratorLimit(
 		.in('status', ['active', 'trialing'])
 		.single();
 
+	const rawCollaboratorLimit = subscription?.plan?.limits?.collaboratorsPerMap;
 	const limit =
-		subscription?.plan?.limits?.collaboratorsPerMap ??
-		(subscription?.plan?.name === 'free' ? 3 : subscription ? -1 : 3);
+		typeof rawCollaboratorLimit === 'number'
+			? rawCollaboratorLimit
+			: subscription?.plan?.name === 'free'
+				? 3
+				: subscription
+					? SAFE_PAID_COLLABORATOR_CAP
+					: 3;
 
 	if (limit === -1) {
 		return { allowed: true, limit: -1, remaining: -1, currentCount: 0 };
