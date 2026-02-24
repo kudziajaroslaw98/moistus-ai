@@ -1,5 +1,8 @@
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
-import { generateFallbackAvatar } from '@/helpers/user-profile-helpers';
+import {
+	resolveAvatarUrl,
+	resolveDisplayName,
+} from '@/helpers/identity/resolve-user-identity';
 import { subscribeToCollaboratorChannel } from '@/lib/realtime/collaborator-channel';
 import type {
 	CollaboratorEntry,
@@ -56,20 +59,22 @@ function sortCurrentShares(shares: SharedUser[]): SharedUser[] {
 function mapShareAccessWithProfileToSharedUser(
 	shareAccessProfile: ShareAccessWithProfile
 ): SharedUser {
-	const sharedUserName =
-		shareAccessProfile.full_name ||
-		shareAccessProfile.display_name ||
-		shareAccessProfile.email ||
-		`User ${shareAccessProfile.user_id.slice(0, 8)}`;
+	const sharedUserName = resolveDisplayName({
+		displayName: shareAccessProfile.display_name,
+		fullName: shareAccessProfile.full_name,
+		email: shareAccessProfile.email,
+		userId: shareAccessProfile.user_id,
+	});
 
 	return {
 		id: String(shareAccessProfile.id),
 		user_id: shareAccessProfile.user_id,
 		name: sharedUserName,
 		email: shareAccessProfile.email,
-		avatar_url:
-			shareAccessProfile.avatar_url ||
-			generateFallbackAvatar(shareAccessProfile.user_id),
+		avatar_url: resolveAvatarUrl({
+			profileAvatarUrl: shareAccessProfile.avatar_url,
+			userId: shareAccessProfile.user_id,
+		}),
 		profile: {
 			display_name: shareAccessProfile.display_name,
 			role: shareAccessProfile.role,
@@ -94,18 +99,22 @@ function mapShareAccessWithProfileToSharedUser(
 function mapCollaboratorEntryToSharedUser(
 	entry: CollaboratorEntry
 ): SharedUser {
-	const sharedUserName =
-		entry.full_name ||
-		entry.display_name ||
-		entry.email ||
-		`User ${entry.userId.slice(0, 8)}`;
+	const sharedUserName = resolveDisplayName({
+		displayName: entry.display_name,
+		fullName: entry.full_name,
+		email: entry.email,
+		userId: entry.userId,
+	});
 
 	return {
 		id: entry.shareId,
 		user_id: entry.userId,
 		name: sharedUserName,
 		email: entry.email,
-		avatar_url: entry.avatar_url || generateFallbackAvatar(entry.userId),
+		avatar_url: resolveAvatarUrl({
+			profileAvatarUrl: entry.avatar_url,
+			userId: entry.userId,
+		}),
 		profile: {
 			display_name: entry.display_name ?? undefined,
 			role: entry.role,

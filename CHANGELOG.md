@@ -19,6 +19,12 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Prevents revoked/rejoining users from being incorrectly treated as first-time guests with random names
 - **api/share/join-room**: `display_name` from join requests now persists to `user_profiles` and auth metadata (best effort, non-blocking)
   - Why: Ensures name edits made during join are reflected in DB/auth instead of being session-only
+- **sharing/manage-tab**: Collaborator labels now resolve as `display_name` first (then full name/email fallback) instead of preferring `full_name`
+  - Why: Manage UI should show the collaborator-chosen display label consistently
+- **realtime/identity**: Presence/selection/cursor identity now resolves from `user_profiles` first, then auth metadata, then deterministic fallback
+  - Why: Prevents mismatched names/avatars between user menu and realtime presence surfaces
+- **realtime/presence-room**: Presence tracking now pushes an immediate `track()` update on identity/activity changes (in addition to heartbeat)
+  - Why: Avoids stale collaborator name/avatar states lingering for up to the heartbeat interval
 
 ### Changed
 
@@ -26,6 +32,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Keep role naming consistent across API, UI, tests, and documentation
 - **e2e/sharing-permissions**: Expanded Access Revocation coverage with display-name persistence assertions (revisit prefill, rename persistence, prefill after revoke)
   - Why: Locks in the regression fix path that previously surfaced stale/random join name behavior
+- **identity/tests**: Added focused unit tests for identity resolver, sharing-slice identity mapping, and current-user name/image hooks
+  - Why: Locks in precedence and fallback behavior for collaborator naming/avatar consistency
 
 ## [2026-02-23]
 

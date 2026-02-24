@@ -536,9 +536,7 @@ export function SharePanel({
 														<AvatarImage src={share.avatar_url} />
 
 														<AvatarFallback>
-															{share.profile?.display_name
-																?.charAt(0)
-																?.toUpperCase() ?? '?'}
+															{share.name?.charAt(0)?.toUpperCase() ?? '?'}
 														</AvatarFallback>
 													</Avatar>
 

@@ -4,7 +4,6 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useEffect, useState } from 'react';
 import { useCurrentUserImage } from '../use-current-user-image';
 import { useCurrentUserName } from '../use-current-username';
-import { useUserColor } from '../use-user-color';
 
 export type RealtimeUserSelection = {
 	id: string;
@@ -15,10 +14,7 @@ export type RealtimeUserSelection = {
 
 export const useRealtimeSelectionPresenceRoom = (roomName: string) => {
 	const currentUser = useAppStore((state) => state.currentUser);
-	const { hex: color } = useUserColor(
-		currentUser?.id || currentUser?.email || 'Anonymous'
-	);
-	const currentUserImage = useCurrentUserImage(color);
+	const currentUserImage = useCurrentUserImage();
 	const currentUserName = useCurrentUserName();
 	const setRealtimeSelectedNodes = useAppStore(
 		(state) => state.setRealtimeSelectedNodes
