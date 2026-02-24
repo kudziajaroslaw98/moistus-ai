@@ -4,10 +4,10 @@ import { Toggle } from '@base-ui/react/toggle';
 import { ToggleGroup as BaseToggleGroup } from '@base-ui/react/toggle-group';
 import { type VariantProps } from 'class-variance-authority';
 import {
-	type ComponentProps,
 	createContext,
 	useContext,
 	useMemo,
+	type ComponentProps,
 	type ReactNode,
 } from 'react';
 
@@ -61,6 +61,20 @@ interface ToggleGroupMultipleProps extends ToggleGroupBaseProps {
 
 type ToggleGroupProps = ToggleGroupSingleProps | ToggleGroupMultipleProps;
 
+function toInternalValues(
+	input: string | string[] | undefined
+): readonly string[] | undefined {
+	if (input === undefined) {
+		return undefined;
+	}
+
+	if (Array.isArray(input)) {
+		return input;
+	}
+
+	return input ? [input] : [];
+}
+
 function ToggleGroup({
 	className,
 	variant,
@@ -74,35 +88,24 @@ function ToggleGroup({
 	...props
 }: ToggleGroupProps) {
 	// Convert string value to array for Base UI
-	const internalValue = useMemo((): readonly unknown[] | undefined => {
-		if (value === undefined) return undefined;
-		if (type === 'single') {
-			return value ? [value as string] : [];
-		}
-		return value as string[];
-	}, [value, type]);
+	const internalValue = useMemo(() => toInternalValues(value), [value]);
 
-	const internalDefaultValue = useMemo((): readonly unknown[] | undefined => {
-		if (defaultValue === undefined) return undefined;
-		if (type === 'single') {
-			return defaultValue ? [defaultValue as string] : [];
-		}
-		return defaultValue as string[];
-	}, [defaultValue, type]);
+	const internalDefaultValue = useMemo(
+		() => toInternalValues(defaultValue),
+		[defaultValue]
+	);
 
 	// Convert array value back to string for single type
-	const handleValueChange = (newValue: unknown[]) => {
+	const handleValueChange = (newValue: string[]) => {
 		if (!onValueChange) return;
 
 		if (type === 'single') {
 			// For single selection, return the last selected item or empty string
 			const stringValue =
-				(newValue as string[]).length > 0
-					? (newValue as string[])[newValue.length - 1]
-					: '';
+				newValue.length > 0 ? newValue[newValue.length - 1] : '';
 			(onValueChange as (v: string) => void)(stringValue);
 		} else {
-			(onValueChange as (v: string[]) => void)(newValue as string[]);
+			(onValueChange as (v: string[]) => void)(newValue);
 		}
 	};
 
@@ -120,7 +123,10 @@ function ToggleGroup({
 				'group/toggle-group flex w-fit items-center rounded-md data-[variant=outline]:shadow-xs',
 				className
 			)}
-			{...(props as Omit<BaseToggleGroupProps, 'value' | 'defaultValue' | 'onValueChange' | 'multiple'>)}
+			{...(props as Omit<
+				BaseToggleGroupProps,
+				'value' | 'defaultValue' | 'onValueChange' | 'multiple'
+			>)}
 		>
 			<ToggleGroupContext.Provider value={{ variant, size }}>
 				{children}
@@ -159,4 +165,8 @@ function ToggleGroupItem({
 }
 
 export { ToggleGroup, ToggleGroupItem };
-export type { ToggleGroupProps, ToggleGroupSingleProps, ToggleGroupMultipleProps };
+export type {
+	ToggleGroupMultipleProps,
+	ToggleGroupProps,
+	ToggleGroupSingleProps,
+};
