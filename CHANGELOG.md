@@ -7,6 +7,27 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 <!-- Updated: 2026-02-26 - Restored template graph visibility for authenticated viewers and aligned template permissions API -->
 
+## [2026-02-27]
+
+### Added
+
+- **mind-map/map-settings**: Added unsaved-changes discard confirmation dialog for Map Settings panel close actions
+  - Why: Prevents accidental data loss when users close the panel with pending edits
+- **tests/map-settings-panel**: Added focused Jest coverage for section rendering, validation gating, save payload shaping, and discard-close flow
+  - Why: Locks in the new panel behavior and prevents regressions
+
+### Changed
+
+- **mind-map/map-settings**: Removed template editing controls from Map Settings (`is_template`, `template_category`) because map update API is system-managed for these fields
+  - Why: Avoids exposing controls that cannot persist through the current backend contract
+- **mind-map/map-settings**: Refined panel section shells and helper copy for stronger visual hierarchy while preserving existing section order
+  - Why: Improves scanability and usability without expanding scope
+
+### Fixed
+
+- **mind-map/map-settings**: Added deterministic client validation for title/description/thumbnail URL, disabled save on invalid state, and sanitized outbound values (trim + null empty optional fields)
+  - Why: Ensures payload correctness and clearer user feedback before save attempts
+
 ## [2026-02-26]
 
 ### Fixed

@@ -284,6 +284,9 @@ pnpm pretty          # Prettier
 **Identity precedence**: Use `user_profiles` as canonical identity source across sharing + realtime UI (`display_name`, `avatar_url`) with fallback order: auth metadata, then deterministic fallback helpers. Keep resolver logic centralized in `src/helpers/identity/resolve-user-identity.ts`.
 <!-- Updated: 2026-02-24 - Unified collaborator label/avatar precedence across manage + presence -->
 
+**Map Settings templates**: `is_template` and `template_category` are system-managed and not user-editable in the Map Settings panel.
+<!-- Updated: 2026-02-27 - Removed non-persisting template controls from map settings UI -->
+
 **Rate Limiting**: In-memory only (`src/helpers/api/rate-limiter.ts`), won't scale horizontally without Redis.
 
 **System Updates**: Call `markNodeAsSystemUpdate()` before real-time updates to prevent save loops.
