@@ -232,7 +232,7 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 
 	const footer = (
 		<div className='flex items-center justify-between gap-3'>
-			<p className='text-sm text-zinc-500'>{footerStatus}</p>
+			<p className='text-sm text-text-secondary'>{footerStatus}</p>
 
 			<div className='flex gap-2'>
 				<Button disabled={isSaving} onClick={requestClose} variant='ghost'>
@@ -263,7 +263,6 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 	return (
 		<>
 			<SidePanel
-				className='w-100'
 				footer={footer}
 				isOpen={isOpen}
 				onClose={requestClose}
@@ -274,25 +273,27 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 					{/* General Section */}
 					<motion.section
 						{...getSectionMotionProps(0)}
-						className='space-y-4 rounded-lg border border-zinc-800 bg-zinc-900/40 p-4'
+						className='space-y-4 rounded-lg border border-border-subtle bg-base/60 p-4'
 					>
 						<div className='space-y-1'>
-							<h3 className='text-lg font-semibold text-zinc-100'>General</h3>
-							<p className='text-xs text-zinc-500'>
+							<h3 className='text-lg font-semibold text-text-primary'>
+								General
+							</h3>
+							<p className='text-xs text-text-secondary'>
 								Name and describe your mind map for easier discovery.
 							</p>
 						</div>
 
 						<div className='space-y-2'>
 							<div className='flex items-center justify-between gap-3'>
-								<Label className='text-zinc-300' htmlFor='title'>
-									Title <span className='text-rose-400'>*</span>
+								<Label className='text-text-primary' htmlFor='title'>
+									Title <span className='text-error-500'>*</span>
 								</Label>
 								<span
 									className={`text-xs tabular-nums ${
 										titleCharCount > TITLE_MAX_LENGTH
-											? 'text-rose-400'
-											: 'text-zinc-500'
+											? 'text-error-500'
+											: 'text-text-secondary'
 									}`}
 								>
 									{titleCharCount}/{TITLE_MAX_LENGTH}
@@ -313,7 +314,7 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 							/>
 
 							{titleTouched && !isTitleValid && (
-								<p className='text-xs text-rose-400' role='alert'>
+								<p className='text-xs text-error-500' role='alert'>
 									{titleError}
 								</p>
 							)}
@@ -321,14 +322,14 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 
 						<div className='space-y-2'>
 							<div className='flex items-center justify-between gap-3'>
-								<Label className='text-zinc-300' htmlFor='description'>
+								<Label className='text-text-primary' htmlFor='description'>
 									Description
 								</Label>
 								<span
 									className={`text-xs tabular-nums ${
 										descriptionCharCount > DESCRIPTION_MAX_LENGTH
-											? 'text-rose-400'
-											: 'text-zinc-500'
+											? 'text-error-500'
+											: 'text-text-secondary'
 									}`}
 								>
 									{descriptionCharCount}/{DESCRIPTION_MAX_LENGTH}
@@ -349,12 +350,12 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 								}
 							/>
 
-							<p className='text-xs text-zinc-500'>
+							<p className='text-xs text-text-secondary'>
 								Optional summary shown in the dashboard and share views.
 							</p>
 
 							{descriptionTouched && !isDescriptionValid && (
-								<p className='text-xs text-rose-400' role='alert'>
+								<p className='text-xs text-error-500' role='alert'>
 									{descriptionError}
 								</p>
 							)}
@@ -364,19 +365,19 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 					{/* Organization Section */}
 					<motion.section
 						{...getSectionMotionProps(0.05)}
-						className='space-y-4 rounded-lg border border-zinc-800 bg-zinc-900/40 p-4'
+						className='space-y-4 rounded-lg border border-border-subtle bg-base/60 p-4'
 					>
 						<div className='space-y-1'>
-							<h3 className='text-lg font-semibold text-zinc-100'>
+							<h3 className='text-lg font-semibold text-text-primary'>
 								Organization
 							</h3>
-							<p className='text-xs text-zinc-500'>
+							<p className='text-xs text-text-secondary'>
 								Use tags to group related maps and improve search.
 							</p>
 						</div>
 
 						<div className='space-y-2'>
-							<Label className='text-zinc-300' htmlFor='tags'>
+							<Label className='text-text-primary' htmlFor='tags'>
 								Tags
 							</Label>
 
@@ -388,7 +389,7 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 								value={formData.tags}
 							/>
 
-							<p className='text-xs text-zinc-500'>
+							<p className='text-xs text-text-secondary'>
 								Press Enter or comma to add tags
 							</p>
 						</div>
@@ -397,19 +398,19 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 					{/* Appearance Section */}
 					<motion.section
 						{...getSectionMotionProps(0.1)}
-						className='space-y-4 rounded-lg border border-zinc-800 bg-zinc-900/40 p-4'
+						className='space-y-4 rounded-lg border border-border-subtle bg-base/60 p-4'
 					>
 						<div className='space-y-1'>
-							<h3 className='text-lg font-semibold text-zinc-100'>
+							<h3 className='text-lg font-semibold text-text-primary'>
 								Appearance
 							</h3>
-							<p className='text-xs text-zinc-500'>
+							<p className='text-xs text-text-secondary'>
 								Set a preview image URL used in map cards and metadata previews.
 							</p>
 						</div>
 
 						<div className='space-y-2'>
-							<Label className='text-zinc-300' htmlFor='thumbnail'>
+							<Label className='text-text-primary' htmlFor='thumbnail'>
 								Thumbnail URL
 							</Label>
 
@@ -427,12 +428,12 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 								}
 							/>
 
-							<p className='text-xs text-zinc-500'>
+							<p className='text-xs text-text-secondary'>
 								Optional preview image for your mind map
 							</p>
 
 							{thumbnailTouched && !isThumbnailValid && (
-								<p className='text-xs text-rose-400' role='alert'>
+								<p className='text-xs text-error-500' role='alert'>
 									{thumbnailError}
 								</p>
 							)}
@@ -442,21 +443,21 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 					{/* Editor Preferences Section */}
 					<motion.section
 						{...getSectionMotionProps(0.15)}
-						className='space-y-4 rounded-lg border border-zinc-800 bg-zinc-900/40 p-4'
+						className='space-y-4 rounded-lg border border-border-subtle bg-base/60 p-4'
 					>
-						<h3 className='text-lg font-semibold text-zinc-100 flex items-center gap-2'>
+						<h3 className='text-lg font-semibold text-text-primary flex items-center gap-2'>
 							<PenTool className='size-5 text-primary' />
 							Editor Preferences
 						</h3>
 
-						<p className='text-xs text-zinc-500'>
+						<p className='text-xs text-text-secondary'>
 							These preferences apply to all maps you edit.
 						</p>
 
-						<div className='space-y-4 rounded-lg border border-zinc-800 bg-zinc-900/50 p-4'>
+						<div className='space-y-4 rounded-lg border border-border-subtle bg-base p-4'>
 							<div className='space-y-2'>
-								<Label className='text-zinc-300'>Default Node Type</Label>
-								<p className='text-xs text-zinc-500'>
+								<Label className='text-text-primary'>Default Node Type</Label>
+								<p className='text-xs text-text-secondary'>
 									The default type for new nodes when using the node editor
 									(applies to all maps)
 								</p>
@@ -485,26 +486,26 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 					{/* Danger Zone */}
 					<motion.section
 						{...getSectionMotionProps(0.2)}
-						className='space-y-4 rounded-lg border border-rose-900/50 bg-rose-950/10 p-4'
+						className='space-y-4 rounded-lg border border-error-800/30 bg-error-950/20 p-4'
 					>
 						<div className='flex items-start gap-3'>
 							<div className='flex-1 space-y-3'>
 								<div>
 									<div className='flex gap-2 items-center'>
-										<AlertTriangle className='mt-0.5 h-5 w-5 shrink-0 text-rose-500' />
+										<AlertTriangle className='mt-0.5 h-5 w-5 shrink-0 text-error-500' />
 
-										<h3 className='text-lg font-semibold text-rose-400'>
+										<h3 className='text-lg font-semibold text-error-500'>
 											Danger Zone
 										</h3>
 									</div>
 
-									<p className='text-sm text-zinc-400'>
+									<p className='text-sm text-error-300/70'>
 										Irreversible actions that affect this mind map
 									</p>
 								</div>
 
 								<Button
-									className='w-full bg-rose-600 hover:bg-rose-700'
+									className='w-full bg-error-600 hover:bg-error-700'
 									disabled={isDeleting}
 									onClick={() => setShowDeleteDialog(true)}
 									variant='destructive'

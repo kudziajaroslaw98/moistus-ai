@@ -10,19 +10,19 @@ import {
 	DialogTitle,
 } from '@/components/ui/dialog';
 
-interface DiscardSettingsChangesDialogProps {
+interface DiscardAccountSettingsChangesDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onContinueEditing: () => void;
 	onDiscardChanges: () => void;
 }
 
-export function DiscardSettingsChangesDialog({
+export function DiscardAccountSettingsChangesDialog({
 	open,
 	onOpenChange,
 	onContinueEditing,
 	onDiscardChanges,
-}: DiscardSettingsChangesDialogProps) {
+}: DiscardAccountSettingsChangesDialogProps) {
 	return (
 		<Dialog onOpenChange={onOpenChange} open={open}>
 			<DialogContent
@@ -35,7 +35,7 @@ export function DiscardSettingsChangesDialog({
 					</DialogTitle>
 
 					<DialogDescription className='text-text-secondary'>
-						You have unsaved edits in Map Settings. Discard them or continue
+						You have unsaved edits in Account Settings. Discard them or continue
 						editing.
 					</DialogDescription>
 				</DialogHeader>

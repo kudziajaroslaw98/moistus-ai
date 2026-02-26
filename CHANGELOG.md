@@ -6,6 +6,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ---
 
 <!-- Updated: 2026-02-26 - Restored template graph visibility for authenticated viewers and aligned template permissions API -->
+<!-- Updated: 2026-02-27 - Added account/billing settings safety flows and aligned map-settings color tokens -->
 
 ## [2026-02-27]
 
@@ -15,6 +16,10 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Prevents accidental data loss when users close the panel with pending edits
 - **tests/map-settings-panel**: Added focused Jest coverage for section rendering, validation gating, save payload shaping, and discard-close flow
   - Why: Locks in the new panel behavior and prevents regressions
+- **dashboard/account-settings**: Added discard-confirm dialog and cancel-subscription confirm dialog for Account/Billing settings flow
+  - Why: Adds parity safety for unsaved-close and destructive billing actions
+- **tests/dashboard-settings-panel**: Added focused Jest coverage for account/billing rendering, validation gating, changed-only save payloads, discard-close flow, and billing cancellation confirmation
+  - Why: Prevents regressions in the new account settings UX logic
 
 ### Changed
 
@@ -22,11 +27,17 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Avoids exposing controls that cannot persist through the current backend contract
 - **mind-map/map-settings**: Refined panel section shells and helper copy for stronger visual hierarchy while preserving existing section order
   - Why: Improves scanability and usability without expanding scope
+- **dashboard/settings-panel**: Refactored account save model to changed-only payloads with deterministic validation (`full_name` required <=255, `display_name` <=100, `bio` <=500), sanitized outbound values, and unsaved-close guard behavior
+  - Why: Aligns account panel safety and clarity with explicit-save UX used in map settings
+- **mind-map/map-settings**: Harmonized section and dialog color tokens (borders/background/text) to match Account/Billing panel styling
+  - Why: Keeps settings surfaces visually consistent across the product
 
 ### Fixed
 
 - **mind-map/map-settings**: Added deterministic client validation for title/description/thumbnail URL, disabled save on invalid state, and sanitized outbound values (trim + null empty optional fields)
   - Why: Ensures payload correctness and clearer user feedback before save attempts
+- **dashboard/billing-cancel**: Subscription cancellation now requires explicit confirmation before `cancelSubscription` executes
+  - Why: Prevents accidental one-click subscription cancellations
 
 ## [2026-02-26]
 

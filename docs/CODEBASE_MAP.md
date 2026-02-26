@@ -10,6 +10,7 @@ total_tokens: 707972
 
 <!-- Updated: 2026-02-24 - Documented shared permission event types and Yjs per-subscriber sync cursor pruning -->
 <!-- Updated: 2026-02-27 - Documented map settings discard-confirm flow and template-control removal -->
+<!-- Updated: 2026-02-27 - Documented account settings discard/cancel-confirm dialog flows -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -265,6 +266,12 @@ shiko/
 
 - `src/components/mind-map/map-settings-panel.tsx` now focuses on persistable metadata fields (`title`, `description`, `tags`, `thumbnailUrl`) with client-side validation and explicit save flow
 - `src/components/mind-map/discard-settings-changes-dialog.tsx` guards close actions when unsaved edits exist
+
+**Dashboard Account/Billing Settings Panel:**
+
+- `src/components/dashboard/settings-panel.tsx` uses changed-only account payload updates (`full_name`, `display_name`, `bio`, `preferences`) with deterministic validation and explicit save gating
+- `src/components/dashboard/discard-account-settings-changes-dialog.tsx` guards panel close when unsaved account edits exist
+- `src/components/dashboard/cancel-subscription-dialog.tsx` adds an explicit confirmation step before subscription cancellation
 
 ## Data Flow
 
