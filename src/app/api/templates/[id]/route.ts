@@ -1,5 +1,6 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
-import { withPublicApiValidation } from '@/helpers/api/with-public-api-validation';
+import { createServiceRoleClient } from '@/helpers/supabase/server';
+import { withAuthValidation } from '@/helpers/api/with-auth-validation';
 import { z } from 'zod';
 
 /**
@@ -10,8 +11,10 @@ import { z } from 'zod';
  *
  * Returns full template data for instantiation.
  */
-export const GET = withPublicApiValidation(z.any().nullish(), async (req, _body, supabase) => {
+export const GET = withAuthValidation(z.any().nullish(), async (req) => {
 	try {
+		const adminClient = createServiceRoleClient();
+
 		// Extract ID from URL
 		const url = new URL(req.url);
 		const pathSegments = url.pathname.split('/');
@@ -22,19 +25,25 @@ export const GET = withPublicApiValidation(z.any().nullish(), async (req, _body,
 		}
 
 		// First, try to find by UUID
-		let templateQuery = supabase
+		let templateQuery = adminClient
 			.from('mind_maps')
 			.select(
 				`
-				id,
-				title,
-				description,
-				template_category,
-				metadata,
-				node_count,
-				edge_count,
-				usage_count
-			`
+					id,
+					user_id,
+					title,
+					description,
+					tags,
+					thumbnail_url,
+					is_template,
+					template_category,
+					metadata,
+					node_count,
+					edge_count,
+					usage_count,
+					created_at,
+					updated_at
+				`
 			)
 			.eq('is_template', true);
 
@@ -55,9 +64,9 @@ export const GET = withPublicApiValidation(z.any().nullish(), async (req, _body,
 		}
 
 		// Fetch nodes for this template
-		const { data: nodes, error: nodesError } = await supabase
+		const { data: nodes, error: nodesError } = await adminClient
 			.from('nodes')
-			.select('id, content, position_x, position_y, node_type, metadata')
+			.select('*')
 			.eq('map_id', template.id)
 			.order('created_at', { ascending: true });
 
@@ -67,9 +76,9 @@ export const GET = withPublicApiValidation(z.any().nullish(), async (req, _body,
 		}
 
 		// Fetch edges for this template
-		const { data: edges, error: edgesError } = await supabase
+		const { data: edges, error: edgesError } = await adminClient
 			.from('edges')
-			.select('id, source, target, type, metadata')
+			.select('*')
 			.eq('map_id', template.id)
 			.order('created_at', { ascending: true });
 
@@ -105,7 +114,26 @@ export const GET = withPublicApiValidation(z.any().nullish(), async (req, _body,
 			})),
 		};
 
-		return respondSuccess({ template: formattedTemplate }, 200, 'Template fetched successfully.');
+		const mindMapData = {
+			map_id: template.id,
+			user_id: template.user_id,
+			title: template.title,
+			description: template.description,
+			tags: template.tags,
+			thumbnail_url: template.thumbnail_url,
+			is_template: template.is_template,
+			template_category: template.template_category,
+			created_at: template.created_at,
+			map_updated_at: template.updated_at,
+			nodes: nodes || [],
+			edges: edges || [],
+		};
+
+		return respondSuccess(
+			{ template: formattedTemplate, mindMapData },
+			200,
+			'Template fetched successfully.'
+		);
 	} catch (error) {
 		console.error('Error in GET /api/templates/[id]:', error);
 		return respondError('Error fetching template.', 500, 'Internal server error.');

@@ -5,7 +5,23 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-02-24 - Permissions/quota hardening, realtime cursor safety, and typing/accessibility fixes -->
+<!-- Updated: 2026-02-26 - Restored template graph visibility for authenticated viewers and aligned template permissions API -->
+
+## [2026-02-26]
+
+### Fixed
+
+- **store/core-slice**: Added template graph hydration fallback for non-owner template viewers when direct graph query returns empty nodes/edges
+  - Why: Template canvases could render blank for authenticated non-owners due upstream policy drift on graph row visibility
+- **api/templates/[id]**: Template detail route now returns authenticated, service-role-backed `mindMapData` payload for reliable graph hydration
+  - Why: Ensures template graph data can be fetched server-side for authorized viewers even when client-side graph reads are filtered
+- **api/maps/permissions**: Template non-owners now receive explicit read-only viewer permissions instead of `403`
+  - Why: Aligns permissions endpoint behavior with template access checks and prevents inconsistent template viewer handling
+
+### Changed
+
+- **gitignore/partykit**: Added `/partykit/.env` to ignored files
+  - Why: Keeps local PartyKit environment secrets out of source control
 
 ## [2026-02-24]
 

@@ -42,6 +42,7 @@ yarn-error.log*
 .env
 .env.local
 .env.e2e.local
+/partykit/.env
 
 
 # vercel

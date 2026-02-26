@@ -214,9 +214,43 @@ export const createCoreDataSlice: StateCreator<
 				return;
 			}
 
-			const transformedData = transformSupabaseData(
-				mindMapData as unknown as SupabaseMapData
+			let graphData = mindMapData as unknown as SupabaseMapData;
+			const currentUserId = get().currentUser?.id ?? null;
+			const isTemplateMap = Boolean(graphData.is_template);
+			const isTemplateOwner = Boolean(
+				currentUserId && graphData.user_id === currentUserId
 			);
+			const hasEmptyTemplateGraph =
+				(graphData.nodes?.length ?? 0) === 0 &&
+				(graphData.edges?.length ?? 0) === 0;
+
+			// Work around template RLS drift by hydrating graph data from server API.
+			if (isTemplateMap && !isTemplateOwner && hasEmptyTemplateGraph) {
+				try {
+					const templateResponse = await fetch(`/api/templates/${mapId}`);
+					if (templateResponse.ok) {
+						const templateResult = (await templateResponse.json()) as {
+							data?: { mindMapData?: SupabaseMapData };
+						};
+
+						if (templateResult.data?.mindMapData) {
+							graphData = templateResult.data.mindMapData;
+						}
+					} else {
+						console.warn(
+							'[core-slice] template graph hydration failed:',
+							templateResponse.status
+						);
+					}
+				} catch (templateError) {
+					console.warn(
+						'[core-slice] template graph hydration error:',
+						templateError
+					);
+				}
+			}
+
+			const transformedData = transformSupabaseData(graphData);
 
 			set({
 				mindMap: transformedData.mindMap,

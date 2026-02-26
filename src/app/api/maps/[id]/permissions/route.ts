@@ -27,6 +27,19 @@ export function normalizePermissionsRole(
 	return 'viewer';
 }
 
+export function buildTemplateViewerPermissions(
+	updatedAt: string | null | undefined
+): PermissionsResponse {
+	return {
+		role: 'viewer',
+		can_view: true,
+		can_edit: false,
+		can_comment: false,
+		updated_at: updatedAt ?? new Date().toISOString(),
+		isOwner: false,
+	};
+}
+
 /**
  * GET /api/maps/[id]/permissions - Get current user's permissions for a map
  *
@@ -53,7 +66,7 @@ export const GET = withAuthValidation<
 		// Check if user is the owner
 		const { data: map, error: mapError } = await adminClient
 			.from('mind_maps')
-			.select('user_id, updated_at')
+			.select('user_id, updated_at, is_template')
 			.eq('id', mapId)
 			.maybeSingle();
 
@@ -81,6 +94,15 @@ export const GET = withAuthValidation<
 			);
 		}
 
+		// Templates are viewable by any authenticated user as read-only viewers
+		if (map.is_template) {
+			return respondSuccess<PermissionsResponse>(
+				buildTemplateViewerPermissions(map.updated_at),
+				200,
+				'Template viewer permissions'
+			);
+		}
+
 		// Get collaborator permissions from share_access
 		const { data: shareAccess, error: shareError } = await adminClient
 			.from('share_access')
@@ -104,18 +126,18 @@ export const GET = withAuthValidation<
 			return respondError('Access denied', 403, 'No share access found for this map');
 		}
 
-			return respondSuccess<PermissionsResponse>(
-				{
-					role: normalizePermissionsRole(shareAccess.role),
-					can_view: shareAccess.can_view ?? true,
-					can_edit: shareAccess.can_edit ?? false,
-					can_comment: shareAccess.can_comment ?? false,
-					updated_at: shareAccess.updated_at ?? new Date().toISOString(),
-					isOwner: false,
-				},
-				200,
-				'Permissions retrieved'
-			);
+		return respondSuccess<PermissionsResponse>(
+			{
+				role: normalizePermissionsRole(shareAccess.role),
+				can_view: shareAccess.can_view ?? true,
+				can_edit: shareAccess.can_edit ?? false,
+				can_comment: shareAccess.can_comment ?? false,
+				updated_at: shareAccess.updated_at ?? new Date().toISOString(),
+				isOwner: false,
+			},
+			200,
+			'Permissions retrieved'
+		);
 	} catch (error) {
 		console.error('Error in GET /api/maps/[id]/permissions:', error);
 		const message =
