@@ -11,6 +11,7 @@ total_tokens: 707972
 <!-- Updated: 2026-02-24 - Documented shared permission event types and Yjs per-subscriber sync cursor pruning -->
 <!-- Updated: 2026-02-27 - Documented map settings discard-confirm flow and template-control removal -->
 <!-- Updated: 2026-02-27 - Documented account settings discard/cancel-confirm dialog flows -->
+<!-- Updated: 2026-02-28 - Documented node-editor parser cleanup and dual syntax help behavior -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -201,6 +202,8 @@ shiko/
 | groupNode      | structure | —             | Container (UI only)          |
 | commentNode    | structure | —             | Thread anchor (UI only)      |
 | ghostNode      | ai        | —             | AI suggestions (system only) |
+
+**Node Editor note:** Quick-input parser/help intentionally excludes `$reference` quick-switch and deprecated parser tokens (`bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`). Syntax Help is split into type-filtered `Universal` plus `Node-specific` sections.
 
 **Key Files:**
 

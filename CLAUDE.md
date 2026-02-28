@@ -287,6 +287,9 @@ pnpm pretty          # Prettier
 **Map Settings templates**: `is_template` and `template_category` are system-managed and not user-editable in the Map Settings panel.
 <!-- Updated: 2026-02-27 - Removed non-persisting template controls from map settings UI -->
 
+**Node editor parser scope**: Parser syntax no longer supports `bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`, or `$reference` quick-switch in node editor flows. Syntax Help is split into `Universal` (type-filtered) and `Node-specific` sections.
+<!-- Updated: 2026-02-28 - Removed deprecated parser tokens and introduced dual syntax help model -->
+
 **Rate Limiting**: In-memory only (`src/helpers/api/rate-limiter.ts`), won't scale horizontally without Redis.
 
 **System Updates**: Call `markNodeAsSystemUpdate()` before real-time updates to prevent save loops.

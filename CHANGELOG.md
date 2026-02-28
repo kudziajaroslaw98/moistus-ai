@@ -7,6 +7,32 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 <!-- Updated: 2026-02-26 - Restored template graph visibility for authenticated viewers and aligned template permissions API -->
 <!-- Updated: 2026-02-27 - Added account/billing settings safety flows and aligned map-settings color tokens -->
+<!-- Updated: 2026-02-28 - Cleaned deprecated node-editor parser tokens, split syntax help into universal/node-specific sections, and added parser/completion regression tests -->
+
+## [2026-02-28]
+
+### Changed
+
+- **node-editor/syntax-help**: Split syntax help into `Universal` and `Node-specific` collapsible sections, with universal patterns filtered by node type
+  - Why: Makes supported parser syntax immediately visible while avoiding unsupported/system node hints
+- **node-editor/syntax-help**: Added a compact node-type switch discovery hint (`$...`) in Node-specific help that shows a few other valid `$` commands (excluding `$reference`)
+  - Why: Helps users recognize the `$` node-type switching pattern without suggesting disabled reference parsing
+- **node-editor/syntax-help**: Added a fixed max height with vertical overflow for syntax help content
+  - Why: Prevents long parser lists from extending past the visible node editor area and getting cut off
+- **node-editor/quick-switch**: Excluded `referenceNode` from generated node-type quick-switch commands and trigger map
+  - Why: Stops `$reference` suggestions from appearing in parser-driven node editor flows
+- **node-editor/parsers**: Removed parser behavior/suggestions/highlighting/help config for deprecated tokens (`bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`)
+  - Why: Aligns parser surface with currently supported syntax and prevents misleading suggestions
+
+### Fixed
+
+- **node-editor/legacy-metadata**: Next edit save now clears legacy `backgroundColor`, `borderColor`, and `source` metadata fields for text/image nodes and no longer re-serializes removed tokens into quick input strings
+  - Why: Prevents deprecated parser tokens from being reintroduced during edit/save cycles
+
+### Added
+
+- **tests/node-editor**: Added focused regression tests for parser cleanup, completion cleanup, dual syntax help wiring, reference quick-switch exclusion, and legacy metadata clearing
+  - Why: Locks behavior and guards against accidental reintroduction of removed parser tokens/features
 
 ## [2026-02-27]
 
