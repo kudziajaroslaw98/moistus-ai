@@ -1,16 +1,19 @@
 /**
  * Node Type Configuration - UI metadata for node types
- * Simplified configuration system (replaces command-based config)
+ * Node-specific syntax patterns live here.
+ * Universal patterns are exported separately and can be shown per node type.
  */
 
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import {
+	AtSign,
 	Calendar,
 	CheckSquare,
 	Code,
 	FileQuestion,
 	FileText,
 	Flag,
+	Hash,
 	Image,
 	Link,
 	MessageSquare,
@@ -26,7 +29,7 @@ import type { LucideIcon } from 'lucide-react';
 export interface ParsingPattern {
 	pattern: string;
 	description: string;
-	category: 'metadata' | 'formatting' | 'structure';
+	category: 'metadata' | 'formatting' | 'structure' | 'content';
 	examples?: string[];
 	icon?: LucideIcon;
 	insertText?: string;
@@ -42,9 +45,80 @@ export interface NodeTypeConfig {
 	label: string;
 	/** Example inputs */
 	examples: string[];
-	/** Parsing patterns for legend */
+	/** Node-specific parsing patterns for legend */
 	parsingPatterns: ParsingPattern[];
 }
+
+const UNIVERSAL_PATTERN_SUPPORTED_NODE_TYPES: AvailableNodeTypes[] = [
+	'defaultNode',
+	'taskNode',
+	'codeNode',
+	'imageNode',
+	'resourceNode',
+	'questionNode',
+	'annotationNode',
+	'textNode',
+];
+
+const NODE_TYPE_TRIGGER_BY_TYPE: Partial<Record<AvailableNodeTypes, string>> = {
+	defaultNode: '$note',
+	taskNode: '$task',
+	codeNode: '$code',
+	imageNode: '$image',
+	resourceNode: '$link',
+	questionNode: '$question',
+	annotationNode: '$annotation',
+	textNode: '$text',
+};
+
+const NODE_TYPE_SWITCH_DISCOVERY_ORDER = [
+	'$note',
+	'$task',
+	'$code',
+	'$image',
+	'$link',
+	'$question',
+	'$annotation',
+	'$text',
+];
+
+const UNIVERSAL_PARSING_PATTERNS: ParsingPattern[] = [
+	{
+		pattern: '#tag',
+		description: 'Add hashtag',
+		category: 'metadata',
+		examples: ['#meeting', '#important', '#urgent #bug'],
+		icon: Tag,
+	},
+	{
+		pattern: '@assignee',
+		description: 'Assign to person or role',
+		category: 'metadata',
+		examples: ['@me', '@dev', '@team-lead'],
+		icon: AtSign,
+	},
+	{
+		pattern: '^date',
+		description: 'Set due date',
+		category: 'metadata',
+		examples: ['^today', '^tomorrow', '^2026-03-15'],
+		icon: Calendar,
+	},
+	{
+		pattern: '!priority',
+		description: 'Set priority level',
+		category: 'metadata',
+		examples: ['!high', '!medium', '!low', '!', '!!', '!!!'],
+		icon: Flag,
+	},
+	{
+		pattern: ':status',
+		description: 'Set workflow status',
+		category: 'metadata',
+		examples: [':todo', ':in-progress', ':done', ':blocked'],
+		icon: Hash,
+	},
+];
 
 /**
  * Node type configurations map
@@ -64,30 +138,6 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 					'$note Meeting notes #important',
 					'$note Project update #in-progress',
 				],
-			},
-			{
-				pattern: '!priority',
-				description: 'Set priority level',
-				examples: [
-					'!high',
-					'!medium',
-					'!low',
-					'!',
-					'!!',
-					'!!!',
-					'!1',
-					'!2',
-					'!3',
-				],
-				category: 'metadata',
-				icon: Flag,
-			},
-			{
-				pattern: '#tag',
-				description: 'Add hashtag',
-				examples: ['#meeting', '#important', '#urgent #bug'],
-				category: 'metadata',
-				icon: Tag,
 			},
 		],
 	},
@@ -113,20 +163,6 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 					'$task Review PR; Fix bugs ^friday #high',
 					'$task Buy milk, Send email',
 				],
-			},
-			{
-				pattern: '^date',
-				description: 'Set due date',
-				examples: ['^tomorrow', '^friday', '^2024-01-15'],
-				category: 'metadata',
-				icon: Calendar,
-			},
-			{
-				pattern: '!priority',
-				description: 'Set priority level',
-				examples: ['!high', '!medium', '!low'],
-				category: 'metadata',
-				icon: Flag,
 			},
 			{
 				pattern: '[ ]',
@@ -187,20 +223,23 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 	imageNode: {
 		icon: Image,
 		label: 'Image',
-		examples: ['url:https://example.com/diagram.png "System Architecture"'],
+		examples: ['url:https://example.com/diagram.png alt:"System Architecture"'],
 		parsingPatterns: [
 			{
 				pattern: '$image',
 				description: 'Switch to image node type',
 				category: 'metadata',
 				examples: [
-					'$image url:https://example.com/diagram.png "System Architecture"',
+					'$image url:https://example.com/diagram.png alt:"System Architecture"',
 				],
 			},
 			{
 				pattern: 'url:link',
 				description: 'Set image URL',
-				examples: ['url:https://example.com/image.png', 'url:https://imgur.com/abc.jpg'],
+				examples: [
+					'url:https://example.com/image.png',
+					'url:https://imgur.com/abc.jpg',
+				],
 				category: 'metadata',
 				insertText: 'url:',
 			},
@@ -224,9 +263,7 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 				pattern: '$link',
 				description: 'Switch to resource link node type',
 				category: 'metadata',
-				examples: [
-					'$link url:https://docs.example.com title:"API Docs"',
-				],
+				examples: ['$link url:https://docs.example.com title:"API Docs"'],
 			},
 			{
 				pattern: 'url:link',
@@ -267,8 +304,14 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 			},
 			{
 				pattern: 'question:binary|multiple',
-				description: 'Binary yes/no question',
+				description: 'Set question type',
 				examples: ['question:binary', 'question:multiple'],
+				category: 'structure',
+			},
+			{
+				pattern: 'multiple:true|false',
+				description: 'Allow multiple responses',
+				examples: ['multiple:true', 'multiple:false'],
 				category: 'structure',
 			},
 			{
@@ -297,10 +340,7 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 				pattern: '$annotation',
 				description: 'Switch to annotation node type',
 				category: 'metadata',
-				examples: [
-					'$annotation ⚠️ Review this section',
-					'$annotation ✅ Looks good',
-				],
+				examples: ['$annotation ⚠️ Review this section', '$annotation ✅ Looks good'],
 			},
 			{
 				pattern: 'type:value',
@@ -376,64 +416,31 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 		],
 	},
 
-	// Reference Node
+	// Reference Node (parser support intentionally disabled)
 	referenceNode: {
 		icon: Link,
 		label: 'Reference',
-		examples: [
-			'meeting notes #important',
-			'Cross-reference to project analysis',
-		],
-		parsingPatterns: [
-			{
-				pattern: '$reference',
-				description: 'Switch to reference node type',
-				category: 'metadata',
-				examples: [
-					'$reference meeting notes #important',
-				],
-			},
-			{
-				pattern: 'confidence:N%',
-				description: 'Set confidence level',
-				examples: ['confidence:80%', 'confidence:95%'],
-				category: 'metadata',
-				insertText: 'confidence:80%',
-			},
-		],
+		examples: ['Reference content'],
+		parsingPatterns: [],
 	},
 
-	// Group Node (minimal config - usually not created via editor)
+	// Group Node (not command-creatable in node editor)
 	groupNode: {
 		icon: FileText,
 		label: 'Group',
 		examples: ['Group container'],
-		parsingPatterns: [
-			{
-				pattern: '$group',
-				description: 'Switch to group node type',
-				category: 'metadata',
-				examples: ['$group Container for related nodes'],
-			},
-		],
+		parsingPatterns: [],
 	},
 
-	// Comment Node
+	// Comment Node (not command-creatable in node editor)
 	commentNode: {
 		icon: MessageSquare,
 		label: 'Comment',
 		examples: ['Great idea!', 'Needs revision'],
-		parsingPatterns: [
-			{
-				pattern: '$comment',
-				description: 'Switch to comment node type',
-				category: 'metadata',
-				examples: ['$comment Great idea!', '$comment Needs revision'],
-			},
-		],
+		parsingPatterns: [],
 	},
 
-	// Ghost Node (system-only, minimal config)
+	// Ghost Node (system-only)
 	ghostNode: {
 		icon: FileText,
 		label: 'AI Suggestion',
@@ -463,4 +470,50 @@ export function getNodeTypeIcon(nodeType: AvailableNodeTypes): LucideIcon {
  */
 export function getNodeTypeLabel(nodeType: AvailableNodeTypes): string {
 	return nodeTypeConfigs[nodeType].label;
+}
+
+/**
+ * Universal parsing patterns available for a node type.
+ */
+export function getUniversalParsingPatterns(
+	nodeType: AvailableNodeTypes
+): ParsingPattern[] {
+	if (!UNIVERSAL_PATTERN_SUPPORTED_NODE_TYPES.includes(nodeType)) {
+		return [];
+	}
+
+	return UNIVERSAL_PARSING_PATTERNS;
+}
+
+/**
+ * Node-specific parsing patterns available for a node type.
+ */
+export function getNodeSpecificParsingPatterns(
+	nodeType: AvailableNodeTypes
+): ParsingPattern[] {
+	const basePatterns = nodeTypeConfigs[nodeType].parsingPatterns;
+
+	if (!UNIVERSAL_PATTERN_SUPPORTED_NODE_TYPES.includes(nodeType)) {
+		return basePatterns;
+	}
+
+	const currentTrigger = NODE_TYPE_TRIGGER_BY_TYPE[nodeType];
+	const discoverySwitches = NODE_TYPE_SWITCH_DISCOVERY_ORDER
+		.filter((trigger) => trigger !== currentTrigger)
+		.slice(0, 3);
+
+	if (discoverySwitches.length === 0) {
+		return basePatterns;
+	}
+
+	return [
+		...basePatterns,
+		{
+			pattern: '$...',
+			description: 'Switch node type with $ prefix',
+			category: 'metadata',
+			examples: [discoverySwitches.join(' ')],
+			insertText: '$',
+		},
+	];
 }

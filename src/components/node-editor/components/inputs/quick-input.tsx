@@ -18,7 +18,11 @@ import {
 import { useShallow } from 'zustand/shallow';
 import { processNodeTypeSwitch } from '../../core/commands/command-executor';
 import { commandRegistry } from '../../core/commands/command-registry';
-import { getNodeTypeConfig } from '../../core/config/node-type-config';
+import {
+	getNodeSpecificParsingPatterns,
+	getNodeTypeConfig,
+	getUniversalParsingPatterns,
+} from '../../core/config/node-type-config';
 import { parseInput } from '../../core/parsers/pattern-extractor';
 import { announceToScreenReader } from '../../core/utils/text-utils';
 import {
@@ -67,8 +71,6 @@ export const QuickInput: FC<QuickInputProps> = ({
 	mode = 'create',
 	existingNode,
 }) => {
-	// Get configuration for this node type
-	const config = getNodeTypeConfig(initialNodeType);
 	// Local UI state
 	const [preview, setPreview] = useState<any>(null);
 	const [error, setError] = useState<string | null>(null);
@@ -85,6 +87,14 @@ export const QuickInput: FC<QuickInputProps> = ({
 	const [legendCollapsed, setLegendCollapsed] = useState(
 		() => localStorage.getItem('parsingLegendCollapsed') === 'true'
 	);
+	const [universalLegendCollapsed, setUniversalLegendCollapsed] = useState(
+		() => localStorage.getItem('parsingLegendUniversalCollapsed') === 'true'
+	);
+	const [nodeSpecificLegendCollapsed, setNodeSpecificLegendCollapsed] =
+		useState(
+			() =>
+				localStorage.getItem('parsingLegendNodeSpecificCollapsed') === 'true'
+		);
 
 	// Zustand state for persistence across remounts
 	const {
@@ -116,6 +126,22 @@ export const QuickInput: FC<QuickInputProps> = ({
 			updateNode: state.updateNode,
 		}))
 	);
+
+	const effectiveNodeType = currentNodeType || initialNodeType || 'defaultNode';
+	const config = useMemo(
+		() => getNodeTypeConfig(effectiveNodeType),
+		[effectiveNodeType]
+	);
+	const universalPatterns = useMemo(
+		() => getUniversalParsingPatterns(effectiveNodeType),
+		[effectiveNodeType]
+	);
+	const nodeSpecificPatterns = useMemo(
+		() => getNodeSpecificParsingPatterns(effectiveNodeType),
+		[effectiveNodeType]
+	);
+	const hasSyntaxPatterns =
+		universalPatterns.length > 0 || nodeSpecificPatterns.length > 0;
 
 	const collaborators = useMemo<CollaboratorMention[]>(
 		() =>
@@ -173,6 +199,18 @@ export const QuickInput: FC<QuickInputProps> = ({
 	useEffect(() => {
 		localStorage.setItem('parsingLegendCollapsed', String(legendCollapsed));
 	}, [legendCollapsed]);
+	useEffect(() => {
+		localStorage.setItem(
+			'parsingLegendUniversalCollapsed',
+			String(universalLegendCollapsed)
+		);
+	}, [universalLegendCollapsed]);
+	useEffect(() => {
+		localStorage.setItem(
+			'parsingLegendNodeSpecificCollapsed',
+			String(nodeSpecificLegendCollapsed)
+		);
+	}, [nodeSpecificLegendCollapsed]);
 
 	// Handle keyboard shortcut for legend toggle
 	useEffect(() => {
@@ -245,7 +283,6 @@ export const QuickInput: FC<QuickInputProps> = ({
 			const parsed = parseInput(cleanValue);
 
 			// Enhance preview with reference metadata for reference nodes
-			const effectiveNodeType = currentNodeType || initialNodeType;
 			if (effectiveNodeType === 'referenceNode' && referenceMetadata) {
 				const enhancedPreview = {
 					...parsed,
@@ -264,7 +301,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 			setPreview(null);
 			setError('Invalid input format');
 		}
-	}, [value, currentNodeType, initialNodeType, referenceMetadata]);
+	}, [value, effectiveNodeType, referenceMetadata]);
 
 	// Handle node creation with current node type
 	const handleCreate = useCallback(async () => {
@@ -273,9 +310,6 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 		try {
 			setIsCreating(true);
-
-			// Use current node type
-			const effectiveNodeType = currentNodeType || initialNodeType;
 
 			// Clean the input by removing any $nodeType command from anywhere
 			const cleanValue = value.replace(/\$\w+\s*/, '').trim() || value;
@@ -320,8 +354,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 		}
 	}, [
 		value,
-		currentNodeType,
-		initialNodeType,
+		effectiveNodeType,
 		position,
 		parentNode,
 		addNode,
@@ -447,14 +480,14 @@ export const QuickInput: FC<QuickInputProps> = ({
 				<PreviewSection
 					className='hidden sm:block'
 					hasInput={value.trim().length > 0}
-					nodeType={currentNodeType || initialNodeType || 'defaultNode'}
+					nodeType={effectiveNodeType}
 					preview={preview}
 				/>
 			</div>
 
 			{/* Parsing Legend */}
 			<AnimatePresence>
-				{config.parsingPatterns && config.parsingPatterns.length > 0 && (
+				{hasSyntaxPatterns && (
 					<motion.div
 						animate={{ opacity: 1, height: 'auto', y: 0 }}
 						className='mt-3'
@@ -468,12 +501,18 @@ export const QuickInput: FC<QuickInputProps> = ({
 					>
 						<ParsingLegend
 							isCollapsed={legendCollapsed}
+							isNodeSpecificCollapsed={nodeSpecificLegendCollapsed}
+							isUniversalCollapsed={universalLegendCollapsed}
+							nodeSpecificPatterns={nodeSpecificPatterns}
 							onPatternClick={handlePatternInsert}
 							onToggleCollapse={() => setLegendCollapsed(!legendCollapsed)}
-							patterns={
-								getNodeTypeConfig(currentNodeType || initialNodeType)
-									.parsingPatterns || []
+							onToggleNodeSpecificCollapse={() =>
+								setNodeSpecificLegendCollapsed(!nodeSpecificLegendCollapsed)
 							}
+							onToggleUniversalCollapse={() =>
+								setUniversalLegendCollapsed(!universalLegendCollapsed)
+							}
+							universalPatterns={universalPatterns}
 						/>
 					</motion.div>
 				)}
@@ -481,7 +520,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 			{/* Show hint for nodes without patterns */}
 			<AnimatePresence>
-				{(!config.parsingPatterns || config.parsingPatterns.length === 0) && (
+				{!hasSyntaxPatterns && (
 					<motion.div
 						animate={{ opacity: 1, y: 0 }}
 						className='mt-3 text-xs text-zinc-500'

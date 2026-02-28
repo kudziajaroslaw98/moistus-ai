@@ -25,7 +25,10 @@ jest.mock('@/store/mind-map-store', () => ({
 				mockQuickInputValue = val
 				mockSetValue(val)
 			},
-			setQuickInputNodeType: mockSetCurrentNodeType,
+			setQuickInputNodeType: (val: string) => {
+				mockQuickInputNodeType = val
+				mockSetCurrentNodeType(val)
+			},
 			setQuickInputCursorPosition: mockSetCursorPosition,
 			initializeQuickInput: mockInitializeQuickInput,
 			closeNodeEditor: mockCloseNodeEditor,
@@ -39,7 +42,12 @@ jest.mock('@/store/mind-map-store', () => ({
 jest.mock('../../core/config/node-type-config', () => ({
 	getNodeTypeConfig: jest.fn((nodeType: string) => ({
 		icon: () => null,
-		label: nodeType === 'taskNode' ? 'Tasks' : 'Note',
+		label:
+			nodeType === 'taskNode'
+				? 'Tasks'
+				: nodeType === 'referenceNode'
+					? 'Reference'
+					: 'Note',
 		examples: ['Example input #tag', 'Another example'],
 		parsingPatterns: [
 			{
@@ -50,6 +58,44 @@ jest.mock('../../core/config/node-type-config', () => ({
 			},
 		],
 	})),
+	getUniversalParsingPatterns: jest.fn((nodeType: string) => {
+		if (nodeType === 'referenceNode') return []
+		return [
+			{
+				pattern: '#tag',
+				description: 'Add a tag',
+				category: 'metadata',
+				examples: ['#important'],
+			},
+			{
+				pattern: '@assignee',
+				description: 'Assign person',
+				category: 'metadata',
+				examples: ['@me'],
+			},
+		]
+	}),
+	getNodeSpecificParsingPatterns: jest.fn((nodeType: string) => {
+		if (nodeType === 'referenceNode') return []
+		if (nodeType === 'taskNode') {
+			return [
+				{
+					pattern: '[ ]',
+					description: 'Task checkbox',
+					category: 'formatting',
+					examples: ['[ ] Write tests'],
+				},
+			]
+		}
+		return [
+			{
+				pattern: '$note',
+				description: 'Switch to note',
+				category: 'metadata',
+				examples: ['$note hello'],
+			},
+		]
+	}),
 }))
 
 // Mock parseInput
@@ -119,23 +165,33 @@ jest.mock('./enhanced-input', () => ({
 		value,
 		onChange,
 		onKeyDown,
+		onNodeTypeChange,
 		placeholder,
 		disabled,
 	}: {
 		value: string
 		onChange: (val: string) => void
 		onKeyDown: (e: React.KeyboardEvent) => void
+		onNodeTypeChange?: (nodeType: string) => void
 		placeholder: string
 		disabled: boolean
 	}) => (
-		<textarea
-			data-testid="enhanced-input"
-			value={value}
-			onChange={(e) => onChange(e.target.value)}
-			onKeyDown={onKeyDown}
-			placeholder={placeholder}
-			disabled={disabled}
-		/>
+		<div>
+			<textarea
+				data-testid="enhanced-input"
+				value={value}
+				onChange={(e) => onChange(e.target.value)}
+				onKeyDown={onKeyDown}
+				placeholder={placeholder}
+				disabled={disabled}
+			/>
+			<button
+				data-testid="switch-task-node"
+				onClick={() => onNodeTypeChange?.('taskNode')}
+			>
+				Switch Task
+			</button>
+		</div>
 	),
 }))
 
@@ -151,15 +207,42 @@ jest.mock('../parsing-legend', () => ({
 	ParsingLegend: ({
 		isCollapsed,
 		onToggleCollapse,
+		isUniversalCollapsed,
+		onToggleUniversalCollapse,
+		isNodeSpecificCollapsed,
+		onToggleNodeSpecificCollapse,
+		universalPatterns,
+		nodeSpecificPatterns,
 		onPatternClick,
 	}: {
 		isCollapsed: boolean
 		onToggleCollapse: () => void
+		isUniversalCollapsed: boolean
+		onToggleUniversalCollapse: () => void
+		isNodeSpecificCollapsed: boolean
+		onToggleNodeSpecificCollapse: () => void
+		universalPatterns: Array<{ pattern: string }>
+		nodeSpecificPatterns: Array<{ pattern: string }>
 		onPatternClick: (pattern: string) => void
 	}) => (
-		<div data-testid="parsing-legend" data-collapsed={isCollapsed}>
+		<div
+			data-testid="parsing-legend"
+			data-collapsed={isCollapsed}
+			data-universal-collapsed={isUniversalCollapsed}
+			data-node-specific-collapsed={isNodeSpecificCollapsed}
+			data-universal-count={universalPatterns.length}
+			data-node-specific-count={nodeSpecificPatterns.length}
+			data-universal-patterns={universalPatterns.map((pattern) => pattern.pattern).join(',')}
+			data-node-specific-patterns={nodeSpecificPatterns.map((pattern) => pattern.pattern).join(',')}
+		>
 			<button onClick={onToggleCollapse} data-testid="toggle-legend">
 				Toggle
+			</button>
+			<button onClick={onToggleUniversalCollapse} data-testid="toggle-universal-legend">
+				Toggle Universal
+			</button>
+			<button onClick={onToggleNodeSpecificCollapse} data-testid="toggle-node-specific-legend">
+				Toggle Node-specific
 			</button>
 			<button onClick={() => onPatternClick('#tag')} data-testid="insert-pattern">
 				Insert #tag
@@ -264,6 +347,24 @@ describe('QuickInput', () => {
 			render(<QuickInput {...defaultProps} />)
 
 			expect(screen.getByTestId('parsing-legend')).toBeInTheDocument()
+		})
+
+		it('passes universal and node-specific parser sections to legend', () => {
+			render(<QuickInput {...defaultProps} />)
+
+			const legend = screen.getByTestId('parsing-legend')
+			expect(legend).toHaveAttribute('data-universal-count', '2')
+			expect(legend).toHaveAttribute('data-node-specific-count', '1')
+			expect(legend).toHaveAttribute('data-node-specific-patterns', '$note')
+		})
+
+		it('hides parser legend for reference node when both sections are empty', () => {
+			render(<QuickInput {...defaultProps} nodeType="referenceNode" />)
+
+			expect(screen.queryByTestId('parsing-legend')).not.toBeInTheDocument()
+			expect(
+				screen.getByText('This node type accepts plain text input without special syntax.')
+			).toBeInTheDocument()
 		})
 
 		it('renders examples section', () => {
@@ -428,6 +529,37 @@ describe('QuickInput', () => {
 
 			expect(screen.getByTestId('parsing-legend')).toHaveAttribute('data-collapsed', 'true')
 		})
+
+		it('toggles universal and node-specific sub-sections', async () => {
+			const user = userEvent.setup()
+			render(<QuickInput {...defaultProps} />)
+
+			await user.click(screen.getByTestId('toggle-universal-legend'))
+			await user.click(screen.getByTestId('toggle-node-specific-legend'))
+
+			const legend = screen.getByTestId('parsing-legend')
+			expect(legend).toHaveAttribute('data-universal-collapsed', 'true')
+			expect(legend).toHaveAttribute('data-node-specific-collapsed', 'true')
+		})
+
+		it('persists universal and node-specific collapsed state', async () => {
+			const user = userEvent.setup()
+			render(<QuickInput {...defaultProps} />)
+
+			await user.click(screen.getByTestId('toggle-universal-legend'))
+			await user.click(screen.getByTestId('toggle-node-specific-legend'))
+
+			await waitFor(() => {
+				expect(localStorageMock.setItem).toHaveBeenCalledWith(
+					'parsingLegendUniversalCollapsed',
+					'true'
+				)
+				expect(localStorageMock.setItem).toHaveBeenCalledWith(
+					'parsingLegendNodeSpecificCollapsed',
+					'true'
+				)
+			})
+		})
 	})
 
 	describe('pattern insertion', () => {
@@ -491,6 +623,25 @@ describe('QuickInput', () => {
 
 			// Should not be called because node type is already set
 			expect(mockSetCurrentNodeType).not.toHaveBeenCalled()
+		})
+
+		it('updates node-specific parser section when node type switches', async () => {
+			const user = userEvent.setup()
+			const { rerender } = render(<QuickInput {...defaultProps} />)
+
+			expect(screen.getByTestId('parsing-legend')).toHaveAttribute(
+				'data-node-specific-patterns',
+				'$note'
+			)
+
+			await user.click(screen.getByTestId('switch-task-node'))
+			rerender(<QuickInput {...defaultProps} />)
+
+			expect(screen.getByTestId('component-header')).toHaveTextContent('Tasks')
+			expect(screen.getByTestId('parsing-legend')).toHaveAttribute(
+				'data-node-specific-patterns',
+				'[ ]'
+			)
 		})
 	})
 
