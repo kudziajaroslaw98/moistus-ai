@@ -160,7 +160,8 @@ export const transformDataForNodeType = (
 					caption: data.metadata?.caption || data.caption || caption || '',
 					showCaption: Boolean(caption),
 					fitMode: data.metadata?.fitMode || 'cover',
-					source: data.metadata?.source || data.source,
+					// Legacy parser field cleanup (remove on next edit save)
+					source: undefined,
 				},
 			};
 
@@ -213,8 +214,9 @@ export const transformDataForNodeType = (
 					fontStyle: data.metadata?.fontStyle || data.fontStyle,
 					textAlign: data.metadata?.textAlign || data.textAlign,
 					textColor: data.metadata?.textColor || data.textColor,
-					backgroundColor: data.metadata?.backgroundColor || data.backgroundColor,
-					borderColor: data.metadata?.borderColor || data.borderColor,
+					// Legacy parser field cleanup (remove on next edit save)
+					backgroundColor: undefined,
+					borderColor: undefined,
 				},
 			};
 

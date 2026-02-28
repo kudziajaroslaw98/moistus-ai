@@ -41,9 +41,6 @@ const PATTERN_STYLES = {
 	// Status: :done, :in-progress
 	status: 'cm-pattern-status',
 
-	// References: [[node-123]]
-	reference: 'cm-pattern-reference',
-
 	// Node types: $task, $note
 	nodeType: 'cm-pattern-nodetype',
 
@@ -85,20 +82,6 @@ const TWO_PART_PATTERNS: TwoPartPatternConfig[] = [
 		bgClassName: 'cm-pattern-color-bg',
 		valueClassName: 'cm-pattern-color-value',
 		prefixLength: 6,
-	},
-	// Background color: bg:value
-	{
-		regex: /bg:([#a-zA-Z0-9()-]+)/gi,
-		bgClassName: 'cm-pattern-bg-bg',
-		valueClassName: 'cm-pattern-bg-value',
-		prefixLength: 3,
-	},
-	// Border color: border:value
-	{
-		regex: /border:([#a-zA-Z0-9()-]+)/gi,
-		bgClassName: 'cm-pattern-border-bg',
-		valueClassName: 'cm-pattern-border-value',
-		prefixLength: 7,
 	},
 	// Font size: size:24px
 	{
@@ -155,13 +138,6 @@ const TWO_PART_PATTERNS: TwoPartPatternConfig[] = [
 		bgClassName: 'cm-pattern-question-bg',
 		valueClassName: 'cm-pattern-question-value',
 		prefixLength: 9,
-	},
-	// Confidence: confidence:85%
-	{
-		regex: /confidence:(\d+%?)/gi,
-		bgClassName: 'cm-pattern-confidence-bg',
-		valueClassName: 'cm-pattern-confidence-value',
-		prefixLength: 11,
 	},
 	// Annotation type: type:value (any identifier; known values get semantic color)
 	{
@@ -254,11 +230,6 @@ const SINGLE_PART_PATTERNS: SinglePartPatternConfig[] = [
 		regex: STATUS_REGEX,
 		className: PATTERN_STYLES.status,
 	},
-	// References: [[reference]]
-	{
-		regex: /\[\[[^\]]+\]\]/g,
-		className: PATTERN_STYLES.reference,
-	},
 	// Node types: $type
 	{
 		regex: /\$[a-zA-Z]+/g,
@@ -269,7 +240,7 @@ const SINGLE_PART_PATTERNS: SinglePartPatternConfig[] = [
 		regex: /(?<=^|\s)\/[a-zA-Z]+/g,
 		className: PATTERN_STYLES.command,
 	},
-	// Checkbox: [ ] or [x] (negative lookahead to avoid [[reference]])
+	// Checkbox: [ ] or [x] (negative lookahead to avoid [[...]] sequences)
 	{
 		regex: /\[([ xX]?)\](?!\])/g,
 		className: (match) => {
@@ -294,14 +265,9 @@ const SINGLE_PART_PATTERNS: SinglePartPatternConfig[] = [
 		regex: /alt:"([^"]+)"/gi,
 		className: 'cm-pattern-alt',
 	},
-	// Source pattern: src:"text" — imageNode source attribution
-	{
-		regex: /src:"([^"]+)"/gi,
-		className: 'cm-pattern-src',
-	},
 	// Standalone quoted text (for image captions etc.) — not preceded by known prefixes
 	{
-		regex: /(?<!title:|label:|alt:|src:)"([^"]+)"/g,
+		regex: /(?<!title:|label:|alt:)"([^"]+)"/g,
 		className: PATTERN_STYLES.altText,
 	},
 	// Options pattern: options:[a,b,c]
@@ -525,16 +491,6 @@ export function createPatternDecorations() {
 				borderRadius: '3px',
 			},
 
-			// Reference styles
-			'.cm-pattern-reference': {
-				color: '#8b5cf6',
-				backgroundColor: '#8b5cf615',
-				textDecoration: 'underline',
-				textDecorationStyle: 'dashed',
-				padding: '0 2px',
-				borderRadius: '3px',
-			},
-
 			// Node type styles
 			'.cm-pattern-nodetype': {
 				color: '#0ea5e9',
@@ -596,15 +552,6 @@ export function createPatternDecorations() {
 				borderRadius: '3px',
 			},
 
-			// Source prefix styles: src:"text"
-			'.cm-pattern-src': {
-				color: '#3b82f6',
-				backgroundColor: '#3b82f615',
-				fontStyle: 'italic',
-				padding: '0 2px',
-				borderRadius: '3px',
-			},
-
 			// Options styles
 			'.cm-pattern-options': {
 				color: '#8b5cf6',
@@ -625,28 +572,6 @@ export function createPatternDecorations() {
 			},
 			'.cm-pattern-color-value': {
 				color: '#db2777',
-				fontWeight: '500',
-			},
-
-			// Background: bg:value
-			'.cm-pattern-bg-bg': {
-				backgroundColor: '#a855f715',
-				padding: '0 2px',
-				borderRadius: '3px',
-			},
-			'.cm-pattern-bg-value': {
-				color: '#a855f7',
-				fontWeight: '500',
-			},
-
-			// Border: border:value
-			'.cm-pattern-border-bg': {
-				backgroundColor: '#f9731615',
-				padding: '0 2px',
-				borderRadius: '3px',
-			},
-			'.cm-pattern-border-value': {
-				color: '#f97316',
 				fontWeight: '500',
 			},
 
@@ -736,17 +661,6 @@ export function createPatternDecorations() {
 			},
 			'.cm-pattern-question-value': {
 				color: '#f59e0b',
-				fontWeight: '500',
-			},
-
-			// Confidence: confidence:value
-			'.cm-pattern-confidence-bg': {
-				backgroundColor: '#8b5cf615',
-				padding: '0 2px',
-				borderRadius: '3px',
-			},
-			'.cm-pattern-confidence-value': {
-				color: '#8b5cf6',
 				fontWeight: '500',
 			},
 

@@ -281,12 +281,6 @@ const PATTERN_PREFIXES = [
 	{ prefix: 'style:', description: 'Set font style', trigger: 'style:' },
 	{ prefix: 'align:', description: 'Set text alignment', trigger: 'align:' },
 	{ prefix: 'color:', description: 'Set text color', trigger: 'color:' },
-	{ prefix: 'bg:', description: 'Set background color', trigger: 'bg:' },
-	{
-		prefix: 'border:',
-		description: 'Set border color',
-		trigger: 'border:',
-	},
 	{ prefix: 'url:', description: 'Set URL', trigger: 'url:' },
 	{ prefix: 'title:', description: 'Set title', trigger: 'title:"' },
 	{ prefix: 'lang:', description: 'Set language', trigger: 'lang:' },
@@ -298,11 +292,6 @@ const PATTERN_PREFIXES = [
 	},
 	{ prefix: 'options:', description: 'Set options', trigger: 'options:[' },
 	{ prefix: 'type:', description: 'Set annotation type', trigger: 'type:' },
-	{
-		prefix: 'confidence:',
-		description: 'Set confidence',
-		trigger: 'confidence:',
-	},
 ];
 
 // ============================================================================
@@ -490,50 +479,6 @@ export function createCompletions(
 				from: word.from,
 				options,
 				validFor: /^color:\S*/,
-			};
-		}
-
-		// ================================================================
-		// BACKGROUND COLOR COMPLETIONS (bg:) - with swatches
-		// ================================================================
-		if (prefix.startsWith('bg:')) {
-			const search = prefix.slice(3).toLowerCase();
-			const options = COLOR_SUGGESTIONS.filter(
-				(c) => !search || c.label.toLowerCase().includes(search)
-			).map((c) => ({
-				label: `bg:${c.label}`,
-				// No type - swatch replaces the default icon
-				apply: `bg:${c.label}`,
-				// Store hex in detail - custom render in setup.ts will create swatch
-				detail: c.hex,
-			}));
-
-			return {
-				from: word.from,
-				options,
-				validFor: /^bg:\S*/,
-			};
-		}
-
-		// ================================================================
-		// BORDER COLOR COMPLETIONS (border:) - with swatches
-		// ================================================================
-		if (prefix.startsWith('border:')) {
-			const search = prefix.slice(7).toLowerCase();
-			const options = COLOR_SUGGESTIONS.filter(
-				(c) => !search || c.label.toLowerCase().includes(search)
-			).map((c) => ({
-				label: `border:${c.label}`,
-				// No type - swatch replaces the default icon
-				apply: `border:${c.label}`,
-				// Store hex in detail - custom render in setup.ts will create swatch
-				detail: c.hex,
-			}));
-
-			return {
-				from: word.from,
-				options,
-				validFor: /^border:\S*/,
 			};
 		}
 
@@ -784,32 +729,6 @@ export function createCompletions(
 				from: word.from,
 				options,
 				validFor: /^\/\w*/,
-			};
-		}
-
-		// ================================================================
-		// REFERENCE COMPLETIONS ([[)
-		// ================================================================
-		if (prefix.startsWith('[[')) {
-			const options = [
-				{
-					label: '[[node-id]]',
-					type: 'text',
-					apply: '[[node-id]]',
-					info: 'Reference another node',
-				},
-				{
-					label: '[[http://example.com]]',
-					type: 'text',
-					apply: '[[http://]]',
-					info: 'Reference a URL',
-				},
-			];
-
-			return {
-				from: word.from,
-				options,
-				validFor: /^\[\[.*\]\]?/,
 			};
 		}
 

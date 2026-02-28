@@ -142,15 +142,11 @@ export function createNodeEditor(
 									return wrapper;
 								},
 							},
-							// Position 20: color swatch for color: bg: border: completions
+							// Position 20: color swatch for color: completions
 							{
 								render: (completion) => {
 									const label = completion.label;
-									if (
-										label.startsWith('color:') ||
-										label.startsWith('bg:') ||
-										label.startsWith('border:')
-									) {
+									if (label.startsWith('color:')) {
 										const hex = completion.detail as string;
 										if (hex && hex.startsWith('#')) {
 											const swatch = document.createElement('span');
