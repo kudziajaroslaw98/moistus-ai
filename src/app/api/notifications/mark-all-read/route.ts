@@ -15,12 +15,13 @@ export const POST = withApiValidation<
 	MarkAllReadResponse
 >(markAllReadSchema, async (_req, validatedBody, supabase, user) => {
 	try {
+		const now = new Date().toISOString();
 		let query = supabase
 			.from('notifications')
 			.update({
 				is_read: true,
-				read_at: new Date().toISOString(),
-				updated_at: new Date().toISOString(),
+				read_at: now,
+				updated_at: now,
 			})
 			.eq('recipient_user_id', user.id)
 			.eq('is_read', false);

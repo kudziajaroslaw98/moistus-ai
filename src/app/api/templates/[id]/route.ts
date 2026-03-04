@@ -11,7 +11,7 @@ import { z } from 'zod';
  *
  * Returns full template data for instantiation.
  */
-export const GET = withAuthValidation(z.any().nullish(), async (req) => {
+export const GET = withAuthValidation(z.unknown().nullish(), async (req) => {
 	try {
 		const adminClient = createServiceRoleClient();
 
@@ -96,7 +96,7 @@ export const GET = withAuthValidation(z.any().nullish(), async (req) => {
 			category: template.template_category,
 			icon: template.metadata?.icon || 'FileText',
 			previewColors: template.metadata?.previewColors || ['#6366f1', '#8b5cf6', '#a855f7'],
-			nodes: (nodes || []).map((n) => ({
+			nodes: (nodes || []).filter((n) => n.node_type !== 'ghostNode').map((n) => ({
 				id: n.id,
 				type: n.node_type || 'defaultNode',
 				position: { x: n.position_x, y: n.position_y },
@@ -125,8 +125,27 @@ export const GET = withAuthValidation(z.any().nullish(), async (req) => {
 			template_category: template.template_category,
 			created_at: template.created_at,
 			map_updated_at: template.updated_at,
-			nodes: nodes || [],
-			edges: edges || [],
+			nodes: (nodes || []).filter((n) => n.node_type !== 'ghostNode').map((n) => ({
+				id: n.id,
+				map_id: n.map_id,
+				node_type: n.node_type || 'defaultNode',
+				content: n.content,
+				metadata: n.metadata || {},
+				position_x: n.position_x,
+				position_y: n.position_y,
+				created_at: n.created_at,
+				updated_at: n.updated_at,
+			})),
+			edges: (edges || []).map((e) => ({
+				id: e.id,
+				map_id: e.map_id,
+				source: e.source,
+				target: e.target,
+				type: e.type || 'floatingEdge',
+				metadata: e.metadata || {},
+				created_at: e.created_at,
+				updated_at: e.updated_at,
+			})),
 		};
 
 		return respondSuccess(

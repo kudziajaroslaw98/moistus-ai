@@ -57,6 +57,8 @@ const CommentReplyInputComponent = ({ commentId }: CommentReplyInputProps) => {
 			return;
 		}
 
+		setMentionableUsers([]); // clear stale users immediately when map changes
+
 		const abortController = new AbortController();
 		const fetchMentionableUsers = async () => {
 			try {
@@ -94,7 +96,7 @@ const CommentReplyInputComponent = ({ commentId }: CommentReplyInputProps) => {
 		textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
 
 		// Parse @mentions (simple implementation - can be enhanced)
-		const mentionPattern = /@(\w+)/g;
+		const mentionPattern = /@([a-z0-9][a-z0-9-]*)/gi;
 		const foundMentions: string[] = [];
 		let match;
 		while ((match = mentionPattern.exec(textarea.value)) !== null) {

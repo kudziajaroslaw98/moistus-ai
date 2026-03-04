@@ -45,8 +45,8 @@ function isValidUrl(value: string): boolean {
 	if (!value) return true;
 
 	try {
-		new URL(value);
-		return true;
+		const url = new URL(value);
+		return url.protocol === 'http:' || url.protocol === 'https:';
 	} catch {
 		return false;
 	}

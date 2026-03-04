@@ -149,29 +149,31 @@ export function NotificationBell({
 	const handleMarkSingleAsRead = useCallback(
 		async (notificationId: string) => {
 			try {
-				await fetch(`/api/notifications/${notificationId}/read`, {
+				const response = await fetch(`/api/notifications/${notificationId}/read`, {
 					method: 'PATCH',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ read: true }),
 				});
+				if (!response.ok) {
+					console.warn('[notification-bell] failed to mark notification as read', {
+						notificationId,
+						status: response.status,
+					});
+					return;
+				}
+				setNotifications((current) =>
+					current.map((notification) =>
+						notification.id === notificationId
+							? { ...notification, is_read: true, read_at: new Date().toISOString() }
+							: notification
+					)
+				);
+				setUnreadCount((current) => Math.max(0, current - 1));
 			} catch (markError) {
 				console.warn('[notification-bell] failed to mark notification as read', {
 					notificationId,
 					markError,
 				});
-			} finally {
-				setNotifications((current) =>
-					current.map((notification) =>
-						notification.id === notificationId
-							? {
-									...notification,
-									is_read: true,
-									read_at: new Date().toISOString(),
-								}
-							: notification
-					)
-				);
-				setUnreadCount((current) => Math.max(0, current - 1));
 			}
 		},
 		[]

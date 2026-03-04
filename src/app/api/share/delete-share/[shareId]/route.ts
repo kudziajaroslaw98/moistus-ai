@@ -238,7 +238,7 @@ export const DELETE = withApiValidation<
 					actorUserId: user.id,
 					mapId: shareAccess.map_id,
 					mapTitle: mindMap.title ?? null,
-					sourceId: `${shareAccess.id}:${revokedAt}`,
+					sourceId: String(shareAccess.id),
 				});
 			} catch (notificationError) {
 				console.warn(

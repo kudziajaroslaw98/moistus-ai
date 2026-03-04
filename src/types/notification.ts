@@ -38,7 +38,6 @@ export interface MentionableUser {
 	slug: string;
 	displayName: string;
 	avatarUrl: string | null;
-	email: string | null;
 	role: 'owner' | 'editor' | 'commentator' | 'viewer';
 }
 

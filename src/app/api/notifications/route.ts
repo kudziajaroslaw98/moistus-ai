@@ -16,10 +16,9 @@ export const GET = withApiValidation<
 >(querySchema, async (req, _validatedBody, supabase, user) => {
 	try {
 		const url = new URL(req.url);
-		const limit = Math.min(
-			Math.max(Number(url.searchParams.get('limit') ?? '30'), 1),
-			100
-		);
+		const rawLimit = url.searchParams.get('limit');
+		const parsedLimit = rawLimit !== null ? parseInt(rawLimit, 10) : 30;
+		const limit = Math.min(Math.max(Number.isFinite(parsedLimit) ? parsedLimit : 30, 1), 100);
 		const unreadOnly = url.searchParams.get('unreadOnly') === 'true';
 
 		let notificationsQuery = supabase

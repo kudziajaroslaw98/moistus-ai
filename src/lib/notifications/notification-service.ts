@@ -86,7 +86,9 @@ export async function createNotifications(
 			}
 		})
 	);
-	await processNotificationEmails(adminClient, created);
+	void processNotificationEmails(adminClient, created).catch((err: unknown) => {
+		console.warn('[notifications] processNotificationEmails error', err instanceof Error ? err.message : err);
+	});
 	return created;
 }
 
@@ -425,7 +427,7 @@ async function markBulkEmailStatus(
 		.update({
 			email_status: status,
 			email_error: null,
-			emailed_at: new Date().toISOString(),
+			emailed_at: status === 'sent' ? new Date().toISOString() : null,
 			updated_at: new Date().toISOString(),
 		})
 		.in('id', notificationIds);
@@ -445,7 +447,7 @@ async function markSingleEmailStatus(
 		.update({
 			email_status: params.email_status,
 			email_error: params.email_error,
-			emailed_at: new Date().toISOString(),
+			emailed_at: ['sent', 'failed'].includes(params.email_status) ? new Date().toISOString() : null,
 			updated_at: new Date().toISOString(),
 		})
 		.eq('id', notificationId);

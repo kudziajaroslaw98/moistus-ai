@@ -276,10 +276,11 @@ async function getMapParticipantContext(
 		.eq('status', 'active');
 
 	if (collaboratorError) {
-		console.warn('[notifications/emit] failed to load map participants', {
+		console.error('[notifications/emit] failed to load map participants', {
 			mapId,
 			error: collaboratorError.message,
 		});
+		return null;
 	}
 
 	const participantIds = new Set<string>([mapData.user_id]);

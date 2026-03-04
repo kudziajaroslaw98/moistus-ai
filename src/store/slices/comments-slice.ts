@@ -397,7 +397,9 @@ export const createCommentsSlice: StateCreator<
 			const comment = comments.find((entry) => entry.id === commentId);
 			const mapId = comment?.map_id;
 			const mentionRecipientIds = Array.from(
-				new Set((data.mentioned_users || []).filter(Boolean))
+				new Set((data.mentioned_users || []).filter(
+					(id): id is string => Boolean(id) && id !== currentUser.id
+				))
 			);
 			const threadParticipants = new Set(
 				(commentMessages[commentId] || []).map((message) => message.user_id)
@@ -479,7 +481,14 @@ export const createCommentsSlice: StateCreator<
 			}));
 
 			if (mapId) {
-				const events: Array<Record<string, unknown>> = [];
+				const events: Array<{
+					type: 'comment_mention' | 'comment_reply';
+					mapId: string;
+					commentId: string;
+					messageId: string;
+					recipientUserIds: string[];
+					messageContent: string;
+				}> = [];
 				if (mentionRecipientIds.length > 0) {
 					events.push({
 						type: 'comment_mention',
@@ -506,12 +515,21 @@ export const createCommentsSlice: StateCreator<
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify({ events }),
-					}).catch((notificationError) => {
-						console.warn(
-							'[comments-slice] failed to emit comment notifications',
-							notificationError
-						);
-					});
+					})
+						.then((response) => {
+							if (!response.ok) {
+								console.warn('[comments-slice] notification emit failed', {
+									status: response.status,
+									statusText: response.statusText,
+								});
+							}
+						})
+						.catch((notificationError: unknown) => {
+							console.warn(
+								'[comments-slice] failed to emit comment notifications',
+								notificationError
+							);
+						});
 				}
 			}
 

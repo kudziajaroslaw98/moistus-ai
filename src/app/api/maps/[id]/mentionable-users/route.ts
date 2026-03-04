@@ -66,7 +66,10 @@ export const GET = withApiValidation<
 			}
 		}
 
-		const [{ data: ownerProfile }, { data: shareRows }] = await Promise.all([
+		const [
+			{ data: ownerProfile, error: ownerProfileError },
+			{ data: shareRows, error: shareRowsError },
+		] = await Promise.all([
 			adminClient
 				.from('user_profiles')
 				.select('user_id, display_name, full_name, avatar_url, email')
@@ -78,6 +81,11 @@ export const GET = withApiValidation<
 				.eq('map_id', mapId)
 				.eq('status', 'active'),
 		]);
+
+		if (ownerProfileError || shareRowsError) {
+			console.error('[maps/mentionable-users] failed to fetch profiles', ownerProfileError ?? shareRowsError);
+			return respondError('Failed to fetch mentionable users', 500);
+		}
 
 		const mentionableMap = new Map<string, MentionableUser>();
 
@@ -167,7 +175,6 @@ function createMentionableUser(input: {
 			profileAvatarUrl: input.avatarUrl,
 			userId: input.userId,
 		}),
-		email: input.email,
 		role: input.role,
 	};
 }

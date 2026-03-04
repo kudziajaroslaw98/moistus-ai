@@ -179,6 +179,7 @@ export async function subscribeToNotificationChannel(
 			}
 
 			if (event.code === 4403) {
+				scheduleReconnect();
 				return;
 			}
 

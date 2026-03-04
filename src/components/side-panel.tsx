@@ -61,7 +61,7 @@ export function SidePanel({
 							opacity: 1,
 						}}
 						className={cn(
-							'fixed top-0 right-0 bottom-0 z-40 h-full w-full sm:max-w-sm md:max-w-md min-w-sm shadow-xl bg-base border-l border-border-subtle',
+							'fixed top-0 right-0 bottom-0 z-40 h-full w-full sm:max-w-sm md:max-w-md sm:min-w-sm shadow-xl bg-base border-l border-border-subtle',
 							className
 						)}
 						exit={{

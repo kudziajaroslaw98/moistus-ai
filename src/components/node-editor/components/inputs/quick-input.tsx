@@ -392,6 +392,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 			const assigneeUserIds = Array.from(
 				new Set(
 					rawAssignees
+						.filter((assignee): assignee is string => typeof assignee === 'string')
 						.map((assignee) => mentionSlugToUserId.get(assignee.toLowerCase()))
 						.filter((userId): userId is string => Boolean(userId))
 				)
@@ -429,28 +430,26 @@ export const QuickInput: FC<QuickInputProps> = ({
 			}
 
 			if (mapId && assigneeUserIds.length > 0) {
-				try {
-					await fetch('/api/notifications/emit', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({
-							events: [
-								{
-									type: 'node_mention',
-									mapId,
-									recipientUserIds: assigneeUserIds,
-									nodeId: mode === 'edit' ? existingNode?.id : undefined,
-									nodeContent: cleanValue,
-								},
-							],
-						}),
-					});
-				} catch (notificationError) {
+				void fetch('/api/notifications/emit', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						events: [
+							{
+								type: 'node_mention',
+								mapId,
+								recipientUserIds: assigneeUserIds,
+								nodeId: mode === 'edit' ? existingNode?.id : undefined,
+								nodeContent: cleanValue,
+							},
+						],
+					}),
+				}).catch((notificationError: unknown) => {
 					console.warn(
 						'[quick-input] failed to emit node mention notification',
 						notificationError
 					);
-				}
+				});
 			}
 
 			// Close the editor after successful creation/update
