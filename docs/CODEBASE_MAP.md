@@ -16,6 +16,7 @@ total_tokens: 707972
 <!-- Updated: 2026-03-04 - Switched notification inbox refresh to PartyKit user-channel realtime events -->
 <!-- Updated: 2026-03-04 - Added account settings email-notification preference toggle -->
 <!-- Updated: 2026-03-04 - Expanded notifications internals (service/channel/schema/mention resolver/data flow) -->
+<!-- Updated: 2026-03-04 - Corrected API route totals to 61 and fixed unlabeled directory-tree code fence -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -46,7 +47,7 @@ graph TB
         BroadcastAdapter[Broadcast Channel Adapter]
     end
 
-    subgraph API["Next.js API Routes (59)"]
+    subgraph API["Next.js API Routes (61)"]
         AIRoutes[AI Routes]
         MapRoutes[Map CRUD]
         ShareRoutes[Sharing]
@@ -102,11 +103,11 @@ flowchart LR
 
 ## Directory Structure
 
-```
+```text
 shiko/
 ├── src/
 │   ├── app/                    # Next.js App Router pages & API
-│   │   ├── api/                # 59 API routes
+│   │   ├── api/                # 61 API routes
 │   │   │   ├── ai/             # AI features (suggestions, chat, merges)
 │   │   │   ├── auth/           # Sign-up, upgrade flows
 │   │   │   ├── comments/       # Comment threads & reactions
@@ -244,7 +245,7 @@ shiko/
 - `src/components/nodes/base-node-wrapper.tsx` - Shared wrapper
 - `src/components/nodes/[type]-node.tsx` - Individual components
 
-### API Routes (59 total)
+### API Routes (61 total)
 
 **AI & Content (7):**
 

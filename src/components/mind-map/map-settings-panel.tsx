@@ -112,6 +112,7 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 	const thumbnailError = 'Please enter a valid URL (including https://)';
 	const titleErrorId = 'title-error';
 	const descriptionErrorId = 'description-error';
+	const thumbnailErrorId = 'thumbnail-error';
 
 	const getSectionMotionProps = (delay: number): SectionMotionProps => {
 		if (shouldReduceMotion) {
@@ -129,6 +130,12 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 		};
 	};
 
+	/**
+	 * Computes whether save/discard controls should be enabled.
+	 * Normalizes title/description/thumbnail via `normalizeText`, compares tags
+	 * with `JSON.stringify(formData.tags)` against `JSON.stringify(mindMap.tags || [])`,
+	 * and returns `false` when `mindMap` is unavailable.
+	 */
 	const computeHasChanges = useCallback((): boolean => {
 		if (!mindMap) return false;
 
@@ -323,7 +330,11 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 							/>
 
 							{titleTouched && !isTitleValid && (
-								<p className='text-xs text-error-500' id={titleErrorId} role='alert'>
+								<p
+									className='text-xs text-error-500'
+									id={titleErrorId}
+									role='alert'
+								>
 									{titleError}
 								</p>
 							)}
@@ -435,6 +446,11 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 
 							<Input
 								aria-invalid={thumbnailTouched && !isThumbnailValid}
+								aria-describedby={
+									thumbnailTouched && !isThumbnailValid
+										? thumbnailErrorId
+										: undefined
+								}
 								disabled={isSaving}
 								error={thumbnailTouched && !isThumbnailValid}
 								id='thumbnail'
@@ -452,7 +468,11 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 							</p>
 
 							{thumbnailTouched && !isThumbnailValid && (
-								<p className='text-xs text-error-500' role='alert'>
+								<p
+									className='text-xs text-error-500'
+									id={thumbnailErrorId}
+									role='alert'
+								>
 									{thumbnailError}
 								</p>
 							)}

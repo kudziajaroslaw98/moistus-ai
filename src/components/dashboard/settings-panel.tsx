@@ -852,20 +852,21 @@ export function SettingsPanel({
 												Control who can view your profile information.
 											</p>
 										</div>
-											<div className='space-y-2'>
-												<Label>Profile visibility</Label>
-												<Select
-													onValueChange={(value) =>
-														updateNestedFormData('preferences', 'privacy', {
-															...formData.preferences.privacy,
-															profile_visibility:
-																value as NonNullable<
-																	UserProfileFormData['preferences']['privacy']
-																>['profile_visibility'],
-														})
-													}
-													value={formData.preferences.privacy.profile_visibility}
-												>
+										<div className='space-y-2'>
+											<Label>Profile visibility</Label>
+											<Select
+												disabled={isSaving || isLoadingProfile}
+												onValueChange={(value) => {
+													if (isSaving || isLoadingProfile) return;
+													updateNestedFormData('preferences', 'privacy', {
+														...formData.preferences.privacy,
+														profile_visibility: value as NonNullable<
+															UserProfileFormData['preferences']['privacy']
+														>['profile_visibility'],
+													});
+												}}
+												value={formData.preferences.privacy.profile_visibility}
+											>
 												<SelectTrigger>
 													<SelectValue />
 												</SelectTrigger>
@@ -900,13 +901,15 @@ export function SettingsPanel({
 											<div className='space-y-2'>
 												<Label>Theme</Label>
 												<Select
-													onValueChange={(value) =>
+													disabled={isSaving || isLoadingProfile}
+													onValueChange={(value) => {
+														if (isSaving || isLoadingProfile) return;
 														updateNestedFormData(
 															'preferences',
 															'theme',
 															value as UserProfileFormData['preferences']['theme']
-														)
-													}
+														);
+													}}
 													value={formData.preferences.theme}
 												>
 													<SelectTrigger>
@@ -930,13 +933,15 @@ export function SettingsPanel({
 												<Button
 													aria-label={`Reduce motion ${formData.preferences.reducedMotion ? 'on' : 'off'}`}
 													aria-pressed={formData.preferences.reducedMotion}
-													onClick={() =>
+													disabled={isSaving || isLoadingProfile}
+													onClick={() => {
+														if (isSaving || isLoadingProfile) return;
 														updateNestedFormData(
 															'preferences',
 															'reducedMotion',
 															!formData.preferences.reducedMotion
-														)
-													}
+														);
+													}}
 													size='sm'
 													variant={
 														formData.preferences.reducedMotion
@@ -967,18 +972,26 @@ export function SettingsPanel({
 												<div className='space-y-0.5'>
 													<Label>Email notifications</Label>
 													<p className='text-xs text-text-secondary'>
-														Send mention/access/comment activity updates to your email.
+														Send mention/access/comment activity updates to your
+														email.
 													</p>
 												</div>
 												<Button
 													aria-label={`Email notifications ${formData.preferences.notifications.email ? 'on' : 'off'}`}
-													aria-pressed={formData.preferences.notifications.email}
+													aria-pressed={
+														formData.preferences.notifications.email
+													}
 													disabled={isSaving || isLoadingProfile}
 													onClick={() =>
-														updateNestedFormData('preferences', 'notifications', {
-															...formData.preferences.notifications,
-															email: !formData.preferences.notifications.email,
-														})
+														updateNestedFormData(
+															'preferences',
+															'notifications',
+															{
+																...formData.preferences.notifications,
+																email:
+																	!formData.preferences.notifications.email,
+															}
+														)
 													}
 													size='sm'
 													variant={
@@ -987,7 +1000,9 @@ export function SettingsPanel({
 															: 'outline'
 													}
 												>
-													{formData.preferences.notifications.email ? 'On' : 'Off'}
+													{formData.preferences.notifications.email
+														? 'On'
+														: 'Off'}
 												</Button>
 											</div>
 										</div>

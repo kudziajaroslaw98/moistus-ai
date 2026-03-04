@@ -6,7 +6,7 @@ import useAppStore from '@/store/mind-map-store';
 import type { MentionableUser } from '@/types/notification';
 import { slugifyCollaborator } from '@/utils/collaborator-utils';
 import { AlertCircle } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import {
 	useCallback,
 	useEffect,
@@ -26,11 +26,11 @@ import {
 } from '../../core/config/node-type-config';
 import { parseInput } from '../../core/parsers/pattern-extractor';
 import { announceToScreenReader } from '../../core/utils/text-utils';
+import type { CollaboratorMention } from '../../integrations/codemirror/completions';
 import {
 	createOrUpdateNode,
 	transformNodeToQuickInputString,
 } from '../../node-updater';
-import type { CollaboratorMention } from '../../integrations/codemirror/completions';
 import type { QuickInputProps } from '../../types';
 import { ActionBar } from '../action-bar';
 import { ComponentHeader } from '../component-header';
@@ -94,6 +94,53 @@ function isReferenceSelectedCommand(
 	);
 }
 
+function sanitizeMentionableUsers(users: unknown[]): MentionableUser[] {
+	const safeUsers: MentionableUser[] = [];
+
+	for (const user of users) {
+		if (!user || typeof user !== 'object') {
+			continue;
+		}
+
+		const record = user as Record<string, unknown>;
+		const userId =
+			typeof record.userId === 'string' ? record.userId.trim() : '';
+		const slug =
+			typeof record.slug === 'string' ? record.slug.trim().toLowerCase() : '';
+
+		if (!userId || !slug) {
+			continue;
+		}
+
+		const displayName =
+			typeof record.displayName === 'string' &&
+			record.displayName.trim().length > 0
+				? record.displayName.trim()
+				: slug;
+		const avatarUrl =
+			typeof record.avatarUrl === 'string' && record.avatarUrl.trim().length > 0
+				? record.avatarUrl.trim()
+				: null;
+		const role =
+			record.role === 'owner' ||
+			record.role === 'editor' ||
+			record.role === 'commentator' ||
+			record.role === 'viewer'
+				? record.role
+				: 'viewer';
+
+		safeUsers.push({
+			userId,
+			slug,
+			displayName,
+			avatarUrl,
+			role,
+		});
+	}
+
+	return safeUsers;
+}
+
 // Helper function to determine if we should auto-process node type switch
 const shouldAutoProcessSwitch = (
 	text: string,
@@ -124,7 +171,9 @@ export const QuickInput: FC<QuickInputProps> = ({
 	const [preview, setPreview] = useState<QuickInputPreview | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [isCreating, setIsCreating] = useState(false);
-	const [mentionableUsers, setMentionableUsers] = useState<MentionableUser[]>([]);
+	const [mentionableUsers, setMentionableUsers] = useState<MentionableUser[]>(
+		[]
+	);
 
 	const [referenceMetadata, setReferenceMetadata] = useState<{
 		targetNodeId?: string;
@@ -133,18 +182,13 @@ export const QuickInput: FC<QuickInputProps> = ({
 		contentSnippet?: string;
 	} | null>(null);
 	const lastProcessedText = useRef('');
+	const prefersReducedMotion = useReducedMotion();
 
-	const [legendCollapsed, setLegendCollapsed] = useState(
-		() => localStorage.getItem('parsingLegendCollapsed') === 'true'
-	);
-	const [universalLegendCollapsed, setUniversalLegendCollapsed] = useState(
-		() => localStorage.getItem('parsingLegendUniversalCollapsed') === 'true'
-	);
+	const [legendCollapsed, setLegendCollapsed] = useState(false);
+	const [universalLegendCollapsed, setUniversalLegendCollapsed] =
+		useState(false);
 	const [nodeSpecificLegendCollapsed, setNodeSpecificLegendCollapsed] =
-		useState(
-			() =>
-				localStorage.getItem('parsingLegendNodeSpecificCollapsed') === 'true'
-		);
+		useState(false);
 
 	// Zustand state for persistence across remounts
 	const {
@@ -195,36 +239,31 @@ export const QuickInput: FC<QuickInputProps> = ({
 	const hasSyntaxPatterns =
 		universalPatterns.length > 0 || nodeSpecificPatterns.length > 0;
 
-	const collaborators = useMemo<CollaboratorMention[]>(
-		() => {
-			if (mentionableUsers.length > 0) {
-				return mentionableUsers.map((user) => ({
-					slug: user.slug,
-					displayName: user.displayName,
-					avatarUrl: user.avatarUrl ?? '',
-					role:
-						user.role === 'owner' || user.role === 'editor'
-							? 'editor'
-							: 'viewer',
-				}));
-			}
+	const collaborators = useMemo<CollaboratorMention[]>(() => {
+		if (mentionableUsers.length > 0) {
+			return mentionableUsers.map((user) => ({
+				slug: user.slug,
+				displayName: user.displayName,
+				avatarUrl: user.avatarUrl ?? '',
+				role:
+					user.role === 'owner' || user.role === 'editor' ? 'editor' : 'viewer',
+			}));
+		}
 
-			return (currentShares ?? []).map((u) => {
-				const slug = slugifyCollaborator(u);
-				const role: CollaboratorMention['role'] =
-					u.share.role === 'owner' || u.share.role === 'editor'
-						? 'editor'
-						: 'viewer';
-				return {
-					slug,
-					displayName: u.profile?.display_name || u.name || slug,
-					avatarUrl: u.avatar_url ?? '',
-					role,
-				};
-			});
-		},
-		[currentShares, mentionableUsers]
-	);
+		return (currentShares ?? []).map((u) => {
+			const slug = slugifyCollaborator(u);
+			const role: CollaboratorMention['role'] =
+				u.share.role === 'owner' || u.share.role === 'editor'
+					? 'editor'
+					: 'viewer';
+			return {
+				slug,
+				displayName: u.profile?.display_name || u.name || slug,
+				avatarUrl: u.avatar_url ?? '',
+				role,
+			};
+		});
+	}, [currentShares, mentionableUsers]);
 
 	const mentionSlugToUserId = useMemo(() => {
 		const map = new Map<string, string>();
@@ -261,9 +300,19 @@ export const QuickInput: FC<QuickInputProps> = ({
 				if (!response.ok) {
 					return;
 				}
-				const result = await response.json();
-				if (result?.status === 'success' && Array.isArray(result?.data?.users)) {
-					setMentionableUsers(result.data.users as MentionableUser[]);
+				const result: unknown = await response.json();
+				const payload =
+					result && typeof result === 'object'
+						? (result as {
+								status?: unknown;
+								data?: { users?: unknown };
+							})
+						: null;
+				if (
+					payload?.status === 'success' &&
+					Array.isArray(payload.data?.users)
+				) {
+					setMentionableUsers(sanitizeMentionableUsers(payload.data.users));
 				}
 			} catch (error) {
 				if ((error as Error).name === 'AbortError') {
@@ -311,35 +360,72 @@ export const QuickInput: FC<QuickInputProps> = ({
 		setCurrentNodeType,
 	]);
 
-	// Save legend preference
+	// Restore legend preferences on mount (client only).
 	useEffect(() => {
-		localStorage.setItem('parsingLegendCollapsed', String(legendCollapsed));
-	}, [legendCollapsed]);
-	useEffect(() => {
-		localStorage.setItem(
-			'parsingLegendUniversalCollapsed',
-			String(universalLegendCollapsed)
+		if (typeof window === 'undefined') {
+			return;
+		}
+
+		setLegendCollapsed(
+			window.localStorage.getItem('parsingLegendCollapsed') === 'true'
 		);
-	}, [universalLegendCollapsed]);
-	useEffect(() => {
-		localStorage.setItem(
-			'parsingLegendNodeSpecificCollapsed',
-			String(nodeSpecificLegendCollapsed)
+		setUniversalLegendCollapsed(
+			window.localStorage.getItem('parsingLegendUniversalCollapsed') === 'true'
 		);
-	}, [nodeSpecificLegendCollapsed]);
+		setNodeSpecificLegendCollapsed(
+			window.localStorage.getItem('parsingLegendNodeSpecificCollapsed') ===
+				'true'
+		);
+	}, []);
+
+	const handleLegendCollapseToggle = useCallback(() => {
+		setLegendCollapsed((current) => {
+			const next = !current;
+			if (typeof window !== 'undefined') {
+				window.localStorage.setItem('parsingLegendCollapsed', String(next));
+			}
+			return next;
+		});
+	}, []);
+
+	const handleUniversalLegendCollapseToggle = useCallback(() => {
+		setUniversalLegendCollapsed((current) => {
+			const next = !current;
+			if (typeof window !== 'undefined') {
+				window.localStorage.setItem(
+					'parsingLegendUniversalCollapsed',
+					String(next)
+				);
+			}
+			return next;
+		});
+	}, []);
+
+	const handleNodeSpecificLegendCollapseToggle = useCallback(() => {
+		setNodeSpecificLegendCollapsed((current) => {
+			const next = !current;
+			if (typeof window !== 'undefined') {
+				window.localStorage.setItem(
+					'parsingLegendNodeSpecificCollapsed',
+					String(next)
+				);
+			}
+			return next;
+		});
+	}, []);
 
 	// Handle keyboard shortcut for legend toggle
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if ((e.metaKey || e.ctrlKey) && e.key === '/') {
 				e.preventDefault();
-				setLegendCollapsed(!legendCollapsed);
+				handleLegendCollapseToggle();
 			}
 		};
 
 		window.addEventListener('keydown', handleKeyDown);
 		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, [legendCollapsed]);
+	}, [handleLegendCollapseToggle]);
 
 	// Process node type switches automatically (legacy fallback only)
 	useEffect(() => {
@@ -420,6 +506,21 @@ export const QuickInput: FC<QuickInputProps> = ({
 	}, [value, effectiveNodeType, referenceMetadata]);
 
 	// Handle node creation with current node type
+	/**
+	 * Creates or updates a node from the current quick-input state.
+	 *
+	 * Captures closure values (`value`, `effectiveNodeType`, `mode`, `position`,
+	 * `parentNode`, `existingNode`, `referenceMetadata`, `mapId`,
+	 * `mentionSlugToUserId`) to parse input, resolve assignee mentions, mutate
+	 * `nodeData.metadata`, call `createOrUpdateNode`, emit notification events to
+	 * `/api/notifications/emit`, and close the editor via `closeNodeEditor`.
+	 *
+	 * Returns early when input is empty, the node limit is reached, or creation is
+	 * already in progress. On failure it logs and calls `setError`.
+	 *
+	 * @returns Promise<void> Performs state mutations and network requests; callers
+	 * should account for concurrent invocation.
+	 */
 	const handleCreate = useCallback(async () => {
 		// Guard: same checks as ActionBar canCreate prop
 		if (value.trim().length === 0 || isAtNodeLimit || isCreating) return;
@@ -440,7 +541,9 @@ export const QuickInput: FC<QuickInputProps> = ({
 			const assigneeUserIds = Array.from(
 				new Set(
 					rawAssignees
-						.filter((assignee): assignee is string => typeof assignee === 'string')
+						.filter(
+							(assignee): assignee is string => typeof assignee === 'string'
+						)
 						.map((assignee) => mentionSlugToUserId.get(assignee.toLowerCase()))
 						.filter((userId): userId is string => Boolean(userId))
 				)
@@ -478,26 +581,50 @@ export const QuickInput: FC<QuickInputProps> = ({
 			}
 
 			if (mapId && assigneeUserIds.length > 0) {
-				void fetch('/api/notifications/emit', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						events: [
-							{
-								type: 'node_mention',
-								mapId,
-								recipientUserIds: assigneeUserIds,
-								nodeId: mode === 'edit' ? existingNode?.id : undefined,
-								nodeContent: cleanValue,
-							},
-						],
-					}),
-				}).catch((notificationError: unknown) => {
-					console.warn(
-						'[quick-input] failed to emit node mention notification',
-						notificationError
-					);
-				});
+				void (async () => {
+					try {
+						const response = await fetch('/api/notifications/emit', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({
+								events: [
+									{
+										type: 'node_mention',
+										mapId,
+										recipientUserIds: assigneeUserIds,
+										nodeId: mode === 'edit' ? existingNode?.id : undefined,
+										nodeContent: cleanValue,
+									},
+								],
+							}),
+						});
+
+						if (!response.ok) {
+							const responseBody = await response.text();
+							let parsedBody: unknown = responseBody;
+							if (responseBody) {
+								try {
+									parsedBody = JSON.parse(responseBody) as unknown;
+								} catch {
+									// Keep raw text when response body is not JSON.
+								}
+							}
+
+							console.warn(
+								'[quick-input] node mention notification emit failed',
+								{
+									status: response.status,
+									body: parsedBody || response.statusText,
+								}
+							);
+						}
+					} catch (notificationError: unknown) {
+						console.warn(
+							'[quick-input] failed to emit node mention notification',
+							notificationError
+						);
+					}
+				})();
 			}
 
 			// Close the editor after successful creation/update
@@ -651,13 +778,25 @@ export const QuickInput: FC<QuickInputProps> = ({
 			<AnimatePresence>
 				{hasSyntaxPatterns && (
 					<motion.div
-						animate={{ opacity: 1, height: 'auto', y: 0 }}
+						animate={
+							prefersReducedMotion
+								? { opacity: 1 }
+								: { opacity: 1, height: 'auto', y: 0 }
+						}
 						className='mt-3'
-						exit={{ opacity: 0, height: 0, y: -20 }}
-						initial={{ opacity: 0, height: 0, y: -20 }}
+						exit={
+							prefersReducedMotion
+								? { opacity: 0 }
+								: { opacity: 0, height: 0, y: -20 }
+						}
+						initial={
+							prefersReducedMotion
+								? { opacity: 0 }
+								: { opacity: 0, height: 0, y: -20 }
+						}
 						transition={{
-							duration: 0.2,
-							delay: 0.1,
+							duration: prefersReducedMotion ? 0.1 : 0.2,
+							delay: prefersReducedMotion ? 0 : 0.1,
 							ease: 'easeInOut' as const,
 						}}
 					>
@@ -667,13 +806,11 @@ export const QuickInput: FC<QuickInputProps> = ({
 							isUniversalCollapsed={universalLegendCollapsed}
 							nodeSpecificPatterns={nodeSpecificPatterns}
 							onPatternClick={handlePatternInsert}
-							onToggleCollapse={() => setLegendCollapsed(!legendCollapsed)}
-							onToggleNodeSpecificCollapse={() =>
-								setNodeSpecificLegendCollapsed(!nodeSpecificLegendCollapsed)
+							onToggleCollapse={handleLegendCollapseToggle}
+							onToggleNodeSpecificCollapse={
+								handleNodeSpecificLegendCollapseToggle
 							}
-							onToggleUniversalCollapse={() =>
-								setUniversalLegendCollapsed(!universalLegendCollapsed)
-							}
+							onToggleUniversalCollapse={handleUniversalLegendCollapseToggle}
 							universalPatterns={universalPatterns}
 						/>
 					</motion.div>
@@ -684,13 +821,19 @@ export const QuickInput: FC<QuickInputProps> = ({
 			<AnimatePresence>
 				{!hasSyntaxPatterns && (
 					<motion.div
-						animate={{ opacity: 1, y: 0 }}
+						animate={
+							prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }
+						}
 						className='mt-3 text-xs text-zinc-500'
-						exit={{ opacity: 0, y: -10 }}
-						initial={{ opacity: 0, y: -10 }}
+						exit={
+							prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -10 }
+						}
+						initial={
+							prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -10 }
+						}
 						transition={{
-							delay: 0.05,
-							duration: 0.3,
+							delay: prefersReducedMotion ? 0 : 0.05,
+							duration: prefersReducedMotion ? 0.12 : 0.3,
 							ease: 'easeOut' as const,
 						}}
 					>

@@ -1,15 +1,19 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from '@/components/ui/popover';
 import { subscribeToNotificationChannel } from '@/lib/realtime/notification-channel';
 import useAppStore from '@/store/mind-map-store';
 import type { NotificationRecord } from '@/types/notification';
 import { cn } from '@/utils/cn';
 import { Bell, CheckCheck, Circle } from 'lucide-react';
 import Link from 'next/link';
-import { useShallow } from 'zustand/shallow';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useShallow } from 'zustand/shallow';
 
 interface NotificationBellProps {
 	className?: string;
@@ -43,8 +47,17 @@ export function NotificationBell({
 		if (!filterMapId) {
 			return notifications;
 		}
-		return notifications.filter((notification) => notification.map_id === filterMapId);
+		return notifications.filter(
+			(notification) => notification.map_id === filterMapId
+		);
 	}, [notifications, filterMapId]);
+
+	const visibleUnreadCount = useMemo(
+		() =>
+			visibleNotifications.filter((notification) => !notification.is_read)
+				.length,
+		[visibleNotifications]
+	);
 
 	const fetchNotifications = useCallback(async () => {
 		setIsLoading(true);
@@ -103,22 +116,25 @@ export function NotificationBell({
 					});
 				}
 			},
+		})
+			.then((subscription) => {
+				if (cancelled) {
+					subscription.disconnect();
+					return;
+				}
+				unsubscribe = subscription.disconnect;
 			})
-				.then((subscription) => {
-					if (cancelled) {
-						subscription.disconnect();
-						return;
-					}
-					unsubscribe = subscription.disconnect;
-				})
-				.catch((error) => {
-					if (!cancelled) {
-						console.warn('[notification-bell] failed to subscribe to notification channel', {
+			.catch((error) => {
+				if (!cancelled) {
+					console.warn(
+						'[notification-bell] failed to subscribe to notification channel',
+						{
 							userId: currentUser.id,
 							error: error instanceof Error ? error.message : 'Unknown error',
-						});
-					}
-				});
+						}
+					);
+				}
+			});
 
 		return () => {
 			cancelled = true;
@@ -133,6 +149,10 @@ export function NotificationBell({
 	}, [isOpen, fetchNotifications]);
 
 	const handleMarkAllAsRead = useCallback(async () => {
+		if (visibleUnreadCount === 0) {
+			return;
+		}
+
 		try {
 			const response = await fetch('/api/notifications/mark-all-read', {
 				method: 'POST',
@@ -148,44 +168,72 @@ export function NotificationBell({
 				return;
 			}
 
+			setNotifications((current) =>
+				current.map((notification) => {
+					const isVisibleTarget = filterMapId
+						? notification.map_id === filterMapId
+						: true;
+					if (!isVisibleTarget || notification.is_read) {
+						return notification;
+					}
+					return {
+						...notification,
+						is_read: true,
+						read_at: new Date().toISOString(),
+					};
+				})
+			);
+			setUnreadCount((current) =>
+				filterMapId ? Math.max(0, current - visibleUnreadCount) : 0
+			);
 			void fetchNotifications();
 		} catch (markAllError) {
-			console.warn('[notification-bell] failed to mark all as read', markAllError);
+			console.warn(
+				'[notification-bell] failed to mark all as read',
+				markAllError
+			);
 		}
-	}, [fetchNotifications, filterMapId]);
+	}, [fetchNotifications, filterMapId, visibleUnreadCount]);
 
-	const handleMarkSingleAsRead = useCallback(
-		async (notificationId: string) => {
-			try {
-				const response = await fetch(`/api/notifications/${notificationId}/read`, {
+	const handleMarkSingleAsRead = useCallback(async (notificationId: string) => {
+		try {
+			const response = await fetch(
+				`/api/notifications/${notificationId}/read`,
+				{
 					method: 'PATCH',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ read: true }),
-				});
-				if (!response.ok) {
-					console.warn('[notification-bell] failed to mark notification as read', {
+				}
+			);
+			if (!response.ok) {
+				console.warn(
+					'[notification-bell] failed to mark notification as read',
+					{
 						notificationId,
 						status: response.status,
-					});
-					return;
-				}
-				setNotifications((current) =>
-					current.map((notification) =>
-						notification.id === notificationId
-							? { ...notification, is_read: true, read_at: new Date().toISOString() }
-							: notification
-					)
+					}
 				);
-				setUnreadCount((current) => Math.max(0, current - 1));
-			} catch (markError) {
-				console.warn('[notification-bell] failed to mark notification as read', {
-					notificationId,
-					markError,
-				});
+				return;
 			}
-		},
-		[]
-	);
+			setNotifications((current) =>
+				current.map((notification) =>
+					notification.id === notificationId
+						? {
+								...notification,
+								is_read: true,
+								read_at: new Date().toISOString(),
+							}
+						: notification
+				)
+			);
+			setUnreadCount((current) => Math.max(0, current - 1));
+		} catch (markError) {
+			console.warn('[notification-bell] failed to mark notification as read', {
+				notificationId,
+				markError,
+			});
+		}
+	}, []);
 
 	return (
 		<Popover onOpenChange={setIsOpen} open={isOpen}>
@@ -198,9 +246,9 @@ export function NotificationBell({
 						variant='secondary'
 					>
 						<Bell className='size-4' />
-						{unreadCount > 0 && (
+						{visibleUnreadCount > 0 && (
 							<span className='absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[10px] leading-4 text-center'>
-								{unreadCount > 99 ? '99+' : unreadCount}
+								{visibleUnreadCount > 99 ? '99+' : visibleUnreadCount}
 							</span>
 						)}
 					</Button>
@@ -210,14 +258,18 @@ export function NotificationBell({
 			<PopoverContent align='end' className='w-[340px] p-0' side='bottom'>
 				<div className='flex items-center justify-between px-3 py-2 border-b border-border-default'>
 					<div className='flex items-center gap-2'>
-						<span className='text-sm font-medium text-text-primary'>Notifications</span>
-						{unreadCount > 0 && (
-							<span className='text-xs text-text-secondary'>{unreadCount} unread</span>
+						<span className='text-sm font-medium text-text-primary'>
+							Notifications
+						</span>
+						{visibleUnreadCount > 0 && (
+							<span className='text-xs text-text-secondary'>
+								{visibleUnreadCount} unread
+							</span>
 						)}
 					</div>
 					<Button
 						className='h-7 px-2 text-xs'
-						disabled={unreadCount === 0}
+						disabled={visibleUnreadCount === 0}
 						onClick={handleMarkAllAsRead}
 						size='sm'
 						variant='ghost'
@@ -229,11 +281,15 @@ export function NotificationBell({
 
 				<div className='max-h-[420px] overflow-y-auto'>
 					{isLoading && notifications.length === 0 ? (
-						<div className='px-3 py-6 text-sm text-text-secondary'>Loading notifications...</div>
+						<div className='px-3 py-6 text-sm text-text-secondary'>
+							Loading notifications...
+						</div>
 					) : error ? (
 						<div className='px-3 py-6 text-sm text-red-400'>{error}</div>
 					) : visibleNotifications.length === 0 ? (
-						<div className='px-3 py-6 text-sm text-text-secondary'>No notifications yet.</div>
+						<div className='px-3 py-6 text-sm text-text-secondary'>
+							No notifications yet.
+						</div>
 					) : (
 						<ul className='divide-y divide-border-default'>
 							{visibleNotifications.map((notification) => (
@@ -260,15 +316,21 @@ export function NotificationBell({
 												<div className='mt-2 flex items-center justify-between gap-2'>
 													<span
 														className='text-[11px] text-text-disabled'
-														title={new Date(notification.created_at).toLocaleString()}
+														title={new Date(
+															notification.created_at
+														).toLocaleString()}
 													>
-														{formatRelativeTime(new Date(notification.created_at))}
+														{formatRelativeTime(
+															new Date(notification.created_at)
+														)}
 													</span>
 													<div className='flex items-center gap-1.5'>
 														{!notification.is_read && (
 															<Button
 																className='h-6 px-2 text-[11px]'
-																onClick={() => void handleMarkSingleAsRead(notification.id)}
+																onClick={() =>
+																	void handleMarkSingleAsRead(notification.id)
+																}
 																size='sm'
 																variant='ghost'
 															>

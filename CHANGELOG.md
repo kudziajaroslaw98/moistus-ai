@@ -40,6 +40,14 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Prevents invalid preference keys/values from compiling and keeps preference writes type-safe
 - **notifications/partykit-dispatch**: `createNotifications` no longer awaits PartyKit event fan-out before returning
   - Why: Prevents notification creation latency from being blocked by downstream realtime push timing
+- **dashboard/settings-preferences**: Profile visibility/theme/reduced-motion preference controls are now disabled while profile save/load is in flight
+  - Why: Prevents in-flight preference edits from mutating staged form data during save/load transitions
+- **api/templates/[id]**: Template reads now use authenticated-viewer semantics without redundant share-access lookups, and node/edge queries now enumerate explicit selected columns
+  - Why: Removes dead authorization branches for templates and avoids schema-coupled overfetching from `select('*')`
+- **notifications/comments-events**: Comments slice now uses shared `NotificationEmitEvent` typing for notification payloads
+  - Why: Keeps emit payload contracts aligned with centralized notification event types
+- **node-editor/reduced-motion**: Quick input syntax legend/hint animations now respect reduced-motion preferences
+  - Why: Avoids height/Y transform animation when reduced motion is enabled
 
 ### Fixed
 
@@ -59,6 +67,20 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Prevents sending emails when preference verification fails
 - **notifications/ui + comments**: Mark-all-read refresh now runs only after successful POST; comment-reaction emit now logs non-2xx HTTP responses
   - Why: Aligns client behavior with success semantics and surfaces backend failures that were previously silent
+- **node-editor/mentionable-users**: Quick input now validates/sanitizes mentionable user payloads before using `slug`/`userId`
+  - Why: Prevents malformed API rows from causing runtime crashes during mention normalization
+- **node-editor/emit-error-surface**: Quick input now logs non-2xx `/api/notifications/emit` responses with status + response body details
+  - Why: Makes validation/auth emit failures visible instead of silently ignored
+- **node-editor/legend-storage**: Quick input legend collapse state now initializes client-side and persists through toggle handlers
+  - Why: Prevents SSR crashes from render-time `localStorage` access and avoids overwriting saved collapse state on mount
+- **notifications/filter-scope**: Notification bell unread badge/counts and “Mark all” action now scope to visible (map-filtered) notifications
+  - Why: Ensures filtered inbox views only display and mutate read state for visible notifications
+- **comments/recipient-batching**: Comment mention/reply notification recipients now emit in chunks of 50 per API call
+  - Why: Prevents oversized recipient arrays from being rejected by the emit API limit
+- **comments/reaction-error-guard**: Reaction-notification emit catch now uses `unknown` + runtime error normalization
+  - Why: Keeps error logging type-safe and consistent across emit failure paths
+- **mind-map/map-settings-a11y**: Thumbnail validation message is now programmatically associated with the thumbnail input
+  - Why: Allows screen readers to announce thumbnail URL validation errors correctly
 
 ### Docs
 
@@ -66,6 +88,12 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Makes notification service/channel/schema/mention-resolution behavior operationally traceable
 - **notifications/jsdoc**: Added maintainers' JSDoc for `processNotificationEmails` and `subscribeToNotificationChannel`
   - Why: Documents async delivery lifecycle, side effects, reconnect semantics, and failure handling for incident triage
+- **codebase-map/route-counts**: Updated stale API route counts to 61 and labeled the root directory tree fence as `text`
+  - Why: Keeps architecture docs accurate and resolves markdown fenced-code lint warnings
+- **mind-map/map-settings**: Added `computeHasChanges` JSDoc describing normalization and tag diffing behavior
+  - Why: Documents save/discard gating logic to reduce regression risk
+- **node-editor/quick-input**: Added `handleCreate` JSDoc covering inputs, side effects, guards, and concurrency implications
+  - Why: Clarifies create/update + notification emit behavior for maintainers
 
 ## [2026-02-28]
 

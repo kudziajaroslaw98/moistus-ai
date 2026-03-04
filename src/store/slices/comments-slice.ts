@@ -11,9 +11,39 @@ import type {
 	CreateMessageRequest,
 	CreateReactionRequest,
 } from '@/types/comment';
+import type { NotificationEmitEvent } from '@/types/notification';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { StateCreator } from 'zustand';
 import type { AppState } from '../app-state';
+
+const NOTIFICATION_RECIPIENTS_PER_EVENT_LIMIT = 50;
+
+function chunkArray<T>(items: T[], chunkSize: number): T[][] {
+	if (items.length === 0) {
+		return [];
+	}
+
+	const chunks: T[][] = [];
+	for (let index = 0; index < items.length; index += chunkSize) {
+		chunks.push(items.slice(index, index + chunkSize));
+	}
+	return chunks;
+}
+
+function toErrorLogPayload(error: unknown): {
+	message: string;
+	details?: unknown;
+} {
+	if (error instanceof Error) {
+		return { message: error.message };
+	}
+
+	if (typeof error === 'string') {
+		return { message: error };
+	}
+
+	return { message: 'Unknown error', details: error };
+}
 
 export interface CommentsSlice {
 	// State
@@ -326,11 +356,7 @@ export const createCommentsSlice: StateCreator<
 			}
 
 			// Extract unique user IDs from messages
-			const userIds = [
-				...new Set(
-					data.map((msg) => msg.user_id as string)
-				),
-			];
+			const userIds = [...new Set(data.map((msg) => msg.user_id as string))];
 
 			// Batch fetch all user profiles
 			const { data: profiles } = await supabase
@@ -339,9 +365,7 @@ export const createCommentsSlice: StateCreator<
 				.in('user_id', userIds);
 
 			// Create a map of user_id -> profile for quick lookup
-			const profileMap = new Map(
-				(profiles || []).map((p) => [p.user_id, p])
-			);
+			const profileMap = new Map((profiles || []).map((p) => [p.user_id, p]));
 
 			// Enrich messages with user data from fetched profiles
 			const messages: CommentMessage[] = data.map((msg) => {
@@ -353,8 +377,7 @@ export const createCommentsSlice: StateCreator<
 					profile?.display_name ||
 					profile?.full_name ||
 					generateFunName(userId);
-				const avatarUrl =
-					profile?.avatar_url || generateFallbackAvatar(userId);
+				const avatarUrl = profile?.avatar_url || generateFallbackAvatar(userId);
 
 				return {
 					...msg,
@@ -383,7 +406,8 @@ export const createCommentsSlice: StateCreator<
 	},
 
 	addMessage: async (commentId: string, data: CreateMessageRequest) => {
-		const { supabase, currentUser, userProfile, comments, commentMessages } = get();
+		const { supabase, currentUser, userProfile, comments, commentMessages } =
+			get();
 
 		if (!currentUser) {
 			console.error('User must be authenticated to add messages');
@@ -397,9 +421,11 @@ export const createCommentsSlice: StateCreator<
 			const comment = comments.find((entry) => entry.id === commentId);
 			const mapId = comment?.map_id;
 			const mentionRecipientIds = Array.from(
-				new Set((data.mentioned_users || []).filter(
-					(id): id is string => Boolean(id) && id !== currentUser.id
-				))
+				new Set(
+					(data.mentioned_users || []).filter(
+						(id): id is string => Boolean(id) && id !== currentUser.id
+					)
+				)
 			);
 			const threadParticipants = new Set(
 				(commentMessages[commentId] || []).map((message) => message.user_id)
@@ -481,55 +507,58 @@ export const createCommentsSlice: StateCreator<
 			}));
 
 			if (mapId) {
-				const events: Array<{
-					type: 'comment_mention' | 'comment_reply';
-					mapId: string;
-					commentId: string;
-					messageId: string;
-					recipientUserIds: string[];
-					messageContent: string;
-				}> = [];
-				if (mentionRecipientIds.length > 0) {
+				const events: NotificationEmitEvent[] = [];
+				for (const recipientChunk of chunkArray(
+					mentionRecipientIds,
+					NOTIFICATION_RECIPIENTS_PER_EVENT_LIMIT
+				)) {
 					events.push({
 						type: 'comment_mention',
 						mapId,
 						commentId,
 						messageId,
-						recipientUserIds: mentionRecipientIds,
+						recipientUserIds: recipientChunk,
 						messageContent: data.content,
 					});
 				}
-				if (replyRecipientIds.length > 0) {
+				for (const recipientChunk of chunkArray(
+					replyRecipientIds,
+					NOTIFICATION_RECIPIENTS_PER_EVENT_LIMIT
+				)) {
 					events.push({
 						type: 'comment_reply',
 						mapId,
 						commentId,
 						messageId,
-						recipientUserIds: replyRecipientIds,
+						recipientUserIds: recipientChunk,
 						messageContent: data.content,
 					});
 				}
 
 				if (events.length > 0) {
-					void fetch('/api/notifications/emit', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ events }),
-					})
-						.then((response) => {
-							if (!response.ok) {
-								console.warn('[comments-slice] notification emit failed', {
-									status: response.status,
-									statusText: response.statusText,
+					void (async () => {
+						for (const event of events) {
+							try {
+								const response = await fetch('/api/notifications/emit', {
+									method: 'POST',
+									headers: { 'Content-Type': 'application/json' },
+									body: JSON.stringify({ events: [event] }),
 								});
+								if (!response.ok) {
+									console.warn('[comments-slice] notification emit failed', {
+										eventType: event.type,
+										status: response.status,
+										statusText: response.statusText,
+									});
+								}
+							} catch (notificationError: unknown) {
+								console.warn(
+									'[comments-slice] failed to emit comment notifications',
+									toErrorLogPayload(notificationError)
+								);
 							}
-						})
-						.catch((notificationError: unknown) => {
-							console.warn(
-								'[comments-slice] failed to emit comment notifications',
-								notificationError
-							);
-						});
+						}
+					})();
 				}
 			}
 
@@ -731,10 +760,10 @@ export const createCommentsSlice: StateCreator<
 								);
 							}
 						})
-						.catch((notificationError) => {
+						.catch((notificationError: unknown) => {
 							console.warn(
 								'[comments-slice] failed to emit comment reaction notification',
-								notificationError
+								toErrorLogPayload(notificationError)
 							);
 						});
 				}
@@ -861,7 +890,9 @@ export const createCommentsSlice: StateCreator<
 								set((state) => {
 									const newComment = newRecord as Comment;
 									// Prevent duplicates: only add if comment doesn't already exist
-									const exists = state.comments.some((c) => c.id === newComment.id);
+									const exists = state.comments.some(
+										(c) => c.id === newComment.id
+									);
 									if (exists) return state;
 
 									return {
@@ -944,9 +975,12 @@ export const createCommentsSlice: StateCreator<
 								};
 
 								set((state) => {
-									const existingMessages = state.commentMessages[commentId] || [];
+									const existingMessages =
+										state.commentMessages[commentId] || [];
 									// Prevent duplicates: only add if message doesn't already exist
-									const exists = existingMessages.some((m) => m.id === newMessage.id);
+									const exists = existingMessages.some(
+										(m) => m.id === newMessage.id
+									);
 									if (exists) {
 										// Message already exists (from optimistic update), update it with server data
 										return {
