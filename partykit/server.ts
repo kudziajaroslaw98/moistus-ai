@@ -685,9 +685,18 @@ async function authorizeRoomRequest(
 			SUPABASE_JWKS_URL: getSupabaseJwksUrl(env),
 			SUPABASE_JWT_ISSUER: getSupabaseJwtIssuer(env),
 			SUPABASE_JWT_AUDIENCE: getEnvString(env, 'SUPABASE_JWT_AUDIENCE'),
+			SUPABASE_URL: getEnvString(env, 'SUPABASE_URL'),
+			NEXT_PUBLIC_SUPABASE_URL: getEnvString(env, 'NEXT_PUBLIC_SUPABASE_URL'),
+			SUPABASE_SERVICE_ROLE: getEnvString(env, 'SUPABASE_SERVICE_ROLE'),
+			SUPABASE_SERVICE_ROLE_KEY: getEnvString(env, 'SUPABASE_SERVICE_ROLE_KEY'),
 		});
 		userId = claims.sub;
-	} catch {
+	} catch (error) {
+		console.warn('[partykit] Realtime auth token rejected', {
+			roomId: parsedMindMapRoom?.mapId ?? parsedUserRoom?.userId ?? null,
+			channel: parsedMindMapRoom?.channel ?? parsedUserRoom?.channel ?? null,
+			reason: error instanceof Error ? error.message : 'Invalid auth token',
+		});
 		return unauthorized('Invalid auth token');
 	}
 
@@ -716,6 +725,11 @@ async function authorizeRoomRequest(
 	}
 
 	if (!access || !access.canView) {
+		console.warn('[partykit] Realtime access denied for viewer check', {
+			mapId: parsedMindMapRoom.mapId,
+			channel: parsedMindMapRoom.channel,
+			userId,
+		});
 		return forbidden('Map access denied');
 	}
 
