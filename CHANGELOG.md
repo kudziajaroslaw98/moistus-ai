@@ -36,6 +36,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **mention-identity**: Eliminated slug/UUID mismatch in comment mention writes for users resolved from map collaborators
   - Why: Prevents invalid `mentioned_users` payloads and ensures notification recipients are valid users
+- **notifications/inbox-refresh**: Notification bell now auto-refreshes while the app is open via Supabase realtime subscription, visibility/focus-triggered fetches, and a short active polling fallback
+  - Why: Ensures new notifications appear without manual page refresh or opening the bell popover
 
 ## [2026-02-28]
 

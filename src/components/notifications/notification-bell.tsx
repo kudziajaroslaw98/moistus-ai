@@ -2,10 +2,12 @@
 
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import useAppStore from '@/store/mind-map-store';
 import type { NotificationRecord } from '@/types/notification';
 import { cn } from '@/utils/cn';
 import { Bell, CheckCheck, Circle } from 'lucide-react';
 import Link from 'next/link';
+import { useShallow } from 'zustand/shallow';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 interface NotificationBellProps {
@@ -21,12 +23,19 @@ interface NotificationsApiResponse {
 	};
 }
 
-const POLL_INTERVAL_MS = 45_000;
+const ACTIVE_POLL_INTERVAL_MS = 5_000;
+const BACKGROUND_POLL_INTERVAL_MS = 45_000;
 
 export function NotificationBell({
 	className,
 	filterMapId = null,
 }: NotificationBellProps) {
+	const { supabase, currentUser } = useAppStore(
+		useShallow((state) => ({
+			supabase: state.supabase,
+			currentUser: state.currentUser,
+		}))
+	);
 	const [isOpen, setIsOpen] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
@@ -67,11 +76,73 @@ export function NotificationBell({
 
 	useEffect(() => {
 		void fetchNotifications();
-		const intervalId = window.setInterval(() => {
+
+		const getPollInterval = () =>
+			document.visibilityState === 'visible'
+				? ACTIVE_POLL_INTERVAL_MS
+				: BACKGROUND_POLL_INTERVAL_MS;
+
+		let intervalId = window.setInterval(() => {
 			void fetchNotifications();
-		}, POLL_INTERVAL_MS);
-		return () => window.clearInterval(intervalId);
+		}, getPollInterval());
+
+		const resetInterval = () => {
+			window.clearInterval(intervalId);
+			intervalId = window.setInterval(() => {
+				void fetchNotifications();
+			}, getPollInterval());
+		};
+
+		const handleVisibilityChange = () => {
+			resetInterval();
+			if (document.visibilityState === 'visible') {
+				void fetchNotifications();
+			}
+		};
+
+		const handleWindowFocus = () => {
+			void fetchNotifications();
+		};
+
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+		window.addEventListener('focus', handleWindowFocus);
+
+		return () => {
+			window.clearInterval(intervalId);
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
+			window.removeEventListener('focus', handleWindowFocus);
+		};
 	}, [fetchNotifications]);
+
+	useEffect(() => {
+		if (!currentUser?.id) {
+			return;
+		}
+
+		const channel = supabase
+			.channel(`notifications-live:${currentUser.id}`)
+			.on(
+				'postgres_changes',
+				{
+					event: '*',
+					schema: 'public',
+					table: 'notifications',
+					filter: `recipient_user_id=eq.${currentUser.id}`,
+				},
+				() => {
+					void fetchNotifications();
+				}
+			)
+			.subscribe((status) => {
+				if (status === 'SUBSCRIBED') {
+					void fetchNotifications();
+				}
+			});
+
+		return () => {
+			void supabase.removeChannel(channel);
+		};
+	}, [supabase, currentUser?.id, fetchNotifications]);
 
 	useEffect(() => {
 		if (isOpen) {
