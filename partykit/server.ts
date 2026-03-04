@@ -4,9 +4,11 @@ import * as Y from 'yjs';
 import {
 	isAdminAccessRevokedPath,
 	isAdminCollaboratorEventPath,
+	isAdminNotificationEventPath,
 	isAdminPath,
 	isAdminPermissionsUpdatePath,
 	isAdminRevokePath,
+	parseUserRoom,
 	parseMindMapRoom,
 	parseRoomNameFromRequest,
 	readAdminToken,
@@ -191,6 +193,13 @@ type SharingCollaboratorRemoveEvent = {
 type SharingAdminEventPayload =
 	| SharingCollaboratorUpsertEvent
 	| SharingCollaboratorRemoveEvent;
+
+type NotificationRefreshEvent = {
+	type: 'notifications:refresh';
+	recipientUserId: string;
+	notificationId: string;
+	occurredAt: string;
+};
 
 type RealtimeConnectionState = {
 	userId: string | null;
@@ -625,8 +634,9 @@ async function authorizeRoomRequest(
 		return badRequest('Room name is required');
 	}
 
-	const parsedRoom = parseMindMapRoom(roomName);
-	if (!parsedRoom) {
+	const parsedMindMapRoom = parseMindMapRoom(roomName);
+	const parsedUserRoom = parsedMindMapRoom ? null : parseUserRoom(roomName);
+	if (!parsedMindMapRoom && !parsedUserRoom) {
 		return badRequest('Invalid room name format');
 	}
 
@@ -647,9 +657,25 @@ async function authorizeRoomRequest(
 		return unauthorized('Invalid auth token');
 	}
 
+	if (parsedUserRoom) {
+		if (parsedUserRoom.userId !== userId) {
+			return forbidden('Room access denied');
+		}
+
+		const headers = new Headers(request.headers);
+		headers.set('x-auth-user-id', userId);
+		headers.set('x-auth-room-name', parsedUserRoom.roomName);
+		headers.set('x-auth-channel', parsedUserRoom.channel);
+		return new Request(request, { headers });
+	}
+
+	if (!parsedMindMapRoom) {
+		return badRequest('Invalid room name format');
+	}
+
 	let access: MapAccess | null = null;
 	try {
-		access = await getMapAccess(env, userId, parsedRoom.mapId);
+		access = await getMapAccess(env, userId, parsedMindMapRoom.mapId);
 	} catch (error) {
 		console.error('[partykit] Failed to validate permissions:', error);
 		return new Response('Failed to validate permissions', { status: 500 });
@@ -661,8 +687,9 @@ async function authorizeRoomRequest(
 
 	const headers = new Headers(request.headers);
 	headers.set('x-auth-user-id', userId);
-	headers.set('x-auth-map-id', parsedRoom.mapId);
-	headers.set('x-auth-room-name', parsedRoom.roomName);
+	headers.set('x-auth-map-id', parsedMindMapRoom.mapId);
+	headers.set('x-auth-room-name', parsedMindMapRoom.roomName);
+	headers.set('x-auth-channel', parsedMindMapRoom.channel);
 	headers.set('x-auth-role', access.role);
 	headers.set('x-auth-can-view', String(access.canView));
 	headers.set('x-auth-can-comment', String(access.canComment));
@@ -1528,6 +1555,22 @@ function isSharingAdminEventPayload(
 	return false;
 }
 
+function isNotificationRefreshPayload(
+	value: Record<string, unknown>
+): value is {
+	targetUserId: string;
+	notificationId: string;
+	occurredAt: string;
+} {
+	return (
+		typeof value.targetUserId === 'string' &&
+		UUID_PATTERN.test(value.targetUserId) &&
+		typeof value.notificationId === 'string' &&
+		typeof value.occurredAt === 'string' &&
+		!Number.isNaN(Date.parse(value.occurredAt))
+	);
+}
+
 export default class MindMapRealtimeServer implements Party.Server {
 	private static projectionQueueByMap = new Map<string, Promise<void>>();
 
@@ -1587,20 +1630,35 @@ export default class MindMapRealtimeServer implements Party.Server {
 		connection: Party.Connection,
 		context: Party.ConnectionContext
 	): Promise<void> {
-		const parsedRoom = parseMindMapRoom(this.room.id);
-		if (!parsedRoom) {
+		const parsedMindMapRoom = parseMindMapRoom(this.room.id);
+		const parsedUserRoom = parsedMindMapRoom ? null : parseUserRoom(this.room.id);
+		if (!parsedMindMapRoom && !parsedUserRoom) {
 			connection.close(1008, 'Invalid room');
 			return;
 		}
 
 		const headerUserId = context.request.headers.get('x-auth-user-id');
+		const connectionUserId = isUuid(headerUserId) ? headerUserId : null;
+		const channel = parsedMindMapRoom?.channel ?? parsedUserRoom?.channel ?? null;
 		setConnectionState(connection, {
-			userId: isUuid(headerUserId) ? headerUserId : null,
-			mapId: parsedRoom.mapId,
-			channel: parsedRoom.channel,
+			userId: connectionUserId,
+			mapId: parsedMindMapRoom?.mapId ?? null,
+			channel,
 		});
 
-		if (parsedRoom.channel === 'sharing') {
+		if (parsedUserRoom?.channel === 'notifications') {
+			if (!connectionUserId || connectionUserId !== parsedUserRoom.userId) {
+				connection.close(4403, 'room_access_denied');
+			}
+			return;
+		}
+
+		if (!parsedMindMapRoom) {
+			connection.close(1008, 'Invalid room');
+			return;
+		}
+
+		if (parsedMindMapRoom.channel === 'sharing') {
 			const role = context.request.headers.get('x-auth-role');
 			if (role !== 'owner') {
 				connection.close(4403, 'owner_only');
@@ -1610,24 +1668,24 @@ export default class MindMapRealtimeServer implements Party.Server {
 			try {
 				const collaborators = await loadCollaboratorsSnapshotForMap(
 					this.room.env,
-					parsedRoom.mapId
+					parsedMindMapRoom.mapId
 				);
 				const snapshotEvent: SharingCollaboratorsSnapshotEvent = {
 					type: 'sharing:collaborators:snapshot',
-					mapId: parsedRoom.mapId,
+					mapId: parsedMindMapRoom.mapId,
 					occurredAt: new Date().toISOString(),
 					collaborators,
 				};
 				connection.send(JSON.stringify(snapshotEvent));
 				console.info('[partykit] Sharing snapshot sent', {
-					mapId: parsedRoom.mapId,
+					mapId: parsedMindMapRoom.mapId,
 					collaboratorCount: collaborators.length,
-					roomName: parsedRoom.roomName,
+					roomName: parsedMindMapRoom.roomName,
 				});
 			} catch (error) {
 				console.error('[partykit] Failed to build sharing snapshot', {
-					mapId: parsedRoom.mapId,
-					roomName: parsedRoom.roomName,
+					mapId: parsedMindMapRoom.mapId,
+					roomName: parsedMindMapRoom.roomName,
 					error: error instanceof Error ? error.message : 'Unknown error',
 				});
 				connection.close(1011, 'snapshot_failed');
@@ -1635,9 +1693,9 @@ export default class MindMapRealtimeServer implements Party.Server {
 			return;
 		}
 
-		if (parsedRoom.channel === 'permissions') {
+		if (parsedMindMapRoom.channel === 'permissions') {
 			const snapshot = this.buildPermissionSnapshot(
-				parsedRoom.mapId,
+				parsedMindMapRoom.mapId,
 				context.request.headers
 			);
 			if (!snapshot) {
@@ -1649,7 +1707,7 @@ export default class MindMapRealtimeServer implements Party.Server {
 		}
 
 		const canEdit = context.request.headers.get('x-auth-can-edit') === 'true';
-		const allowDocWrites = parsedRoom.channel === 'sync' ? canEdit : true;
+		const allowDocWrites = parsedMindMapRoom.channel === 'sync' ? canEdit : true;
 
 		await onYjsConnect(connection, this.room, {
 			persist: {
@@ -1657,8 +1715,8 @@ export default class MindMapRealtimeServer implements Party.Server {
 			},
 			readOnly: !allowDocWrites,
 			load:
-				parsedRoom.channel === 'sync'
-					? async () => this.loadSyncDocFromDatabase(parsedRoom.mapId)
+				parsedMindMapRoom.channel === 'sync'
+					? async () => this.loadSyncDocFromDatabase(parsedMindMapRoom.mapId)
 					: undefined,
 			// Browser is the only DB/history writer in Yjs mode.
 			// PartyKit remains transport + auth + awareness only.
@@ -1672,17 +1730,75 @@ export default class MindMapRealtimeServer implements Party.Server {
 		const isPermissionUpdateRequest = isAdminPermissionsUpdatePath(url.pathname);
 		const isAccessRevokedRequest = isAdminAccessRevokedPath(url.pathname);
 		const isCollaboratorEventRequest = isAdminCollaboratorEventPath(url.pathname);
+		const isNotificationEventRequest = isAdminNotificationEventPath(url.pathname);
 		if (
 			!isRevokeRequest &&
 			!isPermissionUpdateRequest &&
 			!isAccessRevokedRequest &&
-			!isCollaboratorEventRequest
+			!isCollaboratorEventRequest &&
+			!isNotificationEventRequest
 		) {
 			return new Response('Not found', { status: 404 });
 		}
 
 		if (request.method !== 'POST') {
 			return new Response('Method not allowed', { status: 405 });
+		}
+
+		if (isNotificationEventRequest) {
+			const requestRoomName = parseRoomNameFromRequest(request.url);
+			const parsedUserRoom = parseUserRoom(requestRoomName ?? this.room.id);
+			if (!parsedUserRoom || parsedUserRoom.channel !== 'notifications') {
+				return badRequest('Invalid room');
+			}
+
+			let notificationBody: Record<string, unknown>;
+			try {
+				notificationBody = (await request.json()) as Record<string, unknown>;
+			} catch {
+				return badRequest('Invalid JSON body');
+			}
+
+			if (!isNotificationRefreshPayload(notificationBody)) {
+				return badRequest('Invalid notification payload');
+			}
+
+			if (notificationBody.targetUserId !== parsedUserRoom.userId) {
+				return badRequest('targetUserId does not match room');
+			}
+
+			const event: NotificationRefreshEvent = {
+				type: 'notifications:refresh',
+				recipientUserId: notificationBody.targetUserId,
+				notificationId: notificationBody.notificationId,
+				occurredAt: notificationBody.occurredAt,
+			};
+
+			const targetConnections = listConnectionsForUser(
+				this.room,
+				notificationBody.targetUserId
+			);
+			let deliveredConnections = 0;
+			for (const connection of targetConnections) {
+				connection.send(JSON.stringify(event));
+				deliveredConnections += 1;
+			}
+
+			if (deliveredConnections === 0) {
+				console.warn('[partykit] Notification refresh delivered to zero connections', {
+					userId: notificationBody.targetUserId,
+					roomName: parsedUserRoom.roomName,
+					notificationId: notificationBody.notificationId,
+				});
+			}
+
+			return Response.json({
+				success: true,
+				userId: notificationBody.targetUserId,
+				room: parsedUserRoom.roomName,
+				notificationId: notificationBody.notificationId,
+				deliveredConnections,
+			});
 		}
 
 		const roomResolution = resolveAdminRoom(request.url, this.room.id);

@@ -1,4 +1,5 @@
 import { resolveDisplayName } from '@/helpers/identity/resolve-user-identity';
+import { pushPartyKitNotificationEvent } from '@/helpers/partykit/admin';
 import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { createResendClient } from '@/lib/email';
 import type {
@@ -64,6 +65,26 @@ export async function createNotifications(
 	}
 
 	const created = (data ?? []) as NotificationRecord[];
+	await Promise.all(
+		created.map(async (notification) => {
+			try {
+				await pushPartyKitNotificationEvent({
+					targetUserId: notification.recipient_user_id,
+					notificationId: notification.id,
+					occurredAt: notification.created_at,
+				});
+			} catch (error) {
+				console.warn(
+					'[notifications] failed to push PartyKit notification event',
+					{
+						notificationId: notification.id,
+						recipientUserId: notification.recipient_user_id,
+						error: error instanceof Error ? error.message : 'Unknown error',
+					}
+				);
+			}
+		})
+	);
 	await processNotificationEmails(adminClient, created);
 	return created;
 }

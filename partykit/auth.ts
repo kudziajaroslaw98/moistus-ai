@@ -17,6 +17,12 @@ export type ParsedMindMapRoom = {
 	channel: string;
 };
 
+export type ParsedUserRoom = {
+	roomName: string;
+	userId: string;
+	channel: 'notifications';
+};
+
 type JoseModule = typeof import('jose');
 const jwksByUrl = new Map<
 	string,
@@ -170,6 +176,35 @@ export function parseMindMapRoom(roomName: string): ParsedMindMapRoom | null {
 	return null;
 }
 
+export function parseUserRoom(roomName: string): ParsedUserRoom | null {
+	const rawRoomName = roomName.split('/').filter(Boolean).pop() ?? roomName;
+	const candidates: string[] = [rawRoomName];
+
+	try {
+		const decodedOnce = decodeURIComponent(rawRoomName);
+		if (decodedOnce !== rawRoomName) {
+			candidates.push(decodedOnce);
+		}
+	} catch {
+		// Ignore invalid encoding and fall back to raw room name.
+	}
+
+	const roomPattern =
+		/^user:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}):(notifications)$/i;
+
+	for (const candidate of candidates) {
+		const match = roomPattern.exec(candidate);
+		if (!match) continue;
+		return {
+			roomName: candidate,
+			userId: match[1],
+			channel: 'notifications',
+		};
+	}
+
+	return null;
+}
+
 export function isAdminRevokePath(pathname: string): boolean {
 	return pathname.endsWith('/admin/revoke');
 }
@@ -186,12 +221,17 @@ export function isAdminCollaboratorEventPath(pathname: string): boolean {
 	return pathname.endsWith('/admin/collaborator-event');
 }
 
+export function isAdminNotificationEventPath(pathname: string): boolean {
+	return pathname.endsWith('/admin/notification-event');
+}
+
 export function isAdminPath(pathname: string): boolean {
 	return (
 		isAdminRevokePath(pathname) ||
 		isAdminPermissionsUpdatePath(pathname) ||
 		isAdminAccessRevokedPath(pathname) ||
-		isAdminCollaboratorEventPath(pathname)
+		isAdminCollaboratorEventPath(pathname) ||
+		isAdminNotificationEventPath(pathname)
 	);
 }
 

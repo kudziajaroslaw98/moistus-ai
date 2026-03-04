@@ -13,6 +13,7 @@ total_tokens: 707972
 <!-- Updated: 2026-02-27 - Documented account settings discard/cancel-confirm dialog flows -->
 <!-- Updated: 2026-02-28 - Documented node-editor parser cleanup and dual syntax help behavior -->
 <!-- Updated: 2026-03-04 - Added notification architecture (DB + APIs + mention resolution + inbox UI) -->
+<!-- Updated: 2026-03-04 - Switched notification inbox refresh to PartyKit user-channel realtime events -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
