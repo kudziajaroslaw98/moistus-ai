@@ -36,6 +36,7 @@ import {
 	CreditCard,
 	Download,
 	Loader2,
+	Mail,
 	Palette,
 	PenTool,
 	Save,
@@ -92,6 +93,9 @@ function createFormDataFromProfile(profile: UserProfile): UserProfileFormData {
 			theme: profile.preferences?.theme || 'system',
 			accentColor: profile.preferences?.accentColor || 'sky',
 			reducedMotion: profile.preferences?.reducedMotion || false,
+			notifications: {
+				email: profile.preferences?.notifications?.email ?? true,
+			},
 			defaultNodeType: profile.preferences?.defaultNodeType || 'defaultNode',
 			privacy: {
 				profile_visibility:
@@ -187,6 +191,9 @@ export function SettingsPanel({
 			theme: 'system',
 			accentColor: 'sky',
 			reducedMotion: false,
+			notifications: {
+				email: true,
+			},
 			defaultNodeType: 'defaultNode',
 			privacy: {
 				profile_visibility: 'private',
@@ -938,6 +945,47 @@ export function SettingsPanel({
 									>
 										<div className='space-y-1'>
 											<h3 className='flex items-center gap-2 text-lg font-semibold text-text-primary'>
+												<Mail className='size-5 text-primary' /> Notifications
+											</h3>
+											<p className='text-xs text-text-secondary'>
+												Choose which account updates should reach your inbox.
+											</p>
+										</div>
+										<div className='space-y-3'>
+											<div className='flex items-center justify-between rounded-lg border border-border-subtle bg-base p-3'>
+												<div className='space-y-0.5'>
+													<Label>Email notifications</Label>
+													<p className='text-xs text-text-secondary'>
+														Send mention/access/comment activity updates to your email.
+													</p>
+												</div>
+												<Button
+													disabled={isSaving || isLoadingProfile}
+													onClick={() =>
+														updateNestedFormData('preferences', 'notifications', {
+															...formData.preferences.notifications,
+															email: !formData.preferences.notifications.email,
+														})
+													}
+													size='sm'
+													variant={
+														formData.preferences.notifications.email
+															? 'default'
+															: 'outline'
+													}
+												>
+													{formData.preferences.notifications.email ? 'On' : 'Off'}
+												</Button>
+											</div>
+										</div>
+									</motion.section>
+
+									<motion.section
+										{...getSectionMotionProps(0.2)}
+										className='space-y-4 rounded-lg border border-border-subtle bg-base/60 p-4'
+									>
+										<div className='space-y-1'>
+											<h3 className='flex items-center gap-2 text-lg font-semibold text-text-primary'>
 												<PenTool className='size-5 text-primary' /> Editor
 											</h3>
 											<p className='text-xs text-text-secondary'>
@@ -961,7 +1009,7 @@ export function SettingsPanel({
 									</motion.section>
 
 									<motion.section
-										{...getSectionMotionProps(0.2)}
+										{...getSectionMotionProps(0.25)}
 										className='space-y-4 rounded-lg border border-border-subtle bg-base/60 p-4'
 									>
 										<div className='space-y-1'>

@@ -113,6 +113,9 @@ export const createUserProfileSlice: StateCreator<
 							theme: 'system',
 							accentColor: 'sky',
 							reducedMotion: false,
+							notifications: {
+								email: true,
+							},
 							defaultNodeType: 'defaultNode',
 							privacy: {
 								profile_visibility: 'public',

@@ -25,6 +25,7 @@ interface UserProfileEmailPayload {
 	email: string | null;
 	display_name: string | null;
 	full_name: string | null;
+	preferences: Record<string, unknown> | null;
 }
 
 const EMAIL_FROM = 'Shiko <noreply@shiko.app>';
@@ -208,7 +209,8 @@ async function processNotificationEmails(
 		const emailEnabled = await getEmailPreference(
 			adminClient,
 			notification.recipient_user_id,
-			preferenceCache
+			preferenceCache,
+			profileCache
 		);
 		if (!emailEnabled) {
 			await markSingleEmailStatus(adminClient, notification.id, {
@@ -296,7 +298,7 @@ async function getUserProfile(
 
 	const { data, error } = await adminClient
 		.from('user_profiles')
-		.select('user_id, email, display_name, full_name')
+		.select('user_id, email, display_name, full_name, preferences')
 		.eq('user_id', userId)
 		.maybeSingle();
 
@@ -317,10 +319,18 @@ async function getUserProfile(
 async function getEmailPreference(
 	adminClient: SupabaseClient,
 	userId: string,
-	cache: Map<string, boolean>
+	cache: Map<string, boolean>,
+	profileCache: Map<string, UserProfileEmailPayload | null>
 ): Promise<boolean> {
 	if (cache.has(userId)) {
 		return cache.get(userId) ?? true;
+	}
+
+	const profile = await getUserProfile(adminClient, userId, profileCache);
+	const preferenceFromProfile = resolveEmailPreferenceFromProfile(profile?.preferences);
+	if (preferenceFromProfile !== null) {
+		cache.set(userId, preferenceFromProfile);
+		return preferenceFromProfile;
 	}
 
 	const { data, error } = await adminClient
@@ -341,6 +351,35 @@ async function getEmailPreference(
 	const enabled = data?.email_notifications !== false;
 	cache.set(userId, enabled);
 	return enabled;
+}
+
+function resolveEmailPreferenceFromProfile(
+	preferences: Record<string, unknown> | null | undefined
+): boolean | null {
+	if (!preferences || typeof preferences !== 'object') {
+		return null;
+	}
+
+	const maybeNotifications = preferences.notifications;
+	if (
+		maybeNotifications &&
+		typeof maybeNotifications === 'object' &&
+		'email' in maybeNotifications
+	) {
+		const emailValue = (maybeNotifications as Record<string, unknown>).email;
+		if (typeof emailValue === 'boolean') {
+			return emailValue;
+		}
+	}
+
+	if ('emailNotifications' in preferences) {
+		const legacyValue = preferences.emailNotifications;
+		if (typeof legacyValue === 'boolean') {
+			return legacyValue;
+		}
+	}
+
+	return null;
 }
 
 async function getMapTitle(

@@ -126,6 +126,9 @@ type MockStoreState = {
 			theme: 'light' | 'dark' | 'system';
 			accentColor: string;
 			reducedMotion: boolean;
+			notifications: {
+				email: boolean;
+			};
 			defaultNodeType: 'defaultNode' | 'textNode';
 			privacy: {
 				profile_visibility: 'public' | 'private' | 'connections';
@@ -178,6 +181,9 @@ const createMockState = (): MockStoreState => ({
 			theme: 'system',
 			accentColor: 'sky',
 			reducedMotion: false,
+			notifications: {
+				email: true,
+			},
 			defaultNodeType: 'defaultNode',
 			privacy: {
 				profile_visibility: 'public',
@@ -331,6 +337,32 @@ describe('SettingsPanel', () => {
 		expect(mockState.updateUserProfile).toHaveBeenCalledWith({
 			full_name: 'New Full Name',
 			bio: 'Updated bio',
+		});
+	});
+
+	it('saves email notification toggle inside preferences', async () => {
+		const user = userEvent.setup();
+
+		render(<SettingsPanel isOpen onClose={jest.fn()} />);
+
+		const emailNotificationsToggle = screen.getByRole('button', {
+			name: 'On',
+		});
+		await user.click(emailNotificationsToggle);
+
+		const saveButton = screen.getByRole('button', { name: 'Save Changes' });
+		await user.click(saveButton);
+
+		await waitFor(() => {
+			expect(mockState.updateUserProfile).toHaveBeenCalledTimes(1);
+		});
+
+		expect(mockState.updateUserProfile).toHaveBeenCalledWith({
+			preferences: expect.objectContaining({
+				notifications: {
+					email: false,
+				},
+			}),
 		});
 	});
 

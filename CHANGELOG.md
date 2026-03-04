@@ -31,6 +31,10 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Connects node mentions to real recipients instead of unresolved slugs
 - **comments/mentions-replies-reactions**: Comment reply input resolves mention slugs to UUIDs; comments slice emits `comment_mention`, `comment_reply`, and `comment_reaction` notifications
   - Why: Delivers thread activity notifications for direct mentions, new replies, and emoji reactions
+- **dashboard/settings**: Added Account Settings toggle for email notifications (`preferences.notifications.email`)
+  - Why: Gives users explicit control over whether notification events send emails
+- **notifications/preferences-source**: Email delivery preference now checks profile preferences first (`preferences.notifications.email`) and falls back to legacy `user_preferences.email_notifications`
+  - Why: Keeps behavior backward compatible while enabling UI-driven preference control
 
 ### Fixed
 

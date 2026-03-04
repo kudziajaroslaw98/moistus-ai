@@ -14,6 +14,7 @@ total_tokens: 707972
 <!-- Updated: 2026-02-28 - Documented node-editor parser cleanup and dual syntax help behavior -->
 <!-- Updated: 2026-03-04 - Added notification architecture (DB + APIs + mention resolution + inbox UI) -->
 <!-- Updated: 2026-03-04 - Switched notification inbox refresh to PartyKit user-channel realtime events -->
+<!-- Updated: 2026-03-04 - Added account settings email-notification preference toggle -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -284,6 +285,7 @@ shiko/
 **Dashboard Account/Billing Settings Panel:**
 
 - `src/components/dashboard/settings-panel.tsx` uses changed-only account payload updates (`full_name`, `display_name`, `bio`, `preferences`) with deterministic validation and explicit save gating
+- `src/components/dashboard/settings-panel.tsx` now includes an account-level email notifications toggle (`preferences.notifications.email`) used by notification email delivery
 - `src/components/dashboard/discard-account-settings-changes-dialog.tsx` guards panel close when unsaved account edits exist
 - `src/components/dashboard/cancel-subscription-dialog.tsx` adds an explicit confirmation step before subscription cancellation
 

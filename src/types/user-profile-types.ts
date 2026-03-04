@@ -15,6 +15,9 @@ export interface UserProfile {
 		theme?: 'light' | 'dark' | 'system';
 		accentColor?: string;
 		reducedMotion?: boolean;
+		notifications?: {
+			email?: boolean;
+		};
 		defaultNodeType?: 'defaultNode' | 'textNode' | 'taskNode' | 'imageNode' | 'resourceNode' | 'questionNode' | 'codeNode' | 'annotationNode' | 'referenceNode';
 		privacy?: {
 			profile_visibility?: 'public' | 'private' | 'connections';
@@ -37,6 +40,9 @@ export interface UserProfileUpdate {
 		theme?: 'light' | 'dark' | 'system';
 		accentColor?: string;
 		reducedMotion?: boolean;
+		notifications?: {
+			email?: boolean;
+		};
 		defaultNodeType?: 'defaultNode' | 'textNode' | 'taskNode' | 'imageNode' | 'resourceNode' | 'questionNode' | 'codeNode' | 'annotationNode' | 'referenceNode';
 		privacy?: {
 			profile_visibility?: 'public' | 'private' | 'connections';
@@ -76,6 +82,9 @@ export interface UserProfileFormData {
 		theme: 'light' | 'dark' | 'system';
 		accentColor: string;
 		reducedMotion: boolean;
+		notifications: {
+			email: boolean;
+		};
 		defaultNodeType: 'defaultNode' | 'textNode' | 'taskNode' | 'imageNode' | 'resourceNode' | 'questionNode' | 'codeNode' | 'annotationNode' | 'referenceNode';
 		privacy: {
 			profile_visibility: 'public' | 'private' | 'connections';
