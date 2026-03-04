@@ -719,12 +719,24 @@ export const createCommentsSlice: StateCreator<
 								},
 							],
 						}),
-					}).catch((notificationError) => {
-						console.warn(
-							'[comments-slice] failed to emit comment reaction notification',
-							notificationError
-						);
-					});
+					})
+						.then((response) => {
+							if (!response.ok) {
+								console.warn(
+									'[comments-slice] comment reaction notification emit failed',
+									{
+										status: response.status,
+										statusText: response.statusText,
+									}
+								);
+							}
+						})
+						.catch((notificationError) => {
+							console.warn(
+								'[comments-slice] failed to emit comment reaction notification',
+								notificationError
+							);
+						});
 				}
 			}
 		} catch (error) {

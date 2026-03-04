@@ -134,15 +134,23 @@ export function NotificationBell({
 
 	const handleMarkAllAsRead = useCallback(async () => {
 		try {
-			await fetch('/api/notifications/mark-all-read', {
+			const response = await fetch('/api/notifications/mark-all-read', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(filterMapId ? { mapId: filterMapId } : {}),
 			});
+
+			if (!response.ok) {
+				console.warn('[notification-bell] failed to mark all as read', {
+					status: response.status,
+					statusText: response.statusText,
+				});
+				return;
+			}
+
+			void fetchNotifications();
 		} catch (markAllError) {
 			console.warn('[notification-bell] failed to mark all as read', markAllError);
-		} finally {
-			void fetchNotifications();
 		}
 	}, [fetchNotifications, filterMapId]);
 

@@ -66,7 +66,7 @@ export async function createNotifications(
 	}
 
 	const created = (data ?? []) as NotificationRecord[];
-	await Promise.all(
+	void Promise.all(
 		created.map(async (notification) => {
 			try {
 				await pushPartyKitNotificationEvent({
@@ -86,6 +86,7 @@ export async function createNotifications(
 			}
 		})
 	);
+
 	void processNotificationEmails(adminClient, created).catch((err: unknown) => {
 		console.warn('[notifications] processNotificationEmails error', err instanceof Error ? err.message : err);
 	});
@@ -158,6 +159,20 @@ export async function createAccessRevokedNotification(params: {
 	]);
 }
 
+/**
+ * Processes notification emails for newly created in-app notifications.
+ *
+ * Workflow:
+ * 1. Short-circuits on empty `notifications`.
+ * 2. Validates `RESEND_API_KEY`; missing/invalid setup uses `markBulkEmailStatus(..., 'skipped_missing_api_key')`.
+ * 3. Creates a Resend client via `createResendClient()` and reuses per-request caches for profiles/preferences/map titles.
+ * 4. Resolves recipient data with `getUserProfile`, `getEmailPreference`, and `getMapTitle`.
+ * 5. Builds email payloads (honoring `NODE_ENV` and `DEV_EMAIL_OVERRIDE`) and calls `resend.emails.send(...)`.
+ * 6. Persists per-item state with `markSingleEmailStatus` (`skipped_no_email`, `skipped_preference_off`, `failed`, `sent`).
+ *
+ * Side effects: Reads user/map metadata, sends outbound email, and updates `notifications` delivery columns.
+ * Errors are handled per item and recorded in email status fields; this function resolves with `Promise<void>`.
+ */
 async function processNotificationEmails(
 	adminClient: SupabaseClient,
 	notifications: NotificationRecord[]
@@ -325,7 +340,7 @@ async function getEmailPreference(
 	profileCache: Map<string, UserProfileEmailPayload | null>
 ): Promise<boolean> {
 	if (cache.has(userId)) {
-		return cache.get(userId) ?? true;
+		return cache.get(userId) ?? false;
 	}
 
 	const profile = await getUserProfile(adminClient, userId, profileCache);
@@ -345,9 +360,10 @@ async function getEmailPreference(
 		console.warn('[notifications] failed to load email preference', {
 			userId,
 			error: error.message,
+			details: error,
 		});
-		cache.set(userId, true);
-		return true;
+		cache.set(userId, false);
+		return false;
 	}
 
 	const enabled = data?.email_notifications !== false;

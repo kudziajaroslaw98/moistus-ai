@@ -118,6 +118,20 @@ function buildNotificationChannelUrl(
 	return url.toString();
 }
 
+/**
+ * Subscribes the current user to PartyKit notification refresh events over WebSocket.
+ *
+ * - Acquires auth via `getAuthToken()` and builds endpoint URL via `buildNotificationChannelUrl()`.
+ * - Opens a socket, forwards lifecycle/events to callbacks, and ignores malformed message payloads.
+ * - Reconnects with exponential backoff (`getReconnectDelayMs`) using `scheduleReconnect`/`clearReconnectTimer`.
+ * - Stops reconnecting once `disconnect()` is called (or `isStopped` is true); disconnect closes with
+ *   code `1000` and reason `'client_unsubscribe'`.
+ *
+ * @param userId Target user id used to derive the notification room name.
+ * @param callbacks Channel lifecycle and event handlers.
+ * @returns Subscription handle with a live `socket` getter and `disconnect()` method.
+ * @throws Error when WebSocket is unavailable or initial connection initialization fails.
+ */
 export async function subscribeToNotificationChannel(
 	userId: string,
 	callbacks: NotificationChannelCallbacks

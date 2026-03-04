@@ -46,6 +46,54 @@ const theme = {
 	hint: 'text-xs text-zinc-500 mt-2',
 };
 
+type QuickInputPreview = ReturnType<typeof parseInput> & {
+	referencePreview?: {
+		targetMapTitle?: string;
+		contentSnippet?: string;
+	};
+};
+
+interface ReferenceCommandData {
+	targetNodeId?: string;
+	targetMapId?: string;
+	targetMapTitle?: string;
+	contentSnippet?: string;
+}
+
+interface CommandExecutedPayload {
+	id: string;
+	result?: unknown;
+}
+
+function isReferenceCommandData(value: unknown): value is ReferenceCommandData {
+	if (!value || typeof value !== 'object') return false;
+	const payload = value as Record<string, unknown>;
+	return (
+		(payload.targetNodeId === undefined ||
+			typeof payload.targetNodeId === 'string') &&
+		(payload.targetMapId === undefined ||
+			typeof payload.targetMapId === 'string') &&
+		(payload.targetMapTitle === undefined ||
+			typeof payload.targetMapTitle === 'string') &&
+		(payload.contentSnippet === undefined ||
+			typeof payload.contentSnippet === 'string')
+	);
+}
+
+function isReferenceSelectedCommand(
+	value: unknown
+): value is CommandExecutedPayload & {
+	id: 'reference-selected';
+	result: ReferenceCommandData;
+} {
+	if (!value || typeof value !== 'object') return false;
+	const payload = value as Record<string, unknown>;
+	return (
+		payload.id === 'reference-selected' &&
+		isReferenceCommandData(payload.result)
+	);
+}
+
 // Helper function to determine if we should auto-process node type switch
 const shouldAutoProcessSwitch = (
 	text: string,
@@ -73,7 +121,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 	existingNode,
 }) => {
 	// Local UI state
-	const [preview, setPreview] = useState<any>(null);
+	const [preview, setPreview] = useState<QuickInputPreview | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [isCreating, setIsCreating] = useState(false);
 	const [mentionableUsers, setMentionableUsers] = useState<MentionableUser[]>([]);
@@ -519,20 +567,22 @@ export const QuickInput: FC<QuickInputProps> = ({
 	);
 
 	// Handle command execution from enhanced input
-	const handleCommandExecuted = useCallback((commandData: any) => {
-		if (commandData.id === 'reference-selected') {
-			// Handle reference selection
-			const referenceData = commandData.result;
-			setReferenceMetadata({
-				targetNodeId: referenceData.targetNodeId,
-				targetMapId: referenceData.targetMapId,
-				targetMapTitle: referenceData.targetMapTitle,
-				contentSnippet: referenceData.contentSnippet,
-			});
-			announceToScreenReader(
-				`Selected reference: ${referenceData.contentSnippet?.slice(0, 50) || 'Unknown content'}`
-			);
+	const handleCommandExecuted = useCallback((commandData: unknown) => {
+		if (!isReferenceSelectedCommand(commandData)) {
+			return;
 		}
+
+		// Handle reference selection
+		const referenceData = commandData.result;
+		setReferenceMetadata({
+			targetNodeId: referenceData.targetNodeId,
+			targetMapId: referenceData.targetMapId,
+			targetMapTitle: referenceData.targetMapTitle,
+			contentSnippet: referenceData.contentSnippet,
+		});
+		announceToScreenReader(
+			`Selected reference: ${referenceData.contentSnippet?.slice(0, 50) || 'Unknown content'}`
+		);
 	}, []);
 
 	// Handle keyboard shortcuts

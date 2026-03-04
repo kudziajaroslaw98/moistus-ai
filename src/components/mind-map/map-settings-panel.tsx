@@ -13,7 +13,7 @@ import useAppStore from '@/store/mind-map-store';
 import type { MindMapData } from '@/types/mind-map-data';
 import { AlertTriangle, Loader2, PenTool, Save } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 const TITLE_MAX_LENGTH = 255;
@@ -110,6 +110,8 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 			: `Title must be ${TITLE_MAX_LENGTH} characters or less`;
 	const descriptionError = `Description must be ${DESCRIPTION_MAX_LENGTH} characters or less`;
 	const thumbnailError = 'Please enter a valid URL (including https://)';
+	const titleErrorId = 'title-error';
+	const descriptionErrorId = 'description-error';
 
 	const getSectionMotionProps = (delay: number): SectionMotionProps => {
 		if (shouldReduceMotion) {
@@ -126,6 +128,27 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 			transition: { delay, duration: 0.25, ease: 'easeOut' },
 		};
 	};
+
+	const computeHasChanges = useCallback((): boolean => {
+		if (!mindMap) return false;
+
+		const initialTitle = normalizeText(mindMap.title);
+		const initialDescription = normalizeText(mindMap.description);
+		const initialThumbnail = normalizeText(mindMap.thumbnailUrl);
+
+		return (
+			normalizedTitle !== initialTitle ||
+			normalizedDescription !== initialDescription ||
+			JSON.stringify(formData.tags) !== JSON.stringify(mindMap.tags || []) ||
+			normalizedThumbnail !== initialThumbnail
+		);
+	}, [
+		formData.tags,
+		mindMap,
+		normalizedDescription,
+		normalizedThumbnail,
+		normalizedTitle,
+	]);
 
 	// Initialize form data from mindMap
 	useEffect(() => {
@@ -146,30 +169,12 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 
 	// Track changes
 	useEffect(() => {
-		if (!mindMap) return;
-
-		const initialTitle = normalizeText(mindMap.title);
-		const initialDescription = normalizeText(mindMap.description);
-		const initialThumbnail = normalizeText(mindMap.thumbnailUrl);
-
-		const hasChanged =
-			normalizedTitle !== initialTitle ||
-			normalizedDescription !== initialDescription ||
-			JSON.stringify(formData.tags) !== JSON.stringify(mindMap.tags || []) ||
-			normalizedThumbnail !== initialThumbnail;
-
-		setHasChanges(hasChanged);
-	}, [
-		formData.tags,
-		mindMap,
-		normalizedDescription,
-		normalizedThumbnail,
-		normalizedTitle,
-	]);
+		setHasChanges(computeHasChanges());
+	}, [computeHasChanges]);
 
 	const requestClose = () => {
 		if (isSaving) return;
-		if (hasChanges) {
+		if (computeHasChanges()) {
 			setShowDiscardDialog(true);
 			return;
 		}
@@ -187,7 +192,8 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 		setTitleTouched(true);
 		setDescriptionTouched(true);
 		setThumbnailTouched(true);
-		if (!hasChanges || !isFormValid || isSaving) return;
+		const hasLatestChanges = computeHasChanges();
+		if (!hasLatestChanges || !isFormValid || isSaving) return;
 
 		// Build updates object (only changed fields)
 		const updates: Partial<MindMapData> = {};
@@ -302,6 +308,9 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 
 							<Input
 								aria-invalid={titleTouched && !isTitleValid}
+								aria-describedby={
+									titleTouched && !isTitleValid ? titleErrorId : undefined
+								}
 								disabled={isSaving}
 								error={titleTouched && !isTitleValid}
 								id='title'
@@ -314,7 +323,7 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 							/>
 
 							{titleTouched && !isTitleValid && (
-								<p className='text-xs text-error-500' role='alert'>
+								<p className='text-xs text-error-500' id={titleErrorId} role='alert'>
 									{titleError}
 								</p>
 							)}
@@ -337,6 +346,12 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 							</div>
 
 							<Textarea
+								aria-invalid={descriptionTouched && !isDescriptionValid}
+								aria-describedby={
+									descriptionTouched && !isDescriptionValid
+										? descriptionErrorId
+										: undefined
+								}
 								className='resize-none'
 								disabled={isSaving}
 								error={descriptionTouched && !isDescriptionValid}
@@ -355,7 +370,11 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 							</p>
 
 							{descriptionTouched && !isDescriptionValid && (
-								<p className='text-xs text-error-500' role='alert'>
+								<p
+									className='text-xs text-error-500'
+									id={descriptionErrorId}
+									role='alert'
+								>
 									{descriptionError}
 								</p>
 							)}

@@ -3,6 +3,8 @@ import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { withAuthValidation } from '@/helpers/api/with-auth-validation';
 import { z } from 'zod';
 
+const VIEW_ROLES = new Set(['owner', 'editor', 'commentator', 'commenter', 'viewer']);
+
 /**
  * GET /api/templates/[id]
  *
@@ -11,7 +13,7 @@ import { z } from 'zod';
  *
  * Returns full template data for instantiation.
  */
-export const GET = withAuthValidation(z.unknown().nullish(), async (req) => {
+export const GET = withAuthValidation(z.unknown().nullish(), async (req, _body, _supabase, user) => {
 	try {
 		const adminClient = createServiceRoleClient();
 
@@ -31,6 +33,7 @@ export const GET = withAuthValidation(z.unknown().nullish(), async (req) => {
 				`
 					id,
 					user_id,
+					is_public,
 					title,
 					description,
 					tags,
@@ -63,6 +66,35 @@ export const GET = withAuthValidation(z.unknown().nullish(), async (req) => {
 			return respondError('Template not found.', 404, 'No template with this ID exists.');
 		}
 
+		// Explicit authorization checks are required before admin reads on related rows.
+		const { data: shareAccess, error: shareAccessError } = await adminClient
+			.from('share_access')
+			.select('role, can_view')
+			.eq('map_id', template.id)
+			.eq('user_id', user.id)
+			.eq('status', 'active')
+			.maybeSingle();
+
+		if (shareAccessError) {
+			console.error('Error checking template share access:', shareAccessError);
+			return respondError('Error checking template permissions.', 500, shareAccessError.message);
+		}
+
+		const isOwner = template.user_id === user.id;
+		const isPublic = template.is_public === true;
+		const hasSharedAccess = Boolean(
+			shareAccess &&
+				(shareAccess.can_view === true ||
+					(shareAccess.role !== null && VIEW_ROLES.has(shareAccess.role)))
+		);
+		// Templates are treated as read-only viewer resources for authenticated users.
+		const hasViewerStatus = template.is_template === true;
+		const isAuthorized = isOwner || isPublic || hasSharedAccess || hasViewerStatus;
+
+		if (!isAuthorized) {
+			return respondError('Access denied.', 403, 'You do not have permission to access this template.');
+		}
+
 		// Fetch nodes for this template
 		const { data: nodes, error: nodesError } = await adminClient
 			.from('nodes')
@@ -87,6 +119,12 @@ export const GET = withAuthValidation(z.unknown().nullish(), async (req) => {
 			return respondError('Error fetching template edges.', 500, edgesError.message);
 		}
 
+		const filteredNodes = (nodes || []).filter((node) => node.node_type !== 'ghostNode');
+		const validNodeIds = new Set(filteredNodes.map((node) => node.id));
+		const filteredEdges = (edges || []).filter(
+			(edge) => validNodeIds.has(edge.source) && validNodeIds.has(edge.target)
+		);
+
 		// Transform to the format expected by instantiation
 		const formattedTemplate = {
 			id: template.metadata?.templateId || template.id,
@@ -96,7 +134,7 @@ export const GET = withAuthValidation(z.unknown().nullish(), async (req) => {
 			category: template.template_category,
 			icon: template.metadata?.icon || 'FileText',
 			previewColors: template.metadata?.previewColors || ['#6366f1', '#8b5cf6', '#a855f7'],
-			nodes: (nodes || []).filter((n) => n.node_type !== 'ghostNode').map((n) => ({
+			nodes: filteredNodes.map((n) => ({
 				id: n.id,
 				type: n.node_type || 'defaultNode',
 				position: { x: n.position_x, y: n.position_y },
@@ -105,7 +143,7 @@ export const GET = withAuthValidation(z.unknown().nullish(), async (req) => {
 					metadata: n.metadata || {},
 				},
 			})),
-			edges: (edges || []).map((e) => ({
+			edges: filteredEdges.map((e) => ({
 				id: e.id,
 				source: e.source,
 				target: e.target,
@@ -125,7 +163,7 @@ export const GET = withAuthValidation(z.unknown().nullish(), async (req) => {
 			template_category: template.template_category,
 			created_at: template.created_at,
 			map_updated_at: template.updated_at,
-			nodes: (nodes || []).filter((n) => n.node_type !== 'ghostNode').map((n) => ({
+			nodes: filteredNodes.map((n) => ({
 				id: n.id,
 				map_id: n.map_id,
 				node_type: n.node_type || 'defaultNode',
@@ -136,7 +174,7 @@ export const GET = withAuthValidation(z.unknown().nullish(), async (req) => {
 				created_at: n.created_at,
 				updated_at: n.updated_at,
 			})),
-			edges: (edges || []).map((e) => ({
+			edges: filteredEdges.map((e) => ({
 				id: e.id,
 				map_id: e.map_id,
 				source: e.source,

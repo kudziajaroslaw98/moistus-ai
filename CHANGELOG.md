@@ -37,6 +37,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Keeps behavior backward compatible while enabling UI-driven preference control
 - **dashboard/settings-types**: `updateNestedFormData` now uses keyed `preferences` typing instead of `string`/`unknown`
   - Why: Prevents invalid preference keys/values from compiling and keeps preference writes type-safe
+- **notifications/partykit-dispatch**: `createNotifications` no longer awaits PartyKit event fan-out before returning
+  - Why: Prevents notification creation latency from being blocked by downstream realtime push timing
 
 ### Fixed
 
@@ -48,11 +50,21 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Gives assistive tech stable control names and state announcements instead of generic `On/Off` text only
 - **store/user-profile-notification-preferences**: `getNotificationPreferences` now derives email flags from persisted `preferences.notifications.email`
   - Why: Aligns computed notification settings with stored account preference instead of hardcoded `false`
+- **api/templates/[id]**: Added explicit template authorization checks before service-role node/edge reads and filtered template edges to only valid non-ghost node endpoints
+  - Why: Prevents unauthorized service-role reads and removes dangling edges that referenced filtered-out ghost nodes
+- **mind-map/map-settings**: Unsaved-close flow now computes change state synchronously in `requestClose`; title/description validation messages are now programmatically associated with their fields
+  - Why: Avoids stale discard-dialog decisions and improves screen reader error announcement fidelity
+- **notifications/email-preferences**: Email preference lookup now fails closed on DB errors (`false`) and logs full error details
+  - Why: Prevents sending emails when preference verification fails
+- **notifications/ui + comments**: Mark-all-read refresh now runs only after successful POST; comment-reaction emit now logs non-2xx HTTP responses
+  - Why: Aligns client behavior with success semantics and surfaces backend failures that were previously silent
 
 ### Docs
 
 - **codebase-map/notifications**: Expanded notification internals with architecture, module mapping, and trigger->persist->deliver->refresh data flow diagrams
   - Why: Makes notification service/channel/schema/mention-resolution behavior operationally traceable
+- **notifications/jsdoc**: Added maintainers' JSDoc for `processNotificationEmails` and `subscribeToNotificationChannel`
+  - Why: Documents async delivery lifecycle, side effects, reconnect semantics, and failure handling for incident triage
 
 ## [2026-02-28]
 
