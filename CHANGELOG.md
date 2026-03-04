@@ -5,6 +5,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+<!-- Updated: 2026-02-24 - Permissions/quota hardening, realtime cursor safety, typing/accessibility fixes, and dependency vulnerability remediation -->
 <!-- Updated: 2026-02-26 - Restored template graph visibility for authenticated viewers and aligned template permissions API -->
 <!-- Updated: 2026-02-27 - Added account/billing settings safety flows and aligned map-settings color tokens -->
 <!-- Updated: 2026-02-28 - Cleaned deprecated node-editor parser tokens, split syntax help into universal/node-specific sections, and added parser/completion regression tests -->
@@ -220,6 +221,10 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Reduces chat stream startup latency while surfacing usage-counter write failures to callers
 - **typing/tests/realtime**: Sharing unsubscribe field is now strict nullable, permissions details are exported as a named interface, collaborator-channel test listeners use `unknown`, and Yjs sync subscriptions process events immediately after observer registration
   - Why: Tightens state contracts, removes `any` in tests, and closes a setup race where sync events could be missed
+- **deps/security**: Resolved all `pnpm audit` findings by updating vulnerable direct dependencies and pinning patched transitive versions via `pnpm.overrides` (including `jspdf`, `@eslint/eslintrc`, `ajv`, and `minimatch`)
+  - Why: Eliminates known high/moderate dependency vulnerabilities while keeping the existing app/runtime surface unchanged
+- **partykit/env-hardening**: PartyKit now trims/unquotes env values and emits one-time warnings when `SUPABASE_URL` vs `NEXT_PUBLIC_SUPABASE_URL` or `SUPABASE_SERVICE_ROLE` vs `SUPABASE_SERVICE_ROLE_KEY` conflict
+  - Why: Prevents hard-to-diagnose 401 "Invalid API key" failures caused by quoted secrets or stale shadowed env vars in deployment
 
 ### Changed
 
