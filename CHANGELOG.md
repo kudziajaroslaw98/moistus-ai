@@ -8,6 +8,34 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-02-26 - Restored template graph visibility for authenticated viewers and aligned template permissions API -->
 <!-- Updated: 2026-02-27 - Added account/billing settings safety flows and aligned map-settings color tokens -->
 <!-- Updated: 2026-02-28 - Cleaned deprecated node-editor parser tokens, split syntax help into universal/node-specific sections, and added parser/completion regression tests -->
+<!-- Updated: 2026-03-04 - Added notifications system (in-app inbox + Resend email + mention/reply/reaction/access events) -->
+
+## [2026-03-04]
+
+### Added
+
+- **notifications/db**: Added `public.notifications` table with RLS, unread/read tracking, dedupe key support, and email delivery status fields
+  - Why: Provides a persistent in-app inbox source of truth with delivery diagnostics
+- **api/notifications**: Added notification APIs (`GET /api/notifications`, `PATCH /api/notifications/[id]/read`, `POST /api/notifications/mark-all-read`, `POST /api/notifications/emit`)
+  - Why: Enables client inbox reads/updates and controlled event emission for mentions/replies/reactions
+- **api/maps/mentionable-users**: Added `GET /api/maps/[id]/mentionable-users`
+  - Why: Resolves `@slug` mentions to user IDs consistently for node/comment notification targeting
+- **ui/notifications**: Added reusable notification bell + inbox popover in dashboard and mind-map top bar
+  - Why: Surfaces unread notifications and quick read/open-map actions in primary navigation areas
+
+### Changed
+
+- **sharing/access-events**: Share update/delete/revoke routes now create access-changed/access-revoked notifications
+  - Why: Users are explicitly informed when map permissions are changed or removed
+- **node-editor/mentions**: Quick input now resolves assignee `@mentions` to user IDs (`metadata.assigneeUserIds`) and emits `node_mention` notifications
+  - Why: Connects node mentions to real recipients instead of unresolved slugs
+- **comments/mentions-replies-reactions**: Comment reply input resolves mention slugs to UUIDs; comments slice emits `comment_mention`, `comment_reply`, and `comment_reaction` notifications
+  - Why: Delivers thread activity notifications for direct mentions, new replies, and emoji reactions
+
+### Fixed
+
+- **mention-identity**: Eliminated slug/UUID mismatch in comment mention writes for users resolved from map collaborators
+  - Why: Prevents invalid `mentioned_users` payloads and ensures notification recipients are valid users
 
 ## [2026-02-28]
 

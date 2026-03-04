@@ -69,6 +69,7 @@ export interface ParsedMetadata extends Partial<Record<PatternType, unknown>> {
 	priority?: string;
 	dueDate?: string | Date;
 	assignee?: string | string[];
+	assigneeUserIds?: string[];
 	status?: string;
 	tags?: string[];
 	color?: string;

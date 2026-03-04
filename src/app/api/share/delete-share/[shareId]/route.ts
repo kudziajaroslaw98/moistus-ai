@@ -6,6 +6,7 @@ import {
 	pushPartyKitCollaboratorEvent,
 } from '@/helpers/partykit/admin';
 import { createServiceRoleClient } from '@/helpers/supabase/server';
+import { createAccessRevokedNotification } from '@/lib/notifications/notification-service';
 import { z } from 'zod';
 
 /**
@@ -71,7 +72,7 @@ export const DELETE = withApiValidation<
 			// Verify the requesting user owns the map
 			const { data: mindMap, error: mapError } = await supabase
 				.from('mind_maps')
-				.select('id, user_id')
+				.select('id, user_id, title')
 				.eq('id', shareAccess.map_id)
 				.single();
 
@@ -229,6 +230,28 @@ export const DELETE = withApiValidation<
 					console.error('Failed to decrement current_users:', decrementError);
 					// Non-blocking - don't fail the deletion if counter update fails
 				}
+			}
+
+			try {
+				await createAccessRevokedNotification({
+					recipientUserId: shareAccess.user_id,
+					actorUserId: user.id,
+					mapId: shareAccess.map_id,
+					mapTitle: mindMap.title ?? null,
+					sourceId: `${shareAccess.id}:${revokedAt}`,
+				});
+			} catch (notificationError) {
+				console.warn(
+					'[share/delete-share] Failed to create access-revoked notification',
+					{
+						mapId: shareAccess.map_id,
+						targetUserId: shareAccess.user_id,
+						error:
+							notificationError instanceof Error
+								? notificationError.message
+								: 'Unknown notification error',
+					}
+				);
 			}
 
 			return respondSuccess(

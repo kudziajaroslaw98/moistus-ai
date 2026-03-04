@@ -1,6 +1,7 @@
 'use client';
 
 import { UserMenu } from '@/components/common/user-menu';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 import useAppStore from '@/store/mind-map-store';
 import { useEffect } from 'react';
 import { useShallow } from 'zustand/shallow';
@@ -114,6 +115,7 @@ export function DashboardHeader({
 
 				{/* User Menu */}
 				<div className='flex items-center space-x-4'>
+					<NotificationBell />
 					<UserMenu user={userProfile} onOpenSettings={onOpenSettings} />
 				</div>
 			</div>

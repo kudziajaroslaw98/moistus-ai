@@ -73,6 +73,8 @@ const getUniversalMetadata = (data: any) => {
 
 	// Always set assignee (undefined clears it on update)
 	universalMeta.assignee = data.metadata?.assignee || data.assignee || undefined;
+	universalMeta.assigneeUserIds =
+		data.metadata?.assigneeUserIds || data.assigneeUserIds || undefined;
 
 	// Always set status (undefined clears it on update)
 	universalMeta.status = data.metadata?.status || data.status || undefined;

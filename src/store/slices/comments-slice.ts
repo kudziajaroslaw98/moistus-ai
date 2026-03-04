@@ -383,7 +383,7 @@ export const createCommentsSlice: StateCreator<
 	},
 
 	addMessage: async (commentId: string, data: CreateMessageRequest) => {
-		const { supabase, currentUser, userProfile } = get();
+		const { supabase, currentUser, userProfile, comments, commentMessages } = get();
 
 		if (!currentUser) {
 			console.error('User must be authenticated to add messages');
@@ -394,6 +394,22 @@ export const createCommentsSlice: StateCreator<
 		try {
 			const messageId = generateUuid();
 			const now = new Date().toISOString();
+			const comment = comments.find((entry) => entry.id === commentId);
+			const mapId = comment?.map_id;
+			const mentionRecipientIds = Array.from(
+				new Set((data.mentioned_users || []).filter(Boolean))
+			);
+			const threadParticipants = new Set(
+				(commentMessages[commentId] || []).map((message) => message.user_id)
+			);
+			if (comment?.created_by) {
+				threadParticipants.add(comment.created_by);
+			}
+			threadParticipants.delete(currentUser.id);
+			for (const mentionedUserId of mentionRecipientIds) {
+				threadParticipants.delete(mentionedUserId);
+			}
+			const replyRecipientIds = Array.from(threadParticipants);
 
 			// Optimistic update
 			const optimisticMessage: CommentMessage = {
@@ -461,6 +477,43 @@ export const createCommentsSlice: StateCreator<
 					),
 				},
 			}));
+
+			if (mapId) {
+				const events: Array<Record<string, unknown>> = [];
+				if (mentionRecipientIds.length > 0) {
+					events.push({
+						type: 'comment_mention',
+						mapId,
+						commentId,
+						messageId,
+						recipientUserIds: mentionRecipientIds,
+						messageContent: data.content,
+					});
+				}
+				if (replyRecipientIds.length > 0) {
+					events.push({
+						type: 'comment_reply',
+						mapId,
+						commentId,
+						messageId,
+						recipientUserIds: replyRecipientIds,
+						messageContent: data.content,
+					});
+				}
+
+				if (events.length > 0) {
+					void fetch('/api/notifications/emit', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ events }),
+					}).catch((notificationError) => {
+						console.warn(
+							'[comments-slice] failed to emit comment notifications',
+							notificationError
+						);
+					});
+				}
+			}
 
 			return savedMessage;
 		} catch (error) {
@@ -625,6 +678,36 @@ export const createCommentsSlice: StateCreator<
 					commentError: error.message,
 				}));
 				throw error;
+			}
+
+			if (targetMessage.user_id !== currentUser.id) {
+				const targetComment = get().comments.find(
+					(comment) => comment.id === targetCommentId
+				);
+				if (targetComment?.map_id) {
+					void fetch('/api/notifications/emit', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							events: [
+								{
+									type: 'comment_reaction',
+									mapId: targetComment.map_id,
+									commentId: targetCommentId,
+									messageId,
+									recipientUserIds: [targetMessage.user_id],
+									emoji: data.emoji,
+									messageContent: targetMessage.content,
+								},
+							],
+						}),
+					}).catch((notificationError) => {
+						console.warn(
+							'[comments-slice] failed to emit comment reaction notification',
+							notificationError
+						);
+					});
+				}
 			}
 		} catch (error) {
 			console.error('Error adding reaction:', error);

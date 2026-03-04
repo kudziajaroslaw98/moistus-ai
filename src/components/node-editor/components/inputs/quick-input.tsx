@@ -3,6 +3,7 @@
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import useAppStore from '@/store/mind-map-store';
+import type { MentionableUser } from '@/types/notification';
 import { slugifyCollaborator } from '@/utils/collaborator-utils';
 import { AlertCircle } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -75,6 +76,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 	const [preview, setPreview] = useState<any>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [isCreating, setIsCreating] = useState(false);
+	const [mentionableUsers, setMentionableUsers] = useState<MentionableUser[]>([]);
 
 	const [referenceMetadata, setReferenceMetadata] = useState<{
 		targetNodeId?: string;
@@ -106,6 +108,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 		setQuickInputCursorPosition: setCursorPosition,
 		initializeQuickInput,
 		currentShares,
+		mapId,
 	} = useAppStore(
 		useShallow((state) => ({
 			quickInputValue: state.quickInputValue,
@@ -116,6 +119,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 			setQuickInputCursorPosition: state.setQuickInputCursorPosition,
 			initializeQuickInput: state.initializeQuickInput,
 			currentShares: state.currentShares,
+			mapId: state.mapId,
 		}))
 	);
 
@@ -144,8 +148,20 @@ export const QuickInput: FC<QuickInputProps> = ({
 		universalPatterns.length > 0 || nodeSpecificPatterns.length > 0;
 
 	const collaborators = useMemo<CollaboratorMention[]>(
-		() =>
-			(currentShares ?? []).map((u) => {
+		() => {
+			if (mentionableUsers.length > 0) {
+				return mentionableUsers.map((user) => ({
+					slug: user.slug,
+					displayName: user.displayName,
+					avatarUrl: user.avatarUrl ?? '',
+					role:
+						user.role === 'owner' || user.role === 'editor'
+							? 'editor'
+							: 'viewer',
+				}));
+			}
+
+			return (currentShares ?? []).map((u) => {
 				const slug = slugifyCollaborator(u);
 				const role: CollaboratorMention['role'] =
 					u.share.role === 'owner' || u.share.role === 'editor'
@@ -157,9 +173,61 @@ export const QuickInput: FC<QuickInputProps> = ({
 					avatarUrl: u.avatar_url ?? '',
 					role,
 				};
-			}),
-		[currentShares]
+			});
+		},
+		[currentShares, mentionableUsers]
 	);
+
+	const mentionSlugToUserId = useMemo(() => {
+		const map = new Map<string, string>();
+		if (mentionableUsers.length > 0) {
+			for (const user of mentionableUsers) {
+				if (user.slug) {
+					map.set(user.slug.toLowerCase(), user.userId);
+				}
+			}
+			return map;
+		}
+
+		for (const share of currentShares ?? []) {
+			const slug = slugifyCollaborator(share);
+			if (slug) {
+				map.set(slug.toLowerCase(), share.user_id);
+			}
+		}
+		return map;
+	}, [mentionableUsers, currentShares]);
+
+	useEffect(() => {
+		if (!mapId) {
+			setMentionableUsers([]);
+			return;
+		}
+
+		const abortController = new AbortController();
+		const fetchMentionableUsers = async () => {
+			try {
+				const response = await fetch(`/api/maps/${mapId}/mentionable-users`, {
+					signal: abortController.signal,
+				});
+				if (!response.ok) {
+					return;
+				}
+				const result = await response.json();
+				if (result?.status === 'success' && Array.isArray(result?.data?.users)) {
+					setMentionableUsers(result.data.users as MentionableUser[]);
+				}
+			} catch (error) {
+				if ((error as Error).name === 'AbortError') {
+					return;
+				}
+				console.warn('[quick-input] failed to load mentionable users', error);
+			}
+		};
+
+		void fetchMentionableUsers();
+		return () => abortController.abort();
+	}, [mapId]);
 
 	// Check node limit (only affects create mode)
 	const { isAtLimit, usage, limits } = useSubscriptionLimits();
@@ -316,6 +384,24 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 			// Parse the input
 			const nodeData = parseInput(cleanValue);
+			const rawAssignees = Array.isArray(nodeData.metadata?.assignee)
+				? nodeData.metadata.assignee
+				: typeof nodeData.metadata?.assignee === 'string'
+					? [nodeData.metadata.assignee]
+					: [];
+			const assigneeUserIds = Array.from(
+				new Set(
+					rawAssignees
+						.map((assignee) => mentionSlugToUserId.get(assignee.toLowerCase()))
+						.filter((userId): userId is string => Boolean(userId))
+				)
+			);
+			if (assigneeUserIds.length > 0) {
+				nodeData.metadata = {
+					...(nodeData.metadata || {}),
+					assigneeUserIds,
+				};
+			}
 
 			// Merge reference metadata for reference nodes
 			if (effectiveNodeType === 'referenceNode' && referenceMetadata) {
@@ -342,6 +428,31 @@ export const QuickInput: FC<QuickInputProps> = ({
 				throw new Error(result.error || 'Failed to save node');
 			}
 
+			if (mapId && assigneeUserIds.length > 0) {
+				try {
+					await fetch('/api/notifications/emit', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							events: [
+								{
+									type: 'node_mention',
+									mapId,
+									recipientUserIds: assigneeUserIds,
+									nodeId: mode === 'edit' ? existingNode?.id : undefined,
+									nodeContent: cleanValue,
+								},
+							],
+						}),
+					});
+				} catch (notificationError) {
+					console.warn(
+						'[quick-input] failed to emit node mention notification',
+						notificationError
+					);
+				}
+			}
+
 			// Close the editor after successful creation/update
 			closeNodeEditor();
 		} catch (err) {
@@ -365,6 +476,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 		mode,
 		existingNode,
 		referenceMetadata,
+		mapId,
+		mentionSlugToUserId,
 	]);
 
 	// Handle pattern insertion from legend

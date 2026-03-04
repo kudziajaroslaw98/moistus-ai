@@ -54,6 +54,7 @@ export interface NodeData extends Record<string, unknown> {
 		tasks?: { id: string; text: string; isComplete: boolean }[];
 		dueDate?: string;
 		assignee?: string[];
+		assigneeUserIds?: string[];
 
 		// ------------------------------------------
 		// Resource/Link Properties (ResourceNode)

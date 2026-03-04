@@ -12,6 +12,7 @@ total_tokens: 707972
 <!-- Updated: 2026-02-27 - Documented map settings discard-confirm flow and template-control removal -->
 <!-- Updated: 2026-02-27 - Documented account settings discard/cancel-confirm dialog flows -->
 <!-- Updated: 2026-02-28 - Documented node-editor parser cleanup and dual syntax help behavior -->
+<!-- Updated: 2026-03-04 - Added notification architecture (DB + APIs + mention resolution + inbox UI) -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -42,7 +43,7 @@ graph TB
         BroadcastAdapter[Broadcast Channel Adapter]
     end
 
-    subgraph API["Next.js API Routes (54)"]
+    subgraph API["Next.js API Routes (59)"]
         AIRoutes[AI Routes]
         MapRoutes[Map CRUD]
         ShareRoutes[Sharing]
@@ -74,7 +75,7 @@ graph TB
 shiko/
 ├── src/
 │   ├── app/                    # Next.js App Router pages & API
-│   │   ├── api/                # 54 API routes
+│   │   ├── api/                # 59 API routes
 │   │   │   ├── ai/             # AI features (suggestions, chat, merges)
 │   │   │   ├── auth/           # Sign-up, upgrade flows
 │   │   │   ├── comments/       # Comment threads & reactions
@@ -90,7 +91,7 @@ shiko/
 │   │   ├── join/               # Room code join flow
 │   │   └── mind-map/           # Canvas page
 │   │
-│   ├── components/             # React components (24 directories)
+│   ├── components/             # React components (25 directories)
 │   │   ├── ai-chat/            # AI chat panel
 │   │   ├── auth/               # Auth UI (banner, upgrade, sign-up wizard)
 │   │   ├── context-menu/       # Right-click menus
@@ -103,6 +104,7 @@ shiko/
 │   │   ├── modals/             # Dialogs (edge edit, upgrade, etc.)
 │   │   ├── node-editor/        # Command system, CodeMirror
 │   │   ├── nodes/              # 12 node types + base wrapper
+│   │   ├── notifications/      # Notification bell + inbox popover
 │   │   ├── onboarding/         # Multi-step onboarding
 │   │   ├── realtime/           # Live cursors, presence
 │   │   ├── sharing/            # Share panel, room codes
@@ -139,7 +141,7 @@ shiko/
 │   │   ├── validations/        # Zod schemas
 │   │   └── ai-security/        # Rate limiting
 │   │
-│   ├── types/                  # TypeScript definitions (38 files)
+│   ├── types/                  # TypeScript definitions (39 files)
 │   ├── constants/              # App constants
 │   ├── themes/                 # Design tokens
 │   └── utils/                  # General utilities
@@ -211,7 +213,7 @@ shiko/
 - `src/components/nodes/base-node-wrapper.tsx` - Shared wrapper
 - `src/components/nodes/[type]-node.tsx` - Individual components
 
-### API Routes (54 total)
+### API Routes (59 total)
 
 **AI & Content (7):**
 
@@ -221,18 +223,26 @@ shiko/
 - `POST /api/ai/suggest-merges` - Merge suggestions
 - `POST /api/ai/counterpoints` - Opposing viewpoints
 
-**Maps (3):**
+**Maps (4):**
 
 - `GET/POST /api/maps` - List/create maps
 - `GET/PUT/DELETE /api/maps/[id]` - Individual map
 - `GET /api/maps/[id]/check-access` - Permission check
+- `GET /api/maps/[id]/mentionable-users` - Mention resolution roster
 
 **Sharing (7):**
 
 - `POST /api/share/create-room-code`
 - `POST /api/share/join-room`
 - `POST /api/share/revoke-room-code`
-- `PUT /api/share/update-share/[shareId]`
+- `PATCH /api/share/update-share/[shareId]`
+
+**Notifications (4):**
+
+- `GET /api/notifications` - List notifications + unread count
+- `POST /api/notifications/mark-all-read` - Bulk mark as read
+- `PATCH /api/notifications/[id]/read` - Toggle read state
+- `POST /api/notifications/emit` - Emit mention/reply/reaction notifications
 
 **Auth (6):**
 
