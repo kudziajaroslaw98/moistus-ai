@@ -15,6 +15,7 @@ total_tokens: 707972
 <!-- Updated: 2026-03-04 - Added notification architecture (DB + APIs + mention resolution + inbox UI) -->
 <!-- Updated: 2026-03-04 - Switched notification inbox refresh to PartyKit user-channel realtime events -->
 <!-- Updated: 2026-03-04 - Added account settings email-notification preference toggle -->
+<!-- Updated: 2026-03-04 - Expanded notifications internals (service/channel/schema/mention resolver/data flow) -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -70,6 +71,34 @@ graph TB
     BillingRoutes --> Stripe
     API -.->|Admin disconnect| PartyKit
 ```
+
+## Architecture
+
+### Notifications
+
+```mermaid
+flowchart LR
+    Triggers["Triggers\nquick-input assignee mentions\ncomment mentions/replies/reactions\nshare access updates"] --> MentionResolver["Mention Resolver\n/api/maps/[id]/mentionable-users\nslug -> userId maps in quick-input/comment-reply input"]
+    MentionResolver --> Emit["POST /api/notifications/emit\ntoNotificationInsertPayload()"]
+    Emit --> NotificationService["Notification Service\ncreateNotifications() + processNotificationEmails()"]
+    NotificationService --> NotificationsTable[("public.notifications")]
+    NotificationService --> PartyKitAdmin["pushPartyKitNotificationEvent()"]
+    PartyKitAdmin --> UserChannel["PartyKit user room\nuser:{userId}:notifications"]
+    UserChannel --> NotificationChannel["subscribeToNotificationChannel()"]
+    NotificationChannel --> InboxRefresh["NotificationBell onEvent -> fetchNotifications()"]
+    InboxRefresh --> NotificationsApi["GET /api/notifications"]
+    NotificationsApi --> NotificationsTable
+    NotificationService --> EmailPreference["resolveEmailPreferenceFromProfile()\npreferences.notifications.email"]
+    EmailPreference --> Resend["Resend email send / email_status update"]
+```
+
+**DB schema (`public.notifications`):**
+
+- Identity/context: `id`, `recipient_user_id`, `actor_user_id`, `map_id`, `event_type`
+- Content/dedupe: `title`, `body`, `metadata`, `dedupe_key` (`recipient_user_id + event_type + dedupe_key` unique index)
+- Inbox state: `is_read`, `read_at`, `created_at`, `updated_at`
+- Email state: `email_status`, `email_error`, `emailed_at`
+- Access control: RLS policies limit `SELECT/UPDATE` to recipient (`recipient_user_id = auth.uid()`)
 
 ## Directory Structure
 
@@ -289,6 +318,15 @@ shiko/
 - `src/components/dashboard/discard-account-settings-changes-dialog.tsx` guards panel close when unsaved account edits exist
 - `src/components/dashboard/cancel-subscription-dialog.tsx` adds an explicit confirmation step before subscription cancellation
 
+**Notifications internals (operational map):**
+
+- `src/components/node-editor/components/inputs/quick-input.tsx` + `src/components/nodes/components/comment-reply-input.tsx` + `src/app/api/maps/[id]/mentionable-users/route.ts`: resolve `@slug` -> `userId` recipient IDs
+- `src/app/api/notifications/emit/route.ts` (`getMapParticipantContext`, `toNotificationInsertPayload`): trigger filtering + payload normalization -> `createNotifications()`
+- `src/lib/notifications/notification-service.ts` (`createNotifications`, `processNotificationEmails`, `resolveEmailPreferenceFromProfile`): persist/dedupe -> PartyKit push -> optional email send
+- `src/helpers/partykit/admin.ts` + `partykit/server.ts` (`notification-event`): admin publish -> user-channel fanout (`notifications:refresh`)
+- `src/components/notifications/notification-bell.tsx` + `src/lib/realtime/notification-channel.ts`: channel event -> inbox API refetch -> UI unread badge/list refresh
+- `src/components/dashboard/settings-panel.tsx`: account preference toggle persists `preferences.notifications.email` used by email delivery gating
+
 ## Data Flow
 
 ### Node Creation
@@ -351,6 +389,33 @@ sequenceDiagram
     AIMediator->>SuggestionsSlice: addGhostNode(suggestion)
     User->>SuggestionsSlice: acceptSuggestion()
     SuggestionsSlice->>Store: Convert ghost → real node
+```
+
+### Notification Flow
+
+```mermaid
+sequenceDiagram
+    participant Trigger as Trigger Source
+    participant MentionResolver as Mention Resolver
+    participant EmitAPI as /api/notifications/emit
+    participant NotificationService as NotificationService
+    participant DB as public.notifications
+    participant PartyKit as PartyKit user-channel
+    participant Bell as NotificationBell
+    participant NotificationsAPI as /api/notifications
+    participant Email as Resend Email
+
+    Trigger->>MentionResolver: Mention slug / recipient candidates
+    MentionResolver->>EmitAPI: recipientUserIds + event payload
+    EmitAPI->>NotificationService: createNotifications(inputs)
+    NotificationService->>DB: upsert (dedupe_key conflict-safe)
+    NotificationService->>PartyKit: push notification-event(targetUserId)
+    PartyKit-->>Bell: notifications:refresh
+    Bell->>NotificationsAPI: GET notifications + unreadCount
+    NotificationsAPI->>DB: select recipient rows
+    DB-->>Bell: latest inbox state
+    NotificationService->>Email: if preferences.notifications.email enabled
+    Email->>DB: update email_status / emailed_at / email_error
 ```
 
 ## Testing Infrastructure

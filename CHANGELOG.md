@@ -35,6 +35,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Gives users explicit control over whether notification events send emails
 - **notifications/preferences-source**: Email delivery preference now checks profile preferences first (`preferences.notifications.email`) and falls back to legacy `user_preferences.email_notifications`
   - Why: Keeps behavior backward compatible while enabling UI-driven preference control
+- **dashboard/settings-types**: `updateNestedFormData` now uses keyed `preferences` typing instead of `string`/`unknown`
+  - Why: Prevents invalid preference keys/values from compiling and keeps preference writes type-safe
 
 ### Fixed
 
@@ -42,6 +44,15 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Prevents invalid `mentioned_users` payloads and ensures notification recipients are valid users
 - **notifications/inbox-refresh**: Notification bell now auto-refreshes via PartyKit notification channel events (no interval polling)
   - Why: Delivers true realtime inbox updates without manual refreshes or fake polling loops
+- **dashboard/settings-accessibility**: Reduced motion + email notification toggles now expose explicit toggle state (`aria-pressed`) and purpose labels
+  - Why: Gives assistive tech stable control names and state announcements instead of generic `On/Off` text only
+- **store/user-profile-notification-preferences**: `getNotificationPreferences` now derives email flags from persisted `preferences.notifications.email`
+  - Why: Aligns computed notification settings with stored account preference instead of hardcoded `false`
+
+### Docs
+
+- **codebase-map/notifications**: Expanded notification internals with architecture, module mapping, and trigger->persist->deliver->refresh data flow diagrams
+  - Why: Makes notification service/channel/schema/mention-resolution behavior operationally traceable
 
 ## [2026-02-28]
 

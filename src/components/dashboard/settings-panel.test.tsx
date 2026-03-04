@@ -346,7 +346,7 @@ describe('SettingsPanel', () => {
 		render(<SettingsPanel isOpen onClose={jest.fn()} />);
 
 		const emailNotificationsToggle = screen.getByRole('button', {
-			name: 'On',
+			name: /email notifications/i,
 		});
 		await user.click(emailNotificationsToggle);
 

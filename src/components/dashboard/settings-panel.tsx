@@ -460,17 +460,19 @@ export function SettingsPanel({
 		}));
 	};
 
-	const updateNestedFormData = (
+	const updateNestedFormData = <
+		K extends keyof UserProfileFormData['preferences'],
+	>(
 		section: 'preferences',
-		field: string,
-		value: unknown
+		field: K,
+		value: UserProfileFormData['preferences'][K]
 	) => {
 		setFormData((prev) => ({
 			...prev,
 			[section]: {
 				...prev[section],
 				[field]: value,
-			},
+			} as UserProfileFormData['preferences'],
 		}));
 	};
 
@@ -850,17 +852,20 @@ export function SettingsPanel({
 												Control who can view your profile information.
 											</p>
 										</div>
-										<div className='space-y-2'>
-											<Label>Profile visibility</Label>
-											<Select
-												onValueChange={(value) =>
-													updateNestedFormData('preferences', 'privacy', {
-														...formData.preferences.privacy,
-														profile_visibility: value,
-													})
-												}
-												value={formData.preferences.privacy.profile_visibility}
-											>
+											<div className='space-y-2'>
+												<Label>Profile visibility</Label>
+												<Select
+													onValueChange={(value) =>
+														updateNestedFormData('preferences', 'privacy', {
+															...formData.preferences.privacy,
+															profile_visibility:
+																value as NonNullable<
+																	UserProfileFormData['preferences']['privacy']
+																>['profile_visibility'],
+														})
+													}
+													value={formData.preferences.privacy.profile_visibility}
+												>
 												<SelectTrigger>
 													<SelectValue />
 												</SelectTrigger>
@@ -896,7 +901,11 @@ export function SettingsPanel({
 												<Label>Theme</Label>
 												<Select
 													onValueChange={(value) =>
-														updateNestedFormData('preferences', 'theme', value)
+														updateNestedFormData(
+															'preferences',
+															'theme',
+															value as UserProfileFormData['preferences']['theme']
+														)
 													}
 													value={formData.preferences.theme}
 												>
@@ -919,6 +928,8 @@ export function SettingsPanel({
 													</p>
 												</div>
 												<Button
+													aria-label={`Reduce motion ${formData.preferences.reducedMotion ? 'on' : 'off'}`}
+													aria-pressed={formData.preferences.reducedMotion}
 													onClick={() =>
 														updateNestedFormData(
 															'preferences',
@@ -960,6 +971,8 @@ export function SettingsPanel({
 													</p>
 												</div>
 												<Button
+													aria-label={`Email notifications ${formData.preferences.notifications.email ? 'on' : 'off'}`}
+													aria-pressed={formData.preferences.notifications.email}
 													disabled={isSaving || isLoadingProfile}
 													onClick={() =>
 														updateNestedFormData('preferences', 'notifications', {
