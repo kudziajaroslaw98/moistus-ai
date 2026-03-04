@@ -3,9 +3,10 @@
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import useAppStore from '@/store/mind-map-store';
+import type { MentionableUser } from '@/types/notification';
 import { slugifyCollaborator } from '@/utils/collaborator-utils';
 import { AlertCircle } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import {
 	useCallback,
 	useEffect,
@@ -18,14 +19,18 @@ import {
 import { useShallow } from 'zustand/shallow';
 import { processNodeTypeSwitch } from '../../core/commands/command-executor';
 import { commandRegistry } from '../../core/commands/command-registry';
-import { getNodeTypeConfig } from '../../core/config/node-type-config';
+import {
+	getNodeSpecificParsingPatterns,
+	getNodeTypeConfig,
+	getUniversalParsingPatterns,
+} from '../../core/config/node-type-config';
 import { parseInput } from '../../core/parsers/pattern-extractor';
 import { announceToScreenReader } from '../../core/utils/text-utils';
+import type { CollaboratorMention } from '../../integrations/codemirror/completions';
 import {
 	createOrUpdateNode,
 	transformNodeToQuickInputString,
 } from '../../node-updater';
-import type { CollaboratorMention } from '../../integrations/codemirror/completions';
 import type { QuickInputProps } from '../../types';
 import { ActionBar } from '../action-bar';
 import { ComponentHeader } from '../component-header';
@@ -40,6 +45,101 @@ const theme = {
 	container: 'p-4',
 	hint: 'text-xs text-zinc-500 mt-2',
 };
+
+type QuickInputPreview = ReturnType<typeof parseInput> & {
+	referencePreview?: {
+		targetMapTitle?: string;
+		contentSnippet?: string;
+	};
+};
+
+interface ReferenceCommandData {
+	targetNodeId?: string;
+	targetMapId?: string;
+	targetMapTitle?: string;
+	contentSnippet?: string;
+}
+
+interface CommandExecutedPayload {
+	id: string;
+	result?: unknown;
+}
+
+function isReferenceCommandData(value: unknown): value is ReferenceCommandData {
+	if (!value || typeof value !== 'object') return false;
+	const payload = value as Record<string, unknown>;
+	return (
+		(payload.targetNodeId === undefined ||
+			typeof payload.targetNodeId === 'string') &&
+		(payload.targetMapId === undefined ||
+			typeof payload.targetMapId === 'string') &&
+		(payload.targetMapTitle === undefined ||
+			typeof payload.targetMapTitle === 'string') &&
+		(payload.contentSnippet === undefined ||
+			typeof payload.contentSnippet === 'string')
+	);
+}
+
+function isReferenceSelectedCommand(
+	value: unknown
+): value is CommandExecutedPayload & {
+	id: 'reference-selected';
+	result: ReferenceCommandData;
+} {
+	if (!value || typeof value !== 'object') return false;
+	const payload = value as Record<string, unknown>;
+	return (
+		payload.id === 'reference-selected' &&
+		isReferenceCommandData(payload.result)
+	);
+}
+
+function sanitizeMentionableUsers(users: unknown[]): MentionableUser[] {
+	const safeUsers: MentionableUser[] = [];
+
+	for (const user of users) {
+		if (!user || typeof user !== 'object') {
+			continue;
+		}
+
+		const record = user as Record<string, unknown>;
+		const userId =
+			typeof record.userId === 'string' ? record.userId.trim() : '';
+		const slug =
+			typeof record.slug === 'string' ? record.slug.trim().toLowerCase() : '';
+
+		if (!userId || !slug) {
+			continue;
+		}
+
+		const displayName =
+			typeof record.displayName === 'string' &&
+			record.displayName.trim().length > 0
+				? record.displayName.trim()
+				: slug;
+		const avatarUrl =
+			typeof record.avatarUrl === 'string' && record.avatarUrl.trim().length > 0
+				? record.avatarUrl.trim()
+				: null;
+		const role =
+			record.role === 'owner' ||
+			record.role === 'editor' ||
+			record.role === 'commentator' ||
+			record.role === 'viewer'
+				? record.role
+				: 'viewer';
+
+		safeUsers.push({
+			userId,
+			slug,
+			displayName,
+			avatarUrl,
+			role,
+		});
+	}
+
+	return safeUsers;
+}
 
 // Helper function to determine if we should auto-process node type switch
 const shouldAutoProcessSwitch = (
@@ -67,12 +167,13 @@ export const QuickInput: FC<QuickInputProps> = ({
 	mode = 'create',
 	existingNode,
 }) => {
-	// Get configuration for this node type
-	const config = getNodeTypeConfig(initialNodeType);
 	// Local UI state
-	const [preview, setPreview] = useState<any>(null);
+	const [preview, setPreview] = useState<QuickInputPreview | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [isCreating, setIsCreating] = useState(false);
+	const [mentionableUsers, setMentionableUsers] = useState<MentionableUser[]>(
+		[]
+	);
 
 	const [referenceMetadata, setReferenceMetadata] = useState<{
 		targetNodeId?: string;
@@ -81,10 +182,13 @@ export const QuickInput: FC<QuickInputProps> = ({
 		contentSnippet?: string;
 	} | null>(null);
 	const lastProcessedText = useRef('');
+	const prefersReducedMotion = useReducedMotion();
 
-	const [legendCollapsed, setLegendCollapsed] = useState(
-		() => localStorage.getItem('parsingLegendCollapsed') === 'true'
-	);
+	const [legendCollapsed, setLegendCollapsed] = useState(false);
+	const [universalLegendCollapsed, setUniversalLegendCollapsed] =
+		useState(false);
+	const [nodeSpecificLegendCollapsed, setNodeSpecificLegendCollapsed] =
+		useState(false);
 
 	// Zustand state for persistence across remounts
 	const {
@@ -96,6 +200,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 		setQuickInputCursorPosition: setCursorPosition,
 		initializeQuickInput,
 		currentShares,
+		mapId,
 	} = useAppStore(
 		useShallow((state) => ({
 			quickInputValue: state.quickInputValue,
@@ -106,6 +211,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 			setQuickInputCursorPosition: state.setQuickInputCursorPosition,
 			initializeQuickInput: state.initializeQuickInput,
 			currentShares: state.currentShares,
+			mapId: state.mapId,
 		}))
 	);
 
@@ -117,23 +223,108 @@ export const QuickInput: FC<QuickInputProps> = ({
 		}))
 	);
 
-	const collaborators = useMemo<CollaboratorMention[]>(
-		() =>
-			(currentShares ?? []).map((u) => {
-				const slug = slugifyCollaborator(u);
-				const role: CollaboratorMention['role'] =
-					u.share.role === 'owner' || u.share.role === 'editor'
-						? 'editor'
-						: 'viewer';
-				return {
-					slug,
-					displayName: u.profile?.display_name || u.name || slug,
-					avatarUrl: u.avatar_url ?? '',
-					role,
-				};
-			}),
-		[currentShares]
+	const effectiveNodeType = currentNodeType || initialNodeType || 'defaultNode';
+	const config = useMemo(
+		() => getNodeTypeConfig(effectiveNodeType),
+		[effectiveNodeType]
 	);
+	const universalPatterns = useMemo(
+		() => getUniversalParsingPatterns(effectiveNodeType),
+		[effectiveNodeType]
+	);
+	const nodeSpecificPatterns = useMemo(
+		() => getNodeSpecificParsingPatterns(effectiveNodeType),
+		[effectiveNodeType]
+	);
+	const hasSyntaxPatterns =
+		universalPatterns.length > 0 || nodeSpecificPatterns.length > 0;
+
+	const collaborators = useMemo<CollaboratorMention[]>(() => {
+		if (mentionableUsers.length > 0) {
+			return mentionableUsers.map((user) => ({
+				slug: user.slug,
+				displayName: user.displayName,
+				avatarUrl: user.avatarUrl ?? '',
+				role:
+					user.role === 'owner' || user.role === 'editor' ? 'editor' : 'viewer',
+			}));
+		}
+
+		return (currentShares ?? []).map((u) => {
+			const slug = slugifyCollaborator(u);
+			const role: CollaboratorMention['role'] =
+				u.share.role === 'owner' || u.share.role === 'editor'
+					? 'editor'
+					: 'viewer';
+			return {
+				slug,
+				displayName: u.profile?.display_name || u.name || slug,
+				avatarUrl: u.avatar_url ?? '',
+				role,
+			};
+		});
+	}, [currentShares, mentionableUsers]);
+
+	const mentionSlugToUserId = useMemo(() => {
+		const map = new Map<string, string>();
+		if (mentionableUsers.length > 0) {
+			for (const user of mentionableUsers) {
+				if (user.slug) {
+					map.set(user.slug.toLowerCase(), user.userId);
+				}
+			}
+			return map;
+		}
+
+		for (const share of currentShares ?? []) {
+			const slug = slugifyCollaborator(share);
+			if (slug) {
+				map.set(slug.toLowerCase(), share.user_id);
+			}
+		}
+		return map;
+	}, [mentionableUsers, currentShares]);
+
+	useEffect(() => {
+		if (!mapId) {
+			setMentionableUsers([]);
+			return;
+		}
+
+		const abortController = new AbortController();
+		const fetchMentionableUsers = async () => {
+			try {
+				const response = await fetch(`/api/maps/${mapId}/mentionable-users`, {
+					signal: abortController.signal,
+				});
+				if (!response.ok) {
+					return;
+				}
+				const result: unknown = await response.json();
+				const payload =
+					result && typeof result === 'object'
+						? (result as {
+								status?: unknown;
+								data?: { users?: unknown };
+							})
+						: null;
+				if (
+					payload?.status === 'success' &&
+					Array.isArray(payload.data?.users)
+				) {
+					setMentionableUsers(sanitizeMentionableUsers(payload.data.users));
+				}
+			} catch (error) {
+				if ((error as Error).name === 'AbortError') {
+					return;
+				}
+				console.warn('[quick-input] failed to load mentionable users', error);
+			}
+		};
+
+		void fetchMentionableUsers();
+		return () => abortController.abort();
+	}, [mapId]);
 
 	// Check node limit (only affects create mode)
 	const { isAtLimit, usage, limits } = useSubscriptionLimits();
@@ -169,23 +360,72 @@ export const QuickInput: FC<QuickInputProps> = ({
 		setCurrentNodeType,
 	]);
 
-	// Save legend preference
+	// Restore legend preferences on mount (client only).
 	useEffect(() => {
-		localStorage.setItem('parsingLegendCollapsed', String(legendCollapsed));
-	}, [legendCollapsed]);
+		if (typeof window === 'undefined') {
+			return;
+		}
+
+		setLegendCollapsed(
+			window.localStorage.getItem('parsingLegendCollapsed') === 'true'
+		);
+		setUniversalLegendCollapsed(
+			window.localStorage.getItem('parsingLegendUniversalCollapsed') === 'true'
+		);
+		setNodeSpecificLegendCollapsed(
+			window.localStorage.getItem('parsingLegendNodeSpecificCollapsed') ===
+				'true'
+		);
+	}, []);
+
+	const handleLegendCollapseToggle = useCallback(() => {
+		setLegendCollapsed((current) => {
+			const next = !current;
+			if (typeof window !== 'undefined') {
+				window.localStorage.setItem('parsingLegendCollapsed', String(next));
+			}
+			return next;
+		});
+	}, []);
+
+	const handleUniversalLegendCollapseToggle = useCallback(() => {
+		setUniversalLegendCollapsed((current) => {
+			const next = !current;
+			if (typeof window !== 'undefined') {
+				window.localStorage.setItem(
+					'parsingLegendUniversalCollapsed',
+					String(next)
+				);
+			}
+			return next;
+		});
+	}, []);
+
+	const handleNodeSpecificLegendCollapseToggle = useCallback(() => {
+		setNodeSpecificLegendCollapsed((current) => {
+			const next = !current;
+			if (typeof window !== 'undefined') {
+				window.localStorage.setItem(
+					'parsingLegendNodeSpecificCollapsed',
+					String(next)
+				);
+			}
+			return next;
+		});
+	}, []);
 
 	// Handle keyboard shortcut for legend toggle
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if ((e.metaKey || e.ctrlKey) && e.key === '/') {
 				e.preventDefault();
-				setLegendCollapsed(!legendCollapsed);
+				handleLegendCollapseToggle();
 			}
 		};
 
 		window.addEventListener('keydown', handleKeyDown);
 		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, [legendCollapsed]);
+	}, [handleLegendCollapseToggle]);
 
 	// Process node type switches automatically (legacy fallback only)
 	useEffect(() => {
@@ -245,7 +485,6 @@ export const QuickInput: FC<QuickInputProps> = ({
 			const parsed = parseInput(cleanValue);
 
 			// Enhance preview with reference metadata for reference nodes
-			const effectiveNodeType = currentNodeType || initialNodeType;
 			if (effectiveNodeType === 'referenceNode' && referenceMetadata) {
 				const enhancedPreview = {
 					...parsed,
@@ -264,9 +503,24 @@ export const QuickInput: FC<QuickInputProps> = ({
 			setPreview(null);
 			setError('Invalid input format');
 		}
-	}, [value, currentNodeType, initialNodeType, referenceMetadata]);
+	}, [value, effectiveNodeType, referenceMetadata]);
 
 	// Handle node creation with current node type
+	/**
+	 * Creates or updates a node from the current quick-input state.
+	 *
+	 * Captures closure values (`value`, `effectiveNodeType`, `mode`, `position`,
+	 * `parentNode`, `existingNode`, `referenceMetadata`, `mapId`,
+	 * `mentionSlugToUserId`) to parse input, resolve assignee mentions, mutate
+	 * `nodeData.metadata`, call `createOrUpdateNode`, emit notification events to
+	 * `/api/notifications/emit`, and close the editor via `closeNodeEditor`.
+	 *
+	 * Returns early when input is empty, the node limit is reached, or creation is
+	 * already in progress. On failure it logs and calls `setError`.
+	 *
+	 * @returns Promise<void> Performs state mutations and network requests; callers
+	 * should account for concurrent invocation.
+	 */
 	const handleCreate = useCallback(async () => {
 		// Guard: same checks as ActionBar canCreate prop
 		if (value.trim().length === 0 || isAtNodeLimit || isCreating) return;
@@ -274,14 +528,32 @@ export const QuickInput: FC<QuickInputProps> = ({
 		try {
 			setIsCreating(true);
 
-			// Use current node type
-			const effectiveNodeType = currentNodeType || initialNodeType;
-
 			// Clean the input by removing any $nodeType command from anywhere
 			const cleanValue = value.replace(/\$\w+\s*/, '').trim() || value;
 
 			// Parse the input
 			const nodeData = parseInput(cleanValue);
+			const rawAssignees = Array.isArray(nodeData.metadata?.assignee)
+				? nodeData.metadata.assignee
+				: typeof nodeData.metadata?.assignee === 'string'
+					? [nodeData.metadata.assignee]
+					: [];
+			const assigneeUserIds = Array.from(
+				new Set(
+					rawAssignees
+						.filter(
+							(assignee): assignee is string => typeof assignee === 'string'
+						)
+						.map((assignee) => mentionSlugToUserId.get(assignee.toLowerCase()))
+						.filter((userId): userId is string => Boolean(userId))
+				)
+			);
+			if (assigneeUserIds.length > 0) {
+				nodeData.metadata = {
+					...(nodeData.metadata || {}),
+					assigneeUserIds,
+				};
+			}
 
 			// Merge reference metadata for reference nodes
 			if (effectiveNodeType === 'referenceNode' && referenceMetadata) {
@@ -308,6 +580,53 @@ export const QuickInput: FC<QuickInputProps> = ({
 				throw new Error(result.error || 'Failed to save node');
 			}
 
+			if (mapId && assigneeUserIds.length > 0) {
+				void (async () => {
+					try {
+						const response = await fetch('/api/notifications/emit', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({
+								events: [
+									{
+										type: 'node_mention',
+										mapId,
+										recipientUserIds: assigneeUserIds,
+										nodeId: mode === 'edit' ? existingNode?.id : undefined,
+										nodeContent: cleanValue,
+									},
+								],
+							}),
+						});
+
+						if (!response.ok) {
+							const responseBody = await response.text();
+							let parsedBody: unknown = responseBody;
+							if (responseBody) {
+								try {
+									parsedBody = JSON.parse(responseBody) as unknown;
+								} catch {
+									// Keep raw text when response body is not JSON.
+								}
+							}
+
+							console.warn(
+								'[quick-input] node mention notification emit failed',
+								{
+									status: response.status,
+									body: parsedBody || response.statusText,
+								}
+							);
+						}
+					} catch (notificationError: unknown) {
+						console.warn(
+							'[quick-input] failed to emit node mention notification',
+							notificationError
+						);
+					}
+				})();
+			}
+
 			// Close the editor after successful creation/update
 			closeNodeEditor();
 		} catch (err) {
@@ -320,8 +639,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 		}
 	}, [
 		value,
-		currentNodeType,
-		initialNodeType,
+		effectiveNodeType,
 		position,
 		parentNode,
 		addNode,
@@ -332,6 +650,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 		mode,
 		existingNode,
 		referenceMetadata,
+		mapId,
+		mentionSlugToUserId,
 	]);
 
 	// Handle pattern insertion from legend
@@ -374,20 +694,22 @@ export const QuickInput: FC<QuickInputProps> = ({
 	);
 
 	// Handle command execution from enhanced input
-	const handleCommandExecuted = useCallback((commandData: any) => {
-		if (commandData.id === 'reference-selected') {
-			// Handle reference selection
-			const referenceData = commandData.result;
-			setReferenceMetadata({
-				targetNodeId: referenceData.targetNodeId,
-				targetMapId: referenceData.targetMapId,
-				targetMapTitle: referenceData.targetMapTitle,
-				contentSnippet: referenceData.contentSnippet,
-			});
-			announceToScreenReader(
-				`Selected reference: ${referenceData.contentSnippet?.slice(0, 50) || 'Unknown content'}`
-			);
+	const handleCommandExecuted = useCallback((commandData: unknown) => {
+		if (!isReferenceSelectedCommand(commandData)) {
+			return;
 		}
+
+		// Handle reference selection
+		const referenceData = commandData.result;
+		setReferenceMetadata({
+			targetNodeId: referenceData.targetNodeId,
+			targetMapId: referenceData.targetMapId,
+			targetMapTitle: referenceData.targetMapTitle,
+			contentSnippet: referenceData.contentSnippet,
+		});
+		announceToScreenReader(
+			`Selected reference: ${referenceData.contentSnippet?.slice(0, 50) || 'Unknown content'}`
+		);
 	}, []);
 
 	// Handle keyboard shortcuts
@@ -447,33 +769,49 @@ export const QuickInput: FC<QuickInputProps> = ({
 				<PreviewSection
 					className='hidden sm:block'
 					hasInput={value.trim().length > 0}
-					nodeType={currentNodeType || initialNodeType || 'defaultNode'}
+					nodeType={effectiveNodeType}
 					preview={preview}
 				/>
 			</div>
 
 			{/* Parsing Legend */}
 			<AnimatePresence>
-				{config.parsingPatterns && config.parsingPatterns.length > 0 && (
+				{hasSyntaxPatterns && (
 					<motion.div
-						animate={{ opacity: 1, height: 'auto', y: 0 }}
+						animate={
+							prefersReducedMotion
+								? { opacity: 1 }
+								: { opacity: 1, height: 'auto', y: 0 }
+						}
 						className='mt-3'
-						exit={{ opacity: 0, height: 0, y: -20 }}
-						initial={{ opacity: 0, height: 0, y: -20 }}
+						exit={
+							prefersReducedMotion
+								? { opacity: 0 }
+								: { opacity: 0, height: 0, y: -20 }
+						}
+						initial={
+							prefersReducedMotion
+								? { opacity: 0 }
+								: { opacity: 0, height: 0, y: -20 }
+						}
 						transition={{
-							duration: 0.2,
-							delay: 0.1,
+							duration: prefersReducedMotion ? 0.1 : 0.2,
+							delay: prefersReducedMotion ? 0 : 0.1,
 							ease: 'easeInOut' as const,
 						}}
 					>
 						<ParsingLegend
 							isCollapsed={legendCollapsed}
+							isNodeSpecificCollapsed={nodeSpecificLegendCollapsed}
+							isUniversalCollapsed={universalLegendCollapsed}
+							nodeSpecificPatterns={nodeSpecificPatterns}
 							onPatternClick={handlePatternInsert}
-							onToggleCollapse={() => setLegendCollapsed(!legendCollapsed)}
-							patterns={
-								getNodeTypeConfig(currentNodeType || initialNodeType)
-									.parsingPatterns || []
+							onToggleCollapse={handleLegendCollapseToggle}
+							onToggleNodeSpecificCollapse={
+								handleNodeSpecificLegendCollapseToggle
 							}
+							onToggleUniversalCollapse={handleUniversalLegendCollapseToggle}
+							universalPatterns={universalPatterns}
 						/>
 					</motion.div>
 				)}
@@ -481,15 +819,21 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 			{/* Show hint for nodes without patterns */}
 			<AnimatePresence>
-				{(!config.parsingPatterns || config.parsingPatterns.length === 0) && (
+				{!hasSyntaxPatterns && (
 					<motion.div
-						animate={{ opacity: 1, y: 0 }}
+						animate={
+							prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }
+						}
 						className='mt-3 text-xs text-zinc-500'
-						exit={{ opacity: 0, y: -10 }}
-						initial={{ opacity: 0, y: -10 }}
+						exit={
+							prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -10 }
+						}
+						initial={
+							prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -10 }
+						}
 						transition={{
-							delay: 0.05,
-							duration: 0.3,
+							delay: prefersReducedMotion ? 0 : 0.05,
+							duration: prefersReducedMotion ? 0.12 : 0.3,
 							ease: 'easeOut' as const,
 						}}
 					>

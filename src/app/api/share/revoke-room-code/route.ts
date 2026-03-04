@@ -5,6 +5,7 @@ import {
 	pushPartyKitAccessRevoked,
 	pushPartyKitCollaboratorEvent,
 } from '@/helpers/partykit/admin';
+import { createNotifications } from '@/lib/notifications/notification-service';
 import { z } from 'zod';
 
 const RevokeRoomCodeSchema = z.object({
@@ -57,6 +58,12 @@ export const POST = withAuthValidation(
 					'Invalid token'
 				);
 			}
+
+			const { data: mapRow } = await supabase
+				.from('mind_maps')
+				.select('title')
+				.eq('id', tokenRecord.map_id)
+				.maybeSingle();
 
 			const { data: affectedAccessRows, error: accessLookupError } =
 				await supabase
@@ -193,6 +200,38 @@ export const POST = withAuthValidation(
 						}
 					);
 				}
+			}
+
+			try {
+				const mapTitle = mapRow?.title ?? null;
+				await createNotifications(
+					affectedUserIds.map((recipientUserId) => ({
+						recipientUserId,
+						actorUserId: user.id,
+						mapId: tokenRecord.map_id,
+						eventType: 'access_revoked' as const,
+						title: 'Access revoked',
+						body: `Your access to "${mapTitle || 'a shared map'}" has been revoked.`,
+						metadata: {
+							mapId: tokenRecord.map_id,
+							mapTitle,
+							tokenId: data.token_id,
+						},
+						dedupeKey: `access_revoked:${tokenRecord.map_id}:${data.token_id}:${recipientUserId}`,
+					}))
+				);
+			} catch (notificationError) {
+				console.warn(
+					'[share/revoke-room-code] Failed to create access-revoked notifications',
+					{
+						mapId: tokenRecord.map_id,
+						tokenId: data.token_id,
+						error:
+							notificationError instanceof Error
+								? notificationError.message
+								: 'Unknown notification error',
+					}
+				);
 			}
 
 			let disconnectResult = {

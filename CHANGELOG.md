@@ -6,6 +6,166 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ---
 
 <!-- Updated: 2026-02-24 - Permissions/quota hardening, realtime cursor safety, typing/accessibility fixes, and dependency vulnerability remediation -->
+<!-- Updated: 2026-02-26 - Restored template graph visibility for authenticated viewers and aligned template permissions API -->
+<!-- Updated: 2026-02-27 - Added account/billing settings safety flows and aligned map-settings color tokens -->
+<!-- Updated: 2026-02-28 - Cleaned deprecated node-editor parser tokens, split syntax help into universal/node-specific sections, and added parser/completion regression tests -->
+<!-- Updated: 2026-03-04 - Added notifications system (in-app inbox + Resend email + mention/reply/reaction/access events) -->
+
+## [2026-03-04]
+
+### Added
+
+- **notifications/db**: Added `public.notifications` table with RLS, unread/read tracking, dedupe key support, and email delivery status fields
+  - Why: Provides a persistent in-app inbox source of truth with delivery diagnostics
+- **api/notifications**: Added notification APIs (`GET /api/notifications`, `PATCH /api/notifications/[id]/read`, `POST /api/notifications/mark-all-read`, `POST /api/notifications/emit`)
+  - Why: Enables client inbox reads/updates and controlled event emission for mentions/replies/reactions
+- **api/maps/mentionable-users**: Added `GET /api/maps/[id]/mentionable-users`
+  - Why: Resolves `@slug` mentions to user IDs consistently for node/comment notification targeting
+- **ui/notifications**: Added reusable notification bell + inbox popover in dashboard and mind-map top bar
+  - Why: Surfaces unread notifications and quick read/open-map actions in primary navigation areas
+
+### Changed
+
+- **sharing/access-events**: Share update/delete/revoke routes now create access-changed/access-revoked notifications
+  - Why: Users are explicitly informed when map permissions are changed or removed
+- **node-editor/mentions**: Quick input now resolves assignee `@mentions` to user IDs (`metadata.assigneeUserIds`) and emits `node_mention` notifications
+  - Why: Connects node mentions to real recipients instead of unresolved slugs
+- **comments/mentions-replies-reactions**: Comment reply input resolves mention slugs to UUIDs; comments slice emits `comment_mention`, `comment_reply`, and `comment_reaction` notifications
+  - Why: Delivers thread activity notifications for direct mentions, new replies, and emoji reactions
+- **dashboard/settings**: Added Account Settings toggle for email notifications (`preferences.notifications.email`)
+  - Why: Gives users explicit control over whether notification events send emails
+- **notifications/preferences-source**: Email delivery preference now checks profile preferences first (`preferences.notifications.email`) and falls back to legacy `user_preferences.email_notifications`
+  - Why: Keeps behavior backward compatible while enabling UI-driven preference control
+- **dashboard/settings-types**: `updateNestedFormData` now uses keyed `preferences` typing instead of `string`/`unknown`
+  - Why: Prevents invalid preference keys/values from compiling and keeps preference writes type-safe
+- **notifications/partykit-dispatch**: `createNotifications` no longer awaits PartyKit event fan-out before returning
+  - Why: Prevents notification creation latency from being blocked by downstream realtime push timing
+- **dashboard/settings-preferences**: Profile visibility/theme/reduced-motion preference controls are now disabled while profile save/load is in flight
+  - Why: Prevents in-flight preference edits from mutating staged form data during save/load transitions
+- **api/templates/[id]**: Template reads now use authenticated-viewer semantics without redundant share-access lookups, and node/edge queries now enumerate explicit selected columns
+  - Why: Removes dead authorization branches for templates and avoids schema-coupled overfetching from `select('*')`
+- **notifications/comments-events**: Comments slice now uses shared `NotificationEmitEvent` typing for notification payloads
+  - Why: Keeps emit payload contracts aligned with centralized notification event types
+- **node-editor/reduced-motion**: Quick input syntax legend/hint animations now respect reduced-motion preferences
+  - Why: Avoids height/Y transform animation when reduced motion is enabled
+
+### Fixed
+
+- **mention-identity**: Eliminated slug/UUID mismatch in comment mention writes for users resolved from map collaborators
+  - Why: Prevents invalid `mentioned_users` payloads and ensures notification recipients are valid users
+- **notifications/inbox-refresh**: Notification bell now auto-refreshes via PartyKit notification channel events (no interval polling)
+  - Why: Delivers true realtime inbox updates without manual refreshes or fake polling loops
+- **dashboard/settings-accessibility**: Reduced motion + email notification toggles now expose explicit toggle state (`aria-pressed`) and purpose labels
+  - Why: Gives assistive tech stable control names and state announcements instead of generic `On/Off` text only
+- **store/user-profile-notification-preferences**: `getNotificationPreferences` now derives email flags from persisted `preferences.notifications.email`
+  - Why: Aligns computed notification settings with stored account preference instead of hardcoded `false`
+- **api/templates/[id]**: Added explicit template authorization checks before service-role node/edge reads and filtered template edges to only valid non-ghost node endpoints
+  - Why: Prevents unauthorized service-role reads and removes dangling edges that referenced filtered-out ghost nodes
+- **mind-map/map-settings**: Unsaved-close flow now computes change state synchronously in `requestClose`; title/description validation messages are now programmatically associated with their fields
+  - Why: Avoids stale discard-dialog decisions and improves screen reader error announcement fidelity
+- **notifications/email-preferences**: Email preference lookup now fails closed on DB errors (`false`) and logs full error details
+  - Why: Prevents sending emails when preference verification fails
+- **notifications/ui + comments**: Mark-all-read refresh now runs only after successful POST; comment-reaction emit now logs non-2xx HTTP responses
+  - Why: Aligns client behavior with success semantics and surfaces backend failures that were previously silent
+- **node-editor/mentionable-users**: Quick input now validates/sanitizes mentionable user payloads before using `slug`/`userId`
+  - Why: Prevents malformed API rows from causing runtime crashes during mention normalization
+- **node-editor/emit-error-surface**: Quick input now logs non-2xx `/api/notifications/emit` responses with status + response body details
+  - Why: Makes validation/auth emit failures visible instead of silently ignored
+- **node-editor/legend-storage**: Quick input legend collapse state now initializes client-side and persists through toggle handlers
+  - Why: Prevents SSR crashes from render-time `localStorage` access and avoids overwriting saved collapse state on mount
+- **notifications/filter-scope**: Notification bell unread badge/counts and “Mark all” action now scope to visible (map-filtered) notifications
+  - Why: Ensures filtered inbox views only display and mutate read state for visible notifications
+- **comments/recipient-batching**: Comment mention/reply notification recipients now emit in chunks of 50 per API call
+  - Why: Prevents oversized recipient arrays from being rejected by the emit API limit
+- **comments/reaction-error-guard**: Reaction-notification emit catch now uses `unknown` + runtime error normalization
+  - Why: Keeps error logging type-safe and consistent across emit failure paths
+- **mind-map/map-settings-a11y**: Thumbnail validation message is now programmatically associated with the thumbnail input
+  - Why: Allows screen readers to announce thumbnail URL validation errors correctly
+
+### Docs
+
+- **codebase-map/notifications**: Expanded notification internals with architecture, module mapping, and trigger->persist->deliver->refresh data flow diagrams
+  - Why: Makes notification service/channel/schema/mention-resolution behavior operationally traceable
+- **notifications/jsdoc**: Added maintainers' JSDoc for `processNotificationEmails` and `subscribeToNotificationChannel`
+  - Why: Documents async delivery lifecycle, side effects, reconnect semantics, and failure handling for incident triage
+- **codebase-map/route-counts**: Updated stale API route counts to 61 and labeled the root directory tree fence as `text`
+  - Why: Keeps architecture docs accurate and resolves markdown fenced-code lint warnings
+- **mind-map/map-settings**: Added `computeHasChanges` JSDoc describing normalization and tag diffing behavior
+  - Why: Documents save/discard gating logic to reduce regression risk
+- **node-editor/quick-input**: Added `handleCreate` JSDoc covering inputs, side effects, guards, and concurrency implications
+  - Why: Clarifies create/update + notification emit behavior for maintainers
+
+## [2026-02-28]
+
+### Changed
+
+- **node-editor/syntax-help**: Split syntax help into `Universal` and `Node-specific` collapsible sections, with universal patterns filtered by node type
+  - Why: Makes supported parser syntax immediately visible while avoiding unsupported/system node hints
+- **node-editor/syntax-help**: Added a compact node-type switch discovery hint (`$...`) in Node-specific help that shows a few other valid `$` commands (excluding `$reference`)
+  - Why: Helps users recognize the `$` node-type switching pattern without suggesting disabled reference parsing
+- **node-editor/syntax-help**: Added a fixed max height with vertical overflow for syntax help content
+  - Why: Prevents long parser lists from extending past the visible node editor area and getting cut off
+- **node-editor/quick-switch**: Excluded `referenceNode` from generated node-type quick-switch commands and trigger map
+  - Why: Stops `$reference` suggestions from appearing in parser-driven node editor flows
+- **node-editor/parsers**: Removed parser behavior/suggestions/highlighting/help config for deprecated tokens (`bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`)
+  - Why: Aligns parser surface with currently supported syntax and prevents misleading suggestions
+
+### Fixed
+
+- **node-editor/legacy-metadata**: Next edit save now clears legacy `backgroundColor`, `borderColor`, and `source` metadata fields for text/image nodes and no longer re-serializes removed tokens into quick input strings
+  - Why: Prevents deprecated parser tokens from being reintroduced during edit/save cycles
+
+### Added
+
+- **tests/node-editor**: Added focused regression tests for parser cleanup, completion cleanup, dual syntax help wiring, reference quick-switch exclusion, and legacy metadata clearing
+  - Why: Locks behavior and guards against accidental reintroduction of removed parser tokens/features
+
+## [2026-02-27]
+
+### Added
+
+- **mind-map/map-settings**: Added unsaved-changes discard confirmation dialog for Map Settings panel close actions
+  - Why: Prevents accidental data loss when users close the panel with pending edits
+- **tests/map-settings-panel**: Added focused Jest coverage for section rendering, validation gating, save payload shaping, and discard-close flow
+  - Why: Locks in the new panel behavior and prevents regressions
+- **dashboard/account-settings**: Added discard-confirm dialog and cancel-subscription confirm dialog for Account/Billing settings flow
+  - Why: Adds parity safety for unsaved-close and destructive billing actions
+- **tests/dashboard-settings-panel**: Added focused Jest coverage for account/billing rendering, validation gating, changed-only save payloads, discard-close flow, and billing cancellation confirmation
+  - Why: Prevents regressions in the new account settings UX logic
+
+### Changed
+
+- **mind-map/map-settings**: Removed template editing controls from Map Settings (`is_template`, `template_category`) because map update API is system-managed for these fields
+  - Why: Avoids exposing controls that cannot persist through the current backend contract
+- **mind-map/map-settings**: Refined panel section shells and helper copy for stronger visual hierarchy while preserving existing section order
+  - Why: Improves scanability and usability without expanding scope
+- **dashboard/settings-panel**: Refactored account save model to changed-only payloads with deterministic validation (`full_name` required <=255, `display_name` <=100, `bio` <=500), sanitized outbound values, and unsaved-close guard behavior
+  - Why: Aligns account panel safety and clarity with explicit-save UX used in map settings
+- **mind-map/map-settings**: Harmonized section and dialog color tokens (borders/background/text) to match Account/Billing panel styling
+  - Why: Keeps settings surfaces visually consistent across the product
+
+### Fixed
+
+- **mind-map/map-settings**: Added deterministic client validation for title/description/thumbnail URL, disabled save on invalid state, and sanitized outbound values (trim + null empty optional fields)
+  - Why: Ensures payload correctness and clearer user feedback before save attempts
+- **dashboard/billing-cancel**: Subscription cancellation now requires explicit confirmation before `cancelSubscription` executes
+  - Why: Prevents accidental one-click subscription cancellations
+
+## [2026-02-26]
+
+### Fixed
+
+- **store/core-slice**: Added template graph hydration fallback for non-owner template viewers when direct graph query returns empty nodes/edges
+  - Why: Template canvases could render blank for authenticated non-owners due upstream policy drift on graph row visibility
+- **api/templates/[id]**: Template detail route now returns authenticated, service-role-backed `mindMapData` payload for reliable graph hydration
+  - Why: Ensures template graph data can be fetched server-side for authorized viewers even when client-side graph reads are filtered
+- **api/maps/permissions**: Template non-owners now receive explicit read-only viewer permissions instead of `403`
+  - Why: Aligns permissions endpoint behavior with template access checks and prevents inconsistent template viewer handling
+
+### Changed
+
+- **gitignore/partykit**: Added `/partykit/.env` to ignored files
+  - Why: Keeps local PartyKit environment secrets out of source control
 
 ## [2026-02-24]
 

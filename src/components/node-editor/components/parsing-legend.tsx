@@ -3,27 +3,8 @@
 /**
  * ParsingLegend Component
  *
- * A collapsible UI component that displays available syntax patterns for the inline node creator's quick input mode.
- * Provides users with clear documentation of parsing syntax specific to each node type.
- *
- * Features:
- * - Collapsible/expandable with smooth animations
- * - Grouped patterns by category (metadata, formatting, structure, content)
- * - Click-to-insert functionality
- * - Keyboard navigation support (Ctrl/Cmd + / to toggle)
- * - Fully accessible with ARIA labels and screen reader support
- * - Responsive design with mobile optimizations
- * - Persists collapsed state in localStorage
- *
- * @example
- * ```tsx
- * <ParsingLegend
- *   patterns={nodeCommand.parsingPatterns}
- *   onPatternClick={handlePatternInsert}
- *   isCollapsed={legendCollapsed}
- *   onToggleCollapse={() => setLegendCollapsed(!legendCollapsed)}
- * />
- * ```
+ * A collapsible UI component that displays universal and node-specific syntax
+ * patterns for quick input mode.
  */
 
 import { cn } from '@/utils/cn';
@@ -42,8 +23,7 @@ const theme = {
 		container: 'bg-zinc-900/50 border border-zinc-800 rounded-md',
 		header:
 			'flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-zinc-800/50 transition-colors',
-		content:
-			'px-3 py-2  flex flex-col gap-2 max-h-60 overflow-y-auto sm:max-h-none sm:overflow-visible',
+		content: 'px-3 py-4 flex flex-col gap-3 max-h-80 overflow-y-auto',
 		title: 'text-sm font-medium text-zinc-100',
 		toggle: {
 			button:
@@ -52,6 +32,15 @@ const theme = {
 				'px-2 py-0.5 bg-zinc-900/75 rounded-sm text-zinc-400 font-medium text-xs',
 			icon: 'w-4 h-4 transition-transform duration-200',
 		},
+	},
+	section: {
+		container: 'border border-zinc-800 rounded-md bg-zinc-950/40',
+		header:
+			'flex items-center justify-between px-2.5 py-2 cursor-pointer hover:bg-zinc-900/60 transition-colors',
+		title: 'text-xs font-semibold uppercase tracking-wide text-zinc-300',
+		content: 'px-2.5 pb-2 flex flex-col gap-2',
+		empty: 'text-xs text-zinc-500',
+		icon: 'w-3.5 h-3.5 text-zinc-500 transition-transform duration-200',
 	},
 };
 
@@ -79,11 +68,17 @@ const chevronVariants = {
 	closed: { rotate: 0 },
 };
 
+const categoryOrder = [
+	'metadata',
+	'formatting',
+	'structure',
+	'content',
+] as const;
+
 // Helper function to group patterns by category
 const groupPatternsByCategory = (
 	patterns: ParsingPattern[]
 ): Record<PatternCategory, ParsingPattern[]> => {
-	// Safety check: handle undefined or null patterns
 	if (!patterns || !Array.isArray(patterns)) {
 		return {} as Record<PatternCategory, ParsingPattern[]>;
 	}
@@ -101,15 +96,112 @@ const groupPatternsByCategory = (
 	);
 };
 
-export const ParsingLegend: React.FC<ParsingLegendProps> = memo(
-	({ patterns, onPatternClick, isCollapsed, onToggleCollapse, className }) => {
+interface SyntaxSectionProps {
+	title: string;
+	patterns: ParsingPattern[];
+	isCollapsed: boolean;
+	onToggleCollapse: () => void;
+	onPatternClick: (pattern: string, insertText?: string) => void;
+	emptyMessage: string;
+}
+
+const SyntaxSection = memo(
+	({
+		title,
+		patterns,
+		isCollapsed,
+		onToggleCollapse,
+		onPatternClick,
+		emptyMessage,
+	}: SyntaxSectionProps) => {
 		const groupedPatterns = useMemo(
 			() => groupPatternsByCategory(patterns),
 			[patterns]
 		);
 
-		// Don't render if no patterns
 		if (!patterns || patterns.length === 0) {
+			return null;
+		}
+
+		return (
+			<div className={theme.section.container}>
+				<div
+					aria-expanded={!isCollapsed}
+					className={theme.section.header}
+					onClick={onToggleCollapse}
+					role='button'
+					tabIndex={0}
+					onKeyDown={(e) => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							e.preventDefault();
+							onToggleCollapse();
+						}
+					}}
+				>
+					<span className={theme.section.title}>{title}</span>
+
+					<motion.div
+						animate={isCollapsed ? 'closed' : 'open'}
+						transition={{ duration: 0.2 }}
+						variants={chevronVariants}
+					>
+						<ChevronDown className={theme.section.icon} />
+					</motion.div>
+				</div>
+
+				<AnimatePresence initial={false}>
+					{!isCollapsed && (
+						<motion.div
+							animate='open'
+							className='overflow-hidden'
+							exit='closed'
+							initial='closed'
+							variants={contentVariants}
+						>
+							<div className={theme.section.content}>
+								{categoryOrder
+									.filter((category) => groupedPatterns[category]?.length > 0)
+									.map((category) => (
+										<PatternCategoryComponent
+											category={category}
+											key={`${title}-${category}`}
+											onPatternClick={onPatternClick}
+											patterns={groupedPatterns[category]}
+										/>
+									))}
+
+								{categoryOrder.every(
+									(category) => !groupedPatterns[category]?.length
+								) && <p className={theme.section.empty}>{emptyMessage}</p>}
+							</div>
+						</motion.div>
+					)}
+				</AnimatePresence>
+			</div>
+		);
+	}
+);
+
+SyntaxSection.displayName = 'SyntaxSection';
+
+export const ParsingLegend: React.FC<ParsingLegendProps> = memo(
+	({
+		universalPatterns,
+		nodeSpecificPatterns,
+		onPatternClick,
+		isCollapsed,
+		onToggleCollapse,
+		isUniversalCollapsed,
+		onToggleUniversalCollapse,
+		isNodeSpecificCollapsed,
+		onToggleNodeSpecificCollapse,
+		className,
+	}) => {
+		const hasAnyPatterns =
+			(universalPatterns?.length || 0) > 0 ||
+			(nodeSpecificPatterns?.length || 0) > 0;
+
+		if (!hasAnyPatterns) {
 			return null;
 		}
 
@@ -121,7 +213,6 @@ export const ParsingLegend: React.FC<ParsingLegendProps> = memo(
 				data-testid='parsing-legend'
 				initial={{ height: 0 }}
 			>
-				{/* Header */}
 				<div
 					aria-controls='parsing-legend-content'
 					aria-expanded={!isCollapsed}
@@ -157,7 +248,6 @@ export const ParsingLegend: React.FC<ParsingLegendProps> = memo(
 					</div>
 				</div>
 
-				{/* Content */}
 				<AnimatePresence initial={false}>
 					{!isCollapsed && (
 						<motion.div
@@ -173,17 +263,23 @@ export const ParsingLegend: React.FC<ParsingLegendProps> = memo(
 								className={theme.legend.content}
 								role='region'
 							>
-								{/* Display patterns by category */}
-								{(['metadata', 'formatting', 'structure', 'content'] as const)
-									.filter((category) => groupedPatterns[category]?.length > 0)
-									.map((category) => (
-										<PatternCategoryComponent
-											category={category}
-											key={category}
-											onPatternClick={onPatternClick}
-											patterns={groupedPatterns[category]}
-										/>
-									))}
+								<SyntaxSection
+									emptyMessage='No universal syntax available for this node type.'
+									isCollapsed={isUniversalCollapsed}
+									onPatternClick={onPatternClick}
+									onToggleCollapse={onToggleUniversalCollapse}
+									patterns={universalPatterns}
+									title='Universal'
+								/>
+
+								<SyntaxSection
+									emptyMessage='This node type has no parser-specific syntax.'
+									isCollapsed={isNodeSpecificCollapsed}
+									onPatternClick={onPatternClick}
+									onToggleCollapse={onToggleNodeSpecificCollapse}
+									patterns={nodeSpecificPatterns}
+									title='Node-specific'
+								/>
 							</div>
 						</motion.div>
 					)}

@@ -22,12 +22,9 @@ export type PatternType =
 	| 'fontWeight'
 	| 'fontStyle'
 	| 'textAlign'
-	| 'backgroundColor'
 	| 'options'
 	| 'question'
 	| 'multiple'
-	| 'reference'
-	| 'borderColor'
 	| 'title'
 	| 'label'
 	| 'showBackground'
@@ -35,12 +32,10 @@ export type PatternType =
 	| 'imageUrl'
 	| 'altText'
 	| 'caption'
-	| 'source'
 	| 'url'
 	| 'language'
 	| 'fileName'
 	| 'status'
-	| 'confidence'
 	| 'bold'
 	| 'italic'
 	| 'alignment'
@@ -74,6 +69,7 @@ export interface ParsedMetadata extends Partial<Record<PatternType, unknown>> {
 	priority?: string;
 	dueDate?: string | Date;
 	assignee?: string | string[];
+	assigneeUserIds?: string[];
 	status?: string;
 	tags?: string[];
 	color?: string;
@@ -156,17 +152,6 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 		metadataKey: 'textColor',
 	},
 
-	// Background color pattern: bg:value
-	{
-		regex: /bg:(\S+)/gi,
-		type: 'backgroundColor',
-		extract: (match) => ({
-			value: match[1],
-			display: formatColorForDisplay(match[1]),
-		}),
-		metadataKey: 'backgroundColor',
-	},
-
 	// Question type pattern: question:value
 	{
 		regex: /(?:^|\s)question:(binary|multiple)/gi,
@@ -200,17 +185,6 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 		metadataKey: 'responseFormat.options',
 	},
 
-	// Border color pattern: border:value
-	{
-		regex: /border:(\S+)/gi,
-		type: 'borderColor',
-		extract: (match) => ({
-			value: match[1],
-			display: formatColorForDisplay(match[1]),
-		}),
-		metadataKey: 'borderColor',
-	},
-
 	// Tag pattern: #tag (like #bug, #feature, #urgent)
 	{
 		regex: /(?<!:)#([a-zA-Z][a-zA-Z0-9_-]*)/g,
@@ -231,17 +205,6 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 			display: `@${match[1]}`,
 		}),
 		metadataKey: 'assignee',
-	},
-
-	// Reference/Link pattern: [[reference]] (like [[node-id]] or [[http://...]])
-	{
-		regex: /\[\[([^\]]+)\]\]/g,
-		type: 'reference',
-		extract: (match) => ({
-			value: match[1],
-			display: match[1],
-		}),
-		metadataKey: 'reference',
 	},
 
 	// Font size pattern: size:24px
@@ -323,17 +286,6 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 		metadataKey: 'altText',
 	},
 
-	// Source pattern: src:"Text" — imageNode source/attribution
-	{
-		regex: /src:"([^"]+)"/gi,
-		type: 'source',
-		extract: (match) => ({
-			value: match[1],
-			display: match[1],
-		}),
-		metadataKey: 'source',
-	},
-
 	// URL pattern: url:value
 	{
 		regex: /url:(\S+)/gi,
@@ -367,17 +319,6 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 		metadataKey: 'fileName',
 	},
 
-	// Confidence pattern: confidence:85%
-	{
-		regex: /confidence:(\d+)%?/gi,
-		type: 'confidence',
-		extract: (match) => ({
-			value: match[1],
-			display: `${match[1]}%`,
-		}),
-		metadataKey: 'confidence',
-	},
-
 	// Show line numbers pattern: lines:on|off — codeNode showLineNumbers
 	{
 		regex: /lines:(on|off)\b/gi,
@@ -390,6 +331,7 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 	// IMPORTANT: Uses negative lookbehind to prevent matching when part of other patterns
 	// (e.g., won't match :green in color:green, :blue in bg:blue, etc.)
 	{
+		// Keep legacy removed parser prefixes excluded so values like bg:red stay plain text.
 		regex: /(?<!color|bg|border|size|align|weight|style|title|label|alt|src|url|lang|file|confidence|question|multiple|options|type|lines):([a-zA-Z][a-zA-Z0-9_-]*)/g,
 		type: 'status',
 		extract: (match) => ({
@@ -487,12 +429,12 @@ export function extractAllPatterns(text: string): ExtractedData {
  */
 function extractCheckboxPatterns(text: string): ExtractedPattern[] {
 	const patterns: ExtractedPattern[] = [];
-	// Match [], [ ], [x], [X] but not [[reference]] patterns
+	// Match [], [ ], [x], [X] but not double-bracket sequences like [[...]]
 	const checkboxRegex = /\[([ xX]?)\]/g;
 	let match;
 
 	while ((match = checkboxRegex.exec(text)) !== null) {
-		// Skip if this is part of a [[reference]] pattern
+		// Skip if this is part of a [[...]] sequence
 		const charBefore = text[match.index - 1];
 		const charAfter = text[match.index + match[0].length];
 
@@ -641,7 +583,7 @@ export function parseInputToNodeData(input: string): Partial<NodeData> {
  */
 export function hasCheckboxSyntax(text: string): boolean {
 	// Check for checkbox patterns: [], [ ], [x], [X]
-	// Exclude [[reference]] patterns by checking surrounding characters
+	// Exclude [[...]] sequences by checking surrounding characters
 	const matches = text.matchAll(/\[([ xX]?)\]/g);
 
 	for (const match of matches) {
@@ -670,7 +612,7 @@ export function parseTaskList(
 
 	for (const line of lines) {
 		// Simpler regex: Match checkbox at start of line
-		// Matches: [], [ ], [x], [X] but not [[reference]]
+		// Matches: [], [ ], [x], [X] but not [[...]]
 		const match = line.match(/^\s*\[([ xX]?)\]\s*(.+)/);
 
 		if (match) {
@@ -710,7 +652,7 @@ export function hasEmbeddedPatterns(text: string): boolean {
  * Count tasks in text
  */
 export function countTasks(text: string): number {
-	// Match [], [ ], [x], [X] but not [[reference]] patterns
+	// Match [], [ ], [x], [X] but not [[...]] sequences
 	const matches = text.match(/(?<!\[)\[([ xX]?)\](?!\])/g);
 	return matches ? matches.length : 0;
 }

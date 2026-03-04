@@ -73,6 +73,8 @@ const getUniversalMetadata = (data: any) => {
 
 	// Always set assignee (undefined clears it on update)
 	universalMeta.assignee = data.metadata?.assignee || data.assignee || undefined;
+	universalMeta.assigneeUserIds =
+		data.metadata?.assigneeUserIds || data.assigneeUserIds || undefined;
 
 	// Always set status (undefined clears it on update)
 	universalMeta.status = data.metadata?.status || data.status || undefined;
@@ -160,7 +162,8 @@ export const transformDataForNodeType = (
 					caption: data.metadata?.caption || data.caption || caption || '',
 					showCaption: Boolean(caption),
 					fitMode: data.metadata?.fitMode || 'cover',
-					source: data.metadata?.source || data.source,
+					// Legacy parser field cleanup (remove on next edit save)
+					source: undefined,
 				},
 			};
 
@@ -213,8 +216,9 @@ export const transformDataForNodeType = (
 					fontStyle: data.metadata?.fontStyle || data.fontStyle,
 					textAlign: data.metadata?.textAlign || data.textAlign,
 					textColor: data.metadata?.textColor || data.textColor,
-					backgroundColor: data.metadata?.backgroundColor || data.backgroundColor,
-					borderColor: data.metadata?.borderColor || data.borderColor,
+					// Legacy parser field cleanup (remove on next edit save)
+					backgroundColor: undefined,
+					borderColor: undefined,
 				},
 			};
 

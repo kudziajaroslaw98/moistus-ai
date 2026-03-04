@@ -440,14 +440,6 @@ const serializeNodeSpecificMetadata = (
 				parts.push(`color:${metadata.textColor}`);
 			}
 
-			if (metadata.backgroundColor) {
-				parts.push(`bg:${metadata.backgroundColor}`);
-			}
-
-			if (metadata.borderColor) {
-				parts.push(`border:${metadata.borderColor}`);
-			}
-
 			break;
 
 		case 'imageNode':
@@ -455,11 +447,6 @@ const serializeNodeSpecificMetadata = (
 			if (metadata.altText) {
 				const escapedAlt = escapeForQuotedValue(metadata.altText);
 				parts.push(`alt:"${escapedAlt}"`);
-			}
-
-			if (metadata.source) {
-				const escapedSource = escapeForQuotedValue(metadata.source);
-				parts.push(`src:"${escapedSource}"`);
 			}
 
 			break;
@@ -538,23 +525,7 @@ const serializeNodeSpecificMetadata = (
 			break;
 
 		case 'referenceNode':
-			// Reference-specific patterns
-			if (metadata.targetNodeId) {
-				parts.push(`target:${metadata.targetNodeId}`);
-			}
-
-			if (metadata.targetMapId) {
-				parts.push(`map:${metadata.targetMapId}`);
-			}
-
-			if (metadata.confidence !== undefined) {
-				parts.push(`confidence:${metadata.confidence}`);
-			}
-
-			if (metadata.isAiGenerated) {
-				parts.push(`ai:true`);
-			}
-
+			// Reference parser tokens are intentionally disabled.
 			break;
 
 		// taskNode and defaultNode only use universal metadata

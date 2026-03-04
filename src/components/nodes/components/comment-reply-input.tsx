@@ -1,10 +1,12 @@
 'use client';
 
 import useAppStore from '@/store/mind-map-store';
+import type { MentionableUser } from '@/types/notification';
+import { slugifyCollaborator } from '@/utils/collaborator-utils';
 import { cn } from '@/utils/cn';
 import { Send } from 'lucide-react';
 import { motion } from 'motion/react';
-import { memo, useRef, useState, type KeyboardEvent } from 'react';
+import { memo, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { Button } from '../../ui/button';
 
@@ -18,15 +20,69 @@ interface CommentReplyInputProps {
  */
 const CommentReplyInputComponent = ({ commentId }: CommentReplyInputProps) => {
 	const [content, setContent] = useState('');
-	const [mentions, setMentions] = useState<string[]>([]);
+	const [mentionSlugs, setMentionSlugs] = useState<string[]>([]);
+	const [mentionableUsers, setMentionableUsers] = useState<MentionableUser[]>([]);
 	const [isSending, setIsSending] = useState(false);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-	const { addMessage } = useAppStore(
+	const { addMessage, mapId, currentShares } = useAppStore(
 		useShallow((state) => ({
 			addMessage: state.addMessage,
+			mapId: state.mapId,
+			currentShares: state.currentShares,
 		}))
 	);
+
+	const mentionSlugToUserId = useMemo(() => {
+		const map = new Map<string, string>();
+		if (mentionableUsers.length > 0) {
+			for (const user of mentionableUsers) {
+				map.set(user.slug.toLowerCase(), user.userId);
+			}
+			return map;
+		}
+
+		for (const share of currentShares ?? []) {
+			const slug = slugifyCollaborator(share);
+			if (slug) {
+				map.set(slug.toLowerCase(), share.user_id);
+			}
+		}
+		return map;
+	}, [mentionableUsers, currentShares]);
+
+	useEffect(() => {
+		if (!mapId) {
+			setMentionableUsers([]);
+			return;
+		}
+
+		setMentionableUsers([]); // clear stale users immediately when map changes
+
+		const abortController = new AbortController();
+		const fetchMentionableUsers = async () => {
+			try {
+				const response = await fetch(`/api/maps/${mapId}/mentionable-users`, {
+					signal: abortController.signal,
+				});
+				if (!response.ok) {
+					return;
+				}
+				const result = await response.json();
+				if (result?.status === 'success' && Array.isArray(result?.data?.users)) {
+					setMentionableUsers(result.data.users as MentionableUser[]);
+				}
+			} catch (error) {
+				if ((error as Error).name === 'AbortError') {
+					return;
+				}
+				console.warn('[comment-reply-input] failed to load mentionable users', error);
+			}
+		};
+
+		void fetchMentionableUsers();
+		return () => abortController.abort();
+	}, [mapId]);
 
 	/**
 	 * Auto-resize textarea as user types
@@ -40,13 +96,13 @@ const CommentReplyInputComponent = ({ commentId }: CommentReplyInputProps) => {
 		textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
 
 		// Parse @mentions (simple implementation - can be enhanced)
-		const mentionPattern = /@(\w+)/g;
+		const mentionPattern = /@([a-z0-9][a-z0-9-]*)/gi;
 		const foundMentions: string[] = [];
 		let match;
 		while ((match = mentionPattern.exec(textarea.value)) !== null) {
-			foundMentions.push(match[1]);
+			foundMentions.push(match[1].toLowerCase());
 		}
-		setMentions(foundMentions);
+		setMentionSlugs(foundMentions);
 	};
 
 	/**
@@ -56,16 +112,23 @@ const CommentReplyInputComponent = ({ commentId }: CommentReplyInputProps) => {
 		if (!content.trim() || isSending) return;
 
 		setIsSending(true);
+		const mentionedUserIds = Array.from(
+			new Set(
+				mentionSlugs
+					.map((slug) => mentionSlugToUserId.get(slug))
+					.filter((userId): userId is string => Boolean(userId))
+			)
+		);
 
 		try {
 			await addMessage(commentId, {
 				content: content.trim(),
-				mentioned_users: mentions,
+				mentioned_users: mentionedUserIds,
 			});
 
 			// Clear input on success
 			setContent('');
-			setMentions([]);
+			setMentionSlugs([]);
 			if (textareaRef.current) {
 				textareaRef.current.style.height = 'auto';
 			}

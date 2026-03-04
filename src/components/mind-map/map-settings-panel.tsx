@@ -1,6 +1,7 @@
 'use client';
 
 import { DeleteMapConfirmationDialog } from '@/components/mind-map/delete-map-confirmation-dialog';
+import { DiscardSettingsChangesDialog } from '@/components/mind-map/discard-settings-changes-dialog';
 import { NodeTypeSelector } from '@/components/settings/node-type-selector';
 import { SidePanel } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
@@ -11,9 +12,12 @@ import { Textarea } from '@/components/ui/textarea';
 import useAppStore from '@/store/mind-map-store';
 import type { MindMapData } from '@/types/mind-map-data';
 import { AlertTriangle, Loader2, PenTool, Save } from 'lucide-react';
-import { motion } from 'motion/react';
-import { useEffect, useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
+import { useCallback, useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
+
+const TITLE_MAX_LENGTH = 255;
+const DESCRIPTION_MAX_LENGTH = 2000;
 
 interface MapSettingsPanelProps {
 	isOpen: boolean;
@@ -25,11 +29,32 @@ interface FormData {
 	description: string;
 	tags: string[];
 	thumbnailUrl: string;
-	is_template: boolean;
-	template_category: string;
+}
+
+interface SectionMotionProps {
+	initial: false | { opacity: number; y?: number };
+	animate: { opacity: number; y?: number };
+	transition: { delay: number; duration: number; ease?: 'easeOut' };
+}
+
+function normalizeText(value: string | null | undefined): string {
+	return (value || '').trim();
+}
+
+function isValidUrl(value: string): boolean {
+	if (!value) return true;
+
+	try {
+		const url = new URL(value);
+		return url.protocol === 'http:' || url.protocol === 'https:';
+	} catch {
+		return false;
+	}
 }
 
 export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
+	const shouldReduceMotion = useReducedMotion();
+
 	const {
 		mindMap,
 		updateMindMap,
@@ -57,12 +82,80 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 		description: '',
 		tags: [],
 		thumbnailUrl: '',
-		is_template: false,
-		template_category: '',
 	});
 
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+	const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 	const [hasChanges, setHasChanges] = useState(false);
+	const [titleTouched, setTitleTouched] = useState(false);
+	const [descriptionTouched, setDescriptionTouched] = useState(false);
+	const [thumbnailTouched, setThumbnailTouched] = useState(false);
+
+	const titleCharCount = formData.title.length;
+	const descriptionCharCount = formData.description.length;
+
+	const normalizedTitle = normalizeText(formData.title);
+	const normalizedDescription = normalizeText(formData.description);
+	const normalizedThumbnail = normalizeText(formData.thumbnailUrl);
+
+	const isTitleValid =
+		normalizedTitle.length > 0 && titleCharCount <= TITLE_MAX_LENGTH;
+	const isDescriptionValid = descriptionCharCount <= DESCRIPTION_MAX_LENGTH;
+	const isThumbnailValid = isValidUrl(normalizedThumbnail);
+	const isFormValid = isTitleValid && isDescriptionValid && isThumbnailValid;
+
+	const titleError =
+		normalizedTitle.length === 0
+			? 'Title is required'
+			: `Title must be ${TITLE_MAX_LENGTH} characters or less`;
+	const descriptionError = `Description must be ${DESCRIPTION_MAX_LENGTH} characters or less`;
+	const thumbnailError = 'Please enter a valid URL (including https://)';
+	const titleErrorId = 'title-error';
+	const descriptionErrorId = 'description-error';
+	const thumbnailErrorId = 'thumbnail-error';
+
+	const getSectionMotionProps = (delay: number): SectionMotionProps => {
+		if (shouldReduceMotion) {
+			return {
+				initial: { opacity: 1 },
+				animate: { opacity: 1 },
+				transition: { delay: 0, duration: 0 },
+			};
+		}
+
+		return {
+			initial: { opacity: 0, y: 10 },
+			animate: { opacity: 1, y: 0 },
+			transition: { delay, duration: 0.25, ease: 'easeOut' },
+		};
+	};
+
+	/**
+	 * Computes whether save/discard controls should be enabled.
+	 * Normalizes title/description/thumbnail via `normalizeText`, compares tags
+	 * with `JSON.stringify(formData.tags)` against `JSON.stringify(mindMap.tags || [])`,
+	 * and returns `false` when `mindMap` is unavailable.
+	 */
+	const computeHasChanges = useCallback((): boolean => {
+		if (!mindMap) return false;
+
+		const initialTitle = normalizeText(mindMap.title);
+		const initialDescription = normalizeText(mindMap.description);
+		const initialThumbnail = normalizeText(mindMap.thumbnailUrl);
+
+		return (
+			normalizedTitle !== initialTitle ||
+			normalizedDescription !== initialDescription ||
+			JSON.stringify(formData.tags) !== JSON.stringify(mindMap.tags || []) ||
+			normalizedThumbnail !== initialThumbnail
+		);
+	}, [
+		formData.tags,
+		mindMap,
+		normalizedDescription,
+		normalizedThumbnail,
+		normalizedTitle,
+	]);
 
 	// Initialize form data from mindMap
 	useEffect(() => {
@@ -72,47 +165,64 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 				description: mindMap.description || '',
 				tags: mindMap.tags || [],
 				thumbnailUrl: mindMap.thumbnailUrl || '',
-				is_template: mindMap.is_template || false,
-				template_category: mindMap.template_category || '',
 			});
 			setHasChanges(false);
+			setShowDiscardDialog(false);
+			setTitleTouched(false);
+			setDescriptionTouched(false);
+			setThumbnailTouched(false);
 		}
 	}, [mindMap, isOpen]);
 
 	// Track changes
 	useEffect(() => {
-		if (!mindMap) return;
+		setHasChanges(computeHasChanges());
+	}, [computeHasChanges]);
 
-		const hasChanged =
-			formData.title !== (mindMap.title || '') ||
-			formData.description !== (mindMap.description || '') ||
-			JSON.stringify(formData.tags) !== JSON.stringify(mindMap.tags || []) ||
-			formData.thumbnailUrl !== (mindMap.thumbnailUrl || '') ||
-			formData.is_template !== (mindMap.is_template || false) ||
-			formData.template_category !== (mindMap.template_category || '');
+	const requestClose = () => {
+		if (isSaving) return;
+		if (computeHasChanges()) {
+			setShowDiscardDialog(true);
+			return;
+		}
+		onClose();
+	};
 
-		setHasChanges(hasChanged);
-	}, [formData, mindMap]);
+	const handleDiscardChanges = () => {
+		setShowDiscardDialog(false);
+		onClose();
+	};
 
 	const handleSave = async () => {
-		if (!mindMap || !hasChanges) return;
+		if (!mindMap) return;
+
+		setTitleTouched(true);
+		setDescriptionTouched(true);
+		setThumbnailTouched(true);
+		const hasLatestChanges = computeHasChanges();
+		if (!hasLatestChanges || !isFormValid || isSaving) return;
 
 		// Build updates object (only changed fields)
 		const updates: Partial<MindMapData> = {};
+		const currentTitle = normalizeText(mindMap.title);
+		const currentDescription = normalizeText(mindMap.description);
+		const currentThumbnail = normalizeText(mindMap.thumbnailUrl);
 
-		if (formData.title !== mindMap.title) updates.title = formData.title;
-		if (formData.description !== (mindMap.description || ''))
-			updates.description = formData.description || null;
+		if (normalizedTitle !== currentTitle) updates.title = normalizedTitle;
+		if (normalizedDescription !== currentDescription)
+			updates.description = normalizedDescription || null;
 		if (JSON.stringify(formData.tags) !== JSON.stringify(mindMap.tags || []))
 			updates.tags = formData.tags;
-		if (formData.thumbnailUrl !== (mindMap.thumbnailUrl || ''))
-			updates.thumbnailUrl = formData.thumbnailUrl || null;
-		if (formData.is_template !== (mindMap.is_template || false))
-			updates.is_template = formData.is_template;
-		if (formData.template_category !== (mindMap.template_category || ''))
-			updates.template_category = formData.template_category || null;
+		if (normalizedThumbnail !== currentThumbnail)
+			updates.thumbnailUrl = normalizedThumbnail || null;
 
 		await updateMindMap(mindMap.id, updates);
+		setFormData((prev) => ({
+			...prev,
+			title: normalizedTitle,
+			description: normalizedDescription,
+			thumbnailUrl: normalizedThumbnail,
+		}));
 		setHasChanges(false);
 	};
 
@@ -125,23 +235,26 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 
 	const isSaving = loadingStates.isUpdatingMapSettings;
 	const isDeleting = loadingStates.isDeletingMap;
+	const footerStatus = hasChanges
+		? isFormValid
+			? 'You have unsaved changes'
+			: 'Fix validation errors to save changes'
+		: 'All changes are saved';
 
 	if (!mindMap) return null;
 
 	const footer = (
 		<div className='flex items-center justify-between gap-3'>
-			<p className='text-sm text-zinc-500'>
-				{hasChanges ? 'You have unsaved changes' : 'All changes are saved'}
-			</p>
+			<p className='text-sm text-text-secondary'>{footerStatus}</p>
 
 			<div className='flex gap-2'>
-				<Button disabled={isSaving} onClick={onClose} variant='ghost'>
+				<Button disabled={isSaving} onClick={requestClose} variant='ghost'>
 					Close
 				</Button>
 
 				<Button
 					className='min-w-25'
-					disabled={!hasChanges || !formData.title.trim() || isSaving}
+					disabled={!hasChanges || !isFormValid || isSaving}
 					onClick={handleSave}
 				>
 					{isSaving ? (
@@ -163,87 +276,150 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 	return (
 		<>
 			<SidePanel
-				className='w-100'
 				footer={footer}
 				isOpen={isOpen}
-				onClose={onClose}
+				onClose={requestClose}
 				title='Map Settings'
 			>
 				{/* Scrollable Content */}
-				<div className='flex flex-col gap-6 p-6'>
+				<div className='flex flex-col gap-5 p-6'>
 					{/* General Section */}
 					<motion.section
-						animate={{ opacity: 1, y: 0 }}
-						className='space-y-4'
-						initial={{ opacity: 0, y: 10 }}
-						transition={{ duration: 0.3 }}
+						{...getSectionMotionProps(0)}
+						className='space-y-4 rounded-lg border border-border-subtle bg-base/60 p-4'
 					>
-						<h3 className='text-lg font-semibold text-zinc-100'>General</h3>
+						<div className='space-y-1'>
+							<h3 className='text-lg font-semibold text-text-primary'>
+								General
+							</h3>
+							<p className='text-xs text-text-secondary'>
+								Name and describe your mind map for easier discovery.
+							</p>
+						</div>
 
 						<div className='space-y-2'>
-							<Label className='text-zinc-300' htmlFor='title'>
-								Title <span className='text-rose-400'>*</span>
-							</Label>
+							<div className='flex items-center justify-between gap-3'>
+								<Label className='text-text-primary' htmlFor='title'>
+									Title <span className='text-error-500'>*</span>
+								</Label>
+								<span
+									className={`text-xs tabular-nums ${
+										titleCharCount > TITLE_MAX_LENGTH
+											? 'text-error-500'
+											: 'text-text-secondary'
+									}`}
+								>
+									{titleCharCount}/{TITLE_MAX_LENGTH}
+								</span>
+							</div>
 
 							<Input
+								aria-invalid={titleTouched && !isTitleValid}
+								aria-describedby={
+									titleTouched && !isTitleValid ? titleErrorId : undefined
+								}
 								disabled={isSaving}
-								error={!formData.title.trim()}
+								error={titleTouched && !isTitleValid}
 								id='title'
 								placeholder='My Mind Map'
 								value={formData.title}
+								onBlur={() => setTitleTouched(true)}
 								onChange={(e) =>
 									setFormData({ ...formData, title: e.target.value })
 								}
 							/>
 
-							{!formData.title.trim() && (
-								<p className='text-xs text-rose-400'>Title is required</p>
+							{titleTouched && !isTitleValid && (
+								<p
+									className='text-xs text-error-500'
+									id={titleErrorId}
+									role='alert'
+								>
+									{titleError}
+								</p>
 							)}
 						</div>
 
 						<div className='space-y-2'>
-							<Label className='text-zinc-300' htmlFor='description'>
-								Description
-							</Label>
+							<div className='flex items-center justify-between gap-3'>
+								<Label className='text-text-primary' htmlFor='description'>
+									Description
+								</Label>
+								<span
+									className={`text-xs tabular-nums ${
+										descriptionCharCount > DESCRIPTION_MAX_LENGTH
+											? 'text-error-500'
+											: 'text-text-secondary'
+									}`}
+								>
+									{descriptionCharCount}/{DESCRIPTION_MAX_LENGTH}
+								</span>
+							</div>
 
 							<Textarea
+								aria-invalid={descriptionTouched && !isDescriptionValid}
+								aria-describedby={
+									descriptionTouched && !isDescriptionValid
+										? descriptionErrorId
+										: undefined
+								}
 								className='resize-none'
 								disabled={isSaving}
+								error={descriptionTouched && !isDescriptionValid}
 								id='description'
 								placeholder='Describe your mind map...'
-								rows={3}
+								rows={4}
 								value={formData.description}
+								onBlur={() => setDescriptionTouched(true)}
 								onChange={(e) =>
 									setFormData({ ...formData, description: e.target.value })
 								}
 							/>
+
+							<p className='text-xs text-text-secondary'>
+								Optional summary shown in the dashboard and share views.
+							</p>
+
+							{descriptionTouched && !isDescriptionValid && (
+								<p
+									className='text-xs text-error-500'
+									id={descriptionErrorId}
+									role='alert'
+								>
+									{descriptionError}
+								</p>
+							)}
 						</div>
 					</motion.section>
 
 					{/* Organization Section */}
 					<motion.section
-						animate={{ opacity: 1, y: 0 }}
-						className='space-y-4'
-						initial={{ opacity: 0, y: 10 }}
-						transition={{ delay: 0.1, duration: 0.3 }}
+						{...getSectionMotionProps(0.05)}
+						className='space-y-4 rounded-lg border border-border-subtle bg-base/60 p-4'
 					>
-						<h3 className='text-lg font-semibold text-zinc-100'>
-							Organization
-						</h3>
+						<div className='space-y-1'>
+							<h3 className='text-lg font-semibold text-text-primary'>
+								Organization
+							</h3>
+							<p className='text-xs text-text-secondary'>
+								Use tags to group related maps and improve search.
+							</p>
+						</div>
 
 						<div className='space-y-2'>
-							<Label className='text-zinc-300' htmlFor='tags'>
+							<Label className='text-text-primary' htmlFor='tags'>
 								Tags
 							</Label>
 
 							<TagInput
+								className={isSaving ? 'pointer-events-none opacity-60' : ''}
 								maxTags={20}
 								onChange={(tags) => setFormData({ ...formData, tags })}
 								placeholder='Add tags...'
 								value={formData.tags}
 							/>
 
-							<p className='text-xs text-zinc-500'>
+							<p className='text-xs text-text-secondary'>
 								Press Enter or comma to add tags
 							</p>
 						</div>
@@ -251,113 +427,76 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 
 					{/* Appearance Section */}
 					<motion.section
-						animate={{ opacity: 1, y: 0 }}
-						className='space-y-4'
-						initial={{ opacity: 0, y: 10 }}
-						transition={{ delay: 0.2, duration: 0.3 }}
+						{...getSectionMotionProps(0.1)}
+						className='space-y-4 rounded-lg border border-border-subtle bg-base/60 p-4'
 					>
-						<h3 className='text-lg font-semibold text-zinc-100'>Appearance</h3>
+						<div className='space-y-1'>
+							<h3 className='text-lg font-semibold text-text-primary'>
+								Appearance
+							</h3>
+							<p className='text-xs text-text-secondary'>
+								Set a preview image URL used in map cards and metadata previews.
+							</p>
+						</div>
 
 						<div className='space-y-2'>
-							<Label className='text-zinc-300' htmlFor='thumbnail'>
+							<Label className='text-text-primary' htmlFor='thumbnail'>
 								Thumbnail URL
 							</Label>
 
 							<Input
+								aria-invalid={thumbnailTouched && !isThumbnailValid}
+								aria-describedby={
+									thumbnailTouched && !isThumbnailValid
+										? thumbnailErrorId
+										: undefined
+								}
 								disabled={isSaving}
+								error={thumbnailTouched && !isThumbnailValid}
 								id='thumbnail'
 								placeholder='https://example.com/thumbnail.jpg'
 								type='url'
 								value={formData.thumbnailUrl}
+								onBlur={() => setThumbnailTouched(true)}
 								onChange={(e) =>
 									setFormData({ ...formData, thumbnailUrl: e.target.value })
 								}
 							/>
 
-							<p className='text-xs text-zinc-500'>
+							<p className='text-xs text-text-secondary'>
 								Optional preview image for your mind map
 							</p>
-						</div>
-					</motion.section>
 
-					{/* Template Section */}
-					<motion.section
-						animate={{ opacity: 1, y: 0 }}
-						className='space-y-4'
-						initial={{ opacity: 0, y: 10 }}
-						transition={{ delay: 0.3, duration: 0.3 }}
-					>
-						<h3 className='text-lg font-semibold text-zinc-100'>Template</h3>
-
-						<div className='space-y-4'>
-							<label className='flex items-start gap-3'>
-								<Input
-									checked={formData.is_template}
-									disabled={isSaving}
-									type='checkbox'
-									onChange={(e) =>
-										setFormData({
-											...formData,
-											is_template: e.target.checked,
-										})
-									}
-								/>
-
-								<div className='flex-1'>
-									<span className='text-sm font-medium text-zinc-300'>
-										Mark as template
-									</span>
-
-									<p className='text-xs text-zinc-500'>
-										Allow others to use this mind map as a starting point
-									</p>
-								</div>
-							</label>
-
-							{formData.is_template && (
-								<motion.div
-									animate={{ opacity: 1, height: 'auto' }}
-									className='space-y-2'
-									initial={{ opacity: 0, height: 0 }}
-									transition={{ duration: 0.2 }}
+							{thumbnailTouched && !isThumbnailValid && (
+								<p
+									className='text-xs text-error-500'
+									id={thumbnailErrorId}
+									role='alert'
 								>
-									<Label className='text-zinc-300' htmlFor='category'>
-										Template Category
-									</Label>
-
-									<Input
-										disabled={isSaving}
-										id='category'
-										placeholder='e.g., Project Planning, Brainstorming'
-										value={formData.template_category}
-										onChange={(e) =>
-											setFormData({
-												...formData,
-												template_category: e.target.value,
-											})
-										}
-									/>
-								</motion.div>
+									{thumbnailError}
+								</p>
 							)}
 						</div>
 					</motion.section>
 
 					{/* Editor Preferences Section */}
 					<motion.section
-						animate={{ opacity: 1, y: 0 }}
-						className='space-y-4'
-						initial={{ opacity: 0, y: 10 }}
-						transition={{ delay: 0.35, duration: 0.3 }}
+						{...getSectionMotionProps(0.15)}
+						className='space-y-4 rounded-lg border border-border-subtle bg-base/60 p-4'
 					>
-						<h3 className='text-lg font-semibold text-zinc-100 flex items-center gap-2'>
+						<h3 className='text-lg font-semibold text-text-primary flex items-center gap-2'>
 							<PenTool className='size-5 text-primary' />
 							Editor Preferences
 						</h3>
 
-						<div className='space-y-4 bg-zinc-900/50 rounded-lg p-4 border border-zinc-800'>
+						<p className='text-xs text-text-secondary'>
+							These preferences apply to all maps you edit.
+						</p>
+
+						<div className='space-y-4 rounded-lg border border-border-subtle bg-base p-4'>
 							<div className='space-y-2'>
-								<Label className='text-zinc-300'>Default Node Type</Label>
-								<p className='text-xs text-zinc-500'>
+								<Label className='text-text-primary'>Default Node Type</Label>
+								<p className='text-xs text-text-secondary'>
 									The default type for new nodes when using the node editor
 									(applies to all maps)
 								</p>
@@ -385,29 +524,27 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 
 					{/* Danger Zone */}
 					<motion.section
-						animate={{ opacity: 1, y: 0 }}
-						className='space-y-4 rounded-lg border border-rose-900/50 bg-rose-950/10 p-4'
-						initial={{ opacity: 0, y: 10 }}
-						transition={{ delay: 0.45, duration: 0.3 }}
+						{...getSectionMotionProps(0.2)}
+						className='space-y-4 rounded-lg border border-error-800/30 bg-error-950/20 p-4'
 					>
 						<div className='flex items-start gap-3'>
 							<div className='flex-1 space-y-3'>
 								<div>
 									<div className='flex gap-2 items-center'>
-										<AlertTriangle className='mt-0.5 h-5 w-5 shrink-0 text-rose-500' />
+										<AlertTriangle className='mt-0.5 h-5 w-5 shrink-0 text-error-500' />
 
-										<h3 className='text-lg font-semibold text-rose-400'>
+										<h3 className='text-lg font-semibold text-error-500'>
 											Danger Zone
 										</h3>
 									</div>
 
-									<p className='text-sm text-zinc-400'>
+									<p className='text-sm text-error-300/70'>
 										Irreversible actions that affect this mind map
 									</p>
 								</div>
 
 								<Button
-									className='w-full bg-rose-600 hover:bg-rose-700'
+									className='w-full bg-error-600 hover:bg-error-700'
 									disabled={isDeleting}
 									onClick={() => setShowDeleteDialog(true)}
 									variant='destructive'
@@ -436,6 +573,13 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 				onConfirm={handleDelete}
 				onOpenChange={setShowDeleteDialog}
 				open={showDeleteDialog}
+			/>
+
+			<DiscardSettingsChangesDialog
+				onContinueEditing={() => setShowDiscardDialog(false)}
+				onDiscardChanges={handleDiscardChanges}
+				onOpenChange={setShowDiscardDialog}
+				open={showDiscardDialog}
 			/>
 		</>
 	);

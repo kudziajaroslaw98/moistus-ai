@@ -1,5 +1,6 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
-import { withPublicApiValidation } from '@/helpers/api/with-public-api-validation';
+import { withAuthValidation } from '@/helpers/api/with-auth-validation';
+import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { z } from 'zod';
 
 /**
@@ -10,104 +11,205 @@ import { z } from 'zod';
  *
  * Returns full template data for instantiation.
  */
-export const GET = withPublicApiValidation(z.any().nullish(), async (req, _body, supabase) => {
-	try {
-		// Extract ID from URL
-		const url = new URL(req.url);
-		const pathSegments = url.pathname.split('/');
-		const templateId = pathSegments[pathSegments.length - 1];
+export const GET = withAuthValidation(
+	z.unknown().nullish(),
+	async (req, _body, _supabase, user) => {
+		try {
+			if (!user?.id) {
+				return respondError(
+					'Authentication required.',
+					401,
+					'Authentication required.'
+				);
+			}
 
-		if (!templateId) {
-			return respondError('Template ID is required.', 400, 'Missing template ID.');
-		}
+			const adminClient = createServiceRoleClient();
 
-		// First, try to find by UUID
-		let templateQuery = supabase
-			.from('mind_maps')
-			.select(
+			// Extract ID from URL
+			const url = new URL(req.url);
+			const pathSegments = url.pathname.split('/');
+			const templateId = pathSegments[pathSegments.length - 1];
+
+			if (!templateId) {
+				return respondError(
+					'Template ID is required.',
+					400,
+					'Missing template ID.'
+				);
+			}
+
+			// First, try to find by UUID
+			let templateQuery = adminClient
+				.from('mind_maps')
+				.select(
+					`
+					id,
+					user_id,
+					is_public,
+					title,
+					description,
+					tags,
+					thumbnail_url,
+					is_template,
+					template_category,
+					metadata,
+					node_count,
+					edge_count,
+					usage_count,
+					created_at,
+					updated_at
 				`
-				id,
-				title,
-				description,
-				template_category,
-				metadata,
-				node_count,
-				edge_count,
-				usage_count
-			`
-			)
-			.eq('is_template', true);
+				)
+				.eq('is_template', true);
 
-		// Check if it's a valid UUID format
-		const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(templateId);
+			// Check if it's a valid UUID format
+			const isUuid =
+				/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+					templateId
+				);
 
-		if (isUuid) {
-			templateQuery = templateQuery.eq('id', templateId);
-		} else {
-			// Search by templateId in metadata
-			templateQuery = templateQuery.eq('metadata->>templateId', templateId);
-		}
+			if (isUuid) {
+				templateQuery = templateQuery.eq('id', templateId);
+			} else {
+				// Search by templateId in metadata
+				templateQuery = templateQuery.eq('metadata->>templateId', templateId);
+			}
 
-		const { data: template, error: templateError } = await templateQuery.single();
+			const { data: template, error: templateError } =
+				await templateQuery.single();
 
-		if (templateError || !template) {
-			return respondError('Template not found.', 404, 'No template with this ID exists.');
-		}
+			if (templateError || !template) {
+				return respondError(
+					'Template not found.',
+					404,
+					'No template with this ID exists.'
+				);
+			}
 
-		// Fetch nodes for this template
-		const { data: nodes, error: nodesError } = await supabase
-			.from('nodes')
-			.select('id, content, position_x, position_y, node_type, metadata')
-			.eq('map_id', template.id)
-			.order('created_at', { ascending: true });
+			// Templates are readable by any authenticated user. `withAuthValidation`
+			// enforces auth; no additional owner/share checks are required here.
 
-		if (nodesError) {
-			console.error('Error fetching template nodes:', nodesError);
-			return respondError('Error fetching template nodes.', 500, nodesError.message);
-		}
+			// Fetch nodes for this template
+			const { data: nodes, error: nodesError } = await adminClient
+				.from('nodes')
+				.select(
+					'id, map_id, node_type, content, metadata, position_x, position_y, created_at, updated_at'
+				)
+				.eq('map_id', template.id)
+				.order('created_at', { ascending: true });
 
-		// Fetch edges for this template
-		const { data: edges, error: edgesError } = await supabase
-			.from('edges')
-			.select('id, source, target, type, metadata')
-			.eq('map_id', template.id)
-			.order('created_at', { ascending: true });
+			if (nodesError) {
+				console.error('Error fetching template nodes:', nodesError);
+				return respondError(
+					'Error fetching template nodes.',
+					500,
+					nodesError.message
+				);
+			}
 
-		if (edgesError) {
-			console.error('Error fetching template edges:', edgesError);
-			return respondError('Error fetching template edges.', 500, edgesError.message);
-		}
+			// Fetch edges for this template
+			const { data: edges, error: edgesError } = await adminClient
+				.from('edges')
+				.select(
+					'id, map_id, source, target, type, metadata, created_at, updated_at'
+				)
+				.eq('map_id', template.id)
+				.order('created_at', { ascending: true });
 
-		// Transform to the format expected by instantiation
-		const formattedTemplate = {
-			id: template.metadata?.templateId || template.id,
-			dbId: template.id,
-			name: template.title,
-			description: template.description,
-			category: template.template_category,
-			icon: template.metadata?.icon || 'FileText',
-			previewColors: template.metadata?.previewColors || ['#6366f1', '#8b5cf6', '#a855f7'],
-			nodes: (nodes || []).map((n) => ({
-				id: n.id,
-				type: n.node_type || 'defaultNode',
-				position: { x: n.position_x, y: n.position_y },
-				data: {
+			if (edgesError) {
+				console.error('Error fetching template edges:', edgesError);
+				return respondError(
+					'Error fetching template edges.',
+					500,
+					edgesError.message
+				);
+			}
+
+			const filteredNodes = (nodes || []).filter(
+				(node) => node.node_type !== 'ghostNode'
+			);
+			const validNodeIds = new Set(filteredNodes.map((node) => node.id));
+			const filteredEdges = (edges || []).filter(
+				(edge) => validNodeIds.has(edge.source) && validNodeIds.has(edge.target)
+			);
+
+			// Transform to the format expected by instantiation
+			const formattedTemplate = {
+				id: template.metadata?.templateId || template.id,
+				dbId: template.id,
+				name: template.title,
+				description: template.description,
+				category: template.template_category,
+				icon: template.metadata?.icon || 'FileText',
+				previewColors: template.metadata?.previewColors || [
+					'#6366f1',
+					'#8b5cf6',
+					'#a855f7',
+				],
+				nodes: filteredNodes.map((n) => ({
+					id: n.id,
+					type: n.node_type || 'defaultNode',
+					position: { x: n.position_x, y: n.position_y },
+					data: {
+						content: n.content,
+						metadata: n.metadata || {},
+					},
+				})),
+				edges: filteredEdges.map((e) => ({
+					id: e.id,
+					source: e.source,
+					target: e.target,
+					type: e.type || 'floatingEdge',
+					data: e.metadata || {},
+				})),
+			};
+
+			const mindMapData = {
+				map_id: template.id,
+				user_id: template.user_id,
+				title: template.title,
+				description: template.description,
+				tags: template.tags,
+				thumbnail_url: template.thumbnail_url,
+				is_template: template.is_template,
+				template_category: template.template_category,
+				created_at: template.created_at,
+				map_updated_at: template.updated_at,
+				nodes: filteredNodes.map((n) => ({
+					id: n.id,
+					map_id: n.map_id,
+					node_type: n.node_type || 'defaultNode',
 					content: n.content,
 					metadata: n.metadata || {},
-				},
-			})),
-			edges: (edges || []).map((e) => ({
-				id: e.id,
-				source: e.source,
-				target: e.target,
-				type: e.type || 'floatingEdge',
-				data: e.metadata || {},
-			})),
-		};
+					position_x: n.position_x,
+					position_y: n.position_y,
+					created_at: n.created_at,
+					updated_at: n.updated_at,
+				})),
+				edges: filteredEdges.map((e) => ({
+					id: e.id,
+					map_id: e.map_id,
+					source: e.source,
+					target: e.target,
+					type: e.type || 'floatingEdge',
+					metadata: e.metadata || {},
+					created_at: e.created_at,
+					updated_at: e.updated_at,
+				})),
+			};
 
-		return respondSuccess({ template: formattedTemplate }, 200, 'Template fetched successfully.');
-	} catch (error) {
-		console.error('Error in GET /api/templates/[id]:', error);
-		return respondError('Error fetching template.', 500, 'Internal server error.');
+			return respondSuccess(
+				{ template: formattedTemplate, mindMapData },
+				200,
+				'Template fetched successfully.'
+			);
+		} catch (error) {
+			console.error('Error in GET /api/templates/[id]:', error);
+			return respondError(
+				'Error fetching template.',
+				500,
+				'Internal server error.'
+			);
+		}
 	}
-});
+);

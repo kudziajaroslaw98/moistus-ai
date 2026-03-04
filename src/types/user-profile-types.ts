@@ -1,3 +1,33 @@
+export type UserThemePreference = 'light' | 'dark' | 'system';
+
+export type UserDefaultNodeTypePreference =
+	| 'defaultNode'
+	| 'textNode'
+	| 'taskNode'
+	| 'imageNode'
+	| 'resourceNode'
+	| 'questionNode'
+	| 'codeNode'
+	| 'annotationNode'
+	| 'referenceNode';
+
+export interface NotificationPreferences {
+	email?: boolean;
+}
+
+export interface UserPrivacyPreferences {
+	profile_visibility?: 'public' | 'private' | 'connections';
+}
+
+export interface UserPreferencesBase {
+	theme?: UserThemePreference;
+	accentColor?: string;
+	reducedMotion?: boolean;
+	notifications?: NotificationPreferences;
+	defaultNodeType?: UserDefaultNodeTypePreference;
+	privacy?: UserPrivacyPreferences;
+}
+
 export interface UserProfile {
 	id: string;
 	user_id: string;
@@ -11,15 +41,7 @@ export interface UserProfile {
 		hsl: string;
 		hex: string;
 	};
-	preferences?: {
-		theme?: 'light' | 'dark' | 'system';
-		accentColor?: string;
-		reducedMotion?: boolean;
-		defaultNodeType?: 'defaultNode' | 'textNode' | 'taskNode' | 'imageNode' | 'resourceNode' | 'questionNode' | 'codeNode' | 'annotationNode' | 'referenceNode';
-		privacy?: {
-			profile_visibility?: 'public' | 'private' | 'connections';
-		};
-	};
+	preferences?: UserPreferencesBase;
 	created_at: string;
 	updated_at: string;
 }
@@ -33,15 +55,7 @@ export interface UserProfileUpdate {
 		hsl: string;
 		hex: string;
 	};
-	preferences?: {
-		theme?: 'light' | 'dark' | 'system';
-		accentColor?: string;
-		reducedMotion?: boolean;
-		defaultNodeType?: 'defaultNode' | 'textNode' | 'taskNode' | 'imageNode' | 'resourceNode' | 'questionNode' | 'codeNode' | 'annotationNode' | 'referenceNode';
-		privacy?: {
-			profile_visibility?: 'public' | 'private' | 'connections';
-		};
-	};
+	preferences?: UserPreferencesBase;
 }
 
 export interface PublicUserProfile {
@@ -72,11 +86,14 @@ export interface UserProfileFormData {
 	full_name: string;
 	display_name: string;
 	bio: string;
-	preferences: {
-		theme: 'light' | 'dark' | 'system';
+	preferences: UserPreferencesBase & {
+		theme: UserThemePreference;
 		accentColor: string;
 		reducedMotion: boolean;
-		defaultNodeType: 'defaultNode' | 'textNode' | 'taskNode' | 'imageNode' | 'resourceNode' | 'questionNode' | 'codeNode' | 'annotationNode' | 'referenceNode';
+		notifications: NotificationPreferences & {
+			email: boolean;
+		};
+		defaultNodeType: UserDefaultNodeTypePreference;
 		privacy: {
 			profile_visibility: 'public' | 'private' | 'connections';
 		};

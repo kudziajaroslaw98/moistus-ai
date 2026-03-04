@@ -171,10 +171,15 @@ export interface NodeCreationResult {
 
 // Component props for ParsingLegend
 export interface ParsingLegendProps {
-	patterns: ParsingPattern[];
+	universalPatterns: ParsingPattern[];
+	nodeSpecificPatterns: ParsingPattern[];
 	onPatternClick: (pattern: string, insertText?: string) => void;
 	isCollapsed: boolean;
 	onToggleCollapse: () => void;
+	isUniversalCollapsed: boolean;
+	onToggleUniversalCollapse: () => void;
+	isNodeSpecificCollapsed: boolean;
+	onToggleNodeSpecificCollapse: () => void;
 	className?: string;
 }
 

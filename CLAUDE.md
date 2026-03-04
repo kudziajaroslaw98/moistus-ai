@@ -290,6 +290,12 @@ pnpm pretty          # Prettier
 **PartyKit WS auth fallback**: Realtime connect auth first verifies JWT via JWKS; if that fails, it falls back to Supabase `/auth/v1/user` token validation using service-role credentials. This is a resilience path for issuer/JWKS drift; treat fallback log lines as configuration debt to clean up.
 <!-- Updated: 2026-02-24 - Documented realtime JWT fallback behavior and operational meaning -->
 
+**Map Settings templates**: `is_template` and `template_category` are system-managed and not user-editable in the Map Settings panel.
+<!-- Updated: 2026-02-27 - Removed non-persisting template controls from map settings UI -->
+
+**Node editor parser scope**: Parser syntax no longer supports `bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`, or `$reference` quick-switch in node editor flows. Syntax Help is split into `Universal` (type-filtered) and `Node-specific` sections.
+<!-- Updated: 2026-02-28 - Removed deprecated parser tokens and introduced dual syntax help model -->
+
 **Rate Limiting**: In-memory only (`src/helpers/api/rate-limiter.ts`), won't scale horizontally without Redis.
 
 **System Updates**: Call `markNodeAsSystemUpdate()` before real-time updates to prevent save loops.

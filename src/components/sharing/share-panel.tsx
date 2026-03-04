@@ -233,7 +233,6 @@ export function SharePanel({
 
 	return (
 		<SidePanel
-			className='w-[400px]'
 			data-testid='share-panel'
 			isOpen={isOpen}
 			onClose={onClose}

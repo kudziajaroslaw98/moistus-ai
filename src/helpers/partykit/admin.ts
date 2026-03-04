@@ -1,5 +1,6 @@
 import {
 	getMindMapRoomName,
+	getUserRealtimeRoomName,
 	type MindMapRealtimeChannel,
 } from '@/lib/realtime/room-names';
 import type {
@@ -51,6 +52,17 @@ export type PartyKitCollaboratorEventResult = {
 	delivered: boolean;
 };
 
+export type PartyKitNotificationEventPayload = {
+	targetUserId: string;
+	notificationId: string;
+	occurredAt: string;
+};
+
+export type PartyKitNotificationEventResult = {
+	attempted: boolean;
+	delivered: boolean;
+};
+
 const DEFAULT_ROOM_SUFFIXES: ReadonlyArray<MindMapRealtimeChannel> = [
 	'sync',
 	'cursor',
@@ -71,6 +83,7 @@ function buildAdminEndpoints(
 		| 'permissions-update'
 		| 'access-revoked'
 		| 'collaborator-event'
+		| 'notification-event'
 ): string[] {
 	const roomVariants = Array.from(
 		new Set([encodeURIComponent(roomName), roomName])
@@ -293,6 +306,37 @@ export async function pushPartyKitCollaboratorEvent(
 		config.partyName,
 		roomName,
 		'collaborator-event'
+	);
+
+	const delivered = await postToFirstWorkingEndpoint(
+		endpoints,
+		config.adminToken,
+		payload
+	);
+
+	return {
+		attempted: true,
+		delivered,
+	};
+}
+
+export async function pushPartyKitNotificationEvent(
+	payload: PartyKitNotificationEventPayload
+): Promise<PartyKitNotificationEventResult> {
+	const config = getAdminConfig();
+	if (!config || !payload.targetUserId || !payload.notificationId) {
+		return {
+			attempted: false,
+			delivered: false,
+		};
+	}
+
+	const roomName = getUserRealtimeRoomName(payload.targetUserId, 'notifications');
+	const endpoints = buildAdminEndpoints(
+		config.baseUrl,
+		config.partyName,
+		roomName,
+		'notification-event'
 	);
 
 	const delivered = await postToFirstWorkingEndpoint(

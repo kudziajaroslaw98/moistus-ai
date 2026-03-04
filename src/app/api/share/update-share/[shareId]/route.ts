@@ -7,6 +7,7 @@ import {
 	pushPartyKitPermissionUpdate,
 } from '@/helpers/partykit/admin';
 import { createServiceRoleClient } from '@/helpers/supabase/server';
+import { createAccessChangedNotification } from '@/lib/notifications/notification-service';
 import { ShareRole } from '@/types/sharing-types';
 import { z } from 'zod';
 
@@ -89,7 +90,7 @@ export const PATCH = withApiValidation<
 		// Verify the requesting user owns the map
 		const { data: mindMap, error: mapError } = await supabase
 			.from('mind_maps')
-			.select('id, user_id')
+			.select('id, user_id, title')
 			.eq('id', shareAccess.map_id)
 			.single();
 
@@ -270,6 +271,29 @@ export const PATCH = withApiValidation<
 					mapId: updatedShare.map_id,
 					targetUserId: updatedShare.user_id,
 					error: toErrorMessage(disconnectError),
+				}
+			);
+		}
+
+		try {
+			await createAccessChangedNotification({
+				recipientUserId: updatedShare.user_id,
+				actorUserId: user.id,
+				mapId: updatedShare.map_id,
+				mapTitle: mindMap.title ?? null,
+				newRole: updatedShare.role as 'viewer' | 'commentator' | 'editor',
+				canEdit: Boolean(updatedShare.can_edit),
+				canComment: Boolean(updatedShare.can_comment),
+				canView: Boolean(updatedShare.can_view),
+				sourceId: `${updatedShare.id}:${updatedShare.updated_at ?? new Date().toISOString()}`,
+			});
+		} catch (notificationError) {
+			console.warn(
+				'[share/update-share] Failed to create access-changed notification',
+				{
+					mapId: updatedShare.map_id,
+					targetUserId: updatedShare.user_id,
+					error: toErrorMessage(notificationError),
 				}
 			);
 		}

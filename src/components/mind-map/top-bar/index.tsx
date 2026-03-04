@@ -3,6 +3,7 @@
 import { RealtimeAvatarStack } from '@/components/realtime/realtime-avatar-stack';
 import { Button } from '@/components/ui/button';
 import { UserMenu } from '@/components/common/user-menu';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { type ActivityState } from '@/hooks/realtime/use-realtime-presence-room';
 import { getMindMapRoomName } from '@/lib/realtime/room-names';
@@ -116,6 +117,8 @@ export function MindMapTopBar({
 				)}
 
 				{/* Always visible: User Menu */}
+				<NotificationBell filterMapId={mapId} />
+
 				<UserMenu
 					showBackToDashboard
 					user={userProfile}

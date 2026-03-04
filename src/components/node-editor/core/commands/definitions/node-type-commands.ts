@@ -8,6 +8,8 @@ import { NodeRegistry, NODE_REGISTRY } from '@/registry/node-registry';
 import type { Command } from '../command-types';
 import { createNodeTypeSwitchAction } from '../actions/action-factory';
 
+const NODE_TYPES_EXCLUDED_FROM_QUICK_SWITCH = new Set(['referenceNode']);
+
 /**
  * Generate node type commands from registry
  * This ensures commands stay in sync with registry configuration
@@ -18,6 +20,10 @@ function generateNodeTypeCommands(): Command[] {
 
 	// Get all types with command triggers
 	for (const nodeType of NodeRegistry.getCreatableTypes()) {
+		if (NODE_TYPES_EXCLUDED_FROM_QUICK_SWITCH.has(nodeType)) {
+			continue;
+		}
+
 		const config = NODE_REGISTRY[nodeType];
 
 		// Skip nodes without command triggers (like groupNode)
@@ -54,5 +60,10 @@ export const nodeTypeCommands: Command[] = generateNodeTypeCommands();
  * Map trigger strings to node types for quick lookup
  * Generated from registry
  */
-export const triggerToNodeType: Record<string, string> =
-	NodeRegistry.getCommandTriggerMap();
+export const triggerToNodeType: Record<string, string> = nodeTypeCommands.reduce(
+	(acc, command) => {
+		acc[command.trigger] = command.nodeType!;
+		return acc;
+	},
+	{} as Record<string, string>
+);

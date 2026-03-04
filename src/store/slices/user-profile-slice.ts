@@ -113,6 +113,9 @@ export const createUserProfileSlice: StateCreator<
 							theme: 'system',
 							accentColor: 'sky',
 							reducedMotion: false,
+							notifications: {
+								email: true,
+							},
 							defaultNodeType: 'defaultNode',
 							privacy: {
 								profile_visibility: 'public',
@@ -314,11 +317,13 @@ export const createUserProfileSlice: StateCreator<
 
 	getNotificationPreferences: () => {
 		const { userProfile } = get();
-		// Notifications removed - return empty object for backwards compatibility
+		const emailNotificationsEnabled =
+			userProfile?.preferences?.notifications?.email ?? true;
+
 		return {
-			email_comments: false,
-			email_mentions: false,
-			email_reactions: false,
+			email_comments: emailNotificationsEnabled,
+			email_mentions: emailNotificationsEnabled,
+			email_reactions: emailNotificationsEnabled,
 			push_comments: false,
 			push_mentions: false,
 			push_reactions: false,

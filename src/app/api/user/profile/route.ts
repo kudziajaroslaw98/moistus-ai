@@ -8,6 +8,9 @@ const DEFAULT_PREFERENCES = {
 	theme: 'system' as const,
 	accentColor: 'sky',
 	reducedMotion: false,
+	notifications: {
+		email: true,
+	},
 	defaultNodeType: 'defaultNode' as const,
 	privacy: {
 		profile_visibility: 'public' as const,
