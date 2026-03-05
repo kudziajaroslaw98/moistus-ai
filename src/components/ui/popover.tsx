@@ -4,6 +4,7 @@ import { Popover as BasePopover } from '@base-ui/react/popover';
 import { isValidElement, type ComponentProps, type ReactElement, type ReactNode } from 'react';
 
 import { cn } from '@/lib/utils';
+import { overlaySurfaceClassName } from './overlay-surface';
 
 function Popover({ ...props }: ComponentProps<typeof BasePopover.Root>) {
 	return <BasePopover.Root data-slot='popover' {...props} />;
@@ -57,8 +58,8 @@ function PopoverContent({
 				<BasePopover.Popup
 					data-slot='popover-content'
 					className={cn(
-						'bg-overlay border border-border-default text-text-primary backdrop-blur-sm',
-						'data-[open]:animate-in data-[closed]:animate-out data-[closed]:fade-out-0 data-[open]:fade-in-0 data-[closed]:zoom-out-95 data-[open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 w-72 rounded-md shadow-md outline-hidden p-4',
+						overlaySurfaceClassName,
+						'data-[open]:animate-in data-[closed]:animate-out data-[closed]:fade-out-0 data-[open]:fade-in-0 data-[closed]:zoom-out-95 data-[open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 w-72 rounded-md outline-hidden p-4',
 						className
 					)}
 					{...props}

@@ -58,7 +58,7 @@ const ACTIVITY_CONFIG: Record<
 	viewing: {
 		label: 'Viewing',
 		icon: <Mouse className='size-3' />,
-		color: 'text-zinc-400',
+		color: 'text-text-secondary',
 		ringColor: 'rgba(161, 161, 170, 0.3)', // zinc-400
 	},
 };
@@ -69,21 +69,21 @@ function ProfileSkeleton() {
 		<div className='overflow-hidden'>
 			{/* Hero skeleton */}
 			<div className='flex items-center gap-4 p-5 pb-4'>
-				<div className='size-14 rounded-full bg-zinc-800/60 animate-pulse' />
+				<div className='size-14 rounded-full bg-elevated animate-pulse' />
 				<div className='flex-1 space-y-2.5'>
 					<div className='flex items-center gap-2'>
-						<div className='h-5 bg-zinc-800/60 rounded animate-pulse w-28' />
-						<div className='h-4 bg-zinc-800/60 rounded-full animate-pulse w-16' />
+						<div className='h-5 bg-elevated rounded animate-pulse w-28' />
+						<div className='h-4 bg-elevated rounded-full animate-pulse w-16' />
 					</div>
-					<div className='h-3.5 bg-zinc-800/40 rounded animate-pulse w-20' />
+					<div className='h-3.5 bg-surface rounded animate-pulse w-20' />
 				</div>
 			</div>
 
 			{/* Session meta skeleton */}
-			<div className='flex items-center gap-3 px-5 py-3 border-t border-zinc-800/50'>
-				<div className='h-3 bg-zinc-800/40 rounded animate-pulse w-20' />
-				<div className='h-3 w-px bg-zinc-800/40' />
-				<div className='h-3 bg-zinc-800/40 rounded animate-pulse w-16' />
+			<div className='flex items-center gap-3 px-5 py-3 border-t border-border-subtle'>
+				<div className='h-3 bg-surface rounded animate-pulse w-20' />
+				<div className='h-3 w-px bg-border-subtle' />
+				<div className='h-3 bg-surface rounded animate-pulse w-16' />
 			</div>
 		</div>
 	);
@@ -165,7 +165,7 @@ function SessionMeta({ joinedAt, lastSeenAt }: SessionMetaProps) {
 	};
 
 	return (
-		<div className='flex items-center gap-3 px-5 py-3 border-t border-zinc-800/50'>
+		<div className='flex items-center gap-3 px-5 py-3 border-t border-border-subtle'>
 			{/* Session duration */}
 			<div className='flex items-center gap-1.5 text-xs text-text-secondary'>
 				<Clock className='size-3 text-text-tertiary' />
@@ -173,14 +173,14 @@ function SessionMeta({ joinedAt, lastSeenAt }: SessionMetaProps) {
 			</div>
 
 			{/* Divider */}
-			<div className='h-3 w-px bg-zinc-700/50' />
+			<div className='h-3 w-px bg-border-subtle' />
 
 			{/* Active status */}
 			<div className='flex items-center gap-1.5 text-xs text-text-tertiary'>
 				<div
 					className={cn(
 						'size-1.5 rounded-full',
-						isRecentlyActive() ? 'bg-green-500' : 'bg-zinc-600'
+						isRecentlyActive() ? 'bg-green-500' : 'bg-border-strong'
 					)}
 				/>
 				<span>{isRecentlyActive() ? 'Active now' : 'Away'}</span>
@@ -203,7 +203,7 @@ function RoleBadge({ isOwner }: RoleBadgeProps) {
 	}
 
 	return (
-		<span className='inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium text-text-tertiary bg-zinc-800/40 border border-zinc-700/30'>
+		<span className='inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium text-text-secondary bg-elevated/50 border border-border-subtle'>
 			Collaborator
 		</span>
 	);
@@ -239,7 +239,7 @@ function ActivityAvatar({
 				style={{ '--tw-ring-color': ringColor } as React.CSSProperties}
 			>
 				<AvatarImage alt={displayName} src={user.image} />
-				<AvatarFallback className='text-sm font-semibold bg-zinc-800'>
+				<AvatarFallback className='text-sm font-semibold bg-elevated'>
 					{initials || '?'}
 				</AvatarFallback>
 			</Avatar>
@@ -248,9 +248,9 @@ function ActivityAvatar({
 			{isAnonymous && (
 				<div
 					aria-label='Guest user'
-					className='absolute -bottom-0.5 -right-0.5 size-5 rounded-full bg-zinc-900 flex items-center justify-center ring-2 ring-zinc-950'
+					className='absolute -bottom-0.5 -right-0.5 size-5 rounded-full bg-surface flex items-center justify-center ring-2 ring-border-default'
 				>
-					<User2 className='size-2.5 text-zinc-400' />
+					<User2 className='size-2.5 text-text-tertiary' />
 				</div>
 			)}
 		</div>

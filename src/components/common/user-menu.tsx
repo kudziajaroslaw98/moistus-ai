@@ -116,7 +116,7 @@ export function UserMenu({
 			<DropdownMenuTrigger
 				render={
 					<Button
-						className='flex items-center space-x-3 hover:bg-zinc-800 focus:bg-zinc-800'
+						className='flex items-center space-x-3 hover:bg-elevated focus:bg-elevated'
 						disabled={isLoggingOut}
 						variant='ghost'
 					>
@@ -125,41 +125,38 @@ export function UserMenu({
 
 						{/* User Info - Hidden on mobile, visible on larger screens if not in compact mode */}
 						<div className='hidden sm:block text-left'>
-							<div className='text-sm font-medium text-white'>{name}</div>
+							<div className='text-sm font-medium text-text-primary'>{name}</div>
 						</div>
 
 						{/* Chevron */}
-						<ChevronDown className='h-4 w-4 text-zinc-400' />
+						<ChevronDown className='h-4 w-4 text-text-tertiary' />
 					</Button>
 				}
 			/>
 
-			<DropdownMenuContent
-				align='end'
-				className='w-56 bg-zinc-900 border-zinc-700'
-			>
+			<DropdownMenuContent align='end' className='w-56'>
 				{/* User Info Header */}
 				<div className='flex gap-4 items-center px-3 py-2'>
 					<UserAvatar className='size-10' size='md' user={user} />
 
 					<div>
-						<div className='text-sm font-medium text-white'>{name}</div>
+						<div className='text-sm font-medium text-text-primary'>{name}</div>
 
-						<div className='text-xs text-zinc-400'>{subtitle}</div>
+						<div className='text-xs text-text-secondary'>{subtitle}</div>
 
 						{isAnonymous && (
-							<div className='mt-1 text-xs text-amber-400'>
+							<div className='mt-1 text-xs text-warning-400'>
 								⚠️ Anonymous account
 							</div>
 						)}
 					</div>
 				</div>
 
-				<DropdownMenuSeparator className='bg-zinc-700' />
+				<DropdownMenuSeparator />
 
 				{/* Menu Items */}
 				<DropdownMenuItem
-					className='cursor-pointer text-zinc-300 focus:bg-zinc-800 focus:text-white'
+					className='cursor-pointer'
 					onClick={() => onOpenSettings?.('account')}
 				>
 					<Settings className='mr-2 h-4 w-4' />
@@ -167,7 +164,7 @@ export function UserMenu({
 				</DropdownMenuItem>
 
 				<DropdownMenuItem
-					className='cursor-pointer text-zinc-300 focus:bg-zinc-800 focus:text-white'
+					className='cursor-pointer'
 					onClick={() => onOpenSettings?.('billing')}
 				>
 					<CreditCard className='mr-2 h-4 w-4' />
@@ -176,10 +173,10 @@ export function UserMenu({
 
 				{isAnonymous && (
 					<>
-						<DropdownMenuSeparator className='bg-zinc-700' />
+						<DropdownMenuSeparator />
 
 						<DropdownMenuItem
-							className='cursor-pointer text-blue-400 focus:bg-zinc-800 focus:text-blue-300'
+							className='cursor-pointer text-primary-400 data-[highlighted]:text-primary-300'
 							onClick={() => setShowUpgradeAnonymous(true)}
 						>
 							<User className='mr-2 h-4 w-4' />
@@ -190,7 +187,7 @@ export function UserMenu({
 
 				{!isProUser() && !isAnonymous && (
 					<DropdownMenuItem
-						className='cursor-pointer text-amber-400 focus:bg-zinc-800 focus:text-amber-300'
+						className='cursor-pointer text-warning-400 data-[highlighted]:text-warning-300'
 						onClick={handleUpgradeToPro}
 					>
 						<Sparkles className='mr-2 h-4 w-4' />
@@ -200,10 +197,10 @@ export function UserMenu({
 
 				{!isProUser() && (
 					<>
-						<DropdownMenuSeparator className='bg-zinc-700' />
+						<DropdownMenuSeparator />
 
 						<DropdownMenuItem
-							className='cursor-pointer text-zinc-300 focus:bg-zinc-800 focus:text-white'
+							className='cursor-pointer'
 							onClick={handleRestartOnboarding}
 						>
 							<RefreshCw className='mr-2 h-4 w-4' />
@@ -212,13 +209,14 @@ export function UserMenu({
 					</>
 				)}
 
-				<DropdownMenuSeparator className='bg-zinc-700' />
+				<DropdownMenuSeparator />
 
 				{/* Logout */}
 				<DropdownMenuItem
-					className='cursor-pointer text-red-400 focus:bg-zinc-800 focus:text-red-300'
+					className='cursor-pointer'
 					disabled={isLoggingOut}
 					onClick={handleLogout}
+					variant='destructive'
 				>
 					<LogOut className='mr-2 h-4 w-4' />
 

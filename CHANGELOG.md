@@ -24,6 +24,13 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **tests/notification-service**: Added `notification-service` unit tests covering side-effect completion timing, PartyKit fail-soft behavior, email failure status marking, and no-created short-circuit behavior
   - Why: Locks the bug fix and prevents regressions in notification delivery ordering guarantees
 
+### Changed
+
+- **ui/popover-surfaces**: Normalized popover-family surface styling to a single semantic contract (`bg-overlay` + semantic border/text + consistent shadow/blur) across popover, dropdown menu, hover card, AI actions popover, user menu, dashboard map-card menus, auth password requirements popover, and sidebar dropdown wrapper
+  - Why: Fixes visual inconsistency where some popovers looked like side panels/dialogs and aligns all audited floating surfaces with the cursor/layout/export baseline
+- **realtime/profile-card**: Replaced hardcoded zinc foreground/background accents in collaborator profile card skeleton and metadata regions with semantic tokens
+  - Why: Keeps realtime profile hover cards visually aligned with the normalized popover surface system
+
 ## [2026-03-04]
 
 ### Added
