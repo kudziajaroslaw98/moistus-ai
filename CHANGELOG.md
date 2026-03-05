@@ -10,6 +10,19 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-02-27 - Added account/billing settings safety flows and aligned map-settings color tokens -->
 <!-- Updated: 2026-02-28 - Cleaned deprecated node-editor parser tokens, split syntax help into universal/node-specific sections, and added parser/completion regression tests -->
 <!-- Updated: 2026-03-04 - Added notifications system (in-app inbox + Resend email + mention/reply/reaction/access events) -->
+<!-- Updated: 2026-03-05 - Fixed notification side-effect timing so email dispatch is no longer deferred by client focus/activity -->
+
+## [2026-03-05]
+
+### Fixed
+
+- **notifications/dispatch-lifecycle**: `createNotifications` now awaits PartyKit fanout and email processing (in parallel via `Promise.allSettled`) before request completion
+  - Why: Prevents mention/access/reply/reaction emails from being deferred until a later runtime wake-up (for example, user focus-triggered activity)
+
+### Added
+
+- **tests/notification-service**: Added `notification-service` unit tests covering side-effect completion timing, PartyKit fail-soft behavior, email failure status marking, and no-created short-circuit behavior
+  - Why: Locks the bug fix and prevents regressions in notification delivery ordering guarantees
 
 ## [2026-03-04]
 

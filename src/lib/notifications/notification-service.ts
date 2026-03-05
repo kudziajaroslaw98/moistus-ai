@@ -66,8 +66,42 @@ export async function createNotifications(
 	}
 
 	const created = (data ?? []) as NotificationRecord[];
-	void Promise.all(
-		created.map(async (notification) => {
+	if (created.length === 0) {
+		return created;
+	}
+
+	const sideEffectResults = await Promise.allSettled([
+		dispatchPartyKitNotificationEvents(created),
+		processNotificationEmails(adminClient, created),
+	]);
+
+	const partyKitResult = sideEffectResults[0];
+	if (partyKitResult?.status === 'rejected') {
+		console.warn(
+			'[notifications] dispatchPartyKitNotificationEvents error',
+			partyKitResult.reason instanceof Error
+				? partyKitResult.reason.message
+				: partyKitResult.reason
+		);
+	}
+
+	const emailResult = sideEffectResults[1];
+	if (emailResult?.status === 'rejected') {
+		console.warn(
+			'[notifications] processNotificationEmails error',
+			emailResult.reason instanceof Error
+				? emailResult.reason.message
+				: emailResult.reason
+		);
+	}
+	return created;
+}
+
+async function dispatchPartyKitNotificationEvents(
+	notifications: NotificationRecord[]
+): Promise<void> {
+	await Promise.all(
+		notifications.map(async (notification) => {
 			try {
 				await pushPartyKitNotificationEvent({
 					targetUserId: notification.recipient_user_id,
@@ -86,11 +120,6 @@ export async function createNotifications(
 			}
 		})
 	);
-
-	void processNotificationEmails(adminClient, created).catch((err: unknown) => {
-		console.warn('[notifications] processNotificationEmails error', err instanceof Error ? err.message : err);
-	});
-	return created;
 }
 
 export async function createAccessChangedNotification(params: {
