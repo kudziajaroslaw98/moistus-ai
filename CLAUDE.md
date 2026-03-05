@@ -281,6 +281,9 @@ pnpm pretty          # Prettier
 **NodeData.metadata**: Single unified type (not discriminated union per node type). Enables seamless node type switching without data loss. Do NOT split into per-type unions.
 <!-- Updated: 2026-01-06 -->
 
+**Shared map node limits**: Node creation limit is enforced by the **map owner's** subscription (not the acting collaborator's plan). Enforce through `checkMapNodeLimit()` and `/api/nodes/check-limit`, and require `share_access.can_edit = true` for non-owners.
+<!-- Updated: 2026-03-05 - Documented owner-scoped node-limit enforcement for shared maps -->
+
 **Identity precedence**: Use `user_profiles` as canonical identity source across sharing + realtime UI (`display_name`, `avatar_url`) with fallback order: auth metadata, then deterministic fallback helpers. Keep resolver logic centralized in `src/helpers/identity/resolve-user-identity.ts`.
 <!-- Updated: 2026-02-24 - Unified collaborator label/avatar precedence across manage + presence -->
 

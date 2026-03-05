@@ -206,7 +206,7 @@ export const POST = withApiValidation(
 
 				let templateQuery = supabase
 					.from('mind_maps')
-					.select('id')
+					.select('id, node_count')
 					.eq('is_template', true);
 
 				if (isUuid) {
@@ -218,6 +218,54 @@ export const POST = withApiValidation(
 				const { data: templateMap } = await templateQuery.single();
 
 				if (templateMap) {
+					let templateNodeCount =
+						typeof templateMap.node_count === 'number'
+							? templateMap.node_count
+							: null;
+
+					if (templateNodeCount === null) {
+						const { count: fallbackNodeCount, error: fallbackCountError } =
+							await supabase
+								.from('nodes')
+								.select('*', { count: 'exact', head: true })
+								.eq('map_id', templateMap.id);
+
+						if (fallbackCountError) {
+							console.error(
+								'Error counting template nodes for limit check:',
+								fallbackCountError
+							);
+							return respondError(
+								'Error checking template node limit.',
+								500,
+								fallbackCountError.message
+							);
+						}
+
+						templateNodeCount = fallbackNodeCount ?? 0;
+					}
+
+					// Enforce nodes-per-map limit for template seed payload size.
+					const { limit: nodeLimit } = await checkUsageLimit(
+						user,
+						supabase,
+						'nodesPerMap',
+						0
+					);
+					if (nodeLimit !== -1 && templateNodeCount > nodeLimit) {
+						return respondError(
+							`Template exceeds your node limit (${templateNodeCount}/${nodeLimit}). Upgrade to Pro for larger maps.`,
+							402,
+							'NODE_LIMIT_REACHED',
+							{
+								currentUsage: templateNodeCount,
+								limit: nodeLimit,
+								remaining: Math.max(0, nodeLimit - templateNodeCount),
+								upgradeUrl: '/dashboard/settings/billing',
+							}
+						);
+					}
+
 					// Fetch template nodes
 					const { data: templateNodes } = await supabase
 						.from('nodes')

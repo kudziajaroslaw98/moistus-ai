@@ -1,6 +1,6 @@
 'use client';
 
-import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
+import { useMapNodeLimit } from '@/hooks/subscription/use-map-node-limit';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import useAppStore from '@/store/mind-map-store';
 import type { MentionableUser } from '@/types/notification';
@@ -326,13 +326,14 @@ export const QuickInput: FC<QuickInputProps> = ({
 		return () => abortController.abort();
 	}, [mapId]);
 
-	// Check node limit (only affects create mode)
-	const { isAtLimit, usage, limits } = useSubscriptionLimits();
-	const isAtNodeLimit = mode === 'create' && isAtLimit('nodesPerMap');
-	const nodeLimitInfo =
-		limits.nodesPerMap !== -1
-			? { current: usage.nodesPerMap, max: limits.nodesPerMap }
-			: undefined;
+	// Check node limit for the current map (owner plan + role aware)
+	const {
+		isAtLimit: isAtNodeLimit,
+		limitInfo: nodeLimitInfo,
+		limitMessage: nodeLimitMessage,
+	} = useMapNodeLimit({
+		enabled: mode === 'create',
+	});
 
 	// Initialize QuickInput state when component mounts or mode changes
 	useEffect(() => {
@@ -861,8 +862,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 				>
 					<AlertCircle className='w-4 h-4 shrink-0' />
 					<span className='text-sm'>
-						Node limit reached ({nodeLimitInfo.current}/{nodeLimitInfo.max}).
-						Upgrade to Pro for unlimited nodes.
+						{nodeLimitMessage ||
+							`Node limit reached (${nodeLimitInfo.current}/${nodeLimitInfo.max}).`}
 					</span>
 				</motion.div>
 			)}

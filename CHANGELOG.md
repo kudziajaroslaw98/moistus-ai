@@ -24,6 +24,29 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **tests/notification-service**: Added `notification-service` unit tests covering side-effect completion timing, PartyKit fail-soft behavior, email failure status marking, and no-created short-circuit behavior
   - Why: Locks the bug fix and prevents regressions in notification delivery ordering guarantees
 
+### Changed
+
+- **subscription/node-limit-policy**: Node creation entitlement for shared maps now resolves against the map owner plan (not collaborator plan) via shared `checkMapNodeLimit` enforcement used by `/api/nodes/check-limit`
+  - Why: Allows editors to continue adding nodes in paid shared maps while preserving owner-scoped subscription boundaries
+- **node-editor/quick-input-limit-gate**: Quick Input now uses map-aware node limit checks (`useMapNodeLimit`) instead of actor-plan `useSubscriptionLimits` for create-mode blocking/warnings
+  - Why: Prevents false “upgrade yourself” lockouts for guests editing paid-owner maps
+
+### Fixed
+
+- **nodes/check-limit-route**: Replaced legacy `owner_id`/`map_shares` checks with canonical `mind_maps.user_id` + `share_access` (`status=active`, `can_edit=true`) and structured limit metadata (`upgradeTarget`, `mapOwnerId`)
+  - Why: Removes stale schema assumptions and enforces editor-only create access correctly
+- **nodes/add-node-preflight**: Removed actor-plan client fallback; `addNode` now relies on server verdicts (`402/403`) and owner-targeted messaging
+  - Why: Closes collaborator bypass/false-block edge cases caused by local per-user fallback logic
+- **nodes/create-reference**: Added the same map-owner node-limit check before reference-node insertion
+  - Why: Closes alternate node-creation path bypass that could otherwise ignore shared map node limits
+- **maps/template-seeding-limit**: Template-based map creation now blocks templates whose node payload exceeds requester nodes-per-map cap
+  - Why: Prevents free-tier users from exceeding node caps via template seed size
+
+### Docs
+
+- **claude+codebase-map**: Documented owner-scoped node-limit enforcement behavior and updated architecture notes metadata comments
+  - Why: Keeps operational gotchas and architecture references in sync with entitlement enforcement changes
+
 ## [2026-03-04]
 
 ### Added

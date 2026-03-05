@@ -1,4 +1,5 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
+import { checkMapNodeLimit } from '@/helpers/api/with-subscription-check';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
 import generateUuid from '@/helpers/generate-uuid';
 import { z } from 'zod';
@@ -16,6 +17,30 @@ export const POST = withApiValidation(
 		try {
 			const { sourceMapId, targetMapId, targetNodeId, position } =
 				validatedBody;
+
+			const limitCheck = await checkMapNodeLimit(supabase, sourceMapId, user.id);
+			if (!limitCheck.ok) {
+				return respondError(
+					limitCheck.message,
+					limitCheck.status,
+					limitCheck.code
+				);
+			}
+
+			if (!limitCheck.allowed) {
+				const message =
+					limitCheck.upgradeTarget === 'owner'
+						? `This shared map reached its owner limit (${limitCheck.currentCount}/${limitCheck.limit}). Ask the owner to upgrade or remove nodes.`
+						: `Node limit reached (${limitCheck.currentCount}/${limitCheck.limit}). Upgrade to Pro for unlimited nodes.`;
+
+				return respondError(message, 402, 'NODE_LIMIT_REACHED', {
+					currentCount: limitCheck.currentCount,
+					limit: limitCheck.limit,
+					remaining: limitCheck.remaining,
+					mapOwnerId: limitCheck.mapOwnerId,
+					upgradeTarget: limitCheck.upgradeTarget,
+				});
+			}
 
 			// 1. Fetch target node to get its content snippet and map title
 			const { data: targetData, error: targetError } = await supabase
