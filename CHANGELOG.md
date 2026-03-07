@@ -34,6 +34,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Prevents "Checking map limit..." text from visually concatenating with shortcut copy on small screens.
 - **node-editor/edit-mode-limit-gating**: QuickInput create/disable/warning checks now gate by node-limit state only in `mode === 'create'`.
   - Why: Keeps edit flows independent from create-mode `useMapNodeLimit` state and avoids stale/neutral hook state affecting updates.
+- **top-bar/mobile-collaborators**: Mobile hamburger collaborators section now falls back to shared collaborator roster avatars (`currentShares`) when realtime presence avatars are temporarily empty, and refreshes share users when the menu opens.
+  - Why: Prevents collaborator list from appearing empty in the mobile menu despite active/shared collaborators.
 
 ## [2026-03-05]
 
