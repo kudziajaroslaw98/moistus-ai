@@ -11,6 +11,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-02-28 - Cleaned deprecated node-editor parser tokens, split syntax help into universal/node-specific sections, and added parser/completion regression tests -->
 <!-- Updated: 2026-03-04 - Added notifications system (in-app inbox + Resend email + mention/reply/reaction/access events) -->
 <!-- Updated: 2026-03-05 - Fixed notification side-effect timing so email dispatch is no longer deferred by client focus/activity -->
+<!-- Updated: 2026-03-06 - Fixed shared-map node entitlement flow for collaborators by using owner subscription lookup in server API checks -->
 
 ## [2026-03-05]
 
@@ -46,6 +47,18 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **claude+codebase-map**: Documented owner-scoped node-limit enforcement behavior and updated architecture notes metadata comments
   - Why: Keeps operational gotchas and architecture references in sync with entitlement enforcement changes
+
+## [2026-03-06]
+
+### Changed
+
+- **subscription/node-limit-flow**: `checkMapNodeLimit` now accepts optional `ownerSubscriptionClient` and shared-map node checks in `/api/nodes/check-limit` and `/api/nodes/create-reference` use a service-role lookup for map-owner entitlement rows.
+  - Why: Prevents premium-owned shared maps from incorrectly reporting owner-limit rejections to collaborative editors under current RLS visibility.
+
+### Fixed
+
+- **subscription/node-limit-gating-tests**: Added helper-level coverage for privileged owner subscription lookup and explicit DB-error handling (`OWNER_SUBSCRIPTION_CHECK_FAILED`).
+  - Why: Locks regression prevention for collaborator node-add behavior and avoids silently granting quota on entitlement-read failures.
 
 ## [2026-03-04]
 

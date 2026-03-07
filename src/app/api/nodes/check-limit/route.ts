@@ -1,6 +1,7 @@
 import { withAuthValidation } from '@/helpers/api/with-auth-validation';
 import { checkMapNodeLimit } from '@/helpers/api/with-subscription-check';
 import { respondError, respondSuccess } from '@/helpers/api/responses';
+import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { z } from 'zod';
 
 // UUID v4 regex pattern for validation
@@ -22,7 +23,13 @@ const requestSchema = z.object({
 export const POST = withAuthValidation(
 	requestSchema,
 	async (_req, { mapId }, supabase, user) => {
-		const checkResult = await checkMapNodeLimit(supabase, mapId, user.id);
+		const adminClient = createServiceRoleClient();
+		const checkResult = await checkMapNodeLimit(
+			supabase,
+			mapId,
+			user.id,
+			adminClient
+		);
 
 		if (!checkResult.ok) {
 			return respondError(

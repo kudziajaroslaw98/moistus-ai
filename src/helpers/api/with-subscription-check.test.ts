@@ -76,6 +76,9 @@ function createSupabaseMock(options: SupabaseMockOptions = {}): SupabaseClient {
 	userSubscriptionBuilder.in = jest.fn(() => userSubscriptionBuilder);
 	userSubscriptionBuilder.order = jest.fn(() => userSubscriptionBuilder);
 	userSubscriptionBuilder.limit = jest.fn(() => userSubscriptionBuilder);
+	userSubscriptionBuilder.maybeSingle = jest
+		.fn()
+		.mockResolvedValue(userSubscriptionResult);
 	userSubscriptionBuilder.single = jest
 		.fn()
 		.mockResolvedValue(userSubscriptionResult);
@@ -136,7 +139,7 @@ function createSupabaseMock(options: SupabaseMockOptions = {}): SupabaseClient {
 	});
 
 	return {
-		from,
+	from,
 		rpc,
 	} as unknown as SupabaseClient;
 }
@@ -392,6 +395,114 @@ describe('with-subscription-check', () => {
 			mapOwnerId: 'owner-1',
 			requesterIsOwner: false,
 			upgradeTarget: 'owner',
+		});
+	});
+
+	it('uses privileged owner lookup to allow collaborative adds for premium owners', async () => {
+		const requesterClient = createSupabaseMock({
+			mindMapResult: {
+				data: {
+					id: 'map-1',
+					user_id: 'owner-1',
+				},
+				error: null,
+			},
+			shareAccessPermissionResult: {
+				data: {
+					can_edit: true,
+				},
+				error: null,
+			},
+			nodesCountResult: {
+				count: 63,
+				error: null,
+			},
+			userSubscriptionResult: {
+				data: null,
+				error: null,
+			},
+		});
+
+		const ownerClient = createSupabaseMock({
+			userSubscriptionResult: {
+				data: {
+					plan: {
+						name: 'pro',
+						limits: { nodesPerMap: -1 },
+					},
+				},
+				error: null,
+			},
+		});
+
+		const result = await checkMapNodeLimit(
+			requesterClient,
+			'map-1',
+			'guest-1',
+			ownerClient
+		);
+
+		expect(result).toEqual({
+			ok: true,
+			allowed: true,
+			limit: -1,
+			remaining: -1,
+			currentCount: 63,
+			mapOwnerId: 'owner-1',
+			requesterIsOwner: false,
+			upgradeTarget: 'owner',
+		});
+	});
+
+	it('returns explicit error when owner subscription check fails', async () => {
+		const requesterClient = createSupabaseMock({
+			mindMapResult: {
+				data: {
+					id: 'map-1',
+					user_id: 'owner-1',
+				},
+				error: null,
+			},
+			shareAccessPermissionResult: {
+				data: {
+					can_edit: true,
+				},
+				error: null,
+			},
+			nodesCountResult: {
+				count: 20,
+				error: null,
+			},
+			userSubscriptionResult: {
+				data: {
+					plan: {
+						name: 'pro',
+						limits: { nodesPerMap: -1 },
+					},
+				},
+				error: null,
+			},
+		});
+
+		const ownerClient = createSupabaseMock({
+			userSubscriptionResult: {
+				data: null,
+				error: { message: 'db unavailable' },
+			},
+		});
+
+		const result = await checkMapNodeLimit(
+			requesterClient,
+			'map-1',
+			'guest-1',
+			ownerClient
+		);
+
+		expect(result).toEqual({
+			ok: false,
+			status: 503,
+			code: 'OWNER_SUBSCRIPTION_CHECK_FAILED',
+			message: 'Failed to verify map owner subscription limits.',
 		});
 	});
 

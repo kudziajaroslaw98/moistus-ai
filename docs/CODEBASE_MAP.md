@@ -18,6 +18,7 @@ total_tokens: 707972
 <!-- Updated: 2026-03-04 - Expanded notifications internals (service/channel/schema/mention resolver/data flow) -->
 <!-- Updated: 2026-03-04 - Corrected API route totals to 61 and fixed unlabeled directory-tree code fence -->
 <!-- Updated: 2026-03-05 - Documented owner-scoped node-limit enforcement across node creation APIs -->
+<!-- Updated: 2026-03-06 - Synced API route docs for owner-scoped shared-map node entitlement checks -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -269,6 +270,11 @@ shiko/
 - `POST /api/share/join-room`
 - `POST /api/share/revoke-room-code`
 - `PATCH /api/share/update-share/[shareId]`
+
+**Nodes (2):**
+
+- `POST /api/nodes/check-limit` - Enforces per-map node limits for new nodes on map owner entitlement
+- `POST /api/nodes/create-reference` - Applies same owner-based node-limit check for reference-node creation
 
 **Notifications (4):**
 

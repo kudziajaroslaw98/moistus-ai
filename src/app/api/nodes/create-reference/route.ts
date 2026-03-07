@@ -1,6 +1,7 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { checkMapNodeLimit } from '@/helpers/api/with-subscription-check';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
+import { createServiceRoleClient } from '@/helpers/supabase/server';
 import generateUuid from '@/helpers/generate-uuid';
 import { z } from 'zod';
 
@@ -17,8 +18,14 @@ export const POST = withApiValidation(
 		try {
 			const { sourceMapId, targetMapId, targetNodeId, position } =
 				validatedBody;
+			const adminClient = createServiceRoleClient();
 
-			const limitCheck = await checkMapNodeLimit(supabase, sourceMapId, user.id);
+			const limitCheck = await checkMapNodeLimit(
+				supabase,
+				sourceMapId,
+				user.id,
+				adminClient
+			);
 			if (!limitCheck.ok) {
 				return respondError(
 					limitCheck.message,

@@ -282,7 +282,10 @@ pnpm pretty          # Prettier
 <!-- Updated: 2026-01-06 -->
 
 **Shared map node limits**: Node creation limit is enforced by the **map owner's** subscription (not the acting collaborator's plan). Enforce through `checkMapNodeLimit()` and `/api/nodes/check-limit`, and require `share_access.can_edit = true` for non-owners.
-<!-- Updated: 2026-03-05 - Documented owner-scoped node-limit enforcement for shared maps -->
+<!-- Updated: 2026-03-06 - Owner subscription lookup for shared-map node checks now uses service-role client in API paths to avoid RLS visibility issues for collaborators -->
+
+- Owner-scoped node checks now allow collaborative editors to create nodes when the map owner has active premium subscription, even if collaborators cannot read owner subscription rows under RLS.
+- API routes `/api/nodes/check-limit` and `/api/nodes/create-reference` now pass a service-role client into `checkMapNodeLimit` for owner entitlement resolution.
 
 **Identity precedence**: Use `user_profiles` as canonical identity source across sharing + realtime UI (`display_name`, `avatar_url`) with fallback order: auth metadata, then deterministic fallback helpers. Keep resolver logic centralized in `src/helpers/identity/resolve-user-identity.ts`.
 <!-- Updated: 2026-02-24 - Unified collaborator label/avatar precedence across manage + presence -->

@@ -443,7 +443,8 @@ export type MapNodeLimitCheckResult =
 				| 'MAP_NOT_FOUND'
 				| 'ACCESS_DENIED'
 				| 'EDIT_PERMISSION_REQUIRED'
-				| 'NODE_COUNT_CHECK_FAILED';
+				| 'NODE_COUNT_CHECK_FAILED'
+				| 'OWNER_SUBSCRIPTION_CHECK_FAILED';
 			message: string;
 	  };
 
@@ -454,7 +455,8 @@ export type MapNodeLimitCheckResult =
 export async function checkMapNodeLimit(
 	supabase: SupabaseClient,
 	mapId: string,
-	requesterId: string
+	requesterId: string,
+	ownerSubscriptionClient: SupabaseClient = supabase
 ): Promise<MapNodeLimitCheckResult> {
 	const { data: map, error: mapError } = await supabase
 		.from('mind_maps')
@@ -516,7 +518,8 @@ export async function checkMapNodeLimit(
 		};
 	}
 
-	const { data: ownerSubscription } = await supabase
+	const { data: ownerSubscription, error: ownerSubscriptionError } =
+		await ownerSubscriptionClient
 		.from('user_subscriptions')
 		.select(
 			`
@@ -526,7 +529,23 @@ export async function checkMapNodeLimit(
 		)
 		.eq('user_id', map.user_id)
 		.in('status', ['active', 'trialing'])
-		.single();
+		.order('created_at', { ascending: false })
+		.limit(1)
+		.maybeSingle();
+
+	if (ownerSubscriptionError) {
+		console.error(
+			'[Subscription] Failed to load map owner subscription for node limits:',
+			ownerSubscriptionError
+		);
+
+		return {
+			ok: false,
+			status: 503,
+			code: 'OWNER_SUBSCRIPTION_CHECK_FAILED',
+			message: 'Failed to verify map owner subscription limits.',
+		};
+	}
 
 	const limit =
 		ownerSubscription?.plan?.limits?.nodesPerMap ??
