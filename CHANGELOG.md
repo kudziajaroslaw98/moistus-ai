@@ -16,8 +16,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Fixed
 
-- **toolbar/ai-popover-layering**: Raised toolbar stacking context while AI popover is open and increased AI popover container z-index above the portaled click-outside backdrop
-  - Why: Restores hover/click interactivity inside the toolbar AI popover while keeping outside-click dismissal behavior
+- **toolbar/ai-popover-interactions**: Replaced the custom toolbar AI backdrop/absolute menu path with the shared `Popover` (`PopoverTrigger` + `PopoverContent`) flow
+  - Why: Removes the interaction-blocking backdrop layering path so toolbar AI menu items receive normal hover/click events while preserving outside-click close behavior
 
 ## [2026-03-05]
 
