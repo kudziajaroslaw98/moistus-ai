@@ -865,9 +865,9 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 			<ErrorDisplay error={error} />
 
-				{/* Node limit warning */}
-				{isCreateBlockedByNodeLimit &&
-					(nodeLimitInfo || Boolean(nodeLimitMessage)) && (
+			{/* Node limit warning */}
+			{isCreateBlockedByNodeLimit &&
+				(nodeLimitInfo || Boolean(nodeLimitMessage)) && (
 					<motion.div
 						initial={{ opacity: 0, y: -10 }}
 						animate={{ opacity: 1, y: 0 }}
@@ -881,7 +881,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 									: '')}
 						</span>
 					</motion.div>
-					)}
+				)}
 
 			<ActionBar
 				canCreate={
