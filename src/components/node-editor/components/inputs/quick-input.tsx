@@ -329,6 +329,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 	// Check node limit for the current map (owner plan + role aware)
 	const {
 		isAtLimit: isAtNodeLimit,
+		isLoading: isNodeLimitLoading,
 		limitInfo: nodeLimitInfo,
 		limitMessage: nodeLimitMessage,
 	} = useMapNodeLimit({
@@ -524,7 +525,14 @@ export const QuickInput: FC<QuickInputProps> = ({
 	 */
 	const handleCreate = useCallback(async () => {
 		// Guard: same checks as ActionBar canCreate prop
-		if (value.trim().length === 0 || isAtNodeLimit || isCreating) return;
+		if (
+			value.trim().length === 0 ||
+			isAtNodeLimit ||
+			isNodeLimitLoading ||
+			isCreating
+		) {
+			return;
+		}
 
 		try {
 			setIsCreating(true);
@@ -648,6 +656,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 		closeNodeEditor,
 		isCreating,
 		isAtNodeLimit,
+		isNodeLimitLoading,
 		mode,
 		existingNode,
 		referenceMetadata,
@@ -869,8 +878,11 @@ export const QuickInput: FC<QuickInputProps> = ({
 			)}
 
 			<ActionBar
-				canCreate={value.trim().length > 0 && !isAtNodeLimit}
+				canCreate={
+					value.trim().length > 0 && !isAtNodeLimit && !isNodeLimitLoading
+				}
 				isCreating={isCreating}
+				isCheckingLimit={mode === 'create' && isNodeLimitLoading}
 				mode={mode}
 				onCreate={handleCreate}
 			/>

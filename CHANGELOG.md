@@ -15,11 +15,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ## [2026-03-05]
 
-### Fixed
-
-- **notifications/dispatch-lifecycle**: `createNotifications` now awaits PartyKit fanout and email processing (in parallel via `Promise.allSettled`) before request completion
-  - Why: Prevents mention/access/reply/reaction emails from being deferred until a later runtime wake-up (for example, user focus-triggered activity)
-
 ### Added
 
 - **tests/notification-service**: Added `notification-service` unit tests covering side-effect completion timing, PartyKit fail-soft behavior, email failure status marking, and no-created short-circuit behavior
@@ -34,6 +29,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Fixed
 
+- **notifications/dispatch-lifecycle**: `createNotifications` now awaits PartyKit fanout and email processing (in parallel via `Promise.allSettled`) before request completion
+  - Why: Prevents mention/access/reply/reaction emails from being deferred until a later runtime wake-up (for example, user focus-triggered activity)
 - **nodes/check-limit-route**: Replaced legacy `owner_id`/`map_shares` checks with canonical `mind_maps.user_id` + `share_access` (`status=active`, `can_edit=true`) and structured limit metadata (`upgradeTarget`, `mapOwnerId`)
   - Why: Removes stale schema assumptions and enforces editor-only create access correctly
 - **nodes/add-node-preflight**: Removed actor-plan client fallback; `addNode` now relies on server verdicts (`402/403`) and owner-targeted messaging

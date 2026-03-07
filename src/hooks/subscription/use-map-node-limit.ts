@@ -21,6 +21,9 @@ interface UseMapNodeLimitResult {
 	limitMessage: string | null;
 }
 
+// Subscription limits use -1 sentinel for unlimited.
+const UNLIMITED_LIMIT = -1;
+
 function normalizeUpgradeTarget(value: unknown): UpgradeTarget {
 	return value === 'owner' ? 'owner' : 'requester';
 }
@@ -120,12 +123,12 @@ export function useMapNodeLimit(
 	}, [enabled, mapId]);
 
 	const isAtLimit = useMemo(() => {
-		if (limit === null || limit === -1) return false;
+		if (limit === null || limit === UNLIMITED_LIMIT) return false;
 		return nodeCount >= limit;
 	}, [limit, nodeCount]);
 
 	const limitInfo = useMemo(() => {
-		if (!isAtLimit || limit === null || limit === -1) {
+		if (!isAtLimit || limit === null || limit === UNLIMITED_LIMIT) {
 			return null;
 		}
 		return {

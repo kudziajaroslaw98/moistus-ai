@@ -277,18 +277,20 @@ jest.mock('../action-bar', () => ({
 	ActionBar: ({
 		canCreate,
 		isCreating,
+		isCheckingLimit,
 		mode,
 		onCreate,
 	}: {
 		canCreate: boolean
 		isCreating: boolean
+		isCheckingLimit?: boolean
 		mode: string
 		onCreate: () => void
 	}) => (
 		<div data-testid="action-bar">
 			<button
 				onClick={onCreate}
-				disabled={!canCreate || isCreating}
+				disabled={!canCreate || isCreating || isCheckingLimit}
 				data-testid="create-button"
 				data-mode={mode}
 			>
@@ -319,6 +321,13 @@ describe('QuickInput', () => {
 		mockQuickInputValue = ''
 		mockQuickInputNodeType = null
 		localStorageMock.getItem.mockReturnValue(null)
+		const { useMapNodeLimit } = require('@/hooks/subscription/use-map-node-limit')
+		;(useMapNodeLimit as jest.Mock).mockReturnValue({
+			isAtLimit: false,
+			isLoading: false,
+			limitInfo: null,
+			limitMessage: null,
+		})
 	})
 
 	describe('rendering', () => {
@@ -448,6 +457,51 @@ describe('QuickInput', () => {
 			render(<QuickInput {...defaultProps} mode="edit" existingNode={existingNode as any} />)
 
 			expect(screen.getByTestId('create-button')).toHaveAttribute('data-mode', 'edit')
+		})
+
+		it('shows requester node-limit message from useMapNodeLimit hook', () => {
+			const { useMapNodeLimit } = require('@/hooks/subscription/use-map-node-limit')
+			;(useMapNodeLimit as jest.Mock).mockReturnValue({
+				isAtLimit: true,
+				isLoading: false,
+				limitInfo: { current: 50, max: 50, upgradeTarget: 'requester' },
+				limitMessage: 'Node limit reached (50/50). Upgrade to Pro for unlimited nodes.',
+			})
+
+			render(<QuickInput {...defaultProps} />)
+
+			expect(
+				screen.getByText('Node limit reached (50/50). Upgrade to Pro for unlimited nodes.')
+			).toBeInTheDocument()
+		})
+
+		it('shows owner-targeted node-limit message from useMapNodeLimit hook', () => {
+			const { useMapNodeLimit } = require('@/hooks/subscription/use-map-node-limit')
+			;(useMapNodeLimit as jest.Mock).mockReturnValue({
+				isAtLimit: true,
+				isLoading: false,
+				limitInfo: { current: 63, max: 50, upgradeTarget: 'owner' },
+				limitMessage: 'This shared map reached its owner limit (63/50). Ask the owner to upgrade or remove nodes.',
+			})
+
+			render(<QuickInput {...defaultProps} />)
+
+			expect(screen.getByText(/Ask the owner to upgrade/i)).toBeInTheDocument()
+		})
+
+		it('disables create button when node limit is reached even with non-empty input', () => {
+			mockQuickInputValue = 'New node'
+			const { useMapNodeLimit } = require('@/hooks/subscription/use-map-node-limit')
+			;(useMapNodeLimit as jest.Mock).mockReturnValue({
+				isAtLimit: true,
+				isLoading: false,
+				limitInfo: { current: 50, max: 50, upgradeTarget: 'requester' },
+				limitMessage: 'Node limit reached (50/50). Upgrade to Pro for unlimited nodes.',
+			})
+
+			render(<QuickInput {...defaultProps} />)
+
+			expect(screen.getByTestId('create-button')).toBeDisabled()
 		})
 	})
 

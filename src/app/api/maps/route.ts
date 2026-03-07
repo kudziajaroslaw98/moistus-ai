@@ -168,37 +168,11 @@ export const POST = withApiValidation(
 				);
 			}
 
-			const newMapId = generateUuid();
+			let templateMapForSeed: { id: string; node_count: number | null } | null =
+				null;
 
-			// Insert the new mind map into the database
-			// is_template is always false — templates are system-managed, not user-created
-			const { data: newMap, error: insertError } = await supabase
-				.from('mind_maps')
-				.insert([
-					{
-						id: newMapId,
-						user_id: user.id,
-						title: title,
-						description: description || null,
-						is_template: false,
-						template_category: null,
-					},
-				])
-				.select('*')
-				.single();
-
-			if (insertError) {
-				console.error('Error creating new mind map:', insertError);
-				return respondError(
-					'Error creating new mind map.',
-					500,
-					insertError.message
-				);
-			}
-
-			// Check if a template was specified
+			// Preflight template size check before creating the destination map row.
 			if (template_id) {
-				// Fetch template from database
 				const isUuid =
 					/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
 						template_id
@@ -218,6 +192,7 @@ export const POST = withApiValidation(
 				const { data: templateMap } = await templateQuery.single();
 
 				if (templateMap) {
+					templateMapForSeed = templateMap;
 					let templateNodeCount =
 						typeof templateMap.node_count === 'number'
 							? templateMap.node_count
@@ -265,18 +240,51 @@ export const POST = withApiValidation(
 							}
 						);
 					}
+				}
+			}
 
+			const newMapId = generateUuid();
+
+			// Insert the new mind map into the database
+			// is_template is always false — templates are system-managed, not user-created
+			const { data: newMap, error: insertError } = await supabase
+				.from('mind_maps')
+				.insert([
+					{
+						id: newMapId,
+						user_id: user.id,
+						title: title,
+						description: description || null,
+						is_template: false,
+						template_category: null,
+					},
+				])
+				.select('*')
+				.single();
+
+			if (insertError) {
+				console.error('Error creating new mind map:', insertError);
+				return respondError(
+					'Error creating new mind map.',
+					500,
+					insertError.message
+				);
+			}
+
+			// Check if a template was specified
+			if (template_id) {
+				if (templateMapForSeed) {
 					// Fetch template nodes
 					const { data: templateNodes } = await supabase
 						.from('nodes')
 						.select('id, content, position_x, position_y, node_type, metadata')
-						.eq('map_id', templateMap.id);
+						.eq('map_id', templateMapForSeed.id);
 
 					// Fetch template edges
 					const { data: templateEdges } = await supabase
 						.from('edges')
 						.select('id, source, target, type, metadata')
-						.eq('map_id', templateMap.id);
+						.eq('map_id', templateMapForSeed.id);
 
 					// Create ID mapping (old template ID -> new UUID)
 					const idMap = new Map<string, string>();
@@ -348,7 +356,7 @@ export const POST = withApiValidation(
 
 					// Increment template usage count
 					await supabase.rpc('increment_usage_count', {
-						template_id: templateMap.id,
+						template_id: templateMapForSeed.id,
 					});
 				}
 			}

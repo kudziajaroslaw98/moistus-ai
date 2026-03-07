@@ -444,7 +444,8 @@ export type MapNodeLimitCheckResult =
 				| 'ACCESS_DENIED'
 				| 'EDIT_PERMISSION_REQUIRED'
 				| 'NODE_COUNT_CHECK_FAILED'
-				| 'OWNER_SUBSCRIPTION_CHECK_FAILED';
+				| 'OWNER_SUBSCRIPTION_CHECK_FAILED'
+				| 'DB_LOOKUP_FAILED';
 			message: string;
 	  };
 
@@ -464,7 +465,17 @@ export async function checkMapNodeLimit(
 		.eq('id', mapId)
 		.maybeSingle();
 
-	if (mapError || !map?.id || !map?.user_id) {
+	if (mapError) {
+		console.error('[Subscription] Failed to load map for node limit check:', mapError);
+		return {
+			ok: false,
+			status: 500,
+			code: 'DB_LOOKUP_FAILED',
+			message: 'Failed to load map data',
+		};
+	}
+
+	if (!map?.id || !map?.user_id) {
 		return {
 			ok: false,
 			status: 404,
@@ -484,7 +495,20 @@ export async function checkMapNodeLimit(
 			.eq('status', 'active')
 			.maybeSingle();
 
-		if (shareError || !shareAccess) {
+		if (shareError) {
+			console.error(
+				'[Subscription] Failed to load share access for node limit check:',
+				shareError
+			);
+			return {
+				ok: false,
+				status: 500,
+				code: 'DB_LOOKUP_FAILED',
+				message: 'Failed to verify map access',
+			};
+		}
+
+		if (!shareAccess) {
 			return {
 				ok: false,
 				status: 403,

@@ -139,7 +139,7 @@ function createSupabaseMock(options: SupabaseMockOptions = {}): SupabaseClient {
 	});
 
 	return {
-	from,
+		from,
 		rpc,
 	} as unknown as SupabaseClient;
 }
@@ -395,6 +395,49 @@ describe('with-subscription-check', () => {
 			mapOwnerId: 'owner-1',
 			requesterIsOwner: false,
 			upgradeTarget: 'owner',
+		});
+	});
+
+	it('returns DB lookup failure when map query errors', async () => {
+		const supabase = createSupabaseMock({
+			mindMapResult: {
+				data: null,
+				error: { message: 'map table unavailable' },
+			},
+		});
+
+		const result = await checkMapNodeLimit(supabase, 'map-1', 'guest-1');
+
+		expect(result).toEqual({
+			ok: false,
+			status: 500,
+			code: 'DB_LOOKUP_FAILED',
+			message: 'Failed to load map data',
+		});
+	});
+
+	it('returns DB lookup failure when share access query errors', async () => {
+		const supabase = createSupabaseMock({
+			mindMapResult: {
+				data: {
+					id: 'map-1',
+					user_id: 'owner-1',
+				},
+				error: null,
+			},
+			shareAccessPermissionResult: {
+				data: null,
+				error: { message: 'share_access timeout' },
+			},
+		});
+
+		const result = await checkMapNodeLimit(supabase, 'map-1', 'guest-1');
+
+		expect(result).toEqual({
+			ok: false,
+			status: 500,
+			code: 'DB_LOOKUP_FAILED',
+			message: 'Failed to verify map access',
 		});
 	});
 

@@ -7,6 +7,7 @@ interface ActionBarProps {
 	onCreate: () => void;
 	canCreate: boolean;
 	isCreating: boolean;
+	isCheckingLimit?: boolean;
 	mode?: 'create' | 'edit';
 	className?: string;
 }
@@ -15,9 +16,12 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 	onCreate,
 	canCreate,
 	isCreating,
+	isCheckingLimit = false,
 	mode = 'create',
 	className,
 }) => {
+	const isBusy = isCreating || isCheckingLimit;
+
 	return (
 		<motion.div
 			animate={{ opacity: 1, y: 0 }}
@@ -31,6 +35,9 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 				initial={{ opacity: 0 }}
 				transition={{ delay: 0.15, duration: 0.3 }}
 			>
+				{isCheckingLimit ? (
+					<span className='text-zinc-400'>Checking map limit...</span>
+				) : null}
 				<span className='hidden sm:inline'>Press </span>Ctrl+Enter to {mode === 'edit' ? 'update' : 'create'}
 				<span className='hidden sm:inline'> • Enter for new line</span>
 			</motion.span>
@@ -38,7 +45,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 			<motion.button
 				animate={{ opacity: 1 }}
 				data-testid='create-button'
-				disabled={!canCreate || isCreating}
+				disabled={!canCreate || isBusy}
 				initial={{ opacity: 0 }}
 				onClick={onCreate}
 				transition={{ delay: 0.15, duration: 0.3, ease: 'easeOut' as const }}
@@ -48,11 +55,11 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 					'disabled:opacity-50 disabled:cursor-not-allowed'
 				)}
 				whileHover={{
-					scale: !canCreate || isCreating ? 1 : 1.05,
+					scale: !canCreate || isBusy ? 1 : 1.05,
 					transition: { duration: 0.1 },
 				}}
 				whileTap={{
-					scale: !canCreate || isCreating ? 1 : 0.95,
+					scale: !canCreate || isBusy ? 1 : 0.95,
 					transition: { duration: 0.1 },
 				}}
 			>
@@ -61,10 +68,12 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 						animate={{ opacity: 1, y: 0 }}
 						exit={{ opacity: 0, y: 5 }}
 						initial={{ opacity: 0, y: -5 }}
-						key={isCreating ? 'saving' : mode}
+						key={isBusy ? 'busy' : mode}
 						transition={{ duration: 0.15 }}
 					>
-						{isCreating
+						{isCheckingLimit
+							? 'Checking...'
+							: isCreating
 							? `${mode === 'edit' ? 'Updating' : 'Creating'}...`
 							: mode === 'edit'
 								? 'Update'
