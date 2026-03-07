@@ -11,8 +11,15 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-02-28 - Cleaned deprecated node-editor parser tokens, split syntax help into universal/node-specific sections, and added parser/completion regression tests -->
 <!-- Updated: 2026-03-04 - Added notifications system (in-app inbox + Resend email + mention/reply/reaction/access events) -->
 <!-- Updated: 2026-03-05 - Fixed notification side-effect timing so email dispatch is no longer deferred by client focus/activity -->
+<!-- Updated: 2026-03-06 - Fixed shared-map node entitlement flow for collaborators by using owner subscription lookup in server API checks -->
+<!-- Updated: 2026-03-07 - Tightened template preflight failure handling and create/edit node-limit UX gating -->
 
 ## [2026-03-07]
+
+### Added
+
+- **tests/ai-actions-popover**: Added RTL tests for map-scope action click/close behavior and streaming-disabled button state
+  - Why: Locks the restored toolbar AI interaction flow and guards against regressions where actions fail to execute or close
 
 ### Fixed
 
@@ -21,17 +28,16 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **ai-actions-popover/hover-label-color**: Replaced hard-coded `group-hover:text-white` with semantic `group-hover:text-primary-400` on action labels
   - Why: Prevents low-contrast hover text on overlay surfaces and keeps colors tied to app tokens
 
-### Added
-
-- **tests/ai-actions-popover**: Added RTL tests for map-scope action click/close behavior and streaming-disabled button state
-  - Why: Locks the restored toolbar AI interaction flow and guards against regressions where actions fail to execute or close
+- **maps/template-preflight-fail-closed**: Template-based map creation now returns explicit errors when `template_id` lookup fails or resolves no row during preflight (`templateQuery.single()`), instead of continuing and creating an empty map shell.
+  - Why: Prevents consuming map slots when template selection is invalid or temporarily unavailable.
+- **node-editor/action-bar-mobile-copy**: ActionBar now hides shortcut hint while `isCheckingLimit` is true.
+  - Why: Prevents "Checking map limit..." text from visually concatenating with shortcut copy on small screens.
+- **node-editor/edit-mode-limit-gating**: QuickInput create/disable/warning checks now gate by node-limit state only in `mode === 'create'`.
+  - Why: Keeps edit flows independent from create-mode `useMapNodeLimit` state and avoids stale/neutral hook state affecting updates.
+- **top-bar/mobile-collaborators**: Mobile hamburger collaborators section now falls back to shared collaborator roster avatars (`currentShares`) when realtime presence avatars are temporarily empty, and refreshes share users when the menu opens.
+  - Why: Prevents collaborator list from appearing empty in the mobile menu despite active/shared collaborators.
 
 ## [2026-03-05]
-
-### Fixed
-
-- **notifications/dispatch-lifecycle**: `createNotifications` now awaits PartyKit fanout and email processing (in parallel via `Promise.allSettled`) before request completion
-  - Why: Prevents mention/access/reply/reaction emails from being deferred until a later runtime wake-up (for example, user focus-triggered activity)
 
 ### Added
 
@@ -40,10 +46,44 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Changed
 
+- **subscription/node-limit-policy**: Node creation entitlement for shared maps now resolves against the map owner plan (not collaborator plan) via shared `checkMapNodeLimit` enforcement used by `/api/nodes/check-limit`
+  - Why: Allows editors to continue adding nodes in paid shared maps while preserving owner-scoped subscription boundaries
+- **node-editor/quick-input-limit-gate**: Quick Input now uses map-aware node limit checks (`useMapNodeLimit`) instead of actor-plan `useSubscriptionLimits` for create-mode blocking/warnings
+  - Why: Prevents false “upgrade yourself” lockouts for guests editing paid-owner maps
 - **ui/popover-surfaces**: Normalized popover-family surface styling to a single semantic contract (`bg-overlay` + semantic border/text + consistent shadow/blur) across popover, dropdown menu, hover card, AI actions popover, user menu, dashboard map-card menus, auth password requirements popover, and sidebar dropdown wrapper
   - Why: Fixes visual inconsistency where some popovers looked like side panels/dialogs and aligns all audited floating surfaces with the cursor/layout/export baseline
 - **realtime/profile-card**: Replaced hardcoded zinc foreground/background accents in collaborator profile card skeleton and metadata regions with semantic tokens
   - Why: Keeps realtime profile hover cards visually aligned with the normalized popover surface system
+
+### Fixed
+
+- **notifications/dispatch-lifecycle**: `createNotifications` now awaits PartyKit fanout and email processing (in parallel via `Promise.allSettled`) before request completion
+  - Why: Prevents mention/access/reply/reaction emails from being deferred until a later runtime wake-up (for example, user focus-triggered activity)
+- **nodes/check-limit-route**: Replaced legacy `owner_id`/`map_shares` checks with canonical `mind_maps.user_id` + `share_access` (`status=active`, `can_edit=true`) and structured limit metadata (`upgradeTarget`, `mapOwnerId`)
+  - Why: Removes stale schema assumptions and enforces editor-only create access correctly
+- **nodes/add-node-preflight**: Removed actor-plan client fallback; `addNode` now relies on server verdicts (`402/403`) and owner-targeted messaging
+  - Why: Closes collaborator bypass/false-block edge cases caused by local per-user fallback logic
+- **nodes/create-reference**: Added the same map-owner node-limit check before reference-node insertion
+  - Why: Closes alternate node-creation path bypass that could otherwise ignore shared map node limits
+- **maps/template-seeding-limit**: Template-based map creation now blocks templates whose node payload exceeds requester nodes-per-map cap
+  - Why: Prevents free-tier users from exceeding node caps via template seed size
+
+### Docs
+
+- **claude+codebase-map**: Documented owner-scoped node-limit enforcement behavior and updated architecture notes metadata comments
+  - Why: Keeps operational gotchas and architecture references in sync with entitlement enforcement changes
+
+## [2026-03-06]
+
+### Changed
+
+- **subscription/node-limit-flow**: `checkMapNodeLimit` now accepts optional `ownerSubscriptionClient` and shared-map node checks in `/api/nodes/check-limit` and `/api/nodes/create-reference` use a service-role lookup for map-owner entitlement rows.
+  - Why: Prevents premium-owned shared maps from incorrectly reporting owner-limit rejections to collaborative editors under current RLS visibility.
+
+### Fixed
+
+- **subscription/node-limit-gating-tests**: Added helper-level coverage for privileged owner subscription lookup and explicit DB-error handling (`OWNER_SUBSCRIPTION_CHECK_FAILED`).
+  - Why: Locks regression prevention for collaborator node-add behavior and avoids silently granting quota on entitlement-read failures.
 
 ## [2026-03-04]
 

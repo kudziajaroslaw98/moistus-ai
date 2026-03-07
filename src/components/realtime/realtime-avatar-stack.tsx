@@ -12,16 +12,18 @@ interface RealtimeAvatarStackProps {
 	roomName: string;
 	activityState?: ActivityState;
 	mapOwnerId?: string; // ID of the map owner to show role badges
+	fallbackAvatars?: Array<{ image: string; name: string }>;
 }
 
 export const RealtimeAvatarStack = ({
 	roomName,
 	activityState,
 	mapOwnerId,
+	fallbackAvatars = [],
 }: RealtimeAvatarStackProps) => {
 	const currentUser = useAppStore((state) => state.currentUser);
 	const { users: usersMap } = useRealtimePresenceRoom(roomName, activityState);
-	const avatars = useMemo(() => {
+	const liveAvatars = useMemo(() => {
 		if (!usersMap) return [];
 
 		// Filter out current user - don't show yourself in the presence bar
@@ -29,6 +31,8 @@ export const RealtimeAvatarStack = ({
 			(user) => user.id !== currentUser?.id
 		);
 	}, [usersMap, currentUser?.id]);
+
+	const avatars = liveAvatars.length > 0 ? liveAvatars : fallbackAvatars;
 
 	return (
 		<AvatarStack

@@ -1,6 +1,6 @@
 'use client';
 
-import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
+import { useMapNodeLimit } from '@/hooks/subscription/use-map-node-limit';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import useAppStore from '@/store/mind-map-store';
 import type { MentionableUser } from '@/types/notification';
@@ -326,13 +326,18 @@ export const QuickInput: FC<QuickInputProps> = ({
 		return () => abortController.abort();
 	}, [mapId]);
 
-	// Check node limit (only affects create mode)
-	const { isAtLimit, usage, limits } = useSubscriptionLimits();
-	const isAtNodeLimit = mode === 'create' && isAtLimit('nodesPerMap');
-	const nodeLimitInfo =
-		limits.nodesPerMap !== -1
-			? { current: usage.nodesPerMap, max: limits.nodesPerMap }
-			: undefined;
+	// Check node limit for the current map (owner plan + role aware)
+	const {
+		isAtLimit: isAtNodeLimit,
+		isLoading: isNodeLimitLoading,
+		limitInfo: nodeLimitInfo,
+		limitMessage: nodeLimitMessage,
+	} = useMapNodeLimit({
+		enabled: mode === 'create',
+	});
+	const isCreateMode = mode === 'create';
+	const isCreateBlockedByNodeLimit = isCreateMode && isAtNodeLimit;
+	const isCreateLimitCheckLoading = isCreateMode && isNodeLimitLoading;
 
 	// Initialize QuickInput state when component mounts or mode changes
 	useEffect(() => {
@@ -523,7 +528,14 @@ export const QuickInput: FC<QuickInputProps> = ({
 	 */
 	const handleCreate = useCallback(async () => {
 		// Guard: same checks as ActionBar canCreate prop
-		if (value.trim().length === 0 || isAtNodeLimit || isCreating) return;
+		if (
+			value.trim().length === 0 ||
+			isCreateBlockedByNodeLimit ||
+			isCreateLimitCheckLoading ||
+			isCreating
+		) {
+			return;
+		}
 
 		try {
 			setIsCreating(true);
@@ -646,7 +658,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 		updateNode,
 		closeNodeEditor,
 		isCreating,
-		isAtNodeLimit,
+		isCreateBlockedByNodeLimit,
+		isCreateLimitCheckLoading,
 		mode,
 		existingNode,
 		referenceMetadata,
@@ -853,23 +866,31 @@ export const QuickInput: FC<QuickInputProps> = ({
 			<ErrorDisplay error={error} />
 
 			{/* Node limit warning */}
-			{isAtNodeLimit && nodeLimitInfo && (
-				<motion.div
-					initial={{ opacity: 0, y: -10 }}
-					animate={{ opacity: 1, y: 0 }}
-					className='flex items-center gap-2 mt-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400'
-				>
-					<AlertCircle className='w-4 h-4 shrink-0' />
-					<span className='text-sm'>
-						Node limit reached ({nodeLimitInfo.current}/{nodeLimitInfo.max}).
-						Upgrade to Pro for unlimited nodes.
-					</span>
-				</motion.div>
-			)}
+			{isCreateBlockedByNodeLimit &&
+				(nodeLimitInfo || Boolean(nodeLimitMessage)) && (
+					<motion.div
+						initial={{ opacity: 0, y: -10 }}
+						animate={{ opacity: 1, y: 0 }}
+						className='flex items-center gap-2 mt-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400'
+					>
+						<AlertCircle className='w-4 h-4 shrink-0' />
+						<span className='text-sm'>
+							{nodeLimitMessage ||
+								(nodeLimitInfo
+									? `Node limit reached (${nodeLimitInfo.current}/${nodeLimitInfo.max}).`
+									: '')}
+						</span>
+					</motion.div>
+				)}
 
 			<ActionBar
-				canCreate={value.trim().length > 0 && !isAtNodeLimit}
+				canCreate={
+					value.trim().length > 0 &&
+					(!isCreateMode ||
+						(!isCreateBlockedByNodeLimit && !isCreateLimitCheckLoading))
+				}
 				isCreating={isCreating}
+				isCheckingLimit={isCreateLimitCheckLoading}
 				mode={mode}
 				onCreate={handleCreate}
 			/>

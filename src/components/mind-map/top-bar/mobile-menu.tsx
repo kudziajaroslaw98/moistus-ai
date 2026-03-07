@@ -5,8 +5,11 @@ import { SidePanel } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
 import { type ActivityState } from '@/hooks/realtime/use-realtime-presence-room';
 import { getMindMapRoomName } from '@/lib/realtime/room-names';
+import useAppStore from '@/store/mind-map-store';
 import { History, Settings, Users } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
+import { useEffect, useMemo } from 'react';
+import { useShallow } from 'zustand/shallow';
 
 interface MobileMenuProps {
 	open: boolean;
@@ -34,6 +37,44 @@ export function MobileMenu({
 	onToggleSettings,
 }: MobileMenuProps) {
 	const shouldReduceMotion = useReducedMotion();
+	const { currentShares, currentUserId, getCurrentShareUsers } = useAppStore(
+		useShallow((state) => ({
+			currentShares: state.currentShares ?? [],
+			currentUserId: state.currentUser?.id,
+			getCurrentShareUsers: state.getCurrentShareUsers,
+		}))
+	);
+
+	useEffect(() => {
+		if (!open || currentShares.length > 0) {
+			return;
+		}
+
+		void getCurrentShareUsers().catch((error) => {
+			console.error('[MobileMenu] Failed to refresh collaborators:', error);
+		});
+	}, [open, currentShares.length, getCurrentShareUsers]);
+
+	const fallbackCollaboratorAvatars = useMemo(() => {
+		const seenUserIds = new Set<string>();
+		return currentShares
+			.filter((share) => {
+				if (!share.user_id || share.user_id === currentUserId) {
+					return false;
+				}
+
+				if (seenUserIds.has(share.user_id)) {
+					return false;
+				}
+
+				seenUserIds.add(share.user_id);
+				return true;
+			})
+			.map((share) => ({
+				image: share.avatar_url,
+				name: share.name || share.profile?.display_name || 'Collaborator',
+			}));
+	}, [currentShares, currentUserId]);
 
 	// Close panel after action
 	const handleAction = (action: () => void) => {
@@ -67,6 +108,7 @@ export function MobileMenu({
 					<div className='bg-surface rounded-lg p-3 border border-border-subtle'>
 						<RealtimeAvatarStack
 							activityState={activityState}
+							fallbackAvatars={fallbackCollaboratorAvatars}
 							mapOwnerId={mapOwnerId}
 							roomName={getMindMapRoomName(mapId, 'presence')}
 						/>
