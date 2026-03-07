@@ -504,6 +504,22 @@ describe('QuickInput', () => {
 			expect(screen.getByTestId('create-button')).toBeDisabled()
 		})
 
+		it('disables create button while node limit check is loading in create mode', () => {
+			mockQuickInputValue = 'New node'
+			const { useMapNodeLimit } = require('@/hooks/subscription/use-map-node-limit')
+			;(useMapNodeLimit as jest.Mock).mockReturnValue({
+				isAtLimit: false,
+				isLoading: true,
+				limitInfo: { current: 12, max: 50, upgradeTarget: 'requester' },
+				limitMessage: 'Node limit reached (12/50). Upgrade to Pro for unlimited nodes.',
+			})
+
+			render(<QuickInput {...defaultProps} />)
+
+			expect(screen.getByTestId('create-button')).toBeDisabled()
+			expect(screen.queryByText(/Node limit reached/i)).not.toBeInTheDocument()
+		})
+
 		it('does not gate edit mode create button by node limit hook state', () => {
 			mockQuickInputValue = 'Updated content'
 			const { useMapNodeLimit } = require('@/hooks/subscription/use-map-node-limit')

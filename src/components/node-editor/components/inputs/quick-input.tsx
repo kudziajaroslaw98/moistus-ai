@@ -865,20 +865,23 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 			<ErrorDisplay error={error} />
 
-			{/* Node limit warning */}
-			{isCreateBlockedByNodeLimit && nodeLimitInfo && (
-				<motion.div
-					initial={{ opacity: 0, y: -10 }}
-					animate={{ opacity: 1, y: 0 }}
-					className='flex items-center gap-2 mt-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400'
-				>
-					<AlertCircle className='w-4 h-4 shrink-0' />
-					<span className='text-sm'>
-						{nodeLimitMessage ||
-							`Node limit reached (${nodeLimitInfo.current}/${nodeLimitInfo.max}).`}
-					</span>
-				</motion.div>
-			)}
+				{/* Node limit warning */}
+				{isCreateBlockedByNodeLimit &&
+					(nodeLimitInfo || Boolean(nodeLimitMessage)) && (
+					<motion.div
+						initial={{ opacity: 0, y: -10 }}
+						animate={{ opacity: 1, y: 0 }}
+						className='flex items-center gap-2 mt-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400'
+					>
+						<AlertCircle className='w-4 h-4 shrink-0' />
+						<span className='text-sm'>
+							{nodeLimitMessage ||
+								(nodeLimitInfo
+									? `Node limit reached (${nodeLimitInfo.current}/${nodeLimitInfo.max}).`
+									: '')}
+						</span>
+					</motion.div>
+					)}
 
 			<ActionBar
 				canCreate={
