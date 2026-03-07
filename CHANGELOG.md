@@ -18,6 +18,13 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **toolbar/ai-popover-interactions**: Replaced the custom toolbar AI backdrop/absolute menu path with the shared `Popover` (`PopoverTrigger` + `PopoverContent`) flow
   - Why: Removes the interaction-blocking backdrop layering path so toolbar AI menu items receive normal hover/click events while preserving outside-click close behavior
+- **ai-actions-popover/hover-label-color**: Replaced hard-coded `group-hover:text-white` with semantic `group-hover:text-primary-400` on action labels
+  - Why: Prevents low-contrast hover text on overlay surfaces and keeps colors tied to app tokens
+
+### Added
+
+- **tests/ai-actions-popover**: Added RTL tests for map-scope action click/close behavior and streaming-disabled button state
+  - Why: Locks the restored toolbar AI interaction flow and guards against regressions where actions fail to execute or close
 
 ## [2026-03-05]
 

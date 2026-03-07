@@ -188,7 +188,7 @@ export function AIActionsPopover({
 						<div className="flex flex-col">
 							<span className={cn(
 								'text-sm font-medium text-text-primary transition-colors duration-200',
-								'group-hover:text-white'
+								'group-hover:text-primary-400'
 							)}>
 								{action.label}
 							</span>
