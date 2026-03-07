@@ -335,6 +335,9 @@ export const QuickInput: FC<QuickInputProps> = ({
 	} = useMapNodeLimit({
 		enabled: mode === 'create',
 	});
+	const isCreateMode = mode === 'create';
+	const isCreateBlockedByNodeLimit = isCreateMode && isAtNodeLimit;
+	const isCreateLimitCheckLoading = isCreateMode && isNodeLimitLoading;
 
 	// Initialize QuickInput state when component mounts or mode changes
 	useEffect(() => {
@@ -527,8 +530,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 		// Guard: same checks as ActionBar canCreate prop
 		if (
 			value.trim().length === 0 ||
-			isAtNodeLimit ||
-			isNodeLimitLoading ||
+			isCreateBlockedByNodeLimit ||
+			isCreateLimitCheckLoading ||
 			isCreating
 		) {
 			return;
@@ -655,8 +658,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 		updateNode,
 		closeNodeEditor,
 		isCreating,
-		isAtNodeLimit,
-		isNodeLimitLoading,
+		isCreateBlockedByNodeLimit,
+		isCreateLimitCheckLoading,
 		mode,
 		existingNode,
 		referenceMetadata,
@@ -863,7 +866,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 			<ErrorDisplay error={error} />
 
 			{/* Node limit warning */}
-			{isAtNodeLimit && nodeLimitInfo && (
+			{isCreateBlockedByNodeLimit && nodeLimitInfo && (
 				<motion.div
 					initial={{ opacity: 0, y: -10 }}
 					animate={{ opacity: 1, y: 0 }}
@@ -879,10 +882,12 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 			<ActionBar
 				canCreate={
-					value.trim().length > 0 && !isAtNodeLimit && !isNodeLimitLoading
+					value.trim().length > 0 &&
+					(!isCreateMode ||
+						(!isCreateBlockedByNodeLimit && !isCreateLimitCheckLoading))
 				}
 				isCreating={isCreating}
-				isCheckingLimit={mode === 'create' && isNodeLimitLoading}
+				isCheckingLimit={isCreateLimitCheckLoading}
 				mode={mode}
 				onCreate={handleCreate}
 			/>

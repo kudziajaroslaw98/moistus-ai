@@ -189,57 +189,75 @@ export const POST = withApiValidation(
 					templateQuery = templateQuery.eq('metadata->>templateId', template_id);
 				}
 
-				const { data: templateMap } = await templateQuery.single();
+				const { data: templateMap, error: templateError } =
+					await templateQuery.single();
 
-				if (templateMap) {
-					templateMapForSeed = templateMap;
-					let templateNodeCount =
-						typeof templateMap.node_count === 'number'
-							? templateMap.node_count
-							: null;
-
-					if (templateNodeCount === null) {
-						const { count: fallbackNodeCount, error: fallbackCountError } =
-							await supabase
-								.from('nodes')
-								.select('*', { count: 'exact', head: true })
-								.eq('map_id', templateMap.id);
-
-						if (fallbackCountError) {
-							console.error(
-								'Error counting template nodes for limit check:',
-								fallbackCountError
-							);
-							return respondError(
-								'Error checking template node limit.',
-								500,
-								fallbackCountError.message
-							);
-						}
-
-						templateNodeCount = fallbackNodeCount ?? 0;
-					}
-
-					// Enforce nodes-per-map limit for template seed payload size.
-					const { limit: nodeLimit } = await checkUsageLimit(
-						user,
-						supabase,
-						'nodesPerMap',
-						0
+				if (templateError) {
+					const isTemplateNotFound = templateError.code === 'PGRST116';
+					return respondError(
+						isTemplateNotFound
+							? 'Template not found.'
+							: 'Error loading template for map creation.',
+						isTemplateNotFound ? 404 : 500,
+						templateError.message
 					);
-					if (nodeLimit !== -1 && templateNodeCount > nodeLimit) {
+				}
+
+				if (!templateMap) {
+					return respondError(
+						'Template not found.',
+						404,
+						'TEMPLATE_NOT_FOUND'
+					);
+				}
+
+				templateMapForSeed = templateMap;
+				let templateNodeCount =
+					typeof templateMap.node_count === 'number'
+						? templateMap.node_count
+						: null;
+
+				if (templateNodeCount === null) {
+					const { count: fallbackNodeCount, error: fallbackCountError } =
+						await supabase
+							.from('nodes')
+							.select('*', { count: 'exact', head: true })
+							.eq('map_id', templateMap.id);
+
+					if (fallbackCountError) {
+						console.error(
+							'Error counting template nodes for limit check:',
+							fallbackCountError
+						);
 						return respondError(
-							`Template exceeds your node limit (${templateNodeCount}/${nodeLimit}). Upgrade to Pro for larger maps.`,
-							402,
-							'NODE_LIMIT_REACHED',
-							{
-								currentUsage: templateNodeCount,
-								limit: nodeLimit,
-								remaining: Math.max(0, nodeLimit - templateNodeCount),
-								upgradeUrl: '/dashboard/settings/billing',
-							}
+							'Error checking template node limit.',
+							500,
+							fallbackCountError.message
 						);
 					}
+
+					templateNodeCount = fallbackNodeCount ?? 0;
+				}
+
+				// Enforce nodes-per-map limit for template seed payload size.
+				const { limit: nodeLimit } = await checkUsageLimit(
+					user,
+					supabase,
+					'nodesPerMap',
+					0
+				);
+				if (nodeLimit !== -1 && templateNodeCount > nodeLimit) {
+					return respondError(
+						`Template exceeds your node limit (${templateNodeCount}/${nodeLimit}). Upgrade to Pro for larger maps.`,
+						402,
+						'NODE_LIMIT_REACHED',
+						{
+							currentUsage: templateNodeCount,
+							limit: nodeLimit,
+							remaining: Math.max(0, nodeLimit - templateNodeCount),
+							upgradeUrl: '/dashboard/settings/billing',
+						}
+					);
 				}
 			}
 

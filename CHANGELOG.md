@@ -12,6 +12,18 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-03-04 - Added notifications system (in-app inbox + Resend email + mention/reply/reaction/access events) -->
 <!-- Updated: 2026-03-05 - Fixed notification side-effect timing so email dispatch is no longer deferred by client focus/activity -->
 <!-- Updated: 2026-03-06 - Fixed shared-map node entitlement flow for collaborators by using owner subscription lookup in server API checks -->
+<!-- Updated: 2026-03-07 - Tightened template preflight failure handling and create/edit node-limit UX gating -->
+
+## [2026-03-07]
+
+### Fixed
+
+- **maps/template-preflight-fail-closed**: Template-based map creation now returns explicit errors when `template_id` lookup fails or resolves no row during preflight (`templateQuery.single()`), instead of continuing and creating an empty map shell.
+  - Why: Prevents consuming map slots when template selection is invalid or temporarily unavailable.
+- **node-editor/action-bar-mobile-copy**: ActionBar now hides shortcut hint while `isCheckingLimit` is true.
+  - Why: Prevents "Checking map limit..." text from visually concatenating with shortcut copy on small screens.
+- **node-editor/edit-mode-limit-gating**: QuickInput create/disable/warning checks now gate by node-limit state only in `mode === 'create'`.
+  - Why: Keeps edit flows independent from create-mode `useMapNodeLimit` state and avoids stale/neutral hook state affecting updates.
 
 ## [2026-03-05]
 

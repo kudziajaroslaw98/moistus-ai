@@ -37,9 +37,12 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 			>
 				{isCheckingLimit ? (
 					<span className='text-zinc-400'>Checking map limit...</span>
-				) : null}
-				<span className='hidden sm:inline'>Press </span>Ctrl+Enter to {mode === 'edit' ? 'update' : 'create'}
-				<span className='hidden sm:inline'> • Enter for new line</span>
+				) : (
+					<>
+						<span className='hidden sm:inline'>Press </span>Ctrl+Enter to {mode === 'edit' ? 'update' : 'create'}
+						<span className='hidden sm:inline'> • Enter for new line</span>
+					</>
+				)}
 			</motion.span>
 
 			<motion.button

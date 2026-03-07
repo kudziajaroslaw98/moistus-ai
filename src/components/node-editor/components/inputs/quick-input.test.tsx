@@ -503,6 +503,29 @@ describe('QuickInput', () => {
 
 			expect(screen.getByTestId('create-button')).toBeDisabled()
 		})
+
+		it('does not gate edit mode create button by node limit hook state', () => {
+			mockQuickInputValue = 'Updated content'
+			const { useMapNodeLimit } = require('@/hooks/subscription/use-map-node-limit')
+			;(useMapNodeLimit as jest.Mock).mockReturnValue({
+				isAtLimit: true,
+				isLoading: true,
+				limitInfo: { current: 50, max: 50, upgradeTarget: 'requester' },
+				limitMessage: 'Node limit reached (50/50). Upgrade to Pro for unlimited nodes.',
+			})
+
+			const existingNode = {
+				id: 'existing-1',
+				type: 'defaultNode',
+				data: { id: 'existing-1', content: 'Existing', map_id: 'map-1' },
+				position: { x: 0, y: 0 },
+			}
+
+			render(<QuickInput {...defaultProps} mode="edit" existingNode={existingNode as any} />)
+
+			expect(screen.getByTestId('create-button')).not.toBeDisabled()
+			expect(screen.queryByText(/Node limit reached/i)).not.toBeInTheDocument()
+		})
 	})
 
 	describe('keyboard shortcuts', () => {
