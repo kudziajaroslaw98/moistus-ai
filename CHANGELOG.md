@@ -12,6 +12,13 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-03-04 - Added notifications system (in-app inbox + Resend email + mention/reply/reaction/access events) -->
 <!-- Updated: 2026-03-05 - Fixed notification side-effect timing so email dispatch is no longer deferred by client focus/activity -->
 
+## [2026-03-07]
+
+### Fixed
+
+- **toolbar/ai-popover-layering**: Raised toolbar stacking context while AI popover is open and increased AI popover container z-index above the portaled click-outside backdrop
+  - Why: Restores hover/click interactivity inside the toolbar AI popover while keeping outside-click dismissal behavior
+
 ## [2026-03-05]
 
 ### Fixed

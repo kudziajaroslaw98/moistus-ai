@@ -330,7 +330,7 @@ export const Toolbar = ({
 								/>,
 								document.body
 							)}
-							<div className='absolute bottom-full left-0 mb-2 z-50'>
+							<div className='absolute bottom-full left-0 mb-2 z-[70] pointer-events-auto'>
 								<AIActionsPopover scope='map' onClose={handleCloseAIPopover} />
 							</div>
 						</>
@@ -576,6 +576,7 @@ export const Toolbar = ({
 			animate={{ y: 0, opacity: 1 }}
 			initial={{ y: 100, opacity: 0 }}
 			transition={{ type: 'spring', stiffness: 100, damping: 15 }}
+			className={cn('relative', isAIPopoverOpen && 'z-[60]')}
 		>
 			<div
 				className={cn(
