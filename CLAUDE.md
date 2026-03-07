@@ -311,7 +311,7 @@ pnpm pretty          # Prettier
 **Ghost Nodes**: System-only (`userCreatable: false`), filtered from exports.
 
 ## Base UI Gotchas
-<!-- Updated: 2026-01-24 - Added Base UI patterns -->
+<!-- Updated: 2026-03-05 - Added shared popover-family surface token rule -->
 
 **`render` prop (not `asChild`)**: Base UI deprecated `asChild`. Use `render` prop to pass trigger behavior to custom elements:
 ```tsx
@@ -327,6 +327,8 @@ pnpm pretty          # Prettier
 **Select positioning**: By default `alignItemWithTrigger={true}` makes dropdown **overlap** trigger (like native OS selects). Set `alignItemWithTrigger={false}` for standard dropdown-below-trigger behavior.
 
 **Portal z-index in modals**: Select/Dropdown portals render to `<body>`. When inside SidePanel/Modal (z-40), set `z-[100]` on Positioner to ensure dropdown appears above modal layers.
+
+**Popover-family surface consistency**: Use `overlaySurfaceClassName` (`src/components/ui/overlay-surface.ts`) for popovers, dropdowns, hover cards, and custom floating menus (for example AI actions) unless a feature explicitly requires a different visual treatment. Avoid hardcoded zinc panel-like backgrounds on popover surfaces.
 
 ## Animations
 

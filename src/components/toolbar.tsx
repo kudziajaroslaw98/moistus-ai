@@ -20,7 +20,7 @@ import {
 	Share2,
 	Sparkles,
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { motion } from 'motion/react';
 import {
 	type ReactNode,
 	useCallback,
@@ -28,7 +28,6 @@ import {
 	useMemo,
 	useState,
 } from 'react';
-import { createPortal } from 'react-dom';
 import { useShallow } from 'zustand/shallow';
 import { AIActionsPopover } from './ai/ai-actions-popover';
 import { ExportDropdown, ExportMenuContent } from './toolbar/export-dropdown';
@@ -47,6 +46,7 @@ import {
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from './ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Separator } from './ui/separator';
 
 // Feature flag: Set NEXT_PUBLIC_ENABLE_AI_CHAT=true to enable AI Chat
@@ -300,43 +300,36 @@ export const Toolbar = ({
 
 	const renderAIPopoverButton = (key: string, title: string) => {
 		return (
-			<div key={key} className='relative'>
-				<Button
-					className={cn(
-						'active:scale-95',
-						isAIPopoverOpen &&
-							'bg-primary-500 border-primary-500/30 text-text-primary'
-					)}
-					size='icon'
-					title={title}
-					variant={isAIPopoverOpen ? 'default' : 'secondary'}
-					onClick={handleToggleAIPopover}
-				>
-					{isStreaming ? (
-						<Loader2 className='size-4 animate-spin' />
-					) : (
-						<Sparkles className='size-4' />
-					)}
-				</Button>
-				<AnimatePresence>
-					{isAIPopoverOpen && (
-						<>
-							{/* Backdrop for click-outside - portaled to escape transform context */}
-							{createPortal(
-								<div
-									className='fixed inset-0 z-40'
-									onClick={handleCloseAIPopover}
-									aria-hidden='true'
-								/>,
-								document.body
+			<Popover key={key} onOpenChange={setIsAIPopoverOpen} open={isAIPopoverOpen}>
+				<PopoverTrigger
+					render={
+						<Button
+							className={cn(
+								'active:scale-95',
+								isAIPopoverOpen &&
+									'bg-primary-500 border-primary-500/30 text-text-primary'
 							)}
-							<div className='absolute bottom-full left-0 mb-2 z-50'>
-								<AIActionsPopover scope='map' onClose={handleCloseAIPopover} />
-							</div>
-						</>
-					)}
-				</AnimatePresence>
-			</div>
+							size='icon'
+							title={title}
+							variant={isAIPopoverOpen ? 'default' : 'secondary'}
+						>
+							{isStreaming ? (
+								<Loader2 className='size-4 animate-spin' />
+							) : (
+								<Sparkles className='size-4' />
+							)}
+						</Button>
+					}
+				/>
+				<PopoverContent
+					align='start'
+					className='w-auto min-w-[200px] p-0'
+					side='top'
+					sideOffset={8}
+				>
+					<AIActionsPopover scope='map' onClose={handleCloseAIPopover} />
+				</PopoverContent>
+			</Popover>
 		);
 	};
 

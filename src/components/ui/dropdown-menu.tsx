@@ -5,6 +5,7 @@ import { CheckIcon, ChevronRightIcon, CircleIcon } from 'lucide-react';
 import { isValidElement, type ComponentProps, type ReactElement } from 'react';
 
 import { cn } from '@/lib/utils';
+import { overlaySurfaceClassName } from './overlay-surface';
 
 function DropdownMenu({ ...props }: ComponentProps<typeof BaseMenu.Root>) {
 	return <BaseMenu.Root data-slot='dropdown-menu' {...props} />;
@@ -67,8 +68,8 @@ function DropdownMenuContent({
 				<BaseMenu.Popup
 					data-slot='dropdown-menu-content'
 					className={cn(
-						'bg-overlay border border-border-default text-text-primary backdrop-blur-sm',
-						'data-[open]:animate-in data-[closed]:animate-out data-[closed]:fade-out-0 data-[open]:fade-in-0 data-[closed]:zoom-out-95 data-[open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 max-h-96 min-w-[8rem] overflow-x-hidden overflow-y-auto rounded-md shadow-md p-1',
+						overlaySurfaceClassName,
+						'data-[open]:animate-in data-[closed]:animate-out data-[closed]:fade-out-0 data-[open]:fade-in-0 data-[closed]:zoom-out-95 data-[open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 max-h-96 min-w-[8rem] overflow-x-hidden overflow-y-auto rounded-md p-1',
 						className
 					)}
 					{...props}
@@ -263,8 +264,8 @@ function DropdownMenuSubContent({
 				<BaseMenu.Popup
 					data-slot='dropdown-menu-sub-content'
 					className={cn(
-						'bg-overlay border border-border-default text-text-primary backdrop-blur-sm',
-						'data-[open]:animate-in data-[closed]:animate-out data-[closed]:fade-out-0 data-[open]:fade-in-0 data-[closed]:zoom-out-95 data-[open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[8rem] overflow-hidden rounded-md shadow-lg p-1',
+						overlaySurfaceClassName,
+						'data-[open]:animate-in data-[closed]:animate-out data-[closed]:fade-out-0 data-[open]:fade-in-0 data-[closed]:zoom-out-95 data-[open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[8rem] overflow-hidden rounded-md p-1',
 						className
 					)}
 					{...props}

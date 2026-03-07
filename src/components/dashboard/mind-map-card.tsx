@@ -276,7 +276,7 @@ const MindMapCardComponent = ({
 
 						<DropdownMenuContent
 							align='end'
-							className='w-48 bg-zinc-900 border-zinc-800'
+							className='w-48'
 						>
 							{onShare && (
 								<DropdownMenuItem onClick={() => onShare(map.id)}>
@@ -301,11 +301,11 @@ const MindMapCardComponent = ({
 
 							{onDelete && (
 								<>
-									<DropdownMenuSeparator className='bg-zinc-800' />
+									<DropdownMenuSeparator />
 
 									<DropdownMenuItem
-										className='text-red-400 focus:text-red-300'
 										onClick={() => onDelete(map.id)}
+										variant='destructive'
 									>
 										<Trash2 className='mr-2 h-4 w-4' />
 										Delete
@@ -483,7 +483,7 @@ const MindMapCardComponent = ({
 
 					<DropdownMenuContent
 						align='end'
-						className='w-48 bg-zinc-900 border-zinc-800'
+						className='w-48'
 					>
 						{onShare && (
 							<DropdownMenuItem onClick={() => onShare(map.id)}>
@@ -508,11 +508,11 @@ const MindMapCardComponent = ({
 
 						{onDelete && (
 							<>
-								<DropdownMenuSeparator className='bg-zinc-800' />
+								<DropdownMenuSeparator />
 
 								<DropdownMenuItem
-									className='text-red-400 focus:text-red-300'
 									onClick={() => onDelete(map.id)}
+									variant='destructive'
 								>
 									<Trash2 className='mr-2 h-4 w-4' />
 									Delete

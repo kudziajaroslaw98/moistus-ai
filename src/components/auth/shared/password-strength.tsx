@@ -117,7 +117,7 @@ export function PasswordRequirementsInfo({
 					</button>
 				}
 			/>
-			<PopoverContent align='start' className='w-56 p-3 bg-surface border-border-subtle'>
+			<PopoverContent align='start' className='w-56 p-3'>
 				<div className='space-y-2'>
 					<p className='text-xs font-medium text-text-primary'>
 						Password requirements

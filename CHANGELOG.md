@@ -16,7 +16,17 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ## [2026-03-07]
 
+### Added
+
+- **tests/ai-actions-popover**: Added RTL tests for map-scope action click/close behavior and streaming-disabled button state
+  - Why: Locks the restored toolbar AI interaction flow and guards against regressions where actions fail to execute or close
+
 ### Fixed
+
+- **toolbar/ai-popover-interactions**: Replaced the custom toolbar AI backdrop/absolute menu path with the shared `Popover` (`PopoverTrigger` + `PopoverContent`) flow
+  - Why: Removes the interaction-blocking backdrop layering path so toolbar AI menu items receive normal hover/click events while preserving outside-click close behavior
+- **ai-actions-popover/hover-label-color**: Replaced hard-coded `group-hover:text-white` with semantic `group-hover:text-primary-400` on action labels
+  - Why: Prevents low-contrast hover text on overlay surfaces and keeps colors tied to app tokens
 
 - **maps/template-preflight-fail-closed**: Template-based map creation now returns explicit errors when `template_id` lookup fails or resolves no row during preflight (`templateQuery.single()`), instead of continuing and creating an empty map shell.
   - Why: Prevents consuming map slots when template selection is invalid or temporarily unavailable.
@@ -38,6 +48,10 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Allows editors to continue adding nodes in paid shared maps while preserving owner-scoped subscription boundaries
 - **node-editor/quick-input-limit-gate**: Quick Input now uses map-aware node limit checks (`useMapNodeLimit`) instead of actor-plan `useSubscriptionLimits` for create-mode blocking/warnings
   - Why: Prevents false “upgrade yourself” lockouts for guests editing paid-owner maps
+- **ui/popover-surfaces**: Normalized popover-family surface styling to a single semantic contract (`bg-overlay` + semantic border/text + consistent shadow/blur) across popover, dropdown menu, hover card, AI actions popover, user menu, dashboard map-card menus, auth password requirements popover, and sidebar dropdown wrapper
+  - Why: Fixes visual inconsistency where some popovers looked like side panels/dialogs and aligns all audited floating surfaces with the cursor/layout/export baseline
+- **realtime/profile-card**: Replaced hardcoded zinc foreground/background accents in collaborator profile card skeleton and metadata regions with semantic tokens
+  - Why: Keeps realtime profile hover cards visually aligned with the normalized popover surface system
 
 ### Fixed
 
