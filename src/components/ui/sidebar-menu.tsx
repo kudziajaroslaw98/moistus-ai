@@ -25,7 +25,7 @@ export const SidebarDropdownMenu = ({
 	return (
 		<DropdownMenuContent
 			align={align}
-			className={cn('w-48 bg-zinc-900 border-zinc-700 shadow-xl', className)}
+			className={cn('w-48', className)}
 			alignOffset={alignOffset}
 			{...props}
 		>
@@ -60,9 +60,9 @@ export const MenuItem = ({
 			className={cn(
 				'flex items-center gap-3 px-3 py-2 cursor-pointer',
 				variant === 'danger' &&
-					'text-red-400 focus:text-red-300 focus:bg-red-950/20',
+					'text-error-400 data-[highlighted]:text-error-300 data-[highlighted]:bg-error-900/20',
 				variant === 'info' &&
-					'text-zinc-500 cursor-default focus:bg-transparent',
+					'text-text-tertiary cursor-default data-[highlighted]:bg-transparent',
 				disabled && 'opacity-50 cursor-not-allowed',
 				className
 			)}
@@ -72,9 +72,9 @@ export const MenuItem = ({
 				<div
 					className={cn(
 						'h-4 w-4 shrink-0',
-						variant === 'default' && 'text-zinc-400',
-						variant === 'danger' && 'text-red-400',
-						variant === 'info' && 'text-zinc-500'
+						variant === 'default' && 'text-text-secondary',
+						variant === 'danger' && 'text-error-400',
+						variant === 'info' && 'text-text-tertiary'
 					)}
 				>
 					{icon}
@@ -86,7 +86,7 @@ export const MenuItem = ({
 
 			{/* Keyboard Shortcut */}
 			{shortcut && (
-				<kbd className='ml-auto text-xs text-zinc-500 font-mono'>
+				<kbd className='ml-auto text-xs text-text-tertiary font-mono'>
 					{shortcut}
 				</kbd>
 			)}
@@ -100,7 +100,7 @@ interface MenuSeparatorProps {
 
 export const MenuSeparator = ({ className }: MenuSeparatorProps) => {
 	return (
-		<DropdownMenuSeparator className={cn('my-1 bg-zinc-800', className)} />
+		<DropdownMenuSeparator className={cn('my-1', className)} />
 	);
 };
 
@@ -113,7 +113,7 @@ export const MenuInfoItem = ({ children, className }: MenuInfoItemProps) => {
 	return (
 		<div
 			className={cn(
-				'flex items-center gap-3 px-3 py-2 text-zinc-500 text-sm cursor-default',
+				'flex items-center gap-3 px-3 py-2 text-text-tertiary text-sm cursor-default',
 				className
 			)}
 		>

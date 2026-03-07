@@ -12,6 +12,20 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-03-04 - Added notifications system (in-app inbox + Resend email + mention/reply/reaction/access events) -->
 <!-- Updated: 2026-03-05 - Fixed notification side-effect timing so email dispatch is no longer deferred by client focus/activity -->
 
+## [2026-03-07]
+
+### Fixed
+
+- **toolbar/ai-popover-interactions**: Replaced the custom toolbar AI backdrop/absolute menu path with the shared `Popover` (`PopoverTrigger` + `PopoverContent`) flow
+  - Why: Removes the interaction-blocking backdrop layering path so toolbar AI menu items receive normal hover/click events while preserving outside-click close behavior
+- **ai-actions-popover/hover-label-color**: Replaced hard-coded `group-hover:text-white` with semantic `group-hover:text-primary-400` on action labels
+  - Why: Prevents low-contrast hover text on overlay surfaces and keeps colors tied to app tokens
+
+### Added
+
+- **tests/ai-actions-popover**: Added RTL tests for map-scope action click/close behavior and streaming-disabled button state
+  - Why: Locks the restored toolbar AI interaction flow and guards against regressions where actions fail to execute or close
+
 ## [2026-03-05]
 
 ### Fixed
@@ -23,6 +37,13 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **tests/notification-service**: Added `notification-service` unit tests covering side-effect completion timing, PartyKit fail-soft behavior, email failure status marking, and no-created short-circuit behavior
   - Why: Locks the bug fix and prevents regressions in notification delivery ordering guarantees
+
+### Changed
+
+- **ui/popover-surfaces**: Normalized popover-family surface styling to a single semantic contract (`bg-overlay` + semantic border/text + consistent shadow/blur) across popover, dropdown menu, hover card, AI actions popover, user menu, dashboard map-card menus, auth password requirements popover, and sidebar dropdown wrapper
+  - Why: Fixes visual inconsistency where some popovers looked like side panels/dialogs and aligns all audited floating surfaces with the cursor/layout/export baseline
+- **realtime/profile-card**: Replaced hardcoded zinc foreground/background accents in collaborator profile card skeleton and metadata regions with semantic tokens
+  - Why: Keeps realtime profile hover cards visually aligned with the normalized popover surface system
 
 ## [2026-03-04]
 

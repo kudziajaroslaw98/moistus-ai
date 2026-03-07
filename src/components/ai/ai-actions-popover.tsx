@@ -1,6 +1,7 @@
 'use client';
 
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
+import { overlaySurfaceClassName } from '@/components/ui/overlay-surface';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import { Link2, Loader2, Merge, NotepadTextDashed, Sparkles } from 'lucide-react';
@@ -154,12 +155,13 @@ export function AIActionsPopover({
 			exit={{ opacity: 0, scale: 0.95 }}
 			transition={{ duration: 0.15, type: 'spring', stiffness: 500, damping: 30 }}
 			className={cn(
-				'bg-elevated border border-border-default rounded-lg shadow-lg overflow-hidden min-w-[200px]',
+				overlaySurfaceClassName,
+				'rounded-md overflow-hidden min-w-[200px]',
 				className
 			)}
 		>
 			<div className="py-1">
-				{visibleActions.map((action, index) => (
+				{visibleActions.map((action) => (
 					<button
 						type="button"
 						key={action.id}
@@ -167,10 +169,10 @@ export function AIActionsPopover({
 						disabled={isStreaming}
 						className={cn(
 							'group w-full px-3 py-2.5 flex items-center gap-3 text-left',
-							'bg-transparent hover:bg-white/10 active:bg-white/15',
+							'hover:bg-elevated focus:bg-elevated data-[highlighted]:bg-elevated active:bg-elevated/80',
 							'transition-all duration-200 ease',
 							'disabled:opacity-50 disabled:cursor-not-allowed',
-							'focus:outline-none focus:bg-white/10'
+							'focus:outline-none'
 						)}
 					>
 						<span className={cn(
@@ -186,7 +188,7 @@ export function AIActionsPopover({
 						<div className="flex flex-col">
 							<span className={cn(
 								'text-sm font-medium text-text-primary transition-colors duration-200',
-								'group-hover:text-white'
+								'group-hover:text-primary-400'
 							)}>
 								{action.label}
 							</span>

@@ -11,6 +11,7 @@ import {
 } from 'react';
 
 import { cn } from '@/lib/utils';
+import { overlaySurfaceClassName } from './overlay-surface';
 
 // Context to pass delay props from Root to Trigger (backwards compatibility)
 interface HoverCardContextValue {
@@ -95,11 +96,17 @@ function HoverCardContent({
 }) {
 	return (
 		<PreviewCard.Portal data-slot='hover-card-portal'>
-			<PreviewCard.Positioner align={align} side={side} sideOffset={sideOffset}>
+			<PreviewCard.Positioner
+				align={align}
+				side={side}
+				sideOffset={sideOffset}
+				className='z-[100]'
+			>
 				<PreviewCard.Popup
 					data-slot='hover-card-content'
 					className={cn(
-						'bg-elevated/95 backdrop-blur-sm text-text-primary border-zinc-800/60 data-[open]:animate-in data-[closed]:animate-out data-[closed]:fade-out-0 data-[open]:fade-in-0 data-[closed]:zoom-out-95 data-[open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-80 rounded-lg border p-0 shadow-xl shadow-black/20 outline-hidden',
+						overlaySurfaceClassName,
+						'data-[open]:animate-in data-[closed]:animate-out data-[closed]:fade-out-0 data-[open]:fade-in-0 data-[closed]:zoom-out-95 data-[open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-80 rounded-md p-0 outline-hidden',
 						className
 					)}
 					{...props}
