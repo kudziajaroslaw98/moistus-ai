@@ -22,6 +22,7 @@ total_tokens: 707972
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
 **Edge routing note:** Normal persisted edges render as auto-routed `waypointEdge` geometry. Explicit full layout uses ELK bend points (`routingStyle: 'elk'`); local create/edit/move/resize/reconnect flows reroute only affected edges with the deterministic orthogonal router (`routingStyle: 'orthogonal'`). Raw manual waypoint editing is no longer part of the canvas model.
+**Layout animation note:** `ReactFlowArea` now renders through a transient animated graph state for explicit full layout and local layout flows. Zustand still stores only final node/edge geometry; the 300ms tween is client-only and does not persist or broadcast intermediate frames.
 
 **Local layout note:** Deterministic local branch reflow now has two phases: same-depth child repack inside the edited branch, then cousin-branch corridor expansion on the carrier layer when the grown subtree would overlap neighboring cousin subtrees. Ancestors stay fixed.
 

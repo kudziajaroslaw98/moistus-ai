@@ -260,12 +260,12 @@ describe('local-branch-reflow', () => {
 		expect(byNodeId.get('middle')?.position).toEqual({ x: 220, y: 0 });
 		expect(byNodeId.get('middle-parent')?.position).toEqual({ x: 420, y: 0 });
 		expect(byNodeId.get('middle-existing')?.position).toEqual({ x: 620, y: 0 });
-		expect(byNodeId.get('middle-new')?.position).toEqual({ x: 620, y: 260 });
-		expect(byNodeId.get('bottom')?.position).toEqual({ x: 220, y: 510 });
-		expect(byNodeId.get('bottom-child')?.position).toEqual({ x: 420, y: 510 });
+		expect(byNodeId.get('middle-new')?.position).toEqual({ x: 620, y: 140 });
+		expect(byNodeId.get('bottom')?.position).toEqual({ x: 220, y: 270 });
+		expect(byNodeId.get('bottom-child')?.position).toEqual({ x: 420, y: 270 });
 		expect(byNodeId.get('bottom-grandchild')?.position).toEqual({
 			x: 620,
-			y: 510,
+			y: 270,
 		});
 		expect(byNodeId.get('top')?.position).toEqual({ x: 220, y: -260 });
 		expect(byNodeId.get('outside')?.position).toEqual({ x: 1200, y: 1200 });

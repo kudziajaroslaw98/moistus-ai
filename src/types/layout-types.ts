@@ -19,6 +19,7 @@ export const SUPPORTED_LAYOUT_DIRECTIONS = [
 ] as const;
 
 export type LayoutDirection = (typeof SUPPORTED_LAYOUT_DIRECTIONS)[number];
+export type LayoutAnimationReason = 'full' | 'local';
 
 export function normalizeLayoutDirection(
 	direction: string | null | undefined
@@ -89,6 +90,10 @@ export interface LayoutSlice {
 	isLayouting: boolean;
 	layoutError: string | null;
 	lastLayoutTimestamp: number;
+	layoutAnimationVersion: number;
+	layoutAnimationReason: LayoutAnimationReason | null;
+	animatedNodeIds: string[];
+	animatedEdgeIds: string[];
 
 	// Actions
 	setLayoutConfig: (config: Partial<LayoutConfig>) => void;

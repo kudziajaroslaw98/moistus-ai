@@ -42,6 +42,7 @@ import { useUpgradePrompt } from '@/hooks/subscription/use-upgrade-prompt';
 import { useContextMenu } from '@/hooks/use-context-menu';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNodeSuggestion } from '@/hooks/use-node-suggestion';
+import { useAnimatedLayout } from '@/hooks/use-animated-layout';
 import { getMindMapRoomName } from '@/lib/realtime/room-names';
 import useAppStore from '@/store/mind-map-store';
 import type { AppEdge } from '@/types/app-edge';
@@ -126,6 +127,9 @@ export function ReactFlowArea() {
 		addNodeToPath,
 		isCommentMode,
 		getCurrentShareUsers,
+		layoutAnimationVersion,
+		animatedNodeIds,
+		animatedEdgeIds,
 	} = useAppStore(
 		useShallow((state) => ({
 			supabase: state.supabase,
@@ -174,11 +178,15 @@ export function ReactFlowArea() {
 			// Comment mode - needed for visibility memoization
 			isCommentMode: state.isCommentMode,
 			getCurrentShareUsers: state.getCurrentShareUsers,
+			layoutAnimationVersion: state.layoutAnimationVersion,
+			animatedNodeIds: state.animatedNodeIds,
+			animatedEdgeIds: state.animatedEdgeIds,
 		}))
 	);
 
 	const { contextMenuHandlers } = useContextMenu();
 	const { generateSuggestionsForNode } = useNodeSuggestion();
+	const { animateGraphToState, cancelAnimation } = useAnimatedLayout();
 	const { canEdit } = usePermissions();
 	const isMobile = useIsMobile();
 	const updateBottomToolbarClearance = useCallback(() => {
@@ -235,6 +243,85 @@ export function ReactFlowArea() {
 	const visibleEdges = useMemo(() => {
 		return getVisibleEdges();
 	}, [edges, nodes, getVisibleEdges, isCommentMode]);
+	const [displayNodes, setDisplayNodes] = useState<AppNode[]>(visibleNodes);
+	const [displayEdges, setDisplayEdges] = useState<AppEdge[]>(visibleEdges);
+	const displayNodesRef = useRef<AppNode[]>(visibleNodes);
+	const displayEdgesRef = useRef<AppEdge[]>(visibleEdges);
+	const handledLayoutAnimationVersionRef = useRef(0);
+
+	useEffect(() => {
+		displayNodesRef.current = displayNodes;
+	}, [displayNodes]);
+
+	useEffect(() => {
+		displayEdgesRef.current = displayEdges;
+	}, [displayEdges]);
+
+	useEffect(() => {
+		if (layoutAnimationVersion === handledLayoutAnimationVersionRef.current) {
+			setDisplayNodes(visibleNodes);
+			setDisplayEdges(visibleEdges);
+		}
+	}, [visibleNodes, visibleEdges, layoutAnimationVersion]);
+
+	useEffect(() => {
+		if (
+			layoutAnimationVersion === 0 ||
+			layoutAnimationVersion === handledLayoutAnimationVersionRef.current
+		) {
+			return;
+		}
+
+		handledLayoutAnimationVersionRef.current = layoutAnimationVersion;
+		let isCancelled = false;
+
+		void animateGraphToState({
+			currentNodes:
+				displayNodesRef.current.length > 0 ? displayNodesRef.current : visibleNodes,
+			targetNodes: visibleNodes,
+			currentEdges:
+				displayEdgesRef.current.length > 0 ? displayEdgesRef.current : visibleEdges,
+			targetEdges: visibleEdges,
+			animatedNodeIds,
+			animatedEdgeIds,
+			onFrame: ({ nodes: nextNodes, edges: nextEdges }) => {
+				if (isCancelled) {
+					return;
+				}
+
+				setDisplayNodes(nextNodes);
+				setDisplayEdges(nextEdges);
+			},
+		}).then(({ nodes: nextNodes, edges: nextEdges }) => {
+			if (isCancelled) {
+				return;
+			}
+
+			setDisplayNodes(nextNodes);
+			setDisplayEdges(nextEdges);
+		});
+
+		return () => {
+			isCancelled = true;
+		};
+	}, [
+		animateGraphToState,
+		animatedEdgeIds,
+		animatedNodeIds,
+		layoutAnimationVersion,
+		visibleEdges,
+		visibleNodes,
+	]);
+
+	useEffect(() => {
+		if (!isDraggingNodes) {
+			return;
+		}
+
+		cancelAnimation();
+		setDisplayNodes(visibleNodes);
+		setDisplayEdges(visibleEdges);
+	}, [cancelAnimation, isDraggingNodes, visibleEdges, visibleNodes]);
 
 	useEffect(() => {
 		getCurrentUser();
@@ -580,13 +667,13 @@ export function ReactFlowArea() {
 				connectionMode={ConnectionMode.Loose}
 				deleteKeyCode={canEdit ? ['Delete'] : null}
 				disableKeyboardA11y={true}
-				edges={visibleEdges}
+				edges={displayEdges}
 				edgeTypes={edgeTypes}
 				elementsSelectable={isSelectMode}
 				fitView={true}
 				minZoom={0.1}
 				multiSelectionKeyCode={['Meta', 'Control']}
-				nodes={visibleNodes}
+				nodes={displayNodes}
 				nodesConnectable={
 					(isSelectMode || activeTool === 'connector') && canEdit
 				}

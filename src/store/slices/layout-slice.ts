@@ -26,6 +26,7 @@ import type { AppNode } from '@/types/app-node';
 import {
 	DEFAULT_LAYOUT_CONFIG,
 	type LayoutConfig,
+	type LayoutAnimationReason,
 	type LayoutDirection,
 	type LayoutSlice,
 } from '@/types/layout-types';
@@ -38,6 +39,20 @@ const pendingLocalResizeNodeIds = new Set<string>();
 
 type LayoutSet = Parameters<StateCreator<AppState, [], [], LayoutSlice>>[0];
 type LayoutGet = Parameters<StateCreator<AppState, [], [], LayoutSlice>>[1];
+
+function setLayoutAnimationSignal(
+	set: LayoutSet,
+	reason: LayoutAnimationReason,
+	nodeIds: Iterable<string>,
+	edgeIds: Iterable<string>
+): void {
+	set((state) => ({
+		layoutAnimationVersion: state.layoutAnimationVersion + 1,
+		layoutAnimationReason: reason,
+		animatedNodeIds: Array.from(new Set(nodeIds)),
+		animatedEdgeIds: Array.from(new Set(edgeIds)),
+	}));
+}
 
 /**
  * Batch update node positions in database (single DB call)
@@ -102,6 +117,10 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 	isLayouting: false,
 	layoutError: null,
 	lastLayoutTimestamp: 0,
+	layoutAnimationVersion: 0,
+	layoutAnimationReason: null,
+	animatedNodeIds: [],
+	animatedEdgeIds: [],
 
 	setLayoutConfig: (config: Partial<LayoutConfig>) => {
 		set((state) => ({
@@ -155,6 +174,14 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 			});
 
 			setMindMapContent({ nodes: result.nodes, edges: result.edges });
+			if (effectiveConfig.animateTransition) {
+				setLayoutAnimationSignal(
+					set,
+					'full',
+					result.nodes.map((node) => node.id),
+					result.edges.map((edge) => edge.id)
+				);
+			}
 
 			if (mapId) {
 				await replaceGraphState(mapId, {
@@ -272,6 +299,20 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 			});
 
 			setMindMapContent({ nodes: result.nodes, edges: result.edges });
+			if (layoutConfig.animateTransition) {
+				setLayoutAnimationSignal(
+					set,
+					'full',
+					selectedNodeIds,
+					result.edges
+						.filter(
+							(edge) =>
+								selectedNodeIds.has(edge.source) &&
+								selectedNodeIds.has(edge.target)
+						)
+						.map((edge) => edge.id)
+				);
+			}
 
 			if (mapId) {
 				await replaceGraphState(mapId, {
@@ -442,6 +483,14 @@ async function runLocalBranchReflow({
 
 	try {
 		setMindMapContent({ nodes: result.nodes, edges: nextEdges });
+		if (layoutConfig.animateTransition) {
+			setLayoutAnimationSignal(
+				set,
+				'local',
+				result.affectedNodeIds,
+				affectedEdgeIds
+			);
+		}
 
 		if (mapId && currentUser) {
 			for (const node of affectedNodes) {
