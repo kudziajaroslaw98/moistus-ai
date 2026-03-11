@@ -237,6 +237,7 @@ export function convertFromElkGraph(
 					pathType: 'waypoint' as const,
 					waypoints: layoutData.waypoints,
 					curveType,
+					routingStyle: 'elk' as const,
 					sourceAnchor: layoutData.sourceAnchor,
 					targetAnchor: layoutData.targetAnchor,
 				},

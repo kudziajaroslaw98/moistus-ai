@@ -1,6 +1,7 @@
 import { AppEdge } from '@/types/app-edge';
 import { EdgeData } from '@/types/edge-data';
 import { NodeData } from '@/types/node-data';
+import { getRenderableEdgeType } from './route-auto-waypoint-edges';
 import { Node } from '@xyflow/react';
 
 export const transformDataToReactFlow = (
@@ -21,7 +22,7 @@ export const transformDataToReactFlow = (
 		user_id: edge.user_id,
 		map_id: edge.map_id,
 
-		type: edge.type || 'editableEdge',
+		type: getRenderableEdgeType(edge),
 		animated: edge.animated ?? false,
 		label: edge.label,
 
@@ -35,7 +36,7 @@ export const transformDataToReactFlow = (
 			...edge,
 			metadata: {
 				...(edge.metadata || {}),
-				pathType: edge.metadata?.pathType,
+				pathType: edge.metadata?.pathType ?? 'waypoint',
 			},
 		},
 	}));

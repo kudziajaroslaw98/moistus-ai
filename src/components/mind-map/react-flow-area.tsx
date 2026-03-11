@@ -406,26 +406,11 @@ export function ReactFlowArea() {
 	);
 
 	const handleEdgeDoubleClick: EdgeMouseHandler<Edge<EdgeData>> = useCallback(
-		(event, edge) => {
-			// Forward double-click to waypoint edge component via custom event
-			if (
-				edge.type === 'waypointEdge' ||
-				edge.data?.metadata?.pathType === 'waypoint'
-			) {
-				const customEvent = new CustomEvent('waypoint-edge-add', {
-					detail: {
-						edgeId: edge.id,
-						clientX: event.clientX,
-						clientY: event.clientY,
-					},
-				});
-				document.dispatchEvent(customEvent);
-				return;
-			}
+		(_, edge) => {
 			setEdgeInfo(edge);
 			setPopoverOpen({ edgeEdit: true });
 		},
-		[]
+		[setEdgeInfo, setPopoverOpen]
 	);
 
 	const nodeTypesWithProps: NodeTypes = useMemo(

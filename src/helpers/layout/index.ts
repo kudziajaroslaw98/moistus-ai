@@ -4,6 +4,11 @@
 
 // Core layout functions
 export { runElkLayout, initializeElk, terminateElk } from './elk-worker-client';
+export { buildLocalLayoutNeighborhood } from './elk-worker-client';
+export type {
+	LocalLayoutNeighborhood,
+	LocalLayoutParams,
+} from './elk-worker-client';
 
 // Configuration helpers
 export { buildLayoutOptions, buildGroupLayoutOptions, getRecommendedCurveType } from './elk-config';

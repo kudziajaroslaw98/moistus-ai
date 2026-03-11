@@ -13,12 +13,28 @@ export type {
 } from 'elkjs/lib/elk-api';
 
 // Layout direction options
-export type LayoutDirection =
-	| 'LEFT_RIGHT'
-	| 'RIGHT_LEFT'
-	| 'TOP_BOTTOM'
-	| 'BOTTOM_TOP'
-	| 'RADIAL';
+export const SUPPORTED_LAYOUT_DIRECTIONS = [
+	'LEFT_RIGHT',
+	'TOP_BOTTOM',
+] as const;
+
+export type LayoutDirection = (typeof SUPPORTED_LAYOUT_DIRECTIONS)[number];
+
+export function normalizeLayoutDirection(
+	direction: string | null | undefined
+): LayoutDirection | null {
+	switch (direction) {
+		case 'LEFT_RIGHT':
+		case 'RIGHT_LEFT':
+			return 'LEFT_RIGHT';
+		case 'TOP_BOTTOM':
+		case 'BOTTOM_TOP':
+		case 'RADIAL':
+			return 'TOP_BOTTOM';
+		default:
+			return null;
+	}
+}
 
 // Configuration for layout operations
 export interface LayoutConfig {
@@ -60,6 +76,10 @@ export interface ElkLayoutParams {
 	edges: import('@/types/app-edge').AppEdge[];
 	config: LayoutConfig;
 	selectedNodeIds?: Set<string>; // If provided, only layout these nodes
+	movableNodeIds?: Set<string>; // If provided, only these nodes are movable in local layout
+	anchorNodeIds?: Set<string>; // If provided, these nodes are fixed anchors in local layout
+	collisionProtectedNodeIds?: Set<string>; // If provided, these nodes may be branch-shifted during local collision recovery
+	localLayoutAlpha?: number; // Smoothing factor for movable nodes
 }
 
 // Layout slice state and actions (for Zustand)
@@ -74,5 +94,9 @@ export interface LayoutSlice {
 	setLayoutConfig: (config: Partial<LayoutConfig>) => void;
 	applyLayout: (direction?: LayoutDirection) => Promise<void>;
 	applyLayoutToSelected: () => Promise<void>;
+	applyLayoutAroundNode: (nodeId: string, opts?: { radius?: number; alpha?: number }) => Promise<void>;
+	queueLocalLayoutOnResize: (nodeId: string) => void;
+	clearQueuedLocalLayoutOnResize: (nodeId: string) => void;
+	runQueuedLocalLayoutOnResize: (nodeId: string) => Promise<void>;
 	resetLayoutConfig: () => void;
 }

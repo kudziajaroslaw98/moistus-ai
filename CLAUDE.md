@@ -281,6 +281,9 @@ pnpm pretty          # Prettier
 **NodeData.metadata**: Single unified type (not discriminated union per node type). Enables seamless node type switching without data loss. Do NOT split into per-type unions.
 <!-- Updated: 2026-01-06 -->
 
+**Edge routing**: Raw manual waypoint editing is removed. Normal persisted edges use auto-routed `waypointEdge` geometry, and future manual edge control must be constraint-based (anchor/bias/lane hints), never absolute bend points.
+<!-- Updated: 2026-03-11 - Replaced raw waypoint editing with auto-routed waypoint edges and deferred future manual control to constraints -->
+
 **Identity precedence**: Use `user_profiles` as canonical identity source across sharing + realtime UI (`display_name`, `avatar_url`) with fallback order: auth metadata, then deterministic fallback helpers. Keep resolver logic centralized in `src/helpers/identity/resolve-user-identity.ts`.
 <!-- Updated: 2026-02-24 - Unified collaborator label/avatar precedence across manage + presence -->
 

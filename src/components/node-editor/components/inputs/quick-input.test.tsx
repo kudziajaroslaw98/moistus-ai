@@ -10,6 +10,9 @@ const mockInitializeQuickInput = jest.fn()
 const mockCloseNodeEditor = jest.fn()
 const mockAddNode = jest.fn().mockResolvedValue({ id: 'new-node-1' })
 const mockUpdateNode = jest.fn().mockResolvedValue(undefined)
+const mockApplyLayoutAroundNode = jest.fn().mockResolvedValue(undefined)
+const mockQueueLocalLayoutOnResize = jest.fn()
+const mockClearQueuedLocalLayoutOnResize = jest.fn()
 
 let mockQuickInputValue = ''
 let mockQuickInputNodeType: string | null = null
@@ -34,6 +37,9 @@ jest.mock('@/store/mind-map-store', () => ({
 			closeNodeEditor: mockCloseNodeEditor,
 			addNode: mockAddNode,
 			updateNode: mockUpdateNode,
+			applyLayoutAroundNode: mockApplyLayoutAroundNode,
+			queueLocalLayoutOnResize: mockQueueLocalLayoutOnResize,
+			clearQueuedLocalLayoutOnResize: mockClearQueuedLocalLayoutOnResize,
 		})
 	),
 }))
@@ -658,6 +664,72 @@ describe('QuickInput', () => {
 			await waitFor(() => {
 				expect(mockCloseNodeEditor).toHaveBeenCalled()
 			})
+		})
+
+		it('triggers local layout after successful node creation', async () => {
+			const user = userEvent.setup()
+			mockQuickInputValue = 'Test content'
+
+			render(<QuickInput {...defaultProps} />)
+
+			const createButton = screen.getByTestId('create-button')
+			await user.click(createButton)
+
+			await waitFor(() => {
+				expect(mockApplyLayoutAroundNode).toHaveBeenCalledWith('new-node-1', {
+					radius: 1,
+				})
+			})
+		})
+
+		it('reflows around the created child when creating a child node', async () => {
+			const user = userEvent.setup()
+			mockQuickInputValue = 'Test child content'
+
+			const parentNode = {
+				id: 'parent-123',
+				type: 'defaultNode',
+				data: { id: 'parent-123', content: 'Parent', map_id: 'map-1' },
+				position: { x: 0, y: 0 },
+			}
+
+			render(<QuickInput {...defaultProps} parentNode={parentNode as any} />)
+
+			const createButton = screen.getByTestId('create-button')
+			await user.click(createButton)
+
+			await waitFor(() => {
+				expect(mockApplyLayoutAroundNode).toHaveBeenCalledWith('new-node-1', {
+					radius: 1,
+				})
+			})
+		})
+
+		it('queues local resize reflow after successful node edit', async () => {
+			const user = userEvent.setup()
+			mockQuickInputValue = 'Edited content'
+
+			render(
+				<QuickInput
+					{...defaultProps}
+					mode='edit'
+					existingNode={{
+						id: 'existing-1',
+						type: 'defaultNode',
+						data: { id: 'existing-1', content: 'Existing', map_id: 'map-1' },
+						position: { x: 0, y: 0 },
+					} as any}
+				/>
+			)
+
+			const createButton = screen.getByTestId('create-button')
+			await user.click(createButton)
+
+			await waitFor(() => {
+				expect(mockQueueLocalLayoutOnResize).toHaveBeenCalledWith('existing-1')
+			})
+
+			expect(mockApplyLayoutAroundNode).not.toHaveBeenCalled()
 		})
 	})
 })

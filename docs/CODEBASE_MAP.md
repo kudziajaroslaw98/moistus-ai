@@ -17,8 +17,13 @@ total_tokens: 707972
 <!-- Updated: 2026-03-04 - Added account settings email-notification preference toggle -->
 <!-- Updated: 2026-03-04 - Expanded notifications internals (service/channel/schema/mention resolver/data flow) -->
 <!-- Updated: 2026-03-04 - Corrected API route totals to 61 and fixed unlabeled directory-tree code fence -->
+<!-- Updated: 2026-03-11 - Documented deterministic local branch reflow, cousin-branch corridor expansion, persisted map layout direction, the two supported layout modes, and auto-routed waypoint edges -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
+
+**Edge routing note:** Normal persisted edges render as auto-routed `waypointEdge` geometry. Explicit full layout uses ELK bend points (`routingStyle: 'elk'`); local create/edit/move/resize/reconnect flows reroute only affected edges with the deterministic orthogonal router (`routingStyle: 'orthogonal'`). Raw manual waypoint editing is no longer part of the canvas model.
+
+**Local layout note:** Deterministic local branch reflow now has two phases: same-depth child repack inside the edited branch, then cousin-branch corridor expansion on the carrier layer when the grown subtree would overlap neighboring cousin subtrees. Ancestors stay fixed.
 
 ## System Overview
 
@@ -159,7 +164,7 @@ shiko/
 │   ├── helpers/                # Utilities
 │   │   ├── api/                # API middleware (auth, validation)
 │   │   ├── history/            # Delta calculation, diff
-│   │   ├── layout/             # ELK.js layout engine
+│   │   ├── layout/             # ELK full-layout engine + deterministic local branch reflow
 │   │   ├── partykit/           # PartyKit admin helpers (disconnect users)
 │   │   └── supabase/           # Client initialization
 │   │
@@ -208,7 +213,7 @@ shiko/
 | **guided-tour-slice**     | 416   | Prezi-style presentations                  |
 | **core-slice**            | 353   | Supabase client, user, map loading         |
 | **user-profile-slice**    | 317   | Profile, preferences                       |
-| **layout-slice**          | 312   | ELK.js auto-layouts                        |
+| **layout-slice**          | 312   | Full ELK layouts + local branch reflow     |
 | **onboarding-slice**      | 269   | Multi-step onboarding                      |
 | **ui-slice**              | 248   | Modals, panels, focus mode                 |
 | **groups-slice**          | 246   | Node grouping                              |

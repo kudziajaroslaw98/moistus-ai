@@ -1,9 +1,11 @@
 import { AppEdge } from '@/types/app-edge';
 import { EdgeData } from '@/types/edge-data';
 import type { EdgeDbData } from '@/types/edge-db-data';
+import { normalizeLayoutDirection } from '@/types/layout-types';
 import { MindMapData } from '@/types/mind-map-data';
 import { NodeData } from '@/types/node-data';
 import type { NodeDbData } from '@/types/node-db-data';
+import { getRenderableEdgeType } from './route-auto-waypoint-edges';
 import { Node } from '@xyflow/react';
 
 type NodesTableType = NodeDbData;
@@ -19,21 +21,14 @@ interface MindMapDbData {
 	thumbnail_url: string | null;
 	is_template: boolean | null;
 	template_category: string | null;
+	layout_direction: string | null;
 	created_at: string;
 	map_updated_at: string;
 }
 
 // Determine edge type based on metadata (matches logic in edges-slice.ts)
 const getEdgeType = (edge: EdgesTableType): string => {
-	if (edge.aiData?.isSuggested) {
-		return 'suggestedConnection';
-	}
-
-	if (edge.metadata?.pathType === 'waypoint') {
-		return 'waypointEdge';
-	}
-
-	return 'floatingEdge';
+	return getRenderableEdgeType(edge as Partial<EdgeData>);
 };
 
 // Define the expected input structure based on the Supabase query
@@ -82,12 +77,12 @@ export const transformSupabaseData = (
 		source: edge.source,
 		target: edge.target,
 		// Ensure data conforms to EdgeData, casting might be needed
-		data: {
-			...edge, // Spread all properties from db edge
-			metadata: {
-				...(edge.metadata || {}), // Spread existing metadata from db
-				pathType: edge.metadata?.pathType ?? 'bezier', // Explicitly map pathType
-			},
+			data: {
+				...edge, // Spread all properties from db edge
+				metadata: {
+					...(edge.metadata || {}), // Spread existing metadata from db
+					pathType: edge.metadata?.pathType ?? 'waypoint',
+				},
 			style: {
 				stroke: edge.style?.stroke || '#6c757d',
 				strokeWidth: edge.style?.strokeWidth || 2,
@@ -116,6 +111,7 @@ export const transformSupabaseData = (
 		thumbnailUrl: mindMap.thumbnail_url,
 		is_template: mindMap.is_template ?? undefined,
 		template_category: mindMap.template_category,
+		layout_direction: normalizeLayoutDirection(mindMap.layout_direction),
 		created_at: mindMap.created_at,
 		updated_at: mindMap.map_updated_at,
 	};

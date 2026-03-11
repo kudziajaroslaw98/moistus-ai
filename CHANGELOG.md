@@ -11,6 +11,36 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-02-28 - Cleaned deprecated node-editor parser tokens, split syntax help into universal/node-specific sections, and added parser/completion regression tests -->
 <!-- Updated: 2026-03-04 - Added notifications system (in-app inbox + Resend email + mention/reply/reaction/access events) -->
 <!-- Updated: 2026-03-05 - Fixed notification side-effect timing so email dispatch is no longer deferred by client focus/activity -->
+<!-- Updated: 2026-03-11 - Replaced broken local ELK edits with deterministic branch reflow and persisted per-map layout direction -->
+<!-- Updated: 2026-03-11 - Switched normal edges to auto-routed waypoint geometry and removed raw manual waypoint editing -->
+
+## [2026-03-11]
+
+### Changed
+
+- **layout/local-branch-reflow**: Replaced create/edit local ELK solves with deterministic parent-centric subtree reflow and deferred edit pushes until committed node dimension changes
+  - Why: Keeps full ELK layout intact while preventing automatic local edits from moving ancestors or unrelated branches
+- **layout/local-corridor-expansion**: Local branch reflow now opens sibling-layer corridor space by pushing overlapping cousin subtrees outward on the sibling axis
+  - Why: Prevents growing middle branches from colliding with taller neighboring cousin branches without falling back to full layout
+- **maps/layout-direction**: Added persisted per-map `layout_direction` handling through map load/update paths
+  - Why: Prevents refreshes from resetting collaborative maps back to the default left-to-right orientation
+- **layout/supported-modes**: Reduced supported layout directions to `LEFT_RIGHT` and `TOP_BOTTOM`, and normalized legacy saved directions into those survivors
+  - Why: Removes low-value broken modes and keeps both global and local layout behavior within the two shapes users actually rely on
+
+### Added
+
+- **db/mind-maps-layout-direction**: Added an ignored local Supabase migration for the nullable `mind_maps.layout_direction` column and constraint
+  - Why: Stores shared canvas orientation in the database without changing git state for ignored Supabase artifacts
+
+### Fixed
+
+- **edges/auto-routing**: Standardized normal persisted edges on auto-routed `waypointEdge` geometry for local reflows, node moves/resizes, new connections, and legacy load normalization
+  - Why: Prevents stale bend points after node movement and keeps local routing deterministic without re-running ELK
+
+### Removed
+
+- **edges/manual-waypoints**: Removed raw waypoint add/delete/drag interactions and manual path-style switching from edge edit surfaces
+  - Why: Absolute bend points became stale as soon as nodes moved, which made the feature actively frustrating
 
 ## [2026-03-07]
 

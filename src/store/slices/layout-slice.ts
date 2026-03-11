@@ -4,7 +4,16 @@
  */
 
 import { runElkLayout } from '@/helpers/layout';
-import { replaceGraphState } from '@/lib/realtime/broadcast-channel';
+import {
+	applyLocalCreateBranchReflow,
+	applyLocalEditBranchReflow,
+} from '@/helpers/layout/local-branch-reflow';
+import { rerouteAutoWaypointEdges } from '@/helpers/route-auto-waypoint-edges';
+import {
+	BROADCAST_EVENTS,
+	broadcast,
+	replaceGraphState,
+} from '@/lib/realtime/broadcast-channel';
 import {
 	getEdgeActorId,
 	getNodeActorId,
@@ -16,14 +25,19 @@ import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import {
 	DEFAULT_LAYOUT_CONFIG,
-	LayoutConfig,
-	LayoutDirection,
-	LayoutSlice,
+	type LayoutConfig,
+	type LayoutDirection,
+	type LayoutSlice,
 } from '@/types/layout-types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
-import { StateCreator } from 'zustand';
-import { AppState } from '../app-state';
+import type { StateCreator } from 'zustand';
+import type { AppState } from '../app-state';
+
+const pendingLocalResizeNodeIds = new Set<string>();
+
+type LayoutSet = Parameters<StateCreator<AppState, [], [], LayoutSlice>>[0];
+type LayoutGet = Parameters<StateCreator<AppState, [], [], LayoutSlice>>[1];
 
 /**
  * Batch update node positions in database (single DB call)
@@ -84,13 +98,11 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 	set,
 	get
 ) => ({
-	// Initial state
 	layoutConfig: DEFAULT_LAYOUT_CONFIG,
 	isLayouting: false,
 	layoutError: null,
 	lastLayoutTimestamp: 0,
 
-	// Actions
 	setLayoutConfig: (config: Partial<LayoutConfig>) => {
 		set((state) => ({
 			layoutConfig: { ...state.layoutConfig, ...config },
@@ -111,46 +123,37 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 			currentUser,
 		} = get();
 
-		// Prevent concurrent layouts
 		if (isLayouting) {
 			toast.info('Layout already in progress...');
 			return;
 		}
 
-		// Skip if no nodes
 		if (nodes.length === 0) {
 			toast.info('No nodes to layout');
 			return;
 		}
 
-		// Capture previous state for history (before any modifications)
 		const prevNodes = [...nodes];
 		const prevEdges = [...edges];
-
-		// Determine layout config
 		const effectiveConfig: LayoutConfig = {
 			...layoutConfig,
 			direction: direction ?? layoutConfig.direction,
 		};
 
-		// Set loading state
 		set({ isLayouting: true, layoutError: null });
 		setLoadingStates?.({ isStateLoading: true });
 
-		// Show loading toast
 		const toastId = toast.loading(
 			`Applying ${getDirectionLabel(effectiveConfig.direction)} layout...`
 		);
 
 		try {
-			// Run layout in Web Worker
 			const result = await runElkLayout({
 				nodes,
 				edges,
 				config: effectiveConfig,
 			});
 
-			// Batch update state (single update, not per-node)
 			setMindMapContent({ nodes: result.nodes, edges: result.edges });
 
 			if (mapId) {
@@ -168,6 +171,7 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 						})
 						.filter((edge): edge is Record<string, unknown> => edge !== null),
 				});
+
 				if (supabase) {
 					await Promise.all([
 						batchUpdateNodePositions(result.nodes, supabase, mapId),
@@ -176,20 +180,40 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 				}
 			}
 
-			// Persist delta to DB for history tracking
 			await persistDeltaEvent(
 				'applyLayout',
 				{ nodes: prevNodes, edges: prevEdges },
 				{ nodes: result.nodes, edges: result.edges }
 			);
 
-			// Update config if direction changed
 			if (direction && direction !== layoutConfig.direction) {
-				set({ layoutConfig: { ...layoutConfig, direction } });
+				set((state) => ({
+					layoutConfig: { ...state.layoutConfig, direction },
+					mindMap: state.mindMap
+						? { ...state.mindMap, layout_direction: direction }
+						: state.mindMap,
+				}));
+
+				if (mapId) {
+					try {
+						const updatedMindMap = await persistLayoutDirection(mapId, direction);
+						if (updatedMindMap) {
+							set((state) => ({
+								mindMap: updatedMindMap,
+								layoutConfig: {
+									...state.layoutConfig,
+									direction:
+										updatedMindMap.layout_direction ?? direction,
+								},
+							}));
+						}
+					} catch (error) {
+						console.warn('Failed to persist layout direction:', error);
+					}
+				}
 			}
 
 			set({ lastLayoutTimestamp: Date.now() });
-
 			toast.success('Layout applied successfully', { id: toastId });
 		} catch (error) {
 			const errorMessage =
@@ -218,26 +242,20 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 			currentUser,
 		} = get();
 
-		// Prevent concurrent layouts
 		if (isLayouting) {
 			toast.info('Layout already in progress...');
 			return;
 		}
 
-		// Need at least 2 selected nodes
 		if (selectedNodes.length < 2) {
 			toast.info('Select at least 2 nodes to layout');
 			return;
 		}
 
-		// Capture previous state for history
 		const prevNodes = [...nodes];
 		const prevEdges = [...edges];
+		const selectedNodeIds = new Set(selectedNodes.map((node) => node.id));
 
-		// Get selected node IDs
-		const selectedNodeIds = new Set(selectedNodes.map((n) => n.id));
-
-		// Set loading state
 		set({ isLayouting: true, layoutError: null });
 		setLoadingStates?.({ isStateLoading: true });
 
@@ -246,7 +264,6 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 		);
 
 		try {
-			// Run layout only on selected nodes
 			const result = await runElkLayout({
 				nodes,
 				edges,
@@ -254,7 +271,6 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 				selectedNodeIds,
 			});
 
-			// Batch update state
 			setMindMapContent({ nodes: result.nodes, edges: result.edges });
 
 			if (mapId) {
@@ -272,14 +288,17 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 						})
 						.filter((edge): edge is Record<string, unknown> => edge !== null),
 				});
+
 				if (supabase) {
-					const affectedNodes = result.nodes.filter((n) =>
-						selectedNodeIds.has(n.id)
+					const affectedNodes = result.nodes.filter((node) =>
+						selectedNodeIds.has(node.id)
 					);
 					const affectedEdges = result.edges.filter(
-						(e) =>
-							selectedNodeIds.has(e.source) && selectedNodeIds.has(e.target)
+						(edge) =>
+							selectedNodeIds.has(edge.source) &&
+							selectedNodeIds.has(edge.target)
 					);
+
 					await Promise.all([
 						batchUpdateNodePositions(affectedNodes, supabase, mapId),
 						batchUpdateEdgeMetadata(affectedEdges, supabase, mapId),
@@ -287,7 +306,6 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 				}
 			}
 
-			// Persist delta to DB for history tracking
 			await persistDeltaEvent(
 				'applyLayoutToSelected',
 				{ nodes: prevNodes, edges: prevEdges },
@@ -295,7 +313,6 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 			);
 
 			set({ lastLayoutTimestamp: Date.now() });
-
 			toast.success(`Layout applied to ${selectedNodes.length} nodes`, {
 				id: toastId,
 			});
@@ -311,21 +328,202 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 		}
 	},
 
+	applyLayoutAroundNode: async (nodeId) => {
+		await runLocalBranchReflow({
+			mode: 'create',
+			nodeId,
+			set,
+			get,
+		});
+	},
+
+	queueLocalLayoutOnResize: (nodeId) => {
+		pendingLocalResizeNodeIds.add(nodeId);
+	},
+
+	clearQueuedLocalLayoutOnResize: (nodeId) => {
+		pendingLocalResizeNodeIds.delete(nodeId);
+	},
+
+	runQueuedLocalLayoutOnResize: async (nodeId) => {
+		if (!pendingLocalResizeNodeIds.delete(nodeId)) {
+			return;
+		}
+
+		await runLocalBranchReflow({
+			mode: 'edit',
+			nodeId,
+			set,
+			get,
+		});
+	},
+
 	resetLayoutConfig: () => {
 		set({ layoutConfig: DEFAULT_LAYOUT_CONFIG });
 	},
 });
 
-/**
- * Get human-readable label for layout direction
- */
+async function runLocalBranchReflow({
+	mode,
+	nodeId,
+	set,
+	get,
+}: {
+	mode: 'create' | 'edit';
+	nodeId: string;
+	set: LayoutSet;
+	get: LayoutGet;
+}): Promise<void> {
+	const {
+		nodes,
+		edges,
+		setMindMapContent,
+		persistDeltaEvent,
+		layoutConfig,
+		isLayouting,
+		setLoadingStates,
+		mapId,
+		currentUser,
+		mindMap,
+		permissions,
+		supabase,
+	} = get();
+
+	const canEdit =
+		mindMap?.user_id === currentUser?.id || Boolean(permissions?.can_edit);
+
+	if (!canEdit || isLayouting) {
+		return;
+	}
+
+	const result =
+		mode === 'create'
+			? applyLocalCreateBranchReflow({
+					changedNodeId: nodeId,
+					nodes,
+					edges,
+					config: layoutConfig,
+				})
+			: applyLocalEditBranchReflow({
+					changedNodeId: nodeId,
+					nodes,
+					edges,
+					config: layoutConfig,
+				});
+	const rerouteNodeIds = new Set(result.affectedNodeIds);
+	rerouteNodeIds.add(nodeId);
+	const reroutedEdgesResult = rerouteAutoWaypointEdges({
+		nodes: result.nodes,
+		edges: result.edges,
+		direction: layoutConfig.direction,
+		connectedNodeIds: rerouteNodeIds,
+	});
+	const nextEdges = reroutedEdgesResult.edges;
+	const affectedEdgeIds = new Set([
+		...result.affectedEdgeIds,
+		...reroutedEdgesResult.affectedEdgeIds,
+	]);
+
+	if (result.affectedNodeIds.size === 0 && affectedEdgeIds.size === 0) {
+		return;
+	}
+
+	const prevNodes = [...nodes];
+	const prevEdges = [...edges];
+	const affectedNodes = result.nodes.filter((node) =>
+		result.affectedNodeIds.has(node.id)
+	);
+	const affectedEdges = nextEdges.filter((edge) =>
+		affectedEdgeIds.has(edge.id)
+	);
+
+	set({ isLayouting: true, layoutError: null });
+	setLoadingStates?.({ isStateLoading: true });
+
+	try {
+		setMindMapContent({ nodes: result.nodes, edges: nextEdges });
+
+		if (mapId && currentUser) {
+			for (const node of affectedNodes) {
+				const actorId = getNodeActorId(node, currentUser.id);
+				const nodeData = serializeNodeForRealtime(node, mapId, actorId);
+				void broadcast(mapId, BROADCAST_EVENTS.NODE_UPDATE, {
+					id: node.id,
+					data: nodeData,
+					userId: actorId,
+					timestamp: Date.now(),
+				});
+			}
+
+			for (const edge of affectedEdges) {
+				const actorId = getEdgeActorId(edge, currentUser.id);
+				const edgeData = serializeEdgeForRealtime(edge, mapId, actorId);
+				if (edgeData) {
+					void broadcast(mapId, BROADCAST_EVENTS.EDGE_UPDATE, {
+						id: edge.id,
+						data: edgeData,
+						userId: actorId,
+						timestamp: Date.now(),
+					});
+				}
+			}
+		}
+
+		if (mapId && supabase) {
+			await Promise.all([
+				batchUpdateNodePositions(affectedNodes, supabase, mapId),
+				batchUpdateEdgeMetadata(affectedEdges, supabase, mapId),
+			]);
+		}
+
+		await persistDeltaEvent(
+			mode === 'create' ? 'applyLayoutAroundNode' : 'applyLocalResizeReflow',
+			{ nodes: prevNodes, edges: prevEdges },
+			{ nodes: result.nodes, edges: nextEdges }
+		);
+
+		set({ lastLayoutTimestamp: Date.now() });
+	} catch (error) {
+		const errorMessage =
+			error instanceof Error ? error.message : 'Local layout failed';
+		set({ layoutError: errorMessage });
+		toast.error(errorMessage);
+		console.error('Local layout error:', error);
+	} finally {
+		set({ isLayouting: false });
+		setLoadingStates?.({ isStateLoading: false });
+	}
+}
+
+async function persistLayoutDirection(
+	mapId: string,
+	direction: LayoutDirection
+): Promise<AppState['mindMap'] | undefined> {
+	const response = await fetch(`/api/maps/${mapId}`, {
+		method: 'PUT',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify({ layout_direction: direction }),
+	});
+
+	if (!response.ok) {
+		const errorBody = await response.text();
+		throw new Error(errorBody || 'Failed to persist layout direction');
+	}
+
+	const result = (await response.json()) as {
+		data?: { map?: AppState['mindMap'] };
+	};
+
+	return result.data?.map;
+}
+
 function getDirectionLabel(direction: LayoutDirection): string {
 	const labels: Record<LayoutDirection, string> = {
 		LEFT_RIGHT: 'Left to Right',
-		RIGHT_LEFT: 'Right to Left',
 		TOP_BOTTOM: 'Top to Bottom',
-		BOTTOM_TOP: 'Bottom to Top',
-		RADIAL: 'Radial',
 	};
+
 	return labels[direction];
 }

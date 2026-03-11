@@ -3,6 +3,7 @@ import {
 	transformSupabaseData,
 	type SupabaseMapData,
 } from '@/helpers/transform-supabase-data';
+import { rerouteAutoWaypointEdges } from '@/helpers/route-auto-waypoint-edges';
 import {
 	generateFallbackAvatar,
 	generateFunName,
@@ -11,6 +12,10 @@ import {
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
+import {
+	DEFAULT_LAYOUT_CONFIG,
+	normalizeLayoutDirection,
+} from '@/types/layout-types';
 import type { MindMapData } from '@/types/mind-map-data';
 import { UserProfile } from '@/types/user-profile-types';
 import type { User } from '@supabase/supabase-js';
@@ -250,13 +255,55 @@ export const createCoreDataSlice: StateCreator<
 				}
 			}
 
-			const transformedData = transformSupabaseData(graphData);
+			const normalizedPersistedLayoutDirection = normalizeLayoutDirection(
+				graphData.layout_direction
+			);
+			const shouldPersistNormalizedLayoutDirection =
+				graphData.layout_direction !== null &&
+				normalizedPersistedLayoutDirection !== null &&
+				graphData.layout_direction !== normalizedPersistedLayoutDirection;
 
-			set({
+			const transformedData = transformSupabaseData(graphData);
+			const normalizedEdgesResult = rerouteAutoWaypointEdges({
+				nodes: transformedData.reactFlowNodes as AppNode[],
+				edges: transformedData.reactFlowEdges,
+				direction:
+					transformedData.mindMap.layout_direction ??
+					DEFAULT_LAYOUT_CONFIG.direction,
+				legacyOnly: true,
+			});
+
+			set((state) => ({
 				mindMap: transformedData.mindMap,
 				nodes: transformedData.reactFlowNodes,
-				edges: transformedData.reactFlowEdges,
-			});
+				edges: normalizedEdgesResult.edges,
+				layoutConfig: {
+					...state.layoutConfig,
+					direction:
+						transformedData.mindMap.layout_direction ??
+						DEFAULT_LAYOUT_CONFIG.direction,
+				},
+			}));
+
+			if (
+				shouldPersistNormalizedLayoutDirection &&
+				normalizedPersistedLayoutDirection
+			) {
+				void persistNormalizedLayoutDirection(
+					mapId,
+					normalizedPersistedLayoutDirection
+				);
+			}
+
+			if (normalizedEdgesResult.affectedEdgeIds.size > 0) {
+				void persistNormalizedAutoRoutedEdges(
+					mapId,
+					get().supabase,
+					normalizedEdgesResult.edges.filter((edge) =>
+						normalizedEdgesResult.affectedEdgeIds.has(edge.id)
+					)
+				);
+			}
 
 			// Show success immediately - data is loaded and visible to user
 			// Don't wait for background subscriptions which may hang
@@ -305,11 +352,17 @@ export const createCoreDataSlice: StateCreator<
 			}
 
 			const result = await response.json();
-			const updatedMap = result.data?.map;
+			const updatedMap = result.data?.map as MindMapData | undefined;
 
 			if (updatedMap) {
-				// Optimistic update: Update local state immediately
-				set({ mindMap: updatedMap });
+				set((state) => ({
+					mindMap: updatedMap,
+					layoutConfig: {
+						...state.layoutConfig,
+						direction:
+							updatedMap.layout_direction ?? state.layoutConfig.direction,
+					},
+				}));
 			}
 		},
 		'isUpdatingMapSettings',
@@ -395,3 +448,48 @@ export const createCoreDataSlice: StateCreator<
 		// This will be overridden in the store creator
 	},
 });
+
+async function persistNormalizedLayoutDirection(
+	mapId: string,
+	layoutDirection: 'LEFT_RIGHT' | 'TOP_BOTTOM'
+): Promise<void> {
+	const response = await fetch(`/api/maps/${mapId}`, {
+		method: 'PUT',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify({ layout_direction: layoutDirection }),
+	});
+
+	if (!response.ok) {
+		console.warn(
+			'[core-slice] failed to normalize persisted layout direction',
+			await response.text()
+		);
+	}
+}
+
+async function persistNormalizedAutoRoutedEdges(
+	mapId: string,
+	supabase: AppState['supabase'],
+	edges: AppEdge[]
+): Promise<void> {
+	if (edges.length === 0) {
+		return;
+	}
+
+	const updates = edges.map((edge) => ({
+		id: edge.id,
+		map_id: mapId,
+		metadata: edge.data?.metadata ?? null,
+		updated_at: new Date().toISOString(),
+	}));
+
+	const { error } = await supabase
+		.from('edges')
+		.upsert(updates, { onConflict: 'id' });
+
+	if (error) {
+		console.warn('[core-slice] failed to normalize edge routing metadata', error);
+	}
+}

@@ -6,12 +6,27 @@
 import type { ELK } from 'elkjs/lib/elk-api';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
-import type { ElkLayoutParams, LayoutConfig, LayoutResult } from '@/types/layout-types';
+import type {
+	ElkLayoutParams,
+	LayoutConfig,
+	LayoutResult,
+} from '@/types/layout-types';
 import { convertFromElkGraph, convertToElkGraph } from './elk-converter';
 
 // ELK instance singleton - reused across layout calls
 let elkInstance: ELK | null = null;
 let initPromise: Promise<ELK> | null = null;
+const DEFAULT_LOCAL_LAYOUT_ALPHA = 0.35;
+
+export interface LocalLayoutNeighborhood {
+	movableNodeIds: Set<string>;
+	anchorNodeIds: Set<string>;
+}
+
+export interface LocalLayoutParams {
+	centerNodeId: string;
+	radius?: number;
+}
 
 /**
  * Initialize ELK.js with Web Worker support
@@ -66,12 +81,23 @@ export function terminateElk(): void {
  * This executes in a Web Worker to avoid blocking the main thread
  */
 export async function runElkLayout(params: ElkLayoutParams): Promise<LayoutResult> {
-	const { nodes, edges, config, selectedNodeIds } = params;
+	const {
+		nodes,
+		edges,
+		config,
+		selectedNodeIds,
+		movableNodeIds,
+		anchorNodeIds,
+		collisionProtectedNodeIds,
+		localLayoutAlpha,
+	} = params;
 
 	// Filter nodes/edges if selectedNodeIds provided
 	const nodesToLayout = selectedNodeIds
 		? filterSelectedSubgraph(nodes, edges, selectedNodeIds)
-		: { nodes, edges };
+		: movableNodeIds && movableNodeIds.size > 0
+			? filterLocalSubgraph(nodes, edges, movableNodeIds, anchorNodeIds)
+			: { nodes, edges };
 
 	// Skip layout if no nodes
 	if (nodesToLayout.nodes.length === 0) {
@@ -99,6 +125,20 @@ export async function runElkLayout(params: ElkLayoutParams): Promise<LayoutResul
 		// If we only laid out selected nodes, merge with unchanged nodes
 		if (selectedNodeIds) {
 			return mergeLayoutResult(nodes, edges, result, selectedNodeIds, config);
+		}
+
+		// If we only laid out a local node neighborhood, merge only affected nodes/edges.
+		if (movableNodeIds && movableNodeIds.size > 0) {
+			return mergeLocalLayoutResult(
+				nodes,
+				edges,
+				result,
+				movableNodeIds,
+				anchorNodeIds,
+				localLayoutAlpha,
+				config,
+				collisionProtectedNodeIds
+			);
 		}
 
 		return result;
@@ -135,10 +175,106 @@ function filterSelectedSubgraph(
 }
 
 /**
+ * Build local graph around a center node with radius-based movable nodes
+ * and boundary nodes marked as anchors.
+ */
+export function buildLocalLayoutNeighborhood(
+	nodes: AppNode[],
+	edges: AppEdge[],
+	params: LocalLayoutParams
+): LocalLayoutNeighborhood {
+	const { centerNodeId } = params;
+	const requestedRadius = params.radius ?? 1;
+	const normalizedRadius =
+		Number.isFinite(requestedRadius) && requestedRadius >= 0
+			? Math.floor(requestedRadius)
+			: 1;
+
+	const movableNodeIds = new Set<string>();
+	const anchorNodeIds = new Set<string>();
+
+	const centerExists = nodes.some((node) => node.id === centerNodeId);
+	if (!centerExists) {
+		return { movableNodeIds, anchorNodeIds };
+	}
+
+	const adjacency = new Map<string, string[]>();
+	for (const edge of edges) {
+		const sourceNeighbors = adjacency.get(edge.source) ?? [];
+		sourceNeighbors.push(edge.target);
+		adjacency.set(edge.source, sourceNeighbors);
+
+		const targetNeighbors = adjacency.get(edge.target) ?? [];
+		targetNeighbors.push(edge.source);
+		adjacency.set(edge.target, targetNeighbors);
+	}
+
+	const queue: Array<{ nodeId: string; distance: number }> = [
+		{ nodeId: centerNodeId, distance: 0 },
+	];
+	const visited = new Map<string, number>([[centerNodeId, 0]]);
+
+	while (queue.length > 0) {
+		const current = queue.shift();
+		if (!current) {
+			break;
+		}
+
+		const { nodeId, distance } = current;
+		if (distance <= normalizedRadius) {
+			movableNodeIds.add(nodeId);
+		}
+
+		if (distance > normalizedRadius) {
+			continue;
+		}
+
+		const neighbors = adjacency.get(nodeId) ?? [];
+		for (const neighborId of neighbors) {
+			const knownDistance = visited.get(neighborId);
+			if (knownDistance !== undefined) {
+				continue;
+			}
+
+			if (distance < normalizedRadius) {
+				visited.set(neighborId, distance + 1);
+				queue.push({ nodeId: neighborId, distance: distance + 1 });
+			} else {
+				anchorNodeIds.add(neighborId);
+			}
+		}
+	}
+
+	return { movableNodeIds, anchorNodeIds };
+}
+
+/**
+ * Filter nodes and edges for local layout.
+ */
+function filterLocalSubgraph(
+	nodes: AppNode[],
+	edges: AppEdge[],
+	movableNodeIds: Set<string>,
+	anchorNodeIds?: Set<string>
+): { nodes: AppNode[]; edges: AppEdge[] } {
+	const allowedNodeIds = new Set([
+		...movableNodeIds,
+		...(anchorNodeIds ?? new Set<string>()),
+	]);
+
+	const localNodes = nodes.filter((node) => allowedNodeIds.has(node.id));
+	const localEdges = edges.filter(
+		(edge) => allowedNodeIds.has(edge.source) && allowedNodeIds.has(edge.target)
+	);
+
+	return { nodes: localNodes, edges: localEdges };
+}
+
+/**
  * Merge layout results for selected-only layout back into full graph
  * Preserves positions of unselected nodes while updating selected ones
  */
-function mergeLayoutResult(
+export function mergeLayoutResult(
 	allNodes: AppNode[],
 	allEdges: AppEdge[],
 	layoutResult: LayoutResult,
@@ -221,6 +357,373 @@ function mergeLayoutResult(
 	});
 
 	return { nodes: mergedNodes, edges: mergedEdges };
+}
+
+/**
+ * Merge layout result from a local neighborhood layout back into full graph.
+ *
+ * Anchors are kept fixed, while movable nodes are moved using smoothing.
+ */
+export function mergeLocalLayoutResult(
+	allNodes: AppNode[],
+	allEdges: AppEdge[],
+	layoutResult: LayoutResult,
+	movableNodeIds: Set<string>,
+	anchorNodeIds?: Set<string>,
+	alpha?: number,
+	config?: LayoutConfig,
+	collisionProtectedNodeIds?: Set<string>
+): LayoutResult {
+	const effectiveAlpha = localLayoutAlphaIsValid(alpha)
+		? alpha
+		: DEFAULT_LOCAL_LAYOUT_ALPHA;
+	const effectiveConfig: LayoutConfig = config ?? {
+		direction: 'TOP_BOTTOM',
+		nodeSpacing: 50,
+		layerSpacing: 100,
+		animateTransition: true,
+	};
+
+	const anchorSet = anchorNodeIds ?? new Set<string>();
+	const collisionProtectedSet = new Set<string>();
+	for (const id of collisionProtectedNodeIds ?? []) {
+		if (!anchorSet.has(id)) {
+			collisionProtectedSet.add(id);
+		}
+	}
+
+	const currentPositions = new Map<string, { x: number; y: number }>();
+	const prevPositions = new Map<string, { x: number; y: number }>();
+	for (const node of allNodes) {
+		currentPositions.set(node.id, {
+			x: node.position.x,
+			y: node.position.y,
+		});
+
+		if (movableNodeIds.has(node.id) || anchorSet.has(node.id)) {
+			prevPositions.set(node.id, {
+				x: node.position.x,
+				y: node.position.y,
+			});
+		}
+	}
+
+	const proposedPositions = new Map<string, { x: number; y: number }>();
+	for (const node of layoutResult.nodes) {
+		proposedPositions.set(node.id, {
+			x: node.position.x,
+			y: node.position.y,
+		});
+	}
+
+	const anchorAdjustment = calculateAnchorAdjustment(prevPositions, proposedPositions, anchorSet);
+
+	const normalize = (position: { x: number; y: number }) => ({
+		x: position.x + anchorAdjustment.offsetX,
+		y: position.y + anchorAdjustment.offsetY,
+	});
+
+	const getAlignedPosition = (
+		nodeId: string
+	): { x: number; y: number } | undefined => {
+		const proposed = proposedPositions.get(nodeId);
+		if (proposed) {
+			return normalize(proposed);
+		}
+		return currentPositions.get(nodeId);
+	};
+
+	const smoothedPositions = new Map<string, { x: number; y: number }>();
+	for (const [id, proposed] of proposedPositions.entries()) {
+		if (!movableNodeIds.has(id) && !anchorSet.has(id)) {
+			continue;
+		}
+
+		const previous = prevPositions.get(id);
+		if (!previous) {
+			smoothedPositions.set(id, normalize(proposed));
+			continue;
+		}
+
+		if (anchorSet.has(id)) {
+			smoothedPositions.set(id, {
+				x: previous.x,
+				y: previous.y,
+			});
+			continue;
+		}
+
+		const aligned = normalize(proposed);
+		smoothedPositions.set(id, {
+			x: previous.x + (aligned.x - previous.x) * effectiveAlpha,
+			y: previous.y + (aligned.y - previous.y) * effectiveAlpha,
+		});
+	}
+
+	const { resolvedPositions } = resolveLocalCollisions(
+		allNodes,
+		smoothedPositions,
+		collisionProtectedSet,
+		effectiveConfig
+	);
+
+	const getFinalPosition = (nodeId: string): { x: number; y: number } | undefined =>
+		resolvedPositions.get(nodeId) ?? currentPositions.get(nodeId);
+
+	const getNodeDelta = (nodeId: string): { x: number; y: number } => {
+		const aligned = getAlignedPosition(nodeId);
+		const final = getFinalPosition(nodeId);
+		if (!aligned || !final) {
+			return { x: 0, y: 0 };
+		}
+
+		return {
+			x: final.x - aligned.x,
+			y: final.y - aligned.y,
+		};
+	};
+
+	const mergedNodes = allNodes.map((node) => {
+		const newPosition = resolvedPositions.get(node.id);
+		if (!newPosition) return node;
+
+		return {
+			...node,
+			position: newPosition,
+			data: {
+				...node.data,
+				position_x: newPosition.x,
+				position_y: newPosition.y,
+			},
+		};
+	});
+
+	const layoutedEdgeMap = new Map<string, AppEdge>();
+	for (const edge of layoutResult.edges) {
+		layoutedEdgeMap.set(edge.id, edge);
+	}
+
+	const mergedEdges: AppEdge[] = allEdges.map((edge) => {
+		const shouldUpdateEdge =
+			movableNodeIds.has(edge.source) ||
+			movableNodeIds.has(edge.target) ||
+			anchorSet.has(edge.source) ||
+			anchorSet.has(edge.target);
+		if (!shouldUpdateEdge) {
+			return edge;
+		}
+
+		const layoutedEdge = layoutedEdgeMap.get(edge.id);
+		if (!layoutedEdge) {
+			return edge;
+		}
+
+		const edgeData = edge.data;
+		const layoutedEdgeData = layoutedEdge.data;
+		if (!edgeData || !layoutedEdgeData) return edge;
+
+		const existingMetadata = edgeData.metadata ?? {};
+		const isWaypointEdge =
+			edge.type === 'waypointEdge' || existingMetadata.pathType === 'waypoint';
+
+		// Local layout should not silently switch standard edges to waypoint routing.
+		if (!isWaypointEdge) {
+			return edge;
+		}
+
+		const sourceDelta = getNodeDelta(edge.source);
+		const targetDelta = getNodeDelta(edge.target);
+		const waypointOffsetX = (sourceDelta.x + targetDelta.x) / 2;
+		const waypointOffsetY = (sourceDelta.y + targetDelta.y) / 2;
+
+		const transformedWaypoints = layoutedEdgeData.metadata?.waypoints?.map((wp) => ({
+			...wp,
+			x: wp.x + waypointOffsetX,
+			y: wp.y + waypointOffsetY,
+		}));
+
+		return {
+			...edge,
+			type: 'waypointEdge',
+			data: {
+				...edgeData,
+				metadata: {
+					...existingMetadata,
+					pathType: 'waypoint',
+					curveType:
+						layoutedEdgeData.metadata?.curveType ?? existingMetadata.curveType,
+					sourceAnchor: undefined,
+					targetAnchor: undefined,
+					...(transformedWaypoints && { waypoints: transformedWaypoints }),
+				},
+			},
+		} as AppEdge;
+	});
+
+	return { nodes: mergedNodes, edges: mergedEdges };
+}
+
+function resolveLocalCollisions(
+	allNodes: AppNode[],
+	finalPositions: Map<string, { x: number; y: number }>,
+	collisionProtectedNodeIds: Set<string>,
+	config: LayoutConfig
+): { resolvedPositions: Map<string, { x: number; y: number }> } {
+	if (collisionProtectedNodeIds.size === 0) {
+		return { resolvedPositions: finalPositions };
+	}
+
+	const nodeById = new Map(allNodes.map((node) => [node.id, node]));
+	const staticObstacleNodes = allNodes.filter(
+		(node) => !collisionProtectedNodeIds.has(node.id)
+	);
+
+	const axis = getPrimaryAxis(config.direction);
+	const padding = Math.max(24, config.nodeSpacing * 0.6);
+
+	let requiredShiftMagnitude = 0;
+
+	for (const protectedNodeId of collisionProtectedNodeIds) {
+		const protectedNode = nodeById.get(protectedNodeId);
+		if (!protectedNode) continue;
+
+		const protectedPosition =
+			finalPositions.get(protectedNodeId) ?? protectedNode.position;
+		const protectedRect = getNodeRect(protectedNode, protectedPosition);
+
+		for (const obstacleNode of staticObstacleNodes) {
+			const obstaclePosition =
+				finalPositions.get(obstacleNode.id) ?? obstacleNode.position;
+			const obstacleRect = getNodeRect(obstacleNode, obstaclePosition);
+
+			if (!rectanglesOverlapWithPadding(protectedRect, obstacleRect, padding)) {
+				continue;
+			}
+
+			const requiredShift = getRequiredAxisShift(
+				protectedRect,
+				obstacleRect,
+				axis,
+				padding
+			);
+			requiredShiftMagnitude = Math.max(requiredShiftMagnitude, requiredShift);
+		}
+	}
+
+	if (requiredShiftMagnitude <= 0) {
+		return { resolvedPositions: finalPositions };
+	}
+
+	const shiftX = axis.axis === 'x' ? axis.sign * requiredShiftMagnitude : 0;
+	const shiftY = axis.axis === 'y' ? axis.sign * requiredShiftMagnitude : 0;
+
+	const resolvedPositions = new Map(finalPositions);
+	for (const protectedNodeId of collisionProtectedNodeIds) {
+		const protectedNode = nodeById.get(protectedNodeId);
+		if (!protectedNode) continue;
+
+		const currentPosition =
+			resolvedPositions.get(protectedNodeId) ?? protectedNode.position;
+		resolvedPositions.set(protectedNodeId, {
+			x: currentPosition.x + shiftX,
+			y: currentPosition.y + shiftY,
+		});
+	}
+
+	return { resolvedPositions };
+}
+
+function getPrimaryAxis(direction: LayoutConfig['direction']): {
+	axis: 'x' | 'y';
+	sign: 1 | -1;
+} {
+	switch (direction) {
+		case 'LEFT_RIGHT':
+			return { axis: 'x', sign: 1 };
+		case 'TOP_BOTTOM':
+		default:
+			return { axis: 'y', sign: 1 };
+	}
+}
+
+function getRequiredAxisShift(
+	movable: { left: number; right: number; top: number; bottom: number },
+	obstacle: { left: number; right: number; top: number; bottom: number },
+	axis: { axis: 'x' | 'y'; sign: 1 | -1 },
+	padding: number
+): number {
+	if (axis.axis === 'x') {
+		if (axis.sign > 0) {
+			return obstacle.right + padding - movable.left;
+		}
+		return movable.right - (obstacle.left - padding);
+	}
+
+	if (axis.sign > 0) {
+		return obstacle.bottom + padding - movable.top;
+	}
+	return movable.bottom - (obstacle.top - padding);
+}
+
+function rectanglesOverlapWithPadding(
+	a: { left: number; right: number; top: number; bottom: number },
+	b: { left: number; right: number; top: number; bottom: number },
+	padding: number
+): boolean {
+	return (
+		a.left < b.right + padding &&
+		a.right > b.left - padding &&
+		a.top < b.bottom + padding &&
+		a.bottom > b.top - padding
+	);
+}
+
+function getNodeRect(
+	node: AppNode,
+	position: { x: number; y: number }
+): { left: number; right: number; top: number; bottom: number } {
+	const width = node.measured?.width ?? node.width ?? 320;
+	const height = node.measured?.height ?? node.height ?? 80;
+
+	return {
+		left: position.x,
+		right: position.x + width,
+		top: position.y,
+		bottom: position.y + height,
+	};
+}
+
+function localLayoutAlphaIsValid(alpha?: number): alpha is number {
+	return typeof alpha === 'number' && Number.isFinite(alpha) && alpha >= 0 && alpha <= 1;
+}
+
+function calculateAnchorAdjustment(
+	prevPositions: Map<string, { x: number; y: number }>,
+	proposedPositions: Map<string, { x: number; y: number }>,
+	anchorSet: Set<string>
+): { offsetX: number; offsetY: number } {
+	let totalOffsetX = 0;
+	let totalOffsetY = 0;
+	let sampleCount = 0;
+
+	for (const anchorId of anchorSet) {
+		const prev = prevPositions.get(anchorId);
+		const proposed = proposedPositions.get(anchorId);
+		if (!prev || !proposed) continue;
+
+		totalOffsetX += prev.x - proposed.x;
+		totalOffsetY += prev.y - proposed.y;
+		sampleCount += 1;
+	}
+
+	if (sampleCount === 0) {
+		return { offsetX: 0, offsetY: 0 };
+	}
+
+	return {
+		offsetX: totalOffsetX / sampleCount,
+		offsetY: totalOffsetY / sampleCount,
+	};
 }
 
 /**

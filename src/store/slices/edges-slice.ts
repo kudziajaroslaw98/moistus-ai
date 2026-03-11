@@ -2,6 +2,10 @@ import { defaultEdgeData } from '@/constants/default-edge-data';
 import { STORE_SAVE_DEBOUNCE_MS } from '@/constants/store-save-debounce-ms';
 import generateUuid from '@/helpers/generate-uuid';
 import mergeEdgeData from '@/helpers/merge-edge-data';
+import {
+	getRenderableEdgeType,
+	rerouteAutoWaypointEdges,
+} from '@/helpers/route-auto-waypoint-edges';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
 import {
 	broadcast,
@@ -38,19 +42,7 @@ function safeParseBooleanish(value: unknown): boolean {
 
 // Utility function to determine edge type based on data
 const getEdgeType = (edgeData: Partial<EdgeData>): string => {
-	if (edgeData.aiData?.isSuggested) {
-		return 'suggestedConnection';
-	}
-
-	// Check for waypoint edge type
-	if (
-		edgeData.type === 'waypointEdge' ||
-		edgeData.metadata?.pathType === 'waypoint'
-	) {
-		return 'waypointEdge';
-	}
-
-	return 'floatingEdge';
+	return getRenderableEdgeType(edgeData);
 };
 
 function toComparableEdgeRecord(
@@ -553,11 +545,25 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 				const optimisticTargetNode = previousTargetNode
 					? withNodeParent(previousTargetNode, sourceId)
 					: null;
+				const routeNodes = optimisticTargetNode
+					? nodes.map((node) =>
+							node.id === optimisticTargetNode.id ? optimisticTargetNode : node
+						)
+					: nodes;
+				const routedOptimisticEdges = rerouteAutoWaypointEdges({
+					nodes: routeNodes,
+					edges: [...edges, optimisticFlowEdge],
+					direction: get().layoutConfig.direction,
+					edgeIds: [optimisticFlowEdge.id],
+				}).edges;
+				const routedOptimisticEdge =
+					routedOptimisticEdges.find((edge) => edge.id === optimisticFlowEdge.id) ??
+					optimisticFlowEdge;
 
 				set((state) => ({
-					edges: state.edges.some((edge) => edge.id === optimisticFlowEdge.id)
+					edges: state.edges.some((edge) => edge.id === routedOptimisticEdge.id)
 						? state.edges
-						: [...state.edges, optimisticFlowEdge],
+						: [...state.edges, routedOptimisticEdge],
 					nodes: optimisticTargetNode
 						? state.nodes.map((node) =>
 								node.id === targetId ? optimisticTargetNode : node
@@ -565,9 +571,9 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 						: state.nodes,
 				}));
 
-				const edgeEventUserId = getEdgeActorId(optimisticFlowEdge, actorId);
+				const edgeEventUserId = getEdgeActorId(routedOptimisticEdge, actorId);
 				const edgeRealtimeData = serializeEdgeForRealtime(
-					optimisticFlowEdge,
+					routedOptimisticEdge,
 					mapId,
 					edgeEventUserId
 				);
@@ -575,7 +581,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 				if (edgeRealtimeData) {
 					try {
 						await broadcast(mapId, BROADCAST_EVENTS.EDGE_CREATE, {
-							id: optimisticFlowEdge.id,
+							id: routedOptimisticEdge.id,
 							data: edgeRealtimeData,
 							userId: edgeEventUserId,
 							timestamp: Date.now(),
@@ -610,14 +616,14 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 
 				const { data: insertedEdgeData, error: insertError } = await supabase
 					.from('edges')
-					.insert(normalizedEdgeData)
+					.insert(routedOptimisticEdge.data as EdgeData)
 					.select()
 					.single();
 
 				if (insertError) {
 					set((state) => ({
 						edges: state.edges.filter(
-							(edge) => edge.id !== optimisticFlowEdge.id
+							(edge) => edge.id !== routedOptimisticEdge.id
 						),
 						nodes: previousTargetNode
 							? state.nodes.map((node) =>
@@ -628,7 +634,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 
 					try {
 						await broadcast(mapId, BROADCAST_EVENTS.EDGE_DELETE, {
-							id: optimisticFlowEdge.id,
+							id: routedOptimisticEdge.id,
 							userId: actorId,
 							timestamp: Date.now(),
 						});
@@ -669,7 +675,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					id: insertedEdgeData.id,
 					source: insertedEdgeData.source,
 					target: insertedEdgeData.target,
-					type: edgeType,
+					type: getEdgeType(insertedEdgeData),
 					animated: false,
 					label: insertedEdgeData.label,
 					style: {
@@ -679,6 +685,18 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					markerEnd: insertedEdgeData.markerEnd,
 					data: insertedEdgeData,
 				};
+				const routedPersistedEdges = rerouteAutoWaypointEdges({
+					nodes: routeNodes,
+					edges: [
+						...edges.filter((edge) => edge.id !== persistedFlowEdge.id),
+						persistedFlowEdge,
+					],
+					direction: get().layoutConfig.direction,
+					edgeIds: [persistedFlowEdge.id],
+				}).edges;
+				const routedPersistedEdge =
+					routedPersistedEdges.find((edge) => edge.id === persistedFlowEdge.id) ??
+					persistedFlowEdge;
 
 				const { error: parentUpdateError } = await supabase
 					.from('nodes')
@@ -693,11 +711,11 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 				}
 
 				set((state) => ({
-					edges: state.edges.some((edge) => edge.id === optimisticFlowEdge.id)
+					edges: state.edges.some((edge) => edge.id === routedOptimisticEdge.id)
 						? state.edges.map((edge) =>
-								edge.id === optimisticFlowEdge.id ? persistedFlowEdge : edge
+								edge.id === routedOptimisticEdge.id ? routedPersistedEdge : edge
 							)
-						: [...state.edges, persistedFlowEdge],
+						: [...state.edges, routedPersistedEdge],
 					nodes: state.nodes.map((node) =>
 						node.id === targetId ? withNodeParent(node, sourceId) : node
 					),
@@ -713,7 +731,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					{ nodes: finalNodes, edges: finalEdges }
 				);
 
-				return persistedFlowEdge;
+				return routedPersistedEdge;
 			},
 			'isAddingContent',
 			{
@@ -871,7 +889,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 			}
 
 			// Update edge in local state first
-			const finalEdges = edges.map((edge) => {
+			let finalEdges = edges.map((edge) => {
 				if (edge.id !== edgeId) return edge;
 
 				const stableUserId =
@@ -911,6 +929,13 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					data: mergedData,
 				};
 			}) as AppEdge[];
+			const reroutedEdgesResult = rerouteAutoWaypointEdges({
+				nodes,
+				edges: finalEdges,
+				direction: get().layoutConfig.direction,
+				edgeIds: [edgeId],
+			});
+			finalEdges = reroutedEdgesResult.edges;
 
 			set({
 				edges: [...finalEdges],

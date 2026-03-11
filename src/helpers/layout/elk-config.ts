@@ -10,20 +10,8 @@ const DIRECTION_MAP: Record<LayoutDirection, ElkLayoutOptions> = {
 	LEFT_RIGHT: {
 		'elk.direction': 'RIGHT',
 	},
-	RIGHT_LEFT: {
-		'elk.direction': 'LEFT',
-	},
 	TOP_BOTTOM: {
 		'elk.direction': 'DOWN',
-	},
-	BOTTOM_TOP: {
-		'elk.direction': 'UP',
-	},
-	RADIAL: {
-		// Radial uses a different algorithm
-		'elk.algorithm': 'org.eclipse.elk.radial',
-		'elk.radial.centerOnRoot': 'true',
-		'elk.radial.compactor': 'WEDGE_COMPACTION',
 	},
 };
 
@@ -32,12 +20,9 @@ const DIRECTION_MAP: Record<LayoutDirection, ElkLayoutOptions> = {
  * Note: ELK options must all be strings
  */
 export function buildLayoutOptions(config: LayoutConfig): ElkLayoutOptions {
-	const isRadial = config.direction === 'RADIAL';
-
 	// Base options for all layouts (all values must be strings)
 	const baseOptions: ElkLayoutOptions = {
-		// Use layered algorithm for non-radial layouts
-		'elk.algorithm': isRadial ? 'org.eclipse.elk.radial' : 'org.eclipse.elk.layered',
+		'elk.algorithm': 'org.eclipse.elk.layered',
 
 		// Spacing configuration
 		'elk.spacing.nodeNode': String(config.nodeSpacing),
@@ -51,18 +36,14 @@ export function buildLayoutOptions(config: LayoutConfig): ElkLayoutOptions {
 		'elk.edgeRouting': 'ORTHOGONAL',
 	};
 
-	// Layered algorithm specific options (for non-radial)
-	const layeredOptions: ElkLayoutOptions = isRadial
-		? {}
-		: {
-				'elk.layered.spacing.nodeNodeBetweenLayers': String(config.layerSpacing),
-				'elk.layered.spacing.edgeNodeBetweenLayers': '30',
-				'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
-				'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-				// Improve edge routing quality
-				'elk.layered.edgeRouting.selfLoopDistribution': 'NORTH',
-				'elk.layered.edgeRouting.splines.mode': 'CONSERVATIVE',
-			};
+	const layeredOptions: ElkLayoutOptions = {
+		'elk.layered.spacing.nodeNodeBetweenLayers': String(config.layerSpacing),
+		'elk.layered.spacing.edgeNodeBetweenLayers': '30',
+		'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
+		'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+		'elk.layered.edgeRouting.selfLoopDistribution': 'NORTH',
+		'elk.layered.edgeRouting.splines.mode': 'CONSERVATIVE',
+	};
 
 	// Merge direction-specific options
 	const directionOptions = DIRECTION_MAP[config.direction];
@@ -87,17 +68,6 @@ export function buildGroupLayoutOptions(): ElkLayoutOptions {
 export function getRecommendedCurveType(
 	direction: LayoutDirection
 ): 'linear' | 'bezier' | 'catmull-rom' | 'smoothstep' {
-	switch (direction) {
-		case 'LEFT_RIGHT':
-		case 'RIGHT_LEFT':
-		case 'TOP_BOTTOM':
-		case 'BOTTOM_TOP':
-			// Orthogonal routing looks best with smoothstep
-			return 'smoothstep';
-		case 'RADIAL':
-			// Radial layouts look better with curved edges
-			return 'bezier';
-		default:
-			return 'smoothstep';
-	}
+	void direction;
+	return 'smoothstep';
 }

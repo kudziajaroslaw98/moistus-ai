@@ -20,13 +20,10 @@ import type { LayoutDirection } from '@/types/layout-types';
 import { cn } from '@/utils/cn';
 import {
 	ArrowDown,
-	ArrowLeft,
 	ArrowRight,
-	ArrowUp,
 	CheckSquare,
 	LayoutGrid,
 	Loader2,
-	Sun,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useShallow } from 'zustand/shallow';
@@ -43,24 +40,9 @@ const layoutDirections: {
 		label: 'Left to Right',
 	},
 	{
-		id: 'RIGHT_LEFT',
-		icon: <ArrowLeft className='size-4' />,
-		label: 'Right to Left',
-	},
-	{
 		id: 'TOP_BOTTOM',
 		icon: <ArrowDown className='size-4' />,
 		label: 'Top to Bottom',
-	},
-	{
-		id: 'BOTTOM_TOP',
-		icon: <ArrowUp className='size-4' />,
-		label: 'Bottom to Top',
-	},
-	{
-		id: 'RADIAL',
-		icon: <Sun className='size-4' />,
-		label: 'Radial',
 	},
 ];
 

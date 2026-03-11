@@ -1,5 +1,10 @@
 import { z } from 'zod';
 
+const layoutDirectionSchema = z.enum([
+	'LEFT_RIGHT',
+	'TOP_BOTTOM',
+]);
+
 /**
  * Schema for updating mind map metadata
  * All fields are optional since user may update only specific fields
@@ -36,6 +41,8 @@ export const updateMapSchema = z.object({
 		.max(100, 'Template category is too long')
 		.nullable()
 		.optional(),
+
+	layout_direction: layoutDirectionSchema.nullable().optional(),
 });
 
 /**
@@ -72,6 +79,7 @@ export const mapUpdateSuccessSchema = z.object({
 			thumbnailUrl: z.string().url().nullable().optional(),
 			is_template: z.boolean().optional(),
 			template_category: z.string().nullable().optional(),
+			layout_direction: layoutDirectionSchema.nullable().optional(),
 			created_at: z.string(),
 			updated_at: z.string(),
 		}),

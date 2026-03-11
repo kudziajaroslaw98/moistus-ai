@@ -1,4 +1,5 @@
 import { AppState } from '@/store/app-state';
+import generateUuid from '@/helpers/generate-uuid';
 import type { AppNode } from '@/types/app-node';
 import type { NodeData } from '@/types/node-data';
 import type { Command } from './core/commands/command-types';
@@ -23,29 +24,26 @@ export const createNodeFromCommand = async ({
 	try {
 		// Get node type with fallback
 		const nodeType = command.nodeType || 'defaultNode';
+		const newNodeId = generateUuid();
 
 		// Transform parsed data into node-specific data structure
 		const nodeData = transformDataForNodeType(nodeType, data);
 
-		// Create base node structure
 		// Extract id from nodeData to avoid conflicts (it should be undefined for new nodes)
-		const { id: _omitId, ...nodeDataWithoutId } = nodeData;
-		const newNode: Omit<AppNode, 'id'> = {
-			type: nodeType,
-			position: position || { x: 0, y: 0 },
+		const nodeDataWithoutId = { ...nodeData };
+		delete (nodeDataWithoutId as { id?: string }).id;
+
+		// Add node to the graph
+		await addNode({
+			nodeId: newNodeId,
+			content: nodeDataWithoutId.content as string | undefined,
 			data: {
-				...nodeDataWithoutId,
+				...(nodeDataWithoutId as NodeData),
 				node_type: nodeType,
 				created_at: new Date().toISOString(),
 				updated_at: new Date().toISOString(),
 				parent_id: parentNode?.id || null,
-			} as NodeData,
-		};
-
-		// Add node to the graph
-		await addNode({
-			content: newNode.data.content || undefined,
-			data: newNode.data,
+			},
 			nodeType: nodeType, // Use the already-validated nodeType instead of newNode.type
 			parentNode,
 			position,
@@ -53,6 +51,7 @@ export const createNodeFromCommand = async ({
 
 		return {
 			success: true,
+			nodeId: newNodeId,
 		};
 	} catch (error) {
 		console.error('Error creating node:', error);

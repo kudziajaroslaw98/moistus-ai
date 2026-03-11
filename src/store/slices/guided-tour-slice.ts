@@ -41,21 +41,13 @@ function sortRootsByPosition(
 	return [...nodes].sort((a, b) => {
 		switch (layoutDirection) {
 			case 'LEFT_RIGHT':
-			case 'RIGHT_LEFT':
 				// Sort by Y (top-to-bottom), then X
 				return a.position.y - b.position.y || a.position.x - b.position.x;
 			case 'TOP_BOTTOM':
-			case 'BOTTOM_TOP':
 				// Sort by X (left-to-right), then Y
 				return a.position.x - b.position.x || a.position.y - b.position.y;
-			case 'RADIAL':
 			default:
-				// Sort by distance from center (closest first)
-				const centerX = nodes.reduce((sum, n) => sum + n.position.x, 0) / nodes.length;
-				const centerY = nodes.reduce((sum, n) => sum + n.position.y, 0) / nodes.length;
-				const distA = Math.hypot(a.position.x - centerX, a.position.y - centerY);
-				const distB = Math.hypot(b.position.x - centerX, b.position.y - centerY);
-				return distA - distB;
+				return a.position.y - b.position.y || a.position.x - b.position.x;
 		}
 	});
 }

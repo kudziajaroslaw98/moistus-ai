@@ -215,11 +215,21 @@ export const QuickInput: FC<QuickInputProps> = ({
 		}))
 	);
 
-	const { closeNodeEditor, addNode, updateNode } = useAppStore(
+	const {
+		closeNodeEditor,
+		addNode,
+		updateNode,
+		applyLayoutAroundNode,
+		queueLocalLayoutOnResize,
+		clearQueuedLocalLayoutOnResize,
+	} = useAppStore(
 		useShallow((state) => ({
 			closeNodeEditor: state.closeNodeEditor,
 			addNode: state.addNode,
 			updateNode: state.updateNode,
+			applyLayoutAroundNode: state.applyLayoutAroundNode,
+			queueLocalLayoutOnResize: state.queueLocalLayoutOnResize,
+			clearQueuedLocalLayoutOnResize: state.clearQueuedLocalLayoutOnResize,
 		}))
 	);
 
@@ -565,6 +575,10 @@ export const QuickInput: FC<QuickInputProps> = ({
 				});
 			}
 
+			if (mode === 'edit' && existingNode?.id) {
+				queueLocalLayoutOnResize(existingNode.id);
+			}
+
 			const result = await createOrUpdateNode({
 				nodeType: effectiveNodeType,
 				data: nodeData,
@@ -627,9 +641,16 @@ export const QuickInput: FC<QuickInputProps> = ({
 				})();
 			}
 
+			if (mode === 'create' && result.nodeId) {
+				void applyLayoutAroundNode(result.nodeId, { radius: 1 });
+			}
+
 			// Close the editor after successful creation/update
 			closeNodeEditor();
 		} catch (err) {
+			if (mode === 'edit' && existingNode?.id) {
+				clearQueuedLocalLayoutOnResize(existingNode.id);
+			}
 			console.error('Error creating/updating node:', err);
 			setError(
 				`An error occurred while ${mode === 'edit' ? 'updating' : 'creating'} the node`
@@ -645,6 +666,9 @@ export const QuickInput: FC<QuickInputProps> = ({
 		addNode,
 		updateNode,
 		closeNodeEditor,
+		applyLayoutAroundNode,
+		queueLocalLayoutOnResize,
+		clearQueuedLocalLayoutOnResize,
 		isCreating,
 		isAtNodeLimit,
 		mode,
