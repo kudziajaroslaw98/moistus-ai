@@ -22,6 +22,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Keeps full ELK layout intact while preventing automatic local edits from moving ancestors or unrelated branches
 - **layout/transition-animation**: React Flow now renders layout-triggered node and routed-edge transitions through a client-only animated display graph
   - Why: Prevents full/local layout operations from visually snapping while still persisting only the final geometry
+- **layout/transition-timing**: Increased the shared layout transition duration from `300ms` to `550ms`
+  - Why: Gives large layout moves enough time to read without making repeated local reflows feel sluggish
 - **layout/local-corridor-expansion**: Local branch reflow now opens sibling-layer corridor space by pushing overlapping cousin subtrees outward on the sibling axis
   - Why: Prevents growing middle branches from colliding with taller neighboring cousin branches without falling back to full layout
 - **maps/layout-direction**: Added persisted per-map `layout_direction` handling through map load/update paths

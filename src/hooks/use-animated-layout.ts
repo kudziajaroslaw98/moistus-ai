@@ -5,7 +5,7 @@
  * Provides smooth position animations for nodes during layout transitions
  * Follows project animation guidelines:
  * - ease-out-quart timing (starts fast, slows down)
- * - 300ms duration
+ * - 550ms duration
  * - Respects prefers-reduced-motion
  */
 
@@ -17,8 +17,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 // ease-out-quart: Starts fast, slows down - best for elements entering/settling
 const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
 
-// Animation duration following project guidelines (fast, never > 1s)
-const ANIMATION_DURATION_MS = 300;
+// Animation duration tuned for layout readability without feeling sluggish
+const ANIMATION_DURATION_MS = 550;
 
 // Check if user prefers reduced motion
 function prefersReducedMotion(): boolean {
