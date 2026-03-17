@@ -392,8 +392,9 @@ function CanvasPlacementHint({
 }) {
 	const desktopStyle = {
 		top: 112,
-		left: '50%',
-		transform: 'translateX(-50%)',
+		left: 24,
+		right: 392,
+		maxWidth: 420,
 	};
 
 	return (

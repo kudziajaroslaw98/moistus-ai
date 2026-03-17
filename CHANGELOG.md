@@ -44,6 +44,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Makes the active canvas mode unambiguous during onboarding and normal editing
 - **onboarding/canvas-safe-positioning**: The minimized walkthrough pill now lives in the lower-left canvas safe area above runtime toolbar clearance, and toolbar coachmarks now prefer rendering above bottom-dock controls
   - Why: Prevents walkthrough UI from colliding with the toolbar on smaller windows
+- **onboarding/canvas-hint-layout**: The desktop “Now click empty canvas” hint now reserves the checklist lane instead of centering across it
+  - Why: Prevents the step-one canvas hint from overlapping the checklist card
 - **onboarding/pro-upsell-guard**: Manual walkthroughs for active/trialing Pro users now complete without showing the final Pro upsell card
   - Why: Removes a redundant monetization surface for users who already have the plan
 
