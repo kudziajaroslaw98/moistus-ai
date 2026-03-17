@@ -13,6 +13,33 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-03-05 - Fixed notification side-effect timing so email dispatch is no longer deferred by client focus/activity -->
 <!-- Updated: 2026-03-06 - Fixed shared-map node entitlement flow for collaborators by using owner subscription lookup in server API checks -->
 <!-- Updated: 2026-03-07 - Tightened template preflight failure handling and create/edit node-limit UX gating -->
+<!-- Updated: 2026-03-17 - Replaced pricing-first onboarding with an editor-first walkthrough and split upgrade prompts back to the dedicated modal -->
+
+## [2026-03-17]
+
+### Added
+
+- **tests/onboarding-v2**: Added onboarding slice coverage for eligibility, resume/skip flow, real editor task completion, controls-tour completion, and state restore, plus quick-input coverage for onboarding parser prefills
+  - Why: Locks the new task-based walkthrough contract before the editor wiring starts drifting
+
+### Changed
+
+- **onboarding/editor-walkthrough**: Replaced the old welcome/benefits/pricing modal with an editor-owned flow that uses an intro overlay, resumable checklist, anchored control hints, and a final optional Pro card
+  - Why: Teaches users how to use the product before asking them to upgrade
+- **node-editor/onboarding-prefill**: Extended node-editor open state with onboarding preset/source support so the walkthrough can launch a deterministic parser lesson in the real editor
+  - Why: Keeps the parser lesson inside the production creation flow instead of duplicating tutorial-only UI
+- **mind-map/onboarding-placement**: Moved onboarding startup out of client providers and into the mind-map experience, where eligibility can be checked against the loaded map + current user
+  - Why: Prevents global app boot from forcing onboarding outside the actual workspace
+
+### Fixed
+
+- **upgrade-flow-separation**: User-menu upgrade CTA and limit warnings now open the dedicated upgrade modal directly instead of reopening onboarding at a pricing step
+  - Why: Keeps monetization prompts separate from product teaching and removes the old pricing-first coupling
+
+### Removed
+
+- **onboarding/v1-steps**: Deleted the legacy welcome, benefits, and pricing onboarding step components and the numeric step state that powered them
+  - Why: Backward compatibility was intentionally out of scope for the redesign
 
 ## [2026-03-07]
 

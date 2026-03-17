@@ -309,6 +309,7 @@ export const Toolbar = ({
 								isAIPopoverOpen &&
 									'bg-primary-500 border-primary-500/30 text-text-primary'
 							)}
+							data-onboarding-target='ai-suggestions'
 							size='icon'
 							title={title}
 							variant={isAIPopoverOpen ? 'default' : 'secondary'}
@@ -421,6 +422,7 @@ export const Toolbar = ({
 		return (
 			<Button
 				className='active:scale-95'
+				data-onboarding-target={tool.id === 'node' ? 'add-node' : undefined}
 				key={tool.id}
 				onClick={() => onToolChange(tool.id)}
 				size='icon'

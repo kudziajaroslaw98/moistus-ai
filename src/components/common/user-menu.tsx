@@ -30,6 +30,7 @@ import { useShallow } from 'zustand/react/shallow';
 interface UserMenuProps {
 	user: (PublicUserProfile & { email?: string; is_anonymous?: boolean }) | null;
 	showBackToDashboard?: boolean;
+	showRestartWalkthrough?: boolean;
 	onOpenSettings?: (tab: 'account' | 'billing') => void;
 }
 
@@ -39,6 +40,7 @@ const supabase = getSharedSupabaseClient();
 export function UserMenu({
 	user,
 	showBackToDashboard = false,
+	showRestartWalkthrough = false,
 	onOpenSettings,
 }: UserMenuProps) {
 	const router = useRouter();
@@ -47,17 +49,15 @@ export function UserMenu({
 
 	// Store actions
 	const {
-		resetOnboarding,
-		setOnboardingStep,
-		setShowOnboarding,
+		restartOnboarding,
+		setPopoverOpen,
 		isProUser,
 		resetStore,
 		setLoggingOut,
 	} = useAppStore(
 		useShallow((state) => ({
-			resetOnboarding: state.resetOnboarding,
-			setOnboardingStep: state.setOnboardingStep,
-			setShowOnboarding: state.setShowOnboarding,
+			restartOnboarding: state.restartOnboarding,
+			setPopoverOpen: state.setPopoverOpen,
 			isProUser: state.isProUser,
 			resetStore: state.reset,
 			setLoggingOut: state.setLoggingOut,
@@ -65,15 +65,12 @@ export function UserMenu({
 	);
 
 	const handleRestartOnboarding = useCallback(() => {
-		resetOnboarding();
-		setOnboardingStep(0);
-		setShowOnboarding(true);
-	}, [resetOnboarding, setOnboardingStep, setShowOnboarding]);
+		restartOnboarding();
+	}, [restartOnboarding]);
 
 	const handleUpgradeToPro = useCallback(() => {
-		setOnboardingStep(2); // Pricing step
-		setShowOnboarding(true);
-	}, [setOnboardingStep, setShowOnboarding]);
+		setPopoverOpen({ upgradeUser: true });
+	}, [setPopoverOpen]);
 
 	// Handle logout
 	const handleLogout = useCallback(async () => {
@@ -195,7 +192,7 @@ export function UserMenu({
 					</DropdownMenuItem>
 				)}
 
-				{!isProUser() && (
+				{showRestartWalkthrough && !isAnonymous && (
 					<>
 						<DropdownMenuSeparator />
 
@@ -204,7 +201,7 @@ export function UserMenu({
 							onClick={handleRestartOnboarding}
 						>
 							<RefreshCw className='mr-2 h-4 w-4' />
-							Restart Onboarding
+							Restart walkthrough
 						</DropdownMenuItem>
 					</>
 				)}

@@ -99,6 +99,7 @@ export function MindMapTopBar({
 						<Button
 							aria-label='Share Mind Map'
 							className='gap-2'
+							data-onboarding-target='share'
 							data-testid='share-button'
 							onClick={handleToggleSharePanel}
 							title='Share Mind Map'
@@ -120,6 +121,7 @@ export function MindMapTopBar({
 				<NotificationBell filterMapId={mapId} />
 
 				<UserMenu
+					showRestartWalkthrough
 					showBackToDashboard
 					user={userProfile}
 					onOpenSettings={handleOpenSettings}

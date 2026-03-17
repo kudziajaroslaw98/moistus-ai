@@ -264,6 +264,7 @@ pnpm pretty          # Prettier
 
 ## Architecture
 <!-- Updated: 2026-01-14 - Moved details to CODEBASE_MAP.md -->
+<!-- Updated: 2026-03-17 - Documented editor-owned onboarding v2 and upgrade-modal split -->
 
 **Stack**: Next.js 16 (App Router) • React 19 • TypeScript • Zustand (21 slices) • React Flow (canvas) • Motion (animations) • Supabase (auth/DB/realtime) • Tailwind CSS • OpenAI GPT
 
@@ -301,6 +302,12 @@ pnpm pretty          # Prettier
 
 **Node editor parser scope**: Parser syntax no longer supports `bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`, or `$reference` quick-switch in node editor flows. Syntax Help is split into `Universal` (type-filtered) and `Node-specific` sections.
 <!-- Updated: 2026-02-28 - Removed deprecated parser tokens and introduced dual syntax help model -->
+
+**Onboarding v2 placement**: Product onboarding now lives inside the editor (`ReactFlowArea` + `src/components/onboarding/onboarding-modal.tsx`), not in `ClientProviders`. Auto-start only for first owned free maps (`usageData.mindMapsCount === 1`), while non-onboarding upsells must go straight to `popoverOpen.upgradeUser`.
+<!-- Updated: 2026-03-17 - Hard-cut editor-first walkthrough replaced the global pricing-first modal -->
+
+**Onboarding control anchors**: Keep `data-onboarding-target` attrs on Add Node, AI Suggestions, Share, shortcuts help, and breadcrumb home links. The controls tour depends on those stable selectors.
+<!-- Updated: 2026-03-17 - Added DOM anchors for editor walkthrough coachmarks -->
 
 **Rate Limiting**: In-memory only (`src/helpers/api/rate-limiter.ts`), won't scale horizontally without Redis.
 

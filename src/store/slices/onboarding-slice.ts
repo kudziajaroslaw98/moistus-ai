@@ -1,73 +1,199 @@
+import {
+	DEFAULT_ONBOARDING_TASKS,
+	ONBOARDING_COACHMARKS,
+	ONBOARDING_STATUSES,
+	ONBOARDING_STORAGE_KEY,
+	ONBOARDING_TASK_IDS,
+	type OnboardingStatus,
+	type OnboardingTarget,
+	type OnboardingTaskId,
+} from '@/constants/onboarding';
 import { StateCreator } from 'zustand';
 import { AppState } from '../app-state';
 
-export interface OnboardingData {
-	selectedPlan?: 'free' | 'pro';
-	billingCycle?: 'monthly' | 'yearly';
-	hasSeenWelcome?: boolean;
-	hasSeenBenefits?: boolean;
-	hasSeenPricing?: boolean;
-	completedAt?: string;
-	skippedAt?: string;
+type OnboardingTaskState = Record<OnboardingTaskId, boolean>;
+
+interface StoredOnboardingState {
+	onboardingStatus?: OnboardingStatus;
+	onboardingTasks?: Partial<Record<OnboardingTaskId, boolean>>;
+	onboardingActiveTarget?: OnboardingTarget | null;
+	onboardingCoachmarkStep?: number;
+	onboardingIsMinimized?: boolean;
+	hasCompletedOnboarding?: boolean;
+	hasSkippedOnboarding?: boolean;
+	hasSeenOnboardingUpsell?: boolean;
 }
 
 export interface OnboardingSlice {
-	// State
-	showOnboarding: boolean;
-	onboardingStep: number;
-	onboardingDirection: number;
-	onboardingData: OnboardingData;
+	onboardingStatus: OnboardingStatus;
+	onboardingTasks: OnboardingTaskState;
+	onboardingActiveTarget: OnboardingTarget | null;
+	onboardingCoachmarkStep: number;
+	onboardingIsMinimized: boolean;
 	hasCompletedOnboarding: boolean;
-	isAnimating: boolean;
+	hasSkippedOnboarding: boolean;
+	hasSeenOnboardingUpsell: boolean;
 
-	// Actions
-	setShowOnboarding: (show: boolean) => void;
-	setOnboardingStep: (step: number) => void;
-	updateOnboardingData: (data: Partial<OnboardingData>) => void;
-	nextOnboardingStep: () => void;
-	previousOnboardingStep: () => void;
-	skipOnboarding: () => void;
+	maybeStartOnboarding: () => void;
+	startOnboarding: () => void;
+	exploreOnboardingIndependently: () => void;
+	resumeOnboarding: () => void;
+	minimizeOnboarding: () => void;
+	startOnboardingTask: (taskId: OnboardingTaskId) => void;
+	markOnboardingTaskComplete: (taskId: OnboardingTaskId) => void;
+	advanceOnboardingCoachmark: () => void;
+	handleOnboardingNodeEditorOpened: (mode: 'create' | 'edit') => void;
+	handleOnboardingNodeCreated: (details: {
+		mode: 'create' | 'edit';
+		usedPatterns: boolean;
+	}) => void;
+	restartOnboarding: () => void;
 	completeOnboarding: () => void;
 	resetOnboarding: () => void;
-	shouldShowOnboarding: () => boolean;
-	initializeOnboarding: () => Promise<void>;
-	setIsAnimating: (animating: boolean) => void;
 }
 
-const ONBOARDING_STORAGE_KEY = 'shiko_onboarding_v1';
-const TOTAL_STEPS = 4; // Welcome, Benefits, Pricing, Payment (if pro selected)
+interface OnboardingEligibilityInput {
+	currentUser: { id: string; is_anonymous?: boolean } | null;
+	mindMap: { user_id: string } | null;
+	usageData: { mindMapsCount: number } | null;
+	mapAccessError: { type: string } | null;
+	hasCompletedOnboarding: boolean;
+	hasSkippedOnboarding: boolean;
+	currentSubscription: {
+		status: string;
+		plan?: { name?: string | null } | null;
+	} | null;
+}
 
-// Helper to initialize onboarding state from localStorage synchronously
-const getInitialOnboardingState = () => {
-	// SSR safety
-	if (typeof window === 'undefined') {
-		return { showOnboarding: false, hasCompleted: false, data: {}, step: 0 };
+const DEFAULT_STATE: StoredOnboardingState = {
+	onboardingStatus: 'hidden',
+	onboardingTasks: DEFAULT_ONBOARDING_TASKS,
+	onboardingActiveTarget: null,
+	onboardingCoachmarkStep: 0,
+	onboardingIsMinimized: false,
+	hasCompletedOnboarding: false,
+	hasSkippedOnboarding: false,
+	hasSeenOnboardingUpsell: false,
+};
+
+const hasWindow = () => typeof window !== 'undefined';
+
+const isValidStatus = (value: unknown): value is OnboardingStatus =>
+	typeof value === 'string' &&
+	ONBOARDING_STATUSES.includes(value as OnboardingStatus);
+
+const normalizeTasks = (
+	value: Partial<Record<OnboardingTaskId, boolean>> | undefined
+): OnboardingTaskState => ({
+	'create-node': value?.['create-node'] === true,
+	'try-pattern': value?.['try-pattern'] === true,
+	'know-controls': value?.['know-controls'] === true,
+});
+
+const getDefaultState = (): StoredOnboardingState => ({
+	...DEFAULT_STATE,
+	onboardingTasks: { ...DEFAULT_ONBOARDING_TASKS },
+});
+
+const readStoredOnboardingState = (): StoredOnboardingState => {
+	if (!hasWindow()) {
+		return getDefaultState();
 	}
 
-	const stored = localStorage.getItem(ONBOARDING_STORAGE_KEY);
-	if (!stored) {
-		return { showOnboarding: false, hasCompleted: false, data: {}, step: 0 };
+	const storedValue = window.localStorage.getItem(ONBOARDING_STORAGE_KEY);
+	if (!storedValue) {
+		return getDefaultState();
 	}
 
 	try {
-		const data = JSON.parse(stored);
-
-		// If completed or skipped, mark as completed and don't show
-		if (data.completedAt || data.skippedAt) {
-			return { showOnboarding: false, hasCompleted: true, data, step: 0 };
-		}
-
-		// Has partial progress - restore step but don't show yet (will check auth later)
+		const parsed = JSON.parse(storedValue) as StoredOnboardingState;
 		return {
-			showOnboarding: false,
-			hasCompleted: false,
-			data,
-			step: data.lastStep ?? 0,
+			onboardingStatus: isValidStatus(parsed.onboardingStatus)
+				? parsed.onboardingStatus
+				: 'hidden',
+			onboardingTasks: normalizeTasks(parsed.onboardingTasks),
+			onboardingActiveTarget:
+				parsed.onboardingActiveTarget && parsed.onboardingActiveTarget.length > 0
+					? parsed.onboardingActiveTarget
+					: null,
+			onboardingCoachmarkStep:
+				typeof parsed.onboardingCoachmarkStep === 'number'
+					? parsed.onboardingCoachmarkStep
+					: 0,
+			onboardingIsMinimized: parsed.onboardingIsMinimized === true,
+			hasCompletedOnboarding: parsed.hasCompletedOnboarding === true,
+			hasSkippedOnboarding: parsed.hasSkippedOnboarding === true,
+			hasSeenOnboardingUpsell: parsed.hasSeenOnboardingUpsell === true,
 		};
-	} catch (e) {
-		console.error('Error parsing onboarding data:', e);
-		return { showOnboarding: false, hasCompleted: false, data: {}, step: 0 };
+	} catch (error) {
+		console.error('Error parsing onboarding data:', error);
+		return getDefaultState();
 	}
+};
+
+const areAllTasksComplete = (tasks: OnboardingTaskState) =>
+	ONBOARDING_TASK_IDS.every((taskId) => tasks[taskId]);
+
+const getCreateNodeTarget = (tasks: OnboardingTaskState) =>
+	tasks['create-node'] ? null : 'add-node';
+
+const persistOnboardingState = (state: OnboardingSlice) => {
+	if (!hasWindow()) {
+		return;
+	}
+
+	const payload: StoredOnboardingState = {
+		onboardingStatus: state.onboardingStatus,
+		onboardingTasks: state.onboardingTasks,
+		onboardingActiveTarget: state.onboardingActiveTarget,
+		onboardingCoachmarkStep: state.onboardingCoachmarkStep,
+		onboardingIsMinimized: state.onboardingIsMinimized,
+		hasCompletedOnboarding: state.hasCompletedOnboarding,
+		hasSkippedOnboarding: state.hasSkippedOnboarding,
+		hasSeenOnboardingUpsell: state.hasSeenOnboardingUpsell,
+	};
+
+	window.localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(payload));
+};
+
+export const isEligibleForOnboarding = ({
+	currentUser,
+	mindMap,
+	usageData,
+	mapAccessError,
+	hasCompletedOnboarding,
+	hasSkippedOnboarding,
+	currentSubscription,
+}: OnboardingEligibilityInput) => {
+	if (mapAccessError?.type === 'access_denied') {
+		return false;
+	}
+
+	if (hasCompletedOnboarding || hasSkippedOnboarding) {
+		return false;
+	}
+
+	if (!currentUser || currentUser.is_anonymous) {
+		return false;
+	}
+
+	if (!mindMap || mindMap.user_id !== currentUser.id) {
+		return false;
+	}
+
+	if (!usageData || usageData.mindMapsCount !== 1) {
+		return false;
+	}
+
+	if (currentSubscription?.status === 'trialing') {
+		return false;
+	}
+
+	return !(
+		currentSubscription?.plan?.name === 'pro' &&
+		(currentSubscription.status === 'active' ||
+			currentSubscription.status === 'trialing')
+	);
 };
 
 export const createOnboardingSlice: StateCreator<
@@ -76,193 +202,244 @@ export const createOnboardingSlice: StateCreator<
 	[],
 	OnboardingSlice
 > = (set, get) => {
-	const initialState = getInitialOnboardingState();
+	const initialState = readStoredOnboardingState();
+
+	const applyOnboardingPatch = (patch: Partial<OnboardingSlice>) => {
+		set(patch);
+		persistOnboardingState(get() as AppState & OnboardingSlice);
+	};
 
 	return {
-		// Initial state from localStorage
-		showOnboarding: initialState.showOnboarding,
-		onboardingStep: initialState.step,
-		onboardingDirection: 0,
-		onboardingData: initialState.data,
-		hasCompletedOnboarding: initialState.hasCompleted,
-		isAnimating: false,
+		onboardingStatus: initialState.onboardingStatus ?? 'hidden',
+		onboardingTasks: normalizeTasks(initialState.onboardingTasks),
+		onboardingActiveTarget: initialState.onboardingActiveTarget ?? null,
+		onboardingCoachmarkStep: initialState.onboardingCoachmarkStep ?? 0,
+		onboardingIsMinimized: initialState.onboardingIsMinimized === true,
+		hasCompletedOnboarding: initialState.hasCompletedOnboarding === true,
+		hasSkippedOnboarding: initialState.hasSkippedOnboarding === true,
+		hasSeenOnboardingUpsell: initialState.hasSeenOnboardingUpsell === true,
 
-	// Actions
-	setShowOnboarding: (show: boolean) => {
-		set({ showOnboarding: show });
+		maybeStartOnboarding: () => {
+			const {
+				currentUser,
+				mindMap,
+				usageData,
+				mapAccessError,
+				hasCompletedOnboarding,
+				hasSkippedOnboarding,
+				currentSubscription,
+				onboardingStatus,
+				onboardingTasks,
+				onboardingIsMinimized,
+			} = get();
 
-		// Save state to localStorage
-		if (!show && !get().hasCompletedOnboarding) {
-			// If closing without completing, save current progress
-			const data = get().onboardingData;
-
-			if (Object.keys(data).length > 0) {
-				localStorage.setItem(
-					ONBOARDING_STORAGE_KEY,
-					JSON.stringify({
-						...data,
-						lastStep: get().onboardingStep,
-						lastSeen: new Date().toISOString(),
-					})
-				);
-			}
-		}
-	},
-
-	setOnboardingStep: (step: number) => {
-		const currentStep = get().onboardingStep;
-
-		// Prevent setting step while animating
-		if (get().isAnimating) return;
-
-		// Validate step
-		if (step < 0 || step >= TOTAL_STEPS) return;
-
-		set({
-			onboardingStep: step,
-			isAnimating: true,
-		});
-
-		// Reset animation flag after transition
-		setTimeout(() => {
-			set({ isAnimating: false });
-		}, 300);
-	},
-
-	updateOnboardingData: (data: Partial<OnboardingData>) => {
-		set((state) => ({
-			onboardingData: { ...state.onboardingData, ...data },
-		}));
-	},
-
-	nextOnboardingStep: () => {
-		const {
-			onboardingStep,
-			onboardingData,
-			setState,
-			completeOnboarding,
-			setOnboardingStep,
-		} = get();
-		setState({ onboardingDirection: 1 });
-
-		// If on pricing step and free plan selected, skip payment step
-		if (onboardingStep === 2 && onboardingData.selectedPlan === 'free') {
-			completeOnboarding();
-			return;
-		}
-
-		if (onboardingStep < TOTAL_STEPS - 1) {
-			setOnboardingStep(onboardingStep + 1);
-		} else {
-			completeOnboarding();
-		}
-	},
-
-	previousOnboardingStep: () => {
-		const { onboardingStep, setOnboardingStep, setState } = get();
-		setState({ onboardingDirection: -1 });
-
-		if (onboardingStep > 0) {
-			setOnboardingStep(onboardingStep - 1);
-		}
-	},
-
-	skipOnboarding: () => {
-		const data: OnboardingData = {
-			...get().onboardingData,
-			skippedAt: new Date().toISOString(),
-			selectedPlan: 'free',
-		};
-
-		localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(data));
-
-		set({
-			showOnboarding: false,
-			hasCompletedOnboarding: true,
-			onboardingData: data,
-		});
-	},
-
-	completeOnboarding: () => {
-		const data: OnboardingData = {
-			...get().onboardingData,
-			completedAt: new Date().toISOString(),
-		};
-
-		localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(data));
-
-		set({
-			showOnboarding: false,
-			hasCompletedOnboarding: true,
-			onboardingData: data,
-		});
-
-		// If user selected a pro plan, they should have already paid
-		// The subscription will be active from the subscription slice
-	},
-
-	resetOnboarding: () => {
-		localStorage.removeItem(ONBOARDING_STORAGE_KEY);
-
-		set({
-			showOnboarding: false,
-			onboardingStep: 0,
-			onboardingData: {},
-			hasCompletedOnboarding: false,
-			isAnimating: false,
-		});
-	},
-
-	shouldShowOnboarding: () => {
-		// Simple synchronous check - just returns whether we should show based on completion status
-		const { hasCompletedOnboarding } = get();
-		return !hasCompletedOnboarding;
-	},
-
-	initializeOnboarding: async () => {
-		// Async initialization - checks auth and subscription to determine if onboarding should show
-		const { supabase, hasCompletedOnboarding, currentSubscription, mapAccessError } = get();
-
-		// Don't show onboarding if user was just kicked from a shared map
-		// This prevents the confusing UX of showing onboarding after access revocation
-		if (mapAccessError?.type === 'access_denied') {
-			return;
-		}
-
-		// Already completed, don't show
-		if (hasCompletedOnboarding) return;
-
-		if (!supabase) return;
-
-		// Check if user is authenticated
-		const {
-			data: { user },
-		} = await supabase.auth.getUser();
-
-		if (!user) {
-			// Not authenticated, don't show onboarding yet
-			return;
-		}
-
-		// Check if user is anonymous
-		const isAnonymous = user.is_anonymous === true;
-
-		// For authenticated users, check if they have a subscription
-		if (!isAnonymous) {
-			// Check if they already have a paid subscription
-			if (currentSubscription && currentSubscription.plan?.name !== 'free') {
-				// Already has a paid subscription, mark as completed
-				set({ hasCompletedOnboarding: true });
+			if (
+				!isEligibleForOnboarding({
+					currentUser,
+					mindMap,
+					usageData,
+					mapAccessError,
+					hasCompletedOnboarding,
+					hasSkippedOnboarding,
+					currentSubscription,
+				})
+			) {
 				return;
 			}
-		}
 
-		// Show onboarding for new users or users without a subscription
-		set({ showOnboarding: true });
-	},
+			if (onboardingStatus !== 'hidden' || onboardingIsMinimized) {
+				return;
+			}
 
-	setIsAnimating: (isAnimating: boolean) => {
-		set({ isAnimating });
-	},
+			applyOnboardingPatch({
+				onboardingStatus: areAllTasksComplete(onboardingTasks)
+					? 'upsell'
+					: 'intro',
+			});
+		},
+
+		startOnboarding: () => {
+			applyOnboardingPatch({
+				onboardingStatus: 'checklist',
+				onboardingActiveTarget: 'add-node',
+				onboardingCoachmarkStep: 0,
+				onboardingIsMinimized: false,
+				hasSkippedOnboarding: false,
+			});
+		},
+
+		exploreOnboardingIndependently: () => {
+			applyOnboardingPatch({
+				onboardingStatus: 'hidden',
+				onboardingActiveTarget: null,
+				onboardingCoachmarkStep: 0,
+				onboardingIsMinimized: true,
+				hasSkippedOnboarding: true,
+			});
+		},
+
+		resumeOnboarding: () => {
+			const { onboardingTasks, hasCompletedOnboarding } = get();
+
+			if (hasCompletedOnboarding) {
+				return;
+			}
+
+			applyOnboardingPatch({
+				onboardingStatus: areAllTasksComplete(onboardingTasks)
+					? 'upsell'
+					: 'checklist',
+				onboardingActiveTarget: getCreateNodeTarget(onboardingTasks),
+				onboardingCoachmarkStep: 0,
+				onboardingIsMinimized: false,
+			});
+		},
+
+		minimizeOnboarding: () => {
+			const { hasCompletedOnboarding } = get();
+			if (hasCompletedOnboarding) {
+				return;
+			}
+
+			applyOnboardingPatch({
+				onboardingStatus: 'hidden',
+				onboardingActiveTarget: null,
+				onboardingCoachmarkStep: 0,
+				onboardingIsMinimized: true,
+			});
+		},
+
+		startOnboardingTask: (taskId) => {
+			if (taskId === 'know-controls') {
+				applyOnboardingPatch({
+					onboardingStatus: 'coachmarks',
+					onboardingActiveTarget: ONBOARDING_COACHMARKS[0]?.target ?? null,
+					onboardingCoachmarkStep: 0,
+					onboardingIsMinimized: false,
+				});
+				return;
+			}
+
+			applyOnboardingPatch({
+				onboardingStatus: 'checklist',
+				onboardingActiveTarget: taskId === 'create-node' ? 'add-node' : null,
+				onboardingCoachmarkStep: 0,
+				onboardingIsMinimized: false,
+			});
+		},
+
+		markOnboardingTaskComplete: (taskId) => {
+			const { onboardingTasks, hasSeenOnboardingUpsell } = get();
+			if (onboardingTasks[taskId]) {
+				return;
+			}
+
+			const nextTasks = {
+				...onboardingTasks,
+				[taskId]: true,
+			};
+
+			if (areAllTasksComplete(nextTasks)) {
+				applyOnboardingPatch({
+					onboardingTasks: nextTasks,
+					onboardingStatus: hasSeenOnboardingUpsell ? 'hidden' : 'upsell',
+					onboardingActiveTarget: null,
+					onboardingCoachmarkStep: 0,
+					onboardingIsMinimized: false,
+					hasCompletedOnboarding: hasSeenOnboardingUpsell,
+					hasSeenOnboardingUpsell: true,
+				});
+				return;
+			}
+
+			applyOnboardingPatch({
+				onboardingTasks: nextTasks,
+				onboardingStatus: 'checklist',
+				onboardingActiveTarget: null,
+				onboardingCoachmarkStep: 0,
+			});
+		},
+
+		advanceOnboardingCoachmark: () => {
+			const { onboardingStatus, onboardingCoachmarkStep } = get();
+			if (onboardingStatus !== 'coachmarks') {
+				return;
+			}
+
+			const nextStep = onboardingCoachmarkStep + 1;
+			if (nextStep >= ONBOARDING_COACHMARKS.length) {
+				get().markOnboardingTaskComplete('know-controls');
+				return;
+			}
+
+			applyOnboardingPatch({
+				onboardingCoachmarkStep: nextStep,
+				onboardingActiveTarget: ONBOARDING_COACHMARKS[nextStep]?.target ?? null,
+			});
+		},
+
+		handleOnboardingNodeEditorOpened: (mode) => {
+			if (mode !== 'create') {
+				return;
+			}
+
+			const { onboardingTasks } = get();
+			if (!onboardingTasks['create-node']) {
+				get().markOnboardingTaskComplete('create-node');
+			}
+		},
+
+		handleOnboardingNodeCreated: ({ mode, usedPatterns }) => {
+			if (mode !== 'create' || !usedPatterns) {
+				return;
+			}
+
+			const { onboardingTasks } = get();
+			if (!onboardingTasks['try-pattern']) {
+				get().markOnboardingTaskComplete('try-pattern');
+			}
+		},
+
+		restartOnboarding: () => {
+			applyOnboardingPatch({
+				onboardingStatus: 'intro',
+				onboardingTasks: { ...DEFAULT_ONBOARDING_TASKS },
+				onboardingActiveTarget: null,
+				onboardingCoachmarkStep: 0,
+				onboardingIsMinimized: false,
+				hasCompletedOnboarding: false,
+				hasSkippedOnboarding: false,
+				hasSeenOnboardingUpsell: false,
+			});
+		},
+
+		completeOnboarding: () => {
+			applyOnboardingPatch({
+				onboardingStatus: 'hidden',
+				onboardingActiveTarget: null,
+				onboardingCoachmarkStep: 0,
+				onboardingIsMinimized: false,
+				hasCompletedOnboarding: true,
+				hasSkippedOnboarding: false,
+				hasSeenOnboardingUpsell: true,
+			});
+		},
+
+		resetOnboarding: () => {
+			if (hasWindow()) {
+				window.localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+			}
+
+			set({
+				onboardingStatus: 'hidden',
+				onboardingTasks: { ...DEFAULT_ONBOARDING_TASKS },
+				onboardingActiveTarget: null,
+				onboardingCoachmarkStep: 0,
+				onboardingIsMinimized: false,
+				hasCompletedOnboarding: false,
+				hasSkippedOnboarding: false,
+				hasSeenOnboardingUpsell: false,
+			});
+		},
 	};
 };

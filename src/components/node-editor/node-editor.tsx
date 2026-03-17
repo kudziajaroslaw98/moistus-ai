@@ -43,6 +43,7 @@ export const NodeEditor = () => {
 		nodes,
 		resetQuickInput,
 		getDefaultNodeType,
+		handleOnboardingNodeEditorOpened,
 	} = useAppStore(
 		useShallow((state) => ({
 			nodeEditor: state.nodeEditor,
@@ -50,6 +51,7 @@ export const NodeEditor = () => {
 			nodes: state.nodes,
 			resetQuickInput: state.resetQuickInput,
 			getDefaultNodeType: state.getDefaultNodeType,
+			handleOnboardingNodeEditorOpened: state.handleOnboardingNodeEditorOpened,
 		}))
 	);
 
@@ -92,6 +94,18 @@ export const NodeEditor = () => {
 		closeNodeEditor();
 	}, [nodeEditor.isOpen, isPermissionLoading, canEdit, closeNodeEditor]);
 
+	useEffect(() => {
+		if (!nodeEditor.isOpen) {
+			return;
+		}
+
+		handleOnboardingNodeEditorOpened(nodeEditor.mode);
+	}, [
+		nodeEditor.isOpen,
+		nodeEditor.mode,
+		handleOnboardingNodeEditorOpened,
+	]);
+
 	const { refs, context } = useFloating({
 		open: nodeEditor.isOpen,
 		onOpenChange: (open) => {
@@ -132,8 +146,10 @@ export const NodeEditor = () => {
 						<AnimateChangeInHeight>
 							<QuickInput
 								existingNode={existingNode}
+								initialValue={nodeEditor.initialValue}
 								mode={mode}
 								nodeType={nodeType}
+								onboardingSource={nodeEditor.onboardingSource}
 								parentNode={nodeEditor.parentNode}
 								position={nodeEditor.position}
 							/>

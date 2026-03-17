@@ -51,6 +51,8 @@ export const createUiStateSlice: StateCreator<
 		parentNode: null,
 		existingNodeId: null,
 		suggestedType: null,
+		initialValue: null,
+		onboardingSource: null,
 	},
 
 	// CommandPalette state (inline node type switching)
@@ -117,6 +119,8 @@ export const createUiStateSlice: StateCreator<
 				parentNode: options.parentNode || null,
 				existingNodeId: options.existingNodeId || null,
 				suggestedType: options.suggestedType || null,
+				initialValue: options.initialValue || null,
+				onboardingSource: options.onboardingSource || null,
 			},
 		});
 	},
@@ -126,6 +130,8 @@ export const createUiStateSlice: StateCreator<
 				...get().nodeEditor,
 				isOpen: false,
 				existingNodeId: null,
+				initialValue: null,
+				onboardingSource: null,
 			},
 		});
 	},

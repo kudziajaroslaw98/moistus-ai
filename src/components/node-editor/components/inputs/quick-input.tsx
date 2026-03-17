@@ -166,6 +166,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 	position,
 	mode = 'create',
 	existingNode,
+	initialValue,
+	onboardingSource,
 }) => {
 	// Local UI state
 	const [preview, setPreview] = useState<QuickInputPreview | null>(null);
@@ -215,11 +217,17 @@ export const QuickInput: FC<QuickInputProps> = ({
 		}))
 	);
 
-	const { closeNodeEditor, addNode, updateNode } = useAppStore(
+	const {
+		closeNodeEditor,
+		addNode,
+		updateNode,
+		handleOnboardingNodeCreated,
+	} = useAppStore(
 		useShallow((state) => ({
 			closeNodeEditor: state.closeNodeEditor,
 			addNode: state.addNode,
 			updateNode: state.updateNode,
+			handleOnboardingNodeCreated: state.handleOnboardingNodeCreated,
 		}))
 	);
 
@@ -350,6 +358,14 @@ export const QuickInput: FC<QuickInputProps> = ({
 			);
 			initializeQuickInput(initialContent, nodeType);
 		} else if (mode === 'create') {
+			if (
+				initialValue &&
+				(onboardingSource === 'onboarding-pattern' || initialValue.length > 0)
+			) {
+				initializeQuickInput(initialValue, initialNodeType || 'defaultNode');
+				return;
+			}
+
 			// Create mode: only set initial node type if none exists
 			// Don't override user-selected node types from $nodeType switching
 			if (!currentNodeType && initialNodeType) {
@@ -360,8 +376,10 @@ export const QuickInput: FC<QuickInputProps> = ({
 	}, [
 		mode,
 		existingNode?.id,
+		initialValue,
 		initialNodeType,
 		initializeQuickInput,
+		onboardingSource,
 		setCurrentNodeType,
 	]);
 
@@ -592,6 +610,11 @@ export const QuickInput: FC<QuickInputProps> = ({
 				throw new Error(result.error || 'Failed to save node');
 			}
 
+			handleOnboardingNodeCreated({
+				mode,
+				usedPatterns: nodeData.patterns.length > 0,
+			});
+
 			if (mapId && assigneeUserIds.length > 0) {
 				void (async () => {
 					try {
@@ -665,6 +688,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 		referenceMetadata,
 		mapId,
 		mentionSlugToUserId,
+		handleOnboardingNodeCreated,
 	]);
 
 	// Handle pattern insertion from legend

@@ -20,6 +20,7 @@ total_tokens: 707972
 <!-- Updated: 2026-03-05 - Documented owner-scoped node-limit enforcement across node creation APIs -->
 <!-- Updated: 2026-03-06 - Synced API route docs for owner-scoped shared-map node entitlement checks -->
 <!-- Updated: 2026-03-07 - Added owner-scoped node-limit preflight to node creation flow -->
+<!-- Updated: 2026-03-17 - Documented editor-first onboarding v2 state, placement, and upgrade-modal split -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -140,7 +141,7 @@ shiko/
 │   │   ├── node-editor/        # Command system, CodeMirror
 │   │   ├── nodes/              # 12 node types + base wrapper
 │   │   ├── notifications/      # Notification bell + inbox popover
-│   │   ├── onboarding/         # Multi-step onboarding
+│   │   ├── onboarding/         # Editor-first onboarding shell (intro/checklist/coachmarks/upsell)
 │   │   ├── realtime/           # Live cursors, presence
 │   │   ├── sharing/            # Share panel, room codes
 │   │   ├── subscription/       # Feature gates, limits
@@ -212,7 +213,7 @@ shiko/
 | **core-slice**            | 353   | Supabase client, user, map loading         |
 | **user-profile-slice**    | 317   | Profile, preferences                       |
 | **layout-slice**          | 312   | ELK.js auto-layouts                        |
-| **onboarding-slice**      | 269   | Multi-step onboarding                      |
+| **onboarding-slice**      | 445   | Editor-first onboarding tasks + coachmarks |
 | **ui-slice**              | 248   | Modals, panels, focus mode                 |
 | **groups-slice**          | 246   | Node grouping                              |
 | **chat-slice**            | 241   | AI chat messages                           |
@@ -326,6 +327,14 @@ shiko/
 - `src/components/dashboard/settings-panel.tsx` now includes an account-level email notifications toggle (`preferences.notifications.email`) used by notification email delivery
 - `src/components/dashboard/discard-account-settings-changes-dialog.tsx` guards panel close when unsaved account edits exist
 - `src/components/dashboard/cancel-subscription-dialog.tsx` adds an explicit confirmation step before subscription cancellation
+
+**Editor Onboarding v2:**
+
+- `src/components/onboarding/onboarding-modal.tsx` now renders the editor walkthrough shell directly inside the mind-map experience instead of using a global dialog in `ClientProviders`
+- `src/store/slices/onboarding-slice.ts` tracks task-based progress (`create-node`, `try-pattern`, `know-controls`), coachmark state, minimized checklist state, and eligibility gating for first owned free maps
+- `src/store/app-state.ts` + `src/store/slices/ui-slice.ts` extend node-editor state with onboarding preset/source fields so the walkthrough can open a deterministic parser example in the real quick-input editor
+- `src/components/common/user-menu.tsx` and `src/components/subscription/limit-warning.tsx` now bypass onboarding entirely for upgrade prompts and open `popoverOpen.upgradeUser` directly
+- Toolbar/top-bar/shortcut controls expose `data-onboarding-target` anchors used by the coachmark overlay
 
 **Notifications internals (operational map):**
 
