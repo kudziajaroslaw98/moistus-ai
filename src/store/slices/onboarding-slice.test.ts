@@ -96,32 +96,104 @@ describe('onboarding slice', () => {
 		});
 	});
 
-	it('completes the first two tasks from real editor events', () => {
+	it('moves create-node guidance from toolbar to canvas before completion', () => {
 		const harness = createOnboardingSliceHarness();
 		const state = harness.getState();
 
 		(state.startOnboarding as () => void)();
-		(state.handleOnboardingNodeEditorOpened as (mode: 'create' | 'edit') => void)(
-			'create'
-		);
+		expect(harness.getState()).toMatchObject({
+			onboardingCreateNodeStep: 'toolbar',
+			onboardingActiveTarget: 'add-node',
+		});
+
+		(state.handleOnboardingToolModeChanged as (tool: string) => void)('node');
+		expect(harness.getState()).toMatchObject({
+			onboardingCreateNodeStep: 'canvas',
+			onboardingActiveTarget: null,
+		});
+
+		(state.handleOnboardingCanvasNodeCreated as () => void)();
+		expect(harness.getState()).toMatchObject({
+			onboardingTasks: {
+				'create-node': true,
+				'try-pattern': false,
+				'know-controls': false,
+			},
+			onboardingCreateNodeStep: null,
+		});
+	});
+
+	it('shows a post-create edit hint after the pattern task succeeds', () => {
+		const harness = createOnboardingSliceHarness();
+		const state = harness.getState();
+
+		(state.startOnboardingTask as (taskId: string) => void)('try-pattern');
 		(
 			state.handleOnboardingNodeCreated as (details: {
 				mode: 'create' | 'edit';
 				usedPatterns: boolean;
+				nodeId?: string | null;
 			}) => void
 		)({
 			mode: 'create',
 			usedPatterns: true,
+			nodeId: 'node-123',
 		});
 
-		expect(harness.getState().onboardingTasks).toMatchObject({
-			'create-node': true,
-			'try-pattern': true,
-			'know-controls': false,
+		expect(harness.getState()).toMatchObject({
+			onboardingTasks: {
+				'create-node': false,
+				'try-pattern': true,
+				'know-controls': false,
+			},
+			onboardingPatternStep: 'post-create-edit-hint',
+			onboardingHighlightedNodeId: 'node-123',
+			onboardingActiveTarget: 'created-node',
 		});
 	});
 
-	it('finishes the controls tour into the optional upsell', () => {
+	it('dismisses the edit hint and finishes without upsell for pro users', () => {
+		const harness = createOnboardingSliceHarness({
+			currentSubscription: {
+				status: 'active',
+				plan: { name: 'pro' },
+			},
+		});
+		const state = harness.getState();
+
+		(state.markOnboardingTaskComplete as (taskId: string) => void)('create-node');
+		(
+			state.handleOnboardingNodeCreated as (details: {
+				mode: 'create' | 'edit';
+				usedPatterns: boolean;
+				nodeId?: string | null;
+			}) => void
+		)({
+			mode: 'create',
+			usedPatterns: true,
+			nodeId: 'node-123',
+		});
+		(state.startOnboardingTask as (taskId: string) => void)('know-controls');
+
+		for (let index = 0; index < ONBOARDING_COACHMARKS.length; index += 1) {
+			(state.advanceOnboardingCoachmark as () => void)();
+		}
+
+		expect(harness.getState()).toMatchObject({
+			onboardingStatus: 'hidden',
+			hasCompletedOnboarding: true,
+			hasSeenOnboardingUpsell: false,
+			onboardingPatternStep: null,
+			onboardingHighlightedNodeId: null,
+			onboardingTasks: {
+				'create-node': true,
+				'try-pattern': true,
+				'know-controls': true,
+			},
+		});
+	});
+
+	it('finishes the controls tour into the optional upsell for free users', () => {
 		const harness = createOnboardingSliceHarness();
 		const state = harness.getState();
 
@@ -133,12 +205,12 @@ describe('onboarding slice', () => {
 			(state.advanceOnboardingCoachmark as () => void)();
 		}
 
-		expect(harness.getState().onboardingTasks).toMatchObject({
-			'create-node': true,
-			'try-pattern': true,
-			'know-controls': true,
-		});
 		expect(harness.getState()).toMatchObject({
+			onboardingTasks: {
+				'create-node': true,
+				'try-pattern': true,
+				'know-controls': true,
+			},
 			onboardingStatus: 'upsell',
 			hasSeenOnboardingUpsell: true,
 		});

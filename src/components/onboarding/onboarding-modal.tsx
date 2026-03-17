@@ -28,6 +28,9 @@ interface FloatingTargetRect {
 	height: number;
 }
 
+const CANVAS_SAFE_OFFSET =
+	'calc(env(safe-area-inset-bottom, 0px) + var(--mind-map-toolbar-clearance, 0px) + 1rem)';
+
 function IntroOverlay({
 	onExplore,
 	onStart,
@@ -44,59 +47,122 @@ function IntroOverlay({
 		>
 			<motion.div
 				animate={{ opacity: 1, y: 0, scale: 1 }}
-				className='w-full max-w-2xl rounded-3xl border border-white/12 bg-base/95 p-6 shadow-2xl shadow-black/35 sm:p-8'
+				className='w-full max-w-5xl overflow-hidden rounded-[2rem] border border-white/12 bg-base/95 shadow-2xl shadow-black/35'
 				exit={{ opacity: 0, y: 12, scale: 0.98 }}
 				initial={{ opacity: 0, y: 24, scale: 0.98 }}
 			>
-				<div className='space-y-4'>
-					<div className='inline-flex items-center gap-2 rounded-full border border-primary-500/25 bg-primary-500/10 px-3 py-1 text-xs font-medium text-primary-300'>
-						<span className='size-2 rounded-full bg-primary-400' />
-						Start inside the canvas
+				<div className='grid gap-0 md:grid-cols-[1.35fr_0.95fr]'>
+					<div className='relative overflow-hidden p-6 sm:p-8'>
+						<div className='absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.18),transparent_46%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.14),transparent_38%)]' />
+						<div className='relative space-y-5'>
+							<div className='inline-flex items-center gap-2 rounded-full border border-primary-500/25 bg-primary-500/10 px-3 py-1 text-xs font-medium text-primary-300'>
+								<span className='size-2 rounded-full bg-primary-400' />
+								Start inside the canvas
+							</div>
+
+							<div className='space-y-3'>
+								<h2 className='max-w-2xl text-3xl font-semibold tracking-tight text-text-primary sm:text-[2.5rem] sm:leading-[1.05]'>
+									Start with three useful moves, not a wall of features.
+								</h2>
+								<p className='max-w-2xl text-sm leading-6 text-text-secondary sm:text-base'>
+									We&apos;ll help you place a node, try one structured line,
+									and learn where the controls you&apos;ll actually use live.
+								</p>
+							</div>
+
+							<div className='grid gap-3 sm:grid-cols-3'>
+								<OnboardingValueCard
+									title='Place ideas visually'
+									description='Drop a node on the canvas and start shaping the map where you think.'
+								/>
+								<OnboardingValueCard
+									title='Add structure lightly'
+									description='Use patterns like #tag, ^tomorrow, and $task without leaving your flow.'
+								/>
+								<OnboardingValueCard
+									title='Keep moving quickly'
+									description='See the core controls now, then keep exploring naturally as the map grows.'
+								/>
+							</div>
+						</div>
 					</div>
 
-					<div className='space-y-2'>
-						<h2 className='text-3xl font-semibold tracking-tight text-text-primary'>
-							Learn Shiko by building one real map.
-						</h2>
-						<p className='max-w-xl text-sm leading-6 text-text-secondary sm:text-base'>
-							You do not need a product tour. You need the first few moves:
-							add a node, type a pattern, and learn where the core controls
-							live.
-						</p>
-					</div>
+					<div className='border-t border-white/10 bg-white/[0.03] p-6 sm:p-8 md:border-l md:border-t-0'>
+						<div className='flex h-full flex-col justify-between gap-6'>
+							<div>
+								<p className='text-xs font-medium uppercase tracking-[0.2em] text-text-tertiary'>
+									What happens next
+								</p>
+								<div className='mt-4 space-y-3 rounded-3xl border border-white/10 bg-white/[0.03] p-4'>
+									<IntroStep
+										index='1'
+										title='Add a node'
+										description='Choose add mode, then click empty canvas.'
+									/>
+									<IntroStep
+										index='2'
+										title='Try a pattern'
+										description='See how one line turns into a richer node.'
+									/>
+									<IntroStep
+										index='3'
+										title='Learn the core controls'
+										description='Get a quick pass over the toolbar, sharing, and shortcuts.'
+									/>
+								</div>
+							</div>
 
-					<div className='grid gap-3 sm:grid-cols-3'>
-						<OnboardingValueCard
-							title='Build on the canvas'
-							description='Start with a node and grow the map from there instead of reading feature copy.'
-						/>
-						<OnboardingValueCard
-							title='Type one structured line'
-							description='Use patterns like #tag and ^tomorrow to turn a quick thought into a structured node.'
-						/>
-						<OnboardingValueCard
-							title='Share when ready'
-							description='Learn the few controls that matter before any upgrade prompt gets in the way.'
-						/>
-					</div>
-
-					<div className='flex flex-col gap-3 pt-2 sm:flex-row'>
-						<Button
-							className='gap-2'
-							onClick={onStart}
-							size='md'
-							variant='default'
-						>
-							<Play className='size-4' />
-							Start walkthrough
-						</Button>
-						<Button onClick={onExplore} size='md' variant='secondary'>
-							Explore on my own
-						</Button>
+							<div className='space-y-3'>
+								<Button
+									className='w-full justify-between gap-2'
+									onClick={onStart}
+									size='md'
+									variant='default'
+								>
+									<span className='flex items-center gap-2'>
+										<Play className='size-4' />
+										Start walkthrough
+									</span>
+									<MoveRight className='size-4' />
+								</Button>
+								<Button
+									className='w-full'
+									onClick={onExplore}
+									size='md'
+									variant='secondary'
+								>
+									Explore on my own
+								</Button>
+							</div>
+						</div>
 					</div>
 				</div>
 			</motion.div>
 		</motion.div>
+	);
+}
+
+function IntroStep({
+	description,
+	index,
+	title,
+}: {
+	description: string;
+	index: string;
+	title: string;
+}) {
+	return (
+		<div className='flex items-start gap-3'>
+			<div className='inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-primary-500/15 text-xs font-semibold text-primary-300'>
+				{index}
+			</div>
+			<div>
+				<p className='text-sm font-medium text-text-primary'>{title}</p>
+				<p className='mt-1 text-xs leading-5 text-text-secondary'>
+					{description}
+				</p>
+			</div>
+		</div>
 	);
 }
 
@@ -108,7 +174,7 @@ function OnboardingValueCard({
 	description: string;
 }) {
 	return (
-		<div className='rounded-2xl border border-white/10 bg-white/4 p-4'>
+		<div className='rounded-3xl border border-white/10 bg-white/[0.04] p-4'>
 			<h3 className='text-sm font-semibold text-text-primary'>{title}</h3>
 			<p className='mt-2 text-xs leading-5 text-text-secondary'>{description}</p>
 		</div>
@@ -156,19 +222,19 @@ function ChecklistCard({
 			<div className='mt-4 space-y-3'>
 				<ChecklistItem
 					completed={tasks['create-node']}
-					description='Open the editor by adding your first node.'
+					description='Place your first node on the canvas.'
 					label='Create a node'
 					onClick={() => onTaskAction('create-node')}
 				/>
 				<ChecklistItem
 					completed={tasks['try-pattern']}
-					description='Use one structured line to create a richer node.'
+					description='Turn one line into structure with tags, dates, or tasks.'
 					label='Try a pattern'
 					onClick={() => onTaskAction('try-pattern')}
 				/>
 				<ChecklistItem
 					completed={tasks['know-controls']}
-					description='See the few controls that matter day to day.'
+					description='See the tools you will use most often.'
 					label='Know the controls'
 					onClick={() => onTaskAction('know-controls')}
 				/>
@@ -240,7 +306,7 @@ function FloatingHint({
 		}
 
 		const cardWidth = Math.min(320, window.innerWidth - 32);
-		const gap = 16;
+		const gap = 20;
 		const prefersRight =
 			targetRect.left + targetRect.width + gap + cardWidth < window.innerWidth - 16;
 		const left = prefersRight
@@ -291,15 +357,63 @@ function FloatingHint({
 	return (
 		<motion.div
 			animate={{ opacity: 1, y: 0 }}
-			className='fixed inset-x-4 bottom-4 z-[58] rounded-2xl border border-primary-500/25 bg-base/95 p-4 shadow-xl shadow-black/35 backdrop-blur-md'
+			className='fixed inset-x-4 z-[58] rounded-2xl border border-primary-500/25 bg-base/95 p-4 shadow-xl shadow-black/35 backdrop-blur-md'
 			exit={{ opacity: 0, y: 12 }}
 			initial={{ opacity: 0, y: 12 }}
+			style={{ bottom: CANVAS_SAFE_OFFSET }}
 		>
 			<div className='flex items-start justify-between gap-3'>
 				<div>
 					<p className='text-sm font-semibold text-text-primary'>{title}</p>
 					<p className='mt-1 text-xs leading-5 text-text-secondary'>
 						{description}
+					</p>
+				</div>
+
+				<button
+					className='rounded-lg p-1.5 text-text-tertiary transition-colors hover:bg-white/6 hover:text-text-primary'
+					onClick={onDismiss}
+					type='button'
+				>
+					<X className='size-4' />
+					<span className='sr-only'>Hide hint</span>
+				</button>
+			</div>
+		</motion.div>
+	);
+}
+
+function CanvasPlacementHint({
+	isMobile,
+	onDismiss,
+}: {
+	isMobile: boolean;
+	onDismiss: () => void;
+}) {
+	const desktopStyle = {
+		top: 112,
+		left: '50%',
+		transform: 'translateX(-50%)',
+	};
+
+	return (
+		<motion.div
+			animate={{ opacity: 1, y: 0 }}
+			className='fixed z-[58] w-[min(420px,calc(100vw-2rem))] rounded-3xl border border-primary-500/25 bg-base/95 p-4 shadow-xl shadow-black/35 backdrop-blur-md'
+			exit={{ opacity: 0, y: 12 }}
+			initial={{ opacity: 0, y: 12 }}
+			style={isMobile ? { left: 16, right: 16, bottom: CANVAS_SAFE_OFFSET } : desktopStyle}
+		>
+			<div className='flex items-start justify-between gap-3'>
+				<div>
+					<p className='text-sm font-semibold text-text-primary'>
+						Now click empty canvas
+					</p>
+					<p className='mt-1 text-xs leading-5 text-text-secondary'>
+						Shiko will place your new node where you click. You can also grow
+						from a selected node with its <span className='font-medium'>+</span>{' '}
+						button, or use <span className='font-medium'>Ctrl/Cmd + Arrow</span>{' '}
+						to create child nodes from the keyboard.
 					</p>
 				</div>
 
@@ -336,8 +450,9 @@ function CoachmarkCard({
 			return null;
 		}
 
-		const cardWidth = Math.min(340, window.innerWidth - 32);
-		const gap = 16;
+		const cardWidth = Math.min(360, window.innerWidth - 32);
+		const cardHeight = 220;
+		const gap = 28;
 		const left = Math.max(
 			16,
 			Math.min(
@@ -345,10 +460,14 @@ function CoachmarkCard({
 				window.innerWidth - cardWidth - 16
 			)
 		);
-		const top = Math.max(
-			96,
-			Math.min(targetRect.top + targetRect.height + gap, window.innerHeight - 250)
-		);
+		const prefersAbove =
+			targetRect.top + targetRect.height / 2 > window.innerHeight * 0.52;
+		const top = prefersAbove
+			? Math.max(96, targetRect.top - cardHeight - gap)
+			: Math.max(
+					96,
+					Math.min(targetRect.top + targetRect.height + gap, window.innerHeight - 250)
+				);
 
 		return {
 			left,
@@ -398,9 +517,10 @@ function CoachmarkCard({
 	return (
 		<motion.div
 			animate={{ opacity: 1, y: 0 }}
-			className='fixed inset-x-4 bottom-4 z-[60]'
+			className='fixed inset-x-4 z-[60]'
 			exit={{ opacity: 0, y: 12 }}
 			initial={{ opacity: 0, y: 12 }}
+			style={{ bottom: CANVAS_SAFE_OFFSET }}
 		>
 			{content}
 		</motion.div>
@@ -456,9 +576,10 @@ function MinimizedPill({
 	return (
 		<motion.button
 			animate={{ opacity: 1, y: 0 }}
-			className='fixed bottom-6 left-1/2 z-[55] flex -translate-x-1/2 items-center gap-3 rounded-full border border-white/10 bg-base/95 px-4 py-3 text-sm text-text-primary shadow-xl shadow-black/30 backdrop-blur-md'
+			className='fixed left-4 z-[55] flex items-center gap-3 rounded-full border border-white/10 bg-base/95 px-4 py-3 text-sm text-text-primary shadow-xl shadow-black/30 backdrop-blur-md'
 			initial={{ opacity: 0, y: 10 }}
 			onClick={onResume}
+			style={{ bottom: CANVAS_SAFE_OFFSET }}
 			type='button'
 			whileTap={{ scale: 0.98 }}
 		>
@@ -479,7 +600,11 @@ export function OnboardingModal() {
 		onboardingActiveTarget,
 		onboardingCoachmarkStep,
 		onboardingIsMinimized,
+		onboardingCreateNodeStep,
+		onboardingPatternStep,
+		onboardingHighlightedNodeId,
 		hasCompletedOnboarding,
+		currentSubscription,
 		startOnboarding,
 		exploreOnboardingIndependently,
 		resumeOnboarding,
@@ -487,6 +612,7 @@ export function OnboardingModal() {
 		startOnboardingTask,
 		advanceOnboardingCoachmark,
 		completeOnboarding,
+		dismissOnboardingPatternEditHint,
 		openNodeEditor,
 		reactFlowInstance,
 		setPopoverOpen,
@@ -497,7 +623,11 @@ export function OnboardingModal() {
 			onboardingActiveTarget: state.onboardingActiveTarget,
 			onboardingCoachmarkStep: state.onboardingCoachmarkStep,
 			onboardingIsMinimized: state.onboardingIsMinimized,
+			onboardingCreateNodeStep: state.onboardingCreateNodeStep,
+			onboardingPatternStep: state.onboardingPatternStep,
+			onboardingHighlightedNodeId: state.onboardingHighlightedNodeId,
 			hasCompletedOnboarding: state.hasCompletedOnboarding,
+			currentSubscription: state.currentSubscription,
 			startOnboarding: state.startOnboarding,
 			exploreOnboardingIndependently: state.exploreOnboardingIndependently,
 			resumeOnboarding: state.resumeOnboarding,
@@ -505,6 +635,7 @@ export function OnboardingModal() {
 			startOnboardingTask: state.startOnboardingTask,
 			advanceOnboardingCoachmark: state.advanceOnboardingCoachmark,
 			completeOnboarding: state.completeOnboarding,
+			dismissOnboardingPatternEditHint: state.dismissOnboardingPatternEditHint,
 			openNodeEditor: state.openNodeEditor,
 			reactFlowInstance: state.reactFlowInstance,
 			setPopoverOpen: state.setPopoverOpen,
@@ -515,11 +646,26 @@ export function OnboardingModal() {
 		() => Object.values(onboardingTasks).filter(Boolean).length,
 		[onboardingTasks]
 	);
+	const isProUser =
+		currentSubscription?.plan?.name === 'pro' &&
+		['active', 'trialing'].includes(currentSubscription?.status ?? '');
 	const shouldRenderMinimizedPill =
 		onboardingIsMinimized && !hasCompletedOnboarding;
 	const shouldRenderChecklist = onboardingStatus === 'checklist';
-	const shouldRenderUpsell = onboardingStatus === 'upsell';
+	const shouldRenderUpsell = onboardingStatus === 'upsell' && !isProUser;
 	const shouldRenderIntro = onboardingStatus === 'intro';
+	const shouldRenderCreateNodeToolbarHint =
+		shouldRenderChecklist &&
+		!onboardingTasks['create-node'] &&
+		onboardingCreateNodeStep !== 'canvas';
+	const shouldRenderCanvasHint =
+		shouldRenderChecklist &&
+		!onboardingTasks['create-node'] &&
+		onboardingCreateNodeStep === 'canvas';
+	const shouldRenderPatternEditHint =
+		shouldRenderChecklist &&
+		onboardingPatternStep === 'post-create-edit-hint' &&
+		Boolean(onboardingHighlightedNodeId);
 	const currentCoachmark = ONBOARDING_COACHMARKS[onboardingCoachmarkStep] ?? null;
 
 	useEffect(() => {
@@ -534,9 +680,14 @@ export function OnboardingModal() {
 
 		let animationFrame = 0;
 		const updateTargetRect = () => {
-			const target = document.querySelector<HTMLElement>(
-				`[data-onboarding-target="${onboardingActiveTarget}"]`
-			);
+			const target =
+				onboardingActiveTarget === 'created-node' && onboardingHighlightedNodeId
+					? document.querySelector<HTMLElement>(
+							`[data-id="${onboardingHighlightedNodeId}"]`
+						)
+					: document.querySelector<HTMLElement>(
+							`[data-onboarding-target="${onboardingActiveTarget}"]`
+						);
 
 			if (!target) {
 				setTargetRect(null);
@@ -566,7 +717,11 @@ export function OnboardingModal() {
 			window.removeEventListener('resize', scheduleUpdate);
 			window.removeEventListener('scroll', scheduleUpdate, true);
 		};
-	}, [onboardingActiveTarget, onboardingStatus]);
+	}, [
+		onboardingActiveTarget,
+		onboardingHighlightedNodeId,
+		onboardingStatus,
+	]);
 
 	const openPatternLesson = useCallback(() => {
 		const screenPosition =
@@ -609,8 +764,9 @@ export function OnboardingModal() {
 		Boolean(targetRect) &&
 		Boolean(onboardingActiveTarget) &&
 		(onboardingStatus === 'coachmarks' ||
-			(onboardingStatus === 'checklist' &&
-				onboardingActiveTarget === 'add-node'));
+			(shouldRenderChecklist &&
+				(onboardingActiveTarget === 'add-node' ||
+					onboardingActiveTarget === 'created-node')));
 
 	if (
 		!shouldRenderIntro &&
@@ -658,13 +814,34 @@ export function OnboardingModal() {
 			</AnimatePresence>
 
 			<AnimatePresence>
-				{shouldRenderChecklist && onboardingActiveTarget === 'add-node' && (
+				{shouldRenderCreateNodeToolbarHint && (
 					<FloatingHint
-						description='Start here. Add one node and the walkthrough will move with you.'
+						description='Start here. Choose Add Node, then the walkthrough will move onto the canvas with you.'
 						isMobile={isMobile}
 						onDismiss={minimizeOnboarding}
 						targetRect={targetRect}
 						title='Create your first node'
+					/>
+				)}
+			</AnimatePresence>
+
+			<AnimatePresence>
+				{shouldRenderCanvasHint && (
+					<CanvasPlacementHint
+						isMobile={isMobile}
+						onDismiss={minimizeOnboarding}
+					/>
+				)}
+			</AnimatePresence>
+
+			<AnimatePresence>
+				{shouldRenderPatternEditHint && (
+					<FloatingHint
+						description='To edit this node later, select it and press Enter, or just double-click it.'
+						isMobile={isMobile}
+						onDismiss={dismissOnboardingPatternEditHint}
+						targetRect={targetRect}
+						title='Editing is one step away'
 					/>
 				)}
 			</AnimatePresence>

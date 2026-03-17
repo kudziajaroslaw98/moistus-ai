@@ -322,21 +322,24 @@ export function ExportDropdown() {
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
-				<Button
-					className={cn('active:scale-95', isExporting && 'animate-pulse')}
-					size='icon'
-					title='Export Mind Map'
-					variant='secondary'
-					disabled={isExporting}
-				>
-					{isExporting ? (
-						<Loader2 className='size-4 animate-spin' />
-					) : (
-						<Download className='size-4' />
-					)}
-				</Button>
-			</DropdownMenuTrigger>
+			<DropdownMenuTrigger
+				render={
+					<Button
+						className={cn('active:scale-95', isExporting && 'animate-pulse')}
+						data-onboarding-target='export'
+						size='icon'
+						title='Export Mind Map'
+						variant='secondary'
+						disabled={isExporting}
+					>
+						{isExporting ? (
+							<Loader2 className='size-4 animate-spin' />
+						) : (
+							<Download className='size-4' />
+						)}
+					</Button>
+				}
+			/>
 			<DropdownMenuContent align='start' className='w-64'>
 				<ExportMenuContent />
 			</DropdownMenuContent>

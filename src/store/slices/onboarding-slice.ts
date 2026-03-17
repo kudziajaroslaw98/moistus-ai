@@ -1,13 +1,19 @@
 import {
 	DEFAULT_ONBOARDING_TASKS,
 	ONBOARDING_COACHMARKS,
+	ONBOARDING_CREATE_NODE_STEPS,
+	ONBOARDING_PATTERN_STEPS,
 	ONBOARDING_STATUSES,
 	ONBOARDING_STORAGE_KEY,
+	ONBOARDING_TARGETS,
 	ONBOARDING_TASK_IDS,
+	type OnboardingCreateNodeStep,
+	type OnboardingPatternStep,
 	type OnboardingStatus,
 	type OnboardingTarget,
 	type OnboardingTaskId,
 } from '@/constants/onboarding';
+import type { Tool } from '@/types/tool';
 import { StateCreator } from 'zustand';
 import { AppState } from '../app-state';
 
@@ -19,6 +25,9 @@ interface StoredOnboardingState {
 	onboardingActiveTarget?: OnboardingTarget | null;
 	onboardingCoachmarkStep?: number;
 	onboardingIsMinimized?: boolean;
+	onboardingCreateNodeStep?: OnboardingCreateNodeStep | null;
+	onboardingPatternStep?: OnboardingPatternStep | null;
+	onboardingHighlightedNodeId?: string | null;
 	hasCompletedOnboarding?: boolean;
 	hasSkippedOnboarding?: boolean;
 	hasSeenOnboardingUpsell?: boolean;
@@ -30,6 +39,9 @@ export interface OnboardingSlice {
 	onboardingActiveTarget: OnboardingTarget | null;
 	onboardingCoachmarkStep: number;
 	onboardingIsMinimized: boolean;
+	onboardingCreateNodeStep: OnboardingCreateNodeStep | null;
+	onboardingPatternStep: OnboardingPatternStep | null;
+	onboardingHighlightedNodeId: string | null;
 	hasCompletedOnboarding: boolean;
 	hasSkippedOnboarding: boolean;
 	hasSeenOnboardingUpsell: boolean;
@@ -42,11 +54,15 @@ export interface OnboardingSlice {
 	startOnboardingTask: (taskId: OnboardingTaskId) => void;
 	markOnboardingTaskComplete: (taskId: OnboardingTaskId) => void;
 	advanceOnboardingCoachmark: () => void;
+	handleOnboardingToolModeChanged: (tool: Tool) => void;
+	handleOnboardingCanvasNodeCreated: () => void;
 	handleOnboardingNodeEditorOpened: (mode: 'create' | 'edit') => void;
 	handleOnboardingNodeCreated: (details: {
 		mode: 'create' | 'edit';
 		usedPatterns: boolean;
+		nodeId?: string | null;
 	}) => void;
+	dismissOnboardingPatternEditHint: () => void;
 	restartOnboarding: () => void;
 	completeOnboarding: () => void;
 	resetOnboarding: () => void;
@@ -71,6 +87,9 @@ const DEFAULT_STATE: StoredOnboardingState = {
 	onboardingActiveTarget: null,
 	onboardingCoachmarkStep: 0,
 	onboardingIsMinimized: false,
+	onboardingCreateNodeStep: null,
+	onboardingPatternStep: null,
+	onboardingHighlightedNodeId: null,
 	hasCompletedOnboarding: false,
 	hasSkippedOnboarding: false,
 	hasSeenOnboardingUpsell: false,
@@ -81,6 +100,20 @@ const hasWindow = () => typeof window !== 'undefined';
 const isValidStatus = (value: unknown): value is OnboardingStatus =>
 	typeof value === 'string' &&
 	ONBOARDING_STATUSES.includes(value as OnboardingStatus);
+
+const isValidTarget = (value: unknown): value is OnboardingTarget =>
+	typeof value === 'string' &&
+	ONBOARDING_TARGETS.includes(value as OnboardingTarget);
+
+const isValidCreateNodeStep = (
+	value: unknown
+): value is OnboardingCreateNodeStep =>
+	typeof value === 'string' &&
+	ONBOARDING_CREATE_NODE_STEPS.includes(value as OnboardingCreateNodeStep);
+
+const isValidPatternStep = (value: unknown): value is OnboardingPatternStep =>
+	typeof value === 'string' &&
+	ONBOARDING_PATTERN_STEPS.includes(value as OnboardingPatternStep);
 
 const normalizeTasks = (
 	value: Partial<Record<OnboardingTaskId, boolean>> | undefined
@@ -112,15 +145,27 @@ const readStoredOnboardingState = (): StoredOnboardingState => {
 				? parsed.onboardingStatus
 				: 'hidden',
 			onboardingTasks: normalizeTasks(parsed.onboardingTasks),
-			onboardingActiveTarget:
-				parsed.onboardingActiveTarget && parsed.onboardingActiveTarget.length > 0
-					? parsed.onboardingActiveTarget
-					: null,
+			onboardingActiveTarget: isValidTarget(parsed.onboardingActiveTarget)
+				? parsed.onboardingActiveTarget
+				: null,
 			onboardingCoachmarkStep:
 				typeof parsed.onboardingCoachmarkStep === 'number'
 					? parsed.onboardingCoachmarkStep
 					: 0,
 			onboardingIsMinimized: parsed.onboardingIsMinimized === true,
+			onboardingCreateNodeStep: isValidCreateNodeStep(
+				parsed.onboardingCreateNodeStep
+			)
+				? parsed.onboardingCreateNodeStep
+				: null,
+			onboardingPatternStep: isValidPatternStep(parsed.onboardingPatternStep)
+				? parsed.onboardingPatternStep
+				: null,
+			onboardingHighlightedNodeId:
+				typeof parsed.onboardingHighlightedNodeId === 'string' &&
+				parsed.onboardingHighlightedNodeId.length > 0
+					? parsed.onboardingHighlightedNodeId
+					: null,
 			hasCompletedOnboarding: parsed.hasCompletedOnboarding === true,
 			hasSkippedOnboarding: parsed.hasSkippedOnboarding === true,
 			hasSeenOnboardingUpsell: parsed.hasSeenOnboardingUpsell === true,
@@ -134,8 +179,48 @@ const readStoredOnboardingState = (): StoredOnboardingState => {
 const areAllTasksComplete = (tasks: OnboardingTaskState) =>
 	ONBOARDING_TASK_IDS.every((taskId) => tasks[taskId]);
 
-const getCreateNodeTarget = (tasks: OnboardingTaskState) =>
-	tasks['create-node'] ? null : 'add-node';
+const isProSubscription = (
+	currentSubscription: OnboardingEligibilityInput['currentSubscription']
+) =>
+	currentSubscription?.plan?.name === 'pro' &&
+	['active', 'trialing'].includes(currentSubscription.status);
+
+const shouldShowOnboardingUpsell = (
+	currentSubscription: OnboardingEligibilityInput['currentSubscription']
+) => !isProSubscription(currentSubscription);
+
+const getCreateNodeStepForTool = (
+	activeTool: Tool
+): OnboardingCreateNodeStep => (activeTool === 'node' ? 'canvas' : 'toolbar');
+
+const getCreateNodeTarget = (
+	tasks: OnboardingTaskState,
+	createNodeStep: OnboardingCreateNodeStep | null
+) => {
+	if (tasks['create-node']) {
+		return null;
+	}
+
+	return createNodeStep === 'canvas' ? null : 'add-node';
+};
+
+const getChecklistTarget = ({
+	tasks,
+	createNodeStep,
+	patternStep,
+	highlightedNodeId,
+}: {
+	tasks: OnboardingTaskState;
+	createNodeStep: OnboardingCreateNodeStep | null;
+	patternStep: OnboardingPatternStep | null;
+	highlightedNodeId: string | null;
+}) => {
+	if (patternStep === 'post-create-edit-hint' && highlightedNodeId) {
+		return 'created-node';
+	}
+
+	return getCreateNodeTarget(tasks, createNodeStep);
+};
 
 const persistOnboardingState = (state: OnboardingSlice) => {
 	if (!hasWindow()) {
@@ -148,6 +233,9 @@ const persistOnboardingState = (state: OnboardingSlice) => {
 		onboardingActiveTarget: state.onboardingActiveTarget,
 		onboardingCoachmarkStep: state.onboardingCoachmarkStep,
 		onboardingIsMinimized: state.onboardingIsMinimized,
+		onboardingCreateNodeStep: state.onboardingCreateNodeStep,
+		onboardingPatternStep: state.onboardingPatternStep,
+		onboardingHighlightedNodeId: state.onboardingHighlightedNodeId,
 		hasCompletedOnboarding: state.hasCompletedOnboarding,
 		hasSkippedOnboarding: state.hasSkippedOnboarding,
 		hasSeenOnboardingUpsell: state.hasSeenOnboardingUpsell,
@@ -189,11 +277,7 @@ export const isEligibleForOnboarding = ({
 		return false;
 	}
 
-	return !(
-		currentSubscription?.plan?.name === 'pro' &&
-		(currentSubscription.status === 'active' ||
-			currentSubscription.status === 'trialing')
-	);
+	return !isProSubscription(currentSubscription);
 };
 
 export const createOnboardingSlice: StateCreator<
@@ -209,12 +293,51 @@ export const createOnboardingSlice: StateCreator<
 		persistOnboardingState(get() as AppState & OnboardingSlice);
 	};
 
+	const getCompletionPatch = (
+		nextTasks: OnboardingTaskState
+	): Partial<OnboardingSlice> => {
+		const { currentSubscription } = get();
+
+		if (shouldShowOnboardingUpsell(currentSubscription)) {
+			return {
+				onboardingTasks: nextTasks,
+				onboardingStatus: 'upsell',
+				onboardingActiveTarget: null,
+				onboardingCoachmarkStep: 0,
+				onboardingIsMinimized: false,
+				onboardingCreateNodeStep: null,
+				onboardingPatternStep: null,
+				onboardingHighlightedNodeId: null,
+				hasCompletedOnboarding: false,
+				hasSkippedOnboarding: false,
+				hasSeenOnboardingUpsell: true,
+			};
+		}
+
+		return {
+			onboardingTasks: nextTasks,
+			onboardingStatus: 'hidden',
+			onboardingActiveTarget: null,
+			onboardingCoachmarkStep: 0,
+			onboardingIsMinimized: false,
+			onboardingCreateNodeStep: null,
+			onboardingPatternStep: null,
+			onboardingHighlightedNodeId: null,
+			hasCompletedOnboarding: true,
+			hasSkippedOnboarding: false,
+			hasSeenOnboardingUpsell: false,
+		};
+	};
+
 	return {
 		onboardingStatus: initialState.onboardingStatus ?? 'hidden',
 		onboardingTasks: normalizeTasks(initialState.onboardingTasks),
 		onboardingActiveTarget: initialState.onboardingActiveTarget ?? null,
 		onboardingCoachmarkStep: initialState.onboardingCoachmarkStep ?? 0,
 		onboardingIsMinimized: initialState.onboardingIsMinimized === true,
+		onboardingCreateNodeStep: initialState.onboardingCreateNodeStep ?? null,
+		onboardingPatternStep: initialState.onboardingPatternStep ?? null,
+		onboardingHighlightedNodeId: initialState.onboardingHighlightedNodeId ?? null,
 		hasCompletedOnboarding: initialState.hasCompletedOnboarding === true,
 		hasSkippedOnboarding: initialState.hasSkippedOnboarding === true,
 		hasSeenOnboardingUpsell: initialState.hasSeenOnboardingUpsell === true,
@@ -253,17 +376,27 @@ export const createOnboardingSlice: StateCreator<
 
 			applyOnboardingPatch({
 				onboardingStatus: areAllTasksComplete(onboardingTasks)
-					? 'upsell'
+					? shouldShowOnboardingUpsell(currentSubscription)
+						? 'upsell'
+						: 'hidden'
 					: 'intro',
 			});
 		},
 
 		startOnboarding: () => {
+			const createNodeStep = getCreateNodeStepForTool(get().activeTool);
+
 			applyOnboardingPatch({
 				onboardingStatus: 'checklist',
-				onboardingActiveTarget: 'add-node',
+				onboardingActiveTarget: getCreateNodeTarget(
+					get().onboardingTasks,
+					createNodeStep
+				),
 				onboardingCoachmarkStep: 0,
 				onboardingIsMinimized: false,
+				onboardingCreateNodeStep: createNodeStep,
+				onboardingPatternStep: null,
+				onboardingHighlightedNodeId: null,
 				hasSkippedOnboarding: false,
 			});
 		},
@@ -279,17 +412,41 @@ export const createOnboardingSlice: StateCreator<
 		},
 
 		resumeOnboarding: () => {
-			const { onboardingTasks, hasCompletedOnboarding } = get();
+			const {
+				onboardingTasks,
+				hasCompletedOnboarding,
+				currentSubscription,
+				onboardingCreateNodeStep,
+				onboardingPatternStep,
+				onboardingHighlightedNodeId,
+			} = get();
 
 			if (hasCompletedOnboarding) {
 				return;
 			}
 
+			if (areAllTasksComplete(onboardingTasks)) {
+				applyOnboardingPatch(
+					shouldShowOnboardingUpsell(currentSubscription)
+						? {
+								onboardingStatus: 'upsell',
+								onboardingActiveTarget: null,
+								onboardingCoachmarkStep: 0,
+								onboardingIsMinimized: false,
+							}
+						: getCompletionPatch(onboardingTasks)
+				);
+				return;
+			}
+
 			applyOnboardingPatch({
-				onboardingStatus: areAllTasksComplete(onboardingTasks)
-					? 'upsell'
-					: 'checklist',
-				onboardingActiveTarget: getCreateNodeTarget(onboardingTasks),
+				onboardingStatus: 'checklist',
+				onboardingActiveTarget: getChecklistTarget({
+					tasks: onboardingTasks,
+					createNodeStep: onboardingCreateNodeStep,
+					patternStep: onboardingPatternStep,
+					highlightedNodeId: onboardingHighlightedNodeId,
+				}),
 				onboardingCoachmarkStep: 0,
 				onboardingIsMinimized: false,
 			});
@@ -316,20 +473,47 @@ export const createOnboardingSlice: StateCreator<
 					onboardingActiveTarget: ONBOARDING_COACHMARKS[0]?.target ?? null,
 					onboardingCoachmarkStep: 0,
 					onboardingIsMinimized: false,
+					onboardingPatternStep: null,
+					onboardingHighlightedNodeId: null,
+				});
+				return;
+			}
+
+			if (taskId === 'create-node') {
+				const createNodeStep = getCreateNodeStepForTool(get().activeTool);
+
+				applyOnboardingPatch({
+					onboardingStatus: 'checklist',
+					onboardingActiveTarget: getCreateNodeTarget(
+						get().onboardingTasks,
+						createNodeStep
+					),
+					onboardingCoachmarkStep: 0,
+					onboardingIsMinimized: false,
+					onboardingCreateNodeStep: createNodeStep,
+					onboardingPatternStep: null,
+					onboardingHighlightedNodeId: null,
 				});
 				return;
 			}
 
 			applyOnboardingPatch({
 				onboardingStatus: 'checklist',
-				onboardingActiveTarget: taskId === 'create-node' ? 'add-node' : null,
+				onboardingActiveTarget: null,
 				onboardingCoachmarkStep: 0,
 				onboardingIsMinimized: false,
+				onboardingPatternStep: 'pattern-editor',
+				onboardingHighlightedNodeId: null,
 			});
 		},
 
 		markOnboardingTaskComplete: (taskId) => {
-			const { onboardingTasks, hasSeenOnboardingUpsell } = get();
+			const {
+				onboardingTasks,
+				onboardingCreateNodeStep,
+				onboardingPatternStep,
+				onboardingHighlightedNodeId,
+			} = get();
 			if (onboardingTasks[taskId]) {
 				return;
 			}
@@ -340,23 +524,29 @@ export const createOnboardingSlice: StateCreator<
 			};
 
 			if (areAllTasksComplete(nextTasks)) {
-				applyOnboardingPatch({
-					onboardingTasks: nextTasks,
-					onboardingStatus: hasSeenOnboardingUpsell ? 'hidden' : 'upsell',
-					onboardingActiveTarget: null,
-					onboardingCoachmarkStep: 0,
-					onboardingIsMinimized: false,
-					hasCompletedOnboarding: hasSeenOnboardingUpsell,
-					hasSeenOnboardingUpsell: true,
-				});
+				applyOnboardingPatch(getCompletionPatch(nextTasks));
 				return;
 			}
 
 			applyOnboardingPatch({
 				onboardingTasks: nextTasks,
 				onboardingStatus: 'checklist',
-				onboardingActiveTarget: null,
+				onboardingActiveTarget: getChecklistTarget({
+					tasks: nextTasks,
+					createNodeStep:
+						taskId === 'create-node' ? null : onboardingCreateNodeStep,
+					patternStep:
+						taskId === 'try-pattern' ? null : onboardingPatternStep,
+					highlightedNodeId:
+						taskId === 'try-pattern' ? null : onboardingHighlightedNodeId,
+				}),
 				onboardingCoachmarkStep: 0,
+				onboardingCreateNodeStep:
+					taskId === 'create-node' ? null : onboardingCreateNodeStep,
+				onboardingPatternStep:
+					taskId === 'try-pattern' ? null : onboardingPatternStep,
+				onboardingHighlightedNodeId:
+					taskId === 'try-pattern' ? null : onboardingHighlightedNodeId,
 			});
 		},
 
@@ -378,26 +568,151 @@ export const createOnboardingSlice: StateCreator<
 			});
 		},
 
-		handleOnboardingNodeEditorOpened: (mode) => {
-			if (mode !== 'create') {
+		handleOnboardingToolModeChanged: (tool) => {
+			const {
+				onboardingTasks,
+				onboardingStatus,
+				onboardingCreateNodeStep,
+				onboardingIsMinimized,
+			} = get();
+
+			if (
+				onboardingTasks['create-node'] ||
+				(onboardingStatus === 'hidden' && !onboardingIsMinimized) ||
+				onboardingStatus === 'coachmarks' ||
+				onboardingStatus === 'intro' ||
+				onboardingStatus === 'upsell'
+			) {
 				return;
 			}
 
-			const { onboardingTasks } = get();
-			if (!onboardingTasks['create-node']) {
-				get().markOnboardingTaskComplete('create-node');
+			const nextCreateNodeStep = getCreateNodeStepForTool(tool);
+			if (nextCreateNodeStep === onboardingCreateNodeStep) {
+				return;
+			}
+
+			applyOnboardingPatch({
+				onboardingCreateNodeStep: nextCreateNodeStep,
+				onboardingActiveTarget:
+					onboardingStatus === 'checklist' && nextCreateNodeStep === 'toolbar'
+						? 'add-node'
+						: null,
+			});
+		},
+
+		handleOnboardingCanvasNodeCreated: () => {
+			const {
+				onboardingTasks,
+				onboardingPatternStep,
+				onboardingHighlightedNodeId,
+			} = get();
+			if (onboardingTasks['create-node']) {
+				return;
+			}
+
+			const nextTasks = {
+				...onboardingTasks,
+				'create-node': true,
+			};
+
+			if (areAllTasksComplete(nextTasks)) {
+				applyOnboardingPatch(getCompletionPatch(nextTasks));
+				return;
+			}
+
+			applyOnboardingPatch({
+				onboardingTasks: nextTasks,
+				onboardingStatus: 'checklist',
+				onboardingActiveTarget: getChecklistTarget({
+					tasks: nextTasks,
+					createNodeStep: null,
+					patternStep: onboardingPatternStep,
+					highlightedNodeId: onboardingHighlightedNodeId,
+				}),
+				onboardingCoachmarkStep: 0,
+				onboardingCreateNodeStep: null,
+			});
+		},
+
+		handleOnboardingNodeEditorOpened: (mode) => {
+			if (mode !== 'edit') {
+				return;
+			}
+
+			const { onboardingPatternStep } = get();
+			if (onboardingPatternStep === 'post-create-edit-hint') {
+				get().dismissOnboardingPatternEditHint();
 			}
 		},
 
-		handleOnboardingNodeCreated: ({ mode, usedPatterns }) => {
+		handleOnboardingNodeCreated: ({ mode, usedPatterns, nodeId }) => {
 			if (mode !== 'create' || !usedPatterns) {
 				return;
 			}
 
-			const { onboardingTasks } = get();
-			if (!onboardingTasks['try-pattern']) {
-				get().markOnboardingTaskComplete('try-pattern');
+			const { onboardingTasks, onboardingCreateNodeStep } = get();
+			if (onboardingTasks['try-pattern']) {
+				return;
 			}
+
+			const nextTasks = {
+				...onboardingTasks,
+				'try-pattern': true,
+			};
+
+			if (!nodeId) {
+				if (areAllTasksComplete(nextTasks)) {
+					applyOnboardingPatch(getCompletionPatch(nextTasks));
+					return;
+				}
+
+				applyOnboardingPatch({
+					onboardingTasks: nextTasks,
+					onboardingStatus: 'checklist',
+					onboardingActiveTarget: getChecklistTarget({
+						tasks: nextTasks,
+						createNodeStep: onboardingCreateNodeStep,
+						patternStep: null,
+						highlightedNodeId: null,
+					}),
+					onboardingCoachmarkStep: 0,
+					onboardingPatternStep: null,
+					onboardingHighlightedNodeId: null,
+				});
+				return;
+			}
+
+			applyOnboardingPatch({
+				onboardingTasks: nextTasks,
+				onboardingStatus: 'checklist',
+				onboardingActiveTarget: 'created-node',
+				onboardingCoachmarkStep: 0,
+				onboardingPatternStep: 'post-create-edit-hint',
+				onboardingHighlightedNodeId: nodeId,
+				onboardingIsMinimized: false,
+			});
+		},
+
+		dismissOnboardingPatternEditHint: () => {
+			const { onboardingTasks, onboardingCreateNodeStep } = get();
+
+			if (areAllTasksComplete(onboardingTasks)) {
+				applyOnboardingPatch(getCompletionPatch(onboardingTasks));
+				return;
+			}
+
+			applyOnboardingPatch({
+				onboardingStatus: 'checklist',
+				onboardingActiveTarget: getChecklistTarget({
+					tasks: onboardingTasks,
+					createNodeStep: onboardingCreateNodeStep,
+					patternStep: null,
+					highlightedNodeId: null,
+				}),
+				onboardingCoachmarkStep: 0,
+				onboardingPatternStep: null,
+				onboardingHighlightedNodeId: null,
+			});
 		},
 
 		restartOnboarding: () => {
@@ -407,6 +722,9 @@ export const createOnboardingSlice: StateCreator<
 				onboardingActiveTarget: null,
 				onboardingCoachmarkStep: 0,
 				onboardingIsMinimized: false,
+				onboardingCreateNodeStep: null,
+				onboardingPatternStep: null,
+				onboardingHighlightedNodeId: null,
 				hasCompletedOnboarding: false,
 				hasSkippedOnboarding: false,
 				hasSeenOnboardingUpsell: false,
@@ -419,6 +737,9 @@ export const createOnboardingSlice: StateCreator<
 				onboardingActiveTarget: null,
 				onboardingCoachmarkStep: 0,
 				onboardingIsMinimized: false,
+				onboardingCreateNodeStep: null,
+				onboardingPatternStep: null,
+				onboardingHighlightedNodeId: null,
 				hasCompletedOnboarding: true,
 				hasSkippedOnboarding: false,
 				hasSeenOnboardingUpsell: true,
@@ -436,6 +757,9 @@ export const createOnboardingSlice: StateCreator<
 				onboardingActiveTarget: null,
 				onboardingCoachmarkStep: 0,
 				onboardingIsMinimized: false,
+				onboardingCreateNodeStep: null,
+				onboardingPatternStep: null,
+				onboardingHighlightedNodeId: null,
 				hasCompletedOnboarding: false,
 				hasSkippedOnboarding: false,
 				hasSeenOnboardingUpsell: false,

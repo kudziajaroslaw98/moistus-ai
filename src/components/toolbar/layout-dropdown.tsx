@@ -144,21 +144,24 @@ export function LayoutDropdown() {
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
-				<Button
-					className={cn('active:scale-95', isLayouting && 'animate-pulse')}
-					size='icon'
-					title='Auto Layout'
-					variant='secondary'
-					disabled={isLayouting}
-				>
-					{isLayouting ? (
-						<Loader2 className='size-4 animate-spin' />
-					) : (
-						<LayoutGrid className='size-4' />
-					)}
-				</Button>
-			</DropdownMenuTrigger>
+			<DropdownMenuTrigger
+				render={
+					<Button
+						className={cn('active:scale-95', isLayouting && 'animate-pulse')}
+						data-onboarding-target='layout'
+						size='icon'
+						title='Auto Layout'
+						variant='secondary'
+						disabled={isLayouting}
+					>
+						{isLayouting ? (
+							<Loader2 className='size-4 animate-spin' />
+						) : (
+							<LayoutGrid className='size-4' />
+						)}
+					</Button>
+				}
+			/>
 			<DropdownMenuContent align='start' className='w-48'>
 				<LayoutMenuContent />
 			</DropdownMenuContent>

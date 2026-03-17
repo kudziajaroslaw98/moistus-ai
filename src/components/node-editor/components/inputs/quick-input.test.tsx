@@ -20,6 +20,7 @@ const mockParseInput = jest.fn((text: string): any => ({
 
 let mockQuickInputValue = ''
 let mockQuickInputNodeType: string | null = null
+let mockOnboardingPatternStep: string | null = null
 
 jest.mock('@/store/mind-map-store', () => ({
 	__esModule: true,
@@ -42,6 +43,7 @@ jest.mock('@/store/mind-map-store', () => ({
 			addNode: mockAddNode,
 			updateNode: mockUpdateNode,
 			handleOnboardingNodeCreated: mockHandleOnboardingNodeCreated,
+			onboardingPatternStep: mockOnboardingPatternStep,
 		})
 	),
 }))
@@ -324,6 +326,7 @@ describe('QuickInput', () => {
 		jest.clearAllMocks()
 		mockQuickInputValue = ''
 		mockQuickInputNodeType = null
+		mockOnboardingPatternStep = null
 		mockParseInput.mockImplementation((text: string) => ({
 			content: text,
 			tags: [],
@@ -725,6 +728,22 @@ describe('QuickInput', () => {
 			)
 		})
 
+		it('shows the syntax-help onboarding hint during the pattern lesson', () => {
+			mockOnboardingPatternStep = 'pattern-editor'
+
+			render(
+				<QuickInput
+					{...defaultProps}
+					initialValue="$task Review PR ^tomorrow #backend"
+					onboardingSource="onboarding-pattern"
+				/>
+			)
+
+			expect(
+				screen.getByText('Try more patterns in Syntax Help below.')
+			).toBeInTheDocument()
+		})
+
 		it('sets node type when currentNodeType is null', () => {
 			mockQuickInputNodeType = null
 			render(<QuickInput {...defaultProps} nodeType="taskNode" />)
@@ -800,6 +819,7 @@ describe('QuickInput', () => {
 				expect(mockHandleOnboardingNodeCreated).toHaveBeenCalledWith({
 					mode: 'create',
 					usedPatterns: true,
+					nodeId: 'new-node-1',
 				})
 			})
 		})

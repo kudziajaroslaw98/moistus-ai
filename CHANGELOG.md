@@ -14,6 +14,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-03-06 - Fixed shared-map node entitlement flow for collaborators by using owner subscription lookup in server API checks -->
 <!-- Updated: 2026-03-07 - Tightened template preflight failure handling and create/edit node-limit UX gating -->
 <!-- Updated: 2026-03-17 - Replaced pricing-first onboarding with an editor-first walkthrough and split upgrade prompts back to the dedicated modal -->
+<!-- Updated: 2026-03-17 - Refined onboarding v2 with split intro, canvas/add substeps, toolbar-state fix, and Pro upsell guard -->
 
 ## [2026-03-17]
 
@@ -21,11 +22,15 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **tests/onboarding-v2**: Added onboarding slice coverage for eligibility, resume/skip flow, real editor task completion, controls-tour completion, and state restore, plus quick-input coverage for onboarding parser prefills
   - Why: Locks the new task-based walkthrough contract before the editor wiring starts drifting
+- **tests/onboarding-refinements**: Added regression coverage for add-mode substeps, parser lesson syntax-help guidance, Pro-user walkthrough completion, and the cursor trigger active-state helper
+  - Why: Protects the refined walkthrough UX and the toolbar state fix from slipping back
 
 ### Changed
 
 - **onboarding/editor-walkthrough**: Replaced the old welcome/benefits/pricing modal with an editor-owned flow that uses an intro overlay, resumable checklist, anchored control hints, and a final optional Pro card
   - Why: Teaches users how to use the product before asking them to upgrade
+- **onboarding/walkthrough-polish**: Reworked the intro into a split hero with calmer product-teaching copy, moved add-node guidance into a canvas step, added a syntax-help nudge for the parser lesson, and expanded the controls tour to cover cursor, layout, export, tour, zoom, comments, share, shortcuts, and breadcrumb/home
+  - Why: Reduces intimidation on first open and makes each walkthrough step point to the next concrete action
 - **node-editor/onboarding-prefill**: Extended node-editor open state with onboarding preset/source support so the walkthrough can launch a deterministic parser lesson in the real editor
   - Why: Keeps the parser lesson inside the production creation flow instead of duplicating tutorial-only UI
 - **mind-map/onboarding-placement**: Moved onboarding startup out of client providers and into the mind-map experience, where eligibility can be checked against the loaded map + current user
@@ -35,6 +40,12 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **upgrade-flow-separation**: User-menu upgrade CTA and limit warnings now open the dedicated upgrade modal directly instead of reopening onboarding at a pricing step
   - Why: Keeps monetization prompts separate from product teaching and removes the old pricing-first coupling
+- **toolbar/cursor-active-state**: Selecting `Add Node` now visually deactivates the cursor trigger instead of leaving Select highlighted alongside it
+  - Why: Makes the active canvas mode unambiguous during onboarding and normal editing
+- **onboarding/canvas-safe-positioning**: The minimized walkthrough pill now lives in the lower-left canvas safe area above runtime toolbar clearance, and toolbar coachmarks now prefer rendering above bottom-dock controls
+  - Why: Prevents walkthrough UI from colliding with the toolbar on smaller windows
+- **onboarding/pro-upsell-guard**: Manual walkthroughs for active/trialing Pro users now complete without showing the final Pro upsell card
+  - Why: Removes a redundant monetization surface for users who already have the plan
 
 ### Removed
 

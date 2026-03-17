@@ -222,12 +222,14 @@ export const QuickInput: FC<QuickInputProps> = ({
 		addNode,
 		updateNode,
 		handleOnboardingNodeCreated,
+		onboardingPatternStep,
 	} = useAppStore(
 		useShallow((state) => ({
 			closeNodeEditor: state.closeNodeEditor,
 			addNode: state.addNode,
 			updateNode: state.updateNode,
 			handleOnboardingNodeCreated: state.handleOnboardingNodeCreated,
+			onboardingPatternStep: state.onboardingPatternStep,
 		}))
 	);
 
@@ -246,6 +248,10 @@ export const QuickInput: FC<QuickInputProps> = ({
 	);
 	const hasSyntaxPatterns =
 		universalPatterns.length > 0 || nodeSpecificPatterns.length > 0;
+	const showOnboardingPatternHint =
+		onboardingSource === 'onboarding-pattern' &&
+		onboardingPatternStep === 'pattern-editor' &&
+		hasSyntaxPatterns;
 
 	const collaborators = useMemo<CollaboratorMention[]>(() => {
 		if (mentionableUsers.length > 0) {
@@ -613,6 +619,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 			handleOnboardingNodeCreated({
 				mode,
 				usedPatterns: nodeData.patterns.length > 0,
+				nodeId: result.nodeId ?? existingNode?.id ?? null,
 			});
 
 			if (mapId && assigneeUserIds.length > 0) {
@@ -837,6 +844,23 @@ export const QuickInput: FC<QuickInputProps> = ({
 							ease: 'easeInOut' as const,
 						}}
 					>
+						<AnimatePresence>
+							{showOnboardingPatternHint && (
+								<motion.div
+									animate={{ opacity: 1, y: 0 }}
+									className='mb-3 rounded-xl border border-primary-500/20 bg-primary-500/8 px-3 py-2 text-xs leading-5 text-text-secondary'
+									exit={{ opacity: 0, y: -8 }}
+									initial={{ opacity: 0, y: -8 }}
+								>
+									<span className='font-medium text-text-primary'>
+										Try more patterns in Syntax Help below.
+									</span>{' '}
+									Use the examples to swap in tags, dates, assignees, or a
+									different node type.
+								</motion.div>
+							)}
+						</AnimatePresence>
+
 						<ParsingLegend
 							isCollapsed={legendCollapsed}
 							isNodeSpecificCollapsed={nodeSpecificLegendCollapsed}

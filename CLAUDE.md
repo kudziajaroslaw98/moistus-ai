@@ -306,8 +306,14 @@ pnpm pretty          # Prettier
 **Onboarding v2 placement**: Product onboarding now lives inside the editor (`ReactFlowArea` + `src/components/onboarding/onboarding-modal.tsx`), not in `ClientProviders`. Auto-start only for first owned free maps (`usageData.mindMapsCount === 1`), while non-onboarding upsells must go straight to `popoverOpen.upgradeUser`.
 <!-- Updated: 2026-03-17 - Hard-cut editor-first walkthrough replaced the global pricing-first modal -->
 
-**Onboarding control anchors**: Keep `data-onboarding-target` attrs on Add Node, AI Suggestions, Share, shortcuts help, and breadcrumb home links. The controls tour depends on those stable selectors.
-<!-- Updated: 2026-03-17 - Added DOM anchors for editor walkthrough coachmarks -->
+**Onboarding v2 task flow**: Step 1 is a two-step add flow (`toolbar` -> `canvas`) driven by real tool changes and pane-click node creation, not generic node-editor open events. Step 2 can show an inline parser hint in quick input plus a non-blocking post-create edit hint anchored to the created node.
+<!-- Updated: 2026-03-17 - Documented onboarding substeps and real event-driven completion rules -->
+
+**Onboarding control anchors**: Keep `data-onboarding-target` attrs on cursor/select, Add Node, AI Suggestions, Auto Layout, Export, Guided Tour, Reset Zoom, Comments, Share, shortcuts help, and breadcrumb home links. The controls tour depends on those stable selectors.
+<!-- Updated: 2026-03-17 - Expanded DOM anchors for refined editor walkthrough coachmarks -->
+
+**Toolbar active state**: The cursor trigger should only look active for actual cursor modes (`default`, `pan`, `connector`). `node` mode must light up only the Add Node button.
+<!-- Updated: 2026-03-17 - Documented cursor/add visual-state contract for toolbar -->
 
 **Rate Limiting**: In-memory only (`src/helpers/api/rate-limiter.ts`), won't scale horizontally without Redis.
 

@@ -30,6 +30,7 @@ import {
 } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { AIActionsPopover } from './ai/ai-actions-popover';
+import { getCursorToolTriggerVariant } from './toolbar/toolbar-utils';
 import { ExportDropdown, ExportMenuContent } from './toolbar/export-dropdown';
 import { LayoutDropdown, LayoutMenuContent } from './toolbar/layout-dropdown';
 import { Button, type ButtonProps } from './ui/button';
@@ -403,6 +404,7 @@ export const Toolbar = ({
 		if (tool.id === 'comments') {
 			return (
 				<Button
+					data-onboarding-target='comments'
 					key={tool.id}
 					onClick={() => onToolChange(tool.id)}
 					size='icon'
@@ -422,7 +424,13 @@ export const Toolbar = ({
 		return (
 			<Button
 				className='active:scale-95'
-				data-onboarding-target={tool.id === 'node' ? 'add-node' : undefined}
+				data-onboarding-target={
+					tool.id === 'node'
+						? 'add-node'
+						: tool.id === 'zoom'
+							? 'reset-zoom'
+							: undefined
+				}
 				key={tool.id}
 				onClick={() => onToolChange(tool.id)}
 				size='icon'
@@ -460,6 +468,7 @@ export const Toolbar = ({
 						render={
 							<Button
 								className='active:scale-95'
+								data-onboarding-target='guided-tour'
 								size='icon'
 								title='Guided Tour'
 								variant='secondary'
@@ -596,9 +605,10 @@ export const Toolbar = ({
 								<Button
 									{...buttonTriggerProps}
 									className={cn('active:scale-95', triggerProps.className)}
+									data-onboarding-target='cursor-tool'
 									size='icon'
 									title={currentCursorTool.label}
-									variant='default'
+									variant={getCursorToolTriggerVariant(activeTool)}
 								>
 									{currentCursorTool.icon}
 								</Button>
