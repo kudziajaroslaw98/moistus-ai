@@ -1,17 +1,19 @@
 import {
 	DEFAULT_ONBOARDING_TASKS,
-	ONBOARDING_COACHMARKS,
 	ONBOARDING_CREATE_NODE_STEPS,
 	ONBOARDING_PATTERN_STEPS,
 	ONBOARDING_STATUSES,
 	ONBOARDING_STORAGE_KEY,
 	ONBOARDING_TARGETS,
 	ONBOARDING_TASK_IDS,
+	ONBOARDING_VIEWPORTS,
+	getOnboardingCoachmarks,
 	type OnboardingCreateNodeStep,
 	type OnboardingPatternStep,
 	type OnboardingStatus,
 	type OnboardingTarget,
 	type OnboardingTaskId,
+	type OnboardingViewport,
 } from '@/constants/onboarding';
 import type { Tool } from '@/types/tool';
 import { StateCreator } from 'zustand';
@@ -28,6 +30,7 @@ interface StoredOnboardingState {
 	onboardingCreateNodeStep?: OnboardingCreateNodeStep | null;
 	onboardingPatternStep?: OnboardingPatternStep | null;
 	onboardingHighlightedNodeId?: string | null;
+	onboardingViewport?: OnboardingViewport;
 	hasCompletedOnboarding?: boolean;
 	hasSkippedOnboarding?: boolean;
 	hasSeenOnboardingUpsell?: boolean;
@@ -42,6 +45,7 @@ export interface OnboardingSlice {
 	onboardingCreateNodeStep: OnboardingCreateNodeStep | null;
 	onboardingPatternStep: OnboardingPatternStep | null;
 	onboardingHighlightedNodeId: string | null;
+	onboardingViewport: OnboardingViewport;
 	hasCompletedOnboarding: boolean;
 	hasSkippedOnboarding: boolean;
 	hasSeenOnboardingUpsell: boolean;
@@ -63,6 +67,7 @@ export interface OnboardingSlice {
 		nodeId?: string | null;
 	}) => void;
 	dismissOnboardingPatternEditHint: () => void;
+	setOnboardingViewport: (viewport: OnboardingViewport) => void;
 	restartOnboarding: () => void;
 	completeOnboarding: () => void;
 	resetOnboarding: () => void;
@@ -90,6 +95,7 @@ const DEFAULT_STATE: StoredOnboardingState = {
 	onboardingCreateNodeStep: null,
 	onboardingPatternStep: null,
 	onboardingHighlightedNodeId: null,
+	onboardingViewport: 'desktop',
 	hasCompletedOnboarding: false,
 	hasSkippedOnboarding: false,
 	hasSeenOnboardingUpsell: false,
@@ -114,6 +120,10 @@ const isValidCreateNodeStep = (
 const isValidPatternStep = (value: unknown): value is OnboardingPatternStep =>
 	typeof value === 'string' &&
 	ONBOARDING_PATTERN_STEPS.includes(value as OnboardingPatternStep);
+
+const isValidViewport = (value: unknown): value is OnboardingViewport =>
+	typeof value === 'string' &&
+	ONBOARDING_VIEWPORTS.includes(value as OnboardingViewport);
 
 const normalizeTasks = (
 	value: Partial<Record<OnboardingTaskId, boolean>> | undefined
@@ -166,6 +176,9 @@ const readStoredOnboardingState = (): StoredOnboardingState => {
 				parsed.onboardingHighlightedNodeId.length > 0
 					? parsed.onboardingHighlightedNodeId
 					: null,
+			onboardingViewport: isValidViewport(parsed.onboardingViewport)
+				? parsed.onboardingViewport
+				: 'desktop',
 			hasCompletedOnboarding: parsed.hasCompletedOnboarding === true,
 			hasSkippedOnboarding: parsed.hasSkippedOnboarding === true,
 			hasSeenOnboardingUpsell: parsed.hasSeenOnboardingUpsell === true,
@@ -236,6 +249,7 @@ const persistOnboardingState = (state: OnboardingSlice) => {
 		onboardingCreateNodeStep: state.onboardingCreateNodeStep,
 		onboardingPatternStep: state.onboardingPatternStep,
 		onboardingHighlightedNodeId: state.onboardingHighlightedNodeId,
+		onboardingViewport: state.onboardingViewport,
 		hasCompletedOnboarding: state.hasCompletedOnboarding,
 		hasSkippedOnboarding: state.hasSkippedOnboarding,
 		hasSeenOnboardingUpsell: state.hasSeenOnboardingUpsell,
@@ -338,6 +352,7 @@ export const createOnboardingSlice: StateCreator<
 		onboardingCreateNodeStep: initialState.onboardingCreateNodeStep ?? null,
 		onboardingPatternStep: initialState.onboardingPatternStep ?? null,
 		onboardingHighlightedNodeId: initialState.onboardingHighlightedNodeId ?? null,
+		onboardingViewport: initialState.onboardingViewport ?? 'desktop',
 		hasCompletedOnboarding: initialState.hasCompletedOnboarding === true,
 		hasSkippedOnboarding: initialState.hasSkippedOnboarding === true,
 		hasSeenOnboardingUpsell: initialState.hasSeenOnboardingUpsell === true,
@@ -468,9 +483,10 @@ export const createOnboardingSlice: StateCreator<
 
 		startOnboardingTask: (taskId) => {
 			if (taskId === 'know-controls') {
+				const coachmarks = getOnboardingCoachmarks(get().onboardingViewport);
 				applyOnboardingPatch({
 					onboardingStatus: 'coachmarks',
-					onboardingActiveTarget: ONBOARDING_COACHMARKS[0]?.target ?? null,
+					onboardingActiveTarget: coachmarks[0]?.target ?? null,
 					onboardingCoachmarkStep: 0,
 					onboardingIsMinimized: false,
 					onboardingPatternStep: null,
@@ -551,20 +567,22 @@ export const createOnboardingSlice: StateCreator<
 		},
 
 		advanceOnboardingCoachmark: () => {
-			const { onboardingStatus, onboardingCoachmarkStep } = get();
+			const { onboardingStatus, onboardingCoachmarkStep, onboardingViewport } =
+				get();
 			if (onboardingStatus !== 'coachmarks') {
 				return;
 			}
 
+			const coachmarks = getOnboardingCoachmarks(onboardingViewport);
 			const nextStep = onboardingCoachmarkStep + 1;
-			if (nextStep >= ONBOARDING_COACHMARKS.length) {
+			if (nextStep >= coachmarks.length) {
 				get().markOnboardingTaskComplete('know-controls');
 				return;
 			}
 
 			applyOnboardingPatch({
 				onboardingCoachmarkStep: nextStep,
-				onboardingActiveTarget: ONBOARDING_COACHMARKS[nextStep]?.target ?? null,
+				onboardingActiveTarget: coachmarks[nextStep]?.target ?? null,
 			});
 		},
 
@@ -715,6 +733,37 @@ export const createOnboardingSlice: StateCreator<
 			});
 		},
 
+		setOnboardingViewport: (viewport) => {
+			const {
+				onboardingViewport,
+				onboardingStatus,
+				onboardingCoachmarkStep,
+			} = get();
+
+			if (onboardingViewport === viewport) {
+				return;
+			}
+
+			if (onboardingStatus !== 'coachmarks') {
+				applyOnboardingPatch({
+					onboardingViewport: viewport,
+				});
+				return;
+			}
+
+			const coachmarks = getOnboardingCoachmarks(viewport);
+			const nextStep = Math.min(
+				onboardingCoachmarkStep,
+				Math.max(coachmarks.length - 1, 0)
+			);
+
+			applyOnboardingPatch({
+				onboardingViewport: viewport,
+				onboardingCoachmarkStep: nextStep,
+				onboardingActiveTarget: coachmarks[nextStep]?.target ?? null,
+			});
+		},
+
 		restartOnboarding: () => {
 			applyOnboardingPatch({
 				onboardingStatus: 'intro',
@@ -725,6 +774,7 @@ export const createOnboardingSlice: StateCreator<
 				onboardingCreateNodeStep: null,
 				onboardingPatternStep: null,
 				onboardingHighlightedNodeId: null,
+				onboardingViewport: get().onboardingViewport,
 				hasCompletedOnboarding: false,
 				hasSkippedOnboarding: false,
 				hasSeenOnboardingUpsell: false,
@@ -740,6 +790,7 @@ export const createOnboardingSlice: StateCreator<
 				onboardingCreateNodeStep: null,
 				onboardingPatternStep: null,
 				onboardingHighlightedNodeId: null,
+				onboardingViewport: get().onboardingViewport,
 				hasCompletedOnboarding: true,
 				hasSkippedOnboarding: false,
 				hasSeenOnboardingUpsell: true,
@@ -760,6 +811,7 @@ export const createOnboardingSlice: StateCreator<
 				onboardingCreateNodeStep: null,
 				onboardingPatternStep: null,
 				onboardingHighlightedNodeId: null,
+				onboardingViewport: 'desktop',
 				hasCompletedOnboarding: false,
 				hasSkippedOnboarding: false,
 				hasSeenOnboardingUpsell: false,

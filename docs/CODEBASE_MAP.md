@@ -22,6 +22,7 @@ total_tokens: 707972
 <!-- Updated: 2026-03-07 - Added owner-scoped node-limit preflight to node creation flow -->
 <!-- Updated: 2026-03-17 - Documented editor-first onboarding v2 state, placement, and upgrade-modal split -->
 <!-- Updated: 2026-03-17 - Added onboarding substeps, expanded toolbar anchors, and canvas-safe walkthrough positioning -->
+<!-- Updated: 2026-03-18 - Documented mobile onboarding shell, viewport-aware coachmarks, and touch edit action -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -332,11 +333,12 @@ shiko/
 **Editor Onboarding v2:**
 
 - `src/components/onboarding/onboarding-modal.tsx` now renders the editor walkthrough shell directly inside the mind-map experience instead of using a global dialog in `ClientProviders`
-- `src/store/slices/onboarding-slice.ts` tracks task-based progress (`create-node`, `try-pattern`, `know-controls`), real add-mode substeps (`toolbar` -> `canvas`), post-create edit hints, coachmark state, minimized checklist state, and eligibility gating for first owned free maps
+- `src/store/slices/onboarding-slice.ts` tracks task-based progress (`create-node`, `try-pattern`, `know-controls`), real add-mode substeps (`toolbar` -> `canvas`), post-create edit hints, viewport-aware coachmark state (`desktop` vs `mobile`), minimized walkthrough state, and eligibility gating for first owned free maps
 - `src/store/app-state.ts` + `src/store/slices/ui-slice.ts` extend node-editor state with onboarding preset/source fields so the walkthrough can open a deterministic parser example in the real quick-input editor
 - `src/components/common/user-menu.tsx` and `src/components/subscription/limit-warning.tsx` now bypass onboarding entirely for upgrade prompts and open `popoverOpen.upgradeUser` directly
-- Toolbar/top-bar/shortcut controls expose `data-onboarding-target` anchors for cursor/select, Add Node, AI Suggestions, Auto Layout, Export, Guided Tour, Reset Zoom, Comments, Share, shortcuts help, and breadcrumb/home
-- The minimized walkthrough pill uses the same runtime bottom-dock clearance (`--mind-map-toolbar-clearance`) as mind-map toasts so it stays out of the toolbar hit area
+- Toolbar/top-bar/shortcut controls expose `data-onboarding-target` anchors for cursor/select, Add Node, AI Suggestions, Auto Layout, Export, Guided Tour, Reset Zoom, Comments, Share, `More Tools`, shortcuts help, and breadcrumb/home
+- Mobile onboarding uses bottom-sheet surfaces only: intro/checklist/hints/coachmarks never stack, step-specific sheets replace the checklist while active, and the minimized walkthrough chip moves under the top bar instead of sharing the bottom-dock lane
+- `src/components/nodes/base-node-wrapper.tsx` now exposes a touch-first `Edit` action for a single selected mobile node so onboarding can teach a real edit path instead of desktop-only shortcuts
 
 **Notifications internals (operational map):**
 

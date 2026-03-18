@@ -1,5 +1,6 @@
 import {
 	ONBOARDING_COACHMARKS,
+	ONBOARDING_MOBILE_COACHMARKS,
 	ONBOARDING_STORAGE_KEY,
 } from '@/constants/onboarding';
 
@@ -193,6 +194,38 @@ describe('onboarding slice', () => {
 		});
 	});
 
+	it('uses the mobile controls sequence when the viewport is mobile', () => {
+		const harness = createOnboardingSliceHarness();
+		const state = harness.getState();
+
+		(state.setOnboardingViewport as (viewport: 'desktop' | 'mobile') => void)(
+			'mobile'
+		);
+		(state.startOnboardingTask as (taskId: string) => void)('know-controls');
+
+		expect(harness.getState()).toMatchObject({
+			onboardingStatus: 'coachmarks',
+			onboardingViewport: 'mobile',
+			onboardingActiveTarget: ONBOARDING_MOBILE_COACHMARKS[0]?.target,
+		});
+
+		for (
+			let index = 0;
+			index < ONBOARDING_MOBILE_COACHMARKS.length - 1;
+			index += 1
+		) {
+			(state.advanceOnboardingCoachmark as () => void)();
+		}
+
+		expect(harness.getState().onboardingCoachmarkStep).toBe(
+			ONBOARDING_MOBILE_COACHMARKS.length - 1
+		);
+		expect(harness.getState().onboardingActiveTarget).toBe(
+			ONBOARDING_MOBILE_COACHMARKS[ONBOARDING_MOBILE_COACHMARKS.length - 1]
+				?.target
+		);
+	});
+
 	it('finishes the controls tour into the optional upsell for free users', () => {
 		const harness = createOnboardingSliceHarness();
 		const state = harness.getState();
@@ -248,6 +281,7 @@ describe('onboarding slice', () => {
 			onboardingIsMinimized: false,
 			hasCompletedOnboarding: false,
 			hasSkippedOnboarding: false,
+			onboardingViewport: 'desktop',
 			onboardingTasks: {
 				'create-node': false,
 				'try-pattern': false,

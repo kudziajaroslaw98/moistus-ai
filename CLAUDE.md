@@ -312,6 +312,12 @@ pnpm pretty          # Prettier
 **Onboarding control anchors**: Keep `data-onboarding-target` attrs on cursor/select, Add Node, AI Suggestions, Auto Layout, Export, Guided Tour, Reset Zoom, Comments, Share, shortcuts help, and breadcrumb home links. The controls tour depends on those stable selectors.
 <!-- Updated: 2026-03-17 - Expanded DOM anchors for refined editor walkthrough coachmarks -->
 
+**Onboarding mobile mode**: Mobile walkthrough is a separate bottom-sheet path, not the desktop checklist squeezed smaller. Mobile uses a reduced controls-tour target set (`cursor-tool`, `add-node`, `ai-suggestions`, `comments`, `more-tools`, `share`, `breadcrumb-home`), hides the checklist while a step hint/coachmark owns the screen, and keeps the minimized chip under the top bar instead of near the bottom dock.
+<!-- Updated: 2026-03-18 - Documented mobile-specific onboarding shell and target set -->
+
+**Mobile node editing affordance**: When exactly one editable node is selected on mobile, `BaseNodeWrapper` shows a visible `Edit` action on the node chrome. Keep onboarding/mobile copy aligned to that touch path instead of desktop-only `Enter`/double-click guidance.
+<!-- Updated: 2026-03-18 - Documented touch-first node edit path for mobile onboarding -->
+
 **Toolbar active state**: The cursor trigger should only look active for actual cursor modes (`default`, `pan`, `connector`). `node` mode must light up only the Add Node button.
 <!-- Updated: 2026-03-17 - Documented cursor/add visual-state contract for toolbar -->
 

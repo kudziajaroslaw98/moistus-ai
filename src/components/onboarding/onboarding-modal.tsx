@@ -1,8 +1,9 @@
 'use client';
 
 import {
-	ONBOARDING_COACHMARKS,
 	ONBOARDING_PATTERN_EXAMPLE,
+	getOnboardingCoachmarks,
+	type OnboardingCoachmark,
 	type OnboardingTaskId,
 } from '@/constants/onboarding';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -30,18 +31,102 @@ interface FloatingTargetRect {
 
 const CANVAS_SAFE_OFFSET =
 	'calc(env(safe-area-inset-bottom, 0px) + var(--mind-map-toolbar-clearance, 0px) + 1rem)';
+const MOBILE_TOP_CHIP_OFFSET =
+	'calc(env(safe-area-inset-top, 0px) + 4.5rem)';
 
 function IntroOverlay({
+	isMobile,
 	onExplore,
 	onStart,
 }: {
+	isMobile: boolean;
 	onExplore: () => void;
 	onStart: () => void;
 }) {
+	if (isMobile) {
+		return (
+			<motion.div
+				animate={{ opacity: 1 }}
+				className='fixed inset-0 z-[70] flex items-end justify-center bg-black/40 backdrop-blur-sm'
+				data-testid='onboarding-intro'
+				exit={{ opacity: 0 }}
+				initial={{ opacity: 0 }}
+			>
+				<motion.div
+					animate={{ opacity: 1, y: 0 }}
+					className='w-full overflow-hidden rounded-t-[2rem] border border-white/12 bg-base/96 shadow-2xl shadow-black/35'
+					exit={{ opacity: 0, y: 24 }}
+					initial={{ opacity: 0, y: 32 }}
+				>
+					<div className='space-y-5 px-5 pt-4 pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)]'>
+						<div className='mx-auto h-1.5 w-12 rounded-full bg-white/12' />
+
+						<div className='inline-flex items-center gap-2 rounded-full border border-primary-500/25 bg-primary-500/10 px-3 py-1 text-xs font-medium text-primary-300'>
+							<span className='size-2 rounded-full bg-primary-400' />
+							Start inside the canvas
+						</div>
+
+						<div className='space-y-2'>
+							<h2 className='text-2xl font-semibold tracking-tight text-text-primary'>
+								Three quick moves to get comfortable fast.
+							</h2>
+							<p className='text-sm leading-6 text-text-secondary'>
+								Place a node, try one structured line, then learn the controls
+								you will actually use on the phone.
+							</p>
+						</div>
+
+						<div className='space-y-3 rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4'>
+							<IntroStep
+								description='Tap Add Node, then tap empty canvas.'
+								index='1'
+								title='Create a node'
+							/>
+							<IntroStep
+								description='See how one line becomes a richer node.'
+								index='2'
+								title='Try a pattern'
+							/>
+							<IntroStep
+								description='Learn the visible controls and where the rest live.'
+								index='3'
+								title='Know the controls'
+							/>
+						</div>
+
+						<div className='grid gap-2'>
+							<Button
+								className='w-full justify-between gap-2'
+								onClick={onStart}
+								size='md'
+								variant='default'
+							>
+								<span className='flex items-center gap-2'>
+									<Play className='size-4' />
+									Start walkthrough
+								</span>
+								<MoveRight className='size-4' />
+							</Button>
+							<Button
+								className='w-full'
+								onClick={onExplore}
+								size='md'
+								variant='secondary'
+							>
+								Explore on my own
+							</Button>
+						</div>
+					</div>
+				</motion.div>
+			</motion.div>
+		);
+	}
+
 	return (
 		<motion.div
 			animate={{ opacity: 1 }}
 			className='fixed inset-0 z-[70] flex items-center justify-center bg-black/35 px-4 backdrop-blur-sm'
+			data-testid='onboarding-intro'
 			exit={{ opacity: 0 }}
 			initial={{ opacity: 0 }}
 		>
@@ -72,16 +157,16 @@ function IntroOverlay({
 
 							<div className='grid gap-3 sm:grid-cols-3'>
 								<OnboardingValueCard
-									title='Place ideas visually'
 									description='Drop a node on the canvas and start shaping the map where you think.'
+									title='Place ideas visually'
 								/>
 								<OnboardingValueCard
-									title='Add structure lightly'
 									description='Use patterns like #tag, ^tomorrow, and $task without leaving your flow.'
+									title='Add structure lightly'
 								/>
 								<OnboardingValueCard
-									title='Keep moving quickly'
 									description='See the core controls now, then keep exploring naturally as the map grows.'
+									title='Keep moving quickly'
 								/>
 							</div>
 						</div>
@@ -95,19 +180,19 @@ function IntroOverlay({
 								</p>
 								<div className='mt-4 space-y-3 rounded-3xl border border-white/10 bg-white/[0.03] p-4'>
 									<IntroStep
+										description='Choose add mode, then click empty canvas.'
 										index='1'
 										title='Add a node'
-										description='Choose add mode, then click empty canvas.'
 									/>
 									<IntroStep
+										description='See how one line turns into a richer node.'
 										index='2'
 										title='Try a pattern'
-										description='See how one line turns into a richer node.'
 									/>
 									<IntroStep
+										description='Get a quick pass over the toolbar, sharing, and navigation.'
 										index='3'
 										title='Learn the core controls'
-										description='Get a quick pass over the toolbar, sharing, and shortcuts.'
 									/>
 								</div>
 							</div>
@@ -183,21 +268,29 @@ function OnboardingValueCard({
 
 function ChecklistCard({
 	completedCount,
+	isMobile,
 	onMinimize,
 	onTaskAction,
 	tasks,
 }: {
 	completedCount: number;
+	isMobile: boolean;
 	onMinimize: () => void;
 	onTaskAction: (taskId: OnboardingTaskId) => void;
 	tasks: Record<OnboardingTaskId, boolean>;
 }) {
 	return (
 		<motion.div
-			animate={{ opacity: 1, x: 0 }}
-			className='fixed right-4 top-24 z-[60] w-[min(360px,calc(100vw-2rem))] rounded-3xl border border-white/10 bg-base/96 p-4 shadow-2xl shadow-black/35 backdrop-blur-md'
-			exit={{ opacity: 0, x: 24 }}
-			initial={{ opacity: 0, x: 24 }}
+			animate={{ opacity: 1, x: 0, y: 0 }}
+			className={
+				isMobile
+					? 'fixed inset-x-4 z-[60] rounded-[1.75rem] border border-white/10 bg-base/96 p-4 shadow-2xl shadow-black/35 backdrop-blur-md'
+					: 'fixed right-4 top-24 z-[60] w-[min(360px,calc(100vw-2rem))] rounded-3xl border border-white/10 bg-base/96 p-4 shadow-2xl shadow-black/35 backdrop-blur-md'
+			}
+			data-testid='onboarding-checklist'
+			exit={isMobile ? { opacity: 0, y: 12 } : { opacity: 0, x: 24 }}
+			initial={isMobile ? { opacity: 0, y: 12 } : { opacity: 0, x: 24 }}
+			style={isMobile ? { bottom: CANVAS_SAFE_OFFSET } : undefined}
 		>
 			<div className='flex items-start justify-between gap-4'>
 				<div>
@@ -288,14 +381,20 @@ function ChecklistItem({
 }
 
 function FloatingHint({
+	dataTestId,
 	description,
 	isMobile,
+	mobileDescription,
+	mobileTitle,
 	onDismiss,
 	targetRect,
 	title,
 }: {
+	dataTestId?: string;
 	description: string;
 	isMobile: boolean;
+	mobileDescription?: string;
+	mobileTitle?: string;
 	onDismiss: () => void;
 	targetRect: FloatingTargetRect | null;
 	title: string;
@@ -308,13 +407,17 @@ function FloatingHint({
 		const cardWidth = Math.min(320, window.innerWidth - 32);
 		const gap = 20;
 		const prefersRight =
-			targetRect.left + targetRect.width + gap + cardWidth < window.innerWidth - 16;
+			targetRect.left + targetRect.width + gap + cardWidth <
+			window.innerWidth - 16;
 		const left = prefersRight
 			? targetRect.left + targetRect.width + gap
 			: Math.max(16, targetRect.left - cardWidth - gap);
 		const top = Math.max(
 			96,
-			Math.min(targetRect.top + targetRect.height / 2 - 90, window.innerHeight - 220)
+			Math.min(
+				targetRect.top + targetRect.height / 2 - 90,
+				window.innerHeight - 220
+			)
 		);
 
 		return {
@@ -329,6 +432,7 @@ function FloatingHint({
 			<motion.div
 				animate={{ opacity: 1, y: 0 }}
 				className='fixed z-[58] rounded-2xl border border-primary-500/25 bg-base/95 p-4 shadow-xl shadow-black/35 backdrop-blur-md'
+				data-testid={dataTestId}
 				exit={{ opacity: 0, y: 8 }}
 				initial={{ opacity: 0, y: 8 }}
 				style={floatingStyle}
@@ -357,16 +461,19 @@ function FloatingHint({
 	return (
 		<motion.div
 			animate={{ opacity: 1, y: 0 }}
-			className='fixed inset-x-4 z-[58] rounded-2xl border border-primary-500/25 bg-base/95 p-4 shadow-xl shadow-black/35 backdrop-blur-md'
+			className='fixed inset-x-4 z-[58] rounded-[1.5rem] border border-primary-500/25 bg-base/95 p-4 shadow-xl shadow-black/35 backdrop-blur-md'
+			data-testid={dataTestId}
 			exit={{ opacity: 0, y: 12 }}
 			initial={{ opacity: 0, y: 12 }}
 			style={{ bottom: CANVAS_SAFE_OFFSET }}
 		>
 			<div className='flex items-start justify-between gap-3'>
 				<div>
-					<p className='text-sm font-semibold text-text-primary'>{title}</p>
+					<p className='text-sm font-semibold text-text-primary'>
+						{mobileTitle ?? title}
+					</p>
 					<p className='mt-1 text-xs leading-5 text-text-secondary'>
-						{description}
+						{mobileDescription ?? description}
 					</p>
 				</div>
 
@@ -401,20 +508,26 @@ function CanvasPlacementHint({
 		<motion.div
 			animate={{ opacity: 1, y: 0 }}
 			className='fixed z-[58] w-[min(420px,calc(100vw-2rem))] rounded-3xl border border-primary-500/25 bg-base/95 p-4 shadow-xl shadow-black/35 backdrop-blur-md'
+			data-testid='onboarding-canvas-hint'
 			exit={{ opacity: 0, y: 12 }}
 			initial={{ opacity: 0, y: 12 }}
-			style={isMobile ? { left: 16, right: 16, bottom: CANVAS_SAFE_OFFSET } : desktopStyle}
+			style={
+				isMobile
+					? { left: 16, right: 16, bottom: CANVAS_SAFE_OFFSET }
+					: desktopStyle
+			}
 		>
 			<div className='flex items-start justify-between gap-3'>
 				<div>
 					<p className='text-sm font-semibold text-text-primary'>
-						Now click empty canvas
+						{isMobile ? 'Tap empty canvas' : 'Now click empty canvas'}
 					</p>
 					<p className='mt-1 text-xs leading-5 text-text-secondary'>
-						Shiko will place your new node where you click. You can also grow
-						from a selected node with its <span className='font-medium'>+</span>{' '}
-						button, or use <span className='font-medium'>Ctrl/Cmd + Arrow</span>{' '}
-						to create child nodes from the keyboard.
+						Shiko will place your new node where you{' '}
+						{isMobile ? 'tap' : 'click'}. You can also grow from a selected
+						node with its <span className='font-medium'>+</span> button, or use{' '}
+						<span className='font-medium'>Ctrl/Cmd + Arrow</span> if you have a
+						keyboard attached.
 					</p>
 				</div>
 
@@ -439,7 +552,7 @@ function CoachmarkCard({
 	onNext,
 	targetRect,
 }: {
-	currentStep: (typeof ONBOARDING_COACHMARKS)[number];
+	currentStep: OnboardingCoachmark;
 	isLastStep: boolean;
 	isMobile: boolean;
 	onMinimize: () => void;
@@ -467,7 +580,10 @@ function CoachmarkCard({
 			? Math.max(96, targetRect.top - cardHeight - gap)
 			: Math.max(
 					96,
-					Math.min(targetRect.top + targetRect.height + gap, window.innerHeight - 250)
+					Math.min(
+						targetRect.top + targetRect.height + gap,
+						window.innerHeight - 250
+					)
 				);
 
 		return {
@@ -506,6 +622,7 @@ function CoachmarkCard({
 			<motion.div
 				animate={{ opacity: 1, y: 0 }}
 				className='fixed z-[60]'
+				data-testid='onboarding-coachmark'
 				exit={{ opacity: 0, y: 8 }}
 				initial={{ opacity: 0, y: 8 }}
 				style={floatingStyle}
@@ -519,6 +636,7 @@ function CoachmarkCard({
 		<motion.div
 			animate={{ opacity: 1, y: 0 }}
 			className='fixed inset-x-4 z-[60]'
+			data-testid='onboarding-coachmark'
 			exit={{ opacity: 0, y: 12 }}
 			initial={{ opacity: 0, y: 12 }}
 			style={{ bottom: CANVAS_SAFE_OFFSET }}
@@ -529,18 +647,26 @@ function CoachmarkCard({
 }
 
 function UpsellCard({
+	isMobile,
 	onKeepUsingFree,
 	onSeePlans,
 }: {
+	isMobile: boolean;
 	onKeepUsingFree: () => void;
 	onSeePlans: () => void;
 }) {
 	return (
 		<motion.div
-			animate={{ opacity: 1, y: 0 }}
-			className='fixed right-4 top-24 z-[60] w-[min(380px,calc(100vw-2rem))] rounded-3xl border border-white/10 bg-base/96 p-5 shadow-2xl shadow-black/35 backdrop-blur-md'
-			exit={{ opacity: 0, y: 12 }}
-			initial={{ opacity: 0, y: 12 }}
+			animate={{ opacity: 1, x: 0, y: 0 }}
+			className={
+				isMobile
+					? 'fixed inset-x-4 z-[60] rounded-[1.75rem] border border-white/10 bg-base/96 p-5 shadow-2xl shadow-black/35 backdrop-blur-md'
+					: 'fixed right-4 top-24 z-[60] w-[min(380px,calc(100vw-2rem))] rounded-3xl border border-white/10 bg-base/96 p-5 shadow-2xl shadow-black/35 backdrop-blur-md'
+			}
+			data-testid='onboarding-upsell'
+			exit={isMobile ? { opacity: 0, y: 12 } : { opacity: 0, y: 12 }}
+			initial={isMobile ? { opacity: 0, y: 12 } : { opacity: 0, y: 12 }}
+			style={isMobile ? { bottom: CANVAS_SAFE_OFFSET } : undefined}
 		>
 			<div className='inline-flex items-center gap-2 rounded-full border border-primary-500/25 bg-primary-500/10 px-3 py-1 text-xs font-medium text-primary-300'>
 				<Sparkles className='size-3.5' />
@@ -569,18 +695,25 @@ function UpsellCard({
 
 function MinimizedPill({
 	completedCount,
+	isMobile,
 	onResume,
 }: {
 	completedCount: number;
+	isMobile: boolean;
 	onResume: () => void;
 }) {
 	return (
 		<motion.button
 			animate={{ opacity: 1, y: 0 }}
-			className='fixed left-4 z-[55] flex items-center gap-3 rounded-full border border-white/10 bg-base/95 px-4 py-3 text-sm text-text-primary shadow-xl shadow-black/30 backdrop-blur-md'
+			className={
+				isMobile
+					? 'fixed left-4 z-[55] flex items-center gap-3 rounded-full border border-white/10 bg-base/95 px-4 py-2.5 text-sm text-text-primary shadow-xl shadow-black/30 backdrop-blur-md'
+					: 'fixed left-4 z-[55] flex items-center gap-3 rounded-full border border-white/10 bg-base/95 px-4 py-3 text-sm text-text-primary shadow-xl shadow-black/30 backdrop-blur-md'
+			}
+			data-testid='onboarding-minimized-pill'
 			initial={{ opacity: 0, y: 10 }}
 			onClick={onResume}
-			style={{ bottom: CANVAS_SAFE_OFFSET }}
+			style={isMobile ? { top: MOBILE_TOP_CHIP_OFFSET } : { bottom: CANVAS_SAFE_OFFSET }}
 			type='button'
 			whileTap={{ scale: 0.98 }}
 		>
@@ -604,6 +737,7 @@ export function OnboardingModal() {
 		onboardingCreateNodeStep,
 		onboardingPatternStep,
 		onboardingHighlightedNodeId,
+		onboardingViewport,
 		hasCompletedOnboarding,
 		currentSubscription,
 		startOnboarding,
@@ -616,6 +750,7 @@ export function OnboardingModal() {
 		dismissOnboardingPatternEditHint,
 		openNodeEditor,
 		reactFlowInstance,
+		setOnboardingViewport,
 		setPopoverOpen,
 	} = useAppStore(
 		useShallow((state) => ({
@@ -627,6 +762,7 @@ export function OnboardingModal() {
 			onboardingCreateNodeStep: state.onboardingCreateNodeStep,
 			onboardingPatternStep: state.onboardingPatternStep,
 			onboardingHighlightedNodeId: state.onboardingHighlightedNodeId,
+			onboardingViewport: state.onboardingViewport,
 			hasCompletedOnboarding: state.hasCompletedOnboarding,
 			currentSubscription: state.currentSubscription,
 			startOnboarding: state.startOnboarding,
@@ -639,6 +775,7 @@ export function OnboardingModal() {
 			dismissOnboardingPatternEditHint: state.dismissOnboardingPatternEditHint,
 			openNodeEditor: state.openNodeEditor,
 			reactFlowInstance: state.reactFlowInstance,
+			setOnboardingViewport: state.setOnboardingViewport,
 			setPopoverOpen: state.setPopoverOpen,
 		}))
 	);
@@ -667,7 +804,23 @@ export function OnboardingModal() {
 		shouldRenderChecklist &&
 		onboardingPatternStep === 'post-create-edit-hint' &&
 		Boolean(onboardingHighlightedNodeId);
-	const currentCoachmark = ONBOARDING_COACHMARKS[onboardingCoachmarkStep] ?? null;
+	const coachmarks = useMemo(
+		() => getOnboardingCoachmarks(onboardingViewport),
+		[onboardingViewport]
+	);
+	const currentCoachmark = coachmarks[onboardingCoachmarkStep] ?? null;
+	const shouldHideChecklistForMobileSurface =
+		isMobile &&
+		(shouldRenderCreateNodeToolbarHint ||
+			shouldRenderCanvasHint ||
+			shouldRenderPatternEditHint ||
+			onboardingStatus === 'coachmarks');
+	const shouldRenderChecklistCard =
+		shouldRenderChecklist && !shouldHideChecklistForMobileSurface;
+
+	useEffect(() => {
+		setOnboardingViewport(isMobile ? 'mobile' : 'desktop');
+	}, [isMobile, setOnboardingViewport]);
 
 	useEffect(() => {
 		if (
@@ -797,6 +950,7 @@ export function OnboardingModal() {
 			<AnimatePresence>
 				{shouldRenderIntro && (
 					<IntroOverlay
+						isMobile={isMobile}
 						onExplore={exploreOnboardingIndependently}
 						onStart={startOnboarding}
 					/>
@@ -804,9 +958,10 @@ export function OnboardingModal() {
 			</AnimatePresence>
 
 			<AnimatePresence>
-				{shouldRenderChecklist && (
+				{shouldRenderChecklistCard && (
 					<ChecklistCard
 						completedCount={completedCount}
+						isMobile={isMobile}
 						onMinimize={minimizeOnboarding}
 						onTaskAction={handleTaskAction}
 						tasks={onboardingTasks}
@@ -817,8 +972,11 @@ export function OnboardingModal() {
 			<AnimatePresence>
 				{shouldRenderCreateNodeToolbarHint && (
 					<FloatingHint
+						dataTestId='onboarding-create-node-hint'
 						description='Start here. Choose Add Node, then the walkthrough will move onto the canvas with you.'
 						isMobile={isMobile}
+						mobileDescription='Tap Add Node to switch into placement mode. We will move onto the canvas as soon as you do.'
+						mobileTitle='Create your first node'
 						onDismiss={minimizeOnboarding}
 						targetRect={targetRect}
 						title='Create your first node'
@@ -838,8 +996,11 @@ export function OnboardingModal() {
 			<AnimatePresence>
 				{shouldRenderPatternEditHint && (
 					<FloatingHint
+						dataTestId='onboarding-pattern-edit-hint'
 						description='To edit this node later, select it and press Enter, or just double-click it.'
 						isMobile={isMobile}
+						mobileDescription='Tap this node to select it. Once selected, use Edit to change it without leaving the canvas.'
+						mobileTitle='Editing stays close by'
 						onDismiss={dismissOnboardingPatternEditHint}
 						targetRect={targetRect}
 						title='Editing is one step away'
@@ -851,9 +1012,7 @@ export function OnboardingModal() {
 				{onboardingStatus === 'coachmarks' && currentCoachmark && (
 					<CoachmarkCard
 						currentStep={currentCoachmark}
-						isLastStep={
-							onboardingCoachmarkStep === ONBOARDING_COACHMARKS.length - 1
-						}
+						isLastStep={onboardingCoachmarkStep === coachmarks.length - 1}
 						isMobile={isMobile}
 						onMinimize={minimizeOnboarding}
 						onNext={advanceOnboardingCoachmark}
@@ -865,6 +1024,7 @@ export function OnboardingModal() {
 			<AnimatePresence>
 				{shouldRenderUpsell && (
 					<UpsellCard
+						isMobile={isMobile}
 						onKeepUsingFree={completeOnboarding}
 						onSeePlans={handleOpenUpgrade}
 					/>
@@ -875,6 +1035,7 @@ export function OnboardingModal() {
 				{shouldRenderMinimizedPill && (
 					<MinimizedPill
 						completedCount={completedCount}
+						isMobile={isMobile}
 						onResume={resumeOnboarding}
 					/>
 				)}

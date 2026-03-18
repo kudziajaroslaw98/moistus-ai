@@ -22,6 +22,9 @@ export const ONBOARDING_PATTERN_STEPS = [
 export type OnboardingPatternStep =
 	(typeof ONBOARDING_PATTERN_STEPS)[number];
 
+export const ONBOARDING_VIEWPORTS = ['desktop', 'mobile'] as const;
+export type OnboardingViewport = (typeof ONBOARDING_VIEWPORTS)[number];
+
 export const ONBOARDING_STATUSES = [
 	'hidden',
 	'intro',
@@ -41,6 +44,7 @@ export const ONBOARDING_TARGETS = [
 	'guided-tour',
 	'reset-zoom',
 	'comments',
+	'more-tools',
 	'share',
 	'shortcuts-help',
 	'breadcrumb-home',
@@ -49,11 +53,13 @@ export const ONBOARDING_TARGETS = [
 
 export type OnboardingTarget = (typeof ONBOARDING_TARGETS)[number];
 
-export const ONBOARDING_COACHMARKS: ReadonlyArray<{
+export interface OnboardingCoachmark {
 	target: OnboardingTarget;
 	title: string;
 	description: string;
-}> = [
+}
+
+export const ONBOARDING_COACHMARKS: ReadonlyArray<OnboardingCoachmark> = [
 	{
 		target: 'cursor-tool',
 		title: 'Change how the canvas behaves',
@@ -121,6 +127,59 @@ export const ONBOARDING_COACHMARKS: ReadonlyArray<{
 			'Use the breadcrumb to get home without losing the habit of working from the canvas.',
 	},
 ] as const;
+
+export const ONBOARDING_MOBILE_COACHMARKS: ReadonlyArray<OnboardingCoachmark> =
+	[
+		{
+			target: 'cursor-tool',
+			title: 'Change how the canvas behaves',
+			description:
+				'Use this menu to switch between Select, Pan, and Connect before you jump back into the canvas.',
+		},
+		{
+			target: 'add-node',
+			title: 'Drop ideas onto the canvas',
+			description:
+				'Add mode lets you place a new node with a single tap when you want to capture ideas quickly.',
+		},
+		{
+			target: 'ai-suggestions',
+			title: 'Ask for a next step',
+			description:
+				'Use AI Suggestions when you want help expanding or challenging the map you already started.',
+		},
+		{
+			target: 'comments',
+			title: 'Collect feedback in context',
+			description:
+				'Comments keep discussion attached to the map, so feedback stays tied to the exact part it refers to.',
+		},
+		{
+			target: 'more-tools',
+			title: 'More tools live here',
+			description:
+				'Open More Tools when you need layout, export, guided tour, or reset zoom from the phone toolbar.',
+		},
+		{
+			target: 'share',
+			title: 'Bring others in when ready',
+			description:
+				'Invite collaborators after the map has enough structure to react to.',
+		},
+		{
+			target: 'breadcrumb-home',
+			title: 'Get back to your maps',
+			description:
+				'Use the breadcrumb to get home without losing the habit of working from the canvas.',
+		},
+	] as const;
+
+export const getOnboardingCoachmarks = (
+	viewport: OnboardingViewport
+): ReadonlyArray<OnboardingCoachmark> =>
+	viewport === 'mobile'
+		? ONBOARDING_MOBILE_COACHMARKS
+		: ONBOARDING_COACHMARKS;
 
 export const DEFAULT_ONBOARDING_TASKS: Record<OnboardingTaskId, boolean> = {
 	'create-node': false,

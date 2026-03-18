@@ -15,6 +15,28 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-03-07 - Tightened template preflight failure handling and create/edit node-limit UX gating -->
 <!-- Updated: 2026-03-17 - Replaced pricing-first onboarding with an editor-first walkthrough and split upgrade prompts back to the dedicated modal -->
 <!-- Updated: 2026-03-17 - Refined onboarding v2 with split intro, canvas/add substeps, toolbar-state fix, and Pro upsell guard -->
+<!-- Updated: 2026-03-18 - Added mobile onboarding shell, viewport-aware controls tour, and touch edit affordance -->
+
+## [2026-03-18]
+
+### Added
+
+- **tests/mobile-onboarding**: Added slice coverage for the mobile controls-tour sequence, node-wrapper coverage for the mobile `Edit` action, and onboarding modal coverage for the bottom-sheet intro/hint behavior
+  - Why: Locks the new mobile walkthrough path before the desktop-first implementation drifts back in
+
+### Changed
+
+- **onboarding/mobile-shell**: Mobile walkthrough now uses bottom-sheet intro, checklist, hints, coachmarks, and upsell surfaces instead of reusing the desktop right-rail layout
+  - Why: Keeps the canvas visible and removes stacked desktop cards from small screens
+- **onboarding/mobile-controls-tour**: Controls tour now uses a mobile-specific target set (`cursor`, `add`, `AI`, `comments`, `More Tools`, `share`, `breadcrumb`) and explains hidden toolbar actions through `More Tools` copy without auto-opening overflow menus
+  - Why: Matches the real mobile toolbar instead of teaching controls that are hidden or absent on touch devices
+
+### Fixed
+
+- **nodes/mobile-edit-path**: Selected editable nodes now expose a visible mobile `Edit` action on the node chrome
+  - Why: Gives mobile onboarding a real touch-first edit path instead of relying on desktop-only Enter/double-click gestures
+- **onboarding/mobile-step-stacking**: Mobile checklist now yields to active step hints/coachmarks, and the minimized walkthrough chip sits below the top bar instead of near the bottom dock
+  - Why: Prevents onboarding surfaces from fighting for the same screen space on phones
 
 ## [2026-03-17]
 

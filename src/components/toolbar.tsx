@@ -669,6 +669,7 @@ export const Toolbar = ({
 									<Button
 										{...buttonTriggerProps}
 										className={cn('active:scale-95', triggerProps.className)}
+										data-onboarding-target='more-tools'
 										size='icon'
 										title='More Tools'
 										variant='secondary'
