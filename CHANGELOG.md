@@ -40,6 +40,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Keeps the cleaner alignment while avoiding the over-indented look on mobile
 - **top-bar/mobile-editor-drawer-title-scale**: Reduced the mobile drawer map title size by one step
   - Why: Keeps the title from overpowering the tighter, denser sheet layout
+- **top-bar/mobile-editor-drawer-close+truncate**: Added an explicit header close button to the mobile drawer and capped the drawer title at 24 characters with ellipsis
+  - Why: Makes the sheet dismiss action obvious and prevents long map titles from crowding the header
 - **notifications/shared-hook**: Notification fetch/subscription/mark-read logic now lives in a shared `useNotifications()` hook used by the desktop bell and the mobile editorial drawer
   - Why: Keeps inbox behavior aligned across surfaces without duplicating realtime or mutation logic
 

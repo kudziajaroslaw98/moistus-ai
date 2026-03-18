@@ -52,20 +52,42 @@ jest.mock('@/components/realtime/realtime-avatar-stack', () => ({
 
 jest.mock('@/components/ui/sheet', () => ({
 	Sheet: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+	SheetClose: ({
+		children,
+		className,
+		...props
+	}: {
+		children: ReactNode
+		className?: string
+	}) => (
+		<button className={className} {...props}>
+			{children}
+		</button>
+	),
 	SheetContent: ({
 		children,
 		className,
+		...props
 	}: {
 		children: ReactNode
 		className?: string
-	}) => <div className={className}>{children}</div>,
+	}) => (
+		<div className={className} {...props}>
+			{children}
+		</div>
+	),
 	SheetTitle: ({
 		children,
 		className,
+		...props
 	}: {
 		children: ReactNode
 		className?: string
-	}) => <div className={className}>{children}</div>,
+	}) => (
+		<div className={className} {...props}>
+			{children}
+		</div>
+	),
 }))
 
 jest.mock('@/store/mind-map-store', () => ({
@@ -235,6 +257,10 @@ describe('MobileMenu', () => {
 		expect(
 			screen.queryByText('Everything that supports the canvas lives here.')
 		).not.toBeInTheDocument()
+		expect(
+			screen.getByRole('button', { name: 'Close menu' })
+		).toBeInTheDocument()
+		expect(screen.getByTitle('Dump')).toHaveTextContent('Dump')
 		expect(screen.getByText('Collaboration')).toBeInTheDocument()
 		expect(screen.getByText('Share map')).toBeInTheDocument()
 		expect(screen.getByText('1 collaborator on this map')).toBeInTheDocument()
@@ -264,6 +290,16 @@ describe('MobileMenu', () => {
 		await waitFor(() => {
 			expect(pushMock).toHaveBeenCalledWith('/mind-map/map-2')
 		})
+	})
+
+	it('truncates long drawer titles to 24 characters', () => {
+		renderMobileMenu({
+			mapTitle: 'This title is definitely longer than twenty four characters',
+		})
+
+		expect(
+			screen.getByTitle('This title is definitely longer than twenty four characters')
+		).toHaveTextContent('This title is definit...')
 	})
 
 	it('hides owner/editor-only actions for anonymous collaborators and shows upgrade account', () => {

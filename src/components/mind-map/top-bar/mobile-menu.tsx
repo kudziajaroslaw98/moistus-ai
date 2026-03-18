@@ -11,13 +11,13 @@ import {
 } from '@/components/notifications/use-notifications';
 import { RealtimeAvatarStack } from '@/components/realtime/realtime-avatar-stack';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetClose, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { type ActivityState } from '@/hooks/realtime/use-realtime-presence-room';
 import { getMindMapRoomName } from '@/lib/realtime/room-names';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
@@ -142,6 +142,15 @@ export function MobileMenu({
 		visibleUnreadCount > 0
 			? `${visibleUnreadCount} unread`
 			: 'All caught up';
+	const drawerTitle = useMemo(() => {
+		const rawTitle = mapTitle?.trim() || 'Menu';
+
+		if (rawTitle.length <= 24) {
+			return rawTitle;
+		}
+
+		return `${rawTitle.slice(0, 21).trimEnd()}...`;
+	}, [mapTitle]);
 
 	const closeMenu = useCallback(() => {
 		onOpenChange(false);
@@ -213,14 +222,22 @@ export function MobileMenu({
 		<>
 			<Sheet onOpenChange={onOpenChange} open={open}>
 				<SheetContent
-					className='w-full max-w-[min(92vw,24rem)] gap-0 p-0 border-l border-white/10 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.12),transparent_32%),linear-gradient(180deg,rgba(14,14,18,0.98),rgba(8,8,10,0.99))]'
+					className='w-full max-w-[min(92vw,24rem)] gap-0 border-l border-white/10 p-0 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.12),transparent_32%),linear-gradient(180deg,rgba(14,14,18,0.98),rgba(8,8,10,0.99))] [&>button:last-child]:hidden'
 					side='right'
 				>
 					<div className='flex h-full flex-col'>
-						<div className='sticky top-0 z-10 border-b border-white/8 bg-base/90 px-5 pt-5 pb-3 backdrop-blur-xl'>
-							<SheetTitle className='pr-12 text-[1.5rem] font-semibold tracking-[-0.04em] text-text-primary'>
-								{mapTitle || 'Menu'}
+						<div className='sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-white/8 bg-base/90 px-5 pt-5 pb-3 backdrop-blur-xl'>
+							<SheetTitle
+								className='min-w-0 truncate text-[1.5rem] font-semibold tracking-[-0.04em] text-text-primary'
+								title={mapTitle || 'Menu'}
+							>
+								{drawerTitle}
 							</SheetTitle>
+
+							<SheetClose className='inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-text-secondary transition-colors hover:bg-white/[0.08] hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500'>
+								<X className='size-4' />
+								<span className='sr-only'>Close menu</span>
+							</SheetClose>
 						</div>
 
 						<div className='flex-1 overflow-y-auto px-5 pb-[calc(env(safe-area-inset-bottom)+24px)]'>
