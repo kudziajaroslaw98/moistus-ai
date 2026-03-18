@@ -226,7 +226,7 @@ export function MobileMenu({
 					side='right'
 				>
 					<div className='flex h-full flex-col'>
-						<div className='sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-white/8 bg-base/90 px-5 pt-5 pb-3 backdrop-blur-xl'>
+						<div className='sticky top-0 z-10 flex min-h-14 items-center justify-between gap-3 border-b border-white/8 bg-base/90 px-4 py-2 backdrop-blur-xl'>
 							<SheetTitle
 								className='min-w-0 truncate text-[1.5rem] font-semibold tracking-[-0.04em] text-text-primary'
 								title={mapTitle || 'Menu'}
@@ -234,8 +234,8 @@ export function MobileMenu({
 								{drawerTitle}
 							</SheetTitle>
 
-							<SheetClose className='inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-text-secondary transition-colors hover:bg-white/[0.08] hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500'>
-								<X className='size-4' />
+							<SheetClose className='relative inline-flex size-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-elevated/70 text-text-secondary shadow-[0_14px_35px_rgba(0,0,0,0.28)] transition-colors hover:bg-elevated hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500'>
+								<X className='size-5' />
 								<span className='sr-only'>Close menu</span>
 							</SheetClose>
 						</div>
