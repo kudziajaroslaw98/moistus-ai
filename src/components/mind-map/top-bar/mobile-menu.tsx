@@ -142,7 +142,6 @@ export function MobileMenu({
 		visibleUnreadCount > 0
 			? `${visibleUnreadCount} unread`
 			: 'All caught up';
-	const sectionRailClassName = 'pl-[3.75rem]';
 
 	const closeMenu = useCallback(() => {
 		onOpenChange(false);
@@ -248,8 +247,7 @@ export function MobileMenu({
 								{isAnonymous && (
 									<p
 										className={cn(
-											'mt-2 text-[11px] leading-4 text-primary-300',
-											sectionRailClassName
+											'mt-2 text-[11px] leading-4 text-primary-300'
 										)}
 									>
 										Upgrade to keep this workspace.
@@ -257,7 +255,7 @@ export function MobileMenu({
 								)}
 							</section>
 
-							<div className={sectionRailClassName}>
+							<div>
 								<section className='mt-5 border-t border-white/8 pt-4'>
 									<SectionHeading title='Collaboration' />
 

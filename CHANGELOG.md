@@ -36,6 +36,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Clears visual noise from the mobile header and gives those actions a calmer, more premium home
 - **top-bar/mobile-editor-drawer-density**: Tightened the mobile editorial drawer into a quieter tool surface with a minimal title bar, smaller section headings, a merged collaboration section, shorter helper copy, and cardless collaborator presentation
   - Why: Removes bulky copy and uneven spacing so the drawer feels more elegant and easier to scan on phones
+- **top-bar/mobile-editor-drawer-alignment**: Shifted the compact drawer sections back to the same outer padding as the profile block instead of the profile text column
+  - Why: Keeps the cleaner alignment while avoiding the over-indented look on mobile
 - **notifications/shared-hook**: Notification fetch/subscription/mark-read logic now lives in a shared `useNotifications()` hook used by the desktop bell and the mobile editorial drawer
   - Why: Keeps inbox behavior aligned across surfaces without duplicating realtime or mutation logic
 
