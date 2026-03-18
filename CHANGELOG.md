@@ -34,6 +34,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Matches the real mobile toolbar instead of teaching controls that are hidden or absent on touch devices
 - **top-bar/mobile-editor-drawer**: Mobile editor chrome now collapses to breadcrumb/title plus one hamburger trigger, and the hamburger opens a full-height editorial drawer for share, recent activity, collaborators, workspace actions, and account/billing flows
   - Why: Clears visual noise from the mobile header and gives those actions a calmer, more premium home
+- **top-bar/mobile-editor-drawer-density**: Tightened the mobile editorial drawer into a quieter tool surface with a minimal title bar, smaller section headings, a merged collaboration section, shorter helper copy, and cardless collaborator presentation
+  - Why: Removes bulky copy and uneven spacing so the drawer feels more elegant and easier to scan on phones
 - **notifications/shared-hook**: Notification fetch/subscription/mark-read logic now lives in a shared `useNotifications()` hook used by the desktop bell and the mobile editorial drawer
   - Why: Keeps inbox behavior aligned across surfaces without duplicating realtime or mutation logic
 

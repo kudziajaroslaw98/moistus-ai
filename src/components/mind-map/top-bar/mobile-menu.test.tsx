@@ -121,6 +121,24 @@ function createNotifications(
 				created_at: '2026-03-18T09:00:00.000Z',
 				updated_at: '2026-03-18T09:00:00.000Z',
 			},
+			{
+				id: 'notification-3',
+				recipient_user_id: 'user-1',
+				actor_user_id: 'user-4',
+				map_id: 'map-1',
+				event_type: 'access_changed',
+				title: 'Access updated',
+				body: 'Permissions were refreshed',
+				metadata: {},
+				dedupe_key: null,
+				is_read: true,
+				read_at: '2026-03-18T08:00:00.000Z',
+				email_status: 'pending',
+				email_error: null,
+				emailed_at: null,
+				created_at: '2026-03-18T08:00:00.000Z',
+				updated_at: '2026-03-18T08:00:00.000Z',
+			},
 		],
 		visibleUnreadCount: 1,
 		isLoading: false,
@@ -214,13 +232,26 @@ describe('MobileMenu', () => {
 	it('shows owner workspace actions, notifications preview, and closes after sharing', async () => {
 		const { onOpenChange, onToggleSharePanel, notifications } = renderMobileMenu()
 
+		expect(
+			screen.queryByText('Everything that supports the canvas lives here.')
+		).not.toBeInTheDocument()
+		expect(screen.getByText('Collaboration')).toBeInTheDocument()
 		expect(screen.getByText('Share map')).toBeInTheDocument()
+		expect(screen.getByText('1 collaborator on this map')).toBeInTheDocument()
 		expect(screen.getByText('View history')).toBeInTheDocument()
 		expect(screen.getByText('Map settings')).toBeInTheDocument()
 		expect(screen.getByText('Billing')).toBeInTheDocument()
 		expect(screen.getByText('Upgrade to Pro')).toBeInTheDocument()
 		expect(screen.getByText('Anna mentioned you')).toBeInTheDocument()
+		expect(screen.getByText('Sam replied to your node')).toBeInTheDocument()
+		expect(screen.queryByText('Access updated')).not.toBeInTheDocument()
 		expect(screen.getByText('Mark all as read')).toBeInTheDocument()
+		expect(screen.queryByText('Collaborators')).not.toBeInTheDocument()
+		expect(
+			screen.queryByText(
+				'See who is in the map before you open sharing or presentation tools.'
+			)
+		).not.toBeInTheDocument()
 
 		fireEvent.click(screen.getByText('Share map'))
 		expect(onToggleSharePanel).toHaveBeenCalledTimes(1)

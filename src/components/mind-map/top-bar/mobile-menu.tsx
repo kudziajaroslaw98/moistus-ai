@@ -127,7 +127,7 @@ export function MobileMenu({
 	}, [currentShares, currentUserId]);
 
 	const activityPreview = useMemo(
-		() => visibleNotifications.slice(0, 3),
+		() => visibleNotifications.slice(0, 2),
 		[visibleNotifications]
 	);
 
@@ -142,6 +142,7 @@ export function MobileMenu({
 		visibleUnreadCount > 0
 			? `${visibleUnreadCount} unread`
 			: 'All caught up';
+	const sectionRailClassName = 'pl-[3.75rem]';
 
 	const closeMenu = useCallback(() => {
 		onOpenChange(false);
@@ -217,227 +218,229 @@ export function MobileMenu({
 					side='right'
 				>
 					<div className='flex h-full flex-col'>
-						<div className='sticky top-0 z-10 border-b border-white/8 bg-base/90 px-6 pt-6 pb-5 backdrop-blur-xl'>
-							<SheetTitle className='pr-12 text-[1.9rem] font-semibold tracking-[-0.04em] text-text-primary'>
+						<div className='sticky top-0 z-10 border-b border-white/8 bg-base/90 px-5 pt-5 pb-3 backdrop-blur-xl'>
+							<SheetTitle className='pr-12 text-[1.75rem] font-semibold tracking-[-0.04em] text-text-primary'>
 								{mapTitle || 'Menu'}
 							</SheetTitle>
-							<p className='mt-1 text-sm text-text-secondary'>
-								Everything that supports the canvas lives here.
-							</p>
 						</div>
 
-						<div className='flex-1 overflow-y-auto px-6 pb-[calc(env(safe-area-inset-bottom)+24px)]'>
-							<section className='pt-6'>
-								<div className='flex items-start justify-between gap-4'>
-									<div className='flex min-w-0 items-center gap-4'>
-										<UserAvatar className='size-14' size='lg' user={user} />
-										<div className='min-w-0'>
-											<p className='truncate text-base font-semibold text-text-primary'>
+						<div className='flex-1 overflow-y-auto px-5 pb-[calc(env(safe-area-inset-bottom)+24px)]'>
+							<section className='pt-4'>
+								<div className='grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5'>
+									<UserAvatar
+										className='row-span-2 size-12'
+										size='md'
+										user={user}
+									/>
+									<p className='truncate text-[0.95rem] font-semibold text-text-primary'>
 												{name}
-											</p>
-											<p className='truncate text-sm text-text-secondary'>
-												{subtitle}
-											</p>
-											{isAnonymous && (
-												<p className='mt-1 text-xs text-primary-300'>
-													Upgrade to keep this workspace.
-												</p>
-											)}
-										</div>
-									</div>
+									</p>
 
-									<div className='shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-text-secondary'>
+									<div className='shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-text-secondary'>
 										{unreadSummary}
 									</div>
+
+									<p className='truncate text-[13px] text-text-secondary'>
+										{subtitle}
+									</p>
 								</div>
-							</section>
 
-							{isMapOwner && (
-								<section className='mt-6 border-t border-white/8 pt-6'>
-									<MenuRow
-										description='Invite collaborators when the map is ready for feedback.'
-										label='Share map'
-										onClick={handleShareMap}
-									/>
-								</section>
-							)}
-
-							<section className='mt-6 border-t border-white/8 pt-6'>
-								<SectionHeading
-									meta={unreadSummary}
-									title='Recent activity'
-								/>
-
-								{error ? (
-									<p className='mt-4 text-sm text-red-400'>
-										{error}
-									</p>
-								) : activityPreview.length === 0 ? (
-									<p className='mt-4 text-sm text-text-secondary'>
-										No notifications on this map yet.
-									</p>
-								) : (
-									<ul className='mt-4 divide-y divide-white/8 border-y border-white/8'>
-										{activityPreview.map((notification) => (
-											<li key={notification.id}>
-												<div className='flex items-start gap-3 py-3'>
-													<span
-														className={cn(
-															'mt-1 size-2 rounded-full',
-															notification.is_read
-																? 'bg-white/10'
-																: 'bg-primary-400 shadow-[0_0_14px_rgba(59,130,246,0.65)]'
-														)}
-													/>
-
-													<button
-														type='button'
-														className='flex min-w-0 flex-1 items-start justify-between gap-3 rounded-2xl px-1 text-left transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500'
-														onClick={() =>
-															void handleNotificationClick(
-																notification.id,
-																notification.map_id
-															)
-														}
-													>
-														<div className='min-w-0'>
-															<p className='truncate text-sm font-medium text-text-primary'>
-																{notification.title}
-															</p>
-															<p className='mt-1 line-clamp-2 text-sm text-text-secondary'>
-																{notification.body}
-															</p>
-														</div>
-
-														<div className='shrink-0 pt-0.5 text-right'>
-															<p className='text-[11px] uppercase tracking-[0.16em] text-text-disabled'>
-																{formatRelativeNotificationTime(
-																	notification.created_at
-																)}
-															</p>
-															{notification.map_id && (
-																<p className='mt-2 text-xs text-text-secondary'>
-																	Open
-																</p>
-															)}
-														</div>
-													</button>
-												</div>
-											</li>
-										))}
-									</ul>
-								)}
-
-								{visibleUnreadCount > 0 && (
-									<Button
-										className='mt-4 h-9 px-0 text-sm text-text-secondary hover:text-text-primary'
-										onClick={handleMarkAllAsRead}
-										variant='ghost'
+								{isAnonymous && (
+									<p
+										className={cn(
+											'mt-2 text-[11px] leading-4 text-primary-300',
+											sectionRailClassName
+										)}
 									>
-										Mark all as read
-									</Button>
+										Upgrade to keep this workspace.
+									</p>
 								)}
 							</section>
 
-							<section className='mt-6 border-t border-white/8 pt-6'>
-								<SectionHeading meta={collaboratorSummary} title='Collaborators' />
+							<div className={sectionRailClassName}>
+								<section className='mt-5 border-t border-white/8 pt-4'>
+									<SectionHeading title='Collaboration' />
 
-								<div className='mt-4 rounded-[24px] border border-white/8 bg-white/[0.03] px-4 py-4'>
-									<RealtimeAvatarStack
-										activityState={activityState}
-										fallbackAvatars={collaboratorAvatars}
-										mapOwnerId={mapOwnerId}
-										roomName={getMindMapRoomName(mapId, 'presence')}
-									/>
+									<div className='mt-1.5 space-y-2.5'>
+										{isMapOwner && (
+											<MenuRow
+												description='Invite people into this map.'
+												label='Share map'
+												onClick={handleShareMap}
+											/>
+										)}
 
-									<p className='mt-3 text-sm text-text-secondary'>
-										{collaboratorAvatars.length > 0
-											? 'See who is in the map before you open sharing or presentation tools.'
-											: 'Share the map to bring other people into the session.'}
-									</p>
+										<div className='flex items-center gap-3'>
+											<RealtimeAvatarStack
+												activityState={activityState}
+												fallbackAvatars={collaboratorAvatars}
+												mapOwnerId={mapOwnerId}
+												roomName={getMindMapRoomName(mapId, 'presence')}
+											/>
+											<p className='min-w-0 text-[12px] leading-4 text-text-secondary'>
+												{collaboratorAvatars.length > 0
+													? collaboratorSummary
+													: 'Only you are here right now.'}
+											</p>
+										</div>
+									</div>
+								</section>
+
+								<section className='mt-5 border-t border-white/8 pt-4'>
+									<SectionHeading meta={unreadSummary} title='Recent activity' />
+
+									{error ? (
+										<p className='mt-2 text-[12px] leading-4 text-red-400'>
+											{error}
+										</p>
+									) : activityPreview.length === 0 ? (
+										<p className='mt-2 text-[12px] leading-4 text-text-secondary'>
+											No activity on this map yet.
+										</p>
+									) : (
+										<ul className='mt-2 divide-y divide-white/8 border-y border-white/8'>
+											{activityPreview.map((notification) => (
+												<li key={notification.id}>
+													<div className='flex items-start gap-2.5 py-2.5'>
+														<span
+															className={cn(
+																'mt-1 size-2 rounded-full',
+																notification.is_read
+																	? 'bg-white/10'
+																	: 'bg-primary-400 shadow-[0_0_14px_rgba(59,130,246,0.65)]'
+															)}
+														/>
+
+														<button
+															type='button'
+															className='flex min-w-0 flex-1 items-start justify-between gap-3 rounded-2xl pr-1 text-left transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500'
+															onClick={() =>
+																void handleNotificationClick(
+																	notification.id,
+																	notification.map_id
+																)
+															}
+														>
+															<div className='min-w-0'>
+																<p className='truncate text-[13px] font-medium text-text-primary'>
+																	{notification.title}
+																</p>
+																<p className='mt-0.5 line-clamp-2 text-[12px] leading-4 text-text-secondary'>
+																	{notification.body}
+																</p>
+															</div>
+
+															<div className='shrink-0 pt-0.5 text-right'>
+																<p className='text-[10px] uppercase tracking-[0.16em] text-text-disabled'>
+																	{formatRelativeNotificationTime(
+																		notification.created_at
+																	)}
+																</p>
+																{notification.map_id && (
+																	<p className='mt-1.5 text-[10px] uppercase tracking-[0.14em] text-text-secondary'>
+																		Open
+																	</p>
+																)}
+															</div>
+														</button>
+													</div>
+												</li>
+											))}
+										</ul>
+									)}
+
+									{visibleUnreadCount > 0 && (
+										<Button
+											className='mt-2 h-8 px-0 text-[12px] text-text-secondary hover:text-text-primary'
+											onClick={handleMarkAllAsRead}
+											variant='ghost'
+										>
+											Mark all as read
+										</Button>
+									)}
+								</section>
+
+								<section className='mt-5 border-t border-white/8 pt-4'>
+									<SectionHeading title='Workspace' />
+
+									<div className='mt-1.5 space-y-0.5'>
+										{canEdit && (
+											<MenuRow
+												description='Browse the map timeline.'
+												label='View history'
+												onClick={handleViewHistory}
+											/>
+										)}
+
+										{isMapOwner && (
+											<MenuRow
+												description={
+													isSettingsActive
+														? 'Settings are already open.'
+														: 'Access map permissions and metadata.'
+												}
+												label='Map settings'
+												onClick={handleOpenMapSettings}
+											/>
+										)}
+
+										{!isAnonymous && (
+											<MenuRow
+												description='Replay the editor walkthrough.'
+												label='Restart walkthrough'
+												onClick={handleRestartWalkthrough}
+											/>
+										)}
+									</div>
+								</section>
+
+								<section className='mt-5 border-t border-white/8 pt-4'>
+									<SectionHeading title='Account' />
+
+									<div className='mt-1.5 space-y-0.5'>
+										<MenuRow
+											description='Profile details and preferences.'
+											label='Account'
+											onClick={handleOpenAccount}
+										/>
+
+										{!isAnonymous && (
+											<MenuRow
+												description='Plans, invoices, and billing.'
+												label='Billing'
+												onClick={handleOpenBilling}
+											/>
+										)}
+
+										{isAnonymous ? (
+											<MenuRow
+												description='Save this temporary account.'
+												label='Upgrade Account'
+												onClick={handleUpgradeAccount}
+												tone='accent'
+											/>
+										) : !isPro ? (
+											<MenuRow
+												description='Unlock higher limits and deeper tools.'
+												label='Upgrade to Pro'
+												onClick={handleUpgradePro}
+												tone='accent'
+											/>
+										) : null}
+
+										<MenuRow
+											description='Leave this session.'
+											label={isLoggingOut ? 'Signing out...' : 'Sign out'}
+											onClick={handleSignOut}
+											tone='danger'
+										/>
+									</div>
+									</section>
+									</div>
 								</div>
-							</section>
-
-							<section className='mt-6 border-t border-white/8 pt-6'>
-								<SectionHeading title='Workspace' />
-
-								<div className='mt-2 space-y-1'>
-									{canEdit && (
-										<MenuRow
-											description='Open the map timeline and jump through saved states.'
-											label='View history'
-											onClick={handleViewHistory}
-										/>
-									)}
-
-									{isMapOwner && (
-										<MenuRow
-											description={
-												isSettingsActive
-													? 'Settings are already open.'
-													: 'Adjust map access, metadata, and owner controls.'
-											}
-											label='Map settings'
-											onClick={handleOpenMapSettings}
-										/>
-									)}
-
-									{!isAnonymous && (
-										<MenuRow
-											description='Replay the getting-started walkthrough inside the editor.'
-											label='Restart walkthrough'
-											onClick={handleRestartWalkthrough}
-										/>
-									)}
-								</div>
-							</section>
-
-							<section className='mt-6 border-t border-white/8 pt-6'>
-								<SectionHeading title='Account' />
-
-								<div className='mt-2 space-y-1'>
-									<MenuRow
-										description='Profile details and preferences.'
-										label='Account'
-										onClick={handleOpenAccount}
-									/>
-
-									{!isAnonymous && (
-										<MenuRow
-											description='Billing, invoices, and plan settings.'
-											label='Billing'
-											onClick={handleOpenBilling}
-										/>
-									)}
-
-									{isAnonymous ? (
-										<MenuRow
-											description='Convert this temporary account into a saved profile.'
-											label='Upgrade Account'
-											onClick={handleUpgradeAccount}
-											tone='accent'
-										/>
-									) : !isPro ? (
-										<MenuRow
-											description='Unlock higher limits and deeper collaboration features.'
-											label='Upgrade to Pro'
-											onClick={handleUpgradePro}
-											tone='accent'
-										/>
-									) : null}
-
-									<MenuRow
-										description='Leave this session and clear the local editor state.'
-										label={isLoggingOut ? 'Signing out...' : 'Sign out'}
-										onClick={handleSignOut}
-										tone='danger'
-									/>
-								</div>
-							</section>
 						</div>
-					</div>
-				</SheetContent>
-			</Sheet>
+					</SheetContent>
+				</Sheet>
 
 			{showUpgradeAnonymous && (
 				<UpgradeAnonymousPrompt
@@ -461,11 +464,11 @@ function SectionHeading({
 }) {
 	return (
 		<div className='flex items-center justify-between gap-3'>
-			<p className='text-[11px] font-medium uppercase tracking-[0.18em] text-text-tertiary'>
+			<p className='text-[10px] font-medium uppercase tracking-[0.22em] text-text-disabled'>
 				{title}
 			</p>
 			{meta ? (
-				<span className='text-[11px] uppercase tracking-[0.16em] text-text-disabled'>
+				<span className='text-[10px] uppercase tracking-[0.18em] text-text-disabled'>
 					{meta}
 				</span>
 			) : null}
@@ -488,15 +491,17 @@ function MenuRow({
 		<button
 			type='button'
 			className={cn(
-				'flex w-full items-center justify-between gap-4 rounded-[20px] px-3 py-3 text-left transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
+				'flex w-full items-center justify-between gap-3 rounded-[18px] py-2.5 pr-1 text-left transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
 				tone === 'accent' && 'text-primary-300 hover:text-primary-200',
 				tone === 'danger' && 'text-red-300 hover:text-red-200'
 			)}
 			onClick={onClick}
 		>
 			<div className='min-w-0'>
-				<p className='text-sm font-medium'>{label}</p>
-				<p className='mt-1 text-sm text-text-secondary'>{description}</p>
+				<p className='text-[15px] font-medium leading-5'>{label}</p>
+				<p className='mt-0.5 text-[12px] leading-4 text-text-secondary'>
+					{description}
+				</p>
 			</div>
 			<ChevronRight className='size-4 shrink-0 text-text-disabled' />
 		</button>
