@@ -1,7 +1,7 @@
 'use client';
 
-import type { AvailableNodeTypes } from '@/registry/node-registry';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
+import type { AvailableNodeTypes } from '@/registry/node-registry';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import {
@@ -100,11 +100,7 @@ export const NodeEditor = () => {
 		}
 
 		handleOnboardingNodeEditorOpened(nodeEditor.mode);
-	}, [
-		nodeEditor.isOpen,
-		nodeEditor.mode,
-		handleOnboardingNodeEditorOpened,
-	]);
+	}, [nodeEditor.isOpen, nodeEditor.mode, handleOnboardingNodeEditorOpened]);
 
 	const { refs, context } = useFloating({
 		open: nodeEditor.isOpen,
@@ -126,11 +122,11 @@ export const NodeEditor = () => {
 
 	const theme = {
 		container:
-			'bg-base border border-border-subtle w-[calc(100%-2rem)] sm:w-3xl rounded-md max-h-[calc(100dvh-2rem)] sm:max-h-none overflow-y-auto sm:overflow-visible',
+			'bg-base border border-border-subtle w-[calc(100%-12px)] sm:w-3xl rounded-md max-h-[calc(100dvh-2rem)] sm:max-h-none overflow-y-auto sm:overflow-visible',
 	};
 
 	return (
-		<div className='fixed flex flex-col items-center top-0 left-0 w-full h-full bg-zinc-950/50 z-[100] backdrop-blur-sm pt-4 sm:pt-32 px-4 sm:px-0'>
+		<div className='fixed flex flex-col items-center top-0 left-0 w-full h-full bg-zinc-950/50 z-[100] backdrop-blur-sm pt-4 sm:pt-32 '>
 			<AnimatePresence>
 				{nodeEditor.isOpen && (
 					<motion.div
