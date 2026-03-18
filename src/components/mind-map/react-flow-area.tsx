@@ -34,6 +34,7 @@ import FloatingEdge from '@/components/edges/floating-edge';
 import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edge';
 import { GuidedTourMode, PathBuilder } from '@/components/guided-tour';
 import { UpgradeModal } from '@/components/modals/upgrade-modal';
+import { useNotifications } from '@/components/notifications/use-notifications';
 import { ModeIndicator } from '@/components/mode-indicator';
 import { OnboardingModal } from '@/components/onboarding/onboarding-modal';
 import { ShortcutsHelpFab } from '@/components/shortcuts-help/shortcuts-help-fab';
@@ -186,6 +187,10 @@ export function ReactFlowArea() {
 	const { generateSuggestionsForNode } = useNodeSuggestion();
 	const { canEdit } = usePermissions();
 	const isMobile = useIsMobile();
+	const mobileNotifications = useNotifications({
+		filterMapId: mapId as string,
+		enabled: isMobile,
+	});
 	const updateBottomToolbarClearance = useCallback(() => {
 		if (typeof window === 'undefined') return;
 
@@ -674,6 +679,7 @@ export function ReactFlowArea() {
 					activityState={activityState}
 					popoverOpen={popoverOpen}
 					canEdit={canEdit}
+					mobileUnreadCount={mobileNotifications.visibleUnreadCount}
 					handleToggleHistorySidebar={handleToggleHistorySidebar}
 					handleToggleMapSettings={handleToggleMapSettings}
 					handleToggleSharePanel={handleToggleSharePanel}
@@ -723,18 +729,25 @@ export function ReactFlowArea() {
 				defaultTab={settingsTab}
 			/>
 
-			<MobileMenu
-				open={mobileMenuOpen}
-				onOpenChange={setMobileMenuOpen}
-				canEdit={canEdit}
-				isMapOwner={mindMap?.user_id === currentUser?.id}
-				activityState={activityState}
-				mapId={mapId as string}
-				mapOwnerId={mindMap?.user_id}
-				isSettingsActive={popoverOpen.mapSettings}
-				onToggleHistory={handleToggleHistorySidebar}
-				onToggleSettings={handleToggleMapSettings}
-			/>
+			{isMobile && (
+				<MobileMenu
+					open={mobileMenuOpen}
+					onOpenChange={setMobileMenuOpen}
+					canEdit={canEdit}
+					isMapOwner={mindMap?.user_id === currentUser?.id}
+					activityState={activityState}
+					mapId={mapId as string}
+					mapOwnerId={mindMap?.user_id}
+					mapTitle={mindMap?.title}
+					user={userProfile}
+					isSettingsActive={popoverOpen.mapSettings}
+					onToggleHistory={handleToggleHistorySidebar}
+					onToggleSettings={handleToggleMapSettings}
+					onToggleSharePanel={handleToggleSharePanel}
+					onOpenSettings={handleOpenSettings}
+					notifications={mobileNotifications}
+				/>
+			)}
 
 			{ENABLE_AI_CHAT && <ChatPanel />}
 

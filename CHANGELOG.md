@@ -23,13 +23,19 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **tests/mobile-onboarding**: Added slice coverage for the mobile controls-tour sequence, node-wrapper coverage for the mobile `Edit` action, and onboarding modal coverage for the bottom-sheet intro/hint behavior
   - Why: Locks the new mobile walkthrough path before the desktop-first implementation drifts back in
+- **tests/mobile-header-drawer**: Added RTL coverage for the hamburger-only mobile top bar, the editorial mobile drawer permission gating, and notification-preview interactions
+  - Why: Protects the new mobile header/menu contract and keeps the drawer from regressing back into a generic utility panel
 
 ### Changed
 
 - **onboarding/mobile-shell**: Mobile walkthrough now uses bottom-sheet intro, checklist, hints, coachmarks, and upsell surfaces instead of reusing the desktop right-rail layout
   - Why: Keeps the canvas visible and removes stacked desktop cards from small screens
-- **onboarding/mobile-controls-tour**: Controls tour now uses a mobile-specific target set (`cursor`, `add`, `AI`, `comments`, `More Tools`, `share`, `breadcrumb`) and explains hidden toolbar actions through `More Tools` copy without auto-opening overflow menus
+- **onboarding/mobile-controls-tour**: Controls tour now uses a mobile-specific target set (`cursor`, `add`, `AI`, `comments`, `More Tools`, `mobile menu`, `breadcrumb`) and explains hidden toolbar actions through `More Tools` copy without auto-opening overflow menus
   - Why: Matches the real mobile toolbar instead of teaching controls that are hidden or absent on touch devices
+- **top-bar/mobile-editor-drawer**: Mobile editor chrome now collapses to breadcrumb/title plus one hamburger trigger, and the hamburger opens a full-height editorial drawer for share, recent activity, collaborators, workspace actions, and account/billing flows
+  - Why: Clears visual noise from the mobile header and gives those actions a calmer, more premium home
+- **notifications/shared-hook**: Notification fetch/subscription/mark-read logic now lives in a shared `useNotifications()` hook used by the desktop bell and the mobile editorial drawer
+  - Why: Keeps inbox behavior aligned across surfaces without duplicating realtime or mutation logic
 
 ### Fixed
 
@@ -37,6 +43,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Gives mobile onboarding a real touch-first edit path instead of relying on desktop-only Enter/double-click gestures
 - **onboarding/mobile-step-stacking**: Mobile checklist now yields to active step hints/coachmarks, and the minimized walkthrough chip sits below the top bar instead of near the bottom dock
   - Why: Prevents onboarding surfaces from fighting for the same screen space on phones
+- **onboarding/mobile-menu-anchor**: Mobile controls tour now targets the hamburger menu instead of the removed mobile share button
+  - Why: Keeps the walkthrough aligned with the new mobile header layout
 
 ## [2026-03-17]
 

@@ -265,6 +265,7 @@ pnpm pretty          # Prettier
 ## Architecture
 <!-- Updated: 2026-01-14 - Moved details to CODEBASE_MAP.md -->
 <!-- Updated: 2026-03-17 - Documented editor-owned onboarding v2 and upgrade-modal split -->
+<!-- Updated: 2026-03-18 - Documented mobile editor drawer and shared notifications hook -->
 
 **Stack**: Next.js 16 (App Router) • React 19 • TypeScript • Zustand (21 slices) • React Flow (canvas) • Motion (animations) • Supabase (auth/DB/realtime) • Tailwind CSS • OpenAI GPT
 
@@ -312,8 +313,11 @@ pnpm pretty          # Prettier
 **Onboarding control anchors**: Keep `data-onboarding-target` attrs on cursor/select, Add Node, AI Suggestions, Auto Layout, Export, Guided Tour, Reset Zoom, Comments, Share, shortcuts help, and breadcrumb home links. The controls tour depends on those stable selectors.
 <!-- Updated: 2026-03-17 - Expanded DOM anchors for refined editor walkthrough coachmarks -->
 
-**Onboarding mobile mode**: Mobile walkthrough is a separate bottom-sheet path, not the desktop checklist squeezed smaller. Mobile uses a reduced controls-tour target set (`cursor-tool`, `add-node`, `ai-suggestions`, `comments`, `more-tools`, `share`, `breadcrumb-home`), hides the checklist while a step hint/coachmark owns the screen, and keeps the minimized chip under the top bar instead of near the bottom dock.
+**Onboarding mobile mode**: Mobile walkthrough is a separate bottom-sheet path, not the desktop checklist squeezed smaller. Mobile uses a reduced controls-tour target set (`cursor-tool`, `add-node`, `ai-suggestions`, `comments`, `more-tools`, `mobile-menu`, `breadcrumb-home`), hides the checklist while a step hint/coachmark owns the screen, and keeps the minimized chip under the top bar instead of near the bottom dock.
 <!-- Updated: 2026-03-18 - Documented mobile-specific onboarding shell and target set -->
+
+**Mobile editor header**: On phones, the top bar now shows only breadcrumb/title on the left and a single hamburger trigger on the right. Share, notifications, billing/account actions, and `Restart walkthrough` all live inside `src/components/mind-map/top-bar/mobile-menu.tsx`, and unread state comes from the shared `useNotifications()` hook instead of a mobile bell button.
+<!-- Updated: 2026-03-18 - Documented premium mobile drawer ownership of sharing/account/inbox actions -->
 
 **Mobile node editing affordance**: When exactly one editable node is selected on mobile, `BaseNodeWrapper` shows a visible `Edit` action on the node chrome. Keep onboarding/mobile copy aligned to that touch path instead of desktop-only `Enter`/double-click guidance.
 <!-- Updated: 2026-03-18 - Documented touch-first node edit path for mobile onboarding -->

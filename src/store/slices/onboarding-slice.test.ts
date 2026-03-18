@@ -226,6 +226,19 @@ describe('onboarding slice', () => {
 		);
 	});
 
+	it('points the mobile controls tour at the mobile menu instead of the share button', () => {
+		expect(
+			ONBOARDING_MOBILE_COACHMARKS.some(
+				(coachmark) => coachmark.target === 'mobile-menu'
+			)
+		).toBe(true);
+		expect(
+			ONBOARDING_MOBILE_COACHMARKS.some(
+				(coachmark) => coachmark.target === 'share'
+			)
+		).toBe(false);
+	});
+
 	it('finishes the controls tour into the optional upsell for free users', () => {
 		const harness = createOnboardingSliceHarness();
 		const state = harness.getState();

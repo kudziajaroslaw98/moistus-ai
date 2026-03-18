@@ -1,6 +1,10 @@
 'use client';
 
 import { UpgradeAnonymousPrompt } from '@/components/auth/upgrade-anonymous';
+import {
+	type AccountMenuUser,
+	useAccountMenuActions,
+} from '@/components/common/use-account-menu-actions';
 import { Button } from '@/components/ui/button';
 import {
 	DropdownMenu,
@@ -10,9 +14,6 @@ import {
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { UserAvatar } from '@/components/ui/user-avatar';
-import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
-import useAppStore from '@/store/mind-map-store';
-import { PublicUserProfile } from '@/types/user-profile-types';
 import {
 	ChevronDown,
 	CreditCard,
@@ -22,91 +23,33 @@ import {
 	Sparkles,
 	User,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useCallback, useState } from 'react';
-import { mutate } from 'swr';
-import { useShallow } from 'zustand/react/shallow';
 
 interface UserMenuProps {
-	user: (PublicUserProfile & { email?: string; is_anonymous?: boolean }) | null;
+	user: AccountMenuUser;
 	showBackToDashboard?: boolean;
 	showRestartWalkthrough?: boolean;
 	onOpenSettings?: (tab: 'account' | 'billing') => void;
 }
 
-// Use shared Supabase client
-const supabase = getSharedSupabaseClient();
-
 export function UserMenu({
 	user,
-	showBackToDashboard = false,
 	showRestartWalkthrough = false,
 	onOpenSettings,
 }: UserMenuProps) {
-	const router = useRouter();
-	const [isLoggingOut, setIsLoggingOut] = useState(false);
-	const [showUpgradeAnonymous, setShowUpgradeAnonymous] = useState(false);
-
-	// Store actions
 	const {
-		restartOnboarding,
-		setPopoverOpen,
-		isProUser,
-		resetStore,
-		setLoggingOut,
-	} = useAppStore(
-		useShallow((state) => ({
-			restartOnboarding: state.restartOnboarding,
-			setPopoverOpen: state.setPopoverOpen,
-			isProUser: state.isProUser,
-			resetStore: state.reset,
-			setLoggingOut: state.setLoggingOut,
-		}))
-	);
-
-	const handleRestartOnboarding = useCallback(() => {
-		restartOnboarding();
-	}, [restartOnboarding]);
-
-	const handleUpgradeToPro = useCallback(() => {
-		setPopoverOpen({ upgradeUser: true });
-	}, [setPopoverOpen]);
-
-	// Handle logout
-	const handleLogout = useCallback(async () => {
-		if (isLoggingOut) return;
-
-		setIsLoggingOut(true);
-		setLoggingOut(true); // Set store-level flag to prevent profile loading race condition
-
-		try {
-			// Sign out from Supabase
-			const { error: signOutError } = await supabase.auth.signOut();
-
-			if (signOutError) {
-				console.error('Sign out error:', signOutError);
-			}
-		} catch (err) {
-			console.error('Logout error:', err);
-		} finally {
-			// Always clear state and redirect
-			resetStore();
-			setLoggingOut(true); // Re-assert after reset — resetStore() wipes entire state including isLoggingOut
-
-			// Clear SWR cache
-			await mutate(() => true, undefined, { revalidate: false });
-
-			router.push('/');
-			setIsLoggingOut(false);
-		}
-	}, [isLoggingOut, router, resetStore, setLoggingOut]);
-
-	// Display info
-	const name = user?.display_name || user?.full_name || 'User';
-	const isAnonymous = user?.is_anonymous;
-	const subtitle = isAnonymous
-		? 'Anonymous User'
-		: user?.email || 'Registered User';
+		name,
+		isAnonymous,
+		subtitle,
+		isPro,
+		isLoggingOut,
+		showUpgradeAnonymous,
+		handleRestartOnboarding,
+		handleUpgradeToPro,
+		handleLogout,
+		openUpgradeAnonymousPrompt,
+		closeUpgradeAnonymousPrompt,
+		handleAnonymousUpgradeSuccess,
+	} = useAccountMenuActions(user);
 
 	return (
 		<DropdownMenu>
@@ -174,7 +117,7 @@ export function UserMenu({
 
 						<DropdownMenuItem
 							className='cursor-pointer text-primary-400 data-[highlighted]:text-primary-300'
-							onClick={() => setShowUpgradeAnonymous(true)}
+							onClick={openUpgradeAnonymousPrompt}
 						>
 							<User className='mr-2 h-4 w-4' />
 							Upgrade Account
@@ -182,7 +125,7 @@ export function UserMenu({
 					</>
 				)}
 
-				{!isProUser() && !isAnonymous && (
+				{!isPro && !isAnonymous && (
 					<DropdownMenuItem
 						className='cursor-pointer text-warning-400 data-[highlighted]:text-warning-300'
 						onClick={handleUpgradeToPro}
@@ -226,12 +169,9 @@ export function UserMenu({
 				<UpgradeAnonymousPrompt
 					isAnonymous={true}
 					userDisplayName={user?.display_name || user?.full_name}
-					onDismiss={() => setShowUpgradeAnonymous(false)}
-					onUpgradeSuccess={() => {
-						// Refresh the page to update user state
-						router.refresh();
-					}}
-					autoShowDelay={0} // Show immediately when triggered from menu
+					onDismiss={closeUpgradeAnonymousPrompt}
+					onUpgradeSuccess={handleAnonymousUpgradeSuccess}
+					autoShowDelay={0}
 				/>
 			)}
 		</DropdownMenu>

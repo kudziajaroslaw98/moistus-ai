@@ -45,6 +45,7 @@ export const ONBOARDING_TARGETS = [
 	'reset-zoom',
 	'comments',
 	'more-tools',
+	'mobile-menu',
 	'share',
 	'shortcuts-help',
 	'breadcrumb-home',
@@ -161,10 +162,10 @@ export const ONBOARDING_MOBILE_COACHMARKS: ReadonlyArray<OnboardingCoachmark> =
 				'Open More Tools when you need layout, export, guided tour, or reset zoom from the phone toolbar.',
 		},
 		{
-			target: 'share',
-			title: 'Bring others in when ready',
+			target: 'mobile-menu',
+			title: 'Open sharing and account actions',
 			description:
-				'Invite collaborators after the map has enough structure to react to.',
+				'On phone, share, notifications, and account actions live in this menu so the canvas stays clean.',
 		},
 		{
 			target: 'breadcrumb-home',

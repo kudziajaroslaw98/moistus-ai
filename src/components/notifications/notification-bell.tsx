@@ -1,239 +1,45 @@
 'use client';
 
+import {
+	formatRelativeNotificationTime,
+	useNotifications,
+} from '@/components/notifications/use-notifications';
 import { Button } from '@/components/ui/button';
 import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
 } from '@/components/ui/popover';
-import { subscribeToNotificationChannel } from '@/lib/realtime/notification-channel';
-import useAppStore from '@/store/mind-map-store';
-import type { NotificationRecord } from '@/types/notification';
 import { cn } from '@/utils/cn';
 import { Bell, CheckCheck, Circle } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useShallow } from 'zustand/shallow';
+import { useEffect, useState } from 'react';
 
 interface NotificationBellProps {
 	className?: string;
 	filterMapId?: string | null;
 }
 
-interface NotificationsApiResponse {
-	status: 'success' | 'error';
-	data?: {
-		notifications: NotificationRecord[];
-		unreadCount: number;
-	};
-}
-
 export function NotificationBell({
 	className,
 	filterMapId = null,
 }: NotificationBellProps) {
-	const { currentUser } = useAppStore(
-		useShallow((state) => ({
-			currentUser: state.currentUser,
-		}))
-	);
 	const [isOpen, setIsOpen] = useState(false);
-	const [isLoading, setIsLoading] = useState(false);
-	const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
-	const [unreadCount, setUnreadCount] = useState(0);
-	const [error, setError] = useState<string | null>(null);
-
-	const visibleNotifications = useMemo(() => {
-		if (!filterMapId) {
-			return notifications;
-		}
-		return notifications.filter(
-			(notification) => notification.map_id === filterMapId
-		);
-	}, [notifications, filterMapId]);
-
-	const visibleUnreadCount = useMemo(
-		() =>
-			visibleNotifications.filter((notification) => !notification.is_read)
-				.length,
-		[visibleNotifications]
-	);
-
-	const fetchNotifications = useCallback(async () => {
-		setIsLoading(true);
-		setError(null);
-		try {
-			const response = await fetch('/api/notifications?limit=30');
-			if (!response.ok) {
-				throw new Error('Failed to fetch notifications');
-			}
-			const payload = (await response.json()) as NotificationsApiResponse;
-			if (payload.status !== 'success' || !payload.data) {
-				throw new Error('Invalid notifications response');
-			}
-			setNotifications(payload.data.notifications ?? []);
-			setUnreadCount(payload.data.unreadCount ?? 0);
-		} catch (fetchError) {
-			setError(
-				fetchError instanceof Error
-					? fetchError.message
-					: 'Failed to fetch notifications'
-			);
-		} finally {
-			setIsLoading(false);
-		}
-	}, []);
-
-	useEffect(() => {
-		if (currentUser?.id) {
-			void fetchNotifications();
-		}
-	}, [fetchNotifications, currentUser?.id]);
-
-	useEffect(() => {
-		if (!currentUser?.id) {
-			return;
-		}
-
-		let unsubscribe: (() => void) | null = null;
-		let cancelled = false;
-
-		void subscribeToNotificationChannel(currentUser.id, {
-			onEvent: () => {
-				void fetchNotifications();
-			},
-			onOpen: () => {
-				void fetchNotifications();
-			},
-			onError: (event) => {
-				console.warn('[notification-bell] notification channel error', event);
-			},
-			onClose: (event) => {
-				if (event.code !== 1000 && event.reason !== 'client_unsubscribe') {
-					console.warn('[notification-bell] notification channel closed', {
-						code: event.code,
-						reason: event.reason,
-					});
-				}
-			},
-		})
-			.then((subscription) => {
-				if (cancelled) {
-					subscription.disconnect();
-					return;
-				}
-				unsubscribe = subscription.disconnect;
-			})
-			.catch((error) => {
-				if (!cancelled) {
-					console.warn(
-						'[notification-bell] failed to subscribe to notification channel',
-						{
-							userId: currentUser.id,
-							error: error instanceof Error ? error.message : 'Unknown error',
-						}
-					);
-				}
-			});
-
-		return () => {
-			cancelled = true;
-			unsubscribe?.();
-		};
-	}, [currentUser?.id, fetchNotifications]);
+	const {
+		visibleNotifications,
+		visibleUnreadCount,
+		isLoading,
+		error,
+		refreshNotifications,
+		markAllAsRead,
+		markNotificationAsRead,
+	} = useNotifications({ filterMapId });
 
 	useEffect(() => {
 		if (isOpen) {
-			void fetchNotifications();
+			void refreshNotifications();
 		}
-	}, [isOpen, fetchNotifications]);
-
-	const handleMarkAllAsRead = useCallback(async () => {
-		if (visibleUnreadCount === 0) {
-			return;
-		}
-
-		try {
-			const response = await fetch('/api/notifications/mark-all-read', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(filterMapId ? { mapId: filterMapId } : {}),
-			});
-
-			if (!response.ok) {
-				console.warn('[notification-bell] failed to mark all as read', {
-					status: response.status,
-					statusText: response.statusText,
-				});
-				return;
-			}
-
-			setNotifications((current) =>
-				current.map((notification) => {
-					const isVisibleTarget = filterMapId
-						? notification.map_id === filterMapId
-						: true;
-					if (!isVisibleTarget || notification.is_read) {
-						return notification;
-					}
-					return {
-						...notification,
-						is_read: true,
-						read_at: new Date().toISOString(),
-					};
-				})
-			);
-			setUnreadCount((current) =>
-				filterMapId ? Math.max(0, current - visibleUnreadCount) : 0
-			);
-			void fetchNotifications();
-		} catch (markAllError) {
-			console.warn(
-				'[notification-bell] failed to mark all as read',
-				markAllError
-			);
-		}
-	}, [fetchNotifications, filterMapId, visibleUnreadCount]);
-
-	const handleMarkSingleAsRead = useCallback(async (notificationId: string) => {
-		try {
-			const response = await fetch(
-				`/api/notifications/${notificationId}/read`,
-				{
-					method: 'PATCH',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ read: true }),
-				}
-			);
-			if (!response.ok) {
-				console.warn(
-					'[notification-bell] failed to mark notification as read',
-					{
-						notificationId,
-						status: response.status,
-					}
-				);
-				return;
-			}
-			setNotifications((current) =>
-				current.map((notification) =>
-					notification.id === notificationId
-						? {
-								...notification,
-								is_read: true,
-								read_at: new Date().toISOString(),
-							}
-						: notification
-				)
-			);
-			setUnreadCount((current) => Math.max(0, current - 1));
-		} catch (markError) {
-			console.warn('[notification-bell] failed to mark notification as read', {
-				notificationId,
-				markError,
-			});
-		}
-	}, []);
+	}, [isOpen, refreshNotifications]);
 
 	return (
 		<Popover onOpenChange={setIsOpen} open={isOpen}>
@@ -270,7 +76,7 @@ export function NotificationBell({
 					<Button
 						className='h-7 px-2 text-xs'
 						disabled={visibleUnreadCount === 0}
-						onClick={handleMarkAllAsRead}
+						onClick={() => void markAllAsRead()}
 						size='sm'
 						variant='ghost'
 					>
@@ -280,7 +86,7 @@ export function NotificationBell({
 				</div>
 
 				<div className='max-h-[420px] overflow-y-auto'>
-					{isLoading && notifications.length === 0 ? (
+					{isLoading && visibleNotifications.length === 0 ? (
 						<div className='px-3 py-6 text-sm text-text-secondary'>
 							Loading notifications...
 						</div>
@@ -320,8 +126,8 @@ export function NotificationBell({
 															notification.created_at
 														).toLocaleString()}
 													>
-														{formatRelativeTime(
-															new Date(notification.created_at)
+														{formatRelativeNotificationTime(
+															notification.created_at
 														)}
 													</span>
 													<div className='flex items-center gap-1.5'>
@@ -329,7 +135,7 @@ export function NotificationBell({
 															<Button
 																className='h-6 px-2 text-[11px]'
 																onClick={() =>
-																	void handleMarkSingleAsRead(notification.id)
+																	void markNotificationAsRead(notification.id)
 																}
 																size='sm'
 																variant='ghost'
@@ -358,15 +164,4 @@ export function NotificationBell({
 			</PopoverContent>
 		</Popover>
 	);
-}
-
-function formatRelativeTime(date: Date): string {
-	const now = Date.now();
-	const diffSeconds = Math.floor((now - date.getTime()) / 1000);
-
-	if (diffSeconds < 60) return 'just now';
-	if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)}m ago`;
-	if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)}h ago`;
-	if (diffSeconds < 604800) return `${Math.floor(diffSeconds / 86400)}d ago`;
-	return `${Math.floor(diffSeconds / 604800)}w ago`;
 }
