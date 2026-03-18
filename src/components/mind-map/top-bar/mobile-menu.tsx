@@ -218,7 +218,7 @@ export function MobileMenu({
 				>
 					<div className='flex h-full flex-col'>
 						<div className='sticky top-0 z-10 border-b border-white/8 bg-base/90 px-5 pt-5 pb-3 backdrop-blur-xl'>
-							<SheetTitle className='pr-12 text-[1.75rem] font-semibold tracking-[-0.04em] text-text-primary'>
+							<SheetTitle className='pr-12 text-[1.5rem] font-semibold tracking-[-0.04em] text-text-primary'>
 								{mapTitle || 'Menu'}
 							</SheetTitle>
 						</div>
