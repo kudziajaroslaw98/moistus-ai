@@ -130,11 +130,11 @@ export function MindMapTopBar({
 				{isMobile && (
 					<Button
 						aria-label='Open menu'
-						className='relative rounded-2xl border border-white/10 bg-elevated/70 shadow-[0_14px_35px_rgba(0,0,0,0.28)] hover:bg-elevated'
+						className='relative text-text-secondary hover:text-text-primary'
 						data-onboarding-target='mobile-menu'
 						onClick={() => setMobileMenuOpen(true)}
 						size='icon'
-						variant='secondary'
+						variant='ghost'
 					>
 						<Menu className='size-5' />
 						{mobileUnreadCount > 0 && (

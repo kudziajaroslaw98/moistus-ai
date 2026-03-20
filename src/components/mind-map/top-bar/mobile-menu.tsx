@@ -234,7 +234,7 @@ export function MobileMenu({
 								{drawerTitle}
 							</SheetTitle>
 
-							<SheetClose className='relative inline-flex size-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-elevated/70 text-text-secondary shadow-[0_14px_35px_rgba(0,0,0,0.28)] transition-colors hover:bg-elevated hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500'>
+							<SheetClose className='inline-flex size-8 shrink-0 items-center justify-center rounded-sm bg-transparent text-text-secondary transition-colors hover:bg-white/5 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500'>
 								<X className='size-5' />
 								<span className='sr-only'>Close menu</span>
 							</SheetClose>

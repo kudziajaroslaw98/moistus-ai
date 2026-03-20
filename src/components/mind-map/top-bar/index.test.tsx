@@ -90,6 +90,8 @@ describe('MindMapTopBar mobile header', () => {
 			'data-onboarding-target',
 			'mobile-menu'
 		)
+		expect(openMenuButton.className).toContain('bg-transparent')
+		expect(openMenuButton.className).not.toContain('rounded-2xl')
 		expect(screen.getByText('3')).toBeInTheDocument()
 	})
 

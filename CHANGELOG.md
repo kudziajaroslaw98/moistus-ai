@@ -16,6 +16,29 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-03-17 - Replaced pricing-first onboarding with an editor-first walkthrough and split upgrade prompts back to the dedicated modal -->
 <!-- Updated: 2026-03-17 - Refined onboarding v2 with split intro, canvas/add substeps, toolbar-state fix, and Pro upsell guard -->
 <!-- Updated: 2026-03-18 - Added mobile onboarding shell, viewport-aware controls tour, and touch edit affordance -->
+<!-- Updated: 2026-03-20 - Morphed the minimized walkthrough into the checklist surface and repositioned the walkthrough anchors for cleaner motion -->
+
+## [2026-03-20]
+
+### Changed
+
+- **onboarding/walkthrough-morph**: The minimized walkthrough pill and expanded checklist now animate as one shared surface, with the shell expanding/collapsing in place while the inner content crossfades
+  - Why: Makes the walkthrough feel like one evolving object instead of separate overlays fading in and out
+- **onboarding/walkthrough-anchors**: Moved the desktop pill to the checklist corner and moved the mobile checklist under the top bar so both viewports have believable local expand/collapse motion
+  - Why: Shared-layout animation reads better when the compact and expanded states originate from the same screen region
+- **onboarding/component-split**: Broke the onboarding UI helpers out of `onboarding-modal.tsx` into focused component files for intro, hints, coachmarks, upsell, layout constants, and the walkthrough surface
+  - Why: Keeps the modal responsible for state orchestration instead of packing the entire walkthrough UI into one file
+- **onboarding/motion-geometry**: The morphing walkthrough surface now drives width, border radius, and padding through Motion state instead of swapping Tailwind geometry classes between pill and checklist states
+  - Why: Produces cleaner morphing behavior and keeps the animated shape under Motion’s control
+
+### Fixed
+
+- **tests/onboarding-walkthrough-surface**: Added modal coverage for the new desktop minimized-pill placement, the mobile under-top-bar checklist placement, and the resume/minimize actions
+  - Why: Locks the new morphing walkthrough presentation before future onboarding tweaks drift the positions or controls
+- **top-bar/mobile-editor-drawer-layering**: Raised the mobile sheet overlay/content above onboarding surfaces so the open hamburger drawer no longer sits under the walkthrough
+  - Why: An active menu should always own the top interaction layer on mobile
+- **top-bar/mobile-editor-drawer-trigger-chrome**: Switched the mobile hamburger trigger and drawer close control from elevated rounded buttons to ghost-style chrome
+  - Why: Keeps the mobile header controls visually consistent with the lighter editorial drawer treatment
 
 ## [2026-03-18]
 

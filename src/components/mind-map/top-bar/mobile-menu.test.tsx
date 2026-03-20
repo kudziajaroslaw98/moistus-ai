@@ -253,13 +253,14 @@ describe('MobileMenu', () => {
 
 	it('shows owner workspace actions, notifications preview, and closes after sharing', async () => {
 		const { onOpenChange, onToggleSharePanel, notifications } = renderMobileMenu()
+		const closeMenuButton = screen.getByRole('button', { name: 'Close menu' })
 
 		expect(
 			screen.queryByText('Everything that supports the canvas lives here.')
 		).not.toBeInTheDocument()
-		expect(
-			screen.getByRole('button', { name: 'Close menu' })
-		).toBeInTheDocument()
+		expect(closeMenuButton).toBeInTheDocument()
+		expect(closeMenuButton.className).toContain('bg-transparent')
+		expect(closeMenuButton.className).not.toContain('rounded-2xl')
 		expect(screen.getByTitle('Dump')).toHaveTextContent('Dump')
 		expect(screen.getByText('Collaboration')).toBeInTheDocument()
 		expect(screen.getByText('Share map')).toBeInTheDocument()
