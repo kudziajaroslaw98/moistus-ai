@@ -18,6 +18,25 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-03-18 - Added mobile onboarding shell, viewport-aware controls tour, and touch edit affordance -->
 <!-- Updated: 2026-03-20 - Morphed the minimized walkthrough into the checklist surface and repositioned the walkthrough anchors for cleaner motion -->
 
+## [2026-03-23]
+
+### Refactored
+
+- **docs/CLAUDE.md**: Compressed from 399 → 159 lines (60% reduction). System prompt XML collapsed to bullet-point philosophy. Domain-specific gotchas moved to path-scoped `.claude/rules/`
+  - Why: 2x over the recommended 200-line limit hurt instruction adherence and wasted context tokens
+
+### Added
+
+- **docs/.claude/rules/**: 7 path-scoped rule files with enhanced best practices (from codebase patterns + web research):
+  - `nextjs-patterns.md` — App Router, SEO, API routes, security, Core Web Vitals
+  - `supabase-patterns.md` — client tiers, RLS, auth, query patterns, subscription limits
+  - `partykit-realtime.md` — YJS doc structure, channels, awareness, admin ops, env config
+  - `base-ui-patterns.md` — Base UI API, React 19 patterns, component architecture
+  - `onboarding-gotchas.md` — v2 placement, task flow, control anchors, mobile mode
+  - `editor-chrome-gotchas.md` — mobile header, toolbar state, parser scope, map settings
+  - `testing-practices.md` — test stack, conventions, E2E workflow, Zustand patterns
+  - Why: Rules lazy-load only when touching relevant files, saving ~40-50% context tokens in most sessions
+
 ## [2026-03-20]
 
 ### Changed
