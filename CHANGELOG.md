@@ -27,6 +27,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Keeps the compact state pointed at the actual next action and removes the extra step between the pill and the active walkthrough task
 - **onboarding/history-coachmark**: The desktop `Know the controls` tour now includes the history control with dedicated copy about browsing saved map states
   - Why: The history button was visible in the editor, but onboarding never taught what lived behind it
+- **onboarding/history-order**: Moved the desktop history coachmark to sit directly before share instead of in the middle of the toolbar-only steps
+  - Why: Keeps the control tour order aligned with the broader desktop layout instead of interrupting the toolbar cluster
 
 ## [2026-03-23]
 

@@ -42,9 +42,9 @@ export const ONBOARDING_TARGETS = [
 	'layout',
 	'export',
 	'guided-tour',
-	'history',
 	'reset-zoom',
 	'comments',
+	'history',
 	'more-tools',
 	'mobile-menu',
 	'share',
@@ -99,12 +99,6 @@ export const ONBOARDING_COACHMARKS: ReadonlyArray<OnboardingCoachmark> = [
 			'Guided Tour turns the canvas into a simple walkthrough when you need to present the story behind it.',
 	},
 	{
-		target: 'history',
-		title: 'Revisit earlier versions',
-		description:
-			'Open History to inspect saved states, compare changes, and jump back through earlier map edits.',
-	},
-	{
 		target: 'reset-zoom',
 		title: 'Reset your view',
 		description:
@@ -115,6 +109,12 @@ export const ONBOARDING_COACHMARKS: ReadonlyArray<OnboardingCoachmark> = [
 		title: 'Collect feedback in context',
 		description:
 			'Comments keep discussion attached to the map, so feedback stays tied to the exact part it refers to.',
+	},
+	{
+		target: 'history',
+		title: 'Revisit earlier versions',
+		description:
+			'Open History to inspect saved states, compare changes, and jump back through earlier map edits.',
 	},
 	{
 		target: 'share',

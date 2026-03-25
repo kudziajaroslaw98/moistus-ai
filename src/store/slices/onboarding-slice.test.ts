@@ -243,6 +243,13 @@ describe('onboarding slice', () => {
 		expect(
 			ONBOARDING_COACHMARKS.some((coachmark) => coachmark.target === 'history')
 		).toBe(true);
+		expect(
+			ONBOARDING_COACHMARKS.findIndex(
+				(coachmark) => coachmark.target === 'history'
+			)
+		).toBeLessThan(
+			ONBOARDING_COACHMARKS.findIndex((coachmark) => coachmark.target === 'share')
+		);
 	});
 
 	it('finishes the controls tour into the optional upsell for free users', () => {
