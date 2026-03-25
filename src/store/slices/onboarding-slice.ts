@@ -52,7 +52,7 @@ export interface OnboardingSlice {
 
 	maybeStartOnboarding: () => void;
 	startOnboarding: () => void;
-	exploreOnboardingIndependently: () => void;
+	skipOnboarding: () => void;
 	resumeOnboarding: () => void;
 	minimizeOnboarding: () => void;
 	startOnboardingTask: (taskId: OnboardingTaskId) => void;
@@ -416,13 +416,18 @@ export const createOnboardingSlice: StateCreator<
 			});
 		},
 
-		exploreOnboardingIndependently: () => {
+		skipOnboarding: () => {
 			applyOnboardingPatch({
 				onboardingStatus: 'hidden',
 				onboardingActiveTarget: null,
 				onboardingCoachmarkStep: 0,
-				onboardingIsMinimized: true,
+				onboardingIsMinimized: false,
+				onboardingCreateNodeStep: null,
+				onboardingPatternStep: null,
+				onboardingHighlightedNodeId: null,
+				hasCompletedOnboarding: false,
 				hasSkippedOnboarding: true,
+				hasSeenOnboardingUpsell: false,
 			});
 		},
 

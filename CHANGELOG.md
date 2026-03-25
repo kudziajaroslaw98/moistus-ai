@@ -35,6 +35,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Replaying an already-completed controls tour previously no-op’d on the last step and left the coachmarks stuck on screen
 - **onboarding/desktop-tail-order**: Reordered the desktop controls-tour tail so it now flows from toolbar controls into shortcuts, breadcrumb, history, and then share
   - Why: Keeps the guided sequence aligned with the intended information hierarchy instead of jumping to history/share too early
+- **onboarding/skip-scope**: Full skip now lives only on the intro and expanded checklist, and the intro secondary CTA now dismisses onboarding entirely with `Skip walkthrough`
+  - Why: The partial skip controls added to hints and coachmarks broke those layouts; skip is now available only where it is intentional and legible
 
 ## [2026-03-23]
 

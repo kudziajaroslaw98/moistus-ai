@@ -33,7 +33,7 @@ describe('OnboardingModal mobile rendering', () => {
 			hasCompletedOnboarding: false,
 			currentSubscription: null,
 			startOnboarding: jest.fn(),
-			exploreOnboardingIndependently: jest.fn(),
+			skipOnboarding: jest.fn(),
 			resumeOnboarding: jest.fn(),
 			minimizeOnboarding: jest.fn(),
 			startOnboardingTask: jest.fn(),
@@ -55,6 +55,8 @@ describe('OnboardingModal mobile rendering', () => {
 			screen.getByText('Three quick moves to get comfortable fast.')
 		).toBeInTheDocument()
 		expect(screen.getByText('Create a node')).toBeInTheDocument()
+		expect(screen.queryByText('Explore on my own')).not.toBeInTheDocument()
+		expect(screen.getByRole('button', { name: 'Skip walkthrough' })).toBeInTheDocument()
 	})
 
 	it('hides the checklist when the mobile create-node hint is active', () => {
@@ -95,6 +97,66 @@ describe('OnboardingModal mobile rendering', () => {
 
 		fireEvent.click(screen.getByRole('button', { name: /minimize walkthrough/i }))
 		expect(minimizeOnboarding).toHaveBeenCalled()
+	})
+
+	it('can fully skip the walkthrough from the checklist', () => {
+		const skipOnboarding = jest.fn()
+		mockState = {
+			...mockState,
+			onboardingStatus: 'checklist',
+			onboardingTasks: {
+				'create-node': true,
+				'try-pattern': false,
+				'know-controls': false,
+			},
+			onboardingActiveTarget: null,
+			onboardingCreateNodeStep: null,
+			skipOnboarding,
+		}
+
+		render(<OnboardingModal />)
+
+		fireEvent.click(screen.getByRole('button', { name: 'Skip walkthrough' }))
+		expect(skipOnboarding).toHaveBeenCalled()
+	})
+
+	it('does not render skip walkthrough on an active hint surface', () => {
+		mockState = {
+			...mockState,
+			onboardingStatus: 'checklist',
+			onboardingActiveTarget: 'add-node',
+			onboardingCreateNodeStep: 'toolbar',
+		}
+
+		render(<OnboardingModal />)
+
+		expect(screen.queryByRole('button', { name: 'Skip walkthrough' })).not.toBeInTheDocument()
+	})
+
+	it('does not render skip walkthrough on the controls coachmark surface', () => {
+		mockState = {
+			...mockState,
+			onboardingStatus: 'coachmarks',
+			onboardingActiveTarget: 'add-node',
+		}
+
+		render(<OnboardingModal />)
+
+		expect(screen.queryByRole('button', { name: 'Skip walkthrough' })).not.toBeInTheDocument()
+	})
+
+	it('can fully skip the walkthrough from the intro', () => {
+		const skipOnboarding = jest.fn()
+		mockState = {
+			...mockState,
+			onboardingStatus: 'intro',
+			skipOnboarding,
+		}
+
+		render(<OnboardingModal />)
+
+		fireEvent.click(screen.getByRole('button', { name: 'Skip walkthrough' }))
+		expect(skipOnboarding).toHaveBeenCalled()
 	})
 
 	it('expands the minimized mobile pill back into the checklist', () => {

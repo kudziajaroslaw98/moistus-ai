@@ -33,7 +33,7 @@ export function OnboardingModal() {
 		hasCompletedOnboarding,
 		currentSubscription,
 		startOnboarding,
-		exploreOnboardingIndependently,
+		skipOnboarding,
 		resumeOnboarding,
 		minimizeOnboarding,
 		startOnboardingTask,
@@ -58,7 +58,7 @@ export function OnboardingModal() {
 			hasCompletedOnboarding: state.hasCompletedOnboarding,
 			currentSubscription: state.currentSubscription,
 			startOnboarding: state.startOnboarding,
-			exploreOnboardingIndependently: state.exploreOnboardingIndependently,
+			skipOnboarding: state.skipOnboarding,
 			resumeOnboarding: state.resumeOnboarding,
 			minimizeOnboarding: state.minimizeOnboarding,
 			startOnboardingTask: state.startOnboardingTask,
@@ -244,7 +244,7 @@ export function OnboardingModal() {
 				{shouldRenderIntro && (
 					<IntroOverlay
 						isMobile={isMobile}
-						onExplore={exploreOnboardingIndependently}
+						onSkip={skipOnboarding}
 						onStart={startOnboarding}
 					/>
 				)}
@@ -258,6 +258,7 @@ export function OnboardingModal() {
 						mode={walkthroughSurfaceMode}
 						onMinimize={minimizeOnboarding}
 						onResume={resumeOnboarding}
+						onSkip={skipOnboarding}
 						onTaskAction={handleTaskAction}
 						tasks={onboardingTasks}
 					/>

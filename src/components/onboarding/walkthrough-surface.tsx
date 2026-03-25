@@ -81,11 +81,13 @@ function ChecklistItem({
 function ChecklistContent({
 	completedCount,
 	onMinimize,
+	onSkip,
 	onTaskAction,
 	tasks,
 }: {
 	completedCount: number;
 	onMinimize: () => void;
+	onSkip: () => void;
 	onTaskAction: (taskId: OnboardingTaskId) => void;
 	tasks: Record<OnboardingTaskId, boolean>;
 }) {
@@ -101,14 +103,24 @@ function ChecklistContent({
 					</h3>
 				</div>
 
-				<button
-					className='rounded-lg p-2 text-text-tertiary transition-colors hover:bg-white/6 hover:text-text-primary'
-					onClick={onMinimize}
-					type='button'
-				>
-					<Minimize2 className='size-4' />
-					<span className='sr-only'>Minimize walkthrough</span>
-				</button>
+				<div className='flex items-center gap-2'>
+					<Button
+						className='px-0 text-text-secondary hover:text-text-primary'
+						onClick={onSkip}
+						size='sm'
+						variant='ghost'
+					>
+						Skip walkthrough
+					</Button>
+					<button
+						className='rounded-lg p-2 text-text-tertiary transition-colors hover:bg-white/6 hover:text-text-primary'
+						onClick={onMinimize}
+						type='button'
+					>
+						<Minimize2 className='size-4' />
+						<span className='sr-only'>Minimize walkthrough</span>
+					</button>
+				</div>
 			</div>
 
 			<div className='mt-4 space-y-3'>
@@ -180,6 +192,7 @@ export function WalkthroughSurface({
 	mode,
 	onMinimize,
 	onResume,
+	onSkip,
 	onTaskAction,
 	tasks,
 }: {
@@ -188,6 +201,7 @@ export function WalkthroughSurface({
 	mode: 'checklist' | 'pill';
 	onMinimize: () => void;
 	onResume: () => void;
+	onSkip: () => void;
 	onTaskAction: (taskId: OnboardingTaskId) => void;
 	tasks: Record<OnboardingTaskId, boolean>;
 }) {
@@ -305,6 +319,7 @@ export function WalkthroughSurface({
 							<ChecklistContent
 								completedCount={completedCount}
 								onMinimize={onMinimize}
+								onSkip={onSkip}
 								onTaskAction={onTaskAction}
 								tasks={tasks}
 							/>

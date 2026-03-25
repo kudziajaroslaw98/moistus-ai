@@ -77,22 +77,23 @@ describe('onboarding slice', () => {
 		expect(proHarness.getState().onboardingStatus).toBe('hidden');
 	});
 
-	it('explore on my own hides the overlay and keeps the checklist pill', () => {
+	it('can skip the walkthrough entirely without leaving the pill behind', () => {
 		const harness = createOnboardingSliceHarness();
 
-		(harness.getState().maybeStartOnboarding as () => void)();
-		(harness.getState().exploreOnboardingIndependently as () => void)();
+		(harness.getState().startOnboarding as () => void)();
+		(harness.getState().skipOnboarding as () => void)();
 
 		expect(harness.getState()).toMatchObject({
 			onboardingStatus: 'hidden',
-			onboardingIsMinimized: true,
+			onboardingIsMinimized: false,
 			hasSkippedOnboarding: true,
+			hasCompletedOnboarding: false,
 		});
 		expect(
 			JSON.parse(window.localStorage.getItem(ONBOARDING_STORAGE_KEY) || '{}')
 		).toMatchObject({
 			onboardingStatus: 'hidden',
-			onboardingIsMinimized: true,
+			onboardingIsMinimized: false,
 			hasSkippedOnboarding: true,
 		});
 	});

@@ -47,11 +47,11 @@ function OnboardingValueCard({
 
 export function IntroOverlay({
 	isMobile,
-	onExplore,
+	onSkip,
 	onStart,
 }: {
 	isMobile: boolean;
-	onExplore: () => void;
+	onSkip: () => void;
 	onStart: () => void;
 }) {
 	if (isMobile) {
@@ -120,11 +120,11 @@ export function IntroOverlay({
 							</Button>
 							<Button
 								className='w-full'
-								onClick={onExplore}
+								onClick={onSkip}
 								size='md'
 								variant='secondary'
 							>
-								Explore on my own
+								Skip walkthrough
 							</Button>
 						</div>
 					</div>
@@ -223,11 +223,11 @@ export function IntroOverlay({
 								</Button>
 								<Button
 									className='w-full'
-									onClick={onExplore}
+									onClick={onSkip}
 									size='md'
 									variant='secondary'
 								>
-									Explore on my own
+									Skip walkthrough
 								</Button>
 							</div>
 						</div>
