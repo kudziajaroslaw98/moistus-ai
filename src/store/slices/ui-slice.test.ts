@@ -1,34 +1,52 @@
+import type { UIStateSlice } from '@/store/app-state';
+import type { StateCreator, StoreApi } from 'zustand';
+
 jest.mock('@/components/node-editor/core/commands/node-commands', () => ({
 	nodeCommands: [],
 }))
 
-function createUiSliceHarness(overrides: Record<string, unknown> = {}) {
+type UiSliceHarnessState = UIStateSlice & {
+	currentUser: { id: string } | null;
+	mindMap: { user_id: string } | null;
+	permissions: { can_edit: boolean };
+	nodes: Array<{ id?: string; data: { node_type?: string } }>;
+}
+
+type UiSliceHarnessCreator = StateCreator<
+	UiSliceHarnessState,
+	[],
+	[],
+	UIStateSlice
+>;
+
+type UiSliceHarnessSet = Parameters<UiSliceHarnessCreator>[0];
+type UiSliceHarnessGet = Parameters<UiSliceHarnessCreator>[1];
+
+function createUiSliceHarness(overrides: Partial<UiSliceHarnessState> = {}) {
 	const { createUiStateSlice } =
 		require('@/store/slices/ui-slice') as typeof import('@/store/slices/ui-slice');
+	const typedCreateUiStateSlice =
+		createUiStateSlice as unknown as UiSliceHarnessCreator;
 
-	let state: Record<string, unknown> = {
+	let state = {
 		currentUser: { id: 'user-1' },
 		mindMap: { user_id: 'user-1' },
 		permissions: { can_edit: true },
 		nodes: [],
 		...overrides,
-	};
+	} as UiSliceHarnessState;
 
-	const set = (partial: unknown) => {
+	const set: UiSliceHarnessSet = (partial) => {
 		const patch =
 			typeof partial === 'function'
-				? (
-						partial as (
-							current: Record<string, unknown>
-						) => Record<string, unknown>
-					)(state)
-				: (partial as Record<string, unknown>);
+				? partial(state)
+				: partial;
 
 		state = { ...state, ...(patch ?? {}) };
 	};
 
-	const get = () => state;
-	const slice = createUiStateSlice(set as never, get as never, {} as never);
+	const get: UiSliceHarnessGet = () => state;
+	const slice = typedCreateUiStateSlice(set, get, {} as StoreApi<UiSliceHarnessState>);
 	state = { ...state, ...slice };
 
 	return {

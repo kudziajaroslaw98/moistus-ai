@@ -1,3 +1,4 @@
+import { BLOCKED_NODE_TYPES } from '@/constants/blocked-node-types';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useIsMobile } from '@/hooks/use-mobile';
 import useAppStore from '@/store/mind-map-store';
@@ -19,8 +20,6 @@ import {
 	GlassmorphismTheme,
 	getElevationColor,
 } from './themes/glassmorphism-theme';
-
-const BLOCKED_EDIT_NODE_TYPES = new Set(['commentNode', 'groupNode', 'ghostNode']);
 
 const BaseNodeWrapperComponent = ({
 	id,
@@ -89,7 +88,7 @@ const BaseNodeWrapperComponent = ({
 		canEdit &&
 		isSelected &&
 		selectedNodes.length === 1 &&
-		!BLOCKED_EDIT_NODE_TYPES.has(nodeType);
+		!BLOCKED_NODE_TYPES.has(nodeType);
 
 	const handleAddNewNode = useCallback(() => {
 		const currentNode = getNode(id);

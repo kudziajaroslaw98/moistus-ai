@@ -1,9 +1,8 @@
+import { BLOCKED_NODE_TYPES } from '@/constants/blocked-node-types';
 import type { Command } from '@/components/node-editor/core/commands/command-types';
 import { nodeCommands } from '@/components/node-editor/core/commands/node-commands';
 import { StateCreator } from 'zustand';
 import { AppState, UIStateSlice } from '../app-state';
-
-const BLOCKED_NODE_TYPES = ['commentNode', 'groupNode', 'ghostNode'] as const;
 
 export const createUiStateSlice: StateCreator<
 	AppState,
@@ -104,7 +103,7 @@ export const createUiStateSlice: StateCreator<
 
 		if (options.mode === 'edit' && options.existingNodeId) {
 			const node = get().nodes.find((n) => n.id === options.existingNodeId);
-			if (node && BLOCKED_NODE_TYPES.includes(node.data.node_type as (typeof BLOCKED_NODE_TYPES)[number])) {
+			if (node && BLOCKED_NODE_TYPES.has(node.data.node_type ?? '')) {
 				return;
 			}
 		}

@@ -49,6 +49,14 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: The previous spacing made it too easy to hit the wrong control in the checklist header
 - **onboarding/mobile-coachmark-toolbar-clearance**: Fixed the shared mobile onboarding bottom offset to use the real toolbar-clearance CSS variable, so mobile coachmarks clear the bottom toolbar instead of overlapping it
   - Why: The controls tour sheet was reading the wrong CSS custom property and could cover the toolbar button it was supposed to explain
+- **notifications/shared-scope-cleanup**: Shared notifications now delete idle per-filter scopes on unsubscribe, refetch cleanly on remount, and tear down the realtime channel when the last listener goes away
+  - Why: The previous unsubscribe path kept stale scope state around and could leave an idle notifications channel open with no active listeners
+- **notifications/fetch-finally-guard**: The notifications fetch `finally` block now guards its cleanup statements instead of returning early
+  - Why: Returning from `finally` is brittle and can mask completion behavior; the cleanup now stays explicit without changing the request-state contract
+- **ui-slice/blocked-node-types**: The blocked edit-node list now lives in one shared constant consumed by both the UI slice and `BaseNodeWrapper`
+  - Why: Removes duplicated literals so mobile edit affordances and node-editor gating cannot drift apart
+- **tests/ui-slice-harness-typing**: Replaced the `ui-slice` test harness `as never` path with a narrow typed slice harness, and added `useNotifications` hook coverage for scope cleanup + last-listener channel teardown
+  - Why: Keeps the slice test honest about the API shape and locks the notifications cleanup fix into the suite
 - **onboarding/dialog-and-motion-a11y**: The intro overlay now behaves like an accessible dialog, the canvas hint and walkthrough surface respect reduced-motion preferences, and the mobile walkthrough target sizing/layout no longer forces overflow on narrow viewports
   - Why: The onboarding surfaces needed tighter keyboard, screen reader, and motion behavior without changing the existing walkthrough flow
 

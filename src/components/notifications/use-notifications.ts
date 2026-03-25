@@ -111,6 +111,21 @@ class SharedNotificationsManager {
 		});
 	}
 
+	private hasActiveListeners(): boolean {
+		return Array.from(this.scopes.values()).some(
+			(scope) => scope.listeners.size > 0
+		);
+	}
+
+	private teardownRealtimeIfIdle() {
+		if (this.hasActiveListeners()) {
+			return;
+		}
+
+		this.channelSubscription?.disconnect();
+		this.channelSubscription = null;
+	}
+
 	private updateSnapshot(
 		scope: NotificationsScopeState,
 		overrides: Partial<NotificationsSnapshot>
@@ -187,6 +202,10 @@ class SharedNotificationsManager {
 
 		return () => {
 			scope.listeners.delete(listener);
+			if (scope.listeners.size === 0) {
+				this.scopes.delete(this.getScopeKey(filterMapId));
+				this.teardownRealtimeIfIdle();
+			}
 		};
 	}
 
@@ -222,6 +241,11 @@ class SharedNotificationsManager {
 		})
 			.then((subscription) => {
 				if (this.currentUserId !== userId) {
+					subscription.disconnect();
+					return;
+				}
+
+				if (!this.hasActiveListeners()) {
 					subscription.disconnect();
 					return;
 				}
@@ -299,13 +323,11 @@ class SharedNotificationsManager {
 							: 'Failed to fetch notifications',
 				});
 			} finally {
-				if (this.currentUserId !== requestUserId) {
-					return;
+				if (this.currentUserId === requestUserId) {
+					this.updateSnapshot(scope, { isLoading: false });
+					scope.request = null;
+					this.emit(scope);
 				}
-
-				this.updateSnapshot(scope, { isLoading: false });
-				scope.request = null;
-				this.emit(scope);
 			}
 		})();
 
@@ -375,9 +397,21 @@ class SharedNotificationsManager {
 			});
 		}
 	}
+
+	resetForTests() {
+		this.channelSubscription?.disconnect();
+		this.channelSubscription = null;
+		this.channelSubscriptionPromise = null;
+		this.currentUserId = null;
+		this.scopes.clear();
+	}
 }
 
 const sharedNotifications = new SharedNotificationsManager();
+
+export function resetSharedNotificationsForTests() {
+	sharedNotifications.resetForTests();
+}
 
 export function useNotifications({
 	filterMapId = null,
