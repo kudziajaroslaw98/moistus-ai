@@ -110,15 +110,12 @@ export function OnboardingModal() {
 			shouldRenderCoachmark);
 	const shouldFallbackToChecklist = requiresResolvedAnchor && !targetRect;
 	const shouldHideChecklistForSurface =
+		isMobile &&
 		!shouldFallbackToChecklist &&
-		(isMobile
-			? shouldRenderCreateNodeToolbarHint ||
-				shouldRenderCanvasHint ||
-				shouldRenderPatternEditHint ||
-				shouldRenderCoachmark
-			: shouldRenderCreateNodeToolbarHint ||
-				shouldRenderPatternEditHint ||
-				shouldRenderCoachmark);
+		(shouldRenderCreateNodeToolbarHint ||
+			shouldRenderCanvasHint ||
+			shouldRenderPatternEditHint ||
+			shouldRenderCoachmark);
 	const shouldRenderChecklistCard =
 		(shouldRenderChecklist || shouldFallbackToChecklist) &&
 		!shouldHideChecklistForSurface;

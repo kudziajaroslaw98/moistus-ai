@@ -257,7 +257,7 @@ describe('OnboardingModal mobile rendering', () => {
 		)
 	})
 
-	it('falls back to the checklist when the refreshed desktop create-node anchor is unresolved', async () => {
+	it('falls back to the checklist when the refreshed desktop create-node anchor is unresolved, then keeps the checklist visible once it resolves', async () => {
 		mockIsMobile = false
 		mockState = {
 			...mockState,
@@ -284,13 +284,13 @@ describe('OnboardingModal mobile rendering', () => {
 				screen.getByTestId('onboarding-create-node-hint')
 			).toBeInTheDocument()
 		})
-		expect(screen.queryByTestId('onboarding-checklist')).not.toBeInTheDocument()
+		expect(screen.getByTestId('onboarding-checklist')).toBeInTheDocument()
 		expect(
 			document.querySelector('div[aria-hidden="true"]')
 		).toBeInTheDocument()
 	})
 
-	it('falls back to the checklist when the refreshed desktop controls target is unresolved', async () => {
+	it('falls back to the checklist when the refreshed desktop controls target is unresolved, then returns to the coachmark once it resolves', async () => {
 		mockIsMobile = false
 		mockState = {
 			...mockState,

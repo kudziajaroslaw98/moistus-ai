@@ -39,6 +39,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: The partial skip controls added to hints and coachmarks broke those layouts; skip is now available only where it is intentional and legible
 - **onboarding/anchor-safe-refresh**: Refreshed anchored onboarding steps now fall back to the checklist until their target mounts, and resolved hint/coachmark surfaces replace the checklist again on both desktop and mobile
   - Why: Refreshing during toolbar or controls-tour steps was rendering detached full-width hints when anchor targets had not mounted yet
+- **onboarding/desktop-checklist-companion**: Desktop checklist tasks now keep the checklist visible after their anchored hint resolves, while the standalone controls tour still returns to its coachmark surface
+  - Why: Hiding the checklist on desktop checklist tasks removed the ability to switch tasks or minimize from the expanded onboarding surface
 
 ## [2026-03-23]
 
