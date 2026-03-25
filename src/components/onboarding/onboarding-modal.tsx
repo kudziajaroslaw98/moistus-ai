@@ -17,6 +17,26 @@ import { IntroOverlay } from './intro-overlay';
 import { UpsellCard } from './upsell-card';
 import { WalkthroughSurface } from './walkthrough-surface';
 
+const getDomRectSnapshot = (element: HTMLElement): FloatingTargetRect => {
+	const rect = element.getBoundingClientRect();
+
+	return {
+		top: rect.top,
+		left: rect.left,
+		width: rect.width,
+		height: rect.height,
+	};
+};
+
+const isSameTargetRect = (
+	current: FloatingTargetRect | null,
+	next: FloatingTargetRect | null
+) =>
+	current?.top === next?.top &&
+	current?.left === next?.left &&
+	current?.width === next?.width &&
+	current?.height === next?.height;
+
 export function OnboardingModal() {
 	const isMobile = useIsMobile();
 	const [targetRect, setTargetRect] = useState<FloatingTargetRect | null>(null);
@@ -140,8 +160,9 @@ export function OnboardingModal() {
 		}
 
 		let animationFrame = 0;
-		let observer: MutationObserver | null = null;
-		const updateTargetRect = () => {
+		let isCancelled = false;
+
+		const resolveTargetRect = (): FloatingTargetRect | null => {
 			const target =
 				onboardingActiveTarget === 'created-node' && onboardingHighlightedNodeId
 					? document.querySelector<HTMLElement>(
@@ -152,45 +173,28 @@ export function OnboardingModal() {
 						);
 
 			if (!target) {
-				setTargetRect(null);
-				if (!observer && typeof MutationObserver !== 'undefined') {
-					observer = new MutationObserver(() => {
-						scheduleUpdate();
-					});
-					observer.observe(document.body, {
-						childList: true,
-						subtree: true,
-					});
-				}
-				return false;
+				return null;
 			}
 
-			const rect = target.getBoundingClientRect();
-			setTargetRect({
-				top: rect.top,
-				left: rect.left,
-				width: rect.width,
-				height: rect.height,
-			});
-			observer?.disconnect();
-			observer = null;
-			return true;
+			return getDomRectSnapshot(target);
 		};
 
-		const scheduleUpdate = () => {
-			cancelAnimationFrame(animationFrame);
-			animationFrame = window.requestAnimationFrame(updateTargetRect);
+		const tick = () => {
+			const nextRect = resolveTargetRect();
+			setTargetRect((currentRect) =>
+				isSameTargetRect(currentRect, nextRect) ? currentRect : nextRect
+			);
+
+			if (!isCancelled) {
+				animationFrame = window.requestAnimationFrame(tick);
+			}
 		};
 
-		scheduleUpdate();
-		window.addEventListener('resize', scheduleUpdate);
-		window.addEventListener('scroll', scheduleUpdate, true);
+		animationFrame = window.requestAnimationFrame(tick);
 
 		return () => {
-			cancelAnimationFrame(animationFrame);
-			observer?.disconnect();
-			window.removeEventListener('resize', scheduleUpdate);
-			window.removeEventListener('scroll', scheduleUpdate, true);
+			isCancelled = true;
+			window.cancelAnimationFrame(animationFrame);
 		};
 	}, [onboardingActiveTarget, onboardingHighlightedNodeId, onboardingStatus]);
 

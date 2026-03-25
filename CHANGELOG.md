@@ -41,6 +41,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Refreshing during toolbar or controls-tour steps was rendering detached full-width hints when anchor targets had not mounted yet
 - **onboarding/desktop-checklist-companion**: Desktop checklist tasks now keep the checklist visible after their anchored hint resolves, while the standalone controls tour still returns to its coachmark surface
   - Why: Hiding the checklist on desktop checklist tasks removed the ability to switch tasks or minimize from the expanded onboarding surface
+- **onboarding/live-anchor-refit**: Active anchored onboarding steps now keep remeasuring their target while they are open, so coachmarks refit after late toolbar/layout motion instead of staying pinned to stale coordinates
+  - Why: The controls tour could resolve before the toolbar finished settling, which left the coachmark pushed to the wrong edge of the screen
 
 ## [2026-03-23]
 

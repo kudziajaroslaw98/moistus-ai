@@ -13,24 +13,31 @@ jest.mock('@/store/mind-map-store', () => ({
 	default: jest.fn((selector) => selector(mockState)),
 }))
 
-const appendOnboardingTarget = (target: string) => {
+const appendOnboardingTarget = (
+	target: string,
+	rectOverrides?: Partial<DOMRect>
+) => {
+	const rectState = {
+		top: 96,
+		left: 48,
+		width: 120,
+		height: 44,
+		bottom: 140,
+		right: 168,
+		x: 48,
+		y: 96,
+		...rectOverrides,
+	}
 	const element = document.createElement('button')
 	element.setAttribute('data-onboarding-target', target)
 	Object.defineProperty(element, 'getBoundingClientRect', {
 		value: () => ({
-			top: 96,
-			left: 48,
-			width: 120,
-			height: 44,
-			bottom: 140,
-			right: 168,
-			x: 48,
-			y: 96,
+			...rectState,
 			toJSON: () => ({}),
 		}),
 	})
 	document.body.appendChild(element)
-	return element
+	return { element, rectState }
 }
 
 describe('OnboardingModal mobile rendering', () => {
@@ -277,7 +284,6 @@ describe('OnboardingModal mobile rendering', () => {
 		).not.toBeInTheDocument()
 
 		appendOnboardingTarget('add-node')
-		window.dispatchEvent(new Event('resize'))
 
 		await waitFor(() => {
 			expect(
@@ -305,11 +311,54 @@ describe('OnboardingModal mobile rendering', () => {
 		expect(screen.queryByTestId('onboarding-coachmark')).not.toBeInTheDocument()
 
 		appendOnboardingTarget('cursor-tool')
-		window.dispatchEvent(new Event('resize'))
 
 		await waitFor(() => {
 			expect(screen.getByTestId('onboarding-coachmark')).toBeInTheDocument()
 		})
 		expect(screen.queryByTestId('onboarding-checklist')).not.toBeInTheDocument()
+	})
+
+	it('refits the desktop controls coachmark when the target moves after the toolbar settles', async () => {
+		mockIsMobile = false
+		mockState = {
+			...mockState,
+			onboardingStatus: 'coachmarks',
+			onboardingActiveTarget: 'cursor-tool',
+			onboardingCoachmarkStep: 0,
+		}
+
+		const { rectState } = appendOnboardingTarget('cursor-tool', {
+			top: 620,
+			left: 80,
+			width: 120,
+			height: 44,
+			bottom: 664,
+			right: 200,
+			x: 80,
+			y: 620,
+		})
+
+		render(<OnboardingModal />)
+
+		await waitFor(() => {
+			expect(screen.getByTestId('onboarding-coachmark')).toHaveStyle({
+				top: '372px',
+			})
+		})
+
+		Object.assign(rectState, {
+			top: 96,
+			left: 48,
+			bottom: 140,
+			right: 168,
+			x: 48,
+			y: 96,
+		})
+
+		await waitFor(() => {
+			expect(screen.getByTestId('onboarding-coachmark')).toHaveStyle({
+				top: '168px',
+			})
+		})
 	})
 })
