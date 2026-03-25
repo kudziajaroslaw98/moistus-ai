@@ -25,6 +25,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **onboarding/minimized-task-copy**: The minimized walkthrough surface now shows the next incomplete task label, and its `Start` CTA launches that task directly instead of reopening the checklist first
   - Why: Keeps the compact state pointed at the actual next action and removes the extra step between the pill and the active walkthrough task
+- **onboarding/history-coachmark**: The desktop `Know the controls` tour now includes the history control with dedicated copy about browsing saved map states
+  - Why: The history button was visible in the editor, but onboarding never taught what lived behind it
 
 ## [2026-03-23]
 

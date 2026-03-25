@@ -239,6 +239,12 @@ describe('onboarding slice', () => {
 		).toBe(false);
 	});
 
+	it('includes history in the desktop controls tour', () => {
+		expect(
+			ONBOARDING_COACHMARKS.some((coachmark) => coachmark.target === 'history')
+		).toBe(true);
+	});
+
 	it('finishes the controls tour into the optional upsell for free users', () => {
 		const harness = createOnboardingSliceHarness();
 		const state = harness.getState();

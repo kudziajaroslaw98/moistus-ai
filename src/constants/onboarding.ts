@@ -42,6 +42,7 @@ export const ONBOARDING_TARGETS = [
 	'layout',
 	'export',
 	'guided-tour',
+	'history',
 	'reset-zoom',
 	'comments',
 	'more-tools',
@@ -96,6 +97,12 @@ export const ONBOARDING_COACHMARKS: ReadonlyArray<OnboardingCoachmark> = [
 		title: 'Present the map',
 		description:
 			'Guided Tour turns the canvas into a simple walkthrough when you need to present the story behind it.',
+	},
+	{
+		target: 'history',
+		title: 'Revisit earlier versions',
+		description:
+			'Open History to inspect saved states, compare changes, and jump back through earlier map edits.',
 	},
 	{
 		target: 'reset-zoom',

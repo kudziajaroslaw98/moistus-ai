@@ -11,6 +11,7 @@ export function TopBarActions({ onToggleHistory }: TopBarActionsProps) {
 	return (
 		<Button
 			aria-label='Toggle History Sidebar'
+			data-onboarding-target='history'
 			onClick={onToggleHistory}
 			size='icon'
 			title='View History'
