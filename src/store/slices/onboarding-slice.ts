@@ -567,8 +567,15 @@ export const createOnboardingSlice: StateCreator<
 		},
 
 		advanceOnboardingCoachmark: () => {
-			const { onboardingStatus, onboardingCoachmarkStep, onboardingViewport } =
-				get();
+			const {
+				onboardingStatus,
+				onboardingCoachmarkStep,
+				onboardingViewport,
+				onboardingTasks,
+				onboardingCreateNodeStep,
+				onboardingPatternStep,
+				onboardingHighlightedNodeId,
+			} = get();
 			if (onboardingStatus !== 'coachmarks') {
 				return;
 			}
@@ -576,6 +583,27 @@ export const createOnboardingSlice: StateCreator<
 			const coachmarks = getOnboardingCoachmarks(onboardingViewport);
 			const nextStep = onboardingCoachmarkStep + 1;
 			if (nextStep >= coachmarks.length) {
+				if (onboardingTasks['know-controls']) {
+					if (areAllTasksComplete(onboardingTasks)) {
+						applyOnboardingPatch(getCompletionPatch(onboardingTasks));
+						return;
+					}
+
+					applyOnboardingPatch({
+						onboardingStatus: 'checklist',
+						onboardingActiveTarget: getChecklistTarget({
+							tasks: onboardingTasks,
+							createNodeStep: onboardingCreateNodeStep,
+							patternStep: onboardingPatternStep,
+							highlightedNodeId: onboardingHighlightedNodeId,
+						}),
+						onboardingCoachmarkStep: 0,
+						onboardingPatternStep: onboardingPatternStep,
+						onboardingHighlightedNodeId: onboardingHighlightedNodeId,
+					});
+					return;
+				}
+
 				get().markOnboardingTaskComplete('know-controls');
 				return;
 			}

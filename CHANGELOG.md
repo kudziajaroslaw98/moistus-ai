@@ -31,6 +31,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Keeps the control tour order aligned with the broader desktop layout instead of interrupting the toolbar cluster
 - **onboarding/minimized-pill-expand**: Restored a dedicated expand action on the minimized walkthrough pill so tapping the pill body reopens the checklist while `Start` still launches the current task
   - Why: The previous wiring accidentally removed the ability to expand the collapsed walkthrough on both mobile and desktop
+- **onboarding/reopened-controls-exit**: Finishing a reopened `Know the controls` tour now closes the coachmark curtain and returns to the checklist with that task still marked done
+  - Why: Replaying an already-completed controls tour previously no-op’d on the last step and left the coachmarks stuck on screen
 
 ## [2026-03-23]
 

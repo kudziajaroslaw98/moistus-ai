@@ -252,6 +252,28 @@ describe('onboarding slice', () => {
 		);
 	});
 
+	it('closes a reopened completed controls tour back into the checklist', () => {
+		const harness = createOnboardingSliceHarness();
+		const state = harness.getState();
+
+		(state.markOnboardingTaskComplete as (taskId: string) => void)('know-controls');
+		(state.startOnboardingTask as (taskId: string) => void)('know-controls');
+
+		for (let index = 0; index < ONBOARDING_COACHMARKS.length; index += 1) {
+			(state.advanceOnboardingCoachmark as () => void)();
+		}
+
+		expect(harness.getState()).toMatchObject({
+			onboardingStatus: 'checklist',
+			onboardingCoachmarkStep: 0,
+			onboardingTasks: {
+				'create-node': false,
+				'try-pattern': false,
+				'know-controls': true,
+			},
+		});
+	});
+
 	it('finishes the controls tour into the optional upsell for free users', () => {
 		const harness = createOnboardingSliceHarness();
 		const state = harness.getState();
