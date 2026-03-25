@@ -18,6 +18,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-03-18 - Added mobile onboarding shell, viewport-aware controls tour, and touch edit affordance -->
 <!-- Updated: 2026-03-20 - Morphed the minimized walkthrough into the checklist surface and repositioned the walkthrough anchors for cleaner motion -->
 <!-- Updated: 2026-03-25 - Replaced minimized walkthrough resume copy with the next actionable task -->
+<!-- Updated: 2026-03-25 - Patched GitHub Dependabot vulnerabilities with targeted dependency upgrades -->
 
 ## [2026-03-25]
 
@@ -62,6 +63,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Fixed
 
+- **deps/dependabot-remediation**: Bumped `next` to `16.1.7`, `jspdf` to `4.2.1`, and pinned the alerted transitive packages in `pnpm.overrides` to their patched versions before regenerating the lockfile
+  - Why: Clears the current GitHub vulnerability set with the smallest dependency surface change instead of doing a broader package refresh
 - **editor-chrome/accessibility-polish**: Added the mobile menu unread count to assistive tech, restored the edit-chip exit animation, and labeled the icon-only export/layout toolbar triggers
   - Why: Improves screen-reader clarity and preserves the intended Motion exit behavior on the editor chrome surfaces
 - **notifications/shared-cache-and-map-filtering**: `useNotifications` now shares one cache/socket per user session and the notifications API applies `map_id` filtering before the server-side limit
