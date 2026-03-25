@@ -23,8 +23,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Changed
 
-- **onboarding/minimized-task-copy**: The minimized walkthrough surface now shows the next incomplete task label with a `Start` CTA instead of generic `Resume walkthrough` copy
-  - Why: Keeps the compact state pointed at the actual next action instead of a vague progress label
+- **onboarding/minimized-task-copy**: The minimized walkthrough surface now shows the next incomplete task label, and its `Start` CTA launches that task directly instead of reopening the checklist first
+  - Why: Keeps the compact state pointed at the actual next action and removes the extra step between the pill and the active walkthrough task
 
 ## [2026-03-23]
 

@@ -97,8 +97,9 @@ describe('OnboardingModal mobile rendering', () => {
 		expect(minimizeOnboarding).toHaveBeenCalled()
 	})
 
-	it('renders the desktop minimized pill with the next task label and starts the walkthrough', () => {
-		const resumeOnboarding = jest.fn()
+	it('launches the next task directly from the desktop minimized pill', () => {
+		const startOnboardingTask = jest.fn()
+		const openNodeEditor = jest.fn()
 		mockIsMobile = false
 		mockState = {
 			...mockState,
@@ -109,7 +110,8 @@ describe('OnboardingModal mobile rendering', () => {
 				'try-pattern': false,
 				'know-controls': false,
 			},
-			resumeOnboarding,
+			startOnboardingTask,
+			openNodeEditor,
 		}
 
 		render(<OnboardingModal />)
@@ -121,6 +123,13 @@ describe('OnboardingModal mobile rendering', () => {
 		expect(screen.getByText('Try a pattern')).toBeInTheDocument()
 
 		fireEvent.click(screen.getByRole('button', { name: 'Start' }))
-		expect(resumeOnboarding).toHaveBeenCalled()
+		expect(startOnboardingTask).toHaveBeenCalledWith('try-pattern')
+		expect(openNodeEditor).toHaveBeenCalledWith(
+			expect.objectContaining({
+				mode: 'create',
+				initialValue: '$task Review PR ^tomorrow #backend',
+				onboardingSource: 'onboarding-pattern',
+			})
+		)
 	})
 })

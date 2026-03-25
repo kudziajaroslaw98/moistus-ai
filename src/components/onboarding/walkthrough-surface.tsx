@@ -128,11 +128,11 @@ function ChecklistContent({
 
 function MinimizedPillContent({
 	completedCount,
-	onResume,
+	onTaskAction,
 	tasks,
 }: {
 	completedCount: number;
-	onResume: () => void;
+	onTaskAction: (taskId: OnboardingTaskId) => void;
 	tasks: Record<OnboardingTaskId, boolean>;
 }) {
 	const nextTask = getNextTask(tasks);
@@ -147,7 +147,7 @@ function MinimizedPillContent({
 					{nextTask.label}
 				</p>
 			</div>
-			<Button onClick={onResume} size='sm' variant='default'>
+			<Button onClick={() => onTaskAction(nextTask.id)} size='sm' variant='default'>
 				Start
 			</Button>
 		</div>
@@ -170,7 +170,6 @@ export function WalkthroughSurface({
 	isMobile,
 	mode,
 	onMinimize,
-	onResume,
 	onTaskAction,
 	tasks,
 }: {
@@ -178,7 +177,6 @@ export function WalkthroughSurface({
 	isMobile: boolean;
 	mode: 'checklist' | 'pill';
 	onMinimize: () => void;
-	onResume: () => void;
 	onTaskAction: (taskId: OnboardingTaskId) => void;
 	tasks: Record<OnboardingTaskId, boolean>;
 }) {
@@ -321,7 +319,7 @@ export function WalkthroughSurface({
 						>
 							<MinimizedPillContent
 								completedCount={completedCount}
-								onResume={onResume}
+								onTaskAction={onTaskAction}
 								tasks={tasks}
 							/>
 						</motion.div>
