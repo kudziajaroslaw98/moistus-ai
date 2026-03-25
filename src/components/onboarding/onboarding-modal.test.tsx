@@ -97,7 +97,28 @@ describe('OnboardingModal mobile rendering', () => {
 		expect(minimizeOnboarding).toHaveBeenCalled()
 	})
 
+	it('expands the minimized mobile pill back into the checklist', () => {
+		const resumeOnboarding = jest.fn()
+		mockState = {
+			...mockState,
+			onboardingStatus: 'hidden',
+			onboardingIsMinimized: true,
+			onboardingTasks: {
+				'create-node': true,
+				'try-pattern': false,
+				'know-controls': false,
+			},
+			resumeOnboarding,
+		}
+
+		render(<OnboardingModal />)
+
+		fireEvent.click(screen.getByRole('button', { name: /expand walkthrough/i }))
+		expect(resumeOnboarding).toHaveBeenCalled()
+	})
+
 	it('launches the next task directly from the desktop minimized pill', () => {
+		const resumeOnboarding = jest.fn()
 		const startOnboardingTask = jest.fn()
 		const openNodeEditor = jest.fn()
 		mockIsMobile = false
@@ -110,6 +131,7 @@ describe('OnboardingModal mobile rendering', () => {
 				'try-pattern': false,
 				'know-controls': false,
 			},
+			resumeOnboarding,
 			startOnboardingTask,
 			openNodeEditor,
 		}
@@ -121,6 +143,9 @@ describe('OnboardingModal mobile rendering', () => {
 		expect(pill).toHaveStyle({ top: '6rem' })
 		expect(screen.queryByTestId('onboarding-checklist')).not.toBeInTheDocument()
 		expect(screen.getByText('Try a pattern')).toBeInTheDocument()
+
+		fireEvent.click(screen.getByRole('button', { name: /expand walkthrough/i }))
+		expect(resumeOnboarding).toHaveBeenCalled()
 
 		fireEvent.click(screen.getByRole('button', { name: 'Start' }))
 		expect(startOnboardingTask).toHaveBeenCalledWith('try-pattern')

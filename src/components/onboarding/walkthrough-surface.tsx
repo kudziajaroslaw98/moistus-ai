@@ -128,10 +128,12 @@ function ChecklistContent({
 
 function MinimizedPillContent({
 	completedCount,
+	onResume,
 	onTaskAction,
 	tasks,
 }: {
 	completedCount: number;
+	onResume: () => void;
 	onTaskAction: (taskId: OnboardingTaskId) => void;
 	tasks: Record<OnboardingTaskId, boolean>;
 }) {
@@ -139,14 +141,21 @@ function MinimizedPillContent({
 
 	return (
 		<div className='flex items-center gap-3'>
-			<span className='inline-flex size-7 items-center justify-center rounded-full bg-primary-500/15 text-xs font-semibold text-primary-300'>
-				{completedCount}/3
-			</span>
-			<div className='min-w-0 flex-1'>
-				<p className='truncate text-sm font-medium text-text-primary'>
-					{nextTask.label}
-				</p>
-			</div>
+			<button
+				aria-label='Expand walkthrough'
+				className='flex min-w-0 flex-1 items-center gap-3 rounded-full text-left transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500'
+				onClick={onResume}
+				type='button'
+			>
+				<span className='inline-flex size-7 items-center justify-center rounded-full bg-primary-500/15 text-xs font-semibold text-primary-300'>
+					{completedCount}/3
+				</span>
+				<div className='min-w-0 flex-1'>
+					<p className='truncate text-sm font-medium text-text-primary'>
+						{nextTask.label}
+					</p>
+				</div>
+			</button>
 			<Button onClick={() => onTaskAction(nextTask.id)} size='sm' variant='default'>
 				Start
 			</Button>
@@ -170,6 +179,7 @@ export function WalkthroughSurface({
 	isMobile,
 	mode,
 	onMinimize,
+	onResume,
 	onTaskAction,
 	tasks,
 }: {
@@ -177,6 +187,7 @@ export function WalkthroughSurface({
 	isMobile: boolean;
 	mode: 'checklist' | 'pill';
 	onMinimize: () => void;
+	onResume: () => void;
 	onTaskAction: (taskId: OnboardingTaskId) => void;
 	tasks: Record<OnboardingTaskId, boolean>;
 }) {
@@ -319,6 +330,7 @@ export function WalkthroughSurface({
 						>
 							<MinimizedPillContent
 								completedCount={completedCount}
+								onResume={onResume}
 								onTaskAction={onTaskAction}
 								tasks={tasks}
 							/>

@@ -29,6 +29,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: The history button was visible in the editor, but onboarding never taught what lived behind it
 - **onboarding/history-order**: Moved the desktop history coachmark to sit directly before share instead of in the middle of the toolbar-only steps
   - Why: Keeps the control tour order aligned with the broader desktop layout instead of interrupting the toolbar cluster
+- **onboarding/minimized-pill-expand**: Restored a dedicated expand action on the minimized walkthrough pill so tapping the pill body reopens the checklist while `Start` still launches the current task
+  - Why: The previous wiring accidentally removed the ability to expand the collapsed walkthrough on both mobile and desktop
 
 ## [2026-03-23]
 

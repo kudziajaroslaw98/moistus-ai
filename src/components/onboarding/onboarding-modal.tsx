@@ -34,6 +34,7 @@ export function OnboardingModal() {
 		currentSubscription,
 		startOnboarding,
 		exploreOnboardingIndependently,
+		resumeOnboarding,
 		minimizeOnboarding,
 		startOnboardingTask,
 		advanceOnboardingCoachmark,
@@ -58,6 +59,7 @@ export function OnboardingModal() {
 			currentSubscription: state.currentSubscription,
 			startOnboarding: state.startOnboarding,
 			exploreOnboardingIndependently: state.exploreOnboardingIndependently,
+			resumeOnboarding: state.resumeOnboarding,
 			minimizeOnboarding: state.minimizeOnboarding,
 			startOnboardingTask: state.startOnboardingTask,
 			advanceOnboardingCoachmark: state.advanceOnboardingCoachmark,
@@ -255,6 +257,7 @@ export function OnboardingModal() {
 						isMobile={isMobile}
 						mode={walkthroughSurfaceMode}
 						onMinimize={minimizeOnboarding}
+						onResume={resumeOnboarding}
 						onTaskAction={handleTaskAction}
 						tasks={onboardingTasks}
 					/>
