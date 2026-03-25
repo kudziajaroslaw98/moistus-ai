@@ -1,8 +1,10 @@
+import { BLOCKED_NODE_TYPES } from '@/constants/blocked-node-types';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
+import { useIsMobile } from '@/hooks/use-mobile';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import { Handle, Position, useConnection } from '@xyflow/react';
-import { Loader2, Plus, Sparkles } from 'lucide-react';
+import { Loader2, Pencil, Plus, Sparkles } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { type CSSProperties, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
@@ -59,6 +61,7 @@ const BaseNodeWrapperComponent = ({
 			isStreaming: state.isStreaming,
 		}))
 	);
+	const isMobile = useIsMobile();
 
 	// State for AI actions popover
 	const [isAIPopoverOpen, setIsAIPopoverOpen] = useState(false);
@@ -80,6 +83,12 @@ const BaseNodeWrapperComponent = ({
 
 	// Check if this node belongs to a group
 	const belongsToGroup = data.metadata?.groupId;
+	const canOpenEditAction =
+		isMobile &&
+		canEdit &&
+		isSelected &&
+		selectedNodes.length === 1 &&
+		!BLOCKED_NODE_TYPES.has(nodeType);
 
 	const handleAddNewNode = useCallback(() => {
 		const currentNode = getNode(id);
@@ -94,6 +103,17 @@ const BaseNodeWrapperComponent = ({
 			parentNode: currentNode,
 		});
 	}, [id, getNode, openNodeEditor]);
+
+	const handleEditNode = useCallback(() => {
+		const currentNode = getNode(id);
+		if (!currentNode) return;
+
+		openNodeEditor({
+			mode: 'edit',
+			position: currentNode.position,
+			existingNodeId: id,
+		});
+	}, [getNode, id, openNodeEditor]);
 
 	const handleToggleAIPopover = useCallback(() => {
 		setIsAIPopoverOpen((prev) => !prev);
@@ -191,6 +211,31 @@ const BaseNodeWrapperComponent = ({
 				<div
 					className={cn('flex flex-col h-auto relative z-[1]', contentClassName)}
 				>
+					<AnimatePresence initial={false}>
+						{canOpenEditAction && (
+							<motion.div
+								key='edit-chip'
+								animate={{ opacity: 1, y: 0 }}
+								className='absolute -top-4 right-3 z-20'
+								exit={{ opacity: 0, y: -6 }}
+								initial={{ opacity: 0, y: -6 }}
+								transition={{ duration: 0.18 }}
+							>
+								<Button
+									className='nodrag nopan h-8 rounded-full border border-border-default bg-elevated/95 px-3 text-xs font-medium shadow-lg shadow-black/20'
+									data-testid='node-edit-button'
+									onClick={handleEditNode}
+									size='sm'
+									title='Edit node'
+									variant='secondary'
+								>
+									<Pencil className='mr-1.5 size-3.5' />
+									Edit
+								</Button>
+							</motion.div>
+						)}
+					</AnimatePresence>
+
 					{data.metadata &&
 						Object.values(data.metadata).some(
 							(value) => value !== undefined && value !== null && value !== ''

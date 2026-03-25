@@ -127,6 +127,8 @@ export interface QuickInputProps {
 	position: { x: number; y: number };
 	mode?: 'create' | 'edit';
 	existingNode?: AppNode;
+	initialValue?: string | null;
+	onboardingSource?: 'onboarding-pattern' | null;
 }
 
 export interface StructuredInputProps {

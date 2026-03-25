@@ -10,6 +10,7 @@ const mockGenerateSuggestions = jest.fn()
 let mockSelectedNodes: Array<{ id: string }> = []
 let mockIsDraggingNodes = false
 let mockActiveTool = 'select'
+let mockIsMobile = false
 
 jest.mock('@/store/mind-map-store', () => ({
 	__esModule: true,
@@ -33,6 +34,10 @@ jest.mock('@/store/mind-map-store', () => ({
 let mockCanEdit = true
 jest.mock('@/hooks/collaboration/use-permissions', () => ({
 	usePermissions: () => ({ canEdit: mockCanEdit }),
+}))
+
+jest.mock('@/hooks/use-mobile', () => ({
+	useIsMobile: () => mockIsMobile,
 }))
 
 // Mock React Flow
@@ -125,6 +130,7 @@ describe('BaseNodeWrapper', () => {
 		mockSelectedNodes = []
 		mockIsDraggingNodes = false
 		mockActiveTool = 'select'
+		mockIsMobile = false
 		mockCanEdit = true
 		mockGetNode.mockReturnValue({
 			id: 'node-1',
@@ -348,6 +354,52 @@ describe('BaseNodeWrapper', () => {
 			expect(screen.getByText('Expand ideas')).toBeInTheDocument()
 			expect(screen.getByText('Find connections')).toBeInTheDocument()
 			expect(screen.getByText('Find similar')).toBeInTheDocument()
+		})
+	})
+
+	describe('mobile edit action', () => {
+		it('shows edit button for a single selected node on mobile', () => {
+			mockIsMobile = true
+			mockSelectedNodes = [{ id: 'node-1' }]
+
+			render(<BaseNodeWrapper {...createDefaultProps()} />)
+
+			expect(screen.getByTestId('node-edit-button')).toBeInTheDocument()
+		})
+
+		it('opens node editor in edit mode when mobile edit button is clicked', async () => {
+			const user = userEvent.setup()
+			mockIsMobile = true
+			mockSelectedNodes = [{ id: 'node-1' }]
+
+			render(<BaseNodeWrapper {...createDefaultProps()} />)
+
+			await user.click(screen.getByTestId('node-edit-button'))
+
+			expect(mockOpenNodeEditor).toHaveBeenCalledWith({
+				mode: 'edit',
+				position: { x: 100, y: 100 },
+				existingNodeId: 'node-1',
+			})
+		})
+
+		it('hides edit button for blocked node types on mobile', () => {
+			mockIsMobile = true
+			mockSelectedNodes = [{ id: 'node-1' }]
+
+			render(
+				<BaseNodeWrapper
+					{...createDefaultProps({
+						data: {
+							...createDefaultProps().data,
+							node_type: 'groupNode' as const,
+						},
+					})}
+					nodeType='groupNode'
+				/>
+			)
+
+			expect(screen.queryByTestId('node-edit-button')).not.toBeInTheDocument()
 		})
 	})
 

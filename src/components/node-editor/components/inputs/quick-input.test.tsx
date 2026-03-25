@@ -10,9 +10,17 @@ const mockInitializeQuickInput = jest.fn()
 const mockCloseNodeEditor = jest.fn()
 const mockAddNode = jest.fn().mockResolvedValue({ id: 'new-node-1' })
 const mockUpdateNode = jest.fn().mockResolvedValue(undefined)
+const mockHandleOnboardingNodeCreated = jest.fn()
+const mockParseInput = jest.fn((text: string): any => ({
+	content: text,
+	tags: [],
+	metadata: {},
+	patterns: [],
+}))
 
 let mockQuickInputValue = ''
 let mockQuickInputNodeType: string | null = null
+let mockOnboardingPatternStep: string | null = null
 
 jest.mock('@/store/mind-map-store', () => ({
 	__esModule: true,
@@ -34,6 +42,8 @@ jest.mock('@/store/mind-map-store', () => ({
 			closeNodeEditor: mockCloseNodeEditor,
 			addNode: mockAddNode,
 			updateNode: mockUpdateNode,
+			handleOnboardingNodeCreated: mockHandleOnboardingNodeCreated,
+			onboardingPatternStep: mockOnboardingPatternStep,
 		})
 	),
 }))
@@ -100,11 +110,7 @@ jest.mock('../../core/config/node-type-config', () => ({
 
 // Mock parseInput
 jest.mock('../../core/parsers/pattern-extractor', () => ({
-	parseInput: jest.fn((text: string) => ({
-		content: text,
-		tags: [],
-		metadata: {},
-	})),
+	parseInput: (text: string) => mockParseInput(text),
 }))
 
 // Mock createOrUpdateNode
@@ -320,6 +326,13 @@ describe('QuickInput', () => {
 		jest.clearAllMocks()
 		mockQuickInputValue = ''
 		mockQuickInputNodeType = null
+		mockOnboardingPatternStep = null
+		mockParseInput.mockImplementation((text: string) => ({
+			content: text,
+			tags: [],
+			metadata: {},
+			patterns: [],
+		}))
 		localStorageMock.getItem.mockReturnValue(null)
 		const { useMapNodeLimit } = require('@/hooks/subscription/use-map-node-limit')
 		;(useMapNodeLimit as jest.Mock).mockReturnValue({
@@ -700,6 +713,37 @@ describe('QuickInput', () => {
 	})
 
 	describe('create mode initialization', () => {
+		it('prefills onboarding examples when an initial value is provided', () => {
+			render(
+				<QuickInput
+					{...defaultProps}
+					initialValue="$task Review PR ^tomorrow #backend"
+					onboardingSource="onboarding-pattern"
+				/>
+			)
+
+			expect(mockInitializeQuickInput).toHaveBeenCalledWith(
+				'$task Review PR ^tomorrow #backend',
+				'defaultNode'
+			)
+		})
+
+		it('shows the syntax-help onboarding hint during the pattern lesson', () => {
+			mockOnboardingPatternStep = 'pattern-editor'
+
+			render(
+				<QuickInput
+					{...defaultProps}
+					initialValue="$task Review PR ^tomorrow #backend"
+					onboardingSource="onboarding-pattern"
+				/>
+			)
+
+			expect(
+				screen.getByText('Try more patterns in Syntax Help below.')
+			).toBeInTheDocument()
+		})
+
 		it('sets node type when currentNodeType is null', () => {
 			mockQuickInputNodeType = null
 			render(<QuickInput {...defaultProps} nodeType="taskNode" />)
@@ -747,6 +791,36 @@ describe('QuickInput', () => {
 
 			await waitFor(() => {
 				expect(mockCloseNodeEditor).toHaveBeenCalled()
+			})
+		})
+
+		it('reports parser-based onboarding completion when patterns were used', async () => {
+			const user = userEvent.setup()
+			mockQuickInputValue = 'Review PR ^tomorrow #backend'
+			mockParseInput.mockImplementation((text: string) => ({
+				content: text,
+				tags: ['backend'],
+				metadata: { dueDate: '2026-03-18T00:00:00.000Z' },
+				patterns: [
+					{
+						type: 'tag',
+						value: 'backend',
+						display: '#backend',
+						position: 20,
+						raw: '#backend',
+					},
+				],
+			}))
+
+			render(<QuickInput {...defaultProps} />)
+			await user.click(screen.getByTestId('create-button'))
+
+			await waitFor(() => {
+				expect(mockHandleOnboardingNodeCreated).toHaveBeenCalledWith({
+					mode: 'create',
+					usedPatterns: true,
+					nodeId: 'new-node-1',
+				})
 			})
 		})
 	})

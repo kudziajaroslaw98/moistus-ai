@@ -310,6 +310,7 @@ export function ShortcutsHelpFab() {
 			{/* FAB Button */}
 			<motion.button
 				onClick={handleToggle}
+				data-onboarding-target='shortcuts-help'
 				data-testid='shortcuts-help-fab'
 				className={cn(
 					'relative w-10 h-10 rounded-xl',

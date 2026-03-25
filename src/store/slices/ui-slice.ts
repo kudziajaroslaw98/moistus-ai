@@ -1,9 +1,8 @@
+import { BLOCKED_NODE_TYPES } from '@/constants/blocked-node-types';
 import type { Command } from '@/components/node-editor/core/commands/command-types';
 import { nodeCommands } from '@/components/node-editor/core/commands/node-commands';
 import { StateCreator } from 'zustand';
 import { AppState, UIStateSlice } from '../app-state';
-
-const BLOCKED_NODE_TYPES = ['commentNode', 'groupNode', 'ghostNode'] as const;
 
 export const createUiStateSlice: StateCreator<
 	AppState,
@@ -51,6 +50,8 @@ export const createUiStateSlice: StateCreator<
 		parentNode: null,
 		existingNodeId: null,
 		suggestedType: null,
+		initialValue: null,
+		onboardingSource: null,
 	},
 
 	// CommandPalette state (inline node type switching)
@@ -102,7 +103,7 @@ export const createUiStateSlice: StateCreator<
 
 		if (options.mode === 'edit' && options.existingNodeId) {
 			const node = get().nodes.find((n) => n.id === options.existingNodeId);
-			if (node && BLOCKED_NODE_TYPES.includes(node.data.node_type as (typeof BLOCKED_NODE_TYPES)[number])) {
+			if (node && BLOCKED_NODE_TYPES.has(node.data.node_type ?? '')) {
 				return;
 			}
 		}
@@ -117,6 +118,8 @@ export const createUiStateSlice: StateCreator<
 				parentNode: options.parentNode || null,
 				existingNodeId: options.existingNodeId || null,
 				suggestedType: options.suggestedType || null,
+				initialValue: options.initialValue ?? null,
+				onboardingSource: options.onboardingSource ?? null,
 			},
 		});
 	},
@@ -126,6 +129,8 @@ export const createUiStateSlice: StateCreator<
 				...get().nodeEditor,
 				isOpen: false,
 				existingNodeId: null,
+				initialValue: null,
+				onboardingSource: null,
 			},
 		});
 	},

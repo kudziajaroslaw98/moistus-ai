@@ -34,7 +34,9 @@ import FloatingEdge from '@/components/edges/floating-edge';
 import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edge';
 import { GuidedTourMode, PathBuilder } from '@/components/guided-tour';
 import { UpgradeModal } from '@/components/modals/upgrade-modal';
+import { useNotifications } from '@/components/notifications/use-notifications';
 import { ModeIndicator } from '@/components/mode-indicator';
+import { OnboardingModal } from '@/components/onboarding/onboarding-modal';
 import { ShortcutsHelpFab } from '@/components/shortcuts-help/shortcuts-help-fab';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useActivityTracker } from '@/hooks/realtime/use-activity-tracker';
@@ -113,6 +115,7 @@ export function ReactFlowArea() {
 		getVisibleNodes,
 		mindMap,
 		currentUser,
+		mapAccessError,
 		activeTool,
 		setActiveTool,
 		mobileTapMultiSelectEnabled,
@@ -121,6 +124,9 @@ export function ReactFlowArea() {
 		isStreaming,
 		aiFeature,
 		userProfile,
+		usageData,
+		currentSubscription,
+		maybeStartOnboarding,
 		isTourActive,
 		isPathEditMode,
 		addNodeToPath,
@@ -155,6 +161,7 @@ export function ReactFlowArea() {
 			toggleFocusMode: state.toggleFocusMode,
 			mindMap: state.mindMap,
 			currentUser: state.currentUser,
+			mapAccessError: state.mapAccessError,
 			activeTool: state.activeTool,
 			setActiveTool: state.setActiveTool,
 			mobileTapMultiSelectEnabled: state.mobileTapMultiSelectEnabled,
@@ -162,11 +169,10 @@ export function ReactFlowArea() {
 			ghostNodes: state.ghostNodes,
 			isStreaming: state.isStreaming,
 			aiFeature: state.aiFeature,
-			resetOnboarding: state.resetOnboarding,
-			setOnboardingStep: state.setOnboardingStep,
-			setShowOnboarding: state.setShowOnboarding,
-			isProUser: state.isProUser,
 			userProfile: state.userProfile,
+			usageData: state.usageData,
+			currentSubscription: state.currentSubscription,
+			maybeStartOnboarding: state.maybeStartOnboarding,
 			// Guided tour state
 			isTourActive: state.isTourActive,
 			isPathEditMode: state.isPathEditMode,
@@ -181,6 +187,10 @@ export function ReactFlowArea() {
 	const { generateSuggestionsForNode } = useNodeSuggestion();
 	const { canEdit } = usePermissions();
 	const isMobile = useIsMobile();
+	const mobileNotifications = useNotifications({
+		filterMapId: mapId as string,
+		enabled: isMobile,
+	});
 	const updateBottomToolbarClearance = useCallback(() => {
 		if (typeof window === 'undefined') return;
 
@@ -235,6 +245,17 @@ export function ReactFlowArea() {
 	const visibleEdges = useMemo(() => {
 		return getVisibleEdges();
 	}, [edges, nodes, getVisibleEdges, isCommentMode]);
+
+	useEffect(() => {
+		maybeStartOnboarding();
+	}, [
+		maybeStartOnboarding,
+		mindMap,
+		currentUser,
+		usageData,
+		currentSubscription,
+		mapAccessError,
+	]);
 
 	useEffect(() => {
 		getCurrentUser();
@@ -658,6 +679,7 @@ export function ReactFlowArea() {
 					activityState={activityState}
 					popoverOpen={popoverOpen}
 					canEdit={canEdit}
+					mobileUnreadCount={mobileNotifications.visibleUnreadCount}
 					handleToggleHistorySidebar={handleToggleHistorySidebar}
 					handleToggleMapSettings={handleToggleMapSettings}
 					handleToggleSharePanel={handleToggleSharePanel}
@@ -707,20 +729,29 @@ export function ReactFlowArea() {
 				defaultTab={settingsTab}
 			/>
 
-			<MobileMenu
-				open={mobileMenuOpen}
-				onOpenChange={setMobileMenuOpen}
-				canEdit={canEdit}
-				isMapOwner={mindMap?.user_id === currentUser?.id}
-				activityState={activityState}
-				mapId={mapId as string}
-				mapOwnerId={mindMap?.user_id}
-				isSettingsActive={popoverOpen.mapSettings}
-				onToggleHistory={handleToggleHistorySidebar}
-				onToggleSettings={handleToggleMapSettings}
-			/>
+			{isMobile && (
+				<MobileMenu
+					open={mobileMenuOpen}
+					onOpenChange={setMobileMenuOpen}
+					canEdit={canEdit}
+					isMapOwner={mindMap?.user_id === currentUser?.id}
+					activityState={activityState}
+					mapId={mapId as string}
+					mapOwnerId={mindMap?.user_id}
+					mapTitle={mindMap?.title}
+					user={userProfile}
+					isSettingsActive={popoverOpen.mapSettings}
+					onToggleHistory={handleToggleHistorySidebar}
+					onToggleSettings={handleToggleMapSettings}
+					onToggleSharePanel={handleToggleSharePanel}
+					onOpenSettings={handleOpenSettings}
+					notifications={mobileNotifications}
+				/>
+			)}
 
 			{ENABLE_AI_CHAT && <ChatPanel />}
+
+			<OnboardingModal />
 
 			{/* Guided Tour Mode - renders controls and spotlight overlay when active */}
 			<GuidedTourMode />

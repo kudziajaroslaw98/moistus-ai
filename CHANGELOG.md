@@ -13,6 +13,179 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-03-05 - Fixed notification side-effect timing so email dispatch is no longer deferred by client focus/activity -->
 <!-- Updated: 2026-03-06 - Fixed shared-map node entitlement flow for collaborators by using owner subscription lookup in server API checks -->
 <!-- Updated: 2026-03-07 - Tightened template preflight failure handling and create/edit node-limit UX gating -->
+<!-- Updated: 2026-03-17 - Replaced pricing-first onboarding with an editor-first walkthrough and split upgrade prompts back to the dedicated modal -->
+<!-- Updated: 2026-03-17 - Refined onboarding v2 with split intro, canvas/add substeps, toolbar-state fix, and Pro upsell guard -->
+<!-- Updated: 2026-03-18 - Added mobile onboarding shell, viewport-aware controls tour, and touch edit affordance -->
+<!-- Updated: 2026-03-20 - Morphed the minimized walkthrough into the checklist surface and repositioned the walkthrough anchors for cleaner motion -->
+<!-- Updated: 2026-03-25 - Replaced minimized walkthrough resume copy with the next actionable task -->
+
+## [2026-03-25]
+
+### Changed
+
+- **onboarding/minimized-task-copy**: The minimized walkthrough surface now shows the next incomplete task label, and its `Start` CTA launches that task directly instead of reopening the checklist first
+  - Why: Keeps the compact state pointed at the actual next action and removes the extra step between the pill and the active walkthrough task
+- **onboarding/history-coachmark**: The desktop `Know the controls` tour now includes the history control with dedicated copy about browsing saved map states
+  - Why: The history button was visible in the editor, but onboarding never taught what lived behind it
+- **onboarding/history-order**: Moved the desktop history coachmark to sit directly before share instead of in the middle of the toolbar-only steps
+  - Why: Keeps the control tour order aligned with the broader desktop layout instead of interrupting the toolbar cluster
+- **onboarding/minimized-pill-expand**: Restored a dedicated expand action on the minimized walkthrough pill so tapping the pill body reopens the checklist while `Start` still launches the current task
+  - Why: The previous wiring accidentally removed the ability to expand the collapsed walkthrough on both mobile and desktop
+- **onboarding/reopened-controls-exit**: Finishing a reopened `Know the controls` tour now closes the coachmark curtain and returns to the checklist with that task still marked done
+  - Why: Replaying an already-completed controls tour previously no-op’d on the last step and left the coachmarks stuck on screen
+- **onboarding/desktop-tail-order**: Reordered the desktop controls-tour tail so it now flows from toolbar controls into shortcuts, breadcrumb, history, and then share
+  - Why: Keeps the guided sequence aligned with the intended information hierarchy instead of jumping to history/share too early
+- **onboarding/skip-scope**: Full skip now lives only on the intro and expanded checklist, and the intro secondary CTA now dismisses onboarding entirely with `Skip walkthrough`
+  - Why: The partial skip controls added to hints and coachmarks broke those layouts; skip is now available only where it is intentional and legible
+- **onboarding/anchor-safe-refresh**: Refreshed anchored onboarding steps now fall back to the checklist until their target mounts, and resolved hint/coachmark surfaces replace the checklist again on both desktop and mobile
+  - Why: Refreshing during toolbar or controls-tour steps was rendering detached full-width hints when anchor targets had not mounted yet
+- **onboarding/desktop-checklist-companion**: Desktop checklist tasks now keep the checklist visible after their anchored hint resolves, while the standalone controls tour still returns to its coachmark surface
+  - Why: Hiding the checklist on desktop checklist tasks removed the ability to switch tasks or minimize from the expanded onboarding surface
+- **onboarding/live-anchor-refit**: Active anchored onboarding steps now keep remeasuring their target while they are open, so coachmarks refit after late toolbar/layout motion instead of staying pinned to stale coordinates
+  - Why: The controls tour could resolve before the toolbar finished settling, which left the coachmark pushed to the wrong edge of the screen
+- **onboarding/checklist-header-control-sizing**: The expanded checklist `Skip walkthrough` control now uses the same padded header chrome rhythm as the collapse button
+  - Why: The previous text-only skip button looked undersized and visually inconsistent beside the collapse control
+- **onboarding/checklist-header-control-spacing**: Added more horizontal breathing room between the expanded checklist `Skip walkthrough` and collapse controls
+  - Why: The previous spacing made it too easy to hit the wrong control in the checklist header
+- **onboarding/mobile-coachmark-toolbar-clearance**: Fixed the shared mobile onboarding bottom offset to use the real toolbar-clearance CSS variable, so mobile coachmarks clear the bottom toolbar instead of overlapping it
+  - Why: The controls tour sheet was reading the wrong CSS custom property and could cover the toolbar button it was supposed to explain
+- **notifications/shared-scope-cleanup**: Shared notifications now delete idle per-filter scopes on unsubscribe, refetch cleanly on remount, and tear down the realtime channel when the last listener goes away
+  - Why: The previous unsubscribe path kept stale scope state around and could leave an idle notifications channel open with no active listeners
+- **notifications/fetch-finally-guard**: The notifications fetch `finally` block now guards its cleanup statements instead of returning early
+  - Why: Returning from `finally` is brittle and can mask completion behavior; the cleanup now stays explicit without changing the request-state contract
+- **ui-slice/blocked-node-types**: The blocked edit-node list now lives in one shared constant consumed by both the UI slice and `BaseNodeWrapper`
+  - Why: Removes duplicated literals so mobile edit affordances and node-editor gating cannot drift apart
+- **tests/ui-slice-harness-typing**: Replaced the `ui-slice` test harness `as never` path with a narrow typed slice harness, and added `useNotifications` hook coverage for scope cleanup + last-listener channel teardown
+  - Why: Keeps the slice test honest about the API shape and locks the notifications cleanup fix into the suite
+- **onboarding/dialog-and-motion-a11y**: The intro overlay now behaves like an accessible dialog, the canvas hint and walkthrough surface respect reduced-motion preferences, and the mobile walkthrough target sizing/layout no longer forces overflow on narrow viewports
+  - Why: The onboarding surfaces needed tighter keyboard, screen reader, and motion behavior without changing the existing walkthrough flow
+
+### Fixed
+
+- **editor-chrome/accessibility-polish**: Added the mobile menu unread count to assistive tech, restored the edit-chip exit animation, and labeled the icon-only export/layout toolbar triggers
+  - Why: Improves screen-reader clarity and preserves the intended Motion exit behavior on the editor chrome surfaces
+- **notifications/shared-cache-and-map-filtering**: `useNotifications` now shares one cache/socket per user session and the notifications API applies `map_id` filtering before the server-side limit
+  - Why: Prevents duplicate realtime subscriptions and ensures map-scoped inbox views receive the newest matching notifications instead of filtering a globally-limited result on the client
+- **onboarding/state-persistence-guards**: Namespaced onboarding persistence by user, hardened storage access, preserved empty node-editor initial values, and completed the create-node task when a pattern creates a real node
+  - Why: Prevents cross-account onboarding leakage, avoids storage crashes, and keeps the onboarding/editor state machine aligned with the actual user actions
+
+## [2026-03-23]
+
+### Refactored
+
+- **docs/CLAUDE.md**: Compressed from 399 → 159 lines (60% reduction). System prompt XML collapsed to bullet-point philosophy. Domain-specific gotchas moved to path-scoped `.claude/rules/`
+  - Why: 2x over the recommended 200-line limit hurt instruction adherence and wasted context tokens
+
+### Added
+
+- **docs/.claude/rules/**: 7 path-scoped rule files with enhanced best practices (from codebase patterns + web research):
+  - `nextjs-patterns.md` — App Router, SEO, API routes, security, Core Web Vitals
+  - `supabase-patterns.md` — client tiers, RLS, auth, query patterns, subscription limits
+  - `partykit-realtime.md` — YJS doc structure, channels, awareness, admin ops, env config
+  - `base-ui-patterns.md` — Base UI API, React 19 patterns, component architecture
+  - `onboarding-gotchas.md` — v2 placement, task flow, control anchors, mobile mode
+  - `editor-chrome-gotchas.md` — mobile header, toolbar state, parser scope, map settings
+  - `testing-practices.md` — test stack, conventions, E2E workflow, Zustand patterns
+  - Why: Rules lazy-load only when touching relevant files, saving ~40-50% context tokens in most sessions
+
+## [2026-03-20]
+
+### Changed
+
+- **onboarding/walkthrough-morph**: The minimized walkthrough pill and expanded checklist now animate as one shared surface, with the shell expanding/collapsing in place while the inner content crossfades
+  - Why: Makes the walkthrough feel like one evolving object instead of separate overlays fading in and out
+- **onboarding/walkthrough-anchors**: Moved the desktop pill to the checklist corner and moved the mobile checklist under the top bar so both viewports have believable local expand/collapse motion
+  - Why: Shared-layout animation reads better when the compact and expanded states originate from the same screen region
+- **onboarding/component-split**: Broke the onboarding UI helpers out of `onboarding-modal.tsx` into focused component files for intro, hints, coachmarks, upsell, layout constants, and the walkthrough surface
+  - Why: Keeps the modal responsible for state orchestration instead of packing the entire walkthrough UI into one file
+- **onboarding/motion-geometry**: The morphing walkthrough surface now drives width, border radius, and padding through Motion state instead of swapping Tailwind geometry classes between pill and checklist states
+  - Why: Produces cleaner morphing behavior and keeps the animated shape under Motion’s control
+
+### Fixed
+
+- **tests/onboarding-walkthrough-surface**: Added modal coverage for the new desktop minimized-pill placement, the mobile under-top-bar checklist placement, and the resume/minimize actions
+  - Why: Locks the new morphing walkthrough presentation before future onboarding tweaks drift the positions or controls
+- **top-bar/mobile-editor-drawer-layering**: Raised the mobile sheet overlay/content above onboarding surfaces so the open hamburger drawer no longer sits under the walkthrough
+  - Why: An active menu should always own the top interaction layer on mobile
+- **top-bar/mobile-editor-drawer-trigger-chrome**: Switched the mobile hamburger trigger and drawer close control from elevated rounded buttons to ghost-style chrome
+  - Why: Keeps the mobile header controls visually consistent with the lighter editorial drawer treatment
+
+## [2026-03-18]
+
+### Added
+
+- **tests/mobile-onboarding**: Added slice coverage for the mobile controls-tour sequence, node-wrapper coverage for the mobile `Edit` action, and onboarding modal coverage for the bottom-sheet intro/hint behavior
+  - Why: Locks the new mobile walkthrough path before the desktop-first implementation drifts back in
+- **tests/mobile-header-drawer**: Added RTL coverage for the hamburger-only mobile top bar, the editorial mobile drawer permission gating, and notification-preview interactions
+  - Why: Protects the new mobile header/menu contract and keeps the drawer from regressing back into a generic utility panel
+
+### Changed
+
+- **onboarding/mobile-shell**: Mobile walkthrough now uses bottom-sheet intro, checklist, hints, coachmarks, and upsell surfaces instead of reusing the desktop right-rail layout
+  - Why: Keeps the canvas visible and removes stacked desktop cards from small screens
+- **onboarding/mobile-controls-tour**: Controls tour now uses a mobile-specific target set (`cursor`, `add`, `AI`, `comments`, `More Tools`, `mobile menu`, `breadcrumb`) and explains hidden toolbar actions through `More Tools` copy without auto-opening overflow menus
+  - Why: Matches the real mobile toolbar instead of teaching controls that are hidden or absent on touch devices
+- **top-bar/mobile-editor-drawer**: Mobile editor chrome now collapses to breadcrumb/title plus one hamburger trigger, and the hamburger opens a full-height editorial drawer for share, recent activity, collaborators, workspace actions, and account/billing flows
+  - Why: Clears visual noise from the mobile header and gives those actions a calmer, more premium home
+- **top-bar/mobile-editor-drawer-density**: Tightened the mobile editorial drawer into a quieter tool surface with a minimal title bar, smaller section headings, a merged collaboration section, shorter helper copy, and cardless collaborator presentation
+  - Why: Removes bulky copy and uneven spacing so the drawer feels more elegant and easier to scan on phones
+- **top-bar/mobile-editor-drawer-alignment**: Shifted the compact drawer sections back to the same outer padding as the profile block instead of the profile text column
+  - Why: Keeps the cleaner alignment while avoiding the over-indented look on mobile
+- **top-bar/mobile-editor-drawer-title-scale**: Reduced the mobile drawer map title size by one step
+  - Why: Keeps the title from overpowering the tighter, denser sheet layout
+- **top-bar/mobile-editor-drawer-close+truncate**: Added an explicit header close button to the mobile drawer and capped the drawer title at 24 characters with ellipsis
+  - Why: Makes the sheet dismiss action obvious and prevents long map titles from crowding the header
+- **top-bar/mobile-editor-drawer-header-chrome**: Matched the mobile drawer header height and close-button placement to the canvas top bar rhythm
+  - Why: Makes the drawer feel like an extension of the editor chrome instead of a separate header system
+- **notifications/shared-hook**: Notification fetch/subscription/mark-read logic now lives in a shared `useNotifications()` hook used by the desktop bell and the mobile editorial drawer
+  - Why: Keeps inbox behavior aligned across surfaces without duplicating realtime or mutation logic
+
+### Fixed
+
+- **nodes/mobile-edit-path**: Selected editable nodes now expose a visible mobile `Edit` action on the node chrome
+  - Why: Gives mobile onboarding a real touch-first edit path instead of relying on desktop-only Enter/double-click gestures
+- **onboarding/mobile-step-stacking**: Mobile checklist now yields to active step hints/coachmarks, and the minimized walkthrough chip sits below the top bar instead of near the bottom dock
+  - Why: Prevents onboarding surfaces from fighting for the same screen space on phones
+- **onboarding/mobile-menu-anchor**: Mobile controls tour now targets the hamburger menu instead of the removed mobile share button
+  - Why: Keeps the walkthrough aligned with the new mobile header layout
+
+## [2026-03-17]
+
+### Added
+
+- **tests/onboarding-v2**: Added onboarding slice coverage for eligibility, resume/skip flow, real editor task completion, controls-tour completion, and state restore, plus quick-input coverage for onboarding parser prefills
+  - Why: Locks the new task-based walkthrough contract before the editor wiring starts drifting
+- **tests/onboarding-refinements**: Added regression coverage for add-mode substeps, parser lesson syntax-help guidance, Pro-user walkthrough completion, and the cursor trigger active-state helper
+  - Why: Protects the refined walkthrough UX and the toolbar state fix from slipping back
+
+### Changed
+
+- **onboarding/editor-walkthrough**: Replaced the old welcome/benefits/pricing modal with an editor-owned flow that uses an intro overlay, resumable checklist, anchored control hints, and a final optional Pro card
+  - Why: Teaches users how to use the product before asking them to upgrade
+- **onboarding/walkthrough-polish**: Reworked the intro into a split hero with calmer product-teaching copy, moved add-node guidance into a canvas step, added a syntax-help nudge for the parser lesson, and expanded the controls tour to cover cursor, layout, export, tour, zoom, comments, share, shortcuts, and breadcrumb/home
+  - Why: Reduces intimidation on first open and makes each walkthrough step point to the next concrete action
+- **node-editor/onboarding-prefill**: Extended node-editor open state with onboarding preset/source support so the walkthrough can launch a deterministic parser lesson in the real editor
+  - Why: Keeps the parser lesson inside the production creation flow instead of duplicating tutorial-only UI
+- **mind-map/onboarding-placement**: Moved onboarding startup out of client providers and into the mind-map experience, where eligibility can be checked against the loaded map + current user
+  - Why: Prevents global app boot from forcing onboarding outside the actual workspace
+
+### Fixed
+
+- **upgrade-flow-separation**: User-menu upgrade CTA and limit warnings now open the dedicated upgrade modal directly instead of reopening onboarding at a pricing step
+  - Why: Keeps monetization prompts separate from product teaching and removes the old pricing-first coupling
+- **toolbar/cursor-active-state**: Selecting `Add Node` now visually deactivates the cursor trigger instead of leaving Select highlighted alongside it
+  - Why: Makes the active canvas mode unambiguous during onboarding and normal editing
+- **onboarding/canvas-safe-positioning**: The minimized walkthrough pill now lives in the lower-left canvas safe area above runtime toolbar clearance, and toolbar coachmarks now prefer rendering above bottom-dock controls
+  - Why: Prevents walkthrough UI from colliding with the toolbar on smaller windows
+- **onboarding/canvas-hint-layout**: The desktop “Now click empty canvas” hint now reserves the checklist lane instead of centering across it
+  - Why: Prevents the step-one canvas hint from overlapping the checklist card
+- **onboarding/pro-upsell-guard**: Manual walkthroughs for active/trialing Pro users now complete without showing the final Pro upsell card
+  - Why: Removes a redundant monetization surface for users who already have the plan
+
+### Removed
+
+- **onboarding/v1-steps**: Deleted the legacy welcome, benefits, and pricing onboarding step components and the numeric step state that powered them
+  - Why: Backward compatibility was intentionally out of scope for the redesign
 
 ## [2026-03-07]
 
