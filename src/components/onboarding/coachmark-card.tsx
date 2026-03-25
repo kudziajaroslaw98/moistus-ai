@@ -57,6 +57,10 @@ export function CoachmarkCard({
 		};
 	}, [isMobile, targetRect]);
 
+	if (!isMobile && !floatingStyle) {
+		return null;
+	}
+
 	const content = (
 		<div className='rounded-3xl border border-white/10 bg-base/96 p-5 shadow-2xl shadow-black/35 backdrop-blur-md'>
 			<p className='text-xs font-medium uppercase tracking-[0.2em] text-text-tertiary'>

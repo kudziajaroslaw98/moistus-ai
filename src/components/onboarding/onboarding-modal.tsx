@@ -101,14 +101,27 @@ export function OnboardingModal() {
 		[onboardingViewport]
 	);
 	const currentCoachmark = coachmarks[onboardingCoachmarkStep] ?? null;
-	const shouldHideChecklistForMobileSurface =
-		isMobile &&
+	const shouldRenderCoachmark =
+		onboardingStatus === 'coachmarks' && Boolean(currentCoachmark);
+	const requiresResolvedAnchor =
+		Boolean(onboardingActiveTarget) &&
 		(shouldRenderCreateNodeToolbarHint ||
-			shouldRenderCanvasHint ||
 			shouldRenderPatternEditHint ||
-			onboardingStatus === 'coachmarks');
+			shouldRenderCoachmark);
+	const shouldFallbackToChecklist = requiresResolvedAnchor && !targetRect;
+	const shouldHideChecklistForSurface =
+		!shouldFallbackToChecklist &&
+		(isMobile
+			? shouldRenderCreateNodeToolbarHint ||
+				shouldRenderCanvasHint ||
+				shouldRenderPatternEditHint ||
+				shouldRenderCoachmark
+			: shouldRenderCreateNodeToolbarHint ||
+				shouldRenderPatternEditHint ||
+				shouldRenderCoachmark);
 	const shouldRenderChecklistCard =
-		shouldRenderChecklist && !shouldHideChecklistForMobileSurface;
+		(shouldRenderChecklist || shouldFallbackToChecklist) &&
+		!shouldHideChecklistForSurface;
 	const walkthroughSurfaceMode = shouldRenderChecklistCard
 		? 'checklist'
 		: shouldRenderMinimizedPill
@@ -130,6 +143,7 @@ export function OnboardingModal() {
 		}
 
 		let animationFrame = 0;
+		let observer: MutationObserver | null = null;
 		const updateTargetRect = () => {
 			const target =
 				onboardingActiveTarget === 'created-node' && onboardingHighlightedNodeId
@@ -142,7 +156,16 @@ export function OnboardingModal() {
 
 			if (!target) {
 				setTargetRect(null);
-				return;
+				if (!observer && typeof MutationObserver !== 'undefined') {
+					observer = new MutationObserver(() => {
+						scheduleUpdate();
+					});
+					observer.observe(document.body, {
+						childList: true,
+						subtree: true,
+					});
+				}
+				return false;
 			}
 
 			const rect = target.getBoundingClientRect();
@@ -152,6 +175,9 @@ export function OnboardingModal() {
 				width: rect.width,
 				height: rect.height,
 			});
+			observer?.disconnect();
+			observer = null;
+			return true;
 		};
 
 		const scheduleUpdate = () => {
@@ -165,6 +191,7 @@ export function OnboardingModal() {
 
 		return () => {
 			cancelAnimationFrame(animationFrame);
+			observer?.disconnect();
 			window.removeEventListener('resize', scheduleUpdate);
 			window.removeEventListener('scroll', scheduleUpdate, true);
 		};
@@ -266,7 +293,7 @@ export function OnboardingModal() {
 			</AnimatePresence>
 
 			<AnimatePresence>
-				{shouldRenderCreateNodeToolbarHint && (
+				{shouldRenderCreateNodeToolbarHint && !shouldFallbackToChecklist && (
 					<FloatingHint
 						dataTestId='onboarding-create-node-hint'
 						description='Start here. Choose Add Node, then the walkthrough will move onto the canvas with you.'
@@ -290,7 +317,7 @@ export function OnboardingModal() {
 			</AnimatePresence>
 
 			<AnimatePresence>
-				{shouldRenderPatternEditHint && (
+				{shouldRenderPatternEditHint && !shouldFallbackToChecklist && (
 					<FloatingHint
 						dataTestId='onboarding-pattern-edit-hint'
 						description='To edit this node later, select it and press Enter, or just double-click it.'
@@ -305,7 +332,7 @@ export function OnboardingModal() {
 			</AnimatePresence>
 
 			<AnimatePresence>
-				{onboardingStatus === 'coachmarks' && currentCoachmark && (
+				{shouldRenderCoachmark && !shouldFallbackToChecklist && currentCoachmark && (
 					<CoachmarkCard
 						currentStep={currentCoachmark}
 						isLastStep={onboardingCoachmarkStep === coachmarks.length - 1}

@@ -59,6 +59,10 @@ export function FloatingHint({
 		};
 	}, [isMobile, targetRect]);
 
+	if (!isMobile && !floatingStyle) {
+		return null;
+	}
+
 	if (!isMobile && floatingStyle) {
 		return (
 			<motion.div

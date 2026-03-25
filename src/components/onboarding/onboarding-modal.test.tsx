@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { OnboardingModal } from './onboarding-modal'
 
 let mockIsMobile = true
@@ -12,6 +12,26 @@ jest.mock('@/store/mind-map-store', () => ({
 	__esModule: true,
 	default: jest.fn((selector) => selector(mockState)),
 }))
+
+const appendOnboardingTarget = (target: string) => {
+	const element = document.createElement('button')
+	element.setAttribute('data-onboarding-target', target)
+	Object.defineProperty(element, 'getBoundingClientRect', {
+		value: () => ({
+			top: 96,
+			left: 48,
+			width: 120,
+			height: 44,
+			bottom: 140,
+			right: 168,
+			x: 48,
+			y: 96,
+			toJSON: () => ({}),
+		}),
+	})
+	document.body.appendChild(element)
+	return element
+}
 
 describe('OnboardingModal mobile rendering', () => {
 	beforeEach(() => {
@@ -47,6 +67,12 @@ describe('OnboardingModal mobile rendering', () => {
 		}
 	})
 
+	afterEach(() => {
+		document
+			.querySelectorAll('[data-onboarding-target], [data-id="created-node-1"]')
+			.forEach((element) => element.remove())
+	})
+
 	it('renders the mobile intro as a bottom-sheet flow', () => {
 		render(<OnboardingModal />)
 
@@ -59,18 +85,21 @@ describe('OnboardingModal mobile rendering', () => {
 		expect(screen.getByRole('button', { name: 'Skip walkthrough' })).toBeInTheDocument()
 	})
 
-	it('hides the checklist when the mobile create-node hint is active', () => {
+	it('hides the checklist when the mobile create-node hint anchor is resolved', async () => {
 		mockState = {
 			...mockState,
 			onboardingStatus: 'checklist',
 			onboardingActiveTarget: 'add-node',
 			onboardingCreateNodeStep: 'toolbar',
 		}
+		appendOnboardingTarget('add-node')
 
 		render(<OnboardingModal />)
 
+		await waitFor(() => {
+			expect(screen.getByTestId('onboarding-create-node-hint')).toBeInTheDocument()
+		})
 		expect(screen.queryByTestId('onboarding-checklist')).not.toBeInTheDocument()
-		expect(screen.getByTestId('onboarding-create-node-hint')).toBeInTheDocument()
 	})
 
 	it('renders the mobile checklist under the top bar and minimizes back into a pill', () => {
@@ -120,28 +149,36 @@ describe('OnboardingModal mobile rendering', () => {
 		expect(skipOnboarding).toHaveBeenCalled()
 	})
 
-	it('does not render skip walkthrough on an active hint surface', () => {
+	it('does not render skip walkthrough on an active hint surface', async () => {
 		mockState = {
 			...mockState,
 			onboardingStatus: 'checklist',
 			onboardingActiveTarget: 'add-node',
 			onboardingCreateNodeStep: 'toolbar',
 		}
+		appendOnboardingTarget('add-node')
 
 		render(<OnboardingModal />)
 
+		await waitFor(() => {
+			expect(screen.getByTestId('onboarding-create-node-hint')).toBeInTheDocument()
+		})
 		expect(screen.queryByRole('button', { name: 'Skip walkthrough' })).not.toBeInTheDocument()
 	})
 
-	it('does not render skip walkthrough on the controls coachmark surface', () => {
+	it('does not render skip walkthrough on the controls coachmark surface', async () => {
 		mockState = {
 			...mockState,
 			onboardingStatus: 'coachmarks',
-			onboardingActiveTarget: 'add-node',
+			onboardingActiveTarget: 'cursor-tool',
 		}
+		appendOnboardingTarget('cursor-tool')
 
 		render(<OnboardingModal />)
 
+		await waitFor(() => {
+			expect(screen.getByTestId('onboarding-coachmark')).toBeInTheDocument()
+		})
 		expect(screen.queryByRole('button', { name: 'Skip walkthrough' })).not.toBeInTheDocument()
 	})
 
@@ -218,5 +255,61 @@ describe('OnboardingModal mobile rendering', () => {
 				onboardingSource: 'onboarding-pattern',
 			})
 		)
+	})
+
+	it('falls back to the checklist when the refreshed desktop create-node anchor is unresolved', async () => {
+		mockIsMobile = false
+		mockState = {
+			...mockState,
+			onboardingStatus: 'checklist',
+			onboardingActiveTarget: 'add-node',
+			onboardingCreateNodeStep: 'toolbar',
+		}
+
+		render(<OnboardingModal />)
+
+		expect(screen.getByTestId('onboarding-checklist')).toBeInTheDocument()
+		expect(
+			screen.queryByTestId('onboarding-create-node-hint')
+		).not.toBeInTheDocument()
+		expect(
+			document.querySelector('div[aria-hidden="true"]')
+		).not.toBeInTheDocument()
+
+		appendOnboardingTarget('add-node')
+		window.dispatchEvent(new Event('resize'))
+
+		await waitFor(() => {
+			expect(
+				screen.getByTestId('onboarding-create-node-hint')
+			).toBeInTheDocument()
+		})
+		expect(screen.queryByTestId('onboarding-checklist')).not.toBeInTheDocument()
+		expect(
+			document.querySelector('div[aria-hidden="true"]')
+		).toBeInTheDocument()
+	})
+
+	it('falls back to the checklist when the refreshed desktop controls target is unresolved', async () => {
+		mockIsMobile = false
+		mockState = {
+			...mockState,
+			onboardingStatus: 'coachmarks',
+			onboardingActiveTarget: 'cursor-tool',
+			onboardingCoachmarkStep: 0,
+		}
+
+		render(<OnboardingModal />)
+
+		expect(screen.getByTestId('onboarding-checklist')).toBeInTheDocument()
+		expect(screen.queryByTestId('onboarding-coachmark')).not.toBeInTheDocument()
+
+		appendOnboardingTarget('cursor-tool')
+		window.dispatchEvent(new Event('resize'))
+
+		await waitFor(() => {
+			expect(screen.getByTestId('onboarding-coachmark')).toBeInTheDocument()
+		})
+		expect(screen.queryByTestId('onboarding-checklist')).not.toBeInTheDocument()
 	})
 })
