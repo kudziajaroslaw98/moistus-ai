@@ -45,6 +45,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: The controls tour could resolve before the toolbar finished settling, which left the coachmark pushed to the wrong edge of the screen
 - **onboarding/checklist-header-control-sizing**: The expanded checklist `Skip walkthrough` control now uses the same padded header chrome rhythm as the collapse button
   - Why: The previous text-only skip button looked undersized and visually inconsistent beside the collapse control
+- **onboarding/checklist-header-control-spacing**: Added more horizontal breathing room between the expanded checklist `Skip walkthrough` and collapse controls
+  - Why: The previous spacing made it too easy to hit the wrong control in the checklist header
 
 ## [2026-03-23]
 

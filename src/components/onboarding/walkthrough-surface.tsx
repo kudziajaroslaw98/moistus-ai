@@ -103,7 +103,7 @@ function ChecklistContent({
 					</h3>
 				</div>
 
-				<div className='flex items-center gap-2'>
+				<div className='flex items-center gap-3'>
 					<button
 						className='rounded-lg p-2 text-sm text-text-secondary transition-colors hover:bg-white/6 hover:text-text-primary'
 						onClick={onSkip}
