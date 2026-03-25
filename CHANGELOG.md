@@ -43,6 +43,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Hiding the checklist on desktop checklist tasks removed the ability to switch tasks or minimize from the expanded onboarding surface
 - **onboarding/live-anchor-refit**: Active anchored onboarding steps now keep remeasuring their target while they are open, so coachmarks refit after late toolbar/layout motion instead of staying pinned to stale coordinates
   - Why: The controls tour could resolve before the toolbar finished settling, which left the coachmark pushed to the wrong edge of the screen
+- **onboarding/checklist-header-control-sizing**: The expanded checklist `Skip walkthrough` control now uses the same padded header chrome rhythm as the collapse button
+  - Why: The previous text-only skip button looked undersized and visually inconsistent beside the collapse control
 
 ## [2026-03-23]
 
