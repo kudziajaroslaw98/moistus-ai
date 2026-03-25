@@ -47,6 +47,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: The previous text-only skip button looked undersized and visually inconsistent beside the collapse control
 - **onboarding/checklist-header-control-spacing**: Added more horizontal breathing room between the expanded checklist `Skip walkthrough` and collapse controls
   - Why: The previous spacing made it too easy to hit the wrong control in the checklist header
+- **onboarding/mobile-coachmark-toolbar-clearance**: Fixed the shared mobile onboarding bottom offset to use the real toolbar-clearance CSS variable, so mobile coachmarks clear the bottom toolbar instead of overlapping it
+  - Why: The controls tour sheet was reading the wrong CSS custom property and could cover the toolbar button it was supposed to explain
 - **onboarding/dialog-and-motion-a11y**: The intro overlay now behaves like an accessible dialog, the canvas hint and walkthrough surface respect reduced-motion preferences, and the mobile walkthrough target sizing/layout no longer forces overflow on narrow viewports
   - Why: The onboarding surfaces needed tighter keyboard, screen reader, and motion behavior without changing the existing walkthrough flow
 

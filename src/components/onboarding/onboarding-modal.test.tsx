@@ -195,6 +195,10 @@ describe('OnboardingModal mobile rendering', () => {
 		await waitFor(() => {
 			expect(screen.getByTestId('onboarding-coachmark')).toBeInTheDocument()
 		})
+		expect(screen.getByTestId('onboarding-coachmark')).toHaveStyle({
+			bottom:
+				'calc(env(safe-area-inset-bottom, 0px) + var(--mind-map-toolbar-clearance, 0px) + 1rem)',
+		})
 		expect(screen.queryByRole('button', { name: 'Skip walkthrough' })).not.toBeInTheDocument()
 	})
 
