@@ -1,8 +1,15 @@
 'use client';
 
 import { MoveRight, Play } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
+import { useEffect, useId, useRef } from 'react';
 import { Button } from '../ui/button';
+
+const FOCUSABLE_SELECTOR =
+	'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+const getFocusableElements = (container: HTMLElement) =>
+	Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
 
 function IntroStep({
 	description,
@@ -54,20 +61,124 @@ export function IntroOverlay({
 	onSkip: () => void;
 	onStart: () => void;
 }) {
+	const shouldReduceMotion = useReducedMotion() ?? false;
+	const headingId = useId();
+	const dialogRef = useRef<HTMLDivElement>(null);
+	const lastActiveElementRef = useRef<HTMLElement | null>(null);
+
+	useEffect(() => {
+		const dialog = dialogRef.current;
+		if (!dialog) {
+			return;
+		}
+
+		lastActiveElementRef.current =
+			document.activeElement instanceof HTMLElement
+				? document.activeElement
+				: null;
+
+		const focusInitialElement = () => {
+			const primaryButton =
+				dialog.querySelector<HTMLElement>('[data-onboarding-intro-primary]') ??
+				getFocusableElements(dialog)[0] ??
+				dialog;
+
+			primaryButton.focus({ preventScroll: true });
+		};
+
+		focusInitialElement();
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (event.key !== 'Tab') {
+				return;
+			}
+
+			const focusableElements = getFocusableElements(dialog);
+			if (focusableElements.length === 0) {
+				event.preventDefault();
+				dialog.focus({ preventScroll: true });
+				return;
+			}
+
+			const firstElement = focusableElements[0];
+			const lastElement = focusableElements[focusableElements.length - 1];
+			const activeElement = document.activeElement;
+
+			if (!activeElement || !dialog.contains(activeElement)) {
+				event.preventDefault();
+				firstElement.focus({ preventScroll: true });
+				return;
+			}
+
+			if (event.shiftKey && activeElement === firstElement) {
+				event.preventDefault();
+				lastElement.focus({ preventScroll: true });
+				return;
+			}
+
+			if (!event.shiftKey && activeElement === lastElement) {
+				event.preventDefault();
+				firstElement.focus({ preventScroll: true });
+			}
+		};
+
+		document.addEventListener('keydown', handleKeyDown, true);
+
+		return () => {
+			document.removeEventListener('keydown', handleKeyDown, true);
+			lastActiveElementRef.current?.focus?.({ preventScroll: true });
+		};
+	}, []);
+
+	const backdropMotion = shouldReduceMotion
+		? {
+				animate: { opacity: 1 },
+				exit: { opacity: 0 },
+				initial: { opacity: 0 },
+			}
+		: {
+				animate: { opacity: 1 },
+				exit: { opacity: 0 },
+				initial: { opacity: 0 },
+			};
+	const mobilePanelMotion = shouldReduceMotion
+		? {
+				animate: { opacity: 1 },
+				exit: { opacity: 0 },
+				initial: { opacity: 0 },
+			}
+		: {
+				animate: { opacity: 1, y: 0 },
+				exit: { opacity: 0, y: 24 },
+				initial: { opacity: 0, y: 32 },
+			};
+	const desktopPanelMotion = shouldReduceMotion
+		? {
+				animate: { opacity: 1 },
+				exit: { opacity: 0 },
+				initial: { opacity: 0 },
+			}
+		: {
+				animate: { opacity: 1, y: 0, scale: 1 },
+				exit: { opacity: 0, y: 12, scale: 0.98 },
+				initial: { opacity: 0, y: 24, scale: 0.98 },
+			};
+
 	if (isMobile) {
 		return (
 			<motion.div
-				animate={{ opacity: 1 }}
+				{...backdropMotion}
+				aria-labelledby={headingId}
+				aria-modal='true'
 				className='fixed inset-0 z-[70] flex items-end justify-center bg-black/40 backdrop-blur-sm'
 				data-testid='onboarding-intro'
-				exit={{ opacity: 0 }}
-				initial={{ opacity: 0 }}
+				ref={dialogRef}
+				role='dialog'
+				tabIndex={-1}
 			>
 				<motion.div
-					animate={{ opacity: 1, y: 0 }}
+					{...mobilePanelMotion}
 					className='w-full overflow-hidden rounded-t-[2rem] border border-white/12 bg-base/96 shadow-2xl shadow-black/35'
-					exit={{ opacity: 0, y: 24 }}
-					initial={{ opacity: 0, y: 32 }}
 				>
 					<div className='space-y-5 px-5 pt-4 pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)]'>
 						<div className='mx-auto h-1.5 w-12 rounded-full bg-white/12' />
@@ -78,7 +189,10 @@ export function IntroOverlay({
 						</div>
 
 						<div className='space-y-2'>
-							<h2 className='text-2xl font-semibold tracking-tight text-text-primary'>
+							<h2
+								className='text-2xl font-semibold tracking-tight text-text-primary'
+								id={headingId}
+							>
 								Three quick moves to get comfortable fast.
 							</h2>
 							<p className='text-sm leading-6 text-text-secondary'>
@@ -109,6 +223,7 @@ export function IntroOverlay({
 							<Button
 								className='w-full justify-between gap-2'
 								onClick={onStart}
+								data-onboarding-intro-primary
 								size='md'
 								variant='default'
 							>
@@ -135,17 +250,18 @@ export function IntroOverlay({
 
 	return (
 		<motion.div
-			animate={{ opacity: 1 }}
+			{...backdropMotion}
+			aria-labelledby={headingId}
+			aria-modal='true'
 			className='fixed inset-0 z-[70] flex items-center justify-center bg-black/35 px-4 backdrop-blur-sm'
 			data-testid='onboarding-intro'
-			exit={{ opacity: 0 }}
-			initial={{ opacity: 0 }}
+			ref={dialogRef}
+			role='dialog'
+			tabIndex={-1}
 		>
 			<motion.div
-				animate={{ opacity: 1, y: 0, scale: 1 }}
+				{...desktopPanelMotion}
 				className='w-full max-w-5xl overflow-hidden rounded-[2rem] border border-white/12 bg-base/95 shadow-2xl shadow-black/35'
-				exit={{ opacity: 0, y: 12, scale: 0.98 }}
-				initial={{ opacity: 0, y: 24, scale: 0.98 }}
 			>
 				<div className='grid gap-0 md:grid-cols-[1.35fr_0.95fr]'>
 					<div className='relative overflow-hidden p-6 sm:p-8'>
@@ -157,7 +273,10 @@ export function IntroOverlay({
 							</div>
 
 							<div className='space-y-3'>
-								<h2 className='max-w-2xl text-3xl font-semibold tracking-tight text-text-primary sm:text-[2.5rem] sm:leading-[1.05]'>
+								<h2
+									className='max-w-2xl text-3xl font-semibold tracking-tight text-text-primary sm:text-[2.5rem] sm:leading-[1.05]'
+									id={headingId}
+								>
 									Start with three useful moves, not a wall of features.
 								</h2>
 								<p className='max-w-2xl text-sm leading-6 text-text-secondary sm:text-base'>
@@ -212,6 +331,7 @@ export function IntroOverlay({
 								<Button
 									className='w-full justify-between gap-2'
 									onClick={onStart}
+									data-onboarding-intro-primary
 									size='md'
 									variant='default'
 								>

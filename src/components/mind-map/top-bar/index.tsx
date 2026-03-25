@@ -52,6 +52,7 @@ export function MindMapTopBar({
 	setMobileMenuOpen,
 }: MindMapTopBarProps) {
 	const isMobile = useIsMobile();
+	const mobileMenuUnreadCountId = 'mobile-menu-unread-count';
 
 	const isMapOwner = mindMap?.user_id === currentUser?.id;
 
@@ -130,6 +131,10 @@ export function MindMapTopBar({
 				{isMobile && (
 					<Button
 						aria-label='Open menu'
+						aria-describedby={
+							mobileUnreadCount > 0 ? mobileMenuUnreadCountId : undefined
+						}
+						aria-expanded={mobileMenuOpen}
 						className='relative text-text-secondary hover:text-text-primary'
 						data-onboarding-target='mobile-menu'
 						onClick={() => setMobileMenuOpen(true)}
@@ -138,7 +143,15 @@ export function MindMapTopBar({
 					>
 						<Menu className='size-5' />
 						{mobileUnreadCount > 0 && (
-							<span className='absolute -top-1 -right-1 min-w-4 h-4 rounded-full bg-primary-500 px-1 text-[10px] leading-4 text-white'>
+							<span id={mobileMenuUnreadCountId} className='sr-only'>
+								{mobileUnreadCount} unread notifications
+							</span>
+						)}
+						{mobileUnreadCount > 0 && (
+							<span
+								aria-hidden='true'
+								className='absolute -top-1 -right-1 min-w-4 h-4 rounded-full bg-primary-500 px-1 text-[10px] leading-4 text-white'
+							>
 								{mobileUnreadCount > 99 ? '99+' : mobileUnreadCount}
 							</span>
 						)}

@@ -112,7 +112,7 @@ function ChecklistContent({
 						Skip walkthrough
 					</button>
 					<button
-						className='rounded-lg p-2 text-text-tertiary transition-colors hover:bg-white/6 hover:text-text-primary'
+						className='inline-flex h-11 w-11 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-white/6 hover:text-text-primary'
 						onClick={onMinimize}
 						type='button'
 					>
@@ -210,7 +210,16 @@ export function WalkthroughSurface({
 		? 'fixed inset-x-4 z-[60] flex justify-start'
 		: 'fixed right-4 z-[60] flex justify-end';
 	const shellTransition = shouldReduceMotion
-		? { duration: 0.12, ease: 'easeOut' as const }
+		? {
+				duration: 0.12,
+				ease: 'easeOut' as const,
+				transition: {
+					opacity: {
+						duration: 0.08,
+						ease: 'easeOut' as const,
+					},
+				},
+			}
 		: {
 				duration: 0.3,
 				ease: 'easeOut' as const,
@@ -230,7 +239,16 @@ export function WalkthroughSurface({
 				},
 			};
 	const contentTransition = shouldReduceMotion
-		? { duration: 0.02, ease: 'easeOut' as const }
+		? {
+				duration: 0.02,
+				ease: 'easeOut' as const,
+				transition: {
+					opacity: {
+						duration: 0.02,
+						ease: 'easeOut' as const,
+					},
+				},
+			}
 		: {
 				duration: 0.3,
 				ease: 'easeOut' as const,
@@ -252,7 +270,7 @@ export function WalkthroughSurface({
 	const surfaceStyle = isChecklist
 		? {
 				width: 'calc(100vw - 2rem)',
-				minWidth: 320,
+				minWidth: isMobile ? undefined : 320,
 				maxWidth: 400,
 				borderRadius: isMobile ? 28 : 24,
 				paddingTop: 16,
@@ -300,19 +318,21 @@ export function WalkthroughSurface({
 						<motion.div
 							key='checklist'
 							layoutId='onboarding-walkthrough-content'
-							animate={{ opacity: 1, filter: 'blur(0px)', scale: 1, y: 0 }}
-							exit={{
-								opacity: 0,
-								filter: 'blur(4px)',
-								scale: 0,
-								y: shouldReduceMotion ? 0 : -6,
-							}}
-							initial={{
-								opacity: 0,
-								filter: 'blur(4px)',
-								scale: 0,
-								y: shouldReduceMotion ? 0 : 6,
-							}}
+							animate={
+								shouldReduceMotion
+									? { opacity: 1 }
+									: { opacity: 1, filter: 'blur(0px)', scale: 1, y: 0 }
+							}
+							exit={
+								shouldReduceMotion
+									? { opacity: 0 }
+									: { opacity: 0, filter: 'blur(4px)', scale: 0, y: -6 }
+							}
+							initial={
+								shouldReduceMotion
+									? { opacity: 0 }
+									: { opacity: 0, filter: 'blur(4px)', scale: 0, y: 6 }
+							}
 							transition={contentTransition}
 						>
 							<ChecklistContent
@@ -327,19 +347,21 @@ export function WalkthroughSurface({
 						<motion.div
 							key='pill'
 							layoutId='onboarding-walkthrough-content'
-							animate={{ opacity: 1, filter: 'blur(0px)', scale: 1, y: 0 }}
-							exit={{
-								opacity: 0,
-								filter: 'blur(4px)',
-								scale: 0,
-								y: shouldReduceMotion ? 0 : -4,
-							}}
-							initial={{
-								opacity: 0,
-								filter: 'blur(4px)',
-								scale: 0,
-								y: shouldReduceMotion ? 0 : 4,
-							}}
+							animate={
+								shouldReduceMotion
+									? { opacity: 1 }
+									: { opacity: 1, filter: 'blur(0px)', scale: 1, y: 0 }
+							}
+							exit={
+								shouldReduceMotion
+									? { opacity: 0 }
+									: { opacity: 0, filter: 'blur(4px)', scale: 0, y: -4 }
+							}
+							initial={
+								shouldReduceMotion
+									? { opacity: 0 }
+									: { opacity: 0, filter: 'blur(4px)', scale: 0, y: 4 }
+							}
 							transition={contentTransition}
 						>
 							<MinimizedPillContent

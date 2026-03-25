@@ -1,9 +1,12 @@
 'use client';
 
-import { subscribeToNotificationChannel } from '@/lib/realtime/notification-channel';
+import {
+	subscribeToNotificationChannel,
+	type NotificationChannelSubscription,
+} from '@/lib/realtime/notification-channel';
 import useAppStore from '@/store/mind-map-store';
 import type { NotificationRecord } from '@/types/notification';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import { useShallow } from 'zustand/shallow';
 
 interface NotificationsApiResponse {
@@ -30,97 +33,180 @@ export interface UseNotificationsResult {
 	markNotificationAsRead: (notificationId: string) => Promise<void>;
 }
 
-export function useNotifications({
-	filterMapId = null,
-	enabled = true,
-}: UseNotificationsOptions = {}): UseNotificationsResult {
-	const { currentUser } = useAppStore(
-		useShallow((state) => ({
-			currentUser: state.currentUser,
-		}))
-	);
-	const [isLoading, setIsLoading] = useState(false);
-	const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
-	const [unreadCount, setUnreadCount] = useState(0);
-	const [error, setError] = useState<string | null>(null);
+interface NotificationsSnapshot {
+	notifications: NotificationRecord[];
+	unreadCount: number;
+	isLoading: boolean;
+	error: string | null;
+}
 
-	const visibleNotifications = useMemo(() => {
-		if (!filterMapId) {
-			return notifications;
+interface NotificationsScopeState {
+	filterMapId: string | null;
+	snapshot: NotificationsSnapshot;
+	hasFetched: boolean;
+	listeners: Set<() => void>;
+	request: Promise<void> | null;
+}
+
+const EMPTY_NOTIFICATIONS_SNAPSHOT: NotificationsSnapshot = {
+	notifications: [],
+	unreadCount: 0,
+	isLoading: false,
+	error: null,
+};
+
+const NOTIFICATIONS_SCOPE_ALL = '__all__';
+
+const createNotificationsSnapshot = (
+	overrides: Partial<NotificationsSnapshot> = {}
+): NotificationsSnapshot => ({
+	notifications: EMPTY_NOTIFICATIONS_SNAPSHOT.notifications,
+	unreadCount: EMPTY_NOTIFICATIONS_SNAPSHOT.unreadCount,
+	isLoading: EMPTY_NOTIFICATIONS_SNAPSHOT.isLoading,
+	error: EMPTY_NOTIFICATIONS_SNAPSHOT.error,
+	...overrides,
+});
+
+const createScopeState = (
+	filterMapId: string | null
+): NotificationsScopeState => ({
+	filterMapId,
+	snapshot: EMPTY_NOTIFICATIONS_SNAPSHOT,
+	hasFetched: false,
+	listeners: new Set(),
+	request: null,
+});
+
+class SharedNotificationsManager {
+	private currentUserId: string | null = null;
+	private channelSubscription: NotificationChannelSubscription | null = null;
+	private channelSubscriptionPromise: Promise<void> | null = null;
+	private scopes = new Map<string, NotificationsScopeState>();
+
+	private getScopeKey(filterMapId: string | null): string {
+		return filterMapId ?? NOTIFICATIONS_SCOPE_ALL;
+	}
+
+	private ensureScope(filterMapId: string | null): NotificationsScopeState {
+		const scopeKey = this.getScopeKey(filterMapId);
+		const existingScope = this.scopes.get(scopeKey);
+		if (existingScope) {
+			return existingScope;
 		}
 
-		return notifications.filter(
-			(notification) => notification.map_id === filterMapId
+		const nextScope = createScopeState(filterMapId);
+		this.scopes.set(scopeKey, nextScope);
+		return nextScope;
+	}
+
+	private emit(scope: NotificationsScopeState) {
+		scope.listeners.forEach((listener) => {
+			listener();
+		});
+	}
+
+	private emitAll() {
+		this.scopes.forEach((scope) => {
+			this.emit(scope);
+		});
+	}
+
+	private updateSnapshot(
+		scope: NotificationsScopeState,
+		overrides: Partial<NotificationsSnapshot>
+	) {
+		scope.snapshot = createNotificationsSnapshot({
+			...scope.snapshot,
+			...overrides,
+		});
+	}
+
+	private resetScope(scope: NotificationsScopeState) {
+		scope.snapshot = EMPTY_NOTIFICATIONS_SNAPSHOT;
+		scope.hasFetched = false;
+		scope.request = null;
+	}
+
+	private setCurrentUser(userId: string | null) {
+		if (this.currentUserId === userId) {
+			return;
+		}
+
+		this.channelSubscription?.disconnect();
+		this.channelSubscription = null;
+		this.channelSubscriptionPromise = null;
+		this.currentUserId = userId;
+		this.scopes.forEach((scope) => {
+			this.resetScope(scope);
+		});
+		this.emitAll();
+	}
+
+	private buildRequestUrl(filterMapId: string | null): string {
+		const query = new URLSearchParams({ limit: '30' });
+		if (filterMapId) {
+			query.set('mapId', filterMapId);
+		}
+
+		return `/api/notifications?${query.toString()}`;
+	}
+
+	private async refreshActiveScopes() {
+		const activeScopes = Array.from(this.scopes.values()).filter(
+			(scope) => scope.listeners.size > 0
 		);
-	}, [notifications, filterMapId]);
 
-	const visibleUnreadCount = useMemo(() => {
-		if (!filterMapId) {
-			return unreadCount;
+		await Promise.all(
+			activeScopes.map((scope) => this.fetchAndUpdate(scope.filterMapId))
+		);
+	}
+
+	getSnapshot(filterMapId: string | null): NotificationsSnapshot {
+		const scope = this.scopes.get(this.getScopeKey(filterMapId));
+		if (!scope) {
+			return EMPTY_NOTIFICATIONS_SNAPSHOT;
 		}
 
-		return visibleNotifications.filter((notification) => !notification.is_read)
-			.length;
-	}, [filterMapId, unreadCount, visibleNotifications]);
+		return scope.snapshot;
+	}
 
-	const refreshNotifications = useCallback(async () => {
-		if (!enabled || !currentUser?.id) {
-			return;
+	subscribe(
+		userId: string,
+		filterMapId: string | null,
+		listener: () => void
+	): () => void {
+		this.setCurrentUser(userId);
+
+		const scope = this.ensureScope(filterMapId);
+		scope.listeners.add(listener);
+
+		void this.init(userId);
+		if (!scope.hasFetched && !scope.request) {
+			void this.fetchAndUpdate(filterMapId);
 		}
 
-		setIsLoading(true);
-		setError(null);
+		return () => {
+			scope.listeners.delete(listener);
+		};
+	}
 
-		try {
-			const response = await fetch('/api/notifications?limit=30');
-			if (!response.ok) {
-				throw new Error('Failed to fetch notifications');
-			}
+	clearUser() {
+		this.setCurrentUser(null);
+	}
 
-			const payload = (await response.json()) as NotificationsApiResponse;
-			if (payload.status !== 'success' || !payload.data) {
-				throw new Error('Invalid notifications response');
-			}
+	async init(userId: string) {
+		this.setCurrentUser(userId);
 
-			setNotifications(payload.data.notifications ?? []);
-			setUnreadCount(payload.data.unreadCount ?? 0);
-		} catch (fetchError) {
-			setError(
-				fetchError instanceof Error
-					? fetchError.message
-					: 'Failed to fetch notifications'
-			);
-		} finally {
-			setIsLoading(false);
-		}
-	}, [currentUser?.id, enabled]);
-
-	useEffect(() => {
-		if (!enabled || !currentUser?.id) {
-			setNotifications([]);
-			setUnreadCount(0);
-			setError(null);
-			setIsLoading(false);
-			return;
+		if (this.channelSubscription || this.channelSubscriptionPromise) {
+			return this.channelSubscriptionPromise ?? Promise.resolve();
 		}
 
-		void refreshNotifications();
-	}, [currentUser?.id, enabled, refreshNotifications]);
-
-	useEffect(() => {
-		if (!enabled || !currentUser?.id) {
-			return;
-		}
-
-		let unsubscribe: (() => void) | null = null;
-		let cancelled = false;
-
-		void subscribeToNotificationChannel(currentUser.id, {
+		this.channelSubscriptionPromise = subscribeToNotificationChannel(userId, {
 			onEvent: () => {
-				void refreshNotifications();
+				void this.refreshActiveScopes();
 			},
 			onOpen: () => {
-				void refreshNotifications();
+				void this.refreshActiveScopes();
 			},
 			onError: (event) => {
 				console.warn('[use-notifications] notification channel error', event);
@@ -135,36 +221,100 @@ export function useNotifications({
 			},
 		})
 			.then((subscription) => {
-				if (cancelled) {
+				if (this.currentUserId !== userId) {
 					subscription.disconnect();
 					return;
 				}
 
-				unsubscribe = subscription.disconnect;
+				this.channelSubscription = subscription;
 			})
 			.catch((subscriptionError) => {
-				if (!cancelled) {
-					console.warn(
-						'[use-notifications] failed to subscribe to notification channel',
-						{
-							userId: currentUser.id,
-							error:
-								subscriptionError instanceof Error
-									? subscriptionError.message
-									: 'Unknown error',
-						}
-					);
-				}
+				console.warn(
+					'[use-notifications] failed to subscribe to notification channel',
+					{
+						userId,
+						error:
+							subscriptionError instanceof Error
+								? subscriptionError.message
+								: 'Unknown error',
+					}
+				);
+			})
+			.finally(() => {
+				this.channelSubscriptionPromise = null;
 			});
 
-		return () => {
-			cancelled = true;
-			unsubscribe?.();
-		};
-	}, [currentUser?.id, enabled, refreshNotifications]);
+		return this.channelSubscriptionPromise;
+	}
 
-	const markAllAsRead = useCallback(async () => {
-		if (!enabled || visibleUnreadCount === 0) {
+	async fetchAndUpdate(filterMapId: string | null) {
+		const scope = this.ensureScope(filterMapId);
+		if (!this.currentUserId) {
+			this.resetScope(scope);
+			this.emit(scope);
+			return;
+		}
+
+		if (scope.request) {
+			return scope.request;
+		}
+
+		this.updateSnapshot(scope, {
+			isLoading: true,
+			error: null,
+		});
+		this.emit(scope);
+
+		const requestUserId = this.currentUserId;
+		scope.request = (async () => {
+			try {
+				const response = await fetch(this.buildRequestUrl(filterMapId));
+				if (!response.ok) {
+					throw new Error('Failed to fetch notifications');
+				}
+
+				const payload = (await response.json()) as NotificationsApiResponse;
+				if (payload.status !== 'success' || !payload.data) {
+					throw new Error('Invalid notifications response');
+				}
+
+				if (this.currentUserId !== requestUserId) {
+					return;
+				}
+
+				this.updateSnapshot(scope, {
+					notifications: payload.data.notifications ?? [],
+					unreadCount: payload.data.unreadCount ?? 0,
+				});
+				scope.hasFetched = true;
+			} catch (fetchError) {
+				if (this.currentUserId !== requestUserId) {
+					return;
+				}
+
+				this.updateSnapshot(scope, {
+					error:
+						fetchError instanceof Error
+							? fetchError.message
+							: 'Failed to fetch notifications',
+				});
+			} finally {
+				if (this.currentUserId !== requestUserId) {
+					return;
+				}
+
+				this.updateSnapshot(scope, { isLoading: false });
+				scope.request = null;
+				this.emit(scope);
+			}
+		})();
+
+		return scope.request;
+	}
+
+	async markAllAsRead(filterMapId: string | null) {
+		const scope = this.ensureScope(filterMapId);
+		if (!this.currentUserId || scope.snapshot.unreadCount === 0) {
 			return;
 		}
 
@@ -183,80 +333,140 @@ export function useNotifications({
 				return;
 			}
 
-			setNotifications((current) =>
-				current.map((notification) => {
-					const isVisibleTarget = filterMapId
-						? notification.map_id === filterMapId
-						: true;
-
-					if (!isVisibleTarget || notification.is_read) {
-						return notification;
-					}
-
-					return {
-						...notification,
-						is_read: true,
-						read_at: new Date().toISOString(),
-					};
-				})
-			);
-			setUnreadCount((current) =>
-				filterMapId ? Math.max(0, current - visibleUnreadCount) : 0
-			);
-			void refreshNotifications();
+			await this.refreshActiveScopes();
 		} catch (markAllError) {
 			console.warn('[use-notifications] failed to mark all as read', markAllError);
 		}
-	}, [enabled, filterMapId, refreshNotifications, visibleUnreadCount]);
+	}
 
-	const markNotificationAsRead = useCallback(
-		async (notificationId: string) => {
-			const targetNotification = notifications.find(
-				(notification) => notification.id === notificationId
-			);
+	async markNotificationAsRead(
+		filterMapId: string | null,
+		notificationId: string
+	) {
+		const scope = this.ensureScope(filterMapId);
+		const targetNotification = scope.snapshot.notifications.find(
+			(notification) => notification.id === notificationId
+		);
 
-			if (!enabled || !targetNotification || targetNotification.is_read) {
+		if (!this.currentUserId || !targetNotification || targetNotification.is_read) {
+			return;
+		}
+
+		try {
+			const response = await fetch(`/api/notifications/${notificationId}/read`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ read: true }),
+			});
+
+			if (!response.ok) {
+				console.warn('[use-notifications] failed to mark notification as read', {
+					notificationId,
+					status: response.status,
+				});
 				return;
 			}
 
-			try {
-				const response = await fetch(`/api/notifications/${notificationId}/read`, {
-					method: 'PATCH',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ read: true }),
-				});
+			await this.refreshActiveScopes();
+		} catch (markError) {
+			console.warn('[use-notifications] failed to mark notification as read', {
+				notificationId,
+				markError,
+			});
+		}
+	}
+}
 
-				if (!response.ok) {
-					console.warn('[use-notifications] failed to mark notification as read', {
-						notificationId,
-						status: response.status,
-					});
-					return;
-				}
+const sharedNotifications = new SharedNotificationsManager();
 
-				setNotifications((current) =>
-					current.map((notification) =>
-						notification.id === notificationId
-							? {
-									...notification,
-									is_read: true,
-									read_at: new Date().toISOString(),
-								}
-							: notification
-					)
-				);
-				setUnreadCount((current) => Math.max(0, current - 1));
-			} catch (markError) {
-				console.warn(
-					'[use-notifications] failed to mark notification as read',
-					{
-						notificationId,
-						markError,
-					}
-				);
+export function useNotifications({
+	filterMapId = null,
+	enabled = true,
+}: UseNotificationsOptions = {}): UseNotificationsResult {
+	const { currentUser } = useAppStore(
+		useShallow((state) => ({
+			currentUser: state.currentUser,
+		}))
+	);
+	const subscribe = useCallback(
+		(listener: () => void) => {
+			if (!enabled || !currentUser?.id) {
+				return () => undefined;
 			}
+
+			return sharedNotifications.subscribe(currentUser.id, filterMapId, listener);
 		},
-		[enabled, notifications]
+		[currentUser?.id, enabled, filterMapId]
+	);
+
+	const getSnapshot = useCallback(() => {
+		if (!enabled || !currentUser?.id) {
+			return EMPTY_NOTIFICATIONS_SNAPSHOT;
+		}
+
+		return sharedNotifications.getSnapshot(filterMapId);
+	}, [currentUser?.id, enabled, filterMapId]);
+
+	const snapshot = useSyncExternalStore(
+		subscribe,
+		getSnapshot,
+		() => EMPTY_NOTIFICATIONS_SNAPSHOT
+	);
+	const { notifications, unreadCount, isLoading, error } = snapshot;
+
+	useEffect(() => {
+		if (!currentUser?.id) {
+			sharedNotifications.clearUser();
+		}
+	}, [currentUser?.id]);
+
+	useEffect(() => {
+		if (!enabled || !currentUser?.id) {
+			return;
+		}
+
+		void sharedNotifications.init(currentUser.id);
+	}, [currentUser?.id, enabled]);
+
+	const visibleNotifications = notifications;
+	const visibleUnreadCount = unreadCount;
+
+	const refreshNotifications = useCallback(async () => {
+		if (!enabled || !currentUser?.id) {
+			return;
+		}
+
+		await sharedNotifications.fetchAndUpdate(filterMapId);
+	}, [currentUser?.id, enabled, filterMapId]);
+
+	useEffect(() => {
+		if (!enabled || !currentUser?.id) {
+			return;
+		}
+
+		void refreshNotifications();
+	}, [currentUser?.id, enabled, filterMapId, refreshNotifications]);
+
+	const markAllAsRead = useCallback(async () => {
+		if (!enabled) {
+			return;
+		}
+
+		await sharedNotifications.markAllAsRead(filterMapId);
+	}, [enabled, filterMapId]);
+
+	const markNotificationAsRead = useCallback(
+		async (notificationId: string) => {
+			if (!enabled) {
+				return;
+			}
+
+			await sharedNotifications.markNotificationAsRead(
+				filterMapId,
+				notificationId
+			);
+		},
+		[enabled, filterMapId]
 	);
 
 	return {

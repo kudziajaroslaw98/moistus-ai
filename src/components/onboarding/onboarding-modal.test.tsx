@@ -83,13 +83,22 @@ describe('OnboardingModal mobile rendering', () => {
 	it('renders the mobile intro as a bottom-sheet flow', () => {
 		render(<OnboardingModal />)
 
-		expect(screen.getByTestId('onboarding-intro')).toBeInTheDocument()
+		expect(
+			screen.getByRole('dialog', {
+				name: 'Three quick moves to get comfortable fast.',
+			})
+		).toBeInTheDocument()
+		expect(screen.getByTestId('onboarding-intro')).toHaveAttribute(
+			'aria-modal',
+			'true'
+		)
 		expect(
 			screen.getByText('Three quick moves to get comfortable fast.')
 		).toBeInTheDocument()
 		expect(screen.getByText('Create a node')).toBeInTheDocument()
 		expect(screen.queryByText('Explore on my own')).not.toBeInTheDocument()
 		expect(screen.getByRole('button', { name: 'Skip walkthrough' })).toBeInTheDocument()
+		expect(screen.getByRole('button', { name: 'Start walkthrough' })).toHaveFocus()
 	})
 
 	it('hides the checklist when the mobile create-node hint anchor is resolved', async () => {

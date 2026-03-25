@@ -212,27 +212,30 @@ const BaseNodeWrapperComponent = ({
 				<div
 					className={cn('flex flex-col h-auto relative z-[1]', contentClassName)}
 				>
-					{canOpenEditAction && (
-						<motion.div
-							animate={{ opacity: 1, y: 0 }}
-							className='absolute -top-4 right-3 z-20'
-							exit={{ opacity: 0, y: -6 }}
-							initial={{ opacity: 0, y: -6 }}
-							transition={{ duration: 0.18 }}
-						>
-							<Button
-								className='nodrag nopan h-8 rounded-full border border-border-default bg-elevated/95 px-3 text-xs font-medium shadow-lg shadow-black/20'
-								data-testid='node-edit-button'
-								onClick={handleEditNode}
-								size='sm'
-								title='Edit node'
-								variant='secondary'
+					<AnimatePresence initial={false}>
+						{canOpenEditAction && (
+							<motion.div
+								key='edit-chip'
+								animate={{ opacity: 1, y: 0 }}
+								className='absolute -top-4 right-3 z-20'
+								exit={{ opacity: 0, y: -6 }}
+								initial={{ opacity: 0, y: -6 }}
+								transition={{ duration: 0.18 }}
 							>
-								<Pencil className='mr-1.5 size-3.5' />
-								Edit
-							</Button>
-						</motion.div>
-					)}
+								<Button
+									className='nodrag nopan h-8 rounded-full border border-border-default bg-elevated/95 px-3 text-xs font-medium shadow-lg shadow-black/20'
+									data-testid='node-edit-button'
+									onClick={handleEditNode}
+									size='sm'
+									title='Edit node'
+									variant='secondary'
+								>
+									<Pencil className='mr-1.5 size-3.5' />
+									Edit
+								</Button>
+							</motion.div>
+						)}
+					</AnimatePresence>
 
 					{data.metadata &&
 						Object.values(data.metadata).some(

@@ -1,7 +1,7 @@
 'use client';
 
 import { X } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { ONBOARDING_CANVAS_SAFE_OFFSET } from './onboarding-layout';
 
 export function CanvasPlacementHint({
@@ -11,6 +11,18 @@ export function CanvasPlacementHint({
 	isMobile: boolean;
 	onDismiss: () => void;
 }) {
+	const shouldReduceMotion = useReducedMotion() ?? false;
+	const motionProps = shouldReduceMotion
+		? {
+				animate: { opacity: 1 },
+				exit: { opacity: 0 },
+				initial: { opacity: 0 },
+			}
+		: {
+				animate: { opacity: 1, y: 0 },
+				exit: { opacity: 0, y: 12 },
+				initial: { opacity: 0, y: 12 },
+			};
 	const desktopStyle = {
 		top: 112,
 		left: 24,
@@ -20,11 +32,9 @@ export function CanvasPlacementHint({
 
 	return (
 		<motion.div
-			animate={{ opacity: 1, y: 0 }}
-			className='fixed z-[58] w-[min(420px,calc(100vw-2rem))] rounded-3xl border border-primary-500/25 bg-base/95 p-4 shadow-xl shadow-black/35 backdrop-blur-md'
+			{...motionProps}
+			className='fixed z-[58] rounded-3xl border border-primary-500/25 bg-base/95 p-4 shadow-xl shadow-black/35 backdrop-blur-md'
 			data-testid='onboarding-canvas-hint'
-			exit={{ opacity: 0, y: 12 }}
-			initial={{ opacity: 0, y: 12 }}
 			style={
 				isMobile
 					? { left: 16, right: 16, bottom: ONBOARDING_CANVAS_SAFE_OFFSET }

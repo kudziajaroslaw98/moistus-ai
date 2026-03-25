@@ -103,6 +103,9 @@ const DEFAULT_STATE: StoredOnboardingState = {
 
 const hasWindow = () => typeof window !== 'undefined';
 
+const getOnboardingStorageKey = (currentUserId: string | null) =>
+	currentUserId ? `${ONBOARDING_STORAGE_KEY}:${currentUserId}` : null;
+
 const isValidStatus = (value: unknown): value is OnboardingStatus =>
 	typeof value === 'string' &&
 	ONBOARDING_STATUSES.includes(value as OnboardingStatus);
@@ -138,17 +141,24 @@ const getDefaultState = (): StoredOnboardingState => ({
 	onboardingTasks: { ...DEFAULT_ONBOARDING_TASKS },
 });
 
-const readStoredOnboardingState = (): StoredOnboardingState => {
+const readStoredOnboardingState = (
+	currentUserId: string | null
+): StoredOnboardingState => {
 	if (!hasWindow()) {
 		return getDefaultState();
 	}
 
-	const storedValue = window.localStorage.getItem(ONBOARDING_STORAGE_KEY);
-	if (!storedValue) {
+	const storageKey = getOnboardingStorageKey(currentUserId);
+	if (!storageKey) {
 		return getDefaultState();
 	}
 
 	try {
+		const storedValue = window.localStorage.getItem(storageKey);
+		if (!storedValue) {
+			return getDefaultState();
+		}
+
 		const parsed = JSON.parse(storedValue) as StoredOnboardingState;
 		return {
 			onboardingStatus: isValidStatus(parsed.onboardingStatus)
@@ -184,7 +194,10 @@ const readStoredOnboardingState = (): StoredOnboardingState => {
 			hasSeenOnboardingUpsell: parsed.hasSeenOnboardingUpsell === true,
 		};
 	} catch (error) {
-		console.error('Error parsing onboarding data:', error);
+		console.warn('[onboarding-slice] failed to read stored onboarding state', {
+			currentUserId,
+			error,
+		});
 		return getDefaultState();
 	}
 };
@@ -235,8 +248,46 @@ const getChecklistTarget = ({
 	return getCreateNodeTarget(tasks, createNodeStep);
 };
 
-const persistOnboardingState = (state: OnboardingSlice) => {
+type OnboardingStateFields = Pick<
+	OnboardingSlice,
+	| 'onboardingStatus'
+	| 'onboardingTasks'
+	| 'onboardingActiveTarget'
+	| 'onboardingCoachmarkStep'
+	| 'onboardingIsMinimized'
+	| 'onboardingCreateNodeStep'
+	| 'onboardingPatternStep'
+	| 'onboardingHighlightedNodeId'
+	| 'onboardingViewport'
+	| 'hasCompletedOnboarding'
+	| 'hasSkippedOnboarding'
+	| 'hasSeenOnboardingUpsell'
+>;
+
+const toOnboardingStatePatch = (
+	state: StoredOnboardingState
+): OnboardingStateFields => ({
+	onboardingStatus: state.onboardingStatus ?? 'hidden',
+	onboardingTasks: normalizeTasks(state.onboardingTasks),
+	onboardingActiveTarget: state.onboardingActiveTarget ?? null,
+	onboardingCoachmarkStep: state.onboardingCoachmarkStep ?? 0,
+	onboardingIsMinimized: state.onboardingIsMinimized === true,
+	onboardingCreateNodeStep: state.onboardingCreateNodeStep ?? null,
+	onboardingPatternStep: state.onboardingPatternStep ?? null,
+	onboardingHighlightedNodeId: state.onboardingHighlightedNodeId ?? null,
+	onboardingViewport: state.onboardingViewport ?? 'desktop',
+	hasCompletedOnboarding: state.hasCompletedOnboarding === true,
+	hasSkippedOnboarding: state.hasSkippedOnboarding === true,
+	hasSeenOnboardingUpsell: state.hasSeenOnboardingUpsell === true,
+});
+
+const persistOnboardingState = (state: AppState & OnboardingSlice) => {
 	if (!hasWindow()) {
+		return;
+	}
+
+	const storageKey = getOnboardingStorageKey(state.currentUser?.id ?? null);
+	if (!storageKey) {
 		return;
 	}
 
@@ -255,7 +306,14 @@ const persistOnboardingState = (state: OnboardingSlice) => {
 		hasSeenOnboardingUpsell: state.hasSeenOnboardingUpsell,
 	};
 
-	window.localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(payload));
+	try {
+		window.localStorage.setItem(storageKey, JSON.stringify(payload));
+	} catch (error) {
+		console.warn('[onboarding-slice] failed to persist onboarding state', {
+			currentUserId: state.currentUser?.id ?? null,
+			error,
+		});
+	}
 };
 
 export const isEligibleForOnboarding = ({
@@ -300,11 +358,24 @@ export const createOnboardingSlice: StateCreator<
 	[],
 	OnboardingSlice
 > = (set, get) => {
-	const initialState = readStoredOnboardingState();
+	const getCurrentUserId = () => get()?.currentUser?.id ?? null;
+	const initialUserId = getCurrentUserId();
+	const initialState = readStoredOnboardingState(initialUserId);
+	let hydratedUserId = initialUserId;
 
 	const applyOnboardingPatch = (patch: Partial<OnboardingSlice>) => {
 		set(patch);
 		persistOnboardingState(get() as AppState & OnboardingSlice);
+	};
+
+	const maybeHydrateOnboardingState = () => {
+		const currentUserId = getCurrentUserId();
+		if (currentUserId === hydratedUserId) {
+			return;
+		}
+
+		hydratedUserId = currentUserId;
+		set(toOnboardingStatePatch(readStoredOnboardingState(currentUserId)));
 	};
 
 	const getCompletionPatch = (
@@ -344,20 +415,11 @@ export const createOnboardingSlice: StateCreator<
 	};
 
 	return {
-		onboardingStatus: initialState.onboardingStatus ?? 'hidden',
-		onboardingTasks: normalizeTasks(initialState.onboardingTasks),
-		onboardingActiveTarget: initialState.onboardingActiveTarget ?? null,
-		onboardingCoachmarkStep: initialState.onboardingCoachmarkStep ?? 0,
-		onboardingIsMinimized: initialState.onboardingIsMinimized === true,
-		onboardingCreateNodeStep: initialState.onboardingCreateNodeStep ?? null,
-		onboardingPatternStep: initialState.onboardingPatternStep ?? null,
-		onboardingHighlightedNodeId: initialState.onboardingHighlightedNodeId ?? null,
-		onboardingViewport: initialState.onboardingViewport ?? 'desktop',
-		hasCompletedOnboarding: initialState.hasCompletedOnboarding === true,
-		hasSkippedOnboarding: initialState.hasSkippedOnboarding === true,
-		hasSeenOnboardingUpsell: initialState.hasSeenOnboardingUpsell === true,
+		...toOnboardingStatePatch(initialState),
 
 		maybeStartOnboarding: () => {
+			maybeHydrateOnboardingState();
+
 			const {
 				currentUser,
 				mindMap,
@@ -624,6 +686,8 @@ export const createOnboardingSlice: StateCreator<
 				onboardingTasks,
 				onboardingStatus,
 				onboardingCreateNodeStep,
+				onboardingPatternStep,
+				onboardingHighlightedNodeId,
 				onboardingIsMinimized,
 			} = get();
 
@@ -644,19 +708,27 @@ export const createOnboardingSlice: StateCreator<
 
 			applyOnboardingPatch({
 				onboardingCreateNodeStep: nextCreateNodeStep,
-				onboardingActiveTarget:
-					onboardingStatus === 'checklist' && nextCreateNodeStep === 'toolbar'
-						? 'add-node'
-						: null,
+				onboardingActiveTarget: getChecklistTarget({
+					tasks: onboardingTasks,
+					createNodeStep: nextCreateNodeStep,
+					patternStep: onboardingPatternStep,
+					highlightedNodeId: onboardingHighlightedNodeId,
+				}),
 			});
 		},
 
 		handleOnboardingCanvasNodeCreated: () => {
 			const {
 				onboardingTasks,
+				hasCompletedOnboarding,
+				hasSkippedOnboarding,
 				onboardingPatternStep,
 				onboardingHighlightedNodeId,
 			} = get();
+			if (hasCompletedOnboarding || hasSkippedOnboarding) {
+				return;
+			}
+
 			if (onboardingTasks['create-node']) {
 				return;
 			}
@@ -697,19 +769,23 @@ export const createOnboardingSlice: StateCreator<
 		},
 
 		handleOnboardingNodeCreated: ({ mode, usedPatterns, nodeId }) => {
+			const { hasCompletedOnboarding, hasSkippedOnboarding } = get();
+			if (hasCompletedOnboarding || hasSkippedOnboarding) {
+				return;
+			}
+
 			if (mode !== 'create' || !usedPatterns) {
 				return;
 			}
 
-			const { onboardingTasks, onboardingCreateNodeStep } = get();
-			if (onboardingTasks['try-pattern']) {
-				return;
-			}
-
+			const { onboardingTasks } = get();
 			const nextTasks = {
 				...onboardingTasks,
+				'create-node': true,
 				'try-pattern': true,
 			};
+			const nextPatternStep = nodeId ? 'post-create-edit-hint' : null;
+			const nextHighlightedNodeId = nodeId ?? null;
 
 			if (!nodeId) {
 				if (areAllTasksComplete(nextTasks)) {
@@ -722,24 +798,37 @@ export const createOnboardingSlice: StateCreator<
 					onboardingStatus: 'checklist',
 					onboardingActiveTarget: getChecklistTarget({
 						tasks: nextTasks,
-						createNodeStep: onboardingCreateNodeStep,
-						patternStep: null,
-						highlightedNodeId: null,
+						createNodeStep: null,
+						patternStep: nextPatternStep,
+						highlightedNodeId: nextHighlightedNodeId,
 					}),
 					onboardingCoachmarkStep: 0,
-					onboardingPatternStep: null,
-					onboardingHighlightedNodeId: null,
+					onboardingCreateNodeStep: null,
+					onboardingPatternStep: nextPatternStep,
+					onboardingHighlightedNodeId: nextHighlightedNodeId,
+					onboardingIsMinimized: false,
 				});
+				return;
+			}
+
+			if (areAllTasksComplete(nextTasks)) {
+				applyOnboardingPatch(getCompletionPatch(nextTasks));
 				return;
 			}
 
 			applyOnboardingPatch({
 				onboardingTasks: nextTasks,
 				onboardingStatus: 'checklist',
-				onboardingActiveTarget: 'created-node',
+				onboardingActiveTarget: getChecklistTarget({
+					tasks: nextTasks,
+					createNodeStep: null,
+					patternStep: nextPatternStep,
+					highlightedNodeId: nextHighlightedNodeId,
+				}),
 				onboardingCoachmarkStep: 0,
-				onboardingPatternStep: 'post-create-edit-hint',
-				onboardingHighlightedNodeId: nodeId,
+				onboardingCreateNodeStep: null,
+				onboardingPatternStep: nextPatternStep,
+				onboardingHighlightedNodeId: nextHighlightedNodeId,
 				onboardingIsMinimized: false,
 			});
 		},
@@ -831,8 +920,23 @@ export const createOnboardingSlice: StateCreator<
 		},
 
 		resetOnboarding: () => {
+			const currentUserId = get().currentUser?.id ?? null;
+
 			if (hasWindow()) {
-				window.localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+				const storageKey = getOnboardingStorageKey(currentUserId);
+				if (storageKey) {
+					try {
+						window.localStorage.removeItem(storageKey);
+					} catch (error) {
+						console.warn(
+							'[onboarding-slice] failed to clear stored onboarding state',
+							{
+								currentUserId,
+								error,
+							}
+						);
+					}
+				}
 			}
 
 			set({

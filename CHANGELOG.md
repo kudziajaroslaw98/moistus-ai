@@ -47,6 +47,17 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: The previous text-only skip button looked undersized and visually inconsistent beside the collapse control
 - **onboarding/checklist-header-control-spacing**: Added more horizontal breathing room between the expanded checklist `Skip walkthrough` and collapse controls
   - Why: The previous spacing made it too easy to hit the wrong control in the checklist header
+- **onboarding/dialog-and-motion-a11y**: The intro overlay now behaves like an accessible dialog, the canvas hint and walkthrough surface respect reduced-motion preferences, and the mobile walkthrough target sizing/layout no longer forces overflow on narrow viewports
+  - Why: The onboarding surfaces needed tighter keyboard, screen reader, and motion behavior without changing the existing walkthrough flow
+
+### Fixed
+
+- **editor-chrome/accessibility-polish**: Added the mobile menu unread count to assistive tech, restored the edit-chip exit animation, and labeled the icon-only export/layout toolbar triggers
+  - Why: Improves screen-reader clarity and preserves the intended Motion exit behavior on the editor chrome surfaces
+- **notifications/shared-cache-and-map-filtering**: `useNotifications` now shares one cache/socket per user session and the notifications API applies `map_id` filtering before the server-side limit
+  - Why: Prevents duplicate realtime subscriptions and ensures map-scoped inbox views receive the newest matching notifications instead of filtering a globally-limited result on the client
+- **onboarding/state-persistence-guards**: Namespaced onboarding persistence by user, hardened storage access, preserved empty node-editor initial values, and completed the create-node task when a pattern creates a real node
+  - Why: Prevents cross-account onboarding leakage, avoids storage crashes, and keeps the onboarding/editor state machine aligned with the actual user actions
 
 ## [2026-03-23]
 

@@ -85,11 +85,17 @@ describe('MindMapTopBar mobile header', () => {
 		expect(screen.queryByTestId('user-menu')).not.toBeInTheDocument()
 		expect(screen.queryByTestId('share-button')).not.toBeInTheDocument()
 
-		const openMenuButton = screen.getByLabelText('Open menu')
+		const openMenuButton = screen.getByRole('button', { name: 'Open menu' })
 		expect(openMenuButton).toHaveAttribute(
 			'data-onboarding-target',
 			'mobile-menu'
 		)
+		expect(openMenuButton).toHaveAttribute('aria-expanded', 'false')
+		expect(openMenuButton).toHaveAttribute(
+			'aria-describedby',
+			'mobile-menu-unread-count'
+		)
+		expect(screen.getByText('3 unread notifications')).toHaveClass('sr-only')
 		expect(openMenuButton.className).toContain('bg-transparent')
 		expect(openMenuButton.className).not.toContain('rounded-2xl')
 		expect(screen.getByText('3')).toBeInTheDocument()

@@ -24,6 +24,7 @@ total_tokens: 707972
 <!-- Updated: 2026-03-17 - Added onboarding substeps, expanded toolbar anchors, and canvas-safe walkthrough positioning -->
 <!-- Updated: 2026-03-18 - Documented mobile onboarding shell, viewport-aware coachmarks, and touch edit action -->
 <!-- Updated: 2026-03-18 - Documented premium mobile editor drawer and shared notifications hook -->
+<!-- Updated: 2026-03-25 - Documented shared notifications manager, map-scoped notification queries, and user-scoped onboarding persistence -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -93,7 +94,8 @@ flowchart LR
     NotificationService --> PartyKitAdmin["pushPartyKitNotificationEvent()"]
     PartyKitAdmin --> UserChannel["PartyKit user room\nuser:{userId}:notifications"]
     UserChannel --> NotificationChannel["subscribeToNotificationChannel()"]
-    NotificationChannel --> InboxRefresh["NotificationBell onEvent -> fetchNotifications()"]
+    NotificationChannel --> SharedInbox["sharedNotifications manager\nsingle cache/socket per user\nstable external-store snapshots"]
+    SharedInbox --> InboxRefresh["NotificationBell/MobileMenu -> useNotifications()"]
     InboxRefresh --> NotificationsApi["GET /api/notifications"]
     NotificationsApi --> NotificationsTable
     NotificationService --> EmailPreference["resolveEmailPreferenceFromProfile()\npreferences.notifications.email"]
@@ -107,6 +109,12 @@ flowchart LR
 - Inbox state: `is_read`, `read_at`, `created_at`, `updated_at`
 - Email state: `email_status`, `email_error`, `emailed_at`
 - Access control: RLS policies limit `SELECT/UPDATE` to recipient (`recipient_user_id = auth.uid()`)
+
+**Client/runtime notes:**
+
+- `useNotifications()` now fans out from a module-level shared manager instead of opening a socket per hook instance.
+- `GET /api/notifications` accepts `mapId` and applies the map filter before `limit`, so map-scoped inboxes receive the newest N notifications for that map.
+- `mark-all-read` already accepts `mapId`; refresh flows now keep the bell and mobile drawer inbox in sync through the shared cache.
 
 ## Directory Structure
 
@@ -216,7 +224,7 @@ shiko/
 | **core-slice**            | 353   | Supabase client, user, map loading         |
 | **user-profile-slice**    | 317   | Profile, preferences                       |
 | **layout-slice**          | 312   | ELK.js auto-layouts                        |
-| **onboarding-slice**      | 769   | Editor-first onboarding tasks, substeps, coachmarks |
+| **onboarding-slice**      | 769   | Editor-first onboarding tasks, substeps, coachmarks, per-user persisted state |
 | **ui-slice**              | 248   | Modals, panels, focus mode                 |
 | **groups-slice**          | 246   | Node grouping                              |
 | **chat-slice**            | 241   | AI chat messages                           |

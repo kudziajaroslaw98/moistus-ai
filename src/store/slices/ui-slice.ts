@@ -119,8 +119,8 @@ export const createUiStateSlice: StateCreator<
 				parentNode: options.parentNode || null,
 				existingNodeId: options.existingNodeId || null,
 				suggestedType: options.suggestedType || null,
-				initialValue: options.initialValue || null,
-				onboardingSource: options.onboardingSource || null,
+				initialValue: options.initialValue ?? null,
+				onboardingSource: options.onboardingSource ?? null,
 			},
 		});
 	},

@@ -4,6 +4,9 @@ import {
 	ONBOARDING_STORAGE_KEY,
 } from '@/constants/onboarding';
 
+const getOnboardingStorageKey = (userId: string) =>
+	`${ONBOARDING_STORAGE_KEY}:${userId}`;
+
 function createOnboardingSliceHarness(
 	overrides: Record<string, unknown> = {}
 ) {
@@ -90,11 +93,81 @@ describe('onboarding slice', () => {
 			hasCompletedOnboarding: false,
 		});
 		expect(
-			JSON.parse(window.localStorage.getItem(ONBOARDING_STORAGE_KEY) || '{}')
+			JSON.parse(
+				window.localStorage.getItem(getOnboardingStorageKey('user-1')) || '{}'
+			)
 		).toMatchObject({
 			onboardingStatus: 'hidden',
 			onboardingIsMinimized: false,
 			hasSkippedOnboarding: true,
+		});
+	});
+
+	it('rehydrates onboarding state after the current user becomes available', () => {
+		window.localStorage.setItem(
+			getOnboardingStorageKey('user-1'),
+			JSON.stringify({
+				onboardingStatus: 'checklist',
+				onboardingTasks: {
+					'create-node': true,
+					'try-pattern': false,
+					'know-controls': false,
+				},
+				onboardingIsMinimized: true,
+			})
+		);
+
+		const harness = createOnboardingSliceHarness({
+			currentUser: null,
+			mindMap: null,
+			usageData: null,
+		});
+
+		harness.setState({
+			currentUser: { id: 'user-1', is_anonymous: false },
+			mindMap: { user_id: 'user-1' },
+			usageData: { mindMapsCount: 1 },
+		});
+		(harness.getState().maybeStartOnboarding as () => void)();
+
+		expect(harness.getState()).toMatchObject({
+			onboardingStatus: 'checklist',
+			onboardingIsMinimized: true,
+			onboardingTasks: {
+				'create-node': true,
+				'try-pattern': false,
+				'know-controls': false,
+			},
+		});
+	});
+
+	it('keeps onboarding state isolated per user', () => {
+		window.localStorage.setItem(
+			getOnboardingStorageKey('user-1'),
+			JSON.stringify({
+				onboardingStatus: 'checklist',
+				onboardingTasks: {
+					'create-node': true,
+					'try-pattern': false,
+					'know-controls': false,
+				},
+				onboardingIsMinimized: true,
+			})
+		);
+
+		const otherUserHarness = createOnboardingSliceHarness({
+			currentUser: { id: 'user-2', is_anonymous: false },
+			mindMap: { user_id: 'user-2' },
+		});
+
+		expect(otherUserHarness.getState()).toMatchObject({
+			onboardingStatus: 'hidden',
+			onboardingIsMinimized: false,
+			onboardingTasks: {
+				'create-node': false,
+				'try-pattern': false,
+				'know-controls': false,
+			},
 		});
 	});
 
@@ -144,10 +217,38 @@ describe('onboarding slice', () => {
 
 		expect(harness.getState()).toMatchObject({
 			onboardingTasks: {
+				'create-node': true,
+				'try-pattern': true,
+				'know-controls': false,
+			},
+			onboardingCreateNodeStep: null,
+			onboardingPatternStep: 'post-create-edit-hint',
+			onboardingHighlightedNodeId: 'node-123',
+			onboardingActiveTarget: 'created-node',
+		});
+	});
+
+	it('keeps the post-create edit hint anchored when the tool mode changes', () => {
+		const harness = createOnboardingSliceHarness();
+		const state = harness.getState();
+
+		harness.setState({
+			onboardingStatus: 'checklist',
+			onboardingTasks: {
 				'create-node': false,
 				'try-pattern': true,
 				'know-controls': false,
 			},
+			onboardingCreateNodeStep: 'toolbar',
+			onboardingPatternStep: 'post-create-edit-hint',
+			onboardingHighlightedNodeId: 'node-123',
+			onboardingActiveTarget: 'created-node',
+		});
+
+		(state.handleOnboardingToolModeChanged as (tool: string) => void)('node');
+
+		expect(harness.getState()).toMatchObject({
+			onboardingCreateNodeStep: 'canvas',
 			onboardingPatternStep: 'post-create-edit-hint',
 			onboardingHighlightedNodeId: 'node-123',
 			onboardingActiveTarget: 'created-node',
@@ -307,7 +408,7 @@ describe('onboarding slice', () => {
 
 	it('restarts and restores v2 state cleanly', () => {
 		window.localStorage.setItem(
-			ONBOARDING_STORAGE_KEY,
+			getOnboardingStorageKey('user-1'),
 			JSON.stringify({
 				onboardingStatus: 'checklist',
 				onboardingTasks: {

@@ -1,5 +1,6 @@
 # CLAUDE.md
 <!-- Updated: 2026-03-23 - Restructured: compressed philosophy, moved domain gotchas to .claude/rules/ -->
+<!-- Updated: 2026-03-25 - Documented shared notifications cache/socket and per-user onboarding persistence -->
 
 ## Engineering Philosophy
 
@@ -125,6 +126,10 @@ pnpm pretty          # Prettier
 **Export CORS**: External images swapped with placeholders to avoid canvas tainting.
 
 **Ghost Nodes**: System-only (`userCreatable: false`), filtered from exports.
+
+**Notifications**: `useNotifications` now shares a single cache/socket layer per signed-in user; keep `useSyncExternalStore` snapshots stable and apply `mapId` filtering server-side before `limit` in `/api/notifications`.
+
+**Onboarding Persistence**: Persist onboarding state under a user-scoped storage key (`${ONBOARDING_STORAGE_KEY}:${currentUser.id}`) and wrap storage reads/writes in `try/catch` so blocked storage does not crash the slice.
 
 > Domain-specific gotchas (onboarding, editor, sharing, realtime, Base UI) live in `.claude/rules/` and load automatically when you touch relevant files.
 

@@ -327,6 +327,7 @@ export function ExportDropdown() {
 					<Button
 						className={cn('active:scale-95', isExporting && 'animate-pulse')}
 						data-onboarding-target='export'
+						aria-label='Export Mind Map'
 						size='icon'
 						title='Export Mind Map'
 						variant='secondary'

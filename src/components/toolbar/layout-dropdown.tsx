@@ -149,6 +149,7 @@ export function LayoutDropdown() {
 					<Button
 						className={cn('active:scale-95', isLayouting && 'animate-pulse')}
 						data-onboarding-target='layout'
+						aria-label='Auto Layout'
 						size='icon'
 						title='Auto Layout'
 						variant='secondary'
