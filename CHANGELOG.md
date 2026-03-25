@@ -17,6 +17,14 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-03-17 - Refined onboarding v2 with split intro, canvas/add substeps, toolbar-state fix, and Pro upsell guard -->
 <!-- Updated: 2026-03-18 - Added mobile onboarding shell, viewport-aware controls tour, and touch edit affordance -->
 <!-- Updated: 2026-03-20 - Morphed the minimized walkthrough into the checklist surface and repositioned the walkthrough anchors for cleaner motion -->
+<!-- Updated: 2026-03-25 - Replaced minimized walkthrough resume copy with the next actionable task -->
+
+## [2026-03-25]
+
+### Changed
+
+- **onboarding/minimized-task-copy**: The minimized walkthrough surface now shows the next incomplete task label with a `Start` CTA instead of generic `Resume walkthrough` copy
+  - Why: Keeps the compact state pointed at the actual next action instead of a vague progress label
 
 ## [2026-03-23]
 

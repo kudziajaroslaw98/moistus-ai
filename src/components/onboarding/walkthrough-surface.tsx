@@ -9,6 +9,31 @@ import {
 	ONBOARDING_MOBILE_TOP_OFFSET,
 } from './onboarding-layout';
 
+const TASK_ITEMS: ReadonlyArray<{
+	id: OnboardingTaskId;
+	label: string;
+	description: string;
+}> = [
+	{
+		id: 'create-node',
+		label: 'Create a node',
+		description: 'Place your first node on the canvas.',
+	},
+	{
+		id: 'try-pattern',
+		label: 'Try a pattern',
+		description: 'Turn one line into structure with tags, dates, or tasks.',
+	},
+	{
+		id: 'know-controls',
+		label: 'Know the controls',
+		description: 'See the tools you will use most often.',
+	},
+] as const;
+
+const getNextTask = (tasks: Record<OnboardingTaskId, boolean>) =>
+	TASK_ITEMS.find((task) => !tasks[task.id]) ?? TASK_ITEMS[TASK_ITEMS.length - 1];
+
 function ChecklistItem({
 	completed,
 	description,
@@ -87,24 +112,15 @@ function ChecklistContent({
 			</div>
 
 			<div className='mt-4 space-y-3'>
-				<ChecklistItem
-					completed={tasks['create-node']}
-					description='Place your first node on the canvas.'
-					label='Create a node'
-					onClick={() => onTaskAction('create-node')}
-				/>
-				<ChecklistItem
-					completed={tasks['try-pattern']}
-					description='Turn one line into structure with tags, dates, or tasks.'
-					label='Try a pattern'
-					onClick={() => onTaskAction('try-pattern')}
-				/>
-				<ChecklistItem
-					completed={tasks['know-controls']}
-					description='See the tools you will use most often.'
-					label='Know the controls'
-					onClick={() => onTaskAction('know-controls')}
-				/>
+				{TASK_ITEMS.map((task) => (
+					<ChecklistItem
+						key={task.id}
+						completed={tasks[task.id]}
+						description={task.description}
+						label={task.label}
+						onClick={() => onTaskAction(task.id)}
+					/>
+				))}
 			</div>
 		</div>
 	);
@@ -113,21 +129,28 @@ function ChecklistContent({
 function MinimizedPillContent({
 	completedCount,
 	onResume,
+	tasks,
 }: {
 	completedCount: number;
 	onResume: () => void;
+	tasks: Record<OnboardingTaskId, boolean>;
 }) {
+	const nextTask = getNextTask(tasks);
+
 	return (
-		<button
-			className='flex items-center gap-3 text-sm text-text-primary'
-			onClick={onResume}
-			type='button'
-		>
+		<div className='flex items-center gap-3'>
 			<span className='inline-flex size-7 items-center justify-center rounded-full bg-primary-500/15 text-xs font-semibold text-primary-300'>
 				{completedCount}/3
 			</span>
-			<span>Resume walkthrough</span>
-		</button>
+			<div className='min-w-0 flex-1'>
+				<p className='truncate text-sm font-medium text-text-primary'>
+					{nextTask.label}
+				</p>
+			</div>
+			<Button onClick={onResume} size='sm' variant='default'>
+				Start
+			</Button>
+		</div>
 	);
 }
 
@@ -299,6 +322,7 @@ export function WalkthroughSurface({
 							<MinimizedPillContent
 								completedCount={completedCount}
 								onResume={onResume}
+								tasks={tasks}
 							/>
 						</motion.div>
 					)}

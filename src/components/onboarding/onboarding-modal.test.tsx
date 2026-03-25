@@ -97,13 +97,18 @@ describe('OnboardingModal mobile rendering', () => {
 		expect(minimizeOnboarding).toHaveBeenCalled()
 	})
 
-	it('renders the desktop minimized pill in the top-right region and resumes the walkthrough', () => {
+	it('renders the desktop minimized pill with the next task label and starts the walkthrough', () => {
 		const resumeOnboarding = jest.fn()
 		mockIsMobile = false
 		mockState = {
 			...mockState,
 			onboardingStatus: 'hidden',
 			onboardingIsMinimized: true,
+			onboardingTasks: {
+				'create-node': true,
+				'try-pattern': false,
+				'know-controls': false,
+			},
 			resumeOnboarding,
 		}
 
@@ -113,8 +118,9 @@ describe('OnboardingModal mobile rendering', () => {
 		expect(pill).toBeInTheDocument()
 		expect(pill).toHaveStyle({ top: '6rem' })
 		expect(screen.queryByTestId('onboarding-checklist')).not.toBeInTheDocument()
+		expect(screen.getByText('Try a pattern')).toBeInTheDocument()
 
-		fireEvent.click(screen.getByRole('button', { name: /resume walkthrough/i }))
+		fireEvent.click(screen.getByRole('button', { name: 'Start' }))
 		expect(resumeOnboarding).toHaveBeenCalled()
 	})
 })
