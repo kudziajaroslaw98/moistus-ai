@@ -33,6 +33,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: The previous wiring accidentally removed the ability to expand the collapsed walkthrough on both mobile and desktop
 - **onboarding/reopened-controls-exit**: Finishing a reopened `Know the controls` tour now closes the coachmark curtain and returns to the checklist with that task still marked done
   - Why: Replaying an already-completed controls tour previously no-op’d on the last step and left the coachmarks stuck on screen
+- **onboarding/desktop-tail-order**: Reordered the desktop controls-tour tail so it now flows from toolbar controls into shortcuts, breadcrumb, history, and then share
+  - Why: Keeps the guided sequence aligned with the intended information hierarchy instead of jumping to history/share too early
 
 ## [2026-03-23]
 

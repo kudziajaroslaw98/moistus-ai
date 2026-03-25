@@ -240,16 +240,23 @@ describe('onboarding slice', () => {
 	});
 
 	it('includes history in the desktop controls tour', () => {
-		expect(
-			ONBOARDING_COACHMARKS.some((coachmark) => coachmark.target === 'history')
-		).toBe(true);
-		expect(
-			ONBOARDING_COACHMARKS.findIndex(
-				(coachmark) => coachmark.target === 'history'
-			)
-		).toBeLessThan(
-			ONBOARDING_COACHMARKS.findIndex((coachmark) => coachmark.target === 'share')
+		const shortcutsIndex = ONBOARDING_COACHMARKS.findIndex(
+			(coachmark) => coachmark.target === 'shortcuts-help'
 		);
+		const breadcrumbIndex = ONBOARDING_COACHMARKS.findIndex(
+			(coachmark) => coachmark.target === 'breadcrumb-home'
+		);
+		const historyIndex = ONBOARDING_COACHMARKS.findIndex(
+			(coachmark) => coachmark.target === 'history'
+		);
+		const shareIndex = ONBOARDING_COACHMARKS.findIndex(
+			(coachmark) => coachmark.target === 'share'
+		);
+
+		expect(historyIndex).toBeGreaterThanOrEqual(0);
+		expect(shortcutsIndex).toBeLessThan(breadcrumbIndex);
+		expect(breadcrumbIndex).toBeLessThan(historyIndex);
+		expect(historyIndex).toBeLessThan(shareIndex);
 	});
 
 	it('closes a reopened completed controls tour back into the checklist', () => {

@@ -111,18 +111,6 @@ export const ONBOARDING_COACHMARKS: ReadonlyArray<OnboardingCoachmark> = [
 			'Comments keep discussion attached to the map, so feedback stays tied to the exact part it refers to.',
 	},
 	{
-		target: 'history',
-		title: 'Revisit earlier versions',
-		description:
-			'Open History to inspect saved states, compare changes, and jump back through earlier map edits.',
-	},
-	{
-		target: 'share',
-		title: 'Bring others in when ready',
-		description:
-			'Invite collaborators after the map has enough structure to react to.',
-	},
-	{
 		target: 'shortcuts-help',
 		title: 'Learn shortcuts as you go',
 		description:
@@ -133,6 +121,18 @@ export const ONBOARDING_COACHMARKS: ReadonlyArray<OnboardingCoachmark> = [
 		title: 'Get back to your maps',
 		description:
 			'Use the breadcrumb to get home without losing the habit of working from the canvas.',
+	},
+	{
+		target: 'history',
+		title: 'Revisit earlier versions',
+		description:
+			'Open History to inspect saved states, compare changes, and jump back through earlier map edits.',
+	},
+	{
+		target: 'share',
+		title: 'Bring others in when ready',
+		description:
+			'Invite collaborators after the map has enough structure to react to.',
 	},
 ] as const;
 
