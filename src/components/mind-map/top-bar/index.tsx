@@ -25,6 +25,7 @@ interface MindMapTopBarProps {
 	activityState?: ActivityState;
 	popoverOpen: { mapSettings: boolean; sharePanel: boolean };
 	canEdit: boolean;
+	mobileUnreadCount: number;
 	handleToggleHistorySidebar: () => void;
 	handleToggleMapSettings: () => void;
 	handleToggleSharePanel: () => void;
@@ -42,6 +43,7 @@ export function MindMapTopBar({
 	activityState,
 	popoverOpen,
 	canEdit,
+	mobileUnreadCount,
 	handleToggleHistorySidebar,
 	handleToggleMapSettings,
 	handleToggleSharePanel,
@@ -50,6 +52,7 @@ export function MindMapTopBar({
 	setMobileMenuOpen,
 }: MindMapTopBarProps) {
 	const isMobile = useIsMobile();
+	const mobileMenuUnreadCountId = 'mobile-menu-unread-count';
 
 	const isMapOwner = mindMap?.user_id === currentUser?.id;
 
@@ -80,60 +83,78 @@ export function MindMapTopBar({
 				)}
 
 				{/* Owner controls */}
-				{isMapOwner && (
+				{isMapOwner && !isMobile && (
 					<div className='flex gap-2'>
 						{/* Desktop only: Settings button */}
-						{!isMobile && (
-							<Button
-								aria-label='Map Settings'
-								onClick={handleToggleMapSettings}
-								size='icon'
-								title='Map Settings'
-								variant={popoverOpen.mapSettings ? 'default' : 'secondary'}
-							>
-								<Settings className='h-4 w-4' />
-							</Button>
-						)}
+						<Button
+							aria-label='Map Settings'
+							onClick={handleToggleMapSettings}
+							size='icon'
+							title='Map Settings'
+							variant={popoverOpen.mapSettings ? 'default' : 'secondary'}
+						>
+							<Settings className='h-4 w-4' />
+						</Button>
 
-						{/* Always visible: Share button */}
 						<Button
 							aria-label='Share Mind Map'
 							className='gap-2'
+							data-onboarding-target='share'
 							data-testid='share-button'
 							onClick={handleToggleSharePanel}
 							title='Share Mind Map'
 							variant={popoverOpen.sharePanel ? 'default' : 'secondary'}
-							size={isMobile ? 'icon' : 'default'}
+							size='default'
 						>
-							{isMobile ? (
-								<Share2 className='size-4' />
-							) : (
-								<>
-									Share <Share2 className='size-3' />
-								</>
-							)}
+							<>
+								Share <Share2 className='size-3' />
+							</>
 						</Button>
 					</div>
 				)}
 
-				{/* Always visible: User Menu */}
-				<NotificationBell filterMapId={mapId} />
+				{/* Desktop account controls */}
+				{!isMobile && (
+					<>
+						<NotificationBell filterMapId={mapId} />
 
-				<UserMenu
-					showBackToDashboard
-					user={userProfile}
-					onOpenSettings={handleOpenSettings}
-				/>
+						<UserMenu
+							showRestartWalkthrough
+							showBackToDashboard
+							user={userProfile}
+							onOpenSettings={handleOpenSettings}
+						/>
+					</>
+				)}
 
 				{/* Mobile only: Hamburger menu */}
 				{isMobile && (
 					<Button
 						aria-label='Open menu'
+						aria-describedby={
+							mobileUnreadCount > 0 ? mobileMenuUnreadCountId : undefined
+						}
+						aria-expanded={mobileMenuOpen}
+						className='relative text-text-secondary hover:text-text-primary'
+						data-onboarding-target='mobile-menu'
 						onClick={() => setMobileMenuOpen(true)}
 						size='icon'
 						variant='ghost'
 					>
 						<Menu className='size-5' />
+						{mobileUnreadCount > 0 && (
+							<span id={mobileMenuUnreadCountId} className='sr-only'>
+								{mobileUnreadCount} unread notifications
+							</span>
+						)}
+						{mobileUnreadCount > 0 && (
+							<span
+								aria-hidden='true'
+								className='absolute -top-1 -right-1 min-w-4 h-4 rounded-full bg-primary-500 px-1 text-[10px] leading-4 text-white'
+							>
+								{mobileUnreadCount > 99 ? '99+' : mobileUnreadCount}
+							</span>
+						)}
 					</Button>
 				)}
 			</div>

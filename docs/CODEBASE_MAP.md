@@ -18,11 +18,20 @@ total_tokens: 707972
 <!-- Updated: 2026-03-04 - Expanded notifications internals (service/channel/schema/mention resolver/data flow) -->
 <!-- Updated: 2026-03-04 - Corrected API route totals to 61 and fixed unlabeled directory-tree code fence -->
 <!-- Updated: 2026-03-11 - Documented deterministic local branch reflow, cousin-branch corridor expansion, persisted map layout direction, the two supported layout modes, and auto-routed waypoint edges -->
+<!-- Updated: 2026-03-05 - Documented owner-scoped node-limit enforcement across node creation APIs -->
+<!-- Updated: 2026-03-06 - Synced API route docs for owner-scoped shared-map node entitlement checks -->
+<!-- Updated: 2026-03-07 - Added owner-scoped node-limit preflight to node creation flow -->
+<!-- Updated: 2026-03-17 - Documented editor-first onboarding v2 state, placement, and upgrade-modal split -->
+<!-- Updated: 2026-03-17 - Added onboarding substeps, expanded toolbar anchors, and canvas-safe walkthrough positioning -->
+<!-- Updated: 2026-03-18 - Documented mobile onboarding shell, viewport-aware coachmarks, and touch edit action -->
+<!-- Updated: 2026-03-18 - Documented premium mobile editor drawer and shared notifications hook -->
+<!-- Updated: 2026-03-25 - Documented shared notifications manager, map-scoped notification queries, and user-scoped onboarding persistence -->
+<!-- Updated: 2026-03-28 - Reconciled local layout docs with owner-limit, onboarding, and mobile editor architecture during PR #46 merge -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
 **Edge routing note:** Normal persisted edges render as auto-routed `waypointEdge` geometry. Explicit full layout uses ELK bend points (`routingStyle: 'elk'`); local create/edit/move/resize/reconnect flows reroute only affected edges with the deterministic orthogonal router (`routingStyle: 'orthogonal'`). Raw manual waypoint editing is no longer part of the canvas model.
-**Layout animation note:** `ReactFlowArea` now renders through a transient animated graph state for explicit full layout and local layout flows. Zustand still stores only final node/edge geometry; the 300ms tween is client-only and does not persist or broadcast intermediate frames.
+**Layout animation note:** `ReactFlowArea` now renders through a transient animated graph state for explicit full layout and local layout flows. Zustand still stores only final node/edge geometry; the 550ms tween is client-only and does not persist or broadcast intermediate frames.
 
 **Local layout note:** Deterministic local branch reflow now has two phases: same-depth child repack inside the edited branch, then cousin-branch corridor expansion on the carrier layer when the grown subtree would overlap neighboring cousin subtrees. Ancestors stay fixed.
 
@@ -92,7 +101,8 @@ flowchart LR
     NotificationService --> PartyKitAdmin["pushPartyKitNotificationEvent()"]
     PartyKitAdmin --> UserChannel["PartyKit user room\nuser:{userId}:notifications"]
     UserChannel --> NotificationChannel["subscribeToNotificationChannel()"]
-    NotificationChannel --> InboxRefresh["NotificationBell onEvent -> fetchNotifications()"]
+    NotificationChannel --> SharedInbox["sharedNotifications manager\nsingle cache/socket per user\nstable external-store snapshots"]
+    SharedInbox --> InboxRefresh["NotificationBell/MobileMenu -> useNotifications()"]
     InboxRefresh --> NotificationsApi["GET /api/notifications"]
     NotificationsApi --> NotificationsTable
     NotificationService --> EmailPreference["resolveEmailPreferenceFromProfile()\npreferences.notifications.email"]
@@ -106,6 +116,12 @@ flowchart LR
 - Inbox state: `is_read`, `read_at`, `created_at`, `updated_at`
 - Email state: `email_status`, `email_error`, `emailed_at`
 - Access control: RLS policies limit `SELECT/UPDATE` to recipient (`recipient_user_id = auth.uid()`)
+
+**Client/runtime notes:**
+
+- `useNotifications()` now fans out from a module-level shared manager instead of opening a socket per hook instance.
+- `GET /api/notifications` accepts `mapId` and applies the map filter before `limit`, so map-scoped inboxes receive the newest N notifications for that map.
+- `mark-all-read` already accepts `mapId`; refresh flows now keep the bell and mobile drawer inbox in sync through the shared cache.
 
 ## Directory Structure
 
@@ -138,12 +154,12 @@ shiko/
 │   │   ├── guided-tour/        # Prezi-style presentations
 │   │   ├── history/            # Version history sidebar
 │   │   ├── landing/            # Marketing page sections
-│   │   ├── mind-map/           # React Flow integration
+│   │   ├── mind-map/           # React Flow integration + mobile top bar/drawer chrome
 │   │   ├── modals/             # Dialogs (edge edit, upgrade, etc.)
 │   │   ├── node-editor/        # Command system, CodeMirror
 │   │   ├── nodes/              # 12 node types + base wrapper
-│   │   ├── notifications/      # Notification bell + inbox popover
-│   │   ├── onboarding/         # Multi-step onboarding
+│   │   ├── notifications/      # Notification bell + shared inbox data hook
+│   │   ├── onboarding/         # Editor-first onboarding shell (intro/checklist/coachmarks/upsell)
 │   │   ├── realtime/           # Live cursors, presence
 │   │   ├── sharing/            # Share panel, room codes
 │   │   ├── subscription/       # Feature gates, limits
@@ -214,8 +230,8 @@ shiko/
 | **guided-tour-slice**     | 416   | Prezi-style presentations                  |
 | **core-slice**            | 353   | Supabase client, user, map loading         |
 | **user-profile-slice**    | 317   | Profile, preferences                       |
-| **layout-slice**          | 312   | Full ELK layouts + local branch reflow     |
-| **onboarding-slice**      | 269   | Multi-step onboarding                      |
+| **layout-slice**          | 578   | Full ELK layouts + local branch reflow     |
+| **onboarding-slice**      | 958   | Editor-first onboarding tasks, substeps, coachmarks, per-user persisted state |
 | **ui-slice**              | 248   | Modals, panels, focus mode                 |
 | **groups-slice**          | 246   | Node grouping                              |
 | **chat-slice**            | 241   | AI chat messages                           |
@@ -275,6 +291,11 @@ shiko/
 - `POST /api/share/revoke-room-code`
 - `PATCH /api/share/update-share/[shareId]`
 
+**Nodes (2):**
+
+- `POST /api/nodes/check-limit` - Enforces per-map node limits for new nodes on map owner entitlement
+- `POST /api/nodes/create-reference` - Applies same owner-based node-limit check for reference-node creation
+
 **Notifications (4):**
 
 - `GET /api/notifications` - List notifications + unread count
@@ -325,13 +346,25 @@ shiko/
 - `src/components/dashboard/discard-account-settings-changes-dialog.tsx` guards panel close when unsaved account edits exist
 - `src/components/dashboard/cancel-subscription-dialog.tsx` adds an explicit confirmation step before subscription cancellation
 
+**Editor Onboarding v2:**
+
+- `src/components/onboarding/onboarding-modal.tsx` now renders the editor walkthrough shell directly inside the mind-map experience instead of using a global dialog in `ClientProviders`
+- `src/store/slices/onboarding-slice.ts` tracks task-based progress (`create-node`, `try-pattern`, `know-controls`), real add-mode substeps (`toolbar` -> `canvas`), post-create edit hints, viewport-aware coachmark state (`desktop` vs `mobile`), minimized walkthrough state, and eligibility gating for first owned free maps
+- `src/store/app-state.ts` + `src/store/slices/ui-slice.ts` extend node-editor state with onboarding preset/source fields so the walkthrough can open a deterministic parser example in the real quick-input editor
+- `src/components/common/user-menu.tsx` and `src/components/subscription/limit-warning.tsx` now bypass onboarding entirely for upgrade prompts and open `popoverOpen.upgradeUser` directly
+- Toolbar/top-bar/shortcut controls expose `data-onboarding-target` anchors for cursor/select, Add Node, AI Suggestions, Auto Layout, Export, Guided Tour, Reset Zoom, Comments, desktop Share, mobile hamburger menu, `More Tools`, shortcuts help, and breadcrumb/home
+- Mobile onboarding uses bottom-sheet surfaces only: intro/checklist/hints/coachmarks never stack, step-specific sheets replace the checklist while active, the controls tour points to `mobile-menu` instead of the removed mobile share button, and the minimized walkthrough chip moves under the top bar instead of sharing the bottom-dock lane
+- `src/components/nodes/base-node-wrapper.tsx` now exposes a touch-first `Edit` action for a single selected mobile node so onboarding can teach a real edit path instead of desktop-only shortcuts
+- `src/components/mind-map/top-bar/index.tsx` now collapses the mobile header to breadcrumb/title plus one unread-aware hamburger trigger, while `src/components/mind-map/top-bar/mobile-menu.tsx` owns mobile share, notifications preview, collaborators, workspace actions, and account/billing flows in a full-height editorial drawer
+
 **Notifications internals (operational map):**
 
 - `src/components/node-editor/components/inputs/quick-input.tsx` + `src/components/nodes/components/comment-reply-input.tsx` + `src/app/api/maps/[id]/mentionable-users/route.ts`: resolve `@slug` -> `userId` recipient IDs
 - `src/app/api/notifications/emit/route.ts` (`getMapParticipantContext`, `toNotificationInsertPayload`): trigger filtering + payload normalization -> `createNotifications()`
 - `src/lib/notifications/notification-service.ts` (`createNotifications`, `processNotificationEmails`, `resolveEmailPreferenceFromProfile`): persist/dedupe -> PartyKit push -> optional email send
 - `src/helpers/partykit/admin.ts` + `partykit/server.ts` (`notification-event`): admin publish -> user-channel fanout (`notifications:refresh`)
-- `src/components/notifications/notification-bell.tsx` + `src/lib/realtime/notification-channel.ts`: channel event -> inbox API refetch -> UI unread badge/list refresh
+- `src/components/notifications/use-notifications.ts` + `src/lib/realtime/notification-channel.ts`: shared hook handles inbox fetch/subscription/mark-read state for both the desktop bell and the mobile editorial drawer
+- `src/components/notifications/notification-bell.tsx`: desktop/dashboard bell is now a thin popover view over the shared notifications hook
 - `src/components/dashboard/settings-panel.tsx`: account preference toggle persists `preferences.notifications.email` used by email delivery gating
 
 ## Data Flow
@@ -342,6 +375,7 @@ shiko/
 sequenceDiagram
     participant User
     participant NodeEditor
+    participant NodeLimitAPI as /api/nodes/check-limit
     participant Factory
     participant Store
     participant YjsProvider
@@ -350,6 +384,9 @@ sequenceDiagram
     participant OtherClients
 
     User->>NodeEditor: Type "$task Buy milk"
+    NodeEditor->>NodeLimitAPI: POST map preflight
+    NodeLimitAPI->>Supabase: Verify owner-scoped node limit
+    NodeLimitAPI-->>NodeEditor: Allowed / blocked
     NodeEditor->>Factory: Parse command + content
     Factory->>Store: addNode(nodeData)
     Store->>YjsProvider: Y.Map set (optimistic)

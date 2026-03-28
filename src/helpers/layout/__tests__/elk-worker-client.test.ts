@@ -294,15 +294,15 @@ describe('elk-worker-client local layout helpers', () => {
 			createEdge('cd', 'c', 'd'),
 		];
 
-		const selectedNodes = new Set(['b']);
+		const selectedNodes = new Set(['b', 'c']);
 		const layoutResult: LayoutResult = {
-			nodes: [createNode('b', 40, 40)],
+			nodes: [createNode('b', 40, 0), createNode('c', 80, 0)],
 			edges: [
 				withMetadata(allEdges[0], {
-					waypoints: [{ x: 30, y: 30 }],
+					waypoints: [{ x: 40, y: 0 }],
 				}),
 				withMetadata(allEdges[1], {
-					waypoints: [{ x: 41, y: 41 }],
+					waypoints: [{ x: 60, y: 0 }],
 				}),
 			],
 		};
@@ -322,16 +322,16 @@ describe('elk-worker-client local layout helpers', () => {
 
 		const byId = new Map(merged.nodes.map((node) => [node.id, node.position]));
 		expect(byId.get('a')).toEqual({ x: 0, y: 0 });
-		expect(byId.get('c')).toEqual({ x: 20, y: 20 });
 		expect(byId.get('d')).toEqual({ x: 30, y: 30 });
-		expect(byId.get('b')).not.toEqual({ x: 10, y: 10 });
+		expect(byId.get('b')).toEqual({ x: -5, y: 15 });
+		expect(byId.get('c')).toEqual({ x: 35, y: 15 });
 
 		const byEdgeId = new Map(merged.edges.map((edge) => [edge.id, edge]));
 		expect(byEdgeId.get('ab')?.data?.metadata?.waypoints).toEqual([
-			{ x: 30, y: 30 },
+			{ x: -5, y: 15 },
 		]);
 		expect(byEdgeId.get('bc')?.data?.metadata?.waypoints).toEqual([
-			{ x: 41, y: 41 },
+			{ x: 15, y: 15 },
 		]);
 		expect(byEdgeId.get('cd')?.data?.metadata).toEqual({
 			...allEdges[2].data?.metadata,

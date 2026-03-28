@@ -19,7 +19,7 @@ interface TopBarBreadcrumbProps {
 
 export function TopBarBreadcrumb({ title, isMobile }: TopBarBreadcrumbProps) {
 	return (
-		<Breadcrumb>
+		<Breadcrumb data-onboarding-target='breadcrumb-home'>
 			<BreadcrumbList>
 				<BreadcrumbItem>
 					<BreadcrumbLink asChild>

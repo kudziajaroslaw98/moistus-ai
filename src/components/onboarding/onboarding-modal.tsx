@@ -1,154 +1,359 @@
 'use client';
 
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import {
+	ONBOARDING_PATTERN_EXAMPLE,
+	getOnboardingCoachmarks,
+	type OnboardingTaskId,
+} from '@/constants/onboarding';
+import { useIsMobile } from '@/hooks/use-mobile';
 import useAppStore from '@/store/mind-map-store';
 import { AnimatePresence, motion } from 'motion/react';
-import { useCallback } from 'react';
-import { BenefitsStep } from './steps/benefits-step';
-import { PricingStep } from './steps/pricing-step';
-import { WelcomeStep } from './steps/welcome-step';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useShallow } from 'zustand/shallow';
+import { CanvasPlacementHint } from './canvas-placement-hint';
+import { CoachmarkCard } from './coachmark-card';
+import { FloatingHint, type FloatingTargetRect } from './floating-hint';
+import { IntroOverlay } from './intro-overlay';
+import { UpsellCard } from './upsell-card';
+import { WalkthroughSurface } from './walkthrough-surface';
 
-// Using animation guidelines: ease-out-cubic for screen transitions
-const stepVariants = {
-	enter: (direction: number) => ({
-		x: direction > 0 ? 1000 : -1000,
-		opacity: 0,
-	}),
-	center: {
-		x: 0,
-		opacity: 1,
-	},
-	exit: (direction: number) => ({
-		x: direction < 0 ? 1000 : -1000,
-		opacity: 0,
-	}),
+const getDomRectSnapshot = (element: HTMLElement): FloatingTargetRect => {
+	const rect = element.getBoundingClientRect();
+
+	return {
+		top: rect.top,
+		left: rect.left,
+		width: rect.width,
+		height: rect.height,
+	};
 };
 
-const transition = {
-	duration: 0.3,
-	ease: [0.215, 0.61, 0.355, 1] as const, // ease-out-cubic from animation guidelines
-};
+const isSameTargetRect = (
+	current: FloatingTargetRect | null,
+	next: FloatingTargetRect | null
+) =>
+	current?.top === next?.top &&
+	current?.left === next?.left &&
+	current?.width === next?.width &&
+	current?.height === next?.height;
 
 export function OnboardingModal() {
+	const isMobile = useIsMobile();
+	const [targetRect, setTargetRect] = useState<FloatingTargetRect | null>(null);
 	const {
-		showOnboarding,
-		onboardingStep,
-		onboardingDirection,
-		onboardingData,
-		setShowOnboarding,
-		nextOnboardingStep,
-		previousOnboardingStep,
+		onboardingStatus,
+		onboardingTasks,
+		onboardingActiveTarget,
+		onboardingCoachmarkStep,
+		onboardingIsMinimized,
+		onboardingCreateNodeStep,
+		onboardingPatternStep,
+		onboardingHighlightedNodeId,
+		onboardingViewport,
+		hasCompletedOnboarding,
+		currentSubscription,
+		startOnboarding,
 		skipOnboarding,
-		isAnimating,
-	} = useAppStore();
+		resumeOnboarding,
+		minimizeOnboarding,
+		startOnboardingTask,
+		advanceOnboardingCoachmark,
+		completeOnboarding,
+		dismissOnboardingPatternEditHint,
+		openNodeEditor,
+		reactFlowInstance,
+		setOnboardingViewport,
+		setPopoverOpen,
+	} = useAppStore(
+		useShallow((state) => ({
+			onboardingStatus: state.onboardingStatus,
+			onboardingTasks: state.onboardingTasks,
+			onboardingActiveTarget: state.onboardingActiveTarget,
+			onboardingCoachmarkStep: state.onboardingCoachmarkStep,
+			onboardingIsMinimized: state.onboardingIsMinimized,
+			onboardingCreateNodeStep: state.onboardingCreateNodeStep,
+			onboardingPatternStep: state.onboardingPatternStep,
+			onboardingHighlightedNodeId: state.onboardingHighlightedNodeId,
+			onboardingViewport: state.onboardingViewport,
+			hasCompletedOnboarding: state.hasCompletedOnboarding,
+			currentSubscription: state.currentSubscription,
+			startOnboarding: state.startOnboarding,
+			skipOnboarding: state.skipOnboarding,
+			resumeOnboarding: state.resumeOnboarding,
+			minimizeOnboarding: state.minimizeOnboarding,
+			startOnboardingTask: state.startOnboardingTask,
+			advanceOnboardingCoachmark: state.advanceOnboardingCoachmark,
+			completeOnboarding: state.completeOnboarding,
+			dismissOnboardingPatternEditHint: state.dismissOnboardingPatternEditHint,
+			openNodeEditor: state.openNodeEditor,
+			reactFlowInstance: state.reactFlowInstance,
+			setOnboardingViewport: state.setOnboardingViewport,
+			setPopoverOpen: state.setPopoverOpen,
+		}))
+	);
 
-	const handleClose = useCallback(() => {
-		if (!isAnimating) {
-			setShowOnboarding(false);
+	const completedCount = useMemo(
+		() => Object.values(onboardingTasks).filter(Boolean).length,
+		[onboardingTasks]
+	);
+	const isProUser =
+		currentSubscription?.plan?.name === 'pro' &&
+		['active', 'trialing'].includes(currentSubscription?.status ?? '');
+	const shouldRenderMinimizedPill =
+		onboardingIsMinimized && !hasCompletedOnboarding;
+	const shouldRenderChecklist = onboardingStatus === 'checklist';
+	const shouldRenderUpsell = onboardingStatus === 'upsell' && !isProUser;
+	const shouldRenderIntro = onboardingStatus === 'intro';
+	const shouldRenderCreateNodeToolbarHint =
+		shouldRenderChecklist &&
+		!onboardingTasks['create-node'] &&
+		onboardingCreateNodeStep !== 'canvas';
+	const shouldRenderCanvasHint =
+		shouldRenderChecklist &&
+		!onboardingTasks['create-node'] &&
+		onboardingCreateNodeStep === 'canvas';
+	const shouldRenderPatternEditHint =
+		shouldRenderChecklist &&
+		onboardingPatternStep === 'post-create-edit-hint' &&
+		Boolean(onboardingHighlightedNodeId);
+	const coachmarks = useMemo(
+		() => getOnboardingCoachmarks(onboardingViewport),
+		[onboardingViewport]
+	);
+	const currentCoachmark = coachmarks[onboardingCoachmarkStep] ?? null;
+	const shouldRenderCoachmark =
+		onboardingStatus === 'coachmarks' && Boolean(currentCoachmark);
+	const requiresResolvedAnchor =
+		Boolean(onboardingActiveTarget) &&
+		(shouldRenderCreateNodeToolbarHint ||
+			shouldRenderPatternEditHint ||
+			shouldRenderCoachmark);
+	const shouldFallbackToChecklist = requiresResolvedAnchor && !targetRect;
+	const shouldHideChecklistForSurface =
+		isMobile &&
+		!shouldFallbackToChecklist &&
+		(shouldRenderCreateNodeToolbarHint ||
+			shouldRenderCanvasHint ||
+			shouldRenderPatternEditHint ||
+			shouldRenderCoachmark);
+	const shouldRenderChecklistCard =
+		(shouldRenderChecklist || shouldFallbackToChecklist) &&
+		!shouldHideChecklistForSurface;
+	const walkthroughSurfaceMode = shouldRenderChecklistCard
+		? 'checklist'
+		: shouldRenderMinimizedPill
+			? 'pill'
+			: null;
+
+	useEffect(() => {
+		setOnboardingViewport(isMobile ? 'mobile' : 'desktop');
+	}, [isMobile, setOnboardingViewport]);
+
+	useEffect(() => {
+		if (
+			!onboardingActiveTarget ||
+			onboardingStatus === 'intro' ||
+			onboardingStatus === 'upsell'
+		) {
+			setTargetRect(null);
+			return;
 		}
-	}, [isAnimating, setShowOnboarding]);
 
-	const handleSkip = useCallback(() => {
-		if (!isAnimating) {
-			skipOnboarding();
-		}
-	}, [isAnimating, skipOnboarding]);
+		let animationFrame = 0;
+		let isCancelled = false;
 
-	const renderStep = () => {
-		switch (onboardingStep) {
-			case 0:
-				return (
-					<WelcomeStep
-						onContinue={nextOnboardingStep}
-						userName={useAppStore.getState().userProfile?.display_name}
-					/>
-				);
-			case 1:
-				return (
-					<BenefitsStep
-						onBack={previousOnboardingStep}
-						onContinue={nextOnboardingStep}
-					/>
-				);
-			case 2:
-				return (
-					<PricingStep
-						billingCycle={onboardingData.billingCycle || 'monthly'}
-						onBack={previousOnboardingStep}
-						onContinue={nextOnboardingStep}
-						selectedPlan={onboardingData.selectedPlan || null}
-					/>
-				);
-			default:
+		const resolveTargetRect = (): FloatingTargetRect | null => {
+			const target =
+				onboardingActiveTarget === 'created-node' && onboardingHighlightedNodeId
+					? document.querySelector<HTMLElement>(
+							`[data-id="${onboardingHighlightedNodeId}"]`
+						)
+					: document.querySelector<HTMLElement>(
+							`[data-onboarding-target="${onboardingActiveTarget}"]`
+						);
+
+			if (!target) {
 				return null;
-		}
-	};
+			}
 
-	// Don't render anything if onboarding shouldn't be shown
-	if (!showOnboarding) {
+			return getDomRectSnapshot(target);
+		};
+
+		const tick = () => {
+			const nextRect = resolveTargetRect();
+			setTargetRect((currentRect) =>
+				isSameTargetRect(currentRect, nextRect) ? currentRect : nextRect
+			);
+
+			if (!isCancelled) {
+				animationFrame = window.requestAnimationFrame(tick);
+			}
+		};
+
+		animationFrame = window.requestAnimationFrame(tick);
+
+		return () => {
+			isCancelled = true;
+			window.cancelAnimationFrame(animationFrame);
+		};
+	}, [onboardingActiveTarget, onboardingHighlightedNodeId, onboardingStatus]);
+
+	const openPatternLesson = useCallback(() => {
+		const screenPosition =
+			typeof window === 'undefined'
+				? { x: 0, y: 0 }
+				: { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+		const position = reactFlowInstance
+			? reactFlowInstance.screenToFlowPosition(screenPosition)
+			: { x: 0, y: 0 };
+
+		startOnboardingTask('try-pattern');
+		openNodeEditor({
+			mode: 'create',
+			position,
+			screenPosition,
+			suggestedType: 'taskNode',
+			initialValue: ONBOARDING_PATTERN_EXAMPLE,
+			onboardingSource: 'onboarding-pattern',
+		});
+	}, [openNodeEditor, reactFlowInstance, startOnboardingTask]);
+
+	const handleTaskAction = useCallback(
+		(taskId: OnboardingTaskId) => {
+			if (taskId === 'try-pattern') {
+				openPatternLesson();
+				return;
+			}
+
+			startOnboardingTask(taskId);
+		},
+		[openPatternLesson, startOnboardingTask]
+	);
+
+	const handleOpenUpgrade = useCallback(() => {
+		completeOnboarding();
+		setPopoverOpen({ upgradeUser: true });
+	}, [completeOnboarding, setPopoverOpen]);
+
+	const shouldRenderSpotlight =
+		Boolean(targetRect) &&
+		Boolean(onboardingActiveTarget) &&
+		(onboardingStatus === 'coachmarks' ||
+			(shouldRenderChecklist &&
+				(onboardingActiveTarget === 'add-node' ||
+					onboardingActiveTarget === 'created-node')));
+
+	if (
+		!shouldRenderIntro &&
+		!shouldRenderChecklist &&
+		!shouldRenderUpsell &&
+		!shouldRenderMinimizedPill &&
+		onboardingStatus !== 'coachmarks'
+	) {
 		return null;
 	}
 
 	return (
-		<Dialog dismissible={false} onOpenChange={handleClose} open={true}>
-			<DialogContent
-				className='flex !w-full !max-w-4xl p-0 overflow-hidden bg-surface border-border-subtle'
-				showCloseButton={false}
-			>
-				<motion.div
-					className='relative h-auto w-full flex flex-col'
-					layout='size'
-				>
-					{/* Skip button */}
-					<button
-						className='absolute top-4 right-4 z-10 text-sm text-text-secondary hover:text-text-primary transition-colors duration-200'
-						disabled={isAnimating}
-						onClick={handleSkip}
-					>
-						Skip for now
-					</button>
+		<>
+			{shouldRenderSpotlight && targetRect && (
+				<div
+					aria-hidden='true'
+					className='pointer-events-none fixed z-[56] rounded-2xl border-2 border-primary-400 shadow-[0_0_0_9999px_rgba(0,0,0,0.18)] shadow-primary-400/20 transition-all duration-200'
+					style={{
+						top: targetRect.top - 8,
+						left: targetRect.left - 8,
+						width: targetRect.width + 16,
+						height: targetRect.height + 16,
+					}}
+				/>
+			)}
 
-					{/* Step content */}
-					<div className='flex p-4 overflow-hidden'>
-						<AnimatePresence
-							custom={onboardingDirection}
-							initial={false}
-							mode='popLayout'
-						>
-							<motion.div
-								animate='center'
-								className='flex flex-col w-full h-full overflow-hidden'
-								custom={onboardingDirection}
-								exit='exit'
-								initial='enter'
-								key={onboardingStep}
-								transition={transition}
-								variants={stepVariants}
-							>
-								{renderStep()}
-							</motion.div>
-						</AnimatePresence>
-					</div>
+			<AnimatePresence>
+				{shouldRenderIntro && (
+					<IntroOverlay
+						isMobile={isMobile}
+						onSkip={skipOnboarding}
+						onStart={startOnboarding}
+					/>
+				)}
+			</AnimatePresence>
 
-					{/* Step indicator - simplified to 3 steps */}
-					<div className='p-6 border-t border-border-subtle'>
-						<div className='flex items-center justify-center gap-2'>
-							{[0, 1, 2].map((step) => (
-								<div
-									className={`h-2 rounded-full transition-all duration-300 ease-out ${
-										step === onboardingStep
-											? 'bg-primary-500 w-8'
-											: step < onboardingStep
-												? 'bg-primary-600/80 w-2'
-												: 'bg-elevated w-2'
-									}`}
-									key={step}
-								/>
-							))}
-						</div>
-					</div>
-				</motion.div>
-			</DialogContent>
-		</Dialog>
+			<AnimatePresence initial={false} mode='popLayout'>
+				{walkthroughSurfaceMode && (
+					<WalkthroughSurface
+						completedCount={completedCount}
+						isMobile={isMobile}
+						mode={walkthroughSurfaceMode}
+						onMinimize={minimizeOnboarding}
+						onResume={resumeOnboarding}
+						onSkip={skipOnboarding}
+						onTaskAction={handleTaskAction}
+						tasks={onboardingTasks}
+					/>
+				)}
+			</AnimatePresence>
+
+			<AnimatePresence>
+				{shouldRenderCreateNodeToolbarHint && !shouldFallbackToChecklist && (
+					<FloatingHint
+						dataTestId='onboarding-create-node-hint'
+						description='Start here. Choose Add Node, then the walkthrough will move onto the canvas with you.'
+						isMobile={isMobile}
+						mobileDescription='Tap Add Node to switch into placement mode. We will move onto the canvas as soon as you do.'
+						mobileTitle='Create your first node'
+						onDismiss={minimizeOnboarding}
+						targetRect={targetRect}
+						title='Create your first node'
+					/>
+				)}
+			</AnimatePresence>
+
+			<AnimatePresence>
+				{shouldRenderCanvasHint && (
+					<CanvasPlacementHint
+						isMobile={isMobile}
+						onDismiss={minimizeOnboarding}
+					/>
+				)}
+			</AnimatePresence>
+
+			<AnimatePresence>
+				{shouldRenderPatternEditHint && !shouldFallbackToChecklist && (
+					<FloatingHint
+						dataTestId='onboarding-pattern-edit-hint'
+						description='To edit this node later, select it and press Enter, or just double-click it.'
+						isMobile={isMobile}
+						mobileDescription='Tap this node to select it. Once selected, use Edit to change it without leaving the canvas.'
+						mobileTitle='Editing stays close by'
+						onDismiss={dismissOnboardingPatternEditHint}
+						targetRect={targetRect}
+						title='Editing is one step away'
+					/>
+				)}
+			</AnimatePresence>
+
+			<AnimatePresence>
+				{shouldRenderCoachmark && !shouldFallbackToChecklist && currentCoachmark && (
+					<CoachmarkCard
+						currentStep={currentCoachmark}
+						isLastStep={onboardingCoachmarkStep === coachmarks.length - 1}
+						isMobile={isMobile}
+						onMinimize={minimizeOnboarding}
+						onNext={advanceOnboardingCoachmark}
+						targetRect={targetRect}
+					/>
+				)}
+			</AnimatePresence>
+
+			<AnimatePresence>
+				{shouldRenderUpsell && (
+					<UpsellCard
+						isMobile={isMobile}
+						onKeepUsingFree={completeOnboarding}
+						onSeePlans={handleOpenUpgrade}
+					/>
+				)}
+			</AnimatePresence>
+		</>
 	);
 }

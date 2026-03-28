@@ -3,6 +3,7 @@ import { SupabaseClient, User } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 const SAFE_PAID_COLLABORATOR_CAP = 10;
+const DEFAULT_FREE_NODES_PER_MAP_LIMIT = 50;
 
 export interface SubscriptionValidation {
 	subscription: SubscriptionPlan;
@@ -107,7 +108,7 @@ export async function checkUsageLimit(
 	// Default to free plan limits (matches pricing-tiers.ts)
 	const freePlanLimits = {
 		mindMaps: 3,
-		nodesPerMap: 50,
+		nodesPerMap: DEFAULT_FREE_NODES_PER_MAP_LIMIT,
 		aiSuggestions: 0,
 		collaboratorsPerMap: 3,
 	};
@@ -420,4 +421,185 @@ export async function checkCollaboratorLimit(
 	const allowed = currentCount < limit;
 
 	return { allowed, limit, remaining, currentCount };
+}
+
+export type NodeLimitUpgradeTarget = 'owner' | 'requester';
+
+export type MapNodeLimitCheckResult =
+	| {
+			ok: true;
+			allowed: boolean;
+			limit: number;
+			remaining: number;
+			currentCount: number;
+			mapOwnerId: string;
+			requesterIsOwner: boolean;
+			upgradeTarget: NodeLimitUpgradeTarget;
+	  }
+	| {
+			ok: false;
+			status: number;
+			code:
+				| 'MAP_NOT_FOUND'
+				| 'ACCESS_DENIED'
+				| 'EDIT_PERMISSION_REQUIRED'
+				| 'NODE_COUNT_CHECK_FAILED'
+				| 'OWNER_SUBSCRIPTION_CHECK_FAILED'
+				| 'DB_LOOKUP_FAILED';
+			message: string;
+	  };
+
+/**
+ * Checks node creation limit for a map based on the owner's subscription.
+ * Non-owners must have active share_access with can_edit=true.
+ */
+export async function checkMapNodeLimit(
+	supabase: SupabaseClient,
+	mapId: string,
+	requesterId: string,
+	ownerSubscriptionClient: SupabaseClient = supabase
+): Promise<MapNodeLimitCheckResult> {
+	const { data: map, error: mapError } = await supabase
+		.from('mind_maps')
+		.select('id, user_id')
+		.eq('id', mapId)
+		.maybeSingle();
+
+	if (mapError) {
+		console.error('[Subscription] Failed to load map for node limit check:', mapError);
+		return {
+			ok: false,
+			status: 500,
+			code: 'DB_LOOKUP_FAILED',
+			message: 'Failed to load map data',
+		};
+	}
+
+	if (!map?.id || !map?.user_id) {
+		return {
+			ok: false,
+			status: 404,
+			code: 'MAP_NOT_FOUND',
+			message: 'Map not found',
+		};
+	}
+
+	const requesterIsOwner = map.user_id === requesterId;
+
+	if (!requesterIsOwner) {
+		const { data: shareAccess, error: shareError } = await supabase
+			.from('share_access')
+			.select('can_edit')
+			.eq('map_id', mapId)
+			.eq('user_id', requesterId)
+			.eq('status', 'active')
+			.maybeSingle();
+
+		if (shareError) {
+			console.error(
+				'[Subscription] Failed to load share access for node limit check:',
+				shareError
+			);
+			return {
+				ok: false,
+				status: 500,
+				code: 'DB_LOOKUP_FAILED',
+				message: 'Failed to verify map access',
+			};
+		}
+
+		if (!shareAccess) {
+			return {
+				ok: false,
+				status: 403,
+				code: 'ACCESS_DENIED',
+				message: 'You do not have access to this map',
+			};
+		}
+
+		if (!shareAccess.can_edit) {
+			return {
+				ok: false,
+				status: 403,
+				code: 'EDIT_PERMISSION_REQUIRED',
+				message: 'You do not have edit permission for this map',
+			};
+		}
+	}
+
+	const { count: currentCount, error: countError } = await supabase
+		.from('nodes')
+		.select('*', { count: 'exact', head: true })
+		.eq('map_id', mapId);
+
+	if (countError) {
+		console.error('[Subscription] Failed to count nodes for map:', countError);
+		return {
+			ok: false,
+			status: 500,
+			code: 'NODE_COUNT_CHECK_FAILED',
+			message: 'Failed to check node count',
+		};
+	}
+
+	const { data: ownerSubscription, error: ownerSubscriptionError } =
+		await ownerSubscriptionClient
+		.from('user_subscriptions')
+		.select(
+			`
+			*,
+			plan:subscription_plans(*)
+		`
+		)
+		.eq('user_id', map.user_id)
+		.in('status', ['active', 'trialing'])
+		.order('created_at', { ascending: false })
+		.limit(1)
+		.maybeSingle();
+
+	if (ownerSubscriptionError) {
+		console.error(
+			'[Subscription] Failed to load map owner subscription for node limits:',
+			ownerSubscriptionError
+		);
+
+		return {
+			ok: false,
+			status: 503,
+			code: 'OWNER_SUBSCRIPTION_CHECK_FAILED',
+			message: 'Failed to verify map owner subscription limits.',
+		};
+	}
+
+	const limit =
+		ownerSubscription?.plan?.limits?.nodesPerMap ??
+		DEFAULT_FREE_NODES_PER_MAP_LIMIT;
+	const nodeCount = currentCount ?? 0;
+
+	if (limit === -1) {
+		return {
+			ok: true,
+			allowed: true,
+			limit: -1,
+			remaining: -1,
+			currentCount: nodeCount,
+			mapOwnerId: map.user_id,
+			requesterIsOwner,
+			upgradeTarget: requesterIsOwner ? 'requester' : 'owner',
+		};
+	}
+
+	const allowed = nodeCount < limit;
+	const remaining = Math.max(0, limit - nodeCount);
+
+	return {
+		ok: true,
+		allowed,
+		limit,
+		remaining,
+		currentCount: nodeCount,
+		mapOwnerId: map.user_id,
+		requesterIsOwner,
+		upgradeTarget: requesterIsOwner ? 'requester' : 'owner',
+	};
 }

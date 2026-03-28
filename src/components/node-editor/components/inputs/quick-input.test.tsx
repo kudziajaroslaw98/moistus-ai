@@ -13,9 +13,17 @@ const mockUpdateNode = jest.fn().mockResolvedValue(undefined)
 const mockApplyLayoutAroundNode = jest.fn().mockResolvedValue(undefined)
 const mockQueueLocalLayoutOnResize = jest.fn()
 const mockClearQueuedLocalLayoutOnResize = jest.fn()
+const mockHandleOnboardingNodeCreated = jest.fn()
+const mockParseInput = jest.fn((text: string): any => ({
+	content: text,
+	tags: [],
+	metadata: {},
+	patterns: [],
+}))
 
 let mockQuickInputValue = ''
 let mockQuickInputNodeType: string | null = null
+let mockOnboardingPatternStep: string | null = null
 
 jest.mock('@/store/mind-map-store', () => ({
 	__esModule: true,
@@ -40,6 +48,8 @@ jest.mock('@/store/mind-map-store', () => ({
 			applyLayoutAroundNode: mockApplyLayoutAroundNode,
 			queueLocalLayoutOnResize: mockQueueLocalLayoutOnResize,
 			clearQueuedLocalLayoutOnResize: mockClearQueuedLocalLayoutOnResize,
+			handleOnboardingNodeCreated: mockHandleOnboardingNodeCreated,
+			onboardingPatternStep: mockOnboardingPatternStep,
 		})
 	),
 }))
@@ -106,11 +116,7 @@ jest.mock('../../core/config/node-type-config', () => ({
 
 // Mock parseInput
 jest.mock('../../core/parsers/pattern-extractor', () => ({
-	parseInput: jest.fn((text: string) => ({
-		content: text,
-		tags: [],
-		metadata: {},
-	})),
+	parseInput: (text: string) => mockParseInput(text),
 }))
 
 // Mock createOrUpdateNode
@@ -141,15 +147,12 @@ jest.mock('../../core/utils/text-utils', () => ({
 	announceToScreenReader: jest.fn(),
 }))
 
-// Mock useSubscriptionLimits hook to avoid store dependency on availablePlans
-jest.mock('@/hooks/subscription/use-feature-gate', () => ({
-	useSubscriptionLimits: jest.fn(() => ({
-		isAtLimit: jest.fn().mockReturnValue(false),
-		usage: { mindMaps: 0, nodesPerMap: 0, aiSuggestions: 0, collaboratorsPerMap: 0 },
-		limits: { mindMaps: 3, nodesPerMap: 50, aiSuggestions: 0, collaboratorsPerMap: 3 },
-		remaining: { mindMaps: 3, nodesPerMap: 50, aiSuggestions: 0, collaboratorsPerMap: 3 },
+jest.mock('@/hooks/subscription/use-map-node-limit', () => ({
+	useMapNodeLimit: jest.fn(() => ({
+		isAtLimit: false,
 		isLoading: false,
-		error: null,
+		limitInfo: null,
+		limitMessage: null,
 	})),
 }))
 
@@ -286,18 +289,20 @@ jest.mock('../action-bar', () => ({
 	ActionBar: ({
 		canCreate,
 		isCreating,
+		isCheckingLimit,
 		mode,
 		onCreate,
 	}: {
 		canCreate: boolean
 		isCreating: boolean
+		isCheckingLimit?: boolean
 		mode: string
 		onCreate: () => void
 	}) => (
 		<div data-testid="action-bar">
 			<button
 				onClick={onCreate}
-				disabled={!canCreate || isCreating}
+				disabled={!canCreate || isCreating || isCheckingLimit}
 				data-testid="create-button"
 				data-mode={mode}
 			>
@@ -327,7 +332,21 @@ describe('QuickInput', () => {
 		jest.clearAllMocks()
 		mockQuickInputValue = ''
 		mockQuickInputNodeType = null
+		mockOnboardingPatternStep = null
+		mockParseInput.mockImplementation((text: string) => ({
+			content: text,
+			tags: [],
+			metadata: {},
+			patterns: [],
+		}))
 		localStorageMock.getItem.mockReturnValue(null)
+		const { useMapNodeLimit } = require('@/hooks/subscription/use-map-node-limit')
+		;(useMapNodeLimit as jest.Mock).mockReturnValue({
+			isAtLimit: false,
+			isLoading: false,
+			limitInfo: null,
+			limitMessage: null,
+		})
 	})
 
 	describe('rendering', () => {
@@ -457,6 +476,90 @@ describe('QuickInput', () => {
 			render(<QuickInput {...defaultProps} mode="edit" existingNode={existingNode as any} />)
 
 			expect(screen.getByTestId('create-button')).toHaveAttribute('data-mode', 'edit')
+		})
+
+		it('shows requester node-limit message from useMapNodeLimit hook', () => {
+			const { useMapNodeLimit } = require('@/hooks/subscription/use-map-node-limit')
+			;(useMapNodeLimit as jest.Mock).mockReturnValue({
+				isAtLimit: true,
+				isLoading: false,
+				limitInfo: { current: 50, max: 50, upgradeTarget: 'requester' },
+				limitMessage: 'Node limit reached (50/50). Upgrade to Pro for unlimited nodes.',
+			})
+
+			render(<QuickInput {...defaultProps} />)
+
+			expect(
+				screen.getByText('Node limit reached (50/50). Upgrade to Pro for unlimited nodes.')
+			).toBeInTheDocument()
+		})
+
+		it('shows owner-targeted node-limit message from useMapNodeLimit hook', () => {
+			const { useMapNodeLimit } = require('@/hooks/subscription/use-map-node-limit')
+			;(useMapNodeLimit as jest.Mock).mockReturnValue({
+				isAtLimit: true,
+				isLoading: false,
+				limitInfo: { current: 63, max: 50, upgradeTarget: 'owner' },
+				limitMessage: 'This shared map reached its owner limit (63/50). Ask the owner to upgrade or remove nodes.',
+			})
+
+			render(<QuickInput {...defaultProps} />)
+
+			expect(screen.getByText(/Ask the owner to upgrade/i)).toBeInTheDocument()
+		})
+
+		it('disables create button when node limit is reached even with non-empty input', () => {
+			mockQuickInputValue = 'New node'
+			const { useMapNodeLimit } = require('@/hooks/subscription/use-map-node-limit')
+			;(useMapNodeLimit as jest.Mock).mockReturnValue({
+				isAtLimit: true,
+				isLoading: false,
+				limitInfo: { current: 50, max: 50, upgradeTarget: 'requester' },
+				limitMessage: 'Node limit reached (50/50). Upgrade to Pro for unlimited nodes.',
+			})
+
+			render(<QuickInput {...defaultProps} />)
+
+			expect(screen.getByTestId('create-button')).toBeDisabled()
+		})
+
+		it('disables create button while node limit check is loading in create mode', () => {
+			mockQuickInputValue = 'New node'
+			const { useMapNodeLimit } = require('@/hooks/subscription/use-map-node-limit')
+			;(useMapNodeLimit as jest.Mock).mockReturnValue({
+				isAtLimit: false,
+				isLoading: true,
+				limitInfo: { current: 12, max: 50, upgradeTarget: 'requester' },
+				limitMessage: 'Node limit reached (12/50). Upgrade to Pro for unlimited nodes.',
+			})
+
+			render(<QuickInput {...defaultProps} />)
+
+			expect(screen.getByTestId('create-button')).toBeDisabled()
+			expect(screen.queryByText(/Node limit reached/i)).not.toBeInTheDocument()
+		})
+
+		it('does not gate edit mode create button by node limit hook state', () => {
+			mockQuickInputValue = 'Updated content'
+			const { useMapNodeLimit } = require('@/hooks/subscription/use-map-node-limit')
+			;(useMapNodeLimit as jest.Mock).mockReturnValue({
+				isAtLimit: true,
+				isLoading: true,
+				limitInfo: { current: 50, max: 50, upgradeTarget: 'requester' },
+				limitMessage: 'Node limit reached (50/50). Upgrade to Pro for unlimited nodes.',
+			})
+
+			const existingNode = {
+				id: 'existing-1',
+				type: 'defaultNode',
+				data: { id: 'existing-1', content: 'Existing', map_id: 'map-1' },
+				position: { x: 0, y: 0 },
+			}
+
+			render(<QuickInput {...defaultProps} mode="edit" existingNode={existingNode as any} />)
+
+			expect(screen.getByTestId('create-button')).not.toBeDisabled()
+			expect(screen.queryByText(/Node limit reached/i)).not.toBeInTheDocument()
 		})
 	})
 
@@ -616,6 +719,37 @@ describe('QuickInput', () => {
 	})
 
 	describe('create mode initialization', () => {
+		it('prefills onboarding examples when an initial value is provided', () => {
+			render(
+				<QuickInput
+					{...defaultProps}
+					initialValue="$task Review PR ^tomorrow #backend"
+					onboardingSource="onboarding-pattern"
+				/>
+			)
+
+			expect(mockInitializeQuickInput).toHaveBeenCalledWith(
+				'$task Review PR ^tomorrow #backend',
+				'defaultNode'
+			)
+		})
+
+		it('shows the syntax-help onboarding hint during the pattern lesson', () => {
+			mockOnboardingPatternStep = 'pattern-editor'
+
+			render(
+				<QuickInput
+					{...defaultProps}
+					initialValue="$task Review PR ^tomorrow #backend"
+					onboardingSource="onboarding-pattern"
+				/>
+			)
+
+			expect(
+				screen.getByText('Try more patterns in Syntax Help below.')
+			).toBeInTheDocument()
+		})
+
 		it('sets node type when currentNodeType is null', () => {
 			mockQuickInputNodeType = null
 			render(<QuickInput {...defaultProps} nodeType="taskNode" />)
@@ -730,6 +864,36 @@ describe('QuickInput', () => {
 			})
 
 			expect(mockApplyLayoutAroundNode).not.toHaveBeenCalled()
+		})
+
+		it('reports parser-based onboarding completion when patterns were used', async () => {
+			const user = userEvent.setup()
+			mockQuickInputValue = 'Review PR ^tomorrow #backend'
+			mockParseInput.mockImplementation((text: string) => ({
+				content: text,
+				tags: ['backend'],
+				metadata: { dueDate: '2026-03-18T00:00:00.000Z' },
+				patterns: [
+					{
+						type: 'tag',
+						value: 'backend',
+						display: '#backend',
+						position: 20,
+						raw: '#backend',
+					},
+				],
+			}))
+
+			render(<QuickInput {...defaultProps} />)
+			await user.click(screen.getByTestId('create-button'))
+
+			await waitFor(() => {
+				expect(mockHandleOnboardingNodeCreated).toHaveBeenCalledWith({
+					mode: 'create',
+					usedPatterns: true,
+					nodeId: 'new-node-1',
+				})
+			})
 		})
 	})
 })

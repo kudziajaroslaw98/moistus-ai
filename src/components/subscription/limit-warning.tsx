@@ -12,19 +12,15 @@ interface LimitWarningProps {
 }
 
 export function LimitWarning({ limitType, className }: LimitWarningProps) {
-	const { limits, usage, remaining, isAtLimit } = useSubscriptionLimits();
-	const { setShowOnboarding, updateOnboardingData, setOnboardingStep } =
-		useAppStore();
+	const { limits, usage, isAtLimit } = useSubscriptionLimits();
+	const { setPopoverOpen } = useAppStore();
 
 	if (!isAtLimit(limitType) || limits[limitType] === -1) {
 		return null;
 	}
 
 	const handleUpgrade = () => {
-		// Show onboarding at pricing step
-		updateOnboardingData({ selectedPlan: 'pro' });
-		setOnboardingStep(2);
-		setShowOnboarding(true);
+		setPopoverOpen({ upgradeUser: true });
 	};
 
 	const limitMessages = {
@@ -93,8 +89,7 @@ export function InlineLimitWarning({
 	limitType: LimitWarningProps['limitType'];
 }) {
 	const { limits, usage, remaining, isAtLimit } = useSubscriptionLimits();
-	const { setShowOnboarding, updateOnboardingData, setOnboardingStep } =
-		useAppStore();
+	const { setPopoverOpen } = useAppStore();
 
 	const percentageUsed =
 		limits[limitType] === -1 ? 0 : (usage[limitType] / limits[limitType]) * 100;
@@ -107,9 +102,7 @@ export function InlineLimitWarning({
 	}
 
 	const handleClick = () => {
-		updateOnboardingData({ selectedPlan: 'pro' });
-		setOnboardingStep(2);
-		setShowOnboarding(true);
+		setPopoverOpen({ upgradeUser: true });
 	};
 
 	return (

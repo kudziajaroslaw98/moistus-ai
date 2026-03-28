@@ -39,6 +39,7 @@ export function useContextMenu(): UseContextMenuResult {
 		createComment,
 		mapId,
 		currentUser,
+		handleOnboardingCanvasNodeCreated,
 	} = useAppStore(
 		useShallow((state) => ({
 			reactFlowInstance: state.reactFlowInstance,
@@ -54,6 +55,8 @@ export function useContextMenu(): UseContextMenuResult {
 			createComment: state.createComment,
 			mapId: state.mapId,
 			currentUser: state.currentUser,
+			handleOnboardingCanvasNodeCreated:
+				state.handleOnboardingCanvasNodeCreated,
 		}))
 	);
 
@@ -150,59 +153,60 @@ export function useContextMenu(): UseContextMenuResult {
 			const isDoubleClick = currentTime - lastClickTime.current < DOUBLE_CLICK_DELAY;
 			lastClickTime.current = currentTime;
 
-				// Comment Mode: Only create comment on double-click
-				if (isCommentMode) {
-					if (isDoubleClick && position && mapId && currentUser) {
-						try {
-							// Generate shared ID for both node and comment
-							const commentId = generateUuid();
+			// Comment Mode: Only create comment on double-click
+			if (isCommentMode) {
+				if (isDoubleClick && position && mapId && currentUser) {
+					try {
+						// Generate shared ID for both node and comment
+						const commentId = generateUuid();
 
-							// Create comment node through graph-aware store action
-							await addNode({
-								parentNode: null,
-								content: '',
-								nodeType: 'commentNode',
-								position,
-								nodeId: commentId,
-								data: {
-									width: 400,
-									height: 500,
-									metadata: {},
-									aiData: {},
-								},
-							});
-
-							const createdNode = useAppStore
-								.getState()
-								.nodes.some((node) => node.id === commentId);
-
-							if (!createdNode) {
-								return;
-							}
-
-							// Create aligned comment record using same ID
-							const savedComment = await createComment({
-								id: commentId,
-								map_id: mapId,
-								position_x: position.x,
-								position_y: position.y,
+						// Create comment node through graph-aware store action
+						await addNode({
+							parentNode: null,
+							content: '',
+							nodeType: 'commentNode',
+							position,
+							nodeId: commentId,
+							data: {
 								width: 400,
 								height: 500,
-							});
+								metadata: {},
+								aiData: {},
+							},
+						});
 
-							// Roll back node if comment record creation fails
-							if (!savedComment) {
-								const rollbackNode = useAppStore
-									.getState()
-									.nodes.find((node) => node.id === commentId);
-								if (rollbackNode) {
-									await deleteNodes([rollbackNode]);
-								}
-							}
-						} catch (error) {
-							console.error('Failed to create comment:', error);
+						const createdNode = useAppStore
+							.getState()
+							.nodes.some((node) => node.id === commentId);
+
+						if (!createdNode) {
+							return;
 						}
+
+						// Create aligned comment record using same ID
+						const savedComment = await createComment({
+							id: commentId,
+							map_id: mapId,
+							position_x: position.x,
+							position_y: position.y,
+							width: 400,
+							height: 500,
+						});
+
+						// Roll back node if comment record creation fails
+						if (!savedComment) {
+							const rollbackNode = useAppStore
+								.getState()
+								.nodes.find((node) => node.id === commentId);
+							if (rollbackNode) {
+								await deleteNodes([rollbackNode]);
+							}
+						}
+					} catch (error) {
+						console.error('Failed to create comment:', error);
+					}
 				}
+
 				// In comment mode, don't close context menu or handle other tools
 				return;
 			}
@@ -210,12 +214,16 @@ export function useContextMenu(): UseContextMenuResult {
 			// Non-comment mode: handle other tools (only on single click)
 			if (!isDoubleClick) {
 				if (activeTool === 'node') {
-					addNode({
+					const nodeId = generateUuid();
+
+					await addNode({
 						parentNode: null,
 						content: 'New node from pane click',
 						nodeType: 'defaultNode',
 						position,
+						nodeId,
 					});
+					handleOnboardingCanvasNodeCreated();
 					setActiveTool('default'); // Switch back to select tool for a better UX
 				}
 
@@ -243,6 +251,7 @@ export function useContextMenu(): UseContextMenuResult {
 				addNode,
 				createComment,
 				deleteNodes,
+				handleOnboardingCanvasNodeCreated,
 			]
 		);
 

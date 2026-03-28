@@ -121,8 +121,8 @@ describe('useAnimatedLayout', () => {
 			});
 
 			frameQueue.shift()?.(0);
-			frameQueue.shift()?.(150);
-			frameQueue.shift()?.(300);
+			frameQueue.shift()?.(275);
+			frameQueue.shift()?.(550);
 
 			finalGraph = await animationPromise;
 		});
@@ -153,14 +153,12 @@ describe('useAnimatedLayout', () => {
 
 		const { result } = renderHook(() => useAnimatedLayout());
 
-		const finalGraph = await act(async () =>
-			result.current.animateGraphToState({
-				currentNodes: [createNode('a', 0, 0)],
-				targetNodes: [createNode('a', 120, 0)],
-				currentEdges: [createEdge('edge-1', 'a', 'b', 50)],
-				targetEdges: [createEdge('edge-1', 'a', 'b', 150)],
-			})
-		);
+		const finalGraph = await result.current.animateGraphToState({
+			currentNodes: [createNode('a', 0, 0)],
+			targetNodes: [createNode('a', 120, 0)],
+			currentEdges: [createEdge('edge-1', 'a', 'b', 50)],
+			targetEdges: [createEdge('edge-1', 'a', 'b', 150)],
+		});
 
 		expect(globalThis.requestAnimationFrame).not.toHaveBeenCalled();
 		expect(finalGraph.nodes[0].position).toEqual({ x: 120, y: 0 });

@@ -1,6 +1,6 @@
 'use client';
 
-import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
+import { useMapNodeLimit } from '@/hooks/subscription/use-map-node-limit';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import useAppStore from '@/store/mind-map-store';
 import type { MentionableUser } from '@/types/notification';
@@ -166,6 +166,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 	position,
 	mode = 'create',
 	existingNode,
+	initialValue,
+	onboardingSource,
 }) => {
 	// Local UI state
 	const [preview, setPreview] = useState<QuickInputPreview | null>(null);
@@ -222,6 +224,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 		applyLayoutAroundNode,
 		queueLocalLayoutOnResize,
 		clearQueuedLocalLayoutOnResize,
+		handleOnboardingNodeCreated,
+		onboardingPatternStep,
 	} = useAppStore(
 		useShallow((state) => ({
 			closeNodeEditor: state.closeNodeEditor,
@@ -230,6 +234,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 			applyLayoutAroundNode: state.applyLayoutAroundNode,
 			queueLocalLayoutOnResize: state.queueLocalLayoutOnResize,
 			clearQueuedLocalLayoutOnResize: state.clearQueuedLocalLayoutOnResize,
+			handleOnboardingNodeCreated: state.handleOnboardingNodeCreated,
+			onboardingPatternStep: state.onboardingPatternStep,
 		}))
 	);
 
@@ -248,6 +254,10 @@ export const QuickInput: FC<QuickInputProps> = ({
 	);
 	const hasSyntaxPatterns =
 		universalPatterns.length > 0 || nodeSpecificPatterns.length > 0;
+	const showOnboardingPatternHint =
+		onboardingSource === 'onboarding-pattern' &&
+		onboardingPatternStep === 'pattern-editor' &&
+		hasSyntaxPatterns;
 
 	const collaborators = useMemo<CollaboratorMention[]>(() => {
 		if (mentionableUsers.length > 0) {
@@ -336,13 +346,18 @@ export const QuickInput: FC<QuickInputProps> = ({
 		return () => abortController.abort();
 	}, [mapId]);
 
-	// Check node limit (only affects create mode)
-	const { isAtLimit, usage, limits } = useSubscriptionLimits();
-	const isAtNodeLimit = mode === 'create' && isAtLimit('nodesPerMap');
-	const nodeLimitInfo =
-		limits.nodesPerMap !== -1
-			? { current: usage.nodesPerMap, max: limits.nodesPerMap }
-			: undefined;
+	// Check node limit for the current map (owner plan + role aware)
+	const {
+		isAtLimit: isAtNodeLimit,
+		isLoading: isNodeLimitLoading,
+		limitInfo: nodeLimitInfo,
+		limitMessage: nodeLimitMessage,
+	} = useMapNodeLimit({
+		enabled: mode === 'create',
+	});
+	const isCreateMode = mode === 'create';
+	const isCreateBlockedByNodeLimit = isCreateMode && isAtNodeLimit;
+	const isCreateLimitCheckLoading = isCreateMode && isNodeLimitLoading;
 
 	// Initialize QuickInput state when component mounts or mode changes
 	useEffect(() => {
@@ -355,6 +370,14 @@ export const QuickInput: FC<QuickInputProps> = ({
 			);
 			initializeQuickInput(initialContent, nodeType);
 		} else if (mode === 'create') {
+			if (
+				initialValue &&
+				(onboardingSource === 'onboarding-pattern' || initialValue.length > 0)
+			) {
+				initializeQuickInput(initialValue, initialNodeType || 'defaultNode');
+				return;
+			}
+
 			// Create mode: only set initial node type if none exists
 			// Don't override user-selected node types from $nodeType switching
 			if (!currentNodeType && initialNodeType) {
@@ -365,8 +388,10 @@ export const QuickInput: FC<QuickInputProps> = ({
 	}, [
 		mode,
 		existingNode?.id,
+		initialValue,
 		initialNodeType,
 		initializeQuickInput,
+		onboardingSource,
 		setCurrentNodeType,
 	]);
 
@@ -533,7 +558,14 @@ export const QuickInput: FC<QuickInputProps> = ({
 	 */
 	const handleCreate = useCallback(async () => {
 		// Guard: same checks as ActionBar canCreate prop
-		if (value.trim().length === 0 || isAtNodeLimit || isCreating) return;
+		if (
+			value.trim().length === 0 ||
+			isCreateBlockedByNodeLimit ||
+			isCreateLimitCheckLoading ||
+			isCreating
+		) {
+			return;
+		}
 
 		try {
 			setIsCreating(true);
@@ -593,6 +625,12 @@ export const QuickInput: FC<QuickInputProps> = ({
 			if (!result.success) {
 				throw new Error(result.error || 'Failed to save node');
 			}
+
+			handleOnboardingNodeCreated({
+				mode,
+				usedPatterns: nodeData.patterns.length > 0,
+				nodeId: result.nodeId ?? existingNode?.id ?? null,
+			});
 
 			if (mapId && assigneeUserIds.length > 0) {
 				void (async () => {
@@ -670,12 +708,14 @@ export const QuickInput: FC<QuickInputProps> = ({
 		queueLocalLayoutOnResize,
 		clearQueuedLocalLayoutOnResize,
 		isCreating,
-		isAtNodeLimit,
+		isCreateBlockedByNodeLimit,
+		isCreateLimitCheckLoading,
 		mode,
 		existingNode,
 		referenceMetadata,
 		mapId,
 		mentionSlugToUserId,
+		handleOnboardingNodeCreated,
 	]);
 
 	// Handle pattern insertion from legend
@@ -824,6 +864,23 @@ export const QuickInput: FC<QuickInputProps> = ({
 							ease: 'easeInOut' as const,
 						}}
 					>
+						<AnimatePresence>
+							{showOnboardingPatternHint && (
+								<motion.div
+									animate={{ opacity: 1, y: 0 }}
+									className='mb-3 rounded-xl border border-primary-500/20 bg-primary-500/8 px-3 py-2 text-xs leading-5 text-text-secondary'
+									exit={{ opacity: 0, y: -8 }}
+									initial={{ opacity: 0, y: -8 }}
+								>
+									<span className='font-medium text-text-primary'>
+										Try more patterns in Syntax Help below.
+									</span>{' '}
+									Use the examples to swap in tags, dates, assignees, or a
+									different node type.
+								</motion.div>
+							)}
+						</AnimatePresence>
+
 						<ParsingLegend
 							isCollapsed={legendCollapsed}
 							isNodeSpecificCollapsed={nodeSpecificLegendCollapsed}
@@ -877,23 +934,31 @@ export const QuickInput: FC<QuickInputProps> = ({
 			<ErrorDisplay error={error} />
 
 			{/* Node limit warning */}
-			{isAtNodeLimit && nodeLimitInfo && (
-				<motion.div
-					initial={{ opacity: 0, y: -10 }}
-					animate={{ opacity: 1, y: 0 }}
-					className='flex items-center gap-2 mt-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400'
-				>
-					<AlertCircle className='w-4 h-4 shrink-0' />
-					<span className='text-sm'>
-						Node limit reached ({nodeLimitInfo.current}/{nodeLimitInfo.max}).
-						Upgrade to Pro for unlimited nodes.
-					</span>
-				</motion.div>
-			)}
+			{isCreateBlockedByNodeLimit &&
+				(nodeLimitInfo || Boolean(nodeLimitMessage)) && (
+					<motion.div
+						initial={{ opacity: 0, y: -10 }}
+						animate={{ opacity: 1, y: 0 }}
+						className='flex items-center gap-2 mt-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400'
+					>
+						<AlertCircle className='w-4 h-4 shrink-0' />
+						<span className='text-sm'>
+							{nodeLimitMessage ||
+								(nodeLimitInfo
+									? `Node limit reached (${nodeLimitInfo.current}/${nodeLimitInfo.max}).`
+									: '')}
+						</span>
+					</motion.div>
+				)}
 
 			<ActionBar
-				canCreate={value.trim().length > 0 && !isAtNodeLimit}
+				canCreate={
+					value.trim().length > 0 &&
+					(!isCreateMode ||
+						(!isCreateBlockedByNodeLimit && !isCreateLimitCheckLoading))
+				}
 				isCreating={isCreating}
+				isCheckingLimit={isCreateLimitCheckLoading}
 				mode={mode}
 				onCreate={handleCreate}
 			/>

@@ -60,6 +60,21 @@ jest.mock('@/components/modals/upgrade-modal', () => ({
 jest.mock('@/components/mode-indicator', () => ({
 	ModeIndicator: () => null,
 }));
+jest.mock('@/components/notifications/use-notifications', () => ({
+	useNotifications: () => ({
+		notifications: [],
+		visibleNotifications: [],
+		visibleUnreadCount: 0,
+		isLoading: false,
+		error: null,
+		refreshNotifications: jest.fn().mockResolvedValue(undefined),
+		markAllAsRead: jest.fn().mockResolvedValue(undefined),
+		markNotificationAsRead: jest.fn().mockResolvedValue(undefined),
+	}),
+}));
+jest.mock('@/components/onboarding/onboarding-modal', () => ({
+	OnboardingModal: () => null,
+}));
 jest.mock('@/components/shortcuts-help/shortcuts-help-fab', () => ({
 	ShortcutsHelpFab: () => null,
 }));
@@ -216,6 +231,7 @@ function createMockStore(overrides: Partial<Record<string, unknown>> = {}) {
 		getVisibleNodes: () => store.nodes as AppNode[],
 		mindMap: { user_id: 'user-1', layout_direction: 'TOP_BOTTOM' },
 		currentUser: { id: 'user-1' },
+		mapAccessError: null,
 		activeTool: 'default',
 		setActiveTool: mockNoop,
 		mobileTapMultiSelectEnabled: false,
@@ -224,6 +240,9 @@ function createMockStore(overrides: Partial<Record<string, unknown>> = {}) {
 		isStreaming: false,
 		aiFeature: null,
 		userProfile: null,
+		usageData: null,
+		currentSubscription: null,
+		maybeStartOnboarding: mockNoop,
 		isTourActive: false,
 		isPathEditMode: false,
 		addNodeToPath: mockNoop,

@@ -488,6 +488,8 @@ export interface NodeEditorState {
 	parentNode: AppNode | null;
 	existingNodeId: string | null; // For edit mode
 	suggestedType: AvailableNodeTypes | null;
+	initialValue: string | null;
+	onboardingSource: 'onboarding-pattern' | null;
 }
 
 export interface NodeEditorOptions {
@@ -497,6 +499,8 @@ export interface NodeEditorOptions {
 	parentNode?: AppNode | null;
 	existingNodeId?: string | null;
 	suggestedType?: AvailableNodeTypes | null;
+	initialValue?: string | null;
+	onboardingSource?: 'onboarding-pattern' | null;
 	openTypePicker?: boolean;
 }
 

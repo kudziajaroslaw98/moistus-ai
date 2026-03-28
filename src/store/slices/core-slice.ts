@@ -40,7 +40,10 @@ export const createCoreDataSlice: StateCreator<
 	mapAccessError: null,
 
 	// Actions
-	setActiveTool: (activeTool) => set({ activeTool }),
+	setActiveTool: (activeTool) => {
+		set({ activeTool });
+		get().handleOnboardingToolModeChanged?.(activeTool);
+	},
 	setMobileTapMultiSelectEnabled: (mobileTapMultiSelectEnabled) =>
 		set({ mobileTapMultiSelectEnabled }),
 	setMindMap: (mindMap) => set({ mindMap }),

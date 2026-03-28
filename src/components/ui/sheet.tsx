@@ -27,10 +27,10 @@ function SheetOverlay({
 	...props
 }: ComponentProps<typeof BaseDialog.Backdrop>) {
 	return (
-		<BaseDialog.Backdrop
-			data-slot='sheet-overlay'
-			className={cn(
-				'fixed inset-0 z-50',
+			<BaseDialog.Backdrop
+				data-slot='sheet-overlay'
+				className={cn(
+					'fixed inset-0 z-[80]',
 				// Use transition instead of keyframe animation for smoother close
 				'transition-opacity duration-300',
 				'data-[open]:opacity-100',
@@ -63,7 +63,7 @@ function SheetContent({
 				data-slot='sheet-content'
 				className={cn(
 					'border border-border-default bg-base text-text-primary',
-					'data-[open]:animate-in data-[closed]:animate-out fixed z-50 flex flex-col gap-4 shadow-lg transition-transform data-[closed]:duration-300 data-[open]:duration-500',
+					'data-[open]:animate-in data-[closed]:animate-out fixed z-[81] flex flex-col gap-4 shadow-lg transition-transform data-[closed]:duration-300 data-[open]:duration-500',
 					side === 'right' &&
 						'data-[closed]:slide-out-to-right data-[open]:slide-in-from-right inset-y-0 right-0 h-full w-3/4 sm:max-w-sm',
 					side === 'left' &&

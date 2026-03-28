@@ -168,6 +168,99 @@ export const POST = withApiValidation(
 				);
 			}
 
+			let templateMapForSeed: { id: string; node_count: number | null } | null =
+				null;
+
+			// Preflight template size check before creating the destination map row.
+			if (template_id) {
+				const isUuid =
+					/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+						template_id
+					);
+
+				let templateQuery = supabase
+					.from('mind_maps')
+					.select('id, node_count')
+					.eq('is_template', true);
+
+				if (isUuid) {
+					templateQuery = templateQuery.eq('id', template_id);
+				} else {
+					templateQuery = templateQuery.eq('metadata->>templateId', template_id);
+				}
+
+				const { data: templateMap, error: templateError } =
+					await templateQuery.single();
+
+				if (templateError) {
+					const isTemplateNotFound = templateError.code === 'PGRST116';
+					return respondError(
+						isTemplateNotFound
+							? 'Template not found.'
+							: 'Error loading template for map creation.',
+						isTemplateNotFound ? 404 : 500,
+						templateError.message
+					);
+				}
+
+				if (!templateMap) {
+					return respondError(
+						'Template not found.',
+						404,
+						'TEMPLATE_NOT_FOUND'
+					);
+				}
+
+				templateMapForSeed = templateMap;
+				let templateNodeCount =
+					typeof templateMap.node_count === 'number'
+						? templateMap.node_count
+						: null;
+
+				if (templateNodeCount === null) {
+					const { count: fallbackNodeCount, error: fallbackCountError } =
+						await supabase
+							.from('nodes')
+							.select('*', { count: 'exact', head: true })
+							.eq('map_id', templateMap.id);
+
+					if (fallbackCountError) {
+						console.error(
+							'Error counting template nodes for limit check:',
+							fallbackCountError
+						);
+						return respondError(
+							'Error checking template node limit.',
+							500,
+							fallbackCountError.message
+						);
+					}
+
+					templateNodeCount = fallbackNodeCount ?? 0;
+				}
+
+				// Enforce nodes-per-map limit for template seed payload size.
+				const { limit: nodeLimit } = await checkUsageLimit(
+					user,
+					supabase,
+					'nodesPerMap',
+					0
+				);
+				if (nodeLimit !== -1 && templateNodeCount > nodeLimit) {
+					return respondError(
+						`Template exceeds your node limit (${templateNodeCount}/${nodeLimit}). Upgrade to Pro for larger maps.`,
+						402,
+						'NODE_LIMIT_REACHED',
+						{
+							currentUsage: templateNodeCount,
+							limit: nodeLimit,
+							remaining: Math.max(0, nodeLimit - templateNodeCount),
+							upgradeUrl: '/dashboard/settings/billing',
+						}
+					);
+				}
+			}
+
 			const newMapId = generateUuid();
 
 			// Insert the new mind map into the database
@@ -198,37 +291,18 @@ export const POST = withApiValidation(
 
 			// Check if a template was specified
 			if (template_id) {
-				// Fetch template from database
-				const isUuid =
-					/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-						template_id
-					);
-
-				let templateQuery = supabase
-					.from('mind_maps')
-					.select('id')
-					.eq('is_template', true);
-
-				if (isUuid) {
-					templateQuery = templateQuery.eq('id', template_id);
-				} else {
-					templateQuery = templateQuery.eq('metadata->>templateId', template_id);
-				}
-
-				const { data: templateMap } = await templateQuery.single();
-
-				if (templateMap) {
+				if (templateMapForSeed) {
 					// Fetch template nodes
 					const { data: templateNodes } = await supabase
 						.from('nodes')
 						.select('id, content, position_x, position_y, node_type, metadata')
-						.eq('map_id', templateMap.id);
+						.eq('map_id', templateMapForSeed.id);
 
 					// Fetch template edges
 					const { data: templateEdges } = await supabase
 						.from('edges')
 						.select('id, source, target, type, metadata')
-						.eq('map_id', templateMap.id);
+						.eq('map_id', templateMapForSeed.id);
 
 					// Create ID mapping (old template ID -> new UUID)
 					const idMap = new Map<string, string>();
@@ -300,7 +374,7 @@ export const POST = withApiValidation(
 
 					// Increment template usage count
 					await supabase.rpc('increment_usage_count', {
-						template_id: templateMap.id,
+						template_id: templateMapForSeed.id,
 					});
 				}
 			}
