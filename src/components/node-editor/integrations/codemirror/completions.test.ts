@@ -1,5 +1,15 @@
-import type { CompletionContext } from '@codemirror/autocomplete'
+import { startCompletion, type CompletionContext } from '@codemirror/autocomplete'
+import type { EditorView } from '@codemirror/view'
 import { createCompletions } from './completions'
+
+jest.mock('@codemirror/autocomplete', () => {
+	const actual = jest.requireActual('@codemirror/autocomplete')
+
+	return {
+		...actual,
+		startCompletion: jest.fn(),
+	}
+})
 
 jest.mock('../../core/commands/command-registry', () => ({
 	commandRegistry: {
@@ -46,7 +56,19 @@ const buildContext = (
 		},
 	} as unknown as CompletionContext)
 
+const mockedStartCompletion = jest.mocked(startCompletion)
+
+const getTriggerOption = async (label: string) => {
+	const { source } = createCompletions()
+	const result = await Promise.resolve(source(buildContext('', { explicit: true })))
+	return result?.options.find((option: { label: string }) => option.label === label)
+}
+
 describe('codemirror completions cleanup', () => {
+	beforeEach(() => {
+		mockedStartCompletion.mockClear()
+	})
+
 	it('does not return completions for removed parser prefixes', async () => {
 		const { source } = createCompletions()
 
@@ -103,5 +125,63 @@ describe('codemirror completions cleanup', () => {
 		expect(result).not.toBeNull()
 		const labels = result?.options.map((option: { label: string }) => option.label) ?? []
 		expect(labels).toContain('weight:')
+	})
+
+	it('chains manual tag trigger selection into follow-up suggestions', async () => {
+		const option = await getTriggerOption('#')
+
+		expect(option).toBeDefined()
+		expect(typeof option?.apply).toBe('function')
+		if (typeof option?.apply !== 'function') {
+			throw new Error('Expected tag trigger to use functional apply')
+		}
+
+		const dispatch = jest.fn()
+		const view = { dispatch } as unknown as EditorView
+
+		jest.useFakeTimers()
+		try {
+			option.apply(view, option, 0, 0)
+
+			expect(dispatch).toHaveBeenCalledWith({
+				changes: { from: 0, to: 0, insert: '#' },
+				selection: { anchor: 1 },
+			})
+
+			jest.runAllTimers()
+
+			expect(mockedStartCompletion).toHaveBeenCalledWith(view)
+		} finally {
+			jest.useRealTimers()
+		}
+	})
+
+	it('chains manual node-type trigger selection into follow-up suggestions', async () => {
+		const option = await getTriggerOption('$')
+
+		expect(option).toBeDefined()
+		expect(typeof option?.apply).toBe('function')
+		if (typeof option?.apply !== 'function') {
+			throw new Error('Expected node-type trigger to use functional apply')
+		}
+
+		const dispatch = jest.fn()
+		const view = { dispatch } as unknown as EditorView
+
+		jest.useFakeTimers()
+		try {
+			option.apply(view, option, 2, 2)
+
+			expect(dispatch).toHaveBeenCalledWith({
+				changes: { from: 2, to: 2, insert: '$' },
+				selection: { anchor: 3 },
+			})
+
+			jest.runAllTimers()
+
+			expect(mockedStartCompletion).toHaveBeenCalledWith(view)
+		} finally {
+			jest.useRealTimers()
+		}
 	})
 })
