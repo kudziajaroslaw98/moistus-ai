@@ -680,7 +680,17 @@ export const QuickInput: FC<QuickInputProps> = ({
 			}
 
 			if (mode === 'create' && result.nodeId) {
-				void applyLayoutAroundNode(result.nodeId);
+				void applyLayoutAroundNode(result.nodeId).catch(
+					(layoutError: unknown) => {
+						console.error(
+							'[quick-input] failed to apply local layout after node creation',
+							{
+								nodeId: result.nodeId,
+								error: layoutError,
+							}
+						);
+					}
+				);
 			}
 
 			// Close the editor after successful creation/update

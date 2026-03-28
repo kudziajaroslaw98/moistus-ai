@@ -23,6 +23,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-03-25 - Patched GitHub Dependabot vulnerabilities with targeted dependency upgrades -->
 <!-- Updated: 2026-03-28 - Resolved PR #46 merge conflicts and preserved local layout plus onboarding/access behavior -->
 <!-- Updated: 2026-03-28 - Hardened layout animation/reflow cleanup, legacy layout normalization, and waypoint-edge rendering after CodeRabbit review -->
+<!-- Updated: 2026-03-28 - Handled quick-input local layout rejections after create mode node insertion -->
 
 ## [2026-03-28]
 
@@ -39,6 +40,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: The CodeRabbit review surfaced real race conditions between animated display state, local edit reflow queueing, and edge rerouting
 - **layout/legacy-normalization**: Accepted legacy layout-direction values at the API boundary, normalized legacy edge path metadata on load, and guarded load-time normalization writes with snapshot freshness checks
   - Why: Older persisted data should still render correctly without allowing background normalization to overwrite newer server state
+- **quick-input/local-layout-error-handling**: Handled the post-create `applyLayoutAroundNode(...)` promise explicitly instead of dropping rejections
+  - Why: The create flow keeps local layout application non-blocking, but promise failures should still be surfaced instead of becoming unhandled rejections
 
 ### Refactored
 
