@@ -35,6 +35,12 @@ export interface RouteAutoWaypointEdgesResult {
 	affectedEdgeIds: Set<string>;
 }
 
+/**
+ * Resolves the renderable edge component type for persisted edge data.
+ *
+ * Suggested edges and ghost edges keep their special renderers; every other edge
+ * is normalized onto the auto-routed waypoint renderer.
+ */
 export function getRenderableEdgeType(edgeData: Partial<EdgeData>): string {
 	if (edgeData.aiData?.isSuggested) {
 		return 'suggestedConnection';
@@ -47,6 +53,12 @@ export function getRenderableEdgeType(edgeData: Partial<EdgeData>): string {
 	return 'waypointEdge';
 }
 
+/**
+ * Returns whether an edge is intentionally excluded from the auto-router.
+ *
+ * Ghost edges and AI suggestion edges keep their specialized geometry and are
+ * ignored by {@link rerouteAutoWaypointEdges}.
+ */
 export function isSpecialNonAutoRoutedEdge(
 	edgeData: Partial<EdgeData> | null | undefined
 ): boolean {
@@ -60,6 +72,29 @@ export function isSpecialNonAutoRoutedEdge(
 	);
 }
 
+/**
+ * Rebuilds orthogonal waypoint geometry for the selected subset of edges.
+ *
+ * Selection rules:
+ * - `edgeIds` takes precedence over `connectedNodeIds`.
+ * - When neither selector is provided, every non-special edge is considered.
+ * - When `legacyOnly` is true, edges that already declare `metadata.routingStyle`
+ *   are skipped so only legacy, not-yet-normalized rows are rewritten.
+ *
+ * Assumptions and side effects:
+ * - Does not mutate the incoming `nodes` or `edges` arrays.
+ * - Ignores special edges (`aiData.isSuggested`, `metadata.isGhostEdge`).
+ * - Relies on `routeEdgeOrthogonally` and `getRoutingSignature` to determine
+ *   whether routing actually changed.
+ *
+ * @param params.nodes Current node geometry used to derive orthogonal anchor points.
+ * @param params.edges Candidate edges to normalize.
+ * @param params.direction Active layout direction used to choose default anchors.
+ * @param params.edgeIds Optional explicit edge ids to reroute.
+ * @param params.connectedNodeIds Optional node ids; edges touching any of them are rerouted when `edgeIds` is absent.
+ * @param params.legacyOnly When true, only edges without `metadata.routingStyle` are rewritten.
+ * @returns The updated edge list plus the ids whose routing signature changed.
+ */
 export function rerouteAutoWaypointEdges({
 	nodes,
 	edges,
@@ -99,7 +134,12 @@ export function rerouteAutoWaypointEdges({
 			return edge;
 		}
 
-		const routedEdge = routeEdgeOrthogonally(edge, sourceNode, targetNode, direction);
+		const routedEdge = routeEdgeOrthogonally(
+			edge,
+			sourceNode,
+			targetNode,
+			direction
+		);
 		if (getRoutingSignature(edge) === getRoutingSignature(routedEdge)) {
 			return routedEdge;
 		}

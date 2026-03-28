@@ -34,17 +34,17 @@ import FloatingEdge from '@/components/edges/floating-edge';
 import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edge';
 import { GuidedTourMode, PathBuilder } from '@/components/guided-tour';
 import { UpgradeModal } from '@/components/modals/upgrade-modal';
-import { useNotifications } from '@/components/notifications/use-notifications';
 import { ModeIndicator } from '@/components/mode-indicator';
+import { useNotifications } from '@/components/notifications/use-notifications';
 import { OnboardingModal } from '@/components/onboarding/onboarding-modal';
 import { ShortcutsHelpFab } from '@/components/shortcuts-help/shortcuts-help-fab';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useActivityTracker } from '@/hooks/realtime/use-activity-tracker';
 import { useUpgradePrompt } from '@/hooks/subscription/use-upgrade-prompt';
+import { useAnimatedLayout } from '@/hooks/use-animated-layout';
 import { useContextMenu } from '@/hooks/use-context-menu';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNodeSuggestion } from '@/hooks/use-node-suggestion';
-import { useAnimatedLayout } from '@/hooks/use-animated-layout';
 import { getMindMapRoomName } from '@/lib/realtime/room-names';
 import useAppStore from '@/store/mind-map-store';
 import type { AppEdge } from '@/types/app-edge';
@@ -258,6 +258,7 @@ export function ReactFlowArea() {
 	const displayNodesRef = useRef<AppNode[]>(visibleNodes);
 	const displayEdgesRef = useRef<AppEdge[]>(visibleEdges);
 	const handledLayoutAnimationVersionRef = useRef(0);
+	const inFlightLayoutAnimationVersionRef = useRef<number | null>(null);
 
 	useEffect(() => {
 		displayNodesRef.current = displayNodes;
@@ -268,6 +269,10 @@ export function ReactFlowArea() {
 	}, [displayEdges]);
 
 	useEffect(() => {
+		if (inFlightLayoutAnimationVersionRef.current === layoutAnimationVersion) {
+			return;
+		}
+
 		if (layoutAnimationVersion === handledLayoutAnimationVersionRef.current) {
 			setDisplayNodes(visibleNodes);
 			setDisplayEdges(visibleEdges);
@@ -277,20 +282,26 @@ export function ReactFlowArea() {
 	useEffect(() => {
 		if (
 			layoutAnimationVersion === 0 ||
-			layoutAnimationVersion === handledLayoutAnimationVersionRef.current
+			layoutAnimationVersion === handledLayoutAnimationVersionRef.current ||
+			inFlightLayoutAnimationVersionRef.current === layoutAnimationVersion
 		) {
 			return;
 		}
 
-		handledLayoutAnimationVersionRef.current = layoutAnimationVersion;
+		const animationVersion = layoutAnimationVersion;
 		let isCancelled = false;
+		inFlightLayoutAnimationVersionRef.current = animationVersion;
 
 		void animateGraphToState({
 			currentNodes:
-				displayNodesRef.current.length > 0 ? displayNodesRef.current : visibleNodes,
+				displayNodesRef.current.length > 0
+					? displayNodesRef.current
+					: visibleNodes,
 			targetNodes: visibleNodes,
 			currentEdges:
-				displayEdgesRef.current.length > 0 ? displayEdgesRef.current : visibleEdges,
+				displayEdgesRef.current.length > 0
+					? displayEdgesRef.current
+					: visibleEdges,
 			targetEdges: visibleEdges,
 			animatedNodeIds,
 			animatedEdgeIds,
@@ -307,12 +318,20 @@ export function ReactFlowArea() {
 				return;
 			}
 
+			handledLayoutAnimationVersionRef.current = animationVersion;
+			if (inFlightLayoutAnimationVersionRef.current === animationVersion) {
+				inFlightLayoutAnimationVersionRef.current = null;
+			}
 			setDisplayNodes(nextNodes);
 			setDisplayEdges(nextEdges);
 		});
 
 		return () => {
 			isCancelled = true;
+			handledLayoutAnimationVersionRef.current = animationVersion;
+			if (inFlightLayoutAnimationVersionRef.current === animationVersion) {
+				inFlightLayoutAnimationVersionRef.current = null;
+			}
 		};
 	}, [
 		animateGraphToState,
@@ -328,10 +347,18 @@ export function ReactFlowArea() {
 			return;
 		}
 
+		inFlightLayoutAnimationVersionRef.current = null;
+		handledLayoutAnimationVersionRef.current = layoutAnimationVersion;
 		cancelAnimation();
 		setDisplayNodes(visibleNodes);
 		setDisplayEdges(visibleEdges);
-	}, [cancelAnimation, isDraggingNodes, visibleEdges, visibleNodes]);
+	}, [
+		cancelAnimation,
+		isDraggingNodes,
+		layoutAnimationVersion,
+		visibleEdges,
+		visibleNodes,
+	]);
 
 	useEffect(() => {
 		maybeStartOnboarding();

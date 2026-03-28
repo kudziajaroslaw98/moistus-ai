@@ -9,8 +9,8 @@
  * - Respects prefers-reduced-motion
  */
 
-import type { AppNode } from '@/types/app-node';
 import type { AppEdge } from '@/types/app-edge';
+import type { AppNode } from '@/types/app-node';
 import type { EdgeAnchor, Waypoint } from '@/types/path-types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -34,6 +34,12 @@ interface AnimationState {
 interface AnimatedGraphState {
 	nodes: AppNode[];
 	edges: AppEdge[];
+}
+
+interface PendingGraphAnimation {
+	token: number;
+	resolve: (graph: AnimatedGraphState) => void;
+	finalGraph: AnimatedGraphState;
 }
 
 interface AnimateGraphToStateParams {
@@ -69,7 +75,11 @@ function interpolatePosition(
 	};
 }
 
-function interpolateCoordinate(start: number, end: number, progress: number): number {
+function interpolateCoordinate(
+	start: number,
+	end: number,
+	progress: number
+): number {
 	const easedProgress = easeOutQuart(progress);
 	return start + (end - start) * easedProgress;
 }
@@ -99,7 +109,11 @@ function interpolateAnchor(
 
 	return {
 		...endAnchor,
-		offset: interpolateCoordinate(startAnchor.offset, endAnchor.offset, progress),
+		offset: interpolateCoordinate(
+			startAnchor.offset,
+			endAnchor.offset,
+			progress
+		),
 	};
 }
 
@@ -181,6 +195,34 @@ export function useAnimatedLayout() {
 	const rafIdRef = useRef<number | null>(null);
 	// Track whether the animation has been cancelled (or component unmounted)
 	const cancelledRef = useRef(false);
+	// Track and settle the current graph animation when it is cancelled or superseded.
+	const graphAnimationTokenRef = useRef(0);
+	const pendingGraphAnimationRef = useRef<PendingGraphAnimation | null>(null);
+
+	const settlePendingGraphAnimation = useCallback(
+		(graph?: AnimatedGraphState) => {
+			const pendingAnimation = pendingGraphAnimationRef.current;
+			if (!pendingAnimation) {
+				return;
+			}
+
+			pendingGraphAnimationRef.current = null;
+			pendingAnimation.resolve(graph ?? pendingAnimation.finalGraph);
+		},
+		[]
+	);
+
+	const stopGraphAnimation = useCallback(
+		(graph?: AnimatedGraphState) => {
+			graphAnimationTokenRef.current += 1;
+			if (rafIdRef.current !== null) {
+				cancelAnimationFrame(rafIdRef.current);
+				rafIdRef.current = null;
+			}
+			settlePendingGraphAnimation(graph);
+		},
+		[settlePendingGraphAnimation]
+	);
 
 	/**
 	 * Cancel any ongoing animation
@@ -188,23 +230,17 @@ export function useAnimatedLayout() {
 	 */
 	const cancelAnimation = useCallback(() => {
 		cancelledRef.current = true;
-		if (rafIdRef.current !== null) {
-			cancelAnimationFrame(rafIdRef.current);
-			rafIdRef.current = null;
-		}
+		stopGraphAnimation();
 		setAnimationState({ isAnimating: false, progress: 0 });
-	}, []);
+	}, [stopGraphAnimation]);
 
 	// Cleanup on unmount: cancel any running animation
 	useEffect(() => {
 		return () => {
 			cancelledRef.current = true;
-			if (rafIdRef.current !== null) {
-				cancelAnimationFrame(rafIdRef.current);
-				rafIdRef.current = null;
-			}
+			stopGraphAnimation();
 		};
-	}, []);
+	}, [stopGraphAnimation]);
 
 	/**
 	 * Animate nodes from current positions to target positions
@@ -338,11 +374,10 @@ export function useAnimatedLayout() {
 				return { nodes: targetNodes, edges: targetEdges };
 			}
 
-			if (rafIdRef.current !== null) {
-				cancelAnimationFrame(rafIdRef.current);
-				rafIdRef.current = null;
-			}
+			stopGraphAnimation();
 			cancelledRef.current = false;
+			const animationToken = graphAnimationTokenRef.current + 1;
+			graphAnimationTokenRef.current = animationToken;
 
 			const animatedNodeIdSet = animatedNodeIds
 				? new Set(animatedNodeIds)
@@ -385,13 +420,21 @@ export function useAnimatedLayout() {
 						continue;
 					}
 
-					if (getWaypointSignature(currentEdge) === getWaypointSignature(targetEdge)) {
-						const currentWaypoints = currentEdge.data?.metadata?.waypoints ?? [];
+					if (
+						getWaypointSignature(currentEdge) ===
+						getWaypointSignature(targetEdge)
+					) {
+						const currentWaypoints =
+							currentEdge.data?.metadata?.waypoints ?? [];
 						const targetWaypoints = targetEdge.data?.metadata?.waypoints ?? [];
 						const hasWaypointChanges = currentWaypoints.some(
 							(waypoint, index) =>
-								Math.abs(waypoint.x - (targetWaypoints[index]?.x ?? waypoint.x)) > 1 ||
-								Math.abs(waypoint.y - (targetWaypoints[index]?.y ?? waypoint.y)) > 1
+								Math.abs(
+									waypoint.x - (targetWaypoints[index]?.x ?? waypoint.x)
+								) > 1 ||
+								Math.abs(
+									waypoint.y - (targetWaypoints[index]?.y ?? waypoint.y)
+								) > 1
 						);
 
 						if (hasWaypointChanges) {
@@ -410,11 +453,41 @@ export function useAnimatedLayout() {
 
 			return new Promise((resolve) => {
 				const startTime = performance.now();
+				const finalGraph = {
+					nodes: targetNodes,
+					edges: targetEdges,
+				};
+				pendingGraphAnimationRef.current = {
+					token: animationToken,
+					resolve,
+					finalGraph,
+				};
+
+				const finishAnimation = (
+					graph: AnimatedGraphState,
+					finalProgress: number
+				) => {
+					if (pendingGraphAnimationRef.current?.token === animationToken) {
+						pendingGraphAnimationRef.current = null;
+					}
+
+					if (graphAnimationTokenRef.current === animationToken) {
+						rafIdRef.current = null;
+						setAnimationState({
+							isAnimating: false,
+							progress: finalProgress,
+						});
+					}
+
+					resolve(graph);
+				};
 
 				function animate(currentTime: number) {
-					if (cancelledRef.current) {
-						rafIdRef.current = null;
-						resolve({ nodes: targetNodes, edges: targetEdges });
+					if (
+						cancelledRef.current ||
+						graphAnimationTokenRef.current !== animationToken
+					) {
+						finishAnimation(finalGraph, 0);
 						return;
 					}
 
@@ -468,15 +541,13 @@ export function useAnimatedLayout() {
 						return;
 					}
 
-					rafIdRef.current = null;
-					setAnimationState({ isAnimating: false, progress: 1 });
-					resolve({ nodes: targetNodes, edges: targetEdges });
+					finishAnimation(finalGraph, 1);
 				}
 
 				rafIdRef.current = requestAnimationFrame(animate);
 			});
 		},
-		[]
+		[stopGraphAnimation]
 	);
 
 	return {

@@ -557,8 +557,9 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					edgeIds: [optimisticFlowEdge.id],
 				}).edges;
 				const routedOptimisticEdge =
-					routedOptimisticEdges.find((edge) => edge.id === optimisticFlowEdge.id) ??
-					optimisticFlowEdge;
+					routedOptimisticEdges.find(
+						(edge) => edge.id === optimisticFlowEdge.id
+					) ?? optimisticFlowEdge;
 
 				set((state) => ({
 					edges: state.edges.some((edge) => edge.id === routedOptimisticEdge.id)
@@ -695,8 +696,9 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					edgeIds: [persistedFlowEdge.id],
 				}).edges;
 				const routedPersistedEdge =
-					routedPersistedEdges.find((edge) => edge.id === persistedFlowEdge.id) ??
-					persistedFlowEdge;
+					routedPersistedEdges.find(
+						(edge) => edge.id === persistedFlowEdge.id
+					) ?? persistedFlowEdge;
 
 				const { error: parentUpdateError } = await supabase
 					.from('nodes')
@@ -881,6 +883,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 		updateEdge: async (props: { edgeId: string; data: Partial<EdgeData> }) => {
 			const { edges, nodes, mapId, supabase } = get();
 			const { edgeId, data } = props;
+			const previousEdge = edges.find((edge) => edge.id === edgeId);
 
 			const user = (await supabase?.auth.getUser())?.data.user;
 			if (!user) {
@@ -929,13 +932,24 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					data: mergedData,
 				};
 			}) as AppEdge[];
-			const reroutedEdgesResult = rerouteAutoWaypointEdges({
-				nodes,
-				edges: finalEdges,
-				direction: get().layoutConfig.direction,
-				edgeIds: [edgeId],
-			});
-			finalEdges = reroutedEdgesResult.edges;
+			const updatedEdge = finalEdges.find((edge) => edge.id === edgeId);
+			const shouldPreserveElkWaypoints =
+				previousEdge?.data?.metadata?.routingStyle === 'elk' &&
+				updatedEdge?.data?.metadata?.routingStyle === 'elk' &&
+				(previousEdge.source === updatedEdge.source ||
+					typeof data.source !== 'string') &&
+				(previousEdge.target === updatedEdge.target ||
+					typeof data.target !== 'string');
+
+			if (!shouldPreserveElkWaypoints) {
+				const reroutedEdgesResult = rerouteAutoWaypointEdges({
+					nodes,
+					edges: finalEdges,
+					direction: get().layoutConfig.direction,
+					edgeIds: [edgeId],
+				});
+				finalEdges = reroutedEdgesResult.edges;
+			}
 
 			set({
 				edges: [...finalEdges],

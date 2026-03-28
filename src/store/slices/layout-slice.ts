@@ -3,7 +3,7 @@
  * Manages ELK.js-based automatic layout state and actions
  */
 
-import { runElkLayout } from '@/helpers/layout';
+import { runElkLayout } from '@/helpers/layout/elk-worker-client';
 import {
 	applyLocalCreateBranchReflow,
 	applyLocalEditBranchReflow,
@@ -25,8 +25,8 @@ import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import {
 	DEFAULT_LAYOUT_CONFIG,
-	type LayoutConfig,
 	type LayoutAnimationReason,
+	type LayoutConfig,
 	type LayoutDirection,
 	type LayoutSlice,
 } from '@/types/layout-types';
@@ -36,6 +36,30 @@ import type { StateCreator } from 'zustand';
 import type { AppState } from '../app-state';
 
 const pendingLocalResizeNodeIds = new Set<string>();
+const pendingLocalResizeExpiryTimeouts = new Map<
+	string,
+	ReturnType<typeof setTimeout>
+>();
+const LOCAL_RESIZE_QUEUE_EXPIRY_MS = 1500;
+
+function clearPendingLocalResizeExpiry(nodeId: string): void {
+	const timeout = pendingLocalResizeExpiryTimeouts.get(nodeId);
+	if (!timeout) {
+		return;
+	}
+
+	clearTimeout(timeout);
+	pendingLocalResizeExpiryTimeouts.delete(nodeId);
+}
+
+function schedulePendingLocalResizeExpiry(nodeId: string): void {
+	clearPendingLocalResizeExpiry(nodeId);
+	const timeout = setTimeout(() => {
+		pendingLocalResizeNodeIds.delete(nodeId);
+		pendingLocalResizeExpiryTimeouts.delete(nodeId);
+	}, LOCAL_RESIZE_QUEUE_EXPIRY_MS);
+	pendingLocalResizeExpiryTimeouts.set(nodeId, timeout);
+}
 
 type LayoutSet = Parameters<StateCreator<AppState, [], [], LayoutSlice>>[0];
 type LayoutGet = Parameters<StateCreator<AppState, [], [], LayoutSlice>>[1];
@@ -223,14 +247,16 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 
 				if (mapId) {
 					try {
-						const updatedMindMap = await persistLayoutDirection(mapId, direction);
+						const updatedMindMap = await persistLayoutDirection(
+							mapId,
+							direction
+						);
 						if (updatedMindMap) {
 							set((state) => ({
 								mindMap: updatedMindMap,
 								layoutConfig: {
 									...state.layoutConfig,
-									direction:
-										updatedMindMap.layout_direction ?? direction,
+									direction: updatedMindMap.layout_direction ?? direction,
 								},
 							}));
 						}
@@ -380,23 +406,30 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 
 	queueLocalLayoutOnResize: (nodeId) => {
 		pendingLocalResizeNodeIds.add(nodeId);
+		schedulePendingLocalResizeExpiry(nodeId);
 	},
 
 	clearQueuedLocalLayoutOnResize: (nodeId) => {
 		pendingLocalResizeNodeIds.delete(nodeId);
+		clearPendingLocalResizeExpiry(nodeId);
 	},
 
 	runQueuedLocalLayoutOnResize: async (nodeId) => {
-		if (!pendingLocalResizeNodeIds.delete(nodeId)) {
+		if (!pendingLocalResizeNodeIds.has(nodeId)) {
 			return;
 		}
 
-		await runLocalBranchReflow({
+		const handled = await runLocalBranchReflow({
 			mode: 'edit',
 			nodeId,
 			set,
 			get,
 		});
+
+		if (handled) {
+			pendingLocalResizeNodeIds.delete(nodeId);
+			clearPendingLocalResizeExpiry(nodeId);
+		}
 	},
 
 	resetLayoutConfig: () => {
@@ -414,7 +447,7 @@ async function runLocalBranchReflow({
 	nodeId: string;
 	set: LayoutSet;
 	get: LayoutGet;
-}): Promise<void> {
+}): Promise<boolean> {
 	const {
 		nodes,
 		edges,
@@ -426,6 +459,7 @@ async function runLocalBranchReflow({
 		mapId,
 		currentUser,
 		mindMap,
+		markNodeAsSystemUpdate,
 		permissions,
 		supabase,
 	} = get();
@@ -434,7 +468,7 @@ async function runLocalBranchReflow({
 		mindMap?.user_id === currentUser?.id || Boolean(permissions?.can_edit);
 
 	if (!canEdit || isLayouting) {
-		return;
+		return false;
 	}
 
 	const result =
@@ -466,7 +500,7 @@ async function runLocalBranchReflow({
 	]);
 
 	if (result.affectedNodeIds.size === 0 && affectedEdgeIds.size === 0) {
-		return;
+		return true;
 	}
 
 	const prevNodes = [...nodes];
@@ -496,6 +530,7 @@ async function runLocalBranchReflow({
 			for (const node of affectedNodes) {
 				const actorId = getNodeActorId(node, currentUser.id);
 				const nodeData = serializeNodeForRealtime(node, mapId, actorId);
+				markNodeAsSystemUpdate(node.id);
 				void broadcast(mapId, BROADCAST_EVENTS.NODE_UPDATE, {
 					id: node.id,
 					data: nodeData,
@@ -508,6 +543,8 @@ async function runLocalBranchReflow({
 				const actorId = getEdgeActorId(edge, currentUser.id);
 				const edgeData = serializeEdgeForRealtime(edge, mapId, actorId);
 				if (edgeData) {
+					markNodeAsSystemUpdate(edge.source);
+					markNodeAsSystemUpdate(edge.target);
 					void broadcast(mapId, BROADCAST_EVENTS.EDGE_UPDATE, {
 						id: edge.id,
 						data: edgeData,
@@ -542,6 +579,8 @@ async function runLocalBranchReflow({
 		set({ isLayouting: false });
 		setLoadingStates?.({ isStateLoading: false });
 	}
+
+	return true;
 }
 
 async function persistLayoutDirection(

@@ -132,7 +132,9 @@ describe('local-branch-reflow', () => {
 		expect(byEdgeId.get('b-grandchild')?.data?.metadata?.waypoints).toEqual([
 			{ id: 'wp-1', x: 360, y: 320 },
 		]);
-		expect(result.affectedNodeIds).toEqual(new Set(['child-b', 'grandchild-b']));
+		expect(result.affectedNodeIds).toEqual(
+			new Set(['child-b', 'grandchild-b'])
+		);
 		expect(result.affectedEdgeIds).toEqual(new Set(['b-grandchild']));
 	});
 
@@ -241,11 +243,7 @@ describe('local-branch-reflow', () => {
 			createEdge('middle-new-edge', 'middle-parent', 'middle-new'),
 			createEdge('root-bottom', 'root', 'bottom'),
 			createEdge('bottom-child-edge', 'bottom', 'bottom-child'),
-			createEdge(
-				'bottom-grandchild-edge',
-				'bottom-child',
-				'bottom-grandchild'
-			),
+			createEdge('bottom-grandchild-edge', 'bottom-child', 'bottom-grandchild'),
 		];
 
 		const result = applyLocalCreateBranchReflow({
@@ -271,6 +269,61 @@ describe('local-branch-reflow', () => {
 		expect(byNodeId.get('outside')?.position).toEqual({ x: 1200, y: 1200 });
 		expect(result.affectedNodeIds).toEqual(
 			new Set(['middle-new', 'bottom', 'bottom-child', 'bottom-grandchild'])
+		);
+	});
+
+	it('accumulates corridor expansion across multiple ancestor layers', () => {
+		const nodes = [
+			createNode('root', 0, 0),
+			createNode('left', -420, 180),
+			createNode('middle', 0, 180),
+			createNode('right', 420, 180),
+			createNode('right-child', 420, 320),
+			createNode('middle-parent', 0, 320),
+			createNode('middle-cousin', 260, 320),
+			createNode('middle-cousin-child', 260, 460),
+			createNode('middle-existing', 0, 460),
+			createNode('middle-new', 0, 460),
+		];
+		const edges = [
+			createEdge('root-left', 'root', 'left'),
+			createEdge('root-middle', 'root', 'middle'),
+			createEdge('root-right', 'root', 'right'),
+			createEdge('right-child-edge', 'right', 'right-child'),
+			createEdge('middle-parent-edge', 'middle', 'middle-parent'),
+			createEdge('middle-cousin-edge', 'middle', 'middle-cousin'),
+			createEdge(
+				'middle-cousin-child-edge',
+				'middle-cousin',
+				'middle-cousin-child'
+			),
+			createEdge('middle-existing-edge', 'middle-parent', 'middle-existing'),
+			createEdge('middle-new-edge', 'middle-parent', 'middle-new'),
+		];
+
+		const result = applyLocalCreateBranchReflow({
+			changedNodeId: 'middle-new',
+			nodes,
+			edges,
+			config: { ...DEFAULT_LAYOUT_CONFIG, direction: 'TOP_BOTTOM' },
+		});
+
+		const byNodeId = new Map(result.nodes.map((node) => [node.id, node]));
+
+		expect(byNodeId.get('middle-cousin')?.position.x).toBeGreaterThan(260);
+		expect(byNodeId.get('middle-cousin-child')?.position.x).toBeGreaterThan(
+			260
+		);
+		expect(byNodeId.get('right')?.position.x).toBeGreaterThan(420);
+		expect(byNodeId.get('right-child')?.position.x).toBeGreaterThan(420);
+		expect(result.affectedNodeIds).toEqual(
+			new Set([
+				'middle-new',
+				'middle-cousin',
+				'middle-cousin-child',
+				'right',
+				'right-child',
+			])
 		);
 	});
 });

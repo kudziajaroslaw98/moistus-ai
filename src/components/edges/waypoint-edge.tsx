@@ -1,4 +1,7 @@
-import { createDefaultAnchor, getAnchorPosition } from '@/helpers/get-anchor-position';
+import {
+	createDefaultAnchor,
+	getAnchorPosition,
+} from '@/helpers/get-anchor-position';
 import { getWaypointPath } from '@/helpers/get-waypoint-path';
 import useAppStore from '@/store/mind-map-store';
 import type { EdgeData } from '@/types/edge-data';
@@ -20,7 +23,7 @@ import { Button } from '../ui/button';
 
 interface NodeWithMeasurements {
 	internals: { positionAbsolute: { x: number; y: number } };
-	measured: { width?: number; height?: number };
+	measured?: { width?: number; height?: number };
 }
 
 function isNodeWithMeasurements(
@@ -32,9 +35,7 @@ function isNodeWithMeasurements(
 		'internals' in node &&
 		node.internals !== null &&
 		typeof node.internals === 'object' &&
-		'positionAbsolute' in node.internals &&
-		node.measured !== null &&
-		typeof node.measured === 'object'
+		'positionAbsolute' in node.internals
 	);
 }
 
@@ -46,15 +47,17 @@ function getFallbackAnchors(
 	targetAnchor: EdgeAnchor;
 } {
 	const sourceCenterX =
-		sourceNode.internals.positionAbsolute.x + (sourceNode.measured.width ?? 0) / 2;
+		sourceNode.internals.positionAbsolute.x +
+		(sourceNode.measured?.width ?? 0) / 2;
 	const sourceCenterY =
 		sourceNode.internals.positionAbsolute.y +
-		(sourceNode.measured.height ?? 0) / 2;
+		(sourceNode.measured?.height ?? 0) / 2;
 	const targetCenterX =
-		targetNode.internals.positionAbsolute.x + (targetNode.measured.width ?? 0) / 2;
+		targetNode.internals.positionAbsolute.x +
+		(targetNode.measured?.width ?? 0) / 2;
 	const targetCenterY =
 		targetNode.internals.positionAbsolute.y +
-		(targetNode.measured.height ?? 0) / 2;
+		(targetNode.measured?.height ?? 0) / 2;
 	const deltaX = targetCenterX - sourceCenterX;
 	const deltaY = targetCenterY - sourceCenterY;
 
@@ -102,13 +105,18 @@ const WaypointEdgeComponent = ({
 		parseInt(data?.style?.strokeWidth?.toString() ?? '2', 10) || 2;
 
 	const routedGeometry = useMemo(() => {
-		if (!isNodeWithMeasurements(sourceNode) || !isNodeWithMeasurements(targetNode)) {
+		if (
+			!isNodeWithMeasurements(sourceNode) ||
+			!isNodeWithMeasurements(targetNode)
+		) {
 			return null;
 		}
 
 		const fallbackAnchors = getFallbackAnchors(sourceNode, targetNode);
-		const sourceAnchor = data?.metadata?.sourceAnchor ?? fallbackAnchors.sourceAnchor;
-		const targetAnchor = data?.metadata?.targetAnchor ?? fallbackAnchors.targetAnchor;
+		const sourceAnchor =
+			data?.metadata?.sourceAnchor ?? fallbackAnchors.sourceAnchor;
+		const targetAnchor =
+			data?.metadata?.targetAnchor ?? fallbackAnchors.targetAnchor;
 		const sourcePoint = getAnchorPosition(sourceNode, sourceAnchor);
 		const targetPoint = getAnchorPosition(targetNode, targetAnchor);
 
@@ -200,42 +208,41 @@ const WaypointEdgeComponent = ({
 					stroke: color,
 					strokeWidth,
 				}}
-			>
-				<EdgeLabelRenderer>
-					<div
-						className='nodrag absolute z-[2] pointer-events-auto nopan flex items-center gap-2 text-xs text-zinc-200'
-						style={{
-							transform: `translate(-50%, -50%) translate(${pathResult.labelX}px,${pathResult.labelY}px)`,
+			/>
+			<EdgeLabelRenderer>
+				<div
+					className='nodrag absolute z-[2] pointer-events-auto nopan flex items-center gap-2 text-xs text-zinc-200'
+					style={{
+						transform: `translate(-50%, -50%) translate(${pathResult.labelX}px,${pathResult.labelY}px)`,
+					}}
+				>
+					{data?.label && (
+						<div className='min-h-6 cursor-pointer rounded bg-zinc-700 px-4 py-0.5 shadow-sm'>
+							{data.label}
+						</div>
+					)}
+
+					<Button
+						className='!size-6'
+						initial={{ opacity: 0, y: 10, scale: 0.8 }}
+						onClick={handleDeleteEdge}
+						size='icon'
+						title='Delete connection'
+						variant='destructive'
+						animate={
+							isHovered || selected
+								? { opacity: 1, y: 0, scale: 1 }
+								: { opacity: 0, y: 10, scale: 0.8 }
+						}
+						transition={{
+							duration: 0.2,
+							ease: 'easeOut' as const,
 						}}
 					>
-						{data?.label && (
-							<div className='min-h-6 cursor-pointer rounded bg-zinc-700 px-4 py-0.5 shadow-sm'>
-								{data.label}
-							</div>
-						)}
-
-						<Button
-							className='!size-6'
-							initial={{ opacity: 0, y: 10, scale: 0.8 }}
-							onClick={handleDeleteEdge}
-							size='icon'
-							title='Delete connection'
-							variant='destructive'
-							animate={
-								isHovered || selected
-									? { opacity: 1, y: 0, scale: 1 }
-									: { opacity: 0, y: 10, scale: 0.8 }
-							}
-							transition={{
-								duration: 0.2,
-								ease: 'easeOut' as const,
-							}}
-						>
-							<X className='h-3 w-3' />
-						</Button>
-					</div>
-				</EdgeLabelRenderer>
-			</BaseEdge>
+						<X className='h-3 w-3' />
+					</Button>
+				</div>
+			</EdgeLabelRenderer>
 		</>
 	);
 };

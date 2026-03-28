@@ -2,7 +2,10 @@ import { z } from 'zod';
 
 const layoutDirectionSchema = z.enum([
 	'LEFT_RIGHT',
+	'RIGHT_LEFT',
 	'TOP_BOTTOM',
+	'BOTTOM_TOP',
+	'RADIAL',
 ]);
 
 /**
@@ -27,11 +30,7 @@ export const updateMapSchema = z.object({
 		.max(20, 'Maximum 20 tags allowed')
 		.optional(),
 
-	thumbnailUrl: z
-		.string()
-		.url('Invalid thumbnail URL')
-		.nullable()
-		.optional(),
+	thumbnailUrl: z.string().url('Invalid thumbnail URL').nullable().optional(),
 
 	is_template: z.boolean().optional(),
 

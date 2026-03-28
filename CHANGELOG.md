@@ -22,6 +22,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-03-25 - Replaced minimized walkthrough resume copy with the next actionable task -->
 <!-- Updated: 2026-03-25 - Patched GitHub Dependabot vulnerabilities with targeted dependency upgrades -->
 <!-- Updated: 2026-03-28 - Resolved PR #46 merge conflicts and preserved local layout plus onboarding/access behavior -->
+<!-- Updated: 2026-03-28 - Hardened layout animation/reflow cleanup, legacy layout normalization, and waypoint-edge rendering after CodeRabbit review -->
 
 ## [2026-03-28]
 
@@ -34,6 +35,20 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **editor-canvas/merge-regression-recovery**: Preserved waypoint-edge double-click bend insertion and kept the layout trigger on the current Base UI/onboarding-compatible implementation during the merge
   - Why: Git's automatic merge accepted those files but silently dropped editor behavior, while the current runtime already normalizes layout directions to the shipped two-option model
+- **layout/review-hardening**: Deferred layout-animation completion until tweens settle, resolved superseded animation promises, preserved ELK-routed waypoints during edge edits, and kept queued local resize reflows from lingering or dropping too early
+  - Why: The CodeRabbit review surfaced real race conditions between animated display state, local edit reflow queueing, and edge rerouting
+- **layout/legacy-normalization**: Accepted legacy layout-direction values at the API boundary, normalized legacy edge path metadata on load, and guarded load-time normalization writes with snapshot freshness checks
+  - Why: Older persisted data should still render correctly without allowing background normalization to overwrite newer server state
+
+### Refactored
+
+- **layout/module-boundaries**: Removed the `src/helpers/layout` barrel, tightened guided-tour layout-direction typing, and cleaned the node-creator / quick-input test harness typing
+  - Why: Keeps the layout helpers aligned with the repo's no-barrel rule and lets TypeScript enforce the current API contracts more directly
+
+### Docs
+
+- **layout/docs**: Added local branch reflow invariant docs in `ai-docs/local-branch-reflow/local-branch-reflow.md` and expanded JSDoc for the local reflow and auto-routing helpers
+  - Why: The review called out hidden assumptions around create/edit guarantees, affected-id semantics, and routing selection rules
 
 ## [2026-03-25]
 

@@ -20,7 +20,7 @@ const createNode = (id: string, x: number, y: number): AppNode =>
 			updated_at: '2026-03-11T00:00:00.000Z',
 			metadata: {},
 		},
-	} as AppNode);
+	}) as AppNode;
 
 const createEdge = (
 	id: string,
@@ -51,7 +51,7 @@ const createEdge = (
 			created_at: '2026-03-11T00:00:00.000Z',
 			updated_at: '2026-03-11T00:00:00.000Z',
 		},
-	} as AppEdge);
+	}) as AppEdge;
 
 function createMatchMedia(matches: boolean) {
 	return jest.fn().mockImplementation((query: string) => ({
@@ -165,5 +165,37 @@ describe('useAnimatedLayout', () => {
 		expect(finalGraph.edges[0].data?.metadata?.waypoints).toEqual([
 			{ id: 'edge-1:wp:0', x: 150, y: 0 },
 		]);
+	});
+
+	it('settles superseded animations instead of leaving the prior promise pending', async () => {
+		const { result } = renderHook(() => useAnimatedLayout());
+
+		const firstPromise = result.current.animateGraphToState({
+			currentNodes: [createNode('a', 0, 0)],
+			targetNodes: [createNode('a', 100, 0)],
+			currentEdges: [createEdge('edge-1', 'a', 'b', 50)],
+			targetEdges: [createEdge('edge-1', 'a', 'b', 100)],
+		});
+
+		const secondPromise = result.current.animateGraphToState({
+			currentNodes: [createNode('a', 50, 0)],
+			targetNodes: [createNode('a', 150, 0)],
+			currentEdges: [createEdge('edge-1', 'a', 'b', 100)],
+			targetEdges: [createEdge('edge-1', 'a', 'b', 150)],
+		});
+
+		await act(async () => {
+			frameQueue.shift()?.(0);
+			frameQueue.shift()?.(550);
+		});
+
+		await expect(firstPromise).resolves.toEqual({
+			nodes: [createNode('a', 100, 0)],
+			edges: [createEdge('edge-1', 'a', 'b', 100)],
+		});
+		await expect(secondPromise).resolves.toEqual({
+			nodes: [createNode('a', 150, 0)],
+			edges: [createEdge('edge-1', 'a', 'b', 150)],
+		});
 	});
 });

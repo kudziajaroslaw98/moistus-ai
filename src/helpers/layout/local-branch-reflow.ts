@@ -42,11 +42,37 @@ interface GraphIndex {
 	outgoing: Map<string, string[]>;
 }
 
+/**
+ * Result contract for deterministic local branch reflow helpers.
+ *
+ * Assumptions:
+ * - Inputs are existing canvas `AppNode` / `AppEdge` records using parent-child
+ *   relationships encoded as `edge.source -> edge.target`.
+ * - The helpers only reposition existing nodes and translate existing waypoint
+ *   metadata; they do not create or delete graph records.
+ *
+ * Result semantics:
+ * - `affectedNodeIds` includes only pre-existing node ids whose position changed.
+ * - `affectedEdgeIds` includes only pre-existing waypoint-edge ids whose
+ *   waypoint arrays were translated to match a subtree move.
+ * - Callers are responsible for persisting the returned `nodes` / `edges` and
+ *   any follow-up rerouting or realtime side effects.
+ */
 export interface LocalBranchReflowResult extends LayoutResult {
 	affectedNodeIds: Set<string>;
 	affectedEdgeIds: Set<string>;
 }
 
+/**
+ * Reflows a newly created branch without moving the edited branch's ancestors.
+ *
+ * Guarantees:
+ * - Keeps the changed branch anchored to its intended lane.
+ * - Re-packs same-depth siblings inside the local branch.
+ * - Expands cousin-branch corridors outward when the grown branch would collide
+ *   with neighboring subtrees.
+ * - Returns only in-memory graph changes; callers must persist and broadcast.
+ */
 export function applyLocalCreateBranchReflow({
 	changedNodeId,
 	nodes,
@@ -78,8 +104,8 @@ export function applyLocalCreateBranchReflow({
 		return createNoopResult(nodes, edges);
 	}
 
-	const siblingIds = [...(graph.outgoing.get(parentId) ?? [])].filter((nodeId) =>
-		graph.nodeById.has(nodeId)
+	const siblingIds = [...(graph.outgoing.get(parentId) ?? [])].filter(
+		(nodeId) => graph.nodeById.has(nodeId)
 	);
 	if (!siblingIds.includes(changedNodeId)) {
 		return createNoopResult(nodes, edges);
@@ -94,9 +120,14 @@ export function applyLocalCreateBranchReflow({
 		)
 	);
 
-	const existingSiblingIds = orderedSiblingIds.filter((nodeId) => nodeId !== changedNodeId);
+	const existingSiblingIds = orderedSiblingIds.filter(
+		(nodeId) => nodeId !== changedNodeId
+	);
 	const changedNodeBounds = getNodeBounds(changedNode);
-	const changedSubtreeNodeIds = collectSubtreeNodeIds(changedNodeId, graph.outgoing);
+	const changedSubtreeNodeIds = collectSubtreeNodeIds(
+		changedNodeId,
+		graph.outgoing
+	);
 	const changedSubtreeBounds = getSubtreeBounds(
 		changedSubtreeNodeIds,
 		graph.nodeById
@@ -165,6 +196,15 @@ export function applyLocalCreateBranchReflow({
 	});
 }
 
+/**
+ * Reflows an edited branch after node size/content changes grow the subtree.
+ *
+ * Guarantees:
+ * - Preserves the edited branch root's anchor position.
+ * - Pushes only later sibling subtrees on the affected carrier axis.
+ * - Translates internal waypoint edges when an entire subtree moves together.
+ * - Returns only the computed graph delta; callers must persist and broadcast.
+ */
 export function applyLocalEditBranchReflow({
 	changedNodeId,
 	nodes,
@@ -177,8 +217,8 @@ export function applyLocalEditBranchReflow({
 	const nodeDeltaById = new Map<string, Delta>();
 
 	if (parentId) {
-		const siblingIds = [...(graph.outgoing.get(parentId) ?? [])].filter((nodeId) =>
-			graph.nodeById.has(nodeId)
+		const siblingIds = [...(graph.outgoing.get(parentId) ?? [])].filter(
+			(nodeId) => graph.nodeById.has(nodeId)
 		);
 
 		if (siblingIds.length >= 2 && siblingIds.includes(changedNodeId)) {
@@ -196,7 +236,10 @@ export function applyLocalEditBranchReflow({
 				const subtreeNodeIdsByRoot = new Map<string, Set<string>>();
 				const subtreeBoundsByRoot = new Map<string, Bounds>();
 				for (const siblingId of orderedSiblingIds) {
-					const subtreeNodeIds = collectSubtreeNodeIds(siblingId, graph.outgoing);
+					const subtreeNodeIds = collectSubtreeNodeIds(
+						siblingId,
+						graph.outgoing
+					);
 					subtreeNodeIdsByRoot.set(siblingId, subtreeNodeIds);
 					subtreeBoundsByRoot.set(
 						siblingId,
@@ -219,8 +262,7 @@ export function applyLocalEditBranchReflow({
 
 						const deltaAlongSiblingAxis = Math.max(
 							0,
-							siblingCursor -
-								getAxisMin(subtreeBounds, behavior.siblingAxis)
+							siblingCursor - getAxisMin(subtreeBounds, behavior.siblingAxis)
 						);
 						if (deltaAlongSiblingAxis <= DELTA_EPSILON) {
 							siblingCursor =
@@ -334,9 +376,16 @@ function collectSubtreeNodeIds(
 }
 
 function getNodeBounds(node: AppNode): Bounds {
-	const width = node.measured?.width ?? node.width ?? node.data.width ?? FALLBACK_NODE_WIDTH;
+	const width =
+		node.measured?.width ??
+		node.width ??
+		node.data.width ??
+		FALLBACK_NODE_WIDTH;
 	const height =
-		node.measured?.height ?? node.height ?? node.data.height ?? FALLBACK_NODE_HEIGHT;
+		node.measured?.height ??
+		node.height ??
+		node.data.height ??
+		FALLBACK_NODE_HEIGHT;
 	const minX = node.position.x;
 	const minY = node.position.y;
 	const maxX = minX + width;
@@ -356,7 +405,8 @@ function getNodeBounds(node: AppNode): Bounds {
 
 function getSubtreeBounds(
 	nodeIds: Set<string>,
-	nodeById: Map<string, AppNode>
+	nodeById: Map<string, AppNode>,
+	nodeDeltaById?: Map<string, Delta>
 ): Bounds {
 	let minX = Number.POSITIVE_INFINITY;
 	let minY = Number.POSITIVE_INFINITY;
@@ -369,7 +419,10 @@ function getSubtreeBounds(
 			continue;
 		}
 
-		const bounds = getNodeBounds(node);
+		const delta = nodeDeltaById?.get(nodeId);
+		const bounds = delta
+			? translateBounds(getNodeBounds(node), delta)
+			: getNodeBounds(node);
 		minX = Math.min(minX, bounds.minX);
 		minY = Math.min(minY, bounds.minY);
 		maxX = Math.max(maxX, bounds.maxX);
@@ -407,7 +460,10 @@ function compareBySiblingAxis(
 	rightBounds: Bounds,
 	siblingAxis: AxisKey
 ): number {
-	return getAxisCenter(leftBounds, siblingAxis) - getAxisCenter(rightBounds, siblingAxis);
+	return (
+		getAxisCenter(leftBounds, siblingAxis) -
+		getAxisCenter(rightBounds, siblingAxis)
+	);
 }
 
 function getLocalGap(config: LayoutConfig): number {
@@ -444,6 +500,7 @@ function applyCarrierCorridorExpansion({
 	const nodeById = new Map(nodes.map((node) => [node.id, node]));
 	const behavior = getDirectionBehavior(config);
 	const clearance = getCorridorClearance(config);
+	const nodeDeltaById = new Map<string, Delta>();
 	for (const carrierRootId of getAncestorChain(growthRootId, edges)) {
 		const carrierRootIds = getCarrierRootIdsAtLayer(
 			carrierRootId,
@@ -463,7 +520,7 @@ function applyCarrierCorridorExpansion({
 			subtreeNodeIdsByRoot.set(rootId, subtreeNodeIds);
 			subtreeBoundsByRoot.set(
 				rootId,
-				getSubtreeBounds(subtreeNodeIds, nodeById)
+				getSubtreeBounds(subtreeNodeIds, nodeById, nodeDeltaById)
 			);
 		}
 
@@ -497,7 +554,6 @@ function applyCarrierCorridorExpansion({
 			continue;
 		}
 
-		const nodeDeltaById = new Map<string, Delta>();
 		const leftRootIds = orderedCarrierRootIds.slice(0, carrierIndex).reverse();
 		const rightRootIds = orderedCarrierRootIds.slice(carrierIndex + 1);
 
@@ -521,11 +577,9 @@ function applyCarrierCorridorExpansion({
 			subtreeBoundsByRoot,
 			nodeDeltaById,
 		});
-
-		return applyBranchReflow(nodes, edges, nodeDeltaById);
 	}
 
-	return createNoopResult(nodes, edges);
+	return applyBranchReflow(nodes, edges, nodeDeltaById);
 }
 
 function getCarrierRootIdsAtLayer(
@@ -545,7 +599,9 @@ function getCarrierRootIdsAtLayer(
 
 function getTopLevelRootIds(nodes: AppNode[], edges: AppEdge[]): string[] {
 	const childNodeIds = new Set(edges.map((edge) => edge.target));
-	return nodes.filter((node) => !childNodeIds.has(node.id)).map((node) => node.id);
+	return nodes
+		.filter((node) => !childNodeIds.has(node.id))
+		.map((node) => node.id);
 }
 
 function getAncestorChain(nodeId: string, edges: AppEdge[]): string[] {
@@ -618,7 +674,16 @@ function applySideExpansion({
 
 		if (hasMeaningfulDelta(delta)) {
 			for (const nodeId of subtreeNodeIds) {
-				nodeDeltaById.set(nodeId, delta);
+				const existingDelta = nodeDeltaById.get(nodeId);
+				nodeDeltaById.set(
+					nodeId,
+					existingDelta
+						? {
+								x: existingDelta.x + delta.x,
+								y: existingDelta.y + delta.y,
+							}
+						: delta
+				);
 			}
 		}
 
@@ -665,7 +730,11 @@ function applyBranchReflow(
 
 		const sourceDelta = nodeDeltaById.get(edge.source);
 		const targetDelta = nodeDeltaById.get(edge.target);
-		if (!sourceDelta || !targetDelta || !deltasEqual(sourceDelta, targetDelta)) {
+		if (
+			!sourceDelta ||
+			!targetDelta ||
+			!deltasEqual(sourceDelta, targetDelta)
+		) {
 			return edge;
 		}
 
@@ -707,8 +776,7 @@ function createNoopResult(
 
 function isWaypointEdge(edge: AppEdge): boolean {
 	return (
-		edge.type === 'waypointEdge' ||
-		edge.data?.metadata?.pathType === 'waypoint'
+		edge.type === 'waypointEdge' || edge.data?.metadata?.pathType === 'waypoint'
 	);
 }
 

@@ -1,9 +1,9 @@
+import { rerouteAutoWaypointEdges } from '@/helpers/route-auto-waypoint-edges';
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import {
 	transformSupabaseData,
 	type SupabaseMapData,
 } from '@/helpers/transform-supabase-data';
-import { rerouteAutoWaypointEdges } from '@/helpers/route-auto-waypoint-edges';
 import {
 	generateFallbackAvatar,
 	generateFunName,
@@ -294,7 +294,9 @@ export const createCoreDataSlice: StateCreator<
 			) {
 				void persistNormalizedLayoutDirection(
 					mapId,
-					normalizedPersistedLayoutDirection
+					get().supabase,
+					normalizedPersistedLayoutDirection,
+					graphData.map_updated_at
 				);
 			}
 
@@ -454,20 +456,37 @@ export const createCoreDataSlice: StateCreator<
 
 async function persistNormalizedLayoutDirection(
 	mapId: string,
-	layoutDirection: 'LEFT_RIGHT' | 'TOP_BOTTOM'
+	supabase: AppState['supabase'],
+	layoutDirection: 'LEFT_RIGHT' | 'TOP_BOTTOM',
+	expectedUpdatedAt: string | null | undefined
 ): Promise<void> {
-	const response = await fetch(`/api/maps/${mapId}`, {
-		method: 'PUT',
-		headers: {
-			'Content-Type': 'application/json',
-		},
-		body: JSON.stringify({ layout_direction: layoutDirection }),
-	});
+	if (!supabase || !expectedUpdatedAt) {
+		return;
+	}
 
-	if (!response.ok) {
+	const { data, error } = await supabase
+		.from('mind_maps')
+		.update({
+			layout_direction: layoutDirection,
+			updated_at: new Date().toISOString(),
+		})
+		.eq('id', mapId)
+		.eq('updated_at', expectedUpdatedAt)
+		.select('id')
+		.maybeSingle();
+
+	if (error) {
 		console.warn(
 			'[core-slice] failed to normalize persisted layout direction',
-			await response.text()
+			error
+		);
+		return;
+	}
+
+	if (!data) {
+		console.warn(
+			'[core-slice] skipped layout-direction normalization for stale snapshot',
+			{ mapId, expectedUpdatedAt }
 		);
 	}
 }
@@ -477,22 +496,46 @@ async function persistNormalizedAutoRoutedEdges(
 	supabase: AppState['supabase'],
 	edges: AppEdge[]
 ): Promise<void> {
-	if (edges.length === 0) {
+	if (!supabase || edges.length === 0) {
 		return;
 	}
 
-	const updates = edges.map((edge) => ({
-		id: edge.id,
-		map_id: mapId,
-		metadata: edge.data?.metadata ?? null,
-		updated_at: new Date().toISOString(),
-	}));
+	await Promise.all(
+		edges.map(async (edge) => {
+			const expectedUpdatedAt = edge.data?.updated_at;
+			if (!expectedUpdatedAt) {
+				return;
+			}
 
-	const { error } = await supabase
-		.from('edges')
-		.upsert(updates, { onConflict: 'id' });
+			const { data, error } = await supabase
+				.from('edges')
+				.update({
+					metadata: edge.data?.metadata ?? null,
+					updated_at: new Date().toISOString(),
+				})
+				.eq('id', edge.id)
+				.eq('map_id', mapId)
+				.eq('updated_at', expectedUpdatedAt)
+				.select('id')
+				.maybeSingle();
 
-	if (error) {
-		console.warn('[core-slice] failed to normalize edge routing metadata', error);
-	}
+			if (error) {
+				console.warn('[core-slice] failed to normalize edge routing metadata', {
+					edgeId: edge.id,
+					error,
+				});
+				return;
+			}
+
+			if (!data) {
+				console.warn(
+					'[core-slice] skipped edge-routing normalization for stale snapshot',
+					{
+						edgeId: edge.id,
+						expectedUpdatedAt,
+					}
+				);
+			}
+		})
+	);
 }

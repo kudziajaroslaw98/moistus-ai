@@ -49,7 +49,7 @@ describe('transformSupabaseData', () => {
 					markerEnd: undefined,
 					markerStart: undefined,
 					style: null,
-					metadata: {},
+					metadata: { pathType: 'bezier' },
 					aiData: null,
 				},
 			],

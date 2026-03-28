@@ -680,7 +680,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 			}
 
 			if (mode === 'create' && result.nodeId) {
-				void applyLayoutAroundNode(result.nodeId, { radius: 1 });
+				void applyLayoutAroundNode(result.nodeId);
 			}
 
 			// Close the editor after successful creation/update

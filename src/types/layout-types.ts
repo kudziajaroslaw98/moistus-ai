@@ -5,11 +5,11 @@
 
 // Re-export ELK types for use in converters
 export type {
-	ElkNode,
 	ElkExtendedEdge as ElkEdge,
 	ElkEdgeSection,
 	ElkLabel,
 	LayoutOptions as ElkLayoutOptions,
+	ElkNode,
 } from 'elkjs/lib/elk-api';
 
 // Layout direction options
@@ -99,7 +99,7 @@ export interface LayoutSlice {
 	setLayoutConfig: (config: Partial<LayoutConfig>) => void;
 	applyLayout: (direction?: LayoutDirection) => Promise<void>;
 	applyLayoutToSelected: () => Promise<void>;
-	applyLayoutAroundNode: (nodeId: string, opts?: { radius?: number; alpha?: number }) => Promise<void>;
+	applyLayoutAroundNode: (nodeId: string) => Promise<void>;
 	queueLocalLayoutOnResize: (nodeId: string) => void;
 	clearQueuedLocalLayoutOnResize: (nodeId: string) => void;
 	runQueuedLocalLayoutOnResize: (nodeId: string) => Promise<void>;

@@ -52,7 +52,10 @@ export const PUT = withApiValidation<
 		if (validatedBody.thumbnailUrl !== undefined)
 			updateData.thumbnail_url = validatedBody.thumbnailUrl;
 		if (validatedBody.layout_direction !== undefined)
-			updateData.layout_direction = validatedBody.layout_direction;
+			updateData.layout_direction =
+				validatedBody.layout_direction === null
+					? null
+					: normalizeLayoutDirection(validatedBody.layout_direction);
 		// is_template and template_category are system-managed — ignore user input
 		// Templates are created/managed through admin flows, not user API calls
 
@@ -77,7 +80,11 @@ export const PUT = withApiValidation<
 		);
 	} catch (error) {
 		console.error('Error in PUT /api/maps/[id]:', error);
-		return respondError('Error updating mind map', 500, 'Internal server error');
+		return respondError(
+			'Error updating mind map',
+			500,
+			'Internal server error'
+		);
 	}
 });
 
