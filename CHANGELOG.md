@@ -13,12 +13,45 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-03-05 - Fixed notification side-effect timing so email dispatch is no longer deferred by client focus/activity -->
 <!-- Updated: 2026-03-06 - Fixed shared-map node entitlement flow for collaborators by using owner subscription lookup in server API checks -->
 <!-- Updated: 2026-03-07 - Tightened template preflight failure handling and create/edit node-limit UX gating -->
+<!-- Updated: 2026-03-11 - Replaced broken local ELK edits with deterministic branch reflow and persisted per-map layout direction -->
+<!-- Updated: 2026-03-11 - Switched normal edges to auto-routed waypoint geometry and removed raw manual waypoint editing -->
 <!-- Updated: 2026-03-17 - Replaced pricing-first onboarding with an editor-first walkthrough and split upgrade prompts back to the dedicated modal -->
 <!-- Updated: 2026-03-17 - Refined onboarding v2 with split intro, canvas/add substeps, toolbar-state fix, and Pro upsell guard -->
 <!-- Updated: 2026-03-18 - Added mobile onboarding shell, viewport-aware controls tour, and touch edit affordance -->
 <!-- Updated: 2026-03-20 - Morphed the minimized walkthrough into the checklist surface and repositioned the walkthrough anchors for cleaner motion -->
 <!-- Updated: 2026-03-25 - Replaced minimized walkthrough resume copy with the next actionable task -->
 <!-- Updated: 2026-03-25 - Patched GitHub Dependabot vulnerabilities with targeted dependency upgrades -->
+<!-- Updated: 2026-03-28 - Resolved PR #46 merge conflicts and preserved local layout plus onboarding/access behavior -->
+<!-- Updated: 2026-03-28 - Hardened layout animation/reflow cleanup, legacy layout normalization, and waypoint-edge rendering after CodeRabbit review -->
+<!-- Updated: 2026-03-28 - Handled quick-input local layout rejections after create mode node insertion -->
+
+## [2026-03-28]
+
+### Changed
+
+- **pr-46/conflict-resolution**: Merged the local incremental layout branch into the current editor/onboarding baseline while preserving animated layout transitions, local branch reflow hooks, node-limit gating, mobile notifications wiring, and waypoint-edge edit behavior
+  - Why: Resolves PR `#46` against `main` without regressing shipped onboarding/access behavior or dropping the new local layout work
+
+### Fixed
+
+- **editor-canvas/merge-regression-recovery**: Preserved waypoint-edge double-click bend insertion and kept the layout trigger on the current Base UI/onboarding-compatible implementation during the merge
+  - Why: Git's automatic merge accepted those files but silently dropped editor behavior, while the current runtime already normalizes layout directions to the shipped two-option model
+- **layout/review-hardening**: Deferred layout-animation completion until tweens settle, resolved superseded animation promises, preserved ELK-routed waypoints during edge edits, and kept queued local resize reflows from lingering or dropping too early
+  - Why: The CodeRabbit review surfaced real race conditions between animated display state, local edit reflow queueing, and edge rerouting
+- **layout/legacy-normalization**: Accepted legacy layout-direction values at the API boundary, normalized legacy edge path metadata on load, and guarded load-time normalization writes with snapshot freshness checks
+  - Why: Older persisted data should still render correctly without allowing background normalization to overwrite newer server state
+- **quick-input/local-layout-error-handling**: Handled the post-create `applyLayoutAroundNode(...)` promise explicitly instead of dropping rejections
+  - Why: The create flow keeps local layout application non-blocking, but promise failures should still be surfaced instead of becoming unhandled rejections
+
+### Refactored
+
+- **layout/module-boundaries**: Removed the `src/helpers/layout` barrel, tightened guided-tour layout-direction typing, and cleaned the node-creator / quick-input test harness typing
+  - Why: Keeps the layout helpers aligned with the repo's no-barrel rule and lets TypeScript enforce the current API contracts more directly
+
+### Docs
+
+- **layout/docs**: Added local branch reflow invariant docs in `ai-docs/local-branch-reflow/local-branch-reflow.md` and expanded JSDoc for the local reflow and auto-routing helpers
+  - Why: The review called out hidden assumptions around create/edit guarantees, affected-id semantics, and routing selection rules
 
 ## [2026-03-25]
 
@@ -189,6 +222,38 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **onboarding/v1-steps**: Deleted the legacy welcome, benefits, and pricing onboarding step components and the numeric step state that powered them
   - Why: Backward compatibility was intentionally out of scope for the redesign
+
+## [2026-03-11]
+
+### Changed
+
+- **layout/local-branch-reflow**: Replaced create/edit local ELK solves with deterministic parent-centric subtree reflow and deferred edit pushes until committed node dimension changes
+  - Why: Keeps full ELK layout intact while preventing automatic local edits from moving ancestors or unrelated branches
+- **layout/transition-animation**: React Flow now renders layout-triggered node and routed-edge transitions through a client-only animated display graph
+  - Why: Prevents full/local layout operations from visually snapping while still persisting only the final geometry
+- **layout/transition-timing**: Increased the shared layout transition duration from `300ms` to `550ms`
+  - Why: Gives large layout moves enough time to read without making repeated local reflows feel sluggish
+- **layout/local-corridor-expansion**: Local branch reflow now opens sibling-layer corridor space by pushing overlapping cousin subtrees outward on the sibling axis
+  - Why: Prevents growing middle branches from colliding with taller neighboring cousin branches without falling back to full layout
+- **maps/layout-direction**: Added persisted per-map `layout_direction` handling through map load/update paths
+  - Why: Prevents refreshes from resetting collaborative maps back to the default left-to-right orientation
+- **layout/supported-modes**: Reduced supported layout directions to `LEFT_RIGHT` and `TOP_BOTTOM`, and normalized legacy saved directions into those survivors
+  - Why: Removes low-value broken modes and keeps both global and local layout behavior within the two shapes users actually rely on
+
+### Added
+
+- **db/mind-maps-layout-direction**: Added an ignored local Supabase migration for the nullable `mind_maps.layout_direction` column and constraint
+  - Why: Stores shared canvas orientation in the database without changing git state for ignored Supabase artifacts
+
+### Fixed
+
+- **edges/auto-routing**: Standardized normal persisted edges on auto-routed `waypointEdge` geometry for local reflows, node moves/resizes, new connections, and legacy load normalization
+  - Why: Prevents stale bend points after node movement and keeps local routing deterministic without re-running ELK
+
+### Removed
+
+- **edges/manual-waypoints**: Removed raw waypoint add/delete/drag interactions and manual path-style switching from edge edit surfaces
+  - Why: Absolute bend points became stale as soon as nodes moved, which made the feature actively frustrating
 
 ## [2026-03-07]
 

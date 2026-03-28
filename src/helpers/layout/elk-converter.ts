@@ -7,7 +7,6 @@ import generateUuid from '@/helpers/generate-uuid';
 import { projectToNodePerimeter } from '@/helpers/get-anchor-position';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
-import type { EdgeAnchor, Waypoint } from '@/types/path-types';
 import type {
 	ElkEdge,
 	ElkEdgeSection,
@@ -15,7 +14,12 @@ import type {
 	LayoutConfig,
 	LayoutResult,
 } from '@/types/layout-types';
-import { buildGroupLayoutOptions, buildLayoutOptions, getRecommendedCurveType } from './elk-config';
+import type { EdgeAnchor, Waypoint } from '@/types/path-types';
+import {
+	buildGroupLayoutOptions,
+	buildLayoutOptions,
+	getRecommendedCurveType,
+} from './elk-config';
 
 // Default dimensions for nodes without explicit size
 const DEFAULT_NODE_WIDTH = 320;
@@ -48,8 +52,10 @@ function elkPointToAnchor(
 		return undefined;
 	}
 
-	const width = originalNode.measured?.width ?? originalNode.width ?? DEFAULT_NODE_WIDTH;
-	const height = originalNode.measured?.height ?? originalNode.height ?? DEFAULT_NODE_HEIGHT;
+	const width =
+		originalNode.measured?.width ?? originalNode.width ?? DEFAULT_NODE_WIDTH;
+	const height =
+		originalNode.measured?.height ?? originalNode.height ?? DEFAULT_NODE_HEIGHT;
 
 	// Create a node-like structure compatible with projectToNodePerimeter
 	const nodeLike = {
@@ -111,7 +117,9 @@ export function convertToElkGraph(
 
 	// Add non-grouped nodes at root level
 	const groupedNodeIds = new Set(
-		groupNodes.flatMap((g) => (g.data.metadata?.groupChildren as string[]) || [])
+		groupNodes.flatMap(
+			(g) => (g.data.metadata?.groupChildren as string[]) || []
+		)
 	);
 	const ungroupedNodes = regularNodes.filter((n) => !groupedNodeIds.has(n.id));
 
@@ -175,7 +183,12 @@ export function convertFromElkGraph(
 	extractPositions(elkGraph, 0, 0, positionMap);
 
 	// Extract edge layout data (waypoints AND anchors)
-	extractEdgeLayoutData(elkGraph, edgeLayoutDataMap, positionMap, originalNodes);
+	extractEdgeLayoutData(
+		elkGraph,
+		edgeLayoutDataMap,
+		positionMap,
+		originalNodes
+	);
 
 	// Get recommended curve type for this layout direction
 	const curveType = getRecommendedCurveType(config.direction);
@@ -219,6 +232,7 @@ export function convertFromElkGraph(
 						...edgeMetadata,
 						waypoints: undefined,
 						curveType: undefined,
+						routingStyle: undefined,
 						sourceAnchor: undefined,
 						targetAnchor: undefined,
 					},
@@ -237,6 +251,7 @@ export function convertFromElkGraph(
 					pathType: 'waypoint' as const,
 					waypoints: layoutData.waypoints,
 					curveType,
+					routingStyle: 'elk' as const,
 					sourceAnchor: layoutData.sourceAnchor,
 					targetAnchor: layoutData.targetAnchor,
 				},
@@ -261,7 +276,11 @@ function extractPositions(
 	positionMap: Map<string, { x: number; y: number }>
 ): void {
 	// Skip the root node (id='root')
-	if (elkNode.id !== 'root' && elkNode.x !== undefined && elkNode.y !== undefined) {
+	if (
+		elkNode.id !== 'root' &&
+		elkNode.x !== undefined &&
+		elkNode.y !== undefined
+	) {
 		positionMap.set(elkNode.id, {
 			x: offsetX + elkNode.x,
 			y: offsetY + elkNode.y,
@@ -410,9 +429,16 @@ function optimizeWaypoints(waypoints: Waypoint[]): Waypoint[] {
  * Check if three points are approximately collinear
  * Uses cross product area calculation
  */
-function areCollinear(p1: Waypoint, p2: Waypoint, p3: Waypoint, threshold: number): boolean {
+function areCollinear(
+	p1: Waypoint,
+	p2: Waypoint,
+	p3: Waypoint,
+	threshold: number
+): boolean {
 	// Calculate the area of the triangle formed by the three points
 	// If area is small, points are collinear
-	const area = Math.abs((p2.x - p1.x) * (p3.y - p1.y) - (p3.x - p1.x) * (p2.y - p1.y));
+	const area = Math.abs(
+		(p2.x - p1.x) * (p3.y - p1.y) - (p3.x - p1.x) * (p2.y - p1.y)
+	);
 	return area < threshold;
 }

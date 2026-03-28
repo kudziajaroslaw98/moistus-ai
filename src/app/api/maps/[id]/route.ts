@@ -1,6 +1,8 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
 import { updateMapSchema } from '@/lib/validations/map-settings-schema';
+import { normalizeLayoutDirection } from '@/types/layout-types';
+import type { MindMapData } from '@/types/mind-map-data';
 import { z } from 'zod';
 
 /**
@@ -49,6 +51,11 @@ export const PUT = withApiValidation<
 		if (validatedBody.tags !== undefined) updateData.tags = validatedBody.tags;
 		if (validatedBody.thumbnailUrl !== undefined)
 			updateData.thumbnail_url = validatedBody.thumbnailUrl;
+		if (validatedBody.layout_direction !== undefined)
+			updateData.layout_direction =
+				validatedBody.layout_direction === null
+					? null
+					: normalizeLayoutDirection(validatedBody.layout_direction);
 		// is_template and template_category are system-managed — ignore user input
 		// Templates are created/managed through admin flows, not user API calls
 
@@ -67,13 +74,17 @@ export const PUT = withApiValidation<
 		}
 
 		return respondSuccess(
-			{ map: updatedMap },
+			{ map: toMindMapData(updatedMap) },
 			200,
 			'Mind map updated successfully'
 		);
 	} catch (error) {
 		console.error('Error in PUT /api/maps/[id]:', error);
-		return respondError('Error updating mind map', 500, 'Internal server error');
+		return respondError(
+			'Error updating mind map',
+			500,
+			'Internal server error'
+		);
 	}
 });
 
@@ -167,3 +178,31 @@ export const DELETE = withApiValidation<any, any, { id: string }>(
 		}
 	}
 );
+
+function toMindMapData(map: {
+	id: string;
+	user_id: string;
+	title: string;
+	description: string | null;
+	tags: string[] | null;
+	thumbnail_url: string | null;
+	is_template: boolean | null;
+	template_category: string | null;
+	layout_direction: string | null;
+	created_at: string;
+	updated_at: string;
+}): MindMapData {
+	return {
+		id: map.id,
+		user_id: map.user_id,
+		title: map.title,
+		description: map.description,
+		tags: map.tags ?? undefined,
+		thumbnailUrl: map.thumbnail_url,
+		is_template: map.is_template ?? undefined,
+		template_category: map.template_category,
+		layout_direction: normalizeLayoutDirection(map.layout_direction),
+		created_at: map.created_at,
+		updated_at: map.updated_at,
+	};
+}

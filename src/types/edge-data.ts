@@ -21,10 +21,11 @@ export interface EdgeData extends Record<string, unknown> {
 	metadata?: {
 		pathType?: PathType; // Added pathType
 		isGhostEdge?: boolean; // Mark edges as ghost edges for cleanup
-		waypoints?: Waypoint[]; // Array of draggable waypoints for custom edge routing
+		waypoints?: Waypoint[]; // Derived bend points for auto-routed waypoint edges
 		curveType?: WaypointCurveType; // Curve interpolation type for waypoint edges
-		sourceAnchor?: EdgeAnchor; // Custom anchor position on source node border
-		targetAnchor?: EdgeAnchor; // Custom anchor position on target node border
+		sourceAnchor?: EdgeAnchor; // Routed anchor position on source node border
+		targetAnchor?: EdgeAnchor; // Routed anchor position on target node border
+		routingStyle?: 'orthogonal' | 'elk';
 	} | null;
 	aiData?: {
 		isSuggested?: boolean | null;

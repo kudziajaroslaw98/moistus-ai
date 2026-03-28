@@ -118,6 +118,26 @@ pnpm pretty          # Prettier
 ## Core Gotchas
 
 **NodeData.metadata**: Single unified type (not discriminated union per node type). Enables seamless node type switching without data loss. Do NOT split into per-type unions.
+<!-- Updated: 2026-01-06 -->
+<!-- Updated: 2026-03-28 - Reconciled local layout and edge-routing gotchas with the current onboarding/editor docs during PR #46 merge -->
+
+**Edge routing**: Raw manual waypoint editing is removed. Normal persisted edges use auto-routed `waypointEdge` geometry, and future manual edge control must be constraint-based (anchor/bias/lane hints), never absolute bend points.
+<!-- Updated: 2026-03-11 - Replaced raw waypoint editing with auto-routed waypoint edges and deferred future manual control to constraints -->
+
+**Identity precedence**: Use `user_profiles` as canonical identity source across sharing + realtime UI (`display_name`, `avatar_url`) with fallback order: auth metadata, then deterministic fallback helpers. Keep resolver logic centralized in `src/helpers/identity/resolve-user-identity.ts`.
+<!-- Updated: 2026-02-24 - Unified collaborator label/avatar precedence across manage + presence -->
+
+**PartyKit Supabase env precedence**: `SUPABASE_URL` overrides `NEXT_PUBLIC_SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE` overrides `SUPABASE_SERVICE_ROLE_KEY`. Keep only one canonical pair in PartyKit deploy env to avoid stale shadow values. PartyKit now trims and unwraps quoted env values and warns once when both variants are set with different values.
+<!-- Updated: 2026-02-24 - Documented PartyKit env shadowing/quoting gotcha for realtime admin failures -->
+
+**PartyKit WS auth fallback**: Realtime connect auth first verifies JWT via JWKS; if that fails, it falls back to Supabase `/auth/v1/user` token validation using service-role credentials. This is a resilience path for issuer/JWKS drift; treat fallback log lines as configuration debt to clean up.
+<!-- Updated: 2026-02-24 - Documented realtime JWT fallback behavior and operational meaning -->
+
+**Map Settings templates**: `is_template` and `template_category` are system-managed and not user-editable in the Map Settings panel.
+<!-- Updated: 2026-02-27 - Removed non-persisting template controls from map settings UI -->
+
+**Node editor parser scope**: Parser syntax no longer supports `bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`, or `$reference` quick-switch in node editor flows. Syntax Help is split into `Universal` (type-filtered) and `Node-specific` sections.
+<!-- Updated: 2026-02-28 - Removed deprecated parser tokens and introduced dual syntax help model -->
 
 **Rate Limiting**: In-memory only (`src/helpers/api/rate-limiter.ts`), won't scale horizontally without Redis.
 

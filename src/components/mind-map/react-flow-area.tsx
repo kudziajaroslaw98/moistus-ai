@@ -34,13 +34,14 @@ import FloatingEdge from '@/components/edges/floating-edge';
 import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edge';
 import { GuidedTourMode, PathBuilder } from '@/components/guided-tour';
 import { UpgradeModal } from '@/components/modals/upgrade-modal';
-import { useNotifications } from '@/components/notifications/use-notifications';
 import { ModeIndicator } from '@/components/mode-indicator';
+import { useNotifications } from '@/components/notifications/use-notifications';
 import { OnboardingModal } from '@/components/onboarding/onboarding-modal';
 import { ShortcutsHelpFab } from '@/components/shortcuts-help/shortcuts-help-fab';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useActivityTracker } from '@/hooks/realtime/use-activity-tracker';
 import { useUpgradePrompt } from '@/hooks/subscription/use-upgrade-prompt';
+import { useAnimatedLayout } from '@/hooks/use-animated-layout';
 import { useContextMenu } from '@/hooks/use-context-menu';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNodeSuggestion } from '@/hooks/use-node-suggestion';
@@ -132,6 +133,9 @@ export function ReactFlowArea() {
 		addNodeToPath,
 		isCommentMode,
 		getCurrentShareUsers,
+		layoutAnimationVersion,
+		animatedNodeIds,
+		animatedEdgeIds,
 	} = useAppStore(
 		useShallow((state) => ({
 			supabase: state.supabase,
@@ -180,11 +184,15 @@ export function ReactFlowArea() {
 			// Comment mode - needed for visibility memoization
 			isCommentMode: state.isCommentMode,
 			getCurrentShareUsers: state.getCurrentShareUsers,
+			layoutAnimationVersion: state.layoutAnimationVersion,
+			animatedNodeIds: state.animatedNodeIds,
+			animatedEdgeIds: state.animatedEdgeIds,
 		}))
 	);
 
 	const { contextMenuHandlers } = useContextMenu();
 	const { generateSuggestionsForNode } = useNodeSuggestion();
+	const { animateGraphToState, cancelAnimation } = useAnimatedLayout();
 	const { canEdit } = usePermissions();
 	const isMobile = useIsMobile();
 	const mobileNotifications = useNotifications({
@@ -245,6 +253,112 @@ export function ReactFlowArea() {
 	const visibleEdges = useMemo(() => {
 		return getVisibleEdges();
 	}, [edges, nodes, getVisibleEdges, isCommentMode]);
+	const [displayNodes, setDisplayNodes] = useState<AppNode[]>(visibleNodes);
+	const [displayEdges, setDisplayEdges] = useState<AppEdge[]>(visibleEdges);
+	const displayNodesRef = useRef<AppNode[]>(visibleNodes);
+	const displayEdgesRef = useRef<AppEdge[]>(visibleEdges);
+	const handledLayoutAnimationVersionRef = useRef(0);
+	const inFlightLayoutAnimationVersionRef = useRef<number | null>(null);
+
+	useEffect(() => {
+		displayNodesRef.current = displayNodes;
+	}, [displayNodes]);
+
+	useEffect(() => {
+		displayEdgesRef.current = displayEdges;
+	}, [displayEdges]);
+
+	useEffect(() => {
+		if (inFlightLayoutAnimationVersionRef.current === layoutAnimationVersion) {
+			return;
+		}
+
+		if (layoutAnimationVersion === handledLayoutAnimationVersionRef.current) {
+			setDisplayNodes(visibleNodes);
+			setDisplayEdges(visibleEdges);
+		}
+	}, [visibleNodes, visibleEdges, layoutAnimationVersion]);
+
+	useEffect(() => {
+		if (
+			layoutAnimationVersion === 0 ||
+			layoutAnimationVersion === handledLayoutAnimationVersionRef.current ||
+			inFlightLayoutAnimationVersionRef.current === layoutAnimationVersion
+		) {
+			return;
+		}
+
+		const animationVersion = layoutAnimationVersion;
+		let isCancelled = false;
+		inFlightLayoutAnimationVersionRef.current = animationVersion;
+
+		void animateGraphToState({
+			currentNodes:
+				displayNodesRef.current.length > 0
+					? displayNodesRef.current
+					: visibleNodes,
+			targetNodes: visibleNodes,
+			currentEdges:
+				displayEdgesRef.current.length > 0
+					? displayEdgesRef.current
+					: visibleEdges,
+			targetEdges: visibleEdges,
+			animatedNodeIds,
+			animatedEdgeIds,
+			onFrame: ({ nodes: nextNodes, edges: nextEdges }) => {
+				if (isCancelled) {
+					return;
+				}
+
+				setDisplayNodes(nextNodes);
+				setDisplayEdges(nextEdges);
+			},
+		}).then(({ nodes: nextNodes, edges: nextEdges }) => {
+			if (isCancelled) {
+				return;
+			}
+
+			handledLayoutAnimationVersionRef.current = animationVersion;
+			if (inFlightLayoutAnimationVersionRef.current === animationVersion) {
+				inFlightLayoutAnimationVersionRef.current = null;
+			}
+			setDisplayNodes(nextNodes);
+			setDisplayEdges(nextEdges);
+		});
+
+		return () => {
+			isCancelled = true;
+			handledLayoutAnimationVersionRef.current = animationVersion;
+			if (inFlightLayoutAnimationVersionRef.current === animationVersion) {
+				inFlightLayoutAnimationVersionRef.current = null;
+			}
+		};
+	}, [
+		animateGraphToState,
+		animatedEdgeIds,
+		animatedNodeIds,
+		layoutAnimationVersion,
+		visibleEdges,
+		visibleNodes,
+	]);
+
+	useEffect(() => {
+		if (!isDraggingNodes) {
+			return;
+		}
+
+		inFlightLayoutAnimationVersionRef.current = null;
+		handledLayoutAnimationVersionRef.current = layoutAnimationVersion;
+		cancelAnimation();
+		setDisplayNodes(visibleNodes);
+		setDisplayEdges(visibleEdges);
+	}, [
+		cancelAnimation,
+		isDraggingNodes,
+		layoutAnimationVersion,
+		visibleEdges,
+		visibleNodes,
+	]);
 
 	useEffect(() => {
 		maybeStartOnboarding();
@@ -428,7 +542,7 @@ export function ReactFlowArea() {
 
 	const handleEdgeDoubleClick: EdgeMouseHandler<Edge<EdgeData>> = useCallback(
 		(event, edge) => {
-			// Forward double-click to waypoint edge component via custom event
+			// Waypoint edges add a bend point on double-click instead of opening edge edit.
 			if (
 				edge.type === 'waypointEdge' ||
 				edge.data?.metadata?.pathType === 'waypoint'
@@ -443,10 +557,11 @@ export function ReactFlowArea() {
 				document.dispatchEvent(customEvent);
 				return;
 			}
+
 			setEdgeInfo(edge);
 			setPopoverOpen({ edgeEdit: true });
 		},
-		[]
+		[setEdgeInfo, setPopoverOpen]
 	);
 
 	const nodeTypesWithProps: NodeTypes = useMemo(
@@ -616,13 +731,13 @@ export function ReactFlowArea() {
 				connectionMode={ConnectionMode.Loose}
 				deleteKeyCode={canEdit ? ['Delete'] : null}
 				disableKeyboardA11y={true}
-				edges={visibleEdges}
+				edges={displayEdges}
 				edgeTypes={edgeTypes}
 				elementsSelectable={isSelectMode}
 				fitView={true}
 				minZoom={0.1}
 				multiSelectionKeyCode={['Meta', 'Control']}
-				nodes={visibleNodes}
+				nodes={displayNodes}
 				nodesConnectable={
 					(isSelectMode || activeTool === 'connector') && canEdit
 				}

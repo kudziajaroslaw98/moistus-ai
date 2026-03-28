@@ -1,48 +1,12 @@
 'use client';
 import { EdgeData } from '@/types/edge-data';
-import { PathType } from '@/types/path-types';
 import { Edge } from '@xyflow/react';
-import ABezierBIcon from '../icons/a-bezier-b';
-import ASmoothstepBIcon from '../icons/a-smoothstep-b';
-import AStepBIcon from '../icons/a-step-b';
-import AStrainghtBIcon from '../icons/a-straight-b';
-import AWaypointBIcon from '../icons/a-waypoint-b';
 import { ToggleGroup, ToggleGroupItem } from '../ui/toggle-group';
 
 interface EdgeStyleSelectorProps {
 	edge: Edge<Partial<EdgeData>>;
-	onPathTypeChange: (pathType: PathType) => void;
 	onColorChange: (color: string | undefined) => void;
 }
-
-const getItemIcon = (type: PathType) => {
-	const iconProps = {
-		className: 'size-4 text-text-primary',
-	};
-
-	switch (type) {
-		case 'smoothstep':
-			return <ASmoothstepBIcon {...iconProps} />;
-		case 'step':
-			return <AStepBIcon {...iconProps} />;
-		case 'straight':
-			return <AStrainghtBIcon {...iconProps} />;
-		case 'bezier':
-			return <ABezierBIcon {...iconProps} />;
-		case 'waypoint':
-			return <AWaypointBIcon {...iconProps} />;
-		default:
-			return <ASmoothstepBIcon {...iconProps} />;
-	}
-};
-
-const pathTypeOptions: PathType[] = [
-	'smoothstep',
-	'step',
-	'straight',
-	'bezier',
-	'waypoint',
-];
 
 const colorOptions = [
 	{ name: 'Default', value: undefined },
@@ -54,7 +18,6 @@ const colorOptions = [
 
 export function EdgeStyleSelector({
 	edge,
-	onPathTypeChange,
 	onColorChange,
 }: EdgeStyleSelectorProps) {
 	// Generate edge color options including custom color
@@ -69,30 +32,6 @@ export function EdgeStyleSelector({
 
 	return (
 		<>
-			{/* Path Style Section */}
-			<span className='block w-full rounded-md px-2 py-1 text-xs font-medium text-text-secondary'>
-				Path Style
-			</span>
-
-			<ToggleGroup
-				className='flex px-2 pb-2'
-				onValueChange={(value) => value && onPathTypeChange(value as PathType)}
-				type='single'
-				value={edge.data?.metadata?.pathType}
-			>
-				{pathTypeOptions.map((pathType) => (
-					<ToggleGroupItem
-						aria-label={`${pathType} path`}
-						className='h-8 w-8 p-0'
-						key={pathType}
-						value={pathType}
-					>
-						{getItemIcon(pathType)}
-					</ToggleGroupItem>
-				))}
-			</ToggleGroup>
-
-			{/* Color Section */}
 			<span className='block w-full rounded-md px-2 py-1 text-xs font-medium text-text-secondary'>
 				Color
 			</span>

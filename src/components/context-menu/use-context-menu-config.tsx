@@ -6,7 +6,6 @@ import type { NodeEditorOptions } from '@/store/app-state';
 import useAppStore from '@/store/mind-map-store';
 import type { AppNode } from '@/types/app-node';
 import type { EdgeData } from '@/types/edge-data';
-import type { PathType } from '@/types/path-types';
 import { type Edge, type Node, type ReactFlowInstance } from '@xyflow/react';
 import {
 	ChevronDown,
@@ -285,30 +284,6 @@ function buildEdgeMenu(params: BuildEdgeMenuParams): MenuSection[] {
 									data: {
 										style: {
 											stroke: color,
-										},
-									},
-								});
-							}}
-							onPathTypeChange={(pathType: PathType) => {
-								// Update edge type based on path type
-								const edgeType =
-									pathType === 'waypoint' ? 'waypointEdge' : 'floatingEdge';
-
-								// When switching away from waypoint, clear waypoints
-								const shouldClearWaypoints =
-									pathType !== 'waypoint' &&
-									clickedEdge.data?.metadata?.pathType === 'waypoint';
-
-								updateEdge({
-									edgeId: clickedEdge.id,
-									data: {
-										type: edgeType,
-										metadata: {
-											...clickedEdge.data?.metadata,
-											pathType,
-											waypoints: shouldClearWaypoints
-												? undefined
-												: clickedEdge.data?.metadata?.waypoints,
 										},
 									},
 								});

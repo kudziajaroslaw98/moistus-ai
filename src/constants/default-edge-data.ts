@@ -10,9 +10,11 @@ export function defaultEdgeData(): Omit<EdgeData, 'map_id' | 'user_id'> {
 		},
 		aiData: {},
 		metadata: {
-			pathType: 'bezier',
+			pathType: 'waypoint',
+			curveType: 'smoothstep',
+			routingStyle: 'orthogonal',
 		},
-		type: 'floatingEdge',
+		type: 'waypointEdge',
 		created_at: new Date().toUTCString(),
 		updated_at: new Date().toUTCString(),
 		animated: false,

@@ -8,13 +8,16 @@
 import type { AppNode } from '@/types/app-node';
 import type {
 	GuidedTourSlice,
-	GuidedTourState,
 	NodeSpotlightState,
 	StartTourOptions,
 	TourPath,
 	TourStop,
 } from '@/types/guided-tour';
-import { INITIAL_GUIDED_TOUR_STATE, SPOTLIGHT_OPACITY } from '@/types/guided-tour';
+import {
+	INITIAL_GUIDED_TOUR_STATE,
+	SPOTLIGHT_OPACITY,
+} from '@/types/guided-tour';
+import type { LayoutDirection } from '@/types/layout-types';
 import type { StateCreator } from 'zustand';
 import type { AppState } from '../app-state';
 
@@ -36,26 +39,18 @@ function getAngleFromParent(parent: AppNode, child: AppNode): number {
  */
 function sortRootsByPosition(
 	nodes: AppNode[],
-	layoutDirection: string
+	layoutDirection: LayoutDirection
 ): AppNode[] {
 	return [...nodes].sort((a, b) => {
 		switch (layoutDirection) {
 			case 'LEFT_RIGHT':
-			case 'RIGHT_LEFT':
 				// Sort by Y (top-to-bottom), then X
 				return a.position.y - b.position.y || a.position.x - b.position.x;
 			case 'TOP_BOTTOM':
-			case 'BOTTOM_TOP':
 				// Sort by X (left-to-right), then Y
 				return a.position.x - b.position.x || a.position.y - b.position.y;
-			case 'RADIAL':
 			default:
-				// Sort by distance from center (closest first)
-				const centerX = nodes.reduce((sum, n) => sum + n.position.x, 0) / nodes.length;
-				const centerY = nodes.reduce((sum, n) => sum + n.position.y, 0) / nodes.length;
-				const distA = Math.hypot(a.position.x - centerX, a.position.y - centerY);
-				const distB = Math.hypot(b.position.x - centerX, b.position.y - centerY);
-				return distA - distB;
+				return a.position.y - b.position.y || a.position.x - b.position.x;
 		}
 	});
 }
@@ -66,7 +61,7 @@ function sortRootsByPosition(
 function buildDefaultPath(
 	nodes: AppNode[],
 	edges: { source: string; target: string }[],
-	layoutDirection: string,
+	layoutDirection: LayoutDirection,
 	startNodeId?: string
 ): string[] {
 	if (nodes.length === 0) return [];
@@ -91,7 +86,9 @@ function buildDefaultPath(
 		const startNode = nodeMap.get(startNodeId);
 		rootNodes = startNode ? [startNode] : [];
 	} else {
-		rootNodes = nodes.filter((n) => !targetIds.has(n.id) && n.type !== 'ghostNode');
+		rootNodes = nodes.filter(
+			(n) => !targetIds.has(n.id) && n.type !== 'ghostNode'
+		);
 	}
 
 	// Sort roots by layout-aware position
@@ -184,7 +181,9 @@ export const createGuidedTourSlice: StateCreator<
 			const savedPath = savedPaths.find((p) => p.id === options.savedPathId);
 			if (savedPath) {
 				// Filter out nodes that no longer exist
-				tourPath = savedPath.nodeIds.filter((id) => nodes.some((n) => n.id === id));
+				tourPath = savedPath.nodeIds.filter((id) =>
+					nodes.some((n) => n.id === id)
+				);
 			} else {
 				console.warn('Saved path not found:', options.savedPathId);
 				return;
@@ -194,7 +193,12 @@ export const createGuidedTourSlice: StateCreator<
 			tourPath = options.path.filter((id) => nodes.some((n) => n.id === id));
 		} else {
 			// Build auto path
-			tourPath = buildDefaultPath(nodes, edges, layoutConfig.direction, options?.startNodeId);
+			tourPath = buildDefaultPath(
+				nodes,
+				edges,
+				layoutConfig.direction,
+				options?.startNodeId
+			);
 		}
 
 		if (tourPath.length === 0) {
@@ -342,7 +346,9 @@ export const createGuidedTourSlice: StateCreator<
 	setAutoAdvance: (enabled: boolean, delay?: number) => {
 		set({
 			autoAdvanceEnabled: enabled,
-			...(delay !== undefined && { autoAdvanceDelay: Math.max(1, Math.min(30, delay)) }),
+			...(delay !== undefined && {
+				autoAdvanceDelay: Math.max(1, Math.min(30, delay)),
+			}),
 		});
 	},
 

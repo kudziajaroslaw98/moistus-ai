@@ -2,6 +2,7 @@ import { defaultEdgeData } from '@/constants/default-edge-data';
 import { STORE_SAVE_DEBOUNCE_MS } from '@/constants/store-save-debounce-ms';
 import { fetchResourceMetadata } from '@/helpers/fetch-resource-metadata';
 import generateUuid from '@/helpers/generate-uuid';
+import { rerouteAutoWaypointEdges } from '@/helpers/route-auto-waypoint-edges';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
 import {
 	broadcast,
@@ -407,6 +408,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					nodesToPersist.add(change.id);
 					nodesToBroadcast.add(change.id);
 					resizedNodeIds.add(change.id);
+					void get().runQueuedLocalLayoutOnResize(change.id);
 				} else if (change.type === 'replace') {
 					// Data changes should trigger a save
 					const previousNode = previousNodeById.get(change.id);
@@ -419,6 +421,23 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					replacedNodeIds.add(change.id);
 				}
 			});
+			let finalEdges = previousEdges;
+			let reroutedEdgeIds = new Set<string>();
+
+			if (movedNodeIds.size > 0 || resizedNodeIds.size > 0) {
+				const reroutedEdgesResult = rerouteAutoWaypointEdges({
+					nodes: finalNodes,
+					edges: previousEdges,
+					direction: get().layoutConfig.direction,
+					connectedNodeIds: new Set([...movedNodeIds, ...resizedNodeIds]),
+				});
+				finalEdges = reroutedEdgesResult.edges;
+				reroutedEdgeIds = reroutedEdgesResult.affectedEdgeIds;
+
+				if (reroutedEdgeIds.size > 0) {
+					set({ edges: finalEdges });
+				}
+			}
 
 			if (get().systemUpdatedNodes.size > 0) {
 				const now = Date.now();
@@ -463,6 +482,28 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 
 			for (const nodeId of nodesToPersist) {
 				get().triggerNodeSave(nodeId);
+			}
+
+			for (const edgeId of reroutedEdgeIds) {
+				if (mapId) {
+					const edge = finalEdges.find((candidate) => candidate.id === edgeId);
+					if (edge) {
+						const userId = getEdgeActorId(edge, currentUser?.id);
+						const edgeData = serializeEdgeForRealtime(edge, mapId, userId);
+						if (edgeData) {
+							void broadcast(mapId, BROADCAST_EVENTS.EDGE_UPDATE, {
+								id: edgeId,
+								data: edgeData,
+								userId,
+								timestamp: Date.now(),
+							}).catch((error) => {
+								console.warn('[nodes] Failed to sync Yjs edge update:', error);
+							});
+						}
+					}
+				}
+
+				get().triggerEdgeSave(edgeId);
 			}
 
 			if (nodesToPersist.size > 0) {

@@ -17,6 +17,7 @@ total_tokens: 707972
 <!-- Updated: 2026-03-04 - Added account settings email-notification preference toggle -->
 <!-- Updated: 2026-03-04 - Expanded notifications internals (service/channel/schema/mention resolver/data flow) -->
 <!-- Updated: 2026-03-04 - Corrected API route totals to 61 and fixed unlabeled directory-tree code fence -->
+<!-- Updated: 2026-03-11 - Documented deterministic local branch reflow, cousin-branch corridor expansion, persisted map layout direction, the two supported layout modes, and auto-routed waypoint edges -->
 <!-- Updated: 2026-03-05 - Documented owner-scoped node-limit enforcement across node creation APIs -->
 <!-- Updated: 2026-03-06 - Synced API route docs for owner-scoped shared-map node entitlement checks -->
 <!-- Updated: 2026-03-07 - Added owner-scoped node-limit preflight to node creation flow -->
@@ -25,8 +26,15 @@ total_tokens: 707972
 <!-- Updated: 2026-03-18 - Documented mobile onboarding shell, viewport-aware coachmarks, and touch edit action -->
 <!-- Updated: 2026-03-18 - Documented premium mobile editor drawer and shared notifications hook -->
 <!-- Updated: 2026-03-25 - Documented shared notifications manager, map-scoped notification queries, and user-scoped onboarding persistence -->
+<!-- Updated: 2026-03-28 - Reconciled local layout docs with owner-limit, onboarding, and mobile editor architecture during PR #46 merge -->
+<!-- Updated: 2026-03-28 - Documented stale-safe layout normalization writes and in-flight animation synchronization after CodeRabbit review -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
+
+**Edge routing note:** Normal persisted edges render as auto-routed `waypointEdge` geometry. Explicit full layout uses ELK bend points (`routingStyle: 'elk'`); local create/edit/move/resize/reconnect flows reroute only affected edges with the deterministic orthogonal router (`routingStyle: 'orthogonal'`). Raw manual waypoint editing is no longer part of the canvas model.
+**Layout animation note:** `ReactFlowArea` now renders through a transient animated graph state for explicit full layout and local layout flows. Zustand still stores only final node/edge geometry; the 550ms tween is client-only and does not persist or broadcast intermediate frames, and an animation version is only marked handled after the tween settles or is explicitly cancelled.
+
+**Local layout note:** Deterministic local branch reflow now has two phases: same-depth child repack inside the edited branch, then cousin-branch corridor expansion on the carrier layer when the grown subtree would overlap neighboring cousin subtrees. Ancestors stay fixed, and load-time legacy layout normalization persists only when the fetched map/edge snapshot is still current.
 
 ## System Overview
 
@@ -174,7 +182,7 @@ shiko/
 │   ├── helpers/                # Utilities
 │   │   ├── api/                # API middleware (auth, validation)
 │   │   ├── history/            # Delta calculation, diff
-│   │   ├── layout/             # ELK.js layout engine
+│   │   ├── layout/             # ELK full-layout engine + deterministic local branch reflow
 │   │   ├── partykit/           # PartyKit admin helpers (disconnect users)
 │   │   └── supabase/           # Client initialization
 │   │
@@ -211,29 +219,29 @@ shiko/
 
 ### State Management (21 Slices)
 
-| Slice                     | Lines | Purpose                                    |
-| ------------------------- | ----- | ------------------------------------------ |
-| **sharing-slice**         | 1,164 | Room codes, anonymous users, upgrade flows |
-| **comments-slice**        | 973   | Comment threads, @mentions, reactions      |
-| **suggestions-slice**     | 966   | AI ghost nodes, streaming, merges          |
-| **nodes-slice**           | 900   | Node CRUD, positioning, real-time sync     |
-| **history-slice**         | 597   | Undo/redo, snapshots, DB persistence       |
-| **edges-slice**           | 635   | Edge CRUD, parent-child relationships      |
-| **subscription-slice**    | 434   | Stripe, plan limits, usage tracking        |
-| **guided-tour-slice**     | 416   | Prezi-style presentations                  |
-| **core-slice**            | 353   | Supabase client, user, map loading         |
-| **user-profile-slice**    | 317   | Profile, preferences                       |
-| **layout-slice**          | 312   | ELK.js auto-layouts                        |
-| **onboarding-slice**      | 769   | Editor-first onboarding tasks, substeps, coachmarks, per-user persisted state |
-| **ui-slice**              | 248   | Modals, panels, focus mode                 |
-| **groups-slice**          | 246   | Node grouping                              |
-| **chat-slice**            | 241   | AI chat messages                           |
-| **streaming-toast-slice** | 168   | Progress toasts                            |
-| **clipboard-slice**       | 156   | Copy/paste                                 |
-| **export-slice**          | 172   | PNG/SVG/PDF export                         |
-| **quick-input-slice**     | 55    | Quick node creation                        |
-| **loading-state-slice**   | 33    | Loading flags                              |
-| **realtime-slice**        | 17    | Selection sync                             |
+| Slice                     | Lines | Purpose                                                                       |
+| ------------------------- | ----- | ----------------------------------------------------------------------------- |
+| **sharing-slice**         | 1,164 | Room codes, anonymous users, upgrade flows                                    |
+| **comments-slice**        | 973   | Comment threads, @mentions, reactions                                         |
+| **suggestions-slice**     | 966   | AI ghost nodes, streaming, merges                                             |
+| **nodes-slice**           | 900   | Node CRUD, positioning, real-time sync                                        |
+| **history-slice**         | 597   | Undo/redo, snapshots, DB persistence                                          |
+| **edges-slice**           | 635   | Edge CRUD, parent-child relationships                                         |
+| **subscription-slice**    | 434   | Stripe, plan limits, usage tracking                                           |
+| **guided-tour-slice**     | 416   | Prezi-style presentations                                                     |
+| **core-slice**            | 353   | Supabase client, user, map loading                                            |
+| **user-profile-slice**    | 317   | Profile, preferences                                                          |
+| **layout-slice**          | 578   | Full ELK layouts + local branch reflow                                        |
+| **onboarding-slice**      | 958   | Editor-first onboarding tasks, substeps, coachmarks, per-user persisted state |
+| **ui-slice**              | 248   | Modals, panels, focus mode                                                    |
+| **groups-slice**          | 246   | Node grouping                                                                 |
+| **chat-slice**            | 241   | AI chat messages                                                              |
+| **streaming-toast-slice** | 168   | Progress toasts                                                               |
+| **clipboard-slice**       | 156   | Copy/paste                                                                    |
+| **export-slice**          | 172   | PNG/SVG/PDF export                                                            |
+| **quick-input-slice**     | 55    | Quick node creation                                                           |
+| **loading-state-slice**   | 33    | Loading flags                                                                 |
+| **realtime-slice**        | 17    | Selection sync                                                                |
 
 ### Node System (12 Types)
 
