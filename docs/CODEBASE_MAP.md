@@ -28,6 +28,7 @@ total_tokens: 707972
 <!-- Updated: 2026-03-25 - Documented shared notifications manager, map-scoped notification queries, and user-scoped onboarding persistence -->
 <!-- Updated: 2026-03-28 - Reconciled local layout docs with owner-limit, onboarding, and mobile editor architecture during PR #46 merge -->
 <!-- Updated: 2026-03-28 - Documented stale-safe layout normalization writes and in-flight animation synchronization after CodeRabbit review -->
+<!-- Updated: 2026-03-28 - Documented mobile node-editor autocomplete tray and shared completion-state bridge -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -157,7 +158,7 @@ shiko/
 │   │   ├── landing/            # Marketing page sections
 │   │   ├── mind-map/           # React Flow integration + mobile top bar/drawer chrome
 │   │   ├── modals/             # Dialogs (edge edit, upgrade, etc.)
-│   │   ├── node-editor/        # Command system, CodeMirror
+│   │   ├── node-editor/        # Command system, CodeMirror, mobile autocomplete tray
 │   │   ├── nodes/              # 12 node types + base wrapper
 │   │   ├── notifications/      # Notification bell + shared inbox data hook
 │   │   ├── onboarding/         # Editor-first onboarding shell (intro/checklist/coachmarks/upsell)
@@ -357,6 +358,12 @@ shiko/
 - Mobile onboarding uses bottom-sheet surfaces only: intro/checklist/hints/coachmarks never stack, step-specific sheets replace the checklist while active, the controls tour points to `mobile-menu` instead of the removed mobile share button, and the minimized walkthrough chip moves under the top bar instead of sharing the bottom-dock lane
 - `src/components/nodes/base-node-wrapper.tsx` now exposes a touch-first `Edit` action for a single selected mobile node so onboarding can teach a real edit path instead of desktop-only shortcuts
 - `src/components/mind-map/top-bar/index.tsx` now collapses the mobile header to breadcrumb/title plus one unread-aware hamburger trigger, while `src/components/mind-map/top-bar/mobile-menu.tsx` owns mobile share, notifications preview, collaborators, workspace actions, and account/billing flows in a full-height editorial drawer
+
+**Node Editor Autocomplete:**
+
+- `src/components/node-editor/integrations/codemirror/setup.ts` now mirrors CodeMirror autocomplete state into React and conditionally suppresses the native tooltip when the mobile presenter is active
+- `src/components/node-editor/integrations/codemirror/autocomplete-state.ts` is the shared bridge for reading `active/pending`, current options, and selected index from CodeMirror
+- `src/components/node-editor/components/inputs/mobile-completion-tray.tsx` + `src/components/node-editor/components/inputs/use-mobile-autocomplete-viewport.ts` render a keyboard-aware mobile suggestion tray above `window.visualViewport`, while desktop keeps the native CodeMirror tooltip
 
 **Notifications internals (operational map):**
 

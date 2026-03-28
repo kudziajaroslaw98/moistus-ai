@@ -81,6 +81,9 @@ export const nodeEditorTheme = EditorView.theme(
 			// Smooth entry animation
 			animation: 'slideDown 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
 		},
+		'.cm-tooltip-autocomplete-hidden': {
+			display: 'none !important',
+		},
 
 		// Entry animation keyframes
 		'@keyframes slideDown': {

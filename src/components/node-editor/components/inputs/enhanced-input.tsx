@@ -1,5 +1,10 @@
 'use client';
 
+import {
+	acceptCompletion,
+	closeCompletion,
+	setSelectedCompletion,
+} from '@codemirror/autocomplete';
 import { AvailableNodeTypes } from '@/registry/node-registry';
 import { assertAvailableNodeTypeWithLog } from '@/registry/type-guards';
 import { cn } from '@/utils/cn';
@@ -18,6 +23,10 @@ import { validateInput } from '../../core/validators/input-validator';
 import type { CollaboratorMention } from '../../integrations/codemirror/completions';
 import { createNodeEditor } from '../../integrations/codemirror/setup';
 import { ValidationTooltip } from './validation-tooltip';
+import type {
+	EditorAutocompleteController,
+	EditorAutocompleteState,
+} from '../../types';
 
 // Internal change tracking for preventing infinite loops
 let isInternalChange = false;
@@ -37,6 +46,11 @@ interface EnhancedInputProps {
 	// Command completion integration props
 	onNodeTypeChange?: (nodeType: AvailableNodeTypes) => void;
 	onCommandExecuted?: (command: Command) => void;
+	onAutocompleteControllerReady?: (
+		controller: EditorAutocompleteController | null
+	) => void;
+	onAutocompleteStateChange?: (state: EditorAutocompleteState) => void;
+	showNativeAutocomplete?: boolean;
 	enableCommands?: boolean; // Feature flag
 	collaborators?: CollaboratorMention[];
 }
@@ -54,6 +68,9 @@ export const EnhancedInput = ({
 	transition,
 	onNodeTypeChange,
 	onCommandExecuted,
+	onAutocompleteControllerReady,
+	onAutocompleteStateChange,
+	showNativeAutocomplete = true,
 	enableCommands = true, // Default enabled
 	collaborators,
 	...rest
@@ -68,12 +85,21 @@ export const EnhancedInput = ({
 	// Store the latest callbacks in refs to avoid stale closures
 	const onKeyDownRef = useRef(onKeyDown);
 	const onSelectionChangeRef = useRef(onSelectionChange);
+	const onAutocompleteControllerReadyRef = useRef(onAutocompleteControllerReady);
+	const onAutocompleteStateChangeRef = useRef(onAutocompleteStateChange);
 
 	// Update refs when callbacks change
 	useEffect(() => {
 		onKeyDownRef.current = onKeyDown;
 		onSelectionChangeRef.current = onSelectionChange;
-	}, [onKeyDown, onSelectionChange]);
+		onAutocompleteControllerReadyRef.current = onAutocompleteControllerReady;
+		onAutocompleteStateChangeRef.current = onAutocompleteStateChange;
+	}, [
+		onAutocompleteControllerReady,
+		onAutocompleteStateChange,
+		onKeyDown,
+		onSelectionChange,
+	]);
 
 	// Get validation results with error boundary using new validator
 	const validationErrors = useMemo(() => {
@@ -245,6 +271,10 @@ export const EnhancedInput = ({
 				enablePatternHighlighting: true,
 				enableValidation: true,
 				collaborators: collaborators ?? [],
+				showNativeAutocompleteTooltip: showNativeAutocomplete,
+				onAutocompleteChange: (nextAutocompleteState) => {
+					onAutocompleteStateChangeRef.current?.(nextAutocompleteState);
+				},
 				onContentChange: (newValue) => {
 					// Prevent infinite loops with external changes
 					if (!isInternalChange && newValue !== lastKnownValueRef.current) {
@@ -274,6 +304,45 @@ export const EnhancedInput = ({
 
 			editorViewRef.current = view;
 			initializedRef.current = true;
+			onAutocompleteControllerReadyRef.current?.({
+				acceptOption: (index: number) => {
+					if (!editorViewRef.current) {
+						return false;
+					}
+
+					editorViewRef.current.dispatch({
+						effects: setSelectedCompletion(index),
+					});
+					const didAccept = acceptCompletion(editorViewRef.current);
+
+					if (didAccept) {
+						editorViewRef.current.focus();
+					}
+
+					return didAccept;
+				},
+				close: () => {
+					if (!editorViewRef.current) {
+						return false;
+					}
+
+					const didClose = closeCompletion(editorViewRef.current);
+					editorViewRef.current.focus();
+					return didClose;
+				},
+				focusEditor: () => {
+					editorViewRef.current?.focus();
+				},
+				setSelectedIndex: (index: number) => {
+					if (!editorViewRef.current) {
+						return;
+					}
+
+					editorViewRef.current.dispatch({
+						effects: setSelectedCompletion(index),
+					});
+				},
+			});
 
 			// Add custom keydown handler for Ctrl+Enter / Cmd+Enter
 			// Use ref to avoid stale closures
@@ -307,11 +376,12 @@ export const EnhancedInput = ({
 				}
 
 				initializedRef.current = false;
+				onAutocompleteControllerReadyRef.current?.(null);
 			} catch (error) {
 				console.error('Error cleaning up CodeMirror:', error);
 			}
 		};
-	}, [enableCommands, disabled, collaborators]); // Recreate editor when collaborator list changes
+	}, [collaborators, disabled, enableCommands, placeholder, showNativeAutocomplete]); // Recreate editor when collaborator list changes
 
 	// Separate event listener management (can change without recreating editor)
 	useEffect(() => {

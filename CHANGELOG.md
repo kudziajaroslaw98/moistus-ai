@@ -42,6 +42,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Older persisted data should still render correctly without allowing background normalization to overwrite newer server state
 - **quick-input/local-layout-error-handling**: Handled the post-create `applyLayoutAroundNode(...)` promise explicitly instead of dropping rejections
   - Why: The create flow keeps local layout application non-blocking, but promise failures should still be surfaced instead of becoming unhandled rejections
+- **node-editor/mobile-autocomplete-tray**: Added a mobile-only completion tray pinned above the visual viewport keyboard, bridged CodeMirror completion state into React, and suppressed the native CodeMirror tooltip only on mobile while keeping desktop autocomplete unchanged
+  - Why: The body-level fixed CodeMirror tooltip could render beneath the mobile keyboard, making pattern autocomplete invisible while typing
 
 ### Refactored
 
@@ -52,6 +54,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **layout/docs**: Added local branch reflow invariant docs in `ai-docs/local-branch-reflow/local-branch-reflow.md` and expanded JSDoc for the local reflow and auto-routing helpers
   - Why: The review called out hidden assumptions around create/edit guarantees, affected-id semantics, and routing selection rules
+- **editor/docs-sync**: Updated `CLAUDE.md` and `docs/CODEBASE_MAP.md` for the shared CodeMirror completion bridge and the new mobile autocomplete tray presenter
+  - Why: Node-editor architecture and gotchas changed, so the repo docs need to describe the shared engine plus mobile-specific surface split
 
 ## [2026-03-25]
 

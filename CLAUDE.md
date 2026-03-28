@@ -1,6 +1,7 @@
 # CLAUDE.md
 <!-- Updated: 2026-03-23 - Restructured: compressed philosophy, moved domain gotchas to .claude/rules/ -->
 <!-- Updated: 2026-03-25 - Documented shared notifications cache/socket and per-user onboarding persistence -->
+<!-- Updated: 2026-03-28 - Documented shared-vs-mobile node-editor autocomplete surfaces -->
 
 ## Engineering Philosophy
 
@@ -138,6 +139,9 @@ pnpm pretty          # Prettier
 
 **Node editor parser scope**: Parser syntax no longer supports `bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`, or `$reference` quick-switch in node editor flows. Syntax Help is split into `Universal` (type-filtered) and `Node-specific` sections.
 <!-- Updated: 2026-02-28 - Removed deprecated parser tokens and introduced dual syntax help model -->
+
+**Node editor autocomplete surfaces**: Keep `createCompletions()` as the single source of autocomplete options. Desktop uses the native CodeMirror tooltip; mobile hides that tooltip and renders a `visualViewport`-aware tray above the keyboard instead of forking completion logic.
+<!-- Updated: 2026-03-28 - Documented shared autocomplete engine plus mobile tray presenter -->
 
 **Rate Limiting**: In-memory only (`src/helpers/api/rate-limiter.ts`), won't scale horizontally without Redis.
 

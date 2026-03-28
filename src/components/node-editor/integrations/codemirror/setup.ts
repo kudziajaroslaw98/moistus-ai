@@ -19,6 +19,11 @@ import { getInitials } from '@/utils/collaborator-utils';
 
 // Import our custom extensions
 import { commandRegistry } from '../../core/commands/command-registry';
+import type { EditorAutocompleteState } from '../../types';
+import {
+	areEditorAutocompleteStatesEqual,
+	getEditorAutocompleteState,
+} from './autocomplete-state';
 import { type CollaboratorMention, createCompletions } from './completions';
 import { createPatternDecorations } from './pattern-decorations';
 import { nodeEditorTheme } from './theme';
@@ -35,6 +40,8 @@ export interface NodeEditorConfig {
 	enableValidation?: boolean;
 	onContentChange?: (content: string) => void;
 	onNodeTypeChange?: (nodeType: string) => void;
+	onAutocompleteChange?: (state: EditorAutocompleteState) => void;
+	showNativeAutocompleteTooltip?: boolean;
 	collaborators?: CollaboratorMention[];
 }
 
@@ -47,6 +54,7 @@ export function createNodeEditor(
 	config: NodeEditorConfig = {}
 ): EditorView {
 	let lastEmittedNodeType: string | null = null;
+	let lastAutocompleteState: EditorAutocompleteState | null = null;
 
 	const {
 		initialContent = '',
@@ -57,12 +65,35 @@ export function createNodeEditor(
 		enableValidation = true,
 		onContentChange,
 		onNodeTypeChange,
+		onAutocompleteChange,
+		showNativeAutocompleteTooltip = true,
 		collaborators,
 	} = config;
 
 	const { source: completionSource, mentionMap } = createCompletions(
 		collaborators ?? []
 	);
+
+	const emitAutocompleteChange = (state: EditorState) => {
+		if (!onAutocompleteChange) {
+			return;
+		}
+
+		const nextAutocompleteState = getEditorAutocompleteState(state);
+
+		if (
+			lastAutocompleteState &&
+			areEditorAutocompleteStatesEqual(
+				lastAutocompleteState,
+				nextAutocompleteState
+			)
+		) {
+			return;
+		}
+
+		lastAutocompleteState = nextAutocompleteState;
+		onAutocompleteChange(nextAutocompleteState);
+	};
 
 	// Build extensions array
 	const extensions: Extension[] = [
@@ -100,6 +131,10 @@ export function createNodeEditor(
 						override: [completionSource],
 						activateOnTyping: true,
 						defaultKeymap: true,
+						tooltipClass: () =>
+							showNativeAutocompleteTooltip
+								? ''
+								: 'cm-tooltip-autocomplete-hidden',
 						addToOptions: [
 							// Position 19: avatar + role badge for @ mention completions
 							{
@@ -203,6 +238,13 @@ export function createNodeEditor(
 						}),
 					]
 				: []),
+		...(onAutocompleteChange
+			? [
+					EditorView.updateListener.of((update) => {
+						emitAutocompleteChange(update.state);
+					}),
+				]
+			: []),
 	];
 
 	// Create state
@@ -210,6 +252,8 @@ export function createNodeEditor(
 		doc: initialContent,
 		extensions,
 	});
+
+	emitAutocompleteChange(state);
 
 	// Create and return view
 	return new EditorView({
