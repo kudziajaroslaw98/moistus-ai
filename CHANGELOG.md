@@ -34,7 +34,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Fixed
 
-- **node-editor/quiet-autocomplete-on-space**: Stopped passive empty-token trigger suggestions from reopening on `Space`, kept explicit trigger-character and partial-prefix completions, and documented manual `Ctrl/Cmd+Space` discovery in the action bar
+- **node-editor/quiet-autocomplete-on-space**: Stopped passive empty-token trigger suggestions from reopening on `Space`, kept explicit trigger-character and partial-prefix completions, and documented manual `Ctrl+Space` discovery in the action bar
   - Why: Prevents distracting autocomplete popups during normal typing without removing on-demand syntax help
 - **editor-canvas/merge-regression-recovery**: Preserved waypoint-edge double-click bend insertion and kept the layout trigger on the current Base UI/onboarding-compatible implementation during the merge
   - Why: Git's automatic merge accepted those files but silently dropped editor behavior, while the current runtime already normalizes layout directions to the shipped two-option model

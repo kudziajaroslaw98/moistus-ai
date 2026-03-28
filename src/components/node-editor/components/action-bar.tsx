@@ -41,7 +41,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 					<>
 						<span className='hidden sm:inline'>Press </span>Ctrl+Enter to {mode === 'edit' ? 'update' : 'create'}
 						<span className='hidden sm:inline'> • Enter for new line</span>
-						<span className='hidden sm:inline'> • Ctrl/Cmd+Space for suggestions</span>
+						<span className='hidden sm:inline'> • Ctrl+Space for suggestions</span>
 					</>
 				)}
 			</motion.span>
