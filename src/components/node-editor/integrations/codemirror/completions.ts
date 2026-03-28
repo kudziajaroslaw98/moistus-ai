@@ -315,7 +315,7 @@ export function createCompletions(
 	}
 
 	const source: CompletionSource = (context: CompletionContext): CompletionResult | null => {
-		const { pos } = context;
+		const { explicit, pos } = context;
 		const word = context.matchBefore(/\S*/);
 
 		if (!word) return null;
@@ -775,9 +775,9 @@ export function createCompletions(
 		}
 
 		// ================================================================
-		// PATTERN TRIGGER SUGGESTIONS (empty input)
+		// PATTERN TRIGGER SUGGESTIONS (explicit empty input only)
 		// ================================================================
-		if (word.text === '' || word.text.match(/^\s*$/)) {
+		if (explicit && (word.text === '' || word.text.match(/^\s*$/))) {
 			const triggers = [
 				{ label: '#', apply: '#', info: 'Add a tag' },
 				{ label: '@', apply: '@', info: 'Mention someone' },

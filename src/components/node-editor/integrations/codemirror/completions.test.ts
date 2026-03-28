@@ -24,8 +24,12 @@ jest.mock('../../core/commands/command-registry', () => ({
 	},
 }))
 
-const buildContext = (text: string): CompletionContext =>
+const buildContext = (
+	text: string,
+	options: { explicit?: boolean } = {}
+): CompletionContext =>
 	({
+		explicit: options.explicit ?? false,
 		pos: text.length,
 		matchBefore: () => {
 			const match = text.match(/\S*$/)
@@ -67,12 +71,37 @@ describe('codemirror completions cleanup', () => {
 		expect(labels).not.toContain('$reference')
 	})
 
-	it('keeps universal trigger suggestions', async () => {
+	it('shows universal trigger suggestions only for explicit invocation', async () => {
 		const { source } = createCompletions()
-		const result = await Promise.resolve(source(buildContext('')))
+		const result = await Promise.resolve(source(buildContext('', { explicit: true })))
 
 		expect(result).not.toBeNull()
 		const labels = result?.options.map((option: { label: string }) => option.label) ?? []
 		expect(labels).toEqual(expect.arrayContaining(['#', '@', '^', '!', ':']))
+	})
+
+	it('does not show universal trigger suggestions for passive empty input', async () => {
+		const { source } = createCompletions()
+
+		await expect(Promise.resolve(source(buildContext('')))).resolves.toBeNull()
+		await expect(Promise.resolve(source(buildContext('hello ')))).resolves.toBeNull()
+	})
+
+	it('keeps explicit trigger character completions while typing', async () => {
+		const { source } = createCompletions()
+		const result = await Promise.resolve(source(buildContext('#')))
+
+		expect(result).not.toBeNull()
+		const labels = result?.options.map((option: { label: string }) => option.label) ?? []
+		expect(labels).toContain('#bug')
+	})
+
+	it('keeps partial prefix matching for pattern completions', async () => {
+		const { source } = createCompletions()
+		const result = await Promise.resolve(source(buildContext('wei')))
+
+		expect(result).not.toBeNull()
+		const labels = result?.options.map((option: { label: string }) => option.label) ?? []
+		expect(labels).toContain('weight:')
 	})
 })
