@@ -306,6 +306,22 @@ const PATTERN_PREFIXES = [
 	{ prefix: 'type:', description: 'Set annotation type', trigger: 'type:' },
 ];
 
+/**
+ * createChainedApply defers startCompletion until the next tick so the editor
+ * can apply the insertion transaction and settle its state before reopening
+ * autocomplete. The zero-delay timeout is intentional to avoid stale-state
+ * races between the current completion close, the dispatch, and startCompletion.
+ */
+function createChainedApply(insertText: string) {
+	return (view: EditorView, _completion: unknown, from: number, to: number) => {
+		view.dispatch({
+			changes: { from, to, insert: insertText },
+			selection: { anchor: from + insertText.length },
+		});
+		setTimeout(() => startCompletion(view), 0);
+	};
+}
+
 // ============================================================================
 // MAIN COMPLETION SOURCE
 // ============================================================================
@@ -324,7 +340,7 @@ export function createCompletions(
 	const mentionMap = buildMentionMap(collaborators);
 
 	const source: CompletionSource = (context: CompletionContext): CompletionResult | null => {
-		const { pos } = context;
+		const { explicit, pos } = context;
 		const word = context.matchBefore(/\S*/);
 
 		if (!word) return null;
@@ -766,16 +782,7 @@ export function createCompletions(
 					options: matchingPrefixes.map((p) => ({
 						label: p.prefix,
 						type: 'keyword',
-						// Use custom apply function to insert text AND re-trigger completion
-						apply: (view: EditorView, _completion, from: number, to: number) => {
-							// Insert the pattern prefix (e.g., "color:")
-							view.dispatch({
-								changes: { from, to, insert: p.trigger },
-								selection: { anchor: from + p.trigger.length },
-							});
-							// Immediately trigger new completion to show value suggestions
-							setTimeout(() => startCompletion(view), 0);
-						},
+						apply: createChainedApply(p.trigger),
 						info: p.description,
 					})),
 					validFor: /^\w+$/,
@@ -784,17 +791,17 @@ export function createCompletions(
 		}
 
 		// ================================================================
-		// PATTERN TRIGGER SUGGESTIONS (empty input)
+		// PATTERN TRIGGER SUGGESTIONS (explicit empty input only)
 		// ================================================================
-		if (word.text === '' || word.text.match(/^\s*$/)) {
+		if (explicit && (word.text === '' || word.text.match(/^\s*$/))) {
 			const triggers = [
-				{ label: '#', apply: '#', info: 'Add a tag' },
-				{ label: '@', apply: '@', info: 'Mention someone' },
-				{ label: '^', apply: '^', info: 'Add a date' },
-				{ label: '!', apply: '!', info: 'Set priority' },
-				{ label: ':', apply: ':', info: 'Set status' },
-				{ label: '$', apply: '$', info: 'Change node type' },
-				{ label: '/', apply: '/', info: 'Insert command' },
+				{ label: '#', apply: createChainedApply('#'), info: 'Add a tag' },
+				{ label: '@', apply: createChainedApply('@'), info: 'Mention someone' },
+				{ label: '^', apply: createChainedApply('^'), info: 'Add a date' },
+				{ label: '!', apply: createChainedApply('!'), info: 'Set priority' },
+				{ label: ':', apply: createChainedApply(':'), info: 'Set status' },
+				{ label: '$', apply: createChainedApply('$'), info: 'Change node type' },
+				{ label: '/', apply: createChainedApply('/'), info: 'Insert command' },
 			];
 
 			return {
