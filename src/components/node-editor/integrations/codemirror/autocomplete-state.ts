@@ -41,6 +41,10 @@ function getEditorRect(view: EditorView): EditorAnchorRect | null {
 	return rect ? toEditorAnchorRect(rect) : null;
 }
 
+/**
+ * Returns `EMPTY_EDITOR_AUTOCOMPLETE_STATE` when `completionStatus(state)` is falsy; otherwise mirrors the current CodeMirror completion UI state.
+ * The returned geometry comes from `getAutocompleteAnchorRect(view)` and `getEditorRect(view)`, while `options` and `selectedIndex` are derived from `currentCompletions(state)` and `selectedCompletionIndex(state)` on each call.
+ */
 export function getEditorAutocompleteState(
 	view: EditorView
 ): EditorAutocompleteState {
@@ -78,6 +82,10 @@ function areRectsEqual(
 	);
 }
 
+/**
+ * Compares two `EditorAutocompleteState` snapshots by visible value instead of object identity.
+ * Status, selected index, anchor/editor rects, and each option's `label`/`detail`/`type` must match even though completion arrays and geometry are re-derived on every read.
+ */
 export function areEditorAutocompleteStatesEqual(
 	current: EditorAutocompleteState,
 	next: EditorAutocompleteState

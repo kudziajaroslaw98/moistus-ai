@@ -222,7 +222,7 @@ export function MobileCompletionTray({
 						<div className='pointer-events-none absolute right-2 top-2 z-10'>
 							<button
 								aria-label='Close suggestions'
-								className='pointer-events-auto inline-flex size-7 items-center justify-center rounded-full border border-zinc-800/80 bg-zinc-950/90 text-zinc-500 transition-colors hover:bg-zinc-900 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500'
+								className='hover-enabled-mobile-completion pointer-events-auto inline-flex size-7 items-center justify-center rounded-full border border-zinc-800/80 bg-zinc-950/90 text-zinc-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500'
 								onClick={onClose}
 								onPointerDown={(event) => event.preventDefault()}
 								type='button'
@@ -263,7 +263,7 @@ export function MobileCompletionTray({
 											: 'mb-1 min-h-11 rounded-2xl px-3 py-2.5 last:mb-0',
 										isSelected
 											? 'bg-primary-500/14 text-zinc-50 ring-1 ring-primary-400/30'
-											: 'bg-transparent text-zinc-300 hover:bg-zinc-900/80'
+											: 'hover-enabled-mobile-completion-option bg-transparent text-zinc-300'
 									)}
 									key={`${option.label}-${index}`}
 									onClick={() => onSelect(index)}
@@ -348,5 +348,22 @@ export function MobileCompletionTray({
 	const portalTarget =
 		document.querySelector('[data-node-editor-overlay="true"]') ?? document.body;
 
-	return createPortal(tray, portalTarget);
+	return createPortal(
+		<>
+			{tray}
+			<style jsx global>{`
+				@media (hover: hover) {
+					.hover-enabled-mobile-completion:hover {
+						background-color: #18181b;
+						color: #e4e4e7;
+					}
+
+					.hover-enabled-mobile-completion-option:hover {
+						background-color: rgb(24 24 27 / 0.8);
+					}
+				}
+			`}</style>
+		</>,
+		portalTarget
+	);
 }

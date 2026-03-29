@@ -32,6 +32,10 @@ const DEFAULT_VIEWPORT_STATE: MobileAutocompleteViewportState = {
 	visualViewportRect: DEFAULT_VIEWPORT_RECT,
 };
 
+/**
+ * Returns the current editor-facing viewport snapshot.
+ * Falls back to the layout viewport when `window` or `window.visualViewport` is missing, computes `visualViewportRect` from the visual viewport offsets and size, and infers keyboard visibility from `layoutViewportHeight - visualViewportRect.bottom` crossing `max(96px, 12% of the layout viewport)` while the editor is focused.
+ */
 function getViewportSnapshot(
 	isEditorFocused: boolean
 ): MobileAutocompleteViewportState {
@@ -104,6 +108,10 @@ function isSameViewportState(
 	);
 }
 
+/**
+ * Tracks viewport changes for the mobile autocomplete presenter.
+ * The hook refreshes its snapshot on mount plus `resize`/`visualViewport.resize`/`visualViewport.scroll`; `visibleViewportHeight` is the unobscured visual viewport height and `visualViewportRect` is the screen-space box the tray should stay inside.
+ */
 export function useMobileAutocompleteViewport(
 	enabled: boolean,
 	isEditorFocused: boolean

@@ -5,10 +5,9 @@ import {
 	closeCompletion,
 	setSelectedCompletion,
 } from '@codemirror/autocomplete';
-import { AvailableNodeTypes } from '@/registry/node-registry';
+import type { AvailableNodeTypes } from '@/registry/node-registry';
 import { assertAvailableNodeTypeWithLog } from '@/registry/type-guards';
 import { cn } from '@/utils/cn';
-import { EditorView } from '@codemirror/view';
 import { RefreshCw } from 'lucide-react';
 import { motion, type MotionProps } from 'motion/react';
 import React, {
@@ -21,7 +20,10 @@ import React, {
 import { Command } from '../../core/commands/command-types';
 import { validateInput } from '../../core/validators/input-validator';
 import type { CollaboratorMention } from '../../integrations/codemirror/completions';
-import { createNodeEditor } from '../../integrations/codemirror/setup';
+import {
+	createNodeEditor,
+	type NodeEditorView,
+} from '../../integrations/codemirror/setup';
 import { ValidationTooltip } from './validation-tooltip';
 import type {
 	EditorAutocompleteController,
@@ -78,7 +80,7 @@ export const EnhancedInput = ({
 	...rest
 }: EnhancedInputProps) => {
 	const editorRef = useRef<HTMLDivElement>(null);
-	const editorViewRef = useRef<EditorView | null>(null);
+	const editorViewRef = useRef<NodeEditorView | null>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [validationTooltipOpen, setValidationTooltipOpen] = useState(false);
 	const initializedRef = useRef(false);
@@ -272,9 +274,7 @@ export const EnhancedInput = ({
 			// Use the new unified createNodeEditor function
 			const view = createNodeEditor(editorRef.current, {
 				initialContent: value,
-				placeholder:
-					placeholder ||
-					'Type # for tags, @ for people, ^ for dates, ! for priority...',
+				placeholder,
 				enableCompletions: true,
 				enablePatternHighlighting: true,
 				enableValidation: true,
@@ -414,7 +414,14 @@ export const EnhancedInput = ({
 				console.error('Error cleaning up CodeMirror:', error);
 			}
 		};
-	}, [collaborators, disabled, enableCommands, placeholder, showNativeAutocomplete]); // Recreate editor when collaborator list changes
+	}, [collaborators]); // Recreate only when the completion source changes structurally
+
+	useEffect(() => {
+		editorViewRef.current?.updateRuntimeConfig({
+			placeholder,
+			showNativeAutocompleteTooltip: showNativeAutocomplete,
+		});
+	}, [placeholder, showNativeAutocomplete]);
 
 	// Separate event listener management (can change without recreating editor)
 	useEffect(() => {

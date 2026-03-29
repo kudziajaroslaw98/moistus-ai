@@ -30,6 +30,7 @@ total_tokens: 707972
 <!-- Updated: 2026-03-28 - Reconciled local layout docs with owner-limit, onboarding, and mobile editor architecture during PR #46 merge -->
 <!-- Updated: 2026-03-28 - Documented stale-safe layout normalization writes and in-flight animation synchronization after CodeRabbit review -->
 <!-- Updated: 2026-03-28 - Documented mobile node-editor autocomplete tray and shared completion-state bridge -->
+<!-- Updated: 2026-03-29 - Documented autocomplete overlay portal dismissal contract and runtime visibility bridge responsibilities -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -362,9 +363,10 @@ shiko/
 
 **Node Editor Autocomplete:**
 
-- `src/components/node-editor/integrations/codemirror/setup.ts` now mirrors CodeMirror autocomplete state into React and conditionally suppresses the native tooltip when the mobile presenter is active
-- `src/components/node-editor/integrations/codemirror/autocomplete-state.ts` is the shared bridge for reading `active/pending`, current options, selected index, and caret/editor geometry from CodeMirror
-- `src/components/node-editor/components/inputs/mobile-completion-tray.tsx` + `src/components/node-editor/components/inputs/use-mobile-autocomplete-viewport.ts` render the hybrid mobile presenter: a full-width keyboard-attached strip while the mobile keyboard is open, or a caret-anchored floating panel when it closes, while desktop keeps the native CodeMirror tooltip
+- `src/components/node-editor/integrations/codemirror/setup.ts` mirrors CodeMirror completion visibility into React and owns the native-tooltip suppression toggle, so the app still knows autocomplete is logically open even when mobile hides the native popup
+- `src/components/node-editor/integrations/codemirror/autocomplete-state.ts` is the shared bridge for reading `active/pending`, current options, selected index, and caret/editor geometry from CodeMirror; those snapshots are what let the mobile tray and dismissal guards stay aligned with the live editor selection
+- `src/components/node-editor/components/inputs/mobile-completion-tray.tsx` portals into the `[data-node-editor-overlay="true"]` overlay instead of `document.body`, while `src/components/node-editor/components/inputs/use-mobile-autocomplete-viewport.ts` supplies the `visualViewport`/keyboard heuristics that keep that overlay-local surface attached to the keyboard or anchored below the typed text
+- Outside-click boundaries must exclude `[data-node-editor-autocomplete-tray="true"]` so tray taps and scroll gestures do not dismiss the editor; update `src/components/node-editor/node-editor.tsx` (`useDismiss(... outsidePress ...)`) and any future modal/editor wrapper dismissal checks if the overlay boundary or portal target changes
 
 **Notifications internals (operational map):**
 
