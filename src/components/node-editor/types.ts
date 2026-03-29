@@ -134,10 +134,21 @@ export interface QuickInputProps {
 
 export type EditorAutocompleteStatus = 'active' | 'pending' | null;
 
+export interface EditorAnchorRect {
+	top: number;
+	right: number;
+	bottom: number;
+	left: number;
+	width: number;
+	height: number;
+}
+
 export interface EditorAutocompleteState {
 	status: EditorAutocompleteStatus;
 	options: readonly Completion[];
 	selectedIndex: number | null;
+	anchorRect: EditorAnchorRect | null;
+	editorRect: EditorAnchorRect | null;
 }
 
 export interface EditorAutocompleteController {

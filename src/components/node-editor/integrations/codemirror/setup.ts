@@ -74,12 +74,12 @@ export function createNodeEditor(
 		collaborators ?? []
 	);
 
-	const emitAutocompleteChange = (state: EditorState) => {
+	const emitAutocompleteChange = (view: EditorView) => {
 		if (!onAutocompleteChange) {
 			return;
 		}
 
-		const nextAutocompleteState = getEditorAutocompleteState(state);
+		const nextAutocompleteState = getEditorAutocompleteState(view);
 
 		if (
 			lastAutocompleteState &&
@@ -241,7 +241,7 @@ export function createNodeEditor(
 		...(onAutocompleteChange
 			? [
 					EditorView.updateListener.of((update) => {
-						emitAutocompleteChange(update.state);
+						emitAutocompleteChange(update.view);
 					}),
 				]
 			: []),
@@ -253,13 +253,15 @@ export function createNodeEditor(
 		extensions,
 	});
 
-	emitAutocompleteChange(state);
-
 	// Create and return view
-	return new EditorView({
+	const view = new EditorView({
 		state,
 		parent: container,
 	});
+
+	emitAutocompleteChange(view);
+
+	return view;
 }
 
 /**

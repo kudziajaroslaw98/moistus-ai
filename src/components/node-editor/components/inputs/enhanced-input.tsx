@@ -50,6 +50,7 @@ interface EnhancedInputProps {
 		controller: EditorAutocompleteController | null
 	) => void;
 	onAutocompleteStateChange?: (state: EditorAutocompleteState) => void;
+	onFocusChange?: (isFocused: boolean) => void;
 	showNativeAutocomplete?: boolean;
 	enableCommands?: boolean; // Feature flag
 	collaborators?: CollaboratorMention[];
@@ -70,6 +71,7 @@ export const EnhancedInput = ({
 	onCommandExecuted,
 	onAutocompleteControllerReady,
 	onAutocompleteStateChange,
+	onFocusChange,
 	showNativeAutocomplete = true,
 	enableCommands = true, // Default enabled
 	collaborators,
@@ -87,6 +89,7 @@ export const EnhancedInput = ({
 	const onSelectionChangeRef = useRef(onSelectionChange);
 	const onAutocompleteControllerReadyRef = useRef(onAutocompleteControllerReady);
 	const onAutocompleteStateChangeRef = useRef(onAutocompleteStateChange);
+	const onFocusChangeRef = useRef(onFocusChange);
 
 	// Update refs when callbacks change
 	useEffect(() => {
@@ -94,9 +97,11 @@ export const EnhancedInput = ({
 		onSelectionChangeRef.current = onSelectionChange;
 		onAutocompleteControllerReadyRef.current = onAutocompleteControllerReady;
 		onAutocompleteStateChangeRef.current = onAutocompleteStateChange;
+		onFocusChangeRef.current = onFocusChange;
 	}, [
 		onAutocompleteControllerReady,
 		onAutocompleteStateChange,
+		onFocusChange,
 		onKeyDown,
 		onSelectionChange,
 	]);
@@ -251,6 +256,9 @@ export const EnhancedInput = ({
 
 	// Initialize CodeMirror editor with unified setup
 	useEffect(() => {
+		let handleFocusIn: (() => void) | null = null;
+		let handleFocusOut: ((event: FocusEvent) => void) | null = null;
+
 		if (
 			!editorRef.current ||
 			editorViewRef.current ||
@@ -363,13 +371,38 @@ export const EnhancedInput = ({
 				onSelectionChangeRef.current();
 			});
 
+			handleFocusIn = () => {
+				onFocusChangeRef.current?.(true);
+			};
+			handleFocusOut = (event: FocusEvent) => {
+				const relatedTarget = event.relatedTarget;
+
+				if (relatedTarget instanceof Node && view.dom.contains(relatedTarget)) {
+					return;
+				}
+
+				onFocusChangeRef.current?.(false);
+			};
+
+			view.dom.addEventListener('focusin', handleFocusIn);
+			view.dom.addEventListener('focusout', handleFocusOut);
 			view.focus();
+			onFocusChangeRef.current?.(view.hasFocus);
 		} catch (error) {
 			console.error('Failed to initialize CodeMirror editor:', error);
 		}
 
 		return () => {
 			try {
+				if (editorViewRef.current && handleFocusIn && handleFocusOut) {
+					editorViewRef.current.dom.removeEventListener('focusin', handleFocusIn);
+					editorViewRef.current.dom.removeEventListener(
+						'focusout',
+						handleFocusOut
+					);
+				}
+
+				onFocusChangeRef.current?.(false);
 				if (editorViewRef.current) {
 					editorViewRef.current.destroy();
 					editorViewRef.current = null;

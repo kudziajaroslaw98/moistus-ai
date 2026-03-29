@@ -27,7 +27,10 @@ import {
 } from '../../core/config/node-type-config';
 import { parseInput } from '../../core/parsers/pattern-extractor';
 import { announceToScreenReader } from '../../core/utils/text-utils';
-import type { CollaboratorMention } from '../../integrations/codemirror/completions';
+import {
+	buildMentionMap,
+	type CollaboratorMention,
+} from '../../integrations/codemirror/completions';
 import {
 	createOrUpdateNode,
 	transformNodeToQuickInputString,
@@ -188,7 +191,10 @@ export const QuickInput: FC<QuickInputProps> = ({
 			status: null,
 			options: [],
 			selectedIndex: null,
+			anchorRect: null,
+			editorRect: null,
 		});
+	const [isEditorFocused, setIsEditorFocused] = useState(false);
 	const [mentionableUsers, setMentionableUsers] = useState<MentionableUser[]>(
 		[]
 	);
@@ -324,6 +330,10 @@ export const QuickInput: FC<QuickInputProps> = ({
 		}
 		return map;
 	}, [mentionableUsers, currentShares]);
+	const autocompleteMentionMap = useMemo(
+		() => buildMentionMap(collaborators),
+		[collaborators]
+	);
 
 	useEffect(() => {
 		if (!mapId) {
@@ -821,6 +831,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 					status: null,
 					options: [],
 					selectedIndex: null,
+					anchorRect: null,
+					editorRect: null,
 				});
 			}
 		},
@@ -889,6 +901,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 					onAutocompleteStateChange={handleAutocompleteStateChange}
 					onChange={setValue}
 					onCommandExecuted={handleCommandExecuted}
+					onFocusChange={setIsEditorFocused}
 					onKeyDown={handleKeyDown}
 					onNodeTypeChange={handleNodeTypeChange}
 					onSelectionChange={handleSelectionChange}
@@ -912,6 +925,10 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 			<MobileCompletionTray
 				isOpen={showMobileCompletionTray}
+				anchorRect={autocompleteState.anchorRect}
+				editorRect={autocompleteState.editorRect}
+				isEditorFocused={isEditorFocused}
+				mentionMap={autocompleteMentionMap}
 				onClose={handleMobileAutocompleteClose}
 				onHighlight={handleMobileAutocompleteHighlight}
 				onSelect={handleMobileAutocompleteSelect}

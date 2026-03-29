@@ -1,31 +1,95 @@
 import { useEffect, useState } from 'react';
 
+interface ViewportRect {
+	top: number;
+	right: number;
+	bottom: number;
+	left: number;
+	width: number;
+	height: number;
+}
+
 export interface MobileAutocompleteViewportState {
 	keyboardInset: number;
+	keyboardOpen: boolean;
 	visibleViewportHeight: number;
+	visualViewportRect: ViewportRect;
 }
+
+const DEFAULT_VIEWPORT_RECT: ViewportRect = {
+	top: 0,
+	right: 0,
+	bottom: 0,
+	left: 0,
+	width: 0,
+	height: 0,
+};
 
 const DEFAULT_VIEWPORT_STATE: MobileAutocompleteViewportState = {
 	keyboardInset: 0,
+	keyboardOpen: false,
 	visibleViewportHeight: 0,
+	visualViewportRect: DEFAULT_VIEWPORT_RECT,
 };
 
-function getViewportSnapshot(): MobileAutocompleteViewportState {
+function getViewportSnapshot(
+	isEditorFocused: boolean
+): MobileAutocompleteViewportState {
 	if (typeof window === 'undefined') {
 		return DEFAULT_VIEWPORT_STATE;
 	}
 
-	const visibleViewportHeight = window.visualViewport?.height ?? window.innerHeight;
-	const viewportOffsetTop = window.visualViewport?.offsetTop ?? 0;
+	const layoutViewportHeight = window.innerHeight;
+	const layoutViewportWidth = window.innerWidth;
+	const visualViewport = window.visualViewport;
+
+	if (!visualViewport) {
+		return {
+			keyboardInset: 0,
+			keyboardOpen: false,
+			visibleViewportHeight: layoutViewportHeight,
+			visualViewportRect: {
+				top: 0,
+				left: 0,
+				right: layoutViewportWidth,
+				bottom: layoutViewportHeight,
+				width: layoutViewportWidth,
+				height: layoutViewportHeight,
+			},
+		};
+	}
+
+	const visualViewportRect: ViewportRect = {
+		top: visualViewport.offsetTop,
+		left: visualViewport.offsetLeft,
+		right: visualViewport.offsetLeft + visualViewport.width,
+		bottom: visualViewport.offsetTop + visualViewport.height,
+		width: visualViewport.width,
+		height: visualViewport.height,
+	};
 	const keyboardInset = Math.max(
 		0,
-		window.innerHeight - (visibleViewportHeight + viewportOffsetTop)
+		layoutViewportHeight - visualViewportRect.bottom
 	);
+	const keyboardThreshold = Math.max(96, layoutViewportHeight * 0.12);
 
 	return {
 		keyboardInset,
-		visibleViewportHeight,
+		keyboardOpen: isEditorFocused && keyboardInset >= keyboardThreshold,
+		visibleViewportHeight: visualViewportRect.height,
+		visualViewportRect,
 	};
+}
+
+function isSameViewportRect(current: ViewportRect, next: ViewportRect) {
+	return (
+		current.top === next.top &&
+		current.right === next.right &&
+		current.bottom === next.bottom &&
+		current.left === next.left &&
+		current.width === next.width &&
+		current.height === next.height
+	);
 }
 
 function isSameViewportState(
@@ -34,30 +98,39 @@ function isSameViewportState(
 ) {
 	return (
 		current.keyboardInset === next.keyboardInset &&
-		current.visibleViewportHeight === next.visibleViewportHeight
+		current.keyboardOpen === next.keyboardOpen &&
+		current.visibleViewportHeight === next.visibleViewportHeight &&
+		isSameViewportRect(current.visualViewportRect, next.visualViewportRect)
 	);
 }
 
 export function useMobileAutocompleteViewport(
-	enabled: boolean
+	enabled: boolean,
+	isEditorFocused: boolean
 ): MobileAutocompleteViewportState {
 	const [viewportState, setViewportState] =
-		useState<MobileAutocompleteViewportState>(() => getViewportSnapshot());
+		useState<MobileAutocompleteViewportState>(() =>
+			getViewportSnapshot(isEditorFocused)
+		);
 
 	useEffect(() => {
-		if (!enabled || typeof window === 'undefined') {
-			setViewportState(getViewportSnapshot());
+		if (typeof window === 'undefined') {
 			return;
 		}
 
 		const updateViewportState = () => {
-			const nextState = getViewportSnapshot();
+			const nextState = getViewportSnapshot(isEditorFocused);
 			setViewportState((currentState) =>
 				isSameViewportState(currentState, nextState)
 					? currentState
 					: nextState
 			);
 		};
+
+		if (!enabled) {
+			updateViewportState();
+			return;
+		}
 
 		const visualViewport = window.visualViewport;
 		updateViewportState();
@@ -71,7 +144,7 @@ export function useMobileAutocompleteViewport(
 			visualViewport?.removeEventListener('resize', updateViewportState);
 			visualViewport?.removeEventListener('scroll', updateViewportState);
 		};
-	}, [enabled]);
+	}, [enabled, isEditorFocused]);
 
 	return viewportState;
 }

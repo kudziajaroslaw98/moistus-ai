@@ -113,7 +113,14 @@ export const NodeEditor = () => {
 	// Interactions
 	const dismiss = useDismiss(context, {
 		escapeKey: true,
-		outsidePress: true,
+		outsidePress: (event) => {
+			const target = event.target;
+
+			return !(
+				target instanceof Element &&
+				target.closest('[data-node-editor-autocomplete-tray="true"]')
+			);
+		},
 	});
 
 	const { getReferenceProps } = useInteractions([dismiss]);
@@ -126,7 +133,10 @@ export const NodeEditor = () => {
 	};
 
 	return (
-		<div className='fixed flex flex-col items-center top-0 left-0 w-full h-full bg-zinc-950/50 z-[100] backdrop-blur-sm pt-4 sm:pt-32 '>
+		<div
+			className='fixed flex flex-col items-center top-0 left-0 w-full h-full bg-zinc-950/50 z-[100] backdrop-blur-sm pt-4 sm:pt-32 '
+			data-node-editor-overlay='true'
+		>
 			<AnimatePresence>
 				{nodeEditor.isOpen && (
 					<motion.div

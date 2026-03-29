@@ -102,6 +102,9 @@ export const nodeEditorTheme = EditorView.theme(
 			{
 				maxHeight: '400px !important',
 				overflowY: 'auto !important',
+				overscrollBehaviorY: 'contain',
+				touchAction: 'pan-y',
+				WebkitOverflowScrolling: 'touch',
 				padding: '4px !important',
 				margin: '0 !important',
 				listStyle: 'none !important',
@@ -111,6 +114,7 @@ export const nodeEditorTheme = EditorView.theme(
 			overflowX: 'hidden',
 			height: 'auto',
 			scrollBehavior: 'smooth',
+			overscrollBehaviorY: 'contain',
 			scrollbarWidth: 'thin',
 			scrollbarColor: 'rgba(161, 161, 170, 0.3) transparent',
 		},

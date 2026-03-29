@@ -16,7 +16,32 @@ jest.mock('@codemirror/autocomplete', () => ({
 }))
 
 describe('autocomplete-state', () => {
-	const mockEditorState = {} as never
+	const mockEditorState = {
+		selection: {
+			main: {
+				head: 12,
+			},
+		},
+	} as never
+	const mockEditorView = {
+		state: mockEditorState,
+		coordsAtPos: jest.fn().mockReturnValue({
+			top: 120,
+			right: 152,
+			bottom: 138,
+			left: 140,
+		}),
+		dom: {
+			getBoundingClientRect: jest.fn().mockReturnValue({
+				top: 80,
+				right: 420,
+				bottom: 300,
+				left: 60,
+				width: 360,
+				height: 220,
+			}),
+		},
+	} as never
 
 	beforeEach(() => {
 		jest.clearAllMocks()
@@ -32,17 +57,33 @@ describe('autocomplete-state', () => {
 		;(currentCompletions as jest.Mock).mockReturnValue(options)
 		;(selectedCompletionIndex as jest.Mock).mockReturnValue(1)
 
-		expect(getEditorAutocompleteState(mockEditorState)).toEqual({
+		expect(getEditorAutocompleteState(mockEditorView)).toEqual({
 			status: 'active',
 			options,
 			selectedIndex: 1,
+			anchorRect: {
+				top: 120,
+				right: 152,
+				bottom: 138,
+				left: 140,
+				width: 12,
+				height: 18,
+			},
+			editorRect: {
+				top: 80,
+				right: 420,
+				bottom: 300,
+				left: 60,
+				width: 360,
+				height: 220,
+			},
 		})
 	})
 
 	it('returns the empty state when completion is closed', () => {
 		;(completionStatus as jest.Mock).mockReturnValue(null)
 
-		expect(getEditorAutocompleteState(mockEditorState)).toEqual(
+		expect(getEditorAutocompleteState(mockEditorView)).toEqual(
 			EMPTY_EDITOR_AUTOCOMPLETE_STATE
 		)
 		expect(currentCompletions).not.toHaveBeenCalled()
@@ -56,11 +97,43 @@ describe('autocomplete-state', () => {
 					status: 'active',
 					options: [{ label: ':done', detail: 'Status: done', type: 'property' }],
 					selectedIndex: 0,
+					anchorRect: {
+						top: 120,
+						right: 152,
+						bottom: 138,
+						left: 140,
+						width: 12,
+						height: 18,
+					},
+					editorRect: {
+						top: 80,
+						right: 420,
+						bottom: 300,
+						left: 60,
+						width: 360,
+						height: 220,
+					},
 				},
 				{
 					status: 'active',
 					options: [{ label: ':done', detail: 'Status: done', type: 'property' }],
 					selectedIndex: 0,
+					anchorRect: {
+						top: 120,
+						right: 152,
+						bottom: 138,
+						left: 140,
+						width: 12,
+						height: 18,
+					},
+					editorRect: {
+						top: 80,
+						right: 420,
+						bottom: 300,
+						left: 60,
+						width: 360,
+						height: 220,
+					},
 				}
 			)
 		).toBe(true)
@@ -71,11 +144,43 @@ describe('autocomplete-state', () => {
 					status: 'active',
 					options: [{ label: ':done', detail: 'Status: done', type: 'property' }],
 					selectedIndex: 0,
+					anchorRect: {
+						top: 120,
+						right: 152,
+						bottom: 138,
+						left: 140,
+						width: 12,
+						height: 18,
+					},
+					editorRect: {
+						top: 80,
+						right: 420,
+						bottom: 300,
+						left: 60,
+						width: 360,
+						height: 220,
+					},
 				},
 				{
 					status: 'pending',
 					options: [{ label: ':done', detail: 'Status: done', type: 'property' }],
 					selectedIndex: 0,
+					anchorRect: {
+						top: 120,
+						right: 152,
+						bottom: 138,
+						left: 140,
+						width: 12,
+						height: 18,
+					},
+					editorRect: {
+						top: 80,
+						right: 420,
+						bottom: 300,
+						left: 60,
+						width: 360,
+						height: 220,
+					},
 				}
 			)
 		).toBe(false)

@@ -190,6 +190,7 @@ jest.mock('./enhanced-input', () => ({
 		onKeyDown,
 		onAutocompleteControllerReady,
 		onAutocompleteStateChange,
+		onFocusChange,
 		onNodeTypeChange,
 		placeholder,
 		disabled,
@@ -208,7 +209,24 @@ jest.mock('./enhanced-input', () => ({
 			status: 'active' | 'pending' | null;
 			options: Array<{ label: string; detail?: string }>;
 			selectedIndex: number | null;
+			anchorRect: {
+				top: number;
+				right: number;
+				bottom: number;
+				left: number;
+				width: number;
+				height: number;
+			} | null;
+			editorRect: {
+				top: number;
+				right: number;
+				bottom: number;
+				left: number;
+				width: number;
+				height: number;
+			} | null;
 		}) => void;
+		onFocusChange?: (isFocused: boolean) => void;
 		onNodeTypeChange?: (nodeType: string) => void;
 		placeholder: string;
 		disabled: boolean;
@@ -216,22 +234,26 @@ jest.mock('./enhanced-input', () => ({
 	}) => {
 		const React = require('react');
 
-		React.useEffect(() => {
-			onAutocompleteControllerReady?.({
-				acceptOption: (index: number) => {
-					mockAcceptAutocomplete(index);
-					return true;
-				},
+			React.useEffect(() => {
+				onFocusChange?.(true);
+				onAutocompleteControllerReady?.({
+					acceptOption: (index: number) => {
+						mockAcceptAutocomplete(index);
+						return true;
+					},
 				close: () => {
 					mockCloseAutocomplete();
 					return true;
 				},
 				focusEditor: mockFocusEditor,
 				setSelectedIndex: mockSetAutocompleteIndex,
-			});
+				});
 
-			return () => onAutocompleteControllerReady?.(null);
-		}, [onAutocompleteControllerReady]);
+			return () => {
+				onFocusChange?.(false);
+				onAutocompleteControllerReady?.(null);
+			};
+		}, [onAutocompleteControllerReady, onFocusChange]);
 
 		return (
 			<div data-show-native-autocomplete={String(showNativeAutocomplete)}>
@@ -259,6 +281,22 @@ jest.mock('./enhanced-input', () => ({
 								{ label: ':blocked', detail: 'Status: blocked' },
 							],
 							selectedIndex: 0,
+							anchorRect: {
+								top: 180,
+								right: 160,
+								bottom: 198,
+								left: 140,
+								width: 20,
+								height: 18,
+							},
+							editorRect: {
+								top: 120,
+								right: 420,
+								bottom: 320,
+								left: 60,
+								width: 360,
+								height: 200,
+							},
 						})
 					}
 				>
@@ -271,10 +309,24 @@ jest.mock('./enhanced-input', () => ({
 							status: null,
 							options: [],
 							selectedIndex: null,
+							anchorRect: null,
+							editorRect: null,
 						})
 					}
 				>
 					Close autocomplete
+				</button>
+				<button
+					data-testid='focus-editor'
+					onClick={() => onFocusChange?.(true)}
+				>
+					Focus editor
+				</button>
+				<button
+					data-testid='blur-editor'
+					onClick={() => onFocusChange?.(false)}
+				>
+					Blur editor
 				</button>
 			</div>
 		);
@@ -284,6 +336,10 @@ jest.mock('./enhanced-input', () => ({
 jest.mock('./mobile-completion-tray', () => ({
 	MobileCompletionTray: ({
 		isOpen,
+		isEditorFocused,
+		anchorRect,
+		editorRect,
+		mentionMap,
 		options,
 		selectedIndex,
 		onClose,
@@ -291,6 +347,24 @@ jest.mock('./mobile-completion-tray', () => ({
 		onSelect,
 	}: {
 		isOpen: boolean;
+		isEditorFocused: boolean;
+		anchorRect: {
+			top: number;
+			right: number;
+			bottom: number;
+			left: number;
+			width: number;
+			height: number;
+		} | null;
+		editorRect: {
+			top: number;
+			right: number;
+			bottom: number;
+			left: number;
+			width: number;
+			height: number;
+		} | null;
+		mentionMap: Map<string, unknown>;
 		options: Array<{ label: string }>;
 		selectedIndex: number | null;
 		onClose: () => void;
@@ -300,6 +374,10 @@ jest.mock('./mobile-completion-tray', () => ({
 		isOpen ? (
 			<div
 				data-testid='mobile-completion-tray'
+				data-anchor-left={anchorRect?.left ?? ''}
+				data-editor-left={editorRect?.left ?? ''}
+				data-editor-focused={String(isEditorFocused)}
+				data-mention-count={mentionMap.size}
 				data-option-count={options.length}
 				data-selected-index={selectedIndex}
 			>
@@ -647,6 +725,14 @@ describe('QuickInput', () => {
 				'data-option-count',
 				'2'
 			);
+			expect(screen.getByTestId('mobile-completion-tray')).toHaveAttribute(
+				'data-anchor-left',
+				'140'
+			);
+			expect(screen.getByTestId('mobile-completion-tray')).toHaveAttribute(
+				'data-editor-focused',
+				'true'
+			);
 		});
 
 		it('accepts tray selections through the editor controller', async () => {
@@ -671,6 +757,29 @@ describe('QuickInput', () => {
 
 			expect(mockSetAutocompleteIndex).toHaveBeenCalledWith(1);
 			expect(mockCloseAutocomplete).toHaveBeenCalled();
+		});
+
+		it('keeps the autocomplete session open when editor focus changes', async () => {
+			const user = userEvent.setup();
+			mockIsMobile = true;
+			render(<QuickInput {...defaultProps} />);
+
+			await user.click(screen.getByTestId('emit-active-autocomplete'));
+			expect(screen.getByTestId('mobile-completion-tray')).toHaveAttribute(
+				'data-selected-index',
+				'0'
+			);
+
+			await user.click(screen.getByTestId('blur-editor'));
+
+			expect(screen.getByTestId('mobile-completion-tray')).toHaveAttribute(
+				'data-selected-index',
+				'0'
+			);
+			expect(screen.getByTestId('mobile-completion-tray')).toHaveAttribute(
+				'data-editor-focused',
+				'false'
+			);
 		});
 	});
 

@@ -23,6 +23,7 @@ total_tokens: 707972
 <!-- Updated: 2026-03-07 - Added owner-scoped node-limit preflight to node creation flow -->
 <!-- Updated: 2026-03-17 - Documented editor-first onboarding v2 state, placement, and upgrade-modal split -->
 <!-- Updated: 2026-03-17 - Added onboarding substeps, expanded toolbar anchors, and canvas-safe walkthrough positioning -->
+<!-- Updated: 2026-03-28 - Documented the hybrid mobile autocomplete surface and caret-anchor bridge -->
 <!-- Updated: 2026-03-18 - Documented mobile onboarding shell, viewport-aware coachmarks, and touch edit action -->
 <!-- Updated: 2026-03-18 - Documented premium mobile editor drawer and shared notifications hook -->
 <!-- Updated: 2026-03-25 - Documented shared notifications manager, map-scoped notification queries, and user-scoped onboarding persistence -->
@@ -362,8 +363,8 @@ shiko/
 **Node Editor Autocomplete:**
 
 - `src/components/node-editor/integrations/codemirror/setup.ts` now mirrors CodeMirror autocomplete state into React and conditionally suppresses the native tooltip when the mobile presenter is active
-- `src/components/node-editor/integrations/codemirror/autocomplete-state.ts` is the shared bridge for reading `active/pending`, current options, and selected index from CodeMirror
-- `src/components/node-editor/components/inputs/mobile-completion-tray.tsx` + `src/components/node-editor/components/inputs/use-mobile-autocomplete-viewport.ts` render a keyboard-aware mobile suggestion tray above `window.visualViewport`, while desktop keeps the native CodeMirror tooltip
+- `src/components/node-editor/integrations/codemirror/autocomplete-state.ts` is the shared bridge for reading `active/pending`, current options, selected index, and caret/editor geometry from CodeMirror
+- `src/components/node-editor/components/inputs/mobile-completion-tray.tsx` + `src/components/node-editor/components/inputs/use-mobile-autocomplete-viewport.ts` render the hybrid mobile presenter: a full-width keyboard-attached strip while the mobile keyboard is open, or a caret-anchored floating panel when it closes, while desktop keeps the native CodeMirror tooltip
 
 **Notifications internals (operational map):**
 
