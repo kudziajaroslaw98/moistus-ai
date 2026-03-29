@@ -1,3 +1,4 @@
+import type { Completion } from '@codemirror/autocomplete';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import type { AppNode } from '../../types/app-node';
 import type { NodeData } from '../../types/node-data';
@@ -129,6 +130,32 @@ export interface QuickInputProps {
 	existingNode?: AppNode;
 	initialValue?: string | null;
 	onboardingSource?: 'onboarding-pattern' | null;
+}
+
+export type EditorAutocompleteStatus = 'active' | 'pending' | null;
+
+export interface EditorAnchorRect {
+	top: number;
+	right: number;
+	bottom: number;
+	left: number;
+	width: number;
+	height: number;
+}
+
+export interface EditorAutocompleteState {
+	status: EditorAutocompleteStatus;
+	options: readonly Completion[];
+	selectedIndex: number | null;
+	anchorRect: EditorAnchorRect | null;
+	editorRect: EditorAnchorRect | null;
+}
+
+export interface EditorAutocompleteController {
+	acceptOption: (index: number) => boolean;
+	close: () => boolean;
+	focusEditor: () => void;
+	setSelectedIndex: (index: number) => void;
 }
 
 export interface StructuredInputProps {

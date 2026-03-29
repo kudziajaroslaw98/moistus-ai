@@ -24,6 +24,22 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-03-28 - Resolved PR #46 merge conflicts and preserved local layout plus onboarding/access behavior -->
 <!-- Updated: 2026-03-28 - Hardened layout animation/reflow cleanup, legacy layout normalization, and waypoint-edge rendering after CodeRabbit review -->
 <!-- Updated: 2026-03-28 - Handled quick-input local layout rejections after create mode node insertion -->
+<!-- Updated: 2026-03-29 - Refined mobile autocomplete tray portal targeting, dismiss handling, and scroll containment -->
+<!-- Updated: 2026-03-29 - Addressed follow-up autocomplete review comments around runtime config updates, hover guards, and docs -->
+
+## [2026-03-29]
+
+### Fixed
+
+- **node-editor/mobile-autocomplete-scroll-containment**: Moved the mobile autocomplete tray portal into the node-editor overlay, kept the floating panel below the typed text, and contained overscroll for both the tray and the native CodeMirror autocomplete popover so dragging past the end of the suggestions list no longer scrolls the page behind it
+  - Why: The body portal was interacting poorly with modal outside-click handling, and both autocomplete surfaces needed to behave like isolated input layers instead of leaking scroll gestures to the editor/page
+- **node-editor/mobile-autocomplete-strip-chrome**: Removed the top corner radius from the keyboard-open tray mode so the strip reads as a cleaner continuation of the mobile viewport instead of a floating card
+  - Why: Rounded top corners looked visually wrong once the tray was made flush to the keyboard/open viewport edge
+- **node-editor/autocomplete-runtime-config**: Stopped rebuilding the CodeMirror view when the enhanced input placeholder or native autocomplete visibility toggles change, and reconfigured those settings in place instead
+  - Why: Recreating the editor for presentation-only prop changes was unnecessary churn and could interrupt active autocomplete state
+- **node-editor/mobile-autocomplete-hover-guards**: Moved tray hover treatments behind `(hover: hover)` media queries and documented the overlay dismissal contract plus viewport/autocomplete bridge heuristics
+  - Why: Touch devices should not keep sticky hover styling, and the portal/dismiss/runtime-visibility rules need to stay explicit for future editor changes
+
 
 ## [2026-03-28]
 
@@ -42,6 +58,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Older persisted data should still render correctly without allowing background normalization to overwrite newer server state
 - **quick-input/local-layout-error-handling**: Handled the post-create `applyLayoutAroundNode(...)` promise explicitly instead of dropping rejections
   - Why: The create flow keeps local layout application non-blocking, but promise failures should still be surfaced instead of becoming unhandled rejections
+- **node-editor/mobile-autocomplete-tray**: Reworked mobile autocomplete into a hybrid presenter that portals out of the transformed quick-input shell, sticks as a compact full-width strip above the open keyboard, stays below the typed text when floating, ignores modal outside-click dismissal while the tray is tapped/scrolled, and mirrors desktop `@mention` rows with avatars and role badges
+  - Why: The body-level fixed CodeMirror tooltip could render beneath the mobile keyboard, and the first tray pass was still constrained by the animated editor container and could close the modal when tapped
 
 ### Refactored
 
@@ -52,6 +70,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **layout/docs**: Added local branch reflow invariant docs in `ai-docs/local-branch-reflow/local-branch-reflow.md` and expanded JSDoc for the local reflow and auto-routing helpers
   - Why: The review called out hidden assumptions around create/edit guarantees, affected-id semantics, and routing selection rules
+- **editor/docs-sync**: Updated `CLAUDE.md` and `docs/CODEBASE_MAP.md` for the shared CodeMirror completion bridge, the portaled mobile tray surface, and the node-editor dismiss guard
+  - Why: Node-editor architecture and gotchas changed again once the mobile presenter started escaping the transformed quick-input shell and coordinating with modal outside-click handling
 
 ## [2026-03-25]
 
