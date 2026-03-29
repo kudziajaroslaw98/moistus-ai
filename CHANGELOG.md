@@ -25,6 +25,15 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-03-28 - Hardened layout animation/reflow cleanup, legacy layout normalization, and waypoint-edge rendering after CodeRabbit review -->
 <!-- Updated: 2026-03-28 - Handled quick-input local layout rejections after create mode node insertion -->
 
+<!-- Updated: 2026-03-29 - Tightened node-editor autocomplete regression coverage -->
+
+## [2026-03-29]
+
+### Fixed
+
+- **node-editor/autocomplete-regression-tests**: Added the exact single-space passive-input case and asserted single restart counts for chained manual trigger completion tests
+  - Why: Locks the original Space regression to the literal one-space path and prevents duplicate follow-up completion restarts from slipping through
+
 ## [2026-03-28]
 
 ### Changed

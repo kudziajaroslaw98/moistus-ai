@@ -106,6 +106,7 @@ describe('codemirror completions cleanup', () => {
 		const { source } = createCompletions()
 
 		await expect(Promise.resolve(source(buildContext('')))).resolves.toBeNull()
+		await expect(Promise.resolve(source(buildContext(' ')))).resolves.toBeNull()
 		await expect(Promise.resolve(source(buildContext('hello ')))).resolves.toBeNull()
 	})
 
@@ -151,6 +152,7 @@ describe('codemirror completions cleanup', () => {
 			jest.runAllTimers()
 
 			expect(mockedStartCompletion).toHaveBeenCalledWith(view)
+			expect(mockedStartCompletion).toHaveBeenCalledTimes(1)
 		} finally {
 			jest.useRealTimers()
 		}
@@ -180,6 +182,7 @@ describe('codemirror completions cleanup', () => {
 			jest.runAllTimers()
 
 			expect(mockedStartCompletion).toHaveBeenCalledWith(view)
+			expect(mockedStartCompletion).toHaveBeenCalledTimes(1)
 		} finally {
 			jest.useRealTimers()
 		}
