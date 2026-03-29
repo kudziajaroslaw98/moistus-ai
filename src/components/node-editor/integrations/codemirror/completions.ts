@@ -294,6 +294,12 @@ const PATTERN_PREFIXES = [
 	{ prefix: 'type:', description: 'Set annotation type', trigger: 'type:' },
 ];
 
+/**
+ * createChainedApply defers startCompletion until the next tick so the editor
+ * can apply the insertion transaction and settle its state before reopening
+ * autocomplete. The zero-delay timeout is intentional to avoid stale-state
+ * races between the current completion close, the dispatch, and startCompletion.
+ */
 function createChainedApply(insertText: string) {
 	return (view: EditorView, _completion: unknown, from: number, to: number) => {
 		view.dispatch({

@@ -34,6 +34,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Fixed
 
+<!-- Updated: 2026-03-29 - Documented node-editor autocomplete fixes -->
 - **node-editor/quiet-autocomplete-on-space**: Stopped passive empty-token trigger suggestions from reopening on `Space`, kept explicit trigger-character and partial-prefix completions, and documented manual `Ctrl+Space` discovery in the action bar
   - Why: Prevents distracting autocomplete popups during normal typing without removing on-demand syntax help
 - **node-editor/manual-trigger-chaining**: Manual `Ctrl+Space` trigger picks now immediately reopen autocomplete for the selected syntax family, so base triggers like `#` and `$` flow straight into their follow-up suggestions

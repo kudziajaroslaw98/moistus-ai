@@ -99,7 +99,7 @@ describe('codemirror completions cleanup', () => {
 
 		expect(result).not.toBeNull()
 		const labels = result?.options.map((option: { label: string }) => option.label) ?? []
-		expect(labels).toEqual(expect.arrayContaining(['#', '@', '^', '!', ':']))
+		expect(labels).toEqual(expect.arrayContaining(['#', '@', '^', '!', ':', '/']))
 	})
 
 	it('does not show universal trigger suggestions for passive empty input', async () => {
