@@ -4,8 +4,8 @@ import { PreviewNodeRenderer } from '@/components/node-editor/components/preview
 import type { ParsedPreview } from '@/components/node-editor/components/preview/transform-preview-data';
 import { parseInput } from '@/components/node-editor/core/parsers/pattern-extractor';
 import { cn } from '@/utils/cn';
-import { motion, useReducedMotion } from 'motion/react';
 import { CheckSquare, Sparkles } from 'lucide-react';
+import { motion, useReducedMotion } from 'motion/react';
 import { useEffect, useState } from 'react';
 
 const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
@@ -116,58 +116,58 @@ export function HeroEditorDemo() {
 					transition={{ duration: 0.36, ease: EASE_OUT_QUART }}
 					className='rounded-[1rem] border border-white/8 bg-black/22 px-3 py-3.5 md:min-h-[20.5rem] md:rounded-none md:border-0 md:bg-transparent md:px-0 md:py-0 md:pr-6 lg:min-h-[24rem] lg:pr-8'
 				>
-						<p className='text-[9px] font-medium uppercase tracking-[0.26em] text-white/36'>
-							Input
-						</p>
+					<p className='text-[9px] font-medium uppercase tracking-[0.26em] text-white/36'>
+						Input
+					</p>
 
-						<motion.div
-							layout
-							transition={{ duration: 0.36, ease: EASE_OUT_QUART }}
-							className='mt-3 flex flex-col justify-start space-y-2 font-mono text-[12px] leading-5 md:min-h-[14.5rem] md:text-[13px] lg:min-h-[17rem] lg:text-[14px] lg:leading-6'
-						>
-							{activeFrame.input.split('\n').map((line) => (
-								<motion.div
-									key={line}
-									layout='position'
-									initial={
-										shouldReduceMotion
-											? { opacity: 1, y: 0 }
-											: { opacity: 0, y: 8 }
-									}
-									animate={{ opacity: 1, y: 0 }}
-									transition={
-										shouldReduceMotion
-											? { duration: 0 }
-											: { duration: 0.22, ease: EASE_OUT_QUART }
-									}
-								>
-									<span className={cn(lineToneClasses[getLineTone(line)])}>
-										{line}
-									</span>
-								</motion.div>
-							))}
-						</motion.div>
+					<motion.div
+						layout
+						transition={{ duration: 0.36, ease: EASE_OUT_QUART }}
+						className='mt-3 flex flex-col justify-start space-y-2 font-mono text-[12px] leading-5 min-h-[9rem] md:text-[13px] lg:min-h-[17rem] lg:text-[14px] lg:leading-6'
+					>
+						{activeFrame.input.split('\n').map((line) => (
+							<motion.div
+								key={line}
+								layout='position'
+								initial={
+									shouldReduceMotion
+										? { opacity: 1, y: 0 }
+										: { opacity: 0, y: 8 }
+								}
+								animate={{ opacity: 1, y: 0 }}
+								transition={
+									shouldReduceMotion
+										? { duration: 0 }
+										: { duration: 0.22, ease: EASE_OUT_QUART }
+								}
+							>
+								<span className={cn(lineToneClasses[getLineTone(line)])}>
+									{line}
+								</span>
+							</motion.div>
+						))}
+					</motion.div>
 				</motion.div>
 
 				<motion.div
 					layout
 					transition={{ duration: 0.36, ease: EASE_OUT_QUART }}
-					className='rounded-[1rem] border border-white/8 bg-black/22 px-3 py-3 md:min-h-[20.5rem] md:rounded-none md:border-0 md:border-l md:border-white/8 md:bg-transparent md:px-0 md:py-0 md:pl-6 lg:min-h-[24rem] lg:pl-8'
+					className='rounded-[1rem] border border-white/8 bg-black/22 px-3 py-3 min-h-[20rem] md:rounded-none md:border-0 md:border-l md:border-white/8 md:bg-transparent md:px-0 md:py-0 md:pl-6 lg:min-h-[24rem] lg:pl-8'
 				>
-						<p className='text-[9px] font-medium uppercase tracking-[0.26em] text-white/36'>
-							Preview
-						</p>
+					<p className='text-[9px] font-medium uppercase tracking-[0.26em] text-white/36'>
+						Preview
+					</p>
 
-						<motion.div
-							layout
-							transition={{ duration: 0.36, ease: EASE_OUT_QUART }}
-							className='mt-3 min-h-[12.5rem] overflow-hidden md:min-h-[17.25rem] lg:min-h-[20.5rem]'
-						>
-							<PreviewNodeRenderer
-								nodeType='taskNode'
-								preview={activeFrame.preview}
-							/>
-						</motion.div>
+					<motion.div
+						layout
+						transition={{ duration: 0.36, ease: EASE_OUT_QUART }}
+						className='mt-3 min-h-[12.5rem] overflow-hidden md:min-h-[17.25rem] lg:min-h-[20.5rem]'
+					>
+						<PreviewNodeRenderer
+							nodeType='taskNode'
+							preview={activeFrame.preview}
+						/>
+					</motion.div>
 				</motion.div>
 			</motion.div>
 		</motion.div>
