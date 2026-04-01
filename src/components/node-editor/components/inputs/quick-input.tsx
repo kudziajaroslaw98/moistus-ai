@@ -1,5 +1,6 @@
 'use client';
 
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useMapNodeLimit } from '@/hooks/subscription/use-map-node-limit';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import useAppStore from '@/store/mind-map-store';
@@ -26,12 +27,19 @@ import {
 } from '../../core/config/node-type-config';
 import { parseInput } from '../../core/parsers/pattern-extractor';
 import { announceToScreenReader } from '../../core/utils/text-utils';
-import type { CollaboratorMention } from '../../integrations/codemirror/completions';
+import {
+	buildMentionMap,
+	type CollaboratorMention,
+} from '../../integrations/codemirror/completions';
 import {
 	createOrUpdateNode,
 	transformNodeToQuickInputString,
 } from '../../node-updater';
-import type { QuickInputProps } from '../../types';
+import type {
+	EditorAutocompleteController,
+	EditorAutocompleteState,
+	QuickInputProps,
+} from '../../types';
 import { ActionBar } from '../action-bar';
 import { ComponentHeader } from '../component-header';
 import { ErrorDisplay } from '../error-display';
@@ -40,6 +48,7 @@ import { ParentNodeReference } from '../parent-node-reference';
 import { ParsingLegend } from '../parsing-legend';
 import { PreviewSection } from '../preview-section';
 import { EnhancedInput } from './enhanced-input';
+import { MobileCompletionTray } from './mobile-completion-tray';
 
 const theme = {
 	container: 'p-4',
@@ -169,10 +178,23 @@ export const QuickInput: FC<QuickInputProps> = ({
 	initialValue,
 	onboardingSource,
 }) => {
+	const isMobile = useIsMobile();
+
 	// Local UI state
 	const [preview, setPreview] = useState<QuickInputPreview | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [isCreating, setIsCreating] = useState(false);
+	const [autocompleteController, setAutocompleteController] =
+		useState<EditorAutocompleteController | null>(null);
+	const [autocompleteState, setAutocompleteState] =
+		useState<EditorAutocompleteState>({
+			status: null,
+			options: [],
+			selectedIndex: null,
+			anchorRect: null,
+			editorRect: null,
+		});
+	const [isEditorFocused, setIsEditorFocused] = useState(false);
 	const [mentionableUsers, setMentionableUsers] = useState<MentionableUser[]>(
 		[]
 	);
@@ -258,6 +280,10 @@ export const QuickInput: FC<QuickInputProps> = ({
 		onboardingSource === 'onboarding-pattern' &&
 		onboardingPatternStep === 'pattern-editor' &&
 		hasSyntaxPatterns;
+	const showMobileCompletionTray =
+		isMobile &&
+		autocompleteState.status === 'active' &&
+		autocompleteState.options.length > 0;
 
 	const collaborators = useMemo<CollaboratorMention[]>(() => {
 		if (mentionableUsers.length > 0) {
@@ -304,6 +330,10 @@ export const QuickInput: FC<QuickInputProps> = ({
 		}
 		return map;
 	}, [mentionableUsers, currentShares]);
+	const autocompleteMentionMap = useMemo(
+		() => buildMentionMap(collaborators),
+		[collaborators]
+	);
 
 	useEffect(() => {
 		if (!mapId) {
@@ -786,6 +816,47 @@ export const QuickInput: FC<QuickInputProps> = ({
 		);
 	}, []);
 
+	const handleAutocompleteStateChange = useCallback(
+		(nextAutocompleteState: EditorAutocompleteState) => {
+			setAutocompleteState(nextAutocompleteState);
+		},
+		[]
+	);
+
+	const handleAutocompleteControllerReady = useCallback(
+		(controller: EditorAutocompleteController | null) => {
+			setAutocompleteController(controller);
+			if (!controller) {
+				setAutocompleteState({
+					status: null,
+					options: [],
+					selectedIndex: null,
+					anchorRect: null,
+					editorRect: null,
+				});
+			}
+		},
+		[]
+	);
+
+	const handleMobileAutocompleteSelect = useCallback(
+		(index: number) => {
+			autocompleteController?.acceptOption(index);
+		},
+		[autocompleteController]
+	);
+
+	const handleMobileAutocompleteHighlight = useCallback(
+		(index: number) => {
+			autocompleteController?.setSelectedIndex(index);
+		},
+		[autocompleteController]
+	);
+
+	const handleMobileAutocompleteClose = useCallback(() => {
+		autocompleteController?.close();
+	}, [autocompleteController]);
+
 	// Handle keyboard shortcuts
 	const handleKeyDown = useCallback(
 		(e: ReactKeyboardEvent) => {
@@ -826,12 +897,16 @@ export const QuickInput: FC<QuickInputProps> = ({
 					disabled={isCreating}
 					enableCommands={true}
 					initial={{ opacity: 1, y: -20 }}
+					onAutocompleteControllerReady={handleAutocompleteControllerReady}
+					onAutocompleteStateChange={handleAutocompleteStateChange}
 					onChange={setValue}
 					onCommandExecuted={handleCommandExecuted}
+					onFocusChange={setIsEditorFocused}
 					onKeyDown={handleKeyDown}
 					onNodeTypeChange={handleNodeTypeChange}
 					onSelectionChange={handleSelectionChange}
 					placeholder={`Type naturally... ${config.examples?.[0] || ''}`}
+					showNativeAutocomplete={!isMobile}
 					transition={{ duration: 0.25, ease: 'easeOut' as const }}
 					value={value}
 					whileFocus={{
@@ -847,6 +922,19 @@ export const QuickInput: FC<QuickInputProps> = ({
 					preview={preview}
 				/>
 			</div>
+
+			<MobileCompletionTray
+				isOpen={showMobileCompletionTray}
+				anchorRect={autocompleteState.anchorRect}
+				editorRect={autocompleteState.editorRect}
+				isEditorFocused={isEditorFocused}
+				mentionMap={autocompleteMentionMap}
+				onClose={handleMobileAutocompleteClose}
+				onHighlight={handleMobileAutocompleteHighlight}
+				onSelect={handleMobileAutocompleteSelect}
+				options={autocompleteState.options}
+				selectedIndex={autocompleteState.selectedIndex}
+			/>
 
 			{/* Parsing Legend */}
 			<AnimatePresence>

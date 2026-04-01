@@ -28,6 +28,18 @@ export interface CollaboratorMention {
 	role: 'editor' | 'viewer' | 'built-in';
 }
 
+export function buildMentionMap(
+	collaborators: CollaboratorMention[] = []
+): Map<string, CollaboratorMention> {
+	const mentionMap = new Map<string, CollaboratorMention>();
+
+	for (const mention of [...BUILT_IN_MENTIONS, ...collaborators]) {
+		mentionMap.set(`@${mention.slug}`, mention);
+	}
+
+	return mentionMap;
+}
+
 // ============================================================================
 // SUGGESTION DATA
 // ============================================================================
@@ -325,10 +337,7 @@ export function createCompletions(
 	const allMentions = [...BUILT_IN_MENTIONS, ...collaborators];
 
 	// Build label → mention map for the avatar renderer in setup.ts
-	const mentionMap = new Map<string, CollaboratorMention>();
-	for (const m of allMentions) {
-		mentionMap.set(`@${m.slug}`, m);
-	}
+	const mentionMap = buildMentionMap(collaborators);
 
 	const source: CompletionSource = (context: CompletionContext): CompletionResult | null => {
 		const { explicit, pos } = context;

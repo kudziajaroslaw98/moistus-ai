@@ -2,9 +2,10 @@
 
 <!-- Updated: 2026-03-23 - Restructured: compressed philosophy, moved domain gotchas to .claude/rules/ -->
 <!-- Updated: 2026-03-25 - Documented shared notifications cache/socket and per-user onboarding persistence -->
-<!-- Updated: 2026-04-01 - Documented body-portaled node-editor autocomplete dismissal and mobile visualViewport bounds -->
+<!-- Updated: 2026-03-28 - Documented shared-vs-mobile node-editor autocomplete surfaces -->
 <!-- Updated: 2026-04-01 - Documented LAN-safe local-dev runtime service URL derivation -->
 <!-- Updated: 2026-04-01 - Documented stable Supabase SSR auth cookie naming for LAN dev -->
+<!-- Updated: 2026-04-01 - Documented node-editor portaled autocomplete dismissal guard -->
 
 ## Engineering Philosophy
 
@@ -167,9 +168,8 @@ pnpm pretty          # Prettier
 
 <!-- Updated: 2026-02-28 - Removed deprecated parser tokens and introduced dual syntax help model -->
 
-**Node editor autocomplete layering**: CodeMirror autocomplete is portaled to `document.body` so it can escape modal clipping. Node-editor dismiss guards must treat `.cm-tooltip*` presses as inside interactions, and mobile tooltip bounds should come from `visualViewport` with a small bottom inset so suggestions stay above the software keyboard.
-
-<!-- Updated: 2026-04-01 - Documented shared editor-shell/autocomplete invariants for mobile -->
+**Node editor autocomplete surfaces**: Keep `createCompletions()` as the single source of autocomplete options. Desktop uses the native CodeMirror tooltip; mobile hides that tooltip and renders a hybrid presenter: a compact full-width strip attached to the open keyboard, or a caret-anchored floating panel when the keyboard is hidden. Any editor/modal outside-press guard must treat both `[data-node-editor-autocomplete-tray="true"]` and body-portaled `.cm-tooltip*` elements as inside-editor interactions so selecting a suggestion does not dismiss the editor.
+<!-- Updated: 2026-03-28 - Documented the hybrid mobile autocomplete presenter and shared completion engine -->
 
 **Rate Limiting**: In-memory only (`src/helpers/api/rate-limiter.ts`), won't scale horizontally without Redis.
 

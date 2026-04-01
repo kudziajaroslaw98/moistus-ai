@@ -24,22 +24,36 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-03-28 - Resolved PR #46 merge conflicts and preserved local layout plus onboarding/access behavior -->
 <!-- Updated: 2026-03-28 - Hardened layout animation/reflow cleanup, legacy layout normalization, and waypoint-edge rendering after CodeRabbit review -->
 <!-- Updated: 2026-03-28 - Handled quick-input local layout rejections after create mode node insertion -->
+<!-- Updated: 2026-03-29 - Refined mobile autocomplete tray portal targeting, dismiss handling, and scroll containment -->
+<!-- Updated: 2026-03-29 - Addressed follow-up autocomplete review comments around runtime config updates, hover guards, and docs -->
+
+## [2026-03-29]
+
+### Fixed
+
+- **node-editor/mobile-autocomplete-scroll-containment**: Moved the mobile autocomplete tray portal into the node-editor overlay, kept the floating panel below the typed text, and contained overscroll for both the tray and the native CodeMirror autocomplete popover so dragging past the end of the suggestions list no longer scrolls the page behind it
+  - Why: The body portal was interacting poorly with modal outside-click handling, and both autocomplete surfaces needed to behave like isolated input layers instead of leaking scroll gestures to the editor/page
+- **node-editor/mobile-autocomplete-strip-chrome**: Removed the top corner radius from the keyboard-open tray mode so the strip reads as a cleaner continuation of the mobile viewport instead of a floating card
+  - Why: Rounded top corners looked visually wrong once the tray was made flush to the keyboard/open viewport edge
+- **node-editor/autocomplete-runtime-config**: Stopped rebuilding the CodeMirror view when the enhanced input placeholder or native autocomplete visibility toggles change, and reconfigured those settings in place instead
+  - Why: Recreating the editor for presentation-only prop changes was unnecessary churn and could interrupt active autocomplete state
+- **node-editor/mobile-autocomplete-hover-guards**: Moved tray hover treatments behind `(hover: hover)` media queries and documented the overlay dismissal contract plus viewport/autocomplete bridge heuristics
+  - Why: Touch devices should not keep sticky hover styling, and the portal/dismiss/runtime-visibility rules need to stay explicit for future editor changes
+
 
 <!-- Updated: 2026-03-29 - Tightened node-editor autocomplete regression coverage -->
-<!-- Updated: 2026-04-01 - Fixed mobile autocomplete viewport/dismissal handling and added targeted regression coverage -->
+<!-- Updated: 2026-04-01 - Fixed LAN local-dev URLs/auth cookie naming and aligned node-editor dismissal docs after merging main -->
 
 ## [2026-04-01]
 
 ### Fixed
 
-- **node-editor/mobile-autocomplete-shell**: Guarded node-editor outside-press dismissal so body-portaled CodeMirror autocomplete taps no longer close the editor, including the onboarding pattern lesson flow
-  - Why: Autocomplete suggestions render outside the floating editor DOM, so touch selection was being misclassified as an outside press
-- **node-editor/mobile-tooltip-viewport**: Constrained CodeMirror tooltip space to the mobile `visualViewport`, added a small bottom safety inset, and remeasured tooltip positions on `visualViewport` resize/scroll
-  - Why: The layout viewport ignores the software keyboard, which let autocomplete suggestions drop under the keyboard on phones
 - **local-dev/lan-safe-browser-service-urls**: Browser Supabase clients, PartyKit sockets, forgot-password recovery redirects, and dashboard/history fetches now follow the current browser hostname in development instead of sticking to `localhost` or `127.0.0.1`
   - Why: Opening the app as `http://<lan-ip>:3000` previously broke browser-visible local services by sending them back to loopback-only hosts
 - **auth/lan-login-cookie-key**: Supabase SSR browser and server clients now share a stable auth cookie/storage key derived from the configured Supabase URL, so successful LAN password logins no longer bounce back to sign-in
   - Why: The browser LAN host changed the default `sb-*` cookie name, which made the server-side dashboard auth check miss an otherwise valid session
+- **node-editor/portaled-autocomplete-dismissal**: On the merged main node-editor baseline, the editor sheet now uses Floating UI’s floating props and treats body-portaled `.cm-tooltip*` presses as inside-editor interactions, so selecting a native autocomplete suggestion no longer closes the editor
+  - Why: CodeMirror renders its desktop/native autocomplete tooltip outside the editor DOM tree, which made suggestion taps look like backdrop presses
 
 ### Changed
 
@@ -52,10 +66,12 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: The repo docs previously suggested loopback-only browser URLs and did not explain the public-vs-internal split
 - **docs/local-dev-auth-cookie-key**: Documented the Supabase SSR cookie-name constraint for LAN logins
   - Why: Runtime LAN host derivation is safe only if browser and server still agree on the same auth storage key
+- **docs/node-editor-dismissal-contract**: Corrected the node-editor docs after taking `main`’s autocomplete implementation and recorded the outside-press requirement for both the mobile tray and body-portaled CodeMirror tooltip
+  - Why: The discarded branch-only tooltip viewport notes no longer matched the merged implementation
 ### Added
 
-- **tests/node-editor-mobile-autocomplete**: Added unit coverage for portaled tooltip dismissal guards, pure helper coverage for tooltip viewport bounds, and a mobile Playwright regression for tap-to-select autocomplete
-  - Why: Locks both the mobile visibility fix and the tap-selection behavior into regression coverage
+- **tests/node-editor-dismissal-guard**: Added regression coverage for the merged node-editor shell so portaled autocomplete taps stay inside the editor while backdrop presses still dismiss it
+  - Why: This bug sits at the modal/autocomplete boundary and is easy to reintroduce during future editor shell changes
 - **tests/local-dev-url-derivation**: Added pure helper tests for LAN hostname derivation, current-origin auth redirects, and internal-vs-public Supabase URL resolution
   - Why: Keeps the local-dev network contract stable without depending on full browser integration tests
 
@@ -89,6 +105,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Older persisted data should still render correctly without allowing background normalization to overwrite newer server state
 - **quick-input/local-layout-error-handling**: Handled the post-create `applyLayoutAroundNode(...)` promise explicitly instead of dropping rejections
   - Why: The create flow keeps local layout application non-blocking, but promise failures should still be surfaced instead of becoming unhandled rejections
+- **node-editor/mobile-autocomplete-tray**: Reworked mobile autocomplete into a hybrid presenter that portals out of the transformed quick-input shell, sticks as a compact full-width strip above the open keyboard, stays below the typed text when floating, ignores modal outside-click dismissal while the tray is tapped/scrolled, and mirrors desktop `@mention` rows with avatars and role badges
+  - Why: The body-level fixed CodeMirror tooltip could render beneath the mobile keyboard, and the first tray pass was still constrained by the animated editor container and could close the modal when tapped
 
 ### Refactored
 
@@ -99,6 +117,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **layout/docs**: Added local branch reflow invariant docs in `ai-docs/local-branch-reflow/local-branch-reflow.md` and expanded JSDoc for the local reflow and auto-routing helpers
   - Why: The review called out hidden assumptions around create/edit guarantees, affected-id semantics, and routing selection rules
+- **editor/docs-sync**: Updated `CLAUDE.md` and `docs/CODEBASE_MAP.md` for the shared CodeMirror completion bridge, the portaled mobile tray surface, and the node-editor dismiss guard
+  - Why: Node-editor architecture and gotchas changed again once the mobile presenter started escaping the transformed quick-input shell and coordinating with modal outside-click handling
 
 ## [2026-03-25]
 

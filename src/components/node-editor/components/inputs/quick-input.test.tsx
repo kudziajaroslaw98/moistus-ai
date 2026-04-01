@@ -15,6 +15,10 @@ const mockApplyLayoutAroundNode = jest.fn().mockResolvedValue(undefined);
 const mockQueueLocalLayoutOnResize = jest.fn();
 const mockClearQueuedLocalLayoutOnResize = jest.fn();
 const mockHandleOnboardingNodeCreated = jest.fn();
+const mockAcceptAutocomplete = jest.fn();
+const mockCloseAutocomplete = jest.fn();
+const mockFocusEditor = jest.fn();
+const mockSetAutocompleteIndex = jest.fn();
 const mockParseInput = jest.fn((text: string): any => ({
 	content: text,
 	tags: [],
@@ -25,6 +29,7 @@ const mockParseInput = jest.fn((text: string): any => ({
 let mockQuickInputValue = '';
 let mockQuickInputNodeType: string | null = null;
 let mockOnboardingPatternStep: string | null = null;
+let mockIsMobile = false;
 
 jest.mock('@/store/mind-map-store', () => ({
 	__esModule: true,
@@ -53,6 +58,10 @@ jest.mock('@/store/mind-map-store', () => ({
 			onboardingPatternStep: mockOnboardingPatternStep,
 		})
 	),
+}));
+
+jest.mock('@/hooks/use-mobile', () => ({
+	useIsMobile: jest.fn(() => mockIsMobile),
 }));
 
 // Mock node type config
@@ -179,34 +188,216 @@ jest.mock('./enhanced-input', () => ({
 		value,
 		onChange,
 		onKeyDown,
+		onAutocompleteControllerReady,
+		onAutocompleteStateChange,
+		onFocusChange,
 		onNodeTypeChange,
 		placeholder,
 		disabled,
+		showNativeAutocomplete,
 	}: {
 		value: string;
 		onChange: (val: string) => void;
 		onKeyDown: (e: React.KeyboardEvent) => void;
+		onAutocompleteControllerReady?: (controller: {
+			acceptOption: (index: number) => boolean;
+			close: () => boolean;
+			focusEditor: () => void;
+			setSelectedIndex: (index: number) => void;
+		} | null) => void;
+		onAutocompleteStateChange?: (state: {
+			status: 'active' | 'pending' | null;
+			options: Array<{ label: string; detail?: string }>;
+			selectedIndex: number | null;
+			anchorRect: {
+				top: number;
+				right: number;
+				bottom: number;
+				left: number;
+				width: number;
+				height: number;
+			} | null;
+			editorRect: {
+				top: number;
+				right: number;
+				bottom: number;
+				left: number;
+				width: number;
+				height: number;
+			} | null;
+		}) => void;
+		onFocusChange?: (isFocused: boolean) => void;
 		onNodeTypeChange?: (nodeType: string) => void;
 		placeholder: string;
 		disabled: boolean;
-	}) => (
-		<div>
-			<textarea
-				data-testid='enhanced-input'
-				value={value}
-				onChange={(e) => onChange(e.target.value)}
-				onKeyDown={onKeyDown}
-				placeholder={placeholder}
-				disabled={disabled}
-			/>
-			<button
-				data-testid='switch-task-node'
-				onClick={() => onNodeTypeChange?.('taskNode')}
+		showNativeAutocomplete?: boolean;
+	}) => {
+		const React = require('react');
+
+			React.useEffect(() => {
+				onFocusChange?.(true);
+				onAutocompleteControllerReady?.({
+					acceptOption: (index: number) => {
+						mockAcceptAutocomplete(index);
+						return true;
+					},
+				close: () => {
+					mockCloseAutocomplete();
+					return true;
+				},
+				focusEditor: mockFocusEditor,
+				setSelectedIndex: mockSetAutocompleteIndex,
+				});
+
+			return () => {
+				onFocusChange?.(false);
+				onAutocompleteControllerReady?.(null);
+			};
+		}, [onAutocompleteControllerReady, onFocusChange]);
+
+		return (
+			<div data-show-native-autocomplete={String(showNativeAutocomplete)}>
+				<textarea
+					data-testid='enhanced-input'
+					value={value}
+					onChange={(e) => onChange(e.target.value)}
+					onKeyDown={onKeyDown}
+					placeholder={placeholder}
+					disabled={disabled}
+				/>
+				<button
+					data-testid='switch-task-node'
+					onClick={() => onNodeTypeChange?.('taskNode')}
+				>
+					Switch Task
+				</button>
+				<button
+					data-testid='emit-active-autocomplete'
+					onClick={() =>
+						onAutocompleteStateChange?.({
+							status: 'active',
+							options: [
+								{ label: ':done', detail: 'Status: done' },
+								{ label: ':blocked', detail: 'Status: blocked' },
+							],
+							selectedIndex: 0,
+							anchorRect: {
+								top: 180,
+								right: 160,
+								bottom: 198,
+								left: 140,
+								width: 20,
+								height: 18,
+							},
+							editorRect: {
+								top: 120,
+								right: 420,
+								bottom: 320,
+								left: 60,
+								width: 360,
+								height: 200,
+							},
+						})
+					}
+				>
+					Emit autocomplete
+				</button>
+				<button
+					data-testid='emit-closed-autocomplete'
+					onClick={() =>
+						onAutocompleteStateChange?.({
+							status: null,
+							options: [],
+							selectedIndex: null,
+							anchorRect: null,
+							editorRect: null,
+						})
+					}
+				>
+					Close autocomplete
+				</button>
+				<button
+					data-testid='focus-editor'
+					onClick={() => onFocusChange?.(true)}
+				>
+					Focus editor
+				</button>
+				<button
+					data-testid='blur-editor'
+					onClick={() => onFocusChange?.(false)}
+				>
+					Blur editor
+				</button>
+			</div>
+		);
+	},
+}));
+
+jest.mock('./mobile-completion-tray', () => ({
+	MobileCompletionTray: ({
+		isOpen,
+		isEditorFocused,
+		anchorRect,
+		editorRect,
+		mentionMap,
+		options,
+		selectedIndex,
+		onClose,
+		onHighlight,
+		onSelect,
+	}: {
+		isOpen: boolean;
+		isEditorFocused: boolean;
+		anchorRect: {
+			top: number;
+			right: number;
+			bottom: number;
+			left: number;
+			width: number;
+			height: number;
+		} | null;
+		editorRect: {
+			top: number;
+			right: number;
+			bottom: number;
+			left: number;
+			width: number;
+			height: number;
+		} | null;
+		mentionMap: Map<string, unknown>;
+		options: Array<{ label: string }>;
+		selectedIndex: number | null;
+		onClose: () => void;
+		onHighlight: (index: number) => void;
+		onSelect: (index: number) => void;
+	}) =>
+		isOpen ? (
+			<div
+				data-testid='mobile-completion-tray'
+				data-anchor-left={anchorRect?.left ?? ''}
+				data-editor-left={editorRect?.left ?? ''}
+				data-editor-focused={String(isEditorFocused)}
+				data-mention-count={mentionMap.size}
+				data-option-count={options.length}
+				data-selected-index={selectedIndex}
 			>
-				Switch Task
-			</button>
-		</div>
-	),
+				<button
+					data-testid='highlight-mobile-completion'
+					onClick={() => onHighlight(1)}
+				>
+					Highlight
+				</button>
+				<button
+					data-testid='accept-mobile-completion'
+					onClick={() => onSelect(0)}
+				>
+					Accept
+				</button>
+				<button data-testid='close-mobile-completion' onClick={onClose}>
+					Close
+				</button>
+			</div>
+		) : null,
 }));
 
 jest.mock('../preview-section', () => ({
@@ -390,6 +581,7 @@ describe('QuickInput', () => {
 		mockQuickInputValue = '';
 		mockQuickInputNodeType = null;
 		mockOnboardingPatternStep = null;
+		mockIsMobile = false;
 		mockParseInput.mockImplementation((text: string) => ({
 			content: text,
 			tags: [],
@@ -419,6 +611,25 @@ describe('QuickInput', () => {
 			render(<QuickInput {...defaultProps} />);
 
 			expect(screen.getByTestId('enhanced-input')).toBeInTheDocument();
+		});
+
+		it('keeps native autocomplete enabled on desktop', () => {
+			render(<QuickInput {...defaultProps} />);
+
+			expect(screen.getByTestId('enhanced-input').parentElement).toHaveAttribute(
+				'data-show-native-autocomplete',
+				'true'
+			);
+		});
+
+		it('disables native autocomplete tooltip on mobile', () => {
+			mockIsMobile = true;
+			render(<QuickInput {...defaultProps} />);
+
+			expect(screen.getByTestId('enhanced-input').parentElement).toHaveAttribute(
+				'data-show-native-autocomplete',
+				'false'
+			);
 		});
 
 		it('renders preview section', () => {
@@ -499,6 +710,76 @@ describe('QuickInput', () => {
 
 			const input = screen.getByTestId('enhanced-input');
 			expect(input).not.toBeDisabled();
+		});
+	});
+
+	describe('mobile autocomplete tray', () => {
+		it('renders the mobile tray when autocomplete is active on mobile', async () => {
+			const user = userEvent.setup();
+			mockIsMobile = true;
+			render(<QuickInput {...defaultProps} />);
+
+			await user.click(screen.getByTestId('emit-active-autocomplete'));
+
+			expect(screen.getByTestId('mobile-completion-tray')).toHaveAttribute(
+				'data-option-count',
+				'2'
+			);
+			expect(screen.getByTestId('mobile-completion-tray')).toHaveAttribute(
+				'data-anchor-left',
+				'140'
+			);
+			expect(screen.getByTestId('mobile-completion-tray')).toHaveAttribute(
+				'data-editor-focused',
+				'true'
+			);
+		});
+
+		it('accepts tray selections through the editor controller', async () => {
+			const user = userEvent.setup();
+			mockIsMobile = true;
+			render(<QuickInput {...defaultProps} />);
+
+			await user.click(screen.getByTestId('emit-active-autocomplete'));
+			await user.click(screen.getByTestId('accept-mobile-completion'));
+
+			expect(mockAcceptAutocomplete).toHaveBeenCalledWith(0);
+		});
+
+		it('forwards highlight and close actions to the editor controller', async () => {
+			const user = userEvent.setup();
+			mockIsMobile = true;
+			render(<QuickInput {...defaultProps} />);
+
+			await user.click(screen.getByTestId('emit-active-autocomplete'));
+			await user.click(screen.getByTestId('highlight-mobile-completion'));
+			await user.click(screen.getByTestId('close-mobile-completion'));
+
+			expect(mockSetAutocompleteIndex).toHaveBeenCalledWith(1);
+			expect(mockCloseAutocomplete).toHaveBeenCalled();
+		});
+
+		it('keeps the autocomplete session open when editor focus changes', async () => {
+			const user = userEvent.setup();
+			mockIsMobile = true;
+			render(<QuickInput {...defaultProps} />);
+
+			await user.click(screen.getByTestId('emit-active-autocomplete'));
+			expect(screen.getByTestId('mobile-completion-tray')).toHaveAttribute(
+				'data-selected-index',
+				'0'
+			);
+
+			await user.click(screen.getByTestId('blur-editor'));
+
+			expect(screen.getByTestId('mobile-completion-tray')).toHaveAttribute(
+				'data-selected-index',
+				'0'
+			);
+			expect(screen.getByTestId('mobile-completion-tray')).toHaveAttribute(
+				'data-editor-focused',
+				'false'
+			);
 		});
 	});
 

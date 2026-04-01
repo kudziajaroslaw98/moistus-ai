@@ -23,14 +23,17 @@ total_tokens: 707972
 <!-- Updated: 2026-03-07 - Added owner-scoped node-limit preflight to node creation flow -->
 <!-- Updated: 2026-03-17 - Documented editor-first onboarding v2 state, placement, and upgrade-modal split -->
 <!-- Updated: 2026-03-17 - Added onboarding substeps, expanded toolbar anchors, and canvas-safe walkthrough positioning -->
+<!-- Updated: 2026-03-28 - Documented the hybrid mobile autocomplete surface and caret-anchor bridge -->
 <!-- Updated: 2026-03-18 - Documented mobile onboarding shell, viewport-aware coachmarks, and touch edit action -->
 <!-- Updated: 2026-03-18 - Documented premium mobile editor drawer and shared notifications hook -->
 <!-- Updated: 2026-03-25 - Documented shared notifications manager, map-scoped notification queries, and user-scoped onboarding persistence -->
 <!-- Updated: 2026-03-28 - Reconciled local layout docs with owner-limit, onboarding, and mobile editor architecture during PR #46 merge -->
 <!-- Updated: 2026-03-28 - Documented stale-safe layout normalization writes and in-flight animation synchronization after CodeRabbit review -->
-<!-- Updated: 2026-04-01 - Documented mobile node-editor autocomplete viewport/dismissal hardening -->
+<!-- Updated: 2026-03-28 - Documented mobile node-editor autocomplete tray and shared completion-state bridge -->
+<!-- Updated: 2026-03-29 - Documented autocomplete overlay portal dismissal contract and runtime visibility bridge responsibilities -->
 <!-- Updated: 2026-04-01 - Documented LAN-safe local-dev Supabase/PartyKit URL derivation -->
 <!-- Updated: 2026-04-01 - Documented stable Supabase SSR auth storage key for LAN logins -->
+<!-- Updated: 2026-04-01 - Corrected node-editor dismissal docs after merging the main autocomplete baseline -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -160,7 +163,7 @@ shiko/
 │   │   ├── landing/            # Marketing page sections
 │   │   ├── mind-map/           # React Flow integration + mobile top bar/drawer chrome
 │   │   ├── modals/             # Dialogs (edge edit, upgrade, etc.)
-│   │   ├── node-editor/        # Command system, CodeMirror
+│   │   ├── node-editor/        # Command system, CodeMirror, mobile autocomplete tray
 │   │   ├── nodes/              # 12 node types + base wrapper
 │   │   ├── notifications/      # Notification bell + shared inbox data hook
 │   │   ├── onboarding/         # Editor-first onboarding shell (intro/checklist/coachmarks/upsell)
@@ -356,12 +359,19 @@ shiko/
 - `src/components/onboarding/onboarding-modal.tsx` now renders the editor walkthrough shell directly inside the mind-map experience instead of using a global dialog in `ClientProviders`
 - `src/store/slices/onboarding-slice.ts` tracks task-based progress (`create-node`, `try-pattern`, `know-controls`), real add-mode substeps (`toolbar` -> `canvas`), post-create edit hints, viewport-aware coachmark state (`desktop` vs `mobile`), minimized walkthrough state, and eligibility gating for first owned free maps
 - `src/store/app-state.ts` + `src/store/slices/ui-slice.ts` extend node-editor state with onboarding preset/source fields so the walkthrough can open a deterministic parser example in the real quick-input editor
-- `src/components/node-editor/node-editor.tsx` + `src/components/node-editor/integrations/codemirror/setup.ts` keep CodeMirror autocomplete portaled to `document.body`, treat `.cm-tooltip*` presses as inside-editor interactions, and constrain mobile tooltip space to the current `visualViewport` with a small bottom inset so suggestions stay above the keyboard
+- `src/components/node-editor/node-editor.tsx` + `src/components/node-editor/integrations/codemirror/setup.ts` keep CodeMirror autocomplete portaled to `document.body`, mirror native autocomplete state into React, and treat `.cm-tooltip*` presses as inside-editor interactions so selecting a native suggestion does not dismiss the editor
 - `src/components/common/user-menu.tsx` and `src/components/subscription/limit-warning.tsx` now bypass onboarding entirely for upgrade prompts and open `popoverOpen.upgradeUser` directly
 - Toolbar/top-bar/shortcut controls expose `data-onboarding-target` anchors for cursor/select, Add Node, AI Suggestions, Auto Layout, Export, Guided Tour, Reset Zoom, Comments, desktop Share, mobile hamburger menu, `More Tools`, shortcuts help, and breadcrumb/home
 - Mobile onboarding uses bottom-sheet surfaces only: intro/checklist/hints/coachmarks never stack, step-specific sheets replace the checklist while active, the controls tour points to `mobile-menu` instead of the removed mobile share button, and the minimized walkthrough chip moves under the top bar instead of sharing the bottom-dock lane
 - `src/components/nodes/base-node-wrapper.tsx` now exposes a touch-first `Edit` action for a single selected mobile node so onboarding can teach a real edit path instead of desktop-only shortcuts
 - `src/components/mind-map/top-bar/index.tsx` now collapses the mobile header to breadcrumb/title plus one unread-aware hamburger trigger, while `src/components/mind-map/top-bar/mobile-menu.tsx` owns mobile share, notifications preview, collaborators, workspace actions, and account/billing flows in a full-height editorial drawer
+
+**Node Editor Autocomplete:**
+
+- `src/components/node-editor/integrations/codemirror/setup.ts` mirrors CodeMirror completion visibility into React and owns the native-tooltip suppression toggle, so the app still knows autocomplete is logically open even when mobile hides the native popup
+- `src/components/node-editor/integrations/codemirror/autocomplete-state.ts` is the shared bridge for reading `active/pending`, current options, selected index, and caret/editor geometry from CodeMirror; those snapshots are what let the mobile tray and dismissal guards stay aligned with the live editor selection
+- `src/components/node-editor/components/inputs/mobile-completion-tray.tsx` portals into the `[data-node-editor-overlay="true"]` overlay instead of `document.body`, while `src/components/node-editor/components/inputs/use-mobile-autocomplete-viewport.ts` supplies the `visualViewport`/keyboard heuristics that keep that overlay-local surface attached to the keyboard or anchored below the typed text
+- Outside-click boundaries must exclude both `[data-node-editor-autocomplete-tray="true"]` and body-portaled `.cm-tooltip*` elements so tray taps, tray scroll gestures, and native CodeMirror suggestion taps do not dismiss the editor; update `src/components/node-editor/node-editor.tsx` (`useDismiss(... outsidePress ...)`) and any future modal/editor wrapper dismissal checks if the overlay boundary or portal target changes
 
 **Notifications internals (operational map):**
 

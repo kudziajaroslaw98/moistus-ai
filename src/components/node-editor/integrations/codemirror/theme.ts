@@ -70,15 +70,19 @@ export const nodeEditorTheme = EditorView.theme(
 			boxShadow:
 				'0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2) !important',
 			backdropFilter: 'blur(16px) !important',
+			maxHeight: '400px !important',
+			height: 'auto !important',
 			minWidth: '240px !important',
 			width: 'min(320px, calc(100vw - 2rem)) !important',
 			maxWidth: 'calc(100vw - 2rem) !important',
 			padding: '8px !important',
-			boxSizing: 'border-box',
 		},
 		'.cm-tooltip-autocomplete': {
 			// Smooth entry animation
 			animation: 'slideDown 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+		},
+		'.cm-tooltip-autocomplete-hidden': {
+			display: 'none !important',
 		},
 
 		// Entry animation keyframes
@@ -96,8 +100,11 @@ export const nodeEditorTheme = EditorView.theme(
 		// Dropdown list styling
 		'.cm-tooltip-autocomplete.cm-tooltip > ul, .cm-tooltip.cm-tooltip-autocomplete > ul':
 			{
-				maxHeight: 'inherit',
+				maxHeight: '400px !important',
 				overflowY: 'auto !important',
+				overscrollBehaviorY: 'contain',
+				touchAction: 'pan-y',
+				WebkitOverflowScrolling: 'touch',
 				padding: '4px !important',
 				margin: '0 !important',
 				listStyle: 'none !important',
@@ -107,6 +114,7 @@ export const nodeEditorTheme = EditorView.theme(
 			overflowX: 'hidden',
 			height: 'auto',
 			scrollBehavior: 'smooth',
+			overscrollBehaviorY: 'contain',
 			scrollbarWidth: 'thin',
 			scrollbarColor: 'rgba(161, 161, 170, 0.3) transparent',
 		},

@@ -1,9 +1,13 @@
 'use client';
 
-import { AvailableNodeTypes } from '@/registry/node-registry';
+import {
+	acceptCompletion,
+	closeCompletion,
+	setSelectedCompletion,
+} from '@codemirror/autocomplete';
+import type { AvailableNodeTypes } from '@/registry/node-registry';
 import { assertAvailableNodeTypeWithLog } from '@/registry/type-guards';
 import { cn } from '@/utils/cn';
-import { EditorView } from '@codemirror/view';
 import { RefreshCw } from 'lucide-react';
 import { motion, type MotionProps } from 'motion/react';
 import React, {
@@ -16,8 +20,15 @@ import React, {
 import { Command } from '../../core/commands/command-types';
 import { validateInput } from '../../core/validators/input-validator';
 import type { CollaboratorMention } from '../../integrations/codemirror/completions';
-import { createNodeEditor } from '../../integrations/codemirror/setup';
+import {
+	createNodeEditor,
+	type NodeEditorView,
+} from '../../integrations/codemirror/setup';
 import { ValidationTooltip } from './validation-tooltip';
+import type {
+	EditorAutocompleteController,
+	EditorAutocompleteState,
+} from '../../types';
 
 // Internal change tracking for preventing infinite loops
 let isInternalChange = false;
@@ -37,6 +48,12 @@ interface EnhancedInputProps {
 	// Command completion integration props
 	onNodeTypeChange?: (nodeType: AvailableNodeTypes) => void;
 	onCommandExecuted?: (command: Command) => void;
+	onAutocompleteControllerReady?: (
+		controller: EditorAutocompleteController | null
+	) => void;
+	onAutocompleteStateChange?: (state: EditorAutocompleteState) => void;
+	onFocusChange?: (isFocused: boolean) => void;
+	showNativeAutocomplete?: boolean;
 	enableCommands?: boolean; // Feature flag
 	collaborators?: CollaboratorMention[];
 }
@@ -54,12 +71,16 @@ export const EnhancedInput = ({
 	transition,
 	onNodeTypeChange,
 	onCommandExecuted,
+	onAutocompleteControllerReady,
+	onAutocompleteStateChange,
+	onFocusChange,
+	showNativeAutocomplete = true,
 	enableCommands = true, // Default enabled
 	collaborators,
 	...rest
 }: EnhancedInputProps) => {
 	const editorRef = useRef<HTMLDivElement>(null);
-	const editorViewRef = useRef<EditorView | null>(null);
+	const editorViewRef = useRef<NodeEditorView | null>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [validationTooltipOpen, setValidationTooltipOpen] = useState(false);
 	const initializedRef = useRef(false);
@@ -68,12 +89,24 @@ export const EnhancedInput = ({
 	// Store the latest callbacks in refs to avoid stale closures
 	const onKeyDownRef = useRef(onKeyDown);
 	const onSelectionChangeRef = useRef(onSelectionChange);
+	const onAutocompleteControllerReadyRef = useRef(onAutocompleteControllerReady);
+	const onAutocompleteStateChangeRef = useRef(onAutocompleteStateChange);
+	const onFocusChangeRef = useRef(onFocusChange);
 
 	// Update refs when callbacks change
 	useEffect(() => {
 		onKeyDownRef.current = onKeyDown;
 		onSelectionChangeRef.current = onSelectionChange;
-	}, [onKeyDown, onSelectionChange]);
+		onAutocompleteControllerReadyRef.current = onAutocompleteControllerReady;
+		onAutocompleteStateChangeRef.current = onAutocompleteStateChange;
+		onFocusChangeRef.current = onFocusChange;
+	}, [
+		onAutocompleteControllerReady,
+		onAutocompleteStateChange,
+		onFocusChange,
+		onKeyDown,
+		onSelectionChange,
+	]);
 
 	// Get validation results with error boundary using new validator
 	const validationErrors = useMemo(() => {
@@ -225,6 +258,9 @@ export const EnhancedInput = ({
 
 	// Initialize CodeMirror editor with unified setup
 	useEffect(() => {
+		let handleFocusIn: (() => void) | null = null;
+		let handleFocusOut: ((event: FocusEvent) => void) | null = null;
+
 		if (
 			!editorRef.current ||
 			editorViewRef.current ||
@@ -238,13 +274,15 @@ export const EnhancedInput = ({
 			// Use the new unified createNodeEditor function
 			const view = createNodeEditor(editorRef.current, {
 				initialContent: value,
-				placeholder:
-					placeholder ||
-					'Type # for tags, @ for people, ^ for dates, ! for priority...',
+				placeholder,
 				enableCompletions: true,
 				enablePatternHighlighting: true,
 				enableValidation: true,
 				collaborators: collaborators ?? [],
+				showNativeAutocompleteTooltip: showNativeAutocomplete,
+				onAutocompleteChange: (nextAutocompleteState) => {
+					onAutocompleteStateChangeRef.current?.(nextAutocompleteState);
+				},
 				onContentChange: (newValue) => {
 					// Prevent infinite loops with external changes
 					if (!isInternalChange && newValue !== lastKnownValueRef.current) {
@@ -274,6 +312,45 @@ export const EnhancedInput = ({
 
 			editorViewRef.current = view;
 			initializedRef.current = true;
+			onAutocompleteControllerReadyRef.current?.({
+				acceptOption: (index: number) => {
+					if (!editorViewRef.current) {
+						return false;
+					}
+
+					editorViewRef.current.dispatch({
+						effects: setSelectedCompletion(index),
+					});
+					const didAccept = acceptCompletion(editorViewRef.current);
+
+					if (didAccept) {
+						editorViewRef.current.focus();
+					}
+
+					return didAccept;
+				},
+				close: () => {
+					if (!editorViewRef.current) {
+						return false;
+					}
+
+					const didClose = closeCompletion(editorViewRef.current);
+					editorViewRef.current.focus();
+					return didClose;
+				},
+				focusEditor: () => {
+					editorViewRef.current?.focus();
+				},
+				setSelectedIndex: (index: number) => {
+					if (!editorViewRef.current) {
+						return;
+					}
+
+					editorViewRef.current.dispatch({
+						effects: setSelectedCompletion(index),
+					});
+				},
+			});
 
 			// Add custom keydown handler for Ctrl+Enter / Cmd+Enter
 			// Use ref to avoid stale closures
@@ -294,24 +371,57 @@ export const EnhancedInput = ({
 				onSelectionChangeRef.current();
 			});
 
+			handleFocusIn = () => {
+				onFocusChangeRef.current?.(true);
+			};
+			handleFocusOut = (event: FocusEvent) => {
+				const relatedTarget = event.relatedTarget;
+
+				if (relatedTarget instanceof Node && view.dom.contains(relatedTarget)) {
+					return;
+				}
+
+				onFocusChangeRef.current?.(false);
+			};
+
+			view.dom.addEventListener('focusin', handleFocusIn);
+			view.dom.addEventListener('focusout', handleFocusOut);
 			view.focus();
+			onFocusChangeRef.current?.(view.hasFocus);
 		} catch (error) {
 			console.error('Failed to initialize CodeMirror editor:', error);
 		}
 
 		return () => {
 			try {
+				if (editorViewRef.current && handleFocusIn && handleFocusOut) {
+					editorViewRef.current.dom.removeEventListener('focusin', handleFocusIn);
+					editorViewRef.current.dom.removeEventListener(
+						'focusout',
+						handleFocusOut
+					);
+				}
+
+				onFocusChangeRef.current?.(false);
 				if (editorViewRef.current) {
 					editorViewRef.current.destroy();
 					editorViewRef.current = null;
 				}
 
 				initializedRef.current = false;
+				onAutocompleteControllerReadyRef.current?.(null);
 			} catch (error) {
 				console.error('Error cleaning up CodeMirror:', error);
 			}
 		};
-	}, [enableCommands, disabled, collaborators]); // Recreate editor when collaborator list changes
+	}, [collaborators]); // Recreate only when the completion source changes structurally
+
+	useEffect(() => {
+		editorViewRef.current?.updateRuntimeConfig({
+			placeholder,
+			showNativeAutocompleteTooltip: showNativeAutocomplete,
+		});
+	}, [placeholder, showNativeAutocomplete]);
 
 	// Separate event listener management (can change without recreating editor)
 	useEffect(() => {

@@ -16,16 +16,6 @@ import { useShallow } from 'zustand/shallow';
 import { AnimateChangeInHeight } from '../animate-change-in-height';
 import { QuickInput } from './components/inputs/quick-input';
 
-const NODE_EDITOR_TOOLTIP_SELECTOR = '.cm-tooltip, .cm-tooltip-autocomplete';
-
-export function shouldDismissNodeEditorPress(
-	target: EventTarget | null
-): boolean {
-	return !(
-		target instanceof Element && target.closest(NODE_EDITOR_TOOLTIP_SELECTOR)
-	);
-}
-
 const animationVariants = {
 	container: {
 		initial: { opacity: 0, scale: 0.95, y: -100, filter: 'blur(10px)' },
@@ -123,7 +113,16 @@ export const NodeEditor = () => {
 	// Interactions
 	const dismiss = useDismiss(context, {
 		escapeKey: true,
-		outsidePress: (event) => shouldDismissNodeEditorPress(event.target),
+		outsidePress: (event) => {
+			const target = event.target;
+
+			return !(
+				target instanceof Element &&
+				(target.closest('[data-node-editor-autocomplete-tray="true"]') ||
+					target.closest('.cm-tooltip') ||
+					target.closest('.cm-tooltip-autocomplete'))
+			);
+		},
 		outsidePressEvent: 'mousedown',
 	});
 
@@ -137,7 +136,10 @@ export const NodeEditor = () => {
 	};
 
 	return (
-		<div className='fixed flex flex-col items-center top-0 left-0 w-full h-full bg-zinc-950/50 z-[100] backdrop-blur-sm pt-4 sm:pt-32 '>
+		<div
+			className='fixed flex flex-col items-center top-0 left-0 w-full h-full bg-zinc-950/50 z-[100] backdrop-blur-sm pt-4 sm:pt-32 '
+			data-node-editor-overlay='true'
+		>
 			<AnimatePresence>
 				{nodeEditor.isOpen && (
 					<motion.div
