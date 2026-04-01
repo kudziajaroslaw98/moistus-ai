@@ -93,7 +93,7 @@ export function ProblemSolution() {
 														ease: EASE_OUT_QUART,
 													}
 										}
-										className='rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-text-secondary backdrop-blur-xl'
+										className='rounded-full bg-white/[0.05] px-4 py-2 text-sm text-text-secondary ring-1 ring-inset ring-white/6'
 									>
 										{point}
 									</motion.div>
@@ -101,12 +101,10 @@ export function ProblemSolution() {
 							</div>
 						</div>
 
-						<div className='relative overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20 p-4 backdrop-blur-xl'>
-							<div className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-400/40 to-transparent' />
-							<div className='space-y-3'>
+						<div className='lg:pt-2'>
+							<div className='space-y-5'>
 								{workflowSteps.map((step, index) => {
 									const Icon = step.icon;
-									const isLast = index === workflowSteps.length - 1;
 
 									return (
 										<motion.div
@@ -126,20 +124,17 @@ export function ProblemSolution() {
 															ease: EASE_OUT_QUART,
 														}
 											}
-											className='relative rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-4'
+											className='border-b border-white/8 pb-5 last:border-b-0 last:pb-0'
 										>
-											{!isLast && (
-												<div className='absolute bottom-[-0.82rem] left-6 top-[3.4rem] w-px bg-gradient-to-b from-primary-400/35 to-transparent' />
-											)}
 											<div className='flex items-start gap-4'>
-												<div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary-400/18 bg-primary-500/10 text-primary-300'>
+												<div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-500/10 text-primary-300 ring-1 ring-inset ring-primary-400/18'>
 													<Icon aria-hidden='true' className='h-4 w-4' />
 												</div>
-												<div>
-													<p className='text-sm font-semibold text-text-primary'>
+												<div className='max-w-sm'>
+													<p className='text-base font-semibold text-text-primary'>
 														{index + 1}. {step.title}
 													</p>
-													<p className='mt-1 text-sm leading-6 text-text-secondary'>
+													<p className='mt-2 text-sm leading-6 text-text-secondary md:text-[0.97rem]'>
 														{step.description}
 													</p>
 												</div>

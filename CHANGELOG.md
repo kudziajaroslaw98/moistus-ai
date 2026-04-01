@@ -42,6 +42,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 <!-- Updated: 2026-03-29 - Tightened node-editor autocomplete regression coverage -->
 <!-- Updated: 2026-04-01 - Fixed LAN local-dev URLs/auth cookie naming and aligned node-editor dismissal docs after merging main -->
+<!-- Updated: 2026-04-01 - De-densified landing chrome so hero/proof sections feel calmer and screenshots stay unobstructed -->
 
 ## [2026-04-01]
 
@@ -60,6 +61,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: LAN sessions need a public browser URL while server-side local services can still stay on loopback
 - **landing/product-story-redesign**: Rebuilt the landing page around a two-plane hero, deterministic mini-map demo, compact workflow band, product-proof chapters, calmer pricing/FAQ close, and updated landing metadata/navigation flow
   - Why: The previous page concentrated most of its personality in the hero, pushed the mobile CTA too low, and fell back to a more generic stacked SaaS rhythm after the first screen
+- **landing/de-densification-pass**: Simplified the hero mini-demo framing, replaced the payoff-band timeline with a cleaner stacked workflow list, and moved proof notes below screenshots instead of over the product UI
+  - Why: The first refinement pass still felt over-bordered in key landing modules, and proof annotations were obscuring the very screenshots meant to sell the product
 
 ### Docs
 
@@ -71,6 +74,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: The discarded branch-only tooltip viewport notes no longer matched the merged implementation
 - **docs/landing-flow-map**: Updated `docs/CODEBASE_MAP.md` to describe the tighter landing-page flow
   - Why: The landing route now uses a hero mini-demo, integrated payoff band, product-proof chapters, and a combined pricing/FAQ close instead of the older section stack
+- **docs/landing-polish-map**: Refined the landing component map to reflect the lower-chrome workflow rail and screenshot-safe proof notes
+  - Why: The component inventory should match the calmer presentation approach now used in the landing page internals
 
 ### Added
 

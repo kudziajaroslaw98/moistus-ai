@@ -19,7 +19,6 @@ interface ProofChapterData {
 	imageHeight: number;
 	callouts: Array<{
 		text: string;
-		position: string;
 		tone?: 'blue' | 'coral';
 	}>;
 }
@@ -38,11 +37,9 @@ const chapters: ProofChapterData[] = [
 		callouts: [
 			{
 				text: 'Commands stay inside the flow, not behind a toolbar hunt.',
-				position: 'left-4 top-5 max-w-[14rem]',
 			},
 			{
 				text: 'Structure appears while you type, so the canvas keeps up.',
-				position: 'bottom-5 right-5 max-w-[15rem]',
 				tone: 'coral',
 			},
 		],
@@ -60,11 +57,9 @@ const chapters: ProofChapterData[] = [
 		callouts: [
 			{
 				text: 'Suggestions stay visible where the map is already taking shape.',
-				position: 'left-5 top-5 max-w-[15rem]',
 			},
 			{
 				text: 'Accept or ignore without leaving the same train of thought.',
-				position: 'right-5 bottom-5 max-w-[15rem]',
 			},
 		],
 	},
@@ -81,11 +76,9 @@ const chapters: ProofChapterData[] = [
 		callouts: [
 			{
 				text: 'Everyone stays inside one shared canvas instead of trading screenshots.',
-				position: 'left-5 top-5 max-w-[15rem]',
 			},
 			{
 				text: 'Live cursors keep the work conversational even when the team is remote.',
-				position: 'right-5 bottom-5 max-w-[15rem]',
 				tone: 'coral',
 			},
 		],
@@ -144,17 +137,6 @@ function ProofChapter({
 					<p className='mt-4 text-base leading-7 text-text-secondary md:text-lg'>
 						{chapter.description}
 					</p>
-
-					<div className='mt-6 grid gap-3 md:hidden'>
-						{chapter.callouts.map((callout) => (
-							<div
-								key={callout.text}
-								className='rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm leading-6 text-text-secondary'
-							>
-								{callout.text}
-							</div>
-						))}
-					</div>
 				</div>
 			</motion.div>
 
@@ -172,8 +154,8 @@ function ProofChapter({
 				}
 				className={isEven ? '' : 'lg:order-1'}
 			>
-				<div className='relative overflow-hidden rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(18,22,30,0.92),rgba(11,14,20,0.84))] p-3 shadow-[0_24px_80px_rgba(0,0,0,0.34)]'>
-					<div className='mb-3 flex items-center justify-between rounded-[1.2rem] border border-white/8 bg-black/25 px-4 py-3 text-xs font-medium text-text-tertiary backdrop-blur-xl'>
+				<div className='relative overflow-hidden rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(18,22,30,0.92),rgba(11,14,20,0.84))] p-4 shadow-[0_24px_80px_rgba(0,0,0,0.34)]'>
+					<div className='mb-4 flex items-center justify-between px-1 text-xs font-medium text-text-tertiary'>
 						<span className='inline-flex items-center gap-2 uppercase tracking-[0.24em]'>
 							<span className='h-1.5 w-1.5 rounded-full bg-primary-400' />
 							Product proof
@@ -181,7 +163,7 @@ function ProofChapter({
 						<span className='text-text-secondary'>{chapter.kicker}</span>
 					</div>
 
-					<div className='relative overflow-hidden rounded-[1.35rem] border border-white/8 bg-[#07090d]'>
+					<div className='overflow-hidden rounded-[1.35rem] bg-[#07090d] ring-1 ring-inset ring-white/8'>
 						<Image
 							src={chapter.imageSrc}
 							alt={chapter.imageAlt}
@@ -189,15 +171,17 @@ function ProofChapter({
 							height={chapter.imageHeight}
 							className='h-auto w-full'
 						/>
+					</div>
 
+					<div className='mt-4 grid gap-3 sm:grid-cols-2'>
 						{chapter.callouts.map((callout) => (
 							<div
 								key={callout.text}
-								className={`absolute hidden rounded-2xl border px-4 py-3 text-sm leading-6 shadow-[0_14px_44px_rgba(0,0,0,0.30)] backdrop-blur-xl md:block ${
+								className={`rounded-2xl px-4 py-3 text-sm leading-6 ${
 									callout.tone === 'coral'
-										? 'border-brand-coral/20 bg-brand-coral/12 text-white'
-										: 'border-primary-400/20 bg-primary-500/12 text-white'
-								} ${callout.position}`}
+										? 'bg-brand-coral/[0.08] text-text-primary ring-1 ring-inset ring-brand-coral/16'
+										: 'bg-white/[0.04] text-text-secondary ring-1 ring-inset ring-white/8'
+								}`}
 							>
 								{callout.text}
 							</div>
