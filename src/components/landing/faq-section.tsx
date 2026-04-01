@@ -137,7 +137,7 @@ export function FaqSection() {
 		<section
 			id='faq'
 			ref={ref}
-			className='relative bg-surface/55 px-4 pb-20 pt-6 sm:px-6 lg:px-8 lg:pb-24'
+			className='relative bg-surface/55 px-6 pb-20 pt-8 sm:px-6 lg:px-8 lg:pb-24'
 		>
 			<script type='application/ld+json'>{JSON.stringify(faqJsonLd)}</script>
 			<div className='relative z-10 mx-auto max-w-6xl'>
@@ -151,24 +151,23 @@ export function FaqSection() {
 							? { duration: 0 }
 							: { duration: 0.3, ease: EASE_OUT_QUART }
 					}
-					className='overflow-hidden rounded-[2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(13,16,22,0.94),rgba(9,11,16,0.88))] px-6 py-8 shadow-[0_20px_70px_rgba(0,0,0,0.24)] md:px-10 md:py-10'
+					className='overflow-visible rounded-none border-0 bg-transparent px-0 py-0 shadow-none md:overflow-hidden md:rounded-[2rem] md:border md:border-white/8 md:bg-[linear-gradient(180deg,rgba(13,16,22,0.94),rgba(9,11,16,0.88))] md:px-10 md:py-10 md:shadow-[0_20px_70px_rgba(0,0,0,0.24)]'
 				>
 					<div className='grid gap-8 lg:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)] lg:gap-12'>
-						<div className='max-w-sm'>
-							<p className='text-xs font-medium uppercase tracking-[0.28em] text-primary-300/70'>
+						<div className='mx-auto max-w-sm text-center lg:mx-0 lg:text-left'>
+							<p className='text-[0.72rem] font-semibold uppercase tracking-[0.34em] text-primary-300/70'>
 								Questions
 							</p>
-							<h2 className='mt-4 text-balance font-lora text-3xl font-bold leading-[1.08] tracking-tight text-text-primary md:text-4xl'>
-								Questions before you start?
+							<h2 className='mt-5 text-balance font-lora text-[2.35rem] font-bold leading-[0.98] tracking-tight text-text-primary md:text-[3.15rem]'>
+								Common questions, direct answers.
 							</h2>
-							<p className='mt-4 text-base leading-7 text-text-secondary'>
-								The close should remove friction, not add more marketing. These
-								are the practical questions most people ask before opening a
-								map.
+							<p className='mt-4 text-[1.03rem] leading-7 text-text-secondary'>
+								Privacy, limits, exports, and collaboration. The details most
+								people clear before they start mapping.
 							</p>
 						</div>
 
-						<div className='rounded-[1.6rem] border border-white/8 bg-white/[0.03] px-5 backdrop-blur-xl md:px-7'>
+						<div className='border-t border-white/8 pt-2 lg:border-l lg:border-t-0 lg:pl-10 lg:pt-0'>
 							{faqs.map((faq, index) => (
 								<FaqItem
 									key={faq.question}

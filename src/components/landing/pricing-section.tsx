@@ -25,11 +25,11 @@ export function PricingSection() {
 		<section
 			id='pricing'
 			ref={ref}
-			className='relative overflow-hidden bg-surface/55 px-4 py-24 sm:px-6 lg:px-8 lg:py-28'
+			className='relative overflow-hidden bg-surface/55 px-6 py-20 sm:px-6 lg:px-8 lg:py-28'
 		>
 			<GrainOverlay />
 			<div className='relative z-10 mx-auto max-w-6xl'>
-				<div className='grid gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(22rem,1.1fr)] lg:items-start'>
+				<div className='grid gap-14 lg:grid-cols-[minmax(0,0.9fr)_minmax(22rem,1.1fr)] lg:items-start'>
 					<motion.div
 						initial={
 							shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 18 }
@@ -40,21 +40,21 @@ export function PricingSection() {
 								? { duration: 0 }
 								: { duration: 0.42, ease: EASE_OUT_QUART }
 						}
-						className='max-w-lg'
+						className='mx-auto max-w-lg text-center lg:mx-0 lg:text-left'
 					>
-						<p className='text-xs font-medium uppercase tracking-[0.28em] text-primary-300/70'>
+						<p className='text-[0.72rem] font-semibold uppercase tracking-[0.34em] text-primary-300/70'>
 							Pricing
 						</p>
-						<h2 className='mt-4 max-w-[14ch] text-balance font-lora text-3xl font-bold leading-[1.08] tracking-tight text-text-primary md:text-5xl'>
+						<h2 className='mx-auto mt-5 max-w-[15ch] text-balance font-lora text-[2.5rem] font-bold leading-[0.98] tracking-tight text-text-primary md:max-w-[14ch] md:text-[3.9rem] lg:mx-0 lg:max-w-[12ch]'>
 							Start on the real canvas. Upgrade when the workflow earns it.
 						</h2>
-						<p className='mt-5 max-w-[36rem] text-pretty text-base leading-7 text-text-secondary md:text-lg'>
+						<p className='mx-auto mt-5 max-w-[35rem] text-pretty text-[1.03rem] leading-7 text-text-secondary md:text-lg lg:mx-0'>
 							Free gives you active maps and core export. Pro is for heavier
 							usage: unlimited scale, AI assistance, and live collaboration
 							without caps getting in the way.
 						</p>
 
-						<div className='mt-8 flex flex-wrap gap-3'>
+						<div className='mt-8 hidden flex-wrap gap-3 sm:flex sm:justify-center lg:justify-start'>
 							{pricingHighlights.map((highlight) => (
 								<div
 									key={highlight}
@@ -79,7 +79,7 @@ export function PricingSection() {
 									? { duration: 0 }
 									: { duration: 0.42, ease: EASE_OUT_QUART, delay: 0.06 }
 							}
-							className='mb-6 flex justify-start lg:justify-end'
+							className='mb-8 flex justify-center lg:justify-end'
 						>
 							<div className='inline-flex items-center gap-2 rounded-full border border-white/8 bg-black/20 p-1 backdrop-blur-xl'>
 								<button
@@ -127,7 +127,7 @@ export function PricingSection() {
 														delay: 0.12 + index * 0.1,
 													}
 										}
-										className={`relative flex h-full flex-col rounded-[1.65rem] border p-6 shadow-[0_18px_60px_rgba(0,0,0,0.24)] transition-colors duration-200 ${
+										className={`relative flex h-full flex-col rounded-[1.75rem] border p-7 shadow-[0_18px_60px_rgba(0,0,0,0.24)] transition-colors duration-200 ${
 											tier.recommended
 												? 'border-primary-400/25 bg-[linear-gradient(180deg,rgba(16,22,34,0.98),rgba(10,14,22,0.92))]'
 												: 'border-white/8 bg-[linear-gradient(180deg,rgba(17,20,28,0.94),rgba(11,13,18,0.88))]'
@@ -199,20 +199,22 @@ export function PricingSection() {
 											))}
 										</div>
 
-										<a
-											href={
-												tier.id === 'free'
-													? '/dashboard'
-													: '/auth/sign-up?plan=pro'
-											}
-											className={`mt-8 inline-flex h-11 w-full items-center justify-center rounded-xl px-4 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
-												tier.recommended
-													? 'bg-white text-neutral-900 shadow-[0_12px_30px_rgba(255,255,255,0.14)] hover:shadow-[0_18px_36px_rgba(255,255,255,0.18)]'
-													: 'border border-white/10 bg-white/[0.04] text-text-primary hover:bg-white/[0.08]'
-											}`}
-										>
-											{tier.ctaText}
-										</a>
+										<div className='mt-auto pt-10'>
+											<a
+												href={
+													tier.id === 'free'
+														? '/dashboard'
+														: '/auth/sign-up?plan=pro'
+												}
+												className={`inline-flex h-11 w-full items-center justify-center rounded-xl px-4 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
+													tier.recommended
+														? 'bg-white text-neutral-900 shadow-[0_12px_30px_rgba(255,255,255,0.14)] hover:shadow-[0_18px_36px_rgba(255,255,255,0.18)]'
+														: 'border border-white/10 bg-white/[0.04] text-text-primary hover:bg-white/[0.08]'
+												}`}
+											>
+												{tier.ctaText}
+											</a>
+										</div>
 									</motion.div>
 								</div>
 							))}

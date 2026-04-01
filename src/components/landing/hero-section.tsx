@@ -1,5 +1,6 @@
 'use client';
 
+import { cn } from '@/utils/cn';
 import { ArrowRight, Keyboard, Sparkles, Users } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { HeroBackground } from './hero-background';
@@ -34,12 +35,12 @@ export function HeroSection() {
 	return (
 		<section
 			id='hero'
-			className='relative isolate overflow-hidden bg-background px-4 pb-12 pt-28 sm:px-6 sm:pb-16 lg:px-8 lg:pb-20 lg:pt-32'
+			className='relative isolate overflow-hidden bg-background px-6 pb-12 pt-24 sm:px-6 sm:pb-16 sm:pt-28 lg:px-8 lg:pb-24 lg:pt-32'
 		>
 			<HeroBackground />
 
-			<div className='relative mx-auto grid min-h-[calc(100svh-7rem)] w-full max-w-6xl items-center gap-12 lg:grid-cols-[minmax(0,29rem)_minmax(0,1fr)] lg:gap-16'>
-				<div className='relative z-10 max-w-xl'>
+			<div className='relative mx-auto grid w-full max-w-6xl items-center gap-7 md:min-h-[calc(100svh-7rem)] md:gap-12 lg:grid-cols-[minmax(0,29rem)_minmax(0,1fr)] lg:gap-16'>
+				<div className='relative z-10 mx-auto max-w-xl text-center lg:mx-0 lg:text-left'>
 					<motion.p
 						initial={
 							shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 14 }
@@ -50,7 +51,7 @@ export function HeroSection() {
 								? { duration: 0 }
 								: { duration: 0.45, ease: EASE_OUT_QUART }
 						}
-						className='inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[11px] font-medium uppercase tracking-[0.24em] text-text-secondary backdrop-blur-xl'
+						className='mx-auto inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[11px] font-medium uppercase tracking-[0.24em] text-text-secondary backdrop-blur-xl lg:mx-0'
 					>
 						<span className='h-1.5 w-1.5 rounded-full bg-primary-400' />
 						Keyboard-first mind mapping
@@ -66,7 +67,7 @@ export function HeroSection() {
 								? { duration: 0 }
 								: { duration: 0.58, ease: EASE_OUT_QUART, delay: 0.08 }
 						}
-						className='mt-6 max-w-[11ch] text-balance font-lora text-4xl font-bold leading-[1.02] tracking-tight text-white sm:text-5xl md:text-6xl lg:text-[4.5rem]'
+						className='mx-auto mt-5 max-w-[17ch] text-balance font-lora text-[2.4rem] font-bold leading-[0.96] tracking-tight text-white sm:max-w-[15ch] sm:text-[3.2rem] md:max-w-[14ch] md:text-[3.85rem] lg:mx-0 lg:max-w-[12ch] lg:text-[4.3rem]'
 					>
 						Turn scattered thoughts into a shared map that keeps up.
 					</motion.h1>
@@ -81,7 +82,7 @@ export function HeroSection() {
 								? { duration: 0 }
 								: { duration: 0.45, ease: EASE_OUT_QUART, delay: 0.18 }
 						}
-						className='mt-6 max-w-[36rem] text-pretty text-base leading-7 text-text-secondary sm:text-lg'
+						className='mx-auto mt-7 max-w-[35rem] text-pretty text-[1.03rem] leading-7 text-text-secondary sm:text-lg lg:mx-0'
 					>
 						Capture ideas fast, let AI surface missing links in context, and
 						work with collaborators inside the same canvas before momentum
@@ -98,7 +99,7 @@ export function HeroSection() {
 								? { duration: 0 }
 								: { duration: 0.45, ease: EASE_OUT_QUART, delay: 0.28 }
 						}
-						className='mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center'
+						className='mx-auto mt-5 flex max-w-sm flex-col items-stretch gap-3 sm:flex-row sm:items-center lg:mx-0 lg:mt-6 lg:max-w-none'
 					>
 						<a
 							href='/dashboard'
@@ -125,21 +126,26 @@ export function HeroSection() {
 								? { duration: 0 }
 								: { duration: 0.45, ease: EASE_OUT_QUART, delay: 0.38 }
 						}
-						className='mt-7 grid gap-3 sm:grid-cols-3'
+						className='mt-7 hidden gap-3 sm:grid sm:grid-cols-3'
 					>
-						{heroPoints.map((point) => {
+						{heroPoints.map((point, index) => {
 							const Icon = point.icon;
 
 							return (
 								<div
 									key={point.label}
-									className='rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 backdrop-blur-xl'
+									className={cn(
+										'flex items-start gap-3 text-left',
+										index === 0
+											? 'pt-0'
+											: 'border-t border-white/8 pt-3 sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0'
+									)}
 								>
 									<Icon
 										aria-hidden='true'
-										className='h-4 w-4 text-primary-300'
+										className='mt-0.5 h-4 w-4 shrink-0 text-primary-300'
 									/>
-									<p className='mt-2 text-sm font-medium text-text-secondary'>
+									<p className='text-sm font-medium leading-6 text-text-secondary'>
 										{point.label}
 									</p>
 								</div>
@@ -158,7 +164,7 @@ export function HeroSection() {
 							? { duration: 0 }
 							: { duration: 0.6, ease: EASE_OUT_QUART, delay: 0.22 }
 					}
-					className='relative'
+					className='relative mx-auto w-full max-w-[22.5rem] overflow-visible sm:max-w-[27rem] md:max-w-[48rem] lg:mx-0 lg:w-[52rem] lg:max-w-none lg:translate-x-72 lg:justify-self-end xl:w-[56rem] xl:translate-x-80'
 				>
 					<HeroMapScene />
 				</motion.div>

@@ -36,19 +36,19 @@ export function FinalCta() {
 		<footer className='relative overflow-hidden bg-background'>
 			<div className='absolute left-0 right-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-500/30 to-transparent' />
 
-			<div className='mx-auto max-w-6xl px-4 sm:px-6 lg:px-8'>
+			<div className='mx-auto max-w-6xl px-6 sm:px-6 lg:px-8'>
 				<div className='py-14 sm:py-16'>
 					<div className='relative overflow-hidden rounded-[2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(16,20,28,0.94),rgba(10,12,18,0.88))] px-6 py-10 shadow-[0_20px_70px_rgba(0,0,0,0.28)] md:px-10 md:py-12'>
 						<div className='absolute inset-x-[12%] top-8 h-28 rounded-full bg-primary-500/10 blur-3xl' />
-						<div className='relative flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between'>
-							<div className='max-w-2xl'>
-								<p className='text-xs font-medium uppercase tracking-[0.28em] text-primary-300/70'>
+						<div className='relative flex flex-col gap-8 text-center lg:flex-row lg:items-end lg:justify-between lg:text-left'>
+							<div className='mx-auto max-w-2xl lg:mx-0'>
+								<p className='text-[0.72rem] font-semibold uppercase tracking-[0.34em] text-primary-300/70'>
 									Start on the real canvas
 								</p>
-								<h2 className='mt-4 max-w-[14ch] text-balance font-lora text-3xl font-bold leading-[1.08] tracking-tight text-text-primary md:text-4xl'>
-									Start with a blank map. Leave with structure.
+								<h2 className='mx-auto mt-5 max-w-[15ch] text-balance font-lora text-[2.35rem] font-bold leading-[0.98] tracking-tight text-text-primary md:max-w-[14ch] md:text-[3.35rem] lg:mx-0 lg:max-w-[12ch]'>
+									Open a blank map. Leave with structure.
 								</h2>
-								<p className='mt-4 max-w-[34rem] text-base leading-7 text-text-secondary'>
+								<p className='mx-auto mt-4 max-w-[34rem] text-[1.03rem] leading-7 text-text-secondary lg:mx-0'>
 									Open a map, capture the raw material, and let Shiko carry it
 									from loose notes to connected work without changing tools.
 								</p>

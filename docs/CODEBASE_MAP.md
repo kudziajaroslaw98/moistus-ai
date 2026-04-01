@@ -36,6 +36,11 @@ total_tokens: 707972
 <!-- Updated: 2026-04-01 - Corrected node-editor dismissal docs after merging the main autocomplete baseline -->
 <!-- Updated: 2026-04-01 - Documented the tighter landing-page flow with hero mini-demo, product-proof chapters, and pricing/FAQ close -->
 <!-- Updated: 2026-04-01 - Noted the landing de-densification pass for calmer workflow chrome and screenshot-safe proof notes -->
+<!-- Updated: 2026-04-01 - Noted the landing canvas-fidelity pass for a Shiko-like hero scene and cleaner screenshot-led proof modules -->
+<!-- Updated: 2026-04-01 - Noted the follow-up landing cleanup for feature labeling, pricing CTA alignment, and single-shell FAQ framing -->
+<!-- Updated: 2026-04-01 - Noted the mobile-centered landing pass with simplified mobile hero/section chrome and the desktop feature-width regression fix -->
+<!-- Updated: 2026-04-01 - Noted the parser-driven landing hero editor demo across breakpoints -->
+<!-- Updated: 2026-04-01 - Noted the follow-up removal of mobile-only highlight stacks in support/pricing sections -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -162,7 +167,7 @@ shiko/
 │   │   ├── edges/              # 6 edge types (floating, waypoint, ghost)
 │   │   ├── guided-tour/        # Prezi-style presentations
 │   │   ├── history/            # Version history sidebar
-│   │   ├── landing/            # Marketing flow: two-plane hero, low-chrome payoff rail, product proof with notes below screenshots, pricing/FAQ close
+│   │   ├── landing/            # Marketing flow: parser-driven hero editor demo, low-chrome payoff rail, screenshot-led features, aligned pricing cards, and a lighter FAQ close
 │   │   ├── mind-map/           # React Flow integration + mobile top bar/drawer chrome
 │   │   ├── modals/             # Dialogs (edge edit, upgrade, etc.)
 │   │   ├── node-editor/        # Command system, CodeMirror, mobile autocomplete tray
