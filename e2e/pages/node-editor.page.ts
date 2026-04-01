@@ -27,6 +27,7 @@ export class NodeEditorPage {
 
 	// Completion dropdown (CodeMirror autocomplete)
 	readonly completionDropdown: Locator;
+	readonly completionItems: Locator;
 
 	// Validation
 	readonly validationTooltip: Locator;
@@ -52,6 +53,7 @@ export class NodeEditorPage {
 
 		// Completion dropdown
 		this.completionDropdown = page.locator('.cm-tooltip-autocomplete');
+		this.completionItems = this.completionDropdown.locator('li');
 
 		// Validation tooltip
 		this.validationTooltip = page.locator('[data-testid="validation-tooltip"]');
@@ -115,6 +117,17 @@ export class NodeEditorPage {
 			await this.page.keyboard.press('ArrowDown');
 		}
 		await this.page.keyboard.press('Enter');
+	}
+
+	/**
+	 * Select a completion item by clicking/tapping it.
+	 */
+	async clickCompletion(index: number = 0) {
+		await this.completionItems.nth(index).click();
+	}
+
+	async getCompletionDropdownBounds() {
+		return this.completionDropdown.boundingBox();
 	}
 
 	/**

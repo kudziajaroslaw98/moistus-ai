@@ -26,6 +26,21 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-03-28 - Handled quick-input local layout rejections after create mode node insertion -->
 
 <!-- Updated: 2026-03-29 - Tightened node-editor autocomplete regression coverage -->
+<!-- Updated: 2026-04-01 - Fixed mobile autocomplete viewport/dismissal handling and added targeted regression coverage -->
+
+## [2026-04-01]
+
+### Fixed
+
+- **node-editor/mobile-autocomplete-shell**: Guarded node-editor outside-press dismissal so body-portaled CodeMirror autocomplete taps no longer close the editor, including the onboarding pattern lesson flow
+  - Why: Autocomplete suggestions render outside the floating editor DOM, so touch selection was being misclassified as an outside press
+- **node-editor/mobile-tooltip-viewport**: Constrained CodeMirror tooltip space to the mobile `visualViewport`, added a small bottom safety inset, and remeasured tooltip positions on `visualViewport` resize/scroll
+  - Why: The layout viewport ignores the software keyboard, which let autocomplete suggestions drop under the keyboard on phones
+
+### Added
+
+- **tests/node-editor-mobile-autocomplete**: Added unit coverage for portaled tooltip dismissal guards, pure helper coverage for tooltip viewport bounds, and a mobile Playwright regression for tap-to-select autocomplete
+  - Why: Locks both the mobile visibility fix and the tap-selection behavior into regression coverage
 
 ## [2026-03-29]
 
@@ -44,6 +59,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ### Fixed
 
 <!-- Updated: 2026-03-29 - Documented node-editor autocomplete fixes -->
+
 - **node-editor/quiet-autocomplete-on-space**: Stopped passive empty-token trigger suggestions from reopening on `Space`, kept explicit trigger-character and partial-prefix completions, and documented manual `Ctrl+Space` discovery in the action bar
   - Why: Prevents distracting autocomplete popups during normal typing without removing on-demand syntax help
 - **node-editor/manual-trigger-chaining**: Manual `Ctrl+Space` trigger picks now immediately reopen autocomplete for the selected syntax family, so base triggers like `#` and `$` flow straight into their follow-up suggestions

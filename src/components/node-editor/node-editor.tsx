@@ -16,6 +16,16 @@ import { useShallow } from 'zustand/shallow';
 import { AnimateChangeInHeight } from '../animate-change-in-height';
 import { QuickInput } from './components/inputs/quick-input';
 
+const NODE_EDITOR_TOOLTIP_SELECTOR = '.cm-tooltip, .cm-tooltip-autocomplete';
+
+export function shouldDismissNodeEditorPress(
+	target: EventTarget | null
+): boolean {
+	return !(
+		target instanceof Element && target.closest(NODE_EDITOR_TOOLTIP_SELECTOR)
+	);
+}
+
 const animationVariants = {
 	container: {
 		initial: { opacity: 0, scale: 0.95, y: -100, filter: 'blur(10px)' },
@@ -113,10 +123,11 @@ export const NodeEditor = () => {
 	// Interactions
 	const dismiss = useDismiss(context, {
 		escapeKey: true,
-		outsidePress: true,
+		outsidePress: (event) => shouldDismissNodeEditorPress(event.target),
+		outsidePressEvent: 'mousedown',
 	});
 
-	const { getReferenceProps } = useInteractions([dismiss]);
+	const { getFloatingProps } = useInteractions([dismiss]);
 
 	if (!nodeEditor.isOpen) return null;
 
@@ -131,7 +142,7 @@ export const NodeEditor = () => {
 				{nodeEditor.isOpen && (
 					<motion.div
 						ref={refs.setFloating}
-						{...getReferenceProps()}
+						{...getFloatingProps()}
 						animate='animate'
 						className={cn(theme.container)}
 						data-testid='node-editor'

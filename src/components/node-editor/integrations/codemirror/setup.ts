@@ -3,6 +3,7 @@
  * Single source of truth for editor configuration
  */
 
+import { getInitials } from '@/utils/collaborator-utils';
 import { autocompletion, completionKeymap } from '@codemirror/autocomplete';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { bracketMatching, indentOnInput } from '@codemirror/language';
@@ -12,16 +13,18 @@ import {
 	highlightActiveLine,
 	keymap,
 	placeholder,
+	repositionTooltips,
 	scrollPastEnd,
 	tooltips,
+	ViewPlugin,
 } from '@codemirror/view';
-import { getInitials } from '@/utils/collaborator-utils';
 
 // Import our custom extensions
 import { commandRegistry } from '../../core/commands/command-registry';
 import { type CollaboratorMention, createCompletions } from './completions';
 import { createPatternDecorations } from './pattern-decorations';
 import { nodeEditorTheme } from './theme';
+import { getTooltipSpace } from './tooltip-viewport';
 import { createValidationDecorations } from './validation-decorations';
 
 /**
@@ -64,6 +67,41 @@ export function createNodeEditor(
 		collaborators ?? []
 	);
 
+	const tooltipViewportSync = ViewPlugin.fromClass(
+		class {
+			private cleanup: (() => void) | null = null;
+
+			constructor(view: EditorView) {
+				const ownerWindow = view.dom.ownerDocument.defaultView;
+				const visualViewport = ownerWindow?.visualViewport;
+
+				if (!visualViewport) {
+					return;
+				}
+
+				const handleViewportChange = () => {
+					repositionTooltips(view);
+				};
+
+				visualViewport.addEventListener('resize', handleViewportChange, {
+					passive: true,
+				});
+				visualViewport.addEventListener('scroll', handleViewportChange, {
+					passive: true,
+				});
+
+				this.cleanup = () => {
+					visualViewport.removeEventListener('resize', handleViewportChange);
+					visualViewport.removeEventListener('scroll', handleViewportChange);
+				};
+			}
+
+			destroy() {
+				this.cleanup?.();
+			}
+		}
+	);
+
 	// Build extensions array
 	const extensions: Extension[] = [
 		// Core editing features
@@ -91,6 +129,7 @@ export function createNodeEditor(
 		tooltips({
 			parent: container.ownerDocument.body,
 			position: 'fixed',
+			tooltipSpace: getTooltipSpace,
 		}),
 
 		// Our custom features
@@ -164,6 +203,7 @@ export function createNodeEditor(
 					}),
 				]
 			: []),
+		tooltipViewportSync,
 
 		...(enablePatternHighlighting ? [createPatternDecorations()] : []),
 		...(enableValidation ? [createValidationDecorations()] : []),
@@ -171,38 +211,38 @@ export function createNodeEditor(
 		// Change listeners
 		...(onContentChange || onNodeTypeChange
 			? [
-						EditorView.updateListener.of((update) => {
-							if (!update.docChanged) return;
-							const text = update.state.doc.toString();
-							onContentChange?.(text);
+					EditorView.updateListener.of((update) => {
+						if (!update.docChanged) return;
+						const text = update.state.doc.toString();
+						onContentChange?.(text);
 
-							if (!onNodeTypeChange) return;
+						if (!onNodeTypeChange) return;
 
-							// Check for $nodeType patterns anywhere in text
-							const nodeTypeMatch = text.match(/\$(\w+)(\s|$)/);
-							if (!nodeTypeMatch) {
-								lastEmittedNodeType = null;
-								return;
-							}
+						// Check for $nodeType patterns anywhere in text
+						const nodeTypeMatch = text.match(/\$(\w+)(\s|$)/);
+						if (!nodeTypeMatch) {
+							lastEmittedNodeType = null;
+							return;
+						}
 
-							// Validate the trigger is a complete, valid command
-							const extractedNodeType = nodeTypeMatch[1];
-							const trigger = `$${extractedNodeType}`;
-							const command = commandRegistry.getCommandByTrigger(trigger);
+						// Validate the trigger is a complete, valid command
+						const extractedNodeType = nodeTypeMatch[1];
+						const trigger = `$${extractedNodeType}`;
+						const command = commandRegistry.getCommandByTrigger(trigger);
 
-							// Only fire type change if it's a valid complete command
-							// and changed since last emission to avoid duplicate calls.
-							if (!command?.nodeType) {
-								lastEmittedNodeType = null;
-								return;
-							}
+						// Only fire type change if it's a valid complete command
+						// and changed since last emission to avoid duplicate calls.
+						if (!command?.nodeType) {
+							lastEmittedNodeType = null;
+							return;
+						}
 
-							if (lastEmittedNodeType === extractedNodeType) return;
-							lastEmittedNodeType = extractedNodeType;
-							onNodeTypeChange(extractedNodeType);
-						}),
-					]
-				: []),
+						if (lastEmittedNodeType === extractedNodeType) return;
+						lastEmittedNodeType = extractedNodeType;
+						onNodeTypeChange(extractedNodeType);
+					}),
+				]
+			: []),
 	];
 
 	// Create state

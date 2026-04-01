@@ -28,6 +28,7 @@ total_tokens: 707972
 <!-- Updated: 2026-03-25 - Documented shared notifications manager, map-scoped notification queries, and user-scoped onboarding persistence -->
 <!-- Updated: 2026-03-28 - Reconciled local layout docs with owner-limit, onboarding, and mobile editor architecture during PR #46 merge -->
 <!-- Updated: 2026-03-28 - Documented stale-safe layout normalization writes and in-flight animation synchronization after CodeRabbit review -->
+<!-- Updated: 2026-04-01 - Documented mobile node-editor autocomplete viewport/dismissal hardening -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -352,6 +353,7 @@ shiko/
 - `src/components/onboarding/onboarding-modal.tsx` now renders the editor walkthrough shell directly inside the mind-map experience instead of using a global dialog in `ClientProviders`
 - `src/store/slices/onboarding-slice.ts` tracks task-based progress (`create-node`, `try-pattern`, `know-controls`), real add-mode substeps (`toolbar` -> `canvas`), post-create edit hints, viewport-aware coachmark state (`desktop` vs `mobile`), minimized walkthrough state, and eligibility gating for first owned free maps
 - `src/store/app-state.ts` + `src/store/slices/ui-slice.ts` extend node-editor state with onboarding preset/source fields so the walkthrough can open a deterministic parser example in the real quick-input editor
+- `src/components/node-editor/node-editor.tsx` + `src/components/node-editor/integrations/codemirror/setup.ts` keep CodeMirror autocomplete portaled to `document.body`, treat `.cm-tooltip*` presses as inside-editor interactions, and constrain mobile tooltip space to the current `visualViewport` with a small bottom inset so suggestions stay above the keyboard
 - `src/components/common/user-menu.tsx` and `src/components/subscription/limit-warning.tsx` now bypass onboarding entirely for upgrade prompts and open `popoverOpen.upgradeUser` directly
 - Toolbar/top-bar/shortcut controls expose `data-onboarding-target` anchors for cursor/select, Add Node, AI Suggestions, Auto Layout, Export, Guided Tour, Reset Zoom, Comments, desktop Share, mobile hamburger menu, `More Tools`, shortcuts help, and breadcrumb/home
 - Mobile onboarding uses bottom-sheet surfaces only: intro/checklist/hints/coachmarks never stack, step-specific sheets replace the checklist while active, the controls tour points to `mobile-menu` instead of the removed mobile share button, and the minimized walkthrough chip moves under the top bar instead of sharing the bottom-dock lane

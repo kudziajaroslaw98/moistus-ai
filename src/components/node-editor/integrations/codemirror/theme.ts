@@ -70,12 +70,11 @@ export const nodeEditorTheme = EditorView.theme(
 			boxShadow:
 				'0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2) !important',
 			backdropFilter: 'blur(16px) !important',
-			maxHeight: '400px !important',
-			height: 'auto !important',
 			minWidth: '240px !important',
 			width: 'min(320px, calc(100vw - 2rem)) !important',
 			maxWidth: 'calc(100vw - 2rem) !important',
 			padding: '8px !important',
+			boxSizing: 'border-box',
 		},
 		'.cm-tooltip-autocomplete': {
 			// Smooth entry animation
@@ -97,7 +96,7 @@ export const nodeEditorTheme = EditorView.theme(
 		// Dropdown list styling
 		'.cm-tooltip-autocomplete.cm-tooltip > ul, .cm-tooltip.cm-tooltip-autocomplete > ul':
 			{
-				maxHeight: '400px !important',
+				maxHeight: 'inherit',
 				overflowY: 'auto !important',
 				padding: '4px !important',
 				margin: '0 !important',

@@ -361,3 +361,40 @@ test.describe.serial('Node Editor', () => {
 		expect(finalCount).toBe(initialCount + 2);
 	});
 });
+
+test.describe('Node Editor Mobile', () => {
+	test.use({ viewport: { width: 390, height: 844 } });
+
+	test.beforeEach(async ({ mindMapPage, testMapId }) => {
+		await mindMapPage.goto(testMapId);
+	});
+
+	test('keeps autocomplete visible and the editor open when tapping a suggestion', async ({
+		mindMapPage,
+		page,
+	}) => {
+		await mindMapPage.openNodeEditor();
+		await mindMapPage.nodeEditorPage.triggerCompletion('#');
+
+		const dropdownBounds =
+			await mindMapPage.nodeEditorPage.getCompletionDropdownBounds();
+		const viewport = page.viewportSize();
+
+		expect(dropdownBounds).not.toBeNull();
+		expect(viewport).not.toBeNull();
+
+		if (!dropdownBounds || !viewport) {
+			throw new Error('Expected mobile autocomplete bounds and viewport');
+		}
+
+		expect(dropdownBounds.y + dropdownBounds.height).toBeLessThanOrEqual(
+			viewport.height
+		);
+
+		await mindMapPage.nodeEditorPage.clickCompletion(0);
+		await mindMapPage.nodeEditorPage.expectOpen();
+
+		const content = await mindMapPage.nodeEditorPage.getContent();
+		expect(content).toContain('#');
+	});
+});
