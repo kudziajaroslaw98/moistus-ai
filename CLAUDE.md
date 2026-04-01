@@ -3,6 +3,7 @@
 <!-- Updated: 2026-03-23 - Restructured: compressed philosophy, moved domain gotchas to .claude/rules/ -->
 <!-- Updated: 2026-03-25 - Documented shared notifications cache/socket and per-user onboarding persistence -->
 <!-- Updated: 2026-04-01 - Documented body-portaled node-editor autocomplete dismissal and mobile visualViewport bounds -->
+<!-- Updated: 2026-04-01 - Documented LAN-safe local-dev runtime service URL derivation -->
 
 ## Engineering Philosophy
 
@@ -110,7 +111,7 @@ pnpm lint / lint:fix # ESLint
 pnpm pretty          # Prettier
 ```
 
-**Env**: `.env.local` requires `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (see `.env.example`)
+**Env**: `.env.local` requires `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (see `.env.example`). Optional local-dev LAN helpers: `SUPABASE_INTERNAL_URL`, `NEXT_PUBLIC_SUPABASE_DEV_PORT`, `NEXT_PUBLIC_PARTYKIT_DEV_PORT`.
 
 ## mcp tools
 
@@ -148,6 +149,10 @@ pnpm pretty          # Prettier
 **PartyKit WS auth fallback**: Realtime connect auth first verifies JWT via JWKS; if that fails, it falls back to Supabase `/auth/v1/user` token validation using service-role credentials. This is a resilience path for issuer/JWKS drift; treat fallback log lines as configuration debt to clean up.
 
 <!-- Updated: 2026-02-24 - Documented realtime JWT fallback behavior and operational meaning -->
+
+**LAN-safe local dev URLs**: In development, browser Supabase + PartyKit clients may derive their host from `window.location.hostname` when the configured public URL is blank or loopback-only. Keep server-side Supabase traffic on `SUPABASE_INTERNAL_URL` when local services stay on loopback, and do not reintroduce `NEXT_PUBLIC_APP_LOCAL_HREF` for browser fetches.
+
+<!-- Updated: 2026-04-01 - Documented browser-vs-server local URL split for LAN dev -->
 
 **Map Settings templates**: `is_template` and `template_category` are system-managed and not user-editable in the Map Settings panel.
 

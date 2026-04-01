@@ -36,11 +36,24 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Autocomplete suggestions render outside the floating editor DOM, so touch selection was being misclassified as an outside press
 - **node-editor/mobile-tooltip-viewport**: Constrained CodeMirror tooltip space to the mobile `visualViewport`, added a small bottom safety inset, and remeasured tooltip positions on `visualViewport` resize/scroll
   - Why: The layout viewport ignores the software keyboard, which let autocomplete suggestions drop under the keyboard on phones
+- **local-dev/lan-safe-browser-service-urls**: Browser Supabase clients, PartyKit sockets, forgot-password recovery redirects, and dashboard/history fetches now follow the current browser hostname in development instead of sticking to `localhost` or `127.0.0.1`
+  - Why: Opening the app as `http://<lan-ip>:3000` previously broke browser-visible local services by sending them back to loopback-only hosts
 
+### Changed
+
+- **local-dev/server-vs-browser-supabase-urls**: Server-side Supabase helpers now prefer `SUPABASE_INTERNAL_URL` while browser clients keep deriving their public host from the active LAN/local origin
+  - Why: LAN sessions need a public browser URL while server-side local services can still stay on loopback
+
+### Docs
+
+- **docs/local-dev-lan-guidance**: Updated `.env.example`, `README.md`, `CLAUDE.md`, and `docs/CODEBASE_MAP.md` with the LAN-safe runtime URL behavior and optional local-dev override vars
+  - Why: The repo docs previously suggested loopback-only browser URLs and did not explain the public-vs-internal split
 ### Added
 
 - **tests/node-editor-mobile-autocomplete**: Added unit coverage for portaled tooltip dismissal guards, pure helper coverage for tooltip viewport bounds, and a mobile Playwright regression for tap-to-select autocomplete
   - Why: Locks both the mobile visibility fix and the tap-selection behavior into regression coverage
+- **tests/local-dev-url-derivation**: Added pure helper tests for LAN hostname derivation, current-origin auth redirects, and internal-vs-public Supabase URL resolution
+  - Why: Keeps the local-dev network contract stable without depending on full browser integration tests
 
 ## [2026-03-29]
 

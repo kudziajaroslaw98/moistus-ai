@@ -29,6 +29,7 @@ total_tokens: 707972
 <!-- Updated: 2026-03-28 - Reconciled local layout docs with owner-limit, onboarding, and mobile editor architecture during PR #46 merge -->
 <!-- Updated: 2026-03-28 - Documented stale-safe layout normalization writes and in-flight animation synchronization after CodeRabbit review -->
 <!-- Updated: 2026-04-01 - Documented mobile node-editor autocomplete viewport/dismissal hardening -->
+<!-- Updated: 2026-04-01 - Documented LAN-safe local-dev Supabase/PartyKit URL derivation -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -184,6 +185,7 @@ shiko/
 │   │   ├── api/                # API middleware (auth, validation)
 │   │   ├── history/            # Delta calculation, diff
 │   │   ├── layout/             # ELK full-layout engine + deterministic local branch reflow
+│   │   ├── local-dev-url.ts    # Browser/runtime LAN-safe Supabase + PartyKit URL derivation
 │   │   ├── partykit/           # PartyKit admin helpers (disconnect users)
 │   │   └── supabase/           # Client initialization
 │   │
@@ -537,6 +539,8 @@ sequenceDiagram
 16. **PartyKit Admin Disconnect** - When access is revoked (delete-share, update-share, revoke-room-code), the API calls `disconnectPartyKitUsers()` to force immediate WebSocket disconnection across all room types for the affected users.
 
 17. **Yjs Sync Event Retention** - `subscribeToYjsSyncEvents()` now tracks per-subscriber cursors and only prunes events up to the slowest subscriber cursor (bounded by max retention). This prevents index-shift event loss for slower consumers.
+
+18. **LAN-Safe Local Dev URLs** - Browser Supabase and PartyKit clients now derive from `window.location.hostname` in development when their public env values are blank or loopback-only. Same-origin dashboard/history fetches are relative, forgot-password redirects use the current origin, and server-side Supabase code can stay on `SUPABASE_INTERNAL_URL`.
 
 ## Navigation Guide
 

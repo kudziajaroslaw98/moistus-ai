@@ -43,16 +43,31 @@ Shiko is built using modern technologies:
 3. Set up environment variables (see `.env.example`)
 4. Run Next.js in one terminal: `pnpm dev`
 5. Run PartyKit in a second terminal: `pnpm party:dev`
-6. Visit `http://localhost:3000` to start mapping
+6. Visit `http://localhost:3000` or `http://<your-lan-ip>:3000` to start mapping
 
 Local development runs PartyKit locally while Supabase can stay cloud-hosted. Keep JWT validation enabled in both local and production environments.
 `pnpm party:dev` automatically sources `.env.local` before starting PartyKit.
 
+When local browser-facing service URLs are blank or still point at `localhost` / `127.0.0.1`, the app now derives the current browser hostname in development for:
+
+- Supabase browser clients
+- PartyKit browser WebSockets
+- same-origin dashboard/history API fetches
+- forgot-password recovery redirects
+
+That lets `http://<lan-ip>:3000` keep talking to `http://<lan-ip>:54321` and `ws://<lan-ip>:1999` without editing real `.env*` files. Server-side code can keep using a loopback-only Supabase override via `SUPABASE_INTERNAL_URL`.
+
+LAN testing still requires the services themselves to be reachable on the LAN interface. If `http://<lan-ip>:54321` or `<lan-ip>:1999` fail from another device, fix Docker/firewall/host exposure first.
+If you run local Supabase outside this repo, add your LAN `http://<lan-ip>:3000/**` redirect URLs in that Supabase config as well.
+
 Minimum realtime env values:
 
 - `NEXT_PUBLIC_SUPABASE_URL=<your-supabase-url>`
+- `SUPABASE_INTERNAL_URL=<optional-server-only-supabase-url>`
 - `SUPABASE_SERVICE_ROLE=<service-role-key>`
 - `NEXT_PUBLIC_PARTYKIT_URL=127.0.0.1:1999`
+- `NEXT_PUBLIC_SUPABASE_DEV_PORT=54321` (optional local dev override)
+- `NEXT_PUBLIC_PARTYKIT_DEV_PORT=1999` (optional local dev override)
 - `NEXT_PUBLIC_PARTYKIT_PARTY=main`
 - `PARTYKIT_BASE_URL=http://127.0.0.1:1999`
 - `PARTYKIT_PARTY_NAME=main`

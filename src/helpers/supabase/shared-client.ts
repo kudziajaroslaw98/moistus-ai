@@ -1,3 +1,4 @@
+import { resolveBrowserSupabaseUrl } from '@/helpers/local-dev-url';
 import { createBrowserClient } from '@supabase/ssr';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -18,7 +19,7 @@ let sharedSupabaseClient: SupabaseClient | null = null;
 export function getSharedSupabaseClient(): SupabaseClient {
 	if (!sharedSupabaseClient) {
 		sharedSupabaseClient = createBrowserClient(
-			process.env.NEXT_PUBLIC_SUPABASE_URL!,
+			resolveBrowserSupabaseUrl(),
 			process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
 			{
 				auth: {
