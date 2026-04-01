@@ -1,28 +1,38 @@
 'use client';
 
-import { Check, X } from 'lucide-react';
+import { Keyboard, Sparkles, Users } from 'lucide-react';
 import { motion, useInView, useReducedMotion } from 'motion/react';
 import { useRef } from 'react';
 import { GrainOverlay } from './grain-overlay';
-import { SectionDecoration } from './section-decorations';
 
 const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
 
-const pains = [
-	'Tools that fight your thinking flow',
-	'AI hidden behind complex workflows',
-	'Collaboration that feels laggy',
-	'Buried behind menus and clicks',
-];
+const workflowSteps = [
+	{
+		icon: Keyboard,
+		title: 'Capture in fragments',
+		description:
+			'Write loose notes, tags, and actions without stopping to format the canvas.',
+	},
+	{
+		icon: Sparkles,
+		title: 'Watch structure emerge',
+		description:
+			'AI suggestions stay inside the map, so links appear while the idea is still fresh.',
+	},
+	{
+		icon: Users,
+		title: 'Share the live thinking',
+		description:
+			'Invite collaborators into the same evolving map instead of sending static exports.',
+	},
+] as const;
 
-const solutions = [
-	'Ideas flow, connections form naturally',
-	'AI on tap — one click, instant insight',
-	'Real-time sync, zero friction',
-	'Keyboard-first, everything instant',
-];
-
-const ITEM_STAGGER = 0.08;
+const payoffPoints = [
+	'Solo speed without losing shared context',
+	'AI assistance without a separate workflow',
+	'One canvas from first note to team alignment',
+] as const;
 
 export function ProblemSolution() {
 	const ref = useRef<HTMLElement>(null);
@@ -33,15 +43,13 @@ export function ProblemSolution() {
 		<section
 			id='problem'
 			ref={ref}
-			className='relative py-20 px-4 sm:px-6 lg:px-8 bg-background'
+			className='relative bg-background px-4 py-16 sm:px-6 lg:px-8 lg:py-20'
 		>
 			<GrainOverlay />
-			<SectionDecoration variant='problem' />
-			<div className='relative z-10 max-w-3xl mx-auto'>
-				{/* Headline */}
-				<motion.h2
+			<div className='relative z-10 mx-auto max-w-6xl'>
+				<motion.div
 					initial={
-						shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }
+						shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 18 }
 					}
 					animate={isInView ? { opacity: 1, y: 0 } : {}}
 					transition={
@@ -49,116 +57,100 @@ export function ProblemSolution() {
 							? { duration: 0 }
 							: { duration: 0.5, ease: EASE_OUT_QUART }
 					}
-					className='font-lora text-2xl sm:text-3xl md:text-4xl font-bold text-center text-text-primary leading-snug tracking-tight mb-14'
+					className='overflow-hidden rounded-[2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(18,22,30,0.9),rgba(10,12,18,0.82))] shadow-[0_20px_70px_rgba(0,0,0,0.28)]'
 				>
-					You shouldn&apos;t have to{' '}
-					<span className='text-brand-coral'>fight</span> your tools to think.
-				</motion.h2>
+					<div className='grid gap-10 px-6 py-8 md:px-10 md:py-10 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)] lg:gap-14'>
+						<div className='max-w-2xl'>
+							<p className='text-xs font-medium uppercase tracking-[0.28em] text-primary-300/70'>
+								Thoughts becoming structure
+							</p>
+							<h2 className='mt-4 max-w-[15ch] text-balance font-lora text-3xl font-bold leading-[1.08] tracking-tight text-text-primary md:text-5xl'>
+								Thinking starts messy. Shiko shapes it before the thread goes
+								cold.
+							</h2>
+							<p className='mt-5 max-w-[38rem] text-pretty text-base leading-7 text-text-secondary md:text-lg'>
+								Keep the speed of rough notes, add AI only where it helps, and
+								bring teammates into the same map before a handoff becomes
+								another bottleneck.
+							</p>
 
-				{/* Without / With Shiko split */}
-				<div className='grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-0'>
-					{/* Without Shiko column */}
-					<motion.div
-						initial={
-							shouldReduceMotion
-								? { opacity: 1, y: 0 }
-								: { opacity: 0, y: 12 }
-						}
-						animate={isInView ? { opacity: 1, y: 0 } : {}}
-						transition={
-							shouldReduceMotion
-								? { duration: 0 }
-								: { duration: 0.3, ease: EASE_OUT_QUART }
-						}
-						className='md:border-r md:border-white/[0.06] md:pr-10'
-					>
-						<p className='text-xs font-semibold uppercase tracking-widest text-text-tertiary mb-6'>
-							Without Shiko
-						</p>
-						<ul className='space-y-4'>
-							{pains.map((pain, i) => (
-								<motion.li
-									key={pain}
-									initial={
-										shouldReduceMotion
-											? { opacity: 1, y: 0 }
-											: { opacity: 0, y: 8 }
-									}
-									animate={isInView ? { opacity: 1, y: 0 } : {}}
-									transition={
-										shouldReduceMotion
-											? { duration: 0 }
-											: {
-													duration: 0.3,
-													ease: EASE_OUT_QUART,
-													delay: i * ITEM_STAGGER,
-												}
-									}
-									className='flex items-start gap-2.5'
-								>
-									<X
-										aria-hidden='true'
-										className='h-4 w-4 mt-0.5 shrink-0 text-brand-coral/60'
-									/>
-									<span className='text-base sm:text-lg text-text-tertiary'>
-										{pain}
-									</span>
-								</motion.li>
-							))}
-						</ul>
-					</motion.div>
+							<div className='mt-8 flex flex-wrap gap-3'>
+								{payoffPoints.map((point, index) => (
+									<motion.div
+										key={point}
+										initial={
+											shouldReduceMotion
+												? { opacity: 1, y: 0 }
+												: { opacity: 0, y: 10 }
+										}
+										animate={isInView ? { opacity: 1, y: 0 } : {}}
+										transition={
+											shouldReduceMotion
+												? { duration: 0 }
+												: {
+														duration: 0.32,
+														delay: 0.14 + index * 0.08,
+														ease: EASE_OUT_QUART,
+													}
+										}
+										className='rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-text-secondary backdrop-blur-xl'
+									>
+										{point}
+									</motion.div>
+								))}
+							</div>
+						</div>
 
-					{/* With Shiko column */}
-					<motion.div
-						initial={
-							shouldReduceMotion
-								? { opacity: 1, y: 0 }
-								: { opacity: 0, y: 12 }
-						}
-						animate={isInView ? { opacity: 1, y: 0 } : {}}
-						transition={
-							shouldReduceMotion
-								? { duration: 0 }
-								: { duration: 0.3, ease: EASE_OUT_QUART, delay: 0.3 }
-						}
-						className='md:pl-10'
-					>
-						<p className='text-xs font-semibold uppercase tracking-widest text-primary-400/70 mb-6'>
-							With Shiko
-						</p>
-						<ul className='space-y-4'>
-							{solutions.map((solution, i) => (
-								<motion.li
-									key={solution}
-									initial={
-										shouldReduceMotion
-											? { opacity: 1, y: 0 }
-											: { opacity: 0, y: 8 }
-									}
-									animate={isInView ? { opacity: 1, y: 0 } : {}}
-									transition={
-										shouldReduceMotion
-											? { duration: 0 }
-											: {
-													duration: 0.3,
-													ease: EASE_OUT_QUART,
-													delay: 0.3 + i * ITEM_STAGGER,
-												}
-									}
-									className='flex items-start gap-2.5'
-								>
-									<Check
-										aria-hidden='true'
-										className='h-4 w-4 mt-0.5 shrink-0 text-primary-400/70'
-									/>
-									<span className='text-base sm:text-lg text-text-primary'>
-										{solution}
-									</span>
-								</motion.li>
-							))}
-						</ul>
-					</motion.div>
-				</div>
+						<div className='relative overflow-hidden rounded-[1.6rem] border border-white/10 bg-black/20 p-4 backdrop-blur-xl'>
+							<div className='absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-400/40 to-transparent' />
+							<div className='space-y-3'>
+								{workflowSteps.map((step, index) => {
+									const Icon = step.icon;
+									const isLast = index === workflowSteps.length - 1;
+
+									return (
+										<motion.div
+											key={step.title}
+											initial={
+												shouldReduceMotion
+													? { opacity: 1, x: 0 }
+													: { opacity: 0, x: 14 }
+											}
+											animate={isInView ? { opacity: 1, x: 0 } : {}}
+											transition={
+												shouldReduceMotion
+													? { duration: 0 }
+													: {
+															duration: 0.36,
+															delay: 0.16 + index * 0.1,
+															ease: EASE_OUT_QUART,
+														}
+											}
+											className='relative rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-4'
+										>
+											{!isLast && (
+												<div className='absolute bottom-[-0.82rem] left-6 top-[3.4rem] w-px bg-gradient-to-b from-primary-400/35 to-transparent' />
+											)}
+											<div className='flex items-start gap-4'>
+												<div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary-400/18 bg-primary-500/10 text-primary-300'>
+													<Icon aria-hidden='true' className='h-4 w-4' />
+												</div>
+												<div>
+													<p className='text-sm font-semibold text-text-primary'>
+														{index + 1}. {step.title}
+													</p>
+													<p className='mt-1 text-sm leading-6 text-text-secondary'>
+														{step.description}
+													</p>
+												</div>
+											</div>
+										</motion.div>
+									);
+								})}
+							</div>
+						</div>
+					</div>
+				</motion.div>
 			</div>
 		</section>
 	);

@@ -34,6 +34,7 @@ total_tokens: 707972
 <!-- Updated: 2026-04-01 - Documented LAN-safe local-dev Supabase/PartyKit URL derivation -->
 <!-- Updated: 2026-04-01 - Documented stable Supabase SSR auth storage key for LAN logins -->
 <!-- Updated: 2026-04-01 - Corrected node-editor dismissal docs after merging the main autocomplete baseline -->
+<!-- Updated: 2026-04-01 - Documented the tighter landing-page flow with hero mini-demo, product-proof chapters, and pricing/FAQ close -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -160,7 +161,7 @@ shiko/
 │   │   ├── edges/              # 6 edge types (floating, waypoint, ghost)
 │   │   ├── guided-tour/        # Prezi-style presentations
 │   │   ├── history/            # Version history sidebar
-│   │   ├── landing/            # Marketing page sections
+│   │   ├── landing/            # Marketing flow: hero scene, payoff band, product proof, pricing/FAQ close
 │   │   ├── mind-map/           # React Flow integration + mobile top bar/drawer chrome
 │   │   ├── modals/             # Dialogs (edge edit, upgrade, etc.)
 │   │   ├── node-editor/        # Command system, CodeMirror, mobile autocomplete tray

@@ -8,8 +8,6 @@ import {
 	useReducedMotion,
 } from 'motion/react';
 import { useRef, useState } from 'react';
-import { GrainOverlay } from './grain-overlay';
-import { SectionDecoration } from './section-decorations';
 
 const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
 
@@ -136,14 +134,13 @@ export function FaqSection() {
 	};
 
 	return (
-		<section id='faq' ref={ref} className='relative py-32 px-4 sm:px-6 lg:px-8'>
-			<script type='application/ld+json'>
-				{JSON.stringify(faqJsonLd)}
-			</script>
-			<GrainOverlay />
-			<SectionDecoration variant='faq' />
-			<div className='relative z-10 max-w-3xl mx-auto'>
-				{/* Header */}
+		<section
+			id='faq'
+			ref={ref}
+			className='relative bg-surface/55 px-4 pb-20 pt-6 sm:px-6 lg:px-8 lg:pb-24'
+		>
+			<script type='application/ld+json'>{JSON.stringify(faqJsonLd)}</script>
+			<div className='relative z-10 mx-auto max-w-6xl'>
 				<motion.div
 					initial={
 						shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
@@ -154,25 +151,36 @@ export function FaqSection() {
 							? { duration: 0 }
 							: { duration: 0.3, ease: EASE_OUT_QUART }
 					}
-					className='text-center mb-12'
+					className='overflow-hidden rounded-[2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(13,16,22,0.94),rgba(9,11,16,0.88))] px-6 py-8 shadow-[0_20px_70px_rgba(0,0,0,0.24)] md:px-10 md:py-10'
 				>
-					<h2 className='font-lora text-3xl md:text-4xl font-bold text-text-primary mb-4'>
-						Frequently Asked Questions
-					</h2>
-				</motion.div>
+					<div className='grid gap-8 lg:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)] lg:gap-12'>
+						<div className='max-w-sm'>
+							<p className='text-xs font-medium uppercase tracking-[0.28em] text-primary-300/70'>
+								Questions
+							</p>
+							<h2 className='mt-4 text-balance font-lora text-3xl font-bold leading-[1.08] tracking-tight text-text-primary md:text-4xl'>
+								Questions before you start?
+							</h2>
+							<p className='mt-4 text-base leading-7 text-text-secondary'>
+								The close should remove friction, not add more marketing. These
+								are the practical questions most people ask before opening a
+								map.
+							</p>
+						</div>
 
-				{/* FAQ items */}
-				<div className='rounded-xl border border-border-subtle bg-surface backdrop-blur-sm px-6'>
-					{faqs.map((faq, index) => (
-						<FaqItem
-							key={faq.question}
-							faq={faq}
-							index={index}
-							isInView={isInView}
-							shouldReduceMotion={shouldReduceMotion}
-						/>
-					))}
-				</div>
+						<div className='rounded-[1.6rem] border border-white/8 bg-white/[0.03] px-5 backdrop-blur-xl md:px-7'>
+							{faqs.map((faq, index) => (
+								<FaqItem
+									key={faq.question}
+									faq={faq}
+									index={index}
+									isInView={isInView}
+									shouldReduceMotion={shouldReduceMotion}
+								/>
+							))}
+						</div>
+					</div>
+				</motion.div>
 			</div>
 		</section>
 	);

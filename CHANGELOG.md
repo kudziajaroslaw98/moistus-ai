@@ -40,7 +40,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **node-editor/mobile-autocomplete-hover-guards**: Moved tray hover treatments behind `(hover: hover)` media queries and documented the overlay dismissal contract plus viewport/autocomplete bridge heuristics
   - Why: Touch devices should not keep sticky hover styling, and the portal/dismiss/runtime-visibility rules need to stay explicit for future editor changes
 
-
 <!-- Updated: 2026-03-29 - Tightened node-editor autocomplete regression coverage -->
 <!-- Updated: 2026-04-01 - Fixed LAN local-dev URLs/auth cookie naming and aligned node-editor dismissal docs after merging main -->
 
@@ -59,6 +58,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **local-dev/server-vs-browser-supabase-urls**: Server-side Supabase helpers now prefer `SUPABASE_INTERNAL_URL` while browser clients keep deriving their public host from the active LAN/local origin
   - Why: LAN sessions need a public browser URL while server-side local services can still stay on loopback
+- **landing/product-story-redesign**: Rebuilt the landing page around a two-plane hero, deterministic mini-map demo, compact workflow band, product-proof chapters, calmer pricing/FAQ close, and updated landing metadata/navigation flow
+  - Why: The previous page concentrated most of its personality in the hero, pushed the mobile CTA too low, and fell back to a more generic stacked SaaS rhythm after the first screen
 
 ### Docs
 
@@ -68,6 +69,9 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Runtime LAN host derivation is safe only if browser and server still agree on the same auth storage key
 - **docs/node-editor-dismissal-contract**: Corrected the node-editor docs after taking `main`’s autocomplete implementation and recorded the outside-press requirement for both the mobile tray and body-portaled CodeMirror tooltip
   - Why: The discarded branch-only tooltip viewport notes no longer matched the merged implementation
+- **docs/landing-flow-map**: Updated `docs/CODEBASE_MAP.md` to describe the tighter landing-page flow
+  - Why: The landing route now uses a hero mini-demo, integrated payoff band, product-proof chapters, and a combined pricing/FAQ close instead of the older section stack
+
 ### Added
 
 - **tests/node-editor-dismissal-guard**: Added regression coverage for the merged node-editor shell so portaled autocomplete taps stay inside the editor while backdrop presses still dismiss it
