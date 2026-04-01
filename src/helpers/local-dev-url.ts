@@ -15,6 +15,10 @@ type InternalSupabaseUrlOptions = {
 	publicUrl?: string | null;
 };
 
+type SupabaseAuthStorageKeyOptions = {
+	publicUrl?: string | null;
+};
+
 const DEFAULT_SUPABASE_DEV_PORT = '54321';
 const DEFAULT_PARTYKIT_DEV_PORT = '1999';
 
@@ -69,6 +73,16 @@ function normalizeHostname(hostOrUrl: string): string {
 
 	const [hostname] = normalizedHost.split(':');
 	return hostname;
+}
+
+function toSupabaseAuthStorageKey(hostOrUrl: string): string {
+	const hostname = normalizeHostname(hostOrUrl);
+	if (!hostname) {
+		return 'sb-local-auth-token';
+	}
+
+	const projectRef = hostname.split('.')[0];
+	return `sb-${projectRef}-auth-token`;
 }
 
 function isLoopbackHost(hostOrUrl: string): boolean {
@@ -244,4 +258,10 @@ export function getInternalSupabaseUrl({
 	publicUrl = process.env.NEXT_PUBLIC_SUPABASE_URL,
 }: InternalSupabaseUrlOptions = {}): string {
 	return trimConfigValue(internalUrl) ?? trimConfigValue(publicUrl) ?? '';
+}
+
+export function getSupabaseAuthStorageKey({
+	publicUrl = process.env.NEXT_PUBLIC_SUPABASE_URL,
+}: SupabaseAuthStorageKeyOptions = {}): string {
+	return toSupabaseAuthStorageKey(trimConfigValue(publicUrl) ?? '');
 }

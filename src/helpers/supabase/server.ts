@@ -1,7 +1,10 @@
 import { createServerClient } from '@supabase/ssr';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-import { getInternalSupabaseUrl } from '@/helpers/local-dev-url';
+import {
+	getInternalSupabaseUrl,
+	getSupabaseAuthStorageKey,
+} from '@/helpers/local-dev-url';
 
 export async function createClient() {
 	const cookieStore = await cookies();
@@ -10,6 +13,9 @@ export async function createClient() {
 		getInternalSupabaseUrl(),
 		process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
 		{
+			cookieOptions: {
+				name: getSupabaseAuthStorageKey(),
+			},
 			cookies: {
 				getAll() {
 					return cookieStore.getAll();

@@ -4,6 +4,7 @@
 <!-- Updated: 2026-03-25 - Documented shared notifications cache/socket and per-user onboarding persistence -->
 <!-- Updated: 2026-04-01 - Documented body-portaled node-editor autocomplete dismissal and mobile visualViewport bounds -->
 <!-- Updated: 2026-04-01 - Documented LAN-safe local-dev runtime service URL derivation -->
+<!-- Updated: 2026-04-01 - Documented stable Supabase SSR auth cookie naming for LAN dev -->
 
 ## Engineering Philosophy
 
@@ -153,6 +154,10 @@ pnpm pretty          # Prettier
 **LAN-safe local dev URLs**: In development, browser Supabase + PartyKit clients may derive their host from `window.location.hostname` when the configured public URL is blank or loopback-only. Keep server-side Supabase traffic on `SUPABASE_INTERNAL_URL` when local services stay on loopback, and do not reintroduce `NEXT_PUBLIC_APP_LOCAL_HREF` for browser fetches.
 
 <!-- Updated: 2026-04-01 - Documented browser-vs-server local URL split for LAN dev -->
+
+**Supabase SSR cookie key**: Browser and server Supabase clients must share the same auth storage/cookie key. Derive that key from the configured Supabase URL, not the runtime LAN host, or successful LAN logins will bounce back to `/auth/sign-in` because the server looks for a different `sb-*` cookie name.
+
+<!-- Updated: 2026-04-01 - Documented Supabase cookie-name mismatch gotcha for LAN logins -->
 
 **Map Settings templates**: `is_template` and `template_category` are system-managed and not user-editable in the Map Settings panel.
 

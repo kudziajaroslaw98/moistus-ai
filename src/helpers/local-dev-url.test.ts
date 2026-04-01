@@ -1,6 +1,7 @@
 import {
 	buildCurrentOriginUrl,
 	getInternalSupabaseUrl,
+	getSupabaseAuthStorageKey,
 	resolveBrowserPartyKitWsBaseUrl,
 	resolveBrowserSupabaseUrl,
 	type BrowserLocationLike,
@@ -66,5 +67,21 @@ describe('local-dev-url helpers', () => {
 				publicUrl: 'http://192.168.0.239:54321',
 			})
 		).toBe('http://192.168.0.239:54321');
+	});
+
+	it('keeps a stable Supabase auth storage key based on the configured URL instead of the runtime LAN host', () => {
+		expect(
+			getSupabaseAuthStorageKey({
+				publicUrl: 'http://127.0.0.1:54321',
+			})
+		).toBe('sb-127-auth-token');
+	});
+
+	it('falls back to a local Supabase auth storage key when no URL is configured', () => {
+		expect(
+			getSupabaseAuthStorageKey({
+				publicUrl: '',
+			})
+		).toBe('sb-local-auth-token');
 	});
 });

@@ -30,6 +30,7 @@ total_tokens: 707972
 <!-- Updated: 2026-03-28 - Documented stale-safe layout normalization writes and in-flight animation synchronization after CodeRabbit review -->
 <!-- Updated: 2026-04-01 - Documented mobile node-editor autocomplete viewport/dismissal hardening -->
 <!-- Updated: 2026-04-01 - Documented LAN-safe local-dev Supabase/PartyKit URL derivation -->
+<!-- Updated: 2026-04-01 - Documented stable Supabase SSR auth storage key for LAN logins -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -541,6 +542,8 @@ sequenceDiagram
 17. **Yjs Sync Event Retention** - `subscribeToYjsSyncEvents()` now tracks per-subscriber cursors and only prunes events up to the slowest subscriber cursor (bounded by max retention). This prevents index-shift event loss for slower consumers.
 
 18. **LAN-Safe Local Dev URLs** - Browser Supabase and PartyKit clients now derive from `window.location.hostname` in development when their public env values are blank or loopback-only. Same-origin dashboard/history fetches are relative, forgot-password redirects use the current origin, and server-side Supabase code can stay on `SUPABASE_INTERNAL_URL`.
+
+19. **Supabase SSR Cookie Naming** - Browser + server Supabase clients must use the same `cookieOptions.name` / auth storage key. For local LAN dev, derive it from the configured Supabase URL (for example `127.0.0.1`) rather than the current browser host, or a successful LAN password login will set `sb-192-*` while the server still looks for `sb-127-*`.
 
 ## Navigation Guide
 

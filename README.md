@@ -56,6 +56,7 @@ When local browser-facing service URLs are blank or still point at `localhost` /
 - forgot-password recovery redirects
 
 That lets `http://<lan-ip>:3000` keep talking to `http://<lan-ip>:54321` and `ws://<lan-ip>:1999` without editing real `.env*` files. Server-side code can keep using a loopback-only Supabase override via `SUPABASE_INTERNAL_URL`.
+Browser and server Supabase clients also share a fixed auth cookie/storage key derived from the configured Supabase URL, so LAN logins do not break server-side auth checks by switching the cookie name to the LAN host.
 
 LAN testing still requires the services themselves to be reachable on the LAN interface. If `http://<lan-ip>:54321` or `<lan-ip>:1999` fail from another device, fix Docker/firewall/host exposure first.
 If you run local Supabase outside this repo, add your LAN `http://<lan-ip>:3000/**` redirect URLs in that Supabase config as well.

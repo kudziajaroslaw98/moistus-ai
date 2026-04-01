@@ -38,6 +38,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: The layout viewport ignores the software keyboard, which let autocomplete suggestions drop under the keyboard on phones
 - **local-dev/lan-safe-browser-service-urls**: Browser Supabase clients, PartyKit sockets, forgot-password recovery redirects, and dashboard/history fetches now follow the current browser hostname in development instead of sticking to `localhost` or `127.0.0.1`
   - Why: Opening the app as `http://<lan-ip>:3000` previously broke browser-visible local services by sending them back to loopback-only hosts
+- **auth/lan-login-cookie-key**: Supabase SSR browser and server clients now share a stable auth cookie/storage key derived from the configured Supabase URL, so successful LAN password logins no longer bounce back to sign-in
+  - Why: The browser LAN host changed the default `sb-*` cookie name, which made the server-side dashboard auth check miss an otherwise valid session
 
 ### Changed
 
@@ -48,6 +50,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **docs/local-dev-lan-guidance**: Updated `.env.example`, `README.md`, `CLAUDE.md`, and `docs/CODEBASE_MAP.md` with the LAN-safe runtime URL behavior and optional local-dev override vars
   - Why: The repo docs previously suggested loopback-only browser URLs and did not explain the public-vs-internal split
+- **docs/local-dev-auth-cookie-key**: Documented the Supabase SSR cookie-name constraint for LAN logins
+  - Why: Runtime LAN host derivation is safe only if browser and server still agree on the same auth storage key
 ### Added
 
 - **tests/node-editor-mobile-autocomplete**: Added unit coverage for portaled tooltip dismissal guards, pure helper coverage for tooltip viewport bounds, and a mobile Playwright regression for tap-to-select autocomplete
