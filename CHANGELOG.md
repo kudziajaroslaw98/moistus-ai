@@ -52,8 +52,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: The lower landing sections were still carrying too much atmospheric copy and were no longer matching the sharper, cleaner hero direction
 - **landing/pricing-and-proof-polish**: Fixed feature proof image sizing/transform composition, moved hero CTA hover effects behind hover-capable media queries, and made pricing savings/CTAs derive from source tier data with accessible billing toggles
   - Why: The current landing still had a few implementation details that could cause incorrect transforms, oversized image requests, touch-device hover states, and duplicated pricing logic
-- **landing/hero-multi-type-demo**: Replaced the task-only hero preview loop with a note-to-question-to-task sequence that uses real Shiko commands and preview rendering while keeping the hero shell, sizing, and CTA composition stable
-  - Why: The hero proof now shows the product’s range and the “thought becomes structure” story without falling back to a fake canvas or a single-node demo
+- **landing/hero-multi-type-demo**: Replaced the task-only hero preview loop with a text-to-note-to-question-to-task sequence that uses real Shiko commands and preview rendering while keeping the hero shell, sizing, and CTA composition stable
+  - Why: The hero proof now feels more like a real working flow, where a rough thought gets captured, clarified, and turned into action without falling back to a fake canvas or a single-node demo
 
 ### Fixed
 

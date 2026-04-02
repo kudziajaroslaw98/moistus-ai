@@ -17,8 +17,12 @@ const SEAMLESS_SPRING = {
 } as const;
 
 type EditorLineTone = 'command' | 'tag' | 'task' | 'hint';
-type HeroPreviewNodeType = 'defaultNode' | 'questionNode' | 'taskNode';
-type PreviewWidth = 'note' | 'question' | 'task';
+type HeroPreviewNodeType =
+	| 'textNode'
+	| 'defaultNode'
+	| 'questionNode'
+	| 'taskNode';
+type PreviewWidth = 'text' | 'note' | 'question' | 'task';
 
 interface FrameInput {
 	id: string;
@@ -34,27 +38,27 @@ interface DemoFrame extends FrameInput {
 
 const frameInputs: FrameInput[] = [
 	{
-		id: 'note-seed',
-		nodeType: 'defaultNode',
+		id: 'text-seed',
+		nodeType: 'textNode',
 		input:
-			'$note\nTeams lose momentum after the call when next steps live in scattered notes.',
-		durationMs: 3000,
-		previewWidth: 'note',
+			'$text\nWe leave the call aligned, then lose it an hour later.',
+		durationMs: 3400,
+		previewWidth: 'text',
 	},
 	{
-		id: 'note-refined',
+		id: 'note-clarified',
 		nodeType: 'defaultNode',
 		input:
-			'$note\nTeams lose momentum after the call when next steps live in scattered notes. #handoff !high',
-		durationMs: 4600,
+			'$note\nAfter the call, decisions, owners, and next steps end up split across chat, docs, and memory. #handoff !high',
+		durationMs: 5000,
 		previewWidth: 'note',
 	},
 	{
 		id: 'question',
 		nodeType: 'questionNode',
 		input:
-			'$question\nWhat should the map lock first? question:multiple options:[Decisions, Owners, Next steps] #handoff',
-		durationMs: 5400,
+			'$question\nWhat should the map lock before the team leaves the call? question:multiple options:[Decision, Owner, Next step] #handoff',
+		durationMs: 6200,
 		previewWidth: 'question',
 	},
 	{
@@ -62,7 +66,7 @@ const frameInputs: FrameInput[] = [
 		nodeType: 'taskNode',
 		input:
 			'$task\n[ ] Capture decisions\n[ ] Assign owners\n[ ] Share next steps\n:in-progress !high #handoff',
-		durationMs: 7600,
+		durationMs: 8200,
 		previewWidth: 'task',
 	},
 ];
@@ -94,6 +98,8 @@ function getLineTone(line: string): EditorLineTone {
 
 function getPreviewWidthClasses(previewWidth: PreviewWidth): string {
 	switch (previewWidth) {
+		case 'text':
+			return 'w-full md:mx-auto md:max-w-[19rem] lg:max-w-[21rem]';
 		case 'note':
 			return 'w-full md:mx-auto md:max-w-[23rem] lg:max-w-[25rem]';
 		case 'question':
