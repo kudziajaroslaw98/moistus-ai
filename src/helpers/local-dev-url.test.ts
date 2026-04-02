@@ -23,6 +23,13 @@ describe('local-dev-url helpers', () => {
 				nodeEnv: 'development',
 			})
 		).toBe('http://192.168.0.239:54321');
+		expect(
+			resolveBrowserSupabaseUrl({
+				configuredUrl: '"http://127.0.0.1:54321"',
+				browserLocation: lanBrowserLocation,
+				nodeEnv: 'development',
+			})
+		).toBe('http://192.168.0.239:54321');
 	});
 
 	it('preserves an explicit non-loopback Supabase URL', () => {
@@ -43,6 +50,13 @@ describe('local-dev-url helpers', () => {
 				nodeEnv: 'development',
 			})
 		).toBe('ws://192.168.0.239:1999');
+		expect(
+			resolveBrowserPartyKitWsBaseUrl({
+				configuredUrl: '"127.0.0.1:1999"',
+				browserLocation: lanBrowserLocation,
+				nodeEnv: 'development',
+			})
+		).toBe('ws://192.168.0.239:1999');
 	});
 
 	it('builds auth redirects against the current browser origin', () => {
@@ -55,6 +69,12 @@ describe('local-dev-url helpers', () => {
 		expect(
 			getInternalSupabaseUrl({
 				internalUrl: 'http://127.0.0.1:54321',
+				publicUrl: 'http://192.168.0.239:54321',
+			})
+		).toBe('http://127.0.0.1:54321');
+		expect(
+			getInternalSupabaseUrl({
+				internalUrl: '"http://127.0.0.1:54321"',
 				publicUrl: 'http://192.168.0.239:54321',
 			})
 		).toBe('http://127.0.0.1:54321');
@@ -73,6 +93,11 @@ describe('local-dev-url helpers', () => {
 		expect(
 			getSupabaseAuthStorageKey({
 				publicUrl: 'http://127.0.0.1:54321',
+			})
+		).toBe('sb-127-auth-token');
+		expect(
+			getSupabaseAuthStorageKey({
+				publicUrl: '"http://127.0.0.1:54321"',
 			})
 		).toBe('sb-127-auth-token');
 	});

@@ -64,6 +64,13 @@ export function getTooltipSpaceRect({
 	return createRect({ top, left, right, bottom });
 }
 
+/**
+ * Computes the visible tooltip bounds for a live CodeMirror editor view.
+ *
+ * @param view - The active `EditorView` whose document and visual viewport metrics should be measured.
+ * @returns A `Rect` describing the clamped tooltip space for the current editor viewport.
+ * @behavior Reads document and window metrics from the editor view, then delegates to `getTooltipSpaceRect`; on mobile it uses `visualViewport` offsets and `MOBILE_TOOLTIP_BOTTOM_PADDING`, otherwise it falls back to the full document/inner viewport rect.
+ */
 export function getTooltipSpace(view: EditorView): Rect {
 	const ownerDocument = view.dom.ownerDocument;
 	const ownerWindow = ownerDocument.defaultView;

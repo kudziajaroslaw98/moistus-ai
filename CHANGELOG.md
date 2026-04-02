@@ -53,6 +53,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **landing/pricing-and-proof-polish**: Fixed feature proof image sizing/transform composition, moved hero CTA hover effects behind hover-capable media queries, and made pricing savings/CTAs derive from source tier data with accessible billing toggles
   - Why: The current landing still had a few implementation details that could cause incorrect transforms, oversized image requests, touch-device hover states, and duplicated pricing logic
 
+### Fixed
+
+- **review/node-editor-and-history-follow-ups**: Enabled true mobile/touch emulation in the node-editor E2E suite, wired CodeMirror tooltip clamping into the live editor setup, passed the configured history page limit on the initial history fetch, and hardened node-editor/local-dev regression coverage around pointer dismissal and quoted local URL inputs
+  - Why: These review findings were still leaving mobile/touch behavior, tooltip viewport bounds, initial history pagination, and helper normalization only partially enforced by the code and tests
+
 ## [2026-04-01]
 
 ### Fixed
@@ -83,6 +88,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Runtime LAN host derivation is safe only if browser and server still agree on the same auth storage key
 - **docs/landing-and-node-editor-sync**: Updated `docs/CODEBASE_MAP.md` for the tighter landing flow, parser-driven hero proof, calmer landing polish, and merged node-editor outside-press dismissal contract
   - Why: The docs needed to reflect both the evolved landing architecture and the current autocomplete-dismissal behavior after merging `main`
+
 
 ### Added
 

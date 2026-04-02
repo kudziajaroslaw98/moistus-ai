@@ -53,7 +53,9 @@ export const createHistorySlice: StateCreator<
 			const prevMeta = get().historyMeta;
 			const prevIndex = get().historyIndex;
 			const prevSelectedId = prevMeta?.[prevIndex]?.id;
-			const res = await fetch(`/api/history/${mapId}/list`);
+			const res = await fetch(`/api/history/${mapId}/list?limit=${limit}`, {
+				cache: 'no-store',
+			});
 			if (!res.ok) return;
 			const data = await res.json();
 			const itemsDesc = (data.items || []) as any[];

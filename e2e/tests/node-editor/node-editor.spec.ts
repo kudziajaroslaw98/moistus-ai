@@ -363,7 +363,11 @@ test.describe.serial('Node Editor', () => {
 });
 
 test.describe('Node Editor Mobile', () => {
-	test.use({ viewport: { width: 390, height: 844 } });
+	test.use({
+		viewport: { width: 390, height: 844 },
+		hasTouch: true,
+		isMobile: true,
+	});
 
 	test.beforeEach(async ({ mindMapPage, testMapId }) => {
 		await mindMapPage.goto(testMapId);

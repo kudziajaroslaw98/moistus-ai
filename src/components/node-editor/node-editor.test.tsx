@@ -57,7 +57,7 @@ describe('NodeEditor dismissal guards', () => {
 		tooltip.appendChild(tooltipButton);
 		document.body.appendChild(tooltip);
 
-		fireEvent.mouseDown(tooltipButton);
+		fireEvent.pointerDown(tooltipButton);
 
 		expect(mockCloseNodeEditor).not.toHaveBeenCalled();
 
@@ -67,14 +67,9 @@ describe('NodeEditor dismissal guards', () => {
 	it('still closes when the backdrop is pressed', () => {
 		render(<NodeEditor />);
 
-		const editor = screen.getByTestId('node-editor');
-		const backdrop = editor.parentElement;
+		const backdrop = screen.getByTestId('node-editor-backdrop');
 
-		if (!backdrop) {
-			throw new Error('Expected node editor backdrop to exist');
-		}
-
-		fireEvent.mouseDown(backdrop);
+		fireEvent.pointerDown(backdrop);
 
 		expect(mockCloseNodeEditor).toHaveBeenCalledTimes(1);
 	});

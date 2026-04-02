@@ -123,7 +123,7 @@ export const NodeEditor = () => {
 					target.closest('.cm-tooltip-autocomplete'))
 			);
 		},
-		outsidePressEvent: 'mousedown',
+		outsidePressEvent: 'pointerdown',
 	});
 
 	const { getFloatingProps } = useInteractions([dismiss]);
@@ -139,6 +139,7 @@ export const NodeEditor = () => {
 		<div
 			className='fixed flex flex-col items-center top-0 left-0 w-full h-full bg-zinc-950/50 z-[100] backdrop-blur-sm pt-4 sm:pt-32 '
 			data-node-editor-overlay='true'
+			data-testid='node-editor-backdrop'
 		>
 			<AnimatePresence>
 				{nodeEditor.isOpen && (

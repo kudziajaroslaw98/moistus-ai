@@ -76,6 +76,10 @@ function normalizeHostname(hostOrUrl: string): string {
 }
 
 function toSupabaseAuthStorageKey(hostOrUrl: string): string {
+	// Expected input is usually a standard Supabase host/URL like
+	// <project-ref>.supabase.co. We derive the storage key from the first
+	// hostname segment and fall back to `sb-local-auth-token` when no hostname
+	// can be resolved.
 	const hostname = normalizeHostname(hostOrUrl);
 	if (!hostname) {
 		return 'sb-local-auth-token';
