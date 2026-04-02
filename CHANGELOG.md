@@ -51,7 +51,14 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-04-01 - Removed mobile-only landing highlight stacks that were breaking the section flow -->
 <!-- Updated: 2026-04-01 - Loosened mobile landing title measures so headings stop breaking into overly tight stacks -->
 <!-- Updated: 2026-04-01 - Unified the landing hero around a parser-driven editor demo and tightened its motion behavior -->
+<!-- Updated: 2026-04-02 - Simplified landing copy below the hero and synced the hero promise to the approved momentum-to-clarity language -->
 
+## [2026-04-02]
+
+### Changed
+
+- **landing/copy-simplification-pass**: Synced the hero to the approved momentum-to-clarity copy and rewrote the support, features, pricing, FAQ intro, and final CTA copy into more direct product language
+  - Why: The lower landing sections were still carrying too much atmospheric copy and were no longer matching the sharper, cleaner hero direction
 ## [2026-04-01]
 
 ### Fixed

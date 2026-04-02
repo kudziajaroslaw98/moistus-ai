@@ -24,9 +24,9 @@ interface ProofChapterData {
 const chapters: ProofChapterData[] = [
 	{
 		icon: Keyboard,
-		title: 'Type once. Let structure appear immediately.',
+		title: 'Capture fast and keep moving.',
 		description:
-			'Commands parse inline so rough notes become structured map content without breaking the typing rhythm that got the idea moving.',
+			'Get the idea down quickly and turn it into something organized without breaking flow.',
 		imageSrc: '/images/landing/node-editor.png',
 		imageAlt: 'Node editor with task list and command preview',
 		imageWidth: 1648,
@@ -36,9 +36,9 @@ const chapters: ProofChapterData[] = [
 	},
 	{
 		icon: Sparkles,
-		title: 'Keep AI inside the same canvas.',
+		title: 'Use AI without leaving the work.',
 		description:
-			'Ghost nodes and connection hints show up next to the work, which means you can accept, ignore, or reshape them without mode-switching.',
+			'Suggestions show up in the same map, so you can use them without switching tools.',
 		imageSrc: '/images/landing/connection-suggestions.png',
 		imageAlt: 'AI ghost nodes suggesting connections on the mind map canvas',
 		imageWidth: 3046,
@@ -48,9 +48,9 @@ const chapters: ProofChapterData[] = [
 	},
 	{
 		icon: Users,
-		title: 'Invite people into the thinking, not the aftermath.',
+		title: 'Collaborate before the handoff.',
 		description:
-			"Collaborators see the same map, the same cursors, and the same emerging structure in real time, so alignment happens before you're exporting anything.",
+			'Everyone sees the same changes in real time, so alignment happens while the work is still moving.',
 		imageSrc: '/images/landing/realtime.png',
 		imageAlt: 'Multiple user cursors collaborating on a mind map in real-time',
 		imageWidth: 2112,
@@ -197,12 +197,11 @@ export function FeaturesSection() {
 						Features
 					</p>
 					<h2 className='mx-auto mt-5 max-w-[15ch] text-balance font-lora text-[2.5rem] font-bold leading-[0.98] tracking-tight text-text-primary md:max-w-[14ch] md:text-[3.95rem] lg:mx-0 lg:max-w-[12ch]'>
-						One canvas from first note to team alignment.
+						Capture, AI, and collaboration in one workspace.
 					</h2>
 					<p className='mx-auto mt-5 max-w-[37rem] text-pretty text-[1.03rem] leading-7 text-text-secondary md:text-lg lg:mx-0'>
-						Shiko keeps capture, AI help, and collaboration inside the same
-						working surface, so the map stays alive while the idea is still
-						moving.
+						Shiko keeps input, suggestions, and shared editing in the same map,
+						so work moves forward without extra steps.
 					</p>
 				</div>
 

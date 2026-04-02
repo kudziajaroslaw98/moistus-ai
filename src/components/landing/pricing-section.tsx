@@ -8,9 +8,9 @@ import { GrainOverlay } from './grain-overlay';
 
 const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
 const pricingHighlights = [
-	'Start free on the real canvas',
-	'Upgrade when you need AI and unlimited scale',
-	'Annual billing saves 17%',
+	'Free for personal use',
+	'Pro removes the limits',
+	'Save 17% yearly',
 ] as const;
 
 export function PricingSection() {
@@ -46,12 +46,12 @@ export function PricingSection() {
 							Pricing
 						</p>
 						<h2 className='mx-auto mt-5 max-w-[15ch] text-balance font-lora text-[2.5rem] font-bold leading-[0.98] tracking-tight text-text-primary md:max-w-[14ch] md:text-[3.9rem] lg:mx-0 lg:max-w-[12ch]'>
-							Start on the real canvas. Upgrade when the workflow earns it.
+							Free for personal use. Pro for AI and scale.
 						</h2>
 						<p className='mx-auto mt-5 max-w-[35rem] text-pretty text-[1.03rem] leading-7 text-text-secondary md:text-lg lg:mx-0'>
-							Free gives you active maps and core export. Pro is for heavier
-							usage: unlimited scale, AI assistance, and live collaboration
-							without caps getting in the way.
+							Free covers personal maps and basic export. Pro removes the map,
+							node, and collaborator limits and adds AI suggestions, priority
+							support, and advanced export.
 						</p>
 
 						<div className='mt-8 hidden flex-wrap gap-3 sm:flex sm:justify-center lg:justify-start'>

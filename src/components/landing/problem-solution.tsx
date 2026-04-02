@@ -10,28 +10,28 @@ const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
 const workflowSteps = [
 	{
 		icon: Keyboard,
-		title: 'Capture in fragments',
+		title: 'Capture fast',
 		description:
-			'Write loose notes, tags, and actions without stopping to format the canvas.',
+			'Write notes, tasks, and ideas without stopping to organize them.',
 	},
 	{
 		icon: Sparkles,
-		title: 'Watch structure emerge',
+		title: 'Add structure in place',
 		description:
-			'AI suggestions stay inside the map, so links appear while the idea is still fresh.',
+			'Shiko turns rough input into something usable without sending you into a separate workflow.',
 	},
 	{
 		icon: Users,
-		title: 'Share the live thinking',
+		title: 'Share the same map',
 		description:
-			'Invite collaborators into the same evolving map instead of sending static exports.',
+			'Collaborators stay in the same map, so handoffs happen in context.',
 	},
 ] as const;
 
 const payoffPoints = [
-	'Solo speed without losing shared context',
-	'AI assistance without a separate workflow',
-	'One canvas from first note to team alignment',
+	'Fast capture',
+	'AI in context',
+	'Shared map',
 ] as const;
 
 export function ProblemSolution() {
@@ -62,18 +62,15 @@ export function ProblemSolution() {
 					<div className='grid gap-12 px-0 py-0 md:px-10 md:py-11 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)] lg:gap-16'>
 						<div className='mx-auto max-w-2xl text-center lg:mx-0 lg:text-left'>
 							<p className='text-[0.72rem] font-semibold uppercase tracking-[0.34em] text-primary-300/70'>
-								Thoughts becoming structure
+								Workflow
 							</p>
 							<h2 className='mx-auto mt-5 max-w-[15ch] font-lora text-[2.5rem] font-bold leading-[0.98] tracking-tight text-text-primary md:max-w-[14ch] md:text-[3.85rem] lg:mx-0 lg:max-w-[13ch]'>
-								<span className='block'>Thinking starts messy.</span>
-								<span className='mt-[0.12em] block'>
-									Shiko shapes it before the thread goes cold.
-								</span>
+								<span className='block'>Capture first.</span>
+								<span className='mt-[0.12em] block'>Structure follows.</span>
 							</h2>
 							<p className='mx-auto mt-5 max-w-[36rem] text-pretty text-[1.03rem] leading-7 text-text-secondary md:text-lg lg:mx-0'>
-								Keep the speed of rough notes, add AI only where it helps, and
-								bring teammates into the same map before a handoff becomes
-								another bottleneck.
+								Get the idea down fast, let Shiko organize it in place, and
+								keep your team in the same map as the work moves forward.
 							</p>
 
 							<div className='mt-8 hidden flex-wrap gap-3 sm:flex sm:justify-center lg:justify-start'>

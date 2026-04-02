@@ -162,8 +162,8 @@ export function FaqSection() {
 								Common questions, direct answers.
 							</h2>
 							<p className='mt-4 text-[1.03rem] leading-7 text-text-secondary'>
-								Privacy, limits, exports, and collaboration. The details most
-								people clear before they start mapping.
+								Privacy, limits, exports, and AI. The answers most people need
+								before they start.
 							</p>
 						</div>
 

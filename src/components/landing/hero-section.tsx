@@ -69,7 +69,7 @@ export function HeroSection() {
 						}
 						className='mx-auto mt-5 max-w-[17ch] text-balance font-lora text-[2.4rem] font-bold leading-[0.96] tracking-tight text-white sm:max-w-[15ch] sm:text-[3.2rem] md:max-w-[14ch] md:text-[3.85rem] lg:mx-0 lg:max-w-[12ch] lg:text-[4.3rem]'
 					>
-						Turn scattered thoughts into a shared map that keeps up.
+						Go from spark to clarity, fast.
 					</motion.h1>
 
 					<motion.p
@@ -84,9 +84,7 @@ export function HeroSection() {
 						}
 						className='mx-auto mt-7 max-w-[35rem] text-pretty text-[1.03rem] leading-7 text-text-secondary sm:text-lg lg:mx-0'
 					>
-						Capture ideas fast, let AI surface missing links in context, and
-						work with collaborators inside the same canvas before momentum
-						fades.
+						Don't let good momentum get buried in organization overhead.
 					</motion.p>
 
 					<motion.div

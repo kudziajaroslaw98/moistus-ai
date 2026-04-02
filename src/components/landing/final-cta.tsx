@@ -43,14 +43,14 @@ export function FinalCta() {
 						<div className='relative flex flex-col gap-8 text-center lg:flex-row lg:items-end lg:justify-between lg:text-left'>
 							<div className='mx-auto max-w-2xl lg:mx-0'>
 								<p className='text-[0.72rem] font-semibold uppercase tracking-[0.34em] text-primary-300/70'>
-									Start on the real canvas
+									Ready to start
 								</p>
 								<h2 className='mx-auto mt-5 max-w-[15ch] text-balance font-lora text-[2.35rem] font-bold leading-[0.98] tracking-tight text-text-primary md:max-w-[14ch] md:text-[3.35rem] lg:mx-0 lg:max-w-[12ch]'>
-									Open a blank map. Leave with structure.
+									Start with the idea. Leave with clarity.
 								</h2>
 								<p className='mx-auto mt-4 max-w-[34rem] text-[1.03rem] leading-7 text-text-secondary lg:mx-0'>
-									Open a map, capture the raw material, and let Shiko carry it
-									from loose notes to connected work without changing tools.
+									Open a map, get the work down fast, and keep moving while it
+									becomes clear enough to share.
 								</p>
 							</div>
 
