@@ -135,7 +135,11 @@ export function PricingSection() {
 									>
 										{tier.recommended && (
 											<div className='absolute -top-3 left-6'>
-												<span className='rounded-full bg-white px-3 py-1 text-xs font-semibold text-neutral-900'>
+												<span
+													role='status'
+													aria-label={`${tier.name} plan is recommended`}
+													className='rounded-full bg-white px-3 py-1 text-xs font-semibold text-neutral-900'
+												>
 													Recommended
 												</span>
 											</div>

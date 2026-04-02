@@ -41,16 +41,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Touch devices should not keep sticky hover styling, and the portal/dismiss/runtime-visibility rules need to stay explicit for future editor changes
 
 <!-- Updated: 2026-03-29 - Tightened node-editor autocomplete regression coverage -->
-<!-- Updated: 2026-04-01 - Fixed LAN local-dev URLs/auth cookie naming and aligned node-editor dismissal docs after merging main -->
-<!-- Updated: 2026-04-01 - De-densified landing chrome so hero/proof sections feel calmer and screenshots stay unobstructed -->
-<!-- Updated: 2026-04-01 - Pushed the landing experiment toward canvas-faithful hero visuals and cleaner product-first proof modules -->
-<!-- Updated: 2026-04-01 - Reconnected landing hero scene paths and restored larger node spacing with scale-based sizing -->
-<!-- Updated: 2026-04-01 - Simplified landing features/FAQ framing and aligned pricing card CTAs -->
-<!-- Updated: 2026-04-01 - Added more breathing room above aligned landing pricing CTAs -->
-<!-- Updated: 2026-04-01 - Reworked the landing for calmer mobile scrolling and fixed the desktop feature-media width regression -->
-<!-- Updated: 2026-04-01 - Removed mobile-only landing highlight stacks that were breaking the section flow -->
-<!-- Updated: 2026-04-01 - Loosened mobile landing title measures so headings stop breaking into overly tight stacks -->
-<!-- Updated: 2026-04-01 - Unified the landing hero around a parser-driven editor demo and tightened its motion behavior -->
+<!-- Updated: 2026-04-01 - Fixed LAN local-dev URL/auth behavior, tightened node-editor dismissal docs/tests, and consolidated the landing redesign plus responsive hero polish -->
 <!-- Updated: 2026-04-02 - Simplified landing copy below the hero and synced the hero promise to the approved momentum-to-clarity language -->
 
 ## [2026-04-02]
@@ -59,6 +50,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **landing/copy-simplification-pass**: Synced the hero to the approved momentum-to-clarity copy and rewrote the support, features, pricing, FAQ intro, and final CTA copy into more direct product language
   - Why: The lower landing sections were still carrying too much atmospheric copy and were no longer matching the sharper, cleaner hero direction
+
 ## [2026-04-01]
 
 ### Fixed
@@ -74,34 +66,12 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **local-dev/server-vs-browser-supabase-urls**: Server-side Supabase helpers now prefer `SUPABASE_INTERNAL_URL` while browser clients keep deriving their public host from the active LAN/local origin
   - Why: LAN sessions need a public browser URL while server-side local services can still stay on loopback
-- **landing/product-story-redesign**: Rebuilt the landing page around a two-plane hero, deterministic mini-map demo, compact workflow band, product-proof chapters, calmer pricing/FAQ close, and updated landing metadata/navigation flow
-  - Why: The previous page concentrated most of its personality in the hero, pushed the mobile CTA too low, and fell back to a more generic stacked SaaS rhythm after the first screen
-- **landing/de-densification-pass**: Simplified the hero mini-demo framing, replaced the payoff-band timeline with a cleaner stacked workflow list, and moved proof notes below screenshots instead of over the product UI
-  - Why: The first refinement pass still felt over-bordered in key landing modules, and proof annotations were obscuring the very screenshots meant to sell the product
-- **landing/greatness-pass**: Rebuilt the hero demo from Shiko’s real node and ghost-edge language, reduced hero support chrome, and stripped the proof chapters down to screenshot-led editorial modules with no extra annotation boxes
-  - Why: The previous hero still looked like a generic diagram instead of a stylized Shiko canvas, and the proof section needed stronger product presence with less explanatory clutter
-- **landing/hero-routing-fix**: Reordered the lower hero nodes so the ghost suggestion sits on the coral path, simplified the orthogonal connector geometry, and used scale-based sizing to keep bigger node compositions without crowding the scene
-  - Why: The follow-up experiment had disconnected-looking paths and clumped node spacing, which made the hero feel broken instead of deliberate
-- **landing/features-pricing-faq-cleanup**: Removed the misleading `Product proof` labels from the features section, pinned both pricing CTAs to the same baseline, and collapsed the FAQ down to a single shell with plainer support copy
-  - Why: The previous treatment introduced misleading language, uneven pricing card rhythm, and redundant card-within-card chrome in the FAQ close
-- **landing/pricing-cta-spacing**: Added a dedicated spacer wrapper above both pricing CTAs so the last feature line no longer crowds the buttons while the CTA baseline stays aligned across cards
-  - Why: The first alignment fix solved the button mismatch but still left the bottom of each card feeling cramped
-- **landing/mobile-flow-pass**: Centered mobile copy across the landing, simplified mobile-only shell chrome in the support/features/FAQ sections, converted mobile highlight pills into plain text lines, and introduced a simplified mobile hero scene so the first scroll no longer feels like stacked desktop cards
-  - Why: The desktop-first landing composition was too box-heavy on phones, pushed the hero visual too low, and made the hero scene hard to read at mobile widths
-- **landing/desktop-feature-width-fix**: Restored the feature screenshot modules to full desktop width by releasing the mobile `max-width` cap at `lg`
-  - Why: The mobile pass accidentally kept the media column constrained on desktop, which made the feature images look undersized
-- **landing/mobile-highlight-removal**: Removed the support-band payoff pills and pricing highlight pills on phone widths instead of leaving them as loose unframed text stacks
-  - Why: The mobile-only text fallback broke the scroll rhythm and felt visually detached from the sections around it
-- **landing/mobile-title-measure**: Widened the mobile headline measure across the hero and major landing section titles so the copy no longer collapses into cramped two-word lines
-  - Why: The centered mobile layout needed more breathing room in the typography, not just more centered alignment
-- **landing/editor-hero-unification**: Replaced the hero’s fake canvas treatment with a parser-driven node-editor/task-preview demo across breakpoints, aligned the rest of the landing to a calmer editorial type rhythm, and smoothed the demo shell motion without restarting the input/preview blocks every step
-  - Why: The hero needed one trustworthy proof object that reflects real Shiko parser behavior on both mobile and desktop, while the landing still needed stronger hierarchy and steadier hero-proof motion
-- **landing/hero-typography-relaxation**: Reduced the hero headline size ladder, widened its measure, and increased the gap before the supporting copy while keeping the rest of the hero composition intact
-  - Why: The headline was still breaking too tightly, and the hero copy stack needed more breathing room without reworking the layout
-- **landing/mobile-section-title-measures**: Widened the smaller-breakpoint measures for the main landing section titles and feature chapter headings so they stop collapsing into narrow stacked lines
-  - Why: After relaxing the hero title, the rest of the landing still felt overly compressed on mobile compared with the calmer direction of the page
-- **landing/support-headline-split**: Split the support-band headline into two sentence blocks instead of one continuous stack
-  - Why: The “Thinking starts messy...” heading still read too dense on mobile, and separating the sentences made the section feel more intentional
+- **landing/product-story-redesign**: Rebuilt the landing into a tighter product story with calmer chrome, screenshot-led proof, a simplified pricing/FAQ close, and lower-friction section copy throughout
+  - Why: The earlier page front-loaded most of its personality into the hero and then fell back to a more generic, over-explained SaaS rhythm
+- **landing/hero-editor-and-responsive-polish**: Replaced the illustrative hero with a parser-driven editor demo, fixed hero routing/spacing fidelity, restored desktop proof scale, and simplified mobile-only chrome, highlight stacks, and title measures
+  - Why: Follow-up iterations exposed disconnected hero geometry, undersized desktop proof, and noisy or over-tight mobile layouts that made the product feel less trustworthy
+- **landing/features-pricing-faq-cleanup**: Removed misleading proof labels, aligned pricing CTA rhythm, added breathing room above pricing actions, and collapsed the FAQ into a single calmer shell
+  - Why: These sections still had redundant chrome, uneven card rhythm, and labels that distracted from the actual product proof
 
 ### Docs
 
@@ -109,16 +79,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: The repo docs previously suggested loopback-only browser URLs and did not explain the public-vs-internal split
 - **docs/local-dev-auth-cookie-key**: Documented the Supabase SSR cookie-name constraint for LAN logins
   - Why: Runtime LAN host derivation is safe only if browser and server still agree on the same auth storage key
-- **docs/node-editor-dismissal-contract**: Corrected the node-editor docs after taking `main`’s autocomplete implementation and recorded the outside-press requirement for both the mobile tray and body-portaled CodeMirror tooltip
-  - Why: The discarded branch-only tooltip viewport notes no longer matched the merged implementation
-- **docs/landing-flow-map**: Updated `docs/CODEBASE_MAP.md` to describe the tighter landing-page flow
-  - Why: The landing route now uses a hero mini-demo, integrated payoff band, product-proof chapters, and a combined pricing/FAQ close instead of the older section stack
-- **docs/landing-polish-map**: Refined the landing component map to reflect the lower-chrome workflow rail and screenshot-safe proof notes
-  - Why: The component inventory should match the calmer presentation approach now used in the landing page internals
-- **docs/landing-canvas-fidelity**: Updated the landing map note for the new canvas-faithful hero scene and screenshot-first proof treatment
-  - Why: The landing internals now lean on real node/ghost cues and cleaner product modules rather than the earlier illustrative/callout approach
-- **docs/landing-editor-hero-demo**: Updated the landing component map to note the parser-driven hero editor demo and the responsive input/preview split
-  - Why: The landing now uses one trustworthy hero proof object derived from real Shiko parser syntax instead of separate illustrative hero treatments by breakpoint
+- **docs/landing-and-node-editor-sync**: Updated `docs/CODEBASE_MAP.md` for the tighter landing flow, parser-driven hero proof, calmer landing polish, and merged node-editor outside-press dismissal contract
+  - Why: The docs needed to reflect both the evolved landing architecture and the current autocomplete-dismissal behavior after merging `main`
 
 ### Added
 

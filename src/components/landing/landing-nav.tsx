@@ -5,6 +5,7 @@ import {
 	SheetContent,
 	SheetFooter,
 	SheetHeader,
+	SheetTrigger,
 } from '@/components/ui/sheet';
 import { Menu } from 'lucide-react';
 import {
@@ -13,7 +14,7 @@ import {
 	useScroll,
 	useTransform,
 } from 'motion/react';
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 const navLinks = [
 	{ label: 'Features', href: '#features' },
@@ -25,9 +26,20 @@ export function LandingNav() {
 	const { scrollY } = useScroll();
 	const shouldReduceMotion = useReducedMotion() ?? false;
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+	const mobileMenuTriggerRef = useRef<HTMLButtonElement>(null);
 
 	const backgroundOpacity = useTransform(scrollY, [0, 120], [0.45, 0.95]);
 	const borderOpacity = useTransform(scrollY, [0, 120], [0.08, 0.16]);
+
+	const handleMobileMenuOpenChange = useCallback((open: boolean) => {
+		setMobileMenuOpen(open);
+
+		if (!open) {
+			requestAnimationFrame(() => {
+				mobileMenuTriggerRef.current?.focus();
+			});
+		}
+	}, []);
 
 	const handleNavClick = (
 		e: React.MouseEvent<HTMLAnchorElement>,
@@ -41,7 +53,7 @@ export function LandingNav() {
 				behavior: shouldReduceMotion ? 'auto' : 'smooth',
 			});
 			// Close mobile menu after navigation
-			setMobileMenuOpen(false);
+			handleMobileMenuOpenChange(false);
 		}
 	};
 
@@ -88,16 +100,23 @@ export function LandingNav() {
 							</a>
 						</div>
 
-						<Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-							<button
-								type='button'
-								onClick={() => setMobileMenuOpen(true)}
-								className='-mr-2 rounded-xl border border-white/8 bg-white/[0.04] p-2 text-text-secondary transition-colors duration-200 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:hidden'
-								aria-label='Open navigation menu'
-								aria-expanded={mobileMenuOpen}
-							>
-								<Menu aria-hidden='true' className='h-6 w-6' />
-							</button>
+						<Sheet
+							open={mobileMenuOpen}
+							onOpenChange={handleMobileMenuOpenChange}
+						>
+							<SheetTrigger
+								render={
+									<button
+										ref={mobileMenuTriggerRef}
+										type='button'
+										className='-mr-2 rounded-xl border border-white/8 bg-white/[0.04] p-2 text-text-secondary transition-colors duration-200 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:hidden'
+										aria-label='Open navigation menu'
+										aria-expanded={mobileMenuOpen}
+									>
+										<Menu aria-hidden='true' className='h-6 w-6' />
+									</button>
+								}
+							/>
 
 							<SheetContent
 								side='right'
@@ -125,7 +144,7 @@ export function LandingNav() {
 								<SheetFooter className='px-6 pb-6 mt-auto border-t border-border-subtle pt-4'>
 									<a
 										href='/dashboard'
-										onClick={() => setMobileMenuOpen(false)}
+										onClick={() => handleMobileMenuOpenChange(false)}
 										className='inline-flex h-11 w-full items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-neutral-900 shadow-[0_12px_30px_rgba(255,255,255,0.14)] transition-all duration-200 hover:shadow-[0_18px_36px_rgba(255,255,255,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background'
 									>
 										Start Mapping

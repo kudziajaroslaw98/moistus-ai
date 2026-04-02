@@ -10,6 +10,7 @@ import { GrainOverlay } from './grain-overlay';
 const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
 
 interface ProofChapterData {
+	id: string;
 	icon: LucideIcon;
 	title: string;
 	description: string;
@@ -23,6 +24,7 @@ interface ProofChapterData {
 
 const chapters: ProofChapterData[] = [
 	{
+		id: 'capture',
 		icon: Keyboard,
 		title: 'Capture fast and keep moving.',
 		description:
@@ -35,6 +37,7 @@ const chapters: ProofChapterData[] = [
 		imageClassName: 'scale-[1.015] lg:translate-x-1',
 	},
 	{
+		id: 'ai-in-context',
 		icon: Sparkles,
 		title: 'Use AI without leaving the work.',
 		description:
@@ -47,6 +50,7 @@ const chapters: ProofChapterData[] = [
 		imageClassName: 'scale-[1.03] lg:-translate-x-1',
 	},
 	{
+		id: 'collaboration',
 		icon: Users,
 		title: 'Collaborate before the handoff.',
 		description:
@@ -207,7 +211,7 @@ export function FeaturesSection() {
 
 				<div className='mt-18 space-y-20 lg:space-y-24'>
 					{chapters.map((chapter, index) => (
-						<ProofChapter key={chapter.title} chapter={chapter} index={index} />
+						<ProofChapter key={chapter.id} chapter={chapter} index={index} />
 					))}
 				</div>
 			</div>

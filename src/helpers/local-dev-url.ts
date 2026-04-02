@@ -90,6 +90,7 @@ function isLoopbackHost(hostOrUrl: string): boolean {
 	return (
 		hostname === 'localhost' ||
 		hostname === '127.0.0.1' ||
+		hostname === '0.0.0.0' ||
 		hostname === '::1' ||
 		hostname === '0:0:0:0:0:0:0:1'
 	);
@@ -127,12 +128,27 @@ function shouldDeriveFromBrowserHost(
 	return isLoopbackHost(configuredUrl);
 }
 
+/**
+ * Returns the current browser origin when a browser location is available.
+ *
+ * @param browserLocation - Optional location override. Defaults to `window.location` when running in the browser.
+ * @returns The current origin string, or an empty string when no browser location exists.
+ * @behavior Uses the provided location first, otherwise falls back to `window.location`; no extra normalization is applied.
+ */
 export function getBrowserOrigin(
 	browserLocation: BrowserLocationLike | null = getBrowserLocation()
 ): string {
 	return browserLocation?.origin ?? '';
 }
 
+/**
+ * Builds an absolute URL against the current browser origin.
+ *
+ * @param pathname - Relative or absolute path to resolve.
+ * @param browserLocation - Optional location override. Defaults to `window.location` when available.
+ * @returns An absolute URL string when an origin is known, otherwise the original pathname.
+ * @behavior Uses `getBrowserOrigin`; if no browser origin is available it returns the input unchanged.
+ */
 export function buildCurrentOriginUrl(
 	pathname: string,
 	browserLocation: BrowserLocationLike | null = getBrowserLocation()
@@ -142,6 +158,16 @@ export function buildCurrentOriginUrl(
 	return new URL(pathname, origin).toString();
 }
 
+/**
+ * Resolves the browser-facing Supabase HTTP base URL.
+ *
+ * @param options.browserLocation - Optional browser location override. Defaults to `window.location`.
+ * @param options.configuredUrl - Optional Supabase URL override. Defaults to `process.env.NEXT_PUBLIC_SUPABASE_URL`.
+ * @param options.devPort - Optional dev-port override. Defaults to `process.env.NEXT_PUBLIC_SUPABASE_DEV_PORT` or `54321`.
+ * @param options.nodeEnv - Optional environment override. Defaults to `process.env.NODE_ENV`.
+ * @returns The derived Supabase URL, or an empty string when nothing is configured.
+ * @behavior In development, missing or loopback-configured URLs derive host from `browserLocation.hostname` and port from the resolved dev port; otherwise returns the trimmed configured URL.
+ */
 export function resolveBrowserSupabaseUrl({
 	browserLocation = getBrowserLocation(),
 	configuredUrl = process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -168,6 +194,16 @@ export function resolveBrowserSupabaseUrl({
 	return trimmedConfiguredUrl ?? '';
 }
 
+/**
+ * Resolves the browser-facing PartyKit host.
+ *
+ * @param options.browserLocation - Optional browser location override. Defaults to `window.location`.
+ * @param options.configuredUrl - Optional PartyKit URL/host override. Defaults to `process.env.NEXT_PUBLIC_PARTYKIT_URL`.
+ * @param options.devPort - Optional dev-port override. Defaults to `process.env.NEXT_PUBLIC_PARTYKIT_DEV_PORT` or `1999`.
+ * @param options.nodeEnv - Optional environment override. Defaults to `process.env.NODE_ENV`.
+ * @returns A host string with port, suitable for HTTP or WS URL composition.
+ * @behavior In development, missing or loopback-configured values derive host from `browserLocation.hostname`; configured URLs are normalized to host-only form, and final fallback is `127.0.0.1:<port>`.
+ */
 export function resolveBrowserPartyKitHost({
 	browserLocation = getBrowserLocation(),
 	configuredUrl = process.env.NEXT_PUBLIC_PARTYKIT_URL,
@@ -199,6 +235,16 @@ export function resolveBrowserPartyKitHost({
 	return formatHostWithPort('127.0.0.1', resolvedPort);
 }
 
+/**
+ * Resolves the browser-facing PartyKit WebSocket base URL.
+ *
+ * @param options.browserLocation - Optional browser location override. Defaults to `window.location`.
+ * @param options.configuredUrl - Optional PartyKit URL/host override. Defaults to `process.env.NEXT_PUBLIC_PARTYKIT_URL`.
+ * @param options.devPort - Optional dev-port override. Defaults to `process.env.NEXT_PUBLIC_PARTYKIT_DEV_PORT` or `1999`.
+ * @param options.nodeEnv - Optional environment override. Defaults to `process.env.NODE_ENV`.
+ * @returns A normalized `ws://` or `wss://` base URL without trailing slashes.
+ * @behavior In development, missing or loopback-configured values derive host from `browserLocation.hostname`; configured HTTP(S) URLs are converted to WS(S), existing WS(S) URLs are trimmed, and the last fallback uses the resolved PartyKit host.
+ */
 export function resolveBrowserPartyKitWsBaseUrl(
 	options: BrowserServiceUrlOptions = {}
 ): string {
@@ -253,6 +299,14 @@ export function resolveBrowserPartyKitWsBaseUrl(
 	return `ws://${resolveBrowserPartyKitHost({ devPort })}`;
 }
 
+/**
+ * Resolves the server-side Supabase base URL.
+ *
+ * @param options.internalUrl - Optional internal URL override. Defaults to `process.env.SUPABASE_INTERNAL_URL`.
+ * @param options.publicUrl - Optional public URL override. Defaults to `process.env.NEXT_PUBLIC_SUPABASE_URL`.
+ * @returns The trimmed internal Supabase URL when present, otherwise the trimmed public URL or an empty string.
+ * @behavior Prefers internal server-only configuration over public browser configuration and performs quote/whitespace trimming on both.
+ */
 export function getInternalSupabaseUrl({
 	internalUrl = process.env.SUPABASE_INTERNAL_URL,
 	publicUrl = process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -260,6 +314,13 @@ export function getInternalSupabaseUrl({
 	return trimConfigValue(internalUrl) ?? trimConfigValue(publicUrl) ?? '';
 }
 
+/**
+ * Derives the Supabase auth storage key used by browser and SSR clients.
+ *
+ * @param options.publicUrl - Optional public Supabase URL override. Defaults to `process.env.NEXT_PUBLIC_SUPABASE_URL`.
+ * @returns A storage key like `sb-<project-ref>-auth-token`, or `sb-local-auth-token` when no hostname can be derived.
+ * @behavior Trims the configured URL, extracts the normalized hostname/project ref, and falls back to the local token key when no usable URL is available.
+ */
 export function getSupabaseAuthStorageKey({
 	publicUrl = process.env.NEXT_PUBLIC_SUPABASE_URL,
 }: SupabaseAuthStorageKeyOptions = {}): string {

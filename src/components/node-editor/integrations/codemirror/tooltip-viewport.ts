@@ -20,6 +20,17 @@ function createRect({ bottom, left, right, top }: Rect): Rect {
 	return { bottom, left, right, top };
 }
 
+/**
+ * Computes the visible bounding rect available to CodeMirror tooltips.
+ *
+ * @param metrics.documentClientHeight - Document viewport height from `documentElement.clientHeight`.
+ * @param metrics.documentClientWidth - Document viewport width from `documentElement.clientWidth`.
+ * @param metrics.innerHeight - Window inner height fallback.
+ * @param metrics.innerWidth - Window inner width used for desktop/mobile branching.
+ * @param metrics.visualViewport - Optional visual viewport metrics for mobile keyboard-safe positioning.
+ * @returns A `Rect` describing the clamped tooltip space.
+ * @behavior Uses the full document rect when `innerWidth` is at least `MOBILE_TOOLTIP_BREAKPOINT` or `visualViewport` is missing; otherwise clamps a mobile rect to `visualViewport.offsetTop/offsetLeft/width/height`, subtracts `MOBILE_TOOLTIP_BOTTOM_PADDING`, and returns it through `createRect`.
+ */
 export function getTooltipSpaceRect({
 	documentClientHeight,
 	documentClientWidth,

@@ -125,9 +125,9 @@ export function HeroEditorDemo() {
 						transition={{ duration: 0.36, ease: EASE_OUT_QUART }}
 						className='mt-3 flex flex-col justify-start space-y-2 font-mono text-[12px] leading-5 min-h-[9rem] md:text-[13px] lg:min-h-[17rem] lg:text-[14px] lg:leading-6'
 					>
-						{activeFrame.input.split('\n').map((line) => (
+						{activeFrame.input.split('\n').map((line, index) => (
 							<motion.div
-								key={line}
+								key={`${index}-${line}`}
 								layout='position'
 								initial={
 									shouldReduceMotion
