@@ -50,6 +50,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **landing/copy-simplification-pass**: Synced the hero to the approved momentum-to-clarity copy and rewrote the support, features, pricing, FAQ intro, and final CTA copy into more direct product language
   - Why: The lower landing sections were still carrying too much atmospheric copy and were no longer matching the sharper, cleaner hero direction
+- **landing/pricing-and-proof-polish**: Fixed feature proof image sizing/transform composition, moved hero CTA hover effects behind hover-capable media queries, and made pricing savings/CTAs derive from source tier data with accessible billing toggles
+  - Why: The current landing still had a few implementation details that could cause incorrect transforms, oversized image requests, touch-device hover states, and duplicated pricing logic
 
 ## [2026-04-01]
 

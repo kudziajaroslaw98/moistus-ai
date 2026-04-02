@@ -166,19 +166,22 @@ function ProofChapter({
 											ease: EASE_OUT_QUART,
 										}
 							}
-							className={cn(
-								'origin-center transition-transform duration-700',
-								chapter.imageClassName
-							)}
 						>
-							<Image
-								src={chapter.imageSrc}
-								alt={chapter.imageAlt}
-								width={chapter.imageWidth}
-								height={chapter.imageHeight}
-								className='h-auto w-full'
-								sizes='(min-width: 1024px) 56rem, 100vw'
-							/>
+							<div
+								className={cn(
+									'origin-center transition-transform duration-700',
+									chapter.imageClassName
+								)}
+							>
+								<Image
+									src={chapter.imageSrc}
+									alt={chapter.imageAlt}
+									width={chapter.imageWidth}
+									height={chapter.imageHeight}
+									className='h-auto w-full'
+									sizes='(min-width: 1024px) 56rem, (min-width: 768px) 25rem, (min-width: 640px) 25rem, calc(100vw - 3rem)'
+								/>
+							</div>
 						</motion.div>
 					</div>
 				</div>

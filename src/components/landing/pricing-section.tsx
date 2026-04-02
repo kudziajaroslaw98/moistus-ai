@@ -3,15 +3,33 @@
 import { PRICING_TIERS } from '@/constants/pricing-tiers';
 import { Check, X } from 'lucide-react';
 import { motion, useInView, useReducedMotion } from 'motion/react';
+import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { GrainOverlay } from './grain-overlay';
 
 const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
+const PRO_TIER = PRICING_TIERS.find((tier) => tier.id === 'pro');
+const PRO_YEARLY_EFFECTIVE_MONTHLY =
+	PRO_TIER && PRO_TIER.yearlyPrice > 0 ? PRO_TIER.yearlyPrice / 12 : 0;
+const PRO_YEARLY_SAVINGS_PERCENT =
+	PRO_TIER && PRO_TIER.monthlyPrice > 0
+		? Math.round(
+				100 * (1 - PRO_YEARLY_EFFECTIVE_MONTHLY / PRO_TIER.monthlyPrice)
+			)
+		: 0;
 const pricingHighlights = [
 	'Free for personal use',
 	'Pro removes the limits',
-	'Save 17% yearly',
+	`Save ${PRO_YEARLY_SAVINGS_PERCENT}% yearly`,
 ] as const;
+
+function formatPrice(price: number): string {
+	if (Number.isInteger(price)) {
+		return price.toString();
+	}
+
+	return price.toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
+}
 
 export function PricingSection() {
 	const ref = useRef<HTMLElement>(null);
@@ -81,8 +99,14 @@ export function PricingSection() {
 							}
 							className='mb-8 flex justify-center lg:justify-end'
 						>
-							<div className='inline-flex items-center gap-2 rounded-full border border-white/8 bg-black/20 p-1 backdrop-blur-xl'>
+							<div
+								role='group'
+								aria-label='Billing cycle'
+								className='inline-flex items-center gap-2 rounded-full border border-white/8 bg-black/20 p-1 backdrop-blur-xl'
+							>
 								<button
+									type='button'
+									aria-pressed={billingCycle === 'monthly'}
 									className={`rounded-full px-4 py-2 text-sm font-medium transition-[background-color,color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
 										billingCycle === 'monthly'
 											? 'bg-elevated text-text-primary'
@@ -93,6 +117,8 @@ export function PricingSection() {
 									Monthly
 								</button>
 								<button
+									type='button'
+									aria-pressed={billingCycle === 'yearly'}
 									className={`rounded-full px-4 py-2 text-sm font-medium transition-[background-color,color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
 										billingCycle === 'yearly'
 											? 'bg-elevated text-text-primary'
@@ -102,7 +128,7 @@ export function PricingSection() {
 								>
 									Yearly
 									<span className='ml-2 text-xs text-success-500'>
-										Save 17%
+										Save {PRO_YEARLY_SAVINGS_PERCENT}%
 									</span>
 								</button>
 							</div>
@@ -159,8 +185,12 @@ export function PricingSection() {
 												<span className='text-4xl font-bold text-text-primary'>
 													$
 													{billingCycle === 'monthly'
-														? tier.monthlyPrice
-														: Math.floor(tier.yearlyPrice / 12)}
+														? formatPrice(tier.monthlyPrice)
+														: formatPrice(
+																tier.yearlyPrice > 0
+																	? tier.yearlyPrice / 12
+																	: 0
+															)}
 												</span>
 												<span className='text-text-secondary'>/month</span>
 											</div>
@@ -204,7 +234,7 @@ export function PricingSection() {
 										</div>
 
 										<div className='mt-auto pt-10'>
-											<a
+											<Link
 												href={
 													tier.id === 'free'
 														? '/dashboard'
@@ -217,7 +247,7 @@ export function PricingSection() {
 												}`}
 											>
 												{tier.ctaText}
-											</a>
+											</Link>
 										</div>
 									</motion.div>
 								</div>
