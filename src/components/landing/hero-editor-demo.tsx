@@ -41,7 +41,7 @@ const frameInputs: FrameInput[] = [
 		id: 'text-seed',
 		nodeType: 'textNode',
 		input:
-			'$text\nWe leave the call aligned, then lose it an hour later.',
+			'$text\nShe got halfway through setup, then started guessing.',
 		durationMs: 3400,
 		previewWidth: 'text',
 	},
@@ -49,7 +49,7 @@ const frameInputs: FrameInput[] = [
 		id: 'note-clarified',
 		nodeType: 'defaultNode',
 		input:
-			'$note\nAfter the call, decisions, owners, and next steps end up split across chat, docs, and memory. #handoff !high',
+			'$note\nIn the interview, the user hesitated during setup and never felt sure what to do next. #research !high',
 		durationMs: 5000,
 		previewWidth: 'note',
 	},
@@ -57,7 +57,7 @@ const frameInputs: FrameInput[] = [
 		id: 'question',
 		nodeType: 'questionNode',
 		input:
-			'$question\nWhat should the map lock before the team leaves the call? question:multiple options:[Decision, Owner, Next step] #handoff',
+			'$question\nWhat should we lock from this interview first? question:multiple options:[Core friction, Product decision, Next action] #research',
 		durationMs: 6200,
 		previewWidth: 'question',
 	},
@@ -65,7 +65,7 @@ const frameInputs: FrameInput[] = [
 		id: 'task',
 		nodeType: 'taskNode',
 		input:
-			'$task\n[ ] Capture decisions\n[ ] Assign owners\n[ ] Share next steps\n:in-progress !high #handoff',
+			'$task\n[ ] Capture the setup friction\n[ ] Decide what changes\n[ ] Assign the next step\n:in-progress !high #research',
 		durationMs: 8200,
 		previewWidth: 'task',
 	},

@@ -104,7 +104,10 @@ export function HeroSection() {
 							className='landing-hero-primary-cta inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-6 text-base font-semibold text-neutral-900 shadow-[0_12px_40px_rgba(255,255,255,0.14)] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background'
 						>
 							Start Mapping
-							<ArrowRight aria-hidden='true' className='h-4 w-4' />
+							<ArrowRight
+								aria-hidden='true'
+								className='landing-hero-primary-cta-arrow h-4 w-4 transition-transform duration-200'
+							/>
 						</a>
 						<button
 							onClick={scrollToFeatures}
