@@ -7,6 +7,7 @@ import {
 } from '@/components/auth/shared/password-strength';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { buildCurrentOriginUrl } from '@/helpers/local-dev-url';
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import {
 	checkPasswordStrength,
@@ -146,18 +147,10 @@ function ForgotPasswordWizard() {
 
 		try {
 			const supabase = getSharedSupabaseClient();
-			// Always use localhost for local dev to match localStorage origin
-			// (127.0.0.1 and localhost are different origins for localStorage)
-			const origin =
-				typeof window !== 'undefined' &&
-				window.location.hostname === '127.0.0.1'
-					? `http://localhost:${window.location.port}`
-					: window.location.origin;
-
 			const { error: resetError } = await supabase.auth.resetPasswordForEmail(
 				data.email,
 				{
-					redirectTo: `${origin}/auth/forgot-password`,
+					redirectTo: buildCurrentOriginUrl('/auth/forgot-password'),
 				}
 			);
 

@@ -27,6 +27,7 @@ import {
 import { type CollaboratorMention, createCompletions } from './completions';
 import { createPatternDecorations } from './pattern-decorations';
 import { nodeEditorTheme } from './theme';
+import { getTooltipSpace } from './tooltip-viewport';
 import { createValidationDecorations } from './validation-decorations';
 
 export const DEFAULT_NODE_EDITOR_PLACEHOLDER =
@@ -223,6 +224,7 @@ export function createNodeEditor(
 		tooltips({
 			parent: container.ownerDocument.body,
 			position: 'fixed',
+			tooltipSpace: (view) => getTooltipSpace(view),
 		}),
 
 		// Our custom features

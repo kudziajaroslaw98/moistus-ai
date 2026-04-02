@@ -61,20 +61,7 @@ type SortByType = 'updated' | 'created' | 'name';
 
 // SWR fetcher function
 const fetcher = async (url: string) => {
-	// Build full URL: prepend base href if available, otherwise use relative URL
-	const baseHref = process.env.NEXT_PUBLIC_APP_LOCAL_HREF;
-	let fullUrl: string;
-
-	if (baseHref) {
-		// Normalize: remove trailing slash from base, ensure url starts with /
-		const normalizedBase = baseHref.replace(/\/$/, '');
-		const normalizedPath = url.startsWith('/') ? url : `/${url}`;
-		fullUrl = `${normalizedBase}${normalizedPath}`;
-	} else {
-		fullUrl = url;
-	}
-
-	const response = await fetch(fullUrl, {
+	const response = await fetch(url, {
 		method: 'GET',
 		headers: { 'Content-Type': 'application/json' },
 	});

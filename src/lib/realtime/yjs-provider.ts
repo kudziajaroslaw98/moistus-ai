@@ -1,5 +1,6 @@
 'use client';
 
+import { resolveBrowserPartyKitHost } from '@/helpers/local-dev-url';
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import { getMindMapRoomName } from '@/lib/realtime/room-names';
 import YPartyKitProvider from 'y-partykit/provider';
@@ -107,28 +108,8 @@ function generateSubscriberCursorId(): string {
 	return `sub_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function normalizeHost(hostOrUrl: string): string {
-	try {
-		return new URL(hostOrUrl).host;
-	} catch {
-		return hostOrUrl
-			.replace(/^wss?:\/\//, '')
-			.replace(/^https?:\/\//, '')
-			.replace(/\/$/, '');
-	}
-}
-
 function getPartyKitHost(): string {
-	const configured = process.env.NEXT_PUBLIC_PARTYKIT_URL;
-	if (configured && configured.trim().length > 0) {
-		return normalizeHost(configured);
-	}
-
-	if (typeof window !== 'undefined') {
-		return window.location.host;
-	}
-
-	return '127.0.0.1:1999';
+	return resolveBrowserPartyKitHost();
 }
 
 function getPartyKitPartyName(): string {

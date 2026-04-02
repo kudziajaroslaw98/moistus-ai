@@ -1,5 +1,6 @@
 'use client';
 
+import { resolveBrowserPartyKitWsBaseUrl } from '@/helpers/local-dev-url';
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import type {
 	PermissionRevokedEvent,
@@ -35,45 +36,6 @@ function getReconnectDelayMs(attempt: number): number {
 	const normalizedAttempt = Math.max(1, attempt);
 	const exponential = RECONNECT_BASE_DELAY_MS * 2 ** (normalizedAttempt - 1);
 	return Math.min(exponential, RECONNECT_MAX_DELAY_MS);
-}
-
-function normalizeHost(hostOrUrl: string): string {
-	try {
-		return new URL(hostOrUrl).host;
-	} catch {
-		return hostOrUrl
-			.replace(/^wss?:\/\//, '')
-			.replace(/^https?:\/\//, '')
-			.replace(/\/+$/, '');
-	}
-}
-
-function toPartyKitWsBaseUrl(configured?: string): string {
-	const trimmed = configured?.trim();
-	if (trimmed && trimmed.length > 0) {
-		if (trimmed.startsWith('ws://') || trimmed.startsWith('wss://')) {
-			return trimmed.replace(/\/+$/, '');
-		}
-		if (trimmed.startsWith('http://')) {
-			return `ws://${trimmed.slice('http://'.length).replace(/\/+$/, '')}`;
-		}
-		if (trimmed.startsWith('https://')) {
-			return `wss://${trimmed.slice('https://'.length).replace(/\/+$/, '')}`;
-		}
-		const host = normalizeHost(trimmed);
-		if (typeof window !== 'undefined') {
-			const protocol = window.location.protocol === 'http:' ? 'ws:' : 'wss:';
-			return `${protocol}//${host}`;
-		}
-		return `ws://${host}`;
-	}
-
-	if (typeof window !== 'undefined') {
-		const protocol = window.location.protocol === 'http:' ? 'ws:' : 'wss:';
-		return `${protocol}//${window.location.host}`;
-	}
-
-	return 'ws://127.0.0.1:1999';
 }
 
 function getPartyKitPartyName(): string {
@@ -139,7 +101,7 @@ function buildPermissionChannelUrl(
 	mapId: string,
 	token: string | null
 ): string {
-	const baseUrl = toPartyKitWsBaseUrl(process.env.NEXT_PUBLIC_PARTYKIT_URL);
+	const baseUrl = resolveBrowserPartyKitWsBaseUrl();
 	const partyName = encodeURIComponent(getPartyKitPartyName());
 	const roomName = encodeURIComponent(getMindMapRoomName(mapId, 'permissions'));
 	const url = new URL(`${baseUrl}/parties/${partyName}/${roomName}`);

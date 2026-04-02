@@ -3,10 +3,33 @@
 import { PRICING_TIERS } from '@/constants/pricing-tiers';
 import { Check, X } from 'lucide-react';
 import { motion, useInView, useReducedMotion } from 'motion/react';
+import Link from 'next/link';
 import { useRef, useState } from 'react';
-import { SectionDecoration } from './section-decorations';
+import { GrainOverlay } from './grain-overlay';
 
 const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
+const PRO_TIER = PRICING_TIERS.find((tier) => tier.id === 'pro');
+const PRO_YEARLY_EFFECTIVE_MONTHLY =
+	PRO_TIER && PRO_TIER.yearlyPrice > 0 ? PRO_TIER.yearlyPrice / 12 : 0;
+const PRO_YEARLY_SAVINGS_PERCENT =
+	PRO_TIER && PRO_TIER.monthlyPrice > 0
+		? Math.round(
+				100 * (1 - PRO_YEARLY_EFFECTIVE_MONTHLY / PRO_TIER.monthlyPrice)
+			)
+		: 0;
+const pricingHighlights = [
+	'Free for personal use',
+	'Pro removes the limits',
+	`Save ${PRO_YEARLY_SAVINGS_PERCENT}% yearly`,
+] as const;
+
+function formatPrice(price: number): string {
+	if (Number.isInteger(price)) {
+		return price.toString();
+	}
+
+	return price.toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
+}
 
 export function PricingSection() {
 	const ref = useRef<HTMLElement>(null);
@@ -20,161 +43,217 @@ export function PricingSection() {
 		<section
 			id='pricing'
 			ref={ref}
-			className='relative py-32 px-4 sm:px-6 lg:px-8 bg-surface'
+			className='relative overflow-hidden bg-surface/55 px-6 py-20 sm:px-6 lg:px-8 lg:py-28'
 		>
-			<SectionDecoration variant='pricing' />
-			<div className='relative z-10 max-w-4xl mx-auto'>
-				{/* Header */}
-				<motion.div
-					initial={
-						shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }
-					}
-					animate={isInView ? { opacity: 1, y: 0 } : {}}
-					transition={
-						shouldReduceMotion
-							? { duration: 0 }
-							: { duration: 0.3, ease: EASE_OUT_QUART }
-					}
-					className='text-center mb-12'
-				>
-					<h2 className='font-lora text-3xl md:text-4xl font-bold text-text-primary mb-4'>
-						Simple, Transparent Pricing
-					</h2>
-					<p className='text-lg text-text-secondary mb-8'>
-						Start free, upgrade when you need more
-					</p>
+			<GrainOverlay />
+			<div className='relative z-10 mx-auto max-w-6xl'>
+				<div className='grid gap-14 lg:grid-cols-[minmax(0,0.9fr)_minmax(22rem,1.1fr)] lg:items-start'>
+					<motion.div
+						initial={
+							shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 18 }
+						}
+						animate={isInView ? { opacity: 1, y: 0 } : {}}
+						transition={
+							shouldReduceMotion
+								? { duration: 0 }
+								: { duration: 0.42, ease: EASE_OUT_QUART }
+						}
+						className='mx-auto max-w-lg text-center lg:mx-0 lg:text-left'
+					>
+						<p className='text-[0.72rem] font-semibold uppercase tracking-[0.34em] text-primary-300/70'>
+							Pricing
+						</p>
+						<h2 className='mx-auto mt-5 max-w-[15ch] text-balance font-lora text-[2.5rem] font-bold leading-[0.98] tracking-tight text-text-primary md:max-w-[14ch] md:text-[3.9rem] lg:mx-0 lg:max-w-[12ch]'>
+							Free for personal use. Pro for AI and scale.
+						</h2>
+						<p className='mx-auto mt-5 max-w-[35rem] text-pretty text-[1.03rem] leading-7 text-text-secondary md:text-lg lg:mx-0'>
+							Free covers personal maps and basic export. Pro removes the map,
+							node, and collaborator limits and adds AI suggestions, priority
+							support, and advanced export.
+						</p>
 
-					{/* Billing toggle */}
-					<div className='inline-flex items-center gap-3 p-1 rounded-lg bg-surface'>
-						<button
-							className={`px-4 py-2 rounded-md text-sm font-medium transition-[background-color,color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
-								billingCycle === 'monthly'
-									? 'bg-elevated text-text-primary'
-									: 'bg-transparent text-text-secondary hover:text-text-primary'
-							}`}
-							onClick={() => setBillingCycle('monthly')}
-						>
-							Monthly
-						</button>
-						<button
-							className={`px-4 py-2 rounded-md text-sm font-medium transition-[background-color,color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
-								billingCycle === 'yearly'
-									? 'bg-elevated text-text-primary'
-									: 'bg-transparent text-text-secondary hover:text-text-primary'
-							}`}
-							onClick={() => setBillingCycle('yearly')}
-						>
-							Yearly
-							<span className='ml-2 text-xs text-success-500'>Save 17%</span>
-						</button>
-					</div>
-				</motion.div>
-
-				{/* Pricing cards */}
-				<div className='grid md:grid-cols-2 gap-8'>
-					{PRICING_TIERS.map((tier, index) => (
-						<div key={tier.id} className='group'>
-							<motion.div
-								initial={
-									shouldReduceMotion
-										? { opacity: 1, y: 0 }
-										: { opacity: 0, y: 20 }
-								}
-								animate={isInView ? { opacity: 1, y: 0 } : {}}
-								transition={
-									shouldReduceMotion
-										? { duration: 0 }
-										: {
-												duration: 0.3,
-												ease: EASE_OUT_QUART,
-												delay: index * 0.15,
-											}
-								}
-								className={`relative rounded-xl p-6 border flex flex-col h-full translate-y-0 transition-all duration-200 ${
-									tier.recommended
-										? 'bg-elevated border-primary-500/50 shadow-[0_0_20px_rgba(96,165,250,0.15)] group-hover:shadow-[0_0_30px_rgba(96,165,250,0.25)] group-hover:-translate-y-1'
-										: 'bg-surface border-border-subtle group-hover:border-primary-500/30 group-hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] group-hover:-translate-y-1'
-								}`}
-							>
-								{tier.recommended && (
-									<div className='absolute -top-3 left-1/2 -translate-x-1/2'>
-										<span className='text-xs font-semibold px-3 py-1 rounded-full bg-white text-neutral-900'>
-											RECOMMENDED
-										</span>
-									</div>
-								)}
-
-								<div className='mb-4'>
-									<h3 className='text-xl font-semibold mb-2 text-text-primary'>
-										{tier.name}
-									</h3>
-									<p className='text-sm text-text-secondary'>
-										{tier.description}
-									</p>
+						<div className='mt-8 hidden flex-wrap gap-3 sm:flex sm:justify-center lg:justify-start'>
+							{pricingHighlights.map((highlight) => (
+								<div
+									key={highlight}
+									className='rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-text-secondary backdrop-blur-xl'
+								>
+									{highlight}
 								</div>
+							))}
+						</div>
+					</motion.div>
 
-								<div className='mb-6'>
-									<div className='flex items-baseline gap-1'>
-										<span className='text-4xl font-bold text-text-primary'>
-											$
-											{billingCycle === 'monthly'
-												? tier.monthlyPrice
-												: Math.floor(tier.yearlyPrice / 12)}
-										</span>
-										<span className='text-text-secondary'>/month</span>
-									</div>
-									{/* Reserve space to prevent layout shift on toggle */}
-									<p
-										className={`text-sm mt-1 h-5 ${
-											billingCycle === 'yearly' && tier.yearlyPrice > 0
-												? 'text-text-tertiary'
-												: 'invisible'
+					<div>
+						<motion.div
+							initial={
+								shouldReduceMotion
+									? { opacity: 1, y: 0 }
+									: { opacity: 0, y: 18 }
+							}
+							animate={isInView ? { opacity: 1, y: 0 } : {}}
+							transition={
+								shouldReduceMotion
+									? { duration: 0 }
+									: { duration: 0.42, ease: EASE_OUT_QUART, delay: 0.06 }
+							}
+							className='mb-8 flex justify-center lg:justify-end'
+						>
+							<div
+								role='group'
+								aria-label='Billing cycle'
+								className='inline-flex items-center gap-2 rounded-full border border-white/8 bg-black/20 p-1 backdrop-blur-xl'
+							>
+								<button
+									type='button'
+									aria-pressed={billingCycle === 'monthly'}
+									className={`rounded-full px-4 py-2 text-sm font-medium transition-[background-color,color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
+										billingCycle === 'monthly'
+											? 'bg-elevated text-text-primary'
+											: 'bg-transparent text-text-secondary hover:text-text-primary'
+									}`}
+									onClick={() => setBillingCycle('monthly')}
+								>
+									Monthly
+								</button>
+								<button
+									type='button'
+									aria-pressed={billingCycle === 'yearly'}
+									className={`rounded-full px-4 py-2 text-sm font-medium transition-[background-color,color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
+										billingCycle === 'yearly'
+											? 'bg-elevated text-text-primary'
+											: 'bg-transparent text-text-secondary hover:text-text-primary'
+									}`}
+									onClick={() => setBillingCycle('yearly')}
+								>
+									Yearly
+									<span className='ml-2 text-xs text-success-500'>
+										Save {PRO_YEARLY_SAVINGS_PERCENT}%
+									</span>
+								</button>
+							</div>
+						</motion.div>
+
+						<div className='grid gap-6 md:grid-cols-2'>
+							{PRICING_TIERS.map((tier, index) => (
+								<div key={tier.id} className='group'>
+									<motion.div
+										initial={
+											shouldReduceMotion
+												? { opacity: 1, y: 0 }
+												: { opacity: 0, y: 18 }
+										}
+										animate={isInView ? { opacity: 1, y: 0 } : {}}
+										transition={
+											shouldReduceMotion
+												? { duration: 0 }
+												: {
+														duration: 0.4,
+														ease: EASE_OUT_QUART,
+														delay: 0.12 + index * 0.1,
+													}
+										}
+										className={`relative flex h-full flex-col rounded-[1.75rem] border p-7 shadow-[0_18px_60px_rgba(0,0,0,0.24)] transition-colors duration-200 ${
+											tier.recommended
+												? 'border-primary-400/25 bg-[linear-gradient(180deg,rgba(16,22,34,0.98),rgba(10,14,22,0.92))]'
+												: 'border-white/8 bg-[linear-gradient(180deg,rgba(17,20,28,0.94),rgba(11,13,18,0.88))]'
 										}`}
 									>
-										${tier.yearlyPrice} billed annually
-									</p>
-								</div>
+										{tier.recommended && (
+											<div className='absolute -top-3 left-6'>
+												<span
+													role='status'
+													aria-label={`${tier.name} plan is recommended`}
+													className='rounded-full bg-white px-3 py-1 text-xs font-semibold text-neutral-900'
+												>
+													Recommended
+												</span>
+											</div>
+										)}
 
-								<div className='space-y-3 mb-6'>
-									{tier.features.map((feature) => (
-										<div className='flex items-start gap-2' key={feature}>
-											<Check
-												aria-hidden='true'
-												className='w-4 h-4 mt-0.5 shrink-0 text-success-500'
-											/>
-											<span className='text-sm text-text-primary'>
-												{feature}
-											</span>
+										<div className='mb-5'>
+											<h3 className='text-xl font-semibold text-text-primary'>
+												{tier.name}
+											</h3>
+											<p className='mt-2 text-sm leading-6 text-text-secondary'>
+												{tier.description}
+											</p>
 										</div>
-									))}
-									{tier.limitations?.map((limitation) => (
-										<div className='flex items-start gap-2' key={limitation}>
-											<X
-												aria-hidden='true'
-												className='w-4 h-4 mt-0.5 shrink-0 text-text-disabled'
-											/>
-											<span className='text-sm text-text-disabled'>
-												{limitation}
-											</span>
-										</div>
-									))}
-								</div>
 
-								<a
-									href={
-										tier.id === 'free' ? '/dashboard' : '/auth/sign-up?plan=pro'
-									}
-									className={`mt-auto w-full inline-flex items-center justify-center h-10 px-4 py-2 text-sm font-medium rounded-md transition-[background-color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
-										tier.recommended
-											? 'bg-white text-neutral-900 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.15)]'
-											: 'bg-elevated hover:bg-overlay text-text-primary'
-									}`}
-								>
-									{tier.ctaText}
-								</a>
-							</motion.div>
+										<div className='mb-6 border-y border-white/6 py-5'>
+											<div className='flex items-baseline gap-1'>
+												<span className='text-4xl font-bold text-text-primary'>
+													$
+													{billingCycle === 'monthly'
+														? formatPrice(tier.monthlyPrice)
+														: formatPrice(
+																tier.yearlyPrice > 0
+																	? tier.yearlyPrice / 12
+																	: 0
+															)}
+												</span>
+												<span className='text-text-secondary'>/month</span>
+											</div>
+											<p
+												className={`mt-1 h-5 text-sm ${
+													billingCycle === 'yearly' && tier.yearlyPrice > 0
+														? 'text-text-tertiary'
+														: 'invisible'
+												}`}
+											>
+												${tier.yearlyPrice} billed annually
+											</p>
+										</div>
+
+										<div className='space-y-3'>
+											{tier.features.map((feature) => (
+												<div className='flex items-start gap-2' key={feature}>
+													<Check
+														aria-hidden='true'
+														className='mt-0.5 h-4 w-4 shrink-0 text-success-500'
+													/>
+													<span className='text-sm leading-6 text-text-primary'>
+														{feature}
+													</span>
+												</div>
+											))}
+											{tier.limitations?.map((limitation) => (
+												<div
+													className='flex items-start gap-2'
+													key={limitation}
+												>
+													<X
+														aria-hidden='true'
+														className='mt-0.5 h-4 w-4 shrink-0 text-text-disabled'
+													/>
+													<span className='text-sm leading-6 text-text-disabled'>
+														{limitation}
+													</span>
+												</div>
+											))}
+										</div>
+
+										<div className='mt-auto pt-10'>
+											<Link
+												href={
+													tier.id === 'free'
+														? '/dashboard'
+														: '/auth/sign-up?plan=pro'
+												}
+												className={`inline-flex h-11 w-full items-center justify-center rounded-xl px-4 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
+													tier.recommended
+														? 'bg-white text-neutral-900 shadow-[0_12px_30px_rgba(255,255,255,0.14)] hover:shadow-[0_18px_36px_rgba(255,255,255,0.18)]'
+														: 'border border-white/10 bg-white/[0.04] text-text-primary hover:bg-white/[0.08]'
+												}`}
+											>
+												{tier.ctaText}
+											</Link>
+										</div>
+									</motion.div>
+								</div>
+							))}
 						</div>
-					))}
+					</div>
 				</div>
 			</div>
 		</section>

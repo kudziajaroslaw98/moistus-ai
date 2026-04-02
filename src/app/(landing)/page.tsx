@@ -2,18 +2,16 @@ import { FaqSection } from '@/components/landing/faq-section';
 import { FeaturesSection } from '@/components/landing/features-section';
 import { FinalCta } from '@/components/landing/final-cta';
 import { HeroSection } from '@/components/landing/hero-section';
-import { HowItWorks } from '@/components/landing/how-it-works';
 import { LandingNav } from '@/components/landing/landing-nav';
 import { PricingSection } from '@/components/landing/pricing-section';
 import { ProblemSolution } from '@/components/landing/problem-solution';
 import { ScrollProgress } from '@/components/landing/scroll-progress';
-import { SectionDots } from '@/components/landing/section-dots';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-	title: 'Shiko - AI-Powered Mind Mapping for Power Users',
+	title: 'Shiko - Turn Scattered Thoughts Into Shared Structure',
 	description:
-		'Transform your thoughts into connected knowledge with AI-powered mind mapping. Real-time collaboration, keyboard-first editor, and AI that thinks with you.',
+		'Keyboard-first mind mapping that turns scattered thoughts into shared structure with in-context AI and real-time collaboration.',
 	keywords: [
 		'mind mapping',
 		'AI',
@@ -25,17 +23,17 @@ export const metadata: Metadata = {
 		'second brain',
 	],
 	openGraph: {
-		title: 'Shiko - From Scattered Notes to Connected Ideas',
+		title: 'Shiko - Turn Scattered Thoughts Into Shared Structure',
 		description:
-			'The mind mapping tool for power users. AI-native suggestions, real-time collaboration, and a keyboard-first editor.',
+			'Keyboard-first mind mapping with in-context AI, real-time collaboration, and a flow that keeps up with how you think.',
 		type: 'website',
 		url: 'https://shiko.app',
 	},
 	twitter: {
 		card: 'summary_large_image',
-		title: 'Shiko - From Scattered Notes to Connected Ideas',
+		title: 'Shiko - Turn Scattered Thoughts Into Shared Structure',
 		description:
-			'The mind mapping tool for power users. AI-native suggestions, real-time collaboration.',
+			'Keyboard-first mind mapping with in-context AI and real-time collaboration.',
 	},
 	robots: {
 		index: true,
@@ -55,7 +53,6 @@ export default function Home() {
 		<>
 			<ScrollProgress />
 			<LandingNav />
-			<SectionDots />
 			<main
 				id='main-content'
 				className='min-h-screen h-auto flex flex-col bg-background'
@@ -63,7 +60,6 @@ export default function Home() {
 				<HeroSection />
 				<ProblemSolution />
 				<FeaturesSection />
-				<HowItWorks />
 				<PricingSection />
 				<FaqSection />
 				<FinalCta />

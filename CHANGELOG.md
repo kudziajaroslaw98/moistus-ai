@@ -40,8 +40,64 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **node-editor/mobile-autocomplete-hover-guards**: Moved tray hover treatments behind `(hover: hover)` media queries and documented the overlay dismissal contract plus viewport/autocomplete bridge heuristics
   - Why: Touch devices should not keep sticky hover styling, and the portal/dismiss/runtime-visibility rules need to stay explicit for future editor changes
 
-
 <!-- Updated: 2026-03-29 - Tightened node-editor autocomplete regression coverage -->
+<!-- Updated: 2026-04-01 - Fixed LAN local-dev URL/auth behavior, tightened node-editor dismissal docs/tests, and consolidated the landing redesign plus responsive hero polish -->
+<!-- Updated: 2026-04-02 - Simplified landing copy below the hero and synced the hero promise to the approved momentum-to-clarity language -->
+
+## [2026-04-02]
+
+### Changed
+
+- **landing/copy-simplification-pass**: Synced the hero to the approved momentum-to-clarity copy and rewrote the support, features, pricing, FAQ intro, and final CTA copy into more direct product language
+  - Why: The lower landing sections were still carrying too much atmospheric copy and were no longer matching the sharper, cleaner hero direction
+- **landing/pricing-and-proof-polish**: Fixed feature proof image sizing/transform composition, moved hero CTA hover effects behind hover-capable media queries, and made pricing savings/CTAs derive from source tier data with accessible billing toggles
+  - Why: The current landing still had a few implementation details that could cause incorrect transforms, oversized image requests, touch-device hover states, and duplicated pricing logic
+- **landing/hero-multi-type-demo**: Replaced the task-only hero preview loop with a user-interview setup-friction story that evolves from text to note to question to task using real Shiko commands and preview rendering
+  - Why: The hero proof now feels like a believable working moment instead of a generic demo, while keeping the same shell, sizing, and CTA composition
+
+### Fixed
+
+- **review/node-editor-and-history-follow-ups**: Enabled true mobile/touch emulation in the node-editor E2E suite, wired CodeMirror tooltip clamping into the live editor setup, passed the configured history page limit on the initial history fetch, and hardened node-editor/local-dev regression coverage around pointer dismissal and quoted local URL inputs
+  - Why: These review findings were still leaving mobile/touch behavior, tooltip viewport bounds, initial history pagination, and helper normalization only partially enforced by the code and tests
+
+## [2026-04-01]
+
+### Fixed
+
+- **local-dev/lan-safe-browser-service-urls**: Browser Supabase clients, PartyKit sockets, forgot-password recovery redirects, and dashboard/history fetches now follow the current browser hostname in development instead of sticking to `localhost` or `127.0.0.1`
+  - Why: Opening the app as `http://<lan-ip>:3000` previously broke browser-visible local services by sending them back to loopback-only hosts
+- **auth/lan-login-cookie-key**: Supabase SSR browser and server clients now share a stable auth cookie/storage key derived from the configured Supabase URL, so successful LAN password logins no longer bounce back to sign-in
+  - Why: The browser LAN host changed the default `sb-*` cookie name, which made the server-side dashboard auth check miss an otherwise valid session
+- **node-editor/portaled-autocomplete-dismissal**: On the merged main node-editor baseline, the editor sheet now uses Floating UI’s floating props and treats body-portaled `.cm-tooltip*` presses as inside-editor interactions, so selecting a native autocomplete suggestion no longer closes the editor
+  - Why: CodeMirror renders its desktop/native autocomplete tooltip outside the editor DOM tree, which made suggestion taps look like backdrop presses
+
+### Changed
+
+- **local-dev/server-vs-browser-supabase-urls**: Server-side Supabase helpers now prefer `SUPABASE_INTERNAL_URL` while browser clients keep deriving their public host from the active LAN/local origin
+  - Why: LAN sessions need a public browser URL while server-side local services can still stay on loopback
+- **landing/product-story-redesign**: Rebuilt the landing into a tighter product story with calmer chrome, screenshot-led proof, a simplified pricing/FAQ close, and lower-friction section copy throughout
+  - Why: The earlier page front-loaded most of its personality into the hero and then fell back to a more generic, over-explained SaaS rhythm
+- **landing/hero-editor-and-responsive-polish**: Replaced the illustrative hero with a parser-driven editor demo, fixed hero routing/spacing fidelity, restored desktop proof scale, and simplified mobile-only chrome, highlight stacks, and title measures
+  - Why: Follow-up iterations exposed disconnected hero geometry, undersized desktop proof, and noisy or over-tight mobile layouts that made the product feel less trustworthy
+- **landing/features-pricing-faq-cleanup**: Removed misleading proof labels, aligned pricing CTA rhythm, added breathing room above pricing actions, and collapsed the FAQ into a single calmer shell
+  - Why: These sections still had redundant chrome, uneven card rhythm, and labels that distracted from the actual product proof
+
+### Docs
+
+- **docs/local-dev-lan-guidance**: Updated `.env.example`, `README.md`, `CLAUDE.md`, and `docs/CODEBASE_MAP.md` with the LAN-safe runtime URL behavior and optional local-dev override vars
+  - Why: The repo docs previously suggested loopback-only browser URLs and did not explain the public-vs-internal split
+- **docs/local-dev-auth-cookie-key**: Documented the Supabase SSR cookie-name constraint for LAN logins
+  - Why: Runtime LAN host derivation is safe only if browser and server still agree on the same auth storage key
+- **docs/landing-and-node-editor-sync**: Updated `docs/CODEBASE_MAP.md` for the tighter landing flow, parser-driven hero proof, calmer landing polish, and merged node-editor outside-press dismissal contract
+  - Why: The docs needed to reflect both the evolved landing architecture and the current autocomplete-dismissal behavior after merging `main`
+
+
+### Added
+
+- **tests/node-editor-dismissal-guard**: Added regression coverage for the merged node-editor shell so portaled autocomplete taps stay inside the editor while backdrop presses still dismiss it
+  - Why: This bug sits at the modal/autocomplete boundary and is easy to reintroduce during future editor shell changes
+- **tests/local-dev-url-derivation**: Added pure helper tests for LAN hostname derivation, current-origin auth redirects, and internal-vs-public Supabase URL resolution
+  - Why: Keeps the local-dev network contract stable without depending on full browser integration tests
 
 ## [2026-03-29]
 
@@ -60,6 +116,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ### Fixed
 
 <!-- Updated: 2026-03-29 - Documented node-editor autocomplete fixes -->
+
 - **node-editor/quiet-autocomplete-on-space**: Stopped passive empty-token trigger suggestions from reopening on `Space`, kept explicit trigger-character and partial-prefix completions, and documented manual `Ctrl+Space` discovery in the action bar
   - Why: Prevents distracting autocomplete popups during normal typing without removing on-demand syntax help
 - **node-editor/manual-trigger-chaining**: Manual `Ctrl+Space` trigger picks now immediately reopen autocomplete for the selected syntax family, so base triggers like `#` and `$` flow straight into their follow-up suggestions

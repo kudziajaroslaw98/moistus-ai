@@ -31,6 +31,16 @@ total_tokens: 707972
 <!-- Updated: 2026-03-28 - Documented stale-safe layout normalization writes and in-flight animation synchronization after CodeRabbit review -->
 <!-- Updated: 2026-03-28 - Documented mobile node-editor autocomplete tray and shared completion-state bridge -->
 <!-- Updated: 2026-03-29 - Documented autocomplete overlay portal dismissal contract and runtime visibility bridge responsibilities -->
+<!-- Updated: 2026-04-01 - Documented LAN-safe local-dev Supabase/PartyKit URL derivation -->
+<!-- Updated: 2026-04-01 - Documented stable Supabase SSR auth storage key for LAN logins -->
+<!-- Updated: 2026-04-01 - Corrected node-editor dismissal docs after merging the main autocomplete baseline -->
+<!-- Updated: 2026-04-01 - Documented the tighter landing-page flow with hero mini-demo, product-proof chapters, and pricing/FAQ close -->
+<!-- Updated: 2026-04-01 - Noted the landing de-densification pass for calmer workflow chrome and screenshot-safe proof notes -->
+<!-- Updated: 2026-04-01 - Noted the landing canvas-fidelity pass for a Shiko-like hero scene and cleaner screenshot-led proof modules -->
+<!-- Updated: 2026-04-01 - Noted the follow-up landing cleanup for feature labeling, pricing CTA alignment, and single-shell FAQ framing -->
+<!-- Updated: 2026-04-01 - Noted the mobile-centered landing pass with simplified mobile hero/section chrome and the desktop feature-width regression fix -->
+<!-- Updated: 2026-04-01 - Noted the parser-driven landing hero editor demo across breakpoints -->
+<!-- Updated: 2026-04-01 - Noted the follow-up removal of mobile-only highlight stacks in support/pricing sections -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -157,7 +167,7 @@ shiko/
 │   │   ├── edges/              # 6 edge types (floating, waypoint, ghost)
 │   │   ├── guided-tour/        # Prezi-style presentations
 │   │   ├── history/            # Version history sidebar
-│   │   ├── landing/            # Marketing page sections
+│   │   ├── landing/            # Marketing flow: parser-driven hero editor demo, low-chrome payoff rail, screenshot-led features, aligned pricing cards, and a lighter FAQ close
 │   │   ├── mind-map/           # React Flow integration + mobile top bar/drawer chrome
 │   │   ├── modals/             # Dialogs (edge edit, upgrade, etc.)
 │   │   ├── node-editor/        # Command system, CodeMirror, mobile autocomplete tray
@@ -186,6 +196,7 @@ shiko/
 │   │   ├── api/                # API middleware (auth, validation)
 │   │   ├── history/            # Delta calculation, diff
 │   │   ├── layout/             # ELK full-layout engine + deterministic local branch reflow
+│   │   ├── local-dev-url.ts    # Browser/runtime LAN-safe Supabase + PartyKit URL derivation
 │   │   ├── partykit/           # PartyKit admin helpers (disconnect users)
 │   │   └── supabase/           # Client initialization
 │   │
@@ -355,6 +366,7 @@ shiko/
 - `src/components/onboarding/onboarding-modal.tsx` now renders the editor walkthrough shell directly inside the mind-map experience instead of using a global dialog in `ClientProviders`
 - `src/store/slices/onboarding-slice.ts` tracks task-based progress (`create-node`, `try-pattern`, `know-controls`), real add-mode substeps (`toolbar` -> `canvas`), post-create edit hints, viewport-aware coachmark state (`desktop` vs `mobile`), minimized walkthrough state, and eligibility gating for first owned free maps
 - `src/store/app-state.ts` + `src/store/slices/ui-slice.ts` extend node-editor state with onboarding preset/source fields so the walkthrough can open a deterministic parser example in the real quick-input editor
+- `src/components/node-editor/node-editor.tsx` + `src/components/node-editor/integrations/codemirror/setup.ts` keep CodeMirror autocomplete portaled to `document.body`, mirror native autocomplete state into React, and treat `.cm-tooltip*` presses as inside-editor interactions so selecting a native suggestion does not dismiss the editor
 - `src/components/common/user-menu.tsx` and `src/components/subscription/limit-warning.tsx` now bypass onboarding entirely for upgrade prompts and open `popoverOpen.upgradeUser` directly
 - Toolbar/top-bar/shortcut controls expose `data-onboarding-target` anchors for cursor/select, Add Node, AI Suggestions, Auto Layout, Export, Guided Tour, Reset Zoom, Comments, desktop Share, mobile hamburger menu, `More Tools`, shortcuts help, and breadcrumb/home
 - Mobile onboarding uses bottom-sheet surfaces only: intro/checklist/hints/coachmarks never stack, step-specific sheets replace the checklist while active, the controls tour points to `mobile-menu` instead of the removed mobile share button, and the minimized walkthrough chip moves under the top bar instead of sharing the bottom-dock lane
@@ -366,7 +378,7 @@ shiko/
 - `src/components/node-editor/integrations/codemirror/setup.ts` mirrors CodeMirror completion visibility into React and owns the native-tooltip suppression toggle, so the app still knows autocomplete is logically open even when mobile hides the native popup
 - `src/components/node-editor/integrations/codemirror/autocomplete-state.ts` is the shared bridge for reading `active/pending`, current options, selected index, and caret/editor geometry from CodeMirror; those snapshots are what let the mobile tray and dismissal guards stay aligned with the live editor selection
 - `src/components/node-editor/components/inputs/mobile-completion-tray.tsx` portals into the `[data-node-editor-overlay="true"]` overlay instead of `document.body`, while `src/components/node-editor/components/inputs/use-mobile-autocomplete-viewport.ts` supplies the `visualViewport`/keyboard heuristics that keep that overlay-local surface attached to the keyboard or anchored below the typed text
-- Outside-click boundaries must exclude `[data-node-editor-autocomplete-tray="true"]` so tray taps and scroll gestures do not dismiss the editor; update `src/components/node-editor/node-editor.tsx` (`useDismiss(... outsidePress ...)`) and any future modal/editor wrapper dismissal checks if the overlay boundary or portal target changes
+- Outside-click boundaries must exclude both `[data-node-editor-autocomplete-tray="true"]` and body-portaled `.cm-tooltip*` elements so tray taps, tray scroll gestures, and native CodeMirror suggestion taps do not dismiss the editor; update `src/components/node-editor/node-editor.tsx` (`useDismiss(... outsidePress ...)`) and any future modal/editor wrapper dismissal checks if the overlay boundary or portal target changes
 
 **Notifications internals (operational map):**
 
@@ -545,6 +557,10 @@ sequenceDiagram
 16. **PartyKit Admin Disconnect** - When access is revoked (delete-share, update-share, revoke-room-code), the API calls `disconnectPartyKitUsers()` to force immediate WebSocket disconnection across all room types for the affected users.
 
 17. **Yjs Sync Event Retention** - `subscribeToYjsSyncEvents()` now tracks per-subscriber cursors and only prunes events up to the slowest subscriber cursor (bounded by max retention). This prevents index-shift event loss for slower consumers.
+
+18. **LAN-Safe Local Dev URLs** - Browser Supabase and PartyKit clients now derive from `window.location.hostname` in development when their public env values are blank or loopback-only. Same-origin dashboard/history fetches are relative, forgot-password redirects use the current origin, and server-side Supabase code can stay on `SUPABASE_INTERNAL_URL`.
+
+19. **Supabase SSR Cookie Naming** - Browser + server Supabase clients must use the same `cookieOptions.name` / auth storage key. For local LAN dev, derive it from the configured Supabase URL (for example `127.0.0.1`) rather than the current browser host, or a successful LAN password login will set `sb-192-*` while the server still looks for `sb-127-*`.
 
 ## Navigation Guide
 

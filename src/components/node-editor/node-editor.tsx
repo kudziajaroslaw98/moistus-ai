@@ -118,12 +118,15 @@ export const NodeEditor = () => {
 
 			return !(
 				target instanceof Element &&
-				target.closest('[data-node-editor-autocomplete-tray="true"]')
+				(target.closest('[data-node-editor-autocomplete-tray="true"]') ||
+					target.closest('.cm-tooltip') ||
+					target.closest('.cm-tooltip-autocomplete'))
 			);
 		},
+		outsidePressEvent: 'pointerdown',
 	});
 
-	const { getReferenceProps } = useInteractions([dismiss]);
+	const { getFloatingProps } = useInteractions([dismiss]);
 
 	if (!nodeEditor.isOpen) return null;
 
@@ -136,12 +139,13 @@ export const NodeEditor = () => {
 		<div
 			className='fixed flex flex-col items-center top-0 left-0 w-full h-full bg-zinc-950/50 z-[100] backdrop-blur-sm pt-4 sm:pt-32 '
 			data-node-editor-overlay='true'
+			data-testid='node-editor-backdrop'
 		>
 			<AnimatePresence>
 				{nodeEditor.isOpen && (
 					<motion.div
 						ref={refs.setFloating}
-						{...getReferenceProps()}
+						{...getFloatingProps()}
 						animate='animate'
 						className={cn(theme.container)}
 						data-testid='node-editor'
