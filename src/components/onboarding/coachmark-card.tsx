@@ -89,7 +89,7 @@ export function CoachmarkCard({
 		return (
 			<motion.div
 				animate={{ opacity: 1, y: 0 }}
-				className='fixed z-[60]'
+				className='fixed z-[37]'
 				data-testid='onboarding-coachmark'
 				exit={{ opacity: 0, y: 8 }}
 				initial={{ opacity: 0, y: 8 }}
@@ -103,7 +103,7 @@ export function CoachmarkCard({
 	return (
 		<motion.div
 			animate={{ opacity: 1, y: 0 }}
-			className='fixed inset-x-4 z-[60]'
+			className='fixed inset-x-4 z-[37]'
 			data-testid='onboarding-coachmark'
 			exit={{ opacity: 0, y: 12 }}
 			initial={{ opacity: 0, y: 12 }}

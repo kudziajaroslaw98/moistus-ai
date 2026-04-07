@@ -92,6 +92,7 @@ describe('OnboardingModal mobile rendering', () => {
 			'aria-modal',
 			'true'
 		)
+		expect(screen.getByTestId('onboarding-intro')).toHaveClass('z-[38]')
 		expect(
 			screen.getByText('Three quick moves to get comfortable fast.')
 		).toBeInTheDocument()
@@ -135,6 +136,8 @@ describe('OnboardingModal mobile rendering', () => {
 
 		const checklist = screen.getByTestId('onboarding-checklist')
 		expect(checklist).toBeInTheDocument()
+		expect(checklist).toHaveClass('inset-x-4')
+		expect(checklist).toHaveClass('z-[37]')
 		expect(checklist).toHaveStyle({
 			top: 'calc(env(safe-area-inset-top, 0px) + 4.5rem)',
 		})
@@ -179,6 +182,9 @@ describe('OnboardingModal mobile rendering', () => {
 		await waitFor(() => {
 			expect(screen.getByTestId('onboarding-create-node-hint')).toBeInTheDocument()
 		})
+		expect(screen.getByTestId('onboarding-create-node-hint')).toHaveClass(
+			'z-[36]'
+		)
 		expect(screen.queryByRole('button', { name: 'Skip walkthrough' })).not.toBeInTheDocument()
 	})
 
@@ -195,6 +201,7 @@ describe('OnboardingModal mobile rendering', () => {
 		await waitFor(() => {
 			expect(screen.getByTestId('onboarding-coachmark')).toBeInTheDocument()
 		})
+		expect(screen.getByTestId('onboarding-coachmark')).toHaveClass('z-[37]')
 		expect(screen.getByTestId('onboarding-coachmark')).toHaveStyle({
 			bottom:
 				'calc(env(safe-area-inset-bottom, 0px) + var(--mind-map-toolbar-clearance, 0px) + 1rem)',
@@ -259,6 +266,10 @@ describe('OnboardingModal mobile rendering', () => {
 
 		const pill = screen.getByTestId('onboarding-minimized-pill')
 		expect(pill).toBeInTheDocument()
+		expect(pill).toHaveClass('left-4')
+		expect(pill).toHaveClass('justify-start')
+		expect(pill).toHaveClass('z-[37]')
+		expect(pill).not.toHaveClass('right-4')
 		expect(pill).toHaveStyle({ top: '6rem' })
 		expect(screen.queryByTestId('onboarding-checklist')).not.toBeInTheDocument()
 		expect(screen.getByText('Try a pattern')).toBeInTheDocument()
@@ -275,6 +286,28 @@ describe('OnboardingModal mobile rendering', () => {
 				onboardingSource: 'onboarding-pattern',
 			})
 		)
+	})
+
+	it('anchors the desktop checklist surface to the left edge', () => {
+		mockIsMobile = false
+		mockState = {
+			...mockState,
+			onboardingStatus: 'checklist',
+			onboardingTasks: {
+				'create-node': true,
+				'try-pattern': false,
+				'know-controls': false,
+			},
+			onboardingActiveTarget: null,
+		}
+
+		render(<OnboardingModal />)
+
+		const checklist = screen.getByTestId('onboarding-checklist')
+		expect(checklist).toHaveClass('left-4')
+		expect(checklist).toHaveClass('justify-start')
+		expect(checklist).toHaveClass('z-[37]')
+		expect(checklist).not.toHaveClass('right-4')
 	})
 
 	it('falls back to the checklist when the refreshed desktop create-node anchor is unresolved, then keeps the checklist visible once it resolves', async () => {
@@ -304,9 +337,9 @@ describe('OnboardingModal mobile rendering', () => {
 			).toBeInTheDocument()
 		})
 		expect(screen.getByTestId('onboarding-checklist')).toBeInTheDocument()
-		expect(
-			document.querySelector('div[aria-hidden="true"]')
-		).toBeInTheDocument()
+		const spotlight = document.querySelector('div[aria-hidden="true"]')
+		expect(spotlight).toBeInTheDocument()
+		expect(spotlight).toHaveClass('z-[35]')
 	})
 
 	it('falls back to the checklist when the refreshed desktop controls target is unresolved, then returns to the coachmark once it resolves', async () => {
@@ -373,5 +406,20 @@ describe('OnboardingModal mobile rendering', () => {
 				top: '168px',
 			})
 		})
+	})
+
+	it('keeps the desktop upsell below side panels while anchored to the right', () => {
+		mockIsMobile = false
+		mockState = {
+			...mockState,
+			onboardingStatus: 'upsell',
+			currentSubscription: null,
+		}
+
+		render(<OnboardingModal />)
+
+		const upsell = screen.getByTestId('onboarding-upsell')
+		expect(upsell).toHaveClass('z-[37]')
+		expect(upsell).toHaveClass('right-4')
 	})
 })

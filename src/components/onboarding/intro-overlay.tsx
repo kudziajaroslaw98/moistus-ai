@@ -170,7 +170,7 @@ export function IntroOverlay({
 				{...backdropMotion}
 				aria-labelledby={headingId}
 				aria-modal='true'
-				className='fixed inset-0 z-[70] flex items-end justify-center bg-black/40 backdrop-blur-sm'
+				className='fixed inset-0 z-[38] flex items-end justify-center bg-black/40 backdrop-blur-sm'
 				data-testid='onboarding-intro'
 				ref={dialogRef}
 				role='dialog'
@@ -253,7 +253,7 @@ export function IntroOverlay({
 			{...backdropMotion}
 			aria-labelledby={headingId}
 			aria-modal='true'
-			className='fixed inset-0 z-[70] flex items-center justify-center bg-black/35 px-4 backdrop-blur-sm'
+			className='fixed inset-0 z-[38] flex items-center justify-center bg-black/35 px-4 backdrop-blur-sm'
 			data-testid='onboarding-intro'
 			ref={dialogRef}
 			role='dialog'

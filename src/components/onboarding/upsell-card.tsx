@@ -22,8 +22,8 @@ export function UpsellCard({
 			animate={{ opacity: 1, x: 0, y: 0 }}
 			className={
 				isMobile
-					? 'fixed inset-x-4 z-[60] rounded-[1.75rem] border border-white/10 bg-base/96 p-5 shadow-2xl shadow-black/35 backdrop-blur-md'
-					: 'fixed right-4 z-[60] w-[min(380px,calc(100vw-2rem))] rounded-3xl border border-white/10 bg-base/96 p-5 shadow-2xl shadow-black/35 backdrop-blur-md'
+					? 'fixed inset-x-4 z-[37] rounded-[1.75rem] border border-white/10 bg-base/96 p-5 shadow-2xl shadow-black/35 backdrop-blur-md'
+					: 'fixed right-4 z-[37] w-[min(380px,calc(100vw-2rem))] rounded-3xl border border-white/10 bg-base/96 p-5 shadow-2xl shadow-black/35 backdrop-blur-md'
 			}
 			data-testid='onboarding-upsell'
 			exit={{ opacity: 0, y: 12 }}

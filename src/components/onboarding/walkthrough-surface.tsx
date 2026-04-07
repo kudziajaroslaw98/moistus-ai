@@ -207,8 +207,8 @@ export function WalkthroughSurface({
 	const shouldReduceMotion = useReducedMotion() ?? false;
 	const isChecklist = mode === 'checklist';
 	const wrapperClassName = isMobile
-		? 'fixed inset-x-4 z-[60] flex justify-start'
-		: 'fixed right-4 z-[60] flex justify-end';
+		? 'fixed inset-x-4 z-[37] flex justify-start'
+		: 'fixed left-4 z-[37] flex justify-start';
 	const shellTransition = shouldReduceMotion
 		? {
 				duration: 0.12,
