@@ -11,14 +11,15 @@ function GridMapSkeleton({ index }: { index: number }) {
 		<div
 			data-testid='dashboard-grid-map-skeleton'
 			className={cn(
-				'relative h-56 sm:h-52 md:h-56 w-full rounded-lg overflow-hidden border border-zinc-800 bg-zinc-900/40',
-				index === 0 && 'border-zinc-700/70'
+				'relative h-56 sm:h-52 md:h-56 w-full rounded-lg overflow-hidden border border-zinc-800/90 bg-zinc-900/65 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]',
+				index === 0 && 'border-zinc-700/80'
 			)}
 		>
-			<div className='absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.15),transparent_50%)]' />
+			<div className='absolute inset-0 bg-[linear-gradient(180deg,rgba(24,24,27,0.32)_0%,rgba(9,9,11,0.74)_70%,rgba(9,9,11,0.88)_100%)]' />
+			<div className='absolute inset-0 bg-[radial-gradient(44%_62%_at_50%_0%,rgba(56,189,248,0.07),transparent_78%)]' />
 			<div className='absolute inset-x-0 bottom-0 p-4 space-y-2'>
-				<Skeleton className='h-4 w-2/3 bg-zinc-700/70' />
-				<Skeleton className='h-3 w-1/2 bg-zinc-800/80' />
+				<Skeleton className='h-4 w-2/3 bg-zinc-600/45' />
+				<Skeleton className='h-3 w-1/2 bg-zinc-700/40' />
 			</div>
 		</div>
 	);
@@ -27,15 +28,15 @@ function GridMapSkeleton({ index }: { index: number }) {
 function ListMapSkeleton() {
 	return (
 		<div
-			className='flex items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-900/40 p-4'
+			className='flex items-center gap-4 rounded-lg border border-zinc-800/90 bg-zinc-900/60 p-4'
 			data-testid='dashboard-list-map-skeleton'
 		>
-			<Skeleton className='h-10 w-10 rounded-md bg-zinc-700/70' />
+			<Skeleton className='h-10 w-10 rounded-md bg-zinc-700/45' />
 			<div className='grow space-y-2'>
-				<Skeleton className='h-4 w-1/3 bg-zinc-700/70' />
-				<Skeleton className='h-3 w-1/5 bg-zinc-800/80' />
+				<Skeleton className='h-4 w-1/3 bg-zinc-600/45' />
+				<Skeleton className='h-3 w-1/5 bg-zinc-700/40' />
 			</div>
-			<Skeleton className='h-8 w-8 rounded-md bg-zinc-800/80' />
+			<Skeleton className='h-8 w-8 rounded-md bg-zinc-700/40' />
 		</div>
 	);
 }
