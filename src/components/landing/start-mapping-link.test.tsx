@@ -110,4 +110,20 @@ describe('StartMappingLink', () => {
 
 		expect(screen.getByRole('link', { name: /start mapping/i })).toBeInTheDocument();
 	});
+
+	it('supports custom href and label for non-dashboard CTAs', () => {
+		render(
+			<StartMappingLink
+				className='inline-flex'
+				href='/auth/sign-up?plan=pro'
+				idleLabel='Go Pro'
+			/>
+		);
+
+		const link = screen.getByRole('link', { name: /go pro/i });
+		expect(link).toHaveAttribute('href', '/auth/sign-up?plan=pro');
+
+		fireEvent.click(link);
+		expect(screen.getByRole('link', { name: /opening\.\.\./i })).toBeInTheDocument();
+	});
 });

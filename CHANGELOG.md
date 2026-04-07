@@ -63,8 +63,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **landing/cta-navigation-wiring**: Replaced raw landing `Start Mapping` anchors in hero/nav/final CTA with the shared feedback-aware link component
   - Why: Raw anchors bypassed App Router link pending hooks and left click state opaque during slower transitions
+- **landing/pricing-cta-navigation-feedback**: Wired pricing card `Get Started` and `Go Pro` buttons to the same shared pending-feedback link flow
+  - Why: Pricing CTAs had the same no-feedback gap and needed immediate click reassurance consistent with the rest of the landing page
 - **onboarding/walkthrough-layering-and-placement**: Lowered onboarding + guided-tour overlays beneath the `SidePanel` boundary and moved walkthrough checklist/pill anchoring from desktop right to left while keeping the mobile wide surface pattern
   - Why: Walkthrough UI is part of the app canvas layer, while settings/share/history side panels must remain above it as modal surfaces
+
 ## [2026-04-02]
 
 ### Changed

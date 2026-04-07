@@ -41,7 +41,7 @@ total_tokens: 707972
 <!-- Updated: 2026-04-01 - Noted the mobile-centered landing pass with simplified mobile hero/section chrome and the desktop feature-width regression fix -->
 <!-- Updated: 2026-04-01 - Noted the parser-driven landing hero editor demo across breakpoints -->
 <!-- Updated: 2026-04-01 - Noted the follow-up removal of mobile-only highlight stacks in support/pricing sections -->
-<!-- Updated: 2026-04-07 - Documented shared landing Start Mapping pending-feedback link and dashboard route loading boundary -->
+<!-- Updated: 2026-04-07 - Documented shared landing CTA pending-feedback link (Start Mapping/Get Started/Go Pro) and dashboard route loading boundary -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -168,7 +168,7 @@ shiko/
 │   │   ├── edges/              # 6 edge types (floating, waypoint, ghost)
 │   │   ├── guided-tour/        # Prezi-style presentations
 │   │   ├── history/            # Version history sidebar
-│   │   ├── landing/            # Marketing flow + shared Start Mapping link feedback (next/link pending + optimistic click hint + top progress bar)
+│   │   ├── landing/            # Marketing flow + shared CTA link feedback (Start Mapping/Get Started/Go Pro with next/link pending + optimistic click hint + top progress bar)
 │   │   ├── mind-map/           # React Flow integration + mobile top bar/drawer chrome
 │   │   ├── modals/             # Dialogs (edge edit, upgrade, etc.)
 │   │   ├── node-editor/        # Command system, CodeMirror, mobile autocomplete tray

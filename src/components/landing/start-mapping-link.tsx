@@ -3,7 +3,7 @@
 import { cn } from '@/utils/cn';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { useReducedMotion } from 'motion/react';
-import Link, { useLinkStatus } from 'next/link';
+import Link, { type LinkProps, useLinkStatus } from 'next/link';
 import {
 	type KeyboardEvent,
 	type MouseEvent,
@@ -19,6 +19,7 @@ const OPTIMISTIC_PENDING_RESET_MS = 1500;
 interface StartMappingLinkProps {
 	className: string;
 	arrowClassName?: string;
+	href?: LinkProps['href'];
 	idleLabel?: string;
 	loadingLabel?: string;
 	progressBarClassName?: string;
@@ -116,6 +117,7 @@ function StartMappingLinkContent({
 export function StartMappingLink({
 	arrowClassName = 'h-4 w-4 transition-transform duration-200',
 	className,
+	href = '/dashboard',
 	idleLabel = 'Start Mapping',
 	loadingLabel = 'Opening...',
 	progressBarClassName,
@@ -187,7 +189,7 @@ export function StartMappingLink({
 
 	return (
 		<Link
-			href='/dashboard'
+			href={href}
 			className={className}
 			onPointerDown={handlePointerDown}
 			onKeyDown={handleKeyDown}
