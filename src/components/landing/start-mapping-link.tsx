@@ -100,7 +100,10 @@ function StartMappingLinkContent({
 			<span className='inline-flex items-center justify-center gap-2'>
 				<span>{isPending ? loadingLabel : idleLabel}</span>
 				{isPending ? (
-					<Loader2 aria-hidden='true' className='h-4 w-4 animate-spin' />
+					<Loader2
+						aria-hidden='true'
+						className={cn('h-4 w-4', !shouldReduceMotion && 'animate-spin')}
+					/>
 				) : showArrow ? (
 					<ArrowRight aria-hidden='true' className={arrowClassName} />
 				) : null}
