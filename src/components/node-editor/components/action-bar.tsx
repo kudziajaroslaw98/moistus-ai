@@ -3,6 +3,19 @@
 import { cn } from '@/utils/cn';
 import { AnimatePresence, motion } from 'motion/react';
 
+function getPlatformModifier() {
+	if (typeof navigator === 'undefined') {
+		return 'Cmd';
+	}
+
+	const platform =
+		(navigator as Navigator & { userAgentData?: { platform?: string } })
+			.userAgentData?.platform ?? navigator.platform;
+	const isMac = Boolean(platform) && platform.toLowerCase().includes('mac');
+
+	return isMac ? 'Cmd' : 'Ctrl';
+}
+
 interface ActionBarProps {
 	onCreate: () => void;
 	canCreate: boolean;
@@ -21,6 +34,8 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 	className,
 }) => {
 	const isBusy = isCreating || isCheckingLimit;
+	const modifierKey = getPlatformModifier();
+	const suggestionShortcut = modifierKey === 'Cmd' ? 'Cmd+.' : 'Ctrl+Space';
 
 	return (
 		<motion.div
@@ -39,9 +54,9 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 					<span className='text-zinc-400'>Checking map limit...</span>
 				) : (
 					<>
-						<span className='hidden sm:inline'>Press </span>Ctrl+Enter to {mode === 'edit' ? 'update' : 'create'}
+						<span className='hidden sm:inline'>Press </span>{modifierKey}+Enter to {mode === 'edit' ? 'update' : 'create'}
 						<span className='hidden sm:inline'> • Enter for new line</span>
-						<span className='hidden sm:inline'> • Ctrl+Space for suggestions</span>
+						<span className='hidden sm:inline'> • {suggestionShortcut} for suggestions</span>
 					</>
 				)}
 			</motion.span>

@@ -3,13 +3,18 @@
  * Single source of truth for editor configuration
  */
 
-import { autocompletion, completionKeymap } from '@codemirror/autocomplete';
+import {
+	autocompletion,
+	completionKeymap,
+	startCompletion,
+} from '@codemirror/autocomplete';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { bracketMatching, indentOnInput } from '@codemirror/language';
 import { Compartment, EditorState, Extension } from '@codemirror/state';
 import {
 	EditorView,
 	highlightActiveLine,
+	type KeyBinding,
 	keymap,
 	placeholder,
 	scrollPastEnd,
@@ -57,6 +62,24 @@ export interface NodeEditorRuntimeConfig {
 export type NodeEditorView = EditorView & {
 	updateRuntimeConfig: (config: NodeEditorRuntimeConfig) => void;
 };
+
+export function getNodeEditorKeybindings(
+	enableCompletions: boolean
+): KeyBinding[] {
+	return [
+		...(enableCompletions
+			? [
+					{
+						mac: 'Mod-.',
+						run: startCompletion,
+					},
+				]
+			: []),
+		...defaultKeymap,
+		...historyKeymap,
+		...(enableCompletions ? completionKeymap : []),
+	];
+}
 
 function resolvePlaceholderText(placeholderText?: string) {
 	return placeholderText || DEFAULT_NODE_EDITOR_PLACEHOLDER;
@@ -211,11 +234,7 @@ export function createNodeEditor(
 		placeholderCompartment.of(placeholder(runtimeConfig.placeholder)),
 
 		// Keymaps
-		keymap.of([
-			...defaultKeymap,
-			...historyKeymap,
-			...(enableCompletions ? completionKeymap : []),
-		]),
+		keymap.of(getNodeEditorKeybindings(enableCompletions)),
 
 		// Theme
 		nodeEditorTheme,
