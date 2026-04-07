@@ -186,6 +186,7 @@ function renderMobileMenu(
 		<MobileMenu
 			activityState='viewing'
 			canEdit
+			isMapReady
 			isMapOwner
 			isSettingsActive={false}
 			mapId='map-1'

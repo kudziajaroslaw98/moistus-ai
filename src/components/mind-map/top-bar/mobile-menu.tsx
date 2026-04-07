@@ -26,6 +26,7 @@ interface MobileMenuProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	canEdit: boolean;
+	isMapReady: boolean;
 	isMapOwner: boolean;
 	activityState?: ActivityState;
 	mapId: string;
@@ -44,6 +45,7 @@ export function MobileMenu({
 	open,
 	onOpenChange,
 	canEdit,
+	isMapReady,
 	isMapOwner,
 	activityState,
 	mapId,
@@ -277,7 +279,7 @@ export function MobileMenu({
 									<SectionHeading title='Collaboration' />
 
 									<div className='mt-1.5 space-y-2.5'>
-										{isMapOwner && (
+										{isMapReady && isMapOwner && (
 											<MenuRow
 												description='Invite people into this map.'
 												label='Share map'
@@ -379,7 +381,7 @@ export function MobileMenu({
 									<SectionHeading title='Workspace' />
 
 									<div className='mt-1.5 space-y-0.5'>
-										{canEdit && (
+										{isMapReady && canEdit && (
 											<MenuRow
 												description='Browse the map timeline.'
 												label='View history'
@@ -387,7 +389,7 @@ export function MobileMenu({
 											/>
 										)}
 
-										{isMapOwner && (
+										{isMapReady && isMapOwner && (
 											<MenuRow
 												description={
 													isSettingsActive

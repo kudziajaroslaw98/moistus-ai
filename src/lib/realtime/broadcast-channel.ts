@@ -557,27 +557,38 @@ export async function subscribeToSyncEvents(
 		cleanups.push(cleanupSync);
 	}
 
-	const cleanup = () => {
-		for (const fn of cleanups) {
-			fn();
-		}
-	};
-
 	if (!syncSubscriptionCleanups.has(mapId)) {
 		syncSubscriptionCleanups.set(mapId, new Set());
 	}
 	const mapCleanups = syncSubscriptionCleanups.get(mapId)!;
-	mapCleanups.add(cleanup);
 
-	return () => {
-		cleanup();
-		const cleanups = syncSubscriptionCleanups.get(mapId);
-		if (!cleanups) return;
-		cleanups.delete(cleanup);
-		if (cleanups.size === 0) {
-			syncSubscriptionCleanups.delete(mapId);
+	let isCleanedUp = false;
+	const cleanup = () => {
+		if (isCleanedUp) {
+			return;
+		}
+		isCleanedUp = true;
+
+		const registeredCleanups = syncSubscriptionCleanups.get(mapId);
+		if (registeredCleanups) {
+			registeredCleanups.delete(cleanup);
+			if (registeredCleanups.size === 0) {
+				syncSubscriptionCleanups.delete(mapId);
+			}
+		}
+
+		for (const fn of cleanups) {
+			try {
+				fn();
+			} catch (error) {
+				console.warn('[broadcast] Failed to execute sync cleanup', error);
+			}
 		}
 	};
+
+	mapCleanups.add(cleanup);
+
+	return cleanup;
 }
 
 /**
@@ -586,7 +597,7 @@ export async function subscribeToSyncEvents(
 export async function unsubscribeFromSyncChannel(mapId: string): Promise<void> {
 	const cleanups = syncSubscriptionCleanups.get(mapId);
 	if (cleanups) {
-		for (const cleanup of cleanups) {
+		for (const cleanup of Array.from(cleanups)) {
 			cleanup();
 		}
 		syncSubscriptionCleanups.delete(mapId);
@@ -611,7 +622,7 @@ export function resetAuth(): void {
  */
 export async function cleanupAllChannels(): Promise<void> {
 	for (const [mapId, cleanups] of syncSubscriptionCleanups) {
-		for (const cleanup of cleanups) {
+		for (const cleanup of Array.from(cleanups)) {
 			cleanup();
 		}
 		syncSubscriptionCleanups.delete(mapId);

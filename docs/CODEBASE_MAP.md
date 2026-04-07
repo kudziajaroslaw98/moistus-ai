@@ -42,6 +42,10 @@ total_tokens: 707972
 <!-- Updated: 2026-04-01 - Noted the parser-driven landing hero editor demo across breakpoints -->
 <!-- Updated: 2026-04-01 - Noted the follow-up removal of mobile-only highlight stacks in support/pricing sections -->
 <!-- Updated: 2026-04-07 - Documented shared landing CTA pending-feedback link (Start Mapping/Get Started/Go Pro) and dashboard route loading boundary -->
+<!-- Updated: 2026-04-07 - Documented mind-map route loading skeleton and map-scoped runtime reset safeguards -->
+<!-- Updated: 2026-04-07 - Documented MindMapCanvas fetch bootstrap to avoid skeleton readiness deadlocks -->
+<!-- Updated: 2026-04-07 - Documented Strict Mode-safe map-route cleanup replay guard -->
+<!-- Updated: 2026-04-07 - Documented progressive map-shell streaming and Yjs cleanup idempotency guards -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -49,6 +53,10 @@ A collaborative mind mapping application built with Next.js 16, React 19, TypeSc
 **Layout animation note:** `ReactFlowArea` now renders through a transient animated graph state for explicit full layout and local layout flows. Zustand still stores only final node/edge geometry; the 550ms tween is client-only and does not persist or broadcast intermediate frames, and an animation version is only marked handled after the tween settles or is explicitly cancelled.
 
 **Local layout note:** Deterministic local branch reflow now has two phases: same-depth child repack inside the edited branch, then cousin-branch corridor expansion on the carrier layer when the grown subtree would overlap neighboring cousin subtrees. Ancestors stay fixed, and load-time legacy layout normalization persists only when the fetched map/edge snapshot is still current.
+
+**Mind-map loading note:** Route-level `loading.tsx` provides initial shell fallback, while in-page loading keeps the real editor chrome mounted and gates only map-dependent behavior via `isMapReady` (`nodes/edges` forced to empty until requested map payload is ready).
+
+**Realtime teardown note:** Yjs provider cleanup and broadcast/slice/core unsubscribe paths are intentionally idempotent to tolerate overlapping unmount and back-navigation teardowns without duplicate observer removal errors.
 
 ## System Overview
 
@@ -354,6 +362,13 @@ shiko/
 
 - `src/components/mind-map/map-settings-panel.tsx` now focuses on persistable metadata fields (`title`, `description`, `tags`, `thumbnailUrl`) with client-side validation and explicit save flow
 - `src/components/mind-map/discard-settings-changes-dialog.tsx` guards close actions when unsaved edits exist
+
+**Mind Map Route Loading + Runtime Reset:**
+
+- `src/app/mind-map/[id]/loading.tsx` now provides an App Router segment-level loading boundary for map navigation
+- `src/components/mind-map/mind-map-loading-skeleton.tsx` is the shared skeleton surface used during map-route transitions
+- `src/components/mind-map-canvas.tsx` bootstraps route map loading (`setMapId` + `fetchMindMapData`), gates canvas rendering on requested-route readiness (`state.mapId === params.id` and `state.mindMap?.id === params.id`), and clears map-scoped runtime state on unmount with a Strict Mode-safe replay guard
+- `src/store/slices/core-slice.ts` exposes `clearMindMapRuntimeState()` and stale-guards `fetchMindMapData` writes so late responses cannot repopulate stale map data after route exit/switch
 
 **Dashboard Account/Billing Settings Panel:**
 

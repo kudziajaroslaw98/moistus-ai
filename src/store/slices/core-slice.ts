@@ -38,6 +38,7 @@ export const createCoreDataSlice: StateCreator<
 	activeTool: 'default',
 	mobileTapMultiSelectEnabled: false,
 	mapAccessError: null,
+	_realtimeUnsubscribePromise: null,
 
 	// Actions
 	setActiveTool: (activeTool) => {
@@ -65,6 +66,135 @@ export const createCoreDataSlice: StateCreator<
 	setState: (state: Partial<AppState>) => set({ ...state }),
 	setMapAccessError: (error) => set({ mapAccessError: error }),
 	clearMapAccessError: () => set({ mapAccessError: null }),
+	clearMindMapRuntimeState: () => {
+		void get().unsubscribeFromRealtimeUpdates();
+		get().unsubscribeFromSharing?.();
+		get().unsubscribeFromCollaboratorUpdates?.();
+		get().clearPermissionsState();
+		get().stopStream?.();
+		get().clearToast?.();
+
+		set({
+			mindMap: null,
+			mapId: null,
+			reactFlowInstance: null,
+			activeTool: 'default',
+			mobileTapMultiSelectEnabled: false,
+			mapAccessError: null,
+			nodes: [],
+			edges: [],
+			selectedNodes: [],
+			systemUpdatedNodes: new Map(),
+			systemUpdatedEdges: new Map(),
+			realtimeSelectedNodes: [],
+			comments: [],
+			commentMessages: {},
+			activeCommentId: null,
+			isLoadingComments: false,
+			commentError: null,
+			historyMeta: [],
+			historyIndex: -1,
+			isReverting: false,
+			revertingIndex: null,
+			historyPageOffset: 0,
+			historyHasMore: false,
+			popoverOpen: {
+				contextMenu: false,
+				edgeEdit: false,
+				history: false,
+				mergeSuggestions: false,
+				aiContent: false,
+				generateFromNodesModal: false,
+				sharePanel: false,
+				joinRoom: false,
+				permissionManager: false,
+				roomCodeDisplay: false,
+				guestSignup: false,
+				aiChat: false,
+				referenceSearch: false,
+				mapSettings: false,
+				upgradeUser: false,
+			},
+			edgeInfo: null,
+			contextMenuState: {
+				x: 0,
+				y: 0,
+				nodeId: null,
+				edgeId: null,
+			},
+			isFocusMode: false,
+			isCommentMode: false,
+			isDraggingNodes: false,
+			nodeEditor: {
+				isOpen: false,
+				mode: 'create',
+				position: { x: 0, y: 0 },
+				screenPosition: { x: 0, y: 0 },
+				parentNode: null,
+				existingNodeId: null,
+				suggestedType: null,
+				initialValue: null,
+				onboardingSource: null,
+			},
+			commandPalette: {
+				isOpen: false,
+				position: { x: 0, y: 0 },
+				searchQuery: '',
+				selectedIndex: 0,
+				filteredCommands: [],
+				trigger: null,
+				anchorPosition: 0,
+				activeNodeType: 'defaultNode',
+			},
+			aiFeature: 'suggest-nodes',
+			ghostNodes: [],
+			isGeneratingSuggestions: false,
+			suggestionError: null,
+			mergeSuggestions: [],
+			isStreaming: false,
+			streamingError: null,
+			activeStreamId: null,
+			streamTrigger: null,
+			chunks: [],
+			streamingAPI: null,
+			stopStreamCallback: null,
+			lastTriggerTime: 0,
+			pendingAnimations: new Map(),
+			chatMessages: [],
+			isChatStreaming: false,
+			chatContext: {
+				mapId: null,
+				selectedNodeIds: [],
+				contextMode: 'summary',
+			},
+			isChatOpen: false,
+			shareTokens: [],
+			currentShares: [],
+			activeToken: undefined,
+			sharingError: undefined,
+			lastJoinResult: undefined,
+			loadingStates: {
+				isAddingContent: false,
+				isStateLoading: false,
+				isHistoryLoading: false,
+				isGenerating: false,
+				isSummarizing: false,
+				isExtracting: false,
+				isSearching: false,
+				isGeneratingContent: false,
+				isSuggestingConnections: false,
+				isSummarizingBranch: false,
+				isSuggestingMerges: false,
+				isSavingNode: false,
+				isSavingEdge: false,
+				isLoadingComments: false,
+				isSavingComment: false,
+				isDeletingComment: false,
+				isUpdatingMapSettings: false,
+				isDeletingMap: false,
+			},
+		});
+	},
 
 	generateUserProfile: (user: User | null): UserProfile | null => {
 		if (!user) return null;
@@ -139,6 +269,20 @@ export const createCoreDataSlice: StateCreator<
 				throw new Error('Map ID is required.');
 			}
 
+			const isRequestCurrent = () => get().mapId === mapId;
+			const dismissLoadingToast = () => {
+				if (toastId) {
+					toast.dismiss(toastId);
+				}
+			};
+			const abortIfStale = () => {
+				if (isRequestCurrent()) {
+					return false;
+				}
+				dismissLoadingToast();
+				return true;
+			};
+
 			// Avoid stale permission state while switching maps.
 			get().unsubscribeFromPermissionUpdates();
 			get().clearPermissionsState();
@@ -151,6 +295,9 @@ export const createCoreDataSlice: StateCreator<
 				.select('*')
 				.eq('map_id', mapId)
 				.single();
+			if (abortIfStale()) {
+				return;
+			}
 
 			// Handle potential access denial (PGRST116 = no rows returned)
 			if (mindMapError) {
@@ -164,9 +311,15 @@ export const createCoreDataSlice: StateCreator<
 					try {
 						// Call check-access API to determine the reason
 						const response = await fetch(`/api/maps/${mapId}/check-access`);
+						if (abortIfStale()) {
+							return;
+						}
 
 						if (response.ok) {
 							const result = await response.json();
+							if (abortIfStale()) {
+								return;
+							}
 							const { status } = result.data;
 							const currentUser = get().currentUser;
 							const userProfile = get().generateUserProfile(currentUser);
@@ -180,9 +333,11 @@ export const createCoreDataSlice: StateCreator<
 									},
 								});
 								// Dismiss loading toast silently - UI handles error state
-								if (toastId) toast.dismiss(toastId);
+								dismissLoadingToast();
 								return;
-							} else if (status === 'not_found') {
+							}
+
+							if (status === 'not_found') {
 								set({
 									mapAccessError: {
 										type: 'not_found',
@@ -190,7 +345,7 @@ export const createCoreDataSlice: StateCreator<
 									},
 								});
 								// Dismiss loading toast silently - UI handles error state
-								if (toastId) toast.dismiss(toastId);
+								dismissLoadingToast();
 								return;
 							}
 							// If status is 'owner' or 'shared', something else went wrong
@@ -202,12 +357,19 @@ export const createCoreDataSlice: StateCreator<
 					}
 				}
 
+				if (abortIfStale()) {
+					return;
+				}
+
 				throw new Error(
 					mindMapError.message || 'Failed to fetch mind map data.'
 				);
 			}
 
 			if (!mindMapData) {
+				if (abortIfStale()) {
+					return;
+				}
 				// This shouldn't happen if error handling above is correct
 				const currentUser = get().currentUser;
 				const userProfile = get().generateUserProfile(currentUser);
@@ -218,7 +380,7 @@ export const createCoreDataSlice: StateCreator<
 					},
 				});
 				// Dismiss loading toast silently - UI handles error state
-				if (toastId) toast.dismiss(toastId);
+				dismissLoadingToast();
 				return;
 			}
 
@@ -236,10 +398,17 @@ export const createCoreDataSlice: StateCreator<
 			if (isTemplateMap && !isTemplateOwner && hasEmptyTemplateGraph) {
 				try {
 					const templateResponse = await fetch(`/api/templates/${mapId}`);
+					if (abortIfStale()) {
+						return;
+					}
+
 					if (templateResponse.ok) {
 						const templateResult = (await templateResponse.json()) as {
 							data?: { mindMapData?: SupabaseMapData };
 						};
+						if (abortIfStale()) {
+							return;
+						}
 
 						if (templateResult.data?.mindMapData) {
 							graphData = templateResult.data.mindMapData;
@@ -256,6 +425,10 @@ export const createCoreDataSlice: StateCreator<
 						templateError
 					);
 				}
+			}
+
+			if (abortIfStale()) {
+				return;
 			}
 
 			const normalizedPersistedLayoutDirection = normalizeLayoutDirection(
@@ -275,6 +448,9 @@ export const createCoreDataSlice: StateCreator<
 					DEFAULT_LAYOUT_CONFIG.direction,
 				legacyOnly: true,
 			});
+			if (abortIfStale()) {
+				return;
+			}
 
 			set((state) => ({
 				mindMap: transformedData.mindMap,
@@ -315,6 +491,9 @@ export const createCoreDataSlice: StateCreator<
 			if (toastId) {
 				toast.success('Mind map loaded', { id: toastId });
 			}
+			if (abortIfStale()) {
+				return;
+			}
 
 			// Only await what's needed for UI rendering (comments + permissions)
 			// Subscriptions have 10s timeouts and shouldn't block isStateLoading
@@ -323,6 +502,9 @@ export const createCoreDataSlice: StateCreator<
 				// Fetch permissions first; realtime updates apply deltas afterwards.
 				get().fetchInitialPermissions(mapId),
 			]);
+			if (abortIfStale()) {
+				return;
+			}
 
 			// Fire subscriptions in background - don't await
 			// These have 10s timeouts and shouldn't gate UI/permissions
@@ -435,18 +617,30 @@ export const createCoreDataSlice: StateCreator<
 	},
 
 	unsubscribeFromRealtimeUpdates: async () => {
-		try {
-			await Promise.all([
-				get().unsubscribeFromNodes(),
-				get().unsubscribeFromEdges(),
-				get().unsubscribeFromCommentUpdates(),
-				get().unsubscribeFromHistoryCurrent(),
-			]);
-			get().unsubscribeFromPermissionUpdates();
-			get().clearPermissionsState();
-		} catch (error) {
-			console.error('Failed to stop real-time subscriptions:', error);
+		const inFlight = get()._realtimeUnsubscribePromise;
+		if (inFlight) {
+			return inFlight;
 		}
+
+		const unsubscribePromise = (async () => {
+			try {
+				await Promise.all([
+					get().unsubscribeFromNodes(),
+					get().unsubscribeFromEdges(),
+					get().unsubscribeFromCommentUpdates(),
+					get().unsubscribeFromHistoryCurrent(),
+				]);
+				get().unsubscribeFromPermissionUpdates();
+				get().clearPermissionsState();
+			} catch (error) {
+				console.error('Failed to stop real-time subscriptions:', error);
+			} finally {
+				set({ _realtimeUnsubscribePromise: null });
+			}
+		})();
+
+		set({ _realtimeUnsubscribePromise: unsubscribePromise });
+		return unsubscribePromise;
 	},
 
 	reset: () => {

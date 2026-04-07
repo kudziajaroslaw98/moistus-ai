@@ -45,7 +45,7 @@ jest.mock('@xyflow/react', () => ({
 	}) => <div className={className}>{children}</div>,
 }))
 
-function renderTopBar() {
+function renderTopBar({ isMapReady = true }: { isMapReady?: boolean } = {}) {
 	return render(
 		<MindMapTopBar
 			activityState='viewing'
@@ -55,6 +55,7 @@ function renderTopBar() {
 			handleToggleHistorySidebar={jest.fn()}
 			handleToggleMapSettings={jest.fn()}
 			handleToggleSharePanel={jest.fn()}
+			isMapReady={isMapReady}
 			mapId='map-1'
 			mindMap={{ title: 'Dump', user_id: 'user-1' }}
 			mobileMenuOpen={false}
@@ -112,5 +113,16 @@ describe('MindMapTopBar mobile header', () => {
 		expect(screen.getByTestId('top-bar-actions')).toBeInTheDocument()
 		expect(screen.getByTestId('share-button')).toBeInTheDocument()
 		expect(screen.queryByLabelText('Open menu')).not.toBeInTheDocument()
+	})
+
+	it('streams account controls first and hides map-dependent controls before map is ready', () => {
+		mockIsMobile = false
+
+		renderTopBar({ isMapReady: false })
+
+		expect(screen.getByTestId('notification-bell')).toBeInTheDocument()
+		expect(screen.getByTestId('user-menu')).toBeInTheDocument()
+		expect(screen.queryByTestId('top-bar-actions')).not.toBeInTheDocument()
+		expect(screen.queryByTestId('share-button')).not.toBeInTheDocument()
 	})
 })

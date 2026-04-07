@@ -1226,6 +1226,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					existingSub &&
 					typeof (existingSub as any).unsubscribe === 'function'
 				) {
+					set({ _nodesSubscription: null });
 					try {
 						await (existingSub as any).unsubscribe();
 					} catch (e) {
@@ -1234,7 +1235,6 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 							e
 						);
 					}
-					set({ _nodesSubscription: null });
 				}
 
 				// Use secure broadcast channel instead of postgres_changes
@@ -1264,12 +1264,12 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 			const { _nodesSubscription } = get();
 
 			if (_nodesSubscription) {
+				set({ _nodesSubscription: null });
 				try {
 					// Call cleanup function (decrements ref count, unsubscribes when count reaches 0)
 					if (typeof (_nodesSubscription as any).unsubscribe === 'function') {
 						await (_nodesSubscription as any).unsubscribe();
 					}
-					set({ _nodesSubscription: null });
 				} catch (error) {
 					console.error(
 						'[broadcast] Error unsubscribing from node events:',

@@ -3,6 +3,7 @@
 import { resolveBrowserPartyKitHost } from '@/helpers/local-dev-url';
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import { getMindMapRoomName } from '@/lib/realtime/room-names';
+import { asNonEmptyString, stableStringify } from '@/lib/realtime/util';
 import YPartyKitProvider from 'y-partykit/provider';
 import * as Y from 'yjs';
 
@@ -178,7 +179,56 @@ function cloneRecord(
 	return { ...value };
 }
 
-import { asNonEmptyString, stableStringify } from '@/lib/realtime/util';
+type YObservableListeners = {
+	_eH?: {
+		l?: unknown[];
+	};
+	_observers?: Map<string, Set<unknown>>;
+};
+
+function hasYjsObserver(
+	target: YObservableListeners,
+	observer: unknown
+): boolean {
+	const listeners = target._eH?.l;
+	if (Array.isArray(listeners) && listeners.includes(observer)) {
+		return true;
+	}
+
+	const observersByEvent = target._observers;
+	if (!observersByEvent) {
+		return false;
+	}
+
+	for (const observerSet of observersByEvent.values()) {
+		if (observerSet?.has(observer)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+function isMissingYjsHandlerError(error: unknown): boolean {
+	return (
+		error instanceof Error &&
+		error.message.includes("Tried to remove event handler that doesn't exist")
+	);
+}
+
+function safeUnobserve(
+	target: { unobserve: (observer: unknown) => void },
+	observer: unknown
+): void {
+	try {
+		target.unobserve(observer);
+	} catch (error) {
+		if (isMissingYjsHandlerError(error)) {
+			return;
+		}
+		console.warn('[yjs-provider] Failed to unregister observer', error);
+	}
+}
 
 function parsePayloadActorId(payload: unknown): string | null {
 	const record = toRecord(payload);
@@ -582,10 +632,29 @@ export async function subscribeToYjsSyncEvents(
 	context.events.observe(processNewEvents);
 	processNewEvents();
 
+	let isCleanedUp = false;
+
 	return () => {
-		context.events.unobserve(processNewEvents);
+		if (isCleanedUp) {
+			return;
+		}
+		isCleanedUp = true;
+
+		if (
+			hasYjsObserver(
+				context.events as unknown as YObservableListeners,
+				processNewEvents
+			)
+		) {
+			safeUnobserve(
+				context.events as unknown as { unobserve: (observer: unknown) => void },
+				processNewEvents
+			);
+		}
 		context.subscriberCursors.delete(subscriberId);
-		pruneRetainedSyncEvents(context, MAX_RETAINED_EVENTS);
+		if (roomContexts.get(roomName) === context) {
+			pruneRetainedSyncEvents(context, MAX_RETAINED_EVENTS);
+		}
 		releaseYjsRoom(roomName);
 	};
 }
@@ -628,13 +697,36 @@ export async function subscribeToYjsGraphMutations(
 		};
 
 		yMap.observe(observer);
-		return () => yMap.unobserve(observer);
+
+		let isMapObserverCleanedUp = false;
+		return () => {
+			if (isMapObserverCleanedUp) {
+				return;
+			}
+			isMapObserverCleanedUp = true;
+
+			if (
+				hasYjsObserver(yMap as unknown as YObservableListeners, observer)
+			) {
+				safeUnobserve(
+					yMap as unknown as { unobserve: (observer: unknown) => void },
+					observer
+				);
+			}
+		};
 	};
 
 	const cleanupNodes = observeMap('node', context.nodesById);
 	const cleanupEdges = observeMap('edge', context.edgesById);
 
+	let isCleanedUp = false;
+
 	return () => {
+		if (isCleanedUp) {
+			return;
+		}
+		isCleanedUp = true;
+
 		cleanupNodes();
 		cleanupEdges();
 		releaseYjsRoom(roomName);
@@ -678,8 +770,21 @@ export async function subscribeToYjsAwareness(
 	awareness.on('change', onChange);
 	onChange();
 
+	let isCleanedUp = false;
+
 	return () => {
-		awareness.off('change', onChange);
+		if (isCleanedUp) {
+			return;
+		}
+		isCleanedUp = true;
+
+		try {
+			awareness.off('change', onChange);
+		} catch (error) {
+			if (!isMissingYjsHandlerError(error)) {
+				console.warn('[yjs-provider] Failed to remove awareness handler', error);
+			}
+		}
 		releaseYjsRoom(roomName);
 	};
 }

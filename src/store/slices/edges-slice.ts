@@ -1103,6 +1103,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					existingSub &&
 					typeof (existingSub as any).unsubscribe === 'function'
 				) {
+					set({ _edgesSubscription: null });
 					try {
 						await (existingSub as any).unsubscribe();
 					} catch (e) {
@@ -1111,7 +1112,6 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 							e
 						);
 					}
-					set({ _edgesSubscription: null });
 				}
 
 				// Use secure broadcast channel instead of postgres_changes
@@ -1139,12 +1139,12 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 			const { _edgesSubscription } = get();
 
 			if (_edgesSubscription) {
+				set({ _edgesSubscription: null });
 				try {
 					// Call cleanup function (decrements ref count, unsubscribes when count reaches 0)
 					if (typeof (_edgesSubscription as any).unsubscribe === 'function') {
 						await (_edgesSubscription as any).unsubscribe();
 					}
-					set({ _edgesSubscription: null });
 				} catch (error) {
 					console.error(
 						'[broadcast] Error unsubscribing from edge events:',

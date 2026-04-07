@@ -45,6 +45,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-04-02 - Simplified landing copy below the hero and synced the hero promise to the approved momentum-to-clarity language -->
 <!-- Updated: 2026-04-07 - Added immediate landing CTA navigation feedback with route-level dashboard loading boundary -->
 <!-- Updated: 2026-04-07 - Moved walkthrough checklist/pill to the left and lowered walkthrough/tour overlays below side panels -->
+<!-- Updated: 2026-04-07 - Added map-route loading skeletons plus map-scoped runtime store reset to prevent stale map flashes -->
+<!-- Updated: 2026-04-07 - Fixed map-route skeleton deadlock by bootstrapping fetch before canvas readiness gate -->
+<!-- Updated: 2026-04-07 - Made map-route unmount clear Strict-Mode-safe to avoid aborting in-flight initial loads -->
+<!-- Updated: 2026-04-07 - Aligned mind-map loading skeleton chrome with real map top bar/canvas/bottom dock layout -->
+<!-- Updated: 2026-04-07 - Shipped progressive map-shell streaming and hardened Yjs cleanup idempotency against repeated unsubscribe paths -->
 
 ## [2026-04-07]
 
@@ -67,6 +72,25 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Pricing CTAs had the same no-feedback gap and needed immediate click reassurance consistent with the rest of the landing page
 - **onboarding/walkthrough-layering-and-placement**: Lowered onboarding + guided-tour overlays beneath the `SidePanel` boundary and moved walkthrough checklist/pill anchoring from desktop right to left while keeping the mobile wide surface pattern
   - Why: Walkthrough UI is part of the app canvas layer, while settings/share/history side panels must remain above it as modal surfaces
+- **mind-map/progressive-shell-streaming**: Kept the real map shell mounted during in-page loading, forced pre-ready graph props to `[]`, and streamed account chrome immediately while gating map-dependent actions behind `isMapReady`
+  - Why: Preserves visual continuity and avoids stale map flashes without blocking top-level editor chrome while payload fetches
+
+### Fixed
+
+- **mind-map/navigation-loading-gating**: Added a dedicated mind-map route loading boundary and in-canvas readiness gating so the editor renders a full skeleton until the requested `mapId` and `mindMap.id` are aligned
+  - Why: Navigating from dashboard to a different map could briefly paint stale canvas state from the previous map before the new payload landed
+- **mind-map/runtime-store-cleanup**: Added a map-scoped `clearMindMapRuntimeState()` action and call it on mind-map unmount, plus stale-request guards in `fetchMindMapData` to ignore late responses after route exit/switch
+  - Why: Back-navigation and rapid map switches left old map data in shared client state long enough to flash incorrect content
+- **mind-map/skeleton-fetch-bootstrap**: Moved route map bootstrap (`setMapId` + `fetchMindMapData`) to `MindMapCanvas` so loading can start while the skeleton gate is active
+  - Why: Kicking off fetch inside `ReactFlowArea` created a deadlock once `ReactFlowArea` was intentionally hidden until requested-map readiness
+- **mind-map/strict-mode-unmount-clear**: Deferred `clearMindMapRuntimeState()` cleanup to a microtask and skipped it if the canvas immediately remounts in Strict Mode effect replay
+  - Why: Dev Strict Mode cleanup replay could clear `mapId` during first load and cause stale-guarded fetches to be dropped before readiness
+- **mind-map/skeleton-chrome-parity**: Replaced the generic center-card loading skeleton with a map-view chrome skeleton (top bar placeholders, dotted canvas backdrop, and bottom dock/tool placeholders)
+  - Why: The previous skeleton layout did not match the real editor structure and made route loading feel visually inconsistent
+- **mind-map/skeleton-shell-parity-v2**: Tightened route fallback chrome spacing and visual rhythm to better match the live top bar/canvas/dock footprint, and removed non-existent center placeholders
+  - Why: The first skeleton pass still looked materially different from the actual editor shell and caused perceptual mismatch during navigation
+- **realtime/yjs-idempotent-unsubscribe**: Hardened Yjs observer cleanup paths and awareness teardown with repeated-unsubscribe safety, plus kept cleanup registry/slice/core guards aligned to single-run teardown semantics
+  - Why: Back navigation and overlapping unmount cleanup calls could trigger duplicate unobserve/off attempts and surface `[yjs] Tried to remove event handler that doesn't exist`
 
 ## [2026-04-02]
 

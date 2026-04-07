@@ -99,6 +99,7 @@ export const createHistorySlice: StateCreator<
 				existingSub &&
 				typeof (existingSub as any).unsubscribe === 'function'
 			) {
+				set({ _historyCurrentSubscription: null });
 				try {
 					await (existingSub as any).unsubscribe();
 				} catch (e) {
@@ -107,7 +108,6 @@ export const createHistorySlice: StateCreator<
 						e
 					);
 				}
-				set({ _historyCurrentSubscription: null });
 			}
 
 			// Use secure broadcast channel instead of postgres_changes
@@ -145,6 +145,7 @@ export const createHistorySlice: StateCreator<
 	unsubscribeFromHistoryCurrent: async () => {
 		const { _historyCurrentSubscription } = get();
 		if (_historyCurrentSubscription) {
+			set({ _historyCurrentSubscription: null });
 			try {
 				// Call cleanup function (decrements ref count, unsubscribes when count reaches 0)
 				if (
@@ -152,7 +153,6 @@ export const createHistorySlice: StateCreator<
 				) {
 					await (_historyCurrentSubscription as any).unsubscribe();
 				}
-				set({ _historyCurrentSubscription: null });
 			} catch (e) {
 				console.error(
 					'[broadcast] Failed to unsubscribe from history events:',
