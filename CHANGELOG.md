@@ -43,7 +43,28 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-03-29 - Tightened node-editor autocomplete regression coverage -->
 <!-- Updated: 2026-04-01 - Fixed LAN local-dev URL/auth behavior, tightened node-editor dismissal docs/tests, and consolidated the landing redesign plus responsive hero polish -->
 <!-- Updated: 2026-04-02 - Simplified landing copy below the hero and synced the hero promise to the approved momentum-to-clarity language -->
+<!-- Updated: 2026-04-07 - Added immediate landing CTA navigation feedback with route-level dashboard loading boundary -->
+<!-- Updated: 2026-04-07 - Moved walkthrough checklist/pill to the left and lowered walkthrough/tour overlays below side panels -->
 
+## [2026-04-07]
+
+### Added
+
+- **landing/start-mapping-link-feedback**: Added a shared `StartMappingLink` component that uses `next/link` + `useLinkStatus` with instant optimistic click feedback, inline spinner/label swap, and a subtle fixed top progress hint during pending navigation
+  - Why: Landing-to-dashboard clicks could feel unresponsive during auth/data latency and gave no immediate reassurance that the click registered
+- **dashboard/route-loading-boundary**: Added `src/app/dashboard/loading.tsx` so App Router can render a segment loading fallback while dashboard auth/render work is in flight
+  - Why: Dynamic dashboard navigation needs an explicit route loading boundary for reliable pre-navigation and in-flight visual feedback
+- **tests/landing-navigation-feedback**: Added Jest coverage for immediate click feedback, `useLinkStatus` pending reflection, keyboard activation feedback, optimistic pending reset behavior, plus a Playwright regression test that delays dashboard navigation and asserts feedback appears first
+  - Why: This interaction is easy to regress at both component and browser levels and now has focused guardrails
+- **tests/walkthrough-layering-contract**: Added focused onboarding, guided-tour, and side-panel Jest coverage to lock z-index contracts (`onboarding/tour < side-panel`) plus desktop left-anchored checklist/pill behavior
+  - Why: These are easy visual regressions that can silently return during UI polish without explicit contract tests
+
+### Changed
+
+- **landing/cta-navigation-wiring**: Replaced raw landing `Start Mapping` anchors in hero/nav/final CTA with the shared feedback-aware link component
+  - Why: Raw anchors bypassed App Router link pending hooks and left click state opaque during slower transitions
+- **onboarding/walkthrough-layering-and-placement**: Lowered onboarding + guided-tour overlays beneath the `SidePanel` boundary and moved walkthrough checklist/pill anchoring from desktop right to left while keeping the mobile wide surface pattern
+  - Why: Walkthrough UI is part of the app canvas layer, while settings/share/history side panels must remain above it as modal surfaces
 ## [2026-04-02]
 
 ### Changed

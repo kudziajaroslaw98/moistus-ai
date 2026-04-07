@@ -1,10 +1,11 @@
 'use client';
 
 import { cn } from '@/utils/cn';
-import { ArrowRight, Keyboard, Sparkles, Users } from 'lucide-react';
+import { Keyboard, Sparkles, Users } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { HeroBackground } from './hero-background';
 import { HeroMapScene } from './hero-map-scene';
+import { StartMappingLink } from './start-mapping-link';
 
 const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
 
@@ -99,16 +100,11 @@ export function HeroSection() {
 						}
 						className='mx-auto mt-5 flex max-w-sm flex-col items-stretch gap-3 sm:flex-row sm:items-center lg:mx-0 lg:mt-6 lg:max-w-none'
 					>
-						<a
-							href='/dashboard'
+						<StartMappingLink
 							className='landing-hero-primary-cta inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-6 text-base font-semibold text-neutral-900 shadow-[0_12px_40px_rgba(255,255,255,0.14)] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background'
-						>
-							Start Mapping
-							<ArrowRight
-								aria-hidden='true'
-								className='landing-hero-primary-cta-arrow h-4 w-4 transition-transform duration-200'
-							/>
-						</a>
+							showArrow
+							arrowClassName='landing-hero-primary-cta-arrow h-4 w-4 transition-transform duration-200'
+						/>
 						<button
 							onClick={scrollToFeatures}
 							className='landing-hero-secondary-cta inline-flex h-12 cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-5 text-base font-medium text-text-primary transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background'

@@ -6,6 +6,7 @@
 <!-- Updated: 2026-04-01 - Documented LAN-safe local-dev runtime service URL derivation -->
 <!-- Updated: 2026-04-01 - Documented stable Supabase SSR auth cookie naming for LAN dev -->
 <!-- Updated: 2026-04-01 - Documented node-editor portaled autocomplete dismissal guard -->
+<!-- Updated: 2026-04-07 - Documented landing start-mapping pending feedback pattern and dashboard loading boundary -->
 
 ## Engineering Philosophy
 
@@ -170,6 +171,9 @@ pnpm pretty          # Prettier
 
 **Node editor autocomplete surfaces**: Keep `createCompletions()` as the single source of autocomplete options. Desktop uses the native CodeMirror tooltip; mobile hides that tooltip and renders a hybrid presenter: a compact full-width strip attached to the open keyboard, or a caret-anchored floating panel when the keyboard is hidden. Any editor/modal outside-press guard must treat both `[data-node-editor-autocomplete-tray="true"]` and body-portaled `.cm-tooltip*` elements as inside-editor interactions so selecting a suggestion does not dismiss the editor.
 <!-- Updated: 2026-03-28 - Documented the hybrid mobile autocomplete presenter and shared completion engine -->
+
+**Landing dashboard CTA feedback**: Keep landing `Start Mapping` entry points on `StartMappingLink` (`next/link` + `useLinkStatus` + optimistic pending feedback). Keep `src/app/dashboard/loading.tsx` in place so App Router has a route-level fallback while dashboard auth/render work is pending.
+<!-- Updated: 2026-04-07 - Added landing CTA pending-feedback and dashboard loading-boundary guardrail -->
 
 **Rate Limiting**: In-memory only (`src/helpers/api/rate-limiter.ts`), won't scale horizontally without Redis.
 

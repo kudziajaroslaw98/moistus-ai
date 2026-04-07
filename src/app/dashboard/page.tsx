@@ -1,16 +1,6 @@
 import { redirect } from 'next/navigation';
-import { Suspense } from 'react';
 import { checkDashboardAuth } from './auth-check';
 import { DashboardContent } from './dashboard-content';
-
-// Loading fallback
-function DashboardLoading() {
-	return (
-		<div className='flex min-h-screen items-center justify-center bg-zinc-950'>
-			<div className='h-8 w-8 animate-spin rounded-full border-4 border-zinc-800 border-t-sky-500' />
-		</div>
-	);
-}
 
 /**
  * Server component wrapper for dashboard.
@@ -27,11 +17,7 @@ export default async function DashboardPage() {
 		redirect(redirectPath);
 	}
 
-	return (
-		<Suspense fallback={<DashboardLoading />}>
-			<DashboardContent />
-		</Suspense>
-	);
+	return <DashboardContent />;
 }
 
 // Prevent caching - user state can change

@@ -1,7 +1,7 @@
 'use client';
 
-import { ArrowRight } from 'lucide-react';
 import { useReducedMotion } from 'motion/react';
+import { StartMappingLink } from './start-mapping-link';
 
 const footerLinks = [
 	{ label: 'Features', href: '#features' },
@@ -55,16 +55,11 @@ export function FinalCta() {
 							</div>
 
 							<div className='group inline-block'>
-								<a
-									href='/dashboard'
+								<StartMappingLink
 									className='inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-6 text-base font-semibold text-neutral-900 shadow-[0_12px_36px_rgba(255,255,255,0.14)] transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-[0_18px_42px_rgba(255,255,255,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background'
-								>
-									Start Mapping
-									<ArrowRight
-										aria-hidden='true'
-										className='h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5'
-									/>
-								</a>
+									showArrow
+									arrowClassName='h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5'
+								/>
 							</div>
 						</div>
 					</div>
