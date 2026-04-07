@@ -65,15 +65,19 @@ import { MindMapTopBar, MobileMenu } from './top-bar';
 // Feature flag: Set NEXT_PUBLIC_ENABLE_AI_CHAT=true to enable AI Chat
 const ENABLE_AI_CHAT = process.env.NEXT_PUBLIC_ENABLE_AI_CHAT === 'true';
 
-export function ReactFlowArea() {
+interface ReactFlowAreaProps {
+	isMapReady: boolean;
+}
+
+export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 	const mapId = useParams().id;
 	const reactFlowInstance = useReactFlow();
 	const bottomDockRef = useRef<HTMLDivElement | null>(null);
 	const connectingNodeId = useRef<string | null>(null);
 	const connectingHandleId = useRef<string | null>(null);
 	const connectingHandleType = useRef<'source' | 'target' | null>(null);
-	// Prevent duplicate fetch in React Strict Mode (dev runs effects twice)
-	const fetchStartedRef = useRef(false);
+	// Prevent duplicate share-user bootstrap in React Strict Mode
+	const shareUsersFetchMapRef = useRef<string | null>(null);
 	const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 	const [settingsTab, setSettingsTab] = useState<'account' | 'billing'>(
@@ -102,9 +106,7 @@ export function ReactFlowArea() {
 		setPopoverOpen,
 		popoverOpen,
 		setEdgeInfo,
-		setMapId,
 		addNode: addNode,
-		fetchMindMapData,
 		deleteNodes,
 		isDraggingNodes,
 		deleteEdges,
@@ -153,9 +155,7 @@ export function ReactFlowArea() {
 			popoverOpen: state.popoverOpen,
 			isDraggingNodes: state.isDraggingNodes,
 			setEdgeInfo: state.setEdgeInfo,
-			setMapId: state.setMapId,
 			addNode: state.addNode,
-			fetchMindMapData: state.fetchMindMapData,
 			deleteNodes: state.deleteNodes,
 			deleteEdges: state.deleteEdges,
 			setIsDraggingNodes: state.setIsDraggingNodes,
@@ -361,8 +361,13 @@ export function ReactFlowArea() {
 	]);
 
 	useEffect(() => {
+		if (!isMapReady) {
+			return;
+		}
+
 		maybeStartOnboarding();
 	}, [
+		isMapReady,
 		maybeStartOnboarding,
 		mindMap,
 		currentUser,
@@ -380,13 +385,11 @@ export function ReactFlowArea() {
 	}, [reactFlowInstance, setReactFlowInstance]);
 
 	useEffect(() => {
-		if (!mapId || !supabase) return;
-		// Prevent duplicate fetch in React Strict Mode (dev runs effects twice)
-		if (fetchStartedRef.current) return;
-		fetchStartedRef.current = true;
+		if (!isMapReady || !mapId || !supabase) return;
+		const routeMapId = mapId as string;
+		if (shareUsersFetchMapRef.current === routeMapId) return;
+		shareUsersFetchMapRef.current = routeMapId;
 
-		setMapId(mapId as string);
-		fetchMindMapData(mapId as string);
 		getCurrentShareUsers().catch((error) => {
 			console.error(
 				'[ReactFlowArea] Failed to fetch current share users:',
@@ -394,7 +397,7 @@ export function ReactFlowArea() {
 			);
 			toast.error('Failed to load collaborators for this map');
 		});
-	}, [fetchMindMapData, mapId, supabase, getCurrentShareUsers]);
+	}, [isMapReady, mapId, supabase, getCurrentShareUsers]);
 
 	useEffect(() => {
 		return () => {
@@ -441,6 +444,10 @@ export function ReactFlowArea() {
 	// Handle "/" key to open InlineNodeCreator
 	useLayoutEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
+			if (!isMapReady) {
+				return;
+			}
+
 			// Track typing activity when user types in input fields
 			if (isInputElement(e.target)) {
 				// Ignore modifier keys, arrow keys, etc.
@@ -468,12 +475,14 @@ export function ReactFlowArea() {
 
 		window.addEventListener('keydown', handleKeyDown);
 		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, [mousePosition, openNodeEditor, reactFlowInstance, setTyping]);
+	}, [isMapReady, mousePosition, openNodeEditor, reactFlowInstance, setTyping]);
 
 	const isSelectMode = activeTool === 'default';
 	const isPanningMode = activeTool === 'pan';
 	const isMobileTapMultiSelectActive =
 		isMobile && canEdit && isSelectMode && mobileTapMultiSelectEnabled;
+	const renderNodes = isMapReady ? displayNodes : [];
+	const renderEdges = isMapReady ? displayEdges : [];
 
 	const handleNodeDoubleClick = useCallback(
 		(event: React.MouseEvent, node: Node<NodeData>) => {
@@ -729,20 +738,23 @@ export function ReactFlowArea() {
 				connectionLineComponent={FloatingConnectionLine}
 				connectionLineType={ConnectionLineType.Bezier}
 				connectionMode={ConnectionMode.Loose}
-				deleteKeyCode={canEdit ? ['Delete'] : null}
+				deleteKeyCode={isMapReady && canEdit ? ['Delete'] : null}
 				disableKeyboardA11y={true}
-				edges={displayEdges}
+				edges={renderEdges}
 				edgeTypes={edgeTypes}
-				elementsSelectable={isSelectMode}
+				elementsSelectable={isMapReady && isSelectMode}
 				fitView={true}
 				minZoom={0.1}
 				multiSelectionKeyCode={['Meta', 'Control']}
-				nodes={displayNodes}
+				nodes={renderNodes}
 				nodesConnectable={
-					(isSelectMode || activeTool === 'connector') && canEdit
+					isMapReady && (isSelectMode || activeTool === 'connector') && canEdit
 				}
 				nodesDraggable={
-					isSelectMode && canEdit && !isMobileTapMultiSelectActive
+					isMapReady &&
+					isSelectMode &&
+					canEdit &&
+					!isMobileTapMultiSelectActive
 				}
 				nodeTypes={nodeTypesWithProps}
 				onConnect={onConnect}
@@ -789,6 +801,7 @@ export function ReactFlowArea() {
 				<MindMapTopBar
 					mapId={mapId as string}
 					mindMap={mindMap}
+					isMapReady={isMapReady}
 					currentUser={currentUser}
 					userProfile={userProfile}
 					activityState={activityState}
@@ -812,6 +825,7 @@ export function ReactFlowArea() {
 						<ModeIndicator />
 
 						<Toolbar
+							isMapReady={isMapReady}
 							mobileTapMultiSelectEnabled={mobileTapMultiSelectEnabled}
 							onMobileTapMultiSelectChange={setMobileTapMultiSelectEnabled}
 						/>
@@ -849,6 +863,7 @@ export function ReactFlowArea() {
 					open={mobileMenuOpen}
 					onOpenChange={setMobileMenuOpen}
 					canEdit={canEdit}
+					isMapReady={isMapReady}
 					isMapOwner={mindMap?.user_id === currentUser?.id}
 					activityState={activityState}
 					mapId={mapId as string}

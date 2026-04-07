@@ -33,7 +33,7 @@ export function CanvasPlacementHint({
 	return (
 		<motion.div
 			{...motionProps}
-			className='fixed z-[58] rounded-3xl border border-primary-500/25 bg-base/95 p-4 shadow-xl shadow-black/35 backdrop-blur-md'
+			className='fixed z-[36] rounded-3xl border border-primary-500/25 bg-base/95 p-4 shadow-xl shadow-black/35 backdrop-blur-md'
 			data-testid='onboarding-canvas-hint'
 			style={
 				isMobile

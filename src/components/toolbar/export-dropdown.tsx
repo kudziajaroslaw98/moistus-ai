@@ -313,7 +313,11 @@ export function ExportMenuContent({
 	);
 }
 
-export function ExportDropdown() {
+interface ExportDropdownProps {
+	disabled?: boolean;
+}
+
+export function ExportDropdown({ disabled = false }: ExportDropdownProps) {
 	const { isExporting } = useAppStore(
 		useShallow((state) => ({
 			isExporting: state.isExporting,
@@ -331,7 +335,7 @@ export function ExportDropdown() {
 						size='icon'
 						title='Export Mind Map'
 						variant='secondary'
-						disabled={isExporting}
+						disabled={disabled || isExporting}
 					>
 						{isExporting ? (
 							<Loader2 className='size-4 animate-spin' />

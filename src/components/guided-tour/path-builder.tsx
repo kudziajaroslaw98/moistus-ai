@@ -102,7 +102,7 @@ export const PathBuilder = memo(function PathBuilder({
 				exit={{ opacity: 0, y: 20 }}
 				transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
 				className={cn(
-					'absolute bottom-20 left-4 z-50',
+					'absolute bottom-20 left-4 z-[37]',
 					'w-72 max-h-96',
 					'bg-zinc-900/90 backdrop-blur-md',
 					'border border-white/10 rounded-lg',

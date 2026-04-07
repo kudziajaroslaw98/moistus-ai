@@ -73,7 +73,7 @@ export const SpotlightOverlay = memo(function SpotlightOverlay({
 					animate={{ opacity: 1 }}
 					exit={{ opacity: 0 }}
 					transition={{ duration: 0.3 }}
-					className="pointer-events-none fixed inset-0 z-40"
+					className="pointer-events-none fixed inset-0 z-[35]"
 					style={{
 						// Create a spotlight effect using a radial gradient mask
 						background: `radial-gradient(
@@ -95,7 +95,7 @@ export const SpotlightOverlay = memo(function SpotlightOverlay({
 					animate={{ opacity: 1, scale: 1 }}
 					exit={{ opacity: 0, scale: 0.9 }}
 					transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-					className="pointer-events-none fixed z-30"
+					className="pointer-events-none fixed z-[34]"
 					style={{
 						left: nodeRect.left - 8,
 						top: nodeRect.top - 8,

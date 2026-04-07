@@ -60,6 +60,7 @@ interface ToolButton {
 }
 
 interface ToolbarProps {
+	isMapReady: boolean;
 	mobileTapMultiSelectEnabled: boolean;
 	onMobileTapMultiSelectChange: (enabled: boolean) => void;
 }
@@ -126,6 +127,7 @@ const tools: ToolButton[] = [
 ];
 
 export const Toolbar = ({
+	isMapReady,
 	mobileTapMultiSelectEnabled,
 	onMobileTapMultiSelectChange,
 }: ToolbarProps) => {
@@ -188,8 +190,12 @@ export const Toolbar = ({
 			// Only allow Pan mode for viewers/commentators
 			return cursorTools.filter((t) => t.id === 'pan');
 		}
+		if (!isMapReady) {
+			// Before map payload is ready, keep only non-map-dependent cursor modes.
+			return cursorTools.filter((t) => t.id === 'default' || t.id === 'pan');
+		}
 		return cursorTools;
-	}, [canEdit]);
+	}, [canEdit, isMapReady]);
 
 	// Filter tools based on permissions, removing hidden items and cleaning up separators
 	const visibleTools = useMemo(() => {
@@ -278,6 +284,10 @@ export const Toolbar = ({
 			return;
 		}
 
+		if (!isMapReady && toolId !== 'default' && toolId !== 'pan') {
+			return;
+		}
+
 		if (toolId === 'chat') {
 			toggleChat();
 			// Don't change the active tool for chat
@@ -313,6 +323,7 @@ export const Toolbar = ({
 							data-onboarding-target='ai-suggestions'
 							size='icon'
 							title={title}
+							disabled={!isMapReady}
 							variant={isAIPopoverOpen ? 'default' : 'secondary'}
 						>
 							{isStreaming ? (
@@ -390,6 +401,7 @@ export const Toolbar = ({
 					size='icon'
 					title={tool.label ?? `Tool ${index}`}
 					variant='secondary'
+					disabled={!isMapReady}
 					className={cn(
 						isChatOpen &&
 							'text-text-primary bg-primary-500 border-2 border-primary-500/20',
@@ -410,6 +422,7 @@ export const Toolbar = ({
 					size='icon'
 					title={tool.label ?? `Tool ${index}`}
 					variant='secondary'
+					disabled={!isMapReady}
 					className={cn(
 						isCommentMode &&
 							'text-text-primary bg-primary-500 border-2 border-primary-500/20',
@@ -435,6 +448,7 @@ export const Toolbar = ({
 				onClick={() => onToolChange(tool.id)}
 				size='icon'
 				title={tool.label ?? `Tool ${index}`}
+				disabled={!isMapReady}
 				variant={activeTool === tool.id ? 'default' : 'secondary'}
 			>
 				{tool.icon}
@@ -454,11 +468,11 @@ export const Toolbar = ({
 		}
 
 		if (tool.id === 'layout') {
-			return <LayoutDropdown key={tool.id} />;
+			return <LayoutDropdown key={tool.id} disabled={!isMapReady} />;
 		}
 
 		if (tool.id === 'export') {
-			return <ExportDropdown key={tool.id} />;
+			return <ExportDropdown key={tool.id} disabled={!isMapReady} />;
 		}
 
 		if (tool.id === 'present') {
@@ -472,7 +486,7 @@ export const Toolbar = ({
 								size='icon'
 								title='Guided Tour'
 								variant='secondary'
-								disabled={nodes.length === 0}
+								disabled={!isMapReady || nodes.length === 0}
 							>
 								<Play className='size-4' />
 							</Button>
@@ -635,6 +649,7 @@ export const Toolbar = ({
 								<DropdownMenuCheckboxItem
 									checked={mobileTapMultiSelectEnabled}
 									data-testid='cursor-toggle-tap-multi-select'
+									disabled={!isMapReady}
 									onCheckedChange={(checked) =>
 										onMobileTapMultiSelectChange(checked === true)
 									}
@@ -672,6 +687,7 @@ export const Toolbar = ({
 										data-onboarding-target='more-tools'
 										size='icon'
 										title='More Tools'
+										disabled={!isMapReady}
 										variant='secondary'
 										data-testid='toolbar-more-button'
 									>

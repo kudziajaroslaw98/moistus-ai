@@ -2,6 +2,7 @@
 
 import { cn } from '@/utils/cn';
 import { AnimatePresence, motion } from 'motion/react';
+import { useIsMac } from '@/hooks/use-platform';
 
 interface ActionBarProps {
 	onCreate: () => void;
@@ -21,6 +22,9 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 	className,
 }) => {
 	const isBusy = isCreating || isCheckingLimit;
+	const isMac = useIsMac();
+	const modifierKey = isMac ? 'Cmd' : 'Ctrl';
+	const suggestionShortcut = isMac ? 'Cmd+.' : 'Ctrl+Space';
 
 	return (
 		<motion.div
@@ -39,9 +43,9 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 					<span className='text-zinc-400'>Checking map limit...</span>
 				) : (
 					<>
-						<span className='hidden sm:inline'>Press </span>Ctrl+Enter to {mode === 'edit' ? 'update' : 'create'}
+						<span className='hidden sm:inline'>Press </span>{modifierKey}+Enter to {mode === 'edit' ? 'update' : 'create'}
 						<span className='hidden sm:inline'> • Enter for new line</span>
-						<span className='hidden sm:inline'> • Ctrl+Space for suggestions</span>
+						<span className='hidden sm:inline'> • {suggestionShortcut} for suggestions</span>
 					</>
 				)}
 			</motion.span>

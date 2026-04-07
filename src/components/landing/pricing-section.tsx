@@ -3,9 +3,9 @@
 import { PRICING_TIERS } from '@/constants/pricing-tiers';
 import { Check, X } from 'lucide-react';
 import { motion, useInView, useReducedMotion } from 'motion/react';
-import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { GrainOverlay } from './grain-overlay';
+import { StartMappingLink } from './start-mapping-link';
 
 const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
 const PRO_TIER = PRICING_TIERS.find((tier) => tier.id === 'pro');
@@ -234,20 +234,19 @@ export function PricingSection() {
 										</div>
 
 										<div className='mt-auto pt-10'>
-											<Link
+											<StartMappingLink
 												href={
 													tier.id === 'free'
 														? '/dashboard'
 														: '/auth/sign-up?plan=pro'
 												}
+												idleLabel={tier.ctaText}
 												className={`inline-flex h-11 w-full items-center justify-center rounded-xl px-4 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
 													tier.recommended
 														? 'bg-white text-neutral-900 shadow-[0_12px_30px_rgba(255,255,255,0.14)] hover:shadow-[0_18px_36px_rgba(255,255,255,0.18)]'
 														: 'border border-white/10 bg-white/[0.04] text-text-primary hover:bg-white/[0.08]'
 												}`}
-											>
-												{tier.ctaText}
-											</Link>
+											/>
 										</div>
 									</motion.div>
 								</div>

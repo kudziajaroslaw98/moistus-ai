@@ -15,8 +15,11 @@ describe('broadcast-channel sync routing', () => {
 			mapId: string,
 			handlers: Record<string, (...args: any[]) => void>
 		) => Promise<() => void>;
+		unsubscribeFromSyncChannel: (mapId: string) => Promise<void>;
 		subscribeToYjsGraphMutations: jest.Mock;
 		subscribeToYjsSyncEvents: jest.Mock;
+		cleanupGraph: jest.Mock;
+		cleanupSync: jest.Mock;
 		emitGraphMutation: (mutation: Record<string, unknown>) => void;
 	} {
 		process.env = { ...originalEnv };
@@ -24,17 +27,17 @@ describe('broadcast-channel sync routing', () => {
 		let graphMutationHandler:
 			| ((mutation: Record<string, unknown>) => void)
 			| null = null;
+		const cleanupGraph = jest.fn();
+		const cleanupSync = jest.fn();
 		const subscribeToYjsGraphMutations = jest
 			.fn()
 			.mockImplementation(
 				async (_roomName: string, handler: (mutation: Record<string, unknown>) => void) => {
 					graphMutationHandler = handler;
-					return () => undefined;
+					return cleanupGraph;
 				}
 			);
-		const subscribeToYjsSyncEvents = jest
-			.fn()
-			.mockResolvedValue(() => undefined);
+		const subscribeToYjsSyncEvents = jest.fn().mockResolvedValue(cleanupSync);
 
 		jest.doMock('@/lib/realtime/yjs-provider', () => ({
 			applyYjsGraphMutation: jest.fn(),
@@ -47,17 +50,21 @@ describe('broadcast-channel sync routing', () => {
 			subscribeToYjsSyncEvents,
 		}));
 
-		const { subscribeToSyncEvents } = require('./broadcast-channel') as {
+		const { subscribeToSyncEvents, unsubscribeFromSyncChannel } = require('./broadcast-channel') as {
 			subscribeToSyncEvents: (
 				mapId: string,
 				handlers: Record<string, (...args: any[]) => void>
 			) => Promise<() => void>;
+			unsubscribeFromSyncChannel: (mapId: string) => Promise<void>;
 		};
 
 		return {
 			subscribeToSyncEvents,
+			unsubscribeFromSyncChannel,
 			subscribeToYjsGraphMutations,
 			subscribeToYjsSyncEvents,
+			cleanupGraph,
+			cleanupSync,
 			emitGraphMutation: (mutation: Record<string, unknown>) => {
 				if (!graphMutationHandler) {
 					throw new Error('Graph mutation handler is not registered');
@@ -160,5 +167,34 @@ describe('broadcast-channel sync routing', () => {
 				timestamp: Date.parse('2021-01-01T00:00:00.000Z'),
 			})
 		);
+	});
+
+	it('makes returned unsubscribe idempotent and runs underlying cleanup once', async () => {
+		const { subscribeToSyncEvents, cleanupGraph } = loadModule();
+		const unsubscribe = await subscribeToSyncEvents('map-1', {
+			onNodeCreate: jest.fn(),
+		});
+
+		unsubscribe();
+		unsubscribe();
+
+		expect(cleanupGraph).toHaveBeenCalledTimes(1);
+	});
+
+	it('keeps cleanup registry safe when map unsubscribe and consumer unsubscribe overlap', async () => {
+		const {
+			subscribeToSyncEvents,
+			unsubscribeFromSyncChannel,
+			cleanupGraph,
+		} = loadModule();
+
+		const unsubscribe = await subscribeToSyncEvents('map-1', {
+			onNodeUpdate: jest.fn(),
+		});
+
+		await unsubscribeFromSyncChannel('map-1');
+		unsubscribe();
+
+		expect(cleanupGraph).toHaveBeenCalledTimes(1);
 	});
 });

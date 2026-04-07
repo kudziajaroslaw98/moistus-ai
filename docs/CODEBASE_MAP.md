@@ -41,6 +41,12 @@ total_tokens: 707972
 <!-- Updated: 2026-04-01 - Noted the mobile-centered landing pass with simplified mobile hero/section chrome and the desktop feature-width regression fix -->
 <!-- Updated: 2026-04-01 - Noted the parser-driven landing hero editor demo across breakpoints -->
 <!-- Updated: 2026-04-01 - Noted the follow-up removal of mobile-only highlight stacks in support/pricing sections -->
+<!-- Updated: 2026-04-07 - Documented shared landing CTA pending-feedback link (Start Mapping/Get Started/Go Pro) and dashboard route loading boundary -->
+<!-- Updated: 2026-04-07 - Documented mind-map route loading skeleton and map-scoped runtime reset safeguards -->
+<!-- Updated: 2026-04-07 - Documented MindMapCanvas fetch bootstrap to avoid skeleton readiness deadlocks -->
+<!-- Updated: 2026-04-07 - Documented Strict Mode-safe map-route cleanup replay guard -->
+<!-- Updated: 2026-04-07 - Documented progressive map-shell streaming and Yjs cleanup idempotency guards -->
+<!-- Updated: 2026-04-07 - Documented dashboard shell-parity loading fallback and progressive map-card skeleton streaming -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -48,6 +54,10 @@ A collaborative mind mapping application built with Next.js 16, React 19, TypeSc
 **Layout animation note:** `ReactFlowArea` now renders through a transient animated graph state for explicit full layout and local layout flows. Zustand still stores only final node/edge geometry; the 550ms tween is client-only and does not persist or broadcast intermediate frames, and an animation version is only marked handled after the tween settles or is explicitly cancelled.
 
 **Local layout note:** Deterministic local branch reflow now has two phases: same-depth child repack inside the edited branch, then cousin-branch corridor expansion on the carrier layer when the grown subtree would overlap neighboring cousin subtrees. Ancestors stay fixed, and load-time legacy layout normalization persists only when the fetched map/edge snapshot is still current.
+
+**Mind-map loading note:** Route-level `loading.tsx` provides initial shell fallback, while in-page loading keeps the real editor chrome mounted and gates only map-dependent behavior via `isMapReady` (`nodes/edges` forced to empty until requested map payload is ready).
+
+**Realtime teardown note:** Yjs provider cleanup and broadcast/slice/core unsubscribe paths are intentionally idempotent to tolerate overlapping unmount and back-navigation teardowns without duplicate observer removal errors.
 
 ## System Overview
 
@@ -155,7 +165,7 @@ shiko/
 │   │   │   ├── templates/      # Map templates
 │   │   │   └── user/           # Profile, billing
 │   │   ├── auth/               # Sign-in/up pages
-│   │   ├── dashboard/          # Map list, templates
+│   │   ├── dashboard/          # Map list/templates with shell-parity route loading fallback plus progressive in-page map-card skeleton streaming
 │   │   ├── join/               # Room code join flow
 │   │   └── mind-map/           # Canvas page
 │   │
@@ -163,11 +173,11 @@ shiko/
 │   │   ├── ai-chat/            # AI chat panel
 │   │   ├── auth/               # Auth UI (banner, upgrade, sign-up wizard)
 │   │   ├── context-menu/       # Right-click menus
-│   │   ├── dashboard/          # Map cards, settings
+│   │   ├── dashboard/          # Map cards, settings, and loading skeleton shells
 │   │   ├── edges/              # 6 edge types (floating, waypoint, ghost)
 │   │   ├── guided-tour/        # Prezi-style presentations
 │   │   ├── history/            # Version history sidebar
-│   │   ├── landing/            # Marketing flow: parser-driven hero editor demo, low-chrome payoff rail, screenshot-led features, aligned pricing cards, and a lighter FAQ close
+│   │   ├── landing/            # Marketing flow + shared CTA link feedback (Start Mapping/Get Started/Go Pro with next/link pending + optimistic click hint + top progress bar)
 │   │   ├── mind-map/           # React Flow integration + mobile top bar/drawer chrome
 │   │   ├── modals/             # Dialogs (edge edit, upgrade, etc.)
 │   │   ├── node-editor/        # Command system, CodeMirror, mobile autocomplete tray
@@ -353,6 +363,19 @@ shiko/
 
 - `src/components/mind-map/map-settings-panel.tsx` now focuses on persistable metadata fields (`title`, `description`, `tags`, `thumbnailUrl`) with client-side validation and explicit save flow
 - `src/components/mind-map/discard-settings-changes-dialog.tsx` guards close actions when unsaved edits exist
+
+**Mind Map Route Loading + Runtime Reset:**
+
+- `src/app/mind-map/[id]/loading.tsx` now provides an App Router segment-level loading boundary for map navigation
+- `src/components/mind-map/mind-map-loading-skeleton.tsx` is the shared skeleton surface used during map-route transitions
+- `src/components/mind-map-canvas.tsx` bootstraps route map loading (`setMapId` + `fetchMindMapData`), gates canvas rendering on requested-route readiness (`state.mapId === params.id` and `state.mindMap?.id === params.id`), and clears map-scoped runtime state on unmount with a Strict Mode-safe replay guard
+- `src/store/slices/core-slice.ts` exposes `clearMindMapRuntimeState()` and stale-guards `fetchMindMapData` writes so late responses cannot repopulate stale map data after route exit/switch
+
+**Dashboard Progressive Loading:**
+
+- `src/app/dashboard/loading.tsx` now renders a shell-parity dashboard loading skeleton instead of a standalone spinner
+- `src/components/dashboard/dashboard-loading-skeleton.tsx` contains both route-level shell fallback and in-page map-card skeleton placeholders (`grid`/`list`)
+- `src/app/dashboard/dashboard-content.tsx` keeps dashboard chrome mounted and progressively streams `DashboardMapsLoadingSkeleton` while `/api/maps` is loading for the initial empty cache
 
 **Dashboard Account/Billing Settings Panel:**
 

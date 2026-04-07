@@ -43,6 +43,59 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-03-29 - Tightened node-editor autocomplete regression coverage -->
 <!-- Updated: 2026-04-01 - Fixed LAN local-dev URL/auth behavior, tightened node-editor dismissal docs/tests, and consolidated the landing redesign plus responsive hero polish -->
 <!-- Updated: 2026-04-02 - Simplified landing copy below the hero and synced the hero promise to the approved momentum-to-clarity language -->
+<!-- Updated: 2026-04-07 - Added immediate landing CTA navigation feedback with route-level dashboard loading boundary -->
+<!-- Updated: 2026-04-07 - Moved walkthrough checklist/pill to the left and lowered walkthrough/tour overlays below side panels -->
+<!-- Updated: 2026-04-07 - Added map-route loading skeletons plus map-scoped runtime store reset to prevent stale map flashes -->
+<!-- Updated: 2026-04-07 - Fixed map-route skeleton deadlock by bootstrapping fetch before canvas readiness gate -->
+<!-- Updated: 2026-04-07 - Made map-route unmount clear Strict-Mode-safe to avoid aborting in-flight initial loads -->
+<!-- Updated: 2026-04-07 - Aligned mind-map loading skeleton chrome with real map top bar/canvas/bottom dock layout -->
+<!-- Updated: 2026-04-07 - Shipped progressive map-shell streaming and hardened Yjs cleanup idempotency against repeated unsubscribe paths -->
+<!-- Updated: 2026-04-07 - Replaced dashboard spinner fallback with shell-parity loading and in-page progressive map-card skeleton streaming -->
+
+## [2026-04-07]
+
+### Added
+
+- **landing/start-mapping-link-feedback**: Added a shared `StartMappingLink` component that uses `next/link` + `useLinkStatus` with instant optimistic click feedback, inline spinner/label swap, and a subtle fixed top progress hint during pending navigation
+  - Why: Landing-to-dashboard clicks could feel unresponsive during auth/data latency and gave no immediate reassurance that the click registered
+- **dashboard/route-loading-boundary**: Added `src/app/dashboard/loading.tsx` so App Router can render a segment loading fallback while dashboard auth/render work is in flight
+  - Why: Dynamic dashboard navigation needs an explicit route loading boundary for reliable pre-navigation and in-flight visual feedback
+- **tests/landing-navigation-feedback**: Added Jest coverage for immediate click feedback, `useLinkStatus` pending reflection, keyboard activation feedback, optimistic pending reset behavior, plus a Playwright regression test that delays dashboard navigation and asserts feedback appears first
+  - Why: This interaction is easy to regress at both component and browser levels and now has focused guardrails
+- **tests/walkthrough-layering-contract**: Added focused onboarding, guided-tour, and side-panel Jest coverage to lock z-index contracts (`onboarding/tour < side-panel`) plus desktop left-anchored checklist/pill behavior
+  - Why: These are easy visual regressions that can silently return during UI polish without explicit contract tests
+
+### Changed
+
+- **landing/cta-navigation-wiring**: Replaced raw landing `Start Mapping` anchors in hero/nav/final CTA with the shared feedback-aware link component
+  - Why: Raw anchors bypassed App Router link pending hooks and left click state opaque during slower transitions
+- **landing/pricing-cta-navigation-feedback**: Wired pricing card `Get Started` and `Go Pro` buttons to the same shared pending-feedback link flow
+  - Why: Pricing CTAs had the same no-feedback gap and needed immediate click reassurance consistent with the rest of the landing page
+- **onboarding/walkthrough-layering-and-placement**: Lowered onboarding + guided-tour overlays beneath the `SidePanel` boundary and moved walkthrough checklist/pill anchoring from desktop right to left while keeping the mobile wide surface pattern
+  - Why: Walkthrough UI is part of the app canvas layer, while settings/share/history side panels must remain above it as modal surfaces
+- **mind-map/progressive-shell-streaming**: Kept the real map shell mounted during in-page loading, forced pre-ready graph props to `[]`, and streamed account chrome immediately while gating map-dependent actions behind `isMapReady`
+  - Why: Preserves visual continuity and avoids stale map flashes without blocking top-level editor chrome while payload fetches
+- **dashboard/progressive-shell-streaming**: Replaced the route-level full-screen spinner with a dashboard shell skeleton and switched in-page map loading from blocking text to progressive card skeleton streaming while preserving real header/toolbar shell
+  - Why: Dashboard navigation now behaves consistently with map loading by showing stable chrome immediately and streaming content placeholders without hard screen swaps
+
+### Fixed
+
+- **mind-map/navigation-loading-gating**: Added a dedicated mind-map route loading boundary and in-canvas readiness gating so the editor renders a full skeleton until the requested `mapId` and `mindMap.id` are aligned
+  - Why: Navigating from dashboard to a different map could briefly paint stale canvas state from the previous map before the new payload landed
+- **mind-map/runtime-store-cleanup**: Added a map-scoped `clearMindMapRuntimeState()` action and call it on mind-map unmount, plus stale-request guards in `fetchMindMapData` to ignore late responses after route exit/switch
+  - Why: Back-navigation and rapid map switches left old map data in shared client state long enough to flash incorrect content
+- **mind-map/skeleton-fetch-bootstrap**: Moved route map bootstrap (`setMapId` + `fetchMindMapData`) to `MindMapCanvas` so loading can start while the skeleton gate is active
+  - Why: Kicking off fetch inside `ReactFlowArea` created a deadlock once `ReactFlowArea` was intentionally hidden until requested-map readiness
+- **mind-map/strict-mode-unmount-clear**: Deferred `clearMindMapRuntimeState()` cleanup to a microtask and skipped it if the canvas immediately remounts in Strict Mode effect replay
+  - Why: Dev Strict Mode cleanup replay could clear `mapId` during first load and cause stale-guarded fetches to be dropped before readiness
+- **mind-map/skeleton-chrome-parity**: Replaced the generic center-card loading skeleton with a map-view chrome skeleton (top bar placeholders, dotted canvas backdrop, and bottom dock/tool placeholders)
+  - Why: The previous skeleton layout did not match the real editor structure and made route loading feel visually inconsistent
+- **mind-map/skeleton-shell-parity-v2**: Tightened route fallback chrome spacing and visual rhythm to better match the live top bar/canvas/dock footprint, and removed non-existent center placeholders
+  - Why: The first skeleton pass still looked materially different from the actual editor shell and caused perceptual mismatch during navigation
+- **realtime/yjs-idempotent-unsubscribe**: Hardened Yjs observer cleanup paths and awareness teardown with repeated-unsubscribe safety, plus kept cleanup registry/slice/core guards aligned to single-run teardown semantics
+  - Why: Back navigation and overlapping unmount cleanup calls could trigger duplicate unobserve/off attempts and surface `[yjs] Tried to remove event handler that doesn't exist`
+- **tests/dashboard-loading-skeleton-regression**: Added focused tests for route-level dashboard shell loading and view-mode card skeleton counts, plus reran dashboard settings coverage
+  - Why: Locks the new progressive dashboard loading behavior and prevents regressions back to blocking spinner-only fallbacks
 
 ## [2026-04-02]
 

@@ -82,6 +82,7 @@ export interface CoreDataSlice {
 	activeTool: Tool;
 	mobileTapMultiSelectEnabled: boolean;
 	mapAccessError: MapAccessError | null;
+	_realtimeUnsubscribePromise: Promise<void> | null;
 	setMindMapContent: (content: { nodes: AppNode[]; edges: AppEdge[] }) => void;
 	setActiveTool: (tool: Tool) => void;
 	setMobileTapMultiSelectEnabled: (enabled: boolean) => void;
@@ -92,6 +93,7 @@ export interface CoreDataSlice {
 	setState: (state: Partial<AppState>) => void;
 	setMapAccessError: (error: MapAccessError | null) => void;
 	clearMapAccessError: () => void;
+	clearMindMapRuntimeState: () => void;
 	generateUserProfile: (user: User | null) => UserProfile | null;
 	getCurrentUser: () => Promise<User | null>;
 	centerOnNode: (nodeId: string) => void;

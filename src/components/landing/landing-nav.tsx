@@ -15,6 +15,7 @@ import {
 	useTransform,
 } from 'motion/react';
 import { useCallback, useRef, useState } from 'react';
+import { StartMappingLink } from './start-mapping-link';
 
 const navLinks = [
 	{ label: 'Features', href: '#features' },
@@ -92,12 +93,7 @@ export function LandingNav() {
 
 					<div className='flex items-center gap-3'>
 						<div className='group hidden sm:block'>
-							<a
-								href='/dashboard'
-								className='inline-flex h-10 items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-neutral-900 shadow-[0_12px_30px_rgba(255,255,255,0.14)] transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-[0_18px_36px_rgba(255,255,255,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background'
-							>
-								Start Mapping
-							</a>
+							<StartMappingLink className='inline-flex h-10 items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-neutral-900 shadow-[0_12px_30px_rgba(255,255,255,0.14)] transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-[0_18px_36px_rgba(255,255,255,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background' />
 						</div>
 
 						<Sheet
@@ -142,13 +138,12 @@ export function LandingNav() {
 								</nav>
 
 								<SheetFooter className='px-6 pb-6 mt-auto border-t border-border-subtle pt-4'>
-									<a
-										href='/dashboard'
-										onClick={() => handleMobileMenuOpenChange(false)}
+									<StartMappingLink
 										className='inline-flex h-11 w-full items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-neutral-900 shadow-[0_12px_30px_rgba(255,255,255,0.14)] transition-all duration-200 hover:shadow-[0_18px_36px_rgba(255,255,255,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background'
-									>
-										Start Mapping
-									</a>
+										onNavigateStart={() =>
+											handleMobileMenuOpenChange(false)
+										}
+									/>
 								</SheetFooter>
 							</SheetContent>
 						</Sheet>

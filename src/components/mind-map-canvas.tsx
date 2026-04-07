@@ -3,7 +3,7 @@
 import { useKeyboardNavigation } from '@/hooks/use-keyboard-navigation';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'; // Keep shortcuts here
 import { cn } from '@/utils/cn';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { ModalsWrapper } from './mind-map/modals-wrapper';
 import { ReactFlowArea } from './mind-map/react-flow-area';
 import NodeEditor from './node-editor/node-editor';
@@ -47,6 +47,11 @@ export function MindMapCanvas() {
 		openNodeEditor,
 		userProfile,
 		mapAccessError,
+		mindMap,
+		storeMapId,
+		setMapId,
+		fetchMindMapData,
+		clearMindMapRuntimeState,
 		applyLayout,
 		flushPendingNodeSaves,
 		flushPendingEdgeSaves,
@@ -61,19 +66,56 @@ export function MindMapCanvas() {
 			createGroupFromSelected: state.createGroupFromSelected,
 			ungroupNodes: state.ungroupNodes,
 			toggleNodeCollapse: state.toggleNodeCollapse,
-			currentUser: state.currentUser,
-			getCurrentUser: state.getCurrentUser,
 			openNodeEditor: state.openNodeEditor,
 			userProfile: state.userProfile,
 			mapAccessError: state.mapAccessError,
+			mindMap: state.mindMap,
+			storeMapId: state.mapId,
+			setMapId: state.setMapId,
+			fetchMindMapData: state.fetchMindMapData,
+			clearMindMapRuntimeState: state.clearMindMapRuntimeState,
 			applyLayout: state.applyLayout,
 			flushPendingNodeSaves: state.flushPendingNodeSaves,
 			flushPendingEdgeSaves: state.flushPendingEdgeSaves,
 		}))
 	);
+	const requestedMapRef = useRef<string | null>(null);
+	const isMountedRef = useRef(false);
 	const isLoading = loadingStates.isStateLoading;
+	const isRequestedMapReady =
+		storeMapId === mapId && Boolean(mindMap && mindMap.id === mapId);
+	const isInteractionBlocked = isLoading || !isRequestedMapReady;
 
 	useRealtimeSelectionPresenceRoom(getMindMapRoomName(mapId, 'selected-nodes'));
+
+	useEffect(() => {
+		if (!mapId) {
+			return;
+		}
+
+		if (requestedMapRef.current === mapId) {
+			return;
+		}
+
+		requestedMapRef.current = mapId;
+		setMapId(mapId);
+		void fetchMindMapData(mapId);
+	}, [fetchMindMapData, mapId, setMapId]);
+
+	useEffect(() => {
+		isMountedRef.current = true;
+
+		return () => {
+			isMountedRef.current = false;
+			Promise.resolve().then(() => {
+				// React Strict Mode replays effects in development.
+				// Clear only if the component stayed unmounted past the microtask.
+				if (!isMountedRef.current) {
+					clearMindMapRuntimeState();
+				}
+			});
+		};
+	}, [clearMindMapRuntimeState]);
 
 	/**
 	 * Flush pending debounced saves on page lifecycle events.
@@ -141,7 +183,7 @@ export function MindMapCanvas() {
 		onPaste: handlePaste,
 		selectedNodeId: selectedNodeId,
 		selectedEdgeId: selectedEdgeId,
-		isBusy: isLoading,
+		isBusy: isInteractionBlocked,
 		onGroup: handleGroup,
 		onUngroup: handleUngroup,
 		onToggleCollapse: handleToggleCollapse,
@@ -150,7 +192,7 @@ export function MindMapCanvas() {
 
 	// Keyboard navigation (arrow keys, Ctrl+Arrow creation, Enter edit)
 	useKeyboardNavigation({
-		enabled: !isLoading,
+		enabled: !isInteractionBlocked,
 	});
 
 	if (isChecking) {
@@ -195,7 +237,7 @@ export function MindMapCanvas() {
 				>
 					<ContextMenuWrapper />
 
-					<ReactFlowArea />
+					<ReactFlowArea isMapReady={isRequestedMapReady} />
 				</div>
 			</div>
 

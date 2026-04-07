@@ -315,8 +315,16 @@ describe('ReactFlowArea', () => {
 		);
 	});
 
+	it('renders empty graph while map payload is not ready', () => {
+		render(<ReactFlowArea isMapReady={false} />);
+
+		const latestRender = mockReactFlowRenderHistory.at(-1);
+		expect(latestRender?.nodes).toEqual([]);
+		expect(latestRender?.edges).toEqual([]);
+	});
+
 	it('renders animated display nodes and edges when layout animation is signaled', async () => {
-		const { rerender } = render(<ReactFlowArea />);
+		const { rerender } = render(<ReactFlowArea isMapReady={true} />);
 
 		expect(mockReactFlowRenderHistory.at(-1)?.nodes[0]?.position.x).toBe(0);
 
@@ -329,7 +337,7 @@ describe('ReactFlowArea', () => {
 		});
 
 		await act(async () => {
-			rerender(<ReactFlowArea />);
+			rerender(<ReactFlowArea isMapReady={true} />);
 			await Promise.resolve();
 			await Promise.resolve();
 		});

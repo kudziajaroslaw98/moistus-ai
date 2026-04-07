@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { useIsMac } from '@/hooks/use-platform';
 import { cn } from '@/utils/cn';
 import { ArrowUp, Loader2, Sparkles } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
@@ -45,6 +46,7 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 		const [showQuickPrompts, setShowQuickPrompts] = useState(false);
 		const internalRef = useRef<HTMLTextAreaElement>(null);
 		const shouldReduceMotion = useReducedMotion();
+		const isMac = useIsMac();
 
 		// Combine refs
 		const textareaRef = (node: HTMLTextAreaElement) => {
@@ -210,7 +212,7 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 				<div className='flex items-center justify-between px-1 text-[10px] text-zinc-500'>
 					<span className='flex items-center gap-1'>
 						<kbd className='px-1 py-0.5 rounded bg-zinc-800/50 font-mono'>
-							{navigator.platform.includes('Mac') ? 'Cmd' : 'Ctrl'}
+							{isMac ? 'Cmd' : 'Ctrl'}
 						</kbd>
 						<span>+</span>
 						<kbd className='px-1 py-0.5 rounded bg-zinc-800/50 font-mono'>

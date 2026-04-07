@@ -117,7 +117,11 @@ export function LayoutMenuContent() {
 	);
 }
 
-export function LayoutDropdown() {
+interface LayoutDropdownProps {
+	disabled?: boolean;
+}
+
+export function LayoutDropdown({ disabled = false }: LayoutDropdownProps) {
 	const { isLayouting } = useAppStore(
 		useShallow((state) => ({
 			isLayouting: state.isLayouting,
@@ -135,7 +139,7 @@ export function LayoutDropdown() {
 						size='icon'
 						title='Auto Layout'
 						variant='secondary'
-						disabled={isLayouting}
+						disabled={disabled || isLayouting}
 					>
 						{isLayouting ? (
 							<Loader2 className='size-4 animate-spin' />

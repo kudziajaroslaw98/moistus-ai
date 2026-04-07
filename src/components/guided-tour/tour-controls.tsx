@@ -90,7 +90,7 @@ export const TourControls = memo(function TourControls({
 						exit={{ opacity: 0, y: -20 }}
 						transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
 						className={cn(
-							'absolute top-0 left-0 right-0 z-50',
+							'absolute top-0 left-0 right-0 z-[37]',
 							'flex items-center justify-between',
 							'px-4 py-3',
 							'bg-gradient-to-b from-black/40 to-transparent'
@@ -148,7 +148,7 @@ export const TourControls = memo(function TourControls({
 						exit={{ opacity: 0, y: 20 }}
 						transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
 						className={cn(
-							'absolute bottom-0 left-0 right-0 z-50',
+							'absolute bottom-0 left-0 right-0 z-[37]',
 							'bg-gradient-to-t from-black/50 to-transparent',
 							'px-4 py-4'
 						)}

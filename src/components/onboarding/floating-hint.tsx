@@ -67,7 +67,7 @@ export function FloatingHint({
 		return (
 			<motion.div
 				animate={{ opacity: 1, y: 0 }}
-				className='fixed z-[58] rounded-2xl border border-primary-500/25 bg-base/95 p-4 shadow-xl shadow-black/35 backdrop-blur-md'
+				className='fixed z-[36] rounded-2xl border border-primary-500/25 bg-base/95 p-4 shadow-xl shadow-black/35 backdrop-blur-md'
 				data-testid={dataTestId}
 				exit={{ opacity: 0, y: 8 }}
 				initial={{ opacity: 0, y: 8 }}
@@ -97,7 +97,7 @@ export function FloatingHint({
 	return (
 		<motion.div
 			animate={{ opacity: 1, y: 0 }}
-			className='fixed inset-x-4 z-[58] rounded-[1.5rem] border border-primary-500/25 bg-base/95 p-4 shadow-xl shadow-black/35 backdrop-blur-md'
+			className='fixed inset-x-4 z-[36] rounded-[1.5rem] border border-primary-500/25 bg-base/95 p-4 shadow-xl shadow-black/35 backdrop-blur-md'
 			data-testid={dataTestId}
 			exit={{ opacity: 0, y: 12 }}
 			initial={{ opacity: 0, y: 12 }}

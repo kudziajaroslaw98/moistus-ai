@@ -20,6 +20,7 @@ export { MobileMenu } from './mobile-menu';
 interface MindMapTopBarProps {
 	mapId: string;
 	mindMap: { title?: string; user_id?: string } | null;
+	isMapReady: boolean;
 	currentUser: { id: string } | null;
 	userProfile: (PublicUserProfile & { email?: string; is_anonymous?: boolean }) | null;
 	activityState?: ActivityState;
@@ -38,6 +39,7 @@ interface MindMapTopBarProps {
 export function MindMapTopBar({
 	mapId,
 	mindMap,
+	isMapReady,
 	currentUser,
 	userProfile,
 	activityState,
@@ -66,7 +68,7 @@ export function MindMapTopBar({
 				<TopBarBreadcrumb title={mindMap?.title} isMobile={isMobile} />
 
 				{/* Desktop only: History */}
-				{!isMobile && canEdit && (
+				{!isMobile && isMapReady && canEdit && (
 					<TopBarActions onToggleHistory={handleToggleHistorySidebar} />
 				)}
 			</div>
@@ -83,7 +85,7 @@ export function MindMapTopBar({
 				)}
 
 				{/* Owner controls */}
-				{isMapOwner && !isMobile && (
+				{isMapReady && isMapOwner && !isMobile && (
 					<div className='flex gap-2'>
 						{/* Desktop only: Settings button */}
 						<Button
