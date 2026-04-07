@@ -16,7 +16,7 @@ jest.mock('next/link', () => {
 					onNavigate: _onNavigate,
 					...props
 				}: {
-					children: unknown;
+					children: React.ReactNode;
 					href: string;
 					onNavigate?: () => void;
 				},
@@ -85,7 +85,7 @@ describe('StartMappingLink', () => {
 		expect(screen.getByRole('link', { name: /opening\.\.\./i })).toBeInTheDocument();
 	});
 
-	it('shows pending feedback on space key activation', () => {
+	it('does not show pending feedback on space key press (anchor behavior)', () => {
 		const onNavigateStart = jest.fn();
 		render(
 			<StartMappingLink className='inline-flex' onNavigateStart={onNavigateStart} />
@@ -94,8 +94,8 @@ describe('StartMappingLink', () => {
 		const link = screen.getByRole('link', { name: /start mapping/i });
 		fireEvent.keyDown(link, { key: ' ' });
 
-		expect(onNavigateStart).toHaveBeenCalledTimes(1);
-		expect(screen.getByRole('link', { name: /opening\.\.\./i })).toBeInTheDocument();
+		expect(onNavigateStart).not.toHaveBeenCalled();
+		expect(screen.getByRole('link', { name: /start mapping/i })).toBeInTheDocument();
 	});
 
 	it('clears optimistic pending state when navigation does not continue', () => {

@@ -90,7 +90,7 @@ describe('Guided tour layering', () => {
 	it('renders path builder below side panels', () => {
 		const { container } = render(<PathBuilder />)
 
-		expect((useAppStore as jest.Mock).mock.calls.length).toBeGreaterThan(0)
+		expect(jest.mocked(useAppStore).mock.calls.length).toBeGreaterThan(0)
 		expect(container.querySelector('.z-\\[37\\]')).toBeInTheDocument()
 	})
 })

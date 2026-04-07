@@ -62,7 +62,7 @@ function isActivationClick(event: MouseEvent<HTMLAnchorElement>): boolean {
 }
 
 function isActivationKey(event: KeyboardEvent<HTMLAnchorElement>): boolean {
-	return event.key === 'Enter' || event.key === ' ';
+	return event.key === 'Enter';
 }
 
 function StartMappingLinkContent({

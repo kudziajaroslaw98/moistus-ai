@@ -2,19 +2,7 @@
 
 import { cn } from '@/utils/cn';
 import { AnimatePresence, motion } from 'motion/react';
-
-function getPlatformModifier() {
-	if (typeof navigator === 'undefined') {
-		return 'Cmd';
-	}
-
-	const platform =
-		(navigator as Navigator & { userAgentData?: { platform?: string } })
-			.userAgentData?.platform ?? navigator.platform;
-	const isMac = Boolean(platform) && platform.toLowerCase().includes('mac');
-
-	return isMac ? 'Cmd' : 'Ctrl';
-}
+import { useIsMac } from '@/hooks/use-platform';
 
 interface ActionBarProps {
 	onCreate: () => void;
@@ -34,8 +22,9 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 	className,
 }) => {
 	const isBusy = isCreating || isCheckingLimit;
-	const modifierKey = getPlatformModifier();
-	const suggestionShortcut = modifierKey === 'Cmd' ? 'Cmd+.' : 'Ctrl+Space';
+	const isMac = useIsMac();
+	const modifierKey = isMac ? 'Cmd' : 'Ctrl';
+	const suggestionShortcut = isMac ? 'Cmd+.' : 'Ctrl+Space';
 
 	return (
 		<motion.div

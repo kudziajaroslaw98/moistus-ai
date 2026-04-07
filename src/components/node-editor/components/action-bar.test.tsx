@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { ActionBar } from './action-bar';
 
 function setNavigatorPlatform(platform: string) {
@@ -31,16 +31,18 @@ describe('ActionBar', () => {
 		});
 	});
 
-	it('shows mac shortcut hints when platform is macOS', () => {
+	it('shows mac shortcut hints when platform is macOS', async () => {
 		setNavigatorPlatform('MacIntel');
 
-		render(
-			<ActionBar
-				canCreate
-				isCreating={false}
-				onCreate={jest.fn()}
-			/>
-		);
+		await act(async () => {
+			render(
+				<ActionBar
+					canCreate
+					isCreating={false}
+					onCreate={jest.fn()}
+				/>
+			);
+		});
 
 		expect(
 			screen.getByText(/Cmd\+Enter to create/)
@@ -50,16 +52,18 @@ describe('ActionBar', () => {
 		).toBeInTheDocument();
 	});
 
-	it('shows ctrl shortcut hints for non-mac platforms', () => {
+	it('shows ctrl shortcut hints for non-mac platforms', async () => {
 		setNavigatorPlatform('Win32');
 
-		render(
-			<ActionBar
-				canCreate
-				isCreating={false}
-				onCreate={jest.fn()}
-			/>
-		);
+		await act(async () => {
+			render(
+				<ActionBar
+					canCreate
+					isCreating={false}
+					onCreate={jest.fn()}
+				/>
+			);
+		});
 
 		expect(
 			screen.getByText(/Ctrl\+Enter to create/)

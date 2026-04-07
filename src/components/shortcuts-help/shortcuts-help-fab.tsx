@@ -8,31 +8,12 @@ import {
 	type ShortcutCategory,
 } from '@/constants/keyboard-shortcuts';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMac } from '@/hooks/use-platform';
 import { cn } from '@/utils/cn';
 import { Keyboard, X } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-
-/**
- * Detect if the user is on macOS for showing ⌘ vs Ctrl
- */
-function useIsMac() {
-	const [isMac, setIsMac] = useState(true); // Default to Mac for SSR
-
-	useEffect(() => {
-		if (typeof navigator === 'undefined') return;
-
-		// Prefer modern User-Agent Client Hints, fall back to deprecated navigator.platform
-		const platform =
-			(navigator as Navigator & { userAgentData?: { platform: string } })
-				.userAgentData?.platform ?? navigator.platform;
-
-		setIsMac(Boolean(platform) && platform.toLowerCase().includes('mac'));
-	}, []);
-
-	return isMac;
-}
 
 /**
  * Convert Mac-style key symbols to Windows equivalents
