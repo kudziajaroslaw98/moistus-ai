@@ -46,6 +46,7 @@ total_tokens: 707972
 <!-- Updated: 2026-04-07 - Documented MindMapCanvas fetch bootstrap to avoid skeleton readiness deadlocks -->
 <!-- Updated: 2026-04-07 - Documented Strict Mode-safe map-route cleanup replay guard -->
 <!-- Updated: 2026-04-07 - Documented progressive map-shell streaming and Yjs cleanup idempotency guards -->
+<!-- Updated: 2026-04-07 - Documented dashboard shell-parity loading fallback and progressive map-card skeleton streaming -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -164,7 +165,7 @@ shiko/
 │   │   │   ├── templates/      # Map templates
 │   │   │   └── user/           # Profile, billing
 │   │   ├── auth/               # Sign-in/up pages
-│   │   ├── dashboard/          # Map list/templates with route-level loading fallback for auth/render latency
+│   │   ├── dashboard/          # Map list/templates with shell-parity route loading fallback plus progressive in-page map-card skeleton streaming
 │   │   ├── join/               # Room code join flow
 │   │   └── mind-map/           # Canvas page
 │   │
@@ -172,7 +173,7 @@ shiko/
 │   │   ├── ai-chat/            # AI chat panel
 │   │   ├── auth/               # Auth UI (banner, upgrade, sign-up wizard)
 │   │   ├── context-menu/       # Right-click menus
-│   │   ├── dashboard/          # Map cards, settings
+│   │   ├── dashboard/          # Map cards, settings, and loading skeleton shells
 │   │   ├── edges/              # 6 edge types (floating, waypoint, ghost)
 │   │   ├── guided-tour/        # Prezi-style presentations
 │   │   ├── history/            # Version history sidebar
@@ -369,6 +370,12 @@ shiko/
 - `src/components/mind-map/mind-map-loading-skeleton.tsx` is the shared skeleton surface used during map-route transitions
 - `src/components/mind-map-canvas.tsx` bootstraps route map loading (`setMapId` + `fetchMindMapData`), gates canvas rendering on requested-route readiness (`state.mapId === params.id` and `state.mindMap?.id === params.id`), and clears map-scoped runtime state on unmount with a Strict Mode-safe replay guard
 - `src/store/slices/core-slice.ts` exposes `clearMindMapRuntimeState()` and stale-guards `fetchMindMapData` writes so late responses cannot repopulate stale map data after route exit/switch
+
+**Dashboard Progressive Loading:**
+
+- `src/app/dashboard/loading.tsx` now renders a shell-parity dashboard loading skeleton instead of a standalone spinner
+- `src/components/dashboard/dashboard-loading-skeleton.tsx` contains both route-level shell fallback and in-page map-card skeleton placeholders (`grid`/`list`)
+- `src/app/dashboard/dashboard-content.tsx` keeps dashboard chrome mounted and progressively streams `DashboardMapsLoadingSkeleton` while `/api/maps` is loading for the initial empty cache
 
 **Dashboard Account/Billing Settings Panel:**
 

@@ -4,6 +4,7 @@ import { UpgradeAnonymousPrompt } from '@/components/auth/upgrade-anonymous';
 import { CreateMapCard } from '@/components/dashboard/create-map-card';
 import { CreateMapDialog } from '@/components/dashboard/create-map-dialog';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
+import { DashboardMapsLoadingSkeleton } from '@/components/dashboard/dashboard-loading-skeleton';
 import { MindMapCard } from '@/components/dashboard/mind-map-card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -129,6 +130,7 @@ export function DashboardContent() {
 		revalidateOnReconnect: true,
 		dedupingInterval: 5000,
 	});
+	const showMapsSkeleton = mapsLoading && !mapsData.maps.length;
 
 	// Filter and sort maps
 	const filteredMaps = mapsData.maps
@@ -462,18 +464,6 @@ export function DashboardContent() {
 		handleRequestCreateMap,
 	]);
 
-	if (mapsLoading && !mapsData.maps.length) {
-		return (
-			<SidebarProvider>
-				<DashboardLayout>
-					<div className='flex min-h-screen items-center justify-center text-zinc-400'>
-						Loading your maps...
-					</div>
-				</DashboardLayout>
-			</SidebarProvider>
-		);
-	}
-
 	return (
 		<SidebarProvider>
 			<DashboardLayout>
@@ -609,20 +599,29 @@ export function DashboardContent() {
 								</div>
 
 								{/* Select All */}
-								{filteredMaps.length > 0 && (
+								{(filteredMaps.length > 0 || showMapsSkeleton) && (
 									<div className='mb-4 flex gap-2 h-9'>
-										<label className='flex items-center gap-3 text-sm text-zinc-400 cursor-pointer'>
-											<Checkbox
-												checked={
-													filteredMaps.length > 0 &&
-													filteredMaps.every((map) => selectedMaps.has(map.id))
-												}
-												onChange={handleSelectAll}
-												size='sm'
-												variant='default'
-											/>
-											<span>Select all ({filteredMaps.length} maps)</span>
-										</label>
+										{showMapsSkeleton ? (
+											<div className='flex items-center gap-3'>
+												<div className='h-4 w-4 rounded-sm bg-zinc-800 animate-pulse' />
+												<div className='h-4 w-36 rounded bg-zinc-800 animate-pulse' />
+											</div>
+										) : (
+											<label className='flex items-center gap-3 text-sm text-zinc-400 cursor-pointer'>
+												<Checkbox
+													checked={
+														filteredMaps.length > 0 &&
+														filteredMaps.every((map) =>
+															selectedMaps.has(map.id)
+														)
+													}
+													onChange={handleSelectAll}
+													size='sm'
+													variant='default'
+												/>
+												<span>Select all ({filteredMaps.length} maps)</span>
+											</label>
+										)}
 
 										{selectedMaps.size > 0 && (
 											<motion.div
@@ -665,34 +664,40 @@ export function DashboardContent() {
 											: 'space-y-2'
 									)}
 								>
-									{/* Create New Map Card */}
-									{mapsData.maps.length > 0 && (
-										<CreateMapCard
-											onClick={handleRequestCreateMap}
-											viewMode={viewMode}
-											disabled={isAtMapLimit}
-											limitInfo={mapLimitInfo}
-										/>
-									)}
+									{showMapsSkeleton ? (
+										<DashboardMapsLoadingSkeleton viewMode={viewMode} />
+									) : (
+										<>
+											{/* Create New Map Card */}
+											{mapsData.maps.length > 0 && (
+												<CreateMapCard
+													onClick={handleRequestCreateMap}
+													viewMode={viewMode}
+													disabled={isAtMapLimit}
+													limitInfo={mapLimitInfo}
+												/>
+											)}
 
-									{/* Existing Mind Maps */}
-									<AnimatePresence mode='popLayout'>
-										{filteredMaps.map((map) => (
-											<MindMapCard
-												key={map.id}
-												map={map}
-												onDelete={handleDeleteMap}
-												onDuplicate={handleDuplicateMap}
-												onSelect={handleSelectMap}
-												selected={selectedMaps.has(map.id)}
-												viewMode={viewMode}
-											/>
-										))}
-									</AnimatePresence>
+											{/* Existing Mind Maps */}
+											<AnimatePresence mode='popLayout'>
+												{filteredMaps.map((map) => (
+													<MindMapCard
+														key={map.id}
+														map={map}
+														onDelete={handleDeleteMap}
+														onDuplicate={handleDuplicateMap}
+														onSelect={handleSelectMap}
+														selected={selectedMaps.has(map.id)}
+														viewMode={viewMode}
+													/>
+												))}
+											</AnimatePresence>
+										</>
+									)}
 								</div>
 
 								{/* Empty State */}
-								{filteredMaps.length === 0 && (
+								{!showMapsSkeleton && filteredMaps.length === 0 && (
 									<div className='py-16 sm:py-24'>
 										<div className='text-center max-w-sm mx-auto'>
 											{searchQuery || filterBy !== 'all' ? (

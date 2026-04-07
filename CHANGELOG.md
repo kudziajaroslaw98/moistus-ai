@@ -50,6 +50,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-04-07 - Made map-route unmount clear Strict-Mode-safe to avoid aborting in-flight initial loads -->
 <!-- Updated: 2026-04-07 - Aligned mind-map loading skeleton chrome with real map top bar/canvas/bottom dock layout -->
 <!-- Updated: 2026-04-07 - Shipped progressive map-shell streaming and hardened Yjs cleanup idempotency against repeated unsubscribe paths -->
+<!-- Updated: 2026-04-07 - Replaced dashboard spinner fallback with shell-parity loading and in-page progressive map-card skeleton streaming -->
 
 ## [2026-04-07]
 
@@ -74,6 +75,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Walkthrough UI is part of the app canvas layer, while settings/share/history side panels must remain above it as modal surfaces
 - **mind-map/progressive-shell-streaming**: Kept the real map shell mounted during in-page loading, forced pre-ready graph props to `[]`, and streamed account chrome immediately while gating map-dependent actions behind `isMapReady`
   - Why: Preserves visual continuity and avoids stale map flashes without blocking top-level editor chrome while payload fetches
+- **dashboard/progressive-shell-streaming**: Replaced the route-level full-screen spinner with a dashboard shell skeleton and switched in-page map loading from blocking text to progressive card skeleton streaming while preserving real header/toolbar shell
+  - Why: Dashboard navigation now behaves consistently with map loading by showing stable chrome immediately and streaming content placeholders without hard screen swaps
 
 ### Fixed
 
@@ -91,6 +94,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: The first skeleton pass still looked materially different from the actual editor shell and caused perceptual mismatch during navigation
 - **realtime/yjs-idempotent-unsubscribe**: Hardened Yjs observer cleanup paths and awareness teardown with repeated-unsubscribe safety, plus kept cleanup registry/slice/core guards aligned to single-run teardown semantics
   - Why: Back navigation and overlapping unmount cleanup calls could trigger duplicate unobserve/off attempts and surface `[yjs] Tried to remove event handler that doesn't exist`
+- **tests/dashboard-loading-skeleton-regression**: Added focused tests for route-level dashboard shell loading and view-mode card skeleton counts, plus reran dashboard settings coverage
+  - Why: Locks the new progressive dashboard loading behavior and prevents regressions back to blocking spinner-only fallbacks
 
 ## [2026-04-02]
 
