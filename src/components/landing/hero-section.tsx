@@ -111,7 +111,7 @@ export function HeroSection() {
 						</a>
 						<button
 							onClick={scrollToFeatures}
-							className='landing-hero-secondary-cta inline-flex h-12 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-5 text-base font-medium text-text-primary transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background'
+							className='landing-hero-secondary-cta inline-flex h-12 cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-5 text-base font-medium text-text-primary transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background'
 						>
 							See the workflow
 						</button>
