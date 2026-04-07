@@ -76,6 +76,7 @@ ai-docs
 
 # Git worktrees
 .worktrees/
+.config
 
 # Plans (local development notes)
 docs/plans
