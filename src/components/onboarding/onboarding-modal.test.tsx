@@ -349,6 +349,29 @@ describe('OnboardingModal mobile rendering', () => {
 		expect(startOnboardingTask).toHaveBeenCalledWith('know-controls')
 	})
 
+	it('disables completed checklist task actions so done tasks cannot restart', () => {
+		const startOnboardingTask = jest.fn()
+		mockIsMobile = false
+		mockState = {
+			...mockState,
+			onboardingStatus: 'checklist',
+			onboardingTasks: {
+				'create-node': true,
+				'try-pattern': false,
+				'know-controls': false,
+			},
+			startOnboardingTask,
+		}
+
+		render(<OnboardingModal />)
+
+		const doneButton = screen.getByRole('button', { name: 'Done' })
+		expect(doneButton).toBeDisabled()
+
+		fireEvent.click(doneButton)
+		expect(startOnboardingTask).not.toHaveBeenCalled()
+	})
+
 	it('anchors the desktop checklist surface to the left edge', () => {
 		mockIsMobile = false
 		mockState = {

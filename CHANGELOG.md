@@ -67,6 +67,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Paused flows should communicate continuation semantics, not a fresh start
 - **onboarding/checklist-paused-controls-copy**: Updated the checklist `Know the controls` task button to show `Continue` when controls-tour progress exists
   - Why: After expanding from a paused pill, the checklist still showed `Start`, which implied a reset instead of continuation
+- **onboarding/checklist-completed-task-cta-disabled**: Disabled checklist task action buttons once their state is `Done` so completed tasks cannot be restarted from the checklist surface
+  - Why: Completed task CTAs remained clickable and could incorrectly relaunch already finished onboarding steps
 
 ### Added
 

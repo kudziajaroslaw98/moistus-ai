@@ -64,6 +64,7 @@ function ChecklistItem({
 					<div className='flex items-center justify-between gap-3'>
 						<h4 className='text-sm font-medium text-text-primary'>{label}</h4>
 						<Button
+							disabled={completed}
 							onClick={onClick}
 							size='sm'
 							variant={completed ? 'secondary' : 'default'}
