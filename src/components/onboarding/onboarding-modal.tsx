@@ -139,6 +139,13 @@ export function OnboardingModal() {
 	const shouldRenderChecklistCard =
 		(shouldRenderChecklist || shouldFallbackToChecklist) &&
 		!shouldHideChecklistForSurface;
+	const isPausedCoachmarkTour =
+		onboardingStatus === 'hidden' &&
+		onboardingIsMinimized &&
+		!onboardingTasks['know-controls'] &&
+		(onboardingActiveTarget !== null || onboardingCoachmarkStep > 0);
+	const shouldContinueControlsTour =
+		!onboardingTasks['know-controls'] && onboardingCoachmarkStep > 0;
 	const walkthroughSurfaceMode = shouldRenderChecklistCard
 		? 'checklist'
 		: shouldRenderMinimizedPill
@@ -281,8 +288,12 @@ export function OnboardingModal() {
 			<AnimatePresence initial={false} mode='popLayout'>
 				{walkthroughSurfaceMode && (
 					<WalkthroughSurface
+						checklistContinueTaskId={
+							shouldContinueControlsTour ? 'know-controls' : null
+						}
 						completedCount={completedCount}
 						isMobile={isMobile}
+						minimizedPriorityTaskId={isPausedCoachmarkTour ? 'know-controls' : null}
 						mode={walkthroughSurfaceMode}
 						onMinimize={minimizeOnboarding}
 						onResume={resumeOnboarding}

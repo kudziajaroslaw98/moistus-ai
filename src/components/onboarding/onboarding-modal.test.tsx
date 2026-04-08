@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { OnboardingModal } from './onboarding-modal'
 
 let mockIsMobile = true
@@ -286,6 +286,67 @@ describe('OnboardingModal mobile rendering', () => {
 				onboardingSource: 'onboarding-pattern',
 			})
 		)
+	})
+
+	it('shows controls tour as the minimized next action when a paused coachmark tour exists', () => {
+		const resumeOnboarding = jest.fn()
+		const startOnboardingTask = jest.fn()
+		mockState = {
+			...mockState,
+			onboardingStatus: 'hidden',
+			onboardingIsMinimized: true,
+			onboardingCoachmarkStep: 2,
+			onboardingActiveTarget: 'layout',
+			onboardingTasks: {
+				'create-node': false,
+				'try-pattern': false,
+				'know-controls': false,
+			},
+			resumeOnboarding,
+			startOnboardingTask,
+		}
+
+		render(<OnboardingModal />)
+
+		expect(screen.getByText('Know the controls')).toBeInTheDocument()
+
+		fireEvent.click(screen.getByRole('button', { name: /expand walkthrough/i }))
+		expect(resumeOnboarding).toHaveBeenCalled()
+		expect(startOnboardingTask).not.toHaveBeenCalled()
+
+		fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+		expect(startOnboardingTask).toHaveBeenCalledWith('know-controls')
+	})
+
+	it('shows Continue for know-controls in checklist when paused controls-tour progress exists', () => {
+		const startOnboardingTask = jest.fn()
+		mockIsMobile = false
+		mockState = {
+			...mockState,
+			onboardingStatus: 'checklist',
+			onboardingCoachmarkStep: 2,
+			onboardingTasks: {
+				'create-node': true,
+				'try-pattern': false,
+				'know-controls': false,
+			},
+			startOnboardingTask,
+		}
+
+		render(<OnboardingModal />)
+
+		const controlsHeading = screen.getByRole('heading', {
+			name: 'Know the controls',
+		})
+		const controlsRow = controlsHeading.parentElement
+		expect(controlsRow).not.toBeNull()
+
+		fireEvent.click(
+			within(controlsRow as HTMLElement).getByRole('button', {
+				name: 'Continue',
+			})
+		)
+		expect(startOnboardingTask).toHaveBeenCalledWith('know-controls')
 	})
 
 	it('anchors the desktop checklist surface to the left edge', () => {

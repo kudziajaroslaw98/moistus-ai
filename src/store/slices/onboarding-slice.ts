@@ -248,6 +248,54 @@ const getChecklistTarget = ({
 	return getCreateNodeTarget(tasks, createNodeStep);
 };
 
+const getClampedCoachmarkStep = (
+	step: number,
+	viewport: OnboardingViewport
+) => {
+	const coachmarks = getOnboardingCoachmarks(viewport);
+	return Math.min(Math.max(step, 0), Math.max(coachmarks.length - 1, 0));
+};
+
+const getPausedCoachmarkResumeState = ({
+	onboardingStatus,
+	onboardingIsMinimized,
+	onboardingTasks,
+	onboardingActiveTarget,
+	onboardingCoachmarkStep,
+	onboardingViewport,
+}: {
+	onboardingStatus: OnboardingStatus;
+	onboardingIsMinimized: boolean;
+	onboardingTasks: OnboardingTaskState;
+	onboardingActiveTarget: OnboardingTarget | null;
+	onboardingCoachmarkStep: number;
+	onboardingViewport: OnboardingViewport;
+}) => {
+	const isPausedCoachmarks =
+		!onboardingTasks['know-controls'] &&
+		(
+			(onboardingStatus === 'hidden' &&
+				onboardingIsMinimized &&
+				(onboardingActiveTarget !== null || onboardingCoachmarkStep > 0)) ||
+			(onboardingStatus === 'checklist' && onboardingCoachmarkStep > 0)
+		);
+
+	if (!isPausedCoachmarks) {
+		return null;
+	}
+
+	const step = getClampedCoachmarkStep(
+		onboardingCoachmarkStep,
+		onboardingViewport
+	);
+	const coachmarks = getOnboardingCoachmarks(onboardingViewport);
+
+	return {
+		step,
+		target: coachmarks[step]?.target ?? null,
+	};
+};
+
 type OnboardingStateFields = Pick<
 	OnboardingSlice,
 	| 'onboardingStatus'
@@ -494,10 +542,17 @@ export const createOnboardingSlice: StateCreator<
 		},
 
 		resumeOnboarding: () => {
+			maybeHydrateOnboardingState();
+
 			const {
 				onboardingTasks,
 				hasCompletedOnboarding,
 				currentSubscription,
+				onboardingStatus,
+				onboardingIsMinimized,
+				onboardingCoachmarkStep,
+				onboardingViewport,
+				onboardingActiveTarget,
 				onboardingCreateNodeStep,
 				onboardingPatternStep,
 				onboardingHighlightedNodeId,
@@ -521,6 +576,30 @@ export const createOnboardingSlice: StateCreator<
 				return;
 			}
 
+			const pausedCoachmarks = getPausedCoachmarkResumeState({
+				onboardingStatus,
+				onboardingIsMinimized,
+				onboardingTasks,
+				onboardingActiveTarget,
+				onboardingCoachmarkStep,
+				onboardingViewport,
+			});
+
+			if (pausedCoachmarks) {
+				applyOnboardingPatch({
+					onboardingStatus: 'checklist',
+					onboardingActiveTarget: getChecklistTarget({
+						tasks: onboardingTasks,
+						createNodeStep: onboardingCreateNodeStep,
+						patternStep: onboardingPatternStep,
+						highlightedNodeId: onboardingHighlightedNodeId,
+					}),
+					onboardingCoachmarkStep: pausedCoachmarks.step,
+					onboardingIsMinimized: false,
+				});
+				return;
+			}
+
 			applyOnboardingPatch({
 				onboardingStatus: 'checklist',
 				onboardingActiveTarget: getChecklistTarget({
@@ -535,8 +614,26 @@ export const createOnboardingSlice: StateCreator<
 		},
 
 		minimizeOnboarding: () => {
-			const { hasCompletedOnboarding } = get();
+			const {
+				hasCompletedOnboarding,
+				onboardingStatus,
+				onboardingTasks,
+				onboardingActiveTarget,
+				onboardingCoachmarkStep,
+			} = get();
 			if (hasCompletedOnboarding) {
+				return;
+			}
+
+			const hasPausedCoachmarkProgress =
+				!onboardingTasks['know-controls'] && onboardingCoachmarkStep > 0;
+			if (onboardingStatus === 'coachmarks' || hasPausedCoachmarkProgress) {
+				applyOnboardingPatch({
+					onboardingStatus: 'hidden',
+					onboardingActiveTarget,
+					onboardingCoachmarkStep,
+					onboardingIsMinimized: true,
+				});
 				return;
 			}
 
@@ -550,7 +647,36 @@ export const createOnboardingSlice: StateCreator<
 
 		startOnboardingTask: (taskId) => {
 			if (taskId === 'know-controls') {
-				const coachmarks = getOnboardingCoachmarks(get().onboardingViewport);
+				const {
+					onboardingStatus,
+					onboardingIsMinimized,
+					onboardingTasks,
+					onboardingActiveTarget,
+					onboardingCoachmarkStep,
+					onboardingViewport,
+				} = get();
+				const pausedCoachmarks = getPausedCoachmarkResumeState({
+					onboardingStatus,
+					onboardingIsMinimized,
+					onboardingTasks,
+					onboardingActiveTarget,
+					onboardingCoachmarkStep,
+					onboardingViewport,
+				});
+
+				if (pausedCoachmarks) {
+					applyOnboardingPatch({
+						onboardingStatus: 'coachmarks',
+						onboardingActiveTarget: pausedCoachmarks.target,
+						onboardingCoachmarkStep: pausedCoachmarks.step,
+						onboardingIsMinimized: false,
+						onboardingPatternStep: null,
+						onboardingHighlightedNodeId: null,
+					});
+					return;
+				}
+
+				const coachmarks = getOnboardingCoachmarks(onboardingViewport);
 				applyOnboardingPatch({
 					onboardingStatus: 'coachmarks',
 					onboardingActiveTarget: coachmarks[0]?.target ?? null,
@@ -718,14 +844,22 @@ export const createOnboardingSlice: StateCreator<
 		},
 
 		handleOnboardingCanvasNodeCreated: () => {
+			maybeHydrateOnboardingState();
+
 			const {
+				onboardingStatus,
+				onboardingIsMinimized,
 				onboardingTasks,
 				hasCompletedOnboarding,
 				hasSkippedOnboarding,
 				onboardingPatternStep,
 				onboardingHighlightedNodeId,
 			} = get();
-			if (hasCompletedOnboarding || hasSkippedOnboarding) {
+			if (
+				hasCompletedOnboarding ||
+				hasSkippedOnboarding ||
+				(onboardingStatus === 'hidden' && !onboardingIsMinimized)
+			) {
 				return;
 			}
 
@@ -769,8 +903,19 @@ export const createOnboardingSlice: StateCreator<
 		},
 
 		handleOnboardingNodeCreated: ({ mode, usedPatterns, nodeId }) => {
-			const { hasCompletedOnboarding, hasSkippedOnboarding } = get();
-			if (hasCompletedOnboarding || hasSkippedOnboarding) {
+			maybeHydrateOnboardingState();
+
+			const {
+				hasCompletedOnboarding,
+				hasSkippedOnboarding,
+				onboardingStatus,
+				onboardingIsMinimized,
+			} = get();
+			if (
+				hasCompletedOnboarding ||
+				hasSkippedOnboarding ||
+				(onboardingStatus === 'hidden' && !onboardingIsMinimized)
+			) {
 				return;
 			}
 

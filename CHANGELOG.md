@@ -51,6 +51,27 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-04-07 - Aligned mind-map loading skeleton chrome with real map top bar/canvas/bottom dock layout -->
 <!-- Updated: 2026-04-07 - Shipped progressive map-shell streaming and hardened Yjs cleanup idempotency against repeated unsubscribe paths -->
 <!-- Updated: 2026-04-07 - Replaced dashboard spinner fallback with shell-parity loading and in-page progressive map-card skeleton streaming -->
+<!-- Updated: 2026-04-08 - Fixed onboarding skip-state refresh regression and preserved controls-tour paused-step resume across refresh -->
+
+## [2026-04-08]
+
+### Fixed
+
+- **onboarding/walkthrough-skip-refresh-race**: Hydrated onboarding state at node-create event boundaries and ignored create events while onboarding is fully hidden, so skipped walkthrough state no longer reopens after refresh + node creation
+  - Why: On refresh, create events could run before onboarding state hydration and incorrectly re-activate checklist flow despite persisted skip state
+- **onboarding/controls-tour-pause-resume**: Preserved coachmark step/anchor context when pausing, expanded pill-body resume back to the checklist card, kept controls-tour continuation bound to the `Know the controls` action with viewport-clamped step restore (including after reload), and preserved paused progress when minimizing from checklist back to pill
+  - Why: Pausing the controls tour either jumped directly back into coachmarks from the pill body or reset continuation paths to step 0 after refresh/re-minimize
+- **onboarding/mobile-controls-tour-start-resume**: Reused paused-coachmark resume logic for `startOnboardingTask('know-controls')`, so tapping `Start` from the minimized pill on mobile resumes the paused step instead of restarting from the first control
+  - Why: Mobile users continuing the controls tour from the pill action were still routed through a fresh step-0 start path
+- **onboarding/minimized-pill-paused-copy**: Updated paused-controls-tour minimized pill CTA text from `Start` to `Continue` while keeping normal task-start pills on `Start`
+  - Why: Paused flows should communicate continuation semantics, not a fresh start
+- **onboarding/checklist-paused-controls-copy**: Updated the checklist `Know the controls` task button to show `Continue` when controls-tour progress exists
+  - Why: After expanding from a paused pill, the checklist still showed `Start`, which implied a reset instead of continuation
+
+### Added
+
+- **tests/onboarding-resume-regressions**: Added onboarding slice coverage for skip-state hydration races, paused coachmark resume step restore, refresh rehydrate+clamp behavior, mobile `Start`-path resume behavior, and checklist minimize/resume regression
+  - Why: These state transitions are timing-sensitive and require explicit regression guards
 
 ## [2026-04-07]
 
