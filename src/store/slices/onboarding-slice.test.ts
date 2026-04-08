@@ -484,7 +484,7 @@ describe('onboarding slice', () => {
 		expect(harness.getState()).toMatchObject({
 			onboardingStatus: 'checklist',
 			onboardingIsMinimized: false,
-			onboardingCoachmarkStep: ONBOARDING_MOBILE_COACHMARKS.length - 1,
+			onboardingPausedCoachmarkStep: ONBOARDING_MOBILE_COACHMARKS.length - 1,
 			onboardingActiveTarget: 'add-node',
 		});
 	});
@@ -529,14 +529,14 @@ describe('onboarding slice', () => {
 		(state.resumeOnboarding as () => void)();
 		expect(harness.getState()).toMatchObject({
 			onboardingStatus: 'checklist',
-			onboardingCoachmarkStep: pausedStep,
+			onboardingPausedCoachmarkStep: pausedStep,
 		});
 
 		(state.minimizeOnboarding as () => void)();
 		expect(harness.getState()).toMatchObject({
 			onboardingStatus: 'hidden',
 			onboardingIsMinimized: true,
-			onboardingCoachmarkStep: pausedStep,
+			onboardingPausedCoachmarkStep: pausedStep,
 		});
 
 		(state.startOnboardingTask as (taskId: string) => void)('know-controls');
@@ -544,6 +544,44 @@ describe('onboarding slice', () => {
 			onboardingStatus: 'coachmarks',
 			onboardingIsMinimized: false,
 			onboardingCoachmarkStep: pausedStep,
+			onboardingActiveTarget: pausedTarget,
+		});
+	});
+
+	it('preserves paused controls-tour step after checklist task updates reset active coachmark step', () => {
+		const harness = createOnboardingSliceHarness();
+		const state = harness.getState();
+
+		(state.startOnboardingTask as (taskId: string) => void)('know-controls');
+		(state.advanceOnboardingCoachmark as () => void)();
+		(state.advanceOnboardingCoachmark as () => void)();
+		const pausedTarget = harness.getState().onboardingActiveTarget;
+		const pausedStep = harness.getState().onboardingCoachmarkStep;
+
+		(state.minimizeOnboarding as () => void)();
+		(state.resumeOnboarding as () => void)();
+		expect(harness.getState()).toMatchObject({
+			onboardingStatus: 'checklist',
+			onboardingPausedCoachmarkStep: pausedStep,
+		});
+
+		(state.handleOnboardingCanvasNodeCreated as () => void)();
+		expect(harness.getState()).toMatchObject({
+			onboardingTasks: {
+				'create-node': true,
+				'try-pattern': false,
+				'know-controls': false,
+			},
+			onboardingCoachmarkStep: 0,
+			onboardingPausedCoachmarkStep: pausedStep,
+		});
+
+		(state.minimizeOnboarding as () => void)();
+		(state.startOnboardingTask as (taskId: string) => void)('know-controls');
+		expect(harness.getState()).toMatchObject({
+			onboardingStatus: 'coachmarks',
+			onboardingCoachmarkStep: pausedStep,
+			onboardingPausedCoachmarkStep: null,
 			onboardingActiveTarget: pausedTarget,
 		});
 	});

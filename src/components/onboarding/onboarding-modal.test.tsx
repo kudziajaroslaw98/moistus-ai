@@ -52,6 +52,7 @@ describe('OnboardingModal mobile rendering', () => {
 			},
 			onboardingActiveTarget: null,
 			onboardingCoachmarkStep: 0,
+			onboardingPausedCoachmarkStep: null,
 			onboardingIsMinimized: false,
 			onboardingCreateNodeStep: null,
 			onboardingPatternStep: null,

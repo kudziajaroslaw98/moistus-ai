@@ -71,10 +71,14 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Completed task CTAs remained clickable and could incorrectly relaunch already finished onboarding steps
 - **onboarding/mobile-pill-manual-expand-checklist**: Kept the checklist surface visible when manually expanding a minimized mobile first-task pill and suppressed hint/coachmark overlays on that manual expand, so users can access walkthrough controls like `Skip walkthrough` and only start task guidance from explicit `Start`/`Continue` taps
   - Why: Expanding the minimized first-task pill hid checklist controls and also felt like the task auto-restarted by immediately returning to hint UI
+- **onboarding/paused-coachmark-marker**: Added explicit paused-controls-tour state (`onboardingPausedCoachmarkStep`) and updated resume/minimize/start logic to prefer that marker over checklist-time `onboardingCoachmarkStep` resets
+  - Why: Checklist transitions (create-node/pattern updates) intentionally reset active coachmark step and were still able to erase paused controls-tour resume context without a dedicated paused marker
+- **onboarding/manual-resume-anchor-measure-loop**: Disabled target-rect requestAnimationFrame measuring while the manual-resume checklist is intentionally shown on mobile
+  - Why: Manual pill expand should be a stable checklist surface for skip/selection actions and does not need continuous anchor measurement until an explicit task CTA restarts guided overlays
 
 ### Added
 
-- **tests/onboarding-resume-regressions**: Added onboarding slice coverage for skip-state hydration races, paused coachmark resume step restore, refresh rehydrate+clamp behavior, mobile `Start`-path resume behavior, and checklist minimize/resume regression
+- **tests/onboarding-resume-regressions**: Added onboarding slice coverage for skip-state hydration races, paused coachmark resume step restore, refresh rehydrate+clamp behavior, mobile `Start`-path resume behavior, checklist minimize/resume regression, and paused controls-step preservation across checklist task updates
   - Why: These state transitions are timing-sensitive and require explicit regression guards
 
 ## [2026-04-07]

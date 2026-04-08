@@ -47,6 +47,7 @@ export function OnboardingModal() {
 		onboardingTasks,
 		onboardingActiveTarget,
 		onboardingCoachmarkStep,
+		onboardingPausedCoachmarkStep,
 		onboardingIsMinimized,
 		onboardingCreateNodeStep,
 		onboardingPatternStep,
@@ -72,6 +73,7 @@ export function OnboardingModal() {
 			onboardingTasks: state.onboardingTasks,
 			onboardingActiveTarget: state.onboardingActiveTarget,
 			onboardingCoachmarkStep: state.onboardingCoachmarkStep,
+			onboardingPausedCoachmarkStep: state.onboardingPausedCoachmarkStep,
 			onboardingIsMinimized: state.onboardingIsMinimized,
 			onboardingCreateNodeStep: state.onboardingCreateNodeStep,
 			onboardingPatternStep: state.onboardingPatternStep,
@@ -143,13 +145,15 @@ export function OnboardingModal() {
 		(shouldRenderChecklist || shouldFallbackToChecklist) &&
 		!shouldHideChecklistForSurface;
 	const shouldShowGuidanceOverlays = !showChecklistOnManualResume;
+	const pausedCoachmarkStep =
+		onboardingPausedCoachmarkStep ?? onboardingCoachmarkStep;
 	const isPausedCoachmarkTour =
 		onboardingStatus === 'hidden' &&
 		onboardingIsMinimized &&
 		!onboardingTasks['know-controls'] &&
-		(onboardingActiveTarget !== null || onboardingCoachmarkStep > 0);
+		(onboardingActiveTarget !== null || pausedCoachmarkStep > 0);
 	const shouldContinueControlsTour =
-		!onboardingTasks['know-controls'] && onboardingCoachmarkStep > 0;
+		!onboardingTasks['know-controls'] && pausedCoachmarkStep > 0;
 	const walkthroughSurfaceMode = shouldRenderChecklistCard
 		? 'checklist'
 		: shouldRenderMinimizedPill
@@ -161,6 +165,11 @@ export function OnboardingModal() {
 	}, [isMobile, setOnboardingViewport]);
 
 	useEffect(() => {
+		if (showChecklistOnManualResume) {
+			setTargetRect(null);
+			return;
+		}
+
 		if (
 			!onboardingActiveTarget ||
 			onboardingStatus === 'intro' ||
@@ -207,7 +216,12 @@ export function OnboardingModal() {
 			isCancelled = true;
 			window.cancelAnimationFrame(animationFrame);
 		};
-	}, [onboardingActiveTarget, onboardingHighlightedNodeId, onboardingStatus]);
+	}, [
+		onboardingActiveTarget,
+		onboardingHighlightedNodeId,
+		onboardingStatus,
+		showChecklistOnManualResume,
+	]);
 
 	const openPatternLesson = useCallback(() => {
 		const screenPosition =
