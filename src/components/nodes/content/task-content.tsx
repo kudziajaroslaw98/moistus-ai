@@ -4,7 +4,7 @@ import { GlassmorphismTheme } from '@/components/nodes/themes/glassmorphism-them
 import { cn } from '@/utils/cn';
 import { Check } from 'lucide-react';
 import { motion } from 'motion/react';
-import { memo, useMemo } from 'react';
+import { memo, useMemo, type KeyboardEvent } from 'react';
 
 export interface Task {
 	id: string;
@@ -67,23 +67,35 @@ const TaskContentComponent = ({
 	const hasAnyTasks = statsSourceTasks.length > 0;
 	const hasVisibleTasks = tasks.length > 0;
 	const isFilteredEmpty = !hasVisibleTasks && hasAnyTasks;
+	const titleElement = title ? (
+		<h3
+			className='break-words'
+			style={{
+				fontSize: '15px',
+				fontWeight: 600,
+				lineHeight: '22px',
+				color: GlassmorphismTheme.text.high,
+			}}
+		>
+			{title}
+		</h3>
+	) : null;
+
+	const handleTaskKeyDown = (event: KeyboardEvent<HTMLDivElement>, taskId: string) => {
+		if (!isInteractive) {
+			return;
+		}
+
+		if (event.key === 'Enter' || event.key === ' ') {
+			event.preventDefault();
+			onTaskToggle?.(taskId);
+		}
+	};
 
 	if (!hasAnyTasks) {
 		return (
 			<div className={cn('flex flex-col gap-3', className)}>
-				{title && (
-					<h3
-						className='break-words'
-						style={{
-							fontSize: '15px',
-							fontWeight: 600,
-							lineHeight: '22px',
-							color: GlassmorphismTheme.text.high,
-						}}
-					>
-						{title}
-					</h3>
-				)}
+				{titleElement}
 
 				<span
 					style={{
@@ -103,19 +115,7 @@ const TaskContentComponent = ({
 
 	return (
 		<div className={cn('flex flex-col gap-3', className)}>
-			{title && (
-				<h3
-					className='break-words'
-					style={{
-						fontSize: '15px',
-						fontWeight: 600,
-						lineHeight: '22px',
-						color: GlassmorphismTheme.text.high,
-					}}
-				>
-					{title}
-				</h3>
-			)}
+			{titleElement}
 
 			{/* Progress indicator */}
 			<div className='space-y-2'>
@@ -170,10 +170,15 @@ const TaskContentComponent = ({
 							initial={{ opacity: 0, x: -10 }}
 							key={task.id || index}
 							onClick={isInteractive ? () => onTaskToggle?.(task.id) : undefined}
+							onKeyDown={(event) => handleTaskKeyDown(event, task.id)}
+							role='checkbox'
+							aria-checked={Boolean(task.isComplete)}
+							tabIndex={isInteractive ? 0 : undefined}
 							transition={{ delay: index * 0.05 }}
 							className={cn(
 								'flex items-start gap-3 p-2 -mx-2 rounded-md transition-all',
-								isInteractive && 'cursor-pointer group hover:bg-white/[0.03]'
+								isInteractive &&
+									'cursor-pointer group hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent'
 							)}
 						>
 							{/* Checkbox */}

@@ -10,11 +10,16 @@ jest.mock('@/hooks/collaboration/use-permissions', () => ({
 
 // Mock the store
 const mockUpdateNode = jest.fn().mockResolvedValue(undefined)
+const mockMarkNodeAsSystemUpdate = jest.fn()
 
 jest.mock('@/store/mind-map-store', () => ({
 	__esModule: true,
 	default: jest.fn((selector) =>
-		selector({ updateNode: mockUpdateNode, selectedNodes: ['task-node-1'] })
+		selector({
+			updateNode: mockUpdateNode,
+			selectedNodes: ['task-node-1'],
+			markNodeAsSystemUpdate: mockMarkNodeAsSystemUpdate,
+		})
 	),
 }))
 
@@ -105,6 +110,7 @@ describe('TaskNode', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
 		mockUpdateNode.mockResolvedValue(undefined)
+		mockMarkNodeAsSystemUpdate.mockClear()
 	})
 
 	// Create base props that match TypedNodeProps<'taskNode'>
@@ -393,6 +399,7 @@ describe('TaskNode', () => {
 			render(<TaskNode {...props} />)
 
 			await user.click(screen.getByTitle('Hide completed tasks'))
+			expect(mockMarkNodeAsSystemUpdate).toHaveBeenCalledWith('task-node-1')
 
 			expect(mockUpdateNode).toHaveBeenCalledWith({
 				nodeId: 'task-node-1',
@@ -426,6 +433,7 @@ describe('TaskNode', () => {
 			render(<TaskNode {...props} />)
 
 			await user.click(screen.getByTitle('Show completed tasks'))
+			expect(mockMarkNodeAsSystemUpdate).toHaveBeenCalledWith('task-node-1')
 
 			expect(mockUpdateNode).toHaveBeenCalledWith({
 				nodeId: 'task-node-1',

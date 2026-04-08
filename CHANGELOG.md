@@ -77,6 +77,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Checklist transitions (create-node/pattern updates) intentionally reset active coachmark step and were still able to erase paused controls-tour resume context without a dedicated paused marker
 - **onboarding/manual-resume-anchor-measure-loop**: Disabled target-rect requestAnimationFrame measuring while the manual-resume checklist is intentionally shown on mobile
   - Why: Manual pill expand should be a stable checklist surface for skip/selection actions and does not need continuous anchor measurement until an explicit task CTA restarts guided overlays
+- **node-editor/status-prefix-lookbehind-case**: Made status-regex prefix exclusions case-insensitive in parser and CodeMirror decorations so prefixes like `Title:`/`title:` are consistently excluded from status matching
+  - Why: Prefix exclusion only handled lowercase variants, causing inconsistent parse/highlight behavior for mixed-case input
 
 ### Added
 
@@ -93,11 +95,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Task nodes needed first-class naming support that survives edit cycles
 - **node-editor/task-title-syntax-help**: Updated task syntax-help patterns/examples from `Title:` to lowercase quoted `title:"text"` to match actual parser behavior
   - Why: The previous help suggested an invalid pattern that could be interpreted as status-like `:token` metadata in edge cases
-
-### Fixed
-
-- **node-editor/status-prefix-lookbehind-case**: Made status-regex prefix exclusions case-insensitive in parser and CodeMirror decorations so prefixes like `Title:`/`title:` are consistently excluded from status matching
-  - Why: Prefix exclusion only handled lowercase variants, causing inconsistent parse/highlight behavior for mixed-case input
 
 ## [2026-04-07]
 

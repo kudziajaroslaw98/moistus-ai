@@ -94,10 +94,16 @@ const PreviewContent = memo(({ nodeType, data }: { nodeType: string; data: NodeD
 		case 'taskNode': {
 			const metadata = data.metadata as TaskNodeMetadata | undefined;
 			const tasks: Task[] = metadata?.tasks || [];
+			const hideCompletedTasks = Boolean(metadata?.hideCompletedTasks);
+			const visibleTasks = hideCompletedTasks
+				? tasks.filter((task) => !task.isComplete)
+				: tasks;
 			return (
 				<TaskContent
+					filteredEmptyMessage='All completed tasks are hidden.'
+					statsTasks={tasks}
 					title={metadata?.title}
-					tasks={tasks}
+					tasks={visibleTasks}
 					placeholder='Add tasks...'
 					showCelebrationEmoji={false}
 				/>

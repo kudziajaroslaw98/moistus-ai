@@ -31,10 +31,11 @@ type TaskNodeProps = TypedNodeProps<'taskNode'>;
 const TaskNodeComponent = (props: TaskNodeProps) => {
 	const { id, data } = props;
 	const { canEdit } = usePermissions();
-	const { updateNode, selectedNodes } = useAppStore(
+	const { updateNode, selectedNodes, markNodeAsSystemUpdate } = useAppStore(
 		useShallow((state) => ({
 			updateNode: state.updateNode,
 			selectedNodes: state.selectedNodes,
+			markNodeAsSystemUpdate: state.markNodeAsSystemUpdate,
 		}))
 	);
 
@@ -113,6 +114,7 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 
 	const handleToggleCompletedVisibility = useCallback(async () => {
 		try {
+			markNodeAsSystemUpdate(id);
 			await updateNode({
 				nodeId: id,
 				data: {
@@ -125,7 +127,7 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 		} catch (error) {
 			console.error('Failed to toggle completed task visibility:', error);
 		}
-	}, [hideCompletedTasks, updateNode, id, data.metadata]);
+	}, [hideCompletedTasks, markNodeAsSystemUpdate, updateNode, id, data.metadata]);
 
 	const buttonStyle = {
 		backgroundColor: 'transparent',

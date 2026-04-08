@@ -171,6 +171,25 @@ describe('TaskContent', () => {
 			const taskElement = container.querySelector('.cursor-pointer')
 			expect(taskElement).not.toBeInTheDocument()
 		})
+
+		it('adds checkbox semantics and keyboard toggle support', async () => {
+			const user = userEvent.setup()
+			const onTaskToggle = jest.fn()
+			const tasks = [{ id: '1', text: 'Keyboard task', isComplete: false }]
+
+			render(<TaskContent tasks={tasks} onTaskToggle={onTaskToggle} />)
+
+			const taskRow = screen.getByRole('checkbox', { name: /keyboard task/i })
+			expect(taskRow).toHaveAttribute('aria-checked', 'false')
+			expect(taskRow).toHaveAttribute('tabindex', '0')
+
+			taskRow.focus()
+			await user.keyboard('{Enter}')
+			await user.keyboard(' ')
+
+			expect(onTaskToggle).toHaveBeenNthCalledWith(1, '1')
+			expect(onTaskToggle).toHaveBeenNthCalledWith(2, '1')
+		})
 	})
 
 	describe('celebration message', () => {
