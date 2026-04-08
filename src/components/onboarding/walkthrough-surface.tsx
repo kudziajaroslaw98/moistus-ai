@@ -35,11 +35,13 @@ const getNextTask = (tasks: Record<OnboardingTaskId, boolean>) =>
 	TASK_ITEMS.find((task) => !tasks[task.id]) ?? TASK_ITEMS[TASK_ITEMS.length - 1];
 
 function ChecklistItem({
+	actionLabel,
 	completed,
 	description,
 	label,
 	onClick,
 }: {
+	actionLabel?: string;
 	completed: boolean;
 	description: string;
 	label: string;
@@ -62,11 +64,12 @@ function ChecklistItem({
 					<div className='flex items-center justify-between gap-3'>
 						<h4 className='text-sm font-medium text-text-primary'>{label}</h4>
 						<Button
+							disabled={completed}
 							onClick={onClick}
 							size='sm'
 							variant={completed ? 'secondary' : 'default'}
 						>
-							{completed ? 'Done' : 'Start'}
+							{completed ? 'Done' : (actionLabel ?? 'Start')}
 						</Button>
 					</div>
 					<p className='mt-1 text-xs leading-5 text-text-secondary'>
@@ -79,12 +82,14 @@ function ChecklistItem({
 }
 
 function ChecklistContent({
+	checklistContinueTaskId,
 	completedCount,
 	onMinimize,
 	onSkip,
 	onTaskAction,
 	tasks,
 }: {
+	checklistContinueTaskId: OnboardingTaskId | null;
 	completedCount: number;
 	onMinimize: () => void;
 	onSkip: () => void;
@@ -126,6 +131,9 @@ function ChecklistContent({
 				{TASK_ITEMS.map((task) => (
 					<ChecklistItem
 						key={task.id}
+						actionLabel={
+							checklistContinueTaskId === task.id ? 'Continue' : undefined
+						}
 						completed={tasks[task.id]}
 						description={task.description}
 						label={task.label}
@@ -139,16 +147,22 @@ function ChecklistContent({
 
 function MinimizedPillContent({
 	completedCount,
+	minimizedPriorityTaskId,
 	onResume,
 	onTaskAction,
 	tasks,
 }: {
 	completedCount: number;
+	minimizedPriorityTaskId: OnboardingTaskId | null;
 	onResume: () => void;
 	onTaskAction: (taskId: OnboardingTaskId) => void;
 	tasks: Record<OnboardingTaskId, boolean>;
 }) {
-	const nextTask = getNextTask(tasks);
+	const nextTask =
+		(minimizedPriorityTaskId
+			? TASK_ITEMS.find((task) => task.id === minimizedPriorityTaskId)
+			: null) ?? getNextTask(tasks);
+	const actionLabel = minimizedPriorityTaskId ? 'Continue' : 'Start';
 
 	return (
 		<div className='flex items-center gap-3'>
@@ -168,7 +182,7 @@ function MinimizedPillContent({
 				</div>
 			</button>
 			<Button onClick={() => onTaskAction(nextTask.id)} size='sm' variant='default'>
-				Start
+				{actionLabel}
 			</Button>
 		</div>
 	);
@@ -186,8 +200,10 @@ const pillMaxWidth = {
 };
 
 export function WalkthroughSurface({
+	checklistContinueTaskId,
 	completedCount,
 	isMobile,
+	minimizedPriorityTaskId,
 	mode,
 	onMinimize,
 	onResume,
@@ -195,8 +211,10 @@ export function WalkthroughSurface({
 	onTaskAction,
 	tasks,
 }: {
+	checklistContinueTaskId: OnboardingTaskId | null;
 	completedCount: number;
 	isMobile: boolean;
+	minimizedPriorityTaskId: OnboardingTaskId | null;
 	mode: 'checklist' | 'pill';
 	onMinimize: () => void;
 	onResume: () => void;
@@ -336,6 +354,7 @@ export function WalkthroughSurface({
 							transition={contentTransition}
 						>
 							<ChecklistContent
+								checklistContinueTaskId={checklistContinueTaskId}
 								completedCount={completedCount}
 								onMinimize={onMinimize}
 								onSkip={onSkip}
@@ -366,6 +385,7 @@ export function WalkthroughSurface({
 						>
 							<MinimizedPillContent
 								completedCount={completedCount}
+								minimizedPriorityTaskId={minimizedPriorityTaskId}
 								onResume={onResume}
 								onTaskAction={onTaskAction}
 								tasks={tasks}

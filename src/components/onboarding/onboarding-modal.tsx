@@ -40,11 +40,14 @@ const isSameTargetRect = (
 export function OnboardingModal() {
 	const isMobile = useIsMobile();
 	const [targetRect, setTargetRect] = useState<FloatingTargetRect | null>(null);
+	const [showChecklistOnManualResume, setShowChecklistOnManualResume] =
+		useState(false);
 	const {
 		onboardingStatus,
 		onboardingTasks,
 		onboardingActiveTarget,
 		onboardingCoachmarkStep,
+		onboardingPausedCoachmarkStep,
 		onboardingIsMinimized,
 		onboardingCreateNodeStep,
 		onboardingPatternStep,
@@ -70,6 +73,7 @@ export function OnboardingModal() {
 			onboardingTasks: state.onboardingTasks,
 			onboardingActiveTarget: state.onboardingActiveTarget,
 			onboardingCoachmarkStep: state.onboardingCoachmarkStep,
+			onboardingPausedCoachmarkStep: state.onboardingPausedCoachmarkStep,
 			onboardingIsMinimized: state.onboardingIsMinimized,
 			onboardingCreateNodeStep: state.onboardingCreateNodeStep,
 			onboardingPatternStep: state.onboardingPatternStep,
@@ -131,6 +135,7 @@ export function OnboardingModal() {
 	const shouldFallbackToChecklist = requiresResolvedAnchor && !targetRect;
 	const shouldHideChecklistForSurface =
 		isMobile &&
+		!showChecklistOnManualResume &&
 		!shouldFallbackToChecklist &&
 		(shouldRenderCreateNodeToolbarHint ||
 			shouldRenderCanvasHint ||
@@ -139,6 +144,16 @@ export function OnboardingModal() {
 	const shouldRenderChecklistCard =
 		(shouldRenderChecklist || shouldFallbackToChecklist) &&
 		!shouldHideChecklistForSurface;
+	const shouldShowGuidanceOverlays = !showChecklistOnManualResume;
+	const pausedCoachmarkStep =
+		onboardingPausedCoachmarkStep ?? onboardingCoachmarkStep;
+	const isPausedCoachmarkTour =
+		onboardingStatus === 'hidden' &&
+		onboardingIsMinimized &&
+		!onboardingTasks['know-controls'] &&
+		(onboardingActiveTarget !== null || pausedCoachmarkStep > 0);
+	const shouldContinueControlsTour =
+		!onboardingTasks['know-controls'] && pausedCoachmarkStep > 0;
 	const walkthroughSurfaceMode = shouldRenderChecklistCard
 		? 'checklist'
 		: shouldRenderMinimizedPill
@@ -150,6 +165,11 @@ export function OnboardingModal() {
 	}, [isMobile, setOnboardingViewport]);
 
 	useEffect(() => {
+		if (showChecklistOnManualResume) {
+			setTargetRect(null);
+			return;
+		}
+
 		if (
 			!onboardingActiveTarget ||
 			onboardingStatus === 'intro' ||
@@ -196,7 +216,12 @@ export function OnboardingModal() {
 			isCancelled = true;
 			window.cancelAnimationFrame(animationFrame);
 		};
-	}, [onboardingActiveTarget, onboardingHighlightedNodeId, onboardingStatus]);
+	}, [
+		onboardingActiveTarget,
+		onboardingHighlightedNodeId,
+		onboardingStatus,
+		showChecklistOnManualResume,
+	]);
 
 	const openPatternLesson = useCallback(() => {
 		const screenPosition =
@@ -220,6 +245,8 @@ export function OnboardingModal() {
 
 	const handleTaskAction = useCallback(
 		(taskId: OnboardingTaskId) => {
+			setShowChecklistOnManualResume(false);
+
 			if (taskId === 'try-pattern') {
 				openPatternLesson();
 				return;
@@ -230,12 +257,28 @@ export function OnboardingModal() {
 		[openPatternLesson, startOnboardingTask]
 	);
 
+	const handleMinimizeOnboarding = useCallback(() => {
+		setShowChecklistOnManualResume(false);
+		minimizeOnboarding();
+	}, [minimizeOnboarding]);
+
+	const handleResumeOnboarding = useCallback(() => {
+		setShowChecklistOnManualResume(true);
+		resumeOnboarding();
+	}, [resumeOnboarding]);
+
+	const handleSkipOnboarding = useCallback(() => {
+		setShowChecklistOnManualResume(false);
+		skipOnboarding();
+	}, [skipOnboarding]);
+
 	const handleOpenUpgrade = useCallback(() => {
 		completeOnboarding();
 		setPopoverOpen({ upgradeUser: true });
 	}, [completeOnboarding, setPopoverOpen]);
 
 	const shouldRenderSpotlight =
+		shouldShowGuidanceOverlays &&
 		Boolean(targetRect) &&
 		Boolean(onboardingActiveTarget) &&
 		(onboardingStatus === 'coachmarks' ||
@@ -272,7 +315,7 @@ export function OnboardingModal() {
 				{shouldRenderIntro && (
 					<IntroOverlay
 						isMobile={isMobile}
-						onSkip={skipOnboarding}
+						onSkip={handleSkipOnboarding}
 						onStart={startOnboarding}
 					/>
 				)}
@@ -281,12 +324,16 @@ export function OnboardingModal() {
 			<AnimatePresence initial={false} mode='popLayout'>
 				{walkthroughSurfaceMode && (
 					<WalkthroughSurface
+						checklistContinueTaskId={
+							shouldContinueControlsTour ? 'know-controls' : null
+						}
 						completedCount={completedCount}
 						isMobile={isMobile}
+						minimizedPriorityTaskId={isPausedCoachmarkTour ? 'know-controls' : null}
 						mode={walkthroughSurfaceMode}
-						onMinimize={minimizeOnboarding}
-						onResume={resumeOnboarding}
-						onSkip={skipOnboarding}
+						onMinimize={handleMinimizeOnboarding}
+						onResume={handleResumeOnboarding}
+						onSkip={handleSkipOnboarding}
 						onTaskAction={handleTaskAction}
 						tasks={onboardingTasks}
 					/>
@@ -294,14 +341,16 @@ export function OnboardingModal() {
 			</AnimatePresence>
 
 			<AnimatePresence>
-				{shouldRenderCreateNodeToolbarHint && !shouldFallbackToChecklist && (
+				{shouldRenderCreateNodeToolbarHint &&
+					shouldShowGuidanceOverlays &&
+					!shouldFallbackToChecklist && (
 					<FloatingHint
 						dataTestId='onboarding-create-node-hint'
 						description='Start here. Choose Add Node, then the walkthrough will move onto the canvas with you.'
 						isMobile={isMobile}
 						mobileDescription='Tap Add Node to switch into placement mode. We will move onto the canvas as soon as you do.'
 						mobileTitle='Create your first node'
-						onDismiss={minimizeOnboarding}
+						onDismiss={handleMinimizeOnboarding}
 						targetRect={targetRect}
 						title='Create your first node'
 					/>
@@ -309,16 +358,18 @@ export function OnboardingModal() {
 			</AnimatePresence>
 
 			<AnimatePresence>
-				{shouldRenderCanvasHint && (
+				{shouldRenderCanvasHint && shouldShowGuidanceOverlays && (
 					<CanvasPlacementHint
 						isMobile={isMobile}
-						onDismiss={minimizeOnboarding}
+						onDismiss={handleMinimizeOnboarding}
 					/>
 				)}
 			</AnimatePresence>
 
 			<AnimatePresence>
-				{shouldRenderPatternEditHint && !shouldFallbackToChecklist && (
+				{shouldRenderPatternEditHint &&
+					shouldShowGuidanceOverlays &&
+					!shouldFallbackToChecklist && (
 					<FloatingHint
 						dataTestId='onboarding-pattern-edit-hint'
 						description='To edit this node later, select it and press Enter, or just double-click it.'
@@ -333,12 +384,15 @@ export function OnboardingModal() {
 			</AnimatePresence>
 
 			<AnimatePresence>
-				{shouldRenderCoachmark && !shouldFallbackToChecklist && currentCoachmark && (
+				{shouldRenderCoachmark &&
+					shouldShowGuidanceOverlays &&
+					!shouldFallbackToChecklist &&
+					currentCoachmark && (
 					<CoachmarkCard
 						currentStep={currentCoachmark}
 						isLastStep={onboardingCoachmarkStep === coachmarks.length - 1}
 						isMobile={isMobile}
-						onMinimize={minimizeOnboarding}
+						onMinimize={handleMinimizeOnboarding}
 						onNext={advanceOnboardingCoachmark}
 						targetRect={targetRect}
 					/>

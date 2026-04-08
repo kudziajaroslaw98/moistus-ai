@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { OnboardingModal } from './onboarding-modal'
 
 let mockIsMobile = true
@@ -52,6 +52,7 @@ describe('OnboardingModal mobile rendering', () => {
 			},
 			onboardingActiveTarget: null,
 			onboardingCoachmarkStep: 0,
+			onboardingPausedCoachmarkStep: null,
 			onboardingIsMinimized: false,
 			onboardingCreateNodeStep: null,
 			onboardingPatternStep: null,
@@ -243,6 +244,48 @@ describe('OnboardingModal mobile rendering', () => {
 		expect(resumeOnboarding).toHaveBeenCalled()
 	})
 
+	it('expands a minimized first-task pill on mobile without auto-starting hint overlays', async () => {
+		const resumeOnboarding = jest.fn(() => {
+			mockState = {
+				...mockState,
+				onboardingStatus: 'checklist',
+				onboardingIsMinimized: false,
+				onboardingActiveTarget: 'add-node',
+				onboardingCreateNodeStep: 'toolbar',
+			}
+		})
+
+		mockState = {
+			...mockState,
+			onboardingStatus: 'hidden',
+			onboardingIsMinimized: true,
+			onboardingTasks: {
+				'create-node': false,
+				'try-pattern': false,
+				'know-controls': false,
+			},
+			onboardingActiveTarget: null,
+			onboardingCreateNodeStep: 'toolbar',
+			resumeOnboarding,
+		}
+		appendOnboardingTarget('add-node')
+
+		const { rerender } = render(<OnboardingModal />)
+
+		fireEvent.click(screen.getByRole('button', { name: /expand walkthrough/i }))
+		expect(resumeOnboarding).toHaveBeenCalled()
+
+		rerender(<OnboardingModal />)
+
+		await waitFor(() => {
+			expect(screen.getByTestId('onboarding-checklist')).toBeInTheDocument()
+		})
+		expect(
+			screen.queryByTestId('onboarding-create-node-hint')
+		).not.toBeInTheDocument()
+		expect(screen.getByRole('button', { name: 'Skip walkthrough' })).toBeInTheDocument()
+	})
+
 	it('launches the next task directly from the desktop minimized pill', () => {
 		const resumeOnboarding = jest.fn()
 		const startOnboardingTask = jest.fn()
@@ -286,6 +329,90 @@ describe('OnboardingModal mobile rendering', () => {
 				onboardingSource: 'onboarding-pattern',
 			})
 		)
+	})
+
+	it('shows controls tour as the minimized next action when a paused coachmark tour exists', () => {
+		const resumeOnboarding = jest.fn()
+		const startOnboardingTask = jest.fn()
+		mockState = {
+			...mockState,
+			onboardingStatus: 'hidden',
+			onboardingIsMinimized: true,
+			onboardingCoachmarkStep: 2,
+			onboardingActiveTarget: 'layout',
+			onboardingTasks: {
+				'create-node': false,
+				'try-pattern': false,
+				'know-controls': false,
+			},
+			resumeOnboarding,
+			startOnboardingTask,
+		}
+
+		render(<OnboardingModal />)
+
+		expect(screen.getByText('Know the controls')).toBeInTheDocument()
+
+		fireEvent.click(screen.getByRole('button', { name: /expand walkthrough/i }))
+		expect(resumeOnboarding).toHaveBeenCalled()
+		expect(startOnboardingTask).not.toHaveBeenCalled()
+
+		fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+		expect(startOnboardingTask).toHaveBeenCalledWith('know-controls')
+	})
+
+	it('shows Continue for know-controls in checklist when paused controls-tour progress exists', () => {
+		const startOnboardingTask = jest.fn()
+		mockIsMobile = false
+		mockState = {
+			...mockState,
+			onboardingStatus: 'checklist',
+			onboardingCoachmarkStep: 2,
+			onboardingTasks: {
+				'create-node': true,
+				'try-pattern': false,
+				'know-controls': false,
+			},
+			startOnboardingTask,
+		}
+
+		render(<OnboardingModal />)
+
+		const controlsHeading = screen.getByRole('heading', {
+			name: 'Know the controls',
+		})
+		const controlsRow = controlsHeading.parentElement
+		expect(controlsRow).not.toBeNull()
+
+		fireEvent.click(
+			within(controlsRow as HTMLElement).getByRole('button', {
+				name: 'Continue',
+			})
+		)
+		expect(startOnboardingTask).toHaveBeenCalledWith('know-controls')
+	})
+
+	it('disables completed checklist task actions so done tasks cannot restart', () => {
+		const startOnboardingTask = jest.fn()
+		mockIsMobile = false
+		mockState = {
+			...mockState,
+			onboardingStatus: 'checklist',
+			onboardingTasks: {
+				'create-node': true,
+				'try-pattern': false,
+				'know-controls': false,
+			},
+			startOnboardingTask,
+		}
+
+		render(<OnboardingModal />)
+
+		const doneButton = screen.getByRole('button', { name: 'Done' })
+		expect(doneButton).toBeDisabled()
+
+		fireEvent.click(doneButton)
+		expect(startOnboardingTask).not.toHaveBeenCalled()
 	})
 
 	it('anchors the desktop checklist surface to the left edge', () => {

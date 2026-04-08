@@ -103,6 +103,46 @@ describe('onboarding slice', () => {
 		});
 	});
 
+	it('does not reopen skipped hidden onboarding when create-node events race hydration', () => {
+		window.localStorage.setItem(
+			getOnboardingStorageKey('user-1'),
+			JSON.stringify({
+				onboardingStatus: 'hidden',
+				onboardingTasks: {
+					'create-node': false,
+					'try-pattern': false,
+					'know-controls': false,
+				},
+				onboardingIsMinimized: false,
+				hasSkippedOnboarding: true,
+			})
+		);
+
+		const harness = createOnboardingSliceHarness({
+			currentUser: null,
+			mindMap: null,
+			usageData: null,
+		});
+
+		harness.setState({
+			currentUser: { id: 'user-1', is_anonymous: false },
+			mindMap: { user_id: 'user-1' },
+			usageData: { mindMapsCount: 1 },
+		});
+		(harness.getState().handleOnboardingCanvasNodeCreated as () => void)();
+
+		expect(harness.getState()).toMatchObject({
+			onboardingStatus: 'hidden',
+			onboardingIsMinimized: false,
+			hasSkippedOnboarding: true,
+			onboardingTasks: {
+				'create-node': false,
+				'try-pattern': false,
+				'know-controls': false,
+			},
+		});
+	});
+
 	it('rehydrates onboarding state after the current user becomes available', () => {
 		window.localStorage.setItem(
 			getOnboardingStorageKey('user-1'),
@@ -383,6 +423,169 @@ describe('onboarding slice', () => {
 		});
 	});
 
+	it('resumes controls tour from the paused coachmark step', () => {
+		const harness = createOnboardingSliceHarness();
+		const state = harness.getState();
+
+		(state.startOnboardingTask as (taskId: string) => void)('know-controls');
+		(state.advanceOnboardingCoachmark as () => void)();
+		(state.advanceOnboardingCoachmark as () => void)();
+
+		const pausedStep = harness.getState().onboardingCoachmarkStep;
+		const pausedTarget = harness.getState().onboardingActiveTarget;
+
+		(state.minimizeOnboarding as () => void)();
+		expect(harness.getState()).toMatchObject({
+			onboardingStatus: 'hidden',
+			onboardingIsMinimized: true,
+			onboardingCoachmarkStep: pausedStep,
+			onboardingActiveTarget: pausedTarget,
+		});
+
+		(state.resumeOnboarding as () => void)();
+		expect(harness.getState()).toMatchObject({
+			onboardingStatus: 'checklist',
+			onboardingIsMinimized: false,
+			onboardingCoachmarkStep: pausedStep,
+			onboardingActiveTarget: 'add-node',
+		});
+	});
+
+	it('rehydrates paused controls tour state and resumes with clamped mobile step after refresh', () => {
+		window.localStorage.setItem(
+			getOnboardingStorageKey('user-1'),
+			JSON.stringify({
+				onboardingStatus: 'hidden',
+				onboardingTasks: {
+					'create-node': false,
+					'try-pattern': false,
+					'know-controls': false,
+				},
+				onboardingIsMinimized: true,
+				onboardingCoachmarkStep: 999,
+				onboardingActiveTarget: 'share',
+				onboardingViewport: 'mobile',
+			})
+		);
+
+		const harness = createOnboardingSliceHarness({
+			currentUser: null,
+			mindMap: null,
+			usageData: null,
+		});
+
+		harness.setState({
+			currentUser: { id: 'user-1', is_anonymous: false },
+			mindMap: { user_id: 'user-1' },
+			usageData: { mindMapsCount: 1 },
+		});
+		(harness.getState().resumeOnboarding as () => void)();
+
+		expect(harness.getState()).toMatchObject({
+			onboardingStatus: 'checklist',
+			onboardingIsMinimized: false,
+			onboardingPausedCoachmarkStep: ONBOARDING_MOBILE_COACHMARKS.length - 1,
+			onboardingActiveTarget: 'add-node',
+		});
+	});
+
+	it('resumes paused mobile controls tour from Start action without resetting step', () => {
+		const harness = createOnboardingSliceHarness();
+		const state = harness.getState();
+
+		(state.setOnboardingViewport as (viewport: 'desktop' | 'mobile') => void)(
+			'mobile'
+		);
+		(state.startOnboardingTask as (taskId: string) => void)('know-controls');
+		(state.advanceOnboardingCoachmark as () => void)();
+		(state.advanceOnboardingCoachmark as () => void)();
+
+		const pausedStep = harness.getState().onboardingCoachmarkStep;
+		const pausedTarget = harness.getState().onboardingActiveTarget;
+
+		(state.minimizeOnboarding as () => void)();
+		(state.startOnboardingTask as (taskId: string) => void)('know-controls');
+
+		expect(harness.getState()).toMatchObject({
+			onboardingStatus: 'coachmarks',
+			onboardingIsMinimized: false,
+			onboardingViewport: 'mobile',
+			onboardingCoachmarkStep: pausedStep,
+			onboardingActiveTarget: pausedTarget,
+		});
+	});
+
+	it('keeps paused controls-tour progress after expanding checklist and minimizing again', () => {
+		const harness = createOnboardingSliceHarness();
+		const state = harness.getState();
+
+		(state.startOnboardingTask as (taskId: string) => void)('know-controls');
+		(state.advanceOnboardingCoachmark as () => void)();
+		(state.advanceOnboardingCoachmark as () => void)();
+		const pausedTarget = harness.getState().onboardingActiveTarget;
+		const pausedStep = harness.getState().onboardingCoachmarkStep;
+
+		(state.minimizeOnboarding as () => void)();
+		(state.resumeOnboarding as () => void)();
+		expect(harness.getState()).toMatchObject({
+			onboardingStatus: 'checklist',
+			onboardingPausedCoachmarkStep: pausedStep,
+		});
+
+		(state.minimizeOnboarding as () => void)();
+		expect(harness.getState()).toMatchObject({
+			onboardingStatus: 'hidden',
+			onboardingIsMinimized: true,
+			onboardingPausedCoachmarkStep: pausedStep,
+		});
+
+		(state.startOnboardingTask as (taskId: string) => void)('know-controls');
+		expect(harness.getState()).toMatchObject({
+			onboardingStatus: 'coachmarks',
+			onboardingIsMinimized: false,
+			onboardingCoachmarkStep: pausedStep,
+			onboardingActiveTarget: pausedTarget,
+		});
+	});
+
+	it('preserves paused controls-tour step after checklist task updates reset active coachmark step', () => {
+		const harness = createOnboardingSliceHarness();
+		const state = harness.getState();
+
+		(state.startOnboardingTask as (taskId: string) => void)('know-controls');
+		(state.advanceOnboardingCoachmark as () => void)();
+		(state.advanceOnboardingCoachmark as () => void)();
+		const pausedTarget = harness.getState().onboardingActiveTarget;
+		const pausedStep = harness.getState().onboardingCoachmarkStep;
+
+		(state.minimizeOnboarding as () => void)();
+		(state.resumeOnboarding as () => void)();
+		expect(harness.getState()).toMatchObject({
+			onboardingStatus: 'checklist',
+			onboardingPausedCoachmarkStep: pausedStep,
+		});
+
+		(state.handleOnboardingCanvasNodeCreated as () => void)();
+		expect(harness.getState()).toMatchObject({
+			onboardingTasks: {
+				'create-node': true,
+				'try-pattern': false,
+				'know-controls': false,
+			},
+			onboardingCoachmarkStep: 0,
+			onboardingPausedCoachmarkStep: pausedStep,
+		});
+
+		(state.minimizeOnboarding as () => void)();
+		(state.startOnboardingTask as (taskId: string) => void)('know-controls');
+		expect(harness.getState()).toMatchObject({
+			onboardingStatus: 'coachmarks',
+			onboardingCoachmarkStep: pausedStep,
+			onboardingPausedCoachmarkStep: null,
+			onboardingActiveTarget: pausedTarget,
+		});
+	});
+
 	it('finishes the controls tour into the optional upsell for free users', () => {
 		const harness = createOnboardingSliceHarness();
 		const state = harness.getState();
@@ -444,6 +647,29 @@ describe('onboarding slice', () => {
 				'try-pattern': false,
 				'know-controls': false,
 			},
+		});
+	});
+
+	it('keeps checklist minimize/resume behavior unchanged', () => {
+		const harness = createOnboardingSliceHarness();
+		const state = harness.getState();
+
+		(state.startOnboarding as () => void)();
+		(state.minimizeOnboarding as () => void)();
+
+		expect(harness.getState()).toMatchObject({
+			onboardingStatus: 'hidden',
+			onboardingIsMinimized: true,
+			onboardingCoachmarkStep: 0,
+			onboardingActiveTarget: null,
+		});
+
+		(state.resumeOnboarding as () => void)();
+		expect(harness.getState()).toMatchObject({
+			onboardingStatus: 'checklist',
+			onboardingIsMinimized: false,
+			onboardingCreateNodeStep: 'toolbar',
+			onboardingActiveTarget: 'add-node',
 		});
 	});
 });

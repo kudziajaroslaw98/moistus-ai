@@ -34,6 +34,7 @@ total_tokens: 707972
 <!-- Updated: 2026-04-01 - Documented LAN-safe local-dev Supabase/PartyKit URL derivation -->
 <!-- Updated: 2026-04-01 - Documented stable Supabase SSR auth storage key for LAN logins -->
 <!-- Updated: 2026-04-01 - Corrected node-editor dismissal docs after merging the main autocomplete baseline -->
+<!-- Updated: 2026-04-08 - Documented onboarding paused-coachmark marker and manual-resume anchor-measurement suspension -->
 <!-- Updated: 2026-04-01 - Documented the tighter landing-page flow with hero mini-demo, product-proof chapters, and pricing/FAQ close -->
 <!-- Updated: 2026-04-01 - Noted the landing de-densification pass for calmer workflow chrome and screenshot-safe proof notes -->
 <!-- Updated: 2026-04-01 - Noted the landing canvas-fidelity pass for a Shiko-like hero scene and cleaner screenshot-led proof modules -->
@@ -387,12 +388,12 @@ shiko/
 **Editor Onboarding v2:**
 
 - `src/components/onboarding/onboarding-modal.tsx` now renders the editor walkthrough shell directly inside the mind-map experience instead of using a global dialog in `ClientProviders`
-- `src/store/slices/onboarding-slice.ts` tracks task-based progress (`create-node`, `try-pattern`, `know-controls`), real add-mode substeps (`toolbar` -> `canvas`), post-create edit hints, viewport-aware coachmark state (`desktop` vs `mobile`), minimized walkthrough state, and eligibility gating for first owned free maps
+- `src/store/slices/onboarding-slice.ts` tracks task-based progress (`create-node`, `try-pattern`, `know-controls`), real add-mode substeps (`toolbar` -> `canvas`), post-create edit hints, viewport-aware coachmark state (`desktop` vs `mobile`), explicit paused-controls resume state (`onboardingPausedCoachmarkStep`) separated from active coachmark cursor, minimized walkthrough state, and eligibility gating for first owned free maps
 - `src/store/app-state.ts` + `src/store/slices/ui-slice.ts` extend node-editor state with onboarding preset/source fields so the walkthrough can open a deterministic parser example in the real quick-input editor
 - `src/components/node-editor/node-editor.tsx` + `src/components/node-editor/integrations/codemirror/setup.ts` keep CodeMirror autocomplete portaled to `document.body`, mirror native autocomplete state into React, and treat `.cm-tooltip*` presses as inside-editor interactions so selecting a native suggestion does not dismiss the editor
 - `src/components/common/user-menu.tsx` and `src/components/subscription/limit-warning.tsx` now bypass onboarding entirely for upgrade prompts and open `popoverOpen.upgradeUser` directly
 - Toolbar/top-bar/shortcut controls expose `data-onboarding-target` anchors for cursor/select, Add Node, AI Suggestions, Auto Layout, Export, Guided Tour, Reset Zoom, Comments, desktop Share, mobile hamburger menu, `More Tools`, shortcuts help, and breadcrumb/home
-- Mobile onboarding uses bottom-sheet surfaces only: intro/checklist/hints/coachmarks never stack, step-specific sheets replace the checklist while active, the controls tour points to `mobile-menu` instead of the removed mobile share button, and the minimized walkthrough chip moves under the top bar instead of sharing the bottom-dock lane
+- Mobile onboarding uses bottom-sheet surfaces only: intro/checklist/hints/coachmarks never stack, step-specific sheets replace the checklist while active, the controls tour points to `mobile-menu` instead of the removed mobile share button, and the minimized walkthrough chip moves under the top bar instead of sharing the bottom-dock lane. Manual pill-expands keep checklist mode visible and suspend anchor rAF measuring until a task CTA explicitly re-enters guided overlays
 - `src/components/nodes/base-node-wrapper.tsx` now exposes a touch-first `Edit` action for a single selected mobile node so onboarding can teach a real edit path instead of desktop-only shortcuts
 - `src/components/mind-map/top-bar/index.tsx` now collapses the mobile header to breadcrumb/title plus one unread-aware hamburger trigger, while `src/components/mind-map/top-bar/mobile-menu.tsx` owns mobile share, notifications preview, collaborators, workspace actions, and account/billing flows in a full-height editorial drawer
 
