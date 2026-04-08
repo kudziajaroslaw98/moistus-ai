@@ -233,4 +233,42 @@ describe('useTouchContextMenuFallback', () => {
 		node.dispatchEvent(secondClick);
 		expect(secondClick.defaultPrevented).toBe(false);
 	});
+
+	it('does not open from timeout after native contextmenu opens first', () => {
+		const openContextMenuAt = jest.fn();
+		const { rerender } = render(
+			<TouchContextMenuHarness
+				isContextMenuOpen={false}
+				openContextMenuAt={openContextMenuAt}
+			/>
+		);
+
+		const node = screen.getByTestId('node');
+		act(() => {
+			dispatchPointerEvent(node, 'pointerdown', {
+				clientX: 140,
+				clientY: 90,
+			});
+		});
+
+		const nativeContextMenuEvent = new MouseEvent('contextmenu', {
+			bubbles: true,
+			cancelable: true,
+		});
+		node.dispatchEvent(nativeContextMenuEvent);
+
+		// Simulate store update after native context menu opened.
+		rerender(
+			<TouchContextMenuHarness
+				isContextMenuOpen={true}
+				openContextMenuAt={openContextMenuAt}
+			/>
+		);
+
+		act(() => {
+			jest.advanceTimersByTime(TOUCH_CONTEXT_MENU_LONG_PRESS_MS);
+		});
+
+		expect(openContextMenuAt).not.toHaveBeenCalled();
+	});
 });

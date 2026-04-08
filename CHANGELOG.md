@@ -80,6 +80,10 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: iPad/iOS WebKit does not reliably emit `contextmenu` for press-and-hold, so mobile users could not access context-menu-only actions
 - **mind-map/mobile-context-menu-trailing-click-guard**: Suppressed the immediate synthetic click/contextmenu events after long-press activation to avoid accidental selection/close side-effects right after opening the menu
   - Why: Long-press interactions can emit trailing click-like events that would immediately interfere with the newly opened custom menu
+- **mind-map/mobile-context-menu-native-race-guard**: Hardened long-press timeout handling against native-contextmenu races by skipping deferred open when the context menu is already open and clearing pending press state when trailing native contextmenu suppression runs
+  - Why: A pointerdown followed by native contextmenu could otherwise allow the long-press timeout to fire later and attempt a duplicate open
+- **mind-map/mobile-context-menu-container-scope**: Scoped touch fallback listeners to the immediate React Flow canvas wrapper instead of the broader ReactFlowArea shell
+  - Why: Gesture suppression should align with the actual flow surface and not capture unrelated modal/shell interactions
 
 ### Added
 
@@ -87,6 +91,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: These state transitions are timing-sensitive and require explicit regression guards
 - **tests/mobile-context-menu-touch-fallback**: Added hook-level long-press regression tests for node/edge/pane targeting, quick-tap and movement cancellation, and trailing-click suppression plus `useContextMenu` coverage for direct `openContextMenuAt` state wiring
   - Why: Touch fallback behavior is timing-sensitive and must remain stable across future React Flow/mobile interaction changes
+- **tests/mobile-context-menu-native-contextmenu-sequence**: Added regression coverage for pointerdown -> native contextmenu -> timeout ordering plus ReactFlowArea hook-wiring assertions for open/closed context-menu state propagation
+  - Why: Prevents regressions in the specific iPad/WebKit race and keeps fallback integration wiring observable in tests
 
 ## [2026-04-07]
 

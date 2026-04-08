@@ -47,6 +47,34 @@ function resolveTargetContext(target: EventTarget | null): TargetContext | null 
 	return null;
 }
 
+/**
+ * Adds a touch long-press fallback for opening the custom context menu inside
+ * the provided React Flow container.
+ *
+ * Targets:
+ * - `.react-flow__node[data-id]` -> opens node context menu.
+ * - `.react-flow__edge[data-id]` -> opens edge context menu.
+ * - `.react-flow__pane` -> opens pane context menu.
+ *
+ * Detection:
+ * - Requires primary touch pointer and left button (`pointerdown`).
+ * - Opens after `TOUCH_CONTEXT_MENU_LONG_PRESS_MS`.
+ * - Cancels when pointer moves more than `TOUCH_CONTEXT_MENU_MOVE_TOLERANCE_PX`,
+ *   or on `pointerup`/`pointercancel`/`pointerleave`, or window scroll.
+ *
+ * Suppression:
+ * - No new press starts while `isContextMenuOpen` is true.
+ * - After a successful long-press open, suppresses immediate trailing
+ *   `click/contextmenu` events for
+ *   `TOUCH_CONTEXT_MENU_CLICK_SUPPRESSION_MS` to prevent accidental
+ *   close/select side effects.
+ *
+ * Internal refs:
+ * - `pendingPressRef`: active touch candidate (pointer id/start coords/target).
+ * - `timerIdRef`: pending long-press timer id.
+ * - `isContextMenuOpenRef`: latest menu-open state for race-safe checks.
+ * - `suppressClickUntilRef`: timestamp gate for trailing event suppression.
+ */
 export function useTouchContextMenuFallback({
 	containerRef,
 	openContextMenuAt,
@@ -109,6 +137,10 @@ export function useTouchContextMenuFallback({
 				if (!pendingPress || pendingPress.pointerId !== pointerId) {
 					return;
 				}
+				if (isContextMenuOpenRef.current) {
+					clearPendingPress();
+					return;
+				}
 
 				openContextMenuAtRef.current({
 					x: pendingPress.startX,
@@ -162,6 +194,7 @@ export function useTouchContextMenuFallback({
 				return;
 			}
 
+			clearPendingPress();
 			event.preventDefault();
 			event.stopPropagation();
 			event.stopImmediatePropagation();

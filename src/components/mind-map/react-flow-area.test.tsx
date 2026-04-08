@@ -8,6 +8,8 @@ const mockReactFlowRenderHistory: Array<{ nodes: AppNode[]; edges: AppEdge[] }> 
 const mockAnimateGraphToState = jest.fn();
 const mockCancelAnimation = jest.fn();
 const mockNoop = jest.fn();
+const mockOpenContextMenuAt = jest.fn();
+const mockUseTouchContextMenuFallback = jest.fn();
 let mockStoreState: Record<string, unknown>;
 
 jest.mock('@/registry/node-registry', () => ({
@@ -118,12 +120,14 @@ jest.mock('@/hooks/use-context-menu', () => ({
 			onPaneClick: (...args: unknown[]) => mockNoop(...args),
 			onPaneContextMenu: (...args: unknown[]) => mockNoop(...args),
 			onNodeContextMenu: (...args: unknown[]) => mockNoop(...args),
-			openContextMenuAt: (...args: unknown[]) => mockNoop(...args),
+			openContextMenuAt: (...args: unknown[]) =>
+				mockOpenContextMenuAt(...args),
 		},
 	}),
 }));
 jest.mock('@/hooks/use-touch-context-menu-fallback', () => ({
-	useTouchContextMenuFallback: () => undefined,
+	useTouchContextMenuFallback: (...args: unknown[]) =>
+		mockUseTouchContextMenuFallback(...args),
 }));
 jest.mock('@/hooks/use-mobile', () => ({
 	useIsMobile: () => false,
@@ -219,7 +223,12 @@ function createMockStore(overrides: Partial<Record<string, unknown>> = {}) {
 		setReactFlowInstance: mockNoop,
 		setSelectedNodes: mockNoop,
 		setPopoverOpen: mockNoop,
-		popoverOpen: { upgradeUser: false, mapSettings: false, history: false },
+		popoverOpen: {
+			contextMenu: false,
+			upgradeUser: false,
+			mapSettings: false,
+			history: false,
+		},
 		setEdgeInfo: mockNoop,
 		setMapId: mockNoop,
 		addNode: mockNoop,
@@ -272,6 +281,8 @@ describe('ReactFlowArea', () => {
 		mockReactFlowRenderHistory.length = 0;
 		mockAnimateGraphToState.mockReset();
 		mockCancelAnimation.mockReset();
+		mockOpenContextMenuAt.mockReset();
+		mockUseTouchContextMenuFallback.mockReset();
 		mockStoreState = createMockStore();
 		mockAnimateGraphToState.mockImplementation(
 			async ({
@@ -371,5 +382,49 @@ describe('ReactFlowArea', () => {
 
 		expect(nodePositions).toContain(50);
 		expect(edgeWaypointPositions).toContain(100);
+	});
+
+	it('wires touch context menu fallback with expected params and open/closed state', () => {
+		const { rerender } = render(<ReactFlowArea isMapReady={true} />);
+
+		expect(mockUseTouchContextMenuFallback).toHaveBeenCalled();
+		const firstCallParams = mockUseTouchContextMenuFallback.mock.calls[0][0] as {
+			containerRef: { current: unknown };
+			openContextMenuAt: (...args: unknown[]) => unknown;
+			isContextMenuOpen: boolean;
+		};
+		expect(firstCallParams.isContextMenuOpen).toBe(false);
+		expect(typeof firstCallParams.openContextMenuAt).toBe('function');
+		expect(firstCallParams.containerRef).toBeDefined();
+		expect(firstCallParams.containerRef.current).not.toBeNull();
+
+		firstCallParams.openContextMenuAt({
+			x: 10,
+			y: 20,
+			nodeId: 'node-via-hook',
+			edgeId: null,
+		});
+		expect(mockOpenContextMenuAt).toHaveBeenCalledWith({
+			x: 10,
+			y: 20,
+			nodeId: 'node-via-hook',
+			edgeId: null,
+		});
+
+		mockStoreState = createMockStore({
+			popoverOpen: {
+				contextMenu: true,
+				upgradeUser: false,
+				mapSettings: false,
+				history: false,
+			},
+		});
+
+		rerender(<ReactFlowArea isMapReady={true} />);
+
+		const lastCallParams = mockUseTouchContextMenuFallback.mock.calls.at(-1)?.[0] as {
+			isContextMenuOpen: boolean;
+		};
+		expect(lastCallParams.isContextMenuOpen).toBe(true);
 	});
 });
