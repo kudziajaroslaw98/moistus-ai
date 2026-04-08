@@ -43,6 +43,7 @@ export interface TaskNodeMetadata extends BaseNodeMetadata {
 		text: string;
 		isComplete: boolean;
 	}>;
+	hideCompletedTasks?: boolean;
 	// Inherits dueDate and priority from base
 }
 

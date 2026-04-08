@@ -233,6 +233,7 @@ export const transformNodeToFormData = (
 
 		case 'taskNode':
 			return {
+				title: data.metadata?.title || '',
 				tasks: data.metadata?.tasks || [],
 				...universalFormData,
 			};
@@ -528,8 +529,14 @@ const serializeNodeSpecificMetadata = (
 			// Reference parser tokens are intentionally disabled.
 			break;
 
-		// taskNode and defaultNode only use universal metadata
 		case 'taskNode':
+			if (metadata.title) {
+				const escapedTitle = escapeForQuotedValue(metadata.title);
+				parts.push(`title:"${escapedTitle}"`);
+			}
+			break;
+
+		// defaultNode only uses universal metadata
 		case 'defaultNode':
 		default:
 			// No node-specific patterns for these types

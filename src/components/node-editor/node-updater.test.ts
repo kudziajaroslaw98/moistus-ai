@@ -107,4 +107,54 @@ describe('node updater parser cleanup', () => {
 		expect(transformedText.metadata?.borderColor).toBeUndefined()
 		expect(transformedImage.metadata?.source).toBeUndefined()
 	})
+
+	it('persists task node title from parsed metadata', () => {
+		const transformedTask = transformDataForNodeType('taskNode', {
+			content: '',
+			metadata: {
+				title: 'Sprint Tasks',
+				tasks: [{ id: 'task-1', text: 'Ship feature', isComplete: false }],
+			},
+		})
+
+		expect(transformedTask.metadata?.title).toBe('Sprint Tasks')
+		expect(transformedTask.metadata?.tasks).toEqual([
+			{ id: 'task-1', text: 'Ship feature', isComplete: false },
+		])
+	})
+
+	it('re-serializes task node title to quick input', () => {
+		const now = new Date().toISOString()
+		const node = createNode({
+			type: 'taskNode',
+			data: {
+				id: 'node-1',
+				content: '',
+				map_id: 'map-1',
+				parent_id: null,
+				position_x: 0,
+				position_y: 0,
+				node_type: 'taskNode',
+				created_at: now,
+				updated_at: now,
+				tasks: [
+					{ id: 'task-1', text: 'Ship feature', isComplete: false },
+					{ id: 'task-2', text: 'Write tests', isComplete: true },
+				],
+				metadata: {
+					title: 'Sprint Tasks',
+					tasks: [
+						{ id: 'task-1', text: 'Ship feature', isComplete: false },
+						{ id: 'task-2', text: 'Write tests', isComplete: true },
+					],
+				},
+			} as AppNode['data'],
+		})
+
+		const quickInput = transformNodeToQuickInputString(node, 'taskNode')
+
+		expect(quickInput).toContain('[ ] Ship feature')
+		expect(quickInput).toContain('[x] Write tests')
+		expect(quickInput).toContain('title:"Sprint Tasks"')
+	})
 })

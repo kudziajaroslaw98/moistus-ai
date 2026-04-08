@@ -2,7 +2,7 @@
 
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import useAppStore from '@/store/mind-map-store';
-import { CheckCheck, CheckSquare, Plus, Square } from 'lucide-react';
+import { CheckCheck, CheckSquare, Eye, EyeOff, Plus, Square } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { Button } from '../ui/button';
@@ -31,18 +31,26 @@ type TaskNodeProps = TypedNodeProps<'taskNode'>;
 const TaskNodeComponent = (props: TaskNodeProps) => {
 	const { id, data } = props;
 	const { canEdit } = usePermissions();
-	const { updateNode, selectedNodes } = useAppStore(
+	const { updateNode, selectedNodes, markNodeAsSystemUpdate } = useAppStore(
 		useShallow((state) => ({
 			updateNode: state.updateNode,
 			selectedNodes: state.selectedNodes,
+			markNodeAsSystemUpdate: state.markNodeAsSystemUpdate,
 		}))
 	);
 
 	const theme = GlassmorphismTheme;
+	const metadata = (data.metadata as TaskNodeMetadata | undefined) ?? undefined;
 
 	const tasks = useMemo(
-		() => (data.metadata as TaskNodeMetadata)?.tasks || [],
-		[data.metadata]
+		() => metadata?.tasks || [],
+		[metadata]
+	);
+	const title = metadata?.title;
+	const hideCompletedTasks = Boolean(metadata?.hideCompletedTasks);
+	const visibleTasks = useMemo(
+		() => (hideCompletedTasks ? tasks.filter((task) => !task.isComplete) : tasks),
+		[tasks, hideCompletedTasks]
 	);
 
 	const handleToggleTask = useCallback(
@@ -104,6 +112,23 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 		}
 	}, [tasks, updateNode, id, data.metadata]);
 
+	const handleToggleCompletedVisibility = useCallback(async () => {
+		try {
+			markNodeAsSystemUpdate(id);
+			await updateNode({
+				nodeId: id,
+				data: {
+					metadata: {
+						...data.metadata,
+						hideCompletedTasks: !hideCompletedTasks,
+					},
+				},
+			});
+		} catch (error) {
+			console.error('Failed to toggle completed task visibility:', error);
+		}
+	}, [hideCompletedTasks, markNodeAsSystemUpdate, updateNode, id, data.metadata]);
+
 	const buttonStyle = {
 		backgroundColor: 'transparent',
 		border: `1px solid ${theme.borders.hover}`,
@@ -140,6 +165,21 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 				</Button>
 				<ToolbarSeparator />
 				<Button
+					className='h-8 w-8 p-0'
+					disabled={!canEdit}
+					onClick={handleToggleCompletedVisibility}
+					size='sm'
+					style={buttonStyle}
+					title={hideCompletedTasks ? 'Show completed tasks' : 'Hide completed tasks'}
+					variant='outline'
+				>
+					{hideCompletedTasks ? (
+						<Eye className='w-4 h-4' />
+					) : (
+						<EyeOff className='w-4 h-4' />
+					)}
+				</Button>
+				<Button
 					className="h-8 w-8 p-0"
 					disabled={!canEdit}
 					onClick={handleAddTask}
@@ -161,10 +201,13 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 				nodeType='Tasks'
 			>
 				<TaskContent
-					tasks={tasks}
+					filteredEmptyMessage='All completed tasks are hidden. Toggle visibility to review them.'
 					onTaskToggle={canEdit ? handleToggleTask : undefined}
 					placeholder='Double click or click the menu to add tasks...'
 					showCelebrationEmoji={true}
+					statsTasks={tasks}
+					tasks={visibleTasks}
+					title={title}
 				/>
 			</BaseNodeWrapper>
 		</>

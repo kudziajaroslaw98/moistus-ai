@@ -171,8 +171,13 @@ pnpm pretty          # Prettier
 <!-- Updated: 2026-02-27 - Removed non-persisting template controls from map settings UI -->
 
 **Node editor parser scope**: Parser syntax no longer supports `bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`, or `$reference` quick-switch in node editor flows. Syntax Help is split into `Universal` (type-filtered) and `Node-specific` sections.
+For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 
 <!-- Updated: 2026-02-28 - Removed deprecated parser tokens and introduced dual syntax help model -->
+<!-- Updated: 2026-04-08 - Clarified canonical lowercase quoted title parser syntax -->
+
+**Task node visibility/title contract**: `taskNode` supports `metadata.hideCompletedTasks` (per-node hide/show for completed checklist items) and keeps progress stats based on full `metadata.tasks`, not only visible rows. Task titles are quick-input metadata (`title:"..."`) and must round-trip through node-editor parsing/serialization.
+<!-- Updated: 2026-04-08 - Documented task-node hide-completed persistence and title round-trip contract -->
 
 **Node editor autocomplete surfaces**: Keep `createCompletions()` as the single source of autocomplete options. Desktop uses the native CodeMirror tooltip; mobile hides that tooltip and renders a hybrid presenter: a compact full-width strip attached to the open keyboard, or a caret-anchored floating panel when the keyboard is hidden. Any editor/modal outside-press guard must treat both `[data-node-editor-autocomplete-tray="true"]` and body-portaled `.cm-tooltip*` elements as inside-editor interactions so selecting a suggestion does not dismiss the editor.
 <!-- Updated: 2026-03-28 - Documented the hybrid mobile autocomplete presenter and shared completion engine -->

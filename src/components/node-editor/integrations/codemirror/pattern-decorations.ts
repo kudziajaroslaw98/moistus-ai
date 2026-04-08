@@ -176,7 +176,7 @@ const STATUS_EXCLUDE_PREFIXES = [
 
 const STATUS_REGEX = new RegExp(
 	`(?<!${STATUS_EXCLUDE_PREFIXES.join('|')}):[a-zA-Z][a-zA-Z0-9_-]*`,
-	'g'
+	'gi'
 );
 
 /**

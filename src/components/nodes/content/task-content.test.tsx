@@ -22,6 +22,15 @@ jest.mock('@/components/nodes/themes/glassmorphism-theme', () => ({
 }))
 
 describe('TaskContent', () => {
+	describe('title rendering', () => {
+		it('renders title above task content when provided', () => {
+			const tasks = [{ id: '1', text: 'Task 1', isComplete: false }]
+			render(<TaskContent tasks={tasks} title='Sprint Tasks' />)
+
+			expect(screen.getByText('Sprint Tasks')).toBeInTheDocument()
+		})
+	})
+
 	describe('placeholder behavior', () => {
 		it('shows default placeholder when tasks array is empty', () => {
 			render(<TaskContent tasks={[]} />)
@@ -33,6 +42,21 @@ describe('TaskContent', () => {
 			render(<TaskContent tasks={[]} placeholder="No tasks yet" />)
 
 			expect(screen.getByText('No tasks yet')).toBeInTheDocument()
+		})
+
+		it('shows filtered empty message when all visible tasks are hidden', () => {
+			const statsTasks = [{ id: '1', text: 'Done task', isComplete: true }]
+
+			render(
+				<TaskContent
+					tasks={[]}
+					statsTasks={statsTasks}
+					filteredEmptyMessage='Completed tasks are hidden'
+				/>
+			)
+
+			expect(screen.getByText('Completed tasks are hidden')).toBeInTheDocument()
+			expect(screen.queryByText('Add tasks...')).not.toBeInTheDocument()
 		})
 	})
 
@@ -92,6 +116,19 @@ describe('TaskContent', () => {
 			expect(screen.getByText('3')).toBeInTheDocument()
 		})
 
+		it('uses statsTasks for progress when provided', () => {
+			const visibleTasks = [{ id: '1', text: 'Task 1', isComplete: false }]
+			const statsTasks = [
+				{ id: '1', text: 'Task 1', isComplete: false },
+				{ id: '2', text: 'Task 2', isComplete: true },
+				{ id: '3', text: 'Task 3', isComplete: true },
+			]
+			render(<TaskContent tasks={visibleTasks} statsTasks={statsTasks} />)
+
+			expect(screen.getByText('2')).toBeInTheDocument()
+			expect(screen.getByText('3')).toBeInTheDocument()
+		})
+
 		it('shows 0/N when no tasks completed', () => {
 			const tasks = [
 				{ id: '1', text: 'Task 1', isComplete: false },
@@ -133,6 +170,25 @@ describe('TaskContent', () => {
 
 			const taskElement = container.querySelector('.cursor-pointer')
 			expect(taskElement).not.toBeInTheDocument()
+		})
+
+		it('adds checkbox semantics and keyboard toggle support', async () => {
+			const user = userEvent.setup()
+			const onTaskToggle = jest.fn()
+			const tasks = [{ id: '1', text: 'Keyboard task', isComplete: false }]
+
+			render(<TaskContent tasks={tasks} onTaskToggle={onTaskToggle} />)
+
+			const taskRow = screen.getByRole('checkbox', { name: /keyboard task/i })
+			expect(taskRow).toHaveAttribute('aria-checked', 'false')
+			expect(taskRow).toHaveAttribute('tabindex', '0')
+
+			taskRow.focus()
+			await user.keyboard('{Enter}')
+			await user.keyboard(' ')
+
+			expect(onTaskToggle).toHaveBeenNthCalledWith(1, '1')
+			expect(onTaskToggle).toHaveBeenNthCalledWith(2, '1')
 		})
 	})
 

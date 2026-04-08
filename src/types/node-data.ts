@@ -52,6 +52,7 @@ export interface NodeData extends Record<string, unknown> {
 		// Task Properties (TaskNode)
 		// ------------------------------------------
 		tasks?: { id: string; text: string; isComplete: boolean }[];
+		hideCompletedTasks?: boolean;
 		dueDate?: string;
 		assignee?: string[];
 		assigneeUserIds?: string[];
