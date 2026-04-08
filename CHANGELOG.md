@@ -69,6 +69,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: After expanding from a paused pill, the checklist still showed `Start`, which implied a reset instead of continuation
 - **onboarding/checklist-completed-task-cta-disabled**: Disabled checklist task action buttons once their state is `Done` so completed tasks cannot be restarted from the checklist surface
   - Why: Completed task CTAs remained clickable and could incorrectly relaunch already finished onboarding steps
+- **onboarding/mobile-pill-manual-expand-checklist**: Kept the checklist surface visible when manually expanding a minimized mobile first-task pill and suppressed hint/coachmark overlays on that manual expand, so users can access walkthrough controls like `Skip walkthrough` and only start task guidance from explicit `Start`/`Continue` taps
+  - Why: Expanding the minimized first-task pill hid checklist controls and also felt like the task auto-restarted by immediately returning to hint UI
 
 ### Added
 

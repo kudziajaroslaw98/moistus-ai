@@ -243,6 +243,48 @@ describe('OnboardingModal mobile rendering', () => {
 		expect(resumeOnboarding).toHaveBeenCalled()
 	})
 
+	it('expands a minimized first-task pill on mobile without auto-starting hint overlays', async () => {
+		const resumeOnboarding = jest.fn(() => {
+			mockState = {
+				...mockState,
+				onboardingStatus: 'checklist',
+				onboardingIsMinimized: false,
+				onboardingActiveTarget: 'add-node',
+				onboardingCreateNodeStep: 'toolbar',
+			}
+		})
+
+		mockState = {
+			...mockState,
+			onboardingStatus: 'hidden',
+			onboardingIsMinimized: true,
+			onboardingTasks: {
+				'create-node': false,
+				'try-pattern': false,
+				'know-controls': false,
+			},
+			onboardingActiveTarget: null,
+			onboardingCreateNodeStep: 'toolbar',
+			resumeOnboarding,
+		}
+		appendOnboardingTarget('add-node')
+
+		const { rerender } = render(<OnboardingModal />)
+
+		fireEvent.click(screen.getByRole('button', { name: /expand walkthrough/i }))
+		expect(resumeOnboarding).toHaveBeenCalled()
+
+		rerender(<OnboardingModal />)
+
+		await waitFor(() => {
+			expect(screen.getByTestId('onboarding-checklist')).toBeInTheDocument()
+		})
+		expect(
+			screen.queryByTestId('onboarding-create-node-hint')
+		).not.toBeInTheDocument()
+		expect(screen.getByRole('button', { name: 'Skip walkthrough' })).toBeInTheDocument()
+	})
+
 	it('launches the next task directly from the desktop minimized pill', () => {
 		const resumeOnboarding = jest.fn()
 		const startOnboardingTask = jest.fn()
