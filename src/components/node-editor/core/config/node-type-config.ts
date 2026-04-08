@@ -172,9 +172,9 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 				insertText: '[ ] ',
 			},
 			{
-				pattern: 'Title:',
+				pattern: 'title:"text"',
 				description: 'List with title',
-				examples: ['Sprint tasks: Backend, Frontend, Testing'],
+				examples: ['title:"Sprint tasks" [ ] Backend\n[ ] Frontend'],
 				category: 'formatting',
 			},
 		],

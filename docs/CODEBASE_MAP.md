@@ -274,7 +274,7 @@ shiko/
 | -------------- | --------- | ------------- | ---------------------------- |
 | defaultNode    | content   | `$note`       | Standard note                |
 | textNode       | content   | `$text`       | Plain text                   |
-| taskNode       | content   | `$task`       | Checklist                    |
+| taskNode       | content   | `$task`       | Checklist (+ hide done/title) |
 | codeNode       | content   | `$code`       | Syntax highlighted           |
 | annotationNode | content   | `$annotation` | Comments/notes               |
 | resourceNode   | content   | `$link`       | URL preview                  |
@@ -286,6 +286,8 @@ shiko/
 | ghostNode      | ai        | —             | AI suggestions (system only) |
 
 **Node Editor note:** Quick-input parser/help intentionally excludes `$reference` quick-switch and deprecated parser tokens (`bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`). Syntax Help is split into type-filtered `Universal` plus `Node-specific` sections.
+Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
+<!-- Updated: 2026-04-08 - Documented task node title/hide-done capability in node type map -->
 
 **Key Files:**
 
@@ -585,6 +587,8 @@ sequenceDiagram
 18. **LAN-Safe Local Dev URLs** - Browser Supabase and PartyKit clients now derive from `window.location.hostname` in development when their public env values are blank or loopback-only. Same-origin dashboard/history fetches are relative, forgot-password redirects use the current origin, and server-side Supabase code can stay on `SUPABASE_INTERNAL_URL`.
 
 19. **Supabase SSR Cookie Naming** - Browser + server Supabase clients must use the same `cookieOptions.name` / auth storage key. For local LAN dev, derive it from the configured Supabase URL (for example `127.0.0.1`) rather than the current browser host, or a successful LAN password login will set `sb-192-*` while the server still looks for `sb-127-*`.
+
+20. **Task Node Done Visibility + Title Round-Trip** - `taskNode` persists per-node `metadata.hideCompletedTasks` for canvas filtering, but completion stats must still be computed from full `metadata.tasks`. Task titles are parser metadata (`title:"..."`) and should round-trip through quick-input serialize/edit flows.
 
 ## Navigation Guide
 
