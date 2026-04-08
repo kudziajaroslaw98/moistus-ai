@@ -118,8 +118,12 @@ jest.mock('@/hooks/use-context-menu', () => ({
 			onPaneClick: (...args: unknown[]) => mockNoop(...args),
 			onPaneContextMenu: (...args: unknown[]) => mockNoop(...args),
 			onNodeContextMenu: (...args: unknown[]) => mockNoop(...args),
+			openContextMenuAt: (...args: unknown[]) => mockNoop(...args),
 		},
 	}),
+}));
+jest.mock('@/hooks/use-touch-context-menu-fallback', () => ({
+	useTouchContextMenuFallback: () => undefined,
 }));
 jest.mock('@/hooks/use-mobile', () => ({
 	useIsMobile: () => false,

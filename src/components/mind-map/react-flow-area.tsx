@@ -45,6 +45,7 @@ import { useAnimatedLayout } from '@/hooks/use-animated-layout';
 import { useContextMenu } from '@/hooks/use-context-menu';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNodeSuggestion } from '@/hooks/use-node-suggestion';
+import { useTouchContextMenuFallback } from '@/hooks/use-touch-context-menu-fallback';
 import { getMindMapRoomName } from '@/lib/realtime/room-names';
 import useAppStore from '@/store/mind-map-store';
 import type { AppEdge } from '@/types/app-edge';
@@ -72,6 +73,7 @@ interface ReactFlowAreaProps {
 export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 	const mapId = useParams().id;
 	const reactFlowInstance = useReactFlow();
+	const touchContextMenuContainerRef = useRef<HTMLDivElement | null>(null);
 	const bottomDockRef = useRef<HTMLDivElement | null>(null);
 	const connectingNodeId = useRef<string | null>(null);
 	const connectingHandleId = useRef<string | null>(null);
@@ -198,6 +200,12 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 	const mobileNotifications = useNotifications({
 		filterMapId: mapId as string,
 		enabled: isMobile,
+	});
+
+	useTouchContextMenuFallback({
+		containerRef: touchContextMenuContainerRef,
+		isContextMenuOpen: popoverOpen.contextMenu,
+		openContextMenuAt: contextMenuHandlers.openContextMenuAt,
 	});
 	const updateBottomToolbarClearance = useCallback(() => {
 		if (typeof window === 'undefined') return;
@@ -732,7 +740,11 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 	}, [showUpgradeModal]);
 
 	return (
-		<div className='w-full h-full' key='mind-map-container'>
+		<div
+			className='w-full h-full'
+			key='mind-map-container'
+			ref={touchContextMenuContainerRef}
+		>
 			<ReactFlow
 				colorMode='dark'
 				connectionLineComponent={FloatingConnectionLine}

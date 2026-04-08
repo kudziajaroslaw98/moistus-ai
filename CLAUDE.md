@@ -12,6 +12,7 @@
 <!-- Updated: 2026-04-07 - Documented Strict Mode-safe map unmount cleanup requirement -->
 <!-- Updated: 2026-04-07 - Documented progressive map-shell streaming rules and idempotent Yjs cleanup expectations -->
 <!-- Updated: 2026-04-07 - Documented dashboard shell-parity loading fallback and in-page progressive card skeleton streaming -->
+<!-- Updated: 2026-04-08 - Documented iPad/iOS long-press context-menu fallback contract for React Flow targets -->
 
 ## Engineering Philosophy
 
@@ -176,6 +177,9 @@ pnpm pretty          # Prettier
 
 **Node editor autocomplete surfaces**: Keep `createCompletions()` as the single source of autocomplete options. Desktop uses the native CodeMirror tooltip; mobile hides that tooltip and renders a hybrid presenter: a compact full-width strip attached to the open keyboard, or a caret-anchored floating panel when the keyboard is hidden. Any editor/modal outside-press guard must treat both `[data-node-editor-autocomplete-tray="true"]` and body-portaled `.cm-tooltip*` elements as inside-editor interactions so selecting a suggestion does not dismiss the editor.
 <!-- Updated: 2026-03-28 - Documented the hybrid mobile autocomplete presenter and shared completion engine -->
+
+**Touch context menu fallback**: Do not rely on native `contextmenu` alone for mobile/iPad. Keep `useTouchContextMenuFallback` wired to the React Flow shell so touch long-press on `.react-flow__node[data-id]`, `.react-flow__edge[data-id]`, or `.react-flow__pane` opens the same context-menu store state path (`openContextMenuAt`) used by desktop right-click handlers. Preserve movement cancellation and trailing click/contextmenu suppression to avoid accidental immediate close/select side-effects after long-press activation.
+<!-- Updated: 2026-04-08 - Added iPad/iOS WebKit long-press fallback and post-long-press suppression guardrail -->
 
 **Landing CTA feedback**: Keep landing navigation CTAs (`Start Mapping`, `Get Started`, `Go Pro`) on `StartMappingLink` (`next/link` + `useLinkStatus` + optimistic pending feedback). Keep `src/app/dashboard/loading.tsx` as a dashboard-shell loading fallback (not a blank spinner) while dashboard auth/render work is pending, and keep in-page map-list loading progressive via card skeletons.
 <!-- Updated: 2026-04-07 - Added landing CTA pending-feedback and dashboard loading-boundary guardrail -->

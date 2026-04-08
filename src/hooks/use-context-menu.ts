@@ -13,12 +13,20 @@ interface ContextMenuHandlers {
 	onPaneContextMenu: (event: ReactMouseEvent | MouseEvent) => void;
 	onEdgeContextMenu: EdgeMouseHandler<Edge<Partial<EdgeData>>>;
 	onPaneClick: (event: ReactMouseEvent) => void;
+	openContextMenuAt: (params: OpenContextMenuAtParams) => void;
 	close: () => void;
 }
 
 interface UseContextMenuResult {
 	contextMenuState: ContextMenuState | null;
 	contextMenuHandlers: ContextMenuHandlers;
+}
+
+export interface OpenContextMenuAtParams {
+	x: number;
+	y: number;
+	nodeId?: string | null;
+	edgeId?: string | null;
 }
 
 export function useContextMenu(): UseContextMenuResult {
@@ -60,47 +68,58 @@ export function useContextMenu(): UseContextMenuResult {
 		}))
 	);
 
-	const onNodeContextMenu = useCallback(
-		(event: ReactMouseEvent, node: Node<NodeData>) => {
-			event.preventDefault();
+	const openContextMenuAt = useCallback(
+		({ x, y, nodeId = null, edgeId = null }: OpenContextMenuAtParams) => {
 			setPopoverOpen({
 				contextMenu: true,
 			});
 			setContextMenuState({
+				x,
+				y,
+				nodeId,
+				edgeId,
+			});
+		},
+		[setPopoverOpen, setContextMenuState]
+	);
+
+	const onNodeContextMenu = useCallback(
+		(event: ReactMouseEvent, node: Node<NodeData>) => {
+			event.preventDefault();
+			openContextMenuAt({
 				x: event.clientX,
 				y: event.clientY,
 				nodeId: node.id,
 				edgeId: null,
 			});
 		},
-		[setPopoverOpen, setContextMenuState]
+		[openContextMenuAt]
 	);
 
 	const onEdgeContextMenu = useCallback(
 		(event: ReactMouseEvent, edge: Edge<Partial<EdgeData>>) => {
 			event.preventDefault();
-			setContextMenuState({
+			openContextMenuAt({
 				x: event.clientX,
 				y: event.clientY,
 				nodeId: null,
 				edgeId: edge.id,
 			});
-			setPopoverOpen({
-				contextMenu: true,
-			});
 		},
-		[setPopoverOpen, setContextMenuState]
+		[openContextMenuAt]
 	);
 
 	const onPaneContextMenu = useCallback(
 		(event: ReactMouseEvent | MouseEvent) => {
 			event.preventDefault();
 
-			const target = event.target as Element;
+			const target = event.target;
+			const isElementTarget = target instanceof Element;
 
 			if (
-				target.closest('.react-flow__node') ||
-				target.closest('.react-flow__edge')
+				isElementTarget &&
+				(target.closest('.react-flow__node') ||
+					target.closest('.react-flow__edge'))
 			) {
 				if (popoverOpen.contextMenu) {
 					setPopoverOpen({
@@ -117,17 +136,14 @@ export function useContextMenu(): UseContextMenuResult {
 				return;
 			}
 
-			setPopoverOpen({
-				contextMenu: true,
-			});
-			setContextMenuState({
+			openContextMenuAt({
 				x: event.clientX,
 				y: event.clientY,
 				nodeId: null,
 				edgeId: null,
 			});
 		},
-		[setPopoverOpen, setContextMenuState]
+		[openContextMenuAt, popoverOpen.contextMenu, setPopoverOpen, setContextMenuState]
 	);
 
 	const closeContextMenu = useCallback(() => {
@@ -262,6 +278,7 @@ export function useContextMenu(): UseContextMenuResult {
 			onEdgeContextMenu,
 			onPaneContextMenu,
 			onPaneClick,
+			openContextMenuAt,
 			close: closeContextMenu,
 		},
 	};
