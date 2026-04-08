@@ -52,6 +52,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-04-07 - Shipped progressive map-shell streaming and hardened Yjs cleanup idempotency against repeated unsubscribe paths -->
 <!-- Updated: 2026-04-07 - Replaced dashboard spinner fallback with shell-parity loading and in-page progressive map-card skeleton streaming -->
 <!-- Updated: 2026-04-08 - Fixed onboarding skip-state refresh regression and preserved controls-tour paused-step resume across refresh -->
+<!-- Updated: 2026-04-08 - Added touch long-press context menu fallback for iPad/iOS WebKit and regression tests -->
 <!-- Updated: 2026-04-08 - Added task-node hide-done filtering, title round-trip parsing, and regression coverage -->
 <!-- Updated: 2026-04-08 - Aligned task title syntax help with parser and hardened status regex prefix exclusions -->
 
@@ -77,6 +78,14 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Checklist transitions (create-node/pattern updates) intentionally reset active coachmark step and were still able to erase paused controls-tour resume context without a dedicated paused marker
 - **onboarding/manual-resume-anchor-measure-loop**: Disabled target-rect requestAnimationFrame measuring while the manual-resume checklist is intentionally shown on mobile
   - Why: Manual pill expand should be a stable checklist surface for skip/selection actions and does not need continuous anchor measurement until an explicit task CTA restarts guided overlays
+- **mind-map/mobile-context-menu-long-press-fallback**: Added touch long-press detection for `.react-flow__node`, `.react-flow__edge`, and `.react-flow__pane` targets, opening the existing context menu store state at press coordinates and keeping desktop/native `contextmenu` handling unchanged
+  - Why: iPad/iOS WebKit does not reliably emit `contextmenu` for press-and-hold, so mobile users could not access context-menu-only actions
+- **mind-map/mobile-context-menu-trailing-click-guard**: Suppressed the immediate synthetic click/contextmenu events after long-press activation to avoid accidental selection/close side-effects right after opening the menu
+  - Why: Long-press interactions can emit trailing click-like events that would immediately interfere with the newly opened custom menu
+- **mind-map/mobile-context-menu-native-race-guard**: Hardened long-press timeout handling against native-contextmenu races by skipping deferred open when the context menu is already open and clearing pending press state when trailing native contextmenu suppression runs
+  - Why: A pointerdown followed by native contextmenu could otherwise allow the long-press timeout to fire later and attempt a duplicate open
+- **mind-map/mobile-context-menu-container-scope**: Scoped touch fallback listeners to the immediate React Flow canvas wrapper instead of the broader ReactFlowArea shell
+  - Why: Gesture suppression should align with the actual flow surface and not capture unrelated modal/shell interactions
 - **node-editor/status-prefix-lookbehind-case**: Made status-regex prefix exclusions case-insensitive in parser and CodeMirror decorations so prefixes like `Title:`/`title:` are consistently excluded from status matching
   - Why: Prefix exclusion only handled lowercase variants, causing inconsistent parse/highlight behavior for mixed-case input
 
@@ -84,6 +93,10 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **tests/onboarding-resume-regressions**: Added onboarding slice coverage for skip-state hydration races, paused coachmark resume step restore, refresh rehydrate+clamp behavior, mobile `Start`-path resume behavior, checklist minimize/resume regression, and paused controls-step preservation across checklist task updates
   - Why: These state transitions are timing-sensitive and require explicit regression guards
+- **tests/mobile-context-menu-touch-fallback**: Added hook-level long-press regression tests for node/edge/pane targeting, quick-tap and movement cancellation, and trailing-click suppression plus `useContextMenu` coverage for direct `openContextMenuAt` state wiring
+  - Why: Touch fallback behavior is timing-sensitive and must remain stable across future React Flow/mobile interaction changes
+- **tests/mobile-context-menu-native-contextmenu-sequence**: Added regression coverage for pointerdown -> native contextmenu -> timeout ordering plus ReactFlowArea hook-wiring assertions for open/closed context-menu state propagation
+  - Why: Prevents regressions in the specific iPad/WebKit race and keeps fallback integration wiring observable in tests
 - **tests/task-node-visibility-title-regressions**: Added focused coverage for task-node hide/show completed persistence, filtered rendering behavior, task title rendering, stats-source overrides, and task title quick-input round-trip serialization
   - Why: The new task-node visibility/title behavior spans render, metadata persistence, and quick-input parsing paths that are easy to regress without targeted tests
 

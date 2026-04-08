@@ -45,6 +45,7 @@ import { useAnimatedLayout } from '@/hooks/use-animated-layout';
 import { useContextMenu } from '@/hooks/use-context-menu';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNodeSuggestion } from '@/hooks/use-node-suggestion';
+import { useTouchContextMenuFallback } from '@/hooks/use-touch-context-menu-fallback';
 import { getMindMapRoomName } from '@/lib/realtime/room-names';
 import useAppStore from '@/store/mind-map-store';
 import type { AppEdge } from '@/types/app-edge';
@@ -72,6 +73,7 @@ interface ReactFlowAreaProps {
 export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 	const mapId = useParams().id;
 	const reactFlowInstance = useReactFlow();
+	const touchContextMenuContainerRef = useRef<HTMLDivElement | null>(null);
 	const bottomDockRef = useRef<HTMLDivElement | null>(null);
 	const connectingNodeId = useRef<string | null>(null);
 	const connectingHandleId = useRef<string | null>(null);
@@ -198,6 +200,12 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 	const mobileNotifications = useNotifications({
 		filterMapId: mapId as string,
 		enabled: isMobile,
+	});
+
+	useTouchContextMenuFallback({
+		containerRef: touchContextMenuContainerRef,
+		isContextMenuOpen: popoverOpen.contextMenu,
+		openContextMenuAt: contextMenuHandlers.openContextMenuAt,
 	});
 	const updateBottomToolbarClearance = useCallback(() => {
 		if (typeof window === 'undefined') return;
@@ -733,114 +741,116 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 
 	return (
 		<div className='w-full h-full' key='mind-map-container'>
-			<ReactFlow
-				colorMode='dark'
-				connectionLineComponent={FloatingConnectionLine}
-				connectionLineType={ConnectionLineType.Bezier}
-				connectionMode={ConnectionMode.Loose}
-				deleteKeyCode={isMapReady && canEdit ? ['Delete'] : null}
-				disableKeyboardA11y={true}
-				edges={renderEdges}
-				edgeTypes={edgeTypes}
-				elementsSelectable={isMapReady && isSelectMode}
-				fitView={true}
-				minZoom={0.1}
-				multiSelectionKeyCode={['Meta', 'Control']}
-				nodes={renderNodes}
-				nodesConnectable={
-					isMapReady && (isSelectMode || activeTool === 'connector') && canEdit
-				}
-				nodesDraggable={
-					isMapReady &&
-					isSelectMode &&
-					canEdit &&
-					!isMobileTapMultiSelectActive
-				}
-				nodeTypes={nodeTypesWithProps}
-				onConnect={onConnect}
-				onConnectEnd={onConnectEnd}
-				onConnectStart={onConnectStart}
-				onEdgeContextMenu={contextMenuHandlers.onEdgeContextMenu}
-				onEdgeDoubleClick={handleEdgeDoubleClick}
-				onEdgesChange={onEdgesChange}
-				onEdgesDelete={handleEdgesDelete}
-				onNodeClick={handleNodeClick}
-				onNodeDoubleClick={handleNodeDoubleClick}
-				onNodeContextMenu={contextMenuHandlers.onNodeContextMenu}
-				onNodeDragStart={handleNodeDragStart}
-				onNodeDragStop={handleNodeDragStop}
-				onNodesChange={onNodesChange}
-				onNodesDelete={handleNodesDelete}
-				onPaneClick={contextMenuHandlers.onPaneClick}
-				onPaneContextMenu={contextMenuHandlers.onPaneContextMenu}
-				onSelectionContextMenu={(event) =>
-					contextMenuHandlers.onPaneContextMenu(event)
-				}
-				onSelectionChange={handleSelectionChange}
-				panOnDrag={true}
-				selectionMode={SelectionMode.Partial}
-				snapGrid={[GRID_SIZE, GRID_SIZE]}
-				snapToGrid={true}
-				className={cn([
-					isPanningMode && 'cursor-grab',
-					(activeTool === 'node' || activeTool === 'text') &&
-						'cursor-crosshair',
-				])}
-				style={
-					{
-						'--xy-background-color-default': 'var(--color-base)',
-					} as CSSProperties
-				}
-			>
-				<Background
-					color='rgba(255, 255, 255, 0.3)'
-					gap={GRID_SIZE}
-					variant={BackgroundVariant.Dots}
-				/>
-
-				<MindMapTopBar
-					mapId={mapId as string}
-					mindMap={mindMap}
-					isMapReady={isMapReady}
-					currentUser={currentUser}
-					userProfile={userProfile}
-					activityState={activityState}
-					popoverOpen={popoverOpen}
-					canEdit={canEdit}
-					mobileUnreadCount={mobileNotifications.visibleUnreadCount}
-					handleToggleHistorySidebar={handleToggleHistorySidebar}
-					handleToggleMapSettings={handleToggleMapSettings}
-					handleToggleSharePanel={handleToggleSharePanel}
-					handleOpenSettings={handleOpenSettings}
-					mobileMenuOpen={mobileMenuOpen}
-					setMobileMenuOpen={setMobileMenuOpen}
-				/>
-
-				<Panel position='bottom-center'>
-					<div
-						ref={bottomDockRef}
-						className='flex flex-col gap-2 items-center'
-						data-testid='bottom-dock'
-					>
-						<ModeIndicator />
-
-						<Toolbar
-							isMapReady={isMapReady}
-							mobileTapMultiSelectEnabled={mobileTapMultiSelectEnabled}
-							onMobileTapMultiSelectChange={setMobileTapMultiSelectEnabled}
-						/>
-					</div>
-				</Panel>
-
-				<Panel className='m-4 pt-10' position='top-right'></Panel>
-
-				<Panel position='top-left'>
-					<RealtimeCursors
-						reactFlowInstance={reactFlowInstance}
-						roomName={getMindMapRoomName(mapId as string, 'cursor')}
+			<div className='w-full h-full' ref={touchContextMenuContainerRef}>
+				<ReactFlow
+					colorMode='dark'
+					connectionLineComponent={FloatingConnectionLine}
+					connectionLineType={ConnectionLineType.Bezier}
+					connectionMode={ConnectionMode.Loose}
+					deleteKeyCode={isMapReady && canEdit ? ['Delete'] : null}
+					disableKeyboardA11y={true}
+					edges={renderEdges}
+					edgeTypes={edgeTypes}
+					elementsSelectable={isMapReady && isSelectMode}
+					fitView={true}
+					minZoom={0.1}
+					multiSelectionKeyCode={['Meta', 'Control']}
+					nodes={renderNodes}
+					nodesConnectable={
+						isMapReady && (isSelectMode || activeTool === 'connector') && canEdit
+					}
+					nodesDraggable={
+						isMapReady &&
+						isSelectMode &&
+						canEdit &&
+						!isMobileTapMultiSelectActive
+					}
+					nodeTypes={nodeTypesWithProps}
+					onConnect={onConnect}
+					onConnectEnd={onConnectEnd}
+					onConnectStart={onConnectStart}
+					onEdgeContextMenu={contextMenuHandlers.onEdgeContextMenu}
+					onEdgeDoubleClick={handleEdgeDoubleClick}
+					onEdgesChange={onEdgesChange}
+					onEdgesDelete={handleEdgesDelete}
+					onNodeClick={handleNodeClick}
+					onNodeDoubleClick={handleNodeDoubleClick}
+					onNodeContextMenu={contextMenuHandlers.onNodeContextMenu}
+					onNodeDragStart={handleNodeDragStart}
+					onNodeDragStop={handleNodeDragStop}
+					onNodesChange={onNodesChange}
+					onNodesDelete={handleNodesDelete}
+					onPaneClick={contextMenuHandlers.onPaneClick}
+					onPaneContextMenu={contextMenuHandlers.onPaneContextMenu}
+					onSelectionContextMenu={(event) =>
+						contextMenuHandlers.onPaneContextMenu(event)
+					}
+					onSelectionChange={handleSelectionChange}
+					panOnDrag={true}
+					selectionMode={SelectionMode.Partial}
+					snapGrid={[GRID_SIZE, GRID_SIZE]}
+					snapToGrid={true}
+					className={cn([
+						isPanningMode && 'cursor-grab',
+						(activeTool === 'node' || activeTool === 'text') &&
+							'cursor-crosshair',
+					])}
+					style={
+						{
+							'--xy-background-color-default': 'var(--color-base)',
+						} as CSSProperties
+					}
+				>
+					<Background
+						color='rgba(255, 255, 255, 0.3)'
+						gap={GRID_SIZE}
+						variant={BackgroundVariant.Dots}
 					/>
-				</Panel>
-			</ReactFlow>
+
+					<MindMapTopBar
+						mapId={mapId as string}
+						mindMap={mindMap}
+						isMapReady={isMapReady}
+						currentUser={currentUser}
+						userProfile={userProfile}
+						activityState={activityState}
+						popoverOpen={popoverOpen}
+						canEdit={canEdit}
+						mobileUnreadCount={mobileNotifications.visibleUnreadCount}
+						handleToggleHistorySidebar={handleToggleHistorySidebar}
+						handleToggleMapSettings={handleToggleMapSettings}
+						handleToggleSharePanel={handleToggleSharePanel}
+						handleOpenSettings={handleOpenSettings}
+						mobileMenuOpen={mobileMenuOpen}
+						setMobileMenuOpen={setMobileMenuOpen}
+					/>
+
+					<Panel position='bottom-center'>
+						<div
+							ref={bottomDockRef}
+							className='flex flex-col gap-2 items-center'
+							data-testid='bottom-dock'
+						>
+							<ModeIndicator />
+
+							<Toolbar
+								isMapReady={isMapReady}
+								mobileTapMultiSelectEnabled={mobileTapMultiSelectEnabled}
+								onMobileTapMultiSelectChange={setMobileTapMultiSelectEnabled}
+							/>
+						</div>
+					</Panel>
+
+					<Panel className='m-4 pt-10' position='top-right'></Panel>
+
+					<Panel position='top-left'>
+						<RealtimeCursors
+							reactFlowInstance={reactFlowInstance}
+							roomName={getMindMapRoomName(mapId as string, 'cursor')}
+						/>
+					</Panel>
+				</ReactFlow>
+			</div>
 
 			<UpgradeModal
 				onOpenChange={(open) => setPopoverOpen({ upgradeUser: open })}
