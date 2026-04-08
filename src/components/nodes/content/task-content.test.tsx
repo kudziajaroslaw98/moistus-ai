@@ -22,6 +22,15 @@ jest.mock('@/components/nodes/themes/glassmorphism-theme', () => ({
 }))
 
 describe('TaskContent', () => {
+	describe('title rendering', () => {
+		it('renders title above task content when provided', () => {
+			const tasks = [{ id: '1', text: 'Task 1', isComplete: false }]
+			render(<TaskContent tasks={tasks} title='Sprint Tasks' />)
+
+			expect(screen.getByText('Sprint Tasks')).toBeInTheDocument()
+		})
+	})
+
 	describe('placeholder behavior', () => {
 		it('shows default placeholder when tasks array is empty', () => {
 			render(<TaskContent tasks={[]} />)
@@ -33,6 +42,21 @@ describe('TaskContent', () => {
 			render(<TaskContent tasks={[]} placeholder="No tasks yet" />)
 
 			expect(screen.getByText('No tasks yet')).toBeInTheDocument()
+		})
+
+		it('shows filtered empty message when all visible tasks are hidden', () => {
+			const statsTasks = [{ id: '1', text: 'Done task', isComplete: true }]
+
+			render(
+				<TaskContent
+					tasks={[]}
+					statsTasks={statsTasks}
+					filteredEmptyMessage='Completed tasks are hidden'
+				/>
+			)
+
+			expect(screen.getByText('Completed tasks are hidden')).toBeInTheDocument()
+			expect(screen.queryByText('Add tasks...')).not.toBeInTheDocument()
 		})
 	})
 
@@ -87,6 +111,19 @@ describe('TaskContent', () => {
 				{ id: '3', text: 'Task 3', isComplete: false },
 			]
 			render(<TaskContent tasks={tasks} />)
+
+			expect(screen.getByText('2')).toBeInTheDocument()
+			expect(screen.getByText('3')).toBeInTheDocument()
+		})
+
+		it('uses statsTasks for progress when provided', () => {
+			const visibleTasks = [{ id: '1', text: 'Task 1', isComplete: false }]
+			const statsTasks = [
+				{ id: '1', text: 'Task 1', isComplete: false },
+				{ id: '2', text: 'Task 2', isComplete: true },
+				{ id: '3', text: 'Task 3', isComplete: true },
+			]
+			render(<TaskContent tasks={visibleTasks} statsTasks={statsTasks} />)
 
 			expect(screen.getByText('2')).toBeInTheDocument()
 			expect(screen.getByText('3')).toBeInTheDocument()

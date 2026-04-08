@@ -127,6 +127,7 @@ export const transformDataForNodeType = (
 				metadata: {
 					...universalMetadata,
 					tags: baseTags.length > 0 ? baseTags : undefined,
+					title: data.metadata?.title || data.title || undefined,
 					tasks: data.metadata?.tasks || data.tasks || [],
 				},
 			};

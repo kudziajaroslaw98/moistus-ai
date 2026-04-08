@@ -13,12 +13,18 @@ export interface Task {
 }
 
 export interface TaskContentProps {
+	/** Optional task list title shown above progress */
+	title?: string;
 	/** Array of tasks to display */
 	tasks: Task[];
+	/** Optional source for progress stats (defaults to visible tasks array) */
+	statsTasks?: Task[];
 	/** Callback when a task is toggled (if provided, tasks become interactive) */
 	onTaskToggle?: (taskId: string) => void;
 	/** Placeholder text when no tasks */
 	placeholder?: string;
+	/** Message when tasks exist but current list is filtered (e.g. hidden completed) */
+	filteredEmptyMessage?: string;
 	/** Whether to show emoji in celebration message */
 	showCelebrationEmoji?: boolean;
 	/** Additional class name */
@@ -38,41 +44,79 @@ export interface TaskContentProps {
  * - Celebration message when all complete
  */
 const TaskContentComponent = ({
+	title,
 	tasks,
+	statsTasks,
 	onTaskToggle,
 	placeholder = 'Add tasks...',
+	filteredEmptyMessage = 'All completed tasks are hidden.',
 	showCelebrationEmoji = false,
 	className,
 }: TaskContentProps) => {
+	const statsSourceTasks = statsTasks ?? tasks;
+
 	// Calculate completion statistics
 	const stats = useMemo(() => {
-		const completed = tasks.filter((t) => t.isComplete).length;
-		const total = tasks.length;
+		const completed = statsSourceTasks.filter((t) => t.isComplete).length;
+		const total = statsSourceTasks.length;
 		const percentage = total > 0 ? (completed / total) * 100 : 0;
 		return { completed, total, percentage };
-	}, [tasks]);
+	}, [statsSourceTasks]);
 
 	const isInteractive = Boolean(onTaskToggle);
+	const hasAnyTasks = statsSourceTasks.length > 0;
+	const hasVisibleTasks = tasks.length > 0;
+	const isFilteredEmpty = !hasVisibleTasks && hasAnyTasks;
 
-	if (tasks.length === 0) {
+	if (!hasAnyTasks) {
 		return (
-			<span
-				style={{
-					color: GlassmorphismTheme.text.disabled,
-					fontStyle: 'italic',
-					fontSize: '14px',
-					textAlign: 'center',
-					padding: '8px 0',
-					display: 'block',
-				}}
-			>
-				{placeholder}
-			</span>
+			<div className={cn('flex flex-col gap-3', className)}>
+				{title && (
+					<h3
+						className='break-words'
+						style={{
+							fontSize: '15px',
+							fontWeight: 600,
+							lineHeight: '22px',
+							color: GlassmorphismTheme.text.high,
+						}}
+					>
+						{title}
+					</h3>
+				)}
+
+				<span
+					style={{
+						color: GlassmorphismTheme.text.disabled,
+						fontStyle: 'italic',
+						fontSize: '14px',
+						textAlign: 'center',
+						padding: '8px 0',
+						display: 'block',
+					}}
+				>
+					{placeholder}
+				</span>
+			</div>
 		);
 	}
 
 	return (
 		<div className={cn('flex flex-col gap-3', className)}>
+			{title && (
+				<h3
+					className='break-words'
+					style={{
+						fontSize: '15px',
+						fontWeight: 600,
+						lineHeight: '22px',
+						color: GlassmorphismTheme.text.high,
+					}}
+				>
+					{title}
+				</h3>
+			)}
+
 			{/* Progress indicator */}
 			<div className='space-y-2'>
 				<div className='flex items-center justify-between text-sm'>
@@ -118,78 +162,93 @@ const TaskContentComponent = ({
 			</div>
 
 			{/* Task list */}
-			<div className='flex flex-col gap-1'>
-				{tasks.map((task, index) => (
-					<motion.div
-						animate={{ opacity: 1, x: 0 }}
-						initial={{ opacity: 0, x: -10 }}
-						key={task.id || index}
-						onClick={isInteractive ? () => onTaskToggle?.(task.id) : undefined}
-						transition={{ delay: index * 0.05 }}
-						className={cn(
-							'flex items-start gap-3 p-2 -mx-2 rounded-md transition-all',
-							isInteractive && 'cursor-pointer group hover:bg-white/[0.03]'
-						)}
-					>
-						{/* Checkbox */}
-						<div className='mt-0.5 shrink-0'>
-							<div
-								className='relative w-5 h-5 rounded transition-all duration-200'
-								style={{
-									border: task.isComplete
-										? `2px solid ${GlassmorphismTheme.indicators.status.complete}`
-										: `2px solid ${GlassmorphismTheme.text.disabled}`,
-									backgroundColor: task.isComplete
-										? 'rgba(52, 211, 153, 0.15)'
-										: 'transparent',
-								}}
-							>
-								{task.isComplete && (
-									<motion.div
-										animate={{ scale: 1, opacity: 1 }}
-										className='absolute inset-0 flex items-center justify-center'
-										initial={{ scale: 0, opacity: 0 }}
-										transition={{ type: 'spring', stiffness: 500 }}
-									>
-										<Check
-											className='w-3 h-3'
-											style={{
-												color: GlassmorphismTheme.indicators.status.complete,
-											}}
-										/>
-									</motion.div>
-								)}
-							</div>
-						</div>
-
-						{/* Task text */}
-						<span
-							className={cn([
-								'flex-1 select-none transition-all duration-200',
-								task.isComplete && 'line-through',
-							])}
-							style={{
-								color: task.isComplete
-									? GlassmorphismTheme.text.disabled
-									: GlassmorphismTheme.text.high,
-								fontSize: '14px',
-								lineHeight: '20px',
-							}}
+			{hasVisibleTasks ? (
+				<div className='flex flex-col gap-1'>
+					{tasks.map((task, index) => (
+						<motion.div
+							animate={{ opacity: 1, x: 0 }}
+							initial={{ opacity: 0, x: -10 }}
+							key={task.id || index}
+							onClick={isInteractive ? () => onTaskToggle?.(task.id) : undefined}
+							transition={{ delay: index * 0.05 }}
+							className={cn(
+								'flex items-start gap-3 p-2 -mx-2 rounded-md transition-all',
+								isInteractive && 'cursor-pointer group hover:bg-white/[0.03]'
+							)}
 						>
-							{task.text || (
-								<span
+							{/* Checkbox */}
+							<div className='mt-0.5 shrink-0'>
+								<div
+									className='relative w-5 h-5 rounded transition-all duration-200'
 									style={{
-										fontStyle: 'italic',
-										color: GlassmorphismTheme.text.disabled,
+										border: task.isComplete
+											? `2px solid ${GlassmorphismTheme.indicators.status.complete}`
+											: `2px solid ${GlassmorphismTheme.text.disabled}`,
+										backgroundColor: task.isComplete
+											? 'rgba(52, 211, 153, 0.15)'
+											: 'transparent',
 									}}
 								>
-									Empty task
-								</span>
-							)}
-						</span>
-					</motion.div>
-				))}
-			</div>
+									{task.isComplete && (
+										<motion.div
+											animate={{ scale: 1, opacity: 1 }}
+											className='absolute inset-0 flex items-center justify-center'
+											initial={{ scale: 0, opacity: 0 }}
+											transition={{ type: 'spring', stiffness: 500 }}
+										>
+											<Check
+												className='w-3 h-3'
+												style={{
+													color: GlassmorphismTheme.indicators.status.complete,
+												}}
+											/>
+										</motion.div>
+									)}
+								</div>
+							</div>
+
+							{/* Task text */}
+							<span
+								className={cn([
+									'flex-1 select-none transition-all duration-200',
+									task.isComplete && 'line-through',
+								])}
+								style={{
+									color: task.isComplete
+										? GlassmorphismTheme.text.disabled
+										: GlassmorphismTheme.text.high,
+									fontSize: '14px',
+									lineHeight: '20px',
+								}}
+							>
+								{task.text || (
+									<span
+										style={{
+											fontStyle: 'italic',
+											color: GlassmorphismTheme.text.disabled,
+										}}
+									>
+										Empty task
+									</span>
+								)}
+							</span>
+						</motion.div>
+					))}
+				</div>
+			) : (
+				<span
+					style={{
+						color: GlassmorphismTheme.text.disabled,
+						fontStyle: 'italic',
+						fontSize: '13px',
+						textAlign: 'center',
+						padding: '6px 0',
+						display: 'block',
+					}}
+				>
+					{isFilteredEmpty ? filteredEmptyMessage : placeholder}
+				</span>
+			)}
 
 			{/* Completion celebration */}
 			{stats.percentage === 100 && (

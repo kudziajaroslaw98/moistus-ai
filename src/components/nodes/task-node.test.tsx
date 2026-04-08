@@ -51,17 +51,30 @@ jest.mock('./base-node-wrapper', () => ({
 // Mock TaskContent to verify props and enable interaction testing
 jest.mock('./content/task-content', () => ({
 	TaskContent: ({
+		title,
 		tasks,
+		statsTasks,
 		onTaskToggle,
 		placeholder,
+		filteredEmptyMessage,
 		showCelebrationEmoji,
 	}: {
+		title?: string
 		tasks: Array<{ id: string; text: string; isComplete: boolean }>
+		statsTasks?: Array<{ id: string; text: string; isComplete: boolean }>
 		onTaskToggle?: (id: string) => void
 		placeholder?: string
+		filteredEmptyMessage?: string
 		showCelebrationEmoji?: boolean
 	}) => (
-		<div data-testid='task-content' data-placeholder={placeholder} data-celebration={showCelebrationEmoji}>
+		<div
+			data-testid='task-content'
+			data-placeholder={placeholder}
+			data-filtered-empty-message={filteredEmptyMessage}
+			data-celebration={showCelebrationEmoji}
+			data-title={title ?? ''}
+			data-stats-count={statsTasks?.length ?? tasks.length}
+		>
 			{tasks.length === 0 ? (
 				<span data-testid='placeholder'>{placeholder}</span>
 			) : (
@@ -204,6 +217,51 @@ describe('TaskNode', () => {
 			// Should render with empty tasks
 			expect(screen.getByTestId('task-content')).toBeInTheDocument()
 		})
+
+		it('passes task node title to TaskContent', () => {
+			const props = {
+				...createBaseProps([]),
+				data: {
+					...createBaseProps([]).data,
+					metadata: {
+						tasks: [],
+						title: 'Sprint Tasks',
+					},
+				},
+			}
+			render(<TaskNode {...props} />)
+
+			expect(screen.getByTestId('task-content')).toHaveAttribute(
+				'data-title',
+				'Sprint Tasks'
+			)
+		})
+
+		it('filters completed tasks when hideCompletedTasks is enabled', () => {
+			const props = createBaseProps([
+				{ id: '1', text: 'Task 1', isComplete: false },
+				{ id: '2', text: 'Task 2', isComplete: true },
+			])
+			const propsWithHiddenDone = {
+				...props,
+				data: {
+					...props.data,
+					metadata: {
+						...(props.data.metadata || {}),
+						hideCompletedTasks: true,
+					},
+				},
+			}
+
+			render(<TaskNode {...propsWithHiddenDone} />)
+
+			expect(screen.getByTestId('task-1')).toBeInTheDocument()
+			expect(screen.queryByTestId('task-2')).not.toBeInTheDocument()
+			expect(screen.getByTestId('task-content')).toHaveAttribute(
+				'data-stats-count',
+				'2'
+			)
+		})
 	})
 
 	describe('task toggling', () => {
@@ -320,6 +378,64 @@ describe('TaskNode', () => {
 			render(<TaskNode {...props} />)
 
 			expect(screen.queryByTestId('all-complete')).not.toBeInTheDocument()
+		})
+	})
+
+	describe('completed task visibility toggle', () => {
+		it('persists hideCompletedTasks when hide button is clicked', async () => {
+			const user = userEvent.setup()
+			const tasks = [
+				{ id: '1', text: 'Task 1', isComplete: false },
+				{ id: '2', text: 'Task 2', isComplete: true },
+			]
+			const props = createBaseProps(tasks)
+
+			render(<TaskNode {...props} />)
+
+			await user.click(screen.getByTitle('Hide completed tasks'))
+
+			expect(mockUpdateNode).toHaveBeenCalledWith({
+				nodeId: 'task-node-1',
+				data: {
+					metadata: {
+						tasks,
+						hideCompletedTasks: true,
+					},
+				},
+			})
+		})
+
+		it('persists hideCompletedTasks=false when show button is clicked', async () => {
+			const user = userEvent.setup()
+			const tasks = [
+				{ id: '1', text: 'Task 1', isComplete: false },
+				{ id: '2', text: 'Task 2', isComplete: true },
+			]
+			const baseProps = createBaseProps(tasks)
+			const props = {
+				...baseProps,
+				data: {
+					...baseProps.data,
+					metadata: {
+						...(baseProps.data.metadata || {}),
+						hideCompletedTasks: true,
+					},
+				},
+			}
+
+			render(<TaskNode {...props} />)
+
+			await user.click(screen.getByTitle('Show completed tasks'))
+
+			expect(mockUpdateNode).toHaveBeenCalledWith({
+				nodeId: 'task-node-1',
+				data: {
+					metadata: {
+						tasks,
+						hideCompletedTasks: false,
+					},
+				},
+			})
 		})
 	})
 

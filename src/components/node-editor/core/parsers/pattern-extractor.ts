@@ -332,7 +332,7 @@ const PATTERN_CONFIGS: PatternConfig[] = [
 	// (e.g., won't match :green in color:green, :blue in bg:blue, etc.)
 	{
 		// Keep legacy removed parser prefixes excluded so values like bg:red stay plain text.
-		regex: /(?<!color|bg|border|size|align|weight|style|title|label|alt|src|url|lang|file|confidence|question|multiple|options|type|lines):([a-zA-Z][a-zA-Z0-9_-]*)/g,
+		regex: /(?<!color|bg|border|size|align|weight|style|title|label|alt|src|url|lang|file|confidence|question|multiple|options|type|lines):([a-zA-Z][a-zA-Z0-9_-]*)/gi,
 		type: 'status',
 		extract: (match) => ({
 			value: match[1],

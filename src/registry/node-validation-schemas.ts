@@ -68,6 +68,7 @@ const taskNodeSchema = baseMetadataSchema.extend({
 			isComplete: z.boolean(),
 		})
 	),
+	hideCompletedTasks: z.boolean().optional(),
 	dueDate: z.string().optional(),
 	priority: z.enum(['low', 'medium', 'high', 'critical']).optional(),
 });

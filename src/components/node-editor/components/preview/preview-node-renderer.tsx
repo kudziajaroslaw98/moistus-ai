@@ -92,9 +92,11 @@ const PreviewContent = memo(({ nodeType, data }: { nodeType: string; data: NodeD
 			);
 
 		case 'taskNode': {
-			const tasks: Task[] = (data.metadata as TaskNodeMetadata)?.tasks || [];
+			const metadata = data.metadata as TaskNodeMetadata | undefined;
+			const tasks: Task[] = metadata?.tasks || [];
 			return (
 				<TaskContent
+					title={metadata?.title}
 					tasks={tasks}
 					placeholder='Add tasks...'
 					showCelebrationEmoji={false}

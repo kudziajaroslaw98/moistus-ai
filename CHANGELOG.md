@@ -52,6 +52,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-04-07 - Shipped progressive map-shell streaming and hardened Yjs cleanup idempotency against repeated unsubscribe paths -->
 <!-- Updated: 2026-04-07 - Replaced dashboard spinner fallback with shell-parity loading and in-page progressive map-card skeleton streaming -->
 <!-- Updated: 2026-04-08 - Fixed onboarding skip-state refresh regression and preserved controls-tour paused-step resume across refresh -->
+<!-- Updated: 2026-04-08 - Added task-node hide-done filtering, title round-trip parsing, and regression coverage -->
+<!-- Updated: 2026-04-08 - Aligned task title syntax help with parser and hardened status regex prefix exclusions -->
 
 ## [2026-04-08]
 
@@ -80,6 +82,22 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **tests/onboarding-resume-regressions**: Added onboarding slice coverage for skip-state hydration races, paused coachmark resume step restore, refresh rehydrate+clamp behavior, mobile `Start`-path resume behavior, checklist minimize/resume regression, and paused controls-step preservation across checklist task updates
   - Why: These state transitions are timing-sensitive and require explicit regression guards
+- **tests/task-node-visibility-title-regressions**: Added focused coverage for task-node hide/show completed persistence, filtered rendering behavior, task title rendering, stats-source overrides, and task title quick-input round-trip serialization
+  - Why: The new task-node visibility/title behavior spans render, metadata persistence, and quick-input parsing paths that are easy to regress without targeted tests
+
+### Changed
+
+- **nodes/task-node-hide-done-toggle**: Added a per-node toolbar toggle to hide/show completed checklist rows via persisted `metadata.hideCompletedTasks`, while keeping progress/celebration derived from the full task set
+  - Why: Users need cleaner task views without deleting completed items or losing completion context
+- **nodes/task-node-title-rendering**: Added task-node title display above task progress/list and wired quick-input `title:"..."` parsing + serialization to persist and round-trip task titles
+  - Why: Task nodes needed first-class naming support that survives edit cycles
+- **node-editor/task-title-syntax-help**: Updated task syntax-help patterns/examples from `Title:` to lowercase quoted `title:"text"` to match actual parser behavior
+  - Why: The previous help suggested an invalid pattern that could be interpreted as status-like `:token` metadata in edge cases
+
+### Fixed
+
+- **node-editor/status-prefix-lookbehind-case**: Made status-regex prefix exclusions case-insensitive in parser and CodeMirror decorations so prefixes like `Title:`/`title:` are consistently excluded from status matching
+  - Why: Prefix exclusion only handled lowercase variants, causing inconsistent parse/highlight behavior for mixed-case input
 
 ## [2026-04-07]
 
