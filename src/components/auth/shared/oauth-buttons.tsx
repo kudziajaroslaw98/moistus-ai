@@ -1,9 +1,9 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { GithubIcon } from '@/components/icons/github';
 import { Spinner } from '@/components/ui/spinner';
 import type { OAuthProvider } from '@/store/app-state';
-import { Github } from 'lucide-react';
 
 export type { OAuthProvider };
 
@@ -73,7 +73,7 @@ export function OAuthButtons({
 				disabled={isDisabled}
 				aria-label='Sign in with GitHub'
 			>
-				{isLoading ? <Spinner size='sm' /> : <Github className='w-5 h-5' />}
+				{isLoading ? <Spinner size='sm' /> : <GithubIcon className='w-5 h-5' />}
 				{labelText} GitHub
 			</Button>
 		</div>

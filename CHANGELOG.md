@@ -55,6 +55,34 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-04-08 - Added touch long-press context menu fallback for iPad/iOS WebKit and regression tests -->
 <!-- Updated: 2026-04-08 - Added task-node hide-done filtering, title round-trip parsing, and regression coverage -->
 <!-- Updated: 2026-04-08 - Aligned task title syntax help with parser and hardened status regex prefix exclusions -->
+<!-- Updated: 2026-04-09 - Hardened PartyKit dependency security path and added CI audit/dependency review workflows -->
+<!-- Updated: 2026-04-09 - Replaced removed Lucide GitHub icon import with local SVG component -->
+<!-- Updated: 2026-04-09 - Fixed GitHub Actions pnpm setup version-source conflict in security audit workflow -->
+
+## [2026-04-09]
+
+### Changed
+
+- **deps/runtime-cleanup**: Removed unused runtime dependencies `@lezer/highlight`, `@lezer/lr`, and `web-vitals`; moved `@types/react-syntax-highlighter` to `devDependencies`
+  - Why: Reduce production dependency surface while keeping type-only packages in development scope
+- **deps/partykit-hardening**: Added `pnpm.overrides` pins for `partykit>esbuild` (`0.25.0`) and `undici` (`6.24.0`) to remediate PartyKit transitive audit findings
+  - Why: `pnpm audit` reported vulnerabilities on `partykit>esbuild` and `partykit>miniflare>undici`
+
+### Added
+
+- **ci/security-audit-workflow**: Added `.github/workflows/security-audit.yml` to run `pnpm audit --prod --audit-level=high` and full `pnpm audit --audit-level=high` on dependency file changes
+  - Why: Enforce repeatable vulnerability gates in CI
+- **ci/dependency-review-workflow**: Added `.github/workflows/dependency-review.yml` to run dependency review on PRs touching `package.json` or `pnpm-lock.yaml`
+  - Why: Surface risky dependency deltas during code review
+
+### Fixed
+
+- **auth/github-icon-compatibility**: Replaced `lucide-react` `Github` imports with a local `GithubIcon` SVG component used by sign-in and anonymous-upgrade flows
+  - Why: `lucide-react@1.7.0` no longer exports `Github`, which broke `next build`
+- **ci/vercel-package-manager-mismatch**: Added `vercel.json` with explicit `installCommand` (`pnpm install --frozen-lockfile`) and `buildCommand` (`pnpm build`)
+  - Why: Vercel was executing `npm i`, which failed peer-resolution against the current ESLint dependency graph
+- **ci/security-audit-pnpm-version-source**: Removed explicit `version` input from `pnpm/action-setup` in `.github/workflows/security-audit.yml`
+  - Why: GitHub Actions failed with `ERR_PNPM_BAD_PM_VERSION` due to duplicate pnpm version sources (workflow input + `packageManager`)
 
 ## [2026-04-08]
 

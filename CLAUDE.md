@@ -159,6 +159,18 @@ pnpm pretty          # Prettier
 
 <!-- Updated: 2026-02-24 - Documented realtime JWT fallback behavior and operational meaning -->
 
+**PartyKit dependency hardening**: Keep `pnpm.overrides` pins for `partykit>esbuild` and `undici` in `package.json`, and keep CI security gates (`security-audit.yml`, `dependency-review.yml`) active for dependency file changes. Re-run both production and full `pnpm audit` after PartyKit/miniflare version bumps.
+
+<!-- Updated: 2026-04-09 - Documented PartyKit transitive vulnerability mitigation and dependency security gate contract -->
+
+**Vercel package manager**: Keep repo-level `vercel.json` install/build commands pinned to pnpm (`pnpm install --frozen-lockfile`, `pnpm build`) so Vercel does not default to `npm i` and fail on npm-only peer resolution of the current lint stack.
+
+<!-- Updated: 2026-04-09 - Documented Vercel npm/pnpm install-command mismatch guardrail -->
+
+**GitHub Actions pnpm source-of-truth**: In workflows using `pnpm/action-setup`, do not set a separate `version` input when `package.json#packageManager` already pins pnpm (especially with integrity hash). Use one source to avoid `ERR_PNPM_BAD_PM_VERSION`.
+
+<!-- Updated: 2026-04-09 - Documented CI pnpm version-source conflict guardrail -->
+
 **LAN-safe local dev URLs**: In development, browser Supabase + PartyKit clients may derive their host from `window.location.hostname` when the configured public URL is blank or loopback-only. Keep server-side Supabase traffic on `SUPABASE_INTERNAL_URL` when local services stay on loopback, and do not reintroduce `NEXT_PUBLIC_APP_LOCAL_HREF` for browser fetches.
 
 <!-- Updated: 2026-04-01 - Documented browser-vs-server local URL split for LAN dev -->
