@@ -78,6 +78,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **auth/github-icon-compatibility**: Replaced `lucide-react` `Github` imports with a local `GithubIcon` SVG component used by sign-in and anonymous-upgrade flows
   - Why: `lucide-react@1.7.0` no longer exports `Github`, which broke `next build`
+- **ci/vercel-package-manager-mismatch**: Added `vercel.json` with explicit `installCommand` (`pnpm install --frozen-lockfile`) and `buildCommand` (`pnpm build`)
+  - Why: Vercel was executing `npm i`, which failed peer-resolution against the current ESLint dependency graph
 
 ## [2026-04-08]
 

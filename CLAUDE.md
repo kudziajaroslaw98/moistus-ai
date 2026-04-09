@@ -163,6 +163,10 @@ pnpm pretty          # Prettier
 
 <!-- Updated: 2026-04-09 - Documented PartyKit transitive vulnerability mitigation and dependency security gate contract -->
 
+**Vercel package manager**: Keep repo-level `vercel.json` install/build commands pinned to pnpm (`pnpm install --frozen-lockfile`, `pnpm build`) so Vercel does not default to `npm i` and fail on npm-only peer resolution of the current lint stack.
+
+<!-- Updated: 2026-04-09 - Documented Vercel npm/pnpm install-command mismatch guardrail -->
+
 **LAN-safe local dev URLs**: In development, browser Supabase + PartyKit clients may derive their host from `window.location.hostname` when the configured public URL is blank or loopback-only. Keep server-side Supabase traffic on `SUPABASE_INTERNAL_URL` when local services stay on loopback, and do not reintroduce `NEXT_PUBLIC_APP_LOCAL_HREF` for browser fetches.
 
 <!-- Updated: 2026-04-01 - Documented browser-vs-server local URL split for LAN dev -->
