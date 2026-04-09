@@ -2,6 +2,7 @@
 
 import { PasswordRequirementsInfo } from '@/components/auth/shared';
 import { Button } from '@/components/ui/button';
+import { GithubIcon } from '@/components/icons/github';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { OAuthProvider, UpgradeStep } from '@/store/app-state';
@@ -10,7 +11,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
 	ArrowLeft,
 	CheckCircle2,
-	Github,
 	KeyRound,
 	Mail,
 	Save,
@@ -219,7 +219,7 @@ function ChooseMethodStep({
 					onClick={() => onSelectOAuth('github')}
 					disabled={isLoading}
 				>
-					<Github className='w-5 h-5' />
+					<GithubIcon className='w-5 h-5' />
 					Continue with GitHub
 				</Button>
 			</div>

@@ -54,16 +54,16 @@ export const POST = Webhooks({
 type SubscriptionData = {
 	id: string;
 	customerId?: string;
-	customer?: { id: string; email: string; name?: string };
+	customer?: { id: string; email: string; name?: string | null };
 	metadata?: Record<string, unknown>;
 	status?: string;
 	amount?: number;
 	currency?: string;
 	recurringInterval?: string;
-	currentPeriodStart?: string;
-	currentPeriodEnd?: string;
+	currentPeriodStart?: string | Date;
+	currentPeriodEnd?: string | Date;
 	cancelAtPeriodEnd?: boolean;
-	canceledAt?: string | null;
+	canceledAt?: string | Date | null;
 	productId?: string;
 };
 
