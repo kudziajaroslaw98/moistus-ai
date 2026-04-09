@@ -167,6 +167,10 @@ pnpm pretty          # Prettier
 
 <!-- Updated: 2026-04-09 - Documented Vercel npm/pnpm install-command mismatch guardrail -->
 
+**GitHub Actions pnpm source-of-truth**: In workflows using `pnpm/action-setup`, do not set a separate `version` input when `package.json#packageManager` already pins pnpm (especially with integrity hash). Use one source to avoid `ERR_PNPM_BAD_PM_VERSION`.
+
+<!-- Updated: 2026-04-09 - Documented CI pnpm version-source conflict guardrail -->
+
 **LAN-safe local dev URLs**: In development, browser Supabase + PartyKit clients may derive their host from `window.location.hostname` when the configured public URL is blank or loopback-only. Keep server-side Supabase traffic on `SUPABASE_INTERNAL_URL` when local services stay on loopback, and do not reintroduce `NEXT_PUBLIC_APP_LOCAL_HREF` for browser fetches.
 
 <!-- Updated: 2026-04-01 - Documented browser-vs-server local URL split for LAN dev -->

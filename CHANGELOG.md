@@ -57,6 +57,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-04-08 - Aligned task title syntax help with parser and hardened status regex prefix exclusions -->
 <!-- Updated: 2026-04-09 - Hardened PartyKit dependency security path and added CI audit/dependency review workflows -->
 <!-- Updated: 2026-04-09 - Replaced removed Lucide GitHub icon import with local SVG component -->
+<!-- Updated: 2026-04-09 - Fixed GitHub Actions pnpm setup version-source conflict in security audit workflow -->
 
 ## [2026-04-09]
 
@@ -80,6 +81,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: `lucide-react@1.7.0` no longer exports `Github`, which broke `next build`
 - **ci/vercel-package-manager-mismatch**: Added `vercel.json` with explicit `installCommand` (`pnpm install --frozen-lockfile`) and `buildCommand` (`pnpm build`)
   - Why: Vercel was executing `npm i`, which failed peer-resolution against the current ESLint dependency graph
+- **ci/security-audit-pnpm-version-source**: Removed explicit `version` input from `pnpm/action-setup` in `.github/workflows/security-audit.yml`
+  - Why: GitHub Actions failed with `ERR_PNPM_BAD_PM_VERSION` due to duplicate pnpm version sources (workflow input + `packageManager`)
 
 ## [2026-04-08]
 
