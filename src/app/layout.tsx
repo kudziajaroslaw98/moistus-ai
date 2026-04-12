@@ -1,5 +1,6 @@
 import { ClientProviders } from '@/components/providers/client-providers';
-import type { Metadata } from 'next';
+import { SerwistProvider } from '@/app/serwist';
+import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono, Lora } from 'next/font/google';
 import { CSSProperties, ReactNode } from 'react';
 import { Toaster } from 'sonner';
@@ -26,8 +27,22 @@ const toasterStyle = {
 
 export const metadata: Metadata = {
 	metadataBase: new URL('https://shiko.app'),
+	applicationName: 'Shiko',
 	title: 'Shiko',
 	description: 'AI-powered mind mapping and information organization',
+	manifest: '/manifest.webmanifest',
+	appleWebApp: {
+		title: 'Shiko',
+		capable: true,
+		statusBarStyle: 'black-translucent',
+	},
+	formatDetection: {
+		telephone: false,
+	},
+};
+
+export const viewport: Viewport = {
+	themeColor: '#09090b',
 };
 
 export default function RootLayout({
@@ -65,11 +80,18 @@ export default function RootLayout({
 						],
 					})}
 				</script>
-				<ClientProviders>
-					<div className='flex h-full w-full flex-col rounded-xl bg-zinc-900 text-zinc-100'>
-						{children}
-					</div>
-				</ClientProviders>
+					<SerwistProvider
+						swUrl='/serwist/sw.js'
+						cacheOnNavigation={true}
+						reloadOnOnline={false}
+						disableOnInsecureDevLan={true}
+					>
+					<ClientProviders>
+						<div className='flex h-full w-full flex-col rounded-xl bg-zinc-900 text-zinc-100'>
+							{children}
+						</div>
+					</ClientProviders>
+				</SerwistProvider>
 
 				<Toaster
 					closeButton

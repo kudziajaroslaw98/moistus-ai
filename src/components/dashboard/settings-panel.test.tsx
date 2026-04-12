@@ -357,13 +357,15 @@ describe('SettingsPanel', () => {
 			expect(mockState.updateUserProfile).toHaveBeenCalledTimes(1);
 		});
 
-		expect(mockState.updateUserProfile).toHaveBeenCalledWith({
-			preferences: expect.objectContaining({
-				notifications: {
-					email: false,
-				},
-			}),
-		});
+		expect(mockState.updateUserProfile).toHaveBeenCalledWith(
+			expect.objectContaining({
+				preferences: expect.objectContaining({
+					notifications: expect.objectContaining({
+						email: false,
+					}),
+				}),
+			})
+		);
 	});
 
 	it('opens discard dialog on unsaved close and discards on confirm', async () => {

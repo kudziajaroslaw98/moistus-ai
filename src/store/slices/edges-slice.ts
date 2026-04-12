@@ -7,6 +7,7 @@ import {
 	rerouteAutoWaypointEdges,
 } from '@/helpers/route-auto-waypoint-edges';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
+import { queueMutation } from '@/lib/offline';
 import {
 	broadcast,
 	BROADCAST_EVENTS,
@@ -278,18 +279,43 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 				},
 			};
 
-			// Save edge data to Supabase
-			const { data: dbEdge, error } = await supabase
-				.from('edges')
-				.update(edgeData)
-				.eq('id', edgeId)
-				.select()
-				.single();
+			const saveResult = await queueMutation<EdgeData>({
+				entity: 'edges',
+				action: 'update',
+				baseVersion:
+					(typeof edge.data?.updated_at === 'string' &&
+					edge.data.updated_at.length > 0
+						? edge.data.updated_at
+						: null),
+				payload: {
+					table: 'edges',
+					values: edgeData as Record<string, unknown>,
+					match: {
+						id: edgeId,
+					},
+					select: '*',
+				},
+				executeOnline: async () => {
+					const { data: dbEdge, error } = await supabase
+						.from('edges')
+						.update(edgeData)
+						.eq('id', edgeId)
+						.select()
+						.single();
 
-			if (error) {
-				console.error('Error saving edge:', error);
-				throw new Error('Failed to save edge changes');
+					if (error || !dbEdge) {
+						console.error('Error saving edge:', error);
+						throw new Error('Failed to save edge changes');
+					}
+
+					return dbEdge as EdgeData;
+				},
+			});
+
+			if (saveResult.status === 'queued' || !saveResult.data) {
+				return;
 			}
+			const dbEdge = saveResult.data;
 
 			const finalEdges = edges.map((edge) => {
 				if (edge.id === edgeId) {
@@ -615,13 +641,42 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					}
 				}
 
-				const { data: insertedEdgeData, error: insertError } = await supabase
-					.from('edges')
-					.insert(routedOptimisticEdge.data as EdgeData)
-					.select()
-					.single();
+				let insertedEdgeData: EdgeData | null = null;
+				try {
+					const insertMutation = await queueMutation<EdgeData>({
+						entity: 'edges',
+						action: 'insert',
+						payload: {
+							table: 'edges',
+							values: routedOptimisticEdge.data as Record<string, unknown>,
+							select: '*',
+						},
+						executeOnline: async () => {
+							const { data: createdEdge, error: insertError } = await supabase
+								.from('edges')
+								.insert(routedOptimisticEdge.data as EdgeData)
+								.select()
+								.single();
 
-				if (insertError) {
+							if (insertError || !createdEdge) {
+								throw new Error(insertError?.message || 'Failed to insert edge.');
+							}
+
+							return createdEdge as EdgeData;
+						},
+					});
+
+					if (insertMutation.status === 'queued') {
+						get().persistDeltaEvent(
+							'addEdge',
+							{ nodes, edges },
+							{ nodes: get().nodes, edges: get().edges }
+						);
+						return routedOptimisticEdge;
+					}
+
+					insertedEdgeData = insertMutation.data ?? null;
+				} catch (error) {
 					set((state) => ({
 						edges: state.edges.filter(
 							(edge) => edge.id !== routedOptimisticEdge.id
@@ -669,7 +724,10 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 						}
 					}
 
-					throw new Error(insertError.message || 'Failed to insert edge.');
+					throw error;
+				}
+				if (!insertedEdgeData) {
+					throw new Error('Failed to insert edge.');
 				}
 
 				const persistedFlowEdge: AppEdge = {
@@ -700,14 +758,34 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 						(edge) => edge.id === persistedFlowEdge.id
 					) ?? persistedFlowEdge;
 
-				const { error: parentUpdateError } = await supabase
-					.from('nodes')
-					.update({ parent_id: sourceId, updated_at: new Date().toISOString() })
-					.eq('id', targetId);
+				const parentUpdate = await queueMutation({
+					entity: 'nodes',
+					action: 'update',
+					payload: {
+						table: 'nodes',
+						values: {
+							parent_id: sourceId,
+							updated_at: new Date().toISOString(),
+						},
+						match: {
+							id: targetId,
+						},
+					},
+					executeOnline: async () => {
+						const { error: parentUpdateError } = await supabase
+							.from('nodes')
+							.update({ parent_id: sourceId, updated_at: new Date().toISOString() })
+							.eq('id', targetId);
 
-				if (parentUpdateError) {
+						if (parentUpdateError) {
+							throw parentUpdateError;
+						}
+					},
+				});
+
+				if (parentUpdate.status === 'queued') {
 					toast.warning(
-						'Connection saved, but failed to set parent relationship in DB.',
+						'Connection queued for offline sync.',
 						{ id: toastId }
 					);
 				}
@@ -796,13 +874,38 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					}
 				}
 
-				const { error: deleteError } = await supabase
-					.from('edges')
-					.delete()
-					.in('id', deleteIds)
-					.eq('map_id', mapId);
+				let deleteMutation:
+					| {
+							status: 'applied' | 'queued';
+							opId: string;
+					  }
+					| undefined;
+				try {
+					deleteMutation = await queueMutation({
+						entity: 'edges',
+						action: 'delete',
+						payload: {
+							table: 'edges',
+							match: {
+								map_id: mapId,
+							},
+							values: {
+								ids: deleteIds,
+							},
+						},
+						executeOnline: async () => {
+							const { error: deleteError } = await supabase
+								.from('edges')
+								.delete()
+								.in('id', deleteIds)
+								.eq('map_id', mapId);
 
-				if (deleteError) {
+							if (deleteError) {
+								throw new Error(deleteError.message || 'Failed to delete edge.');
+							}
+						},
+					});
+				} catch (error) {
 					set((state) => {
 						const existingEdgeIds = new Set(state.edges.map((edge) => edge.id));
 						return {
@@ -863,7 +966,16 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 						}
 					}
 
-					throw new Error(deleteError.message || 'Failed to delete edge.');
+					throw error;
+				}
+
+				if (deleteMutation?.status === 'queued') {
+					get().persistDeltaEvent(
+						'deleteEdge',
+						{ nodes, edges },
+						{ nodes: get().nodes, edges: get().edges }
+					);
+					return;
 				}
 
 				// Persist delta to DB for history tracking

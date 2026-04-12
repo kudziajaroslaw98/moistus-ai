@@ -13,6 +13,10 @@ export type UserDefaultNodeTypePreference =
 
 export interface NotificationPreferences {
 	email?: boolean;
+	push?: boolean;
+	push_comments?: boolean;
+	push_mentions?: boolean;
+	push_reactions?: boolean;
 }
 
 export interface UserPrivacyPreferences {
@@ -92,6 +96,10 @@ export interface UserProfileFormData {
 		reducedMotion: boolean;
 		notifications: NotificationPreferences & {
 			email: boolean;
+			push: boolean;
+			push_comments: boolean;
+			push_mentions: boolean;
+			push_reactions: boolean;
 		};
 		defaultNodeType: UserDefaultNodeTypePreference;
 		privacy: {

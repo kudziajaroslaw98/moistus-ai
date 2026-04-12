@@ -10,6 +10,10 @@ const DEFAULT_PREFERENCES = {
 	reducedMotion: false,
 	notifications: {
 		email: true,
+		push: false,
+		push_comments: true,
+		push_mentions: true,
+		push_reactions: true,
 	},
 	defaultNodeType: 'defaultNode' as const,
 	privacy: {
@@ -156,10 +160,30 @@ export async function PUT(request: Request) {
 				.eq('user_id', user.id)
 				.single();
 
-			const existingPreferences = (existingProfile?.preferences as Record<string, unknown>) ?? {};
+			const existingPreferences =
+				(existingProfile?.preferences as Record<string, unknown> | null) ?? {};
+			const incomingPreferences =
+				(profileData.preferences as unknown as Record<string, unknown>) ?? {};
+			const existingNotifications =
+				(existingPreferences.notifications as Record<string, unknown>) ?? {};
+			const incomingNotifications =
+				(incomingPreferences.notifications as Record<string, unknown>) ?? {};
+			const existingPrivacy =
+				(existingPreferences.privacy as Record<string, unknown>) ?? {};
+			const incomingPrivacy =
+				(incomingPreferences.privacy as Record<string, unknown>) ?? {};
+
 			updateData.preferences = {
 				...existingPreferences,
-				...profileData.preferences,
+				...incomingPreferences,
+				notifications: {
+					...existingNotifications,
+					...incomingNotifications,
+				},
+				privacy: {
+					...existingPrivacy,
+					...incomingPrivacy,
+				},
 			};
 		}
 

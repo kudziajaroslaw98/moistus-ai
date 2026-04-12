@@ -4,6 +4,11 @@ import {
 	subscribeToNotificationChannel,
 	type NotificationChannelSubscription,
 } from '@/lib/realtime/notification-channel';
+import {
+	getWorkspaceCacheRecord,
+	queueMutation,
+	setWorkspaceCacheRecord,
+} from '@/lib/offline';
 import useAppStore from '@/store/mind-map-store';
 import type { NotificationRecord } from '@/types/notification';
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
@@ -76,6 +81,27 @@ const createScopeState = (
 	listeners: new Set(),
 	request: null,
 });
+
+const parseNotificationsCachePayload = (
+	payload: unknown
+): { notifications: NotificationRecord[]; unreadCount: number } | null => {
+	if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+		return null;
+	}
+
+	const record = payload as {
+		notifications?: unknown;
+		unreadCount?: unknown;
+	};
+
+	return {
+		notifications: Array.isArray(record.notifications)
+			? (record.notifications as NotificationRecord[])
+			: [],
+		unreadCount:
+			typeof record.unreadCount === 'number' ? record.unreadCount : 0,
+	};
+};
 
 class SharedNotificationsManager {
 	private currentUserId: string | null = null;
@@ -311,8 +337,29 @@ class SharedNotificationsManager {
 					unreadCount: payload.data.unreadCount ?? 0,
 				});
 				scope.hasFetched = true;
+				await setWorkspaceCacheRecord(
+					`notifications:${this.getScopeKey(filterMapId)}`,
+					{
+						notifications: payload.data.notifications ?? [],
+						unreadCount: payload.data.unreadCount ?? 0,
+					}
+				);
 			} catch (fetchError) {
 				if (this.currentUserId !== requestUserId) {
+					return;
+				}
+
+				const cachedRecord = await getWorkspaceCacheRecord(
+					`notifications:${this.getScopeKey(filterMapId)}`
+				);
+				const cachedPayload = parseNotificationsCachePayload(cachedRecord?.payload);
+				if (cachedPayload) {
+					this.updateSnapshot(scope, {
+						notifications: cachedPayload.notifications,
+						unreadCount: cachedPayload.unreadCount,
+						error: null,
+					});
+					scope.hasFetched = true;
 					return;
 				}
 
@@ -341,19 +388,35 @@ class SharedNotificationsManager {
 		}
 
 		try {
-			const response = await fetch('/api/notifications/mark-all-read', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(filterMapId ? { mapId: filterMapId } : {}),
-			});
+			await queueMutation({
+				entity: 'notifications',
+				action: 'update',
+				payload: {
+					table: 'notifications',
+					values: {
+						is_read: true,
+						read_at: new Date().toISOString(),
+						updated_at: new Date().toISOString(),
+					},
+					match: {
+						recipient_user_id: this.currentUserId,
+						...(filterMapId ? { map_id: filterMapId } : {}),
+					},
+				},
+				executeOnline: async () => {
+					const response = await fetch('/api/notifications/mark-all-read', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(filterMapId ? { mapId: filterMapId } : {}),
+					});
 
-			if (!response.ok) {
-				console.warn('[use-notifications] failed to mark all as read', {
-					status: response.status,
-					statusText: response.statusText,
-				});
-				return;
-			}
+					if (!response.ok) {
+						throw new Error(
+							`Failed to mark all notifications as read (${response.status})`
+						);
+					}
+				},
+			});
 
 			await this.refreshActiveScopes();
 		} catch (markAllError) {
@@ -375,19 +438,35 @@ class SharedNotificationsManager {
 		}
 
 		try {
-			const response = await fetch(`/api/notifications/${notificationId}/read`, {
-				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ read: true }),
-			});
+			await queueMutation({
+				entity: 'notifications',
+				action: 'update',
+				payload: {
+					table: 'notifications',
+					values: {
+						is_read: true,
+						read_at: new Date().toISOString(),
+						updated_at: new Date().toISOString(),
+					},
+					match: {
+						id: notificationId,
+						recipient_user_id: this.currentUserId,
+					},
+				},
+				executeOnline: async () => {
+					const response = await fetch(`/api/notifications/${notificationId}/read`, {
+						method: 'PATCH',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ read: true }),
+					});
 
-			if (!response.ok) {
-				console.warn('[use-notifications] failed to mark notification as read', {
-					notificationId,
-					status: response.status,
-				});
-				return;
-			}
+					if (!response.ok) {
+						throw new Error(
+							`Failed to mark notification as read (${response.status})`
+						);
+					}
+				},
+			});
 
 			await this.refreshActiveScopes();
 		} catch (markError) {

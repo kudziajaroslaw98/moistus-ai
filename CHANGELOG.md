@@ -58,6 +58,64 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-04-09 - Hardened PartyKit dependency security path and added CI audit/dependency review workflows -->
 <!-- Updated: 2026-04-09 - Replaced removed Lucide GitHub icon import with local SVG component -->
 <!-- Updated: 2026-04-09 - Fixed GitHub Actions pnpm setup version-source conflict in security audit workflow -->
+<!-- Updated: 2026-04-11 - Implemented PWA foundation, offline replay queue, web push notifications, and touch/view-transition enhancements -->
+<!-- Updated: 2026-04-11 - Hardened offline reconnect sync to prevent stale-lock stalls and ensure multi-batch drain on reconnect -->
+<!-- Updated: 2026-04-12 - Hardened LAN dev rendering by allowlisting dev origin and gating SW registration on insecure LAN HTTP -->
+
+## [2026-04-12]
+
+### Changed
+
+- **dev/lan-origin-allowlist**: Added Next.js `allowedDevOrigins` with `192.168.0.239` and introduced `dev:lan` (`next dev --hostname 0.0.0.0`) script
+  - Why: Next.js 16 blocks cross-origin requests to dev resources by default, which can break LAN device rendering
+- **pwa/dev-insecure-lan-sw-gate**: Wrapped Serwist provider registration with a runtime guard that disables SW registration on insecure non-loopback origins in development
+  - Why: Avoid dev-time SW edge behavior on LAN HTTP while preserving localhost and production HTTPS SW behavior
+- **pwa/dev-insecure-lan-sw-cleanup**: Added dev-only service worker unregister cleanup when insecure LAN gating is active
+  - Why: Prevent previously registered service workers from controlling LAN-origin sessions with stale runtime assets
+
+### Fixed
+
+- **dev/lan-loopback-realtime-url-derivation**: Updated local browser URL derivation to force loopback-configured Supabase/PartyKit URLs onto the current non-loopback browser host even when `nodeEnv` is unavailable, and added regression tests
+  - Why: Realtime WebSocket clients could stay pinned to `ws://localhost:<port>` on LAN devices, causing reconnect loops and missing realtime updates
+
+## [2026-04-11]
+
+### Added
+
+- **pwa/serwist-foundation**: Added Serwist Turbopack integration (`next.config.ts`, `/serwist/sw.js` route, `src/app/sw.ts`), offline fallback page (`/~offline`), and PWA manifest/icon assets under `public/icons`
+  - Why: Enable installable app behavior and service-worker-backed offline shell support
+- **offline/persistent-queue-and-replay**: Added IndexedDB offline stores (`op_queue`, `workspace_cache`, `map_cache`, `sync_state`, `conflict_log`) with replay lifecycle helpers and new idempotent batch replay API (`POST /api/offline/ops/batch`)
+  - Why: Provide durable write queuing and strict replay guarantees beyond browser-only background sync availability
+- **push/subscription-and-send-pipeline**: Added push key/subscribe/test APIs and server-side web-push sender (`src/lib/push/web-push.ts`) plus subscription persistence migrations
+  - Why: Enable progressive web push delivery (declarative payload + service-worker fallback handling)
+- **db/migrations-offline-and-push**: Added repo-local migrations in `supabase/migrations/` for `push_subscriptions`, `offline_op_receipts`, `offline_sync_conflicts`, `offline_sync_failures`, and helper RPC
+  - Why: Keep schema changes additive and isolated to this repo-local migration path
+
+### Changed
+
+- **settings/push-preferences-and-subscription-controls**: Expanded account notification preferences with push toggles and wired enable/disable subscription flows in settings
+  - Why: Users need explicit per-channel control over web push behavior
+- **store/offline-first-write-paths**: Routed major mutation flows through the shared queue adapter for core map updates, comments/messages/reactions, notifications read state, user profile updates, and node/edge persistence
+  - Why: Centralized mutation handling is required for deterministic offline apply + replay
+- **notifications/web-push-side-effects**: Extended notification side effects to send web push when user preferences permit
+  - Why: Keep inbox/email/push delivery in one orchestration path with shared dedupe context
+- **touch/gesture-shortcuts-and-view-transition-guard**: Added multi-touch canvas shortcuts (undo/redo/fit/cycle selection) and optional view-transition wrapper with reduced-motion/feature gating
+  - Why: Improve mobile interaction speed while keeping transitions progressive and safe on unsupported browsers
+- **pwa/store-manifest-metadata**: Expanded `src/app/manifest.ts` with `lang`, `dir`, `screenshots`, and launch `shortcuts`, plus added screenshot assets in `public/images/pwa/`
+  - Why: Clear PWA Builder recommended manifest gaps for store packaging while intentionally deferring product-specific optional handlers
+
+### Fixed
+
+- **tests/indexeddb-unavailable-fallback**: Made offline IndexedDB helpers no-op safely when `indexedDB` is unavailable (e.g. Jest environment)
+  - Why: Prevent non-browser test/runtime contexts from crashing on offline cache access
+- **tests/react-flow-gesture-history-guard**: Guarded gesture redo logic against undefined history metadata from mocked store state
+  - Why: Keep gesture integration resilient in existing test harnesses and partial state mocks
+- **offline/reconnect-stale-lock-recovery**: Removed persisted `sync_state.flush_lock` gating from replay, recovered `processing` queue items to `queued` at startup, and added visibility-triggered reconnect flushes
+  - Why: Reload/crash during sync could leave a stale persisted lock that blocked all later reconnect replays
+- **offline/reconnect-full-drain-and-retry**: Changed replay to drain queued operations in repeated `<=100` batches per flush, pause on `401/403` without dead-lettering, and schedule short backoff retries for transient network/`5xx` failures
+  - Why: Reconnect previously processed one batch per trigger and could strand remaining queued ops until another manual event
+- **tests/offline-sync-reconnect-contract**: Added `src/lib/offline/offline-sync.test.ts` for multi-batch drain, auth pause/resume, startup processing recovery, and transient backoff retry behavior
+  - Why: Reconnect reliability must be locked by dedicated queue-sync regression tests
 
 ## [2026-04-09]
 

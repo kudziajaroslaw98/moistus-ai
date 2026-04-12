@@ -32,6 +32,16 @@ describe('local-dev-url helpers', () => {
 		).toBe('http://192.168.0.239:54321');
 	});
 
+	it('derives the browser Supabase URL from the current non-loopback host when nodeEnv is not available', () => {
+		expect(
+			resolveBrowserSupabaseUrl({
+				configuredUrl: 'http://127.0.0.1:54321',
+				browserLocation: lanBrowserLocation,
+				nodeEnv: undefined,
+			})
+		).toBe('http://192.168.0.239:54321');
+	});
+
 	it('preserves an explicit non-loopback Supabase URL', () => {
 		expect(
 			resolveBrowserSupabaseUrl({
@@ -55,6 +65,16 @@ describe('local-dev-url helpers', () => {
 				configuredUrl: '"127.0.0.1:1999"',
 				browserLocation: lanBrowserLocation,
 				nodeEnv: 'development',
+			})
+		).toBe('ws://192.168.0.239:1999');
+	});
+
+	it('derives the PartyKit websocket URL from the current non-loopback host when nodeEnv is not available', () => {
+		expect(
+			resolveBrowserPartyKitWsBaseUrl({
+				configuredUrl: '127.0.0.1:1999',
+				browserLocation: lanBrowserLocation,
+				nodeEnv: undefined,
 			})
 		).toBe('ws://192.168.0.239:1999');
 	});

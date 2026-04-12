@@ -1,6 +1,7 @@
 'use client';
 
 import { CookieNoticeBanner } from '@/components/legal/cookie-notice-banner';
+import { initializeOfflineSync } from '@/lib/offline';
 import useAppStore from '@/store/mind-map-store';
 import { useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
@@ -14,6 +15,10 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
 				fetchUsageData: state.fetchUsageData,
 			}))
 		);
+
+	useEffect(() => {
+		initializeOfflineSync();
+	}, []);
 
 	useEffect(() => {
 		const initialize = async () => {

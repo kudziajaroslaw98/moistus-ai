@@ -121,7 +121,21 @@ function shouldDeriveFromBrowserHost(
 	browserLocation: BrowserLocationLike | null,
 	nodeEnv: string | null | undefined
 ): boolean {
-	if (!browserLocation || nodeEnv !== 'development') {
+	if (!browserLocation) {
+		return false;
+	}
+
+	const browserHost = browserLocation.hostname;
+	if (
+		configuredUrl &&
+		isLoopbackHost(configuredUrl) &&
+		!isLoopbackHost(browserHost)
+	) {
+		// LAN device access should never stay pinned to localhost/127.0.0.1.
+		return true;
+	}
+
+	if (nodeEnv !== 'development') {
 		return false;
 	}
 

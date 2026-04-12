@@ -84,6 +84,19 @@ function normalizeText(value: string | null | undefined): string {
 	return (value || '').trim();
 }
 
+function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
+	const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+	const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+	const rawData = window.atob(base64);
+	const outputArray = new Uint8Array(rawData.length);
+
+	for (let i = 0; i < rawData.length; i += 1) {
+		outputArray[i] = rawData.charCodeAt(i);
+	}
+
+	return outputArray.buffer as ArrayBuffer;
+}
+
 function createFormDataFromProfile(profile: UserProfile): UserProfileFormData {
 	return {
 		full_name: profile.full_name || '',
@@ -95,6 +108,10 @@ function createFormDataFromProfile(profile: UserProfile): UserProfileFormData {
 			reducedMotion: profile.preferences?.reducedMotion || false,
 			notifications: {
 				email: profile.preferences?.notifications?.email ?? true,
+				push: profile.preferences?.notifications?.push ?? false,
+				push_comments: profile.preferences?.notifications?.push_comments ?? true,
+				push_mentions: profile.preferences?.notifications?.push_mentions ?? true,
+				push_reactions: profile.preferences?.notifications?.push_reactions ?? true,
 			},
 			defaultNodeType: profile.preferences?.defaultNodeType || 'defaultNode',
 			privacy: {
@@ -156,6 +173,7 @@ export function SettingsPanel({
 	);
 
 	const [isSaving, setIsSaving] = useState(false);
+	const [isPushToggleBusy, setIsPushToggleBusy] = useState(false);
 	const [activeTab, setActiveTab] = useState(defaultTab);
 	const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 
@@ -193,6 +211,10 @@ export function SettingsPanel({
 			reducedMotion: false,
 			notifications: {
 				email: true,
+				push: false,
+				push_comments: true,
+				push_mentions: true,
+				push_reactions: true,
 			},
 			defaultNodeType: 'defaultNode',
 			privacy: {
@@ -448,6 +470,93 @@ export function SettingsPanel({
 		} finally {
 			setIsSaving(false);
 		}
+	};
+
+	const enablePushNotifications = async (): Promise<boolean> => {
+		if (typeof window === 'undefined') {
+			return false;
+		}
+		if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+			toast.error('Push notifications are not supported in this browser.');
+			return false;
+		}
+
+		const keyResponse = await fetch('/api/push/public-key');
+		if (!keyResponse.ok) {
+			toast.error('Push notifications are not configured for this environment.');
+			return false;
+		}
+		const keyPayload = (await keyResponse.json()) as {
+			data?: { publicKey?: string };
+		};
+		const publicKey = keyPayload.data?.publicKey;
+		if (!publicKey) {
+			toast.error('Push public key is missing.');
+			return false;
+		}
+
+		const permission = await Notification.requestPermission();
+		if (permission !== 'granted') {
+			toast.error('Notification permission was not granted.');
+			return false;
+		}
+
+		const registration = await navigator.serviceWorker.ready;
+		const existingSubscription = await registration.pushManager.getSubscription();
+		const subscription =
+				existingSubscription ??
+				(await registration.pushManager.subscribe({
+					userVisibleOnly: true,
+					applicationServerKey: urlBase64ToArrayBuffer(publicKey),
+				}));
+
+		const response = await fetch('/api/push/subscribe', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				subscription: subscription.toJSON(),
+			}),
+		});
+
+		if (!response.ok) {
+			toast.error('Failed to register push subscription.');
+			return false;
+		}
+
+		return true;
+	};
+
+	const disablePushNotifications = async (): Promise<boolean> => {
+		if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+			return true;
+		}
+
+		const registration = await navigator.serviceWorker.ready;
+		const subscription = await registration.pushManager.getSubscription();
+		if (!subscription) {
+			return true;
+		}
+
+		const endpoint = subscription.endpoint;
+		const response = await fetch('/api/push/subscribe', {
+			method: 'DELETE',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				endpoint,
+			}),
+		});
+
+		const unsubscribeResult = await subscription.unsubscribe();
+		if (!response.ok) {
+			toast.error('Failed to remove push subscription on server.');
+			return false;
+		}
+
+		return unsubscribeResult;
 	};
 
 	const updateFormData = (
@@ -1003,6 +1112,156 @@ export function SettingsPanel({
 													{formData.preferences.notifications.email
 														? 'On'
 														: 'Off'}
+												</Button>
+											</div>
+											<div className='flex items-center justify-between rounded-lg border border-border-subtle bg-base p-3'>
+												<div className='space-y-0.5'>
+													<Label>Push notifications</Label>
+													<p className='text-xs text-text-secondary'>
+														Allow browser push notifications for workspace events.
+													</p>
+												</div>
+												<Button
+													aria-label={`Push notifications ${formData.preferences.notifications.push ? 'on' : 'off'}`}
+													aria-pressed={formData.preferences.notifications.push}
+													disabled={isSaving || isLoadingProfile || isPushToggleBusy}
+													onClick={async () => {
+														if (isSaving || isLoadingProfile || isPushToggleBusy) return;
+														setIsPushToggleBusy(true);
+														try {
+															if (!formData.preferences.notifications.push) {
+																const enabled = await enablePushNotifications();
+																if (!enabled) {
+																	return;
+																}
+																updateNestedFormData(
+																	'preferences',
+																	'notifications',
+																	{
+																		...formData.preferences.notifications,
+																		push: true,
+																	}
+																);
+																toast.success('Push notifications enabled');
+															} else {
+																const disabled = await disablePushNotifications();
+																if (!disabled) {
+																	return;
+																}
+																updateNestedFormData(
+																	'preferences',
+																	'notifications',
+																	{
+																		...formData.preferences.notifications,
+																		push: false,
+																	}
+																);
+																toast.success('Push notifications disabled');
+															}
+														} catch (error) {
+															console.error('Failed to toggle push notifications', error);
+															toast.error('Failed to update push notifications');
+														} finally {
+															setIsPushToggleBusy(false);
+														}
+													}}
+													size='sm'
+													variant={
+														formData.preferences.notifications.push
+															? 'default'
+															: 'outline'
+													}
+												>
+													{formData.preferences.notifications.push ? 'On' : 'Off'}
+												</Button>
+											</div>
+											<div className='grid gap-2 rounded-lg border border-border-subtle bg-base p-3 sm:grid-cols-3'>
+												<Button
+													aria-label={`Push mentions ${formData.preferences.notifications.push_mentions ? 'on' : 'off'}`}
+													aria-pressed={formData.preferences.notifications.push_mentions}
+													disabled={
+														isSaving ||
+														isLoadingProfile ||
+														isPushToggleBusy ||
+														!formData.preferences.notifications.push
+													}
+													onClick={() =>
+														updateNestedFormData(
+															'preferences',
+															'notifications',
+															{
+																...formData.preferences.notifications,
+																push_mentions:
+																	!formData.preferences.notifications.push_mentions,
+															}
+														)
+													}
+													size='sm'
+													variant={
+														formData.preferences.notifications.push_mentions
+															? 'default'
+															: 'outline'
+													}
+												>
+													Mentions
+												</Button>
+												<Button
+													aria-label={`Push comments ${formData.preferences.notifications.push_comments ? 'on' : 'off'}`}
+													aria-pressed={formData.preferences.notifications.push_comments}
+													disabled={
+														isSaving ||
+														isLoadingProfile ||
+														isPushToggleBusy ||
+														!formData.preferences.notifications.push
+													}
+													onClick={() =>
+														updateNestedFormData(
+															'preferences',
+															'notifications',
+															{
+																...formData.preferences.notifications,
+																push_comments:
+																	!formData.preferences.notifications.push_comments,
+															}
+														)
+													}
+													size='sm'
+													variant={
+														formData.preferences.notifications.push_comments
+															? 'default'
+															: 'outline'
+													}
+												>
+													Comments
+												</Button>
+												<Button
+													aria-label={`Push reactions ${formData.preferences.notifications.push_reactions ? 'on' : 'off'}`}
+													aria-pressed={formData.preferences.notifications.push_reactions}
+													disabled={
+														isSaving ||
+														isLoadingProfile ||
+														isPushToggleBusy ||
+														!formData.preferences.notifications.push
+													}
+													onClick={() =>
+														updateNestedFormData(
+															'preferences',
+															'notifications',
+															{
+																...formData.preferences.notifications,
+																push_reactions:
+																	!formData.preferences.notifications.push_reactions,
+															}
+														)
+													}
+													size='sm'
+													variant={
+														formData.preferences.notifications.push_reactions
+															? 'default'
+															: 'outline'
+													}
+												>
+													Reactions
 												</Button>
 											</div>
 										</div>

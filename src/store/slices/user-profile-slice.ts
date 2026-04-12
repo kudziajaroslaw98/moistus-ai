@@ -3,6 +3,11 @@ import type { AppState } from '../app-state';
 import type { UserProfile, UserProfileUpdate } from '@/types/user-profile-types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { generateFallbackAvatar } from '@/helpers/user-profile-helpers';
+import {
+	getWorkspaceCacheRecord,
+	queueMutation,
+	setWorkspaceCacheRecord,
+} from '@/lib/offline';
 import { NodeRegistry, type AvailableNodeTypes } from '@/registry/node-registry';
 
 export interface UserProfileSlice {
@@ -115,6 +120,10 @@ export const createUserProfileSlice: StateCreator<
 							reducedMotion: false,
 							notifications: {
 								email: true,
+								push: false,
+								push_comments: true,
+								push_mentions: true,
+								push_reactions: true,
 							},
 							defaultNodeType: 'defaultNode',
 							privacy: {
@@ -126,6 +135,7 @@ export const createUserProfileSlice: StateCreator<
 					.single();
 
 				if (createError) throw createError;
+				await setWorkspaceCacheRecord(`profile:${user.id}`, newProfile);
 				set({ userProfile: newProfile, isLoadingProfile: false });
 				// Automatically subscribe to real-time changes after creating profile
 				get().subscribeToProfileChanges();
@@ -151,11 +161,31 @@ export const createUserProfileSlice: StateCreator<
 				}
 
 				set({ userProfile: profileWithDefaults, isLoadingProfile: false });
+				await setWorkspaceCacheRecord(`profile:${user.id}`, profileWithDefaults);
 				// Automatically subscribe to real-time changes after loading profile
 				get().subscribeToProfileChanges();
 			}
 		} catch (error) {
 			console.error('Failed to load user profile:', error);
+			try {
+				const { data } = await get().supabase.auth.getUser();
+				const fallbackUserId = data.user?.id;
+				if (fallbackUserId) {
+					const cachedProfile = await getWorkspaceCacheRecord(
+						`profile:${fallbackUserId}`
+					);
+					if (cachedProfile?.payload) {
+						set({
+							userProfile: cachedProfile.payload as UserProfile,
+							isLoadingProfile: false,
+							profileError: null,
+						});
+						return;
+					}
+				}
+			} catch (cacheError) {
+				console.warn('Failed to restore cached profile:', cacheError);
+			}
 			set({ 
 				profileError: error instanceof Error ? error.message : 'Failed to load profile',
 				isLoadingProfile: false 
@@ -181,15 +211,34 @@ export const createUserProfileSlice: StateCreator<
 		set({ userProfile: optimisticProfile, profileError: null });
 
 		try {
-			const { data, error } = await supabase
-				.from('user_profiles')
-				.update(filteredUpdates)
-				.eq('user_id', userProfile.user_id)
-				.select()
-				.single();
+			const result = await queueMutation({
+				entity: 'user_profiles',
+				action: 'update',
+				baseVersion: userProfile.updated_at ?? null,
+				payload: {
+					table: 'user_profiles',
+					values: filteredUpdates as Record<string, unknown>,
+					match: {
+						user_id: userProfile.user_id,
+					},
+					select: '*',
+				},
+				executeOnline: async () => {
+					const { data, error } = await supabase
+						.from('user_profiles')
+						.update(filteredUpdates)
+						.eq('user_id', userProfile.user_id)
+						.select()
+						.single();
 
-			if (error) throw error;
-			set({ userProfile: data });
+					if (error) throw error;
+					return data;
+				},
+			});
+
+			if (result.status === 'applied' && result.data) {
+				set({ userProfile: result.data });
+			}
 		} catch (error) {
 			console.error('Failed to update user profile:', error);
 			// Rollback optimistic update
@@ -212,6 +261,14 @@ export const createUserProfileSlice: StateCreator<
 		const updatedPreferences = {
 			...userProfile.preferences,
 			...preferences,
+			notifications: {
+				...userProfile.preferences?.notifications,
+				...preferences?.notifications,
+			},
+			privacy: {
+				...userProfile.preferences?.privacy,
+				...preferences?.privacy,
+			},
 		};
 
 		// Optimistic update
@@ -222,15 +279,36 @@ export const createUserProfileSlice: StateCreator<
 		set({ userProfile: optimisticProfile, profileError: null });
 
 		try {
-			const { data, error } = await supabase
-				.from('user_profiles')
-				.update({ preferences: updatedPreferences })
-				.eq('user_id', userProfile.user_id)
-				.select()
-				.single();
+			const result = await queueMutation({
+				entity: 'user_profiles',
+				action: 'update',
+				baseVersion: userProfile.updated_at ?? null,
+				payload: {
+					table: 'user_profiles',
+					values: {
+						preferences: updatedPreferences as Record<string, unknown>,
+					},
+					match: {
+						user_id: userProfile.user_id,
+					},
+					select: '*',
+				},
+				executeOnline: async () => {
+					const { data, error } = await supabase
+						.from('user_profiles')
+						.update({ preferences: updatedPreferences })
+						.eq('user_id', userProfile.user_id)
+						.select()
+						.single();
 
-			if (error) throw error;
-			set({ userProfile: data });
+					if (error) throw error;
+					return data;
+				},
+			});
+
+			if (result.status === 'applied' && result.data) {
+				set({ userProfile: result.data });
+			}
 		} catch (error) {
 			console.error('Failed to update preferences:', error);
 			// Rollback optimistic update
@@ -319,14 +397,21 @@ export const createUserProfileSlice: StateCreator<
 		const { userProfile } = get();
 		const emailNotificationsEnabled =
 			userProfile?.preferences?.notifications?.email ?? true;
+		const pushEnabled = userProfile?.preferences?.notifications?.push ?? false;
+		const pushComments =
+			userProfile?.preferences?.notifications?.push_comments ?? true;
+		const pushMentions =
+			userProfile?.preferences?.notifications?.push_mentions ?? true;
+		const pushReactions =
+			userProfile?.preferences?.notifications?.push_reactions ?? true;
 
 		return {
 			email_comments: emailNotificationsEnabled,
 			email_mentions: emailNotificationsEnabled,
 			email_reactions: emailNotificationsEnabled,
-			push_comments: false,
-			push_mentions: false,
-			push_reactions: false,
+			push_comments: pushEnabled && pushComments,
+			push_mentions: pushEnabled && pushMentions,
+			push_reactions: pushEnabled && pushReactions,
 		};
 	},
 

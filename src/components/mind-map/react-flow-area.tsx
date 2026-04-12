@@ -46,6 +46,7 @@ import { useContextMenu } from '@/hooks/use-context-menu';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNodeSuggestion } from '@/hooks/use-node-suggestion';
 import { useTouchContextMenuFallback } from '@/hooks/use-touch-context-menu-fallback';
+import { useMultiTouchShortcuts } from '@/hooks/use-multi-touch-shortcuts';
 import { getMindMapRoomName } from '@/lib/realtime/room-names';
 import useAppStore from '@/store/mind-map-store';
 import type { AppEdge } from '@/types/app-edge';
@@ -99,6 +100,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 	const {
 		supabase,
 		nodes,
+		selectedNodes,
 		edges,
 		onNodesChange,
 		onEdgesChange,
@@ -140,10 +142,14 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 		layoutAnimationVersion,
 		animatedNodeIds,
 		animatedEdgeIds,
+		historyIndex,
+		historyMeta,
+		revertToHistoryState,
 	} = useAppStore(
 		useShallow((state) => ({
 			supabase: state.supabase,
 			nodes: state.nodes,
+			selectedNodes: state.selectedNodes,
 			edges: state.edges,
 			getVisibleEdges: state.getVisibleEdges,
 			getVisibleNodes: state.getVisibleNodes,
@@ -186,11 +192,14 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 			// Comment mode - needed for visibility memoization
 			isCommentMode: state.isCommentMode,
 			getCurrentShareUsers: state.getCurrentShareUsers,
-			layoutAnimationVersion: state.layoutAnimationVersion,
-			animatedNodeIds: state.animatedNodeIds,
-			animatedEdgeIds: state.animatedEdgeIds,
-		}))
-	);
+				layoutAnimationVersion: state.layoutAnimationVersion,
+				animatedNodeIds: state.animatedNodeIds,
+				animatedEdgeIds: state.animatedEdgeIds,
+				historyIndex: state.historyIndex,
+				historyMeta: state.historyMeta ?? [],
+				revertToHistoryState: state.revertToHistoryState,
+			}))
+		);
 
 	const { contextMenuHandlers } = useContextMenu();
 	const { generateSuggestionsForNode } = useNodeSuggestion();
@@ -206,6 +215,72 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 		containerRef: touchContextMenuContainerRef,
 		isContextMenuOpen: popoverOpen.contextMenu,
 		openContextMenuAt: contextMenuHandlers.openContextMenuAt,
+	});
+
+	const handleGestureUndo = useCallback(() => {
+		if (historyIndex <= 0) {
+			return;
+		}
+		void revertToHistoryState(historyIndex - 1);
+	}, [historyIndex, revertToHistoryState]);
+
+	const handleGestureRedo = useCallback(() => {
+		if (historyIndex >= historyMeta.length - 1) {
+			return;
+		}
+		void revertToHistoryState(historyIndex + 1);
+	}, [historyIndex, historyMeta.length, revertToHistoryState]);
+
+	const handleGestureFitView = useCallback(() => {
+		reactFlowInstance.fitView({
+			duration: 300,
+			padding: 0.2,
+			minZoom: 0.1,
+		});
+	}, [reactFlowInstance]);
+
+	const handleGestureCycleSelection = useCallback(
+		(direction: 'left' | 'right') => {
+			const visibleNodes = getVisibleNodes();
+			if (visibleNodes.length === 0) {
+				return;
+			}
+
+			const activeId = selectedNodes[0]?.id;
+			const activeIndex = activeId
+				? visibleNodes.findIndex((node) => node.id === activeId)
+				: -1;
+
+			const step = direction === 'left' ? -1 : 1;
+			const nextIndex =
+				activeIndex === -1
+					? 0
+					: (activeIndex + step + visibleNodes.length) % visibleNodes.length;
+			const nextNode = visibleNodes[nextIndex];
+			if (!nextNode) {
+				return;
+			}
+
+			setSelectedNodes([nextNode]);
+			reactFlowInstance.setCenter(
+				nextNode.position.x + (nextNode.width ?? 0) / 2,
+				nextNode.position.y + (nextNode.height ?? 0) / 2,
+				{
+					zoom: 1.05,
+					duration: 220,
+				}
+			);
+		},
+		[getVisibleNodes, reactFlowInstance, selectedNodes, setSelectedNodes]
+	);
+
+	useMultiTouchShortcuts({
+		containerRef: touchContextMenuContainerRef,
+		enabled: isMapReady && isMobile,
+		onTwoFingerTap: handleGestureUndo,
+		onThreeFingerTap: handleGestureRedo,
+		onTwoFingerDoubleTap: handleGestureFitView,
+		onThreeFingerSwipe: handleGestureCycleSelection,
 	});
 	const updateBottomToolbarClearance = useCallback(() => {
 		if (typeof window === 'undefined') return;

@@ -15,6 +15,7 @@ import { Sheet, SheetClose, SheetContent, SheetTitle } from '@/components/ui/she
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { type ActivityState } from '@/hooks/realtime/use-realtime-presence-room';
 import { getMindMapRoomName } from '@/lib/realtime/room-names';
+import { runWithViewTransition } from '@/lib/view-transitions';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import { ChevronRight, X } from 'lucide-react';
@@ -172,7 +173,9 @@ export function MobileMenu({
 			closeMenu();
 
 			if (notificationMapId && notificationMapId !== mapId) {
-				router.push(`/mind-map/${notificationMapId}`);
+				runWithViewTransition(() => {
+					router.push(`/mind-map/${notificationMapId}`);
+				});
 			}
 		},
 		[closeMenu, mapId, markNotificationAsRead, router]

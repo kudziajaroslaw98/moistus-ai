@@ -4,6 +4,7 @@ import { fetchResourceMetadata } from '@/helpers/fetch-resource-metadata';
 import generateUuid from '@/helpers/generate-uuid';
 import { rerouteAutoWaypointEdges } from '@/helpers/route-auto-waypoint-edges';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
+import { queueMutation } from '@/lib/offline';
 import {
 	broadcast,
 	BROADCAST_EVENTS,
@@ -234,16 +235,38 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				parent_id: node.parentId || node.data.parent_id || null,
 			};
 
-			// Save node data to Supabase
-			const { error } = await supabase
-				.from('nodes')
-				.update(nodeData)
-				.eq('id', nodeId)
-				.eq('map_id', mapId);
+			const result = await queueMutation({
+				entity: 'nodes',
+				action: 'update',
+				baseVersion:
+					(typeof node.data?.updated_at === 'string' &&
+					node.data.updated_at.length > 0
+						? node.data.updated_at
+						: null),
+				payload: {
+					table: 'nodes',
+					values: nodeData as Record<string, unknown>,
+					match: {
+						id: nodeId,
+						map_id: mapId,
+					},
+				},
+				executeOnline: async () => {
+					const { error } = await supabase
+						.from('nodes')
+						.update(nodeData)
+						.eq('id', nodeId)
+						.eq('map_id', mapId);
 
-			if (error) {
-				console.error('Error saving node:', error);
-				throw new Error('Failed to save node changes');
+					if (error) {
+						console.error('Error saving node:', error);
+						throw new Error('Failed to save node changes');
+					}
+				},
+			});
+
+			if (result.status === 'queued') {
+				console.info(`[nodes] Queued node update for offline sync: ${nodeId}`);
 			}
 		},
 		STORE_SAVE_DEBOUNCE_MS,
@@ -744,33 +767,68 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					}
 				}
 
-				// Single atomic RPC call to create node + edge
-				const { data: rpcResult, error: rpcError } = await supabase.rpc(
-					'create_node_with_parent_edge',
-					{
-						p_node_id: newNodeId,
-						p_user_id: user.data.session.user.id,
-						p_map_id: mapId,
-						p_parent_id: parentNode?.id ?? null,
-						p_content: content,
-						p_position_x: newNodePosition.x,
-						p_position_y: newNodePosition.y,
-						p_node_type: nodeType,
-						p_width: data.width ?? null,
-						p_height: data.height ?? null,
-						p_metadata: data.metadata ?? null,
-						p_tags: data.tags ?? null,
-						p_status: data.status ?? null,
-						p_importance: data.importance ?? null,
-						p_source_url: data.sourceUrl ?? null,
-						p_ai_data: data.aiData ?? null,
-						p_edge_id: edgeId,
-						p_edge_style: edgeDefaults.style,
-						p_edge_metadata: edgeDefaults.metadata,
-					}
-				);
+				const rpcArgs = {
+					p_node_id: newNodeId,
+					p_user_id: user.data.session.user.id,
+					p_map_id: mapId,
+					p_parent_id: parentNode?.id ?? null,
+					p_content: content,
+					p_position_x: newNodePosition.x,
+					p_position_y: newNodePosition.y,
+					p_node_type: nodeType,
+					p_width: data.width ?? null,
+					p_height: data.height ?? null,
+					p_metadata: data.metadata ?? null,
+					p_tags: data.tags ?? null,
+					p_status: data.status ?? null,
+					p_importance: data.importance ?? null,
+					p_source_url: data.sourceUrl ?? null,
+					p_ai_data: data.aiData ?? null,
+					p_edge_id: edgeId,
+					p_edge_style: edgeDefaults.style,
+					p_edge_metadata: edgeDefaults.metadata,
+				};
 
-				if (rpcError || !rpcResult) {
+				const rpcMutation = await queueMutation<CreateNodeWithEdgeResponse>({
+					entity: 'nodes',
+					action: 'rpc',
+					payload: {
+						rpc: 'create_node_with_parent_edge',
+						args: rpcArgs as Record<string, unknown>,
+					},
+					executeOnline: async () => {
+						const { data: rpcResult, error: rpcError } = await supabase.rpc(
+							'create_node_with_parent_edge',
+							rpcArgs
+						);
+						if (rpcError || !rpcResult) {
+							throw new Error(
+								rpcError?.message || 'Failed to save new node to database.'
+							);
+						}
+						return rpcResult as CreateNodeWithEdgeResponse;
+					},
+				});
+
+				if (rpcMutation.status === 'queued') {
+					get().persistDeltaEvent(
+						'addNode',
+						{ nodes, edges },
+						{ nodes: get().nodes, edges: get().edges }
+					);
+
+					if (nodeType === 'resourceNode' && data.metadata?.url) {
+						get().fetchResourceNodeMetadata(
+							newNodeId,
+							data.metadata.url as string
+						);
+					}
+
+					return;
+				}
+
+				const rpcResult = rpcMutation.data;
+				if (!rpcResult) {
 					set((state) => ({
 						nodes: state.nodes.filter((node) => node.id !== newNodeId),
 						edges: edgeId
@@ -805,10 +863,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 							);
 						}
 					}
-
-					throw new Error(
-						rpcError?.message || 'Failed to save new node to database.'
-					);
+					throw new Error('Failed to save new node to database.');
 				}
 
 				const result = rpcResult as CreateNodeWithEdgeResponse;
@@ -1012,16 +1067,41 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					}
 				}
 
-				const { error: deleteError } = await supabase
-					.from('nodes')
-					.delete()
-					.in(
-						'id',
-						nodesToDelete.map((node) => node.id)
-					)
-					.eq('map_id', mapId);
+				const nodeIdsForDelete = nodesToDelete.map((node) => node.id);
+				let deleteMutation:
+					| {
+							status: 'applied' | 'queued';
+							opId: string;
+					  }
+					| undefined;
+				try {
+					deleteMutation = await queueMutation({
+						entity: 'nodes',
+						action: 'delete',
+						payload: {
+							table: 'nodes',
+							match: {
+								map_id: mapId,
+							},
+							values: {
+								ids: nodeIdsForDelete,
+							},
+						},
+						executeOnline: async () => {
+							const { error: deleteError } = await supabase
+								.from('nodes')
+								.delete()
+								.in('id', nodeIdsForDelete)
+								.eq('map_id', mapId);
 
-				if (deleteError) {
+							if (deleteError) {
+								throw new Error(
+									deleteError.message || 'Failed to delete nodes.'
+								);
+							}
+						},
+					});
+				} catch (error) {
 					set((state) => {
 						const restoredNodeIds = new Set(state.nodes.map((node) => node.id));
 						const restoredEdgeIds = new Set(state.edges.map((edge) => edge.id));
@@ -1080,7 +1160,18 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 						}
 					}
 
-					throw new Error(deleteError.message || 'Failed to delete nodes.');
+					throw error;
+				}
+
+				if (deleteMutation?.status === 'queued') {
+					const actionName =
+						nodesToDelete.length === 1 ? 'deleteNode' : 'deleteNodes';
+					get().persistDeltaEvent(
+						actionName,
+						{ nodes: prevNodes, edges: prevEdges },
+						{ nodes: get().nodes, edges: get().edges }
+					);
+					return;
 				}
 
 				// Determine action name based on deletion count

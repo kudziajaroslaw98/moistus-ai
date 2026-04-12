@@ -1,9 +1,11 @@
 import type { NextConfig } from 'next';
+import { withSerwist } from '@serwist/turbopack';
 
 const nextConfig: NextConfig = {
 	/* config options here */
 	reactStrictMode: true,
 	reactCompiler: true,
+	allowedDevOrigins: ['192.168.0.239'],
 	devIndicators: {
 		position: 'bottom-right',
 	},
@@ -33,4 +35,4 @@ const nextConfig: NextConfig = {
 	},
 };
 
-export default nextConfig;
+export default withSerwist(nextConfig);
