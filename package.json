@@ -46,6 +46,7 @@
     "@hookform/resolvers": "5.2.2",
     "@polar-sh/nextjs": "0.9.5",
     "@polar-sh/sdk": "0.47.0",
+    "@serwist/next": "^9.5.7",
     "@supabase/ssr": "0.10.0",
     "@supabase/supabase-js": "2.102.1",
     "@xyflow/react": "12.10.1",
@@ -82,7 +83,6 @@
   "devDependencies": {
     "@eslint/eslintrc": "3.3.5",
     "@playwright/test": "1.58.2",
-    "@serwist/turbopack": "^9.5.7",
     "@stylistic/eslint-plugin": "5.10.0",
     "@tailwindcss/postcss": "4.2.2",
     "@tailwindcss/typography": "0.5.19",

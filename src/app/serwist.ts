@@ -1,6 +1,6 @@
 'use client';
 
-import { SerwistProvider as BaseSerwistProvider } from '@serwist/turbopack/react';
+import { SerwistProvider as BaseSerwistProvider } from '@serwist/next/react';
 import { createElement, useEffect } from 'react';
 import type { ComponentProps } from 'react';
 
@@ -44,6 +44,15 @@ function getResolvedSwUrl(swUrl: string): string {
 	return scriptUrl.toString();
 }
 
+function isLegacySerwistScript(scriptUrl: string): boolean {
+	try {
+		const parsedUrl = new URL(scriptUrl);
+		return parsedUrl.pathname.startsWith('/serwist/');
+	} catch {
+		return scriptUrl.includes('/serwist/');
+	}
+}
+
 function shouldDisableOnInsecureLan(
 	disableOnInsecureDevLan: boolean
 ): boolean {
@@ -71,7 +80,7 @@ export type SerwistProviderProps = ComponentProps<typeof BaseSerwistProvider> & 
 export function SerwistProvider({
 	disableOnInsecureDevLan = true,
 	disable,
-	swUrl = '/serwist/sw.js',
+	swUrl = '/sw.js',
 	...props
 }: SerwistProviderProps) {
 	const shouldDisableForDev = shouldDisableInDevelopment();
@@ -102,6 +111,48 @@ export function SerwistProvider({
 			}
 		})();
 	}, [shouldDisable]);
+
+	useEffect(() => {
+		if (shouldDisable) {
+			return;
+		}
+		if (typeof window === 'undefined') {
+			return;
+		}
+		if (!('serviceWorker' in navigator)) {
+			return;
+		}
+
+		const resolvedPath = new URL(resolvedSwUrl, window.location.origin).pathname;
+		if (resolvedPath !== '/sw.js') {
+			return;
+		}
+
+		void (async () => {
+			try {
+				const registrations = await navigator.serviceWorker.getRegistrations();
+				const unregisterTasks = registrations.map((registration) => {
+					const scriptUrl =
+						registration.active?.scriptURL ??
+						registration.waiting?.scriptURL ??
+						registration.installing?.scriptURL;
+
+					if (!scriptUrl || !isLegacySerwistScript(scriptUrl)) {
+						return Promise.resolve(false);
+					}
+
+					return registration.unregister();
+				});
+
+				await Promise.all(unregisterTasks);
+			} catch (error) {
+				console.warn(
+					'[serwist] Failed to clean up legacy /serwist worker registrations',
+					error
+				);
+			}
+		})();
+	}, [resolvedSwUrl, shouldDisable]);
 
 	return createElement(BaseSerwistProvider, {
 		...props,

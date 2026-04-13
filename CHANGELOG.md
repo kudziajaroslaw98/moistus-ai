@@ -62,13 +62,23 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-04-11 - Hardened offline reconnect sync to prevent stale-lock stalls and ensure multi-batch drain on reconnect -->
 <!-- Updated: 2026-04-12 - Hardened LAN dev rendering by allowlisting dev origin and gating SW registration on insecure LAN HTTP -->
 <!-- Updated: 2026-04-13 - Removed offline-sync test listener leakage and added explicit cleanup regression coverage -->
+<!-- Updated: 2026-04-13 - Migrated Serwist wiring to @serwist/next public/sw.js output and removed legacy /serwist route path -->
 
 ## [2026-04-13]
+
+### Changed
+
+- **pwa/serwist-next-public-sw-output**: Migrated Serwist integration to `@serwist/next` getting-started wiring with `withSerwistInit(...)` (`swSrc: 'src/app/sw.ts'`, `swDest: 'public/sw.js'`, `register: false`) and updated provider wiring to register `/sw.js`
+  - Why: Keep service-worker output under `/public/sw.js` while preserving Serwist-managed precache/runtime behavior
+- **pwa/legacy-route-path-removal**: Removed legacy Turbopack service-worker route handler path (`src/app/serwist/[path]/route.ts`) and stopped tracking handwritten `public/sw.js`
+  - Why: Prevent fallback/upgrade traffic to `/serwist/sw.js` and keep one canonical service-worker pipeline
 
 ### Fixed
 
 - **offline/test-listener-cleanup**: `resetOfflineSyncForTests()` now unregisters the stored online, focus, visibility, and service-worker message listeners before clearing its guard flags, and the reconnect test suite asserts that cleanup contract explicitly
   - Why: Clearing only the boolean flags left stale listeners attached across repeated offline-sync test setups, which could leak handlers into later cases
+- **offline/background-sync-type-guard**: Added an explicit runtime/type guard for `registration.sync.register(...)` before requesting background sync
+  - Why: Strict TypeScript treated `registration.sync` as `unknown`, causing type-check failures
 
 ## [2026-04-12]
 

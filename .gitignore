@@ -84,3 +84,7 @@ e2e/auth-failure.png
 
 # partykit
 .partykit
+
+# Serwist
+public/sw*
+public/swe-worker*

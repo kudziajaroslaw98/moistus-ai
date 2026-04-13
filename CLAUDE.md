@@ -17,6 +17,7 @@
 <!-- Updated: 2026-04-11 - Documented reconnect hardening for offline sync (stale lock removal, full drain loop, visibility trigger, auth/transient retry semantics) -->
 <!-- Updated: 2026-04-12 - Documented Next 16 LAN dev origin allowlist and insecure LAN SW disable contract -->
 <!-- Updated: 2026-04-12 - Documented loopback-to-LAN realtime URL derivation when client NODE_ENV is unavailable -->
+<!-- Updated: 2026-04-13 - Migrated PWA contract to @serwist/next public/sw.js output and removed Turbopack route-handler dependency -->
 
 ## Engineering Philosophy
 
@@ -228,8 +229,8 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 
 **Notifications**: `useNotifications` now shares a single cache/socket layer per signed-in user; keep `useSyncExternalStore` snapshots stable and apply `mapId` filtering server-side before `limit` in `/api/notifications`.
 
-**PWA + service worker contract**: Keep Serwist wiring on the Turbopack path (`withSerwist` in `next.config.ts`, `/serwist/[path]/route.ts`, `src/app/sw.ts`, `SerwistProvider` in root layout). `createSerwistRoute(...)` only accepts inject-manifest options; navigation caching/reload behavior belongs on `SerwistProvider` props (`cacheOnNavigation`, `reloadOnOnline`).
-<!-- Updated: 2026-04-11 - Documented Serwist route-vs-provider option boundary -->
+**PWA + service worker contract**: Keep Serwist wiring on the official `@serwist/next` getting-started path in this repo: `withSerwistInit(...)` in `next.config.ts` with `swSrc: 'src/app/sw.ts'`, `swDest: 'public/sw.js'`, and `register: false`, plus `SerwistProvider` in root layout registering `swUrl='/sw.js'`. Do not reintroduce the legacy Turbopack route-handler path (`src/app/serwist/[path]/route.ts`) for production registration.
+<!-- Updated: 2026-04-13 - Migrated contract from Turbopack route handler to @serwist/next public sw.js output -->
 
 **Offline strict replay contract**: Mutating client paths should flow through `queueMutation(...)` so every operation receives a stable `opId` and can be replayed idempotently through `POST /api/offline/ops/batch`. Background Sync is optional acceleration only; required replay triggers remain online/focus/startup app-level flushes.
 <!-- Updated: 2026-04-11 - Documented single offline mutation adapter + idempotent replay requirement -->

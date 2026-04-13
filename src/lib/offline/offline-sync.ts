@@ -36,7 +36,27 @@ let serviceWorkerMessageHandler: ((event: MessageEvent) => void) | null = null;
 let retryTimeout: ReturnType<typeof setTimeout> | null = null;
 let retryAttempt = 0;
 
+type BackgroundSyncRegistration = ServiceWorkerRegistration & {
+	sync: {
+		register: (tag: string) => Promise<void>;
+	};
+};
+
 const hasWindow = () => typeof window !== 'undefined';
+
+const supportsBackgroundSync = (
+	registration: ServiceWorkerRegistration
+): registration is BackgroundSyncRegistration => {
+	const candidate = (
+		registration as ServiceWorkerRegistration & { sync?: unknown }
+	).sync;
+
+	if (typeof candidate !== 'object' || candidate === null) {
+		return false;
+	}
+
+	return typeof (candidate as { register?: unknown }).register === 'function';
+};
 
 const isOffline = () => hasWindow() && window.navigator.onLine === false;
 
@@ -239,7 +259,7 @@ const requestServiceWorkerSync = async () => {
 	try {
 		const registration = await navigator.serviceWorker.ready;
 		// sync is still optional in browsers; do not fail hard.
-		if ('sync' in registration) {
+		if (supportsBackgroundSync(registration)) {
 			await registration.sync.register(OFFLINE_SYNC_TAG);
 		}
 	} catch (error) {
