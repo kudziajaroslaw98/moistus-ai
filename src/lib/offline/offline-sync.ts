@@ -29,6 +29,10 @@ let onlineListenerAttached = false;
 let focusListenerAttached = false;
 let visibilityListenerAttached = false;
 let messageListenerAttached = false;
+let onlineHandler: (() => void) | null = null;
+let focusHandler: (() => void) | null = null;
+let visibilityHandler: (() => void) | null = null;
+let serviceWorkerMessageHandler: ((event: MessageEvent) => void) | null = null;
 let retryTimeout: ReturnType<typeof setTimeout> | null = null;
 let retryAttempt = 0;
 
@@ -256,35 +260,39 @@ export const initializeOfflineSync = () => {
 	}
 
 	if (!onlineListenerAttached) {
-		window.addEventListener('online', () => {
+		onlineHandler = () => {
 			void flushOfflineQueue({ reason: 'online' });
-		});
+		};
+		window.addEventListener('online', onlineHandler);
 		onlineListenerAttached = true;
 	}
 
 	if (!focusListenerAttached) {
-		window.addEventListener('focus', () => {
+		focusHandler = () => {
 			void flushOfflineQueue({ reason: 'focus' });
-		});
+		};
+		window.addEventListener('focus', focusHandler);
 		focusListenerAttached = true;
 	}
 
 	if (!visibilityListenerAttached) {
-		document.addEventListener('visibilitychange', () => {
+		visibilityHandler = () => {
 			if (document.visibilityState === 'visible') {
 				void flushOfflineQueue({ reason: 'visibility' });
 			}
-		});
+		};
+		document.addEventListener('visibilitychange', visibilityHandler);
 		visibilityListenerAttached = true;
 	}
 
 	if (!messageListenerAttached && 'serviceWorker' in navigator) {
-		navigator.serviceWorker.addEventListener('message', (event) => {
+		serviceWorkerMessageHandler = (event: MessageEvent) => {
 			const data = event.data as { type?: string } | undefined;
 			if (data?.type === 'OFFLINE_SYNC_REQUEST') {
 				void flushOfflineQueue({ reason: 'sw' });
 			}
-		});
+		};
+		navigator.serviceWorker.addEventListener('message', serviceWorkerMessageHandler);
 		messageListenerAttached = true;
 	}
 
@@ -296,9 +304,36 @@ export const initializeOfflineSync = () => {
 
 export const resetOfflineSyncForTests = () => {
 	inFlightFlush = null;
+
+	if (hasWindow()) {
+		if (onlineListenerAttached && onlineHandler) {
+			window.removeEventListener('online', onlineHandler);
+		}
+		if (focusListenerAttached && focusHandler) {
+			window.removeEventListener('focus', focusHandler);
+		}
+		if (visibilityListenerAttached && visibilityHandler) {
+			document.removeEventListener('visibilitychange', visibilityHandler);
+		}
+		if (
+			messageListenerAttached &&
+			serviceWorkerMessageHandler &&
+			'serviceWorker' in navigator
+		) {
+			navigator.serviceWorker.removeEventListener(
+				'message',
+				serviceWorkerMessageHandler
+			);
+		}
+	}
+
 	onlineListenerAttached = false;
 	focusListenerAttached = false;
 	visibilityListenerAttached = false;
 	messageListenerAttached = false;
+	onlineHandler = null;
+	focusHandler = null;
+	visibilityHandler = null;
+	serviceWorkerMessageHandler = null;
 	resetRetryBackoff();
 };

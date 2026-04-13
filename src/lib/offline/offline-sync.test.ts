@@ -71,6 +71,7 @@ describe('offline-sync reconnect behavior', () => {
 			value: {
 				ready: Promise.resolve({ sync: { register: jest.fn() } }),
 				addEventListener: jest.fn(),
+				removeEventListener: jest.fn(),
 			},
 		});
 	});
@@ -184,5 +185,64 @@ describe('offline-sync reconnect behavior', () => {
 		await waitFor(() => {
 			expect(mockGetOfflineQueuedOps).toHaveBeenCalledTimes(2);
 		});
+	});
+
+	it('removes registered listeners during test reset', async () => {
+		const windowAddSpy = jest.spyOn(window, 'addEventListener');
+		const windowRemoveSpy = jest.spyOn(window, 'removeEventListener');
+		const documentAddSpy = jest.spyOn(document, 'addEventListener');
+		const documentRemoveSpy = jest.spyOn(document, 'removeEventListener');
+		const serviceWorker = window.navigator.serviceWorker as ServiceWorkerContainer & {
+			addEventListener: jest.Mock;
+			removeEventListener: jest.Mock;
+		};
+
+		mockResetProcessingOpsToQueued.mockResolvedValue(0);
+		mockGetOfflineQueuedOps.mockResolvedValue([]);
+		global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
+
+		try {
+			initializeOfflineSync();
+
+			await waitFor(() => {
+				expect(mockResetProcessingOpsToQueued).toHaveBeenCalledTimes(1);
+			});
+
+			const onlineHandler = windowAddSpy.mock.calls.find(
+				([eventName]) => String(eventName) === 'online'
+			)?.[1];
+			const focusHandler = windowAddSpy.mock.calls.find(
+				([eventName]) => String(eventName) === 'focus'
+			)?.[1];
+			const visibilityHandler = documentAddSpy.mock.calls.find(
+				([eventName]) => String(eventName) === 'visibilitychange'
+			)?.[1];
+			const messageHandler = serviceWorker.addEventListener.mock.calls.find(
+				([eventName]) => String(eventName) === 'message'
+			)?.[1];
+
+			expect(onlineHandler).toEqual(expect.any(Function));
+			expect(focusHandler).toEqual(expect.any(Function));
+			expect(visibilityHandler).toEqual(expect.any(Function));
+			expect(messageHandler).toEqual(expect.any(Function));
+
+			resetOfflineSyncForTests();
+
+			expect(windowRemoveSpy).toHaveBeenCalledWith('online', onlineHandler);
+			expect(windowRemoveSpy).toHaveBeenCalledWith('focus', focusHandler);
+			expect(documentRemoveSpy).toHaveBeenCalledWith(
+				'visibilitychange',
+				visibilityHandler
+			);
+			expect(serviceWorker.removeEventListener).toHaveBeenCalledWith(
+				'message',
+				messageHandler
+			);
+		} finally {
+			windowAddSpy.mockRestore();
+			windowRemoveSpy.mockRestore();
+			documentAddSpy.mockRestore();
+			documentRemoveSpy.mockRestore();
+		}
 	});
 });

@@ -61,6 +61,14 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-04-11 - Implemented PWA foundation, offline replay queue, web push notifications, and touch/view-transition enhancements -->
 <!-- Updated: 2026-04-11 - Hardened offline reconnect sync to prevent stale-lock stalls and ensure multi-batch drain on reconnect -->
 <!-- Updated: 2026-04-12 - Hardened LAN dev rendering by allowlisting dev origin and gating SW registration on insecure LAN HTTP -->
+<!-- Updated: 2026-04-13 - Removed offline-sync test listener leakage and added explicit cleanup regression coverage -->
+
+## [2026-04-13]
+
+### Fixed
+
+- **offline/test-listener-cleanup**: `resetOfflineSyncForTests()` now unregisters the stored online, focus, visibility, and service-worker message listeners before clearing its guard flags, and the reconnect test suite asserts that cleanup contract explicitly
+  - Why: Clearing only the boolean flags left stale listeners attached across repeated offline-sync test setups, which could leak handlers into later cases
 
 ## [2026-04-12]
 
