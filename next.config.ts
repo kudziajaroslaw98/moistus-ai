@@ -1,18 +1,5 @@
 import type { NextConfig } from 'next';
-import { spawnSync } from 'node:child_process';
-import withSerwistInit from '@serwist/next';
-
-const revisionFromGit =
-	spawnSync('git', ['rev-parse', 'HEAD'], {
-		encoding: 'utf-8',
-	}).stdout?.trim() || `${Date.now()}`;
-
-const withSerwist = withSerwistInit({
-	additionalPrecacheEntries: [{ url: '/~offline', revision: revisionFromGit }],
-	swSrc: 'src/app/sw.ts',
-	swDest: 'public/sw.js',
-	register: false,
-});
+import { withSerwist } from '@serwist/turbopack';
 
 const nextConfig: NextConfig = {
 	/* config options here */

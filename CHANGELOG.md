@@ -63,11 +63,16 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-04-12 - Hardened LAN dev rendering by allowlisting dev origin and gating SW registration on insecure LAN HTTP -->
 <!-- Updated: 2026-04-13 - Removed offline-sync test listener leakage and added explicit cleanup regression coverage -->
 <!-- Updated: 2026-04-13 - Migrated Serwist wiring to @serwist/next public/sw.js output and removed legacy /serwist route path -->
+<!-- Updated: 2026-04-13 - Switched Serwist integration to Turbopack route mode with custom /app/sw.js root-scope registration -->
 
 ## [2026-04-13]
 
 ### Changed
 
+- **pwa/turbopack-route-custom-app-sw**: Replaced `@serwist/next` webpack-integrated wiring with `@serwist/turbopack` route mode (`next.config.ts` + `src/app/app/[path]/route.ts`) and registered the worker at `/app/sw.js` with explicit scope `/`
+  - Why: Fix Next 16 Turbopack build failure while preserving full-app PWA control and custom worker URL requirements
+- **pwa/provider-and-worker-turbopack-runtime**: Switched Serwist provider/runtime imports to Turbopack packages and kept preview-query passthrough plus legacy-worker unregister migration (`/sw.js`, `/serwist/sw.js`)
+  - Why: Keep existing preview compatibility and prevent stale old workers from controlling clients after the path migration
 - **pwa/serwist-next-public-sw-output**: Migrated Serwist integration to `@serwist/next` getting-started wiring with `withSerwistInit(...)` (`swSrc: 'src/app/sw.ts'`, `swDest: 'public/sw.js'`, `register: false`) and updated provider wiring to register `/sw.js`
   - Why: Keep service-worker output under `/public/sw.js` while preserving Serwist-managed precache/runtime behavior
 - **pwa/legacy-route-path-removal**: Removed legacy Turbopack service-worker route handler path (`src/app/serwist/[path]/route.ts`) and stopped tracking handwritten `public/sw.js`

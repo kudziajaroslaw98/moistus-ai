@@ -51,6 +51,7 @@ total_tokens: 707972
 <!-- Updated: 2026-04-11 - Documented PWA/Serwist surface, offline queue/replay architecture, and push subscription/delivery APIs -->
 <!-- Updated: 2026-04-11 - Documented offline reconnect hardening (no persisted flush lock, full drain loop, visibility/startup recovery triggers, transient retry) -->
 <!-- Updated: 2026-04-13 - Migrated PWA map from Turbopack route-handler SW path to @serwist/next public/sw.js output -->
+<!-- Updated: 2026-04-13 - Migrated PWA map to @serwist/turbopack route mode with custom /app/sw.js registration path -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -402,7 +403,7 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 
 **PWA + Offline Runtime:**
 
-- `next.config.ts` (`withSerwistInit` with `swSrc: 'src/app/sw.ts'`, `swDest: 'public/sw.js'`, `register: false`) + `src/app/sw.ts` define service-worker build/runtime behavior, including offline fallback (`/~offline`) and push/background-sync event handling
+- `next.config.ts` (`withSerwist` from `@serwist/turbopack`) + `src/app/app/[path]/route.ts` (`createSerwistRoute` with `swSrc: 'src/app/sw.ts'`) + `src/app/sw.ts` define service-worker build/runtime behavior; root layout registers `swUrl='/app/sw.js'` with scope `/` for full-app control
 - `src/lib/offline/indexed-db.ts` + `src/lib/offline/offline-mutation-adapter.ts` + `src/lib/offline/offline-sync.ts` provide persistent queue storage, mutation enqueue semantics, startup recovery of stale `processing` queue items, and replay flush triggers (`startup`/`online`/`focus`/`visibility`/SW sync)
 - `src/app/api/offline/ops/batch/route.ts` applies idempotent server replay with `op_id` receipts, conflict logs, and failure logs backed by new Supabase migration tables
 - `supabase/migrations/*offline*` + `*push_subscriptions*` are repo-local additive schema migrations for sync receipts/conflicts/failures and web push subscriptions

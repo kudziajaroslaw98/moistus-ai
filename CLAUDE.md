@@ -18,6 +18,7 @@
 <!-- Updated: 2026-04-12 - Documented Next 16 LAN dev origin allowlist and insecure LAN SW disable contract -->
 <!-- Updated: 2026-04-12 - Documented loopback-to-LAN realtime URL derivation when client NODE_ENV is unavailable -->
 <!-- Updated: 2026-04-13 - Migrated PWA contract to @serwist/next public/sw.js output and removed Turbopack route-handler dependency -->
+<!-- Updated: 2026-04-13 - Migrated PWA contract back to @serwist/turbopack with custom /app/sw.js route and root scope -->
 
 ## Engineering Philosophy
 
@@ -229,8 +230,8 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 
 **Notifications**: `useNotifications` now shares a single cache/socket layer per signed-in user; keep `useSyncExternalStore` snapshots stable and apply `mapId` filtering server-side before `limit` in `/api/notifications`.
 
-**PWA + service worker contract**: Keep Serwist wiring on the official `@serwist/next` getting-started path in this repo: `withSerwistInit(...)` in `next.config.ts` with `swSrc: 'src/app/sw.ts'`, `swDest: 'public/sw.js'`, and `register: false`, plus `SerwistProvider` in root layout registering `swUrl='/sw.js'`. Do not reintroduce the legacy Turbopack route-handler path (`src/app/serwist/[path]/route.ts`) for production registration.
-<!-- Updated: 2026-04-13 - Migrated contract from Turbopack route handler to @serwist/next public sw.js output -->
+**PWA + service worker contract**: Keep Serwist wiring on the Turbopack route-handler path in this repo: `withSerwist(...)` from `@serwist/turbopack` in `next.config.ts`, route handler `src/app/app/[path]/route.ts` with `createSerwistRoute(...)`, and worker source at `src/app/sw.ts`. Root layout must register `SerwistProvider` with `swUrl='/app/sw.js'` and `options={{ scope: '/' }}` so the worker controls the whole app. Keep legacy-worker cleanup in `src/app/serwist.ts` for previously registered `/sw.js` and `/serwist/sw.js`.
+<!-- Updated: 2026-04-13 - Documented @serwist/turbopack custom /app/sw.js route contract and root-scope requirement -->
 
 **Offline strict replay contract**: Mutating client paths should flow through `queueMutation(...)` so every operation receives a stable `opId` and can be replayed idempotently through `POST /api/offline/ops/batch`. Background Sync is optional acceleration only; required replay triggers remain online/focus/startup app-level flushes.
 <!-- Updated: 2026-04-11 - Documented single offline mutation adapter + idempotent replay requirement -->

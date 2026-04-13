@@ -1,6 +1,6 @@
 'use client';
 
-import { SerwistProvider as BaseSerwistProvider } from '@serwist/next/react';
+import { SerwistProvider as BaseSerwistProvider } from '@serwist/turbopack/react';
 import { createElement, useEffect } from 'react';
 import type { ComponentProps } from 'react';
 
@@ -44,12 +44,18 @@ function getResolvedSwUrl(swUrl: string): string {
 	return scriptUrl.toString();
 }
 
-function isLegacySerwistScript(scriptUrl: string): boolean {
+function shouldUnregisterLegacyScript(scriptUrl: string): boolean {
 	try {
 		const parsedUrl = new URL(scriptUrl);
-		return parsedUrl.pathname.startsWith('/serwist/');
+		return (
+			parsedUrl.pathname === '/sw.js' ||
+			parsedUrl.pathname === '/serwist/sw.js' ||
+			parsedUrl.pathname.startsWith('/serwist/')
+		);
 	} catch {
-		return scriptUrl.includes('/serwist/');
+		return (
+			scriptUrl.endsWith('/sw.js') || scriptUrl.includes('/serwist/sw.js')
+		);
 	}
 }
 
@@ -80,7 +86,7 @@ export type SerwistProviderProps = ComponentProps<typeof BaseSerwistProvider> & 
 export function SerwistProvider({
 	disableOnInsecureDevLan = true,
 	disable,
-	swUrl = '/sw.js',
+	swUrl = '/app/sw.js',
 	...props
 }: SerwistProviderProps) {
 	const shouldDisableForDev = shouldDisableInDevelopment();
@@ -124,7 +130,7 @@ export function SerwistProvider({
 		}
 
 		const resolvedPath = new URL(resolvedSwUrl, window.location.origin).pathname;
-		if (resolvedPath !== '/sw.js') {
+		if (resolvedPath !== '/app/sw.js') {
 			return;
 		}
 
@@ -137,7 +143,7 @@ export function SerwistProvider({
 						registration.waiting?.scriptURL ??
 						registration.installing?.scriptURL;
 
-					if (!scriptUrl || !isLegacySerwistScript(scriptUrl)) {
+					if (!scriptUrl || !shouldUnregisterLegacyScript(scriptUrl)) {
 						return Promise.resolve(false);
 					}
 
@@ -147,7 +153,7 @@ export function SerwistProvider({
 				await Promise.all(unregisterTasks);
 			} catch (error) {
 				console.warn(
-					'[serwist] Failed to clean up legacy /serwist worker registrations',
+					'[serwist] Failed to clean up legacy service worker registrations',
 					error
 				);
 			}
