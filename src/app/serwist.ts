@@ -6,6 +6,11 @@ import type { ComponentProps } from 'react';
 
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '0.0.0.0']);
 const DEV_PWA_FLAG_VALUE = 'true';
+const VERCEL_BYPASS_QUERY_KEYS = [
+	'_vercel_share',
+	'x-vercel-protection-bypass',
+	'x-vercel-set-bypass-cookie',
+] as const;
 
 function shouldDisableInDevelopment(): boolean {
 	if (process.env.NODE_ENV !== 'development') {
@@ -13,6 +18,30 @@ function shouldDisableInDevelopment(): boolean {
 	}
 
 	return process.env.NEXT_PUBLIC_ENABLE_PWA_DEV !== DEV_PWA_FLAG_VALUE;
+}
+
+function getResolvedSwUrl(swUrl: string): string {
+	if (typeof window === 'undefined') {
+		return swUrl;
+	}
+
+	const scriptUrl = new URL(swUrl, window.location.origin);
+	const pageUrl = new URL(window.location.href);
+
+	for (const key of VERCEL_BYPASS_QUERY_KEYS) {
+		if (scriptUrl.searchParams.has(key)) {
+			continue;
+		}
+
+		const value = pageUrl.searchParams.get(key);
+		if (!value) {
+			continue;
+		}
+
+		scriptUrl.searchParams.set(key, value);
+	}
+
+	return scriptUrl.toString();
 }
 
 function shouldDisableOnInsecureLan(
@@ -42,12 +71,14 @@ export type SerwistProviderProps = ComponentProps<typeof BaseSerwistProvider> & 
 export function SerwistProvider({
 	disableOnInsecureDevLan = true,
 	disable,
+	swUrl = '/serwist/sw.js',
 	...props
 }: SerwistProviderProps) {
 	const shouldDisableForDev = shouldDisableInDevelopment();
 	const shouldDisableForInsecureLan =
 		shouldDisableOnInsecureLan(disableOnInsecureDevLan);
 	const shouldDisable = shouldDisableForDev || shouldDisableForInsecureLan;
+	const resolvedSwUrl = getResolvedSwUrl(swUrl);
 
 	useEffect(() => {
 		if (!shouldDisable) {
@@ -67,13 +98,14 @@ export function SerwistProvider({
 					registrations.map((registration) => registration.unregister())
 				);
 			} catch (error) {
-				console.warn('[serwist] Failed to unregister dev service workers', error);
+				console.warn('[serwist] Failed to unregister service workers', error);
 			}
 		})();
 	}, [shouldDisable]);
 
 	return createElement(BaseSerwistProvider, {
 		...props,
+		swUrl: resolvedSwUrl,
 		disable: Boolean(disable) || shouldDisable,
 	});
 }
