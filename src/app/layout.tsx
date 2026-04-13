@@ -80,12 +80,12 @@ export default function RootLayout({
 						],
 					})}
 				</script>
-					<SerwistProvider
-						swUrl='/serwist/sw.js'
-						cacheOnNavigation={true}
-						reloadOnOnline={false}
-						disableOnInsecureDevLan={true}
-					>
+						<SerwistProvider
+							swUrl='/sw.js'
+							cacheOnNavigation={true}
+							reloadOnOnline={false}
+							disableOnInsecureDevLan={true}
+						>
 					<ClientProviders>
 						<div className='flex h-full w-full flex-col rounded-xl bg-zinc-900 text-zinc-100'>
 							{children}
