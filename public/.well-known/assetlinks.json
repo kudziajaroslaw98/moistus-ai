@@ -1,0 +1,12 @@
+[
+	{
+		"relation": ["delegate_permission/common.handle_all_urls"],
+		"target": {
+			"namespace": "android_app",
+			"package_name": "app.shiko.www.twa",
+			"sha256_cert_fingerprints": [
+				"E7:1A:F7:E5:51:66:A8:93:C2:91:7C:CD:39:55:61:82:AE:CB:B0:80:6B:36:EF:1B:C6:72:D9:2E:01:88:A9:CE"
+			]
+		}
+	}
+]
