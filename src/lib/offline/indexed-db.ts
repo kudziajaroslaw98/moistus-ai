@@ -59,9 +59,9 @@ interface OfflineDBSchema extends DBSchema {
 	};
 }
 
-let dbPromise: Promise<IDBPDatabase<OfflineDBSchema>> | null = null;
+let dbPromise: Promise<IDBPDatabase<OfflineDBSchema> | null> | null = null;
 
-const getDB = () => {
+const getDB = async (): Promise<IDBPDatabase<OfflineDBSchema> | null> => {
 	if (typeof indexedDB === 'undefined') {
 		return null;
 	}
@@ -91,18 +91,25 @@ const getDB = () => {
 					store.createIndex('by_op_id', 'opId');
 				}
 			},
+		}).catch((error) => {
+			dbPromise = null;
+			console.warn('[offline] IndexedDB open failed', error);
+			return null;
 		});
 	}
 
-	return dbPromise;
+	return await dbPromise;
 };
 
-export const enqueueOfflineOp = async (operation: OfflineQueuedOp): Promise<void> => {
+export const enqueueOfflineOp = async (
+	operation: OfflineQueuedOp
+): Promise<boolean> => {
 	const db = await getDB();
 	if (!db) {
-		return;
+		return false;
 	}
 	await db.put('op_queue', operation);
+	return true;
 };
 
 export const deleteOfflineOp = async (opId: string): Promise<void> => {

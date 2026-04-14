@@ -5,7 +5,7 @@ import { z } from 'zod';
 const subscribeSchema = z.object({
 	subscription: z.object({
 		endpoint: z.string().url(),
-		expirationTime: z.number().nullable().optional(),
+		expirationTime: z.number().int().finite().nonnegative().nullable().optional(),
 		keys: z.object({
 			p256dh: z.string().min(1),
 			auth: z.string().min(1),
@@ -26,12 +26,12 @@ export const POST = withApiValidation<
 				user_id: user.id,
 				endpoint: body.subscription.endpoint,
 				p256dh: body.subscription.keys.p256dh,
-				auth: body.subscription.keys.auth,
-				content_encoding: 'aes128gcm',
-				user_agent: userAgent,
-				expiration_time: body.subscription.expirationTime
-					? new Date(body.subscription.expirationTime).toISOString()
-					: null,
+					auth: body.subscription.keys.auth,
+					content_encoding: 'aes128gcm',
+					user_agent: userAgent,
+					expiration_time: body.subscription.expirationTime != null
+						? new Date(body.subscription.expirationTime).toISOString()
+						: null,
 				last_used_at: new Date().toISOString(),
 				updated_at: new Date().toISOString(),
 			},
@@ -83,4 +83,3 @@ export const DELETE = withApiValidation<
 		'Push subscription removed'
 	);
 });
-

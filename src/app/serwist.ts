@@ -59,6 +59,39 @@ function shouldUnregisterLegacyScript(scriptUrl: string): boolean {
 	}
 }
 
+function getRegistrationScriptUrl(
+	registration: ServiceWorkerRegistration
+): string | null {
+	return (
+		registration.active?.scriptURL ??
+		registration.waiting?.scriptURL ??
+		registration.installing?.scriptURL ??
+		null
+	);
+}
+
+function isManagedServiceWorkerRegistration(
+	registration: ServiceWorkerRegistration,
+	resolvedSwPath: string
+): boolean {
+	const scriptUrl = getRegistrationScriptUrl(registration);
+	if (!scriptUrl) {
+		return false;
+	}
+
+	try {
+		const parsedUrl = new URL(scriptUrl);
+		return (
+			parsedUrl.pathname === resolvedSwPath ||
+			shouldUnregisterLegacyScript(parsedUrl.toString())
+		);
+	} catch {
+		return (
+			scriptUrl.endsWith(resolvedSwPath) || shouldUnregisterLegacyScript(scriptUrl)
+		);
+	}
+}
+
 function shouldDisableOnInsecureLan(
 	disableOnInsecureDevLan: boolean
 ): boolean {
@@ -108,15 +141,20 @@ export function SerwistProvider({
 
 		void (async () => {
 			try {
+				const resolvedPath = new URL(resolvedSwUrl, window.location.origin).pathname;
 				const registrations = await navigator.serviceWorker.getRegistrations();
 				await Promise.all(
-					registrations.map((registration) => registration.unregister())
+					registrations
+						.filter((registration) =>
+							isManagedServiceWorkerRegistration(registration, resolvedPath)
+						)
+						.map((registration) => registration.unregister())
 				);
 			} catch (error) {
 				console.warn('[serwist] Failed to unregister service workers', error);
 			}
 		})();
-	}, [shouldDisable]);
+	}, [resolvedSwUrl, shouldDisable]);
 
 	useEffect(() => {
 		if (shouldDisable) {
@@ -134,18 +172,15 @@ export function SerwistProvider({
 			return;
 		}
 
-		void (async () => {
-			try {
-				const registrations = await navigator.serviceWorker.getRegistrations();
-				const unregisterTasks = registrations.map((registration) => {
-					const scriptUrl =
-						registration.active?.scriptURL ??
-						registration.waiting?.scriptURL ??
-						registration.installing?.scriptURL;
+			void (async () => {
+				try {
+					const registrations = await navigator.serviceWorker.getRegistrations();
+					const unregisterTasks = registrations.map((registration) => {
+						const scriptUrl = getRegistrationScriptUrl(registration);
 
-					if (!scriptUrl || !shouldUnregisterLegacyScript(scriptUrl)) {
-						return Promise.resolve(false);
-					}
+						if (!scriptUrl || !shouldUnregisterLegacyScript(scriptUrl)) {
+							return Promise.resolve(false);
+						}
 
 					return registration.unregister();
 				});

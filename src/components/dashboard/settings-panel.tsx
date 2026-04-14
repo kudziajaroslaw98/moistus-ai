@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { getBackgroundSyncStatus } from '@/lib/offline/offline-sync';
 import { Progress } from '@/components/ui/progress';
 import {
 	Select,
@@ -26,6 +27,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import useAppStore from '@/store/mind-map-store';
+import type { BackgroundSyncStatusSnapshot } from '@/types/offline';
 import type {
 	UserProfile,
 	UserProfileFormData,
@@ -82,6 +84,42 @@ interface SectionMotionProps {
 
 function normalizeText(value: string | null | undefined): string {
 	return (value || '').trim();
+}
+
+function formatBackgroundSyncTimestamp(value: string | null | undefined): string {
+	if (!value) {
+		return 'Never';
+	}
+
+	const date = new Date(value);
+	if (Number.isNaN(date.getTime())) {
+		return 'Unknown';
+	}
+
+	return new Intl.DateTimeFormat(undefined, {
+		dateStyle: 'medium',
+		timeStyle: 'short',
+	}).format(date);
+}
+
+function formatBackgroundSyncReason(reason: string | null | undefined): string {
+	if (!reason) {
+		return 'None';
+	}
+
+	switch (reason) {
+		case 'unsupported':
+			return 'This browser does not support the requested background sync API.';
+		case 'permission_denied':
+			return 'The browser denied background sync permission.';
+		case 'permission_prompt':
+			return 'Periodic background refresh has not been granted by the browser yet.';
+		case 'service_worker_disabled':
+		case 'service_worker_unavailable':
+			return 'Service worker is not active for this page.';
+		default:
+			return reason;
+	}
 }
 
 function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
@@ -174,6 +212,10 @@ export function SettingsPanel({
 
 	const [isSaving, setIsSaving] = useState(false);
 	const [isPushToggleBusy, setIsPushToggleBusy] = useState(false);
+	const [backgroundSyncStatus, setBackgroundSyncStatus] =
+		useState<BackgroundSyncStatusSnapshot | null>(null);
+	const [isLoadingBackgroundSyncStatus, setIsLoadingBackgroundSyncStatus] =
+		useState(false);
 	const [activeTab, setActiveTab] = useState(defaultTab);
 	const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 
@@ -344,6 +386,36 @@ export function SettingsPanel({
 		}
 	}, [userProfile]);
 
+	useEffect(() => {
+		if (!isOpen) {
+			return;
+		}
+
+		let isActive = true;
+		setIsLoadingBackgroundSyncStatus(true);
+
+		void getBackgroundSyncStatus()
+			.then((status) => {
+				if (!isActive) {
+					return;
+				}
+
+				setBackgroundSyncStatus(status);
+			})
+			.catch((error) => {
+				console.error('Failed to load background sync status:', error);
+			})
+			.finally(() => {
+				if (isActive) {
+					setIsLoadingBackgroundSyncStatus(false);
+				}
+			});
+
+		return () => {
+			isActive = false;
+		};
+	}, [isOpen]);
+
 	// Track account form changes
 	useEffect(() => {
 		if (!userProfile) {
@@ -501,9 +573,13 @@ export function SettingsPanel({
 			return false;
 		}
 
-		const registration = await navigator.serviceWorker.ready;
-		const existingSubscription = await registration.pushManager.getSubscription();
-		const subscription =
+			const registration = await navigator.serviceWorker.getRegistration();
+			if (!registration) {
+				toast.error('Push notifications require the service worker to be enabled.');
+				return false;
+			}
+			const existingSubscription = await registration.pushManager.getSubscription();
+			const subscription =
 				existingSubscription ??
 				(await registration.pushManager.subscribe({
 					userVisibleOnly: true,
@@ -533,11 +609,14 @@ export function SettingsPanel({
 			return true;
 		}
 
-		const registration = await navigator.serviceWorker.ready;
-		const subscription = await registration.pushManager.getSubscription();
-		if (!subscription) {
-			return true;
-		}
+			const registration = await navigator.serviceWorker.getRegistration();
+			if (!registration) {
+				return true;
+			}
+			const subscription = await registration.pushManager.getSubscription();
+			if (!subscription) {
+				return true;
+			}
 
 		const endpoint = subscription.endpoint;
 		const response = await fetch('/api/push/subscribe', {
@@ -550,14 +629,14 @@ export function SettingsPanel({
 			}),
 		});
 
-		const unsubscribeResult = await subscription.unsubscribe();
-		if (!response.ok) {
-			toast.error('Failed to remove push subscription on server.');
-			return false;
-		}
+			if (!response.ok) {
+				toast.error('Failed to remove push subscription on server.');
+				return false;
+			}
 
-		return unsubscribeResult;
-	};
+			const unsubscribeResult = await subscription.unsubscribe();
+			return unsubscribeResult;
+		};
 
 	const updateFormData = (
 		field: 'full_name' | 'display_name' | 'bio',
@@ -1263,6 +1342,88 @@ export function SettingsPanel({
 												>
 													Reactions
 												</Button>
+											</div>
+											<div className='space-y-3 rounded-lg border border-border-subtle bg-base p-3'>
+												<div className='flex items-center justify-between gap-3'>
+													<div className='space-y-0.5'>
+														<Label>Background sync</Label>
+														<p className='text-xs text-text-secondary'>
+															Queued offline edits can replay and refresh notifications in the background.
+														</p>
+													</div>
+													{isLoadingBackgroundSyncStatus ? (
+														<Loader2
+															aria-label='Loading background sync status'
+															className='size-4 animate-spin text-text-secondary'
+														/>
+													) : null}
+												</div>
+												<div className='flex flex-wrap gap-2'>
+													<Badge
+														variant={
+															backgroundSyncStatus?.capabilities.oneOffSupported
+																? 'default'
+																: 'outline'
+														}
+													>
+														One-off replay{' '}
+														{backgroundSyncStatus?.capabilities.oneOffSupported
+															? 'supported'
+															: 'unavailable'}
+													</Badge>
+													<Badge
+														variant={
+															backgroundSyncStatus?.capabilities.periodicSupported
+																? 'default'
+																: 'outline'
+														}
+													>
+														Periodic refresh{' '}
+														{backgroundSyncStatus?.capabilities.periodicSupported
+															? 'supported'
+															: 'unavailable'}
+													</Badge>
+													<Badge
+														variant={
+															backgroundSyncStatus?.capabilities.serviceWorkerEnabled
+																? 'default'
+																: 'outline'
+														}
+													>
+														Service worker{' '}
+														{backgroundSyncStatus?.capabilities.serviceWorkerEnabled
+															? 'enabled'
+															: 'disabled'}
+													</Badge>
+												</div>
+												<div className='grid gap-2 text-xs text-text-secondary sm:grid-cols-2'>
+													<p>
+														Last replay:{' '}
+														<span className='text-text-primary'>
+															{formatBackgroundSyncTimestamp(
+																backgroundSyncStatus?.lastReplay?.updatedAt
+															)}
+														</span>
+													</p>
+													<p>
+														Last notifications refresh:{' '}
+														<span className='text-text-primary'>
+															{formatBackgroundSyncTimestamp(
+																backgroundSyncStatus?.lastNotificationRefresh?.updatedAt
+															)}
+														</span>
+													</p>
+												</div>
+												{backgroundSyncStatus?.lastCapabilityFailure ? (
+													<p className='text-xs text-text-secondary'>
+														Last fallback reason:{' '}
+														<span className='text-text-primary'>
+															{formatBackgroundSyncReason(
+																backgroundSyncStatus.lastCapabilityFailure.reason
+															)}
+														</span>
+													</p>
+												) : null}
 											</div>
 										</div>
 									</motion.section>

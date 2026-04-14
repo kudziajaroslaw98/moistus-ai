@@ -52,6 +52,7 @@ total_tokens: 707972
 <!-- Updated: 2026-04-11 - Documented offline reconnect hardening (no persisted flush lock, full drain loop, visibility/startup recovery triggers, transient retry) -->
 <!-- Updated: 2026-04-13 - Migrated PWA map from Turbopack route-handler SW path to @serwist/next public/sw.js output -->
 <!-- Updated: 2026-04-13 - Migrated PWA map to @serwist/turbopack route mode with custom /app/sw.js registration path -->
+<!-- Updated: 2026-04-14 - Documented shared offline replay core, periodic notifications refresh, and settings background-sync status surface -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -398,13 +399,15 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 
 - `src/components/dashboard/settings-panel.tsx` uses changed-only account payload updates (`full_name`, `display_name`, `bio`, `preferences`) with deterministic validation and explicit save gating
 - `src/components/dashboard/settings-panel.tsx` now includes account-level email + web-push preference toggles (`preferences.notifications.*`) and browser subscribe/unsubscribe flows
+- `src/components/dashboard/settings-panel.tsx` now also surfaces background-sync capability/status badges plus last replay/refresh timestamps using `getBackgroundSyncStatus()`
 - `src/components/dashboard/discard-account-settings-changes-dialog.tsx` guards panel close when unsaved account edits exist
 - `src/components/dashboard/cancel-subscription-dialog.tsx` adds an explicit confirmation step before subscription cancellation
 
 **PWA + Offline Runtime:**
 
 - `next.config.ts` (`withSerwist` from `@serwist/turbopack`) + `src/app/app/[path]/route.ts` (`createSerwistRoute` with `swSrc: 'src/app/sw.ts'`) + `src/app/sw.ts` define service-worker build/runtime behavior; root layout registers `swUrl='/app/sw.js'` with scope `/` for full-app control
-- `src/lib/offline/indexed-db.ts` + `src/lib/offline/offline-mutation-adapter.ts` + `src/lib/offline/offline-sync.ts` provide persistent queue storage, mutation enqueue semantics, startup recovery of stale `processing` queue items, and replay flush triggers (`startup`/`online`/`focus`/`visibility`/SW sync)
+- `src/lib/offline/indexed-db.ts` + `src/lib/offline/offline-mutation-adapter.ts` provide persistent queue storage and enqueue semantics; `src/lib/offline/offline-sync-core.ts` owns worker-safe replay + notifications refresh behavior, while `src/lib/offline/offline-sync.ts` owns window-only triggers (`startup`/`online`/`focus`/`visibility`/SW message), background-sync registration, and settings-facing capability/status reads
+- `src/lib/notifications/notifications-cache.ts` centralizes user-scoped notification cache keys/payload parsing so window hooks and service-worker refreshes write the same `notifications:${userId}:${scope}` records
 - `src/app/api/offline/ops/batch/route.ts` applies idempotent server replay with `op_id` receipts, conflict logs, and failure logs backed by new Supabase migration tables
 - `supabase/migrations/*offline*` + `*push_subscriptions*` are repo-local additive schema migrations for sync receipts/conflicts/failures and web push subscriptions
 

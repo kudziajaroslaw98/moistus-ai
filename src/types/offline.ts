@@ -52,3 +52,28 @@ export interface OfflineBatchResponse {
 	failedCount: number;
 }
 
+export interface BackgroundSyncCapabilities {
+	serviceWorkerEnabled: boolean;
+	oneOffSupported: boolean;
+	periodicSupported: boolean;
+}
+
+export interface BackgroundSyncRunMetadata {
+	ok: boolean;
+	updatedAt: string;
+	reason: string | null;
+	processedCount?: number;
+}
+
+export interface BackgroundSyncCapabilityFailureMetadata {
+	source: 'one_off' | 'periodic';
+	reason: string;
+	updatedAt: string;
+}
+
+export interface BackgroundSyncStatusSnapshot {
+	capabilities: BackgroundSyncCapabilities;
+	lastReplay: BackgroundSyncRunMetadata | null;
+	lastNotificationRefresh: BackgroundSyncRunMetadata | null;
+	lastCapabilityFailure: BackgroundSyncCapabilityFailureMetadata | null;
+}

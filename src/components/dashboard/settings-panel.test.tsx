@@ -2,6 +2,8 @@ import useAppStore from '@/store/mind-map-store';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { TextareaHTMLAttributes } from 'react';
+import { getBackgroundSyncStatus } from '@/lib/offline/offline-sync';
+import { toast } from 'sonner';
 import { SettingsPanel } from './settings-panel';
 
 jest.mock('@/store/mind-map-store', () => ({
@@ -13,6 +15,10 @@ jest.mock('next/navigation', () => ({
 	useRouter: () => ({
 		push: jest.fn(),
 	}),
+}));
+
+jest.mock('@/lib/offline/offline-sync', () => ({
+	getBackgroundSyncStatus: jest.fn(),
 }));
 
 jest.mock('@/hooks/subscription/use-feature-gate', () => ({
@@ -128,6 +134,10 @@ type MockStoreState = {
 			reducedMotion: boolean;
 			notifications: {
 				email: boolean;
+				push?: boolean;
+				push_comments?: boolean;
+				push_mentions?: boolean;
+				push_reactions?: boolean;
 			};
 			defaultNodeType: 'defaultNode' | 'textNode';
 			privacy: {
@@ -166,6 +176,9 @@ type MockStoreState = {
 };
 
 const mockUseAppStore = useAppStore as unknown as jest.Mock;
+const mockGetBackgroundSyncStatus =
+	getBackgroundSyncStatus as jest.MockedFunction<typeof getBackgroundSyncStatus>;
+const toastMock = toast as jest.Mocked<typeof toast>;
 
 const createMockState = (): MockStoreState => ({
 	userProfile: {
@@ -251,6 +264,46 @@ describe('SettingsPanel', () => {
 					},
 				}),
 			} as Response);
+
+		Object.defineProperty(window, 'PushManager', {
+			configurable: true,
+			value: function PushManager() {},
+		});
+		Object.defineProperty(window, 'Notification', {
+			configurable: true,
+			value: {
+				requestPermission: jest.fn().mockResolvedValue('granted'),
+			},
+		});
+		Object.defineProperty(window.navigator, 'serviceWorker', {
+			configurable: true,
+			value: {
+				getRegistration: jest.fn().mockResolvedValue(undefined),
+			},
+		});
+		mockGetBackgroundSyncStatus.mockResolvedValue({
+			capabilities: {
+				serviceWorkerEnabled: true,
+				oneOffSupported: true,
+				periodicSupported: false,
+			},
+			lastReplay: {
+				ok: true,
+				reason: null,
+				updatedAt: '2026-04-14T08:00:00.000Z',
+				processedCount: 2,
+			},
+			lastNotificationRefresh: {
+				ok: true,
+				reason: null,
+				updatedAt: '2026-04-14T09:00:00.000Z',
+			},
+			lastCapabilityFailure: {
+				source: 'periodic',
+				reason: 'permission_prompt',
+				updatedAt: '2026-04-14T09:00:00.000Z',
+			},
+		});
 	});
 
 	afterEach(() => {
@@ -270,6 +323,9 @@ describe('SettingsPanel', () => {
 		expect(screen.getByText('Privacy')).toBeInTheDocument();
 		expect(screen.getByText('Appearance')).toBeInTheDocument();
 		expect(screen.getByText('Security')).toBeInTheDocument();
+		expect(await screen.findByText('Background sync')).toBeInTheDocument();
+		expect(screen.getByText('One-off replay supported')).toBeInTheDocument();
+		expect(screen.getByText('Periodic refresh unavailable')).toBeInTheDocument();
 
 		await user.click(screen.getByRole('tab', { name: /billing/i }));
 
@@ -402,5 +458,118 @@ describe('SettingsPanel', () => {
 			expect(mockState.cancelSubscription).toHaveBeenCalledTimes(1);
 		});
 		expect(mockState.cancelSubscription).toHaveBeenCalledWith('sub-1');
+	});
+
+	it('fails fast when push notifications are enabled without a service worker registration', async () => {
+		const user = userEvent.setup();
+
+		globalWithFetch.fetch = jest.fn(async (input: RequestInfo | URL) => {
+			const url = typeof input === 'string' ? input : input.toString();
+			if (url === '/api/push/public-key') {
+				return {
+					ok: true,
+					json: async () => ({
+						data: { publicKey: 'SGVsbG8' },
+					}),
+				} as Response;
+			}
+
+			return {
+				ok: true,
+				json: async () => ({
+					data: {
+						mindMapsCount: 1,
+						collaboratorsCount: 0,
+						storageUsedMB: 0,
+						aiSuggestionsCount: 0,
+						billingPeriod: {
+							start: '2026-02-01T00:00:00.000Z',
+							end: '2026-03-01T00:00:00.000Z',
+						},
+					},
+				}),
+			} as Response;
+		});
+
+		render(<SettingsPanel isOpen onClose={jest.fn()} />);
+
+		await user.click(
+			screen.getByRole('button', { name: /push notifications off/i })
+		);
+
+		await waitFor(() => {
+			expect(toastMock.error).toHaveBeenCalledWith(
+				'Push notifications require the service worker to be enabled.'
+			);
+		});
+		expect(
+			screen.getByRole('button', { name: /push notifications off/i })
+		).toBeEnabled();
+	});
+
+	it('does not unsubscribe locally when removing the push subscription fails on the server', async () => {
+		const user = userEvent.setup();
+		const unsubscribe = jest.fn().mockResolvedValue(true);
+
+		mockState.userProfile.preferences.notifications = {
+			...mockState.userProfile.preferences.notifications,
+			push: true,
+			push_comments: true,
+			push_mentions: true,
+			push_reactions: true,
+		};
+
+		Object.defineProperty(window.navigator, 'serviceWorker', {
+			configurable: true,
+			value: {
+				getRegistration: jest.fn().mockResolvedValue({
+					pushManager: {
+						getSubscription: jest.fn().mockResolvedValue({
+							endpoint: 'https://push.example/subscription',
+							unsubscribe,
+						}),
+					},
+				}),
+			},
+		});
+
+		globalWithFetch.fetch = jest.fn(async (input: RequestInfo | URL) => {
+			const url = typeof input === 'string' ? input : input.toString();
+			if (url === '/api/push/subscribe') {
+				return { ok: false } as Response;
+			}
+
+			return {
+				ok: true,
+				json: async () => ({
+					data: {
+						mindMapsCount: 1,
+						collaboratorsCount: 0,
+						storageUsedMB: 0,
+						aiSuggestionsCount: 0,
+						billingPeriod: {
+							start: '2026-02-01T00:00:00.000Z',
+							end: '2026-03-01T00:00:00.000Z',
+						},
+					},
+				}),
+			} as Response;
+		});
+
+		render(<SettingsPanel isOpen onClose={jest.fn()} />);
+
+		await user.click(
+			screen.getByRole('button', { name: /push notifications on/i })
+		);
+
+		await waitFor(() => {
+			expect(toastMock.error).toHaveBeenCalledWith(
+				'Failed to remove push subscription on server.'
+			);
+		});
+		expect(unsubscribe).not.toHaveBeenCalled();
+		expect(
+			screen.getByRole('button', { name: /push notifications on/i })
+		).toHaveAttribute('aria-pressed', 'true');
 	});
 });

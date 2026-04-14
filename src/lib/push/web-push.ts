@@ -17,6 +17,16 @@ interface SendWebPushInput {
 	};
 }
 
+export type WebPushDeliveryResult =
+	| {
+			success: true;
+	  }
+	| {
+			success: false;
+			error: string;
+			statusCode?: number;
+	  };
+
 let configured = false;
 
 const getVapidConfig = () => {
@@ -67,9 +77,12 @@ export const buildDeclarativePayload = (input: SendWebPushInput['payload']) => {
 
 export const sendWebPushNotification = async (
 	input: SendWebPushInput
-): Promise<boolean> => {
+): Promise<WebPushDeliveryResult> => {
 	if (!configureWebPush()) {
-		return false;
+		return {
+			success: false,
+			error: 'Web push is not configured for this environment.',
+		};
 	}
 
 	const payload = JSON.stringify(buildDeclarativePayload(input.payload));
@@ -80,12 +93,24 @@ export const sendWebPushNotification = async (
 			urgency: 'normal',
 			topic: input.payload.tag || 'shiko-notification',
 		});
-		return true;
+		return { success: true };
 	} catch (error) {
 		console.warn('[push] web-push send failed', error);
-		return false;
+		const statusCode =
+			typeof error === 'object' &&
+			error !== null &&
+			'statusCode' in error &&
+			typeof (error as { statusCode?: unknown }).statusCode === 'number'
+				? (error as { statusCode: number }).statusCode
+				: undefined;
+
+		return {
+			success: false,
+			error:
+				error instanceof Error ? error.message : 'Unknown web-push delivery failure',
+			statusCode,
+		};
 	}
 };
 
 export const isWebPushConfigured = (): boolean => configureWebPush();
-

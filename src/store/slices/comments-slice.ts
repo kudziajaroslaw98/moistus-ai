@@ -5,9 +5,9 @@ import {
 } from '@/helpers/user-profile-helpers';
 import {
 	getWorkspaceCacheRecord,
-	queueMutation,
 	setWorkspaceCacheRecord,
-} from '@/lib/offline';
+} from '@/lib/offline/indexed-db';
+import { queueMutation } from '@/lib/offline/offline-mutation-adapter';
 import type {
 	Comment,
 	CommentMessage,
@@ -151,10 +151,14 @@ export const createCommentsSlice: StateCreator<
 
 				if (error) throw error;
 
-				set({ comments: data || [], isLoadingComments: false });
-				await setWorkspaceCacheRecord(`comments:${mapId}`, {
-					comments: data || [],
-				});
+					set({ comments: data || [], isLoadingComments: false });
+					try {
+						await setWorkspaceCacheRecord(`comments:${mapId}`, {
+							comments: data || [],
+						});
+					} catch (cacheError) {
+						console.warn('Failed to cache comments:', cacheError);
+					}
 			} catch (error) {
 				console.error('Error fetching comments:', error);
 				const cachedComments = await getWorkspaceCacheRecord(`comments:${mapId}`);
@@ -506,15 +510,19 @@ export const createCommentsSlice: StateCreator<
 				};
 			});
 
-				set((state) => ({
-					commentMessages: {
-						...state.commentMessages,
-						[commentId]: messages,
-					},
-				}));
-				await setWorkspaceCacheRecord(`comment-messages:${commentId}`, {
-					messages,
-				});
+					set((state) => ({
+						commentMessages: {
+							...state.commentMessages,
+							[commentId]: messages,
+						},
+					}));
+					try {
+						await setWorkspaceCacheRecord(`comment-messages:${commentId}`, {
+							messages,
+						});
+					} catch (cacheError) {
+						console.warn('Failed to cache comment messages:', cacheError);
+					}
 			} catch (error) {
 				console.error('Error fetching messages:', error);
 				const cachedMessages = await getWorkspaceCacheRecord(
@@ -657,17 +665,23 @@ export const createCommentsSlice: StateCreator<
 				throw error;
 			}
 
-			// Update with server response
-			if (savedMessage) {
-				set((state) => ({
-					commentMessages: {
-						...state.commentMessages,
-						[commentId]: (state.commentMessages[commentId] || []).map((m) =>
-							m.id === messageId ? { ...savedMessage!, ...optimisticMessage } : m
-						),
-					},
-				}));
-			}
+				// Update with server response
+				if (savedMessage) {
+					set((state) => ({
+						commentMessages: {
+							...state.commentMessages,
+							[commentId]: (state.commentMessages[commentId] || []).map((m) =>
+								m.id === messageId
+									? {
+											...optimisticMessage,
+											...savedMessage,
+											user: optimisticMessage.user ?? savedMessage.user,
+									  }
+									: m
+							),
+						},
+					}));
+				}
 
 			if (mapId) {
 				const events: NotificationEmitEvent[] = [];

@@ -3,6 +3,11 @@ import { generateFallbackAvatar } from '@/helpers/user-profile-helpers';
 import type { UserProfileFormData } from '@/types/user-profile-types';
 import { NextResponse } from 'next/server';
 
+const toPlainRecord = (value: unknown): Record<string, unknown> =>
+	typeof value === 'object' && value !== null && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: {};
+
 // Default preferences for new profiles
 const DEFAULT_PREFERENCES = {
 	theme: 'system' as const,
@@ -160,18 +165,16 @@ export async function PUT(request: Request) {
 				.eq('user_id', user.id)
 				.single();
 
-			const existingPreferences =
-				(existingProfile?.preferences as Record<string, unknown> | null) ?? {};
-			const incomingPreferences =
-				(profileData.preferences as unknown as Record<string, unknown>) ?? {};
-			const existingNotifications =
-				(existingPreferences.notifications as Record<string, unknown>) ?? {};
-			const incomingNotifications =
-				(incomingPreferences.notifications as Record<string, unknown>) ?? {};
-			const existingPrivacy =
-				(existingPreferences.privacy as Record<string, unknown>) ?? {};
-			const incomingPrivacy =
-				(incomingPreferences.privacy as Record<string, unknown>) ?? {};
+				const existingPreferences = toPlainRecord(existingProfile?.preferences);
+				const incomingPreferences = toPlainRecord(profileData.preferences);
+				const existingNotifications = toPlainRecord(
+					existingPreferences.notifications
+				);
+				const incomingNotifications = toPlainRecord(
+					incomingPreferences.notifications
+				);
+				const existingPrivacy = toPlainRecord(existingPreferences.privacy);
+				const incomingPrivacy = toPlainRecord(incomingPreferences.privacy);
 
 			updateData.preferences = {
 				...existingPreferences,

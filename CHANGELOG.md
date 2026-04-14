@@ -64,6 +64,21 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-04-13 - Removed offline-sync test listener leakage and added explicit cleanup regression coverage -->
 <!-- Updated: 2026-04-13 - Migrated Serwist wiring to @serwist/next public/sw.js output and removed legacy /serwist route path -->
 <!-- Updated: 2026-04-13 - Switched Serwist integration to Turbopack route mode with custom /app/sw.js root-scope registration -->
+<!-- Updated: 2026-04-14 - Hardened background sync with shared replay core, periodic notifications refresh, and settings capability surfacing -->
+
+## [2026-04-14]
+
+### Fixed
+
+- **offline/background-sync-no-client-replay**: Made the service worker flush queued offline operations directly when background sync fires without any open window clients, and added regression coverage for the explicit worker replay path
+  - Why: The previous handler only posted `OFFLINE_SYNC_REQUEST` to existing tabs, so a background sync event with zero clients silently did nothing
+- **offline/background-sync-failure-metadata-and-fallback-status**: Added persisted background-sync replay/refresh metadata, capability failure tracking, and account-settings status badges for one-off replay, periodic refresh, and service-worker availability
+  - Why: Background sync is progressive enhancement and needs visible runtime status plus last-success/fallback diagnostics when browser capability or registration is missing
+
+### Changed
+
+- **offline/shared-replay-core-and-periodic-refresh**: Split replay logic into a worker-safe `offline-sync-core`, kept window-only event wiring in `offline-sync.ts`, and added periodic background notifications refresh that updates only the global notifications cache
+  - Why: Service-worker sync should reuse the same replay semantics as the app path, while periodic background work in this phase must stay narrowly scoped to user-global notification freshness
 
 ## [2026-04-13]
 

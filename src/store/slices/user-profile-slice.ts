@@ -5,9 +5,9 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { generateFallbackAvatar } from '@/helpers/user-profile-helpers';
 import {
 	getWorkspaceCacheRecord,
-	queueMutation,
 	setWorkspaceCacheRecord,
-} from '@/lib/offline';
+} from '@/lib/offline/indexed-db';
+import { queueMutation } from '@/lib/offline/offline-mutation-adapter';
 import { NodeRegistry, type AvailableNodeTypes } from '@/registry/node-registry';
 
 export interface UserProfileSlice {
@@ -206,12 +206,16 @@ export const createUserProfileSlice: StateCreator<
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		const { avatar_url: _avatarUrl, ...filteredUpdates } = updates as UserProfileUpdate & { avatar_url?: string };
 
-		// Optimistic update (keep existing avatar_url)
-		const optimisticProfile = { ...userProfile, ...filteredUpdates };
-		set({ userProfile: optimisticProfile, profileError: null });
+			// Optimistic update (keep existing avatar_url)
+			const optimisticProfile = { ...userProfile, ...filteredUpdates };
+			set({ userProfile: optimisticProfile, profileError: null });
+			await setWorkspaceCacheRecord(
+				`profile:${userProfile.user_id}`,
+				optimisticProfile
+			);
 
-		try {
-			const result = await queueMutation({
+			try {
+				const result = await queueMutation({
 				entity: 'user_profiles',
 				action: 'update',
 				baseVersion: userProfile.updated_at ?? null,
@@ -236,15 +240,20 @@ export const createUserProfileSlice: StateCreator<
 				},
 			});
 
-			if (result.status === 'applied' && result.data) {
-				set({ userProfile: result.data });
-			}
-		} catch (error) {
-			console.error('Failed to update user profile:', error);
-			// Rollback optimistic update
-			set({
-				userProfile,
-				profileError: error instanceof Error ? error.message : 'Failed to update profile'
+				if (result.status === 'applied' && result.data) {
+					set({ userProfile: result.data });
+					await setWorkspaceCacheRecord(
+						`profile:${userProfile.user_id}`,
+						result.data
+					);
+				}
+			} catch (error) {
+				console.error('Failed to update user profile:', error);
+				// Rollback optimistic update
+				await setWorkspaceCacheRecord(`profile:${userProfile.user_id}`, userProfile);
+				set({
+					userProfile,
+					profileError: error instanceof Error ? error.message : 'Failed to update profile'
 			});
 		}
 	},
@@ -272,14 +281,18 @@ export const createUserProfileSlice: StateCreator<
 		};
 
 		// Optimistic update
-		const optimisticProfile = {
-			...userProfile,
-			preferences: updatedPreferences,
-		};
-		set({ userProfile: optimisticProfile, profileError: null });
+			const optimisticProfile = {
+				...userProfile,
+				preferences: updatedPreferences,
+			};
+			set({ userProfile: optimisticProfile, profileError: null });
+			await setWorkspaceCacheRecord(
+				`profile:${userProfile.user_id}`,
+				optimisticProfile
+			);
 
-		try {
-			const result = await queueMutation({
+			try {
+				const result = await queueMutation({
 				entity: 'user_profiles',
 				action: 'update',
 				baseVersion: userProfile.updated_at ?? null,
@@ -306,15 +319,20 @@ export const createUserProfileSlice: StateCreator<
 				},
 			});
 
-			if (result.status === 'applied' && result.data) {
-				set({ userProfile: result.data });
-			}
-		} catch (error) {
-			console.error('Failed to update preferences:', error);
-			// Rollback optimistic update
-			set({ 
-				userProfile,
-				profileError: error instanceof Error ? error.message : 'Failed to update preferences'
+				if (result.status === 'applied' && result.data) {
+					set({ userProfile: result.data });
+					await setWorkspaceCacheRecord(
+						`profile:${userProfile.user_id}`,
+						result.data
+					);
+				}
+			} catch (error) {
+				console.error('Failed to update preferences:', error);
+				// Rollback optimistic update
+				await setWorkspaceCacheRecord(`profile:${userProfile.user_id}`, userProfile);
+				set({ 
+					userProfile,
+					profileError: error instanceof Error ? error.message : 'Failed to update preferences'
 			});
 		}
 	},

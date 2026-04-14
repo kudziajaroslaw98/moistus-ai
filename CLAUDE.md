@@ -236,6 +236,9 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 **Offline strict replay contract**: Mutating client paths should flow through `queueMutation(...)` so every operation receives a stable `opId` and can be replayed idempotently through `POST /api/offline/ops/batch`. Background Sync is optional acceleration only; required replay triggers remain online/focus/startup app-level flushes.
 <!-- Updated: 2026-04-11 - Documented single offline mutation adapter + idempotent replay requirement -->
 
+**Background sync contract**: Shared replay semantics now live in `src/lib/offline/offline-sync-core.ts` so service-worker and window-triggered flushes stay aligned. One-off sync may replay queued ops headlessly when no clients are open, and periodic background work is intentionally limited to refreshing the global notifications cache key (`notifications:${userId}:__all__`). Do not expand worker refreshes to map/comment caches without adding an explicit target registry first.
+<!-- Updated: 2026-04-14 - Documented shared replay core plus notifications-only periodic background refresh scope -->
+
 **Offline reconnect contract**: `flushOfflineQueue` must remain in-memory-guarded only (no persisted lock key), drain queued ops in repeated `<=100` batches per flush until empty, and trigger on `online`, `focus`, `visibilitychange -> visible`, startup, and SW sync messages. Startup must call `resetProcessingOpsToQueued()` before the first flush.
 <!-- Updated: 2026-04-11 - Documented reconnect flush behavior and startup processing-op recovery -->
 

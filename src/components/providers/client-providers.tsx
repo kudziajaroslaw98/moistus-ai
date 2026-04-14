@@ -1,7 +1,7 @@
 'use client';
 
 import { CookieNoticeBanner } from '@/components/legal/cookie-notice-banner';
-import { initializeOfflineSync } from '@/lib/offline';
+import { initializeOfflineSync } from '@/lib/offline/offline-sync';
 import useAppStore from '@/store/mind-map-store';
 import { useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';

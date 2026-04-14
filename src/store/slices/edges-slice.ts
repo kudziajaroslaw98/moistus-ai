@@ -7,7 +7,7 @@ import {
 	rerouteAutoWaypointEdges,
 } from '@/helpers/route-auto-waypoint-edges';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
-import { queueMutation } from '@/lib/offline';
+import { queueMutation } from '@/lib/offline/offline-mutation-adapter';
 import {
 	broadcast,
 	BROADCAST_EVENTS,

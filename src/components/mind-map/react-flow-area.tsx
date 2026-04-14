@@ -106,6 +106,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 		onEdgesChange,
 		onConnect,
 		setReactFlowInstance,
+		setNodes,
 		setSelectedNodes,
 		setPopoverOpen,
 		popoverOpen,
@@ -158,6 +159,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 			onEdgesChange: state.onEdgesChange,
 			onConnect: state.onConnect,
 			setReactFlowInstance: state.setReactFlowInstance,
+			setNodes: state.setNodes,
 			setSelectedNodes: state.setSelectedNodes,
 			setPopoverOpen: state.setPopoverOpen,
 			popoverOpen: state.popoverOpen,
@@ -218,18 +220,24 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 	});
 
 	const handleGestureUndo = useCallback(() => {
+		if (!canEdit) {
+			return;
+		}
 		if (historyIndex <= 0) {
 			return;
 		}
 		void revertToHistoryState(historyIndex - 1);
-	}, [historyIndex, revertToHistoryState]);
+	}, [canEdit, historyIndex, revertToHistoryState]);
 
 	const handleGestureRedo = useCallback(() => {
+		if (!canEdit) {
+			return;
+		}
 		if (historyIndex >= historyMeta.length - 1) {
 			return;
 		}
 		void revertToHistoryState(historyIndex + 1);
-	}, [historyIndex, historyMeta.length, revertToHistoryState]);
+	}, [canEdit, historyIndex, historyMeta.length, revertToHistoryState]);
 
 	const handleGestureFitView = useCallback(() => {
 		reactFlowInstance.fitView({
@@ -257,22 +265,31 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 					? 0
 					: (activeIndex + step + visibleNodes.length) % visibleNodes.length;
 			const nextNode = visibleNodes[nextIndex];
-			if (!nextNode) {
-				return;
-			}
+				if (!nextNode) {
+					return;
+				}
 
-			setSelectedNodes([nextNode]);
-			reactFlowInstance.setCenter(
-				nextNode.position.x + (nextNode.width ?? 0) / 2,
-				nextNode.position.y + (nextNode.height ?? 0) / 2,
+				const nextNodes = nodes.map((currentNode) => ({
+					...currentNode,
+					selected: currentNode.id === nextNode.id,
+				}));
+				const nextSelectedNodes = nextNodes.filter(
+					(currentNode) => currentNode.id === nextNode.id
+				);
+
+				setNodes(nextNodes);
+				setSelectedNodes(nextSelectedNodes);
+				reactFlowInstance.setCenter(
+					nextNode.position.x + (nextNode.width ?? 0) / 2,
+					nextNode.position.y + (nextNode.height ?? 0) / 2,
 				{
 					zoom: 1.05,
 					duration: 220,
 				}
 			);
-		},
-		[getVisibleNodes, reactFlowInstance, selectedNodes, setSelectedNodes]
-	);
+			},
+			[nodes, getVisibleNodes, reactFlowInstance, selectedNodes, setNodes, setSelectedNodes]
+		);
 
 	useMultiTouchShortcuts({
 		containerRef: touchContextMenuContainerRef,

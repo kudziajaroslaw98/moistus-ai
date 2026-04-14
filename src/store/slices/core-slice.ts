@@ -9,7 +9,11 @@ import {
 	generateFunName,
 	generateUserColor,
 } from '@/helpers/user-profile-helpers';
-import { getMapCacheRecord, queueMutation, setMapCacheRecord } from '@/lib/offline';
+import {
+	getMapCacheRecord,
+	setMapCacheRecord,
+} from '@/lib/offline/indexed-db';
+import { queueMutation } from '@/lib/offline/offline-mutation-adapter';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
@@ -326,44 +330,56 @@ export const createCoreDataSlice: StateCreator<
 				return;
 			}
 
-			// Handle potential access denial (PGRST116 = no rows returned)
-			if (mindMapError) {
-				console.error('Error fetching from Supabase:', mindMapError);
+				// Handle potential access denial (PGRST116 = no rows returned)
+				if (mindMapError) {
+					console.error('Error fetching from Supabase:', mindMapError);
 					const offlineCache = await getMapCacheRecord(mapId);
 					if (
 						offlineCache?.payload &&
 						isLikelyOfflineError(mindMapError.message)
 					) {
+						if (abortIfStale()) {
+							return;
+						}
+
 						const cachedGraph = readCachedGraphData(offlineCache.payload);
 						if (cachedGraph) {
-						const cachedTransformed = transformSupabaseData(cachedGraph);
-						const normalizedCachedEdges = rerouteAutoWaypointEdges({
-							nodes: cachedTransformed.reactFlowNodes as AppNode[],
+							if (abortIfStale()) {
+								return;
+							}
+
+							const cachedTransformed = transformSupabaseData(cachedGraph);
+							const normalizedCachedEdges = rerouteAutoWaypointEdges({
+								nodes: cachedTransformed.reactFlowNodes as AppNode[],
 							edges: cachedTransformed.reactFlowEdges,
 							direction:
 								cachedTransformed.mindMap.layout_direction ??
 								DEFAULT_LAYOUT_CONFIG.direction,
-							legacyOnly: true,
-						});
+								legacyOnly: true,
+							});
 
-						set((state) => ({
-							mindMap: cachedTransformed.mindMap,
-							nodes: cachedTransformed.reactFlowNodes,
+							if (abortIfStale()) {
+								return;
+							}
+
+							set((state) => ({
+								mindMap: cachedTransformed.mindMap,
+								nodes: cachedTransformed.reactFlowNodes,
 							edges: normalizedCachedEdges.edges,
 							layoutConfig: {
 								...state.layoutConfig,
 								direction:
 									cachedTransformed.mindMap.layout_direction ??
 									DEFAULT_LAYOUT_CONFIG.direction,
-							},
-						}));
+								},
+							}));
 
-						if (toastId) {
-							toast.success('Loaded cached map data (offline mode)', { id: toastId });
+							if (toastId) {
+								toast.success('Loaded cached map data (offline mode)', { id: toastId });
+							}
+							return;
 						}
-						return;
 					}
-				}
 
 				// Check if this is an access/not-found error
 				if (
@@ -631,16 +647,21 @@ export const createCoreDataSlice: StateCreator<
 							updatedMap.layout_direction ?? state.layoutConfig.direction,
 					},
 				}));
-			} else {
-				set((state) => ({
-					mindMap: state.mindMap
-						? ({
-								...state.mindMap,
-								...updates,
-						  } as MindMapData)
-						: state.mindMap,
-				}));
-			}
+				} else {
+					set((state) => ({
+						mindMap: state.mindMap
+							? ({
+									...state.mindMap,
+									...updates,
+							  } as MindMapData)
+							: state.mindMap,
+						layoutConfig: {
+							...state.layoutConfig,
+							direction:
+								updates.layout_direction ?? state.layoutConfig.direction,
+						},
+					}));
+				}
 		},
 		'isUpdatingMapSettings',
 		{

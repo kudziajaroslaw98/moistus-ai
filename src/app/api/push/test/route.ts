@@ -62,7 +62,7 @@ export async function POST() {
 		return respondSuccess(
 			{
 				attempted: subscriptions.length,
-				delivered: delivered.filter(Boolean).length,
+				delivered: delivered.filter((result) => result.success).length,
 			},
 			200,
 			'Push test complete'
@@ -72,4 +72,3 @@ export async function POST() {
 		return respondError('Failed to send test push', 500, 'Internal server error');
 	}
 }
-

@@ -7,7 +7,10 @@ export const runWithViewTransition = (update: () => void | Promise<void>) => {
 		return;
 	}
 
-	if (typeof document.startViewTransition !== 'function') {
+	if (
+		typeof document === 'undefined' ||
+		typeof document.startViewTransition !== 'function'
+	) {
 		void update();
 		return;
 	}

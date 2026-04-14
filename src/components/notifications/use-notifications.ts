@@ -6,9 +6,14 @@ import {
 } from '@/lib/realtime/notification-channel';
 import {
 	getWorkspaceCacheRecord,
-	queueMutation,
 	setWorkspaceCacheRecord,
-} from '@/lib/offline';
+} from '@/lib/offline/indexed-db';
+import { queueMutation } from '@/lib/offline/offline-mutation-adapter';
+import {
+	buildNotificationsCacheKey,
+	NOTIFICATIONS_SCOPE_ALL,
+	parseNotificationsCachePayload,
+} from '@/lib/notifications/notifications-cache';
 import useAppStore from '@/store/mind-map-store';
 import type { NotificationRecord } from '@/types/notification';
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
@@ -60,8 +65,6 @@ const EMPTY_NOTIFICATIONS_SNAPSHOT: NotificationsSnapshot = {
 	error: null,
 };
 
-const NOTIFICATIONS_SCOPE_ALL = '__all__';
-
 const createNotificationsSnapshot = (
 	overrides: Partial<NotificationsSnapshot> = {}
 ): NotificationsSnapshot => ({
@@ -82,27 +85,6 @@ const createScopeState = (
 	request: null,
 });
 
-const parseNotificationsCachePayload = (
-	payload: unknown
-): { notifications: NotificationRecord[]; unreadCount: number } | null => {
-	if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-		return null;
-	}
-
-	const record = payload as {
-		notifications?: unknown;
-		unreadCount?: unknown;
-	};
-
-	return {
-		notifications: Array.isArray(record.notifications)
-			? (record.notifications as NotificationRecord[])
-			: [],
-		unreadCount:
-			typeof record.unreadCount === 'number' ? record.unreadCount : 0,
-	};
-};
-
 class SharedNotificationsManager {
 	private currentUserId: string | null = null;
 	private channelSubscription: NotificationChannelSubscription | null = null;
@@ -111,6 +93,10 @@ class SharedNotificationsManager {
 
 	private getScopeKey(filterMapId: string | null): string {
 		return filterMapId ?? NOTIFICATIONS_SCOPE_ALL;
+	}
+
+	private getCacheKey(filterMapId: string | null, userId: string): string {
+		return buildNotificationsCacheKey(userId, filterMapId);
 	}
 
 	private ensureScope(filterMapId: string | null): NotificationsScopeState {
@@ -159,7 +145,63 @@ class SharedNotificationsManager {
 		scope.snapshot = createNotificationsSnapshot({
 			...scope.snapshot,
 			...overrides,
-		});
+			});
+	}
+
+	private async persistScopeCache(scope: NotificationsScopeState) {
+		if (!this.currentUserId) {
+			return;
+		}
+
+		await setWorkspaceCacheRecord(
+			this.getCacheKey(scope.filterMapId, this.currentUserId),
+			{
+				notifications: scope.snapshot.notifications,
+				unreadCount: scope.snapshot.unreadCount,
+			}
+		);
+	}
+
+	private isScopeAffectedByReadUpdate(
+		scopeFilterMapId: string | null,
+		targetFilterMapId: string | null
+	): boolean {
+		if (targetFilterMapId === null) {
+			return true;
+		}
+
+		return scopeFilterMapId === null || scopeFilterMapId === targetFilterMapId;
+	}
+
+	private async applyOptimisticReadUpdate(
+		targetFilterMapId: string | null,
+		updater: (notifications: NotificationRecord[]) => NotificationRecord[]
+	) {
+		const affectedScopes = Array.from(this.scopes.values()).filter((scope) =>
+			this.isScopeAffectedByReadUpdate(scope.filterMapId, targetFilterMapId)
+		);
+
+		await Promise.all(
+			affectedScopes.map(async (scope) => {
+				const nextNotifications = updater(scope.snapshot.notifications);
+				this.updateSnapshot(scope, {
+					notifications: nextNotifications,
+					unreadCount: nextNotifications.filter((notification) => !notification.is_read)
+						.length,
+					error: null,
+				});
+				this.emit(scope);
+
+				try {
+					await this.persistScopeCache(scope);
+				} catch (cacheError) {
+					console.warn('[use-notifications] failed to persist optimistic cache', {
+						filterMapId: scope.filterMapId,
+						cacheError,
+					});
+				}
+			})
+		);
 	}
 
 	private resetScope(scope: NotificationsScopeState) {
@@ -332,29 +374,30 @@ class SharedNotificationsManager {
 					return;
 				}
 
-				this.updateSnapshot(scope, {
-					notifications: payload.data.notifications ?? [],
-					unreadCount: payload.data.unreadCount ?? 0,
-				});
-				scope.hasFetched = true;
-				await setWorkspaceCacheRecord(
-					`notifications:${this.getScopeKey(filterMapId)}`,
-					{
+					this.updateSnapshot(scope, {
 						notifications: payload.data.notifications ?? [],
 						unreadCount: payload.data.unreadCount ?? 0,
+					});
+					scope.hasFetched = true;
+					try {
+						await this.persistScopeCache(scope);
+					} catch (cacheError) {
+						console.warn('[use-notifications] failed to persist notifications cache', {
+							filterMapId,
+							cacheError,
+						});
 					}
-				);
-			} catch (fetchError) {
-				if (this.currentUserId !== requestUserId) {
-					return;
-				}
+				} catch (fetchError) {
+					if (this.currentUserId !== requestUserId) {
+						return;
+					}
 
-				const cachedRecord = await getWorkspaceCacheRecord(
-					`notifications:${this.getScopeKey(filterMapId)}`
-				);
-				const cachedPayload = parseNotificationsCachePayload(cachedRecord?.payload);
-				if (cachedPayload) {
-					this.updateSnapshot(scope, {
+					const cachedRecord = await getWorkspaceCacheRecord(
+						this.getCacheKey(filterMapId, requestUserId)
+					);
+					const cachedPayload = parseNotificationsCachePayload(cachedRecord?.payload);
+					if (cachedPayload) {
+						this.updateSnapshot(scope, {
 						notifications: cachedPayload.notifications,
 						unreadCount: cachedPayload.unreadCount,
 						error: null,
@@ -381,25 +424,26 @@ class SharedNotificationsManager {
 		return scope.request;
 	}
 
-	async markAllAsRead(filterMapId: string | null) {
+		async markAllAsRead(filterMapId: string | null) {
 		const scope = this.ensureScope(filterMapId);
 		if (!this.currentUserId || scope.snapshot.unreadCount === 0) {
 			return;
 		}
 
-		try {
-			await queueMutation({
-				entity: 'notifications',
-				action: 'update',
-				payload: {
-					table: 'notifications',
-					values: {
-						is_read: true,
-						read_at: new Date().toISOString(),
-						updated_at: new Date().toISOString(),
-					},
-					match: {
-						recipient_user_id: this.currentUserId,
+			try {
+				const now = new Date().toISOString();
+				const result = await queueMutation({
+					entity: 'notifications',
+					action: 'update',
+					payload: {
+						table: 'notifications',
+						values: {
+							is_read: true,
+							read_at: now,
+							updated_at: now,
+						},
+						match: {
+							recipient_user_id: this.currentUserId,
 						...(filterMapId ? { map_id: filterMapId } : {}),
 					},
 				},
@@ -414,13 +458,33 @@ class SharedNotificationsManager {
 						throw new Error(
 							`Failed to mark all notifications as read (${response.status})`
 						);
-					}
-				},
-			});
+						}
+					},
+				});
 
-			await this.refreshActiveScopes();
-		} catch (markAllError) {
-			console.warn('[use-notifications] failed to mark all as read', markAllError);
+				if (result.status === 'queued') {
+					await this.applyOptimisticReadUpdate(filterMapId, (notifications) =>
+						notifications.map((notification) => {
+							const shouldMarkRead =
+								filterMapId === null || notification.map_id === filterMapId;
+
+							if (!shouldMarkRead || notification.is_read) {
+								return notification;
+							}
+
+							return {
+								...notification,
+								is_read: true,
+								read_at: now,
+								updated_at: now,
+							};
+						})
+					);
+				}
+
+				await this.refreshActiveScopes();
+			} catch (markAllError) {
+				console.warn('[use-notifications] failed to mark all as read', markAllError);
 		}
 	}
 
@@ -437,19 +501,20 @@ class SharedNotificationsManager {
 			return;
 		}
 
-		try {
-			await queueMutation({
-				entity: 'notifications',
-				action: 'update',
-				payload: {
-					table: 'notifications',
-					values: {
-						is_read: true,
-						read_at: new Date().toISOString(),
-						updated_at: new Date().toISOString(),
-					},
-					match: {
-						id: notificationId,
+			try {
+				const now = new Date().toISOString();
+				const result = await queueMutation({
+					entity: 'notifications',
+					action: 'update',
+					payload: {
+						table: 'notifications',
+						values: {
+							is_read: true,
+							read_at: now,
+							updated_at: now,
+						},
+						match: {
+							id: notificationId,
 						recipient_user_id: this.currentUserId,
 					},
 				},
@@ -464,13 +529,28 @@ class SharedNotificationsManager {
 						throw new Error(
 							`Failed to mark notification as read (${response.status})`
 						);
-					}
-				},
-			});
+						}
+					},
+				});
 
-			await this.refreshActiveScopes();
-		} catch (markError) {
-			console.warn('[use-notifications] failed to mark notification as read', {
+				if (result.status === 'queued') {
+					await this.applyOptimisticReadUpdate(filterMapId, (notifications) =>
+						notifications.map((notification) =>
+							notification.id === notificationId && !notification.is_read
+								? {
+										...notification,
+										is_read: true,
+										read_at: now,
+										updated_at: now,
+								  }
+								: notification
+						)
+					);
+				}
+
+				await this.refreshActiveScopes();
+			} catch (markError) {
+				console.warn('[use-notifications] failed to mark notification as read', {
 				notificationId,
 				markError,
 			});

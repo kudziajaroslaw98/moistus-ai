@@ -487,7 +487,7 @@ async function processWebPushNotifications(
 
 		await Promise.all(
 			userSubscriptions.map(async (subscription) => {
-				const delivered = await sendWebPushNotification({
+				const delivery = await sendWebPushNotification({
 					subscription: {
 						endpoint: subscription.endpoint,
 						keys: {
@@ -506,10 +506,23 @@ async function processWebPushNotifications(
 					},
 				});
 
-				if (!delivered) {
+				if (!delivery.success) {
+					if (
+						delivery.statusCode === 404 ||
+						delivery.statusCode === 410
+					) {
+						await adminClient
+							.from('push_subscriptions')
+							.delete()
+							.eq('id', subscription.id);
+						return;
+					}
+
 					console.warn('[notifications] web push send failed', {
 						notificationId: notification.id,
 						subscriptionId: subscription.id,
+						statusCode: delivery.statusCode,
+						error: delivery.error,
 					});
 				} else {
 					await adminClient

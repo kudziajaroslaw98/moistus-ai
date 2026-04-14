@@ -62,9 +62,22 @@ export const queueMutation = async <T>(
 		lastError: null,
 	};
 
-	await enqueueOfflineOp(operation);
+	let persisted = false;
+	try {
+		persisted = await enqueueOfflineOp(operation);
+	} catch (error) {
+		console.warn('[offline] Failed to persist queued mutation', {
+			entity: input.entity,
+			action: input.action,
+			opId,
+			error,
+		});
+	}
 
 	if (typeof window !== 'undefined' && window.navigator.onLine === false) {
+		if (!persisted) {
+			throw new Error('Failed to queue offline mutation while the client is offline.');
+		}
 		await enqueueSyncKick();
 		return {
 			status: 'queued',
@@ -74,7 +87,16 @@ export const queueMutation = async <T>(
 
 	try {
 		const data = await input.executeOnline();
-		await deleteOfflineOp(opId);
+		if (persisted) {
+			try {
+				await deleteOfflineOp(opId);
+			} catch (error) {
+				console.warn('[offline] Failed to delete applied queued mutation', {
+					opId,
+					error,
+				});
+			}
+		}
 
 		return {
 			status: 'applied',
@@ -82,6 +104,10 @@ export const queueMutation = async <T>(
 			data,
 		};
 	} catch (error) {
+		if (!persisted) {
+			throw error;
+		}
+
 		if (!isLikelyOfflineError(error)) {
 			await updateOfflineOp(opId, {
 				status: 'dead_letter',
@@ -103,4 +129,3 @@ export const queueMutation = async <T>(
 		};
 	}
 };
-

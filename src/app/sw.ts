@@ -3,6 +3,12 @@
 /// <reference lib="webworker" />
 
 import { defaultCache } from '@serwist/turbopack/worker';
+import {
+	flushOfflineQueueCore,
+	OFFLINE_SYNC_TAG,
+	PERIODIC_NOTIFICATIONS_SYNC_TAG,
+	refreshGlobalNotificationsCache,
+} from '@/lib/offline/offline-sync-core';
 import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist';
 import { Serwist } from 'serwist';
 
@@ -14,7 +20,9 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope;
 
-const OFFLINE_SYNC_TAG = 'shiko-offline-sync';
+type PeriodicSyncEvent = ExtendableEvent & {
+	tag: string;
+};
 
 const serwist = new Serwist({
 	precacheEntries: self.__SW_MANIFEST,
@@ -54,6 +62,11 @@ self.addEventListener('sync', (event) => {
 				type: 'window',
 				includeUncontrolled: true,
 			});
+			if (clientList.length === 0) {
+				await flushOfflineQueueCore({ reason: 'sw', allowWithoutWindow: true });
+				return;
+			}
+
 			clientList.forEach((client) => {
 				client.postMessage({
 					type: 'OFFLINE_SYNC_REQUEST',
@@ -62,6 +75,16 @@ self.addEventListener('sync', (event) => {
 		})()
 	);
 });
+
+self.addEventListener('periodicsync' as keyof ServiceWorkerGlobalScopeEventMap, ((
+	event: PeriodicSyncEvent
+) => {
+	if (event.tag !== PERIODIC_NOTIFICATIONS_SYNC_TAG) {
+		return;
+	}
+
+	event.waitUntil(refreshGlobalNotificationsCache());
+}) as EventListener);
 
 type DeclarativeNotificationPayload = {
 	web_push?: number;
@@ -110,6 +133,24 @@ const resolveNotificationPayload = (payload: DeclarativeNotificationPayload) => 
 	};
 };
 
+const resolveNotificationNavigatePath = (rawNavigate: unknown): string => {
+	const candidate =
+		typeof rawNavigate === 'string' && rawNavigate.length > 0
+			? rawNavigate
+			: '/dashboard';
+
+	try {
+		const parsedUrl = new URL(candidate, self.location.origin);
+		if (parsedUrl.origin !== self.location.origin) {
+			return '/dashboard';
+		}
+
+		return `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
+	} catch {
+		return '/dashboard';
+	}
+};
+
 self.addEventListener('push', (event) => {
 	if (!event.data) {
 		return;
@@ -140,11 +181,9 @@ self.addEventListener('notificationclick', (event) => {
 	event.notification.close();
 	event.waitUntil(
 		(async () => {
-			const rawNavigate = event.notification.data?.navigate;
-			const navigate =
-				typeof rawNavigate === 'string' && rawNavigate.length > 0
-					? rawNavigate
-					: '/dashboard';
+			const navigate = resolveNotificationNavigatePath(
+				event.notification.data?.navigate
+			);
 
 			const allClients = await self.clients.matchAll({
 				type: 'window',
@@ -153,7 +192,7 @@ self.addEventListener('notificationclick', (event) => {
 
 			const existingClient = allClients.find((client) => {
 				const clientUrl = new URL(client.url);
-				return clientUrl.pathname === navigate;
+				return `${clientUrl.pathname}${clientUrl.search}${clientUrl.hash}` === navigate;
 			});
 
 			if (existingClient) {
