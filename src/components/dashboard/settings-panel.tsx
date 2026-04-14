@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { getBackgroundSyncStatus } from '@/lib/offline/offline-sync';
 import { Progress } from '@/components/ui/progress';
 import {
 	Select,
@@ -26,6 +27,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import useAppStore from '@/store/mind-map-store';
+import type { BackgroundSyncStatusSnapshot } from '@/types/offline';
 import type {
 	UserProfile,
 	UserProfileFormData,
@@ -84,6 +86,55 @@ function normalizeText(value: string | null | undefined): string {
 	return (value || '').trim();
 }
 
+function formatBackgroundSyncTimestamp(value: string | null | undefined): string {
+	if (!value) {
+		return 'Never';
+	}
+
+	const date = new Date(value);
+	if (Number.isNaN(date.getTime())) {
+		return 'Unknown';
+	}
+
+	return new Intl.DateTimeFormat(undefined, {
+		dateStyle: 'medium',
+		timeStyle: 'short',
+	}).format(date);
+}
+
+function formatBackgroundSyncReason(reason: string | null | undefined): string {
+	if (!reason) {
+		return 'None';
+	}
+
+	switch (reason) {
+		case 'unsupported':
+			return 'This browser does not support the requested background sync API.';
+		case 'permission_denied':
+			return 'The browser denied background sync permission.';
+		case 'permission_prompt':
+			return 'Periodic background refresh has not been granted by the browser yet.';
+		case 'service_worker_disabled':
+		case 'service_worker_unavailable':
+			return 'Service worker is not active for this page.';
+		default:
+			return reason;
+	}
+}
+
+function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
+	const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+	const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+	const rawData = window.atob(base64);
+	const outputArray = new Uint8Array(rawData.length);
+
+	for (let i = 0; i < rawData.length; i += 1) {
+		outputArray[i] = rawData.charCodeAt(i);
+	}
+
+	return outputArray.buffer as ArrayBuffer;
+}
+
 function createFormDataFromProfile(profile: UserProfile): UserProfileFormData {
 	return {
 		full_name: profile.full_name || '',
@@ -95,6 +146,10 @@ function createFormDataFromProfile(profile: UserProfile): UserProfileFormData {
 			reducedMotion: profile.preferences?.reducedMotion || false,
 			notifications: {
 				email: profile.preferences?.notifications?.email ?? true,
+				push: profile.preferences?.notifications?.push ?? false,
+				push_comments: profile.preferences?.notifications?.push_comments ?? true,
+				push_mentions: profile.preferences?.notifications?.push_mentions ?? true,
+				push_reactions: profile.preferences?.notifications?.push_reactions ?? true,
 			},
 			defaultNodeType: profile.preferences?.defaultNodeType || 'defaultNode',
 			privacy: {
@@ -156,6 +211,11 @@ export function SettingsPanel({
 	);
 
 	const [isSaving, setIsSaving] = useState(false);
+	const [isPushToggleBusy, setIsPushToggleBusy] = useState(false);
+	const [backgroundSyncStatus, setBackgroundSyncStatus] =
+		useState<BackgroundSyncStatusSnapshot | null>(null);
+	const [isLoadingBackgroundSyncStatus, setIsLoadingBackgroundSyncStatus] =
+		useState(false);
 	const [activeTab, setActiveTab] = useState(defaultTab);
 	const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 
@@ -193,6 +253,10 @@ export function SettingsPanel({
 			reducedMotion: false,
 			notifications: {
 				email: true,
+				push: false,
+				push_comments: true,
+				push_mentions: true,
+				push_reactions: true,
 			},
 			defaultNodeType: 'defaultNode',
 			privacy: {
@@ -322,6 +386,36 @@ export function SettingsPanel({
 		}
 	}, [userProfile]);
 
+	useEffect(() => {
+		if (!isOpen) {
+			return;
+		}
+
+		let isActive = true;
+		setIsLoadingBackgroundSyncStatus(true);
+
+		void getBackgroundSyncStatus()
+			.then((status) => {
+				if (!isActive) {
+					return;
+				}
+
+				setBackgroundSyncStatus(status);
+			})
+			.catch((error) => {
+				console.error('Failed to load background sync status:', error);
+			})
+			.finally(() => {
+				if (isActive) {
+					setIsLoadingBackgroundSyncStatus(false);
+				}
+			});
+
+		return () => {
+			isActive = false;
+		};
+	}, [isOpen]);
+
 	// Track account form changes
 	useEffect(() => {
 		if (!userProfile) {
@@ -449,6 +543,100 @@ export function SettingsPanel({
 			setIsSaving(false);
 		}
 	};
+
+	const enablePushNotifications = async (): Promise<boolean> => {
+		if (typeof window === 'undefined') {
+			return false;
+		}
+		if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+			toast.error('Push notifications are not supported in this browser.');
+			return false;
+		}
+
+		const keyResponse = await fetch('/api/push/public-key');
+		if (!keyResponse.ok) {
+			toast.error('Push notifications are not configured for this environment.');
+			return false;
+		}
+		const keyPayload = (await keyResponse.json()) as {
+			data?: { publicKey?: string };
+		};
+		const publicKey = keyPayload.data?.publicKey;
+		if (!publicKey) {
+			toast.error('Push public key is missing.');
+			return false;
+		}
+
+		const permission = await Notification.requestPermission();
+		if (permission !== 'granted') {
+			toast.error('Notification permission was not granted.');
+			return false;
+		}
+
+			const registration = await navigator.serviceWorker.getRegistration();
+			if (!registration) {
+				toast.error('Push notifications require the service worker to be enabled.');
+				return false;
+			}
+			const existingSubscription = await registration.pushManager.getSubscription();
+			const subscription =
+				existingSubscription ??
+				(await registration.pushManager.subscribe({
+					userVisibleOnly: true,
+					applicationServerKey: urlBase64ToArrayBuffer(publicKey),
+				}));
+
+		const response = await fetch('/api/push/subscribe', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				subscription: subscription.toJSON(),
+			}),
+		});
+
+		if (!response.ok) {
+			toast.error('Failed to register push subscription.');
+			return false;
+		}
+
+		return true;
+	};
+
+	const disablePushNotifications = async (): Promise<boolean> => {
+		if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+			return true;
+		}
+
+			const registration = await navigator.serviceWorker.getRegistration();
+			if (!registration) {
+				return true;
+			}
+			const subscription = await registration.pushManager.getSubscription();
+			if (!subscription) {
+				return true;
+			}
+
+		const endpoint = subscription.endpoint;
+		const response = await fetch('/api/push/subscribe', {
+			method: 'DELETE',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				endpoint,
+			}),
+		});
+
+			if (!response.ok) {
+				toast.error('Failed to remove push subscription on server.');
+				return false;
+			}
+
+			const unsubscribeResult = await subscription.unsubscribe();
+			return unsubscribeResult;
+		};
 
 	const updateFormData = (
 		field: 'full_name' | 'display_name' | 'bio',
@@ -1004,6 +1192,238 @@ export function SettingsPanel({
 														? 'On'
 														: 'Off'}
 												</Button>
+											</div>
+											<div className='flex items-center justify-between rounded-lg border border-border-subtle bg-base p-3'>
+												<div className='space-y-0.5'>
+													<Label>Push notifications</Label>
+													<p className='text-xs text-text-secondary'>
+														Allow browser push notifications for workspace events.
+													</p>
+												</div>
+												<Button
+													aria-label={`Push notifications ${formData.preferences.notifications.push ? 'on' : 'off'}`}
+													aria-pressed={formData.preferences.notifications.push}
+													disabled={isSaving || isLoadingProfile || isPushToggleBusy}
+													onClick={async () => {
+														if (isSaving || isLoadingProfile || isPushToggleBusy) return;
+														setIsPushToggleBusy(true);
+														try {
+															if (!formData.preferences.notifications.push) {
+																const enabled = await enablePushNotifications();
+																if (!enabled) {
+																	return;
+																}
+																updateNestedFormData(
+																	'preferences',
+																	'notifications',
+																	{
+																		...formData.preferences.notifications,
+																		push: true,
+																	}
+																);
+																toast.success('Push notifications enabled');
+															} else {
+																const disabled = await disablePushNotifications();
+																if (!disabled) {
+																	return;
+																}
+																updateNestedFormData(
+																	'preferences',
+																	'notifications',
+																	{
+																		...formData.preferences.notifications,
+																		push: false,
+																	}
+																);
+																toast.success('Push notifications disabled');
+															}
+														} catch (error) {
+															console.error('Failed to toggle push notifications', error);
+															toast.error('Failed to update push notifications');
+														} finally {
+															setIsPushToggleBusy(false);
+														}
+													}}
+													size='sm'
+													variant={
+														formData.preferences.notifications.push
+															? 'default'
+															: 'outline'
+													}
+												>
+													{formData.preferences.notifications.push ? 'On' : 'Off'}
+												</Button>
+											</div>
+											<div className='grid gap-2 rounded-lg border border-border-subtle bg-base p-3 sm:grid-cols-3'>
+												<Button
+													aria-label={`Push mentions ${formData.preferences.notifications.push_mentions ? 'on' : 'off'}`}
+													aria-pressed={formData.preferences.notifications.push_mentions}
+													disabled={
+														isSaving ||
+														isLoadingProfile ||
+														isPushToggleBusy ||
+														!formData.preferences.notifications.push
+													}
+													onClick={() =>
+														updateNestedFormData(
+															'preferences',
+															'notifications',
+															{
+																...formData.preferences.notifications,
+																push_mentions:
+																	!formData.preferences.notifications.push_mentions,
+															}
+														)
+													}
+													size='sm'
+													variant={
+														formData.preferences.notifications.push_mentions
+															? 'default'
+															: 'outline'
+													}
+												>
+													Mentions
+												</Button>
+												<Button
+													aria-label={`Push comments ${formData.preferences.notifications.push_comments ? 'on' : 'off'}`}
+													aria-pressed={formData.preferences.notifications.push_comments}
+													disabled={
+														isSaving ||
+														isLoadingProfile ||
+														isPushToggleBusy ||
+														!formData.preferences.notifications.push
+													}
+													onClick={() =>
+														updateNestedFormData(
+															'preferences',
+															'notifications',
+															{
+																...formData.preferences.notifications,
+																push_comments:
+																	!formData.preferences.notifications.push_comments,
+															}
+														)
+													}
+													size='sm'
+													variant={
+														formData.preferences.notifications.push_comments
+															? 'default'
+															: 'outline'
+													}
+												>
+													Comments
+												</Button>
+												<Button
+													aria-label={`Push reactions ${formData.preferences.notifications.push_reactions ? 'on' : 'off'}`}
+													aria-pressed={formData.preferences.notifications.push_reactions}
+													disabled={
+														isSaving ||
+														isLoadingProfile ||
+														isPushToggleBusy ||
+														!formData.preferences.notifications.push
+													}
+													onClick={() =>
+														updateNestedFormData(
+															'preferences',
+															'notifications',
+															{
+																...formData.preferences.notifications,
+																push_reactions:
+																	!formData.preferences.notifications.push_reactions,
+															}
+														)
+													}
+													size='sm'
+													variant={
+														formData.preferences.notifications.push_reactions
+															? 'default'
+															: 'outline'
+													}
+												>
+													Reactions
+												</Button>
+											</div>
+											<div className='space-y-3 rounded-lg border border-border-subtle bg-base p-3'>
+												<div className='flex items-center justify-between gap-3'>
+													<div className='space-y-0.5'>
+														<Label>Background sync</Label>
+														<p className='text-xs text-text-secondary'>
+															Queued offline edits can replay and refresh notifications in the background.
+														</p>
+													</div>
+													{isLoadingBackgroundSyncStatus ? (
+														<Loader2
+															aria-label='Loading background sync status'
+															className='size-4 animate-spin text-text-secondary'
+														/>
+													) : null}
+												</div>
+												<div className='flex flex-wrap gap-2'>
+													<Badge
+														variant={
+															backgroundSyncStatus?.capabilities.oneOffSupported
+																? 'default'
+																: 'outline'
+														}
+													>
+														One-off replay{' '}
+														{backgroundSyncStatus?.capabilities.oneOffSupported
+															? 'supported'
+															: 'unavailable'}
+													</Badge>
+													<Badge
+														variant={
+															backgroundSyncStatus?.capabilities.periodicSupported
+																? 'default'
+																: 'outline'
+														}
+													>
+														Periodic refresh{' '}
+														{backgroundSyncStatus?.capabilities.periodicSupported
+															? 'supported'
+															: 'unavailable'}
+													</Badge>
+													<Badge
+														variant={
+															backgroundSyncStatus?.capabilities.serviceWorkerEnabled
+																? 'default'
+																: 'outline'
+														}
+													>
+														Service worker{' '}
+														{backgroundSyncStatus?.capabilities.serviceWorkerEnabled
+															? 'enabled'
+															: 'disabled'}
+													</Badge>
+												</div>
+												<div className='grid gap-2 text-xs text-text-secondary sm:grid-cols-2'>
+													<p>
+														Last replay:{' '}
+														<span className='text-text-primary'>
+															{formatBackgroundSyncTimestamp(
+																backgroundSyncStatus?.lastReplay?.updatedAt
+															)}
+														</span>
+													</p>
+													<p>
+														Last notifications refresh:{' '}
+														<span className='text-text-primary'>
+															{formatBackgroundSyncTimestamp(
+																backgroundSyncStatus?.lastNotificationRefresh?.updatedAt
+															)}
+														</span>
+													</p>
+												</div>
+												{backgroundSyncStatus?.lastCapabilityFailure ? (
+													<p className='text-xs text-text-secondary'>
+														Last fallback reason:{' '}
+														<span className='text-text-primary'>
+															{formatBackgroundSyncReason(
+																backgroundSyncStatus.lastCapabilityFailure.reason
+															)}
+														</span>
+													</p>
+												) : null}
 											</div>
 										</div>
 									</motion.section>

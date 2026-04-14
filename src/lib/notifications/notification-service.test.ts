@@ -1,6 +1,7 @@
 import { pushPartyKitNotificationEvent } from '@/helpers/partykit/admin';
 import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { createResendClient } from '@/lib/email';
+import { sendWebPushNotification } from '@/lib/push/web-push';
 import type { NotificationRecord } from '@/types/notification';
 import { createNotifications } from './notification-service';
 
@@ -14,6 +15,10 @@ jest.mock('@/helpers/partykit/admin', () => ({
 
 jest.mock('@/lib/email', () => ({
 	createResendClient: jest.fn(),
+}));
+
+jest.mock('@/lib/push/web-push', () => ({
+	sendWebPushNotification: jest.fn(),
 }));
 
 type NotificationStatusUpdate = {
@@ -34,6 +39,14 @@ type UserProfileFixture = {
 type MockAdminClientOptions = {
 	createdNotifications: NotificationRecord[];
 	profilesById: Record<string, UserProfileFixture>;
+	pushSubscriptions?: Array<{
+		id: string;
+		user_id: string;
+		endpoint: string;
+		p256dh: string;
+		auth: string;
+		expiration_time: string | null;
+	}>;
 };
 
 const mockCreateServiceRoleClient = createServiceRoleClient as jest.MockedFunction<
@@ -45,6 +58,9 @@ const mockPushPartyKitNotificationEvent =
 	>;
 const mockCreateResendClient = createResendClient as jest.MockedFunction<
 	typeof createResendClient
+>;
+const mockSendWebPushNotification = sendWebPushNotification as jest.MockedFunction<
+	typeof sendWebPushNotification
 >;
 
 function createDeferred<T>(): {
@@ -93,8 +109,12 @@ function buildNotificationRecord(
 function createMockAdminClient(options: MockAdminClientOptions): {
 	client: ReturnType<typeof createServiceRoleClient>;
 	statusUpdates: NotificationStatusUpdate[];
+	pushSubscriptionUpdates: NotificationStatusUpdate[];
+	pushSubscriptionDeletes: Array<{ key: string; value: unknown }>;
 } {
 	const statusUpdates: NotificationStatusUpdate[] = [];
+	const pushSubscriptionUpdates: NotificationStatusUpdate[] = [];
+	const pushSubscriptionDeletes: Array<{ key: string; value: unknown }> = [];
 
 	const notificationsTable = {
 		upsert: jest.fn(() => ({
@@ -158,11 +178,39 @@ function createMockAdminClient(options: MockAdminClientOptions): {
 		})),
 	};
 
+	const pushSubscriptionsTable = {
+		select: jest.fn(() => ({
+			in: jest.fn(async () => ({
+				data: options.pushSubscriptions ?? [],
+				error: null,
+			})),
+		})),
+		update: jest.fn((values: Record<string, unknown>) => ({
+			eq: jest.fn(async (key: string, value: unknown) => {
+				pushSubscriptionUpdates.push({
+					values,
+					matchType: 'eq',
+					matchKey: key,
+					matchValue: value,
+				});
+				return { error: null };
+			}),
+		})),
+		delete: jest.fn(() => ({
+			eq: jest.fn(async (key: string, value: unknown) => {
+				pushSubscriptionDeletes.push({ key, value });
+				return { error: null };
+			}),
+		})),
+	};
+
 	const client = {
 		from: jest.fn((table: string) => {
 			switch (table) {
 				case 'notifications':
 					return notificationsTable;
+				case 'push_subscriptions':
+					return pushSubscriptionsTable;
 				case 'user_profiles':
 					return userProfilesTable;
 				case 'user_preferences':
@@ -175,7 +223,12 @@ function createMockAdminClient(options: MockAdminClientOptions): {
 		}),
 	} as unknown as ReturnType<typeof createServiceRoleClient>;
 
-	return { client, statusUpdates };
+	return {
+		client,
+		statusUpdates,
+		pushSubscriptionUpdates,
+		pushSubscriptionDeletes,
+	};
 }
 
 describe('notification-service createNotifications', () => {
@@ -189,6 +242,7 @@ describe('notification-service createNotifications', () => {
 			NEXT_PUBLIC_SITE_URL: 'https://shiko.test',
 			NODE_ENV: 'test',
 		};
+		mockSendWebPushNotification.mockResolvedValue({ success: true });
 	});
 
 	afterAll(() => {
@@ -381,5 +435,70 @@ describe('notification-service createNotifications', () => {
 		expect(result).toEqual([]);
 		expect(mockPushPartyKitNotificationEvent).not.toHaveBeenCalled();
 		expect(mockCreateResendClient).not.toHaveBeenCalled();
+	});
+
+	it('prunes permanently dead push subscriptions on 410 responses', async () => {
+		const createdNotification = buildNotificationRecord({
+			map_id: 'map-1',
+		});
+		const { client, pushSubscriptionDeletes } = createMockAdminClient({
+			createdNotifications: [createdNotification],
+			profilesById: {
+				[createdNotification.recipient_user_id]: {
+					user_id: createdNotification.recipient_user_id,
+					email: 'recipient@example.com',
+					display_name: 'Recipient',
+					full_name: null,
+					preferences: {
+						notifications: {
+							email: true,
+							push: true,
+							push_mentions: true,
+							push_comments: true,
+							push_reactions: true,
+						},
+					},
+				},
+			},
+			pushSubscriptions: [
+				{
+					id: 'push-sub-1',
+					user_id: createdNotification.recipient_user_id,
+					endpoint: 'https://push.example/subscription',
+					p256dh: 'p256dh',
+					auth: 'auth',
+					expiration_time: null,
+				},
+			],
+		});
+		mockCreateServiceRoleClient.mockReturnValue(client);
+		mockPushPartyKitNotificationEvent.mockResolvedValue({
+			attempted: true,
+			delivered: true,
+		});
+		mockCreateResendClient.mockReturnValue({
+			emails: { send: jest.fn(async () => ({ error: null })) },
+		} as unknown as ReturnType<typeof createResendClient>);
+		mockSendWebPushNotification.mockResolvedValue({
+			success: false,
+			statusCode: 410,
+			error: 'Subscription gone',
+		});
+
+		await createNotifications([
+			{
+				recipientUserId: createdNotification.recipient_user_id,
+				eventType: createdNotification.event_type,
+				title: createdNotification.title,
+				body: createdNotification.body,
+				mapId: createdNotification.map_id,
+				dedupeKey: createdNotification.dedupe_key,
+			},
+		]);
+
+		expect(mockSendWebPushNotification).toHaveBeenCalledTimes(1);
+		expect(pushSubscriptionDeletes).toEqual([
+			{ key: 'id', value: 'push-sub-1' },
+		]);
 	});
 });

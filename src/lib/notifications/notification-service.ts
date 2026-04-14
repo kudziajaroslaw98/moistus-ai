@@ -2,6 +2,7 @@ import { resolveDisplayName } from '@/helpers/identity/resolve-user-identity';
 import { pushPartyKitNotificationEvent } from '@/helpers/partykit/admin';
 import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { createResendClient } from '@/lib/email';
+import { sendWebPushNotification } from '@/lib/push/web-push';
 import type {
 	NotificationEmailStatus,
 	NotificationEventType,
@@ -26,6 +27,15 @@ interface UserProfileEmailPayload {
 	display_name: string | null;
 	full_name: string | null;
 	preferences: Record<string, unknown> | null;
+}
+
+interface PushSubscriptionRow {
+	id: string;
+	user_id: string;
+	endpoint: string;
+	p256dh: string;
+	auth: string;
+	expiration_time: string | null;
 }
 
 const EMAIL_FROM = 'Shiko <noreply@shiko.app>';
@@ -73,6 +83,7 @@ export async function createNotifications(
 	const sideEffectResults = await Promise.allSettled([
 		dispatchPartyKitNotificationEvents(created),
 		processNotificationEmails(adminClient, created),
+		processWebPushNotifications(adminClient, created),
 	]);
 
 	const partyKitResult = sideEffectResults[0];
@@ -92,6 +103,16 @@ export async function createNotifications(
 			emailResult.reason instanceof Error
 				? emailResult.reason.message
 				: emailResult.reason
+		);
+	}
+
+	const webPushResult = sideEffectResults[2];
+	if (webPushResult?.status === 'rejected') {
+		console.warn(
+			'[notifications] processWebPushNotifications error',
+			webPushResult.reason instanceof Error
+				? webPushResult.reason.message
+				: webPushResult.reason
 		);
 	}
 	return created;
@@ -330,6 +351,190 @@ async function processNotificationEmails(
 				email_error: error instanceof Error ? error.message : 'Unknown error',
 			});
 		}
+	}
+}
+
+const resolvePushPreferenceFromProfile = (
+	preferences: Record<string, unknown> | null | undefined
+): {
+	enabled: boolean;
+	mentions: boolean;
+	comments: boolean;
+	reactions: boolean;
+} => {
+	if (!preferences || typeof preferences !== 'object') {
+		return {
+			enabled: false,
+			mentions: true,
+			comments: true,
+			reactions: true,
+		};
+	}
+
+	const maybeNotifications = preferences.notifications;
+	if (!maybeNotifications || typeof maybeNotifications !== 'object') {
+		return {
+			enabled: false,
+			mentions: true,
+			comments: true,
+			reactions: true,
+		};
+	}
+
+	const notificationPrefs = maybeNotifications as Record<string, unknown>;
+	const enabled =
+		typeof notificationPrefs.push === 'boolean'
+			? notificationPrefs.push
+			: false;
+	const mentions =
+		typeof notificationPrefs.push_mentions === 'boolean'
+			? notificationPrefs.push_mentions
+			: true;
+	const comments =
+		typeof notificationPrefs.push_comments === 'boolean'
+			? notificationPrefs.push_comments
+			: true;
+	const reactions =
+		typeof notificationPrefs.push_reactions === 'boolean'
+			? notificationPrefs.push_reactions
+			: true;
+
+	return {
+		enabled,
+		mentions,
+		comments,
+		reactions,
+	};
+};
+
+const shouldDeliverPush = (
+	eventType: NotificationEventType,
+	pushPreferences: ReturnType<typeof resolvePushPreferenceFromProfile>
+) => {
+	if (!pushPreferences.enabled) {
+		return false;
+	}
+
+	if (eventType === 'comment_reaction') {
+		return pushPreferences.reactions;
+	}
+	if (eventType === 'comment_reply' || eventType === 'access_changed' || eventType === 'access_revoked') {
+		return pushPreferences.comments;
+	}
+	return pushPreferences.mentions;
+};
+
+async function processWebPushNotifications(
+	adminClient: SupabaseClient,
+	notifications: NotificationRecord[]
+): Promise<void> {
+	if (notifications.length === 0) {
+		return;
+	}
+
+	const recipientUserIds = Array.from(
+		new Set(notifications.map((notification) => notification.recipient_user_id))
+	);
+
+	const { data: subscriptions, error: subscriptionsError } = await adminClient
+		.from('push_subscriptions')
+		.select('id, user_id, endpoint, p256dh, auth, expiration_time')
+		.in('user_id', recipientUserIds);
+
+	if (subscriptionsError) {
+		console.warn('[notifications] failed to load push subscriptions', subscriptionsError);
+		return;
+	}
+
+	if (!subscriptions || subscriptions.length === 0) {
+		return;
+	}
+
+	const subscriptionsByUserId = new Map<string, PushSubscriptionRow[]>();
+	(subscriptions as PushSubscriptionRow[]).forEach((subscription) => {
+		const current = subscriptionsByUserId.get(subscription.user_id) ?? [];
+		current.push(subscription);
+		subscriptionsByUserId.set(subscription.user_id, current);
+	});
+
+	const profileCache = new Map<string, UserProfileEmailPayload | null>();
+	const mapTitleCache = new Map<string, string | null>();
+	const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://shiko.app';
+
+	for (const notification of notifications) {
+		const userSubscriptions =
+			subscriptionsByUserId.get(notification.recipient_user_id) ?? [];
+		if (userSubscriptions.length === 0) {
+			continue;
+		}
+
+		const profile = await getUserProfile(
+			adminClient,
+			notification.recipient_user_id,
+			profileCache
+		);
+		const pushPreferences = resolvePushPreferenceFromProfile(profile?.preferences);
+		if (!shouldDeliverPush(notification.event_type, pushPreferences)) {
+			continue;
+		}
+
+		if (notification.map_id) {
+			await getMapTitle(adminClient, notification.map_id, mapTitleCache);
+		}
+		const navigate = notification.map_id
+			? `${siteUrl}/mind-map/${notification.map_id}`
+			: `${siteUrl}/dashboard`;
+
+		await Promise.all(
+			userSubscriptions.map(async (subscription) => {
+				const delivery = await sendWebPushNotification({
+					subscription: {
+						endpoint: subscription.endpoint,
+						keys: {
+							p256dh: subscription.p256dh,
+							auth: subscription.auth,
+						},
+						expirationTime: subscription.expiration_time
+							? new Date(subscription.expiration_time).getTime()
+							: null,
+					},
+					payload: {
+						title: notification.title,
+						body: notification.body,
+						navigate,
+						tag: `notif:${notification.id}`,
+					},
+				});
+
+				if (!delivery.success) {
+					if (
+						delivery.statusCode === 404 ||
+						delivery.statusCode === 410
+					) {
+						await adminClient
+							.from('push_subscriptions')
+							.delete()
+							.eq('id', subscription.id);
+						return;
+					}
+
+					console.warn('[notifications] web push send failed', {
+						notificationId: notification.id,
+						subscriptionId: subscription.id,
+						statusCode: delivery.statusCode,
+						error: delivery.error,
+					});
+				} else {
+					await adminClient
+						.from('push_subscriptions')
+						.update({
+							last_used_at: new Date().toISOString(),
+							updated_at: new Date().toISOString(),
+						})
+						.eq('id', subscription.id);
+				}
+			})
+		);
 	}
 }
 

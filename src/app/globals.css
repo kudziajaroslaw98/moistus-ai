@@ -470,3 +470,17 @@ NODE EDITOR OVERRIDES
 .ͼ1.cm-focused {
 	@apply rounded-[5px] outline outline-primary-500/50;
 }
+
+/* Optional view-transition styling for route changes. */
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation-duration: 220ms;
+	animation-timing-function: ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	::view-transition-old(root),
+	::view-transition-new(root) {
+		animation-duration: 0ms;
+	}
+}

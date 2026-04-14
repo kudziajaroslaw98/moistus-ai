@@ -9,6 +9,11 @@ import {
 	generateFunName,
 	generateUserColor,
 } from '@/helpers/user-profile-helpers';
+import {
+	getMapCacheRecord,
+	setMapCacheRecord,
+} from '@/lib/offline/indexed-db';
+import { queueMutation } from '@/lib/offline/offline-mutation-adapter';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
@@ -22,6 +27,32 @@ import type { User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import type { StateCreator } from 'zustand';
 import type { AppState, CoreDataSlice } from '../app-state';
+
+const isLikelyOfflineError = (message?: string | null): boolean => {
+	if (!message) {
+		return false;
+	}
+	const lowered = message.toLowerCase();
+	return (
+		lowered.includes('fetch') ||
+		lowered.includes('network') ||
+		lowered.includes('offline') ||
+		lowered.includes('failed to fetch')
+	);
+};
+
+const readCachedGraphData = (payload: unknown): SupabaseMapData | null => {
+	if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+		return null;
+	}
+
+	const record = payload as { graphData?: unknown };
+	if (!record.graphData || typeof record.graphData !== 'object') {
+		return null;
+	}
+
+	return record.graphData as SupabaseMapData;
+};
 
 export const createCoreDataSlice: StateCreator<
 	AppState,
@@ -299,9 +330,56 @@ export const createCoreDataSlice: StateCreator<
 				return;
 			}
 
-			// Handle potential access denial (PGRST116 = no rows returned)
-			if (mindMapError) {
-				console.error('Error fetching from Supabase:', mindMapError);
+				// Handle potential access denial (PGRST116 = no rows returned)
+				if (mindMapError) {
+					console.error('Error fetching from Supabase:', mindMapError);
+					const offlineCache = await getMapCacheRecord(mapId);
+					if (
+						offlineCache?.payload &&
+						isLikelyOfflineError(mindMapError.message)
+					) {
+						if (abortIfStale()) {
+							return;
+						}
+
+						const cachedGraph = readCachedGraphData(offlineCache.payload);
+						if (cachedGraph) {
+							if (abortIfStale()) {
+								return;
+							}
+
+							const cachedTransformed = transformSupabaseData(cachedGraph);
+							const normalizedCachedEdges = rerouteAutoWaypointEdges({
+								nodes: cachedTransformed.reactFlowNodes as AppNode[],
+							edges: cachedTransformed.reactFlowEdges,
+							direction:
+								cachedTransformed.mindMap.layout_direction ??
+								DEFAULT_LAYOUT_CONFIG.direction,
+								legacyOnly: true,
+							});
+
+							if (abortIfStale()) {
+								return;
+							}
+
+							set((state) => ({
+								mindMap: cachedTransformed.mindMap,
+								nodes: cachedTransformed.reactFlowNodes,
+							edges: normalizedCachedEdges.edges,
+							layoutConfig: {
+								...state.layoutConfig,
+								direction:
+									cachedTransformed.mindMap.layout_direction ??
+									DEFAULT_LAYOUT_CONFIG.direction,
+								},
+							}));
+
+							if (toastId) {
+								toast.success('Loaded cached map data (offline mode)', { id: toastId });
+							}
+							return;
+						}
+					}
 
 				// Check if this is an access/not-found error
 				if (
@@ -431,6 +509,10 @@ export const createCoreDataSlice: StateCreator<
 				return;
 			}
 
+			await setMapCacheRecord(mapId, {
+				graphData,
+			});
+
 			const normalizedPersistedLayoutDirection = normalizeLayoutDirection(
 				graphData.layout_direction
 			);
@@ -525,21 +607,36 @@ export const createCoreDataSlice: StateCreator<
 				throw new Error('Map ID is required.');
 			}
 
-			const response = await fetch(`/api/maps/${mapId}`, {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json',
+			const mutation = await queueMutation<MindMapData | null>({
+				entity: 'mind_maps',
+				action: 'update',
+				baseVersion: get().mindMap?.updated_at ?? null,
+				payload: {
+					table: 'mind_maps',
+					values: updates as Record<string, unknown>,
+					match: {
+						id: mapId,
+					},
 				},
-				body: JSON.stringify(updates),
+				executeOnline: async () => {
+					const response = await fetch(`/api/maps/${mapId}`, {
+						method: 'PUT',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify(updates),
+					});
+
+					if (!response.ok) {
+						const errorData = await response.json();
+						throw new Error(errorData.error || 'Failed to update map.');
+					}
+
+					const result = await response.json();
+					return (result.data?.map as MindMapData | undefined) ?? null;
+				},
 			});
-
-			if (!response.ok) {
-				const errorData = await response.json();
-				throw new Error(errorData.error || 'Failed to update map.');
-			}
-
-			const result = await response.json();
-			const updatedMap = result.data?.map as MindMapData | undefined;
+			const updatedMap = mutation.status === 'applied' ? mutation.data : null;
 
 			if (updatedMap) {
 				set((state) => ({
@@ -550,7 +647,21 @@ export const createCoreDataSlice: StateCreator<
 							updatedMap.layout_direction ?? state.layoutConfig.direction,
 					},
 				}));
-			}
+				} else {
+					set((state) => ({
+						mindMap: state.mindMap
+							? ({
+									...state.mindMap,
+									...updates,
+							  } as MindMapData)
+							: state.mindMap,
+						layoutConfig: {
+							...state.layoutConfig,
+							direction:
+								updates.layout_direction ?? state.layoutConfig.direction,
+						},
+					}));
+				}
 		},
 		'isUpdatingMapSettings',
 		{

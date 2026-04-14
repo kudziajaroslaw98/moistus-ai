@@ -121,8 +121,22 @@ function shouldDeriveFromBrowserHost(
 	browserLocation: BrowserLocationLike | null,
 	nodeEnv: string | null | undefined
 ): boolean {
-	if (!browserLocation || nodeEnv !== 'development') {
+	if (!browserLocation) {
 		return false;
+	}
+
+	if (nodeEnv && nodeEnv !== 'development') {
+		return false;
+	}
+
+	const browserHost = browserLocation.hostname;
+	if (
+		configuredUrl &&
+		isLoopbackHost(configuredUrl) &&
+		!isLoopbackHost(browserHost)
+	) {
+		// LAN device access should never stay pinned to localhost/127.0.0.1.
+		return true;
 	}
 
 	if (!configuredUrl) {
@@ -176,15 +190,21 @@ export function resolveBrowserSupabaseUrl({
 	browserLocation = getBrowserLocation(),
 	configuredUrl = process.env.NEXT_PUBLIC_SUPABASE_URL,
 	devPort = process.env.NEXT_PUBLIC_SUPABASE_DEV_PORT,
-	nodeEnv = process.env.NODE_ENV,
+	nodeEnv,
 }: BrowserServiceUrlOptions = {}): string {
+	const resolvedNodeEnv = Object.prototype.hasOwnProperty.call(
+		arguments[0] ?? {},
+		'nodeEnv'
+	)
+		? nodeEnv
+		: process.env.NODE_ENV;
 	const trimmedConfiguredUrl = trimConfigValue(configuredUrl);
 
 	if (
 		shouldDeriveFromBrowserHost(
 			trimmedConfiguredUrl,
 			browserLocation,
-			nodeEnv
+			resolvedNodeEnv
 		) &&
 		browserLocation
 	) {
@@ -212,8 +232,14 @@ export function resolveBrowserPartyKitHost({
 	browserLocation = getBrowserLocation(),
 	configuredUrl = process.env.NEXT_PUBLIC_PARTYKIT_URL,
 	devPort = process.env.NEXT_PUBLIC_PARTYKIT_DEV_PORT,
-	nodeEnv = process.env.NODE_ENV,
+	nodeEnv,
 }: BrowserServiceUrlOptions = {}): string {
+	const resolvedNodeEnv = Object.prototype.hasOwnProperty.call(
+		arguments[0] ?? {},
+		'nodeEnv'
+	)
+		? nodeEnv
+		: process.env.NODE_ENV;
 	const trimmedConfiguredUrl = trimConfigValue(configuredUrl);
 	const resolvedPort = getResolvedDevPort(devPort, DEFAULT_PARTYKIT_DEV_PORT);
 
@@ -221,7 +247,7 @@ export function resolveBrowserPartyKitHost({
 		shouldDeriveFromBrowserHost(
 			trimmedConfiguredUrl,
 			browserLocation,
-			nodeEnv
+			resolvedNodeEnv
 		) &&
 		browserLocation
 	) {
@@ -256,8 +282,14 @@ export function resolveBrowserPartyKitWsBaseUrl(
 		browserLocation = getBrowserLocation(),
 		configuredUrl = process.env.NEXT_PUBLIC_PARTYKIT_URL,
 		devPort = process.env.NEXT_PUBLIC_PARTYKIT_DEV_PORT,
-		nodeEnv = process.env.NODE_ENV,
+		nodeEnv,
 	} = options;
+	const resolvedNodeEnv = Object.prototype.hasOwnProperty.call(
+		options,
+		'nodeEnv'
+	)
+		? nodeEnv
+		: process.env.NODE_ENV;
 	const trimmedConfiguredUrl = trimConfigValue(configuredUrl);
 	const wsProtocol = browserLocation?.protocol === 'https:' ? 'wss:' : 'ws:';
 
@@ -265,7 +297,7 @@ export function resolveBrowserPartyKitWsBaseUrl(
 		shouldDeriveFromBrowserHost(
 			trimmedConfiguredUrl,
 			browserLocation,
-			nodeEnv
+			resolvedNodeEnv
 		) &&
 		browserLocation
 	) {

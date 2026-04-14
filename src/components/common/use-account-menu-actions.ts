@@ -1,6 +1,7 @@
 'use client';
 
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
+import { runWithViewTransition } from '@/lib/view-transitions';
 import useAppStore from '@/store/mind-map-store';
 import type { PublicUserProfile } from '@/types/user-profile-types';
 import { useRouter } from 'next/navigation';
@@ -81,7 +82,9 @@ export function useAccountMenuActions(user: AccountMenuUser) {
 
 			await mutate(() => true, undefined, { revalidate: false });
 
-			router.push('/');
+			runWithViewTransition(() => {
+				router.push('/');
+			});
 			setIsLoggingOut(false);
 		}
 	}, [isLoggingOut, resetStore, router, setLoggingOut]);

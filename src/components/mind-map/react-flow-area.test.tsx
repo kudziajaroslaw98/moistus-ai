@@ -10,7 +10,11 @@ const mockCancelAnimation = jest.fn();
 const mockNoop = jest.fn();
 const mockOpenContextMenuAt = jest.fn();
 const mockUseTouchContextMenuFallback = jest.fn();
+const mockUseMultiTouchShortcuts = jest.fn();
+const mockSetCenter = jest.fn();
+const mockFitView = jest.fn();
 let mockStoreState: Record<string, unknown>;
+let mockCanEdit = true;
 
 jest.mock('@/registry/node-registry', () => ({
 	NodeRegistry: {
@@ -41,7 +45,10 @@ jest.mock('@xyflow/react', () => {
 			return React.createElement('div', { 'data-testid': 'react-flow' }, children);
 		},
 		SelectionMode: { Partial: 'partial' },
-		useReactFlow: () => null,
+		useReactFlow: () => ({
+			setCenter: (...args: unknown[]) => mockSetCenter(...args),
+			fitView: (...args: unknown[]) => mockFitView(...args),
+		}),
 	};
 });
 
@@ -95,7 +102,7 @@ jest.mock('@/components/mind-map/top-bar', () => ({
 }));
 
 jest.mock('@/hooks/collaboration/use-permissions', () => ({
-	usePermissions: () => ({ canEdit: true }),
+	usePermissions: () => ({ canEdit: mockCanEdit }),
 }));
 jest.mock('@/hooks/realtime/use-activity-tracker', () => ({
 	useActivityTracker: () => ({
@@ -145,6 +152,10 @@ jest.mock('@/hooks/use-animated-layout', () => ({
 		isAnimating: false,
 		animationProgress: 0,
 	}),
+}));
+jest.mock('@/hooks/use-multi-touch-shortcuts', () => ({
+	useMultiTouchShortcuts: (...args: unknown[]) =>
+		mockUseMultiTouchShortcuts(...args),
 }));
 jest.mock('@/lib/realtime/room-names', () => ({
 	getMindMapRoomName: () => 'room-name',
@@ -221,6 +232,7 @@ function createMockStore(overrides: Partial<Record<string, unknown>> = {}) {
 		onEdgesChange: mockNoop,
 		onConnect: mockNoop,
 		setReactFlowInstance: mockNoop,
+		setNodes: mockNoop,
 		setSelectedNodes: mockNoop,
 		setPopoverOpen: mockNoop,
 		popoverOpen: {
@@ -242,6 +254,10 @@ function createMockStore(overrides: Partial<Record<string, unknown>> = {}) {
 		getCurrentUser: jest.fn().mockResolvedValue(null),
 		getVisibleEdges: () => store.edges as AppEdge[],
 		getVisibleNodes: () => store.nodes as AppNode[],
+		selectedNodes: [],
+		historyIndex: 0,
+		historyMeta: [],
+		revertToHistoryState: jest.fn().mockResolvedValue(undefined),
 		mindMap: { user_id: 'user-1', layout_direction: 'TOP_BOTTOM' },
 		currentUser: { id: 'user-1' },
 		mapAccessError: null,
@@ -283,6 +299,10 @@ describe('ReactFlowArea', () => {
 		mockCancelAnimation.mockReset();
 		mockOpenContextMenuAt.mockReset();
 		mockUseTouchContextMenuFallback.mockReset();
+		mockUseMultiTouchShortcuts.mockReset();
+		mockSetCenter.mockReset();
+		mockFitView.mockReset();
+		mockCanEdit = true;
 		mockStoreState = createMockStore();
 		mockAnimateGraphToState.mockImplementation(
 			async ({
@@ -426,5 +446,58 @@ describe('ReactFlowArea', () => {
 			isContextMenuOpen: boolean;
 		};
 		expect(lastCallParams.isContextMenuOpen).toBe(true);
+	});
+
+	it('guards undo and redo gesture callbacks for read-only users', () => {
+		const revertToHistoryState = jest.fn().mockResolvedValue(undefined);
+		mockCanEdit = false;
+		mockStoreState = createMockStore({
+			historyIndex: 1,
+			historyMeta: [{ id: 'h-0' }, { id: 'h-1' }, { id: 'h-2' }],
+			revertToHistoryState,
+		});
+
+		render(<ReactFlowArea isMapReady={true} />);
+
+		const gestureConfig = mockUseMultiTouchShortcuts.mock.calls.at(-1)?.[0] as {
+			onTwoFingerTap: () => void;
+			onThreeFingerTap: () => void;
+		};
+
+		act(() => {
+			gestureConfig.onTwoFingerTap();
+			gestureConfig.onThreeFingerTap();
+		});
+
+		expect(revertToHistoryState).not.toHaveBeenCalled();
+	});
+
+	it('keeps node.selected and selectedNodes in sync when cycling gesture selection', () => {
+		const setNodes = jest.fn();
+		const setSelectedNodes = jest.fn();
+		mockStoreState = createMockStore({
+			selectedNodes: [createNode('a', 0, 0)],
+			setNodes,
+			setSelectedNodes,
+		});
+
+		render(<ReactFlowArea isMapReady={true} />);
+
+		const gestureConfig = mockUseMultiTouchShortcuts.mock.calls.at(-1)?.[0] as {
+			onThreeFingerSwipe: (direction: 'left' | 'right') => void;
+		};
+
+		act(() => {
+			gestureConfig.onThreeFingerSwipe('right');
+		});
+
+		expect(setNodes).toHaveBeenCalledWith([
+			expect.objectContaining({ id: 'a', selected: false }),
+			expect.objectContaining({ id: 'b', selected: true }),
+		]);
+		expect(setSelectedNodes).toHaveBeenCalledWith([
+			expect.objectContaining({ id: 'b', selected: true }),
+		]);
+		expect(mockSetCenter).toHaveBeenCalledTimes(1);
 	});
 });

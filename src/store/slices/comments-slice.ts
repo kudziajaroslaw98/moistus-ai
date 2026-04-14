@@ -3,6 +3,11 @@ import {
 	generateFallbackAvatar,
 	generateFunName,
 } from '@/helpers/user-profile-helpers';
+import {
+	getWorkspaceCacheRecord,
+	setWorkspaceCacheRecord,
+} from '@/lib/offline/indexed-db';
+import { queueMutation } from '@/lib/offline/offline-mutation-adapter';
 import type {
 	Comment,
 	CommentMessage,
@@ -43,6 +48,28 @@ function toErrorLogPayload(error: unknown): {
 	}
 
 	return { message: 'Unknown error', details: error };
+}
+
+function parseCachedCommentsPayload(payload: unknown): Comment[] | null {
+	if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+		return null;
+	}
+
+	const record = payload as { comments?: unknown };
+	return Array.isArray(record.comments)
+		? (record.comments as Comment[])
+		: null;
+}
+
+function parseCachedMessagesPayload(payload: unknown): CommentMessage[] | null {
+	if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+		return null;
+	}
+
+	const record = payload as { messages?: unknown };
+	return Array.isArray(record.messages)
+		? (record.messages as CommentMessage[])
+		: null;
 }
 
 export interface CommentsSlice {
@@ -122,11 +149,30 @@ export const createCommentsSlice: StateCreator<
 				.eq('map_id', mapId)
 				.order('created_at', { ascending: true });
 
-			if (error) throw error;
+				if (error) throw error;
 
-			set({ comments: data || [], isLoadingComments: false });
-		} catch (error) {
-			console.error('Error fetching comments:', error);
+					set({ comments: data || [], isLoadingComments: false });
+					try {
+						await setWorkspaceCacheRecord(`comments:${mapId}`, {
+							comments: data || [],
+						});
+					} catch (cacheError) {
+						console.warn('Failed to cache comments:', cacheError);
+					}
+			} catch (error) {
+				console.error('Error fetching comments:', error);
+				const cachedComments = await getWorkspaceCacheRecord(`comments:${mapId}`);
+				const cachedCommentsPayload = parseCachedCommentsPayload(
+					cachedComments?.payload
+				);
+				if (cachedCommentsPayload) {
+					set({
+						comments: cachedCommentsPayload,
+						isLoadingComments: false,
+						commentError: null,
+					});
+					return;
+			}
 			set({
 				commentError:
 					error instanceof Error ? error.message : 'Failed to fetch comments',
@@ -165,38 +211,69 @@ export const createCommentsSlice: StateCreator<
 				comments: [...state.comments, optimisticComment],
 			}));
 
-			// Background save to Supabase
-			const { data: savedComment, error } = await supabase
-				.from('comments')
-				.insert({
-					id: commentId,
-					map_id: data.map_id,
-					position_x: data.position_x,
-					position_y: data.position_y,
-					width: data.width || 400,
-					height: data.height || 512,
-					created_by: currentUser.id,
-				})
-				.select()
-				.single();
+			let savedComment: Comment | null = null;
+			try {
+				const mutation = await queueMutation<Comment>({
+					entity: 'comments',
+					action: 'insert',
+					payload: {
+						table: 'comments',
+						values: {
+							id: commentId,
+							map_id: data.map_id,
+							position_x: data.position_x,
+							position_y: data.position_y,
+							width: data.width || 400,
+							height: data.height || 512,
+							created_by: currentUser.id,
+						},
+						select: '*',
+					},
+					executeOnline: async () => {
+						const { data: createdComment, error } = await supabase
+							.from('comments')
+							.insert({
+								id: commentId,
+								map_id: data.map_id,
+								position_x: data.position_x,
+								position_y: data.position_y,
+								width: data.width || 400,
+								height: data.height || 512,
+								created_by: currentUser.id,
+							})
+							.select()
+							.single();
 
-			if (error) {
+						if (error || !createdComment) {
+							throw error ?? new Error('Failed to create comment');
+						}
+
+						return createdComment as Comment;
+					},
+				});
+
+				if (mutation.status === 'applied') {
+					savedComment = mutation.data ?? null;
+				}
+			} catch (error) {
 				// Rollback optimistic update
 				set((state) => ({
 					comments: state.comments.filter((c) => c.id !== commentId),
-					commentError: error.message,
+					commentError: error instanceof Error ? error.message : 'Failed to create comment',
 				}));
 				throw error;
 			}
 
 			// Update with server response
-			set((state) => ({
-				comments: state.comments.map((c) =>
-					c.id === commentId ? savedComment : c
-				),
-			}));
+			if (savedComment) {
+				set((state) => ({
+					comments: state.comments.map((c) =>
+						c.id === commentId ? savedComment! : c
+					),
+				}));
+			}
 
-			return savedComment;
+			return savedComment ?? optimisticComment;
 		} catch (error) {
 			console.error('Error creating comment:', error);
 			set({
@@ -228,17 +305,33 @@ export const createCommentsSlice: StateCreator<
 				),
 			}));
 
-			// Background save
-			const { error } = await supabase
-				.from('comments')
-				.update({
-					position_x: position.x,
-					position_y: position.y,
-					updated_at: new Date().toISOString(),
-				})
-				.eq('id', commentId);
+			await queueMutation({
+				entity: 'comments',
+				action: 'update',
+				payload: {
+					table: 'comments',
+					values: {
+						position_x: position.x,
+						position_y: position.y,
+						updated_at: new Date().toISOString(),
+					},
+					match: {
+						id: commentId,
+					},
+				},
+				executeOnline: async () => {
+					const { error } = await supabase
+						.from('comments')
+						.update({
+							position_x: position.x,
+							position_y: position.y,
+							updated_at: new Date().toISOString(),
+						})
+						.eq('id', commentId);
 
-			if (error) throw error;
+					if (error) throw error;
+				},
+			});
 		} catch (error) {
 			console.error('Error updating comment position:', error);
 			set({
@@ -272,17 +365,33 @@ export const createCommentsSlice: StateCreator<
 				),
 			}));
 
-			// Background save
-			const { error } = await supabase
-				.from('comments')
-				.update({
-					width,
-					height,
-					updated_at: new Date().toISOString(),
-				})
-				.eq('id', commentId);
+			await queueMutation({
+				entity: 'comments',
+				action: 'update',
+				payload: {
+					table: 'comments',
+					values: {
+						width,
+						height,
+						updated_at: new Date().toISOString(),
+					},
+					match: {
+						id: commentId,
+					},
+				},
+				executeOnline: async () => {
+					const { error } = await supabase
+						.from('comments')
+						.update({
+							width,
+							height,
+							updated_at: new Date().toISOString(),
+						})
+						.eq('id', commentId);
 
-			if (error) throw error;
+					if (error) throw error;
+				},
+			});
 		} catch (error) {
 			console.error('Error updating comment dimensions:', error);
 			set({
@@ -308,13 +417,24 @@ export const createCommentsSlice: StateCreator<
 				};
 			});
 
-			// Background delete (cascade will handle messages and reactions)
-			const { error } = await supabase
-				.from('comments')
-				.delete()
-				.eq('id', commentId);
+			await queueMutation({
+				entity: 'comments',
+				action: 'delete',
+				payload: {
+					table: 'comments',
+					match: {
+						id: commentId,
+					},
+				},
+				executeOnline: async () => {
+					const { error } = await supabase
+						.from('comments')
+						.delete()
+						.eq('id', commentId);
 
-			if (error) throw error;
+					if (error) throw error;
+				},
+			});
 
 			if (pairedNode) {
 				await deleteNodes([pairedNode]);
@@ -390,14 +510,37 @@ export const createCommentsSlice: StateCreator<
 				};
 			});
 
-			set((state) => ({
-				commentMessages: {
-					...state.commentMessages,
-					[commentId]: messages,
-				},
-			}));
-		} catch (error) {
-			console.error('Error fetching messages:', error);
+					set((state) => ({
+						commentMessages: {
+							...state.commentMessages,
+							[commentId]: messages,
+						},
+					}));
+					try {
+						await setWorkspaceCacheRecord(`comment-messages:${commentId}`, {
+							messages,
+						});
+					} catch (cacheError) {
+						console.warn('Failed to cache comment messages:', cacheError);
+					}
+			} catch (error) {
+				console.error('Error fetching messages:', error);
+				const cachedMessages = await getWorkspaceCacheRecord(
+					`comment-messages:${commentId}`
+				);
+				const cachedMessagesPayload = parseCachedMessagesPayload(
+					cachedMessages?.payload
+				);
+				if (cachedMessagesPayload) {
+					set((state) => ({
+						commentMessages: {
+							...state.commentMessages,
+							[commentId]: cachedMessagesPayload,
+						},
+						commentError: null,
+					}));
+					return;
+			}
 			set({
 				commentError:
 					error instanceof Error ? error.message : 'Failed to fetch messages',
@@ -469,20 +612,46 @@ export const createCommentsSlice: StateCreator<
 				},
 			}));
 
-			// Background save
-			const { data: savedMessage, error } = await supabase
-				.from('comment_messages')
-				.insert({
-					id: messageId,
-					comment_id: commentId,
-					user_id: currentUser.id,
-					content: data.content,
-					mentioned_users: data.mentioned_users || [],
-				})
-				.select()
-				.single();
+			let savedMessage: CommentMessage | null = null;
+			try {
+				const mutation = await queueMutation<CommentMessage>({
+					entity: 'comment_messages',
+					action: 'insert',
+					payload: {
+						table: 'comment_messages',
+						values: {
+							id: messageId,
+							comment_id: commentId,
+							user_id: currentUser.id,
+							content: data.content,
+							mentioned_users: data.mentioned_users || [],
+						},
+						select: '*',
+					},
+					executeOnline: async () => {
+						const { data: createdMessage, error } = await supabase
+							.from('comment_messages')
+							.insert({
+								id: messageId,
+								comment_id: commentId,
+								user_id: currentUser.id,
+								content: data.content,
+								mentioned_users: data.mentioned_users || [],
+							})
+							.select()
+							.single();
+						if (error || !createdMessage) {
+							throw error ?? new Error('Failed to add message');
+						}
 
-			if (error) {
+						return createdMessage as CommentMessage;
+					},
+				});
+
+				if (mutation.status === 'applied') {
+					savedMessage = mutation.data ?? null;
+				}
+			} catch (error) {
 				// Rollback optimistic update
 				set((state) => ({
 					commentMessages: {
@@ -491,20 +660,28 @@ export const createCommentsSlice: StateCreator<
 							(m) => m.id !== messageId
 						),
 					},
-					commentError: error.message,
+					commentError: error instanceof Error ? error.message : 'Failed to add message',
 				}));
 				throw error;
 			}
 
-			// Update with server response
-			set((state) => ({
-				commentMessages: {
-					...state.commentMessages,
-					[commentId]: (state.commentMessages[commentId] || []).map((m) =>
-						m.id === messageId ? { ...savedMessage, ...optimisticMessage } : m
-					),
-				},
-			}));
+				// Update with server response
+				if (savedMessage) {
+					set((state) => ({
+						commentMessages: {
+							...state.commentMessages,
+							[commentId]: (state.commentMessages[commentId] || []).map((m) =>
+								m.id === messageId
+									? {
+											...optimisticMessage,
+											...savedMessage,
+											user: optimisticMessage.user ?? savedMessage.user,
+									  }
+									: m
+							),
+						},
+					}));
+				}
 
 			if (mapId) {
 				const events: NotificationEmitEvent[] = [];
@@ -562,7 +739,7 @@ export const createCommentsSlice: StateCreator<
 				}
 			}
 
-			return savedMessage;
+			return savedMessage ?? optimisticMessage;
 		} catch (error) {
 			console.error('Error adding message:', error);
 			set({
@@ -587,13 +764,24 @@ export const createCommentsSlice: StateCreator<
 				},
 			}));
 
-			// Background delete
-			const { error } = await supabase
-				.from('comment_messages')
-				.delete()
-				.eq('id', messageId);
+			await queueMutation({
+				entity: 'comment_messages',
+				action: 'delete',
+				payload: {
+					table: 'comment_messages',
+					match: {
+						id: messageId,
+					},
+				},
+				executeOnline: async () => {
+					const { error } = await supabase
+						.from('comment_messages')
+						.delete()
+						.eq('id', messageId);
 
-			if (error) throw error;
+					if (error) throw error;
+				},
+			});
 		} catch (error) {
 			console.error('Error deleting message:', error);
 			set({
@@ -672,17 +860,43 @@ export const createCommentsSlice: StateCreator<
 				},
 			}));
 
-			// Background save
-			const { error } = await supabase.from('comment_reactions').insert({
-				id: reactionId,
-				message_id: messageId,
-				user_id: currentUser.id,
-				emoji: data.emoji,
-			});
+			let reactionError: Error | null = null;
+			try {
+				await queueMutation({
+					entity: 'comment_reactions',
+					action: 'insert',
+					payload: {
+						table: 'comment_reactions',
+						values: {
+							id: reactionId,
+							message_id: messageId,
+							user_id: currentUser.id,
+							emoji: data.emoji,
+						},
+					},
+					executeOnline: async () => {
+						const { error } = await supabase.from('comment_reactions').insert({
+							id: reactionId,
+							message_id: messageId,
+							user_id: currentUser.id,
+							emoji: data.emoji,
+						});
 
-			if (error) {
+						if (error) {
+							const wrapped = new Error(error.message);
+							(wrapped as Error & { code?: string }).code = error.code;
+							throw wrapped;
+						}
+					},
+				});
+			} catch (error) {
+				reactionError = error instanceof Error ? error : new Error('Unknown reaction error');
+			}
+
+			if (reactionError) {
 				// Handle duplicate constraint error silently (race condition)
-				if (error.code === '23505') {
+				const duplicateCode = (reactionError as Error & { code?: string }).code;
+				if (duplicateCode === '23505') {
 					// Unique constraint violation - reaction already exists
 					// Just rollback the optimistic update, no need to show error
 					set((state) => ({
@@ -722,9 +936,9 @@ export const createCommentsSlice: StateCreator<
 								: m
 						),
 					},
-					commentError: error.message,
+					commentError: reactionError.message,
 				}));
-				throw error;
+				throw reactionError;
 			}
 
 			if (targetMessage.user_id !== currentUser.id) {
@@ -820,13 +1034,24 @@ export const createCommentsSlice: StateCreator<
 				},
 			}));
 
-			// Background delete
-			const { error } = await supabase
-				.from('comment_reactions')
-				.delete()
-				.eq('id', reactionId);
+			await queueMutation({
+				entity: 'comment_reactions',
+				action: 'delete',
+				payload: {
+					table: 'comment_reactions',
+					match: {
+						id: reactionId,
+					},
+				},
+				executeOnline: async () => {
+					const { error } = await supabase
+						.from('comment_reactions')
+						.delete()
+						.eq('id', reactionId);
 
-			if (error) throw error;
+					if (error) throw error;
+				},
+			});
 		} catch (error) {
 			console.error('Error removing reaction:', error);
 			set({

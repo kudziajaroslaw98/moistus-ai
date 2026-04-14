@@ -48,6 +48,11 @@ total_tokens: 707972
 <!-- Updated: 2026-04-07 - Documented Strict Mode-safe map-route cleanup replay guard -->
 <!-- Updated: 2026-04-07 - Documented progressive map-shell streaming and Yjs cleanup idempotency guards -->
 <!-- Updated: 2026-04-07 - Documented dashboard shell-parity loading fallback and progressive map-card skeleton streaming -->
+<!-- Updated: 2026-04-11 - Documented PWA/Serwist surface, offline queue/replay architecture, and push subscription/delivery APIs -->
+<!-- Updated: 2026-04-11 - Documented offline reconnect hardening (no persisted flush lock, full drain loop, visibility/startup recovery triggers, transient retry) -->
+<!-- Updated: 2026-04-13 - Migrated PWA map from Turbopack route-handler SW path to @serwist/next public/sw.js output -->
+<!-- Updated: 2026-04-13 - Migrated PWA map to @serwist/turbopack route mode with custom /app/sw.js registration path -->
+<!-- Updated: 2026-04-14 - Documented shared offline replay core, periodic notifications refresh, and settings background-sync status surface -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -87,7 +92,7 @@ graph TB
         BroadcastAdapter[Broadcast Channel Adapter]
     end
 
-    subgraph API["Next.js API Routes (61)"]
+    subgraph API["Next.js API Routes (65)"]
         AIRoutes[AI Routes]
         MapRoutes[Map CRUD]
         ShareRoutes[Sharing]
@@ -154,7 +159,7 @@ flowchart LR
 shiko/
 ├── src/
 │   ├── app/                    # Next.js App Router pages & API
-│   │   ├── api/                # 61 API routes
+│   │   ├── api/                # 65 API routes
 │   │   │   ├── ai/             # AI features (suggestions, chat, merges)
 │   │   │   ├── auth/           # Sign-up, upgrade flows
 │   │   │   ├── comments/       # Comment threads & reactions
@@ -295,7 +300,7 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 - `src/components/nodes/base-node-wrapper.tsx` - Shared wrapper
 - `src/components/nodes/[type]-node.tsx` - Individual components
 
-### API Routes (61 total)
+### API Routes (65 total)
 
 **AI & Content (7):**
 
@@ -330,6 +335,16 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 - `POST /api/notifications/mark-all-read` - Bulk mark as read
 - `PATCH /api/notifications/[id]/read` - Toggle read state
 - `POST /api/notifications/emit` - Emit mention/reply/reaction notifications
+
+**Push (3):**
+
+- `GET /api/push/public-key` - Fetch VAPID public key for browser subscription
+- `POST/DELETE /api/push/subscribe` - Upsert/remove web push subscriptions
+- `POST /api/push/test` - Send authenticated self-test push payload
+
+**Offline Sync (1):**
+
+- `POST /api/offline/ops/batch` - Idempotent queued-op replay with per-op receipt/conflict/failure status
 
 **Auth (6):**
 
@@ -383,9 +398,18 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 **Dashboard Account/Billing Settings Panel:**
 
 - `src/components/dashboard/settings-panel.tsx` uses changed-only account payload updates (`full_name`, `display_name`, `bio`, `preferences`) with deterministic validation and explicit save gating
-- `src/components/dashboard/settings-panel.tsx` now includes an account-level email notifications toggle (`preferences.notifications.email`) used by notification email delivery
+- `src/components/dashboard/settings-panel.tsx` now includes account-level email + web-push preference toggles (`preferences.notifications.*`) and browser subscribe/unsubscribe flows
+- `src/components/dashboard/settings-panel.tsx` now also surfaces background-sync capability/status badges plus last replay/refresh timestamps using `getBackgroundSyncStatus()`
 - `src/components/dashboard/discard-account-settings-changes-dialog.tsx` guards panel close when unsaved account edits exist
 - `src/components/dashboard/cancel-subscription-dialog.tsx` adds an explicit confirmation step before subscription cancellation
+
+**PWA + Offline Runtime:**
+
+- `next.config.ts` (`withSerwist` from `@serwist/turbopack`) + `src/app/app/[path]/route.ts` (`createSerwistRoute` with `swSrc: 'src/app/sw.ts'`) + `src/app/sw.ts` define service-worker build/runtime behavior; root layout registers `swUrl='/app/sw.js'` with scope `/` for full-app control
+- `src/lib/offline/indexed-db.ts` + `src/lib/offline/offline-mutation-adapter.ts` provide persistent queue storage and enqueue semantics; `src/lib/offline/offline-sync-core.ts` owns worker-safe replay + notifications refresh behavior, while `src/lib/offline/offline-sync.ts` owns window-only triggers (`startup`/`online`/`focus`/`visibility`/SW message), background-sync registration, and settings-facing capability/status reads
+- `src/lib/notifications/notifications-cache.ts` centralizes user-scoped notification cache keys/payload parsing so window hooks and service-worker refreshes write the same `notifications:${userId}:${scope}` records
+- `src/app/api/offline/ops/batch/route.ts` applies idempotent server replay with `op_id` receipts, conflict logs, and failure logs backed by new Supabase migration tables
+- `supabase/migrations/*offline*` + `*push_subscriptions*` are repo-local additive schema migrations for sync receipts/conflicts/failures and web push subscriptions
 
 **Editor Onboarding v2:**
 
@@ -410,11 +434,11 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 
 - `src/components/node-editor/components/inputs/quick-input.tsx` + `src/components/nodes/components/comment-reply-input.tsx` + `src/app/api/maps/[id]/mentionable-users/route.ts`: resolve `@slug` -> `userId` recipient IDs
 - `src/app/api/notifications/emit/route.ts` (`getMapParticipantContext`, `toNotificationInsertPayload`): trigger filtering + payload normalization -> `createNotifications()`
-- `src/lib/notifications/notification-service.ts` (`createNotifications`, `processNotificationEmails`, `resolveEmailPreferenceFromProfile`): persist/dedupe -> PartyKit push -> optional email send
+- `src/lib/notifications/notification-service.ts` (`createNotifications`, `processNotificationEmails`, `processWebPushNotifications`): persist/dedupe -> PartyKit push -> optional email + web-push send
 - `src/helpers/partykit/admin.ts` + `partykit/server.ts` (`notification-event`): admin publish -> user-channel fanout (`notifications:refresh`)
 - `src/components/notifications/use-notifications.ts` + `src/lib/realtime/notification-channel.ts`: shared hook handles inbox fetch/subscription/mark-read state for both the desktop bell and the mobile editorial drawer
 - `src/components/notifications/notification-bell.tsx`: desktop/dashboard bell is now a thin popover view over the shared notifications hook
-- `src/components/dashboard/settings-panel.tsx`: account preference toggle persists `preferences.notifications.email` used by email delivery gating
+- `src/components/dashboard/settings-panel.tsx`: account preference toggles persist `preferences.notifications` (email + push channels) and manage browser push subscriptions
 
 ## Data Flow
 

@@ -3,6 +3,11 @@ import { generateFallbackAvatar } from '@/helpers/user-profile-helpers';
 import type { UserProfileFormData } from '@/types/user-profile-types';
 import { NextResponse } from 'next/server';
 
+const toPlainRecord = (value: unknown): Record<string, unknown> =>
+	typeof value === 'object' && value !== null && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: {};
+
 // Default preferences for new profiles
 const DEFAULT_PREFERENCES = {
 	theme: 'system' as const,
@@ -10,6 +15,10 @@ const DEFAULT_PREFERENCES = {
 	reducedMotion: false,
 	notifications: {
 		email: true,
+		push: false,
+		push_comments: true,
+		push_mentions: true,
+		push_reactions: true,
 	},
 	defaultNodeType: 'defaultNode' as const,
 	privacy: {
@@ -156,10 +165,28 @@ export async function PUT(request: Request) {
 				.eq('user_id', user.id)
 				.single();
 
-			const existingPreferences = (existingProfile?.preferences as Record<string, unknown>) ?? {};
+				const existingPreferences = toPlainRecord(existingProfile?.preferences);
+				const incomingPreferences = toPlainRecord(profileData.preferences);
+				const existingNotifications = toPlainRecord(
+					existingPreferences.notifications
+				);
+				const incomingNotifications = toPlainRecord(
+					incomingPreferences.notifications
+				);
+				const existingPrivacy = toPlainRecord(existingPreferences.privacy);
+				const incomingPrivacy = toPlainRecord(incomingPreferences.privacy);
+
 			updateData.preferences = {
 				...existingPreferences,
-				...profileData.preferences,
+				...incomingPreferences,
+				notifications: {
+					...existingNotifications,
+					...incomingNotifications,
+				},
+				privacy: {
+					...existingPrivacy,
+					...incomingPrivacy,
+				},
 			};
 		}
 

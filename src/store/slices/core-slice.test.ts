@@ -1,6 +1,8 @@
 import { createCoreDataSlice } from '@/store/slices/core-slice';
 import type { StoreApi } from 'zustand';
 
+const mockGetMapCacheRecord = jest.fn();
+const mockQueueMutation = jest.fn();
 const transformSupabaseDataMock = jest.fn();
 
 jest.mock('@/helpers/supabase/shared-client', () => ({
@@ -24,6 +26,15 @@ jest.mock('@/helpers/route-auto-waypoint-edges', () => ({
 		edges,
 		affectedEdgeIds: new Set<string>(),
 	}),
+}));
+
+jest.mock('@/lib/offline/indexed-db', () => ({
+	getMapCacheRecord: (...args: unknown[]) => mockGetMapCacheRecord(...args),
+	setMapCacheRecord: jest.fn(),
+}));
+
+jest.mock('@/lib/offline/offline-mutation-adapter', () => ({
+	queueMutation: (...args: unknown[]) => mockQueueMutation(...args),
 }));
 
 jest.mock('sonner', () => ({
@@ -195,6 +206,9 @@ function createCoreSliceHarness(overrides: Record<string, unknown> = {}) {
 
 describe('core slice', () => {
 	beforeEach(() => {
+		jest.clearAllMocks();
+		mockGetMapCacheRecord.mockReset();
+		mockQueueMutation.mockReset();
 		transformSupabaseDataMock.mockReset();
 	});
 
@@ -313,6 +327,94 @@ describe('core slice', () => {
 		});
 		expect(harness.getState().nodes).toEqual([{ id: 'stale-node' }]);
 		expect(harness.getState().edges).toEqual([{ id: 'stale-edge' }]);
+	});
+
+	it('fetchMindMapData ignores stale offline cache hydration after the active map id changed', async () => {
+		let resolveCache: (value: { payload: Record<string, unknown> } | null) => void =
+			() => {};
+		const cachePromise = new Promise<{ payload: Record<string, unknown> } | null>(
+			(resolve) => {
+				resolveCache = resolve;
+			}
+		);
+
+		mockGetMapCacheRecord.mockReturnValue(cachePromise);
+
+		const query = {
+			select: jest.fn().mockReturnThis(),
+			eq: jest.fn().mockReturnThis(),
+			single: jest.fn().mockResolvedValue({
+				data: null,
+				error: { message: 'Failed to fetch' },
+			}),
+		};
+
+		const harness = createCoreSliceHarness({
+			mapId: 'map-a',
+			supabase: {
+				from: jest.fn().mockReturnValue(query),
+			},
+			mindMap: { id: 'stale-map', title: 'Stale', user_id: 'user-1' },
+			nodes: [{ id: 'stale-node' }],
+			edges: [{ id: 'stale-edge' }],
+		});
+
+		const promise = harness.getState().fetchMindMapData('map-a');
+		await Promise.resolve();
+		expect(mockGetMapCacheRecord).toHaveBeenCalledWith('map-a');
+
+		harness.setState({ mapId: null });
+
+		resolveCache({
+			payload: {
+				map_id: 'map-a',
+				nodes: [],
+				edges: [],
+			},
+		});
+
+		await promise;
+
+		expect(transformSupabaseDataMock).not.toHaveBeenCalled();
+		expect(harness.getState().mindMap).toEqual({
+			id: 'stale-map',
+			title: 'Stale',
+			user_id: 'user-1',
+		});
+		expect(harness.getState().nodes).toEqual([{ id: 'stale-node' }]);
+		expect(harness.getState().edges).toEqual([{ id: 'stale-edge' }]);
+	});
+
+	it('keeps layoutConfig.direction in sync for queued map updates', async () => {
+		mockQueueMutation.mockResolvedValueOnce({
+			status: 'queued',
+			opId: 'queued-op-1',
+		});
+
+		const harness = createCoreSliceHarness({
+			mindMap: {
+				id: 'map-a',
+				title: 'Map A',
+				user_id: 'user-1',
+				layout_direction: 'TOP_BOTTOM',
+			},
+			layoutConfig: { direction: 'TOP_BOTTOM' },
+		});
+
+		await harness.getState().updateMindMap('map-a', {
+			layout_direction: 'LEFT_RIGHT',
+		});
+
+		expect(harness.getState().mindMap).toEqual(
+			expect.objectContaining({
+				layout_direction: 'LEFT_RIGHT',
+			})
+		);
+		expect(harness.getState().layoutConfig).toEqual(
+			expect.objectContaining({
+				direction: 'LEFT_RIGHT',
+			})
+		);
 	});
 
 	it('coalesces concurrent realtime unsubscribe calls into a single teardown pass', async () => {

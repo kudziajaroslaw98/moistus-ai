@@ -13,6 +13,12 @@
 <!-- Updated: 2026-04-07 - Documented progressive map-shell streaming rules and idempotent Yjs cleanup expectations -->
 <!-- Updated: 2026-04-07 - Documented dashboard shell-parity loading fallback and in-page progressive card skeleton streaming -->
 <!-- Updated: 2026-04-08 - Documented iPad/iOS long-press context-menu fallback contract for React Flow targets -->
+<!-- Updated: 2026-04-11 - Documented PWA/Serwist contract, offline replay queue guarantees, and push preference/subscription behavior -->
+<!-- Updated: 2026-04-11 - Documented reconnect hardening for offline sync (stale lock removal, full drain loop, visibility trigger, auth/transient retry semantics) -->
+<!-- Updated: 2026-04-12 - Documented Next 16 LAN dev origin allowlist and insecure LAN SW disable contract -->
+<!-- Updated: 2026-04-12 - Documented loopback-to-LAN realtime URL derivation when client NODE_ENV is unavailable -->
+<!-- Updated: 2026-04-13 - Migrated PWA contract to @serwist/next public/sw.js output and removed Turbopack route-handler dependency -->
+<!-- Updated: 2026-04-13 - Migrated PWA contract back to @serwist/turbopack with custom /app/sw.js route and root scope -->
 
 ## Engineering Philosophy
 
@@ -110,6 +116,7 @@ Skipping this = incomplete work.
 ## Commands
 
 ```bash
+pnpm dev:lan         # LAN dev server (0.0.0.0 host binding)
 pnpm type-check      # TypeScript validation
 pnpm build           # Production build
 pnpm test            # Unit tests (Jest + RTL, 149 tests)
@@ -171,9 +178,15 @@ pnpm pretty          # Prettier
 
 <!-- Updated: 2026-04-09 - Documented CI pnpm version-source conflict guardrail -->
 
-**LAN-safe local dev URLs**: In development, browser Supabase + PartyKit clients may derive their host from `window.location.hostname` when the configured public URL is blank or loopback-only. Keep server-side Supabase traffic on `SUPABASE_INTERNAL_URL` when local services stay on loopback, and do not reintroduce `NEXT_PUBLIC_APP_LOCAL_HREF` for browser fetches.
+**LAN-safe local dev URLs**: Browser Supabase + PartyKit clients must derive from `window.location.hostname` whenever the configured public URL is loopback-only and the browser host is non-loopback (LAN device access), even if client `NODE_ENV` is unavailable. Keep server-side Supabase traffic on `SUPABASE_INTERNAL_URL` when local services stay on loopback, and do not reintroduce `NEXT_PUBLIC_APP_LOCAL_HREF` for browser fetches.
 
 <!-- Updated: 2026-04-01 - Documented browser-vs-server local URL split for LAN dev -->
+<!-- Updated: 2026-04-12 - Clarified NODE_ENV-independent LAN derivation for loopback-configured realtime URLs -->
+
+**Next.js 16 LAN dev origins**: Next.js blocks cross-origin requests to dev assets/endpoints by default. Keep `next.config.ts#allowedDevOrigins` aligned with active LAN hosts (for example `192.168.0.239`) when testing from phones/tablets, and prefer `pnpm dev:lan` for explicit LAN host binding. In development on insecure non-loopback HTTP origins, keep service-worker registration disabled to avoid unstable PWA behavior while preserving localhost and production HTTPS behavior.
+
+<!-- Updated: 2026-04-12 - Documented Next.js dev-origin allowlist and insecure LAN SW disable pattern -->
+<!-- Updated: 2026-04-12 - Added insecure LAN dev service-worker unregister cleanup expectation -->
 
 **Supabase SSR cookie key**: Browser and server Supabase clients must share the same auth storage/cookie key. Derive that key from the configured Supabase URL, not the runtime LAN host, or successful LAN logins will bounce back to `/auth/sign-in` because the server looks for a different `sb-*` cookie name.
 
@@ -216,6 +229,27 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 **Ghost Nodes**: System-only (`userCreatable: false`), filtered from exports.
 
 **Notifications**: `useNotifications` now shares a single cache/socket layer per signed-in user; keep `useSyncExternalStore` snapshots stable and apply `mapId` filtering server-side before `limit` in `/api/notifications`.
+
+**PWA + service worker contract**: Keep Serwist wiring on the Turbopack route-handler path in this repo: `withSerwist(...)` from `@serwist/turbopack` in `next.config.ts`, route handler `src/app/app/[path]/route.ts` with `createSerwistRoute(...)`, and worker source at `src/app/sw.ts`. Root layout must register `SerwistProvider` with `swUrl='/app/sw.js'` and `options={{ scope: '/' }}` so the worker controls the whole app. Keep legacy-worker cleanup in `src/app/serwist.ts` for previously registered `/sw.js` and `/serwist/sw.js`.
+<!-- Updated: 2026-04-13 - Documented @serwist/turbopack custom /app/sw.js route contract and root-scope requirement -->
+
+**Offline strict replay contract**: Mutating client paths should flow through `queueMutation(...)` so every operation receives a stable `opId` and can be replayed idempotently through `POST /api/offline/ops/batch`. Background Sync is optional acceleration only; required replay triggers remain online/focus/startup app-level flushes.
+<!-- Updated: 2026-04-11 - Documented single offline mutation adapter + idempotent replay requirement -->
+
+**Background sync contract**: Shared replay semantics now live in `src/lib/offline/offline-sync-core.ts` so service-worker and window-triggered flushes stay aligned. One-off sync may replay queued ops headlessly when no clients are open, and periodic background work is intentionally limited to refreshing the global notifications cache key (`notifications:${userId}:__all__`). Do not expand worker refreshes to map/comment caches without adding an explicit target registry first.
+<!-- Updated: 2026-04-14 - Documented shared replay core plus notifications-only periodic background refresh scope -->
+
+**Offline reconnect contract**: `flushOfflineQueue` must remain in-memory-guarded only (no persisted lock key), drain queued ops in repeated `<=100` batches per flush until empty, and trigger on `online`, `focus`, `visibilitychange -> visible`, startup, and SW sync messages. Startup must call `resetProcessingOpsToQueued()` before the first flush.
+<!-- Updated: 2026-04-11 - Documented reconnect flush behavior and startup processing-op recovery -->
+
+**Offline replay failure policy**: `401/403` replay responses pause ops in `queued` state (no dead-letter). Transient network/`5xx` failures remain queued and retry with short backoff. Dead-lettering is reserved for repeated non-transient per-op failures.
+<!-- Updated: 2026-04-11 - Documented auth pause + transient retry + dead-letter boundaries -->
+
+**Offline cache runtime compatibility**: IndexedDB helpers must degrade gracefully when `indexedDB` is unavailable (tests/non-browser contexts) by no-oping writes and returning empty/null reads.
+<!-- Updated: 2026-04-11 - Documented IndexedDB unavailability fallback contract -->
+
+**Push preference + subscription contract**: Notification preferences now include `push`, `push_comments`, `push_mentions`, and `push_reactions`; settings must keep these keys during updates. Browser subscribe/unsubscribe flows are owned by `/api/push/public-key` and `/api/push/subscribe`, while server dispatch uses `src/lib/push/web-push.ts`.
+<!-- Updated: 2026-04-11 - Documented push preference schema and API ownership -->
 
 **Onboarding Persistence**: Persist onboarding state under a user-scoped storage key (`${ONBOARDING_STORAGE_KEY}:${currentUser.id}`) and wrap storage reads/writes in `try/catch` so blocked storage does not crash the slice. Hydrate that user-scoped state inside onboarding event handlers before branching on skip/complete flags. Track paused controls-tour progress with `onboardingPausedCoachmarkStep` (not checklist-time `onboardingCoachmarkStep`), and prefer that paused marker when resuming `know-controls`; keep checklist transitions free to reset active coachmark step without losing paused resume context. Minimize-pill body resume should expand back to checklist, while `startOnboardingTask('know-controls')` resumes coachmarks at the saved step (clamped to the active viewport sequence). On mobile, manually expanding a minimized checklist pill must keep the checklist surface visible (including `Skip walkthrough`), suppress hint/coachmark overlays until the user explicitly taps a task CTA (`Start`/`Continue`), and avoid running continuous anchor measurement loops while that manual-resume checklist surface is shown. Any checklist/pill CTA bound to paused controls flow should read `Continue` (not `Start`). Completed checklist task actions must render as disabled `Done` buttons and stay non-interactive.
 <!-- Updated: 2026-04-08 - Documented controls-tour paused-step persistence across re-minimize plus Continue-label contract for paused checklist/pill actions -->
