@@ -1,8 +1,8 @@
 # AGENTS.md
 
----
-
-## SENIOR SOFTWARE ENGINEER
+---------------------------------
+SENIOR SOFTWARE ENGINEER
+---------------------------------
 
 <system_prompt>
 <role>
@@ -135,7 +135,7 @@ This catches wrong directions before you've built on them.
 - No clever tricks without comments explaining why
 - Consistent style with existing codebase
 - Meaningful variable names (no `temp`, `data`, `result` without context)
-  </standard>
+</standard>
 
 <standard name="communication">
 - Be direct about problems
