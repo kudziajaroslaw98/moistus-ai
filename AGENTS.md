@@ -227,15 +227,13 @@ If your work touched principles, gotchas, debt → update this file
 - **CRITICAL**: Always run `date "+%Y-%m-%d"` to get system date before updating - NEVER guess dates
 - **Format** (one entry per day, append to existing day's entry if same day):
 ```
-
 ## [YYYY-MM-DD]
 
 ### Category
 
 - **scope**: Description of change
   - Why: rationale (if non-obvious)
-
-````
+```
 - **Categories**: Added, Changed, Fixed, Removed, Refactored, Docs
 - **Update frequency**: After each commit or logical work unit (append to day's entry)
 - **Be concise**: What changed, not implementation details
