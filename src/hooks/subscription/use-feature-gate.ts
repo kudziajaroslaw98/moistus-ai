@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffectiveSubscriptionState } from '@/components/providers/subscription-hydration-provider';
 import { isProSubscription } from '@/helpers/subscription/subscription-hydration';
 import useAppStore from '@/store/mind-map-store';
 import { useCallback, useEffect, useMemo } from 'react';
@@ -30,18 +31,21 @@ const FEATURE_PLAN_MAP: Record<FeatureKey, 'pro'> = {
 	'priority-support': 'pro',
 };
 
+// -1 is also used for true unlimited limits, so callers must gate on
+// resolved subscription state or use the derived helpers below.
+const UNKNOWN_LIMITS = {
+	mindMaps: -1,
+	nodesPerMap: -1,
+	aiSuggestions: -1,
+	collaboratorsPerMap: -1,
+} as const;
+
 export function useFeatureGate(feature: FeatureKey): FeatureGateResult {
 	const {
 		currentSubscription,
 		hasResolvedSubscription,
 		isLoadingSubscription,
-	} = useAppStore(
-		useShallow((state) => ({
-			currentSubscription: state.currentSubscription,
-			hasResolvedSubscription: state.hasResolvedSubscription,
-			isLoadingSubscription: state.isLoadingSubscription,
-		}))
-	);
+	} = useEffectiveSubscriptionState();
 	const isResolvingSubscription = !hasResolvedSubscription;
 
 	const currentPlan = useMemo(() => {
@@ -86,32 +90,19 @@ export function useFeatureGate(feature: FeatureKey): FeatureGateResult {
 
 // Usage limits hook
 export function useSubscriptionLimits() {
-	const {
-		currentSubscription,
-		hasResolvedSubscription,
-		availablePlans,
-		nodes,
-		usageData,
-		isLoadingUsage,
-		usageError,
-	} = useAppStore(
-		useShallow((state) => ({
-			currentSubscription: state.currentSubscription,
-			hasResolvedSubscription: state.hasResolvedSubscription,
-			availablePlans: state.availablePlans,
-			nodes: state.nodes,
-			usageData: state.usageData,
-			isLoadingUsage: state.isLoadingUsage,
-			usageError: state.usageError,
-		}))
-	);
+	const { currentSubscription, hasResolvedSubscription } =
+		useEffectiveSubscriptionState();
+	const { availablePlans, nodes, usageData, isLoadingUsage, usageError } =
+		useAppStore(
+			useShallow((state) => ({
+				availablePlans: state.availablePlans,
+				nodes: state.nodes,
+				usageData: state.usageData,
+				isLoadingUsage: state.isLoadingUsage,
+				usageError: state.usageError,
+			}))
+		);
 	const isResolvingSubscription = !hasResolvedSubscription;
-	const UNKNOWN_LIMITS = {
-		mindMaps: -1,
-		nodesPerMap: -1,
-		aiSuggestions: -1,
-		collaboratorsPerMap: -1,
-	} as const;
 
 	const limits = useMemo(() => {
 		if (currentSubscription?.plan) {

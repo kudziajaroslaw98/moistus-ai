@@ -17,9 +17,7 @@ import {
 	SelectValue,
 } from '@/components/ui/select';
 import { SidebarProvider } from '@/components/ui/sidebar';
-import type { SubscriptionHydrationState } from '@/helpers/subscription/subscription-hydration';
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
-import { useHydrateSubscriptionState } from '@/hooks/subscription/use-hydrate-subscription-state';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import {
@@ -77,15 +75,7 @@ const fetcher = async (url: string) => {
 	return data;
 };
 
-interface DashboardContentProps {
-	initialSubscriptionState: SubscriptionHydrationState;
-}
-
-export function DashboardContent({
-	initialSubscriptionState,
-}: DashboardContentProps) {
-	useHydrateSubscriptionState(initialSubscriptionState);
-
+export function DashboardContent() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 

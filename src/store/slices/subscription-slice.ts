@@ -1,6 +1,10 @@
 import {
 	deserializeUserSubscription,
+	serializeSubscriptionPlan,
+	serializeUserSubscription,
 	type SubscriptionHydrationState,
+	type SubscriptionPlanRecord,
+	type UserSubscriptionRecord,
 } from '@/helpers/subscription/subscription-hydration';
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import { StateCreator } from 'zustand';
@@ -13,8 +17,6 @@ export interface SubscriptionPlan {
 	description: string;
 	priceMonthly: number;
 	priceYearly: number;
-	dodoProductIdMonthly?: string;
-	dodoProductIdYearly?: string;
 	features: string[];
 	limits: {
 		mindMaps: number;
@@ -29,8 +31,6 @@ export interface UserSubscription {
 	id: string;
 	userId: string;
 	planId: string;
-	dodoSubscriptionId?: string;
-	dodoCustomerId?: string;
 	status:
 		| 'active'
 		| 'trialing'
@@ -63,6 +63,7 @@ export interface SubscriptionSlice {
 	availablePlans: SubscriptionPlan[];
 	currentSubscription: UserSubscription | null;
 	hasResolvedSubscription: boolean;
+	subscriptionHydrationStateKey: string | null;
 	isLoadingSubscription: boolean;
 	subscriptionError: string | null;
 	usageData: UsageData | null;
@@ -71,7 +72,8 @@ export interface SubscriptionSlice {
 
 	// Actions
 	hydrateSubscriptionState: (
-		initialSubscriptionState: SubscriptionHydrationState
+		initialSubscriptionState: SubscriptionHydrationState,
+		hydrationStateKey: string
 	) => void;
 	fetchAvailablePlans: () => Promise<void>;
 	fetchUserSubscription: () => Promise<void>;
@@ -111,6 +113,7 @@ export const createSubscriptionSlice: StateCreator<
 	availablePlans: [],
 	currentSubscription: null,
 	hasResolvedSubscription: false,
+	subscriptionHydrationStateKey: null,
 	isLoadingSubscription: false,
 	subscriptionError: null,
 	usageData: null,
@@ -118,12 +121,13 @@ export const createSubscriptionSlice: StateCreator<
 	usageError: null,
 
 	// Actions
-	hydrateSubscriptionState: (initialSubscriptionState) => {
+	hydrateSubscriptionState: (initialSubscriptionState, hydrationStateKey) => {
 		set({
 			currentSubscription: deserializeUserSubscription(
 				initialSubscriptionState.currentSubscription
 			),
 			hasResolvedSubscription: initialSubscriptionState.hasResolvedSubscription,
+			subscriptionHydrationStateKey: hydrationStateKey,
 			isLoadingSubscription: false,
 			subscriptionError: null,
 		});
@@ -141,19 +145,9 @@ export const createSubscriptionSlice: StateCreator<
 
 			if (error) throw error;
 
-			const plans = data.map((plan) => ({
-				id: plan.id,
-				name: plan.name,
-				displayName: plan.display_name,
-				description: plan.description,
-				priceMonthly: plan.price_monthly,
-				priceYearly: plan.price_yearly,
-				dodoProductIdMonthly: plan.dodo_product_id,
-				dodoProductIdYearly: plan.dodo_product_id,
-				features: plan.features,
-				limits: plan.limits,
-				isActive: plan.is_active,
-			}));
+			const plans = data.map((plan) =>
+				serializeSubscriptionPlan(plan as SubscriptionPlanRecord)
+			);
 
 			set({ availablePlans: plans });
 		} catch (error) {
@@ -205,34 +199,9 @@ export const createSubscriptionSlice: StateCreator<
 
 			if (data) {
 				set({
-					currentSubscription: deserializeUserSubscription({
-						id: data.id,
-						userId: data.user_id,
-						planId: data.plan_id,
-						dodoSubscriptionId: data.dodo_subscription_id ?? undefined,
-						dodoCustomerId: data.dodo_customer_id ?? undefined,
-						status: data.status,
-						currentPeriodStart: data.current_period_start ?? undefined,
-						currentPeriodEnd: data.current_period_end ?? undefined,
-						cancelAtPeriodEnd: data.cancel_at_period_end,
-						canceledAt: data.canceled_at ?? undefined,
-						trialEnd: data.trial_end ?? undefined,
-						plan: data.plan
-							? {
-									id: data.plan.id,
-									name: data.plan.name,
-									displayName: data.plan.display_name,
-									description: data.plan.description,
-									priceMonthly: data.plan.price_monthly,
-									priceYearly: data.plan.price_yearly,
-									dodoProductIdMonthly: data.plan.dodo_product_id ?? undefined,
-									dodoProductIdYearly: data.plan.dodo_product_id ?? undefined,
-									features: data.plan.features,
-									limits: data.plan.limits,
-									isActive: data.plan.is_active,
-								}
-							: undefined,
-					}),
+					currentSubscription: deserializeUserSubscription(
+						serializeUserSubscription(data as UserSubscriptionRecord)
+					),
 					hasResolvedSubscription: true,
 					isLoadingSubscription: false,
 				});

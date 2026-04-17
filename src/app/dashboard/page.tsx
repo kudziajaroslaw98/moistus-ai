@@ -1,3 +1,4 @@
+import { SubscriptionHydrationProvider } from '@/components/providers/subscription-hydration-provider';
 import { getServerSubscriptionHydrationState } from '@/helpers/subscription/get-server-subscription-hydration-state';
 import { redirect } from 'next/navigation';
 import { checkDashboardAuth } from './auth-check';
@@ -23,7 +24,11 @@ export default async function DashboardPage() {
 	);
 
 	return (
-		<DashboardContent initialSubscriptionState={initialSubscriptionState} />
+		<SubscriptionHydrationProvider
+			initialSubscriptionState={initialSubscriptionState}
+		>
+			<DashboardContent />
+		</SubscriptionHydrationProvider>
 	);
 }
 

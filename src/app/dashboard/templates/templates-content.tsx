@@ -3,9 +3,7 @@
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import { Button } from '@/components/ui/button';
 import { SidebarProvider } from '@/components/ui/sidebar';
-import type { SubscriptionHydrationState } from '@/helpers/subscription/subscription-hydration';
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
-import { useHydrateSubscriptionState } from '@/hooks/subscription/use-hydrate-subscription-state';
 import { cn } from '@/utils/cn';
 import {
 	BarChart,
@@ -104,10 +102,6 @@ const fetcher = async (url: string) => {
 	}
 	return res.json();
 };
-
-interface TemplatesContentProps {
-	initialSubscriptionState: SubscriptionHydrationState;
-}
 
 // Template Card Component
 interface TemplateCardProps {
@@ -352,11 +346,7 @@ const CategoryFilter = memo(function CategoryFilter({
 });
 
 // Main Content Component
-export function TemplatesContent({
-	initialSubscriptionState,
-}: TemplatesContentProps) {
-	useHydrateSubscriptionState(initialSubscriptionState);
-
+export function TemplatesContent() {
 	const router = useRouter();
 	const prefersReducedMotion = useReducedMotion();
 	const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffectiveSubscriptionState } from '@/components/providers/subscription-hydration-provider';
 import {
 	getFreeTierLimits,
 	UPGRADE_PROMPT_CONFIG,
@@ -21,17 +22,11 @@ const FREE_TIER_LIMITS = getFreeTierLimits();
  * - Only for registered free users (not anonymous, not pro)
  */
 export function useUpgradePrompt() {
-	const {
-		currentUser,
-		currentSubscription,
-		hasResolvedSubscription,
-		nodes,
-		setPopoverOpen,
-	} = useAppStore(
+	const { currentSubscription, hasResolvedSubscription } =
+		useEffectiveSubscriptionState();
+	const { currentUser, nodes, setPopoverOpen } = useAppStore(
 		useShallow((state) => ({
 			currentUser: state.currentUser,
-			currentSubscription: state.currentSubscription,
-			hasResolvedSubscription: state.hasResolvedSubscription,
 			nodes: state.nodes,
 			setPopoverOpen: state.setPopoverOpen,
 		}))

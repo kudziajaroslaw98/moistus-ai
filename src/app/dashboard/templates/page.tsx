@@ -1,3 +1,4 @@
+import { SubscriptionHydrationProvider } from '@/components/providers/subscription-hydration-provider';
 import { getServerSubscriptionHydrationState } from '@/helpers/subscription/get-server-subscription-hydration-state';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
@@ -34,7 +35,11 @@ export default async function TemplatesPage() {
 
 	return (
 		<Suspense fallback={<TemplatesLoading />}>
-			<TemplatesContent initialSubscriptionState={initialSubscriptionState} />
+			<SubscriptionHydrationProvider
+				initialSubscriptionState={initialSubscriptionState}
+			>
+				<TemplatesContent />
+			</SubscriptionHydrationProvider>
 		</Suspense>
 	);
 }

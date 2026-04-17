@@ -1,10 +1,12 @@
 'use client';
 
+import { useEffectiveSubscriptionState } from '@/components/providers/subscription-hydration-provider';
 import {
 	ONBOARDING_PATTERN_EXAMPLE,
 	getOnboardingCoachmarks,
 	type OnboardingTaskId,
 } from '@/constants/onboarding';
+import { isProSubscription } from '@/helpers/subscription/subscription-hydration';
 import { useIsMobile } from '@/hooks/use-mobile';
 import useAppStore from '@/store/mind-map-store';
 import { AnimatePresence } from 'motion/react';
@@ -42,6 +44,8 @@ export function OnboardingModal() {
 	const [targetRect, setTargetRect] = useState<FloatingTargetRect | null>(null);
 	const [showChecklistOnManualResume, setShowChecklistOnManualResume] =
 		useState(false);
+	const { currentSubscription, hasResolvedSubscription } =
+		useEffectiveSubscriptionState();
 	const {
 		onboardingStatus,
 		onboardingTasks,
@@ -54,8 +58,6 @@ export function OnboardingModal() {
 		onboardingHighlightedNodeId,
 		onboardingViewport,
 		hasCompletedOnboarding,
-		hasResolvedSubscription,
-		currentSubscription,
 		startOnboarding,
 		skipOnboarding,
 		resumeOnboarding,
@@ -81,8 +83,6 @@ export function OnboardingModal() {
 			onboardingHighlightedNodeId: state.onboardingHighlightedNodeId,
 			onboardingViewport: state.onboardingViewport,
 			hasCompletedOnboarding: state.hasCompletedOnboarding,
-			hasResolvedSubscription: state.hasResolvedSubscription,
-			currentSubscription: state.currentSubscription,
 			startOnboarding: state.startOnboarding,
 			skipOnboarding: state.skipOnboarding,
 			resumeOnboarding: state.resumeOnboarding,
@@ -103,8 +103,7 @@ export function OnboardingModal() {
 		[onboardingTasks]
 	);
 	const isProUser = hasResolvedSubscription
-		? currentSubscription?.plan?.name === 'pro' &&
-			['active', 'trialing'].includes(currentSubscription?.status ?? '')
+		? isProSubscription(currentSubscription)
 		: false;
 	const shouldRenderMinimizedPill =
 		onboardingIsMinimized && !hasCompletedOnboarding;

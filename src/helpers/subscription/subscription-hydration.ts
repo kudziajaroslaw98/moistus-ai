@@ -3,6 +3,31 @@ import type {
 	UserSubscription,
 } from '@/store/slices/subscription-slice';
 
+export interface SubscriptionPlanRecord {
+	id: string;
+	name: string;
+	display_name: string;
+	description: string;
+	price_monthly: number;
+	price_yearly: number;
+	features: string[];
+	limits: SubscriptionPlan['limits'];
+	is_active: boolean;
+}
+
+export interface UserSubscriptionRecord {
+	id: string;
+	user_id: string;
+	plan_id: string;
+	status: UserSubscription['status'];
+	current_period_start?: string | null;
+	current_period_end?: string | null;
+	cancel_at_period_end: boolean;
+	canceled_at?: string | null;
+	trial_end?: string | null;
+	plan?: SubscriptionPlanRecord | null;
+}
+
 export interface SerializedSubscriptionPlan {
 	id: string;
 	name: string;
@@ -10,8 +35,6 @@ export interface SerializedSubscriptionPlan {
 	description: string;
 	priceMonthly: number;
 	priceYearly: number;
-	dodoProductIdMonthly?: string;
-	dodoProductIdYearly?: string;
 	features: string[];
 	limits: SubscriptionPlan['limits'];
 	isActive: boolean;
@@ -21,8 +44,6 @@ export interface SerializedUserSubscription {
 	id: string;
 	userId: string;
 	planId: string;
-	dodoSubscriptionId?: string;
-	dodoCustomerId?: string;
 	status: UserSubscription['status'];
 	currentPeriodStart?: string;
 	currentPeriodEnd?: string;
@@ -37,12 +58,52 @@ export interface SubscriptionHydrationState {
 	hasResolvedSubscription: boolean;
 }
 
+export const EMPTY_SUBSCRIPTION_HYDRATION_STATE: SubscriptionHydrationState = {
+	currentSubscription: null,
+	hasResolvedSubscription: false,
+};
+
 type SubscriptionLike = {
 	status?: string | null;
 	plan?: { name?: string | null } | null;
 };
 
 const toDate = (value?: string) => (value ? new Date(value) : undefined);
+
+export function serializeSubscriptionPlan(
+	plan: SubscriptionPlanRecord
+): SerializedSubscriptionPlan {
+	return {
+		id: plan.id,
+		name: plan.name,
+		displayName: plan.display_name,
+		description: plan.description,
+		priceMonthly: plan.price_monthly,
+		priceYearly: plan.price_yearly,
+		features: plan.features,
+		limits: plan.limits,
+		isActive: plan.is_active,
+	};
+}
+
+export function serializeUserSubscription(
+	subscription: UserSubscriptionRecord
+): SerializedUserSubscription {
+	return {
+		id: subscription.id,
+		userId: subscription.user_id,
+		planId: subscription.plan_id,
+		status: subscription.status,
+		currentPeriodStart: subscription.current_period_start ?? undefined,
+		currentPeriodEnd: subscription.current_period_end ?? undefined,
+		cancelAtPeriodEnd: subscription.cancel_at_period_end,
+		canceledAt: subscription.canceled_at ?? undefined,
+		trialEnd: subscription.trial_end ?? undefined,
+		plan: subscription.plan
+			? serializeSubscriptionPlan(subscription.plan)
+			: undefined,
+	};
+}
 
 export function deserializeUserSubscription(
 	subscription: SerializedUserSubscription | null
@@ -55,8 +116,6 @@ export function deserializeUserSubscription(
 		id: subscription.id,
 		userId: subscription.userId,
 		planId: subscription.planId,
-		dodoSubscriptionId: subscription.dodoSubscriptionId,
-		dodoCustomerId: subscription.dodoCustomerId,
 		status: subscription.status,
 		currentPeriodStart: toDate(subscription.currentPeriodStart),
 		currentPeriodEnd: toDate(subscription.currentPeriodEnd),
@@ -71,8 +130,6 @@ export function deserializeUserSubscription(
 					description: subscription.plan.description,
 					priceMonthly: subscription.plan.priceMonthly,
 					priceYearly: subscription.plan.priceYearly,
-					dodoProductIdMonthly: subscription.plan.dodoProductIdMonthly,
-					dodoProductIdYearly: subscription.plan.dodoProductIdYearly,
 					features: subscription.plan.features,
 					limits: subscription.plan.limits,
 					isActive: subscription.plan.isActive,

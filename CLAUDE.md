@@ -246,9 +246,9 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 
 <!-- Updated: 2026-04-08 - Documented explicit paused coachmark marker and manual-resume anchor measurement suspension -->
 
-**Subscription hydration semantics**: `subscription-slice` must distinguish unresolved subscription state from confirmed free tier via `hasResolvedSubscription`. Keep first-paint subscription hydration server-side on authenticated dynamic routes (`/dashboard`, `/dashboard/templates`, `/mind-map/[id]`) and seed client entry components before any subscription-gated UI renders. Background client refreshes may revalidate billing state, but they must not briefly reset paid users into free-tier UI, onboarding upsells, or upgrade CTAs.
+**Subscription hydration semantics**: `subscription-slice` must distinguish unresolved subscription state from confirmed free tier via `hasResolvedSubscription`. Keep first-paint subscription hydration server-side on authenticated dynamic routes (`/dashboard`, `/dashboard/templates`, `/mind-map/[id]`), expose that route snapshot through a route-scoped provider/context for first render, and only sync the singleton Zustand store after mount so server renders never mutate shared store state. Use `subscriptionHydrationStateKey` to prefer the current route snapshot until the store has synced that exact payload, preventing stale cross-route flashes. Background client refreshes may revalidate billing state, but they must not briefly reset paid users into free-tier UI, onboarding upsells, or upgrade CTAs. Legacy Dodo client-side subscription fields/types should stay removed; Polar is the active billing provider.
 
-<!-- Updated: 2026-04-17 - Documented server-hydrated subscription snapshot contract for paid-user flash prevention -->
+<!-- Updated: 2026-04-17 - Documented server-hydrated subscription snapshot contract for paid-user flash prevention, route-scoped provider sync, and Dodo cleanup expectation -->
 
 > Domain-specific gotchas (onboarding, editor, sharing, realtime, Base UI) live in `.claude/rules/` and load automatically when you touch relevant files.
 

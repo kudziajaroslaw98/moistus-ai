@@ -44,9 +44,9 @@ import { useUpgradePrompt } from '@/hooks/subscription/use-upgrade-prompt';
 import { useAnimatedLayout } from '@/hooks/use-animated-layout';
 import { useContextMenu } from '@/hooks/use-context-menu';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useMultiTouchShortcuts } from '@/hooks/use-multi-touch-shortcuts';
 import { useNodeSuggestion } from '@/hooks/use-node-suggestion';
 import { useTouchContextMenuFallback } from '@/hooks/use-touch-context-menu-fallback';
-import { useMultiTouchShortcuts } from '@/hooks/use-multi-touch-shortcuts';
 import { getMindMapRoomName } from '@/lib/realtime/room-names';
 import useAppStore from '@/store/mind-map-store';
 import type { AppEdge } from '@/types/app-edge';
@@ -134,6 +134,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 		userProfile,
 		usageData,
 		currentSubscription,
+		hasResolvedSubscription,
 		maybeStartOnboarding,
 		isTourActive,
 		isPathEditMode,
@@ -186,6 +187,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 			userProfile: state.userProfile,
 			usageData: state.usageData,
 			currentSubscription: state.currentSubscription,
+			hasResolvedSubscription: state.hasResolvedSubscription,
 			maybeStartOnboarding: state.maybeStartOnboarding,
 			// Guided tour state
 			isTourActive: state.isTourActive,
@@ -194,14 +196,14 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 			// Comment mode - needed for visibility memoization
 			isCommentMode: state.isCommentMode,
 			getCurrentShareUsers: state.getCurrentShareUsers,
-				layoutAnimationVersion: state.layoutAnimationVersion,
-				animatedNodeIds: state.animatedNodeIds,
-				animatedEdgeIds: state.animatedEdgeIds,
-				historyIndex: state.historyIndex,
-				historyMeta: state.historyMeta ?? [],
-				revertToHistoryState: state.revertToHistoryState,
-			}))
-		);
+			layoutAnimationVersion: state.layoutAnimationVersion,
+			animatedNodeIds: state.animatedNodeIds,
+			animatedEdgeIds: state.animatedEdgeIds,
+			historyIndex: state.historyIndex,
+			historyMeta: state.historyMeta ?? [],
+			revertToHistoryState: state.revertToHistoryState,
+		}))
+	);
 
 	const { contextMenuHandlers } = useContextMenu();
 	const { generateSuggestionsForNode } = useNodeSuggestion();
@@ -265,31 +267,38 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 					? 0
 					: (activeIndex + step + visibleNodes.length) % visibleNodes.length;
 			const nextNode = visibleNodes[nextIndex];
-				if (!nextNode) {
-					return;
-				}
+			if (!nextNode) {
+				return;
+			}
 
-				const nextNodes = nodes.map((currentNode) => ({
-					...currentNode,
-					selected: currentNode.id === nextNode.id,
-				}));
-				const nextSelectedNodes = nextNodes.filter(
-					(currentNode) => currentNode.id === nextNode.id
-				);
+			const nextNodes = nodes.map((currentNode) => ({
+				...currentNode,
+				selected: currentNode.id === nextNode.id,
+			}));
+			const nextSelectedNodes = nextNodes.filter(
+				(currentNode) => currentNode.id === nextNode.id
+			);
 
-				setNodes(nextNodes);
-				setSelectedNodes(nextSelectedNodes);
-				reactFlowInstance.setCenter(
-					nextNode.position.x + (nextNode.width ?? 0) / 2,
-					nextNode.position.y + (nextNode.height ?? 0) / 2,
+			setNodes(nextNodes);
+			setSelectedNodes(nextSelectedNodes);
+			reactFlowInstance.setCenter(
+				nextNode.position.x + (nextNode.width ?? 0) / 2,
+				nextNode.position.y + (nextNode.height ?? 0) / 2,
 				{
 					zoom: 1.05,
 					duration: 220,
 				}
 			);
-			},
-			[nodes, getVisibleNodes, reactFlowInstance, selectedNodes, setNodes, setSelectedNodes]
-		);
+		},
+		[
+			nodes,
+			getVisibleNodes,
+			reactFlowInstance,
+			selectedNodes,
+			setNodes,
+			setSelectedNodes,
+		]
+	);
 
 	useMultiTouchShortcuts({
 		containerRef: touchContextMenuContainerRef,
@@ -473,6 +482,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 		currentUser,
 		usageData,
 		currentSubscription,
+		hasResolvedSubscription,
 		mapAccessError,
 	]);
 
@@ -849,7 +859,9 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 					multiSelectionKeyCode={['Meta', 'Control']}
 					nodes={renderNodes}
 					nodesConnectable={
-						isMapReady && (isSelectMode || activeTool === 'connector') && canEdit
+						isMapReady &&
+						(isSelectMode || activeTool === 'connector') &&
+						canEdit
 					}
 					nodesDraggable={
 						isMapReady &&

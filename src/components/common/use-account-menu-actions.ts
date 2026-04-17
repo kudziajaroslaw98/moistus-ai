@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffectiveSubscriptionState } from '@/components/providers/subscription-hydration-provider';
 import { isProSubscription } from '@/helpers/subscription/subscription-hydration';
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import { runWithViewTransition } from '@/lib/view-transitions';
@@ -20,23 +21,17 @@ export function useAccountMenuActions(user: AccountMenuUser) {
 	const router = useRouter();
 	const [isLoggingOut, setIsLoggingOut] = useState(false);
 	const [showUpgradeAnonymous, setShowUpgradeAnonymous] = useState(false);
-	const {
-		restartOnboarding,
-		setPopoverOpen,
-		currentSubscription,
-		hasResolvedSubscription,
-		resetStore,
-		setLoggingOut,
-	} = useAppStore(
-		useShallow((state) => ({
-			restartOnboarding: state.restartOnboarding,
-			setPopoverOpen: state.setPopoverOpen,
-			currentSubscription: state.currentSubscription,
-			hasResolvedSubscription: state.hasResolvedSubscription,
-			resetStore: state.reset,
-			setLoggingOut: state.setLoggingOut,
-		}))
-	);
+	const { currentSubscription, hasResolvedSubscription } =
+		useEffectiveSubscriptionState();
+	const { restartOnboarding, setPopoverOpen, resetStore, setLoggingOut } =
+		useAppStore(
+			useShallow((state) => ({
+				restartOnboarding: state.restartOnboarding,
+				setPopoverOpen: state.setPopoverOpen,
+				resetStore: state.reset,
+				setLoggingOut: state.setLoggingOut,
+			}))
+		);
 
 	const name = user?.display_name || user?.full_name || 'User';
 	const isAnonymous = user?.is_anonymous ?? false;
