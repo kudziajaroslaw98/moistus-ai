@@ -19,6 +19,7 @@
 <!-- Updated: 2026-04-12 - Documented loopback-to-LAN realtime URL derivation when client NODE_ENV is unavailable -->
 <!-- Updated: 2026-04-13 - Migrated PWA contract to @serwist/next public/sw.js output and removed Turbopack route-handler dependency -->
 <!-- Updated: 2026-04-13 - Migrated PWA contract back to @serwist/turbopack with custom /app/sw.js route and root scope -->
+<!-- Updated: 2026-04-17 - Documented route-level subscription hydration and unresolved-vs-free subscription semantics -->
 
 ## Engineering Philosophy
 
@@ -203,21 +204,27 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 <!-- Updated: 2026-04-08 - Clarified canonical lowercase quoted title parser syntax -->
 
 **Task node visibility/title contract**: `taskNode` supports `metadata.hideCompletedTasks` (per-node hide/show for completed checklist items) and keeps progress stats based on full `metadata.tasks`, not only visible rows. Task titles are quick-input metadata (`title:"..."`) and must round-trip through node-editor parsing/serialization.
+
 <!-- Updated: 2026-04-08 - Documented task-node hide-completed persistence and title round-trip contract -->
 
 **Node editor autocomplete surfaces**: Keep `createCompletions()` as the single source of autocomplete options. Desktop uses the native CodeMirror tooltip; mobile hides that tooltip and renders a hybrid presenter: a compact full-width strip attached to the open keyboard, or a caret-anchored floating panel when the keyboard is hidden. Any editor/modal outside-press guard must treat both `[data-node-editor-autocomplete-tray="true"]` and body-portaled `.cm-tooltip*` elements as inside-editor interactions so selecting a suggestion does not dismiss the editor.
+
 <!-- Updated: 2026-03-28 - Documented the hybrid mobile autocomplete presenter and shared completion engine -->
 
 **Touch context menu fallback**: Do not rely on native `contextmenu` alone for mobile/iPad. Keep `useTouchContextMenuFallback` wired to the React Flow shell so touch long-press on `.react-flow__node[data-id]`, `.react-flow__edge[data-id]`, or `.react-flow__pane` opens the same context-menu store state path (`openContextMenuAt`) used by desktop right-click handlers. Preserve movement cancellation and trailing click/contextmenu suppression to avoid accidental immediate close/select side-effects after long-press activation.
+
 <!-- Updated: 2026-04-08 - Added iPad/iOS WebKit long-press fallback and post-long-press suppression guardrail -->
 
 **Landing CTA feedback**: Keep landing navigation CTAs (`Start Mapping`, `Get Started`, `Go Pro`) on `StartMappingLink` (`next/link` + `useLinkStatus` + optimistic pending feedback). Keep `src/app/dashboard/loading.tsx` as a dashboard-shell loading fallback (not a blank spinner) while dashboard auth/render work is pending, and keep in-page map-list loading progressive via card skeletons.
+
 <!-- Updated: 2026-04-07 - Added landing CTA pending-feedback and dashboard loading-boundary guardrail -->
 
 **Mind map navigation state**: Keep `MindMapCanvas` gated by the requested route id (`state.mapId === params.id` and `state.mindMap?.id === params.id`) and clear map-scoped runtime store state on map-route unmount via `clearMindMapRuntimeState()`. Bootstrap route map loads from `MindMapCanvas` (`setMapId` + `fetchMindMapData`) so loading begins before `ReactFlowArea` mounts. Make unmount clearing Strict Mode-safe (skip cleanup during immediate effect replay remount). Any async map load path must stale-guard writes when `state.mapId` no longer matches the request id. Keep the real editor shell visible while payload is pending, but pass empty graph data and gate map-dependent controls/actions by `isMapReady` to prevent stale flashes.
+
 <!-- Updated: 2026-04-07 - Added stale-map flash prevention contract, fetch-bootstrap placement, and Strict Mode-safe unmount semantics for map-route transitions -->
 
 **Realtime cleanup idempotency**: Yjs observer cleanup (`unobserve` / awareness `off`) and broadcast unsubscribe wrappers must be safe on repeated invocation. Slice-level unsubscribe flows should null stored handles before awaiting cleanup, and core realtime teardown should coalesce concurrent calls into one in-flight promise.
+
 <!-- Updated: 2026-04-07 - Added repeated-unsubscribe safety contract for Yjs/broadcast/slice/core teardown paths -->
 
 **Rate Limiting**: In-memory only (`src/helpers/api/rate-limiter.ts`), won't scale horizontally without Redis.
@@ -231,32 +238,44 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 **Notifications**: `useNotifications` now shares a single cache/socket layer per signed-in user; keep `useSyncExternalStore` snapshots stable and apply `mapId` filtering server-side before `limit` in `/api/notifications`.
 
 **PWA + service worker contract**: Keep Serwist wiring on the Turbopack route-handler path in this repo: `withSerwist(...)` from `@serwist/turbopack` in `next.config.ts`, route handler `src/app/app/[path]/route.ts` with `createSerwistRoute(...)`, and worker source at `src/app/sw.ts`. Root layout must register `SerwistProvider` with `swUrl='/app/sw.js'` and `options={{ scope: '/' }}` so the worker controls the whole app. Keep legacy-worker cleanup in `src/app/serwist.ts` for previously registered `/sw.js` and `/serwist/sw.js`.
+
 <!-- Updated: 2026-04-13 - Documented @serwist/turbopack custom /app/sw.js route contract and root-scope requirement -->
 
 **Offline strict replay contract**: Mutating client paths should flow through `queueMutation(...)` so every operation receives a stable `opId` and can be replayed idempotently through `POST /api/offline/ops/batch`. Background Sync is optional acceleration only; required replay triggers remain online/focus/startup app-level flushes.
+
 <!-- Updated: 2026-04-11 - Documented single offline mutation adapter + idempotent replay requirement -->
 
 **Background sync contract**: Shared replay semantics now live in `src/lib/offline/offline-sync-core.ts` so service-worker and window-triggered flushes stay aligned. One-off sync may replay queued ops headlessly when no clients are open, and periodic background work is intentionally limited to refreshing the global notifications cache key (`notifications:${userId}:__all__`). Do not expand worker refreshes to map/comment caches without adding an explicit target registry first.
+
 <!-- Updated: 2026-04-14 - Documented shared replay core plus notifications-only periodic background refresh scope -->
 
 **Offline reconnect contract**: `flushOfflineQueue` must remain in-memory-guarded only (no persisted lock key), drain queued ops in repeated `<=100` batches per flush until empty, and trigger on `online`, `focus`, `visibilitychange -> visible`, startup, and SW sync messages. Startup must call `resetProcessingOpsToQueued()` before the first flush.
+
 <!-- Updated: 2026-04-11 - Documented reconnect flush behavior and startup processing-op recovery -->
 
 **Offline replay failure policy**: `401/403` replay responses pause ops in `queued` state (no dead-letter). Transient network/`5xx` failures remain queued and retry with short backoff. Dead-lettering is reserved for repeated non-transient per-op failures.
+
 <!-- Updated: 2026-04-11 - Documented auth pause + transient retry + dead-letter boundaries -->
 
 **Offline cache runtime compatibility**: IndexedDB helpers must degrade gracefully when `indexedDB` is unavailable (tests/non-browser contexts) by no-oping writes and returning empty/null reads.
+
 <!-- Updated: 2026-04-11 - Documented IndexedDB unavailability fallback contract -->
 
 **Push preference + subscription contract**: Notification preferences now include `push`, `push_comments`, `push_mentions`, and `push_reactions`; settings must keep these keys during updates. Browser subscribe/unsubscribe flows are owned by `/api/push/public-key` and `/api/push/subscribe`, while server dispatch uses `src/lib/push/web-push.ts`.
+
 <!-- Updated: 2026-04-11 - Documented push preference schema and API ownership -->
 
 **Onboarding Persistence**: Persist onboarding state under a user-scoped storage key (`${ONBOARDING_STORAGE_KEY}:${currentUser.id}`) and wrap storage reads/writes in `try/catch` so blocked storage does not crash the slice. Hydrate that user-scoped state inside onboarding event handlers before branching on skip/complete flags. Track paused controls-tour progress with `onboardingPausedCoachmarkStep` (not checklist-time `onboardingCoachmarkStep`), and prefer that paused marker when resuming `know-controls`; keep checklist transitions free to reset active coachmark step without losing paused resume context. Minimize-pill body resume should expand back to checklist, while `startOnboardingTask('know-controls')` resumes coachmarks at the saved step (clamped to the active viewport sequence). On mobile, manually expanding a minimized checklist pill must keep the checklist surface visible (including `Skip walkthrough`), suppress hint/coachmark overlays until the user explicitly taps a task CTA (`Start`/`Continue`), and avoid running continuous anchor measurement loops while that manual-resume checklist surface is shown. Any checklist/pill CTA bound to paused controls flow should read `Continue` (not `Start`). Completed checklist task actions must render as disabled `Done` buttons and stay non-interactive.
+
 <!-- Updated: 2026-04-08 - Documented controls-tour paused-step persistence across re-minimize plus Continue-label contract for paused checklist/pill actions -->
 <!-- Updated: 2026-04-08 - Documented disabled non-interactive Done CTA contract for completed checklist tasks -->
 <!-- Updated: 2026-04-08 - Documented mobile manual-pill expand behavior to keep checklist visible for skip access -->
 <!-- Updated: 2026-04-08 - Documented mobile manual-pill expand suppression of auto-start hint/coachmark overlays -->
 <!-- Updated: 2026-04-08 - Documented explicit paused coachmark marker and manual-resume anchor measurement suspension -->
+
+**Subscription hydration semantics**: `subscription-slice` must distinguish unresolved subscription state from confirmed free tier via `hasResolvedSubscription`. Keep first-paint subscription hydration server-side on authenticated dynamic routes (`/dashboard`, `/dashboard/templates`, `/mind-map/[id]`) and seed client entry components before any subscription-gated UI renders. Background client refreshes may revalidate billing state, but they must not briefly reset paid users into free-tier UI, onboarding upsells, or upgrade CTAs.
+
+<!-- Updated: 2026-04-17 - Documented server-hydrated subscription snapshot contract for paid-user flash prevention -->
 
 > Domain-specific gotchas (onboarding, editor, sharing, realtime, Base UI) live in `.claude/rules/` and load automatically when you touch relevant files.
 

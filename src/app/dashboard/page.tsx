@@ -1,3 +1,4 @@
+import { getServerSubscriptionHydrationState } from '@/helpers/subscription/get-server-subscription-hydration-state';
 import { redirect } from 'next/navigation';
 import { checkDashboardAuth } from './auth-check';
 import { DashboardContent } from './dashboard-content';
@@ -17,7 +18,13 @@ export default async function DashboardPage() {
 		redirect(redirectPath);
 	}
 
-	return <DashboardContent />;
+	const initialSubscriptionState = await getServerSubscriptionHydrationState(
+		auth.userId
+	);
+
+	return (
+		<DashboardContent initialSubscriptionState={initialSubscriptionState} />
+	);
 }
 
 // Prevent caching - user state can change

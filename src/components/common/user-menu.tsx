@@ -41,6 +41,7 @@ export function UserMenu({
 		isAnonymous,
 		subtitle,
 		isPro,
+		hasResolvedSubscription,
 		isLoggingOut,
 		showUpgradeAnonymous,
 		handleRestartOnboarding,
@@ -65,7 +66,9 @@ export function UserMenu({
 
 						{/* User Info - Hidden on mobile, visible on larger screens if not in compact mode */}
 						<div className='hidden sm:block text-left'>
-							<div className='text-sm font-medium text-text-primary'>{name}</div>
+							<div className='text-sm font-medium text-text-primary'>
+								{name}
+							</div>
 						</div>
 
 						{/* Chevron */}
@@ -125,7 +128,7 @@ export function UserMenu({
 					</>
 				)}
 
-				{!isPro && !isAnonymous && (
+				{hasResolvedSubscription && !isPro && !isAnonymous && (
 					<DropdownMenuItem
 						className='cursor-pointer text-warning-400 data-[highlighted]:text-warning-300'
 						onClick={handleUpgradeToPro}

@@ -23,9 +23,11 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
 	useEffect(() => {
 		const initialize = async () => {
 			try {
-				await fetchAvailablePlans();
-				await fetchUserSubscription();
-				await fetchUsageData();
+				await Promise.all([
+					fetchUserSubscription(),
+					fetchAvailablePlans(),
+					fetchUsageData(),
+				]);
 			} catch (error) {
 				console.error('Error initializing:', error);
 			}
@@ -36,6 +38,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
 
 	useEffect(() => {
 		const handleFocus = () => {
+			useAppStore.getState().fetchUserSubscription();
 			useAppStore.getState().fetchUsageData();
 		};
 		window.addEventListener('focus', handleFocus);

@@ -65,6 +65,16 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 <!-- Updated: 2026-04-13 - Migrated Serwist wiring to @serwist/next public/sw.js output and removed legacy /serwist route path -->
 <!-- Updated: 2026-04-13 - Switched Serwist integration to Turbopack route mode with custom /app/sw.js root-scope registration -->
 <!-- Updated: 2026-04-14 - Hardened background sync with shared replay core, periodic notifications refresh, and settings capability surfacing -->
+<!-- Updated: 2026-04-17 - Fixed first-paint paid-user downgrade flashes with route-level subscription hydration -->
+
+## [2026-04-17]
+
+### Fixed
+
+- **subscription/first-paint-paid-user-flash**: Server-hydrated subscription state for `/dashboard`, `/dashboard/templates`, and `/mind-map/[id]`, and taught the client store to distinguish unresolved subscription state from confirmed free tier
+  - Why: Paid users were briefly rendering free-tier upgrade CTAs, onboarding upsells, and limit gates on refresh before the client subscription fetch completed
+- **subscription/feature-gate-pending-state**: Suppressed first-paint free-tier lock/upsell UI while subscription resolution is still pending across account menus, onboarding, timed upgrade prompts, export gating, and dashboard/templates limit checks
+  - Why: Missing subscription data should not be interpreted as a real free-tier entitlement state
 
 ## [2026-04-14]
 
@@ -324,7 +334,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Runtime LAN host derivation is safe only if browser and server still agree on the same auth storage key
 - **docs/landing-and-node-editor-sync**: Updated `docs/CODEBASE_MAP.md` for the tighter landing flow, parser-driven hero proof, calmer landing polish, and merged node-editor outside-press dismissal contract
   - Why: The docs needed to reflect both the evolved landing architecture and the current autocomplete-dismissal behavior after merging `main`
-
 
 ### Added
 

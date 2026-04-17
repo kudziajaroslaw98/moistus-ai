@@ -122,8 +122,11 @@ export function ExportMenuContent({
 		}))
 	);
 
-	const { hasAccess: hasAdvancedExport, showUpgradePrompt } =
-		useFeatureGate('advanced-export');
+	const {
+		hasAccess: hasAdvancedExport,
+		isLoading,
+		showUpgradePrompt,
+	} = useFeatureGate('advanced-export');
 
 	const handleExport = () => {
 		startExport();
@@ -151,6 +154,7 @@ export function ExportMenuContent({
 				>
 					{formatOptions.map((format) => {
 						const isLocked =
+							!isLoading &&
 							(format.id === 'json' || format.id === 'pdf') &&
 							!hasAdvancedExport;
 						return (

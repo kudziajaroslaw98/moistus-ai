@@ -17,7 +17,9 @@ import {
 	SelectValue,
 } from '@/components/ui/select';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import type { SubscriptionHydrationState } from '@/helpers/subscription/subscription-hydration';
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
+import { useHydrateSubscriptionState } from '@/hooks/subscription/use-hydrate-subscription-state';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import {
@@ -75,13 +77,22 @@ const fetcher = async (url: string) => {
 	return data;
 };
 
-export function DashboardContent() {
+interface DashboardContentProps {
+	initialSubscriptionState: SubscriptionHydrationState;
+}
+
+export function DashboardContent({
+	initialSubscriptionState,
+}: DashboardContentProps) {
+	useHydrateSubscriptionState(initialSubscriptionState);
+
 	const router = useRouter();
 	const searchParams = useSearchParams();
 
 	// Handle checkout success redirect
 	useEffect(() => {
 		if (searchParams.get('checkout') === 'success') {
+			void useAppStore.getState().fetchUserSubscription();
 			toast.success('Subscription activated!', {
 				description: 'Welcome to Shiko Pro. Your account has been upgraded.',
 			});
@@ -555,7 +566,9 @@ export function DashboardContent() {
 
 											{/* Sort */}
 											<Select
-												onValueChange={(value) => setSortBy(value as SortByType)}
+												onValueChange={(value) =>
+													setSortBy(value as SortByType)
+												}
 												value={sortBy}
 											>
 												<SelectTrigger className='w-44 bg-zinc-800/30 backdrop-blur-sm border-zinc-700/50 hover:border-zinc-600/50 transition-colors duration-200'>
@@ -625,10 +638,19 @@ export function DashboardContent() {
 
 										{selectedMaps.size > 0 && (
 											<motion.div
-												animate={{ opacity: 1, scale: prefersReducedMotion ? 1 : 1 }}
+												animate={{
+													opacity: 1,
+													scale: prefersReducedMotion ? 1 : 1,
+												}}
 												className='h-9 flex items-center gap-2 px-3 rounded-lg'
-												exit={{ opacity: 0, scale: prefersReducedMotion ? 1 : 0.9 }}
-												initial={{ opacity: 0, scale: prefersReducedMotion ? 1 : 0.9 }}
+												exit={{
+													opacity: 0,
+													scale: prefersReducedMotion ? 1 : 0.9,
+												}}
+												initial={{
+													opacity: 0,
+													scale: prefersReducedMotion ? 1 : 0.9,
+												}}
 												transition={
 													prefersReducedMotion ? { duration: 0 } : undefined
 												}
@@ -850,7 +872,9 @@ export function DashboardContent() {
 				{showAnonymousUpgrade && (
 					<UpgradeAnonymousPrompt
 						isAnonymous={true}
-						userDisplayName={userProfile?.display_name || userProfile?.full_name}
+						userDisplayName={
+							userProfile?.display_name || userProfile?.full_name
+						}
 						onDismiss={() => setShowAnonymousUpgrade(false)}
 						onUpgradeSuccess={() => router.refresh()}
 						autoShowDelay={0}

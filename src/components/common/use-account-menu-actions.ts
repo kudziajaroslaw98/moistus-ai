@@ -1,5 +1,6 @@
 'use client';
 
+import { isProSubscription } from '@/helpers/subscription/subscription-hydration';
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import { runWithViewTransition } from '@/lib/view-transitions';
 import useAppStore from '@/store/mind-map-store';
@@ -22,14 +23,16 @@ export function useAccountMenuActions(user: AccountMenuUser) {
 	const {
 		restartOnboarding,
 		setPopoverOpen,
-		isProUser,
+		currentSubscription,
+		hasResolvedSubscription,
 		resetStore,
 		setLoggingOut,
 	} = useAppStore(
 		useShallow((state) => ({
 			restartOnboarding: state.restartOnboarding,
 			setPopoverOpen: state.setPopoverOpen,
-			isProUser: state.isProUser,
+			currentSubscription: state.currentSubscription,
+			hasResolvedSubscription: state.hasResolvedSubscription,
 			resetStore: state.reset,
 			setLoggingOut: state.setLoggingOut,
 		}))
@@ -40,7 +43,7 @@ export function useAccountMenuActions(user: AccountMenuUser) {
 	const subtitle = isAnonymous
 		? 'Anonymous User'
 		: user?.email || 'Registered User';
-	const isPro = isProUser();
+	const isPro = isProSubscription(currentSubscription);
 
 	const handleRestartOnboarding = useCallback(() => {
 		restartOnboarding();
@@ -94,6 +97,7 @@ export function useAccountMenuActions(user: AccountMenuUser) {
 		subtitle,
 		isAnonymous,
 		isPro,
+		hasResolvedSubscription,
 		isLoggingOut,
 		showUpgradeAnonymous,
 		handleRestartOnboarding,

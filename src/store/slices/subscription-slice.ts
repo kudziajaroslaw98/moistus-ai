@@ -1,3 +1,7 @@
+import {
+	deserializeUserSubscription,
+	type SubscriptionHydrationState,
+} from '@/helpers/subscription/subscription-hydration';
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import { StateCreator } from 'zustand';
 import { AppState } from '../app-state';
@@ -58,6 +62,7 @@ export interface SubscriptionSlice {
 	// State
 	availablePlans: SubscriptionPlan[];
 	currentSubscription: UserSubscription | null;
+	hasResolvedSubscription: boolean;
 	isLoadingSubscription: boolean;
 	subscriptionError: string | null;
 	usageData: UsageData | null;
@@ -65,6 +70,9 @@ export interface SubscriptionSlice {
 	usageError: string | null;
 
 	// Actions
+	hydrateSubscriptionState: (
+		initialSubscriptionState: SubscriptionHydrationState
+	) => void;
 	fetchAvailablePlans: () => Promise<void>;
 	fetchUserSubscription: () => Promise<void>;
 	fetchUsageData: () => Promise<void>;
@@ -102,6 +110,7 @@ export const createSubscriptionSlice: StateCreator<
 	// Initial state
 	availablePlans: [],
 	currentSubscription: null,
+	hasResolvedSubscription: false,
 	isLoadingSubscription: false,
 	subscriptionError: null,
 	usageData: null,
@@ -109,6 +118,17 @@ export const createSubscriptionSlice: StateCreator<
 	usageError: null,
 
 	// Actions
+	hydrateSubscriptionState: (initialSubscriptionState) => {
+		set({
+			currentSubscription: deserializeUserSubscription(
+				initialSubscriptionState.currentSubscription
+			),
+			hasResolvedSubscription: initialSubscriptionState.hasResolvedSubscription,
+			isLoadingSubscription: false,
+			subscriptionError: null,
+		});
+	},
+
 	fetchAvailablePlans: async () => {
 		const supabase = getSharedSupabaseClient();
 
@@ -144,7 +164,10 @@ export const createSubscriptionSlice: StateCreator<
 
 	fetchUserSubscription: async () => {
 		const supabase = getSharedSupabaseClient();
-		set({ isLoadingSubscription: true, subscriptionError: null });
+		set({
+			isLoadingSubscription: !get().hasResolvedSubscription,
+			subscriptionError: null,
+		});
 
 		try {
 			const {
@@ -152,7 +175,11 @@ export const createSubscriptionSlice: StateCreator<
 			} = await supabase.auth.getUser();
 
 			if (!user) {
-				set({ currentSubscription: null, isLoadingSubscription: false });
+				set({
+					currentSubscription: null,
+					hasResolvedSubscription: true,
+					isLoadingSubscription: false,
+				});
 				return;
 			}
 
@@ -177,46 +204,45 @@ export const createSubscriptionSlice: StateCreator<
 			}
 
 			if (data) {
-				const subscription: UserSubscription = {
-					id: data.id,
-					userId: data.user_id,
-					planId: data.plan_id,
-					dodoSubscriptionId: data.dodo_subscription_id,
-					dodoCustomerId: data.dodo_customer_id,
-					status: data.status,
-					currentPeriodStart: data.current_period_start
-						? new Date(data.current_period_start)
-						: undefined,
-					currentPeriodEnd: data.current_period_end
-						? new Date(data.current_period_end)
-						: undefined,
-					cancelAtPeriodEnd: data.cancel_at_period_end,
-					canceledAt: data.canceled_at ? new Date(data.canceled_at) : undefined,
-					trialEnd: data.trial_end ? new Date(data.trial_end) : undefined,
-					plan: data.plan
-						? {
-								id: data.plan.id,
-								name: data.plan.name,
-								displayName: data.plan.display_name,
-								description: data.plan.description,
-								priceMonthly: data.plan.price_monthly,
-								priceYearly: data.plan.price_yearly,
-								dodoProductIdMonthly: data.plan.dodo_product_id,
-								dodoProductIdYearly: data.plan.dodo_product_id,
-								features: data.plan.features,
-								limits: data.plan.limits,
-								isActive: data.plan.is_active,
-							}
-						: undefined,
-				};
-
 				set({
-					currentSubscription: subscription,
+					currentSubscription: deserializeUserSubscription({
+						id: data.id,
+						userId: data.user_id,
+						planId: data.plan_id,
+						dodoSubscriptionId: data.dodo_subscription_id ?? undefined,
+						dodoCustomerId: data.dodo_customer_id ?? undefined,
+						status: data.status,
+						currentPeriodStart: data.current_period_start ?? undefined,
+						currentPeriodEnd: data.current_period_end ?? undefined,
+						cancelAtPeriodEnd: data.cancel_at_period_end,
+						canceledAt: data.canceled_at ?? undefined,
+						trialEnd: data.trial_end ?? undefined,
+						plan: data.plan
+							? {
+									id: data.plan.id,
+									name: data.plan.name,
+									displayName: data.plan.display_name,
+									description: data.plan.description,
+									priceMonthly: data.plan.price_monthly,
+									priceYearly: data.plan.price_yearly,
+									dodoProductIdMonthly: data.plan.dodo_product_id ?? undefined,
+									dodoProductIdYearly: data.plan.dodo_product_id ?? undefined,
+									features: data.plan.features,
+									limits: data.plan.limits,
+									isActive: data.plan.is_active,
+								}
+							: undefined,
+					}),
+					hasResolvedSubscription: true,
 					isLoadingSubscription: false,
 				});
 			} else {
 				// No active subscription, user is on free tier
-				set({ currentSubscription: null, isLoadingSubscription: false });
+				set({
+					currentSubscription: null,
+					hasResolvedSubscription: true,
+					isLoadingSubscription: false,
+				});
 			}
 		} catch (error) {
 			console.error('Error fetching subscription:', error);
@@ -410,12 +436,13 @@ export const createSubscriptionSlice: StateCreator<
 
 		// Map limit type to usage data field
 		// Note: collaboratorsPerMap is set to 0 as enforcement is per-map and handled server-side
-		const usageMap: Record<keyof Required<SubscriptionPlan['limits']>, number> = {
-			mindMaps: usageData?.mindMapsCount ?? 0,
-			aiSuggestions: usageData?.aiSuggestionsCount ?? 0,
-			nodesPerMap: 0, // Handled per-map in client state
-			collaboratorsPerMap: 0, // Per-map limit enforced server-side
-		};
+		const usageMap: Record<keyof Required<SubscriptionPlan['limits']>, number> =
+			{
+				mindMaps: usageData?.mindMapsCount ?? 0,
+				aiSuggestions: usageData?.aiSuggestionsCount ?? 0,
+				nodesPerMap: 0, // Handled per-map in client state
+				collaboratorsPerMap: 0, // Per-map limit enforced server-side
+			};
 
 		const currentUsage = usageMap[limitType];
 		return Math.max(0, limit - currentUsage);

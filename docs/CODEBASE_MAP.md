@@ -53,6 +53,7 @@ total_tokens: 707972
 <!-- Updated: 2026-04-13 - Migrated PWA map from Turbopack route-handler SW path to @serwist/next public/sw.js output -->
 <!-- Updated: 2026-04-13 - Migrated PWA map to @serwist/turbopack route mode with custom /app/sw.js registration path -->
 <!-- Updated: 2026-04-14 - Documented shared offline replay core, periodic notifications refresh, and settings background-sync status surface -->
+<!-- Updated: 2026-04-17 - Documented route-level subscription hydration and resolved subscription semantics -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -171,9 +172,9 @@ shiko/
 │   │   │   ├── templates/      # Map templates
 │   │   │   └── user/           # Profile, billing
 │   │   ├── auth/               # Sign-in/up pages
-│   │   ├── dashboard/          # Map list/templates with shell-parity route loading fallback plus progressive in-page map-card skeleton streaming
+│   │   ├── dashboard/          # Map list/templates with shell-parity route loading fallback, progressive in-page map-card skeleton streaming, and server-seeded subscription state
 │   │   ├── join/               # Room code join flow
-│   │   └── mind-map/           # Canvas page
+│   │   └── mind-map/           # Canvas page with access checks + server-seeded subscription state
 │   │
 │   ├── components/             # React components (25 directories)
 │   │   ├── ai-chat/            # AI chat panel
@@ -249,49 +250,50 @@ shiko/
 
 ### State Management (21 Slices)
 
-| Slice                     | Lines | Purpose                                                                       |
-| ------------------------- | ----- | ----------------------------------------------------------------------------- |
-| **sharing-slice**         | 1,164 | Room codes, anonymous users, upgrade flows                                    |
-| **comments-slice**        | 973   | Comment threads, @mentions, reactions                                         |
-| **suggestions-slice**     | 966   | AI ghost nodes, streaming, merges                                             |
-| **nodes-slice**           | 900   | Node CRUD, positioning, real-time sync                                        |
-| **history-slice**         | 597   | Undo/redo, snapshots, DB persistence                                          |
-| **edges-slice**           | 635   | Edge CRUD, parent-child relationships                                         |
-| **subscription-slice**    | 434   | Stripe, plan limits, usage tracking                                           |
-| **guided-tour-slice**     | 416   | Prezi-style presentations                                                     |
-| **core-slice**            | 353   | Supabase client, user, map loading                                            |
-| **user-profile-slice**    | 317   | Profile, preferences                                                          |
-| **layout-slice**          | 578   | Full ELK layouts + local branch reflow                                        |
-| **onboarding-slice**      | 958   | Editor-first onboarding tasks, substeps, coachmarks, per-user persisted state |
-| **ui-slice**              | 248   | Modals, panels, focus mode                                                    |
-| **groups-slice**          | 246   | Node grouping                                                                 |
-| **chat-slice**            | 241   | AI chat messages                                                              |
-| **streaming-toast-slice** | 168   | Progress toasts                                                               |
-| **clipboard-slice**       | 156   | Copy/paste                                                                    |
-| **export-slice**          | 172   | PNG/SVG/PDF export                                                            |
-| **quick-input-slice**     | 55    | Quick node creation                                                           |
-| **loading-state-slice**   | 33    | Loading flags                                                                 |
-| **realtime-slice**        | 17    | Selection sync                                                                |
+| Slice                     | Lines | Purpose                                                                        |
+| ------------------------- | ----- | ------------------------------------------------------------------------------ |
+| **sharing-slice**         | 1,164 | Room codes, anonymous users, upgrade flows                                     |
+| **comments-slice**        | 973   | Comment threads, @mentions, reactions                                          |
+| **suggestions-slice**     | 966   | AI ghost nodes, streaming, merges                                              |
+| **nodes-slice**           | 900   | Node CRUD, positioning, real-time sync                                         |
+| **history-slice**         | 597   | Undo/redo, snapshots, DB persistence                                           |
+| **edges-slice**           | 635   | Edge CRUD, parent-child relationships                                          |
+| **subscription-slice**    | 467   | Stripe, plan limits, usage tracking, resolved-vs-unresolved subscription state |
+| **guided-tour-slice**     | 416   | Prezi-style presentations                                                      |
+| **core-slice**            | 353   | Supabase client, user, map loading                                             |
+| **user-profile-slice**    | 317   | Profile, preferences                                                           |
+| **layout-slice**          | 578   | Full ELK layouts + local branch reflow                                         |
+| **onboarding-slice**      | 958   | Editor-first onboarding tasks, substeps, coachmarks, per-user persisted state  |
+| **ui-slice**              | 248   | Modals, panels, focus mode                                                     |
+| **groups-slice**          | 246   | Node grouping                                                                  |
+| **chat-slice**            | 241   | AI chat messages                                                               |
+| **streaming-toast-slice** | 168   | Progress toasts                                                                |
+| **clipboard-slice**       | 156   | Copy/paste                                                                     |
+| **export-slice**          | 172   | PNG/SVG/PDF export                                                             |
+| **quick-input-slice**     | 55    | Quick node creation                                                            |
+| **loading-state-slice**   | 33    | Loading flags                                                                  |
+| **realtime-slice**        | 17    | Selection sync                                                                 |
 
 ### Node System (12 Types)
 
-| Type           | Category  | Command       | Purpose                      |
-| -------------- | --------- | ------------- | ---------------------------- |
-| defaultNode    | content   | `$note`       | Standard note                |
-| textNode       | content   | `$text`       | Plain text                   |
+| Type           | Category  | Command       | Purpose                       |
+| -------------- | --------- | ------------- | ----------------------------- |
+| defaultNode    | content   | `$note`       | Standard note                 |
+| textNode       | content   | `$text`       | Plain text                    |
 | taskNode       | content   | `$task`       | Checklist (+ hide done/title) |
-| codeNode       | content   | `$code`       | Syntax highlighted           |
-| annotationNode | content   | `$annotation` | Comments/notes               |
-| resourceNode   | content   | `$link`       | URL preview                  |
-| imageNode      | media     | `$image`      | Image display                |
-| questionNode   | ai        | `$question`   | Q&A format                   |
-| referenceNode  | structure | `$reference`  | Cross-map link               |
-| groupNode      | structure | —             | Container (UI only)          |
-| commentNode    | structure | —             | Thread anchor (UI only)      |
-| ghostNode      | ai        | —             | AI suggestions (system only) |
+| codeNode       | content   | `$code`       | Syntax highlighted            |
+| annotationNode | content   | `$annotation` | Comments/notes                |
+| resourceNode   | content   | `$link`       | URL preview                   |
+| imageNode      | media     | `$image`      | Image display                 |
+| questionNode   | ai        | `$question`   | Q&A format                    |
+| referenceNode  | structure | `$reference`  | Cross-map link                |
+| groupNode      | structure | —             | Container (UI only)           |
+| commentNode    | structure | —             | Thread anchor (UI only)       |
+| ghostNode      | ai        | —             | AI suggestions (system only)  |
 
 **Node Editor note:** Quick-input parser/help intentionally excludes `$reference` quick-switch and deprecated parser tokens (`bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`). Syntax Help is split into type-filtered `Universal` plus `Node-specific` sections.
 Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
+
 <!-- Updated: 2026-04-08 - Documented task node title/hide-done capability in node type map -->
 
 **Key Files:**
@@ -386,6 +388,7 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 
 - `src/app/mind-map/[id]/loading.tsx` now provides an App Router segment-level loading boundary for map navigation
 - `src/components/mind-map/mind-map-loading-skeleton.tsx` is the shared skeleton surface used during map-route transitions
+- `src/app/mind-map/[id]/page.tsx` now fetches a server-side subscription hydration snapshot before `MindMapContent` mounts so refreshes do not briefly render free-tier onboarding or upgrade UI for paid users
 - `src/components/mind-map-canvas.tsx` bootstraps route map loading (`setMapId` + `fetchMindMapData`), gates canvas rendering on requested-route readiness (`state.mapId === params.id` and `state.mindMap?.id === params.id`), and clears map-scoped runtime state on unmount with a Strict Mode-safe replay guard
 - `src/store/slices/core-slice.ts` exposes `clearMindMapRuntimeState()` and stale-guards `fetchMindMapData` writes so late responses cannot repopulate stale map data after route exit/switch
 
@@ -393,7 +396,15 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 
 - `src/app/dashboard/loading.tsx` now renders a shell-parity dashboard loading skeleton instead of a standalone spinner
 - `src/components/dashboard/dashboard-loading-skeleton.tsx` contains both route-level shell fallback and in-page map-card skeleton placeholders (`grid`/`list`)
+- `src/app/dashboard/page.tsx`, `src/app/dashboard/templates/page.tsx`, `src/app/dashboard/dashboard-content.tsx`, and `src/app/dashboard/templates/templates-content.tsx` now hydrate subscription state from a server snapshot before map-limit, billing, and upgrade surfaces render
 - `src/app/dashboard/dashboard-content.tsx` keeps dashboard chrome mounted and progressively streams `DashboardMapsLoadingSkeleton` while `/api/maps` is loading for the initial empty cache
+
+**Subscription First-Paint Hydration:**
+
+- `src/helpers/subscription/get-server-subscription-hydration-state.ts` fetches the authenticated user’s active `user_subscriptions -> subscription_plans` snapshot on the server and returns a serializable hydration payload
+- `src/hooks/subscription/use-hydrate-subscription-state.ts` applies that payload to the Zustand store during client entry render so descendants see resolved subscription state on their first paint
+- `src/store/slices/subscription-slice.ts` now tracks `hasResolvedSubscription` so free-tier UI only renders after subscription resolution is complete; unresolved state is separate from confirmed free tier
+- `src/hooks/subscription/use-feature-gate.ts`, `use-upgrade-prompt.ts`, and onboarding/account menu consumers now suppress free-tier upgrade surfaces while subscription resolution is still pending
 
 **Dashboard Account/Billing Settings Panel:**
 

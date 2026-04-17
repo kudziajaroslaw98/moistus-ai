@@ -15,6 +15,7 @@ import {
 	type OnboardingTaskId,
 	type OnboardingViewport,
 } from '@/constants/onboarding';
+import { isProSubscription } from '@/helpers/subscription/subscription-hydration';
 import type { Tool } from '@/types/tool';
 import { StateCreator } from 'zustand';
 import { AppState } from '../app-state';
@@ -82,6 +83,7 @@ interface OnboardingEligibilityInput {
 	mapAccessError: { type: string } | null;
 	hasCompletedOnboarding: boolean;
 	hasSkippedOnboarding: boolean;
+	hasResolvedSubscription: boolean;
 	currentSubscription: {
 		status: string;
 		plan?: { name?: string | null } | null;
@@ -213,15 +215,10 @@ const readStoredOnboardingState = (
 const areAllTasksComplete = (tasks: OnboardingTaskState) =>
 	ONBOARDING_TASK_IDS.every((taskId) => tasks[taskId]);
 
-const isProSubscription = (
-	currentSubscription: OnboardingEligibilityInput['currentSubscription']
-) =>
-	currentSubscription?.plan?.name === 'pro' &&
-	['active', 'trialing'].includes(currentSubscription.status);
-
 const shouldShowOnboardingUpsell = (
+	hasResolvedSubscription: boolean,
 	currentSubscription: OnboardingEligibilityInput['currentSubscription']
-) => !isProSubscription(currentSubscription);
+) => hasResolvedSubscription && !isProSubscription(currentSubscription);
 
 const getCreateNodeStepForTool = (
 	activeTool: Tool
@@ -315,12 +312,10 @@ const getPausedCoachmarkResumeState = ({
 		onboardingPausedCoachmarkStep !== null || resumeStep > 0;
 	const isPausedCoachmarks =
 		!onboardingTasks['know-controls'] &&
-		(
-			(onboardingStatus === 'hidden' &&
-				onboardingIsMinimized &&
-				(onboardingActiveTarget !== null || hasProgressedCoachmarks)) ||
-			(onboardingStatus === 'checklist' && hasProgressedCoachmarks)
-		);
+		((onboardingStatus === 'hidden' &&
+			onboardingIsMinimized &&
+			(onboardingActiveTarget !== null || hasProgressedCoachmarks)) ||
+			(onboardingStatus === 'checklist' && hasProgressedCoachmarks));
 
 	if (!isPausedCoachmarks) {
 		return null;
@@ -413,6 +408,7 @@ export const isEligibleForOnboarding = ({
 	mapAccessError,
 	hasCompletedOnboarding,
 	hasSkippedOnboarding,
+	hasResolvedSubscription,
 	currentSubscription,
 }: OnboardingEligibilityInput) => {
 	if (mapAccessError?.type === 'access_denied') {
@@ -420,6 +416,10 @@ export const isEligibleForOnboarding = ({
 	}
 
 	if (hasCompletedOnboarding || hasSkippedOnboarding) {
+		return false;
+	}
+
+	if (!hasResolvedSubscription) {
 		return false;
 	}
 
@@ -471,9 +471,11 @@ export const createOnboardingSlice: StateCreator<
 	const getCompletionPatch = (
 		nextTasks: OnboardingTaskState
 	): Partial<OnboardingSlice> => {
-		const { currentSubscription } = get();
+		const { currentSubscription, hasResolvedSubscription } = get();
 
-		if (shouldShowOnboardingUpsell(currentSubscription)) {
+		if (
+			shouldShowOnboardingUpsell(hasResolvedSubscription, currentSubscription)
+		) {
 			return {
 				onboardingTasks: nextTasks,
 				onboardingStatus: 'upsell',
@@ -519,6 +521,7 @@ export const createOnboardingSlice: StateCreator<
 				mapAccessError,
 				hasCompletedOnboarding,
 				hasSkippedOnboarding,
+				hasResolvedSubscription,
 				currentSubscription,
 				onboardingStatus,
 				onboardingTasks,
@@ -533,6 +536,7 @@ export const createOnboardingSlice: StateCreator<
 					mapAccessError,
 					hasCompletedOnboarding,
 					hasSkippedOnboarding,
+					hasResolvedSubscription,
 					currentSubscription,
 				})
 			) {
@@ -545,7 +549,10 @@ export const createOnboardingSlice: StateCreator<
 
 			applyOnboardingPatch({
 				onboardingStatus: areAllTasksComplete(onboardingTasks)
-					? shouldShowOnboardingUpsell(currentSubscription)
+					? shouldShowOnboardingUpsell(
+							hasResolvedSubscription,
+							currentSubscription
+						)
 						? 'upsell'
 						: 'hidden'
 					: 'intro',
@@ -594,6 +601,7 @@ export const createOnboardingSlice: StateCreator<
 				onboardingTasks,
 				hasCompletedOnboarding,
 				currentSubscription,
+				hasResolvedSubscription,
 				onboardingStatus,
 				onboardingIsMinimized,
 				onboardingCoachmarkStep,
@@ -611,7 +619,10 @@ export const createOnboardingSlice: StateCreator<
 
 			if (areAllTasksComplete(onboardingTasks)) {
 				applyOnboardingPatch(
-					shouldShowOnboardingUpsell(currentSubscription)
+					shouldShowOnboardingUpsell(
+						hasResolvedSubscription,
+						currentSubscription
+					)
 						? {
 								onboardingStatus: 'upsell',
 								onboardingActiveTarget: null,
@@ -691,14 +702,19 @@ export const createOnboardingSlice: StateCreator<
 			if (onboardingStatus === 'coachmarks' || pausedCoachmarks) {
 				const nextPausedStep =
 					onboardingStatus === 'coachmarks' && onboardingCoachmarkStep > 0
-						? getClampedCoachmarkStep(onboardingCoachmarkStep, onboardingViewport)
-						: pausedCoachmarks?.step ?? onboardingPausedCoachmarkStep;
+						? getClampedCoachmarkStep(
+								onboardingCoachmarkStep,
+								onboardingViewport
+							)
+						: (pausedCoachmarks?.step ?? onboardingPausedCoachmarkStep);
 				applyOnboardingPatch({
 					onboardingStatus: 'hidden',
 					onboardingActiveTarget,
 					onboardingCoachmarkStep,
 					onboardingPausedCoachmarkStep:
-						nextPausedStep !== null && nextPausedStep > 0 ? nextPausedStep : null,
+						nextPausedStep !== null && nextPausedStep > 0
+							? nextPausedStep
+							: null,
 					onboardingIsMinimized: true,
 				});
 				return;
@@ -817,8 +833,7 @@ export const createOnboardingSlice: StateCreator<
 					tasks: nextTasks,
 					createNodeStep:
 						taskId === 'create-node' ? null : onboardingCreateNodeStep,
-					patternStep:
-						taskId === 'try-pattern' ? null : onboardingPatternStep,
+					patternStep: taskId === 'try-pattern' ? null : onboardingPatternStep,
 					highlightedNodeId:
 						taskId === 'try-pattern' ? null : onboardingHighlightedNodeId,
 				}),
@@ -1095,7 +1110,10 @@ export const createOnboardingSlice: StateCreator<
 					onboardingPausedCoachmarkStep:
 						onboardingPausedCoachmarkStep === null
 							? null
-							: getClampedCoachmarkStep(onboardingPausedCoachmarkStep, viewport),
+							: getClampedCoachmarkStep(
+									onboardingPausedCoachmarkStep,
+									viewport
+								),
 				});
 				return;
 			}
