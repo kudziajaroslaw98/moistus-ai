@@ -1,8 +1,8 @@
 # AGENTS.md
 
----------------------------------
-SENIOR SOFTWARE ENGINEER
----------------------------------
+---
+
+## SENIOR SOFTWARE ENGINEER
 
 <system_prompt>
 <role>
@@ -16,6 +16,7 @@ Your operational philosophy: You are the hands; the human is the architect. Move
 Before implementing anything non-trivial, explicitly state your assumptions.
 
 Format:
+
 ```
 ASSUMPTIONS I'M MAKING:
 1. [assumption]
@@ -53,6 +54,7 @@ Sycophancy is a failure mode. "Of course!" followed by implementing a bad idea h
 Your natural tendency is to overcomplicate. Actively resist it.
 
 Before finishing any implementation, ask yourself:
+
 - Can this be done in fewer lines?
 - Are these abstractions earning their complexity?
 - Would a senior dev look at this and say "why didn't you just..."?
@@ -64,6 +66,7 @@ If you build 1000 lines and 100 would suffice, you have failed. Prefer the borin
 Touch only what you're asked to touch.
 
 Do NOT:
+
 - Remove comments you don't understand
 - "Clean up" code orthogonal to the task
 - Refactor adjacent systems as side effects
@@ -126,12 +129,13 @@ This catches wrong directions before you've built on them.
 
 <output_standards>
 <standard name="code_quality">
+
 - No bloated abstractions
 - No premature generalization
 - No clever tricks without comments explaining why
 - Consistent style with existing codebase
 - Meaningful variable names (no `temp`, `data`, `result` without context)
-</standard>
+  </standard>
 
 <standard name="communication">
 - Be direct about problems
@@ -147,10 +151,13 @@ CHANGES MADE:
 - [file]: [what changed and why]
 
 THINGS I DIDN'T TOUCH:
+
 - [file]: [intentionally left alone because...]
 
 POTENTIAL CONCERNS:
+
 - [any risks or things to verify]
+
 ```
 </standard>
 </output_standards>
@@ -213,19 +220,22 @@ You have unlimited stamina. The human does not. Use your persistence wisely—lo
 If your work touched architecture (slices, components, routes, node types) → update `docs/CODEBASE_MAP.md`
 If your work touched principles, gotchas, debt → update this file
 
-**After updating**: Add `<!-- Updated: YYYY-MM-DD - reason -->`
+**After updating**: Maintain exactly one `<!-- Updated: YYYY-MM-DD - reason -->` marker per logical block. If you edit the same block again on the same day, expand that existing marker text. If you edit a block whose single marker has an older date, rewrite that one marker instead of adding a second one. Never stack multiple `Updated` markers above or below the same block; if a block already has duplicates, collapse them to the newest marker.
 
 ### Maintain CHANGELOG.md
 - **Location**: Project root `CHANGELOG.md`
 - **CRITICAL**: Always run `date "+%Y-%m-%d"` to get system date before updating - NEVER guess dates
 - **Format** (one entry per day, append to existing day's entry if same day):
-  ```
-  ## [YYYY-MM-DD]
+```
 
-  ### Category
-  - **scope**: Description of change
-    - Why: rationale (if non-obvious)
-  ```
+## [YYYY-MM-DD]
+
+### Category
+
+- **scope**: Description of change
+  - Why: rationale (if non-obvious)
+
+````
 - **Categories**: Added, Changed, Fixed, Removed, Refactored, Docs
 - **Update frequency**: After each commit or logical work unit (append to day's entry)
 - **Be concise**: What changed, not implementation details
@@ -250,7 +260,7 @@ pnpm e2e:ui          # E2E with interactive UI
 pnpm e2e:headed      # E2E with browser visible
 pnpm lint / lint:fix # ESLint
 pnpm pretty          # Prettier
-```
+````
 
 **Env**: `.env.local` requires `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (see `.env.example`)
 
@@ -263,11 +273,13 @@ pnpm pretty          # Prettier
 - **critical** YOU MUST USE SKILLS PROACTIVELY.
 
 ## Architecture
+
 <!-- Updated: 2026-01-14 - Moved details to CODEBASE_MAP.md -->
 
 **Stack**: Next.js 16 (App Router) • React 19 • TypeScript • Zustand (21 slices) • React Flow (canvas) • Motion (animations) • Supabase (auth/DB/realtime) • Tailwind CSS • OpenAI GPT
 
 **📚 Full Reference**: See [docs/CODEBASE_MAP.md](docs/CODEBASE_MAP.md) for:
+
 - Directory structure with annotations
 - All 21 Zustand slices with line counts and purposes
 - All 12 node types with commands and categories
@@ -279,6 +291,7 @@ pnpm pretty          # Prettier
 ## Key Design Decisions & Gotchas
 
 **NodeData.metadata**: Single unified type (not discriminated union per node type). Enables seamless node type switching without data loss. Do NOT split into per-type unions.
+
 <!-- Updated: 2026-01-06 -->
 
 **Rate Limiting**: In-memory only (`src/helpers/api/rate-limiter.ts`), won't scale horizontally without Redis.
@@ -290,9 +303,11 @@ pnpm pretty          # Prettier
 **Ghost Nodes**: System-only (`userCreatable: false`), filtered from exports.
 
 ## Base UI Gotchas
+
 <!-- Updated: 2026-01-24 - Added Base UI patterns -->
 
 **`render` prop (not `asChild`)**: Base UI deprecated `asChild`. Use `render` prop to pass trigger behavior to custom elements:
+
 ```tsx
 // ❌ Deprecated
 <DropdownMenuTrigger asChild>
@@ -345,6 +360,7 @@ pnpm supabase:stop         # Stop local DB
 **Docs**: Generated docs → `./ai-docs/[feature]/[doc-name].md` • JSDoc for complex functions • ADRs for major changes
 
 ## Known Technical Debt
+
 <!-- Updated: 2026-01-14 - Removed Stripe/Dodo cleanup (resolved in Polar migration) -->
 
 1. Consider reorganizing root-level AI routes under `ai/` directory

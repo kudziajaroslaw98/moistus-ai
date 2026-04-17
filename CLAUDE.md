@@ -1,24 +1,5 @@
 # CLAUDE.md
 
-<!-- Updated: 2026-03-23 - Restructured: compressed philosophy, moved domain gotchas to .claude/rules/ -->
-<!-- Updated: 2026-03-25 - Documented shared notifications cache/socket and per-user onboarding persistence -->
-<!-- Updated: 2026-03-28 - Documented shared-vs-mobile node-editor autocomplete surfaces -->
-<!-- Updated: 2026-04-01 - Documented LAN-safe local-dev runtime service URL derivation -->
-<!-- Updated: 2026-04-01 - Documented stable Supabase SSR auth cookie naming for LAN dev -->
-<!-- Updated: 2026-04-01 - Documented node-editor portaled autocomplete dismissal guard -->
-<!-- Updated: 2026-04-07 - Documented landing CTA pending feedback pattern (Start Mapping/Get Started/Go Pro) and dashboard loading boundary -->
-<!-- Updated: 2026-04-07 - Documented mind-map runtime state reset and requested-map readiness gating -->
-<!-- Updated: 2026-04-07 - Documented map fetch bootstrap location to avoid skeleton/canvas deadlock -->
-<!-- Updated: 2026-04-07 - Documented Strict Mode-safe map unmount cleanup requirement -->
-<!-- Updated: 2026-04-07 - Documented progressive map-shell streaming rules and idempotent Yjs cleanup expectations -->
-<!-- Updated: 2026-04-07 - Documented dashboard shell-parity loading fallback and in-page progressive card skeleton streaming -->
-<!-- Updated: 2026-04-08 - Documented iPad/iOS long-press context-menu fallback contract for React Flow targets -->
-<!-- Updated: 2026-04-11 - Documented PWA/Serwist contract, offline replay queue guarantees, and push preference/subscription behavior -->
-<!-- Updated: 2026-04-11 - Documented reconnect hardening for offline sync (stale lock removal, full drain loop, visibility trigger, auth/transient retry semantics) -->
-<!-- Updated: 2026-04-12 - Documented Next 16 LAN dev origin allowlist and insecure LAN SW disable contract -->
-<!-- Updated: 2026-04-12 - Documented loopback-to-LAN realtime URL derivation when client NODE_ENV is unavailable -->
-<!-- Updated: 2026-04-13 - Migrated PWA contract to @serwist/next public/sw.js output and removed Turbopack route-handler dependency -->
-<!-- Updated: 2026-04-13 - Migrated PWA contract back to @serwist/turbopack with custom /app/sw.js route and root scope -->
 <!-- Updated: 2026-04-17 - Documented route-level subscription hydration and unresolved-vs-free subscription semantics -->
 
 ## Engineering Philosophy
@@ -83,7 +64,7 @@ You are a senior software engineer in an agentic coding workflow. The human is t
 If your work touched architecture (slices, components, routes, node types) → update `docs/CODEBASE_MAP.md`
 If your work touched principles, gotchas, debt → update this file or relevant `.claude/rules/` file
 
-**After updating**: Add `<!-- Updated: YYYY-MM-DD - reason -->`
+**After updating**: Maintain exactly one `<!-- Updated: YYYY-MM-DD - reason -->` marker per logical block. If you edit the same block again on the same day, expand that existing marker text. If you edit a block whose single marker has an older date, rewrite that one marker instead of adding a second one. Never stack multiple `Updated` markers above or below the same block; if a block already has duplicates, collapse them to the newest marker.
 
 ### Maintain CHANGELOG.md
 
@@ -148,7 +129,6 @@ pnpm pretty          # Prettier
 
 **NodeData.metadata**: Single unified type (not discriminated union per node type). Enables seamless node type switching without data loss. Do NOT split into per-type unions.
 
-<!-- Updated: 2026-01-06 -->
 <!-- Updated: 2026-03-28 - Reconciled local layout and edge-routing gotchas with the current onboarding/editor docs during PR #46 merge -->
 
 **Edge routing**: Raw manual waypoint editing is removed. Normal persisted edges use auto-routed `waypointEdge` geometry, and future manual edge control must be constraint-based (anchor/bias/lane hints), never absolute bend points.
@@ -181,12 +161,10 @@ pnpm pretty          # Prettier
 
 **LAN-safe local dev URLs**: Browser Supabase + PartyKit clients must derive from `window.location.hostname` whenever the configured public URL is loopback-only and the browser host is non-loopback (LAN device access), even if client `NODE_ENV` is unavailable. Keep server-side Supabase traffic on `SUPABASE_INTERNAL_URL` when local services stay on loopback, and do not reintroduce `NEXT_PUBLIC_APP_LOCAL_HREF` for browser fetches.
 
-<!-- Updated: 2026-04-01 - Documented browser-vs-server local URL split for LAN dev -->
 <!-- Updated: 2026-04-12 - Clarified NODE_ENV-independent LAN derivation for loopback-configured realtime URLs -->
 
 **Next.js 16 LAN dev origins**: Next.js blocks cross-origin requests to dev assets/endpoints by default. Keep `next.config.ts#allowedDevOrigins` aligned with active LAN hosts (for example `192.168.0.239`) when testing from phones/tablets, and prefer `pnpm dev:lan` for explicit LAN host binding. In development on insecure non-loopback HTTP origins, keep service-worker registration disabled to avoid unstable PWA behavior while preserving localhost and production HTTPS behavior.
 
-<!-- Updated: 2026-04-12 - Documented Next.js dev-origin allowlist and insecure LAN SW disable pattern -->
 <!-- Updated: 2026-04-12 - Added insecure LAN dev service-worker unregister cleanup expectation -->
 
 **Supabase SSR cookie key**: Browser and server Supabase clients must share the same auth storage/cookie key. Derive that key from the configured Supabase URL, not the runtime LAN host, or successful LAN logins will bounce back to `/auth/sign-in` because the server looks for a different `sb-*` cookie name.
@@ -200,7 +178,6 @@ pnpm pretty          # Prettier
 **Node editor parser scope**: Parser syntax no longer supports `bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`, or `$reference` quick-switch in node editor flows. Syntax Help is split into `Universal` (type-filtered) and `Node-specific` sections.
 For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 
-<!-- Updated: 2026-02-28 - Removed deprecated parser tokens and introduced dual syntax help model -->
 <!-- Updated: 2026-04-08 - Clarified canonical lowercase quoted title parser syntax -->
 
 **Task node visibility/title contract**: `taskNode` supports `metadata.hideCompletedTasks` (per-node hide/show for completed checklist items) and keeps progress stats based on full `metadata.tasks`, not only visible rows. Task titles are quick-input metadata (`title:"..."`) and must round-trip through node-editor parsing/serialization.
@@ -267,10 +244,6 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 
 **Onboarding Persistence**: Persist onboarding state under a user-scoped storage key (`${ONBOARDING_STORAGE_KEY}:${currentUser.id}`) and wrap storage reads/writes in `try/catch` so blocked storage does not crash the slice. Hydrate that user-scoped state inside onboarding event handlers before branching on skip/complete flags. Track paused controls-tour progress with `onboardingPausedCoachmarkStep` (not checklist-time `onboardingCoachmarkStep`), and prefer that paused marker when resuming `know-controls`; keep checklist transitions free to reset active coachmark step without losing paused resume context. Minimize-pill body resume should expand back to checklist, while `startOnboardingTask('know-controls')` resumes coachmarks at the saved step (clamped to the active viewport sequence). On mobile, manually expanding a minimized checklist pill must keep the checklist surface visible (including `Skip walkthrough`), suppress hint/coachmark overlays until the user explicitly taps a task CTA (`Start`/`Continue`), and avoid running continuous anchor measurement loops while that manual-resume checklist surface is shown. Any checklist/pill CTA bound to paused controls flow should read `Continue` (not `Start`). Completed checklist task actions must render as disabled `Done` buttons and stay non-interactive.
 
-<!-- Updated: 2026-04-08 - Documented controls-tour paused-step persistence across re-minimize plus Continue-label contract for paused checklist/pill actions -->
-<!-- Updated: 2026-04-08 - Documented disabled non-interactive Done CTA contract for completed checklist tasks -->
-<!-- Updated: 2026-04-08 - Documented mobile manual-pill expand behavior to keep checklist visible for skip access -->
-<!-- Updated: 2026-04-08 - Documented mobile manual-pill expand suppression of auto-start hint/coachmark overlays -->
 <!-- Updated: 2026-04-08 - Documented explicit paused coachmark marker and manual-resume anchor measurement suspension -->
 
 **Subscription hydration semantics**: `subscription-slice` must distinguish unresolved subscription state from confirmed free tier via `hasResolvedSubscription`. Keep first-paint subscription hydration server-side on authenticated dynamic routes (`/dashboard`, `/dashboard/templates`, `/mind-map/[id]`) and seed client entry components before any subscription-gated UI renders. Background client refreshes may revalidate billing state, but they must not briefly reset paid users into free-tier UI, onboarding upsells, or upgrade CTAs.
