@@ -3,6 +3,7 @@
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import { Button } from '@/components/ui/button';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import { cn } from '@/utils/cn';
 import {
 	BarChart,
@@ -21,7 +22,6 @@ import {
 	Zap,
 	type LucideIcon,
 } from 'lucide-react';
-import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { memo, useCallback, useMemo, useState } from 'react';
@@ -53,7 +53,10 @@ type TemplateCategory =
 	| 'technical';
 
 // Category metadata
-const TEMPLATE_CATEGORIES: Record<TemplateCategory, { label: string; icon: LucideIcon }> = {
+const TEMPLATE_CATEGORIES: Record<
+	TemplateCategory,
+	{ label: string; icon: LucideIcon }
+> = {
 	creative: { label: 'Creative', icon: Lightbulb },
 	productivity: { label: 'Productivity', icon: Zap },
 	planning: { label: 'Planning', icon: Calendar },
@@ -127,7 +130,9 @@ const TemplateCard = memo(function TemplateCard({
 
 	const gradientStyle = useMemo(() => {
 		if (!template.previewColors?.length) {
-			return { background: 'linear-gradient(135deg, #3f3f46 0%, #27272a 100%)' };
+			return {
+				background: 'linear-gradient(135deg, #3f3f46 0%, #27272a 100%)',
+			};
 		}
 		const colors = template.previewColors;
 		return {
@@ -180,7 +185,9 @@ const TemplateCard = memo(function TemplateCard({
 							{TEMPLATE_CATEGORIES[template.category]?.label}
 						</span>
 					</div>
-					<p className='text-sm text-zinc-400 line-clamp-1'>{template.description}</p>
+					<p className='text-sm text-zinc-400 line-clamp-1'>
+						{template.description}
+					</p>
 				</div>
 				<div className='hidden sm:flex items-center gap-4 text-xs text-zinc-500'>
 					<span>{template.nodeCount} nodes</span>
@@ -241,7 +248,9 @@ const TemplateCard = memo(function TemplateCard({
 					{TEMPLATE_CATEGORIES[template.category]?.label}
 				</div>
 				<div className='absolute bottom-0 left-0 right-0 p-3'>
-					<h3 className='text-white font-medium text-sm truncate'>{template.name}</h3>
+					<h3 className='text-white font-medium text-sm truncate'>
+						{template.name}
+					</h3>
 				</div>
 			</div>
 			<div className='p-3'>
@@ -341,7 +350,9 @@ export function TemplatesContent() {
 	const router = useRouter();
 	const prefersReducedMotion = useReducedMotion();
 	const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-	const [selectedCategory, setSelectedCategory] = useState<TemplateCategory | 'all'>('all');
+	const [selectedCategory, setSelectedCategory] = useState<
+		TemplateCategory | 'all'
+	>('all');
 	const [isCreating, setIsCreating] = useState(false);
 
 	// Subscription limits for map creation
@@ -349,14 +360,12 @@ export function TemplatesContent() {
 	const isAtMapLimit = isAtLimit('mindMaps');
 
 	// Fetch templates
-	const { data, error, isLoading } = useSWR<{ data: { templates: TemplateFromAPI[] } }>(
-		'/api/templates',
-		fetcher,
-		{
-			revalidateOnFocus: false,
-			dedupingInterval: 60000,
-		}
-	);
+	const { data, error, isLoading } = useSWR<{
+		data: { templates: TemplateFromAPI[] };
+	}>('/api/templates', fetcher, {
+		revalidateOnFocus: false,
+		dedupingInterval: 60000,
+	});
 
 	const templates = data?.data?.templates || [];
 
@@ -425,7 +434,8 @@ export function TemplatesContent() {
 				if (!response.ok) {
 					if (response.status === 402) {
 						toast.error(
-							responseData?.error || 'Mind map limit reached. Upgrade to Pro for unlimited maps.',
+							responseData?.error ||
+								'Mind map limit reached. Upgrade to Pro for unlimited maps.',
 							{
 								action: {
 									label: 'Upgrade',
@@ -437,7 +447,9 @@ export function TemplatesContent() {
 						return;
 					}
 					const errorMessage =
-						responseData?.error || responseData?.message || 'Failed to create map';
+						responseData?.error ||
+						responseData?.message ||
+						'Failed to create map';
 					toast.error(errorMessage);
 					return;
 				}
@@ -473,7 +485,8 @@ export function TemplatesContent() {
 								Templates
 							</h1>
 							<p className='text-zinc-400'>
-								Browse {templates.length} pre-built templates to jumpstart your mind maps
+								Browse {templates.length} pre-built templates to jumpstart your
+								mind maps
 							</p>
 						</div>
 
@@ -490,7 +503,10 @@ export function TemplatesContent() {
 									onClick={() => setViewMode('grid')}
 									size='sm'
 									variant='ghost'
-									className={cn('h-8 px-3', viewMode === 'grid' && 'bg-zinc-700')}
+									className={cn(
+										'h-8 px-3',
+										viewMode === 'grid' && 'bg-zinc-700'
+									)}
 								>
 									<Grid3x3 className='h-4 w-4' />
 								</Button>
@@ -498,7 +514,10 @@ export function TemplatesContent() {
 									onClick={() => setViewMode('list')}
 									size='sm'
 									variant='ghost'
-									className={cn('h-8 px-3', viewMode === 'list' && 'bg-zinc-700')}
+									className={cn(
+										'h-8 px-3',
+										viewMode === 'list' && 'bg-zinc-700'
+									)}
 								>
 									<List className='h-4 w-4' />
 								</Button>
@@ -509,7 +528,9 @@ export function TemplatesContent() {
 						{isLoading && (
 							<div className='flex items-center justify-center h-64'>
 								{prefersReducedMotion ? (
-									<span className='text-zinc-500 text-sm'>Loading templates...</span>
+									<span className='text-zinc-500 text-sm'>
+										Loading templates...
+									</span>
 								) : (
 									<Loader2 className='w-8 h-8 text-zinc-500 animate-spin' />
 								)}

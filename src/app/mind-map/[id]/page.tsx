@@ -1,8 +1,11 @@
-import { redirect } from 'next/navigation';
+import { SubscriptionHydrationProvider } from '@/components/providers/subscription-hydration-provider';
+import { mapAccessRateLimiter } from '@/helpers/api/rate-limiter';
+import { getServerSubscriptionHydrationState } from '@/helpers/subscription/get-server-subscription-hydration-state';
+import { EMPTY_SUBSCRIPTION_HYDRATION_STATE } from '@/helpers/subscription/subscription-hydration';
 import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { checkMapAccess } from './access-check';
 import { MindMapContent } from './mind-map-content';
-import { mapAccessRateLimiter } from '@/helpers/api/rate-limiter';
 
 interface PageProps {
 	params: Promise<{ id: string }>;
@@ -68,9 +71,19 @@ export default async function MindMapPage({ params }: PageProps) {
 
 		case 'owner':
 		case 'shared':
-		case 'template':
-			// Authorized - render client component
-			return <MindMapContent />;
+		case 'template': {
+			const subscriptionHydrationState = access.userId
+				? await getServerSubscriptionHydrationState(access.userId)
+				: EMPTY_SUBSCRIPTION_HYDRATION_STATE;
+
+			return (
+				<SubscriptionHydrationProvider
+					initialSubscriptionState={subscriptionHydrationState}
+				>
+					<MindMapContent />
+				</SubscriptionHydrationProvider>
+			);
+		}
 	}
 }
 

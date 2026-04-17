@@ -1,10 +1,10 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import type { UseNotificationsResult } from '@/components/notifications/use-notifications'
-import type { ComponentProps, ReactNode } from 'react'
+import type { UseNotificationsResult } from '@/components/notifications/use-notifications';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { ComponentProps, ReactNode } from 'react';
 
-import { MobileMenu } from './mobile-menu'
+import { MobileMenu } from './mobile-menu';
 
-const pushMock = jest.fn()
+const pushMock = jest.fn();
 
 let mockStoreState = {
 	currentShares: [
@@ -17,13 +17,14 @@ let mockStoreState = {
 	],
 	currentUser: { id: 'user-1' },
 	getCurrentShareUsers: jest.fn().mockResolvedValue(undefined),
-}
+};
 
 let mockAccountActions = {
 	name: 'Jordan',
 	subtitle: 'jordan@shiko.ai',
 	isAnonymous: false,
 	isPro: false,
+	hasResolvedSubscription: true,
 	isLoggingOut: false,
 	showUpgradeAnonymous: false,
 	handleRestartOnboarding: jest.fn(),
@@ -32,23 +33,23 @@ let mockAccountActions = {
 	openUpgradeAnonymousPrompt: jest.fn(),
 	closeUpgradeAnonymousPrompt: jest.fn(),
 	handleAnonymousUpgradeSuccess: jest.fn(),
-}
+};
 
 jest.mock('@/components/auth/upgrade-anonymous', () => ({
 	UpgradeAnonymousPrompt: () => <div data-testid='upgrade-anonymous-prompt' />,
-}))
+}));
 
 jest.mock('@/components/common/use-account-menu-actions', () => ({
 	useAccountMenuActions: () => mockAccountActions,
-}))
+}));
 
 jest.mock('@/components/notifications/use-notifications', () => ({
 	formatRelativeNotificationTime: () => '1h ago',
-}))
+}));
 
 jest.mock('@/components/realtime/realtime-avatar-stack', () => ({
 	RealtimeAvatarStack: () => <div data-testid='realtime-avatar-stack' />,
-}))
+}));
 
 jest.mock('@/components/ui/sheet', () => ({
 	Sheet: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -57,8 +58,8 @@ jest.mock('@/components/ui/sheet', () => ({
 		className,
 		...props
 	}: {
-		children: ReactNode
-		className?: string
+		children: ReactNode;
+		className?: string;
 	}) => (
 		<button className={className} {...props}>
 			{children}
@@ -69,8 +70,8 @@ jest.mock('@/components/ui/sheet', () => ({
 		className,
 		...props
 	}: {
-		children: ReactNode
-		className?: string
+		children: ReactNode;
+		className?: string;
 	}) => (
 		<div className={className} {...props}>
 			{children}
@@ -81,25 +82,25 @@ jest.mock('@/components/ui/sheet', () => ({
 		className,
 		...props
 	}: {
-		children: ReactNode
-		className?: string
+		children: ReactNode;
+		className?: string;
 	}) => (
 		<div className={className} {...props}>
 			{children}
 		</div>
 	),
-}))
+}));
 
 jest.mock('@/store/mind-map-store', () => ({
 	__esModule: true,
 	default: jest.fn((selector) => selector(mockStoreState)),
-}))
+}));
 
 jest.mock('next/navigation', () => ({
 	useRouter: () => ({
 		push: pushMock,
 	}),
-}))
+}));
 
 function createNotifications(
 	overrides: Partial<UseNotificationsResult> = {}
@@ -169,18 +170,18 @@ function createNotifications(
 		markAllAsRead: jest.fn().mockResolvedValue(undefined),
 		markNotificationAsRead: jest.fn().mockResolvedValue(undefined),
 		...overrides,
-	}
+	};
 }
 
 function renderMobileMenu(
 	overrides: Partial<ComponentProps<typeof MobileMenu>> = {}
 ) {
-	const onOpenChange = jest.fn()
-	const onToggleHistory = jest.fn()
-	const onToggleSettings = jest.fn()
-	const onToggleSharePanel = jest.fn()
-	const onOpenSettings = jest.fn()
-	const notifications = createNotifications()
+	const onOpenChange = jest.fn();
+	const onToggleHistory = jest.fn();
+	const onToggleSettings = jest.fn();
+	const onToggleSharePanel = jest.fn();
+	const onOpenSettings = jest.fn();
+	const notifications = createNotifications();
 
 	render(
 		<MobileMenu
@@ -209,7 +210,7 @@ function renderMobileMenu(
 			}}
 			{...overrides}
 		/>
-	)
+	);
 
 	return {
 		onOpenChange,
@@ -218,12 +219,12 @@ function renderMobileMenu(
 		onToggleSharePanel,
 		onOpenSettings,
 		notifications,
-	}
+	};
 }
 
 describe('MobileMenu', () => {
 	beforeEach(() => {
-		pushMock.mockReset()
+		pushMock.mockReset();
 		mockStoreState = {
 			currentShares: [
 				{
@@ -235,12 +236,13 @@ describe('MobileMenu', () => {
 			],
 			currentUser: { id: 'user-1' },
 			getCurrentShareUsers: jest.fn().mockResolvedValue(undefined),
-		}
+		};
 		mockAccountActions = {
 			name: 'Jordan',
 			subtitle: 'jordan@shiko.ai',
 			isAnonymous: false,
 			isPro: false,
+			hasResolvedSubscription: true,
 			isLoggingOut: false,
 			showUpgradeAnonymous: false,
 			handleRestartOnboarding: jest.fn(),
@@ -249,67 +251,70 @@ describe('MobileMenu', () => {
 			openUpgradeAnonymousPrompt: jest.fn(),
 			closeUpgradeAnonymousPrompt: jest.fn(),
 			handleAnonymousUpgradeSuccess: jest.fn(),
-		}
-	})
+		};
+	});
 
 	it('shows owner workspace actions, notifications preview, and closes after sharing', async () => {
-		const { onOpenChange, onToggleSharePanel, notifications } = renderMobileMenu()
-		const closeMenuButton = screen.getByRole('button', { name: 'Close menu' })
+		const { onOpenChange, onToggleSharePanel, notifications } =
+			renderMobileMenu();
+		const closeMenuButton = screen.getByRole('button', { name: 'Close menu' });
 
 		expect(
 			screen.queryByText('Everything that supports the canvas lives here.')
-		).not.toBeInTheDocument()
-		expect(closeMenuButton).toBeInTheDocument()
-		expect(closeMenuButton.className).toContain('bg-transparent')
-		expect(closeMenuButton.className).not.toContain('rounded-2xl')
-		expect(screen.getByTitle('Dump')).toHaveTextContent('Dump')
-		expect(screen.getByText('Collaboration')).toBeInTheDocument()
-		expect(screen.getByText('Share map')).toBeInTheDocument()
-		expect(screen.getByText('1 collaborator on this map')).toBeInTheDocument()
-		expect(screen.getByText('View history')).toBeInTheDocument()
-		expect(screen.getByText('Map settings')).toBeInTheDocument()
-		expect(screen.getByText('Billing')).toBeInTheDocument()
-		expect(screen.getByText('Upgrade to Pro')).toBeInTheDocument()
-		expect(screen.getByText('Anna mentioned you')).toBeInTheDocument()
-		expect(screen.getByText('Sam replied to your node')).toBeInTheDocument()
-		expect(screen.queryByText('Access updated')).not.toBeInTheDocument()
-		expect(screen.getByText('Mark all as read')).toBeInTheDocument()
-		expect(screen.queryByText('Collaborators')).not.toBeInTheDocument()
+		).not.toBeInTheDocument();
+		expect(closeMenuButton).toBeInTheDocument();
+		expect(closeMenuButton.className).toContain('bg-transparent');
+		expect(closeMenuButton.className).not.toContain('rounded-2xl');
+		expect(screen.getByTitle('Dump')).toHaveTextContent('Dump');
+		expect(screen.getByText('Collaboration')).toBeInTheDocument();
+		expect(screen.getByText('Share map')).toBeInTheDocument();
+		expect(screen.getByText('1 collaborator on this map')).toBeInTheDocument();
+		expect(screen.getByText('View history')).toBeInTheDocument();
+		expect(screen.getByText('Map settings')).toBeInTheDocument();
+		expect(screen.getByText('Billing')).toBeInTheDocument();
+		expect(screen.getByText('Upgrade to Pro')).toBeInTheDocument();
+		expect(screen.getByText('Anna mentioned you')).toBeInTheDocument();
+		expect(screen.getByText('Sam replied to your node')).toBeInTheDocument();
+		expect(screen.queryByText('Access updated')).not.toBeInTheDocument();
+		expect(screen.getByText('Mark all as read')).toBeInTheDocument();
+		expect(screen.queryByText('Collaborators')).not.toBeInTheDocument();
 		expect(
 			screen.queryByText(
 				'See who is in the map before you open sharing or presentation tools.'
 			)
-		).not.toBeInTheDocument()
+		).not.toBeInTheDocument();
 
-		fireEvent.click(screen.getByText('Share map'))
-		expect(onToggleSharePanel).toHaveBeenCalledTimes(1)
-		expect(onOpenChange).toHaveBeenCalledWith(false)
+		fireEvent.click(screen.getByText('Share map'));
+		expect(onToggleSharePanel).toHaveBeenCalledTimes(1);
+		expect(onOpenChange).toHaveBeenCalledWith(false);
 
-		fireEvent.click(screen.getByText('Anna mentioned you'))
+		fireEvent.click(screen.getByText('Anna mentioned you'));
 		expect(notifications.markNotificationAsRead).toHaveBeenCalledWith(
 			'notification-1'
-		)
+		);
 		await waitFor(() => {
-			expect(pushMock).toHaveBeenCalledWith('/mind-map/map-2')
-		})
-	})
+			expect(pushMock).toHaveBeenCalledWith('/mind-map/map-2');
+		});
+	});
 
 	it('truncates long drawer titles to 24 characters', () => {
 		renderMobileMenu({
 			mapTitle: 'This title is definitely longer than twenty four characters',
-		})
+		});
 
 		expect(
-			screen.getByTitle('This title is definitely longer than twenty four characters')
-		).toHaveTextContent('This title is definit...')
-	})
+			screen.getByTitle(
+				'This title is definitely longer than twenty four characters'
+			)
+		).toHaveTextContent('This title is definit...');
+	});
 
 	it('hides owner/editor-only actions for anonymous collaborators and shows upgrade account', () => {
 		mockAccountActions = {
 			...mockAccountActions,
 			isAnonymous: true,
 			subtitle: 'Anonymous User',
-		}
+		};
 
 		const { onOpenChange } = renderMobileMenu({
 			canEdit: false,
@@ -322,16 +327,29 @@ describe('MobileMenu', () => {
 				created_at: '2026-03-18T00:00:00.000Z',
 				is_anonymous: true,
 			},
-		})
+		});
 
-		expect(screen.queryByText('Share map')).not.toBeInTheDocument()
-		expect(screen.queryByText('View history')).not.toBeInTheDocument()
-		expect(screen.queryByText('Map settings')).not.toBeInTheDocument()
-		expect(screen.queryByText('Billing')).not.toBeInTheDocument()
-		expect(screen.getByText('Upgrade Account')).toBeInTheDocument()
+		expect(screen.queryByText('Share map')).not.toBeInTheDocument();
+		expect(screen.queryByText('View history')).not.toBeInTheDocument();
+		expect(screen.queryByText('Map settings')).not.toBeInTheDocument();
+		expect(screen.queryByText('Billing')).not.toBeInTheDocument();
+		expect(screen.getByText('Upgrade Account')).toBeInTheDocument();
 
-		fireEvent.click(screen.getByText('Upgrade Account'))
-		expect(mockAccountActions.openUpgradeAnonymousPrompt).toHaveBeenCalledTimes(1)
-		expect(onOpenChange).toHaveBeenCalledWith(false)
-	})
-})
+		fireEvent.click(screen.getByText('Upgrade Account'));
+		expect(mockAccountActions.openUpgradeAnonymousPrompt).toHaveBeenCalledTimes(
+			1
+		);
+		expect(onOpenChange).toHaveBeenCalledWith(false);
+	});
+
+	it('hides the upgrade CTA until subscription state is resolved', () => {
+		mockAccountActions = {
+			...mockAccountActions,
+			hasResolvedSubscription: false,
+		};
+
+		renderMobileMenu();
+
+		expect(screen.queryByText('Upgrade to Pro')).not.toBeInTheDocument();
+	});
+});

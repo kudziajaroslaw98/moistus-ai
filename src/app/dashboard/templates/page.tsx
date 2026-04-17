@@ -1,3 +1,5 @@
+import { SubscriptionHydrationProvider } from '@/components/providers/subscription-hydration-provider';
+import { getServerSubscriptionHydrationState } from '@/helpers/subscription/get-server-subscription-hydration-state';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import { checkDashboardAuth } from '../auth-check';
@@ -27,9 +29,17 @@ export default async function TemplatesPage() {
 		redirect(redirectPath);
 	}
 
+	const initialSubscriptionState = await getServerSubscriptionHydrationState(
+		auth.userId
+	);
+
 	return (
 		<Suspense fallback={<TemplatesLoading />}>
-			<TemplatesContent />
+			<SubscriptionHydrationProvider
+				initialSubscriptionState={initialSubscriptionState}
+			>
+				<TemplatesContent />
+			</SubscriptionHydrationProvider>
 		</Suspense>
 	);
 }

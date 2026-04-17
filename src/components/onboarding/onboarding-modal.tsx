@@ -1,13 +1,15 @@
 'use client';
 
+import { useEffectiveSubscriptionState } from '@/components/providers/subscription-hydration-provider';
 import {
 	ONBOARDING_PATTERN_EXAMPLE,
 	getOnboardingCoachmarks,
 	type OnboardingTaskId,
 } from '@/constants/onboarding';
+import { isProSubscription } from '@/helpers/subscription/subscription-hydration';
 import { useIsMobile } from '@/hooks/use-mobile';
 import useAppStore from '@/store/mind-map-store';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { CanvasPlacementHint } from './canvas-placement-hint';
@@ -42,6 +44,8 @@ export function OnboardingModal() {
 	const [targetRect, setTargetRect] = useState<FloatingTargetRect | null>(null);
 	const [showChecklistOnManualResume, setShowChecklistOnManualResume] =
 		useState(false);
+	const { currentSubscription, hasResolvedSubscription } =
+		useEffectiveSubscriptionState();
 	const {
 		onboardingStatus,
 		onboardingTasks,
@@ -54,7 +58,6 @@ export function OnboardingModal() {
 		onboardingHighlightedNodeId,
 		onboardingViewport,
 		hasCompletedOnboarding,
-		currentSubscription,
 		startOnboarding,
 		skipOnboarding,
 		resumeOnboarding,
@@ -80,7 +83,6 @@ export function OnboardingModal() {
 			onboardingHighlightedNodeId: state.onboardingHighlightedNodeId,
 			onboardingViewport: state.onboardingViewport,
 			hasCompletedOnboarding: state.hasCompletedOnboarding,
-			currentSubscription: state.currentSubscription,
 			startOnboarding: state.startOnboarding,
 			skipOnboarding: state.skipOnboarding,
 			resumeOnboarding: state.resumeOnboarding,
@@ -100,13 +102,14 @@ export function OnboardingModal() {
 		() => Object.values(onboardingTasks).filter(Boolean).length,
 		[onboardingTasks]
 	);
-	const isProUser =
-		currentSubscription?.plan?.name === 'pro' &&
-		['active', 'trialing'].includes(currentSubscription?.status ?? '');
+	const isProUser = hasResolvedSubscription
+		? isProSubscription(currentSubscription)
+		: false;
 	const shouldRenderMinimizedPill =
 		onboardingIsMinimized && !hasCompletedOnboarding;
 	const shouldRenderChecklist = onboardingStatus === 'checklist';
-	const shouldRenderUpsell = onboardingStatus === 'upsell' && !isProUser;
+	const shouldRenderUpsell =
+		onboardingStatus === 'upsell' && hasResolvedSubscription && !isProUser;
 	const shouldRenderIntro = onboardingStatus === 'intro';
 	const shouldRenderCreateNodeToolbarHint =
 		shouldRenderChecklist &&
@@ -329,7 +332,9 @@ export function OnboardingModal() {
 						}
 						completedCount={completedCount}
 						isMobile={isMobile}
-						minimizedPriorityTaskId={isPausedCoachmarkTour ? 'know-controls' : null}
+						minimizedPriorityTaskId={
+							isPausedCoachmarkTour ? 'know-controls' : null
+						}
 						mode={walkthroughSurfaceMode}
 						onMinimize={handleMinimizeOnboarding}
 						onResume={handleResumeOnboarding}
@@ -344,17 +349,17 @@ export function OnboardingModal() {
 				{shouldRenderCreateNodeToolbarHint &&
 					shouldShowGuidanceOverlays &&
 					!shouldFallbackToChecklist && (
-					<FloatingHint
-						dataTestId='onboarding-create-node-hint'
-						description='Start here. Choose Add Node, then the walkthrough will move onto the canvas with you.'
-						isMobile={isMobile}
-						mobileDescription='Tap Add Node to switch into placement mode. We will move onto the canvas as soon as you do.'
-						mobileTitle='Create your first node'
-						onDismiss={handleMinimizeOnboarding}
-						targetRect={targetRect}
-						title='Create your first node'
-					/>
-				)}
+						<FloatingHint
+							dataTestId='onboarding-create-node-hint'
+							description='Start here. Choose Add Node, then the walkthrough will move onto the canvas with you.'
+							isMobile={isMobile}
+							mobileDescription='Tap Add Node to switch into placement mode. We will move onto the canvas as soon as you do.'
+							mobileTitle='Create your first node'
+							onDismiss={handleMinimizeOnboarding}
+							targetRect={targetRect}
+							title='Create your first node'
+						/>
+					)}
 			</AnimatePresence>
 
 			<AnimatePresence>
@@ -370,17 +375,17 @@ export function OnboardingModal() {
 				{shouldRenderPatternEditHint &&
 					shouldShowGuidanceOverlays &&
 					!shouldFallbackToChecklist && (
-					<FloatingHint
-						dataTestId='onboarding-pattern-edit-hint'
-						description='To edit this node later, select it and press Enter, or just double-click it.'
-						isMobile={isMobile}
-						mobileDescription='Tap this node to select it. Once selected, use Edit to change it without leaving the canvas.'
-						mobileTitle='Editing stays close by'
-						onDismiss={dismissOnboardingPatternEditHint}
-						targetRect={targetRect}
-						title='Editing is one step away'
-					/>
-				)}
+						<FloatingHint
+							dataTestId='onboarding-pattern-edit-hint'
+							description='To edit this node later, select it and press Enter, or just double-click it.'
+							isMobile={isMobile}
+							mobileDescription='Tap this node to select it. Once selected, use Edit to change it without leaving the canvas.'
+							mobileTitle='Editing stays close by'
+							onDismiss={dismissOnboardingPatternEditHint}
+							targetRect={targetRect}
+							title='Editing is one step away'
+						/>
+					)}
 			</AnimatePresence>
 
 			<AnimatePresence>
@@ -388,15 +393,15 @@ export function OnboardingModal() {
 					shouldShowGuidanceOverlays &&
 					!shouldFallbackToChecklist &&
 					currentCoachmark && (
-					<CoachmarkCard
-						currentStep={currentCoachmark}
-						isLastStep={onboardingCoachmarkStep === coachmarks.length - 1}
-						isMobile={isMobile}
-						onMinimize={handleMinimizeOnboarding}
-						onNext={advanceOnboardingCoachmark}
-						targetRect={targetRect}
-					/>
-				)}
+						<CoachmarkCard
+							currentStep={currentCoachmark}
+							isLastStep={onboardingCoachmarkStep === coachmarks.length - 1}
+							isMobile={isMobile}
+							onMinimize={handleMinimizeOnboarding}
+							onNext={advanceOnboardingCoachmark}
+							targetRect={targetRect}
+						/>
+					)}
 			</AnimatePresence>
 
 			<AnimatePresence>

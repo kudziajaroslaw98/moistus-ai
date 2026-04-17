@@ -11,7 +11,12 @@ import {
 } from '@/components/notifications/use-notifications';
 import { RealtimeAvatarStack } from '@/components/realtime/realtime-avatar-stack';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetClose, SheetContent, SheetTitle } from '@/components/ui/sheet';
+import {
+	Sheet,
+	SheetClose,
+	SheetContent,
+	SheetTitle,
+} from '@/components/ui/sheet';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { type ActivityState } from '@/hooks/realtime/use-realtime-presence-room';
 import { getMindMapRoomName } from '@/lib/realtime/room-names';
@@ -66,6 +71,7 @@ export function MobileMenu({
 		subtitle,
 		isAnonymous,
 		isPro,
+		hasResolvedSubscription,
 		isLoggingOut,
 		showUpgradeAnonymous,
 		handleRestartOnboarding,
@@ -138,13 +144,11 @@ export function MobileMenu({
 		collaboratorAvatars.length > 0
 			? `${collaboratorAvatars.length} collaborator${
 					collaboratorAvatars.length === 1 ? '' : 's'
-			  } on this map`
+				} on this map`
 			: 'Just you for now';
 
 	const unreadSummary =
-		visibleUnreadCount > 0
-			? `${visibleUnreadCount} unread`
-			: 'All caught up';
+		visibleUnreadCount > 0 ? `${visibleUnreadCount} unread` : 'All caught up';
 	const drawerTitle = useMemo(() => {
 		const rawTitle = mapTitle?.trim() || 'Menu';
 
@@ -254,7 +258,7 @@ export function MobileMenu({
 										user={user}
 									/>
 									<p className='truncate text-[0.95rem] font-semibold text-text-primary'>
-												{name}
+										{name}
 									</p>
 
 									<div className='shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-text-secondary'>
@@ -307,7 +311,10 @@ export function MobileMenu({
 								</section>
 
 								<section className='mt-5 border-t border-white/8 pt-4'>
-									<SectionHeading meta={unreadSummary} title='Recent activity' />
+									<SectionHeading
+										meta={unreadSummary}
+										title='Recent activity'
+									/>
 
 									{error ? (
 										<p className='mt-2 text-[12px] leading-4 text-red-400'>
@@ -439,7 +446,7 @@ export function MobileMenu({
 												onClick={handleUpgradeAccount}
 												tone='accent'
 											/>
-										) : !isPro ? (
+										) : hasResolvedSubscription && !isPro ? (
 											<MenuRow
 												description='Unlock higher limits and deeper tools.'
 												label='Upgrade to Pro'
@@ -455,12 +462,12 @@ export function MobileMenu({
 											tone='danger'
 										/>
 									</div>
-									</section>
-									</div>
-								</div>
+								</section>
+							</div>
 						</div>
-					</SheetContent>
-				</Sheet>
+					</div>
+				</SheetContent>
+			</Sheet>
 
 			{showUpgradeAnonymous && (
 				<UpgradeAnonymousPrompt
@@ -475,13 +482,7 @@ export function MobileMenu({
 	);
 }
 
-function SectionHeading({
-	title,
-	meta,
-}: {
-	title: string;
-	meta?: string;
-}) {
+function SectionHeading({ title, meta }: { title: string; meta?: string }) {
 	return (
 		<div className='flex items-center justify-between gap-3'>
 			<p className='text-[10px] font-medium uppercase tracking-[0.22em] text-text-disabled'>

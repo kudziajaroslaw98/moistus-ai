@@ -122,8 +122,11 @@ export function ExportMenuContent({
 		}))
 	);
 
-	const { hasAccess: hasAdvancedExport, showUpgradePrompt } =
-		useFeatureGate('advanced-export');
+	const {
+		hasAccess: hasAdvancedExport,
+		isLoading,
+		showUpgradePrompt,
+	} = useFeatureGate('advanced-export');
 
 	const handleExport = () => {
 		startExport();
@@ -150,20 +153,23 @@ export function ExportMenuContent({
 					onValueChange={(val) => setExportFormat(val as ExportFormat)}
 				>
 					{formatOptions.map((format) => {
-						const isLocked =
-							(format.id === 'json' || format.id === 'pdf') &&
-							!hasAdvancedExport;
+						const isProtectedFormat =
+							format.id === 'json' || format.id === 'pdf';
+						const shouldShowUpgradeBadge =
+							isProtectedFormat && !isLoading && !hasAdvancedExport;
 						return (
 							<DropdownMenuRadioItem
 								key={format.id}
 								value={format.id}
-								disabled={isExporting}
+								disabled={isExporting || (isLoading && isProtectedFormat)}
 								className='flex flex-col items-start gap-0.5 py-2'
 								onSelect={
-									isLocked
+									shouldShowUpgradeBadge || (isLoading && isProtectedFormat)
 										? (e) => {
 												e.preventDefault();
-												showUpgradePrompt();
+												if (shouldShowUpgradeBadge) {
+													showUpgradePrompt();
+												}
 											}
 										: undefined
 								}
@@ -171,7 +177,7 @@ export function ExportMenuContent({
 								<span className='flex items-center gap-2 font-medium'>
 									{format.icon}
 									{format.label}
-									{isLocked && (
+									{shouldShowUpgradeBadge && (
 										<span className='text-xs text-primary-400 font-normal'>
 											Pro
 										</span>
