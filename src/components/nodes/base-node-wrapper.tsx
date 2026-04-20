@@ -6,7 +6,15 @@ import { cn } from '@/utils/cn';
 import { Handle, Position, useConnection } from '@xyflow/react';
 import { Loader2, Pencil, Plus, Sparkles } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { type CSSProperties, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+	type CSSProperties,
+	memo,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from 'react';
 import { useShallow } from 'zustand/shallow';
 import { AIActionsPopover } from '../ai/ai-actions-popover';
 import { AvatarStack } from '../ui/avatar-stack';
@@ -209,7 +217,10 @@ const BaseNodeWrapperComponent = ({
 
 				{/* Main content with metadata bar integration */}
 				<div
-					className={cn('flex flex-col h-auto relative z-[1]', contentClassName)}
+					className={cn(
+						'flex flex-col h-auto relative z-[1]',
+						contentClassName
+					)}
 				>
 					<AnimatePresence initial={false}>
 						{canOpenEditAction && (
@@ -246,13 +257,6 @@ const BaseNodeWrapperComponent = ({
 								metadata={data.metadata}
 								nodeType={data.node_type || 'defaultNode'}
 								selected={isSelected}
-								onMetadataClick={(type, value) => {
-									// Handle metadata interactions
-									// You can add custom handlers here, such as:
-									// - Filter by tag
-									// - Show all nodes assigned to a user
-									// - Show all high priority items
-								}}
 							/>
 						)}
 
@@ -266,7 +270,9 @@ const BaseNodeWrapperComponent = ({
 						<Handle
 							position={Position.Bottom}
 							type='source'
-							isConnectable={activeTool === 'default' || activeTool === 'connector'}
+							isConnectable={
+								activeTool === 'default' || activeTool === 'connector'
+							}
 							className={cn(
 								'!w-2 !h-2 rounded-full transition-all duration-200',
 								'!bg-transparent !border',

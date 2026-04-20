@@ -19,6 +19,10 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Throttled/blocked triggers were wiping existing suggestions without a replacement stream
 - **edges/update-edge-style-preservation**: `updateEdge` now preserves merged edge style fields (including `strokeDasharray`) instead of rebuilding a reduced style object
   - Why: Label/metadata updates were unintentionally dropping existing style properties
+- **nodes/assignee-metadata-log-spam**: Metadata badges now avoid repeated unresolved-assignee warning spam by logging each unresolved assignee key once in development only
+  - Why: Re-render-heavy node canvases were flooding the browser console with duplicate warnings that obscured actionable diagnostics
+- **nodes/assignee-resolution-fallback**: Assignee badge resolution now falls back from assignee slug lookup to `assigneeUserIds` lookup before showing raw text
+  - Why: Assignee slugs can drift after collaborator renames, so ID-based fallback keeps names/avatars accurate without noisy warnings
 
 ### Changed
 
@@ -33,6 +37,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: These paths are easy to regress across slice/renderer updates and require explicit guardrails
 - **tests/suggestion-layering-z-index**: Added regression coverage for suggestion edge/node z-index assignment in the suggestions slice and label-wrapper z-index in suggested connection/merge edge renderers
   - Why: Layering behavior is UI-critical and easy to break during renderer or slice refactors
+- **tests/universal-metadata-bar-assignee-resolution**: Added focused coverage for assignee slug resolution, `assigneeUserIds` fallback resolution, and warn-once behavior for unresolved assignees
+  - Why: The metadata-bar warning/noise path is easy to regress and now has explicit behavioral guardrails
 
 ### Refactored
 
