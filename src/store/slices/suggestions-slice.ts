@@ -1491,7 +1491,7 @@ export const createSuggestionsSlice: StateCreator<
 						}
 
 						const edgeId = `merge-suggestion-${suggestion.node1Id}-${suggestion.node2Id}`;
-						const newEdge = {
+						const newEdge: AppEdge = {
 							id: edgeId,
 							source: suggestion.node1Id,
 							target: suggestion.node2Id,
@@ -1517,7 +1517,6 @@ export const createSuggestionsSlice: StateCreator<
 								},
 								metadata: {
 									pathType: 'smoothstep' as const,
-									interactionMode: 'both' as const,
 								},
 								aiData: {
 									isSuggested: true,

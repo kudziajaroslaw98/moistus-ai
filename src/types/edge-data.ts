@@ -60,7 +60,7 @@ export interface EdgeData extends Record<string, unknown> {
 			extendedReason?: string;
 			similarityScore?: number;
 			confidence?: number;
-			contextualRelevance: number;
+			contextualRelevance?: number;
 		};
 	} | null;
 }

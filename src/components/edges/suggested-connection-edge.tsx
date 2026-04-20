@@ -368,7 +368,8 @@ const SuggestedConnectionEdgeComponent = ({
 							<div className='bg-emerald-500/10 text-emerald-400 mt-4  w-fit flex gap-2 justify-center items-center px-2 py-0.5 rounded-sm border border-emerald-500/10'>
 								<Sparkles className='size-3' />
 								<span>
-									Confidence • {data?.aiData?.suggestion?.confidence * 100}%
+									Confidence •{' '}
+									{(data?.aiData?.suggestion?.confidence ?? 0) * 100}%
 								</span>
 							</div>
 
