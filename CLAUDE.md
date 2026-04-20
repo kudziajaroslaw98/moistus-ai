@@ -1,24 +1,6 @@
 # CLAUDE.md
 
-<!-- Updated: 2026-03-23 - Restructured: compressed philosophy, moved domain gotchas to .claude/rules/ -->
-<!-- Updated: 2026-03-25 - Documented shared notifications cache/socket and per-user onboarding persistence -->
-<!-- Updated: 2026-03-28 - Documented shared-vs-mobile node-editor autocomplete surfaces -->
-<!-- Updated: 2026-04-01 - Documented LAN-safe local-dev runtime service URL derivation -->
-<!-- Updated: 2026-04-01 - Documented stable Supabase SSR auth cookie naming for LAN dev -->
-<!-- Updated: 2026-04-01 - Documented node-editor portaled autocomplete dismissal guard -->
-<!-- Updated: 2026-04-07 - Documented landing CTA pending feedback pattern (Start Mapping/Get Started/Go Pro) and dashboard loading boundary -->
-<!-- Updated: 2026-04-07 - Documented mind-map runtime state reset and requested-map readiness gating -->
-<!-- Updated: 2026-04-07 - Documented map fetch bootstrap location to avoid skeleton/canvas deadlock -->
-<!-- Updated: 2026-04-07 - Documented Strict Mode-safe map unmount cleanup requirement -->
-<!-- Updated: 2026-04-07 - Documented progressive map-shell streaming rules and idempotent Yjs cleanup expectations -->
-<!-- Updated: 2026-04-07 - Documented dashboard shell-parity loading fallback and in-page progressive card skeleton streaming -->
-<!-- Updated: 2026-04-08 - Documented iPad/iOS long-press context-menu fallback contract for React Flow targets -->
-<!-- Updated: 2026-04-11 - Documented PWA/Serwist contract, offline replay queue guarantees, and push preference/subscription behavior -->
-<!-- Updated: 2026-04-11 - Documented reconnect hardening for offline sync (stale lock removal, full drain loop, visibility trigger, auth/transient retry semantics) -->
-<!-- Updated: 2026-04-12 - Documented Next 16 LAN dev origin allowlist and insecure LAN SW disable contract -->
-<!-- Updated: 2026-04-12 - Documented loopback-to-LAN realtime URL derivation when client NODE_ENV is unavailable -->
-<!-- Updated: 2026-04-13 - Migrated PWA contract to @serwist/next public/sw.js output and removed Turbopack route-handler dependency -->
-<!-- Updated: 2026-04-13 - Migrated PWA contract back to @serwist/turbopack with custom /app/sw.js route and root scope -->
+<!-- Updated: 2026-04-20 - Consolidated recent guidance updates across editor/onboarding UX, LAN/PWA/offline behavior, and AI suggestion/connection contracts -->
 
 ## Engineering Philosophy
 
@@ -147,10 +129,9 @@ pnpm pretty          # Prettier
 
 **NodeData.metadata**: Single unified type (not discriminated union per node type). Enables seamless node type switching without data loss. Do NOT split into per-type unions.
 
-<!-- Updated: 2026-01-06 -->
-<!-- Updated: 2026-03-28 - Reconciled local layout and edge-routing gotchas with the current onboarding/editor docs during PR #46 merge -->
+<!-- Updated: 2026-04-19 - Consolidated NodeData/edge-routing gotchas, including ELK label ownership and routed-segment center alignment -->
 
-**Edge routing**: Raw manual waypoint editing is removed. Normal persisted edges use auto-routed `waypointEdge` geometry, and future manual edge control must be constraint-based (anchor/bias/lane hints), never absolute bend points.
+**Edge routing**: Raw manual waypoint editing is removed. Normal persisted edges use auto-routed `waypointEdge` geometry. Explicit full ELK layout owns ELK label placement metadata (`metadata.elkLabel`) for labeled edges, but the converter snaps ELK's returned label center back onto the routed segment before render so the line passes through the label center. Any orthogonal reroute/edit path that replaces ELK geometry must still clear stale ELK label metadata instead of reusing it. Future manual edge control must be constraint-based (anchor/bias/lane hints), never absolute bend points.
 
 <!-- Updated: 2026-03-11 - Replaced raw waypoint editing with auto-routed waypoint edges and deferred future manual control to constraints -->
 
@@ -180,13 +161,11 @@ pnpm pretty          # Prettier
 
 **LAN-safe local dev URLs**: Browser Supabase + PartyKit clients must derive from `window.location.hostname` whenever the configured public URL is loopback-only and the browser host is non-loopback (LAN device access), even if client `NODE_ENV` is unavailable. Keep server-side Supabase traffic on `SUPABASE_INTERNAL_URL` when local services stay on loopback, and do not reintroduce `NEXT_PUBLIC_APP_LOCAL_HREF` for browser fetches.
 
-<!-- Updated: 2026-04-01 - Documented browser-vs-server local URL split for LAN dev -->
-<!-- Updated: 2026-04-12 - Clarified NODE_ENV-independent LAN derivation for loopback-configured realtime URLs -->
+<!-- Updated: 2026-04-12 - Documented LAN-safe browser-vs-server URL split and NODE_ENV-independent loopback-to-LAN derivation -->
 
 **Next.js 16 LAN dev origins**: Next.js blocks cross-origin requests to dev assets/endpoints by default. Keep `next.config.ts#allowedDevOrigins` aligned with active LAN hosts (for example `192.168.0.239`) when testing from phones/tablets, and prefer `pnpm dev:lan` for explicit LAN host binding. In development on insecure non-loopback HTTP origins, keep service-worker registration disabled to avoid unstable PWA behavior while preserving localhost and production HTTPS behavior.
 
-<!-- Updated: 2026-04-12 - Documented Next.js dev-origin allowlist and insecure LAN SW disable pattern -->
-<!-- Updated: 2026-04-12 - Added insecure LAN dev service-worker unregister cleanup expectation -->
+<!-- Updated: 2026-04-12 - Documented Next.js dev-origin allowlist, insecure LAN SW disable pattern, and dev unregister cleanup expectation -->
 
 **Supabase SSR cookie key**: Browser and server Supabase clients must share the same auth storage/cookie key. Derive that key from the configured Supabase URL, not the runtime LAN host, or successful LAN logins will bounce back to `/auth/sign-in` because the server looks for a different `sb-*` cookie name.
 
@@ -199,8 +178,7 @@ pnpm pretty          # Prettier
 **Node editor parser scope**: Parser syntax no longer supports `bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`, or `$reference` quick-switch in node editor flows. Syntax Help is split into `Universal` (type-filtered) and `Node-specific` sections.
 For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 
-<!-- Updated: 2026-02-28 - Removed deprecated parser tokens and introduced dual syntax help model -->
-<!-- Updated: 2026-04-08 - Clarified canonical lowercase quoted title parser syntax -->
+<!-- Updated: 2026-04-08 - Consolidated parser-scope updates: deprecated token removals, dual syntax-help model, and canonical lowercase quoted title syntax -->
 
 **Task node visibility/title contract**: `taskNode` supports `metadata.hideCompletedTasks` (per-node hide/show for completed checklist items) and keeps progress stats based on full `metadata.tasks`, not only visible rows. Task titles are quick-input metadata (`title:"..."`) and must round-trip through node-editor parsing/serialization.
 <!-- Updated: 2026-04-08 - Documented task-node hide-completed persistence and title round-trip contract -->
@@ -228,6 +206,20 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 
 **Ghost Nodes**: System-only (`userCreatable: false`), filtered from exports.
 
+**Whole-map AI suggestions**: Map-scoped `magic-wand` suggestions now send the literal full eligible map context plus a whitelist of all valid anchor node IDs. Repeated clicks still carry per-map recent suggestion history and a rotated lens pair from `localStorage`, and the route still suppresses near-duplicate ideas server-side before streaming. If the full-map prompt exceeds the model request limit, surface that overflow explicitly instead of silently falling back to a summarized strategy. Treat any missing/invalid returned `context.sourceNodeId` as unanchored and place that ghost near the viewport center; never create ghost edges from unknown IDs.
+
+**AI suggestion helper boundaries**: Keep `/api/ai/suggestions` as orchestration only. Suggestion graph modeling belongs in `src/helpers/ai-suggestion-graph.ts`, row serialization in `src/helpers/ai-suggestion-rows.ts`, user-prompt assembly in `src/helpers/ai-suggestion-user-prompt.ts`, system prompt text in `src/helpers/ai-suggestion-prompts.ts`, and streamed normalization/duplicate filtering/error mapping in `src/helpers/ai-suggestion-postprocess.ts`. Do not rebuild graph traversal, prompt text, or duplicate suppression inline in the route.
+
+**Structured AI route boundaries**: Keep `/api/ai/counterpoints`, `/api/ai/suggest-merges`, and `/api/ai/suggest-connections` as orchestration-only routes too. Route-specific request parsing, context shaping, prompt text, alias remapping, and streamed element normalization belong in `src/helpers/ai-counterpoint-*`, `src/helpers/ai-merge-*`, and `src/helpers/ai-connection-*`; the route files should stay limited to auth/quota checks, Supabase reads, `streamObject(...)`, stream-status events, and usage tracking. Do not drift merge duplicate filtering, connection validation, or counterpoint context selection back into the route handlers.
+
+**Collapsed-branch connection suggestion proxying**: `suggestions-slice.addConnectionSuggestion()` may now remap hidden suggestion endpoints to visible collapsed ancestors for rendering and stores the true node IDs in `edge.data.aiData.connectionProxy` (`original*` vs `display*` IDs plus hidden-child labels). Keep dedupe keyed by original IDs, and `acceptConnectionSuggestion()` must create the real edge from original IDs, not display/proxy IDs. Collapse descendant traversal in `nodes-slice.getDescendantNodeIds()` must ignore transient AI suggestion edges so proxy suggestion edges do not hide unrelated visible nodes, and collapsed-ancestor lookup for hidden endpoints should use structural (non-suggested) edges only.
+
+**Suggestion rerun replacement gating**: Connection/merge reruns should clear prior transient AI suggestion edges only when `triggerStream(...)` returns `true`. If stream start is rejected (already streaming/throttled), keep existing suggestion edges/merge state unchanged.
+
+**Row-based AI node-id aliasing**: Every compact row-based AI route (`/api/ai/suggestions`, `/api/ai/chat`, `/api/ai/counterpoints`, `/api/ai/suggest-merges`, `/api/search-nodes`) must alias model-visible node IDs through `src/helpers/ai-id-alias-map.ts` before prompt assembly. The model should see dense numeric node IDs in `NODE` / `REL` / `ANCHOR` / `RECENT` rows and any free-text request metadata that mentions node IDs; server code must resolve those aliases back to UUIDs before anchor validation, duplicate suppression, placement, merge validation, search validation, or client streaming. Do not let UUIDs leak into model-visible rows or numeric aliases leak into app-facing payloads.
+
+**Typed AI ghost approval**: `/api/ai/suggestions` may now stream an optional `nodePayload` alongside `content` for safe typed nodes. The route should only emit safe typed v1 nodes (`defaultNode`, `textNode`, `taskNode`, `questionNode`, `annotationNode`, `codeNode`), must downgrade malformed structured payloads to `defaultNode` before ghost creation, and ghost approval in `suggestions-slice` must build the final node from `nodePayload` instead of trying to infer typed metadata from `suggestedContent`. `taskNode` approval is the critical case: checklist rows live in `metadata.tasks`, so approving a task ghost without payload is a bug.
+
 **Notifications**: `useNotifications` now shares a single cache/socket layer per signed-in user; keep `useSyncExternalStore` snapshots stable and apply `mapId` filtering server-side before `limit` in `/api/notifications`.
 
 **PWA + service worker contract**: Keep Serwist wiring on the Turbopack route-handler path in this repo: `withSerwist(...)` from `@serwist/turbopack` in `next.config.ts`, route handler `src/app/app/[path]/route.ts` with `createSerwistRoute(...)`, and worker source at `src/app/sw.ts`. Root layout must register `SerwistProvider` with `swUrl='/app/sw.js'` and `options={{ scope: '/' }}` so the worker controls the whole app. Keep legacy-worker cleanup in `src/app/serwist.ts` for previously registered `/sw.js` and `/serwist/sw.js`.
@@ -252,11 +244,7 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 <!-- Updated: 2026-04-11 - Documented push preference schema and API ownership -->
 
 **Onboarding Persistence**: Persist onboarding state under a user-scoped storage key (`${ONBOARDING_STORAGE_KEY}:${currentUser.id}`) and wrap storage reads/writes in `try/catch` so blocked storage does not crash the slice. Hydrate that user-scoped state inside onboarding event handlers before branching on skip/complete flags. Track paused controls-tour progress with `onboardingPausedCoachmarkStep` (not checklist-time `onboardingCoachmarkStep`), and prefer that paused marker when resuming `know-controls`; keep checklist transitions free to reset active coachmark step without losing paused resume context. Minimize-pill body resume should expand back to checklist, while `startOnboardingTask('know-controls')` resumes coachmarks at the saved step (clamped to the active viewport sequence). On mobile, manually expanding a minimized checklist pill must keep the checklist surface visible (including `Skip walkthrough`), suppress hint/coachmark overlays until the user explicitly taps a task CTA (`Start`/`Continue`), and avoid running continuous anchor measurement loops while that manual-resume checklist surface is shown. Any checklist/pill CTA bound to paused controls flow should read `Continue` (not `Start`). Completed checklist task actions must render as disabled `Done` buttons and stay non-interactive.
-<!-- Updated: 2026-04-08 - Documented controls-tour paused-step persistence across re-minimize plus Continue-label contract for paused checklist/pill actions -->
-<!-- Updated: 2026-04-08 - Documented disabled non-interactive Done CTA contract for completed checklist tasks -->
-<!-- Updated: 2026-04-08 - Documented mobile manual-pill expand behavior to keep checklist visible for skip access -->
-<!-- Updated: 2026-04-08 - Documented mobile manual-pill expand suppression of auto-start hint/coachmark overlays -->
-<!-- Updated: 2026-04-08 - Documented explicit paused coachmark marker and manual-resume anchor measurement suspension -->
+<!-- Updated: 2026-04-08 - Consolidated onboarding persistence rules: paused-step resume, Continue/Done CTA semantics, mobile manual-expand visibility/overlay behavior, and anchor-measurement suspension -->
 
 > Domain-specific gotchas (onboarding, editor, sharing, realtime, Base UI) live in `.claude/rules/` and load automatically when you touch relevant files.
 
