@@ -11,6 +11,8 @@ import { motion } from 'motion/react';
 import { useCallback } from 'react';
 import { useShallow } from 'zustand/shallow';
 
+const AI_SUGGESTION_LABEL_Z_INDEX = 51_000;
+
 export const SuggestedMergeEdge = (props: SuggestedMergeEdgeProps) => {
 	const { id, data } = props;
 
@@ -60,6 +62,7 @@ export const SuggestedMergeEdge = (props: SuggestedMergeEdgeProps) => {
 					className='nodrag nopan absolute z-10 pointer-events-auto '
 					style={{
 						transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+						zIndex: AI_SUGGESTION_LABEL_Z_INDEX,
 					}}
 				>
 					<motion.div

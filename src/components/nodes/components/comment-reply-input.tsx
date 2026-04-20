@@ -176,7 +176,7 @@ const CommentReplyInputComponent = ({ commentId }: CommentReplyInputProps) => {
 				disabled={!content.trim() || isSending}
 				onClick={handleSend}
 				size='icon'
-				variant='default'
+				variant='normal'
 				className={cn(
 					'shrink-0',
 					content.trim() ? 'bg-[rgba(20,184,166,0.87)]' : 'bg-elevated',

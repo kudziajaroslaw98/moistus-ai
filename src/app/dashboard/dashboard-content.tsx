@@ -640,14 +640,14 @@ export function DashboardContent() {
 													className='text-red-400 hover:text-red-300'
 													onClick={handleBulkDelete}
 													size='icon'
-													variant='secondary'
+													variant='outline'
 												>
 													<Trash2 className='size-4' />
 												</Button>
 												<Button
 													onClick={() => setSelectedMaps(new Set())}
 													size='sm'
-													variant='secondary'
+													variant='outline'
 												>
 													Clear
 												</Button>

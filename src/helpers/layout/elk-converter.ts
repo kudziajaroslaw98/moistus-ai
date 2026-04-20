@@ -7,19 +7,23 @@ import generateUuid from '@/helpers/generate-uuid';
 import { projectToNodePerimeter } from '@/helpers/get-anchor-position';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
+import type { ElkLabelLayout } from '@/types/edge-data';
 import type {
 	ElkEdge,
 	ElkEdgeSection,
+	ElkLabel,
 	ElkNode,
 	LayoutConfig,
 	LayoutResult,
 } from '@/types/layout-types';
 import type { EdgeAnchor, Waypoint } from '@/types/path-types';
 import {
+	buildEdgeLabelLayoutOptions,
 	buildGroupLayoutOptions,
 	buildLayoutOptions,
 	getRecommendedCurveType,
 } from './elk-config';
+import { measureElkEdgeLabel } from './elk-edge-label-measurement';
 
 // Default dimensions for nodes without explicit size
 const DEFAULT_NODE_WIDTH = 320;
@@ -33,6 +37,159 @@ interface ElkEdgeLayoutData {
 	waypoints: Waypoint[];
 	sourceAnchor?: EdgeAnchor;
 	targetAnchor?: EdgeAnchor;
+	elkLabel?: ElkLabelLayout;
+}
+
+interface Point2D {
+	x: number;
+	y: number;
+}
+
+function getEdgeLabelText(edge: AppEdge): string | null {
+	const label = edge.data?.label ?? edge.label;
+	if (typeof label !== 'string') {
+		return null;
+	}
+
+	const trimmedLabel = label.trim();
+	return trimmedLabel.length > 0 ? trimmedLabel : null;
+}
+
+function convertEdgeLabelToElk(edge: AppEdge, labelText: string): ElkLabel {
+	const { width, height } = measureElkEdgeLabel(labelText);
+
+	return {
+		id: `${edge.id}:label`,
+		text: labelText,
+		width,
+		height,
+		layoutOptions: buildEdgeLabelLayoutOptions(),
+	};
+}
+
+function extractElkLabelLayout(
+	elkLabels: ElkLabel[] | undefined,
+	sections: ElkEdgeSection[] | undefined
+): ElkLabelLayout | undefined {
+	const elkLabel = elkLabels?.[0];
+	if (
+		!elkLabel ||
+		typeof elkLabel.x !== 'number' ||
+		typeof elkLabel.y !== 'number' ||
+		typeof elkLabel.width !== 'number' ||
+		typeof elkLabel.height !== 'number'
+	) {
+		return undefined;
+	}
+
+	const centerPoint = snapPointToEdgeSections(
+		{
+			x: elkLabel.x + elkLabel.width / 2,
+			y: elkLabel.y + elkLabel.height / 2,
+		},
+		sections
+	);
+
+	return {
+		x: centerPoint.x - elkLabel.width / 2,
+		y: centerPoint.y - elkLabel.height / 2,
+		width: elkLabel.width,
+		height: elkLabel.height,
+		centerX: centerPoint.x,
+		centerY: centerPoint.y,
+	};
+}
+
+function snapPointToEdgeSections(
+	point: Point2D,
+	sections: ElkEdgeSection[] | undefined
+): Point2D {
+	const segments = buildEdgeSegments(sections);
+	if (segments.length === 0) {
+		return point;
+	}
+
+	let closestPoint = point;
+	let closestDistanceSquared = Number.POSITIVE_INFINITY;
+
+	for (const segment of segments) {
+		const projectedPoint = projectPointOntoSegment(point, segment.start, segment.end);
+		const distanceSquared = getDistanceSquared(point, projectedPoint);
+		if (distanceSquared < closestDistanceSquared) {
+			closestDistanceSquared = distanceSquared;
+			closestPoint = projectedPoint;
+		}
+	}
+
+	return closestPoint;
+}
+
+function buildEdgeSegments(
+	sections: ElkEdgeSection[] | undefined
+): Array<{ start: Point2D; end: Point2D }> {
+	if (!sections || sections.length === 0) {
+		return [];
+	}
+
+	const segments: Array<{ start: Point2D; end: Point2D }> = [];
+
+	for (const section of sections) {
+		const points = [
+			section.startPoint,
+			...(section.bendPoints ?? []),
+			section.endPoint,
+		].filter(isFinitePoint);
+
+		for (let index = 0; index < points.length - 1; index += 1) {
+			const start = points[index];
+			const end = points[index + 1];
+			if (!start || !end || pointsAreEqual(start, end)) {
+				continue;
+			}
+
+			segments.push({ start, end });
+		}
+	}
+
+	return segments;
+}
+
+function isFinitePoint(point: Point2D | undefined): point is Point2D {
+	return !!point && Number.isFinite(point.x) && Number.isFinite(point.y);
+}
+
+function pointsAreEqual(first: Point2D, second: Point2D): boolean {
+	return first.x === second.x && first.y === second.y;
+}
+
+function projectPointOntoSegment(
+	point: Point2D,
+	segmentStart: Point2D,
+	segmentEnd: Point2D
+): Point2D {
+	const deltaX = segmentEnd.x - segmentStart.x;
+	const deltaY = segmentEnd.y - segmentStart.y;
+	const segmentLengthSquared = deltaX * deltaX + deltaY * deltaY;
+
+	if (segmentLengthSquared === 0) {
+		return segmentStart;
+	}
+
+	const rawT =
+		((point.x - segmentStart.x) * deltaX + (point.y - segmentStart.y) * deltaY) /
+		segmentLengthSquared;
+	const t = Math.min(1, Math.max(0, rawT));
+
+	return {
+		x: segmentStart.x + deltaX * t,
+		y: segmentStart.y + deltaY * t,
+	};
+}
+
+function getDistanceSquared(first: Point2D, second: Point2D): number {
+	const deltaX = first.x - second.x;
+	const deltaY = first.y - second.y;
+	return deltaX * deltaX + deltaY * deltaY;
 }
 
 /**
@@ -158,10 +315,15 @@ function convertNodeToElk(node: AppNode): ElkNode {
  * Convert a single React Flow edge to ELK edge format
  */
 function convertEdgeToElk(edge: AppEdge): ElkEdge {
+	const labelText = getEdgeLabelText(edge);
+
 	return {
 		id: edge.id,
 		sources: [edge.source],
 		targets: [edge.target],
+		...(labelText && {
+			labels: [convertEdgeLabelToElk(edge, labelText)],
+		}),
 	};
 }
 
@@ -235,6 +397,7 @@ export function convertFromElkGraph(
 						routingStyle: undefined,
 						sourceAnchor: undefined,
 						targetAnchor: undefined,
+						elkLabel: undefined,
 					},
 				},
 			} as AppEdge;
@@ -254,6 +417,7 @@ export function convertFromElkGraph(
 					routingStyle: 'elk' as const,
 					sourceAnchor: layoutData.sourceAnchor,
 					targetAnchor: layoutData.targetAnchor,
+					elkLabel: layoutData.elkLabel,
 				},
 			},
 		} as AppEdge;
@@ -316,6 +480,7 @@ function extractEdgeLayoutData(
 
 			const layoutData = extractWaypointsAndAnchors(
 				elkEdge.sections,
+				elkEdge.labels,
 				sourceNodeId,
 				targetNodeId,
 				positionMap,
@@ -347,6 +512,7 @@ function extractEdgeLayoutData(
  */
 function extractWaypointsAndAnchors(
 	sections: ElkEdgeSection[] | undefined,
+	elkLabels: ElkLabel[] | undefined,
 	sourceNodeId: string,
 	targetNodeId: string,
 	positionMap: Map<string, { x: number; y: number }>,
@@ -356,6 +522,7 @@ function extractWaypointsAndAnchors(
 		waypoints: [],
 		sourceAnchor: undefined,
 		targetAnchor: undefined,
+		elkLabel: extractElkLabelLayout(elkLabels, sections),
 	};
 
 	if (!sections || sections.length === 0) {

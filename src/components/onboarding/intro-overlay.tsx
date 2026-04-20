@@ -225,7 +225,7 @@ export function IntroOverlay({
 								onClick={onStart}
 								data-onboarding-intro-primary
 								size='md'
-								variant='default'
+								variant='normal'
 							>
 								<span className='flex items-center gap-2'>
 									<Play className='size-4' />
@@ -237,7 +237,7 @@ export function IntroOverlay({
 								className='w-full'
 								onClick={onSkip}
 								size='md'
-								variant='secondary'
+								variant='outline'
 							>
 								Skip walkthrough
 							</Button>
@@ -333,7 +333,7 @@ export function IntroOverlay({
 									onClick={onStart}
 									data-onboarding-intro-primary
 									size='md'
-									variant='default'
+									variant='normal'
 								>
 									<span className='flex items-center gap-2'>
 										<Play className='size-4' />
@@ -345,7 +345,7 @@ export function IntroOverlay({
 									className='w-full'
 									onClick={onSkip}
 									size='md'
-									variant='secondary'
+									variant='outline'
 								>
 									Skip walkthrough
 								</Button>

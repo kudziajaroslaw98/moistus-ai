@@ -313,14 +313,14 @@ export function AccessRevokedPage({
 							className='w-full sm:w-auto'
 							onClick={handleRetry}
 							size='lg'
-							variant='default'
+							variant='normal'
 						>
 							{currentContent.primaryCta.label}
 						</Button>
 					) : (
 						<Link
 							className={cn(
-								buttonVariants({ variant: 'default', size: 'lg' }),
+								buttonVariants({ variant: 'normal', size: 'lg' }),
 								'w-full sm:w-auto'
 							)}
 							href={currentContent.primaryCta.href}

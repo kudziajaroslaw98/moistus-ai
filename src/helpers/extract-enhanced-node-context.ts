@@ -1,5 +1,12 @@
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
+import { aliasNodeId, type AiIdAliasMap } from './ai-id-alias-map';
+import {
+	compactPromptList,
+	compactPromptText,
+	encodeHybridRow,
+	getCompactNodeType,
+} from './ai-hybrid-rows';
 
 /**
  * Sibling pattern analysis results
@@ -513,59 +520,88 @@ function extractTopics(contents: string[], maxTopics: number = 5): string[] {
  * @param context - The enhanced context to format
  * @returns A formatted string describing the context
  */
-export function buildContextPrompt(context: EnhancedNodeContext): string {
+export function buildContextPrompt(
+	context: EnhancedNodeContext,
+	options?: ContextRowOptions
+): string {
 	const lines: string[] = [];
-
-	// Primary node
-	lines.push('**Primary Node:**');
-	lines.push(`Content: "${context.primary.data.content}"`);
-	lines.push(`Type: ${context.primary.data.node_type}`);
-	const primaryTags = (context.primary.data.tags || []) as string[];
-	if (primaryTags.length > 0) {
-		lines.push(`Tags: ${primaryTags.join(', ')}`);
-	}
-	lines.push('');
-
-	// Siblings
-	if (context.siblings.length > 0) {
-		lines.push('**Sibling Nodes (same parent):**');
-		context.siblings.slice(0, 5).forEach((sibling) => {
-			lines.push(`- ${sibling.data.content} (${sibling.data.node_type})`);
-		});
-		if (context.siblings.length > 5) {
-			lines.push(`... and ${context.siblings.length - 5} more siblings`);
-		}
-		lines.push('');
-	}
-
-	// Hierarchy
-	if (context.parent || context.grandparent) {
-		lines.push('**Hierarchy:**');
-		if (context.grandparent) {
-			lines.push(`Grandparent: ${context.grandparent.data.content}`);
-		}
-		if (context.parent) {
-			lines.push(`Parent: ${context.parent.data.content}`);
-		}
-		lines.push('');
-	}
-
-	// Graph position
-	lines.push('**Graph Position:**');
-	lines.push(`Depth: ${context.graphTopology.depth}`);
-	lines.push(`Connections: ${context.graphTopology.degree} total`);
+	const primaryDepth = context.graphTopology.depth;
+	const primaryFlags = ['focus'];
 	if (context.graphTopology.isIsolated) {
-		lines.push('Status: Isolated (no connections)');
+		primaryFlags.push('isolated');
 	}
-	lines.push('');
+	if (context.graphTopology.inDegree === 0) {
+		primaryFlags.push('root');
+	}
 
-	// Patterns
-	if (context.siblingPatterns.commonTags.length > 0) {
-		lines.push('**Patterns:**');
-		lines.push(`Common sibling tags: ${context.siblingPatterns.commonTags.join(', ')}`);
+	lines.push(
+		encodeNodeContextRow(
+			context.primary,
+			primaryDepth,
+			context.graphTopology.degree,
+			primaryFlags,
+			options
+		)
+	);
+
+	if (context.parent) {
+		lines.push(
+			encodeNodeContextRow(
+				context.parent,
+				Math.max(0, primaryDepth - 1),
+				null,
+				['parent'],
+				options
+			)
+		);
+		lines.push(
+			encodeRelationRow('parent', context.parent.id, context.primary.id, options)
+		);
 	}
-	if (context.siblingPatterns.topics.length > 0) {
-		lines.push(`Topics: ${context.siblingPatterns.topics.join(', ')}`);
+
+	if (context.grandparent && context.parent) {
+		lines.push(
+			encodeNodeContextRow(
+				context.grandparent,
+				Math.max(0, primaryDepth - 2),
+				null,
+				['grandparent'],
+				options
+			)
+		);
+		lines.push(
+			encodeRelationRow(
+				'parent',
+				context.grandparent.id,
+				context.parent.id,
+				options
+			)
+		);
+	}
+
+	const siblingDepth = context.parent ? primaryDepth : null;
+	for (const sibling of context.siblings.slice(0, 5)) {
+		lines.push(
+			encodeNodeContextRow(sibling, siblingDepth, null, ['sibling'], options)
+		);
+		lines.push(
+			encodeRelationRow('sibling', context.primary.id, sibling.id, options)
+		);
+	}
+
+	if (context.siblings.length > 5) {
+		lines.push(
+			encodeHybridRow('METRIC', [
+				context.graphTopology.depth,
+				context.graphTopology.degree,
+				context.siblings.length - 5,
+			])
+		);
+	}
+
+	const topicValues = compactPromptList(context.siblingPatterns.topics, 10);
+	if (topicValues.length > 0) {
+		lines.push(encodeHybridRow('TOPICS', topicValues));
 	}
 
 	return lines.join('\n');
@@ -611,6 +647,31 @@ interface ScoredNode {
 	degree: number;
 }
 
+export interface MapSuggestionContextResult {
+	context: string;
+	mode: 'full' | 'summary';
+	candidateNodeIds: string[];
+	estimatedTokens: number;
+	truncated: boolean;
+}
+
+interface ContextRowOptions {
+	aliasMap?: AiIdAliasMap;
+}
+
+interface BuildMapSuggestionContextOptions {
+	tokenBudget?: number;
+	maxAnchorCandidates?: number;
+	anchorPoolSize?: number;
+	anchorWindowOffset?: number;
+}
+
+const EXCLUDED_MAP_SUGGESTION_NODE_TYPES = new Set([
+	'ghostNode',
+	'commentNode',
+	'groupNode',
+]);
+
 /**
  * Estimate token count from text (rough approximation: ~4 chars per token)
  */
@@ -645,31 +706,14 @@ function scoreNode(
 export function buildMapOverviewContext(
 	nodes: AppNode[],
 	edges: AppEdge[],
-	mapMeta: { title: string; description: string | null }
+	mapMeta: { title: string; description: string | null },
+	_options?: ContextRowOptions
 ): string {
-	if (nodes.length === 0) {
-		return `**Mind Map:** ${mapMeta.title || 'Untitled'}\nNo nodes yet.`;
-	}
-
-	// Count node types
-	const typeDistribution: Record<string, number> = {};
-	for (const node of nodes) {
-		const nodeType = node.data.node_type || 'unknown';
-		typeDistribution[nodeType] = (typeDistribution[nodeType] || 0) + 1;
-	}
-
-	const typesList = Object.entries(typeDistribution)
-		.map(([type, count]) => `${count} ${type.replace('Node', '')}`)
-		.join(', ');
-
-	const lines = [
-		`**Mind Map:** ${mapMeta.title || 'Untitled'}`,
-		mapMeta.description && `Description: ${mapMeta.description}`,
-		`Nodes: ${nodes.length} | Edges: ${edges.length}`,
-		`Types: ${typesList}`,
-	].filter(Boolean);
-
-	return lines.join('\n');
+	const metrics = getMapMetrics(nodes, edges);
+	return [
+		encodeMapRow(mapMeta, nodes.length, edges.length),
+		encodeMetricRow(metrics.maxDepth, metrics.rootNodes, metrics.isolatedNodes),
+	].join('\n');
 }
 
 /**
@@ -679,17 +723,14 @@ export function buildMapOverviewContext(
 export function buildMapSummaryContext(
 	nodes: AppNode[],
 	edges: AppEdge[],
-	mapMeta: { title: string; description: string | null }
+	mapMeta: { title: string; description: string | null },
+	options?: ContextRowOptions
 ): string {
 	if (nodes.length === 0) {
-		return buildMapOverviewContext(nodes, edges, mapMeta);
+		return buildMapOverviewContext(nodes, edges, mapMeta, options);
 	}
 
-	const lines: string[] = [];
-
-	// Start with overview
-	lines.push(buildMapOverviewContext(nodes, edges, mapMeta));
-	lines.push('');
+	const lines: string[] = [buildMapOverviewContext(nodes, edges, mapMeta, options)];
 
 	// Extract topics from all node content
 	const allContents = nodes
@@ -698,8 +739,7 @@ export function buildMapSummaryContext(
 	const topics = extractTopics(allContents, 10);
 
 	if (topics.length > 0) {
-		lines.push(`**Key Topics:** ${topics.join(', ')}`);
-		lines.push('');
+		lines.push(encodeHybridRow('TOPICS', topics));
 	}
 
 	// Identify key nodes (high connectivity or root nodes)
@@ -710,24 +750,18 @@ export function buildMapSummaryContext(
 		.slice(0, 10);
 
 	if (keyNodes.length > 0) {
-		lines.push('**Key Nodes:**');
 		for (const { node, depth, degree } of keyNodes) {
-			const content = node.data.content || node.data.metadata?.title || '[no content]';
-			const truncated = content.length > 60 ? content.slice(0, 60) + '...' : content;
-			const nodeType = node.data.node_type?.replace('Node', '') || 'note';
-			lines.push(`- [${nodeType}] ${truncated} (depth: ${depth}, connections: ${degree})`);
+			lines.push(
+				encodeNodeContextRow(
+					node,
+					depth,
+					degree,
+					getMapNodeFlags(depth, degree),
+					options
+				)
+			);
 		}
-		lines.push('');
 	}
-
-	// Structure metrics
-	const depths = scoredNodes.map((sn) => sn.depth);
-	const maxDepth = Math.max(...depths, 0);
-	const rootNodes = scoredNodes.filter((sn) => sn.depth === 0).length;
-	const isolatedNodes = scoredNodes.filter((sn) => sn.degree === 0).length;
-
-	lines.push('**Structure:**');
-	lines.push(`Max depth: ${maxDepth} | Root nodes: ${rootNodes} | Isolated: ${isolatedNodes}`);
 
 	return lines.join('\n');
 }
@@ -740,19 +774,23 @@ export function buildFullMapContext(
 	nodes: AppNode[],
 	edges: AppEdge[],
 	mapMeta: { title: string; description: string | null },
-	tokenBudget: number = 16000
+	tokenBudget: number = 16000,
+	options?: ContextRowOptions
 ): string {
 	if (nodes.length === 0) {
-		return buildMapOverviewContext(nodes, edges, mapMeta);
+		return buildMapOverviewContext(nodes, edges, mapMeta, options);
 	}
 
 	const lines: string[] = [];
 
-	// Start with summary (always included)
-	const summaryContext = buildMapSummaryContext(nodes, edges, mapMeta);
-	lines.push(summaryContext);
-	lines.push('');
-	lines.push('**All Nodes:**');
+	lines.push(buildMapOverviewContext(nodes, edges, mapMeta, options));
+	const allContents = nodes
+		.map((n) => n.data.content)
+		.filter((c): c is string => !!c);
+	const topics = extractTopics(allContents, 10);
+	if (topics.length > 0) {
+		lines.push(encodeHybridRow('TOPICS', topics));
+	}
 
 	// Score and sort all nodes
 	const scoredNodes = nodes
@@ -765,14 +803,13 @@ export function buildFullMapContext(
 	let includedCount = 0;
 
 	for (const { node, depth, degree } of scoredNodes) {
-		const content = node.data.content || node.data.metadata?.title || '[no content]';
-		const nodeType = node.data.node_type?.replace('Node', '') || 'note';
-		const tags = (node.data.tags as string[] | undefined)?.join(', ') || '';
-
-		// Format node line
-		let nodeLine = `- [${nodeType}] ${content}`;
-		if (tags) nodeLine += ` #${tags.replace(/, /g, ' #')}`;
-		nodeLine += ` (d:${depth}, c:${degree})`;
+		const nodeLine = encodeNodeContextRow(
+			node,
+			depth,
+			degree,
+			getMapNodeFlags(depth, degree),
+			options
+		);
 
 		// Check if adding this exceeds budget
 		const lineTokens = estimateTokens(nodeLine);
@@ -790,8 +827,187 @@ export function buildFullMapContext(
 
 	// Add truncation notice if needed
 	if (includedCount < nodes.length) {
-		lines.push(`\n... and ${nodes.length - includedCount} more nodes (truncated for context limit)`);
+		lines.push(
+			encodeHybridRow('METRIC', [
+				includedCount,
+				nodes.length - includedCount,
+				tokenBudget,
+			])
+		);
 	}
 
 	return lines.join('\n');
+}
+
+function isSuggestionAnchorCandidate(node: AppNode): boolean {
+	const nodeType = node.data.node_type || node.type || 'defaultNode';
+	return !EXCLUDED_MAP_SUGGESTION_NODE_TYPES.has(nodeType);
+}
+
+function getSuggestionAnchorSemanticContent(node: AppNode): string {
+	const metadata = node.data.metadata;
+	const fragments = [
+		typeof metadata?.title === 'string' ? metadata.title : null,
+		typeof metadata?.label === 'string' ? metadata.label : null,
+		typeof node.data.content === 'string' ? node.data.content : null,
+		typeof metadata?.summary === 'string' ? metadata.summary : null,
+		typeof metadata?.answer === 'string' ? metadata.answer : null,
+		typeof metadata?.caption === 'string' ? metadata.caption : null,
+		typeof metadata?.altText === 'string' ? metadata.altText : null,
+	]
+		.map((fragment) => fragment?.trim())
+		.filter((fragment): fragment is string => Boolean(fragment));
+
+	return Array.from(new Set(fragments)).join(' | ') || '[no content]';
+}
+
+function formatSuggestionAnchorCandidate({
+	node,
+	depth,
+	degree,
+}: ScoredNode,
+options?: ContextRowOptions): string {
+	return encodeHybridRow('ANCHOR', [
+		aliasNodeId(node.id, options?.aliasMap) ?? node.id,
+		getCompactNodeType(node.data.node_type || node.type),
+		getSuggestionAnchorSemanticContent(node),
+		depth,
+		degree,
+	]);
+}
+
+export function buildMapSuggestionContext(
+	nodes: AppNode[],
+	edges: AppEdge[],
+	mapMeta: { title: string; description: string | null },
+	_options: BuildMapSuggestionContextOptions = {},
+	rowOptions?: ContextRowOptions
+): MapSuggestionContextResult {
+	if (nodes.length === 0) {
+		const context = buildMapOverviewContext(nodes, edges, mapMeta, rowOptions);
+		return {
+			context,
+			mode: 'summary',
+			candidateNodeIds: [],
+			estimatedTokens: estimateTokens(context),
+			truncated: false,
+		};
+	}
+
+	const scoredCandidates = nodes
+		.filter(isSuggestionAnchorCandidate)
+		.map((node) => scoreNode(node, edges, nodes))
+		.sort((a, b) => b.score - a.score);
+
+	if (scoredCandidates.length === 0) {
+		const context = buildMapSummaryContext(nodes, edges, mapMeta, rowOptions);
+
+		return {
+			context,
+			mode: 'summary',
+			candidateNodeIds: [],
+			estimatedTokens: estimateTokens(context),
+			truncated: false,
+		};
+	}
+
+	const context = [
+		buildMapSummaryContext(nodes, edges, mapMeta, rowOptions),
+		...scoredCandidates.map((candidate) =>
+			formatSuggestionAnchorCandidate(candidate, rowOptions)
+		),
+	].join('\n');
+	return {
+		context,
+		mode: 'full',
+		candidateNodeIds: scoredCandidates.map((candidate) => candidate.node.id),
+		estimatedTokens: estimateTokens(context),
+		truncated: false,
+	};
+}
+
+function encodeMapRow(
+	mapMeta: { title: string; description: string | null },
+	nodeCount: number,
+	edgeCount: number
+): string {
+	return encodeHybridRow('MAP', [
+		compactPromptText(mapMeta.title) ?? 'Untitled',
+		compactPromptText(mapMeta.description),
+		nodeCount,
+		edgeCount,
+	]);
+}
+
+function encodeMetricRow(
+	maxDepth: number,
+	rootNodes: number,
+	isolatedNodes: number
+): string {
+	return encodeHybridRow('METRIC', [maxDepth, rootNodes, isolatedNodes]);
+}
+
+function encodeNodeContextRow(
+	node: AppNode,
+	depth: number | null,
+	degree: number | null,
+	flags: string[] = [],
+	options?: ContextRowOptions
+): string {
+	return encodeHybridRow('NODE', [
+		aliasNodeId(node.id, options?.aliasMap) ?? node.id,
+		getCompactNodeType(node.data.node_type || node.type),
+		getSuggestionAnchorSemanticContent(node),
+		getNodePromptTags(node),
+		depth,
+		degree,
+		flags,
+	]);
+}
+
+function encodeRelationRow(
+	kind: string,
+	fromId: string,
+	toId: string,
+	options?: ContextRowOptions
+): string {
+	return encodeHybridRow('REL', [
+		kind,
+		aliasNodeId(fromId, options?.aliasMap) ?? fromId,
+		aliasNodeId(toId, options?.aliasMap) ?? toId,
+	]);
+}
+
+function getNodePromptTags(node: AppNode): string[] {
+	return compactPromptList([
+		...(((node.data.tags as string[] | undefined) ?? []) as Array<
+			string | null | undefined
+		>),
+		...((node.data.metadata?.tags ?? []) as Array<string | null | undefined>),
+	]);
+}
+
+function getMapMetrics(nodes: AppNode[], edges: AppEdge[]) {
+	const scoredNodes = nodes.map((node) => scoreNode(node, edges, nodes));
+	const depths = scoredNodes.map((sn) => sn.depth);
+
+	return {
+		maxDepth: Math.max(...depths, 0),
+		rootNodes: scoredNodes.filter((sn) => sn.depth === 0).length,
+		isolatedNodes: scoredNodes.filter((sn) => sn.degree === 0).length,
+	};
+}
+
+function getMapNodeFlags(depth: number, degree: number): string[] {
+	const flags: string[] = [];
+
+	if (depth === 0) {
+		flags.push('root');
+	}
+
+	if (degree === 0) {
+		flags.push('isolated');
+	}
+
+	return flags;
 }

@@ -336,7 +336,7 @@ function SidebarTrigger({
 			data-sidebar='trigger'
 			data-slot='sidebar-trigger'
 			size='icon'
-			variant='secondary'
+			variant='outline'
 			onClick={(event) => {
 				onClick?.(event);
 				toggleSidebar();

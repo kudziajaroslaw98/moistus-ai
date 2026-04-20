@@ -47,10 +47,10 @@ export function UpsellCard({
 			</p>
 
 			<div className='mt-5 flex flex-col gap-3 sm:flex-row'>
-				<Button onClick={onKeepUsingFree} size='md' variant='secondary'>
+				<Button onClick={onKeepUsingFree} size='md' variant='outline'>
 					Keep using Free
 				</Button>
-				<Button className='gap-2' onClick={onSeePlans} size='md' variant='default'>
+				<Button className='gap-2' onClick={onSeePlans} size='md' variant='normal'>
 					See Pro plans
 					<MoveRight className='size-4' />
 				</Button>

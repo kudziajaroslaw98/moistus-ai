@@ -28,6 +28,9 @@ total_tokens: 707972
 <!-- Updated: 2026-03-18 - Documented premium mobile editor drawer and shared notifications hook -->
 <!-- Updated: 2026-03-25 - Documented shared notifications manager, map-scoped notification queries, and user-scoped onboarding persistence -->
 <!-- Updated: 2026-03-28 - Reconciled local layout docs with owner-limit, onboarding, and mobile editor architecture during PR #46 merge -->
+<!-- Updated: 2026-04-15 - Documented AI suggestion helper split for graph context, prompt assembly, and stream postprocess -->
+<!-- Updated: 2026-04-15 - Documented numeric node-id aliasing across row-based AI routes -->
+<!-- Updated: 2026-04-15 - Documented typed AI suggestion payloads and ghost approval for safe typed nodes -->
 <!-- Updated: 2026-03-28 - Documented stale-safe layout normalization writes and in-flight animation synchronization after CodeRabbit review -->
 <!-- Updated: 2026-03-28 - Documented mobile node-editor autocomplete tray and shared completion-state bridge -->
 <!-- Updated: 2026-03-29 - Documented autocomplete overlay portal dismissal contract and runtime visibility bridge responsibilities -->
@@ -53,10 +56,16 @@ total_tokens: 707972
 <!-- Updated: 2026-04-13 - Migrated PWA map from Turbopack route-handler SW path to @serwist/next public/sw.js output -->
 <!-- Updated: 2026-04-13 - Migrated PWA map to @serwist/turbopack route mode with custom /app/sw.js registration path -->
 <!-- Updated: 2026-04-14 - Documented shared offline replay core, periodic notifications refresh, and settings background-sync status surface -->
+<!-- Updated: 2026-04-14 - Documented whole-map AI suggestion context/anchor fallback behavior -->
+<!-- Updated: 2026-04-14 - Documented suggestion novelty memory, literal full-map inputs, and duplicate suppression -->
+<!-- Updated: 2026-04-15 - Documented ELK edge-label layout metadata and stale-label invalidation rules -->
+<!-- Updated: 2026-04-19 - Documented ELK label center snapping onto routed edge segments -->
+<!-- Updated: 2026-04-19 - Documented route-specific helper boundaries for structured AI streaming routes -->
+<!-- Updated: 2026-04-20 - Documented collapsed-branch AI connection proxy rendering and stream-start-gated suggestion replacement -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
-**Edge routing note:** Normal persisted edges render as auto-routed `waypointEdge` geometry. Explicit full layout uses ELK bend points (`routingStyle: 'elk'`); local create/edit/move/resize/reconnect flows reroute only affected edges with the deterministic orthogonal router (`routingStyle: 'orthogonal'`). Raw manual waypoint editing is no longer part of the canvas model.
+**Edge routing note:** Normal persisted edges render as auto-routed `waypointEdge` geometry. Explicit full layout uses ELK bend points (`routingStyle: 'elk'`) and persists ELK-computed edge-label bounds/centers, but the converter snaps each ELK label center onto the nearest routed segment before render so the label stays horizontal while the edge line passes through its center. Local create/edit/move/resize/reconnect flows reroute only affected edges with the deterministic orthogonal router (`routingStyle: 'orthogonal'`) and must clear stale ELK label metadata when they replace ELK geometry. Raw manual waypoint editing is no longer part of the canvas model.
 **Layout animation note:** `ReactFlowArea` now renders through a transient animated graph state for explicit full layout and local layout flows. Zustand still stores only final node/edge geometry; the 550ms tween is client-only and does not persist or broadcast intermediate frames, and an animation version is only marked handled after the tween settles or is explicitly cancelled.
 
 **Local layout note:** Deterministic local branch reflow now has two phases: same-depth child repack inside the edited branch, then cousin-branch corridor expansion on the carrier layer when the grown subtree would overlap neighboring cousin subtrees. Ancestors stay fixed, and load-time legacy layout normalization persists only when the fetched map/edge snapshot is still current.
@@ -253,7 +262,7 @@ shiko/
 | ------------------------- | ----- | ----------------------------------------------------------------------------- |
 | **sharing-slice**         | 1,164 | Room codes, anonymous users, upgrade flows                                    |
 | **comments-slice**        | 973   | Comment threads, @mentions, reactions                                         |
-| **suggestions-slice**     | 966   | AI ghost nodes, streaming, merges                                             |
+| **suggestions-slice**     | 1462  | AI ghost nodes, typed ghost approval, streaming, novelty memory, whole-map placement, merges |
 | **nodes-slice**           | 900   | Node CRUD, positioning, real-time sync                                        |
 | **history-slice**         | 597   | Undo/redo, snapshots, DB persistence                                          |
 | **edges-slice**           | 635   | Edge CRUD, parent-child relationships                                         |
@@ -304,7 +313,7 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 
 **AI & Content (7):**
 
-- `POST /api/ai/suggestions` - Streaming node suggestions
+- `POST /api/ai/suggestions` - Streaming node suggestions (node-scoped + whole-map adaptive context, novelty lenses, duplicate suppression)
 - `POST /api/ai/chat` - AI chat with context modes
 - `POST /api/ai/suggest-connections` - Connection recommendations
 - `POST /api/ai/suggest-merges` - Merge suggestions
@@ -498,15 +507,29 @@ sequenceDiagram
     participant API
     participant OpenAI
 
-    User->>SuggestionsSlice: generateSuggestions(nodeId)
+    User->>SuggestionsSlice: generateSuggestions(context)
     SuggestionsSlice->>API: POST /api/ai/suggestions (streaming)
-    API->>OpenAI: Structured output request
+    API->>OpenAI: Structured output request + literal full-map context
     OpenAI-->>API: Stream chunks
     API-->>AIMediator: Stream data
     AIMediator->>SuggestionsSlice: addGhostNode(suggestion)
     User->>SuggestionsSlice: acceptSuggestion()
     SuggestionsSlice->>Store: Convert ghost → real node
 ```
+
+**AI suggestion note:** Map-scoped toolbar suggestions now reuse the node-suggestion stream with literal full-map eligible-anchor context. The client persists per-map recent suggestion history plus a shuffled exploration-lens cycle in `localStorage`, sends the active lens pair and recent ideas with each click, and the API prompts `gpt-5-mini` with every eligible non-system anchor instead of a rotating top window. The API only accepts model-returned anchor IDs from the provided candidate list, rejects near-duplicate ideas against recent/current suggestions, fails explicitly when the literal full-map prompt exceeds the model request limit, and the slice falls back to viewport-centered unanchored ghosts if no valid anchor survives.
+
+**AI suggestion helper split:** `/api/ai/suggestions` now delegates graph context modeling to `src/helpers/ai-suggestion-graph.ts`, row serialization to `src/helpers/ai-suggestion-rows.ts`, user-prompt assembly to `src/helpers/ai-suggestion-user-prompt.ts`, system prompt text to `src/helpers/ai-suggestion-prompts.ts`, and streamed normalization/duplicate filtering/error mapping to `src/helpers/ai-suggestion-postprocess.ts`. `src/helpers/ai-suggestion-context.ts` is the thin entrypoint that stitches graph rows + user prompt together for the route.
+
+**Structured AI route helper split:** `/api/ai/counterpoints`, `/api/ai/suggest-merges`, and `/api/ai/suggest-connections` now follow the same orchestration-only pattern as suggestions. Each route keeps auth/quota checks, Supabase fetches, `streamObject(...)`, stream-status writes, and usage tracking inline, but request parsing, prompt/context assembly, and streamed element normalization live in route-specific helpers (`src/helpers/ai-counterpoint-*`, `src/helpers/ai-merge-*`, `src/helpers/ai-connection-*`). Keep alias remapping and duplicate/self-pair filtering in those helper pipelines rather than rebuilding them inside the route handlers.
+
+**Collapsed-branch connection suggestion rendering:** `suggestions-slice.addConnectionSuggestion()` now resolves hidden node endpoints to the nearest visible collapsed ancestor for display while preserving original endpoint IDs in `edge.data.aiData.connectionProxy`. `acceptConnectionSuggestion()` must use those original IDs when converting to a real edge. Suggested-connection rendering surfaces compact “Collapsed child” chips from this metadata and supports same-ancestor proxy self-loops without dropping the edge. `nodes-slice.getDescendantNodeIds()` now ignores transient AI suggestion edges so these proxy edges do not alter collapsed-branch visibility, and hidden-endpoint ancestor lookup uses structural (non-suggested) edges.
+
+**Suggestion rerun replacement gating:** `triggerStream(...)` now returns a started/not-started boolean. Connection/merge reruns clear previous transient AI suggestion edges only when stream start is accepted; blocked/throttled triggers keep the previous suggestion set intact.
+
+**AI typed suggestion payloads:** The suggestions route can now stream an optional `nodePayload` with ghost suggestions for safe typed nodes. Post-processing normalizes or downgrades malformed structured payloads before ghosts reach the client, and `suggestions-slice.acceptSuggestion()` now creates the approved node from that payload instead of reconstructing typed nodes from plain `suggestedContent`. This is especially important for `taskNode`, because approved task ghosts must populate `metadata.tasks` to render anything.
+
+**AI row ID aliasing:** Compact row-based AI routes now share `src/helpers/ai-id-alias-map.ts` so the model sees request-local numeric node IDs instead of UUIDs. `extract-enhanced-node-context.ts`, `extract-node-context.ts`, and the suggestion row/prompt helpers serialize aliased IDs in `NODE`, `REL`, `ANCHOR`, `RECENT`, and request metadata rows; the routes remap returned aliases back to UUIDs before any downstream validation or streamed output. This alias boundary now applies to suggestions, chat, counterpoints, merge suggestions, and AI node search.
 
 ### Notification Flow
 
@@ -584,7 +607,7 @@ sequenceDiagram
 
 5. **Export CORS** - External images swapped with placeholders to avoid canvas tainting
 
-6. **ELK Layout** - Heavy computation offloaded to Web Worker (`public/elk-worker.js`)
+6. **ELK Layout** - Heavy computation is offloaded to Web Worker (`public/elk-worker.js`); explicit ELK layouts include sized edge labels, then snap persisted ELK label centers onto routed segments before render, while orthogonal reroutes must invalidate stale ELK label metadata
 
 7. **Keyboard Shortcuts** - Detect input focus to prevent hijacking typing; shortcuts FAB is hidden on mobile (`<768px`)
 

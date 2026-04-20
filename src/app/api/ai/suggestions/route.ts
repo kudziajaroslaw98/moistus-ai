@@ -1,15 +1,25 @@
+import { buildSuggestionPromptContext } from '@/helpers/ai-suggestion-context';
+import {
+	getSuggestionStreamErrorMessage,
+	processSuggestionElement,
+	suggestionObjectSchema,
+	toSuggestionChunk,
+	type SuggestionComparisonEntry,
+} from '@/helpers/ai-suggestion-postprocess';
+import { getSuggestionSystemPrompt } from '@/helpers/ai-suggestion-prompts';
 import {
 	checkAIQuota,
 	trackAIUsage,
 } from '@/helpers/api/with-subscription-check';
-import {
-	buildContextPrompt,
-	extractEnhancedContext,
-} from '@/helpers/extract-enhanced-node-context';
 import { createClient } from '@/helpers/supabase/server';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
-import type { SuggestionContext } from '@/types/ghost-node';
+import type {
+	SuggestionContext,
+	SuggestionHistoryEntry,
+	SuggestionLens,
+} from '@/types/ghost-node';
+import { SUGGESTION_EXPLORATION_LENSES } from '@/types/ghost-node';
 import { openai } from '@ai-sdk/openai';
 import {
 	createUIMessageStream,
@@ -19,99 +29,124 @@ import {
 } from 'ai';
 import { z } from 'zod';
 
-// Zod schema for a single suggestion object from the AI
-const suggestionObjectSchema = z.object({
-	id: z
-		.string()
-		.describe(
-			'A unique identifier for the suggestion, typically in UUID format.'
-		),
-	content: z
-		.string()
-		.describe('The main text content or label for the suggested node.'),
-	nodeType: z
-		.enum([
-			'defaultNode',
-			'textNode',
-			'imageNode',
-			'resourceNode',
-			'questionNode',
-			'annotationNode',
-			'codeNode',
-			'taskNode',
-		] as const)
-		.describe(
-			'The type of node being suggested. Must be one of the specified values.'
-		),
-	confidence: z
-		.number()
-		.min(0)
-		.max(1)
-		.describe(
-			"A score from 0.0 to 1.0 indicating the AI's confidence in this suggestion."
-		),
-	position: z
-		.object({
-			x: z
-				.number()
-				.describe(
-					'The suggested horizontal (x-axis) coordinate for the new node on the canvas.'
-				),
-			y: z
-				.number()
-				.describe(
-					'The suggested vertical (y-axis) coordinate for the new node on the canvas.'
-				),
-		})
-		.describe(
-			'The initial x and y coordinates for placing the suggested node on the mind map canvas.'
-		),
-	context: z
-		.object({
-			sourceNodeId: z
-				.string()
-				.nullable()
-				.describe(
-					"The ID of the node that this suggestion originates from, if any. Null if it's a general map suggestion."
-				),
-			targetNodeId: z
-				.string()
-				.nullable()
-				.describe(
-					'The ID of a target node if the suggestion is for a connection between two nodes. Often null for new node suggestions.'
-				),
-			relationshipType: z
-				.string()
-				.nullable()
-				.describe(
-					"Describes the proposed relationship between the source and the new node (e.g., 'expands on', 'is an example of')."
-				),
-			trigger: z
-				.enum(['magic-wand', 'dangling-edge', 'auto'])
-				.describe(
-					'The type of user action or system event that triggered this suggestion.'
-				),
-		})
-		.describe(
-			'Information about what triggered the suggestion and its relationship to existing nodes.'
-		),
-	reasoning: z
-		.string()
-		.nullable()
-		.describe(
-			'A brief, user-facing explanation for why this suggestion is being made.'
-		),
-});
+const RECENT_SUGGESTION_PROMPT_LIMIT = 8;
 
-// Set maximum duration for the API route
+interface SuggestionRequestPayload {
+	nodes: AppNode[];
+	edges: AppEdge[];
+	mapId: string;
+	context: SuggestionContext;
+	mapMeta?: {
+		title?: string | null;
+		description?: string | null;
+	};
+	recentSuggestions: SuggestionHistoryEntry[];
+	selectedLenses: SuggestionLens[];
+	clickIndex: number;
+	requestNonce: string;
+}
+
+function isSuggestionLens(value: unknown): value is SuggestionLens {
+	return (
+		typeof value === 'string' &&
+		SUGGESTION_EXPLORATION_LENSES.includes(value as SuggestionLens)
+	);
+}
+
+function isSuggestionTrigger(
+	value: unknown
+): value is SuggestionContext['trigger'] {
+	return (
+		value === 'magic-wand' || value === 'dangling-edge' || value === 'auto'
+	);
+}
+
+function parseRecentSuggestions(value: unknown): SuggestionHistoryEntry[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+
+	return value.flatMap((entry) => {
+		if (
+			!entry ||
+			typeof entry !== 'object' ||
+			typeof (entry as SuggestionHistoryEntry).content !== 'string' ||
+			!isSuggestionTrigger((entry as SuggestionHistoryEntry).trigger)
+		) {
+			return [];
+		}
+
+		const content = (entry as SuggestionHistoryEntry).content.trim();
+		if (!content) {
+			return [];
+		}
+
+		return [
+			{
+				content,
+				sourceNodeId:
+					typeof (entry as SuggestionHistoryEntry).sourceNodeId === 'string'
+						? (entry as SuggestionHistoryEntry).sourceNodeId
+						: null,
+				trigger: (entry as SuggestionHistoryEntry).trigger,
+				timestamp:
+					typeof (entry as SuggestionHistoryEntry).timestamp === 'string'
+						? (entry as SuggestionHistoryEntry).timestamp
+						: new Date().toISOString(),
+			},
+		];
+	});
+}
+
+function parseSelectedLenses(value: unknown): SuggestionLens[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+
+	return Array.from(new Set(value.filter(isSuggestionLens))).slice(0, 2);
+}
+
+function parseSuggestionRequestPayload(
+	requestData: Record<string, unknown>
+): SuggestionRequestPayload {
+	return {
+		nodes: Array.isArray(requestData.nodes)
+			? (requestData.nodes as AppNode[])
+			: [],
+		edges: Array.isArray(requestData.edges)
+			? (requestData.edges as AppEdge[])
+			: [],
+		mapId: typeof requestData.mapId === 'string' ? requestData.mapId : '',
+		context:
+			requestData.context && typeof requestData.context === 'object'
+				? (requestData.context as SuggestionContext)
+				: ({ trigger: 'magic-wand' } as SuggestionContext),
+		mapMeta:
+			requestData.mapMeta && typeof requestData.mapMeta === 'object'
+				? (requestData.mapMeta as SuggestionRequestPayload['mapMeta'])
+				: undefined,
+		recentSuggestions: parseRecentSuggestions(
+			requestData.recentSuggestions
+		).slice(-RECENT_SUGGESTION_PROMPT_LIMIT),
+		selectedLenses: parseSelectedLenses(requestData.selectedLenses),
+		clickIndex:
+			typeof requestData.clickIndex === 'number' &&
+			Number.isFinite(requestData.clickIndex)
+				? Math.max(0, Math.floor(requestData.clickIndex))
+				: 0,
+		requestNonce:
+			typeof requestData.requestNonce === 'string'
+				? requestData.requestNonce
+				: '',
+	};
+}
+
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-	// Capture abort signal for stream cancellation
 	const abortSignal = req.signal;
 
 	try {
-		// Get authenticated user
 		const supabase = await createClient();
 		const {
 			data: { user },
@@ -126,7 +161,6 @@ export async function POST(req: Request) {
 			);
 		}
 
-		// Check AI quota
 		const {
 			allowed,
 			isPro: hasProAccess,
@@ -136,56 +170,34 @@ export async function POST(req: Request) {
 			return quotaError;
 		}
 
-		// Extract the body sent by the useChat hook
 		const { messages }: { messages: UIMessage[] } = await req.json();
-
 		const streamHeader = 'Generating Node Suggestions';
 		const totalSteps = [
-			{
-				id: 'validate-request',
-				name: 'Validate Request',
-				status: 'pending',
-			},
-			{
-				id: 'fetch-data',
-				name: 'Fetch Data',
-				status: 'pending',
-			},
-			{
-				id: 'build-context',
-				name: 'Build Context',
-				status: 'pending',
-			},
+			{ id: 'validate-request', name: 'Validate Request', status: 'pending' },
+			{ id: 'fetch-data', name: 'Fetch Data', status: 'pending' },
+			{ id: 'build-context', name: 'Build Context', status: 'pending' },
 			{
 				id: 'generate-suggestions',
 				name: 'Generate Node Suggestions',
 				status: 'pending',
 			},
-			{
-				id: 'stream-results',
-				name: 'Streaming Results',
-				status: 'pending',
-			},
+			{ id: 'stream-results', name: 'Streaming Results', status: 'pending' },
 		];
 
 		return createUIMessageStreamResponse({
 			stream: createUIMessageStream({
 				execute: async ({ writer }) => {
+					let isWholeMapSuggestion = false;
+
 					try {
 						const wait = (ms: number) =>
 							new Promise((resolve) => setTimeout(resolve, ms));
 
-						writer.write({
-							type: 'start',
-						});
-
+						writer.write({ type: 'start' });
 						writer.write({
 							type: 'data-stream-info',
-							data: {
-								steps: totalSteps,
-							},
+							data: { steps: totalSteps },
 						});
-
 						writer.write({
 							type: 'data-stream-status',
 							data: {
@@ -199,64 +211,61 @@ export async function POST(req: Request) {
 
 						await wait(1000);
 
-						// Safely extract request data from the last message's text part
 						const lastUserMessage = messages
-							.filter((m) => m.role === 'user')
+							.filter((message) => message.role === 'user')
 							.pop();
+						const requestTextPart = lastUserMessage?.parts.find(
+							(part) => part.type === 'text'
+						);
 
-						if (
-							!lastUserMessage ||
-							!lastUserMessage.parts.filter((part) => part.type === 'text')?.[0]
-						) {
+						if (!requestTextPart || requestTextPart.type !== 'text') {
 							throw new Error(
 								'Invalid request format: User message not found.'
 							);
 						}
 
-						const requestData = JSON.parse(
-							lastUserMessage.parts.filter((part) => part.type === 'text')[0]
-								.text
-						);
+						const rawRequestData = JSON.parse(requestTextPart.text) as Record<
+							string,
+							unknown
+						>;
+						const requestData = parseSuggestionRequestPayload(rawRequestData);
+						const {
+							nodes,
+							edges,
+							mapId,
+							context,
+							mapMeta,
+							recentSuggestions,
+							selectedLenses,
+							clickIndex,
+							requestNonce,
+						} = requestData;
 
-						const { nodes, edges, mapId, context } = requestData;
+						isWholeMapSuggestion = !context.sourceNodeId;
 
-						// Validate required fields
-						if (!nodes || !Array.isArray(nodes)) {
+						if (!Array.isArray(rawRequestData.nodes)) {
 							throw new Error('Invalid nodes data');
 						}
 
-						if (!edges || !Array.isArray(edges)) {
+						if (!Array.isArray(rawRequestData.edges)) {
 							throw new Error('Invalid edges data');
 						}
 
-						// Extract source node name/content if sourceNodeId is provided
-						let sourceNodeName: string | undefined;
-						let sourceNodeContent: string | undefined;
-						if (context.sourceNodeId) {
-							const sourceNode = (nodes as AppNode[]).find(
-								(n) => n.id === context.sourceNodeId
-							);
-							if (sourceNode) {
-								// Truncate content for display (first 50 chars)
-								sourceNodeContent = sourceNode.data.content || '';
-								sourceNodeName =
-									sourceNodeContent.length > 50
-										? sourceNodeContent.substring(0, 50) + '...'
-										: sourceNodeContent;
-							}
-						}
-
 						const mapValidation = z.string().uuid().safeParse(mapId);
-
 						if (!mapValidation.success) {
 							throw new Error(`Invalid Map ID: ${mapValidation.error.message}`);
 						}
 
-						if (!context || !context.trigger) {
+						if (
+							!rawRequestData.context ||
+							typeof rawRequestData.context !== 'object' ||
+							!isSuggestionTrigger(
+								(rawRequestData.context as SuggestionContext).trigger
+							)
+						) {
 							throw new Error('Invalid context data');
 						}
 
-						// --- Step 2: Fetch Data ---
 						writer.write({
 							type: 'data-stream-status',
 							data: {
@@ -270,7 +279,6 @@ export async function POST(req: Request) {
 
 						await wait(1000);
 
-						// --- Step 3: Build Context ---
 						writer.write({
 							type: 'data-stream-status',
 							data: {
@@ -284,14 +292,18 @@ export async function POST(req: Request) {
 
 						await wait(1000);
 
-						// Build suggestion context
-						const suggestionContext = buildSuggestionContext(
+						const promptContext = buildSuggestionPromptContext({
 							nodes,
 							edges,
-							context
-						);
+							mapMeta,
+							context,
+							selectedLenses,
+							recentSuggestions,
+							clickIndex,
+							requestNonce,
+						});
+						isWholeMapSuggestion = promptContext.isWholeMapSuggestion;
 
-						// --- Step 4: Generate Suggestions ---
 						writer.write({
 							type: 'data-stream-status',
 							data: {
@@ -305,46 +317,43 @@ export async function POST(req: Request) {
 
 						await wait(1000);
 
-						// Generate suggestions using AI
 						const result = streamObject({
-							model: openai('gpt-5-mini'),
+							model: openai('gpt-5.4-mini'),
+
 							abortSignal,
 							output: 'array',
 							schema: suggestionObjectSchema,
+							providerOptions: {
+								openai: {
+									reasoningEffort: 'high', // Increases autonomous exploration
+								},
+							},
 							messages: [
 								{
 									role: 'system',
-									content: SUGGESTION_PROMPT,
+									content: getSuggestionSystemPrompt(promptContext.graph.mode),
 								},
 								{
 									role: 'user',
-									content: `
-										Here is the current mind map context:
-										${suggestionContext}
-
-										Based on this context, suggest 1-4 relevant nodes that would enhance this mind map.
-										Consider the trigger type: ${context.trigger}
-										${context.sourceNodeId ? `Source node ID: ${context.sourceNodeId}` : ''}
-										${context.targetNodeId ? `Target node ID: ${context.targetNodeId}` : ''}
-										${context.relationshipType ? `Relationship type: ${context.relationshipType}` : ''}
-									`,
+									content: promptContext.prompt,
 								},
 							],
 						});
 
-						// Confidence filtering thresholds based on trigger type
 						const isManualTrigger = context.trigger === 'magic-wand';
 						const minConfidence = isManualTrigger ? 0.4 : 0.6;
 						const maxSuggestions = isManualTrigger ? 6 : 5;
-
-						// Stream individual suggestions with confidence filtering
+						const validAnchorNodeIds = promptContext.isWholeMapSuggestion
+							? new Set(promptContext.validAnchorNodeIds)
+							: null;
+						const emittedSuggestions: SuggestionComparisonEntry[] = [];
 						let suggestionIndex = 0;
 						let filteredCount = 0;
-						let status = 'pending';
+						let hasStartedStreaming = false;
 
 						for await (const element of result.elementStream) {
-							if (status === 'pending') {
-								status = 'completed';
+							if (!hasStartedStreaming) {
+								hasStartedStreaming = true;
 								writer.write({
 									type: 'data-stream-status',
 									data: {
@@ -357,36 +366,32 @@ export async function POST(req: Request) {
 								});
 							}
 
-							// Validate and filter by confidence
-							if (suggestionObjectSchema.safeParse(element).success) {
-								// Check confidence threshold
-								if (element.confidence < minConfidence) {
-									console.log(
-										`Filtered suggestion (confidence: ${element.confidence} < ${minConfidence}): ${element.content}`
-									);
-									filteredCount++;
-									continue;
-								}
+							const processedSuggestion = processSuggestionElement({
+								element,
+								validAnchorNodeIds,
+								requestContext: context,
+								recentSuggestions,
+								emittedSuggestions,
+								minConfidence,
+								maxSuggestions,
+								emittedCount: suggestionIndex,
+								aliasMap: promptContext.aliasMap,
+							});
 
-								// Check max suggestions limit
-								if (suggestionIndex >= maxSuggestions) {
-									console.log(
-										`Filtered suggestion (limit reached: ${suggestionIndex} >= ${maxSuggestions}): ${element.content}`
-									);
-									filteredCount++;
-									continue;
-								}
-
-								writer.write({
-									type: 'data-node-suggestion',
-									data: {
-										...element,
-										index: suggestionIndex++,
-										sourceNodeName,
-										sourceNodeContent,
-									},
-								});
+							if (!processedSuggestion) {
+								filteredCount += 1;
+								continue;
 							}
+
+							emittedSuggestions.push(processedSuggestion.comparisonEntry);
+							writer.write(
+								toSuggestionChunk({
+									processedSuggestion,
+									index: suggestionIndex,
+									nodes,
+								})
+							);
+							suggestionIndex += 1;
 						}
 
 						console.log(
@@ -403,7 +408,6 @@ export async function POST(req: Request) {
 							},
 						});
 
-						// Track usage (no-ops for Pro)
 						void trackAIUsage(user, supabase, hasProAccess).catch(
 							(trackingError) => {
 								console.warn(
@@ -412,17 +416,22 @@ export async function POST(req: Request) {
 								);
 							}
 						);
-
-						writer.write({
-							type: 'finish',
-						});
-					} catch (e) {
-						const error =
-							e instanceof Error ? e : new Error('An unknown error occurred.');
-						console.error('Streaming process failed:', error);
+					} catch (error) {
+						console.error(
+							'Streaming process failed:',
+							error instanceof Error
+								? error
+								: new Error('An unknown error occurred.')
+						);
 						writer.write({
 							type: 'data-stream-status',
-							data: { header: streamHeader, error: error.message },
+							data: {
+								header: streamHeader,
+								error: getSuggestionStreamErrorMessage({
+									error,
+									isWholeMapSuggestion,
+								}),
+							},
 						});
 					} finally {
 						writer.write({ type: 'finish' });
@@ -430,83 +439,10 @@ export async function POST(req: Request) {
 				},
 			}),
 		});
-	} catch (e) {
-		console.error('Error in POST handler:', e);
+	} catch (error) {
+		console.error('Error in POST handler:', error);
 		return new Response(JSON.stringify({ error: 'Invalid request' }), {
 			status: 400,
 		});
 	}
 }
-
-// Enhanced Context Analysis Engine
-function buildSuggestionContext(
-	nodes: AppNode[],
-	edges: AppEdge[],
-	context: SuggestionContext
-): string {
-	// If no source node, return basic context
-	if (!context.sourceNodeId) {
-		return 'No specific source node. Please suggest nodes based on the overall mind map theme.';
-	}
-
-	try {
-		// Extract enhanced context using multi-level analysis
-		const enhancedContext = extractEnhancedContext(
-			context.sourceNodeId,
-			nodes,
-			edges,
-			{
-				includeSiblings: true,
-				includeAncestry: true,
-				includeTopology: true,
-			}
-		);
-
-		// Build formatted prompt from enhanced context
-		const contextPrompt = buildContextPrompt(enhancedContext);
-
-		// Add trigger-specific context
-		let additionalContext = `\n\nTrigger Type: ${context.trigger}\n`;
-
-		if (context.trigger === 'dangling-edge') {
-			additionalContext +=
-				'User dropped an edge without a target - suggest immediate connection targets.\n';
-		}
-
-		return contextPrompt + additionalContext;
-	} catch (error) {
-		console.error('Error extracting enhanced context:', error);
-		// Fallback to basic context
-		const sourceNode = nodes.find((n) => n.id === context.sourceNodeId);
-		return `Focus Node: ${sourceNode?.data.content || 'Unknown'}\nTrigger: ${context.trigger}`;
-	}
-}
-
-// Prompt Engineering
-const SUGGESTION_PROMPT = `
-You are an expert at expanding mind maps with relevant, insightful nodes. Your task is to suggest 1-3 new nodes that would meaningfully enhance the given mind map.
-
-Guidelines for suggestions:
-1. **Relevance**: Ensure suggestions are directly related to the existing content and context
-2. **Diversity**: Suggest different types of nodes (text, questions, resources, etc.) when appropriate
-3. **Depth**: Add nodes that deepen understanding or explore new angles
-4. **Practical Value**: Focus on actionable, useful, or thought-provoking content
-5. **Natural Flow**: Suggestions should feel like a natural extension of the current thinking
-
-Node Type Selection:
-- **textNode**: For explanatory content, definitions, or detailed information
-- **questionNode**: For thought-provoking questions or areas to explore
-- **resourceNode**: For external links, books, tools, or references
-- **taskNode**: For actionable items or next steps
-- **codeNode**: For technical examples, snippets, or implementations
-- **imageNode**: When visual content would enhance understanding
-- **annotationNode**: For comments, notes, or additional context
-- **defaultNode**: For general concepts or simple nodes
-
-Confidence Scoring:
-- 0.8-1.0: High confidence - directly relevant and valuable
-- 0.6-0.8: Medium confidence - somewhat relevant but speculative
-- 0.4-0.6: Low confidence - tangentially related or experimental
-
-Return structured JSON with array containing objects with id, content, nodeType, confidence, position, context, and reasoning fields.
-`;

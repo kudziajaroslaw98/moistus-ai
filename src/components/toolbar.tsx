@@ -324,7 +324,7 @@ export const Toolbar = ({
 							size='icon'
 							title={title}
 							disabled={!isMapReady}
-							variant={isAIPopoverOpen ? 'default' : 'secondary'}
+							variant={isAIPopoverOpen ? 'normal' : 'outline'}
 						>
 							{isStreaming ? (
 								<Loader2 className='size-4 animate-spin' />
@@ -400,7 +400,7 @@ export const Toolbar = ({
 					onClick={() => onToolChange(tool.id)}
 					size='icon'
 					title={tool.label ?? `Tool ${index}`}
-					variant='secondary'
+					variant='outline'
 					disabled={!isMapReady}
 					className={cn(
 						isChatOpen &&
@@ -421,7 +421,7 @@ export const Toolbar = ({
 					onClick={() => onToolChange(tool.id)}
 					size='icon'
 					title={tool.label ?? `Tool ${index}`}
-					variant='secondary'
+					variant='outline'
 					disabled={!isMapReady}
 					className={cn(
 						isCommentMode &&
@@ -449,7 +449,7 @@ export const Toolbar = ({
 				size='icon'
 				title={tool.label ?? `Tool ${index}`}
 				disabled={!isMapReady}
-				variant={activeTool === tool.id ? 'default' : 'secondary'}
+				variant={activeTool === tool.id ? 'normal' : 'outline'}
 			>
 				{tool.icon}
 			</Button>
@@ -485,7 +485,7 @@ export const Toolbar = ({
 								data-onboarding-target='guided-tour'
 								size='icon'
 								title='Guided Tour'
-								variant='secondary'
+								variant='outline'
 								disabled={!isMapReady || nodes.length === 0}
 							>
 								<Play className='size-4' />
@@ -688,7 +688,7 @@ export const Toolbar = ({
 										size='icon'
 										title='More Tools'
 										disabled={!isMapReady}
-										variant='secondary'
+										variant='outline'
 										data-testid='toolbar-more-button'
 									>
 										<Ellipsis className='size-4' />

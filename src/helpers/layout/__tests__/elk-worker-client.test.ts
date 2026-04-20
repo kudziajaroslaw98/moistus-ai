@@ -1,6 +1,9 @@
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import type { LayoutResult } from '@/types/layout-types';
+
+jest.mock('@/helpers/generate-uuid', () => jest.fn(() => 'mock-uuid'));
+
 import * as workerClient from '../elk-worker-client';
 
 const createNode = (id: string, x: number, y: number): AppNode =>
@@ -173,6 +176,50 @@ describe('elk-worker-client local layout helpers', () => {
 			{ x: 140, y: 6 },
 		]);
 		expect(byEdgeId.get('ef')?.data?.metadata?.waypoints).toBeUndefined();
+	});
+
+	it('offsets ELK label metadata when merging selected-only layouts', () => {
+		const allNodes = [createNode('a', 400, 100), createNode('b', 700, 100)];
+		const allEdges = [createEdge('ab', 'a', 'b')];
+
+		const layoutResult: LayoutResult = {
+			nodes: [createNode('a', 0, 0), createNode('b', 300, 0)],
+			edges: [
+				withMetadata(allEdges[0], {
+					routingStyle: 'elk',
+					elkLabel: {
+						x: 160,
+						y: 48,
+						width: 96,
+						height: 24,
+						centerX: 208,
+						centerY: 60,
+					},
+				}),
+			],
+		};
+
+		const merged = workerClient.mergeLayoutResult(
+			allNodes,
+			allEdges,
+			layoutResult,
+			new Set(['a', 'b']),
+			{
+				direction: 'LEFT_RIGHT',
+				nodeSpacing: 50,
+				layerSpacing: 100,
+				animateTransition: true,
+			}
+		);
+
+		expect(merged.edges[0]?.data?.metadata?.elkLabel).toEqual({
+			x: 560,
+			y: 148,
+			width: 96,
+			height: 24,
+			centerX: 608,
+			centerY: 160,
+		});
 	});
 
 	it('shifts only protected branch descendants to avoid sibling overlap and keeps waypoint paths coherent', () => {

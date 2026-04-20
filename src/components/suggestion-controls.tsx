@@ -109,7 +109,7 @@ export function SuggestionControls({ className }: SuggestionControlsProps) {
 							className='w-full mt-2'
 							onClick={retry}
 							size='sm'
-							variant='secondary'
+							variant='outline'
 						>
 							<RefreshCw className='h-3 w-3 mr-1' />
 							Try Again
@@ -144,7 +144,7 @@ export function SuggestionControls({ className }: SuggestionControlsProps) {
 								className='flex-1'
 								onClick={clearAllSuggestions}
 								size='sm'
-								variant='secondary'
+								variant='outline'
 							>
 								<X className='h-3 w-3 mr-1' />
 								Clear All

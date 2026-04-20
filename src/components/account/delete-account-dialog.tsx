@@ -220,7 +220,7 @@ export function DeleteAccountDialog({
 						className='min-w-[140px] bg-rose-600 transition-all duration-200 hover:bg-rose-700 disabled:bg-zinc-800 disabled:text-zinc-500 motion-reduce:transition-none'
 						disabled={!isConfirmValid || isDeleting}
 						onClick={handleConfirm}
-						variant='destructive'
+						variant='normal' state='destructive'
 					>
 						{isDeleting ? (
 							<>

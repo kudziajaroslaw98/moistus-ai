@@ -36,7 +36,7 @@ interface ActionItem {
  *
  * Used on:
  * - Node selection (scope='node'): Shows all 4 actions scoped to that node
- * - Toolbar (scope='map'): Shows only Find connections and Find similar for entire map
+ * - Toolbar (scope='map'): Shows whole-map suggestions plus connection/merge actions
  */
 export function AIActionsPopover({
 	scope,
@@ -91,6 +91,14 @@ export function AIActionsPopover({
 		onClose();
 	}, [sourceNodeId, checkAILimit, generateSuggestions, onClose]);
 
+	const handleExpandMap = useCallback(() => {
+		if (checkAILimit()) return;
+		generateSuggestions({
+			trigger: 'magic-wand',
+		});
+		onClose();
+	}, [checkAILimit, generateSuggestions, onClose]);
+
 	const handleFindConnections = useCallback(() => {
 		if (checkAILimit()) return;
 		generateConnectionSuggestions(sourceNodeId);
@@ -114,15 +122,23 @@ export function AIActionsPopover({
 		{
 			id: 'expand-ideas',
 			label: 'Expand ideas',
-			icon: <Sparkles className="size-4" />,
+			icon: <Sparkles className='size-4' />,
 			description: 'Generate child nodes from this idea',
 			scopes: ['node'],
 			action: handleExpandIdeas,
 		},
 		{
+			id: 'expand-map',
+			label: 'Expand map',
+			icon: <Sparkles className='size-4' />,
+			description: 'Generate suggestions across the whole map',
+			scopes: ['map'],
+			action: handleExpandMap,
+		},
+		{
 			id: 'generate-counterpoints',
 			label: 'Generate counterpoints',
-			icon: <NotepadTextDashed className="size-4" />,
+			icon: <NotepadTextDashed className='size-4' />,
 			description: 'Challenge this idea with opposing views',
 			scopes: ['node'],
 			action: handleGenerateCounterpoints,
@@ -130,7 +146,7 @@ export function AIActionsPopover({
 		{
 			id: 'find-connections',
 			label: 'Find connections',
-			icon: <Link2 className="size-4" />,
+			icon: <Link2 className='size-4' />,
 			description: scope === 'node' ? 'Find relationships for this node' : 'Discover connections across the map',
 			scopes: ['node', 'map'],
 			action: handleFindConnections,
@@ -138,7 +154,7 @@ export function AIActionsPopover({
 		{
 			id: 'find-similar',
 			label: 'Find similar',
-			icon: <Merge className="size-4" />,
+			icon: <Merge className='size-4' />,
 			description: scope === 'node' ? 'Find duplicates or overlapping nodes' : 'Find mergeable nodes across the map',
 			scopes: ['node', 'map'],
 			action: handleFindSimilar,
@@ -160,7 +176,7 @@ export function AIActionsPopover({
 				className
 			)}
 		>
-			<div className="py-1">
+			<div className='py-1'>
 				{visibleActions.map((action) => (
 					<button
 						type="button"
@@ -180,19 +196,19 @@ export function AIActionsPopover({
 							'group-hover:text-primary-400'
 						)}>
 							{isStreaming ? (
-								<Loader2 className="size-4 animate-spin" />
+								<Loader2 className='size-4 animate-spin' />
 							) : (
 								action.icon
 							)}
 						</span>
-						<div className="flex flex-col">
+						<div className='flex flex-col'>
 							<span className={cn(
 								'text-sm font-medium text-text-primary transition-colors duration-200',
 								'group-hover:text-primary-400'
 							)}>
 								{action.label}
 							</span>
-							<span className="text-xs text-text-tertiary">
+							<span className='text-xs text-text-tertiary'>
 								{action.description}
 							</span>
 						</div>

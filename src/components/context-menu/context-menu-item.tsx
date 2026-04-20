@@ -43,7 +43,8 @@ export const ContextMenuItem = React.forwardRef<
 				onClick={onClick}
 				ref={ref}
 				role='menuitem'
-				variant={variant === 'destructive' ? 'destructive-outline' : 'outline'}
+				state={variant === 'destructive' ? 'destructive' : 'normal'}
+				variant='outline'
 				className={cn(
 					'h-8 w-full justify-start gap-2 p-2 text-sm',
 					'@media (hover: hover) and (pointer: fine) { transition-property: color, background-color, opacity }',

@@ -1,72 +1,25 @@
+import { buildCounterpointPromptContext } from '@/helpers/ai-counterpoint-context';
+import {
+	counterpointSuggestionSchema,
+	normalizeCounterpointSuggestionElement,
+} from '@/helpers/ai-counterpoint-postprocess';
+import {
+	buildCounterpointUserPrompt,
+	getCounterpointSystemPrompt,
+} from '@/helpers/ai-counterpoint-prompts';
+import { parseCounterpointRequestPayload } from '@/helpers/ai-counterpoint-request';
 import {
 	checkAIQuota,
 	trackAIUsage,
 } from '@/helpers/api/with-subscription-check';
-import { extractNodesContext } from '@/helpers/extract-node-context';
 import { createClient } from '@/helpers/supabase/server';
-import type { AppEdge } from '@/types/app-edge';
-import type { AppNode } from '@/types/app-node';
-import type { SuggestionContext } from '@/types/ghost-node';
 import { openai } from '@ai-sdk/openai';
+import type { UIMessage } from 'ai';
 import {
 	createUIMessageStream,
 	createUIMessageStreamResponse,
 	streamObject,
-	UIMessage,
 } from 'ai';
-import { z } from 'zod';
-
-// Schema for a single counterpoint suggestion object from the AI
-const counterpointSuggestionSchema = z.object({
-	id: z
-		.string()
-		.describe('A unique identifier for the suggestion, typically UUID.'),
-	content: z.string().describe('Concise content of the counterpoint.'),
-	nodeType: z
-		.enum([
-			'defaultNode',
-			'textNode',
-			'resourceNode',
-			'annotationNode',
-			'taskNode',
-		] as const)
-		.describe('The node type suitable for this counterpoint.'),
-	confidence: z
-		.number()
-		.min(0)
-		.max(1)
-		.describe("AI's confidence from 0.0 to 1.0."),
-	position: z
-		.object({ x: z.number(), y: z.number() })
-		.describe('Initial canvas position (may be overridden on client).'),
-	context: z
-		.object({
-			sourceNodeId: z.string().nullable().optional(),
-			targetNodeId: z.string().nullable().optional(),
-			relationshipType: z
-				.enum([
-					'contradicts',
-					'risk',
-					'alternative',
-					'test-of',
-					'mitigates',
-					'questions',
-				] as const)
-				.nullable()
-				.optional(),
-			trigger: z.enum(['magic-wand', 'auto']),
-			// Optional metadata used by UI/telemetry if present
-			stance: z
-				.enum(['counterargument', 'risk', 'alternative', 'test'])
-				.nullable()
-				.optional(),
-			citations: z
-				.array(z.object({ title: z.string(), url: z.string().url() }))
-				.optional(),
-		})
-		.describe('Enriched context for this suggestion.'),
-	reasoning: z.string().nullable().optional(),
-});
 
 export const maxDuration = 30;
 
@@ -91,13 +44,16 @@ export async function POST(req: Request) {
 		}
 
 		// Check AI quota
-		const { allowed, isPro: hasProAccess, error: quotaError } = await checkAIQuota(user, supabase);
+		const {
+			allowed,
+			isPro: hasProAccess,
+			error: quotaError,
+		} = await checkAIQuota(user, supabase);
 		if (!allowed && quotaError) {
 			return quotaError;
 		}
 
-		// Extract messages from useChat
-		const { messages }: { messages: UIMessage[] } = await req.json();
+		const { messages } = (await req.json()) as { messages: UIMessage[] };
 		const streamHeader = 'Generating Counterpoints';
 		const totalSteps = [
 			{ id: 'validate-request', name: 'Validate Request', status: 'pending' },
@@ -131,41 +87,7 @@ export async function POST(req: Request) {
 
 						await wait(300);
 
-						const lastUserMessage = messages
-							.filter((m) => m.role === 'user')
-							.pop();
-						if (
-							!lastUserMessage ||
-							!lastUserMessage.parts.filter((p) => p.type === 'text')?.[0]
-						) {
-							throw new Error(
-								'Invalid request format: User message not found.'
-							);
-						}
-
-						const requestData = JSON.parse(
-							lastUserMessage.parts.filter((p) => p.type === 'text')[0].text
-						);
-
-						const { nodes, edges, mapId, context } = requestData as {
-							nodes: AppNode[];
-							edges: AppEdge[];
-							mapId: string;
-							context: SuggestionContext & { trigger: 'magic-wand' | 'auto' };
-						};
-
-						if (!Array.isArray(nodes) || !Array.isArray(edges)) {
-							throw new Error('Invalid nodes or edges data.');
-						}
-
-						const mapValidation = z.string().uuid().safeParse(mapId);
-						if (!mapValidation.success) {
-							throw new Error(`Invalid Map ID: ${mapValidation.error.message}`);
-						}
-
-						if (!context || !context.trigger) {
-							throw new Error('Invalid context data');
-						}
+						const requestData = parseCounterpointRequestPayload(messages);
 
 						writer.write({
 							type: 'data-stream-status',
@@ -194,13 +116,7 @@ export async function POST(req: Request) {
 
 						await wait(300);
 
-						const focusNode = context.sourceNodeId
-							? nodes.find((n) => n.id === context.sourceNodeId)
-							: undefined;
-						const vicinityNodes = getRelevantNodes(nodes, edges, context);
-						const contextString = extractNodesContext(
-							vicinityNodes.map((n) => n.data)
-						).join('\n');
+						const promptContext = buildCounterpointPromptContext(requestData);
 
 						writer.write({
 							type: 'data-stream-status',
@@ -215,25 +131,22 @@ export async function POST(req: Request) {
 
 						await wait(300);
 
-						const SYSTEM_PROMPT = `You generate rigorous counterpoints to a focus idea.
-Return 1–4 items. Each item must be concise (<= 180 chars) and mapped as:
-- stance: counterargument|risk|alternative|test
-- relationshipType: contradicts|risk|alternative|test-of|mitigates|questions
-- nodeType: defaultNode|textNode|annotationNode|taskNode|resourceNode
-Only include citations if they are real (never fabricate). Avoid redundancy.
-`;
-
-						const USER_PROMPT = `Focus: ${focusNode?.data.content || '(no focus)'}
-Context:\n${contextString}`;
-
 						const result = streamObject({
-							model: openai('gpt-5-mini'),
+							model: openai('gpt-5.4-mini'),
 							abortSignal,
 							output: 'array',
 							schema: counterpointSuggestionSchema,
 							messages: [
-								{ role: 'system', content: SYSTEM_PROMPT },
-								{ role: 'user', content: USER_PROMPT },
+								{
+									role: 'system',
+									content: getCounterpointSystemPrompt(),
+								},
+								{
+									role: 'user',
+									content: buildCounterpointUserPrompt(
+										promptContext.contextRows
+									),
+								},
 							],
 						});
 
@@ -254,10 +167,14 @@ Context:\n${contextString}`;
 								});
 							}
 
-							if (counterpointSuggestionSchema.safeParse(element).success) {
+							const normalizedElement = normalizeCounterpointSuggestionElement(
+								element,
+								promptContext.aliasMap
+							);
+							if (normalizedElement) {
 								writer.write({
 									type: 'data-node-suggestion',
-									data: { ...element, index: index++ },
+									data: { ...normalizedElement, index: index++ },
 								});
 							}
 						}
@@ -282,40 +199,4 @@ Context:\n${contextString}`;
 			status: 400,
 		});
 	}
-}
-
-// Utilities borrowed from suggestions route to gather relevant context
-function getRelevantNodes(
-	nodes: AppNode[],
-	edges: AppEdge[],
-	context: SuggestionContext
-): AppNode[] {
-	if (context.sourceNodeId) {
-		const sourceNode = nodes.find((n) => n.id === context.sourceNodeId);
-		if (sourceNode) {
-			return [
-				sourceNode,
-				...getConnectedNodes(nodes, edges, context.sourceNodeId),
-			].slice(0, 6);
-		}
-	}
-
-	return nodes.slice(-6);
-}
-
-function getConnectedNodes(
-	nodes: AppNode[],
-	edges: AppEdge[],
-	nodeId: string
-): AppNode[] {
-	if (!nodeId || !edges || !nodes) return [];
-	const connectedEdges = edges.filter(
-		(e) => e.source === nodeId || e.target === nodeId
-	);
-	const connectedNodeIds = new Set(
-		connectedEdges.map((edge) =>
-			edge.source === nodeId ? edge.target : edge.source
-		)
-	);
-	return nodes.filter((node) => connectedNodeIds.has(node.id));
 }

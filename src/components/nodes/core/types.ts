@@ -163,11 +163,20 @@ export interface CommentNodeMetadata extends BaseNodeMetadata {
 export interface GhostNodeMetadata extends BaseNodeMetadata {
 	suggestedContent: string;
 	suggestedType: AvailableNodeTypes;
+	nodePayload?: {
+		title?: string | null;
+		tasks?: string[] | null;
+		answer?: string | null;
+		questionType?: 'binary' | 'multiple' | null;
+		annotationType?: 'note' | 'idea' | 'quote' | 'summary' | 'warning' | 'success' | 'info' | 'error' | null;
+		language?: string | null;
+		fileName?: string | null;
+	} | null;
 	confidence: number;
 	context?: {
-		sourceNodeId?: string;
-		targetNodeId?: string;
-		relationshipType?: string;
+		sourceNodeId?: string | null;
+		targetNodeId?: string | null;
+		relationshipType?: string | null;
 		trigger: 'magic-wand' | 'dangling-edge' | 'auto';
 	};
 	sourceNodeName?: string; // Name of the node that triggered this suggestion
@@ -373,6 +382,9 @@ export function validateGhostMetadata(
 		metadata &&
 		typeof metadata.suggestedContent === 'string' &&
 		typeof metadata.suggestedType === 'string' &&
+		(metadata.nodePayload === undefined ||
+			metadata.nodePayload === null ||
+			typeof metadata.nodePayload === 'object') &&
 		typeof metadata.confidence === 'number'
 	);
 }

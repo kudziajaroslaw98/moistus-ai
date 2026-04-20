@@ -43,6 +43,7 @@ export function buildLayoutOptions(config: LayoutConfig): ElkLayoutOptions {
 		'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
 		'elk.layered.edgeRouting.selfLoopDistribution': 'NORTH',
 		'elk.layered.edgeRouting.splines.mode': 'CONSERVATIVE',
+		'elk.layered.edgeLabels.centerLabelPlacementStrategy': 'MEDIAN_LAYER',
 	};
 
 	// Merge direction-specific options
@@ -58,6 +59,13 @@ export function buildGroupLayoutOptions(): ElkLayoutOptions {
 	return {
 		'elk.padding': '[left=20, top=40, right=20, bottom=20]',
 		'elk.spacing.nodeNode': '30',
+	};
+}
+
+export function buildEdgeLabelLayoutOptions(): ElkLayoutOptions {
+	return {
+		'elk.edgeLabels.placement': 'CENTER',
+		'elk.edgeLabels.inline': 'true',
 	};
 }
 

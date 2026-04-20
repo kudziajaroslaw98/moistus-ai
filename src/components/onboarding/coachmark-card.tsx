@@ -74,10 +74,10 @@ export function CoachmarkCard({
 			</p>
 
 			<div className='mt-4 flex items-center justify-between gap-3'>
-				<Button onClick={onMinimize} size='sm' variant='secondary'>
+				<Button onClick={onMinimize} size='sm' variant='outline'>
 					Pause
 				</Button>
-				<Button className='gap-2' onClick={onNext} size='sm' variant='default'>
+				<Button className='gap-2' onClick={onNext} size='sm' variant='normal'>
 					{isLastStep ? 'Finish tour' : 'Next'}
 					<MoveRight className='size-4' />
 				</Button>

@@ -1,11 +1,11 @@
 'use client';
 
-import { RealtimeAvatarStack } from '@/components/realtime/realtime-avatar-stack';
-import { Button } from '@/components/ui/button';
 import { UserMenu } from '@/components/common/user-menu';
 import { NotificationBell } from '@/components/notifications/notification-bell';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { RealtimeAvatarStack } from '@/components/realtime/realtime-avatar-stack';
+import { Button } from '@/components/ui/button';
 import { type ActivityState } from '@/hooks/realtime/use-realtime-presence-room';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { getMindMapRoomName } from '@/lib/realtime/room-names';
 import type { PublicUserProfile } from '@/types/user-profile-types';
 import { Panel } from '@xyflow/react';
@@ -22,7 +22,9 @@ interface MindMapTopBarProps {
 	mindMap: { title?: string; user_id?: string } | null;
 	isMapReady: boolean;
 	currentUser: { id: string } | null;
-	userProfile: (PublicUserProfile & { email?: string; is_anonymous?: boolean }) | null;
+	userProfile:
+		| (PublicUserProfile & { email?: string; is_anonymous?: boolean })
+		| null;
 	activityState?: ActivityState;
 	popoverOpen: { mapSettings: boolean; sharePanel: boolean };
 	canEdit: boolean;
@@ -85,19 +87,8 @@ export function MindMapTopBar({
 				)}
 
 				{/* Owner controls */}
-				{isMapReady && isMapOwner && !isMobile && (
-					<div className='flex gap-2'>
-						{/* Desktop only: Settings button */}
-						<Button
-							aria-label='Map Settings'
-							onClick={handleToggleMapSettings}
-							size='icon'
-							title='Map Settings'
-							variant={popoverOpen.mapSettings ? 'default' : 'secondary'}
-						>
-							<Settings className='h-4 w-4' />
-						</Button>
-
+				<div className='flex items-center gap-2'>
+					{isMapReady && isMapOwner && !isMobile && (
 						<Button
 							aria-label='Share Mind Map'
 							className='gap-2'
@@ -105,29 +96,39 @@ export function MindMapTopBar({
 							data-testid='share-button'
 							onClick={handleToggleSharePanel}
 							title='Share Mind Map'
-							variant={popoverOpen.sharePanel ? 'default' : 'secondary'}
+							variant={popoverOpen.sharePanel ? 'normal' : 'outline'}
 							size='default'
 						>
 							<>
 								Share <Share2 className='size-3' />
 							</>
 						</Button>
-					</div>
-				)}
+					)}
 
-				{/* Desktop account controls */}
-				{!isMobile && (
-					<>
-						<NotificationBell filterMapId={mapId} />
+					{!isMobile && <NotificationBell filterMapId={mapId} />}
 
+					{isMapReady && isMapOwner && !isMobile && (
+						<Button
+							aria-label='Map Settings'
+							onClick={handleToggleMapSettings}
+							size='icon'
+							title='Map Settings'
+							variant={popoverOpen.mapSettings ? 'normal' : 'outline'}
+						>
+							<Settings className='h-4 w-4' />
+						</Button>
+					)}
+
+					{/* Desktop account controls */}
+					{!isMobile && (
 						<UserMenu
 							showRestartWalkthrough
 							showBackToDashboard
 							user={userProfile}
 							onOpenSettings={handleOpenSettings}
 						/>
-					</>
-				)}
+					)}
+				</div>
 
 				{/* Mobile only: Hamburger menu */}
 				{isMobile && (

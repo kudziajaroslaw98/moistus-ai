@@ -12,7 +12,7 @@ describe('toolbar-utils', () => {
 	})
 
 	it('deactivates the cursor trigger when add-node mode is selected', () => {
-		expect(getCursorToolTriggerVariant('node')).toBe('secondary')
-		expect(getCursorToolTriggerVariant('default')).toBe('default')
+		expect(getCursorToolTriggerVariant('node')).toBe('outline')
+		expect(getCursorToolTriggerVariant('default')).toBe('normal')
 	})
 })

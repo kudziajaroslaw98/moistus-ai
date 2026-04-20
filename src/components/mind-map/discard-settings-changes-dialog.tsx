@@ -45,7 +45,7 @@ export function DiscardSettingsChangesDialog({
 						Continue editing
 					</Button>
 
-					<Button onClick={onDiscardChanges} variant='destructive'>
+					<Button onClick={onDiscardChanges} variant='normal' state='destructive'>
 						Discard changes
 					</Button>
 				</DialogFooter>

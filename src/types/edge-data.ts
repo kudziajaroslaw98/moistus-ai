@@ -1,4 +1,18 @@
-import type { EdgeAnchor, PathType, Waypoint, WaypointCurveType } from './path-types';
+import type {
+	EdgeAnchor,
+	PathType,
+	Waypoint,
+	WaypointCurveType,
+} from './path-types';
+
+export interface ElkLabelLayout {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+	centerX: number;
+	centerY: number;
+}
 
 export interface EdgeData extends Record<string, unknown> {
 	id: string;
@@ -26,16 +40,27 @@ export interface EdgeData extends Record<string, unknown> {
 		sourceAnchor?: EdgeAnchor; // Routed anchor position on source node border
 		targetAnchor?: EdgeAnchor; // Routed anchor position on target node border
 		routingStyle?: 'orthogonal' | 'elk';
+		elkLabel?: ElkLabelLayout; // ELK-computed label bounds for full-layout edge labels
 	} | null;
 	aiData?: {
 		isSuggested?: boolean | null;
 		reason?: string | null;
+		connectionProxy?: {
+			originalSourceNodeId: string;
+			originalTargetNodeId: string;
+			displaySourceNodeId: string;
+			displayTargetNodeId: string;
+			sourceHiddenChildLabel?: string;
+			targetHiddenChildLabel?: string;
+		} | null;
 		suggestion?: {
-			node1Id: string;
-			node2Id: string;
+			node1Id?: string;
+			node2Id?: string;
 			reason?: string;
+			extendedReason?: string;
 			similarityScore?: number;
 			confidence?: number;
+			contextualRelevance: number;
 		};
 	} | null;
 }

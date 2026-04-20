@@ -1,9 +1,16 @@
+import { HYBRID_ROW_PROMPT_GUIDE } from '@/helpers/ai-hybrid-rows';
+import {
+	createAiIdAliasMap,
+	resolveAliasedNodeIds,
+} from '@/helpers/ai-id-alias-map';
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
 import {
 	checkAIQuota,
 	trackAIUsage,
 } from '@/helpers/api/with-subscription-check';
+import { extractNodesContext } from '@/helpers/extract-node-context';
+import type { NodeData } from '@/types/node-data';
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { z } from 'zod';
@@ -63,22 +70,25 @@ export const POST = withApiValidation(
 				);
 			}
 
-			const nodeContentList = nodesData
-				.map((node) => `${node.id}: ${node.content}`)
-				.join('\n');
+			const aliasMap = createAiIdAliasMap(nodesData as NodeData[]);
+			const nodeContentList = extractNodesContext(nodesData as NodeData[], {
+				aliasMap,
+			}).join('\n');
 
-			const aiPrompt = `Given the following list of mind map nodes (ID: Content) and a search query, identify the IDs of the nodes that are most relevant to the query.
-    Return the result as a JSON array of the relevant node IDs (strings).
-    Example format: ["node-id-1", "node-id-abc", "another-id"]
+			const aiPrompt = `${HYBRID_ROW_PROMPT_GUIDE}
+    Mind map nodes are provided as compact rows in the form NODE=[id,type,text,tags].
+    Given the following NODE rows and a search query, identify the IDs of the nodes that are most relevant to the query.
+    Return the result as a JSON array of the relevant node IDs (numbers).
+    Example format: [1, 3, 8]
     Ensure the output is ONLY the JSON array, nothing else.
 
     Search Query: "${query}"
 
-    Nodes:
+    NODE rows:
     ${nodeContentList}`;
 
 			const result = await generateText({
-				model: openai('gpt-4o-mini'),
+				model: openai('gpt-5.4-nano'),
 				prompt: aiPrompt,
 			});
 			const text = result.text;
@@ -86,13 +96,15 @@ export const POST = withApiValidation(
 			let relevantNodeIds: string[] = [];
 
 			try {
-				const parsed = parseAiJsonResponse<string[]>(text);
+				const parsed = parseAiJsonResponse<Array<string | number>>(text);
 
 				if (
 					Array.isArray(parsed) &&
-					parsed.every((item) => typeof item === 'string')
+					parsed.every(
+						(item) => typeof item === 'number' || typeof item === 'string'
+					)
 				) {
-					relevantNodeIds = parsed;
+					relevantNodeIds = resolveAliasedNodeIds(parsed, aliasMap);
 				} else {
 					console.error(
 						'AI search response is not a valid JSON array of strings:',

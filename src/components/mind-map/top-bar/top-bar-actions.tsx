@@ -15,7 +15,7 @@ export function TopBarActions({ onToggleHistory }: TopBarActionsProps) {
 			onClick={onToggleHistory}
 			size='icon'
 			title='View History'
-			variant='secondary'
+			variant='outline'
 		>
 			<History className='size-4' />
 		</Button>

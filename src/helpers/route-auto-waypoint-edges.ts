@@ -206,6 +206,7 @@ function routeEdgeOrthogonally(
 				pathType: 'waypoint',
 				curveType: 'smoothstep',
 				routingStyle: 'orthogonal',
+				elkLabel: undefined,
 				sourceAnchor,
 				targetAnchor,
 				waypoints: waypoints.length > 0 ? waypoints : undefined,

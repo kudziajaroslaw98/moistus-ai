@@ -1,3 +1,5 @@
+import { HYBRID_ROW_PROMPT_GUIDE } from '@/helpers/ai-hybrid-rows';
+import { createAiIdAliasMap } from '@/helpers/ai-id-alias-map';
 import { respondError } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
 import {
@@ -122,17 +124,40 @@ export const POST = withApiValidation(
 				};
 
 				if (nodes && edges) {
+					const aliasMap = createAiIdAliasMap(nodes);
 					// Build context based on mode
 					switch (context.contextMode) {
 						case 'minimal':
-							mapContextPrompt = `\n\n${buildMapOverviewContext(nodes, edges, mapMeta)}`;
+							mapContextPrompt = `\n\n${buildMapOverviewContext(
+								nodes,
+								edges,
+								mapMeta,
+								{
+									aliasMap,
+								}
+							)}`;
 							break;
 						case 'full':
-							mapContextPrompt = `\n\n${buildFullMapContext(nodes, edges, mapMeta)}`;
+							mapContextPrompt = `\n\n${buildFullMapContext(
+								nodes,
+								edges,
+								mapMeta,
+								16000,
+								{
+									aliasMap,
+								}
+							)}`;
 							break;
 						case 'summary':
 						default:
-							mapContextPrompt = `\n\n${buildMapSummaryContext(nodes, edges, mapMeta)}`;
+							mapContextPrompt = `\n\n${buildMapSummaryContext(
+								nodes,
+								edges,
+								mapMeta,
+								{
+									aliasMap,
+								}
+							)}`;
 							break;
 					}
 
@@ -152,7 +177,9 @@ export const POST = withApiValidation(
 										includeTopology: false,
 									}
 								);
-								selectedContexts.push(buildContextPrompt(enhancedContext));
+								selectedContexts.push(
+									buildContextPrompt(enhancedContext, { aliasMap })
+								);
 							} catch {
 								// Node not found or error, skip
 							}
@@ -168,7 +195,7 @@ export const POST = withApiValidation(
 			// Prepare messages with system prompt and context
 			const systemMessage = {
 				role: 'system' as const,
-				content: CHAT_SYSTEM_PROMPT + mapContextPrompt,
+				content: `${CHAT_SYSTEM_PROMPT}\n\n${HYBRID_ROW_PROMPT_GUIDE}${mapContextPrompt}`,
 			};
 
 			// Filter out any system messages from user input and add our system message
@@ -177,7 +204,7 @@ export const POST = withApiValidation(
 
 			// Stream the response
 			const result = streamText({
-				model: openai('gpt-5-mini'),
+				model: openai('gpt-5.4-mini'),
 				messages: allMessages,
 			});
 

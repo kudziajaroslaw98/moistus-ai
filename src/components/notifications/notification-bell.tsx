@@ -49,7 +49,7 @@ export function NotificationBell({
 						aria-label='Notifications'
 						className={cn('relative', className)}
 						size='icon'
-						variant='secondary'
+						variant='outline'
 					>
 						<Bell className='size-4' />
 						{visibleUnreadCount > 0 && (

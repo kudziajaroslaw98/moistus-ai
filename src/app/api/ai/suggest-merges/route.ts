@@ -1,42 +1,25 @@
+import { buildMergePromptContext } from '@/helpers/ai-merge-context';
+import {
+	mergeSuggestionSchema,
+	processMergeSuggestionElement,
+} from '@/helpers/ai-merge-postprocess';
+import {
+	buildMergeUserPrompt,
+	getMergeSystemPrompt,
+} from '@/helpers/ai-merge-prompts';
+import { parseMergeRequestPayload } from '@/helpers/ai-merge-request';
 import {
 	checkAIQuota,
 	trackAIUsage,
 } from '@/helpers/api/with-subscription-check';
-import { extractNodesContext } from '@/helpers/extract-node-context';
 import { createClient } from '@/helpers/supabase/server';
 import { openai } from '@ai-sdk/openai';
+import type { UIMessage } from 'ai';
 import {
 	createUIMessageStream,
 	createUIMessageStreamResponse,
 	streamObject,
-	UIMessage,
 } from 'ai';
-import { z } from 'zod';
-
-// Zod schema for validating the AI's response structure
-const aiResponseSchema = z.object({
-	node1Id: z
-		.string()
-		.describe('The ID of the first node to merge (the one that will be kept).'),
-	node2Id: z
-		.string()
-		.describe(
-			'The ID of the second node to merge (the one that will be removed).'
-		),
-	reason: z
-		.string()
-		.describe('A brief explanation for why these nodes should be merged.'),
-	similarityScore: z
-		.number()
-		.min(0)
-		.max(1)
-		.describe('A score indicating how similar the nodes are.'),
-	confidence: z
-		.number()
-		.min(0)
-		.max(1)
-		.describe("A score indicating the AI's confidence in the suggestion."),
-});
 
 // Set maximum duration for the API route
 export const maxDuration = 30;
@@ -62,13 +45,16 @@ export async function POST(req: Request) {
 		}
 
 		// Check AI quota
-		const { allowed, isPro: hasProAccess, error: quotaError } = await checkAIQuota(user, supabase);
+		const {
+			allowed,
+			isPro: hasProAccess,
+			error: quotaError,
+		} = await checkAIQuota(user, supabase);
 		if (!allowed && quotaError) {
 			return quotaError;
 		}
 
-		// Extract the body sent by the useChat hook
-		const { messages }: { messages: UIMessage[] } = await req.json();
+		const { messages } = (await req.json()) as { messages: UIMessage[] };
 		const streamHeader = 'Suggesting Node Merges';
 		const totalSteps = [
 			{
@@ -129,29 +115,7 @@ export async function POST(req: Request) {
 
 						await wait(1000);
 
-						// Safely extract mapId from the last message's text part
-						const lastUserMessage = messages
-							.filter((m) => m.role === 'user')
-							.pop();
-
-						if (
-							!lastUserMessage ||
-							!lastUserMessage.parts.filter((part) => part.type === 'text')?.[0]
-						) {
-							throw new Error(
-								'Invalid request format: User message not found.'
-							);
-						}
-
-						const { mapId } = JSON.parse(
-							lastUserMessage.parts.filter((part) => part.type === 'text')[0]
-								.text
-						);
-						const mapValidation = z.string().uuid().safeParse(mapId);
-
-						if (!mapValidation.success) {
-							throw new Error(`Invalid Map ID: ${mapValidation.error.message}`);
-						}
+						const { mapId } = parseMergeRequestPayload(messages);
 
 						// --- Step 2: Fetch Data ---
 						writer.write({
@@ -223,7 +187,7 @@ export async function POST(req: Request) {
 						await wait(1000);
 
 						// Format node content for the AI prompt
-						const nodeContentContext = extractNodesContext(nodesData);
+						const promptContext = buildMergePromptContext(nodesData);
 
 						// --- Step 4: Generate Merge Suggestions ---
 						writer.write({
@@ -239,51 +203,25 @@ export async function POST(req: Request) {
 
 						await wait(1000);
 
-						// Construct the AI prompt
-						const aiPrompt = `
-							You are an expert at analyzing mind maps for redundancy. Your task is to identify pairs of nodes that cover overlapping topics or are semantically similar enough to be merged.
-
-							Given the following list of mind map nodes (in 'ID: Content' format), provide suggestions for merges.
-
-							Guidelines:
-							- Focus on conceptual similarity, not just keyword matches.
-							- The first node (node1Id) in a pair should be the one that is kept, and the second (node2Id) will be merged into it.
-							- Provide a concise reason for each suggestion.
-							- Provide a confidence score indicating the AI's confidence in the suggestion.
-							- Provide a similarity score indicating the AI's confidence in the similarity between the two nodes.
-							- Do not suggest merging a node with itself.
-							- Ensure your response is a valid JSON object that adheres to the provided schema.
-
-							Restrictions:
-							- Do not provide connections with similarity below 0.8
-							- Do not provide connections with confidence below 0.8
-						`;
-
-						// Call the AI using the Vercel AI SDK's streamObject
 						const result = streamObject({
-							model: openai('gpt-5-nano'),
+							model: openai('gpt-5.4-nano'),
 							abortSignal,
 							output: 'array',
-							schema: aiResponseSchema,
+							schema: mergeSuggestionSchema,
 							messages: [
 								{
 									role: 'system',
-									content: aiPrompt,
+									content: getMergeSystemPrompt(),
 								},
 								{
 									role: 'user',
-									content: `Please suggest meaningful merge suggestions.
-									Node Context:
-									${nodeContentContext}`,
+									content: buildMergeUserPrompt(promptContext.nodeRows),
 								},
 							],
 						});
 
-						// Stream individual merge suggestions
-						const validNodeIds = new Set(nodesData.map((node) => node.id));
 						const processedPairs = new Set<string>();
 						let status = 'pending';
-						let mergeCount = 0;
 
 						for await (const element of result.elementStream) {
 							if (status === 'pending') {
@@ -300,28 +238,17 @@ export async function POST(req: Request) {
 								});
 							}
 
-							if (aiResponseSchema.safeParse(element).success) {
-								// Validate IDs and avoid duplicates
-								if (
-									validNodeIds.has(element.node1Id) &&
-									validNodeIds.has(element.node2Id) &&
-									element.node1Id !== element.node2Id
-								) {
-									// Avoid duplicate pairs (e.g., A-B and B-A)
-									const pairKey = [element.node1Id, element.node2Id]
-										.sort()
-										.join('-');
-
-									if (!processedPairs.has(pairKey)) {
-										processedPairs.add(pairKey);
-
-										writer.write({
-											type: 'data-merge-suggestion',
-											data: element,
-										});
-										mergeCount++;
-									}
-								}
+							const normalizedElement = processMergeSuggestionElement({
+								element,
+								aliasMap: promptContext.aliasMap,
+								validNodeIds: promptContext.validNodeIds,
+								processedPairs,
+							});
+							if (normalizedElement) {
+								writer.write({
+									type: 'data-merge-suggestion',
+									data: normalizedElement,
+								});
 							}
 						}
 
@@ -337,10 +264,6 @@ export async function POST(req: Request) {
 
 						// Track usage (no-ops for Pro)
 						await trackAIUsage(user, supabase, hasProAccess);
-
-						writer.write({
-							type: 'finish',
-						});
 					} catch (e) {
 						const error =
 							e instanceof Error ? e : new Error('An unknown error occurred.');

@@ -227,7 +227,7 @@ const BaseNodeWrapperComponent = ({
 									onClick={handleEditNode}
 									size='sm'
 									title='Edit node'
-									variant='secondary'
+									variant='outline'
 								>
 									<Pencil className='mr-1.5 size-3.5' />
 									Edit
