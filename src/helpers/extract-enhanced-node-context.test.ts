@@ -78,7 +78,7 @@ describe('buildMapSuggestionContext', () => {
 		expect(result.context).not.toContain('All Nodes (Valid Anchor IDs):');
 	});
 
-	it('keeps all eligible anchors even when legacy windowing options are passed', () => {
+	it('applies anchor pool/window options to whole-map candidates', () => {
 		const nodes = Array.from({ length: 30 }, (_, index) =>
 			createNode(
 				`node-${index}`,
@@ -97,31 +97,36 @@ describe('buildMapSuggestionContext', () => {
 		const result = buildMapSuggestionContext(
 			nodes,
 			edges,
-			{
-				title: 'Large Map',
-				description: 'Oversized map',
-			},
-			{
-				tokenBudget: 400,
-				maxAnchorCandidates: 4,
-				anchorPoolSize: 8,
-				anchorWindowOffset: 3,
-			}
-		);
+				{
+					title: 'Large Map',
+					description: 'Oversized map',
+				},
+				{
+					tokenBudget: 5000,
+					maxAnchorCandidates: 4,
+					anchorPoolSize: 8,
+					anchorWindowOffset: 3,
+				}
+			);
 
-		expect(result.mode).toBe('full');
-		expect(result.context).toContain('MAP=');
-		expect(result.context).toContain('ANCHOR=');
-		expect(result.context).toContain('"node-29"');
-		expect(result.candidateNodeIds).toHaveLength(30);
-		expect(result.candidateNodeIds).toContain('node-29');
-		expect(result.context).toContain('"node-0"');
-		expect(result.truncated).toBe(false);
-		expect(result.context).not.toContain('Valid Anchor Candidates:');
-		expect(result.context).not.toContain('truncated for context limit');
-	});
+			expect(result.mode).toBe('full');
+			expect(result.context).toContain('MAP=');
+			expect(result.context).toContain('ANCHOR=');
+			expect(result.candidateNodeIds).toHaveLength(4);
+			expect(result.candidateNodeIds).toEqual([
+				'node-3',
+				'node-4',
+				'node-5',
+				'node-6',
+			]);
+			expect(result.context).toContain('"node-3"');
+			expect(result.context).not.toContain('"node-29"');
+			expect(result.truncated).toBe(true);
+			expect(result.context).not.toContain('Valid Anchor Candidates:');
+			expect(result.context).not.toContain('truncated for context limit');
+		});
 
-	it('no longer changes whole-map candidates when legacy anchor window offsets differ', () => {
+	it('rotates whole-map anchor windows when the offset changes', () => {
 		const nodes = Array.from({ length: 12 }, (_, index) =>
 			createNode(`node-${index}`, `Topic ${index} ${'detail '.repeat(20)}`)
 		);
@@ -158,11 +163,15 @@ describe('buildMapSuggestionContext', () => {
 			}
 		);
 
-		expect(firstResult.candidateNodeIds).toHaveLength(12);
-		expect(secondResult.candidateNodeIds).toHaveLength(12);
-		expect(secondResult.candidateNodeIds).toEqual(firstResult.candidateNodeIds);
-		expect(secondResult.context).toEqual(firstResult.context);
-	});
+			expect(firstResult.candidateNodeIds).toHaveLength(4);
+			expect(secondResult.candidateNodeIds).toHaveLength(4);
+			expect(secondResult.candidateNodeIds).not.toEqual(
+				firstResult.candidateNodeIds
+			);
+			expect(secondResult.context).not.toEqual(firstResult.context);
+			expect(firstResult.truncated).toBe(true);
+			expect(secondResult.truncated).toBe(true);
+		});
 
 	it('keeps full anchor content instead of truncating individual values', () => {
 		const longContent =

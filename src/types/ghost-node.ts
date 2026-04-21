@@ -10,7 +10,7 @@ export interface SuggestionContext {
 
 export interface SuggestionNodePayload {
 	title?: string | null;
-	tasks?: string[] | null;
+	taskTexts?: string[] | null;
 	answer?: string | null;
 	questionType?: 'binary' | 'multiple' | null;
 	annotationType?:

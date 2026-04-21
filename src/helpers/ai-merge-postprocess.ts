@@ -39,7 +39,7 @@ export type NormalizedMergeSuggestion = Omit<
 };
 
 function buildPairKey(node1Id: string, node2Id: string) {
-	return [node1Id, node2Id].sort().join('-');
+	return JSON.stringify([node1Id, node2Id].sort());
 }
 
 export function processMergeSuggestionElement(params: {

@@ -216,21 +216,21 @@ function buildApprovedNodeInput(params: {
 	nodeType: AvailableNodeTypes;
 	data: Partial<NodeData>;
 } {
-	switch (params.suggestedType) {
-		case 'taskNode':
-			if (params.nodePayload?.tasks?.length) {
-				return {
-					content: '',
-					nodeType: 'taskNode',
-					data: {
-						metadata: {
-							title: normalizeOptionalString(params.nodePayload.title),
-							status: 'pending',
-							tasks: params.nodePayload.tasks.map((task) => ({
-								id: generateUuid(),
-								text: task,
-								isComplete: false,
-							})),
+		switch (params.suggestedType) {
+			case 'taskNode':
+				if (params.nodePayload?.taskTexts?.length) {
+					return {
+						content: '',
+						nodeType: 'taskNode',
+						data: {
+							metadata: {
+								title: normalizeOptionalString(params.nodePayload.title),
+								status: 'pending',
+								tasks: params.nodePayload.taskTexts.map((task) => ({
+									id: generateUuid(),
+									text: task,
+									isComplete: false,
+								})),
 						},
 					},
 				};

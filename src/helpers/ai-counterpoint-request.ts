@@ -12,6 +12,26 @@ export interface CounterpointRequestPayload {
 }
 
 const mapIdSchema = z.string().uuid();
+const counterpointNodeSchema = z
+	.object({
+		id: z.string().min(1),
+		data: z
+			.object({
+				content: z.union([z.string(), z.null()]),
+			})
+			.passthrough(),
+	})
+	.passthrough();
+const counterpointEdgeSchema = z
+	.object({
+		source: z.string().min(1),
+		target: z.string().min(1),
+	})
+	.passthrough();
+const counterpointGraphSchema = z.object({
+	nodes: z.array(counterpointNodeSchema),
+	edges: z.array(counterpointEdgeSchema),
+});
 
 function getLastUserText(messages: UIMessage[]) {
 	const lastUserMessage = messages.filter((message) => message.role === 'user').pop();
@@ -30,8 +50,9 @@ export function parseCounterpointRequestPayload(
 	const requestData = JSON.parse(getLastUserText(messages)) as Partial<CounterpointRequestPayload>;
 	const { nodes, edges, mapId, context } = requestData;
 
-	if (!Array.isArray(nodes) || !Array.isArray(edges)) {
-		throw new Error('Invalid nodes or edges data.');
+	const graphValidation = counterpointGraphSchema.safeParse({ nodes, edges });
+	if (!graphValidation.success) {
+		throw new Error(`Invalid nodes or edges data: ${graphValidation.error.message}`);
 	}
 
 	const mapValidation = mapIdSchema.safeParse(mapId);
@@ -44,8 +65,8 @@ export function parseCounterpointRequestPayload(
 	}
 
 	return {
-		nodes: nodes as AppNode[],
-		edges: edges as AppEdge[],
+		nodes: graphValidation.data.nodes as AppNode[],
+		edges: graphValidation.data.edges as AppEdge[],
 		mapId: mapValidation.data,
 		context: context as CounterpointRequestPayload['context'],
 	};

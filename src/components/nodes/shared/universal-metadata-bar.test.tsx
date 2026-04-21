@@ -1,6 +1,9 @@
 import type { SharedUser } from '@/types/sharing-types';
 import { render, screen } from '@testing-library/react';
-import { UniversalMetadataBar } from './universal-metadata-bar';
+import {
+	__resetWarnOnceCache,
+	UniversalMetadataBar,
+} from './universal-metadata-bar';
 
 let mockCurrentShares: SharedUser[] = [];
 
@@ -51,6 +54,7 @@ function createSharedUser(overrides: Partial<SharedUser> = {}): SharedUser {
 describe('UniversalMetadataBar assignee resolution', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		__resetWarnOnceCache();
 		mockCurrentShares = [];
 	});
 

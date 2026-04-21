@@ -5,7 +5,31 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-04-20 - Restored collapsed-branch AI connection visibility via proxy metadata, stream-start-safe suggestion replacement, and edge-style preservation -->
+## [2026-04-21]
+
+### Fixed
+
+- **ui/suggested-connection-edge-accessibility-and-labeling**: Suggested connection chips now render source → target in order, use keyboard-focusable buttons, expose disclosure expanded state for “Why suggested,” and avoid disclosure click bubbling
+  - Why: The previous chip order and non-semantic button roles made the flow harder to read and less accessible via keyboard/screen reader tooling
+- **nodes/unresolved-assignee-warning-behavior**: Metadata assignee warnings now trigger for all unresolved collaborator lookups (including stale/missing user-id lookups), with test cache reset support to avoid warn-once flakiness
+  - Why: Some unresolved assignee cases were silently skipped and warn-once state could leak across tests
+- **ai/suggestion-anchor-and-payload-guards**: Whole-map/focused suggestion context now validates source anchors before focused-mode prompting, focused graphs expose a valid anchor id, counterpoint payload parsing validates node/edge element shape, and ghost task payload handling now consistently uses `taskTexts`
+  - Why: Invalid or stale IDs and loosely validated payload shapes can create contradictory AI context or fragile downstream processing
+- **helpers/merge-key-collision-safety**: Merge pair dedupe keys now use collision-safe sorted JSON encoding instead of hyphen-joined ids
+  - Why: Delimiter-based keys can collide when node ids contain hyphens
+
+### Changed
+
+- **context/build-map-suggestion-windowing**: Map suggestion context now applies anchor pool/window options, enforces token-budget-aware anchor inclusion, and marks truncation when options or budget reduce anchor coverage
+  - Why: Previous behavior ignored anchor window options and always reported non-truncated full candidate sets
+- **ui/button-icon-lg-width-enforcement**: `icon-lg` button variant now enforces width with `!w-12` to match enforced height behavior
+  - Why: Width could be overridden unexpectedly compared to other icon-size variants
+
+### Docs
+
+- **docs/update-marker-and-changelog-normalization**: Consolidated per-block Updated-marker guidance in `AGENTS.md`/`CLAUDE.md`, removed changelog HTML Updated markers, and merged duplicate date/category sections for April 2026 entries
+  - Why: Duplicate markers/sections created noisy history and drifted from documented changelog conventions
+
 
 ## [2026-04-20]
 
@@ -91,6 +115,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: UUID-heavy prompt rows were wasting tokens and leaking large identifiers into model-visible context even though the app still needs real UUIDs internally
 - **ai/typed-suggestion-payloads**: `/api/ai/suggestions` now emits optional structured `nodePayload` data for safe typed suggestion nodes, and the client stores that payload on ghost metadata through approval
   - Why: Generic `content` alone is not enough to create valid `taskNode`, `questionNode`, `annotationNode`, or `codeNode` data on approval
+- **layout/elk-edge-label-routing**: Full ELK layout now sends sized edge labels into ELK, persists ELK-computed label bounds/centers on edge metadata, and renders ELK-routed labels from those coordinates; orthogonal reroutes and ELK label edits clear stale ELK label metadata instead of reusing it
+  - Why: Labeled edges were being laid out as if the label did not exist, which produced bad routing and stale label placement after edits or reroutes
 
 ### Added
 
@@ -100,11 +126,15 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: The alias layer only saves tokens if every model-facing row uses compact numeric IDs while every app-facing payload still returns UUIDs
 - **tests/task-ghost-approval**: Added regression coverage for approving AI-suggested task ghosts into populated checklist nodes and for downgrading malformed typed suggestion payloads before ghost creation
   - Why: The task-ghost bug lived in the approval contract, so the route and slice now need direct typed-payload guardrails
+- **tests/elk-edge-label-layout**: Added focused regression coverage for ELK label injection/extraction, selected-layout label offsetting, waypoint-label position selection, orthogonal reroute invalidation, and ELK label edits without rerouting
+  - Why: The fix spans converter, selected-layout merge, renderer, and edge-update behavior, so it needs direct guardrails at each seam
 
 ### Docs
 
 - **docs/ai-row-id-aliasing**: Documented the shared AI alias-map contract in `CLAUDE.md` and `docs/CODEBASE_MAP.md`
   - Why: Future AI-route edits need to preserve the “model sees aliases, app sees UUIDs” boundary deliberately
+- **docs/elk-edge-label-layout**: Documented the “ELK full layout owns label placement; orthogonal reroutes clear it” contract in `CLAUDE.md` and `docs/CODEBASE_MAP.md`
+  - Why: Future layout or reroute changes need to preserve the label-metadata ownership boundary deliberately
 
 ### Fixed
 
@@ -112,21 +142,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: The old approval path rebuilt typed nodes from generic `content` and discarded the checklist data task nodes actually render from
 - **ai/task-ghost-edge-persist**: Accepting an AI-generated ghost node now creates its connecting edge without stale legacy edge fields
   - Why: The suggestion approval path was still passing removed snake_case edge columns into `addEdge`, which caused Supabase edge inserts to fail against the current schema
-
-### Changed
-
-- **layout/elk-edge-label-routing**: Full ELK layout now sends sized edge labels into ELK, persists ELK-computed label bounds/centers on edge metadata, and renders ELK-routed labels from those coordinates; orthogonal reroutes and ELK label edits clear stale ELK label metadata instead of reusing it
-  - Why: Labeled edges were being laid out as if the label did not exist, which produced bad routing and stale label placement after edits or reroutes
-
-### Added
-
-- **tests/elk-edge-label-layout**: Added focused regression coverage for ELK label injection/extraction, selected-layout label offsetting, waypoint-label position selection, orthogonal reroute invalidation, and ELK label edits without rerouting
-  - Why: The fix spans converter, selected-layout merge, renderer, and edge-update behavior, so it needs direct guardrails at each seam
-
-### Docs
-
-- **docs/elk-edge-label-layout**: Documented the “ELK full layout owns label placement; orthogonal reroutes clear it” contract in `CLAUDE.md` and `docs/CODEBASE_MAP.md`
-  - Why: Future layout or reroute changes need to preserve the label-metadata ownership boundary deliberately
 
 ## [2026-04-14]
 
@@ -153,6 +168,15 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Repeated suggestion clicks were reusing nearly identical inputs, which made the model return the same angle with slightly different wording
 - **ai/literal-full-map-suggestions**: Whole-map `/api/ai/suggestions` now include every eligible non-system anchor in the prompt instead of a rotating top-window subset, and oversize prompt failures surface an explicit full-map overflow message instead of silently summarizing
   - Why: This experiment needs the model to see the full eligible map so future gap-fill vs expand strategies can be designed from observed behavior instead of prefiltered anchors
+- **offline/shared-replay-core-and-periodic-refresh**: Split replay logic into a worker-safe `offline-sync-core`, kept window-only event wiring in `offline-sync.ts`, and added periodic background notifications refresh that updates only the global notifications cache
+  - Why: Service-worker sync should reuse the same replay semantics as the app path, while periodic background work in this phase must stay narrowly scoped to user-global notification freshness
+
+### Fixed
+
+- **offline/background-sync-no-client-replay**: Made the service worker flush queued offline operations directly when background sync fires without any open window clients, and added regression coverage for the explicit worker replay path
+  - Why: The previous handler only posted `OFFLINE_SYNC_REQUEST` to existing tabs, so a background sync event with zero clients silently did nothing
+- **offline/background-sync-failure-metadata-and-fallback-status**: Added persisted background-sync replay/refresh metadata, capability failure tracking, and account-settings status badges for one-off replay, periodic refresh, and service-worker availability
+  - Why: Background sync is progressive enhancement and needs visible runtime status plus last-success/fallback diagnostics when browser capability or registration is missing
 
 ### Docs
 
@@ -174,32 +198,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **node-editor/mobile-autocomplete-hover-guards**: Moved tray hover treatments behind `(hover: hover)` media queries and documented the overlay dismissal contract plus viewport/autocomplete bridge heuristics
   - Why: Touch devices should not keep sticky hover styling, and the portal/dismiss/runtime-visibility rules need to stay explicit for future editor changes
 
-<!-- Updated: 2026-03-29 - Tightened node-editor autocomplete regression coverage -->
-<!-- Updated: 2026-04-01 - Fixed LAN local-dev URL/auth behavior, tightened node-editor dismissal docs/tests, and consolidated the landing redesign plus responsive hero polish -->
-<!-- Updated: 2026-04-02 - Simplified landing copy below the hero and synced the hero promise to the approved momentum-to-clarity language -->
-<!-- Updated: 2026-04-07 - Added immediate landing CTA navigation feedback with route-level dashboard loading boundary -->
-<!-- Updated: 2026-04-07 - Moved walkthrough checklist/pill to the left and lowered walkthrough/tour overlays below side panels -->
-<!-- Updated: 2026-04-07 - Added map-route loading skeletons plus map-scoped runtime store reset to prevent stale map flashes -->
-<!-- Updated: 2026-04-07 - Fixed map-route skeleton deadlock by bootstrapping fetch before canvas readiness gate -->
-<!-- Updated: 2026-04-07 - Made map-route unmount clear Strict-Mode-safe to avoid aborting in-flight initial loads -->
-<!-- Updated: 2026-04-07 - Aligned mind-map loading skeleton chrome with real map top bar/canvas/bottom dock layout -->
-<!-- Updated: 2026-04-07 - Shipped progressive map-shell streaming and hardened Yjs cleanup idempotency against repeated unsubscribe paths -->
-<!-- Updated: 2026-04-07 - Replaced dashboard spinner fallback with shell-parity loading and in-page progressive map-card skeleton streaming -->
-<!-- Updated: 2026-04-08 - Fixed onboarding skip-state refresh regression and preserved controls-tour paused-step resume across refresh -->
-<!-- Updated: 2026-04-08 - Added touch long-press context menu fallback for iPad/iOS WebKit and regression tests -->
-<!-- Updated: 2026-04-08 - Added task-node hide-done filtering, title round-trip parsing, and regression coverage -->
-<!-- Updated: 2026-04-08 - Aligned task title syntax help with parser and hardened status regex prefix exclusions -->
-<!-- Updated: 2026-04-09 - Hardened PartyKit dependency security path and added CI audit/dependency review workflows -->
-<!-- Updated: 2026-04-09 - Replaced removed Lucide GitHub icon import with local SVG component -->
-<!-- Updated: 2026-04-09 - Fixed GitHub Actions pnpm setup version-source conflict in security audit workflow -->
-<!-- Updated: 2026-04-11 - Implemented PWA foundation, offline replay queue, web push notifications, and touch/view-transition enhancements -->
-<!-- Updated: 2026-04-11 - Hardened offline reconnect sync to prevent stale-lock stalls and ensure multi-batch drain on reconnect -->
-<!-- Updated: 2026-04-12 - Hardened LAN dev rendering by allowlisting dev origin and gating SW registration on insecure LAN HTTP -->
-<!-- Updated: 2026-04-13 - Removed offline-sync test listener leakage and added explicit cleanup regression coverage -->
-<!-- Updated: 2026-04-13 - Migrated Serwist wiring to @serwist/next public/sw.js output and removed legacy /serwist route path -->
-<!-- Updated: 2026-04-13 - Switched Serwist integration to Turbopack route mode with custom /app/sw.js root-scope registration -->
-<!-- Updated: 2026-04-14 - Hardened background sync with shared replay core, periodic notifications refresh, and settings capability surfacing -->
-<!-- Updated: 2026-04-17 - Fixed first-paint paid-user downgrade flashes with route-level subscription hydration, provider sync, export guard, and Dodo cleanup -->
 
 ## [2026-04-17]
 
@@ -219,20 +217,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **billing/dodo-leftovers**: Removed stale Dodo-specific client subscription fields and the orphan `src/types/dodo-webhook.ts` file
   - Why: Billing now runs through Polar, and the remaining Dodo client types/serializers were dead legacy baggage
-
-## [2026-04-14]
-
-### Fixed
-
-- **offline/background-sync-no-client-replay**: Made the service worker flush queued offline operations directly when background sync fires without any open window clients, and added regression coverage for the explicit worker replay path
-  - Why: The previous handler only posted `OFFLINE_SYNC_REQUEST` to existing tabs, so a background sync event with zero clients silently did nothing
-- **offline/background-sync-failure-metadata-and-fallback-status**: Added persisted background-sync replay/refresh metadata, capability failure tracking, and account-settings status badges for one-off replay, periodic refresh, and service-worker availability
-  - Why: Background sync is progressive enhancement and needs visible runtime status plus last-success/fallback diagnostics when browser capability or registration is missing
-
-### Changed
-
-- **offline/shared-replay-core-and-periodic-refresh**: Split replay logic into a worker-safe `offline-sync-core`, kept window-only event wiring in `offline-sync.ts`, and added periodic background notifications refresh that updates only the global notifications cache
-  - Why: Service-worker sync should reuse the same replay semantics as the app path, while periodic background work in this phase must stay narrowly scoped to user-global notification freshness
 
 ## [2026-04-13]
 
@@ -502,7 +486,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Fixed
 
-<!-- Updated: 2026-03-29 - Documented node-editor autocomplete fixes -->
 
 - **node-editor/quiet-autocomplete-on-space**: Stopped passive empty-token trigger suggestions from reopening on `Space`, kept explicit trigger-character and partial-prefix completions, and documented manual `Ctrl+Space` discovery in the action bar
   - Why: Prevents distracting autocomplete popups during normal typing without removing on-demand syntax help
@@ -1117,7 +1100,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-02-22 - Mobile toolbar + tap multi-select + grouping context menu fixes -->
 
 ## [2026-02-22]
 
@@ -1159,7 +1141,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-02-21 - Collaborator mentions, export scale simplification, dependency patch updates -->
 
 ## [2026-02-21]
 
@@ -1194,7 +1175,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-02-20 - Parser/serializer consistency fixes -->
 
 ## [2026-02-20]
 
@@ -1211,7 +1191,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-02-19 - Pan mode edge fix, CodeMirror UX -->
 
 ## [2026-02-19]
 
@@ -1225,7 +1204,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-02-18 - Content-aware export bounds -->
 
 ## [2026-02-18]
 
@@ -1240,7 +1218,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-02-13 - JSON export, PDF/JSON paywall, mobile node editor, server-side export, node permission fix -->
 
 ## [2026-02-13]
 
@@ -1273,7 +1250,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-02-12 - Remove node resize, export fixes, a11y -->
 
 ## [2026-02-12]
 
@@ -1303,7 +1279,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-02-10 - SEO infrastructure + GDPR data export -->
 
 ## [2026-02-10]
 
@@ -1333,7 +1308,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-02-09 - Fix templates bypassing mind map limit -->
 
 ## [2026-02-09]
 
@@ -1350,7 +1324,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-02-07 - Logout toast spam fix v2 -->
 
 ## [2026-02-07]
 
@@ -1363,7 +1336,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-02-06 - Landing page redesign -->
 
 ## [2026-02-06]
 
@@ -1444,7 +1416,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-<!-- Updated: 2026-01-26 - AI popover click-outside fix -->
 
 ## [2026-01-26]
 

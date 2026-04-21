@@ -165,7 +165,7 @@ export interface GhostNodeMetadata extends BaseNodeMetadata {
 	suggestedType: AvailableNodeTypes;
 	nodePayload?: {
 		title?: string | null;
-		tasks?: string[] | null;
+		taskTexts?: string[] | null;
 		answer?: string | null;
 		questionType?: 'binary' | 'multiple' | null;
 		annotationType?: 'note' | 'idea' | 'quote' | 'summary' | 'warning' | 'success' | 'info' | 'error' | null;
@@ -375,6 +375,15 @@ export function validateGroupMetadata(
 	);
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+	if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+		return false;
+	}
+
+	const prototype = Object.getPrototypeOf(value);
+	return prototype === Object.prototype || prototype === null;
+}
+
 export function validateGhostMetadata(
 	metadata: any
 ): metadata is GhostNodeMetadata {
@@ -384,7 +393,7 @@ export function validateGhostMetadata(
 		typeof metadata.suggestedType === 'string' &&
 		(metadata.nodePayload === undefined ||
 			metadata.nodePayload === null ||
-			typeof metadata.nodePayload === 'object') &&
+			isPlainObject(metadata.nodePayload)) &&
 		typeof metadata.confidence === 'number'
 	);
 }

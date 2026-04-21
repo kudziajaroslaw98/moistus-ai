@@ -68,7 +68,7 @@ describe('ai suggestion postprocess', () => {
 		).toBe(false);
 	});
 
-	it('normalizes invalid whole-map anchors and enriches the streamed chunk', () => {
+	it('normalizes invalid whole-map anchors to unanchored suggestions', () => {
 		const trialNode = createNode(
 			'trial',
 			'Trial collaborator limits confusing'
@@ -108,12 +108,49 @@ describe('ai suggestion postprocess', () => {
 
 		expect(processedSuggestion).not.toBeNull();
 		expect(processedSuggestion?.suggestion.context.sourceNodeId).toBeNull();
+		expect(processedSuggestion?.resolvedSourceNodeId).toBeNull();
+	});
+
+	it('enriches streamed chunks when a valid source anchor is preserved', () => {
+		const trialNode = createNode(
+			'trial',
+			'Trial collaborator limits confusing'
+		);
+		const billingNode = createNode(
+			'billing',
+			'Billing usage state is missing in settings'
+		);
+		const aliasMap = createAiIdAliasMap([trialNode, billingNode]);
+		const processedSuggestion = processSuggestionElement({
+			element: {
+				id: 'suggestion-1b',
+				content: 'Clarify collaborator limit state before upgrade wall',
+				nodeType: 'defaultNode',
+				nodePayload: null,
+				confidence: 0.88,
+				position: { x: 0, y: 0 },
+				context: {
+					sourceNodeId: 1,
+					targetNodeId: null,
+					relationshipType: 'reduces confusion',
+					trigger: 'magic-wand',
+				},
+				reasoning: 'This addresses a concrete confusion point before upgrade.',
+			},
+			validAnchorNodeIds: new Set(['trial']),
+			requestContext: {
+				trigger: 'magic-wand',
+			},
+			recentSuggestions: [],
+			emittedSuggestions: [],
+			minConfidence: 0.4,
+			maxSuggestions: 6,
+			emittedCount: 0,
+			aliasMap,
+		});
 
 		const chunk = toSuggestionChunk({
-			processedSuggestion: {
-				...processedSuggestion!,
-				resolvedSourceNodeId: 'trial',
-			},
+			processedSuggestion: processedSuggestion!,
 			index: 0,
 			nodes: [trialNode],
 		});
@@ -178,7 +215,7 @@ describe('ai suggestion postprocess', () => {
 				nodeType: 'taskNode',
 				nodePayload: {
 					title: 'Upgrade copy fixes',
-					tasks: [
+					taskTexts: [
 						'Explain collaborator limits before the upgrade gate',
 						'Show current collaborator count next to the limit',
 					],
@@ -212,7 +249,7 @@ describe('ai suggestion postprocess', () => {
 		expect(processedSuggestion?.suggestion.nodeType).toBe('taskNode');
 		expect(processedSuggestion?.suggestion.nodePayload).toEqual({
 			title: 'Upgrade copy fixes',
-			tasks: [
+			taskTexts: [
 				'Explain collaborator limits before the upgrade gate',
 				'Show current collaborator count next to the limit',
 			],

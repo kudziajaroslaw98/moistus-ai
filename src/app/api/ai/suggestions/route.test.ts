@@ -137,13 +137,13 @@ describe('/api/ai/suggestions route', () => {
 			suggestion: {
 				id: 'suggestion-1',
 				content: 'Clarify collaborator limit state before upgrade wall',
-				nodeType: 'taskNode',
-				nodePayload: {
-					title: 'Upgrade copy fixes',
-					tasks: [
-						'Explain collaborator limits before the upgrade gate',
-						'Show current collaborator count next to the limit',
-					],
+					nodeType: 'taskNode',
+					nodePayload: {
+						title: 'Upgrade copy fixes',
+						taskTexts: [
+							'Explain collaborator limits before the upgrade gate',
+							'Show current collaborator count next to the limit',
+						],
 					answer: null,
 					questionType: null,
 					annotationType: null,
@@ -273,11 +273,13 @@ describe('/api/ai/suggestions route', () => {
 						suggestion: {
 							id: 'suggestion-1',
 							content: 'Clarify collaborator limit state before upgrade wall',
-							nodeType: 'taskNode',
-							nodePayload: {
-								title: 'Upgrade copy fixes',
-								tasks: ['Explain collaborator limits before the upgrade gate'],
-								answer: null,
+								nodeType: 'taskNode',
+								nodePayload: {
+									title: 'Upgrade copy fixes',
+									taskTexts: [
+										'Explain collaborator limits before the upgrade gate',
+									],
+									answer: null,
 								questionType: null,
 								annotationType: null,
 								language: null,

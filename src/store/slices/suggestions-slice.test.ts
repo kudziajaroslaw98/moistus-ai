@@ -431,15 +431,15 @@ describe('suggestions slice', () => {
 					'ghost-task-1',
 					'Upgrade copy fixes',
 					{ sourceNodeId: 'source-node', trigger: 'magic-wand' },
-					{
-						suggestedType: 'taskNode',
-						nodePayload: {
-							title: 'Upgrade copy fixes',
-							tasks: [
-								'Explain collaborator limits before the upgrade gate',
-								'Show current collaborator count next to the limit',
-							],
-						},
+						{
+							suggestedType: 'taskNode',
+							nodePayload: {
+								title: 'Upgrade copy fixes',
+								taskTexts: [
+									'Explain collaborator limits before the upgrade gate',
+									'Show current collaborator count next to the limit',
+								],
+							},
 					}
 				),
 			],

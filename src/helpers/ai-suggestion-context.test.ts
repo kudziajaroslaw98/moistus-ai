@@ -138,7 +138,7 @@ describe('buildSuggestionPromptContext', () => {
 		);
 
 		expect(promptContext.isWholeMapSuggestion).toBe(false);
-		expect(promptContext.validAnchorNodeIds).toEqual([]);
+		expect(promptContext.validAnchorNodeIds).toEqual(['focus']);
 		expect(promptContext.graph.mode).toBe('focused-node');
 		expect(promptContext.graph.nodes[0].flags).toContain('focus');
 		expect(promptContext.graph.nodes.map((node) => node.id)).toEqual(

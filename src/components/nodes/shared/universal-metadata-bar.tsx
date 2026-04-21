@@ -26,6 +26,10 @@ type CollaboratorLookupEntry = {
 const unresolvedAssigneeWarningKeys = new Set<string>();
 const MAX_UNRESOLVED_ASSIGNEE_WARNING_KEYS = 200;
 
+export function __resetWarnOnceCache() {
+	unresolvedAssigneeWarningKeys.clear();
+}
+
 function warnUnresolvedAssigneeOnce(params: {
 	assignee: string;
 	normalizedSlug: string;
@@ -292,10 +296,10 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
 						(assigneeUserId
 							? collaboratorByUserId.get(assigneeUserId)
 							: undefined);
-					if (!collaborator && !assigneeUserId) {
-						warnUnresolvedAssigneeOnce({
-							assignee: assigneeString,
-							normalizedSlug: assigneeSlug,
+						if (!collaborator) {
+							warnUnresolvedAssigneeOnce({
+								assignee: assigneeString,
+								normalizedSlug: assigneeSlug,
 							assigneeUserId,
 						});
 					}

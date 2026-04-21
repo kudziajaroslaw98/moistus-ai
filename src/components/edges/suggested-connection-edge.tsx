@@ -26,7 +26,7 @@ import {
 	Sparkles,
 	X,
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { memo, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { Button } from '../ui/button';
@@ -88,6 +88,7 @@ const SuggestedConnectionEdgeComponent = ({
 }: EdgeProps<Edge<EdgeData>>) => {
 	const [isProcessing, setIsProcessing] = useState(false);
 	const [whySuggestedOpen, setWhySuggestedOpen] = useState(false);
+	const reducedMotion = useReducedMotion();
 
 	const {
 		acceptConnectionSuggestion,
@@ -217,7 +218,8 @@ const SuggestedConnectionEdgeComponent = ({
 		if (targetNode) centerOnNode(targetNode.id);
 	};
 
-	const handleWhySuggestedToggle = () => {
+	const handleWhySuggestedToggle = (event: React.MouseEvent<HTMLButtonElement>) => {
+		event.stopPropagation();
 		setWhySuggestedOpen((prev) => !prev);
 	};
 
@@ -225,7 +227,10 @@ const SuggestedConnectionEdgeComponent = ({
 		return null;
 	}
 
-	const reason = data?.aiData?.reason || 'AI suggested connection';
+	const reason =
+		data?.aiData?.suggestion?.reason ??
+		data?.aiData?.reason ??
+		'AI suggested connection';
 	const targetTitle =
 		(targetNode.data.content?.slice(0, 15) ||
 			targetNode.data.metadata?.title?.slice(0, 15)) ??
@@ -235,6 +240,7 @@ const SuggestedConnectionEdgeComponent = ({
 			sourceNode.data.metadata?.title?.slice(0, 15)) ??
 		'Source';
 	const proxyIndicators = getConnectionProxyIndicators(data);
+	const whySuggestedPanelId = `why-suggested-panel-${id}`;
 
 	return (
 		<>
@@ -334,37 +340,37 @@ const SuggestedConnectionEdgeComponent = ({
 							<span>Suggested connection</span>
 						</div>
 						{/* AI Reason Label - Always Visible */}
-						<div className='relative rounded-md bg-base/60 backdrop-blur-lg p-6 flex flex-col shadow-2xl shadow-border-subtle border max-w-[400px] border-amber-500/20'>
-							{sourceNode && targetNode && (
-								<div className='flex justify-between items-center'>
-									<div
-										role='button'
-										onClick={handleCenterOnTarget}
-										className='cursor-pointer w-fit min-w-40 px-3 py-2 rounded-md bg-overlay/40 border border-border-default flex gap-2'
-									>
-										<span>
-											<GitCommitVertical className='size-4' />
+							<div className='relative rounded-md bg-base/60 backdrop-blur-lg p-6 flex flex-col shadow-2xl shadow-border-subtle border max-w-[400px] border-amber-500/20'>
+								{sourceNode && targetNode && (
+									<div className='flex justify-between items-center'>
+										<button
+											type='button'
+											onClick={handleCenterOnSource}
+											className='w-fit min-w-40 px-3 py-2 rounded-md bg-overlay/40 border border-border-default flex gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-base'
+										>
+											<span>
+												<GitBranchPlus className='size-4' />
+											</span>
+											<span>{sourceTitle}..</span>
+										</button>
+										<span className='w-full flex justify-center'>
+											<ArrowRight className='size-4 text-amber-500' />
 										</span>
-										<span>{targetTitle}..</span>
+										<button
+											type='button'
+											onClick={handleCenterOnTarget}
+											className='w-fit min-w-40 px-3 py-2 rounded-md bg-overlay/40 border border-border-default flex gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-base'
+										>
+											<span>
+												<GitCommitVertical className='size-4' />
+											</span>
+											<span>{targetTitle}..</span>
+										</button>
 									</div>
-									<span className='w-full flex justify-center'>
-										<ArrowRight className='size-4 text-amber-500' />
-									</span>
-									<div
-										role='button'
-										onClick={handleCenterOnSource}
-										className='cursor-pointer w-fit min-w-40 px-3 py-2 rounded-md bg-overlay/40 border border-border-default flex gap-2'
-									>
-										<span>
-											<GitBranchPlus className='size-4' />
-										</span>
-										<span>{sourceTitle}..</span>
-									</div>
+								)}
+								<div className='text-text-tertiary text-[12px] mt-4 text-pretty'>
+									{reason}
 								</div>
-							)}
-							<div className='text-text-tertiary text-[12px] mt-4 text-pretty'>
-								{data?.aiData?.suggestion?.reason}
-							</div>
 							<div className='bg-emerald-500/10 text-emerald-400 mt-4  w-fit flex gap-2 justify-center items-center px-2 py-0.5 rounded-sm border border-emerald-500/10'>
 								<Sparkles className='size-3' />
 								<span>
@@ -390,74 +396,93 @@ const SuggestedConnectionEdgeComponent = ({
 									<Check className='size-4' />
 								</Button>
 
-								<div className='flex gap-2'>
-									<Button
-										aria-label='Reject AI connection suggestion'
-										disabled={isProcessing}
-										onClick={handleWhySuggestedToggle}
-										size='md'
-										className='gap-2 text-xs text-nowrap w-full'
-										title='Why suggested'
-										state='dimmed'
-										variant='ghost'
-										whileHover={{ scale: 1.05, willChange: 'transform' }}
-										whileTap={{ scale: 0.95 }}
-									>
-										<CircleHelpIcon className='size-4' />
-										<span>Why suggested</span>
-									</Button>
-
-									<Button
-										aria-label='Reject AI connection suggestion'
-										disabled={isProcessing}
-										onClick={handleRejectSuggestion}
-										size='md'
-										className='gap-2 text-xs w-full'
-										title='Reject suggestion'
-										state='dimmed'
-										variant='ghost'
-										whileHover={{ scale: 1.05, willChange: 'transform' }}
-										whileTap={{ scale: 0.95 }}
-									>
-										<X className='size-4' />
-										<span>Dismiss</span>
-									</Button>
-								</div>
-							</div>
-
-							<span className={cn(whySuggestedOpen ? 'mt-4' : 'mt-0')}>
-								<AnimatePresence mode='sync'>
-									{whySuggestedOpen && (
-										<motion.div
-											className='grid'
-											initial={{
-												willChange: 'auto',
-												gridTemplateRows: '0fr',
-												opacity: 0,
-												filter: 'blur(4px)',
-											}}
-											animate={{
-												willChange: 'auto',
-												gridTemplateRows: '1fr',
-												opacity: 1,
-												filter: 'blur(0)',
-											}}
-											exit={{
-												willChange: 'auto',
-												gridTemplateRows: '0fr',
-												opacity: 0,
-												filter: 'blur(4px)',
-											}}
-											transition={{ type: 'spring', duration: 0.3 }}
+									<div className='flex gap-2'>
+										<Button
+											aria-controls={whySuggestedPanelId}
+											aria-expanded={whySuggestedOpen}
+											aria-label='Why suggested'
+											disabled={isProcessing}
+											onClick={handleWhySuggestedToggle}
+											size='md'
+											className='gap-2 text-xs text-nowrap w-full'
+											title='Why suggested'
+											state='dimmed'
+											variant='ghost'
+											whileHover={{ scale: 1.05, willChange: 'transform' }}
+											whileTap={{ scale: 0.95 }}
 										>
-											<span className='overflow-hidden'>
-												{data?.aiData?.suggestion?.extendedReason}
-											</span>
-										</motion.div>
-									)}
-								</AnimatePresence>
-							</span>
-						</div>
+											<CircleHelpIcon className='size-4' />
+											<span>Why suggested</span>
+										</Button>
+
+										<Button
+											aria-label='Dismiss suggestion'
+											disabled={isProcessing}
+											onClick={handleRejectSuggestion}
+											size='md'
+											className='gap-2 text-xs w-full'
+											title='Reject suggestion'
+										state='dimmed'
+										variant='ghost'
+										whileHover={{ scale: 1.05, willChange: 'transform' }}
+										whileTap={{ scale: 0.95 }}
+									>
+											<X className='size-4' />
+											<span>Dismiss</span>
+										</Button>
+									</div>
+								</div>
+
+								<span className={cn(whySuggestedOpen ? 'mt-4' : 'mt-0')}>
+									<AnimatePresence mode='sync'>
+										{whySuggestedOpen && (
+											<motion.div
+												id={whySuggestedPanelId}
+												className='grid'
+												initial={
+													reducedMotion
+														? false
+														: {
+																willChange: 'auto',
+																gridTemplateRows: '0fr',
+																opacity: 0,
+																filter: 'blur(4px)',
+														  }
+												}
+												animate={
+													reducedMotion
+														? { opacity: 1, gridTemplateRows: '1fr' }
+														: {
+																willChange: 'auto',
+																gridTemplateRows: '1fr',
+																opacity: 1,
+																filter: 'blur(0)',
+														  }
+												}
+												exit={
+													reducedMotion
+														? { opacity: 0 }
+														: {
+																willChange: 'auto',
+																gridTemplateRows: '0fr',
+																opacity: 0,
+																filter: 'blur(4px)',
+														  }
+												}
+												transition={
+													reducedMotion
+														? { duration: 0 }
+														: { type: 'spring', duration: 0.3 }
+												}
+											>
+												<span className='overflow-hidden'>
+													{data?.aiData?.suggestion?.extendedReason}
+												</span>
+											</motion.div>
+										)}
+									</AnimatePresence>
+								</span>
+							</div>
 
 						{/* Accept/Reject Controls - Always Visible */}
 					</div>

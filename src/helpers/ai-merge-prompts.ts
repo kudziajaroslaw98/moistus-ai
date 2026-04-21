@@ -17,10 +17,10 @@ Guidelines:
 - Do not suggest merging a node with itself.
 - Ensure your response is a valid JSON object that adheres to the provided schema.
 
-Restrictions:
-- Do not provide connections with similarity below 0.8
-- Do not provide connections with confidence below 0.8
-`;
+	Restrictions:
+	- Do not provide merge suggestions with similarity below 0.8
+	- Do not provide merge suggestions with confidence below 0.8
+	`;
 }
 
 export function buildMergeUserPrompt(nodeRows: string[]) {

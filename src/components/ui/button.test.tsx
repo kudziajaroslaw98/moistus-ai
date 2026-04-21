@@ -32,7 +32,7 @@ describe('buttonVariants', () => {
 		['icon-sm', '!h-6 !w-6 p-0 rounded'],
 		['icon-xs', '!h-4 !w-4 p-0 rounded'],
 		['icon-md', '!h-10 !w-10 p-0 rounded'],
-		['icon-lg', '!h-12 w-12 p-0 rounded-md'],
+		['icon-lg', '!h-12 !w-12 p-0 rounded-md'],
 		['control-sm', 'h-6 px-1.5 text-xs rounded'],
 		['control-md', 'h-8 px-2 text-sm rounded'],
 	] as const)('keeps `%s` size styling', (size, expectedClass) => {

@@ -326,6 +326,7 @@ function buildFallbackFocusedGraph(
 	const mapMeta = normalizeMapMeta(input.mapMeta);
 	const nodeIds = new Set(input.nodes.map((node) => node.id));
 	const sourceNode = input.nodes.find((node) => node.id === input.context.sourceNodeId);
+	const focusedNodeId = sourceNode?.id ?? input.context.sourceNodeId ?? 'unknown';
 	const depth = sourceNode
 		? calculateNodeDepth(sourceNode.id, input.edges, nodeIds)
 		: null;
@@ -342,12 +343,12 @@ function buildFallbackFocusedGraph(
 			edgeCount: input.edges.length,
 		},
 		topics: [],
-		nodes: [
-			{
-				id: sourceNode?.id ?? input.context.sourceNodeId ?? 'unknown',
-				type: sourceNode ? getNodeType(sourceNode) : 'default',
-				text: sourceNode ? getNodeSemanticText(sourceNode) : 'Unknown',
-				tags: sourceNode ? getNodePromptTags(sourceNode) : [],
+			nodes: [
+				{
+					id: focusedNodeId,
+					type: sourceNode ? getNodeType(sourceNode) : 'default',
+					text: sourceNode ? getNodeSemanticText(sourceNode) : 'Unknown',
+					tags: sourceNode ? getNodePromptTags(sourceNode) : [],
 				depth,
 				degree,
 				flags: ['focus'],
@@ -355,13 +356,13 @@ function buildFallbackFocusedGraph(
 		],
 		relations: [],
 		anchors: [],
-		metrics: {
-			maxDepth: depth ?? 0,
-			rootCount: depth === 0 ? 1 : 0,
-			isolatedCount: degree === 0 ? 1 : 0,
-		},
-		validAnchorNodeIds: [],
-	};
+			metrics: {
+				maxDepth: depth ?? 0,
+				rootCount: depth === 0 ? 1 : 0,
+				isolatedCount: degree === 0 ? 1 : 0,
+			},
+			validAnchorNodeIds: [focusedNodeId],
+		};
 }
 
 function toFocusedGraphNode(
@@ -461,9 +462,9 @@ export function buildFocusedNodeSuggestionGraph(
 			});
 		}
 
-		return {
-			mode: 'focused-node',
-			map: {
+			return {
+				mode: 'focused-node',
+				map: {
 				title: mapMeta.title,
 				description: mapMeta.description,
 				nodeCount: input.nodes.length,
@@ -471,11 +472,15 @@ export function buildFocusedNodeSuggestionGraph(
 			},
 			topics: compactPromptList(enhancedContext.siblingPatterns.topics, 10),
 			nodes: graphNodes,
-			relations,
-			anchors: [],
-			metrics: buildGraphMetrics(graphNodes),
-			validAnchorNodeIds: [],
-		};
+				relations,
+				anchors: [],
+				metrics: buildGraphMetrics(graphNodes),
+				validAnchorNodeIds: [
+					enhancedContext.primary.id ??
+						input.context.sourceNodeId ??
+						'unknown',
+				],
+			};
 	} catch (error) {
 		console.error('Failed to build focused suggestion graph:', error);
 		return buildFallbackFocusedGraph(input);

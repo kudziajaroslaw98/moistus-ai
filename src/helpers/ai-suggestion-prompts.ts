@@ -53,7 +53,7 @@ export const SUGGESTION_BASE_PROMPT = [
 	'- Every suggestion object must include nodePayload. Use null when there is no structured payload.',
 	'- defaultNode and textNode: use content and set nodePayload to null.',
 	'- If you include a nodePayload object, provide all keys and use null for unused values.',
-	'- taskNode: content should be a short preview label, and nodePayload must include tasks as an array of 1-5 concrete unchecked task strings. nodePayload.title may be a string or null. All other nodePayload fields should be null.',
+	'- taskNode: content should be a short preview label, and nodePayload must include taskTexts as an array of 1-5 concrete unchecked task strings. nodePayload.title may be a string or null. All other nodePayload fields should be null.',
 	'- questionNode: content is the question text. nodePayload may use answer and questionType; set unrelated nodePayload fields to null.',
 	'- annotationNode: content is the annotation text. nodePayload may use annotationType; set unrelated nodePayload fields to null.',
 	'- codeNode: content is the code snippet. nodePayload may use language and fileName; set unrelated nodePayload fields to null.',
@@ -106,7 +106,7 @@ export const SUGGESTION_BASE_PROMPT = [
 	'LENS=["user-impact","Focus on user-facing consequences, trust, or confusion."]',
 	'RECENT=["Add webhook retry handling",2,"magic-wand"]',
 	'Good output shape:',
-	'[{"id":"example-1","content":"Clarify collaborator limit state before upgrade wall","nodeType":"taskNode","nodePayload":{"title":"Upgrade copy fixes","tasks":["Explain trial collaborator limits before the upgrade gate","Show current collaborator count next to the limit"],"answer":null,"questionType":null,"annotationType":null,"language":null,"fileName":null},"confidence":0.88,"position":{"x":0,"y":0},"context":{"sourceNodeId":1,"targetNodeId":null,"relationshipType":"reduces confusion","trigger":"magic-wand"},"reasoning":"This addresses a concrete confusion point users hit before upgrading."}]',
+	'[{"id":"example-1","content":"Clarify collaborator limit state before upgrade wall","nodeType":"taskNode","nodePayload":{"title":"Upgrade copy fixes","taskTexts":["Explain trial collaborator limits before the upgrade gate","Show current collaborator count next to the limit"],"answer":null,"questionType":null,"annotationType":null,"language":null,"fileName":null},"confidence":0.88,"position":{"x":0,"y":0},"context":{"sourceNodeId":1,"targetNodeId":null,"relationshipType":"reduces confusion","trigger":"magic-wand"},"reasoning":"This addresses a concrete confusion point users hit before upgrading."}]',
 	'',
 	'Output requirements:',
 	'- Return a valid JSON array of objects.',
@@ -143,7 +143,7 @@ export const WHOLE_MAP_SUGGESTION_PROMPT = [
 	'ANCHOR=[2,"task","Trial still bounded by 3 collaborators",2,1]',
 	'LENS=["risk","Surface blockers, failure modes, or missing safeguards."]',
 	'Better output:',
-	'[{"id":"example-whole-map","content":"Alert when subscription usage sync falls behind","nodeType":"taskNode","nodePayload":{"title":null,"tasks":["Emit an alert when billing usage sync lags past the SLA","Log the last successful usage sync timestamp in admin diagnostics"],"answer":null,"questionType":null,"annotationType":null,"language":null,"fileName":null},"confidence":0.9,"position":{"x":0,"y":0},"context":{"sourceNodeId":1,"targetNodeId":null,"relationshipType":"guards against stale billing state","trigger":"magic-wand"},"reasoning":"It adds an operational safeguard instead of restating the existing billing fix work."}]',
+	'[{"id":"example-whole-map","content":"Alert when subscription usage sync falls behind","nodeType":"taskNode","nodePayload":{"title":null,"taskTexts":["Emit an alert when billing usage sync lags past the SLA","Log the last successful usage sync timestamp in admin diagnostics"],"answer":null,"questionType":null,"annotationType":null,"language":null,"fileName":null},"confidence":0.9,"position":{"x":0,"y":0},"context":{"sourceNodeId":1,"targetNodeId":null,"relationshipType":"guards against stale billing state","trigger":"magic-wand"},"reasoning":"It adds an operational safeguard instead of restating the existing billing fix work."}]',
 ].join('\n');
 
 export const FOCUSED_NODE_SUGGESTION_PROMPT = [
@@ -162,7 +162,7 @@ export const FOCUSED_NODE_SUGGESTION_PROMPT = [
 	'REL=["sibling",1,3]',
 	'LENS=["dependency","Expose upstream requirements or missing supporting work."]',
 	'Better output:',
-	'[{"id":"example-focused","content":"Define referral abuse guardrails before launch","nodeType":"taskNode","nodePayload":{"title":null,"tasks":["Document abuse scenarios for self-referrals and fake accounts","Set launch-blocking thresholds for suspicious referral activity"],"answer":null,"questionType":null,"annotationType":null,"language":null,"fileName":null},"confidence":0.87,"position":{"x":0,"y":0},"context":{"sourceNodeId":1,"targetNodeId":null,"relationshipType":"adds prerequisite","trigger":"magic-wand"},"reasoning":"It adds a concrete prerequisite that the current branch does not yet cover."}]',
+	'[{"id":"example-focused","content":"Define referral abuse guardrails before launch","nodeType":"taskNode","nodePayload":{"title":null,"taskTexts":["Document abuse scenarios for self-referrals and fake accounts","Set launch-blocking thresholds for suspicious referral activity"],"answer":null,"questionType":null,"annotationType":null,"language":null,"fileName":null},"confidence":0.87,"position":{"x":0,"y":0},"context":{"sourceNodeId":1,"targetNodeId":null,"relationshipType":"adds prerequisite","trigger":"magic-wand"},"reasoning":"It adds a concrete prerequisite that the current branch does not yet cover."}]',
 ].join('\n');
 
 export function getSuggestionSystemPrompt(

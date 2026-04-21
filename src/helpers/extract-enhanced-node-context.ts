@@ -883,6 +883,11 @@ export function buildMapSuggestionContext(
 	_options: BuildMapSuggestionContextOptions = {},
 	rowOptions?: ContextRowOptions
 ): MapSuggestionContextResult {
+	const tokenBudget = _options.tokenBudget ?? 16000;
+	const maxAnchorCandidates = _options.maxAnchorCandidates ?? Number.MAX_SAFE_INTEGER;
+	const anchorPoolSize = _options.anchorPoolSize ?? Number.MAX_SAFE_INTEGER;
+	const anchorWindowOffset = Math.max(0, _options.anchorWindowOffset ?? 0);
+
 	if (nodes.length === 0) {
 		const context = buildMapOverviewContext(nodes, edges, mapMeta, rowOptions);
 		return {
@@ -894,35 +899,76 @@ export function buildMapSuggestionContext(
 		};
 	}
 
+	const summaryContext = buildMapSummaryContext(nodes, edges, mapMeta, rowOptions);
 	const scoredCandidates = nodes
 		.filter(isSuggestionAnchorCandidate)
 		.map((node) => scoreNode(node, edges, nodes))
 		.sort((a, b) => b.score - a.score);
 
 	if (scoredCandidates.length === 0) {
-		const context = buildMapSummaryContext(nodes, edges, mapMeta, rowOptions);
-
 		return {
-			context,
+			context: summaryContext,
 			mode: 'summary',
 			candidateNodeIds: [],
-			estimatedTokens: estimateTokens(context),
+			estimatedTokens: estimateTokens(summaryContext),
 			truncated: false,
 		};
 	}
 
-	const context = [
-		buildMapSummaryContext(nodes, edges, mapMeta, rowOptions),
-		...scoredCandidates.map((candidate) =>
+	const boundedPoolSize = Math.max(
+		1,
+		Math.min(anchorPoolSize, scoredCandidates.length)
+	);
+	const anchorPool = scoredCandidates.slice(0, boundedPoolSize);
+	const boundedMaxAnchorCandidates = Math.max(
+		1,
+		Math.min(maxAnchorCandidates, anchorPool.length)
+	);
+	const windowStartIndex =
+		anchorPool.length === 0 ? 0 : anchorWindowOffset % anchorPool.length;
+	const anchorWindow: ScoredNode[] = [];
+	for (let index = 0; index < boundedMaxAnchorCandidates; index += 1) {
+		const candidate = anchorPool[(windowStartIndex + index) % anchorPool.length];
+		if (!candidate) {
+			break;
+		}
+		anchorWindow.push(candidate);
+	}
+
+	const maxContextTokens = Math.max(tokenBudget - 100, 0);
+	let currentTokens = estimateTokens(summaryContext);
+	const includedAnchors: ScoredNode[] = [];
+	let exceededBudget = currentTokens > maxContextTokens;
+	if (!exceededBudget) {
+		for (const candidate of anchorWindow) {
+			const line = formatSuggestionAnchorCandidate(candidate, rowOptions);
+			const lineTokens = estimateTokens(line);
+			if (currentTokens + lineTokens > maxContextTokens) {
+				exceededBudget = true;
+				break;
+			}
+			includedAnchors.push(candidate);
+			currentTokens += lineTokens;
+		}
+	}
+
+	const contextLines = [
+		summaryContext,
+		...includedAnchors.map((candidate) =>
 			formatSuggestionAnchorCandidate(candidate, rowOptions)
 		),
-	].join('\n');
+	].filter(Boolean);
+	const context = contextLines.join('\n');
+	const estimatedTokens = estimateTokens(context);
+	const wasSlicedByOptions = anchorWindow.length < scoredCandidates.length;
+	const wasSlicedByBudget = includedAnchors.length < anchorWindow.length;
+
 	return {
 		context,
-		mode: 'full',
-		candidateNodeIds: scoredCandidates.map((candidate) => candidate.node.id),
-		estimatedTokens: estimateTokens(context),
-		truncated: false,
+		mode: includedAnchors.length > 0 ? 'full' : 'summary',
+		candidateNodeIds: includedAnchors.map((candidate) => candidate.node.id),
+		estimatedTokens,
+		truncated: wasSlicedByOptions || wasSlicedByBudget || exceededBudget,
 	};
 }
 

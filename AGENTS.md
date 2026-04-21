@@ -1,6 +1,6 @@
 # AGENTS.md
 
-<!-- Updated: 2026-04-20 - Documented collapsed-branch proxy metadata for connection suggestions and stream-start-safe suggestion replacement -->
+<!-- Updated: 2026-04-21 - Consolidated Updated-marker guidance and refreshed NodeData/edge-routing marker text while preserving collapsed-branch suggestion contracts -->
 
 ## Engineering Philosophy
 
@@ -64,7 +64,7 @@ You are a senior software engineer in an agentic coding workflow. The human is t
 If your work touched architecture (slices, components, routes, node types) → update `docs/CODEBASE_MAP.md`
 If your work touched principles, gotchas, debt → update this file or relevant `.claude/rules/` file
 
-**After updating**: Add `<!-- Updated: YYYY-MM-DD - reason -->`
+**After updating**: Keep exactly one `<!-- Updated: YYYY-MM-DD - reason -->` marker per logical block, and update that existing marker (date/reason) when the same block changes again.
 
 ### Maintain CHANGELOG.md
 
@@ -133,11 +133,9 @@ pnpm pretty          # Prettier
 
 **NodeData.metadata**: Single unified type (not discriminated union per node type). Enables seamless node type switching without data loss. Do NOT split into per-type unions.
 
-<!-- Updated: 2026-04-19 - Consolidated NodeData/edge-routing gotchas, including ELK label ownership and routed-segment center alignment -->
+<!-- Updated: 2026-04-21 - Consolidated NodeData/edge-routing gotchas, including ELK label ownership, routed-segment center alignment, and the auto-routed waypoint-edge transition -->
 
 **Edge routing**: Raw manual waypoint editing is removed. Normal persisted edges use auto-routed `waypointEdge` geometry. Explicit full ELK layout owns ELK label placement metadata (`metadata.elkLabel`) for labeled edges, but the converter snaps ELK's returned label center back onto the routed segment before render so the line passes through the label center. Any orthogonal reroute/edit path that replaces ELK geometry must still clear stale ELK label metadata instead of reusing it. Future manual edge control must be constraint-based (anchor/bias/lane hints), never absolute bend points.
-
-<!-- Updated: 2026-03-11 - Replaced raw waypoint editing with auto-routed waypoint edges and deferred future manual control to constraints -->
 
 **Identity precedence**: Use `user_profiles` as canonical identity source across sharing + realtime UI (`display_name`, `avatar_url`) with fallback order: auth metadata, then deterministic fallback helpers. Keep resolver logic centralized in `src/helpers/identity/resolve-user-identity.ts`.
 

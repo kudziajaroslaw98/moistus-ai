@@ -14,7 +14,9 @@ describe('ai suggestion prompts', () => {
 		expect(SUGGESTION_BASE_PROMPT).toContain('Mini example:');
 		expect(SUGGESTION_BASE_PROMPT).toContain('Every suggestion object must include nodePayload');
 		expect(SUGGESTION_BASE_PROMPT).toContain('provide all keys and use null for unused values');
-		expect(SUGGESTION_BASE_PROMPT).toContain('nodePayload must include tasks');
+			expect(SUGGESTION_BASE_PROMPT).toContain(
+				'nodePayload must include taskTexts'
+			);
 		expect(SUGGESTION_BASE_PROMPT).toContain('Do not use imageNode or resourceNode in this route.');
 	});
 

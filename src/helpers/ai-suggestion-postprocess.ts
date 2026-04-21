@@ -39,7 +39,7 @@ type NormalizedSuggestionNodePayload = Required<SuggestionNodePayload>;
 function createEmptySuggestionNodePayload(): NormalizedSuggestionNodePayload {
 	return {
 		title: null,
-		tasks: null,
+		taskTexts: null,
 		answer: null,
 		questionType: null,
 		annotationType: null,
@@ -51,7 +51,7 @@ function createEmptySuggestionNodePayload(): NormalizedSuggestionNodePayload {
 const suggestionNodePayloadSchema = z
 	.object({
 		title: z.string().trim().min(1).nullable(),
-		tasks: z.array(z.string().trim().min(1)).nullable(),
+		taskTexts: z.array(z.string().trim().min(1)).nullable(),
 		answer: z.string().trim().min(1).nullable(),
 		questionType: z.enum(suggestionQuestionTypes).nullable(),
 		annotationType: z.enum(suggestionAnnotationTypes).nullable(),
@@ -160,22 +160,22 @@ function normalizeOptionalString(value: string | null | undefined) {
 function normalizeTaskPayload(
 	payload: SuggestionNodePayload | null | undefined
 ): NormalizedSuggestionNodePayload | null {
-	if (!payload?.tasks || !Array.isArray(payload.tasks)) {
+	if (!payload?.taskTexts || !Array.isArray(payload.taskTexts)) {
 		return null;
 	}
 
-	const tasks = payload.tasks
+	const taskTexts = payload.taskTexts
 		.map((task) => task.trim())
 		.filter(Boolean);
 
-	if (tasks.length === 0) {
+	if (taskTexts.length === 0) {
 		return null;
 	}
 
 	return {
 		...createEmptySuggestionNodePayload(),
 		title: normalizeOptionalString(payload.title) ?? null,
-		tasks,
+		taskTexts,
 	};
 }
 
