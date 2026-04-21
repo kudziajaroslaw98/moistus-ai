@@ -1,9 +1,11 @@
 'use client';
 
+import { useEffectiveSubscriptionState } from '@/components/providers/subscription-hydration-provider';
 import {
 	getFreeTierLimits,
 	UPGRADE_PROMPT_CONFIG,
 } from '@/constants/pricing-tiers';
+import { isProSubscription } from '@/helpers/subscription/subscription-hydration';
 import useAppStore from '@/store/mind-map-store';
 import { useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
@@ -20,19 +22,20 @@ const FREE_TIER_LIMITS = getFreeTierLimits();
  * - Only for registered free users (not anonymous, not pro)
  */
 export function useUpgradePrompt() {
-	const { currentUser, currentSubscription, nodes, setPopoverOpen } =
-		useAppStore(
-			useShallow((state) => ({
-				currentUser: state.currentUser,
-				currentSubscription: state.currentSubscription,
-				nodes: state.nodes,
-				setPopoverOpen: state.setPopoverOpen,
-			}))
-		);
+	const { currentSubscription, hasResolvedSubscription } =
+		useEffectiveSubscriptionState();
+	const { currentUser, nodes, setPopoverOpen } = useAppStore(
+		useShallow((state) => ({
+			currentUser: state.currentUser,
+			nodes: state.nodes,
+			setPopoverOpen: state.setPopoverOpen,
+		}))
+	);
 	const { getSessionMinutes } = useSessionTime();
 
 	// Check if user is a registered free user (not anonymous, not pro/trialing)
 	const isRegisteredFreeUser = useMemo(() => {
+		if (!hasResolvedSubscription) return false;
 		if (!currentUser) return false;
 
 		// Anonymous users have is_anonymous or no email
@@ -41,15 +44,12 @@ export function useUpgradePrompt() {
 		if (isAnonymous) return false;
 
 		// Pro/trialing users shouldn't see upgrade prompts
-		if (
-			currentSubscription?.status === 'active' ||
-			currentSubscription?.status === 'trialing'
-		) {
+		if (isProSubscription(currentSubscription)) {
 			return false;
 		}
 
 		return true;
-	}, [currentUser, currentSubscription]);
+	}, [currentUser, currentSubscription, hasResolvedSubscription]);
 
 	// Check if modal is in cooldown period (dismissed within last 24h)
 	const isInCooldown = useCallback(() => {

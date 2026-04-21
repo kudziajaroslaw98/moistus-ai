@@ -18,6 +18,7 @@ function createOnboardingSliceHarness(
 		mindMap: { user_id: 'user-1' },
 		usageData: { mindMapsCount: 1 },
 		mapAccessError: null,
+		hasResolvedSubscription: true,
 		currentSubscription: null,
 		...overrides,
 	};
@@ -78,6 +79,16 @@ describe('onboarding slice', () => {
 
 		(proHarness.getState().maybeStartOnboarding as () => void)();
 		expect(proHarness.getState().onboardingStatus).toBe('hidden');
+	});
+
+	it('waits for subscription resolution before starting onboarding', () => {
+		const harness = createOnboardingSliceHarness({
+			hasResolvedSubscription: false,
+		});
+
+		(harness.getState().maybeStartOnboarding as () => void)();
+
+		expect(harness.getState().onboardingStatus).toBe('hidden');
 	});
 
 	it('can skip the walkthrough entirely without leaving the pill behind', () => {

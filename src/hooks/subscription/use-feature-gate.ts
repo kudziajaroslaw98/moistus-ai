@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffectiveSubscriptionState } from '@/components/providers/subscription-hydration-provider';
+import { isProSubscription } from '@/helpers/subscription/subscription-hydration';
 import useAppStore from '@/store/mind-map-store';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
@@ -29,38 +31,49 @@ const FEATURE_PLAN_MAP: Record<FeatureKey, 'pro'> = {
 	'priority-support': 'pro',
 };
 
+// -1 is also used for true unlimited limits, so callers must gate on
+// resolved subscription state or use the derived helpers below.
+const UNKNOWN_LIMITS = {
+	mindMaps: -1,
+	nodesPerMap: -1,
+	aiSuggestions: -1,
+	collaboratorsPerMap: -1,
+} as const;
+
 export function useFeatureGate(feature: FeatureKey): FeatureGateResult {
-	const { currentSubscription, isLoadingSubscription } = useAppStore(
-		useShallow((state) => ({
-			currentSubscription: state.currentSubscription,
-			isLoadingSubscription: state.isLoadingSubscription,
-		}))
-	);
+	const {
+		currentSubscription,
+		hasResolvedSubscription,
+		isLoadingSubscription,
+	} = useEffectiveSubscriptionState();
+	const isResolvingSubscription = !hasResolvedSubscription;
 
 	const currentPlan = useMemo(() => {
+		if (isResolvingSubscription) return null;
 		if (!currentSubscription) return 'free';
 		return currentSubscription.plan?.name || 'free';
-	}, [currentSubscription]);
+	}, [currentSubscription, isResolvingSubscription]);
 
 	const hasAccess = useMemo(() => {
-		// While loading, deny access to prevent free users from accessing Pro features
-		// This is more secure than optimistic access - UI should show loading state
-		if (isLoadingSubscription) return false;
+		if (isResolvingSubscription) return false;
 
 		// Check if current plan includes this feature
 		const requiredPlan = FEATURE_PLAN_MAP[feature];
 
 		if (!requiredPlan) return true; // Feature not gated
 
-		if (currentPlan === 'pro' && requiredPlan === 'pro') return true;
+		if (requiredPlan === 'pro') {
+			return isProSubscription(currentSubscription);
+		}
 
 		return false;
-	}, [feature, currentPlan, isLoadingSubscription]);
+	}, [currentSubscription, feature, isResolvingSubscription]);
 
 	const requiresPlan = useMemo(() => {
+		if (isResolvingSubscription) return null;
 		if (hasAccess) return null;
 		return FEATURE_PLAN_MAP[feature] || null;
-	}, [feature, hasAccess]);
+	}, [feature, hasAccess, isResolvingSubscription]);
 
 	const showUpgradePrompt = useCallback(() => {
 		useAppStore.getState().setPopoverOpen({ upgradeUser: true });
@@ -68,7 +81,7 @@ export function useFeatureGate(feature: FeatureKey): FeatureGateResult {
 
 	return {
 		hasAccess,
-		isLoading: isLoadingSubscription,
+		isLoading: isResolvingSubscription || isLoadingSubscription,
 		requiresPlan,
 		currentPlan,
 		showUpgradePrompt,
@@ -77,28 +90,35 @@ export function useFeatureGate(feature: FeatureKey): FeatureGateResult {
 
 // Usage limits hook
 export function useSubscriptionLimits() {
-	const {
-		currentSubscription,
-		availablePlans,
-		nodes,
-		usageData,
-		isLoadingUsage,
-		usageError,
-	} = useAppStore(
-		useShallow((state) => ({
-			currentSubscription: state.currentSubscription,
-			availablePlans: state.availablePlans,
-			nodes: state.nodes,
-			usageData: state.usageData,
-			isLoadingUsage: state.isLoadingUsage,
-			usageError: state.usageError,
-		}))
-	);
+	const { currentSubscription, hasResolvedSubscription } =
+		useEffectiveSubscriptionState();
+	const { availablePlans, nodes, usageData, isLoadingUsage, usageError } =
+		useAppStore(
+			useShallow((state) => ({
+				availablePlans: state.availablePlans,
+				nodes: state.nodes,
+				usageData: state.usageData,
+				isLoadingUsage: state.isLoadingUsage,
+				usageError: state.usageError,
+			}))
+		);
+	const isResolvingSubscription = !hasResolvedSubscription;
 
 	const limits = useMemo(() => {
-		const plan =
-			currentSubscription?.plan ||
-			availablePlans.find((p) => p.name === 'free');
+		if (currentSubscription?.plan) {
+			return {
+				...currentSubscription.plan.limits,
+				collaboratorsPerMap:
+					currentSubscription.plan.limits.collaboratorsPerMap ??
+					(currentSubscription.plan.name === 'free' ? 3 : -1),
+			};
+		}
+
+		if (isResolvingSubscription) {
+			return UNKNOWN_LIMITS;
+		}
+
+		const plan = availablePlans.find((p) => p.name === 'free');
 
 		// Canonical free tier limits (override any stale DB values)
 		const FREE_TIER_LIMITS = {
@@ -120,10 +140,10 @@ export function useSubscriptionLimits() {
 		return {
 			...plan.limits,
 			// If field is missing, infer from plan: free=3, pro/enterprise=unlimited
-			collaboratorsPerMap: plan.limits.collaboratorsPerMap
-				?? (plan.name === 'free' ? 3 : -1),
+			collaboratorsPerMap:
+				plan.limits.collaboratorsPerMap ?? (plan.name === 'free' ? 3 : -1),
 		};
-	}, [currentSubscription, availablePlans]);
+	}, [availablePlans, currentSubscription, isResolvingSubscription]);
 
 	const usage = useMemo(() => {
 		return {
@@ -157,10 +177,11 @@ export function useSubscriptionLimits() {
 
 	const isAtLimit = useCallback(
 		(limitType: keyof typeof limits) => {
+			if (isResolvingSubscription) return false;
 			if (limits[limitType] === -1) return false; // Unlimited
 			return usage[limitType] >= limits[limitType];
 		},
-		[limits, usage]
+		[isResolvingSubscription, limits, usage]
 	);
 
 	return {
@@ -168,6 +189,7 @@ export function useSubscriptionLimits() {
 		usage,
 		remaining,
 		isAtLimit,
+		hasResolvedSubscription,
 		isLoadingUsage,
 		usageError,
 	};
