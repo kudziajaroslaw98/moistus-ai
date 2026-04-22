@@ -377,7 +377,7 @@ export function AccessDeniedContent() {
 					<Link
 						href={isAnonymous ? '/auth/signup' : '/dashboard'}
 						className={cn(
-							buttonVariants({ variant: 'default', size: 'lg' }),
+							buttonVariants({ variant: 'normal', size: 'lg' }),
 							'w-full sm:w-auto'
 						)}
 					>

@@ -10,7 +10,7 @@ interface AIFeatureButtonProps {
 	onClick: () => void;
 	children: React.ReactNode;
 	className?: string;
-	variant?: 'default' | 'outline' | 'ghost';
+	variant?: 'normal' | 'outline' | 'ghost';
 	size?: 'default' | 'sm' | 'lg' | 'icon';
 	disabled?: boolean;
 }
@@ -19,7 +19,7 @@ export function AIFeatureButton({
 	onClick,
 	children,
 	className,
-	variant = 'default',
+	variant = 'normal',
 	size = 'default',
 	disabled = false,
 }: AIFeatureButtonProps) {
@@ -65,7 +65,7 @@ export function AIFeatureButton({
 					variant={variant}
 					className={cn(
 						'relative group',
-						variant === 'default' && 'bg-zinc-700 hover:bg-zinc-600',
+						variant === 'normal' && 'bg-zinc-700 hover:bg-zinc-600',
 						className
 					)}
 				>

@@ -2,7 +2,9 @@ import {
 	createDefaultAnchor,
 	getAnchorPosition,
 } from '@/helpers/get-anchor-position';
-import { getWaypointPath } from '@/helpers/get-waypoint-path';
+import {
+	getWaypointPath,
+} from '@/helpers/get-waypoint-path';
 import useAppStore from '@/store/mind-map-store';
 import type { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';
@@ -20,6 +22,7 @@ import { X } from 'lucide-react';
 import { memo, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { Button } from '../ui/button';
+import { resolveWaypointEdgeLabelPosition } from './waypoint-edge-label-position';
 
 interface NodeWithMeasurements {
 	internals: { positionAbsolute: { x: number; y: number } };
@@ -152,6 +155,13 @@ const WaypointEdgeComponent = ({
 			curveType
 		);
 	}, [curveType, routedGeometry, waypoints]);
+	const labelPosition = useMemo(() => {
+		if (!pathResult) {
+			return null;
+		}
+
+		return resolveWaypointEdgeLabelPosition(data, pathResult);
+	}, [data?.metadata?.elkLabel, data?.metadata?.routingStyle, pathResult]);
 
 	const color = selected ? '#3b82f6' : (data?.style?.stroke ?? '#6c757d');
 
@@ -160,7 +170,7 @@ const WaypointEdgeComponent = ({
 		deleteEdges([{ id, source, target, data }]);
 	};
 
-	if (!routedGeometry || !pathResult) {
+	if (!routedGeometry || !pathResult || !labelPosition) {
 		return null;
 	}
 
@@ -213,7 +223,7 @@ const WaypointEdgeComponent = ({
 				<div
 					className='nodrag absolute z-[2] pointer-events-auto nopan flex items-center gap-2 text-xs text-zinc-200'
 					style={{
-						transform: `translate(-50%, -50%) translate(${pathResult.labelX}px,${pathResult.labelY}px)`,
+						transform: `translate(-50%, -50%) translate(${labelPosition.labelX}px,${labelPosition.labelY}px)`,
 					}}
 				>
 					{data?.label && (
@@ -228,7 +238,7 @@ const WaypointEdgeComponent = ({
 						onClick={handleDeleteEdge}
 						size='icon'
 						title='Delete connection'
-						variant='destructive'
+						variant='normal' state='destructive'
 						animate={
 							isHovered || selected
 								? { opacity: 1, y: 0, scale: 1 }

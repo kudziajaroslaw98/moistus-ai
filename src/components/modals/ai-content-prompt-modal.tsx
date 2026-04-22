@@ -35,7 +35,7 @@ export default function AiContentPromptModal({
 				<Button
 					disabled={isLoading}
 					onClick={handleGenerateClick}
-					variant='default'
+					variant='normal'
 				>
 					{isLoading ? 'Generating...' : 'Generate Content'}
 				</Button>

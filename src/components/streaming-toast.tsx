@@ -5,7 +5,14 @@
 import { cn } from '@/lib/utils';
 import useAppStore from '@/store/mind-map-store';
 import { ToastStep } from '@/types/streaming-toast-state';
-import { AlertCircle, CheckCircle, Circle, Info, Loader, X } from 'lucide-react';
+import {
+	AlertCircle,
+	CheckCircle,
+	Circle,
+	Info,
+	Loader,
+	X,
+} from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';

@@ -163,11 +163,20 @@ export interface CommentNodeMetadata extends BaseNodeMetadata {
 export interface GhostNodeMetadata extends BaseNodeMetadata {
 	suggestedContent: string;
 	suggestedType: AvailableNodeTypes;
+	nodePayload?: {
+		title?: string | null;
+		taskTexts?: string[] | null;
+		answer?: string | null;
+		questionType?: 'binary' | 'multiple' | null;
+		annotationType?: 'note' | 'idea' | 'quote' | 'summary' | 'warning' | 'success' | 'info' | 'error' | null;
+		language?: string | null;
+		fileName?: string | null;
+	} | null;
 	confidence: number;
 	context?: {
-		sourceNodeId?: string;
-		targetNodeId?: string;
-		relationshipType?: string;
+		sourceNodeId?: string | null;
+		targetNodeId?: string | null;
+		relationshipType?: string | null;
 		trigger: 'magic-wand' | 'dangling-edge' | 'auto';
 	};
 	sourceNodeName?: string; // Name of the node that triggered this suggestion
@@ -366,6 +375,15 @@ export function validateGroupMetadata(
 	);
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+	if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+		return false;
+	}
+
+	const prototype = Object.getPrototypeOf(value);
+	return prototype === Object.prototype || prototype === null;
+}
+
 export function validateGhostMetadata(
 	metadata: any
 ): metadata is GhostNodeMetadata {
@@ -373,6 +391,9 @@ export function validateGhostMetadata(
 		metadata &&
 		typeof metadata.suggestedContent === 'string' &&
 		typeof metadata.suggestedType === 'string' &&
+		(metadata.nodePayload === undefined ||
+			metadata.nodePayload === null ||
+			isPlainObject(metadata.nodePayload)) &&
 		typeof metadata.confidence === 'number'
 	);
 }

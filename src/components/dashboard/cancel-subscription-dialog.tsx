@@ -76,7 +76,7 @@ export function CancelSubscriptionDialog({
 					<Button
 						disabled={isCanceling}
 						onClick={onConfirm}
-						variant='destructive'
+						variant='normal' state='destructive'
 					>
 						{isCanceling ? (
 							<>

@@ -547,7 +547,7 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 									className='w-full bg-error-600 hover:bg-error-700'
 									disabled={isDeleting}
 									onClick={() => setShowDeleteDialog(true)}
-									variant='destructive'
+									variant='normal' state='destructive'
 								>
 									{isDeleting ? (
 										<>

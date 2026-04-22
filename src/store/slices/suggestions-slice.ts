@@ -4,7 +4,17 @@ import type { AiConnectionSuggestion } from '@/types/ai-connection-suggestion';
 import type { AiMergeSuggestion } from '@/types/ai-merge-suggestion';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
-import type { NodeSuggestion, SuggestionContext } from '@/types/ghost-node';
+import type {
+	NodeSuggestion,
+	SuggestionContext,
+	SuggestionHistoryEntry,
+	SuggestionLens,
+	SuggestionNodePayload,
+	SuggestionNoveltyState,
+	SuggestionTrigger,
+} from '@/types/ghost-node';
+import { SUGGESTION_EXPLORATION_LENSES } from '@/types/ghost-node';
+import type { NodeData } from '@/types/node-data';
 import {
 	DEFAULT_SUGGESTION_CONFIG,
 	type PartialSuggestionConfig,
@@ -18,6 +28,676 @@ interface StreamTrigger {
 	body: Record<string, unknown>;
 	api: string; // The API endpoint to hit
 	onStreamChunk: (chunk: unknown) => void;
+}
+
+const VIEWPORT_SUGGESTION_BUCKET = '__viewport__';
+const ANCHORED_SUGGESTION_X_OFFSET = 325;
+const ANCHORED_SUGGESTION_Y_OFFSET = 50;
+const UNANCHORED_SUGGESTION_X_OFFSET = 340;
+const UNANCHORED_SUGGESTION_Y_OFFSET = 220;
+const SUGGESTION_NOVELTY_STORAGE_KEY_PREFIX = 'mind-map-suggestion-novelty';
+const MAX_STORED_RECENT_SUGGESTIONS = 12;
+const MAX_SENT_RECENT_SUGGESTIONS = 8;
+const SUGGESTION_LENSES_PER_REQUEST = 2;
+const AI_CONNECTION_EDGE_TYPE = 'suggestedConnection';
+const AI_MERGE_EDGE_TYPE = 'suggestedMerge';
+const AI_SUGGESTION_EDGE_Z_INDEX = 50_000;
+const AI_GHOST_NODE_Z_INDEX = 60_000;
+
+interface ConnectionSuggestionPlacement {
+	originalSourceNodeId: string;
+	originalTargetNodeId: string;
+	displaySourceNodeId: string;
+	displayTargetNodeId: string;
+	sourceHiddenChildLabel?: string;
+	targetHiddenChildLabel?: string;
+}
+
+function getNodeDisplayLabel(node: AppNode | undefined, fallbackId: string) {
+	const content =
+		typeof node?.data.content === 'string' ? node.data.content.trim() : '';
+	if (content.length > 0) {
+		return content;
+	}
+
+	const title =
+		typeof node?.data.metadata?.title === 'string'
+			? node.data.metadata.title.trim()
+			: '';
+	return title.length > 0 ? title : fallbackId;
+}
+
+function findNearestVisibleCollapsedAncestor(params: {
+	nodeId: string;
+	reverseAdjacency: Map<string, string[]>;
+	visibleNodeIds: Set<string>;
+	collapsedNodeIds: Set<string>;
+}) {
+	const { nodeId, reverseAdjacency, visibleNodeIds, collapsedNodeIds } = params;
+	const visited = new Set<string>([nodeId]);
+	let frontier: string[] = [nodeId];
+
+	while (frontier.length > 0) {
+		const nextFrontier: string[] = [];
+		const collapsedCandidates: string[] = [];
+
+		for (const currentId of frontier) {
+			const parents = reverseAdjacency.get(currentId) ?? [];
+			for (const parentId of parents) {
+				if (visited.has(parentId)) {
+					continue;
+				}
+				visited.add(parentId);
+				nextFrontier.push(parentId);
+
+				if (visibleNodeIds.has(parentId) && collapsedNodeIds.has(parentId)) {
+					collapsedCandidates.push(parentId);
+				}
+			}
+		}
+
+		if (collapsedCandidates.length > 0) {
+			return collapsedCandidates[0];
+		}
+
+		frontier = nextFrontier;
+	}
+
+	return null;
+}
+
+function resolveConnectionSuggestionPlacement(params: {
+	suggestion: AiConnectionSuggestion;
+	nodes: AppNode[];
+	edges: AppEdge[];
+	visibleNodes: AppNode[];
+}): ConnectionSuggestionPlacement | null {
+	const { suggestion, nodes, edges, visibleNodes } = params;
+	const nodeById = new Map(nodes.map((node) => [node.id, node]));
+	const visibleNodeIds = new Set(visibleNodes.map((node) => node.id));
+	const collapsedNodeIds = new Set(
+		nodes
+			.filter((node) => node.data.metadata?.isCollapsed)
+			.map((node) => node.id)
+	);
+	const reverseAdjacency = new Map<string, string[]>();
+	for (const edge of edges) {
+		if (edge.data?.aiData?.isSuggested === true) {
+			continue;
+		}
+		const parents = reverseAdjacency.get(edge.target);
+		if (parents) {
+			parents.push(edge.source);
+		} else {
+			reverseAdjacency.set(edge.target, [edge.source]);
+		}
+	}
+
+	const resolveDisplayNode = (nodeId: string) => {
+		if (visibleNodeIds.has(nodeId)) {
+			return {
+				displayNodeId: nodeId,
+				hiddenChildLabel: undefined as string | undefined,
+			};
+		}
+
+		const collapsedAncestorId = findNearestVisibleCollapsedAncestor({
+			nodeId,
+			reverseAdjacency,
+			visibleNodeIds,
+			collapsedNodeIds,
+		});
+		if (!collapsedAncestorId) {
+			return null;
+		}
+
+		return {
+			displayNodeId: collapsedAncestorId,
+			hiddenChildLabel: getNodeDisplayLabel(nodeById.get(nodeId), nodeId),
+		};
+	};
+
+	const sourcePlacement = resolveDisplayNode(suggestion.sourceNodeId);
+	const targetPlacement = resolveDisplayNode(suggestion.targetNodeId);
+	if (!sourcePlacement || !targetPlacement) {
+		return null;
+	}
+
+	return {
+		originalSourceNodeId: suggestion.sourceNodeId,
+		originalTargetNodeId: suggestion.targetNodeId,
+		displaySourceNodeId: sourcePlacement.displayNodeId,
+		displayTargetNodeId: targetPlacement.displayNodeId,
+		sourceHiddenChildLabel: sourcePlacement.hiddenChildLabel,
+		targetHiddenChildLabel: targetPlacement.hiddenChildLabel,
+	};
+}
+
+function getOriginalConnectionPair(edge: AppEdge) {
+	const proxy = edge.data?.aiData?.connectionProxy;
+	return {
+		sourceNodeId: proxy?.originalSourceNodeId ?? edge.source,
+		targetNodeId: proxy?.originalTargetNodeId ?? edge.target,
+	};
+}
+
+function isActiveSuggestedEdge(
+	edge: AppEdge,
+	edgeType: typeof AI_CONNECTION_EDGE_TYPE | typeof AI_MERGE_EDGE_TYPE
+) {
+	return (
+		(edge.type === edgeType || edge.data?.type === edgeType) &&
+		edge.data?.aiData?.isSuggested === true
+	);
+}
+
+function removeSuggestedEdges(
+	edges: AppEdge[],
+	edgeType: typeof AI_CONNECTION_EDGE_TYPE | typeof AI_MERGE_EDGE_TYPE
+) {
+	return edges.filter((edge) => !isActiveSuggestedEdge(edge, edgeType));
+}
+
+function normalizeOptionalString(value: string | null | undefined) {
+	if (typeof value !== 'string') {
+		return undefined;
+	}
+
+	const normalized = value.trim();
+	return normalized ? normalized : undefined;
+}
+
+function buildApprovedNodeInput(params: {
+	suggestedContent: string;
+	suggestedType: AvailableNodeTypes;
+	nodePayload?: SuggestionNodePayload | null;
+}): {
+	content: string;
+	nodeType: AvailableNodeTypes;
+	data: Partial<NodeData>;
+} {
+		switch (params.suggestedType) {
+			case 'taskNode':
+				if (params.nodePayload?.taskTexts?.length) {
+					return {
+						content: '',
+						nodeType: 'taskNode',
+						data: {
+							metadata: {
+								title: normalizeOptionalString(params.nodePayload.title),
+								status: 'pending',
+								tasks: params.nodePayload.taskTexts.map((task) => ({
+									id: generateUuid(),
+									text: task,
+									isComplete: false,
+								})),
+						},
+					},
+				};
+			}
+			break;
+
+		case 'questionNode':
+			return {
+				content: params.suggestedContent,
+				nodeType: 'questionNode',
+				data: {
+					metadata: {
+						answer: normalizeOptionalString(params.nodePayload?.answer),
+						questionType: params.nodePayload?.questionType ?? undefined,
+					},
+				},
+			};
+
+		case 'annotationNode':
+			return {
+				content: params.suggestedContent,
+				nodeType: 'annotationNode',
+				data: {
+					metadata: {
+						annotationType: params.nodePayload?.annotationType ?? 'note',
+					},
+				},
+			};
+
+		case 'codeNode':
+			return {
+				content: params.suggestedContent,
+				nodeType: 'codeNode',
+				data: {
+					metadata: {
+						language:
+							normalizeOptionalString(params.nodePayload?.language) ??
+							'plaintext',
+						fileName: normalizeOptionalString(params.nodePayload?.fileName),
+					},
+				},
+			};
+
+		case 'textNode':
+			return {
+				content: params.suggestedContent,
+				nodeType: 'textNode',
+				data: {},
+			};
+
+		case 'defaultNode':
+		default:
+			return {
+				content: params.suggestedContent,
+				nodeType: params.suggestedType,
+				data: {},
+			};
+	}
+
+	return {
+		content: params.suggestedContent,
+		nodeType: params.suggestedType,
+		data: {},
+	};
+}
+
+function hasWindow() {
+	return (
+		typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
+	);
+}
+
+function getSuggestionNoveltyStorageKey(mapId: string | null | undefined) {
+	if (!mapId) {
+		return null;
+	}
+
+	return `${SUGGESTION_NOVELTY_STORAGE_KEY_PREFIX}:${mapId}`;
+}
+
+function isSuggestionLens(value: unknown): value is SuggestionLens {
+	return (
+		typeof value === 'string' &&
+		SUGGESTION_EXPLORATION_LENSES.includes(value as SuggestionLens)
+	);
+}
+
+function normalizeSuggestionText(value: string | null | undefined) {
+	if (typeof value !== 'string') {
+		return '';
+	}
+
+	return value
+		.toLowerCase()
+		.replace(/[^\p{L}\p{N}\s]+/gu, ' ')
+		.replace(/\s+/g, ' ')
+		.trim();
+}
+
+function shuffleSuggestionLenses(
+	lenses: readonly SuggestionLens[]
+): SuggestionLens[] {
+	const next = [...lenses];
+
+	for (let index = next.length - 1; index > 0; index -= 1) {
+		const swapIndex = Math.floor(Math.random() * (index + 1));
+		[next[index], next[swapIndex]] = [next[swapIndex], next[index]];
+	}
+
+	return next;
+}
+
+function trimSuggestionHistory(
+	recentSuggestions: SuggestionHistoryEntry[]
+): SuggestionHistoryEntry[] {
+	return recentSuggestions.slice(-MAX_STORED_RECENT_SUGGESTIONS);
+}
+
+function normalizeSuggestionHistoryEntry(
+	entry: SuggestionHistoryEntry
+): SuggestionHistoryEntry | null {
+	const content = entry.content.trim();
+	if (!content) {
+		return null;
+	}
+
+	return {
+		content,
+		sourceNodeId:
+			typeof entry.sourceNodeId === 'string' && entry.sourceNodeId.length > 0
+				? entry.sourceNodeId
+				: null,
+		trigger: entry.trigger,
+		timestamp:
+			typeof entry.timestamp === 'string' && entry.timestamp.length > 0
+				? entry.timestamp
+				: new Date().toISOString(),
+	};
+}
+
+function mergeSuggestionHistory(
+	recentSuggestions: SuggestionHistoryEntry[],
+	incomingEntries: SuggestionHistoryEntry[]
+): SuggestionHistoryEntry[] {
+	const merged = [...recentSuggestions];
+
+	for (const incomingEntry of incomingEntries) {
+		const normalizedEntry = normalizeSuggestionHistoryEntry(incomingEntry);
+		if (!normalizedEntry) {
+			continue;
+		}
+
+		const normalizedContent = normalizeSuggestionText(normalizedEntry.content);
+		const existingIndex = merged.findIndex((entry) => {
+			return (
+				entry.sourceNodeId === normalizedEntry.sourceNodeId &&
+				normalizeSuggestionText(entry.content) === normalizedContent
+			);
+		});
+
+		if (existingIndex !== -1) {
+			merged.splice(existingIndex, 1);
+		}
+
+		merged.push(normalizedEntry);
+	}
+
+	return trimSuggestionHistory(merged);
+}
+
+function getDefaultSuggestionNoveltyState(): SuggestionNoveltyState {
+	return {
+		recentSuggestions: [],
+		lensOrder: shuffleSuggestionLenses(SUGGESTION_EXPLORATION_LENSES),
+		lensIndex: 0,
+		clickCount: 0,
+	};
+}
+
+function readSuggestionNoveltyState(
+	mapId: string | null | undefined
+): SuggestionNoveltyState {
+	if (!hasWindow()) {
+		return getDefaultSuggestionNoveltyState();
+	}
+
+	const storageKey = getSuggestionNoveltyStorageKey(mapId);
+	if (!storageKey) {
+		return getDefaultSuggestionNoveltyState();
+	}
+
+	try {
+		const storedValue = window.localStorage.getItem(storageKey);
+		if (!storedValue) {
+			return getDefaultSuggestionNoveltyState();
+		}
+
+		const parsed = JSON.parse(storedValue) as Partial<SuggestionNoveltyState>;
+		const lensOrder = Array.isArray(parsed.lensOrder)
+			? parsed.lensOrder.filter(isSuggestionLens)
+			: [];
+
+		return {
+			recentSuggestions: trimSuggestionHistory(
+				Array.isArray(parsed.recentSuggestions)
+					? parsed.recentSuggestions.flatMap((entry) => {
+							if (
+								!entry ||
+								typeof entry !== 'object' ||
+								typeof (entry as SuggestionHistoryEntry).content !== 'string'
+							) {
+								return [];
+							}
+
+							const trigger = (entry as SuggestionHistoryEntry).trigger;
+							if (
+								trigger !== 'magic-wand' &&
+								trigger !== 'dangling-edge' &&
+								trigger !== 'auto'
+							) {
+								return [];
+							}
+
+							const normalized = normalizeSuggestionHistoryEntry({
+								content: (entry as SuggestionHistoryEntry).content,
+								sourceNodeId:
+									(entry as SuggestionHistoryEntry).sourceNodeId ?? null,
+								trigger,
+								timestamp:
+									(entry as SuggestionHistoryEntry).timestamp ??
+									new Date().toISOString(),
+							});
+
+							return normalized ? [normalized] : [];
+						})
+					: []
+			),
+			lensOrder:
+				lensOrder.length === SUGGESTION_EXPLORATION_LENSES.length
+					? lensOrder
+					: shuffleSuggestionLenses(SUGGESTION_EXPLORATION_LENSES),
+			lensIndex:
+				typeof parsed.lensIndex === 'number' && parsed.lensIndex >= 0
+					? Math.floor(parsed.lensIndex)
+					: 0,
+			clickCount:
+				typeof parsed.clickCount === 'number' && parsed.clickCount >= 0
+					? Math.floor(parsed.clickCount)
+					: 0,
+		};
+	} catch (error) {
+		console.warn(
+			'[suggestions-slice] failed to read suggestion novelty state',
+			{
+				mapId,
+				error,
+			}
+		);
+		return getDefaultSuggestionNoveltyState();
+	}
+}
+
+function writeSuggestionNoveltyState(
+	mapId: string | null | undefined,
+	state: SuggestionNoveltyState
+) {
+	if (!hasWindow()) {
+		return;
+	}
+
+	const storageKey = getSuggestionNoveltyStorageKey(mapId);
+	if (!storageKey) {
+		return;
+	}
+
+	try {
+		window.localStorage.setItem(
+			storageKey,
+			JSON.stringify({
+				recentSuggestions: trimSuggestionHistory(state.recentSuggestions),
+				lensOrder: state.lensOrder,
+				lensIndex: state.lensIndex,
+				clickCount: state.clickCount,
+			})
+		);
+	} catch (error) {
+		console.warn(
+			'[suggestions-slice] failed to persist suggestion novelty state',
+			{
+				mapId,
+				error,
+			}
+		);
+	}
+}
+
+function mergeGhostNodesIntoNoveltyState(
+	state: SuggestionNoveltyState,
+	ghostNodes: AppNode[]
+): SuggestionNoveltyState {
+	const ghostHistoryEntries = ghostNodes.flatMap((ghostNode) => {
+		const metadata = ghostNode.data.metadata;
+		const context = metadata?.context;
+		const content =
+			typeof metadata?.suggestedContent === 'string'
+				? metadata.suggestedContent
+				: ghostNode.data.content;
+
+		if (typeof content !== 'string' || content.trim().length === 0) {
+			return [];
+		}
+
+		const trigger = context?.trigger;
+		const normalizedTrigger: SuggestionTrigger =
+			trigger === 'magic-wand' ||
+			trigger === 'dangling-edge' ||
+			trigger === 'auto'
+				? trigger
+				: 'magic-wand';
+
+		return [
+			{
+				content,
+				sourceNodeId:
+					typeof context?.sourceNodeId === 'string'
+						? context.sourceNodeId
+						: null,
+				trigger: normalizedTrigger,
+				timestamp: ghostNode.data.updated_at ?? new Date().toISOString(),
+			},
+		];
+	});
+
+	if (ghostHistoryEntries.length === 0) {
+		return state;
+	}
+
+	return {
+		...state,
+		recentSuggestions: mergeSuggestionHistory(
+			state.recentSuggestions,
+			ghostHistoryEntries
+		),
+	};
+}
+
+function advanceSuggestionLenses(state: SuggestionNoveltyState) {
+	let lensOrder =
+		state.lensOrder.length === SUGGESTION_EXPLORATION_LENSES.length
+			? [...state.lensOrder]
+			: shuffleSuggestionLenses(SUGGESTION_EXPLORATION_LENSES);
+	let lensIndex = Math.max(0, Math.floor(state.lensIndex));
+	const selectedLenses: SuggestionLens[] = [];
+
+	while (selectedLenses.length < SUGGESTION_LENSES_PER_REQUEST) {
+		if (lensIndex >= lensOrder.length) {
+			lensOrder = shuffleSuggestionLenses(SUGGESTION_EXPLORATION_LENSES);
+			lensIndex = 0;
+		}
+
+		selectedLenses.push(lensOrder[lensIndex]);
+		lensIndex += 1;
+	}
+
+	return {
+		selectedLenses,
+		lensOrder,
+		lensIndex,
+	};
+}
+
+function createSuggestionRequestNonce() {
+	if (
+		typeof crypto !== 'undefined' &&
+		typeof crypto.randomUUID === 'function'
+	) {
+		return crypto.randomUUID();
+	}
+
+	return `req_${Date.now()}_${Math.round(Math.random() * 1_000_000)}`;
+}
+
+function getNodeRenderedHeight(node: AppNode): number {
+	return node.height ?? node.measured?.height ?? node.data.height ?? 0;
+}
+
+function getViewportSuggestionCenter(
+	reactFlowInstance: AppState['reactFlowInstance']
+) {
+	if (!reactFlowInstance || typeof window === 'undefined') {
+		return { x: 0, y: 0 };
+	}
+
+	return reactFlowInstance.screenToFlowPosition({
+		x: window.innerWidth / 2,
+		y: window.innerHeight / 2,
+	});
+}
+
+function getUnanchoredSuggestionPosition(
+	center: { x: number; y: number },
+	index: number
+) {
+	if (index === 0) {
+		return center;
+	}
+
+	const pairIndex = index - 1;
+	const row = Math.floor(pairIndex / 2);
+	const direction = pairIndex % 2 === 0 ? 1 : -1;
+
+	return {
+		x: center.x + direction * (row + 1) * UNANCHORED_SUGGESTION_X_OFFSET,
+		y: center.y + row * UNANCHORED_SUGGESTION_Y_OFFSET,
+	};
+}
+
+export function getStreamedSuggestionPlacement(params: {
+	nodes: AppNode[];
+	suggestionContext: SuggestionContext;
+	reactFlowInstance: AppState['reactFlowInstance'];
+	anchorSuggestionCounts: Map<string, number>;
+}) {
+	const {
+		nodes,
+		suggestionContext,
+		reactFlowInstance,
+		anchorSuggestionCounts,
+	} = params;
+
+	const nodesById = new Map(nodes.map((node) => [node.id, node]));
+	const returnedAnchorNodeId =
+		typeof suggestionContext.sourceNodeId === 'string'
+			? suggestionContext.sourceNodeId
+			: null;
+	const resolvedAnchorNodeId = returnedAnchorNodeId
+		? (nodesById.get(returnedAnchorNodeId)?.id ?? null)
+		: null;
+
+	const bucketKey = resolvedAnchorNodeId ?? VIEWPORT_SUGGESTION_BUCKET;
+	const bucketIndex = anchorSuggestionCounts.get(bucketKey) ?? 0;
+	anchorSuggestionCounts.set(bucketKey, bucketIndex + 1);
+
+	if (resolvedAnchorNodeId) {
+		const anchorNode = nodesById.get(resolvedAnchorNodeId);
+
+		if (anchorNode) {
+			return {
+				resolvedAnchorNodeId,
+				position: {
+					x: anchorNode.position.x + bucketIndex * ANCHORED_SUGGESTION_X_OFFSET,
+					y:
+						anchorNode.position.y +
+						getNodeRenderedHeight(anchorNode) +
+						ANCHORED_SUGGESTION_Y_OFFSET,
+				},
+			};
+		}
+	}
+
+	return {
+		resolvedAnchorNodeId: null,
+		position: getUnanchoredSuggestionPosition(
+			getViewportSuggestionCenter(reactFlowInstance),
+			bucketIndex
+		),
+	};
 }
 
 export interface SuggestionsSlice {
@@ -70,7 +750,7 @@ export interface SuggestionsSlice {
 		api: string,
 		body: Record<string, unknown>,
 		onStreamChunk: (chunk: any) => void
-	) => void;
+	) => boolean;
 	finishStream: (streamId: string) => void;
 	abortStream: (reason: string) => void;
 	stopStream: () => void;
@@ -128,6 +808,7 @@ export const createSuggestionsSlice: StateCreator<
 			id: ghostId,
 			type: 'ghostNode',
 			position: suggestion.position,
+			zIndex: AI_GHOST_NODE_Z_INDEX,
 			data: {
 				id: ghostId,
 				map_id: mapId || '',
@@ -145,6 +826,7 @@ export const createSuggestionsSlice: StateCreator<
 				metadata: {
 					suggestedContent: suggestion.content,
 					suggestedType: suggestion.nodeType,
+					nodePayload: suggestion.nodePayload,
 					confidence: suggestion.confidence,
 					context: suggestion.context,
 					sourceNodeName: suggestion.sourceNodeName,
@@ -242,6 +924,13 @@ export const createSuggestionsSlice: StateCreator<
 		}
 
 		const ghostMetadata = ghostNode.data.metadata;
+		const approvedNodeId = generateUuid();
+		const approvedNodeInput = buildApprovedNodeInput({
+			suggestedContent:
+				ghostMetadata.suggestedContent ?? ghostNode.data.content ?? '',
+			suggestedType: ghostMetadata.suggestedType as AvailableNodeTypes,
+			nodePayload: ghostMetadata.nodePayload,
+		});
 
 		// Clean up any pending animations for edges connected to this ghost node
 		const edges = state.edges.filter(
@@ -257,10 +946,11 @@ export const createSuggestionsSlice: StateCreator<
 		// Add the new node to the main nodes array using the proper method signature
 		await state.addNode({
 			parentNode: null,
-			content: ghostMetadata.suggestedContent,
-			nodeType: ghostMetadata.suggestedType as AvailableNodeTypes,
+			nodeId: approvedNodeId,
+			content: approvedNodeInput.content,
+			nodeType: approvedNodeInput.nodeType,
 			position: { x: ghostNode.position.x, y: ghostNode.position.y },
-			data: {},
+			data: approvedNodeInput.data,
 		});
 
 		// Remove the ghost node
@@ -268,26 +958,10 @@ export const createSuggestionsSlice: StateCreator<
 
 		// If there's a connection context, create the edge
 		if (ghostMetadata.context?.sourceNodeId) {
-			// Find the newly created node to get its actual ID
-			const newlyCreatedNode = state.nodes.find(
-				(node) =>
-					node.data.content === ghostMetadata.suggestedContent &&
-					node.position.x === ghostNode.position.x &&
-					node.position.y === ghostNode.position.y
-			);
-
-			if (newlyCreatedNode) {
-				await state.addEdge(
-					ghostMetadata.context.sourceNodeId,
-					newlyCreatedNode.id,
-					{
-						label: ghostMetadata.context.relationshipType || null,
-						edge_type: 'default',
-						animated: false,
-						marker_end: 'arrowclosed',
-					}
-				);
-			}
+			await state.addEdge(ghostMetadata.context.sourceNodeId, approvedNodeId, {
+				label: ghostMetadata.context.relationshipType || null,
+				animated: false,
+			});
 		}
 	},
 
@@ -313,15 +987,17 @@ export const createSuggestionsSlice: StateCreator<
 		const {
 			nodes,
 			edges,
+			ghostNodes,
 			mapId,
+			mindMap,
 			addGhostNode,
 			clearGhostNodes,
 			triggerStream,
 			showStreamingToast,
 			updateStreamingToast,
 			setStreamingToastError,
-			hideStreamingToast,
 			setStreamSteps,
+			reactFlowInstance,
 		} = get();
 
 		set({
@@ -329,17 +1005,43 @@ export const createSuggestionsSlice: StateCreator<
 		});
 
 		try {
+			const noveltyState = mergeGhostNodesIntoNoveltyState(
+				readSuggestionNoveltyState(mapId),
+				ghostNodes
+			);
+			const { selectedLenses, lensOrder, lensIndex } =
+				advanceSuggestionLenses(noveltyState);
+			const nextNoveltyState: SuggestionNoveltyState = {
+				...noveltyState,
+				lensOrder,
+				lensIndex,
+				clickCount: noveltyState.clickCount + 1,
+			};
+			writeSuggestionNoveltyState(mapId, nextNoveltyState);
+
 			const suggestionContext = {
-				nodes: nodes,
-				edges: edges,
-				mapId: mapId,
+				nodes,
+				edges,
+				mapId,
+				mapMeta: mindMap
+					? {
+							title: mindMap.title,
+							description: mindMap.description,
+						}
+					: undefined,
 				context,
+				recentSuggestions: nextNoveltyState.recentSuggestions.slice(
+					-MAX_SENT_RECENT_SUGGESTIONS
+				),
+				selectedLenses,
+				clickIndex: nextNoveltyState.clickCount,
+				requestNonce: createSuggestionRequestNonce(),
 			};
 
 			// Clear any existing ghost nodes before generating new suggestions
 			clearGhostNodes();
 
-			const sourceNode = nodes.find((node) => node.id === context.sourceNodeId);
+			const anchorSuggestionCounts = new Map<string, number>();
 
 			// Define the specific chunk handler for THIS process
 			const handleChunk = (chunk: any) => {
@@ -365,18 +1067,34 @@ export const createSuggestionsSlice: StateCreator<
 					case 'data-node-suggestion':
 						if (chunk.data) {
 							const suggestionChunk = chunk.data;
+							const placement = getStreamedSuggestionPlacement({
+								nodes,
+								suggestionContext: suggestionChunk.context,
+								reactFlowInstance,
+								anchorSuggestionCounts,
+							});
+							const historyEntry: SuggestionHistoryEntry = {
+								content: suggestionChunk.content,
+								sourceNodeId: placement.resolvedAnchorNodeId,
+								trigger: suggestionChunk.context?.trigger ?? context.trigger,
+								timestamp: new Date().toISOString(),
+							};
+							const recentSuggestions = mergeSuggestionHistory(
+								nextNoveltyState.recentSuggestions,
+								[historyEntry]
+							);
+							nextNoveltyState.recentSuggestions = recentSuggestions;
+							writeSuggestionNoveltyState(mapId, {
+								...nextNoveltyState,
+								recentSuggestions,
+							});
 							addGhostNode({
 								...suggestionChunk,
-								position: {
-									x:
-										(sourceNode?.position.x ?? 0) +
-										(suggestionChunk.index || 0) * 300 +
-										(suggestionChunk.index || 0) * 25,
-									y:
-										(sourceNode?.position.y ?? 0) +
-										(sourceNode?.height ?? sourceNode?.data.height ?? 0) +
-										50,
+								context: {
+									...suggestionChunk.context,
+									sourceNodeId: placement.resolvedAnchorNodeId,
 								},
+								position: placement.position,
 							});
 						}
 
@@ -414,11 +1132,9 @@ export const createSuggestionsSlice: StateCreator<
 		const {
 			mapId,
 			triggerStream,
-			clearGhostNodes,
 			showStreamingToast,
 			updateStreamingToast,
 			setStreamingToastError,
-			hideStreamingToast,
 			addConnectionSuggestion,
 			setStreamSteps,
 		} = get();
@@ -474,18 +1190,24 @@ export const createSuggestionsSlice: StateCreator<
 			}
 		};
 
-		// 2. Clear previous suggestions and show the initial toast
-		clearGhostNodes();
-		showStreamingToast(
-			sourceNodeId ? 'Finding Node Connections' : 'Suggesting Connections'
-		);
-
-		// 3. Trigger the generic stream mediator.
+		// Trigger the generic stream mediator.
 		// Pass sourceNodeId in the body for potential API-side filtering
-		triggerStream(
+		const streamStarted = triggerStream(
 			'/api/ai/suggest-connections', // The API endpoint to call
 			{ mapId, sourceNodeId }, // The body for the request
 			handleChunk // The specific callback to process the stream data
+		);
+		if (!streamStarted) {
+			return;
+		}
+
+		// Replace stale AI connection suggestions only after stream start is accepted.
+		set((state) => ({
+			edges: removeSuggestedEdges(state.edges, AI_CONNECTION_EDGE_TYPE),
+		}));
+
+		showStreamingToast(
+			sourceNodeId ? 'Finding Node Connections' : 'Suggesting Connections'
 		);
 	},
 
@@ -499,15 +1221,20 @@ export const createSuggestionsSlice: StateCreator<
 		}
 
 		const connectionId = generateUuid();
+		const originalSourceNodeId =
+			edge.data?.aiData?.connectionProxy?.originalSourceNodeId ?? edge.source;
+		const originalTargetNodeId =
+			edge.data?.aiData?.connectionProxy?.originalTargetNodeId ?? edge.target;
 
 		try {
 			// Convert suggestion to regular edge
-			await addEdge(edge.source, edge.target, {
+			await addEdge(originalSourceNodeId, originalTargetNodeId, {
 				...edge.data,
 				id: connectionId,
 				aiData: {
 					...edge.data.aiData,
 					isSuggested: false,
+					connectionProxy: null,
 				},
 				style: {
 					...edge.data.style,
@@ -533,15 +1260,39 @@ export const createSuggestionsSlice: StateCreator<
 	},
 
 	addConnectionSuggestion: (suggestion: AiConnectionSuggestion) => {
-		const { edges, mapId } = get();
-		const { sourceNodeId, targetNodeId, reason, label } = suggestion;
+		const { edges, nodes, mapId } = get();
+		const { reason, label, confidence, metadata, extendedReason } = suggestion;
+		const placement = resolveConnectionSuggestionPlacement({
+			suggestion,
+			nodes,
+			edges,
+			visibleNodes: get().getVisibleNodes(),
+		});
+		if (!placement) {
+			console.warn(
+				'[suggestions-slice] Failed to resolve visible proxy for connection suggestion, skipping',
+				{
+					sourceNodeId: suggestion.sourceNodeId,
+					targetNodeId: suggestion.targetNodeId,
+				}
+			);
+			return;
+		}
+		const {
+			originalSourceNodeId,
+			originalTargetNodeId,
+			displaySourceNodeId,
+			displayTargetNodeId,
+			sourceHiddenChildLabel,
+			targetHiddenChildLabel,
+		} = placement;
 
-		// Check if suggestion already exists
+		// Check if suggestion already exists (dedupe by original pair).
 		const existingEdge = edges.find(
-			(e) =>
-				e.source === sourceNodeId &&
-				e.target === targetNodeId &&
-				e.data?.aiData?.isSuggested
+			(edge) =>
+				edge.data?.aiData?.isSuggested === true &&
+				getOriginalConnectionPair(edge).sourceNodeId === originalSourceNodeId &&
+				getOriginalConnectionPair(edge).targetNodeId === originalTargetNodeId
 		);
 
 		if (existingEdge) {
@@ -549,12 +1300,15 @@ export const createSuggestionsSlice: StateCreator<
 			return;
 		}
 
+		const edgeId = `suggestion-${originalSourceNodeId}-${originalTargetNodeId}-${Date.now()}`;
+
 		// Create suggestion edge
 		const suggestionEdge: AppEdge = {
-			id: `suggestion-${sourceNodeId}-${targetNodeId}-${Date.now()}`,
-			source: sourceNodeId,
-			target: targetNodeId,
+			id: edgeId,
+			source: displaySourceNodeId,
+			target: displayTargetNodeId,
 			type: 'suggestedConnection',
+			zIndex: AI_SUGGESTION_EDGE_Z_INDEX,
 			animated: false,
 			label: label,
 			style: {
@@ -563,11 +1317,11 @@ export const createSuggestionsSlice: StateCreator<
 			},
 			markerEnd: 'arrowclosed',
 			data: {
-				id: `suggestion-${sourceNodeId}-${targetNodeId}-${Date.now()}`,
+				id: edgeId,
 				map_id: mapId || '',
 				user_id: 'system', // AI suggestions are system-generated
-				source: sourceNodeId,
-				target: targetNodeId,
+				source: displaySourceNodeId,
+				target: displayTargetNodeId,
 				type: 'suggestedConnection',
 				label: label,
 				created_at: new Date().toISOString(),
@@ -583,7 +1337,20 @@ export const createSuggestionsSlice: StateCreator<
 				},
 				aiData: {
 					isSuggested: true,
-					reason: reason || 'AI suggested connection',
+					suggestion: {
+						reason: reason || 'AI suggested connection',
+						extendedReason: extendedReason || '',
+						confidence: confidence,
+						contextualRelevance: metadata.contextualRelevance,
+					},
+					connectionProxy: {
+						originalSourceNodeId,
+						originalTargetNodeId,
+						displaySourceNodeId,
+						displayTargetNodeId,
+						sourceHiddenChildLabel,
+						targetHiddenChildLabel,
+					},
 				},
 			},
 		};
@@ -715,11 +1482,12 @@ export const createSuggestionsSlice: StateCreator<
 						}
 
 						const edgeId = `merge-suggestion-${suggestion.node1Id}-${suggestion.node2Id}`;
-						const newEdge = {
+						const newEdge: AppEdge = {
 							id: edgeId,
 							source: suggestion.node1Id,
 							target: suggestion.node2Id,
 							type: 'suggestedMerge', // This matches the key in edgeTypes
+							zIndex: AI_SUGGESTION_EDGE_Z_INDEX,
 							animated: true,
 							label: null, // Label is handled inside the component
 							data: {
@@ -740,7 +1508,6 @@ export const createSuggestionsSlice: StateCreator<
 								},
 								metadata: {
 									pathType: 'smoothstep' as const,
-									interactionMode: 'both' as const,
 								},
 								aiData: {
 									isSuggested: true,
@@ -768,16 +1535,23 @@ export const createSuggestionsSlice: StateCreator<
 				}
 			};
 
-			// Show the initial toast
-			showStreamingToast(
-				sourceNodeId ? 'Finding Similar Nodes' : 'Suggesting Node Merges'
-			);
-
 			// Pass sourceNodeId in the body for potential API-side filtering
-			triggerStream(
+			const streamStarted = triggerStream(
 				'/api/ai/suggest-merges', // Ensure you create this endpoint
 				{ mapId, sourceNodeId },
 				handleChunk
+			);
+			if (!streamStarted) {
+				return;
+			}
+
+			set((state) => ({
+				edges: removeSuggestedEdges(state.edges, AI_MERGE_EDGE_TYPE),
+				mergeSuggestions: [],
+			}));
+
+			showStreamingToast(
+				sourceNodeId ? 'Finding Similar Nodes' : 'Suggesting Node Merges'
 			);
 		} catch (error) {
 			const errorMessage =
@@ -796,13 +1570,7 @@ export const createSuggestionsSlice: StateCreator<
 	},
 
 	acceptMerge: async (suggestion) => {
-		const {
-			nodes,
-			edges,
-			updateNode,
-			deleteNodes,
-			deleteEdges,
-		} = get();
+		const { nodes, edges, updateNode, deleteNodes, deleteEdges } = get();
 
 		const nodeToKeep = nodes.find((n) => n.id === suggestion.node1Id);
 		const nodeToRemove = nodes.find((n) => n.id === suggestion.node2Id);
@@ -856,13 +1624,14 @@ export const createSuggestionsSlice: StateCreator<
 		const { isStreaming, canTriggerSuggestion } = get();
 
 		if (isStreaming === true) {
-			return;
+			return false;
 		}
 
 		// Check throttling (except for manual triggers)
-		const isSuggestionAPI = api.includes('/suggestions') || api.includes('/suggest-');
+		const isSuggestionAPI =
+			api.includes('/suggestions') || api.includes('/suggest-');
 		if (isSuggestionAPI && !canTriggerSuggestion()) {
-			return;
+			return false;
 		}
 
 		const streamId = `stream_${Date.now()}`;
@@ -879,6 +1648,7 @@ export const createSuggestionsSlice: StateCreator<
 			streamingAPI: api,
 			lastTriggerTime: Date.now(), // Update trigger time
 		});
+		return true;
 	},
 
 	finishStream: () => {

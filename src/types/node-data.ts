@@ -1,5 +1,8 @@
 import { AvailableNodeTypes } from '@/registry/node-registry';
-import { SuggestionContext } from './ghost-node';
+import type {
+	SuggestionContext,
+	SuggestionNodePayload,
+} from './ghost-node';
 
 export interface NodeData extends Record<string, unknown> {
 	// ==========================================
@@ -150,6 +153,7 @@ export interface NodeData extends Record<string, unknown> {
 		// ------------------------------------------
 		suggestedContent?: string;
 		suggestedType?: AvailableNodeTypes;
+		nodePayload?: SuggestionNodePayload | null;
 		context?: SuggestionContext;
 		sourceNodeName?: string; // Name of the node that triggered this suggestion
 	} | null;

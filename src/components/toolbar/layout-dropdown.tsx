@@ -138,7 +138,7 @@ export function LayoutDropdown({ disabled = false }: LayoutDropdownProps) {
 						aria-label='Auto Layout'
 						size='icon'
 						title='Auto Layout'
-						variant='secondary'
+						variant='outline'
 						disabled={disabled || isLayouting}
 					>
 						{isLayouting ? (

@@ -340,7 +340,7 @@ export function ExportDropdown({ disabled = false }: ExportDropdownProps) {
 						aria-label='Export Mind Map'
 						size='icon'
 						title='Export Mind Map'
-						variant='secondary'
+						variant='outline'
 						disabled={disabled || isExporting}
 					>
 						{isExporting ? (

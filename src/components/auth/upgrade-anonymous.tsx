@@ -236,7 +236,7 @@ function ChooseMethodStep({
 
 			{/* Email Button */}
 			<Button
-				variant='secondary'
+				variant='outline'
 				size='lg'
 				className='w-full justify-center gap-2 h-12'
 				onClick={onSelectEmail}
@@ -351,7 +351,7 @@ function EnterEmailStep({
 				</Button>
 				<Button
 					type='submit'
-					variant='default'
+					variant='normal'
 					size='lg'
 					className='flex-1'
 					disabled={isLoading}
@@ -494,7 +494,7 @@ function VerifyOtpStep({
 				</Button>
 				<Button
 					type='submit'
-					variant='default'
+					variant='normal'
 					size='lg'
 					className='flex-1'
 					disabled={isLoading}
@@ -629,7 +629,7 @@ function SetPasswordStep({
 				</Button>
 				<Button
 					type='submit'
-					variant='default'
+					variant='normal'
 					size='lg'
 					className='flex-1'
 					disabled={isLoading}
@@ -680,7 +680,7 @@ function SuccessStep({ onClose }: { onClose: () => void }) {
 			</p>
 
 			<Button
-				variant='default'
+				variant='normal'
 				size='lg'
 				className='w-full max-w-xs mx-auto'
 				onClick={handleClose}
@@ -919,7 +919,7 @@ export function UpgradeAnonymousPrompt({
 							{upgradeError || 'An unexpected error occurred'}
 						</p>
 						<Button
-							variant='secondary'
+							variant='outline'
 							size='lg'
 							onClick={() => goToStep('choose_method', -1)}
 						>

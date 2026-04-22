@@ -285,7 +285,7 @@ export function RoomCodeDisplay({
 							<div className='flex items-center gap-1.5'>
 								{token.permissions.can_view && (
 									<Badge
-										variant='secondary'
+										variant='outline'
 										className='text-[10px] px-1.5 py-0 h-5 bg-zinc-700/50'
 									>
 										View
@@ -293,7 +293,7 @@ export function RoomCodeDisplay({
 								)}
 								{token.permissions.can_comment && (
 									<Badge
-										variant='secondary'
+										variant='outline'
 										className='text-[10px] px-1.5 py-0 h-5 bg-zinc-700/50'
 									>
 										Comment
@@ -301,7 +301,7 @@ export function RoomCodeDisplay({
 								)}
 								{token.permissions.can_edit && (
 									<Badge
-										variant='secondary'
+										variant='outline'
 										className='text-[10px] px-1.5 py-0 h-5 bg-zinc-700/50'
 									>
 										Edit

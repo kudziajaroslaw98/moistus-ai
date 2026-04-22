@@ -194,7 +194,7 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 						onClick={handleSend}
 						disabled={!canSend}
 						size='icon-sm'
-						variant={canSend ? 'default' : 'secondary'}
+						variant={canSend ? 'normal' : 'outline'}
 						className={cn(
 							'shrink-0 transition-all duration-200',
 							canSend && 'bg-primary-500 hover:bg-primary-600'

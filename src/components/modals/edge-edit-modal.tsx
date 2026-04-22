@@ -176,7 +176,7 @@ export default function EdgeEditModal() {
 									<Button
 										onClick={() => setColor(undefined)}
 										size='icon'
-										variant='secondary'
+										variant='outline'
 									>
 										<SquareX className='size-4' />
 									</Button>
@@ -213,7 +213,7 @@ export default function EdgeEditModal() {
 									<Button
 										onClick={() => setStrokeWidth(undefined)}
 										size='icon'
-										variant='secondary'
+										variant='outline'
 									>
 										<SquareX className='size-4' />
 									</Button>

@@ -1133,8 +1133,7 @@ export function SettingsPanel({
 													size='sm'
 													variant={
 														formData.preferences.reducedMotion
-															? 'default'
-															: 'outline'
+															? 'normal' : 'outline'
 													}
 												>
 													{formData.preferences.reducedMotion ? 'On' : 'Off'}
@@ -1184,8 +1183,7 @@ export function SettingsPanel({
 													size='sm'
 													variant={
 														formData.preferences.notifications.email
-															? 'default'
-															: 'outline'
+															? 'normal' : 'outline'
 													}
 												>
 													{formData.preferences.notifications.email
@@ -1247,8 +1245,7 @@ export function SettingsPanel({
 													size='sm'
 													variant={
 														formData.preferences.notifications.push
-															? 'default'
-															: 'outline'
+															? 'normal' : 'outline'
 													}
 												>
 													{formData.preferences.notifications.push ? 'On' : 'Off'}
@@ -1278,8 +1275,7 @@ export function SettingsPanel({
 													size='sm'
 													variant={
 														formData.preferences.notifications.push_mentions
-															? 'default'
-															: 'outline'
+															? 'normal' : 'outline'
 													}
 												>
 													Mentions
@@ -1307,8 +1303,7 @@ export function SettingsPanel({
 													size='sm'
 													variant={
 														formData.preferences.notifications.push_comments
-															? 'default'
-															: 'outline'
+															? 'normal' : 'outline'
 													}
 												>
 													Comments
@@ -1336,8 +1331,7 @@ export function SettingsPanel({
 													size='sm'
 													variant={
 														formData.preferences.notifications.push_reactions
-															? 'default'
-															: 'outline'
+															? 'normal' : 'outline'
 													}
 												>
 													Reactions
@@ -1359,37 +1353,34 @@ export function SettingsPanel({
 													) : null}
 												</div>
 												<div className='flex flex-wrap gap-2'>
-													<Badge
-														variant={
-															backgroundSyncStatus?.capabilities.oneOffSupported
-																? 'default'
-																: 'outline'
-														}
-													>
+														<Badge
+															variant={
+																backgroundSyncStatus?.capabilities.oneOffSupported
+																	? 'default' : 'outline'
+															}
+														>
 														One-off replay{' '}
 														{backgroundSyncStatus?.capabilities.oneOffSupported
 															? 'supported'
 															: 'unavailable'}
 													</Badge>
-													<Badge
-														variant={
-															backgroundSyncStatus?.capabilities.periodicSupported
-																? 'default'
-																: 'outline'
-														}
-													>
+														<Badge
+															variant={
+																backgroundSyncStatus?.capabilities.periodicSupported
+																	? 'default' : 'outline'
+															}
+														>
 														Periodic refresh{' '}
 														{backgroundSyncStatus?.capabilities.periodicSupported
 															? 'supported'
 															: 'unavailable'}
 													</Badge>
-													<Badge
-														variant={
-															backgroundSyncStatus?.capabilities.serviceWorkerEnabled
-																? 'default'
-																: 'outline'
-														}
-													>
+														<Badge
+															variant={
+																backgroundSyncStatus?.capabilities.serviceWorkerEnabled
+																	? 'default' : 'outline'
+															}
+														>
 														Service worker{' '}
 														{backgroundSyncStatus?.capabilities.serviceWorkerEnabled
 															? 'enabled'
@@ -1526,7 +1517,7 @@ export function SettingsPanel({
 													className='bg-error-600 hover:bg-error-700'
 													onClick={handleOpenDeleteDialog}
 													size='sm'
-													variant='destructive'
+													variant='normal' state='destructive'
 												>
 													<Trash2 className='mr-2 size-4' />
 													Delete
@@ -1836,7 +1827,7 @@ export function SettingsPanel({
 																disabled={isCanceling}
 																onClick={openCancelSubscriptionDialog}
 																size='sm'
-																variant='destructive'
+																variant='normal' state='destructive'
 															>
 																{isCanceling
 																	? 'Canceling...'

@@ -11,9 +11,9 @@ export function MindMapLoadingSkeleton({
 			data-testid='mind-map-loading-skeleton'
 		>
 			<div className='absolute inset-0 bg-base' />
-			<div className='absolute inset-0 [background-image:radial-gradient(circle,rgba(255,255,255,0.25)_1px,transparent_1px)] [background-size:16px_16px]' />
+			<div className='absolute inset-0 [background-image:radial-gradient(circle,rgba(255,255,255,0.25)_0.5px,transparent_0.5px)] [background-size:16px_16px]' />
 
-			<div className='absolute inset-x-0 top-0 z-10 h-12 border-b border-white/10 bg-base/80 px-4 backdrop-blur-xs md:h-14 md:px-8'>
+			<div className='absolute inset-x-0 top-0 z-10 h-10  bg-base/80 px-4 backdrop-blur-xs md:h-12 md:px-8'>
 				<div className='mx-auto flex h-full w-full items-center justify-between'>
 					<div className='flex items-center gap-2 md:gap-3'>
 						<div className='size-4 animate-pulse rounded-full bg-white/40' />

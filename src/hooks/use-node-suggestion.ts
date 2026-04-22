@@ -1,29 +1,62 @@
 'use client';
 
 import useAppStore from '@/store/mind-map-store';
-import { NodeRegistry, type AvailableNodeTypes } from '@/registry/node-registry';
+import type { AvailableNodeTypes } from '@/registry/node-registry';
 import type { SuggestionContext, NodeSuggestion } from '@/types/ghost-node';
 import { useCallback, useState } from 'react';
 import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 
+const suggestionRouteNodeTypes = [
+	'defaultNode',
+	'textNode',
+	'taskNode',
+	'questionNode',
+	'annotationNode',
+	'codeNode',
+] as const;
+
 // Schema for ghost node suggestion validation
-// Uses AI-suggestable types from registry
+// Mirrors the safe typed-node contract for /api/ai/suggestions
 const ghostNodeSuggestionSchema = z.object({
 	suggestions: z.array(
 		z.object({
 			id: z.string(),
 			content: z.string(),
-			nodeType: z.enum(NodeRegistry.getAISuggestableTypes() as [string, ...string[]]),
+			nodeType: z.enum(suggestionRouteNodeTypes),
+			nodePayload: z
+				.object({
+					title: z.string().nullable().optional(),
+					tasks: z.array(z.string()).nullable().optional(),
+					answer: z.string().nullable().optional(),
+					questionType: z.enum(['binary', 'multiple']).nullable().optional(),
+					annotationType: z
+						.enum([
+							'note',
+							'idea',
+							'quote',
+							'summary',
+							'warning',
+							'success',
+							'info',
+							'error',
+						])
+						.nullable()
+						.optional(),
+					language: z.string().nullable().optional(),
+					fileName: z.string().nullable().optional(),
+				})
+				.nullable()
+				.optional(),
 			confidence: z.number().min(0).max(1),
 			position: z.object({
 				x: z.number(),
 				y: z.number(),
 			}),
 			context: z.object({
-				sourceNodeId: z.string().optional(),
-				targetNodeId: z.string().optional(),
-				relationshipType: z.string().optional(),
+				sourceNodeId: z.string().nullable().optional(),
+				targetNodeId: z.string().nullable().optional(),
+				relationshipType: z.string().nullable().optional(),
 				trigger: z.enum(['magic-wand', 'dangling-edge', 'auto']),
 			}),
 			reasoning: z.string().optional(),

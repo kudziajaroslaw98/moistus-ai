@@ -1212,7 +1212,9 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				visited.add(currentNodeId);
 
 				const childEdges = edges.filter(
-					(edge) => edge.source === currentNodeId
+					(edge) =>
+						edge.source === currentNodeId &&
+						edge.data?.aiData?.isSuggested !== true
 				);
 
 				for (const edge of childEdges) {

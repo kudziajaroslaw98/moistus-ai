@@ -93,6 +93,25 @@ describe('AIActionsPopover', () => {
 		).not.toBeInTheDocument();
 	});
 
+	it('renders whole-map expansion and triggers suggestions without a source node', async () => {
+		const user = userEvent.setup();
+		const mockState = createMockStoreState();
+
+		mockUseAppStore.mockImplementation((selector) => selector(mockState));
+
+		render(<AIActionsPopover scope='map' onClose={jest.fn()} />);
+
+		const expandMapButton = screen.getByRole('button', {
+			name: /expand map/i,
+		});
+
+		await user.click(expandMapButton);
+
+		expect(mockState.generateSuggestions).toHaveBeenCalledWith({
+			trigger: 'magic-wand',
+		});
+	});
+
 	it('disables map actions while streaming', async () => {
 		const user = userEvent.setup();
 		const mockState = createMockStoreState({ isStreaming: true });
@@ -107,14 +126,20 @@ describe('AIActionsPopover', () => {
 		const findSimilarButton = screen.getByRole('button', {
 			name: /find similar/i,
 		});
+		const expandMapButton = screen.getByRole('button', {
+			name: /expand map/i,
+		});
 
 		expect(findConnectionsButton).toBeDisabled();
 		expect(findSimilarButton).toBeDisabled();
+		expect(expandMapButton).toBeDisabled();
 
 		await user.click(findConnectionsButton);
 		await user.click(findSimilarButton);
+		await user.click(expandMapButton);
 
 		expect(mockState.generateConnectionSuggestions).not.toHaveBeenCalled();
 		expect(mockState.generateMergeSuggestions).not.toHaveBeenCalled();
+		expect(mockState.generateSuggestions).not.toHaveBeenCalled();
 	});
 });

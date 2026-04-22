@@ -76,6 +76,37 @@ function normalizeEdgeForComparison(edge: AppEdge): Record<string, unknown> {
 	};
 }
 
+function normalizeEdgeLabelValue(label: unknown): string | null {
+	if (typeof label !== 'string') {
+		return null;
+	}
+
+	const trimmedLabel = label.trim();
+	return trimmedLabel.length > 0 ? trimmedLabel : null;
+}
+
+export function shouldInvalidateElkLabelLayout(
+	previousEdge: AppEdge | undefined,
+	data: Partial<EdgeData>
+): boolean {
+	if (!previousEdge) {
+		return false;
+	}
+
+	if (!Object.prototype.hasOwnProperty.call(data, 'label')) {
+		return false;
+	}
+
+	if (previousEdge.data?.metadata?.routingStyle !== 'elk') {
+		return false;
+	}
+
+	return (
+		normalizeEdgeLabelValue(previousEdge.data?.label ?? previousEdge.label) !==
+		normalizeEdgeLabelValue(data.label)
+	);
+}
+
 function hasMeaningfulEdgeDifference(
 	previous: AppEdge,
 	next: AppEdge
@@ -1012,6 +1043,13 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					edge.data.user_id.trim().length > 0
 						? edge.data.user_id
 						: user.id;
+				const mergedMetadata = {
+					...edge.data?.metadata,
+					...data.metadata,
+				};
+				if (shouldInvalidateElkLabelLayout(edge, data)) {
+					mergedMetadata.elkLabel = undefined;
+				}
 
 				const mergedData = {
 					...edge.data,
@@ -1024,10 +1062,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 						...edge.data?.style,
 						...data.style,
 					},
-					metadata: {
-						...edge.data?.metadata,
-						...data.metadata,
-					},
+					metadata: mergedMetadata,
 					aiData: {
 						...edge.data?.aiData,
 						...data.aiData,
@@ -1036,11 +1071,26 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 
 				// Determine edge type from merged data
 				const edgeType = getEdgeType(mergedData);
+				const mergedStyle = {
+					...edge.style,
+					...mergedData.style,
+					stroke:
+						mergedData.style?.stroke || edge.style?.stroke || '#6c757d',
+					strokeWidth:
+						mergedData.style?.strokeWidth ||
+						edge.style?.strokeWidth ||
+						2,
+				};
 
 				return {
 					...edge,
 					id: edgeId,
 					type: edgeType, // Update the React Flow edge type
+					label: mergedData.label ?? null,
+					animated: mergedData.animated ?? false,
+					style: mergedStyle,
+					markerEnd: mergedData.markerEnd,
+					markerStart: mergedData.markerStart,
 					data: mergedData,
 				};
 			}) as AppEdge[];

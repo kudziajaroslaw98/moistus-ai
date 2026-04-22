@@ -60,7 +60,20 @@ describe('rerouteAutoWaypointEdges', () => {
 	it('routes connected normal edges orthogonally in top-bottom maps', () => {
 		const result = rerouteAutoWaypointEdges({
 			nodes: [createNode('root', 0, 0), createNode('child', 220, 180)],
-			edges: [createEdge('edge-1', 'root', 'child')],
+			edges: [
+				createEdge('edge-1', 'root', 'child', {
+					metadata: {
+						elkLabel: {
+							x: 10,
+							y: 20,
+							width: 90,
+							height: 24,
+							centerX: 55,
+							centerY: 32,
+						},
+					},
+				}),
+			],
 			direction: 'TOP_BOTTOM',
 			edgeIds: ['edge-1'],
 		});
@@ -71,6 +84,7 @@ describe('rerouteAutoWaypointEdges', () => {
 			pathType: 'waypoint',
 			curveType: 'smoothstep',
 			routingStyle: 'orthogonal',
+			elkLabel: undefined,
 			sourceAnchor: { side: 'bottom', offset: 0.5 },
 			targetAnchor: { side: 'top', offset: 0.5 },
 		});

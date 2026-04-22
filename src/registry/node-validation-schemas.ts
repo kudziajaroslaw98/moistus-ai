@@ -219,12 +219,36 @@ const ghostNodeSchema = z.object({
 		'referenceNode',
 		'commentNode',
 	]),
+	nodePayload: z
+		.object({
+			title: z.string().nullable().optional(),
+			tasks: z.array(z.string()).nullable().optional(),
+			answer: z.string().nullable().optional(),
+			questionType: z.enum(['binary', 'multiple']).nullable().optional(),
+			annotationType: z
+				.enum([
+					'note',
+					'idea',
+					'quote',
+					'summary',
+					'warning',
+					'success',
+					'info',
+					'error',
+				])
+				.nullable()
+				.optional(),
+			language: z.string().nullable().optional(),
+			fileName: z.string().nullable().optional(),
+		})
+		.nullable()
+		.optional(),
 	confidence: z.number().min(0).max(1),
 	context: z.object({
 		trigger: z.enum(['magic-wand', 'dangling-edge', 'auto']),
-		sourceNodeId: z.string().optional(),
-		targetNodeId: z.string().optional(),
-		relationshipType: z.string().optional(),
+		sourceNodeId: z.string().nullable().optional(),
+		targetNodeId: z.string().nullable().optional(),
+		relationshipType: z.string().nullable().optional(),
 	}).optional(),
 });
 

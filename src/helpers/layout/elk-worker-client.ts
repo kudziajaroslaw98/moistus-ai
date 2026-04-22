@@ -6,6 +6,7 @@
 import type { ELK } from 'elkjs/lib/elk-api';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
+import type { ElkLabelLayout } from '@/types/edge-data';
 import type {
 	ElkLayoutParams,
 	LayoutConfig,
@@ -17,6 +18,24 @@ import { convertFromElkGraph, convertToElkGraph } from './elk-converter';
 let elkInstance: ELK | null = null;
 let initPromise: Promise<ELK> | null = null;
 const DEFAULT_LOCAL_LAYOUT_ALPHA = 0.35;
+
+function offsetElkLabelLayout(
+	elkLabel: ElkLabelLayout | undefined,
+	offsetX: number,
+	offsetY: number
+): ElkLabelLayout | undefined {
+	if (!elkLabel) {
+		return undefined;
+	}
+
+	return {
+		...elkLabel,
+		x: elkLabel.x + offsetX,
+		y: elkLabel.y + offsetY,
+		centerX: elkLabel.centerX + offsetX,
+		centerY: elkLabel.centerY + offsetY,
+	};
+}
 
 export interface LocalLayoutNeighborhood {
 	movableNodeIds: Set<string>;
@@ -341,6 +360,11 @@ export function mergeLayoutResult(
 			x: wp.x + offsetX,
 			y: wp.y + offsetY,
 		}));
+		const elkLabel = offsetElkLabelLayout(
+			layoutedEdgeData.metadata?.elkLabel,
+			offsetX,
+			offsetY
+		);
 
 		return {
 			...edge,
@@ -350,6 +374,7 @@ export function mergeLayoutResult(
 				metadata: {
 					...(edgeData.metadata ?? {}),
 					...(layoutedEdgeData.metadata ?? {}),
+					...(elkLabel && { elkLabel }),
 					...(waypoints && { waypoints }),
 				},
 			},
@@ -541,6 +566,11 @@ export function mergeLocalLayoutResult(
 			x: wp.x + waypointOffsetX,
 			y: wp.y + waypointOffsetY,
 		}));
+		const elkLabel = offsetElkLabelLayout(
+			layoutedEdgeData.metadata?.elkLabel,
+			waypointOffsetX,
+			waypointOffsetY
+		);
 
 		return {
 			...edge,
@@ -554,6 +584,7 @@ export function mergeLocalLayoutResult(
 						layoutedEdgeData.metadata?.curveType ?? existingMetadata.curveType,
 					sourceAnchor: undefined,
 					targetAnchor: undefined,
+					...(elkLabel && { elkLabel }),
 					...(transformedWaypoints && { waypoints: transformedWaypoints }),
 				},
 			},

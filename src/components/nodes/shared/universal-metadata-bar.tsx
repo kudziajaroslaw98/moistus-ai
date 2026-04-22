@@ -1,7 +1,7 @@
 'use client';
 
-import { NodeData } from '@/types/node-data';
 import useAppStore from '@/store/mind-map-store';
+import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
 import { getInitials, slugifyCollaborator } from '@/utils/collaborator-utils';
 import {
@@ -17,6 +17,45 @@ import { CSSProperties, memo, useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { MetadataBadge } from './metadata-badge';
 import { NodeTags } from './node-tags';
+
+type CollaboratorLookupEntry = {
+	displayName: string;
+	avatarUrl: string;
+};
+
+const unresolvedAssigneeWarningKeys = new Set<string>();
+const MAX_UNRESOLVED_ASSIGNEE_WARNING_KEYS = 200;
+
+export function __resetWarnOnceCache() {
+	unresolvedAssigneeWarningKeys.clear();
+}
+
+function warnUnresolvedAssigneeOnce(params: {
+	assignee: string;
+	normalizedSlug: string;
+	assigneeUserId?: string;
+}) {
+	if (process.env.NODE_ENV !== 'development') return;
+
+	const warningKey = `${params.normalizedSlug}:${params.assigneeUserId ?? ''}`;
+	if (unresolvedAssigneeWarningKeys.has(warningKey)) return;
+
+	if (
+		unresolvedAssigneeWarningKeys.size >= MAX_UNRESOLVED_ASSIGNEE_WARNING_KEYS
+	) {
+		unresolvedAssigneeWarningKeys.clear();
+	}
+
+	unresolvedAssigneeWarningKeys.add(warningKey);
+	console.warn(
+		'[UniversalMetadataBar] Unresolved assignee collaborator metadata',
+		{
+			assignee: params.assignee,
+			normalizedSlug: params.normalizedSlug,
+			assigneeUserId: params.assigneeUserId,
+		}
+	);
+}
 
 export interface UniversalMetadataBarProps {
 	metadata?: NodeData['metadata'];
@@ -138,7 +177,9 @@ const AssigneeMetadataBadge = memo<{
 					/>
 				)}
 			</span>
-			<span style={{ fontWeight: 500, letterSpacing: '0.01em' }}>{displayName}</span>
+			<span style={{ fontWeight: 500, letterSpacing: '0.01em' }}>
+				{displayName}
+			</span>
 		</motion.button>
 	);
 });
@@ -152,21 +193,35 @@ AssigneeMetadataBadge.displayName = 'AssigneeMetadataBadge';
  * is selected and minimal information when not.
  */
 export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
-	({ metadata, nodeType, selected = false, className, onMetadataClick, colorOverrides }) => {
+	({
+		metadata,
+		nodeType,
+		selected = false,
+		className,
+		onMetadataClick,
+		colorOverrides,
+	}) => {
 		const { currentShares } = useAppStore(
 			useShallow((s) => ({ currentShares: s.currentShares }))
 		);
 
-		const collaboratorMap = useMemo(() => {
-			const map = new Map<string, { displayName: string; avatarUrl: string }>();
+		const { collaboratorBySlug, collaboratorByUserId } = useMemo(() => {
+			const bySlug = new Map<string, CollaboratorLookupEntry>();
+			const byUserId = new Map<string, CollaboratorLookupEntry>();
 			for (const u of currentShares ?? []) {
 				const slug = slugifyCollaborator(u);
-				map.set(slug, {
+				const collaborator: CollaboratorLookupEntry = {
 					displayName: u.profile?.display_name || u.name || slug,
 					avatarUrl: u.avatar_url ?? '',
-				});
+				};
+				bySlug.set(slug, collaborator);
+				byUserId.set(u.user_id, collaborator);
 			}
-			return map;
+
+			return {
+				collaboratorBySlug: bySlug,
+				collaboratorByUserId: byUserId,
+			};
 		}, [currentShares]);
 
 		// Determine what metadata to show based on availability and relevance
@@ -233,15 +288,20 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
 					: metadata.assignee;
 				if (assigneeString) {
 					const assigneeSlug = slugifyCollaborator(assigneeString);
-					const collaborator = collaboratorMap.get(assigneeSlug);
-					if (!collaborator) {
-						console.warn(
-							'[UniversalMetadataBar] Unresolved assignee collaborator metadata',
-							{
+					const assigneeUserId = Array.isArray(metadata.assigneeUserIds)
+						? metadata.assigneeUserIds[0]
+						: undefined;
+					const collaborator =
+						collaboratorBySlug.get(assigneeSlug) ??
+						(assigneeUserId
+							? collaboratorByUserId.get(assigneeUserId)
+							: undefined);
+						if (!collaborator) {
+							warnUnresolvedAssigneeOnce({
 								assignee: assigneeString,
 								normalizedSlug: assigneeSlug,
-							}
-						);
+							assigneeUserId,
+						});
 					}
 
 					items.push({
@@ -324,7 +384,14 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
 			}
 
 			return items.sort((a, b) => a.order - b.order);
-		}, [metadata, selected, onMetadataClick, colorOverrides, collaboratorMap]);
+		}, [
+			metadata,
+			selected,
+			onMetadataClick,
+			colorOverrides,
+			collaboratorBySlug,
+			collaboratorByUserId,
+		]);
 
 		// Don't render if no metadata
 		if (metadataItems.length === 0) return null;

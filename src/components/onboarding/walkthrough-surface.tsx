@@ -67,7 +67,7 @@ function ChecklistItem({
 							disabled={completed}
 							onClick={onClick}
 							size='sm'
-							variant={completed ? 'secondary' : 'default'}
+							variant={completed ? 'outline' : 'normal'}
 						>
 							{completed ? 'Done' : (actionLabel ?? 'Start')}
 						</Button>
@@ -181,7 +181,7 @@ function MinimizedPillContent({
 					</p>
 				</div>
 			</button>
-			<Button onClick={() => onTaskAction(nextTask.id)} size='sm' variant='default'>
+			<Button onClick={() => onTaskAction(nextTask.id)} size='sm' variant='normal'>
 				{actionLabel}
 			</Button>
 		</div>

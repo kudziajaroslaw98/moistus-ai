@@ -190,7 +190,8 @@ const FloatingEdgeComponent = ({
 							onClick={handleDeleteEdge}
 							size={'icon'}
 							title='Delete connection'
-							variant={'destructive'}
+							state='destructive'
+							variant='normal'
 							animate={
 								isHovered || selected
 									? { opacity: 1, y: 0, scale: 1 }

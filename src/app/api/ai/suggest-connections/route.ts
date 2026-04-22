@@ -1,6 +1,12 @@
 // src/app/api/ai/suggest-connections/route.ts
 
 import {
+	connectionSuggestionSchema,
+	normalizeConnectionSuggestionElement,
+} from '@/helpers/ai-connection-postprocess';
+import { buildConnectionModelMessages } from '@/helpers/ai-connection-prompts';
+import { parseConnectionRequestPayload } from '@/helpers/ai-connection-request';
+import {
 	checkAIQuota,
 	trackAIUsage,
 } from '@/helpers/api/with-subscription-check';
@@ -11,59 +17,12 @@ import {
 } from '@/helpers/extract-connection-context';
 import { createClient } from '@/helpers/supabase/server';
 import { openai } from '@ai-sdk/openai';
+import type { UIMessage } from 'ai';
 import {
-	convertToModelMessages,
 	createUIMessageStream,
 	createUIMessageStreamResponse,
 	streamObject,
-	UIMessage,
 } from 'ai';
-import { z } from 'zod';
-
-// Zod schema for a single connection suggestion object from the AI
-const connectionSuggestionSchema = z.object({
-	id: z.string().describe('A unique ID for the suggestion.'),
-	sourceNodeId: z
-		.string()
-		.describe('The ID of the source node for the connection.'),
-	targetNodeId: z
-		.string()
-		.describe('The ID of the target node for the connection.'),
-	label: z.string().nullable().describe('A concise label for the connection.'),
-	reason: z
-		.string()
-		.describe('A brief explanation for why this connection is suggested.'),
-	confidence: z
-		.number()
-		.min(0)
-		.max(1)
-		.describe("The AI's confidence in this suggestion."),
-	relationshipType: z
-		.enum([
-			'related-to',
-			'leads-to',
-			'is-example-of',
-			'depends-on',
-			'contradicts',
-			'supports',
-			'elaborates-on',
-			'summarizes',
-			'implements',
-			'extends',
-			'references',
-			'causes',
-			'prevents',
-			'enables',
-			'questions',
-			'answers',
-		])
-		.describe('The semantic type of the relationship.'),
-	metadata: z.object({
-		strength: z.enum(['weak', 'moderate', 'strong']),
-		bidirectional: z.boolean(),
-		contextualRelevance: z.number().min(0).max(1),
-	}),
-});
 
 // The entire POST function is now the API route handler
 export async function POST(req: Request) {
@@ -96,8 +55,7 @@ export async function POST(req: Request) {
 			return quotaError;
 		}
 
-		// Extract the body sent by the useChat hook
-		const { messages }: { messages: UIMessage[] } = await req.json();
+		const { messages } = (await req.json()) as { messages: UIMessage[] };
 		const streamHeader = 'Suggesting Connections';
 		const totalSteps = [
 			{
@@ -158,29 +116,7 @@ export async function POST(req: Request) {
 
 						await wait(1000);
 
-						// Safely extract mapId from the last message's text part
-						const lastUserMessage = messages
-							.filter((m) => m.role === 'user')
-							.pop();
-
-						if (
-							!lastUserMessage ||
-							!lastUserMessage.parts.filter((part) => part.type === 'text')?.[0]
-						) {
-							throw new Error(
-								'Invalid request format: User message not found.'
-							);
-						}
-
-						const { mapId } = JSON.parse(
-							lastUserMessage.parts.filter((part) => part.type === 'text')[0]
-								.text
-						);
-						const mapValidation = z.string().uuid().safeParse(mapId);
-
-						if (!mapValidation.success) {
-							throw new Error(`Invalid Map ID: ${mapValidation.error.message}`);
-						}
+						const { mapId } = parseConnectionRequestPayload(messages);
 
 						// --- Step 2: Fetch Data ---
 						writer.write({
@@ -230,40 +166,10 @@ export async function POST(req: Request) {
 							minimalEdges
 						);
 
-						const systemPrompt = `You are an expert at analyzing mind maps and discovering meaningful connections between concepts.
-
-Given the following mind map content, suggest new connections that would add value.
-
-Guidelines:
-- Focus on semantic relationships, not structural ones
-- Look for conceptual links: causes, dependencies, similarities, contradictions
-- Avoid suggesting connections that already exist
-- Each suggestion needs valid node IDs from the provided list
-
-Restrictions:
-- Only suggest connections with confidence > 0.8
-- Return at most 6 suggestions, prioritized by confidence
-- Quality over quantity: fewer strong suggestions beat many weak ones
-
-${formattedContext}`;
-
-						const modelMessages = await convertToModelMessages([
-							{
-								role: 'system',
-								parts: [{ type: 'text', text: systemPrompt }],
-							},
-							{
-								role: 'user',
-								parts: [
-									{
-										type: 'text',
-										text: 'Please suggest meaningful connections between these nodes.',
-									},
-								],
-							},
-						]);
+						const modelMessages =
+							await buildConnectionModelMessages(formattedContext);
 						const response = streamObject({
-							model: openai('gpt-5-nano'),
+							model: openai('gpt-5.4-nano'),
 							abortSignal,
 							schema: connectionSuggestionSchema,
 							output: 'array',
@@ -284,7 +190,6 @@ ${formattedContext}`;
 
 						await wait(1000);
 						let status = 'pending';
-						let connectionIndex = 0;
 
 						for await (const element of response.elementStream) {
 							if (status === 'pending') {
@@ -301,12 +206,13 @@ ${formattedContext}`;
 								});
 							}
 
-							if (connectionSuggestionSchema.safeParse(element).success) {
+							const normalizedElement =
+								normalizeConnectionSuggestionElement(element);
+							if (normalizedElement) {
 								writer.write({
 									type: 'data-connection-suggestion',
-									data: element,
+									data: normalizedElement,
 								});
-								connectionIndex++;
 							}
 						}
 
@@ -329,10 +235,6 @@ ${formattedContext}`;
 								);
 							}
 						);
-
-						writer.write({
-							type: 'finish',
-						});
 					} catch (e) {
 						const error =
 							e instanceof Error ? e : new Error('An unknown error occurred.');
