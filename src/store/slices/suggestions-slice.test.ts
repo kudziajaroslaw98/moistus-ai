@@ -361,7 +361,7 @@ describe('suggestions slice', () => {
 		expect(nextState.edges).toEqual([]);
 	});
 
-	it('keeps node-scoped suggestions anchored to the request node and fans out repeated results', async () => {
+	it('treats node-scoped suggestions with missing streamed anchors as unanchored viewport suggestions', async () => {
 		mockGenerateUuidString
 			.mockReturnValueOnce('ghost-3')
 			.mockReturnValueOnce('ghost-4');
@@ -405,14 +405,9 @@ describe('suggestions slice', () => {
 		const nextState = harness.getState();
 
 		expect(nextState.ghostNodes).toHaveLength(2);
-		expect(nextState.ghostNodes[0].position).toEqual({ x: 100, y: 270 });
-		expect(nextState.ghostNodes[1].position).toEqual({ x: 425, y: 270 });
-		expect(nextState.edges).toEqual(
-			expect.arrayContaining([
-				expect.objectContaining({ source: 'source-node', target: 'ghost-3' }),
-				expect.objectContaining({ source: 'source-node', target: 'ghost-4' }),
-			])
-		);
+		expect(nextState.ghostNodes[0].position).toEqual({ x: 640, y: 360 });
+		expect(nextState.ghostNodes[1].position).toEqual({ x: 980, y: 360 });
+		expect(nextState.edges).toEqual([]);
 	});
 
 	it('approves task ghost nodes with checklist metadata instead of empty task shells', async () => {

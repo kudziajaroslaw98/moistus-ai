@@ -109,13 +109,22 @@ describe('buildSuggestionPromptContext', () => {
 				expect.stringContaining('METRIC='),
 			])
 		);
-		expect(promptContext.prompt).toContain('LENS=');
-		expect(promptContext.prompt).toContain(
-			'RECENT=["Add retry budget for sync failures",1,"magic-wand"]'
-		);
-		expect(promptContext.prompt).toContain('REQUEST=[2,"nonce-1"]');
-		expect(promptContext.prompt).not.toContain('"ghost"');
-	});
+			expect(promptContext.prompt).toContain('LENS=');
+			expect(promptContext.prompt).toContain(
+				'RECENT=["Add retry budget for sync failures",1,"magic-wand"]'
+			);
+			expect(promptContext.prompt).toContain('REQUEST=[2,"nonce-1"]');
+			expect(promptContext.prompt).not.toContain('"ghost"');
+			expect(promptContext.prompt).not.toContain('Ghost helper');
+			expect(promptContext.aliasMap.nodeIdToAlias.has('ghost')).toBe(false);
+			expect(promptContext.aliasMap.nodeIdToAlias.get('ghost')).toBeUndefined();
+			expect(
+				promptContext.graphRows.some((row) => row.includes('ghost'))
+			).toBe(false);
+			expect(
+				promptContext.graphRows.some((row) => row.includes('Ghost helper'))
+			).toBe(false);
+		});
 
 	it('builds focused-node prompt context with focus, ancestry, siblings, and relations', () => {
 		const root = createNode('root', 'Growth strategy');

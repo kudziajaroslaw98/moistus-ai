@@ -78,6 +78,38 @@ describe('buildMapSuggestionContext', () => {
 		expect(result.context).not.toContain('All Nodes (Valid Anchor IDs):');
 	});
 
+	it('excludes ghost/comment/group/system-only nodes from map suggestion context', () => {
+		const nodes = [
+			createNode('root', 'Launch planning'),
+			createNode('child', 'Draft onboarding checklist'),
+			createNode('ghost', 'Ghost helper', {
+				type: 'ghostNode',
+				data: { node_type: 'ghostNode' },
+			}),
+			createNode('comment', 'Comment helper', {
+				type: 'commentNode',
+				data: { node_type: 'commentNode' },
+			}),
+			createNode('group', 'Group helper', {
+				type: 'groupNode',
+				data: { node_type: 'groupNode' },
+			}),
+		];
+		const edges = [createEdge('edge-1', 'root', 'child')];
+
+		const result = buildMapSuggestionContext(nodes, edges, {
+			title: 'Launch Map',
+			description: 'Product launch work',
+		});
+
+		expect(result.candidateNodeIds).toEqual(['root', 'child']);
+		expect(result.context).toContain('"root"');
+		expect(result.context).toContain('"child"');
+		expect(result.context).not.toContain('Ghost helper');
+		expect(result.context).not.toContain('Comment helper');
+		expect(result.context).not.toContain('Group helper');
+	});
+
 	it('applies anchor pool/window options to whole-map candidates', () => {
 		const nodes = Array.from({ length: 30 }, (_, index) =>
 			createNode(

@@ -4,7 +4,7 @@ import { type HTMLMotionProps, motion } from 'motion/react';
 import { forwardRef } from 'react';
 
 const buttonVariants = cva(
-	'inline-flex items-center font-medium transition-all ease-out duration-300 cursor-pointer focus:outline-none disabled:opacity-38 disabled:pointer-events-none',
+	'inline-flex items-center font-medium transition-all ease-out duration-300 cursor-pointer focus:outline-none disabled:opacity-38',
 	{
 		variants: {
 			variant: {
@@ -140,7 +140,7 @@ export interface ButtonProps
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 	({ className, variant, state, size, align, disabled, ...props }, ref) => {
-		const effectiveState = state ?? (disabled ? 'disabled' : 'normal');
+		const effectiveState = disabled ? 'disabled' : (state ?? 'normal');
 		return (
 			<motion.button
 				className={cn(

@@ -34,6 +34,24 @@ export interface SuggestionPromptContext {
 	aliasMap: AiIdAliasMap;
 }
 
+const EXCLUDED_PROMPT_ALIAS_NODE_TYPES = new Set([
+	'ghostNode',
+	'commentNode',
+	'groupNode',
+	'ghost',
+	'comment',
+	'group',
+]);
+
+function isPromptAliasCandidate(node: SuggestionPromptInput['nodes'][number]) {
+	const nodeType = node.data.node_type || node.type || 'defaultNode';
+	const userCreatable = (node as { userCreatable?: boolean }).userCreatable;
+	return (
+		!EXCLUDED_PROMPT_ALIAS_NODE_TYPES.has(nodeType) &&
+		userCreatable !== false
+	);
+}
+
 function resolveValidSourceNodeId(
 	sourceNodeId: string | null | undefined,
 	nodeIds: Set<string>,
@@ -61,8 +79,9 @@ function resolveValidSourceNodeId(
 export function buildSuggestionPromptContext(
 	input: SuggestionPromptInput
 ): SuggestionPromptContext {
-	const aliasMap = createAiIdAliasMap(input.nodes);
-	const nodeIds = new Set(input.nodes.map((node) => node.id));
+	const aliasableNodes = input.nodes.filter(isPromptAliasCandidate);
+	const aliasMap = createAiIdAliasMap(aliasableNodes);
+	const nodeIds = new Set(aliasableNodes.map((node) => node.id));
 	const validSourceId = resolveValidSourceNodeId(
 		input.context.sourceNodeId,
 		nodeIds,

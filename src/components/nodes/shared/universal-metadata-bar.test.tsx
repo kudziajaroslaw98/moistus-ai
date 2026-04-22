@@ -87,21 +87,28 @@ describe('UniversalMetadataBar assignee resolution', () => {
 		];
 
 		const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+		const envReplace = jest.replaceProperty(process, 'env', {
+			...process.env,
+			NODE_ENV: 'development',
+		});
 
-		render(
-			<UniversalMetadataBar
-				metadata={{
-					assignee: ['old-stale-slug'],
-					assigneeUserIds: ['user-2'],
-				}}
-				nodeType='taskNode'
-			/>
-		);
+		try {
+			render(
+				<UniversalMetadataBar
+					metadata={{
+						assignee: ['old-stale-slug'],
+						assigneeUserIds: ['user-2'],
+					}}
+					nodeType='taskNode'
+				/>
+			);
 
-		expect(screen.getByText('Renamed User')).toBeInTheDocument();
-		expect(warnSpy).not.toHaveBeenCalled();
-
-		warnSpy.mockRestore();
+			expect(screen.getByText('Renamed User')).toBeInTheDocument();
+			expect(warnSpy).not.toHaveBeenCalled();
+		} finally {
+			envReplace.restore();
+			warnSpy.mockRestore();
+		}
 	});
 
 	it('warns unresolved assignee only once per key in development', () => {

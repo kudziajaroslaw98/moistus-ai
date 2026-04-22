@@ -41,12 +41,17 @@ describe('buttonVariants', () => {
 });
 
 describe('Button', () => {
-	it('uses disabled visual state automatically when disabled prop is true', () => {
-		render(<Button disabled>Delete</Button>);
+	it('uses disabled visual state when disabled prop is true, even with explicit state', () => {
+		render(
+			<Button disabled state='destructive'>
+				Delete
+			</Button>
+		);
 
 		const button = screen.getByRole('button', { name: 'Delete' });
 		expect(button).toBeDisabled();
 		expect(button.className).toContain('bg-primary-600/60');
+		expect(button.className).not.toContain('bg-rose-600');
 		expect(button.className).toContain('pointer-events-none');
 	});
 });

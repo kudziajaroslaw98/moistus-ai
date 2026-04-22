@@ -650,14 +650,12 @@ function getUnanchoredSuggestionPosition(
 
 export function getStreamedSuggestionPlacement(params: {
 	nodes: AppNode[];
-	requestContext: SuggestionContext;
 	suggestionContext: SuggestionContext;
 	reactFlowInstance: AppState['reactFlowInstance'];
 	anchorSuggestionCounts: Map<string, number>;
 }) {
 	const {
 		nodes,
-		requestContext,
 		suggestionContext,
 		reactFlowInstance,
 		anchorSuggestionCounts,
@@ -668,15 +666,9 @@ export function getStreamedSuggestionPlacement(params: {
 		typeof suggestionContext.sourceNodeId === 'string'
 			? suggestionContext.sourceNodeId
 			: null;
-	const requestedAnchorNodeId =
-		typeof requestContext.sourceNodeId === 'string'
-			? requestContext.sourceNodeId
-			: null;
 	const resolvedAnchorNodeId = returnedAnchorNodeId
 		? (nodesById.get(returnedAnchorNodeId)?.id ?? null)
-		: requestedAnchorNodeId
-			? (nodesById.get(requestedAnchorNodeId)?.id ?? null)
-			: null;
+		: null;
 
 	const bucketKey = resolvedAnchorNodeId ?? VIEWPORT_SUGGESTION_BUCKET;
 	const bucketIndex = anchorSuggestionCounts.get(bucketKey) ?? 0;
@@ -1077,7 +1069,6 @@ export const createSuggestionsSlice: StateCreator<
 							const suggestionChunk = chunk.data;
 							const placement = getStreamedSuggestionPlacement({
 								nodes,
-								requestContext: context,
 								suggestionContext: suggestionChunk.context,
 								reactFlowInstance,
 								anchorSuggestionCounts,

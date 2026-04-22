@@ -161,6 +161,7 @@ export const FOCUSED_NODE_SUGGESTION_PROMPT = [
 	'REL=["parent",2,1]',
 	'REL=["sibling",1,3]',
 	'LENS=["dependency","Expose upstream requirements or missing supporting work."]',
+	'ANCHOR=[1,"task","Launch referral program",2,3]',
 	'Better output:',
 	'[{"id":"example-focused","content":"Define referral abuse guardrails before launch","nodeType":"taskNode","nodePayload":{"title":null,"taskTexts":["Document abuse scenarios for self-referrals and fake accounts","Set launch-blocking thresholds for suspicious referral activity"],"answer":null,"questionType":null,"annotationType":null,"language":null,"fileName":null},"confidence":0.87,"position":{"x":0,"y":0},"context":{"sourceNodeId":1,"targetNodeId":null,"relationshipType":"adds prerequisite","trigger":"magic-wand"},"reasoning":"It adds a concrete prerequisite that the current branch does not yet cover."}]',
 ].join('\n');

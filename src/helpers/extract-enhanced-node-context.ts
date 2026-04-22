@@ -670,6 +670,9 @@ const EXCLUDED_MAP_SUGGESTION_NODE_TYPES = new Set([
 	'ghostNode',
 	'commentNode',
 	'groupNode',
+	'ghost',
+	'comment',
+	'group',
 ]);
 
 /**
@@ -840,8 +843,16 @@ export function buildFullMapContext(
 }
 
 function isSuggestionAnchorCandidate(node: AppNode): boolean {
+	return isEligibleMapSuggestionNode(node);
+}
+
+function isEligibleMapSuggestionNode(node: AppNode): boolean {
 	const nodeType = node.data.node_type || node.type || 'defaultNode';
-	return !EXCLUDED_MAP_SUGGESTION_NODE_TYPES.has(nodeType);
+	const userCreatable = (node as { userCreatable?: boolean }).userCreatable;
+	return (
+		!EXCLUDED_MAP_SUGGESTION_NODE_TYPES.has(nodeType) &&
+		userCreatable !== false
+	);
 }
 
 function getSuggestionAnchorSemanticContent(node: AppNode): string {
@@ -887,9 +898,10 @@ export function buildMapSuggestionContext(
 	const maxAnchorCandidates = _options.maxAnchorCandidates ?? Number.MAX_SAFE_INTEGER;
 	const anchorPoolSize = _options.anchorPoolSize ?? Number.MAX_SAFE_INTEGER;
 	const anchorWindowOffset = Math.max(0, _options.anchorWindowOffset ?? 0);
+	const nodesFiltered = nodes.filter(isEligibleMapSuggestionNode);
 
-	if (nodes.length === 0) {
-		const context = buildMapOverviewContext(nodes, edges, mapMeta, rowOptions);
+	if (nodesFiltered.length === 0) {
+		const context = buildMapOverviewContext(nodesFiltered, edges, mapMeta, rowOptions);
 		return {
 			context,
 			mode: 'summary',
@@ -899,10 +911,15 @@ export function buildMapSuggestionContext(
 		};
 	}
 
-	const summaryContext = buildMapSummaryContext(nodes, edges, mapMeta, rowOptions);
-	const scoredCandidates = nodes
+	const summaryContext = buildMapSummaryContext(
+		nodesFiltered,
+		edges,
+		mapMeta,
+		rowOptions
+	);
+	const scoredCandidates = nodesFiltered
 		.filter(isSuggestionAnchorCandidate)
-		.map((node) => scoreNode(node, edges, nodes))
+		.map((node) => scoreNode(node, edges, nodesFiltered))
 		.sort((a, b) => b.score - a.score);
 
 	if (scoredCandidates.length === 0) {

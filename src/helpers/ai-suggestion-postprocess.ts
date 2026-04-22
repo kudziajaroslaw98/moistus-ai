@@ -58,6 +58,7 @@ const suggestionNodePayloadSchema = z
 		language: z.string().trim().min(1).nullable(),
 		fileName: z.string().trim().min(1).nullable(),
 	})
+	.partial()
 	.nullable();
 
 export const suggestionObjectSchema = z.object({

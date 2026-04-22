@@ -5,6 +5,29 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-04-22]
+
+### Fixed
+
+- **ai/unanchored-stream-fallback-safety**: Streamed node suggestions now treat missing/invalid returned anchors as unanchored and place ghosts from viewport center instead of falling back to the original request anchor
+  - Why: This prevents accidental ghost edges to request-scoped nodes when the streamed response omits or returns an unknown anchor
+- **ui/button-disabled-visual-precedence**: Disabled buttons now always render the disabled state even when an explicit visual state is passed
+  - Why: Disabled controls should not keep destructive/success styling that implies interactivity
+- **ai/map-suggestion-candidate-filtering**: Whole-map suggestion context now excludes ghost/comment/group/system-only nodes from summary and anchor candidate scoring
+  - Why: Non-user-facing/system nodes dilute anchor quality and should not be exposed as map suggestion targets
+- **ai/suggestion-node-payload-partial-schema**: Structured suggestion payload parsing now accepts omitted optional payload fields while still validating provided fields
+  - Why: Route payload types allow partial optional fields and strict all-keys-required parsing rejected valid structured outputs
+
+### Changed
+
+- **ai/focused-prompt-anchor-example-contract**: Focused-node system prompt example now includes an explicit `ANCHOR` input row for the anchor used in example output
+  - Why: The example should demonstrate the same anchor contract the model is asked to follow
+
+### Added
+
+- **tests/suggestion-anchor-and-payload-guards**: Strengthened tests for assignee warning behavior in development mode, disabled-button precedence, ghost exclusion from alias/prompt rows, map-suggestion filtering, partial payload acceptance, and unanchored streamed placement
+  - Why: These contracts are regression-prone across prompt/schema/slice updates and now have explicit guardrails
+
 ## [2026-04-21]
 
 ### Fixed

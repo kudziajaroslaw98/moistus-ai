@@ -25,6 +25,9 @@ describe('ai suggestion prompts', () => {
 		expect(WHOLE_MAP_SUGGESTION_PROMPT).toContain('under-covered but important areas');
 		expect(FOCUSED_NODE_SUGGESTION_PROMPT).toContain('Focused-node behavior:');
 		expect(FOCUSED_NODE_SUGGESTION_PROMPT).toContain('siblings, ancestry, and topology');
+		expect(FOCUSED_NODE_SUGGESTION_PROMPT).toContain(
+			'ANCHOR=[1,"task","Launch referral program",2,3]'
+		);
 	});
 
 	it('builds the final system prompt from the base prompt plus the mode-specific prompt', () => {

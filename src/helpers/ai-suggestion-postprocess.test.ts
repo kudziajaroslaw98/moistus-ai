@@ -261,6 +261,28 @@ describe('ai suggestion postprocess', () => {
 		});
 	});
 
+	it('accepts partial structured nodePayload objects when fields are omitted', () => {
+		expect(
+			suggestionObjectSchema.safeParse({
+				id: 'suggestion-partial-payload',
+				content: 'Capture user objections to referrals',
+				nodeType: 'questionNode',
+				nodePayload: {
+					answer: 'Interview at-risk cohorts first',
+				},
+				confidence: 0.81,
+				position: { x: 0, y: 0 },
+				context: {
+					sourceNodeId: null,
+					targetNodeId: null,
+					relationshipType: null,
+					trigger: 'magic-wand',
+				},
+				reasoning: 'Keeps structure while allowing omitted optional keys.',
+			}).success
+		).toBe(true);
+	});
+
 	it('downgrades malformed task payloads to default nodes before streaming', () => {
 		const processedSuggestion = processSuggestionElement({
 			element: {
