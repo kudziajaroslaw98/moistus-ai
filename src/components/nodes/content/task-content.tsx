@@ -27,6 +27,8 @@ export interface TaskContentProps {
 	filteredEmptyMessage?: string;
 	/** Whether to show emoji in celebration message */
 	showCelebrationEmoji?: boolean;
+	/** Whether task rows and task-only feedback should animate in */
+	animateTasks?: boolean;
 	/** Additional class name */
 	className?: string;
 }
@@ -51,6 +53,7 @@ const TaskContentComponent = ({
 	placeholder = 'Add tasks...',
 	filteredEmptyMessage = 'All completed tasks are hidden.',
 	showCelebrationEmoji = false,
+	animateTasks = true,
 	className,
 }: TaskContentProps) => {
 	const statsSourceTasks = statsTasks ?? tasks;
@@ -81,7 +84,10 @@ const TaskContentComponent = ({
 		</h3>
 	) : null;
 
-	const handleTaskKeyDown = (event: KeyboardEvent<HTMLDivElement>, taskId: string) => {
+	const handleTaskKeyDown = (
+		event: KeyboardEvent<HTMLDivElement>,
+		taskId: string
+	) => {
 		if (!isInteractive) {
 			return;
 		}
@@ -146,9 +152,11 @@ const TaskContentComponent = ({
 					}}
 				>
 					<motion.div
-						animate={{ width: `${stats.percentage}%` }}
+						animate={
+							animateTasks ? { width: `${stats.percentage}%` } : undefined
+						}
 						className='h-full rounded-full'
-						initial={{ width: 0 }}
+						initial={animateTasks ? { width: 0 } : false}
 						style={{
 							width: `${stats.percentage}%`,
 							background:
@@ -166,15 +174,17 @@ const TaskContentComponent = ({
 				<div className='flex flex-col gap-1'>
 					{tasks.map((task, index) => (
 						<motion.div
-							animate={{ opacity: 1, x: 0 }}
-							initial={{ opacity: 0, x: -10 }}
+							animate={animateTasks ? { opacity: 1, x: 0 } : undefined}
+							initial={animateTasks ? { opacity: 0, x: -10 } : false}
 							key={task.id || index}
-							onClick={isInteractive ? () => onTaskToggle?.(task.id) : undefined}
+							onClick={
+								isInteractive ? () => onTaskToggle?.(task.id) : undefined
+							}
 							onKeyDown={(event) => handleTaskKeyDown(event, task.id)}
 							role='checkbox'
 							aria-checked={Boolean(task.isComplete)}
 							tabIndex={isInteractive ? 0 : undefined}
-							transition={{ delay: index * 0.05 }}
+							transition={animateTasks ? { delay: index * 0.05 } : undefined}
 							className={cn(
 								'flex items-start gap-3 p-2 -mx-2 rounded-md transition-all',
 								isInteractive &&
@@ -196,10 +206,16 @@ const TaskContentComponent = ({
 								>
 									{task.isComplete && (
 										<motion.div
-											animate={{ scale: 1, opacity: 1 }}
+											animate={
+												animateTasks ? { scale: 1, opacity: 1 } : undefined
+											}
 											className='absolute inset-0 flex items-center justify-center'
-											initial={{ scale: 0, opacity: 0 }}
-											transition={{ type: 'spring', stiffness: 500 }}
+											initial={animateTasks ? { scale: 0, opacity: 0 } : false}
+											transition={
+												animateTasks
+													? { type: 'spring', stiffness: 500 }
+													: undefined
+											}
 										>
 											<Check
 												className='w-3 h-3'
@@ -258,9 +274,9 @@ const TaskContentComponent = ({
 			{/* Completion celebration */}
 			{stats.percentage === 100 && (
 				<motion.div
-					animate={{ opacity: 1, scale: 1 }}
+					animate={animateTasks ? { opacity: 1, scale: 1 } : undefined}
 					className='text-center py-2 px-3 rounded-md'
-					initial={{ opacity: 0, scale: 0.9 }}
+					initial={animateTasks ? { opacity: 0, scale: 0.9 } : false}
 					style={{
 						backgroundColor: 'rgba(52, 211, 153, 0.1)',
 						border: `1px solid ${GlassmorphismTheme.indicators.status.complete}`,

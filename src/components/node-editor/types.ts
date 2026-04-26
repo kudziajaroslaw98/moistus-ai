@@ -1,17 +1,14 @@
-import type { Completion } from '@codemirror/autocomplete';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
+import type { Completion } from '@codemirror/autocomplete';
 import type { AppNode } from '../../types/app-node';
 import type { NodeData } from '../../types/node-data';
-import type {
-	Command,
-	PatternCategory,
-} from './core/commands/command-types';
+import type { Command, PatternCategory } from './core/commands/command-types';
 import type { ParsingPattern } from './core/config/node-type-config';
 
 // Re-export types from command-types for backwards compatibility
 export type {
-	FieldType,
 	FieldConfig,
+	FieldType,
 	PatternCategory,
 	QuickParser,
 } from './core/commands/command-types';
@@ -210,6 +207,7 @@ export interface ParsingLegendProps {
 	isNodeSpecificCollapsed: boolean;
 	onToggleNodeSpecificCollapse: () => void;
 	className?: string;
+	variant?: 'collapsible' | 'panel';
 }
 
 export interface PatternItemProps {

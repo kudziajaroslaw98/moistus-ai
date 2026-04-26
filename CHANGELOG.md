@@ -5,6 +5,18 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-04-26]
+
+### Changed
+
+- **node-editor/tabbed-split-layout**: Node editing now uses a wider split dialog with the input on the left and Preview/Syntax Help tabs on the right, including a calmer focus/current-line treatment and a full-width action footer
+  - Why: The editor needed more room, clearer preview/help switching, and less bordered-card chrome
+
+### Fixed
+
+- **node-editor/task-preview-motion**: Task-node previews no longer animate task rows into view while normal canvas task nodes keep their existing task animation
+  - Why: Preview should update immediately and avoid distracting row entrance motion while typing
+
 ## [2026-04-22]
 
 ### Fixed
@@ -52,7 +64,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **docs/update-marker-and-changelog-normalization**: Consolidated per-block Updated-marker guidance in `AGENTS.md`/`CLAUDE.md`, removed changelog HTML Updated markers, and merged duplicate date/category sections for April 2026 entries
   - Why: Duplicate markers/sections created noisy history and drifted from documented changelog conventions
-
 
 ## [2026-04-20]
 
@@ -220,7 +231,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Recreating the editor for presentation-only prop changes was unnecessary churn and could interrupt active autocomplete state
 - **node-editor/mobile-autocomplete-hover-guards**: Moved tray hover treatments behind `(hover: hover)` media queries and documented the overlay dismissal contract plus viewport/autocomplete bridge heuristics
   - Why: Touch devices should not keep sticky hover styling, and the portal/dismiss/runtime-visibility rules need to stay explicit for future editor changes
-
 
 ## [2026-04-17]
 
@@ -508,7 +518,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Resolves PR `#46` against `main` without regressing shipped onboarding/access behavior or dropping the new local layout work
 
 ### Fixed
-
 
 - **node-editor/quiet-autocomplete-on-space**: Stopped passive empty-token trigger suggestions from reopening on `Space`, kept explicit trigger-character and partial-prefix completions, and documented manual `Ctrl+Space` discovery in the action bar
   - Why: Prevents distracting autocomplete popups during normal typing without removing on-demand syntax help
@@ -1123,7 +1132,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-
 ## [2026-02-22]
 
 ### Added
@@ -1164,7 +1172,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-
 ## [2026-02-21]
 
 ### Refactored
@@ -1198,7 +1205,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-
 ## [2026-02-20]
 
 ### Fixed
@@ -1214,7 +1220,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-
 ## [2026-02-19]
 
 ### Fixed
@@ -1226,7 +1231,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **editor/codemirror**: Added `scrollPastEnd` and `highlightActiveLine` extensions for better editing UX
 
 ---
-
 
 ## [2026-02-18]
 
@@ -1240,7 +1244,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **export/deadcode**: Removed `calculateNodesBoundingBox` (unused), `exportFitView` state/setter, zoom compensation logic
 
 ---
-
 
 ## [2026-02-13]
 
@@ -1273,7 +1276,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-
 ## [2026-02-12]
 
 ### Fixed
@@ -1301,7 +1303,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **nodes/registry**: Removed `dimensions` config and `resizable` flag from all 13 node type entries
 
 ---
-
 
 ## [2026-02-10]
 
@@ -1331,7 +1332,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-
 ## [2026-02-09]
 
 ### Fixed
@@ -1347,7 +1347,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-
 ## [2026-02-07]
 
 ### Fixed
@@ -1358,7 +1357,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: `resetStore()` wiped `isLoggingOut` flag before async navigation completed; re-assert flag after reset and clear on next login
 
 ---
-
 
 ## [2026-02-06]
 
@@ -1438,7 +1436,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - The `mounted` flag already handles cleanup sufficiently
 
 ---
-
 
 ## [2026-01-26]
 

@@ -196,6 +196,7 @@ export const ParsingLegend: React.FC<ParsingLegendProps> = memo(
 		isNodeSpecificCollapsed,
 		onToggleNodeSpecificCollapse,
 		className,
+		variant = 'collapsible',
 	}) => {
 		const hasAnyPatterns =
 			(universalPatterns?.length || 0) > 0 ||
@@ -203,6 +204,49 @@ export const ParsingLegend: React.FC<ParsingLegendProps> = memo(
 
 		if (!hasAnyPatterns) {
 			return null;
+		}
+
+		const content = (
+			<div
+				aria-label='Parsing syntax patterns'
+				className={cn(
+					theme.legend.content,
+					variant === 'panel' && 'max-h-[360px] px-0 py-0'
+				)}
+				role='region'
+			>
+				<SyntaxSection
+					emptyMessage='No universal syntax available for this node type.'
+					isCollapsed={isUniversalCollapsed}
+					onPatternClick={onPatternClick}
+					onToggleCollapse={onToggleUniversalCollapse}
+					patterns={universalPatterns}
+					title='Universal'
+				/>
+
+				<SyntaxSection
+					emptyMessage='This node type has no parser-specific syntax.'
+					isCollapsed={isNodeSpecificCollapsed}
+					onPatternClick={onPatternClick}
+					onToggleCollapse={onToggleNodeSpecificCollapse}
+					patterns={nodeSpecificPatterns}
+					title='Node-specific'
+				/>
+			</div>
+		);
+
+		if (variant === 'panel') {
+			return (
+				<motion.div
+					animate={{ opacity: 1 }}
+					className={className}
+					data-collapsed='false'
+					data-testid='parsing-legend'
+					initial={{ opacity: 0 }}
+				>
+					{content}
+				</motion.div>
+			);
 		}
 
 		return (
@@ -258,29 +302,7 @@ export const ParsingLegend: React.FC<ParsingLegendProps> = memo(
 							initial='closed'
 							variants={contentVariants}
 						>
-							<div
-								aria-label='Parsing syntax patterns'
-								className={theme.legend.content}
-								role='region'
-							>
-								<SyntaxSection
-									emptyMessage='No universal syntax available for this node type.'
-									isCollapsed={isUniversalCollapsed}
-									onPatternClick={onPatternClick}
-									onToggleCollapse={onToggleUniversalCollapse}
-									patterns={universalPatterns}
-									title='Universal'
-								/>
-
-								<SyntaxSection
-									emptyMessage='This node type has no parser-specific syntax.'
-									isCollapsed={isNodeSpecificCollapsed}
-									onPatternClick={onPatternClick}
-									onToggleCollapse={onToggleNodeSpecificCollapse}
-									patterns={nodeSpecificPatterns}
-									title='Node-specific'
-								/>
-							</div>
+							{content}
 						</motion.div>
 					)}
 				</AnimatePresence>

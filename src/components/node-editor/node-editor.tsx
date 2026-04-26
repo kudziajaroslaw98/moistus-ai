@@ -132,7 +132,7 @@ export const NodeEditor = () => {
 
 	const theme = {
 		container:
-			'bg-base border border-border-subtle w-[calc(100%-12px)] sm:w-3xl rounded-md max-h-[calc(100dvh-2rem)] sm:max-h-none overflow-y-auto sm:overflow-visible',
+			'bg-base border border-border-subtle w-[calc(100%-12px)] sm:w-[min(1100px,calc(100vw-2rem))] rounded-md max-h-[calc(100dvh-2rem)] overflow-y-auto sm:overflow-visible',
 	};
 
 	return (

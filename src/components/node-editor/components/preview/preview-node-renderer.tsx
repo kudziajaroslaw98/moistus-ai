@@ -7,9 +7,15 @@ import { MarkdownContent } from '@/components/nodes/content/markdown-content';
 import { QuestionContent } from '@/components/nodes/content/question-content';
 import { ReferenceContent } from '@/components/nodes/content/reference-content';
 import { ResourceContent } from '@/components/nodes/content/resource-content';
-import { TaskContent, type Task } from '@/components/nodes/content/task-content';
+import {
+	TaskContent,
+	type Task,
+} from '@/components/nodes/content/task-content';
 import { TextContent } from '@/components/nodes/content/text-content';
-import { QuestionNodeMetadata, TaskNodeMetadata } from '@/components/nodes/core/types';
+import {
+	QuestionNodeMetadata,
+	TaskNodeMetadata,
+} from '@/components/nodes/core/types';
 import { NodeData } from '@/types/node-data';
 import { getSafeImageUrl } from '@/utils/secure-image-url';
 import { memo, useMemo } from 'react';
@@ -81,152 +87,182 @@ function shouldIncludePadding(nodeType: string): boolean {
  * Renders the appropriate shared content component based on node type.
  * Extracts props from NodeData inline - single place for all mappings.
  */
-const PreviewContent = memo(({ nodeType, data }: { nodeType: string; data: NodeData }) => {
-	switch (nodeType) {
-		case 'defaultNode':
-			return (
-				<MarkdownContent
-					content={data.content}
-					placeholder='Add content...'
-				/>
-			);
+const PreviewContent = memo(
+	({ nodeType, data }: { nodeType: string; data: NodeData }) => {
+		switch (nodeType) {
+			case 'defaultNode':
+				return (
+					<MarkdownContent
+						content={data.content}
+						placeholder='Add content...'
+					/>
+				);
 
-		case 'taskNode': {
-			const metadata = data.metadata as TaskNodeMetadata | undefined;
-			const tasks: Task[] = metadata?.tasks || [];
-			const hideCompletedTasks = Boolean(metadata?.hideCompletedTasks);
-			const visibleTasks = hideCompletedTasks
-				? tasks.filter((task) => !task.isComplete)
-				: tasks;
-			return (
-				<TaskContent
-					filteredEmptyMessage='All completed tasks are hidden.'
-					statsTasks={tasks}
-					title={metadata?.title}
-					tasks={visibleTasks}
-					placeholder='Add tasks...'
-					showCelebrationEmoji={false}
-				/>
-			);
+			case 'taskNode': {
+				const metadata = data.metadata as TaskNodeMetadata | undefined;
+				const tasks: Task[] = metadata?.tasks || [];
+				const hideCompletedTasks = Boolean(metadata?.hideCompletedTasks);
+				const visibleTasks = hideCompletedTasks
+					? tasks.filter((task) => !task.isComplete)
+					: tasks;
+				return (
+					<TaskContent
+						animateTasks={false}
+						filteredEmptyMessage='All completed tasks are hidden.'
+						statsTasks={tasks}
+						title={metadata?.title}
+						tasks={visibleTasks}
+						placeholder='Add tasks...'
+						showCelebrationEmoji={false}
+					/>
+				);
+			}
+
+			case 'codeNode':
+				return (
+					<CodeContent
+						code={data.content || ''}
+						language={(data.metadata?.language as string) || 'javascript'}
+						showLineNumbers={Boolean(data.metadata?.showLineNumbers ?? true)}
+						fileName={data.metadata?.fileName as string | undefined}
+						maxHeight='300px'
+					/>
+				);
+
+			case 'imageNode': {
+				const rawImageUrl = (data.metadata?.imageUrl ||
+					(data.metadata as Record<string, unknown>)?.image_url) as
+					| string
+					| undefined;
+				const imageUrl = getSafeImageUrl(rawImageUrl) ?? undefined;
+				const showCaption = Boolean(data.metadata?.showCaption);
+				const altText =
+					(data.metadata?.altText as string) || data.content || 'Image';
+
+				return (
+					<ImageContent
+						imageUrl={imageUrl}
+						altText={altText}
+						maxHeight='200px'
+						minHeight='120px'
+						caption={
+							showCaption
+								? {
+										content: data.content ?? undefined,
+										placeholder: 'No caption',
+									}
+								: undefined
+						}
+					/>
+				);
+			}
+
+			case 'annotationNode':
+				return (
+					<AnnotationContent
+						content={data.content}
+						annotationType={
+							(data.metadata?.annotationType as string) || 'default'
+						}
+						fontSize={data.metadata?.fontSize as string | number | undefined}
+						fontWeight={
+							data.metadata?.fontWeight as string | number | undefined
+						}
+						author={data.metadata?.author as string | undefined}
+					/>
+				);
+
+			case 'questionNode': {
+				const metadata = data.metadata as QuestionNodeMetadata;
+				return (
+					<QuestionContent
+						content={data.content}
+						questionType={metadata?.questionType || 'binary'}
+						options={metadata?.responseFormat?.options}
+						userResponse={metadata?.userResponse}
+						isAnswered={
+							metadata?.isAnswered || metadata?.userResponse !== undefined
+						}
+					/>
+				);
+			}
+
+			case 'resourceNode':
+				return (
+					<ResourceContent
+						url={data.metadata?.url as string | undefined}
+						title={
+							(data.metadata?.title as string) || data.content || 'Resource'
+						}
+						description={
+							data.content !== data.metadata?.title
+								? (data.content ?? undefined)
+								: undefined
+						}
+						imageUrl={data.metadata?.imageUrl as string | undefined}
+						summary={data.metadata?.summary as string | undefined}
+						showThumbnail={Boolean(data.metadata?.showThumbnail)}
+						showSummary={Boolean(data.metadata?.showSummary)}
+					/>
+				);
+
+			case 'textNode': {
+				const metadata = data.metadata as
+					| {
+							fontSize?: string | number;
+							fontWeight?: string | number;
+							textAlign?: 'left' | 'center' | 'right';
+							textColor?: string;
+							fontStyle?: string;
+					  }
+					| undefined;
+
+				return (
+					<TextContent
+						content={data.content}
+						fontSize={metadata?.fontSize}
+						fontWeight={metadata?.fontWeight}
+						textAlign={metadata?.textAlign}
+						textColor={metadata?.textColor}
+						fontStyle={metadata?.fontStyle}
+					/>
+				);
+			}
+
+			case 'referenceNode': {
+				const metadata = data.metadata as
+					| {
+							targetMapId?: string;
+							targetNodeId?: string;
+							targetMapTitle?: string;
+							contentSnippet?: string;
+					  }
+					| undefined;
+
+				return (
+					<ReferenceContent
+						contentSnippet={
+							metadata?.contentSnippet || data.content || undefined
+						}
+						targetMapTitle={metadata?.targetMapTitle}
+						hasValidReference={Boolean(
+							metadata?.targetMapId || metadata?.targetNodeId
+						)}
+					/>
+				);
+			}
+
+			// Fallback to markdown content for unknown types
+			default:
+				return (
+					<MarkdownContent
+						content={data.content}
+						placeholder='Add content...'
+					/>
+				);
 		}
-
-		case 'codeNode':
-			return (
-				<CodeContent
-					code={data.content || ''}
-					language={(data.metadata?.language as string) || 'javascript'}
-					showLineNumbers={Boolean(data.metadata?.showLineNumbers ?? true)}
-					fileName={data.metadata?.fileName as string | undefined}
-					maxHeight='300px'
-				/>
-			);
-
-		case 'imageNode': {
-			const rawImageUrl = (data.metadata?.imageUrl ||
-				(data.metadata as Record<string, unknown>)?.image_url) as string | undefined;
-			const imageUrl = getSafeImageUrl(rawImageUrl) ?? undefined;
-			const showCaption = Boolean(data.metadata?.showCaption);
-			const altText = (data.metadata?.altText as string) || data.content || 'Image';
-
-			return (
-				<ImageContent
-					imageUrl={imageUrl}
-					altText={altText}
-					maxHeight='200px'
-					minHeight='120px'
-					caption={showCaption ? {
-						content: data.content ?? undefined,
-						placeholder: 'No caption',
-					} : undefined}
-				/>
-			);
-		}
-
-		case 'annotationNode':
-			return (
-				<AnnotationContent
-					content={data.content}
-					annotationType={(data.metadata?.annotationType as string) || 'default'}
-					fontSize={data.metadata?.fontSize as string | number | undefined}
-					fontWeight={data.metadata?.fontWeight as string | number | undefined}
-					author={data.metadata?.author as string | undefined}
-				/>
-			);
-
-		case 'questionNode': {
-			const metadata = data.metadata as QuestionNodeMetadata;
-			return (
-				<QuestionContent
-					content={data.content}
-					questionType={metadata?.questionType || 'binary'}
-					options={metadata?.responseFormat?.options}
-					userResponse={metadata?.userResponse}
-					isAnswered={metadata?.isAnswered || metadata?.userResponse !== undefined}
-				/>
-			);
-		}
-
-		case 'resourceNode':
-			return (
-				<ResourceContent
-					url={data.metadata?.url as string | undefined}
-					title={(data.metadata?.title as string) || data.content || 'Resource'}
-					description={data.content !== data.metadata?.title ? data.content ?? undefined : undefined}
-					imageUrl={data.metadata?.imageUrl as string | undefined}
-					summary={data.metadata?.summary as string | undefined}
-					showThumbnail={Boolean(data.metadata?.showThumbnail)}
-					showSummary={Boolean(data.metadata?.showSummary)}
-				/>
-			);
-
-		case 'textNode': {
-			const metadata = data.metadata as {
-				fontSize?: string | number;
-				fontWeight?: string | number;
-				textAlign?: 'left' | 'center' | 'right';
-				textColor?: string;
-				fontStyle?: string;
-			} | undefined;
-
-			return (
-				<TextContent
-					content={data.content}
-					fontSize={metadata?.fontSize}
-					fontWeight={metadata?.fontWeight}
-					textAlign={metadata?.textAlign}
-					textColor={metadata?.textColor}
-					fontStyle={metadata?.fontStyle}
-				/>
-			);
-		}
-
-		case 'referenceNode': {
-			const metadata = data.metadata as {
-				targetMapId?: string;
-				targetNodeId?: string;
-				targetMapTitle?: string;
-				contentSnippet?: string;
-			} | undefined;
-
-			return (
-				<ReferenceContent
-					contentSnippet={metadata?.contentSnippet || data.content || undefined}
-					targetMapTitle={metadata?.targetMapTitle}
-					hasValidReference={Boolean(metadata?.targetMapId || metadata?.targetNodeId)}
-				/>
-			);
-		}
-
-		// Fallback to markdown content for unknown types
-		default:
-			return (
-				<MarkdownContent
-					content={data.content}
-					placeholder='Add content...'
-				/>
-			);
 	}
-});
+);
 
 PreviewContent.displayName = 'PreviewContent';
 

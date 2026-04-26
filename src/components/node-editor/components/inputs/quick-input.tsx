@@ -1,12 +1,13 @@
 'use client';
 
-import { useIsMobile } from '@/hooks/use-mobile';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMapNodeLimit } from '@/hooks/subscription/use-map-node-limit';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import useAppStore from '@/store/mind-map-store';
 import type { MentionableUser } from '@/types/notification';
 import { slugifyCollaborator } from '@/utils/collaborator-utils';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, CircleHelp, Eye } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import {
 	useCallback,
@@ -51,9 +52,11 @@ import { EnhancedInput } from './enhanced-input';
 import { MobileCompletionTray } from './mobile-completion-tray';
 
 const theme = {
-	container: 'p-4',
+	container: 'p-0',
 	hint: 'text-xs text-zinc-500 mt-2',
 };
+
+type RightPanelTab = 'preview' | 'syntax';
 
 type QuickInputPreview = ReturnType<typeof parseInput> & {
 	referencePreview?: {
@@ -213,6 +216,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 		useState(false);
 	const [nodeSpecificLegendCollapsed, setNodeSpecificLegendCollapsed] =
 		useState(false);
+	const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>('preview');
 
 	// Zustand state for persistence across remounts
 	const {
@@ -484,13 +488,17 @@ export const QuickInput: FC<QuickInputProps> = ({
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if ((e.metaKey || e.ctrlKey) && e.key === '/') {
 				e.preventDefault();
-				handleLegendCollapseToggle();
+				setRightPanelTab('syntax');
+				setLegendCollapsed(false);
+				if (typeof window !== 'undefined') {
+					window.localStorage.setItem('parsingLegendCollapsed', 'false');
+				}
 			}
 		};
 
 		window.addEventListener('keydown', handleKeyDown);
 		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, [handleLegendCollapseToggle]);
+	}, []);
 
 	// Process node type switches automatically (legacy fallback only)
 	useEffect(() => {
@@ -883,183 +891,205 @@ export const QuickInput: FC<QuickInputProps> = ({
 			layoutId={config.label}
 			transition={{ duration: 0.2, ease: 'easeOut' as const }}
 		>
-			<ComponentHeader icon={config.icon} label={config.label} />
+			<Tabs
+				className='flex flex-col gap-0'
+				onValueChange={(nextValue) =>
+					setRightPanelTab(nextValue as RightPanelTab)
+				}
+				value={rightPanelTab}
+			>
+				<div className='flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between'>
+					<ComponentHeader
+						className='mb-0 min-w-0'
+						icon={config.icon}
+						label={config.label}
+						showSparkles={false}
+					/>
 
-			{/* Parent reference when creating a child node */}
-			{parentNode && <ParentNodeReference parentNode={parentNode} />}
+					<TabsList className='grid h-8 w-full grid-cols-2 gap-1 rounded-sm bg-zinc-950/30 p-0.5 sm:w-64'>
+						<TabsTrigger
+							className='h-full gap-1.5 rounded-sm px-2 text-xs'
+							value='preview'
+						>
+							<Eye className='size-3.5' />
+							Preview
+						</TabsTrigger>
 
-			{/* Input and Preview Side by Side - Fixed 50/50 Layout */}
-			<div className='flex flex-col sm:flex-row items-stretch gap-3 sm:max-h-[400px] h-auto'>
-				<EnhancedInput
-					animate={{ opacity: 1, y: 0 }}
-					className='min-w-0 mt-5 w-full sm:w-sm h-auto'
-					collaborators={collaborators}
-					disabled={isCreating}
-					enableCommands={true}
-					initial={{ opacity: 1, y: -20 }}
-					onAutocompleteControllerReady={handleAutocompleteControllerReady}
-					onAutocompleteStateChange={handleAutocompleteStateChange}
-					onChange={setValue}
-					onCommandExecuted={handleCommandExecuted}
-					onFocusChange={setIsEditorFocused}
-					onKeyDown={handleKeyDown}
-					onNodeTypeChange={handleNodeTypeChange}
-					onSelectionChange={handleSelectionChange}
-					placeholder={`Type naturally... ${config.examples?.[0] || ''}`}
-					showNativeAutocomplete={!isMobile}
-					transition={{ duration: 0.25, ease: 'easeOut' as const }}
-					value={value}
-					whileFocus={{
-						scale: 1.01,
-						transition: { duration: 0.2 },
-					}}
-				/>
+						<TabsTrigger
+							className='h-full gap-1.5 rounded-sm px-2 text-xs'
+							value='syntax'
+						>
+							<CircleHelp className='size-3.5' />
+							Syntax Help
+						</TabsTrigger>
+					</TabsList>
+				</div>
 
-				<PreviewSection
-					className='hidden sm:block'
-					hasInput={value.trim().length > 0}
-					nodeType={effectiveNodeType}
-					preview={preview}
-				/>
-			</div>
+				<div className='border-t border-zinc-800/80' />
 
-			<MobileCompletionTray
-				isOpen={showMobileCompletionTray}
-				anchorRect={autocompleteState.anchorRect}
-				editorRect={autocompleteState.editorRect}
-				isEditorFocused={isEditorFocused}
-				mentionMap={autocompleteMentionMap}
-				onClose={handleMobileAutocompleteClose}
-				onHighlight={handleMobileAutocompleteHighlight}
-				onSelect={handleMobileAutocompleteSelect}
-				options={autocompleteState.options}
-				selectedIndex={autocompleteState.selectedIndex}
-			/>
+				{/* Parent reference when creating a child node */}
+				{parentNode && (
+					<div className='border-b border-zinc-800/80 px-4 py-3'>
+						<ParentNodeReference parentNode={parentNode} />
+					</div>
+				)}
 
-			{/* Parsing Legend */}
-			<AnimatePresence>
-				{hasSyntaxPatterns && (
-					<motion.div
-						animate={
-							prefersReducedMotion
-								? { opacity: 1 }
-								: { opacity: 1, height: 'auto', y: 0 }
-						}
-						className='mt-3'
-						exit={
-							prefersReducedMotion
-								? { opacity: 0 }
-								: { opacity: 0, height: 0, y: -20 }
-						}
-						initial={
-							prefersReducedMotion
-								? { opacity: 0 }
-								: { opacity: 0, height: 0, y: -20 }
-						}
-						transition={{
-							duration: prefersReducedMotion ? 0.1 : 0.2,
-							delay: prefersReducedMotion ? 0 : 0.1,
-							ease: 'easeInOut' as const,
-						}}
-					>
-						<AnimatePresence>
-							{showOnboardingPatternHint && (
+				<div className='grid min-h-[420px] grid-cols-1 sm:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]'>
+					<div className='flex min-w-0 flex-col px-4 py-4'>
+						<EnhancedInput
+							animate={{ opacity: 1, y: 0 }}
+							className='min-w-0 w-full flex-1'
+							collaborators={collaborators}
+							disabled={isCreating}
+							enableCommands={true}
+							initial={{ opacity: 1, y: -20 }}
+							onAutocompleteControllerReady={handleAutocompleteControllerReady}
+							onAutocompleteStateChange={handleAutocompleteStateChange}
+							onChange={setValue}
+							onCommandExecuted={handleCommandExecuted}
+							onFocusChange={setIsEditorFocused}
+							onKeyDown={handleKeyDown}
+							onNodeTypeChange={handleNodeTypeChange}
+							onSelectionChange={handleSelectionChange}
+							placeholder={`Type naturally... ${config.examples?.[0] || ''}`}
+							showNativeAutocomplete={!isMobile}
+							transition={{ duration: 0.25, ease: 'easeOut' as const }}
+							value={value}
+						/>
+
+						<ExamplesSection
+							className='mt-3'
+							examples={config.examples || []}
+							hasValue={value.length > 0}
+							onUseExample={handleUseExample}
+						/>
+					</div>
+
+					<div className='hidden bg-zinc-800/80 sm:block' />
+
+					<div className='min-w-0 border-t border-zinc-800/80 px-4 py-4 sm:border-t-0'>
+						<TabsContent className='mt-0 h-full min-h-[260px]' value='preview'>
+							<PreviewSection
+								className='h-full'
+								hasInput={value.trim().length > 0}
+								nodeType={effectiveNodeType}
+								preview={preview}
+							/>
+						</TabsContent>
+
+						<TabsContent className='mt-0 h-full min-h-[260px]' value='syntax'>
+							<AnimatePresence>
+								{showOnboardingPatternHint && (
+									<motion.div
+										animate={{ opacity: 1, y: 0 }}
+										className='mb-3 rounded-sm bg-primary-500/8 px-3 py-2 text-xs leading-5 text-text-secondary'
+										exit={{ opacity: 0, y: -8 }}
+										initial={{ opacity: 0, y: -8 }}
+									>
+										<span className='font-medium text-text-primary'>
+											Try more patterns in Syntax Help below.
+										</span>{' '}
+										Use the examples to swap in tags, dates, assignees, or a
+										different node type.
+									</motion.div>
+								)}
+							</AnimatePresence>
+
+							{hasSyntaxPatterns ? (
+								<ParsingLegend
+									isCollapsed={legendCollapsed}
+									isNodeSpecificCollapsed={nodeSpecificLegendCollapsed}
+									isUniversalCollapsed={universalLegendCollapsed}
+									nodeSpecificPatterns={nodeSpecificPatterns}
+									onPatternClick={handlePatternInsert}
+									onToggleCollapse={handleLegendCollapseToggle}
+									onToggleNodeSpecificCollapse={
+										handleNodeSpecificLegendCollapseToggle
+									}
+									onToggleUniversalCollapse={
+										handleUniversalLegendCollapseToggle
+									}
+									universalPatterns={universalPatterns}
+									variant='panel'
+								/>
+							) : (
 								<motion.div
-									animate={{ opacity: 1, y: 0 }}
-									className='mb-3 rounded-xl border border-primary-500/20 bg-primary-500/8 px-3 py-2 text-xs leading-5 text-text-secondary'
-									exit={{ opacity: 0, y: -8 }}
-									initial={{ opacity: 0, y: -8 }}
+									animate={
+										prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }
+									}
+									className='rounded-sm bg-zinc-950/20 p-4 text-xs leading-5 text-zinc-500'
+									exit={
+										prefersReducedMotion
+											? { opacity: 0 }
+											: { opacity: 0, y: -10 }
+									}
+									initial={
+										prefersReducedMotion
+											? { opacity: 0 }
+											: { opacity: 0, y: -10 }
+									}
+									transition={{
+										delay: prefersReducedMotion ? 0 : 0.05,
+										duration: prefersReducedMotion ? 0.12 : 0.3,
+										ease: 'easeOut' as const,
+									}}
 								>
-									<span className='font-medium text-text-primary'>
-										Try more patterns in Syntax Help below.
-									</span>{' '}
-									Use the examples to swap in tags, dates, assignees, or a
-									different node type.
+									This node type accepts plain text input without special
+									syntax.
 								</motion.div>
 							)}
-						</AnimatePresence>
+						</TabsContent>
+					</div>
+				</div>
 
-						<ParsingLegend
-							isCollapsed={legendCollapsed}
-							isNodeSpecificCollapsed={nodeSpecificLegendCollapsed}
-							isUniversalCollapsed={universalLegendCollapsed}
-							nodeSpecificPatterns={nodeSpecificPatterns}
-							onPatternClick={handlePatternInsert}
-							onToggleCollapse={handleLegendCollapseToggle}
-							onToggleNodeSpecificCollapse={
-								handleNodeSpecificLegendCollapseToggle
-							}
-							onToggleUniversalCollapse={handleUniversalLegendCollapseToggle}
-							universalPatterns={universalPatterns}
-						/>
-					</motion.div>
-				)}
-			</AnimatePresence>
+				<MobileCompletionTray
+					isOpen={showMobileCompletionTray}
+					anchorRect={autocompleteState.anchorRect}
+					editorRect={autocompleteState.editorRect}
+					isEditorFocused={isEditorFocused}
+					mentionMap={autocompleteMentionMap}
+					onClose={handleMobileAutocompleteClose}
+					onHighlight={handleMobileAutocompleteHighlight}
+					onSelect={handleMobileAutocompleteSelect}
+					options={autocompleteState.options}
+					selectedIndex={autocompleteState.selectedIndex}
+				/>
 
-			{/* Show hint for nodes without patterns */}
-			<AnimatePresence>
-				{!hasSyntaxPatterns && (
-					<motion.div
-						animate={
-							prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }
-						}
-						className='mt-3 text-xs text-zinc-500'
-						exit={
-							prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -10 }
-						}
-						initial={
-							prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -10 }
-						}
-						transition={{
-							delay: prefersReducedMotion ? 0 : 0.05,
-							duration: prefersReducedMotion ? 0.12 : 0.3,
-							ease: 'easeOut' as const,
-						}}
-					>
-						<p>
-							This node type accepts plain text input without special syntax.
-						</p>
-					</motion.div>
-				)}
-			</AnimatePresence>
+				<div className='px-4'>
+					<ErrorDisplay error={error} />
+				</div>
 
-			<ExamplesSection
-				examples={config.examples || []}
-				hasValue={value.length > 0}
-				onUseExample={handleUseExample}
-			/>
+				{/* Node limit warning */}
+				{isCreateBlockedByNodeLimit &&
+					(nodeLimitInfo || Boolean(nodeLimitMessage)) && (
+						<motion.div
+							initial={{ opacity: 0, y: -10 }}
+							animate={{ opacity: 1, y: 0 }}
+							className='mx-4 mb-3 flex items-center gap-2 rounded-sm bg-amber-500/10 p-3 text-amber-400'
+						>
+							<AlertCircle className='w-4 h-4 shrink-0' />
+							<span className='text-sm'>
+								{nodeLimitMessage ||
+									(nodeLimitInfo
+										? `Node limit reached (${nodeLimitInfo.current}/${nodeLimitInfo.max}).`
+										: '')}
+							</span>
+						</motion.div>
+					)}
 
-			<ErrorDisplay error={error} />
-
-			{/* Node limit warning */}
-			{isCreateBlockedByNodeLimit &&
-				(nodeLimitInfo || Boolean(nodeLimitMessage)) && (
-					<motion.div
-						initial={{ opacity: 0, y: -10 }}
-						animate={{ opacity: 1, y: 0 }}
-						className='flex items-center gap-2 mt-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400'
-					>
-						<AlertCircle className='w-4 h-4 shrink-0' />
-						<span className='text-sm'>
-							{nodeLimitMessage ||
-								(nodeLimitInfo
-									? `Node limit reached (${nodeLimitInfo.current}/${nodeLimitInfo.max}).`
-									: '')}
-						</span>
-					</motion.div>
-				)}
-
-			<ActionBar
-				canCreate={
-					value.trim().length > 0 &&
-					(!isCreateMode ||
-						(!isCreateBlockedByNodeLimit && !isCreateLimitCheckLoading))
-				}
-				isCreating={isCreating}
-				isCheckingLimit={isCreateLimitCheckLoading}
-				mode={mode}
-				onCreate={handleCreate}
-			/>
+				<ActionBar
+					canCreate={
+						value.trim().length > 0 &&
+						(!isCreateMode ||
+							(!isCreateBlockedByNodeLimit && !isCreateLimitCheckLoading))
+					}
+					className='mt-0 border-t border-zinc-800/80 px-4 py-3'
+					isCreating={isCreating}
+					isCheckingLimit={isCreateLimitCheckLoading}
+					mode={mode}
+					onCreate={handleCreate}
+				/>
+			</Tabs>
 		</motion.div>
 	);
 };

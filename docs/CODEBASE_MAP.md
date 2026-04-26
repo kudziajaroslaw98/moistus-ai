@@ -11,7 +11,7 @@ total_tokens: 707972
 <!-- Updated: 2026-02-24 - Documented shared permission event types and Yjs per-subscriber sync cursor pruning -->
 <!-- Updated: 2026-02-27 - Documented map settings discard-confirm flow and template-control removal -->
 <!-- Updated: 2026-02-27 - Documented account settings discard/cancel-confirm dialog flows -->
-<!-- Updated: 2026-02-28 - Documented node-editor parser cleanup and dual syntax help behavior -->
+<!-- Updated: 2026-04-26 - Documented node-editor parser cleanup, dual syntax help behavior, and tabbed split editor layout -->
 <!-- Updated: 2026-03-04 - Added notification architecture (DB + APIs + mention resolution + inbox UI) -->
 <!-- Updated: 2026-03-04 - Switched notification inbox refresh to PartyKit user-channel realtime events -->
 <!-- Updated: 2026-03-04 - Added account settings email-notification preference toggle -->
@@ -258,50 +258,51 @@ shiko/
 
 ### State Management (21 Slices)
 
-| Slice                     | Lines | Purpose                                                                       |
-| ------------------------- | ----- | ----------------------------------------------------------------------------- |
-| **sharing-slice**         | 1,164 | Room codes, anonymous users, upgrade flows                                    |
-| **comments-slice**        | 973   | Comment threads, @mentions, reactions                                         |
+| Slice                     | Lines | Purpose                                                                                      |
+| ------------------------- | ----- | -------------------------------------------------------------------------------------------- |
+| **sharing-slice**         | 1,164 | Room codes, anonymous users, upgrade flows                                                   |
+| **comments-slice**        | 973   | Comment threads, @mentions, reactions                                                        |
 | **suggestions-slice**     | 1462  | AI ghost nodes, typed ghost approval, streaming, novelty memory, whole-map placement, merges |
-| **nodes-slice**           | 900   | Node CRUD, positioning, real-time sync                                        |
-| **history-slice**         | 597   | Undo/redo, snapshots, DB persistence                                          |
-| **edges-slice**           | 635   | Edge CRUD, parent-child relationships                                         |
-| **subscription-slice**    | 434   | Stripe, plan limits, usage tracking                                           |
-| **guided-tour-slice**     | 416   | Prezi-style presentations                                                     |
-| **core-slice**            | 353   | Supabase client, user, map loading                                            |
-| **user-profile-slice**    | 317   | Profile, preferences                                                          |
-| **layout-slice**          | 578   | Full ELK layouts + local branch reflow                                        |
-| **onboarding-slice**      | 958   | Editor-first onboarding tasks, substeps, coachmarks, per-user persisted state |
-| **ui-slice**              | 248   | Modals, panels, focus mode                                                    |
-| **groups-slice**          | 246   | Node grouping                                                                 |
-| **chat-slice**            | 241   | AI chat messages                                                              |
-| **streaming-toast-slice** | 168   | Progress toasts                                                               |
-| **clipboard-slice**       | 156   | Copy/paste                                                                    |
-| **export-slice**          | 172   | PNG/SVG/PDF export                                                            |
-| **quick-input-slice**     | 55    | Quick node creation                                                           |
-| **loading-state-slice**   | 33    | Loading flags                                                                 |
-| **realtime-slice**        | 17    | Selection sync                                                                |
+| **nodes-slice**           | 900   | Node CRUD, positioning, real-time sync                                                       |
+| **history-slice**         | 597   | Undo/redo, snapshots, DB persistence                                                         |
+| **edges-slice**           | 635   | Edge CRUD, parent-child relationships                                                        |
+| **subscription-slice**    | 434   | Stripe, plan limits, usage tracking                                                          |
+| **guided-tour-slice**     | 416   | Prezi-style presentations                                                                    |
+| **core-slice**            | 353   | Supabase client, user, map loading                                                           |
+| **user-profile-slice**    | 317   | Profile, preferences                                                                         |
+| **layout-slice**          | 578   | Full ELK layouts + local branch reflow                                                       |
+| **onboarding-slice**      | 958   | Editor-first onboarding tasks, substeps, coachmarks, per-user persisted state                |
+| **ui-slice**              | 248   | Modals, panels, focus mode                                                                   |
+| **groups-slice**          | 246   | Node grouping                                                                                |
+| **chat-slice**            | 241   | AI chat messages                                                                             |
+| **streaming-toast-slice** | 168   | Progress toasts                                                                              |
+| **clipboard-slice**       | 156   | Copy/paste                                                                                   |
+| **export-slice**          | 172   | PNG/SVG/PDF export                                                                           |
+| **quick-input-slice**     | 55    | Quick node creation                                                                          |
+| **loading-state-slice**   | 33    | Loading flags                                                                                |
+| **realtime-slice**        | 17    | Selection sync                                                                               |
 
 ### Node System (12 Types)
 
-| Type           | Category  | Command       | Purpose                      |
-| -------------- | --------- | ------------- | ---------------------------- |
-| defaultNode    | content   | `$note`       | Standard note                |
-| textNode       | content   | `$text`       | Plain text                   |
+| Type           | Category  | Command       | Purpose                       |
+| -------------- | --------- | ------------- | ----------------------------- |
+| defaultNode    | content   | `$note`       | Standard note                 |
+| textNode       | content   | `$text`       | Plain text                    |
 | taskNode       | content   | `$task`       | Checklist (+ hide done/title) |
-| codeNode       | content   | `$code`       | Syntax highlighted           |
-| annotationNode | content   | `$annotation` | Comments/notes               |
-| resourceNode   | content   | `$link`       | URL preview                  |
-| imageNode      | media     | `$image`      | Image display                |
-| questionNode   | ai        | `$question`   | Q&A format                   |
-| referenceNode  | structure | `$reference`  | Cross-map link               |
-| groupNode      | structure | —             | Container (UI only)          |
-| commentNode    | structure | —             | Thread anchor (UI only)      |
-| ghostNode      | ai        | —             | AI suggestions (system only) |
+| codeNode       | content   | `$code`       | Syntax highlighted            |
+| annotationNode | content   | `$annotation` | Comments/notes                |
+| resourceNode   | content   | `$link`       | URL preview                   |
+| imageNode      | media     | `$image`      | Image display                 |
+| questionNode   | ai        | `$question`   | Q&A format                    |
+| referenceNode  | structure | `$reference`  | Cross-map link                |
+| groupNode      | structure | —             | Container (UI only)           |
+| commentNode    | structure | —             | Thread anchor (UI only)       |
+| ghostNode      | ai        | —             | AI suggestions (system only)  |
 
-**Node Editor note:** Quick-input parser/help intentionally excludes `$reference` quick-switch and deprecated parser tokens (`bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`). Syntax Help is split into type-filtered `Universal` plus `Node-specific` sections.
+**Node Editor note:** Quick-input parser/help intentionally excludes `$reference` quick-switch and deprecated parser tokens (`bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`). The editor modal is a wide split layout with input on the left and Preview/Syntax Help tabs on the right. Syntax Help remains split into type-filtered `Universal` plus `Node-specific` sections.
 Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
-<!-- Updated: 2026-04-08 - Documented task node title/hide-done capability in node type map -->
+
+<!-- Updated: 2026-04-26 - Documented task node title/hide-done capability and tabbed node-editor layout in node type map -->
 
 **Key Files:**
 

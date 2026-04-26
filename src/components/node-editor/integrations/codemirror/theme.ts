@@ -24,8 +24,8 @@ export const nodeEditorTheme = EditorView.theme(
 			color: 'rgb(244 244 245)',
 		},
 		'.cm-content': {
-			minHeight: '60px',
-			padding: '12px',
+			minHeight: '260px',
+			padding: '16px',
 			backgroundColor: 'rgba(24, 24, 27, 0.5)',
 			color: 'rgb(212, 212, 216)',
 			border: '1px solid rgb(39, 39, 42)',
@@ -37,8 +37,8 @@ export const nodeEditorTheme = EditorView.theme(
 		},
 		'.cm-focused .cm-content': {
 			outline: 'none',
-			borderColor: 'rgb(20, 184, 166)',
-			boxShadow: '0 0 0 1px rgb(20, 184, 166)',
+			borderColor: 'rgba(161, 161, 170, 0.55)',
+			boxShadow: 'none',
 		},
 		'.cm-editor': {
 			borderRadius: '6px',
@@ -46,13 +46,22 @@ export const nodeEditorTheme = EditorView.theme(
 			height: '100%',
 		},
 		'.ͼ1.cm-focused': {
-			outline: '1px solid var(--color-primary-500) !important',
+			outline: 'none !important',
+		},
+		'&.cm-focused': {
+			outline: 'none !important',
+		},
+		'.cm-activeLine': {
+			backgroundColor: 'rgba(244, 244, 245, 0.045)',
+		},
+		'.cm-line': {
+			lineHeight: '1.75',
 		},
 		'.cm-scroller': {
 			fontFamily: 'inherit',
-			lineHeight: '1.4',
+			lineHeight: '1.75',
 			'overflow-y': 'auto',
-			'max-height': '350px',
+			'max-height': '360px',
 		},
 
 		// ========================================

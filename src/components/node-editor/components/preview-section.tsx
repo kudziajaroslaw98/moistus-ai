@@ -13,10 +13,8 @@ interface PreviewSectionProps {
 
 const theme = {
 	preview:
-		'bg-zinc-900/50 border border-zinc-800 rounded-md p-3 mt-0 min-h-[60px] overflow-auto flex flex-col',
-	previewLabel:
-		'text-xs text-zinc-500 uppercase tracking-wider mb-1 shrink-0',
-	previewContent: 'text-sm flex-1',
+		'min-h-[260px] max-h-[360px] overflow-y-auto overflow-x-hidden rounded-sm bg-zinc-950/20 p-4 flex flex-col justify-center',
+	previewContent: 'text-sm text-zinc-500',
 };
 
 export const PreviewSection: React.FC<PreviewSectionProps> = ({
@@ -26,16 +24,10 @@ export const PreviewSection: React.FC<PreviewSectionProps> = ({
 	className,
 }) => {
 	return (
-		<div className={cn('flex-1 min-w-0', className)} data-testid='preview-section'>
-			<motion.div
-				animate={{ opacity: 1 }}
-				className={theme.previewLabel}
-				initial={{ opacity: 0 }}
-				transition={{ duration: 0.2 }}
-			>
-				Preview
-			</motion.div>
-
+		<div
+			className={cn('flex-1 min-w-0', className)}
+			data-testid='preview-section'
+		>
 			<motion.div
 				layout
 				animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -44,25 +36,14 @@ export const PreviewSection: React.FC<PreviewSectionProps> = ({
 				initial={{ opacity: 0, y: -20, scale: 0.95 }}
 				transition={{ duration: 0.25, ease: 'easeOut' as const }}
 			>
-				<PreviewNodeRenderer nodeType={nodeType} preview={preview} />
-			</motion.div>
-
-			{/* Placeholder when no preview */}
-			{!preview && hasInput && (
-				<motion.div
-					animate={{ opacity: 0.5, x: 0 }}
-					className={cn(theme.preview, 'border-dashed opacity-50')}
-					exit={{ opacity: 0, x: 20 }}
-					initial={{ opacity: 0, x: 20 }}
-					transition={{ duration: 0.2 }}
-				>
-					<div className={theme.previewLabel}>Preview</div>
-
-					<div className={cn(theme.previewContent, 'text-zinc-500')}>
-						Type to see preview...
+				{preview ? (
+					<PreviewNodeRenderer nodeType={nodeType} preview={preview} />
+				) : (
+					<div className={theme.previewContent}>
+						{hasInput ? 'Type to see preview...' : 'Start typing to preview.'}
 					</div>
-				</motion.div>
-			)}
+				)}
+			</motion.div>
 		</div>
 	);
 };
