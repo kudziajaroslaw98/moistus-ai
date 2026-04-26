@@ -11,11 +11,15 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **node-editor/tabbed-split-layout**: Node editing now uses a wider split dialog with the input on the left and Preview/Syntax Help tabs on the right, including a calmer focus/current-line treatment and a full-width action footer
   - Why: The editor needed more room, clearer preview/help switching, and less bordered-card chrome
+- **node-editor/split-pane-fill**: The node editor top bar now mirrors the body split, and the editor/preview panes fill their halves without inset card chrome
+  - Why: The dialog should read as three separated regions: split header, split body, and full-width footer
 
 ### Fixed
 
 - **node-editor/task-preview-motion**: Task-node previews no longer animate task rows into view while normal canvas task nodes keep their existing task animation
   - Why: Preview should update immediately and avoid distracting row entrance motion while typing
+- **node-editor/preview-entrance-motion**: Node editor previews now render without slide or scale-in entrance animation
+  - Why: Preview changes should feel immediate while editing text
 
 ## [2026-04-22]
 

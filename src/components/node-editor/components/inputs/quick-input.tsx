@@ -8,7 +8,7 @@ import useAppStore from '@/store/mind-map-store';
 import type { MentionableUser } from '@/types/notification';
 import { slugifyCollaborator } from '@/utils/collaborator-utils';
 import { AlertCircle, CircleHelp, Eye } from 'lucide-react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { motion } from 'motion/react';
 import {
 	useCallback,
 	useEffect,
@@ -209,7 +209,6 @@ export const QuickInput: FC<QuickInputProps> = ({
 		contentSnippet?: string;
 	} | null>(null);
 	const lastProcessedText = useRef('');
-	const prefersReducedMotion = useReducedMotion();
 
 	const [legendCollapsed, setLegendCollapsed] = useState(false);
 	const [universalLegendCollapsed, setUniversalLegendCollapsed] =
@@ -898,31 +897,37 @@ export const QuickInput: FC<QuickInputProps> = ({
 				}
 				value={rightPanelTab}
 			>
-				<div className='flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between'>
-					<ComponentHeader
-						className='mb-0 min-w-0'
-						icon={config.icon}
-						label={config.label}
-						showSparkles={false}
-					/>
+				<div className='grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]'>
+					<div className='flex min-w-0 items-center px-4 py-3'>
+						<ComponentHeader
+							className='mb-0 min-w-0'
+							icon={config.icon}
+							label={config.label}
+							showSparkles={false}
+						/>
+					</div>
 
-					<TabsList className='grid h-8 w-full grid-cols-2 gap-1 rounded-sm bg-zinc-950/30 p-0.5 sm:w-64'>
-						<TabsTrigger
-							className='h-full gap-1.5 rounded-sm px-2 text-xs'
-							value='preview'
-						>
-							<Eye className='size-3.5' />
-							Preview
-						</TabsTrigger>
+					<div className='hidden bg-zinc-800/80 sm:block' />
 
-						<TabsTrigger
-							className='h-full gap-1.5 rounded-sm px-2 text-xs'
-							value='syntax'
-						>
-							<CircleHelp className='size-3.5' />
-							Syntax Help
-						</TabsTrigger>
-					</TabsList>
+					<div className='flex min-w-0 items-center justify-end border-t border-zinc-800/80 px-4 py-3 sm:border-t-0'>
+						<TabsList className='grid h-8 w-full grid-cols-2 gap-1 rounded-sm bg-zinc-950/30 p-0.5 sm:max-w-[16rem]'>
+							<TabsTrigger
+								className='h-full gap-1.5 rounded-sm px-2 text-xs'
+								value='preview'
+							>
+								<Eye className='size-3.5' />
+								Preview
+							</TabsTrigger>
+
+							<TabsTrigger
+								className='h-full gap-1.5 rounded-sm px-2 text-xs'
+								value='syntax'
+							>
+								<CircleHelp className='size-3.5' />
+								Syntax Help
+							</TabsTrigger>
+						</TabsList>
+					</div>
 				</div>
 
 				<div className='border-t border-zinc-800/80' />
@@ -935,14 +940,12 @@ export const QuickInput: FC<QuickInputProps> = ({
 				)}
 
 				<div className='grid min-h-[420px] grid-cols-1 sm:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]'>
-					<div className='flex min-w-0 flex-col px-4 py-4'>
+					<div className='flex min-w-0 flex-col'>
 						<EnhancedInput
-							animate={{ opacity: 1, y: 0 }}
 							className='min-w-0 w-full flex-1'
 							collaborators={collaborators}
 							disabled={isCreating}
 							enableCommands={true}
-							initial={{ opacity: 1, y: -20 }}
 							onAutocompleteControllerReady={handleAutocompleteControllerReady}
 							onAutocompleteStateChange={handleAutocompleteStateChange}
 							onChange={setValue}
@@ -953,12 +956,11 @@ export const QuickInput: FC<QuickInputProps> = ({
 							onSelectionChange={handleSelectionChange}
 							placeholder={`Type naturally... ${config.examples?.[0] || ''}`}
 							showNativeAutocomplete={!isMobile}
-							transition={{ duration: 0.25, ease: 'easeOut' as const }}
 							value={value}
 						/>
 
 						<ExamplesSection
-							className='mt-3'
+							className='border-t border-zinc-800/80 px-4 py-3'
 							examples={config.examples || []}
 							hasValue={value.length > 0}
 							onUseExample={handleUseExample}
@@ -967,8 +969,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 					<div className='hidden bg-zinc-800/80 sm:block' />
 
-					<div className='min-w-0 border-t border-zinc-800/80 px-4 py-4 sm:border-t-0'>
-						<TabsContent className='mt-0 h-full min-h-[260px]' value='preview'>
+					<div className='min-w-0 border-t border-zinc-800/80 sm:border-t-0'>
+						<TabsContent className='mt-0 h-full min-h-[420px]' value='preview'>
 							<PreviewSection
 								className='h-full'
 								hasInput={value.trim().length > 0}
@@ -977,23 +979,19 @@ export const QuickInput: FC<QuickInputProps> = ({
 							/>
 						</TabsContent>
 
-						<TabsContent className='mt-0 h-full min-h-[260px]' value='syntax'>
-							<AnimatePresence>
-								{showOnboardingPatternHint && (
-									<motion.div
-										animate={{ opacity: 1, y: 0 }}
-										className='mb-3 rounded-sm bg-primary-500/8 px-3 py-2 text-xs leading-5 text-text-secondary'
-										exit={{ opacity: 0, y: -8 }}
-										initial={{ opacity: 0, y: -8 }}
-									>
-										<span className='font-medium text-text-primary'>
-											Try more patterns in Syntax Help below.
-										</span>{' '}
-										Use the examples to swap in tags, dates, assignees, or a
-										different node type.
-									</motion.div>
-								)}
-							</AnimatePresence>
+						<TabsContent
+							className='mt-0 h-full min-h-[420px] overflow-y-auto px-6 py-5'
+							value='syntax'
+						>
+							{showOnboardingPatternHint && (
+								<div className='mb-3 rounded-sm bg-primary-500/8 px-3 py-2 text-xs leading-5 text-text-secondary'>
+									<span className='font-medium text-text-primary'>
+										Try more patterns in Syntax Help below.
+									</span>{' '}
+									Use the examples to swap in tags, dates, assignees, or a
+									different node type.
+								</div>
+							)}
 
 							{hasSyntaxPatterns ? (
 								<ParsingLegend
@@ -1013,30 +1011,10 @@ export const QuickInput: FC<QuickInputProps> = ({
 									variant='panel'
 								/>
 							) : (
-								<motion.div
-									animate={
-										prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }
-									}
-									className='rounded-sm bg-zinc-950/20 p-4 text-xs leading-5 text-zinc-500'
-									exit={
-										prefersReducedMotion
-											? { opacity: 0 }
-											: { opacity: 0, y: -10 }
-									}
-									initial={
-										prefersReducedMotion
-											? { opacity: 0 }
-											: { opacity: 0, y: -10 }
-									}
-									transition={{
-										delay: prefersReducedMotion ? 0 : 0.05,
-										duration: prefersReducedMotion ? 0.12 : 0.3,
-										ease: 'easeOut' as const,
-									}}
-								>
+								<div className='rounded-sm bg-zinc-950/20 p-4 text-xs leading-5 text-zinc-500'>
 									This node type accepts plain text input without special
 									syntax.
-								</motion.div>
+								</div>
 							)}
 						</TabsContent>
 					</div>

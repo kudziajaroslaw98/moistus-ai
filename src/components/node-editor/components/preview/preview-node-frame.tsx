@@ -7,7 +7,6 @@ import {
 } from '@/components/nodes/themes/glassmorphism-theme';
 import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
-import { motion } from 'motion/react';
 import { CSSProperties, memo, ReactNode } from 'react';
 
 interface PreviewNodeFrameProps {
@@ -62,43 +61,37 @@ const PreviewNodeFrameComponent = ({
 		: {};
 
 	return (
-		<motion.div
-			animate={{ opacity: 1, scale: 1 }}
-			initial={{ opacity: 0, scale: 0.95 }}
-			transition={{ duration: 0.2, ease: 'easeOut' as const }}
+		<div
+			className={cn(
+				'flex-col rounded-lg gap-4 w-full',
+				// Match BaseNodeWrapper styling (line 176-180)
+				'bg-base bg-[url("/images/groovepaper.png")] bg-repeat bg-blend-color-burn',
+				includePadding ? 'p-4' : 'p-0',
+				className
+			)}
+			style={{
+				...nodeStyles,
+				...accentStyles,
+			}}
 		>
-			<motion.div
-				className={cn(
-					'flex-col rounded-lg gap-4 w-full',
-					// Match BaseNodeWrapper styling (line 176-180)
-					'bg-base bg-[url("/images/groovepaper.png")] bg-repeat bg-blend-color-burn',
-					includePadding ? 'p-4' : 'p-0',
-					className
+			{/* Metadata bar - exactly like canvas */}
+			{nodeData.metadata &&
+				Object.values(nodeData.metadata).some(
+					(value) => value !== undefined && value !== null && value !== ''
+				) && (
+					<UniversalMetadataBar
+						className={cn([includePadding ? 'p-0 pb-4' : 'p-4'])}
+						metadata={nodeData.metadata}
+						nodeType={nodeType}
+						selected={false}
+					/>
 				)}
-				style={{
-					...nodeStyles,
-					...accentStyles,
-				}}
-			>
-				{/* Metadata bar - exactly like canvas */}
-				{nodeData.metadata &&
-					Object.values(nodeData.metadata).some(
-						(value) => value !== undefined && value !== null && value !== ''
-					) && (
-						<UniversalMetadataBar
-							className={cn([includePadding ? 'p-0 pb-4' : 'p-4'])}
-							metadata={nodeData.metadata}
-							nodeType={nodeType}
-							selected={false}
-						/>
-					)}
 
-				{/* Main content */}
-				<div className={cn('flex flex-col h-auto relative z-[1]')}>
-					{children}
-				</div>
-			</motion.div>
-		</motion.div>
+			{/* Main content */}
+			<div className={cn('flex flex-col h-auto relative z-[1]')}>
+				{children}
+			</div>
+		</div>
 	);
 };
 

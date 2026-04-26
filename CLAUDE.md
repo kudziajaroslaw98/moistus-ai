@@ -178,9 +178,9 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 
 <!-- Updated: 2026-04-08 - Consolidated parser-scope updates: deprecated token removals, dual syntax-help model, and canonical lowercase quoted title syntax -->
 
-**Node editor quick-input layout**: Keep quick input as a wide split modal: editor on the left, Preview/Syntax Help tabs on the right, top-bar tab controls, a left/right separator, and a full-width footer action bar. `Ctrl+/` selects the Syntax Help tab instead of toggling a separate below-editor help card. Task-node preview should disable task row entry animation while canvas task nodes keep their normal animation.
+**Node editor quick-input layout**: Keep quick input as a wide split modal with a matching 50/50 split top bar and body: node type label on the left, Preview/Syntax Help tabs on the right, center separators in both rows, and a full-width footer action bar. Editor and preview panes should fill their halves without inset card chrome. `Ctrl+/` selects the Syntax Help tab instead of toggling a separate below-editor help card. Node editor previews should not slide/scale in, and task-node preview should disable task row entry animation while canvas task nodes keep their normal animation.
 
-<!-- Updated: 2026-04-26 - Documented tabbed split node-editor layout and preview animation contract -->
+<!-- Updated: 2026-04-26 - Clarified split top-bar, pane fill, and no-preview-entrance-motion contracts -->
 
 **Task node visibility/title contract**: `taskNode` supports `metadata.hideCompletedTasks` (per-node hide/show for completed checklist items) and keeps progress stats based on full `metadata.tasks`, not only visible rows. Task titles are quick-input metadata (`title:"..."`) and must round-trip through node-editor parsing/serialization.
 

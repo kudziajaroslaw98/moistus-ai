@@ -299,10 +299,10 @@ shiko/
 | commentNode    | structure | —             | Thread anchor (UI only)       |
 | ghostNode      | ai        | —             | AI suggestions (system only)  |
 
-**Node Editor note:** Quick-input parser/help intentionally excludes `$reference` quick-switch and deprecated parser tokens (`bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`). The editor modal is a wide split layout with input on the left and Preview/Syntax Help tabs on the right. Syntax Help remains split into type-filtered `Universal` plus `Node-specific` sections.
+**Node Editor note:** Quick-input parser/help intentionally excludes `$reference` quick-switch and deprecated parser tokens (`bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`). The editor modal is a wide 50/50 split layout with matching split top/body rows: node type and editor on the left, Preview/Syntax Help tabs and tab content on the right. Syntax Help remains split into type-filtered `Universal` plus `Node-specific` sections.
 Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 
-<!-- Updated: 2026-04-26 - Documented task node title/hide-done capability and tabbed node-editor layout in node type map -->
+<!-- Updated: 2026-04-26 - Clarified 50/50 split node-editor header/body layout in node type map -->
 
 **Key Files:**
 

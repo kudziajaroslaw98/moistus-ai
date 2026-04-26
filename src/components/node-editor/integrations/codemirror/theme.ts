@@ -24,12 +24,13 @@ export const nodeEditorTheme = EditorView.theme(
 			color: 'rgb(244 244 245)',
 		},
 		'.cm-content': {
-			minHeight: '260px',
-			padding: '16px',
-			backgroundColor: 'rgba(24, 24, 27, 0.5)',
+			minHeight: '100%',
+			boxSizing: 'border-box',
+			padding: '24px',
+			backgroundColor: 'transparent',
 			color: 'rgb(212, 212, 216)',
-			border: '1px solid rgb(39, 39, 42)',
-			borderRadius: '6px',
+			border: '0',
+			borderRadius: '0',
 			outline: 'none',
 			wordWrap: 'break-word',
 			overflowWrap: 'break-word',
@@ -37,11 +38,10 @@ export const nodeEditorTheme = EditorView.theme(
 		},
 		'.cm-focused .cm-content': {
 			outline: 'none',
-			borderColor: 'rgba(161, 161, 170, 0.55)',
 			boxShadow: 'none',
 		},
 		'.cm-editor': {
-			borderRadius: '6px',
+			borderRadius: '0',
 			backgroundColor: 'transparent',
 			height: '100%',
 		},
@@ -60,8 +60,8 @@ export const nodeEditorTheme = EditorView.theme(
 		'.cm-scroller': {
 			fontFamily: 'inherit',
 			lineHeight: '1.75',
+			height: '100%',
 			'overflow-y': 'auto',
-			'max-height': '360px',
 		},
 
 		// ========================================
