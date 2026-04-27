@@ -506,7 +506,7 @@ export const EnhancedInput = ({
 				ref={containerRef}
 				transition={transition}
 				className={cn(
-					'enhanced-input-container relative h-full',
+					'enhanced-input-container relative h-full min-h-0',
 					hasErrors && 'has-validation-errors',
 					hasWarnings && 'has-validation-warnings',
 					hasSuggestions && 'has-validation-suggestions',
@@ -523,7 +523,7 @@ export const EnhancedInput = ({
 				>
 					{/* Remove motion wrapper from input to prevent CodeMirror interference */}
 					<div
-						className='enhanced-input-wrapper h-full'
+						className='enhanced-input-wrapper h-full min-h-0'
 						style={{
 							// Stable container to prevent CodeMirror DOM issues
 							isolation: 'isolate',
@@ -533,12 +533,12 @@ export const EnhancedInput = ({
 						<div
 							ref={editorRef}
 							className={cn(
-								'h-full w-full',
+								'h-full min-h-0 w-full',
 								disabled && 'opacity-50 cursor-not-allowed'
 							)}
 							style={{
 								// Ensure the editor container is stable
-								minHeight: '420px',
+								minHeight: 0,
 								willChange: 'auto', // Prevent unnecessary GPU layers
 							}}
 						/>

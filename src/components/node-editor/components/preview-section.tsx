@@ -12,7 +12,7 @@ interface PreviewSectionProps {
 
 const theme = {
 	preview:
-		'h-full min-h-[420px] overflow-y-auto overflow-x-hidden px-6 py-6 flex flex-col justify-center',
+		'h-full min-h-[260px] overflow-y-auto overflow-x-hidden px-6 py-6 flex flex-col justify-start sm:min-h-0',
 	previewContent: 'text-sm text-zinc-500',
 };
 

@@ -912,7 +912,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 					<div className='flex min-w-0 items-center justify-end border-t border-zinc-800/80 px-4 py-3 sm:border-t-0'>
 						<TabsList className='grid h-8 w-full grid-cols-2 gap-1 rounded-sm bg-zinc-950/30 p-0.5 sm:max-w-[16rem]'>
 							<TabsTrigger
-								className='h-full gap-1.5 rounded-sm px-2 text-xs'
+								className='h-full gap-1.5 rounded-sm px-2 text-xs data-[selected]:border-zinc-500/60 data-[selected]:bg-zinc-800/80 data-[selected]:text-zinc-100 data-[selected]:shadow-[inset_0_-2px_0_rgba(244,244,245,0.72)]'
 								value='preview'
 							>
 								<Eye className='size-3.5' />
@@ -920,7 +920,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 							</TabsTrigger>
 
 							<TabsTrigger
-								className='h-full gap-1.5 rounded-sm px-2 text-xs'
+								className='h-full gap-1.5 rounded-sm px-2 text-xs data-[selected]:border-zinc-500/60 data-[selected]:bg-zinc-800/80 data-[selected]:text-zinc-100 data-[selected]:shadow-[inset_0_-2px_0_rgba(244,244,245,0.72)]'
 								value='syntax'
 							>
 								<CircleHelp className='size-3.5' />
@@ -939,10 +939,10 @@ export const QuickInput: FC<QuickInputProps> = ({
 					</div>
 				)}
 
-				<div className='grid min-h-[420px] grid-cols-1 sm:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]'>
-					<div className='flex min-w-0 flex-col'>
+				<div className='grid grid-cols-1 sm:h-[420px] sm:max-h-[calc(100dvh-14rem)] sm:min-h-[360px] sm:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] sm:overflow-hidden'>
+					<div className='flex min-h-0 min-w-0 flex-col'>
 						<EnhancedInput
-							className='min-w-0 w-full flex-1'
+							className='min-h-0 min-w-0 w-full flex-1'
 							collaborators={collaborators}
 							disabled={isCreating}
 							enableCommands={true}
@@ -969,8 +969,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 					<div className='hidden bg-zinc-800/80 sm:block' />
 
-					<div className='min-w-0 border-t border-zinc-800/80 sm:border-t-0'>
-						<TabsContent className='mt-0 h-full min-h-[420px]' value='preview'>
+					<div className='min-h-0 min-w-0 border-t border-zinc-800/80 sm:border-t-0'>
+						<TabsContent className='mt-0 h-full min-h-0' value='preview'>
 							<PreviewSection
 								className='h-full'
 								hasInput={value.trim().length > 0}
@@ -980,7 +980,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 						</TabsContent>
 
 						<TabsContent
-							className='mt-0 h-full min-h-[420px] overflow-y-auto px-6 py-5'
+							className='mt-0 h-full min-h-0 overflow-y-auto px-6 py-5'
 							value='syntax'
 						>
 							{showOnboardingPatternHint && (

@@ -38,7 +38,7 @@ export const ValidationTooltip: React.FC<ValidationTooltipProps> = ({
 				<div
 					ref={containerRef}
 					className={cn(
-						'validation-trigger relative h-full',
+						'validation-trigger relative h-full min-h-0',
 						hasErrors && 'has-errors',
 						hasWarnings && 'has-warnings'
 					)}

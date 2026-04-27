@@ -5,6 +5,15 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-04-27]
+
+### Fixed
+
+- **node-editor/editor-affordance**: Node editor input now shows line numbers and a visible scrollbar while keeping the bounded split-pane height
+  - Why: Multi-line input needs clear click/scroll affordance inside the split editor
+- **node-editor/preview-and-tabs**: Preview content now aligns to the top of its pane and the active Preview/Syntax Help tab has a visible selected indicator
+  - Why: The right panel should read as active tab content, not centered empty space
+
 ## [2026-04-26]
 
 ### Changed
@@ -20,6 +29,10 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Preview should update immediately and avoid distracting row entrance motion while typing
 - **node-editor/preview-entrance-motion**: Node editor previews now render without slide or scale-in entrance animation
   - Why: Preview changes should feel immediate while editing text
+- **node-editor/pane-height-boundary**: Node editor split panes now fill a bounded dialog body instead of stretching to page height
+  - Why: The footer must stay visible and pane selection/focus regions should not grow beyond the modal body
+- **node-editor/codemirror-height**: CodeMirror now uses the bounded editor pane height without scroll-past-end padding inflating the content surface
+  - Why: The input should feel roomy without turning a one-line node into a page-height textbox
 
 ## [2026-04-22]
 

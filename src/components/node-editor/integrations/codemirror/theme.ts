@@ -22,11 +22,14 @@ export const nodeEditorTheme = EditorView.theme(
 			fontSize: '16px',
 			fontFamily: 'inherit',
 			color: 'rgb(244 244 245)',
+			height: '100%',
+			minHeight: '0',
+			overflow: 'hidden',
 		},
 		'.cm-content': {
 			minHeight: '100%',
 			boxSizing: 'border-box',
-			padding: '24px',
+			padding: '24px 24px 24px 14px',
 			backgroundColor: 'transparent',
 			color: 'rgb(212, 212, 216)',
 			border: '0',
@@ -44,6 +47,7 @@ export const nodeEditorTheme = EditorView.theme(
 			borderRadius: '0',
 			backgroundColor: 'transparent',
 			height: '100%',
+			minHeight: '0',
 		},
 		'.ͼ1.cm-focused': {
 			outline: 'none !important',
@@ -54,6 +58,23 @@ export const nodeEditorTheme = EditorView.theme(
 		'.cm-activeLine': {
 			backgroundColor: 'rgba(244, 244, 245, 0.045)',
 		},
+		'.cm-gutters': {
+			backgroundColor: 'rgba(9, 9, 11, 0.18)',
+			borderRight: '1px solid rgba(63, 63, 70, 0.55)',
+			color: 'rgba(161, 161, 170, 0.42)',
+			paddingLeft: '6px',
+		},
+		'.cm-lineNumbers .cm-gutterElement': {
+			minWidth: '28px',
+			padding: '0 8px 0 2px',
+			fontSize: '12px',
+			lineHeight: '1.75',
+			textAlign: 'right',
+		},
+		'.cm-activeLineGutter': {
+			backgroundColor: 'rgba(244, 244, 245, 0.055)',
+			color: 'rgba(244, 244, 245, 0.78)',
+		},
 		'.cm-line': {
 			lineHeight: '1.75',
 		},
@@ -61,7 +82,26 @@ export const nodeEditorTheme = EditorView.theme(
 			fontFamily: 'inherit',
 			lineHeight: '1.75',
 			height: '100%',
+			minHeight: '0',
 			'overflow-y': 'auto',
+			overscrollBehavior: 'contain',
+			scrollbarWidth: 'thin',
+			scrollbarColor: 'rgba(161, 161, 170, 0.35) transparent',
+		},
+		'.cm-scroller::-webkit-scrollbar': {
+			width: '8px',
+		},
+		'.cm-scroller::-webkit-scrollbar-track': {
+			background: 'transparent',
+		},
+		'.cm-scroller::-webkit-scrollbar-thumb': {
+			backgroundColor: 'rgba(161, 161, 170, 0.28)',
+			border: '2px solid transparent',
+			borderRadius: '999px',
+			backgroundClip: 'content-box',
+		},
+		'.cm-scroller::-webkit-scrollbar-thumb:hover': {
+			backgroundColor: 'rgba(161, 161, 170, 0.45)',
 		},
 
 		// ========================================
