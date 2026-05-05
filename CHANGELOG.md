@@ -5,6 +5,18 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-05-05]
+
+### Changed
+
+- **history/readable-side-panel**: History rows now show plain-language summaries, affected node/connection labels, and focus controls that center the changed map element without closing the panel
+  - Why: Raw patch paths made history difficult to understand and did not identify where the change happened on the canvas
+
+### Added
+
+- **tests/history-readable-presentation**: Added regression coverage for readable movement/routing summaries, label fallbacks, connection labels, collapsed technical details, and history focus controls
+  - Why: The history panel now depends on a presentation layer that should stay readable as delta shapes evolve
+
 ## [2026-04-22]
 
 ### Fixed

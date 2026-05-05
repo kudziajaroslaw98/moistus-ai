@@ -26,10 +26,26 @@ export interface HistoryPatchOp {
 	reversePatch?: Record<string, any>; // for patch (backward: new -> old, enables undo)
 }
 
+export interface HistorySubjectHint {
+	id: string;
+	type: 'node' | 'edge';
+	label?: string;
+	nodeType?: string;
+	position?: { x: number; y: number };
+	width?: number | null;
+	height?: number | null;
+	sourceId?: string;
+	targetId?: string;
+	sourceLabel?: string;
+	targetLabel?: string;
+}
+
 export interface HistoryDelta {
 	operation: 'add' | 'update' | 'delete' | 'batch'; // top-level label
 	entityType: 'node' | 'edge' | 'mixed';
 	changes: HistoryPatchOp[];
+	summary?: string;
+	subjectHints?: HistorySubjectHint[];
 }
 
 // Delta with attribution for collaborative history
@@ -48,6 +64,8 @@ export interface HistoryDbItem {
 	action_name: string;
 	operation_type: string;
 	entity_type: string;
+	user_id?: string;
+	changes?: HistoryDelta | null;
 	created_at: string;
 }
 
@@ -65,6 +83,11 @@ export interface HistoryItem {
 	entityType?: string;
 	isMajor?: boolean;
 	timestamp: number;
+	summary?: string;
+	subjects?: HistorySubjectHint[];
+	userId?: string;
+	userName?: string;
+	userAvatar?: string;
 }
 
 export interface HistoryListResponse {

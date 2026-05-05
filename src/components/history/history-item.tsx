@@ -1,5 +1,10 @@
 'use client';
 
+import {
+	buildHistoryPresentation,
+	formatHistoryActionTitle,
+	type HistoryFocusTarget,
+} from '@/helpers/history/presentation';
 import { formatTimestamp } from '@/helpers/history/time-utils';
 import useAppStore from '@/store/mind-map-store';
 import type {
@@ -21,7 +26,8 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useShallow } from 'zustand/shallow';
 import { Button } from '../ui/button';
 import { DiffView } from './diff-view';
 
@@ -32,20 +38,44 @@ interface Props {
 }
 
 export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
-	const isLoading = useAppStore((s) => s.loadingStates?.isHistoryLoading);
-	const isReverting = useAppStore((s) => s.isReverting);
-	const revertingIndex = useAppStore((s) => s.revertingIndex);
-	const revertToHistoryState = useAppStore((s) => s.revertToHistoryState);
-	const canRevertChange = useAppStore((s) => s.canRevertChange);
-	const currentUser = useAppStore((s) => s.currentUser);
-	const mapId = useAppStore((s) => s.mapId);
+	const {
+		isLoading,
+		isReverting,
+		revertingIndex,
+		revertToHistoryState,
+		canRevertChange,
+		currentUser,
+		mapId,
+		nodes,
+		edges,
+		centerOnNode,
+		reactFlowInstance,
+		setSelectedNodes,
+	} = useAppStore(
+		useShallow((s) => ({
+			isLoading: s.loadingStates?.isHistoryLoading,
+			isReverting: s.isReverting,
+			revertingIndex: s.revertingIndex,
+			revertToHistoryState: s.revertToHistoryState,
+			canRevertChange: s.canRevertChange,
+			currentUser: s.currentUser,
+			mapId: s.mapId,
+			nodes: s.nodes,
+			edges: s.edges,
+			centerOnNode: s.centerOnNode,
+			reactFlowInstance: s.reactFlowInstance,
+			setSelectedNodes: s.setSelectedNodes,
+		}))
+	);
 
 	// Check if this specific item is being reverted
 	const isThisReverting = revertingIndex === originalIndex;
 
 	// Expand/collapse state - delta is fetched on-demand from DB
 	const [isExpanded, setIsExpanded] = useState(false);
-	const [cachedDelta, setCachedDelta] = useState<AttributedHistoryDelta | null>(null);
+	const [cachedDelta, setCachedDelta] = useState<AttributedHistoryDelta | null>(
+		null
+	);
 	const [isFetchingDelta, setIsFetchingDelta] = useState(false);
 	const [fetchError, setFetchError] = useState<string | null>(null);
 
@@ -82,6 +112,8 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 					userAvatar: data.userAvatar,
 					actionName: data.actionName || meta.actionName,
 					timestamp: data.timestamp || meta.timestamp,
+					summary: data.summary,
+					subjectHints: data.subjectHints,
 				};
 
 				setCachedDelta(fetchedDelta);
@@ -100,12 +132,91 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 	// Determine if this item can show a diff
 	const canShowDiff = meta.type === 'event' || !!delta;
 
+	const presentation = useMemo(
+		() =>
+			delta
+				? buildHistoryPresentation(delta, {
+						actionName: delta.actionName || meta.actionName,
+						nodes,
+						edges,
+					})
+				: null,
+		[delta, edges, meta.actionName, nodes]
+	);
+
+	const metaSubjectPreview = useMemo(() => {
+		const subjects = meta.subjects ?? [];
+		if (subjects.length === 0) return '';
+
+		const labels = subjects
+			.slice(0, 3)
+			.map(
+				(subject) =>
+					subject.label || `${subject.type} ${subject.id.slice(0, 8)}`
+			);
+		if (subjects.length > 3) labels.push(`+${subjects.length - 3} more`);
+		return labels.join(', ');
+	}, [meta.subjects]);
+
+	const displayTitle =
+		presentation?.title ?? formatHistoryActionTitle(meta.actionName);
+	const displaySummary = presentation?.summary ?? meta.summary;
+	const displaySubjectPreview =
+		presentation?.subjectPreview ?? metaSubjectPreview;
+	const actorUserId = delta?.userId ?? meta.userId;
+	const actorName = delta?.userName ?? meta.userName;
+	const actorAvatar = delta?.userAvatar ?? meta.userAvatar;
+	const hasAttribution = Boolean(actorUserId || actorName);
+
 	// Display user name
 	const getUserDisplay = (): string => {
-		if (!delta) return '';
-		if (delta.userId === currentUser?.id) return 'You';
-		return delta.userName || 'Unknown';
+		if (!hasAttribution) return '';
+		if (actorUserId === currentUser?.id) return 'You';
+		return actorName || 'Unknown';
 	};
+
+	const handleFocusTarget = useCallback(
+		(target: HistoryFocusTarget) => {
+			if (target.type === 'node') {
+				const currentNode = nodes.find((node) => node.id === target.nodeId);
+				if (currentNode) {
+					centerOnNode(target.nodeId);
+					return;
+				}
+
+				if (target.position && reactFlowInstance) {
+					reactFlowInstance.setCenter(
+						target.position.x + (target.width || 0) / 2,
+						target.position.y + (target.height || 0) / 2,
+						{ zoom: 1.2, duration: 800 }
+					);
+				}
+				return;
+			}
+
+			const targetNodes = target.nodeIds
+				.map((nodeId) => nodes.find((node) => node.id === nodeId))
+				.filter((node): node is (typeof nodes)[number] => Boolean(node));
+
+			if (targetNodes.length >= 2 && reactFlowInstance) {
+				reactFlowInstance.fitView({
+					nodes: targetNodes.map((node) => ({ id: node.id })),
+					padding: 0.35,
+					duration: 800,
+				});
+				targetNodes.forEach((node) => {
+					reactFlowInstance.updateNode(node.id, { selected: true });
+				});
+				setSelectedNodes(targetNodes);
+				return;
+			}
+
+			if (targetNodes.length === 1) {
+				centerOnNode(targetNodes[0].id);
+			}
+		},
+		[centerOnNode, nodes, reactFlowInstance, setSelectedNodes]
+	);
 
 	const getActionIcon = () => {
 		if (meta.isMajor) return <Milestone className='h-4 w-4' />;
@@ -153,19 +264,31 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 									isCurrent ? 'text-primary-300' : 'text-white/87'
 								)}
 							>
-								{meta.actionName}
+								{displayTitle}
 							</h4>
 
+							{displaySummary && (
+								<p className='text-xs leading-4 text-white/72'>
+									{displaySummary}
+								</p>
+							)}
+
+							{displaySubjectPreview && (
+								<p className='truncate text-xs text-white/45'>
+									{displaySubjectPreview}
+								</p>
+							)}
+
 							{/* User attribution */}
-							{delta && (
+							{hasAttribution && (
 								<div className='flex items-center gap-1.5'>
-									{delta.userAvatar ? (
+									{actorAvatar ? (
 										<Image
 											unoptimized
-											alt={delta.userName}
+											alt={actorName || 'User'}
 											className='rounded-full'
 											height={16}
-											src={delta.userAvatar}
+											src={actorAvatar}
 											width={16}
 										/>
 									) : (
@@ -187,7 +310,7 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 								</div>
 							)}
 
-							{!delta && (
+							{!hasAttribution && (
 								<p
 									className='text-xs text-white/60 cursor-help'
 									title={formatTimestamp(meta.timestamp).tooltip}
@@ -196,18 +319,18 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 								</p>
 							)}
 
-							{typeof meta.nodeCount === 'number' ||
-								(typeof meta.edgeCount === 'number' && (
-									<div className='flex flex-wrap gap-3 text-xs text-white/38'>
-										{typeof meta.nodeCount === 'number' && (
-											<span>Nodes: {meta.nodeCount}</span>
-										)}
+							{(typeof meta.nodeCount === 'number' ||
+								typeof meta.edgeCount === 'number') && (
+								<div className='flex flex-wrap gap-3 text-xs text-white/38'>
+									{typeof meta.nodeCount === 'number' && (
+										<span>Nodes: {meta.nodeCount}</span>
+									)}
 
-										{typeof meta.edgeCount === 'number' && (
-											<span>Edges: {meta.edgeCount}</span>
-										)}
-									</div>
-								))}
+									{typeof meta.edgeCount === 'number' && (
+										<span>Edges: {meta.edgeCount}</span>
+									)}
+								</div>
+							)}
 						</div>
 
 						<div className='flex items-center gap-2'>
@@ -284,6 +407,8 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 						delta={cachedDelta}
 						error={fetchError}
 						isLoading={isFetchingDelta}
+						onFocusTarget={handleFocusTarget}
+						presentation={presentation}
 					/>
 				)}
 			</AnimatePresence>

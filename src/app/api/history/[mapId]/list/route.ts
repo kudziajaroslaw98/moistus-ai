@@ -1,6 +1,17 @@
+import {
+	buildHistoryPresentation,
+	deriveHistorySubjectHints,
+	normalizeHistoryDelta,
+} from '@/helpers/history/presentation';
 import { createClient } from '@/helpers/supabase/server';
 import { HistoryDbItem, HistoryItem } from '@/types/history-state';
 import { NextRequest, NextResponse } from 'next/server';
+
+interface UserProfileRow {
+	user_id: string;
+	display_name: string | null;
+	avatar_url: string | null;
+}
 
 export const GET = async (
 	req: NextRequest,
@@ -8,7 +19,6 @@ export const GET = async (
 ) => {
 	try {
 		const { mapId } = await params;
-		console.log(mapId);
 		const supabase = await createClient();
 
 		const { data: userData, error: userErr } = await supabase.auth.getUser();
@@ -60,7 +70,7 @@ export const GET = async (
 		let snapshotQuery = supabase
 			.from('map_history_snapshots')
 			.select(
-				'id, snapshot_index, action_name, node_count, edge_count, is_major, created_at',
+				'id, snapshot_index, action_name, node_count, edge_count, is_major, created_at, user_id',
 				{ count: 'exact' }
 			)
 			.eq('map_id', mapId)
@@ -87,7 +97,7 @@ export const GET = async (
 			const { data: eventsData, error: evErr } = await supabase
 				.from('map_history_events')
 				.select(
-					'id, snapshot_id, event_index, action_name, operation_type, entity_type, created_at'
+					'id, snapshot_id, event_index, action_name, operation_type, entity_type, changes, created_at, user_id'
 				)
 				.in('snapshot_id', snapshotIds)
 				.order('created_at', { ascending: false });
@@ -105,6 +115,41 @@ export const GET = async (
 			.eq('map_id', mapId)
 			.maybeSingle();
 
+		const userIds = Array.from(
+			new Set(
+				[
+					...(snapshots?.map((snapshot) => snapshot.user_id) ?? []),
+					...events.map((event) => event.user_id),
+				].filter((id): id is string => typeof id === 'string' && id.length > 0)
+			)
+		);
+		const profileMap = new Map<string, UserProfileRow>();
+
+		if (userIds.length > 0) {
+			const { data: profiles, error: profilesErr } = await supabase
+				.from('user_profiles')
+				.select('user_id, display_name, avatar_url')
+				.in('user_id', userIds);
+
+			if (profilesErr) {
+				console.warn('history/list: profile fetch warning', profilesErr);
+			}
+
+			for (const profile of (profiles ?? []) as UserProfileRow[]) {
+				profileMap.set(profile.user_id, profile);
+			}
+		}
+
+		const attributionFor = (userId?: string | null) => {
+			if (!userId) return {};
+			const profile = profileMap.get(userId);
+			return {
+				userId,
+				userName: profile?.display_name || 'Unknown',
+				userAvatar: profile?.avatar_url || undefined,
+			};
+		};
+
 		const items: HistoryItem[] = [
 			...(snapshots?.map((s) => ({
 				id: s.id,
@@ -115,17 +160,33 @@ export const GET = async (
 				edgeCount: s.edge_count,
 				isMajor: s.is_major,
 				timestamp: new Date(s.created_at).getTime(),
+				...attributionFor(s.user_id),
 			})) || []),
-			...(events.map((e) => ({
-				id: e.id,
-				type: 'event' as const,
-				snapshotId: e.snapshot_id,
-				eventIndex: e.event_index,
-				actionName: e.action_name,
-				operationType: e.operation_type,
-				entityType: e.entity_type,
-				timestamp: new Date(e.created_at).getTime(),
-			})) || []),
+			...(events.map((e) => {
+				const storedDelta = normalizeHistoryDelta(e.changes, {
+					operation: e.operation_type,
+					entityType: e.entity_type,
+				});
+				const presentation = storedDelta
+					? buildHistoryPresentation(storedDelta, { actionName: e.action_name })
+					: null;
+
+				return {
+					id: e.id,
+					type: 'event' as const,
+					snapshotId: e.snapshot_id,
+					eventIndex: e.event_index,
+					actionName: e.action_name,
+					operationType: e.operation_type,
+					entityType: e.entity_type,
+					timestamp: new Date(e.created_at).getTime(),
+					summary: presentation?.summary,
+					subjects: storedDelta
+						? deriveHistorySubjectHints(storedDelta)
+						: undefined,
+					...attributionFor(e.user_id),
+				};
+			}) || []),
 		].sort((a, b) => b.timestamp - a.timestamp);
 
 		return NextResponse.json({
