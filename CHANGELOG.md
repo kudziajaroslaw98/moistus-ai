@@ -5,6 +5,13 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-05-05]
+
+### Fixed
+
+- **node-editor/mobile-tabbed-layout**: Mobile node editor now keeps the input visible while Preview/Syntax Help live in a bounded stacked panel with a pinned footer
+  - Why: The tabbed editor should stay usable on phones without becoming an unbounded page or pushing actions off-screen
+
 ## [2026-04-27]
 
 ### Fixed

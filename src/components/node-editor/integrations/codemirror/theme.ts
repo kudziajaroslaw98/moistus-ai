@@ -117,6 +117,17 @@ export const nodeEditorTheme = EditorView.theme(
 		'.cm-scroller::-webkit-scrollbar-thumb:hover': {
 			backgroundColor: 'rgba(161, 161, 170, 0.45)',
 		},
+		'@media (max-width: 639px)': {
+			'.cm-content': {
+				padding: '18px 0',
+			},
+			'.cm-line': {
+				padding: '0 10px',
+			},
+			'.cm-lineNumbers .cm-gutterElement': {
+				minWidth: '28px',
+			},
+		},
 
 		// ========================================
 		// AUTOCOMPLETION DROPDOWN STYLING

@@ -55,7 +55,7 @@ const PreviewNodeRendererComponent = ({
 
 	return (
 		<PreviewModeProvider>
-			<PreviewScaleContainer maxHeight={320}>
+			<PreviewScaleContainer>
 				{/* Disable all pointer events for static preview */}
 				<div className='pointer-events-none select-none w-full'>
 					<PreviewNodeFrame

@@ -52,7 +52,7 @@ import { EnhancedInput } from './enhanced-input';
 import { MobileCompletionTray } from './mobile-completion-tray';
 
 const theme = {
-	container: 'p-0',
+	container: 'flex h-full min-h-0 flex-col p-0',
 	hint: 'text-xs text-zinc-500 mt-2',
 };
 
@@ -885,20 +885,27 @@ export const QuickInput: FC<QuickInputProps> = ({
 		<motion.div
 			animate={{ opacity: 1, scale: 1 }}
 			className={theme.container}
+			data-testid='quick-input-shell'
 			exit={{ opacity: 0, scale: 0.95 }}
 			initial={{ opacity: 0, scale: 0.95 }}
 			layoutId={config.label}
 			transition={{ duration: 0.2, ease: 'easeOut' as const }}
 		>
 			<Tabs
-				className='flex flex-col gap-0'
+				className='flex h-full min-h-0 flex-col gap-0'
 				onValueChange={(nextValue) =>
 					setRightPanelTab(nextValue as RightPanelTab)
 				}
 				value={rightPanelTab}
 			>
-				<div className='grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]'>
-					<div className='flex min-w-0 items-center px-4 py-3'>
+				<div
+					className='grid shrink-0 grid-cols-1 sm:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]'
+					data-testid='quick-input-header-grid'
+				>
+					<div
+						className='flex min-w-0 items-center px-4 py-3'
+						data-testid='quick-input-header-row'
+					>
 						<ComponentHeader
 							className='mb-0 min-w-0'
 							icon={config.icon}
@@ -909,10 +916,13 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 					<div className='hidden bg-zinc-800/80 sm:block' />
 
-					<div className='flex min-w-0 items-stretch justify-start border-t border-zinc-800/80 px-0 py-0 sm:border-t-0'>
-						<TabsList className='grid h-full w-fit grid-cols-2 gap-0 border-b border-zinc-700/80 bg-transparent p-0'>
+					<div
+						className='flex h-11 min-w-0 items-stretch justify-start border-t border-zinc-800/80 px-0 py-0 sm:h-auto sm:border-t-0'
+						data-testid='quick-input-tabs-row'
+					>
+						<TabsList className='grid h-full w-full grid-cols-[max-content_max-content] justify-start gap-0 border-b border-zinc-700/80 bg-transparent p-0 sm:w-fit sm:grid-cols-2'>
 							<TabsTrigger
-								className='!h-full !rounded-none !border-0 !border-b-2 !border-transparent gap-1.5 px-2 text-xs text-zinc-400 hover:!bg-zinc-900/45 hover:text-zinc-100 aria-selected:!border-b-zinc-100 aria-selected:!bg-zinc-900/45 aria-selected:text-zinc-50 data-[selected]:!border-b-zinc-100 data-[selected]:!bg-zinc-900/45 data-[selected]:text-zinc-50'
+								className='!h-full !rounded-none !border-0 !border-b-2 !border-transparent gap-1.5 px-4 text-sm text-zinc-400 hover:!bg-zinc-900/45 hover:text-zinc-100 aria-selected:!border-b-zinc-100 aria-selected:!bg-zinc-900/45 aria-selected:text-zinc-50 data-[selected]:!border-b-zinc-100 data-[selected]:!bg-zinc-900/45 data-[selected]:text-zinc-50 sm:px-2 sm:text-xs'
 								value='preview'
 							>
 								<Eye className='size-3.5' />
@@ -920,7 +930,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 							</TabsTrigger>
 
 							<TabsTrigger
-								className='!h-full !rounded-none !border-0 !border-b-2 !border-transparent gap-1.5 px-2 text-xs text-zinc-400 hover:!bg-zinc-900/45 hover:text-zinc-100 aria-selected:!border-b-zinc-100 aria-selected:!bg-zinc-900/45 aria-selected:text-zinc-50 data-[selected]:!border-b-zinc-100 data-[selected]:!bg-zinc-900/45 data-[selected]:text-zinc-50'
+								className='!h-full !rounded-none !border-0 !border-b-2 !border-transparent gap-1.5 px-4 text-sm text-zinc-400 hover:!bg-zinc-900/45 hover:text-zinc-100 aria-selected:!border-b-zinc-100 aria-selected:!bg-zinc-900/45 aria-selected:text-zinc-50 data-[selected]:!border-b-zinc-100 data-[selected]:!bg-zinc-900/45 data-[selected]:text-zinc-50 sm:px-2 sm:text-xs'
 								value='syntax'
 							>
 								<CircleHelp className='size-3.5' />
@@ -934,13 +944,19 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 				{/* Parent reference when creating a child node */}
 				{parentNode && (
-					<div className='border-b border-zinc-800/80 px-4 py-3'>
+					<div className='shrink-0 border-b border-zinc-800/80 px-4 py-3'>
 						<ParentNodeReference parentNode={parentNode} />
 					</div>
 				)}
 
-				<div className='grid grid-cols-1 sm:h-[420px] sm:max-h-[calc(100dvh-14rem)] sm:min-h-[360px] sm:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] sm:overflow-hidden'>
-					<div className='flex min-h-0 min-w-0 flex-col'>
+				<div
+					className='grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(150px,0.48fr)_1px_minmax(170px,0.52fr)] overflow-hidden sm:h-[min(420px,calc(100dvh-10rem))] sm:max-h-[calc(100dvh-10rem)] sm:min-h-[min(360px,calc(100dvh-10rem))] sm:flex-none sm:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] sm:grid-rows-1'
+					data-testid='quick-input-body'
+				>
+					<div
+						className='flex min-h-0 min-w-0 flex-col overflow-hidden'
+						data-testid='quick-input-editor-panel'
+					>
 						<EnhancedInput
 							className='min-h-0 min-w-0 w-full flex-1'
 							collaborators={collaborators}
@@ -960,17 +976,23 @@ export const QuickInput: FC<QuickInputProps> = ({
 						/>
 
 						<ExamplesSection
-							className='border-t border-zinc-800/80 px-4 py-3'
+							className='shrink-0 border-t border-zinc-800/80 px-4 py-3'
 							examples={config.examples || []}
 							hasValue={value.length > 0}
 							onUseExample={handleUseExample}
 						/>
 					</div>
 
-					<div className='hidden bg-zinc-800/80 sm:block' />
+					<div className='bg-zinc-800/80' />
 
-					<div className='min-h-0 min-w-0 border-t border-zinc-800/80 sm:border-t-0'>
-						<TabsContent className='mt-0 h-full min-h-0' value='preview'>
+					<div
+						className='min-h-0 min-w-0 overflow-hidden'
+						data-testid='quick-input-right-panel'
+					>
+						<TabsContent
+							className='mt-0 h-full min-h-0 overflow-hidden'
+							value='preview'
+						>
 							<PreviewSection
 								className='h-full'
 								hasInput={value.trim().length > 0}
@@ -980,7 +1002,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 						</TabsContent>
 
 						<TabsContent
-							className='mt-0 h-full min-h-0 overflow-y-auto px-6 py-5'
+							className='mt-0 h-full min-h-0 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5'
 							value='syntax'
 						>
 							{showOnboardingPatternHint && (
@@ -1033,7 +1055,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 					selectedIndex={autocompleteState.selectedIndex}
 				/>
 
-				<div className='px-4'>
+				<div className='shrink-0 px-4'>
 					<ErrorDisplay error={error} />
 				</div>
 
@@ -1043,7 +1065,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 						<motion.div
 							initial={{ opacity: 0, y: -10 }}
 							animate={{ opacity: 1, y: 0 }}
-							className='mx-4 mb-3 flex items-center gap-2 rounded-sm bg-amber-500/10 p-3 text-amber-400'
+							className='mx-4 mb-3 flex shrink-0 items-center gap-2 rounded-sm bg-amber-500/10 p-3 text-amber-400'
 						>
 							<AlertCircle className='w-4 h-4 shrink-0' />
 							<span className='text-sm'>
@@ -1055,18 +1077,20 @@ export const QuickInput: FC<QuickInputProps> = ({
 						</motion.div>
 					)}
 
-				<ActionBar
-					canCreate={
-						value.trim().length > 0 &&
-						(!isCreateMode ||
-							(!isCreateBlockedByNodeLimit && !isCreateLimitCheckLoading))
-					}
-					className='mt-0 border-t border-zinc-800/80 px-4 py-3'
-					isCreating={isCreating}
-					isCheckingLimit={isCreateLimitCheckLoading}
-					mode={mode}
-					onCreate={handleCreate}
-				/>
+				<div className='shrink-0' data-testid='quick-input-footer-row'>
+					<ActionBar
+						canCreate={
+							value.trim().length > 0 &&
+							(!isCreateMode ||
+								(!isCreateBlockedByNodeLimit && !isCreateLimitCheckLoading))
+						}
+						className='mt-0 border-t border-zinc-800/80 px-4 py-3'
+						isCreating={isCreating}
+						isCheckingLimit={isCreateLimitCheckLoading}
+						mode={mode}
+						onCreate={handleCreate}
+					/>
+				</div>
 			</Tabs>
 		</motion.div>
 	);

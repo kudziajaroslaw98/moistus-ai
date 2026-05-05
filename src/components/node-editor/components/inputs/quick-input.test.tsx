@@ -588,6 +588,12 @@ describe('QuickInput', () => {
 		return user;
 	};
 
+	const expectDocumentOrder = (first: HTMLElement, second: HTMLElement) => {
+		expect(
+			first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING
+		).toBeTruthy();
+	};
+
 	beforeEach(() => {
 		jest.clearAllMocks();
 		mockQuickInputValue = '';
@@ -640,6 +646,37 @@ describe('QuickInput', () => {
 			expect(
 				screen.getByTestId('enhanced-input').parentElement
 			).toHaveAttribute('data-show-native-autocomplete', 'false');
+		});
+
+		it('renders the mobile editor as a bounded stacked layout before the footer', () => {
+			mockIsMobile = true;
+			render(<QuickInput {...defaultProps} />);
+
+			const headerRow = screen.getByTestId('quick-input-header-row');
+			const tabsRow = screen.getByTestId('quick-input-tabs-row');
+			const body = screen.getByTestId('quick-input-body');
+			const editorPanel = screen.getByTestId('quick-input-editor-panel');
+			const rightPanel = screen.getByTestId('quick-input-right-panel');
+			const footerRow = screen.getByTestId('quick-input-footer-row');
+
+			expect(editorPanel).toContainElement(screen.getByTestId('enhanced-input'));
+			expect(rightPanel).toContainElement(screen.getByTestId('preview-section'));
+			expectDocumentOrder(headerRow, tabsRow);
+			expectDocumentOrder(tabsRow, body);
+			expectDocumentOrder(body, footerRow);
+		});
+
+		it('keeps the mobile editor visible when switching to syntax help', async () => {
+			mockIsMobile = true;
+			render(<QuickInput {...defaultProps} />);
+
+			await openSyntaxHelpTab();
+
+			expect(screen.getByTestId('enhanced-input')).toBeInTheDocument();
+			expect(screen.getByTestId('parsing-legend')).toBeInTheDocument();
+			expect(screen.getByTestId('quick-input-editor-panel')).toContainElement(
+				screen.getByTestId('enhanced-input')
+			);
 		});
 
 		it('renders preview section', () => {
