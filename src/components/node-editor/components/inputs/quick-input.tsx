@@ -909,10 +909,10 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 					<div className='hidden bg-zinc-800/80 sm:block' />
 
-					<div className='flex min-w-0 items-center justify-end border-t border-zinc-800/80 px-4 py-3 sm:border-t-0'>
-						<TabsList className='grid h-8 w-full grid-cols-2 gap-1 rounded-sm bg-zinc-950/30 p-0.5 sm:max-w-[16rem]'>
+					<div className='flex min-w-0 items-stretch justify-start border-t border-zinc-800/80 px-0 py-0 sm:border-t-0'>
+						<TabsList className='grid h-full w-fit grid-cols-2 gap-0 border-b border-zinc-700/80 bg-transparent p-0'>
 							<TabsTrigger
-								className='h-full gap-1.5 rounded-sm px-2 text-xs data-[selected]:border-zinc-500/60 data-[selected]:bg-zinc-800/80 data-[selected]:text-zinc-100 data-[selected]:shadow-[inset_0_-2px_0_rgba(244,244,245,0.72)]'
+								className='!h-full !rounded-none !border-0 !border-b-2 !border-transparent gap-1.5 px-2 text-xs text-zinc-400 hover:!bg-zinc-900/45 hover:text-zinc-100 aria-selected:!border-b-zinc-100 aria-selected:!bg-zinc-900/45 aria-selected:text-zinc-50 data-[selected]:!border-b-zinc-100 data-[selected]:!bg-zinc-900/45 data-[selected]:text-zinc-50'
 								value='preview'
 							>
 								<Eye className='size-3.5' />
@@ -920,7 +920,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 							</TabsTrigger>
 
 							<TabsTrigger
-								className='h-full gap-1.5 rounded-sm px-2 text-xs data-[selected]:border-zinc-500/60 data-[selected]:bg-zinc-800/80 data-[selected]:text-zinc-100 data-[selected]:shadow-[inset_0_-2px_0_rgba(244,244,245,0.72)]'
+								className='!h-full !rounded-none !border-0 !border-b-2 !border-transparent gap-1.5 px-2 text-xs text-zinc-400 hover:!bg-zinc-900/45 hover:text-zinc-100 aria-selected:!border-b-zinc-100 aria-selected:!bg-zinc-900/45 aria-selected:text-zinc-50 data-[selected]:!border-b-zinc-100 data-[selected]:!bg-zinc-900/45 data-[selected]:text-zinc-50'
 								value='syntax'
 							>
 								<CircleHelp className='size-3.5' />

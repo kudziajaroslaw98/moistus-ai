@@ -1,5 +1,6 @@
 'use client';
 
+import { useIsPreviewMode } from '@/components/node-editor/components/preview/preview-mode-context';
 import useAppStore from '@/store/mind-map-store';
 import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
@@ -201,6 +202,7 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
 		onMetadataClick,
 		colorOverrides,
 	}) => {
+		const isPreviewMode = useIsPreviewMode();
 		const { currentShares } = useAppStore(
 			useShallow((s) => ({ currentShares: s.currentShares }))
 		);
@@ -405,17 +407,23 @@ export const UniversalMetadataBar = memo<UniversalMetadataBarProps>(
 
 		return (
 			<motion.div
-				animate={{ opacity: 1, height: 'auto' }}
-				className={cn('flex flex-wrap items-center px-4 py-2', className)}
-				exit={{ opacity: 0, height: 0 }}
-				initial={{ opacity: 0, height: 0 }}
-				transition={{ duration: 0.2 }}
-				style={{
-					...containerStyle,
-					gap: '6px', // 6px gap between metadata items as specified in Material Design
-				}}
+				animate={{ opacity: 1, gridTemplateRows: '1fr' }}
+				className={cn('grid px-4 py-2', className)}
+				exit={{ opacity: 0, gridTemplateRows: '0fr' }}
+				initial={isPreviewMode ? false : { opacity: 0, gridTemplateRows: '0fr' }}
+				transition={{ duration: isPreviewMode ? 0 : 0.2 }}
+				style={containerStyle}
 			>
-				{metadataItems.map((item) => item.component)}
+				<div className='min-h-0 overflow-hidden'>
+					<div
+						className='flex flex-wrap items-center'
+						style={{
+							gap: '6px', // 6px gap between metadata items as specified in Material Design
+						}}
+					>
+						{metadataItems.map((item) => item.component)}
+					</div>
+				</div>
 			</motion.div>
 		);
 	}

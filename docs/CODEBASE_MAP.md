@@ -299,10 +299,10 @@ shiko/
 | commentNode    | structure | —             | Thread anchor (UI only)       |
 | ghostNode      | ai        | —             | AI suggestions (system only)  |
 
-**Node Editor note:** Quick-input parser/help intentionally excludes `$reference` quick-switch and deprecated parser tokens (`bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`). The editor modal is a wide 50/50 split layout with matching split top/body rows: node type and editor on the left, Preview/Syntax Help tabs and tab content on the right. The split body is bounded so panes fill the modal region without pushing the footer out of view; the editor keeps line/scroll affordance for multi-line input and preview content starts at the top of its pane. Syntax Help remains split into type-filtered `Universal` plus `Node-specific` sections.
+**Node Editor note:** Quick-input parser/help intentionally excludes `$reference` quick-switch and deprecated parser tokens (`bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`). The editor modal is a wide 50/50 split layout with matching split top/body rows: node type and editor on the left, Preview/Syntax Help tabs and tab content on the right. The split body is bounded so panes fill the modal region without pushing the footer out of view; the editor keeps line/scroll affordance for multi-line input with line-number glyphs horizontally centered but baseline-aligned, preview content starts at the top of its pane, and right-panel controls are styled as a full-height tab strip (strong hover + selected underline rather than button pills) aligned from the split divider. Syntax-help panel mode should rely on right-pane scrolling instead of nested inner max-height clipping. Syntax Help remains split into type-filtered `Universal` plus `Node-specific` sections.
 Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 
-<!-- Updated: 2026-04-27 - Documented bounded 50/50 layout plus editor/preview affordance in node type map -->
+<!-- Updated: 2026-04-27 - Documented divider-aligned tab-strip and baseline-centered gutter-number behavior -->
 
 **Key Files:**
 

@@ -13,6 +13,28 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Multi-line input needs clear click/scroll affordance inside the split editor
 - **node-editor/preview-and-tabs**: Preview content now aligns to the top of its pane and the active Preview/Syntax Help tab has a visible selected indicator
   - Why: The right panel should read as active tab content, not centered empty space
+- **node-editor/tab-and-panel-polish**: Preview/Syntax tabs now have explicit hover and selected states, syntax-help panel mode relies on outer pane scrolling (no inner early clipping), and line-number glyphs are centered in the gutter
+  - Why: Tab state and syntax scroll boundaries need to be visually clear and consistent with the split-pane layout
+- **node-editor/tab-strip-visual-language**: Preview/Syntax controls now render as a tab strip with a stronger hover state and selected underline instead of button-like pills
+  - Why: The controls should read as tabs at a glance, with obvious active/hover affordance
+- **node-editor/tab-strip-height**: Right-panel tab strip now stretches to the full top-bar cell height instead of a shorter inset row
+  - Why: The tab area should align cleanly with the split top-bar container
+- **node-editor/tab-strip-alignment-and-gutter-baseline**: Right-panel tabs now align to the left edge of their split cell, and line-number glyphs remain baseline-aligned while staying horizontally centered
+  - Why: The top-bar split should feel flush and line numbers should not appear vertically centered like badges
+- **node-editor/active-line-full-row-highlight**: Active editor-line and active line-number highlights now expand across the row width (with slight horizontal inset) instead of hugging only text content
+  - Why: Cursor position should be obvious at a glance across the full editing row
+- **node-editor/active-line-block-width**: Editor line rows now render as block-level full-width elements so active-line highlight can fill the full content column consistently
+  - Why: Wrapped/long lines were still shrinking highlight width to text bounds instead of pane width
+- **node-editor/full-bleed-active-row-and-gutter**: Active row highlight and active line-number gutter now render edge-to-edge without side insets, and editor line spacing is slightly increased
+  - Why: The left editor surface should read as a full-width split pane despite line numbers and keep long-form text more breathable
+- **node-editor/line-text-inset-padding**: Editor lines now include horizontal inset padding while keeping full-width row highlights
+  - Why: Full-bleed highlight should remain, but text needs clearer breathing room from row edges
+- **nodes/metadata-row-grid-sizing**: Universal metadata rows now animate open/closed with `gridTemplateRows` and natural content flow instead of `height: auto` motion sizing
+  - Why: Metadata chip rows should occupy only needed space without JS-style height calculation artifacts
+- **nodes/metadata-padding-override-restore**: Metadata row animation wrapper now keeps default padding on the outer container so node-level `p-0 pb-4` overrides continue to control spacing
+  - Why: Inner wrapper padding made metadata chips look over-padded in node cards after the grid-row sizing change
+- **node-editor/preview-metadata-pill-no-initial-animation**: Metadata pills in node-editor preview no longer animate on first render
+  - Why: Preview should feel stable and immediate while editing, without entry motion on metadata chips
 
 ## [2026-04-26]
 

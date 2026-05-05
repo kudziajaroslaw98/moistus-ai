@@ -211,7 +211,7 @@ export const ParsingLegend: React.FC<ParsingLegendProps> = memo(
 				aria-label='Parsing syntax patterns'
 				className={cn(
 					theme.legend.content,
-					variant === 'panel' && 'max-h-[360px] px-0 py-0'
+					variant === 'panel' && 'max-h-none overflow-visible px-0 py-0'
 				)}
 				role='region'
 			>
