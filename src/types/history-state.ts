@@ -45,6 +45,7 @@ export interface HistoryDelta {
 	entityType: 'node' | 'edge' | 'mixed';
 	changes: HistoryPatchOp[];
 	summary?: string;
+	summaryDetail?: string;
 	subjectHints?: HistorySubjectHint[];
 }
 
@@ -84,6 +85,7 @@ export interface HistoryItem {
 	isMajor?: boolean;
 	timestamp: number;
 	summary?: string;
+	summaryDetail?: string;
 	subjects?: HistorySubjectHint[];
 	userId?: string;
 	userName?: string;

@@ -1,4 +1,5 @@
 import {
+	buildHistoryPresentation,
 	deriveHistorySubjectHints,
 	normalizeHistoryDelta,
 } from '@/helpers/history/presentation';
@@ -110,6 +111,12 @@ export const GET = async (
 		});
 		const changesArray = storedDelta?.changes || [];
 
+		const presentation = storedDelta
+			? buildHistoryPresentation(storedDelta, {
+					actionName: event.action_name,
+				})
+			: null;
+
 		// Return delta with attribution
 		return NextResponse.json({
 			id: event.id,
@@ -117,7 +124,8 @@ export const GET = async (
 			operation: event.operation_type || storedDelta?.operation,
 			entityType: event.entity_type || storedDelta?.entityType,
 			changes: changesArray,
-			summary: storedDelta?.summary,
+			summary: presentation?.summary,
+			summaryDetail: presentation?.summaryDetail,
 			subjectHints: storedDelta
 				? storedDelta.subjectHints || deriveHistorySubjectHints(storedDelta)
 				: undefined,

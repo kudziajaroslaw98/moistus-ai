@@ -5,6 +5,22 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-05-06]
+
+### Changed
+
+- **history/adaptive-readable-summaries**: History event headlines now use deterministic object-first summaries (for example `Title updated`, `Node moved`, `Connection rerouted`) with local grammar rules for single-field, multi-field, cleared-value, and bulk edits
+  - Why: Raw/internal action names and inconsistent phrasing made scan-level understanding slower and less reliable
+- **history/adaptive-verbosity-layout**: Expanded history entries now scale detail by event complexity (single-subject inline focus, compact subject pills for 2–3 items, collapsible affected-items panel for 4+, and collapsible changes card for larger diffs)
+  - Why: A fixed one-size template wasted vertical space on simple edits and became noisy on batch edits
+- **history/value-diff-clarity**: Before/after rendering now treats empty previous values as neutral (not error-red), keeps red semantics for removals, and defaults long text to after-first preview with a previous-version toggle
+  - Why: Color semantics and long stacked text blocks were adding unnecessary cognitive load
+
+### Added
+
+- **tests/history-summary-grammar-and-adaptive-ui**: Added regression tests for deterministic summary templates, fallback node labels, mixed-intent summaries, bulk field summaries, and updated history item rendering interactions
+  - Why: The new local summary grammar and adaptive UI thresholds need explicit guardrails as history events evolve
+
 ## [2026-05-05]
 
 ### Changed

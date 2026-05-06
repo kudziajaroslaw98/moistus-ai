@@ -181,6 +181,7 @@ export const GET = async (
 					entityType: e.entity_type,
 					timestamp: new Date(e.created_at).getTime(),
 					summary: presentation?.summary,
+					summaryDetail: presentation?.summaryDetail,
 					subjects: storedDelta
 						? deriveHistorySubjectHints(storedDelta)
 						: undefined,

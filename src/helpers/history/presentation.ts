@@ -14,6 +14,20 @@ interface HistoryPresentationContext {
 	previousEdges?: AppEdge[];
 }
 
+type HistoryActionIntent =
+	| 'property_edit'
+	| 'node_move'
+	| 'node_resize'
+	| 'node_add'
+	| 'node_delete'
+	| 'connection_add'
+	| 'connection_remove'
+	| 'connection_update'
+	| 'connection_reroute'
+	| 'node_detach_or_reparent'
+	| 'layout_apply'
+	| 'generic_change';
+
 export type HistoryFocusTarget =
 	| {
 			type: 'node';
@@ -38,6 +52,9 @@ export interface HistoryReadableChange {
 	oldValue?: string;
 	newValue?: string;
 	paths: string[];
+	fieldKey?: string;
+	verb?: 'updated' | 'cleared' | 'added' | 'removed';
+	isLongText?: boolean;
 }
 
 export interface HistoryPresentationSubject {
@@ -52,6 +69,7 @@ export interface HistoryPresentationSubject {
 export interface HistoryPresentation {
 	title: string;
 	summary: string;
+	summaryDetail?: string;
 	subjects: HistoryPresentationSubject[];
 	subjectPreview: string;
 	movedNodeCount: number;
@@ -60,7 +78,7 @@ export interface HistoryPresentation {
 }
 
 const FIELD_LABELS: Record<string, string> = {
-	content: 'Content',
+	content: 'Note',
 	title: 'Title',
 	label: 'Label',
 	node_type: 'Node type',
@@ -68,9 +86,11 @@ const FIELD_LABELS: Record<string, string> = {
 	tasks: 'Tasks',
 	hideCompletedTasks: 'Completed task visibility',
 	dueDate: 'Due date',
+	due_date: 'Due date',
 	status: 'Status',
 	priority: 'Priority',
 	tags: 'Tags',
+	description: 'Description',
 	backgroundColor: 'Background color',
 	borderColor: 'Border color',
 	accentColor: 'Accent color',
@@ -108,6 +128,25 @@ const STYLE_FIELDS = new Set([
 	'textColor',
 	'width',
 	'height',
+]);
+
+const SUMMARY_NOISE_FIELDS = new Set([
+	'updated_at',
+	'created_at',
+	'map_id',
+	'user_id',
+	'position_x',
+	'position_y',
+	'id',
+]);
+
+const LONG_TEXT_FIELDS = new Set([
+	'content',
+	'note',
+	'description',
+	'summary',
+	'answer',
+	'caption',
 ]);
 
 function isHistoryOperation(
@@ -161,10 +200,48 @@ export function normalizeHistoryDelta(
 		entityType,
 		changes: value.changes as HistoryPatchOp[],
 		summary: typeof value.summary === 'string' ? value.summary : undefined,
+		summaryDetail:
+			typeof value.summaryDetail === 'string' ? value.summaryDetail : undefined,
 		subjectHints: Array.isArray(value.subjectHints)
 			? (value.subjectHints as HistorySubjectHint[])
 			: undefined,
 	};
+}
+
+export function normalizeHistoryActionIntent(
+	actionName: string | undefined
+): HistoryActionIntent {
+	if (!actionName) return 'generic_change';
+
+	if (actionName === 'saveNodeProperties' || actionName === 'updateNode') {
+		return 'property_edit';
+	}
+	if (actionName === 'moveNode' || actionName === 'moveNodes') {
+		return 'node_move';
+	}
+	if (actionName === 'resizeNode' || actionName === 'resizeNodes') {
+		return 'node_resize';
+	}
+	if (actionName === 'addNode') return 'node_add';
+	if (actionName === 'deleteNode' || actionName === 'deleteNodes') {
+		return 'node_delete';
+	}
+	if (actionName === 'addEdge') return 'connection_add';
+	if (actionName === 'deleteEdge' || actionName === 'deleteEdges') {
+		return 'connection_remove';
+	}
+	if (actionName === 'updateEdge' || actionName === 'updateEdges') {
+		return 'connection_update';
+	}
+	if (actionName === 'setParentConnection') return 'node_detach_or_reparent';
+	if (
+		actionName.startsWith('applyLayout') ||
+		actionName === 'applyLocalResizeReflow'
+	) {
+		return 'layout_apply';
+	}
+
+	return 'generic_change';
 }
 
 function compactId(id: string): string {
@@ -191,24 +268,54 @@ function getNestedValue(value: unknown, path: string[]): unknown {
 	return current;
 }
 
-function getNodeContentFromUnknown(value: unknown): string | null {
+function truncateLabel(value: string, maxLength = 54): string {
+	const singleLine = value.replace(/\s+/g, ' ').trim();
+	if (singleLine.length <= maxLength) return singleLine;
+	return `${singleLine.slice(0, maxLength - 1)}...`;
+}
+
+function toTitleCase(value: string): string {
+	if (!value) return '';
+	return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function toNodeTypeLabel(type: string | undefined): string {
+	const base = (type || 'node')
+		.replace(/Node$/, '')
+		.replace(/([a-z])([A-Z])/g, '$1 $2')
+		.replace(/[-_]/g, ' ')
+		.trim()
+		.toLowerCase();
+	return `${toTitleCase(base || 'node')} node`;
+}
+
+function nodeFallbackLabel(type: string | undefined, id: string): string {
+	return `${toNodeTypeLabel(type)} #${compactId(id)}`;
+}
+
+function getNodeTypeFromUnknown(value: unknown): string | undefined {
+	if (!isRecord(value)) return undefined;
+	const directType = getRecordValue(value, 'type');
+	if (typeof directType === 'string' && directType.trim()) return directType;
+
+	const data = getRecordValue(value, 'data');
+	if (!isRecord(data)) return undefined;
+	const nodeType = getRecordValue(data, 'node_type');
+	return typeof nodeType === 'string' && nodeType.trim() ? nodeType : undefined;
+}
+
+function getNodeTitleFromUnknown(value: unknown): string | null {
 	if (!isRecord(value)) return null;
 
 	const data = getRecordValue(value, 'data');
 	if (isRecord(data)) {
 		const metadata = getRecordValue(data, 'metadata');
-		const metadataTitle = getNestedValue(metadata, ['title']);
-		if (typeof metadataTitle === 'string' && metadataTitle.trim()) {
-			return metadataTitle.trim();
+		for (const path of [['title'], ['label']]) {
+			const candidate = getNestedValue(metadata, path);
+			if (typeof candidate === 'string' && candidate.trim()) {
+				return candidate.trim();
+			}
 		}
-
-		const metadataLabel = getNestedValue(metadata, ['label']);
-		if (typeof metadataLabel === 'string' && metadataLabel.trim()) {
-			return metadataLabel.trim();
-		}
-
-		const content = getRecordValue(data, 'content');
-		if (typeof content === 'string' && content.trim()) return content.trim();
 
 		const dataLabel = getRecordValue(data, 'label');
 		if (typeof dataLabel === 'string' && dataLabel.trim()) {
@@ -216,23 +323,52 @@ function getNodeContentFromUnknown(value: unknown): string | null {
 		}
 	}
 
-	const directContent = getRecordValue(value, 'content');
-	if (typeof directContent === 'string' && directContent.trim()) {
-		return directContent.trim();
-	}
-
-	const directTitle = getRecordValue(value, 'title');
-	if (typeof directTitle === 'string' && directTitle.trim()) {
-		return directTitle.trim();
+	for (const key of ['title', 'label']) {
+		const candidate = getRecordValue(value, key);
+		if (typeof candidate === 'string' && candidate.trim()) {
+			return candidate.trim();
+		}
 	}
 
 	return null;
 }
 
-function truncateLabel(value: string, maxLength = 54): string {
-	const singleLine = value.replace(/\s+/g, ' ').trim();
-	if (singleLine.length <= maxLength) return singleLine;
-	return `${singleLine.slice(0, maxLength - 1)}...`;
+function getLabelFromPatch(change: HistoryPatchOp): string | null {
+	const patch = change.patch ?? {};
+	const reversePatch = change.reversePatch ?? {};
+	for (const path of [
+		'data.metadata.title',
+		'metadata.title',
+		'data.metadata.label',
+		'metadata.label',
+		'data.label',
+		'label',
+	]) {
+		const nextValue = patch[path];
+		if (typeof nextValue === 'string' && nextValue.trim()) return nextValue;
+
+		const previousValue = reversePatch[path];
+		if (typeof previousValue === 'string' && previousValue.trim()) {
+			return previousValue;
+		}
+	}
+	return null;
+}
+
+function getNodeType(
+	nodeId: string,
+	change: HistoryPatchOp,
+	nodeMap: Map<string, AppNode>,
+	previousNodeMap: Map<string, AppNode>
+): string | undefined {
+	const node =
+		nodeMap.get(nodeId) ??
+		previousNodeMap.get(nodeId) ??
+		(change.value as Partial<AppNode> | undefined) ??
+		(change.removedValue as Partial<AppNode> | undefined);
+	const patchType = change.patch?.type;
+	if (typeof patchType === 'string' && patchType.trim()) return patchType;
+	return node?.type ?? node?.data?.node_type;
 }
 
 function getNodeLabel(
@@ -244,47 +380,28 @@ function getNodeLabel(
 	const currentNode = nodeMap.get(nodeId);
 	const previousNode = previousNodeMap.get(nodeId);
 	const fromCurrent = currentNode
-		? getNodeContentFromUnknown(currentNode)
+		? getNodeTitleFromUnknown(currentNode)
 		: null;
 	if (fromCurrent) return truncateLabel(fromCurrent);
 
 	const fromPrevious = previousNode
-		? getNodeContentFromUnknown(previousNode)
+		? getNodeTitleFromUnknown(previousNode)
 		: null;
 	if (fromPrevious) return truncateLabel(fromPrevious);
 
-	const fromValue = getNodeContentFromUnknown(change.value);
+	const fromValue = getNodeTitleFromUnknown(change.value);
 	if (fromValue) return truncateLabel(fromValue);
 
-	const fromRemoved = getNodeContentFromUnknown(change.removedValue);
+	const fromRemoved = getNodeTitleFromUnknown(change.removedValue);
 	if (fromRemoved) return truncateLabel(fromRemoved);
 
 	const patchLabel = getLabelFromPatch(change);
 	if (patchLabel) return truncateLabel(patchLabel);
 
-	return `Node ${compactId(nodeId)}`;
-}
-
-function getLabelFromPatch(change: HistoryPatchOp): string | null {
-	const patch = change.patch ?? {};
-	const reversePatch = change.reversePatch ?? {};
-	for (const path of [
-		'data.metadata.title',
-		'metadata.title',
-		'data.metadata.label',
-		'metadata.label',
-		'data.content',
-		'content',
-	]) {
-		const nextValue = patch[path];
-		if (typeof nextValue === 'string' && nextValue.trim()) return nextValue;
-
-		const previousValue = reversePatch[path];
-		if (typeof previousValue === 'string' && previousValue.trim()) {
-			return previousValue;
-		}
-	}
-	return null;
+	return nodeFallbackLabel(
+		getNodeType(nodeId, change, nodeMap, previousNodeMap),
+		nodeId
+	);
 }
 
 function getEdgeFromChange(
@@ -311,9 +428,10 @@ function getNodeLabelById(
 	const current = nodeMap.get(nodeId);
 	const previous = previousNodeMap.get(nodeId);
 	const label =
-		(current ? getNodeContentFromUnknown(current) : null) ??
-		(previous ? getNodeContentFromUnknown(previous) : null);
-	return truncateLabel(label ?? fallback ?? `Node ${compactId(nodeId)}`);
+		(current ? getNodeTitleFromUnknown(current) : null) ??
+		(previous ? getNodeTitleFromUnknown(previous) : null);
+	const type = current?.type ?? previous?.type ?? current?.data?.node_type;
+	return truncateLabel(label ?? fallback ?? nodeFallbackLabel(type, nodeId));
 }
 
 function getEdgeLabel(
@@ -351,7 +469,7 @@ function getEdgeLabel(
 		)}`;
 	}
 
-	return `Connection ${compactId(change.id)}`;
+	return `Connection #${compactId(change.id)}`;
 }
 
 function getNodePosition(
@@ -417,21 +535,6 @@ function getNodeDimension(
 	if (typeof removedValue === 'number') return removedValue;
 
 	return null;
-}
-
-function getNodeType(
-	nodeId: string,
-	change: HistoryPatchOp,
-	nodeMap: Map<string, AppNode>,
-	previousNodeMap: Map<string, AppNode>
-): string | undefined {
-	const node =
-		nodeMap.get(nodeId) ??
-		previousNodeMap.get(nodeId) ??
-		(change.value as Partial<AppNode> | undefined) ??
-		(change.removedValue as Partial<AppNode> | undefined);
-	const type = node?.type ?? node?.data?.node_type;
-	return typeof type === 'string' ? type : undefined;
 }
 
 function firstNumber(...values: unknown[]): number | undefined {
@@ -568,36 +671,45 @@ function fieldLabel(path: string): string {
 	return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 }
 
+function isEmptyValue(value: unknown): boolean {
+	if (value === undefined || value === null) return true;
+	if (typeof value === 'string') return value.trim() === '';
+	if (Array.isArray(value)) return value.length === 0;
+	return false;
+}
+
+function isLongText(fieldKey: string | undefined, ...values: unknown[]): boolean {
+	if (fieldKey && LONG_TEXT_FIELDS.has(fieldKey)) return true;
+	return values.some(
+		(value) => typeof value === 'string' && value.trim().length > 160
+	);
+}
+
 function valueLabel(value: unknown): string {
-	if (value === undefined) return 'not set';
-	if (value === null) return 'empty';
+	if (value === undefined || value === null) return 'not set';
 	if (typeof value === 'boolean') return value ? 'on' : 'off';
 	if (typeof value === 'number') {
 		return Number.isInteger(value) ? String(value) : value.toFixed(1);
 	}
 	if (typeof value === 'string') {
 		const trimmed = value.trim();
-		return trimmed ? truncateLabel(trimmed, 140) : 'empty';
+		return trimmed ? trimmed : 'not set';
 	}
 	if (Array.isArray(value)) {
-		if (value.length === 0) return 'no items';
+		if (value.length === 0) return 'not set';
 		return `${value.length} item${value.length === 1 ? '' : 's'}`;
 	}
-	if (isRecord(value)) {
-		const title = getNodeContentFromUnknown({ data: { metadata: value } });
-		if (title) return truncateLabel(title, 80);
-		return 'changed';
-	}
+	if (isRecord(value)) return 'changed';
 	return String(value);
 }
 
-function operationVerb(change: HistoryPatchOp): string {
+function operationSummary(change: HistoryPatchOp): string {
 	if (change.op === 'add')
-		return change.type === 'node' ? 'Added node' : 'Added connection';
+		return change.type === 'node' ? 'Node added' : 'Connection added';
 	if (change.op === 'remove') {
-		return change.type === 'node' ? 'Removed node' : 'Removed connection';
+		return change.type === 'node' ? 'Node deleted' : 'Connection removed';
 	}
-	return change.type === 'node' ? 'Updated node' : 'Updated connection';
+	return change.type === 'node' ? 'Node updated' : 'Connection updated';
 }
 
 function movementChange(change: HistoryPatchOp): HistoryReadableChange | null {
@@ -612,18 +724,12 @@ function movementChange(change: HistoryPatchOp): HistoryReadableChange | null {
 	const newY = patch['position.y'];
 	const oldHasPosition = typeof oldX === 'number' && typeof oldY === 'number';
 	const newHasPosition = typeof newX === 'number' && typeof newY === 'number';
-	const summary =
-		oldHasPosition && newHasPosition
-			? `Moved from (${valueLabel(oldX)}, ${valueLabel(oldY)}) to (${valueLabel(
-					newX
-				)}, ${valueLabel(newY)})`
-			: 'Moved on the canvas';
 
 	return {
 		id: `${change.id}:move`,
 		kind: 'move',
 		label: 'Position',
-		summary,
+		summary: oldHasPosition && newHasPosition ? 'Node moved' : 'Node moved',
 		oldValue: oldHasPosition
 			? `(${valueLabel(oldX)}, ${valueLabel(oldY)})`
 			: undefined,
@@ -631,6 +737,7 @@ function movementChange(change: HistoryPatchOp): HistoryReadableChange | null {
 			? `(${valueLabel(newX)}, ${valueLabel(newY)})`
 			: undefined,
 		paths: movedPaths,
+		verb: 'updated',
 	};
 }
 
@@ -643,8 +750,9 @@ function routeChange(change: HistoryPatchOp): HistoryReadableChange | null {
 		id: `${change.id}:route`,
 		kind: 'route',
 		label: 'Route',
-		summary: 'Rerouted connection line',
+		summary: 'Connection rerouted',
 		paths: routePaths,
+		verb: 'updated',
 	};
 }
 
@@ -655,23 +763,25 @@ function fieldChanges(change: HistoryPatchOp): HistoryReadableChange[] {
 		.map((path) => {
 			const oldValue = change.reversePatch?.[path];
 			const newValue = patch[path];
+			const fieldKey = fieldNameFromPath(path);
 			const label = fieldLabel(path);
-			const oldLabel = valueLabel(oldValue);
-			const newLabel = valueLabel(newValue);
-			const fieldName = fieldNameFromPath(path);
-			const isStyle = STYLE_FIELDS.has(fieldName);
-			const summary = isStyle
-				? `Changed ${label.toLowerCase()}`
-				: `Changed ${label.toLowerCase()} from "${oldLabel}" to "${newLabel}"`;
+			const isStyle = STYLE_FIELDS.has(fieldKey);
+			const cleared = isEmptyValue(newValue) && !isEmptyValue(oldValue);
+			const verb: HistoryReadableChange['verb'] = cleared ? 'cleared' : 'updated';
 
 			return {
 				id: `${change.id}:${path}`,
-				kind: 'field' as const,
+				kind: 'field',
 				label,
-				summary,
-				oldValue: oldLabel,
-				newValue: newLabel,
+				summary: isStyle
+					? `${label} updated`
+					: `${label} ${verb}`,
+				oldValue: valueLabel(oldValue),
+				newValue: valueLabel(newValue),
 				paths: [path],
+				fieldKey,
+				verb,
+				isLongText: isLongText(fieldKey, oldValue, newValue),
 			};
 		});
 }
@@ -682,9 +792,10 @@ function readableChangesFor(change: HistoryPatchOp): HistoryReadableChange[] {
 			{
 				id: `${change.id}:${change.op}`,
 				kind: change.op === 'add' ? 'add' : 'remove',
-				label: operationVerb(change),
-				summary: operationVerb(change),
+				label: operationSummary(change),
+				summary: operationSummary(change),
 				paths: [],
+				verb: change.op === 'add' ? 'added' : 'removed',
 			},
 		];
 	}
@@ -701,21 +812,20 @@ function readableChangesFor(change: HistoryPatchOp): HistoryReadableChange[] {
 		{
 			id: `${change.id}:updated`,
 			kind: 'field',
-			label: operationVerb(change),
-			summary: operationVerb(change),
+			label: operationSummary(change),
+			summary: operationSummary(change),
 			paths: Object.keys(change.patch ?? {}),
+			verb: 'updated',
 		},
 	];
 }
 
-function focusTargetFromSubject(
-	subject: HistorySubjectHint
-): HistoryFocusTarget | null {
+function buildFocusTargetFromHint(subject: HistorySubjectHint): HistoryFocusTarget | null {
 	if (subject.type === 'node') {
 		return {
 			type: 'node',
 			nodeId: subject.id,
-			label: subject.label || `Node ${compactId(subject.id)}`,
+			label: subject.label || `Node #${compactId(subject.id)}`,
 			position: subject.position,
 			width: subject.width,
 			height: subject.height,
@@ -730,16 +840,14 @@ function focusTargetFromSubject(
 	return {
 		type: 'edge',
 		edgeId: subject.id,
-		label: subject.label || `Connection ${compactId(subject.id)}`,
+		label: subject.label || `Connection #${compactId(subject.id)}`,
 		nodeIds,
 	};
 }
 
 function descriptionFor(subject: HistorySubjectHint): string {
 	if (subject.type === 'node') {
-		return subject.nodeType
-			? subject.nodeType.replace(/Node$/, ' node')
-			: 'Node';
+		return subject.nodeType ? toNodeTypeLabel(subject.nodeType) : 'Node';
 	}
 
 	if (subject.sourceLabel && subject.targetLabel) {
@@ -752,35 +860,39 @@ function descriptionFor(subject: HistorySubjectHint): string {
 export function formatHistoryActionTitle(
 	actionName: string | undefined
 ): string {
-	if (!actionName) return 'Map change';
-
-	const labels: Record<string, string> = {
-		applyLayout: 'Auto layout',
-		applyLayoutToSelected: 'Auto layout',
-		applyLayoutAroundNode: 'Auto layout',
-		applyLocalResizeReflow: 'Auto layout',
-		moveNodes: 'Moved nodes',
-		moveNode: 'Moved node',
-		addEdge: 'Added connection',
-		deleteEdges: 'Removed connections',
-		updateEdge: 'Updated connection',
-		addNode: 'Added node',
-		deleteNodes: 'Removed nodes',
-		updateNode: 'Updated node',
-	};
-
-	if (labels[actionName]) return labels[actionName];
-
-	return actionName
-		.replace(/([a-z])([A-Z])/g, '$1 $2')
-		.replace(/[-_]/g, ' ')
-		.replace(/\s+/g, ' ')
-		.trim()
-		.replace(/^./, (first) => first.toUpperCase());
+	switch (normalizeHistoryActionIntent(actionName)) {
+		case 'property_edit':
+			return 'Property edit';
+		case 'node_move':
+			return 'Node movement';
+		case 'node_resize':
+			return 'Node resize';
+		case 'node_add':
+		case 'node_delete':
+			return 'Node lifecycle';
+		case 'connection_add':
+		case 'connection_remove':
+		case 'connection_update':
+		case 'connection_reroute':
+			return 'Connection change';
+		case 'layout_apply':
+			return 'Layout';
+		case 'node_detach_or_reparent':
+			return 'Structure change';
+		default:
+			return 'Map change';
+	}
 }
 
-function plural(count: number, singular: string, pluralValue = `${singular}s`) {
-	return `${count} ${count === 1 ? singular : pluralValue}`;
+function pluralize(count: number, singular: string, plural: string): string {
+	return count === 1 ? singular : `${count} ${plural}`;
+}
+
+function joinFieldLabels(labels: string[]): string {
+	if (labels.length === 0) return '';
+	if (labels.length === 1) return labels[0];
+	if (labels.length === 2) return `${labels[0]} & ${labels[1]}`;
+	return `${labels.slice(0, -1).join(', ')} & ${labels[labels.length - 1]}`;
 }
 
 function subjectPreview(subjects: HistoryPresentationSubject[]): string {
@@ -790,66 +902,333 @@ function subjectPreview(subjects: HistoryPresentationSubject[]): string {
 	return labels.join(', ');
 }
 
-function operationSummary(
+interface PropertyAggregate {
+	label: string;
+	order: number;
+	verbs: Set<'updated' | 'cleared'>;
+	nodeIds: Set<string>;
+}
+
+interface SummaryMetrics {
+	intent: HistoryActionIntent;
+	addedNodes: number;
+	removedNodes: number;
+	addedConnections: number;
+	removedConnections: number;
+	updatedConnections: number;
+	movedNodeIds: Set<string>;
+	resizedNodeIds: Set<string>;
+	detachedNodeIds: Set<string>;
+	reroutedEdgeIds: Set<string>;
+	propertyByField: Map<string, PropertyAggregate>;
+	propertyFieldOrder: string[];
+	propertyNodeIds: Set<string>;
+}
+
+function createSummaryMetrics(
 	delta: HistoryDelta,
 	subjects: HistoryPresentationSubject[],
-	actionName: string | undefined,
-	movedNodeCount: number,
-	reroutedConnectionCount: number
-): string {
-	const friendlyName = formatHistoryActionTitle(actionName);
-	const action = actionName ?? '';
+	actionName: string | undefined
+): SummaryMetrics {
+	const metrics: SummaryMetrics = {
+		intent: normalizeHistoryActionIntent(actionName),
+		addedNodes: 0,
+		removedNodes: 0,
+		addedConnections: 0,
+		removedConnections: 0,
+		updatedConnections: 0,
+		movedNodeIds: new Set<string>(),
+		resizedNodeIds: new Set<string>(),
+		detachedNodeIds: new Set<string>(),
+		reroutedEdgeIds: new Set<string>(),
+		propertyByField: new Map<string, PropertyAggregate>(),
+		propertyFieldOrder: [],
+		propertyNodeIds: new Set<string>(),
+	};
 
-	if (action.startsWith('applyLayout')) {
-		const parts: string[] = [];
-		if (movedNodeCount > 0)
-			parts.push(`moved ${plural(movedNodeCount, 'node')}`);
-		if (reroutedConnectionCount > 0) {
-			parts.push(`rerouted ${plural(reroutedConnectionCount, 'connection')}`);
+	for (const change of delta.changes) {
+		if (change.type === 'node' && change.op === 'add') metrics.addedNodes += 1;
+		if (change.type === 'node' && change.op === 'remove') metrics.removedNodes += 1;
+		if (change.type === 'edge' && change.op === 'add') metrics.addedConnections += 1;
+		if (change.type === 'edge' && change.op === 'remove') metrics.removedConnections += 1;
+		if (change.type === 'edge' && change.op === 'patch') metrics.updatedConnections += 1;
+	}
+
+	for (const subject of subjects) {
+		for (const change of subject.changes) {
+			if (subject.type === 'node' && change.kind === 'move') {
+				metrics.movedNodeIds.add(subject.id);
+			}
+
+			if (subject.type === 'edge' && change.kind === 'route') {
+				metrics.reroutedEdgeIds.add(subject.id);
+			}
+
+			if (subject.type !== 'node' || change.kind !== 'field') continue;
+
+			const fieldKey = change.fieldKey;
+			if (!fieldKey || SUMMARY_NOISE_FIELDS.has(fieldKey)) continue;
+
+			if (!metrics.propertyByField.has(fieldKey)) {
+				metrics.propertyByField.set(fieldKey, {
+					label: change.label,
+					order: metrics.propertyFieldOrder.length,
+					verbs: new Set<'updated' | 'cleared'>(),
+					nodeIds: new Set<string>(),
+				});
+				metrics.propertyFieldOrder.push(fieldKey);
+			}
+
+			const aggregate = metrics.propertyByField.get(fieldKey);
+			if (aggregate) {
+				if (change.verb === 'cleared') aggregate.verbs.add('cleared');
+				else aggregate.verbs.add('updated');
+				aggregate.nodeIds.add(subject.id);
+			}
+
+			metrics.propertyNodeIds.add(subject.id);
+
+			if (fieldKey === 'width' || fieldKey === 'height') {
+				metrics.resizedNodeIds.add(subject.id);
+			}
+
+			if (fieldKey === 'parent_id' || fieldKey === 'parentId') {
+				metrics.detachedNodeIds.add(subject.id);
+			}
 		}
-		return parts.length > 0
-			? `Auto layout ${parts.join(' and ')}.`
-			: 'Auto layout updated the map.';
 	}
 
-	if (action === 'moveNodes' || action === 'moveNode') {
-		return movedNodeCount > 0
-			? `Moved ${plural(movedNodeCount, 'node')}.`
-			: `${friendlyName}.`;
+	if (
+		metrics.reroutedEdgeIds.size > 0 &&
+		metrics.intent === 'connection_update'
+	) {
+		metrics.intent = 'connection_reroute';
 	}
 
-	if (subjects.length === 1 && subjects[0].changes.length === 1) {
-		return `${subjects[0].changes[0].summary}: ${subjects[0].label}.`;
+	return metrics;
+}
+
+function propertyPhrase(
+	metrics: SummaryMetrics
+): { text: string; detail?: string } | null {
+	if (metrics.propertyByField.size === 0) return null;
+
+	const fields = metrics.propertyFieldOrder
+		.map((key) => metrics.propertyByField.get(key))
+		.filter((value): value is PropertyAggregate => Boolean(value));
+	if (fields.length === 0) return null;
+
+	const allCleared = fields.every((field) => field.verbs.has('cleared'));
+	const verb = allCleared ? 'cleared' : 'updated';
+
+	if (fields.length === 1) {
+		const field = fields[0];
+		const fieldVerb = field.verbs.has('updated') ? 'updated' : 'cleared';
+		if (field.nodeIds.size > 1) {
+			return {
+				text: `${field.label} ${fieldVerb} on ${field.nodeIds.size} nodes`,
+			};
+		}
+		return { text: `${field.label} ${fieldVerb}` };
 	}
 
-	const addedNodes = delta.changes.filter(
-		(change) => change.type === 'node' && change.op === 'add'
-	).length;
-	const removedNodes = delta.changes.filter(
-		(change) => change.type === 'node' && change.op === 'remove'
-	).length;
-	const addedEdges = delta.changes.filter(
-		(change) => change.type === 'edge' && change.op === 'add'
-	).length;
-	const removedEdges = delta.changes.filter(
-		(change) => change.type === 'edge' && change.op === 'remove'
-	).length;
-
-	const parts: string[] = [];
-	if (addedNodes) parts.push(`added ${plural(addedNodes, 'node')}`);
-	if (removedNodes) parts.push(`removed ${plural(removedNodes, 'node')}`);
-	if (movedNodeCount) parts.push(`moved ${plural(movedNodeCount, 'node')}`);
-	if (addedEdges) parts.push(`added ${plural(addedEdges, 'connection')}`);
-	if (removedEdges) parts.push(`removed ${plural(removedEdges, 'connection')}`);
-	if (reroutedConnectionCount) {
-		parts.push(`rerouted ${plural(reroutedConnectionCount, 'connection')}`);
+	if (fields.length <= 3) {
+		return {
+			text: `${joinFieldLabels(fields.map((field) => field.label))} ${verb}`,
+			detail: `${fields.length} properties`,
+		};
 	}
 
-	if (parts.length > 0) {
-		return `${friendlyName} ${parts.join(', ')}.`;
+	return { text: `${fields.length} properties ${verb}` };
+}
+
+function phraseByIntent(
+	intent: HistoryActionIntent,
+	metrics: SummaryMetrics,
+	property: { text: string; detail?: string } | null
+): string | null {
+	switch (intent) {
+		case 'property_edit':
+			return property?.text ?? null;
+		case 'node_move':
+			return metrics.movedNodeIds.size > 0
+				? pluralize(metrics.movedNodeIds.size, 'Node moved', 'nodes moved')
+				: null;
+		case 'node_resize':
+			return metrics.resizedNodeIds.size > 0
+				? pluralize(metrics.resizedNodeIds.size, 'Node resized', 'nodes resized')
+				: null;
+		case 'node_add':
+			return metrics.addedNodes > 0
+				? pluralize(metrics.addedNodes, 'Node added', 'nodes added')
+				: null;
+		case 'node_delete':
+			return metrics.removedNodes > 0
+				? pluralize(metrics.removedNodes, 'Node deleted', 'nodes deleted')
+				: null;
+		case 'connection_add':
+			return metrics.addedConnections > 0
+				? pluralize(metrics.addedConnections, 'Connection added', 'connections added')
+				: null;
+		case 'connection_remove':
+			return metrics.removedConnections > 0
+				? pluralize(
+						metrics.removedConnections,
+						'Connection removed',
+						'connections removed'
+					)
+				: null;
+		case 'connection_update':
+			return metrics.updatedConnections > 1
+				? `${metrics.updatedConnections} connections updated`
+				: 'Connection updated';
+		case 'connection_reroute':
+			return metrics.reroutedEdgeIds.size > 0
+				? pluralize(
+						metrics.reroutedEdgeIds.size,
+						'Connection rerouted',
+						'connections rerouted'
+					)
+				: null;
+		case 'node_detach_or_reparent':
+			return metrics.detachedNodeIds.size > 1
+				? `${metrics.detachedNodeIds.size} nodes detached`
+				: 'Node detached';
+		case 'layout_apply': {
+			if (metrics.movedNodeIds.size > 0) {
+				return pluralize(metrics.movedNodeIds.size, 'Node moved', 'nodes moved');
+			}
+			if (metrics.reroutedEdgeIds.size > 0) {
+				return pluralize(
+					metrics.reroutedEdgeIds.size,
+					'Connection rerouted',
+					'connections rerouted'
+				);
+			}
+			return 'Layout applied';
+		}
+		default:
+			return null;
+	}
+}
+
+function fallbackIntentPhrases(
+	metrics: SummaryMetrics,
+	property: { text: string; detail?: string } | null
+): Array<{ intent: HistoryActionIntent; phrase: string }> {
+	const entries: Array<{ intent: HistoryActionIntent; phrase: string }> = [];
+
+	if (metrics.addedNodes > 0) {
+		entries.push({
+			intent: 'node_add',
+			phrase: pluralize(metrics.addedNodes, 'Node added', 'nodes added'),
+		});
+	}
+	if (metrics.removedNodes > 0) {
+		entries.push({
+			intent: 'node_delete',
+			phrase: pluralize(metrics.removedNodes, 'Node deleted', 'nodes deleted'),
+		});
+	}
+	if (metrics.addedConnections > 0) {
+		entries.push({
+			intent: 'connection_add',
+			phrase: pluralize(
+				metrics.addedConnections,
+				'Connection added',
+				'connections added'
+			),
+		});
+	}
+	if (metrics.removedConnections > 0) {
+		entries.push({
+			intent: 'connection_remove',
+			phrase: pluralize(
+				metrics.removedConnections,
+				'Connection removed',
+				'connections removed'
+			),
+		});
+	}
+	if (metrics.movedNodeIds.size > 0) {
+		entries.push({
+			intent: 'node_move',
+			phrase: pluralize(metrics.movedNodeIds.size, 'Node moved', 'nodes moved'),
+		});
+	}
+	if (metrics.resizedNodeIds.size > 0) {
+		entries.push({
+			intent: 'node_resize',
+			phrase: pluralize(
+				metrics.resizedNodeIds.size,
+				'Node resized',
+				'nodes resized'
+			),
+		});
+	}
+	if (metrics.detachedNodeIds.size > 0) {
+		entries.push({
+			intent: 'node_detach_or_reparent',
+			phrase:
+				metrics.detachedNodeIds.size > 1
+					? `${metrics.detachedNodeIds.size} nodes detached`
+					: 'Node detached',
+		});
+	}
+	if (metrics.reroutedEdgeIds.size > 0) {
+		entries.push({
+			intent: 'connection_reroute',
+			phrase: pluralize(
+				metrics.reroutedEdgeIds.size,
+				'Connection rerouted',
+				'connections rerouted'
+			),
+		});
+	}
+	if (property) {
+		entries.push({ intent: 'property_edit', phrase: property.text });
 	}
 
-	return `${friendlyName} updated ${plural(delta.changes.length, 'item')}.`;
+	return entries;
+}
+
+function buildSummaryText(
+	delta: HistoryDelta,
+	subjects: HistoryPresentationSubject[],
+	actionName: string | undefined
+): { headline: string; detail?: string } {
+	const metrics = createSummaryMetrics(delta, subjects, actionName);
+	const property = propertyPhrase(metrics);
+	const canonicalPhrase = phraseByIntent(metrics.intent, metrics, property);
+	const candidates = fallbackIntentPhrases(metrics, property);
+
+	const phrases: string[] = [];
+
+	if (canonicalPhrase) phrases.push(canonicalPhrase);
+
+	for (const candidate of candidates) {
+		if (!phrases.includes(candidate.phrase)) {
+			phrases.push(candidate.phrase);
+		}
+	}
+
+	if (phrases.length === 0) {
+		return { headline: 'Map updated' };
+	}
+
+	const headline = phrases.slice(0, 2).join(', ');
+	if (phrases.length > 2) {
+		return {
+			headline,
+			detail: `${phrases.length - 2} more changes`,
+		};
+	}
+
+	if (property && headline.includes(property.text) && property.detail) {
+		return { headline, detail: property.detail };
+	}
+
+	return { headline };
 }
 
 export function buildHistoryPresentation(
@@ -869,15 +1248,15 @@ export function buildHistoryPresentation(
 		const label =
 			hint.label ??
 			(change.type === 'node'
-				? `Node ${compactId(change.id)}`
-				: `Connection ${compactId(change.id)}`);
+				? nodeFallbackLabel(hint.nodeType, change.id)
+				: `Connection #${compactId(change.id)}`);
 
 		return {
 			id: change.id,
 			type: change.type,
 			label,
 			description: descriptionFor(hint),
-			focusTarget: focusTargetFromSubject({ ...hint, label }),
+			focusTarget: buildFocusTargetFromHint({ ...hint, label }),
 			changes: readableChangesFor(change),
 		};
 	});
@@ -893,19 +1272,12 @@ export function buildHistoryPresentation(
 			subject.changes.some((change) => change.kind === 'route')
 	).length;
 
-	const summary =
-		delta.summary ??
-		operationSummary(
-			delta,
-			subjects,
-			context.actionName,
-			movedNodeCount,
-			reroutedConnectionCount
-		);
+	const summary = buildSummaryText(delta, subjects, context.actionName);
 
 	return {
 		title: formatHistoryActionTitle(context.actionName),
-		summary,
+		summary: summary.headline,
+		summaryDetail: summary.detail,
 		subjects,
 		subjectPreview: subjectPreview(subjects),
 		movedNodeCount,

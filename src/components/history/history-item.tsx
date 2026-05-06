@@ -4,12 +4,14 @@ import {
 	buildHistoryPresentation,
 	formatHistoryActionTitle,
 	type HistoryFocusTarget,
+	type HistoryPresentationSubject,
 } from '@/helpers/history/presentation';
 import { formatTimestamp } from '@/helpers/history/time-utils';
 import useAppStore from '@/store/mind-map-store';
 import type {
 	AttributedHistoryDelta,
 	HistoryItem as HistoryMeta,
+	HistorySubjectHint,
 } from '@/types/history-state';
 import { cn } from '@/utils/cn';
 import {
@@ -113,6 +115,7 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 					actionName: data.actionName || meta.actionName,
 					timestamp: data.timestamp || meta.timestamp,
 					summary: data.summary,
+					summaryDetail: data.summaryDetail,
 					subjectHints: data.subjectHints,
 				};
 
@@ -158,11 +161,19 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 		return labels.join(', ');
 	}, [meta.subjects]);
 
-	const displayTitle =
-		presentation?.title ?? formatHistoryActionTitle(meta.actionName);
-	const displaySummary = presentation?.summary ?? meta.summary;
-	const displaySubjectPreview =
-		presentation?.subjectPreview ?? metaSubjectPreview;
+	const displayHeadline =
+		presentation?.summary ??
+		meta.summary ??
+		formatHistoryActionTitle(meta.actionName);
+	const displayHeadlineDetail = presentation?.summaryDetail ?? meta.summaryDetail;
+	const displaySubjectPreview = presentation?.subjectPreview ?? metaSubjectPreview;
+
+	const fallbackSubjects = useMemo(
+		() => (meta.subjects ?? []).map(mapHintToPresentationSubject),
+		[meta.subjects]
+	);
+	const displaySubjects = presentation?.subjects ?? fallbackSubjects;
+	const inlineSubject = displaySubjects.length === 1 ? displaySubjects[0] : null;
 	const actorUserId = delta?.userId ?? meta.userId;
 	const actorName = delta?.userName ?? meta.userName;
 	const actorAvatar = delta?.userAvatar ?? meta.userAvatar;
@@ -264,16 +275,41 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 									isCurrent ? 'text-primary-300' : 'text-white/87'
 								)}
 							>
-								{displayTitle}
+								{displayHeadline}
 							</h4>
 
-							{displaySummary && (
-								<p className='text-xs leading-4 text-white/72'>
-									{displaySummary}
+							{displayHeadlineDetail && (
+								<p className='text-xs leading-4 text-white/60'>
+									{displayHeadlineDetail}
 								</p>
 							)}
 
-							{displaySubjectPreview && (
+							{inlineSubject && (
+								<div className='flex items-center gap-2'>
+									<span className='truncate text-xs text-white/72'>
+										{inlineSubject.label}
+									</span>
+
+									<Button
+										aria-label={`Focus ${inlineSubject.label}`}
+										className='h-5 border-white/10 bg-white/5 px-2 text-[11px] text-white/70 hover:border-primary-400/60 hover:bg-primary-500/10 hover:text-primary-200'
+										disabled={!inlineSubject.focusTarget}
+										onClick={(event) => {
+											event.stopPropagation();
+											if (inlineSubject.focusTarget) {
+												handleFocusTarget(inlineSubject.focusTarget);
+											}
+										}}
+										size='sm'
+										type='button'
+										variant='outline'
+									>
+										Focus
+									</Button>
+								</div>
+							)}
+
+							{!inlineSubject && displaySubjectPreview && (
 								<p className='truncate text-xs text-white/45'>
 									{displaySubjectPreview}
 								</p>
@@ -414,4 +450,43 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 			</AnimatePresence>
 		</motion.div>
 	);
+}
+
+function mapHintToPresentationSubject(
+	hint: HistorySubjectHint
+): HistoryPresentationSubject {
+	return {
+		id: hint.id,
+		type: hint.type,
+		label:
+			hint.label ||
+			(hint.type === 'node'
+				? `Node #${hint.id.slice(0, 8)}`
+				: `Connection #${hint.id.slice(0, 8)}`),
+		description:
+			hint.type === 'edge' && hint.sourceLabel && hint.targetLabel
+				? `${hint.sourceLabel} -> ${hint.targetLabel}`
+				: hint.type === 'node'
+					? hint.nodeType || 'Node'
+					: 'Connection',
+		focusTarget:
+			hint.type === 'node'
+				? {
+						type: 'node',
+						nodeId: hint.id,
+						label: hint.label || `Node #${hint.id.slice(0, 8)}`,
+						position: hint.position,
+						width: hint.width,
+						height: hint.height,
+					}
+				: hint.sourceId && hint.targetId
+					? {
+							type: 'edge',
+							edgeId: hint.id,
+							label: hint.label || `Connection #${hint.id.slice(0, 8)}`,
+							nodeIds: [hint.sourceId, hint.targetId],
+						}
+					: null,
+		changes: [],
+	};
 }

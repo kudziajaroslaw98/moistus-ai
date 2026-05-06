@@ -36,6 +36,7 @@ function createNode(id: string, content: string, position = { x: 0, y: 0 }) {
 			position_x: position.x,
 			position_y: position.y,
 			node_type: 'defaultNode',
+			metadata: { title: content },
 			created_at: '2026-01-01T00:00:00.000Z',
 			updated_at: '2026-01-01T00:00:00.000Z',
 		},
@@ -105,7 +106,7 @@ describe('HistoryItem focus controls', () => {
 			/>
 		);
 
-		fireEvent.click(screen.getByText('Updated node'));
+		fireEvent.click(screen.getByText('Property edit'));
 
 		const focusButton = await screen.findByRole('button', {
 			name: 'Focus Readable node',
@@ -189,7 +190,7 @@ describe('HistoryItem focus controls', () => {
 			/>
 		);
 
-		fireEvent.click(screen.getByText('Added connection'));
+		fireEvent.click(screen.getByText('Connection change'));
 
 		const focusButton = await screen.findByRole('button', {
 			name: 'Focus Source -> Target',
@@ -247,9 +248,9 @@ describe('HistoryItem focus controls', () => {
 			/>
 		);
 
-		fireEvent.click(screen.getByText('Moved nodes'));
+		fireEvent.click(screen.getByText('Node movement'));
 
-		expect(await screen.findByText('Moved 1 node')).toBeInTheDocument();
+		expect((await screen.findAllByText('Node moved')).length).toBeGreaterThan(0);
 		expect(screen.queryByText(/Position\.x/i)).not.toBeInTheDocument();
 
 		fireEvent.click(screen.getByText('Technical details'));

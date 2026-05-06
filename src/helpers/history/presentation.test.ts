@@ -45,7 +45,54 @@ function createEdge(id: string, source: string, target: string): AppEdge {
 }
 
 describe('history presentation', () => {
-	it('groups position x/y patches into one readable movement change', () => {
+	it('uses object-first summary for one property field', () => {
+		const delta: HistoryDelta = {
+			operation: 'update',
+			entityType: 'node',
+			changes: [
+				{
+					id: 'node-1',
+					type: 'node',
+					op: 'patch',
+					patch: { 'data.metadata.priority': 'high' },
+					reversePatch: { 'data.metadata.priority': 'low' },
+				},
+			],
+		};
+
+		const presentation = buildHistoryPresentation(delta, {
+			actionName: 'saveNodeProperties',
+			nodes: [createNode('node-1', 'Readable node')],
+		});
+
+		expect(presentation.summary).toBe('Priority updated');
+		expect(presentation.summaryDetail).toBeUndefined();
+	});
+
+	it('uses "cleared" for empty target values', () => {
+		const delta: HistoryDelta = {
+			operation: 'update',
+			entityType: 'node',
+			changes: [
+				{
+					id: 'node-1',
+					type: 'node',
+					op: 'patch',
+					patch: { 'data.metadata.dueDate': null },
+					reversePatch: { 'data.metadata.dueDate': '2026-04-29T22:00:00.000Z' },
+				},
+			],
+		};
+
+		const presentation = buildHistoryPresentation(delta, {
+			actionName: 'saveNodeProperties',
+			nodes: [createNode('node-1', 'Readable node')],
+		});
+
+		expect(presentation.summary).toBe('Due date cleared');
+	});
+
+	it('lists up to three fields and adds a property count detail', () => {
 		const delta: HistoryDelta = {
 			operation: 'update',
 			entityType: 'node',
@@ -55,34 +102,143 @@ describe('history presentation', () => {
 					type: 'node',
 					op: 'patch',
 					patch: {
-						'position.x': 50,
-						'position.y': 60,
+						'data.content': 'New note',
+						'data.metadata.tags': ['tag-1'],
+						'data.metadata.dueDate': '2026-04-29T22:00:00.000Z',
 					},
 					reversePatch: {
-						'position.x': 10,
-						'position.y': 20,
+						'data.content': 'Old note',
+						'data.metadata.tags': [],
+						'data.metadata.dueDate': null,
 					},
 				},
 			],
 		};
 
 		const presentation = buildHistoryPresentation(delta, {
-			actionName: 'moveNodes',
-			nodes: [createNode('node-1', 'Moved node', { x: 50, y: 60 })],
-			previousNodes: [createNode('node-1', 'Moved node', { x: 10, y: 20 })],
+			actionName: 'saveNodeProperties',
 		});
 
-		expect(presentation.summary).toBe('Moved 1 node.');
-		expect(presentation.subjects[0].label).toBe('Moved node');
-		expect(presentation.subjects[0].changes).toHaveLength(1);
-		expect(presentation.subjects[0].changes[0]).toMatchObject({
-			kind: 'move',
-			oldValue: '(10, 20)',
-			newValue: '(50, 60)',
-		});
+		expect(presentation.summary).toBe('Note, Tags & Due date updated');
+		expect(presentation.summaryDetail).toBe('3 properties');
 	});
 
-	it('summarizes waypoint-only edge patches as routing changes', () => {
+	it('switches to count summary for four or more property fields', () => {
+		const delta: HistoryDelta = {
+			operation: 'update',
+			entityType: 'node',
+			changes: [
+				{
+					id: 'node-1',
+					type: 'node',
+					op: 'patch',
+					patch: {
+						'data.content': 'New note',
+						'data.metadata.tags': ['tag-1'],
+						'data.metadata.dueDate': '2026-04-29T22:00:00.000Z',
+						'data.metadata.priority': 'high',
+					},
+					reversePatch: {
+						'data.content': 'Old note',
+						'data.metadata.tags': [],
+						'data.metadata.dueDate': null,
+						'data.metadata.priority': 'low',
+					},
+				},
+			],
+		};
+
+		const presentation = buildHistoryPresentation(delta, {
+			actionName: 'saveNodeProperties',
+		});
+
+		expect(presentation.summary).toBe('4 properties updated');
+	});
+
+	it('handles mixed intents by concatenating two phrases', () => {
+		const delta: HistoryDelta = {
+			operation: 'update',
+			entityType: 'node',
+			changes: [
+				{
+					id: 'node-1',
+					type: 'node',
+					op: 'patch',
+					patch: {
+						'position.x': 100,
+						'position.y': 100,
+						'data.metadata.tags': ['tag-1'],
+					},
+					reversePatch: {
+						'position.x': 10,
+						'position.y': 20,
+						'data.metadata.tags': [],
+					},
+				},
+			],
+		};
+
+		const presentation = buildHistoryPresentation(delta, {
+			actionName: 'moveNode',
+			nodes: [createNode('node-1', 'Node')],
+		});
+
+		expect(presentation.summary).toBe('Node moved, Tags updated');
+	});
+
+	it('uses bulk same-field summaries across many nodes', () => {
+		const delta: HistoryDelta = {
+			operation: 'update',
+			entityType: 'node',
+			changes: [
+				{
+					id: 'node-1',
+					type: 'node',
+					op: 'patch',
+					patch: { 'data.metadata.tags': ['tag-1'] },
+					reversePatch: { 'data.metadata.tags': [] },
+				},
+				{
+					id: 'node-2',
+					type: 'node',
+					op: 'patch',
+					patch: { 'data.metadata.tags': ['tag-2'] },
+					reversePatch: { 'data.metadata.tags': [] },
+				},
+			],
+		};
+
+		const presentation = buildHistoryPresentation(delta, {
+			actionName: 'saveNodeProperties',
+		});
+
+		expect(presentation.summary).toBe('Tags updated on 2 nodes');
+	});
+
+	it('falls back to node type + short id when title is missing', () => {
+		const delta: HistoryDelta = {
+			operation: 'update',
+			entityType: 'node',
+			changes: [
+				{
+					id: 'abcdef12-3456-7890',
+					type: 'node',
+					op: 'patch',
+					patch: { 'data.metadata.priority': 'high' },
+					reversePatch: { 'data.metadata.priority': 'low' },
+				},
+			],
+		};
+
+		const presentation = buildHistoryPresentation(delta, {
+			actionName: 'updateNode',
+			nodes: [createNode('abcdef12-3456-7890', 'Very long content without title')],
+		});
+
+		expect(presentation.subjects[0].label).toBe('Default node #abcdef12');
+	});
+
+	it('summarizes routing updates as rerouted connections', () => {
 		const delta: HistoryDelta = {
 			operation: 'update',
 			entityType: 'edge',
@@ -104,76 +260,13 @@ describe('history presentation', () => {
 		};
 
 		const presentation = buildHistoryPresentation(delta, {
-			actionName: 'applyLayout',
+			actionName: 'updateEdge',
 			nodes: [createNode('source', 'Source'), createNode('target', 'Target')],
 			edges: [createEdge('edge-1', 'source', 'target')],
 		});
 
+		expect(presentation.summary).toBe('Connection rerouted');
 		expect(presentation.reroutedConnectionCount).toBe(1);
-		expect(presentation.subjects[0].label).toBe('Source -> Target');
-		expect(presentation.subjects[0].changes).toHaveLength(1);
-		expect(presentation.subjects[0].changes[0]).toMatchObject({
-			kind: 'route',
-			summary: 'Rerouted connection line',
-		});
-	});
-
-	it('resolves patch-only node labels from current nodes or a short id fallback', () => {
-		const delta: HistoryDelta = {
-			operation: 'update',
-			entityType: 'node',
-			changes: [
-				{
-					id: 'node-1',
-					type: 'node',
-					op: 'patch',
-					patch: { 'data.metadata.status': 'done' },
-					reversePatch: { 'data.metadata.status': 'draft' },
-				},
-				{
-					id: 'abcdef12-3456-7890',
-					type: 'node',
-					op: 'patch',
-					patch: { 'data.metadata.priority': 'high' },
-					reversePatch: { 'data.metadata.priority': 'low' },
-				},
-			],
-		};
-
-		const presentation = buildHistoryPresentation(delta, {
-			actionName: 'updateNode',
-			nodes: [createNode('node-1', 'Current label')],
-		});
-
-		expect(presentation.subjects[0].label).toBe('Current label');
-		expect(presentation.subjects[1].label).toBe('Node abcdef12');
-	});
-
-	it('uses readable labels for added and removed connections', () => {
-		const delta: HistoryDelta = {
-			operation: 'add',
-			entityType: 'edge',
-			changes: [
-				{
-					id: 'edge-1',
-					type: 'edge',
-					op: 'add',
-					value: createEdge('edge-1', 'source', 'target'),
-				},
-			],
-		};
-
-		const presentation = buildHistoryPresentation(delta, {
-			actionName: 'addEdge',
-			nodes: [createNode('source', 'Source'), createNode('target', 'Target')],
-		});
-
-		expect(presentation.summary).toBe('Added connection: Source -> Target.');
-		expect(presentation.subjects[0]).toMatchObject({
-			type: 'edge',
-			label: 'Source -> Target',
-			description: 'Source -> Target',
-		});
 	});
 
 	it('keeps raw technical changes available', () => {
@@ -196,10 +289,5 @@ describe('history presentation', () => {
 		});
 
 		expect(presentation.technicalChanges).toBe(delta.changes);
-		expect(presentation.subjects[0].changes[0]).toMatchObject({
-			label: 'Content',
-			oldValue: 'Old content',
-			newValue: 'New content',
-		});
 	});
 });

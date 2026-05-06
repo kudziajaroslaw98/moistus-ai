@@ -30,6 +30,11 @@ interface DiffViewProps {
 	presentation?: HistoryPresentation | null;
 }
 
+interface ChangeRow {
+	subject: HistoryPresentationSubject;
+	change: HistoryReadableChange;
+}
+
 export function DiffView({
 	delta,
 	isLoading,
@@ -38,6 +43,9 @@ export function DiffView({
 	presentation,
 }: DiffViewProps) {
 	const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
+	const [showAllAffected, setShowAllAffected] = useState(false);
+	const [showAllChanges, setShowAllChanges] = useState(false);
+
 	const friendlyPresentation = useMemo(
 		() =>
 			delta
@@ -47,12 +55,14 @@ export function DiffView({
 		[delta, presentation]
 	);
 	const formatted = useMemo(() => (delta ? formatDelta(delta) : null), [delta]);
-	const groupedSubjects = useMemo(
+
+	const subjects = friendlyPresentation?.subjects ?? [];
+	const changeRows = useMemo<ChangeRow[]>(
 		() =>
-			friendlyPresentation
-				? groupReadableSubjects(friendlyPresentation.subjects)
-				: { moved: [], rerouted: [], other: [] },
-		[friendlyPresentation]
+			subjects.flatMap((subject) =>
+				subject.changes.map((change) => ({ subject, change }))
+			),
+		[subjects]
 	);
 
 	// Loading state
@@ -77,15 +87,15 @@ export function DiffView({
 		return (
 			<motion.div
 				animate={{ opacity: 1 }}
-				className='flex items-start gap-2 rounded p-3 bg-red-500/10 border border-red-500/30'
+				className='flex items-start gap-2 rounded border border-red-500/30 bg-red-500/10 p-3'
 				exit={{ opacity: 0 }}
 				initial={{ opacity: 0 }}
 				transition={{ ease: [0.215, 0.61, 0.355, 1], duration: 0.2 }}
 			>
-				<AlertCircle className='h-4 w-4 text-red-400 shrink-0 mt-0.5' />
+				<AlertCircle className='mt-0.5 h-4 w-4 shrink-0 text-red-400' />
 
 				<div className='flex flex-col gap-1'>
-					<span className='text-sm text-red-400 font-medium'>
+					<span className='text-sm font-medium text-red-400'>
 						Failed to load changes
 					</span>
 
@@ -114,10 +124,23 @@ export function DiffView({
 		return null;
 	}
 
+	const showAffectedPills = subjects.length >= 2 && subjects.length <= 3;
+	const showAffectedPanel = subjects.length >= 4;
+	const affectedVisible = showAllAffected ? subjects : subjects.slice(0, 3);
+	const affectedHiddenCount = Math.max(0, subjects.length - affectedVisible.length);
+
+	const shouldCollapseChanges = changeRows.length >= 5;
+	const shouldShowAllChanges =
+		!shouldCollapseChanges || showAllChanges || changeRows.length <= 4;
+	const visibleChangeRows = shouldShowAllChanges
+		? changeRows
+		: changeRows.slice(0, 2);
+	const hiddenChangeCount = Math.max(0, changeRows.length - visibleChangeRows.length);
+
 	return (
 		<motion.div
 			animate={{ opacity: 1, height: 'auto' }}
-			className='flex flex-col gap-3 pt-3 max-h-96 overflow-y-auto'
+			className='flex max-h-96 flex-col gap-3 overflow-y-auto pt-3'
 			exit={{ opacity: 0, height: 0 }}
 			initial={{ opacity: 0, height: 0 }}
 			transition={{ ease: [0.215, 0.61, 0.355, 1], duration: 0.3 }}
@@ -126,35 +149,130 @@ export function DiffView({
 				<p className='text-sm leading-5 text-white/87'>
 					{friendlyPresentation.summary}
 				</p>
+				{friendlyPresentation.summaryDetail && (
+					<p className='mt-1 text-xs text-white/60'>
+						{friendlyPresentation.summaryDetail}
+					</p>
+				)}
 			</div>
 
-			<div className='flex flex-col gap-2 pb-1'>
-				{groupedSubjects.moved.length > 0 && (
-					<ReadableGroup
-						description='Positions changed on the canvas'
-						onFocusTarget={onFocusTarget}
-						subjects={groupedSubjects.moved}
-						title={`Moved ${groupedSubjects.moved.length} node${groupedSubjects.moved.length === 1 ? '' : 's'}`}
-					/>
-				)}
+			{showAffectedPills && (
+				<div className='flex flex-wrap gap-1.5'>
+					{subjects.map((subject) => (
+						<button
+							className='inline-flex max-w-full items-center gap-1.5 rounded-full bg-white/[0.04] px-2.5 py-1 text-xs text-white/75 transition-colors hover:bg-white/[0.08]'
+							key={`${subject.type}:${subject.id}`}
+							onClick={(event) => {
+								event.stopPropagation();
+								if (subject.focusTarget && onFocusTarget) {
+									onFocusTarget(subject.focusTarget);
+								}
+							}}
+							type='button'
+						>
+							<span className='truncate'>{subject.label}</span>
+							<LocateFixed className='h-3 w-3 shrink-0 text-white/55' />
+						</button>
+					))}
+				</div>
+			)}
 
-				{groupedSubjects.rerouted.length > 0 && (
-					<ReadableGroup
-						collapsedByDefault
-						description='Connection lines were redrawn by layout'
-						onFocusTarget={onFocusTarget}
-						subjects={groupedSubjects.rerouted}
-						title={`Rerouted ${groupedSubjects.rerouted.length} connection${groupedSubjects.rerouted.length === 1 ? '' : 's'}`}
-					/>
-				)}
+			{showAffectedPanel && (
+				<div className='rounded-md border border-white/8 bg-[#151515] p-2.5'>
+					<button
+						className='flex w-full items-center justify-between gap-2 text-left'
+						onClick={(event) => {
+							event.stopPropagation();
+							setShowAllAffected((current) => !current);
+						}}
+						type='button'
+					>
+						<span className='text-xs font-medium text-white/72'>
+							Affected items
+						</span>
 
-				{groupedSubjects.other.map((subject) => (
-					<ReadableSubject
-						key={`${subject.type}-${subject.id}`}
-						onFocusTarget={onFocusTarget}
-						subject={subject}
-					/>
-				))}
+						<span className='inline-flex items-center gap-1 text-xs text-white/50'>
+							{showAllAffected
+								? 'Collapse'
+								: `Show all ${subjects.length} ${allNodes(subjects) ? 'nodes' : 'items'}`}
+							<ChevronDown
+								className={cn(
+									'h-3.5 w-3.5 transition-transform',
+									showAllAffected && 'rotate-180'
+								)}
+							/>
+						</span>
+					</button>
+
+					<div className='mt-2 flex flex-col gap-1.5'>
+						{affectedVisible.map((subject) => (
+							<div
+								className='flex items-center justify-between gap-2 rounded border border-white/[0.04] bg-black/20 px-2 py-1.5'
+								key={`${subject.type}:${subject.id}`}
+							>
+								<div className='min-w-0'>
+									<div className='truncate text-xs font-medium text-white/82'>
+										{subject.label}
+									</div>
+									<div className='truncate text-[11px] text-white/45'>
+										{subject.description}
+									</div>
+								</div>
+
+								<Button
+									aria-label={`Focus ${subject.label}`}
+									className='h-6 shrink-0 gap-1 border-white/10 bg-white/5 px-2 text-xs text-white/70 hover:border-primary-400/60 hover:bg-primary-500/10 hover:text-primary-200'
+									disabled={!subject.focusTarget || !onFocusTarget}
+									onClick={(event) => {
+										event.stopPropagation();
+										if (subject.focusTarget) onFocusTarget?.(subject.focusTarget);
+									}}
+									size='sm'
+									type='button'
+									variant='outline'
+								>
+									<LocateFixed className='h-3 w-3' />
+									Focus
+								</Button>
+							</div>
+						))}
+
+						{!showAllAffected && affectedHiddenCount > 0 && (
+							<div className='px-1 text-[11px] text-white/45'>
+								+{affectedHiddenCount} more
+							</div>
+						)}
+					</div>
+				</div>
+			)}
+
+			<div className='rounded-md border border-white/8 bg-[#151515] p-2.5'>
+				<div className='text-xs font-medium text-white/72'>Changes</div>
+
+				<div className='mt-2 flex flex-col gap-1.5'>
+					{visibleChangeRows.map((row, index) => (
+						<ReadableChangeRow
+							change={row.change}
+							isCompact={changeRows.length <= 2}
+							key={`${row.subject.id}:${row.change.id}:${index}`}
+							showSubjectPrefix={subjects.length > 1}
+							subjectLabel={row.subject.label}
+						/>
+					))}
+				</div>
+
+				{shouldCollapseChanges && hiddenChangeCount > 0 && (
+					<button
+						className='mt-2 rounded px-1 py-1 text-xs text-white/50 transition-colors hover:bg-white/[0.04] hover:text-white/75'
+						onClick={(event) => {
+							event.stopPropagation();
+							setShowAllChanges(true);
+						}}
+						type='button'
+					>
+						Show all {changeRows.length} changes
+					</button>
+				)}
 			</div>
 
 			<div className='border-t border-white/6 pt-2'>
@@ -212,211 +330,98 @@ export function DiffView({
 	);
 }
 
-function groupReadableSubjects(subjects: HistoryPresentationSubject[]) {
-	const moved: HistoryPresentationSubject[] = [];
-	const rerouted: HistoryPresentationSubject[] = [];
-	const other: HistoryPresentationSubject[] = [];
-
-	for (const subject of subjects) {
-		const hasMove = subject.changes.some((change) => change.kind === 'move');
-		const isRouteOnly =
-			subject.changes.length > 0 &&
-			subject.changes.every((change) => change.kind === 'route');
-
-		if (subject.type === 'node' && hasMove) {
-			moved.push(subject);
-		} else if (subject.type === 'edge' && isRouteOnly) {
-			rerouted.push(subject);
-		} else {
-			other.push(subject);
-		}
-	}
-
-	return { moved, rerouted, other };
+function allNodes(subjects: HistoryPresentationSubject[]): boolean {
+	return subjects.every((subject) => subject.type === 'node');
 }
 
-function ReadableGroup({
-	title,
-	description,
-	subjects,
-	onFocusTarget,
-	collapsedByDefault = false,
+function ReadableChangeRow({
+	change,
+	subjectLabel,
+	showSubjectPrefix,
+	isCompact,
 }: {
-	title: string;
-	description: string;
-	subjects: HistoryPresentationSubject[];
-	onFocusTarget?: (target: HistoryFocusTarget) => void;
-	collapsedByDefault?: boolean;
+	change: HistoryReadableChange;
+	subjectLabel: string;
+	showSubjectPrefix: boolean;
+	isCompact: boolean;
 }) {
-	const [isExpanded, setIsExpanded] = useState(!collapsedByDefault);
-	const visibleSubjects = isExpanded ? subjects : subjects.slice(0, 3);
-	const hiddenCount = Math.max(0, subjects.length - visibleSubjects.length);
-
-	return (
-		<div className='rounded-md border border-white/6 bg-[#141414] p-2.5'>
-			<button
-				className='flex w-full items-start justify-between gap-3 text-left'
-				onClick={(event) => {
-					event.stopPropagation();
-					setIsExpanded((current) => !current);
-				}}
-				type='button'
-			>
-				<div className='min-w-0'>
-					<div className='text-sm font-semibold text-white/87'>{title}</div>
-
-					<div className='mt-0.5 text-xs text-white/45'>{description}</div>
-				</div>
-
-				<ChevronDown
-					className={cn(
-						'mt-0.5 h-4 w-4 shrink-0 text-white/38 transition-transform',
-						isExpanded && 'rotate-180'
-					)}
-				/>
-			</button>
-
-			<div className='mt-2 flex flex-col gap-1.5'>
-				{visibleSubjects.map((subject) => (
-					<ReadableSubjectRow
-						key={`${subject.type}-${subject.id}`}
-						onFocusTarget={onFocusTarget}
-						subject={subject}
-					/>
-				))}
-			</div>
-
-			{hiddenCount > 0 && (
-				<button
-					className='mt-2 rounded px-2 py-1 text-xs text-white/45 transition-colors hover:bg-white/5 hover:text-white/72'
-					onClick={(event) => {
-						event.stopPropagation();
-						setIsExpanded(true);
-					}}
-					type='button'
-				>
-					Show {hiddenCount} more
-				</button>
-			)}
-		</div>
-	);
-}
-
-function ReadableSubject({
-	subject,
-	onFocusTarget,
-}: {
-	subject: HistoryPresentationSubject;
-	onFocusTarget?: (target: HistoryFocusTarget) => void;
-}) {
-	return (
-		<div className='rounded-md border border-white/6 bg-[#141414] p-2.5'>
-			<div className='flex items-start justify-between gap-2'>
-				<div className='min-w-0'>
-					<div className='truncate text-sm font-medium text-white/87'>
-						{subject.label}
-					</div>
-
-					<div className='mt-0.5 text-xs text-white/45'>
-						{subject.description}
-					</div>
-				</div>
-
-				<Button
-					aria-label={`Focus ${subject.label}`}
-					className='h-6 shrink-0 gap-1 border-white/10 bg-white/5 px-2 text-xs text-white/70 hover:border-primary-400/60 hover:bg-primary-500/10 hover:text-primary-200'
-					disabled={!subject.focusTarget || !onFocusTarget}
-					onClick={(event) => {
-						event.stopPropagation();
-						if (subject.focusTarget) onFocusTarget?.(subject.focusTarget);
-					}}
-					size='sm'
-					title='Focus on canvas'
-					type='button'
-					variant='outline'
-				>
-					<LocateFixed className='h-3 w-3' />
-					Focus
-				</Button>
-			</div>
-
-			<div className='mt-2 flex flex-col gap-1.5'>
-				{subject.changes.map((change) => (
-					<ReadableChange key={change.id} change={change} />
-				))}
-			</div>
-		</div>
-	);
-}
-
-function ReadableSubjectRow({
-	subject,
-	onFocusTarget,
-}: {
-	subject: HistoryPresentationSubject;
-	onFocusTarget?: (target: HistoryFocusTarget) => void;
-}) {
-	const primaryChange = subject.changes[0];
-
-	return (
-		<div className='flex items-center justify-between gap-2 rounded border border-white/[0.04] bg-black/20 px-2 py-1.5'>
-			<div className='min-w-0'>
-				<div className='truncate text-xs font-medium text-white/78'>
-					{subject.label}
-				</div>
-
-				{primaryChange && (
-					<div className='mt-0.5 truncate text-[11px] text-white/45'>
-						{primaryChange.summary}
-					</div>
-				)}
-			</div>
-
-			<Button
-				aria-label={`Focus ${subject.label}`}
-				className='h-6 shrink-0 gap-1 border-white/10 bg-white/5 px-2 text-xs text-white/70 hover:border-primary-400/60 hover:bg-primary-500/10 hover:text-primary-200'
-				disabled={!subject.focusTarget || !onFocusTarget}
-				onClick={(event) => {
-					event.stopPropagation();
-					if (subject.focusTarget) onFocusTarget?.(subject.focusTarget);
-				}}
-				size='sm'
-				title='Focus on canvas'
-				type='button'
-				variant='outline'
-			>
-				<LocateFixed className='h-3 w-3' />
-				Focus
-			</Button>
-		</div>
-	);
-}
-
-function ReadableChange({ change }: { change: HistoryReadableChange }) {
+	const [showPrevious, setShowPrevious] = useState(false);
 	const showBeforeAfter =
 		change.oldValue !== undefined &&
 		change.newValue !== undefined &&
 		change.kind !== 'route';
+	const title = showSubjectPrefix
+		? `${subjectLabel}: ${change.summary}`
+		: change.summary;
+
+	const isRemoval = change.verb === 'removed';
+	const beforeClass = cn(
+		'rounded border px-2 py-1 text-xs',
+		isRemoval
+			? 'border-red-500/20 bg-red-500/[0.08] text-red-200/90'
+			: 'border-white/10 bg-zinc-700/25 text-zinc-200/85'
+	);
+	const afterClass = cn(
+		'rounded border px-2 py-1 text-xs',
+		isRemoval
+			? 'border-red-500/25 bg-red-500/[0.08] text-red-200/90'
+			: 'border-emerald-500/20 bg-emerald-500/[0.08] text-emerald-200/90'
+	);
 
 	return (
-		<div className='rounded border border-white/[0.04] bg-black/20 px-2 py-1.5'>
-			<div className='text-xs font-medium text-white/72'>{change.summary}</div>
+		<div
+			className={cn(
+				'rounded border border-white/[0.04] bg-black/20 px-2 py-1.5',
+				isCompact && 'py-1.5'
+			)}
+		>
+			<div className='text-xs font-medium text-white/78'>{title}</div>
 
-			{showBeforeAfter && (
-				<div className='mt-1 grid grid-cols-1 gap-1 text-xs sm:grid-cols-2'>
-					<div className='rounded bg-red-500/[0.08] px-2 py-1 text-red-200/90'>
-						<div className='mb-0.5 text-[10px] font-medium uppercase text-red-300/70'>
+			{showBeforeAfter && !change.isLongText && (
+				<div className='mt-1 flex flex-col gap-1'>
+					<div className={beforeClass}>
+						<span className='text-[10px] uppercase tracking-wide text-zinc-300/70'>
 							Before
-						</div>
+						</span>
 						<div className='break-words'>{change.oldValue}</div>
 					</div>
-
-					<div className='rounded bg-emerald-500/[0.08] px-2 py-1 text-emerald-200/90'>
-						<div className='mb-0.5 text-[10px] font-medium uppercase text-emerald-300/70'>
+					<div className={afterClass}>
+						<span className='text-[10px] uppercase tracking-wide text-emerald-300/70'>
 							After
-						</div>
+						</span>
 						<div className='break-words'>{change.newValue}</div>
 					</div>
+				</div>
+			)}
+
+			{showBeforeAfter && change.isLongText && (
+				<div className='mt-1 flex flex-col gap-1'>
+					<div className={afterClass}>
+						<span className='text-[10px] uppercase tracking-wide text-emerald-300/70'>
+							After
+						</span>
+						<p className='line-clamp-2 break-words'>{change.newValue}</p>
+					</div>
+
+					<button
+						className='self-start rounded px-1 py-0.5 text-[11px] text-white/55 transition-colors hover:bg-white/[0.04] hover:text-white/80'
+						onClick={(event) => {
+							event.stopPropagation();
+							setShowPrevious((current) => !current);
+						}}
+						type='button'
+					>
+						{showPrevious ? 'Hide previous version' : 'Show previous version'}
+					</button>
+
+					{showPrevious && (
+						<div className={beforeClass}>
+							<span className='text-[10px] uppercase tracking-wide text-zinc-300/70'>
+								Before
+							</span>
+							<p className='line-clamp-3 break-words'>{change.oldValue}</p>
+						</div>
+					)}
 				</div>
 			)}
 		</div>
