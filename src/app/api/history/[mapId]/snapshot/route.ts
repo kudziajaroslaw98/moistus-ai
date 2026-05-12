@@ -80,7 +80,7 @@ export async function POST(
 				map_id: mapId,
 				user_id: user.id,
 				snapshot_index: nextIndex,
-				action_name: actionName || 'Manual Checkpoint',
+				action_name: actionName,
 				nodes,
 				edges,
 				node_count: nodes.length,

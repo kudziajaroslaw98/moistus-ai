@@ -22,6 +22,7 @@ import {
 import { AnimatePresence, motion } from 'motion/react';
 import Image from 'next/image';
 import { useState } from 'react';
+import type { KeyboardEvent } from 'react';
 import { Button } from '../ui/button';
 import { DiffView } from './diff-view';
 
@@ -64,9 +65,13 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 		if (newExpandedState && !cachedDelta && meta.type === 'event' && mapId) {
 			setIsFetchingDelta(true);
 			setFetchError(null);
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), 8000);
 
 			try {
-				const response = await fetch(`/api/history/${mapId}/delta/${meta.id}`);
+				const response = await fetch(`/api/history/${mapId}/delta/${meta.id}`, {
+					signal: controller.signal,
+				});
 				if (!response.ok) {
 					throw new Error('Failed to fetch change details');
 				}
@@ -77,20 +82,37 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 					operation: data.operation,
 					entityType: data.entityType,
 					changes: data.changes,
-					userId: data.userId || 'unknown',
-					userName: data.userName || 'Unknown',
+					userId: data.userId ?? 'unknown',
+					userName: data.userName ?? 'Unknown',
 					userAvatar: data.userAvatar,
-					actionName: data.actionName || meta.actionName,
-					timestamp: data.timestamp || meta.timestamp,
+					actionName: data.actionName ?? meta.actionName,
+					timestamp: data.timestamp ?? meta.timestamp,
 				};
 
 				setCachedDelta(fetchedDelta);
 			} catch (error) {
 				console.error('Failed to fetch delta:', error);
-				setFetchError(error instanceof Error ? error.message : 'Unknown error');
+				const isAbortError =
+					error instanceof DOMException && error.name === 'AbortError';
+				setFetchError(
+					isAbortError
+						? 'Request timed out while loading changes'
+						: error instanceof Error
+							? error.message
+							: 'Unknown error'
+				);
 			} finally {
+				clearTimeout(timeoutId);
 				setIsFetchingDelta(false);
 			}
+		}
+	};
+
+	const handleCardKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+		if (!canShowDiff) return;
+		if (event.key === 'Enter' || event.key === ' ') {
+			event.preventDefault();
+			void handleToggleExpand();
 		}
 	};
 
@@ -122,12 +144,17 @@ export function HistoryItem({ meta, originalIndex, isCurrent }: Props) {
 			exit={{ opacity: 0, y: 20 }}
 			initial={{ opacity: 0, y: -20 }}
 			onClick={canShowDiff ? handleToggleExpand : undefined}
+			onKeyDown={handleCardKeyDown}
+			role={canShowDiff ? 'button' : undefined}
+			tabIndex={canShowDiff ? 0 : undefined}
+			aria-expanded={canShowDiff ? isExpanded : undefined}
 			transition={{ ease: [0.215, 0.61, 0.355, 1], duration: 0.3 }}
 			whileHover={{ scale: 1.01 }}
 			whileTap={{ scale: 0.99 }}
 			className={cn(
 				'flex flex-col gap-3 rounded-lg border p-3',
-				canShowDiff && 'cursor-pointer',
+				canShowDiff &&
+					'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/70',
 				isCurrent
 					? 'border-primary-500/50 bg-primary-500/10 shadow-[0_0_0_1px_rgba(96,165,250,0.3)]'
 					: 'border-white/6 bg-[#1E1E1E] hover:border-white/10 hover:bg-[#222222]'

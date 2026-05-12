@@ -1,4 +1,5 @@
 import type { AttributedHistoryDelta, HistoryItem } from '@/types/history-state';
+import type { HistoryPatchOp } from '@/types/history-state';
 
 /**
  * Represents a group of related history items
@@ -47,14 +48,19 @@ function extractNodeIdFromDelta(delta?: AttributedHistoryDelta): string | null {
 	}
 
 	// Look for a node operation in the changes
-	const nodeChange = delta.changes.find((change: any) => change.type === 'node');
+	const nodeChange = delta.changes.find(
+		(change: unknown): change is HistoryPatchOp =>
+			isHistoryPatchOp(change) && change.type === 'node'
+	);
 	if (!nodeChange) {
 		return null;
 	}
 
 	// Extract node ID from the change
-	const nodeData = (nodeChange.value || nodeChange.removedValue) as any;
-	return nodeData?.id || null;
+	const nodeData = (nodeChange.value ?? nodeChange.removedValue) as
+		| { id?: unknown }
+		| undefined;
+	return typeof nodeData?.id === 'string' ? nodeData.id : null;
 }
 
 /**
@@ -65,23 +71,41 @@ function extractNodeNameFromDelta(delta?: AttributedHistoryDelta): string {
 		return 'Untitled';
 	}
 
-	const nodeChange = delta.changes.find((change: any) => change.type === 'node');
+	const nodeChange = delta.changes.find(
+		(change: unknown): change is HistoryPatchOp =>
+			isHistoryPatchOp(change) && change.type === 'node'
+	);
 	if (!nodeChange) {
 		return 'Untitled';
 	}
 
-	const nodeData = (nodeChange.value || nodeChange.removedValue) as any;
-	const data = nodeData?.data as any;
+	const nodeData = (nodeChange.value ?? nodeChange.removedValue) as
+		| { data?: Record<string, unknown> }
+		| undefined;
+	const data = nodeData?.data;
 
 	// Try various label sources
-	if (data?.label) return data.label;
-	if (data?.content) {
-		const content = String(data.content);
+	if (typeof data?.label === 'string' && data.label.trim().length > 0) {
+		return data.label;
+	}
+	if (typeof data?.content === 'string' && data.content.length > 0) {
+		const content = data.content;
 		return content.length > 30 ? content.slice(0, 27) + '...' : content;
 	}
-	if (data?.title) return data.title;
+	if (typeof data?.title === 'string' && data.title.trim().length > 0) {
+		return data.title;
+	}
 
 	return 'Untitled';
+}
+
+function isHistoryPatchOp(value: unknown): value is HistoryPatchOp {
+	return (
+		typeof value === 'object' &&
+		value !== null &&
+		'type' in value &&
+		typeof (value as { type?: unknown }).type === 'string'
+	);
 }
 
 /**
