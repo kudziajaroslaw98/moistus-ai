@@ -108,13 +108,14 @@ describe('HistoryItem focus controls', () => {
 
 		fireEvent.click(screen.getByText('Property edit'));
 
-		const focusButton = await screen.findByRole('button', {
+		const focusButtons = await screen.findAllByRole('button', {
 			name: 'Focus Readable node',
 		});
+		const focusButton = focusButtons[0];
 		fireEvent.click(focusButton);
 
 		expect(mockStoreState.centerOnNode).toHaveBeenCalledWith('node-1');
-		expect(screen.getByText('Technical details')).toBeInTheDocument();
+		expect(screen.queryByText('Technical details')).not.toBeInTheDocument();
 	});
 
 	it('focuses connection endpoints for an edge history item', async () => {
@@ -192,9 +193,10 @@ describe('HistoryItem focus controls', () => {
 
 		fireEvent.click(screen.getByText('Connection change'));
 
-		const focusButton = await screen.findByRole('button', {
+		const focusButtons = await screen.findAllByRole('button', {
 			name: 'Focus Source -> Target',
 		});
+		const focusButton = focusButtons[0];
 		fireEvent.click(focusButton);
 
 		expect(fitView).toHaveBeenCalledWith({
@@ -207,7 +209,7 @@ describe('HistoryItem focus controls', () => {
 		expect(setSelectedNodes).toHaveBeenCalledWith(mockStoreState.nodes);
 	});
 
-	it('keeps raw coordinate paths behind technical details', async () => {
+	it('keeps raw coordinate paths hidden in the readable view', async () => {
 		(global.fetch as jest.Mock).mockResolvedValue({
 			ok: true,
 			json: async () => ({
@@ -252,9 +254,6 @@ describe('HistoryItem focus controls', () => {
 
 		expect((await screen.findAllByText('Node moved')).length).toBeGreaterThan(0);
 		expect(screen.queryByText(/Position\.x/i)).not.toBeInTheDocument();
-
-		fireEvent.click(screen.getByText('Technical details'));
-
-		expect(await screen.findByText(/Position\.x/i)).toBeInTheDocument();
+		expect(screen.queryByText('Technical details')).not.toBeInTheDocument();
 	});
 });

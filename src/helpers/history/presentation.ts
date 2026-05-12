@@ -286,7 +286,7 @@ function toNodeTypeLabel(type: string | undefined): string {
 		.replace(/[-_]/g, ' ')
 		.trim()
 		.toLowerCase();
-	return `${toTitleCase(base || 'node')} node`;
+	return `${toTitleCase(base || 'node')}`;
 }
 
 function nodeFallbackLabel(type: string | undefined, id: string): string {
@@ -379,9 +379,7 @@ function getNodeLabel(
 ): string {
 	const currentNode = nodeMap.get(nodeId);
 	const previousNode = previousNodeMap.get(nodeId);
-	const fromCurrent = currentNode
-		? getNodeTitleFromUnknown(currentNode)
-		: null;
+	const fromCurrent = currentNode ? getNodeTitleFromUnknown(currentNode) : null;
 	if (fromCurrent) return truncateLabel(fromCurrent);
 
 	const fromPrevious = previousNode
@@ -678,7 +676,10 @@ function isEmptyValue(value: unknown): boolean {
 	return false;
 }
 
-function isLongText(fieldKey: string | undefined, ...values: unknown[]): boolean {
+function isLongText(
+	fieldKey: string | undefined,
+	...values: unknown[]
+): boolean {
 	if (fieldKey && LONG_TEXT_FIELDS.has(fieldKey)) return true;
 	return values.some(
 		(value) => typeof value === 'string' && value.trim().length > 160
@@ -767,15 +768,13 @@ function fieldChanges(change: HistoryPatchOp): HistoryReadableChange[] {
 			const label = fieldLabel(path);
 			const isStyle = STYLE_FIELDS.has(fieldKey);
 			const cleared = isEmptyValue(newValue) && !isEmptyValue(oldValue);
-			const verb: HistoryReadableChange['verb'] = cleared ? 'cleared' : 'updated';
+			const verb: HistoryReadableChange['verb'] = cleared ? 'cleared' : undefined;
 
 			return {
 				id: `${change.id}:${path}`,
 				kind: 'field',
 				label,
-				summary: isStyle
-					? `${label} updated`
-					: `${label} ${verb}`,
+				summary: isStyle || !verb ? label : `${label} ${verb}`,
 				oldValue: valueLabel(oldValue),
 				newValue: valueLabel(newValue),
 				paths: [path],
@@ -820,7 +819,9 @@ function readableChangesFor(change: HistoryPatchOp): HistoryReadableChange[] {
 	];
 }
 
-function buildFocusTargetFromHint(subject: HistorySubjectHint): HistoryFocusTarget | null {
+function buildFocusTargetFromHint(
+	subject: HistorySubjectHint
+): HistoryFocusTarget | null {
 	if (subject.type === 'node') {
 		return {
 			type: 'node',
@@ -948,10 +949,14 @@ function createSummaryMetrics(
 
 	for (const change of delta.changes) {
 		if (change.type === 'node' && change.op === 'add') metrics.addedNodes += 1;
-		if (change.type === 'node' && change.op === 'remove') metrics.removedNodes += 1;
-		if (change.type === 'edge' && change.op === 'add') metrics.addedConnections += 1;
-		if (change.type === 'edge' && change.op === 'remove') metrics.removedConnections += 1;
-		if (change.type === 'edge' && change.op === 'patch') metrics.updatedConnections += 1;
+		if (change.type === 'node' && change.op === 'remove')
+			metrics.removedNodes += 1;
+		if (change.type === 'edge' && change.op === 'add')
+			metrics.addedConnections += 1;
+		if (change.type === 'edge' && change.op === 'remove')
+			metrics.removedConnections += 1;
+		if (change.type === 'edge' && change.op === 'patch')
+			metrics.updatedConnections += 1;
 	}
 
 	for (const subject of subjects) {
@@ -1056,7 +1061,11 @@ function phraseByIntent(
 				: null;
 		case 'node_resize':
 			return metrics.resizedNodeIds.size > 0
-				? pluralize(metrics.resizedNodeIds.size, 'Node resized', 'nodes resized')
+				? pluralize(
+						metrics.resizedNodeIds.size,
+						'Node resized',
+						'nodes resized'
+					)
 				: null;
 		case 'node_add':
 			return metrics.addedNodes > 0
@@ -1068,7 +1077,11 @@ function phraseByIntent(
 				: null;
 		case 'connection_add':
 			return metrics.addedConnections > 0
-				? pluralize(metrics.addedConnections, 'Connection added', 'connections added')
+				? pluralize(
+						metrics.addedConnections,
+						'Connection added',
+						'connections added'
+					)
 				: null;
 		case 'connection_remove':
 			return metrics.removedConnections > 0
@@ -1096,7 +1109,11 @@ function phraseByIntent(
 				: 'Node detached';
 		case 'layout_apply': {
 			if (metrics.movedNodeIds.size > 0) {
-				return pluralize(metrics.movedNodeIds.size, 'Node moved', 'nodes moved');
+				return pluralize(
+					metrics.movedNodeIds.size,
+					'Node moved',
+					'nodes moved'
+				);
 			}
 			if (metrics.reroutedEdgeIds.size > 0) {
 				return pluralize(
@@ -1246,10 +1263,9 @@ export function buildHistoryPresentation(
 			type: change.type,
 		};
 		const label =
-			hint.label ??
-			(change.type === 'node'
+			change.type === 'node'
 				? nodeFallbackLabel(hint.nodeType, change.id)
-				: `Connection #${compactId(change.id)}`);
+				: `Connection #${compactId(change.id)}`;
 
 		return {
 			id: change.id,

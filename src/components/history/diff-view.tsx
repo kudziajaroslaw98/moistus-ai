@@ -1,6 +1,5 @@
 'use client';
 
-import { formatDelta } from '@/helpers/history/diff-formatter';
 import {
 	buildHistoryPresentation,
 	type HistoryFocusTarget,
@@ -10,17 +9,10 @@ import {
 } from '@/helpers/history/presentation';
 import { HistoryDelta } from '@/types/history-state';
 import { cn } from '@/utils/cn';
-import {
-	AlertCircle,
-	ChevronDown,
-	Code2,
-	Loader2,
-	LocateFixed,
-} from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AlertCircle, ChevronDown, Loader2, LocateFixed } from 'lucide-react';
+import { motion } from 'motion/react';
 import { useMemo, useState } from 'react';
 import { Button } from '../ui/button';
-import { ChangeItem } from './change-item';
 
 interface DiffViewProps {
 	delta: HistoryDelta | null;
@@ -42,7 +34,6 @@ export function DiffView({
 	onFocusTarget,
 	presentation,
 }: DiffViewProps) {
-	const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
 	const [showAllAffected, setShowAllAffected] = useState(false);
 	const [showAllChanges, setShowAllChanges] = useState(false);
 
@@ -54,8 +45,6 @@ export function DiffView({
 				: null,
 		[delta, presentation]
 	);
-	const formatted = useMemo(() => (delta ? formatDelta(delta) : null), [delta]);
-
 	const subjects = friendlyPresentation?.subjects ?? [];
 	const changeRows = useMemo<ChangeRow[]>(
 		() =>
@@ -120,14 +109,17 @@ export function DiffView({
 		);
 	}
 
-	if (!friendlyPresentation || !formatted) {
+	if (!friendlyPresentation) {
 		return null;
 	}
 
 	const showAffectedPills = subjects.length >= 2 && subjects.length <= 3;
 	const showAffectedPanel = subjects.length >= 4;
 	const affectedVisible = showAllAffected ? subjects : subjects.slice(0, 3);
-	const affectedHiddenCount = Math.max(0, subjects.length - affectedVisible.length);
+	const affectedHiddenCount = Math.max(
+		0,
+		subjects.length - affectedVisible.length
+	);
 
 	const shouldCollapseChanges = changeRows.length >= 5;
 	const shouldShowAllChanges =
@@ -135,32 +127,24 @@ export function DiffView({
 	const visibleChangeRows = shouldShowAllChanges
 		? changeRows
 		: changeRows.slice(0, 2);
-	const hiddenChangeCount = Math.max(0, changeRows.length - visibleChangeRows.length);
+	const hiddenChangeCount = Math.max(
+		0,
+		changeRows.length - visibleChangeRows.length
+	);
 
 	return (
 		<motion.div
 			animate={{ opacity: 1, height: 'auto' }}
-			className='flex max-h-96 flex-col gap-3 overflow-y-auto pt-3'
+			className='flex max-h-[34rem] flex-col gap-3 overflow-y-auto pt-3'
 			exit={{ opacity: 0, height: 0 }}
 			initial={{ opacity: 0, height: 0 }}
 			transition={{ ease: [0.215, 0.61, 0.355, 1], duration: 0.3 }}
 		>
-			<div className='rounded-md border border-white/6 bg-white/[0.03] px-3 py-2'>
-				<p className='text-sm leading-5 text-white/87'>
-					{friendlyPresentation.summary}
-				</p>
-				{friendlyPresentation.summaryDetail && (
-					<p className='mt-1 text-xs text-white/60'>
-						{friendlyPresentation.summaryDetail}
-					</p>
-				)}
-			</div>
-
 			{showAffectedPills && (
-				<div className='flex flex-wrap gap-1.5'>
+				<div className='flex flex-wrap gap-2'>
 					{subjects.map((subject) => (
 						<button
-							className='inline-flex max-w-full items-center gap-1.5 rounded-full bg-white/[0.04] px-2.5 py-1 text-xs text-white/75 transition-colors hover:bg-white/[0.08]'
+							className='inline-flex h-7 max-w-full items-center gap-1.5 rounded-full bg-white/[0.05] px-3 text-[12px] text-white/78 transition-colors hover:bg-white/[0.1]'
 							key={`${subject.type}:${subject.id}`}
 							onClick={(event) => {
 								event.stopPropagation();
@@ -178,7 +162,7 @@ export function DiffView({
 			)}
 
 			{showAffectedPanel && (
-				<div className='rounded-md border border-white/8 bg-[#151515] p-2.5'>
+				<div className='rounded-lg border border-white/10 bg-[#171717] p-3'>
 					<button
 						className='flex w-full items-center justify-between gap-2 text-left'
 						onClick={(event) => {
@@ -187,11 +171,11 @@ export function DiffView({
 						}}
 						type='button'
 					>
-						<span className='text-xs font-medium text-white/72'>
+						<span className='text-[12px] font-medium text-white/78'>
 							Affected items
 						</span>
 
-						<span className='inline-flex items-center gap-1 text-xs text-white/50'>
+						<span className='inline-flex items-center gap-1 text-[12px] text-white/58'>
 							{showAllAffected
 								? 'Collapse'
 								: `Show all ${subjects.length} ${allNodes(subjects) ? 'nodes' : 'items'}`}
@@ -207,25 +191,26 @@ export function DiffView({
 					<div className='mt-2 flex flex-col gap-1.5'>
 						{affectedVisible.map((subject) => (
 							<div
-								className='flex items-center justify-between gap-2 rounded border border-white/[0.04] bg-black/20 px-2 py-1.5'
+								className='flex items-center justify-between gap-2 rounded-md border border-white/[0.07] bg-black/20 px-2.5 py-2'
 								key={`${subject.type}:${subject.id}`}
 							>
 								<div className='min-w-0'>
-									<div className='truncate text-xs font-medium text-white/82'>
+									<div className='truncate text-[12px] font-medium text-white/88'>
 										{subject.label}
 									</div>
-									<div className='truncate text-[11px] text-white/45'>
+									<div className='truncate text-[11px] text-white/50'>
 										{subject.description}
 									</div>
 								</div>
 
 								<Button
 									aria-label={`Focus ${subject.label}`}
-									className='h-6 shrink-0 gap-1 border-white/10 bg-white/5 px-2 text-xs text-white/70 hover:border-primary-400/60 hover:bg-primary-500/10 hover:text-primary-200'
+									className='h-6 shrink-0 gap-1 border-white/12 bg-white/6 px-2 text-[11px] text-white/74 hover:border-primary-400/60 hover:bg-primary-500/10 hover:text-primary-200'
 									disabled={!subject.focusTarget || !onFocusTarget}
 									onClick={(event) => {
 										event.stopPropagation();
-										if (subject.focusTarget) onFocusTarget?.(subject.focusTarget);
+										if (subject.focusTarget)
+											onFocusTarget?.(subject.focusTarget);
 									}}
 									size='sm'
 									type='button'
@@ -238,7 +223,7 @@ export function DiffView({
 						))}
 
 						{!showAllAffected && affectedHiddenCount > 0 && (
-							<div className='px-1 text-[11px] text-white/45'>
+							<div className='px-1 text-[11px] text-white/52'>
 								+{affectedHiddenCount} more
 							</div>
 						)}
@@ -246,86 +231,32 @@ export function DiffView({
 				</div>
 			)}
 
-			<div className='rounded-md border border-white/8 bg-[#151515] p-2.5'>
-				<div className='text-xs font-medium text-white/72'>Changes</div>
+			<div className='text-[12px] font-medium text-white/78'>Changes</div>
 
-				<div className='mt-2 flex flex-col gap-1.5'>
-					{visibleChangeRows.map((row, index) => (
-						<ReadableChangeRow
-							change={row.change}
-							isCompact={changeRows.length <= 2}
-							key={`${row.subject.id}:${row.change.id}:${index}`}
-							showSubjectPrefix={subjects.length > 1}
-							subjectLabel={row.subject.label}
-						/>
-					))}
-				</div>
-
-				{shouldCollapseChanges && hiddenChangeCount > 0 && (
-					<button
-						className='mt-2 rounded px-1 py-1 text-xs text-white/50 transition-colors hover:bg-white/[0.04] hover:text-white/75'
-						onClick={(event) => {
-							event.stopPropagation();
-							setShowAllChanges(true);
-						}}
-						type='button'
-					>
-						Show all {changeRows.length} changes
-					</button>
-				)}
+			<div className='flex flex-col gap-2'>
+				{visibleChangeRows.map((row, index) => (
+					<ReadableChangeRow
+						change={row.change}
+						isCompact={changeRows.length <= 2}
+						key={`${row.subject.id}:${row.change.id}:${index}`}
+						showSubjectPrefix={subjects.length > 1}
+						subjectLabel={row.subject.label}
+					/>
+				))}
 			</div>
 
-			<div className='border-t border-white/6 pt-2'>
+			{shouldCollapseChanges && hiddenChangeCount > 0 && (
 				<button
-					className='flex w-full items-center justify-between gap-2 rounded px-1 py-1 text-left text-xs font-medium text-white/60 transition-colors hover:bg-white/5 hover:text-white/87'
+					className='mt-1 rounded px-1 py-1 text-[12px] text-white/54 transition-colors hover:bg-white/[0.04] hover:text-white/78'
 					onClick={(event) => {
 						event.stopPropagation();
-						setShowTechnicalDetails((current) => !current);
+						setShowAllChanges(true);
 					}}
 					type='button'
 				>
-					<span className='inline-flex items-center gap-1.5'>
-						<Code2 className='h-3.5 w-3.5' />
-						Technical details
-					</span>
-
-					<ChevronDown
-						className={cn(
-							'h-3.5 w-3.5 transition-transform',
-							showTechnicalDetails && 'rotate-180'
-						)}
-					/>
+					Show all {changeRows.length} changes
 				</button>
-
-				<AnimatePresence>
-					{showTechnicalDetails && (
-						<motion.div
-							animate={{ opacity: 1, height: 'auto' }}
-							className='mt-2 flex flex-col gap-2 overflow-hidden'
-							exit={{ opacity: 0, height: 0 }}
-							initial={{ opacity: 0, height: 0 }}
-							transition={{
-								ease: [0.215, 0.61, 0.355, 1],
-								duration: 0.25,
-							}}
-						>
-							<AnimatePresence mode='sync'>
-								{formatted.changes.map((change, index) => (
-									<ChangeItem
-										details={change.details}
-										entityType={change.entityType}
-										index={index}
-										key={`${change.operation}-${change.entityType}-${index}`}
-										label={change.label}
-										operation={change.operation}
-										patches={change.patches}
-									/>
-								))}
-							</AnimatePresence>
-						</motion.div>
-					)}
-				</AnimatePresence>
-			</div>
+			)}
 		</motion.div>
 	);
 }
@@ -345,7 +276,6 @@ function ReadableChangeRow({
 	showSubjectPrefix: boolean;
 	isCompact: boolean;
 }) {
-	const [showPrevious, setShowPrevious] = useState(false);
 	const showBeforeAfter =
 		change.oldValue !== undefined &&
 		change.newValue !== undefined &&
@@ -356,72 +286,38 @@ function ReadableChangeRow({
 
 	const isRemoval = change.verb === 'removed';
 	const beforeClass = cn(
-		'rounded border px-2 py-1 text-xs',
+		'rounded-xs border px-2.5 py-1.5 text-[12px]',
 		isRemoval
 			? 'border-red-500/20 bg-red-500/[0.08] text-red-200/90'
-			: 'border-white/10 bg-zinc-700/25 text-zinc-200/85'
+			: 'border-white/10 bg-zinc-700/25 text-zinc-400/85'
 	);
 	const afterClass = cn(
-		'rounded border px-2 py-1 text-xs',
+		'rounded-xs border px-2.5 py-1.5 text-[12px]',
 		isRemoval
 			? 'border-red-500/25 bg-red-500/[0.08] text-red-200/90'
 			: 'border-emerald-500/20 bg-emerald-500/[0.08] text-emerald-200/90'
 	);
 
 	return (
-		<div
-			className={cn(
-				'rounded border border-white/[0.04] bg-black/20 px-2 py-1.5',
-				isCompact && 'py-1.5'
-			)}
-		>
-			<div className='text-xs font-medium text-white/78'>{title}</div>
+		<div className={cn('', isCompact && 'py-1.5')}>
+			<div className='text-[12px] font-medium leading-5 text-white/84'>
+				{title}
+			</div>
 
-			{showBeforeAfter && !change.isLongText && (
+			{showBeforeAfter && (
 				<div className='mt-1 flex flex-col gap-1'>
+					<div className={afterClass}>
+						<span className='text-[10px] uppercase tracking-wide text-emerald-300/70'>
+							After
+						</span>
+						<div className='break-words line-clamp-3'>{change.newValue}</div>
+					</div>
 					<div className={beforeClass}>
-						<span className='text-[10px] uppercase tracking-wide text-zinc-300/70'>
+						<span className='text-[10px] uppercase tracking-wide text-zinc-100/70'>
 							Before
 						</span>
-						<div className='break-words'>{change.oldValue}</div>
+						<div className='break-words line-clamp-3'>{change.oldValue}</div>
 					</div>
-					<div className={afterClass}>
-						<span className='text-[10px] uppercase tracking-wide text-emerald-300/70'>
-							After
-						</span>
-						<div className='break-words'>{change.newValue}</div>
-					</div>
-				</div>
-			)}
-
-			{showBeforeAfter && change.isLongText && (
-				<div className='mt-1 flex flex-col gap-1'>
-					<div className={afterClass}>
-						<span className='text-[10px] uppercase tracking-wide text-emerald-300/70'>
-							After
-						</span>
-						<p className='line-clamp-2 break-words'>{change.newValue}</p>
-					</div>
-
-					<button
-						className='self-start rounded px-1 py-0.5 text-[11px] text-white/55 transition-colors hover:bg-white/[0.04] hover:text-white/80'
-						onClick={(event) => {
-							event.stopPropagation();
-							setShowPrevious((current) => !current);
-						}}
-						type='button'
-					>
-						{showPrevious ? 'Hide previous version' : 'Show previous version'}
-					</button>
-
-					{showPrevious && (
-						<div className={beforeClass}>
-							<span className='text-[10px] uppercase tracking-wide text-zinc-300/70'>
-								Before
-							</span>
-							<p className='line-clamp-3 break-words'>{change.oldValue}</p>
-						</div>
-					)}
 				</div>
 			)}
 		</div>

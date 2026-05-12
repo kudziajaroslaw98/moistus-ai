@@ -46,20 +46,19 @@ export function HistorySidebar() {
 
 	return (
 		<SidePanel
-			className='w-[400px]'
+			className='w-full sm:w-[460px]'
 			isOpen={popoverOpen.history}
 			onClose={handleClose}
 			title='Mind Map History'
+			footer={
+				<HistoryActions historyListRef={historyListRef} isPro={isProUser} />
+			}
 		>
-			<div className='flex h-full flex-col gap-4 p-4 pb-12 overflow-y-auto scrollbar'>
+			<div className='flex h-full flex-col gap-4 pb-12 overflow-y-auto scrollbar'>
 				{historyMeta.length === 0 && !isLoading ? (
 					<HistoryEmptyState />
 				) : (
-					<>
-						<HistoryList ref={historyListRef} />
-
-						<HistoryActions historyListRef={historyListRef} isPro={isProUser} />
-					</>
+					<HistoryList ref={historyListRef} />
 				)}
 			</div>
 		</SidePanel>

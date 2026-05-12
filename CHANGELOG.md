@@ -5,6 +5,15 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-05-09]
+
+### Changed
+
+- **history/timeline-first-mobile-ux**: Reworked the history side panel into a timeline-first layout with a pinned `Current` section, border-mounted timeline rail/dots, unified Focus+Revert action clusters, and mobile edge-to-edge event rows with full-width action buttons
+  - Why: The previous card stack was visually dense on desktop and broke readability/interaction at narrow widths
+- **history/readable-diff-default-only**: Removed raw technical-diff rendering from the history panel and kept only human-readable change blocks with `After` shown before `Before`
+  - Why: Technical patch paths and low-level field paths added noise for most users and made scanning updates slower
+
 ## [2026-05-06]
 
 ### Changed
