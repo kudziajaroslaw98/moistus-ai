@@ -60,6 +60,9 @@ export const createHistorySlice: StateCreator<
 			const data = await res.json();
 			const itemsDesc = (data.items || []) as any[];
 			const itemsAsc = [...itemsDesc].reverse();
+			const loadedEventCount = itemsAsc.filter(
+				(item: any) => item.type === 'event'
+			).length;
 
 			// Compute desired selection from DB pointer first, fallback to previous selection, else newest
 			const desiredIdFromDB: string | undefined =
@@ -74,7 +77,7 @@ export const createHistorySlice: StateCreator<
 			set({
 				historyMeta: itemsAsc,
 				historyIndex: nextIndex,
-				historyPageOffset: itemsAsc.length,
+				historyPageOffset: data.nextOffset ?? loadedEventCount,
 				historyHasMore: !!data.hasMore,
 			});
 		} catch (e) {
@@ -177,10 +180,13 @@ export const createHistorySlice: StateCreator<
 			const data = await res.json();
 			const itemsDesc = (data.items || []) as any[];
 			const itemsAsc = [...itemsDesc].reverse();
-			const newMeta = [...itemsAsc, ...historyMeta];
+			const hasCurrentCheckpointAtStart = historyMeta[0]?.type === 'snapshot';
+			const newMeta = hasCurrentCheckpointAtStart
+				? [historyMeta[0], ...itemsAsc, ...historyMeta.slice(1)]
+				: [...itemsAsc, ...historyMeta];
 			set({
 				historyMeta: newMeta,
-				historyPageOffset: historyPageOffset + itemsAsc.length,
+				historyPageOffset: data.nextOffset ?? historyPageOffset + itemsAsc.length,
 				historyHasMore: !!data.hasMore,
 				historyIndex:
 					(get().historyIndex ?? newMeta.length - 1) + itemsAsc.length,
@@ -197,13 +203,13 @@ export const createHistorySlice: StateCreator<
 		actionName: string = 'Manual Checkpoint',
 		isMajor: boolean = true
 	) => {
-		const { mapId, nodes, edges, loadHistoryFromDB } = get();
+		const { mapId, loadHistoryFromDB } = get();
 		if (!mapId) return;
 		try {
 			const res = await fetch(`/api/history/${mapId}/snapshot`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ actionName, nodes, edges, isMajor }),
+				body: JSON.stringify({ actionName, isMajor }),
 			});
 			if (res.ok) {
 				toast.success('Checkpoint created');
@@ -262,15 +268,76 @@ export const createHistorySlice: StateCreator<
 			}
 			if (!userId) return;
 
-			// Ensure baseline snapshot exists
-			const { data: existingLastSnap } = await supabase
-				.from('map_history_snapshots')
-				.select('id, snapshot_index')
+			// Compute delta before touching history rows. No change means no branch
+			// pruning and no baseline snapshot.
+			const delta = calculateDelta(prev, next);
+			if (!delta) return;
+
+			const { data: currentPtr } = await supabase
+				.from('map_history_current')
+				.select('snapshot_id, event_id')
 				.eq('map_id', mapId)
-				.order('snapshot_index', { ascending: false })
-				.limit(1)
-				.single();
-			let snapshotId = existingLastSnap?.id || null;
+				.maybeSingle();
+
+			let snapshotId = currentPtr?.snapshot_id || null;
+			let nextEventIndex: number | null = null;
+
+			if (snapshotId && currentPtr?.event_id) {
+				const { data: currentEvent } = await supabase
+					.from('map_history_events')
+					.select('event_index')
+					.eq('map_id', mapId)
+					.eq('snapshot_id', snapshotId)
+					.eq('id', currentPtr.event_id)
+					.maybeSingle();
+
+				if (!currentEvent || typeof currentEvent.event_index !== 'number') {
+					console.warn(
+						'persistDeltaEvent skipped because current history event is missing',
+						{ mapId, eventId: currentPtr.event_id }
+					);
+					return;
+				}
+
+				const { error: pruneFutureError } = await supabase
+					.from('map_history_events')
+					.delete()
+					.eq('map_id', mapId)
+					.eq('snapshot_id', snapshotId)
+					.gt('event_index', currentEvent.event_index);
+
+				if (pruneFutureError) {
+					console.error('Failed to prune future history events:', pruneFutureError);
+					return;
+				}
+
+				nextEventIndex = currentEvent.event_index + 1;
+			} else if (snapshotId && currentPtr?.event_id === null) {
+				const { error: pruneFutureError } = await supabase
+					.from('map_history_events')
+					.delete()
+					.eq('map_id', mapId)
+					.eq('snapshot_id', snapshotId);
+
+				if (pruneFutureError) {
+					console.error('Failed to prune checkpoint history events:', pruneFutureError);
+					return;
+				}
+
+				nextEventIndex = 0;
+			}
+
+			if (!snapshotId) {
+				const { data: existingLastSnap } = await supabase
+					.from('map_history_snapshots')
+					.select('id, snapshot_index')
+					.eq('map_id', mapId)
+					.order('snapshot_index', { ascending: false })
+					.limit(1)
+					.maybeSingle();
+				snapshotId = existingLastSnap?.id || null;
+			}
+
 			if (!snapshotId) {
 				const { data: newBaseline } = await supabase
 					.from('map_history_snapshots')
@@ -291,18 +358,16 @@ export const createHistorySlice: StateCreator<
 			}
 			if (!snapshotId) return;
 
-			// Compute delta
-			const delta = calculateDelta(prev, next);
-			if (!delta) return;
-
-			const { data: lastEvent } = await supabase
-				.from('map_history_events')
-				.select('event_index')
-				.eq('snapshot_id', snapshotId)
-				.order('event_index', { ascending: false })
-				.limit(1)
-				.single();
-			const nextEventIndex = (lastEvent?.event_index ?? -1) + 1;
+			if (nextEventIndex === null) {
+				const { data: lastEvent } = await supabase
+					.from('map_history_events')
+					.select('event_index')
+					.eq('snapshot_id', snapshotId)
+					.order('event_index', { ascending: false })
+					.limit(1)
+					.maybeSingle();
+				nextEventIndex = (lastEvent?.event_index ?? -1) + 1;
+			}
 
 			// Insert event and retrieve its id to move the current pointer
 			const { data: insertedEv } = await supabase

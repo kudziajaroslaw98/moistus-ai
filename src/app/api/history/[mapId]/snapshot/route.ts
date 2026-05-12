@@ -1,4 +1,9 @@
-import { createClient } from '@/helpers/supabase/server';
+import { verifyManualCheckpointAccess } from '@/helpers/history/server/history-access';
+import { createHistoryCheckpoint } from '@/helpers/history/server/history-checkpoints';
+import {
+	createClient,
+	createServiceRoleClient,
+} from '@/helpers/supabase/server';
 import { NextResponse } from 'next/server';
 
 export async function POST(
@@ -15,110 +20,31 @@ export async function POST(
 
 		const { mapId } = await params;
 		const body = await req.json().catch(() => ({}));
-		const { actionName, nodes = [], edges = [], isMajor = true } = body;
+		const { actionName, isMajor = true } = body;
 
-		// Verify map ownership (manual checkpoint only for owner)
-		const { data: map } = await supabase
-			.from('mind_maps')
-			.select('id, user_id')
-			.eq('id', mapId)
-			.single();
-		if (!map || map.user_id !== user.id) {
+		const access = await verifyManualCheckpointAccess(supabase, mapId, user.id);
+		if (!access.ok) {
 			return NextResponse.json(
-				{ error: 'Map not found or access denied' },
-				{ status: 404 }
+				{ error: access.error || 'Access denied' },
+				{ status: access.status }
 			);
 		}
 
-		// Treat users with active/trialing subscription as Pro
-		const { data: subscription, error: subscriptionError } = await supabase
-			.from('user_subscriptions')
-			.select('status')
-			.eq('user_id', user.id)
-			.in('status', ['active', 'trialing'])
-			.limit(1)
-			.single();
-
-		if (subscriptionError) {
-			console.error('Error checking subscription:', subscriptionError);
-			return NextResponse.json(
-				{ error: 'Internal server error' },
-				{ status: 500 }
-			);
-		}
-
-		if (!subscription) {
-			return NextResponse.json(
-				{ error: 'Manual checkpoints are Pro-only' },
-				{ status: 403 }
-			);
-		}
-
-		// Get current snapshot index
-		const { data: lastSnapshot, error: snapshotError } = await supabase
-			.from('map_history_snapshots')
-			.select('snapshot_index')
-			.eq('map_id', mapId)
-			.order('snapshot_index', { ascending: false })
-			.limit(1)
-			.single();
-
-		if (snapshotError && snapshotError.code !== 'PGRST116') {
-			// PGRST116 means no rows found, which is fine (first snapshot)
-			console.error('Error fetching last snapshot:', snapshotError);
-			return NextResponse.json(
-				{ error: 'Internal server error' },
-				{ status: 500 }
-			);
-		}
-
-		const nextIndex = (lastSnapshot?.snapshot_index ?? -1) + 1;
-
-		const { data: inserted, error } = await supabase
-			.from('map_history_snapshots')
-			.insert({
-				map_id: mapId,
-				user_id: user.id,
-				snapshot_index: nextIndex,
-				action_name: actionName || 'Manual Checkpoint',
-				nodes,
-				edges,
-				node_count: nodes.length,
-				edge_count: edges.length,
-				is_major: !!isMajor,
-			})
-			.select()
-			.single();
-		if (error) {
-			console.error('Failed to create snapshot:', error);
-			return NextResponse.json(
-				{ error: 'Failed to create snapshot' },
-				{ status: 500 }
-			);
-		}
-
-		// Update the current history pointer to the new snapshot
-		try {
-			await supabase.from('map_history_current').upsert(
-				{
-					map_id: mapId,
-					snapshot_id: inserted.id,
-					event_id: null,
-					updated_by: user.id,
-					updated_at: new Date().toISOString(),
-				},
-				{ onConflict: 'map_id' }
-			);
-		} catch (pointerErr) {
-			console.error(
-				'Failed to update current history pointer (snapshot):',
-				pointerErr
-			);
-		}
+		const checkpoint = await createHistoryCheckpoint({
+			adminClient: createServiceRoleClient(),
+			mapId,
+			userId: user.id,
+			actionName,
+			isMajor: !!isMajor,
+			prunePrevious: true,
+		});
 
 		return NextResponse.json({
-			snapshotId: inserted.id,
-			snapshotIndex: inserted.snapshot_index,
+			snapshotId: checkpoint.snapshotId,
+			snapshotIndex: checkpoint.snapshotIndex,
+			nodeCount: checkpoint.nodeCount,
+			edgeCount: checkpoint.edgeCount,
+			prunedSnapshotCount: checkpoint.prunedSnapshotCount,
 			message: 'Checkpoint created successfully',
 		});
 	} catch (error) {

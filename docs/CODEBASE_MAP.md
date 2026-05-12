@@ -17,7 +17,7 @@ total_tokens: 707972
 <!-- Updated: 2026-03-04 - Added account settings email-notification preference toggle -->
 <!-- Updated: 2026-03-04 - Expanded notifications internals (service/channel/schema/mention resolver/data flow) -->
 <!-- Updated: 2026-03-04 - Corrected API route totals to 61 and fixed unlabeled directory-tree code fence -->
-<!-- Updated: 2026-03-11 - Documented deterministic local branch reflow, cousin-branch corridor expansion, persisted map layout direction, the two supported layout modes, and auto-routed waypoint edges -->
+<!-- Updated: 2026-05-12 - Documented edge-only connect persistence, node-connection selector contract, and cycle-safe local reflow no-op fallback -->
 <!-- Updated: 2026-03-05 - Documented owner-scoped node-limit enforcement across node creation APIs -->
 <!-- Updated: 2026-03-06 - Synced API route docs for owner-scoped shared-map node entitlement checks -->
 <!-- Updated: 2026-03-07 - Added owner-scoped node-limit preflight to node creation flow -->
@@ -38,6 +38,7 @@ total_tokens: 707972
 <!-- Updated: 2026-04-01 - Documented stable Supabase SSR auth storage key for LAN logins -->
 <!-- Updated: 2026-04-01 - Corrected node-editor dismissal docs after merging the main autocomplete baseline -->
 <!-- Updated: 2026-04-08 - Documented onboarding paused-coachmark marker and manual-resume anchor-measurement suspension -->
+<!-- Updated: 2026-05-12 - Documented checkpoint-scoped history helpers and extracted history sidebar UI boundaries -->
 <!-- Updated: 2026-04-01 - Documented the tighter landing-page flow with hero mini-demo, product-proof chapters, and pricing/FAQ close -->
 <!-- Updated: 2026-04-01 - Noted the landing de-densification pass for calmer workflow chrome and screenshot-safe proof notes -->
 <!-- Updated: 2026-04-01 - Noted the landing canvas-fidelity pass for a Shiko-like hero scene and cleaner screenshot-led proof modules -->
@@ -68,7 +69,9 @@ A collaborative mind mapping application built with Next.js 16, React 19, TypeSc
 **Edge routing note:** Normal persisted edges render as auto-routed `waypointEdge` geometry. Explicit full layout uses ELK bend points (`routingStyle: 'elk'`) and persists ELK-computed edge-label bounds/centers, but the converter snaps each ELK label center onto the nearest routed segment before render so the label stays horizontal while the edge line passes through its center. Local create/edit/move/resize/reconnect flows reroute only affected edges with the deterministic orthogonal router (`routingStyle: 'orthogonal'`) and must clear stale ELK label metadata when they replace ELK geometry. Raw manual waypoint editing is no longer part of the canvas model.
 **Layout animation note:** `ReactFlowArea` now renders through a transient animated graph state for explicit full layout and local layout flows. Zustand still stores only final node/edge geometry; the 550ms tween is client-only and does not persist or broadcast intermediate frames, and an animation version is only marked handled after the tween settles or is explicitly cancelled.
 
-**Local layout note:** Deterministic local branch reflow now has two phases: same-depth child repack inside the edited branch, then cousin-branch corridor expansion on the carrier layer when the grown subtree would overlap neighboring cousin subtrees. Ancestors stay fixed, and load-time legacy layout normalization persists only when the fetched map/edge snapshot is still current.
+**Connection persistence note:** Generic node connectivity is edge-derived (`edges.source`/`edges.target`) and normal drag-connect persists only edge rows. `nodes.parent_id` / React Flow `parentId` are reserved for explicit hierarchy operations, and `edges-slice.getNodeConnections(nodeId)` is the canonical selector for incoming/outgoing/all connections plus deduped neighbor IDs.
+
+**Local layout note:** Deterministic local branch reflow now has two phases: same-depth child repack inside the edited branch, then cousin-branch corridor expansion on the carrier layer when the grown subtree would overlap neighboring cousin subtrees. Ancestors stay fixed, and load-time legacy layout normalization persists only when the fetched map/edge snapshot is still current. If parent ancestry is cyclic, local branch reflow intentionally returns a safe no-op delta rather than attempting tree-based movement.
 
 **Mind-map loading note:** Route-level `loading.tsx` provides initial shell fallback, while in-page loading keeps the real editor chrome mounted and gates only map-dependent behavior via `isMapReady` (`nodes/edges` forced to empty until requested map payload is ready).
 
@@ -191,7 +194,7 @@ shiko/
 │   │   ├── dashboard/          # Map cards, settings, and loading skeleton shells
 │   │   ├── edges/              # 6 edge types (floating, waypoint, ghost)
 │   │   ├── guided-tour/        # Prezi-style presentations
-│   │   ├── history/            # Version history sidebar
+│   │   ├── history/            # Timeline history sidebar, readable change rows, hooks, and view-model adapters
 │   │   ├── landing/            # Marketing flow + shared CTA link feedback (Start Mapping/Get Started/Go Pro with next/link pending + optimistic click hint + top progress bar)
 │   │   ├── mind-map/           # React Flow integration + mobile top bar/drawer chrome
 │   │   ├── modals/             # Dialogs (edge edit, upgrade, etc.)
@@ -219,7 +222,7 @@ shiko/
 │   │
 │   ├── helpers/                # Utilities
 │   │   ├── api/                # API middleware (auth, validation)
-│   │   ├── history/            # Delta calculation, diff
+│   │   ├── history/            # Delta calculation, readable presentation, checkpoint/list server helpers, diff
 │   │   ├── layout/             # ELK full-layout engine + deterministic local branch reflow
 │   │   ├── local-dev-url.ts    # Browser/runtime LAN-safe Supabase + PartyKit URL derivation
 │   │   ├── partykit/           # PartyKit admin helpers (disconnect users)
@@ -263,24 +266,24 @@ shiko/
 | **sharing-slice**         | 1,164 | Room codes, anonymous users, upgrade flows                                                   |
 | **comments-slice**        | 973   | Comment threads, @mentions, reactions                                                        |
 | **suggestions-slice**     | 1462  | AI ghost nodes, typed ghost approval, streaming, novelty memory, whole-map placement, merges |
-| **nodes-slice**           | 900   | Node CRUD, positioning, real-time sync                                                       |
-| **history-slice**         | 597   | Undo/redo, snapshots, DB persistence                                                         |
-| **edges-slice**           | 635   | Edge CRUD, parent-child relationships                                                        |
-| **subscription-slice**    | 434   | Stripe, plan limits, usage tracking                                                          |
-| **guided-tour-slice**     | 416   | Prezi-style presentations                                                                    |
-| **core-slice**            | 353   | Supabase client, user, map loading                                                           |
-| **user-profile-slice**    | 317   | Profile, preferences                                                                         |
-| **layout-slice**          | 578   | Full ELK layouts + local branch reflow                                                       |
-| **onboarding-slice**      | 958   | Editor-first onboarding tasks, substeps, coachmarks, per-user persisted state                |
-| **ui-slice**              | 248   | Modals, panels, focus mode                                                                   |
-| **groups-slice**          | 246   | Node grouping                                                                                |
-| **chat-slice**            | 241   | AI chat messages                                                                             |
-| **streaming-toast-slice** | 168   | Progress toasts                                                                              |
-| **clipboard-slice**       | 156   | Copy/paste                                                                                   |
-| **export-slice**          | 172   | PNG/SVG/PDF export                                                                           |
-| **quick-input-slice**     | 55    | Quick node creation                                                                          |
-| **loading-state-slice**   | 33    | Loading flags                                                                                |
-| **realtime-slice**        | 17    | Selection sync                                                                               |
+| **nodes-slice**           | 900   | Node CRUD, positioning, real-time sync                                        |
+| **history-slice**         | 543   | Checkpoint-scoped history metadata, delta events, revert persistence          |
+| **edges-slice**           | 635   | Edge CRUD, edge-derived connection selectors, explicit-only hierarchy actions |
+| **subscription-slice**    | 434   | Stripe, plan limits, usage tracking                                           |
+| **guided-tour-slice**     | 416   | Prezi-style presentations                                                     |
+| **core-slice**            | 353   | Supabase client, user, map loading                                            |
+| **user-profile-slice**    | 317   | Profile, preferences                                                          |
+| **layout-slice**          | 578   | Full ELK layouts + local branch reflow                                        |
+| **onboarding-slice**      | 958   | Editor-first onboarding tasks, substeps, coachmarks, per-user persisted state |
+| **ui-slice**              | 248   | Modals, panels, focus mode                                                    |
+| **groups-slice**          | 246   | Node grouping                                                                 |
+| **chat-slice**            | 241   | AI chat messages                                                              |
+| **streaming-toast-slice** | 168   | Progress toasts                                                               |
+| **clipboard-slice**       | 156   | Copy/paste                                                                    |
+| **export-slice**          | 172   | PNG/SVG/PDF export                                                            |
+| **quick-input-slice**     | 55    | Quick node creation                                                           |
+| **loading-state-slice**   | 33    | Loading flags                                                                 |
+| **realtime-slice**        | 17    | Selection sync                                                                |
 
 ### Node System (12 Types)
 
@@ -519,6 +522,8 @@ sequenceDiagram
 ```
 
 **AI suggestion note:** Map-scoped toolbar suggestions now reuse the node-suggestion stream with literal full-map eligible-anchor context. The client persists per-map recent suggestion history plus a shuffled exploration-lens cycle in `localStorage`, sends the active lens pair and recent ideas with each click, and the API prompts `gpt-5-mini` with every eligible non-system anchor instead of a rotating top window. The API only accepts model-returned anchor IDs from the provided candidate list, rejects near-duplicate ideas against recent/current suggestions, fails explicitly when the literal full-map prompt exceeds the model request limit, and the slice falls back to viewport-centered unanchored ghosts if no valid anchor survives.
+
+**History presentation and scope:** Stored history still uses JSONB deltas, and list/delta endpoints still derive deterministic local object-first summaries from normalized action intents plus delta semantics (property edits, movement, reroutes, lifecycle events). Manual checkpoints are full-state baselines read from persisted node/edge rows inside the `create_history_checkpoint_and_prune` Supabase RPC (`supabase/migrations/20260512130000_create_history_checkpoint_and_prune.sql`), so snapshot insert, current-pointer update, and old-history pruning happen in one transaction. The active sidebar scope is the current checkpoint plus its later events, with older snapshots/events pruned on checkpoint creation and hidden from list/delta/revert routes. History route helpers live under `src/helpers/history/server/` for access checks, RPC invocation, current-scope utilities, and list DTO assembly. The sidebar renders as a timeline-first surface (pinned `Current`, left-border rail+dots, action clusters), while `HistoryItem` delegates delta loading, focus behavior, view-model fallback decisions, and card rendering to smaller history modules. Mobile history rows remain edge-to-edge with full-width Focus/Revert controls, expanded details stay human-readable only (including `After`-first value blocks), and raw technical patch paths are not exposed in the panel UI.
 
 **AI suggestion helper split:** `/api/ai/suggestions` now delegates graph context modeling to `src/helpers/ai-suggestion-graph.ts`, row serialization to `src/helpers/ai-suggestion-rows.ts`, user-prompt assembly to `src/helpers/ai-suggestion-user-prompt.ts`, system prompt text to `src/helpers/ai-suggestion-prompts.ts`, and streamed normalization/duplicate filtering/error mapping to `src/helpers/ai-suggestion-postprocess.ts`. `src/helpers/ai-suggestion-context.ts` is the thin entrypoint that stitches graph rows + user prompt together for the route.
 
