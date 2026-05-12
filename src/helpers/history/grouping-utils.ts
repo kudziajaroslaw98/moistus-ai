@@ -2,6 +2,7 @@ import type {
 	AttributedHistoryDelta,
 	HistoryItem,
 } from '@/types/history-state';
+import type { HistoryPatchOp } from '@/types/history-state';
 
 /**
  * Represents a group of related history items
@@ -51,7 +52,8 @@ function extractNodeIdFromDelta(delta?: AttributedHistoryDelta): string | null {
 
 	// Look for a node operation in the changes
 	const nodeChange = delta.changes.find(
-		(change: any) => change.type === 'node'
+		(change: unknown): change is HistoryPatchOp =>
+			isHistoryPatchOp(change) && change.type === 'node'
 	);
 	if (!nodeChange) {
 		return null;
@@ -79,7 +81,8 @@ function extractNodeNameFromDelta(delta?: AttributedHistoryDelta): string {
 	}
 
 	const nodeChange = delta.changes.find(
-		(change: any) => change.type === 'node'
+		(change: unknown): change is HistoryPatchOp =>
+			isHistoryPatchOp(change) && change.type === 'node'
 	);
 	if (!nodeChange) {
 		return 'Untitled';
@@ -106,6 +109,15 @@ function extractNodeNameFromItem(item: HistoryItemWithMeta): string {
 	if (fromSubject?.label) return fromSubject.label;
 
 	return extractNodeNameFromDelta(item.delta);
+}
+
+function isHistoryPatchOp(value: unknown): value is HistoryPatchOp {
+	return (
+		typeof value === 'object' &&
+		value !== null &&
+		'type' in value &&
+		typeof (value as { type?: unknown }).type === 'string'
+	);
 }
 
 /**

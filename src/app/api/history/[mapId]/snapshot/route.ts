@@ -34,7 +34,7 @@ export async function POST(
 			adminClient: createServiceRoleClient(),
 			mapId,
 			userId: user.id,
-			actionName: actionName || 'Manual Checkpoint',
+			actionName,
 			isMajor: !!isMajor,
 			prunePrevious: true,
 		});
