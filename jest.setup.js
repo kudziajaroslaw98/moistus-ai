@@ -5,6 +5,90 @@
 // Learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom'
 
+if (typeof global.Headers === 'undefined') {
+	class TestHeaders {
+		constructor(init = {}) {
+			this.values = new Map()
+
+			if (init instanceof TestHeaders) {
+				init.forEach((value, key) => this.set(key, value))
+			} else if (Array.isArray(init)) {
+				init.forEach(([key, value]) => this.set(key, value))
+			} else {
+				Object.entries(init).forEach(([key, value]) => this.set(key, value))
+			}
+		}
+
+		get(name) {
+			return this.values.get(name.toLowerCase()) ?? null
+		}
+
+		set(name, value) {
+			this.values.set(name.toLowerCase(), String(value))
+		}
+
+		has(name) {
+			return this.values.has(name.toLowerCase())
+		}
+
+		forEach(callback) {
+			this.values.forEach((value, key) => callback(value, key, this))
+		}
+	}
+
+	global.Headers = TestHeaders
+}
+
+if (typeof global.Request === 'undefined') {
+	global.Request = class TestRequest {
+		constructor(input, init = {}) {
+			this.url = String(input)
+			this.method = init.method ?? 'GET'
+			this.headers = new global.Headers(init.headers)
+			this.body = init.body ?? null
+			this.signal = init.signal ?? null
+		}
+
+		async json() {
+			return JSON.parse(await this.text())
+		}
+
+		async text() {
+			return this.body === null ? '' : String(this.body)
+		}
+	}
+}
+
+if (typeof global.Response === 'undefined') {
+	global.Response = class TestResponse {
+		constructor(body = null, init = {}) {
+			this.body = body
+			this.status = init.status ?? 200
+			this.statusText = init.statusText ?? ''
+			this.headers = new global.Headers(init.headers)
+			this.ok = this.status >= 200 && this.status < 300
+		}
+
+		static json(data, init = {}) {
+			return new this(JSON.stringify(data), {
+				...init,
+				headers: {
+					'content-type': 'application/json',
+					...(init.headers ?? {}),
+				},
+			})
+		}
+
+		async json() {
+			return JSON.parse(await this.text())
+		}
+
+		async text() {
+			return this.body === null ? '' : String(this.body)
+		}
+	}
+}
+
 // ============================================
 // Global Mocks for Component Testing
 // ============================================

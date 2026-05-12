@@ -408,14 +408,14 @@ export async function POST(req: Request) {
 							},
 						});
 
-						void trackAIUsage(user, supabase, hasProAccess).catch(
-							(trackingError) => {
-								console.warn(
-									'Failed to track AI suggestions usage:',
-									trackingError
-								);
-							}
-						);
+						void Promise.resolve(
+							trackAIUsage(user, supabase, hasProAccess)
+						).catch((trackingError) => {
+							console.warn(
+								'Failed to track AI suggestions usage:',
+								trackingError
+							);
+						});
 					} catch (error) {
 						console.error(
 							'Streaming process failed:',

@@ -227,14 +227,14 @@ export async function POST(req: Request) {
 						});
 
 						// Track usage (no-ops for Pro)
-						void trackAIUsage(user, supabase, hasProAccess).catch(
-							(trackingError) => {
-								console.warn(
-									'Failed to track AI suggest-connections usage:',
-									trackingError
-								);
-							}
-						);
+						void Promise.resolve(
+							trackAIUsage(user, supabase, hasProAccess)
+						).catch((trackingError) => {
+							console.warn(
+								'Failed to track AI suggest-connections usage:',
+								trackingError
+							);
+						});
 					} catch (e) {
 						const error =
 							e instanceof Error ? e : new Error('An unknown error occurred.');
