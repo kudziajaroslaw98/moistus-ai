@@ -19,6 +19,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Added
 
+- **db/history-checkpoint-rpc**: Added a Supabase migration for `create_history_checkpoint_and_prune`, which creates the checkpoint snapshot, updates the current pointer, and prunes older history in one database transaction
+  - Why: Checkpoint creation should not rely on separate app-layer writes that can partially succeed
 - **tests/history-current-scope-and-view-model**: Added focused tests for current-checkpoint scoping, event pagination offsets, and history entry view-model summary/focus behavior
   - Why: Checkpoint semantics and local summary fallback rules need explicit regression coverage
 
