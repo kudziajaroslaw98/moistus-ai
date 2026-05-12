@@ -340,19 +340,39 @@ function setByPath(target: any, path: string, value: any) {
 
 		if (Array.isArray(cur) && segIsIndex) {
 			const idx = Number(seg);
-			if (cur[idx] == null || (typeof cur[idx] !== 'object' && typeof cur[idx] !== 'function')) {
-				cur[idx] = nextIsIndex ? [] : Object.create(null);
+			const existing = cur[idx];
+			let nextValue: any;
+			if (
+				existing == null ||
+				(typeof existing !== 'object' && typeof existing !== 'function')
+			) {
+				nextValue = nextIsIndex ? [] : Object.create(null);
+			} else if (Array.isArray(existing)) {
+				nextValue = [...existing];
+			} else {
+				nextValue = { ...existing };
 			}
-			cur = cur[idx];
+			cur[idx] = nextValue;
+			cur = nextValue;
 			continue;
 		}
 
-		if (!Array.isArray(cur) && !Object.prototype.hasOwnProperty.call(cur, seg)) {
-			cur[seg] = nextIsIndex ? [] : Object.create(null);
-		} else if (cur[seg] == null || (typeof cur[seg] !== 'object' && typeof cur[seg] !== 'function')) {
-			cur[seg] = nextIsIndex ? [] : Object.create(null);
+		const existing = Object.prototype.hasOwnProperty.call(cur, seg)
+			? cur[seg]
+			: undefined;
+		let nextValue: any;
+		if (
+			existing == null ||
+			(typeof existing !== 'object' && typeof existing !== 'function')
+		) {
+			nextValue = nextIsIndex ? [] : Object.create(null);
+		} else if (Array.isArray(existing)) {
+			nextValue = [...existing];
+		} else {
+			nextValue = { ...existing };
 		}
-		cur = cur[seg];
+		cur[seg] = nextValue;
+		cur = nextValue;
 	}
 
 	const last = parts[parts.length - 1];
