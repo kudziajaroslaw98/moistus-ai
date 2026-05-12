@@ -22,14 +22,31 @@ export interface HistoryPatchOp {
 	op: 'add' | 'remove' | 'patch';
 	value?: Partial<Node<NodeData> | AppEdge>; // for add (forward)
 	removedValue?: Partial<Node<NodeData> | AppEdge>; // for remove (backward - what was removed)
-	patch?: Record<string, any>; // for patch (dotted paths - forward: old -> new)
-	reversePatch?: Record<string, any>; // for patch (backward: new -> old, enables undo)
+	patch?: Record<string, unknown>; // for patch (dotted paths - forward: old -> new)
+	reversePatch?: Record<string, unknown>; // for patch (backward: new -> old, enables undo)
+}
+
+export interface HistorySubjectHint {
+	id: string;
+	type: 'node' | 'edge';
+	label?: string;
+	nodeType?: string;
+	position?: { x: number; y: number };
+	width?: number | null;
+	height?: number | null;
+	sourceId?: string;
+	targetId?: string;
+	sourceLabel?: string;
+	targetLabel?: string;
 }
 
 export interface HistoryDelta {
 	operation: 'add' | 'update' | 'delete' | 'batch'; // top-level label
 	entityType: 'node' | 'edge' | 'mixed';
 	changes: HistoryPatchOp[];
+	summary?: string;
+	summaryDetail?: string;
+	subjectHints?: HistorySubjectHint[];
 }
 
 // Delta with attribution for collaborative history
@@ -48,6 +65,8 @@ export interface HistoryDbItem {
 	action_name: string;
 	operation_type: string;
 	entity_type: string;
+	user_id?: string;
+	changes?: HistoryDelta | null;
 	created_at: string;
 }
 
@@ -65,6 +84,12 @@ export interface HistoryItem {
 	entityType?: string;
 	isMajor?: boolean;
 	timestamp: number;
+	summary?: string;
+	summaryDetail?: string;
+	subjects?: HistorySubjectHint[];
+	userId?: string;
+	userName?: string;
+	userAvatar?: string;
 }
 
 export interface HistoryListResponse {
@@ -73,6 +98,9 @@ export interface HistoryListResponse {
 	hasMore: boolean;
 	snapshots: number;
 	events: number;
+	nextOffset?: number;
+	currentSnapshotId?: string | null;
+	currentEventId?: string | null;
 }
 
 // Retention policy types and constants (free/pro)

@@ -1,5 +1,9 @@
 import { applyDelta } from '@/helpers/history/delta-calculator';
 import {
+	isInCurrentCheckpointScope,
+	resolveCurrentSnapshotId,
+} from '@/helpers/history/server/history-current-scope';
+import {
 	createClient,
 	createServiceRoleClient,
 } from '@/helpers/supabase/server';
@@ -306,6 +310,32 @@ export async function POST(
 			if (!event)
 				return NextResponse.json({ error: 'Event not found' }, { status: 404 });
 			targetSnapshotId = event.snapshot_id;
+		}
+
+		const [{ data: currentPtr }, { data: latestSnapshot }] = await Promise.all([
+			adminClient
+				.from('map_history_current')
+				.select('snapshot_id, event_id')
+				.eq('map_id', mapId)
+				.maybeSingle(),
+			adminClient
+				.from('map_history_snapshots')
+				.select('id, snapshot_index')
+				.eq('map_id', mapId)
+				.order('snapshot_index', { ascending: false })
+				.limit(1)
+				.maybeSingle(),
+		]);
+		const currentSnapshotId = resolveCurrentSnapshotId(
+			currentPtr,
+			latestSnapshot
+		);
+
+		if (!isInCurrentCheckpointScope(targetSnapshotId, currentSnapshotId)) {
+			return NextResponse.json(
+				{ error: 'History entry is outside the current checkpoint' },
+				{ status: 404 }
+			);
 		}
 
 		// Fetch snapshot full state

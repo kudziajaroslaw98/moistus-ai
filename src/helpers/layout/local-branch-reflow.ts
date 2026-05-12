@@ -323,6 +323,10 @@ function finalizeLocalBranchReflow({
 	graph: GraphIndex;
 	nodeDeltaById: Map<string, Delta>;
 }): LocalBranchReflowResult {
+	if (hasParentCycle(growthRootId, edges)) {
+		return createNoopResult(nodes, edges);
+	}
+
 	const initialResult = applyBranchReflow(nodes, edges, nodeDeltaById);
 	const corridorResult = applyCarrierCorridorExpansion({
 		growthRootId,
@@ -604,11 +608,29 @@ function getTopLevelRootIds(nodes: AppNode[], edges: AppEdge[]): string[] {
 		.map((node) => node.id);
 }
 
+function hasParentCycle(nodeId: string, edges: AppEdge[]): boolean {
+	let currentId: string | null = nodeId;
+	const visited = new Set<string>();
+
+	while (currentId) {
+		if (visited.has(currentId)) {
+			return true;
+		}
+
+		visited.add(currentId);
+		currentId = getPrimaryParentId(currentId, edges);
+	}
+
+	return false;
+}
+
 function getAncestorChain(nodeId: string, edges: AppEdge[]): string[] {
 	const ancestors: string[] = [];
 	let currentId: string | null = nodeId;
+	const visited = new Set<string>();
 
-	while (currentId) {
+	while (currentId && !visited.has(currentId)) {
+		visited.add(currentId);
 		ancestors.push(currentId);
 		currentId = getPrimaryParentId(currentId, edges);
 	}

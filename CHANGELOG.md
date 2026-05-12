@@ -5,6 +5,73 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-05-12]
+
+### Fixed
+
+- **history/checkpoint-visible-scope**: Manual checkpoints now become the active history baseline; the sidebar shows the checkpoint and later events instead of older pre-checkpoint history
+  - Why: A checkpoint should simplify the visible timeline instead of leaving previous sessions mixed into the current history panel
+- **canvas/connect-node-drift**: Connecting two existing nodes no longer repositions the target node by rewriting hierarchy metadata
+  - Why: Standard connections should create only an edge and keep node placement stable
+- **layout/local-reflow-cycle-safety**: Local branch reflow now safely no-ops when parent ancestry contains a cycle (for example `a→b→c→a`)
+  - Why: Tree-based local reflow assumptions break on cyclic ancestry and previously risked broken layout behavior
+
+### Refactored
+
+- **history/server-and-sidebar-boundaries**: Split checkpoint/list helper logic and extracted history sidebar delta loading, focus handling, view-model decisions, card rendering, and readable change rows into smaller modules
+  - Why: The previous history implementation mixed data scope, fallback decisions, focus behavior, and UI rendering in files that were difficult to reason about safely
+
+### Added
+
+- **db/history-checkpoint-rpc**: Added a Supabase migration for `create_history_checkpoint_and_prune`, which creates the checkpoint snapshot, updates the current pointer, and prunes older history in one database transaction
+  - Why: Checkpoint creation should not rely on separate app-layer writes that can partially succeed
+- **tests/history-current-scope-and-view-model**: Added focused tests for current-checkpoint scoping, event pagination offsets, and history entry view-model summary/focus behavior
+  - Why: Checkpoint semantics and local summary fallback rules need explicit regression coverage
+- **store/node-connection-selector**: Added `getNodeConnections(nodeId)` in the edge slice to return incoming/outgoing/all edges and deduplicated connected node IDs
+  - Why: Callers now have a single canonical way to derive per-node connection state from edges
+
+### Changed
+
+- **docs/connection-hierarchy-contract**: Updated `CLAUDE.md` and `docs/CODEBASE_MAP.md` with the edge-only connect contract, explicit-only hierarchy semantics, and cycle-safe local reflow behavior
+  - Why: The new connection/hierarchy boundary is a behavioral contract that future work needs to preserve
+
+## [2026-05-09]
+
+### Changed
+
+- **history/timeline-first-mobile-ux**: Reworked the history side panel into a timeline-first layout with a pinned `Current` section, border-mounted timeline rail/dots, unified Focus+Revert action clusters, and mobile edge-to-edge event rows with full-width action buttons
+  - Why: The previous card stack was visually dense on desktop and broke readability/interaction at narrow widths
+- **history/readable-diff-default-only**: Removed raw technical-diff rendering from the history panel and kept only human-readable change blocks with `After` shown before `Before`
+  - Why: Technical patch paths and low-level field paths added noise for most users and made scanning updates slower
+
+## [2026-05-06]
+
+### Changed
+
+- **history/adaptive-readable-summaries**: History event headlines now use deterministic object-first summaries (for example `Title updated`, `Node moved`, `Connection rerouted`) with local grammar rules for single-field, multi-field, cleared-value, and bulk edits
+  - Why: Raw/internal action names and inconsistent phrasing made scan-level understanding slower and less reliable
+- **history/adaptive-verbosity-layout**: Expanded history entries now scale detail by event complexity (single-subject inline focus, compact subject pills for 2–3 items, collapsible affected-items panel for 4+, and collapsible changes card for larger diffs)
+  - Why: A fixed one-size template wasted vertical space on simple edits and became noisy on batch edits
+- **history/value-diff-clarity**: Before/after rendering now treats empty previous values as neutral (not error-red), keeps red semantics for removals, and defaults long text to after-first preview with a previous-version toggle
+  - Why: Color semantics and long stacked text blocks were adding unnecessary cognitive load
+
+### Added
+
+- **tests/history-summary-grammar-and-adaptive-ui**: Added regression tests for deterministic summary templates, fallback node labels, mixed-intent summaries, bulk field summaries, and updated history item rendering interactions
+  - Why: The new local summary grammar and adaptive UI thresholds need explicit guardrails as history events evolve
+
+## [2026-05-05]
+
+### Changed
+
+- **history/readable-side-panel**: History rows now show plain-language summaries, affected node/connection labels, and focus controls that center the changed map element without closing the panel
+  - Why: Raw patch paths made history difficult to understand and did not identify where the change happened on the canvas
+
+### Added
+
+- **tests/history-readable-presentation**: Added regression coverage for readable movement/routing summaries, label fallbacks, connection labels, collapsed technical details, and history focus controls
+  - Why: The history panel now depends on a presentation layer that should stay readable as delta shapes evolve
+
 ## [2026-04-22]
 
 ### Fixed
