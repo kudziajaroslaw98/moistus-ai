@@ -165,7 +165,9 @@ const TaskContentComponent = ({
 								stats.percentage === 100
 									? GlassmorphismTheme.indicators.progress.completeFill
 									: GlassmorphismTheme.indicators.progress.fill,
-							transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+							transition: shouldAnimate
+								? 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+								: 'none',
 						}}
 					/>
 				</div>
