@@ -1,19 +1,20 @@
 'use client';
 
-import { type HistoryItemWithMeta } from '@/helpers/history/grouping-utils';
 import useAppStore from '@/store/mind-map-store';
+import type { HistoryItem as HistoryMeta } from '@/types/history-state';
 import { motion } from 'motion/react';
-import { forwardRef, useImperativeHandle, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Button } from '../ui/button';
 import { HistoryItem } from './history-item';
 import { HistoryItemSkeleton } from './history-item-skeleton';
 
-export interface HistoryListHandle {
-	expandAllGroups: () => void;
-	collapseAllGroups: () => void;
+interface HistoryTimelineItem {
+	meta: HistoryMeta;
+	originalIndex: number;
+	isCurrent: boolean;
 }
 
-export const HistoryList = forwardRef<HistoryListHandle>((_props, ref) => {
+export function HistoryList() {
 	const isLoading = useAppStore((s) => s.loadingStates?.isHistoryLoading);
 	const historyMeta = useAppStore((s) => s.historyMeta);
 	const historyIndex = useAppStore((s) => s.historyIndex);
@@ -22,7 +23,7 @@ export const HistoryList = forwardRef<HistoryListHandle>((_props, ref) => {
 	const hasMore = useAppStore((s) => s.historyHasMore);
 
 	// Compute timeline items from history metadata (DB-only, no in-memory history)
-	const items: HistoryItemWithMeta[] = useMemo(() => {
+	const items: HistoryTimelineItem[] = useMemo(() => {
 		const reversed = [...historyMeta].reverse();
 		return reversed.map((meta, idx) => {
 			const originalIndex = historyMeta.length - 1 - idx;
@@ -31,16 +32,9 @@ export const HistoryList = forwardRef<HistoryListHandle>((_props, ref) => {
 				meta,
 				originalIndex,
 				isCurrent: originalIndex === historyIndex,
-				delta: undefined, // No longer cached in-memory
 			};
 		});
 	}, [historyMeta, historyIndex]);
-
-	// Expose methods to parent via ref
-	useImperativeHandle(ref, () => ({
-		expandAllGroups: () => undefined,
-		collapseAllGroups: () => undefined,
-	}));
 
 	if (isLoading) {
 		return (
@@ -76,22 +70,18 @@ export const HistoryList = forwardRef<HistoryListHandle>((_props, ref) => {
 				)}
 
 				{/* Render timeline items */}
-				{items.map((item) => {
-					const isCurrentItem = item.isCurrent;
-					return (
-						<div className='relative' key={item.meta.id}>
-							<HistoryItem
-								isCurrent={item.isCurrent}
-								meta={item.meta}
-								originalIndex={item.originalIndex}
-							/>
-						</div>
-					);
-				})}
+				{items.map((item) => (
+					<div className='relative' key={item.meta.id}>
+						<HistoryItem
+							isCurrent={item.isCurrent}
+							meta={item.meta}
+							originalIndex={item.originalIndex}
+						/>
+					</div>
+				))}
 			</div>
 		</motion.div>
 	);
-});
+}
 
 export default HistoryList;
-HistoryList.displayName = 'HistoryList';

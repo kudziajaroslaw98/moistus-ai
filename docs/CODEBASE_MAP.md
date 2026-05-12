@@ -38,7 +38,7 @@ total_tokens: 707972
 <!-- Updated: 2026-04-01 - Documented stable Supabase SSR auth storage key for LAN logins -->
 <!-- Updated: 2026-04-01 - Corrected node-editor dismissal docs after merging the main autocomplete baseline -->
 <!-- Updated: 2026-04-08 - Documented onboarding paused-coachmark marker and manual-resume anchor-measurement suspension -->
-<!-- Updated: 2026-05-09 - Documented timeline-first history UI with mobile edge-to-edge rows and readable-only change details -->
+<!-- Updated: 2026-05-12 - Documented checkpoint-scoped history helpers and extracted history sidebar UI boundaries -->
 <!-- Updated: 2026-04-01 - Documented the tighter landing-page flow with hero mini-demo, product-proof chapters, and pricing/FAQ close -->
 <!-- Updated: 2026-04-01 - Noted the landing de-densification pass for calmer workflow chrome and screenshot-safe proof notes -->
 <!-- Updated: 2026-04-01 - Noted the landing canvas-fidelity pass for a Shiko-like hero scene and cleaner screenshot-led proof modules -->
@@ -192,7 +192,7 @@ shiko/
 │   │   ├── dashboard/          # Map cards, settings, and loading skeleton shells
 │   │   ├── edges/              # 6 edge types (floating, waypoint, ghost)
 │   │   ├── guided-tour/        # Prezi-style presentations
-│   │   ├── history/            # Version history sidebar with readable change summaries
+│   │   ├── history/            # Timeline history sidebar, readable change rows, hooks, and view-model adapters
 │   │   ├── landing/            # Marketing flow + shared CTA link feedback (Start Mapping/Get Started/Go Pro with next/link pending + optimistic click hint + top progress bar)
 │   │   ├── mind-map/           # React Flow integration + mobile top bar/drawer chrome
 │   │   ├── modals/             # Dialogs (edge edit, upgrade, etc.)
@@ -220,7 +220,7 @@ shiko/
 │   │
 │   ├── helpers/                # Utilities
 │   │   ├── api/                # API middleware (auth, validation)
-│   │   ├── history/            # Delta calculation, readable presentation, diff
+│   │   ├── history/            # Delta calculation, readable presentation, checkpoint/list server helpers, diff
 │   │   ├── layout/             # ELK full-layout engine + deterministic local branch reflow
 │   │   ├── local-dev-url.ts    # Browser/runtime LAN-safe Supabase + PartyKit URL derivation
 │   │   ├── partykit/           # PartyKit admin helpers (disconnect users)
@@ -265,7 +265,7 @@ shiko/
 | **comments-slice**        | 973   | Comment threads, @mentions, reactions                                         |
 | **suggestions-slice**     | 1462  | AI ghost nodes, typed ghost approval, streaming, novelty memory, whole-map placement, merges |
 | **nodes-slice**           | 900   | Node CRUD, positioning, real-time sync                                        |
-| **history-slice**         | 597   | Undo/redo, snapshots, DB persistence                                          |
+| **history-slice**         | 543   | Checkpoint-scoped history metadata, delta events, revert persistence          |
 | **edges-slice**           | 635   | Edge CRUD, parent-child relationships                                         |
 | **subscription-slice**    | 434   | Stripe, plan limits, usage tracking                                           |
 | **guided-tour-slice**     | 416   | Prezi-style presentations                                                     |
@@ -520,7 +520,7 @@ sequenceDiagram
 
 **AI suggestion note:** Map-scoped toolbar suggestions now reuse the node-suggestion stream with literal full-map eligible-anchor context. The client persists per-map recent suggestion history plus a shuffled exploration-lens cycle in `localStorage`, sends the active lens pair and recent ideas with each click, and the API prompts `gpt-5-mini` with every eligible non-system anchor instead of a rotating top window. The API only accepts model-returned anchor IDs from the provided candidate list, rejects near-duplicate ideas against recent/current suggestions, fails explicitly when the literal full-map prompt exceeds the model request limit, and the slice falls back to viewport-centered unanchored ghosts if no valid anchor survives.
 
-**History presentation:** Stored history still uses JSONB deltas, and list/delta endpoints still derive deterministic local object-first summaries from normalized action intents plus delta semantics (property edits, movement, reroutes, lifecycle events). The sidebar now renders as a timeline-first surface (pinned `Current`, left-border rail+dots, action clusters) and mobile history rows are edge-to-edge with full-width Focus/Revert controls. Expanded details stay human-readable only (including `After`-first value blocks) and no longer expose raw technical patch paths in the panel UI.
+**History presentation and scope:** Stored history still uses JSONB deltas, and list/delta endpoints still derive deterministic local object-first summaries from normalized action intents plus delta semantics (property edits, movement, reroutes, lifecycle events). Manual checkpoints are now full-state baselines read from persisted node/edge rows on the server; the active sidebar scope is the current checkpoint plus its later events, with older snapshots/events pruned on checkpoint creation and hidden from list/delta/revert routes. History route helpers live under `src/helpers/history/server/` for access checks, checkpoint creation/pruning, graph snapshot conversion, current-scope utilities, and list DTO assembly. The sidebar renders as a timeline-first surface (pinned `Current`, left-border rail+dots, action clusters), while `HistoryItem` delegates delta loading, focus behavior, view-model fallback decisions, and card rendering to smaller history modules. Mobile history rows remain edge-to-edge with full-width Focus/Revert controls, expanded details stay human-readable only (including `After`-first value blocks), and raw technical patch paths are not exposed in the panel UI.
 
 **AI suggestion helper split:** `/api/ai/suggestions` now delegates graph context modeling to `src/helpers/ai-suggestion-graph.ts`, row serialization to `src/helpers/ai-suggestion-rows.ts`, user-prompt assembly to `src/helpers/ai-suggestion-user-prompt.ts`, system prompt text to `src/helpers/ai-suggestion-prompts.ts`, and streamed normalization/duplicate filtering/error mapping to `src/helpers/ai-suggestion-postprocess.ts`. `src/helpers/ai-suggestion-context.ts` is the thin entrypoint that stitches graph rows + user prompt together for the route.
 

@@ -1,17 +1,13 @@
 'use client';
 
 import useAppStore from '@/store/mind-map-store';
-import type { RefObject } from 'react';
 import { Button } from '../ui/button';
-import type { HistoryListHandle } from './history-list';
 
 interface HistoryActionsProps {
-	historyListRef: RefObject<HistoryListHandle | null>;
 	isPro: boolean;
 }
 
-export function HistoryActions({ historyListRef, isPro }: HistoryActionsProps) {
-	void historyListRef;
+export function HistoryActions({ isPro }: HistoryActionsProps) {
 	const createSnapshot = useAppStore((s) => s.createSnapshot);
 
 	return (

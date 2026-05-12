@@ -5,6 +5,23 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-05-12]
+
+### Fixed
+
+- **history/checkpoint-visible-scope**: Manual checkpoints now become the active history baseline; the sidebar shows the checkpoint and later events instead of older pre-checkpoint history
+  - Why: A checkpoint should simplify the visible timeline instead of leaving previous sessions mixed into the current history panel
+
+### Refactored
+
+- **history/server-and-sidebar-boundaries**: Split checkpoint/list helper logic and extracted history sidebar delta loading, focus handling, view-model decisions, card rendering, and readable change rows into smaller modules
+  - Why: The previous history implementation mixed data scope, fallback decisions, focus behavior, and UI rendering in files that were difficult to reason about safely
+
+### Added
+
+- **tests/history-current-scope-and-view-model**: Added focused tests for current-checkpoint scoping, event pagination offsets, and history entry view-model summary/focus behavior
+  - Why: Checkpoint semantics and local summary fallback rules need explicit regression coverage
+
 ## [2026-05-09]
 
 ### Changed

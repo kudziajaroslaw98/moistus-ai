@@ -290,7 +290,11 @@ function toNodeTypeLabel(type: string | undefined): string {
 }
 
 function nodeFallbackLabel(type: string | undefined, id: string): string {
-	return `${toNodeTypeLabel(type)} #${compactId(id)}`;
+	const typeLabel = toNodeTypeLabel(type);
+	const subjectLabel = typeLabel.toLowerCase().endsWith('node')
+		? typeLabel
+		: `${typeLabel} node`;
+	return `${subjectLabel} #${compactId(id)}`;
 }
 
 function getNodeTypeFromUnknown(value: unknown): string | undefined {
@@ -1263,9 +1267,10 @@ export function buildHistoryPresentation(
 			type: change.type,
 		};
 		const label =
-			change.type === 'node'
+			hint.label ??
+			(change.type === 'node'
 				? nodeFallbackLabel(hint.nodeType, change.id)
-				: `Connection #${compactId(change.id)}`;
+				: `Connection #${compactId(change.id)}`);
 
 		return {
 			id: change.id,

@@ -1,17 +1,15 @@
+import { verifyHistoryReadAccess } from '@/helpers/history/server/history-access';
+import { resolveCurrentSnapshotId } from '@/helpers/history/server/history-current-scope';
 import {
-	buildHistoryPresentation,
-	deriveHistorySubjectHints,
-	normalizeHistoryDelta,
-} from '@/helpers/history/presentation';
+	buildHistoryListItems,
+	buildProfileMap,
+	collectHistoryUserIds,
+	type HistorySnapshotListRow,
+	type UserProfileRow,
+} from '@/helpers/history/server/history-list-response';
 import { createClient } from '@/helpers/supabase/server';
-import { HistoryDbItem, HistoryItem } from '@/types/history-state';
+import { HistoryDbItem } from '@/types/history-state';
 import { NextRequest, NextResponse } from 'next/server';
-
-interface UserProfileRow {
-	user_id: string;
-	display_name: string | null;
-	avatar_url: string | null;
-}
 
 export const GET = async (
 	req: NextRequest,
@@ -37,93 +35,100 @@ export const GET = async (
 		const endDate = searchParams.get('endDate');
 		const actionName = searchParams.get('actionName');
 
-		// Verify access: owner or active share access
-		const { data: map, error: mapErr } = await supabase
-			.from('mind_maps')
-			.select('id, user_id')
-			.eq('id', mapId)
-			.single();
-		if (mapErr) {
-			console.error('history/list: map fetch error', mapErr);
-		}
-		if (!map)
-			return NextResponse.json({ error: 'Map not found' }, { status: 404 });
-
-		const { data: share, error: shareErr } = await supabase
-			.from('share_access')
-			.select('id')
-			.eq('map_id', mapId)
-			.eq('user_id', user.id)
-			.eq('status', 'active')
-			.limit(1)
-			.maybeSingle();
-		if (shareErr && shareErr.code !== 'PGRST116') {
-			// Log non-empty errors; PGRST116 often indicates 0 rows for maybe-single scenarios
-			console.warn('history/list: share fetch warning', shareErr);
+		const access = await verifyHistoryReadAccess(supabase, mapId, user.id);
+		if (!access.ok) {
+			return NextResponse.json(
+				{ error: access.error || 'Access denied' },
+				{ status: access.status }
+			);
 		}
 
-		const hasAccess = map.user_id === user.id || !!share;
-		if (!hasAccess)
-			return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+		const [{ data: currentPtr }, { data: latestSnapshot, error: latestErr }] =
+			await Promise.all([
+				supabase
+					.from('map_history_current')
+					.select('snapshot_id, event_id')
+					.eq('map_id', mapId)
+					.maybeSingle(),
+				supabase
+					.from('map_history_snapshots')
+					.select('id, snapshot_index')
+					.eq('map_id', mapId)
+					.order('snapshot_index', { ascending: false })
+					.limit(1)
+					.maybeSingle(),
+			]);
 
-		// Fetch snapshots (metadata only)
-		let snapshotQuery = supabase
+		if (latestErr && latestErr.code !== 'PGRST116') {
+			console.error('history/list: latest snapshot error', latestErr);
+			return NextResponse.json({ error: latestErr.message }, { status: 500 });
+		}
+
+		const currentSnapshotId = resolveCurrentSnapshotId(
+			currentPtr,
+			latestSnapshot
+		);
+
+		if (!currentSnapshotId) {
+			return NextResponse.json({
+				items: [],
+				total: 0,
+				hasMore: false,
+				snapshots: 0,
+				events: 0,
+				nextOffset: 0,
+				currentSnapshotId: null,
+				currentEventId: null,
+			});
+		}
+
+		const { data: currentSnapshot, error: snapErr } = await supabase
 			.from('map_history_snapshots')
 			.select(
-				'id, snapshot_index, action_name, node_count, edge_count, is_major, created_at, user_id',
-				{ count: 'exact' }
+				'id, snapshot_index, action_name, node_count, edge_count, is_major, created_at, user_id'
 			)
 			.eq('map_id', mapId)
-			.order('created_at', { ascending: false })
-			.range(offset, offset + limit - 1);
-		if (startDate) snapshotQuery = snapshotQuery.gte('created_at', startDate);
-		if (endDate) snapshotQuery = snapshotQuery.lte('created_at', endDate);
-		if (actionName) snapshotQuery = snapshotQuery.eq('action_name', actionName);
+			.eq('id', currentSnapshotId)
+			.maybeSingle();
 
-		const {
-			data: snapshots,
-			count: snapshotCount,
-			error: snapErr,
-		} = await snapshotQuery;
-		if (snapErr) {
-			console.error('history/list: snapshots error', snapErr);
+		if (snapErr && snapErr.code !== 'PGRST116') {
+			console.error('history/list: current snapshot error', snapErr);
 			return NextResponse.json({ error: snapErr.message }, { status: 500 });
 		}
 
-		// Fetch events for those snapshots
-		const snapshotIds = snapshots?.map((s) => s.id) || [];
-		let events: HistoryDbItem[] = [];
-		if (snapshotIds.length > 0) {
-			const { data: eventsData, error: evErr } = await supabase
-				.from('map_history_events')
-				.select(
-					'id, snapshot_id, event_index, action_name, operation_type, entity_type, changes, created_at, user_id'
-				)
-				.in('snapshot_id', snapshotIds)
-				.order('created_at', { ascending: false });
-			if (evErr) {
-				console.error('history/list: events error', evErr);
-				return NextResponse.json({ error: evErr.message }, { status: 500 });
-			}
-			events = eventsData || [];
+		let eventQuery = supabase
+			.from('map_history_events')
+			.select(
+				'id, snapshot_id, event_index, action_name, operation_type, entity_type, changes, created_at, user_id',
+				{ count: 'exact' }
+			)
+			.eq('map_id', mapId)
+			.eq('snapshot_id', currentSnapshotId)
+			.order('created_at', { ascending: false })
+			.range(offset, offset + limit - 1);
+
+		if (startDate) eventQuery = eventQuery.gte('created_at', startDate);
+		if (endDate) eventQuery = eventQuery.lte('created_at', endDate);
+		if (actionName) eventQuery = eventQuery.eq('action_name', actionName);
+
+		const {
+			data: eventRows,
+			count: eventCount,
+			error: eventsError,
+		} = await eventQuery;
+
+		if (eventsError) {
+			console.error('history/list: events error', eventsError);
+			return NextResponse.json({ error: eventsError.message }, { status: 500 });
 		}
 
-		// Fetch current pointer (snapshot/event) for this map
-		const { data: currentPtr } = await supabase
-			.from('map_history_current')
-			.select('snapshot_id, event_id')
-			.eq('map_id', mapId)
-			.maybeSingle();
-
-		const userIds = Array.from(
-			new Set(
-				[
-					...(snapshots?.map((snapshot) => snapshot.user_id) ?? []),
-					...events.map((event) => event.user_id),
-				].filter((id): id is string => typeof id === 'string' && id.length > 0)
-			)
-		);
-		const profileMap = new Map<string, UserProfileRow>();
+		const events = (eventRows || []) as HistoryDbItem[];
+		const snapshots =
+			offset === 0 && currentSnapshot
+				? ([currentSnapshot] as HistorySnapshotListRow[])
+				: [];
+		const userIds = collectHistoryUserIds(snapshots, events);
+		let profileMap = buildProfileMap([]);
 
 		if (userIds.length > 0) {
 			const { data: profiles, error: profilesErr } = await supabase
@@ -135,68 +140,26 @@ export const GET = async (
 				console.warn('history/list: profile fetch warning', profilesErr);
 			}
 
-			for (const profile of (profiles ?? []) as UserProfileRow[]) {
-				profileMap.set(profile.user_id, profile);
-			}
+			profileMap = buildProfileMap((profiles ?? []) as UserProfileRow[]);
 		}
 
-		const attributionFor = (userId?: string | null) => {
-			if (!userId) return {};
-			const profile = profileMap.get(userId);
-			return {
-				userId,
-				userName: profile?.display_name || 'Unknown',
-				userAvatar: profile?.avatar_url || undefined,
-			};
-		};
+		const items = buildHistoryListItems({
+			snapshots,
+			events,
+			profileMap,
+		});
 
-		const items: HistoryItem[] = [
-			...(snapshots?.map((s) => ({
-				id: s.id,
-				type: 'snapshot' as const,
-				snapshotIndex: s.snapshot_index,
-				actionName: s.action_name,
-				nodeCount: s.node_count,
-				edgeCount: s.edge_count,
-				isMajor: s.is_major,
-				timestamp: new Date(s.created_at).getTime(),
-				...attributionFor(s.user_id),
-			})) || []),
-			...(events.map((e) => {
-				const storedDelta = normalizeHistoryDelta(e.changes, {
-					operation: e.operation_type,
-					entityType: e.entity_type,
-				});
-				const presentation = storedDelta
-					? buildHistoryPresentation(storedDelta, { actionName: e.action_name })
-					: null;
-
-				return {
-					id: e.id,
-					type: 'event' as const,
-					snapshotId: e.snapshot_id,
-					eventIndex: e.event_index,
-					actionName: e.action_name,
-					operationType: e.operation_type,
-					entityType: e.entity_type,
-					timestamp: new Date(e.created_at).getTime(),
-					summary: presentation?.summary,
-					summaryDetail: presentation?.summaryDetail,
-					subjects: storedDelta
-						? deriveHistorySubjectHints(storedDelta)
-						: undefined,
-					...attributionFor(e.user_id),
-				};
-			}) || []),
-		].sort((a, b) => b.timestamp - a.timestamp);
+		const visibleEventCount = eventCount || 0;
+		const nextOffset = offset + events.length;
 
 		return NextResponse.json({
 			items,
-			total: snapshotCount || 0,
-			hasMore: offset + limit < (snapshotCount || 0),
-			snapshots: snapshots?.length || 0,
-			events: events?.length || 0,
-			currentSnapshotId: currentPtr?.snapshot_id || null,
+			total: visibleEventCount + (currentSnapshot ? 1 : 0),
+			hasMore: nextOffset < visibleEventCount,
+			snapshots: snapshots.length,
+			events: events.length,
+			nextOffset,
+			currentSnapshotId,
 			currentEventId: currentPtr?.event_id || null,
 		});
 	} catch (error) {

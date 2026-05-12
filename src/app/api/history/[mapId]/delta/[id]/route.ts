@@ -3,6 +3,10 @@ import {
 	deriveHistorySubjectHints,
 	normalizeHistoryDelta,
 } from '@/helpers/history/presentation';
+import {
+	isInCurrentCheckpointScope,
+	resolveCurrentSnapshotId,
+} from '@/helpers/history/server/history-current-scope';
 import { createClient } from '@/helpers/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -68,7 +72,7 @@ export const GET = async (
 		const { data: event, error: eventErr } = await supabase
 			.from('map_history_events')
 			.select(
-				'id, action_name, operation_type, entity_type, changes, created_at, user_id'
+				'id, snapshot_id, action_name, operation_type, entity_type, changes, created_at, user_id'
 			)
 			.eq('id', id)
 			.eq('map_id', mapId)
@@ -76,6 +80,29 @@ export const GET = async (
 
 		if (eventErr || !event) {
 			console.error('history/delta: event fetch error', eventErr);
+			return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+		}
+
+		const [{ data: currentPtr }, { data: latestSnapshot }] = await Promise.all([
+			supabase
+				.from('map_history_current')
+				.select('snapshot_id, event_id')
+				.eq('map_id', mapId)
+				.maybeSingle(),
+			supabase
+				.from('map_history_snapshots')
+				.select('id, snapshot_index')
+				.eq('map_id', mapId)
+				.order('snapshot_index', { ascending: false })
+				.limit(1)
+				.maybeSingle(),
+		]);
+		const currentSnapshotId = resolveCurrentSnapshotId(
+			currentPtr,
+			latestSnapshot
+		);
+
+		if (!isInCurrentCheckpointScope(event.snapshot_id, currentSnapshotId)) {
 			return NextResponse.json({ error: 'Event not found' }, { status: 404 });
 		}
 

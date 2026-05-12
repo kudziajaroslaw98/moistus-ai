@@ -22,8 +22,8 @@ export interface HistoryPatchOp {
 	op: 'add' | 'remove' | 'patch';
 	value?: Partial<Node<NodeData> | AppEdge>; // for add (forward)
 	removedValue?: Partial<Node<NodeData> | AppEdge>; // for remove (backward - what was removed)
-	patch?: Record<string, any>; // for patch (dotted paths - forward: old -> new)
-	reversePatch?: Record<string, any>; // for patch (backward: new -> old, enables undo)
+	patch?: Record<string, unknown>; // for patch (dotted paths - forward: old -> new)
+	reversePatch?: Record<string, unknown>; // for patch (backward: new -> old, enables undo)
 }
 
 export interface HistorySubjectHint {
@@ -98,6 +98,9 @@ export interface HistoryListResponse {
 	hasMore: boolean;
 	snapshots: number;
 	events: number;
+	nextOffset?: number;
+	currentSnapshotId?: string | null;
+	currentEventId?: string | null;
 }
 
 // Retention policy types and constants (free/pro)
