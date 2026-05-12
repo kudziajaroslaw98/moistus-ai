@@ -5,9 +5,6 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  dompurify: 3.4.0
-  fast-uri: 3.1.2
-  hono: 4.12.18
   ip-address: 10.1.1
   partykit>esbuild: 0.25.0
   postcss: 8.5.10
@@ -996,7 +993,7 @@ packages:
     resolution: {integrity: sha512-TsQLe4i2gvoTtrHje625ngThGBySOgSK3Xo2XRYOdqGN1teR8+I7vchQC46uLJi8OF62YTYA3AhSpumtkhsaKQ==}
     engines: {node: '>=18.14.1'}
     peerDependencies:
-      hono: 4.12.18
+      hono: ^4
 
   '@hookform/resolvers@5.2.2':
     resolution: {integrity: sha512-A/IxlMLShx3KjV/HeTcTfaMxdwy690+L/ZADoeaTltLx+CVuzkeVIPuybK3jrRfw7YZnmdKsVVHAlEPIAEUNlA==}
