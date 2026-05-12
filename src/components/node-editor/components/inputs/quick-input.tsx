@@ -922,7 +922,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 					>
 						<TabsList className='grid h-full w-full grid-cols-[max-content_max-content] justify-start gap-0 border-b border-zinc-700/80 bg-transparent p-0 sm:w-fit sm:grid-cols-2'>
 							<TabsTrigger
-								className='!h-full !rounded-none !border-0 !border-b-2 !border-transparent gap-1.5 px-4 text-sm text-zinc-400 hover:!bg-zinc-900/45 hover:text-zinc-100 aria-selected:!border-b-zinc-100 aria-selected:!bg-zinc-900/45 aria-selected:text-zinc-50 data-[selected]:!border-b-zinc-100 data-[selected]:!bg-zinc-900/45 data-[selected]:text-zinc-50 sm:px-2 sm:text-xs'
+								className='!h-full !rounded-none !border-0 !border-b-2 !border-transparent gap-1.5 px-4 text-sm text-zinc-400 [@media(hover:hover)]:hover:!bg-zinc-900/45 [@media(hover:hover)]:hover:text-zinc-100 aria-selected:!border-b-zinc-100 aria-selected:!bg-zinc-900/45 aria-selected:text-zinc-50 data-[selected]:!border-b-zinc-100 data-[selected]:!bg-zinc-900/45 data-[selected]:text-zinc-50 sm:px-2 sm:text-xs'
 								value='preview'
 							>
 								<Eye className='size-3.5' />
@@ -930,7 +930,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 							</TabsTrigger>
 
 							<TabsTrigger
-								className='!h-full !rounded-none !border-0 !border-b-2 !border-transparent gap-1.5 px-4 text-sm text-zinc-400 hover:!bg-zinc-900/45 hover:text-zinc-100 aria-selected:!border-b-zinc-100 aria-selected:!bg-zinc-900/45 aria-selected:text-zinc-50 data-[selected]:!border-b-zinc-100 data-[selected]:!bg-zinc-900/45 data-[selected]:text-zinc-50 sm:px-2 sm:text-xs'
+								className='!h-full !rounded-none !border-0 !border-b-2 !border-transparent gap-1.5 px-4 text-sm text-zinc-400 [@media(hover:hover)]:hover:!bg-zinc-900/45 [@media(hover:hover)]:hover:text-zinc-100 aria-selected:!border-b-zinc-100 aria-selected:!bg-zinc-900/45 aria-selected:text-zinc-50 data-[selected]:!border-b-zinc-100 data-[selected]:!bg-zinc-900/45 data-[selected]:text-zinc-50 sm:px-2 sm:text-xs'
 								value='syntax'
 							>
 								<CircleHelp className='size-3.5' />

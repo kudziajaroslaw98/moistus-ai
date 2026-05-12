@@ -5,6 +5,12 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-05-12]
+
+### Fixed
+
+- **node-editor/mobile-tabbed-layout**: Mobile node editor keeps the input visible while Preview/Syntax Help stay in a bounded stacked panel with a pinned footer.
+
 ## [2026-05-05]
 
 ### Fixed

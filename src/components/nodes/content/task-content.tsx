@@ -3,7 +3,7 @@
 import { GlassmorphismTheme } from '@/components/nodes/themes/glassmorphism-theme';
 import { cn } from '@/utils/cn';
 import { Check } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { memo, useMemo, type KeyboardEvent } from 'react';
 
 export interface Task {
@@ -56,6 +56,8 @@ const TaskContentComponent = ({
 	animateTasks = true,
 	className,
 }: TaskContentProps) => {
+	const shouldReduceMotion = useReducedMotion() ?? false;
+	const shouldAnimate = animateTasks && !shouldReduceMotion;
 	const statsSourceTasks = statsTasks ?? tasks;
 
 	// Calculate completion statistics
@@ -153,10 +155,10 @@ const TaskContentComponent = ({
 				>
 					<motion.div
 						animate={
-							animateTasks ? { width: `${stats.percentage}%` } : undefined
+							shouldAnimate ? { width: `${stats.percentage}%` } : undefined
 						}
 						className='h-full rounded-full'
-						initial={animateTasks ? { width: 0 } : false}
+						initial={shouldAnimate ? { width: 0 } : false}
 						style={{
 							width: `${stats.percentage}%`,
 							background:
@@ -174,8 +176,8 @@ const TaskContentComponent = ({
 				<div className='flex flex-col gap-1'>
 					{tasks.map((task, index) => (
 						<motion.div
-							animate={animateTasks ? { opacity: 1, x: 0 } : undefined}
-							initial={animateTasks ? { opacity: 0, x: -10 } : false}
+							animate={shouldAnimate ? { opacity: 1, x: 0 } : undefined}
+							initial={shouldAnimate ? { opacity: 0, x: -10 } : false}
 							key={task.id || index}
 							onClick={
 								isInteractive ? () => onTaskToggle?.(task.id) : undefined
@@ -184,7 +186,7 @@ const TaskContentComponent = ({
 							role='checkbox'
 							aria-checked={Boolean(task.isComplete)}
 							tabIndex={isInteractive ? 0 : undefined}
-							transition={animateTasks ? { delay: index * 0.05 } : undefined}
+							transition={shouldAnimate ? { delay: index * 0.05 } : undefined}
 							className={cn(
 								'flex items-start gap-3 p-2 -mx-2 rounded-md transition-all',
 								isInteractive &&
@@ -207,12 +209,12 @@ const TaskContentComponent = ({
 									{task.isComplete && (
 										<motion.div
 											animate={
-												animateTasks ? { scale: 1, opacity: 1 } : undefined
+												shouldAnimate ? { scale: 1, opacity: 1 } : undefined
 											}
 											className='absolute inset-0 flex items-center justify-center'
-											initial={animateTasks ? { scale: 0, opacity: 0 } : false}
+											initial={shouldAnimate ? { scale: 0, opacity: 0 } : false}
 											transition={
-												animateTasks
+												shouldAnimate
 													? { type: 'spring', stiffness: 500 }
 													: undefined
 											}
@@ -274,9 +276,9 @@ const TaskContentComponent = ({
 			{/* Completion celebration */}
 			{stats.percentage === 100 && (
 				<motion.div
-					animate={animateTasks ? { opacity: 1, scale: 1 } : undefined}
+					animate={shouldAnimate ? { opacity: 1, scale: 1 } : undefined}
 					className='text-center py-2 px-3 rounded-md'
-					initial={animateTasks ? { opacity: 0, scale: 0.9 } : false}
+					initial={shouldAnimate ? { opacity: 0, scale: 0.9 } : false}
 					style={{
 						backgroundColor: 'rgba(52, 211, 153, 0.1)',
 						border: `1px solid ${GlassmorphismTheme.indicators.status.complete}`,
