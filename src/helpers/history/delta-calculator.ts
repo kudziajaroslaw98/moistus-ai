@@ -336,10 +336,21 @@ function setByPath(target: any, path: string, value: any) {
 	for (let i = 0; i < parts.length - 1; i++) {
 		const seg = parts[i];
 		const nextIsIndex = isIndex(parts[i + 1]);
+		const segIsIndex = isIndex(seg);
 
-		// Only create/modify own properties, never inherited ones
-		if (!Object.prototype.hasOwnProperty.call(cur, seg) || cur[seg] == null) {
-			cur[seg] = nextIsIndex ? [] : {};
+		if (Array.isArray(cur) && segIsIndex) {
+			const idx = Number(seg);
+			if (cur[idx] == null || (typeof cur[idx] !== 'object' && typeof cur[idx] !== 'function')) {
+				cur[idx] = nextIsIndex ? [] : Object.create(null);
+			}
+			cur = cur[idx];
+			continue;
+		}
+
+		if (!Array.isArray(cur) && !Object.prototype.hasOwnProperty.call(cur, seg)) {
+			cur[seg] = nextIsIndex ? [] : Object.create(null);
+		} else if (cur[seg] == null || (typeof cur[seg] !== 'object' && typeof cur[seg] !== 'function')) {
+			cur[seg] = nextIsIndex ? [] : Object.create(null);
 		}
 		cur = cur[seg];
 	}
