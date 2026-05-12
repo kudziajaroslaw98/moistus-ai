@@ -6,27 +6,22 @@ import { memo, ReactNode } from 'react';
 interface PreviewScrollContainerProps {
 	children: ReactNode;
 	className?: string;
-	maxHeight?: number;
 }
 
 /**
  * Preview Scroll Container
  *
- * Container that fills available width and adds a scrollbar
- * when content height exceeds maxHeight. Simple and maintains
- * 1:1 visual fidelity of the preview.
+ * Container that fills available width and leaves scrolling to the
+ * owning PreviewSection panel so the node editor never gets nested
+ * vertical scrollers.
  */
 const PreviewScrollContainerComponent = ({
 	children,
 	className,
-	maxHeight = 320,
 }: PreviewScrollContainerProps) => {
 	return (
-		<div
-			className={cn('w-full overflow-y-auto overflow-x-hidden', className)}
-			style={{ maxHeight }}
-		>
-			<div className="w-full">{children}</div>
+		<div className={cn('w-full overflow-visible', className)}>
+			<div className='w-full'>{children}</div>
 		</div>
 	);
 };

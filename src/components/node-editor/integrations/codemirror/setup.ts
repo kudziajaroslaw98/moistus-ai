@@ -3,6 +3,7 @@
  * Single source of truth for editor configuration
  */
 
+import { getInitials } from '@/utils/collaborator-utils';
 import {
 	autocompletion,
 	completionKeymap,
@@ -14,13 +15,13 @@ import { Compartment, EditorState, Extension } from '@codemirror/state';
 import {
 	EditorView,
 	highlightActiveLine,
+	highlightActiveLineGutter,
 	type KeyBinding,
 	keymap,
+	lineNumbers,
 	placeholder,
-	scrollPastEnd,
 	tooltips,
 } from '@codemirror/view';
-import { getInitials } from '@/utils/collaborator-utils';
 
 // Import our custom extensions
 import { commandRegistry } from '../../core/commands/command-registry';
@@ -226,8 +227,9 @@ export function createNodeEditor(
 		history(),
 		bracketMatching(),
 		indentOnInput(),
-		scrollPastEnd(),
+		lineNumbers(),
 		highlightActiveLine(),
+		highlightActiveLineGutter(),
 		EditorView.lineWrapping,
 
 		// Placeholder
@@ -262,38 +264,38 @@ export function createNodeEditor(
 		// Change listeners
 		...(onContentChange || onNodeTypeChange
 			? [
-						EditorView.updateListener.of((update) => {
-							if (!update.docChanged) return;
-							const text = update.state.doc.toString();
-							onContentChange?.(text);
+					EditorView.updateListener.of((update) => {
+						if (!update.docChanged) return;
+						const text = update.state.doc.toString();
+						onContentChange?.(text);
 
-							if (!onNodeTypeChange) return;
+						if (!onNodeTypeChange) return;
 
-							// Check for $nodeType patterns anywhere in text
-							const nodeTypeMatch = text.match(/\$(\w+)(\s|$)/);
-							if (!nodeTypeMatch) {
-								lastEmittedNodeType = null;
-								return;
-							}
+						// Check for $nodeType patterns anywhere in text
+						const nodeTypeMatch = text.match(/\$(\w+)(\s|$)/);
+						if (!nodeTypeMatch) {
+							lastEmittedNodeType = null;
+							return;
+						}
 
-							// Validate the trigger is a complete, valid command
-							const extractedNodeType = nodeTypeMatch[1];
-							const trigger = `$${extractedNodeType}`;
-							const command = commandRegistry.getCommandByTrigger(trigger);
+						// Validate the trigger is a complete, valid command
+						const extractedNodeType = nodeTypeMatch[1];
+						const trigger = `$${extractedNodeType}`;
+						const command = commandRegistry.getCommandByTrigger(trigger);
 
-							// Only fire type change if it's a valid complete command
-							// and changed since last emission to avoid duplicate calls.
-							if (!command?.nodeType) {
-								lastEmittedNodeType = null;
-								return;
-							}
+						// Only fire type change if it's a valid complete command
+						// and changed since last emission to avoid duplicate calls.
+						if (!command?.nodeType) {
+							lastEmittedNodeType = null;
+							return;
+						}
 
-							if (lastEmittedNodeType === extractedNodeType) return;
-							lastEmittedNodeType = extractedNodeType;
-							onNodeTypeChange(extractedNodeType);
-						}),
-					]
-				: []),
+						if (lastEmittedNodeType === extractedNodeType) return;
+						lastEmittedNodeType = extractedNodeType;
+						onNodeTypeChange(extractedNodeType);
+					}),
+				]
+			: []),
 		...(onAutocompleteChange
 			? [
 					EditorView.updateListener.of((update) => {

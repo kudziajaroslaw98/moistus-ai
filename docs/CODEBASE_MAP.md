@@ -11,7 +11,7 @@ total_tokens: 707972
 <!-- Updated: 2026-02-24 - Documented shared permission event types and Yjs per-subscriber sync cursor pruning -->
 <!-- Updated: 2026-02-27 - Documented map settings discard-confirm flow and template-control removal -->
 <!-- Updated: 2026-02-27 - Documented account settings discard/cancel-confirm dialog flows -->
-<!-- Updated: 2026-02-28 - Documented node-editor parser cleanup and dual syntax help behavior -->
+<!-- Updated: 2026-04-26 - Documented node-editor parser cleanup, dual syntax help behavior, and tabbed split editor layout -->
 <!-- Updated: 2026-03-04 - Added notification architecture (DB + APIs + mention resolution + inbox UI) -->
 <!-- Updated: 2026-03-04 - Switched notification inbox refresh to PartyKit user-channel realtime events -->
 <!-- Updated: 2026-03-04 - Added account settings email-notification preference toggle -->
@@ -261,10 +261,10 @@ shiko/
 
 ### State Management (21 Slices)
 
-| Slice                     | Lines | Purpose                                                                       |
-| ------------------------- | ----- | ----------------------------------------------------------------------------- |
-| **sharing-slice**         | 1,164 | Room codes, anonymous users, upgrade flows                                    |
-| **comments-slice**        | 973   | Comment threads, @mentions, reactions                                         |
+| Slice                     | Lines | Purpose                                                                                      |
+| ------------------------- | ----- | -------------------------------------------------------------------------------------------- |
+| **sharing-slice**         | 1,164 | Room codes, anonymous users, upgrade flows                                                   |
+| **comments-slice**        | 973   | Comment threads, @mentions, reactions                                                        |
 | **suggestions-slice**     | 1462  | AI ghost nodes, typed ghost approval, streaming, novelty memory, whole-map placement, merges |
 | **nodes-slice**           | 900   | Node CRUD, positioning, real-time sync                                        |
 | **history-slice**         | 543   | Checkpoint-scoped history metadata, delta events, revert persistence          |
@@ -287,24 +287,25 @@ shiko/
 
 ### Node System (12 Types)
 
-| Type           | Category  | Command       | Purpose                      |
-| -------------- | --------- | ------------- | ---------------------------- |
-| defaultNode    | content   | `$note`       | Standard note                |
-| textNode       | content   | `$text`       | Plain text                   |
+| Type           | Category  | Command       | Purpose                       |
+| -------------- | --------- | ------------- | ----------------------------- |
+| defaultNode    | content   | `$note`       | Standard note                 |
+| textNode       | content   | `$text`       | Plain text                    |
 | taskNode       | content   | `$task`       | Checklist (+ hide done/title) |
-| codeNode       | content   | `$code`       | Syntax highlighted           |
-| annotationNode | content   | `$annotation` | Comments/notes               |
-| resourceNode   | content   | `$link`       | URL preview                  |
-| imageNode      | media     | `$image`      | Image display                |
-| questionNode   | ai        | `$question`   | Q&A format                   |
-| referenceNode  | structure | `$reference`  | Cross-map link               |
-| groupNode      | structure | —             | Container (UI only)          |
-| commentNode    | structure | —             | Thread anchor (UI only)      |
-| ghostNode      | ai        | —             | AI suggestions (system only) |
+| codeNode       | content   | `$code`       | Syntax highlighted            |
+| annotationNode | content   | `$annotation` | Comments/notes                |
+| resourceNode   | content   | `$link`       | URL preview                   |
+| imageNode      | media     | `$image`      | Image display                 |
+| questionNode   | ai        | `$question`   | Q&A format                    |
+| referenceNode  | structure | `$reference`  | Cross-map link                |
+| groupNode      | structure | —             | Container (UI only)           |
+| commentNode    | structure | —             | Thread anchor (UI only)       |
+| ghostNode      | ai        | —             | AI suggestions (system only)  |
 
-**Node Editor note:** Quick-input parser/help intentionally excludes `$reference` quick-switch and deprecated parser tokens (`bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`). Syntax Help is split into type-filtered `Universal` plus `Node-specific` sections.
+**Node Editor note:** Quick-input parser/help intentionally excludes `$reference` quick-switch and deprecated parser tokens (`bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`). The editor modal is a wide 50/50 split layout with matching split top/body rows: node type and editor on the left, Preview/Syntax Help tabs and tab content on the right. The split body is bounded so panes fill the modal region without pushing the footer out of view; the editor keeps line/scroll affordance for multi-line input with line-number glyphs horizontally centered but baseline-aligned, preview content starts at the top of its pane, and right-panel controls are styled as a full-height tab strip (strong hover + selected underline rather than button pills) aligned from the split divider. Syntax-help panel mode should rely on right-pane scrolling instead of nested inner max-height clipping. Syntax Help remains split into type-filtered `Universal` plus `Node-specific` sections.
 Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
-<!-- Updated: 2026-04-08 - Documented task node title/hide-done capability in node type map -->
+
+<!-- Updated: 2026-04-27 - Documented divider-aligned tab-strip and baseline-centered gutter-number behavior -->
 
 **Key Files:**
 
