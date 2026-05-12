@@ -129,9 +129,11 @@ pnpm pretty          # Prettier
 
 **NodeData.metadata**: Single unified type (not discriminated union per node type). Enables seamless node type switching without data loss. Do NOT split into per-type unions.
 
-<!-- Updated: 2026-04-21 - Consolidated NodeData/edge-routing gotchas, including ELK label ownership, routed-segment center alignment, and the auto-routed waypoint-edge transition -->
+<!-- Updated: 2026-05-12 - Added edge-only connect hierarchy contract and cycle-safe local reflow fallback -->
 
 **Edge routing**: Raw manual waypoint editing is removed. Normal persisted edges use auto-routed `waypointEdge` geometry. Explicit full ELK layout owns ELK label placement metadata (`metadata.elkLabel`) for labeled edges, but the converter snaps ELK's returned label center back onto the routed segment before render so the line passes through the label center. Any orthogonal reroute/edit path that replaces ELK geometry must still clear stale ELK label metadata instead of reusing it. Future manual edge control must be constraint-based (anchor/bias/lane hints), never absolute bend points.
+
+**Connection vs hierarchy contract**: Standard canvas connect (`onConnect` → `addEdge`) is edge-only and must not mutate node hierarchy (`nodes.parent_id` / React Flow `parentId`). Hierarchy assignment remains explicit-only (child-node creation and `setParentConnection`). Deterministic local branch reflow is tree-oriented and must safe-no-op when parent ancestry is cyclic.
 
 **Identity precedence**: Use `user_profiles` as canonical identity source across sharing + realtime UI (`display_name`, `avatar_url`) with fallback order: auth metadata, then deterministic fallback helpers. Keep resolver logic centralized in `src/helpers/identity/resolve-user-identity.ts`.
 

@@ -17,7 +17,7 @@ total_tokens: 707972
 <!-- Updated: 2026-03-04 - Added account settings email-notification preference toggle -->
 <!-- Updated: 2026-03-04 - Expanded notifications internals (service/channel/schema/mention resolver/data flow) -->
 <!-- Updated: 2026-03-04 - Corrected API route totals to 61 and fixed unlabeled directory-tree code fence -->
-<!-- Updated: 2026-03-11 - Documented deterministic local branch reflow, cousin-branch corridor expansion, persisted map layout direction, the two supported layout modes, and auto-routed waypoint edges -->
+<!-- Updated: 2026-05-12 - Documented edge-only connect persistence, node-connection selector contract, and cycle-safe local reflow no-op fallback -->
 <!-- Updated: 2026-03-05 - Documented owner-scoped node-limit enforcement across node creation APIs -->
 <!-- Updated: 2026-03-06 - Synced API route docs for owner-scoped shared-map node entitlement checks -->
 <!-- Updated: 2026-03-07 - Added owner-scoped node-limit preflight to node creation flow -->
@@ -69,7 +69,9 @@ A collaborative mind mapping application built with Next.js 16, React 19, TypeSc
 **Edge routing note:** Normal persisted edges render as auto-routed `waypointEdge` geometry. Explicit full layout uses ELK bend points (`routingStyle: 'elk'`) and persists ELK-computed edge-label bounds/centers, but the converter snaps each ELK label center onto the nearest routed segment before render so the label stays horizontal while the edge line passes through its center. Local create/edit/move/resize/reconnect flows reroute only affected edges with the deterministic orthogonal router (`routingStyle: 'orthogonal'`) and must clear stale ELK label metadata when they replace ELK geometry. Raw manual waypoint editing is no longer part of the canvas model.
 **Layout animation note:** `ReactFlowArea` now renders through a transient animated graph state for explicit full layout and local layout flows. Zustand still stores only final node/edge geometry; the 550ms tween is client-only and does not persist or broadcast intermediate frames, and an animation version is only marked handled after the tween settles or is explicitly cancelled.
 
-**Local layout note:** Deterministic local branch reflow now has two phases: same-depth child repack inside the edited branch, then cousin-branch corridor expansion on the carrier layer when the grown subtree would overlap neighboring cousin subtrees. Ancestors stay fixed, and load-time legacy layout normalization persists only when the fetched map/edge snapshot is still current.
+**Connection persistence note:** Generic node connectivity is edge-derived (`edges.source`/`edges.target`) and normal drag-connect persists only edge rows. `nodes.parent_id` / React Flow `parentId` are reserved for explicit hierarchy operations, and `edges-slice.getNodeConnections(nodeId)` is the canonical selector for incoming/outgoing/all connections plus deduped neighbor IDs.
+
+**Local layout note:** Deterministic local branch reflow now has two phases: same-depth child repack inside the edited branch, then cousin-branch corridor expansion on the carrier layer when the grown subtree would overlap neighboring cousin subtrees. Ancestors stay fixed, and load-time legacy layout normalization persists only when the fetched map/edge snapshot is still current. If parent ancestry is cyclic, local branch reflow intentionally returns a safe no-op delta rather than attempting tree-based movement.
 
 **Mind-map loading note:** Route-level `loading.tsx` provides initial shell fallback, while in-page loading keeps the real editor chrome mounted and gates only map-dependent behavior via `isMapReady` (`nodes/edges` forced to empty until requested map payload is ready).
 
@@ -266,7 +268,7 @@ shiko/
 | **suggestions-slice**     | 1462  | AI ghost nodes, typed ghost approval, streaming, novelty memory, whole-map placement, merges |
 | **nodes-slice**           | 900   | Node CRUD, positioning, real-time sync                                        |
 | **history-slice**         | 543   | Checkpoint-scoped history metadata, delta events, revert persistence          |
-| **edges-slice**           | 635   | Edge CRUD, parent-child relationships                                         |
+| **edges-slice**           | 635   | Edge CRUD, edge-derived connection selectors, explicit-only hierarchy actions |
 | **subscription-slice**    | 434   | Stripe, plan limits, usage tracking                                           |
 | **guided-tour-slice**     | 416   | Prezi-style presentations                                                     |
 | **core-slice**            | 353   | Supabase client, user, map loading                                            |

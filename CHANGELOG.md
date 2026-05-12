@@ -11,6 +11,10 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **history/checkpoint-visible-scope**: Manual checkpoints now become the active history baseline; the sidebar shows the checkpoint and later events instead of older pre-checkpoint history
   - Why: A checkpoint should simplify the visible timeline instead of leaving previous sessions mixed into the current history panel
+- **canvas/connect-node-drift**: Connecting two existing nodes no longer repositions the target node by rewriting hierarchy metadata
+  - Why: Standard connections should create only an edge and keep node placement stable
+- **layout/local-reflow-cycle-safety**: Local branch reflow now safely no-ops when parent ancestry contains a cycle (for example `a→b→c→a`)
+  - Why: Tree-based local reflow assumptions break on cyclic ancestry and previously risked broken layout behavior
 
 ### Refactored
 
@@ -23,6 +27,13 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Checkpoint creation should not rely on separate app-layer writes that can partially succeed
 - **tests/history-current-scope-and-view-model**: Added focused tests for current-checkpoint scoping, event pagination offsets, and history entry view-model summary/focus behavior
   - Why: Checkpoint semantics and local summary fallback rules need explicit regression coverage
+- **store/node-connection-selector**: Added `getNodeConnections(nodeId)` in the edge slice to return incoming/outgoing/all edges and deduplicated connected node IDs
+  - Why: Callers now have a single canonical way to derive per-node connection state from edges
+
+### Changed
+
+- **docs/connection-hierarchy-contract**: Updated `CLAUDE.md` and `docs/CODEBASE_MAP.md` with the edge-only connect contract, explicit-only hierarchy semantics, and cycle-safe local reflow behavior
+  - Why: The new connection/hierarchy boundary is a behavioral contract that future work needs to preserve
 
 ## [2026-05-09]
 

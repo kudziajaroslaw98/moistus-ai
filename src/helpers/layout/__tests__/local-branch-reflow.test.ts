@@ -326,4 +326,72 @@ describe('local-branch-reflow', () => {
 			])
 		);
 	});
+
+	it('returns a safe no-op for create reflow when ancestry contains a cycle', () => {
+		const nodes = [
+			createNode('a', 0, 0),
+			createNode('b', 220, 0),
+			createNode('c', 440, 0),
+		];
+		const edges = [
+			createEdge('edge-a-b', 'a', 'b'),
+			createEdge('edge-b-c', 'b', 'c'),
+			createEdge('edge-c-a', 'c', 'a'),
+		];
+
+		expect(() =>
+			applyLocalCreateBranchReflow({
+				changedNodeId: 'b',
+				nodes,
+				edges,
+				config: { ...DEFAULT_LAYOUT_CONFIG, direction: 'TOP_BOTTOM' },
+			})
+		).not.toThrow();
+
+		const result = applyLocalCreateBranchReflow({
+			changedNodeId: 'b',
+			nodes,
+			edges,
+			config: { ...DEFAULT_LAYOUT_CONFIG, direction: 'TOP_BOTTOM' },
+		});
+
+		expect(result.nodes).toEqual(nodes);
+		expect(result.edges).toEqual(edges);
+		expect(result.affectedNodeIds.size).toBe(0);
+		expect(result.affectedEdgeIds.size).toBe(0);
+	});
+
+	it('returns a safe no-op for edit reflow when ancestry contains a cycle', () => {
+		const nodes = [
+			createNode('a', 0, 0),
+			createNode('b', 220, 0),
+			createNode('c', 440, 0),
+		];
+		const edges = [
+			createEdge('edge-a-b', 'a', 'b'),
+			createEdge('edge-b-c', 'b', 'c'),
+			createEdge('edge-c-a', 'c', 'a'),
+		];
+
+		expect(() =>
+			applyLocalEditBranchReflow({
+				changedNodeId: 'b',
+				nodes,
+				edges,
+				config: { ...DEFAULT_LAYOUT_CONFIG, direction: 'LEFT_RIGHT' },
+			})
+		).not.toThrow();
+
+		const result = applyLocalEditBranchReflow({
+			changedNodeId: 'b',
+			nodes,
+			edges,
+			config: { ...DEFAULT_LAYOUT_CONFIG, direction: 'LEFT_RIGHT' },
+		});
+
+		expect(result.nodes).toEqual(nodes);
+		expect(result.edges).toEqual(edges);
+		expect(result.affectedNodeIds.size).toBe(0);
+		expect(result.affectedEdgeIds.size).toBe(0);
+	});
 });
