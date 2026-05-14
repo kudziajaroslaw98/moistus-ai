@@ -58,7 +58,7 @@ jest.mock('next/navigation', () => ({
 
 // Mock motion/react (Framer Motion) - prevent animation issues in tests
 jest.mock('motion/react', () => {
-	const React = require('react')
+	const React = jest.requireActual('react')
 	const createMotionComponent = (tag) =>
 		React.forwardRef((props, ref) => {
 			const { children, ...rest } = props

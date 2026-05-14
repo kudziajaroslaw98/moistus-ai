@@ -1,6 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 import dotenv from 'dotenv';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Load E2E-specific environment variables
 // Priority: .env.e2e.local (local overrides) > .env.e2e (defaults)
