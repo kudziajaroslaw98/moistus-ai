@@ -19,6 +19,130 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **dependencies/override-scope**: Narrowed the undici override to the Miniflare path and added a PostCSS override only after audit confirmed Next.js still resolved vulnerable PostCSS internally.
   - Why: Keeps override surface limited to packages that upstream updates still do not resolve.
 
+## [2026-05-12]
+
+### Fixed
+
+- **node-editor/mobile-tabbed-layout**: Mobile node editor keeps the input visible while Preview/Syntax Help stay in a bounded stacked panel with a pinned footer.
+- **history/checkpoint-visible-scope**: Manual checkpoints now become the active history baseline; the sidebar shows the checkpoint and later events instead of older pre-checkpoint history
+  - Why: A checkpoint should simplify the visible timeline instead of leaving previous sessions mixed into the current history panel
+- **canvas/connect-node-drift**: Connecting two existing nodes no longer repositions the target node by rewriting hierarchy metadata
+  - Why: Standard connections should create only an edge and keep node placement stable
+- **layout/local-reflow-cycle-safety**: Local branch reflow now safely no-ops when parent ancestry contains a cycle (for example `a→b→c→a`)
+  - Why: Tree-based local reflow assumptions break on cyclic ancestry and previously risked broken layout behavior
+
+### Refactored
+
+- **history/server-and-sidebar-boundaries**: Split checkpoint/list helper logic and extracted history sidebar delta loading, focus handling, view-model decisions, card rendering, and readable change rows into smaller modules
+  - Why: The previous history implementation mixed data scope, fallback decisions, focus behavior, and UI rendering in files that were difficult to reason about safely
+
+### Added
+
+- **db/history-checkpoint-rpc**: Added a Supabase migration for `create_history_checkpoint_and_prune`, which creates the checkpoint snapshot, updates the current pointer, and prunes older history in one database transaction
+  - Why: Checkpoint creation should not rely on separate app-layer writes that can partially succeed
+- **tests/history-current-scope-and-view-model**: Added focused tests for current-checkpoint scoping, event pagination offsets, and history entry view-model summary/focus behavior
+  - Why: Checkpoint semantics and local summary fallback rules need explicit regression coverage
+- **store/node-connection-selector**: Added `getNodeConnections(nodeId)` in the edge slice to return incoming/outgoing/all edges and deduplicated connected node IDs
+  - Why: Callers now have a single canonical way to derive per-node connection state from edges
+
+### Changed
+
+- **docs/connection-hierarchy-contract**: Updated `CLAUDE.md` and `docs/CODEBASE_MAP.md` with the edge-only connect contract, explicit-only hierarchy semantics, and cycle-safe local reflow behavior
+  - Why: The new connection/hierarchy boundary is a behavioral contract that future work needs to preserve
+
+## [2026-05-09]
+
+### Changed
+
+- **history/timeline-first-mobile-ux**: Reworked the history side panel into a timeline-first layout with a pinned `Current` section, border-mounted timeline rail/dots, unified Focus+Revert action clusters, and mobile edge-to-edge event rows with full-width action buttons
+  - Why: The previous card stack was visually dense on desktop and broke readability/interaction at narrow widths
+- **history/readable-diff-default-only**: Removed raw technical-diff rendering from the history panel and kept only human-readable change blocks with `After` shown before `Before`
+  - Why: Technical patch paths and low-level field paths added noise for most users and made scanning updates slower
+
+## [2026-05-06]
+
+### Changed
+
+- **history/adaptive-readable-summaries**: History event headlines now use deterministic object-first summaries (for example `Title updated`, `Node moved`, `Connection rerouted`) with local grammar rules for single-field, multi-field, cleared-value, and bulk edits
+  - Why: Raw/internal action names and inconsistent phrasing made scan-level understanding slower and less reliable
+- **history/adaptive-verbosity-layout**: Expanded history entries now scale detail by event complexity (single-subject inline focus, compact subject pills for 2–3 items, collapsible affected-items panel for 4+, and collapsible changes card for larger diffs)
+  - Why: A fixed one-size template wasted vertical space on simple edits and became noisy on batch edits
+- **history/value-diff-clarity**: Before/after rendering now treats empty previous values as neutral (not error-red), keeps red semantics for removals, and defaults long text to after-first preview with a previous-version toggle
+  - Why: Color semantics and long stacked text blocks were adding unnecessary cognitive load
+
+### Added
+
+- **tests/history-summary-grammar-and-adaptive-ui**: Added regression tests for deterministic summary templates, fallback node labels, mixed-intent summaries, bulk field summaries, and updated history item rendering interactions
+  - Why: The new local summary grammar and adaptive UI thresholds need explicit guardrails as history events evolve
+
+## [2026-05-05]
+
+### Changed
+
+- **history/readable-side-panel**: History rows now show plain-language summaries, affected node/connection labels, and focus controls that center the changed map element without closing the panel
+  - Why: Raw patch paths made history difficult to understand and did not identify where the change happened on the canvas
+
+### Fixed
+
+- **node-editor/mobile-tabbed-layout**: Mobile node editor now keeps the input visible while Preview/Syntax Help live in a bounded stacked panel with a pinned footer
+  - Why: The tabbed editor should stay usable on phones without becoming an unbounded page or pushing actions off-screen
+
+### Added
+
+- **tests/history-readable-presentation**: Added regression coverage for readable movement/routing summaries, label fallbacks, connection labels, collapsed technical details, and history focus controls
+  - Why: The history panel now depends on a presentation layer that should stay readable as delta shapes evolve
+
+## [2026-04-27]
+
+### Fixed
+
+- **node-editor/editor-affordance**: Node editor input now shows line numbers and a visible scrollbar while keeping the bounded split-pane height
+  - Why: Multi-line input needs clear click/scroll affordance inside the split editor
+- **node-editor/preview-and-tabs**: Preview content now aligns to the top of its pane and the active Preview/Syntax Help tab has a visible selected indicator
+  - Why: The right panel should read as active tab content, not centered empty space
+- **node-editor/tab-and-panel-polish**: Preview/Syntax tabs now have explicit hover and selected states, syntax-help panel mode relies on outer pane scrolling (no inner early clipping), and line-number glyphs are centered in the gutter
+  - Why: Tab state and syntax scroll boundaries need to be visually clear and consistent with the split-pane layout
+- **node-editor/tab-strip-visual-language**: Preview/Syntax controls now render as a tab strip with a stronger hover state and selected underline instead of button-like pills
+  - Why: The controls should read as tabs at a glance, with obvious active/hover affordance
+- **node-editor/tab-strip-height**: Right-panel tab strip now stretches to the full top-bar cell height instead of a shorter inset row
+  - Why: The tab area should align cleanly with the split top-bar container
+- **node-editor/tab-strip-alignment-and-gutter-baseline**: Right-panel tabs now align to the left edge of their split cell, and line-number glyphs remain baseline-aligned while staying horizontally centered
+  - Why: The top-bar split should feel flush and line numbers should not appear vertically centered like badges
+- **node-editor/active-line-full-row-highlight**: Active editor-line and active line-number highlights now expand across the row width (with slight horizontal inset) instead of hugging only text content
+  - Why: Cursor position should be obvious at a glance across the full editing row
+- **node-editor/active-line-block-width**: Editor line rows now render as block-level full-width elements so active-line highlight can fill the full content column consistently
+  - Why: Wrapped/long lines were still shrinking highlight width to text bounds instead of pane width
+- **node-editor/full-bleed-active-row-and-gutter**: Active row highlight and active line-number gutter now render edge-to-edge without side insets, and editor line spacing is slightly increased
+  - Why: The left editor surface should read as a full-width split pane despite line numbers and keep long-form text more breathable
+- **node-editor/line-text-inset-padding**: Editor lines now include horizontal inset padding while keeping full-width row highlights
+  - Why: Full-bleed highlight should remain, but text needs clearer breathing room from row edges
+- **nodes/metadata-row-grid-sizing**: Universal metadata rows now animate open/closed with `gridTemplateRows` and natural content flow instead of `height: auto` motion sizing
+  - Why: Metadata chip rows should occupy only needed space without JS-style height calculation artifacts
+- **nodes/metadata-padding-override-restore**: Metadata row animation wrapper now keeps default padding on the outer container so node-level `p-0 pb-4` overrides continue to control spacing
+  - Why: Inner wrapper padding made metadata chips look over-padded in node cards after the grid-row sizing change
+- **node-editor/preview-metadata-pill-no-initial-animation**: Metadata pills in node-editor preview no longer animate on first render
+  - Why: Preview should feel stable and immediate while editing, without entry motion on metadata chips
+
+## [2026-04-26]
+
+### Changed
+
+- **node-editor/tabbed-split-layout**: Node editing now uses a wider split dialog with the input on the left and Preview/Syntax Help tabs on the right, including a calmer focus/current-line treatment and a full-width action footer
+  - Why: The editor needed more room, clearer preview/help switching, and less bordered-card chrome
+- **node-editor/split-pane-fill**: The node editor top bar now mirrors the body split, and the editor/preview panes fill their halves without inset card chrome
+  - Why: The dialog should read as three separated regions: split header, split body, and full-width footer
+
+### Fixed
+
+- **node-editor/task-preview-motion**: Task-node previews no longer animate task rows into view while normal canvas task nodes keep their existing task animation
+  - Why: Preview should update immediately and avoid distracting row entrance motion while typing
+- **node-editor/preview-entrance-motion**: Node editor previews now render without slide or scale-in entrance animation
+  - Why: Preview changes should feel immediate while editing text
+- **node-editor/pane-height-boundary**: Node editor split panes now fill a bounded dialog body instead of stretching to page height
+  - Why: The footer must stay visible and pane selection/focus regions should not grow beyond the modal body
+- **node-editor/codemirror-height**: CodeMirror now uses the bounded editor pane height without scroll-past-end padding inflating the content surface
+  - Why: The input should feel roomy without turning a one-line node into a page-height textbox
+
 ## [2026-04-22]
 
 ### Fixed
@@ -66,7 +190,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **docs/update-marker-and-changelog-normalization**: Consolidated per-block Updated-marker guidance in `AGENTS.md`/`CLAUDE.md`, removed changelog HTML Updated markers, and merged duplicate date/category sections for April 2026 entries
   - Why: Duplicate markers/sections created noisy history and drifted from documented changelog conventions
-
 
 ## [2026-04-20]
 
@@ -234,7 +357,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Recreating the editor for presentation-only prop changes was unnecessary churn and could interrupt active autocomplete state
 - **node-editor/mobile-autocomplete-hover-guards**: Moved tray hover treatments behind `(hover: hover)` media queries and documented the overlay dismissal contract plus viewport/autocomplete bridge heuristics
   - Why: Touch devices should not keep sticky hover styling, and the portal/dismiss/runtime-visibility rules need to stay explicit for future editor changes
-
 
 ## [2026-04-17]
 
@@ -522,7 +644,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Resolves PR `#46` against `main` without regressing shipped onboarding/access behavior or dropping the new local layout work
 
 ### Fixed
-
 
 - **node-editor/quiet-autocomplete-on-space**: Stopped passive empty-token trigger suggestions from reopening on `Space`, kept explicit trigger-character and partial-prefix completions, and documented manual `Ctrl+Space` discovery in the action bar
   - Why: Prevents distracting autocomplete popups during normal typing without removing on-demand syntax help
@@ -1137,7 +1258,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-
 ## [2026-02-22]
 
 ### Added
@@ -1178,7 +1298,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-
 ## [2026-02-21]
 
 ### Refactored
@@ -1212,7 +1331,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-
 ## [2026-02-20]
 
 ### Fixed
@@ -1228,7 +1346,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-
 ## [2026-02-19]
 
 ### Fixed
@@ -1240,7 +1357,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **editor/codemirror**: Added `scrollPastEnd` and `highlightActiveLine` extensions for better editing UX
 
 ---
-
 
 ## [2026-02-18]
 
@@ -1254,7 +1370,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **export/deadcode**: Removed `calculateNodesBoundingBox` (unused), `exportFitView` state/setter, zoom compensation logic
 
 ---
-
 
 ## [2026-02-13]
 
@@ -1287,7 +1402,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-
 ## [2026-02-12]
 
 ### Fixed
@@ -1315,7 +1429,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **nodes/registry**: Removed `dimensions` config and `resizable` flag from all 13 node type entries
 
 ---
-
 
 ## [2026-02-10]
 
@@ -1345,7 +1458,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-
 ## [2026-02-09]
 
 ### Fixed
@@ -1361,7 +1473,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-
 ## [2026-02-07]
 
 ### Fixed
@@ -1372,7 +1483,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: `resetStore()` wiped `isLoggingOut` flag before async navigation completed; re-assert flag after reset and clear on next login
 
 ---
-
 
 ## [2026-02-06]
 
@@ -1452,7 +1562,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - The `mounted` flag already handles cleanup sufficiently
 
 ---
-
 
 ## [2026-01-26]
 

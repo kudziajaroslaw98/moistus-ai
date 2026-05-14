@@ -13,7 +13,6 @@ import {
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/shallow';
-import { AnimateChangeInHeight } from '../animate-change-in-height';
 import { QuickInput } from './components/inputs/quick-input';
 
 const animationVariants = {
@@ -132,12 +131,12 @@ export const NodeEditor = () => {
 
 	const theme = {
 		container:
-			'bg-base border border-border-subtle w-[calc(100%-12px)] sm:w-3xl rounded-md max-h-[calc(100dvh-2rem)] sm:max-h-none overflow-y-auto sm:overflow-visible',
+			'bg-base border border-border-subtle w-[calc(100%-12px)] h-[calc(100dvh-12px)] max-h-[calc(100dvh-12px)] overflow-hidden rounded-md sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:w-[min(1100px,calc(100vw-2rem))]',
 	};
 
 	return (
 		<div
-			className='fixed flex flex-col items-center top-0 left-0 w-full h-full bg-zinc-950/50 z-[100] backdrop-blur-sm pt-4 sm:pt-32 '
+			className='fixed left-0 top-0 z-[100] flex h-full w-full flex-col items-center justify-start bg-zinc-950/50 px-1.5 py-1.5 backdrop-blur-sm sm:px-0 sm:pb-0 sm:pt-[min(8rem,12dvh)]'
 			data-node-editor-overlay='true'
 			data-testid='node-editor-backdrop'
 		>
@@ -153,17 +152,15 @@ export const NodeEditor = () => {
 						initial='initial'
 						variants={animationVariants.container}
 					>
-						<AnimateChangeInHeight>
-							<QuickInput
-								existingNode={existingNode}
-								initialValue={nodeEditor.initialValue}
-								mode={mode}
-								nodeType={nodeType}
-								onboardingSource={nodeEditor.onboardingSource}
-								parentNode={nodeEditor.parentNode}
-								position={nodeEditor.position}
-							/>
-						</AnimateChangeInHeight>
+						<QuickInput
+							existingNode={existingNode}
+							initialValue={nodeEditor.initialValue}
+							mode={mode}
+							nodeType={nodeType}
+							onboardingSource={nodeEditor.onboardingSource}
+							parentNode={nodeEditor.parentNode}
+							position={nodeEditor.position}
+						/>
 					</motion.div>
 				)}
 			</AnimatePresence>

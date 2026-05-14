@@ -1,27 +1,20 @@
 'use client';
 
-import {
-	collapseAllGroups,
-	expandAllGroups,
-	groupHistoryItems,
-	toggleGroupExpansion,
-	type HistoryGroupOrItem,
-	type HistoryItemWithMeta,
-} from '@/helpers/history/grouping-utils';
 import useAppStore from '@/store/mind-map-store';
+import type { HistoryItem as HistoryMeta } from '@/types/history-state';
 import { motion } from 'motion/react';
-import { forwardRef, useImperativeHandle, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Button } from '../ui/button';
-import { HistoryGroup } from './history-group';
 import { HistoryItem } from './history-item';
 import { HistoryItemSkeleton } from './history-item-skeleton';
 
-export interface HistoryListHandle {
-	expandAllGroups: () => void;
-	collapseAllGroups: () => void;
+interface HistoryTimelineItem {
+	meta: HistoryMeta;
+	originalIndex: number;
+	isCurrent: boolean;
 }
 
-export const HistoryList = forwardRef<HistoryListHandle>((props, ref) => {
+export function HistoryList() {
 	const isLoading = useAppStore((s) => s.loadingStates?.isHistoryLoading);
 	const historyMeta = useAppStore((s) => s.historyMeta);
 	const historyIndex = useAppStore((s) => s.historyIndex);
@@ -29,11 +22,8 @@ export const HistoryList = forwardRef<HistoryListHandle>((props, ref) => {
 	const loadMoreHistory = useAppStore((s) => s.loadMoreHistory);
 	const hasMore = useAppStore((s) => s.historyHasMore);
 
-	// Local state for group expansion
-	const [groupedItems, setGroupedItems] = useState<HistoryGroupOrItem[]>([]);
-
-	// Compute grouped items from history metadata (DB-only, no in-memory history)
-	const items: HistoryItemWithMeta[] = useMemo(() => {
+	// Compute timeline items from history metadata (DB-only, no in-memory history)
+	const items: HistoryTimelineItem[] = useMemo(() => {
 		const reversed = [...historyMeta].reverse();
 		return reversed.map((meta, idx) => {
 			const originalIndex = historyMeta.length - 1 - idx;
@@ -42,34 +32,9 @@ export const HistoryList = forwardRef<HistoryListHandle>((props, ref) => {
 				meta,
 				originalIndex,
 				isCurrent: originalIndex === historyIndex,
-				delta: undefined, // No longer cached in-memory
 			};
 		});
 	}, [historyMeta, historyIndex]);
-
-	// Group items whenever the source data changes
-	useMemo(() => {
-		const grouped = groupHistoryItems(items);
-		setGroupedItems(grouped);
-	}, [items]);
-
-	const handleToggleGroup = (groupId: string) => {
-		setGroupedItems((prev) => toggleGroupExpansion(prev, groupId));
-	};
-
-	const handleExpandAll = () => {
-		setGroupedItems((prev) => expandAllGroups(prev));
-	};
-
-	const handleCollapseAll = () => {
-		setGroupedItems((prev) => collapseAllGroups(prev));
-	};
-
-	// Expose methods to parent via ref
-	useImperativeHandle(ref, () => ({
-		expandAllGroups: handleExpandAll,
-		collapseAllGroups: handleCollapseAll,
-	}));
 
 	if (isLoading) {
 		return (
@@ -82,45 +47,41 @@ export const HistoryList = forwardRef<HistoryListHandle>((props, ref) => {
 	}
 
 	return (
-		<motion.div className='flex-grow flex flex-col gap-1'>
-			{/* Load more (older) at top since list shows newest at top */}
-			{hasMore && (
-				<div className='mb-2 flex justify-center'>
-					<Button
-						disabled={!mapId}
-						onClick={() => mapId && loadMoreHistory(mapId)}
-						size='sm'
-						variant='outline'
-					>
-						Load older
-					</Button>
+		<motion.div className='relative flex-grow'>
+			{items.length > 0 && (
+				<div className='px-4 pb-1 text-[10px] font-semibold tracking-[0.12em] text-primary-300 uppercase sm:px-0'>
+					Current
 				</div>
 			)}
 
-			{/* Render grouped and ungrouped items */}
-			{groupedItems.map((item, idx) => {
-				if (item.type === 'group') {
-					return (
-						<HistoryGroup
-							group={item}
-							key={item.id}
-							onToggle={() => handleToggleGroup(item.id)}
-						/>
-					);
-				} else {
-					return (
+			<div className='flex flex-col gap-2'>
+				{/* Load more (older) at top since list shows newest at top */}
+				{hasMore && (
+					<div className='mb-2 flex justify-center px-4 sm:px-0'>
+						<Button
+							disabled={!mapId}
+							onClick={() => mapId && loadMoreHistory(mapId)}
+							size='sm'
+							variant='outline'
+						>
+							Load older
+						</Button>
+					</div>
+				)}
+
+				{/* Render timeline items */}
+				{items.map((item) => (
+					<div className='relative' key={item.meta.id}>
 						<HistoryItem
-							isCurrent={item.item.isCurrent}
-							key={item.item.meta.id}
-							meta={item.item.meta}
-							originalIndex={item.item.originalIndex}
+							isCurrent={item.isCurrent}
+							meta={item.meta}
+							originalIndex={item.originalIndex}
 						/>
-					);
-				}
-			})}
+					</div>
+				))}
+			</div>
 		</motion.div>
 	);
-});
+}
 
 export default HistoryList;
-HistoryList.displayName = 'HistoryList';

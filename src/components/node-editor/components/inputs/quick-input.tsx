@@ -1,13 +1,14 @@
 'use client';
 
-import { useIsMobile } from '@/hooks/use-mobile';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMapNodeLimit } from '@/hooks/subscription/use-map-node-limit';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import useAppStore from '@/store/mind-map-store';
 import type { MentionableUser } from '@/types/notification';
 import { slugifyCollaborator } from '@/utils/collaborator-utils';
-import { AlertCircle } from 'lucide-react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AlertCircle, CircleHelp, Eye } from 'lucide-react';
+import { motion } from 'motion/react';
 import {
 	useCallback,
 	useEffect,
@@ -51,9 +52,11 @@ import { EnhancedInput } from './enhanced-input';
 import { MobileCompletionTray } from './mobile-completion-tray';
 
 const theme = {
-	container: 'p-4',
+	container: 'flex h-full min-h-0 flex-col p-0',
 	hint: 'text-xs text-zinc-500 mt-2',
 };
+
+type RightPanelTab = 'preview' | 'syntax';
 
 type QuickInputPreview = ReturnType<typeof parseInput> & {
 	referencePreview?: {
@@ -206,13 +209,13 @@ export const QuickInput: FC<QuickInputProps> = ({
 		contentSnippet?: string;
 	} | null>(null);
 	const lastProcessedText = useRef('');
-	const prefersReducedMotion = useReducedMotion();
 
 	const [legendCollapsed, setLegendCollapsed] = useState(false);
 	const [universalLegendCollapsed, setUniversalLegendCollapsed] =
 		useState(false);
 	const [nodeSpecificLegendCollapsed, setNodeSpecificLegendCollapsed] =
 		useState(false);
+	const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>('preview');
 
 	// Zustand state for persistence across remounts
 	const {
@@ -484,13 +487,17 @@ export const QuickInput: FC<QuickInputProps> = ({
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if ((e.metaKey || e.ctrlKey) && e.key === '/') {
 				e.preventDefault();
-				handleLegendCollapseToggle();
+				setRightPanelTab('syntax');
+				setLegendCollapsed(false);
+				if (typeof window !== 'undefined') {
+					window.localStorage.setItem('parsingLegendCollapsed', 'false');
+				}
 			}
 		};
 
 		window.addEventListener('keydown', handleKeyDown);
 		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, [handleLegendCollapseToggle]);
+	}, []);
 
 	// Process node type switches automatically (legacy fallback only)
 	useEffect(() => {
@@ -878,188 +885,213 @@ export const QuickInput: FC<QuickInputProps> = ({
 		<motion.div
 			animate={{ opacity: 1, scale: 1 }}
 			className={theme.container}
+			data-testid='quick-input-shell'
 			exit={{ opacity: 0, scale: 0.95 }}
 			initial={{ opacity: 0, scale: 0.95 }}
 			layoutId={config.label}
 			transition={{ duration: 0.2, ease: 'easeOut' as const }}
 		>
-			<ComponentHeader icon={config.icon} label={config.label} />
-
-			{/* Parent reference when creating a child node */}
-			{parentNode && <ParentNodeReference parentNode={parentNode} />}
-
-			{/* Input and Preview Side by Side - Fixed 50/50 Layout */}
-			<div className='flex flex-col sm:flex-row items-stretch gap-3 sm:max-h-[400px] h-auto'>
-				<EnhancedInput
-					animate={{ opacity: 1, y: 0 }}
-					className='min-w-0 mt-5 w-full sm:w-sm h-auto'
-					collaborators={collaborators}
-					disabled={isCreating}
-					enableCommands={true}
-					initial={{ opacity: 1, y: -20 }}
-					onAutocompleteControllerReady={handleAutocompleteControllerReady}
-					onAutocompleteStateChange={handleAutocompleteStateChange}
-					onChange={setValue}
-					onCommandExecuted={handleCommandExecuted}
-					onFocusChange={setIsEditorFocused}
-					onKeyDown={handleKeyDown}
-					onNodeTypeChange={handleNodeTypeChange}
-					onSelectionChange={handleSelectionChange}
-					placeholder={`Type naturally... ${config.examples?.[0] || ''}`}
-					showNativeAutocomplete={!isMobile}
-					transition={{ duration: 0.25, ease: 'easeOut' as const }}
-					value={value}
-					whileFocus={{
-						scale: 1.01,
-						transition: { duration: 0.2 },
-					}}
-				/>
-
-				<PreviewSection
-					className='hidden sm:block'
-					hasInput={value.trim().length > 0}
-					nodeType={effectiveNodeType}
-					preview={preview}
-				/>
-			</div>
-
-			<MobileCompletionTray
-				isOpen={showMobileCompletionTray}
-				anchorRect={autocompleteState.anchorRect}
-				editorRect={autocompleteState.editorRect}
-				isEditorFocused={isEditorFocused}
-				mentionMap={autocompleteMentionMap}
-				onClose={handleMobileAutocompleteClose}
-				onHighlight={handleMobileAutocompleteHighlight}
-				onSelect={handleMobileAutocompleteSelect}
-				options={autocompleteState.options}
-				selectedIndex={autocompleteState.selectedIndex}
-			/>
-
-			{/* Parsing Legend */}
-			<AnimatePresence>
-				{hasSyntaxPatterns && (
-					<motion.div
-						animate={
-							prefersReducedMotion
-								? { opacity: 1 }
-								: { opacity: 1, height: 'auto', y: 0 }
-						}
-						className='mt-3'
-						exit={
-							prefersReducedMotion
-								? { opacity: 0 }
-								: { opacity: 0, height: 0, y: -20 }
-						}
-						initial={
-							prefersReducedMotion
-								? { opacity: 0 }
-								: { opacity: 0, height: 0, y: -20 }
-						}
-						transition={{
-							duration: prefersReducedMotion ? 0.1 : 0.2,
-							delay: prefersReducedMotion ? 0 : 0.1,
-							ease: 'easeInOut' as const,
-						}}
+			<Tabs
+				className='flex h-full min-h-0 flex-col gap-0'
+				onValueChange={(nextValue) =>
+					setRightPanelTab(nextValue as RightPanelTab)
+				}
+				value={rightPanelTab}
+			>
+				<div
+					className='grid shrink-0 grid-cols-1 sm:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]'
+					data-testid='quick-input-header-grid'
+				>
+					<div
+						className='flex min-w-0 items-center px-4 py-3'
+						data-testid='quick-input-header-row'
 					>
-						<AnimatePresence>
+						<ComponentHeader
+							className='mb-0 min-w-0'
+							icon={config.icon}
+							label={config.label}
+							showSparkles={false}
+						/>
+					</div>
+
+					<div className='hidden bg-zinc-800/80 sm:block' />
+
+					<div
+						className='flex h-11 min-w-0 items-stretch justify-start border-t border-zinc-800/80 px-0 py-0 sm:h-auto sm:border-t-0'
+						data-testid='quick-input-tabs-row'
+					>
+						<TabsList className='grid h-full w-full grid-cols-[max-content_max-content] justify-start gap-0 border-b border-zinc-700/80 bg-transparent p-0 sm:w-fit sm:grid-cols-2'>
+							<TabsTrigger
+								className='!h-full !rounded-none !border-0 !border-b-2 !border-transparent gap-1.5 px-4 text-sm text-zinc-400 [@media(hover:hover)]:hover:!bg-zinc-900/45 [@media(hover:hover)]:hover:text-zinc-100 aria-selected:!border-b-zinc-100 aria-selected:!bg-zinc-900/45 aria-selected:text-zinc-50 data-[selected]:!border-b-zinc-100 data-[selected]:!bg-zinc-900/45 data-[selected]:text-zinc-50 sm:px-2 sm:text-xs'
+								value='preview'
+							>
+								<Eye className='size-3.5' />
+								Preview
+							</TabsTrigger>
+
+							<TabsTrigger
+								className='!h-full !rounded-none !border-0 !border-b-2 !border-transparent gap-1.5 px-4 text-sm text-zinc-400 [@media(hover:hover)]:hover:!bg-zinc-900/45 [@media(hover:hover)]:hover:text-zinc-100 aria-selected:!border-b-zinc-100 aria-selected:!bg-zinc-900/45 aria-selected:text-zinc-50 data-[selected]:!border-b-zinc-100 data-[selected]:!bg-zinc-900/45 data-[selected]:text-zinc-50 sm:px-2 sm:text-xs'
+								value='syntax'
+							>
+								<CircleHelp className='size-3.5' />
+								Syntax Help
+							</TabsTrigger>
+						</TabsList>
+					</div>
+				</div>
+
+				<div className='border-t border-zinc-800/80' />
+
+				{/* Parent reference when creating a child node */}
+				{parentNode && (
+					<div className='shrink-0 border-b border-zinc-800/80 px-4 py-3'>
+						<ParentNodeReference parentNode={parentNode} />
+					</div>
+				)}
+
+				<div
+					className='grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(150px,0.48fr)_1px_minmax(170px,0.52fr)] overflow-hidden sm:h-[min(420px,calc(100dvh-10rem))] sm:max-h-[calc(100dvh-10rem)] sm:min-h-[min(360px,calc(100dvh-10rem))] sm:flex-none sm:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] sm:grid-rows-1'
+					data-testid='quick-input-body'
+				>
+					<div
+						className='flex min-h-0 min-w-0 flex-col overflow-hidden'
+						data-testid='quick-input-editor-panel'
+					>
+						<EnhancedInput
+							className='min-h-0 min-w-0 w-full flex-1'
+							collaborators={collaborators}
+							disabled={isCreating}
+							enableCommands={true}
+							onAutocompleteControllerReady={handleAutocompleteControllerReady}
+							onAutocompleteStateChange={handleAutocompleteStateChange}
+							onChange={setValue}
+							onCommandExecuted={handleCommandExecuted}
+							onFocusChange={setIsEditorFocused}
+							onKeyDown={handleKeyDown}
+							onNodeTypeChange={handleNodeTypeChange}
+							onSelectionChange={handleSelectionChange}
+							placeholder={`Type naturally... ${config.examples?.[0] || ''}`}
+							showNativeAutocomplete={!isMobile}
+							value={value}
+						/>
+
+						<ExamplesSection
+							className='shrink-0 border-t border-zinc-800/80 px-4 py-3'
+							examples={config.examples || []}
+							hasValue={value.length > 0}
+							onUseExample={handleUseExample}
+						/>
+					</div>
+
+					<div className='bg-zinc-800/80' />
+
+					<div
+						className='min-h-0 min-w-0 overflow-hidden'
+						data-testid='quick-input-right-panel'
+					>
+						<TabsContent
+							className='mt-0 h-full min-h-0 overflow-hidden'
+							value='preview'
+						>
+							<PreviewSection
+								className='h-full'
+								hasInput={value.trim().length > 0}
+								nodeType={effectiveNodeType}
+								preview={preview}
+							/>
+						</TabsContent>
+
+						<TabsContent
+							className='mt-0 h-full min-h-0 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5'
+							value='syntax'
+						>
 							{showOnboardingPatternHint && (
-								<motion.div
-									animate={{ opacity: 1, y: 0 }}
-									className='mb-3 rounded-xl border border-primary-500/20 bg-primary-500/8 px-3 py-2 text-xs leading-5 text-text-secondary'
-									exit={{ opacity: 0, y: -8 }}
-									initial={{ opacity: 0, y: -8 }}
-								>
+								<div className='mb-3 rounded-sm bg-primary-500/8 px-3 py-2 text-xs leading-5 text-text-secondary'>
 									<span className='font-medium text-text-primary'>
 										Try more patterns in Syntax Help below.
 									</span>{' '}
 									Use the examples to swap in tags, dates, assignees, or a
 									different node type.
-								</motion.div>
+								</div>
 							)}
-						</AnimatePresence>
 
-						<ParsingLegend
-							isCollapsed={legendCollapsed}
-							isNodeSpecificCollapsed={nodeSpecificLegendCollapsed}
-							isUniversalCollapsed={universalLegendCollapsed}
-							nodeSpecificPatterns={nodeSpecificPatterns}
-							onPatternClick={handlePatternInsert}
-							onToggleCollapse={handleLegendCollapseToggle}
-							onToggleNodeSpecificCollapse={
-								handleNodeSpecificLegendCollapseToggle
-							}
-							onToggleUniversalCollapse={handleUniversalLegendCollapseToggle}
-							universalPatterns={universalPatterns}
-						/>
-					</motion.div>
-				)}
-			</AnimatePresence>
+							{hasSyntaxPatterns ? (
+								<ParsingLegend
+									isCollapsed={legendCollapsed}
+									isNodeSpecificCollapsed={nodeSpecificLegendCollapsed}
+									isUniversalCollapsed={universalLegendCollapsed}
+									nodeSpecificPatterns={nodeSpecificPatterns}
+									onPatternClick={handlePatternInsert}
+									onToggleCollapse={handleLegendCollapseToggle}
+									onToggleNodeSpecificCollapse={
+										handleNodeSpecificLegendCollapseToggle
+									}
+									onToggleUniversalCollapse={
+										handleUniversalLegendCollapseToggle
+									}
+									universalPatterns={universalPatterns}
+									variant='panel'
+								/>
+							) : (
+								<div className='rounded-sm bg-zinc-950/20 p-4 text-xs leading-5 text-zinc-500'>
+									This node type accepts plain text input without special
+									syntax.
+								</div>
+							)}
+						</TabsContent>
+					</div>
+				</div>
 
-			{/* Show hint for nodes without patterns */}
-			<AnimatePresence>
-				{!hasSyntaxPatterns && (
-					<motion.div
-						animate={
-							prefersReducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }
+				<MobileCompletionTray
+					isOpen={showMobileCompletionTray}
+					anchorRect={autocompleteState.anchorRect}
+					editorRect={autocompleteState.editorRect}
+					isEditorFocused={isEditorFocused}
+					mentionMap={autocompleteMentionMap}
+					onClose={handleMobileAutocompleteClose}
+					onHighlight={handleMobileAutocompleteHighlight}
+					onSelect={handleMobileAutocompleteSelect}
+					options={autocompleteState.options}
+					selectedIndex={autocompleteState.selectedIndex}
+				/>
+
+				<div className='shrink-0 px-4'>
+					<ErrorDisplay error={error} />
+				</div>
+
+				{/* Node limit warning */}
+				{isCreateBlockedByNodeLimit &&
+					(nodeLimitInfo || Boolean(nodeLimitMessage)) && (
+						<motion.div
+							initial={{ opacity: 0, y: -10 }}
+							animate={{ opacity: 1, y: 0 }}
+							className='mx-4 mb-3 flex shrink-0 items-center gap-2 rounded-sm bg-amber-500/10 p-3 text-amber-400'
+						>
+							<AlertCircle className='w-4 h-4 shrink-0' />
+							<span className='text-sm'>
+								{nodeLimitMessage ||
+									(nodeLimitInfo
+										? `Node limit reached (${nodeLimitInfo.current}/${nodeLimitInfo.max}).`
+										: '')}
+							</span>
+						</motion.div>
+					)}
+
+				<div className='shrink-0' data-testid='quick-input-footer-row'>
+					<ActionBar
+						canCreate={
+							value.trim().length > 0 &&
+							(!isCreateMode ||
+								(!isCreateBlockedByNodeLimit && !isCreateLimitCheckLoading))
 						}
-						className='mt-3 text-xs text-zinc-500'
-						exit={
-							prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -10 }
-						}
-						initial={
-							prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -10 }
-						}
-						transition={{
-							delay: prefersReducedMotion ? 0 : 0.05,
-							duration: prefersReducedMotion ? 0.12 : 0.3,
-							ease: 'easeOut' as const,
-						}}
-					>
-						<p>
-							This node type accepts plain text input without special syntax.
-						</p>
-					</motion.div>
-				)}
-			</AnimatePresence>
-
-			<ExamplesSection
-				examples={config.examples || []}
-				hasValue={value.length > 0}
-				onUseExample={handleUseExample}
-			/>
-
-			<ErrorDisplay error={error} />
-
-			{/* Node limit warning */}
-			{isCreateBlockedByNodeLimit &&
-				(nodeLimitInfo || Boolean(nodeLimitMessage)) && (
-					<motion.div
-						initial={{ opacity: 0, y: -10 }}
-						animate={{ opacity: 1, y: 0 }}
-						className='flex items-center gap-2 mt-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400'
-					>
-						<AlertCircle className='w-4 h-4 shrink-0' />
-						<span className='text-sm'>
-							{nodeLimitMessage ||
-								(nodeLimitInfo
-									? `Node limit reached (${nodeLimitInfo.current}/${nodeLimitInfo.max}).`
-									: '')}
-						</span>
-					</motion.div>
-				)}
-
-			<ActionBar
-				canCreate={
-					value.trim().length > 0 &&
-					(!isCreateMode ||
-						(!isCreateBlockedByNodeLimit && !isCreateLimitCheckLoading))
-				}
-				isCreating={isCreating}
-				isCheckingLimit={isCreateLimitCheckLoading}
-				mode={mode}
-				onCreate={handleCreate}
-			/>
+						className='mt-0 border-t border-zinc-800/80 px-4 py-3'
+						isCreating={isCreating}
+						isCheckingLimit={isCreateLimitCheckLoading}
+						mode={mode}
+						onCreate={handleCreate}
+					/>
+				</div>
+			</Tabs>
 		</motion.div>
 	);
 };
