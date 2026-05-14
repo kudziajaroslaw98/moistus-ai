@@ -5,6 +5,20 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-05-14]
+
+### Changed
+
+- **dependencies/security-updates**: Updated Next.js, React, Tailwind/PostCSS, sanitize-html, uuid, and refreshed transitive dependency resolutions so dependency audit no longer reports known vulnerabilities.
+  - Why: Patched current direct and transitive security advisories while limiting overrides to upstream-pinned packages.
+- **tooling/es-module-package-mode**: Enabled root ESM package mode and adjusted Playwright/Jest/Next config so uuid's ESM package can be consumed in app and tests.
+  - Why: Allows the patched modern uuid package without CommonJS compatibility workarounds.
+
+### Fixed
+
+- **dependencies/override-scope**: Narrowed the undici override to the Miniflare path and added a PostCSS override only after audit confirmed Next.js still resolved vulnerable PostCSS internally.
+  - Why: Keeps override surface limited to packages that upstream updates still do not resolve.
+
 ## [2026-04-22]
 
 ### Fixed

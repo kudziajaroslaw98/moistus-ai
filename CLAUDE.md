@@ -145,9 +145,9 @@ pnpm pretty          # Prettier
 
 <!-- Updated: 2026-02-24 - Documented realtime JWT fallback behavior and operational meaning -->
 
-**PartyKit dependency hardening**: Keep `pnpm.overrides` pins for `partykit>esbuild` and `undici` in `package.json`, and keep CI security gates (`security-audit.yml`, `dependency-review.yml`) active for dependency file changes. Re-run both production and full `pnpm audit` after PartyKit/miniflare version bumps.
+**Dependency security overrides**: Keep `pnpm.overrides` pins narrow and evidence-based. Current required overrides are `partykit>esbuild` because PartyKit still pins older esbuild, `miniflare>undici` scoped to PartyKit's Miniflare path, and `postcss` until Next no longer resolves a vulnerable internal PostCSS. Prefer direct/transitive package updates over broad overrides, keep CI security gates (`security-audit.yml`, `dependency-review.yml`) active for dependency file changes, and re-run `pnpm audit` plus `pnpm why esbuild undici postcss` after PartyKit/miniflare/Next/PostCSS bumps.
 
-<!-- Updated: 2026-04-09 - Documented PartyKit transitive vulnerability mitigation and dependency security gate contract -->
+<!-- Updated: 2026-05-14 - Documented scoped dependency security overrides for PartyKit/Miniflare and Next/PostCSS -->
 
 **Vercel package manager**: Keep repo-level `vercel.json` install/build commands pinned to pnpm (`pnpm install --frozen-lockfile`, `pnpm build`) so Vercel does not default to `npm i` and fail on npm-only peer resolution of the current lint stack.
 

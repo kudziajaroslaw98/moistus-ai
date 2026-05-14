@@ -50,9 +50,6 @@ const customJestConfig = {
 	// Restore mocks automatically between every test
 	restoreMocks: true,
 
-	// Transform ignore patterns
-	transformIgnorePatterns: ['node_modules/'],
-
 	// Verbose output for debugging
 	verbose: true,
 };
