@@ -44,9 +44,6 @@ const customJestConfig = {
 	// Module file extensions
 	moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
 
-	// Ignore managed nested worktrees so Jest does not crawl duplicate manual mocks
-	modulePathIgnorePatterns: ['<rootDir>/.worktrees/'],
-
 	// Clear mocks automatically between every test
 	clearMocks: true,
 

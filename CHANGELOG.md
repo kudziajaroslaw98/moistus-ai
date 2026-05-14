@@ -5,13 +5,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-## [2026-05-12]
-
-### Fixed
-
-- **dependencies/security-alerts**: Updated vulnerable runtime/tooling dependencies, removed the direct UUID package dependency, and refreshed test harness compatibility for the patched stack
-  - Why: Patched Dependabot-reported advisories across Next.js, sanitization, UUID generation, and transitive package resolution so npm audit reports no known vulnerabilities
-
 ## [2026-04-22]
 
 ### Fixed
