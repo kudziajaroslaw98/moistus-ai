@@ -154,10 +154,7 @@ function sanitizeMentionableUsers(users: unknown[]): MentionableUser[] {
 }
 
 // Helper function to determine if we should auto-process node type switch
-const shouldAutoProcessSwitch = (
-	text: string,
-	currentNodeType?: string
-): boolean => {
+const shouldAutoProcessSwitch = (text: string): boolean => {
 	// Check if text contains a node type trigger (e.g., $task, $note) anywhere
 	// Pattern matches $command followed by space or end of string
 	const nodeTypeTriggerPattern = /\$(\w+)(\s|$)/;
@@ -571,7 +568,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 		// Only use legacy processing if commands are disabled or as fallback
 		// The primary processing should happen via CodeMirror events
-		if (shouldAutoProcessSwitch(value, currentNodeType)) {
+		if (shouldAutoProcessSwitch(value)) {
 			const processed = processNodeTypeSwitch(value);
 
 			if (
@@ -957,10 +954,10 @@ export const QuickInput: FC<QuickInputProps> = ({
 		>
 			<Tabs
 				className='flex h-full min-h-0 flex-col gap-0'
+				value={rightPanelTab}
 				onValueChange={(nextValue) =>
 					setRightPanelTab(nextValue as RightPanelTab)
 				}
-				value={rightPanelTab}
 			>
 				<div
 					className='grid shrink-0 grid-cols-1 sm:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]'
@@ -1087,14 +1084,14 @@ export const QuickInput: FC<QuickInputProps> = ({
 									nodeSpecificPatterns={nodeSpecificPatterns}
 									onPatternClick={handlePatternInsert}
 									onToggleCollapse={handleLegendCollapseToggle}
+									universalPatterns={universalPatterns}
+									variant='panel'
 									onToggleNodeSpecificCollapse={
 										handleNodeSpecificLegendCollapseToggle
 									}
 									onToggleUniversalCollapse={
 										handleUniversalLegendCollapseToggle
 									}
-									universalPatterns={universalPatterns}
-									variant='panel'
 								/>
 							) : (
 								<div className='rounded-sm bg-zinc-950/20 p-4 text-xs leading-5 text-zinc-500'>
@@ -1132,6 +1129,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 							className='mx-4 mb-3 flex shrink-0 items-center gap-2 rounded-sm bg-amber-500/10 p-3 text-amber-400'
 						>
 							<AlertCircle className='w-4 h-4 shrink-0' />
+
 							<span className='text-sm'>
 								{nodeLimitMessage ||
 									(nodeLimitInfo
@@ -1143,16 +1141,16 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 				<div className='shrink-0' data-testid='quick-input-footer-row'>
 					<ActionBar
-						canCreate={
-							value.trim().length > 0 &&
-							(!isCreateMode ||
-								(!isCreateBlockedByNodeLimit && !isCreateLimitCheckLoading))
-						}
 						className='mt-0 border-t border-zinc-800/80 px-4 py-3'
 						isCreating={isCreating}
 						isCheckingLimit={isCreateLimitCheckLoading}
 						mode={mode}
 						onCreate={handleCreate}
+						canCreate={
+							value.trim().length > 0 &&
+							(!isCreateMode ||
+								(!isCreateBlockedByNodeLimit && !isCreateLimitCheckLoading))
+						}
 					/>
 				</div>
 			</Tabs>

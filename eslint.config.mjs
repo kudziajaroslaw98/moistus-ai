@@ -1,19 +1,19 @@
-import { FlatCompat } from '@eslint/eslintrc';
 import stylistic from '@stylistic/eslint-plugin';
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-	baseDirectory: __dirname,
-});
+import nextVitals from 'eslint-config-next/core-web-vitals';
+import nextTypescript from 'eslint-config-next/typescript';
 
 const eslintConfig = [
-	...compat.extends('next/core-web-vitals', 'next/typescript'),
+	...nextVitals,
+	...nextTypescript,
 	{
 		ignores: ['.next/**', 'node_modules/**', 'next-env.d.ts', 'globals.css'],
+	},
+	{
+		settings: {
+			react: {
+				version: '19.2',
+			},
+		},
 	},
 	{
 		rules: {
@@ -49,6 +49,13 @@ const eslintConfig = [
 					ignoreCase: true,
 				},
 			],
+		},
+	},
+	{
+		files: ['**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'],
+		rules: {
+			'@stylistic/jsx-newline': 'off',
+			'@typescript-eslint/no-require-imports': 'off',
 		},
 	},
 ];
