@@ -576,6 +576,8 @@ function createQuickInputNode(
 }
 
 describe('QuickInput', () => {
+	const originalMatchMedia = window.matchMedia;
+
 	const defaultProps = {
 		nodeType: 'defaultNode' as const,
 		parentNode: null,
@@ -592,6 +594,27 @@ describe('QuickInput', () => {
 		expect(
 			first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING
 		).toBeTruthy();
+	};
+
+	const mockTouchAutocompleteMedia = ({
+		coarsePointer = false,
+		noHover = false,
+	}: {
+		coarsePointer?: boolean;
+		noHover?: boolean;
+	}) => {
+		window.matchMedia = jest.fn((query: string) => ({
+			matches:
+				(query.includes('pointer: coarse') && coarsePointer) ||
+				(query.includes('hover: none') && noHover),
+			media: query,
+			onchange: null,
+			addEventListener: jest.fn(),
+			removeEventListener: jest.fn(),
+			addListener: jest.fn(),
+			removeListener: jest.fn(),
+			dispatchEvent: jest.fn(),
+		})) as unknown as typeof window.matchMedia;
 	};
 
 	beforeEach(() => {
@@ -616,6 +639,10 @@ describe('QuickInput', () => {
 			limitInfo: null,
 			limitMessage: null,
 		});
+	});
+
+	afterEach(() => {
+		window.matchMedia = originalMatchMedia;
 	});
 
 	describe('rendering', () => {
@@ -843,6 +870,27 @@ describe('QuickInput', () => {
 			expect(screen.getByTestId('mobile-completion-tray')).toHaveAttribute(
 				'data-editor-focused',
 				'false'
+			);
+		});
+
+		it('uses the touch autocomplete tray on iPad-sized coarse pointer viewports', async () => {
+			const user = userEvent.setup();
+			mockIsMobile = false;
+			mockTouchAutocompleteMedia({ coarsePointer: true, noHover: true });
+
+			render(<QuickInput {...defaultProps} />);
+
+			await waitFor(() => {
+				expect(
+					screen.getByTestId('enhanced-input').parentElement
+				).toHaveAttribute('data-show-native-autocomplete', 'false');
+			});
+
+			await user.click(screen.getByTestId('emit-active-autocomplete'));
+
+			expect(screen.getByTestId('mobile-completion-tray')).toHaveAttribute(
+				'data-option-count',
+				'2'
 			);
 		});
 	});

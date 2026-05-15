@@ -5,6 +5,17 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-05-15]
+
+### Fixed
+
+- **node-editor/ipad-autocomplete-tray**: iPad/tablet touch viewports now use the visible React autocomplete tray instead of relying on the native CodeMirror popup, so suggestions remain visible while keyboard selection still works.
+  - Why: Desktop-width iPad Safari could keep autocomplete active but hide the visual popup.
+
+### Docs
+
+- **node-editor/autocomplete-surface-contract**: Updated the documented autocomplete contract for touch-first iPad/tablet widths.
+
 ## [2026-05-14]
 
 ### Changed

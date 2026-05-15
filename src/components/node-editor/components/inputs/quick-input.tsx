@@ -172,6 +172,69 @@ const shouldAutoProcessSwitch = (
 	return !!command?.nodeType;
 };
 
+function matchesMediaQuery(query: string): boolean {
+	if (typeof window === 'undefined' || !window.matchMedia) {
+		return false;
+	}
+
+	return window.matchMedia(query).matches;
+}
+
+function isDesktopClassIpad(): boolean {
+	if (typeof navigator === 'undefined') {
+		return false;
+	}
+
+	return (
+		navigator.maxTouchPoints > 1 &&
+		/\b(iPad|Macintosh)\b/.test(navigator.userAgent)
+	);
+}
+
+function shouldUseTouchAutocompleteSurface(isMobile: boolean): boolean {
+	return (
+		isMobile ||
+		matchesMediaQuery('(pointer: coarse)') ||
+		matchesMediaQuery('(hover: none)') ||
+		isDesktopClassIpad()
+	);
+}
+
+function useTouchAutocompleteSurface(isMobile: boolean): boolean {
+	const [shouldUseTouchSurface, setShouldUseTouchSurface] = useState(() =>
+		shouldUseTouchAutocompleteSurface(isMobile)
+	);
+
+	useEffect(() => {
+		const updateTouchSurface = () => {
+			setShouldUseTouchSurface(shouldUseTouchAutocompleteSurface(isMobile));
+		};
+
+		updateTouchSurface();
+
+		if (typeof window === 'undefined' || !window.matchMedia) {
+			return;
+		}
+
+		const mediaQueries = [
+			window.matchMedia('(pointer: coarse)'),
+			window.matchMedia('(hover: none)'),
+		];
+
+		for (const mediaQuery of mediaQueries) {
+			mediaQuery.addEventListener('change', updateTouchSurface);
+		}
+
+		return () => {
+			for (const mediaQuery of mediaQueries) {
+				mediaQuery.removeEventListener('change', updateTouchSurface);
+			}
+		};
+	}, [isMobile]);
+
+	return shouldUseTouchSurface;
+}
+
 export const QuickInput: FC<QuickInputProps> = ({
 	nodeType: initialNodeType,
 	parentNode,
@@ -182,6 +245,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 	onboardingSource,
 }) => {
 	const isMobile = useIsMobile();
+	const usesTouchAutocompleteSurface = useTouchAutocompleteSurface(isMobile);
 
 	// Local UI state
 	const [preview, setPreview] = useState<QuickInputPreview | null>(null);
@@ -284,7 +348,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 		onboardingPatternStep === 'pattern-editor' &&
 		hasSyntaxPatterns;
 	const showMobileCompletionTray =
-		isMobile &&
+		usesTouchAutocompleteSurface &&
 		autocompleteState.status === 'active' &&
 		autocompleteState.options.length > 0;
 
@@ -971,7 +1035,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 							onNodeTypeChange={handleNodeTypeChange}
 							onSelectionChange={handleSelectionChange}
 							placeholder={`Type naturally... ${config.examples?.[0] || ''}`}
-							showNativeAutocomplete={!isMobile}
+							showNativeAutocomplete={!usesTouchAutocompleteSurface}
 							value={value}
 						/>
 
