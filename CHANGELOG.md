@@ -5,6 +5,20 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-05-15]
+
+### Fixed
+
+- **node-editor/ipad-autocomplete-tray**: iPad/tablet touch viewports now use the visible React autocomplete tray instead of relying on the native CodeMirror popup, so suggestions remain visible while keyboard selection still works.
+  - Why: Desktop-width iPad Safari could keep autocomplete active but hide the visual popup.
+- **tooling/eslint-flat-config**: ESLint now imports Next.js 16 flat config exports directly instead of routing them through `FlatCompat`, pins the React lint setting to the app's React version, and keeps Jest test mock patterns out of production-only lint restrictions so CodeRabbit and local lint can load the config without crashing.
+  - Why: ESLint 10 legacy config validation is incompatible with the flat plugin objects exported by the current Next lint stack, and React version auto-detection still calls an ESLint 9-era rule-context API.
+
+### Docs
+
+- **node-editor/autocomplete-surface-contract**: Updated the documented autocomplete contract for touch-first iPad/tablet widths.
+- **tooling/eslint-flat-config-contract**: Documented the direct Next flat-config import requirement for future lint-stack updates.
+
 ## [2026-05-14]
 
 ### Changed

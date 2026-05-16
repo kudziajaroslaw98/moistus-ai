@@ -159,6 +159,10 @@ pnpm pretty          # Prettier
 
 <!-- Updated: 2026-04-09 - Documented CI pnpm version-source conflict guardrail -->
 
+**ESLint flat config**: Next.js 16's `eslint-config-next/*` exports flat config arrays. Import those exports directly in `eslint.config.mjs`; do not wrap them in `FlatCompat`, because ESLint 10 legacy config validation can crash on circular plugin objects from `eslint-plugin-react`. Keep `settings.react.version` explicit rather than `detect` while the current React plugin is on the ESLint 9-era context API.
+
+<!-- Updated: 2026-05-15 - Documented direct Next flat-config imports and explicit React version for ESLint 10 compatibility -->
+
 **LAN-safe local dev URLs**: Browser Supabase + PartyKit clients must derive from `window.location.hostname` whenever the configured public URL is loopback-only and the browser host is non-loopback (LAN device access), even if client `NODE_ENV` is unavailable. Keep server-side Supabase traffic on `SUPABASE_INTERNAL_URL` when local services stay on loopback, and do not reintroduce `NEXT_PUBLIC_APP_LOCAL_HREF` for browser fetches.
 
 <!-- Updated: 2026-04-12 - Documented LAN-safe browser-vs-server URL split and NODE_ENV-independent loopback-to-LAN derivation -->
@@ -188,9 +192,9 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 
 <!-- Updated: 2026-04-08 - Documented task-node hide-completed persistence and title round-trip contract -->
 
-**Node editor autocomplete surfaces**: Keep `createCompletions()` as the single source of autocomplete options. Desktop uses the native CodeMirror tooltip; mobile hides that tooltip and renders a hybrid presenter: a compact full-width strip attached to the open keyboard, or a caret-anchored floating panel when the keyboard is hidden. Any editor/modal outside-press guard must treat both `[data-node-editor-autocomplete-tray="true"]` and body-portaled `.cm-tooltip*` elements as inside-editor interactions so selecting a suggestion does not dismiss the editor.
+**Node editor autocomplete surfaces**: Keep `createCompletions()` as the single source of autocomplete options. Desktop pointer/hover contexts use the native CodeMirror tooltip; touch-first mobile/tablet/iPad contexts hide that tooltip and render a hybrid presenter, even when viewport width is desktop-sized: a compact full-width strip attached to the open keyboard, or a caret-anchored floating panel when the keyboard is hidden. Any editor/modal outside-press guard must treat both `[data-node-editor-autocomplete-tray="true"]` and body-portaled `.cm-tooltip*` elements as inside-editor interactions so selecting a suggestion does not dismiss the editor.
 
-<!-- Updated: 2026-03-28 - Documented the hybrid mobile autocomplete presenter and shared completion engine -->
+<!-- Updated: 2026-05-15 - Documented touch-qualified autocomplete presenter selection for iPad/tablet widths -->
 
 **Touch context menu fallback**: Do not rely on native `contextmenu` alone for mobile/iPad. Keep `useTouchContextMenuFallback` wired to the React Flow shell so touch long-press on `.react-flow__node[data-id]`, `.react-flow__edge[data-id]`, or `.react-flow__pane` opens the same context-menu store state path (`openContextMenuAt`) used by desktop right-click handlers. Preserve movement cancellation and trailing click/contextmenu suppression to avoid accidental immediate close/select side-effects after long-press activation.
 

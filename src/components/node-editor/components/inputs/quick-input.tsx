@@ -154,10 +154,7 @@ function sanitizeMentionableUsers(users: unknown[]): MentionableUser[] {
 }
 
 // Helper function to determine if we should auto-process node type switch
-const shouldAutoProcessSwitch = (
-	text: string,
-	currentNodeType?: string
-): boolean => {
+const shouldAutoProcessSwitch = (text: string): boolean => {
 	// Check if text contains a node type trigger (e.g., $task, $note) anywhere
 	// Pattern matches $command followed by space or end of string
 	const nodeTypeTriggerPattern = /\$(\w+)(\s|$)/;
@@ -172,6 +169,69 @@ const shouldAutoProcessSwitch = (
 	return !!command?.nodeType;
 };
 
+function matchesMediaQuery(query: string): boolean {
+	if (typeof window === 'undefined' || !window.matchMedia) {
+		return false;
+	}
+
+	return window.matchMedia(query).matches;
+}
+
+function isDesktopClassIpad(): boolean {
+	if (typeof navigator === 'undefined') {
+		return false;
+	}
+
+	return (
+		navigator.maxTouchPoints > 1 &&
+		/\b(iPad|Macintosh)\b/.test(navigator.userAgent)
+	);
+}
+
+function shouldUseTouchAutocompleteSurface(isMobile: boolean): boolean {
+	return (
+		isMobile ||
+		matchesMediaQuery('(pointer: coarse)') ||
+		matchesMediaQuery('(hover: none)') ||
+		isDesktopClassIpad()
+	);
+}
+
+function useTouchAutocompleteSurface(isMobile: boolean): boolean {
+	const [shouldUseTouchSurface, setShouldUseTouchSurface] = useState(() =>
+		shouldUseTouchAutocompleteSurface(isMobile)
+	);
+
+	useEffect(() => {
+		const updateTouchSurface = () => {
+			setShouldUseTouchSurface(shouldUseTouchAutocompleteSurface(isMobile));
+		};
+
+		updateTouchSurface();
+
+		if (typeof window === 'undefined' || !window.matchMedia) {
+			return;
+		}
+
+		const mediaQueries = [
+			window.matchMedia('(pointer: coarse)'),
+			window.matchMedia('(hover: none)'),
+		];
+
+		for (const mediaQuery of mediaQueries) {
+			mediaQuery.addEventListener('change', updateTouchSurface);
+		}
+
+		return () => {
+			for (const mediaQuery of mediaQueries) {
+				mediaQuery.removeEventListener('change', updateTouchSurface);
+			}
+		};
+	}, [isMobile]);
+
+	return shouldUseTouchSurface;
+}
+
 export const QuickInput: FC<QuickInputProps> = ({
 	nodeType: initialNodeType,
 	parentNode,
@@ -182,6 +242,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 	onboardingSource,
 }) => {
 	const isMobile = useIsMobile();
+	const usesTouchAutocompleteSurface = useTouchAutocompleteSurface(isMobile);
 
 	// Local UI state
 	const [preview, setPreview] = useState<QuickInputPreview | null>(null);
@@ -284,7 +345,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 		onboardingPatternStep === 'pattern-editor' &&
 		hasSyntaxPatterns;
 	const showMobileCompletionTray =
-		isMobile &&
+		usesTouchAutocompleteSurface &&
 		autocompleteState.status === 'active' &&
 		autocompleteState.options.length > 0;
 
@@ -507,7 +568,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 		// Only use legacy processing if commands are disabled or as fallback
 		// The primary processing should happen via CodeMirror events
-		if (shouldAutoProcessSwitch(value, currentNodeType)) {
+		if (shouldAutoProcessSwitch(value)) {
 			const processed = processNodeTypeSwitch(value);
 
 			if (
@@ -893,10 +954,10 @@ export const QuickInput: FC<QuickInputProps> = ({
 		>
 			<Tabs
 				className='flex h-full min-h-0 flex-col gap-0'
+				value={rightPanelTab}
 				onValueChange={(nextValue) =>
 					setRightPanelTab(nextValue as RightPanelTab)
 				}
-				value={rightPanelTab}
 			>
 				<div
 					className='grid shrink-0 grid-cols-1 sm:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]'
@@ -971,7 +1032,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 							onNodeTypeChange={handleNodeTypeChange}
 							onSelectionChange={handleSelectionChange}
 							placeholder={`Type naturally... ${config.examples?.[0] || ''}`}
-							showNativeAutocomplete={!isMobile}
+							showNativeAutocomplete={!usesTouchAutocompleteSurface}
 							value={value}
 						/>
 
@@ -1023,14 +1084,14 @@ export const QuickInput: FC<QuickInputProps> = ({
 									nodeSpecificPatterns={nodeSpecificPatterns}
 									onPatternClick={handlePatternInsert}
 									onToggleCollapse={handleLegendCollapseToggle}
+									universalPatterns={universalPatterns}
+									variant='panel'
 									onToggleNodeSpecificCollapse={
 										handleNodeSpecificLegendCollapseToggle
 									}
 									onToggleUniversalCollapse={
 										handleUniversalLegendCollapseToggle
 									}
-									universalPatterns={universalPatterns}
-									variant='panel'
 								/>
 							) : (
 								<div className='rounded-sm bg-zinc-950/20 p-4 text-xs leading-5 text-zinc-500'>
@@ -1068,6 +1129,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 							className='mx-4 mb-3 flex shrink-0 items-center gap-2 rounded-sm bg-amber-500/10 p-3 text-amber-400'
 						>
 							<AlertCircle className='w-4 h-4 shrink-0' />
+
 							<span className='text-sm'>
 								{nodeLimitMessage ||
 									(nodeLimitInfo
@@ -1079,16 +1141,16 @@ export const QuickInput: FC<QuickInputProps> = ({
 
 				<div className='shrink-0' data-testid='quick-input-footer-row'>
 					<ActionBar
-						canCreate={
-							value.trim().length > 0 &&
-							(!isCreateMode ||
-								(!isCreateBlockedByNodeLimit && !isCreateLimitCheckLoading))
-						}
 						className='mt-0 border-t border-zinc-800/80 px-4 py-3'
 						isCreating={isCreating}
 						isCheckingLimit={isCreateLimitCheckLoading}
 						mode={mode}
 						onCreate={handleCreate}
+						canCreate={
+							value.trim().length > 0 &&
+							(!isCreateMode ||
+								(!isCreateBlockedByNodeLimit && !isCreateLimitCheckLoading))
+						}
 					/>
 				</div>
 			</Tabs>
