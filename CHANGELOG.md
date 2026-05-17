@@ -15,6 +15,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ### Fixed
 
 - **layout/menu-group-context**: Wrapped the experimental layout menu label and items in a menu group so Base UI has the required group context at runtime
+- **layout/radial-tree-shaping**: Radial Tree layout now spreads disconnected, multi-root, and cyclic maps instead of collapsing nodes or overflowing the ELK call stack
+  - Why: ELK radial expects tree-shaped input, so the app now sends a temporary layout-only spanning tree when needed
 
 ## [2026-04-22]
 

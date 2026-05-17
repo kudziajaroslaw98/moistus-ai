@@ -3,6 +3,7 @@ import {
 	LAYOUT_PRESETS,
 	buildLayoutOptions,
 	getRecommendedCurveType,
+	usesRadialLayout,
 	usesElkEdgeLabels,
 } from '../elk-config';
 
@@ -68,6 +69,7 @@ describe('elk-config layout presets', () => {
 			}
 			expect(usesElkEdgeLabels(config)).toBe(false);
 			expect(getRecommendedCurveType(config)).toBe('linear');
+			expect(usesRadialLayout(config)).toBe(presetId === 'radial-tree');
 		}
 	});
 

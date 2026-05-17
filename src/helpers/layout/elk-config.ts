@@ -259,6 +259,13 @@ export function usesElkEdgeLabels(config: LayoutConfig): boolean {
 	return getLayoutPresetDefinition(config.presetId)?.edgeLabelStrategy !== 'path';
 }
 
+export function usesRadialLayout(config: LayoutConfig): boolean {
+	return (
+		getLayoutPresetDefinition(config.presetId)?.algorithm ===
+		'org.eclipse.elk.radial'
+	);
+}
+
 /**
  * Get recommended curve type based on layout direction
  * Different directions look better with different curve types
