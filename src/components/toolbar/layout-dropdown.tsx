@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import {
 	DropdownMenu,
 	DropdownMenuContent,
+	DropdownMenuGroup,
 	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuRadioGroup,
@@ -126,22 +127,24 @@ export function LayoutMenuContent() {
 			</DropdownMenuRadioGroup>
 
 			<DropdownMenuSeparator />
-			<DropdownMenuLabel className='text-xs text-muted-foreground'>
-				Experiments
-			</DropdownMenuLabel>
-			{LAYOUT_PRESETS.map((preset) => (
-				<DropdownMenuItem
-					key={preset.id}
-					onClick={() => handleLayoutPresetSelect(preset.id)}
-					disabled={isLayouting}
-					title={preset.description}
-				>
-					<span className='flex items-center gap-2'>
-						{getPresetIcon(preset.id)}
-						{preset.label}
-					</span>
-				</DropdownMenuItem>
-			))}
+			<DropdownMenuGroup>
+				<DropdownMenuLabel className='text-xs text-muted-foreground'>
+					Experiments
+				</DropdownMenuLabel>
+				{LAYOUT_PRESETS.map((preset) => (
+					<DropdownMenuItem
+						key={preset.id}
+						onClick={() => handleLayoutPresetSelect(preset.id)}
+						disabled={isLayouting}
+						title={preset.description}
+					>
+						<span className='flex items-center gap-2'>
+							{getPresetIcon(preset.id)}
+							{preset.label}
+						</span>
+					</DropdownMenuItem>
+				))}
+			</DropdownMenuGroup>
 
 			{canLayoutSelected && (
 				<>

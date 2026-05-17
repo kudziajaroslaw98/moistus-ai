@@ -12,6 +12,10 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **layout/experimental-presets**: Added session-only ELK layout presets for roomier branches, tree layouts, radial trees, and organic spread so maps can be rearranged and compared from the layout menu
   - Why: Users can explore different graph arrangements without changing the saved map layout direction setting
 
+### Fixed
+
+- **layout/menu-group-context**: Wrapped the experimental layout menu label and items in a menu group so Base UI has the required group context at runtime
+
 ## [2026-04-22]
 
 ### Fixed

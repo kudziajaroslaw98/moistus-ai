@@ -17,6 +17,9 @@ jest.mock('@/components/ui/button', () => ({
 }));
 
 jest.mock('@/components/ui/dropdown-menu', () => ({
+	DropdownMenuGroup: ({ children }: { children: ReactNode }) => (
+		<div>{children}</div>
+	),
 	DropdownMenuRadioGroup: ({ children }: { children: ReactNode }) => (
 		<div>{children}</div>
 	),
