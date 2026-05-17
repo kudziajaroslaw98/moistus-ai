@@ -4,6 +4,7 @@
  */
 
 import { runElkLayout } from '@/helpers/layout/elk-worker-client';
+import { getLayoutPresetLabel } from '@/helpers/layout/elk-config';
 import {
 	applyLocalCreateBranchReflow,
 	applyLocalEditBranchReflow,
@@ -28,6 +29,7 @@ import {
 	type LayoutAnimationReason,
 	type LayoutConfig,
 	type LayoutDirection,
+	type LayoutPresetId,
 	type LayoutSlice,
 } from '@/types/layout-types';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -64,6 +66,17 @@ function schedulePendingLocalResizeExpiry(nodeId: string): void {
 type LayoutSet = Parameters<StateCreator<AppState, [], [], LayoutSlice>>[0];
 type LayoutGet = Parameters<StateCreator<AppState, [], [], LayoutSlice>>[1];
 
+interface ApplyFullLayoutParams {
+	set: LayoutSet;
+	get: LayoutGet;
+	effectiveConfig: LayoutConfig;
+	toastLabel: string;
+	successMessage: string;
+	historyEventName: string;
+	persistDirection?: LayoutDirection;
+	onSuccess?: () => void;
+}
+
 function setLayoutAnimationSignal(
 	set: LayoutSet,
 	reason: LayoutAnimationReason,
@@ -76,6 +89,143 @@ function setLayoutAnimationSignal(
 		animatedNodeIds: Array.from(new Set(nodeIds)),
 		animatedEdgeIds: Array.from(new Set(edgeIds)),
 	}));
+}
+
+async function applyFullLayout({
+	set,
+	get,
+	effectiveConfig,
+	toastLabel,
+	successMessage,
+	historyEventName,
+	persistDirection,
+	onSuccess,
+}: ApplyFullLayoutParams): Promise<void> {
+	const {
+		nodes,
+		edges,
+		setMindMapContent,
+		persistDeltaEvent,
+		layoutConfig,
+		isLayouting,
+		setLoadingStates,
+		supabase,
+		mapId,
+		currentUser,
+	} = get();
+
+	if (isLayouting) {
+		toast.info('Layout already in progress...');
+		return;
+	}
+
+	if (nodes.length === 0) {
+		toast.info('No nodes to layout');
+		return;
+	}
+
+	const prevNodes = [...nodes];
+	const prevEdges = [...edges];
+
+	set({ isLayouting: true, layoutError: null });
+	setLoadingStates?.({ isStateLoading: true });
+
+	const toastId = toast.loading(toastLabel);
+
+	try {
+		const result = await runElkLayout({
+			nodes,
+			edges,
+			config: effectiveConfig,
+		});
+
+		setMindMapContent({ nodes: result.nodes, edges: result.edges });
+		if (effectiveConfig.animateTransition) {
+			setLayoutAnimationSignal(
+				set,
+				'full',
+				result.nodes.map((node) => node.id),
+				result.edges.map((edge) => edge.id)
+			);
+		}
+
+		if (mapId) {
+			await replaceGraphState(mapId, {
+				event: historyEventName,
+				actorId: currentUser?.id ?? null,
+				nodes: result.nodes.map((node) => {
+					const actorId = getNodeActorId(node, currentUser?.id);
+					return serializeNodeForRealtime(node, mapId, actorId);
+				}),
+				edges: result.edges
+					.map((edge) => {
+						const actorId = getEdgeActorId(edge, currentUser?.id);
+						return serializeEdgeForRealtime(edge, mapId, actorId);
+					})
+					.filter((edge): edge is Record<string, unknown> => edge !== null),
+			});
+
+			if (supabase) {
+				await Promise.all([
+					batchUpdateNodePositions(result.nodes, supabase, mapId),
+					batchUpdateEdgeMetadata(result.edges, supabase, mapId),
+				]);
+			}
+		}
+
+		await persistDeltaEvent(
+			historyEventName,
+			{ nodes: prevNodes, edges: prevEdges },
+			{ nodes: result.nodes, edges: result.edges }
+		);
+
+		if (persistDirection && persistDirection !== layoutConfig.direction) {
+			set((state) => ({
+				layoutConfig: {
+					...state.layoutConfig,
+					direction: persistDirection,
+					presetId: undefined,
+				},
+				mindMap: state.mindMap
+					? { ...state.mindMap, layout_direction: persistDirection }
+					: state.mindMap,
+			}));
+
+			if (mapId) {
+				try {
+					const updatedMindMap = await persistLayoutDirection(
+						mapId,
+						persistDirection
+					);
+					if (updatedMindMap) {
+						set((state) => ({
+							mindMap: updatedMindMap,
+							layoutConfig: {
+								...state.layoutConfig,
+								direction:
+									updatedMindMap.layout_direction ?? persistDirection,
+								presetId: undefined,
+							},
+						}));
+					}
+				} catch (error) {
+					console.warn('Failed to persist layout direction:', error);
+				}
+			}
+		}
+
+		onSuccess?.();
+		set({ lastLayoutTimestamp: Date.now() });
+		toast.success(successMessage, { id: toastId });
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : 'Layout failed';
+		set({ layoutError: errorMessage });
+		toast.error(errorMessage, { id: toastId });
+		console.error('Layout error:', error);
+	} finally {
+		set({ isLayouting: false });
+		setLoadingStates?.({ isStateLoading: false });
+	}
 }
 
 /**
@@ -153,131 +303,52 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 	},
 
 	applyLayout: async (direction?: LayoutDirection) => {
-		const {
-			nodes,
-			edges,
-			setMindMapContent,
-			persistDeltaEvent,
-			layoutConfig,
-			isLayouting,
-			setLoadingStates,
-			supabase,
-			mapId,
-			currentUser,
-		} = get();
-
-		if (isLayouting) {
-			toast.info('Layout already in progress...');
-			return;
-		}
-
-		if (nodes.length === 0) {
-			toast.info('No nodes to layout');
-			return;
-		}
-
-		const prevNodes = [...nodes];
-		const prevEdges = [...edges];
+		const { layoutConfig } = get();
 		const effectiveConfig: LayoutConfig = {
 			...layoutConfig,
 			direction: direction ?? layoutConfig.direction,
+			presetId: undefined,
 		};
 
-		set({ isLayouting: true, layoutError: null });
-		setLoadingStates?.({ isStateLoading: true });
-
-		const toastId = toast.loading(
-			`Applying ${getDirectionLabel(effectiveConfig.direction)} layout...`
-		);
-
-		try {
-			const result = await runElkLayout({
-				nodes,
-				edges,
-				config: effectiveConfig,
-			});
-
-			setMindMapContent({ nodes: result.nodes, edges: result.edges });
-			if (effectiveConfig.animateTransition) {
-				setLayoutAnimationSignal(
-					set,
-					'full',
-					result.nodes.map((node) => node.id),
-					result.edges.map((edge) => edge.id)
-				);
-			}
-
-			if (mapId) {
-				await replaceGraphState(mapId, {
-					event: 'layout:apply',
-					actorId: currentUser?.id ?? null,
-					nodes: result.nodes.map((node) => {
-						const actorId = getNodeActorId(node, currentUser?.id);
-						return serializeNodeForRealtime(node, mapId, actorId);
-					}),
-					edges: result.edges
-						.map((edge) => {
-							const actorId = getEdgeActorId(edge, currentUser?.id);
-							return serializeEdgeForRealtime(edge, mapId, actorId);
-						})
-						.filter((edge): edge is Record<string, unknown> => edge !== null),
-				});
-
-				if (supabase) {
-					await Promise.all([
-						batchUpdateNodePositions(result.nodes, supabase, mapId),
-						batchUpdateEdgeMetadata(result.edges, supabase, mapId),
-					]);
+		await applyFullLayout({
+			set,
+			get,
+			effectiveConfig,
+			toastLabel: `Applying ${getDirectionLabel(effectiveConfig.direction)} layout...`,
+			successMessage: 'Layout applied successfully',
+			historyEventName: 'applyLayout',
+			persistDirection: direction,
+			onSuccess: () => {
+				if (!direction || direction === layoutConfig.direction) {
+					set((state) => ({
+						layoutConfig: { ...state.layoutConfig, presetId: undefined },
+					}));
 				}
-			}
+			},
+		});
+	},
 
-			await persistDeltaEvent(
-				'applyLayout',
-				{ nodes: prevNodes, edges: prevEdges },
-				{ nodes: result.nodes, edges: result.edges }
-			);
+	applyLayoutPreset: async (presetId: LayoutPresetId) => {
+		const { layoutConfig } = get();
+		const effectiveConfig: LayoutConfig = {
+			...layoutConfig,
+			presetId,
+		};
+		const presetLabel = getLayoutPresetLabel(presetId);
 
-			if (direction && direction !== layoutConfig.direction) {
+		await applyFullLayout({
+			set,
+			get,
+			effectiveConfig,
+			toastLabel: `Applying ${presetLabel} layout...`,
+			successMessage: `${presetLabel} layout applied`,
+			historyEventName: 'applyLayoutPreset',
+			onSuccess: () => {
 				set((state) => ({
-					layoutConfig: { ...state.layoutConfig, direction },
-					mindMap: state.mindMap
-						? { ...state.mindMap, layout_direction: direction }
-						: state.mindMap,
+					layoutConfig: { ...state.layoutConfig, presetId },
 				}));
-
-				if (mapId) {
-					try {
-						const updatedMindMap = await persistLayoutDirection(
-							mapId,
-							direction
-						);
-						if (updatedMindMap) {
-							set((state) => ({
-								mindMap: updatedMindMap,
-								layoutConfig: {
-									...state.layoutConfig,
-									direction: updatedMindMap.layout_direction ?? direction,
-								},
-							}));
-						}
-					} catch (error) {
-						console.warn('Failed to persist layout direction:', error);
-					}
-				}
-			}
-
-			set({ lastLayoutTimestamp: Date.now() });
-			toast.success('Layout applied successfully', { id: toastId });
-		} catch (error) {
-			const errorMessage =
-				error instanceof Error ? error.message : 'Layout failed';
-			set({ layoutError: errorMessage });
-			toast.error(errorMessage, { id: toastId });
-			console.error('Layout error:', error);
-		} finally {
-			set({ isLayouting: false });
-			setLoadingStates?.({ isStateLoading: false });
-		}
+			},
+		});
 	},
 
 	applyLayoutToSelected: async () => {
@@ -308,6 +379,10 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 		const prevNodes = [...nodes];
 		const prevEdges = [...edges];
 		const selectedNodeIds = new Set(selectedNodes.map((node) => node.id));
+		const selectedLayoutConfig: LayoutConfig = {
+			...layoutConfig,
+			presetId: undefined,
+		};
 
 		set({ isLayouting: true, layoutError: null });
 		setLoadingStates?.({ isStateLoading: true });
@@ -320,12 +395,12 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 			const result = await runElkLayout({
 				nodes,
 				edges,
-				config: layoutConfig,
+				config: selectedLayoutConfig,
 				selectedNodeIds,
 			});
 
 			setMindMapContent({ nodes: result.nodes, edges: result.edges });
-			if (layoutConfig.animateTransition) {
+			if (selectedLayoutConfig.animateTransition) {
 				setLayoutAnimationSignal(
 					set,
 					'full',

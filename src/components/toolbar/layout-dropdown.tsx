@@ -10,20 +10,25 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuLabel,
 	DropdownMenuRadioGroup,
 	DropdownMenuRadioItem,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { LAYOUT_PRESETS } from '@/helpers/layout/elk-config';
 import useAppStore from '@/store/mind-map-store';
-import type { LayoutDirection } from '@/types/layout-types';
+import type { LayoutDirection, LayoutPresetId } from '@/types/layout-types';
 import { cn } from '@/utils/cn';
 import {
 	ArrowDown,
 	ArrowRight,
 	CheckSquare,
+	Circle,
+	GitBranch,
 	LayoutGrid,
 	Loader2,
+	Move,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useShallow } from 'zustand/shallow';
@@ -46,10 +51,26 @@ const layoutDirections: {
 	},
 ];
 
+function getPresetIcon(presetId: LayoutPresetId): ReactNode {
+	switch (presetId) {
+		case 'roomy-branches':
+			return <LayoutGrid className='size-4' />;
+		case 'tree-right':
+			return <GitBranch className='size-4 rotate-90' />;
+		case 'tree-down':
+			return <GitBranch className='size-4' />;
+		case 'radial-tree':
+			return <Circle className='size-4' />;
+		case 'organic-spread':
+			return <Move className='size-4' />;
+	}
+}
+
 export function LayoutMenuContent() {
 	const {
 		layoutConfig,
 		applyLayout,
+		applyLayoutPreset,
 		applyLayoutToSelected,
 		isLayouting,
 		selectedNodes,
@@ -57,6 +78,7 @@ export function LayoutMenuContent() {
 		useShallow((state) => ({
 			layoutConfig: state.layoutConfig,
 			applyLayout: state.applyLayout,
+			applyLayoutPreset: state.applyLayoutPreset,
 			applyLayoutToSelected: state.applyLayoutToSelected,
 			isLayouting: state.isLayouting,
 			selectedNodes: state.selectedNodes,
@@ -66,6 +88,10 @@ export function LayoutMenuContent() {
 	// Handle layout direction selection - immediately applies layout
 	const handleLayoutSelect = (direction: string) => {
 		applyLayout(direction as LayoutDirection);
+	};
+
+	const handleLayoutPresetSelect = (presetId: LayoutPresetId) => {
+		applyLayoutPreset(presetId);
 	};
 
 	// Handle layout selected only
@@ -98,6 +124,24 @@ export function LayoutMenuContent() {
 					</DropdownMenuRadioItem>
 				))}
 			</DropdownMenuRadioGroup>
+
+			<DropdownMenuSeparator />
+			<DropdownMenuLabel className='text-xs text-muted-foreground'>
+				Experiments
+			</DropdownMenuLabel>
+			{LAYOUT_PRESETS.map((preset) => (
+				<DropdownMenuItem
+					key={preset.id}
+					onClick={() => handleLayoutPresetSelect(preset.id)}
+					disabled={isLayouting}
+					title={preset.description}
+				>
+					<span className='flex items-center gap-2'>
+						{getPresetIcon(preset.id)}
+						{preset.label}
+					</span>
+				</DropdownMenuItem>
+			))}
 
 			{canLayoutSelected && (
 				<>

@@ -5,6 +5,13 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-05-17]
+
+### Added
+
+- **layout/experimental-presets**: Added session-only ELK layout presets for roomier branches, tree layouts, radial trees, and organic spread so maps can be rearranged and compared from the layout menu
+  - Why: Users can explore different graph arrangements without changing the saved map layout direction setting
+
 ## [2026-04-22]
 
 ### Fixed

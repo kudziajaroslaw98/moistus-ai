@@ -22,6 +22,7 @@ import {
 	buildGroupLayoutOptions,
 	buildLayoutOptions,
 	getRecommendedCurveType,
+	usesElkEdgeLabels,
 } from './elk-config';
 import { measureElkEdgeLabel } from './elk-edge-label-measurement';
 
@@ -245,6 +246,7 @@ export function convertToElkGraph(
 	}
 
 	// Create root graph
+	const includeEdgeLabels = usesElkEdgeLabels(config);
 	const elkGraph: ElkNode = {
 		id: 'root',
 		layoutOptions: buildLayoutOptions(config),
@@ -268,7 +270,7 @@ export function convertToElkGraph(
 			height: group.measured?.height ?? group.height ?? DEFAULT_NODE_HEIGHT,
 			layoutOptions: buildGroupLayoutOptions(),
 			children: childNodes.map((n) => convertNodeToElk(n)),
-			edges: internalEdges.map((e) => convertEdgeToElk(e)),
+			edges: internalEdges.map((e) => convertEdgeToElk(e, includeEdgeLabels)),
 		});
 	}
 
@@ -294,7 +296,7 @@ export function convertToElkGraph(
 		);
 	});
 
-	elkGraph.edges = rootEdges.map((e) => convertEdgeToElk(e));
+	elkGraph.edges = rootEdges.map((e) => convertEdgeToElk(e, includeEdgeLabels));
 
 	return elkGraph;
 }
@@ -314,14 +316,14 @@ function convertNodeToElk(node: AppNode): ElkNode {
 /**
  * Convert a single React Flow edge to ELK edge format
  */
-function convertEdgeToElk(edge: AppEdge): ElkEdge {
+function convertEdgeToElk(edge: AppEdge, includeLabels: boolean): ElkEdge {
 	const labelText = getEdgeLabelText(edge);
 
 	return {
 		id: edge.id,
 		sources: [edge.source],
 		targets: [edge.target],
-		...(labelText && {
+		...(includeLabels && labelText && {
 			labels: [convertEdgeLabelToElk(edge, labelText)],
 		}),
 	};
@@ -345,15 +347,17 @@ export function convertFromElkGraph(
 	extractPositions(elkGraph, 0, 0, positionMap);
 
 	// Extract edge layout data (waypoints AND anchors)
+	const includeElkLabels = usesElkEdgeLabels(config);
 	extractEdgeLayoutData(
 		elkGraph,
 		edgeLayoutDataMap,
 		positionMap,
-		originalNodes
+		originalNodes,
+		includeElkLabels
 	);
 
 	// Get recommended curve type for this layout direction
-	const curveType = getRecommendedCurveType(config.direction);
+	const curveType = getRecommendedCurveType(config);
 
 	// Update nodes with new positions
 	const updatedNodes: AppNode[] = originalNodes.map((node) => {
@@ -469,7 +473,8 @@ function extractEdgeLayoutData(
 	elkNode: ElkNode,
 	edgeDataMap: Map<string, ElkEdgeLayoutData>,
 	positionMap: Map<string, { x: number; y: number }>,
-	originalNodes: AppNode[]
+	originalNodes: AppNode[],
+	includeElkLabels: boolean
 ): void {
 	// Process edges at this level
 	if (elkNode.edges) {
@@ -484,7 +489,8 @@ function extractEdgeLayoutData(
 				sourceNodeId,
 				targetNodeId,
 				positionMap,
-				originalNodes
+				originalNodes,
+				includeElkLabels
 			);
 
 			// Store if we got meaningful data (waypoints or anchors)
@@ -501,7 +507,13 @@ function extractEdgeLayoutData(
 	// Recursively process children
 	if (elkNode.children) {
 		for (const child of elkNode.children) {
-			extractEdgeLayoutData(child, edgeDataMap, positionMap, originalNodes);
+			extractEdgeLayoutData(
+				child,
+				edgeDataMap,
+				positionMap,
+				originalNodes,
+				includeElkLabels
+			);
 		}
 	}
 }
@@ -516,13 +528,16 @@ function extractWaypointsAndAnchors(
 	sourceNodeId: string,
 	targetNodeId: string,
 	positionMap: Map<string, { x: number; y: number }>,
-	originalNodes: AppNode[]
+	originalNodes: AppNode[],
+	includeElkLabels: boolean
 ): ElkEdgeLayoutData {
 	const result: ElkEdgeLayoutData = {
 		waypoints: [],
 		sourceAnchor: undefined,
 		targetAnchor: undefined,
-		elkLabel: extractElkLabelLayout(elkLabels, sections),
+		elkLabel: includeElkLabels
+			? extractElkLabelLayout(elkLabels, sections)
+			: undefined,
 	};
 
 	if (!sections || sections.length === 0) {
@@ -540,15 +555,13 @@ function extractWaypointsAndAnchors(
 			);
 		}
 
-		// Add bend points as waypoints
-		if (section.bendPoints) {
-			for (const bend of section.bendPoints) {
-				result.waypoints.push({
-					id: generateUuid(),
-					x: bend.x,
-					y: bend.y,
-				});
-			}
+		// Add bend points as waypoints, ignoring duplicate section endpoints.
+		for (const bend of getNormalizedBendPoints(section)) {
+			result.waypoints.push({
+				id: generateUuid(),
+				x: bend.x,
+				y: bend.y,
+			});
 		}
 
 		// Extract endPoint as targetAnchor (last section's endPoint wins)
@@ -566,6 +579,34 @@ function extractWaypointsAndAnchors(
 	result.waypoints = optimizeWaypoints(result.waypoints);
 
 	return result;
+}
+
+function getNormalizedBendPoints(section: ElkEdgeSection): Point2D[] {
+	const normalizedBends: Point2D[] = [];
+	const startPoint = isFinitePoint(section.startPoint)
+		? section.startPoint
+		: undefined;
+	const endPoint = isFinitePoint(section.endPoint) ? section.endPoint : undefined;
+	let previousPoint = startPoint;
+
+	for (const bend of section.bendPoints ?? []) {
+		if (!isFinitePoint(bend)) {
+			continue;
+		}
+
+		if (previousPoint && pointsAreEqual(bend, previousPoint)) {
+			continue;
+		}
+
+		if (endPoint && pointsAreEqual(bend, endPoint)) {
+			continue;
+		}
+
+		normalizedBends.push(bend);
+		previousPoint = bend;
+	}
+
+	return normalizedBends;
 }
 
 /**
