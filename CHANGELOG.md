@@ -20,6 +20,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: A browser return from checkout alone is not proof that paid access is ready
 - **billing/checkout-errors**: Checkout retries now describe missing billing setup, rejected provider credentials, and unavailable plans without exposing provider responses
   - Why: People can distinguish a retryable checkout problem from local billing configuration that needs attention
+- **billing/webhook-persistence**: Polar subscription webhooks now persist correctly when a database uses a partial unique subscription-ID index, and safely tolerate delivery events arriving out of order
+  - Why: A completed checkout can now activate Pro access instead of failing during webhook persistence
 - **e2e/anonymous-upgrade**: Upgrade page objects and flow tests now follow email → password → OTP → completion
   - Why: The previous tests described a stale, impossible OTP-first journey
 

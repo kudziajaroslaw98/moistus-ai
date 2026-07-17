@@ -153,29 +153,46 @@ async function handleSubscriptionActive(data: SubscriptionData) {
 		throw new Error(`[Polar] Plan not found in database: ${planName}`);
 	}
 
-	// Upsert subscription record
-	const { error } = await supabase.from('user_subscriptions').upsert(
-		{
-			user_id: userId,
-			plan_id: plan.id,
-			polar_subscription_id: data.id,
-			polar_customer_id: customerId,
-			status: 'active',
-			current_period_start: currentPeriodStart.toISOString(),
-			current_period_end: currentPeriodEnd.toISOString(),
-			cancel_at_period_end: false,
-			metadata: {
-				polar_product_id: data.productId,
-				billing_interval: mapBillingInterval(data.recurringInterval || 'month'),
-				amount: data.amount,
-				currency: data.currency,
-			},
-			updated_at: new Date().toISOString(),
+	const subscriptionRecord = {
+		user_id: userId,
+		plan_id: plan.id,
+		polar_subscription_id: data.id,
+		polar_customer_id: customerId,
+		status: 'active',
+		current_period_start: currentPeriodStart.toISOString(),
+		current_period_end: currentPeriodEnd.toISOString(),
+		cancel_at_period_end: false,
+		metadata: {
+			polar_product_id: data.productId,
+			billing_interval: mapBillingInterval(data.recurringInterval || 'month'),
+			amount: data.amount,
+			currency: data.currency,
 		},
-		{
-			onConflict: 'polar_subscription_id',
-		}
-	);
+		updated_at: new Date().toISOString(),
+	};
+
+	// The historical schema used a partial unique index for this column. PostgREST
+	// cannot target a partial index with `ON CONFLICT (polar_subscription_id)`, so
+	// resolve an existing row explicitly and retain compatibility with both schemas.
+	const { data: existingSubscription, error: existingSubscriptionError } =
+		await supabase
+			.from('user_subscriptions')
+			.select('id')
+			.eq('polar_subscription_id', data.id)
+			.maybeSingle();
+
+	if (existingSubscriptionError) {
+		throw new Error(
+			`[Polar] Failed to find subscription before persistence: ${existingSubscriptionError.message}`
+		);
+	}
+
+	const { error } = existingSubscription
+		? await supabase
+				.from('user_subscriptions')
+				.update(subscriptionRecord)
+				.eq('id', existingSubscription.id)
+		: await supabase.from('user_subscriptions').insert(subscriptionRecord);
 
 	if (error) {
 		// Throw to signal failure - Polar will retry the webhook
@@ -214,7 +231,10 @@ async function handleSubscriptionUpdated(data: SubscriptionData) {
 	}
 
 	if (!existingSubscription) {
-		throw new Error(`[Polar] Subscription not found for update: ${data.id}`);
+		// Webhook delivery is not ordered. Persist a subscription.updated event that
+		// arrives before its subscription.created/subscription.active counterpart.
+		await handleSubscriptionActive(data);
+		return;
 	}
 
 	const currentPeriodStart = data.currentPeriodStart
