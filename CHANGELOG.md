@@ -14,6 +14,15 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **layout/organic-spread**: Organic Spread now uses a compact deterministic force configuration and falls back to a compact layout when ELK returns unusable geometry
   - Why: Large maps stay readable even when force layout cannot produce distinct valid positions
 
+### Changed
+
+- **layout/menu-labels**: The layout menu now groups choices by family: `Linear`, `Layered`, `Tree`, and `Radial`
+
+### Removed
+
+- **layout/organic-spread**: Removed Organic Spread from the layout menu and layout engine
+  - Why: The force-based result was not reliably readable for real maps
+
 ## [2026-05-17]
 
 ### Added

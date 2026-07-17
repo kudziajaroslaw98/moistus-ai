@@ -2,7 +2,6 @@ import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import type { LayoutConfig } from '@/types/layout-types';
 import {
-	runCompactForestFallback,
 	runDirectionalForestLayout,
 	runRadialBalloonLayout,
 } from '../experimental-forest-layout';
@@ -240,36 +239,6 @@ describe('experimental forest layouts', () => {
 		);
 	});
 
-	it('uses compact deterministic fallback geometry and clears stale ELK metadata', () => {
-		const graph = createChainGraph();
-		const first = runCompactForestFallback(
-			graph.nodes,
-			graph.edges,
-			LAYOUT_CONFIG
-		);
-		const second = runCompactForestFallback(
-			graph.nodes,
-			graph.edges,
-			LAYOUT_CONFIG
-		);
-		const xValues = first.nodes.map((node) => node.position.x);
-		const yValues = first.nodes.map((node) => node.position.y);
-
-		expectFiniteUniquePositions(first.nodes);
-		expect(Math.max(...xValues) - Math.min(...xValues)).toBeLessThan(2_000);
-		expect(Math.max(...yValues) - Math.min(...yValues)).toBeLessThan(2_000);
-		expect(first.nodes.map((node) => node.position)).toEqual(
-			second.nodes.map((node) => node.position)
-		);
-		expect(first.edges[0]).toMatchObject({ type: 'waypointEdge' });
-		expect(first.edges[0]?.data?.metadata).toMatchObject({
-			pathType: 'waypoint',
-			curveType: 'linear',
-			routingStyle: 'custom-layout',
-		});
-		expect(first.edges[0]?.data?.metadata?.waypoints).toBeUndefined();
-		expect(first.edges[0]?.data?.metadata?.elkLabel).toBeUndefined();
-	});
 });
 
 function getCenter(position: { x: number; y: number }): {

@@ -58,18 +58,23 @@ describe('LayoutMenuContent', () => {
 		mockStoreState = createStoreState();
 	});
 
-	it('renders experimental layout presets', () => {
+	it('groups layout choices by their layout family', () => {
 		render(<LayoutMenuContent />);
 
-		expect(screen.getByText('Experiments')).toBeInTheDocument();
+		expect(screen.getByText('Linear')).toBeInTheDocument();
+		expect(screen.getByText('Layered')).toBeInTheDocument();
+		expect(screen.getByText('Tree')).toBeInTheDocument();
+		expect(screen.getByText('Radial')).toBeInTheDocument();
 		expect(screen.getByText('Roomy Branches')).toBeInTheDocument();
 		expect(screen.getByText('Tree Right')).toBeInTheDocument();
 		expect(screen.getByText('Tree Down')).toBeInTheDocument();
 		expect(screen.getByText('Radial Tree')).toBeInTheDocument();
-		expect(screen.getByText('Organic Spread')).toBeInTheDocument();
+		expect(screen.queryByText('Organic Spread')).not.toBeInTheDocument();
+		expect(screen.queryByText('Experiments')).not.toBeInTheDocument();
+		expect(screen.queryByText('Layouts')).not.toBeInTheDocument();
 	});
 
-	it('applies an experimental preset from the menu', () => {
+	it('applies a layout preset from the menu', () => {
 		const applyLayoutPreset = jest.fn();
 		mockStoreState = createStoreState({ applyLayoutPreset });
 

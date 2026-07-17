@@ -17,7 +17,10 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LAYOUT_PRESETS } from '@/helpers/layout/elk-config';
+import {
+	LAYOUT_PRESET_GROUPS,
+	LAYOUT_PRESETS,
+} from '@/helpers/layout/elk-config';
 import useAppStore from '@/store/mind-map-store';
 import type { LayoutDirection, LayoutPresetId } from '@/types/layout-types';
 import { cn } from '@/utils/cn';
@@ -29,9 +32,8 @@ import {
 	GitBranch,
 	LayoutGrid,
 	Loader2,
-	Move,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import { useShallow } from 'zustand/shallow';
 
 // Layout direction options with icons and labels
@@ -62,8 +64,6 @@ function getPresetIcon(presetId: LayoutPresetId): ReactNode {
 			return <GitBranch className='size-4' />;
 		case 'radial-tree':
 			return <Circle className='size-4' />;
-		case 'organic-spread':
-			return <Move className='size-4' />;
 	}
 }
 
@@ -108,43 +108,54 @@ export function LayoutMenuContent() {
 
 	return (
 		<>
-			<DropdownMenuRadioGroup
-				value={currentDirection}
-				onValueChange={handleLayoutSelect}
-			>
-				{layoutDirections.map((direction) => (
-					<DropdownMenuRadioItem
-						key={direction.id}
-						value={direction.id}
-						disabled={isLayouting}
-					>
-						<span className='flex items-center gap-2'>
-							{direction.icon}
-							{direction.label}
-						</span>
-					</DropdownMenuRadioItem>
-				))}
-			</DropdownMenuRadioGroup>
-
-			<DropdownMenuSeparator />
 			<DropdownMenuGroup>
 				<DropdownMenuLabel className='text-xs text-muted-foreground'>
-					Experiments
+					Linear
 				</DropdownMenuLabel>
-				{LAYOUT_PRESETS.map((preset) => (
-					<DropdownMenuItem
-						key={preset.id}
-						onClick={() => handleLayoutPresetSelect(preset.id)}
-						disabled={isLayouting}
-						title={preset.description}
-					>
-						<span className='flex items-center gap-2'>
-							{getPresetIcon(preset.id)}
-							{preset.label}
-						</span>
-					</DropdownMenuItem>
-				))}
+				<DropdownMenuRadioGroup
+					value={currentDirection}
+					onValueChange={handleLayoutSelect}
+				>
+					{layoutDirections.map((direction) => (
+						<DropdownMenuRadioItem
+							key={direction.id}
+							value={direction.id}
+							disabled={isLayouting}
+						>
+							<span className='flex items-center gap-2'>
+								{direction.icon}
+								{direction.label}
+							</span>
+						</DropdownMenuRadioItem>
+					))}
+				</DropdownMenuRadioGroup>
 			</DropdownMenuGroup>
+
+			{LAYOUT_PRESET_GROUPS.map((group) => (
+				<Fragment key={group.id}>
+					<DropdownMenuSeparator />
+					<DropdownMenuGroup>
+						<DropdownMenuLabel className='text-xs text-muted-foreground'>
+							{group.label}
+						</DropdownMenuLabel>
+						{LAYOUT_PRESETS.filter(
+							(preset) => preset.category === group.id
+						).map((preset) => (
+							<DropdownMenuItem
+								key={preset.id}
+								onClick={() => handleLayoutPresetSelect(preset.id)}
+								disabled={isLayouting}
+								title={preset.description}
+							>
+								<span className='flex items-center gap-2'>
+									{getPresetIcon(preset.id)}
+									{preset.label}
+								</span>
+							</DropdownMenuItem>
+						))}
+					</DropdownMenuGroup>
+				</Fragment>
+			))}
 
 			{canLayoutSelected && (
 				<>

@@ -59,13 +59,13 @@ total_tokens: 707972
 <!-- Updated: 2026-04-14 - Documented whole-map AI suggestion context/anchor fallback behavior -->
 <!-- Updated: 2026-04-14 - Documented suggestion novelty memory, literal full-map inputs, and duplicate suppression -->
 <!-- Updated: 2026-04-15 - Documented ELK edge-label layout metadata and stale-label invalidation rules -->
-<!-- Updated: 2026-07-17 - Documented cycle-safe experimental forest layouts, Organic validation fallback, and custom edge-routing marker -->
+<!-- Updated: 2026-07-17 - Documented cycle-safe tree layouts and their custom edge-routing marker -->
 <!-- Updated: 2026-04-19 - Documented route-specific helper boundaries for structured AI streaming routes -->
 <!-- Updated: 2026-04-20 - Documented collapsed-branch AI connection proxy rendering and stream-start-gated suggestion replacement -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
-**Edge routing note:** Normal persisted edges render as auto-routed `waypointEdge` geometry. Explicit full layout uses ELK bend points (`routingStyle: 'elk'`) and persists ELK-computed edge-label bounds/centers for layered layouts, but the converter snaps each ELK label center onto the nearest routed segment before render so the label stays horizontal while the edge line passes through its center. Experimental presets are session-only `LayoutConfig.presetId` values; applying one persists node/edge geometry but not the selected preset. `tree-right`, `tree-down`, and `radial-tree` use `experimental-forest-layout.ts`: an iterative, cycle-safe spanning forest for placement, with all non-tree links preserved as straight cross-links. `organic-spread` runs deterministic ELK Force Eades and falls back to compact component placement when ELK returns invalid or collapsed node coordinates. Every non-layered preset uses linear `waypointEdge` geometry with `routingStyle: 'custom-layout'`, path-midpoint labels, and cleared stale ELK label metadata. Local create/edit/move/resize/reconnect flows reroute only affected edges with the deterministic orthogonal router (`routingStyle: 'orthogonal'`) and must clear stale ELK label metadata when they replace ELK geometry. Raw manual waypoint editing is no longer part of the canvas model.
+**Edge routing note:** Normal persisted edges render as auto-routed `waypointEdge` geometry. Explicit full layout uses ELK bend points (`routingStyle: 'elk'`) and persists ELK-computed edge-label bounds/centers for layered layouts, but the converter snaps each ELK label center onto the nearest routed segment before render so the label stays horizontal while the edge line passes through its center. Layout presets are session-only `LayoutConfig.presetId` values; applying one persists node/edge geometry but not the selected preset. `tree-right`, `tree-down`, and `radial-tree` use the shared iterative, cycle-safe spanning forest for placement, with all non-tree links preserved as straight cross-links. Every non-layered preset uses linear `waypointEdge` geometry with `routingStyle: 'custom-layout'`, path-midpoint labels, and cleared stale ELK label metadata. Local create/edit/move/resize/reconnect flows reroute only affected edges with the deterministic orthogonal router (`routingStyle: 'orthogonal'`) and must clear stale ELK label metadata when they replace ELK geometry. Raw manual waypoint editing is no longer part of the canvas model.
 **Layout animation note:** `ReactFlowArea` now renders through a transient animated graph state for explicit full layout and local layout flows. Zustand still stores only final node/edge geometry; the 550ms tween is client-only and does not persist or broadcast intermediate frames, and an animation version is only marked handled after the tween settles or is explicitly cancelled.
 
 **Local layout note:** Deterministic local branch reflow now has two phases: same-depth child repack inside the edited branch, then cousin-branch corridor expansion on the carrier layer when the grown subtree would overlap neighboring cousin subtrees. Ancestors stay fixed, and load-time legacy layout normalization persists only when the fetched map/edge snapshot is still current.
@@ -220,7 +220,7 @@ shiko/
 │   ├── helpers/                # Utilities
 │   │   ├── api/                # API middleware (auth, validation)
 │   │   ├── history/            # Delta calculation, diff
-│   │   ├── layout/             # ELK full layouts + cycle-safe experimental forest + local branch reflow
+│   │   ├── layout/             # ELK full layouts + cycle-safe tree forest + local branch reflow
 │   │   ├── local-dev-url.ts    # Browser/runtime LAN-safe Supabase + PartyKit URL derivation
 │   │   ├── partykit/           # PartyKit admin helpers (disconnect users)
 │   │   └── supabase/           # Client initialization

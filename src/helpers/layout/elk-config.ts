@@ -24,15 +24,21 @@ const DIRECTION_MAP: Record<LayoutDirection, ElkLayoutOptions> = {
 type ElkPresetAlgorithm =
 	| 'org.eclipse.elk.layered'
 	| 'org.eclipse.elk.mrtree'
-	| 'org.eclipse.elk.radial'
-	| 'org.eclipse.elk.force';
+	| 'org.eclipse.elk.radial';
 
 type EdgeLabelStrategy = 'elk' | 'path';
+export type LayoutPresetCategory = 'layered' | 'tree' | 'radial';
 
 export interface LayoutPresetDescriptor {
 	id: LayoutPresetId;
 	label: string;
 	description: string;
+	category: LayoutPresetCategory;
+}
+
+export interface LayoutPresetGroup {
+	id: LayoutPresetCategory;
+	label: string;
 }
 
 interface LayoutPresetDefinition extends LayoutPresetDescriptor {
@@ -49,13 +55,13 @@ const TREE_NODE_SPACING = 90;
 const TREE_LAYER_SPACING = 150;
 const RADIAL_NODE_SPACING = 100;
 const RADIAL_RADIUS = 180;
-const FORCE_NODE_SPACING = 110;
 
 const LAYOUT_PRESET_DEFINITIONS: readonly LayoutPresetDefinition[] = [
 	{
 		id: 'roomy-branches',
 		label: 'Roomy Branches',
 		description: 'Layered layout with wider branch spacing',
+		category: 'layered',
 		algorithm: 'org.eclipse.elk.layered',
 		curveType: 'smoothstep',
 		edgeLabelStrategy: 'elk',
@@ -75,6 +81,7 @@ const LAYOUT_PRESET_DEFINITIONS: readonly LayoutPresetDefinition[] = [
 		id: 'tree-right',
 		label: 'Tree Right',
 		description: 'Tree layout flowing left to right',
+		category: 'tree',
 		algorithm: 'org.eclipse.elk.mrtree',
 		curveType: 'linear',
 		edgeLabelStrategy: 'path',
@@ -89,6 +96,7 @@ const LAYOUT_PRESET_DEFINITIONS: readonly LayoutPresetDefinition[] = [
 		id: 'tree-down',
 		label: 'Tree Down',
 		description: 'Tree layout flowing top to bottom',
+		category: 'tree',
 		algorithm: 'org.eclipse.elk.mrtree',
 		curveType: 'linear',
 		edgeLabelStrategy: 'path',
@@ -103,6 +111,7 @@ const LAYOUT_PRESET_DEFINITIONS: readonly LayoutPresetDefinition[] = [
 		id: 'radial-tree',
 		label: 'Radial Tree',
 		description: 'Balloon tree layout around graph hubs',
+		category: 'radial',
 		algorithm: 'org.eclipse.elk.radial',
 		curveType: 'linear',
 		edgeLabelStrategy: 'path',
@@ -116,35 +125,20 @@ const LAYOUT_PRESET_DEFINITIONS: readonly LayoutPresetDefinition[] = [
 			'elk.radial.radius': String(Math.max(config.layerSpacing, RADIAL_RADIUS)),
 		}),
 	},
-	{
-		id: 'organic-spread',
-		label: 'Organic Spread',
-		description: 'Force layout for a loose graph overview',
-		algorithm: 'org.eclipse.elk.force',
-		curveType: 'linear',
-		edgeLabelStrategy: 'path',
-		buildOptions: (config) => ({
-			'elk.algorithm': 'org.eclipse.elk.force',
-			'elk.spacing.nodeNode': String(
-				Math.max(config.nodeSpacing, FORCE_NODE_SPACING)
-			),
-			'elk.spacing.componentComponent': '220',
-			'elk.padding': DEFAULT_GRAPH_PADDING,
-			'elk.force.model': 'EADES',
-			'elk.force.iterations': '350',
-			'elk.force.repulsion': '4',
-			'elk.aspectRatio': '1.6',
-			'elk.randomSeed': '1',
-			'elk.separateConnectedComponents': 'true',
-		}),
-	},
+];
+
+export const LAYOUT_PRESET_GROUPS: readonly LayoutPresetGroup[] = [
+	{ id: 'layered', label: 'Layered' },
+	{ id: 'tree', label: 'Tree' },
+	{ id: 'radial', label: 'Radial' },
 ];
 
 export const LAYOUT_PRESETS: readonly LayoutPresetDescriptor[] =
-	LAYOUT_PRESET_DEFINITIONS.map(({ id, label, description }) => ({
+	LAYOUT_PRESET_DEFINITIONS.map(({ id, label, description, category }) => ({
 		id,
 		label,
 		description,
+		category,
 	}));
 
 function getLayoutPresetDefinition(

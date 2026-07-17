@@ -25,7 +25,6 @@ export const LAYOUT_PRESET_IDS = [
 	'tree-right',
 	'tree-down',
 	'radial-tree',
-	'organic-spread',
 ] as const;
 
 export type LayoutPresetId = (typeof LAYOUT_PRESET_IDS)[number];
@@ -50,7 +49,7 @@ export function normalizeLayoutDirection(
 // Configuration for layout operations
 export interface LayoutConfig {
 	direction: LayoutDirection;
-	presetId?: LayoutPresetId; // Transient full-layout experiment, not persisted
+	presetId?: LayoutPresetId; // Session-only full-layout selection, not persisted
 	nodeSpacing: number; // Spacing between nodes at same level
 	layerSpacing: number; // Spacing between hierarchy levels
 	animateTransition: boolean; // Whether to animate position changes

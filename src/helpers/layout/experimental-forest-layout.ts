@@ -76,19 +76,6 @@ export function runRadialBalloonLayout(
 	return createLayoutResult(nodes, edges, packComponents(componentLayouts));
 }
 
-export function runCompactForestFallback(
-	nodes: AppNode[],
-	edges: AppEdge[],
-	config: LayoutConfig
-): LayoutResult {
-	const { components, nodeSizes } = buildForest(nodes, edges);
-	const componentLayouts = components.map((component) =>
-		layoutCompactComponent(component, nodeSizes, config)
-	);
-
-	return createLayoutResult(nodes, edges, packComponents(componentLayouts));
-}
-
 export function normalizeExperimentalEdges(edges: AppEdge[]): AppEdge[] {
 	return edges.map(
 		(edge) =>
@@ -110,35 +97,6 @@ export function normalizeExperimentalEdges(edges: AppEdge[]): AppEdge[] {
 				},
 			}) as AppEdge
 	);
-}
-
-export function hasUsableLayoutPositions(
-	nodes: AppNode[],
-	expectedNodeIds: Iterable<string>
-): boolean {
-	const expectedIds = new Set(expectedNodeIds);
-	if (nodes.length !== expectedIds.size) {
-		return false;
-	}
-
-	const positionKeys = new Set<string>();
-	for (const node of nodes) {
-		if (
-			!expectedIds.has(node.id) ||
-			!Number.isFinite(node.position.x) ||
-			!Number.isFinite(node.position.y)
-		) {
-			return false;
-		}
-
-		const key = `${Math.round(node.position.x)}:${Math.round(node.position.y)}`;
-		if (positionKeys.has(key)) {
-			return false;
-		}
-		positionKeys.add(key);
-	}
-
-	return true;
 }
 
 function buildForest(
@@ -532,42 +490,6 @@ function layoutRadialComponent(
 		positions.set(nodeId, {
 			x: center.x - size.width / 2,
 			y: center.y - size.height / 2,
-		});
-	}
-
-	return {
-		nodeIds: component.nodeIds,
-		positions,
-		bounds: calculateBounds(component.nodeIds, positions, nodeSizes),
-	};
-}
-
-function layoutCompactComponent(
-	component: ForestComponent,
-	nodeSizes: Map<string, NodeSize>,
-	config: LayoutConfig
-): ComponentLayout {
-	const maxWidth = Math.max(
-		...component.nodeIds.map(
-			(nodeId) => (nodeSizes.get(nodeId) ?? getDefaultNodeSize()).width
-		)
-	);
-	const maxHeight = Math.max(
-		...component.nodeIds.map(
-			(nodeId) => (nodeSizes.get(nodeId) ?? getDefaultNodeSize()).height
-		)
-	);
-	const spacing = Math.max(config.nodeSpacing, 80);
-	const columns = Math.max(1, Math.ceil(Math.sqrt(component.traversal.length)));
-	const positions = new Map<string, Point2D>();
-
-	for (const [index, nodeId] of component.traversal.entries()) {
-		const size = nodeSizes.get(nodeId) ?? getDefaultNodeSize();
-		const column = index % columns;
-		const row = Math.floor(index / columns);
-		positions.set(nodeId, {
-			x: column * (maxWidth + spacing) + (maxWidth - size.width) / 2,
-			y: row * (maxHeight + spacing) + (maxHeight - size.height) / 2,
 		});
 	}
 
