@@ -17,6 +17,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ### Changed
 
 - **layout/menu-labels**: The layout menu now groups choices by family: `Linear`, `Layered`, `Tree`, and `Radial`
+- **layout/directional-actions**: Layout choices now act immediately without showing a stale selected state; Roomy Right and Roomy Down explicitly set their flow direction
+  - Why: Follow-up node placement and branch reflow stay aligned with the last directional layout without adding visual noise after manual map edits
 
 ### Removed
 

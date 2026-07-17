@@ -20,21 +20,9 @@ jest.mock('@/components/ui/dropdown-menu', () => ({
 	DropdownMenuGroup: ({ children }: { children: ReactNode }) => (
 		<div>{children}</div>
 	),
-	DropdownMenuRadioGroup: ({ children }: { children: ReactNode }) => (
-		<div>{children}</div>
+	DropdownMenuItem: ({ children, ...props }: { children: ReactNode }) => (
+		<button {...props}>{children}</button>
 	),
-	DropdownMenuRadioItem: ({
-		children,
-		...props
-	}: {
-		children: ReactNode;
-	}) => <button {...props}>{children}</button>,
-	DropdownMenuItem: ({
-		children,
-		...props
-	}: {
-		children: ReactNode;
-	}) => <button {...props}>{children}</button>,
 	DropdownMenuLabel: ({ children }: { children: ReactNode }) => (
 		<div>{children}</div>
 	),
@@ -65,24 +53,40 @@ describe('LayoutMenuContent', () => {
 		expect(screen.getByText('Layered')).toBeInTheDocument();
 		expect(screen.getByText('Tree')).toBeInTheDocument();
 		expect(screen.getByText('Radial')).toBeInTheDocument();
-		expect(screen.getByText('Roomy Branches')).toBeInTheDocument();
+		expect(screen.getByText('Roomy Right')).toBeInTheDocument();
+		expect(screen.getByText('Roomy Down')).toBeInTheDocument();
 		expect(screen.getByText('Tree Right')).toBeInTheDocument();
 		expect(screen.getByText('Tree Down')).toBeInTheDocument();
 		expect(screen.getByText('Radial Tree')).toBeInTheDocument();
+		expect(screen.queryAllByRole('radio')).toHaveLength(0);
 		expect(screen.queryByText('Organic Spread')).not.toBeInTheDocument();
 		expect(screen.queryByText('Experiments')).not.toBeInTheDocument();
 		expect(screen.queryByText('Layouts')).not.toBeInTheDocument();
 	});
 
-	it('applies a layout preset from the menu', () => {
+	it('applies ordinary linear layout actions without a selected-state marker', () => {
+		const applyLayout = jest.fn();
+		mockStoreState = createStoreState({ applyLayout });
+
+		render(<LayoutMenuContent />);
+
+		fireEvent.click(screen.getByText('Left to Right'));
+		fireEvent.click(screen.getByText('Top to Bottom'));
+
+		expect(applyLayout).toHaveBeenNthCalledWith(1, 'LEFT_RIGHT');
+		expect(applyLayout).toHaveBeenNthCalledWith(2, 'TOP_BOTTOM');
+		expect(screen.queryAllByRole('radio')).toHaveLength(0);
+	});
+
+	it('applies a directional roomy preset from the menu', () => {
 		const applyLayoutPreset = jest.fn();
 		mockStoreState = createStoreState({ applyLayoutPreset });
 
 		render(<LayoutMenuContent />);
 
-		fireEvent.click(screen.getByText('Roomy Branches'));
+		fireEvent.click(screen.getByText('Roomy Down'));
 
-		expect(applyLayoutPreset).toHaveBeenCalledWith('roomy-branches');
+		expect(applyLayoutPreset).toHaveBeenCalledWith('roomy-down');
 	});
 
 	it('keeps selected-only layout available when multiple nodes are selected', () => {

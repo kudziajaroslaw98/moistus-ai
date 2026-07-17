@@ -21,7 +21,8 @@ export const SUPPORTED_LAYOUT_DIRECTIONS = [
 export type LayoutDirection = (typeof SUPPORTED_LAYOUT_DIRECTIONS)[number];
 
 export const LAYOUT_PRESET_IDS = [
-	'roomy-branches',
+	'roomy-right',
+	'roomy-down',
 	'tree-right',
 	'tree-down',
 	'radial-tree',
@@ -49,7 +50,7 @@ export function normalizeLayoutDirection(
 // Configuration for layout operations
 export interface LayoutConfig {
 	direction: LayoutDirection;
-	presetId?: LayoutPresetId; // Session-only full-layout selection, not persisted
+	presetId?: LayoutPresetId; // Transient full-layout command, cleared after success
 	nodeSpacing: number; // Spacing between nodes at same level
 	layerSpacing: number; // Spacing between hierarchy levels
 	animateTransition: boolean; // Whether to animate position changes

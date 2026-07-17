@@ -45,6 +45,7 @@ interface LayoutPresetDefinition extends LayoutPresetDescriptor {
 	algorithm: ElkPresetAlgorithm;
 	curveType: WaypointCurveType;
 	edgeLabelStrategy: EdgeLabelStrategy;
+	layoutDirection: LayoutDirection | null;
 	buildOptions: (config: LayoutConfig) => ElkLayoutOptions;
 }
 
@@ -58,24 +59,28 @@ const RADIAL_RADIUS = 180;
 
 const LAYOUT_PRESET_DEFINITIONS: readonly LayoutPresetDefinition[] = [
 	{
-		id: 'roomy-branches',
-		label: 'Roomy Branches',
-		description: 'Layered layout with wider branch spacing',
+		id: 'roomy-right',
+		label: 'Roomy Right',
+		description: 'Roomier layered layout flowing left to right',
 		category: 'layered',
 		algorithm: 'org.eclipse.elk.layered',
 		curveType: 'smoothstep',
 		edgeLabelStrategy: 'elk',
-		buildOptions: (config) => ({
-			...buildLayeredLayoutOptions({
-				direction: config.direction,
-				nodeSpacing: Math.max(config.nodeSpacing, ROOMY_NODE_SPACING),
-				layerSpacing: Math.max(config.layerSpacing, ROOMY_LAYER_SPACING),
-			}),
-			'elk.spacing.componentComponent': '80',
-			'elk.layered.highDegreeNodes.treatment': 'true',
-			'elk.layered.highDegreeNodes.threshold': '6',
-			'elk.layered.highDegreeNodes.treeHeight': '4',
-		}),
+		layoutDirection: 'LEFT_RIGHT',
+		buildOptions: (config) =>
+			buildRoomyLayeredLayoutOptions(config, 'LEFT_RIGHT'),
+	},
+	{
+		id: 'roomy-down',
+		label: 'Roomy Down',
+		description: 'Roomier layered layout flowing top to bottom',
+		category: 'layered',
+		algorithm: 'org.eclipse.elk.layered',
+		curveType: 'smoothstep',
+		edgeLabelStrategy: 'elk',
+		layoutDirection: 'TOP_BOTTOM',
+		buildOptions: (config) =>
+			buildRoomyLayeredLayoutOptions(config, 'TOP_BOTTOM'),
 	},
 	{
 		id: 'tree-right',
@@ -85,6 +90,7 @@ const LAYOUT_PRESET_DEFINITIONS: readonly LayoutPresetDefinition[] = [
 		algorithm: 'org.eclipse.elk.mrtree',
 		curveType: 'linear',
 		edgeLabelStrategy: 'path',
+		layoutDirection: 'LEFT_RIGHT',
 		buildOptions: (config) =>
 			buildTreeLayoutOptions({
 				direction: 'RIGHT',
@@ -100,6 +106,7 @@ const LAYOUT_PRESET_DEFINITIONS: readonly LayoutPresetDefinition[] = [
 		algorithm: 'org.eclipse.elk.mrtree',
 		curveType: 'linear',
 		edgeLabelStrategy: 'path',
+		layoutDirection: 'TOP_BOTTOM',
 		buildOptions: (config) =>
 			buildTreeLayoutOptions({
 				direction: 'DOWN',
@@ -115,6 +122,7 @@ const LAYOUT_PRESET_DEFINITIONS: readonly LayoutPresetDefinition[] = [
 		algorithm: 'org.eclipse.elk.radial',
 		curveType: 'linear',
 		edgeLabelStrategy: 'path',
+		layoutDirection: null,
 		buildOptions: (config) => ({
 			'elk.algorithm': 'org.eclipse.elk.radial',
 			'elk.spacing.nodeNode': String(
@@ -205,6 +213,23 @@ function buildLayeredLayoutOptions({
 	return { ...baseOptions, ...layeredOptions, ...directionOptions };
 }
 
+function buildRoomyLayeredLayoutOptions(
+	config: LayoutConfig,
+	direction: LayoutDirection
+): ElkLayoutOptions {
+	return {
+		...buildLayeredLayoutOptions({
+			direction,
+			nodeSpacing: Math.max(config.nodeSpacing, ROOMY_NODE_SPACING),
+			layerSpacing: Math.max(config.layerSpacing, ROOMY_LAYER_SPACING),
+		}),
+		'elk.spacing.componentComponent': '80',
+		'elk.layered.highDegreeNodes.treatment': 'true',
+		'elk.layered.highDegreeNodes.threshold': '6',
+		'elk.layered.highDegreeNodes.treeHeight': '4',
+	};
+}
+
 function buildTreeLayoutOptions({
 	direction,
 	nodeSpacing,
@@ -252,8 +277,20 @@ export function getLayoutPresetLabel(presetId: LayoutPresetId): string {
 	return getLayoutPresetDefinition(presetId)?.label ?? 'Layout Preset';
 }
 
+/**
+ * Directional presets establish the axis used by later local reflows.
+ * Radial layout intentionally has no directional counterpart.
+ */
+export function getLayoutPresetDirection(
+	presetId: LayoutPresetId
+): LayoutDirection | null {
+	return getLayoutPresetDefinition(presetId)?.layoutDirection ?? null;
+}
+
 export function usesElkEdgeLabels(config: LayoutConfig): boolean {
-	return getLayoutPresetDefinition(config.presetId)?.edgeLabelStrategy !== 'path';
+	return (
+		getLayoutPresetDefinition(config.presetId)?.edgeLabelStrategy !== 'path'
+	);
 }
 
 export function usesRadialLayout(config: LayoutConfig): boolean {

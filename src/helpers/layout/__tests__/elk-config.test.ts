@@ -2,9 +2,10 @@ import type { LayoutConfig } from '@/types/layout-types';
 import {
 	LAYOUT_PRESETS,
 	buildLayoutOptions,
+	getLayoutPresetDirection,
 	getRecommendedCurveType,
-	usesRadialLayout,
 	usesElkEdgeLabels,
+	usesRadialLayout,
 } from '../elk-config';
 
 const DEFAULT_CONFIG: LayoutConfig = {
@@ -29,14 +30,20 @@ describe('elk-config layout presets', () => {
 		expect(getRecommendedCurveType(DEFAULT_CONFIG)).toBe('smoothstep');
 	});
 
-	it('builds a roomier layered branch preset with high-degree treatment', () => {
-		const config: LayoutConfig = {
+	it('builds explicit directional roomy layered presets with high-degree treatment', () => {
+		const rightConfig: LayoutConfig = {
 			...DEFAULT_CONFIG,
-			presetId: 'roomy-branches',
+			direction: 'TOP_BOTTOM',
+			presetId: 'roomy-right',
 		};
-		const options = buildLayoutOptions(config);
+		const downConfig: LayoutConfig = {
+			...DEFAULT_CONFIG,
+			presetId: 'roomy-down',
+		};
+		const rightOptions = buildLayoutOptions(rightConfig);
+		const downOptions = buildLayoutOptions(downConfig);
 
-		expect(options).toMatchObject({
+		expect(rightOptions).toMatchObject({
 			'elk.algorithm': 'org.eclipse.elk.layered',
 			'elk.direction': 'RIGHT',
 			'elk.spacing.nodeNode': '96',
@@ -44,8 +51,9 @@ describe('elk-config layout presets', () => {
 			'elk.layered.highDegreeNodes.treatment': 'true',
 			'elk.layered.highDegreeNodes.threshold': '6',
 		});
-		expect(usesElkEdgeLabels(config)).toBe(true);
-		expect(getRecommendedCurveType(config)).toBe('smoothstep');
+		expect(downOptions['elk.direction']).toBe('DOWN');
+		expect(usesElkEdgeLabels(rightConfig)).toBe(true);
+		expect(getRecommendedCurveType(rightConfig)).toBe('smoothstep');
 	});
 
 	it('builds non-layered presets with path labels and linear edge paths', () => {
@@ -72,9 +80,31 @@ describe('elk-config layout presets', () => {
 		}
 	});
 
+	it('resolves explicit directions for directional presets only', () => {
+		expect(getLayoutPresetDirection('roomy-right')).toBe('LEFT_RIGHT');
+		expect(getLayoutPresetDirection('roomy-down')).toBe('TOP_BOTTOM');
+		expect(getLayoutPresetDirection('tree-right')).toBe('LEFT_RIGHT');
+		expect(getLayoutPresetDirection('tree-down')).toBe('TOP_BOTTOM');
+		expect(getLayoutPresetDirection('radial-tree')).toBeNull();
+	});
+
+	it('falls back to the standard layered layout for a stale session-only preset id', () => {
+		const config: LayoutConfig = {
+			...DEFAULT_CONFIG,
+			presetId: 'roomy-branches' as unknown as LayoutConfig['presetId'],
+		};
+
+		expect(buildLayoutOptions(config)).toMatchObject({
+			'elk.algorithm': 'org.eclipse.elk.layered',
+			'elk.direction': 'RIGHT',
+			'elk.spacing.nodeNode': '50',
+		});
+	});
+
 	it('exposes all toolbar presets in display order', () => {
 		expect(LAYOUT_PRESETS.map((preset) => preset.id)).toEqual([
-			'roomy-branches',
+			'roomy-right',
+			'roomy-down',
 			'tree-right',
 			'tree-down',
 			'radial-tree',

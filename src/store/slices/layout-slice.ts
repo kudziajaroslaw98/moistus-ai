@@ -3,8 +3,11 @@
  * Manages ELK.js-based automatic layout state and actions
  */
 
+import {
+	getLayoutPresetDirection,
+	getLayoutPresetLabel,
+} from '@/helpers/layout/elk-config';
 import { runElkLayout } from '@/helpers/layout/elk-worker-client';
-import { getLayoutPresetLabel } from '@/helpers/layout/elk-config';
 import {
 	applyLocalCreateBranchReflow,
 	applyLocalEditBranchReflow,
@@ -202,8 +205,7 @@ async function applyFullLayout({
 							mindMap: updatedMindMap,
 							layoutConfig: {
 								...state.layoutConfig,
-								direction:
-									updatedMindMap.layout_direction ?? persistDirection,
+								direction: updatedMindMap.layout_direction ?? persistDirection,
 								presetId: undefined,
 							},
 						}));
@@ -218,7 +220,8 @@ async function applyFullLayout({
 		set({ lastLayoutTimestamp: Date.now() });
 		toast.success(successMessage, { id: toastId });
 	} catch (error) {
-		const errorMessage = error instanceof Error ? error.message : 'Layout failed';
+		const errorMessage =
+			error instanceof Error ? error.message : 'Layout failed';
 		set({ layoutError: errorMessage });
 		toast.error(errorMessage, { id: toastId });
 		console.error('Layout error:', error);
@@ -330,8 +333,11 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 
 	applyLayoutPreset: async (presetId: LayoutPresetId) => {
 		const { layoutConfig } = get();
+		const presetDirection = getLayoutPresetDirection(presetId);
+		const effectiveDirection = presetDirection ?? layoutConfig.direction;
 		const effectiveConfig: LayoutConfig = {
 			...layoutConfig,
+			direction: effectiveDirection,
 			presetId,
 		};
 		const presetLabel = getLayoutPresetLabel(presetId);
@@ -343,9 +349,14 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 			toastLabel: `Applying ${presetLabel} layout...`,
 			successMessage: `${presetLabel} layout applied`,
 			historyEventName: 'applyLayoutPreset',
+			persistDirection: presetDirection ?? undefined,
 			onSuccess: () => {
 				set((state) => ({
-					layoutConfig: { ...state.layoutConfig, presetId },
+					layoutConfig: {
+						...state.layoutConfig,
+						direction: effectiveDirection,
+						presetId: undefined,
+					},
 				}));
 			},
 		});

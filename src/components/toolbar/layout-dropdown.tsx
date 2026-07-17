@@ -12,8 +12,6 @@ import {
 	DropdownMenuGroup,
 	DropdownMenuItem,
 	DropdownMenuLabel,
-	DropdownMenuRadioGroup,
-	DropdownMenuRadioItem,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -56,7 +54,8 @@ const layoutDirections: {
 
 function getPresetIcon(presetId: LayoutPresetId): ReactNode {
 	switch (presetId) {
-		case 'roomy-branches':
+		case 'roomy-right':
+		case 'roomy-down':
 			return <LayoutGrid className='size-4' />;
 		case 'tree-right':
 			return <GitBranch className='size-4 rotate-90' />;
@@ -69,7 +68,6 @@ function getPresetIcon(presetId: LayoutPresetId): ReactNode {
 
 export function LayoutMenuContent() {
 	const {
-		layoutConfig,
 		applyLayout,
 		applyLayoutPreset,
 		applyLayoutToSelected,
@@ -77,7 +75,6 @@ export function LayoutMenuContent() {
 		selectedNodes,
 	} = useAppStore(
 		useShallow((state) => ({
-			layoutConfig: state.layoutConfig,
 			applyLayout: state.applyLayout,
 			applyLayoutPreset: state.applyLayoutPreset,
 			applyLayoutToSelected: state.applyLayoutToSelected,
@@ -86,9 +83,9 @@ export function LayoutMenuContent() {
 		}))
 	);
 
-	// Handle layout direction selection - immediately applies layout
-	const handleLayoutSelect = (direction: string) => {
-		applyLayout(direction as LayoutDirection);
+	// Layout choices are one-shot actions; direction is retained only for local reflow.
+	const handleLayoutSelect = (direction: LayoutDirection) => {
+		applyLayout(direction);
 	};
 
 	const handleLayoutPresetSelect = (presetId: LayoutPresetId) => {
@@ -100,9 +97,6 @@ export function LayoutMenuContent() {
 		applyLayoutToSelected();
 	};
 
-	// Get current direction for radio selection
-	const currentDirection = layoutConfig.direction;
-
 	// Show "Layout Selected" option when 2+ nodes are selected
 	const canLayoutSelected = selectedNodes.length >= 2;
 
@@ -112,23 +106,18 @@ export function LayoutMenuContent() {
 				<DropdownMenuLabel className='text-xs text-muted-foreground'>
 					Linear
 				</DropdownMenuLabel>
-				<DropdownMenuRadioGroup
-					value={currentDirection}
-					onValueChange={handleLayoutSelect}
-				>
-					{layoutDirections.map((direction) => (
-						<DropdownMenuRadioItem
-							key={direction.id}
-							value={direction.id}
-							disabled={isLayouting}
-						>
-							<span className='flex items-center gap-2'>
-								{direction.icon}
-								{direction.label}
-							</span>
-						</DropdownMenuRadioItem>
-					))}
-				</DropdownMenuRadioGroup>
+				{layoutDirections.map((direction) => (
+					<DropdownMenuItem
+						key={direction.id}
+						onClick={() => handleLayoutSelect(direction.id)}
+						disabled={isLayouting}
+					>
+						<span className='flex items-center gap-2'>
+							{direction.icon}
+							{direction.label}
+						</span>
+					</DropdownMenuItem>
+				))}
 			</DropdownMenuGroup>
 
 			{LAYOUT_PRESET_GROUPS.map((group) => (
