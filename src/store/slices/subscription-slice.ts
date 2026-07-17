@@ -1,3 +1,4 @@
+import { PRO_PLAN_ID } from '@/helpers/subscription/checkout-intent';
 import {
 	deserializeUserSubscription,
 	serializeSubscriptionPlan,
@@ -79,7 +80,7 @@ export interface SubscriptionSlice {
 	fetchUserSubscription: () => Promise<void>;
 	fetchUsageData: () => Promise<void>;
 	createCheckoutSession: (
-		planId: string,
+		planId: typeof PRO_PLAN_ID,
 		billingInterval: 'monthly' | 'yearly'
 	) => Promise<{
 		checkoutUrl?: string;
@@ -190,10 +191,9 @@ export const createSubscriptionSlice: StateCreator<
 				.in('status', ['active', 'trialing'])
 				.order('created_at', { ascending: false })
 				.limit(1)
-				.single();
+				.maybeSingle();
 
-			if (error && error.code !== 'PGRST116') {
-				// PGRST116 = no rows returned
+			if (error) {
 				throw error;
 			}
 
@@ -256,7 +256,7 @@ export const createSubscriptionSlice: StateCreator<
 	},
 
 	createCheckoutSession: async (
-		planId: string,
+		planId: typeof PRO_PLAN_ID,
 		billingInterval: 'monthly' | 'yearly'
 	) => {
 		try {

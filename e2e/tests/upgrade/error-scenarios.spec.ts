@@ -12,11 +12,11 @@
  * 8. Back navigation
  */
 
-import { test, expect } from '../../fixtures/upgrade.fixture';
-import { waitForOtp, generateTestEmail } from '../../utils/inbucket-client';
+import { expect, test } from '../../fixtures/upgrade.fixture';
 import { JoinRoomPage } from '../../pages/join-room.page';
-import { SharePanelPage } from '../../pages/share-panel.page';
 import { MindMapPage } from '../../pages/mind-map.page';
+import { SharePanelPage } from '../../pages/share-panel.page';
+import { generateTestEmail, waitForOtp } from '../../utils/inbucket-client';
 
 /**
  * Helper to create an anonymous session by joining a shared map.
@@ -97,8 +97,12 @@ async function openUpgradeModal(
 	}
 
 	// Check if upgrade modal is already open (auto-opens for anonymous users)
-	const upgradeModalHeader = guestPage.locator('text=Create Account to Start Building');
-	const isModalAlreadyOpen = await upgradeModalHeader.isVisible().catch(() => false);
+	const upgradeModalHeader = guestPage.locator(
+		'text=Create Account to Start Building'
+	);
+	const isModalAlreadyOpen = await upgradeModalHeader
+		.isVisible()
+		.catch(() => false);
 
 	if (!isModalAlreadyOpen) {
 		const createAccountBtn = guestPage.getByRole('button', {
@@ -120,9 +124,9 @@ async function openUpgradeModal(
 }
 
 /**
- * Helper to navigate to OTP step with a fresh email.
+ * Helper to navigate to the password step with a fresh email.
  */
-async function navigateToOtpStep(
+async function navigateToPasswordStep(
 	guestPage: import('@playwright/test').Page,
 	email: string
 ): Promise<boolean> {
@@ -136,6 +140,30 @@ async function navigateToOtpStep(
 		name: /send code/i,
 	});
 	await sendCodeButton.click();
+
+	const passwordInput = guestPage.locator('input#password');
+	await passwordInput.waitFor({ state: 'visible', timeout: 15000 });
+
+	return true;
+}
+
+/**
+ * Password must be entered before the OTP is sent for anonymous upgrades.
+ */
+async function navigateToOtpStep(
+	guestPage: import('@playwright/test').Page,
+	email: string
+): Promise<boolean> {
+	const success = await navigateToPasswordStep(guestPage, email);
+	if (!success) {
+		return false;
+	}
+
+	await guestPage.locator('input#password').fill('TestPass123!');
+	await guestPage.locator('input#confirmPassword').fill('TestPass123!');
+	await guestPage
+		.getByRole('button', { name: 'Continue', exact: true })
+		.click();
 
 	const otpInput = guestPage.locator('input#otp');
 	await otpInput.waitFor({ state: 'visible', timeout: 15000 });
@@ -255,8 +283,7 @@ test.describe('Email Already Registered', () => {
 			await emailButton.click();
 
 			// Use the existing test user email (from global setup)
-			const existingEmail =
-				process.env.TEST_USER_EMAIL || 'existing@test.com';
+			const existingEmail = process.env.TEST_USER_EMAIL || 'existing@test.com';
 			const emailInput = guestPage.locator('input#email');
 			await emailInput.fill(existingEmail);
 
@@ -354,35 +381,22 @@ test.describe('Password Validation Errors', () => {
 
 		try {
 			const testEmail = generateTestEmail('no-uppercase');
-			const success = await navigateToOtpStep(guestPage, testEmail);
+			const success = await navigateToPasswordStep(guestPage, testEmail);
 			if (!success) {
 				test.skip();
 				return;
 			}
 
-			// Get OTP and verify
-			const otp = await waitForOtp(testEmail, 30000);
-			const otpInput = guestPage.locator('input#otp');
-			await otpInput.fill(otp);
-
-			const verifyButton = guestPage.getByRole('button', {
-				name: /verify code/i,
-			});
-			await verifyButton.click();
-
-			// Wait for password step
 			const passwordInput = guestPage.locator('input#password');
-			await passwordInput.waitFor({ state: 'visible', timeout: 15000 });
 
 			// Password without uppercase
 			const confirmPasswordInput = guestPage.locator('input#confirmPassword');
 			await passwordInput.fill('testpass123');
 			await confirmPasswordInput.fill('testpass123');
 
-			const createAccountButton = guestPage.getByRole('button', {
-				name: /create account/i,
-			});
-			await createAccountButton.click();
+			await guestPage
+				.getByRole('button', { name: 'Continue', exact: true })
+				.click();
 
 			// Should show validation error
 			const validationError = guestPage.locator(
@@ -406,32 +420,21 @@ test.describe('Password Validation Errors', () => {
 
 		try {
 			const testEmail = generateTestEmail('no-number');
-			const success = await navigateToOtpStep(guestPage, testEmail);
+			const success = await navigateToPasswordStep(guestPage, testEmail);
 			if (!success) {
 				test.skip();
 				return;
 			}
 
-			const otp = await waitForOtp(testEmail, 30000);
-			const otpInput = guestPage.locator('input#otp');
-			await otpInput.fill(otp);
-
-			const verifyButton = guestPage.getByRole('button', {
-				name: /verify code/i,
-			});
-			await verifyButton.click();
-
 			const passwordInput = guestPage.locator('input#password');
-			await passwordInput.waitFor({ state: 'visible', timeout: 15000 });
 
 			const confirmPasswordInput = guestPage.locator('input#confirmPassword');
 			await passwordInput.fill('TestPassword');
 			await confirmPasswordInput.fill('TestPassword');
 
-			const createAccountButton = guestPage.getByRole('button', {
-				name: /create account/i,
-			});
-			await createAccountButton.click();
+			await guestPage
+				.getByRole('button', { name: 'Continue', exact: true })
+				.click();
 
 			const validationError = guestPage.locator(
 				'.text-rose-400:has-text("number")'
@@ -453,32 +456,21 @@ test.describe('Password Validation Errors', () => {
 
 		try {
 			const testEmail = generateTestEmail('short-pass');
-			const success = await navigateToOtpStep(guestPage, testEmail);
+			const success = await navigateToPasswordStep(guestPage, testEmail);
 			if (!success) {
 				test.skip();
 				return;
 			}
 
-			const otp = await waitForOtp(testEmail, 30000);
-			const otpInput = guestPage.locator('input#otp');
-			await otpInput.fill(otp);
-
-			const verifyButton = guestPage.getByRole('button', {
-				name: /verify code/i,
-			});
-			await verifyButton.click();
-
 			const passwordInput = guestPage.locator('input#password');
-			await passwordInput.waitFor({ state: 'visible', timeout: 15000 });
 
 			const confirmPasswordInput = guestPage.locator('input#confirmPassword');
 			await passwordInput.fill('Te1');
 			await confirmPasswordInput.fill('Te1');
 
-			const createAccountButton = guestPage.getByRole('button', {
-				name: /create account/i,
-			});
-			await createAccountButton.click();
+			await guestPage
+				.getByRole('button', { name: 'Continue', exact: true })
+				.click();
 
 			// Wait for validation error - specifically the .text-rose-400 error message
 			// Not the live indicator which also shows "At least 8 characters"
@@ -497,35 +489,24 @@ test.describe('Password Validation Errors', () => {
 
 		try {
 			const testEmail = generateTestEmail('mismatch-pass');
-			const success = await navigateToOtpStep(guestPage, testEmail);
+			const success = await navigateToPasswordStep(guestPage, testEmail);
 			if (!success) {
 				test.skip();
 				return;
 			}
 
-			const otp = await waitForOtp(testEmail, 30000);
-			const otpInput = guestPage.locator('input#otp');
-			await otpInput.fill(otp);
-
-			const verifyButton = guestPage.getByRole('button', {
-				name: /verify code/i,
-			});
-			await verifyButton.click();
-
 			const passwordInput = guestPage.locator('input#password');
-			await passwordInput.waitFor({ state: 'visible', timeout: 15000 });
 
 			const confirmPasswordInput = guestPage.locator('input#confirmPassword');
 			await passwordInput.fill('TestPass123!');
 			await confirmPasswordInput.fill('DifferentPass456!');
 
-			const createAccountButton = guestPage.getByRole('button', {
-				name: /create account/i,
-			});
-			await createAccountButton.click();
+			await guestPage
+				.getByRole('button', { name: 'Continue', exact: true })
+				.click();
 
 			const validationError = guestPage.locator(
-				".text-rose-400:has-text(\"don't match\")"
+				'.text-rose-400:has-text("don\'t match")'
 			);
 			const hasError = await validationError.isVisible().catch(() => false);
 
@@ -576,44 +557,38 @@ test.describe('Back Navigation', () => {
 			const backButton = guestPage.getByRole('button', { name: /back/i });
 			await backButton.click();
 
-			// Should be back at email step
-			const emailInput = guestPage.locator('input#email');
-			await emailInput.waitFor({ state: 'visible', timeout: 3000 });
+			// OTP returns to password, which is the prior step in the real flow.
+			await guestPage
+				.locator('input#password')
+				.waitFor({ state: 'visible', timeout: 3000 });
 		} finally {
 			await cleanup();
 		}
 	});
 
-	test('can navigate back from password step', async ({ browser, testMapId }) => {
+	test('can navigate back from password step', async ({
+		browser,
+		testMapId,
+	}) => {
 		const session = await createAnonymousSessionViaJoin(browser, testMapId);
 		const { guestPage, cleanup } = session;
 
 		try {
 			const testEmail = generateTestEmail('back-pass');
-			const success = await navigateToOtpStep(guestPage, testEmail);
+			const success = await navigateToPasswordStep(guestPage, testEmail);
 			if (!success) {
 				test.skip();
 				return;
 			}
 
-			const otp = await waitForOtp(testEmail, 30000);
-			const otpInput = guestPage.locator('input#otp');
-			await otpInput.fill(otp);
-
-			const verifyButton = guestPage.getByRole('button', {
-				name: /verify code/i,
-			});
-			await verifyButton.click();
-
-			const passwordInput = guestPage.locator('input#password');
-			await passwordInput.waitFor({ state: 'visible', timeout: 15000 });
-
 			// Go back from password step
 			const backButton = guestPage.getByRole('button', { name: /back/i });
 			await backButton.click();
 
-			// Should be back at OTP step
-			await otpInput.waitFor({ state: 'visible', timeout: 3000 });
+			// Password returns to email, which is the prior step in the real flow.
+			await guestPage
+				.locator('input#email')
+				.waitFor({ state: 'visible', timeout: 3000 });
 		} finally {
 			await cleanup();
 		}

@@ -6,8 +6,8 @@ import { expect, Locator, Page } from '@playwright/test';
  * Handles the 5-step upgrade flow:
  * 1. choose_method - OAuth/Email selection
  * 2. enter_email - Email and display name input
- * 3. verify_otp - 6-digit OTP verification
- * 4. set_password - Password creation
+ * 3. set_password - Password creation
+ * 4. verify_otp - 6-digit OTP verification
  * 5. completed - Success confirmation
  */
 export class UpgradeModalPage {
@@ -28,19 +28,19 @@ export class UpgradeModalPage {
 	readonly displayNameInput: Locator;
 	readonly sendCodeButton: Locator;
 
-	// Step 3: Verify OTP
+	// Step 3: Set Password
+	readonly passwordInput: Locator;
+	readonly confirmPasswordInput: Locator;
+	readonly continueButton: Locator;
+
+	// Step 4: Verify OTP
 	readonly otpInput: Locator;
 	readonly verifyCodeButton: Locator;
 	readonly resendCodeButton: Locator;
 
-	// Step 4: Set Password
-	readonly passwordInput: Locator;
-	readonly confirmPasswordInput: Locator;
-	readonly createAccountButton: Locator;
-
 	// Step 5: Completed
 	readonly successMessage: Locator;
-	readonly continueButton: Locator;
+	readonly continueToDashboardButton: Locator;
 
 	// Error display
 	readonly errorMessage: Locator;
@@ -56,9 +56,7 @@ export class UpgradeModalPage {
 			has: page.locator('h2'),
 		});
 		this.backdrop = page.locator('.fixed.inset-0.bg-black\\/60');
-		this.closeButton = page.locator(
-			'.fixed.z-50 button:has(svg.lucide-x)'
-		);
+		this.closeButton = page.locator('.fixed.z-50 button:has(svg.lucide-x)');
 
 		// Step 1: Choose Method
 		this.googleOAuthButton = page.getByRole('button', {
@@ -76,23 +74,24 @@ export class UpgradeModalPage {
 		this.displayNameInput = page.locator('input#displayName');
 		this.sendCodeButton = page.getByRole('button', { name: /send code/i });
 
-		// Step 3: Verify OTP
+		// Step 3: Set Password
+		this.passwordInput = page.locator('input#password');
+		this.confirmPasswordInput = page.locator('input#confirmPassword');
+		this.continueButton = page.getByRole('button', {
+			name: 'Continue',
+			exact: true,
+		});
+
+		// Step 4: Verify OTP
 		this.otpInput = page.locator('input#otp');
 		this.verifyCodeButton = page.getByRole('button', {
 			name: /verify code/i,
 		});
 		this.resendCodeButton = page.locator('button:has-text("Resend")');
 
-		// Step 4: Set Password
-		this.passwordInput = page.locator('input#password');
-		this.confirmPasswordInput = page.locator('input#confirmPassword');
-		this.createAccountButton = page.getByRole('button', {
-			name: /create account/i,
-		});
-
 		// Step 5: Completed
 		this.successMessage = page.locator('text=Account Created!');
-		this.continueButton = page.getByRole('button', {
+		this.continueToDashboardButton = page.getByRole('button', {
 			name: /continue to dashboard/i,
 		});
 
@@ -128,8 +127,8 @@ export class UpgradeModalPage {
 		// Check which elements are visible to determine current step
 		if (await this.emailSignUpButton.isVisible()) return 'choose_method';
 		if (await this.sendCodeButton.isVisible()) return 'enter_email';
+		if (await this.continueButton.isVisible()) return 'set_password';
 		if (await this.verifyCodeButton.isVisible()) return 'verify_otp';
-		if (await this.createAccountButton.isVisible()) return 'set_password';
 		if (await this.successMessage.isVisible()) return 'completed';
 
 		// Check for error state
@@ -184,7 +183,42 @@ export class UpgradeModalPage {
 	}
 
 	// ============================================================================
-	// STEP 3: VERIFY OTP
+	// STEP 3: SET PASSWORD
+	// ============================================================================
+
+	async fillPassword(password: string, confirmPassword?: string) {
+		await this.passwordInput.fill(password);
+		await this.confirmPasswordInput.fill(confirmPassword ?? password);
+	}
+
+	async submitPassword() {
+		await this.continueButton.click();
+	}
+
+	async fillAndSubmitPassword(password: string) {
+		await this.fillPassword(password, password);
+		await this.submitPassword();
+	}
+
+	async goBackFromPassword() {
+		await this.backButton.click();
+		await this.emailInput.waitFor({ state: 'visible', timeout: 3000 });
+	}
+
+	async waitForPasswordStep(timeout = 10000) {
+		await this.passwordInput.waitFor({ state: 'visible', timeout });
+	}
+
+	async isPasswordRequirementMet(requirement: string): Promise<boolean> {
+		// Password requirements are shown as items with emerald color when met
+		const requirementItem = this.page.locator(
+			`.text-emerald-400:has-text("${requirement}")`
+		);
+		return await requirementItem.isVisible();
+	}
+
+	// ============================================================================
+	// STEP 4: VERIFY OTP
 	// ============================================================================
 
 	async fillOtp(otp: string) {
@@ -206,7 +240,7 @@ export class UpgradeModalPage {
 
 	async goBackFromOtp() {
 		await this.backButton.click();
-		await this.emailInput.waitFor({ state: 'visible', timeout: 3000 });
+		await this.passwordInput.waitFor({ state: 'visible', timeout: 3000 });
 	}
 
 	async waitForOtpStep(timeout = 10000) {
@@ -218,41 +252,6 @@ export class UpgradeModalPage {
 	}
 
 	// ============================================================================
-	// STEP 4: SET PASSWORD
-	// ============================================================================
-
-	async fillPassword(password: string, confirmPassword?: string) {
-		await this.passwordInput.fill(password);
-		await this.confirmPasswordInput.fill(confirmPassword ?? password);
-	}
-
-	async submitPassword() {
-		await this.createAccountButton.click();
-	}
-
-	async fillAndSubmitPassword(password: string) {
-		await this.fillPassword(password, password);
-		await this.submitPassword();
-	}
-
-	async goBackFromPassword() {
-		await this.backButton.click();
-		await this.otpInput.waitFor({ state: 'visible', timeout: 3000 });
-	}
-
-	async waitForPasswordStep(timeout = 10000) {
-		await this.passwordInput.waitFor({ state: 'visible', timeout });
-	}
-
-	async isPasswordRequirementMet(requirement: string): Promise<boolean> {
-		// Password requirements are shown as items with emerald color when met
-		const requirementItem = this.page.locator(
-			`.text-emerald-400:has-text("${requirement}")`
-		);
-		return await requirementItem.isVisible();
-	}
-
-	// ============================================================================
 	// STEP 5: COMPLETED
 	// ============================================================================
 
@@ -261,7 +260,7 @@ export class UpgradeModalPage {
 	}
 
 	async clickContinueToDashboard() {
-		await this.continueButton.click();
+		await this.continueToDashboardButton.click();
 	}
 
 	// ============================================================================
@@ -323,10 +322,10 @@ export class UpgradeModalPage {
 	) {
 		await this.selectEmailSignUp();
 		await this.fillAndSubmitEmail(email, displayName);
-		await this.waitForOtpStep();
-		await this.fillAndSubmitOtp(otp);
 		await this.waitForPasswordStep();
 		await this.fillAndSubmitPassword(password);
+		await this.waitForOtpStep();
+		await this.fillAndSubmitOtp(otp);
 		await this.waitForSuccess();
 	}
 }

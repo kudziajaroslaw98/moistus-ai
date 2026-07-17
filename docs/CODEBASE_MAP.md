@@ -58,6 +58,7 @@ total_tokens: 707972
 <!-- Updated: 2026-04-14 - Documented shared offline replay core, periodic notifications refresh, and settings background-sync status surface -->
 <!-- Updated: 2026-04-14 - Documented whole-map AI suggestion context/anchor fallback behavior -->
 <!-- Updated: 2026-04-14 - Documented suggestion novelty memory, literal full-map inputs, and duplicate suppression -->
+<!-- Updated: 2026-07-17 - Documented Polar checkout/webhook billing architecture and local return contract -->
 <!-- Updated: 2026-04-15 - Documented ELK edge-label layout metadata and stale-label invalidation rules -->
 <!-- Updated: 2026-04-19 - Documented ELK label center snapping onto routed edge segments -->
 <!-- Updated: 2026-04-19 - Documented route-specific helper boundaries for structured AI streaming routes -->
@@ -113,7 +114,7 @@ graph TB
         Supabase[(Supabase)]
         PartyKit[PartyKit Server]
         OpenAI[OpenAI GPT]
-        Stripe[Stripe]
+        Polar[Polar]
     end
 
     Canvas --> State
@@ -123,7 +124,7 @@ graph TB
     State --> API
     API --> Supabase
     AIRoutes --> OpenAI
-    BillingRoutes --> Stripe
+    BillingRoutes --> Polar
     API -.->|Admin disconnect| PartyKit
 ```
 
@@ -176,7 +177,9 @@ shiko/
 │   │   │   ├── maps/           # Map CRUD
 │   │   │   ├── nodes/          # Node operations
 │   │   │   ├── share/          # Room codes, collaboration
-│   │   │   ├── subscriptions/  # Stripe integration
+│   │   │   ├── checkout/       # Polar hosted checkout creation
+│   │   │   ├── subscriptions/  # Subscription cancellation/reactivation
+│   │   │   ├── webhooks/       # Signed Polar billing events
 │   │   │   ├── templates/      # Map templates
 │   │   │   └── user/           # Profile, billing
 │   │   ├── auth/               # Sign-in/up pages
@@ -266,7 +269,7 @@ shiko/
 | **nodes-slice**           | 900   | Node CRUD, positioning, real-time sync                                        |
 | **history-slice**         | 597   | Undo/redo, snapshots, DB persistence                                          |
 | **edges-slice**           | 635   | Edge CRUD, parent-child relationships                                         |
-| **subscription-slice**    | 434   | Stripe, plan limits, usage tracking                                           |
+| **subscription-slice**    | 434   | Polar checkout, plan limits, usage tracking                                   |
 | **guided-tour-slice**     | 416   | Prezi-style presentations                                                     |
 | **core-slice**            | 353   | Supabase client, user, map loading                                            |
 | **user-profile-slice**    | 317   | Profile, preferences                                                          |
@@ -360,10 +363,13 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 - `POST /api/auth/sign-up/initiate` → `verify-otp`
 - `POST /api/auth/upgrade-anonymous/initiate` → `verify-otp` → `set-password`
 
-**Subscriptions (4):**
+**Billing (7):**
 
-- `POST /api/subscriptions/create`
-- `POST /api/subscriptions/webhook` (Stripe)
+- `POST /api/checkout/create` - Creates a Pro-only Polar hosted checkout session
+- `POST /api/webhooks/polar` - Verifies signed Polar subscription events before persisting access
+- `GET /api/user/billing/portal` - Opens the Polar customer portal
+- `GET /api/user/billing/invoice` - Retrieves a Polar invoice
+- `GET /api/user/billing/usage` - Retrieves plan usage
 - `POST /api/subscriptions/[id]/cancel`
 - `POST /api/subscriptions/[id]/reactivate`
 

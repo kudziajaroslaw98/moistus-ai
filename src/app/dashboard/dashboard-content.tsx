@@ -17,6 +17,7 @@ import {
 	SelectValue,
 } from '@/components/ui/select';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import { waitForSubscriptionActivation } from '@/helpers/subscription/wait-for-subscription-activation';
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
@@ -31,7 +32,7 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR, { mutate } from 'swr';
 import { useShallow } from 'zustand/react/shallow';
@@ -78,17 +79,46 @@ const fetcher = async (url: string) => {
 export function DashboardContent() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
+	const checkoutActivationStarted = useRef(false);
 
 	// Handle checkout success redirect
 	useEffect(() => {
-		if (searchParams.get('checkout') === 'success') {
-			void useAppStore.getState().fetchUserSubscription();
-			toast.success('Subscription activated!', {
-				description: 'Welcome to Shiko Pro. Your account has been upgraded.',
-			});
-			window.history.replaceState({}, '', '/dashboard');
-			refreshUsageData();
+		if (
+			searchParams.get('checkout') !== 'success' ||
+			checkoutActivationStarted.current
+		) {
+			return;
 		}
+
+		checkoutActivationStarted.current = true;
+		window.history.replaceState({}, '', '/dashboard');
+		let cancelled = false;
+
+		void waitForSubscriptionActivation({
+			refreshSubscription: () => useAppStore.getState().fetchUserSubscription(),
+			isProUser: () => useAppStore.getState().isProUser(),
+		}).then((activated) => {
+			if (cancelled) {
+				return;
+			}
+
+			if (activated) {
+				toast.success('Subscription activated!', {
+					description: 'Welcome to Shiko Pro. Your account has been upgraded.',
+				});
+				refreshUsageData();
+				return;
+			}
+
+			toast.info('Payment received; activation is still pending.', {
+				description:
+					'We will enable Pro as soon as the signed billing update arrives. Refresh shortly.',
+			});
+		});
+
+		return () => {
+			cancelled = true;
+		};
 	}, [searchParams]);
 
 	// Trial state and user

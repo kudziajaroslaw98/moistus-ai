@@ -5,6 +5,27 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-07-17]
+
+### Added
+
+- **auth/pro-checkout-signup**: Yearly or monthly Pro selection now survives email signup and opens the matching Polar checkout after verification, with a retry action if checkout cannot be opened
+  - Why: People can finish the plan they selected without recreating their account
+
+### Fixed
+
+- **auth/signup-profile**: Verified email signups now upsert profiles by `user_id` while keeping existing profile identity fields canonical
+  - Why: Profile persistence no longer uses an incorrect key or replaces established names
+- **billing/checkout-activation**: Dashboard activation confirmation now waits for the signed Polar webhook to persist Pro access
+  - Why: A browser return from checkout alone is not proof that paid access is ready
+- **e2e/anonymous-upgrade**: Upgrade page objects and flow tests now follow email → password → OTP → completion
+  - Why: The previous tests described a stale, impossible OTP-first journey
+
+### Docs
+
+- **billing/configuration**: Documented the local Polar credentials, product IDs, webhook secret, and localhost checkout return contract in `.env.example` and the codebase map
+  - Why: Local billing checks now have one safe, shareable configuration reference
+
 ## [2026-04-22]
 
 ### Fixed

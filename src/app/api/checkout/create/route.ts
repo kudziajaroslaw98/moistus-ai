@@ -1,10 +1,13 @@
-import { createPolarClient, getAppUrl, getProductId } from '@/lib/polar';
+import { PRO_PLAN_ID } from '@/helpers/subscription/checkout-intent';
 import { createClient } from '@/helpers/supabase/server';
+import { createPolarClient, getAppUrl, getProductId } from '@/lib/polar';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 const CheckoutSchema = z.object({
-	planId: z.string().min(1, 'Plan ID is required'),
+	planId: z.literal(PRO_PLAN_ID, {
+		error: 'Only the Pro plan can be purchased through checkout',
+	}),
 	billingInterval: z.enum(['monthly', 'yearly'], {
 		error: 'Billing interval must be "monthly" or "yearly"',
 	}),
@@ -21,10 +24,7 @@ export async function POST(req: NextRequest) {
 				.map((issue) => issue.message)
 				.join(', ');
 			console.log('[Checkout] Validation failed:', errorMessage);
-			return NextResponse.json(
-				{ error: errorMessage },
-				{ status: 400 }
-			);
+			return NextResponse.json({ error: errorMessage }, { status: 400 });
 		}
 
 		const { planId, billingInterval } = parseResult.data;

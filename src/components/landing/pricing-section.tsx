@@ -1,6 +1,7 @@
 'use client';
 
 import { PRICING_TIERS } from '@/constants/pricing-tiers';
+import { getProSignupHref } from '@/helpers/subscription/checkout-intent';
 import { Check, X } from 'lucide-react';
 import { motion, useInView, useReducedMotion } from 'motion/react';
 import { useRef, useState } from 'react';
@@ -28,7 +29,10 @@ function formatPrice(price: number): string {
 		return price.toString();
 	}
 
-	return price.toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
+	return price
+		.toFixed(2)
+		.replace(/\.00$/, '')
+		.replace(/(\.\d)0$/, '$1');
 }
 
 export function PricingSection() {
@@ -187,9 +191,7 @@ export function PricingSection() {
 													{billingCycle === 'monthly'
 														? formatPrice(tier.monthlyPrice)
 														: formatPrice(
-																tier.yearlyPrice > 0
-																	? tier.yearlyPrice / 12
-																	: 0
+																tier.yearlyPrice > 0 ? tier.yearlyPrice / 12 : 0
 															)}
 												</span>
 												<span className='text-text-secondary'>/month</span>
@@ -238,7 +240,7 @@ export function PricingSection() {
 												href={
 													tier.id === 'free'
 														? '/dashboard'
-														: '/auth/sign-up?plan=pro'
+														: getProSignupHref(billingCycle)
 												}
 												idleLabel={tier.ctaText}
 												className={`inline-flex h-11 w-full items-center justify-center rounded-xl px-4 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
