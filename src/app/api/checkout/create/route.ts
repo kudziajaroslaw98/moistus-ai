@@ -1,3 +1,4 @@
+import { getCheckoutErrorResponse } from '@/helpers/subscription/checkout-error';
 import { PRO_PLAN_ID } from '@/helpers/subscription/checkout-intent';
 import { createClient } from '@/helpers/supabase/server';
 import { createPolarClient, getAppUrl, getProductId } from '@/lib/polar';
@@ -90,12 +91,15 @@ export async function POST(req: NextRequest) {
 			sessionId: checkout.id,
 		});
 	} catch (error) {
-		console.error('Checkout creation error:', error);
+		const checkoutError = getCheckoutErrorResponse(error);
+		console.error('Checkout creation error:', {
+			name: error instanceof Error ? error.name : 'UnknownError',
+			status: checkoutError.status,
+		});
 
-		// Never expose raw API details - use generic message with clear next steps
 		return NextResponse.json(
-			{ error: 'Something went wrong. Please try again or contact support.' },
-			{ status: 500 }
+			{ error: checkoutError.error },
+			{ status: checkoutError.status }
 		);
 	}
 }
